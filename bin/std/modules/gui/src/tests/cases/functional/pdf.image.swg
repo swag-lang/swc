@@ -15,13 +15,25 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 // Every bit depth expands to the same eight-bit samples.
 #test
 {
-    // Two rows of four one-bit samples; each row is padded to a byte.
-    let oneBit: [2] u8 = [0b1010_0000, 0b0101_0000]
-    let bilevel        = imageDocument("/Type /XObject /Subtype /Image /Width 4 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1", oneBit)
-    let bilevelImage   = unwrap onlyItem(bilevel.pages[0], .Image).imageValue()
-    Swag.require(bilevelImage.width == 4 and bilevelImage.height == 2)
-    Swag.require(bilevelImage.pixelColor(0, 0).r == 255 and bilevelImage.pixelColor(1, 0).r == 0)
-    Swag.require(bilevelImage.pixelColor(0, 1).r == 0 and bilevelImage.pixelColor(1, 1).r == 255)
+    // Nine samples per row exercise a complete byte, a tail bit, and nonzero padding.
+    let oneBit: [4] u8 = [0b1010_1010, 0xFF, 0b0101_0101, 0x7F]
+    for decode in ["", "/Decode [1 0]"]
+    {
+        let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width 9 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1 %", decode)
+        let bilevel    = imageDocument(dictionary.toString(), oneBit)
+        let image      = unwrap onlyItem(bilevel.pages[0], .Image).imageValue()
+        Swag.require(image.width == 9 and image.height == 2)
+        for y in 2
+        {
+            for x in 9
+            {
+                let isWhite = ((x + y) % 2 == 0) == (decode == "")
+                let wanted  = isWhite ? 255'u8 : 0'u8
+                let pixel   = image.pixelColor(cast(s32, x), cast(s32, y))
+                Swag.require(pixel.r == wanted and pixel.g == wanted and pixel.b == wanted)
+            }
+        }
+    }
 
     // Four-bit samples: 0, 5, 10, and 15 sixteenths of full intensity.
     let fourBit: [2] u8 = [0x05, 0xAF]

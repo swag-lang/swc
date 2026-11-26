@@ -163,6 +163,17 @@ private func(const Inverted: bool) expandMask1(destination: [*] u8, source: cons
     }
 }
 
+private func(const Inverted: bool) expandGray1(destination: [*] u8, source: const [*] u8, width, height, rowBytes: u64)
+{
+    var row: Array'u8
+    row.resize(width)
+    for y in height
+    {
+        expandMask1'Inverted(row.storage(), source + y * rowBytes, width, 1, rowBytes)
+        expandGray8(destination + y * width * 3, row.storage(), width)
+    }
+}
+
 private func colorKey8(destination: [*] u8, source: const [*] u8, count: u64, lower, upper: s64)
 {
     if lower > 255 or upper < 0 or lower > upper
@@ -638,6 +649,17 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
     }
 
     result.rgb.resize(pixelCount * 3)
+    if depth == 1 and space.kind == .Gray and space.components == 1 and
+       ((lowest[0] == 0 and highest[0] == 1) or (lowest[0] == 1 and highest[0] == 0))
+    {
+        if lowest[0] == 1 do
+            expandGray1'(true)(result.rgb.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
+        else do
+            expandGray1'(false)(result.rgb.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
+        try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
+        return result
+    }
+
     if depth == 8 and decodeId == InvalidNode and space.kind == .Gray and space.components == 1
     {
         expandGray8(result.rgb.storage(), bytes.storage(), pixelCount)

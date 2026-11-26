@@ -1,0 +1,291 @@
+[
+  {
+    "file": "sample1.pdf",
+    "source": "FileSamples",
+    "workload": "illustrated document",
+    "pages": [
+      1
+    ],
+    "sha256": "6b22904a7de5b77bf40598c37e94e01771485e1b900651b58bf50af7009f8056"
+  },
+  {
+    "file": "sample2.pdf",
+    "source": "FileSamples",
+    "workload": "progressive JPEG and text",
+    "pages": [
+      1
+    ],
+    "sha256": "129bc2b734e361dab87b19aab1f19b7a2f924e05f156a4c2dada2267cd2f9a79"
+  },
+  {
+    "file": "sample3.pdf",
+    "source": "FileSamples",
+    "workload": "text, vector shapes, subpixel dashes",
+    "pages": [
+      1
+    ],
+    "sha256": "a16cff406a7b806ad3b30803d46c413b13b6036af4947847e0e30655c61b752a"
+  },
+  {
+    "file": "pdfbox-tiger.pdf",
+    "url": "https://raw.githubusercontent.com/apache/pdfbox/d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d/pdfbox/src/test/resources/input/rendering/tiger-as-form-xobject.pdf",
+    "source": "Apache PDFBox",
+    "workload": "dense vector forms",
+    "pages": [
+      1
+    ],
+    "sha256": "ab356726b3d0bc0e48d0312a4369aa45d21e68d8db2ac2f61f71d99d52eec68f"
+  },
+  {
+    "file": "pdfbox-jpeg.pdf",
+    "url": "https://raw.githubusercontent.com/apache/pdfbox/d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d/pdfbox/src/test/resources/input/merge/jpegrgb.pdf",
+    "source": "Apache PDFBox",
+    "workload": "RGB JPEG photograph",
+    "pages": [
+      1
+    ],
+    "sha256": "e4777c29ec90646d4e3c98f260926050badba2d19dc26f9cff565e47927f2565"
+  },
+  {
+    "file": "pdfbox-ligatures.pdf",
+    "url": "https://raw.githubusercontent.com/apache/pdfbox/d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutLigaturesAndKerning.pdf",
+    "source": "Apache PDFBox",
+    "workload": "ligatures and embedded fonts",
+    "pages": [
+      1
+    ],
+    "sha256": "b00f9d515e0ba59180432fa51be96343085492bc66cbdb5fcdef8782f3a609be"
+  },
+  {
+    "file": "pdfbox-rotation.pdf",
+    "url": "https://raw.githubusercontent.com/apache/pdfbox/d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d/pdfbox/src/test/resources/input/rotation.pdf",
+    "source": "Apache PDFBox",
+    "workload": "rotated page and inherited resources",
+    "pages": [
+      1
+    ],
+    "sha256": "5087c2afe763d145537d652bb3bc6c321ace3a267b2679ae2c178add3ba7f1d9"
+  },
+  {
+    "file": "pdfbox-scan.pdf",
+    "url": "https://raw.githubusercontent.com/apache/pdfbox/d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d/pdfbox/src/test/resources/input/merge/multitiff.pdf",
+    "source": "Apache PDFBox",
+    "workload": "scanned pages",
+    "pages": [
+      1
+    ],
+    "sha256": "c1b465746f17204420348015845c8979c6bdbdaaf07616d122ab6ffec00eaf15"
+  },
+  {
+    "file": "tracemonkey.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/tracemonkey.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "real research paper, text, tables and plots",
+    "pages": [
+      1,
+      6,
+      9
+    ],
+    "sha256": "3662ff519e485810520552bf301d8c3b2b917fd2f83303f4965d7abed367e113"
+  },
+  {
+    "file": "perf_paths_operators.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_operators.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "repeated graphics operators",
+    "pages": [
+      1
+    ],
+    "sha256": "13e0dd366ca953b342405dd882f62e47288a840e56d6a92bd10f58c59a0523a4"
+  },
+  {
+    "file": "perf_paths_polygons.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_polygons.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "dense polygons",
+    "pages": [
+      1
+    ],
+    "sha256": "29fc8f0396d43a68243a1f80af9a623237288cd2b1eb9f12dadfc7bdd2475312"
+  },
+  {
+    "file": "perf_paths_curves.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_curves.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "dense cubic curves",
+    "pages": [
+      1
+    ],
+    "sha256": "63646063d2f4dfb147c6732c4f4c11c72719bedc2019731ded56a935d5fb336c"
+  },
+  {
+    "file": "perf_paths_map.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_map.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "map paths",
+    "pages": [
+      1
+    ],
+    "sha256": "1940d9c7aa586cf92e68b4b4f702615d5bfb8cb8d86296f65b2e1b3e86c1d213"
+  },
+  {
+    "file": "perf_paths_hairlines.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_hairlines.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "thin vector strokes",
+    "pages": [
+      1
+    ],
+    "sha256": "b6b7d2f503264659b6959a728b8073699c7f4dc227261c9fed262d25f1d0877b"
+  },
+  {
+    "file": "perf_paths_clips.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_clips.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "clipped vector shapes",
+    "pages": [
+      1
+    ],
+    "sha256": "848caa80670465a474cc4294907b41fbe0efc47d41897fbae69d5607afce21f3"
+  },
+  {
+    "file": "perf_text_cmap_mixed.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_text_cmap_mixed.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "mixed text encodings",
+    "pages": [
+      1
+    ],
+    "sha256": "1802c3dbd062817a17f57a2e2c192a083c01675c5b969f9529b46b4ff57697e3"
+  },
+  {
+    "file": "perf_text_transformed.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_text_transformed.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "transformed and scaled text",
+    "pages": [
+      1
+    ],
+    "sha256": "d0d151f230d2d2a04fde55ed49952d2878d5e1dc47848fbd852c0211b2bf454e"
+  },
+  {
+    "file": "perf_text_type3_vector.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_text_type3_vector.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "Type 3 vector glyphs",
+    "pages": [
+      1
+    ],
+    "sha256": "2ed808d7c9a39c51717be6734afb35f5ce20d7d23b9456ddd1a48ddcca7e739a"
+  },
+  {
+    "file": "perf_images_jpeg_large.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_jpeg_large.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "large JPEG downscale",
+    "pages": [
+      1
+    ],
+    "sha256": "d525f5852cff16a1003f644bc9558e07e0002e0e7cddddc6503ca5033316c60a"
+  },
+  {
+    "file": "perf_images_jpeg_thumbnails.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_jpeg_thumbnails.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "JPEG thumbnails",
+    "pages": [
+      1
+    ],
+    "sha256": "f857f874c5bf5d49c8c6088ddac24d74317a1262fb7a92a045dec959131199ab"
+  },
+  {
+    "file": "perf_images_repeated.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_repeated.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "reused image XObject",
+    "pages": [
+      1
+    ],
+    "sha256": "5e23b4eb37ff836298b56e44f5edbe95a44e3f686a7f6fdbde55c68f2eda1a93"
+  },
+  {
+    "file": "perf_images_scan_gray.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_scan_gray.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "grayscale scan",
+    "pages": [
+      1
+    ],
+    "sha256": "a2404eebb2dd6f7451009dc8034e0236c03db43d36c5f49f916d0a67257e39e8"
+  },
+  {
+    "file": "perf_images_scan_bilevel.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_scan_bilevel.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "bilevel scan",
+    "pages": [
+      1
+    ],
+    "sha256": "3fabd640596805188db89117c50613e1897502329ac16ac4cab8a1049fb86ad8"
+  },
+  {
+    "file": "perf_images_flate_predictor.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_flate_predictor.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "Flate images with predictors",
+    "pages": [
+      1
+    ],
+    "sha256": "eeb2ff24205f17c0974769a720b6bcd49453ebca8f56d9acd0deba02ea2e76b1"
+  },
+  {
+    "file": "perf_images_smask.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_smask.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "image soft masks",
+    "pages": [
+      1
+    ],
+    "sha256": "91e10c78568c8dd3cfb3397612358650ba0418f9c3bb520672da29b9e089dadd"
+  },
+  {
+    "file": "perf_structure_forms.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_structure_forms.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "repeated Form XObjects",
+    "pages": [
+      1
+    ],
+    "sha256": "ca5755a52655abc11fbcc8c18bab9cbaea68f285fb9364145700565969b94bd2"
+  },
+  {
+    "file": "perf_transparency_blend_modes.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_transparency_blend_modes.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "transparency and blend modes",
+    "pages": [
+      1
+    ],
+    "sha256": "6acc9ef1309d383a5deb2dbccab560b0855d0b53234d1f38853796ba0d603ccc"
+  },
+  {
+    "file": "perf_transparency_soft_masks.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_transparency_soft_masks.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "transparency soft masks",
+    "pages": [
+      1
+    ],
+    "sha256": "3cc075990d51da1f0ee7dc2b6e9621c8ae71586ff7cdd3664c6731e8e641f9a8"
+  },
+  {
+    "file": "perf_patterns_tiling_images.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_patterns_tiling_images.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "tiling patterns",
+    "pages": [
+      1
+    ],
+    "sha256": "0bd885aef9f8a2a7ebb9f8afdac1bb69a031790caf48f1ed7f34a4786c599fc6"
+  }
+]

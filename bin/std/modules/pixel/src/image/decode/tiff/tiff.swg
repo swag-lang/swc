@@ -274,7 +274,7 @@ private impl StripReader
         let rowBytes  = cast(u64, .width) * .samples
         let samples   = .samples
         let grayMask  = .photometric == PHOTO_WHITE_IS_ZERO ? 255'u8 : 0'u8
-        let grayscale = samples == 1 and .photometric != PHOTO_PALETTE
+        let palette   = .photometric == PHOTO_PALETTE
 
         // Borrow raw strips directly. Only compression or the predictor needs writable scratch.
         var decoded:       Array'u8
@@ -300,7 +300,7 @@ private impl StripReader
             }
 
             var strip = srcPtr
-            if .compression != COMPRESSION_NONE or (.predictor == 2 and not grayscale)
+            if .compression != COMPRESSION_NONE or (.predictor == 2 and palette)
             {
                 decoded.reserve(stripBytes)
                 let scratch = decoded.storage()
@@ -318,7 +318,7 @@ private impl StripReader
             for y in rowsInStrip
             {
                 let offset = cast(u64, y) * rowBytes
-                if .predictor == 2 and not grayscale
+                if .predictor == 2 and palette
                 {
                     let row = decoded.storage() + offset
                     for i in rowBytes - samples do
@@ -330,7 +330,10 @@ private impl StripReader
                 var dst    = .destination + cast(u64, dstY) * .rowStride
                 if samples != 1
                 {
-                    Memory.copy(dst, source, rowBytes)
+                    if .predictor == 2 do
+                        PackedPixel.restoreHorizontalDeltas(source, dst, rowBytes, samples)
+                    else do
+                        Memory.copy(dst, source, rowBytes)
                 }
                 elif .photometric == PHOTO_PALETTE
                 {

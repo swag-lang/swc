@@ -36,6 +36,15 @@ REFERENCES = {
     "chacha20-poly1305": {"OpenSSL": "chacha20-poly1305"},
     "aes-256-gcm": {"OpenSSL": "aes-256-gcm"},
 }
+DEFAULT_ALGORITHMS = tuple(REFERENCES)
+PUBLIC_KEY_SIZES = {
+    "x25519-public": (32,),
+    "x25519-shared": (32,),
+    "ed25519-public": (32,),
+    "ed25519-sign": (64, 4096),
+    "p256-public": (32,),
+}
+REFERENCES.update({name: {"OpenSSL": name} for name in PUBLIC_KEY_SIZES})
 
 
 def program(value):
@@ -109,11 +118,13 @@ def compare(work, name, size, offset, runners, rounds, target_ms, clock, verify_
 
 
 def summarize(rows, swag_labels, clock):
-    lines = ["| Algorithm | Bytes | Offset | Swag build | Comparator | Swag GB/s | "
-             "Comparator GB/s | Paired speed ratio (95% CI) |",
-             "| --- | ---: | ---: | --- | --- | ---: | ---: | ---: |"]
+    lines = ["| Algorithm | Bytes | Offset | Swag build | Comparator | Unit | Swag rate | "
+             "Comparator rate | Paired speed ratio (95% CI) |",
+             "| --- | ---: | ---: | --- | --- | --- | ---: | ---: | ---: |"]
     for row in rows:
-        rates = {label: [row["bytes"] * series["iterations"] / elapsed / 1e9
+        public_key = row["algorithm"] in PUBLIC_KEY_SIZES
+        unit, scale = ("ops/s", 1) if public_key else ("GB/s", row["bytes"] / 1e9)
+        rates = {label: [scale * series["iterations"] / elapsed
                         for elapsed in series[clock]]
                  for label, series in row["samples"].items()}
         if not rates:
@@ -124,7 +135,7 @@ def summarize(rows, swag_labels, clock):
         for label in swag_labels:
             ratio = paired_ratio(rates[label], rates[reference])
             lines.append(f"| {row['algorithm']} | {row['bytes']} | {row['offset']} | "
-                         f"{label} | {reference} | {estimate(rates[label]).value:.3g} | "
+                         f"{label} | {reference} | {unit} | {estimate(rates[label]).value:.3g} | "
                          f"{reference_rate:.3g} | {ratio.value:.3g} "
                          f"[{ratio.low:.3g}, {ratio.high:.3g}] |")
             if label == swag_labels[0]:
@@ -132,7 +143,7 @@ def summarize(rows, swag_labels, clock):
             baseline = swag_labels[0]
             gain = paired_ratio(rates[label], rates[baseline])
             lines.append(f"| {row['algorithm']} | {row['bytes']} | {row['offset']} | "
-                         f"{label} | {baseline} | {estimate(rates[label]).value:.3g} | "
+                         f"{label} | {baseline} | {unit} | {estimate(rates[label]).value:.3g} | "
                          f"{estimate(rates[baseline]).value:.3g} | {gain.value:.3g} "
                          f"[{gain.low:.3g}, {gain.high:.3g}] |")
     return "\n".join(lines) + "\n"
@@ -165,14 +176,20 @@ def main():
     parser.add_argument("--markdown", type=Path)
     args = parser.parse_args()
 
-    sizes, offsets = args.size or [64, 4096, 65536, 1048576], args.offset or [0]
-    algorithms = args.algorithm or REFERENCES
+    algorithms = args.algorithm or DEFAULT_ALGORITHMS
+    offsets = args.offset or [0]
+    sizes = {name: args.size or PUBLIC_KEY_SIZES.get(name, (64, 4096, 65536, 1048576))
+             for name in algorithms}
     labels = [label for label, _ in args.swag]
     if (len(set(labels)) != len(labels) or
         any(label in refs for refs in REFERENCES.values() for label in labels)):
         parser.error("Swag labels must be unique and distinct from reference labels")
-    if any(size < 0 or (size == 0 and not args.verify_only) for size in sizes):
+    if any(size < 0 or (size == 0 and not args.verify_only)
+           for row in sizes.values() for size in row):
         parser.error("sizes must be positive for timing and nonnegative for verification")
+    for name in PUBLIC_KEY_SIZES:
+        if name in sizes and name != "ed25519-sign" and any(size != 32 for size in sizes[name]):
+            parser.error(f"{name} requires a 32-byte input")
     if any(offset < 0 for offset in offsets):
         parser.error("offsets must be nonnegative")
     if args.rounds < 6 or args.target_ms < 1:
@@ -195,12 +212,12 @@ def main():
             runners = {label: (args.reference, algorithm)
                        for label, algorithm in REFERENCES[name].items()}
             runners.update({label: (executable, name) for label, executable in args.swag})
-            for size in sizes:
+            for size in sizes[name]:
                 for offset in offsets:
                     row = compare(Path(directory), name, size, offset, runners, args.rounds,
                                   args.target_ms, args.clock, args.verify_only, order)
                     report["rows"].append(row)
-            print(f"Verified {name} ({len(sizes) * len(offsets)} inputs)", flush=True)
+            print(f"Verified {name} ({len(sizes[name]) * len(offsets)} inputs)", flush=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     if args.markdown:
         args.markdown.write_text(summarize(report["rows"], labels, args.clock), encoding="utf-8")

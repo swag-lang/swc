@@ -56,3 +56,4 @@ optimizations moved each result.
 - [Poly1305 keyed-state cleanup](poly1305-cleanup.md)
 - [Packed SHA-512 message schedule](sha512-schedule.md)
 - [Direct SHA-3 and SHAKE sponge input](sha3-direct.md)
+- [Baseline public-key comparison](asymmetric-baseline.md)

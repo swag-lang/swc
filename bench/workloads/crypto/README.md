@@ -65,3 +65,11 @@ is the baseline. Repeat `--algorithm` and `--size` to select a subset. `--verify
 timings and can be combined with `--offset 1` to check unaligned input.
 
 [Recorded comparison](../../results/crypto/20261126/README.md).
+
+
+The public-key operations are selected individually with `--algorithm x25519-public`,
+`x25519-shared`, `ed25519-public`, `ed25519-sign` and `p256-public`. Fixed-size key inputs
+are 32 bytes. Ed25519 signing defaults to 64-byte and 4 KiB messages. Public-key rows
+report operations per second. OpenSSL receives a raw key or seed on each call, just
+as Swag does. The P-256 comparator uses OpenSSL's fixed-base EC multiplication with
+the group and scratch containers allocated before timing.

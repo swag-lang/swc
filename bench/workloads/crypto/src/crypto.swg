@@ -55,6 +55,21 @@ func chacha20Poly1305(input: const [..] u8, output: [..] u8) =>
 func aes256Gcm(input: const [..] u8, output: [..] u8) =>
     expect Crypto.aesGcmEncrypt(Key, Nonce, AssociatedData, input, output[until input.count], output[input.count until output.count])
 
+func x25519Public(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.x25519PublicKey(input, output)
+
+func x25519Shared(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.x25519SharedSecret(Key, input, output)
+
+func ed25519Public(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.ed25519PublicKey(input, output)
+
+func ed25519Sign(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.ed25519Sign(Key, input, output)
+
+func p256Public(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.p256PublicKey(input, output)
+
 func selectOperation(name: string, size: u64)->{operation: Operation, outputSize: u64}
 {
     switch name
@@ -78,6 +93,11 @@ func selectOperation(name: string, size: u64)->{operation: Operation, outputSize
     case "chacha20":          return {&chacha20, size}
     case "chacha20-poly1305": return {&chacha20Poly1305, size + 16}
     case "aes-256-gcm":       return {&aes256Gcm, size + 16}
+    case "x25519-public":     return {&x25519Public, 32}
+    case "x25519-shared":     return {&x25519Shared, 32}
+    case "ed25519-public":    return {&ed25519Public, 32}
+    case "ed25519-sign":      return {&ed25519Sign, 64}
+    case "p256-public":       return {&p256Public, 65}
     default:                  unreachable
     }
 }

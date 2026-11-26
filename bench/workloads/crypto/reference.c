@@ -5,6 +5,7 @@
 #include <isal_api.h>
 #include <libdeflate.h>
 #include <openssl/crypto.h>
+#include <openssl/ec.h>
 #include <openssl/evp.h>
 #include <zlib.h>
 
@@ -30,6 +31,10 @@ static EVP_CIPHER_CTX *cipher_context;
 static EVP_MAC *mac;
 static EVP_MAC_CTX *mac_context;
 static int authenticated;
+static EC_GROUP *p256_group;
+static EC_POINT *p256_point;
+static BN_CTX *p256_context;
+static BIGNUM *p256_scalar;
 
 typedef void (*operation)(const unsigned char *, size_t, unsigned char *);
 
@@ -130,6 +135,67 @@ static void encrypt_evp(const unsigned char *p, size_t n, unsigned char *out)
                 "OpenSSL authentication tag failed");
 }
 
+static EVP_PKEY *import_private(const char *name, const unsigned char *bytes, size_t size)
+{
+    EVP_PKEY *private_key = EVP_PKEY_new_raw_private_key_ex(NULL, name, NULL, bytes, size);
+    require(private_key != NULL, "OpenSSL could not import private key");
+    return private_key;
+}
+
+static void export_raw_public(const char *name, const unsigned char *p, size_t n,
+                              unsigned char *out)
+{
+    EVP_PKEY *private_key = import_private(name, p, n);
+    size_t used = 32;
+    require(EVP_PKEY_get_raw_public_key(private_key, out, &used) && used == 32,
+            "OpenSSL could not derive raw public key");
+    EVP_PKEY_free(private_key);
+}
+
+static void x25519_public(const unsigned char *p, size_t n, unsigned char *out)
+{
+    export_raw_public("X25519", p, n, out);
+}
+
+static void x25519_shared(const unsigned char *p, size_t n, unsigned char *out)
+{
+    EVP_PKEY *private_key = import_private("X25519", key, sizeof(key) - 1);
+    EVP_PKEY *peer = EVP_PKEY_new_raw_public_key_ex(NULL, "X25519", NULL, p, n);
+    EVP_PKEY_CTX *context = EVP_PKEY_CTX_new_from_pkey(NULL, private_key, NULL);
+    size_t used = 32;
+    require(peer && context && EVP_PKEY_derive_init(context) &&
+            EVP_PKEY_derive_set_peer(context, peer) &&
+            EVP_PKEY_derive(context, out, &used) && used == 32,
+            "OpenSSL could not derive X25519 shared key");
+    EVP_PKEY_CTX_free(context);
+    EVP_PKEY_free(peer);
+    EVP_PKEY_free(private_key);
+}
+
+static void ed25519_public(const unsigned char *p, size_t n, unsigned char *out)
+{
+    export_raw_public("ED25519", p, n, out);
+}
+
+static void ed25519_sign(const unsigned char *p, size_t n, unsigned char *out)
+{
+    EVP_PKEY *private_key = import_private("ED25519", key, sizeof(key) - 1);
+    size_t used = 64;
+    require(EVP_DigestSignInit(digest_context, NULL, NULL, NULL, private_key) &&
+            EVP_DigestSign(digest_context, out, &used, p, n) && used == 64,
+            "OpenSSL could not sign with Ed25519");
+    EVP_PKEY_free(private_key);
+}
+
+static void p256_public(const unsigned char *p, size_t n, unsigned char *out)
+{
+    require(n == 32 && BN_bin2bn(p, (int)n, p256_scalar) &&
+            EC_POINT_mul(p256_group, p256_point, p256_scalar, NULL, NULL, p256_context) &&
+            EC_POINT_point2oct(p256_group, p256_point, POINT_CONVERSION_UNCOMPRESSED,
+                               out, 65, p256_context) == 65,
+            "OpenSSL could not derive P-256 public key");
+}
+
 static operation select_operation(const char *name, size_t input_size, size_t *result_size)
 {
     static const struct { const char *name; operation run; size_t size; } direct[] = {
@@ -142,12 +208,35 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
         {"crc64-xz", isal_xz, 8},
         {"crc64-xz-liblzma", xz_crc, 8},
         {"blake3", hash_blake3, 32},
+        {"x25519-public", x25519_public, 32},
+        {"x25519-shared", x25519_shared, 32},
+        {"ed25519-public", ed25519_public, 32},
     };
     for (size_t index = 0; index < sizeof(direct) / sizeof(direct[0]); ++index) {
         if (!strcmp(name, direct[index].name)) {
             *result_size = direct[index].size;
             return direct[index].run;
         }
+    }
+
+    if (!strcmp(name, "ed25519-sign")) {
+        digest_context = EVP_MD_CTX_new();
+        require(digest_context != NULL, "OpenSSL could not allocate a signing context");
+        *result_size = 64;
+        return ed25519_sign;
+    }
+
+    if (!strcmp(name, "p256-public")) {
+        p256_group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1);
+        require(p256_group != NULL, "OpenSSL could not create the P-256 group");
+        p256_point = EC_POINT_new(p256_group);
+        p256_context = BN_CTX_new();
+        p256_scalar = BN_new();
+        require(p256_point && p256_context && p256_scalar,
+                "OpenSSL could not allocate P-256 state");
+        BN_set_flags(p256_scalar, BN_FLG_CONSTTIME);
+        *result_size = 65;
+        return p256_public;
     }
 
     if (!strcmp(name, "poly1305")) {
@@ -238,6 +327,10 @@ int main(int argc, char **argv)
     EVP_CIPHER_free(cipher);
     EVP_MAC_CTX_free(mac_context);
     EVP_MAC_free(mac);
+    BN_clear_free(p256_scalar);
+    BN_CTX_free(p256_context);
+    EC_POINT_free(p256_point);
+    EC_GROUP_free(p256_group);
     free(input);
     free(result);
     return EXIT_SUCCESS;

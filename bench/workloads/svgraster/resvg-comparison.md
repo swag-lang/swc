@@ -223,3 +223,41 @@ bitmap comparison above. Thumbnail timings preserve the existing
 All bitmap and thumbnail CRC-64s matched the previous Swag build. The
 largest bitmap saved 30 ms in the raster phase and 39 ms in total. The
 generated dense fill went from 69.75 to 64.80 ms with the same CRC-64.
+
+## Curve projection and parallel scan rows
+
+An instrumented run of `76f5c0b911` on the largest original attributed
+about 111 ms to flattening, 105 ms to collecting crossings and 47 ms to
+sorting and compositing. The largest thumbnail spent about 113 ms flattening
+and 65 ms collecting crossings, with about 10 ms left for sorting and
+compositing. These timings include the instrumentation and are useful
+for locating the work in each path.
+
+Cubic flattening now reuses the normalized chord between the two
+control-point projections. Scan conversion tests each projected vertex
+for finiteness once and keeps each edge's interpolation constants across
+subrows. For large compound fills, direct CPU composition distributes the
+ready crossing lists and destination rows in 64-row bands. Each band
+owns its output and scratch storage. The jobs join before the next fill
+composites, preserving source order.
+
+The Release measurements alternate the previous Swag implementation at
+`76f5c0b911`, the revised implementation, and resvg 0.50.0. Each processor
+budget has seven runs. Swag used its direct bitmap parse option. The
+one-worker run was pinned to one logical CPU. The four-worker run let
+both programs use the same four logical CPUs. resvg renders a single
+SVG serially in both runs. Times include parsing and first rasterization.
+
+| Source size | Swag before, 1 worker (ms) | Swag after, 1 worker (ms) | resvg (ms) | Swag before, 4 workers (ms) | Swag after, 4 workers (ms) | resvg (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 640 × 426 | 5.89 | 5.41 | 6.23 | 6.71 | 4.67 | 7.06 |
+| 1280 × 853 | 24.13 | 22.26 | 21.08 | 26.36 | 18.84 | 23.51 |
+| 1920 × 1280 | 57.33 | 55.68 | 48.26 | 66.49 | 45.62 | 55.38 |
+| 5184 × 3456 | 308.64 | 288.74 | 266.21 | 307.40 | 263.38 | 254.70 |
+
+The largest output remains 2048 × 1365. Its 320 × 213 thumbnail, with
+two samples per axis, goes from 232.74 to 206.52 ms at one worker
+and from 241.56 to 202.19 ms at four. Each bitmap and thumbnail
+had the same CRC-64 across both Swag builds and both worker counts.
+The default parse path also kept its four bitmap checksums. The generated
+dense fill kept its checksum and went from 65.29 to 62.23 ms at one worker.

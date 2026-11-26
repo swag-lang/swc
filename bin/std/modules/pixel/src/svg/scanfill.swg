@@ -270,46 +270,22 @@ impl ScanFill
     }
 }
 
-private impl ScanFill
+private struct ScanRows
 {
-    // Fills spans from the winding of all contours. Horizontal coverage is integrated
-    // across each pixel and vertical coverage sampled at four evenly spaced positions.
-    mtd writeCoverage(paths: *LinePathList, transform: Transform2, density: f32, tile: Rectangle, color: Color, evenOdd: bool, scratch: *ScanScratch, image: *Image, composite: bool)
+    crossings:    [..] Array'Crossing
+    image:        *Image
+    width:        s32
+    bottomRow:    s32
+    columnOffset: u64
+    color:        Color
+    evenOdd:      bool
+    composite:    bool
+}
+
+private impl ScanRows
+{
+    mtd resolve(scratch: *ScanScratch, firstRow, lastRow: s32)
     {
-        func addEdge(rows: [..] Array'Crossing, a, b: Vector2, width: f32)
-        {
-            if a.y == b.y or
-               not Math.isFinite(a.x) or
-               not Math.isFinite(a.y) or
-               not Math.isFinite(b.x) or
-               not Math.isFinite(b.y) do
-                return
-            let top     = a.y < b.y ? a : b
-            let bottom  = a.y < b.y ? b : a
-            let limit   = cast(f32, rows.count)
-            let start   = cast(u64, Math.clamp(Math.ceil(top.y * VerticalSamples - 0.5), 0.0, limit))
-            let end     = cast(u64, Math.clamp(Math.ceil(bottom.y * VerticalSamples - 0.5), 0.0, limit))
-            let winding = a.y < b.y ? 1 : -1
-            if top.x == bottom.x
-            {
-                let crossing = Crossing{Math.clamp(top.x, 0, width), winding}
-                for row in start until end do
-                    rows[row].add(crossing)
-                return
-            }
-
-            for row in start until end
-            {
-                let y       = (cast(f32, row) + 0.5) / VerticalSamples
-                let portion = (cast(f64, y) - cast(f64, top.y)) / (cast(f64, bottom.y) - cast(f64, top.y))
-                let x       = cast(f32, cast(f64, top.x) + (cast(f64, bottom.x) - cast(f64, top.x)) * portion)
-
-                // Crossings outside the tile can share its boundary: between them
-                // there is no span of visible pixels, only a change of winding.
-                rows[row].add(Crossing{Math.clamp(x, 0, width), winding})
-            }
-        }
-
         func sortLine(line: *Array'Crossing, scratch: *Array'Crossing)
         {
             if line.count <= 8
@@ -373,87 +349,19 @@ private impl ScanFill
             }
         }
 
-        let width    = cast(s32, tile.width)
-        let height   = cast(s32, tile.height)
-        let rowCount = cast(u64, height) * VerticalSamples
-        if scratch.rows.count < rowCount do
-            scratch.rows.resize(rowCount)
-        let crossings = scratch.rows.toSlice()[0 until rowCount]
-        for &line in crossings do
-            line.clear()
-        let origin      = Vector2{tile.x, tile.y}
-        let scale       = transform.axisScale()
-        let useBands    = .bands.count and transform.m12 == 0
-        let useBuckets  = .buckets.count and transform.m12 == 0
-        let bandCount   = useBuckets ? .buckets.count : (useBands ? .bands.count : 1'u64)
-        let axisAligned = transform.m12 == 0 and transform.m21 == 0
-        let useColumns  = axisAligned and
-                          tile.width < .bounds.width * Math.abs(transform.m11) * density and
-                          Math.isFinite((.bounds.y * transform.m22 + transform.ty) * density - tile.y) and
-                          Math.isFinite((.bounds.bottom() * transform.m22 + transform.ty) * density - tile.y)
-        let useRows = axisAligned and tile.height < .bounds.height * Math.abs(transform.m22) * density
-        for band in bandCount
-        {
-            var first = 0'u64
-            var end   = paths.paths.count
-            var indices: const [..] u32 = []
-            if useBuckets
-            {
-                let bucket = &.buckets[band]
-                if bucket.indices.isEmpty() or bucket.bounds.misses(transform, density, tile) do
-                    continue
-                indices = bucket.indices.toSlice()
-                end     = indices.count
-            }
-            elif useBands
-            {
-                if .bands[band].misses(transform, density, tile) do
-                    continue
-                first = band * ScanBandSize
-                end   = first + Math.min(ScanBandSize, end - first)
-            }
-
-            for index in first until end
-            {
-                let path = paths.paths[useBuckets ? cast(u64, indices[index]) : index]
-
-                path.flattenPoints(.Normal, Math.max(scale.x, scale.y) * density)
-
-                // A closed contour outside either tile axis contributes no visible span.
-                if (useColumns and scanIntervalMisses(path.minBounds.x, path.maxBounds.x, transform.m11, transform.tx, density, tile.x, tile.width)) or
-                   (useRows and scanIntervalMisses(path.minBounds.y, path.maxBounds.y, transform.m22, transform.ty, density, tile.y, tile.height))
-                {
-                    var finite = true
-                    for point in path.polygon.points where not point.isFinite()
-                    {
-                        finite = false
-                        break
-                    }
-
-                    if finite do
-                        continue
-                }
-
-                let points = path.polygon.points.toSlice()
-                if points.count < 2 do
-                    continue
-                var previous = transform.transformPoint(points[points.count - 1]) * density - origin
-                for point in points
-                {
-                    let next = transform.transformPoint(point) * density - origin
-                    addEdge(crossings, previous, next, tile.width)
-                    previous = next
-                }
-            }
-        }
-
+        let crossings    = .crossings
+        let image        = .image
+        let width        = .width
+        let color        = .color
+        let ink          = color.argb & 0x00FF_FFFF
+        let columnOffset = .columnOffset
+        let bottomRow    = .bottomRow
+        let evenOdd      = .evenOdd
+        let composite    = .composite
         if scratch.coverage.count < cast(u64, width) do
             scratch.coverage.resize(cast(u64, width))
-        let coverage     = scratch.coverage.storage()
-        let ink          = color.argb & 0x00FF_FFFF
-        let columnOffset = composite ? cast(u64, tile.x) * 4 : 0'u64
-        let bottomRow    = composite ? image.height - 1 - cast(s32, tile.y) : height - 1
-        for row in height
+        let coverage = scratch.coverage.storage()
+        for row in firstRow until lastRow
         {
             Memory.clear(coverage, cast(u64, width) * #sizeof(f32))
             for sample in VerticalSamples
@@ -522,5 +430,164 @@ private impl ScanFill
                 pixel[3] = cast(u8, Math.round(Math.min(coverage[column] / VerticalSamples, 1) * color.a))
             }
         }
+    }
+}
+
+private impl ScanFill
+{
+    // Fills spans from the winding of all contours. Horizontal coverage is integrated
+    // across each pixel and vertical coverage sampled at four evenly spaced positions.
+    mtd const writeCoverage(paths: *LinePathList, transform: Transform2, density: f32, tile: Rectangle, color: Color, evenOdd: bool, scratch: *ScanScratch, image: *Image, composite: bool)
+    {
+        #[Swag.Inline]
+        func project(point: Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool)->Vector2
+        {
+            if uniform do
+                return point * transform.m11 - origin
+            return transform.transformPoint(point) * density - origin
+        }
+
+        func addEdge(rows: [..] Array'Crossing, a, b: Vector2, width: f32)
+        {
+            if a.y == b.y do
+                return
+            let top     = a.y < b.y ? a : b
+            let bottom  = a.y < b.y ? b : a
+            let limit   = cast(f32, rows.count)
+            let start   = cast(u64, Math.clamp(Math.ceil(top.y * VerticalSamples - 0.5), 0.0, limit))
+            let end     = cast(u64, Math.clamp(Math.ceil(bottom.y * VerticalSamples - 0.5), 0.0, limit))
+            let winding = a.y < b.y ? 1 : -1
+            if top.x == bottom.x
+            {
+                let crossing = Crossing{Math.clamp(top.x, 0, width), winding}
+                for row in start until end do
+                    rows[row].add(crossing)
+                return
+            }
+
+            let topX = cast(f64, top.x)
+            let topY = cast(f64, top.y)
+            let dx   = cast(f64, bottom.x) - topX
+            let dy   = cast(f64, bottom.y) - topY
+            for row in start until end
+            {
+                let y       = (cast(f32, row) + 0.5) / VerticalSamples
+                let portion = (cast(f64, y) - topY) / dy
+                let x       = cast(f32, topX + dx * portion)
+
+                // Crossings outside the tile can share its boundary: between them
+                // there is no span of visible pixels, only a change of winding.
+                rows[row].add(Crossing{Math.clamp(x, 0, width), winding})
+            }
+        }
+
+        let width    = cast(s32, tile.width)
+        let height   = cast(s32, tile.height)
+        let rowCount = cast(u64, height) * VerticalSamples
+        if scratch.rows.count < rowCount do
+            scratch.rows.resize(rowCount)
+        let crossings = scratch.rows.toSlice()[0 until rowCount]
+        for &line in crossings do
+            line.clear()
+        let origin      = Vector2{tile.x, tile.y}
+        let scale       = transform.axisScale()
+        let useBands    = .bands.count and transform.m12 == 0
+        let useBuckets  = .buckets.count and transform.m12 == 0
+        let bandCount   = useBuckets ? .buckets.count : (useBands ? .bands.count : 1'u64)
+        let axisAligned = transform.m12 == 0 and transform.m21 == 0
+        let uniform     = axisAligned and
+                          density == 1 and
+                          transform.tx == 0 and
+                          transform.ty == 0 and
+                          transform.m11 == transform.m22
+        let useColumns = axisAligned and
+                         tile.width < .bounds.width * Math.abs(transform.m11) * density and
+                         Math.isFinite((.bounds.y * transform.m22 + transform.ty) * density - tile.y) and
+                         Math.isFinite((.bounds.bottom() * transform.m22 + transform.ty) * density - tile.y)
+        let useRows = axisAligned and tile.height < .bounds.height * Math.abs(transform.m22) * density
+        for band in bandCount
+        {
+            var first = 0'u64
+            var end   = paths.paths.count
+            var indices: const [..] u32 = []
+            if useBuckets
+            {
+                let bucket = &.buckets[band]
+                if bucket.indices.isEmpty() or bucket.bounds.misses(transform, density, tile) do
+                    continue
+                indices = bucket.indices.toSlice()
+                end     = indices.count
+            }
+            elif useBands
+            {
+                if .bands[band].misses(transform, density, tile) do
+                    continue
+                first = band * ScanBandSize
+                end   = first + Math.min(ScanBandSize, end - first)
+            }
+
+            for index in first until end
+            {
+                let path = paths.paths[useBuckets ? cast(u64, indices[index]) : index]
+
+                path.flattenPoints(.Normal, Math.max(scale.x, scale.y) * density)
+
+                // A closed contour outside either tile axis contributes no visible span.
+                if (useColumns and scanIntervalMisses(path.minBounds.x, path.maxBounds.x, transform.m11, transform.tx, density, tile.x, tile.width)) or
+                   (useRows and scanIntervalMisses(path.minBounds.y, path.maxBounds.y, transform.m22, transform.ty, density, tile.y, tile.height))
+                {
+                    var finite = true
+                    for point in path.polygon.points where not point.isFinite()
+                    {
+                        finite = false
+                        break
+                    }
+
+                    if finite do
+                        continue
+                }
+
+                let points = path.polygon.points.toSlice()
+                if points.count < 2 do
+                    continue
+                var previous       = project(points[points.count - 1], &transform, density, origin, uniform)
+                var previousFinite = previous.isFinite()
+                for point in points
+                {
+                    let next   = project(point, &transform, density, origin, uniform)
+                    let finite = next.isFinite()
+                    if previousFinite and finite do
+                        addEdge(crossings, previous, next, tile.width)
+                    previous       = next
+                    previousFinite = finite
+                }
+            }
+        }
+
+        var state = ScanRows{crossings, image, width,
+                             composite ? image.height - 1 - cast(s32, tile.y) : height - 1,
+                             composite ? cast(u64, tile.x) * 4 : 0'u64, color, evenOdd, composite}
+
+        // A band owns its crossing lists and the matching destination rows.
+        // Join before the next tile or fill can composite over this one.
+        const BandRows = 64
+        if composite and
+           paths.paths.count >= ScanBandSize * 2 and
+           height > BandRows and
+           cast(u64, width) * cast(u64, height) >= 64 * 1024 and
+           Swag.workerCount() > 1
+        {
+            let count = (height - 1) / BandRows + 1
+            parallel for |&state, height| index in cast(u64, count)
+            {
+                var localScratch: ScanScratch
+                let first = cast(s32, index) * BandRows
+                state.resolve(&localScratch, first, Math.min(first + BandRows, height))
+            }
+
+            return
+        }
+
+        state.resolve(scratch, 0, height)
     }
 }

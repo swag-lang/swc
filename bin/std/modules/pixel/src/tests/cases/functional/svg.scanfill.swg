@@ -119,3 +119,36 @@ using Core
     Swag.require(image.pixelColor(20, 6).argb == 0x7F00_0000)
     Swag.require(image.pixelColor(24, 20).argb == 0x00FF_FFFF)
 }
+
+// The row jobs for the first fill must finish before the translucent fill.
+#[Swag.TestTag("parallel")]
+#test
+{
+    var source: String
+    source.append("<svg width='73' height='61'><path fill-rule='evenodd' d='M1 1H72V60H1Z ")
+    for row in 8 do
+        for column in 17 do
+            source.append(Format.toString("M% %h2v2h-2z ", 4 + column * 4, 4 + row * 6).toString())
+    source.append("'/><path fill-opacity='.5' d='M0 0H38V61H0Z'/></svg>")
+
+    let drawing = expect Svg.Drawing.parse(source.toString(), {preferScanFills: true})
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    defer renderer.end()
+
+    const Width  = 292
+    const Height = 244
+    let tiled = drawing.rasterizeWithSampleTileSide(renderer, Width, Height, 1, 128, &cpu)
+    Swag.require(tiled.isValid())
+    for 3
+    {
+        let whole = drawing.rasterize(Width, Height, 1)
+        Swag.require(whole.isValid())
+        Swag.require(whole.pixelColor(12, 12).a == 255)
+        Swag.require(whole.pixelColor(16, 16).a == 127)
+        Swag.require(whole.pixelColor(272, 184).a == 0)
+        for value, index in tiled.pixels do
+            Swag.require(value == whole.pixels[index])
+    }
+}

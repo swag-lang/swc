@@ -1044,16 +1044,14 @@ impl LinePath
         // Calculate the maximum curvature using the control polygon method
         // This is much faster than iterative subdivision
 
-        // Calculate maximum deviation of control points from chord
-        var maxDeviation = 0.0
-
-        // Distance from p1 to chord line
-        let dev1 = Geometry.distanceFromPointToLine(p1, p0, p3)
-        maxDeviation = Math.max(maxDeviation, dev1)
-
-        // Distance from p2 to chord line
-        let dev2 = Geometry.distanceFromPointToLine(p2, p0, p3)
-        maxDeviation = Math.max(maxDeviation, dev2)
+        // The control points share a chord. Project both against its direction
+        // before measuring their perpendicular offsets.
+        let direction    = (p3 - p0).normalizedOrZero()
+        let offset1      = p1 - p0
+        let offset2      = p2 - p0
+        let dev1         = (offset1 - direction * offset1.dot(direction)).length()
+        let dev2         = (offset2 - direction * offset2.dot(direction)).length()
+        let maxDeviation = Math.max(Math.max(0.0, dev1), dev2)
 
         if maxDeviation < tolerance
         {

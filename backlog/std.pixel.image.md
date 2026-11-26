@@ -139,8 +139,12 @@ ships; history lives in Git, not here.
 - Evidence: an [active-edge prototype](../bench/workloads/svgraster/resvg-comparison.md#contour-culling-and-crossing-sort)
   improved the generated dense fill and slowed the largest original. Contour culling and
   short-line sorting improved the original corpus with matching raster checksums.
-- Next: profile curve flattening, edge projection and bitmap writes separately on the largest
-  original at bitmap and thumbnail size. Rerun the original Windows comparison.
+- Evidence: [phase measurements](../bench/workloads/svgraster/resvg-comparison.md#curve-projection-and-parallel-scan-rows)
+  put most of the largest original's first raster in flattening and crossing collection.
+  Parallel row resolution complements the reduction in work per contour. At four workers,
+  Swag is faster on three originals and takes 263 ms against resvg's 255 ms on the largest.
+- Next: measure the remaining cold flattening and crossing collection costs on the largest
+  thumbnail. Rerun the original Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

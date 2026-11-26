@@ -23,6 +23,8 @@ public struct Aes
     useHardware: bool
 }
 
+private const AesSoftwareShiftRows = cast(U8x16, [0'u8, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11])
+
 #[Swag.Inline]
 private func aesDouble(value: u8)->u8
 {
@@ -229,16 +231,12 @@ public impl Aes
             return
         }
 
-        const ShiftRows = cast(U8x16, [0'u8, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11])
         var state: [1] U8x16
         state[0] = aesTowerEncode(load(source.buffer)) ^ .roundKey(0)
-        for round in 1 until .rounds
-        {
-            let shifted = shuffle(aesTowerSubstitute(state[0]), ShiftRows)
-            state[0] = .mixColumns(shifted) ^ .roundKey(round)
-        }
+        for round in 1 until .rounds do
+            state[0] = .encryptSoftwareRound(state[0], .roundKey(round))
 
-        store(destination.buffer, aesTowerDecode(shuffle(aesTowerSubstitute(state[0]), ShiftRows) ^ .roundKey(.rounds)))
+        store(destination.buffer, aesTowerDecode(shuffle(aesTowerSubstitute(state[0]), AesSoftwareShiftRows) ^ .roundKey(.rounds)))
         Crypto.secureClear(state)
     }
 
@@ -461,6 +459,33 @@ public impl Aes
         store(destination + 5 * AesBlockSize, Swag.vecAesEncryptLastRound(sixthState, final) ^ load(source + 5 * AesBlockSize))
         store(destination + 6 * AesBlockSize, Swag.vecAesEncryptLastRound(seventhState, final) ^ load(source + 6 * AesBlockSize))
         store(destination + 7 * AesBlockSize, Swag.vecAesEncryptLastRound(eighthState, final) ^ load(source + 7 * AesBlockSize))
+    }
+
+    #[Swag.Inline]
+    private mtd encryptSoftwareRound(state, key: U8x16)->U8x16
+    {
+        return .mixColumns(shuffle(aesTowerSubstitute(state), AesSoftwareShiftRows)) ^ key
+    }
+
+    // Encrypts two complete counters with the software key schedule.
+    #[Swag.Inline]
+    internal mtd xorTwoCountersSoftware(first, second: U8x16, source: const [*] u8, destination: [*] u8)
+    {
+        let initial = .roundKey(0)
+        var state: [2] U8x16 = [aesTowerEncode(first) ^ initial, aesTowerEncode(second) ^ initial]
+        for round in 1 until .rounds
+        {
+            let key = .roundKey(round)
+            state[0] = .encryptSoftwareRound(state[0], key)
+            state[1] = .encryptSoftwareRound(state[1], key)
+        }
+
+        let key = .roundKey(.rounds)
+        let firstStream  = aesTowerDecode(shuffle(aesTowerSubstitute(state[0]), AesSoftwareShiftRows) ^ key)
+        let secondStream = aesTowerDecode(shuffle(aesTowerSubstitute(state[1]), AesSoftwareShiftRows) ^ key)
+        store(destination, firstStream ^ load(source))
+        store(destination + AesBlockSize, secondStream ^ load(source + AesBlockSize))
+        Crypto.secureClear(state)
     }
 
     #[Swag.Inline]

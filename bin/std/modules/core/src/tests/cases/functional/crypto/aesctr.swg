@@ -134,3 +134,19 @@ func aesCtrHexBytes(text: string)->Array'u8
     expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
     Swag.require(Crypto.constantTimeEqual(buffer, plaintext))
 }
+
+#test
+{
+    // OpenSSL AES-256-CTR with a low-word carry between two complete blocks.
+    let key        = aesCtrHexBytes("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+    let counter    = aesCtrHexBytes("00000000000000feffffffffffffffff")
+    let ciphertext = aesCtrHexBytes("53cbfe43e5402f013d9e5168140b332cba9f265eb86c7f36bedc5f191e98acd0b2")
+    var buffer: [35] u8
+    let data = buffer[1 until 34]
+    for index in data.count do
+        data[index] = cast(u8, (index * 17 + 5) & 0xFF)
+
+    expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
+    Swag.require(Crypto.constantTimeEqual(data, ciphertext.toSlice()))
+    Swag.require(buffer[0] == 0 and buffer[34] == 0)
+}

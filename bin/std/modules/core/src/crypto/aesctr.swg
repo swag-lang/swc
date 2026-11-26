@@ -7,18 +7,26 @@ using Math.Simd
 // AES-CTR counter block size in bytes.
 public const AesCtrCounterSize = 16
 
+#[Swag.Inline]
+private func aesCtrNetworkWord(value: u64)->u64
+{
+    #static if BIG_ENDIAN do
+        return value
+    else do
+        return Swag.byteSwap(value)
+}
+
 private func aesCtrAddCounter(counter: *[AesCtrCounterSize] u8, amount: u64)->bool
 {
-    var carry = amount
-    for index in AesCtrCounterSize
-    {
-        let byteIndex = AesCtrCounterSize - 1 - index
-        let sum       = cast(u64, counter[][byteIndex]) + (carry & 0xFF)
-        counter[][byteIndex] = cast(u8, sum)
-        carry = (carry >> 8) + (sum >> 8)
-    }
-
-    return carry == 0
+    var words = cast #bit (U64x2, load(&counter[][0]))
+    let low   = aesCtrNetworkWord(words[1])
+    let high  = aesCtrNetworkWord(words[0])
+    let next  = low + amount
+    let above = high + cast(u64, next < low)
+    words[0] = aesCtrNetworkWord(above)
+    words[1] = aesCtrNetworkWord(next)
+    store(&counter[][0], cast #bit (U8x16, words))
+    return above >= high
 }
 
 #[Swag.Inline]
@@ -127,18 +135,44 @@ private func aesCtrCryptBlocks(aes: *Aes, initialCounter: [AesCtrCounterSize] u8
         return
     }
 
-    var block = 0'u64
-    while block < blockCount
+    // The public operation has already checked the final 128-bit counter.
+    let prefix       = cast #bit (U64x2, load(&initialCounter[0]))
+    let initialLow   = aesCtrNetworkWord(prefix[1])
+    let initialHigh  = aesCtrNetworkWord(prefix[0])
+    let fullBlockEnd = Math.min(firstBlock + blockCount, source.count / AesBlockSize)
+    var block        = firstBlock
+    while block + 2 <= fullBlockEnd
+    {
+        let firstLow  = initialLow + block
+        let secondLow = firstLow + 1
+        var first     = prefix
+        var second    = prefix
+        first[0]  = aesCtrNetworkWord(initialHigh + cast(u64, firstLow < initialLow))
+        second[0] = aesCtrNetworkWord(initialHigh + cast(u64, secondLow < initialLow))
+        first[1]  = aesCtrNetworkWord(firstLow)
+        second[1] = aesCtrNetworkWord(secondLow)
+        let offset = block * AesBlockSize
+        aes[].xorTwoCountersSoftware(cast #bit (U8x16, first), cast #bit (U8x16, second),
+                                     source.buffer + offset, destination.buffer + offset)
+        block += 2
+    }
+
+    while block < firstBlock + blockCount
     {
         var counter = initialCounter
-        if not aesCtrAddCounter(&counter, firstBlock + block) do
+        if not aesCtrAddCounter(&counter, block) do
             fail Errors.BadParameterError{"AES-CTR counter range overflows 128 bits"}
         var keyStream: [AesCtrCounterSize] u8
         try aes[].encryptBlock(counter, keyStream)
-        let offset = (firstBlock + block) * AesCtrCounterSize
+        let offset = block * AesCtrCounterSize
         let count  = Math.min(source.count - offset, AesCtrCounterSize)
-        for index in count do
-            destination[offset + index] = source[offset + index] ^ keyStream[index]
+        if count == AesBlockSize do
+            store(destination.buffer + offset, load(source.buffer + offset) ^ load(&keyStream[0]))
+        else
+        {
+            for index in count do
+                destination[offset + index] = source[offset + index] ^ keyStream[index]
+        }
         Crypto.secureClear(counter)
         Crypto.secureClear(keyStream)
         block += 1

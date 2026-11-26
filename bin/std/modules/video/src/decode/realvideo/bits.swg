@@ -16,34 +16,126 @@ struct Bits
     broken:   bool
 }
 
+private const PrefixBits  = 8'u32
+private const PrefixCount = 1'u32 << PrefixBits
+private const RootCount   = IntraCbpPattern.count + IntraCbp.count + IntraFirst.count + IntraSecond.count + IntraThird.count + IntraCoeff.count +
+                            InterCbpPattern.count + InterCbp.count + InterFirst.count + InterSecond.count + InterThird.count + InterCoeff.count +
+                            AicTop.count + AicOne.count + PType.count + BType.count + AicTwo.count
+
+private struct PrefixLookup
+{
+    roots:   [CodeTree.count / 2] u16
+    entries: [RootCount * PrefixCount] u32
+}
+
+private const CodePrefixes: PrefixLookup = #run buildCodePrefixes()
+
+private func buildCodePrefixes()->PrefixLookup
+{
+    var result: #returntype
+    let groups: [17] const [..] s32 = [IntraCbpPattern, IntraCbp, IntraFirst, IntraSecond, IntraThird, IntraCoeff,
+                                       InterCbpPattern, InterCbp, InterFirst, InterSecond, InterThird, InterCoeff,
+                                       AicTop, AicOne, PType, BType, AicTwo]
+    var row = 0'u32
+    for group in groups
+    {
+        for root in group
+        {
+            result.roots[root] = cast(u16, row)
+            for prefix in PrefixCount
+            {
+                var node   = cast(u32, root)
+                var length = 0'u32
+                for bit in PrefixBits
+                {
+                    let branch = (prefix >> (PrefixBits - 1 - bit)) & 1
+                    node   = CodeTree[node * 2 + branch]
+                    length += 1
+                    if not node or node >= 0xF000 do
+                        break
+                }
+
+                result.entries[row * PrefixCount + prefix] = length << 16 | node
+            }
+
+            row += 1
+        }
+    }
+
+    Swag.require(row == RootCount)
+    return result
+}
+
 impl Bits
 {
     func open(data: const [..] u8)->Bits => Bits{data.buffer, data.count}
 
+    #[Swag.Inline]
     mtd read(count: u32)->u32
     {
         if .broken do
             return 0
-        if count > 32 or .position + count > .length * 8
+        if count > 32 or count > .length * 8 - .position
         {
             .broken = true
             return 0
         }
 
-        var result = 0'u32
-        for count
+        if not count do
+            return 0
+
+        let byteIndex = .position >> 3
+        let skip      = cast(u32, .position & 7)
+        let first     = unwrap .data + byteIndex
+        .position += count
+        if skip + count <= 8 do
+            return (cast(u32, first[0]) >> (8 - skip - count)) & ((1'u32 << count) - 1)
+
+        let needed = (skip + count + 7) >> 3
+        var value: u64
+        if .length - byteIndex >= 8
         {
-            result    = (result << 1) | ((cast(u32, .data![.position >> 3]) >> cast(u32, (7 - (.position & 7)))) & 1)
-            .position += 1
+            value = Math.bigEndianToNative(cast(const [*] u64, first)[0]) >> (64 - skip - count)
+        }
+        else
+        {
+            for index in needed do
+                value = (value << 8) | first[index]
+            value >>= needed * 8 - skip - count
         }
 
-        return result
+        return cast(u32, value & ((1'u64 << count) - 1))
     }
 
     mtd code(root: s32)->s32
     {
-        var node = root
-        for 24
+        if .broken do
+            return 0
+        var node      = root
+        var remaining = 24'u32
+
+        // Two bytes cover an eight-bit prefix regardless of its alignment.
+        if .length - (.position >> 3) >= 2
+        {
+            let bytes    = unwrap .data + (.position >> 3)
+            let word     = Math.bigEndianToNative(cast(const [*] u16, bytes)[0])
+            let prefix   = (cast(u32, word) >> (8 - cast(u32, .position & 7))) & 255
+            let entry    = CodePrefixes.entries[cast(u32, CodePrefixes.roots[root]) * PrefixCount + prefix]
+            let consumed = entry >> 16
+            .position += consumed
+            node      = cast(s32, entry & 0xFFFF)
+            if node >= 0xF000 do
+                return node ^ 0xFFFF
+            if not node
+            {
+                .broken = true
+                return 0
+            }
+
+            remaining -= consumed
+        }
+
+        for remaining
         {
             let branch = cast(s32, .read(1))
             node = cast(s32, CodeTree[node * 2 + branch])

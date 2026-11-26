@@ -205,6 +205,26 @@ checked-in RealVideo clip with `repeat-rv40.py`. Use stream copy to retain 48 pi
 of the AVC 4K clip and 42 of the Main10 4K clip. Time with `--warmup 8 --repetitions 7`
 and use `--mpeg4-max-sample-difference 4` for the MPEG-4 fixtures.
 
+### RealVideo bounded VLC look-ahead
+
+The decoder resolves an eight-bit prefix from the selected VLC root. A short code
+supplies its coefficient and exact bit length in one lookup. Long codes resume in the
+existing tree. Bounded reads load up to one native word, and the final bytes of each
+slice keep a separate short read path. All 762 pictures matched both the previous Swag
+decoder and FFmpeg 9.1 exactly. The 48 native Release tests cover unaligned 32-bit reads,
+the last valid bit of a slice and multi-packet Matroska playback.
+
+| Stream | Before, ms/picture | VLC look-ahead, ms/picture | Paired time change | FFmpeg 9.1, ms/picture |
+| --- | ---: | ---: | ---: | ---: |
+| Repeated I/P/B, 720 pictures | 0.146 | 0.135 | −6.7% | 0.038 |
+| Intra | 0.147 | 0.118 | −20.4% | 0.062 |
+| I/P/B | 0.105 | 0.094 | −9.3% | 0.039 |
+| Adaptive dimensions | 0.142 | 0.117 | −24.4% | 0.040 |
+| Multiple slices | 0.104 | 0.099 | −10.9% | 0.038 |
+
+Nine rotated runs were pinned to one logical CPU with two warm-up pictures.
+[Timing samples](rv40-vlc-look-ahead.json)
+
 ## HEVC CABAC look-ahead
 
 The CABAC decoder now shifts the arithmetic offset and the next 32 input bits together.

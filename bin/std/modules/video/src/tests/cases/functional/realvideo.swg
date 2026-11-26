@@ -143,6 +143,33 @@ func realVideoCompare(name: string)
     }
 }
 
+// The packed reader and its short tail agree at an unaligned byte boundary.
+#test
+{
+    const Bytes: [8] u8 = [0xDE, 0xAD, 0xBE, 0xEF, 0x56, 0xAB, 0x33, 0]
+    for size in [6'u64, 8]
+    {
+        var bits = RealVideo.Bits.open(Bytes[until size])
+        Swag.require(bits.read(4) == 0xD)
+        Swag.require(bits.read(32) == 0xEADBEEF5)
+        Swag.require(bits.read(12) == 0x6AB)
+        if size == 8 do
+            Swag.require(bits.read(16) == 0x3300)
+        Swag.require(bits.read(0) == 0 and not bits.broken)
+        Swag.require(bits.read(1) == 0 and bits.broken)
+    }
+
+    // PType[0] decodes a single set bit as symbol zero, including at the end of a slice.
+    const Prefix: [2] u8 = [1, 0]
+    for size in [1'u64, 2]
+    {
+        var bits = RealVideo.Bits.open(Prefix[until size])
+        Swag.require(bits.read(7) == 0)
+        Swag.require(bits.code(RealVideo.PType[0]) == 0 and not bits.broken)
+        Swag.require(bits.position == 8)
+    }
+}
+
 // A late RealVideo clock correction must not renumber a picture the caller already received.
 #test
 {

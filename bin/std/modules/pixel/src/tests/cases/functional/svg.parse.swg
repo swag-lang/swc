@@ -362,6 +362,29 @@ private const ManyStopSvg = """\
     Swag.require(Memory.compare(image.pixels.storage(), expected.pixels.storage(), expected.byteCount) == 0)
 }
 
+// A copied drawing owns the contours that were materialized in its source.
+#test
+{
+    const Source = "<svg width='24' height='24'><g pathLength='50'><ellipse cx='12' cy='12' rx='4' ry='7' fill='red'/></g></svg>"
+    var allocator: Swag.Allocator
+    allocator.setup()
+    allocator.configure(false, false, false, false, false)
+    let backing: Swag.IAllocator = &allocator
+    Memory.withAllocator(backing)
+    {
+        var copied: Svg.Drawing
+        scope
+        {
+            let drawing = expect Svg.Drawing.parse(Source)
+            copied = drawing
+        }
+
+        Swag.require(copied.shapeCount() == 1)
+    }
+
+    Swag.require(allocator.stats().countAlloc == 0)
+}
+
 // The public line fixture calibrates its dash pattern through pathLength=25:
 // a 200-unit line turns the authored 3/1 sequence into 24/8 user-unit spans.
 #test

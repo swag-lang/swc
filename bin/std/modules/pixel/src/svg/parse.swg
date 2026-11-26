@@ -55,13 +55,13 @@ private struct DeferredContours
 
 private impl DeferredContours
 {
-    mtd opDrop()
+    mtd release()
     {
         if .paths do
             Memory.delete(.paths)
     }
 
-    mtd opPostCopy()
+    mtd duplicate()
     {
         if let original = .paths
         {
@@ -5157,6 +5157,22 @@ private func validNaturalSize(size: Vector2)->bool =>
 
 impl Drawing
 {
+    mtd opDrop()
+    {
+        for &primitive in .primitives do
+            primitive.contours.release()
+        for &instance in .instances do
+            instance.contours.release()
+    }
+
+    mtd opPostCopy()
+    {
+        for &primitive in .primitives do
+            primitive.contours.duplicate()
+        for &instance in .instances do
+            instance.contours.duplicate()
+    }
+
     // Returns the number of parsed shapes.
     mtd const shapeCount()->u64 => .shapes.count
 

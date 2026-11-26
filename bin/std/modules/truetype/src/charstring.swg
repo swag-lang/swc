@@ -31,9 +31,13 @@ impl OutlineBuilder
         return result
     }
 
+    #[Swag.Inline]
+    private mtd const scaledPoint(x, y: f64)->Vector =>
+    {x: cast(s32, Math.round(x * .scaleX)), y: cast(s32, Math.round(y * .scaleY))}
+
     private mtd addPoint(x, y: f64, tag: u8)
     {
-        .face.outlinePoints.add(Vector{x: cast(s32, Math.round(x * .scaleX)), y: cast(s32, Math.round(y * .scaleY))})
+        .face.outlinePoints.add(.scaledPoint(x, y))
         .face.outlineTags.add(tag)
     }
 
@@ -56,9 +60,14 @@ impl OutlineBuilder
     {
         if not .open do
             return
-        .addPoint(c1x, c1y, CURVE_TAG_CUBIC)
-        .addPoint(c2x, c2y, CURVE_TAG_CUBIC)
-        .addPoint(x, y, CURVE_TAG_ON)
+        let points = .face.outlinePoints.emplaceAddress(3)
+        let tags   = .face.outlineTags.emplaceAddress(3)
+        points[0] = .scaledPoint(c1x, c1y)
+        points[1] = .scaledPoint(c2x, c2y)
+        points[2] = .scaledPoint(x, y)
+        tags[0]   = CURVE_TAG_CUBIC
+        tags[1]   = CURVE_TAG_CUBIC
+        tags[2]   = CURVE_TAG_ON
     }
 
     // Ends the contour under construction.
@@ -192,22 +201,47 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
     if depth >= MaxCharstringDepth do
         try fault(0x89)
 
-    var pos = 0'u64
+    let bytes = code.buffer
+    var pos   = 0'u64
     while pos < code.count
     {
-        let b0 = peekU8(code, pos)
+        let b0 = bytes[pos]
         pos += 1
 
-        if b0 >= 32 or b0 == 28
+        // Most coordinate operands occupy one byte. Keep the stack cursor local
+        // until the next operator or multi-byte operand needs the updated depth.
+        if b0 >= 32 and b0 <= 246
+        {
+            var operand = b0
+            var count   = state.depth
+            for
+            {
+                if count >= MaxCharstringStack
+                {
+                    state.depth = count
+                    try fault(0x82)
+                }
+
+                state.stack[count] = cast(f64, cast(s32, operand) - 139)
+                count += 1
+                if pos >= code.count do
+                    break
+                operand = bytes[pos]
+                if operand < 32 or operand > 246 do
+                    break
+                pos += 1
+            }
+
+            state.depth = count
+            continue
+        }
+
+        if b0 >= 247 or b0 == 28
         {
             if b0 == 28
             {
                 try state.push(cast(f64, peekS16(code, pos)))
                 pos += 2
-            }
-            elif b0 <= 246
-            {
-                try state.push(cast(f64, (cast(s32, b0) - 139)))
             }
             elif b0 <= 250
             {

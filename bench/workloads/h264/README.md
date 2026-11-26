@@ -29,10 +29,23 @@ encoded, without wall-clock pacing or dropped slots. The Swag compiler, runtime 
 workers. The default four slices and 120-picture key interval are held constant for comparison;
 they are experimental controls, not a claim to reproduce every capture tool's defaults.
 
-The driver converts RGB to BT.709 NV12 once, before timing, and saves precisely those samples
-for the external encoders and metrics. Allocation, conversion, container writes and decoding are
-outside Swag's encode timer. x264's process duration includes startup, encoding and muxing and
-must not be compared directly with that timer. Both packet bytes and container bytes are reported.
+The driver converts RGB to BT.709 NV12 before timing and saves those samples for the
+reference encoders and metrics. Conversion, input preparation, container writes and decoding
+are outside Swag's encode timer. Both packet bytes and container bytes are reported.
+
+Build the native reference to get a comparable x264 encode timer. It loads the NV12
+planes and opens the encoder before timing, drains the encoder within the measured period,
+and writes the MP4 afterwards. It reports wall time and total process CPU time. The default
+FFmpeg CLI path reports the full subprocess duration including startup and muxing.
+
+```sh
+cc -O2 bench/workloads/h264/x264_native.c -o /tmp/x264_native \
+    $(pkg-config --cflags --libs libavformat libavcodec libavutil)
+python3 bench/workloads/h264/compare.py --compiler /absolute/build/release/swc \
+    --x264-native /tmp/x264_native --input /tmp/input.rgb --width 640 --height 360 \
+    --frames 30 --qp 22 26 30 --output /tmp/h264-native-reference
+```
+
 The driver decodes every Swag picture with `Video.Reader`; the helper fails if any byte differs
 from FFmpeg's planar output. The helper unpacks the NV12 reference to planar YUV with byte
 operations, then measures PSNR and SSIM on two raw planar sequences in picture order. This avoids

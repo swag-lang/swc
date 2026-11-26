@@ -15,15 +15,20 @@ impl Decoder
         {
             .blockNumX = blkNumX
             .blockNumY = blkNumY
-            let blocks = cast(u64, blkNumX) * blkNumY
-            .values.resize(blocks * 64)
-            .nonzeroAc.resize(blocks)
+            let blocks     = cast(u64, blkNumX) * blkNumY
+            let valueCount = blocks * 64
+            .values.reserve(valueCount)
+            Memory.clear(.values.storage(), valueCount * #sizeof(s16))
+            .values.count = valueCount
+            .nonzeroAc.reserve(blocks)
+            Memory.clear(.nonzeroAc.storage(), blocks * #sizeof(u64))
+            .nonzeroAc.count = blocks
         }
 
         return result
     }
 
-    mtd decodeBlockDcFirst(cmpId: u32, blkX, blkY: s32) fail
+    mtd decodeBlockDcFirst(cmpId: u32, blkX, blkY: s32)
     {
         var p = coeffBufGetp(.coefficients[cmpId], blkX, blkY)
         var s = .huffDecode(&.h[.compDcTab[cmpId]])
@@ -37,7 +42,7 @@ impl Decoder
         p[0] = cast(s16, (s << .successiveLow))
     }
 
-    mtd decodeBlockDcRefine(cmpId: u32, blkX, blkY: s32) fail
+    mtd decodeBlockDcRefine(cmpId: u32, blkX, blkY: s32)
     {
         if .readEntropyBits(1)
         {
@@ -63,7 +68,7 @@ impl Decoder
         return entry & 255
     }
 
-    mtd decodeBlockAcFirst(p: [*] s16, present: *u64, table: *HuffTables) fail
+    mtd decodeBlockAcFirst(p: [*] s16, present: *u64, table: *HuffTables)->bool
     {
         var mask = present[]
         for var k = .spectralStart; k <= .spectralEnd; k += 1
@@ -76,7 +81,7 @@ impl Decoder
             {
                 k += r
                 if k > 63 do
-                    fail InvalidFormatError{"decode error"}
+                    return false
                 let amplitude   = symbol >= 1 << 24 ? (symbol << 8) >> 24 : extendSign(.readEntropyBits(s), s)
                 let coefficient = cast(s16, (amplitude << .successiveLow))
                 p[ZigzagToTransposed[k]] = coefficient
@@ -89,7 +94,7 @@ impl Decoder
                 {
                     k += 15
                     if k > 63 do
-                        fail InvalidFormatError{"decode error"}
+                        return false
                 }
                 else
                 {
@@ -103,6 +108,7 @@ impl Decoder
         }
 
         present[] = mask
+        return true
     }
 
     #[Swag.Inline]
@@ -116,7 +122,7 @@ impl Decoder
         }
     }
 
-    mtd decodeBlockAcRefine(p: [*] s16, present: *u64, table: *HuffTables, band: u64, bit: s16) fail
+    mtd decodeBlockAcRefine(p: [*] s16, present: *u64, table: *HuffTables, band: u64, bit: s16)->bool
     {
         let first     = .spectralStart
         let last      = .spectralEnd
@@ -132,7 +138,7 @@ impl Decoder
             if size
             {
                 if size != 1 do
-                    fail InvalidFormatError{"decode error"}
+                    return false
                 let positive = symbol >= 1 << 24 ? (symbol & 0x00800000) == 0 : .readEntropyBits(1) != 0
                 coefficient = positive ? bit : -bit
             }
@@ -177,6 +183,8 @@ impl Decoder
 
             .eobRun -= 1
         }
+
+        return true
     }
 
     // An AC scan always visits one component in coefficient-block order.
@@ -202,7 +210,8 @@ impl Decoder
                 var count = 1
                 #static if REFINE
                 {
-                    try .decodeBlockAcRefine(block, &presence[0], table, band, bit)
+                    if not .decodeBlockAcRefine(block, &presence[0], table, band, bit) do
+                        fail InvalidFormatError{"decode error"}
                 }
                 else
                 {
@@ -217,7 +226,8 @@ impl Decoder
                     }
                     else
                     {
-                        try .decodeBlockAcFirst(block, &presence[0], table)
+                        if not .decodeBlockAcFirst(block, &presence[0], table) do
+                            fail InvalidFormatError{"decode error"}
                     }
                 }
 
@@ -232,7 +242,7 @@ impl Decoder
         }
     }
 
-    mtd decodeDcScan(refinementScan: bool) fail
+    mtd(Refine: bool) decodeDcScan() fail
     {
         var blockMcutX: [MaxComponents] s32
         var blockMcutY: [MaxComponents] s32
@@ -253,10 +263,10 @@ impl Decoder
                     let componentId = .mcuOrg[mcuBlock]
                     let blkX        = blockMcutX[componentId] + blockMcuOfsX
                     let blkY        = blockMcutY[componentId] + blockMcuOfsY
-                    if refinementScan do
-                        try .decodeBlockDcRefine(componentId, blkX, blkY)
+                    #static if Refine do
+                        .decodeBlockDcRefine(componentId, blkX, blkY)
                     else do
-                        try .decodeBlockDcFirst(componentId, blkX, blkY)
+                        .decodeBlockDcFirst(componentId, blkX, blkY)
 
                     if .compsInScan == 1
                     {
@@ -318,12 +328,21 @@ impl Decoder
                 break
 
             let refinementScan = .successiveHigh != 0
-            if .spectralStart == 0 do
-                try .decodeDcScan(refinementScan)
-            elif refinementScan do
+            if .spectralStart == 0
+            {
+                if refinementScan do
+                    try .decodeDcScan'true()
+                else do
+                    try .decodeDcScan'false()
+            }
+            elif refinementScan
+            {
                 try .decodeAcScan'true()
-            else do
+            }
+            else
+            {
                 try .decodeAcScan'false()
+            }
 
             .primeMarkerBits()
         }

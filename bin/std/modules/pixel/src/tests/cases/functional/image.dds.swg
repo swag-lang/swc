@@ -283,3 +283,30 @@ func ddsRoundtrip(source: Image)->Image
         }
     }
 }
+
+// DDS expands wide RGB inputs into the DXGI RGBA layouts while writing each row.
+#test
+{
+    const Width  = 5
+    const Height = 3
+    for format in [PixelFormat.RGB16, PixelFormat.RGBF16, PixelFormat.RGBF32]
+    {
+        var image = Image.create(Width, Height, format)
+        for i in image.byteCount do
+            image.pixels[i] = cast #wrap(u8, (i * 37 + 13))
+
+        var packed: PixelFormat
+        switch format
+        {
+        case .RGB16:  packed = .RGBA16
+        case .RGBF16: packed = .RGBAF16
+        case .RGBF32: packed = .RGBAF32
+        default:      unreachable
+        }
+
+        let expected = image.convertedTo(packed)
+        let decoded  = ddsRoundtrip(image)
+        assertImage(decoded, Width, Height, packed)
+        Swag.require(Memory.compare(decoded.pixels.storage(), expected.pixels.storage(), expected.byteCount) == 0)
+    }
+}

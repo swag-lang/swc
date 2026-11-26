@@ -810,3 +810,30 @@ Swag output fingerprints match the previous build across the corpus.
 | `LXGWWenKaiTC-Regular.ttf` | U+9F8D | 1642.1 | 3619.6 |
 | `Iansui-Regular.ttf` | U+81FA | 1239.7 | 2852.6 |
 | `Iansui-Regular.ttf` | U+9F9C | 1168.4 | 3185.3 |
+
+## Scope font selection digest
+
+Loading a single-face font skips the persisted collection selection lookup
+and its full-file SHA-256. Collections reuse the same digest as the Pixel
+typeface cache identity and avoid a second full-file checksum pass. The
+selected face reuses the metadata read while building the face picker.
+
+The native Scope Release builds compare with `0cacd90c1f` using the same
+SHA-accelerated Core. Each of 11 interleaved batches starts a fresh process
+and times the background content load with one worker and a warm filesystem
+cache. Face, glyph, page, and named-glyph counts match. Twelve native viewer
+tests pass, including selection persistence and invalid TTC members.
+[Raw timings](font-scope-linux-selection-digest.json)
+
+| Fixture | Scope load before (ms) | After |
+| --- | ---: | ---: |
+| `NotoSansCJKjp-Regular.otf` | 43.541 | 23.145 |
+| `NotoSerifCJKjp-Regular.otf` | 71.980 | 32.641 |
+| `NotoSansCJK-Regular.ttc` | 71.059 | 48.680 |
+| `NotoSerifCJK-Regular.ttc` | 78.798 | 73.211 |
+| `NotoSansSC-Variable.ttf` | 63.023 | 19.904 |
+| `NotoSansKR-Variable.ttf` | 27.749 | 11.239 |
+| `GowunBatang-Regular.ttf` | 58.338 | 49.972 |
+| `LXGWWenKaiTC-Regular.ttf` | 107.040 | 89.891 |
+| `Lato-Regular.ttf` | 0.972 | 0.698 |
+| `SourceCodePro-Regular.otf` | 1.780 | 1.183 |

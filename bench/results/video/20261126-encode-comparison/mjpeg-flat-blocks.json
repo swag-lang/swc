@@ -1,0 +1,1021 @@
+{
+  "baseline_source": "00964dcfde",
+  "affinity": [
+    4
+  ],
+  "repetitions": 5,
+  "pictures_per_input": 30,
+  "byte_identical_pictures": 480,
+  "pixel_native_release_tests": 35,
+  "video_native_release_tests": 51,
+  "results": [
+    {
+      "input": "desktop.rgb",
+      "quality": 40,
+      "before_cpu_us": 100188,
+      "after_cpu_us": 70652,
+      "paired_cpu_percent": -28.487,
+      "sha256": "f08c54f893cff8cecbd3133bbd8fa52efbd2da466ccde8d66743710f113a5e71",
+      "decoded_sha256": "a6556d819fdcbc96c5450bd7a34c09d9750c94242eac1d2111be057b074b8f0f",
+      "before": [
+        {
+          "wall_us": 142210,
+          "cpu_us": 142182,
+          "bytes": 1667469
+        },
+        {
+          "wall_us": 100035,
+          "cpu_us": 94884,
+          "bytes": 1667469
+        },
+        {
+          "wall_us": 95786,
+          "cpu_us": 95771,
+          "bytes": 1667469
+        },
+        {
+          "wall_us": 100187,
+          "cpu_us": 100188,
+          "bytes": 1667469
+        },
+        {
+          "wall_us": 102409,
+          "cpu_us": 102266,
+          "bytes": 1667469
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 68746,
+          "cpu_us": 68586,
+          "bytes": 1667469
+        },
+        {
+          "wall_us": 69844,
+          "cpu_us": 69840,
+          "bytes": 1667469
+        },
+        {
+          "wall_us": 71008,
+          "cpu_us": 70991,
+          "bytes": 1667469
+        },
+        {
+          "wall_us": 71834,
+          "cpu_us": 71647,
+          "bytes": 1667469
+        },
+        {
+          "wall_us": 70668,
+          "cpu_us": 70652,
+          "bytes": 1667469
+        }
+      ]
+    },
+    {
+      "input": "desktop.rgb",
+      "quality": 60,
+      "before_cpu_us": 99541,
+      "after_cpu_us": 74402,
+      "paired_cpu_percent": -25.305,
+      "sha256": "f950672875ffd243df64155b9a3e1747158b107a48cd7344aeba64e8cb3fa25b",
+      "decoded_sha256": "96d642c320f45d1cae0b0cc73862b982cf60b194b1932acbe9e50e31df46ba1e",
+      "before": [
+        {
+          "wall_us": 100229,
+          "cpu_us": 100162,
+          "bytes": 2049548
+        },
+        {
+          "wall_us": 99565,
+          "cpu_us": 99541,
+          "bytes": 2049548
+        },
+        {
+          "wall_us": 124265,
+          "cpu_us": 120802,
+          "bytes": 2049548
+        },
+        {
+          "wall_us": 97662,
+          "cpu_us": 97633,
+          "bytes": 2049548
+        },
+        {
+          "wall_us": 98715,
+          "cpu_us": 98697,
+          "bytes": 2049548
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 75659,
+          "cpu_us": 75641,
+          "bytes": 2049548
+        },
+        {
+          "wall_us": 74034,
+          "cpu_us": 74016,
+          "bytes": 2049548
+        },
+        {
+          "wall_us": 74400,
+          "cpu_us": 74402,
+          "bytes": 2049548
+        },
+        {
+          "wall_us": 76274,
+          "cpu_us": 76255,
+          "bytes": 2049548
+        },
+        {
+          "wall_us": 73762,
+          "cpu_us": 73722,
+          "bytes": 2049548
+        }
+      ]
+    },
+    {
+      "input": "desktop.rgb",
+      "quality": 80,
+      "before_cpu_us": 107654,
+      "after_cpu_us": 85317,
+      "paired_cpu_percent": -20.308,
+      "sha256": "2e040aeb567aff3ab4ad608171320cbd258f31e432c6426ccec9c2118e43e3f0",
+      "decoded_sha256": "024deca9cd20e9bd5ebd343752f0766db32dbdc7387194fe28cc15bf9921968a",
+      "before": [
+        {
+          "wall_us": 140351,
+          "cpu_us": 140036,
+          "bytes": 2905665
+        },
+        {
+          "wall_us": 113681,
+          "cpu_us": 113570,
+          "bytes": 2905665
+        },
+        {
+          "wall_us": 106901,
+          "cpu_us": 106902,
+          "bytes": 2905665
+        },
+        {
+          "wall_us": 107084,
+          "cpu_us": 107059,
+          "bytes": 2905665
+        },
+        {
+          "wall_us": 107682,
+          "cpu_us": 107654,
+          "bytes": 2905665
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 82502,
+          "cpu_us": 82450,
+          "bytes": 2905665
+        },
+        {
+          "wall_us": 115777,
+          "cpu_us": 110079,
+          "bytes": 2905665
+        },
+        {
+          "wall_us": 87180,
+          "cpu_us": 87144,
+          "bytes": 2905665
+        },
+        {
+          "wall_us": 85340,
+          "cpu_us": 85317,
+          "bytes": 2905665
+        },
+        {
+          "wall_us": 85248,
+          "cpu_us": 85244,
+          "bytes": 2905665
+        }
+      ]
+    },
+    {
+      "input": "desktop.rgb",
+      "quality": 95,
+      "before_cpu_us": 129413,
+      "after_cpu_us": 109047,
+      "paired_cpu_percent": -18.002,
+      "sha256": "29a07e8e3c843e14f8e3baaeaff6a76fcaec835482370cfb7ca222d7571d309f",
+      "decoded_sha256": "7675b63d571b6e12248d59f80aed9875492df31255dc3e3f1f82394eb5a75997",
+      "before": [
+        {
+          "wall_us": 128649,
+          "cpu_us": 128601,
+          "bytes": 5484920
+        },
+        {
+          "wall_us": 129435,
+          "cpu_us": 129413,
+          "bytes": 5484920
+        },
+        {
+          "wall_us": 129087,
+          "cpu_us": 129066,
+          "bytes": 5484920
+        },
+        {
+          "wall_us": 133600,
+          "cpu_us": 133567,
+          "bytes": 5484920
+        },
+        {
+          "wall_us": 134329,
+          "cpu_us": 134332,
+          "bytes": 5484920
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 213385,
+          "cpu_us": 206887,
+          "bytes": 5484920
+        },
+        {
+          "wall_us": 109052,
+          "cpu_us": 109047,
+          "bytes": 5484920
+        },
+        {
+          "wall_us": 105698,
+          "cpu_us": 105683,
+          "bytes": 5484920
+        },
+        {
+          "wall_us": 109556,
+          "cpu_us": 109522,
+          "bytes": 5484920
+        },
+        {
+          "wall_us": 106460,
+          "cpu_us": 106429,
+          "bytes": 5484920
+        }
+      ]
+    },
+    {
+      "input": "gradient.rgb",
+      "quality": 40,
+      "before_cpu_us": 76438,
+      "after_cpu_us": 15908,
+      "paired_cpu_percent": -79.043,
+      "sha256": "511b5d5ca9c8632b26507b681c76316aeb07ac7118ab847a12d4be01a6be4ba4",
+      "decoded_sha256": "c97a67a7a8ccdfcc17ce9f3b935ac5bdeff0a751dbedbfd3a827aa045cb9c3eb",
+      "before": [
+        {
+          "wall_us": 73926,
+          "cpu_us": 73898,
+          "bytes": 254749
+        },
+        {
+          "wall_us": 76481,
+          "cpu_us": 76438,
+          "bytes": 254749
+        },
+        {
+          "wall_us": 75594,
+          "cpu_us": 75594,
+          "bytes": 254749
+        },
+        {
+          "wall_us": 78769,
+          "cpu_us": 78739,
+          "bytes": 254749
+        },
+        {
+          "wall_us": 88248,
+          "cpu_us": 88233,
+          "bytes": 254749
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 16164,
+          "cpu_us": 16118,
+          "bytes": 254749
+        },
+        {
+          "wall_us": 16153,
+          "cpu_us": 16159,
+          "bytes": 254749
+        },
+        {
+          "wall_us": 15840,
+          "cpu_us": 15842,
+          "bytes": 254749
+        },
+        {
+          "wall_us": 15834,
+          "cpu_us": 15828,
+          "bytes": 254749
+        },
+        {
+          "wall_us": 15922,
+          "cpu_us": 15908,
+          "bytes": 254749
+        }
+      ]
+    },
+    {
+      "input": "gradient.rgb",
+      "quality": 60,
+      "before_cpu_us": 82568,
+      "after_cpu_us": 17307,
+      "paired_cpu_percent": -78.768,
+      "sha256": "28de150d61aa098cdb7da6f3af413d820f2e3a7f3a56656bb80c09e80af0bfe5",
+      "decoded_sha256": "4153dcc6f70369832be19f60082aaea83e494e34c059ef1193c7c773c1691f26",
+      "before": [
+        {
+          "wall_us": 77840,
+          "cpu_us": 77825,
+          "bytes": 262447
+        },
+        {
+          "wall_us": 79525,
+          "cpu_us": 79527,
+          "bytes": 262447
+        },
+        {
+          "wall_us": 83019,
+          "cpu_us": 82992,
+          "bytes": 262447
+        },
+        {
+          "wall_us": 83366,
+          "cpu_us": 83346,
+          "bytes": 262447
+        },
+        {
+          "wall_us": 82583,
+          "cpu_us": 82568,
+          "bytes": 262447
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 16539,
+          "cpu_us": 16524,
+          "bytes": 262447
+        },
+        {
+          "wall_us": 19806,
+          "cpu_us": 19810,
+          "bytes": 262447
+        },
+        {
+          "wall_us": 18058,
+          "cpu_us": 18041,
+          "bytes": 262447
+        },
+        {
+          "wall_us": 17223,
+          "cpu_us": 17141,
+          "bytes": 262447
+        },
+        {
+          "wall_us": 17305,
+          "cpu_us": 17307,
+          "bytes": 262447
+        }
+      ]
+    },
+    {
+      "input": "gradient.rgb",
+      "quality": 80,
+      "before_cpu_us": 74123,
+      "after_cpu_us": 16286,
+      "paired_cpu_percent": -78.028,
+      "sha256": "8ac386f7cf55f238b81b7ed339aa9a5d57dddbbed64e6baf85f1f99fe00a3a3c",
+      "decoded_sha256": "4153dcc6f70369832be19f60082aaea83e494e34c059ef1193c7c773c1691f26",
+      "before": [
+        {
+          "wall_us": 73837,
+          "cpu_us": 73805,
+          "bytes": 286027
+        },
+        {
+          "wall_us": 74144,
+          "cpu_us": 74123,
+          "bytes": 286027
+        },
+        {
+          "wall_us": 73963,
+          "cpu_us": 73954,
+          "bytes": 286027
+        },
+        {
+          "wall_us": 80001,
+          "cpu_us": 79998,
+          "bytes": 286027
+        },
+        {
+          "wall_us": 76358,
+          "cpu_us": 76342,
+          "bytes": 286027
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 17206,
+          "cpu_us": 17187,
+          "bytes": 286027
+        },
+        {
+          "wall_us": 16304,
+          "cpu_us": 16286,
+          "bytes": 286027
+        },
+        {
+          "wall_us": 16071,
+          "cpu_us": 16060,
+          "bytes": 286027
+        },
+        {
+          "wall_us": 16203,
+          "cpu_us": 16189,
+          "bytes": 286027
+        },
+        {
+          "wall_us": 16947,
+          "cpu_us": 16927,
+          "bytes": 286027
+        }
+      ]
+    },
+    {
+      "input": "gradient.rgb",
+      "quality": 95,
+      "before_cpu_us": 87266,
+      "after_cpu_us": 16928,
+      "paired_cpu_percent": -78.578,
+      "sha256": "dfc7cb5e28d2e75f1b29970972af58d4c07561a62d08026680167e08446f3a6b",
+      "decoded_sha256": "4153dcc6f70369832be19f60082aaea83e494e34c059ef1193c7c773c1691f26",
+      "before": [
+        {
+          "wall_us": 100600,
+          "cpu_us": 100589,
+          "bytes": 343876
+        },
+        {
+          "wall_us": 82245,
+          "cpu_us": 82218,
+          "bytes": 343876
+        },
+        {
+          "wall_us": 77455,
+          "cpu_us": 77397,
+          "bytes": 343876
+        },
+        {
+          "wall_us": 90977,
+          "cpu_us": 90979,
+          "bytes": 343876
+        },
+        {
+          "wall_us": 87266,
+          "cpu_us": 87266,
+          "bytes": 343876
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 16797,
+          "cpu_us": 16774,
+          "bytes": 343876
+        },
+        {
+          "wall_us": 16942,
+          "cpu_us": 16928,
+          "bytes": 343876
+        },
+        {
+          "wall_us": 16598,
+          "cpu_us": 16580,
+          "bytes": 343876
+        },
+        {
+          "wall_us": 20446,
+          "cpu_us": 20456,
+          "bytes": 343876
+        },
+        {
+          "wall_us": 20042,
+          "cpu_us": 19992,
+          "bytes": 343876
+        }
+      ]
+    },
+    {
+      "input": "testsrc.rgb",
+      "quality": 40,
+      "before_cpu_us": 77490,
+      "after_cpu_us": 30714,
+      "paired_cpu_percent": -60.268,
+      "sha256": "18a53ecf0c87e57a3828fbfa0e9e10d46e364a2a09a2586974f36e080990aa5c",
+      "decoded_sha256": "842089565bbc23d4c101f72f6dfc3b4f1a54198291fc9784b31b470ac8cebfba",
+      "before": [
+        {
+          "wall_us": 82403,
+          "cpu_us": 82376,
+          "bytes": 719342
+        },
+        {
+          "wall_us": 76787,
+          "cpu_us": 76791,
+          "bytes": 719342
+        },
+        {
+          "wall_us": 77530,
+          "cpu_us": 77490,
+          "bytes": 719342
+        },
+        {
+          "wall_us": 76598,
+          "cpu_us": 76574,
+          "bytes": 719342
+        },
+        {
+          "wall_us": 78157,
+          "cpu_us": 78126,
+          "bytes": 719342
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 30511,
+          "cpu_us": 30506,
+          "bytes": 719342
+        },
+        {
+          "wall_us": 30709,
+          "cpu_us": 30714,
+          "bytes": 719342
+        },
+        {
+          "wall_us": 30807,
+          "cpu_us": 30788,
+          "bytes": 719342
+        },
+        {
+          "wall_us": 30414,
+          "cpu_us": 30392,
+          "bytes": 719342
+        },
+        {
+          "wall_us": 33634,
+          "cpu_us": 33636,
+          "bytes": 719342
+        }
+      ]
+    },
+    {
+      "input": "testsrc.rgb",
+      "quality": 60,
+      "before_cpu_us": 79268,
+      "after_cpu_us": 31970,
+      "paired_cpu_percent": -59.645,
+      "sha256": "f087d3dc1e28e646cc110bb6956cf65d819e3b16990fcabce56aa6a2c7e58618",
+      "decoded_sha256": "e52519fae9a772f57eb5be637535aba16227dffed99037ef1f339933ee2b356a",
+      "before": [
+        {
+          "wall_us": 81323,
+          "cpu_us": 81297,
+          "bytes": 844234
+        },
+        {
+          "wall_us": 78528,
+          "cpu_us": 78508,
+          "bytes": 844234
+        },
+        {
+          "wall_us": 79284,
+          "cpu_us": 79268,
+          "bytes": 844234
+        },
+        {
+          "wall_us": 78751,
+          "cpu_us": 78722,
+          "bytes": 844234
+        },
+        {
+          "wall_us": 81479,
+          "cpu_us": 81459,
+          "bytes": 844234
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 31674,
+          "cpu_us": 31638,
+          "bytes": 844234
+        },
+        {
+          "wall_us": 31677,
+          "cpu_us": 31682,
+          "bytes": 844234
+        },
+        {
+          "wall_us": 32036,
+          "cpu_us": 32041,
+          "bytes": 844234
+        },
+        {
+          "wall_us": 31985,
+          "cpu_us": 31970,
+          "bytes": 844234
+        },
+        {
+          "wall_us": 32023,
+          "cpu_us": 32003,
+          "bytes": 844234
+        }
+      ]
+    },
+    {
+      "input": "testsrc.rgb",
+      "quality": 80,
+      "before_cpu_us": 82423,
+      "after_cpu_us": 38083,
+      "paired_cpu_percent": -56.567,
+      "sha256": "300c8d8b598cc97b2d3254c0a4603869a41d409209216d14a09e94d9ea2d8701",
+      "decoded_sha256": "a2678e7eb1f1b7308954c8ac5b429a2b4789e55e4e8faa921baa448131555097",
+      "before": [
+        {
+          "wall_us": 96234,
+          "cpu_us": 95883,
+          "bytes": 1090197
+        },
+        {
+          "wall_us": 96536,
+          "cpu_us": 96496,
+          "bytes": 1090197
+        },
+        {
+          "wall_us": 82448,
+          "cpu_us": 82423,
+          "bytes": 1090197
+        },
+        {
+          "wall_us": 80961,
+          "cpu_us": 80940,
+          "bytes": 1090197
+        },
+        {
+          "wall_us": 81576,
+          "cpu_us": 81577,
+          "bytes": 1090197
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 51164,
+          "cpu_us": 47789,
+          "bytes": 1090197
+        },
+        {
+          "wall_us": 40567,
+          "cpu_us": 40573,
+          "bytes": 1090197
+        },
+        {
+          "wall_us": 38106,
+          "cpu_us": 38083,
+          "bytes": 1090197
+        },
+        {
+          "wall_us": 33945,
+          "cpu_us": 33923,
+          "bytes": 1090197
+        },
+        {
+          "wall_us": 35425,
+          "cpu_us": 35431,
+          "bytes": 1090197
+        }
+      ]
+    },
+    {
+      "input": "testsrc.rgb",
+      "quality": 95,
+      "before_cpu_us": 101905,
+      "after_cpu_us": 40602,
+      "paired_cpu_percent": -59.732,
+      "sha256": "02f7665a439e9b83baf7039b855090abccd881dc0623f5d2d26ebb05c55cc7e3",
+      "decoded_sha256": "2d3cec17afad4e160ffc4b4077e0cf80800d5d596b582736857cc50d5f16da50",
+      "before": [
+        {
+          "wall_us": 94246,
+          "cpu_us": 94215,
+          "bytes": 1678287
+        },
+        {
+          "wall_us": 103518,
+          "cpu_us": 103519,
+          "bytes": 1678287
+        },
+        {
+          "wall_us": 215675,
+          "cpu_us": 208753,
+          "bytes": 1678287
+        },
+        {
+          "wall_us": 100201,
+          "cpu_us": 100206,
+          "bytes": 1678287
+        },
+        {
+          "wall_us": 101927,
+          "cpu_us": 101905,
+          "bytes": 1678287
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 40626,
+          "cpu_us": 40602,
+          "bytes": 1678287
+        },
+        {
+          "wall_us": 41702,
+          "cpu_us": 41685,
+          "bytes": 1678287
+        },
+        {
+          "wall_us": 40559,
+          "cpu_us": 40564,
+          "bytes": 1678287
+        },
+        {
+          "wall_us": 39938,
+          "cpu_us": 39910,
+          "bytes": 1678287
+        },
+        {
+          "wall_us": 43295,
+          "cpu_us": 43300,
+          "bytes": 1678287
+        }
+      ]
+    },
+    {
+      "input": "street.rgb",
+      "quality": 40,
+      "before_cpu_us": 85457,
+      "after_cpu_us": 85483,
+      "paired_cpu_percent": -0.802,
+      "sha256": "3124f0cf1ad9293d0b05f20f96c6f5f62349932d20aa855c6bed5ab4b3af5a6b",
+      "decoded_sha256": "46996018a8260e1970479300d91f410485eb9415074d43c88e2ef4692007c07c",
+      "before": [
+        {
+          "wall_us": 90129,
+          "cpu_us": 90103,
+          "bytes": 693206
+        },
+        {
+          "wall_us": 84106,
+          "cpu_us": 84086,
+          "bytes": 693206
+        },
+        {
+          "wall_us": 85552,
+          "cpu_us": 85502,
+          "bytes": 693206
+        },
+        {
+          "wall_us": 84013,
+          "cpu_us": 83997,
+          "bytes": 693206
+        },
+        {
+          "wall_us": 85453,
+          "cpu_us": 85457,
+          "bytes": 693206
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 87537,
+          "cpu_us": 87538,
+          "bytes": 693206
+        },
+        {
+          "wall_us": 93121,
+          "cpu_us": 93113,
+          "bytes": 693206
+        },
+        {
+          "wall_us": 84833,
+          "cpu_us": 84816,
+          "bytes": 693206
+        },
+        {
+          "wall_us": 85483,
+          "cpu_us": 85483,
+          "bytes": 693206
+        },
+        {
+          "wall_us": 83867,
+          "cpu_us": 83819,
+          "bytes": 693206
+        }
+      ]
+    },
+    {
+      "input": "street.rgb",
+      "quality": 60,
+      "before_cpu_us": 89220,
+      "after_cpu_us": 91263,
+      "paired_cpu_percent": 1.375,
+      "sha256": "f4620fddd698b82438b44b9dd821badfaed2bf6879fbf58c21abceae6a4513cc",
+      "decoded_sha256": "20f28fa55ae9b1baa5c044b57cdaacb48019f6339e86c242b1d7243ed1a8c44c",
+      "before": [
+        {
+          "wall_us": 91151,
+          "cpu_us": 90475,
+          "bytes": 859580
+        },
+        {
+          "wall_us": 106684,
+          "cpu_us": 100203,
+          "bytes": 859580
+        },
+        {
+          "wall_us": 88511,
+          "cpu_us": 88491,
+          "bytes": 859580
+        },
+        {
+          "wall_us": 88724,
+          "cpu_us": 88703,
+          "bytes": 859580
+        },
+        {
+          "wall_us": 89300,
+          "cpu_us": 89220,
+          "bytes": 859580
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 90935,
+          "cpu_us": 90935,
+          "bytes": 859580
+        },
+        {
+          "wall_us": 95499,
+          "cpu_us": 95483,
+          "bytes": 859580
+        },
+        {
+          "wall_us": 91659,
+          "cpu_us": 91634,
+          "bytes": 859580
+        },
+        {
+          "wall_us": 89928,
+          "cpu_us": 89923,
+          "bytes": 859580
+        },
+        {
+          "wall_us": 91281,
+          "cpu_us": 91263,
+          "bytes": 859580
+        }
+      ]
+    },
+    {
+      "input": "street.rgb",
+      "quality": 80,
+      "before_cpu_us": 95463,
+      "after_cpu_us": 95708,
+      "paired_cpu_percent": -1.062,
+      "sha256": "5d540c9a9f1610e0d703c44ecd0caf95f0c4ba260fc1d10e943f9ab2455263a4",
+      "decoded_sha256": "2545d72e91ebb843cb0b68396361549670edc8f2d451ee6a1c7317800e3f6054",
+      "before": [
+        {
+          "wall_us": 99582,
+          "cpu_us": 99558,
+          "bytes": 1251720
+        },
+        {
+          "wall_us": 109137,
+          "cpu_us": 103161,
+          "bytes": 1251720
+        },
+        {
+          "wall_us": 95499,
+          "cpu_us": 95463,
+          "bytes": 1251720
+        },
+        {
+          "wall_us": 92048,
+          "cpu_us": 91973,
+          "bytes": 1251720
+        },
+        {
+          "wall_us": 92264,
+          "cpu_us": 92245,
+          "bytes": 1251720
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 95707,
+          "cpu_us": 95708,
+          "bytes": 1251720
+        },
+        {
+          "wall_us": 92946,
+          "cpu_us": 92920,
+          "bytes": 1251720
+        },
+        {
+          "wall_us": 115863,
+          "cpu_us": 115830,
+          "bytes": 1251720
+        },
+        {
+          "wall_us": 97224,
+          "cpu_us": 97227,
+          "bytes": 1251720
+        },
+        {
+          "wall_us": 91299,
+          "cpu_us": 91265,
+          "bytes": 1251720
+        }
+      ]
+    },
+    {
+      "input": "street.rgb",
+      "quality": 95,
+      "before_cpu_us": 109604,
+      "after_cpu_us": 110002,
+      "paired_cpu_percent": 1.765,
+      "sha256": "b3580d7ccb8876f8c004c95f0d0065ec41ed5a0155cadc577e41ac14ab0f03df",
+      "decoded_sha256": "0aa5987565293ab4442fa426b3fdbcc350d5182428afed0358e583e04018feda",
+      "before": [
+        {
+          "wall_us": 106746,
+          "cpu_us": 106598,
+          "bytes": 2465294
+        },
+        {
+          "wall_us": 108111,
+          "cpu_us": 108094,
+          "bytes": 2465294
+        },
+        {
+          "wall_us": 111325,
+          "cpu_us": 111307,
+          "bytes": 2465294
+        },
+        {
+          "wall_us": 109629,
+          "cpu_us": 109604,
+          "bytes": 2465294
+        },
+        {
+          "wall_us": 112445,
+          "cpu_us": 112416,
+          "bytes": 2465294
+        }
+      ],
+      "after": [
+        {
+          "wall_us": 106821,
+          "cpu_us": 106794,
+          "bytes": 2465294
+        },
+        {
+          "wall_us": 110027,
+          "cpu_us": 110002,
+          "bytes": 2465294
+        },
+        {
+          "wall_us": 109605,
+          "cpu_us": 109585,
+          "bytes": 2465294
+        },
+        {
+          "wall_us": 114865,
+          "cpu_us": 114727,
+          "bytes": 2465294
+        },
+        {
+          "wall_us": 117867,
+          "cpu_us": 117867,
+          "bytes": 2465294
+        }
+      ]
+    }
+  ]
+}

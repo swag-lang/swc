@@ -191,11 +191,15 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     // The cached typeface can retain this snapshot after the viewer closes.
     let allocator = Swag.getContext().defaultAllocator orelse Swag.getContext().allocator
     result.source = try FontSource.loadFile(fileName, allocator)
-    let bytes           = result.source.bytes()
+    let bytes = result.source.bytes()
     let collectionCount = try Face.countFaces(bytes)
-    let fileInfo        = try File.info(fileName)
-    result.selectionIdentity = faceSelectionIdentity(fileInfo.fullName, bytes)
-    let rememberedIndex = selectedFaceMember(fileName, result.selectionIdentity)
+    var rememberedIndex = Swag.U32.Max
+    if collectionCount > 1
+    {
+        let fileInfo = try File.info(fileName)
+        result.selectionIdentity = faceSelectionIdentity(fileInfo.fullName, bytes)
+        rememberedIndex = selectedFaceMember(fileName, result.selectionIdentity)
+    }
 
     // A broken collection member cannot invalidate its neighbors. Probe every original index
     // independently and retain only faces whose outline parser can load.
@@ -208,13 +212,17 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
             continue
 
         let face = unwrap candidate
-        var name: String
+        var name:  String
+        var facts: FaceFacts
         catch
         {
             let metadata = try result.source.metadataAt(memberIndex)
             let family   = metadata.typographicFamilyName.isEmpty() ? metadata.familyName.toString() : metadata.typographicFamilyName.toString()
             let style    = metadata.typographicStyleName.isEmpty() ? metadata.styleName.toString() : metadata.typographicStyleName.toString()
-            name = style.count == 0 ? family : Format.toString("% · %", family, style)
+            name              = style.count == 0 ? family : Format.toString("% · %", family, style)
+            facts.weight      = metadata.weight
+            facts.embedding   = metadata.embedding
+            facts.hasMetadata = true
         }
 
         if name.isEmpty()
@@ -226,7 +234,8 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         if not result.face or memberIndex == rememberedIndex
         {
             result.face?.destroy()
-            result.face = face
+            result.face  = face
+            result.facts = facts
             result.selectedFaceIndex = cast(u32, result.faceIndices.count)
         }
         else
@@ -243,7 +252,10 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         fail InvalidFormatError{Errors.mkString(texts().ui_NoValidFaces)}
 
     let selectedMember = result.faceIndices[result.selectedFaceIndex]
-    result.cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(bytes))
+    if collectionCount > 1 do
+        result.cacheKey = Format.toString("%|scope-font|%", fileName, result.selectionIdentity)
+    else do
+        result.cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(bytes))
     result.typeFace = try TypeFace.createFromSource(result.cacheKey, &result.source, selectedMember)
 
     let unreadable = collectionCount - result.faceCount
@@ -265,14 +277,6 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     {
         for code in BlockFirst[index] to BlockLast[index] where face.hasChar(cast(rune, code)) do
             count[] += 1
-    }
-
-    catch
-    {
-        let metadata = try result.source.metadataAt(selectedMember)
-        result.facts.weight      = metadata.weight
-        result.facts.embedding   = metadata.embedding
-        result.facts.hasMetadata = true
     }
 
     return result

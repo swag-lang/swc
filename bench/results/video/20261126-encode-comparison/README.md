@@ -174,3 +174,17 @@ The optimized writer reduces CPU time by 53–60% on the camera clip. A second
 every Swag sample differs from FFmpeg's conversion by at most one level. All 18
 focused native Release tests passed.
 [Timing samples and hashes](y4m-fused-conversion.json) · [Reproduction](../../../workloads/y4m/README.md)
+
+### Motion JPEG uniform blocks
+
+An eight-by-eight block with identical RGB pixels now emits the three DC values
+and end-of-block codes directly. A few spaced comparisons reject the shortcut
+quickly in textured blocks. The full comparison covers all 64 pixels before
+skipping color conversion and the transform.
+
+Five rotating runs per quality used one logical CPU and the same four 30-frame clips.
+Paired CPU time fell by 18–28% on the desktop, 78–79% on the changing tiles and
+57–60% on the animated test pattern. The camera stayed within 1.8% in either
+direction. All 480 encoded pictures and their FFmpeg decodes matched byte for byte.
+The JPEG, AVI and MP4 Release selection passed 86 tests.
+[Individual results](mjpeg-flat-blocks.json)

@@ -183,6 +183,27 @@ tests passed. The earlier matrix B-picture series was flat. Alternating the two
 executables on that clip found 4.2% lower median process CPU time.
 [Raw observations and quality hashes](mpeg4-bitreader.json).
 
+## MPEG-4 Part 2 sparse inverse transform
+
+Each row now uses a packed comparison to find its nonzero coefficients. The transform
+skips empty rows and consumes the marked frequencies in ascending order. The
+butterfly trial that split even and odd frequencies changed sample hashes and gave
+smaller gains on three of the four streams in the compared series.
+
+The table gives nine-run medians on one logical CPU, in milliseconds per picture
+against `2276babc39`. Both executables use the Release compiler from that revision.
+
+| MPEG-4 Part 2 stream | Before | After | FFmpeg | Swag time change | Swag after / FFmpeg |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Simple Profile 720p | 1.702 | 1.289 | 0.529 | -24.2% | 2.44× |
+| Textured intra 640×360 | 2.175 | 2.008 | 0.639 | -7.6% | 3.14× |
+| B pictures with MPEG matrices | 0.889 | 0.811 | 0.353 | -8.8% | 2.30× |
+| P pictures with MPEG matrices, 720p | 1.455 | 1.242 | 0.559 | -14.6% | 2.22× |
+
+All 420 pictures were byte-exact against the previous Swag build and all 82 native
+Release tests passed. The earlier matched-source run measured gains from 3.6% to
+20.7%. [Raw observations and the transform trial](mpeg4-sparse-idct.json).
+
 ## Matroska timing coverage
 
 The picture check established a dense display timeline before timing the file-backed

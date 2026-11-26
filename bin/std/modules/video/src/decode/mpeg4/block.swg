@@ -197,28 +197,30 @@ func inverseTransform(block: const *[64] s32, output: *[64] s16)
     var frequencies: [8] u64
     var activeRows = 0'u64
     let half       = Simd.splat(0.5'f32)
+    let zero       = Simd.splat(0's32)
     for y in 8'u64
     {
+        let row  = cast(const [*] s32, &block[][y * 8])
+        let low  = Simd.bitmask(Simd.load(row) != zero)
+        let high = Simd.bitmask(Simd.load(row + 4) != zero)
+        var mask = low | (high << 4)
+        if not mask do
+            continue
+
         var lo, hi: Simd.F32x4
-        var active = false
-        for u in 8'u64
+        while mask
         {
-            let value = block[][y * 8 + u]
-            if not value do
-                continue
-            active = true
-            let coefficient = Simd.splat(cast(f32, value))
+            let u = Swag.trailingZeros(mask)
+            mask &= mask - 1
+            let coefficient = Simd.splat(cast(f32, row[u]))
             lo += coefficient * Simd.load(&g_Cosines[u, 0])
             hi += coefficient * Simd.load(&g_Cosines[u, 4])
         }
 
-        if active
-        {
-            frequencies[activeRows] = y
-            left[activeRows]        = lo * half
-            right[activeRows]       = hi * half
-            activeRows              += 1
-        }
+        frequencies[activeRows] = y
+        left[activeRows]        = lo * half
+        right[activeRows]       = hi * half
+        activeRows              += 1
     }
 
     // Without vertical AC, each output row has the same samples.

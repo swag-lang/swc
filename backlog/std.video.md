@@ -64,12 +64,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.039 — Reduce the measured serial cost of MPEG-4 Part 2 decoding
 
-- Evidence: [the bit reader comparison](../bench/results/video/20261126-decode-comparison/README.md#mpeg-4-part-2-single-bit-reads)
-  measures Simple Profile at 2.77× native single-threaded FFmpeg, textured intra at 3.58×,
-  and MPEG matrix B pictures at 2.39×. The profile before bit-reader work spent 22% in
-  the inverse transform and 19% reading bits or walking variable-length codes.
-- Next: profile the updated decoder and compare a sparse transform against the measured
-  sample-error bounds. Use both intra and predicted fixtures.
+- Evidence: [the sparse transform comparison](../bench/results/video/20261126-decode-comparison/README.md#mpeg-4-part-2-sparse-inverse-transform)
+  measures Simple Profile at 2.44× native single-threaded FFmpeg, textured intra at 3.14×,
+  and MPEG matrix B pictures at 2.30×. Skipping zero coefficients retained the exact
+  Swag planes on all four fixtures.
+- Next: profile the updated coefficient loop on the textured intra and predicted streams.
+  Measure any more compact coefficient representation against the same sample-error bounds.
 - Done when: the same fixtures approach the single-threaded FFmpeg time while preserving
   the measured sample-error bounds and the MPEG-4 conformance tests.
 

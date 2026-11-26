@@ -191,18 +191,16 @@ public impl TypeFace
         // The installed fonts belong to the machine, not to the program, so this looks past
         // any sandbox: a sandboxed run has no fonts of its own and would find nothing.
         // A name that is no file is an installed font, where the machine's fonts may answer.
-        var buffer: Array'u8
         if not File.exists(fullName) and FontFamily.hasSystemFontAccess()
         {
-            let p = Path.combine(Env.realSpecialDirectory(.Font), fullName)
-            buffer = try File.readAllBytes(p)
+            let path = Path.combine(Env.realSpecialDirectory(.Font), fullName)
+            tf.face = try Face.loadFile(path, key.index, allocator)
         }
         else
         {
-            buffer = try File.readAllBytes(fullName)
+            tf.face = try Face.loadFile(fullName, key.index, allocator)
         }
 
-        tf.face       = try Face.loadAt(buffer.toSlice(), key.index, allocator)
         tf.faceLoaded = true
 
         if key.style != 0

@@ -348,8 +348,8 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
                          cast(s16, faceData.outlinePoints.count),
                          cast(s16, faceData.outlineContours.count))
 
-    let metric = faceData.glyphMetrics[glyphIndex]
-    slot.setAdvance(try scale26_6(metric.advanceWidth, xPpem, faceData.unitsPerEm))
+    let advance = faceData.glyphAdvance(glyphIndex)
+    slot.setAdvance(try scale26_6(advance, xPpem, faceData.unitsPerEm))
     if faceData.hasVerticalMetrics
     {
         let vertical = faceData.verticalGlyphMetrics[glyphIndex]

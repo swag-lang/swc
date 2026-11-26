@@ -191,6 +191,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     let collectionCount = try Face.countFaces(result.bytes.toSlice())
     let fileInfo        = try File.info(fileName)
     result.selectionIdentity = faceSelectionIdentity(fileInfo.fullName, result.bytes.toSlice())
+    let rememberedIndex = selectedFaceMember(fileName, result.selectionIdentity)
 
     // A broken collection member cannot invalidate its neighbors. Probe every original index
     // independently and retain only faces whose outline parser can load.
@@ -218,7 +219,17 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
             name = Format.toString("% · %", face.familyName, style)
         }
 
-        face.destroy()
+        if not result.face or memberIndex == rememberedIndex
+        {
+            result.face?.destroy()
+            result.face = face
+            result.selectedFaceIndex = cast(u32, result.faceIndices.count)
+        }
+        else
+        {
+            face.destroy()
+        }
+
         result.faceIndices.add(memberIndex)
         result.faceNames.add(#move name)
     }
@@ -227,12 +238,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     if not result.faceCount do
         fail InvalidFormatError{Errors.mkString(texts().ui_NoValidFaces)}
 
-    result.selectedFaceIndex = 0
-    let rememberedIndex = selectedFaceMember(fileName, result.selectionIdentity)
-    for memberIndex, position in result.faceIndices where memberIndex == rememberedIndex do
-        result.selectedFaceIndex = cast(u32, position)
     let selectedMember = result.faceIndices[result.selectedFaceIndex]
-    result.face     = try Face.loadAt(result.bytes.toSlice(), selectedMember)
     result.cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(result.bytes.toSlice()))
     result.typeFace = try TypeFace.createAt(result.cacheKey, result.bytes.toSlice(), selectedMember)
 
@@ -241,24 +247,25 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         result.details = Format.toString(texts().ui_UnreadableFaces, unreadable, collectionCount)
     elif collectionCount > 1 do
         result.details = Format.toString(texts().ui_CollectionFaces, collectionCount)
+    let face  = unwrap result.face
     var start = 0x20'u32
-    result.glyphCharacters.resize(result.face.glyphCount)
-    for glyphIndex in result.face.glyphCount
+    result.glyphCharacters.resize(face.glyphCount)
+    for glyphIndex in face.glyphCount
     {
-        if let name = result.face.glyphName(cast(u32, glyphIndex)) do
+        if let name = face.glyphName(cast(u32, glyphIndex)) do
             result.glyphNames.add(GlyphName{String.from(name), cast(u32, glyphIndex)})
     }
 
     result.glyphNames.sort(func(a, b) => Text.compareNames(a.name.toSlice(), b.name.toSlice()))
     while start < 0x110000
     {
-        let page = characterPage(result.face, start)
+        let page = characterPage(face, start)
         if page.characters.isEmpty() do
             break
         result.pageStarts.add(cast(u32, page.characters[0]))
         for character in page.characters
         {
-            let glyphIndex = result.face.glyphIndex(character)
+            let glyphIndex = face.glyphIndex(character)
             if glyphIndex < result.glyphCharacters.count and not result.glyphCharacters[glyphIndex] do
                 result.glyphCharacters[glyphIndex] = character
         }
@@ -270,7 +277,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
 
     for &count, index in result.facts.coverage
     {
-        for code in BlockFirst[index] to BlockLast[index] where result.face.hasChar(cast(rune, code)) do
+        for code in BlockFirst[index] to BlockLast[index] where face.hasChar(cast(rune, code)) do
             count[] += 1
     }
 

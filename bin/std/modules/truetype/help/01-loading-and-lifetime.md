@@ -1,15 +1,14 @@
 # Loading fonts and glyphs
 
-TrueType works from bytes already present in memory. A [[TrueType.Face]] parses
-and owns a private copy of those bytes, so the source buffer does not need to
-remain alive. If you supply a custom allocator to a load function, keep it alive
+Use [[TrueType.Face.loadFile]] to load a font from disk. When the bytes already
+sit in memory, [[TrueType.Face.load]] parses a private copy, so the source buffer
+does not need to remain alive. If you supply a custom allocator to a load function, keep it alive
 until after [[TrueType.Face.destroy]] releases the face.
 
 ```swag
 using Core, TrueType
 
-let bytes = try File.readAllBytes("Inter-Regular.ttf")
-let face  = try Face.load(bytes.toSlice())
+let face = try Face.loadFile("Inter-Regular.ttf")
 defer face.destroy()
 ```
 

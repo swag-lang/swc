@@ -222,6 +222,48 @@ The public fixtures were fetched directly from these upstream revisions.
 - Noto Sans TTF, 348,408 bytes. [Upstream file](https://github.com/notofonts/noto-fonts/blob/v20201206-phase3/hinted/ttf/NotoSans/NotoSans-Regular.ttf)
 - Noto Sans CJK JP OTF, 16,467,736 bytes. [Upstream file](https://github.com/notofonts/noto-cjk/blob/Sans2.004/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf)
 
+#### Direct file loading and deferred glyph-name indexes
+
+This Release comparison adds the six supplied TTF files to the six supplied OTFs and five
+public fixtures. The published baseline is `2edf874a67`. Both Swag copy-path columns read the
+file with `File.readAllBytes` and pass the result to `Face.load`. The direct path uses
+`Face.loadFile`, which reads into the face's owned storage. Swag builds the reverse glyph-name
+index on demand for `post` and CFF, keeps horizontal advances in their validated SFNT table,
+and skips redundant validation and expansion of shared maps and identity CID ranges.
+
+Each column uses the median of 11 interleaved batches on one CPU, with a warm file cache.
+A batch opens 501 fresh faces per fixture, or 25 for Noto Sans CJK JP, sets 20 px and renders
+one glyph from each face. The reference uses Pillow 12.3.0 with FreeType 2.14.3 and the same
+files and characters. Cleanup is outside the timed span.
+
+| Fixture | Character | Published Swag copy (µs) | New Swag copy (µs) | New Swag file (µs) | Pillow (µs) |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `slick.ttf` | `a` | 33.99 | 35.30 | 34.26 | 184.21 |
+| `slick.otf` | `a` | 38.88 | 40.84 | 37.49 | 145.07 |
+| `NotoSansShavian-Regular.ttf` | `U+10450` | 38.20 | 35.91 | 35.53 | 256.18 |
+| `NotoSansShavian-Regular.otf` | `U+10450` | 37.47 | 30.39 | 32.34 | 83.35 |
+| `Lato-Regular.ttf` | `A` | 69.99 | 48.16 | 49.15 | 215.34 |
+| `Lato-Regular.otf` | `A` | 63.37 | 48.57 | 45.13 | 110.28 |
+| `OpenSans-Regular.ttf` | `A` | 172.60 | 95.85 | 95.62 | 121.42 |
+| `OpenSans-Regular.otf` | `A` | 125.45 | 68.58 | 64.09 | 138.58 |
+| `SourceCodePro-Regular.ttf` | `A` | 119.34 | 70.84 | 67.87 | 86.52 |
+| `SourceCodePro-Regular.otf` | `A` | 92.70 | 53.42 | 56.43 | 107.15 |
+| `fontawesome-webfont.ttf` | `U+F000` | 157.97 | 122.37 | 95.17 | 268.96 |
+| `fontawesome-webfont.otf` | `U+F000` | 209.37 | 144.13 | 99.04 | 139.17 |
+| `SourceSans3-Regular.otf` | `A` | 291.16 | 161.27 | 156.42 | 275.87 |
+| `SourceSerif4-Regular.otf` | `g` | 205.76 | 132.37 | 123.60 | 273.52 |
+| `NimbusSans-Regular.otf` | `A` | 87.57 | 55.10 | 53.79 | 134.32 |
+| `NotoSans-Regular.ttf` | `A` | 673.42 | 353.56 | 314.42 | 1580.09 |
+| `NotoSansCJKjp-Regular.otf` | `U+65E5` | 9735.88 | 9102.00 | 2890.71 | 1301.63 |
+
+Glyph indices, bitmap dimensions and bitmap checksums matched across all three Swag paths for
+all 17 fixtures. The direct file path comes in ahead of Pillow on 16 fixtures. Noto Sans CJK JP
+improves from 9.74 ms to 2.89 ms, with Pillow at 1.30 ms. The separate file-read phase on the new
+copy path takes 2.21 ms for this 16.5 MB font.
+
+Rendering 4,001 times with the same face and size already set, the median per-glyph time
+ranged from 4.2% faster to 2.5% slower than the published build across the 17 fixtures.
+
 ### SVG results already reported
 
 The prior four-file comparison measured Scope's SVG parse plus CPU rasterization against resvg

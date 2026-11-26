@@ -115,6 +115,29 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     assertFixtureFontLoads("arialbi.ttf", .Bold | .Italic)
 }
 
+#test
+{
+    let bytes = loadFontBytes("arial.ttf")
+    let path  = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("swag-face-%.ttf", Guid128.random().toString()))
+    defer discard catch File.delete(path)
+    discard expect File.writeAllBytes(path, bytes.toSlice())
+
+    let face = expect Face.loadFile(path)
+    defer face.destroy()
+    var badIndex: Swag.Error
+    discard catch Face.loadFile(path, 1) as badIndex
+    Swag.require(badIndex.value() != null)
+
+    discard expect File.writeAllBytes(path, BrokenFontBytes)
+    var badFile: Swag.Error
+    discard catch Face.loadFile(path) as badFile
+    Swag.require(badFile.value() != null)
+
+    discard expect face.setPixelSize(0, 18)
+    discard expect face.loadChar('A', .Render)
+    Swag.require(countBitmapCoverage(&face.glyph.bitmap) > 0)
+}
+
 // A face retains the allocator that owns its outer allocation. Destroying it after
 // the thread context switches allocators must not route the pointer to the new one.
 #test

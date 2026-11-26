@@ -1,6 +1,5 @@
 /*
-TrueType reads, measures, transforms, and rasterizes outline fonts
-directly from memory.
+TrueType reads, measures, transforms, and rasterizes outline fonts from files or memory.
 
 A [[TrueType.Face]] owns a private copy of the font bytes and exposes one
 reusable [[TrueType.GlyphSlot]]. Select a pixel size, load a character or glyph,
@@ -13,8 +12,7 @@ them by 64 to obtain ordinary pixel values.
 ```swag
 using Core, TrueType
 
-let bytes = try File.readAllBytes("Inter-Regular.ttf")
-let face  = try Face.load(bytes.toSlice())
+let face = try Face.loadFile("Inter-Regular.ttf")
 defer face.destroy()
 
 try face.setPixelSize(0, 32)

@@ -72,16 +72,61 @@ enum OutlineSource
     Type1     // Type 1 charstrings, from a PFB, PFA, or bare font program.
 }
 
-struct GlyphMetric
-{
-    advanceWidth:    u16
-    leftSideBearing: s16
-}
-
 struct GposPairLookup
 {
     firstSubtable: u64
     subtableCount: u32
+}
+
+// Forward names borrow the owned font data or a static vocabulary. The reverse index
+// is only needed by callers that address glyphs by name.
+struct GlyphNames
+{
+    entries: Array'string
+    byName:  HashTable'(string, u32)
+    ready:   Swag.AtomicFlag
+    lock:    Swag.Mutex
+}
+
+impl GlyphNames
+{
+    mtd const nameOf(glyphIndex: u32)->string?
+    {
+        if glyphIndex >= .entries.count do
+            return null
+        let name = .entries[glyphIndex]
+        return name.count ? name : null
+    }
+
+    mtd buildIndex()
+    {
+        let context = Swag.getContext()
+        let previousAllocator = context.allocator
+
+        // Allocate the reverse index with the same allocator as the forward names.
+        context.allocator = .entries.allocator orelse previousAllocator
+        defer context.allocator = previousAllocator
+
+        .byName.reserve(.entries.count * 2)
+        for name, glyphIndex in .entries where name.count do
+            .byName.add(name, cast(u32, glyphIndex), updateValue: false)
+        .ready.raise()
+    }
+
+    mtd glyphIndex(name: string)->u32
+    {
+        if not name.count or .entries.isEmpty() do
+            return 0
+
+        if not .ready.isRaised()
+        {
+            Sync.scopedLock(&.lock)
+            if not .ready.isRaised() do
+                .buildIndex()
+        }
+
+        return .byName.getOrDefault(name, 0)
+    }
 }
 
 // Internal backing store for a public Face. The public Face is the first field so
@@ -92,19 +137,20 @@ struct FaceImpl
 
     late allocationAllocator: IAllocator
 
-    fontData:             Array'u8
-    tables:               Array'TableRecord
-    glyphMetrics:         Array'GlyphMetric
-    verticalGlyphMetrics: Array'GlyphVerticalMetrics
-    glyphLocations:       Array'u32
-    late chosenCMap:      const [..] u8
-    cmapFormat:           u16
-    unitsPerEm:           u16
-    numLongMetrics:       u16
-    lineGap:              s16
-    macStyle:             u16
-    hasVerticalMetrics:   bool
-    indexToLocFormat:     s16
+    fontData:               Array'u8
+    tables:                 Array'TableRecord
+    charstringAdvances:     Array'u16
+    verticalGlyphMetrics:   Array'GlyphVerticalMetrics
+    glyphLocations:         Array'u32
+    late horizontalMetrics: const [..] u8
+    late chosenCMap:        const [..] u8
+    cmapFormat:             u16
+    unitsPerEm:             u16
+    numLongMetrics:         u16
+    lineGap:                s16
+    macStyle:               u16
+    hasVerticalMetrics:     bool
+    indexToLocFormat:       s16
 
     // Format-14 subtable holding the Unicode variation sequences, when the face
     // declares one. It supplements the selected map instead of replacing it.
@@ -145,8 +191,7 @@ struct FaceImpl
     gposPairLookups:   Array'GposPairLookup
 
     // Names borrow the owned sfnt bytes or the static Macintosh glyph vocabulary.
-    postNameToGid:  HashTable'(string, u32)
-    postGlyphNames: Array'(string?)
+    postNames: GlyphNames
 }
 
 impl FaceImpl
@@ -156,7 +201,7 @@ impl FaceImpl
         // These buffers belong to the face, so release capacity instead of only
         // clearing elements; the reusable glyph workspace dies with the face too.
         .tables.free()
-        .glyphMetrics.free()
+        .charstringAdvances.free()
         .verticalGlyphMetrics.free()
         .glyphLocations.free()
         .outlinePoints.free()
@@ -167,8 +212,8 @@ impl FaceImpl
         .kernPairs.free()
         .gposPairSubtables.free()
         .gposPairLookups.free()
-        .postNameToGid.free()
-        .postGlyphNames.free()
+        Swag.drop(&.postNames)
+        Swag.init(&.postNames, 1)
         .syntheticCMap.free()
 
         // A custom drop owns nested cleanup, so release each string and parser
@@ -182,6 +227,18 @@ impl FaceImpl
         .fontData.free()
     }
 
+    // The validated hmtx table stores the first advances explicitly. All short metrics reuse
+    // the last long advance. Bare PostScript faces supply their own charstring advances.
+    mtd const glyphAdvance(glyphIndex: u32)->u16
+    {
+        if not .numLongMetrics do
+            return .charstringAdvances[glyphIndex]
+
+        let index = Math.min(glyphIndex, cast(u32, .numLongMetrics - 1))
+        let entry = .horizontalMetrics.buffer + cast(u64, index) * 4
+        return Math.make16(entry[0], entry[1])
+    }
+
     // Returns the glyph selected by a PostScript glyph name, or zero when no name matches.
     //
     // CFF and Type 1 names come from their charstring programs. TrueType outlines use the
@@ -191,9 +248,9 @@ impl FaceImpl
     {
         switch #complete .outlineSource
         {
-        case .Cff:   return .cff.nameToGid.getOrDefault(name, 0)
+        case .Cff:   return .cff.glyphNames.glyphIndex(name)
         case .Type1: return .type1.nameToGid.getOrDefault(String.from(name), 0)
-        case .Glyf:  return .postNameToGid.getOrDefault(name, 0)
+        case .Glyf:  return .postNames.glyphIndex(name)
         }
     }
 
@@ -206,10 +263,7 @@ impl FaceImpl
         switch #complete .outlineSource
         {
         case .Cff:
-            if glyphIndex >= .cff.glyphNames.count do
-                return null
-            let name = .cff.glyphNames[glyphIndex]
-            return name.count ? name : null
+            return .cff.glyphNames.nameOf(glyphIndex)
 
         case .Type1:
             if glyphIndex >= .type1.glyphNames.count do
@@ -219,9 +273,7 @@ impl FaceImpl
             return .type1.glyphNames[glyphIndex].toString()
 
         case .Glyf:
-            if glyphIndex >= .postGlyphNames.count do
-                return null
-            return .postGlyphNames[glyphIndex]
+            return .postNames.nameOf(glyphIndex)
         }
     }
 

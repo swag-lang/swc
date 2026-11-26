@@ -38,15 +38,6 @@ private const MacStandardGlyphNames: [258] string = [
     "Gbreve", "gbreve", "Idotaccent", "Scedilla", "scedilla", "Cacute", "cacute", "Ccaron",
     "ccaron", "dcroat"]
 
-// Adds a name once, matching the first-name-wins behavior of CFF and Type 1 maps.
-private func addPostGlyphName(faceData: *FaceImpl, name: string, glyphIndex: u32)
-{
-    if name.count == 0 do
-        return
-    faceData.postGlyphNames[glyphIndex] = name
-    faceData.postNameToGid.add(name, glyphIndex, updateValue: false)
-}
-
 func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: u32) fail
 {
     let glyphCount = faceData.face.glyphCount
@@ -54,9 +45,7 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
     {
         if glyphCount > MacStandardGlyphNames.count do
             try fault(0x9B)
-        faceData.postGlyphNames.resize(glyphCount)
-        for glyphIndex in glyphCount do
-            addPostGlyphName(faceData, MacStandardGlyphNames[glyphIndex], glyphIndex)
+        faceData.postNames.entries.add(Swag.makeSlice(&MacStandardGlyphNames[0], glyphCount))
         return
     }
 
@@ -65,18 +54,16 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
         let count = try readU16(postTable, 32)
         if count != glyphCount do
             try fault(0x9B)
-        try assertRange(postTable, 34, cast(u64, count) * 2)
-        faceData.postGlyphNames.resize(glyphCount)
+        let indices = try getSlice(postTable, 34, cast(u64, count) * 2)
+        if not count do
+            return
 
-        var indices: Array'u16
-        indices.resize(count)
         var maxCustomIndex = 257'u16
-        for glyphIndex in count
+        var entry = indices.buffer
+        for count
         {
-            let nameIndex = try readU16(postTable, 34 + cast(u64, glyphIndex) * 2)
-            indices[glyphIndex] = nameIndex
-            if nameIndex >= 258 and nameIndex > maxCustomIndex do
-                maxCustomIndex = nameIndex
+            maxCustomIndex = Math.max(maxCustomIndex, Math.make16(entry[0], entry[1]))
+            entry += 2
         }
 
         var customNames: Array'string
@@ -84,7 +71,7 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
         let customOffset = 34 + cast(u64, count) * 2
         if customCount > postTable.count - customOffset do
             try fault(0x9B)
-        if maxCustomIndex >= 258
+        if customCount
         {
             customNames.reserve(customCount)
             var offset = customOffset
@@ -98,11 +85,13 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
             }
         }
 
+        let names = faceData.postNames.entries.emplaceAddress(glyphCount)
+        entry = indices.buffer
         for glyphIndex in count
         {
-            let nameIndex = indices[glyphIndex]
-            let name      = nameIndex < 258 ? MacStandardGlyphNames[nameIndex] : customNames[nameIndex - 258]
-            addPostGlyphName(faceData, name, glyphIndex)
+            let nameIndex = Math.make16(entry[0], entry[1])
+            names[glyphIndex] = nameIndex < 258 ? MacStandardGlyphNames[nameIndex] : customNames[nameIndex - 258]
+            entry += 2
         }
 
         return
@@ -114,14 +103,14 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
         if count != glyphCount do
             try fault(0x9B)
         try assertRange(postTable, 34, count)
-        faceData.postGlyphNames.resize(glyphCount)
+        faceData.postNames.entries.reserve(glyphCount)
         for glyphIndex in glyphCount
         {
             let offset    = cast(s8, try readU8(postTable, 34 + glyphIndex))
             let nameIndex = cast(s32, glyphIndex) + cast(s32, offset)
             if nameIndex < 0 or nameIndex >= MacStandardGlyphNames.count do
                 try fault(0x9B)
-            addPostGlyphName(faceData, MacStandardGlyphNames[cast(u32, nameIndex)], glyphIndex)
+            faceData.postNames.entries.add(MacStandardGlyphNames[cast(u32, nameIndex)])
         }
     }
 }

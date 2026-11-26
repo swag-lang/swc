@@ -84,7 +84,7 @@ using Swag, Core
     var cffFace: FaceImpl
     cffFace.face.setGlyphCount(3)
     cffFace.outlineSource = .Cff
-    cffFace.cff.glyphNames.add([".notdef", "fi", ""])
+    cffFace.cff.glyphNames.entries.add([".notdef", "fi", ""])
     Swag.require(cffFace.face.glyphName(0) == ".notdef")
     Swag.require(cffFace.face.glyphName(1) == "fi")
     Swag.require(cffFace.face.glyphName(2) == null)

@@ -153,17 +153,54 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
     // The predefined Expert charsets map glyph IDs through their canonical SIDs.
     var expertBytes = buildPredefinedCffCharset(1)
     let expert      = expect parseCffFont(expertBytes.toSlice())
-    Swag.require(expert.glyphNames[2] == "exclamsmall")
+    Swag.require(expert.glyphNames.entries[2] == "exclamsmall")
 
     let expertSubsetBytes = buildPredefinedCffCharset(2)
     let expertSubset      = expect parseCffFont(expertSubsetBytes.toSlice())
-    Swag.require(expertSubset.glyphNames[2] == "dollaroldstyle")
+    Swag.require(expertSubset.glyphNames.entries[2] == "dollaroldstyle")
 
     let encodingBytes  = buildCffExpertEncoding()
-    let expertEncoding = expect parseCffFont(encodingBytes.toSlice())
+    var expertEncoding = expect parseCffFont(encodingBytes.toSlice())
+    Swag.require(not expertEncoding.glyphNames.ready.isRaised())
     Swag.require(expertEncoding.glyphIndexByCode(33) == 2)
+    Swag.require(expertEncoding.glyphNames.ready.isRaised())
     Swag.require(expertEncoding.glyphIndexByCode(0) == 0)
     Swag.require(expertEncoding.glyphIndexByCode(256) == 0)
+}
+
+private struct CffNameLookup
+{
+    late font:  *CffFont
+    late start: *Swag.Semaphore
+    glyph:      u32
+}
+
+private func lookupCffName(thread: const *Threading.Thread)
+{
+    let lookup = cast(*CffNameLookup, unwrap thread.userParam)
+    lookup.start.acquire()
+    lookup.glyph = lookup.font.glyphNames.glyphIndex("exclamsmall")
+}
+
+#test
+{
+    let bytes = buildCffExpertEncoding()
+    for 16
+    {
+        var font   = expect parseCffFont(bytes.toSlice())
+        var start:   Swag.Semaphore
+        var first  = CffNameLookup{font: &font, start: &start}
+        var second = CffNameLookup{font: &font, start: &start}
+        var threads: [2] Threading.Thread
+        discard expect threads[0].init(&lookupCffName, &first)
+        discard expect threads[1].init(&lookupCffName, &second)
+        discard expect threads[0].start()
+        discard expect threads[1].start()
+        start.release(2)
+        threads[0].wait()
+        threads[1].wait()
+        Swag.require(first.glyph == 2 and second.glyph == 2 and font.glyphNames.ready.isRaised())
+    }
 }
 
 #test
@@ -196,7 +233,7 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
     var completeCharset = buildPredefinedCffCharset(33)
     completeCharset.add([0x01, 0x00, 0x02, 0x01])
     let parsed = expect parseCffFont(completeCharset.toSlice())
-    Swag.require(parsed.glyphNames[2] == "quotedbl")
+    Swag.require(parsed.glyphNames.entries[2] == "quotedbl")
 
     var overlongCharset = buildPredefinedCffCharset(33)
     overlongCharset.add([0x01, 0x00, 0x02, 0x02])
@@ -335,6 +372,14 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
     defer identity.destroy()
     Swag.require(identity.glyphIndexByCid(1) == 1 and identity.glyphIndexByCid(2) == 2)
     Swag.require(identity.glyphIndexByCid(3) == 0)
+
+    bytes[57] = 2
+    bytes[61] = 1
+    let ranged = expect Face.load(bytes.toSlice())
+    defer ranged.destroy()
+    Swag.require(ranged.glyphIndexByCid(1) == 1 and ranged.glyphIndexByCid(2) == 2)
+    Swag.require(ranged.glyphIndexByCid(3) == 0)
+    bytes[57] = 0
 
     // Sparse charsets preserve the final glyph index for a repeated CID.
     bytes[59], bytes[61] = 7

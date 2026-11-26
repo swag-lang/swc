@@ -131,32 +131,37 @@ private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource,
     return result
 }
 
-private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: IAllocator?)->*Face fail
+private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: IAllocator?, fileName: string? = null)->*Face fail
 {
-    if bytes.count == 0 do
-        try fault(0x06)
     let allocationAllocator = unwrap (allocator orelse Swag.getContext().allocator)
     let context = Swag.getContext()
     let previousAllocator   = context.allocator
     context.allocator = allocationAllocator
     defer context.allocator = previousAllocator
 
-    var normalized: Array'u8
-    var fontBytes = bytes
-    if bytes.count >= 4 and try readU32(bytes, 0) == TAG_WOFF
-    {
-        if faceIndex do
-            try fault(0x0F)
-        normalized = try inflateWoff(bytes)
-        fontBytes  = normalized.toSlice()
-    }
-
     let faceData = Memory.new'FaceImpl(allocationAllocator)
     faceData.allocationAllocator = allocationAllocator
     defer #fail Memory.delete(faceData, allocationAllocator)
-    faceData.fontData.add(fontBytes)
+    if let path = fileName do
+        faceData.fontData = try File.readAllBytes(path)
 
-    let detected = detectProgramSource(fontBytes)
+    let input = fileName ? faceData.fontData.toSlice() : bytes
+    if not input.count do
+        try fault(0x06)
+
+    if input.count >= 4 and try readU32(input, 0) == TAG_WOFF
+    {
+        if faceIndex do
+            try fault(0x0F)
+        var normalized = try inflateWoff(input)
+        faceData.fontData = #move normalized
+    }
+    elif not fileName
+    {
+        faceData.fontData.add(input)
+    }
+
+    let detected = detectProgramSource(faceData.fontData.toSlice())
     if detected.sfnt
     {
         try parseFace(faceData, faceIndex, fallbackFamilyName)
@@ -332,6 +337,15 @@ public impl Face
     // ```
     func loadAt(bytes: const [..] u8, faceIndex: u32, allocator: IAllocator? = null)->*Face fail => try loadFaceBytes(bytes, faceIndex, "", allocator)
 
+    // Loads one face from a font file into storage owned by the face.
+    //
+    // `faceIndex` selects a zero-based collection member and defaults to the first face.
+    // Later writes or removal of the file do not affect the loaded face. File errors, invalid
+    // indices and unsupported or malformed font data fail. The accepted formats, allocator
+    // and cleanup follow [[TrueType.Face.load]].
+    func loadFile(fileName: string, faceIndex: u32 = 0, allocator: IAllocator? = null)->*Face fail =>
+        try loadFaceBytes("", faceIndex, "", allocator, fileName)
+
     // Returns how many faces an in-memory font file holds.
     //
     // A `ttcf` collection answers its declared face count; a valid WOFF1 or other
@@ -485,7 +499,7 @@ public impl Face
 
     // Returns a glyph's horizontal advance in font design units without loading its outline.
     //
-    // Glyf faces use `hmtx`; CFF and Type 1 faces use the width prepared from their charstrings.
+    // SFNT faces use `hmtx`. Bare CFF and Type 1 faces use the width prepared from their charstrings.
     // The result is independent of the selected pixel size. An index outside
     // [[TrueType.Face.glyphCount]] fails with an invalid-glyph error.
     mtd const getAdvanceWidth(glyphIndex: u32)->u16 fail
@@ -494,7 +508,7 @@ public impl Face
             try fault(0x10)
 
         let faceData = cast(const *FaceImpl, cast(const *void, me))
-        return faceData.glyphMetrics[glyphIndex].advanceWidth
+        return faceData.glyphAdvance(glyphIndex)
     }
 
     // Returns the ordered color layers declared for a glyph by COLR version 0.

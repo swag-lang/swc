@@ -215,6 +215,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
     var bestSlice: const [..] u8?
     var bestScore = -1
     var bestFmt   = 0'u16
+    var validatedGroupOffset = Swag.U64.Max
 
     for index in count
     {
@@ -385,7 +386,8 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
             }
         }
 
-        if format == 12 or format == 13
+        // Different platform records can point at the same grouped map.
+        if (format == 12 or format == 13) and validatedGroupOffset != offset
         {
             let groupCount = try readU32(subTable, 12)
             if cast(u64, groupCount) > (subTable.count - 16) / 12 do
@@ -418,6 +420,8 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
                 previousEndCode = endCode
                 record += 12
             }
+
+            validatedGroupOffset = offset
         }
 
         // Variation sequences supplement the selected map rather than compete with
@@ -452,7 +456,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
     faceData.hasCMap    = true
 }
 
-func buildGlyphMetrics(faceData: *FaceImpl) fail
+func parseHorizontalMetrics(faceData: *FaceImpl) fail
 {
     let glyphCount      = faceData.face.glyphCount
     let longMetricCount = cast(u32, faceData.numLongMetrics)
@@ -464,21 +468,7 @@ func buildGlyphMetrics(faceData: *FaceImpl) fail
     if hmtx.count < requiredBytes do
         try fault(0x95)
 
-    let metrics = faceData.glyphMetrics.emplaceAddress(glyphCount)
-    var entry   = hmtx.buffer
-    for index in longMetricCount
-    {
-        metrics[index] = {Math.make16(entry[0], entry[1]), cast #bit(s16, Math.make16(entry[2], entry[3]))}
-        entry += 4
-    }
-
-    // The remaining records store only a bearing and reuse the final long advance.
-    let lastAdvance = metrics[longMetricCount - 1].advanceWidth
-    for index in longMetricCount until glyphCount
-    {
-        metrics[index] = {lastAdvance, cast #bit(s16, Math.make16(entry[0], entry[1]))}
-        entry += 2
-    }
+    faceData.horizontalMetrics = hmtx
 }
 
 // Fills the optional per-glyph vertical advances and top side bearings.
@@ -813,7 +803,7 @@ func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
 func buildCharstringMetrics(faceData: *FaceImpl) fail
 {
     let glyphCount = faceData.face.glyphCount
-    faceData.glyphMetrics.resize(glyphCount)
+    faceData.charstringAdvances.resize(glyphCount)
 
     for gid in glyphCount
     {
@@ -823,9 +813,7 @@ func buildCharstringMetrics(faceData: *FaceImpl) fail
         else do
             width = try runType1Charstring(&faceData.type1, gid, null)
 
-        var metric: GlyphMetric
-        metric.advanceWidth        = cast(u16, Math.clamp(Math.round(width), 0.0, cast(f64, Swag.U16.Max)))
-        faceData.glyphMetrics[gid] = metric
+        faceData.charstringAdvances[gid] = cast(u16, Math.clamp(Math.round(width), 0.0, cast(f64, Swag.U16.Max)))
     }
 }
 
@@ -857,7 +845,7 @@ func buildSyntheticCMap(faceData: *FaceImpl)
 
     if faceData.outlineSource == .Cff
     {
-        for name, gid in faceData.cff.glyphNames do
+        for name, gid in faceData.cff.glyphNames.entries do
             addNamedGlyph(faceData, name, gid)
     }
     else
@@ -977,7 +965,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
 
     faceData.face.setGlyphCount(readU16(maxp, 4))
 
-    buildGlyphMetrics(faceData)
+    parseHorizontalMetrics(faceData)
     buildVerticalGlyphMetrics(faceData)
 
     // A CFF-flavoured OpenType file keeps its outlines in charstrings, so it has neither

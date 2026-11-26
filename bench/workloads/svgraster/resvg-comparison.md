@@ -495,6 +495,33 @@ loop and 9% in triangle setup. Another 6% landed in the overlap alpha
 clear. Those samples came from optimized native code built with debug
 information and timed independently of the Release benchmark.
 
+## CPU target readback
+
+Scope's colored bitmap path recovers straight-alpha pixels from a black
+and a white matte. When the CPU renderer shares coverage between the two
+mattes, their target images are read in place after submission. At two
+samples per axis, the first matte keeps its copy while the second is
+read directly. The regression compares tiled colored output with the
+readback path at both sample counts, including translucent overlaps,
+curved clips and incomplete bottom and right tiles.
+
+Release medians below use four workers and the Scope options, with nine
+runs per build at one sample per axis and seven at two samples per axis.
+The earlier source was `70a3961487`. Times are parse plus first raster
+in milliseconds. All tested Swag CRC-64s stayed the same.
+
+| Fixture | One sample before | After | Two samples before | After |
+| --- | ---: | ---: | ---: | ---: |
+| Small drawing | 4.35 | 2.07 | 11.97 | 8.16 |
+| Curve fills | 22.82 | 20.07 | 62.88 | 57.64 |
+| Strokes | 122.15 | 116.87 | 396.87 | 403.18 |
+| Clip masks | 43.44 | 42.86 | 122.55 | 119.20 |
+| Large drawing | 632.84 | 652.37 | | |
+
+At one worker the clipped bitmap went from 41.17 to 38.16 ms. The
+large drawing spends most of its time creating and compositing path
+coverage before the final readback.
+
 ## Direct scan conversion on color mattes
 
 The Scope bitmap path records solid fills, outlines and clip masks as contours

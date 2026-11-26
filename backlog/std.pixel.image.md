@@ -161,14 +161,17 @@ ships; history lives in Git, not here.
   original. A shared crossing store also slowed its one-worker bitmap. The
   [short integer path](../bench/workloads/svgraster/resvg-comparison.md#short-svg-integers)
   cut the largest original's parse time in repeated one-worker runs.
-- Next: measure the cost of evaluating cubic sample positions after contours have chosen
-  their segment counts. Rerun the original Windows comparison at one worker and at the
-  runtime default.
+- Evidence: [matched stroke widths](../bench/workloads/svgraster/resvg-comparison.md#translucent-stroke-widths)
+  isolate the gap for hairlines. The [CPU readback change](../bench/workloads/svgraster/resvg-comparison.md#cpu-target-readback)
+  removes intermediate matte copies and preserves the tested tile bytes.
 - Evidence: [direct scan conversion on color mattes](../bench/workloads/svgraster/resvg-comparison.md#direct-scan-conversion-on-color-mattes)
   cuts the 16,000-path color fixture from 1088 to 396 ms with identical pixels.
   resvg takes 570 ms. Clipped curves drop from 66 to 18 ms against 17 ms for
   resvg. Thin and dashed strokes still spend time generating and scanning their
   outline fragments.
+- Next: measure stroke outline preparation, crossing collection and fill resolution on
+  the colored fixtures. Rerun the original Windows comparison at one worker and at the
+  runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

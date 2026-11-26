@@ -760,7 +760,7 @@ private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength
         return defaultValue
 
     var result: #returntype
-    result.value = scanNumber(value, &pos)
+    result.value = readNumber(value, &pos)
     while pos < value.count and value[pos] == ' ' do
         pos += 1
     if pos < value.count and value[pos] == '%'
@@ -779,7 +779,7 @@ private func parseImageLength(value: string)->f32
     if not text.count or not isNumberStart(text[0]) do
         return 0
     var pos    = 0'u64
-    let number = scanNumber(text, &pos)
+    let number = readNumber(text, &pos)
     if number <= 0 do
         return 0
     switch Latin1.trim(text[pos to])
@@ -874,7 +874,7 @@ private func spacingLength(value: string, fontSize: f32)->f32
     if text.count == 0 or not isNumberStart(text[0]) do
         return 0
 
-    let amount = scanNumber(text, &pos)
+    let amount = readNumber(text, &pos)
     while pos < text.count and text[pos] == ' ' do
         pos += 1
     if pos >= text.count do
@@ -1064,17 +1064,11 @@ private func parseDashPattern(value: string)->Array'SvgLength
     var pos = 0'u64
     while pos < text.count
     {
-        while pos < text.count and
-              (text[pos] == ' ' or
-               text[pos] == ',' or
-               text[pos] == '\t' or
-               text[pos] == '\n' or
-               text[pos] == '\r') do
-            pos += 1
+        pos = skipNumberSeparators(text, pos)
         if pos >= text.count or not isNumberStart(text[pos]) do
             break
 
-        var length = SvgLength{value: scanNumber(text, &pos)}
+        var length = SvgLength{value: readNumber(text, &pos)}
         if pos < text.count and text[pos] == '%'
         {
             length.value     *= 0.01
@@ -1283,13 +1277,7 @@ private func composeTransformList(value: string, parent: Math.Transform2)->Math.
     let len = value.count
     while pos < len
     {
-        while pos < len and
-              (value[pos] == ' ' or
-               value[pos] == ',' or
-               value[pos] == '\t' or
-               value[pos] == '\n' or
-               value[pos] == '\r') do
-            pos += 1
+        pos = skipNumberSeparators(value, pos)
 
         let nameStart = pos
         while pos < len and ((value[pos] >= 'a' and value[pos] <= 'z') or (value[pos] >= 'A' and value[pos] <= 'Z')) do
@@ -1310,17 +1298,11 @@ private func composeTransformList(value: string, parent: Math.Transform2)->Math.
         var count = 0'u64
         while count < 6
         {
-            var look = pos
-            while look < len and
-                  (value[look] == ' ' or
-                   value[look] == ',' or
-                   value[look] == '\t' or
-                   value[look] == '\n' or
-                   value[look] == '\r') do
-                look += 1
+            let look = skipNumberSeparators(value, pos)
             if look >= len or not isNumberStart(value[look]) do
                 break
-            arguments[count] = scanNumber(value, &pos)
+            pos   = look
+            arguments[count] = readNumber(value, &pos)
             count += 1
         }
 

@@ -1183,3 +1183,33 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(img.height == src.height)
     Swag.require(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }
+
+// Preserve BGR(A) order and odd row tails in every encoder mode.
+#test
+{
+    const Width  = 89
+    const Height = 5
+    for format in [PixelFormat.BGR8, PixelFormat.BGRA8]
+    {
+        var source = Image.create(Width, Height, format)
+        let pixels = source.pixels.storage()
+        for index in source.byteCount
+        {
+            let rowOffset = index % source.rowStride
+            pixels[index] = rowOffset >= 123 and rowOffset < 260 ? 47 : cast(u8, ((index * 67 + index / 17) & 255))
+        }
+
+        for compression in [Tiff.Compression.None, .PackBits, .Lzw]
+        {
+            let options = Tiff.EncodeOptions{compression}
+            var encoded = expect source.encode("memory.tiff", options)
+            encoded.makeLinear()
+            let decoded = expect decodeTiff(nnBytes(encoded.toSlice()))
+            Swag.require(decoded.width == Width and decoded.height == Height)
+            Swag.require(decoded.pixelFormat == (format == .BGR8 ? .RGB8 : .RGBA8))
+            for y in Height do
+                for x in Width do
+                    Swag.require(decoded.pixelColor(cast(s32, x), cast(s32, y)) == source.pixelColor(cast(s32, x), cast(s32, y)))
+        }
+    }
+}

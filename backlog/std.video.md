@@ -429,7 +429,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   pattern and 4.9% more on a camera clip. The camera gap rises to 24.2% against x264 High/veryfast.
   Against the shared Baseline profile, x264 veryfast is 2.21-2.61 times as fast at QP 25
   across seven repeats per clip. The remaining opportunity is primarily encode throughput,
-  especially the region estimator and candidate motion costs. Packed column profiles and
+  especially the region estimator and candidate motion costs. At 1080p the camera clip takes
+  38.21 ms per picture versus 15.64 ms in x264 Baseline veryfast at QP 25. On the 4K animated
+  pattern the corresponding times are 53.85 and 19.00 ms, leaving a software throughput gap.
+  Packed column profiles and
   Hadamard scores cut median paired encode wall time by 11-20% across the four 640x360
   clips, with bitstreams unchanged. The High profile also exposes
   compression headroom from coding tools unavailable in Baseline.

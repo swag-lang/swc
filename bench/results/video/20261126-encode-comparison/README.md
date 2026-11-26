@@ -104,6 +104,41 @@ taskset -c 0-2 python3 bench/workloads/h264/compare.py \
     --output /tmp/h264-measurements
 ```
 
+### H.264 at 1080p and 4K
+
+Three additional clips use the same encode-only method and a three-CPU budget. The
+camera clip scales the repository's camera sample to 1920×1080. The motion patterns
+come from `testsrc2` at their native resolutions. The 1080p clips contain 12 pictures
+and the 4K clip contains eight. The results include each clip's initial key picture.
+All 96 Swag pictures match FFmpeg's independent decoded planes.
+
+| Input | Swag QP 25 | Baseline veryfast QP 25 | High veryfast CRF 25 | Baseline ultrafast CRF 25 |
+| --- | ---: | ---: | ---: | ---: |
+| 1080p animated pattern | 12.43 ms | 4.93 ms | 12.45 ms | 3.44 ms |
+| 1080p camera | 38.21 ms | 15.64 ms | 34.65 ms | 6.15 ms |
+| 4K animated pattern | 53.85 ms | 19.00 ms | 46.53 ms | 12.14 ms |
+
+Times are per picture, using the median of seven rotating encode runs. At the shared
+Baseline profile and QP, x264 veryfast is 2.44–2.83× as fast. On the three-point
+rate-quality curves, Swag needs 7.2% more packet bytes on the animated 1080p clip at
+49.58 dB and 13.9% more on the camera at 46.34 dB than x264 Baseline veryfast.
+On the 4K pattern Swag uses 1.6% fewer bytes at 49.68 dB. High veryfast uses fewer
+bytes on the camera at equal luma PSNR, where Swag uses 51.2% more. The tested
+High CRF points and Swag QP points on the animated patterns have no shared PSNR range.
+[Raw results and source hashes](h264-hd-reference.json)
+
+```sh
+ffmpeg -v error -f lavfi -i 'testsrc2=size=1920x1080:rate=30' \
+    -vf vflip -pix_fmt rgb24 -threads 1 -frames:v 12 -f rawvideo /tmp/testsrc1080p.rgb
+ffmpeg -v error -ss 2 -i bin/std/modules/video/src/tests/datas/cogliati-turning-pages.avi \
+    -vf scale=1920:1080,vflip -pix_fmt rgb24 -threads 1 -frames:v 12 -f rawvideo /tmp/camera1080p.rgb
+ffmpeg -v error -f lavfi -i 'testsrc2=size=3840x2160:rate=30' \
+    -vf vflip -pix_fmt rgb24 -threads 1 -frames:v 8 -f rawvideo /tmp/testsrc4k.rgb
+```
+
+Use QPs 21, 25 and 29 with `--discard-planes` in the H.264 workload to retain
+the compressed files, decoded hashes and quality results with lower disk usage.
+
 ## Motion JPEG 4:4:4
 
 The same four RGB clips were encoded with the JPEG codec used by Swag's AVI and MP4
@@ -151,6 +186,20 @@ changing tiles and camera have similar or higher SSIM. Packet size changes stay
 below 0.83% across the sweep. The JPEG, AVI and MP4 Release selection passed 86 tests.
 [Individual measurements and saturation check](mjpeg-rounding.json)
 
+### Motion JPEG uniform blocks
+
+An eight-by-eight block with identical RGB pixels now emits the three DC values
+and end-of-block codes directly. A few spaced comparisons reject the shortcut
+quickly in textured blocks. The full comparison covers all 64 pixels before
+skipping color conversion and the transform.
+
+Five rotating runs per quality used one logical CPU and the same four 30-frame clips.
+Paired CPU time fell by 18–28% on the desktop, 78–79% on the changing tiles and
+57–60% on the animated test pattern. The camera stayed within 1.8% in either
+direction. All 480 encoded pictures and their FFmpeg decodes matched byte for byte.
+The JPEG, AVI and MP4 Release selection passed 86 tests.
+[Individual results](mjpeg-flat-blocks.json)
+
 ## Y4M planar output
 
 Swag now writes luma and accumulates chroma while reading each RGB pixel once. It
@@ -174,20 +223,6 @@ The optimized writer reduces CPU time by 53–60% on the camera clip. A second
 every Swag sample differs from FFmpeg's conversion by at most one level. All 18
 focused native Release tests passed.
 [Timing samples and hashes](y4m-fused-conversion.json) · [Reproduction](../../../workloads/y4m/README.md)
-
-### Motion JPEG uniform blocks
-
-An eight-by-eight block with identical RGB pixels now emits the three DC values
-and end-of-block codes directly. A few spaced comparisons reject the shortcut
-quickly in textured blocks. The full comparison covers all 64 pixels before
-skipping color conversion and the transform.
-
-Five rotating runs per quality used one logical CPU and the same four 30-frame clips.
-Paired CPU time fell by 18–28% on the desktop, 78–79% on the changing tiles and
-57–60% on the animated test pattern. The camera stayed within 1.8% in either
-direction. All 480 encoded pictures and their FFmpeg decodes matched byte for byte.
-The JPEG, AVI and MP4 Release selection passed 86 tests.
-[Individual results](mjpeg-flat-blocks.json)
 
 ### Packed Y4M conversion
 

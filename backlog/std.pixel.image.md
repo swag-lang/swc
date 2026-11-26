@@ -211,7 +211,11 @@ ships; history lives in Git, not here.
 - Evidence: [packed gradient spans](../bench/workloads/svgraster/resvg-comparison.md#vectorizing-translucent-gradient-spans)
   reduce 420 overlapping gradient paths from 188 to 115 ms on one logical CPU.
   resvg takes 30 ms. Scalar paint quantization and CRC-64s remain identical.
-- Next: measure disjoint gradient row jobs and the remaining stroke and clip costs.
+- Evidence: [parallel medium gradient ranges](../bench/workloads/svgraster/resvg-comparison.md#parallelizing-medium-gradient-ranges)
+  reduce the same fixture from 112 to 77 ms at four workers. The bitmap
+  and public controls retain their CRC-64s.
+- Next: reduce the remaining stroke and clip costs and test the largest source
+  at its full resolution.
   Rerun the original Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.

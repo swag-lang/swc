@@ -1,0 +1,85 @@
+{
+  "utc": "2026-11-26T15:42:54.727361+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 0,
+  "affinity": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "workers": {
+    "final": 1,
+    "final-w4": 4
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "BLAKE3 C 1.8.7 | dispatch width 16 | oneTBB 2022.1.0",
+  "reference_sha256": "3ba7dd0d836e87dbeeaf113e677d1fb016965c869e2cd4eb3b44e46964da76be",
+  "swag_builds": {
+    "final": "74d4536e369216e4a362d39863539861e5f84cc9dfc8887b716925d774c40f05",
+    "final-w4": "74d4536e369216e4a362d39863539861e5f84cc9dfc8887b716925d774c40f05"
+  },
+  "rounds": 0,
+  "target_ms": 50,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "blake3",
+      "bytes": 1048576,
+      "offset": 0,
+      "input_sha256": "1e8e8f15703ff175699f1e1588b5a85d378c7c1aa34a320c37dffae28c916b32",
+      "output_sha256": "86db6a1a9867e77857dfddb817e403402e142970b8d8a555e68ffdf2571f6642",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 1048576,
+      "offset": 1,
+      "input_sha256": "30051cf1d873a64bc964763ae202139fd7922300261a28ab11450c7be90416ee",
+      "output_sha256": "102496833c3137a3bb20cbbb26532fc9c745174ef47aee832eef13a84dc3d252",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 8388608,
+      "offset": 0,
+      "input_sha256": "ade1e9c1570b805b0b6bb760a570b3db94883af4443f42fb63a15e0904251298",
+      "output_sha256": "d82f87dfcb44bad2a6ac04ea48601a1aa611e855c3ceaec164233d651e984be3",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 8388608,
+      "offset": 1,
+      "input_sha256": "894ecff8c5f14603000bfb650af66847ff4da53917441582da8f541b50fa70ec",
+      "output_sha256": "87e3afc7404575fbdf0e73efd76619ad130cd9ed7280046b4569665905a3768f",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 33554432,
+      "offset": 0,
+      "input_sha256": "918b2032f3b6c2f026d357c78de1b3bfa182ef66a681c2cd92527db549fde2b1",
+      "output_sha256": "9989b8f3e5334b320e626eb20d8ab2572231a5ba9eb4f84053625b99d7f15b26",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 33554432,
+      "offset": 1,
+      "input_sha256": "97264e6ae3fce9de2451e3729d190f6d9507f38150e3ebad5db2d5c5eb730931",
+      "output_sha256": "fa14e67b6cc954692951591e188547d2bebab17c061b544bc4e67e6cb3038af4",
+      "samples": {},
+      "round_order": []
+    }
+  ]
+}

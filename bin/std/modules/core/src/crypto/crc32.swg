@@ -234,6 +234,18 @@ private
     const FoldNextPair = cast(Math.Simd.U64x2, [PairLow, PairHigh])
     const FoldNextWide = [WideLow, WideHigh, WideLow, WideHigh]
 
+    #[Swag.Inline]
+    func collapseEightLanes(words: const [*] u64)->Math.Simd.U64x2
+    {
+        let first  = foldBlock(Math.Simd.load(words), FoldK3K4, Math.Simd.load(words + 2))
+        let second = foldBlock(Math.Simd.load(words + 4), FoldK3K4, Math.Simd.load(words + 6))
+        let third  = foldBlock(Math.Simd.load(words + 8), FoldK3K4, Math.Simd.load(words + 10))
+        let fourth = foldBlock(Math.Simd.load(words + 12), FoldK3K4, Math.Simd.load(words + 14))
+        let low    = foldBlock(first, FoldNextPair, second)
+        let high   = foldBlock(third, FoldNextPair, fourth)
+        return foldBlock(low, FoldK1K2, high)
+    }
+
     func foldWideClmul(crcReg: u32, bytes: const [*] u8, length: u64)->u32
     {
         alias Pair = [4] u64
@@ -253,14 +265,84 @@ private
             offset += 128
         }
 
-        let words  = cast(const [*] u64, &lanes)
-        let first  = foldBlock(Math.Simd.load(words), FoldK3K4, Math.Simd.load(words + 2))
-        let second = foldBlock(Math.Simd.load(words + 4), FoldK3K4, Math.Simd.load(words + 6))
-        let third  = foldBlock(Math.Simd.load(words + 8), FoldK3K4, Math.Simd.load(words + 10))
-        let fourth = foldBlock(Math.Simd.load(words + 12), FoldK3K4, Math.Simd.load(words + 14))
-        let low    = foldBlock(first, FoldNextPair, second)
-        let high   = foldBlock(third, FoldNextPair, fourth)
-        let value  = foldBlock(low, FoldK1K2, high)
+        let value = collapseEightLanes(cast(const [*] u64, &lanes))
+        return finishClmul(value, bytes + offset, length - offset)
+    }
+
+    alias FoldQuad = [8] u64
+
+    #[Swag.Align(64)]
+    struct FoldQuadState
+    {
+        lanes:   [4] FoldQuad
+        factors: FoldQuad
+    }
+
+    // Treat the existing state as the first lane, followed by at least three
+    // complete input blocks. Advance four lanes before collapsing them.
+    #[Swag.NoInline]
+    func foldTailGroups(block: Math.Simd.U64x2, bytes: const [*] u8, length: u64)->Math.Simd.U64x2
+    {
+        var input  = cast(const [*] u64, bytes)
+        var first  = block
+        var second = Math.Simd.load(input)
+        var third  = Math.Simd.load(input + 2)
+        var fourth = Math.Simd.load(input + 4)
+        input += 6
+
+        var offset = 48'u64
+        while offset < length
+        {
+            first  = foldBlock(first, FoldK1K2, Math.Simd.load(input))
+            second = foldBlock(second, FoldK1K2, Math.Simd.load(input + 2))
+            third  = foldBlock(third, FoldK1K2, Math.Simd.load(input + 4))
+            fourth = foldBlock(fourth, FoldK1K2, Math.Simd.load(input + 6))
+            input  += 8
+            offset += 64
+        }
+
+        return collapseFourBlocks(first, second, third, fourth)
+    }
+
+    func foldQuadClmul(crcReg: u32, bytes: const [*] u8, length: u64)->u32
+    {
+        const LowPower  = (#run reflectedFoldPower(2080)) >> 31
+        const HighPower = (#run reflectedFoldPower(2016)) >> 31
+        // Use an aligned range for the folding state in an ordinary stack allocation.
+        const Alignment   = #alignof(FoldQuadState)
+        const ScratchSize = #sizeof(FoldQuadState) + Alignment - 1
+        var scratch: [ScratchSize] u8
+        let address = (cast(u64, scratch.buffer) + Alignment - 1) & ~(Alignment - 1)
+        let state   = cast(*FoldQuadState, address)
+        state.factors = [LowPower, HighPower, LowPower, HighPower, LowPower, HighPower, LowPower, HighPower]
+        Memory.copy(cast([*] void, &state.lanes), cast(const [*] void, bytes), #sizeof(state.lanes))
+        state.lanes[0, 0] ^= cast(u64, crcReg)
+
+        var offset = length & ~255'u64
+        let end    = bytes + offset
+        var next   = bytes + 256
+        while next != end
+        {
+            Swag.vecCarrylessMul2XorQuad(&state.lanes[0], &state.factors, cast(const *FoldQuad, next), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorQuad(&state.lanes[1], &state.factors, cast(const *FoldQuad, next + 64), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorQuad(&state.lanes[2], &state.factors, cast(const *FoldQuad, next + 128), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorQuad(&state.lanes[3], &state.factors, cast(const *FoldQuad, next + 192), 0x00, 0x11)
+            next += 256
+        }
+
+        const NextEight = cast(Math.Simd.U64x2, [WideLow, WideHigh])
+        let words       = cast(const [*] u64, &state.lanes)
+        let low         = collapseEightLanes(words)
+        let high        = collapseEightLanes(words + 16)
+        var value       = foldBlock(low, NextEight, high)
+        if length - offset >= 48
+        {
+            // The first group already has the preceding 16-byte state.
+            let grouped = ((length - offset + 16) & ~63'u64) - 16
+            value       = foldTailGroups(value, bytes + offset, grouped)
+            offset     += grouped
+        }
+
         return finishClmul(value, bytes + offset, length - offset)
     }
 
@@ -269,8 +351,13 @@ private
     #[Swag.NoInline]
     func foldClmul(crcReg: u32, buffer: const [*] u8, length: u64)->u32
     {
-        if length >= 1024 and Swag.hasCpuFeature(.WideCarrylessMultiply) do
-            return foldWideClmul(crcReg, buffer, length)
+        if length >= 1024
+        {
+            if Swag.hasCpuFeature(.CarrylessMultiply512) do
+                return foldQuadClmul(crcReg, buffer, length)
+            if Swag.hasCpuFeature(.WideCarrylessMultiply) do
+                return foldWideClmul(crcReg, buffer, length)
+        }
 
         var seed: [2] u64 = [cast(u64, crcReg), 0]
 

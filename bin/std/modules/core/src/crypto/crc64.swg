@@ -21,6 +21,18 @@ public enum Crc64Kind
     IsoXz       // CRC-64/XZ.
 }
 
+private
+{
+    alias Crc64FoldQuad = [8] u64
+
+    #[Swag.Align(64)]
+    struct Crc64FoldQuadState
+    {
+        lanes:   [4] Crc64FoldQuad
+        factors: Crc64FoldQuad
+    }
+}
+
 private impl Crc64
 {
     alias ChecksumRow   = [256] u64
@@ -165,6 +177,38 @@ private impl Crc64
         return reduceFolded'(Polynomial, Reflected)((first ^ second) ^ (third ^ fourth))
     }
 
+    #[Swag.Inline]
+    func(Polynomial: u64) collapseEightLanes(words: const [*] u64)->Simd.U64x2
+    {
+        const NextBlock = cast(Simd.U64x2, [#run foldPower(192, Polynomial, reflected: true), #run foldPower(128, Polynomial, reflected: true)])
+        const NextPair  = cast(Simd.U64x2, [#run foldPower(320, Polynomial, reflected: true), #run foldPower(256, Polynomial, reflected: true)])
+        const NextGroup = cast(Simd.U64x2, [#run foldPower(576, Polynomial, reflected: true), #run foldPower(512, Polynomial, reflected: true)])
+        let first       = multiplyHalves(Simd.load(words), NextBlock) ^ Simd.load(words + 2)
+        let second      = multiplyHalves(Simd.load(words + 4), NextBlock) ^ Simd.load(words + 6)
+        let third       = multiplyHalves(Simd.load(words + 8), NextBlock) ^ Simd.load(words + 10)
+        let fourth      = multiplyHalves(Simd.load(words + 12), NextBlock) ^ Simd.load(words + 14)
+        let low         = multiplyHalves(first, NextPair) ^ second
+        let high        = multiplyHalves(third, NextPair) ^ fourth
+        return multiplyHalves(low, NextGroup) ^ high
+    }
+
+    #[Swag.Inline]
+    func(Polynomial: u64) finishWideFold(block: Simd.U64x2, bytes: const [*] u8, length, consumed: u64)->u64
+    {
+        const NextBlock = cast(Simd.U64x2, [#run foldPower(192, Polynomial, reflected: true), #run foldPower(128, Polynomial, reflected: true)])
+        var offset = consumed
+
+        var value = block
+        while offset < length
+        {
+            value   = multiplyHalves(value, NextBlock) ^ readFoldBlock'true(bytes + offset)
+            offset += 16
+        }
+
+        const FinalPowers = cast(Simd.U64x2, [#run foldPower(128, Polynomial, reflected: true), #run foldPower(64, Polynomial, reflected: true)])
+        return reduceFolded'(Polynomial, true)(multiplyHalves(value, FinalPowers))
+    }
+
     // Fold eight 128-bit lanes in pairs using the reflected representation.
     func(Polynomial: u64) foldWideBlocks(bytes: const [*] u8, length, initial: u64)->u64
     {
@@ -188,34 +232,93 @@ private impl Crc64
             offset += 128
         }
 
+        let value = collapseEightLanes'Polynomial(cast(const [*] u64, &lanes))
+        return finishWideFold'Polynomial(value, bytes, length, offset)
+    }
+
+    // Treat the existing state as the first lane, followed by at least three
+    // complete input blocks. Advance four lanes before collapsing them.
+    #[Swag.NoInline]
+    func(Polynomial: u64) foldTailGroups(block: Simd.U64x2, bytes: const [*] u8, length: u64)->Simd.U64x2
+    {
         const NextBlock = cast(Simd.U64x2, [#run foldPower(192, Polynomial, reflected: true), #run foldPower(128, Polynomial, reflected: true)])
         const NextPair  = cast(Simd.U64x2, [#run foldPower(320, Polynomial, reflected: true), #run foldPower(256, Polynomial, reflected: true)])
         const NextGroup = cast(Simd.U64x2, [#run foldPower(576, Polynomial, reflected: true), #run foldPower(512, Polynomial, reflected: true)])
-        let words       = cast(const [*] u64, &lanes)
-        let first       = multiplyHalves(Simd.load(words), NextBlock) ^ Simd.load(words + 2)
-        let second      = multiplyHalves(Simd.load(words + 4), NextBlock) ^ Simd.load(words + 6)
-        let third       = multiplyHalves(Simd.load(words + 8), NextBlock) ^ Simd.load(words + 10)
-        let fourth      = multiplyHalves(Simd.load(words + 12), NextBlock) ^ Simd.load(words + 14)
-        let low         = multiplyHalves(first, NextPair) ^ second
-        let high        = multiplyHalves(third, NextPair) ^ fourth
-        var value       = multiplyHalves(low, NextGroup) ^ high
 
+        var first  = block
+        var second = readFoldBlock'true(bytes)
+        var third  = readFoldBlock'true(bytes + 16)
+        var fourth = readFoldBlock'true(bytes + 32)
+        var offset = 48'u64
         while offset < length
         {
-            value   = multiplyHalves(value, NextBlock) ^ readFoldBlock'true(bytes + offset)
-            offset += 16
+            let next = bytes + offset
+            first  = multiplyHalves(first, NextGroup) ^ readFoldBlock'true(next)
+            second = multiplyHalves(second, NextGroup) ^ readFoldBlock'true(next + 16)
+            third  = multiplyHalves(third, NextGroup) ^ readFoldBlock'true(next + 32)
+            fourth = multiplyHalves(fourth, NextGroup) ^ readFoldBlock'true(next + 48)
+            offset += 64
         }
 
-        const FinalPowers = cast(Simd.U64x2, [#run foldPower(128, Polynomial, reflected: true), #run foldPower(64, Polynomial, reflected: true)])
-        return reduceFolded'(Polynomial, true)(multiplyHalves(value, FinalPowers))
+        let low  = multiplyHalves(first, NextBlock) ^ second
+        let high = multiplyHalves(third, NextBlock) ^ fourth
+        return multiplyHalves(low, NextPair) ^ high
+    }
+
+    // Keep four independent ZMM values in aligned memory between the updates.
+    func(Polynomial: u64) foldQuadBlocks(bytes: const [*] u8, length, initial: u64)->u64
+    {
+        const LowPower  = #run foldPower(2112, Polynomial, reflected: true)
+        const HighPower = #run foldPower(2048, Polynomial, reflected: true)
+        // Use an aligned range for the folding state in an ordinary stack allocation.
+        const Alignment   = #alignof(Crc64FoldQuadState)
+        const ScratchSize = #sizeof(Crc64FoldQuadState) + Alignment - 1
+        var scratch: [ScratchSize] u8
+        let address = (cast(u64, scratch.buffer) + Alignment - 1) & ~(Alignment - 1)
+        let state   = cast(*Crc64FoldQuadState, address)
+        state.factors = [LowPower, HighPower, LowPower, HighPower, LowPower, HighPower, LowPower, HighPower]
+        Memory.copy(cast([*] void, &state.lanes), cast(const [*] void, bytes), #sizeof(state.lanes))
+        state.lanes[0, 0] ^= initial
+
+        var offset = length & ~255'u64
+        let end    = bytes + offset
+        var next   = bytes + 256
+        while next != end
+        {
+            Swag.vecCarrylessMul2XorQuad(&state.lanes[0], &state.factors, cast(const *Crc64FoldQuad, next), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorQuad(&state.lanes[1], &state.factors, cast(const *Crc64FoldQuad, next + 64), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorQuad(&state.lanes[2], &state.factors, cast(const *Crc64FoldQuad, next + 128), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorQuad(&state.lanes[3], &state.factors, cast(const *Crc64FoldQuad, next + 192), 0x00, 0x11)
+            next += 256
+        }
+
+        const NextEight = cast(Simd.U64x2, [#run foldPower(1088, Polynomial, reflected: true), #run foldPower(1024, Polynomial, reflected: true)])
+        let words       = cast(const [*] u64, &state.lanes)
+        let low         = collapseEightLanes'Polynomial(words)
+        let high        = collapseEightLanes'Polynomial(words + 16)
+        var value       = multiplyHalves(low, NextEight) ^ high
+        if length - offset >= 48
+        {
+            // The first group already has the preceding 16-byte state.
+            let grouped = ((length - offset + 16) & ~63'u64) - 16
+            value       = foldTailGroups'Polynomial(value, bytes + offset, grouped)
+            offset     += grouped
+        }
+
+        return finishWideFold'Polynomial(value, bytes, length, offset)
     }
 
     func(Polynomial: u64, Reflected: bool) foldBlocks(bytes: const [*] u8, length, initial: u64)->u64
     {
         #static if Reflected
         {
-            if length >= 1024 and Swag.hasCpuFeature(.WideCarrylessMultiply) do
-                return foldWideBlocks'Polynomial(bytes, length, initial)
+            if length >= 1024
+            {
+                if Swag.hasCpuFeature(.CarrylessMultiply512) do
+                    return foldQuadBlocks'Polynomial(bytes, length, initial)
+                if Swag.hasCpuFeature(.WideCarrylessMultiply) do
+                    return foldWideBlocks'Polynomial(bytes, length, initial)
+            }
         }
 
         const LowDegree  = Reflected ? 64'u64 : 0'u64

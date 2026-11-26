@@ -104,10 +104,10 @@ func fillCrc32Pattern(buffer: [..] u8)
 #test
 {
     let seed = 0x1234_5678'u32
-    var data: [2081] u8
+    var data: [4391] u8
     fillCrc32Pattern(data)
 
-    for size in [1023, 1024, 1025, 1151, 1152, 1153, 2048, 2063] do
+    for size in [1023, 1024, 1025, 1151, 1152, 1153, 2048, 2063, 4095, 4096, 4097, 4351, 4352, 4353] do
         assertCrc32(data[7 until 7 + size], seed)
 
     let input = data[1 until]

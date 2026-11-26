@@ -191,3 +191,4 @@ optimizations moved each result.
 - [Symmetric RSA Montgomery squaring](rsa-symmetric-square.md)
 - [Eight independent AES-NI counters](aes-ctr-eight-way.md)
 - [512-bit carry-less multiplication on x64](carryless-512-instruction.md)
+- [CRC-32 and reflected CRC-64 with 512-bit folding](crc-reflected-512.md)

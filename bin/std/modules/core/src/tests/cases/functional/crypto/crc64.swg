@@ -161,13 +161,13 @@ func fillCrc64Pattern(buffer: [..] u8)
 {
     const message = #run
     {
-        var data: [1281] u8
+        var data: [4353] u8
         fillCrc64Pattern(data)
         return data
     }
 
     #assert(Hash.Crc64.compute(message, .IsoXz) == #run crc64Reference(message, .IsoXz))
 
-    for size in [1023, 1024, 1025, 1151, 1152, 1153, 1279] do
+    for size in [1023, 1024, 1025, 1151, 1152, 1153, 1279, 4095, 4096, 4097, 4351, 4352] do
         assertCrc64(message[1 until 1 + size])
 }

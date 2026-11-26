@@ -33,6 +33,7 @@ def check_digest(path, entry):
 
 
 def prepare(args, entries):
+    from fontTools.t1Lib import T1Font
     from fontTools.ttLib import TTFont
 
     args.corpus.mkdir(parents=True, exist_ok=True)
@@ -60,12 +61,17 @@ def prepare(args, entries):
         if "source" in entry:
             source = args.corpus / entry["source"]
             destination = args.corpus / entry["file"]
-            with TTFont(source, recalcTimestamp=False) as font:
-                if destination.suffix == ".cff":
-                    destination.write_bytes(font.getTableData("CFF "))
-                else:
-                    font.flavor = "woff"
-                    font.save(destination)
+            if destination.suffix in (".pfa", ".pfb"):
+                binary = destination.suffix == ".pfb"
+                font = T1Font(str(source))
+                font.saveAs(str(destination), "PFB" if binary else "OTHER", dohex=not binary)
+            else:
+                with TTFont(source, recalcTimestamp=False) as font:
+                    if destination.suffix == ".cff":
+                        destination.write_bytes(font.getTableData("CFF "))
+                    else:
+                        font.flavor = "woff"
+                        font.save(destination)
             if "sha256" in entry:
                 check_digest(destination, entry)
 

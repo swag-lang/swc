@@ -1479,3 +1479,31 @@ and bitmap fingerprints agree in all cases.
 | `NotoSansCJKjp-Regular.otf` | 24 | 64 | 5293.96 | 5265.24 |
 | `NotoSerifCJKjp-Regular.otf` | 24 | 8 | 265.25 | 283.11 |
 | `NotoSerifCJKjp-Regular.otf` | 64 | 8 | 724.13 | 499.34 |
+
+## Hexadecimal Type 1 input
+
+The PFA reader looks up hexadecimal digits and writes the decoded
+bytes directly into reserved storage. The cipher keeps a wrapping
+state, since bits above its low 16 never affect the output.
+
+A pinned URW program converted to PFA adds two hexadecimal cases,
+and a second converted to PFB adds two binary-container cases. The
+corpus now has 103 cases on 74 files. Eleven interleaved batches
+with 51 pathname opens on one CPU give 52–60% faster PFA opens.
+The binary controls are included, with one Type 1 median rising
+7%. Glyph indices, advances, dimensions and CRC-64 match on all
+ten cases.
+[Raw timings and format controls](font-decode-linux-type1-eexec.json)
+
+| Fixture | Character | Pathname open before (µs) | After |
+| --- | ---: | ---: | ---: |
+| `NimbusSans-Regular.t1` | U+0041 | 723.31 | 705.02 |
+| `NimbusSans-Regular.t1` | U+0067 | 1021.71 | 688.73 |
+| `NimbusMonoPS-Regular.t1` | U+0057 | 1168.01 | 980.64 |
+| `NimbusMonoPS-Regular.t1` | U+0069 | 994.81 | 935.17 |
+| `P052-Roman.t1` | U+0067 | 1051.12 | 985.73 |
+| `P052-Roman.t1` | U+0045 | 1057.97 | 1135.48 |
+| `NimbusSans-Regular.pfa` | U+0041 | 3881.13 | 1873.20 |
+| `NimbusSans-Regular.pfa` | U+0067 | 4175.67 | 1671.51 |
+| `P052-Roman.pfb` | U+0067 | 1081.91 | 1279.26 |
+| `P052-Roman.pfb` | U+0045 | 1063.15 | 1007.79 |

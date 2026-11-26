@@ -90,19 +90,20 @@ func eexecDecrypt(data: const [..] u8, key: u16, skip: u64)->Array'u8
 
 private func eexecDecryptInto(output: [*] u8, data: const [..] u8, key: u16, skip: u64)
 {
+    // Only bits 8–15 feed the output. Higher bits never feed back into them.
     var state = cast(u32, key)
     var input = data.buffer
     for skip
     {
-        state = ((cast(u32, input[]) + state) * EexecC1 + EexecC2) & 0xFFFF
+        state = (cast(u32, input[]) + #wrap state) * #wrap EexecC1 + #wrap EexecC2
         input += 1
     }
 
     for index in data.count - skip
     {
         let cipher = input[index]
-        output[index] = cipher ^ cast(u8, state >> 8)
-        state         = ((cast(u32, cipher) + state) * EexecC1 + EexecC2) & 0xFFFF
+        output[index] = cipher ^ cast #wrap(u8, state >> 8)
+        state         = (cast(u32, cipher) + #wrap state) * #wrap EexecC1 + #wrap EexecC2
     }
 }
 
@@ -232,36 +233,53 @@ func unwrapPfb(bytes: const [..] u8)->Array'u8 fail
     return result
 }
 
+private const HexDigits: [256] u8 = #run
+{
+    var digits: [256] u8
+    for index in digits.count do
+        digits[index] = 0xFF
+    for value in 10 do
+        digits[cast(u32, '0') + value] = cast(u8, value)
+    for value in 6
+    {
+        digits[cast(u32, 'A') + value] = cast(u8, value + 10)
+        digits[cast(u32, 'a') + value] = cast(u8, value + 10)
+    }
+
+    return digits
+}
+
 // Decodes the hexadecimal spelling a PFA file gives the private section.
 private func decodeEexecHex(data: const [..] u8)->Array'u8
 {
     var result: #returntype
-    var high = 0'u8
-    var have = false
+    if data.count < 2 do
+        return result
+
+    result.reserve(data.count / 2)
+    let output = unwrap result.buffer
+    var high   = 0'u8
+    var have   = false
+    var count  = 0'u64
     for c in data
     {
-        var value = 0'u8
-        if c >= '0' and c <= '9' do
-            value = c - '0'
-        elif c >= 'A' and c <= 'F' do
-            value = c - 'A' + 10
-        elif c >= 'a' and c <= 'f' do
-            value = c - 'a' + 10
-        else do
+        let value = HexDigits[c]
+        if value == 0xFF do
             continue
-
         if have
         {
-            result.add(high << 4 | value)
-            have = false
+            output[count] = high << 4 | value
+            count         += 1
         }
         else
         {
             high = value
-            have = true
         }
+
+        have = not have
     }
 
+    result.count = count
     return result
 }
 
@@ -280,8 +298,7 @@ private func isHexPrivateSection(data: const [..] u8)->bool
         let c = bytes[index]
         if isPostScriptSpace(c) do
             continue
-        let isHexDigit = (c >= '0' and c <= '9') or (c >= 'A' and c <= 'F') or (c >= 'a' and c <= 'f')
-        if not isHexDigit do
+        if HexDigits[c] == 0xFF do
             return false
         seen += 1
     }

@@ -1,0 +1,733 @@
+{
+  "utc": "2026-11-26T14:43:03.036798+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 2,
+  "affinity": [
+    2
+  ],
+  "workers": {
+    "xmm": 1,
+    "ymm": 1,
+    "ymm-boundary": 1,
+    "ymm-separate": 1,
+    "swag": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 4.1.0 23 Oct 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "711b8f569020ac48e5eb5f12794431065962c1247e7bf50f28124ebac77d9c69",
+  "swag_builds": {
+    "xmm": "c0cb7bc029fa139c7f7029697104adf75f68888f07e508a2867fe83ed8bd8a34",
+    "ymm": "0a237c83e4f2ade03764479de447bdb98e0fc27a6928afb72cb58d90e63359d0",
+    "ymm-boundary": "6b7a5a68a198722b14446ff7c2e5847935c1fcefdb34c3be3f1ea6cca2ee2f8c",
+    "ymm-separate": "7d2511853cf62fe05fd89762921f86d11f126beafc1071e128fe0d3b18c28ae1",
+    "swag": "fc958deb76f483299fd09ce722df045df547f4376a53a0264ada193c3e1d2a4f"
+  },
+  "rounds": 9,
+  "target_ms": 16,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "4fdcd42881eef7df191040c0152fb84867acd9105dfe7fa1740b5629ac791669",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 22981,
+          "wall": [
+            0.016527087,
+            0.01820782,
+            0.016220074,
+            0.016130969,
+            0.016240965,
+            0.016387906,
+            0.016168286,
+            0.016128925,
+            0.016255327
+          ],
+          "cpu": [
+            0.01652553,
+            0.018205623,
+            0.016218523,
+            0.016122279,
+            0.016239254,
+            0.016386463,
+            0.016166536,
+            0.016127387,
+            0.016253836
+          ]
+        },
+        "xmm": {
+          "iterations": 14286,
+          "wall": [
+            0.014678257,
+            0.015024619,
+            0.014750476,
+            0.033460615,
+            0.014742314,
+            0.01493898,
+            0.014680861,
+            0.014713931,
+            0.014551796
+          ],
+          "cpu": [
+            0.014676277,
+            0.015022802,
+            0.014749345,
+            0.014544871,
+            0.014740853,
+            0.014937655,
+            0.014679532,
+            0.0147128,
+            0.014550368
+          ]
+        },
+        "ymm": {
+          "iterations": 26007,
+          "wall": [
+            0.016247745,
+            0.017257077,
+            0.015956997,
+            0.015937366,
+            0.015922545,
+            0.01588686,
+            0.015817857,
+            0.016204609,
+            0.015704255
+          ],
+          "cpu": [
+            0.016246174,
+            0.017239654,
+            0.015955732,
+            0.015911565,
+            0.01592091,
+            0.015885748,
+            0.015816545,
+            0.01618253,
+            0.015702945
+          ]
+        },
+        "ymm-boundary": {
+          "iterations": 22704,
+          "wall": [
+            0.016423079,
+            0.017333262,
+            0.016225922,
+            0.016090127,
+            0.022814218,
+            0.015877476,
+            0.015892669,
+            0.015881673,
+            0.016395908
+          ],
+          "cpu": [
+            0.016421446,
+            0.01733143,
+            0.016224472,
+            0.01608886,
+            0.015876083,
+            0.015876153,
+            0.015891376,
+            0.015859809,
+            0.016394755
+          ]
+        },
+        "ymm-separate": {
+          "iterations": 23060,
+          "wall": [
+            0.017174733,
+            0.01615146,
+            0.01805447,
+            0.015993792,
+            0.016003687,
+            0.015981684,
+            0.016209748,
+            0.016267935,
+            0.016056196
+          ],
+          "cpu": [
+            0.017172975,
+            0.016149961,
+            0.018053225,
+            0.015992036,
+            0.016002391,
+            0.015980378,
+            0.016208268,
+            0.016266374,
+            0.01604878
+          ]
+        },
+        "swag": {
+          "iterations": 11161,
+          "wall": [
+            0.014708754,
+            0.015714661,
+            0.014997369,
+            0.038540277,
+            0.014830437,
+            0.014849396,
+            0.014493298,
+            0.014515252,
+            0.014618407
+          ],
+          "cpu": [
+            0.014707032,
+            0.015712489,
+            0.014995862,
+            0.015604228,
+            0.014828644,
+            0.014847612,
+            0.014491852,
+            0.014513985,
+            0.014616938
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "ymm",
+          "xmm",
+          "OpenSSL",
+          "swag",
+          "ymm-boundary",
+          "ymm-separate"
+        ],
+        [
+          "swag",
+          "OpenSSL",
+          "ymm",
+          "ymm-boundary",
+          "xmm",
+          "ymm-separate"
+        ],
+        [
+          "OpenSSL",
+          "xmm",
+          "swag",
+          "ymm-boundary",
+          "ymm",
+          "ymm-separate"
+        ],
+        [
+          "ymm-separate",
+          "xmm",
+          "OpenSSL",
+          "ymm-boundary",
+          "ymm",
+          "swag"
+        ],
+        [
+          "xmm",
+          "OpenSSL",
+          "ymm",
+          "swag",
+          "ymm-separate",
+          "ymm-boundary"
+        ],
+        [
+          "ymm-boundary",
+          "ymm-separate",
+          "xmm",
+          "swag",
+          "OpenSSL",
+          "ymm"
+        ],
+        [
+          "OpenSSL",
+          "ymm-separate",
+          "swag",
+          "ymm-boundary",
+          "xmm",
+          "ymm"
+        ],
+        [
+          "ymm",
+          "OpenSSL",
+          "swag",
+          "ymm-separate",
+          "ymm-boundary",
+          "xmm"
+        ],
+        [
+          "xmm",
+          "ymm-separate",
+          "swag",
+          "ymm-boundary",
+          "OpenSSL",
+          "ymm"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 65536,
+      "offset": 0,
+      "input_sha256": "f9554b39b3292980513df4bc441c226ae0d9eefe56846162d0e9ff6792ffe656",
+      "output_sha256": "01194b081806e8b41d242af6a2c891de04f4685e1890e9bc53fbc8d676275118",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 2477,
+          "wall": [
+            0.016013101,
+            0.017090655,
+            0.016313464,
+            0.01637072,
+            0.015955014,
+            0.01630438,
+            0.017256646,
+            0.01598605,
+            0.016145361
+          ],
+          "cpu": [
+            0.016010934,
+            0.0170891,
+            0.016280005,
+            0.016368706,
+            0.015952998,
+            0.016302668,
+            0.017226444,
+            0.015984114,
+            0.016143501
+          ]
+        },
+        "xmm": {
+          "iterations": 1036,
+          "wall": [
+            0.01615137,
+            0.016543561,
+            0.019736997,
+            0.019595704,
+            0.015951377,
+            0.016417971,
+            0.019080757,
+            0.016360895,
+            0.016143467
+          ],
+          "cpu": [
+            0.016150011,
+            0.016541965,
+            0.01973515,
+            0.019593649,
+            0.015950143,
+            0.016416287,
+            0.019078732,
+            0.016359343,
+            0.016142109
+          ]
+        },
+        "ymm": {
+          "iterations": 1857,
+          "wall": [
+            0.01607866,
+            0.016230119,
+            0.016047343,
+            0.016331722,
+            0.018130975,
+            0.016306263,
+            0.0224114,
+            0.016133502,
+            0.01647037
+          ],
+          "cpu": [
+            0.016072536,
+            0.016228498,
+            0.016044774,
+            0.016298342,
+            0.018128878,
+            0.016304782,
+            0.022408751,
+            0.016131744,
+            0.016468676
+          ]
+        },
+        "ymm-boundary": {
+          "iterations": 1559,
+          "wall": [
+            0.015857657,
+            0.01672834,
+            0.016450571,
+            0.019060247,
+            0.016286262,
+            0.015913049,
+            0.015888963,
+            0.016183498,
+            0.015850696
+          ],
+          "cpu": [
+            0.015856254,
+            0.0167266,
+            0.016433933,
+            0.019058303,
+            0.016284882,
+            0.015911426,
+            0.015887531,
+            0.016182159,
+            0.015849304
+          ]
+        },
+        "ymm-separate": {
+          "iterations": 1577,
+          "wall": [
+            0.016090818,
+            0.01694697,
+            0.016014733,
+            0.016314125,
+            0.016163568,
+            0.016093142,
+            0.016139442,
+            0.016134044,
+            0.016151059
+          ],
+          "cpu": [
+            0.016089351,
+            0.016944855,
+            0.016012717,
+            0.016312844,
+            0.016162219,
+            0.016091614,
+            0.016138013,
+            0.016132645,
+            0.01614931
+          ]
+        },
+        "swag": {
+          "iterations": 950,
+          "wall": [
+            0.016088524,
+            0.016208096,
+            0.016247074,
+            0.016201636,
+            0.016345873,
+            0.015912108,
+            0.015963757,
+            0.01621798,
+            0.015904237
+          ],
+          "cpu": [
+            0.016087198,
+            0.016206596,
+            0.016244842,
+            0.016199756,
+            0.01634386,
+            0.015910074,
+            0.015962231,
+            0.01621657,
+            0.015902673
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "ymm",
+          "ymm-boundary",
+          "swag",
+          "ymm-separate",
+          "xmm",
+          "OpenSSL"
+        ],
+        [
+          "ymm-separate",
+          "OpenSSL",
+          "ymm-boundary",
+          "swag",
+          "xmm",
+          "ymm"
+        ],
+        [
+          "xmm",
+          "ymm-boundary",
+          "ymm-separate",
+          "ymm",
+          "OpenSSL",
+          "swag"
+        ],
+        [
+          "ymm",
+          "xmm",
+          "swag",
+          "OpenSSL",
+          "ymm-boundary",
+          "ymm-separate"
+        ],
+        [
+          "swag",
+          "ymm-boundary",
+          "ymm",
+          "OpenSSL",
+          "xmm",
+          "ymm-separate"
+        ],
+        [
+          "swag",
+          "ymm-boundary",
+          "ymm",
+          "xmm",
+          "OpenSSL",
+          "ymm-separate"
+        ],
+        [
+          "xmm",
+          "ymm",
+          "OpenSSL",
+          "ymm-separate",
+          "ymm-boundary",
+          "swag"
+        ],
+        [
+          "ymm",
+          "ymm-separate",
+          "ymm-boundary",
+          "OpenSSL",
+          "swag",
+          "xmm"
+        ],
+        [
+          "ymm-boundary",
+          "ymm-separate",
+          "OpenSSL",
+          "ymm",
+          "swag",
+          "xmm"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 1048576,
+      "offset": 0,
+      "input_sha256": "1e8e8f15703ff175699f1e1588b5a85d378c7c1aa34a320c37dffae28c916b32",
+      "output_sha256": "5aba9fa773dec8c62b29404f76c05d9ee00f53663a29146aa6a8d8619bb536ca",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 158,
+          "wall": [
+            0.016294255,
+            0.016083287,
+            0.016295446,
+            0.015892058,
+            0.016557152,
+            0.015932609,
+            0.015963716,
+            0.016942652,
+            0.016283409
+          ],
+          "cpu": [
+            0.016286705,
+            0.016081399,
+            0.016293035,
+            0.015890204,
+            0.016554584,
+            0.015908492,
+            0.01596144,
+            0.016940168,
+            0.016281517
+          ]
+        },
+        "xmm": {
+          "iterations": 64,
+          "wall": [
+            0.017618482,
+            0.015961202,
+            0.016202366,
+            0.015901062,
+            0.016845667,
+            0.020602383,
+            0.019623562,
+            0.015891658,
+            0.015945889
+          ],
+          "cpu": [
+            0.017616535,
+            0.015931996,
+            0.016200356,
+            0.015899198,
+            0.016842652,
+            0.020599577,
+            0.019621567,
+            0.015889623,
+            0.015943924
+          ]
+        },
+        "ymm": {
+          "iterations": 113,
+          "wall": [
+            0.016009916,
+            0.016302828,
+            0.015961403,
+            0.016562219,
+            0.015986891,
+            0.021636572,
+            0.02620372,
+            0.016127544,
+            0.016256628
+          ],
+          "cpu": [
+            0.015999576,
+            0.016301026,
+            0.015958946,
+            0.016559791,
+            0.015984935,
+            0.021633958,
+            0.026200759,
+            0.016125384,
+            0.016254536
+          ]
+        },
+        "ymm-boundary": {
+          "iterations": 94,
+          "wall": [
+            0.01908912,
+            0.015825958,
+            0.01646991,
+            0.016232452,
+            0.016139181,
+            0.016186383,
+            0.015879759,
+            0.015726739,
+            0.015903986
+          ],
+          "cpu": [
+            0.019087115,
+            0.015823865,
+            0.016468004,
+            0.01622992,
+            0.016137192,
+            0.016184322,
+            0.015876554,
+            0.015724567,
+            0.015902433
+          ]
+        },
+        "ymm-separate": {
+          "iterations": 97,
+          "wall": [
+            0.019039025,
+            0.01690733,
+            0.016167634,
+            0.01591275,
+            0.016273273,
+            0.016639106,
+            0.016005279,
+            0.016729802,
+            0.016055665
+          ],
+          "cpu": [
+            0.0190367,
+            0.016905256,
+            0.016165925,
+            0.015910515,
+            0.016271412,
+            0.016636926,
+            0.016002782,
+            0.016727662,
+            0.016053498
+          ]
+        },
+        "swag": {
+          "iterations": 57,
+          "wall": [
+            0.018358157,
+            0.0151632,
+            0.015160365,
+            0.015291382,
+            0.015883756,
+            0.024756037,
+            0.015341458,
+            0.015181586,
+            0.015538715
+          ],
+          "cpu": [
+            0.018355416,
+            0.015161159,
+            0.015158845,
+            0.015289189,
+            0.015881151,
+            0.024753293,
+            0.015339274,
+            0.015178995,
+            0.015536998
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "ymm",
+          "xmm",
+          "swag",
+          "ymm-boundary",
+          "ymm-separate",
+          "OpenSSL"
+        ],
+        [
+          "ymm",
+          "ymm-boundary",
+          "swag",
+          "OpenSSL",
+          "xmm",
+          "ymm-separate"
+        ],
+        [
+          "ymm-boundary",
+          "ymm-separate",
+          "xmm",
+          "swag",
+          "OpenSSL",
+          "ymm"
+        ],
+        [
+          "OpenSSL",
+          "ymm",
+          "ymm-separate",
+          "ymm-boundary",
+          "xmm",
+          "swag"
+        ],
+        [
+          "OpenSSL",
+          "ymm",
+          "ymm-boundary",
+          "swag",
+          "ymm-separate",
+          "xmm"
+        ],
+        [
+          "ymm-boundary",
+          "ymm-separate",
+          "OpenSSL",
+          "ymm",
+          "xmm",
+          "swag"
+        ],
+        [
+          "ymm",
+          "xmm",
+          "ymm-separate",
+          "ymm-boundary",
+          "OpenSSL",
+          "swag"
+        ],
+        [
+          "swag",
+          "ymm-boundary",
+          "xmm",
+          "OpenSSL",
+          "ymm-separate",
+          "ymm"
+        ],
+        [
+          "ymm-separate",
+          "swag",
+          "xmm",
+          "ymm-boundary",
+          "ymm",
+          "OpenSSL"
+        ]
+      ]
+    }
+  ]
+}

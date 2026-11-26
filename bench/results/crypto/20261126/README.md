@@ -149,6 +149,7 @@ optimizations moved each result.
 - [BLAKE3 C++ leaf SIMD width comparison](blake3-leaf-width.md)
 - [SHA-512 block batches and packed schedule additions](sha512-block-batch.md)
 - [Interleaved AES-GCM counter encryption and GHASH](aes-gcm-interleaved.md)
+- [AES-GCM vector width and scheduling](aes-gcm-width.md)
 - [P-256 verification in Jacobian coordinates](p256-projective-verify.md)
 - [Explicit Poly1305 limb reduction](poly1305-five-limb-carries.md)
 - [CRC-32 and reflected CRC-64 with paired 256-bit products](crc-wide-instructions.md)

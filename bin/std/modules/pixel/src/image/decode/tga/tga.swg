@@ -38,6 +38,7 @@ struct Header
 struct Palette
 {
     data:          const [*] u8?
+    colors:        const [*] u32?
     first:         u16
     count:         u16
     bitsPerPixel:  u8
@@ -259,8 +260,41 @@ private func writeOpaqueSpan(destination: [*] u8, source: const [*] u8, count: u
     }
 }
 
+private func(Index) writePaletteSpan(destination: [*] u8, source: const [*] Index, count: u64, palette: Palette, destinationBytes: s32, rightOrigin: bool) fail
+{
+    let colors = cast(const [*] u32, unwrap palette.colors)
+    for x in count
+    {
+        let index = cast(u32, source[rightOrigin ? count - x - 1 : x])
+        let key   = index - #wrap palette.first
+        if key >= palette.count do
+            fail InvalidFormatError{"invalid palette index"}
+
+        let color = colors[key]
+        let pixel = destination + x * destinationBytes
+        if destinationBytes == 4
+        {
+            cast([*] u32, pixel)[0] = color
+        }
+        else
+        {
+            cast([*] u16, pixel)[0] = cast #wrap(u16, color)
+            pixel[2] = cast(u8, (color >> 16))
+        }
+    }
+}
+
 private func writeSourceSpan(destination: [*] u8, source: const [*] u8, count: u64, header: Header, palette: Palette, sourceBytes: u8, destinationBytes: s32, rightOrigin: bool) fail
 {
+    if palette.colors
+    {
+        if sourceBytes == 1 do
+            try writePaletteSpan'u8(destination, source, count, palette, destinationBytes, rightOrigin)
+        else do
+            try writePaletteSpan'u16(destination, cast(const [*] u16, source), count, palette, destinationBytes, rightOrigin)
+        return
+    }
+
     if header.bitsPerPixel == 32 and isRgbType(header.imageTypeCode) and not hasAttributeBits(header)
     {
         writeOpaqueSpan(destination, source, count, rightOrigin)
@@ -461,6 +495,16 @@ internal impl IImageDecoder for Decoder
 
         result.allocPixels()
         let pixelCount = cast(u64, result.width) * result.height
+        var colors: Array'u32
+        if isMappedType(header.imageTypeCode) and pixelCount >= palette.count
+        {
+            colors.resize(palette.count)
+            let packed = cast([*] u8, colors.storage())
+            for i in palette.count do
+                try writePalettePixel(packed + i * 4, palette, cast(u32, palette.first) + i, hasAttributeBits(header))
+            palette.colors = colors.storage()
+        }
+
         if isRleType(header.imageTypeCode) do
             try decodeRle(&result, header, palette, dataof, last, pixelBytes, pixelCount)
         else do

@@ -103,6 +103,79 @@ struct CffDict
 
 impl CffDict
 {
+    // Decodes into the existing buffers so a series of dictionaries can reuse them.
+    mtd decode(data: const [..] u8) fail
+    {
+        .ops.clear()
+        .operands.clear()
+        var first = 0'u64
+        var pos   = 0'u64
+
+        while pos < data.count
+        {
+            let b0 = peekU8(data, pos)
+            if b0 <= 21
+            {
+                var op = cast(u16, b0)
+                pos += 1
+                if b0 == 12
+                {
+                    op  = 0x0C00 | cast(u16, (try readU8(data, pos)))
+                    pos += 1
+                }
+
+                var entry: CffDictOp
+                entry.op    = op
+                entry.first = cast(u32, first)
+                entry.count = cast(u32, .operands.count - first)
+                .ops.add(entry)
+                first = .operands.count
+                continue
+            }
+
+            if b0 == 28
+            {
+                .operands.add(cast(f64, (try readS16(data, pos + 1))))
+                pos += 3
+            }
+            elif b0 == 29
+            {
+                .operands.add(cast(f64, (try readS32(data, pos + 1))))
+                pos += 5
+            }
+            elif b0 == 30
+            {
+                let real = try readCffReal(data, pos + 1)
+                .operands.add(real.value)
+                pos = real.next
+            }
+            elif b0 >= 32 and b0 <= 246
+            {
+                .operands.add(cast(f64, (cast(s32, b0) - 139)))
+                pos += 1
+            }
+            elif b0 >= 247 and b0 <= 250
+            {
+                let b1 = try readU8(data, pos + 1)
+                .operands.add(cast(f64, ((cast(s32, b0) - 247) * 256 + cast(s32, b1) + 108)))
+                pos += 2
+            }
+            elif b0 >= 251 and b0 <= 254
+            {
+                let b1 = try readU8(data, pos + 1)
+                .operands.add(cast(f64, (-(cast(s32, b0) - 251) * 256 - cast(s32, b1) - 108)))
+                pos += 2
+            }
+            else
+            {
+                try fault(0x08)
+            }
+        }
+
+        // Operands without a following operator do not belong to the dictionary.
+        .operands.resize(first)
+    }
+
     // Returns one operand of an operator, or `fallback` when either is absent.
     mtd const value(op: u16, index: u32, fallback: f64)->f64
     {
@@ -131,6 +204,14 @@ enum CffEncoding
     Expert
 }
 
+// Width defaults and local subroutines from one Private DICT.
+struct CffPrivate
+{
+    subrs:        CffIndex
+    defaultWidth: f64
+    nominalWidth: f64
+}
+
 // A parsed CFF font program, from a bare `Type1C` stream or an OpenType `CFF ` table.
 //
 // Outlines stay in their Type 2 charstring form and are interpreted on demand; only the
@@ -141,7 +222,6 @@ struct CffFont
 
     charStrings: CffIndex
     globalSubrs: CffIndex
-    localSubrs:  CffIndex
     strings:     CffIndex
 
     glyphNames:    GlyphNames
@@ -155,12 +235,8 @@ struct CffFont
     // per font.
     isCid:          bool
     late fdSelect:  const [..] u8
-    fdLocalSubrs:   Array'CffIndex
-    fdDefaultWidth: Array'f64
-    fdNominalWidth: Array'f64
-
-    defaultWidthX:  f64
-    nominalWidthX:  f64
+    fdPrivate:      Array'CffPrivate
+    defaultPrivate: CffPrivate
     charstringType: u32 = 2
     unitsPerEm:     u16 = 1000
 
@@ -178,13 +254,11 @@ struct CffFont
 impl CffFont
 {
     // Returns the local subroutines and width defaults that apply to one glyph.
-    mtd const privateFor(gid: u32)->{ subrs: const *CffIndex, defaultWidth: f64, nominalWidth: f64 }
+    mtd const privateFor(gid: u32)->const *CffPrivate
     {
-        if not .isCid or .fdLocalSubrs.isEmpty() do
-            return {subrs: &.localSubrs, defaultWidth: .defaultWidthX, nominalWidth: .nominalWidthX}
-
-        let fd = .dictionaryIndex(gid)
-        return {subrs: &.fdLocalSubrs[fd], defaultWidth: .fdDefaultWidth[fd], nominalWidth: .fdNominalWidth[fd]}
+        if not .isCid or .fdPrivate.isEmpty() do
+            return &.defaultPrivate
+        return &.fdPrivate[.dictionaryIndex(gid)]
     }
 
     // Format 0 indexes directly. In format 3, find the last range start at or before the glyph.
@@ -473,77 +547,12 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
 func parseCffDict(data: const [..] u8)->CffDict fail
 {
     var result: #returntype
-    var first = 0'u64
-    var pos   = 0'u64
-
-    while pos < data.count
-    {
-        let b0 = peekU8(data, pos)
-        if b0 <= 21
-        {
-            var op = cast(u16, b0)
-            pos += 1
-            if b0 == 12
-            {
-                op  = 0x0C00 | cast(u16, (try readU8(data, pos)))
-                pos += 1
-            }
-
-            var entry: CffDictOp
-            entry.op    = op
-            entry.first = cast(u32, first)
-            entry.count = cast(u32, result.operands.count - first)
-            result.ops.add(entry)
-            first = result.operands.count
-            continue
-        }
-
-        if b0 == 28
-        {
-            result.operands.add(cast(f64, (try readS16(data, pos + 1))))
-            pos += 3
-        }
-        elif b0 == 29
-        {
-            result.operands.add(cast(f64, (try readS32(data, pos + 1))))
-            pos += 5
-        }
-        elif b0 == 30
-        {
-            let real = try readCffReal(data, pos + 1)
-            result.operands.add(real.value)
-            pos = real.next
-        }
-        elif b0 >= 32 and b0 <= 246
-        {
-            result.operands.add(cast(f64, (cast(s32, b0) - 139)))
-            pos += 1
-        }
-        elif b0 >= 247 and b0 <= 250
-        {
-            let b1 = try readU8(data, pos + 1)
-            result.operands.add(cast(f64, ((cast(s32, b0) - 247) * 256 + cast(s32, b1) + 108)))
-            pos += 2
-        }
-        elif b0 >= 251 and b0 <= 254
-        {
-            let b1 = try readU8(data, pos + 1)
-            result.operands.add(cast(f64, (-(cast(s32, b0) - 251) * 256 - cast(s32, b1) - 108)))
-            pos += 2
-        }
-        else
-        {
-            try fault(0x08)
-        }
-    }
-
-    // Operands without a following operator do not belong to the dictionary.
-    result.operands.resize(first)
+    try result.decode(data)
     return result
 }
 
 // Reads the private DICT one font dictionary points at, and the local subroutines it owns.
-private func readCffPrivate(font: *CffFont, dict: const *CffDict)->{ subrs: CffIndex, defaultWidth: f64, nominalWidth: f64 } fail
+private func readCffPrivate(font: *CffFont, dict: const *CffDict, privateDict: *CffDict)->CffPrivate fail
 {
     var result: #returntype
     let size   = cast(u64, dict.value(CFF_OP_PRIVATE, 0, 0))
@@ -551,12 +560,12 @@ private func readCffPrivate(font: *CffFont, dict: const *CffDict)->{ subrs: CffI
     if not size or not offset do
         return result
 
-    let priv = try parseCffDict(try getSlice(font.block, offset, size))
-    result.defaultWidth = priv.value(CFF_OP_DEFAULT_WIDTH, 0, 0)
-    result.nominalWidth = priv.value(CFF_OP_NOMINAL_WIDTH, 0, 0)
+    try privateDict.decode(try getSlice(font.block, offset, size))
+    result.defaultWidth = privateDict.value(CFF_OP_DEFAULT_WIDTH, 0, 0)
+    result.nominalWidth = privateDict.value(CFF_OP_NOMINAL_WIDTH, 0, 0)
 
     // The subroutine offset is stated relative to the private DICT, not to the file.
-    let subrs = cast(u64, priv.value(CFF_OP_SUBRS, 0, 0))
+    let subrs = cast(u64, privateDict.value(CFF_OP_SUBRS, 0, 0))
     if subrs do
         result.subrs = try readCffIndex(font.block, offset + subrs)
     return result
@@ -747,7 +756,7 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
 private func readCffFdSelect(font: const *CffFont, offset: u64)->const [..] u8 fail
 {
     let glyphCount = font.charStrings.count()
-    let fdCount    = font.fdLocalSubrs.count
+    let fdCount    = font.fdPrivate.count
     let format     = try readU8(font.block, offset)
     if format == 0
     {
@@ -783,16 +792,16 @@ private func readCffFdSelect(font: const *CffFont, offset: u64)->const [..] u8 f
     return table
 }
 
-private func readCffFdArray(font: *CffFont, offset: u64) fail
+private func readCffFdArray(font: *CffFont, offset: u64, privateDict: *CffDict) fail
 {
     let fdArray = try readCffIndex(font.block, offset)
+    font.fdPrivate.reserve(fdArray.count())
+
+    var dict: CffDict
     for index in fdArray.count()
     {
-        let dict        = try parseCffDict(fdArray.item(index))
-        let privateData = try readCffPrivate(font, &dict)
-        font.fdLocalSubrs.add(privateData.subrs)
-        font.fdDefaultWidth.add(privateData.defaultWidth)
-        font.fdNominalWidth.add(privateData.nominalWidth)
+        try dict.decode(fdArray.item(index))
+        font.fdPrivate.add(try readCffPrivate(font, &dict, privateDict))
     }
 }
 
@@ -842,16 +851,14 @@ func parseCffFont(block: const [..] u8)->CffFont fail
     result.italic   = top.value(CFF_OP_ITALIC_ANGLE, 0, 0) != 0
     result.bold     = isBoldWeightName(try result.stringOf(cast(u32, top.value(CFF_OP_WEIGHT, 0, 0))))
 
-    let privateData = try readCffPrivate(&result, &top)
-    result.localSubrs    = privateData.subrs
-    result.defaultWidthX = privateData.defaultWidth
-    result.nominalWidthX = privateData.nominalWidth
+    var privateDict: CffDict
+    result.defaultPrivate = try readCffPrivate(&result, &top, &privateDict)
 
     if result.isCid
     {
         let fdArray = cast(u64, top.value(CFF_OP_FD_ARRAY, 0, 0))
         if fdArray do
-            try readCffFdArray(&result, fdArray)
+            try readCffFdArray(&result, fdArray, &privateDict)
         let fdSelect = cast(u64, top.value(CFF_OP_FD_SELECT, 0, 0))
         if fdSelect do
             result.fdSelect = try readCffFdSelect(&result, fdSelect)

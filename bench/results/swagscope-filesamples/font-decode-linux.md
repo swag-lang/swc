@@ -367,3 +367,24 @@ use 11 interleaved batches of 11 passes.
 | --- | ---: | ---: | ---: |
 | `NotoSansCJK-Regular.ttc` | 10 | 13.74 | 5.89 |
 | `NotoSerifCJK-Regular.ttc` | 5 | 15.42 | 6.90 |
+
+## Cold CFF dictionary decoding
+
+CFF font and private dictionaries reuse their operator and operand buffers while
+the FDArray is decoded. Each parsed private dictionary stores its local subroutines
+and width defaults together in one reserved array.
+
+The probe creates a fresh source from bytes already in memory before each measured
+open. It times opening, setting 20 px, and rendering one glyph. The FDArray phase
+is measured inside the parser. Medians use 11 interleaved batches of 31 fresh
+opens after five warmups on one CPU. The baseline is `d8325e8d9e`. The Swag builds
+agree on glyph indices, advances, dimensions, and CRC-64. [Raw samples](font-decode-linux-cff-dicts.json)
+
+| Fixture | Face | Open and render before (µs) | After (µs) | FDArray before → after (µs) |
+| --- | ---: | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | 141.97 | 130.34 | 41.54 → 28.78 |
+| `NotoSansCJK-Regular.ttc` | 7 | 141.88 | 142.42 | 44.61 → 27.55 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 149.02 | 134.89 | 45.30 → 26.30 |
+| `NotoSerifCJK-Regular.ttc` | 0 | 163.91 | 149.08 | 47.00 → 31.43 |
+| `NotoSerifCJK-Regular.ttc` | 4 | 174.16 | 160.59 | 48.42 → 35.37 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 190.26 | 154.93 | 47.75 → 29.36 |

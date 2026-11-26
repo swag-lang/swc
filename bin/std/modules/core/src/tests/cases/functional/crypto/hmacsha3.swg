@@ -86,3 +86,34 @@ func hmacSha3HexBytes(text: string)->Array'u8
     discard catch Crypto.HmacSha3.compute(key, message, 32, wrongOutput) as error
     Swag.require(error.value() is Errors.BadParameterError)
 }
+
+#test
+{
+    const Rate       = 136
+    const KeyLengths = [0'u64, Rate, Rate + 1]
+    const Expected   = [
+        "ae03f6fe5c1a1d57e25f4d5d4649e37798f2f9234481c7c5717e0fa5e841bb66",
+        "d540a91ee13eeca22c254095f45e5c53308dc752587cb08c84939f2c2db7001e",
+        "c509196941f8d688a6afddbc953e1e3cc4a6d2ed8321184942e7964933b88429"]
+
+    var keys: [Rate + 2] u8
+    for index in keys.count do
+        keys[index] = cast(u8, (index * 19 + 3) & 0xFF)
+    var message: [152] u8
+    for index in message.count do
+        message[index] = cast(u8, (index * 37 + 11) & 0xFF)
+
+    var mac = expect Crypto.HmacSha3.create("previous key", 64)
+    for length, index in KeyLengths
+    {
+        mac.update("discarded input")
+        expect mac.reset(keys[1 until length + 1], 32)
+        mac.update(message[1 until 48])
+        mac.update(message[48 to])
+        var digest: [32] u8
+        expect mac.finalize(digest)
+        let expected = hmacSha3HexBytes(Expected[index])
+        Swag.require(Crypto.constantTimeEqual(digest, expected.toSlice()))
+        expect mac.reset("previous key", 64)
+    }
+}

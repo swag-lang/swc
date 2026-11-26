@@ -115,3 +115,4 @@ optimizations moved each result.
 - [Affine Curve25519 generator table](ed25519-affine-generator.md)
 - [Signed affine Curve25519 generator tables](ed25519-signed-generator.md)
 - [AES software substitution with cached field logarithms](aes-software-logs.md)
+- [HMAC-SHA3 pad reuse](hmac-sha3-pads.md)

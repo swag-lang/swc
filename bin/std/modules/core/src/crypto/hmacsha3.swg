@@ -30,39 +30,40 @@ impl HmacSha3
     {
         if digestSize != 28 and digestSize != 32 and digestSize != 48 and digestSize != 64 do
             fail Errors.BadParameterError{"HMAC-SHA-3 digest size must be 28, 32, 48, or 64 bytes"}
-        .clear()
-        .digestSize = digestSize
-        .blockSize  = 200 - 2 * digestSize
+        .initialized = false
+        .digestSize  = digestSize
+        .blockSize   = 200 - 2 * digestSize
+        try .inner.reset(digestSize)
+        try .outer.reset(digestSize)
 
-        var normalized: [Hash.Sha3MaxRate] u8
+        var pad: [Hash.Sha3MaxRate / 8] u64
+        defer Crypto.secureClear(pad)
+        let bytes = cast([*] u8, pad.buffer)
         if key.count > .blockSize
         {
-            var keyHash = try Hash.Sha3.create(digestSize)
-            keyHash.update(key)
-            try keyHash.finalize(Swag.makeSlice(&normalized[0], digestSize))
-            keyHash.clear()
+            let normalized = Swag.makeSlice(bytes, digestSize)
+            try Hash.Sha3.compute(key, normalized)
         }
         elif key.count
         {
-            Swag.memcpy(&normalized[0], key.buffer, key.count)
+            Swag.memcpy(bytes, key.buffer, key.count)
         }
 
-        var innerPad: [Hash.Sha3MaxRate] u8
-        var outerPad: [Hash.Sha3MaxRate] u8
-        for index in .blockSize
-        {
-            innerPad[index] = normalized[index] ^ 0x36
-            outerPad[index] = normalized[index] ^ 0x5C
-        }
+        // HMAC pads use one repeated byte, so they can be applied a word at a time.
+        const InnerPad = 0x3636363636363636'u64
+        const OuterPad = 0x5C5C5C5C5C5C5C5C'u64
+        let wordCount = .blockSize / 8
+        let block     = Swag.makeSlice(bytes, .blockSize)
+        for index in wordCount do
+            pad[index] ^= InnerPad
 
-        try .inner.reset(digestSize)
-        try .outer.reset(digestSize)
-        .inner.update(Swag.makeSlice(&innerPad[0], .blockSize))
-        .outer.update(Swag.makeSlice(&outerPad[0], .blockSize))
+        .inner.update(block)
+
+        for index in wordCount do
+            pad[index] ^= InnerPad ^ OuterPad
+
+        .outer.update(block)
         .initialized = true
-        Crypto.secureClear(normalized)
-        Crypto.secureClear(innerPad)
-        Crypto.secureClear(outerPad)
     }
 
     // Includes `data` in the running authentication code.
@@ -88,7 +89,9 @@ impl HmacSha3
         try .inner.finalize(innerDigest)
         .outer.update(innerDigest)
         try .outer.finalize(destination)
-        .clear()
+        .initialized = false
+        .digestSize  = 0
+        .blockSize   = 0
     }
 
     // Clears keyed state when this value leaves scope.

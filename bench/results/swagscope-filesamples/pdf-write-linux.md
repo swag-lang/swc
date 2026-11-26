@@ -219,3 +219,24 @@ time `Document.save` against baseline `238120e726`.
 All three saved files keep their byte counts, CRC-32, and PDFium
 rasters. All 1,275 GUI tests and the seven focused printing tests pass.
 [Fixture generation](../../workloads/pdfwrite/README.md)
+
+## Reserving space for retained image streams
+
+The writer counts the compressed bytes once for each assigned image.
+It uses that size to reserve the output buffer, with a bounded
+allowance for object dictionaries. Large collections of original image
+streams need fewer reallocations while the writer appends their data.
+
+Nine paired Release saves use one AMD EPYC 7763 logical CPU and
+baseline `747be17d13`. Loading precedes the timed save.
+[Raw save times, sizes and checksums](pdf-write-linux-reserved-streams.json)
+
+| Input | Save before, ms | Save after, ms | Output bytes |
+| --- | ---: | ---: | ---: |
+| `many-jpeg-16.pdf` | 11.537 | 9.705 | 22,901,808 |
+| `perf_images_jpeg_large.pdf` | 0.489 | 0.519 | 1,431,623 |
+| `repeated-64.pdf` | 2.178 | 2.157 | 1,456,620 |
+
+The 16 distinct JPEG streams keep the saved bytes and all PDFium
+rasters. The focused GUI suite passes 124 PDF tests.
+[Fixture generator](../../workloads/pdfwrite/README.md)

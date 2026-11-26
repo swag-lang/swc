@@ -47,10 +47,24 @@ impl Encoder
     //
     // The pending bits are kept right-aligned in an accumulator that never holds a full byte on
     // entry, so a code costs one shift and the loop below only runs when a byte completed.
-    mtd writeBits(bs: BitString)
+    #[Swag.Inline]
+    mtd writeBits(code: BitString)
     {
-        let length = cast(u32, bs.length)
-        .bitBuffer = (.bitBuffer << #wrap length) | (cast(u32, bs.value) & ((1'u32 << length) - 1))
+        .appendEntropyBits(code.length, code.value)
+    }
+
+    #[Swag.Inline]
+    mtd writeAmplitude(prefix: BitString, value: s32, category: u8)
+    {
+        let mask      = (1'u32 << category) - 1
+        let amplitude = cast #bit(u32, (value + (value >> 31))) & mask
+        let bits      = (cast(u32, prefix.value) << category) | amplitude
+        .appendEntropyBits(cast(u32, prefix.length) + category, bits)
+    }
+
+    mtd appendEntropyBits(length: u32, bits: u32)
+    {
+        .bitBuffer = (.bitBuffer << length) | bits
         .bitCount  += length
 
         while .bitCount >= 8

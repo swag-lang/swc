@@ -261,12 +261,13 @@ func vp8PredictLarge(decoder: *Vp8Decoder, y, x, size: s32, predictor: u8)
 
 func vp8ParsePredY16(decoder: *Vp8Decoder, mbX: s32)
 {
+    let partition = &decoder.firstPart
     var predictor: u8
-    if not decoder.firstPart.readBit(156)
+    if not partition.readBit(156)
     {
-        predictor = decoder.firstPart.readBit(163) ? VP8_PRED_VE : VP8_PRED_DC
+        predictor = partition.readBit(163) ? VP8_PRED_VE : VP8_PRED_DC
     }
-    elif not decoder.firstPart.readBit(128)
+    elif not partition.readBit(128)
     {
         predictor = VP8_PRED_HE
     }
@@ -275,77 +276,71 @@ func vp8ParsePredY16(decoder: *Vp8Decoder, mbX: s32)
         predictor = VP8_PRED_TM
     }
 
-    for i in 4
-    {
-        decoder.upMb[mbX].predictor[i] = predictor
-        decoder.leftMb.predictor[i]    = predictor
-    }
+    let modes = cast(u32, predictor) * 0x01010101'u32
+    cast([*] u32, &decoder.upMb[mbX].predictor[0])[0] = modes
+    cast([*] u32, &decoder.leftMb.predictor[0])[0]    = modes
 
     decoder.predY16 = predictor
 }
 
 func vp8ParsePredC8(decoder: *Vp8Decoder)
 {
-    if not decoder.firstPart.readBit(142) do
+    let partition = &decoder.firstPart
+    if not partition.readBit(142) do
         decoder.predC8 = VP8_PRED_DC
-    elif not decoder.firstPart.readBit(114) do
+    elif not partition.readBit(114) do
         decoder.predC8 = VP8_PRED_VE
-    elif not decoder.firstPart.readBit(183) do
+    elif not partition.readBit(183) do
         decoder.predC8 = VP8_PRED_HE
     else do
         decoder.predC8 = VP8_PRED_TM
 }
 
+#[Swag.Inline]
+private func vp8ReadPredY4(partition: *Vp8Partition, probability: const [*] u8)->u8
+{
+    if not partition.readBit(probability[0]) do
+        return VP8_PRED_DC
+    if not partition.readBit(probability[1]) do
+        return VP8_PRED_TM
+    if not partition.readBit(probability[2]) do
+        return VP8_PRED_VE
+
+    if not partition.readBit(probability[3])
+    {
+        if not partition.readBit(probability[4]) do
+            return VP8_PRED_HE
+        return partition.readBit(probability[5]) ? VP8_PRED_VR : VP8_PRED_RD
+    }
+
+    if not partition.readBit(probability[6]) do
+        return VP8_PRED_LD
+    if not partition.readBit(probability[7]) do
+        return VP8_PRED_VL
+    return partition.readBit(probability[8]) ? VP8_PRED_HU : VP8_PRED_HD
+}
+
 func vp8ParsePredY4(decoder: *Vp8Decoder, mbX: s32)
 {
-    for j in 4
-    {
-        var predictor = decoder.leftMb.predictor[j]
-        for i in 4
-        {
-            let probability = cast(u64, (decoder.upMb[mbX].predictor[i] * 10 + predictor)) * 9
-            if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 0])
-            {
-                predictor = VP8_PRED_DC
-            }
-            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 1])
-            {
-                predictor = VP8_PRED_TM
-            }
-            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 2])
-            {
-                predictor = VP8_PRED_VE
-            }
-            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 3])
-            {
-                if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 4]) do
-                    predictor = VP8_PRED_HE
-                elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 5]) do
-                    predictor = VP8_PRED_RD
-                else do
-                    predictor = VP8_PRED_VR
-            }
-            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 6])
-            {
-                predictor = VP8_PRED_LD
-            }
-            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 7])
-            {
-                predictor = VP8_PRED_VL
-            }
-            elif not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 8])
-            {
-                predictor = VP8_PRED_HD
-            }
-            else
-            {
-                predictor = VP8_PRED_HU
-            }
+    let partition = &decoder.firstPart
+    let above     = cast([*] u8, &decoder.upMb[mbX].predictor[0])
+    let left      = cast([*] u8, &decoder.leftMb.predictor[0])
+    let modes     = cast([*] u32, &decoder.predY4[0][0])
 
-            decoder.predY4[j][i] = predictor
-            decoder.upMb[mbX].predictor[i] = predictor
+    // Each top mode has ten left contexts of nine probabilities.
+    let table = cast(const [*] u8, &VP8_PRED_PROB[0])
+
+    for row in 4
+    {
+        var predictor = left[row]
+        for column in 4
+        {
+            let probability = table + cast(u64, above[column]) * 90 + cast(u64, predictor) * 9
+            predictor     = vp8ReadPredY4(partition, probability)
+            above[column] = predictor
         }
 
-        decoder.leftMb.predictor[j] = predictor
+        modes[row] = cast(const [*] u32, above)[0]
+        left[row]  = predictor
     }
 }

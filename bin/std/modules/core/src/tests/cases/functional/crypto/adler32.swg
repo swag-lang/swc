@@ -92,6 +92,10 @@ func fillAdlerPattern(buffer: [..] u8)
 
     for index in data.count do
         data[index] = 0xFF
+
+    // Worst-case weighted sums around the one-shot reduction threshold.
+    assertAdler32(data[1 until 23])
+    assertAdler32(data[1 until 24])
     assertAdler32(data[1 until])
 
     split.reset()

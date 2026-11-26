@@ -142,3 +142,4 @@ optimizations moved each result.
 - [Portable GHASH with wide integer products](ghash-wide-integer.md)
 - [MD5 direct block batches](md5-block-batches.md)
 - [Paired 256-bit carry-less multiplication](wide-carryless-instruction.md)
+- [Adler-32 one-shot short buffers](adler32-short-compute.md)

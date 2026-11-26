@@ -507,7 +507,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 
     Swag.require(checksums[0] == checksums[1] and checksums[0] == checksums[2])
 
-    let bytes  = expect File.readAllBytes(path)
+    var bytes  = expect File.readAllBytes(path)
     var random = expect Reader.openMemory("xvid.avi", bytes.toSlice())
     for offset in checksums.count
     {
@@ -521,6 +521,36 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.require(Math.abs(cast(s32, frame.luma[10 * frame.strideLuma + 10]) - 137) <= 2)
     expect random.decodeFramePlanesInto(&frame, 23)
     Swag.require(Math.abs(cast(s32, frame.luma[50 * frame.strideLuma + 45]) - 145) <= 2)
+    random.close()
+
+    // Some encoders mark a padding VOP as intra. Change just the type of the first padding
+    // VOP, preserving its uncoded flag, and let the reader reconstruct the missing index.
+    const PaddingSlot = 5'u64
+    let movie = Slice.findSubslice(bytes.toSlice(), "movi")
+    Swag.require(movie < bytes.count)
+    let index = movie + aviReadU32(bytes.toSlice(), movie - 4)
+    Swag.require(index + 8 <= bytes.count and aviHasId(bytes.toSlice(), index, "idx1"))
+    var slot = movie + 4
+    for PaddingSlot
+    {
+        let size = cast(u64, aviReadU32(bytes.toSlice(), slot + 4))
+        slot += 8 + size + (size & 1)
+    }
+
+    let codingType = slot + 12
+    Swag.require(aviReadU32(bytes.toSlice(), slot + 4) == 6 and (bytes[codingType] >> 6) == 1)
+    bytes[codingType] &= 0x3F
+    bytes.resize(index)
+    aviWriteU32(bytes.toSlice(), 4, cast(u32, bytes.count - 8))
+
+    var unindexed = expect Reader.openMemory("xvid-no-index.avi", bytes.toSlice())
+    Swag.require(unindexed.frameCount() == checksums.count)
+    Swag.require(unindexed.syncFrameAt(1) == linear.syncFrameAt(1))
+    for rank in [PaddingSlot + 3, PaddingSlot, 23'u64, 0'u64]
+    {
+        expect unindexed.decodeFramePlanesInto(&frame, rank)
+        Swag.require(Hash.Crc32.compute(frame.luma.toSlice()) == checksums[rank])
+    }
 }
 
 // The packets in B-pictures 1 and 2 contain runs of implicit macroblocks at their ends.

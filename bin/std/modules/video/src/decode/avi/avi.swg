@@ -840,39 +840,84 @@ private impl Decoder
     // header to recover clean points when the AVI index is absent or unusable.
     mtd walkFrames(source: *ByteSource, layout: const *Layout, dataId, compressedId: u32) fail
     {
-        func isMpeg4SyncFrame(source: *ByteSource, offset, size: u64)->bool fail
+        func isCodedIntra(source: *ByteSource, end, plane, layerBody: u64, layer: *Mpeg4.Layer)->bool fail
+        {
+            if layerBody
+            {
+                // A supported video object layer, including both quantiser matrices, fits here.
+                const LayerHeaderBytes = 256'u64
+                let count = Math.min(LayerHeaderBytes, plane - FourCcSize - layerBody)
+                try source.seek(layerBody)
+                var bits    = Mpeg4.BitReader.create((try source.peek(count))[until count])
+                var updated = layer[]
+                var layerError: Swag.Error
+                catch updated.readVideoObjectLayer(&bits) as layerError
+                if layerError.value() != null do
+                    return false
+                layer[] = updated
+            }
+
+            if not layer.configured or plane >= end do
+                return false
+
+            // The plane parser bounds the time base to 64 bits. The whole intra header fits in
+            // sixteen bytes, so a padding VOP can be recognized without reading a picture body.
+            const IntraHeaderBytes = 16'u64
+            let count = Math.min(IntraHeaderBytes, end - plane)
+            try source.seek(plane)
+            let bytes = (try source.peek(count))[until count]
+            if (cast(u32, bytes[0]) >> 6) != Mpeg4.VopIntra do
+                return false
+
+            var bits = Mpeg4.BitReader.create(bytes)
+            var header:      Mpeg4.PlaneHeader
+            var headerError: Swag.Error
+            catch Mpeg4.readPlaneHeader(layer, &bits, &header) as headerError
+            return headerError.value() == null and header.coded
+        }
+
+        func isMpeg4SyncFrame(source: *ByteSource, offset, size: u64, layer: *Mpeg4.Layer)->bool fail
         {
             try source.seek(offset)
-            var startCode = 0'u32
-            var remaining = size
-            while remaining
+            var startCode = Swag.U32.Max
+            var layerBody = 0'u64
+            var scanned   = 0'u64
+            while scanned < size
             {
                 let bytes = try source.peek(1)
-                let count = Math.min(bytes.count, remaining)
+                let count = Math.min(bytes.count, size - scanned)
                 for byte, index in bytes[until count]
                 {
                     startCode = (startCode << 8) | cast(u32, byte)
-                    if startCode != (0x0000_0100'u32 | Mpeg4.CodeVop) do
+                    if startCode >> 8 != 1 do
                         continue
 
+                    let code = startCode & 0xFF
                     let next = index + 1
-                    if next < count do
-                        return (cast(u32, bytes[next]) >> 6) == Mpeg4.VopIntra
-                    if count == remaining do
-                        return false
-
-                    // The type byte is in the next source window.
-                    try source.skip(count)
-                    return (cast(u32, (try source.readByte())) >> 6) == Mpeg4.VopIntra
+                    let body = offset + scanned + next
+                    if code >= 0x20 and code <= 0x2F
+                    {
+                        layerBody = body
+                    }
+                    elif code == Mpeg4.CodeVop
+                    {
+                        // Most packets start with a predicted plane and carry no layer header.
+                        if not layerBody and
+                           next < count and
+                           (cast(u32, bytes[next]) >> 6) != Mpeg4.VopIntra do
+                            return false
+                        return try isCodedIntra(source, offset + size, body, layerBody, layer)
+                    }
                 }
 
                 try source.skip(count)
-                remaining -= count
+                scanned += count
             }
 
             return false
         }
 
+        var layer: Mpeg4.Layer
         var position = layout.frameList + FourCcSize
         while position + ChunkHeaderSize <= layout.frameEnd
         {
@@ -882,7 +927,7 @@ private impl Decoder
             {
                 var isSync = .frames.isEmpty()
                 if .isCoded do
-                    isSync = try isMpeg4SyncFrame(source, chunk.data, chunk.size)
+                    isSync = try isMpeg4SyncFrame(source, chunk.data, chunk.size, &layer)
                 .appendFrame(chunk.data, chunk.size, isSync)
                 position = chunk.next
                 continue
@@ -906,7 +951,7 @@ private impl Decoder
                     {
                         var isSync = .frames.isEmpty()
                         if .isCoded do
-                            isSync = try isMpeg4SyncFrame(source, nested.data, nested.size)
+                            isSync = try isMpeg4SyncFrame(source, nested.data, nested.size, &layer)
                         .appendFrame(nested.data, nested.size, isSync)
                     }
 

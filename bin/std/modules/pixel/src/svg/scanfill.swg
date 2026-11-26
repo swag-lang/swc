@@ -5,6 +5,36 @@ using Core, Core.Math
 private const ScanTileSide = 1024
 private const VerticalSamples = 4
 
+private const ScanBandSize = 64'u64
+
+private struct ScanBand
+{
+    minY, maxY: f32
+    bounded:    bool
+}
+
+private impl ScanBand
+{
+    mtd const misses(transform: Transform2, density: f32, tile: Rectangle)->bool
+    {
+        if not .bounded do
+            return false
+
+        let scaledMin = .minY * transform.m22
+        let scaledMax = .maxY * transform.m22
+        let first     = (scaledMin + transform.ty) * density - tile.y
+        let last      = (scaledMax + transform.ty) * density - tile.y
+
+        // Include rounding from flattening and transforming the contour.
+        let magnitude = Math.max(Math.max(Math.abs(scaledMin), Math.abs(scaledMax)), Math.abs(transform.ty))
+        let margin    = 2.0 + magnitude * density * 0.000001
+        return Math.isFinite(first) and
+               Math.isFinite(last) and
+               Math.isFinite(margin) and
+               (Math.max(first, last) < -margin or Math.min(first, last) > tile.height + margin)
+    }
+}
+
 // A crossing of a horizontal sample line and one directed contour edge.
 private struct Crossing
 {
@@ -16,6 +46,7 @@ private struct Crossing
 struct ScanFill
 {
     bounds: Rectangle
+    bands:  Array'ScanBand
 
     lastTile:      Rectangle
     lastTransform: Transform2
@@ -25,6 +56,45 @@ struct ScanFill
 
 impl ScanFill
 {
+    mtd measureGeometry(paths: const *LinePathList)
+    {
+        let count = paths.paths.count
+        if count < ScanBandSize * 8
+        {
+            .bounds = paths.controlBounds()
+            return
+        }
+
+        .bands.reserve((count - 1) / ScanBandSize + 1)
+        var band = ScanBand{Swag.F32.Max, -Swag.F32.Max, true}
+        for path, index in paths.paths
+        {
+            let bounds = path.controlBounds()
+            if not index do
+                .bounds = bounds
+            else do
+                .bounds.expandToInclude(bounds)
+
+            let lastY = bounds.bottom()
+            band.bounded = band.bounded and Math.isFinite(bounds.y) and Math.isFinite(lastY)
+            band.minY    = Math.min(band.minY, Math.min(bounds.y, lastY))
+            band.maxY    = Math.max(band.maxY, Math.max(bounds.y, lastY))
+            if (index + 1) % ScanBandSize == 0 or index + 1 == count
+            {
+                .bands.add(band)
+                band = ScanBand{Swag.F32.Max, -Swag.F32.Max, true}
+            }
+        }
+
+        // Contours scattered through every band still need the original straight pass.
+        let extent = cast(f64, .bounds.height)
+        var span   = 0.0'f64
+        for &current in .bands do
+            span += current.bounded ? cast(f64, current.maxY) - current.minY : extent
+        if not Math.isFinite(extent) or span >= extent * cast(f64, .bands.count) * 0.25 do
+            .bands.free()
+    }
+
     // Records a texture whose pixel grid is aligned with the destination's device pixels.
     mtd paint(painter: *Painter, paths: *LinePathList, color: Color, evenOdd: bool)
     {
@@ -112,20 +182,35 @@ private impl ScanFill
         let height = cast(s32, tile.height)
         var crossings: Array'Array'Crossing
         crossings.resize(cast(u64, height) * VerticalSamples)
-        let origin = Vector2{tile.x, tile.y}
-        let scale  = transform.axisScale()
-        for path in paths.paths
+        let origin   = Vector2{tile.x, tile.y}
+        let scale    = transform.axisScale()
+        let useBands = .bands.count and transform.m12 == 0
+        for band in (useBands ? .bands.count : 1'u64)
         {
-            path.flattenPoints(.Normal, Math.max(scale.x, scale.y) * density)
-            let points = path.polygon.points.toSlice()
-            if points.count < 2 do
-                continue
-            var previous = transform.transformPoint(points[points.count - 1]) * density - origin
-            for point in points
+            var first = 0'u64
+            var end   = paths.paths.count
+            if useBands
             {
-                let next = transform.transformPoint(point) * density - origin
-                addEdge(&crossings, previous, next)
-                previous = next
+                if .bands[band].misses(transform, density, tile) do
+                    continue
+                first = band * ScanBandSize
+                end   = first + Math.min(ScanBandSize, end - first)
+            }
+
+            for index in first until end
+            {
+                let path = paths.paths[index]
+                path.flattenPoints(.Normal, Math.max(scale.x, scale.y) * density)
+                let points = path.polygon.points.toSlice()
+                if points.count < 2 do
+                    continue
+                var previous = transform.transformPoint(points[points.count - 1]) * density - origin
+                for point in points
+                {
+                    let next = transform.transformPoint(point) * density - origin
+                    addEdge(&crossings, previous, next)
+                    previous = next
+                }
             }
         }
 

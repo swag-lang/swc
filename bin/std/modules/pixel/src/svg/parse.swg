@@ -2093,7 +2093,8 @@ private impl Parser
         let shape      = .drawing.shapes.emplaceInitAddress()
         if scanFill
         {
-            .drawing.scanFills.add(ScanFill{bounds: list.controlBounds()})
+            let cache = .drawing.scanFills.emplaceInitAddress()
+            cache.measureGeometry(&list)
             shape.scanFill = .drawing.scanFills.count
         }
 
@@ -4107,6 +4108,9 @@ private impl Drawing
     // around them.
     mtd const shapeInkBounds(shape: const *Shape)->Rectangle
     {
+        if shape.scanFill do
+            return .scanFills[shape.scanFill - 1].bounds
+
         var result: #returntype = shape.pathList.controlBounds()
         let stroke = .strokeFor(shape)
         if stroke and stroke.enabled

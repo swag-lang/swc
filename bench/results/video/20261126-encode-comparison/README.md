@@ -161,6 +161,23 @@ ffmpeg -v error -f lavfi -i 'testsrc2=size=3840x2160:rate=30' \
 Use QPs 21, 25 and 29 with `--discard-planes` in the H.264 workload to retain
 the compressed files, decoded hashes and quality results with lower disk usage.
 
+#### Current x264 timing
+
+The same sources and settings were measured again with Swag's packed motion scoring
+and x264 `c24e06c` linked through FFmpeg 9.1. All 96 Swag pictures match the independent
+FFmpeg decoder, and the rate-distortion points are unchanged at the displayed precision.
+Each timing is the median of seven rotated runs with three CPUs.
+[Current reference measurements](h264-hd-current-x264.json)
+
+| Input | Swag QP 25 | Baseline veryfast QP 25 | High veryfast CRF 25 | Baseline ultrafast CRF 25 |
+| --- | ---: | ---: | ---: | ---: |
+| 1080p animated pattern | 11.52 ms | 5.78 ms | 14.66 ms | 3.70 ms |
+| 1080p camera | 35.60 ms | 17.77 ms | 38.23 ms | 6.98 ms |
+| 4K animated pattern | 53.04 ms | 20.26 ms | 48.78 ms | 13.80 ms |
+
+The matched Baseline settings put the 1080p clips at about twice x264's time and the
+4K clip at 2.62 times. These batches include the first key picture.
+
 ### H.264 adaptive bitrate across scene changes
 
 The [adaptive-rate workload](../../../workloads/h264/README.md#adaptive-bitrate) joins 240

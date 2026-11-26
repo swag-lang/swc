@@ -960,9 +960,10 @@ private func parseImageLength(value: string)->f32
     }
 }
 
-private func parsePaintId(value: string)->string
+private func parsePaintId(value: string)->string => readPaintId(Latin1.trim(value))
+
+private func readPaintId(trimmed: string)->string
 {
-    let trimmed = Latin1.trim(value)
     if trimmed.count < 7 or Latin1.compare(trimmed[until 5], "url(#", ignoreCase: true) do
         return ""
 
@@ -1116,14 +1117,46 @@ private const ArgbNamesSorted = #run
 
 #assert(ArgbNamesSorted)
 
+// Decodes a trimmed hexadecimal paint, including the optional alpha digits.
+private func readHexPaint(text: string)->Color
+{
+    let len = text.count
+    if len == 4 or len == 5
+    {
+        let r = hexNibble(text[1]) * 17
+        let g = hexNibble(text[2]) * 17
+        let b = hexNibble(text[3]) * 17
+        let a = len == 5 ? hexNibble(text[4]) * 17 : 255'u8
+        return Color.fromArgb(a, r, g, b)
+    }
+
+    if len == 7 or len == 9
+    {
+        let r = hexNibble(text[1]) * 16 + hexNibble(text[2])
+        let g = hexNibble(text[3]) * 16 + hexNibble(text[4])
+        let b = hexNibble(text[5]) * 16 + hexNibble(text[6])
+        let a = len == 9 ? hexNibble(text[7]) * 16 + hexNibble(text[8]) : 255'u8
+        return Color.fromArgb(a, r, g, b)
+    }
+
+    return Color.fromArgb(Argb.Black)
+}
+
 // Parses a solid paint value. Returns the color and whether painting is enabled.
-private func parseColor(value: string)->{ color: Color, enabled: bool }
+private func parseColor(value: string)->{ color: Color, enabled: bool } => readColor(Latin1.trim(value))
+
+private func readColor(text: string)->{ color: Color, enabled: bool }
 {
     var result: #returntype
     result.color   = Color.fromArgb(Argb.Black)
     result.enabled = true
 
-    let text = Latin1.trim(value)
+    let len = text.count
+    if len and text[0] == '#'
+    {
+        result.color = readHexPaint(text)
+        return result
+    }
 
     if not Latin1.compare(text, "none", ignoreCase: true)
     {
@@ -1135,30 +1168,6 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
     {
         result.color = Color.fromArgb(Argb.Zero)
         return result
-    }
-
-    let len = text.count
-    if len and text[0] == '#'
-    {
-        if len == 4 or len == 5
-        {
-            let r = hexNibble(text[1]) * 17
-            let g = hexNibble(text[2]) * 17
-            let b = hexNibble(text[3]) * 17
-            let a = len == 5 ? hexNibble(text[4]) * 17 : 255'u8
-            result.color = Color.fromArgb(a, r, g, b)
-            return result
-        }
-
-        if len == 7 or len == 9
-        {
-            let r = hexNibble(text[1]) * 16 + hexNibble(text[2])
-            let g = hexNibble(text[3]) * 16 + hexNibble(text[4])
-            let b = hexNibble(text[5]) * 16 + hexNibble(text[6])
-            let a = len == 9 ? hexNibble(text[7]) * 16 + hexNibble(text[8]) : 255'u8
-            result.color = Color.fromArgb(a, r, g, b)
-            return result
-        }
     }
 
     let isRgb  = len > 4 and not Latin1.compare(text[until 4], "rgb(", ignoreCase: true)
@@ -1262,57 +1271,37 @@ private func parseDashPattern(value: string)->Array'SvgLength
 
 // Group attributes /////////////////////////////////////////////////////////////
 
+private func readStylePaint(value: string, currentColor, previousColor: Color)->{ id: string, color: Color, enabled: bool }
+{
+    let text = Latin1.trim(value)
+    if text.count and text[0] == '#' do
+        return {id: "", color: readHexPaint(text), enabled: true}
+
+    let reference = readPaintId(text)
+    if reference.count do
+        return {id: reference, color: previousColor, enabled: true}
+    if not Latin1.compare(text, "currentColor", ignoreCase: true) do
+        return {id: "", color: currentColor, enabled: true}
+
+    let {color, enabled} = readColor(text)
+    return {id: "", color: enabled ? color : previousColor, enabled: enabled}
+}
+
 private func applyStyleProperty(state: *GroupState, name, value: string)
 {
     switch name
     {
     case "fill":
-        let paintId = parsePaintId(value)
-        if paintId.count
-        {
-            state.fillPaintId = paintId
-            state.hasFill     = true
-        }
-        else
-        {
-            state.fillPaintId = ""
-            if not Latin1.compare(Latin1.trim(value), "currentColor", ignoreCase: true)
-            {
-                state.fillColor = state.currentColor
-                state.hasFill   = true
-            }
-            else
-            {
-                let {color, enabled} = parseColor(value)
-                state.hasFill = enabled
-                if enabled do
-                    state.fillColor = color
-            }
-        }
+        let paint = readStylePaint(value, state.currentColor, state.fillColor)
+        state.fillPaintId = paint.id
+        state.fillColor   = paint.color
+        state.hasFill     = paint.enabled
 
     case "stroke":
-        let paintId = parsePaintId(value)
-        if paintId.count
-        {
-            state.strokePaintId = paintId
-            state.hasStroke     = true
-        }
-        else
-        {
-            state.strokePaintId = ""
-            if not Latin1.compare(Latin1.trim(value), "currentColor", ignoreCase: true)
-            {
-                state.strokeColor = state.currentColor
-                state.hasStroke   = true
-            }
-            else
-            {
-                let {color, enabled} = parseColor(value)
-                state.hasStroke = enabled
-                if enabled do
-                    state.strokeColor = color
-            }
-        }
+        let paint = readStylePaint(value, state.currentColor, state.strokeColor)
+        state.strokePaintId = paint.id
+        state.strokeColor   = paint.color
+        state.hasStroke     = paint.enabled
 
     case "color":
         state.currentColor = parseColor(value).color

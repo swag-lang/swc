@@ -515,3 +515,26 @@ CRC-64 of the page starts and glyph-to-character arrays before and after.
 | `GowunBatang-Regular.ttf` | 0 | 110.338 | 0.059 |
 | `NotoSansJP-Variable.ttf` | 0 | 129.159 | 0.157 |
 | `NotoSansSC-Variable.ttf` | 0 | 115.414 | 0.184 |
+
+## Format-4 character index
+
+Scope's index can visit the ordered segments of a format-4 map directly.
+The visitor uses the same glyph array and delta rules as a single-character
+lookup. With an unordered set of end codes, the visitor uses the existing
+lookup results for each code. Ordered overlapping segments retain the first
+matching segment.
+
+The probe repeats the index workload on all 59 fixture faces, starting at
+U+0020 with 192 characters per page. The baseline is `8296a9151e`. Medians
+use seven interleaved batches of three indexes and one warmup on one CPU.
+Every page count and both CRC-64 values match the baseline.
+[Raw timings and checksums](font-index-linux-cmap4.json)
+
+| Fixture | Before (ms) | After (ms) |
+| --- | ---: | ---: |
+| `NotoSansCJKjp-Regular.otf` | 0.4477 | 0.4223 |
+| `ZenKakuGothicNew-Regular.ttf` | 6.5499 | 0.1092 |
+| `MaShanZheng-Regular.ttf` | 6.0487 | 0.1250 |
+| `fontawesome-webfont.ttf` | 5.7881 | 0.0044 |
+| `OpenSans-Regular.otf` | 5.2105 | 0.0057 |
+| `SourceCodePro-Regular.ttf` | 5.2968 | 0.0043 |

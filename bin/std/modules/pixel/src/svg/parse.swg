@@ -17,7 +17,7 @@ private enum RasterMask
     Black
 }
 
-// Controls resources that SVG parsing may resolve outside the document text.
+// Controls SVG geometry preparation and external resource resolution.
 //
 // Data-image URIs are accepted up to `maxImageBytes`. A non-empty
 // `externalResourceRoot` additionally permits relative raster-image references whose
@@ -43,6 +43,12 @@ struct ParseOptions
         serifFontFileName:    string = "times.ttf"          // Typeface used by a `serif` family; empty selects `fontFileName`.
         monoFontFileName:     string = "consola.ttf"        // Typeface used by a `monospace` family; empty selects `fontFileName`.
         maxImageBytes:        u64    = 16 * 1024 * 1024     // Maximum encoded bytes accepted for each embedded or external image.
+
+        // Preserves the authored contours of eligible solid paths for scan conversion.
+        //
+        // Use this when preparing a drawing for bitmap output. The scan converter samples
+        // coverage at the pixel scale, so edge alpha can differ from the tessellated path.
+        preferScanFills: bool
     }
 }
 
@@ -209,6 +215,7 @@ struct Drawing
     contourCount:    u64
     patterns:        HashTable'(u64, Pattern)       // Resolved repeating paint servers by their interned identifier.
     filters:         HashTable'(u64, SvgFilter)     // Resolved filter primitive chains by their interned identifier.
+    preferScanFills: bool
 }
 
 private struct ClipRange
@@ -452,6 +459,7 @@ private struct GroupState
 
     clipPathId:    string = ""     // Inherited `clip-path` reference.
     clipTransform: Math.Transform2 = Math.Transform2.Identity     // Transform of the element that named the clip.
+    hasClip:       bool            // Whether this element or an ancestor names a clip.
 
     currentColor: Color = Color.fromArgb(Argb.Black)     // Inherited `currentColor` value.
 
@@ -2291,7 +2299,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
 // Dense solid fills can scan-convert their original winding directly, avoiding both the
 // contour-containment walk and the triangulation of regions with thousands of holes.
-private func usesScanFill(list: const *LinePathList, state: const *GroupState, linearSegments: u64)->bool
+private func usesScanFill(list: const *LinePathList, state: const *GroupState, linearSegments: u64, preferScanFills: bool)->bool
 {
     if not state.hasFill or
        state.hasStroke or
@@ -2299,6 +2307,8 @@ private func usesScanFill(list: const *LinePathList, state: const *GroupState, l
        state.fillPaintId.count or
        state.filterId.count do
         return false
+    if preferScanFills and not state.hasClip and not state.hasMarkers() do
+        return true
     if list.paths.count >= 512 or linearSegments >= 8192 do
         return true
     var segments = linearSegments
@@ -2449,7 +2459,7 @@ private impl Parser
 
         // A triangulated fill needs one outer contour followed by its holes. Split separate islands
         // by containment depth, keeping the source order of both islands and holes.
-        let scanFill = usesScanFill(&list, state, linearSegments)
+        let scanFill = usesScanFill(&list, state, linearSegments, .options.preferScanFills)
         if state.hasFill and list.paths.count > 1 and not scanFill
         {
             var work  = #move list
@@ -3861,8 +3871,11 @@ private impl Parser
             // A clip is stated in the user space of the element that names it, and children may
             // add transforms of their own; remembering that space here is what keeps an
             // inherited clip where the group put it.
-            if state.clipPathId.count do
+            if state.clipPathId.count
+            {
                 state.clipTransform = state.transform
+                state.hasClip       = true
+            }
 
             let firstShape = .drawing.shapes.count
             let firstItem  = .drawing.items.count
@@ -5223,6 +5236,7 @@ impl Drawing
     func parse(text: string, options: ParseOptions = {})->Drawing fail
     {
         var result: #returntype
+        result.preferScanFills = options.preferScanFills
 
         var parser = Parser{text: text, drawing: &result, options: options}
 
@@ -6081,7 +6095,22 @@ impl Drawing
         Swag.assert(width > 0 and height > 0)
         Swag.assert(sampleTileSide > 0)
 
-        let ss            = cast(s32, Math.max(supersample, 1'u8))
+        let ss = cast(s32, Math.max(supersample, 1'u8))
+        if cpu and
+           .preferScanFills and
+           (ss == 1 or
+            (width <= sampleTileSide / ss and height <= sampleTileSide / ss))
+        {
+            let ink = .monochromeScanInk()
+            if ink != Swag.U32.Max
+            {
+                let samples = .rasterizeScanFills(width * ss, height * ss, sampleTileSide)
+                if ss == 1 or not samples.isValid() do
+                    return samples
+                return resolveScanFillSamples(&samples, width, height, ss, ink)
+            }
+        }
+
         let tileWidth     = Math.min(width, Math.max(sampleTileSide / ss, 1))
         let tileHeight    = Math.min(height, Math.max(sampleTileSide / ss, 1))
         let sampledWidth  = tileWidth * ss
@@ -6250,6 +6279,76 @@ impl Drawing
             }
 
             tileY += tileHeight
+        }
+
+        return result
+    }
+
+    // All visible items must be unclipped scan fills of the same solid color.
+    private mtd const monochromeScanInk()->u32
+    {
+        var ink = Swag.U32.Max
+        for item in .items
+        {
+            if item.kind != .Shape or item.clip do
+                return Swag.U32.Max
+            let shape = &.shapes[item.index]
+            if not shape.scanFill or shape.stroke or shape.filterId or shape.fillPaintId do
+                return Swag.U32.Max
+            let rgb = shape.fillColor.argb & 0x00FF_FFFF
+            if ink != Swag.U32.Max and ink != rgb do
+                return Swag.U32.Max
+            ink = rgb
+        }
+
+        return ink
+    }
+
+    private mtd const rasterizeScanFills(width, height, sampleTileSide: s32)->Image
+    {
+        var result = Image.create(width, height, .BGRA8)
+        if not result.isValid() do
+            return result
+
+        // Keep the raster API's transparent white in pixels untouched by any fill.
+        result.fill(Color.fromArgb(0x00FF_FFFF))
+        let scale     = cast(f32, width) / .width
+        let transform = Transform2.createScale(scale, scale, 0, 0)
+        var scratch: ScanScratch
+        for item in .items
+        {
+            let shape = &.shapes[item.index]
+            .scanFills[shape.scanFill - 1].blend(.pathsFor(shape), transform, &result, &scratch, sampleTileSide, shape.fillColor, shape.evenOdd)
+        }
+
+        return result
+    }
+
+    // Match the sampled grid's box resolve after the ordered fills have composed.
+    private func resolveScanFillSamples(samples: const *Image, width, height, factor: s32, ink: u32)->Image
+    {
+        var result = Image.create(width, height, .BGRA8)
+        if not result.isValid() do
+            return result
+        let count = cast(u32, factor * factor)
+        for y in height
+        {
+            let target = result.pixels.storage() + cast(u64, y) * result.rowStride
+            let output = cast([*] u32, target)
+            for x in width
+            {
+                var alpha = 0'u32
+                for row in factor
+                {
+                    let source = samples.pixels.storage() + cast(u64, y * factor + row) * samples.rowStride
+                    let block  = source + cast(u64, x * factor) * 4
+                    for column in factor do
+                        alpha += block[column * 4 + 3]
+                }
+
+                alpha     = (alpha + count / 2) / count
+                output[x] = alpha ? ink | (alpha << 24) : 0x00FF_FFFF
+            }
         }
 
         return result

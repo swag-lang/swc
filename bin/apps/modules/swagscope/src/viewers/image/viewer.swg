@@ -119,7 +119,7 @@ func loadViewerImage(fileName: string)->Image fail
         return image
     }
 
-    let drawing = try loadViewerDrawing(fileName)
+    let drawing = try loadViewerDrawing(fileName, {preferScanFills: true})
     let largest = Math.max(drawing.width, drawing.height)
     let scale   = largest > SvgRasterLimit ? SvgRasterLimit / largest : 1
     let width   = cast(s32, Math.max(Math.round(drawing.width * scale), 1))
@@ -150,7 +150,7 @@ func loadThumbnail(fileName: string, maxSide: u32)->Image fail
         return image
     }
 
-    let drawing = try loadViewerDrawing(fileName)
+    let drawing = try loadViewerDrawing(fileName, {preferScanFills: true})
     let largest = Math.max(drawing.width, drawing.height, 1)
     let scale   = Math.min(cast(f32, maxSide) / largest, 1)
     let width   = cast(s32, Math.max(Math.round(drawing.width * scale), 1))
@@ -159,11 +159,11 @@ func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 }
 
 // Parses the vector document of an SVG file.
-func loadViewerDrawing(fileName: string)->Svg.Drawing fail
+func loadViewerDrawing(fileName: string, options: Svg.ParseOptions = {})->Svg.Drawing fail
 {
     var file   = try File.MappedFile.open(fileName)
     let region = try file.mapAll()
-    return try Svg.Drawing.parse(cast(string, region.bytes()))
+    return try Svg.Drawing.parse(cast(string, region.bytes()), options)
 }
 
 // Loads an image for the viewer and fills the facts shown beside it.

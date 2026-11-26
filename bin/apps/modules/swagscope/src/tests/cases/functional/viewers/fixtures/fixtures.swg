@@ -261,13 +261,18 @@ private struct Fixture
 // Dense painted contours retain the hole and appear throughout the image.
 #test
 {
-    let image = expect Picture.loadViewerImage(scopeTestDataPath("viewer.dense-solid.svg"))
-    Swag.require(image.width == 76 and image.height == 84)
-    var ink: u64
-    for y in image.height do
-        for x in image.width where image.pixelColor(x, y).a == 255 do
-            ink += 1
-    Swag.require(ink == 528 * 4 + 12 * 12 - 6 * 6)
+    let source    = scopeTestDataPath("viewer.dense-solid.svg")
+    let image     = expect Picture.loadViewerImage(source)
+    let thumbnail = expect Picture.loadThumbnail(source, 84)
+    for raster in [image, thumbnail]
+    {
+        Swag.require(raster.width == 76 and raster.height == 84)
+        var ink: u64
+        for y in raster.height do
+            for x in raster.width where raster.pixelColor(x, y).a == 255 do
+                ink += 1
+        Swag.require(ink == 528 * 4 + 12 * 12 - 6 * 6)
+    }
 }
 
 private func requireStereoSignal(sound: const *SoundFile, encoding: SoundFileEncoding, sampleRate: u32)

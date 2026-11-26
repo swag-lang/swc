@@ -132,9 +132,12 @@ ships; history lives in Git, not here.
   attributes most of the remaining gap to the ordinary fill path. Routing eligible black fills
   through the existing scan converter closes 68–98% of the time gap on these inputs and
   changes alpha coverage. The two largest paths in the 7.9 MiB file already scan-convert.
-- Next: prototype solid SVG span compositing into the CPU bitmap target and measure the
-  remaining crossing collection and sorting costs. Validate authored winding, edge coverage,
-  overlaps and tile boundaries before changing dispatch. Rerun the original Windows comparison.
+- Evidence: [direct CPU composition](../bench/workloads/svgraster/resvg-comparison.md#direct-cpu-composition)
+  brings the largest original down to 359 ms against 269 ms for resvg on the Linux host. The
+  other originals take 1.00× to 1.39× as long as resvg. Scope also uses the path for eligible
+  thumbnails at its existing sample count.
+- Next: measure the remaining crossing collection and sorting costs against an incremental
+  active-edge sweep. Rerun the original Windows comparison with the current renderer.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

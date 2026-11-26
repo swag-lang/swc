@@ -161,3 +161,35 @@ The experiment's coverage is closer to resvg on this corpus. Its changed alpha
 also means a wider dispatch needs explicit winding and edge-coverage regressions.
 The one-tile experiment reproduced the current pixels on the first two inputs
 and changed alpha in a handful of pixels on the other two.
+
+## Direct CPU composition
+
+Scope requests `Svg.ParseOptions.preferScanFills` when it needs an SVG bitmap
+or thumbnail. Eligible paths preserve their authored contours. If the drawing
+contains only unclipped scan fills in one solid color, the CPU rasterizer
+composes coverage directly into the destination bitmap. The same row buffers
+serve successive paths. Complex scenes still render through the painter.
+Thumbnail samples compose before the box resolve, at the existing two samples
+per axis.
+
+The following Release medians use the same seven-run, one-CPU method and
+dimension cap as the comparison above. The reference is `3bb8cc76d7`.
+The scan texture column selects the same parse option and passes an explicit
+`RenderCpu` through the renderer overload. The direct column uses the CPU
+bitmap overload, as Scope does. Times include parsing and first rasterization.
+
+| Source size | Previous Swag (ms) | Scan textures (ms) | Direct CPU (ms) | resvg (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| 640 × 426 | 80.24 | 7.70 | 5.96 | 5.98 |
+| 1280 × 853 | 132.10 | 38.56 | 28.04 | 21.39 |
+| 1920 × 1280 | 221.86 | 98.03 | 77.56 | 55.96 |
+| 5184 × 3456 | 1457.65 | 504.34 | 359.10 | 269.04 |
+
+On the four originals, the direct bitmap differs from the scan texture
+reference by at most two alpha levels (on an 8-bit scale). The mean absolute
+alpha difference from resvg is 0.50–0.96 with matched scales. The default
+parse options keep the existing raster CRC-64 on all four originals.
+
+At Scope's 320 × 213 thumbnail size, with the two-sample setting on both
+Swag builds, the totals were 75.09 → 5.79 ms, 98.14 → 17.59 ms,
+140.90 → 36.22 ms and 1316.70 → 227.00 ms respectively.

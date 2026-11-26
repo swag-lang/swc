@@ -51,6 +51,13 @@ private struct Crossing
     winding: s32
 }
 
+struct ScanScratch
+{
+    rows:     Array'Array'Crossing
+    coverage: Array'f32
+    sorted:   Array'Crossing
+}
+
 // A dense solid fill keeps its authored contours and evaluates coverage at the device scale.
 struct ScanFill
 {
@@ -187,6 +194,7 @@ impl ScanFill
            (windowHeight > ScanTileSide or windowHeight * 2 < .bounds.height * Math.abs(transform.m22) * density) do
             .measureBuckets(paths)
 
+        var scratch: ScanScratch
         var y = top
         while y < bottom
         {
@@ -199,7 +207,8 @@ impl ScanFill
                                     transform.tx == .lastTransform.tx and transform.ty == .lastTransform.ty
                 if not sameTransform or density != .lastDensity or tile != .lastTile or not .lastImage.isValid()
                 {
-                    .lastImage     = .rasterize(paths, transform, density, tile, color, evenOdd)
+                    .lastImage = Image.create(cast(s32, tile.width), cast(s32, tile.height), .RGBA8)
+                    .writeCoverage(paths, transform, density, tile, color, evenOdd, &scratch, &.lastImage, false)
                     .lastTile      = tile
                     .lastDensity   = density
                     .lastTransform = transform
@@ -219,15 +228,55 @@ impl ScanFill
         if not fitsInOneTile do
             .lastImage = {}
     }
+
+    // Blends one solid fill into a bitmap that contains only ink of this color.
+    mtd blend(paths: *LinePathList, transform: Transform2, result: *Image, scratch: *ScanScratch, tileSide: s32, color: Color, evenOdd: bool)
+    {
+        if not color.a do
+            return
+
+        var area = transform.transformBounds(.bounds)
+        area.intersect({0, 0, cast(f32, result.width), cast(f32, result.height)})
+        if area.isEmpty() do
+            return
+
+        let left   = Math.floor(area.x)
+        let top    = Math.floor(area.y)
+        let right  = Math.ceil(area.right())
+        let bottom = Math.ceil(area.bottom())
+        if not Math.isFinite(left) or
+           not Math.isFinite(top) or
+           not Math.isFinite(right) or
+           not Math.isFinite(bottom) do
+            return
+
+        if .bands.isEmpty() and not .measuredBuckets and bottom - top > tileSide do
+            .measureBuckets(paths)
+
+        var y = top
+        while y < bottom
+        {
+            let height = Math.min(bottom - y, cast(f32, tileSide))
+            var x      = left
+            while x < right
+            {
+                let width = Math.min(right - x, cast(f32, tileSide))
+                .writeCoverage(paths, transform, 1, {x, y, width, height}, color, evenOdd, scratch, result, true)
+                x += width
+            }
+
+            y += height
+        }
+    }
 }
 
 private impl ScanFill
 {
     // Fills spans from the winding of all contours. Horizontal coverage is integrated
     // across each pixel and vertical coverage sampled at four evenly spaced positions.
-    mtd rasterize(paths: *LinePathList, transform: Transform2, density: f32, tile: Rectangle, color: Color, evenOdd: bool)->Image
+    mtd writeCoverage(paths: *LinePathList, transform: Transform2, density: f32, tile: Rectangle, color: Color, evenOdd: bool, scratch: *ScanScratch, image: *Image, composite: bool)
     {
-        func addEdge(rows: *Array'Array'Crossing, a, b: Vector2, width: f32)
+        func addEdge(rows: [..] Array'Crossing, a, b: Vector2, width: f32)
         {
             if a.y == b.y or
                not Math.isFinite(a.x) or
@@ -297,10 +346,14 @@ private impl ScanFill
             }
         }
 
-        let width  = cast(s32, tile.width)
-        let height = cast(s32, tile.height)
-        var crossings: Array'Array'Crossing
-        crossings.resize(cast(u64, height) * VerticalSamples)
+        let width    = cast(s32, tile.width)
+        let height   = cast(s32, tile.height)
+        let rowCount = cast(u64, height) * VerticalSamples
+        if scratch.rows.count < rowCount do
+            scratch.rows.resize(rowCount)
+        let crossings = scratch.rows.toSlice()[0 until rowCount]
+        for &line in crossings do
+            line.clear()
         let origin     = Vector2{tile.x, tile.y}
         let scale      = transform.axisScale()
         let useBands   = .bands.count and transform.m12 == 0
@@ -361,23 +414,25 @@ private impl ScanFill
                 for point in points
                 {
                     let next = transform.transformPoint(point) * density - origin
-                    addEdge(&crossings, previous, next, tile.width)
+                    addEdge(crossings, previous, next, tile.width)
                     previous = next
                 }
             }
         }
 
-        var image = Image.create(width, height, .RGBA8)
-        var coverage: Array'f32
-        coverage.resize(cast(u64, width))
-        var sortScratch: Array'Crossing
+        if scratch.coverage.count < cast(u64, width) do
+            scratch.coverage.resize(cast(u64, width))
+        let coverage     = scratch.coverage.storage()
+        let ink          = color.argb & 0x00FF_FFFF
+        let columnOffset = composite ? cast(u64, tile.x) * 4 : 0'u64
+        let bottomRow    = composite ? image.height - 1 - cast(s32, tile.y) : height - 1
         for row in height
         {
-            Memory.clear(coverage.storage(), coverage.count * #sizeof(f32))
+            Memory.clear(coverage, cast(u64, width) * #sizeof(f32))
             for sample in VerticalSamples
             {
                 let line = &crossings[row * VerticalSamples + sample]
-                sortLine(line, &sortScratch)
+                sortLine(line, &scratch.sorted)
                 var winding:  s32
                 var previous: f32
                 for crossing in line
@@ -386,11 +441,17 @@ private impl ScanFill
                     if x > previous and (evenOdd ? (winding & 1) != 0 : winding != 0)
                     {
                         let first = cast(u64, Math.floor(previous))
-                        let end   = cast(u64, Math.ceil(x))
-                        for column in first until end
+                        let last  = cast(u64, Math.ceil(x)) - 1
+                        if first == last
                         {
-                            let edge = cast(f32, column)
-                            coverage[column] += Math.min(edge + 1, x) - Math.max(edge, previous)
+                            coverage[first] += x - previous
+                        }
+                        else
+                        {
+                            coverage[first] += cast(f32, first + 1) - previous
+                            for column in first + 1 until last do
+                                coverage[column] += 1
+                            coverage[last] += x - cast(f32, last)
                         }
                     }
 
@@ -399,7 +460,32 @@ private impl ScanFill
                 }
             }
 
-            let pixels = image.pixels.storage() + cast(u64, height - 1 - row) * image.rowStride
+            let pixels = image.pixels.storage() + cast(u64, bottomRow - row) * image.rowStride + columnOffset
+            if composite
+            {
+                let output = cast([*] u32, pixels)
+                for column in width
+                {
+                    if coverage[column] <= 0 do
+                        continue
+
+                    let alpha = coverage[column] >= VerticalSamples ? cast(u32, color.a) :
+                                cast(u32, Math.round(coverage[column] / VerticalSamples * color.a))
+                    if alpha == 255
+                    {
+                        output[column] = ink | 0xFF00_0000
+                    }
+                    elif alpha
+                    {
+                        let previous = output[column] >> 24
+                        let combined = alpha + (previous * (255 - alpha) + 127) / 255
+                        output[column] = ink | (combined << 24)
+                    }
+                }
+
+                continue
+            }
+
             for column in width
             {
                 let pixel = pixels + column * 4
@@ -409,7 +495,5 @@ private impl ScanFill
                 pixel[3] = cast(u8, Math.round(Math.min(coverage[column] / VerticalSamples, 1) * color.a))
             }
         }
-
-        return image
     }
 }

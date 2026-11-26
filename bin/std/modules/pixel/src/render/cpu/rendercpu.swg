@@ -2651,6 +2651,67 @@ private impl RenderCpu
         weight:    u32
     }
 
+    // One group of four columns shares its indices and horizontal weights across the rows.
+    struct LinearSamples4
+    {
+        low, high: Math.Simd.U32x4
+        weights0, weights1: Math.Simd.S16x8
+        upper0, upper1: Math.Simd.U16x8
+    }
+
+    func packLinearSamples(samples: const [..] LinearSample)->Array'LinearSamples4
+    {
+        #[Swag.Inline]
+        func pairWeights(a, b: u32)->Math.Simd.S16x8
+        {
+            let first  = cast(u16, a)
+            let second = cast(u16, b)
+            return cast #bit(Math.Simd.S16x8, cast(Math.Simd.U16x8, [first, first, first, first, second, second, second, second]))
+        }
+
+        #[Swag.Inline]
+        func pairMask(a, b: u32)->Math.Simd.U16x8
+        {
+            let first  = a >= 32768 ? 65535'u16 : 0'u16
+            let second = b >= 32768 ? 65535'u16 : 0'u16
+            return cast(Math.Simd.U16x8, [first, first, first, first, second, second, second, second])
+        }
+
+        var result: #returntype
+        result.resize(samples.count / 4)
+        for &group, index in result
+        {
+            let src        = samples.buffer + index * 4
+            group.low      = cast(Math.Simd.U32x4, [cast(u32, src[0].low), cast(u32, src[1].low), cast(u32, src[2].low), cast(u32, src[3].low)])
+            group.high     = cast(Math.Simd.U32x4, [cast(u32, src[0].high), cast(u32, src[1].high), cast(u32, src[2].high), cast(u32, src[3].high)])
+            group.weights0 = pairWeights(src[0].weight, src[1].weight)
+            group.weights1 = pairWeights(src[2].weight, src[3].weight)
+            group.upper0   = pairMask(src[0].weight, src[1].weight)
+            group.upper1   = pairMask(src[2].weight, src[3].weight)
+        }
+
+        return result
+    }
+
+    #[Swag.Inline]
+    func gatherLinearSamples(row: const [*] u8, group: const *LinearSamples4)->Math.Simd.U8x16
+    {
+        #[Swag.Inline]
+        func blend(lowTexels, highTexels: Math.Simd.U16x8, weight: Math.Simd.S16x8, upper: Math.Simd.U16x8)->Math.Simd.S16x8
+        {
+            let difference = cast #bit(Math.Simd.S16x8, highTexels - lowTexels)
+            let base = cast #bit(Math.Simd.S16x8, Math.Simd.select(upper, highTexels, lowTexels))
+            return base + Math.Simd.mulHigh(difference, weight)
+        }
+
+        let pixels       = cast(const [*] s32, row)
+        let gatheredLow  = cast #bit(Math.Simd.U8x16, Math.Simd.gather(pixels, group.low))
+        let gatheredHigh = cast #bit(Math.Simd.U8x16, Math.Simd.gather(pixels, group.high))
+        let lo           = blend(Math.Simd.widenLow(gatheredLow), Math.Simd.widenLow(gatheredHigh), group.weights0, group.upper0)
+        let hi           = blend(Math.Simd.widenHigh(gatheredLow), Math.Simd.widenHigh(gatheredHigh), group.weights1, group.upper1)
+        return Math.Simd.packUnsigned(lo, hi)
+    }
+
     #[Swag.Inline]
     func linearSample(coordinate: f32, size: s32)->LinearSample
     {
@@ -2722,6 +2783,13 @@ private impl RenderCpu
         }
 
         let cacheRows = columns.count and Math.abs(deviceH) >= 1.25 * source.height
+        var groups: Array'LinearSamples4
+        #static if Format == .BGRA8 or Format == .RGBA8
+        {
+            if not cacheRows and columns.count >= 16 do
+                groups = #move packLinearSamples(columns.toSlice())
+        }
+
         var filteredTop, filteredBottom: FilteredTextureRow
         for y in triangle.bounds.minY until triangle.bounds.maxY + 1
         {
@@ -2808,9 +2876,44 @@ private impl RenderCpu
                     continue
                 }
 
-                for x in x0 until x1 + 1
+                var x = x0
+                while x <= x1
                 {
-                    let sampleX = columns[cast(u64, x - triangle.bounds.minX)]
+                    let column = cast(u64, x - triangle.bounds.minX)
+                    #static if Format == .BGRA8 or Format == .RGBA8
+                    {
+                        if groups.count and (column & 3) == 0 and x1 - x >= 3
+                        {
+                            let group = &groups[column / 4]
+                            var ink = gatherLinearSamples(top, group)
+                            if twoRows
+                            {
+                                let weight = Math.Simd.splat(cast #bit(s16, cast(u16, sampleY.weight)))
+                                ink = lerpBgra8x4(ink, gatherLinearSamples(bottom, group), weight, sampleY.weight >= 32768)
+                            }
+
+                            #static if Format == .RGBA8
+                            {
+                                const SwapRGB = cast(Math.Simd.U8x16, [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
+                                ink = Math.Simd.shuffle(ink, SwapRGB)
+                            }
+
+                            let alpha   = (cast #bit(Math.Simd.U32x4, ink) >> 24) * 0x0101_0101'u32
+                            let weights = cast #bit(Math.Simd.U8x16, alpha)
+                            let target = row + cast(u64, x) * 4
+                            Math.Simd.store(target, blendAlphaBgra8x4(ink, Math.Simd.load(target), weights))
+                            if white
+                            {
+                                let other = white + cast(u64, x) * 4
+                                Math.Simd.store(other, blendAlphaBgra8x4(ink, Math.Simd.load(other), weights))
+                            }
+
+                            x += 4
+                            continue
+                        }
+                    }
+
+                    let sampleX = columns[column]
                     let a = lerpBgra8(loadColor8'Format(top, sampleX.low), loadColor8'Format(top, sampleX.high), sampleX.weight)
                     var value = a
                     if twoRows
@@ -2822,6 +2925,7 @@ private impl RenderCpu
                     writeLinearTexturePixel'Format(row + cast(u64, x) * 4, Color.fromArgb(value))
                     if white do
                         writeLinearTexturePixel'Format(white + cast(u64, x) * 4, Color.fromArgb(value))
+                    x += 1
                 }
 
                 continue

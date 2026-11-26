@@ -412,77 +412,48 @@ private func p256DigestBytes(digest: Hash.Sha256.Digest)->[32] u8
     return result
 }
 
-private func p256Rfc6979Nonce(privateScalar: P256Field, digest: [32] u8)->[32] u8 fail
+internal func p256Rfc6979Nonce(privateKey: const [..] u8, digest: [32] u8)->[32] u8
 {
-    var key:   [32] u8
-    var value: [32] u8
-    Memory.set(&value[0], 1'u8, value.count)
-    var scalarBytes: [32] u8
-    p256OrderEncode(privateScalar, scalarBytes)
+    Swag.assert(privateKey.count == P256ScalarSize)
+    var key:      [32] u8
+    var value:    [32] u8
+    var material: [97] u8
+    defer
+    {
+        Crypto.secureClear(key)
+        Crypto.secureClear(value)
+        Crypto.secureClear(material)
+    }
 
-    var input: Array'u8
-    input.add(value)
-    input.add(0'u8)
-    input.add(scalarBytes)
-    input.add(digest)
-    key = HmacSha256.compute(key, input.toSlice())
-    Crypto.secureClear(input.toSlice())
+    Memory.set(value.buffer, 1'u8, value.count)
+    Swag.memcpy(material.buffer + 33, privateKey.buffer, P256ScalarSize)
 
-    input.resize(0)
-    input.add(value)
-    value = HmacSha256.compute(key, input.toSlice())
-    Crypto.secureClear(input.toSlice())
-
-    input.resize(0)
-    input.add(value)
-    input.add(1'u8)
-    input.add(scalarBytes)
-    input.add(digest)
-    key = HmacSha256.compute(key, input.toSlice())
-    Crypto.secureClear(input.toSlice())
-
-    input.resize(0)
-    input.add(value)
-    value = HmacSha256.compute(key, input.toSlice())
-    Crypto.secureClear(input.toSlice())
+    // RFC 6979 bits2octets reduces the SHA-256 digest modulo the group order.
+    p256OrderEncode(p256OrderReduce(p256ReadInteger(digest)), material[65 to])
+    for marker in [0'u8, 1]
+    {
+        Swag.memcpy(material.buffer, value.buffer, value.count)
+        material[32] = marker
+        key          = HmacSha256.compute(key, material)
+        value        = HmacSha256.compute(key, value)
+    }
 
     while true
     {
-        input.resize(0)
-        input.add(value)
-        value = HmacSha256.compute(key, input.toSlice())
-        Crypto.secureClear(input.toSlice())
-        var candidate: P256Field
-        for index in 8
-        {
-            let offset = 28 - (index * 4)
-            candidate.limbs[index] = (cast(u32, value[offset]) << 24) |
-                                     (cast(u32, value[offset + 1]) << 16) |
-                                     (cast(u32, value[offset + 2]) << 8) |
-                                     cast(u32, value[offset + 3])
-        }
-
-        if p256ScalarIsValid(candidate)
+        value = HmacSha256.compute(key, value)
+        var candidate = p256ReadInteger(value)
+        let valid     = p256ScalarIsValid(candidate)
+        Crypto.secureClear(Swag.makeSlice(&candidate, 1))
+        if valid
         {
             let result = value
-            Crypto.secureClear(Swag.makeSlice(&key, 1))
-            Crypto.secureClear(Swag.makeSlice(&value, 1))
-            Crypto.secureClear(Swag.makeSlice(&scalarBytes, 1))
-            Crypto.secureClear(Swag.makeSlice(&candidate, 1))
             return result
         }
 
-        Crypto.secureClear(Swag.makeSlice(&candidate, 1))
-
-        input.resize(0)
-        input.add(value)
-        input.add(0'u8)
-        key = HmacSha256.compute(key, input.toSlice())
-        Crypto.secureClear(input.toSlice())
-        input.resize(0)
-        input.add(value)
-        value = HmacSha256.compute(key, input.toSlice())
-        Crypto.secureClear(input.toSlice())
+        Swag.memcpy(material.buffer, value.buffer, value.count)
+        material[32] = 0
+        key          = HmacSha256.compute(key, material[until 33])
+        value        = HmacSha256.compute(key, value)
     }
 }
 
@@ -853,7 +824,7 @@ func p256EcdsaSign(privateKey, message: const [..] u8, signature: [..] u8) fail
     defer Crypto.secureClear(Swag.makeSlice(&privateScalar, 1))
     var messageDigest = p256DigestBytes(Hash.Sha256.compute(message))
     defer Crypto.secureClear(Swag.makeSlice(&messageDigest, 1))
-    var nonceBytes = try p256Rfc6979Nonce(privateScalar, messageDigest)
+    var nonceBytes = p256Rfc6979Nonce(privateKey, messageDigest)
     defer Crypto.secureClear(Swag.makeSlice(&nonceBytes, 1))
     var nonce = try p256ScalarDecode(nonceBytes)
     defer Crypto.secureClear(Swag.makeSlice(&nonce, 1))

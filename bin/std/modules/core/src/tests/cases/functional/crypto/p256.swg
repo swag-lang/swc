@@ -135,3 +135,25 @@ func p256HexBytes(text: string)->Array'u8
     discard catch Crypto.p256Ecdh(one, generator, shared) as error
     Swag.require(error.value() is Errors.BadParameterError)
 }
+
+// RFC 6979 applies bits2octets before seeding HMAC. Digests on either side
+// of the order encode the same value as their corresponding short residues.
+#test
+{
+    let key          = p256HexBytes("0000000000000000000000000000000000000000000000000000000000000001")
+    let zeroExpected = p256HexBytes("010497d369b3d525ca15ec29c104a694210bb59ff6cabfc10afe6df0283896df")
+    let oneExpected  = p256HexBytes("9a409dab05968059da3efb323dc67c96f234571b965fd39810ca0643fbb795ac")
+    let order        = p256HexBytes("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551")
+
+    var digest: [32] u8
+    let zero = Crypto.p256Rfc6979Nonce(key.toSlice(), digest)
+    Swag.require(Crypto.constantTimeEqual(zero, zeroExpected.toSlice()))
+
+    Memory.copy(digest.buffer, order.toSlice().buffer, digest.count)
+    let atOrder = Crypto.p256Rfc6979Nonce(key.toSlice(), digest)
+    Swag.require(Crypto.constantTimeEqual(atOrder, zeroExpected.toSlice()))
+
+    digest[31] += 1
+    let aboveOrder = Crypto.p256Rfc6979Nonce(key.toSlice(), digest)
+    Swag.require(Crypto.constantTimeEqual(aboveOrder, oneExpected.toSlice()))
+}

@@ -70,6 +70,9 @@ func ed25519Sign(input: const [..] u8, output: [..] u8) =>
 func p256Public(input: const [..] u8, output: [..] u8) =>
     expect Crypto.p256PublicKey(input, output)
 
+func p256Sign(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.p256EcdsaSign(Key, input, output)
+
 func selectOperation(name: string, size: u64)->{operation: Operation, outputSize: u64}
 {
     switch name
@@ -98,6 +101,7 @@ func selectOperation(name: string, size: u64)->{operation: Operation, outputSize
     case "ed25519-public":    return {&ed25519Public, 32}
     case "ed25519-sign":      return {&ed25519Sign, 64}
     case "p256-public":       return {&p256Public, 65}
+    case "p256-sign":         return {&p256Sign, 64}
     default:                  unreachable
     }
 }

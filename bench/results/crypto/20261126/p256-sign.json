@@ -1,0 +1,422 @@
+{
+  "utc": "2026-11-26T12:15:12.794182+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "affinity": [
+    4
+  ],
+  "workers": {
+    "prior": 1,
+    "fixed-nonce": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "d6f36f4496d0434337b2936a7ff71c55c7ca395d52e0ae4222a2fc5b3d5a5f51",
+  "swag_builds": {
+    "prior": "a932701e64f4fc2c3c3da4add3c64bd9416dee05be7e62ca359e1fddb56bf2a0",
+    "fixed-nonce": "fc02d6b6e6fcfc8b78805e5a3f1215fee80efaaaa47ae9a0667b472f398665f8"
+  },
+  "rounds": 15,
+  "target_ms": 55,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "p256-sign",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "e2cbc60db20a59ce0a3382f7ec0a49c6f05a1926fa27bdc958bc45cf890e8837",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 1747,
+          "wall": [
+            0.068853114,
+            0.052483699,
+            0.063211657,
+            0.060026394,
+            0.060053074,
+            0.058533833,
+            0.052743441,
+            0.075224764,
+            0.058906906,
+            0.053044265,
+            0.05656882,
+            0.053127032,
+            0.053163378,
+            0.053038971,
+            0.053621008
+          ],
+          "cpu": [
+            0.054066689,
+            0.052412034,
+            0.06027323,
+            0.053089872,
+            0.05707725,
+            0.055598209,
+            0.052721575,
+            0.06426821,
+            0.051976866,
+            0.053009935,
+            0.05656615,
+            0.053124395,
+            0.053145356,
+            0.053036183,
+            0.053529448
+          ]
+        },
+        "prior": {
+          "iterations": 146,
+          "wall": [
+            0.048447853,
+            0.060961774,
+            0.049161119,
+            0.04844571,
+            0.059010671,
+            0.048665862,
+            0.048538288,
+            0.079329304,
+            0.047242293,
+            0.05759054,
+            0.049189615,
+            0.050823609,
+            0.053597243,
+            0.047997076,
+            0.049365961
+          ],
+          "cpu": [
+            0.048445526,
+            0.058027366,
+            0.049158048,
+            0.048423784,
+            0.059007876,
+            0.048444051,
+            0.048457544,
+            0.064362511,
+            0.047216246,
+            0.057576826,
+            0.049118718,
+            0.050820914,
+            0.053594484,
+            0.047976719,
+            0.049358166
+          ]
+        },
+        "fixed-nonce": {
+          "iterations": 165,
+          "wall": [
+            0.060042322,
+            0.062129435,
+            0.061926098,
+            0.05900232,
+            0.054501431,
+            0.054840964,
+            0.087291401,
+            0.059128679,
+            0.054419678,
+            0.055079253,
+            0.053911015,
+            0.061368658,
+            0.063963976,
+            0.057092934,
+            0.054472963
+          ],
+          "cpu": [
+            0.055127954,
+            0.054758518,
+            0.054915032,
+            0.056117873,
+            0.054411922,
+            0.054731068,
+            0.055201718,
+            0.059061545,
+            0.054416839,
+            0.05494766,
+            0.053896575,
+            0.061352042,
+            0.063890878,
+            0.057015189,
+            0.054469969
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "prior",
+          "fixed-nonce"
+        ],
+        [
+          "fixed-nonce",
+          "OpenSSL",
+          "prior"
+        ],
+        [
+          "OpenSSL",
+          "prior",
+          "fixed-nonce"
+        ],
+        [
+          "prior",
+          "OpenSSL",
+          "fixed-nonce"
+        ],
+        [
+          "fixed-nonce",
+          "OpenSSL",
+          "prior"
+        ],
+        [
+          "OpenSSL",
+          "prior",
+          "fixed-nonce"
+        ],
+        [
+          "OpenSSL",
+          "fixed-nonce",
+          "prior"
+        ],
+        [
+          "OpenSSL",
+          "prior",
+          "fixed-nonce"
+        ],
+        [
+          "OpenSSL",
+          "prior",
+          "fixed-nonce"
+        ],
+        [
+          "fixed-nonce",
+          "prior",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "fixed-nonce",
+          "prior"
+        ],
+        [
+          "prior",
+          "OpenSSL",
+          "fixed-nonce"
+        ],
+        [
+          "fixed-nonce",
+          "OpenSSL",
+          "prior"
+        ],
+        [
+          "OpenSSL",
+          "fixed-nonce",
+          "prior"
+        ],
+        [
+          "fixed-nonce",
+          "prior",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "p256-sign",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "c2f33ab96ea19ab1dc75859bb6637222658f8e562d2eb0afc5f8719f09873058",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 1701,
+          "wall": [
+            0.055960306,
+            0.062633264,
+            0.055019276,
+            0.055521624,
+            0.056858852,
+            0.055076903,
+            0.055706643,
+            0.056613481,
+            0.056841876,
+            0.0554122,
+            0.066734134,
+            0.059610821,
+            0.054880598,
+            0.061530967,
+            0.055139889
+          ],
+          "cpu": [
+            0.055952346,
+            0.062566422,
+            0.054848391,
+            0.055511431,
+            0.056779047,
+            0.055074498,
+            0.055683916,
+            0.056569645,
+            0.056816143,
+            0.055409587,
+            0.066650768,
+            0.05492903,
+            0.054878166,
+            0.0615284,
+            0.055137312
+          ]
+        },
+        "prior": {
+          "iterations": 160,
+          "wall": [
+            0.058523472,
+            0.061457757,
+            0.054648567,
+            0.05512408,
+            0.054567295,
+            0.060446872,
+            0.054714517,
+            0.061007007,
+            0.057234828,
+            0.055570208,
+            0.057316892,
+            0.05700403,
+            0.054857973,
+            0.063081085,
+            0.054467865
+          ],
+          "cpu": [
+            0.05852071,
+            0.06145498,
+            0.054645961,
+            0.055089546,
+            0.054534924,
+            0.060422042,
+            0.054711448,
+            0.061003969,
+            0.057232032,
+            0.055567333,
+            0.057314455,
+            0.057001728,
+            0.054855672,
+            0.063078388,
+            0.054465742
+          ]
+        },
+        "fixed-nonce": {
+          "iterations": 157,
+          "wall": [
+            0.055376075,
+            0.059269898,
+            0.062976246,
+            0.053899397,
+            0.059123577,
+            0.053077949,
+            0.05493493,
+            0.058908383,
+            0.054857553,
+            0.055482085,
+            0.059905335,
+            0.059153111,
+            0.053189087,
+            0.058670352,
+            0.07301764
+          ],
+          "cpu": [
+            0.05531651,
+            0.059267052,
+            0.061629051,
+            0.053802164,
+            0.05909085,
+            0.053075132,
+            0.054932347,
+            0.058905183,
+            0.054854791,
+            0.055415966,
+            0.0597962,
+            0.05913832,
+            0.053186617,
+            0.058605686,
+            0.072446069
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "fixed-nonce",
+          "prior",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prior",
+          "fixed-nonce"
+        ],
+        [
+          "fixed-nonce",
+          "prior",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "fixed-nonce",
+          "prior"
+        ],
+        [
+          "fixed-nonce",
+          "prior",
+          "OpenSSL"
+        ],
+        [
+          "fixed-nonce",
+          "prior",
+          "OpenSSL"
+        ],
+        [
+          "prior",
+          "OpenSSL",
+          "fixed-nonce"
+        ],
+        [
+          "prior",
+          "fixed-nonce",
+          "OpenSSL"
+        ],
+        [
+          "prior",
+          "OpenSSL",
+          "fixed-nonce"
+        ],
+        [
+          "fixed-nonce",
+          "prior",
+          "OpenSSL"
+        ],
+        [
+          "fixed-nonce",
+          "OpenSSL",
+          "prior"
+        ],
+        [
+          "fixed-nonce",
+          "OpenSSL",
+          "prior"
+        ],
+        [
+          "prior",
+          "OpenSSL",
+          "fixed-nonce"
+        ],
+        [
+          "fixed-nonce",
+          "OpenSSL",
+          "prior"
+        ],
+        [
+          "fixed-nonce",
+          "prior",
+          "OpenSSL"
+        ]
+      ]
+    }
+  ]
+}

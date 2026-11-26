@@ -43,6 +43,7 @@ PUBLIC_KEY_SIZES = {
     "ed25519-public": (32,),
     "ed25519-sign": (64, 4096),
     "p256-public": (32,),
+    "p256-sign": (64, 4096),
 }
 REFERENCES.update({name: {"OpenSSL": name} for name in PUBLIC_KEY_SIZES})
 
@@ -210,7 +211,7 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
            for row in sizes.values() for size in row):
         parser.error("sizes must be positive for timing and nonnegative for verification")
     for name in PUBLIC_KEY_SIZES:
-        if name in sizes and name != "ed25519-sign" and any(size != 32 for size in sizes[name]):
+        if name in sizes and not name.endswith("-sign") and any(size != 32 for size in sizes[name]):
             parser.error(f"{name} requires a 32-byte input")
     if any(offset < 0 for offset in offsets):
         parser.error("offsets must be nonnegative")

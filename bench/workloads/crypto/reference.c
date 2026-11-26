@@ -4,9 +4,11 @@
 #include <crc64.h>
 #include <isal_api.h>
 #include <libdeflate.h>
+#include <openssl/core_names.h>
 #include <openssl/crypto.h>
 #include <openssl/ec.h>
 #include <openssl/evp.h>
+#include <openssl/param_build.h>
 #include <zlib.h>
 
 #include <stdint.h>
@@ -35,6 +37,8 @@ static EC_GROUP *p256_group;
 static EC_POINT *p256_point;
 static BN_CTX *p256_context;
 static BIGNUM *p256_scalar;
+static EVP_PKEY_CTX *p256_import_context;
+static OSSL_PARAM *p256_key_parameters;
 
 typedef void (*operation)(const unsigned char *, size_t, unsigned char *);
 
@@ -196,6 +200,50 @@ static void p256_public(const unsigned char *p, size_t n, unsigned char *out)
             "OpenSSL could not derive P-256 public key");
 }
 
+static void prepare_p256_sign(void)
+{
+    p256_import_context = EVP_PKEY_CTX_new_from_name(NULL, "EC", NULL);
+    digest_context = EVP_MD_CTX_new();
+    require(p256_import_context && digest_context &&
+            EVP_PKEY_fromdata_init(p256_import_context), "OpenSSL P-256 signing setup failed");
+
+    OSSL_PARAM_BLD *builder = OSSL_PARAM_BLD_new();
+    BIGNUM *scalar = BN_bin2bn(key, sizeof(key) - 1, NULL);
+    require(builder && scalar &&
+            OSSL_PARAM_BLD_push_utf8_string(builder, OSSL_PKEY_PARAM_GROUP_NAME, "prime256v1", 0) &&
+            OSSL_PARAM_BLD_push_BN(builder, OSSL_PKEY_PARAM_PRIV_KEY, scalar),
+            "OpenSSL could not build P-256 key parameters");
+    p256_key_parameters = OSSL_PARAM_BLD_to_param(builder);
+    require(p256_key_parameters != NULL, "OpenSSL could not encode P-256 key parameters");
+    BN_clear_free(scalar);
+    OSSL_PARAM_BLD_free(builder);
+}
+
+static void p256_sign(const unsigned char *p, size_t n, unsigned char *out)
+{
+    EVP_PKEY *private_key = NULL;
+    require(EVP_PKEY_fromdata(p256_import_context, &private_key, EVP_PKEY_KEYPAIR,
+                              p256_key_parameters) && private_key, "OpenSSL P-256 key import failed");
+    unsigned int deterministic_nonce = 1;
+    OSSL_PARAM params[] = {
+        OSSL_PARAM_construct_uint(OSSL_SIGNATURE_PARAM_NONCE_TYPE, &deterministic_nonce),
+        OSSL_PARAM_construct_end(),
+    };
+    unsigned char der[80];
+    size_t used = sizeof(der);
+    require(EVP_DigestSignInit_ex(digest_context, NULL, "SHA256", NULL, NULL, private_key, params) &&
+            EVP_DigestSign(digest_context, der, &used, p, n), "OpenSSL P-256 signing failed");
+
+    const unsigned char *cursor = der;
+    ECDSA_SIG *signature = d2i_ECDSA_SIG(NULL, &cursor, (long)used);
+    require(signature && cursor == der + used &&
+            BN_bn2binpad(ECDSA_SIG_get0_r(signature), out, 32) == 32 &&
+            BN_bn2binpad(ECDSA_SIG_get0_s(signature), out + 32, 32) == 32,
+            "OpenSSL could not serialize the P-256 signature");
+    ECDSA_SIG_free(signature);
+    EVP_PKEY_free(private_key);
+}
+
 static operation select_operation(const char *name, size_t input_size, size_t *result_size)
 {
     static const struct { const char *name; operation run; size_t size; } direct[] = {
@@ -237,6 +285,12 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
         BN_set_flags(p256_scalar, BN_FLG_CONSTTIME);
         *result_size = 65;
         return p256_public;
+    }
+
+    if (!strcmp(name, "p256-sign")) {
+        prepare_p256_sign();
+        *result_size = 64;
+        return p256_sign;
     }
 
     if (!strcmp(name, "poly1305")) {
@@ -327,6 +381,8 @@ int main(int argc, char **argv)
     EVP_CIPHER_free(cipher);
     EVP_MAC_CTX_free(mac_context);
     EVP_MAC_free(mac);
+    EVP_PKEY_CTX_free(p256_import_context);
+    OSSL_PARAM_free(p256_key_parameters);
     BN_clear_free(p256_scalar);
     BN_CTX_free(p256_context);
     EC_POINT_free(p256_point);

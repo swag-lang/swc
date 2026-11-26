@@ -2882,6 +2882,56 @@ SWC_TEST_BEGIN(PostRAPeephole_DoesNotForwardB8SignedMultiplyImmediate)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FoldsConstantMultiplyDestination)
+{
+    struct Case
+    {
+        MicroOpBits literalBits;
+        MicroOpBits multiplyBits;
+        uint64_t    literal;
+        bool        folds;
+    };
+    constexpr Case cases[] = {
+        {MicroOpBits::B32, MicroOpBits::B32, 77, true},
+        {MicroOpBits::B32, MicroOpBits::B32, 0x7FFFFFFF, true},
+        {MicroOpBits::B32, MicroOpBits::B64, 0x80000000, false},
+        {MicroOpBits::B64, MicroOpBits::B64, 0xFFFFFFFF80000000, true},
+        {MicroOpBits::B64, MicroOpBits::B64, 0x7FFFFFFFFFFFFFFF, false},
+        {MicroOpBits::B16, MicroOpBits::B32, 29, false},
+    };
+
+    const MicroReg     buffer   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg product  = MicroReg::intReg(8);
+    constexpr MicroReg factor   = MicroReg::intReg(9);
+    constexpr MicroReg overflow = MicroReg::intReg(10);
+    for (const Case& test : cases)
+    {
+        std::array<uint64_t, 3> expected{};
+        for (const bool optimize : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegImm(product, ApInt(0xABCD1234, 64), MicroOpBits::B64);
+            builder.emitLoadRegImm(product, ApInt(test.literal, getNumBits(test.literalBits)), test.literalBits);
+            builder.emitLoadZeroExtendRegMem(factor, buffer, 16, test.multiplyBits, MicroOpBits::B16);
+            builder.emitOpBinaryRegReg(product, factor, MicroOp::MultiplySigned, test.multiplyBits);
+            builder.emitSetCondReg(overflow, MicroCond::Overflow);
+            builder.emitLoadMemReg(buffer, 0, product, MicroOpBits::B64);
+            builder.emitLoadMemReg(buffer, 8, overflow, MicroOpBits::B8);
+            builder.emitRet();
+
+            std::array<uint64_t, 3> values{0, 0, 3};
+            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+            if (!optimize)
+                expected = values;
+            else if (values != expected ||
+                     Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegImm) != (test.folds ? 1u : 0u))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // An integer reload consumed once by an addition folds into the addition's
 // memory operand, the way float reloads already do.
 SWC_TEST_BEGIN(PostRAPeephole_FoldsIntegerReloadIntoBinary)

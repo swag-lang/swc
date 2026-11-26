@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Encoder/Immediate.X64.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.ForwardRegTouch.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
@@ -113,14 +114,33 @@ namespace PostRaPeephole
 
                 case MicroInstrOpcode::OpBinaryRegReg:
                 {
-                    // [dst, rhs, opBits, microOp] -> OpBinaryRegImm [dst, opBits, microOp, imm]
-                    if (ops[0].reg == immReg || ops[1].reg != immReg)
-                        return false;
-                    if (!ops[0].reg.isAnyInt())
+                    const MicroReg    dst  = ops[0].reg;
+                    const MicroReg    src  = ops[1].reg;
+                    const MicroOpBits bits = ops[2].opBits;
+                    const MicroOp     op   = ops[3].microOp;
+                    if (!dst.isAnyInt())
                         return false;
 
-                    const MicroOpBits bits = ops[2].opBits;
-                    if (!canForwardImmediateToBinaryOp(ops[3].microOp, bits))
+                    if (dst == immReg)
+                    {
+                        // Replace the consumed constant with a separate immediate operand.
+                        // A dword or qword IMUL fully defines the register that held it.
+                        if (op != MicroOp::MultiplySigned || !src.isAnyInt() || src == dst ||
+                            (bits != MicroOpBits::B32 && bits != MicroOpBits::B64) ||
+                            (bits == MicroOpBits::B64 && !X64Immediate::canEncodeSigned32(imm)))
+                            return false;
+
+                        out.newOp          = MicroInstrOpcode::OpBinaryRegRegImm;
+                        out.numOps         = 5;
+                        out.ops[0].reg     = dst;
+                        out.ops[1].reg     = src;
+                        out.ops[2].opBits  = bits;
+                        out.ops[3].microOp = op;
+                        out.ops[4].setImmediateValue(ApInt(imm & getBitsMask(bits), getNumBits(bits)));
+                        return true;
+                    }
+
+                    if (src != immReg || !canForwardImmediateToBinaryOp(op, bits))
                         return false;
 
                     out.newOp          = MicroInstrOpcode::OpBinaryRegImm;
@@ -231,9 +251,8 @@ namespace PostRaPeephole
         ConsumerRewrite rewrite;
         if (!buildRewrite(rewrite, *consumer, consumerOps, immReg, imm))
             return false;
-        // Every immediate form built above carries its value width at slot 1.
         // A narrow load leaves the upper bits unknown; a dword load clears them.
-        if (getNumBits(materializedBits) < 32 && getNumBits(rewrite.ops[1].opBits) > getNumBits(materializedBits))
+        if (getNumBits(materializedBits) < 32 && getNumBits(consumerOps[2].opBits) > getNumBits(materializedBits))
             return false;
 
         // Pre-RA Legalize materialized this LoadRegImm + reg-form consumer
@@ -249,14 +268,30 @@ namespace PostRaPeephole
                 return false;
         }
 
-        if (!regIsDeadAfter(ctx, consumerRef, immReg, materializedBits))
+        const bool overwritesImmediateRegister = rewrite.newOp == MicroInstrOpcode::OpBinaryRegRegImm;
+        if (overwritesImmediateRegister)
+        {
+            // Give a directly preceding memory operand first use of the multiply.
+            // A zero extension from a smaller load cannot supply a full-width operand.
+            const MicroInstr* load = ctx.instruction(ctx.previousRef(consumerRef));
+            if (load && (load->op == MicroInstrOpcode::LoadRegMem || load->op == MicroInstrOpcode::LoadAmcRegMem))
+            {
+                const auto* loadOps  = load->ops(*ctx.operands);
+                const auto  loadBits = loadOps[load->op == MicroInstrOpcode::LoadRegMem ? 2 : 3].opBits;
+                if (loadOps[0].reg == consumerOps[1].reg && getNumBits(loadBits) >= getNumBits(consumerOps[2].opBits))
+                    return false;
+            }
+        }
+        else if (!regIsDeadAfter(ctx, consumerRef, immReg, materializedBits))
+        {
             return false;
+        }
 
         if (!ctx.claimAll({defRef, consumerRef}))
             return false;
 
         const std::span rewrittenOps(rewrite.ops, rewrite.numOps);
-        ctx.emitRewrite(consumerRef, rewrite.newOp, rewrittenOps);
+        ctx.emitRewrite(consumerRef, rewrite.newOp, rewrittenOps, overwritesImmediateRegister);
         ctx.emitErase(defRef);
         return true;
     }

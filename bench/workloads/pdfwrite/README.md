@@ -31,3 +31,14 @@ The runner alternates baseline and candidate, warming each process once.
 Document construction, loading, output checksums, and the PDFium raster
 check are outside the timed interval. Save time includes the file write
 and close using the system's normal buffering.
+
+To benchmark saves that include the same immutable JPEG on many pages,
+generate the 64-page fixture from the pinned large JPEG in the raster
+corpus. Each page makes eight placements of the shared image object.
+
+```sh
+python3 bench/workloads/pdfwrite/repeated_fixture.py \
+  /tmp/pdfraster/perf_images_jpeg_large.pdf /tmp/pdfwrite/repeated-64.pdf
+```
+
+Pass the generated path as `--case` and select `--mode save`.

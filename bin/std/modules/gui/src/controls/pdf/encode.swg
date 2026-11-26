@@ -19,6 +19,12 @@ private struct ImageSource
     encoded: const *EncodedImageStream
 }
 
+private struct ImageSources
+{
+    byChecksum: HashTable'(u32, ImageSource)
+    byImage:    HashTable'(u64, u32)
+}
+
 private struct PageObjects
 {
     page:    u32
@@ -614,34 +620,46 @@ private func sameEncodedImage(first, second: const *EncodedImageStream, image, p
            Slice.equals(first.bytes.toSlice(), second.bytes.toSlice())
 }
 
-private func allocateImageObject(item: const *Item, nextObject: *u32, sources: *HashTable'(u32, ImageSource)?)->ImageObject
+private func allocateImageObject(item: const *Item, nextObject: *u32, sources: *ImageSources?)->ImageObject
 {
-    if sources
+    if not sources
     {
-        let image = unwrap item.imageValue()
-        let encoded = item.image.encoded()
-        let key = Hash.Crc32.compute(encoded.bytes.count ? encoded.bytes.toSlice() : image.pixels.toSlice())
-        // Verify bytes and format before sharing an object, including on a hash collision.
-        if let source = sources.tryFind(key)
+        let result = ImageObject{nextObject[], true}
+        nextObject[] += 1
+        return result
+    }
+
+    let image = unwrap item.imageValue()
+    let identity = cast(u64, cast(const *void, image))
+    if let known = sources.byImage.tryFind(identity) do
+        return {number: known.value, firstUse: false}
+
+    let encoded = item.image.encoded()
+    let key = Hash.Crc32.compute(encoded.bytes.count ? encoded.bytes.toSlice() : image.pixels.toSlice())
+    // Compare contents and metadata too, since separate image owners may hold the same data.
+    if let source = sources.byChecksum.tryFind(key)
+    {
+        let prior = &source.value
+        let same = (encoded.bytes.count or prior.encoded.bytes.count) ?
+                   sameEncodedImage(encoded, prior.encoded, image, prior.image) : sameImageSource(image, prior.image)
+        if same
         {
-            let prior = &source.value
-            let same = (encoded.bytes.count or prior.encoded.bytes.count) ?
-                       sameEncodedImage(encoded, prior.encoded, image, prior.image) : sameImageSource(image, prior.image)
-            if same do
-                return {number: source.value.number, firstUse: false}
+            sources.byImage.add(identity, prior.number)
+            return {number: prior.number, firstUse: false}
         }
-        else
-        {
-            sources.add(key, ImageSource{nextObject[], image, encoded})
-        }
+    }
+    else
+    {
+        sources.byChecksum.add(key, ImageSource{nextObject[], image, encoded})
     }
 
     let result = ImageObject{nextObject[], true}
+    sources.byImage.add(identity, result.number)
     nextObject[] += 1
     return result
 }
 
-private func allocatePageObjects(page: const *Page, nextObject: *u32, sources: *HashTable'(u32, ImageSource)? = null)->PageObjects fail
+private func allocatePageObjects(page: const *Page, nextObject: *u32, sources: *ImageSources? = null)->PageObjects fail
 {
     if page.width <= 0 or
        page.height <= 0 or
@@ -829,7 +847,7 @@ func encodeDocument(document: const *Document)->Array'u8 fail
     }
 
     var layout: Array'PageObjects
-    var imageSources: HashTable'(u32, ImageSource)
+    var imageSources: ImageSources
     for page in document.pages
     {
         let objects = #move try allocatePageObjects(page, &nextObject, &imageSources)

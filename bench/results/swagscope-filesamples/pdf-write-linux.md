@@ -198,3 +198,24 @@ PDFium produces identical rasters to all three original PDFs at one
 pixel per point. The two PDF.js outputs are larger than the prior
 Flate saves. The 145 PDF tests include both bit-polarity retention
 and a short source stream with no declared row count.
+
+## Reusing image assignments in saved page resources
+
+When two items reference the same immutable decoded image, the
+writer reuses its object number immediately. It computes and
+compares the checksum and encoding properties once per distinct
+image owner, so separate images with equal data still share an object.
+
+Nine alternating Release runs on one AMD EPYC 7763 logical CPU
+time `Document.save` against baseline `238120e726`.
+[Raw samples and checksums](pdf-write-linux-image-identity.json)
+
+| Input | Before, ms | After, ms | Bytes |
+| --- | ---: | ---: | ---: |
+| Generated 64 pages, eight placements each | 83.31 | 2.51 | 1,456,620 |
+| `perf_structure_shared_resources.pdf` | 3.08 | 2.65 | 1,544,800 |
+| `pdfbox-jpeg.pdf` | 0.39 | 0.32 | 41,140 |
+
+All three saved files keep their byte counts, CRC-32, and PDFium
+rasters. All 1,275 GUI tests and the seven focused printing tests pass.
+[Fixture generation](../../workloads/pdfwrite/README.md)

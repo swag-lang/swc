@@ -613,3 +613,22 @@ file, loading the page, and rendering at 1200 px.
 | `perf_codecs_ccitt.pdf` | 89.08 | 28.22 |
 | `ccitt_EndOfBlock_false.pdf` | 6.88 | 1.28 |
 | `scan-bad.pdf` | 54.09 | 55.55 |
+
+## Advancing reference transitions during fax decoding
+
+A CCITT 2D line now advances through the reference transitions once.
+The decoder restarts the search if a damaged code moves backwards.
+It also writes whole black bytes when possible, reads MSB-first
+codes from three bytes, and exchanges the two line buffers.
+
+Eleven interleaved native Release runs with two samples each use
+baseline `2534d3961d`, PDFium 159.0.8149.0, and one AMD EPYC 7763
+logical CPU. The large Group 4 scan at 1200 px takes 98.66 ms before
+and 70.05 ms after, with PDFium at 29.95 ms. Swag's page load falls
+from 61.63 to 34.10 ms. An earlier series measured 52.42 to 27.10 ms
+for that phase under a lighter host load.
+[Timing series and corpus checksums](pdf-raster-linux-fax.json)
+
+All 55 supported cases keep their Swag raster checksums. The 144 PDF
+tests pass, including the reference Group 4 fixture at both bit
+polarities and white padding after an early end.

@@ -89,19 +89,27 @@ private impl CcittBits
     //
     // A stream stopping in the middle of a code is padding rather than a failure, and reading
     // that padding as zeroes is what lets the caller notice the end at a code boundary.
+    #[Swag.Inline]
     mtd const peek(count: u32)->u32
     {
         let index = .pos >> 3
         let shift = cast(u32, (.pos & 7))
-
-        var window = 0'u64
-        for i in 5'u64
+        var window: u32
+        if index + 2 < .data.count
         {
-            let at = index + i
-            window = window << 8 | (at < .data.count ? cast(u64, .data[at]) : 0)
+            let bytes = .data.buffer + index
+            window = (cast(u32, bytes[0]) << 16) | (cast(u32, bytes[1]) << 8) | bytes[2]
+        }
+        else
+        {
+            for i in 3'u64
+            {
+                let at = index + i
+                window = (window << 8) | (at < .data.count ? cast(u32, .data[at]) : 0)
+            }
         }
 
-        return cast(u32, ((window >> (40 - shift - count)) & ((1'u64 << count) - 1)))
+        return (window >> (24 - shift - count)) & ((1'u32 << count) - 1)
     }
 
     mtd skip(count: u32)
@@ -242,8 +250,10 @@ private func decodeCcittLine1D(bits: *CcittBits, current: *Array's32, columns: s
 // Decodes one line written as differences from the line above it.
 private func decodeCcittLine2D(bits: *CcittBits, reference: const [..] s32, current: *Array's32, columns: s32, white, black: const *CcittRunTable) fail
 {
-    var a0    = -1's32
-    var color = 0'u32
+    var a0          = -1's32
+    var previousA0  = -1's32
+    var firstChange = 0'u64
+    var color       = 0'u32
 
     for 2 * cast(u64, columns) + 64
     {
@@ -253,11 +263,14 @@ private func decodeCcittLine2D(bits: *CcittBits, reference: const [..] s32, curr
         // b1 is the first changing element of the reference line right of a0 that opens a run of
         // the colour opposite to the one being coded, which is what its index parity says; b2 is
         // the one after it. Both fall off the end of a line as the line's own width.
-        var index = 0'u64
-        while index < reference.count and reference[index] <= a0 do
-            index += 1
-        if (index & 1) != color do
-            index += 1
+        // A normal line advances on both rows. Restart if a damaged code
+        // moves backwards so it still sees the same reference changes.
+        if a0 < previousA0 do
+            firstChange = 0
+        while firstChange < reference.count and reference[firstChange] <= a0 do
+            firstChange += 1
+        previousA0 = a0
+        let index = firstChange + ((firstChange & 1) == color ? 0 : 1)
         let b1 = index < reference.count ? reference[index] : columns
         let b2 = index + 1 < reference.count ? reference[index + 1] : columns
 
@@ -291,27 +304,41 @@ private func decodeCcittLine2D(bits: *CcittBits, reference: const [..] s32, curr
     fail InvalidFormatError{"CCITTFaxDecode two-dimensional line does not advance"}
 }
 
-private func writeCcittBlackRun(result: *Array'u8, base: u64, first, last: s32, blackIs1: bool)
+private func(const BlackIs1: bool) writeCcittBlackRun(row: [*] u8, first, last: s32)
 {
-    for x in first until last
+    #[Swag.Inline]
+    func setBits(byte: *u8, bits: u8)
     {
-        let index = base + cast(u64, (x >> 3))
-        let mask  = 0x80'u8 >> cast(u32, (x & 7))
-        if blackIs1 do
-            result[index] |= mask
+        #static if BlackIs1 do
+            byte[] |= bits
         else do
-            result[index] &= ~mask
+            byte[] &= ~bits
     }
+
+    let left = first >> 3
+    let right = (last - 1) >> 3
+    let firstMask = 0xFF'u8 >> cast(u32, first & 7)
+    let lastMask  = 0xFF'u8 << cast(u32, 7 - ((last - 1) & 7))
+    if left == right
+    {
+        setBits(row + left, firstMask & lastMask)
+        return
+    }
+
+    setBits(row + left, firstMask)
+    setBits(row + right, lastMask)
+    if right - left > 1 do
+        Memory.set(row + left + 1, BlackIs1 ? 0xFF : 0, cast(u64, right - left - 1))
 }
 
 // Writes one decoded line as packed samples: black runs stamped over a white line.
-private func writeCcittRow(result: *Array'u8, changes: const [..] s32, columns: s32, blackIs1: bool)
+private func(const BlackIs1: bool) writeCcittRow(result: *Array'u8, changes: const [..] s32, columns: s32)
 {
     let rowBytes = (cast(u64, columns) + 7) / 8
     let base     = result.count
     result.resize(base + rowBytes)
-    for i in rowBytes do
-        result[base + i] = blackIs1 ? 0 : 0xFF
+    let row = result.storage() + base
+    Memory.set(row, BlackIs1 ? 0 : 0xFF, rowBytes)
 
     var color = 0'u32
     var at    = 0's32
@@ -319,13 +346,13 @@ private func writeCcittRow(result: *Array'u8, changes: const [..] s32, columns: 
     {
         let next = Math.min(Math.max(changes[i], 0), columns)
         if color and next > at do
-            writeCcittBlackRun(result, base, at, next, blackIs1)
+            writeCcittBlackRun'BlackIs1(row, at, next)
         at    = Math.max(at, next)
         color = 1 - color
     }
 
     if color and at < columns do
-        writeCcittBlackRun(result, base, at, columns, blackIs1)
+        writeCcittBlackRun'BlackIs1(row, at, columns)
 }
 
 // Decodes a CCITTFaxDecode stream into packed one-bit samples.
@@ -394,10 +421,12 @@ internal func decodeCcittFax(data: const [..] u8, params: CcittParameters)->Arra
         if bits.pos == before do
             break
 
-        writeCcittRow(&result, current.toSlice(), columns, params.blackIs1)
+        if params.blackIs1 do
+            writeCcittRow'(true)(&result, current.toSlice(), columns)
+        else do
+            writeCcittRow'(false)(&result, current.toSlice(), columns)
         rows += 1
-        reference.clear()
-        reference.add(current.toSlice())
+        swap(&reference, &current)
     }
 
     // A stream that stopped early still describes an image of the declared height.
@@ -405,8 +434,7 @@ internal func decodeCcittFax(data: const [..] u8, params: CcittParameters)->Arra
     {
         let base = result.count
         result.resize(base + rowBytes)
-        for i in rowBytes do
-            result[base + i] = params.blackIs1 ? 0 : 0xFF
+        Memory.set(result.storage() + base, params.blackIs1 ? 0 : 0xFF, rowBytes)
         rows += 1
     }
 

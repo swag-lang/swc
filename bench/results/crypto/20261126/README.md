@@ -193,3 +193,4 @@ optimizations moved each result.
 - [512-bit carry-less multiplication on x64](carryless-512-instruction.md)
 - [CRC-32 and reflected CRC-64 with 512-bit folding](crc-reflected-512.md)
 - [CRC-64/ECMA-182 with 512-bit folding](crc-ecma-512.md)
+- [Direct ChaCha20 tail XOR](chacha20-direct-tail.md)

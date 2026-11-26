@@ -92,7 +92,8 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     for index in source.count do
         source[index] = cast(u8, ((cast(u64, index) * 47 + 13) & 0xFF))
 
-    let lengths: [15] u64 = [0, 1, 63, 64, 65, 255, 256, 257, 511, 512, 513, 767, 768, 1024, 1025]
+    let lengths: [30] u64 = [0, 1, 15, 16, 17, 31, 32, 33, 47, 48, 49, 63, 64, 65, 127, 128,
+                             129, 191, 192, 193, 255, 256, 257, 511, 512, 513, 767, 768, 1024, 1025]
     for length in lengths
     {
         for index in actual.count

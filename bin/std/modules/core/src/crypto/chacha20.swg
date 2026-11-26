@@ -111,6 +111,14 @@ private func roundRows(rows: *[4] Simd.U32x4)
     rows[][3] = d
 }
 
+#[Swag.Inline]
+private func loadChaChaKeyRows(key: const [*] u8, rows: *[4] Simd.U32x4)
+{
+    rows[][0] = ChaChaConstants
+    rows[][1] = cast #bit(Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(key)))
+    rows[][2] = cast #bit(Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(key + 16)))
+}
+
 // Produces one IETF ChaCha20 key-stream block for `counter`.
 //
 // Fails with [[Core.Errors.BadParameterError]] when `key` does not hold 32 bytes or `nonce` 12.
@@ -122,9 +130,7 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
         fail Errors.BadParameterError{"ChaCha20 needs a 12-byte nonce"}
 
     var initial: [4] Simd.U32x4
-    initial[0] = ChaChaConstants
-    initial[1] = cast #bit (Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(key.buffer)))
-    initial[2] = cast #bit (Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(key.buffer + 16)))
+    loadChaChaKeyRows(key.buffer, &initial)
     initial[3] = cast(Simd.U32x4,
                       [counter, load32(nonce.buffer), load32(nonce.buffer + 4), load32(nonce.buffer + 8)])
 
@@ -163,6 +169,51 @@ internal func hchacha20(key: const [..] u8, nonce: const [..] u8)->[ChaCha20KeyS
     Simd.store(subkey.buffer + 16, swapWordBytesOnBigEndian(cast #bit (Simd.U8x16, state[3])))
     secureClear(state)
     return subkey
+}
+
+private func chacha20XorTail(key, nonce, source: const [*] u8, destination: [*] u8,
+                              length: u64, counter: u32)
+{
+    var scratch: struct
+    {
+        initial, state: [4] Simd.U32x4
+        tail: [16] u8
+    }
+
+    // A short tail reuses its key rows and wipes scratch once, after the last block.
+    with scratch
+    {
+        loadChaChaKeyRows(key, &.initial)
+        var lastRow: [4] u32 = [counter, load32(nonce), load32(nonce + 4), load32(nonce + 8)]
+        var offset = 0'u64
+        while offset < length
+        {
+            .initial[3] = cast(Simd.U32x4, lastRow)
+            .state = .initial
+            roundRows(&.state)
+            let count = Math.min(length - offset, ChaCha20BlockSize)
+            let rowCount = count / #sizeof(Simd.U8x16)
+            for row in rowCount
+            {
+                let index = offset + row * #sizeof(Simd.U8x16)
+                let stream = swapWordBytesOnBigEndian(cast #bit(Simd.U8x16, .state[row] + .initial[row]))
+                Simd.store(destination + index, Simd.load(source + index) ^ stream)
+            }
+            let remaining = count % #sizeof(Simd.U8x16)
+            if remaining
+            {
+                let index = offset + rowCount * #sizeof(Simd.U8x16)
+                let stream = swapWordBytesOnBigEndian(cast #bit(Simd.U8x16, .state[rowCount] + .initial[rowCount]))
+                Simd.store(.tail.buffer, stream)
+                for byte in remaining do
+                    destination[index + byte] = source[index + byte] ^ .tail[byte]
+            }
+            offset += count
+            if offset < length do
+                lastRow[0] += 1
+        }
+    }
+    secureClear(Swag.makeSlice(&scratch, 1))
 }
 
 // XORs `source` with the IETF ChaCha20 key stream into `destination`.
@@ -261,37 +312,11 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
         }
     }
 
-    var offset  = batches * BatchSize
-    var counter = initialCounter
-
+    let offset = batches * BatchSize
     // The last legal counter need not have a successor when there is no tail.
-    if offset < source.count do
-        counter += cast(u32, (batches * 4))
-
-    while offset < source.count
+    if offset < source.count
     {
-        var block = try chacha20Block(key, counter, nonce)
-        let count = Math.min(source.count - offset, ChaCha20BlockSize)
-
-        // Apply complete vectors first, then finish the last partial vector by bytes.
-        let src = source.buffer + offset
-        let dst = destination.buffer + offset
-        var i   = 0'u64
-        while count - i >= #sizeof(Simd.U8x16)
-        {
-            Simd.store(dst + i, Simd.load(src + i) ^ Simd.load(block.buffer + i))
-            i += #sizeof(Simd.U8x16)
-        }
-
-        while i < count
-        {
-            dst[i] = src[i] ^ block[i]
-            i      += 1
-        }
-
-        secureClear(block)
-        offset += count
-        if offset < source.count do
-            counter += 1
+        let counter = initialCounter + cast(u32, (batches * 4))
+        chacha20XorTail(key.buffer, nonce.buffer, source.buffer + offset, destination.buffer + offset, source.count - offset, counter)
     }
 }

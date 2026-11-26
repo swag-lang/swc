@@ -246,6 +246,19 @@ internal struct DrawingItem
     bounds: Rectangle
 }
 
+private struct PatternTileKey
+{
+    id:    u64
+    origin, phase, size: Vector2
+    scale: f32
+}
+
+private struct PatternRaster
+{
+    key:   PatternTileKey
+    image: Image
+}
+
 private struct PaintBlock
 {
     minimum, maximum: Vector2
@@ -5530,7 +5543,42 @@ impl Drawing
         }
     }
 
-    private mtd const paintPattern(painter: *Painter, shape: *Shape, pattern: const *Pattern)
+    private mtd const rasterizePatternTile(pattern: const *Pattern, key: const *PatternTileKey, pixelWidth, pixelHeight: s32)->Image
+    {
+        var cpu:      RenderCpu
+        let renderer: IRenderer = &cpu
+        cpu.begin(pixelWidth, pixelHeight)
+        var target      = renderer.createRenderTarget(pixelWidth, pixelHeight)
+        var tilePainter = Painter.create(renderer)
+        tilePainter.begin()
+        tilePainter.bindRenderTarget(&target, paintAlpha: false)
+        tilePainter.setColorMaskFull()
+        tilePainter.clear(Color.fromArgb(Argb.Zero))
+        for copyY in 3
+        {
+            for copyX in 3
+            {
+                let offsetX       = cast(f32, (cast(s32, copyX) - 1)) * key.size.x
+                let offsetY       = cast(f32, (cast(s32, copyY) - 1)) * key.size.y
+                var tileTransform = Math.Transform2.createTranslation(-key.origin.x - key.phase.x + offsetX, -key.origin.y - key.phase.y + offsetY)
+                tileTransform.multiply(Math.Transform2.createScale(key.scale, key.scale, 0, 0))
+                tilePainter.setTransform(tileTransform)
+                for i in pattern.count do
+                    .paintShapeCore(&tilePainter, &.shapes[pattern.first + i])
+            }
+        }
+
+        tilePainter.unbindRenderTarget()
+        tilePainter.end()
+        expect renderer.draw(&tilePainter)
+
+        let result = renderer.readRenderTarget(&target, 0, 0, pixelWidth, pixelHeight)
+        renderer.deleteRenderTarget(&target)
+        renderer.end()
+        return result
+    }
+
+    private mtd const paintPattern(painter: *Painter, shape: *Shape, pattern: const *Pattern, cache: *PatternRaster? = null)
     {
         let paths = .materializeShape(shape)
         paths.flatten(.Normal)
@@ -5550,43 +5598,37 @@ impl Drawing
         if tileWidth <= 0 or tileHeight <= 0 do
             return
 
-        let rasterScale         = Math.max(painter.contentScale(), 1.0'f32)
-        let pixelWidth          = cast(s32, Math.max(Math.ceil(tileWidth * rasterScale), 1.0'f32))
-        let pixelHeight         = cast(s32, Math.max(Math.ceil(tileHeight * rasterScale), 1.0'f32))
-        var cpu:      RenderCpu
-        let renderer: IRenderer = &cpu
-        cpu.begin(pixelWidth, pixelHeight)
-        var target      = renderer.createRenderTarget(pixelWidth, pixelHeight)
-        var tilePainter = Painter.create(renderer)
-        tilePainter.begin()
-        tilePainter.bindRenderTarget(&target, paintAlpha: false)
-        tilePainter.setColorMaskFull()
-        tilePainter.clear(Color.fromArgb(Argb.Zero))
-        let phaseX = min.x - tileX - Math.floor((min.x - tileX) / tileWidth) * tileWidth
-        let phaseY = min.y - tileY - Math.floor((min.y - tileY) / tileHeight) * tileHeight
-        for copyY in 3
+        let rasterScale = Math.max(painter.contentScale(), 1.0'f32)
+        let pixelWidth  = cast(s32, Math.max(Math.ceil(tileWidth * rasterScale), 1.0'f32))
+        let pixelHeight = cast(s32, Math.max(Math.ceil(tileHeight * rasterScale), 1.0'f32))
+        let phaseX      = min.x - tileX - Math.floor((min.x - tileX) / tileWidth) * tileWidth
+        let phaseY      = min.y - tileY - Math.floor((min.y - tileY) / tileHeight) * tileHeight
+        let key         = PatternTileKey{shape.fillPaintId, Vector2{tileX, tileY}, Vector2{phaseX, phaseY}, Vector2{tileWidth, tileHeight}, rasterScale}
+        var localImage: Image
+        var tile:       const *Image = &localImage
+
+        // Small user-space tiles can repeat across aligned shapes in the same paint.
+        if cache and
+           pattern.userSpace and
+           pixelWidth > 0 and
+           pixelHeight > 0 and
+           pixelWidth <= 256 and
+           pixelHeight <= 256
         {
-            for copyX in 3
+            if not cache.image.isValid() or Memory.compare(&cache.key, &key, #sizeof(PatternTileKey)) != 0
             {
-                let offsetX       = cast(f32, (cast(s32, copyX) - 1)) * tileWidth
-                let offsetY       = cast(f32, (cast(s32, copyY) - 1)) * tileHeight
-                var tileTransform = Math.Transform2.createTranslation(-tileX - phaseX + offsetX, -tileY - phaseY + offsetY)
-                tileTransform.multiply(Math.Transform2.createScale(rasterScale, rasterScale, 0, 0))
-                tilePainter.setTransform(tileTransform)
-                for i in pattern.count do
-                    .paintShapeCore(&tilePainter, &.shapes[pattern.first + i])
+                cache.image = .rasterizePatternTile(pattern, &key, pixelWidth, pixelHeight)
+                cache.key   = key
             }
+
+            tile = &cache.image
+        }
+        else
+        {
+            localImage = .rasterizePatternTile(pattern, &key, pixelWidth, pixelHeight)
         }
 
-        tilePainter.unbindRenderTarget()
-        tilePainter.end()
-        expect renderer.draw(&tilePainter)
-
-        let tileImage = renderer.readRenderTarget(&target, 0, 0, pixelWidth, pixelHeight)
-        renderer.deleteRenderTarget(&target)
-        renderer.end()
-
-        let texture = painter.renderer().addImage(tileImage)
+        let texture = painter.renderer().addImage(tile[])
         var brush   = Brush.createTiled(texture)
 
         painter.fillPath(paths, brush)
@@ -5853,10 +5895,11 @@ impl Drawing
 
         let axisAligned  = tr.m12 == 0 and tr.m21 == 0
         let useBlocks    = .paintBlocks.count and painter.hasClippingRect()
-        var candidates:  Array'u64
+        var candidates:    Array'u64
         let useBins      = useBlocks and .collectPaintCandidates(tr, visible, axisAligned, &candidates)
         let useRuns      = useBlocks and not useBins
-        var textScratch: SvgTextScratch
+        var textScratch:   SvgTextScratch
+        var patternRaster: PatternRaster
         var measuredText = false
         for blockIndex in (useRuns ? .paintBlocks.count : 1'u64)
         {
@@ -5912,7 +5955,7 @@ impl Drawing
                     let pattern = .patterns.tryFind(shape.fillPaintId)
                     if pattern
                     {
-                        .paintPattern(painter, shape, &pattern.value)
+                        .paintPattern(painter, shape, &pattern.value, &patternRaster)
                         .paintShapeCore(painter, shape, false)
                     }
                     else

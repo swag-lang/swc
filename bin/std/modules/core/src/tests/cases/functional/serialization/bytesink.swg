@@ -18,7 +18,7 @@ using Swag, Core.Errors
     Swag.require(expect File.readAllText(path) == "HEADER payload tail")
 }
 
-// A patch spanning committed and pending bytes flushes safely and leaves appending at the end.
+// A patch spanning committed and pending bytes preserves the pending batch and append cursor.
 #test
 {
     let path = CoreTests.makeFilesystemTestPath("bytesink_straddling_patch.bin")
@@ -28,6 +28,8 @@ using Swag, Core.Errors
     expect sink.flush()
     expect sink.writeText("new tail")
     expect sink.patch(4, cast(const [..] u8, "HEADNEW"))
+    Swag.require(sink.pendingCount == 8 and expect sink.stream.size() == 8)
+    Swag.require(sink.position() == 16)
     expect sink.writeText(" end")
     expect sink.close()
     Swag.require(expect File.readAllText(path) == "old HEADNEW tail end")

@@ -355,13 +355,19 @@ public impl Xml
 
         case Core.String:
             var result: #returntype
-            var c = .stream.peekU8()
-            while c and c != '<'
+            while true
             {
-                if c == ']'
+                let bytes  = .stream.remainingBytes()
+                let length = Math.min(bytes.count, Utf8.indexOfAny(bytes, "<&\r]"))
+                result.append(Swag.makeString(bytes.buffer, length))
+                .stream.advance(length)
+                if length == bytes.count or bytes[length] == '<' do
+                    return result
+
+                let c = bytes[length]
+                if c == ']' and bytes.count - length >= 3
                 {
-                    let remaining = .stream.remainingBytes()
-                    if remaining.count >= 3 and remaining[1] == ']' and remaining[2] == '>' do
+                    if bytes[length + 1] == ']' and bytes[length + 2] == '>' do
                         fail .getError("XML text contains the forbidden CDATA terminator")
                 }
 
@@ -381,11 +387,7 @@ public impl Xml
                 {
                     result += c
                 }
-
-                c = .stream.peekU8()
             }
-
-            return result
 
         default:
             .zapBlanks()

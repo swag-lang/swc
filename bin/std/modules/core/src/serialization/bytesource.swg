@@ -20,16 +20,17 @@ struct ByteSource
 {
     internal
     {
-        stream:      File.FileStream     // Open file, when the source reads from a file.
-        memory:      const [..] u8?      // Borrowed bytes, when the source reads from memory.
-        fileName:    String              // File the source reads, empty for a memory source.
-        window:      Array'u8            // Read-ahead window over the file.
-        windowStart: u64                 // Stream offset of the first byte held in the window.
-        windowCount: u64                 // Number of valid bytes in the window.
-        cursor:      u64                 // Read position in the stream.
-        length:      u64                 // Total size of the stream, in bytes.
-        isFile:      bool                // Whether the source reads from `stream`.
-        isMemory:    bool                // Whether the source reads from `memory`.
+        stream:       File.FileStream     // Open file, when the source reads from a file.
+        memory:       const [..] u8?      // Borrowed bytes, when the source reads from memory.
+        fileName:     String              // File the source reads, empty for a memory source.
+        window:       Array'u8            // Read-ahead window over the file.
+        windowStart:  u64                 // Stream offset of the first byte held in the window.
+        windowCount:  u64                 // Number of valid bytes in the window.
+        filePosition: u64                 // Native cursor, or U64.Max after an incomplete read.
+        cursor:       u64                 // Read position in the stream.
+        length:       u64                 // Total size of the stream, in bytes.
+        isFile:       bool                // Whether the source reads from `stream`.
+        isMemory:     bool                // Whether the source reads from `memory`.
     }
 }
 
@@ -145,10 +146,9 @@ impl ByteSource
 
             // A payload larger than the window is read once, so buffering it would copy every
             // byte twice and evict a window the header parser still uses.
-            if missing >= WindowSize
+            if wanted >= WindowSize
             {
-                if not (try .stream.readExactAt(.cursor, buffer[done until done + missing])) do
-                    fail InvalidFormatError{"byte source ends before the requested bytes"}
+                try .readFileExact(buffer[done until done + missing])
                 .cursor += missing
                 return wanted
             }
@@ -207,20 +207,28 @@ impl ByteSource
     // before the terminator, which is how a text header of a binary stream stays bounded.
     mtd readLine(maxBytes: u64)->String fail
     {
-        var bytes: Array'u8
+        var result: #returntype
+        var consumed = 0'u64
         while true
         {
-            let value = try .readByte()
-            if value == '\n'
+            let bytes   = try .peek(1)
+            let allowed = maxBytes - consumed
+            let span    = allowed < bytes.count ? allowed + 1 : bytes.count
+            let newline = Slice.findLinear(bytes[until span], '\n'u8)
+            if newline != Swag.U64.Max
             {
-                if not bytes.isEmpty() and bytes.back() == '\r' do
-                    discard bytes.popBack()
-                return String.from(cast(string, bytes.toSlice()))
+                result.append(Swag.makeString(bytes.buffer, newline))
+                .cursor += newline + 1
+                if not result.isEmpty() and result.back() == '\r' do
+                    result.removeBack()
+                return result
             }
 
-            bytes.add(value)
-            if bytes.count > maxBytes do
+            .cursor += span
+            if span > allowed do
                 fail InvalidFormatError{"byte source line exceeds its maximum length"}
+            result.append(Swag.makeString(bytes.buffer, span))
+            consumed += span
         }
     }
 
@@ -245,8 +253,9 @@ impl ByteSource
         if not .isFile do
             return Swag.makeSlice(unwrap .memory.buffer + .cursor, .remaining())
 
-        if .cursor < .windowStart or .cursor + count > .windowStart + .windowCount do
-            try .fillWindow(count)
+        let needed = Math.max(1'u64, count)
+        if .cursor < .windowStart or .cursor + needed > .windowStart + .windowCount do
+            try .fillWindow(needed)
         return .window.toSlice()[.cursor - .windowStart until .windowCount]
     }
 
@@ -258,10 +267,21 @@ impl ByteSource
             .window.resize(size)
 
         let count = Math.min(size, .remaining())
-        if not (try .stream.readExactAt(.cursor, .window.toSlice()[until count])) do
-            fail InvalidFormatError{"byte source ends before the requested bytes"}
-
+        .windowCount = 0
+        try .readFileExact(.window.toSlice()[until count])
         .windowStart = .cursor
         .windowCount = count
+    }
+
+    // Sequential reads are already positioned at the end of the previous transfer.
+    private mtd readFileExact(buffer: [..] u8) fail
+    {
+        let needsSeek = .filePosition != .cursor
+        .filePosition = Swag.U64.Max
+        if needsSeek do
+            try .stream.seek(.Begin, .cursor)
+        if not (try .stream.readExact(buffer)) do
+            fail InvalidFormatError{"byte source ends before the requested bytes"}
+        .filePosition = .cursor + buffer.count
     }
 }

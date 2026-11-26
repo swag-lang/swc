@@ -55,6 +55,8 @@ public impl Plan
         .podFinal  = pod
         .hasCustom = Reflection.hasInterface(structType, ISerialize)
 
+        // Reserve before borrowing keys from the fields, including inline string storage.
+        .fields.reserve(structType.fields.count)
         for field in structType.fields
         {
             if Reflection.hasAttribute(field, NoSerialize) or Reflection.hasAttribute(field.pointedType, NoSerialize) do
@@ -72,23 +74,21 @@ public impl Plan
                               Reflection.hasAttribute(field.pointedType, Compress)
             }
 
-            for existing in .fields where existing.key == planned.key
+            let existing = .keyToIndex.tryFind(planned.key.toString())
+            if existing
             {
                 let message = Format.toString("serialized struct [[%]] fields [[%]] and [[%]] use key [[%]]",
                                               structType.fullname,
-                                              existing.value.name,
+                                              .fields[existing.value].value.name,
                                               field.name,
                                               planned.key)
                 fail SerializationError{Errors.mkString(message), field: field}
             }
 
+            let index = .fields.count
             .fields.add(#move planned)
+            .keyToIndex.add(.fields.backPtr().key.toString(), index)
         }
-
-        // Populate borrowed lookup views only after the field array has reached its final
-        // allocation. Growing an array of owned strings can relocate their buffers.
-        for &planned, fieldIndex in .fields do
-            .keyToIndex.add(planned.key.toString(), fieldIndex)
     }
 
     // Returns the plan field whose wire key is `key`, or null when there is none.

@@ -118,7 +118,8 @@ impl Xml
         return type.crc
     }
 
-    internal mtd setRootType(type: typeinfo) fail
+    #[Swag.NoDoc]
+    mtd setRootType(type: typeinfo) fail
     {
         if not xmlCanWrite(type) do
             fail UnsupportedFormatError{"XML does not support the serialized root type"}
@@ -129,22 +130,29 @@ impl Xml
         if not value do
             return
 
-        let text = value
-        for c in text
+        let bytes  = cast(const [..] u8, value)
+        let output = .getOutput()
+        var start  = 0'u64
+        for c, index in bytes
         {
+            var entity: string
             switch c
             {
-            case '&':  .getOutput().addBytes("&amp;")
-            case '<':  .getOutput().addBytes("&lt;")
-            case '>':  .getOutput().addBytes("&gt;")
-            case '"':  .getOutput().addBytes("&quot;")
-            case '\'': .getOutput().addBytes("&apos;")
-            case '\r': .getOutput().addBytes("&#13;")
-            default:   .getOutput().addNative(c)
+            case '&':  entity = "&amp;"
+            case '<':  entity = "&lt;"
+            case '>':  entity = "&gt;"
+            case '"':  entity = "&quot;"
+            case '\'': entity = "&apos;"
+            case '\r': entity = "&#13;"
+            default:   continue
             }
+
+            output.addBytes(bytes[start until index], contiguous: false)
+            output.addBytes(entity)
+            start = index + 1
         }
 
-        let bytes = cast(const [..] u8, text)
+        output.addBytes(bytes[start until bytes.count], contiguous: false)
         if not Utf8.isValid(bytes)
         {
             .invalidCharacters = true
@@ -172,7 +180,8 @@ impl Xml
         .unsupportedValues = false
     }
 
-    internal mtd abortWrite()
+    #[Swag.NoDoc]
+    mtd abortWrite()
     {
         .output = null
     }

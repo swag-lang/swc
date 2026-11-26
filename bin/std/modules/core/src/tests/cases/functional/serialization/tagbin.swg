@@ -919,6 +919,36 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.require(Utf8.contains(Errors.message(err), "document schema"))
 }
 
+// A failed positional value read leaves later fields recoverable through their offsets.
+#test
+{
+    var payload = makeTagBinPayload()
+    payload.name = "a longer TagBin name"
+    let bytes = encodeTagBin(payload)
+    let field = findTagBinV1Field(bytes.toSlice(), "name")
+    var patched: Array'u8
+    patched.add(bytes.toSlice())
+    for i in 9 do
+        patched[field.seek + i] = 0xFF
+    patched[field.seek + 9] = 1
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    var error:   Swag.Error
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as error
+    Swag.require(error.value() != null)
+
+    decoder.flags |= .IgnoreStructFieldError
+    let decoded = expect decoder.readAll'TagBinPayload(patched.toSlice())
+    defer Memory.delete(decoded)
+    Swag.require(decoded.id == 17 and decoded.active and decoded.name.isEmpty())
+    Swag.require(Slice.equals(decoded.counts.toSlice(), [-8, 0, 7, 42]))
+    Swag.require(decoded.pair.x == -3 and decoded.pair.y == 11)
+    Swag.require(assertCompressedBlob(decoded.blob))
+    Swag.require(decoder.serializer.diag.fieldErrors == 1)
+    Swag.require(decoder.serializer.diag.recoveredFields == 1)
+    Swag.require(decoder.serializer.diag.droppedStreamFields == 0)
+}
+
 // A scalar whose stream type crc resolves to nothing has no self-validating framing,
 // so a strict decode refuses it rather than reading garbage; a tolerant one resets the
 // field and says so in the diagnostics.
@@ -1721,6 +1751,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
         defer Memory.delete(decoded)
         Swag.require(decoded.name.count == length)
         Swag.require(decoded.name == payload.name)
+        Swag.require(decoded.name.capacity > length and decoded.name.buffer![length] == 0)
     }
 }
 

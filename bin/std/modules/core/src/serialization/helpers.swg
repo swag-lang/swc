@@ -1,5 +1,36 @@
 #global namespace Serialization
 
+// Returns the run of JSON string bytes that can be copied verbatim.
+internal func jsonPlainByteCount(bytes: const [..] u8)->u64
+{
+    const VectorSize = #sizeof(Simd.U8x16)
+    var length = 0'u64
+    if bytes.count >= VectorSize
+    {
+        let control   = Simd.splat(0x20'u8)
+        let quote     = Simd.splat('"'u8)
+        let backslash = Simd.splat('\\'u8)
+        while bytes.count - length >= VectorSize
+        {
+            let block   = Simd.load(bytes.buffer + length)
+            let special = Simd.bitmask((block < control) | (block == quote) | (block == backslash))
+            if special do
+                return length + Math.trailingZeros(special)
+            length += VectorSize
+        }
+    }
+
+    while length < bytes.count
+    {
+        let byte = bytes[length]
+        if byte < 0x20 or byte == '"' or byte == '\\' do
+            break
+        length += 1
+    }
+
+    return length
+}
+
 // Returns the canonical wire key of a field. Explicit keys survive source renames;
 // unannotated fields retain the source name as their wire key.
 internal func wireFieldKey(val: Swag.TypeValue)->string

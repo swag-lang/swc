@@ -284,8 +284,69 @@ private func(Index) writePaletteSpan(destination: [*] u8, source: const [*] Inde
     }
 }
 
+private func(HAS_ALPHA: bool) writeGraySpan(destination: [*] u8, source: const [*] u8, count: u64, rightOrigin: bool)
+{
+    using Math.Simd
+
+    const Reverse = cast(U8x16, [15'u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+    const Triplets0 = cast(U8x16, [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5])
+    const Triplets1 = cast(U8x16, [5'u8, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10])
+    const Triplets2 = cast(U8x16, [10'u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15])
+    const Quadruplets0 = cast(U8x16, [0'u8, 0, 0, 1, 2, 2, 2, 3, 4, 4, 4, 5, 6, 6, 6, 7])
+    const Quadruplets1 = cast(U8x16, [8'u8, 8, 8, 9, 10, 10, 10, 11, 12, 12, 12, 13, 14, 14, 14, 15])
+    const ReverseQuadruplets0 = cast(U8x16, [14'u8, 14, 14, 15, 12, 12, 12, 13, 10, 10, 10, 11, 8, 8, 8, 9])
+    const ReverseQuadruplets1 = cast(U8x16, [6'u8, 6, 6, 7, 4, 4, 4, 5, 2, 2, 2, 3, 0, 0, 0, 1])
+    const Pixels = HAS_ALPHA ? 8 : 16
+    const InputBytes = HAS_ALPHA ? 2 : 1
+    const OutputBytes = HAS_ALPHA ? 4 : 3
+
+    var offset = 0'u64
+    while count - offset >= Pixels
+    {
+        let index = rightOrigin ? count - offset - Pixels : offset
+        let target = destination + offset * OutputBytes
+        var luma = load(source + index * InputBytes)
+        #static if HAS_ALPHA
+        {
+            store(target, shuffle(luma, rightOrigin ? ReverseQuadruplets0 : Quadruplets0))
+            store(target + 16, shuffle(luma, rightOrigin ? ReverseQuadruplets1 : Quadruplets1))
+        }
+        else
+        {
+            if rightOrigin do
+                luma = shuffle(luma, Reverse)
+            store(target, shuffle(luma, Triplets0))
+            store(target + 16, shuffle(luma, Triplets1))
+            store(target + 32, shuffle(luma, Triplets2))
+        }
+
+        offset += Pixels
+    }
+
+    for x in offset until count
+    {
+        let index = rightOrigin ? count - x - 1 : x
+        let pixel = source + index * InputBytes
+        let target = destination + x * OutputBytes
+        let luma = pixel[0]
+        #static if HAS_ALPHA do
+            writeBgraPixel(target, luma, luma, luma, pixel[1])
+        else do
+            writeBgrPixel(target, luma, luma, luma)
+    }
+}
+
 private func writeSourceSpan(destination: [*] u8, source: const [*] u8, count: u64, header: Header, palette: Palette, sourceBytes: u8, destinationBytes: s32, rightOrigin: bool) fail
 {
+    if isMonoType(header.imageTypeCode)
+    {
+        if sourceBytes == 2 do
+            writeGraySpan'true(destination, source, count, rightOrigin)
+        else do
+            writeGraySpan'false(destination, source, count, rightOrigin)
+        return
+    }
+
     if palette.colors
     {
         if sourceBytes == 1 do

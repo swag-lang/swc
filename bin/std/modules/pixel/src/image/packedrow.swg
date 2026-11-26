@@ -79,6 +79,46 @@ func swapRedBlue32Row(source: const [*] u8, destination: [*] u8, pixelCount: u64
     }
 }
 
+// Eight-bit alpha conversion is independent for each channel. Use the same normalized
+// rounding as Image.convertAlphaTo, including zeroing RGB when the alpha sample is zero.
+private func buildStraightAlpha8Table()->[65536] u8
+{
+    var result: #returntype
+    for alpha in 1 until 256
+    {
+        let a = cast(f32, alpha) / 255.0
+        for channel in 256
+            do
+            result[(alpha << 8) | channel] = normalizedToU8((cast(f32, channel) / 255.0) / a)
+    }
+
+    return result
+}
+
+private const StraightAlpha8Table = #run buildStraightAlpha8Table()
+
+// Copies premultiplied RGBA8 or BGRA8 samples as straight alpha.
+// Source and target may be the same buffer.
+func writeStraightAlpha8(source: const [*] u8, target: [*] u8, count: u64, swapRedBlue: bool)
+{
+    let blue = swapRedBlue ? 2 : 0
+    let red  = 2 - blue
+    for i in count
+    {
+        let input  = source + i * 4
+        let output = target + i * 4
+        let alpha  = input[3]
+        let values = StraightAlpha8Table.buffer + (cast(u32, alpha) << 8)
+        let b      = values[input[blue]]
+        let g      = values[input[1]]
+        let r      = values[input[red]]
+        output[0] = b
+        output[1] = g
+        output[2] = r
+        output[3] = alpha
+    }
+}
+
 func fillBgr24Row(pixel: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
     let packed  = cast(u32, pixel[0]) | (cast(u32, pixel[1]) << 8) | (cast(u32, pixel[2]) << 16)

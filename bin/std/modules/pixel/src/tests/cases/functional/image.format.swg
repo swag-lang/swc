@@ -150,6 +150,57 @@ const PackedFormats: [18] PixelFormat = [
     Swag.require(restored.pixels.storage()[3] == 128)
 }
 
+// Packed 8-bit alpha conversion agrees with the scalar logical-color helpers for every sample.
+#test
+{
+    for format in [PixelFormat.RGBA8, .BGRA8]
+    {
+        var source = Image.create(256, 256, format, alphaMode: .Premultiplied)
+        let pixels = source.pixels.storage()
+        for alpha in 256
+        {
+            for sample in 256
+            {
+                let pixel = pixels + (alpha * 256 + sample) * 4
+                pixel[0] = cast(u8, sample)
+                pixel[1] = cast(u8, 255 - sample)
+                pixel[2] = cast #wrap(u8, sample * 73)
+                pixel[3] = cast(u8, alpha)
+            }
+        }
+
+        var metadata: ImageMetadata
+        metadata.signature = 73
+        metadata.tag       = "alpha-test"
+        metadata.value.add(0x5A'u8)
+        source.metadata.add(#move metadata)
+
+        let before = Hash.Crc32.compute(source.pixels.toSlice())
+        let copy   = source.convertedAlphaTo(.Straight)
+        Swag.require(copy.alphaMode == .Straight and copy.pixelFormat == format)
+        Swag.require(copy.width == source.width and copy.height == source.height)
+        Swag.require(copy.metadata.count == 1 and copy.metadata[0].signature == 73)
+        Swag.require(copy.metadata[0].isTag("alpha-test"))
+        Swag.require(copy.metadata[0].value.count == 1 and copy.metadata[0].value[0] == 0x5A)
+        Swag.require(source.alphaMode == .Premultiplied)
+        Swag.require(Hash.Crc32.compute(source.pixels.toSlice()) == before)
+
+        var inPlace = source
+        inPlace.convertAlphaTo(.Straight)
+        Swag.require(inPlace.alphaMode == .Straight)
+        Swag.require(Memory.compare(copy.pixels.storage(), inPlace.pixels.storage(), copy.byteCount) == 0)
+
+        let converted = copy.pixels.storage()
+        for i in 256 * 256
+        {
+            var expected: [4] u8
+            let logical = readLogicalPixelValue(pixels + i * 4, format, .Premultiplied)
+            writePixelValue(&expected[0], format, logical)
+            Swag.require(Memory.compare(converted + i * 4, &expected[0], 4) == 0)
+        }
+    }
+}
+
 // Converting a fully transparent pixel clears hidden RGB in either alpha association.
 #test
 {

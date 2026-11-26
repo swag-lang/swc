@@ -71,12 +71,8 @@ private func(SAMPLE_BYTES: u64, CHANNELS: u64, CHANNEL: u64) unpackPlane(first, 
 }
 
 #[Swag.Inline]
-private func(T) unpackRgba(destination: [*] u8, planeBytes: u64, source: const [*] u8)
+private func(T) unpackRgbaVectors(destination: [*] u8, planeBytes: u64, first, second, third, fourth: T)
 {
-    let first  = cast #bit(T, Simd.load(source))
-    let second = cast #bit(T, Simd.load(source + 16))
-    let third  = cast #bit(T, Simd.load(source + 32))
-    let fourth = cast #bit(T, Simd.load(source + 48))
     let low0   = Simd.interleaveLow(first, second)
     let high0  = Simd.interleaveHigh(first, second)
     let low1   = Simd.interleaveLow(third, fourth)
@@ -102,6 +98,16 @@ private func(T) unpackRgba(destination: [*] u8, planeBytes: u64, source: const [
     Simd.store(destination + planeBytes, cast #bit(Simd.U8x16, Simd.interleaveLow(ba0, ba1)))
     Simd.store(destination + 2 * planeBytes, cast #bit(Simd.U8x16, Simd.interleaveHigh(rg0, rg1)))
     Simd.store(destination + 3 * planeBytes, cast #bit(Simd.U8x16, Simd.interleaveLow(rg0, rg1)))
+}
+
+#[Swag.Inline]
+func(T) unpackRgba(destination: [*] u8, planeBytes: u64, source: const [*] u8)
+{
+    let first  = cast #bit(T, Simd.load(source))
+    let second = cast #bit(T, Simd.load(source + 16))
+    let third  = cast #bit(T, Simd.load(source + 32))
+    let fourth = cast #bit(T, Simd.load(source + 48))
+    unpackRgbaVectors'T(destination, planeBytes, first, second, third, fourth)
 }
 
 #[Swag.Inline]
@@ -176,12 +182,58 @@ private func(INPUT, GRAY: bool) integerToHalf(value: INPUT)->u16
         // The first three positive 16-bit samples round to these exact HALF subnormals.
         if value < 4 do
             return value << 8
-        let unit       = cast(f32, value) / 65535.0
+        let unit       = cast(f32, value) * (1.0 / 65535.0)
         let normalized = GRAY ? unit * 0.2126 + unit * 0.7152 + unit * 0.0722 : unit
         let bits       = cast #bit(u32, normalized)
 
         // The remaining samples are finite, positive normals. Round the significand to nearest even.
         return cast(u16, (bits - 0x3800_0000 + 0x0FFF + ((bits >> 13) & 1)) >> 13)
+    }
+}
+
+#[Swag.Inline]
+private func unsignedSamplesToHalf(values: Simd.U32x4)->Simd.S32x4
+{
+    // Adding the bits of 2^23 converts these unsigned words to exact floats.
+    let integral = cast #bit(Simd.F32x4, values | Simd.splat(0x4B00_0000'u32)) - Simd.splat(8388608'f32)
+    let unit     = integral * Simd.splat(1.0'f32 / 65535'f32)
+    let bits     = cast #bit(Simd.U32x4, unit)
+    let rounded  = (bits + Simd.splat(0x0FFF'u32) + ((bits >> 13) & Simd.splat(1'u32))) >> 13
+    let normal   = rounded - Simd.splat(0x1C000'u32)
+    let tiny     = values < Simd.splat(4'u32)
+    return cast #bit(Simd.S32x4, Simd.select(tiny, values << 8, normal))
+}
+
+#[Swag.Inline]
+private func integerHalfVector(samples: Simd.U8x16)->Simd.U16x8
+{
+    let words = cast #bit(Simd.U16x8, samples)
+    let low   = unsignedSamplesToHalf(Simd.widenLow(words))
+    let high  = unsignedSamplesToHalf(Simd.widenHigh(words))
+    return Simd.packUnsigned(low, high)
+}
+
+#[Swag.Inline]
+private func(CHANNELS: u64, BLUE_FIRST: bool) writeUnsigned16ColorBlock(destination: [*] u8, source: const [*] u8, planeBytes: u64)
+{
+    let first  = integerHalfVector(Simd.load(source))
+    let second = integerHalfVector(Simd.load(source + 16))
+    let third  = integerHalfVector(Simd.load(source + 32))
+    #static if CHANNELS == 4
+    {
+        let fourth = integerHalfVector(Simd.load(source + 48))
+        unpackRgbaVectors'(Simd.U16x8)(destination, planeBytes, first, second, third, fourth)
+    }
+    else
+    {
+        const BluePlane = BLUE_FIRST ? 0'u64 : 2'u64
+        const RedPlane  = 2 - BluePlane
+        let x0 = cast #bit(Simd.U8x16, first)
+        let x1 = cast #bit(Simd.U8x16, second)
+        let x2 = cast #bit(Simd.U8x16, third)
+        Simd.store(destination, unpackPlane'(2, 3, BluePlane)(x0, x1, x2))
+        Simd.store(destination + planeBytes, unpackPlane'(2, 3, 1)(x0, x1, x2))
+        Simd.store(destination + 2 * planeBytes, unpackPlane'(2, 3, RedPlane)(x0, x1, x2))
     }
 }
 
@@ -194,7 +246,17 @@ private func(INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeIntegerPlanes(destinat
     let planes = cast([*] u16, destination)
     let colors = planes + FirstColor * width
     let packed = cast(const [*] INPUT, source)
-    for x in width
+    var start: u64
+    #static if INPUT == u16 and CHANNELS >= 3
+    {
+        while width - start >= 8
+        {
+            writeUnsigned16ColorBlock'(CHANNELS, BLUE_FIRST)(destination + start * 2, source + start * CHANNELS * 2, width * 2)
+            start += 8
+        }
+    }
+
+    for x in start until width
     {
         let pixel = packed + x * CHANNELS
         #static if CHANNELS >= 3

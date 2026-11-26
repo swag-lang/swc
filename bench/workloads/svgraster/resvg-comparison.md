@@ -674,3 +674,26 @@ in milliseconds under matching CPU affinities.
 
 Swag kept the same CRC-64 across the three worker counts. A four-worker
 prototype's process peak on this fixture rose from 24,880 to 25,904 KiB.
+
+## Rejecting contours outside the horizontal clip
+
+A closed contour fully outside the target's horizontal range contributes
+pairs of crossings clamped to the same boundary. Its winding cancels
+without changing the covered spans. The projection step now measures
+horizontal bounds along with vertical ones. It leaves a pixel of room for
+rounding and uses the ordinary collection path for large coordinates.
+
+Eleven interleaved Release runs on `dense-colored` used the Scope options
+with parallel band processing. These are median parse-plus-raster times
+in milliseconds under matching CPU affinities.
+
+| CPU budget | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: |
+| One logical CPU | 98.65 | 63.64 | 50.07 |
+| Two logical CPUs | 78.79 | 53.66 | 50.32 |
+| Four logical CPUs | 47.88 | 38.91 | 50.10 |
+
+The compound fixture, original bitmaps and thumbnails, synthetic controls
+and thirteen public SVGs retain their CRC-64s. The scan-band regression
+clips the same contours on both horizontal sides and compares the raster
+with individual draws.

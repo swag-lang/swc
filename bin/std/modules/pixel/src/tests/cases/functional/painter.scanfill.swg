@@ -174,7 +174,7 @@ using Core
         painter.setColorMaskFull()
         painter.clear(Color.fromArgb(Argb.White))
         painter.setColorMaskColor()
-        painter.setClippingRect({5, 5, 64, 406})
+        painter.setClippingRect({10, 5, 44, 406})
         painter.setTransform(Math.Transform2.createTranslation(0.25, 0.25))
 
         var contours: LinePathList

@@ -3592,6 +3592,7 @@ private impl RenderCpu
     {
         low, high: f32
         finite:    bool
+        outside:   bool
     }
 
     struct ProjectedContours
@@ -3600,8 +3601,9 @@ private impl RenderCpu
         bounds: Array'ScanContourBounds
     }
 
-    func projectContours(projected: *ProjectedContours, painter: const *Painter, fill: const *ScanFillBatch, transform: const *Transform2, first, pointCount: u64)
+    func projectContours(projected: *ProjectedContours, painter: const *Painter, fill: const *ScanFillBatch, transform: const *Transform2, first, pointCount: u64, left, right: s32)
     {
+        const CoordinateLimit = 1_048_576'f32
         let points = painter.scanPoints.toSlice()
         let ends   = painter.scanContourEnds.toSlice()[fill.first until fill.end]
         let mapped = projected.points.emplaceAddress(cast(u32, pointCount))
@@ -3609,16 +3611,27 @@ private impl RenderCpu
         var point = first
         for end in ends
         {
-            var bounds = ScanContourBounds{Swag.F32.Max, -Swag.F32.Max, true}
+            var bounds = ScanContourBounds{Swag.F32.Max, -Swag.F32.Max, true, false}
+            var lowX   = Swag.F32.Max
+            var highX  = -Swag.F32.Max
             for index in point until end
             {
                 let value = transform.transformPoint(points[index])
                 bounds.finite         = bounds.finite and value.isFinite()
                 bounds.low            = Math.min(bounds.low, value.y)
                 bounds.high           = Math.max(bounds.high, value.y)
+                lowX                  = Math.min(lowX, value.x)
+                highX                 = Math.max(highX, value.x)
                 mapped[index - first] = value
             }
 
+            // At one clip boundary the crossings of a closed contour cancel. Leave a pixel
+            // for rounding and retain large coordinates for the ordinary interpolation path.
+            bounds.outside = bounds.finite and
+                             cast(f32, right) <= CoordinateLimit and
+                             lowX >= -CoordinateLimit and
+                             highX <= CoordinateLimit and
+                             (highX < cast(f32, left) - 1 or lowX > cast(f32, right) + 1)
             projected.bounds.add(bounds)
             point = end
         }
@@ -3638,7 +3651,9 @@ private impl RenderCpu
             let bounds = &projected.bounds[index]
 
             // Use the same tile-local coordinates the edge collector will subtract.
-            if not bounds.finite or (bounds.high - origin.y >= 0 and bounds.low - origin.y <= cast(f32, height)) do
+            if not bounds.outside and
+               (not bounds.finite or
+                (bounds.high - origin.y >= 0 and bounds.low - origin.y <= cast(f32, height))) do
                 addScanContour(crossings, points[point until end], &identity, 1, origin, true, cast(f32, width))
             point = end
         }
@@ -3772,7 +3787,7 @@ private impl RenderCpu
         if fill.end - fill.first >= 128 and
            pointCount <= ScanBandCrossingBudget and
            bottom - top > bandHeight * 2 do
-            projectContours(&projected, painter, fill, &transform, firstPoint, pointCount)
+            projectContours(&projected, painter, fill, &transform, firstPoint, pointCount, left, right)
 
         if projected.bounds.count and Swag.workerCount() > 1
         {

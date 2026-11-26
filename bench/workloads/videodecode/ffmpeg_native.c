@@ -23,7 +23,7 @@ static void check(int result)
 }
 
 static void receive(AVCodecContext *codec, AVFrame *frame, unsigned *count,
-                    double *start, double *cpu)
+                    unsigned warmup, double *start, double *cpu)
 {
     for (;;)
     {
@@ -31,7 +31,7 @@ static void receive(AVCodecContext *codec, AVFrame *frame, unsigned *count,
         if (result == AVERROR(EAGAIN) || result == AVERROR_EOF)
             return;
         check(result);
-        if (++*count == 30)
+        if (++*count == warmup)
         {
             *start = seconds(CLOCK_MONOTONIC);
             *cpu = seconds(CLOCK_THREAD_CPUTIME_ID);
@@ -42,9 +42,12 @@ static void receive(AVCodecContext *codec, AVFrame *frame, unsigned *count,
 
 int main(int argc, char **argv)
 {
-    if (argc != 4)
+    if (argc != 4 && argc != 5)
         return 2;
     const unsigned repeats = strtoul(argv[2], NULL, 10);
+    const unsigned warmup = argc == 5 ? strtoul(argv[4], NULL, 10) : 30;
+    if (!warmup)
+        return 2;
     if (atoi(argv[3]))
         av_force_cpu_flags(0);
     for (unsigned rep = 0; rep <= repeats; ++rep)
@@ -77,18 +80,18 @@ int main(int argc, char **argv)
             if ((unsigned)packet->stream_index == video)
             {
                 check(avcodec_send_packet(codec, packet));
-                receive(codec, frame, &count, &start, &cpu);
+                receive(codec, frame, &count, warmup, &start, &cpu);
             }
             av_packet_unref(packet);
         }
         if (result != AVERROR_EOF)
             check(result);
         check(avcodec_send_packet(codec, NULL));
-        receive(codec, frame, &count, &start, &cpu);
-        if (count <= 30)
+        receive(codec, frame, &count, warmup, &start, &cpu);
+        if (count <= warmup)
             abort();
         if (rep)
-            printf("video frames=%u wall=%.9f cpu=%.9f\n", count - 30,
+            printf("video frames=%u wall=%.9f cpu=%.9f\n", count - warmup,
                    seconds(CLOCK_MONOTONIC) - start, seconds(CLOCK_THREAD_CPUTIME_ID) - cpu);
         avcodec_free_context(&codec);
         avformat_close_input(&format);

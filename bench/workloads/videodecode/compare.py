@@ -29,6 +29,8 @@ def arguments():
     parser.add_argument("--baseline-bin", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--repetitions", type=int, default=5)
+    parser.add_argument("--warmup", type=int, default=WARMUP,
+                        help=f"pictures decoded before the timed window (default {WARMUP})")
     parser.add_argument("--quality-only", action="store_true")
     parser.add_argument("--mpeg4-max-sample-difference", type=int, default=0,
                         help="allow this per-sample difference from FFmpeg for MPEG-4 Part 2")
@@ -37,6 +39,8 @@ def arguments():
     args = parser.parse_args()
     if args.repetitions < 1:
         parser.error("--repetitions must be positive")
+    if not 0 < args.warmup <= 0xFFFFFFFF:
+        parser.error("--warmup must be positive and fit in 32 bits")
     if not 0 <= args.mpeg4_max_sample_difference <= 255:
         parser.error("--mpeg4-max-sample-difference must be in 0 through 255")
     args.output = args.output.resolve()
@@ -148,6 +152,10 @@ def compare_planes(path, stream, frames, planes):
 
 def benchmark_fixture(args, reference, path, prefix):
     stream, times = fixture_timeline(path)
+    frames = len(times) - args.warmup
+    if not args.quality_only and frames <= 0:
+        raise ValueError(f"{path} needs more than {args.warmup} frames for timing")
+
     timeline = prefix.with_suffix(".pts")
     timeline.write_text("".join(f"{float(time):.12f}\n" for time in times))
     libraries = {"candidate": args.library_bin}
@@ -155,10 +163,11 @@ def benchmark_fixture(args, reference, path, prefix):
         libraries["baseline"] = args.baseline_bin
 
     quality = {}
+    picture_mode = "planes" if args.quality_only else "planes-dense"
     for name, library in libraries.items():
         planes = prefix.with_suffix(f".{name}.yuv")
         swag(args, name, library, prefix.with_suffix(f".{name}.planes.log"),
-             "planes", path, timeline, planes)
+             picture_mode, path, timeline, planes)
         quality[name] = compare_planes(path, stream, len(times), planes)
         planes.unlink()
 
@@ -169,9 +178,6 @@ def benchmark_fixture(args, reference, path, prefix):
     if args.quality_only:
         return result
 
-    frames = len(times) - WARMUP
-    if frames <= 0:
-        raise ValueError(f"{path} needs more than {WARMUP} frames for timing")
     timing = {name: [] for name in (*libraries, "ffmpeg", "ffmpeg_no_simd")}
     native_cpu = {"ffmpeg": [], "ffmpeg_no_simd": []}
     order = list(timing)
@@ -179,11 +185,14 @@ def benchmark_fixture(args, reference, path, prefix):
         for name in order:
             log = prefix.with_suffix(f".{name}.{repetition + 1}.log")
             if name in libraries:
-                text = swag(args, name, libraries[name], log, "time", path, 1)
+                text = swag(args, name, libraries[name], log, "time", path, 1, len(times), args.warmup)
                 count, ticks, frequency = map(int, SWAG_TIMING.findall(text)[0])
                 elapsed = ticks / frequency
             else:
-                text = run([reference, path, "1", str(int(name == "ffmpeg_no_simd"))], log)
+                command = [reference, path, "1", str(int(name == "ffmpeg_no_simd"))]
+                if args.warmup != WARMUP:
+                    command.append(str(args.warmup))
+                text = run(command, log)
                 count_text, wall, cpu = FFMPEG_TIMING.findall(text)[0]
                 count, elapsed = int(count_text), float(wall)
                 native_cpu[name].append(float(cpu) * 1000 / frames)
@@ -193,6 +202,7 @@ def benchmark_fixture(args, reference, path, prefix):
         order = order[1:] + order[:1]
 
     result["timed_frames"] = frames
+    result["warmup_frames"] = args.warmup
     result["wall_ms_per_frame"] = {name: {"samples": samples, "median": statistics.median(samples)}
                                    for name, samples in timing.items()}
     result["ffmpeg_cpu_ms_per_frame"] = native_cpu

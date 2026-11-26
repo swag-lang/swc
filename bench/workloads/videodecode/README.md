@@ -72,9 +72,11 @@ use different inverse transforms, so its comparison accepts an explicit
 `--mpeg4-max-sample-difference` in eight-bit sample levels. The report always includes
 the observed sample differences, PSNR and Swag plane hash.
 
-Timed inputs need a known frame count on open and one picture per display rank. Each timed
-pass opens the file, decodes the first 30 pictures, and decodes the remaining pictures
-sequentially. A separate untimed pass warms the process and file cache. The timer excludes
+Timed inputs need one picture per display rank. The quality pass verifies this using the
+complete index. The timed pass uses that validated count for formats such as Matroska whose
+file-backed reader indexes lazily. Each pass opens the file, decodes the first 30 pictures
+by default, and decodes the remaining pictures sequentially. Use `--warmup` for shorter
+clips. A separate untimed pass warms the process and file cache. The timer excludes
 startup, compilation, opening the container, the warmup pictures and output serialization.
 The Python runner rotates Swag and FFmpeg runs between repetitions and reports the median
 wall time per picture. Each implementation has one decode lane. FFmpeg uses its decoded
@@ -88,4 +90,14 @@ still matches all 30 displayed pictures by presentation time.
 python3 bench/workloads/videodecode/compare.py --compiler /absolute/build/release/swc \
     --quality-only --output /tmp/swag-video-edited \
     bin/std/modules/video/src/tests/datas/edited-open-group-start.mkv
+```
+
+Time the short RealVideo inputs with two warm-up pictures and a freshly built
+`ffmpeg_native`.
+
+```sh
+taskset -c 4 python3 bench/workloads/videodecode/compare.py \
+    --compiler /absolute/build/release/swc --warmup 2 --repetitions 9 \
+    --output /tmp/swag-video-rv40 \
+    bin/std/modules/video/src/tests/datas/rv40-{intra,ipb,adaptive,slices}.mkv
 ```

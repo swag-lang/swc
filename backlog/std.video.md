@@ -73,6 +73,17 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: the same fixtures approach the single-threaded FFmpeg time while preserving
   the measured sample-error bounds and the MPEG-4 conformance tests.
 
+### std.video.040 — Reuse interpolation work between RealVideo samples
+
+- Evidence: [the Matroska timing comparison](../bench/results/video/20261126-decode-comparison/README.md#matroska-timing-coverage)
+  measures RealVideo I/P/B decoding at 6.39× single-threaded FFmpeg on the short reference
+  clip. Bounds-clamped sample loads, motion selection and interpolation account for about
+  half the profile. All four compared RealVideo streams match the reference planes.
+- Next: move motion setup to the partition boundary and reuse horizontal filter results
+  across vertical interpolation. Measure the four streams with a file-backed reader.
+- Done when: the same I/P/B benchmarks show a repeatable reduction and all reference
+  planes remain exact, including motion vectors outside the visible picture.
+
 ### std.video.009 — H.265 range-extension chroma formats are not decoded
 
 - Evidence: `decode/hevc/sets.swg` rejects `chroma_format_idc` values other than 1, unequal luma

@@ -102,8 +102,11 @@ impl Decoder
     mtd refineCoefficient(coeff: *s16, bit: s16)
     {
         let value = coeff[]
-        if .readEntropyBits(1) and (value & bit) == 0 do
-            coeff[] = value + (value < 0 ? -bit : bit)
+        if .readEntropyBits(1) and (value & bit) == 0
+        {
+            let sign = value >> 15
+            coeff[] = value + ((bit ^ sign) - sign)
+        }
     }
 
     mtd decodeBlockAcRefine(p: [*] s16, present: *u64, table: *HuffTables) fail

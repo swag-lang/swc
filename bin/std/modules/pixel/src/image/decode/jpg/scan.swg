@@ -521,6 +521,23 @@ impl Decoder
         }
     }
 
+    // Lookup ranges are powers of two, so vector fills never have a partial group.
+    #[Swag.Inline]
+    func repeatHuffEntry(destination: [*] s32, count, value: s32)
+    {
+        if count >= 4
+        {
+            let entry = Math.Simd.splat(value)
+            for group in count / 4 do
+                Math.Simd.store(destination + group * 4, entry)
+        }
+        else
+        {
+            for i in count do
+                destination[i] = value
+        }
+    }
+
     mtd makeHuffTable(idx: s32, hs: *HuffTables)
     {
         var huffSize: [257] u8
@@ -569,8 +586,7 @@ impl Decoder
 
         // A prefix that no code covers only appears in a malformed stream. Reading it as a
         // one-bit symbol keeps the scan moving, where an entry consuming no bit would not.
-        for i in lookupCount do
-            lookup[i] = 1 << 8
+        repeatHuffEntry(lookup, lookupCount, 1 << 8)
 
         var nextFreeEntry = -1
         let huffValBuf    = .huffVal[idx].storage()
@@ -588,22 +604,19 @@ impl Decoder
                 let totalSize     = cast(s32, codeSize) + amplitudeSize
                 if packAmplitude and amplitudeSize and amplitudeSize <= 7 and totalSize <= lookupBits
                 {
-                    let amplitudeMask = (1 << amplitudeSize) - 1
-                    for 1 << (lookupBits - codeSize)
+                    // Lookaheads with the same amplitude differ only in their trailing bits.
+                    let repetitions = 1 << (lookupBits - totalSize)
+                    for raw in 1 << amplitudeSize
                     {
-                        let amplitudeBits = cast(u32, ((cde >> (lookupBits - totalSize)) & amplitudeMask))
-                        let amplitude     = extendSign(amplitudeBits, amplitudeSize)
-                        lookup[cde] = entry | ((amplitude & 0xFF) << 16) | (totalSize << 24)
-                        cde         += 1
+                        let amplitude = extendSign(cast(u32, raw), amplitudeSize)
+                        let packed    = entry | ((amplitude & 0xFF) << 16) | (totalSize << 24)
+                        repeatHuffEntry(lookup + cde, repetitions, packed)
+                        cde += repetitions
                     }
                 }
                 else
                 {
-                    for 1 << (lookupBits - codeSize)
-                    {
-                        lookup[cde] = entry
-                        cde         += 1
-                    }
+                    repeatHuffEntry(lookup + cde, 1 << (lookupBits - codeSize), entry)
                 }
             }
             else

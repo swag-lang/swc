@@ -446,3 +446,69 @@ MagickWand version.
 
 ImageMagick rejected the 1 × 3 ZIPS fixture with stored rows. The native OpenEXR reference
 decoded it correctly at 30.5 µs of CPU time, compared with 18 µs for Swag.
+
+## Fourth raster decode pass on Linux
+
+The Release `Image.load` measurements compare `b31d712f65` with the raster changes through
+`cc5407d2f9`. Each elapsed median uses nine warmed samples per implementation in rotating
+order on a pinned Xeon Platinum 8573C CPU. The
+[raster decode workload](../../workloads/rasterdecode/README.md) records input SHA-256 and
+verified identical dimensions, pixel formats, and CRC64 values on all 49 inputs. The native comparisons
+use libjpeg-turbo 2.1.5, libpng 1.6.48, and libwebp 1.5.0. The full image export comparison
+uses ImageMagick 7.1.1-43 Q16-HDRI. The reference libraries use their own color conversion.
+
+| Fixture | Swag before (ms) | Swag after (ms) | Native library (ms) | ImageMagick (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| FileSamples JPEG | 2.271 | 2.205 | 2.009 | 5.319 |
+| Progressive JPEG 4:2:0, 4275 × 2451 | 206.922 | 145.539 | 160.163 | 352.070 |
+| Progressive JPEG 4:4:4, 1601 × 907, quality 94 | 60.520 | 47.003 | 44.576 | 60.944 |
+| Progressive grayscale JPEG | 30.841 | 23.425 | 23.256 | 46.487 |
+| Sequential JPEG 4:4:4, 4275 × 2451 | 69.305 | 70.222 | 64.999 | 238.213 |
+| FileSamples PNG | 6.108 | 5.266 | 6.871 | 11.037 |
+| Grain PNG, 1152 × 768 | 24.422 | 20.167 | 27.760 | 44.873 |
+| Grain PNG, 1801 × 1199 | 54.056 | 47.021 | 55.200 | 89.676 |
+| PNG palette with transparency, 1152 × 768 | 4.853 | 4.571 | 9.705 | 40.387 |
+| APNG, default image | 8.228 | 7.315 | 9.691 | 16.999 |
+| FileSamples lossy WebP | 210.641 | 208.632 | 96.499 | 309.274 |
+| VP8L photo, 4275 × 2451 | 338.837 | 259.232 | 176.939 | 391.583 |
+| VP8L photo, 1254 × 1254 | 66.845 | 56.922 | 31.249 | 52.856 |
+| VP8L interface, 1280 × 800 | 27.019 | 16.701 | 8.603 | 18.405 |
+| VP8 with compressed alpha, 1921 × 1081 | 101.575 | 71.080 | 33.914 | 77.120 |
+
+A seven-sample repeat for the largest progressive JPEG gave 193.373 ms before and 135.380 ms
+after, with libjpeg-turbo at 120.899 ms. Swag's gain held in both runs, and the relative order
+with libjpeg-turbo varied. PNG's smaller 48-color palette fixture was retested in 60 rotating
+blocks on each of two cores. Its median was within 3% of the baseline on both cores.
+The RGB16 Adam7 control was 16.596 to 17.404 ms elapsed. The isolated Inflate change reduced
+its thread CPU time from 17.076 to 16.066 ms.
+
+| Fixture | Swag before (ms) | Swag after (ms) | ImageMagick (ms) |
+| --- | ---: | ---: | ---: |
+| TIFF gray LZW with predictor, 2051 × 1549 | 11.991 | 1.950 | 33.029 |
+| TIFF RGB LZW with predictor, 2051 × 1549 | 104.579 | 82.309 | 109.221 |
+| TIFF RGBA LZW with predictor, noisy image | 18.658 | 13.308 | 23.650 |
+| TIFF RGB PackBits | 2.911 | 3.003 | 38.280 |
+| Raw PSD gray+alpha, 16-bit, 2561 × 1441 | 12.510 | 3.385 | 212.435 |
+| Raw PSD RGB16, 2561 × 1441 | 19.181 | 5.001 | 84.377 |
+| Raw PSD RGBA16, 2561 × 1441 | 25.782 | 7.089 | 150.061 |
+| EXR RGB, mixed HALF/FLOAT, 641 × 253 | 1.519 | 0.478 | 2.975 |
+| EXR RGBA, mixed HALF/FLOAT, 1279 × 401 | 5.876 | 1.572 | 14.915 |
+| EXR RGBA HALF ZIP, 1024 × 513 | 4.549 | 3.826 | 24.732 |
+
+The raw PSD inputs use seeded sample planes and odd row widths. OpenEXR 3.5.5 independently
+verified the complete FLOAT pixel buffers of six mixed EXRs, including ZIP, NaNs and
+subnormals. The independent Python OpenEXR read plus NumPy interleave took 7.030 ms for the
+1279 × 401 fixture.
+
+The animation comparison decodes and composes every frame. Swag uses `ImageReader.read` and
+Pillow 12.3 uses `seek`, `convert("RGBA")`, and `tobytes()`. Each elapsed median uses seven
+rotating samples. The two Swag builds and Pillow produced the same full RGBA8 byte stream
+for both fixtures.
+
+| All frames | Swag before (ms) | Swag after (ms) | Pillow 12.3 (ms) |
+| --- | ---: | ---: | ---: |
+| GIF, 1021 × 767, 12 frames | 118.260 | 16.743 | 62.077 |
+| APNG, 97 × 63, 7 frames with binary alpha | 2.269 | 0.889 | 2.332 |
+
+The GIF input SHA-256 is `16a926170a7608c0a4c7c20d0bb5d4f88d8ac40bd5fb733b0c4905d05574deea`.
+The APNG input SHA-256 is `fb8ad92d6a4d2674d9cf41673cb3b04bbe6de7ec0dc9cbf30bb5feea084cbddd`.

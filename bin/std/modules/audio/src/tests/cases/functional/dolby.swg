@@ -596,38 +596,44 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
 // Mixed window sequences preserve the overlap when switching synthesis precision.
 #test
 {
-    var baseline, mixed:  [6] Dolby.Imdct
-    var stereo:           Dolby.StereoImdct
-    var spectrum:         [6, 256] f64
-    var expected, actual: [512] s16
-
-    for block in 8
+    for fused in [false, true]
     {
-        let shortBlock = block == 2 or block == 3 or block == 6
-        for channel in 2
+        var baseline, mixed:  [6] Dolby.Imdct
+        var stereo:           Dolby.StereoImdct
+        var spectrum:         [6, 256] f64
+        var expected, actual: [512] s16
+
+        for block in 8
         {
-            for bin in 256
+            let shortBlock = block == 2 or block == 3 or block == 6
+            for channel in 2
             {
-                let centered = cast(s32, ((bin * 13 + channel * 53 + block * 17) & 63)) - 32
-                spectrum[channel, bin] = cast(f64, centered) / 16_384.0
+                for bin in 256
+                {
+                    let centered = cast(s32, ((bin * 13 + channel * 53 + block * 17) & 63)) - 32
+                    spectrum[channel, bin] = cast(f64, centered) / 16_384.0
+                }
+
+                baseline[channel].process(&spectrum[channel, 0], shortBlock, &expected[channel], 2)
             }
 
-            baseline[channel].process(&spectrum[channel, 0], shortBlock, &expected[channel], 2)
-        }
+            if shortBlock
+            {
+                stereo.restore(&mixed)
+                for channel in 2 do
+                    mixed[channel].process(&spectrum[channel, 0], true, &actual[channel], 2)
+            }
+            else
+            {
+                if fused do
+                    stereo.processFused(&mixed, &spectrum, &actual[0])
+                else do
+                    stereo.process(&mixed, &spectrum, &actual[0])
+            }
 
-        if shortBlock
-        {
-            stereo.restore(&mixed)
-            for channel in 2 do
-                mixed[channel].process(&spectrum[channel, 0], true, &actual[channel], 2)
+            for sample in actual.count do
+                Swag.require(Math.abs(cast(s32, expected[sample]) - cast(s32, actual[sample])) <= 1)
         }
-        else
-        {
-            stereo.process(&mixed, &spectrum, &actual[0])
-        }
-
-        for sample in actual.count do
-            Swag.require(Math.abs(cast(s32, expected[sample]) - cast(s32, actual[sample])) <= 1)
     }
 }
 

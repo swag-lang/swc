@@ -134,12 +134,9 @@ func readHeader(bytes: const [..] u8)->FrameHeader fail
 // Reads syntax elements from the main data, most significant bit first.
 struct BitReader
 {
-    data:      const [*] u8?
-    bitEnd:    u64
-    bitPos:    u64
-    cache:     u64
-    available: u32
-    nextByte:  u64
+    data:   const [*] u8?
+    bitEnd: u64
+    bitPos: u64
 }
 
 impl BitReader
@@ -147,11 +144,12 @@ impl BitReader
     func create(payload: const [..] u8)->BitReader
         => BitReader{data: payload.buffer, bitEnd: payload.count * 8}
 
-    // Append a big-endian word to the left-justified cache. End-of-payload zeros
-    // occupy ordinary cache slots; bitEnd and bitPos still track a physical overrun.
-    mtd refill()
+    // A guarded unaligned word covers every supported lookup and its bit offset.
+    // At the end only physical bytes are loaded, with zero padding after them.
+    #[Swag.Inline]
+    mtd const peek(count: u32)->u32
     {
-        let at        = .nextByte
+        let at        = .bitPos >> 3
         let remaining = .bitEnd >> 3
         var word: u32
         if at + 4 <= remaining
@@ -166,28 +164,16 @@ impl BitReader
                 word |= cast(u32, data[at + i]) << cast(u32, (24 - 8 * i))
         }
 
-        .cache     |= cast(u64, word) << (32 - .available)
-        .available += 32
-        .nextByte  += 4
-    }
-
-    #[Swag.Inline]
-    mtd peek(count: u32)->u32
-    {
-        if .available < count do
-            .refill()
-        return cast(u32, .cache >> (64 - count))
+        return (word << cast(u32, (.bitPos & 7))) >> (32 - count)
     }
 
     #[Swag.Inline]
     mtd consume(count: u32)
     {
-        .cache     <<= count
-        .available -= count
-        .bitPos    += count
+        .bitPos += count
     }
 
-    // Reads up to 24 bits and preserves the old zero padding after a truncated granule.
+    // Reads up to 24 bits.
     #[Swag.Inline]
     mtd read(count: u32)->u32
     {
@@ -199,21 +185,19 @@ impl BitReader
     }
 
     #[Swag.Inline]
-    mtd readBit()->u32 => .read(1)
+    mtd readBit()->u32
+    {
+        let at = .bitPos
+        .bitPos += 1
+        if at >= .bitEnd do
+            return 0
+        let data = unwrap .data
+        return (cast(u32, data[at >> 3]) >> (7 - cast(u32, (at & 7)))) & 1
+    }
 
     mtd seek(position: u64)
     {
-        if position >= .bitPos and position - .bitPos <= .available
-        {
-            .consume(cast(u32, (position - .bitPos)))
-            return
-        }
-
-        .nextByte  = position >> 3
-        .bitPos    = position & ~7'u64
-        .cache     = 0
-        .available = 0
-        discard .read(cast(u32, (position & 7)))
+        .bitPos = position
     }
 
     #[Swag.Inline]
@@ -226,7 +210,8 @@ impl BitReader
             return 0
 
         let sample = Powers43[magnitude] * gain
-        return .readBit() ? -sample : sample
+        let sign = .readBit() << 31
+        return cast #bit(f32, cast #bit(u32, sample) ^ sign)
     }
 
     mtd const overran()->bool => .bitPos > .bitEnd

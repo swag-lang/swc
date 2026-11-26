@@ -98,6 +98,12 @@ private struct DashRange
     first, count: u64
 }
 
+private struct DashScaling
+{
+    source, result: DashRange
+    scale: u32
+}
+
 private struct ShapeStroke
 {
     gradient: u64
@@ -518,6 +524,7 @@ private struct Parser
     filters:         HashTable'(u64, SvgFilter)
     styles:          StyleSheet
     dashPatterns:    HashTable'(string, ParsedDashPattern)
+    lastDashScaling: DashScaling
     lastSolidStroke: u64
     embeddedImages:  HashTable'(string, u64)     // Raster indices plus one, keyed by the authored URI.
     externalImages:  HashTable'(string, CachedExternalRaster)     // Encoded bytes and raster indices for small files.
@@ -2372,17 +2379,28 @@ private impl Parser
     mtd scaleDashValues(stroke: *ShapeStroke, scale: f32)
     {
         let range = stroke.pattern
-        if not range.count do
+        if not range.count or scale == 1 do
             return
 
         if stroke.sharedPattern
         {
+            let factor = cast #bit(u32, scale)
+            let last   = &.lastDashScaling
+            if last.source.first == range.first and
+               last.source.count == range.count and
+               last.scale == factor
+            {
+                stroke.pattern = last.result
+                return
+            }
+
             let first = .drawing.dashValues.count
             .drawing.dashValues.resize(first + range.count)
             for i in range.count do
                 .drawing.dashValues[first + i] = .drawing.dashValues[range.first + i] * scale
+
             stroke.pattern.first = first
-            stroke.sharedPattern = false
+            last[] = DashScaling{range, stroke.pattern, factor}
         }
         else
         {
@@ -3151,6 +3169,47 @@ private impl Parser
         return parseLength(here.value, defaultValue)
     }
 
+    mtd accumulatePathLength(shape: *Shape, length: *f32)
+    {
+        if shape.deferred == .Rect or shape.deferred == .Line
+        {
+            let primitive = &.drawing.primitives[shape.geometry - 1]
+            let first     = primitive.first
+            let last      = primitive.second
+            let size      = last - first
+            if shape.deferred == .Line
+            {
+                if Math.abs(size.x) >= 0.0001 or Math.abs(size.y) >= 0.0001 do
+                    length[] += first.distanceTo(last)
+                return
+            }
+
+            // These edges survive flattening. Add them in contour order so the
+            // rounding of a group with many paths stays the same.
+            if size.isFinite() and size.x >= 0.0001 and size.y >= 0.0001
+            {
+                let horizontal = first.distanceTo(Vector2{last.x, first.y})
+                let vertical   = first.distanceTo(Vector2{first.x, last.y})
+                length[] += horizontal
+                length[] += vertical
+                length[] += horizontal
+                length[] += vertical
+                return
+            }
+        }
+
+        let paths = .drawing.materializeShape(shape)
+        paths.flatten(.Normal)
+        for path in paths.paths
+        {
+            let pointCount = path.polygon.points.count
+            for j in 1 until pointCount do
+                length[] += path.polygon.points[j - 1].distanceTo(path.polygon.points[j])
+            if path.isClosed and pointCount > 1 do
+                length[] += path.polygon.points[pointCount - 1].distanceTo(path.polygon.points[0])
+        }
+    }
+
     mtd applyPathLength(first, count: u64, authoredLength, geometryScale: f32)
     {
         if authoredLength <= 0 or Math.abs(geometryScale) <= 0.000001 do
@@ -3185,20 +3244,8 @@ private impl Parser
         }
 
         var actualLength: f32
-        for i in count
-        {
-            let shape = &.drawing.shapes[first + i]
-            let paths = .drawing.materializeShape(shape)
-            paths.flatten(.Normal)
-            for path in paths.paths
-            {
-                let pointCount = path.polygon.points.count
-                for j in 1 until pointCount do
-                    actualLength += path.polygon.points[j - 1].distanceTo(path.polygon.points[j])
-                if path.isClosed and pointCount > 1 do
-                    actualLength += path.polygon.points[pointCount - 1].distanceTo(path.polygon.points[0])
-            }
-        }
+        for i in count do
+            .accumulatePathLength(&.drawing.shapes[first + i], &actualLength)
 
         if actualLength <= 0 do
             return
@@ -4820,11 +4867,11 @@ private impl Parser
                         stroke.offset      *= scale
                         if stroke.pattern.count
                         {
-                            stroke.sharedPattern = true
-                            if scale == 1 do
-                                original.sharedPattern = true
-                            else do
-                                .scaleDashValues(&stroke, scale)
+                            // A copied range can be the source of a cached calibration.
+                            // Later calibrations must leave that source unchanged.
+                            stroke.sharedPattern   = true
+                            original.sharedPattern = true
+                            .scaleDashValues(&stroke, scale)
                         }
 
                         .drawing.strokes.add(stroke)

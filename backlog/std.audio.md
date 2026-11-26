@@ -142,8 +142,10 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   now encodes mono/stereo 44.1/48 kHz PCM16 into AAC-LC in pure Swag, with full-band and voice
   profiles; `Aac.StreamEncoder` accepts arbitrary input chunks, reports packet sample times,
   pads the last block and drains the transform. `Aac.SilenceEncoder` covers source gaps.
-  The module and FFmpeg decode non-silent AAC inside fragmented MP4. In Release, full-band stereo
-  takes about 3.9 ms per 1024-frame packet and an encoder instance needs an 8 MiB basis table.
+  The module and FFmpeg decode non-silent AAC inside fragmented MP4. The software encoder uses an
+  FFT-backed MDCT. Native Release encodes ten seconds of 48 kHz stereo PCM16 in about 20 ms on
+  the generated fixture. The output is byte-identical to the previous encoder.
+  [Audio encoding comparison](../bench/results/swagscope-filesamples/audio-encode-linux.md#aac-lc-encoder)
   Bounded spectral gains per band now retain a 12 kHz component 43.5 dB below a 440 Hz tone
   in the same channel: FFmpeg decodes amplitude 160.47 for an input of 160, instead of 0.01
   before the change. Consecutive AAC sections with the same codebook now share their syntax.

@@ -14,25 +14,27 @@ private struct ScanBand
     bounded:    bool
 }
 
+// Include rounding from flattening and transforming the contour.
+#[Swag.Inline]
+private func scanIntervalMisses(first, last, scale, translation, density, origin, extent: f32)->bool
+{
+    let scaledFirst = first * scale
+    let scaledLast  = last * scale
+    let near        = (scaledFirst + translation) * density - origin
+    let far         = (scaledLast + translation) * density - origin
+    let magnitude   = Math.max(Math.max(Math.abs(scaledFirst), Math.abs(scaledLast)), Math.abs(translation))
+    let margin      = 2.0 + magnitude * density * 0.000001
+    return Math.isFinite(near) and
+           Math.isFinite(far) and
+           Math.isFinite(margin) and
+           (Math.max(near, far) < -margin or Math.min(near, far) > extent + margin)
+}
+
 private impl ScanBand
 {
     mtd const misses(transform: Transform2, density: f32, tile: Rectangle)->bool
     {
-        if not .bounded do
-            return false
-
-        let scaledMin = .minY * transform.m22
-        let scaledMax = .maxY * transform.m22
-        let first     = (scaledMin + transform.ty) * density - tile.y
-        let last      = (scaledMax + transform.ty) * density - tile.y
-
-        // Include rounding from flattening and transforming the contour.
-        let magnitude = Math.max(Math.max(Math.abs(scaledMin), Math.abs(scaledMax)), Math.abs(transform.ty))
-        let margin    = 2.0 + magnitude * density * 0.000001
-        return Math.isFinite(first) and
-               Math.isFinite(last) and
-               Math.isFinite(margin) and
-               (Math.max(first, last) < -margin or Math.min(first, last) > tile.height + margin)
+        return .bounded and scanIntervalMisses(.minY, .maxY, transform.m22, transform.ty, density, tile.y, tile.height)
     }
 }
 
@@ -254,6 +256,11 @@ private impl ScanFill
         let useBands   = .bands.count and transform.m12 == 0
         let useBuckets = .buckets.count and transform.m12 == 0
         let bandCount  = useBuckets ? .buckets.count : (useBands ? .bands.count : 1'u64)
+        let useColumns = transform.m12 == 0 and
+                         transform.m21 == 0 and
+                         tile.width * 2 < .bounds.width * Math.abs(transform.m11) * density and
+                         Math.isFinite((.bounds.y * transform.m22 + transform.ty) * density - tile.y) and
+                         Math.isFinite((.bounds.bottom() * transform.m22 + transform.ty) * density - tile.y)
         for band in bandCount
         {
             var first = 0'u64
@@ -278,6 +285,24 @@ private impl ScanFill
             for index in first until end
             {
                 let path = paths.paths[useBuckets ? cast(u64, indices[index]) : index]
+
+                // The scan closes every contour. When all crossings are outside one
+                // edge of the tile, they cancel there and cannot change interior winding.
+                if useColumns and
+                   path.isPolyOnly and
+                   scanIntervalMisses(path.minBounds.x, path.maxBounds.x, transform.m11, transform.tx, density, tile.x, tile.width)
+                {
+                    var finite = true
+                    for point in path.polygon.points where not point.isFinite()
+                    {
+                        finite = false
+                        break
+                    }
+
+                    if finite do
+                        continue
+                }
+
                 path.flattenPoints(.Normal, Math.max(scale.x, scale.y) * density)
                 let points = path.polygon.points.toSlice()
                 if points.count < 2 do

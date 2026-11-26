@@ -296,3 +296,27 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
         for x in image.width do
             Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)).r == 0)
 }
+
+// Contours outside a narrow column have no effect on the winding inside it.
+#test
+{
+    var source = String.from("<svg viewBox='0 0 520 96'><path fill='red' fill-rule='evenodd' d='")
+    for i in 768
+    {
+        let index = i * 137 % 768
+        source.appendFormat("M% %h3v9h-3z ", 6 + index % 128 * 4, 4 + index / 128 * 14)
+    }
+
+    source += "M3 2H517V91H3Z M200 24H263V62H200Z'/></svg>"
+    let drawing = expect Svg.Drawing.parse(source.toString())
+    let wide    = renderViewport(&drawing, 520, 96, 0, 0, 1, {0, 0, 520, 96}, true)
+    let narrow  = renderViewport(&drawing, 96, 96, -192, 0, 1, {0, 0, 96, 96}, true)
+    Swag.require(narrow.pixelColor(40, 15).r > 0)
+    for y in 96 do
+        for x in 96
+        {
+            let pixel     = narrow.pixelColor(cast(s32, x), cast(s32, y))
+            let reference = wide.pixelColor(cast(s32, x + 192), cast(s32, y))
+            Swag.require(pixel == reference)
+        }
+}

@@ -163,3 +163,4 @@ optimizations moved each result.
 - [Packed P-256 field selection](p256-vector-select.md)
 - [Direct MD5 padding and packed digest output](md5-padding.md)
 - [KDF comparison with OpenSSL 4.1](kdf-openssl-versions.md)
+- [AES software rounds in the tower basis](aes-software-tower-rounds.md)

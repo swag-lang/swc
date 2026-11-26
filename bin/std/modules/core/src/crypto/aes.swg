@@ -31,23 +31,40 @@ private func aesDouble(value: u8)->u8
 }
 
 #[Swag.Inline]
-private func aesDouble(value: U8x16)->U8x16
-{
-    const Zero = Swag.vecSplat(0'u8)
-    let highMask = Zero - (value >> 7)
-    return (value + value) ^ (highMask & 0x1B'u8)
-}
-
-#[Swag.Inline]
 private func aesNibbleMap(value, lowTable, highTable: U8x16)->U8x16
 {
     return shuffle(lowTable, value & 0x0F'u8) ^ shuffle(highTable, value >> 4)
 }
 
 #[Swag.Inline]
+private func aesTowerEncode(value: U8x16)->U8x16
+{
+    // The subfield uses t^4 + t + 1. Its generator is 0x5C and z is 0x12 in AES coordinates.
+    const Low  = cast(U8x16, [0x00, 0x01, 0x2B, 0x2A, 0x43, 0x42, 0x68, 0x69, 0x49, 0x48, 0x62, 0x63, 0x0A, 0x0B, 0x21, 0x20])
+    const High = cast(U8x16, [0x00, 0x3B, 0xD6, 0xED, 0x33, 0x08, 0xE5, 0xDE, 0xE1, 0xDA, 0x37, 0x0C, 0xD2, 0xE9, 0x04, 0x3F])
+    return aesNibbleMap(value, Low, High)
+}
+
+#[Swag.Inline]
+private func aesTowerDecode(value: U8x16)->U8x16
+{
+    const Low  = cast(U8x16, [0x00, 0x01, 0x5C, 0x5D, 0xE0, 0xE1, 0xBC, 0xBD, 0x50, 0x51, 0x0C, 0x0D, 0xB0, 0xB1, 0xEC, 0xED])
+    const High = cast(U8x16, [0x00, 0x12, 0x0F, 0x1D, 0x59, 0x4B, 0x56, 0x44, 0xD7, 0xC5, 0xD8, 0xCA, 0x8E, 0x9C, 0x81, 0x93])
+    return aesNibbleMap(value, Low, High)
+}
+
+#[Swag.Inline]
+private func aesTowerDouble(value: U8x16)->U8x16
+{
+    const Low  = cast(U8x16, [0x00, 0x2B, 0x45, 0x6E, 0x8A, 0xA1, 0xCF, 0xE4, 0x37, 0x1C, 0x72, 0x59, 0xBD, 0x96, 0xF8, 0xD3])
+    const High = cast(U8x16, [0x00, 0x95, 0x1A, 0x8F, 0x27, 0xB2, 0x3D, 0xA8, 0x4E, 0xDB, 0x54, 0xC1, 0x69, 0xFC, 0x73, 0xE6])
+    return aesNibbleMap(value, Low, High)
+}
+
+#[Swag.Inline]
 private func aesGf16PowerIndex(leftLog, rightLog: U8x16)->U8x16
 {
-    // Reduce exponents modulo 15 by folding the high nibble. Zero has log 0x80,
+    // Reduce exponents modulo 15 by folding the high nibble. Zero has log 0xC0,
     // and the high bit survives addition with any other log and the fold.
     let sum = leftLog + rightLog
     return sum + (sum >> 4)
@@ -78,27 +95,26 @@ private func aesInvertTower(value: U8x16)->U8x16
 #[Swag.Inline]
 private func aesSubstitute(value: U8x16)->U8x16
 {
-    // The subfield uses t^4 + t + 1. Its generator is 0x5C in AES coordinates and z is 0x12.
-    // Each byte maps through register shuffles. No secret selects a memory address.
-    const EncodeLow        = cast(U8x16, [0x00, 0x01, 0x2B, 0x2A, 0x43, 0x42, 0x68, 0x69, 0x49, 0x48, 0x62, 0x63, 0x0A, 0x0B, 0x21, 0x20])
-    const EncodeHigh       = cast(U8x16, [0x00, 0x3B, 0xD6, 0xED, 0x33, 0x08, 0xE5, 0xDE, 0xE1, 0xDA, 0x37, 0x0C, 0xD2, 0xE9, 0x04, 0x3F])
     const DecodeAffineLow  = cast(U8x16, [0x00, 0x1F, 0xB2, 0xAD, 0xAB, 0xB4, 0x19, 0x06, 0x36, 0x29, 0x84, 0x9B, 0x9D, 0x82, 0x2F, 0x30])
     const DecodeAffineHigh = cast(U8x16, [0x00, 0xCF, 0xA5, 0x6A, 0xD1, 0x1E, 0x74, 0xBB, 0xE4, 0x2B, 0x41, 0x8E, 0x35, 0xFA, 0x90, 0x5F])
-    let tower = aesNibbleMap(value, EncodeLow, EncodeHigh)
+    let tower = aesTowerEncode(value)
     return aesNibbleMap(aesInvertTower(tower), DecodeAffineLow, DecodeAffineHigh) ^ 0x63'u8
 }
 
 #[Swag.Inline]
-private func aesInverseSubstitute(value: U8x16)->U8x16
+private func aesTowerSubstitute(value: U8x16)->U8x16
 {
-    const EncodeInverseAffineLow  = cast(U8x16, [0x00, 0x51, 0x99, 0xC8, 0x9E, 0xCF, 0x07, 0x56, 0x23, 0x72, 0xBA, 0xEB, 0xBD, 0xEC, 0x24, 0x75])
-    const EncodeInverseAffineHigh = cast(U8x16, [0x00, 0x74, 0x7B, 0x0F, 0xF1, 0x85, 0x8A, 0xFE, 0x94, 0xE0, 0xEF, 0x9B, 0x65, 0x11, 0x1E, 0x6A])
-    const DecodeLow               = cast(U8x16, [0x00, 0x01, 0x5C, 0x5D, 0xE0, 0xE1, 0xBC, 0xBD, 0x50, 0x51, 0x0C, 0x0D, 0xB0, 0xB1, 0xEC, 0xED])
-    const DecodeHigh              = cast(U8x16, [0x00, 0x12, 0x0F, 0x1D, 0x59, 0x4B, 0x56, 0x44, 0xD7, 0xC5, 0xD8, 0xCA, 0x8E, 0x9C, 0x81, 0x93])
+    const Low  = cast(U8x16, [0xCF, 0xD4, 0xE8, 0xF3, 0x9B, 0x80, 0xBC, 0xA7, 0x4A, 0x51, 0x6D, 0x76, 0x1E, 0x05, 0x39, 0x22])
+    const High = cast(U8x16, [0x00, 0xF2, 0x75, 0x87, 0xE8, 0x1A, 0x9D, 0x6F, 0x47, 0xB5, 0x32, 0xC0, 0xAF, 0x5D, 0xDA, 0x28])
+    return aesNibbleMap(aesInvertTower(value), Low, High)
+}
 
-    // The inverse affine constant 0x05 maps to 0x42 in the tower basis.
-    let tower = aesNibbleMap(value, EncodeInverseAffineLow, EncodeInverseAffineHigh) ^ 0x42'u8
-    return aesNibbleMap(aesInvertTower(tower), DecodeLow, DecodeHigh)
+#[Swag.Inline]
+private func aesTowerInverseSubstitute(value: U8x16)->U8x16
+{
+    const Low  = cast(U8x16, [0x42, 0x13, 0x7A, 0x2B, 0x5C, 0x0D, 0x64, 0x35, 0xC7, 0x96, 0xFF, 0xAE, 0xD9, 0x88, 0xE1, 0xB0])
+    const High = cast(U8x16, [0x00, 0xED, 0x75, 0x98, 0xF7, 0x1A, 0x82, 0x6F, 0x47, 0xAA, 0x32, 0xDF, 0xB0, 0x5D, 0xC5, 0x28])
+    return aesInvertTower(aesNibbleMap(value, Low, High))
 }
 
 #[Swag.Inline]
@@ -180,7 +196,21 @@ public impl Aes
                 expanded[index] = Swag.byteSwap(expanded[index])
         }
 
-        Swag.memcpy(&.roundKeys[0], &expanded[0], wordCount * #sizeof(u32))
+        if useHardware
+        {
+            Swag.memcpy(&.roundKeys[0], &expanded[0], wordCount * #sizeof(u32))
+        }
+        else
+        {
+            // Software rounds stay in the tower basis, including AddRoundKey and MixColumns.
+            let source = cast(const [*] u8, &expanded[0])
+            let output = cast([*] u8, &.roundKeys[0])
+            for round in rounds + 1
+            {
+                let offset = round * AesBlockSize
+                store(output + offset, aesTowerEncode(load(source + offset)))
+            }
+        }
         .rounds      = rounds
         .ready       = true
         .useHardware = useHardware
@@ -201,14 +231,14 @@ public impl Aes
 
         const ShiftRows = cast(U8x16, [0'u8, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11])
         var state: [1] U8x16
-        state[0] = load(source.buffer) ^ .roundKey(0)
+        state[0] = aesTowerEncode(load(source.buffer)) ^ .roundKey(0)
         for round in 1 until .rounds
         {
-            let shifted = shuffle(aesSubstitute(state[0]), ShiftRows)
+            let shifted = shuffle(aesTowerSubstitute(state[0]), ShiftRows)
             state[0] = .mixColumns(shifted) ^ .roundKey(round)
         }
 
-        store(destination.buffer, shuffle(aesSubstitute(state[0]), ShiftRows) ^ .roundKey(.rounds))
+        store(destination.buffer, aesTowerDecode(shuffle(aesTowerSubstitute(state[0]), ShiftRows) ^ .roundKey(.rounds)))
         Crypto.secureClear(state)
     }
 
@@ -226,14 +256,14 @@ public impl Aes
 
         const ShiftRows = cast(U8x16, [0'u8, 13, 10, 7, 4, 1, 14, 11, 8, 5, 2, 15, 12, 9, 6, 3])
         var state: [1] U8x16
-        state[0] = load(source.buffer) ^ .roundKey(.rounds)
+        state[0] = aesTowerEncode(load(source.buffer)) ^ .roundKey(.rounds)
         for round in 1 until .rounds
         {
-            let substituted = aesInverseSubstitute(shuffle(state[0], ShiftRows))
+            let substituted = aesTowerInverseSubstitute(shuffle(state[0], ShiftRows))
             state[0] = .inverseMixColumns(substituted ^ .roundKey(.rounds - round))
         }
 
-        store(destination.buffer, aesInverseSubstitute(shuffle(state[0], ShiftRows)) ^ .roundKey(0))
+        store(destination.buffer, aesTowerDecode(aesTowerInverseSubstitute(shuffle(state[0], ShiftRows)) ^ .roundKey(0)))
         Crypto.secureClear(state)
     }
 
@@ -415,14 +445,14 @@ public impl Aes
         const Opposite = cast(U8x16, [2'u8, 3, 0, 1, 6, 7, 4, 5, 10, 11, 8, 9, 14, 15, 12, 13])
         let difference = state ^ shuffle(state, Adjacent)
         let sum        = difference ^ shuffle(difference, Opposite)
-        return state ^ sum ^ aesDouble(difference)
+        return state ^ sum ^ aesTowerDouble(difference)
     }
 
     #[Swag.Inline]
     private mtd inverseMixColumns(state: U8x16)->U8x16
     {
         const Opposite = cast(U8x16, [2'u8, 3, 0, 1, 6, 7, 4, 5, 10, 11, 8, 9, 14, 15, 12, 13])
-        let correction = aesDouble(aesDouble(state ^ shuffle(state, Opposite)))
+        let correction = aesTowerDouble(aesTowerDouble(state ^ shuffle(state, Opposite)))
         return .mixColumns(state ^ correction)
     }
 

@@ -261,3 +261,44 @@ and from 241.56 to 202.19 ms at four. Each bitmap and thumbnail
 had the same CRC-64 across both Swag builds and both worker counts.
 The default parse path also kept its four bitmap checksums. The generated
 dense fill kept its checksum and went from 65.29 to 62.23 ms at one worker.
+
+## Parallel contour preparation and shared sample rows
+
+The direct CPU bitmap path prepares dense compound fills in independent
+contour batches before collecting crossings. Jobs join before the first
+tile scans the fill. The existing serial preparation handles fills with rows outside the
+destination and buffers owned by custom allocators. Scan conversion computes
+each projected vertex's sample row once and skips edges whose endpoints
+fall in the same sample interval. This keeps the existing half-open
+sampling, floating-point interpolation, winding and alpha composition.
+
+The table reports seven interleaved Release medians in milliseconds,
+including parsing and first rasterization. The reference is Swag
+`eab46cd563` and the same resvg 0.50.0 CPU executable as above.
+Swag used `preferScanFills` and one sample per axis. Both engines ran
+under the same affinity for each comparison. Swag used one or four
+workers while resvg rendered each document serially.
+
+| Source size | Swag before, 1 worker | Swag after, 1 worker | resvg, 1 CPU | Swag before, 4 workers | Swag after, 4 workers | resvg, 4 CPUs |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 640 × 426 | 5.11 | 5.18 | 5.41 | 4.60 | 4.57 | 5.52 |
+| 1280 × 853 | 21.17 | 21.89 | 20.40 | 19.53 | 17.24 | 22.89 |
+| 1920 × 1280 | 51.95 | 51.91 | 46.31 | 44.67 | 38.26 | 46.51 |
+| 5184 × 3456 | 258.82 | 253.01 | 242.51 | 266.80 | 238.14 | 282.92 |
+
+The largest bitmap was rendered at 2048 × 1365. Its four-worker raster
+phase took 158 ms against 175 ms for resvg. The 320 × 213 thumbnail,
+at two samples per axis, went from 216.02 to 177.17 ms with four
+workers and from 199.59 to 201.02 ms with one. A separate four-worker
+series including destruction of the drawing reduced the largest
+bitmap load from 267.76 to 224.22 ms and its thumbnail load from
+207.93 to 177.79 ms. The smallest thumbnail measured 4.94 to 5.18 ms
+with four workers.
+
+The four bitmap and thumbnail CRC-64s matched the reference at both
+worker counts. The generated dense fill kept its CRC-64 and went from
+54.30 to 52.70 ms with one worker and from 36.09 to 36.28 ms with four.
+
+With the default parse options, the largest bitmap also kept its
+CRC-64. Its total moved from 1358 to 1331 ms at one worker and from
+1489 to 1501 ms at four.

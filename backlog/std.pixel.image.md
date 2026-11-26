@@ -143,8 +143,12 @@ ships; history lives in Git, not here.
   put most of the largest original's first raster in flattening and crossing collection.
   Parallel row resolution complements the reduction in work per contour. At four workers,
   Swag is faster on three originals and takes 263 ms against resvg's 255 ms on the largest.
-- Next: measure the remaining cold flattening and crossing collection costs on the largest
-  thumbnail. Rerun the original Windows comparison at one worker and at the runtime default.
+- Evidence: [parallel contour preparation](../bench/workloads/svgraster/resvg-comparison.md#parallel-contour-preparation-and-shared-sample-rows)
+  cuts the largest four-worker thumbnail by 18% with identical pixels. Swag leads resvg
+  on all four original bitmaps with four workers on Linux. At one worker, the mid-size
+  and largest files still spend more time rasterizing than resvg.
+- Next: profile single-worker crossing collection on the mid-size and largest inputs.
+  Rerun the original Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

@@ -65,6 +65,7 @@ struct ScanFill
     bands:           Array'ScanBand
     buckets:         Array'ScanBucket
     measuredBuckets: bool
+    preparedScale:   f32
 
     lastTile:      Rectangle
     lastTransform: Transform2
@@ -235,7 +236,8 @@ impl ScanFill
         if not color.a do
             return
 
-        var area = transform.transformBounds(.bounds)
+        let bounds = transform.transformBounds(.bounds)
+        var area   = bounds
         area.intersect({0, 0, cast(f32, result.width), cast(f32, result.height)})
         if area.isEmpty() do
             return
@@ -252,6 +254,10 @@ impl ScanFill
 
         if .bands.isEmpty() and not .measuredBuckets and bottom - top > tileSide do
             .measureBuckets(paths)
+
+        // Keep lazy, tile-local preparation when the destination crops away rows.
+        if area.height + 1 >= bounds.height do
+            .prepareContours(paths, Math.max(transform.m11, 1.0))
 
         var y = top
         while y < bottom
@@ -435,6 +441,40 @@ private impl ScanRows
 
 private impl ScanFill
 {
+    mtd prepareContours(paths: *LinePathList, scale: f32)
+    {
+        const MinContours = 1024
+        let count = paths.paths.count
+        if count < MinContours or scale <= .preparedScale do
+            return
+        let workers = Swag.workerCount()
+        if workers < 2 do
+            return
+        let allocator = Swag.getContext().allocator
+        let allocatorType: typeinfo = Swag.Allocator
+        if not allocator or Swag.kindOf(allocator) != allocatorType do
+            return
+
+        // Each job owns its paths. Use the caller's thread-safe allocator for new
+        // buffers and leave contours with other allocators to the scan thread.
+        let contours = paths.paths.toSlice()
+        let batch    = Math.max(256'u64, count / (cast(u64, workers) * 4))
+        parallel for |contours, scale, allocator, batch, count| job in (count - 1) / batch + 1
+        {
+            let first = job * batch
+            for index in first until Math.min(first + batch, count)
+            {
+                let path = contours[index]
+                if not path.polygon.points.allocator do
+                    path.polygon.points.allocator = allocator
+                if path.polygon.points.allocator == allocator do
+                    path.flattenPoints(.Normal, scale)
+            }
+        }
+
+        .preparedScale = scale
+    }
+
     // Fills spans from the winding of all contours. Horizontal coverage is integrated
     // across each pixel and vertical coverage sampled at four evenly spaced positions.
     mtd const writeCoverage(paths: *LinePathList, transform: Transform2, density: f32, tile: Rectangle, color: Color, evenOdd: bool, scratch: *ScanScratch, image: *Image, composite: bool)
@@ -447,16 +487,22 @@ private impl ScanFill
             return transform.transformPoint(point) * density - origin
         }
 
-        func addEdge(rows: [..] Array'Crossing, a, b: Vector2, width: f32)
+        #[Swag.Inline]
+        func sampleRow(point: Vector2, limit: f32)->s64
         {
-            if a.y == b.y do
-                return
-            let top     = a.y < b.y ? a : b
-            let bottom  = a.y < b.y ? b : a
-            let limit   = cast(f32, rows.count)
-            let start   = cast(u64, Math.clamp(Math.ceil(top.y * VerticalSamples - 0.5), 0.0, limit))
-            let end     = cast(u64, Math.clamp(Math.ceil(bottom.y * VerticalSamples - 0.5), 0.0, limit))
-            let winding = a.y < b.y ? 1 : -1
+            if not point.isFinite() do
+                return -1
+            return cast(s64, Math.clamp(Math.ceil(point.y * VerticalSamples - 0.5), 0.0, limit))
+        }
+
+        func addEdge(rows: [..] Array'Crossing, a, b: Vector2, aRow, bRow: s64, width: f32)
+        {
+            let forward = aRow < bRow
+            let top     = forward ? a : b
+            let bottom  = forward ? b : a
+            let start   = cast(u64, forward ? aRow : bRow)
+            let end     = cast(u64, forward ? bRow : aRow)
+            let winding = forward ? 1 : -1
             if top.x == bottom.x
             {
                 let crossing = Crossing{Math.clamp(top.x, 0, width), winding}
@@ -486,20 +532,22 @@ private impl ScanFill
         let rowCount = cast(u64, height) * VerticalSamples
         if scratch.rows.count < rowCount do
             scratch.rows.resize(rowCount)
+        let limit     = cast(f32, rowCount)
         let crossings = scratch.rows.toSlice()[0 until rowCount]
         for &line in crossings do
             line.clear()
-        let origin      = Vector2{tile.x, tile.y}
-        let scale       = transform.axisScale()
-        let useBands    = .bands.count and transform.m12 == 0
-        let useBuckets  = .buckets.count and transform.m12 == 0
-        let bandCount   = useBuckets ? .buckets.count : (useBands ? .bands.count : 1'u64)
-        let axisAligned = transform.m12 == 0 and transform.m21 == 0
-        let uniform     = axisAligned and
-                          density == 1 and
-                          transform.tx == 0 and
-                          transform.ty == 0 and
-                          transform.m11 == transform.m22
+        let origin       = Vector2{tile.x, tile.y}
+        let scale        = transform.axisScale()
+        let flattenScale = Math.max(scale.x, scale.y) * density
+        let useBands     = .bands.count and transform.m12 == 0
+        let useBuckets   = .buckets.count and transform.m12 == 0
+        let bandCount    = useBuckets ? .buckets.count : (useBands ? .bands.count : 1'u64)
+        let axisAligned  = transform.m12 == 0 and transform.m21 == 0
+        let uniform      = axisAligned and
+                           density == 1 and
+                           transform.tx == 0 and
+                           transform.ty == 0 and
+                           transform.m11 == transform.m22
         let useColumns = axisAligned and
                          tile.width < .bounds.width * Math.abs(transform.m11) * density and
                          Math.isFinite((.bounds.y * transform.m22 + transform.ty) * density - tile.y) and
@@ -530,7 +578,7 @@ private impl ScanFill
             {
                 let path = paths.paths[useBuckets ? cast(u64, indices[index]) : index]
 
-                path.flattenPoints(.Normal, Math.max(scale.x, scale.y) * density)
+                path.flattenPoints(.Normal, flattenScale)
 
                 // A closed contour outside either tile axis contributes no visible span.
                 if (useColumns and scanIntervalMisses(path.minBounds.x, path.maxBounds.x, transform.m11, transform.tx, density, tile.x, tile.width)) or
@@ -550,16 +598,18 @@ private impl ScanFill
                 let points = path.polygon.points.toSlice()
                 if points.count < 2 do
                     continue
-                var previous       = project(points[points.count - 1], &transform, density, origin, uniform)
-                var previousFinite = previous.isFinite()
+
+                // Adjacent edges share the projected vertex and its sample row.
+                var previous    = project(points[points.count - 1], &transform, density, origin, uniform)
+                var previousRow = sampleRow(previous, limit)
                 for point in points
                 {
-                    let next   = project(point, &transform, density, origin, uniform)
-                    let finite = next.isFinite()
-                    if previousFinite and finite do
-                        addEdge(crossings, previous, next, tile.width)
-                    previous       = next
-                    previousFinite = finite
+                    let next = project(point, &transform, density, origin, uniform)
+                    let row  = sampleRow(next, limit)
+                    if previousRow >= 0 and row >= 0 and previousRow != row do
+                        addEdge(crossings, previous, next, previousRow, row, tile.width)
+                    previous    = next
+                    previousRow = row
                 }
             }
         }

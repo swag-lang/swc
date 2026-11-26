@@ -120,6 +120,22 @@ using Core
     Swag.require(image.pixelColor(24, 20).argb == 0x00FF_FFFF)
 }
 
+// Vertical sampling includes each edge's top endpoint and excludes its bottom.
+#test
+{
+    const Source = """
+        <svg width='11' height='7'>
+          <path d='M1 .125H4V.375H1Z M5 .15625H8V.34375H5Z M1 1.625H4V1.375H1Z'/>
+        </svg>
+        """
+    let drawing = expect Svg.Drawing.parse(Source, {preferScanFills: true})
+    let image   = drawing.rasterize(11, 7, 1)
+    Swag.require(image.isValid())
+    Swag.require(image.pixelColor(2, 0).a == 64)
+    Swag.require(image.pixelColor(6, 0).argb == 0x00FF_FFFF)
+    Swag.require(image.pixelColor(2, 1).a == 64)
+}
+
 // The row jobs for the first fill must finish before the translucent fill.
 #[Swag.TestTag("parallel")]
 #test
@@ -150,5 +166,49 @@ using Core
         Swag.require(whole.pixelColor(272, 184).a == 0)
         for value, index in tiled.pixels do
             Swag.require(value == whole.pixels[index])
+    }
+}
+
+// A compound fill can prepare its contours independently, even when it needs finer
+// curve points after a thumbnail. Separate rows of the same geometry scan serially.
+#[Swag.TestTag("parallel")]
+#test
+{
+    const Open = "<svg width='216' height='200'>"
+    const Path = "<path fill-rule='evenodd' d='"
+    var compound = String.from(Open)
+    var rows     = String.from(Open)
+    compound += Path
+    for row in 32
+    {
+        var contours: String
+        for column in 33
+        {
+            let x = 4 + column * 6
+            let y = 4 + row * 6
+            contours.appendFormat("M% %c7 -1 7 6 0 5z ", x, y)
+        }
+
+        compound += contours.toString()
+        rows     += Path
+        rows     += contours.toString()
+        rows     += "'/>"
+    }
+
+    compound += "'/></svg>"
+    rows     += "</svg>"
+    let options   = Svg.ParseOptions{preferScanFills: true}
+    let drawing   = expect Svg.Drawing.parse(compound.toString(), options)
+    let reference = expect Svg.Drawing.parse(rows.toString(), options)
+    for extent in [[108, 100], [432, 100], [432, 400], [432, 400]]
+    {
+        let width    = extent[0]
+        let height   = extent[1]
+        let actual   = drawing.rasterize(width, height, 1)
+        let expected = reference.rasterize(width, height, 1)
+        Swag.require(actual.isValid() and expected.isValid())
+        let probe = width / 36
+        Swag.require(actual.pixelColor(probe, probe).a > 0)
+        Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.pixels.count) == 0)
     }
 }

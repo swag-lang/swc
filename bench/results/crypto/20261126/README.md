@@ -121,3 +121,4 @@ optimizations moved each result.
 - [Fixed-width Barrett reduction for Ed25519 scalars](ed25519-barrett.md)
 - [Reusable HKDF expansion prefixes](hkdf-prefix-reuse.md)
 - [Four-block AES-XTS](aes-xts-four-blocks.md)
+- [CRC-32 short inputs and bounded SIMD tails](crc32-padded-tail.md)

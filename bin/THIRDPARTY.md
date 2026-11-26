@@ -52,6 +52,14 @@ Some redistributions are documented closer to the files they cover:
 - Origin: <https://github.com/richgel999/miniz>
 - Used by: the Deflate encoder.
 
+## libdeflate
+
+- Licence: MIT
+- Copyright: Copyright 2016 Eric Biggers.
+- Copyright: Copyright 2024 Google LLC.
+- Origin: <https://github.com/ebiggers/libdeflate>
+- Used by: the partial-block folding and Barrett reduction in Core CRC-32.
+
 ## FastNoise
 
 - Licence: MIT

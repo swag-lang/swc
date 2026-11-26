@@ -57,7 +57,7 @@ impl LzwBitReader
 
 // TIFF LZW uses MSB-first codes and the early code-width transition used by
 // Aldus TIFF writers. Each strip owns an independent dictionary.
-private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail
+private func(LITERAL_PAIRS: bool, VECTOR_PHRASES: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail
 {
     var reader = LzwBitReader{src, src + srcCount, 0, 0}
 
@@ -166,7 +166,15 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
                     cast([*] u32, target)[0] = cast(const [*] u32, source)[0]
 
                 default:
-                    Memory.copy(target, source, wordLength)
+                    #static if VECTOR_PHRASES
+                    {
+                        if wordLength <= 16 and sourceOffset + 16 <= output and expected - output >= 16 do
+                            Math.Simd.store(target, Math.Simd.load(source))
+                        else do
+                            Memory.copy(target, source, wordLength)
+                    }
+                    else do
+                        Memory.copy(target, source, wordLength)
                 }
             }
 
@@ -199,8 +207,11 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
 func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail
 {
     // Significant expansion indicates that few input bytes used dictionary phrases.
+    // Strong compression makes medium phrases frequent enough for the vector path.
     if expected >= 256 and srcCount > expected + expected / 8 do
-        try unpackLzwStrip'true(dst, expected, src, srcCount, dictionary)
+        try unpackLzwStrip'(true, false)(dst, expected, src, srcCount, dictionary)
+    elif expected >= 256 and srcCount <= expected / 2 do
+        try unpackLzwStrip'(false, true)(dst, expected, src, srcCount, dictionary)
     else do
-        try unpackLzwStrip'false(dst, expected, src, srcCount, dictionary)
+        try unpackLzwStrip'(false, false)(dst, expected, src, srcCount, dictionary)
 }

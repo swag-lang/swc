@@ -503,6 +503,14 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var mismatchedImage: Image
     catch { mismatchedImage = try decodeIco(nnBytes(mismatched.toSlice())) } as errorOutcome
     Swag.require(errorOutcome.value() != null)
+
+    var registryError: Swag.Error
+    discard catch Image.decode("png-dimension-mismatch.ico", nnBytes(mismatched.toSlice())) as registryError
+    Swag.require(registryError.value() is Errors.InvalidFormatError)
+
+    var limitError: Swag.Error
+    discard catch Image.decode("limited.ico", nnBytes(cb.toSlice()), {maxPixels: 1}) as limitError
+    Swag.require(limitError.value() is Errors.UnsupportedFormatError)
 }
 
 // Decode metadata only: dimensions populated, no pixels allocated.

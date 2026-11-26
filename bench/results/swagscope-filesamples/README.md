@@ -649,3 +649,77 @@ regressions and the controls near the dispatch threshold led to rejecting the pr
 
 The final combined build passed 333 targeted native Pixel tests in Release. Independent
 runs passed the 51 JPEG Video tests and the three VP8 Swag Scope goldens.
+
+## VP8 decoder follow-up against libwebp 1.5.0
+
+The 4275 × 2451 FileSamples image contains one opaque VP8 chunk. Both readers ran on one
+pinned core. Swag measures a warmed `Image.load` with a thread CPU clock. libwebp uses that
+clock around the file read and `WebPDecodeRGBAInto`, with a reusable output buffer and
+default chroma upsampling. The baseline is `c235d7a7eb` and the candidate includes
+`ec71835d7b` and `839b8f05eb`. Each value is the median of 11 rotating samples.
+
+| Fixture | Swag before (ms) | Swag after (ms) | libwebp (ms) |
+| --- | ---: | ---: | ---: |
+| Original FileSamples opaque VP8 | 231.863 | 135.550 | 99.569 |
+| Expanded corpus opaque VP8 | 41.984 | 31.236 | 23.680 |
+| VP8 photo with compressed alpha, 1921 × 1081 | 39.431 | 34.539 | 23.101 |
+| VP8 with gradient alpha, expanded photo corpus | 34.158 | 25.957 | 21.394 |
+| VP8L photo, 4275 × 2451 | 231.311 | 223.186 | 172.297 |
+| VP8L interface with alpha, 600 × 401 | 2.842 | 2.542 | 1.848 |
+| VP8 with odd dimensions and two window shifts, 37 × 257 | 0.450 | 0.350 | 0.355 |
+
+A nine-pair repeat on a second core gave 224.917 to 138.708 ms on the original file,
+with libwebp at 94.460 ms. Dimensions, format, and pixel CRC64 matched across Swag
+builds on all ten inputs.
+Chroma interpolation can differ across readers. The final combined build passed
+40 targeted WebP and ImageReader tests in native Release.
+
+### Where the VP8 time goes
+
+An instrumented Release build of the libwebp v1.5.0 source disabled fancy chroma
+upsampling to match the nearest-neighbor conversion in Swag. It decoded warmed
+input from memory. The Swag phases come from a separate run, with macroblock
+subphases sampled and scaled to the measured macroblock loop. Treat those phase
+times as estimates. The complete-load table above is the interleaved comparison.
+
+| Thread CPU phase on FileSamples | Swag before (ms) | libwebp SIMD (ms) | libwebp fallback dispatch (ms) |
+| --- | ---: | ---: | ---: |
+| Intra prediction modes and control data | ~31.0 | 10.6 | 11.0 |
+| Coefficient tokens and block state | ~60.0 | 50.4 | 52.1 |
+| Reconstruction, edges and plane stores | ~57.3 | 18.6 | 26.8 |
+| Loop filter | 45.1 | 14.8 | 101.1 |
+| RGBA output with each reader's usual buffer policy | 23.8 | 7.9 | 59.6 |
+
+Forcing libwebp to use its fallback DSP functions raised its total from 103.3 to 251.1 ms.
+A run giving libwebp a fresh output buffer measured 117.0 ms total and 25.9 ms in the
+output phase. Fancy upsampling with a reused buffer took 107.2 ms total. Allocation and
+first writes explain much of the RGBA timing difference.
+
+- libwebp reconstructs and filters one macroblock row at a time, keeps unfiltered top
+  samples, and emits the finished rows while the planes are still hot. Swag previously
+  allocated the three full YUV planes and revisited them for filtering and conversion.
+  The new window retains at most eight macroblock rows and keeps two rows across each
+  shift so prediction and filtering preserve the original output. The padded YUV
+  planes for the FileSamples image went from 15.1 MiB to 804 KiB. In a window-only
+  A/B the thread CPU median was 287.934 to 244.557 ms.
+  [libwebp row processing](https://github.com/webmproject/libwebp/blob/v1.5.0/src/dec/frame_dec.c)
+- libwebp uses packed IDCT and filter kernels with specialized paths for common blocks.
+  Swag now performs the two AC inverse-transform passes in SIMD and reuses transposed
+  luma samples between the three inner vertical filter edges. The isolated filter
+  median fell from 36.598 to 34.145 ms. The isolated IDCT repeat on FileSamples fell
+  from 183.503 to 173.470 ms for the complete load.
+  [libwebp SSE2 kernels](https://github.com/webmproject/libwebp/blob/v1.5.0/src/dsp/dec_sse2.c)
+- libwebp walks coefficient probabilities through pointers and specializes sign reads.
+  In Swag's instrumented baseline, about 69% of coefficient blocks ended immediately.
+  Swag now handles that common token in the caller, keeps a pointer to the active
+  probabilities, and specializes the sign read. The entropy-only change reduced the
+  FileSamples median from 257.626 to 228.704 ms CPU.
+  [libwebp coefficient decoder](https://github.com/webmproject/libwebp/blob/v1.5.0/src/dec/vp8_dec.c#L443)
+
+A second instrumented series, rotating the two Swag versions, measured the coefficient
+phase at about 56.5 to 47.8 ms and RGBA emission at 23.1 to 8.0 ms. In the revised build the
+estimated mode and control work was 31.3 ms, and the measured loop filter was 33.4 ms.
+Those two stages still cost the most relative to the corresponding libwebp phases.
+
+The VP8L cross-color transform also uses SIMD now. The measured still VP8L outputs,
+including the transparent interface and the largest photo, kept their checksums.

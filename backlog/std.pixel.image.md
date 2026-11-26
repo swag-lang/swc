@@ -337,11 +337,13 @@ ships; history lives in Git, not here.
   Huffman input, packed copies and subtract-green, and reconstructs predictor pixels as packed
   RGBA words. Dispatching the predictor per tile and vectorizing spans further reduced VP8L
   decode time. The three original VP8L fixtures take 1.6–1.9× libwebp's time in that comparison.
-  Packed VP8 predictor writes reduced thread CPU time on the opaque FileSamples image from
-  220 to 201 ms, against 101 ms for libwebp in the same series.
-  See [the FileSamples report](../bench/results/swagscope-filesamples/README.md#opaque-webp-repeat).
-- Next: profile remaining VP8 entropy and reconstruction work and the VP8L color cache on the
-  photo and interface fixtures from the [raster decode workload](../bench/workloads/rasterdecode/README.md).
+  Bounded VP8 row storage, specialized coefficient reads, SIMD inverse transforms, and
+  shared filter loads brought the opaque FileSamples image from 232 to 136 ms thread CPU
+  against 100 ms for libwebp. The measured output CRC64 is unchanged.
+  See [the source comparison and measurements](../bench/results/swagscope-filesamples/README.md#vp8-decoder-follow-up-against-libwebp-150).
+- Next: measure remaining VP8 intra-mode parsing and packed filter work, and revisit the VP8L
+  color cache on the photo and interface fixtures from the
+  [raster decode workload](../bench/workloads/rasterdecode/README.md).
   Rerun the original Windows comparison.
 - Done when: remaining hot stages have measured decisions and lossy and lossless output is
   preserved at the tested predictor, filter, and image boundaries.

@@ -290,36 +290,58 @@ func readMixedColorSample(source: const [*] u8, sampleBytes: u64)->u32
 func(ALPHA: bool) writeMixedColorRow(source: const [*] u8, offsets, sampleBytes: [4] u64, target: [*] u8, width: u64)
 {
     const Stride = ALPHA ? 16'u64 : 12'u64
-    let red   = source + offsets[0]
-    let green = source + offsets[1]
-    let blue  = source + offsets[2]
+    let redBytes   = sampleBytes[0]
+    let greenBytes = sampleBytes[1]
+    let blueBytes  = sampleBytes[2]
+    let alphaBytes = sampleBytes[3]
+    let redStep    = redBytes * 4
+    let greenStep  = greenBytes * 4
+    let blueStep   = blueBytes * 4
+    let alphaStep  = alphaBytes * 4
+    var redInput   = source + offsets[0]
+    var greenInput = source + offsets[1]
+    var blueInput  = source + offsets[2]
+    var alphaInput = source + offsets[3]
+    var dst        = target
 
     var x: u64
     while width - x >= 4
     {
-        let dst = target + x * Stride
-        let r   = loadMixedColorSamples(red + x * sampleBytes[0], sampleBytes[0])
-        let g   = loadMixedColorSamples(green + x * sampleBytes[1], sampleBytes[1])
-        let b   = loadMixedColorSamples(blue + x * sampleBytes[2], sampleBytes[2])
+        let r = loadMixedColorSamples(redInput, redBytes)
+        let g = loadMixedColorSamples(greenInput, greenBytes)
+        let b = loadMixedColorSamples(blueInput, blueBytes)
         #static if ALPHA
         {
-            let a = loadMixedColorSamples(source + offsets[3] + x * sampleBytes[3], sampleBytes[3])
+            let a = loadMixedColorSamples(alphaInput, alphaBytes)
             PackedPixel.storeQuads'(Simd.U32x4, Simd.U64x2)(dst, r, g, b, a)
+            alphaInput += alphaStep
         }
         else do
             PackedPixel.storeTriplets'4(dst, r, g, b)
-        x += 4
+        redInput   += redStep
+        greenInput += greenStep
+        blueInput  += blueStep
+        dst        += 4 * Stride
+        x          += 4
     }
 
     while x < width
     {
-        let dst = cast([*] u32, target + x * Stride)
-        dst[0] = readMixedColorSample(red + x * sampleBytes[0], sampleBytes[0])
-        dst[1] = readMixedColorSample(green + x * sampleBytes[1], sampleBytes[1])
-        dst[2] = readMixedColorSample(blue + x * sampleBytes[2], sampleBytes[2])
-        #static if ALPHA do
-            dst[3] = readMixedColorSample(source + offsets[3] + x * sampleBytes[3], sampleBytes[3])
-        x += 1
+        let values = cast([*] u32, dst)
+        values[0] = readMixedColorSample(redInput, redBytes)
+        values[1] = readMixedColorSample(greenInput, greenBytes)
+        values[2] = readMixedColorSample(blueInput, blueBytes)
+        #static if ALPHA
+        {
+            values[3]  = readMixedColorSample(alphaInput, alphaBytes)
+            alphaInput += alphaBytes
+        }
+
+        redInput   += redBytes
+        greenInput += greenBytes
+        blueInput  += blueBytes
+        dst        += Stride
+        x          += 1
     }
 }
 

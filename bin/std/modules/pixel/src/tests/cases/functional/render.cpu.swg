@@ -847,6 +847,54 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     Swag.require(right.b > right.r)
 }
 
+// Color-only gradient spans match scalar blending over an opaque target.
+#test
+{
+    let first = Color.fromArgb(0x4267_B431'u32)
+    let last  = Color.fromArgb(0xC80E_2DDE'u32)
+    var paints: [3] Brush = [
+        Brush.createLinearGradient(6.25, 4.75, 24.5, 15.25, first, last, .Repeat),
+        Brush.createRadialGradient(33.75, 10.25, 9.125, first, last, .Mirror),
+        Brush.createSweepGradient(45.625, 17.375, first, last, .Clamp)]
+    for &paint in paints
+    {
+        paint.setOpacity(173)
+        paint.addGradientStop(0.375, Color.fromArgb(0xA018_A884'u32))
+    }
+
+    var images: [2] Image
+    for scalar in 2
+    {
+        var painter: Painter
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(0xFF20_3040'u32))
+        if not scalar do
+            painter.setColorMaskColor()
+        painter.setClippingRect({3, 5, 65, 32})
+        painter.translateTransform(0.25, 0.375)
+        for &paint, index in paints
+        {
+            let y = 5.125 + cast(f32, index) * 6.5
+            painter.fillRect({4.125, y, 63.375, 9.25}, paint[])
+
+            var path: LinePath
+            path.start(7.125, y + 2.25)
+            path.bezierTo(61.125, y + 11.125, 21.25, y - 4, 51.625, y + 24.75)
+            path.lineTo(8.375, y + 12.625)
+            path.close()
+            painter.fillPath(&path, paint[])
+        }
+        painter.end()
+        images[scalar] = renderCpu(73, 43, &painter)
+    }
+
+    Swag.require(images[0].isValid() and images[1].isValid())
+    Swag.require(images[0].pixelColor(20, 10).argb != 0xFF20_3040)
+    Swag.require(images[0].pixelColor(0, 10).argb == 0xFF20_3040)
+    Swag.require(Memory.compare(images[0].pixels.storage(), images[1].pixels.storage(), images[0].pixels.count) == 0)
+}
+
 // A zero scale collapses geometry instead of being treated as an identity transform.
 #test
 {

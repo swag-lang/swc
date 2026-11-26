@@ -750,13 +750,31 @@ private func readNumber(s: string, pos: *u64)->f32
             i += 1
     }
 
-    let integerEnd = i
+    let integerDigits = i - digits
+    var divisor       = 1'u64
+    var exact         = i <= exactEnd
     if i < len and s[i] == '.'
     {
         i += 1
-        while i < len and s[i] >= '0' and s[i] <= '9' do
-            i += 1
+        let budget      = 15 - Math.min(15'u64, integerDigits)
+        let fractionEnd = i + Math.min(budget, len - i)
+        while i < fractionEnd and Latin1.isDigit(s[i])
+        {
+            integral = integral * 10 + cast(u64, s[i] - '0')
+            divisor  *= 10
+            i        += 1
+        }
+
+        if i == fractionEnd
+        {
+            while i < len and Latin1.isDigit(s[i]) do
+                i += 1
+        }
+
+        exact = exact and i <= fractionEnd
     }
+
+    let mantissaEnd = i
 
     // An exponent needs its digits: `0.5em` is a length in `em`, not a number cut short at
     // `0.5e`, and reading it as one loses the value entirely.
@@ -775,11 +793,10 @@ private func readNumber(s: string, pos: *u64)->f32
 
     pos[] = i
 
-    // Up to fifteen digits fit exactly in f64, so the f32 conversion rounds exactly
-    // as the general parser does. Decimals and exponents keep the full conversion.
-    if i == integerEnd and i > digits and i <= exactEnd
+    // The integer mantissa and decimal divisor of a short coordinate are exact in f64.
+    if exact and i == mantissaEnd and (integerDigits or divisor > 1)
     {
-        let value = cast(f32, integral)
+        let value = divisor == 1 ? cast(f32, integral) : cast(f32, cast(f64, integral) / cast(f64, divisor))
         return negative ? -value : value
     }
 

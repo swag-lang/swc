@@ -427,6 +427,43 @@ func writeGrayHalfChunk(image: *Image, source: const [..] u8, firstRow, rows: s3
     }
 }
 
+func writeGrayFloatChunk(image: *Image, source: const [..] u8, firstRow, rows: s32, grayBytes, alphaBytes: u64, alphaFirst: bool)
+{
+    let width       = cast(u64, image.width)
+    let sourceBytes = width * (grayBytes + alphaBytes)
+    for row in rows
+    {
+        let targetY = image.height - firstRow - row - 1
+        let target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride
+        let input   = source.buffer + cast(u64, row) * sourceBytes
+        if not alphaBytes
+        {
+            Memory.copy(target, input, sourceBytes)
+            continue
+        }
+
+        let gray  = alphaFirst ? input + width * alphaBytes : input
+        let alpha = alphaFirst ? input : input + width * grayBytes
+        let dst   = cast([*] u32, target)
+        var x: u64
+        while width - x >= 4
+        {
+            let luminance = cast #bit(Simd.U32x4, loadMixedColorSamples(gray + x * grayBytes, grayBytes))
+            let opacity   = cast #bit(Simd.U32x4, loadMixedColorSamples(alpha + x * alphaBytes, alphaBytes))
+            Simd.store(dst + x * 2, Simd.interleaveLow(luminance, opacity))
+            Simd.store(dst + x * 2 + 4, Simd.interleaveHigh(luminance, opacity))
+            x += 4
+        }
+
+        while x < width
+        {
+            dst[x * 2]     = readMixedColorSample(gray + x * grayBytes, grayBytes)
+            dst[x * 2 + 1] = readMixedColorSample(alpha + x * alphaBytes, alphaBytes)
+            x += 1
+        }
+    }
+}
+
 func writeGrayscaleChunk(image: *Image, channels: const [..] Channel, source: const [..] u8, firstY, rowCount, yMin: s32) fail
 {
     var offset = 0'u64
@@ -485,8 +522,9 @@ func writeGrayscaleChunk(image: *Image, channels: const [..] Channel, source: co
 
 struct ScanlineLayout
 {
-    channelOffsets: [4] u64
-    halfChannels:   u8
+    channelOffsets:        [4] u64
+    grayBytes, alphaBytes: u8
+    halfChannels:          u8
     grayscale, grayHalf, halfColor, floatColor, alphaFirst: bool
 }
 
@@ -713,7 +751,10 @@ impl Part
         }
         elif layout.grayscale
         {
-            try writeGrayscaleChunk(image, .channels.toSlice(), pixels, chunk.firstY, chunk.rows, .yMin)
+            if layout.grayBytes do
+                writeGrayFloatChunk(image, pixels, chunk.relativeY, chunk.rows, layout.grayBytes, layout.alphaBytes, layout.alphaFirst)
+            else do
+                try writeGrayscaleChunk(image, .channels.toSlice(), pixels, chunk.firstY, chunk.rows, .yMin)
         }
         elif layout.halfColor
         {
@@ -793,14 +834,21 @@ impl Part
         if not options.decodePixels do
             return result
         result.allocPixels()
-        let grayscale = result.pixelFormat.isGrayscale()
-        let halfColor = result.pixelFormat == .RGBF16 or result.pixelFormat == .RGBAF16
-        let grayHalf  = (result.pixelFormat == .GrayF16 or result.pixelFormat == .GrayAlphaF16) and
-                        .channels.count == result.pixelFormat.channels()
-        let alphaFirst = grayHalf and .channels[0].name == "A"
+        let grayscale  = result.pixelFormat.isGrayscale()
+        let halfColor  = result.pixelFormat == .RGBF16 or result.pixelFormat == .RGBAF16
+        let packedGray = grayscale and .channels.count == result.pixelFormat.channels()
+        let grayHalf   = packedGray and result.pixelFormat.bitDepth() == 16
+        let alphaFirst = packedGray and .channels[0].name == "A"
+        var grayBytes, alphaBytes: u8
+        if packedGray and not grayHalf
+        {
+            grayBytes = .channels[alphaFirst ? 1 : 0].pixelType == 1 ? 2 : 4
+            if .channels.count == 2 do
+                alphaBytes = .channels[alphaFirst ? 0 : 1].pixelType == 1 ? 2 : 4
+        }
 
         // The packed paths write all channels of each validated row.
-        if grayscale and not grayHalf do
+        if grayscale and not packedGray do
             result.fill(Argb.Black)
 
         // Each scanline repeats the same channel planes in file order.
@@ -830,7 +878,7 @@ impl Part
         let linesPerChunk = .compression == 3 ? 16'u64 : 1'u64
         var seenRows: Array'bool
         seenRows.resize(cast(u64, .info.height))
-        var layout: ScanlineLayout = {channelOffsets, halfChannels, grayscale, grayHalf, halfColor, floatColor, alphaFirst}
+        var layout: ScanlineLayout = {channelOffsets, grayBytes, alphaBytes, halfChannels, grayscale, grayHalf, halfColor, floatColor, alphaFirst}
 
         // A fully stored single part needs a table entry and a scanline header per block.
         // Let the serial path copy these blocks without an auxiliary chunk index.

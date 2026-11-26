@@ -239,6 +239,23 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertGifPixelAt(image, 0, 0, 255, 255, 255, 255)
 }
 
+// A short, dense LZW stream may reference the dictionary entry it is still constructing.
+#test
+{
+    const Bytes: [38] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        3, 0, 1, 0, 0x80, 0, 0,
+        19, 43, 71, 109, 151, 197,
+        0x2C, 0, 0, 0, 0, 3, 0, 1, 0, 0,
+        8,
+        5, 0x00, 0x03, 0x08, 0x0C, 0x08,
+        0, 0x3B]
+    let image = expect Image.decode("dense-self-reference.gif", Bytes)
+    Swag.require(image.width == 3 and image.height == 1)
+    for x in image.width do
+        assertGifPixelAt(image, x, 0, 109, 151, 197, 255)
+}
+
 // LZW codes cross sub-blocks while interlaced rows are restored in all four passes.
 #test
 {

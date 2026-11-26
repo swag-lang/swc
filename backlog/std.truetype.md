@@ -189,9 +189,9 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
   file-backed FreeType mapping, which reads glyph programs from the file on demand. With
   the same whole-file snapshot for the standalone OTF cases, Swag takes 1.81–2.93 ms and
   FreeType takes 2.61–3.66 ms. [CJK file ownership timings](../bench/results/swagscope-filesamples/font-decode-linux.md#cjk-file-ownership-and-cff-parsing)
-- Next: isolate acquisition of the CFF charstring payload on the first standalone file
-  open. Measure the effect of large read sizes and destination allocation without
-  changing the independence of the face from later file changes.
+- Next: isolate the remaining cost of a single-worker CFF outline copy and check whether
+  a host can provide independent snapshot storage. Preserve the face's guarantee after
+  in-place file edits.
 - Done when: Swag opens and renders the six CJK fixture scenarios faster than the
   FreeType pathname probe while preserving independent face bytes and matching Swag
   glyph indices, advances, bitmap dimensions, and checksums.

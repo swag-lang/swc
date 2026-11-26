@@ -70,7 +70,7 @@ impl LzwBits
 
 impl Decoder
 {
-    mtd(COPY_PREFIX: bool) readImageData(indexed: const *IndexedFrame) fail
+    mtd(COPY_PREFIX: bool, FAST_LITERAL: bool) readImageData(indexed: const *IndexedFrame) fail
     {
         let minKeySize = cast(s32, indexed.minKeySize)
         let start      = cast(const [*] u8, unwrap indexed.data)
@@ -93,8 +93,11 @@ impl Decoder
         var entries: [LzwDictionaryLimit] u32
         const OffsetCount = COPY_PREFIX ? LzwDictionaryLimit : 1
         var prefixOffsets: [OffsetCount] u32
-        for literal in clear do
-            entries[literal] = cast(u32, literal)
+        #static if not FAST_LITERAL
+        {
+            for literal in clear do
+                entries[literal] = cast(u32, literal)
+        }
 
         var frameOffset = 0'u32
         var nextCode    = stop + 1
@@ -119,41 +122,72 @@ impl Decoder
             }
 
             key = bits.readKey(keySize)
-            if key == clear do
-                continue
-            if key == stop or key == LzwDictionaryLimit do
-                break
-            if key >= nextCode do
-                fail InvalidFormatError{"GIF LZW code is outside its dictionary"}
-            if frameOffset >= frameSize do
-                fail InvalidFormatError{"GIF LZW data exceeds its frame"}
-
-            var entry = entries[key]
-            length = (entry >> LzwLengthShift) + 1
-            if length > frameSize - frameOffset do
-                fail InvalidFormatError{"GIF LZW string exceeds its frame"}
-
-            if COPY_PREFIX and length > LzwCopyPrefixLength
+            if FAST_LITERAL and key < clear
             {
-                // The prefix was written before this string, with no overlap.
-                let prefix = frame + prefixOffsets[key]
-                let target = frame + frameOffset
-                Memory.copy(target, prefix, length - 1)
-                first = prefix[0]
-                target[length - 1] = cast(u8, (entry & LzwSuffixMask))
+                if frameOffset >= frameSize do
+                    fail InvalidFormatError{"GIF LZW data exceeds its frame"}
+                length = 1
+                first  = cast(u32, key)
+                frame[frameOffset] = cast(u8, key)
             }
             else
             {
-                var target = frame + frameOffset + length - 1
-                for length - 1
-                {
-                    target[0] = cast(u8, (entry & LzwSuffixMask))
-                    target    -= 1
-                    entry     = entries[(entry >> LzwPrefixShift) & LzwPrefixMask]
-                }
+                if key == clear do
+                    continue
+                if key == stop or key == LzwDictionaryLimit do
+                    break
+                if key >= nextCode do
+                    fail InvalidFormatError{"GIF LZW code is outside its dictionary"}
+                if frameOffset >= frameSize do
+                    fail InvalidFormatError{"GIF LZW data exceeds its frame"}
 
-                first     = entry & LzwSuffixMask
-                target[0] = cast(u8, first)
+                var entry = entries[key]
+                length = (entry >> LzwLengthShift) + 1
+                if length > frameSize - frameOffset do
+                    fail InvalidFormatError{"GIF LZW string exceeds its frame"}
+
+                if COPY_PREFIX and length > LzwCopyPrefixLength
+                {
+                    // The prefix was written before this string, with no overlap.
+                    let prefix = frame + prefixOffsets[key]
+                    let target = frame + frameOffset
+                    Memory.copy(target, prefix, length - 1)
+                    first = prefix[0]
+                    target[length - 1] = cast(u8, (entry & LzwSuffixMask))
+                }
+                else
+                {
+                    #static if FAST_LITERAL
+                    {
+                        // Finish the string by writing the literal prefix and the next suffix together.
+                        var target = frame + frameOffset + length - 1
+                        var prefix = (entry >> LzwPrefixShift) & LzwPrefixMask
+                        while prefix >= clear
+                        {
+                            target[0] = cast(u8, (entry & LzwSuffixMask))
+                            target    -= 1
+                            entry     = entries[prefix]
+                            prefix    = (entry >> LzwPrefixShift) & LzwPrefixMask
+                        }
+
+                        let pair = prefix | ((entry & LzwSuffixMask) << 8)
+                        cast([*] u16, target - 1)[0] = cast(u16, pair)
+                        first = prefix
+                    }
+                    else
+                    {
+                        var target = frame + frameOffset + length - 1
+                        for length - 1
+                        {
+                            target[0] = cast(u8, (entry & LzwSuffixMask))
+                            target    -= 1
+                            entry     = entries[(entry >> LzwPrefixShift) & LzwPrefixMask]
+                        }
+
+                        first     = entry & LzwSuffixMask
+                        target[0] = cast(u8, first)
+                    }
+                }
             }
 
             frameOffset += length
@@ -174,9 +208,11 @@ impl Decoder
 
     mtd decodeIndices(indexed: const *IndexedFrame) fail
     {
-        if indexed.copyLzwPrefixes do
-            try .readImageData'(true)(indexed)
-        else do
-            try .readImageData'(false)(indexed)
+        switch indexed.lzwMode
+        {
+        case .Chained:       try .readImageData'(false, false)(indexed)
+        case .CopyPrefixes:  try .readImageData'(true, false)(indexed)
+        case .DenseLiterals: try .readImageData'(false, true)(indexed)
+        }
     }
 }

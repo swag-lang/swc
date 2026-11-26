@@ -28,7 +28,7 @@ impl FontInput
             try fault(0x03)
         if let stream = .stream
         {
-            if not (try stream.readExactAt(offset, buffer)) do
+            if (try readFontRange(stream, offset, buffer)) != buffer.count do
                 try fault(0x03)
         }
         else
@@ -146,14 +146,25 @@ func readFontFile(path: string, faceIndex: u32)->{ bytes: Array'u8, faceIndex: u
         try stream.seek(.Begin, 0)
     }
 
-    var result: #returntype
-    result.faceIndex = faceIndex
-    if length
-    {
-        result.bytes.reserve(length)
-        result.bytes.count = try stream.read(unwrap result.bytes.buffer, length)
-    }
+    var bytes = try readCompleteFont(&stream, length)
+    return {bytes: #move bytes, faceIndex: faceIndex}
+}
 
+func readFontSnapshot(path: string)->Array'u8 fail
+{
+    var stream = try File.openRead(path)
+    return try readCompleteFont(&stream, try stream.size())
+}
+
+private func readCompleteFont(stream: *File.FileStream, length: u64)->Array'u8 fail
+{
+    var result: #returntype
+    if not length do
+        return result
+
+    result.reserve(length)
+    let buffer = Swag.makeSlice(unwrap result.buffer, length)
+    result.count = try readFontRange(stream, 0, buffer, cursorAtOffset: true)
     return result
 }
 
@@ -169,4 +180,22 @@ func copyFontMember(bytes: const [..] u8, faceIndex: u32)->Array'u8 fail
     if not faceIndex and isTrueTypeSfnt(signature) do
         return try compactSfnt(&source, 0, try getSlice(bytes, 0, 12), collection: false)
     return {}
+}
+
+private func readFontRange(stream: *File.FileStream, offset: u64, buffer: [..] u8, cursorAtOffset = false)->u64 fail
+{
+    #static if #os == Swag.TargetOs.Linux
+    {
+        let workers = stream.canSeek ? fontReadWorkers(buffer.count) : 0
+        if workers > 1
+        {
+            let parallelRead = try readParallelFontRange(stream, offset, buffer, workers)
+            if parallelRead.ok do
+                return parallelRead.count
+        }
+    }
+
+    if not cursorAtOffset do
+        try stream.seek(.Begin, offset)
+    return try stream.read(buffer)
 }

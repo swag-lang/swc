@@ -71,8 +71,14 @@ impl Decoder
         let remaining = .streamLen
         try .discardSubBlocks()
 
-        // Longer dictionary strings favor copying already decoded prefixes.
-        result.copyLzwPrefixes = remaining - .streamLen <= cast(u64, result.width) * result.height * 3 / 16
+        let framePixels  = cast(u64, result.width) * result.height
+        let encodedBytes = remaining - .streamLen
+
+        // Very small payloads favor reused prefixes. Near the worst LZW ratio, most codes are literals.
+        if encodedBytes <= framePixels * 3 / 16 do
+            result.lzwMode = .CopyPrefixes
+        elif encodedBytes >= framePixels + framePixels / 4 do
+            result.lzwMode = .DenseLiterals
 
         result.control = .gce
         return result

@@ -327,3 +327,43 @@ The last column uses seven separate instrumented batches of 506 opens.
 | `NotoSansTC-Variable.ttf` | 0 | 70.16 | 58.07 | 13.97 → 10.05 |
 | `NotoSansSC-Variable.ttf` | 0 | 57.69 | 54.05 | 4.21 → 3.25 |
 | `NotoSerifCJKjp-Regular.otf` | 0 | 74.38 | 62.01 | 39.96 → 25.20 |
+
+## Parallel reads for large Linux snapshots
+
+On Linux, a read of at least 8 MiB can use up to four positional reads on the
+same descriptor. The reads fill disjoint parts of the owned buffer. Completion
+returns the contiguous prefix in file order, and a failed positional read falls
+back to the ordinary stream path. The parallel path uses the existing worker budget.
+
+Four-worker runs use four logical CPUs, and one-worker runs pin to one CPU.
+The table reports medians of 11 interleaved batches of 21 fresh file opens and
+one rendered glyph at 20 px. The warm-cache baseline is `d8325e8d9e`.
+Glyph indices, advances, bitmap dimensions, and CRC-64 agree across all four runs.
+Separate one-worker repeats on the three variable controls ranged from a 3.3%
+gain to a 0.4% slowdown. [Raw timings and controls](font-decode-linux-parallel-read.json)
+
+| Fixture | Face | Before, 1 worker (µs) | After, 1 worker (µs) | Before, 4 workers (µs) | After, 4 workers (µs) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | 1891.21 | 1854.06 | 1897.67 | 1344.06 |
+| `NotoSansCJK-Regular.ttc` | 1 | 1859.76 | 1851.97 | 1867.81 | 1339.43 |
+| `NotoSansCJK-Regular.ttc` | 2 | 1862.02 | 1847.06 | 1829.87 | 1358.68 |
+| `NotoSansCJK-Regular.ttc` | 7 | 1758.30 | 1806.98 | 1932.74 | 1378.64 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 2347.30 | 2435.86 | 2334.61 | 1387.47 |
+| `NotoSerifCJK-Regular.ttc` | 0 | 2906.34 | 2812.75 | 2876.17 | 1815.55 |
+| `NotoSerifCJK-Regular.ttc` | 1 | 2826.45 | 2883.94 | 2916.28 | 1828.94 |
+| `NotoSerifCJK-Regular.ttc` | 2 | 2866.84 | 2849.03 | 2807.05 | 1892.63 |
+| `NotoSerifCJK-Regular.ttc` | 3 | 2993.83 | 2877.82 | 2952.54 | 1920.72 |
+| `NotoSerifCJK-Regular.ttc` | 4 | 2755.14 | 2810.16 | 2869.38 | 1785.00 |
+| `NotoSansJP-Variable.ttf` | 0 | 678.24 | 726.53 | 709.40 | 671.06 |
+| `NotoSansTC-Variable.ttf` | 0 | 797.36 | 822.75 | 782.59 | 772.96 |
+| `NotoSansSC-Variable.ttf` | 0 | 1165.01 | 1196.82 | 1208.67 | 862.64 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 3282.91 | 3318.16 | 3364.66 | 2027.74 |
+
+Each collection pass includes the initial read into `FontSource`, opening every
+member, rendering U+65E5 at 20 px, and destroying each face. The medians below
+use 11 interleaved batches of 11 passes.
+
+| Collection | Members | Before, 4 workers (ms) | After, 4 workers (ms) |
+| --- | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 10 | 13.74 | 5.89 |
+| `NotoSerifCJK-Regular.ttc` | 5 | 15.42 | 6.90 |

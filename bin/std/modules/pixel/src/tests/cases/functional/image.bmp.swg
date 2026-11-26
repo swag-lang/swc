@@ -64,7 +64,7 @@ private func checkBmp16Masks(masks: Bmp.Masks)
     masks.b = Bmp.readMask(0xF000)
     checkBmp16Masks(masks)
 
-    // A channel wider than eight bits must retain the scalar fallback.
+    // A channel wider than eight bits needs 32-bit arithmetic for normalization.
     masks.r = Bmp.readMask(0x01FF)
     masks.g = Bmp.readMask(0x3E00)
     masks.b = Bmp.readMask(0xC000)
@@ -962,6 +962,31 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     Swag.require(img.pixels.buffer[15] == 0'u8)
     Swag.require(img.pixels.buffer[16] == 0'u8)
     Swag.require(img.pixels.buffer[17] == 30'u8)
+}
+
+// Short RLE8 runs follow vertical deltas and keep skipped pixels clear.
+#test
+{
+    const Packed: [14] u8 = [1, 1, 0, 2, 1, 1, 2, 2, 0, 0, 3, 3, 0, 1]
+    var cb: ConcatBuffer
+    cb.addStruct(BmpFH{bfType: 0x4D42, bfSize: 70 + cast(u32, Packed.count), bfOffBits: 70})
+    cb.addStruct(Bmp.Header{biSize: 40, biWidth: 4, biHeight: 3, biPlanes: 1,
+                            biBitCount: 8, biCompression: Bmp.BI_RLE8, biSizeImage: cast(u32, Packed.count), biClrUsed: 4})
+    addBmpPaletteColor(&cb, 5, 6, 7)
+    addBmpPaletteColor(&cb, 10, 0, 0)
+    addBmpPaletteColor(&cb, 0, 20, 0)
+    addBmpPaletteColor(&cb, 0, 0, 30)
+    cb.addBytes(Packed)
+
+    let image = expect Image.decode("rle8-delta.bmp", nnBytes(cb.toSlice()))
+    Swag.require(image.pixelColor(0, 2).argb == 0xFF00000A)
+    Swag.require(image.pixelColor(1, 2).argb == 0xFF000000)
+    Swag.require(image.pixelColor(1, 1).argb == 0xFF000000)
+    Swag.require(image.pixelColor(2, 1).argb == 0xFF001400)
+    Swag.require(image.pixelColor(3, 1).argb == 0xFF001400)
+    Swag.require(image.pixelColor(0, 0).argb == 0xFF1E0000)
+    Swag.require(image.pixelColor(2, 0).argb == 0xFF1E0000)
+    Swag.require(image.pixelColor(3, 0).argb == 0xFF000000)
 }
 
 // Decode BI_RLE4 indexed data.

@@ -515,7 +515,7 @@ private impl Codec
                 coefficients[index] = reader.readSigned(precision)
 
             try .readResidual(reader, blockSize, order)
-            try .predictLinear(target, &coefficients[0], order, blockSize, cast(s32, shift))
+            try .predictLinear(target, &coefficients[0], order, blockSize, cast(s32, shift), depth)
         }
         else
         {
@@ -566,17 +566,32 @@ private impl Codec
     // dot product with the newly reconstructed samples before shifting it. Speculative
     // products can wrap after history leaves the narrow range, so validate before storing.
     #[Swag.Safety(.Overflow, false)]
-    mtd predictLinearPacked(target, residual: [*] s64, coefficients: const [*] s64, order, blockSize, shift: u32)->u32
+    mtd(Wide: bool) predictLinearPacked(target, residual: [*] s64, coefficients: const [*] s64, order, blockSize, shift: u32)->u32
     {
-        var norm:    s64
-        var weights: [4, 8] s16
-        var warmup:  [8] s16
+        const Limit   = Wide ? 1's64 << 30 : 1's64 << 15
+        const LowBias = 32768's64
+        var norm, bias: s64
+        var weights:    [4, 8] s16
+        var warmup, upperWarmup: [8] s16
+        #static if not Wide do
+            discard bias, upperWarmup
         for tap in order
         {
             let sample = residual[tap]
-            if sample < Swag.S16.Min or sample > Swag.S16.Max do
+            if sample < -Limit or sample >= Limit do
                 return order
-            warmup[8 - order + tap] = cast(s16, sample)
+            #static if Wide
+            {
+                // A wide sample equals (high << 16) + biasedLow + 32768.
+                warmup[8 - order + tap]      = cast #wrap (s16, sample ^ LowBias)
+                upperWarmup[8 - order + tap] = cast(s16, sample >> 16)
+                bias += coefficients[tap] * LowBias
+            }
+            else
+            {
+                warmup[8 - order + tap] = cast(s16, sample)
+            }
+
             norm += Math.abs(coefficients[tap])
         }
 
@@ -605,6 +620,20 @@ private impl Codec
         const Pair2 = cast(Math.Simd.U16x8, [4'u16, 5, 4, 5, 4, 5, 4, 5])
         const Pair3 = cast(Math.Simd.U16x8, [6'u16, 7, 6, 7, 6, 7, 6, 7])
 
+        var upperHistory:        Math.Simd.S16x8
+        var bias1, bias2, bias3: s64
+        #static if Wide
+        {
+            upperHistory = Math.Simd.load(cast(const [*] s16, &upperWarmup[0]))
+
+            // Later lanes omit the taps supplied by the newly reconstructed samples.
+            bias1 = bias - tap0 * LowBias
+            bias2 = bias1 - tap1 * LowBias
+            bias3 = bias2 - tap2 * LowBias
+        }
+        else do
+            discard upperHistory, bias1, bias2, bias3
+
         var index = order
         while blockSize - index >= 4
         {
@@ -612,24 +641,53 @@ private impl Codec
                               Math.Simd.mulAddPairs(weight1, Swag.vecShuffle(history, Pair1)) +
                               Math.Simd.mulAddPairs(weight2, Swag.vecShuffle(history, Pair2)) +
                               Math.Simd.mulAddPairs(weight3, Swag.vecShuffle(history, Pair3))
-            let sample0 = residual[index] + cast(s64, predictions[0] >> shift)
-            let sample1 = residual[index + 1] + ((cast(s64, predictions[1]) + tap0 * sample0) >> shift)
-            let sample2 = residual[index + 2] + ((cast(s64, predictions[2]) + tap1 * sample0 + tap0 * sample1) >> shift)
-            let sample3 = residual[index + 3] + ((cast(s64, predictions[3]) + tap2 * sample0 + tap1 * sample1 + tap0 * sample2) >> shift)
+            var p0 = cast(s64, predictions[0] >> shift)
+            var p1 = cast(s64, predictions[1])
+            var p2 = cast(s64, predictions[2])
+            var p3 = cast(s64, predictions[3])
+            #static if Wide
+            {
+                let upper = Math.Simd.mulAddPairs(weight0, Swag.vecShuffle(upperHistory, Pair0)) +
+                            Math.Simd.mulAddPairs(weight1, Swag.vecShuffle(upperHistory, Pair1)) +
+                            Math.Simd.mulAddPairs(weight2, Swag.vecShuffle(upperHistory, Pair2)) +
+                            Math.Simd.mulAddPairs(weight3, Swag.vecShuffle(upperHistory, Pair3))
+                p0 = (cast(s64, predictions[0]) + (cast(s64, upper[0]) << 16) + bias) >> shift
+                p1 += (cast(s64, upper[1]) << 16) + bias1
+                p2 += (cast(s64, upper[2]) << 16) + bias2
+                p3 += (cast(s64, upper[3]) << 16) + bias3
+            }
+
+            let sample0 = residual[index] + p0
+            let sample1 = residual[index + 1] + ((p1 + tap0 * sample0) >> shift)
+            let sample2 = residual[index + 2] + ((p2 + tap1 * sample0 + tap0 * sample1) >> shift)
+            let sample3 = residual[index + 3] + ((p3 + tap2 * sample0 + tap1 * sample1 + tap0 * sample2) >> shift)
 
             // The first out-of-range sample is still exact because its input history fits.
             // If it exists, discard the entire group and let the wide predictor redo it.
-            let outside = cast #bit (u64, (sample0 + 32768)) | cast #bit (u64, (sample1 + 32768)) |
-                          cast #bit (u64, (sample2 + 32768)) | cast #bit (u64, (sample3 + 32768))
-            if outside > 65535 do
+            let outside = cast #bit (u64, (sample0 + Limit)) | cast #bit (u64, (sample1 + Limit)) |
+                          cast #bit (u64, (sample2 + Limit)) | cast #bit (u64, (sample3 + Limit))
+            if outside >= cast(u64, Limit * 2) do
                 return index
             target[index]     = sample0
             target[index + 1] = sample1
             target[index + 2] = sample2
             target[index + 3] = sample3
-            let samples = [cast(s16, sample0), cast(s16, sample1), cast(s16, sample2), cast(s16, sample3), 0, 0, 0, 0]
-            history = Swag.vecAlign(history, Math.Simd.load(cast(const [*] s16, &samples[0])), 8)
-            index   += 4
+            #static if Wide
+            {
+                let low = [cast #wrap(s16, sample0 ^ LowBias), cast #wrap(s16, sample1 ^ LowBias),
+                           cast #wrap(s16, sample2 ^ LowBias), cast #wrap(s16, sample3 ^ LowBias), 0, 0, 0, 0]
+                let high = [cast(s16, sample0 >> 16), cast(s16, sample1 >> 16),
+                            cast(s16, sample2 >> 16), cast(s16, sample3 >> 16), 0, 0, 0, 0]
+                history      = Swag.vecAlign(history, Math.Simd.load(cast(const [*] s16, &low[0])), 8)
+                upperHistory = Swag.vecAlign(upperHistory, Math.Simd.load(cast(const [*] s16, &high[0])), 8)
+            }
+            else
+            {
+                let samples = [cast(s16, sample0), cast(s16, sample1), cast(s16, sample2), cast(s16, sample3), 0, 0, 0, 0]
+                history = Swag.vecAlign(history, Math.Simd.load(cast(const [*] s16, &samples[0])), 8)
+            }
+
+            index += 4
         }
 
         return index
@@ -639,15 +697,22 @@ private impl Codec
     //
     // The accumulator is 64-bit because the format allows thirty-two coefficients of fifteen
     // bits each over samples of up to thirty-three bits in a decorrelated stereo side channel.
-    mtd predictLinear(target: [*] s64, coefficients: const [*] s64, order, blockSize, shift: s32) fail
+    mtd predictLinear(target: [*] s64, coefficients: const [*] s64, order, blockSize, shift: s32, depth: u32) fail
     {
         let source = .residual.storage()
         for index in order do
             target[index] = source[index]
 
         var start = cast(u32, order)
-        if order >= 3 and order <= 8 and shift >= 0 do
-            start = .predictLinearPacked(target, source, coefficients, cast(u32, order), cast(u32, blockSize), cast(u32, shift))
+        if order >= 3 and order <= 8 and shift >= 0
+        {
+            let tapCount    = cast(u32, order)
+            let sampleCount = cast(u32, blockSize)
+            let rightShift  = cast(u32, shift)
+            start = .predictLinearPacked'false(target, source, coefficients, tapCount, sampleCount, rightShift)
+            if start == tapCount and depth > 16 do
+                start = .predictLinearPacked'true(target, source, coefficients, tapCount, sampleCount, rightShift)
+        }
 
         let groups      = order / 4
         let groupedTaps = groups * 4

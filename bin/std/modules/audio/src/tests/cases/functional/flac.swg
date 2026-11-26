@@ -131,7 +131,7 @@ private func flac24BitStereoTestConfig()->Array'u8
     return config
 }
 
-private func flac16BitMonoTestConfig(samples = 2'u8)->Array'u8
+private func flacMonoTestConfig(samples = 2'u8, depth = 16'u64)->Array'u8
 {
     var config: Array'u8
     config.add(0)
@@ -140,7 +140,7 @@ private func flac16BitMonoTestConfig(samples = 2'u8)->Array'u8
     config.add(samples)
     for 6 do
         config.add(0)     // Min/max frame sizes are unknown.
-    let description = (48_000'u64 << 44) | (15'u64 << 36) | samples
+    let description = (48_000'u64 << 44) | ((depth - 1) << 36) | samples
     for byte in 8 do
         config.add(cast(u8, (description >> (56 - byte * 8)) & 0xFF))
     for 16 do
@@ -415,7 +415,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 
     var codec:   Flac.Codec
     let decoder: IPacketCodec = &codec
-    let config = flac16BitMonoTestConfig(cast(u8, Samples.count))
+    let config = flacMonoTestConfig(cast(u8, Samples.count))
     expect decoder.initialize(config.toSlice(), 48_000, 1)
     var decoded: [Samples.count] s16
     let bytes = expect decoder.decodePacket(cast([*] void, &decoded[0]), #sizeof(decoded), frame.toSlice())
@@ -468,7 +468,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 {
     var codec:   Flac.Codec
     let decoder: IPacketCodec = &codec
-    let config = flac16BitMonoTestConfig()
+    let config = flacMonoTestConfig()
     expect decoder.initialize(config.toSlice(), 48_000, 1)
 
     var decoded: [2] s16
@@ -488,6 +488,47 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     let maxShiftFrame = flacLinearShiftFrame(0b0_1111)     // +15, the signed field's upper bound.
     discard expect decoder.decodePacket(cast([*] void, &decoded[0]), 2 * #sizeof(s16), maxShiftFrame.toSlice())
     audioAssertSamples(cast([..] u8, decoded), [1's16, 0's16])
+}
+
+// The 24-bit predictor uses both signed history planes before finishing a scalar tail.
+#test
+{
+    const Warmup:   [4] s32 = [1_200_003, -700_007, 2_000_010, -1_000_017]
+    const Taps:     [4] s32 = [2, -1, 1, -2]
+    const Residual: [9] s32 = [25, -40, 33, -9, 71, -15, 11, 32, -21]
+    const Frames = Warmup.count + Residual.count
+
+    var frame: Array'u8
+    frame.add([0xFF'u8, 0xF9, 0x60, 0, 0, cast(u8, Frames - 1)])
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+    var bits = frame.count * 8
+    flacTestAppendBits(&frame, &bits, 0x46, 8)     // Order-four LPC subframe.
+    for sample in Warmup do
+        flacTestAppendBits(&frame, &bits, cast #wrap(u64, sample) & 0xFF_FFFF, 24)
+    flacTestAppendBits(&frame, &bits, 4, 4)     // Five-bit coefficients.
+    flacTestAppendBits(&frame, &bits, 2, 5)     // Right shift by two.
+    for tap in Taps do
+        flacTestAppendBits(&frame, &bits, cast #wrap(u64, tap) & 31, 5)
+    flacTestAppendBits(&frame, &bits, 0, 6)      // Rice coding with one partition.
+    flacTestAppendBits(&frame, &bits, 15, 4)     // Escape to fixed-width residuals.
+    flacTestAppendBits(&frame, &bits, 8, 5)
+    for value in Residual do
+        flacTestAppendBits(&frame, &bits, cast #wrap(u64, value) & 255, 8)
+
+    while bits & 7 do
+        flacTestAppendBits(&frame, &bits, 0, 1)
+    let checksum = Flac.frameCrc16(frame.toSlice())
+    frame.add(cast(u8, checksum >> 8))
+    frame.add(cast(u8, checksum & 0xFF))
+
+    var codec:   Flac.Codec
+    let decoder: IPacketCodec = &codec
+    let config = flacMonoTestConfig(cast(u8, Frames), depth: 24)
+    expect decoder.initialize(config.toSlice(), 48_000, 1)
+    var decoded: [Frames] s16
+    let written = expect decoder.decodePacket(cast([*] void, &decoded[0]), #sizeof(decoded), frame.toSlice())
+    Swag.require(written == #sizeof(decoded))
+    audioAssertSamples(cast([..] u8, decoded), [4687's16, -2735, 7812, -3907, -6934, 829, -2735, -1355, 3680, 1080, 648, 1651, -907])
 }
 
 // A valid 17-bit side sample can outgrow the packed predictor midway through a block.

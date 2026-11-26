@@ -1251,6 +1251,48 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertPngPixelAt(simdImage, 4095, 0, 37'u8, 91'u8, 173'u8, 0'u8)
 }
 
+// Consecutive Paeth rows preserve all RGB8 bytes, including the ends of
+// paired rows and the final row that uses the single-row path.
+#test
+{
+    const Width    = 9
+    const Height   = 5
+    const RowBytes = Width * 3
+    var original: [Height * RowBytes] u8
+    for i in original.count do
+        original[i] = cast #bit(u8, (i * 91 + i / 7 * 39))
+
+    var raw: Array'u8
+    for y in Height
+    {
+        raw.add(4)
+        for x in RowBytes
+        {
+            let i      = y * RowBytes + x
+            let left   = x >= 3 ? original[i - 3] : 0'u8
+            let up     = y ? original[i - RowBytes] : 0'u8
+            let upLeft = y and x >= 3 ? original[i - RowBytes - 3] : 0'u8
+            raw.add(original[i] - #wrap Png.filterPaeth(left, up, upLeft))
+        }
+    }
+
+    var encoded: ConcatBuffer
+    addPngSignature(&encoded)
+    addPngHeader(&encoded, Width, Height, 8, 2)
+    addPngImageData(&encoded, nnBytes(raw.toSlice()))
+    addPngChunk(&encoded, "IEND", "")
+
+    let image = expect Image.decode("paeth-pairs.png", nnBytes(encoded.toSlice()), {})
+    Swag.require(image.pixelFormat == .RGB8)
+    Swag.require(image.width == Width and image.height == Height)
+    for y in Height
+    {
+        let row = (Height - y - 1) * RowBytes
+        for x in RowBytes do
+            Swag.require(image.pixels[row + x] == original[y * RowBytes + x])
+    }
+}
+
 // Decode Adam7-interlaced grayscale, true-color, and alpha PNGs.
 #test
 {

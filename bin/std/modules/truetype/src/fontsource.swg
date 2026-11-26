@@ -102,7 +102,7 @@ public impl FontSource
         context.allocator = resolvedAllocator
         defer context.allocator = previousAllocator
 
-        var bytes = try File.readAllBytes(fileName)
+        var bytes = try readFontSnapshot(fileName)
         return takeBytes(#move bytes, resolvedAllocator)
     }
 

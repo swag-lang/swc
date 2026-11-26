@@ -341,7 +341,7 @@ impl FaceImpl
         switch #complete .outlineSource
         {
         case .Cff:   return .cffFont().glyphNames.glyphIndex(name)
-        case .Type1: return .type1Font().nameToGid.getOrDefault(String.from(name), 0)
+        case .Type1: return .type1Font().nameToGid.getOrDefault(name, 0)
         case .Glyf:  return .postGlyphNames().glyphIndex(name)
         }
     }
@@ -361,9 +361,9 @@ impl FaceImpl
             let names = &.type1Font().glyphNames
             if glyphIndex >= names.count do
                 return null
-            if not names[glyphIndex].length do
+            if not names[glyphIndex].count do
                 return null
-            return names[glyphIndex].toString()
+            return names[glyphIndex]
 
         case .Glyf:
             return .postGlyphNames().nameOf(glyphIndex)

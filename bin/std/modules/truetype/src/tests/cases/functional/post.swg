@@ -93,8 +93,8 @@ using Swag, Core
     var type1Face: FaceImpl
     type1Face.face.setGlyphCount(2)
     type1Face.outlineSource = .Type1
-    type1Face.type1.glyphNames.add(String.from(".notdef"))
-    type1Face.type1.glyphNames.add(String.from("Aacute"))
+    type1Face.type1.glyphNames.add(".notdef")
+    type1Face.type1.glyphNames.add("Aacute")
     Swag.require(type1Face.face.glyphName(0) == ".notdef")
     Swag.require(type1Face.face.glyphName(1) == "Aacute")
     Swag.require(type1Face.face.glyphName(2) == null)

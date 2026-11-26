@@ -110,7 +110,7 @@ using Swag, Core
 #test
 {
     const PlainCharstring: [8] u8 = ['3', ' ', 'R', 'D', ' ', 10, 20, 30]
-    let entry = expect readCharstringData(PlainCharstring, 0, -1)
+    let entry = expect readCharstringData(PlainCharstring, 0)
     Swag.require(entry.bytes.count == 3)
     Swag.require(entry.bytes[0] == 10 and entry.bytes[1] == 20 and entry.bytes[2] == 30)
     Swag.require(entry.next == PlainCharstring.count)
@@ -134,7 +134,7 @@ using Swag, Core
     Swag.require(type2Outcome.value() != null)
 
     var type1: Type1Font
-    type1.charstrings.add(code)
+    type1.charstrings.add(type1.storeCode(code.toSlice(), -1))
     var type1Outcome: Swag.Error
     discard catch runType1Charstring(&type1, 0, null) as type1Outcome
     Swag.require(type1Outcome.value() != null)
@@ -184,7 +184,7 @@ using Swag, Core
     charstring.add(14)     // endchar
 
     var font: Type1Font
-    font.charstrings.add(charstring)
+    font.charstrings.add(font.storeCode(charstring.toSlice(), -1))
 
     var face: FaceImpl
     var builder = OutlineBuilder.create(&face, 1000, 1000, 1000)

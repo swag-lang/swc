@@ -358,7 +358,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
     }
 }
 
-func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
+func vp8WriteRgbaRow(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image, mbY, storageY: s32)
 {
     using Math.Simd
 
@@ -402,7 +402,6 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
         store(destination + 48, cast #bit(U8x16, interleaveHigh(rgHi, baHi)))
     }
 
-    result.allocPixels()
     let yData   = cast([*] u8, decoder.y.storage())
     let cbData  = cast([*] u8, decoder.cb.storage())
     let crData  = cast([*] u8, decoder.cr.storage())
@@ -411,11 +410,13 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
     let width   = decoder.header.width
     let height  = decoder.header.height
 
-    for y in height
+    let firstY = mbY * 16
+    for y in firstY until Math.min(firstY + 16, height)
     {
-        let luma    = yData + y * decoder.yStride
-        let cb      = cbData + (y >> 1) * decoder.cStride
-        let cr      = crData + (y >> 1) * decoder.cStride
+        let storedY = storageY * 16 + y - firstY
+        let luma    = yData + storedY * decoder.yStride
+        let cb      = cbData + (storedY >> 1) * decoder.cStride
+        let cr      = crData + (storedY >> 1) * decoder.cStride
         let aOffset = cast(u64, y) * width
 
         // VP8 planes are top-down while Image stores row zero at the bottom.
@@ -463,17 +464,44 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
         return result
 
     try vp8ParseHeaders(&decoder)
-    vp8AllocatePlanes(&decoder)
+    var alpha: Array'u8
+    try vp8DecodeAlpha(container, decoder.header.width, decoder.header.height, &alpha)
+    result.allocPixels()
+
+    // Reconstruct before filtering the row above, which still supplies unfiltered prediction
+    // samples. Once that filter runs, the preceding row cannot change and can be written out.
+    const WindowRows = 8
+    vp8AllocatePlanes(&decoder, Math.min(decoder.mbHeight, WindowRows))
+    let yRowBytes = cast(u64, decoder.yStride) * 16
+    let cRowBytes = cast(u64, decoder.cStride) * 8
+    var storageY  = 0
     for mbY in decoder.mbHeight
     {
+        if storageY == WindowRows
+        {
+            // Keep the previous two rows contiguous for the next horizontal boundary filter.
+            Memory.copy(decoder.y.storage(), decoder.y.storage() + yRowBytes * (WindowRows - 2), yRowBytes * 2)
+            Memory.copy(decoder.cb.storage(), decoder.cb.storage() + cRowBytes * (WindowRows - 2), cRowBytes * 2)
+            Memory.copy(decoder.cr.storage(), decoder.cr.storage() + cRowBytes * (WindowRows - 2), cRowBytes * 2)
+            let params = decoder.perMbFilterParams.storage()
+            Memory.copy(params + decoder.mbWidth, params + (WindowRows - 1) * decoder.mbWidth, cast(u64, decoder.mbWidth) * #sizeof(Vp8FilterParam))
+            storageY = 2
+        }
+
         decoder.leftMb = {}
         for mbX in decoder.mbWidth
         {
-            let skip      = vp8Reconstruct(&decoder, mbX, mbY)
+            let skip      = vp8Reconstruct(&decoder, mbX, mbY, storageY)
             var parameter = decoder.filterParams[decoder.segment][decoder.usePredY16 ? 0 : 1]
             parameter.inner = parameter.inner or not skip
-            decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX] = parameter
+            decoder.perMbFilterParams[decoder.mbWidth * storageY + mbX] = parameter
         }
+
+        if mbY >= 1 do
+            vp8ApplyFilter(&decoder, storageY - 1)
+        if mbY >= 2 do
+            vp8WriteRgbaRow(&decoder, &alpha, &result, mbY - 2, storageY - 2)
+        storageY += 1
     }
 
     if decoder.firstPart.unexpectedEnd do
@@ -481,11 +509,10 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
     for i in decoder.otherPartCount do
         if decoder.otherParts[i].unexpectedEnd do
             fail InvalidFormatError{"WebP data ends inside a VP8 coefficient partition"}
-    vp8ApplyFilter(&decoder)
-
-    var alpha: Array'u8
-    try vp8DecodeAlpha(container, decoder.header.width, decoder.header.height, &alpha)
-    vp8ToRgba(&decoder, &alpha, &result)
+    vp8ApplyFilter(&decoder, storageY - 1)
+    let remaining = Math.min(decoder.mbHeight, 2)
+    for index in remaining do
+        vp8WriteRgbaRow(&decoder, &alpha, &result, decoder.mbHeight - remaining + index, storageY - remaining + index)
     return result
 }
 

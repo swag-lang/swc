@@ -14,7 +14,12 @@ const VP8_PLANE_Y1         = 3
 
 const VP8_WHT_COEFF_BASE = 384
 
-const VP8_BANDS:         [17] u8 = [0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7, 0]
+const VP8_BAND_STRIDE = VP8_TOKEN_CONTEXTS * VP8_TOKEN_PROBS
+const VP8_BAND_OFFSETS: [17] u8 = [
+    0, VP8_BAND_STRIDE, 2 * VP8_BAND_STRIDE, 3 * VP8_BAND_STRIDE, 6 * VP8_BAND_STRIDE,
+    4 * VP8_BAND_STRIDE, 5 * VP8_BAND_STRIDE, 6 * VP8_BAND_STRIDE,
+    6 * VP8_BAND_STRIDE, 6 * VP8_BAND_STRIDE, 6 * VP8_BAND_STRIDE, 6 * VP8_BAND_STRIDE,
+    6 * VP8_BAND_STRIDE, 6 * VP8_BAND_STRIDE, 6 * VP8_BAND_STRIDE, 7 * VP8_BAND_STRIDE, 0]
 const VP8_ZIGZAG:        [16] u8 = [0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15]
 const VP8_CATEGORY_PROB: [48] u8 = [
     173, 148, 140, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -33,35 +38,55 @@ func vp8Clip8(value: s32)->u8 => cast(u8, vp8Clip(value, 0, 255))
 
 func vp8InverseDct4(decoder: *Vp8Decoder, y, x, coeffBase: s32)
 {
-    const C1 = 85627
-    const C2 = 35468
-    var matrix: [4][4] s32
-    var base = coeffBase
-    for i in 4
+    using Math.Simd
+
+    // Transform four columns together, then transpose the results for the next pass.
+    #[Swag.Inline]
+    func transform(sumEven, differenceEven, odd1, odd3: S32x4, destination: [*] S32x4)
     {
-        let a = decoder.coeff[base + 0] + decoder.coeff[base + 8]
-        let b = decoder.coeff[base + 0] - decoder.coeff[base + 8]
-        let c = (cast(s32, decoder.coeff[base + 4]) * C2 >> 16) - (cast(s32, decoder.coeff[base + 12]) * C1 >> 16)
-        let d = (cast(s32, decoder.coeff[base + 4]) * C1 >> 16) + (cast(s32, decoder.coeff[base + 12]) * C2 >> 16)
-        matrix[i][0] = a + d
-        matrix[i][1] = b + c
-        matrix[i][2] = b - c
-        matrix[i][3] = a - d
-        base         += 1
+        let cosine = splat(85627's32)
+        let sine   = splat(35468's32)
+        let c      = ((odd1 * sine) >> 16) - ((odd3 * cosine) >> 16)
+        let d      = ((odd1 * cosine) >> 16) + ((odd3 * sine) >> 16)
+        let r0     = cast #bit(U32x4, sumEven + d)
+        let r1     = cast #bit(U32x4, differenceEven + c)
+        let r2     = cast #bit(U32x4, differenceEven - c)
+        let r3     = cast #bit(U32x4, sumEven - d)
+        let low01  = cast #bit(U64x2, interleaveLow(r0, r1))
+        let high01 = cast #bit(U64x2, interleaveHigh(r0, r1))
+        let low23  = cast #bit(U64x2, interleaveLow(r2, r3))
+        let high23 = cast #bit(U64x2, interleaveHigh(r2, r3))
+        destination[0] = cast #bit(S32x4, interleaveLow(low01, low23))
+        destination[1] = cast #bit(S32x4, interleaveHigh(low01, low23))
+        destination[2] = cast #bit(S32x4, interleaveLow(high01, high23))
+        destination[3] = cast #bit(S32x4, interleaveHigh(high01, high23))
     }
 
-    for j in 4
-    {
-        let dc = matrix[0][j] + 4
-        let a  = dc + matrix[2][j]
-        let b  = dc - matrix[2][j]
-        let c  = (matrix[1][j] * C2 >> 16) - (matrix[3][j] * C1 >> 16)
-        let d  = (matrix[1][j] * C1 >> 16) + (matrix[3][j] * C2 >> 16)
-        decoder.ybr[y + j][x + 0] = vp8Clip8(decoder.ybr[y + j][x + 0] + ((a + d) >> 3))
-        decoder.ybr[y + j][x + 1] = vp8Clip8(decoder.ybr[y + j][x + 1] + ((b + c) >> 3))
-        decoder.ybr[y + j][x + 2] = vp8Clip8(decoder.ybr[y + j][x + 2] + ((b - c) >> 3))
-        decoder.ybr[y + j][x + 3] = vp8Clip8(decoder.ybr[y + j][x + 3] + ((a - d) >> 3))
-    }
+    let coefficients = cast(const [*] s16, &decoder.coeff[coeffBase])
+    let top          = load(coefficients)
+    let bottom       = load(coefficients + 8)
+    var columns: [4] S32x4
+    var rows:    [4] S32x4
+
+    // The scalar first pass combines the even coefficients as s16 before widening.
+    transform(widenLow(top + bottom), widenLow(top - bottom), widenHigh(top), widenHigh(bottom), columns)
+    let rounded = columns[0] + 4
+    transform(rounded + columns[2], rounded - columns[2], columns[1], columns[3], rows)
+
+    // Read and write four bytes per row, including the chroma blocks at the right edge.
+    const Stride = #sizeof(decoder.ybr[0]) / #sizeof(u32)
+    let output  = cast([*] u32, &decoder.ybr[y][x])
+    let predicted: [4] u32 = [output[0], output[Stride], output[2 * Stride], output[3 * Stride]]
+    let pixels  = cast #bit(U8x16, predicted)
+    let delta01 = packSigned(rows[0] >> 3, rows[1] >> 3)
+    let delta23 = packSigned(rows[2] >> 3, rows[3] >> 3)
+    let pair01  = addSaturating(cast #bit(S16x8, widenLow(pixels)), delta01)
+    let pair23  = addSaturating(cast #bit(S16x8, widenHigh(pixels)), delta23)
+    let result  = cast #bit(U32x4, packUnsigned(pair01, pair23))
+    output[0]          = result[0]
+    output[Stride]     = result[1]
+    output[2 * Stride] = result[2]
+    output[3 * Stride] = result[3]
 }
 
 func vp8InverseDct4Dc(decoder: *Vp8Decoder, y, x, coeffBase: s32)
@@ -112,77 +137,88 @@ func vp8InverseWht(decoder: *Vp8Decoder)
     }
 }
 
-// Returns zero for an immediate end token, one for a DC-only block, or the
-// position past the last decoded AC coefficient. The entropy context needs
-// only the distinction between zero and nonzero.
+// Magnitudes above one share this less frequent subtree.
+private func vp8ReadLargeCoefficient(partition: *Vp8Partition, probabilities: const [*] u8)->s32
+{
+    if not partition.readBit(probabilities[3])
+    {
+        if not partition.readBit(probabilities[4]) do
+            return 2
+        return 3 + cast(s32, partition.readBit(probabilities[5]))
+    }
+
+    if not partition.readBit(probabilities[6])
+    {
+        if not partition.readBit(probabilities[7]) do
+            return 5 + cast(s32, partition.readBit(159))
+        let high = cast(s32, partition.readBit(165))
+        let low  = cast(s32, partition.readBit(145))
+        return 7 + 2 * high + low
+    }
+
+    let high     = cast(s32, partition.readBit(probabilities[8]))
+    let low      = cast(s32, partition.readBit(probabilities[9 + high]))
+    let category = 2 * high + low
+    var index    = category * 12
+    var value: s32
+    while VP8_CATEGORY_PROB[index]
+    {
+        value = value * 2 + cast(s32, partition.readBit(VP8_CATEGORY_PROB[index]))
+        index += 1
+    }
+
+    return value + 3 + (8 << category)
+}
+
+// The first token normally ends the block. Enter the value loop only for coded blocks.
+#[Swag.Inline]
 func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s32, context: u8, dcQuant, acQuant: u16, skipFirst: bool, coeffBase: s32)->u8
 {
-    var coefficient     = skipFirst ? 1 : 0
-    var band            = cast(s32, VP8_BANDS[coefficient])
-    var probabilityBase = vp8TokenIndex(plane, band, context, 0)
-    if not partition.readBit(decoder.tokenProb[probabilityBase]) do
+    let probabilities = cast(const [*] u8, &decoder.tokenProb[plane * VP8_TOKEN_BANDS * VP8_BAND_STRIDE])
+    let first         = skipFirst ? 1 : 0
+    let probability   = probabilities + VP8_BAND_OFFSETS[first] + (context * VP8_TOKEN_PROBS)
+    if not partition.readBit(probability[0]) do
         return 0
 
+    let coefficients = cast([*] s16, &decoder.coeff[coeffBase])
+    return vp8ParseResidualValues(partition, probabilities, probability, coefficients, dcQuant, acQuant, first)
+}
+
+// Returns the position past the last coded coefficient, with one as the coded-block minimum.
+private func vp8ParseResidualValues(partition: *Vp8Partition, probabilities, firstProbability: const [*] u8, coefficients: [*] s16, dcQuant, acQuant: u16, first: s32)->u8
+{
+    var coefficient  = first
+    var probability  = firstProbability
     var decodedCount = 1'u8
-    while coefficient != 16
+    while coefficient < 16
     {
-        coefficient += 1
-        if not partition.readBit(decoder.tokenProb[probabilityBase + 1])
+        // A zero uses context zero and is followed by a value token, without an end token.
+        while not partition.readBit(probability[1])
         {
-            band = VP8_BANDS[coefficient]
-            probabilityBase = vp8TokenIndex(plane, band, 0, 0)
-            continue
+            coefficient += 1
+            if coefficient == 16 do
+                return decodedCount
+            probability = probabilities + VP8_BAND_OFFSETS[coefficient]
         }
 
-        var value: u32
-        if not partition.readBit(decoder.tokenProb[probabilityBase + 2])
+        let nextBand = probabilities + VP8_BAND_OFFSETS[coefficient + 1]
+        var value    = 1
+        if partition.readBit(probability[2])
         {
-            value = 1
-            band  = VP8_BANDS[coefficient]
-            probabilityBase = vp8TokenIndex(plane, band, 1, 0)
+            value       = vp8ReadLargeCoefficient(partition, probability)
+            probability = nextBand + 2 * VP8_TOKEN_PROBS
         }
         else
         {
-            if not partition.readBit(decoder.tokenProb[probabilityBase + 3])
-            {
-                if not partition.readBit(decoder.tokenProb[probabilityBase + 4]) do
-                    value = 2
-                else do
-                    value = 3 + partition.readUint(decoder.tokenProb[probabilityBase + 5], 1)
-            }
-            elif not partition.readBit(decoder.tokenProb[probabilityBase + 6])
-            {
-                if not partition.readBit(decoder.tokenProb[probabilityBase + 7]) do
-                    value = 5 + partition.readUint(159, 1)
-                else do
-                    value = 7 + 2 * partition.readUint(165, 1) + partition.readUint(145, 1)
-            }
-            else
-            {
-                let bit1     = partition.readUint(decoder.tokenProb[probabilityBase + 8], 1)
-                let bit0     = partition.readUint(decoder.tokenProb[probabilityBase + 9 + bit1], 1)
-                let category = 2 * bit1 + bit0
-                var index    = category * 12
-                while VP8_CATEGORY_PROB[index]
-                {
-                    value = value * 2 + partition.readUint(VP8_CATEGORY_PROB[index], 1)
-                    index += 1
-                }
-
-                value += 3 + (8 << category)
-            }
-
-            band = VP8_BANDS[coefficient]
-            probabilityBase = vp8TokenIndex(plane, band, 2, 0)
+            probability = nextBand + VP8_TOKEN_PROBS
         }
 
-        let zigzag  = VP8_ZIGZAG[coefficient - 1]
-        var decoded = cast(s32, value) * (zigzag ? acQuant : dcQuant)
-        if partition.readBit(VP8_UNIFORM_PROB) do
-            decoded = -decoded
-        decoder.coeff[coeffBase + zigzag] = cast(s16, decoded)
-        decodedCount = cast(u8, coefficient)
-        if coefficient == 16 or not partition.readBit(decoder.tokenProb[probabilityBase]) do
+        let zigzag  = VP8_ZIGZAG[coefficient]
+        let decoded = value * (coefficient ? acQuant : dcQuant)
+        coefficients[zigzag] = cast(s16, partition.readCoefficientSign(decoded))
+        coefficient          += 1
+        decodedCount         = cast(u8, coefficient)
+        if coefficient == 16 or not partition.readBit(probability[0]) do
             break
     }
 
@@ -406,7 +442,7 @@ func vp8ReconstructMacroblock(decoder: *Vp8Decoder, mbX, mbY: s32)
     }
 }
 
-func vp8Reconstruct(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
+func vp8Reconstruct(decoder: *Vp8Decoder, mbX, mbY, storedRow: s32)->bool
 {
     if decoder.segmentHeader.updateMap
     {
@@ -417,7 +453,7 @@ func vp8Reconstruct(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
     }
 
     var skip = decoder.useSkipProb and decoder.firstPart.readBit(decoder.skipProb)
-    vp8PrepareYbr(decoder, mbX, mbY)
+    vp8PrepareYbr(decoder, mbX, storedRow)
     decoder.usePredY16 = decoder.firstPart.readBit(145)
     if decoder.usePredY16 do
         vp8ParsePredY16(decoder, mbX)
@@ -448,14 +484,14 @@ func vp8Reconstruct(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
     let yData   = cast([*] u8, decoder.y.storage())
     let cbData  = cast([*] u8, decoder.cb.storage())
     let crData  = cast([*] u8, decoder.cr.storage())
-    var yOffset = (mbY * decoder.yStride + mbX) * 16
+    var yOffset = (storedRow * decoder.yStride + mbX) * 16
     for row in 16
     {
         Math.Simd.store(yData + yOffset, Math.Simd.load(&decoder.ybr[row + 1][8]))
         yOffset += decoder.yStride
     }
 
-    var cOffset = (mbY * decoder.cStride + mbX) * 8
+    var cOffset = (storedRow * decoder.cStride + mbX) * 8
     for row in 8
     {
         cast([*] u64, cbData + cOffset)[0] = cast(const [*] u64, &decoder.ybr[row + 18][8])[0]

@@ -64,41 +64,70 @@ impl Vp8Partition
         .unexpectedEnd = false
     }
 
-    mtd readBit(probability: u8)->bool
+    mtd refill()->bool
     {
-        if .bitCount < 8
+        let remaining = .size - .offset
+        if remaining >= 8
         {
-            let remaining = .size - .offset
-            if remaining >= 8
-            {
-                // Keep seven bytes so the refill fits even when the buffer has seven live bits.
-                let word = cast(const [*] u64, (unwrap .data) + .offset)[0]
-                .bits     |= (Math.byteSwap(word) & 0xFFFFFFFFFFFFFF00'u64) >> .bitCount
-                .offset   += 7
-                .bitCount += 56
-            }
-            elif remaining
-            {
-                .bits     |= cast(u64, .data![.offset]) << (56 - .bitCount)
-                .offset   += 1
-                .bitCount += 8
-            }
-            else
-            {
-                .unexpectedEnd = true
-                return false
-            }
+            // Keep seven bytes so the refill fits even when the buffer has seven live bits.
+            let word = cast(const [*] u64, (unwrap .data) + .offset)[0]
+            .bits     |= (Math.byteSwap(word) & 0xFFFFFFFFFFFFFF00'u64) >> .bitCount
+            .offset   += 7
+            .bitCount += 56
+        }
+        elif remaining
+        {
+            .bits     |= cast(u64, .data![.offset]) << (56 - .bitCount)
+            .offset   += 1
+            .bitCount += 8
+        }
+        else
+        {
+            .unexpectedEnd = true
+            return false
         }
 
-        let split     = ((.rangeM1 * probability) >> 8) + 1
-        let threshold = cast(u64, split) << 56
-        let bit       = .bits >= threshold
-        let range     = bit ? .rangeM1 - split + 1 : split
-        let shift     = Math.leadingZeros(range) - 24
-        .bits     = (.bits - (bit ? threshold : 0)) << shift
+        return true
+    }
+
+    #[Swag.Inline]
+    mtd readBit(probability: u8)->bool
+    {
+        if .bitCount < 8 and not .refill() do
+            return false
+
+        let split = ((.rangeM1 * probability) >> 8) + 1
+        let bit   = cast(u32, .bits >> 56) >= split
+        var range = split
+        var bits  = .bits
+        if bit
+        {
+            range = .rangeM1 - split + 1
+            bits  -= cast(u64, split) << 56
+        }
+
+        let shift = Math.leadingZeros(range) - 24
+        .bits     = bits << shift
         .rangeM1  = (range << shift) - 1
         .bitCount -= cast(u8, shift)
         return bit
+    }
+
+    // A coefficient sign follows a magnitude token, so the normalized range is
+    // already below 255 and either half needs exactly one normalization bit.
+    #[Swag.Inline]
+    mtd readCoefficientSign(value: s32)->s32
+    {
+        if .bitCount < 8 and not .refill() do
+            return value
+
+        let split = .rangeM1 >> 1
+        let mask  = (cast(s32, split) - cast(s32, .bits >> 56)) >> 31
+        let delta = (split + 1) & cast #bit(u32, mask)
+        .bits     = (.bits - (cast(u64, delta) << 56)) << 1
+        .rangeM1  = (.rangeM1 - cast(u32, -mask)) | 1
+        .bitCount -= 1
+        return (value ^ mask) - mask
     }
 
     mtd readUint(probability, count: u8)->u32
@@ -220,8 +249,6 @@ struct Vp8Decoder
 }
 
 func vp8Clip(value, minimum, maximum: s32)->s32 => Math.min(Math.max(value, minimum), maximum)
-
-func vp8TokenIndex(plane, band: s32, context, probability: u8)->u64 => cast(u64, (((plane * VP8_TOKEN_BANDS + band) * VP8_TOKEN_CONTEXTS + context) * VP8_TOKEN_PROBS + probability))
 
 func vp8DecodeFrameHeader(decoder: *Vp8Decoder, source: const [..] u8) fail
 {
@@ -402,13 +429,13 @@ func vp8ParseHeaders(decoder: *Vp8Decoder) fail
         fail InvalidFormatError{"WebP data ends inside the VP8 control partition"}
 }
 
-func vp8AllocatePlanes(decoder: *Vp8Decoder)
+func vp8AllocatePlanes(decoder: *Vp8Decoder, rows: s32)
 {
     decoder.yStride = decoder.mbWidth * 16
     decoder.cStride = decoder.mbWidth * 8
-    decoder.y.resize(cast(u64, decoder.yStride) * decoder.mbHeight * 16)
-    decoder.cb.resize(cast(u64, decoder.cStride) * decoder.mbHeight * 8)
-    decoder.cr.resize(cast(u64, decoder.cStride) * decoder.mbHeight * 8)
+    decoder.y.resize(cast(u64, decoder.yStride) * rows * 16)
+    decoder.cb.resize(cast(u64, decoder.cStride) * rows * 8)
+    decoder.cr.resize(cast(u64, decoder.cStride) * rows * 8)
     decoder.upMb.resize(decoder.mbWidth)
-    decoder.perMbFilterParams.resize(cast(u64, decoder.mbWidth) * decoder.mbHeight)
+    decoder.perMbFilterParams.resize(cast(u64, decoder.mbWidth) * rows)
 }

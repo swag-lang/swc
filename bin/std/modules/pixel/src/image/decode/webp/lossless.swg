@@ -926,33 +926,64 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, 
 
 func losslessInverseCrossColor(transform: *LosslessTransform, pixels: *Array'u8, height: s32)
 {
-    var greenToRed:  s32
-    var greenToBlue: s32
-    var redToBlue:   s32
-    var offset:      u64
-    let mask        = cast(s32, (1 << transform.bits)) - 1
-    let tilesPerRow = losslessTileCount(transform.oldWidth, transform.bits)
-    let data        = cast([*] u8, pixels.storage())
+    using Math.Simd
+
+    const GreenSamples = cast(U8x16, [0x80'u8, 1, 0x80, 1, 0x80, 5, 0x80, 5, 0x80, 9, 0x80, 9, 0x80, 13, 0x80, 13])
+    const RedSamples   = cast(U8x16, [0x80'u8, 0, 0x80, 0, 0x80, 4, 0x80, 4, 0x80, 8, 0x80, 8, 0x80, 12, 0x80, 12])
+    const GreenAlpha   = cast(U8x16, [0'u8, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255])
+
+    #[Swag.Inline]
+    func multipliers(red, blue: s32)->S16x8
+    {
+        // Samples occupy the high byte of each signed lane. Shifting factors by three makes
+        // the signed high product equal to (sample * factor) >> 5.
+        let redLanes  = cast #bit(U16x8, splat(cast(s16, red * 8)))
+        let blueLanes = cast #bit(U16x8, splat(cast(s16, blue * 8)))
+        return cast #bit(S16x8, interleaveLow(redLanes, blueLanes))
+    }
+
+    let width        = transform.oldWidth
+    let tileWidth    = 1's32 << transform.bits
+    let tilesPerRow  = losslessTileCount(width, transform.bits)
+    let data         = pixels.storage()
+    let coefficients = transform.pixels.storage()
 
     for y in height
     {
-        var transformOffset = cast(u64, (4 * (y >> transform.bits) * tilesPerRow))
-        for x in transform.oldWidth
+        let row     = data + cast(u64, y) * width * 4
+        let tileRow = coefficients + cast(u64, ((y >> transform.bits) * tilesPerRow)) * 4
+        for tile in tilesPerRow
         {
-            if (x & mask) == 0
+            let color        = tileRow + cast(u64, tile) * 4
+            let redToBlue    = cast(s32, cast #bit(s8, color[0]))
+            let greenToBlue  = cast(s32, cast #bit(s8, color[1]))
+            let greenToRed   = cast(s32, cast #bit(s8, color[2]))
+            let greenFactors = multipliers(greenToRed, greenToBlue)
+            let redFactors   = multipliers(0, redToBlue)
+            var x            = tile * tileWidth
+            let end          = Math.min(x + tileWidth, width)
+            var target       = row + cast(u64, x) * 4
+            while end - x >= 4
             {
-                redToBlue       = cast #bit (s8, transform.pixels[transformOffset + 0])
-                greenToBlue     = cast #bit (s8, transform.pixels[transformOffset + 1])
-                greenToRed      = cast #bit (s8, transform.pixels[transformOffset + 2])
-                transformOffset += 4
+                let input     = load(target)
+                let green     = cast #bit(S16x8, shuffle(input, GreenSamples))
+                let corrected = input + cast #bit(U8x16, mulHigh(green, greenFactors))
+                let red       = cast #bit(S16x8, shuffle(corrected, RedSamples))
+                let output    = corrected + cast #bit(U8x16, mulHigh(red, redFactors))
+                store(target, (output & ~GreenAlpha) | (input & GreenAlpha))
+                target += 16
+                x      += 4
             }
 
-            let green = cast(s32, cast #bit (s8, data[offset + 1]))
-            let red   = cast(s32, data[offset + 0]) + ((greenToRed * green) >> 5)
-            let blue  = cast(s32, data[offset + 2]) + ((greenToBlue * green) >> 5) + ((redToBlue * cast(s32, cast #bit (s8, losslessWrap8(red)))) >> 5)
-            data[offset + 0] = losslessWrap8(red)
-            data[offset + 2] = losslessWrap8(blue)
-            offset += 4
+            for end - x
+            {
+                let green = cast(s32, cast #bit(s8, target[1]))
+                let red   = cast(s32, target[0]) + ((greenToRed * green) >> 5)
+                let blue  = cast(s32, target[2]) + ((greenToBlue * green) >> 5) + ((redToBlue * cast(s32, cast #bit(s8, losslessWrap8(red)))) >> 5)
+                target[0] = losslessWrap8(red)
+                target[2] = losslessWrap8(blue)
+                target    += 4
+            }
         }
     }
 }

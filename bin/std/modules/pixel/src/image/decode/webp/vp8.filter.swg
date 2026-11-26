@@ -250,95 +250,89 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
     }
 }
 
-func vp8SimpleFilter(decoder: *Vp8Decoder)
+func vp8SimpleFilter(decoder: *Vp8Decoder, mbY: s32)
 {
     let yData = cast([*] u8, decoder.y.storage())
-    for mbY in decoder.mbHeight
+    for mbX in decoder.mbWidth
     {
-        for mbX in decoder.mbWidth
+        let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
+        if not parameter.level do
+            continue
+        let level  = cast(s32, parameter.level)
+        let offset = (mbY * decoder.yStride + mbX) * 16
+        if mbX do
+            vp8Filter2(yData, level + 4, offset, decoder.yStride, 1)
+        if parameter.inner
         {
-            let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
-            if not parameter.level do
-                continue
-            let level  = cast(s32, parameter.level)
-            let offset = (mbY * decoder.yStride + mbX) * 16
-            if mbX do
-                vp8Filter2(yData, level + 4, offset, decoder.yStride, 1)
-            if parameter.inner
-            {
-                vp8Filter2(yData, level, offset + 4, decoder.yStride, 1)
-                vp8Filter2(yData, level, offset + 8, decoder.yStride, 1)
-                vp8Filter2(yData, level, offset + 12, decoder.yStride, 1)
-            }
+            vp8Filter2(yData, level, offset + 4, decoder.yStride, 1)
+            vp8Filter2(yData, level, offset + 8, decoder.yStride, 1)
+            vp8Filter2(yData, level, offset + 12, decoder.yStride, 1)
+        }
 
-            if mbY do
-                vp8Filter2(yData, level + 4, offset, 1, decoder.yStride)
-            if parameter.inner
-            {
-                vp8Filter2(yData, level, offset + 4 * decoder.yStride, 1, decoder.yStride)
-                vp8Filter2(yData, level, offset + 8 * decoder.yStride, 1, decoder.yStride)
-                vp8Filter2(yData, level, offset + 12 * decoder.yStride, 1, decoder.yStride)
-            }
+        if mbY do
+            vp8Filter2(yData, level + 4, offset, 1, decoder.yStride)
+        if parameter.inner
+        {
+            vp8Filter2(yData, level, offset + 4 * decoder.yStride, 1, decoder.yStride)
+            vp8Filter2(yData, level, offset + 8 * decoder.yStride, 1, decoder.yStride)
+            vp8Filter2(yData, level, offset + 12 * decoder.yStride, 1, decoder.yStride)
         }
     }
 }
 
-func vp8NormalFilter(decoder: *Vp8Decoder)
+func vp8NormalFilter(decoder: *Vp8Decoder, mbY: s32)
 {
     let yData  = cast([*] u8, decoder.y.storage())
     let cbData = cast([*] u8, decoder.cb.storage())
     let crData = cast([*] u8, decoder.cr.storage())
-    for mbY in decoder.mbHeight
+    for mbX in decoder.mbWidth
     {
-        for mbX in decoder.mbWidth
+        let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
+        if not parameter.level do
+            continue
+        let level   = cast(s32, parameter.level)
+        let iLevel  = cast(s32, parameter.iLevel)
+        let hLevel  = cast(s32, parameter.hLevel)
+        let yOffset = (mbY * decoder.yStride + mbX) * 16
+        let cOffset = (mbY * decoder.cStride + mbX) * 8
+        if mbX
         {
-            let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
-            if not parameter.level do
-                continue
-            let level   = cast(s32, parameter.level)
-            let iLevel  = cast(s32, parameter.iLevel)
-            let hLevel  = cast(s32, parameter.hLevel)
-            let yOffset = (mbY * decoder.yStride + mbX) * 16
-            let cOffset = (mbY * decoder.cStride + mbX) * 8
-            if mbX
-            {
-                vp8Filter246(yData, 16, level + 4, iLevel, hLevel, yOffset, decoder.yStride, 1, false)
-                vp8Filter246(cbData, 8, level + 4, iLevel, hLevel, cOffset, decoder.cStride, 1, false)
-                vp8Filter246(crData, 8, level + 4, iLevel, hLevel, cOffset, decoder.cStride, 1, false)
-            }
+            vp8Filter246(yData, 16, level + 4, iLevel, hLevel, yOffset, decoder.yStride, 1, false)
+            vp8Filter246(cbData, 8, level + 4, iLevel, hLevel, cOffset, decoder.cStride, 1, false)
+            vp8Filter246(crData, 8, level + 4, iLevel, hLevel, cOffset, decoder.cStride, 1, false)
+        }
 
-            if parameter.inner
-            {
-                vp8FilterVerticalLumaInner(yData + yOffset, level, iLevel, hLevel, decoder.yStride)
-                vp8Filter246(cbData, 8, level, iLevel, hLevel, cOffset + 4, decoder.cStride, 1, true)
-                vp8Filter246(crData, 8, level, iLevel, hLevel, cOffset + 4, decoder.cStride, 1, true)
-            }
+        if parameter.inner
+        {
+            vp8FilterVerticalLumaInner(yData + yOffset, level, iLevel, hLevel, decoder.yStride)
+            vp8Filter246(cbData, 8, level, iLevel, hLevel, cOffset + 4, decoder.cStride, 1, true)
+            vp8Filter246(crData, 8, level, iLevel, hLevel, cOffset + 4, decoder.cStride, 1, true)
+        }
 
-            if mbY
-            {
-                vp8Filter246(yData, 16, level + 4, iLevel, hLevel, yOffset, 1, decoder.yStride, false)
-                vp8Filter246(cbData, 8, level + 4, iLevel, hLevel, cOffset, 1, decoder.cStride, false)
-                vp8Filter246(crData, 8, level + 4, iLevel, hLevel, cOffset, 1, decoder.cStride, false)
-            }
+        if mbY
+        {
+            vp8Filter246(yData, 16, level + 4, iLevel, hLevel, yOffset, 1, decoder.yStride, false)
+            vp8Filter246(cbData, 8, level + 4, iLevel, hLevel, cOffset, 1, decoder.cStride, false)
+            vp8Filter246(crData, 8, level + 4, iLevel, hLevel, cOffset, 1, decoder.cStride, false)
+        }
 
-            if parameter.inner
-            {
-                vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 4 * decoder.yStride, 1, decoder.yStride, true)
-                vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 8 * decoder.yStride, 1, decoder.yStride, true)
-                vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 12 * decoder.yStride, 1, decoder.yStride, true)
-                vp8Filter246(cbData, 8, level, iLevel, hLevel, cOffset + 4 * decoder.cStride, 1, decoder.cStride, true)
-                vp8Filter246(crData, 8, level, iLevel, hLevel, cOffset + 4 * decoder.cStride, 1, decoder.cStride, true)
-            }
+        if parameter.inner
+        {
+            vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 4 * decoder.yStride, 1, decoder.yStride, true)
+            vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 8 * decoder.yStride, 1, decoder.yStride, true)
+            vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 12 * decoder.yStride, 1, decoder.yStride, true)
+            vp8Filter246(cbData, 8, level, iLevel, hLevel, cOffset + 4 * decoder.cStride, 1, decoder.cStride, true)
+            vp8Filter246(crData, 8, level, iLevel, hLevel, cOffset + 4 * decoder.cStride, 1, decoder.cStride, true)
         }
     }
 }
 
-func vp8ApplyFilter(decoder: *Vp8Decoder)
+func vp8ApplyFilter(decoder: *Vp8Decoder, mbY: s32)
 {
     if not decoder.filterHeader.level do
         return
     if decoder.filterHeader.simple do
-        vp8SimpleFilter(decoder)
+        vp8SimpleFilter(decoder, mbY)
     else do
-        vp8NormalFilter(decoder)
+        vp8NormalFilter(decoder, mbY)
 }

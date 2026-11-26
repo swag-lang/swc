@@ -100,6 +100,38 @@ using Swag, Core
     }
 }
 
+// The coefficient sign path matches the probability-half reader across refill and EOF boundaries.
+#test
+{
+    const Data  = [0xE2'u8, 0x17, 0x98, 0x63, 0xCA, 0x01, 0x54, 0x7F, 0x61, 0xB3, 0x92, 0xFE, 0x88, 0x47, 0x13, 0xB2]
+    const Value = 73
+
+    for size in [1'u32, 7, 8, 9, 15, 16]
+    {
+        var reference, faster: Webp.Vp8Partition
+        reference.init(&Data[0], size)
+        faster.init(&Data[0], size)
+        for index in 256
+        {
+            let magnitudeProbability = cast(u8, ((index * 29) & 0xFF))
+            let referenceMagnitude   = reference.readBit(magnitudeProbability)
+            let fasterMagnitude      = faster.readBit(magnitudeProbability)
+            Swag.require(referenceMagnitude == fasterMagnitude)
+
+            let negative    = reference.readBit(Webp.VP8_UNIFORM_PROB)
+            let signedValue = faster.readCoefficientSign(Value)
+            Swag.require(signedValue == (negative ? -Value : Value))
+            Swag.require(reference.rangeM1 == faster.rangeM1)
+            Swag.require(reference.bits == faster.bits and reference.bitCount == faster.bitCount)
+            Swag.require(reference.offset == faster.offset and reference.unexpectedEnd == faster.unexpectedEnd)
+            if reference.unexpectedEnd do
+                break
+        }
+
+        Swag.require(reference.unexpectedEnd)
+    }
+}
+
 // The DC-only inverse transform clips each block pixel without touching its neighbours.
 #test
 {
@@ -132,6 +164,14 @@ func webpExpectedChannel(value: s32)->u8 => cast(u8, Math.clamp(value, 0, 255))
 
 func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 8
 
+// The odd-sized VP8 image crosses two reconstruction window shifts and a partial final row.
+#test
+{
+    let image = expect Image.load(getTestDataPath("vp8-row-window.webp"))
+    Swag.require(image.width == 37 and image.height == 257 and image.pixelFormat == .RGBA8)
+    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 12124014753732212138'u64)
+}
+
 // Packed conversion and its odd tail keep scalar rounding, clipping, and alpha.
 #test
 {
@@ -139,7 +179,7 @@ func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 
     const Height = 3's32
     var input   = [0'u8]
     var decoder = Webp.Vp8Decoder{source: &input[0], header: {width: Width, height: Height}, mbWidth: 3, mbHeight: 1}
-    Webp.vp8AllocatePlanes(&decoder)
+    Webp.vp8AllocatePlanes(&decoder, 1)
 
     var alpha: Array'u8
     alpha.resize(Width * Height)
@@ -163,8 +203,10 @@ func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 
     var rgba: Image
     rgba.init(Width, Height, .RGBA8)
     var noAlpha: Array'u8
-    Webp.vp8ToRgba(&decoder, &noAlpha, &opaque)
-    Webp.vp8ToRgba(&decoder, &alpha, &rgba)
+    opaque.allocPixels()
+    Webp.vp8WriteRgbaRow(&decoder, &noAlpha, &opaque, 0, 0)
+    rgba.allocPixels()
+    Webp.vp8WriteRgbaRow(&decoder, &alpha, &rgba, 0, 0)
     for row in Height
     {
         for x in Width

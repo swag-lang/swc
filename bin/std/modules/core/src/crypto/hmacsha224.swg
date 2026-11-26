@@ -67,10 +67,10 @@ impl HmacSha224
     mtd finalize()->HmacSha224Digest
     {
         Swag.assert(.initialized, "HMAC-SHA-224 needs an initialized sequence")
-        var innerHash = sha2HmacDigestBytes'7(.inner.finalize())
-        .outer.update(innerHash)
-        let result = sha2HmacDigestBytes'7(.outer.finalize())
-        secureClear(innerHash)
+        let innerDigest = .inner.finishHmacInner()
+        let outerDigest = .outer.finishHmacOuter(innerDigest)
+        var result: #returntype
+        writeSha2HmacDigest'7(outerDigest, result.buffer)
         .clear()
         return result
     }

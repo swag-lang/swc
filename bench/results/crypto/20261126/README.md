@@ -179,3 +179,4 @@ optimizations moved each result.
 - [MD5 round arithmetic screen](md5-round-arithmetic.md)
 - [P-256 verification with signed sparse windows](p256-verify-wnaf.md)
 - [HMAC-SHA-224 and HMAC-SHA-256 key preparation](hmac-sha224-sha256.md)
+- [Direct HMAC-SHA-224 and SHA-256 outer blocks](hmac-sha2-outer-block.md)

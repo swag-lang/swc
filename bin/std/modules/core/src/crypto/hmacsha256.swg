@@ -14,19 +14,24 @@ struct HmacSha256
 }
 
 #[Swag.Inline]
-internal func(Words: u64) sha2HmacDigestBytes(digest: [Words] u32)->[Words * #sizeof(u32)] u8
+internal func(Words: u64) writeSha2HmacDigest(digest: const [*] u32, output: [*] u8)
 {
-    var result: #returntype
-    let destination = cast([*] u32, result.buffer)
-    Math.Simd.store(destination, Math.nativeToBigEndian(Math.Simd.load(digest.buffer)))
+    let destination = cast([*] u32, output)
+    Math.Simd.store(destination, Math.nativeToBigEndian(Math.Simd.load(digest)))
     #static if Words == 8 do
-        Math.Simd.store(destination + 4, Math.nativeToBigEndian(Math.Simd.load(digest.buffer + 4)))
+        Math.Simd.store(destination + 4, Math.nativeToBigEndian(Math.Simd.load(digest + 4)))
     else
     {
         for index in 4 until Words do
             destination[index] = Math.nativeToBigEndian(digest[index])
     }
+}
 
+#[Swag.Inline]
+internal func(Words: u64) sha2HmacDigestBytes(digest: [Words] u32)->[Words * #sizeof(u32)] u8
+{
+    var result: #returntype
+    writeSha2HmacDigest'Words(digest.buffer, result.buffer)
     return result
 }
 
@@ -97,10 +102,10 @@ impl HmacSha256
     mtd finalize()->HmacSha256Digest
     {
         Swag.assert(.initialized, "HMAC-SHA-256 needs an initialized sequence")
-        var innerHash = sha2HmacDigestBytes'8(.inner.finalize())
-        .outer.update(innerHash)
-        let result = sha2HmacDigestBytes'8(.outer.finalize())
-        secureClear(innerHash)
+        let innerDigest = .inner.finishHmacInner()
+        let outerDigest = .outer.finishHmacOuter'8(innerDigest)
+        var result: #returntype
+        writeSha2HmacDigest'8(outerDigest, result.buffer)
         .clear()
         return result
     }

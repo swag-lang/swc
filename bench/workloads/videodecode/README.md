@@ -38,6 +38,17 @@ Both Swag variants use the same compiler and runtime. The output directory must 
 outside the source trees. It receives the picture hashes, timing samples, FFmpeg version,
 reference timestamps and individual run logs.
 
+Generate six more inputs with `generate.py`. The corpus covers gradient fades for weighted
+AVC prediction, temporal texture for CAVLC, AVC High 4:4:4, HEVC Main with WPP, and Main10
+intra-only and textured inter pictures. The manifest records each command and input hash.
+
+```sh
+python3 bench/workloads/videodecode/generate.py --output /tmp/swag-video-expanded
+python3 bench/workloads/videodecode/compare.py \
+    --compiler /absolute/build/release/swc --quality-only \
+    --output /tmp/swag-video-expanded-quality /tmp/swag-video-expanded/*.mp4
+```
+
 The quality pass uses FFmpeg's best-effort presentation timestamps relative to the earliest
 video packet PTS. This is the same origin as the sample timeline in `Reader`, so coded
 pictures omitted by FFmpeg can be skipped even at the start of the file. The Swag driver

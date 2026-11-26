@@ -79,7 +79,7 @@ func expand5(value: Simd.U8x16)->Simd.U8x16
     return Simd.select(high, Simd.shuffle(Expand5High, value), Simd.shuffle(Expand5Low, value))
 }
 
-func(REVERSE: bool, GREEN6: bool) decodeBgr16RowImpl(source: const [*] u8, destination: [*] u8, pixelCount: u64)
+func(REVERSE: bool, GREEN6: bool, RGBA: bool) decodeRgb16RowImpl(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
     var src   = REVERSE ? source + pixelCount * 2 : source
     var dst   = destination
@@ -124,8 +124,17 @@ func(REVERSE: bool, GREEN6: bool) decodeBgr16RowImpl(source: const [*] u8, desti
         let redShift = GREEN6 ? 11 : 10
         let r        = expand5(Simd.packUnsigned(cast #bit(Simd.S16x8, ((lowPixels >> redShift) & 31'u16)),
                                                  cast #bit(Simd.S16x8, ((highPixels >> redShift) & 31'u16))))
-        storeTriplets16(dst, b, g, r)
-        dst   += 48
+        #static if RGBA
+        {
+            storeQuads16(dst, r, g, b, Simd.splat(255'u8))
+            dst += 64
+        }
+        else
+        {
+            storeTriplets16(dst, b, g, r)
+            dst += 48
+        }
+
         count -= 16
     }
 
@@ -134,32 +143,49 @@ func(REVERSE: bool, GREEN6: bool) decodeBgr16RowImpl(source: const [*] u8, desti
         #static if REVERSE do
             src -= 2
         let pixel = cast(u32, cast(const *u16, src)[])
-        dst[0] = cast(u8, (((pixel & 0x1F) * 255 + 15) / 31))
+        let blue  = cast(u8, (((pixel & 0x1F) * 255 + 15) / 31))
+        let red   = cast(u8, ((((pixel >> (GREEN6 ? 11 : 10)) & 0x1F) * 255 + 15) / 31))
+        #static if RGBA
+        {
+            dst[0] = red
+            dst[2] = blue
+            dst[3] = 255
+        }
+        else
+        {
+            dst[0] = blue
+            dst[2] = red
+        }
+
         #static if GREEN6 do
             dst[1] = cast(u8, (((((pixel >> 5) & 0x3F) * 259) + 33) >> 6))
         else do
             dst[1] = cast(u8, ((((pixel >> 5) & 0x1F) * 255 + 15) / 31))
-        dst[2] = cast(u8, ((((pixel >> (GREEN6 ? 11 : 10)) & 0x1F) * 255 + 15) / 31))
         #static if not REVERSE do
             src += 2
-        dst   += 3
+        dst   += RGBA ? 4 : 3
         count -= 1
     }
 }
 
 func decodeBgr555Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    decodeBgr16RowImpl'(false, false)(source, destination, pixelCount)
+    decodeRgb16RowImpl'(false, false, false)(source, destination, pixelCount)
 }
 
 func decodeBgr555RowReversed(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    decodeBgr16RowImpl'(true, false)(source, destination, pixelCount)
+    decodeRgb16RowImpl'(true, false, false)(source, destination, pixelCount)
 }
 
 func decodeBgr565Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    decodeBgr16RowImpl'(false, true)(source, destination, pixelCount)
+    decodeRgb16RowImpl'(false, true, false)(source, destination, pixelCount)
+}
+
+func decodeRgb565ToRgbaRow(source: const [*] u8, destination: [*] u8, pixelCount: u64)
+{
+    decodeRgb16RowImpl'(false, true, true)(source, destination, pixelCount)
 }
 
 private struct Normalize16

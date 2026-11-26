@@ -134,6 +134,40 @@ private func decodeByteFieldsRow(source: const [*] u8, target: [*] u8, width, pi
     }
 }
 
+#[Swag.Inline]
+private func scaleTenBit(samples: Math.Simd.U32x4)->Math.Simd.U32x4
+{
+    // Division by 1023 with round-to-nearest over the full ten-bit range.
+    let biased = samples * 255'u32 + 512'u32
+    return (biased + (biased >> 10)) >> 10
+}
+
+private func decodeRgb10Row(source: const [*] u8, target: [*] u8, width: u64, fields: const *[4] MaskField, hasAlpha: bool)
+{
+    using Math.Simd
+    let input  = cast(const [*] u32, source)
+    let output = cast([*] u32, target)
+    let opaque = splat(0xFF00_0000'u32)
+    var x      = 0'u64
+    while width - x >= 4
+    {
+        let word  = load(input + x)
+        let red   = scaleTenBit((word >> 20) & 1023'u32)
+        let green = scaleTenBit((word >> 10) & 1023'u32)
+        let blue  = scaleTenBit(word & 1023'u32)
+        let alpha = hasAlpha ? (((word >> 30) * 85'u32) << 24) : opaque
+        store(output + x, red | (green << 8) | (blue << 16) | alpha)
+        x += 4
+    }
+
+    for i in x until width
+    {
+        let word = input[i]
+        for channel in 4 do
+            target[i * 4 + channel] = maskToByte(word, fields[][channel])
+    }
+}
+
 func decodeMasked(image: *Image, buffer: const [..] u8, offset, pitch: u64, bits: u32, redMask, greenMask, blueMask, alphaMask: u32, luminance: bool) fail
 {
     let width      = cast(u64, image.width)
@@ -143,9 +177,21 @@ func decodeMasked(image: *Image, buffer: const [..] u8, offset, pitch: u64, bits
         fail InvalidFormatError{"DDS pixel rows are truncated"}
 
     let fields: [4] MaskField = [prepareField(redMask, 0), prepareField(greenMask, 0), prepareField(blueMask, 0), prepareField(alphaMask, 255)]
-    let copyLuminance         = luminance and
-                                redMask == 255 and
-                                ((bits == 8 and not alphaMask) or (bits == 16 and alphaMask == 0xFF00))
+    let rgb565 = not luminance and
+                 bits == 16 and
+                 redMask == 0xF800 and
+                 greenMask == 0x07E0 and
+                 blueMask == 0x1F and
+                 not alphaMask
+    let rgb10 = not luminance and
+                bits == 32 and
+                redMask == 0x3FF0_0000 and
+                greenMask == 0x000F_FC00 and
+                blueMask == 0x3FF and
+                (not alphaMask or alphaMask == 0xC000_0000)
+    let copyLuminance = luminance and
+                        redMask == 255 and
+                        ((bits == 8 and not alphaMask) or (bits == 16 and alphaMask == 0xFF00))
     var byteFields = not luminance
     for field in fields do
         byteFields = byteFields and isByteField(field, bits)
@@ -176,6 +222,18 @@ func decodeMasked(image: *Image, buffer: const [..] u8, offset, pitch: u64, bits
         if copyLuminance
         {
             Memory.copy(target, source, rowBytes)
+            continue
+        }
+
+        if rgb565
+        {
+            PackedPixel.decodeRgb565ToRgbaRow(source, target, width)
+            continue
+        }
+
+        if rgb10
+        {
+            decodeRgb10Row(source, target, width, &fields, alphaMask != 0)
             continue
         }
 

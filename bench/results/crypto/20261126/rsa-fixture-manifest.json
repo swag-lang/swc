@@ -1,0 +1,55 @@
+{
+  "generator": "Python cryptography 50.0.0",
+  "pss": "SHA-256, MGF1-SHA-256, 32-byte salt",
+  "oaep": "SHA-256, MGF1-SHA-256, empty label",
+  "fixtures": [
+    {
+      "bits": 2048,
+      "width": 256,
+      "message_bytes": 48,
+      "public_exponent": 65537,
+      "file": "rsa-2048.bin",
+      "file_bytes": 1727,
+      "sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "message_hex": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+      "signature_sha256": "3e89511df6f6b8f18484f83463fec0e64d03f361154e4572a0869354debe2aef",
+      "ciphertext_sha256": "44aa37a3f365e0b21b93f394649bf4a674c9a72c05a3a492759a7e76c44ebe6f"
+    },
+    {
+      "bits": 2080,
+      "width": 260,
+      "message_bytes": 48,
+      "public_exponent": 65537,
+      "file": "rsa-2080.bin",
+      "file_bytes": 1753,
+      "sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "message_hex": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+      "signature_sha256": "e113aab12ad18279e0d5e7e40a83e6f1895b8d026c258f65ad7c36f13a2a5d7f",
+      "ciphertext_sha256": "886c3d1e2b1a6ef8b0d9dfcf5ea104f491ea3f3aafc42a60b2c99c354f62ecc7"
+    },
+    {
+      "bits": 3072,
+      "width": 384,
+      "message_bytes": 48,
+      "public_exponent": 65537,
+      "file": "rsa-3072.bin",
+      "file_bytes": 2559,
+      "sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "message_hex": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+      "signature_sha256": "ae60a67b87dd82a562ba4ccfad0f0dcd8cb7458fb09e6fd8128a54ea7737c4d5",
+      "ciphertext_sha256": "cc82c009303540bbade462be96518e07d2e2d0b4d5f0475066d6cbd9fe2505ad"
+    },
+    {
+      "bits": 4096,
+      "width": 512,
+      "message_bytes": 48,
+      "public_exponent": 65537,
+      "file": "rsa-4096.bin",
+      "file_bytes": 3391,
+      "sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "message_hex": "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6",
+      "signature_sha256": "52169dd988446c98841cc7fd291f92f10463797b19b4438e6b7abaeb50649cab",
+      "ciphertext_sha256": "52ff67d1110dc0916db7f9893985135e6538e1a19cf3120bfe8b3a3b5938900c"
+    }
+  ]
+}

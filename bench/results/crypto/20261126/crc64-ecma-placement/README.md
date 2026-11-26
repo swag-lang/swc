@@ -44,3 +44,22 @@ Each output row gives the input bytes, offset, round, old-placement
 GB/s and final-placement GB/s.
 
 [Old-first timings](old-first-timings.txt) · [Final-first timings](new-first-timings.txt) · [C driver](hot-loop.c) · [Assembly wrapper](hot-loop.S) · [Verified instruction bytes](hot-region.inc).
+
+## Other 16-byte phases
+
+An additional build placed the identical region at offsets 16 and 48
+modulo 64. The inner shuffle loops start at offsets 0 and 32 modulo 64
+respectively. At 1 MiB the aligned input measured 23.502 and 19.790 GB/s,
+respectively, a paired ratio of 0.843×. The ratios across all nine points
+were 0.839–0.854×. Across all four tested placements on this EPYC host,
+the two faster placements keep the 38-byte shuffle in one cache line.
+The placements move the complete staging and folding region together.
+
+```sh
+gcc -std=c11 -O3 -Wall -Wextra -fno-pie -no-pie -DOTHER_PHASES hot-loop.c hot-loop.S -o /tmp/crc64-other-phases
+taskset -c 2 /tmp/crc64-other-phases
+```
+
+The last two columns give GB/s at phases 16 and 48 respectively.
+
+[Other-phase timings](other-phase-timings.txt).

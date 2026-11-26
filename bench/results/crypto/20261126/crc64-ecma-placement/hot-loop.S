@@ -42,7 +42,10 @@
     ret
 .size \name, .-\name
 .endm
-#ifdef REVERSE_PLACEMENT
+#if defined(OTHER_PHASES)
+function ecma_old_placement, 16
+function ecma_new_placement, 48
+#elif defined(REVERSE_PLACEMENT)
 function ecma_new_placement, 0
 function ecma_old_placement, 32
 #else

@@ -554,6 +554,19 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     Swag.require(source.pixelColor(0, 0) == Color.fromRgb(34, 79, 212))
 }
 
+// Each SIMD bilinear lane selects and quantizes its own four texels.
+#test
+{
+    const Samples = [11'u8, 25, 40, 21, 90, 45, 67, 76, 220, 78, 109, 205,
+                     7, 14, 30, 55, 72, 46, 63, 125, 195, 101, 54, 240]
+    let image = Image.create(3, 2, .BGRA8, Samples)
+    let x = cast(Math.Simd.F32x4, [-0.5'f32, 0.375, 1.5, 2.5])
+    let y = cast(Math.Simd.F32x4, [0.25'f32, 0.875, 0.0, 1.5])
+    let actual = cast #bit(Math.Simd.U32x4, RenderCpu.stenciledTextureGroup(&image, x, y))
+    let expected = cast(Math.Simd.U32x4, [0x2E201008, 0x2E311F26, 0xB63A4985, 0xCD6D4EDC])
+    Swag.require(Math.Simd.allTrue(actual == expected))
+}
+
 // A linearly sampled texture multiplies its source alpha by stencil coverage.
 #test
 {

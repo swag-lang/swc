@@ -933,3 +933,25 @@ four workers, with resvg 0.50.0 at 250.54 ms on the same CPUs. Bitmap and
 thumbnail CRC-64s match for the originals. The generated and public control
 rasters also match. Regression cases compare implicit signed cubic groups
 to explicit commands and exercise the arc bound.
+
+## Filtering four clipped image pixels at once
+
+The stencil path interpolates four BGRA or RGBA pixels and blends
+their clipped alpha in SIMD. Each lane uses the existing scalar
+barycentric coordinates and two quantized lerps. Stencil coverage
+and the coordinates of edge pixels keep their original rounding.
+
+Thirteen alternating Release runs use one AMD EPYC 7763 logical CPU
+and baseline `2727488a0f`. The resvg 0.50.0 reference uses nine
+separate samples on that logical CPU. Times cover rasterization.
+[Raw timings and raster comparisons](resvg-clipped-image-simd.json)
+
+| Long side | Swag before, ms | Swag after, ms | resvg, ms |
+| ---: | ---: | ---: | ---: |
+| 1200 px | 84.48 | 46.28 | 61.62 |
+| 2400 px | 333.66 | 194.82 | 239.97 |
+
+Both sizes of the clipped image keep every RGBA byte. All 16
+generated SVG cases, 13 public SVG cases and 55 supported PDF
+cases keep their Swag checksums. The 991 Pixel tests include
+independent bilinear weights and edge clamps for all four lanes.

@@ -2763,6 +2763,50 @@ private impl RenderCpu
             drawLinearTextureTriangle'(Format, false)(batch, source, triangle, paintRect, matte)
     }
 
+    #[Swag.Inline]
+    func lerpTexturePixels(a, b: Math.Simd.U8x16, weights: Math.Simd.U32x4)->Math.Simd.U8x16
+    {
+        #[Swag.Inline]
+        func pair(x, y: Math.Simd.U16x8, weights, mask: Math.Simd.U8x16)->Math.Simd.S16x8
+        {
+            let difference = cast #bit(Math.Simd.S16x8, y - x)
+            let base = cast #bit(Math.Simd.S16x8, Math.Simd.select(cast #bit(Math.Simd.U16x8, mask), y, x))
+            return base + Math.Simd.mulHigh(difference, cast #bit(Math.Simd.S16x8, weights))
+        }
+
+        const Low  = cast(Math.Simd.U8x16, [0'u8, 1, 0, 1, 0, 1, 0, 1, 4, 5, 4, 5, 4, 5, 4, 5])
+        const High = cast(Math.Simd.U8x16, [8'u8, 9, 8, 9, 8, 9, 8, 9, 12, 13, 12, 13, 12, 13, 12, 13])
+        let packed = cast #bit(Math.Simd.U8x16, weights)
+        let masks  = cast #bit(Math.Simd.U8x16, weights >= Math.Simd.splat(32768'u32))
+        let low    = pair(Math.Simd.widenLow(a), Math.Simd.widenLow(b), Math.Simd.shuffle(packed, Low), Math.Simd.shuffle(masks, Low))
+        let high   = pair(Math.Simd.widenHigh(a), Math.Simd.widenHigh(b), Math.Simd.shuffle(packed, High), Math.Simd.shuffle(masks, High))
+        return Math.Simd.packUnsigned(low, high)
+    }
+
+    #[Swag.Inline]
+    internal func stenciledTextureGroup(source: const *Image, texelX, texelY: Math.Simd.F32x4)->Math.Simd.U8x16
+    {
+        let ix = Math.floor(texelX)
+        let iy = Math.floor(texelY)
+        let texelColumns = Math.Simd.truncateToS32(ix)
+        let texelRows    = Math.Simd.truncateToS32(iy)
+        let maxX    = Math.Simd.splat(source.width - 1)
+        let maxY    = Math.Simd.splat(source.height - 1)
+        let zero    = Math.Simd.splat(0's32)
+        let texelX0      = Math.clamp(texelColumns, zero, maxX)
+        let texelX1      = Math.clamp(texelColumns + 1, zero, maxX)
+        let texelTop     = (maxY - Math.clamp(texelRows, zero, maxY)) * source.width
+        let texelBottom  = (maxY - Math.clamp(texelRows + 1, zero, maxY)) * source.width
+        let texelPixels       = cast(const [*] s32, source.pixels.storage())
+        let t0      = cast #bit(Math.Simd.U8x16, Math.Simd.gather(texelPixels, cast #bit(Math.Simd.U32x4, texelTop + texelX0)))
+        let t1      = cast #bit(Math.Simd.U8x16, Math.Simd.gather(texelPixels, cast #bit(Math.Simd.U32x4, texelTop + texelX1)))
+        let b0      = cast #bit(Math.Simd.U8x16, Math.Simd.gather(texelPixels, cast #bit(Math.Simd.U32x4, texelBottom + texelX0)))
+        let b1      = cast #bit(Math.Simd.U8x16, Math.Simd.gather(texelPixels, cast #bit(Math.Simd.U32x4, texelBottom + texelX1)))
+        let texelWeightX      = cast #bit(Math.Simd.U32x4, Math.Simd.truncateToS32(Math.saturate(texelX - ix) * 65536))
+        let texelWeightY      = cast #bit(Math.Simd.U32x4, Math.Simd.truncateToS32(Math.saturate(texelY - iy) * 65536))
+        return lerpTexturePixels(lerpTexturePixels(t0, t1, texelWeightX), lerpTexturePixels(b0, b1, texelWeightX), texelWeightY)
+    }
+
     func(const Format: PixelFormat, const Stenciled: bool) drawLinearTextureTriangle(batch: *RasterBatch, source: const *Image, triangle: const *TriangleSpan, paintRect: Vector4, matte: [*] u8?)
     {
         let paintWidth  = Math.max(paintRect.z - paintRect.x, 0.000001)
@@ -2947,7 +2991,57 @@ private impl RenderCpu
             }
 
             let maskOffset = cast(u64, y) * batch.width
-            for x in x0 until x1 + 1
+            var first = x0
+            #static if Stenciled and (Format == .BGRA8 or Format == .RGBA8) and not Core.BIG_ENDIAN
+            {
+                if source.byteCount <= 0x1_FFFF_FFFC'u64
+                {
+                    let mask = batch.stencil + maskOffset
+                    while x1 - first >= 3
+                    {
+                        let lanes = cast(const [*] u32, mask + first)[0]
+                        if lanes
+                        {
+                            var fxs, fys: [4] f32
+                            for lane in 4
+                            {
+                                let center = cast(f32, first + cast(s32, lane)) + 0.5
+                                let bary0 = Math.mulAdd(-dy[0], center - origin[0].x, c0) * invArea
+                                let bary1 = Math.mulAdd(-dy[1], center - origin[1].x, c1) * invArea
+                                let bary2 = Math.mulAdd(-dy[2], center - origin[2].x, c2) * invArea
+                                let local = p0 * bary0 + p1 * bary1 + p2 * bary2
+                                let localU = (local.x - paintRect.x) / paintWidth
+                                let localV = 1.0 - (local.y - paintRect.y) / paintHeight
+                                fxs[lane] = Math.saturate(localU) * source.width - 0.5
+                                fys[lane] = (1.0 - Math.saturate(localV)) * source.height - 0.5
+                            }
+                            var ink = stenciledTextureGroup(source, Math.Simd.load(fxs.buffer), Math.Simd.load(fys.buffer))
+                            #static if Format == .RGBA8
+                            {
+                                const SwapRGB = cast(Math.Simd.U8x16, [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
+                                ink = Math.Simd.shuffle(ink, SwapRGB)
+                            }
+
+                            let maskBytes = cast #bit(Math.Simd.U8x16, cast(Math.Simd.U32x4, [lanes, 0, 0, 0]))
+                            let coverage = Math.Simd.widenLow(Math.Simd.widenLow(maskBytes))
+                            let alpha    = cast #bit(Math.Simd.U32x4, ink) >> 24
+                            let product  = alpha * coverage + 1'u32
+                            let weights  = cast #bit(Math.Simd.U8x16, (((product + (product >> 8)) >> 8) * 0x0101_0101'u32))
+                            let target   = row + cast(u64, first) * 4
+                            Math.Simd.store(target, blendAlphaBgra8x4(ink, Math.Simd.load(target), weights))
+                            if white
+                            {
+                                let other = white + cast(u64, first) * 4
+                                Math.Simd.store(other, blendAlphaBgra8x4(ink, Math.Simd.load(other), weights))
+                            }
+                        }
+
+                        first += 4
+                    }
+                }
+            }
+
+            for x in first until x1 + 1
             {
                 let clip = Stenciled ? batch.stencil[maskOffset + cast(u64, x)] : 255'u8
                 if not clip do

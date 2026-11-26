@@ -1,5 +1,10 @@
 # Expanded font decoder comparison on Linux
 
+Swag is ahead of Pillow in 81 of 103 pathname cases, including all seven
+WOFF1 cases. The report includes the 22 remaining CJK cases and timings
+with native FreeType under three input acquisition modes.
+[Complete corpus](#complete-103-case-comparison) · [Native CJK comparison](#native-cjk-pathname-snapshot-and-retained-source-comparison)
+
 The expanded corpus has 41 files and 44 scenarios. It includes the 12 supplied files,
 26 public fonts, and three WOFF1 files generated from the public inputs. Four scenarios
 select different faces from the same CJK collection. The workload, source revisions, and
@@ -1572,3 +1577,97 @@ medians vary in both directions. All ten glyph fingerprints agree.
 | `NimbusSans-Regular.pfa` | U+0067 | 1756.99 | 1300.74 |
 | `P052-Roman.pfb` | U+0067 | 1079.31 | 1039.14 |
 | `P052-Roman.pfb` | U+0045 | 1063.17 | 1058.47 |
+
+## Complete 103-case comparison
+
+The 74-file corpus includes 12 supplied files, public fonts and
+fixtures derived from pinned inputs. It covers TrueType, OpenType
+CFF, collections, WOFF1, bare CFF, and binary and hexadecimal Type 1.
+
+The Swag probes build against `9a7d0f5cdc` and `bdf45200be`.
+The candidate build selects five Core crypto files from `06343223ad`
+for compiler compatibility. The CRC-64 check runs after the timed
+spans. Each entry is the median of nine interleaved batches with
+five warmups, one requested Swag worker, a warm file cache, and
+20 px glyphs. Batches open 31 fresh faces, or seven when the file
+is at least 10 MB.
+
+Swag is ahead of Pillow 12.3.0 with FreeType 2.14.3 in 81 cases.
+Every Swag glyph index, advance, bitmap dimension, and CRC-64
+matches the baseline. All seven WOFF1, ten Type 1, and six bare
+CFF cases are ahead. The table shows the 22 remaining pathname
+cases.
+[Raw batches, fingerprints and fixture hashes](font-decode-linux-full-corpus.json)
+
+| Fixture | Face | Character | Baseline Swag (µs) | Candidate | Pillow |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | U+65E5 | 1644.76 | 1681.06 | 792.94 |
+| `NotoSansCJK-Regular.ttc` | 1 | U+D55C | 1816.80 | 1631.79 | 914.20 |
+| `NotoSansCJK-Regular.ttc` | 2 | U+4E2D | 1780.22 | 1647.10 | 792.71 |
+| `NotoSansCJK-Regular.ttc` | 7 | U+FF21 | 1680.29 | 1667.82 | 761.90 |
+| `NotoSansCJKjp-Regular.otf` | 0 | U+65E5 | 2226.97 | 2131.31 | 801.53 |
+| `NotoSerifCJK-Regular.ttc` | 0 | U+65E5 | 2888.40 | 2840.64 | 826.51 |
+| `NotoSerifCJK-Regular.ttc` | 1 | U+D55C | 2847.73 | 2624.04 | 989.82 |
+| `NotoSerifCJK-Regular.ttc` | 2 | U+4E2D | 2759.93 | 2839.28 | 904.09 |
+| `NotoSerifCJK-Regular.ttc` | 3 | U+9F8D | 2838.34 | 2715.67 | 991.62 |
+| `NotoSerifCJK-Regular.ttc` | 4 | U+2000B | 2798.93 | 2715.28 | 864.25 |
+| `GowunBatang-Regular.ttf` | 0 | U+D55C | 1058.17 | 1076.09 | 839.77 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | U+672C | 3074.54 | 3054.16 | 955.65 |
+| `NotoSansJP-Regular.otf` | 0 | U+3042 | 713.07 | 695.48 | 604.15 |
+| `NotoSansJP-Regular.otf` | 0 | U+65E5 | 710.89 | 681.50 | 511.27 |
+| `NotoSansHK-Regular.otf` | 0 | U+9AA8 | 769.54 | 750.33 | 555.26 |
+| `NotoSansHK-Regular.otf` | 0 | U+9F8D | 779.95 | 741.86 | 585.16 |
+| `NotoSerifKR-Regular.otf` | 0 | U+D55C | 1046.83 | 1053.81 | 715.67 |
+| `NotoSerifKR-Regular.otf` | 0 | U+570B | 1015.45 | 1078.78 | 710.69 |
+| `NotoSerifSC-Regular.otf` | 0 | U+4E2D | 1481.33 | 1411.20 | 559.96 |
+| `NotoSerifSC-Regular.otf` | 0 | U+6587 | 1458.97 | 1486.64 | 596.87 |
+| `GothicA1-Regular.ttf` | 0 | U+D55C | 243.20 | 243.47 | 139.32 |
+| `GothicA1-Regular.ttf` | 0 | U+AC01 | 243.47 | 247.43 | 109.66 |
+
+## Native CJK pathname, snapshot and retained-source comparison
+
+The same Swag build and native FreeType 2.14.3 each set 20 px and
+render one glyph. The medians use seven interleaved batches on
+one CPU with five warmups. Both engines choose the same glyph
+index throughout this comparison.
+
+The FreeType pathname opens map the original file and acquire
+glyph data as needed. Swag copies an independent snapshot of
+the selected face. The FreeType snapshot column includes a full
+`pread` into a reusable buffer. The descriptor and buffer are
+prepared before timing. Swag copies one member for collection
+rows, and both engines copy the same input for standalone
+rows. Swag is ahead of FreeType's snapshot in 21 of these 22
+cases.
+
+The retained-source and FreeType memory columns acquire input
+before timing. The timed Swag opens reuse previously validated
+tables from that source. FreeType creates a fresh memory face
+from the same buffer each time. Across the 11 full Noto CJK
+faces, Swag takes 12–35 µs and FreeType takes 668–816 µs.
+[Raw native timings and fingerprints](font-decode-linux-cjk-native-final.json)
+
+| Fixture | Face | Character | Swag file (µs) | FreeType file | FreeType snapshot | Swag retained | FreeType memory |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | U+65E5 | 1617.70 | 742.02 | 2820.33 | 12.61 | 711.40 |
+| `NotoSansCJK-Regular.ttc` | 1 | U+D55C | 1670.01 | 686.90 | 2895.68 | 20.16 | 678.97 |
+| `NotoSansCJK-Regular.ttc` | 2 | U+4E2D | 1669.26 | 730.30 | 2790.77 | 15.41 | 667.68 |
+| `NotoSansCJK-Regular.ttc` | 7 | U+FF21 | 1623.89 | 702.53 | 2832.25 | 12.32 | 689.81 |
+| `NotoSansCJKjp-Regular.otf` | 0 | U+65E5 | 2049.34 | 924.91 | 2819.53 | 13.09 | 815.96 |
+| `NotoSerifCJK-Regular.ttc` | 0 | U+65E5 | 2702.00 | 775.98 | 3635.22 | 15.56 | 765.32 |
+| `NotoSerifCJK-Regular.ttc` | 1 | U+D55C | 2860.92 | 818.32 | 3677.80 | 30.48 | 757.97 |
+| `NotoSerifCJK-Regular.ttc` | 2 | U+4E2D | 2742.83 | 779.00 | 3582.06 | 17.32 | 721.40 |
+| `NotoSerifCJK-Regular.ttc` | 3 | U+9F8D | 2704.92 | 821.51 | 3658.26 | 35.36 | 776.17 |
+| `NotoSerifCJK-Regular.ttc` | 4 | U+2000B | 2822.35 | 771.97 | 3643.20 | 21.77 | 743.98 |
+| `GowunBatang-Regular.ttf` | 0 | U+D55C | 1064.38 | 588.30 | 1552.56 | 36.48 | 567.01 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | U+672C | 2880.41 | 808.01 | 3626.07 | 19.73 | 730.51 |
+| `NotoSansJP-Regular.otf` | 0 | U+3042 | 697.71 | 479.39 | 952.28 | 23.40 | 445.03 |
+| `NotoSansJP-Regular.otf` | 0 | U+65E5 | 662.99 | 430.93 | 926.00 | 12.16 | 418.86 |
+| `NotoSansHK-Regular.otf` | 0 | U+9AA8 | 747.72 | 471.26 | 1034.16 | 17.05 | 476.85 |
+| `NotoSansHK-Regular.otf` | 0 | U+9F8D | 813.73 | 529.67 | 1051.57 | 23.45 | 464.94 |
+| `NotoSerifKR-Regular.otf` | 0 | U+D55C | 1076.57 | 584.54 | 1431.25 | 30.57 | 562.66 |
+| `NotoSerifKR-Regular.otf` | 0 | U+570B | 974.67 | 590.28 | 1401.91 | 26.75 | 555.04 |
+| `NotoSerifSC-Regular.otf` | 0 | U+4E2D | 1503.24 | 537.38 | 1785.32 | 16.63 | 523.14 |
+| `NotoSerifSC-Regular.otf` | 0 | U+6587 | 1469.74 | 515.48 | 1757.77 | 20.88 | 527.71 |
+| `GothicA1-Regular.ttf` | 0 | U+D55C | 252.41 | 63.75 | 273.14 | 22.44 | 49.54 |
+| `GothicA1-Regular.ttf` | 0 | U+AC01 | 243.53 | 61.74 | 241.65 | 15.46 | 49.49 |

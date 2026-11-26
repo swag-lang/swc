@@ -1541,3 +1541,51 @@ Native Release passes 342 audio tests. Release-safe passes 342 audio tests.
 The wider safety suite also covers the existing gain conversion contract
 that NaN reaches the setter's input validation. The conversion now returns
 NaN before calling domain-checked math functions.
+
+## Forty-third optimization pass
+
+These native Linux Release medians include opening and materializing the
+first ten seconds of PCM16. Both Swag binaries use the same compiler.
+The previous audio sources are at `9328f26eb2`. FFmpeg 9.1 uses native
+x86 assembly. FileSamples cohorts use 42 observations per engine and the
+generated cohorts use 28.
+
+[Raw stage times, PCM digests, and Vorbis duration setup](audio-decode-linux-round43.json)
+
+| FileSamples input | Before CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | Before CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample1.flac` | 9.06 | 9.00 | 10.13 | — | — | — | 5.94 | 5.71 | 6.47 |
+| `sample1.oga` | 8.77 | 8.61 | 9.74 | — | — | — | 6.08 | 6.39 | 6.64 |
+| `sample3.ac3` | 6.61 | 6.21 | 6.25 | 6.43 | 6.08 | 6.01 | 6.35 | 6.42 | 6.33 |
+| `sample3.mp3` | 6.82 | 6.68 | 6.95 | 6.53 | 6.39 | 6.76 | 3.71 | 3.39 | 6.92 |
+| `sample3.ogg` | 6.32 | 6.25 | 6.52 | — | — | — | 6.48 | 6.41 | 6.42 |
+
+| Generated input | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 9.1 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 9.1 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `ac3-32k-mono.ac3` | 3.96 | 3.86 | 3.55 | 2.82 | 2.70 | 3.62 |
+| `ac3-44k-stereo.ac3` | 7.43 | 7.30 | 6.94 | 6.76 | 6.89 | 7.11 |
+| `ac3-48k-5.0.ac3` | 18.36 | 17.80 | 17.77 | 17.23 | 18.19 | 18.31 |
+| `eac3-48k-5.1.eac3` | 20.61 | 20.10 | 20.71 | 21.02 | 20.80 | 20.82 |
+| `mp3-44k-stereo-cbr.mp3` | 6.85 | 6.79 | 6.94 | 3.93 | 3.98 | 6.82 |
+| `mp3-48k-stereo.mp3` | 8.05 | 7.89 | 8.27 | 4.90 | 4.80 | 7.97 |
+| `flac-48k-5.1-16.flac` | 19.18 | 19.14 | 33.04 | 9.20 | 8.07 | 17.81 |
+| `flac-96k-stereo-24.flac` | 16.42 | 16.26 | 22.16 | 8.15 | 7.51 | 12.54 |
+| `vorbis-48k-5.1.ogg` | 26.29 | 25.92 | 25.27 | 16.42 | 16.87 | 25.23 |
+| `vorbis-48k-7.1.ogg` | 30.74 | 30.25 | 30.97 | 17.23 | 16.49 | 31.04 |
+
+The Dolby decoder clears only the unwritten coefficient tail for blocks
+whose dither fills the active range. MP3 transposes adjacent output slots
+together and moves fixed signs into the synthesis coefficients. Native FLAC
+lets the caller process one job while the worker threads process the remaining
+jobs. PCM publication and failures follow packet order.
+
+Vorbis duration probing skips setup tables used only for PCM reconstruction.
+This reduces the Matroska setup median from 509 to 272 microseconds on
+FileSamples-derived stereo, from 970 to 731 on generated 5.1, and from
+398 to 286 on 7.1. All 10,375 packet frame counts match. The Vorbis-focused
+Matroska native suite passes 31 tests in Release and Release-safe.
+
+All 15 outputs match the preceding Swag PCM and remain identical across
+worker budgets.
+
+Native Release passes 342 audio tests. Release-safe passes 342 audio tests.

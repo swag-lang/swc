@@ -393,3 +393,24 @@ const PackedFormats: [18] PixelFormat = [
     Swag.require(image.alphaMode == .Straight)
     Swag.require(Memory.compare(image.pixels.storage(), expected.storage(), image.byteCount) == 0)
 }
+
+// An opaque alpha conversion preserves RGB, including a partial vector at the row end.
+#test
+{
+    for opaque in [true, false]
+    {
+        var image = Image.create(41, 25, .RGBA8, alphaMode: .Premultiplied)
+        let words = cast([*] u32, image.pixels.storage())
+        let count = image.byteCount / 4
+        for i in count do
+            words[i] = 0xFF132F5C
+        if not opaque do
+            words[count - 1] &= 0x00FFFFFF
+
+        image.convertAlphaTo(.Straight)
+        Swag.require(image.alphaMode == .Straight)
+        for i in count - 1 do
+            Swag.require(words[i] == 0xFF132F5C)
+        Swag.require(words[count - 1] == (opaque ? 0xFF132F5C'u32 : 0'u32))
+    }
+}

@@ -1,5 +1,25 @@
 using Core
 
+private func allPackedAlphaOpaque(pixels: const [*] u32, count: u64)->bool
+{
+    using Math.Simd
+    if pixels[0] >> 24 != 255 or pixels[count - 1] >> 24 != 255 do
+        return false
+
+    const Alpha = splat(0xFF000000'u32)
+    var index: u64
+    while count - index >= 4
+    {
+        if not allTrue((load(pixels + index) & Alpha) == Alpha) do
+            return false
+        index += 4
+    }
+
+    for i in index until count where pixels[i] >> 24 != 255 do
+        return false
+    return true
+}
+
 impl Image
 {
     // Converts alpha association in place without changing the pixel format.
@@ -20,6 +40,12 @@ impl Image
         {
             let pixels = .pixels.storage()
             let count  = .byteCount / 4
+            if count >= 1024 and allPackedAlphaOpaque(cast(const [*] u32, pixels), count)
+            {
+                .alphaMode = newMode
+                return
+            }
+
             const ParallelBytes = 64'u64 * 1024 * 1024
             let workers = .byteCount >= ParallelBytes ? cast(u64, Swag.workerCount()) : 0
             if workers > 1

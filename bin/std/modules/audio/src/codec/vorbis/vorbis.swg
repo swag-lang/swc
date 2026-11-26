@@ -393,7 +393,7 @@ private impl Codebook
         return .decodeTree(reader, 0, 0)
     }
 
-    mtd parse(reader: *BitReader) fail
+    mtd parse(reader: *BitReader, prepareSamples: bool) fail
     {
         if reader.read(24) != 0x564342 do
             fail InvalidFormatError{"Vorbis codebook has no synchronization pattern"}
@@ -438,7 +438,8 @@ private impl Codebook
         if reader.overran do
             fail InvalidFormatError{"Vorbis setup header is truncated"}
         try .buildTree()
-        .buildPrefixes()
+        if prepareSamples do
+            .buildPrefixes()
 
         .lookupType = reader.read(4)
         if not .lookupType do
@@ -455,6 +456,15 @@ private impl Codebook
         let quantizedBits = quantized * cast(u64, valueBits)
         if quantizedBits > reader.remainingBits() do
             fail InvalidFormatError{"Vorbis codebook lookup values are truncated"}
+
+        if not prepareSamples
+        {
+            // Framing still validates the lookup length but only reads modes from packets.
+            if reader.overran do
+                fail InvalidFormatError{"Vorbis setup header is truncated"}
+            reader.bitPos += quantizedBits
+            return
+        }
 
         var quant: Array'f32
         quant.resize(quantized)
@@ -911,7 +921,7 @@ private impl Codec
     }
 
     // Reads the identification header and sizes the buffers it implies.
-    mtd readIdentification(header: const [..] u8) fail
+    mtd readIdentification(header: const [..] u8, prepareSamples: bool) fail
     {
         if header.count < 30 or
            header[0] != 1 or
@@ -943,6 +953,9 @@ private impl Codec
            .blockSizes[1] > MaxBlockSize do
             fail InvalidFormatError{"Vorbis stream declares invalid block sizes"}
 
+        if not prepareSamples do
+            return
+
         for which in 2
         {
             let half = .blockSizes[which] / 2
@@ -966,7 +979,7 @@ private impl Codec
     }
 
     // Reads the setup header: codebooks, floors, residues, mappings, and modes.
-    mtd readSetup(header: const [..] u8) fail
+    mtd readSetup(header: const [..] u8, prepareSamples: bool) fail
     {
         if header.count < 7 or
            header[0] != 5 or
@@ -982,7 +995,7 @@ private impl Codec
         let bookCount = reader.read(8) + 1
         .codebooks.resize(bookCount)
         for index in bookCount do
-            try .codebooks[index].parse(&reader)
+            try .codebooks[index].parse(&reader, prepareSamples)
 
         let timeCount = reader.read(6) + 1
         for timeCount
@@ -1025,7 +1038,7 @@ private impl Codec
 
     // Reads the three header packets out of the pages the container recorded, or out of the
     // laced form a Matroska track carries them in.
-    mtd readConfig(config: const [..] u8) fail
+    mtd readConfig(config: const [..] u8, prepareSamples = true) fail
     {
         var headers: [3] Array'u8
         var identification, setup: const [..] u8
@@ -1142,8 +1155,8 @@ private impl Codec
             fail InvalidFormatError{"Vorbis configuration is neither Ogg pages nor laced headers"}
         }
 
-        try .readIdentification(identification)
-        try .readSetup(setup)
+        try .readIdentification(identification, prepareSamples)
+        try .readSetup(setup, prepareSamples)
     }
 
     // Reads the floor of one channel and returns whether the channel carries audio in this block.
@@ -2673,7 +2686,7 @@ internal impl DurationProbe
 {
     mtd initialize(config: const [..] u8) fail
     {
-        try .codec.readConfig(config)
+        try .codec.readConfig(config, prepareSamples: false)
     }
 
     // Returns the frames `packet` completes: a quarter of its block size and a quarter of the

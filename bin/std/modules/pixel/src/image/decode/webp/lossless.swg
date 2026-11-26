@@ -144,34 +144,44 @@ impl LosslessHuffmanGroup
         let maxBits = .trees[LOSSLESS_HUFF_RED].maxLength +
                       .trees[LOSSLESS_HUFF_BLUE].maxLength +
                       .trees[LOSSLESS_HUFF_ALPHA].maxLength
-        if maxBits > LOSSLESS_LUT_BITS do
+        if maxBits > LOSSLESS_LUT_BITS and .trees[LOSSLESS_HUFF_ALPHA].maxLength do
             return
 
-        let count = 1'u32 << maxBits
+        // Many opaque literals fit together in a short prefix even when
+        // uncommon red and blue symbols need longer codes.
+        let count = 1'u32 << Math.min(maxBits, LOSSLESS_LUT_BITS)
+        var filled:  u32
         var entries: [1 << LOSSLESS_LUT_BITS] u32
         for prefix in count
         {
             var bits = cast(u32, prefix)
             let red  = .trees[LOSSLESS_HUFF_RED].lut[bits & LOSSLESS_LUT_MASK]
             if not red or red >= LOSSLESS_LUT_NODE_BASE do
-                return
+                continue
             let redBits = cast(u32, red >> LOSSLESS_LUT_SYMBOL_BITS) - 1
             bits >>= redBits
             let blue = .trees[LOSSLESS_HUFF_BLUE].lut[bits & LOSSLESS_LUT_MASK]
             if not blue or blue >= LOSSLESS_LUT_NODE_BASE do
-                return
+                continue
             let blueBits = cast(u32, blue >> LOSSLESS_LUT_SYMBOL_BITS) - 1
             bits >>= blueBits
             let alpha = .trees[LOSSLESS_HUFF_ALPHA].lut[bits & LOSSLESS_LUT_MASK]
             if not alpha or alpha >= LOSSLESS_LUT_NODE_BASE do
-                return
+                continue
             let length = redBits + blueBits + (alpha >> LOSSLESS_LUT_SYMBOL_BITS)
 
+            if length > LOSSLESS_LUT_BITS + 1 do
+                continue
+
             // The green byte stores the combined bit count plus one.
+            filled += 1
             entries[prefix] = cast(u32, red & LOSSLESS_LUT_SYMBOL_MASK) | (length << 8) |
                               (cast(u32, blue & LOSSLESS_LUT_SYMBOL_MASK) << 16) |
                               (cast(u32, alpha & LOSSLESS_LUT_SYMBOL_MASK) << 24)
         }
+
+        if not filled or filled < count / 2 do
+            return
 
         .literalMask = count - 1
         .literalTable.resize(count)
@@ -184,7 +194,8 @@ impl LosslessHuffmanGroup
         if not .literalTable.isEmpty()
         {
             let entry = .literalTable.storage()[reader.bits & .literalMask]
-            let bits  = ((entry >> 8) & 0xFF) - 1
+            // A zero entry falls back to the individual trees below.
+            let bits  = ((entry >> 8) & 0xFF) - #wrap 1
             if bits <= reader.nBits
             {
                 reader.bits  >>= bits

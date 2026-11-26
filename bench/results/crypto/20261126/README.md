@@ -161,3 +161,4 @@ optimizations moved each result.
 - [Unified P-256 point addition in fixed windows](p256-unified-windows.md)
 - [Direct scrypt BlockMix output](scrypt-direct-blockmix.md)
 - [Packed P-256 field selection](p256-vector-select.md)
+- [Direct MD5 padding and packed digest output](md5-padding.md)

@@ -34,19 +34,28 @@ public impl Md5
     // Call [[reset]] before reusing this value after finalization.
     mtd finalize()->Digest
     {
-        var digest:  #returntype
-        var bits:    [8] u8
-        var padding: [64] u8
-        padding[0] = 0x80
-        encode(&bits[0], .count, 8)
+        let index      = cast(u64, (.count[0] >> 3) & 0x3F)
+        let needsExtra = index >= 56
+        let bytes      = .buffer.buffer
+        bytes[index] = 0x80
+        if needsExtra
+        {
+            Swag.memset(bytes + index + 1, 0, 63 - index)
+            transform(.state, bytes)
+            Swag.memset(bytes, 0, 56)
+        }
+        else
+        {
+            Swag.memset(bytes + index + 1, 0, 55 - index)
+        }
 
-        let index  = (.count[0] >> 3) & 0x3F
-        let padLen = (index < 56) ? (56 - index) : (120 - index)
+        let length = cast([*] u32, bytes + 56)
+        length[0] = Math.nativeToLittleEndian(.count[0])
+        length[1] = Math.nativeToLittleEndian(.count[1])
+        transform(.state, bytes)
 
-        .update(padding[until padLen])
-        .update(bits)
-        encode(&digest[0], .state, 16)
-        return digest
+        addInputLength(&.count, (needsExtra ? 128'u64 : 64'u64) - index)
+        return encodeDigest(.state)
     }
 
     // Resets the sequence to the standard MD5 initial state.
@@ -64,13 +73,13 @@ public impl Md5
         var index = (.count[0] >> 3) & 0x3F
         addInputLength(&.count, inputLen)
 
-        var i = 0'u64
+        var i       = 0'u64
         let partLen = 64 - index
         if index and inputLen >= partLen
         {
             Memory.copy(&.buffer[index], input, cast(u64, partLen))
             transform(.state, .buffer.buffer)
-            i = partLen
+            i     = partLen
             index = 0
         }
 
@@ -104,9 +113,7 @@ public impl Md5
 
             transform(state, &block[0])
 
-            var result: #returntype
-            encode(&result[0], state, 16)
-            return result
+            return encodeDigest(state)
         }
 
         var v: Md5
@@ -164,17 +171,17 @@ impl Md5
 
     func transform(state: [4] u32, blocks: const [*] u8, count = 1'u64)
     {
-        var a     = state[0]
-        var b     = state[1]
-        var c     = state[2]
-        var d     = state[3]
+        var a = state[0]
+        var b = state[1]
+        var c = state[2]
+        var d = state[3]
         for index in count
         {
             let startA = a
             let startB = b
             let startC = c
             let startD = d
-            let x = cast(const [*] u32, blocks + index * 64)
+            let x      = cast(const [*] u32, blocks + index * 64)
 
             // Round 1
             a = ff1(a, b, c, d, loadWord(x, 0), 7, 0xD76AA478)       // 1
@@ -261,10 +268,13 @@ impl Md5
         state[3] = d
     }
 
-    func encode(output: [*] u8, input: const [*] u32, len: u32)
+    #[Swag.Inline]
+    func encodeDigest(input: const [*] u32)->Digest
     {
-        let words = cast([*] u32, output)
-        for index in len / 4 do
-            words[index] = Math.nativeToLittleEndian(input[index])
+        using Math
+        var result: #returntype
+        let words = cast([*] u32, result.buffer)
+        Simd.store(words, Math.nativeToLittleEndian(Simd.load(input)))
+        return result
     }
 }

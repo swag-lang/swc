@@ -214,9 +214,53 @@ private func(sequential: bool) validateCMapGroups(subTable: const [..] u8, glyph
     if cast(u64, groupCount) > (subTable.count - 16) / 12 do
         try fault(0x03)
 
-    var record = cast(const [*] u32, subTable.buffer + 16)
+    var record          = cast(const [*] u32, subTable.buffer + 16)
     var previousEndCode = 0'u32
-    for index in groupCount
+    var checked         = 0'u32
+    #static if Math.nativeToBigEndian(1'u32) != 1
+    {
+        const Previous = cast(Math.Simd.U32x4, [0'u32, 4, 5, 6])
+        let unicodeLimit = Swag.vecSplat(0x10FFFF'u32)
+        let glyphLimit   = Swag.vecSplat(glyphCount)
+
+        // Four groups fit in three vectors. The overlapping loads also touch the
+        // first word of the next group, so reserve it for the scalar tail.
+        while groupCount - checked >= 5
+        {
+            let row0      = Math.Simd.load(record)
+            let row1      = Math.Simd.load(record + 3)
+            let row2      = Math.Simd.load(record + 6)
+            let row3      = Math.Simd.load(record + 9)
+            let low0      = cast #bit(Math.Simd.U64x2, Swag.vecInterleaveLo(row0, row1))
+            let low1      = cast #bit(Math.Simd.U64x2, Swag.vecInterleaveLo(row2, row3))
+            let high0     = cast #bit(Math.Simd.U64x2, Swag.vecInterleaveHi(row0, row1))
+            let high1     = cast #bit(Math.Simd.U64x2, Swag.vecInterleaveHi(row2, row3))
+            let starts    = Math.byteSwap(cast #bit(Math.Simd.U32x4, Swag.vecInterleaveLo(low0, low1)))
+            let ends      = Math.byteSwap(cast #bit(Math.Simd.U32x4, Swag.vecInterleaveHi(low0, low1)))
+            let glyphs    = Math.byteSwap(cast #bit(Math.Simd.U32x4, Swag.vecInterleaveLo(high0, high1)))
+            let prior     = Math.Simd.permute2(Swag.vecSplat(previousEndCode), ends, Previous)
+            let orderMask = Swag.vecMask(starts <= prior) & (checked ? 15'u32 : 14'u32)
+            if orderMask or Swag.vecMask((starts > ends) | (ends > unicodeLimit)) do
+                try fault(0x03)
+
+            #static if sequential
+            {
+                if Swag.vecMask(glyphs >= glyphLimit) or Swag.vecMask(ends - starts >= glyphLimit - glyphs) do
+                    try fault(0x03)
+            }
+            else
+            {
+                if Swag.vecMask((glyphs >= glyphLimit) & (glyphs != Swag.vecSplat(0'u32))) do
+                    try fault(0x03)
+            }
+
+            previousEndCode = ends[3]
+            record          += 12
+            checked         += 4
+        }
+    }
+
+    for index in checked until groupCount
     {
         let startCode  = Math.bigEndianToNative(record[0])
         let endCode    = Math.bigEndianToNative(record[1])

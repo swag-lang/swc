@@ -1571,3 +1571,73 @@ On the later PSD layer reader, the 1537 × 1031 RGBA16 raw case goes from
 visible planes together. ImageMagick 7.1.1-43 takes 96.658 ms and agrees
 on the decoded pixels. The predicted RGBA16 case goes from 68.885 to
 33.829 ms versus 110.327 ms for ImageMagick in the same series.
+
+### Final format passes
+
+The last JPEG reference builds libjpeg-turbo 3.2.1 from release tag
+`7b4993786d`, using GCC Release, JPEG ABI 62 and x86-64 SIMD. Timings
+are thread CPU medians from 11 rotating trials.
+
+| JPEG operation | Swag (ms) | libjpeg-turbo 3.2.1 (ms) |
+| --- | ---: | ---: |
+| Decode FileSamples JPG | 1.463 | 1.581 |
+| Decode FileSamples JFIF | 1.548 | 1.759 |
+| Decode 4275 × 2451 sequential 4:4:4 photo | 46.189 | 65.080 |
+| Decode 4275 × 2451 progressive photo | 152.220 | 186.928 |
+| Encode FileSamples JPG at Q95 | 3.599 | 2.278 |
+| Encode 4275 × 2451 photo at Q95 | 107.458 | 69.328 |
+
+The matrix-order coefficient pass changes the last encode from 123.136
+to 107.458 ms in this series. The encoder preserves 256 tested bitstreams.
+The large Q95 files use equal DQT tables and 4:4:4 sampling. Swag produces
+3,189,453 bytes at 51.90 dB and libjpeg-turbo produces 3,279,900 at 51.81 dB.
+
+In the cumulative FileSamples PNG encoding series at `7fd4bd8f2e`,
+all decoded pixels match. The output buffers omit metadata.
+
+| PNG level | Swag (ms / bytes) | libpng with zlib (ms / bytes) | libpng with zlib-ng (ms / bytes) |
+| --- | ---: | ---: | ---: |
+| 0 | 0.473 / 818,599 | 1.023 / 819,717 | 0.614 / 819,717 |
+| 1 | 23.309 / 535,056 | 25.271 / 532,314 | 14.839 / 690,097 |
+| 6 | 48.015 / 520,439 | 66.047 / 525,926 | 32.620 / 528,897 |
+| 9 | 64.352 / 519,877 | 146.381 / 522,626 | 85.090 / 511,108 |
+
+The Deflate chain change reduces level-6 RGBA band encoding from 104.444
+to 42.703 ms with identical bytes. Libpng takes 49.873 ms with zlib and
+34.340 ms with zlib-ng. For FileSamples PNG decode, Swag takes 3.579 ms,
+libpng with zlib takes 5.431, libpng with zlib-ng takes 3.954, and
+libspng takes 5.441. All four produce the same pixels.
+
+The latest TIFF directory indexing measured 6.916 ms for 16,384 pages.
+LibTIFF 4.7.0 and 4.7.1 built from source with GCC Release measured
+122.558 and 122.409 ms in the native series, agreeing on page order and
+the first and last page CRCs. The equivalent source builds perform much
+closer to each other than to the Pillow 4.7.1 wheel in this test.
+
+The natural grayscale GIF encodes in 3.427 ms with Swag, 4.483 ms with
+Pillow on the same prepared palette, and 5.538 ms with giflib, with the
+same decoded pixels. On the noisy partial-alpha APNG, the verified SIMD
+compositor retains Swag pixels, with a scalar tie path for byte rounding.
+Texture and color conversion tests cover clipped block rows, word tails
+and large disjoint worker ranges.
+
+The opaque WebP UI output shrinks from 184,894 to 137,796 bytes with
+vertical references. Swag decode falls from 5.073 to 1.920 ms and
+libwebp 1.6.0 reads the new stream in 1.694 ms. The contiguous VP8L RIFF
+writer gives 60.257 ms on FileSamples pixels versus 539.536 ms with
+libwebp 1.6.0 exact method 0. The outputs are 7,755,584 and 6,746,104
+bytes, respectively, for the same RGBA. The predictive small photo and
+alpha UI streams trade 10.8% and 9.0% more Swag decode time for 46.6%
+and 57.8% smaller outputs, respectively, with the same decoded pixels.
+
+The raster dispatch microbenchmark reports one `canLoad` and `canSave`
+pair per iteration. KTX2 goes from 3.688 µs to 0.759 µs when aliases are
+read directly, then to 0.285 µs in a separate paired series with borrowed
+lowercase filename suffixes. The registry tests include mixed case,
+Unicode, and empty alias separators.
+
+The integrated checkpoint `0a0eb99044` passed 446 native Pixel raster,
+66 Core compression/buffer, and seven WOFF tests. The Linux Release
+validation uses the compiler at `52f76fab9d` and its compatible CRC32,
+CRC64, Poly1305, P-256 and RSA sources in the scratch checkout. The image
+and compression sources are those of the checkpoint.

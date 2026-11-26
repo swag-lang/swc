@@ -39,6 +39,10 @@ REFERENCES = {
     "aes-256-gcm-aad": {"OpenSSL": "aes-256-gcm-aad"},
 }
 DEFAULT_ALGORITHMS = tuple(REFERENCES)
+BLAKE2_REFERENCES = {
+    "blake2b-512": {"libb2": "blake2b-libb2", "libsodium": "blake2b-libsodium"},
+    "blake2s-256": {"libb2": "blake2s-libb2"},
+}
 REFERENCES.update({name: {"OpenSSL": name} for name in ("hmac-sha384", "hmac-sha512")})
 PUBLIC_KEY_SIZES = {
     "x25519-public": (32,),
@@ -187,6 +191,8 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
     parser.add_argument("--workers", action="append", type=worker_count, default=[],
                         help="LABEL=COUNT for one Swag build, defaults to one worker")
     parser.add_argument("--algorithm", action="append", choices=references)
+    parser.add_argument("--blake2-references", action="store_true",
+                        help="include libb2 and libsodium with a matching reference build")
     parser.add_argument("--size", action="append", type=int)
     parser.add_argument("--offset", action="append", type=int)
     parser.add_argument("--rounds", type=int, default=11)
@@ -197,6 +203,9 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--markdown", type=Path)
     args = parser.parse_args()
+    if args.blake2_references:
+        references = {name: {**libraries, **BLAKE2_REFERENCES.get(name, {})}
+                      for name, libraries in references.items()}
 
     algorithms = args.algorithm or default_algorithms
     offsets = args.offset or [0]

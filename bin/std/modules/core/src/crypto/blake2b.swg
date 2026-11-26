@@ -33,11 +33,11 @@ private const Sigma: [192] u8 = [
 #[Swag.Inline]
 private func mix(state: *[16] u64, a, b, c, d: u64, x, y: u64)
 {
-    state[][a] += state[][b] + x
+    state[][a] = (state[][a] + x) + state[][b]
     state[][d] = Swag.ror(state[][d] ^ state[][a], 32'u8)
     state[][c] += state[][d]
     state[][b] = Swag.ror(state[][b] ^ state[][c], 24'u8)
-    state[][a] += state[][b] + y
+    state[][a] = (state[][a] + y) + state[][b]
     state[][d] = Swag.ror(state[][d] ^ state[][a], 16'u8)
     state[][c] += state[][d]
     state[][b] = Swag.ror(state[][b] ^ state[][c], 63'u8)
@@ -224,10 +224,12 @@ public impl Blake2b
             m[index] = Math.littleEndianToNative(words[index])
 
         var v: [16] u64
-        for i in 8
+        const WordsPerVector = 2
+        for group in 8 / WordsPerVector
         {
-            v[i]     = .state[i]
-            v[8 + i] = Iv[i]
+            let word = group * WordsPerVector
+            Math.Simd.store(v.buffer + word, Math.Simd.load(.state.buffer + word))
+            Math.Simd.store(v.buffer + 8 + word, Math.Simd.load(Iv.buffer + word))
         }
 
         v[12] ^= .counterLow
@@ -248,8 +250,15 @@ public impl Blake2b
             mix(&v, 3, 4, 9, 14, m[Sigma[s + 14]], m[Sigma[s + 15]])
         }
 
-        for i in 8 do
-            .state[i] ^= v[i] ^ v[8 + i]
+        for group in 8 / WordsPerVector
+        {
+            let word     = group * WordsPerVector
+            let position = .state.buffer + word
+            let updated  = Math.Simd.load(position) ^
+                           Math.Simd.load(v.buffer + word) ^
+                           Math.Simd.load(v.buffer + 8 + word)
+            Math.Simd.store(position, updated)
+        }
 
         Crypto.secureClear(m)
         Crypto.secureClear(v)

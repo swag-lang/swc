@@ -70,6 +70,15 @@ Select HMAC with `--algorithm hmac-sha384` or `--algorithm hmac-sha512`. The
 one-shot operations use a deterministic 32-byte key. Include `--size 111 --size 112`
 to compare the payloads on either side of the SHA-384/512 padding boundary.
 
+## BLAKE2 references
+
+Install the libb2 and libsodium development packages. To include their one-shot
+digests, add `-DSWAG_BENCH_BLAKE2_REFERENCES` and
+`$(pkg-config --cflags --libs libb2 libsodium)` to the reference build command.
+Pass `--blake2-references --algorithm blake2b-512 --algorithm blake2s-256` to
+the runner. It compares both algorithms with OpenSSL and libb2, and BLAKE2b
+also with libsodium.
+
 ## Worker scaling
 
 Repeat `--cpu` to set a common affinity mask for every build and reference. Give each Swag

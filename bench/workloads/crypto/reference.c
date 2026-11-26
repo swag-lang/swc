@@ -11,6 +11,11 @@
 #include <openssl/param_build.h>
 #include <zlib.h>
 
+#ifdef SWAG_BENCH_BLAKE2_REFERENCES
+#include <blake2.h>
+#include <sodium.h>
+#endif
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -107,6 +112,23 @@ static void hash_blake3(const unsigned char *p, size_t n, unsigned char *out)
     blake3_hasher_update(&state, p, n);
     blake3_hasher_finalize(&state, out, BLAKE3_OUT_LEN);
 }
+
+#ifdef SWAG_BENCH_BLAKE2_REFERENCES
+static void blake2b_libb2(const unsigned char *p, size_t n, unsigned char *out)
+{
+    require(blake2b(out, p, NULL, 64, n, 0) == 0, "libb2 BLAKE2b failed");
+}
+
+static void blake2s_libb2(const unsigned char *p, size_t n, unsigned char *out)
+{
+    require(blake2s(out, p, NULL, 32, n, 0) == 0, "libb2 BLAKE2s failed");
+}
+
+static void blake2b_sodium(const unsigned char *p, size_t n, unsigned char *out)
+{
+    require(crypto_generichash_blake2b(out, 64, p, n, NULL, 0) == 0, "libsodium BLAKE2b failed");
+}
+#endif
 
 static void digest_evp(const unsigned char *p, size_t n, unsigned char *out)
 {
@@ -349,6 +371,24 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
         return encrypt_evp;
     }
 
+#ifdef SWAG_BENCH_BLAKE2_REFERENCES
+    if (!strcmp(name, "blake2b-libb2")) {
+        *result_size = 64;
+        return blake2b_libb2;
+    }
+
+    if (!strcmp(name, "blake2s-libb2")) {
+        *result_size = 32;
+        return blake2s_libb2;
+    }
+
+    if (!strcmp(name, "blake2b-libsodium")) {
+        require(sodium_init() >= 0, "libsodium initialization failed");
+        *result_size = 64;
+        return blake2b_sodium;
+    }
+#endif
+
     digest = EVP_MD_fetch(NULL, name, NULL);
     require(digest != NULL, "OpenSSL could not fetch digest");
     digest_context = EVP_MD_CTX_new();
@@ -367,9 +407,13 @@ static uint64_t clock_ticks(clockid_t clock)
 int main(int argc, char **argv)
 {
     if (argc == 2 && !strcmp(argv[1], "--version")) {
-        printf("%s | zlib %s | BLAKE3 %s | libdeflate %s | ISA-L %s | liblzma %s\n",
+        printf("%s | zlib %s | BLAKE3 %s | libdeflate %s | ISA-L %s | liblzma %s",
                OpenSSL_version(OPENSSL_VERSION), zlibVersion(), blake3_version(),
                LIBDEFLATE_VERSION_STRING, isal_get_version_str(), lzma_version_string());
+#ifdef SWAG_BENCH_BLAKE2_REFERENCES
+        printf(" | libb2 | libsodium %s", sodium_version_string());
+#endif
+        putchar('\n');
         return EXIT_SUCCESS;
     }
 

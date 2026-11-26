@@ -108,3 +108,4 @@ optimizations moved each result.
 - [Fixed PBKDF2 blocks for SHA-384 and SHA-512](pbkdf2-sha512-blocks.md)
 - [Portable GHASH with persistent field state](ghash-portable-stream.md)
 - [ChaCha20 key and nonce reuse across batches](chacha20-chunk-reuse.md)
+- [Packed BLAKE2 state initialization and feed-forward](blake2-state.md)

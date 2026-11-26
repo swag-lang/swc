@@ -1048,3 +1048,29 @@ less time. Pathname opening improves by 24–46%. Noto Sans JP takes
 | `NotoSerifKR-Regular.otf` | U+570B | 1221.8 | 928.3 | 612.4 | 489.8 | 205.9 |
 | `NotoSerifSC-Regular.otf` | U+4E2D | 1993.7 | 1355.2 | 552.0 | 848.0 | 277.7 |
 | `NotoSerifSC-Regular.otf` | U+6587 | 1857.7 | 1345.7 | 556.9 | 851.4 | 262.2 |
+
+## Scope character block coverage
+
+Scope counts the mapped characters in its five displayed Unicode
+blocks directly from the character map. Both opening a font and
+switching members use this path.
+
+The comparison with `22ce80bf08` uses 11 interleaved fresh-process
+opens with one worker. A second timed loop repeats coverage counting
+101 times on the loaded face. Counting takes 1.9–12.7 µs, down from
+272.5–413.1 µs. Every block count matches in all ten cases. The
+native font viewer tests and the Scope Release build pass.
+[Raw timings and complete block counts](font-scope-linux-character-coverage.json)
+
+| Fixture | Coverage before (µs) | After | Scope open before (ms) | After |
+| --- | ---: | ---: | ---: | ---: |
+| `NotoSansCJKjp-Regular.otf` | 395.12 | 4.76 | 14.712 | 15.018 |
+| `NotoSerifCJKjp-Regular.otf` | 397.60 | 5.19 | 21.369 | 21.599 |
+| `NotoSansCJK-Regular.ttc` | 387.05 | 5.45 | 31.769 | 31.168 |
+| `NotoSerifCJK-Regular.ttc` | 383.89 | 4.67 | 42.101 | 40.789 |
+| `NotoSansSC-Variable.ttf` | 347.21 | 5.21 | 14.883 | 14.748 |
+| `NotoSansKR-Variable.ttf` | 364.98 | 4.82 | 8.693 | 8.592 |
+| `GowunBatang-Regular.ttf` | 363.64 | 4.41 | 21.267 | 20.879 |
+| `LXGWWenKaiTC-Regular.ttf` | 413.10 | 12.66 | 40.579 | 39.104 |
+| `Lato-Regular.ttf` | 273.40 | 1.94 | 0.725 | 0.361 |
+| `SourceCodePro-Regular.otf` | 272.51 | 2.56 | 0.950 | 0.606 |

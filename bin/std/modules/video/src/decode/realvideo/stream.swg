@@ -204,10 +204,10 @@ impl Stream
     mtd release(at: u64, target: *PlanarFrame?)
     {
         if let output = target do
-            output[] = #move .queue[at].planes
+            Core.swap(output, &.queue[at].planes)
         .queued -= 1
         if at != .queued do
-            .queue[at] = #move .queue[.queued]
+            Core.swap(&.queue[at], &.queue[.queued])
         .emitRank += 1
     }
 

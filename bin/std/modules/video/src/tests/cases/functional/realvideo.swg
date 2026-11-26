@@ -110,6 +110,25 @@ func realVideoCompare(name: string)
         Swag.require(actual == Dc[index])
 }
 
+// The DC-only reconstruction shares the full transform's rounding and clips the same pixels.
+#test
+{
+    var prediction: [28] u8
+    for &sample, index in prediction do
+        sample[] = cast(u8, (index * 47 & 255))
+
+    for dc in [-32768's32, -1532, -511, -4, -3, 0, 3, 4, 511, 1532, 32767]
+    {
+        var reference = prediction
+        var direct    = prediction
+        var block: [16] s32
+        block[0] = dc
+        RealVideo.addResidual(reference.buffer, 7, &block)
+        RealVideo.addDcResidual(direct.buffer, 7, dc)
+        Swag.require(Memory.compare(reference.buffer, direct.buffer, prediction.count) == 0)
+    }
+}
+
 // Every table edge preserves either its target row or its decoded leaf value.
 #test
 {

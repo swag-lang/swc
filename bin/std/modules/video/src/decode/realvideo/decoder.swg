@@ -565,11 +565,17 @@ impl Decoder
                         available[pos] = true
                     }
 
-                    let shift = channel == 0 ? y * 4 + x : 16 + (channel - 1) * 4 + y * 2 + x
-                    var coeff: [16] s32
-                    if (pattern & (1'u32 << cast(u32, shift))) != 0 do
-                        coeff = .coefficients(channel == 0 ? luma : (intra ? 0 : 1), channel == 0 ? 0 : 1, dc, quant, quant)
-                    if channel == 0 and is16 do
+                    let shift  = channel == 0 ? y * 4 + x : 16 + (channel - 1) * 4 + y * 2 + x
+                    let lumaDc = channel == 0 and is16
+                    if (pattern & (1'u32 << cast(u32, shift))) == 0
+                    {
+                        if lumaDc and dcBlock[y * 4 + x] do
+                            addDcResidual(dst, plane.stride, dcBlock[y * 4 + x])
+                        continue
+                    }
+
+                    var coeff = .coefficients(channel == 0 ? luma : (intra ? 0 : 1), channel == 0 ? 0 : 1, dc, quant, quant)
+                    if lumaDc do
                         coeff[0] = dcBlock[y * 4 + x]
                     addResidual(dst, plane.stride, &coeff)
                 }
@@ -660,8 +666,9 @@ impl Decoder
         .current.write(target)
         if first.kind != 3
         {
-            .past   = #move .future
-            .future = #move .current
+            // Reuse the old past picture as the next reconstruction buffer.
+            Core.swap(&.past, &.future)
+            Core.swap(&.future, &.current)
         }
     }
 }

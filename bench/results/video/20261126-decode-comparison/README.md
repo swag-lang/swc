@@ -317,6 +317,27 @@ run ranges and a 3.2% higher group median, while five of its seven paired observ
 were faster. All 405 pictures matched FFmpeg byte for byte at both budgets. The H.264,
 MP4 and Matroska Release selection passed 104 tests. [Raw timings and hashes](avc-deferred-slices.json)
 
+## RealVideo reference buffers and DC-only reconstruction
+
+The decoder recycles the old reference and the caller's released output planes. A block
+with no coded residual keeps its prediction. A luma block with only a DC coefficient
+adds the exact constant left by both transform passes. A new test checks signed rounding,
+clipping and row padding against the complete transform.
+
+The medians are milliseconds per picture on one logical CPU with nine rotating runs.
+The long stream warms up for 30 pictures and the short streams warm up for two.
+
+| RV40 input | Swag before | Swag after | FFmpeg | Swag time change | Swag after / FFmpeg |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Repeated I/P/B, 720 pictures | 0.135 | 0.118 | 0.037 | −12.2% | 3.21× |
+| Intra | 0.154 | 0.136 | 0.062 | −11.5% | 2.21× |
+| I/P/B | 0.120 | 0.100 | 0.043 | −16.5% | 2.31× |
+| Adaptive | 0.109 | 0.097 | 0.033 | −11.1% | 2.91× |
+| Multiple slices | 0.109 | 0.097 | 0.039 | −11.2% | 2.48× |
+
+All 762 pictures match FFmpeg byte for byte. The RealVideo and Matroska selection passed
+47 native Release tests. [Individual timings and decoded hashes](realvideo-reference-reuse.json)
+
 ## Reproduce
 
 The [workload](../../../workloads/videodecode/README.md) contains the benchmark and generation

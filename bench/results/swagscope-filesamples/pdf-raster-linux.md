@@ -679,3 +679,49 @@ from seven additional runs for the three large grayscale scans.
 All 55 supported corpus rasters are byte-identical to baseline.
 The 145 PDF and 992 Pixel tests pass. The odd-width bilevel
 regression checks both the compact format and bit polarity.
+
+## Keeping JPEG channel order through rendering
+
+The PDF reader keeps an unmasked JPEG's decoder-native BGR8 pixels.
+Both renderer backends and the writer already accept BGR8. Matching
+soft masks still compose straight RGBA from either channel order.
+
+Nine alternating native Release runs on one AMD EPYC 7763 logical CPU
+use baseline `238120e726` and PDFium 159.0.8149.0. Times include opening,
+loading, and rendering at 1200 px.
+[Raw phases and raster checksums](pdf-raster-linux-native-jpeg.json)
+
+| PDF | Swag before, ms | Swag after, ms | PDFium, ms |
+| --- | ---: | ---: | ---: |
+| `sample1.pdf` | 31.19 | 30.16 | 26.01 |
+| `sample2.pdf` | 11.06 | 10.53 | 4.58 |
+| `perf_images_jpeg_large.pdf` | 91.95 | 79.91 | 98.31 |
+| `large_jpeg_downscale.pdf` | 60.10 | 43.59 | 57.61 |
+
+All 55 supported pages keep their raster checksums. The 124 focused
+PDF tests include retained source JPEGs and same-size soft masks.
+
+## SIMD bilinear filtering for eight-bit grayscale
+
+The CPU renderer filters four independent Gray8 samples together. Each
+axis retains the original integer rounding and the four output pixels
+keep the destination alpha. The renderer still reads one byte per
+source texel, including at row boundaries.
+
+Nine paired Release batches of two samples on one AMD EPYC 7763
+logical CPU compare `e43cc4c68b` with the SIMD change and PDFium
+159.0.8149.0. Times include open, load, and rasterization.
+[1200 px data](pdf-raster-linux-simd-gray-1200.json)
+[2400 px data](pdf-raster-linux-simd-gray-2400.json)
+
+| PDF | 1200 px before / after / PDFium, ms | 2400 px before / after / PDFium, ms |
+| --- | ---: | ---: |
+| `pdfbox-scan.pdf` | 6.78 / 6.75 / 1.70 | 27.54 / 26.28 / 6.40 |
+| `perf_images_scan_gray.pdf` | 45.81 / 27.92 / 37.10 | 154.90 / 53.95 / 60.70 |
+| `perf_images_scan_bilevel.pdf` | 32.25 / 12.23 / 26.08 | 146.40 / 44.60 / 45.69 |
+| `perf_images_16bit.pdf` | 47.03 / 47.94 / 18.04 | 80.38 / 80.87 / 28.95 |
+| `perf_codecs_ccitt.pdf` | 35.08 / 15.05 / 28.46 | 134.74 / 48.18 / 48.51 |
+
+All 55 supported corpus pages keep their raster CRC. The 996 Pixel
+tests include an odd-width, fractional-position grayscale image whose
+output is compared pixel for pixel with the same image in RGB8.

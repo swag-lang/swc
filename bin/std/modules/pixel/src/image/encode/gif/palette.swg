@@ -83,6 +83,60 @@ impl Encoder
         data.lzwMinCodeSize = Math.max(data.tableBits, 2'u8)
     }
 
+    func allGrayBytesEqual(pixels: const [*] u8, count: u64)->bool
+    {
+        let gray    = pixels[0]
+        let pattern = Math.Simd.splat(gray)
+        var i       = 0'u64
+        while count - i >= 16
+        {
+            if not Math.Simd.allTrue(Math.Simd.load(pixels + i) == pattern) do
+                return false
+            i += 16
+        }
+
+        for tail in i until count
+        {
+            if pixels[tail] != gray do
+                return false
+        }
+
+        return true
+    }
+
+    // A single color needs no index buffer; its only palette index is zero.
+    func tryBuildUniformPalette(data: *PaletteData, image: Image, count: u64)->bool
+    {
+        let pixels = image.pixels.storage()
+        let step   = image.bytesPerPixel
+        let last   = pixels + (count - 1) * step
+        switch step
+        {
+        case 1:
+            if last[0] != pixels[0] or not allGrayBytesEqual(pixels, count) do
+                return false
+        case 3:
+            if cast(const *u16, last)[] != cast(const *u16, pixels)[] or last[2] != pixels[2] or
+               PackedPixel.countSame24(pixels, pixels + 3, count - 1) != count - 1 do
+                return false
+        case 4:
+            if cast(const *u32, last)[] != cast(const *u32, pixels)[] or
+               PackedPixel.countSame32(pixels, pixels + 4, count - 1) != count - 1 do
+                return false
+        default:
+            return false
+        }
+
+        let offsets = pixelChannelOffsets(image)
+        if step == 4 and pixels[3] < 128 do
+            data.transparentIndex = 0
+        else do
+            data.colors[0] = {pixels[offsets.red], pixels[offsets.green], pixels[offsets.blue]}
+        data.count = 1
+        finishPaletteResult(data)
+        return true
+    }
+
     // If the first row used every gray value, it determines the entire palette. The image's
     // bytes can serve as LZW dictionary literals; only literal codes written to the file need
     // translating to the palette order.
@@ -123,14 +177,13 @@ impl Encoder
         return true
     }
 
-    func tryBuildExactPalette(data: *PaletteData, image: Image, hasTransparent: bool)->bool
+    func(PixelBytes: u8, ReverseChannels: bool) tryBuildExactPalettePacked(data: *PaletteData, image: Image, hasTransparent: bool)->bool
     {
         let pixelCount = cast(u64, image.width) * image.height
         resetPaletteResult(data, pixelCount)
 
         // The entry stores a 24-bit RGB key and a one-based palette index.
-        const MapCapacity = 512
-        var colorMap: [MapCapacity] u64
+        var colorMap: [PaletteMapSize] u64
 
         if hasTransparent
         {
@@ -138,32 +191,47 @@ impl Encoder
             data.count = 1
         }
 
-        let offsets  = pixelChannelOffsets(image)
-        let gray     = offsets.green == 0
-        var dstIndex = 0'u64
+        var target = data.indexes.storage()
         for y in image.height
         {
-            var pix = cast([*] u8, image.pixels.storage()) + cast(u64, (image.height - y - 1)) * image.rowStride
+            var pix = image.pixels.storage() + cast(u64, (image.height - y - 1)) * image.rowStride
             for image.width
             {
                 var paletteIndex: u8
 
-                if hasTransparent and pix[offsets.alpha] < 128
+                if (PixelBytes == 2 or PixelBytes == 4) and
+                   hasTransparent and
+                   pix[PixelBytes - 1] < 128
                 {
                     paletteIndex = cast(u8, data.transparentIndex)
                 }
                 else
                 {
-                    let r     = pix[offsets.red]
-                    let g     = pix[offsets.green]
-                    let b     = pix[offsets.blue]
-                    let key   = (cast(u32, r) << 16) | (cast(u32, g) << 8) | b
-                    var slot  = gray ? cast(u32, r) : (key * #wrap 0x9E3779B9'u32) >> 23
-                    var entry = colorMap[slot]
-                    while entry and (entry >> 9) != key
+                    // Keep RGB keys in the same order for RGB and BGR inputs.
+                    var key: u32
+                    #static if PixelBytes == 4
                     {
-                        slot  = (slot + 1) & (MapCapacity - 1)
-                        entry = colorMap[slot]
+                        let packed = cast(const *u32, pix)[]
+                        key = ReverseChannels ? Math.byteSwap(packed) >> 8 : packed & 0x00FFFFFF
+                    }
+                    elif PixelBytes == 3
+                    {
+                        let first = cast(const *u16, pix)[]
+                        key = ReverseChannels ? (cast(u32, Math.byteSwap(first)) << 8) | pix[2] :
+                                                cast(u32, first) | (cast(u32, pix[2]) << 16)
+                    }
+                    else do
+                        key = pix[0]
+
+                    var slot  = PixelBytes < 3 ? key : (key * #wrap 0x9E3779B9'u32) >> 23
+                    var entry = colorMap[slot]
+                    #static if PixelBytes >= 3
+                    {
+                        while entry and (entry >> 9) != key
+                        {
+                            slot  = (slot + 1) & (PaletteMapSize - 1)
+                            entry = colorMap[slot]
+                        }
                     }
 
                     if entry
@@ -175,21 +243,40 @@ impl Encoder
                         if data.count == MaxPaletteColors do
                             return false
 
-                        paletteIndex   = cast(u8, data.count)
-                        data.colors[paletteIndex] = PaletteColor{r, g, b}
+                        paletteIndex = cast(u8, data.count)
+                        #static if PixelBytes < 3
+                        {
+                            let gray = cast(u8, key)
+                            data.colors[paletteIndex] = {gray, gray, gray}
+                        }
+                        else do
+                            data.colors[paletteIndex] = {cast(u8, key >> 16), cast #wrap(u8, key >> 8), cast #wrap(u8, key)}
                         colorMap[slot] = (cast(u64, key) << 9) | (data.count + 1)
-                        data.count     += 1
+                        data.count    += 1
                     }
                 }
 
-                data.indexes[dstIndex] = paletteIndex
-                dstIndex += 1
-                pix      += image.bytesPerPixel
+                target[0] = paletteIndex
+                target    += 1
+                pix       += PixelBytes
             }
         }
 
         finishPaletteResult(data)
         return true
+    }
+
+    func tryBuildExactPalette(data: *PaletteData, image: Image, hasTransparent: bool)->bool
+    {
+        switch image.pixelFormat
+        {
+        case .Gray8:      return tryBuildExactPalettePacked'(1, false)(data, image, hasTransparent)
+        case .GrayAlpha8: return tryBuildExactPalettePacked'(2, false)(data, image, hasTransparent)
+        case .BGR8:       return tryBuildExactPalettePacked'(3, false)(data, image, hasTransparent)
+        case .RGB8:       return tryBuildExactPalettePacked'(3, true)(data, image, hasTransparent)
+        case .BGRA8:      return tryBuildExactPalettePacked'(4, false)(data, image, hasTransparent)
+        default:         return tryBuildExactPalettePacked'(4, true)(data, image, hasTransparent)
+        }
     }
 
     func histogramIndex(red, green, blue: u8)->u32 =>

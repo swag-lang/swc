@@ -2668,6 +2668,7 @@ private impl RenderCpu
     struct LinearSamples4
     {
         low, high: Math.Simd.U32x4
+        weights: Math.Simd.U32x4
         weights0, weights1: Math.Simd.S16x8
         upper0, upper1: Math.Simd.U16x8
     }
@@ -2697,6 +2698,7 @@ private impl RenderCpu
             let src        = samples.buffer + index * 4
             group.low      = cast(Math.Simd.U32x4, [cast(u32, src[0].low), cast(u32, src[1].low), cast(u32, src[2].low), cast(u32, src[3].low)])
             group.high     = cast(Math.Simd.U32x4, [cast(u32, src[0].high), cast(u32, src[1].high), cast(u32, src[2].high), cast(u32, src[3].high)])
+            group.weights  = cast(Math.Simd.U32x4, [src[0].weight, src[1].weight, src[2].weight, src[3].weight])
             group.weights0 = pairWeights(src[0].weight, src[1].weight)
             group.weights1 = pairWeights(src[2].weight, src[3].weight)
             group.upper0   = pairMask(src[0].weight, src[1].weight)
@@ -2723,6 +2725,23 @@ private impl RenderCpu
         let lo           = blend(Math.Simd.widenLow(gatheredLow), Math.Simd.widenLow(gatheredHigh), group.weights0, group.upper0)
         let hi           = blend(Math.Simd.widenHigh(gatheredLow), Math.Simd.widenHigh(gatheredHigh), group.weights1, group.upper1)
         return Math.Simd.packUnsigned(lo, hi)
+    }
+
+    #[Swag.Inline]
+    func lerpGray4(a, b: Math.Simd.S32x4, weight: Math.Simd.U32x4)->Math.Simd.S32x4
+    {
+        let difference = (b - a) * cast #bit(Math.Simd.S32x4, weight)
+        return a + (difference >> 16)
+    }
+
+    #[Swag.Inline]
+    func gatherGrayRow4(row: const [*] u8, group: const *LinearSamples4)->Math.Simd.S32x4
+    {
+        let lo = group.low
+        let hi = group.high
+        let first = cast(Math.Simd.S32x4, [cast(s32, row[lo[0]]), cast(s32, row[lo[1]]), cast(s32, row[lo[2]]), cast(s32, row[lo[3]])])
+        let last  = cast(Math.Simd.S32x4, [cast(s32, row[hi[0]]), cast(s32, row[hi[1]]), cast(s32, row[hi[2]]), cast(s32, row[hi[3]])])
+        return lerpGray4(first, last, group.weights)
     }
 
     #[Swag.Inline]
@@ -2850,7 +2869,7 @@ private impl RenderCpu
 
         let cacheRows = columns.count and Math.abs(deviceH) >= 1.25 * source.height
         var groups: Array'LinearSamples4
-        #static if Format == .BGRA8 or Format == .RGBA8
+        #static if Format == .Gray8 or Format == .BGRA8 or Format == .RGBA8
         {
             if not cacheRows and columns.count >= 16 do
                 groups = #move packLinearSamples(columns.toSlice())
@@ -2946,32 +2965,50 @@ private impl RenderCpu
                 while x <= x1
                 {
                     let column = cast(u64, x - triangle.bounds.minX)
-                    #static if Format == .BGRA8 or Format == .RGBA8
+                    #static if Format == .Gray8 or Format == .BGRA8 or Format == .RGBA8
                     {
                         if groups.count and (column & 3) == 0 and x1 - x >= 3
                         {
                             let group = &groups[column / 4]
-                            var ink = gatherLinearSamples(top, group)
-                            if twoRows
+                            #static if Format == .Gray8
                             {
-                                let weight = Math.Simd.splat(cast #bit(s16, cast(u16, sampleY.weight)))
-                                ink = lerpBgra8x4(ink, gatherLinearSamples(bottom, group), weight, sampleY.weight >= 32768)
-                            }
+                                var gray = gatherGrayRow4(top, group)
+                                if twoRows do
+                                    gray = lerpGray4(gray, gatherGrayRow4(bottom, group), Math.Simd.splat(sampleY.weight))
 
-                            #static if Format == .RGBA8
-                            {
-                                const SwapRGB = cast(Math.Simd.U8x16, [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
-                                ink = Math.Simd.shuffle(ink, SwapRGB)
+                                let fill   = cast #bit(Math.Simd.U8x16, cast #bit(Math.Simd.U32x4, gray) * 0x0001_0101'u32)
+                                let target = row + cast(u64, x) * 4
+                                Math.Simd.store(target, Math.Simd.select(CpuBgraRgbMask, fill, Math.Simd.load(target)))
+                                if white
+                                {
+                                    let other = white + cast(u64, x) * 4
+                                    Math.Simd.store(other, Math.Simd.select(CpuBgraRgbMask, fill, Math.Simd.load(other)))
+                                }
                             }
-
-                            let alpha   = (cast #bit(Math.Simd.U32x4, ink) >> 24) * 0x0101_0101'u32
-                            let weights = cast #bit(Math.Simd.U8x16, alpha)
-                            let target = row + cast(u64, x) * 4
-                            Math.Simd.store(target, blendAlphaBgra8x4(ink, Math.Simd.load(target), weights))
-                            if white
+                            else
                             {
-                                let other = white + cast(u64, x) * 4
-                                Math.Simd.store(other, blendAlphaBgra8x4(ink, Math.Simd.load(other), weights))
+                                var ink = gatherLinearSamples(top, group)
+                                if twoRows
+                                {
+                                    let weight = Math.Simd.splat(cast #bit(s16, cast(u16, sampleY.weight)))
+                                    ink = lerpBgra8x4(ink, gatherLinearSamples(bottom, group), weight, sampleY.weight >= 32768)
+                                }
+
+                                #static if Format == .RGBA8
+                                {
+                                    const SwapRGB = cast(Math.Simd.U8x16, [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
+                                    ink = Math.Simd.shuffle(ink, SwapRGB)
+                                }
+
+                                let alpha   = (cast #bit(Math.Simd.U32x4, ink) >> 24) * 0x0101_0101'u32
+                                let weights = cast #bit(Math.Simd.U8x16, alpha)
+                                let target = row + cast(u64, x) * 4
+                                Math.Simd.store(target, blendAlphaBgra8x4(ink, Math.Simd.load(target), weights))
+                                if white
+                                {
+                                    let other = white + cast(u64, x) * 4
+                                    Math.Simd.store(other, blendAlphaBgra8x4(ink, Math.Simd.load(other), weights))
+                                }
                             }
 
                             x += 4

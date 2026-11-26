@@ -77,10 +77,13 @@ internal impl IImageEncoder for Encoder
 
         var palette:  PaletteData
         var literals: [256] u8
-        let fullGray = image.pixelFormat == .Gray8 and
-                       image.width >= 256 and
-                       tryBuildFullGrayPalette(&palette, image, &literals)
-        if not fullGray do
+        let pixelCount = cast(u64, image.width) * image.height
+        let uniform    = pixelCount >= 256 and tryBuildUniformPalette(&palette, image, pixelCount)
+        let fullGray   = not uniform and
+                         image.pixelFormat == .Gray8 and
+                         image.width >= 256 and
+                         tryBuildFullGrayPalette(&palette, image, &literals)
+        if not uniform and not fullGray do
             palette = buildPalette(image)
         let packed = 0x80'u8 | ((palette.tableBits - 1) << 4) | (palette.tableBits - 1)
 
@@ -111,8 +114,13 @@ internal impl IImageEncoder for Encoder
         result.addNative(0'u8)
         result.addNative(palette.lzwMinCodeSize)
 
-        let compressed = fullGray ? lzwCompressGray(palette.indexes.toSlice(), &literals[0]) :
-                         lzwCompress(palette.indexes.toSlice(), palette.lzwMinCodeSize, palette.count == 1)
+        var compressed: Array'u8
+        if uniform do
+            compressed = lzwCompressRepeat(0, pixelCount, palette.lzwMinCodeSize)
+        elif fullGray do
+            compressed = lzwCompressGray(palette.indexes.toSlice(), &literals[0])
+        else do
+            compressed = lzwCompress(palette.indexes.toSlice(), palette.lzwMinCodeSize, palette.count == 1)
         Encoder.writeSubBlocks(result, compressed.toSlice())
 
         result.addNative(0x3B'u8)

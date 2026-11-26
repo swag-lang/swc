@@ -2,6 +2,14 @@
 
 using Core
 
+func processMicroseconds()->u64
+{
+    var stamp: Linux.timespec
+    let status = Linux.clock_gettime(Linux.CLOCK_PROCESS_CPUTIME_ID, &stamp)
+    Swag.require(status == 0)
+    return cast(u64, stamp.tv_sec) * 1_000_000 + cast(u64, stamp.tv_nsec) / 1000
+}
+
 #main
 {
     let args = Env.arguments()
@@ -20,7 +28,9 @@ using Core
     expect Crypto.argon2id("parallel benchmark", "benchmark salt!!", parameters, warmup)
     var watch: Time.Stopwatch
     watch.start()
+    let cpuStart = processMicroseconds()
     expect Crypto.argon2id("parallel benchmark", "benchmark salt!!", parameters, tag)
+    let cpuElapsed = processMicroseconds() - cpuStart
     watch.stop()
     Swag.require(Crypto.constantTimeEqual(warmup, tag))
 
@@ -32,5 +42,5 @@ using Core
         text[2 * index + 1] = Digits[byte & 15]
     }
 
-    Console.println(watch.elapsedMicroseconds(), " ", cast(string, text))
+    Console.println(watch.elapsedMicroseconds(), " ", cpuElapsed, " ", cast(string, text))
 }

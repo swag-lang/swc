@@ -9,6 +9,7 @@
 #include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
@@ -458,6 +459,34 @@ namespace
         return Result::Continue;
     }
 
+    bool isU32LaneMask(CodeGen& codeGen, AstNodeRef ref)
+    {
+        const SemaNodeView view = codeGen.viewConstant(ref);
+        if (!view.hasConstant() || !view.cst()->isArray())
+            return false;
+
+        const std::span<const std::byte> bytes = view.cst()->getArray();
+        if (bytes.size() != 16)
+            return false;
+
+        // The upper four bytes of each little-endian qword must all be zero.
+        const auto isZero = [](std::byte byte) { return byte == std::byte{0}; };
+        return std::ranges::all_of(bytes.subspan(4, 4), isZero) && std::ranges::all_of(bytes.subspan(12, 4), isZero);
+    }
+
+    bool isU32MaskedVectorOperand(CodeGen& codeGen, AstNodeRef ref)
+    {
+        ref = codeGen.resolvedNodeRef(ref);
+        while (const auto* paren = codeGen.node(ref).safeCast<AstParenExpr>())
+            ref = codeGen.resolvedNodeRef(paren->nodeExprRef);
+
+        const auto* binary = codeGen.node(ref).safeCast<AstBinaryExpr>();
+        if (!binary || codeGen.token(binary->codeRef()).id != TokenId::SymAmpersand)
+            return false;
+
+        return isU32LaneMask(codeGen, binary->nodeLeftRef) || isU32LaneMask(codeGen, binary->nodeRightRef);
+    }
+
     Result emitBinaryVector(CodeGen& codeGen, const BinaryEncodeContext& encodeCtx, TokenId tokId)
     {
         SWC_ASSERT(encodeCtx.leftPayload);
@@ -517,6 +546,18 @@ namespace
 
         if (tokId == TokenId::SymAsterisk && laneType.isInt() && (laneType.payloadIntBits() == 8 || laneType.payloadIntBits() == 64))
         {
+            if (laneType.payloadIntBits() == 64)
+            {
+                const auto& node = codeGen.node(codeGen.curNodeRef()).cast<AstBinaryExpr>();
+                if (isU32MaskedVectorOperand(codeGen, node.nodeLeftRef) && isU32MaskedVectorOperand(codeGen, node.nodeRightRef))
+                {
+                    // The mask zeros the upper half of every lane. VPMULUDQ
+                    // computes the full product of both remaining halves.
+                    builder.emitOpBinaryRegRegReg(nodePayload.reg, lhsReg, rhsReg, MicroOp::VecMulU32Wide, MicroOpBits::B128);
+                    return Result::Continue;
+                }
+            }
+
             nodePayload.reg = CodeGenVectorHelpers::emitDecomposedMultiply(codeGen, lhsReg, rhsReg, laneType);
             return Result::Continue;
         }

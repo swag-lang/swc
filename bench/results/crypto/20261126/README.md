@@ -66,3 +66,4 @@ optimizations moved each result.
 - [CPU feature discovery and AES instructions](hardware-instructions.md)
 - [AES-NI dispatch for AES and GCM](aesni.md)
 - [CPU-gated carry-less CRC folding](crc64-fold.md)
+- [Argon2id packed BlaMka permutation](argon2-packed.md)

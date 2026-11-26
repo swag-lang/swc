@@ -14,15 +14,15 @@
 static uint8_t password[] = "parallel benchmark";
 static uint8_t salt[] = "benchmark salt!!";
 
-static uint64_t nanoseconds(void)
+static uint64_t nanoseconds(clockid_t clock)
 {
     struct timespec time;
-    if (clock_gettime(CLOCK_MONOTONIC, &time) != 0)
+    if (clock_gettime(clock, &time) != 0)
         abort();
     return (uint64_t)time.tv_sec * UINT64_C(1000000000) + (uint64_t)time.tv_nsec;
 }
 
-static int benchmark_libargon2(uint32_t memory, uint32_t workers, uint8_t tag[32], uint64_t *elapsed)
+static int benchmark_libargon2(uint32_t memory, uint32_t workers, uint8_t tag[32], uint64_t *elapsed, uint64_t *cpu_elapsed)
 {
     uint8_t warmup[32];
     argon2_context context = {
@@ -36,13 +36,15 @@ static int benchmark_libargon2(uint32_t memory, uint32_t workers, uint8_t tag[32
         return 0;
 
     context.out = tag;
-    const uint64_t start = nanoseconds();
+    const uint64_t start = nanoseconds(CLOCK_MONOTONIC);
+    const uint64_t cpu_start = nanoseconds(CLOCK_PROCESS_CPUTIME_ID);
     const int status = argon2id_ctx(&context);
-    *elapsed = nanoseconds() - start;
+    *cpu_elapsed = nanoseconds(CLOCK_PROCESS_CPUTIME_ID) - cpu_start;
+    *elapsed = nanoseconds(CLOCK_MONOTONIC) - start;
     return status == ARGON2_OK && memcmp(warmup, tag, sizeof warmup) == 0;
 }
 
-static int benchmark_openssl(uint32_t memory, uint32_t workers, uint8_t tag[32], uint64_t *elapsed)
+static int benchmark_openssl(uint32_t memory, uint32_t workers, uint8_t tag[32], uint64_t *elapsed, uint64_t *cpu_elapsed)
 {
     OSSL_LIB_CTX *library = OSSL_LIB_CTX_new();
     if (library == NULL)
@@ -69,9 +71,11 @@ static int benchmark_openssl(uint32_t memory, uint32_t workers, uint8_t tag[32],
     uint8_t warmup[32];
     int ok = context != NULL && EVP_KDF_derive(context, warmup, sizeof warmup, parameters);
     if (ok) {
-        const uint64_t start = nanoseconds();
+        const uint64_t start = nanoseconds(CLOCK_MONOTONIC);
+        const uint64_t cpu_start = nanoseconds(CLOCK_PROCESS_CPUTIME_ID);
         ok = EVP_KDF_derive(context, tag, sizeof warmup, parameters);
-        *elapsed = nanoseconds() - start;
+        *cpu_elapsed = nanoseconds(CLOCK_PROCESS_CPUTIME_ID) - cpu_start;
+        *elapsed = nanoseconds(CLOCK_MONOTONIC) - start;
         ok = ok && memcmp(warmup, tag, sizeof warmup) == 0;
     }
 
@@ -88,18 +92,18 @@ int main(int argc, char **argv)
     const uint32_t memory = (uint32_t)strtoul(argv[2], NULL, 10);
     const uint32_t workers = (uint32_t)strtoul(argv[3], NULL, 10);
     uint8_t tag[32];
-    uint64_t elapsed;
+    uint64_t elapsed, cpu_elapsed;
     int ok = 0;
 
     if (strcmp(argv[1], "libargon2") == 0)
-        ok = benchmark_libargon2(memory, workers, tag, &elapsed);
+        ok = benchmark_libargon2(memory, workers, tag, &elapsed, &cpu_elapsed);
     else if (strcmp(argv[1], "openssl") == 0)
-        ok = benchmark_openssl(memory, workers, tag, &elapsed);
+        ok = benchmark_openssl(memory, workers, tag, &elapsed, &cpu_elapsed);
 
     if (!ok)
         return EXIT_FAILURE;
 
-    printf("%llu ", (unsigned long long)(elapsed / 1000));
+    printf("%llu %llu ", (unsigned long long)(elapsed / 1000), (unsigned long long)(cpu_elapsed / 1000));
     for (size_t i = 0; i < sizeof tag; i++)
         printf("%02x", (unsigned)tag[i]);
     putchar('\n');

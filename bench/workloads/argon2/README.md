@@ -49,7 +49,9 @@ excludes one warm-up derivation, worker-pool startup in Swag, and provider setup
 
 From the repository root, set `swc` to an absolute path to the Release compiler with its
 matching runtime beside it. Set `baseline` and `candidate` to the two revisions to compare.
-The probe source comes from this checkout for both builds. [Linux compiler setup](../../../tools/README.md#linux-compiler-build)
+The probe source comes from this checkout for both builds. The compared revisions need the
+Linux CPU clock binding from `bfc8c126b5`. For the initial wall-only campaign, use the probe
+at `9ebe228616`. [Linux compiler setup](../../../tools/README.md#linux-compiler-build)
 
 ```sh
 root="$PWD"
@@ -63,7 +65,7 @@ do
     (cd "$side_dir" &&
         SWAG_PATH="$side_dir/bin" "$swc" build \
             -f "$root/bench/workloads/argon2/compare/compare.swg" \
-            --module-file "$root/bench/workloads/argon2/module.swg" \
+            --module-file "$root/bench/workloads/argon2/compare/module.swg" \
             -bc release --artifact-kind executable -n argon2-swag \
             -od "$side_dir/out" -wd "$side_dir/work")
 done
@@ -88,5 +90,5 @@ python3 bench/workloads/argon2/compare/run.py \
 
 Replace the four CPU IDs with CPUs from the process affinity. The one-worker run uses the
 first CPU and the four-worker run uses the whole set. The default nine rounds shuffle the
-implementations within each round. The JSON keeps per-round times, exact median intervals,
-and paired candidate/reference ratios for 1, 64, and 256 MiB.
+implementations within each round. The JSON keeps per-round wall and process CPU times,
+exact median intervals, and paired candidate/reference ratios for 1, 64, and 256 MiB.

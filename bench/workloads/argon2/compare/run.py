@@ -18,34 +18,39 @@ def run_trial(command, memory, workers):
         [*command, str(memory), str(workers)], cwd=command[0].parent,
         text=True, capture_output=True, timeout=60, check=True,
     )
-    output = re.fullmatch(r"([1-9]\d*) ([0-9a-f]{64})\n?", result.stdout)
+    output = re.fullmatch(r"([1-9]\d*) ([1-9]\d*) ([0-9a-f]{64})\n?", result.stdout)
     if output is None:
         raise ValueError(f"Unexpected benchmark result from {command}: {result.stdout!r}")
-    return int(output[1]), output[2]
+    return int(output[1]), int(output[2]), output[3]
 
 
 def compare(commands, memory, workers, rounds, rng):
-    records = {name: [] for name in commands}
+    records = {clock: {name: [] for name in commands} for clock in ("wall_us", "cpu_us")}
     expected = None
     order = list(commands)
     for _ in range(rounds):
         rng.shuffle(order)
         for name in order:
-            elapsed, tag = run_trial(commands[name], memory, workers)
+            wall, cpu, tag = run_trial(commands[name], memory, workers)
             if expected is None:
                 expected = tag
             elif tag != expected:
                 raise ValueError(f"{name} gave a different tag at {memory} KiB with {workers} workers")
-            records[name].append(elapsed)
+            records["wall_us"][name].append(wall)
+            records["cpu_us"][name].append(cpu)
 
-    median = {name: stats.estimate(samples).as_dict() for name, samples in records.items()}
-    ratios = {
-        name: stats.paired_ratio(records["candidate"], samples).as_dict()
-        for name, samples in records.items() if name != "candidate"
-    }
+    estimates = {}
+    for clock, samples in records.items():
+        estimates[clock] = {
+            "median": {name: stats.estimate(times).as_dict() for name, times in samples.items()},
+            "candidate_ratio": {
+                name: stats.paired_ratio(samples["candidate"], times).as_dict()
+                for name, times in samples.items() if name != "candidate"
+            },
+        }
     return {
         "memory_kib": memory, "workers": workers, "tag": expected,
-        "samples_us": records, "median_us": median, "candidate_ratio": ratios,
+        "samples_us": records, "estimates": estimates,
     }
 
 
@@ -84,7 +89,7 @@ def main():
             result = compare(commands, memory, workers, args.rounds, rng)
             results.append(result)
             timings = " ".join(f"{key}={val['value'] / 1000:.3f} ms"
-                               for key, val in result["median_us"].items())
+                               for key, val in result["estimates"]["wall_us"]["median"].items())
             print(f"{memory} KiB, {workers} workers  {timings}", flush=True)
 
     args.output.write_text(json.dumps({

@@ -42,43 +42,66 @@ private func store32Le(data: [*] u8, value: u32)
         data[i] = cast(u8, ((value >> cast(u32, (i * 8))) & 0xFF))
 }
 
-// Argon2's BLAKE2b mixer uses the low 32 bits of each operand for its extra product.
+private alias Argon2Pair = Math.Simd.U64x2
+private const Argon2Pairs = Argon2Words / 2
+
 #[Swag.Inline]
-private func mixBlock(block: [*] u64, a, b, c, d: u64)
+private func blamka(a, b: Argon2Pair)->Argon2Pair
 {
-    var va = block[a]
-    var vb = block[b]
-    var vc = block[c]
-    var vd = block[d]
-
-    va += vb + 2 * truncate32(va) * truncate32(vb)
-    vd = Swag.ror(vd ^ va, 32'u8)
-    vc += vd + 2 * truncate32(vc) * truncate32(vd)
-    vb = Swag.ror(vb ^ vc, 24'u8)
-    va += vb + 2 * truncate32(va) * truncate32(vb)
-    vd = Swag.ror(vd ^ va, 16'u8)
-    vc += vd + 2 * truncate32(vc) * truncate32(vd)
-    vb = Swag.ror(vb ^ vc, 63'u8)
-
-    block[a] = va
-    block[b] = vb
-    block[c] = vc
-    block[d] = vd
+    const LowHalf: Argon2Pair = [0xFFFF_FFFF, 0xFFFF_FFFF]
+    let product = (a & LowHalf) * (b & LowHalf)
+    return (a + b) + (product + product)
 }
 
-// The permutation uses eight word pairs. Adjacent pairs are two words apart
-// in a row and sixteen words apart in a column.
-private func permute(block: [*] u64, stride: u64)
+#[Swag.Inline]
+private func mixPairs(a, b, c, d: *Argon2Pair)
 {
-    mixBlock(block, 0, 2 * stride, 4 * stride, 6 * stride)
-    mixBlock(block, 1, 2 * stride + 1, 4 * stride + 1, 6 * stride + 1)
-    mixBlock(block, stride, 3 * stride, 5 * stride, 7 * stride)
-    mixBlock(block, stride + 1, 3 * stride + 1, 5 * stride + 1, 7 * stride + 1)
+    const Rotate32: Math.Simd.U32x4 = [1, 0, 3, 2]
+    const Rotate24: Math.Simd.U8x16 = [3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10]
+    const Rotate16: Math.Simd.U8x16 = [2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9]
 
-    mixBlock(block, 0, 2 * stride + 1, 5 * stride, 7 * stride + 1)
-    mixBlock(block, 1, 3 * stride, 5 * stride + 1, 6 * stride)
-    mixBlock(block, stride, 3 * stride + 1, 4 * stride, 6 * stride + 1)
-    mixBlock(block, stride + 1, 2 * stride, 4 * stride + 1, 7 * stride)
+    a[] = blamka(a[], b[])
+    d[] = cast #bit (Argon2Pair, Swag.vecShuffle(cast #bit (Math.Simd.U32x4, d[] ^ a[]), Rotate32))
+    c[] = blamka(c[], d[])
+    b[] = cast #bit (Argon2Pair, Swag.vecShuffle(cast #bit (Math.Simd.U8x16, b[] ^ c[]), Rotate24))
+    a[] = blamka(a[], b[])
+    d[] = cast #bit (Argon2Pair, Swag.vecShuffle(cast #bit (Math.Simd.U8x16, d[] ^ a[]), Rotate16))
+    c[] = blamka(c[], d[])
+    b[] = Swag.ror(b[] ^ c[], 63'u8)
+}
+
+// Each lane handles an independent G. Realign the pairs between the column
+// and diagonal steps, then restore the original word order.
+#[Swag.Inline]
+private func(Stride: u64) permute(block: [*] Argon2Pair)
+{
+    var a0 = block[0]
+    var a1 = block[Stride]
+    var b0 = block[2 * Stride]
+    var b1 = block[3 * Stride]
+    var c0 = block[4 * Stride]
+    var c1 = block[5 * Stride]
+    var d0 = block[6 * Stride]
+    var d1 = block[7 * Stride]
+
+    mixPairs(&a0, &b0, &c0, &d0)
+    mixPairs(&a1, &b1, &c1, &d1)
+
+    var b0Diagonal = Swag.vecAlign(b0, b1, 8)
+    var b1Diagonal = Swag.vecAlign(b1, b0, 8)
+    var d0Diagonal = Swag.vecAlign(d1, d0, 8)
+    var d1Diagonal = Swag.vecAlign(d0, d1, 8)
+    mixPairs(&a0, &b0Diagonal, &c1, &d0Diagonal)
+    mixPairs(&a1, &b1Diagonal, &c0, &d1Diagonal)
+
+    block[0]          = a0
+    block[Stride]     = a1
+    block[2 * Stride] = Swag.vecAlign(b1Diagonal, b0Diagonal, 8)
+    block[3 * Stride] = Swag.vecAlign(b0Diagonal, b1Diagonal, 8)
+    block[4 * Stride] = c0
+    block[5 * Stride] = c1
+    block[6 * Stride] = Swag.vecAlign(d0Diagonal, d1Diagonal, 8)
+    block[7 * Stride] = Swag.vecAlign(d1Diagonal, d0Diagonal, 8)
 }
 
 // Argon2's compression function. Writes `G(x, y)` to `destination`, or XORs it
@@ -86,26 +109,32 @@ private func permute(block: [*] u64, stride: u64)
 // later passes do.
 private func compress(destination: [*] u64, x, y: const [*] u64, accumulate: bool)
 {
-    var mixed:  [Argon2Words] u64
-    var result: [Argon2Words] u64
-    for i in Argon2Words
-    {
-        mixed[i]  = x[i] ^ y[i]
-        result[i] = mixed[i]
-    }
+    let left   = cast(const [*] Argon2Pair, x)
+    let right  = cast(const [*] Argon2Pair, y)
+    let target = cast([*] Argon2Pair, destination)
+    var result: [Argon2Pairs] Argon2Pair
+
+    for i in Argon2Pairs do
+        result[i] = left[i] ^ right[i]
 
     for i in 8 do
-        permute(&result[i * 16], 2)
+        permute'1(&result[i * 8])
     for i in 8 do
-        permute(&result[i * 2], 16)
+        permute'8(&result[i])
 
-    for i in Argon2Words
+    // Address generation can overwrite its right operand. Read each pair's
+    // inputs before publishing the corresponding output.
+    if accumulate
     {
-        let value = result[i] ^ mixed[i]
-        destination[i] = accumulate ? destination[i] ^ value : value
+        for i in Argon2Pairs do
+            target[i] ^= result[i] ^ left[i] ^ right[i]
+    }
+    else
+    {
+        for i in Argon2Pairs do
+            target[i] = result[i] ^ left[i] ^ right[i]
     }
 
-    secureClear(mixed)
     secureClear(result)
 }
 
@@ -233,7 +262,6 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
         let scaled   = (low * low) >> 32
         let relative = areaSize - 1 - ((areaSize * scaled) >> 32)
         var offset   = windowStart + relative
-        // Both terms fit within one lane, so their sum needs at most one wrap.
         if offset >= laneLength do
             offset -= laneLength
 

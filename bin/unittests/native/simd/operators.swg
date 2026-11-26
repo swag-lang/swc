@@ -337,3 +337,20 @@ var g_Vector = cast(#simd [4] s32, [7, 8, 9, 10])
     g_Vector += 1
     Swag.require(g_Vector[3] == 11)
 }
+
+#test
+{
+    const LowWords: #simd [2] u64 = [0xFFFF_FFFF, 0xFFFF]
+    const HighWord: #simd [2] u64 = [0x1_FFFF_FFFF, 0xFFFF_FFFF]
+    let a = cast(#simd [2] u64, [0xCAFE_BABE_FFFF_FFFF, 0x00AB_1234_0000_FFFF])
+    let b = cast(#simd [2] u64, [0xFEED_BABE_FFFF_FFFF, 0xCAFE_5678_0000_8001])
+
+    let narrow = cast([2] u64, ((LowWords & a) * (b & LowWords)))
+    Swag.require(narrow[0] == 0xFFFF_FFFE_0000_0001 and narrow[1] == 0x8000_7FFF)
+
+    let wide = cast([2] u64, ((HighWord & a) * (b & LowWords)))
+    Swag.require(wide[0] == narrow[0] and wide[1] == narrow[1])
+    let highA = cast(#simd [2] u64, [0x1_0000_0002, 0])
+    let high  = cast([2] u64, ((HighWord & highA) * (b & LowWords)))
+    Swag.require(high[0] == 0xFFFF_FFFE and high[1] == 0)
+}

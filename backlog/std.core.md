@@ -340,21 +340,6 @@ outcomes owned by `core` together.
   generated-code tests prove no hidden conversion or temporary array.
 - Related: compiler.codegen.019, std.core.042.
 
-### std.core.051 — The Argon2 permutation remains scalar
-
-- Evidence: Argon2id compression is scalar; independent lanes already use `parallel for`.
-  Earlier packed attempts lost. These ran while the SIMD wrappers were still cross-module
-  calls:
-  - `U64x2` block XOR was 3.2% slower.
-  - Paired BlaMka with a `u32 x u32 -> u64` low-half product (`pmuludq`) was 72% or more
-    slower, because lane regrouping and state materialization erased the arithmetic gain.
-- Next: retry only with a lowering that keeps the eight-word state in registers across both
-  G halves and regroups 64-bit lanes from two sources without scalar extraction, or with a
-  wider layout that amortizes the regrouping. Measure with the fixed-worker
-  [lane-scaling benchmark](../bench/workloads/argon2/README.md).
-- Done when: published vectors pass for all supported parameters and profile benchmarks
-  isolate the packed kernel gain from independent-lane parallelism.
-
 ### std.core.052 — Blake2b compression remains scalar
 
 - Evidence: pairing two G functions while packing and extracting scalar state at every

@@ -349,6 +349,15 @@ private struct ElementScope
     isSvg:        bool
 }
 
+private const MaxCachedRasterBytes = 1024 * 1024
+private const MaxCachedRasterFiles = 4
+
+private struct CachedExternalRaster
+{
+    encoded: Array'u8
+    index:   u64
+}
+
 private struct Parser
 {
     text:    string     // Whole document.
@@ -371,6 +380,7 @@ private struct Parser
     dashPatterns:   HashTable'(string, Array'SvgLength)
     dashScratch:    Array'SvgLength
     embeddedImages: HashTable'(string, u64)     // Raster indices plus one, keyed by the authored URI.
+    externalImages: HashTable'(string, CachedExternalRaster)     // Encoded bytes and raster indices for small files.
     options:        ParseOptions
     typeFaces:      [FontFamilyKind.count] (*TypeFace?)
     svgDepth:       u32
@@ -2856,6 +2866,36 @@ private impl Parser
         let info = try File.info(fullPath.toString())
         if info.size > .options.maxImageBytes do
             fail Swag.SystemError{"external SVG image exceeds the configured byte limit"}
+        if info.size <= MaxCachedRasterBytes
+        {
+            let key    = .sourceView(href)
+            let cached = .externalImages.tryFind(key)
+            if (cached or .externalImages.count < MaxCachedRasterFiles) and Image.canLoad(fullPath.toString())
+            {
+                let file     = try File.MappedFile.open(fullPath.toString())
+                let fileSize = try file.size()
+                if fileSize <= MaxCachedRasterBytes
+                {
+                    let region  = try file.mapAll()
+                    let encoded = region.bytes()
+
+                    // Check the contents of the current file before reusing earlier pixels.
+                    if cached and
+                       encoded.count == cached.value.encoded.count and
+                       not Memory.compare(encoded.buffer, cached.value.encoded.storage(), encoded.count) do
+                        return cached.value.index
+
+                    var raster = #move try Image.decode(fullPath.toString(), encoded)
+                    .drawing.rasterImages.add(#move raster)
+                    let entry = .externalImages.findOrAdd(key)
+                    entry.value.index = index
+                    entry.value.encoded.clear()
+                    entry.value.encoded.add(encoded)
+                    return index
+                }
+            }
+        }
+
         var raster = #move try Image.load(fullPath.toString())
         .drawing.rasterImages.add(#move raster)
         return index

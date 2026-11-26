@@ -72,13 +72,18 @@ using Swag, Core
     let dataRoot  = unwrap Path.directoryName(imagePath.toString())
     var options: Svg.ParseOptions
     options.externalResourceRoot = dataRoot
-    const Source = "<svg width='40' height='40'><image x='4' y='4' width='32' height='32' href='basi2c08.png'/></svg>"
+    const Source = """\
+        <svg width='80' height='40'>\
+        <image x='4' y='4' width='32' height='32' href='basi2c08.png'/>\
+        <image x='44' y='4' width='32' height='32' href='basi2c08.png'/></svg>"""
 
     let drawing = expect Svg.Drawing.parse(Source, options)
-    let image   = drawing.rasterize(40, 40, 1)
+    let image   = drawing.rasterize(80, 40, 1)
     Swag.require(image.pixelColor(2, 2).a == 0)
     Swag.require(image.pixelColor(20, 20).a > 0)
     Swag.require(image.pixelColor(35, 35).a > 0)
+    Swag.require(image.pixelColor(60, 20) == image.pixelColor(20, 20))
+    Swag.require(image.pixelColor(75, 35) == image.pixelColor(35, 35))
 }
 
 // Data images need no filesystem authority, while a relative reference without a root is rejected.

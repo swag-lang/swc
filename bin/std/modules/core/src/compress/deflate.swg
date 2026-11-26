@@ -80,7 +80,10 @@ internal
     const MaxMatchLen     = 258
 
     const LzCodeBufSize = 24 * 1024
-    const LzHashBits    = 15
+
+    // Keep the stored-mode boundary originally set by these literal records and flag bytes.
+    const StoredBlockBytes = ((LzCodeBufSize - 8) * 8 + 8) / 9
+    const LzHashBits       = 15
 
     const OutBufSize     = (LzCodeBufSize * 13) / 10
     const MaxHuffSymbols = 288
@@ -112,7 +115,6 @@ internal
     const RleMatches              = 0x10000
     const FilterMatches           = 0x20000
     const ForceAllStaticBlocks    = 0x40000
-    const ForceAllRawBlocks       = 0x80000
 
     const HuffmanOnly      = 0
     const DefaultMaxProbes = 128
@@ -184,7 +186,8 @@ public struct Deflate
 
     private
     {
-        state:     *Compressor?     // Compressor state, allocated on first use.
+        state:     *Compressor?     // Compressor state, allocated on first compressed stream.
+        stored:    bool             // Writes stored blocks directly when no compression is requested.
         initFlags: CompressionFlags = CompressionFlags.Default     // Flags 'init' was given.
     }
 
@@ -201,9 +204,7 @@ impl Deflate
         if cast(u32, level) <= 3 do
             compFlags |= GreedyParsing
 
-        if level == .NoCompression do
-            compFlags |= ForceAllRawBlocks
-        elif strategy == .Filtered do
+        if strategy == .Filtered do
             compFlags |= FilterMatches
         elif strategy == .HuffmanOnly do
             compFlags &= ~MaxProbesMask
@@ -920,10 +921,6 @@ impl Deflate
     {
         let d = unwrap .state
 
-        var compBlockSucceeded = false
-        let useRawBlock        = ((d.compressFlags & ForceAllRawBlocks) != 0) and
-                                 (d.lookaheadPos - d.lzCodeBufDictPos) <= d.dictSize
-
         var outputBufStart: [*] u8?
         let result = unwrap d.result
         if result.capacity - result.count >= OutBufSize do
@@ -945,11 +942,11 @@ impl Deflate
         let savedBitBuf    = d.bitBuffer
         let savedBitsIn    = d.bitsIn
 
-        if not useRawBlock do
-            compBlockSucceeded = .compressBlock((d.compressFlags & ForceAllStaticBlocks) or (d.totalLzBytes < 48))
+        let compBlockSucceeded = .compressBlock((d.compressFlags & ForceAllStaticBlocks) or (d.totalLzBytes < 48))
 
-        if ((useRawBlock or (d.totalLzBytes and ((d.outputBufAddr - savedOutputBuf + 1) >= d.totalLzBytes))) and
-            ((d.lookaheadPos - d.lzCodeBufDictPos) <= d.dictSize))
+        if d.totalLzBytes and
+           (d.outputBufAddr - savedOutputBuf + 1) >= d.totalLzBytes and
+           (d.lookaheadPos - d.lzCodeBufDictPos) <= d.dictSize
         {
             d.outputBufAddr = savedOutputBuf
             d.bitBuffer     = savedBitBuf
@@ -1020,7 +1017,35 @@ impl Deflate
         // Flush a large block when its records no longer promise useful compression.
         let recordBytes    = cast(u32, (d.lzCodeBufAddr - cast([*] u8, &d.lzCodeBuf[0])))
         let estimatedBytes = (recordBytes * 115) >> 7
-        return estimatedBytes >= d.totalLzBytes or (d.compressFlags & ForceAllRawBlocks) != 0
+        return estimatedBytes >= d.totalLzBytes
+    }
+
+    mtd writeStoredBlocks(result: *Array'u8, source: const [..] u8)
+    {
+        const HeaderBytes = 5
+        let blockCount = source.count / StoredBlockBytes + 1
+        result.reserve(result.count + source.count + blockCount * HeaderBytes)
+        var output = result.storage() + result.count
+        var offset = 0'u64
+        for
+        {
+            let remaining = source.count - offset
+            let final     = remaining < StoredBlockBytes
+            let bytes     = Math.min(remaining, cast(u64, StoredBlockBytes))
+            output[0] = final ? 1 : 0
+            output[1] = cast(u8, (bytes & 255))
+            output[2] = cast(u8, (bytes >> 8))
+            output[3] = ~output[1]
+            output[4] = ~output[2]
+            if bytes do
+                Memory.copy(output + HeaderBytes, source.buffer + offset, bytes)
+            output += HeaderBytes + bytes
+            offset += bytes
+            if final do
+                break
+        }
+
+        result.count += source.count + blockCount * HeaderBytes
     }
 
     mtd compress() fail
@@ -1106,9 +1131,9 @@ impl Deflate
             var curMatchLen  = d.savedMatchLen ? d.savedMatchLen : cast(u32, (MinMatchLen - 1))
 
             let curPos: u32 = d.lookaheadPos & LzDictSizeMask
-            if d.compressFlags & (RleMatches | ForceAllRawBlocks)
+            if d.compressFlags & RleMatches
             {
-                if d.dictSize and not (d.compressFlags & ForceAllRawBlocks)
+                if d.dictSize
                 {
                     let c = d.dict[(curPos - 1) & LzDictSizeMask]
                     curMatchLen = 0
@@ -1242,16 +1267,20 @@ public impl Deflate
 
     // Prepares the compressor for `level` and `strategy`.
     //
-    // The first call allocates the compressor state; later calls reset it for a new stream.
+    // Compressed streams allocate the dictionary on first use and reset it for later streams.
     // `flags` selects optional work, such as the checksum a zlib trailer needs.
     mtd init(level = CompressionLevel.Default, strategy = CompressionStrategy.Default, flags = CompressionFlags.Default)
     {
+        .stored    = level == .NoCompression
+        .initFlags = flags
+        if .stored do
+            return
+
         if not .state do
             .state = Memory.new'Compressor()
         else do
             Swag.init(.state, 1)
         .setup(createCompFlagsFromZipParams(level, strategy))
-        .initFlags = flags
     }
 
     // Compresses `src` and appends one complete Deflate stream to `result`.
@@ -1263,7 +1292,7 @@ public impl Deflate
     {
         if src.count > Swag.U32.Max do
             fail UnsupportedFormatError{"source buffer too big"}
-        Swag.assert(.state != null, "'init' not called")
+        Swag.assert(.stored or .state != null, "'init' not called")
 
         var sourceCopy: Array'u8
         var source = src
@@ -1277,15 +1306,22 @@ public impl Deflate
             }
         }
 
-        let d = .state
-        d.result     = result
-        d.inSrc      = source.buffer
-        d.srcBufLeft = source.count
-        d.outBufOfs  = result.count
+        if .stored
+        {
+            .writeStoredBlocks(result, source)
+        }
+        else
+        {
+            let d = unwrap .state
+            d.result     = result
+            d.inSrc      = source.buffer
+            d.srcBufLeft = source.count
+            d.outBufOfs  = result.count
 
-        try .compress()
-        .flushBlock(true)
-        Swag.assert(not d.lookaheadSize and not d.srcBufLeft)
+            try .compress()
+            .flushBlock(true)
+            Swag.assert(not d.lookaheadSize and not d.srcBufLeft)
+        }
 
         if has(.initFlags, CompressionFlags.ComputeAdler32)
         {

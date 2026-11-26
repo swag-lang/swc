@@ -53,10 +53,10 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
 }
 
 // Every level and strategy round-trips random, textual, and constant data whose sizes straddle
-// the 258-byte match limit, the 32 KiB window, and the 64 KiB stored-block limit.
+// the match limit, the stored writer's block split, the 32 KiB window, and the 64 KiB format limit.
 #test
 {
-    const Sizes = [1'u64, 2, 3, 257, 258, 259, 32767, 32768, 32769, 65535, 65536, 65537, 200003]
+    const Sizes = [1'u64, 2, 3, 257, 258, 259, 21838, 21839, 21840, 32767, 32768, 32769, 65535, 65536, 65537, 200003]
     var data: Array'u8
     data.resize(200003)
 

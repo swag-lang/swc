@@ -461,11 +461,16 @@ private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, sub
             input[slot + lane] = cast #bit(F32x4, rows[lane])
     }
 
-    for i in 16 until 18'u64
-    {
-        let at = base + i
-        input[i] = cast(F32x4, [lines[][at], lines[][at + 18], lines[][at + 36], lines[][at + 54]])
-    }
+    // Read slots 14 to 17 together and use only the last two columns.
+    let tail = cast(const [*] f32, &lines[][base + 14])
+    let row0 = cast #bit(U32x4, load(tail))
+    let row1 = cast #bit(U32x4, load(tail + 18))
+    let row2 = cast #bit(U32x4, load(tail + 36))
+    let row3 = cast #bit(U32x4, load(tail + 54))
+    let pair01 = cast #bit(U64x2, Swag.vecInterleaveHi(row0, row1))
+    let pair23 = cast #bit(U64x2, Swag.vecInterleaveHi(row2, row3))
+    input[16] = cast #bit(F32x4, Swag.vecInterleaveLo(pair01, pair23))
+    input[17] = cast #bit(F32x4, Swag.vecInterleaveHi(pair01, pair23))
 
     transformOverlap'F32x4(&input[0], cast([*] F32x4, &overlap[][0, subband]), blockType)
 
@@ -484,15 +489,15 @@ private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, sub
         store(&lines[][at + 54], cast #bit(F32x4, rows[3]))
     }
 
-    for i in 16 until 18'u64
-    {
-        let at     = base + i
-        let sample = input[i]
-        lines[][at]      = sample[0]
-        lines[][at + 18] = sample[1]
-        lines[][at + 36] = sample[2]
-        lines[][at + 54] = sample[3]
-    }
+    let slot16 = cast #bit(U32x4, input[16])
+    let slot17 = cast #bit(U32x4, input[17])
+    let subbands01 = cast #bit(U64x2, Swag.vecInterleaveLo(slot16, slot17))
+    let subbands23 = cast #bit(U64x2, Swag.vecInterleaveHi(slot16, slot17))
+    let output = cast([*] u64, &lines[][base + 16])
+    output[0]  = subbands01[0]
+    output[9]  = subbands01[1]
+    output[18] = subbands23[0]
+    output[27] = subbands23[1]
 }
 
 // Encoder low-pass filters often leave the top subbands identically zero. Only

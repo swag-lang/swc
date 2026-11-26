@@ -22,6 +22,11 @@ private const SpectralValueBias  = 16
 private const SpectralValueBits  = 6
 private const SpectralValueMask  = (1'u32 << SpectralValueBits) - 1
 private const SpectralCountShift = 4 * SpectralValueBits
+private const EscapePrefixBits   = 14
+private const EscapePrefixRows   = 256
+private const EscapeSuffixBits   = EscapePrefixBits - SpectralPrefixBits
+private const EscapeSuffixMask   = (1'u32 << EscapeSuffixBits) - 1
+private const SecondaryEscape    = 1'u32 << 31
 
 private struct BitReader
 {
@@ -131,8 +136,17 @@ private impl BitReader
             let leading = cast(s32, Math.leadingZeros(~.word))
             if leading > 11 do
                 fail InvalidFormatError{"AAC escape coefficient is too large"}
+            let bits  = leading + 4
+            let count = leading + 1 + bits
+            if .valid >= count
+            {
+                let base   = 1'u32 << bits
+                let suffix = .peek(count) & (base - 1)
+                .consume(count)
+                return cast(s32, base + suffix)
+            }
+
             .consume(leading + 1)
-            let bits = leading + 4
             return (1 << bits) + cast(s32, .get(bits))
         }
 
@@ -466,7 +480,8 @@ private impl ImdctPlan
         {
             .runFftPair'(Quarter, 4)(re, im, cos, sin)
             .runFftPair'(Quarter, 16)(re, im, cos, sin)
-            butterfly = 64
+            .runFftPair'(Quarter, 64)(re, im, cos, sin)
+            butterfly = 256
         }
 
         while butterfly < Quarter
@@ -584,6 +599,8 @@ private impl ImdctPlan
 
 private var g_SpectralTrees:          [11] HuffTree
 private var g_SpectralPrefixes:       [11, 1 << SpectralPrefixBits] u32
+private var g_EscapePrefixes:         [EscapePrefixRows, 1 << EscapeSuffixBits] u32
+private var g_EscapePrefixCount:      u32
 private var g_SignedPowers:           [2 * SpectralValueBias + 1] f64
 private var g_SpectralValues:         [11, 289, 4] s32
 private var g_ScaleTree:              HuffTree
@@ -626,10 +643,8 @@ private func buildSpectralPrefixes(book: u64, code: u32, bits: u8, values: const
     }
 
     let bitCount = cast(u32, bits) + signCount
-    if bitCount > SpectralPrefixBits do
+    if bitCount > SpectralPrefixBits and (book != 10 or bitCount > EscapePrefixBits) do
         return
-
-    let remaining = SpectralPrefixBits - bitCount
     for signs in 1'u32 << signCount
     {
         var at     = signCount
@@ -647,9 +662,31 @@ private func buildSpectralPrefixes(book: u64, code: u32, bits: u8, values: const
             packed |= cast(u32, coefficient + SpectralValueBias) << (item * SpectralValueBits)
         }
 
-        let first = ((code << signCount) | cast(u32, signs)) << remaining
-        for suffix in 1'u32 << remaining do
-            g_SpectralPrefixes[book, first + suffix] = packed
+        let token = (code << signCount) | cast(u32, signs)
+        if bitCount <= SpectralPrefixBits
+        {
+            let remaining = SpectralPrefixBits - bitCount
+            let first     = token << remaining
+            for suffix in 1'u32 << remaining do
+                g_SpectralPrefixes[book, first + suffix] = packed
+        }
+        else
+        {
+            let extra   = bitCount - SpectralPrefixBits
+            let primary = &g_SpectralPrefixes[book, token >> extra]
+            if not primary[]
+            {
+                Swag.require(g_EscapePrefixCount < EscapePrefixRows)
+                primary[] = SecondaryEscape | g_EscapePrefixCount
+                g_EscapePrefixCount += 1
+            }
+
+            let row       = primary[] & ~SecondaryEscape
+            let remaining = EscapePrefixBits - bitCount
+            let first     = (token & ((1'u32 << extra) - 1)) << remaining
+            for suffix in 1'u32 << remaining do
+                g_EscapePrefixes[row, first + suffix] = packed
+        }
     }
 }
 
@@ -1144,6 +1181,12 @@ private impl AacCodec
             var packed = 0'u32
             if reader.ensure(SpectralPrefixBits) do
                 packed = prefixes[reader.peek(SpectralPrefixBits)]
+            #static if Escape do
+                if packed & SecondaryEscape
+                {
+                    let row = packed & ~SecondaryEscape
+                    packed = reader.ensure(EscapePrefixBits) ? g_EscapePrefixes[row, reader.peek(EscapePrefixBits) & EscapeSuffixMask] : 0
+                }
 
             if packed
             {
@@ -2071,6 +2114,35 @@ impl IPacketCodec for AacCodec
             }
 
             Swag.require(reader.get(1) == 0 and reader.overrun)
+        }
+    }
+}
+
+// The secondary escape lookup includes the sign bits of every extended tuple.
+#test
+{
+    let lengths = specBits(10)
+    let codes   = specCodes(10)
+    for symbol in lengths.count
+    {
+        let first     = cast(s32, symbol / 17)
+        let second    = cast(s32, symbol % 17)
+        let signCount = cast(u32, first != 0) + cast(u32, second != 0)
+        let length    = lengths[symbol] + signCount
+        if length <= SpectralPrefixBits do
+            continue
+        for signs in 1'u32 << signCount
+        {
+            let code       = (cast(u32, codes[symbol]) << signCount) | cast(u32, signs)
+            let prefix     = code << (EscapePrefixBits - length)
+            let firstEntry = g_SpectralPrefixes[10, prefix >> EscapeSuffixBits]
+            Swag.require(firstEntry & SecondaryEscape)
+            let signedFirst  = signs & (second ? 2 : 1) ? -first : first
+            let signedSecond = signs & 1 ? -second : second
+            let expected     = (length << SpectralCountShift) |
+                               (cast(u32, signedSecond + SpectralValueBias) << SpectralValueBits) |
+                               cast(u32, signedFirst + SpectralValueBias)
+            Swag.require(g_EscapePrefixes[firstEntry & ~SecondaryEscape, prefix & EscapeSuffixMask] == expected)
         }
     }
 }

@@ -2060,25 +2060,130 @@ private impl Codec
         {
             .interleaveEightPcm(pcm, outputFrames)
         }
-        elif .channels > 2 and outputFrames
+        elif .channels == 3 and outputFrames
         {
-            .interleaveOddPcm(pcm, outputFrames)
+            .interleaveThreePcm(pcm, outputFrames)
+        }
+        elif .channels == 5 and outputFrames
+        {
+            .interleaveFivePcm(pcm, outputFrames)
+        }
+        elif .channels == 7 and outputFrames
+        {
+            .interleaveSevenPcm(pcm, outputFrames)
         }
 
         .previousSize = n
         return outputFrames
     }
 
-    mtd interleaveOddPcm(pcm: [*] s16, frames: u64)
+    // Vorbis gives both odd layouts the center between the front pair. WAVE puts it after them.
+    mtd interleaveThreePcm(pcm: [*] s16, frames: u64)
     {
-        let channels = .channels
-        let output = cast([*] u16, pcm)
-        for channel in channels
+        let left   = cast(const [*] u16, .spectrum[0].storage())
+        let right  = cast(const [*] u16, .spectrum[2].storage())
+        let center = cast(const [*] u16, .spectrum[1].storage())
+        let out    = cast([*] u16, pcm)
+        var frame  = 0'u64
+        while frame < frames
         {
-            let source = cast(const [*] u16, .spectrum[channel].storage())
-            let target = output + ChannelSlots[channels, channel]
-            for frame in frames do
-                target[frame * channels] = source[frame]
+            let a = Simd.load(left + frame)
+            let b = Simd.load(right + frame)
+            let c = Simd.load(center + frame)
+            let low = Simd.interleaveLow(a, b)
+            let high = Simd.interleaveHigh(a, b)
+            let middle = Simd.permute2(low, high, cast(Simd.U16x8, [6'u16, 7, 8, 9, 10, 11, 12, 13]))
+            let target = out + 3 * frame
+            Simd.store(target, Simd.permute2(low, c, cast(Simd.U16x8, [0'u16, 1, 8, 2, 3, 9, 4, 5])))
+            Simd.store(target + 8, Simd.permute2(middle, c, cast(Simd.U16x8, [10'u16, 0, 1, 11, 2, 3, 12, 4])))
+            Simd.store(target + 16, Simd.permute2(high, c, cast(Simd.U16x8, [3'u16, 13, 4, 5, 14, 6, 7, 15])))
+            frame += 8
+        }
+    }
+
+    mtd interleaveFivePcm(pcm: [*] s16, frames: u64)
+    {
+        #[Swag.Inline]
+        func storeFrames(target: [*] u16, first, second, last: Simd.U16x8)
+        {
+            // Insert the fifth channel after each of four already interleaved pairs of pairs.
+            let middle = Simd.permute2(first, second, cast(Simd.U16x8, [7'u16, 8, 9, 10, 11, 12, 0, 0]))
+            let tail   = Simd.permute2(second, last, cast(Simd.U16x8, [5'u16, 6, 7, 11, 0, 0, 0, 0]))
+            Simd.store(target, Simd.permute2(first, last, cast(Simd.U16x8, [0'u16, 1, 2, 3, 8, 4, 5, 6])))
+            Simd.store(target + 8, Simd.permute2(middle, last, cast(Simd.U16x8, [0'u16, 9, 1, 2, 3, 4, 10, 5])))
+            Simd.storeLow8(cast([*] u8, target + 16), cast #bit(Simd.U8x16, tail))
+        }
+
+        let first  = cast(const [*] u16, .spectrum[0].storage())
+        let second = cast(const [*] u16, .spectrum[2].storage())
+        let third  = cast(const [*] u16, .spectrum[1].storage())
+        let fourth = cast(const [*] u16, .spectrum[3].storage())
+        let fifth  = cast(const [*] u16, .spectrum[4].storage())
+        let out    = cast([*] u16, pcm)
+        var frame  = 0'u64
+        while frame < frames
+        {
+            let a = Simd.load(first + frame)
+            let b = Simd.load(second + frame)
+            let c = Simd.load(third + frame)
+            let d = Simd.load(fourth + frame)
+            let e = Simd.load(fifth + frame)
+            let abLow  = cast #bit(Simd.U32x4, Simd.interleaveLow(a, b))
+            let cdLow  = cast #bit(Simd.U32x4, Simd.interleaveLow(c, d))
+            let abHigh = cast #bit(Simd.U32x4, Simd.interleaveHigh(a, b))
+            let cdHigh = cast #bit(Simd.U32x4, Simd.interleaveHigh(c, d))
+            let tail   = Simd.permute(e, cast(Simd.U16x8, [4'u16, 5, 6, 7, 0, 1, 2, 3]))
+            let target = out + 5 * frame
+            storeFrames(target, cast #bit(Simd.U16x8, Simd.interleaveLow(abLow, cdLow)), cast #bit(Simd.U16x8, Simd.interleaveHigh(abLow, cdLow)), e)
+            storeFrames(target + 20, cast #bit(Simd.U16x8, Simd.interleaveLow(abHigh, cdHigh)), cast #bit(Simd.U16x8, Simd.interleaveHigh(abHigh, cdHigh)), tail)
+            frame += 8
+        }
+    }
+
+    mtd interleaveSevenPcm(pcm: [*] s16, frames: u64)
+    {
+        #[Swag.Inline]
+        func storeFrames(target: [*] u16, group: {first, second, third: Simd.U16x8}, last: Simd.U16x8)
+        {
+            // Add the seventh channel to four frames whose first six channels are interleaved.
+            let second = Simd.permute2(group.first, group.second, cast(Simd.U16x8, [7'u16, 8, 9, 10, 11, 12, 13, 0]))
+            let third  = Simd.permute2(group.second, group.third, cast(Simd.U16x8, [6'u16, 7, 8, 9, 10, 11, 12, 0]))
+            let tail   = Simd.permute2(group.third, last, cast(Simd.U16x8, [5'u16, 6, 7, 11, 0, 0, 0, 0]))
+            Simd.store(target, Simd.permute2(group.first, last, cast(Simd.U16x8, [0'u16, 1, 2, 3, 4, 5, 8, 6])))
+            Simd.store(target + 8, Simd.permute2(second, last, cast(Simd.U16x8, [0'u16, 1, 2, 3, 4, 9, 5, 6])))
+            Simd.store(target + 16, Simd.permute2(third, last, cast(Simd.U16x8, [0'u16, 1, 2, 3, 10, 4, 5, 6])))
+            Simd.storeLow8(cast([*] u8, target + 24), cast #bit(Simd.U8x16, tail))
+        }
+
+        var lanes: [7] PcmPointer
+        for channel in 7 do
+            lanes[ChannelSlots[7, channel]] = cast([*] u16, .spectrum[channel].storage())
+
+        let l0 = unwrap lanes[0]
+        let l1 = unwrap lanes[1]
+        let l2 = unwrap lanes[2]
+        let l3 = unwrap lanes[3]
+        let l4 = unwrap lanes[4]
+        let l5 = unwrap lanes[5]
+        let l6 = unwrap lanes[6]
+        let output = cast([*] u16, pcm)
+        var frame  = 0'u64
+        while frame < frames
+        {
+            let a = Simd.load(l0 + frame)
+            let b = Simd.load(l1 + frame)
+            let c = Simd.load(l2 + frame)
+            let d = Simd.load(l3 + frame)
+            let e = Simd.load(l4 + frame)
+            let f = Simd.load(l5 + frame)
+            let g = Simd.load(l6 + frame)
+            let target = output + 7 * frame
+            let low = packSixOfSevenFrames(Simd.interleaveLow(a, b), Simd.interleaveLow(c, d), Simd.interleaveLow(e, f))
+            let high = packSixOfSevenFrames(Simd.interleaveHigh(a, b), Simd.interleaveHigh(c, d), Simd.interleaveHigh(e, f))
+            let tail = Simd.permute(g, cast(Simd.U16x8, [4'u16, 5, 6, 7, 0, 1, 2, 3]))
+            storeFrames(target, low, g)
+            storeFrames(target + 28, high, tail)
+            frame += 8
         }
     }
 
@@ -2432,6 +2537,21 @@ private func writePcmPlane(output: [*] u16, saved, current: const [*] f32, overl
     writePcmSpan'false(output, saved, overlapStart)
     writePcmSpan'true(output + overlapStart, saved + overlapStart, overlapEnd - overlapStart, current)
     writePcmSpan'false(output + overlapEnd, current + (overlapEnd - overlapStart), frames - overlapEnd)
+}
+
+// Packs the first six channels of four seven-channel frames.
+#[Swag.Inline]
+private func packSixOfSevenFrames(a, b, c: Simd.U16x8)->{first, second, third: Simd.U16x8}
+{
+    let x      = cast #bit(Simd.U32x4, a)
+    let y      = cast #bit(Simd.U32x4, b)
+    let z      = cast #bit(Simd.U32x4, c)
+    let first  = Simd.permute2(x, y, cast(Simd.U32x4, [0'u32, 4, 1, 1]))
+    let middle = Simd.permute2(y, x, cast(Simd.U32x4, [1'u32, 1, 6, 2]))
+    let last   = Simd.permute2(x, y, cast(Simd.U32x4, [3'u32, 3, 7, 3]))
+    return {cast #bit(Simd.U16x8, Simd.permute2(first, z, cast(Simd.U32x4, [0'u32, 1, 4, 3]))),
+            cast #bit(Simd.U16x8, Simd.permute2(middle, z, cast(Simd.U32x4, [0'u32, 5, 2, 3]))),
+            cast #bit(Simd.U16x8, Simd.permute2(last, z, cast(Simd.U32x4, [6'u32, 1, 2, 7])))}
 }
 
 // Interleaves four six-channel frames. Each lane holds one adjacent channel pair.

@@ -53,3 +53,23 @@ FLAC and WAV must decode to the submitted PCM byte for byte. The runner records 
 encoded file size and SHA-256, and the raw times and PCM checks appear in `results.json`.
 Choose `--baseline-bin` to compare a preserved Swag standard-module source tree with the
 same compiler. `--exact-baseline` requires the two Swag outputs to be byte-identical.
+
+## Dual mono and reduced-resolution FLAC fixtures
+
+In one directory, place the first ten seconds in little-endian interleaved PCM16.
+Use the following inputs and names.
+
+| PCM file | Audio source | Rate (Hz) | Channels |
+| --- | --- | ---: | ---: |
+| `filesamples44.pcm` | FileSamples `sample3.wav` | 44100 | 2 |
+| `mono48.pcm` | `ogg-flac-48k-mono-16.oga` | 48000 | 1 |
+| `noise48.pcm` | `flac-verbatim-48k-stereo-16.flac` | 48000 | 2 |
+| `surround48.pcm` | `flac-48k-5.1-16.flac` | 48000 | 6 |
+
+The lossless generator duplicates the mono channel and clears selected low
+bits in the four other profiles. It records the output hashes and the number
+of bits cleared per channel. Use a new destination directory.
+
+```sh
+python3 bench/workloads/audioencode/lossless_fixtures.py /tmp/encode-inputs /tmp/lossless-fixtures
+```

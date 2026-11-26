@@ -1482,3 +1482,62 @@ than the FFmpeg four-core median. FileSamples MP3 is 0.25 ms slower
 on CPU 0 and 0.21 ms faster on CPU 1. The wider Release-safe test
 also hits a pre-existing NaN gain conversion panic, reproduced with
 the previous audio sources.
+
+## Forty-second optimization pass
+
+Native Linux Release medians include opening and materializing the first
+ten seconds of PCM16. Both Swag builds use the same compiler, with previous
+audio sources at `e67a98ecae`. FFmpeg 9.1 uses native x86 assembly. The
+FileSamples cohorts use 42 observations per engine. Generated cohorts use 28.
+
+[Raw stage times and PCM digests](audio-decode-linux-round42.json)
+
+| FileSamples input | Before CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | Before CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) | Before CPU 2 (ms) | Swag CPU 2 (ms) | FFmpeg CPU 2 (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample3.aac` | 6.02 | 5.84 | 6.11 | 6.41 | 6.31 | 6.61 | 5.99 | 5.95 | 6.33 | 4.58 | 3.95 | 6.23 |
+| `sample3.ac3` | 6.56 | 6.44 | 6.32 | 6.77 | 6.67 | 6.43 | 6.75 | 6.59 | 6.40 | 5.49 | 5.61 | 6.31 |
+| `sample3.mp3` | 7.07 | 6.74 | 7.01 | 6.93 | 6.91 | 7.20 | 7.08 | 7.02 | 7.18 | 3.66 | 3.41 | 7.30 |
+| `sample3.ogg` | 6.41 | 6.49 | 7.06 | 6.45 | 6.47 | 6.80 | 6.36 | 6.34 | 6.59 | 6.41 | 6.30 | 6.69 |
+
+| Generated input | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 9.1 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 9.1 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `aac-lc-32k-mono.aac` | 2.36 | 2.26 | 3.11 | 2.24 | 1.77 | 3.19 |
+| `aac-lc-48k-5.1.aac` | 17.45 | 16.76 | 16.28 | 9.34 | 9.63 | 16.40 |
+| `aac-lc-48k-stereo.aac` | 8.16 | 7.75 | 7.62 | 5.01 | 4.94 | 8.09 |
+| `ac3-32k-mono.ac3` | 4.06 | 4.11 | 3.52 | 3.59 | 3.20 | 3.70 |
+| `ac3-32k-stereo.ac3` | 6.42 | 6.16 | 6.07 | 6.07 | 5.75 | 6.48 |
+| `ac3-44k-stereo.ac3` | 7.90 | 7.63 | 7.20 | 7.34 | 7.17 | 7.16 |
+| `ac3-48k-3.0.ac3` | 12.14 | 12.10 | 10.85 | 10.24 | 10.25 | 12.44 |
+| `ac3-48k-5.0.ac3` | 18.97 | 18.78 | 18.15 | 16.67 | 16.37 | 18.32 |
+| `ac3-48k-5.1.ac3` | 20.05 | 19.58 | 21.30 | 15.57 | 15.79 | 21.89 |
+| `ac3-48k-quad.ac3` | 14.71 | 14.50 | 15.47 | 12.89 | 13.19 | 15.42 |
+| `ac3-48k-stereo.ac3` | 7.76 | 7.47 | 7.00 | 7.40 | 7.03 | 6.97 |
+| `eac3-48k-5.1.eac3` | 21.40 | 20.67 | 21.40 | 21.09 | 20.97 | 20.73 |
+| `mp3-24k-mono.mp3` | 2.48 | 2.39 | 2.58 | 1.71 | 1.57 | 2.58 |
+| `mp3-44k-stereo-cbr.mp3` | 7.08 | 7.00 | 7.14 | 3.84 | 3.43 | 7.32 |
+| `mp3-48k-stereo.mp3` | 8.67 | 7.89 | 8.09 | 4.80 | 4.80 | 8.49 |
+| `mp3-8k-mono.mp3` | 0.91 | 0.87 | 1.06 | 0.64 | 0.65 | 1.09 |
+| `vorbis-32k-mono.ogg` | 3.21 | 3.22 | 4.18 | 3.42 | 3.48 | 4.19 |
+| `vorbis-48k-3.0.ogg` | 12.79 | 11.97 | 13.16 | 13.99 | 12.79 | 14.28 |
+| `vorbis-48k-5.0.ogg` | 21.45 | 19.78 | 20.73 | 21.57 | 20.54 | 21.01 |
+| `vorbis-48k-5.1.ogg` | 26.89 | 26.15 | 26.42 | 16.78 | 16.45 | 25.90 |
+| `vorbis-48k-6.1.ogg` | 30.88 | 28.45 | 28.69 | 16.40 | 16.75 | 29.95 |
+| `vorbis-48k-7.1.ogg` | 32.22 | 31.91 | 31.75 | 18.10 | 17.58 | 31.78 |
+| `vorbis-48k-quad.ogg` | 16.08 | 16.09 | 16.94 | 16.84 | 16.93 | 17.55 |
+| `vorbis-48k-stereo.ogg` | 8.36 | 8.03 | 8.82 | 8.27 | 8.69 | 8.81 |
+
+AAC can consume an escape prefix and its magnitude together and uses a small
+secondary lookup for longer signed tuples in codebook 11. One more inverse
+FFT stage pair runs together. Dolby bit allocation loads the allocation and
+width code from one checked table. MP3 packs the synthesis tail with
+overlapping vector loads. Vorbis interleaves odd three-, five-, and
+seven-channel counts with vector loads and stores.
+
+All 28 selected inputs match the previous Swag PCM and match across
+worker budgets.
+
+Native Release passes 342 audio tests. Release-safe passes 342 audio tests.
+
+The wider safety suite also covers the existing gain conversion contract
+that NaN reaches the setter's input validation. The conversion now returns
+NaN before calling domain-checked math functions.

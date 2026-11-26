@@ -346,3 +346,64 @@ Swag writes 34 fewer header bytes in all three cases. It leads on all
 three tmpfs cases. FFmpeg leads on the generated mono and stereo inputs
 on overlay. The reported medians include opening, feeding, and finalizing
 each file.
+
+## AAC gain estimation and reduced-resolution FLAC
+
+All encoders produce a complete file from the same ten seconds of PCM16.
+Swag uses identical Release compilers and the preceding audio sources are
+at `e67a98ecae`. Both builds use the indicated AAC profile or ceiling.
+Medians use 12 observations per engine. AAC waveform SNR is aligned by the
+declared priming, and the measured rate counts ADTS payload bytes.
+
+[Raw stage times, output sizes, and PCM checks](audio-encode-linux-round9.json)
+
+| AAC input | Before (ms) | Swag (ms) | FDK 2.0.3 (ms) | Swag payload (kb/s) | FDK payload (kb/s) | Swag SNR (dB) | FDK SNR (dB) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| FileSamples, regular AAC | 9.61 | 8.73 | 163.40 | 221.53 | 220.43 | 28.45 | 32.51 |
+| FileSamples, adaptive AAC | 17.53 | 17.40 | 153.30 | 230.05 | 228.96 | 28.47 | 33.12 |
+| FileSamples, 128 kb/s ceiling | 32.23 | 32.50 | 139.40 | 126.28 | 126.31 | 22.41 | 24.32 |
+| Generated stereo 48 kHz, 128 kb/s ceiling | 22.93 | 21.34 | 111.07 | 115.94 | 115.98 | 23.88 | 24.30 |
+
+Four precomputed mantissa cuts replace the band peak logarithm. Each
+profile encodes identical ADTS bytes before and after the change.
+
+| FLAC input | Before (ms) | Swag (ms) | FFmpeg 9.1 level 0 (ms) | libFLAC 1.5.0 level 0 (ms) | Before bytes | Swag bytes | FFmpeg bytes | libFLAC bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Stereo noise, 12 significant bits | 7.86 | 8.11 | 14.01 | 12.33 | 1,921,810 | 1,441,928 | 1,660,695 | 1,444,964 |
+| 5.1, mixed per-channel resolutions | 27.28 | 27.71 | 29.68 | 28.29 | 2,618,378 | 1,657,724 | 2,628,241 | 1,721,463 |
+| FileSamples stereo, eight significant bits | 8.43 | 8.74 | 10.39 | 9.11 | 1,245,751 | 379,104 | 405,064 | 379,484 |
+| Mono, one significant bit | 5.91 | 4.13 | 5.88 | 5.57 | 664,710 | 61,928 | 76,563 | 66,637 |
+| FileSamples stereo 44.1 kHz | 8.92 | 9.07 | 11.05 | 10.98 | 1,051,716 | 1,051,716 | 1,078,821 | 1,052,820 |
+| 5.1 at 48 kHz | 29.71 | 29.83 | 31.08 | 31.28 | 2,344,299 | 2,344,299 | 2,359,222 | 2,430,017 |
+
+The writer can store the count of unused low bits in each subframe. The
+deterministic fixtures clear those bits in PCM16 before encoding, and every
+decoder restores the submitted samples exactly. The full-depth controls
+keep their existing Swag file bytes.
+
+### Higher-compression FLAC reference levels
+
+The earlier Swag build at `a859c30ab1` is compared here with native FFmpeg
+and libFLAC at levels 5 and 8, with 15 observations per engine. Each group
+is a separate run and has exact PCM checks.
+
+| FLAC input | Reference level | Swag (ms) | FFmpeg 9.1 (ms) | libFLAC 1.5.0 (ms) | Swag bytes | FFmpeg bytes | libFLAC bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| FileSamples stereo 44.1 kHz | 5 | 9.13 | 16.87 | 18.51 | 1,051,716 | 917,698 | 905,396 |
+| FileSamples stereo 44.1 kHz | 8 | 9.10 | 44.38 | 53.85 | 1,051,716 | 880,682 | 863,620 |
+| Mono 48 kHz | 5 | 4.71 | 9.33 | 7.81 | 402,152 | 479,846 | 471,775 |
+| Mono 48 kHz | 8 | 4.87 | 18.95 | 16.09 | 402,152 | 466,042 | 318,024 |
+| Stereo 44.1 kHz | 5 | 8.13 | 16.25 | 18.06 | 771,329 | 910,960 | 903,963 |
+| Stereo 44.1 kHz | 8 | 8.30 | 34.28 | 47.88 | 771,329 | 883,734 | 581,811 |
+| Stereo 48 kHz | 5 | 9.39 | 18.82 | 20.14 | 740,253 | 954,127 | 931,665 |
+| Stereo 48 kHz | 8 | 9.07 | 36.91 | 50.96 | 740,253 | 927,358 | 608,763 |
+| 5.1 at 48 kHz | 5 | 40.51 | 51.60 | 51.99 | 2,344,299 | 2,682,537 | 2,652,952 |
+| 5.1 at 48 kHz | 8 | 28.85 | 100.87 | 86.77 | 2,344,299 | 2,596,776 | 1,797,398 |
+| Stereo noise 48 kHz | 5 | 10.43 | 13.01 | 23.10 | 1,921,810 | 1,958,932 | 1,921,268 |
+| Stereo noise 48 kHz | 8 | 9.54 | 46.91 | 47.63 | 1,921,810 | 1,935,766 | 1,921,268 |
+| Dual mono 48 kHz | 5 | 7.47 | 12.42 | 15.54 | 402,519 | 480,172 | 472,138 |
+| Dual mono 48 kHz | 8 | 9.28 | 29.76 | 48.25 | 402,519 | 466,370 | 318,388 |
+
+Swag leads on encoding time in these runs. On FileSamples, libFLAC level 8
+uses 863,620 bytes versus 1,051,716 for Swag. On generated 5.1, it uses
+1,797,398 versus 2,344,299 bytes.

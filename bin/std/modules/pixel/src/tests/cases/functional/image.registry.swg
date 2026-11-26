@@ -189,3 +189,13 @@ internal impl Image
     let probe = expect Image.decode("image.truncatedpixels", "input", {decodePixels: false})
     Swag.require(probe.width == 1 and probe.height == 1 and probe.byteCount == 4 and probe.pixels.count == 0)
 }
+
+// Format strings preserve empty separators, aliases, and Unicode case folding.
+#test
+{
+    let aliases = ImageFormat{"Localized aliases", ";.tif;;.éx;"}
+    Swag.require(aliases.matches("scan.TIF"))
+    Swag.require(aliases.matches("scan.ÉX"))
+    Swag.require(not aliases.matches("scan.tif;"))
+    Swag.require(not aliases.matches("scan"))
+}

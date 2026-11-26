@@ -47,6 +47,7 @@ private enum WriterStereoMode
 // Frames with duplicated stereo use mid/side coding.
 // Input samples are interleaved and owned by the caller. Each channel chooses constant,
 // fixed prediction of orders one to four with partitioned Rice coding, or verbatim coding.
+// Shared trailing zero bits let a channel use a narrower width.
 #[Swag.NoCopy]
 struct Writer
 {
@@ -546,13 +547,74 @@ private impl Writer
             return
         }
 
+        // Most full-depth channels contain an odd sample near an endpoint.
+        var used = cast #bit(u16, samples[0]) |
+                   cast #bit(u16, samples[cast(u64, changed) * stride]) |
+                   cast #bit(u16, samples[cast(u64, count - 1) * stride])
+        if not (used & 1)
+        {
+            let last = samples + cast(u64, count - 1) * stride
+            var next = samples + cast(u64, changed) * stride
+            while next < last
+            {
+                next += stride
+                used |= cast #bit(u16, next[0])
+                if used & 1 do
+                    break
+            }
+
+            let wasted = cast(u32, Swag.trailingZeros(used))
+            if wasted
+            {
+                .writeTrimmedChannel(samples, stride, count, wasted)
+                return
+            }
+        }
+
+        .writePredictedChannel'false(.pending.storage(), channel, stride, count, 0)
+    }
+
+    #[Swag.NoInline]
+    mtd writeTrimmedChannel(samples: const [*] s16, stride: u64, count, wasted: u32)
+    {
+        var plane: [WriterBlockFrames] s16
+        var cursor = samples
+        for frame in count
+        {
+            plane[frame] = cursor[0] >> wasted
+            cursor       += stride
+        }
+
+        .writePredictedChannel'true(cast(const [*] s16, &plane[0]), 0, 1, count, wasted)
+    }
+
+    #[Swag.Inline]
+    mtd(Trimmed: bool) writeSubframeHeader(kind, wasted: u32)
+    {
+        #static if Trimmed
+        {
+            .writeBits(kind | 1, 8)
+            .writeBits(1, wasted)
+        }
+        else
+        {
+            discard wasted
+            .writeBits(kind, 8)
+        }
+    }
+
+    mtd(Trimmed: bool) writePredictedChannel(input: const [*] s16, channel, stride: u64, count, wasted: u32)
+    {
+        let samples        = input + channel
+        let depth          = Trimmed ? 16 - wasted : 16'u32
+        let header         = Trimmed ? 14'u64 + wasted : 14'u64
         var residual1: [WriterBlockFrames - 1] u32
         var residual2: [WriterBlockFrames - 2] u32
         let depthBudget    = count >= 64 ? 31 - cast(u32, Swag.leadingZeros(count >> 3)) : 0
         let availableOrder = count >= 64 ? Math.min(WriterMaxPartitionOrder, depthBudget, cast(u32, Swag.trailingZeros(count))) : 0
-        var sums           = fillFixedPairs(.pending.storage(), channel, stride, count, availableOrder, cast([*] u32, &residual1[0]), cast([*] u32, &residual2[0]))
+        var sums           = fillFixedPairs(input, channel, stride, count, availableOrder, cast([*] u32, &residual1[0]), cast([*] u32, &residual2[0]))
 
-        let verbatimBits    = cast(u64, count) * 16 + 8
+        let verbatimBits    = cast(u64, count) * depth + 8 + wasted
         let firstResiduals  = Swag.makeSlice(&residual1[0], count - 1)
         let secondResiduals = Swag.makeSlice(&residual2[0], count - 2)
         var order           = 1'u32
@@ -562,14 +624,14 @@ private impl Writer
         var plannedOrder    = 0'u32
         var partitionPlan:   WriterRicePlan
         let estimateNeeded  = availableOrder or count >= 256
-        let firstEstimate   = estimateNeeded ? estimatePartitions(&sums.partitionSums[0, 0], count, 1, availableOrder) : verbatimBits
-        let secondEstimate  = estimateNeeded ? estimatePartitions(&sums.partitionSums[1, 0], count, 2, availableOrder) : verbatimBits
+        let firstEstimate   = estimateNeeded ? estimatePartitions(&sums.partitionSums[0, 0], count, 1, availableOrder, header + depth) : verbatimBits
+        let secondEstimate  = estimateNeeded ? estimatePartitions(&sums.partitionSums[1, 0], count, 2, availableOrder, header + 2 * depth) : verbatimBits
         let estimatedBase   = Math.min(firstEstimate, secondEstimate)
         var higherResiduals: [WriterBlockFrames - 3] u32
         let pilotDepth      = Math.min(availableOrder, 3'u32)
         if estimatedBase < verbatimBits and (count >> pilotDepth) >= 256
         {
-            let predictor = chooseHigherOrder(secondResiduals, count, pilotDepth, estimatedBase)
+            let predictor = chooseHigherOrder(secondResiduals, count, pilotDepth, estimatedBase, header, depth)
             if predictor
             {
                 let destination = cast([*] u32, &higherResiduals[0])
@@ -578,7 +640,7 @@ private impl Writer
                                   fillHigherOrder'4(secondResiduals, count, availableOrder, destination)
                 if availableOrder
                 {
-                    let plan = planRicePartitions(higher, &parts[0], count, predictor, availableOrder, bestBits)
+                    let plan = planRicePartitions(higher, &parts[0], count, predictor, availableOrder, bestBits, header + depth * predictor)
                     if plan.bits < bestBits
                     {
                         bestBits      = plan.bits
@@ -592,7 +654,7 @@ private impl Writer
                 var foldedSum = 0'u32
                 for part in 1'u32 << availableOrder do
                     foldedSum += parts[part]
-                let overhead = 18'u64 + 16 * predictor
+                let overhead = header + 4 + depth * predictor
                 if minimumRiceCost(foldedSum, count - predictor) + overhead < bestBits
                 {
                     let plan = selectRice(higher, foldedSum, overhead, bestBits)
@@ -613,9 +675,9 @@ private impl Writer
             let predictor = firstEstimate <= secondEstimate ? 1'u32 : 2
             let residuals = predictor == 1 ? firstResiduals : secondResiduals
             let sumByPart = &sums.partitionSums[predictor - 1, 0]
-            if bestBits == verbatimBits or minimumPartitionCost(sumByPart, count, predictor, availableOrder) < bestBits
+            if bestBits == verbatimBits or minimumPartitionCost(sumByPart, count, predictor, availableOrder, header + depth * predictor) < bestBits
             {
-                let plan = planRicePartitions(residuals, sumByPart, count, predictor, availableOrder, bestBits)
+                let plan = planRicePartitions(residuals, sumByPart, count, predictor, availableOrder, bestBits, header + depth * predictor)
                 if plan.bits < bestBits
                 {
                     bestBits      = plan.bits
@@ -627,9 +689,9 @@ private impl Writer
             }
         }
 
-        if minimumRiceCost(sums.total[0], count - 1) + 34 < bestBits
+        if minimumRiceCost(sums.total[0], count - 1) + header + 4 + depth < bestBits
         {
-            let plan = selectRice(firstResiduals, sums.total[0], 34, bestBits)
+            let plan = selectRice(firstResiduals, sums.total[0], header + 4 + depth, bestBits)
             if plan.rice < 15
             {
                 bestBits     = plan.bits
@@ -640,9 +702,9 @@ private impl Writer
             }
         }
 
-        if count > 2 and minimumRiceCost(sums.total[1], count - 2) + 50 < bestBits
+        if count > 2 and minimumRiceCost(sums.total[1], count - 2) + header + 4 + 2 * depth < bestBits
         {
-            let plan = selectRice(secondResiduals, sums.total[1], 50, bestBits)
+            let plan = selectRice(secondResiduals, sums.total[1], header + 4 + 2 * depth, bestBits)
             if plan.rice < 15
             {
                 bestBits     = plan.bits
@@ -655,34 +717,42 @@ private impl Writer
 
         if not plannedOrder and bestRice == 15
         {
-            .writeBits(0x02, 8)
-            if not (.bufferedBits & 7)
+            .writeSubframeHeader'Trimmed(0x02, wasted)
+            #static if Trimmed
             {
-                .alignByte()
-                let output = cast([*] u16, .frame.emplaceAddress(count * 2))
-                for index in count
-                {
-                    let sample = cast #bit(u16, samples[cast(u64, index) * stride])
-                    output[index] = Math.nativeToBigEndian(sample)
-                }
+                // Trimmed channels are passed in as contiguous sample planes.
+                .writeNarrowVerbatim(samples, count, depth)
             }
             else
             {
-                for index in count do
-                    .writeBits(cast #bit(u16, samples[cast(u64, index) * stride]), 16)
+                if not (.bufferedBits & 7)
+                {
+                    .alignByte()
+                    let output = cast([*] u16, .frame.emplaceAddress(count * 2))
+                    for index in count
+                    {
+                        let sample = cast #bit(u16, samples[cast(u64, index) * stride])
+                        output[index] = Math.nativeToBigEndian(sample)
+                    }
+                }
+                else
+                {
+                    for index in count do
+                        .writeBits(cast #bit(u16, samples[cast(u64, index) * stride]), depth)
+                }
             }
 
             return
         }
 
-        .writeBits(0x10 + 2 * order, 8)
+        .writeSubframeHeader'Trimmed(0x10 + 2 * order, wasted)
         for warmup in order do
-            .writeBits(cast #bit(u16, samples[cast(u64, warmup) * stride]), 16)
+            .writeBits(cast #bit(u16, samples[cast(u64, warmup) * stride]), depth)
         .writeBits(plannedOrder, 6)     // Rice method 0 and a four-bit partition order.
         if not plannedOrder
         {
             .writeBits(bestRice, 4)
-            .writeRiceRun(chosen, bestRice, bestBits - (18'u64 + 16 * order))
+            .writeRiceRun(chosen, bestRice, bestBits - (header + 4 + depth * order))
             return
         }
 
@@ -884,20 +954,20 @@ private impl Writer
     }
 
     // A lower bound allows a measured higher-order plan to skip the standard partition scan.
-    func minimumPartitionCost(sums: const [*] u32, count, order, partitionOrder: u32)->u64
+    func minimumPartitionCost(sums: const [*] u32, count, order, partitionOrder: u32, overhead: u64)->u64
     {
         let size = count >> partitionOrder
-        var bits = 14'u64 + 16 * order
+        var bits = overhead
         for part in 1'u32 << partitionOrder do
             bits += 4 + minimumRiceCost(sums[part], part ? size : size - order)
         return bits
     }
 
     // The estimated size only decides which partitioned predictor to measure.
-    func estimatePartitions(sums: const [*] u32, count, order, partitionOrder: u32)->u64
+    func estimatePartitions(sums: const [*] u32, count, order, partitionOrder: u32, overhead: u64)->u64
     {
         let size = count >> partitionOrder
-        var bits = 14'u64 + 16 * order
+        var bits = overhead
         for part in 1'u32 << partitionOrder
         {
             let samples  = part ? size : size - order
@@ -910,10 +980,10 @@ private impl Writer
         return bits
     }
 
-    func planRicePartitions(residuals: const [..] u32, sums: const [*] u32, count, order, partitionOrder: u32, limit: u64)->WriterRicePlan
+    func planRicePartitions(residuals: const [..] u32, sums: const [*] u32, count, order, partitionOrder: u32, limit, overhead: u64)->WriterRicePlan
     {
         var plan: WriterRicePlan
-        plan.bits = 14'u64 + 16 * order
+        plan.bits = overhead
         let size  = count >> partitionOrder
         let parts = 1'u32 << partitionOrder
 
@@ -937,12 +1007,12 @@ private impl Writer
     }
 
     // Estimate the extra predictors from sampled differences and compare with the measured incumbent.
-    func chooseHigherOrder(second: const [..] u32, count, partitionOrder: u32, incumbent: u64)->u32
+    func chooseHigherOrder(second: const [..] u32, count, partitionOrder: u32, incumbent, header: u64, depth: u32)->u32
     {
         let size  = count >> partitionOrder
         let parts = 1'u32 << partitionOrder
-        var costs = [(14'u64 + 16 * 3 + 4 * parts) << 8,
-                     (14'u64 + 16 * 4 + 4 * parts) << 8]
+        var costs = [(header + depth * 3 + 4 * parts) << 8,
+                     (header + depth * 4 + 4 * parts) << 8]
         for part in parts
         {
             let end     = (part + 1) * size
@@ -1099,6 +1169,112 @@ private impl Writer
     {
         Swag.assert(not .bufferedBits)
         .frame.add(value)
+    }
+
+    // Write pairs of narrow samples with one word reservation for the whole subframe.
+    mtd writeNarrowVerbatim(samples: const [*] s16, count, depth: u32)
+    {
+        var index = .writeAlignedVerbatim(samples, count, depth)
+        if index == count do
+            return
+
+        let wordCount  = (.bufferedBits + (count - index) * depth) >> 5
+        let wordOutput = cast([*] u32, .frame.emplaceAddress((wordCount + 1) * 4))
+        wordOutput[wordCount] = 0
+        let width    = depth * 2
+        let mask     = (1'u64 << depth) - 1
+        var queued   = .bitBuffer
+        var buffered = .bufferedBits
+        var cursor   = 0'u64
+        while count - index >= 2
+        {
+            let first = cast(u64, cast #bit(u16, samples[index])) & mask
+            let last  = cast(u64, cast #bit(u16, samples[index + 1])) & mask
+            queued = (queued << width) | (first << depth) | last
+            let used = buffered + width
+            buffered = used & 31
+            wordOutput[cursor] = Math.nativeToBigEndian(cast #wrap(u32, queued >> buffered))
+            cursor   += used >> 5
+            index    += 2
+        }
+
+        if index < count
+        {
+            let bits = cast(u64, cast #bit(u16, samples[index])) & mask
+            queued = (queued << depth) | bits
+            let used = buffered + depth
+            buffered = used & 31
+            wordOutput[cursor] = Math.nativeToBigEndian(cast #wrap(u32, queued >> buffered))
+            cursor   += used >> 5
+        }
+
+        Swag.assert(cursor == wordCount)
+        .frame.count  -= 4
+        .bitBuffer    = queued
+        .bufferedBits = buffered
+    }
+
+    mtd writeAlignedVerbatim(samples: const [*] s16, count, depth: u32)->u32
+    {
+        var index = 0'u32
+        #static if not Core.BIG_ENDIAN
+        {
+            if depth == 8 and not (.bufferedBits & 7)
+            {
+                let groups = count / 16
+                if groups
+                {
+                    .alignByte()
+                    let byteOutput = cast([*] s8, .frame.emplaceAddress(groups * 16))
+                    for group in groups
+                    {
+                        let input = samples + group * 16
+                        Math.Simd.store(byteOutput + group * 16, Math.Simd.packSigned(Math.Simd.load(input), Math.Simd.load(input + 8)))
+                    }
+
+                    index = groups * 16
+                }
+            }
+            elif depth == 12
+            {
+                if (.bufferedBits & 7) == 4
+                {
+                    .writeBits(cast #bit(u16, samples[0]), 12)
+                    index = 1
+                }
+
+                let groups = (count - index) / 8
+                if groups and not (.bufferedBits & 7)
+                {
+                    .alignByte()
+                    index += .writeVerbatim12Vectors(samples + index, groups)
+                }
+            }
+        }
+
+        return index
+    }
+
+    // A pair of 12-bit samples occupies three bytes in the bitstream.
+    mtd writeVerbatim12Vectors(samples: const [*] s16, groups: u32)->u32
+    {
+        const FirstWords  = cast(Math.Simd.U16x8, [0xFFFF'u16, 0, 0xFFFF, 0, 0xFFFF, 0, 0xFFFF, 0])
+        const LastWords   = cast(Math.Simd.U16x8, [0'u16, 0x0FFF, 0, 0x0FFF, 0, 0x0FFF, 0, 0x0FFF])
+        const MainBytes   = cast(Math.Simd.U8x16, [1'u8, 0, 2, 5, 4, 6, 9, 8, 10, 13, 12, 14, 0x80, 0x80, 0x80, 0x80])
+        const LastNibbles = cast(Math.Simd.U8x16, [0x80'u8, 3, 0x80, 0x80, 7, 0x80, 0x80, 11, 0x80, 0x80, 15, 0x80, 0x80, 0x80, 0x80, 0x80])
+        let output = .frame.emplaceAddress(groups * 12 + 4)
+        for group in groups
+        {
+            let samples16 = cast #bit(Math.Simd.U16x8, Math.Simd.load(samples + group * 8))
+            let words     = ((samples16 & FirstWords) << 4) | (samples16 & LastWords)
+            let bytes     = cast #bit(Math.Simd.U8x16, words)
+            let packed    = Math.Simd.shuffle(bytes, MainBytes) | Math.Simd.shuffle(bytes, LastNibbles)
+            Math.Simd.store(output + group * 12, packed)
+        }
+
+        // The last vector writes four byte slots past its data.
+        .frame.count -= 4
+        return groups * 8
     }
 
     #[Swag.Inline]

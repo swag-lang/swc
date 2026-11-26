@@ -6,6 +6,8 @@ using Core
 // produce gains above one.
 public func decibelsToLinearGain(decibels: f32)->f32
 {
+    if Math.isNaN(decibels) do
+        return decibels
     if decibels <= -100 do
         return 0.0
     return Math.pow(10.0, decibels / 20.0)
@@ -16,6 +18,8 @@ public func decibelsToLinearGain(decibels: f32)->f32
 // Zero and negative inputs map to `-100 dB`. NaN remains NaN.
 public func linearGainToDecibels(gain: f32)->f32
 {
+    if Math.isNaN(gain) do
+        return gain
     if gain <= 0.0 do
         return -100.0
     return 20.0 * Math.log10(gain)

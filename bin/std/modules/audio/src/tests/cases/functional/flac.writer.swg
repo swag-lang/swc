@@ -97,11 +97,18 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     assertFlacWriterSamples(path.toString(), pcm, 1, 48_000)
 
     let file = expect File.readAllBytes(path)
-    let kind = file[66]
+
+    // Every sample has two low zero bits, encoded as unary 01.
+    const Wasted = 2'u64
+    let kind = file[66] & 0xFE
+    Swag.require((file[66] & 1) and file[67] >> 6 == 1)
     Swag.require(kind == 0x12 or kind == 0x14)
-    let warmup         = (kind - 0x10) >> 1
-    let residualHeader = file[67 + 2 * warmup]
-    Swag.require((residualHeader >> 2) == 3 or (residualHeader >> 2) == 4)
+    let warmup         = cast(u64, (kind - 0x10) >> 1)
+    let bits           = 67 * 8 + Wasted + warmup * (16 - Wasted)
+    let offset         = bits >> 3
+    let word           = (cast(u32, file[offset]) << 8) | cast(u32, file[offset + 1])
+    let residualHeader = (word >> (10 - cast(u32, bits & 7))) & 0x3F
+    Swag.require(residualHeader == 3 or residualHeader == 4)
 }
 
 // A smooth periodic block can benefit from a third- or fourth-order fixed predictor.
@@ -450,4 +457,44 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     expect resumed.addFrames(Swag.makeSlice(&OneFrame[0], 2))
     expect resumed.end()
     assertFlacWriterSamples(path.toString(), Swag.makeSlice(&OneFrame[0], 2), 2, 48_000)
+}
+
+// A channel with common low zero bits uses its actual width and remains resumable.
+#test
+{
+    let path = flacWriterPath("wasted-bits")
+    defer discard catch File.delete(path)
+    const Frames = 4096
+    var samples: [Frames * 2] s16
+    var state = 0x4893_8717'u32
+    for frame in Frames
+    {
+        state = cast #wrap(u32, cast(u64, state) * 1_664_525 + 1_013_904_223)
+        let quantized = cast #bit(s16, cast(u16, state >> 16))
+        samples[2 * frame]     = (quantized >> 8) << 8
+        state = cast #wrap(u32, cast(u64, state) * 1_664_525 + 1_013_904_223)
+        samples[2 * frame + 1] = cast #bit(s16, cast(u16, state >> 16))
+    }
+
+    var writer = expect Flac.Writer.create(path.toString(), 2, 48_000)
+    expect writer.addFrames(samples)
+    expect writer.end()
+    let prefix = expect SoundFile.load(path.toString(), preloadData: false)
+    Swag.require((expect prefix.packet(0)).byteSize < 13_000)
+    assertFlacWriterSamples(path.toString(), samples, 2, 48_000)
+
+    var resumed = expect Flac.Writer.resume(path.toString())
+    Swag.require(resumed.sampleFrameCount() == Frames)
+    samples[Frames * 2 - 2] |= 1
+    expect resumed.addFrames(samples)
+    expect resumed.end()
+    let mixed = expect SoundFile.load(path.toString(), preloadData: false)
+    Swag.require((expect mixed.packet(1)).byteSize > 16_000)
+    var decoded: Array's16
+    expect mixed.decodePcm16(Frames, Frames, func|&decoded|(part)
+    {
+        decoded.add(part)
+        return true
+    })
+    Swag.require(Slice.equals(decoded.toSlice(), samples))
 }

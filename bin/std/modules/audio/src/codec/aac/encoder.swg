@@ -115,6 +115,49 @@ private func buildMagnitudeThresholds()->MagnitudeThresholds
 private var g_FirstMagnitude: MagnitudeThresholds = #run buildMagnitudeThresholds()
 
 // Score the distortion and spectral cost of these increases in AAC gain units.
+private const PeakMantissaMask = 0x007F_FFFF'u32
+private const PeakGainAtOne    = 84's32
+
+private func peakGainReference(peak: f32)->s32
+{
+    let limit = Math.pow(15.0'f64, 4.0'f64 / 3.0)
+    return cast(s32, Math.ceil(100.0 + 4.0 * Math.log2(2.0 * cast(f64, peak) / limit)))
+}
+
+private func buildPeakGainCuts()->[4] u32
+{
+    let limit = Math.pow(15.0'f64, 4.0'f64 / 3.0)
+    var cuts: [4] u32
+    for step in cuts.count
+    {
+        let gain     = PeakGainAtOne + cast(s32, step)
+        let boundary = (0.5 * limit) * Math.pow(2.0, (cast(f64, gain) - 100.0) / 4.0)
+        var bits     = cast #bit(u32, cast(f32, boundary))
+        while peakGainReference(cast #bit(f32, bits)) <= gain do
+            bits += 1
+        while peakGainReference(cast #bit(f32, bits - 1)) > gain do
+            bits -= 1
+        cuts[step] = bits & PeakMantissaMask
+    }
+
+    return cuts
+}
+
+private const PeakGainCuts = #run buildPeakGainCuts()
+
+#[Swag.Inline]
+private func gainForPeak(peak: f32)->s32
+{
+    if not peak do
+        return 100
+    let bits     = cast #bit(u32, peak)
+    let exponent = cast(s32, bits >> 23) - 127
+    let mantissa = bits & PeakMantissaMask
+    let fraction = cast(s32, mantissa >= PeakGainCuts[0]) + cast(s32, mantissa >= PeakGainCuts[1]) +
+                   cast(s32, mantissa >= PeakGainCuts[2]) + cast(s32, mantissa >= PeakGainCuts[3])
+    return Math.clamp(PeakGainAtOne + 4 * exponent + fraction, 0, 255)
+}
+
 private const RateGainSteps   = [0's32, 2, 4, 8, 12, 20]
 private const RateChoiceCount = RateGainSteps.count + 1
 private alias RateGains = [2, FullBands] s32
@@ -420,13 +463,7 @@ impl Encoder
             }
 
             let largest = 2.0 * cast(f64, maximum)
-            var gain    = 100's32
-            if largest > 0 do
-                gain = Math.clamp(cast(s32,
-                                       Math.ceil(100.0 + 4.0 *
-                                                 Math.log2(largest / Math.pow(15.0'f64, 4.0'f64 / 3.0)))),
-                                  0,
-                                  255)
+            let gain    = gainForPeak(maximum)
             var quantized: [FullLines] s32
             var active:    [MaximumShortBands] bool
             var bandGain:  [MaximumShortBands] s32
@@ -449,11 +486,7 @@ impl Encoder
                     // Ignore far-off leakage and numerical residue around a strong tone.
                     // A component 150x below the strongest band remains eligible.
                     if bandPeak >= largest / 512.0 and bandPeak > 0 do
-                        selected = Math.clamp(cast(s32,
-                                                   Math.ceil(100.0 + 4.0 *
-                                                             Math.log2(bandPeak / Math.pow(15.0'f64, 4.0'f64 / 3.0)))),
-                                              minimumGain,
-                                              gain)
+                        selected = Math.clamp(gainForPeak(peaks[band]), minimumGain, gain)
 
                     #static if Limited do
                         if choices
@@ -581,8 +614,7 @@ private impl Encoder
                 largest     = Math.max(largest, peaks[band])
             }
 
-            let quantizerPeak = Math.pow(15.0'f64, 4.0'f64 / 3.0)
-            let globalGain    = largest > 0 ? Math.clamp(cast(s32, Math.ceil(100.0 + 4.0 * Math.log2(largest / quantizerPeak))), 0, 255) : 100
+            let globalGain = gainForPeak(cast(f32, largest * 0.5))
             initialGain[][channel] = globalGain
             let minimumGain = Math.max(0's32, globalGain - MaximumBandBoost)
 
@@ -595,7 +627,7 @@ private impl Encoder
                 let peak     = peaks[band]
                 var selected = globalGain
                 if peak >= largest / 512.0 and peak > 0 do
-                    selected = Math.clamp(cast(s32, Math.ceil(100.0 + 4.0 * Math.log2(peak / quantizerPeak))), minimumGain, globalGain)
+                    selected = Math.clamp(gainForPeak(cast(f32, peak * 0.5)), minimumGain, globalGain)
 
                 var energy = 0'f64
                 for line in first until end
@@ -793,6 +825,24 @@ private impl Encoder
             let previous = cast(f64, cast #bit(f32, first - 1)) * 2.0
             Swag.require(Math.round(Math.pow(inBand / factor, 0.75)) == magnitude)
             Swag.require(Math.round(Math.pow(previous / factor, 0.75)) == magnitude - 1)
+        }
+    }
+}
+
+// A power-of-two change in the positive peak shifts the AAC gain by four.
+#test
+{
+    Swag.require(gainForPeak(0.0) == 100)
+    Swag.require(gainForPeak(cast #bit(f32, 1'u32)) == 0)
+    for biasedExponent in 1 until 255
+    {
+        for cut in PeakGainCuts
+        {
+            let bits  = (cast(u32, biasedExponent) << 23) | cut
+            let lower = cast #bit(f32, bits - 1)
+            let upper = cast #bit(f32, bits)
+            Swag.require(gainForPeak(lower) == Math.clamp(peakGainReference(lower), 0, 255))
+            Swag.require(gainForPeak(upper) == Math.clamp(peakGainReference(upper), 0, 255))
         }
     }
 }

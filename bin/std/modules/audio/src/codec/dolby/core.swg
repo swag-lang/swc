@@ -820,10 +820,10 @@ private const PreparedMantissaWidth: [16] u32 = [0, 0, 0, 0, 0, 0, 5, 6, 7, 8, 9
 private func preparedMantissaCode(bap: s32)->s32
     => bap >= 6 ? cast(s32, PreparedMantissaWidth[bap] + 1) : bap
 
-private const PreparedMantissaGain: [16, 32] f64 = #run
+private const PreparedMantissaGain: [16 * 32] f64 = #run
 {
     const Levels: [6] f64 = [1.0, 3.0, 5.0, 7.0, 11.0, 15.0]
-    var result: [16, 32] f64
+    var result: [16 * 32] f64
     for bap in 16
     {
         var gain = 1.4142135623730951 / 16_777_216.0
@@ -833,9 +833,22 @@ private const PreparedMantissaGain: [16, 32] f64 = #run
             gain = 2.0 / Levels[bap]
         for exponent in 32
         {
-            result[bap, exponent] = gain
+            result[32 * bap + exponent] = gain
             gain *= 0.5
         }
+    }
+
+    return result
+}
+
+// Resolve each possible allocation address without a branch on the quantizer.
+private const PreparedMantissaAddress: [64] u32 = #run
+{
+    var result: [64] u32
+    for index in result.count
+    {
+        let bap = BAPTAB[index]
+        result[index] = cast(u32, (bap << 10) | preparedMantissaCode(bap))
     }
 
     return result
@@ -963,9 +976,9 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
             let index    = source - start
             let exponent = exponents[index]
             let address  = Math.clamp(addressBase - (exponent << 2), 0, 63)
-            let bap      = BAPTAB[address]
-            result[index] = preparedMantissaCode(bap)
-            gains[index]  = PreparedMantissaGain[bap, exponent]
+            let prepared = PreparedMantissaAddress[address]
+            result[index] = cast(s32, prepared & 31)
+            gains[index]  = PreparedMantissaGain[(prepared >> 5) + cast(u32, exponent)]
             source        += 1
         }
 
@@ -1167,7 +1180,7 @@ private func(Guarded: bool, WideDither: bool) readPreparedMantissas(reader: *Bit
                             let index = source + offset
                             var value = couplingMantissas[index]
                             if not value and dither do
-                                value = noise.get(PreparedMantissaGain[0, block.couplingExponents[index]])
+                                value = noise.get(PreparedMantissaGain[block.couplingExponents[index]])
                             destination[index] = value * scale
                         }
                     }

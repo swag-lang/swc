@@ -30,3 +30,17 @@ One untimed derivation precedes each measurement. Implementations run in
 shuffled order and use the same Linux CPU affinity. The C calls through
 Python are included in the native library measurements. Each reference
 allocates and cleans up through its normal API.
+
+## Standalone OpenSSL versions
+
+The same probe can link two versions of OpenSSL for a native comparison.
+Build the probe once per library. Set `openssl_dir` to the configured
+OpenSSL source directory containing its headers and `libcrypto.a`.
+
+```sh
+cc -std=c11 -O3 -Wall -Wextra -Werror   -I"$openssl_dir/include" bench/workloads/kdf-replay/openssl-reference.c   "$openssl_dir/libcrypto.a" -pthread -ldl -o "$work/openssl-reference"
+```
+
+Add `--openssl-native "$work/openssl-reference"` to the replay. Repeat
+the option for each version to include. Each native executable times
+one complete derivation after a warm-up.

@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import random
+import re
 import ssl
 import subprocess
 import sys
@@ -63,7 +64,17 @@ def native_profile(library, workload, profile):
     return measure
 
 
-def compare(runner, library, workload, profile, baseline, candidate, rounds, rng):
+def measure_native_openssl(binary, workload, profile):
+    arguments = [binary, workload, *map(str, profile)]
+    stdout = subprocess.check_output(arguments, text=True, timeout=30)
+    match = re.fullmatch(r"([1-9]\d*) ([1-9]\d*) ([0-9a-f]+)\n?", stdout)
+    key_size = 32 if workload == "scrypt" else profile[-1]
+    if match is None or len(match[3]) != 2 * key_size:
+        raise ValueError(f"unexpected result from {binary}: {stdout!r}")
+    return int(match[1]), int(match[2]), bytes.fromhex(match[3])
+
+
+def compare(runner, library, native_openssl, workload, profile, baseline, candidate, rounds, rng):
     def run_swag(binary):
         if workload == "scrypt":
             return runner.run_swag(binary, *profile)
@@ -77,6 +88,10 @@ def compare(runner, library, workload, profile, baseline, candidate, rounds, rng
     library_name = "libsodium" if workload == "scrypt" else "Nettle"
     operations = {"baseline": lambda: run_swag(baseline), "candidate": lambda: run_swag(candidate),
                   "OpenSSL": run_openssl, library_name: native_profile(library, workload, profile)}
+    operations.update({
+        name: lambda path=path: measure_native_openssl(path, workload, profile)
+        for name, path in native_openssl.items()
+    })
     clocks = {clock: {name: [] for name in operations} for clock in runner.CLOCKS}
     order = list(operations)
     expected = None
@@ -109,6 +124,8 @@ def main():
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--reference", type=Path, required=True)
+    parser.add_argument("--openssl-native", action="append", type=Path, default=[],
+                        help="include a standalone native OpenSSL reference, repeat to compare versions")
     parser.add_argument("--cpu", type=int, required=True)
     parser.add_argument("--rounds", type=int, default=15)
     parser.add_argument("--output", type=Path, required=True)
@@ -134,10 +151,26 @@ def main():
     else:
         references["Nettle"] = f"{library.nettle_version_major()}.{library.nettle_version_minor()}"
 
+    native_openssl = {}
+    for path in args.openssl_native:
+        executable = path.resolve()
+        if not os.access(executable, os.X_OK):
+            parser.error(f"missing executable {executable}")
+        version = subprocess.check_output([executable, "--version"], text=True, timeout=30).strip()
+        components = version.split()
+        if len(components) < 2 or components[0] != "OpenSSL":
+            parser.error(f"invalid OpenSSL version from {executable}")
+        name = " ".join(components[:2])
+        if name in native_openssl:
+            parser.error(f"duplicate native OpenSSL version {name}")
+        native_openssl[name] = executable
+        references[name] = version
+
     rng = random.Random(0)
     rows = []
     for profile in runner.PROFILES:
-        row = compare(runner, library, args.workload, profile, baseline, candidate, args.rounds, rng)
+        row = compare(runner, library, native_openssl, args.workload, profile,
+                      baseline, candidate, args.rounds, rng)
         rows.append(row)
         cpu = row["estimates"]["cpu_us"]["median"]
         print(profile, {name: round(value["value"], 1) for name, value in cpu.items()}, flush=True)

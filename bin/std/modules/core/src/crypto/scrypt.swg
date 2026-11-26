@@ -45,12 +45,12 @@ private func scryptSalsaRound(a, b, c, d: *SalsaVector)
     a[] ^= Swag.rol(d[] + c[], 18'u8)
 }
 
-private func scryptSalsa208(state: *SalsaBlock, source: const *SalsaBlock)
+private func scryptSalsa208(target: *SalsaBlock, previous, source: const *SalsaBlock)
 {
-    var a = state[][0] ^ source[][0]
-    var b = state[][1] ^ source[][1]
-    var c = state[][2] ^ source[][2]
-    var d = state[][3] ^ source[][3]
+    var a = previous[][0] ^ source[][0]
+    var b = previous[][1] ^ source[][1]
+    var c = previous[][2] ^ source[][2]
+    var d = previous[][3] ^ source[][3]
 
     let startA = a
     let startB = b
@@ -69,25 +69,25 @@ private func scryptSalsa208(state: *SalsaBlock, source: const *SalsaBlock)
         scryptSalsaRound(&a, &b, &c, &d)
     }
 
-    state[][0] = startA + a
-    state[][1] = startB + b
-    state[][2] = startC + c
-    state[][3] = startD + d
+    target[][0] = startA + a
+    target[][1] = startB + b
+    target[][2] = startC + c
+    target[][3] = startD + d
 }
 
 private func scryptBlockMix(source: const [*] SalsaBlock, target: [*] SalsaBlock, r: u32)
 {
     let blockCount = cast(u64, r) * 2
-    var state      = source[blockCount - 1]
+    var previous   = &source[blockCount - 1]
     for chunk in blockCount
     {
-        scryptSalsa208(&state, &source[chunk])
-
         // BlockMix groups the even chunks before the odd chunks.
-        target[chunk / 2 + (chunk % 2) * r] = state
-    }
+        let result = &target[chunk / 2 + (chunk % 2) * r]
+        scryptSalsa208(result, previous, &source[chunk])
 
-    Crypto.secureClear(state)
+        // The output block becomes the input state for the next chunk.
+        previous = result
+    }
 }
 
 private func scryptRomix(block: [..] u8, costN: u32, blockR: u32, blockSize: u64)

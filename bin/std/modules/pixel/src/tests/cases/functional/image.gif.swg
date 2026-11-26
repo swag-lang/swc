@@ -284,6 +284,29 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertGifPixelAt(image, 1, 0, 19, 43, 71, 255)
 }
 
+// A partial first frame uses its local palette and clears RGB under transparent GIF pixels.
+#test
+{
+    const Bytes: [49] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        3, 0, 2, 0, 0x80, 0, 0,
+        19, 43, 71, 109, 151, 197,
+        0x21, 0xF9, 4, 1, 0, 0, 0, 0,
+        0x2C, 1, 0, 1, 0, 2, 0, 1, 0, 0x80,
+        29, 52, 84, 183, 214, 237,
+        2, 2, 0x44, 0x0A, 0, 0x3B]
+    let image = expect Image.decode("transparent-partial-frame.gif", Bytes)
+    Swag.require(image.width == 3 and image.height == 2)
+    Swag.require(image.pixelFormat == .RGBA8)
+    assertGifPixelAt(image, 1, 0, 0, 0, 0, 0)
+    assertGifPixelAt(image, 2, 0, 183, 214, 237, 255)
+    assertGifPixelAt(image, 2, 1, 0, 0, 0, 0)
+
+    var reader = expect ImageReader.decode("transparent-partial-frame.gif", Bytes)
+    let canvas = expect reader.read(0)
+    Swag.require(Memory.compare(image.pixels.storage(), canvas.pixels.storage(), image.byteCount) == 0)
+}
+
 // A literal allowed by LZW is still invalid when it has no palette entry.
 #test
 {

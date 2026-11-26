@@ -115,6 +115,25 @@ func storeChannel(image: *Image, channel: u16, sourceY: s32, source: const [..] 
     }
 }
 
+func copyBigEndianWords(target: [*] u8, source: const [*] u8, count: u64)
+{
+    let words = cast([*] u16, target)
+    let input = cast(const [*] u16, source)
+    var x     = 0'u64
+    while count - x >= 8
+    {
+        let samples = Math.Simd.load(input + x)
+        Math.Simd.store(words + x, (samples >> 8) | (samples << 8))
+        x += 8
+    }
+
+    while x < count
+    {
+        words[x] = readU16(source + x * 2)
+        x        += 1
+    }
+}
+
 func storeRawComposite(image: *Image, source: const [*] u8, rowBytes: u64, depth: u16)
 {
     let planeBytes = rowBytes * cast(u64, image.height)
@@ -128,24 +147,63 @@ func storeRawComposite(image: *Image, source: const [*] u8, rowBytes: u64, depth
             let blue  = green + planeBytes
             let alpha = blue + planeBytes
             let row   = image.pixels.storage() + cast(u64, (image.height - y - 1)) * image.rowStride
+            let width = cast(u64, image.width)
+            var x     = 0'u64
             if hasAlpha
             {
                 let target = cast([*] u32, row)
-                for x in image.width do
+                while width - x >= 16
+                {
+                    PackedPixel.storeQuads16(row + x * 4,
+                                             Math.Simd.load(red + x),
+                                             Math.Simd.load(green + x),
+                                             Math.Simd.load(blue + x),
+                                             Math.Simd.load(alpha + x))
+                    x += 16
+                }
+
+                while x < width
+                {
                     target[x] = cast(u32, red[x]) | (cast(u32, green[x]) << 8) |
                                 (cast(u32, blue[x]) << 16) | (cast(u32, alpha[x]) << 24)
+                    x += 1
+                }
             }
             else
             {
                 var target = row
-                for x in image.width
+                while width - x >= 16
+                {
+                    PackedPixel.storeTriplets16(target, Math.Simd.load(red + x), Math.Simd.load(green + x), Math.Simd.load(blue + x))
+                    target += 48
+                    x      += 16
+                }
+
+                while x < width
                 {
                     target[0] = red[x]
                     target[1] = green[x]
                     target[2] = blue[x]
                     target    += 3
+                    x         += 1
                 }
             }
+        }
+
+        return
+    }
+
+    if image.pixelFormat == .Gray8 or image.pixelFormat == .Gray16
+    {
+        let highDepth = image.pixelFormat == .Gray16
+        for y in image.height
+        {
+            let target = image.pixels.storage() + cast(u64, (image.height - y - 1)) * image.rowStride
+            let row    = source + cast(u64, y) * rowBytes
+            if highDepth do
+                copyBigEndianWords(target, row, cast(u64, image.width))
+            else do
+                Memory.copy(target, row, rowBytes)
         }
 
         return

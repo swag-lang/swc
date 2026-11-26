@@ -2,6 +2,45 @@
 
 using Swag, Core
 
+// VP8L matches can repeat an overlapping source before reaching the end of the run.
+#test
+{
+    const Guard = 0xAF265B3D'u32
+    var pixels: [80] u32
+    for distance in [1'u64, 2, 3, 5, 13]
+    {
+        for length in [1'u64, 7, 8, 9, 11, 16, 31, 60]
+        {
+            for i in distance do
+                pixels[i] = (cast(u32, i) + 1) * 0x01030609'u32
+            pixels[distance + length] = Guard
+            Webp.losslessCopyRun(&pixels[distance], distance, length)
+            for i in length do
+                Swag.require(pixels[distance + i] == pixels[i % distance])
+            Swag.require(pixels[distance + length] == Guard)
+        }
+    }
+}
+
+// VP8L reads arbitrary field widths across the wide-refill boundary and the final byte.
+#test
+{
+    const Data   = [0x6B'u8, 0x20, 0x9D, 0xF4, 0x12, 0x34, 0xC7, 0x80, 0x45, 0xBA, 0x0D, 0xE5, 0x60, 0x9F, 0xE0, 0x73]
+    const Counts = [3'u32, 11, 32, 14, 32, 26, 10]
+    const Fields = [3'u32, 0x40D, 0xD04BD274, 0x31C, 0x50DBA458, 0x209F60E, 0x1CF]
+    let data   = cast(const [*] u8, &Data[0])
+    var reader = Webp.LosslessBitReader{ptr: data, last: data + Data.count}
+    for i in Counts.count
+    {
+        let value = expect reader.read(Counts[i])
+        Swag.require(value == Fields[i])
+    }
+
+    var error: Swag.Error
+    discard catch reader.read(1) as error
+    Swag.require(error.value() != null)
+}
+
 // Wide refills preserve the arithmetic state and stop at every partition boundary.
 #test
 {

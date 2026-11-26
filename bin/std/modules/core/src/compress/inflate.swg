@@ -227,9 +227,13 @@ impl Inflate
         // an exclusive bound so a source shorter than eight bytes simply has none.
         let fastLimit = srcN >= 8 ? srcN - 7 : 0
 
-        var count = dest.count
-        var buf   = dest.buffer
-        var cap   = dest.capacity
+        // Use absolute bounds so a literal needs one comparison for capacity and output budget.
+        let windowSize = cast(u64, .windowSize)
+        let outputEnd  = .outputStart + Math.min(.outputLimit, Swag.U64.Max - .outputStart)
+        var count      = dest.count
+        var buf        = dest.buffer
+        var cap        = dest.capacity
+        var literalEnd = Math.min(cap, outputEnd)
 
         // The refill below assumes at most 63 buffered bits: with 64 its byte advance
         // would underflow. Hand the top byte back to the source to get there.
@@ -242,18 +246,15 @@ impl Inflate
 
         for
         {
-            // Refill to at least 56 bits with one unaligned 64-bit load, no branch and
-            // no masking. The bits left above 'nb' are the source bits that follow, so
-            // the next refill ORs the very same values back over them; every consumer
-            // masks what it peeks, and 'nb' never drops below 48 inside one iteration.
+            // Refill to at least 56 bits with one unaligned load. Bits above nb are
+            // from the next partial source byte. Each lookup masks the bits it needs,
+            // and the next refill overlays that same byte.
             if cur < fastLimit
             {
-                var chunk: u64
-                Memory.copy(cast([*] void, &chunk), cast(const [*] void, unwrap src + cur), #sizeof(chunk))
-                chunk = Math.littleEndianToNative(chunk)
-                cb    |= chunk << #wrap nb
-                cur   += cast(u64, ((63 - nb) >> 3))
-                nb    |= 56
+                let chunk = Math.littleEndianToNative(cast(const [*] u64, unwrap src + cur)[0])
+                cb  |= chunk << #wrap nb
+                cur += cast(u64, ((63 - nb) >> 3))
+                nb  |= 56
             }
             elif nb > 64
             {
@@ -311,15 +312,15 @@ impl Inflate
 
             if value < 256
             {
-                let outputBytes = count - .outputStart
-                if outputBytes >= .outputLimit do
-                    fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
-                if count >= cap
+                if count >= literalEnd
                 {
+                    if count >= outputEnd do
+                        fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
                     dest.count = count
                     dest.grow(count + 1)
-                    buf = dest.buffer
-                    cap = dest.capacity
+                    buf        = dest.buffer
+                    cap        = dest.capacity
+                    literalEnd = Math.min(cap, outputEnd)
                 }
 
                 let obuf = unwrap buf
@@ -406,14 +407,13 @@ impl Inflate
                 nb       -= #wrap dextra
             }
 
-            if distance > .windowSize do
+            if distance > windowSize do
                 fail InvalidFormatError{"bad distance"}
             if count < distance do
                 fail InvalidFormatError{"bad distance"}
             if not length do
                 continue
-            let outputBytes = count - .outputStart
-            if outputBytes > .outputLimit or length > .outputLimit - outputBytes do
+            if count > outputEnd or length > outputEnd - count do
                 fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
 
             // One vector of slack past the match lets the copy below run in whole
@@ -423,8 +423,9 @@ impl Inflate
             {
                 dest.count = count
                 dest.grow(count + length + #sizeof(Math.Simd.U8x16))
-                buf = dest.buffer
-                cap = dest.capacity
+                buf        = dest.buffer
+                cap        = dest.capacity
+                literalEnd = Math.min(cap, outputEnd)
             }
 
             let obuf = unwrap buf
@@ -446,14 +447,13 @@ impl Inflate
             }
             elif distance >= 8
             {
-                // Non-overlapping in eight-byte steps. The source aliases the output,
-                // which is why this is a raw word copy rather than 'dest.add(slice)':
-                // that path sees the aliasing and allocates a temporary per match.
+                // Each eight-byte load finishes before the following store, including when
+                // later steps read the bytes produced by this match.
                 let end = count + length
                 var dst = count
                 while dst < end
                 {
-                    Memory.copy(cast([*] void, obuf + dst), cast(const [*] void, obuf + from), 8)
+                    cast([*] u64, obuf + dst)[0] = cast(const [*] u64, obuf + from)[0]
                     dst  += 8
                     from += 8
                 }

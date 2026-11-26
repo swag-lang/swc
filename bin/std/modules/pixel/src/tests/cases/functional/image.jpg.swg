@@ -215,6 +215,15 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     assertNearByte(blue[2], 0'u8, 8'u8)
 }
 
+// ImageMagick encoded this 13×11 RGB pattern as unsubsampled Adobe YCCK at quality 87.
+// Channel c of pixel (x, y) is (23*x + 17*y + c*(7*x + 3*y + 43)) % 256.
+#test
+{
+    let image = expect Image.load(getTestDataPath("ycck-odd-grid.jpg"))
+    Swag.require(image.width == 13 and image.height == 11 and image.pixelFormat == .BGR8)
+    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 12978266227832538400'u64)
+}
+
 // Decode from preloaded bytes and verify .jpeg extension routing.
 #test
 {

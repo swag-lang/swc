@@ -62,6 +62,34 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
     Swag.require(image.pixelColor(2, 0) == Color.fromArgb(60, 30, 30, 30))
 }
 
+// Raw RGB and RGBA planes preserve channel order through packed blocks and the row tail.
+#test
+{
+    for channels in [3'u16, 4'u16]
+    {
+        var bytes = psdHeader(channels, 33, 2, 8, 3)
+        psdAddU16(&bytes, 0)
+        for channel in channels do
+            for index in 66 do
+                bytes.addNative(cast(u8, (channel * 45 + index)))
+
+        let image = expect Image.decode("raw-odd-width.psd", nnBytes(bytes.toSlice()))
+        assertImage(image, 33, 2, channels == 3 ? .RGB8 : .RGBA8)
+        for y in 2 do
+            for x in 33
+            {
+                let sample = cast(u8, (y * 33 + x))
+                assertPixel(image,
+                            x,
+                            y,
+                            Color.fromArgb(channels == 3 ? 255'u8 : sample + 135,
+                                           sample,
+                                           sample + 45,
+                                           sample + 90))
+            }
+    }
+}
+
 // A raw RGB composite uses its fourth plane for alpha and still validates extra planes.
 #test
 {
@@ -79,6 +107,22 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
     var outcome: Swag.Error
     discard catch Image.decode("truncated-extra.psd", source[until source.count - 1]) as outcome
     Swag.require(outcome.value() != null)
+}
+
+// Sixteen-bit gray rows keep both sample bytes and the last partial vector.
+#test
+{
+    var bytes = psdHeader(1, 11, 2, 16, 1)
+    psdAddU16(&bytes, 0)
+    for index in 22 do
+        psdAddU16(&bytes, cast(u16, (0x1234 + index * 257)))
+
+    let image = expect Image.decode("gray-odd-width.psd", nnBytes(bytes.toSlice()))
+    assertImage(image, 11, 2, .Gray16)
+    let words = cast(const [*] u16, image.pixels.storage())
+    for y in 2 do
+        for x in 11 do
+            Swag.require(words[(1 - y) * 11 + x] == 0x1234 + (y * 11 + x) * 257)
 }
 
 #test

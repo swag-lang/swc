@@ -17,11 +17,13 @@ impl Decoder
         return cb.values.storage() + block * 64
     }
 
-    mtd loadNextRow() fail
+    mtd decodeProgressiveRow()
     {
         var blockMcuX: [MaxComponents] s32
 
-        var p = cast([*] s16, .quantBuf.storage())
+        var coefficients: [64] s16
+        let p      = cast([*] s16, coefficients)
+        var sample = .safeSampleBuf()
         for .mcusPerRow
         {
             var blockMcuOfsX = 0
@@ -39,7 +41,8 @@ impl Decoder
                     Math.Simd.store(p + offset, coefficients * weights)
                 }
 
-                p += 64
+                idct(p, sample)
+                sample += 64
                 if .compsInScan == 1
                 {
                     blockMcuX[componentId] += 1
@@ -117,18 +120,18 @@ impl Decoder
     mtd huffDecode(ph: *HuffTables)->s32
     {
         // A short code carries its own length in the look-ahead table.
-        let symbol = ph.lookUp[(.bitBuf >> 8) & 0xFF]
+        let symbol = ph.lookUp[(.bitBuf >> (16 - HuffLookupBits)) & (HuffLookupCount - 1)]
         if symbol < 0 do
-            return .decodeLongHuffCode(ph, symbol)
+            return .decodeLongHuffCode(ph, symbol, HuffLookupBits)
 
         .getBits2(symbol >> 8)
         return symbol & 0xFF
     }
 
     #[Swag.NoInline]
-    private mtd decodeLongHuffCode(ph: *HuffTables, prefix: s32)->s32
+    private mtd decodeLongHuffCode(ph: *HuffTables, prefix, prefixBits: s32)->s32
     {
-        .getBits2(8)
+        .getBits2(prefixBits)
         var symbol = prefix
         for
         {
@@ -170,13 +173,14 @@ impl Decoder
                 previousDc[] = s
 
                 p[0] = cast(s16, (s * q[0]))
-                let ph = unwrap block.ac
+                let ph     = unwrap block.ac
+                let lookup = ph.baselineAc.storage()
 
                 var k  = 1
                 var ac = 0's16
                 while k < 64
                 {
-                    let entry = ph.lookUp[(.bitBuf >> 8) & 0xFF]
+                    let entry = lookup[(.bitBuf >> (16 - BaselineAcLookupBits)) & (BaselineAcLookupCount - 1)]
                     var run, amplitude: s32
                     if entry >= 1 << 24
                     {
@@ -189,7 +193,7 @@ impl Decoder
                     {
                         if entry < 0
                         {
-                            s = .decodeLongHuffCode(ph, entry)
+                            s = .decodeLongHuffCode(ph, entry, BaselineAcLookupBits)
                         }
                         else
                         {
@@ -249,8 +253,7 @@ impl Decoder
         {
             if .progressiveFlag
             {
-                try .loadNextRow()
-                .transformProgressiveRow()
+                .decodeProgressiveRow()
             }
             else
             {
@@ -448,9 +451,6 @@ impl Decoder
         let scanLine1 = .scanLine1.storage()
         Memory.clear(scanLine1, cast(u64, .destBytesPerScanLine))
 
-        if .progressiveFlag do
-            .quantBuf.resize(cast(u64, .maxBlocksPerRow) * 64 * #sizeof(s16) + 8)
-
         // The conversions read whole vectors, so the last sample of a row is followed by enough
         // slack for a sixteen-byte read that starts on it.
         .sampleBuf.resize(cast(u64, .maxBlocksPerRow) * 64 + 64)
@@ -563,12 +563,21 @@ impl Decoder
 
         Memory.clear(hs.tree, #sizeof(hs.tree))
 
+        let packAmplitude = idx >= MaxHuffTables / 2 and not .progressiveFlag and .decOptions.decodePixels
+        let lookupBits    = packAmplitude ? BaselineAcLookupBits : HuffLookupBits
+        let lookupCount   = 1 << lookupBits
+        var lookup        = cast([*] s32, &hs.lookUp[0])
+        if packAmplitude
+        {
+            hs.baselineAc.resize(BaselineAcLookupCount)
+            lookup = hs.baselineAc.storage()
+        }
+
         // A prefix that no code covers only appears in a malformed stream. Reading it as a
         // one-bit symbol keeps the scan moving, where an entry consuming no bit would not.
-        for i in 256 do
-            hs.lookUp[i] = 1 << 8
+        for i in lookupCount do
+            lookup[i] = 1 << 8
 
-        let packAmplitude = idx >= MaxHuffTables / 2 and not .progressiveFlag and .decOptions.decodePixels
         var nextFreeEntry = -1
         let huffValBuf    = .huffVal[idx].storage()
         p = 0
@@ -577,29 +586,29 @@ impl Decoder
             let i = huffValBuf[p]
             cde = huffCode[p]
             let codeSize = huffSize[p]
-            if codeSize <= 8
+            if codeSize <= lookupBits
             {
-                cde <<= (8 - codeSize)
+                cde <<= (lookupBits - codeSize)
                 let entry         = (cast(s32, codeSize) << 8) | cast(s32, i)
                 let amplitudeSize = cast(s32, (i & 0x0F))
                 let totalSize     = cast(s32, codeSize) + amplitudeSize
-                if packAmplitude and amplitudeSize and totalSize <= 8
+                if packAmplitude and amplitudeSize and amplitudeSize <= 7 and totalSize <= lookupBits
                 {
                     let amplitudeMask = (1 << amplitudeSize) - 1
-                    for 1 << (8 - codeSize)
+                    for 1 << (lookupBits - codeSize)
                     {
-                        let amplitudeBits = cast(u32, ((cde >> (8 - totalSize)) & amplitudeMask))
+                        let amplitudeBits = cast(u32, ((cde >> (lookupBits - totalSize)) & amplitudeMask))
                         let amplitude     = extendSign(amplitudeBits, amplitudeSize)
-                        hs.lookUp[cde] = entry | ((amplitude & 0xFF) << 16) | (totalSize << 24)
-                        cde += 1
+                        lookup[cde] = entry | ((amplitude & 0xFF) << 16) | (totalSize << 24)
+                        cde         += 1
                     }
                 }
                 else
                 {
-                    for 1 << (8 - codeSize)
+                    for 1 << (lookupBits - codeSize)
                     {
-                        hs.lookUp[cde] = entry
-                        cde += 1
+                        lookup[cde] = entry
+                        cde         += 1
                     }
                 }
             }
@@ -607,17 +616,17 @@ impl Decoder
             {
                 // A long code reaches a subtree instead, and a subtree entry is the only negative
                 // value a prefix can hold: anything else means the slot is still free.
-                let subtree      = (cde >> (codeSize - 8)) & 0xFF
-                var currentEntry = hs.lookUp[subtree]
+                let subtree      = (cde >> (codeSize - lookupBits)) & (lookupCount - 1)
+                var currentEntry = lookup[subtree]
                 if currentEntry >= 0
                 {
-                    hs.lookUp[subtree] = nextFreeEntry
-                    currentEntry       = nextFreeEntry
-                    nextFreeEntry      -= 2
+                    lookup[subtree] = nextFreeEntry
+                    currentEntry    = nextFreeEntry
+                    nextFreeEntry   -= 2
                 }
 
-                cde <<= (16 - (codeSize - 8))
-                for var l = codeSize; l > 9; l -= 1
+                cde <<= (16 - (codeSize - lookupBits))
+                for var l = codeSize; l > lookupBits + 1; l -= 1
                 {
                     if (cde & 0x8000) == 0 do
                         currentEntry -= 1

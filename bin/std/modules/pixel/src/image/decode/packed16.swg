@@ -24,6 +24,28 @@ const BgrB2 = cast(Simd.U8x16, [0x80'u8, 11, 0x80, 0x80, 12, 0x80, 0x80, 13, 0x8
 const BgrG2 = cast(Simd.U8x16, [0x80'u8, 0x80, 11, 0x80, 0x80, 12, 0x80, 0x80, 13, 0x80, 0x80, 14, 0x80, 0x80, 15, 0x80])
 const BgrR2 = cast(Simd.U8x16, [10'u8, 0x80, 0x80, 11, 0x80, 0x80, 12, 0x80, 0x80, 13, 0x80, 0x80, 14, 0x80, 0x80, 15])
 
+// Interleave the supplied channels in output byte order.
+#[Swag.Inline]
+func storeTriplets16(target: [*] u8, first, second, third: Simd.U8x16)
+{
+    Simd.store(target, Simd.shuffle(first, BgrB0) | Simd.shuffle(second, BgrG0) | Simd.shuffle(third, BgrR0))
+    Simd.store(target + 16, Simd.shuffle(first, BgrB1) | Simd.shuffle(second, BgrG1) | Simd.shuffle(third, BgrR1))
+    Simd.store(target + 32, Simd.shuffle(first, BgrB2) | Simd.shuffle(second, BgrG2) | Simd.shuffle(third, BgrR2))
+}
+
+#[Swag.Inline]
+func storeQuads16(target: [*] u8, first, second, third, fourth: Simd.U8x16)
+{
+    let lowFirst  = cast #bit(Simd.U16x8, Simd.interleaveLow(first, second))
+    let highFirst = cast #bit(Simd.U16x8, Simd.interleaveHigh(first, second))
+    let lowLast   = cast #bit(Simd.U16x8, Simd.interleaveLow(third, fourth))
+    let highLast  = cast #bit(Simd.U16x8, Simd.interleaveHigh(third, fourth))
+    Simd.store(target, cast #bit(Simd.U8x16, Simd.interleaveLow(lowFirst, lowLast)))
+    Simd.store(target + 16, cast #bit(Simd.U8x16, Simd.interleaveHigh(lowFirst, lowLast)))
+    Simd.store(target + 32, cast #bit(Simd.U8x16, Simd.interleaveLow(highFirst, highLast)))
+    Simd.store(target + 48, cast #bit(Simd.U8x16, Simd.interleaveHigh(highFirst, highLast)))
+}
+
 #[Swag.Inline]
 func expand5(value: Simd.U8x16)->Simd.U8x16
 {
@@ -76,9 +98,7 @@ func(REVERSE: bool, GREEN6: bool) decodeBgr16RowImpl(source: const [*] u8, desti
         let redShift = GREEN6 ? 11 : 10
         let r        = expand5(Simd.packUnsigned(cast #bit(Simd.S16x8, ((lowPixels >> redShift) & 31'u16)),
                                                  cast #bit(Simd.S16x8, ((highPixels >> redShift) & 31'u16))))
-        Simd.store(dst, Simd.shuffle(b, BgrB0) | Simd.shuffle(g, BgrG0) | Simd.shuffle(r, BgrR0))
-        Simd.store(dst + 16, Simd.shuffle(b, BgrB1) | Simd.shuffle(g, BgrG1) | Simd.shuffle(r, BgrR1))
-        Simd.store(dst + 32, Simd.shuffle(b, BgrB2) | Simd.shuffle(g, BgrG2) | Simd.shuffle(r, BgrR2))
+        storeTriplets16(dst, b, g, r)
         dst   += 48
         count -= 16
     }
@@ -212,9 +232,7 @@ func decodeBgrMasked16Row(source: const [*] u8,
         let b          = normalize16(lowPixels, highPixels, bParams)
         let g          = normalize16(lowPixels, highPixels, gParams)
         let r          = normalize16(lowPixels, highPixels, rParams)
-        Simd.store(dst, Simd.shuffle(b, BgrB0) | Simd.shuffle(g, BgrG0) | Simd.shuffle(r, BgrR0))
-        Simd.store(dst + 16, Simd.shuffle(b, BgrB1) | Simd.shuffle(g, BgrG1) | Simd.shuffle(r, BgrR1))
-        Simd.store(dst + 32, Simd.shuffle(b, BgrB2) | Simd.shuffle(g, BgrG2) | Simd.shuffle(r, BgrR2))
+        storeTriplets16(dst, b, g, r)
         src   += 32
         dst   += 48
         count -= 16
@@ -271,15 +289,7 @@ func(REVERSE: bool) decodeBgra5551RowImpl(source: const [*] u8, destination: [*]
         if alphaFromBit do
             a = alphaBits > Simd.splat(0'u8)
 
-        // Pair blue/green and red/alpha before interleaving complete pixels.
-        let bgLow  = cast #bit(Simd.U16x8, Simd.interleaveLow(b, g))
-        let bgHigh = cast #bit(Simd.U16x8, Simd.interleaveHigh(b, g))
-        let raLow  = cast #bit(Simd.U16x8, Simd.interleaveLow(r, a))
-        let raHigh = cast #bit(Simd.U16x8, Simd.interleaveHigh(r, a))
-        Simd.store(dst, cast #bit(Simd.U8x16, Simd.interleaveLow(bgLow, raLow)))
-        Simd.store(dst + 16, cast #bit(Simd.U8x16, Simd.interleaveHigh(bgLow, raLow)))
-        Simd.store(dst + 32, cast #bit(Simd.U8x16, Simd.interleaveLow(bgHigh, raHigh)))
-        Simd.store(dst + 48, cast #bit(Simd.U8x16, Simd.interleaveHigh(bgHigh, raHigh)))
+        storeQuads16(dst, b, g, r, a)
         dst   += 64
         count -= 16
     }

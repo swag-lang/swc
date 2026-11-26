@@ -202,9 +202,35 @@ impl IImageDecoder for SetDecoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        var decoder: Decoder
-        let single:  IImageDecoder = &decoder
-        return try single.decode(buffer, options)
+        let multiple: IImageSetDecoder = me
+        let info = try multiple.open(buffer, options)
+        if info.frames.isEmpty() do
+            fail InvalidFormatError{"image container has no representative image"}
+
+        // The one-shot caller keeps the input alive until this first frame is returned.
+        let descriptor = &info.frames[0]
+        var rectangle  = try .readRectangle(0, options, clearTransparent: true)
+        if not options.decodePixels
+        {
+            var result: #returntype
+            result.init(info.canvasWidth, info.canvasHeight, .RGBA8)
+            result.metadata = rectangle.metadata
+            return result
+        }
+
+        if rectangle.width == info.canvasWidth and rectangle.height == info.canvasHeight do
+            return #move rectangle
+
+        // GIF's first frame draws opaque colors onto a solid background and leaves transparent pixels empty.
+        var result = Image.create(info.canvasWidth, info.canvasHeight, rectangle.pixelFormat)
+        result.fill(info.background)
+        result.metadata = rectangle.metadata
+        let bottom = result.height - descriptor.y - rectangle.height
+        let target = result.pixels.storage() + cast(u64, bottom) * result.rowStride + cast(u64, descriptor.x) * result.bytesPerPixel
+        let source = rectangle.pixels.storage()
+        for y in rectangle.height do
+            Memory.copy(target + cast(u64, y) * result.rowStride, source + cast(u64, y) * rectangle.rowStride, cast(u64, rectangle.rowStride))
+        return result
     }
 }
 
@@ -256,7 +282,12 @@ impl IImageSetDecoder for SetDecoder
         return result
     }
 
-    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
+    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail => try .readRectangle(index, options, clearTransparent: false)
+}
+
+impl SetDecoder
+{
+    mtd readRectangle(index: u32, options: DecodeOptions, clearTransparent: bool)->Image fail
     {
         if index >= .frames.count do
             fail InvalidFormatError{"GIF frame index is out of range"}
@@ -281,7 +312,7 @@ impl IImageSetDecoder for SetDecoder
         }
 
         if hasAlpha do
-            packed[.decoder.gce.tindex] &= 0xFFFFFF
+            packed[.decoder.gce.tindex] &= clearTransparent ? 0 : 0xFFFFFF
 
         let indices         = .decoder.frame.storage()
         let pixels          = result.pixels.storage()

@@ -183,6 +183,60 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
     }
 }
 
+// Expands grayscale while the samples are still in registers. The predictor carries
+// the last reconstructed sample at each block boundary and restarts at every row.
+private func expandGrayRow(source: const [*] u8, destination: [*] u8, count: u64, grayMask: u8, predicted: bool)
+{
+    const Shift1 = cast(Math.Simd.U8x16, [128'u8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
+    const Shift2 = cast(Math.Simd.U8x16, [128'u8, 128, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+    const Shift4 = cast(Math.Simd.U8x16, [128'u8, 128, 128, 128, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+    const Shift8 = cast(Math.Simd.U8x16, [128'u8, 128, 128, 128, 128, 128, 128, 128, 0, 1, 2, 3, 4, 5, 6, 7])
+
+    const Triplets0 = cast(Math.Simd.U8x16, [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5])
+    const Triplets1 = cast(Math.Simd.U8x16, [5'u8, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10])
+    const Triplets2 = cast(Math.Simd.U8x16, [10'u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15])
+
+    let invert = Math.Simd.splat(grayMask)
+    var carry  = Math.Simd.splat(0'u8)
+    var offset = 0'u64
+    while count - offset >= 16
+    {
+        var samples = Math.Simd.load(source + offset)
+        if predicted
+        {
+            samples += Math.Simd.shuffle(samples, Shift1)
+            samples += Math.Simd.shuffle(samples, Shift2)
+            samples += Math.Simd.shuffle(samples, Shift4)
+            samples += Math.Simd.shuffle(samples, Shift8)
+            samples += carry
+            carry   = Math.Simd.shuffle(samples, Math.Simd.splat(15'u8))
+        }
+
+        let pixels = samples ^ invert
+        let target = destination + offset * 3
+        Math.Simd.store(target, Math.Simd.shuffle(pixels, Triplets0))
+        Math.Simd.store(target + 16, Math.Simd.shuffle(pixels, Triplets1))
+        Math.Simd.store(target + 32, Math.Simd.shuffle(pixels, Triplets2))
+        offset += 16
+    }
+
+    var previous = carry[0]
+    while offset < count
+    {
+        var sample = source[offset]
+        if predicted
+        {
+            sample   += #wrap previous
+            previous = sample
+        }
+
+        let gray   = sample ^ grayMask
+        let target = destination + offset * 3
+        target[0], target[1], target[2] = gray
+        offset += 1
+    }
+}
+
 impl Decoder
 {
     mtd decodePage(buffer: const [..] u8, options: DecodeOptions, directory: u32 = 0)->Image fail
@@ -376,6 +430,7 @@ impl Decoder
         let destination = result.pixels.storage()
         let rowBytes    = cast(u64, width) * samples
         let grayMask    = photometric == PHOTO_WHITE_IS_ZERO ? 255'u8 : 0'u8
+        let grayscale   = samples == 1 and photometric != PHOTO_PALETTE
 
         // Borrow raw strips directly. Only compression or the predictor needs writable scratch.
         var decoded:  Array'u8
@@ -394,7 +449,7 @@ impl Decoder
                 fail InvalidFormatError{"invalid source buffer"}
 
             var strip = srcPtr
-            if compression != COMPRESSION_NONE or predictor == 2
+            if compression != COMPRESSION_NONE or (predictor == 2 and not grayscale)
             {
                 decoded.reserve(stripBytes)
                 let scratch = decoded.storage()
@@ -412,7 +467,7 @@ impl Decoder
             for y in rowsInStrip
             {
                 let offset = cast(u64, y) * rowBytes
-                if predictor == 2
+                if predictor == 2 and not grayscale
                 {
                     let row = decoded.storage() + offset
                     for i in rowBytes - samples do
@@ -442,12 +497,7 @@ impl Decoder
                 }
                 else
                 {
-                    for x in width
-                    {
-                        let gray = source[x] ^ grayMask
-                        dst[0], dst[1], dst[2] = gray
-                        dst += 3
-                    }
+                    expandGrayRow(source, dst, rowBytes, grayMask, predictor == 2)
                 }
             }
 

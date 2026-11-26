@@ -71,6 +71,25 @@ struct LosslessBitReader
 
 impl LosslessBitReader
 {
+    #[Swag.Inline]
+    mtd refill()
+    {
+        if .last - .ptr >= 8 and .nBits < 8
+        {
+            // The eighth byte remains available for the next refill.
+            let word = cast(const [*] u64, .ptr)[0] & 0x00FFFFFFFFFFFFFF'u64
+            .bits  |= word << .nBits
+            .ptr   += 7
+            .nBits += 56
+        }
+        else
+        {
+            .bits  |= cast(u64, .ptr[]) << .nBits
+            .ptr   += 1
+            .nBits += 8
+        }
+    }
+
     mtd read(count: u32)->u32 fail
     {
         if count > 32 do
@@ -80,9 +99,7 @@ impl LosslessBitReader
         {
             if .ptr >= .last do
                 fail InvalidFormatError{"WebP data ends inside the lossless bitstream"}
-            .bits  |= cast(u64, .ptr[]) << .nBits
-            .ptr   += 1
-            .nBits += 8
+            .refill()
         }
 
         let mask  = count == 32 ? 0xFFFFFFFF'u64 : ((1'u64 << count) - 1)
@@ -267,15 +284,12 @@ impl LosslessHuffmanTree
         }
     }
 
+    #[Swag.Inline]
     mtd next(reader: *LosslessBitReader)->u32 fail
     {
         var node: u32
-        if reader.nBits < LOSSLESS_LUT_BITS and reader.ptr < reader.last
-        {
-            reader.bits  |= cast(u64, reader.ptr[]) << reader.nBits
-            reader.ptr   += 1
-            reader.nBits += 8
-        }
+        if reader.nBits < LOSSLESS_LUT_BITS and reader.ptr < reader.last do
+            reader.refill()
 
         if reader.nBits >= LOSSLESS_LUT_BITS
         {
@@ -294,6 +308,13 @@ impl LosslessHuffmanTree
             reader.nBits -= LOSSLESS_LUT_BITS
         }
 
+        return try .nextNode(reader, node)
+    }
+
+    #[Swag.NoInline]
+    private mtd nextNode(reader: *LosslessBitReader, startNode: u32)->u32 fail
+    {
+        var node = startNode
         while true
         {
             if node >= .nodeCount do
@@ -556,6 +577,43 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
     }
 }
 
+func losslessCopyRun(destination: [*] u32, distance, count: u64)
+{
+    let source = destination - distance
+    if count <= 8
+    {
+        for i in count do
+            destination[i] = source[i]
+        return
+    }
+
+    if distance == 1
+    {
+        let pixel = source[0]
+        let block = Math.Simd.splat(pixel)
+        var i: u64
+        while count - i >= 4
+        {
+            Math.Simd.store(destination + i, block)
+            i += 4
+        }
+
+        for j in i until count do
+            destination[j] = pixel
+        return
+    }
+
+    // Copy the available seed pixels, then expand the run in disjoint chunks.
+    var copied = Math.min(distance, count)
+    Memory.copy(destination, source, copied * 4)
+    while copied < count
+    {
+        let chunk = Math.min(copied, count - copied)
+        Memory.copy(destination + copied, destination, chunk * 4)
+        copied += chunk
+    }
+}
+
 func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, height, minimumCapacity: s32, topLevel: bool) fail
 {
     var colorCacheBits:  u32
@@ -588,7 +646,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
     if byteCount > 0x7FFFFFFF'u64 do
         fail UnsupportedFormatError{"WebP image needs more than 2 GiB of decoded pixel memory"}
 
-    result.resize(Math.max(cast(u64, minimumCapacity), byteCount))
+    result.grow(Math.max(cast(u64, minimumCapacity), byteCount))
     result.count = byteCount
     let output      = cast([*] u8, result.storage())
     let groupData   = groups.storage()
@@ -642,14 +700,8 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
             if distance <= 0 or cast(u64, distance) * 4 > offset or offset + copyBytes > byteCount do
                 fail InvalidFormatError{"WebP lossless back-reference is outside the decoded image"}
 
-            var sourceOffset = offset - cast(u64, distance) * 4
-            let endOffset    = offset + copyBytes
-            while offset < endOffset
-            {
-                output[offset] = output[sourceOffset]
-                offset         += 1
-                sourceOffset   += 1
-            }
+            losslessCopyRun(cast([*] u32, output + offset), cast(u64, distance), length)
+            offset += copyBytes
 
             x += cast(s32, length)
             while x >= width
@@ -892,13 +944,23 @@ func losslessInverseCrossColor(transform: *LosslessTransform, pixels: *Array'u8,
 
 func losslessInverseSubtractGreen(pixels: *Array'u8)
 {
+    using Math.Simd
+
+    const Green = cast(U8x16, [1'u8, 0x80, 1, 0x80, 5, 0x80, 5, 0x80, 9, 0x80, 9, 0x80, 13, 0x80, 13, 0x80])
     let data = cast([*] u8, pixels.storage())
     var offset: u64
+    while pixels.count - offset >= 16
+    {
+        let rgba = load(data + offset)
+        store(data + offset, rgba + shuffle(rgba, Green))
+        offset += 16
+    }
+
     while offset < pixels.count
     {
         let green = data[offset + 1]
-        data[offset + 0] = losslessWrap8(cast(s32, data[offset + 0]) + green)
-        data[offset + 2] = losslessWrap8(cast(s32, data[offset + 2]) + green)
+        data[offset + 0] += #wrap green
+        data[offset + 2] += #wrap green
         offset += 4
     }
 }

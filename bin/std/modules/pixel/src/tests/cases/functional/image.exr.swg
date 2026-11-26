@@ -60,8 +60,8 @@ func exrInvalidZipFixture()->ConcatBuffer
     result.addBytes(unwrap header.toSlice())
     exrAddU64(&result, result.count() + 8)
     exrAddU32(&result, 0)     // First scanline.
-    exrAddU32(&result, 8)     // Same as the decoded 4xHALF row size.
-    for 8 do
+    exrAddU32(&result, 7)     // Smaller than the raw 4xHALF row, so it must be compressed.
+    for 7 do
         result.addNative(0xFF'u8)     // Not a valid ZLIB stream.
     return result
 }
@@ -256,16 +256,23 @@ func exrUnalignedFloatFixture(names: const [..] string)->ConcatBuffer
 
 #test
 {
-    var source  = Image.create(2, 2, .RGBAF32)
-    let samples = cast([*] f32, source.pixels.storage())
-    const Values: [8] f32 = [-2.0, -0.25, 0.0, 0.125, 0.5, 1.0, 4.0, 65504.0]
-    for i in 16 do
-        samples[i] = Values[i % Values.count]
+    const Values: [10] u32 = [0x0000_0001, 0x3F00_0000, 0x8000_0000, 0x4000_0000, 0xC000_0000,
+                              0x7F7F_FFFF, 0x7F80_0000, 0x7FA0_0130, 0xFFC0_2203, 0xFF80_0000]
+    for format in [PixelFormat.RGBF32, PixelFormat.RGBAF32]
+    {
+        for width in [3, 4, 5, 9]
+        {
+            var source  = Image.create(width, 2, format)
+            let samples = cast([*] u32, source.pixels.storage())
+            for i in source.byteCount / 4 do
+                samples[i] = Values[i % Values.count]
 
-    let encoded = expect source.encode("float.exr")
-    let decoded = expect Image.decode("float.exr", nnBytes(encoded.toSlice()))
-    assertImage(decoded, 2, 2, .RGBAF32)
-    Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+            let encoded = expect source.encode("float.exr")
+            let decoded = expect Image.decode("float.exr", nnBytes(encoded.toSlice()))
+            assertImage(decoded, width, 2, format)
+            Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+        }
+    }
 }
 
 #test
@@ -301,10 +308,6 @@ func exrUnalignedFloatFixture(names: const [..] string)->ConcatBuffer
     var original: [257] u8
     for i in original.count do
         original[i] = cast(u8, ((i * 73 + 19) & 0xFF))
-    var predicted: [257] u8
-    predicted[0] = original[0]
-    for i in rangeTo(1'u64, original.count - 1) do
-        predicted[i] = cast(u8, ((cast(s32, original[i]) - original[i - 1] + 128) & 0xFF))
     var packed: [257] u8
     var even = 0'u64
     var odd  = (original.count + 1) / 2
@@ -312,18 +315,53 @@ func exrUnalignedFloatFixture(names: const [..] string)->ConcatBuffer
     {
         if i & 1
         {
-            packed[odd] = predicted[i]
+            packed[odd] = original[i]
             odd         += 1
         }
         else
         {
-            packed[even] = predicted[i]
+            packed[even] = original[i]
             even         += 1
         }
     }
 
-    Exr.undoZipPredictor(packed)
-    Swag.require(Memory.compare(original.buffer, packed.buffer, original.count) == 0)
+    var previous = packed[0]
+    for i in rangeTo(1'u64, packed.count - 1)
+    {
+        let current = packed[i]
+        packed[i] = cast(u8, ((cast(s32, current) - previous + 128) & 0xFF))
+        previous  = current
+    }
+
+    var restored: Array'u8
+    Exr.undoZipPredictor(packed, &restored)
+    Swag.require(restored.count == original.count)
+    Swag.require(Memory.compare(original.buffer, restored.storage(), original.count) == 0)
+}
+
+// OpenEXR 3.1 produced two compressed ZIP chunks (16 and 3 rows) and three raw ZIPS rows.
+#test
+{
+    let fixtures = [{name: "exr-zip-scanlines.exr", width: 17, height: 19},
+                    {name: "exr-zips-stored.exr", width: 1, height: 3}]
+    const Red: [3] u16 = [0x0000, 0x3400, 0x3C00]
+    for fixture in fixtures
+    {
+        let decoded = expect Image.load(getTestDataPath(fixture.name))
+        assertImage(decoded, fixture.width, fixture.height, .RGBAF16)
+        let samples = cast(const [*] u16, decoded.pixels.storage())
+        for y in decoded.height
+        {
+            for x in decoded.width
+            {
+                let index = ((decoded.height - y - 1) * decoded.width + x) * 4
+                Swag.require(samples[index] == Red[x % Red.count])
+                Swag.require(samples[index + 1] == (y & 1 ? 0xC000 : 0x4000))
+                Swag.require(samples[index + 2] == (x & 1 ? 0x3800 : 0x3E00))
+                Swag.require(samples[index + 3] == 0x3C00)
+            }
+        }
+    }
 }
 
 #test

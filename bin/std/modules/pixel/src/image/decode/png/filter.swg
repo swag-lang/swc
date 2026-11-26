@@ -299,15 +299,11 @@ func filterPaeth(left, up, upLeft: u8)->u8
     return upLeft
 }
 
-// Reads one pixel as sixteen-bit lanes, one lane per byte.
-//
-// A PNG pixel is at most eight bytes wide whatever the bit depth, so the low half of a
-// vector always holds a whole one, and an eight-byte read never leaves the row.
+// Widens the low half of one in-bounds vector, one lane per pixel byte.
 #[Swag.Inline]
 func loadPixelLanes(source: const [*] u8)->Math.Simd.S16x8
 {
-    let bytes = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u64, source)[0]))
-    return cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(bytes))
+    return cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(source)))
 }
 
 // Adds two lane-per-byte pixels the way PNG reconstruction does, modulo 256.
@@ -354,7 +350,7 @@ func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, cou
         var left = Math.Simd.splat(0's16)
         while offset + 16 <= count
         {
-            let up        = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(previous + offset)))
+            let up        = loadPixelLanes(previous + offset)
             let delta     = loadPixelLanes(source + offset)
             let recovered = addPixelLanes(delta, (left + up) >> 1)
             Math.Simd.storeLow8(destination + offset, Math.Simd.packUnsigned(recovered, recovered))
@@ -385,7 +381,7 @@ func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count
         var upLeft = Math.Simd.splat(0's16)
         while offset + 16 <= count
         {
-            let up        = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(previous + offset)))
+            let up        = loadPixelLanes(previous + offset)
             let delta     = loadPixelLanes(source + offset)
             let recovered = addPixelLanes(delta, paethPredict(left, up, upLeft))
             Math.Simd.storeLow8(destination + offset, Math.Simd.packUnsigned(recovered, recovered))

@@ -307,24 +307,14 @@ impl Decoder
         // saturating narrowing that is exactly its clamp.
         let columnPass  = ConstBits + Pass1Bits + 3
         let columnRound = Math.Simd.splat(1's32 << (columnPass - 1))
-        let levelShift  = Math.Simd.splat(128's32)
-        for i in 8
+        let levelShift  = Math.Simd.splat(128's16)
+        for pair in 4
         {
-            let samples = Math.Simd.packSigned(((low[i] + columnRound) >> columnPass) + levelShift, ((high[i] + columnRound) >> columnPass) + levelShift)
-            Math.Simd.storeLow8(buf + i * 8, Math.Simd.packUnsigned(samples, samples))
-        }
-    }
-
-    mtd transformProgressiveRow()
-    {
-        var psrcPtr = cast([*] s16, .quantBuf.storage())
-        var pdstPtr = unwrap .pSampleBuf
-
-        for .maxBlocksPerRow
-        {
-            idct(psrcPtr, pdstPtr)
-            psrcPtr += 64
-            pdstPtr += 64
+            let first  = pair * 2
+            let second = first + 1
+            let row0   = Math.Simd.packSigned((low[first] + columnRound) >> columnPass, (high[first] + columnRound) >> columnPass)
+            let row1   = Math.Simd.packSigned((low[second] + columnRound) >> columnPass, (high[second] + columnRound) >> columnPass)
+            Math.Simd.store(buf + pair * 16, Math.Simd.packUnsigned(row0 + levelShift, row1 + levelShift))
         }
     }
 
@@ -398,49 +388,38 @@ impl Decoder
     // each ink, and the black channel is stored plainly. The direct form spells the four inks
     // themselves, complemented when the file carries the Adobe marker, which is what that
     // producer writes and what the marker is read for here.
-    //
-    // The scalar form is deliberate: this layout is unsubsampled, so the vector helpers of the
-    // luma paths have no group of pixels to share one chroma correction over.
     mtd convertCmykH1V1(output: [*] u8)
     {
-        let row       = .maxMcuSizeY - .mcuLinesLeft
-        let chromatic = .adobeTransform == 2
-        let inverse   = .hasAdobeMarker and not chromatic
-        var d         = output
-        var s         = .safeSampleBuf() + row * 8
-        for _ in rangeTo(1, .maxMcusPerRow).reversed()
+        let row         = .maxMcuSizeY - .mcuLinesLeft
+        let chromatic   = .adobeTransform == 2
+        let inverse     = .hasAdobeMarker and not chromatic
+        let colorMask   = Math.Simd.splat(inverse ? 0'u8 : 255'u8)
+        let blackMask   = ~colorMask
+        var destination = output
+        var source      = .safeSampleBuf() + row * 8
+        for .maxMcusPerRow
         {
-            for x in 8
+            var blueGreen, red: Math.Simd.U8x16
+            if chromatic
             {
-                var cyan    = cast(s32, s[x])
-                var magenta = cast(s32, s[64 + x])
-                var yellow  = cast(s32, s[128 + x])
-                var black   = cast(s32, s[192 + x])
-
-                if chromatic
-                {
-                    let luma = cyan
-                    let kb   = (magenta << 1) - 256
-                    let kr   = (yellow << 1) - 256
-                    cyan    = 255 - Math.clamp(luma + ((FixCrToR * kr + (1 << 15)) >> 16), 0, 255)
-                    magenta = 255 - Math.clamp(luma + ((FixCrToG * kr + FixCbToG * kb + (1 << 15)) >> 16), 0, 255)
-                    yellow  = 255 - Math.clamp(luma + ((FixCbToB * kb + (1 << 15)) >> 16), 0, 255)
-                }
-                elif inverse
-                {
-                    cyan    = 255 - cyan
-                    magenta = 255 - magenta
-                    yellow  = 255 - yellow
-                    black   = 255 - black
-                }
-
-                d[3 * x + 0] = cast(u8, (255 - Math.min(255, yellow + black)))
-                d[3 * x + 1] = cast(u8, (255 - Math.min(255, magenta + black)))
-                d[3 * x + 2] = cast(u8, (255 - Math.min(255, cyan + black)))
+                let luma = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(source)))
+                let bias = chromaBias8(source + 64, source + 128)
+                blueGreen = Math.Simd.packUnsigned(luma + bias.bc, luma + bias.gc)
+                red       = Math.Simd.packUnsigned(luma + bias.rc, luma + bias.rc)
+            }
+            else
+            {
+                blueGreen = joinLow8(source + 128, source + 64) ^ colorMask
+                red       = Math.Simd.load(source) ^ colorMask
             }
 
-            d += 24
-            s += 64 * 4
+            // Each channel is the remaining light after subtracting the black ink.
+            let black     = Math.Simd.load(source + 192) ^ blackMask
+            let blackLow  = cast #bit(Math.Simd.U64x2, black)
+            let blackPair = cast #bit(Math.Simd.U8x16, Math.Simd.interleaveLow(blackLow, blackLow))
+            storeTriplets(destination, Math.Simd.subSaturating(blueGreen, blackPair), Math.Simd.subSaturating(red, black))
+            destination += 24
+            source      += 64 * 4
         }
     }
 

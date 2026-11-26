@@ -936,23 +936,24 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.require(errorOutcome.value() != null)
 }
 
+// A missing palette entry must fail in both the packed validation block and the scalar tail.
 #test
 {
     const Palette: [3] u8 = [10, 20, 30]
-    const RawRow:  [2] u8 = [0, 3]
+    for width in [1'u32, 16, 17]
+    {
+        var row: Array'u8
+        row.resize(width + 1)
+        row[width] = 3
 
-    var encoded: ConcatBuffer
-    addPngSignature(&encoded)
-    addPngHeader(&encoded, 1, 1, 8, 3)
-    addPngChunk(&encoded, "PLTE", Palette)
-    addPngImageData(&encoded, RawRow)
-    addPngChunk(&encoded, "IEND", "")
-
-    let bytes = encoded.toArray()
-    var image:        Image
-    var errorOutcome: Swag.Error
-    catch { image = try Image.decode("palette-index-out-of-range.png", nnBytes(bytes.toSlice())) } as errorOutcome
-    Swag.require(errorOutcome.value() != null)
+        var encoded: ConcatBuffer
+        addPngSignature(&encoded)
+        addPngHeader(&encoded, width, 1, 8, 3)
+        addPngChunk(&encoded, "PLTE", Palette)
+        addPngImageData(&encoded, row.toSlice())
+        addPngChunk(&encoded, "IEND", "")
+        assertPngDecodeFails("palette-index-out-of-range.png", &encoded)
+    }
 }
 
 // Reject structural errors before reading pixels or indexing palette data.

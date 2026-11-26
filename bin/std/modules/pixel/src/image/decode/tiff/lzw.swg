@@ -14,32 +14,42 @@ const LZW_MAX_CODE   = 4095
 
 struct LzwBitReader
 {
-    data:        const [*] u8
-    bitCount:    u64
-    bitPosition: u64
+    source, end: const [*] u8
+    bits:        u64
+    available:   u32
 }
 
 impl LzwBitReader
 {
-    // A TIFF LZW code is 9 to 12 bits and spans at most three bytes.
+    // Refill several MSB-first codes at a time. The tail never reads outside the strip.
     #[Swag.Inline]
-    mtd read(width: u32)->u32 fail
+    mtd read(width, mask: u32)->u32 fail
     {
-        if .bitPosition + width > .bitCount do
-            fail InvalidFormatError{"invalid source buffer"}
-
-        let source    = .data + (.bitPosition >> 3)
-        let endBit    = cast(u32, .bitPosition & 7) + width
-        var word      = cast(u32, source[0]) << 8 | source[1]
-        var available = 16'u32
-        if endBit > available
+        if .available < width
         {
-            word      = word << 8 | source[2]
-            available = 24
+            let next = .source + 4
+            if next <= .end
+            {
+                let word = Math.byteSwap(cast(const [*] u32, .source)[0])
+                .bits      = (.bits << 32) | word
+                .available += 32
+                .source    = next
+            }
+            else
+            {
+                while .available < width
+                {
+                    if .source == .end do
+                        fail InvalidFormatError{"invalid source buffer"}
+                    .bits      = (.bits << 8) | .source[0]
+                    .available += 8
+                    .source    += 1
+                }
+            }
         }
 
-        .bitPosition += width
-        return (word >> (available - endBit)) & ((1'u32 << width) - 1)
+        .available -= width
+        return cast(u32, (.bits >> .available) & mask)
     }
 }
 
@@ -47,10 +57,7 @@ impl LzwBitReader
 // Aldus TIFF writers. Each strip owns an independent dictionary.
 func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fail
 {
-    var reader: LzwBitReader
-    reader.data        = src
-    reader.bitCount    = srcCount * 8
-    reader.bitPosition = 0
+    var reader = LzwBitReader{src, src + srcCount, 0, 0}
 
     var prefixes: [4096] u16
     var suffixes: [4096] u8
@@ -58,17 +65,19 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
 
     var output: u64
     var width    = 9'u32
+    var mask     = 511'u32
     var nextCode = LZW_FIRST_CODE
     var oldCode  = Swag.U32.Max
 
     while true
     {
-        let code = try reader.read(width)
+        let code = try reader.read(width, mask)
         if code == LZW_EOI_CODE do
             break
         if code == LZW_CLEAR_CODE
         {
             width    = 9
+            mask     = 511
             nextCode = LZW_FIRST_CODE
             oldCode  = Swag.U32.Max
             continue
@@ -136,8 +145,11 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
             // The decoder is one dictionary entry behind the encoder. TIFF's
             // early transition therefore happens when the next free code is
             // the current width's all-ones value.
-            if width < 12 and nextCode == (1'u32 << width) - 1 do
+            if width < 12 and nextCode == mask
+            {
                 width += 1
+                mask  = (mask << 1) | 1
+            }
         }
 
         oldCode = code

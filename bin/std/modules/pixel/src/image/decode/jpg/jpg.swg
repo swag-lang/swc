@@ -46,6 +46,11 @@ private
     const Fix_2_562915447 = 20995
     const Fix_3_072711026 = 25172
 
+    const HuffLookupBits        = 8
+    const HuffLookupCount       = 1 << HuffLookupBits
+    const BaselineAcLookupBits  = 10
+    const BaselineAcLookupCount = 1 << BaselineAcLookupBits
+
     // Fixed-point chroma-to-colour coefficients, in 16.16. The rounding of each one is part of
     // the decoded value, so the scalar and vector paths must read them from here.
     const FixCrToR = cast(s32, ((1.40200 / 2) * (1 << 16) + 0.5))
@@ -55,14 +60,16 @@ private
 
     // One decoding table of a scan.
     //
-    // An eight-bit prefix indexes `lookUp`. Its low bytes hold the symbol and code length.
-    // Baseline AC entries may also hold the signed coefficient and total number of bits when
-    // the code and amplitude fit in the prefix. A negative entry selects a subtree for a long code.
+    // An eight-bit prefix indexes `lookUp`. Baseline AC instead uses a wider table whose
+    // entries may also hold the signed coefficient and total bits of a short code plus its
+    // amplitude. Both formats place the raw symbol and code length in the low bytes, and a
+    // negative entry selects a subtree for a long code.
     struct HuffTables
     {
-        lookUp: [256] s32
-        tree:   [512] s32
-        ready:  bool
+        lookUp:     [HuffLookupCount] s32
+        baselineAc: Array's32
+        tree:       [512] s32
+        ready:      bool
     }
 
     struct CoeffBuf
@@ -245,7 +252,6 @@ internal struct Decoder
         quant:        [MaxQuantTables] Array's16
         scanLine0:    Array'u8
         scanLine1:    Array'u8
-        quantBuf:     Array'u8
         sampleBuf:    Array'u8
         decOptions:   DecodeOptions
         metadata:     Array'ImageMetadata

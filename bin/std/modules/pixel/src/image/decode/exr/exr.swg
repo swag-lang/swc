@@ -77,32 +77,62 @@ func parseChannels(payload: const [..] u8)->Array'Channel fail
     return result
 }
 
-func undoZipPredictor(data: [..] u8)
+func undoZipPredictor(data: [..] u8, reordered: *Array'u8)
 {
-    if data.count < 2 do
+    reordered.grow(data.count)
+    reordered.count = data.count
+    if not data.count do
         return
-    var reordered: Array'u8
-    reordered.resize(data.count)
-    let firstHalf = (data.count + 1) / 2
-    var even      = 0'u64
-    var odd       = firstHalf
-    for i in data.count
+
+    // The predictor runs across the two byte planes in file order. Removing 128 from
+    // each difference after the first is equivalent to flipping the sign bit at odd offsets.
+    const Zero = Simd.splat(0'u8)
+    const Bias = cast(Simd.U8x16, [0'u8, 128, 0, 128, 0, 128, 0, 128, 0, 128, 0, 128, 0, 128, 0, 128])
+    var carry  = 0'u8
+    var offset = 0'u64
+    while data.count - offset >= 16
     {
-        if i & 1
-        {
-            reordered[i] = data[odd]
-            odd += 1
-        }
-        else
-        {
-            reordered[i] = data[even]
-            even         += 1
-        }
+        var values = Simd.load(data.buffer + offset)
+        values += Simd.align(Zero, values, 15)
+        values += Simd.align(Zero, values, 14)
+        values += Simd.align(Zero, values, 12)
+        values += Simd.align(Zero, values, 8)
+        values += Simd.splat(carry)
+        carry  = values[15]
+        Simd.store(data.buffer + offset, values ^ Bias)
+        offset += 16
     }
 
-    for i in rangeTo(1'u64, data.count - 1) do
-        reordered[i] = cast(u8, ((cast(u32, reordered[i - 1]) + reordered[i] + 128) & 0xFF))
-    Memory.copy(data.buffer, reordered.storage(), data.count)
+    while offset < data.count
+    {
+        carry        += #wrap data[offset]
+        data[offset] = carry ^ (offset & 1 ? 128 : 0)
+        offset       += 1
+    }
+
+    // Interleave the restored byte planes without reading beyond the last complete pair.
+    let pairs = data.count / 2
+    let high  = data.buffer + data.count - pairs
+    offset = 0
+    while pairs - offset >= 16
+    {
+        let lowBytes  = Simd.load(data.buffer + offset)
+        let highBytes = Simd.load(high + offset)
+        let target    = reordered.storage() + offset * 2
+        Simd.store(target, Simd.interleaveLow(lowBytes, highBytes))
+        Simd.store(target + 16, Simd.interleaveHigh(lowBytes, highBytes))
+        offset += 16
+    }
+
+    while offset < pairs
+    {
+        reordered[offset * 2]     = data[offset]
+        reordered[offset * 2 + 1] = high[offset]
+        offset += 1
+    }
+
+    if data.count & 1 do
+        reordered[offset * 2] = data[offset]
 }
 
 func channelComponent(name: string)->s32
@@ -133,94 +163,125 @@ func loadCanonicalHalves(source: const [*] u8)->Simd.U16x8
 
 // Place the samples for one channel in one of the three adjacent RGB output vectors.
 #[Swag.ConstExpr]
-func rgbHalfShuffle(channel, block: u64)->Simd.U8x16
+func rgbShuffle(sampleBytes, channel, block: u64)->Simd.U8x16
 {
     var table: [16] u8
     for index in table.count
     {
-        let component = block * 8 + index / 2
+        let component = (block * 16 + index) / sampleBytes
         let pixel     = component / 3
-        table[index] = component % 3 == channel ? cast(u8, pixel * 2 + index % 2) : 0x80
+        table[index] = component % 3 == channel ? cast(u8, pixel * sampleBytes + index % sampleBytes) : 0x80
     }
 
     return cast(Simd.U8x16, table)
 }
 
-const RgbR0 = rgbHalfShuffle(0, 0)
-const RgbG0 = rgbHalfShuffle(1, 0)
-const RgbB0 = rgbHalfShuffle(2, 0)
-const RgbR1 = rgbHalfShuffle(0, 1)
-const RgbG1 = rgbHalfShuffle(1, 1)
-const RgbB1 = rgbHalfShuffle(2, 1)
-const RgbR2 = rgbHalfShuffle(0, 2)
-const RgbG2 = rgbHalfShuffle(1, 2)
-const RgbB2 = rgbHalfShuffle(2, 2)
-
-func(ALPHA: bool) writeHalfColorRow(source: const [*] u8, offsets: [4] u64, target: [*] u8, width: u64)
+#[Swag.Inline]
+func(T) loadColorSamples(source: const [*] u8)->Simd.U8x16
 {
-    const Stride = ALPHA ? 8'u64 : 6'u64
+    #static if T == u16 do
+        return cast #bit(Simd.U8x16, loadCanonicalHalves(source))
+    else do
+        return Simd.load(source)
+}
+
+#[Swag.Inline]
+func(T) readColorSample(source: const [*] u8)->T
+{
+    #static if T == u16 do
+        return canonicalHalf(readU16(source))
+    else do
+        return readU32(source)
+}
+
+#[Swag.Inline]
+func(T, Pair) storeRgbaSamples(target: [*] u8, r, g, b, a: Simd.U8x16)
+{
+    let red    = cast #bit(T, r)
+    let green  = cast #bit(T, g)
+    let blue   = cast #bit(T, b)
+    let alpha  = cast #bit(T, a)
+    let rgLow  = cast #bit(Pair, Simd.interleaveLow(red, green))
+    let rgHigh = cast #bit(Pair, Simd.interleaveHigh(red, green))
+    let baLow  = cast #bit(Pair, Simd.interleaveLow(blue, alpha))
+    let baHigh = cast #bit(Pair, Simd.interleaveHigh(blue, alpha))
+    Simd.store(target, cast #bit(Simd.U8x16, Simd.interleaveLow(rgLow, baLow)))
+    Simd.store(target + 16, cast #bit(Simd.U8x16, Simd.interleaveHigh(rgLow, baLow)))
+    Simd.store(target + 32, cast #bit(Simd.U8x16, Simd.interleaveLow(rgHigh, baHigh)))
+    Simd.store(target + 48, cast #bit(Simd.U8x16, Simd.interleaveHigh(rgHigh, baHigh)))
+}
+
+func(T, ALPHA: bool) writePackedColorRow(source: const [*] u8, offsets: [4] u64, target: [*] u8, width: u64)
+{
+    const SampleBytes = #sizeof(T)
+    const BlockPixels = 16 / SampleBytes
+    const Stride      = SampleBytes * (ALPHA ? 4 : 3)
     let red   = source + offsets[0]
     let green = source + offsets[1]
     let blue  = source + offsets[2]
 
     var x: u64
-    while width - x >= 8
+    while width - x >= BlockPixels
     {
-        let dst = target + x * Stride
-        let r   = loadCanonicalHalves(red + x * 2)
-        let g   = loadCanonicalHalves(green + x * 2)
-        let b   = loadCanonicalHalves(blue + x * 2)
+        let dst    = target + x * Stride
+        let offset = x * SampleBytes
+        let r      = loadColorSamples'T(red + offset)
+        let g      = loadColorSamples'T(green + offset)
+        let b      = loadColorSamples'T(blue + offset)
         #static if ALPHA
         {
-            let a      = loadCanonicalHalves(source + offsets[3] + x * 2)
-            let rgLow  = cast #bit(Simd.U32x4, Simd.interleaveLow(r, g))
-            let rgHigh = cast #bit(Simd.U32x4, Simd.interleaveHigh(r, g))
-            let baLow  = cast #bit(Simd.U32x4, Simd.interleaveLow(b, a))
-            let baHigh = cast #bit(Simd.U32x4, Simd.interleaveHigh(b, a))
-            Simd.store(dst, cast #bit(Simd.U8x16, Simd.interleaveLow(rgLow, baLow)))
-            Simd.store(dst + 16, cast #bit(Simd.U8x16, Simd.interleaveHigh(rgLow, baLow)))
-            Simd.store(dst + 32, cast #bit(Simd.U8x16, Simd.interleaveLow(rgHigh, baHigh)))
-            Simd.store(dst + 48, cast #bit(Simd.U8x16, Simd.interleaveHigh(rgHigh, baHigh)))
+            let a = loadColorSamples'T(source + offsets[3] + offset)
+            #static if T == u16 do
+                storeRgbaSamples'(Simd.U16x8, Simd.U32x4)(dst, r, g, b, a)
+            else do
+                storeRgbaSamples'(Simd.U32x4, Simd.U64x2)(dst, r, g, b, a)
         }
         else
         {
-            let rBytes = cast #bit(Simd.U8x16, r)
-            let gBytes = cast #bit(Simd.U8x16, g)
-            let bBytes = cast #bit(Simd.U8x16, b)
-            Simd.store(dst, Simd.shuffle(rBytes, RgbR0) | Simd.shuffle(gBytes, RgbG0) | Simd.shuffle(bBytes, RgbB0))
-            Simd.store(dst + 16, Simd.shuffle(rBytes, RgbR1) | Simd.shuffle(gBytes, RgbG1) | Simd.shuffle(bBytes, RgbB1))
-            Simd.store(dst + 32, Simd.shuffle(rBytes, RgbR2) | Simd.shuffle(gBytes, RgbG2) | Simd.shuffle(bBytes, RgbB2))
+            const RgbR0 = rgbShuffle(SampleBytes, 0, 0)
+            const RgbG0 = rgbShuffle(SampleBytes, 1, 0)
+            const RgbB0 = rgbShuffle(SampleBytes, 2, 0)
+            const RgbR1 = rgbShuffle(SampleBytes, 0, 1)
+            const RgbG1 = rgbShuffle(SampleBytes, 1, 1)
+            const RgbB1 = rgbShuffle(SampleBytes, 2, 1)
+            const RgbR2 = rgbShuffle(SampleBytes, 0, 2)
+            const RgbG2 = rgbShuffle(SampleBytes, 1, 2)
+            const RgbB2 = rgbShuffle(SampleBytes, 2, 2)
+            Simd.store(dst, Simd.shuffle(r, RgbR0) | Simd.shuffle(g, RgbG0) | Simd.shuffle(b, RgbB0))
+            Simd.store(dst + 16, Simd.shuffle(r, RgbR1) | Simd.shuffle(g, RgbG1) | Simd.shuffle(b, RgbB1))
+            Simd.store(dst + 32, Simd.shuffle(r, RgbR2) | Simd.shuffle(g, RgbG2) | Simd.shuffle(b, RgbB2))
         }
 
-        x += 8
+        x += BlockPixels
     }
 
     while x < width
     {
-        let dst = cast([*] u16, target + x * Stride)
-        dst[0] = canonicalHalf(readU16(red + x * 2))
-        dst[1] = canonicalHalf(readU16(green + x * 2))
-        dst[2] = canonicalHalf(readU16(blue + x * 2))
+        let dst    = cast([*] T, target + x * Stride)
+        let offset = x * SampleBytes
+        dst[0] = readColorSample'T(red + offset)
+        dst[1] = readColorSample'T(green + offset)
+        dst[2] = readColorSample'T(blue + offset)
         #static if ALPHA do
-            dst[3] = canonicalHalf(readU16(source + offsets[3] + x * 2))
+            dst[3] = readColorSample'T(source + offsets[3] + offset)
         x += 1
     }
 }
 
-func writeHalfColorChunk(image: *Image, offsets: [4] u64, source: const [..] u8, firstRow, rowCount: s32)
+func(T) writePackedColorChunk(image: *Image, offsets: [4] u64, source: const [..] u8, firstRow, rowCount: s32)
 {
     let width    = cast(u64, image.width)
     let rowBytes = cast(u64, image.rowStride)
-    let hasAlpha = image.pixelFormat == .RGBAF16
+    let hasAlpha = image.bytesPerPixel == 4 * #sizeof(T)
     for row in rowCount
     {
         let targetY = image.height - firstRow - row - 1
         let target  = image.pixels.storage() + cast(u64, targetY) * rowBytes
         let input   = source.buffer + cast(u64, row) * rowBytes
         if hasAlpha do
-            writeHalfColorRow'true(input, offsets, target, width)
+            writePackedColorRow'(T, true)(input, offsets, target, width)
         else do
-            writeHalfColorRow'false(input, offsets, target, width)
+            writePackedColorRow'(T, false)(input, offsets, target, width)
     }
 }
 
@@ -478,17 +539,33 @@ impl Part
             result.fill(Argb.Black)
 
         // Each scanline repeats the same channel planes in file order.
-        var halfOffsets: [4] u64
+        var channelOffsets: [4] u64
+        var floatColor = not grayscale and not halfColor
         if halfColor
         {
             let planeBytes = cast(u64, result.width) * 2
             for channel, position in .channels do
-                halfOffsets[cast(u64, channelComponent(channel.name))] = position * planeBytes
+                channelOffsets[cast(u64, channelComponent(channel.name))] = position * planeBytes
+        }
+        elif floatColor
+        {
+            let planeBytes = cast(u64, result.width) * 4
+            for channel, position in .channels
+            {
+                if channel.pixelType == 1
+                {
+                    floatColor = false
+                    break
+                }
+
+                channelOffsets[cast(u64, channelComponent(channel.name))] = position * planeBytes
+            }
         }
 
         let linesPerChunk = .compression == 3 ? 16'u64 : 1'u64
         var seenRows: Array'bool
         seenRows.resize(cast(u64, .info.height))
+        var reordered: Array'u8
         for chunkIndex in .chunkCount
         {
             var chunkOffset = readU64(buffer.buffer + .tableOffset + chunkIndex * 8)
@@ -521,16 +598,17 @@ impl Part
             let expected = .rowBytes * cast(u64, rows)
             if options.maxDecodedBytes and expected > options.maxDecodedBytes do
                 fail UnsupportedFormatError{"OpenEXR chunk exceeds the decoded byte limit"}
-            var unpacked: Array'u8
             var pixels = buffer[chunkOffset + 8 until chunkOffset + 8 + packedSize]
-            if .compression
+
+            // OpenEXR writes the original bytes when ZIP cannot make the block smaller.
+            if .compression and packedSize < expected
             {
                 var zlib: Compress.ZLib
-                unpacked = try zlib.decompress(pixels, expected)
+                var unpacked = try zlib.decompress(pixels, expected)
                 if unpacked.count != expected do
                     fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
-                undoZipPredictor(unpacked.toSlice())
-                pixels = unpacked.toSlice()
+                undoZipPredictor(unpacked.toSlice(), &reordered)
+                pixels = reordered.toSlice()
             }
 
             if pixels.count != expected do
@@ -541,7 +619,11 @@ impl Part
             }
             elif halfColor
             {
-                writeHalfColorChunk(&result, halfOffsets, pixels, cast(s32, relativeY), rows)
+                writePackedColorChunk'u16(&result, channelOffsets, pixels, cast(s32, relativeY), rows)
+            }
+            elif floatColor
+            {
+                writePackedColorChunk'u32(&result, channelOffsets, pixels, cast(s32, relativeY), rows)
             }
             else
             {

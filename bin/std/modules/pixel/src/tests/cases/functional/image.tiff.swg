@@ -570,6 +570,43 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
         Swag.require(image.pixelColor(cast(s32, index % 3), cast(s32, index / 3)).r == value)
 }
 
+// A grayscale predictor carries across vector blocks and restarts for each row.
+#test
+{
+    const Width  = 33
+    const Height = 3
+    for predicted in [false, true]
+    {
+        var encoded: Array'u8
+        for y in Height
+        {
+            var previous: u8
+            for x in Width
+            {
+                let sample = cast(u8, (x * 101 + y * 137) & 255)
+                encoded.add(predicted ? sample - #wrap previous : sample)
+                previous = sample
+            }
+        }
+
+        for photo in [0'u32, 1]
+        {
+            let buffer = buildTiff(true, Width, Height, 1, photo, 1, 2, 8, nnBytes(encoded.toSlice()), null, false, predictor: predicted ? 2 : 1)
+            let image  = expect decodeTiff(nnBytes(buffer.toSlice()))
+            for y in Height
+            {
+                for x in Width
+                {
+                    let sample   = cast(u8, (x * 101 + y * 137) & 255)
+                    let expected = photo == 0 ? 255 - sample : sample
+                    let pixel    = image.pixelColor(cast(s32, x), cast(s32, y))
+                    Swag.require(pixel.r == expected and pixel.g == expected and pixel.b == expected)
+                }
+            }
+        }
+    }
+}
+
 // Decode metadata only: dimensions are populated but pixels are not allocated.
 #test
 {

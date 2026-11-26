@@ -218,18 +218,24 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
 
 func flipRgbaRows(pixels: *Array'u8, width, height: s32)
 {
-    let rowBytes = cast(u64, width) * 4
-    let data     = cast([*] u8, pixels.storage())
+    using Math.Simd
+
+    let data = cast([*] u32, pixels.storage())
     for y in height / 2
     {
-        var upper = cast(u64, y) * rowBytes
-        var lower = cast(u64, (height - y - 1)) * rowBytes
-        for rowBytes
+        let upper = data + cast(u64, y) * width
+        let lower = data + cast(u64, (height - y - 1)) * width
+        var x: s32
+        while width - x >= 4
         {
-            swap(&data[upper], &data[lower])
-            upper += 1
-            lower += 1
+            let top = load(upper + x)
+            store(upper + x, load(lower + x))
+            store(lower + x, top)
+            x += 4
         }
+
+        for column in x until width do
+            swap(&upper[column], &lower[column])
     }
 }
 

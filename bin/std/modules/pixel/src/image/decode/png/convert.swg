@@ -28,6 +28,26 @@ const PackedGrayscaleAlphaThreshold = 256'u64
 // RGB transparency expansion amortizes its shuffle and masks on image-sized inputs.
 const SimdRgbTransparencyThreshold = 4096'u64
 
+// Checks the expanded indices before the palette conversion looks them up.
+func hasInvalidPaletteIndex(indices: const [*] u8, count: u64, paletteCount: u8)->bool
+{
+    using Math.Simd
+
+    var offset   = 0'u64
+    var maxIndex = splat(0'u8)
+    while count - offset >= 16
+    {
+        maxIndex = Math.max(maxIndex, load(indices + offset))
+        offset   += 16
+    }
+
+    if anyTrue(maxIndex >= splat(paletteCount)) do
+        return true
+    for index in offset until count where indices[index] >= paletteCount do
+        return true
+    return false
+}
+
 // Converts big-endian PNG samples to native 16-bit words, including in-place conversion.
 func convert16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64)
 {

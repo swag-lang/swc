@@ -149,6 +149,10 @@ internal impl IImageEncoder for Encoder
            image.pixelFormat != .BGRA8 do
             fail UnsupportedFormatError{"QOI encoding requires an 8-bit RGB or RGBA image"}
 
+        // Small files fit in one bucket even if every pixel needs a literal chunk.
+        let pixelCount = cast(u64, image.width) * image.height
+        let maxBytes   = HeaderSize + EndMarkerSize + image.byteCount + pixelCount
+        result.setBucketSize(Math.min(maxBytes, 32'u64 * 1024))
         result.addBytes(Magic)
         writeU32BigEndian(result, cast(u32, image.width))
         writeU32BigEndian(result, cast(u32, image.height))

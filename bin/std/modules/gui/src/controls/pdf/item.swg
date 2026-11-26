@@ -128,7 +128,7 @@ internal impl Item
         result += .path.memoryUsage()
         result += .imageClip.memoryUsage()
         if let pixels = .image.value() do
-            result += pixels.byteCount
+            result += pixels.byteCount + .image.jpeg().count
         if .hasMask do
             result += .maskImage.byteCount
         return result

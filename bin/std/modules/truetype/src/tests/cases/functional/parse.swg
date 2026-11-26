@@ -846,3 +846,34 @@ private func lookupCffName(thread: const *Threading.Thread)
     second.destroy()
     Swag.require(allocator.stats().countAlloc == baseline)
 }
+
+func(width: u8) checkPackedOffsetBoundaries()
+{
+    const OffsetCount = 20'u32
+    var bytes: [OffsetCount * width] u8
+    for offset in OffsetCount do
+        bytes[offset * width + width - 1] = cast(u8, offset)
+    Swag.require(expect validatePackedOffsets'width(&bytes[0], OffsetCount - 1) == OffsetCount - 1)
+
+    // The first two SIMD blocks each ascend internally. The pair between them descends.
+    const VectorPairs = width == 2 ? 8 : 4
+    let next = (VectorPairs + 1) * width + width - 1
+    bytes[next] = VectorPairs - 1
+    var rejected: Swag.Error
+    discard catch validatePackedOffsets'width(&bytes[0], OffsetCount - 1) as rejected
+    Swag.require(not rejected.isEmpty())
+
+    // A descending last offset must also be caught after the SIMD loop.
+    bytes[next] = VectorPairs + 1
+    bytes[OffsetCount * width - 1] = 0
+    rejected    = {}
+    discard catch validatePackedOffsets'width(&bytes[0], OffsetCount - 1) as rejected
+    Swag.require(not rejected.isEmpty())
+}
+
+#test
+{
+    checkPackedOffsetBoundaries'2()
+    checkPackedOffsetBoundaries'3()
+    checkPackedOffsetBoundaries'4()
+}

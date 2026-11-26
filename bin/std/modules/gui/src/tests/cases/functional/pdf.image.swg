@@ -789,3 +789,36 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.require(first.value()!.pixelColor(0, 0).a == 64)
     Swag.require(other.value()!.pixelColor(0, 0).a == 255)
 }
+
+
+// An unmasked DeviceRGB JPEG survives load and save with its compressed samples intact.
+#test
+{
+    let file = guiTestDataPath("pdfbox-jpeg-rgb.pdf")
+    let loaded = expect Document.load(file)
+    let encoded = expect loaded.encode()
+    let saved = expect Document.decode(encoded.toSlice())
+    var found = false
+    for item, index in loaded.pages[0].items where item.kind == .Image
+    {
+        let before = item.image.jpeg()
+        if not before.count do
+            continue
+
+        found = true
+        let after = saved.pages[0].items[index].image.jpeg()
+        Swag.require(Slice.equals(before, after))
+
+        var changed = item.image
+        let editable = changed.edit()
+        Swag.require(editable.isValid() and not changed.jpeg().count)
+        Swag.require(item.image.jpeg().count == before.count)
+
+        let pixels = unwrap item.imageValue()
+        let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Decode [1 0 1 0 1 0]", pixels.width, pixels.height)
+        let custom = imageDocument(dictionary.toString(), before)
+        Swag.require(not custom.pages[0].items[0].image.jpeg().count)
+    }
+
+    Swag.require(found)
+}

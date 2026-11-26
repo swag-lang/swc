@@ -377,11 +377,10 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   advances, and a round-trip test compares rendered pages rather than only re-reading the model.
 - Related: std.gui.pdf.019, std.gui.pdf.030
 
-### std.gui.pdf.022 — An image is always rewritten as a Flate raster
+### std.gui.pdf.022 — Preserve encoded and natural-depth images
 
-- Intent: `encodeImagePixels` reduces every image to eight-bit gray or RGB and Flate-compresses
-  it. A page that came in as a two-megabyte JPEG photograph leaves as a fifty-megabyte raster, a
-  palette image loses its palette.
+- Intent: preserve the original encoded samples and natural depth when the PDF can carry them.
+  Retaining a source JPEG avoids expensive recompression, and an indexed image can use its palette.
 - Evidence: [shared image objects](../bench/results/swagscope-filesamples/pdf-write-linux.md#shared-image-resources)
   cut save time from 1,410 to 197 ms on eight pages using one photo. The output shrinks
   from 9.81 to 1.23 MB. PDFium renders every saved page identically. Opaque images
@@ -392,7 +391,12 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Evidence: [PNG Sub prediction](../bench/results/swagscope-filesamples/pdf-write-linux.md#predicting-large-smooth-image-streams)
   brings the large smooth RGB case from 135 to 65 ms to save and cuts its size
   from 1.23 to 0.63 MB. The saved pages retain their PDFium rasters.
-- Next: preserve supported encoded JPEG and indexed image representations.
+- Evidence: [retained RGB JPEG streams](../bench/results/swagscope-filesamples/pdf-write-linux.md#retaining-original-rgb-jpeg-streams)
+  cut the large public JPEG save from 588 to 0.58 ms and reduce the output from
+  11.95 to 1.43 MB. Both public RGB JPEG pages render exactly as the originals
+  through PDFium.
+- Next: extend encoded stream retention to other supported JPEG color models and preserve
+  indexed image representations.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and
   an image written more than once shares one object.

@@ -1125,3 +1125,36 @@ the newer reference, as do FileSamples AC-3 and single-core MP3.
 
 Native Release passes 327 audio tests. Release-safe passes 67 focused Dolby,
 MP3, Ogg, Opus and Vorbis tests.
+
+## Thirty-third optimization pass
+
+Both Swag builds use the same updated native Release compiler, built from
+`acfe1f9c13`, and audio sources based on `eed36df2cf`. The reference is
+FFmpeg 9.1. The 42-sample medians include opening and materializing up to
+ten seconds of PCM16. The single-core runs use CPU 3.
+
+[Raw stage times and PCM digests](audio-decode-linux-round33.json)
+
+| Input | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 9.1 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 9.1 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample3.dts` | 11.38 | 11.64 | 12.22 | 13.55 | 12.79 | 14.20 |
+| `sample3.ogg` | 6.53 | 6.47 | 6.44 | 6.87 | 6.69 | 6.62 |
+| `dts-48k-5.1.dts` | 32.86 | 33.00 | 33.08 | 31.60 | 31.52 | 33.02 |
+| `dts-48k-stereo.dts` | 13.19 | 12.80 | 13.51 | 13.30 | 13.32 | 13.64 |
+| `vorbis-32k-mono.ogg` | 3.46 | 3.42 | 4.30 | 3.48 | 3.40 | 4.38 |
+| `vorbis-48k-5.1.ogg` | 27.22 | 26.71 | 25.89 | 27.54 | 27.13 | 25.91 |
+| `vorbis-48k-7.1.ogg` | 35.70 | 34.00 | 32.37 | 35.97 | 34.83 | 32.43 |
+| `vorbis-48k-stereo.ogg` | 8.90 | 8.72 | 9.65 | 8.81 | 8.87 | 9.10 |
+
+DTS reuses parsed dimensions and packet sizes when the entire core header
+repeats. On the FileSamples four-core run, the median open stage drops from
+3.71 to 3.20 ms. The single-core open medians are close. A corrupted header
+after two matching packets still fails validation. Vorbis computes its floor
+line slope using a fixed-point reciprocal while preserving exact positions.
+
+All eight files retain byte-identical PCM, including across one and four
+worker budgets. The 7.1 Vorbis fixture improves by 1.70 and 1.13 ms and remains
+behind FFmpeg 9.1.
+
+Native Release passes 328 audio tests. Release-safe passes 19 focused
+DTS and Vorbis tests.

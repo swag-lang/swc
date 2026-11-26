@@ -2,7 +2,9 @@
 
 `compare.py` runs the portable Swag encoder and FFmpeg's x264 on identical input and retains
 the files, decoded planes, commands, logs and a JSON report in a new external directory.
-It needs a built Swag compiler with its runtime, Python 3, FFmpeg and ffprobe with libx264.
+It needs a built Swag compiler with its runtime, Python 3.8 or later, FFmpeg and ffprobe with libx264.
+Use `--discard-planes` on large fixtures to retain media, metrics and hashes while releasing
+the raw planes once each case finishes.
 
 Input is a sequence of bottom-up, tightly packed RGB8 pictures at 30 frames per second. For
 example, convert a representative recording, outside the checkout:

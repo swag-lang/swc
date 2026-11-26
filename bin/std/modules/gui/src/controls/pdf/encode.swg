@@ -16,6 +16,7 @@ private struct ImageSource
 {
     number: u32
     image:  const *Image
+    jpeg:   const [..] u8
 }
 
 private struct PageObjects
@@ -597,20 +598,24 @@ private func sameImageSource(first, second: const *Image)->bool
            not Memory.compare(first.pixels.storage(), second.pixels.storage(), first.pixels.count)
 }
 
-private func allocateImageObject(image: const *Image, nextObject: *u32, sources: *HashTable'(u32, ImageSource)?)->ImageObject
+private func allocateImageObject(item: const *Item, nextObject: *u32, sources: *HashTable'(u32, ImageSource)?)->ImageObject
 {
     if sources
     {
-        let key = Hash.Crc32.compute(image.pixels.toSlice())
+        let image = unwrap item.imageValue()
+        let jpeg  = item.image.jpeg()
+        let key   = Hash.Crc32.compute(jpeg.count ? jpeg : image.pixels.toSlice())
         // Verify bytes and format before sharing an object, including on a hash collision.
         if let source = sources.tryFind(key)
         {
-            if sameImageSource(image, source.value.image) do
+            let prior = &source.value
+            let same = (jpeg.count or prior.jpeg.count) ? Slice.equals(jpeg, prior.jpeg) : sameImageSource(image, prior.image)
+            if same do
                 return {number: source.value.number, firstUse: false}
         }
         else
         {
-            sources.add(key, ImageSource{nextObject[], image})
+            sources.add(key, ImageSource{nextObject[], image, jpeg})
         }
     }
 
@@ -632,7 +637,7 @@ private func allocatePageObjects(page: const *Page, nextObject: *u32, sources: *
     objects.content = nextObject[]
     nextObject[]    += 1
     for item in page.items where item.kind == .Image do
-        objects.images.add(allocateImageObject(unwrap item.imageValue(), nextObject, sources))
+        objects.images.add(allocateImageObject(item, nextObject, sources))
     return objects
 }
 
@@ -692,7 +697,15 @@ private impl Writer
             if not imageObject.firstUse do
                 continue
 
-            let image      = unwrap item.imageValue()
+            let image = unwrap item.imageValue()
+            let jpeg  = item.image.jpeg()
+            if jpeg.count
+            {
+                let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode", image.width, image.height)
+                .streamObject(imageObject.number, jpeg, dictionary.toString())
+                continue
+            }
+
             let encoded    = encodeImagePixels(image)
             let width      = cast(u64, image.width)
             let components = encoded.isGray ? 1'u64 : 3'u64

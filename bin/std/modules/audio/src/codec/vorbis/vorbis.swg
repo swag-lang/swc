@@ -2206,6 +2206,16 @@ private func storeFourEightChannelFrames(output: [*] u16, a, b, c, d: Simd.U16x8
     Simd.store(output + 24, cast #bit(Simd.U16x8, Simd.interleaveHigh(firstHigh, secondHigh)))
 }
 
+private func buildFloorReciprocals()->[256] u64
+{
+    var result: [256] u64
+    for span in 1'u64 until result.count do
+        result[span] = ((1'u64 << 56) + span - 1) / span
+    return result
+}
+
+private const FloorReciprocals = #run buildFloorReciprocals()
+
 // Multiplies `target` by the line from `(x0, y0)` to `(x1, y1)`, stepping through the amplitude
 // table exactly as the specification's integer walk does. Both endpoints are clamped to valid
 // table indices before the interpolation, so every intermediate value is in range.
@@ -2231,22 +2241,25 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
         return
     }
 
-    let span      = x1 - x0
-    let dy        = y1 - y0
-    let delta     = cast(u32, Math.abs(dy))
-    let wholeStep = delta / span
-    let remainder = delta % span
-    let sign      = dy < 0 ? -1 : 1
-    var x         = x0
+    let span  = x1 - x0
+    let dy    = y1 - y0
+    let delta = cast(u32, Math.abs(dy))
+    let sign  = dy < 0 ? -1 : 1
+    var x     = x0
     if end - x >= 4
     {
         // The ceiling of the Q32 step gives the same floor as the integer walk:
         // a span is at most 32768 and accumulating its error stays below 1/span.
-        let fraction   = cast(u32, ((cast(u64, remainder) << 32) + span - 1) / span)
+        // The rounded reciprocal overestimates the exact step by less than two
+        // Q32 units. For offsets below these small spans, the accumulated error
+        // remains less than 1/span, so the table index stays exact.
+        let slope = span < FloorReciprocals.count ?
+            ((cast(u64, delta) * FloorReciprocals[span]) >> 24) + 1 :
+            ((cast(u64, delta) << 32) + span - 1) / span
         let base       = Simd.splat(y0)
         let direction  = Simd.splat(sign)
-        let whole      = Simd.splat(wholeStep)
-        let step       = Simd.splat(fraction)
+        let whole      = Simd.splat(cast(u32, slope >> 32))
+        let step       = Simd.splat(cast(u32, slope & 0xFFFFFFFF))
         let amplitudes = cast(const [*] s32, &Floor1InverseDb[0])
         var offsets    = cast(Simd.U32x4, [0'u32, 1, 2, 3])
         while x + 4 <= end

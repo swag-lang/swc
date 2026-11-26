@@ -1,6 +1,7 @@
 """Compare Swag H.264 and x264 on identical NV12 input; retain all evidence outside the checkout."""
 
 import argparse
+import filecmp
 import hashlib
 import json
 import os
@@ -21,6 +22,7 @@ def main():
     parser.add_argument('--qp', type=int, nargs='+', default=[18, 26, 28])
     parser.add_argument('--slices', type=int, default=4)
     parser.add_argument('--output', type=Path, required=True, help='new evidence directory outside the checkout')
+    parser.add_argument('--discard-planes', action='store_true', help='keep hashes and metrics instead of raw planes')
     parser.add_argument('--skip-x264', action='store_true', help='measure only a new Swag candidate')
     parser.add_argument('--x264-native', type=Path, help='prebuilt x264_native for encode-only wall and CPU timing')
     parser.add_argument('--timeout', type=int, default=1200, help='seconds per command, including initial dependency builds')
@@ -70,14 +72,12 @@ def main():
         # can negotiate the tagged video's colour space and silently convert its values.
         planar = Path(str(source) + '.yuv420p')
         if not planar.exists():
-            packed = source.read_bytes()
             luma_size = args.width * args.height
             frame_size = luma_size * 3 // 2
-            if len(packed) % frame_size:
-                raise RuntimeError('NV12 reference ends inside a picture')
-            with planar.open('wb') as stream:
-                for start in range(0, len(packed), frame_size):
-                    frame = packed[start:start + frame_size]
+            with source.open('rb') as packed, planar.open('wb') as stream:
+                while frame := packed.read(frame_size):
+                    if len(frame) != frame_size:
+                        raise RuntimeError('NV12 reference ends inside a picture')
                     chroma = frame[luma_size:]
                     stream.write(frame[:luma_size])
                     stream.write(chroma[::2])
@@ -98,6 +98,8 @@ def main():
             line = next(line for line in reversed(log.splitlines()) if 'Parsed_' + metric in line)
             for key, value in re.findall(r'(y|u|v|average|Y|U|V|All):([0-9.]+|inf)', line):
                 values[metric + '_' + key.lower()] = value if value == 'inf' else float(value)
+        if args.discard_planes:
+            decoded.unlink()
         return values
 
     # A lossless, explicitly BT.709-tagged stream with a shifted start time must score exactly
@@ -115,6 +117,9 @@ def main():
     checked = quality(check_video, check_source, 'metric-check')
     if checked.get('psnr_average') != 'inf' or checked.get('ssim_all') != 1.0:
         raise RuntimeError('lossless metric reference differs after decoding')
+    if args.discard_planes:
+        check_source.unlink()
+        Path(str(check_source) + '.yuv420p').unlink()
 
     command = [str(args.compiler.resolve()), 'run', '-f', str(workload / 'src/h264.swg'),
                '--module-file', str(workload / 'module.swg'), '-bc', 'release',
@@ -141,8 +146,11 @@ def main():
         decoded = output / (name + '-ffmpeg.yuv')
         run(['ffmpeg', '-v', 'error', '-xerror', '-nostdin', '-threads', '3', '-i', str(video),
              '-pix_fmt', 'yuv420p', '-fps_mode', 'passthrough', '-f', 'rawvideo', str(decoded)], name + '-decode')
-        if decoded.read_bytes() != Path(str(video) + '.yuv').read_bytes():
+        swag_planes = Path(str(video) + '.yuv')
+        if not filecmp.cmp(decoded, swag_planes, shallow=False):
             raise RuntimeError('Swag Reader and FFmpeg decode different samples')
+        if args.discard_planes:
+            swag_planes.unlink()
         row = dict(input=input_path.name, encoder='swag', qp=qp, slices=args.slices, frames=args.frames,
                    encode_us=None if args.quality_only else int(match[3]),
                    packet_bytes=int(match[4]), file_bytes=video.stat().st_size,
@@ -152,12 +160,11 @@ def main():
         rows.append(row)
         print(json.dumps(row), flush=True)
 
-        if args.skip_x264:
-            continue
         # Baseline isolates coding decisions. The High and ultrafast profiles represent the
         # software encoder settings documented by OBS and shipped as ShareX defaults.
-        for preset, profile, mode in [('veryfast', 'baseline', 'qp'), ('veryfast', 'high', 'crf'),
-                                      ('ultrafast', 'baseline', 'crf')]:
+        references = [] if args.skip_x264 else [('veryfast', 'baseline', 'qp'), ('veryfast', 'high', 'crf'),
+                                                ('ultrafast', 'baseline', 'crf')]
+        for preset, profile, mode in references:
             name = prefix + f'x264-{preset}-{profile}-{mode}{qp}'
             video = output / (name + '.mp4')
             native_times = {}
@@ -185,6 +192,10 @@ def main():
             rows.append(row)
             print(json.dumps(row), flush=True)
 
+        if args.discard_planes:
+            source.unlink()
+            Path(str(source) + '.yuv420p').unlink()
+
     version, _ = run(['ffmpeg', '-version'], 'ffmpeg-version')
     commit, _ = run(['git', '-C', str(repo), 'rev-parse', 'HEAD'], 'commit')
     diff, _ = run(['git', '-C', str(repo), 'diff'], 'diff')
@@ -193,7 +204,7 @@ def main():
         encoder_sha256=hashlib.sha256((library / 'std/modules/video/src/encode/h264/lossy.swg').read_bytes()).hexdigest(),
         driver_sha256=hashlib.sha256((workload / 'src/h264.swg').read_bytes()).hexdigest(),
         compiler_sha256=hashlib.sha256(args.compiler.read_bytes()).hexdigest(),
-        ffmpeg=version.splitlines()[0], quality_only=args.quality_only,
+        ffmpeg=version.splitlines()[0], quality_only=args.quality_only, discarded_planes=args.discard_planes,
         x264_native=str(x264_native) if x264_native else None,
         metric_alignment='raw planar samples, frame order', metric_self_check=checked,
         inputs=[dict(path=str(path.resolve()), sha256=hashlib.sha256(path.read_bytes()).hexdigest()) for path in args.input],

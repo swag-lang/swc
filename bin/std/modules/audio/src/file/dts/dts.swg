@@ -24,7 +24,10 @@ internal func openElementaryStream(path: string)->SoundFile fail
     var channelCount = 0'u32
     var speakerMask  = 0'u32
     var window:      const [..] u8 = []
-    var windowStart: u64
+    var windowStart:    u64
+    var previousHeader: [HeaderBytes] u8
+    var previousSize:   u64
+    var info:           FrameInfo
 
     for
     {
@@ -43,7 +46,17 @@ internal func openElementaryStream(path: string)->SoundFile fail
         }
 
         let headerOffset = byteOffset - windowStart
-        let info         = try frameInfo(window[headerOffset until headerOffset + headerSize])
+        let header       = window[headerOffset until headerOffset + headerSize]
+
+        // Repeated core headers carry the same decoded dimensions and packet size.
+        // Own the previous bytes so a window refill cannot invalidate the comparison.
+        if headerSize != previousSize or Memory.compare(header.buffer, &previousHeader[0], headerSize) != 0
+        {
+            info = try frameInfo(header)
+            Memory.copy(&previousHeader[0], header.buffer, headerSize)
+            previousSize = headerSize
+        }
+
         if not info.frameBytes or info.frameBytes > fileBytes - byteOffset do
             break
 

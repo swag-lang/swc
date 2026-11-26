@@ -235,3 +235,4 @@ optimizations moved each result.
 - [BLAKE2s vector rounds and keyed initialization alternatives](blake2s-alternatives.md)
 - [RSA and P-256 window width comparisons](modular-window-widths.md)
 - [Eight-lane AVX2 ChaCha20 experiment](chacha20-native-width.md)
+- [Frozen-source KDF and HMAC replay](kdf-frozen-replay.md)

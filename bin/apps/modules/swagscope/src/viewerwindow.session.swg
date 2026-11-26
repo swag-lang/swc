@@ -148,7 +148,7 @@ impl ViewerWindow
         if .currentView and
            not .choiceLoad.started and
            not .awaitingRetirement and
-           Viewers.Picture.isJpegExtension(Path.lowercaseExtension(.pendingFile)) do
+           Jpg.matchesFileName(.pendingFile) do
             .choiceLoad.start(&.index, .pendingFile, me, includeNeighbors: not .thumbnailMode)
         else do
             .startupTimer = .addTimer(1'ms)

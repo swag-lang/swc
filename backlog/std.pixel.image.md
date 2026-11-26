@@ -304,42 +304,39 @@ ships; history lives in Git, not here.
   and encode throughput improves in an interleaved A/B on a quiet machine.
 - Related: std.core.042, compiler.codegen.022.
 
-### std.pixel.image.055 — WebP reconstruction and transforms remain mostly scalar
+### std.pixel.image.055 — Remaining WebP decode stages need performance decisions
 
-- Evidence: the VP8 DC-only 4x4 transform has a packed saturated row path with a scalar
-  boundary fallback. A Release API comparison on the 4275 × 2451 FileSamples WebP took 362 ms
-  versus 262 ms for ImageMagick's in-process RGBA export (1.38×). The report's reference includes
-  output conversion, so the gap needs stage profiles before it is assigned to the VP8 kernels.
-- Next: profile container read, VP8/VP8L reconstruction, transforms, filtering and YUV conversion
-  separately on the FileSamples image; optimize the dominant stage before widening vectorization.
-- Done when: the measured gap is explained or closed, lossy and lossless fixture pixels remain
-  identical where specified, predictor and boundary modes are exhaustive, and stage benchmarks
-  show the retained gains.
+- Evidence: packed normal deblocking and YUV conversion and the dedicated DC-only reconstruction
+  path cover the lossy FileSamples case. VP8 entropy decoding, full inverse transforms, and VP8L
+  transforms still need measurements against representative inputs. The original Windows comparison
+  and the Linux follow-up are in [the FileSamples report](../bench/results/swagscope-filesamples/README.md).
+- Next: rerun the Windows comparison, then profile the remaining VP8 stages and VP8L transforms
+  on lossy and lossless fixtures before widening vectorization.
+- Done when: remaining hot stages have measured decisions and lossy and lossless output is
+  preserved at the tested predictor, filter, and image boundaries.
 - Related: std.core.043, compiler.codegen.022.
 
 ### std.pixel.image.056 — Remaining palette lookups need a profitable packed strategy
 
 - Evidence: BMP/TGA 16-bit expansion, TGA row reversal and RLE spans, RGB/BGR channel shuffles,
-  GIF fixed quantization and PNG packed-word palette tables already have bulk implementations.
+  GIF palette expansion and fixed quantization, and PNG packed-word palette tables already have
+  bulk implementations.
   Palette lookup still has no general gather/shuffle strategy that beats those direct tables.
 - Evidence: a 16-entry SSSE3 PNG table shuffle lost (2.97x RGB, 1.83x RGBA) while SIMD
   wrappers were still cross-module calls; PNG's packed-u32 lookup beat the gather
   prototype. Neither result settles every palette size or target.
-- Next: profile GIF palette expansion and remaining indexed layouts before selecting gather or
-  shuffle, preserve the existing small-image setup thresholds, and compare against the current
-  packed-word tables rather than an older per-channel loop.
+- Next: profile the remaining indexed layouts before selecting gather or shuffle, preserve the
+  existing small-image setup thresholds, and compare against current packed-word tables.
 - Done when: each remaining indexed path has a measured dispatch decision and covers palette
   size, transparency and tails without invalid reads or changes to decoded pixels.
 - Related: std.core.044.
 
-### std.pixel.image.058 — EXR and GIF image decoding trail ImageMagick on FileSamples
+### std.pixel.image.058 — EXR and GIF need a Windows FileSamples rerun
 
-- Evidence: Release `Image.load` medians for the 640 × 426 EXR and GIF fixtures were 18.962 ms
-  and 14.751 ms; ImageMagick's in-process RGBF32 EXR export and RGBA8 GIF export took 6.700 ms
-  and 10.679 ms. The comparison and its output-conversion limits are recorded in
-  [the FileSamples report](../bench/results/swagscope-filesamples/README.md).
-- Next: profile EXR channel unpacking and GIF palette/frame composition separately, then retain
-  only a change that improves the same decoded output in an interleaved Release comparison.
-- Done when: each codec's dominant cost has a measured decision and no retained path is slower
-  than the reference on these fixtures without improving a separately stated quality or memory
-  requirement.
+- Evidence: the original Windows Release decode lagged ImageMagick on both fixtures, while
+  the revised paths beat the local reference in the Linux follow-up. The API boundaries and
+  reference versions are recorded in [the FileSamples report](../bench/results/swagscope-filesamples/README.md).
+- Next: rerun the interleaved comparison on Windows with the original EXR and GIF files and
+  verify the decoded pixel checksums against the baseline.
+- Done when: both revised decoders preserve the baseline pixels and meet the original Windows
+  reference timings on these fixtures.

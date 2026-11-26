@@ -45,9 +45,8 @@ supported extension was used.
 | `webp/sample1.webp` | 659 KB | 4275 × 2451 | 361.627 | 261.711 | 1.38× |
 
 WebP is the largest raster hot spot by elapsed time. EXR is about 2.8× the ImageMagick path, and
-GIF is about 1.4×. Swag Scope is faster on the other measured raster fixtures. The corpus also has
-one `.jps` file; Swag Scope's JPEG decoder does not register `.jps`, so it is not counted as a
-supported decoder fixture.
+GIF is about 1.4×. Swag Scope is faster on the other measured raster fixtures. The `.jps` alias was
+registered after these measurements, so the original corpus comparison excludes it.
 
 ### Audio
 
@@ -181,3 +180,24 @@ The seven raw timing samples for this report's new comparisons are preserved in
 [`measurements.json`](measurements.json). SVG phase medians remain in the linked `.057` entry. The
 Filesamples catalogue records each source URL and SHA-256; benchmark inputs are not copied into
 this repository.
+
+## Raster decode follow-up on Linux
+
+The Release `Pixel.Image.load` comparison used the same compiler for baseline `335b91f31e` and
+the modified decoder sources. Each implementation warmed up before timing. The table gives
+medians of 21 samples per implementation, taken in rotating order on one pinned CPU of an Intel
+Xeon Platinum 8573C. ImageMagick 7.1.1-43 Q16-HDRI read and exported RGBA8 for integer files and
+RGBF32 for EXR, with its thread limit set to one. The decoded CRC64, dimensions, and Pixel format
+matched for every baseline and candidate decode.
+
+| Fixture | Swag before (ms) | Swag after (ms) | ImageMagick (ms) | Swag speedup |
+| --- | ---: | ---: | ---: | ---: |
+| EXR, 640 × 426 | 48.14 | 2.06 | 9.26 | 23.4× |
+| GIF, 640 × 426 | 21.67 | 5.58 | 11.43 | 3.9× |
+| WebP, 4275 × 2451 | 599.49 | 319.61 | 381.36 | 1.9× |
+
+All three images match the reported byte sizes and dimensions. The follow-up used `sample.exr`
+(`617ff98fb0a1f3b9da819fb9ac8d4af1f75bb4cf9b46dfb881af011bbe176752`), `sample.gif`
+(`eb04e3ff38fc7ecba1f7715ca7dae26b24e03766dc7c43ddeec75d5f1af74acd`), and `sample.webp`
+(`c90994e27f7e26c6b3a94e8a4ebf2ccd46b974852ef3eaf3686d2270cf340abf`). The files came from the
+[Image Extension Dataset mirror](https://github.com/Shin-Aska/image-extension-dataset/tree/501d37367cceafbeaa0aff739ec29cc1d8c1dd2f/files).

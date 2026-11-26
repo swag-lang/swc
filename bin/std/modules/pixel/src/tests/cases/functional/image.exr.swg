@@ -100,14 +100,34 @@ func exrMixedRgbYFixture()->ConcatBuffer
     return result
 }
 
-func exrUnalignedFloatFixture()->ConcatBuffer
+func exrUnalignedFloatFixture(names: const [..] string)->ConcatBuffer
 {
     var channels: ConcatBuffer
-    exrAddText(&channels, "Y")
-    exrAddU32(&channels, 2)     // FLOAT channel.
-    exrAddU32(&channels, 0)
-    exrAddU32(&channels, 1)
-    exrAddU32(&channels, 1)
+    var samples:  ConcatBuffer
+    for name in names
+    {
+        exrAddText(&channels, name)
+        exrAddU32(&channels, name == "A" or name == "B" ? 1 : 2)
+        exrAddU32(&channels, 0)
+        exrAddU32(&channels, 1)
+        exrAddU32(&channels, 1)
+
+        switch name
+        {
+        case "A":
+            samples.addNative(0x3800'u16)     // Half 0.5.
+
+        case "B":
+            samples.addNative(0x0001'u16)     // Smallest half subnormal.
+
+        case "G":
+            exrAddU32(&samples, 0x80000000)     // Float -0.0.
+
+        case "R", "Y":
+            exrAddU32(&samples, 0x3F800000)     // Float 1.0.
+        }
+    }
+
     channels.addNative(0'u8)
 
     var compression: [1] u8 = [0]     // No compression.
@@ -133,8 +153,8 @@ func exrUnalignedFloatFixture()->ConcatBuffer
     while result.count() < chunkOffset do
         result.addNative(0'u8)
     exrAddU32(&result, 0)     // First scanline.
-    exrAddU32(&result, 4)     // One FLOAT sample.
-    exrAddU32(&result, 0x3F800000)     // 1.0f, at an odd address.
+    exrAddU32(&result, cast(u32, samples.count()))
+    result.addBytes(unwrap samples.toSlice())
     return result
 }
 
@@ -184,14 +204,19 @@ func exrUnalignedFloatFixture()->ConcatBuffer
 {
     var source  = Image.create(3, 2, .RGBF16)
     let samples = cast([*] u16, source.pixels.storage())
-    const Values: [6] u16 = [0x0000, 0x3C00, 0x4000, 0x3800, 0xC000, 0x7BFF]
+    const Values: [10] u16 = [0x0001, 0x3C00, 0x4000, 0x8000, 0xC000, 0x7BFF, 0x7C00, 0x7CF1, 0xFE03, 0xFC00]
     for i in 18 do
         samples[i] = Values[i % Values.count]
 
     let encoded = expect source.encode("memory.exr")
     let decoded = expect Image.decode("memory.exr", nnBytes(encoded.toSlice()))
     assertImage(decoded, 3, 2, .RGBF16)
-    Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+
+    // Preserve finite samples, signed zero and infinity, and canonicalize each NaN with its sign.
+    const Expected: [10] u16 = [0x0001, 0x3C00, 0x4000, 0x8000, 0xC000, 0x7BFF, 0x7C00, 0x7E00, 0xFE00, 0xFC00]
+    let decodedSamples = cast(const [*] u16, decoded.pixels.storage())
+    for i in 18 do
+        Swag.require(decodedSamples[i] == Expected[i % Expected.count])
 }
 
 #test
@@ -324,8 +349,20 @@ func exrUnalignedFloatFixture()->ConcatBuffer
 // EXR chunk samples may be unaligned; FLOAT reads must remain safe and little-endian.
 #test
 {
-    let bytes   = exrUnalignedFloatFixture()
+    let bytes   = exrUnalignedFloatFixture(["Y"])
     let decoded = expect Image.decode("unaligned-float.exr", nnBytes(bytes.toSlice()))
     Swag.require(decoded.pixelFormat == .GrayF32)
     Swag.require(cast(const *f32, decoded.pixels.storage())[] == 1.0)
+}
+
+#test
+{
+    let bytes   = exrUnalignedFloatFixture(["A", "B", "G", "R"])
+    let decoded = expect Image.decode("unaligned-mixed.exr", nnBytes(bytes.toSlice()))
+    assertImage(decoded, 1, 1, .RGBAF32)
+    let samples = cast(const [*] u32, decoded.pixels.storage())
+    Swag.require(samples[0] == 0x3F800000)
+    Swag.require(samples[1] == 0x80000000)
+    Swag.require(samples[2] == 0x33800000)
+    Swag.require(samples[3] == 0x3F000000)
 }

@@ -399,7 +399,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
 
 internal impl IImageDecoder for Decoder
 {
-    func impl format(me)->ImageFormat => {"TGA - Truevision Targa", ".tga"}
+    func impl format(me)->ImageFormat => {"TGA - Truevision Targa", ".tga;.icb;.vda;.vst"}
 
     func impl decode(me, buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

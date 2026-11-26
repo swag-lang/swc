@@ -14,6 +14,27 @@ using Swag, Core, Core.Errors
 
 impl Decoder
 {
+    func interlacedLineIndex(height, encodedRow: s32)->s32
+    {
+        var row      = encodedRow
+        var passRows = (height - 1) / 8 + 1
+        if row < passRows do
+            return row * 8
+        row -= passRows
+
+        passRows = height > 4 ? (height - 5) / 8 + 1 : 0
+        if row < passRows do
+            return row * 8 + 4
+        row -= passRows
+
+        passRows = height > 2 ? (height - 3) / 4 + 1 : 0
+        if row < passRows do
+            return row * 4 + 2
+        row -= passRows
+
+        return row * 2 + 1
+    }
+
     mtd readImage(decodePixels = true) fail
     {
         .descriptorOffset    = cast(u64, (.stream - .streamStart))
@@ -30,8 +51,8 @@ impl Decoder
         if not .fw or not .fh or .fw > .width - .fx or .fh > .height - .fy do
             fail InvalidFormatError{"GIF frame rectangle lies outside its canvas"}
 
-        let fisrz     = try .readU8()
-        let interlace = fisrz & 0x40
+        let fisrz = try .readU8()
+        .interlaced = (fisrz & 0x40) != 0
 
         // Ignore Sort Flag
         // Local Color Table?
@@ -51,7 +72,7 @@ impl Decoder
             fail InvalidFormatError{"GIF frame has no color table"}
         if decodePixels
         {
-            try .readImageData(interlace)
+            try .readImageData()
         }
         else
         {

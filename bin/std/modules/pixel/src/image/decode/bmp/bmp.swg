@@ -158,7 +158,7 @@ func makeDefaultMasks(bitCount: u16, compression: u32)->Masks
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => {"BMP - Windows Bitmap", ".bmp"}
+    mtd impl format()->ImageFormat => {"BMP - Windows Bitmap", ".bmp;.dib"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

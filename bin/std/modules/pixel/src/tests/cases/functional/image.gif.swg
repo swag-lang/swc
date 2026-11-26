@@ -239,6 +239,65 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertGifPixelAt(image, 0, 0, 255, 255, 255, 255)
 }
 
+// LZW codes cross sub-blocks while interlaced rows are restored in all four passes.
+#test
+{
+    const Bytes: [72] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        5, 0, 10, 0, 0x81, 0, 0,
+        11, 31, 59, 83, 101, 127, 149, 167, 191, 211, 229, 251,
+        0x2C, 0, 0, 0, 0, 5, 0, 10, 0, 0x40,
+        2,
+        1, 0x44,
+        2, 0xA8, 0x11,
+        1, 0x60,
+        8, 0xC4, 0x81, 0x08, 0x35, 0x42, 0x1C, 0x18, 0x51,
+        17, 0x23, 0x42, 0x85, 0x1A, 0x11, 0x0E, 0x8C, 0xB8, 0x50, 0x23, 0xC2, 0x81, 0x11, 0x17, 0x6A, 0x44, 0x0A,
+        0, 0x3B]
+    let image = expect Image.decode("interlaced-split-blocks.gif", Bytes)
+    Swag.require(image.width == 5 and image.height == 10)
+    const Colors: [4, 3] u8 = [[11, 31, 59], [83, 101, 127], [149, 167, 191], [211, 229, 251]]
+    for y in image.height
+    {
+        for x in image.width
+        {
+            let index = (x + y) % 4
+            assertGifPixelAt(image, x, image.height - y - 1, Colors[index, 0], Colors[index, 1], Colors[index, 2], 255)
+        }
+    }
+}
+
+// A single opaque frame still uses its logical screen if its rectangle is smaller.
+#test
+{
+    const Bytes: [35] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        3, 0, 2, 0, 0x80, 0, 0,
+        19, 43, 71, 109, 151, 197,
+        0x2C, 2, 0, 1, 0, 1, 0, 1, 0, 0,
+        2, 2, 0x4C, 0x01, 0, 0x3B]
+    let image = expect Image.decode("opaque-partial-frame.gif", Bytes)
+    Swag.require(image.width == 3 and image.height == 2)
+    Swag.require(image.pixelFormat == .RGB8)
+    assertGifPixelAt(image, 2, 0, 109, 151, 197, 255)
+    assertGifPixelAt(image, 2, 1, 19, 43, 71, 255)
+    assertGifPixelAt(image, 1, 0, 19, 43, 71, 255)
+}
+
+// A literal allowed by LZW is still invalid when it has no palette entry.
+#test
+{
+    const Bytes: [35] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        1, 0, 1, 0, 0x80, 0, 0,
+        0, 0, 0, 255, 255, 255,
+        0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+        2, 2, 0x54, 0x01, 0, 0x3B]
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("invalid-palette-index.gif", Bytes) as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 #test
 {
     var bytes = expect File.readAllBytes(getTestDataPath("test.gif"))

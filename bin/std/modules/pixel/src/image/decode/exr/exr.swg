@@ -119,7 +119,58 @@ func channelComponent(name: string)->s32
     return -1
 }
 
-func writeChunk(image: *Image, channels: const [..] Channel, source: const [..] u8, firstY, rowCount, yMin: s32) fail
+func writeColorChunk(image: *Image, channels: const [..] Channel, source: const [..] u8, firstRow, rowCount: s32)
+{
+    let halfOutput = image.pixelFormat.bitDepth() == 16
+    let components = cast(u64, image.pixelFormat.channels())
+    var offset     = 0'u64
+    for row in rowCount
+    {
+        let targetY   = image.height - firstRow - row - 1
+        let targetRow = image.pixels.storage() + cast(u64, targetY) * image.rowStride
+        for channel in channels
+        {
+            let input       = source.buffer + offset
+            let halfInput   = channel.pixelType == 1
+            var targetIndex = cast(u64, channelComponent(channel.name))
+            offset += cast(u64, image.width) * (halfInput ? 2 : 4)
+
+            // Write each plane directly without converting the other pixel components.
+            if halfOutput
+            {
+                let target = cast([*] u16, targetRow)
+                for x in image.width
+                {
+                    let value = readU16(input + cast(u64, x) * 2)
+
+                    // Canonicalize the NaN payload while preserving its sign.
+                    target[targetIndex] = (value & 0x7FFF) > 0x7C00 ? (value & 0x8000) | 0x7E00 : value
+                    targetIndex         += components
+                }
+            }
+            elif halfInput
+            {
+                let target = cast([*] f32, targetRow)
+                for x in image.width
+                {
+                    target[targetIndex] = halfToFloat(readU16(input + cast(u64, x) * 2))
+                    targetIndex         += components
+                }
+            }
+            else
+            {
+                let target = cast([*] u32, targetRow)
+                for x in image.width
+                {
+                    target[targetIndex] = readU32(input + cast(u64, x) * 4)
+                    targetIndex         += components
+                }
+            }
+        }
+    }
+}
+
+func writeGrayscaleChunk(image: *Image, channels: const [..] Channel, source: const [..] u8, firstY, rowCount, yMin: s32) fail
 {
     var offset = 0'u64
     for row in rowCount
@@ -328,7 +379,11 @@ impl Part
         if not options.decodePixels do
             return result
         result.allocPixels()
-        result.fill(Argb.Black)
+        let grayscale = result.pixelFormat.isGrayscale()
+
+        // Validated RGB(A) channels write every component, and chunk validation covers every row.
+        if grayscale do
+            result.fill(Argb.Black)
         let linesPerChunk = .compression == 3 ? 16'u64 : 1'u64
         var seenRows: Array'bool
         seenRows.resize(cast(u64, .info.height))
@@ -378,7 +433,14 @@ impl Part
 
             if pixels.count != expected do
                 fail InvalidFormatError{"OpenEXR scanline chunk has an invalid size"}
-            try writeChunk(&result, .channels.toSlice(), pixels, firstY, rows, .yMin)
+            if grayscale
+            {
+                try writeGrayscaleChunk(&result, .channels.toSlice(), pixels, firstY, rows, .yMin)
+            }
+            else
+            {
+                writeColorChunk(&result, .channels.toSlice(), pixels, cast(s32, relativeY), rows)
+            }
         }
 
         return result

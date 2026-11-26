@@ -354,6 +354,48 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
 
 func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
 {
+    using Math.Simd
+
+    // Convert sixteen luma samples that share eight pairs of chroma samples.
+    #[Swag.Inline]
+    func convertBlock(destination: [*] u8, y, cb, cr: const [*] u8, alpha: U8x16)
+    {
+        let zero = splat(0'u8)
+        let luma = load(y)
+        let cb8  = cast #bit(U8x16, splat(cast(const [*] u64, cb)[0]))
+        let cr8  = cast #bit(U8x16, splat(cast(const [*] u64, cr)[0]))
+
+        // Shifting the samples left by eight lets the high product round exactly as (sample * coefficient) >> 8.
+        let yLo   = cast #bit(S16x8, mulHigh(cast #bit(U16x8, interleaveLow(zero, luma)), splat(19077'u16)))
+        let yHi   = cast #bit(S16x8, mulHigh(cast #bit(U16x8, interleaveHigh(zero, luma)), splat(19077'u16)))
+        let cb16  = cast #bit(U16x8, interleaveLow(zero, cb8))
+        let cr16  = cast #bit(U16x8, interleaveLow(zero, cr8))
+        let rBias = mulHigh(cr16, splat(26149'u16)) - 14234'u16
+        let gBias = 8708'u16 - mulHigh(cb16, splat(6419'u16)) - mulHigh(cr16, splat(13320'u16))
+        let bBias = mulHigh(cb16, splat(33050'u16)) - 17685'u16
+
+        let rLo = yLo + cast #bit(S16x8, interleaveLow(rBias, rBias))
+        let rHi = yHi + cast #bit(S16x8, interleaveHigh(rBias, rBias))
+        let gLo = yLo + cast #bit(S16x8, interleaveLow(gBias, gBias))
+        let gHi = yHi + cast #bit(S16x8, interleaveHigh(gBias, gBias))
+
+        // Blue can exceed s16's positive range. Saturation preserves its final clip to 255.
+        let bLo   = addSaturating(yLo, cast #bit(S16x8, interleaveLow(bBias, bBias)))
+        let bHi   = addSaturating(yHi, cast #bit(S16x8, interleaveHigh(bBias, bBias)))
+        let red   = packUnsigned(rLo >> WEBP_YUV_FIX, rHi >> WEBP_YUV_FIX)
+        let green = packUnsigned(gLo >> WEBP_YUV_FIX, gHi >> WEBP_YUV_FIX)
+        let blue  = packUnsigned(bLo >> WEBP_YUV_FIX, bHi >> WEBP_YUV_FIX)
+
+        let rgLo = cast #bit(U16x8, interleaveLow(red, green))
+        let rgHi = cast #bit(U16x8, interleaveHigh(red, green))
+        let baLo = cast #bit(U16x8, interleaveLow(blue, alpha))
+        let baHi = cast #bit(U16x8, interleaveHigh(blue, alpha))
+        store(destination, cast #bit(U8x16, interleaveLow(rgLo, baLo)))
+        store(destination + 16, cast #bit(U8x16, interleaveHigh(rgLo, baLo)))
+        store(destination + 32, cast #bit(U8x16, interleaveLow(rgHi, baHi)))
+        store(destination + 48, cast #bit(U8x16, interleaveHigh(rgHi, baHi)))
+    }
+
     result.allocPixels()
     let yData   = cast([*] u8, decoder.y.storage())
     let cbData  = cast([*] u8, decoder.cb.storage())
@@ -365,22 +407,33 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
 
     for y in height
     {
-        let sourceRow = y * decoder.yStride
-        let chromaRow = (y >> 1) * decoder.cStride
+        let luma    = yData + y * decoder.yStride
+        let cb      = cbData + (y >> 1) * decoder.cStride
+        let cr      = crData + (y >> 1) * decoder.cStride
+        let aOffset = cast(u64, y) * width
 
         // VP8 planes are top-down while Image stores row zero at the bottom.
-        var destination = cast(u64, (height - y - 1)) * width * 4
-        let alphaRow    = cast(u64, y) * width
-        for x in width
+        var destination = outData + cast(u64, (height - y - 1)) * width * 4
+        var x = 0
+        while x + 16 <= width
         {
-            let luma = cast(s32, yData[sourceRow + x])
-            let cb   = cast(s32, cbData[chromaRow + (x >> 1)])
-            let cr   = cast(s32, crData[chromaRow + (x >> 1)])
-            outData[destination + 0] = vp8YuvToR(luma, cr)
-            outData[destination + 1] = vp8YuvToG(luma, cb, cr)
-            outData[destination + 2] = vp8YuvToB(luma, cb)
-            outData[destination + 3] = aData ? aData[alphaRow + x] : 0xFF
-            destination += 4
+            let opacity = aData ? load(aData + aOffset + x) : splat(0xFF'u8)
+            convertBlock(destination, luma + x, cb + (x >> 1), cr + (x >> 1), opacity)
+            destination += 64
+            x += 16
+        }
+
+        while x < width
+        {
+            let yValue  = cast(s32, luma[x])
+            let cbValue = cast(s32, cb[x >> 1])
+            let crValue = cast(s32, cr[x >> 1])
+            destination[0] = vp8YuvToR(yValue, crValue)
+            destination[1] = vp8YuvToG(yValue, cbValue, crValue)
+            destination[2] = vp8YuvToB(yValue, cbValue)
+            destination[3] = aData ? aData[aOffset + x] : 0xFF
+            destination    += 4
+            x += 1
         }
     }
 }

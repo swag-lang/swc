@@ -25,7 +25,7 @@ private struct Fixture
 // Every canonical format fixture and named variant selects its intended reading surface.
 #test
 {
-    const Cases: [212] Fixture = [
+    const Cases: [219] Fixture = [
         Fixture{"viewer.txt", "text"},
         Fixture{"viewer.field-notes.txt", "text"},
         Fixture{"viewer.cpp", "code"},
@@ -114,6 +114,7 @@ private struct Fixture
         Fixture{"viewer.dense-solid.svg", "image"},
         Fixture{"viewer.watershed-map.svg", "image"},
         Fixture{"viewer.bmp", "image"},
+        Fixture{"viewer.dib", "image", "viewer.bmp"},
         Fixture{"viewer.dds", "image"},
         Fixture{"viewer.exr", "image"},
         Fixture{"viewer.gif", "image"},
@@ -122,11 +123,17 @@ private struct Fixture
         Fixture{"viewer.jpeg", "image"},
         Fixture{"viewer.alias.jpe", "image"},
         Fixture{"viewer.alias.jfif", "image"},
+        Fixture{"viewer.jif", "image", "viewer.jpg"},
+        Fixture{"viewer.jfi", "image", "viewer.jpg"},
+        Fixture{"viewer.JPS", "image", "viewer.jpg"},
         Fixture{"viewer.ktx2", "image"},
         Fixture{"viewer.png", "image"},
         Fixture{"viewer.psd", "image"},
         Fixture{"viewer.qoi", "image"},
         Fixture{"viewer.tga", "image"},
+        Fixture{"viewer.icb", "image", "viewer.tga"},
+        Fixture{"viewer.vda", "image", "viewer.tga"},
+        Fixture{"viewer.vst", "image", "viewer.tga"},
         Fixture{"viewer.tif", "image"},
         Fixture{"viewer.tiff", "image"},
         Fixture{"viewer.webp", "image"},

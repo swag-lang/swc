@@ -121,12 +121,25 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     assertJpgPixelNear(img, expectedB, expectedG, expectedR, tolerance)
 }
 
-// Decoder and encoder registries accept both JPEG extensions.
+// The decoder registry accepts JPEG aliases, including stereoscopic JPEG containers.
 #test
 {
-    Swag.require(Image.canLoad("photo.jpg"))
-    Swag.require(Image.canLoad("photo.jpeg"))
+    let bytes     = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
+    let reference = expect Image.decode("photo.jpg", bytes.toSlice())
+    for name in ["photo.jpeg", "photo.JPE", "photo.jfif", "photo.jif", "photo.jfi", "photo.JPS"]
+    {
+        Swag.require(Jpg.matchesFileName(name) and Image.canLoad(name))
+        var reader = expect ImageReader.decode(name, bytes.toSlice())
+        Swag.require(reader.info.frames.count == 1)
+        let image = expect reader.read(0)
+        Swag.require(image.width == reference.width and image.height == reference.height)
+        Swag.require(image.pixelFormat == reference.pixelFormat and image.byteCount == reference.byteCount)
+        Swag.require(Memory.compare(image.pixels.storage(), reference.pixels.storage(), reference.byteCount) == 0)
+    }
+
+    Swag.require(not Jpg.matchesFileName("photo.jxl"))
     Swag.require(not Image.canLoad("photo.jxl"))
+    Swag.require(not Image.canSave("photo.jps"))
     Swag.require(Image.canSave("photo.jpg"))
     Swag.require(Image.canSave("photo.jpeg"))
 }

@@ -7,6 +7,11 @@
 
 using Swag, Core, Core.Errors
 
+private const DecoderFormat: ImageFormat = {"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg;.jpe;.jfif;.jif;.jfi;.jps"}
+
+// Reports whether the filename extension selects the built-in JPEG decoder.
+public func matchesFileName(fileName: string)->bool => DecoderFormat.matches(fileName)
+
 private
 {
     // Marker lookahead may return four bytes before the current input window.
@@ -306,7 +311,7 @@ impl Decoder
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => {"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg;.jpe;.jfif"}
+    mtd impl format()->ImageFormat => DecoderFormat
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

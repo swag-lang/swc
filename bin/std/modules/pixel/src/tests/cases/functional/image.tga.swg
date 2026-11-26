@@ -378,11 +378,20 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     }
 }
 
-// Decoder and encoder registries recognise TGA files.
+// Truevision's legacy extensions select the same decoder as TGA.
 #test
 {
+    let source = Image.create(1, 1, .BGR8, [10'u8, 20, 30])
+    let bytes  = expect source.encodeToBytes("out.tga")
     Swag.require(Image.canLoad("in.tga"))
     Swag.require(Image.canSave("out.tga"))
+    for name in ["in.ICB", "in.vda", "in.vst"]
+    {
+        Swag.require(Image.canLoad(name))
+        let image = expect Image.decode(name, bytes.toSlice())
+        Swag.require(image.width == 1 and image.height == 1)
+        Swag.require(image.pixelColor(0, 0) == source.pixelColor(0, 0))
+    }
 }
 
 // Decode a raw 2x2 24-bit TGA with the default bottom-left origin.

@@ -34,6 +34,58 @@ func webpExpectedChannel(value: s32)->u8 => cast(u8, Math.clamp(value, 0, 255))
 
 func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 8
 
+// Packed conversion and its odd tail keep scalar rounding, clipping, and alpha.
+#test
+{
+    const Width  = 33's32
+    const Height = 3's32
+    var input   = [0'u8]
+    var decoder = Webp.Vp8Decoder{source: &input[0], header: {width: Width, height: Height}, mbWidth: 3, mbHeight: 1}
+    Webp.vp8AllocatePlanes(&decoder)
+
+    var alpha: Array'u8
+    alpha.resize(Width * Height)
+    for row in Height
+    {
+        for x in Width
+        {
+            decoder.y[row * decoder.yStride + x] = x % 3 == 0 ? 255 : cast(u8, ((row * 23 + x * 17) % 256))
+            alpha[row * Width + x] = cast(u8, ((row * 13 + x * 7) % 256))
+        }
+
+        for x in (Width + 1) / 2
+        {
+            decoder.cb[(row / 2) * decoder.cStride + x] = x % 3 == 0 ? 255 : cast(u8, ((x * 19) % 256))
+            decoder.cr[(row / 2) * decoder.cStride + x] = cast(u8, ((x * 29) % 256))
+        }
+    }
+
+    var opaque: Image
+    opaque.init(Width, Height, .RGBA8)
+    var rgba: Image
+    rgba.init(Width, Height, .RGBA8)
+    var noAlpha: Array'u8
+    Webp.vp8ToRgba(&decoder, &noAlpha, &opaque)
+    Webp.vp8ToRgba(&decoder, &alpha, &rgba)
+    for row in Height
+    {
+        for x in Width
+        {
+            let yValue  = cast(s32, decoder.y[row * decoder.yStride + x])
+            let cbValue = cast(s32, decoder.cb[(row / 2) * decoder.cStride + x / 2])
+            let crValue = cast(s32, decoder.cr[(row / 2) * decoder.cStride + x / 2])
+            let pixel   = rgba.pixelColor(x, row)
+            let filled  = opaque.pixelColor(x, row)
+            Swag.require(pixel.r == Webp.vp8YuvToR(yValue, crValue))
+            Swag.require(pixel.g == Webp.vp8YuvToG(yValue, cbValue, crValue))
+            Swag.require(pixel.b == Webp.vp8YuvToB(yValue, cbValue))
+            Swag.require(pixel.a == alpha[row * Width + x])
+            Swag.require(filled.r == pixel.r and filled.g == pixel.g and filled.b == pixel.b)
+            Swag.require(filled.a == 255)
+        }
+    }
+}
+
 func assertWebpPixelFromTop(image: Image, x, y, r, g, b, a: u8)
 {
     let color = image.pixelColor(x, y)

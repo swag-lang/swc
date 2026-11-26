@@ -10,6 +10,11 @@ DDS, EXR, GIF, ICO, JPEG, KTX2, PNG, PSD, QOI, TGA, TIFF, and WebP. Every format
 PSD also has a built-in encoder where the container has a useful flattened-image
 writing contract.
 
+The BMP decoder also accepts packed `.dib` bitmaps. The JPEG decoder accepts `.jpe`,
+`.jfif`, `.jif`, `.jfi`, and `.jps` in addition to `.jpg` and `.jpeg`. A `.jps` file
+loads as one stored JPEG image with its stereo layout intact. The TGA decoder also
+accepts `.icb`, `.vda`, and `.vst`.
+
 ```swag
 using Pixel
 

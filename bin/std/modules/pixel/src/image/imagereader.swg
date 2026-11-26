@@ -265,7 +265,9 @@ public impl ImageReader
     }
 
     // Decodes a zero-based image index, failing for a closed reader or an out-of-range index.
-    mtd read(index: u32)->Image fail
+    mtd read(index: u32)->Image fail => try .readFrame(index, composeAnimation: true)
+
+    internal mtd readFrame(index: u32, composeAnimation: bool)->Image fail
     {
         if not .decoder or index >= .info.frames.count do
             fail InvalidFormatError{"image index is outside the open container"}
@@ -278,7 +280,7 @@ public impl ImageReader
             return image
         }
 
-        if .info.frames[index].kind != .Animation
+        if not composeAnimation or .info.frames[index].kind != .Animation
         {
             let image = try multiple.readFrame(index, .options)
             try .validateDecodedFrame(.info.frames[index], image)

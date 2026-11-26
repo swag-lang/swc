@@ -12,6 +12,54 @@
 
 using Swag, Core, Core.Errors
 
+private const LzwDictionaryLimit = 1 << 12
+
+private struct LzwBits
+{
+    cursor:    const [*] u8
+    blockEnd:  const [*] u8
+    bits:      u64
+    available: s32
+}
+
+impl LzwBits
+{
+    #[Swag.Inline]
+    mtd readKey(width: s32)->u16
+    {
+        while .available < width
+        {
+            if .cursor == .blockEnd
+            {
+                let length = .cursor[0]
+                if not length do
+                    return LzwDictionaryLimit
+                .cursor   += 1
+                .blockEnd = .cursor + length
+            }
+
+            // The sub-block scan already validated the byte ranges and terminator.
+            if .blockEnd - .cursor >= 4
+            {
+                .bits      |= cast(u64, cast(const [*] u32, .cursor)[0]) << .available
+                .cursor    += 4
+                .available += 32
+            }
+            else
+            {
+                .bits      |= cast(u64, .cursor[0]) << .available
+                .cursor    += 1
+                .available += 8
+            }
+        }
+
+        let key = cast(u16, (.bits & ((1'u64 << width) - 1)))
+        .bits      >>= width
+        .available -= width
+        return key
+    }
+}
+
 impl Decoder
 {
     mtd initTable(keySize: s32)
@@ -20,41 +68,10 @@ impl Decoder
         .table.nentries = (1 << keySize) + 2
         .table.entries.resize(.table.bulk)
         for key in 1 << keySize do
-            .table.entries[key] = Entry{1, 0xFFF, cast(u8, key)}
+            .table.entries[key] = Entry{1, 0, cast(u8, key)}
     }
 
-    mtd getKey(keySize: s32, subLen, shift, byte: *u8)->u16 fail
-    {
-        var key      = 0'u32
-        var fragSize = 0
-        for var bitsRead = 0; bitsRead < keySize; bitsRead += fragSize
-        {
-            let rpad = (shift[] + bitsRead) % 8
-            if rpad == 0
-            {
-                // Update byte.
-                if subLen[] == 0
-                {
-                    subLen[] = try .readU8()     // Must be nonzero!
-                    if subLen[] == 0 do
-                        return 0x1000
-                }
-
-                byte[]   = try .readU8()
-                subLen[] -= 1
-            }
-
-            fragSize = Math.min(cast(s32, (keySize - bitsRead)), cast(s32, (8 - rpad)))
-            key      |= (cast(u32, byte[]) >> rpad) << bitsRead
-        }
-
-        // Clear extra bits to the left
-        key     &= (1'u32 << keySize) - 1
-        shift[] = cast(u8, ((shift[] + keySize) % 8))
-        return cast(u16, key)
-    }
-
-    mtd addEntry(length: u16, prefix: u16, suffix: u8)->s32
+    mtd addEntry(length: u16, prefix: u16, suffix: u8)->bool
     {
         if .table.nentries == .table.bulk
         {
@@ -64,128 +81,89 @@ impl Decoder
 
         .table.entries[.table.nentries] = {length, prefix, suffix}
         .table.nentries += 1
-        if (.table.nentries & (.table.nentries - 1)) == 0 do
-            return 1
-        return 0
+        return (.table.nentries & (.table.nentries - 1)) == 0
     }
 
-    func interlacedLineIndex(h0, y0: s32)->s32
+    mtd readImageData() fail
     {
-        let h = h0
-        var y = y0
-        var p = (h - 1) / 8 + 1
-        if y < p do
-            return y * 8
-        y -= p
-        p = h > 4 ? (h - 5) / 8 + 1 : 0
-        if y < p do
-            return y * 8 + 4
-        y -= p
-        p = h > 2 ? (h - 3) / 4 + 1 : 0
-        if y < p do
-            return y * 4 + 2
-        y -= p
-
-        // pass 4
-        return y * 2 + 1
-    }
-
-    mtd readImageData(interlace: u8) fail
-    {
-        var byte    = try .readU8()
-        var keySize = cast(s32, byte)
-        if keySize < 2 or keySize > 8 do
+        let minKeySize = cast(s32, (try .readU8()))
+        if minKeySize < 2 or minKeySize > 8 do
             fail InvalidFormatError{"invalid frame"}
 
-        let start       = cast(u64, (.stream - .streamStart))
-        let remainStart = .streamLen
+        let start = .safeStream()
+        var bits  = LzwBits{cursor: start, blockEnd: start}
         try .discardSubBlocks()
-        let end       = cast(u64, (.stream - .streamStart))
-        let remainEnd = .streamLen
-        .stream    = .streamStart + start
-        .streamLen = remainStart
 
-        let clear = 1 << keySize
-        let stop  = clear + 1
-        .initTable(keySize)
-        keySize += 1
-        let initKeySize   = keySize
-        var subLen, shift = 0'u8
-        var key           = try .getKey(keySize, &subLen, &shift, &byte)     // clear code
-        var frmOff        = 0
-        var ret           = 0
-        let frmSize       = cast(u32, .fw) * .fh
-        var tableIsFull   = 0
-        var hasEndCode    = false
-        var strLen        = 0'u16
+        let frameSize = cast(u32, .fw) * .fh
+        .frame.resize(frameSize)
+        let frame = .frame.storage()
 
-        var entry: Entry
+        let clear       = 1 << minKeySize
+        let stop        = clear + 1
+        let initKeySize = minKeySize + 1
+        .initTable(minKeySize)
+        var keySize = initKeySize
+        var key     = bits.readKey(keySize)
         if key != clear do
             fail InvalidFormatError{"GIF LZW stream does not start with a clear code"}
-        while true
+
+        var frameOffset = 0'u32
+        var tableIsFull = false
+        var length      = 0'u16
+        var entry: Entry
+        for
         {
+            var growKey = false
             if key == clear
             {
                 keySize         = initKeySize
-                .table.nentries = (1 << (keySize - 1)) + 2
-                tableIsFull     = 0
+                .table.nentries = stop + 1
+                tableIsFull     = false
             }
-            elif frmOff < frmSize and not tableIsFull
+            elif frameOffset < frameSize and not tableIsFull
             {
-                ret = .addEntry(cast(u16, (strLen + 1)), key, entry.suffix)
-                if .table.nentries == 0x1000
-                {
-                    ret         = 0
-                    tableIsFull = 1
-                }
+                // If the next code names this new entry, its suffix is the previous string's first index.
+                growKey     = .addEntry(length + 1, key, entry.suffix)
+                tableIsFull = .table.nentries == LzwDictionaryLimit
             }
 
-            key = try .getKey(keySize, &subLen, &shift, &byte)
+            key = bits.readKey(keySize)
             if key == clear do
                 continue
-            if key == stop
-            {
-                hasEndCode = true
-                break
-            }
-
-            if key == 0x1000 do
+            if key == stop or key == LzwDictionaryLimit do
                 break
             if key >= .table.nentries do
                 fail InvalidFormatError{"GIF LZW code is outside its dictionary"}
-            if frmOff >= frmSize do
+            if frameOffset >= frameSize do
                 fail InvalidFormatError{"GIF LZW data exceeds its frame"}
-            entry  = .table.entries.storage()[key]
-            strLen = entry.length
-            if not strLen or strLen > frmSize - frmOff do
+
+            let entries = .table.entries.storage()
+            entry  = entries[key]
+            length = entry.length
+            if not length or length > frameSize - frameOffset do
                 fail InvalidFormatError{"GIF LZW string exceeds its frame"}
-            for strLen
+
+            // Each dictionary entry links to a previously decoded, shorter string.
+            var target = frame + frameOffset + length - 1
+            for length - 1
             {
-                let p = frmOff + entry.length - 1
-                let x = p % .fw
-                var y = p / .fw
-                if interlace do
-                    y = interlacedLineIndex(cast(s32, .fh), y)
-                .frame[(.fy + y) * .width + .fx + x] = entry.suffix
-                if entry.prefix == 0xFFF do
-                    break
-                if entry.prefix >= .table.nentries do
-                    fail InvalidFormatError{"GIF LZW prefix is outside its dictionary"}
-                entry = .table.entries.storage()[entry.prefix]
+                target[0] = entry.suffix
+                target    -= 1
+                entry     = entries[entry.prefix]
             }
 
-            frmOff += strLen
-            if ret == 1 and frmOff < frmSize do
+            target[0] = entry.suffix
+
+            frameOffset += length
+            if growKey and not tableIsFull and frameOffset < frameSize do
                 keySize += 1
             if key < .table.nentries - 1 and not tableIsFull do
-                .table.entries[.table.nentries - 1].suffix = entry.suffix
+                entries[.table.nentries - 1].suffix = entry.suffix
         }
 
-        if frmOff != frmSize do
+        if frameOffset != frameSize do
             fail InvalidFormatError{"GIF LZW frame has too few pixels"}
-        if not hasEndCode do
+        if key != stop do
             fail InvalidFormatError{"GIF LZW stream needs an end code"}
-        .stream    = .streamStart + end
-        .streamLen = remainEnd
     }
 }

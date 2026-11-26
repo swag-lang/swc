@@ -1327,7 +1327,8 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
         Swag.require(bmp.count == dib.count + #sizeof(Bmp.FileHeader))
         Swag.require(Memory.compare(bmp.storage() + #sizeof(Bmp.FileHeader), dib.storage(), dib.count) == 0)
         Swag.require(dib.count == #sizeof(Bmp.Header) + 24)
-        let decoded = expect Image.decode("image.bmp", dib.toSlice())
+        Swag.require(Image.canLoad("image.DIB"))
+        let decoded = expect Image.decode("image.DIB", dib.toSlice())
         for y in source.height
         {
             for x in source.width do

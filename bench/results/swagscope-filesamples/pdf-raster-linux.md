@@ -306,3 +306,37 @@ render. Times are milliseconds.
 The Swag raster CRC-32 matched at both sizes and on every supported page
 of the 44-case corpus. At 2400 px, 86 ms of the remaining 105 ms are in
 render.
+
+## SIMD for cached image rows
+
+The CPU sampler interpolates four pixels at once between two rows that
+were already filtered horizontally. A signed multiply-high preserves the
+16.16 fixed-point vertical interpolation, including weights on either
+side of one half. The same loop writes opaque RGB and blends straight-alpha
+images into BGRA targets.
+
+One-core Release medians below use 11 interleaved measurements at each
+size, against `b50a786180` and PDFium 159.0.8149.0. Times are milliseconds.
+The SIMD loop applies to enlargements with cached horizontal rows.
+[Phase timings and corpus checksums](pdf-raster-linux-image-simd.json)
+
+| PDF | Long side | Swag render before | Swag render after | PDFium render | Swag total before | Swag total after | PDFium total |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `pdfbox-jpeg.pdf` | 1200 | 11.33 | 8.30 | 2.69 | 12.45 | 9.33 | 2.79 |
+| `pdfbox-scan.pdf` | 1200 | 10.34 | 6.82 | 1.75 | 10.77 | 7.22 | 1.83 |
+| `perf_images_jpeg_large.pdf` | 1200 | 32.82 | 39.84 | 95.59 | 101.33 | 104.18 | 96.03 |
+| `perf_images_scan_gray.pdf` | 1200 | 31.67 | 31.66 | 33.23 | 83.95 | 85.31 | 34.50 |
+| `perf_images_indexed.pdf` | 1200 | 32.61 | 33.60 | 31.77 | 51.91 | 52.40 | 31.95 |
+| `perf_images_16bit.pdf` | 1200 | 30.44 | 31.27 | 16.17 | 47.89 | 48.86 | 16.51 |
+| `pdfbox-jpeg.pdf` | 2400 | 44.54 | 32.00 | 6.17 | 45.57 | 33.19 | 6.39 |
+| `pdfbox-scan.pdf` | 2400 | 41.98 | 27.51 | 5.41 | 42.44 | 28.13 | 5.51 |
+| `perf_images_jpeg_large.pdf` | 2400 | 126.26 | 132.18 | 130.76 | 196.45 | 203.28 | 131.25 |
+| `perf_images_scan_gray.pdf` | 2400 | 131.28 | 132.81 | 51.07 | 188.46 | 190.48 | 52.51 |
+| `perf_images_indexed.pdf` | 2400 | 137.88 | 125.45 | 52.89 | 157.98 | 145.07 | 53.09 |
+| `perf_images_16bit.pdf` | 2400 | 84.73 | 60.61 | 27.32 | 102.45 | 80.93 | 27.66 |
+
+All 43 supported corpus pages and the focused pages at both resolutions
+produced the same Swag CRC-32. The Pixel suite checks all 65,537 weights
+against the scalar expression and exercises mirrored blending with
+transparent texels. Large downscaled images still filter their source
+rows separately.

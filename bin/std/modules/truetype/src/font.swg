@@ -193,6 +193,7 @@ struct FaceImpl
     cff:           CffFont
     sharedCff:     *CffFont?
     type1:         Type1Font
+    sharedType1:   const *Type1Font?
 
     // Unicode map built from the font's own encoding, for a program that ships no `cmap`.
     // A bare CFF or Type 1 file is addressed by name or by code, and this is what still
@@ -276,6 +277,16 @@ impl FaceImpl
     #[Swag.Inline]
     mtd const cffFont()->const *CffFont => .sharedCff orelse &.cff
 
+    mtd loadType1(bytes: const [..] u8) fail
+    {
+        .sharedType1 = try .fontSource.cachedType1(bytes)
+        if not .sharedType1 do
+            .type1 = try parseType1Font(bytes)
+    }
+
+    #[Swag.Inline]
+    mtd const type1Font()->const *Type1Font => .sharedType1 orelse &.type1
+
     #[Swag.Inline]
     mtd postGlyphNames()->*GlyphNames => .sharedPostNames orelse &.postNames
 
@@ -321,7 +332,7 @@ impl FaceImpl
         switch #complete .outlineSource
         {
         case .Cff:   return .cffFont().glyphNames.glyphIndex(name)
-        case .Type1: return .type1.nameToGid.getOrDefault(String.from(name), 0)
+        case .Type1: return .type1Font().nameToGid.getOrDefault(String.from(name), 0)
         case .Glyf:  return .postGlyphNames().glyphIndex(name)
         }
     }
@@ -338,11 +349,12 @@ impl FaceImpl
             return .cffFont().glyphNames.nameOf(glyphIndex)
 
         case .Type1:
-            if glyphIndex >= .type1.glyphNames.count do
+            let names = &.type1Font().glyphNames
+            if glyphIndex >= names.count do
                 return null
-            if not .type1.glyphNames[glyphIndex].length do
+            if not names[glyphIndex].length do
                 return null
-            return .type1.glyphNames[glyphIndex].toString()
+            return names[glyphIndex].toString()
 
         case .Glyf:
             return .postGlyphNames().nameOf(glyphIndex)
@@ -355,7 +367,7 @@ impl FaceImpl
         switch #complete .outlineSource
         {
         case .Cff:   return .cffFont().glyphIndexByCode(code)
-        case .Type1: return .type1.codeToGid.getOrDefault(code, 0)
+        case .Type1: return .type1Font().codeToGid.getOrDefault(code, 0)
         case .Glyf:  return 0
         }
     }

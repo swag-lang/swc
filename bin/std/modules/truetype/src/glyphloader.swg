@@ -303,7 +303,7 @@ func appendCharstringGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u
     if faceData.outlineSource == .Cff do
         discard try runType2Charstring(faceData.cffFont(), glyphIndex, &builder)
     else do
-        discard try runType1Charstring(&faceData.type1, glyphIndex, &builder)
+        discard try runType1Charstring(faceData.type1Font(), glyphIndex, &builder)
 }
 
 func loadGlyphInternal(face: *Face, glyphIndex: u32) fail

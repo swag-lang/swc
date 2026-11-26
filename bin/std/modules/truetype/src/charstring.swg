@@ -808,7 +808,7 @@ func cffGlyphForStandardCode(font: *CffFont, code: u8)->u32
 // Everything one run of a Type 1 charstring carries between its operators.
 struct Type1State
 {
-    late font: *Type1Font
+    late font: const *Type1Font
     builder:   *OutlineBuilder?
     stack:     [MaxCharstringStack] f64
     depth:     u32
@@ -1179,7 +1179,7 @@ private func execType1OtherSubr(state: *Type1State)
     }
 }
 
-func type1CharstringWidth(font: *Type1Font, gid: u32)->f64 fail
+func type1CharstringWidth(font: const *Type1Font, gid: u32)->f64 fail
 {
     if gid >= font.charstrings.count do
         try fault(0x10)
@@ -1209,7 +1209,7 @@ func type1CharstringWidth(font: *Type1Font, gid: u32)->f64 fail
 //
 // Pass a null `builder` to resolve the width alone, which stops at the sidebearing operator
 // every charstring opens with.
-func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->f64 fail
+func runType1Charstring(font: const *Type1Font, gid: u32, builder: *OutlineBuilder?)->f64 fail
 {
     if cast(u64, gid) >= font.charstrings.count do
         try fault(0x10)
@@ -1242,7 +1242,7 @@ func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->
     return state.width
 }
 
-private func runType1ComposedAccent(font: *Type1Font, gid: u32, builder: *OutlineBuilder, adx, ady: f64) fail
+private func runType1ComposedAccent(font: const *Type1Font, gid: u32, builder: *OutlineBuilder, adx, ady: f64) fail
 {
     let first = cast(u32, builder.face.outlinePoints.count)
     discard try runType1Charstring(font, gid, builder)
@@ -1256,7 +1256,7 @@ private func runType1ComposedAccent(font: *Type1Font, gid: u32, builder: *Outlin
     }
 }
 
-func type1GlyphForStandardCode(font: *Type1Font, code: u8)->u32
+func type1GlyphForStandardCode(font: const *Type1Font, code: u8)->u32
 {
     let name = standardEncodingName(code)
     if not name.count do

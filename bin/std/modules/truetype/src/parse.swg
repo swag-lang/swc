@@ -1041,7 +1041,7 @@ func buildCharstringMetrics(faceData: *FaceImpl) fail
         if faceData.outlineSource == .Cff do
             width = try runType2Charstring(faceData.cffFont(), gid, null)
         else do
-            width = try type1CharstringWidth(&faceData.type1, gid)
+            width = try type1CharstringWidth(faceData.type1Font(), gid)
 
         faceData.charstringAdvances[gid] = cast(u16, Math.clamp(Math.round(width), 0.0, cast(f64, Swag.U16.Max)))
     }
@@ -1080,7 +1080,7 @@ func buildSyntheticCMap(faceData: *FaceImpl)
     }
     else
     {
-        for name, gid in faceData.type1.glyphNames do
+        for name, gid in faceData.type1Font().glyphNames do
             addNamedGlyph(faceData, name.toString(), gid)
     }
 }
@@ -1109,13 +1109,14 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
     }
     else
     {
-        faceData.type1      = try parseType1Font(data)
-        faceData.unitsPerEm = faceData.type1.unitsPerEm
-        faceData.face.setGlyphCount(cast(u32, faceData.type1.charstrings.count))
-        faceData.face.setHeader(faceData.unitsPerEm, faceData.type1.xMin, faceData.type1.yMin, faceData.type1.xMax, faceData.type1.yMax)
-        name   = faceData.type1.fontName
-        italic = faceData.type1.italic
-        bold   = faceData.type1.bold
+        try faceData.loadType1(data)
+        let font = faceData.type1Font()
+        faceData.unitsPerEm = font.unitsPerEm
+        faceData.face.setGlyphCount(cast(u32, font.charstrings.count))
+        faceData.face.setHeader(faceData.unitsPerEm, font.xMin, font.yMin, font.xMax, font.yMax)
+        name   = font.fontName
+        italic = font.italic
+        bold   = font.bold
     }
 
     if not faceData.face.glyphCount do

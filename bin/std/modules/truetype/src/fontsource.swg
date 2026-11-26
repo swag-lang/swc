@@ -35,6 +35,7 @@ private struct FontSourceStorage
     references:      s64 = 1
     bytes:           Array'u8
     woffSfnt:        Array'u8
+    type1Program:    *Type1Font?
     cffPrograms:     Array'(*CffFont)
     cmapSelections:  Array'CMapCacheEntry
     verticalMetrics: Array'VerticalMetricsCacheEntry
@@ -47,6 +48,8 @@ impl FontSourceStorage
 {
     mtd opDrop()
     {
+        if let program = .type1Program do
+            Memory.delete(program, .allocator)
         for program in .cffPrograms do
             Memory.delete(program, .allocator)
         for entry in .postNames do
@@ -115,6 +118,28 @@ impl FontSource
         }
 
         return storage.woffSfnt.toSlice()
+    }
+
+    mtd const cachedType1(bytes: const [..] u8)->const *Type1Font? fail
+    {
+        if not .storage do
+            return null
+
+        let storage = .storage
+        Sync.scopedLock(&storage.parseMutex)
+        if let program = storage.type1Program do
+            return program
+
+        let context = Swag.getContext()
+        let previousAllocator = context.allocator
+        context.allocator = storage.allocator
+        defer context.allocator = previousAllocator
+
+        var program = try parseType1Font(bytes)
+        let cached  = Memory.new'Type1Font(storage.allocator)
+        cached[] = #move program
+        storage.type1Program = cached
+        return cached
     }
 
     // Different faces of a collection can reference the same CFF byte range.
@@ -303,7 +328,7 @@ public impl FontSource
     // Loads one zero-based face while retaining this snapshot.
     //
     // Formats and index checks follow [[TrueType.Face.loadAt]]. The face allocator covers
-    // per-face state. The source allocator covers the shared character maps, CFF programs,
+    // per-face state. The source allocator covers the shared character maps, PostScript programs,
     // glyph locations, glyph names, vertical metrics, and WOFF1 reconstruction.
     // A default source or invalid input fails.
     // Destroy the face with [[TrueType.Face.destroy]]. It can outlive this source value.

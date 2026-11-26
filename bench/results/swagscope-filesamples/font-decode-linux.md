@@ -1240,3 +1240,24 @@ engines select the same PostScript glyph names.
 The timing set uses Latin Type 1 glyphs. The Standard Symbols PS
 trial for U+03A9 has no Unicode glyph in Swag and is excluded from
 the timing set.
+
+## Type 1 programs shared by a retained font source
+
+Retained Type 1 faces borrow the same immutable decrypted program.
+Opening from a pathname still creates an independent program.
+
+Eleven interleaved batches on one CPU show 93–95% less reopen time
+than `e56d492497` for the three URW fonts. Face opening includes size
+setup. Glyph indices, advances, dimensions and CRC-64 agree in all
+six cases. A native test opens two faces, destroys the source and the
+first face, and reads the advance and name from the surviving face.
+[Raw timings and pathname controls](font-decode-linux-type1-source.json)
+
+| Fixture | Character | Open before (µs) | After |
+| --- | ---: | ---: | ---: |
+| `NimbusSans-Regular.t1` | U+0041 | 1282.08 | 91.82 |
+| `NimbusSans-Regular.t1` | U+0067 | 1309.35 | 90.90 |
+| `NimbusMonoPS-Regular.t1` | U+0057 | 1561.89 | 102.96 |
+| `NimbusMonoPS-Regular.t1` | U+0069 | 1641.66 | 98.80 |
+| `P052-Roman.t1` | U+0067 | 1717.55 | 95.16 |
+| `P052-Roman.t1` | U+0045 | 1734.97 | 101.73 |

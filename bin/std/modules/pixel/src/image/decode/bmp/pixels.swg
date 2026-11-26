@@ -174,6 +174,40 @@ func decodePalette8Row(source: const [*] u8, destination: [*] u8, count: u64, co
     writePackedBgr(dst + (left - 1) * 3, colors[src[left - 1]])
 }
 
+private func makePaletteChannels(colors: const [*] u32)->[3] Math.Simd.U8x16
+{
+    var bytes: [3][16] u8
+    for index in 16
+    {
+        let pixel = colors[index]
+        bytes[0][index] = cast #wrap(u8, pixel)
+        bytes[1][index] = cast #wrap(u8, (pixel >> 8))
+        bytes[2][index] = cast(u8, (pixel >> 16))
+    }
+
+    return [cast(Math.Simd.U8x16, bytes[0]), cast(Math.Simd.U8x16, bytes[1]), cast(Math.Simd.U8x16, bytes[2])]
+}
+
+private func decodePalette4Wide(source: const [*] u8, destination: [*] u8, width: u64, colors: const [*] u32, pairs: const [*] u64, channels: const [*] Math.Simd.U8x16)
+{
+    using Math.Simd
+    var x: u64
+    while width - x >= 16
+    {
+        var packed: u64
+        Memory.copy(&packed, source + x / 2, 8)
+        let bytes  = cast #bit(U8x16, splat(packed))
+        let high   = cast #bit(U8x16, (cast #bit(U16x8, bytes) >> 4)) & 15'u8
+        let low    = bytes & 15'u8
+        let lookup = interleaveLow(high, low)
+        PackedPixel.storeTriplets16(destination + x * 3,
+                                    shuffle(channels[0], lookup), shuffle(channels[1], lookup), shuffle(channels[2], lookup))
+        x += 16
+    }
+
+    decodePalette4Row(source + x / 2, destination + x * 3, width - x, colors, pairs)
+}
+
 func palette4RowFits(source: const [*] u8, count: u64, paletteCount: u32)->bool
 {
     let pairs = count / 2
@@ -256,10 +290,14 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
         let colors  = cast(const [*] u32, &entries[0])
         var patterns: [16] Math.Simd.U8x16
         var pairs:    [256] u64
+        var channels: [3] Math.Simd.U8x16
         if bitCount == 1 do
             patterns = makeBinaryPatterns(colors)
-        elif bitCount == 4 do
+        elif bitCount == 4
+        {
             pairs = makePalettePairs(colors)
+            channels = makePaletteChannels(colors)
+        }
         for y in result.height
         {
             let dstY   = topDown ? result.height - y - 1 : y
@@ -269,7 +307,7 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
             switch bitCount
             {
             case 1:  decodePalette1Row(srcRow, dst, width, colors, cast(const [*] Math.Simd.U8x16, &patterns[0]))
-            case 4:  decodePalette4Row(srcRow, dst, width, colors, cast(const [*] u64, &pairs[0]))
+            case 4:  decodePalette4Wide(srcRow, dst, width, colors, cast(const [*] u64, &pairs[0]), channels.buffer)
             default: decodePalette8Row(srcRow, dst, width, colors)
             }
         }

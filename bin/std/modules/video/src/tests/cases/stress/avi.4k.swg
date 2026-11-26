@@ -194,4 +194,14 @@ func assertAvi4kFrame(path: string, reference: const *Image)
             Swag.require(Math.abs(cast(s32, frame.chromaR[chroma]) - (red ? 240 : 128)) <= 3)
         }
     }
+
+    // Packed output must keep queued planes usable when a later seek asks for planar output.
+    var expected, packed: Image
+    for rank in [0'u64, 3, 2, 5]
+    {
+        expect reader.decodeFramePlanesInto(&frame, rank)
+        frame.view().convertToRgb(&expected)
+        expect reader.decodeFrameInto(&packed, rank)
+        Swag.require(Slice.equals(packed.pixels.toSlice(), expected.pixels.toSlice()))
+    }
 }

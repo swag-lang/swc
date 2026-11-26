@@ -269,7 +269,7 @@ impl Mpeg4Stream
     }
 
     // Decodes forward until the picture of the current rank is reconstructed.
-    mtd decodeNextPlanes(source: *ByteSource, target: *PlanarFrame) fail
+    private mtd nextDisplaySlot(source: *ByteSource)->u64 fail
     {
         if .nextRank >= .frames.count do
             fail InvalidFormatError{"MPEG-4 stream has no picture at the requested position"}
@@ -288,17 +288,20 @@ impl Mpeg4Stream
             .started = true
 
             let at = .earliest()
-            if .emitRank == .nextRank
-            {
-                .release(at, target)
-                .nextRank += 1
-                return
-            }
+            if .emitRank == .nextRank do
+                return at
 
             // A picture shown before the one asked for is decoded for what it anchors, not for
             // itself.
             .release(at, null)
         }
+    }
+
+    mtd decodeNextPlanes(source: *ByteSource, target: *PlanarFrame) fail
+    {
+        let at = try .nextDisplaySlot(source)
+        .release(at, target)
+        .nextRank += 1
     }
 
     // Reads only the independent picture named by a container sync slot.
@@ -317,11 +320,12 @@ impl Mpeg4Stream
         return true
     }
 
-    // Decodes the picture of the current rank and converts it to packed colour.
+    // Convert the queued planes in place so the slot keeps its storage for the next picture.
     mtd decodeNext(source: *ByteSource, target: *Image) fail
     {
-        var planes: PlanarFrame
-        try .decodeNextPlanes(source, &planes)
-        planes.view().convertToRgb(target)
+        let at = try .nextDisplaySlot(source)
+        .queue[at].planes.view().convertToRgb(target)
+        .release(at, null)
+        .nextRank += 1
     }
 }

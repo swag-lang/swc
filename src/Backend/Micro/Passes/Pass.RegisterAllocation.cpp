@@ -158,7 +158,7 @@ namespace
             positions.push_back(instructionIndex);
     }
 
-    void advancePositionCursor(uint32_t& cursor, const std::vector<uint32_t>& positions, const uint32_t instructionIndex)
+    void advancePositionCursor(uint32_t& cursor, const std::span<const uint32_t> positions, const uint32_t instructionIndex)
     {
         while (cursor < positions.size() && positions[cursor] <= instructionIndex)
             ++cursor;

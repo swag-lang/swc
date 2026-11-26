@@ -419,7 +419,7 @@ private:
     std::vector<VirtualIndices>                      defVirtualIndices_;
     std::vector<SmallVector<uint32_t, 4>>            useConcreteIndices_;
     std::vector<SmallVector<uint32_t, 4>>            defConcreteIndices_;
-    std::vector<std::vector<uint32_t>>               usePositionsByDenseVirtual_;
+    std::vector<SmallVector2<uint32_t>>              usePositionsByDenseVirtual_;
     std::vector<std::vector<uint32_t>>               concreteTouchPositionsByDenseIndex_;
     std::vector<uint32_t>                            nextUsePositionCursor_;
     std::vector<uint32_t>                            nextConcreteTouchCursor_;

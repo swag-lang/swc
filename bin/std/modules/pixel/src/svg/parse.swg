@@ -79,6 +79,12 @@ private struct DeferredGeometry
     contours: DeferredContours
 }
 
+private struct InstanceBounds
+{
+    min, max:   Vector2
+    arcPadding: Vector2
+}
+
 private struct DeferredInstance
 {
     source:    u64
@@ -522,7 +528,7 @@ private struct Parser
     dimensionsOnly:  bool
 
     paintTransforms: Array'Math.Transform2     // Element transforms used to resolve paint references.
-    instanceBounds:  HashTable'(u64, {min, max: Vector2})     // Bounds of reused definitions before placement.
+    instanceBounds:  HashTable'(u64, InstanceBounds)     // Bounds of reused definitions before placement.
 
     lastTransform:       string = ""
     lastTransformParent: Math.Transform2
@@ -4266,7 +4272,7 @@ private impl Parser
 
         var markerState: GroupState
         markerState.transform = placement
-        discard .instantiate(definition.first, definition.count, &markerState)
+        discard .instantiate(definition.first, definition.count, &markerState, deferGeometry: true)
     }
 
     func clipHasCurves(paths: const *LinePathList)->bool
@@ -4697,7 +4703,7 @@ private impl Parser
         if paths.paths.isEmpty() do
             return 0
 
-        var bounds: {min, max: Vector2}
+        var bounds: InstanceBounds
         if let cached = .instanceBounds.tryFind(source)
         {
             bounds = cached.value
@@ -4714,11 +4720,38 @@ private impl Parser
             let padding = extent * (8 * Math.ConstF32.Epsilon) + Vector2{0.0001, 0.0001}
             bounds.min = first - padding
             bounds.max = last + padding
+
+            // A turned or sheared ellipse uses cubic controls. Their tangent component is
+            // at most 0.553 radii, so they stay within 1.143 radii on either source axis.
+            for path in paths.paths
+            {
+                for &element in path.elements where element.type == .Arc do
+                    bounds.arcPadding = Vector2.max(bounds.arcPadding, Vector2{Math.abs(element.p2.x), Math.abs(element.p2.y)} * 0.25)
+            }
+
             .instanceBounds.add(source, bounds)
         }
 
-        let min = transform.transformPoint(bounds.min)
-        let max = transform.transformPoint(bounds.max)
+        var min, max: Vector2
+        if transform.m12 == 0 and transform.m21 == 0 and transform.m11 > 0 and transform.m22 > 0
+        {
+            min = transform.transformPoint(bounds.min)
+            max = transform.transformPoint(bounds.max)
+        }
+        else
+        {
+            let low  = bounds.min - bounds.arcPadding
+            let high = bounds.max + bounds.arcPadding
+            let p0   = transform.transformPoint(low)
+            let p1   = transform.transformPoint(Vector2{low.x, high.y})
+            let p2   = transform.transformPoint(Vector2{high.x, low.y})
+            let p3   = transform.transformPoint(high)
+            if not p0.isFinite() or not p1.isFinite() or not p2.isFinite() or not p3.isFinite() do
+                return 0
+            min = Vector2.min(Vector2.min(p0, p1), Vector2.min(p2, p3))
+            max = Vector2.max(Vector2.max(p0, p1), Vector2.max(p2, p3))
+        }
+
         if not min.isFinite() or not max.isFinite() or not (max - min).isFinite() do
             return 0
 
@@ -4731,13 +4764,7 @@ private impl Parser
         var result: #returntype
         result.first = .drawing.shapes.count
 
-        let deferPlacement = deferGeometry and
-                             not hidden and
-                             not state.inDefs and
-                             state.transform.m12 == 0 and
-                             state.transform.m21 == 0 and
-                             state.transform.m11 > 0 and
-                             state.transform.m22 > 0
+        let deferPlacement = deferGeometry and not hidden and not state.inDefs
         for i in count
         {
             // Build the transformed copy fully before appending: appending can
@@ -4798,9 +4825,8 @@ private impl Parser
 
                 let paths = .drawing.pathsFor(src)
                 if deferPlacement and
-                   src.hasFill and
-                   not strokeIndex and
-                   not fillPaintId and
+                   (hasFill or strokeIndex) and
+                   not hasPaintReference and
                    not filterId
                 {
                     instance = .deferInstance(first + i, paths, state.transform)

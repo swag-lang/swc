@@ -181,6 +181,10 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
   contour order, and the 64 px raster workload takes 12–50% less time across
   TrueType and CFF fixtures. The measured bitmap bytes are unchanged.
   [Raster timings and golden comparison](../bench/results/swagscope-filesamples/font-decode-linux.md#raster-scanline-bands)
+- Evidence: SDF rows discard edges beyond the encoded distance range.
+  At 64 px and spread 8, the measured fields render 64–74% faster with
+  identical bytes.
+  [SDF timings](../bench/results/swagscope-filesamples/font-decode-linux.md#signed-distance-field-row-bounds)
 - Next: vectorize analytic coverage conversion and process multiple sample points in MSDF
   distance evaluation, using vector math and gathers only where edge traversal remains profitable.
 - Done when: glyph goldens stay within a declared coverage/distance tolerance and raster and

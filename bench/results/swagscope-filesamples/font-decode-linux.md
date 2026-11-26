@@ -1074,3 +1074,36 @@ native font viewer tests and the Scope Release build pass.
 | `LXGWWenKaiTC-Regular.ttf` | 413.10 | 12.66 | 40.579 | 39.104 |
 | `Lato-Regular.ttf` | 273.40 | 1.94 | 0.725 | 0.361 |
 | `SourceCodePro-Regular.otf` | 272.51 | 2.56 | 0.950 | 0.606 |
+
+## Signed-distance field row bounds
+
+Each SDF row keeps the edges that can affect the encoded distance.
+Edges farther away vertically than the spread plus one pixel can
+only produce a saturated byte. Every crossing edge remains available
+for the winding test.
+
+The comparison with `636be06fdf` uses seven interleaved batches of
+three passes. Loading and SDF rendering at 64 px with spread 8 takes
+64–74% less time across seven fonts. The two spread-64 controls take
+16–18% less time. Outline and SDF byte fingerprints match for all
+16 cases. The native scalar reference test also matches every pixel.
+[Raw timings and fingerprints](font-glyph-linux-sdf-rows.json)
+
+| Fixture | Pixels | Spread | Load and render before (µs/glyph) | After |
+| --- | ---: | ---: | ---: | ---: |
+| `Lato-Regular.ttf` | 24 | 8 | 262.35 | 173.61 |
+| `Lato-Regular.ttf` | 64 | 8 | 1279.63 | 455.43 |
+| `Lato-Regular.ttf` | 24 | 64 | 5530.44 | 4634.59 |
+| `OpenSans-Regular.ttf` | 24 | 8 | 296.63 | 147.87 |
+| `OpenSans-Regular.ttf` | 64 | 8 | 1355.46 | 419.76 |
+| `GowunBatang-Regular.ttf` | 24 | 8 | 1831.09 | 890.42 |
+| `GowunBatang-Regular.ttf` | 64 | 8 | 10725.92 | 2805.03 |
+| `MaShanZheng-Regular.ttf` | 24 | 8 | 2778.31 | 1395.63 |
+| `MaShanZheng-Regular.ttf` | 64 | 8 | 16792.95 | 4350.61 |
+| `NotoSansJP-Variable.ttf` | 24 | 8 | 746.79 | 421.23 |
+| `NotoSansJP-Variable.ttf` | 64 | 8 | 3848.19 | 1117.88 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 8 | 567.23 | 294.18 |
+| `NotoSansCJKjp-Regular.otf` | 64 | 8 | 2774.57 | 800.30 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 64 | 8413.82 | 6869.89 |
+| `NotoSerifCJKjp-Regular.otf` | 24 | 8 | 759.92 | 404.07 |
+| `NotoSerifCJKjp-Regular.otf` | 64 | 8 | 3956.62 | 1124.58 |

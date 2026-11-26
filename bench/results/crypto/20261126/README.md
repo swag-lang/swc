@@ -93,3 +93,4 @@ optimizations moved each result.
 - [BLAKE3 worker scaling](blake3-worker-scaling.md)
 - [Packed HMAC-SHA-384 and HMAC-SHA-512](hmac-sha512.md)
 - [P-256 four-bit order inversion](p256-order.md)
+- [Scalar CRC state and short CRC-64 folding](crc-scalar-state.md)

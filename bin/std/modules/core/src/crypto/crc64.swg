@@ -105,49 +105,96 @@ private impl Crc64
         return reduced[0]
     }
 
+    #[Swag.Inline]
+    func(Reflected: bool) orientBlock(block: Simd.U8x16)->Simd.U64x2
+    {
+        #static if Reflected do
+            return cast #bit(Simd.U64x2, block)
+        else
+        {
+            const ReverseBytes = cast(Simd.U8x16, [15'u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+            return cast #bit(Simd.U64x2, Simd.shuffle(block, ReverseBytes))
+        }
+    }
+
+    #[Swag.Inline]
+    func(Reflected: bool) readFoldBlock(source: const [*] u8)->Simd.U64x2
+        => orientBlock'Reflected(Simd.load(source))
+
+    #[Swag.Inline]
+    func multiplyHalves(value, powers: Simd.U64x2)->Simd.U64x2
+        => Simd.clmulLowLow(value, powers) ^ Simd.clmulHighHigh(value, powers)
+
+    #[Swag.Inline]
+    func(Polynomial: u64, Reflected: bool) reduceFolded(value: Simd.U64x2)->u64
+    {
+        #static if Reflected
+        {
+            // Reflect the quotient and divisor at the same scale as foldPower.
+            const Mu      = #run barrettQuotient(Polynomial)
+            const Factors = cast(Simd.U64x2, [(#run Math.reverse(Mu)) << 1 | 1,
+                                              (#run Math.reverse(Polynomial)) << 1])
+            let quotient = Simd.clmulLowLow(value, Factors)
+            let reduced  = Simd.clmulLowHigh(quotient, Factors)
+            return value[1] ^ quotient[0] ^ reduced[1]
+        }
+        else do
+            return Swag.byteSwap(reduceMsb'Polynomial(value))
+    }
+
+    #[Swag.Inline]
+    func(Polynomial: u64, Reflected: bool, Bits: u64) multiplyShortBlock(block: Simd.U64x2)->Simd.U64x2
+    {
+        const LowBits  = Reflected ? Bits : Bits - 64
+        const HighBits = Reflected ? Bits - 64 : Bits
+        const Powers   = cast(Simd.U64x2, [#run foldPower(LowBits, Polynomial, Reflected),
+                                           #run foldPower(HighBits, Polynomial, Reflected)])
+        return multiplyHalves(block, Powers)
+    }
+
+    #[Swag.Inline]
+    func(Polynomial: u64, Reflected: bool) foldFourBlocks(bytes: const [*] u8, initial: u64)->u64
+    {
+        // Apply each word's final power independently, including the 64 implicit zero bits.
+        let seed         = cast(Simd.U64x2, [initial, 0'u64])
+        let initialBlock = readFoldBlock'Reflected(bytes) ^ orientBlock'Reflected(cast #bit(Simd.U8x16, seed))
+        let first        = multiplyShortBlock'(Polynomial, Reflected, 512)(initialBlock)
+        let second       = multiplyShortBlock'(Polynomial, Reflected, 384)(readFoldBlock'Reflected(bytes + 16))
+        let third        = multiplyShortBlock'(Polynomial, Reflected, 256)(readFoldBlock'Reflected(bytes + 32))
+        let fourth       = multiplyShortBlock'(Polynomial, Reflected, 128)(readFoldBlock'Reflected(bytes + 48))
+        return reduceFolded'(Polynomial, Reflected)((first ^ second) ^ (third ^ fourth))
+    }
+
     func(Polynomial: u64, Reflected: bool) foldBlocks(bytes: const [*] u8, length, initial: u64)->u64
     {
-        const ReverseBytes = cast(Simd.U8x16, [15'u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
-        const LowDegree    = Reflected ? 64'u64 : 0'u64
-        const HighDegree   = 64 - LowDegree
-        const NextBlock    = cast(Simd.U64x2, [#run foldPower(128 + LowDegree, Polynomial, Reflected),
-                                               #run foldPower(128 + HighDegree, Polynomial, Reflected)])
+        const LowDegree  = Reflected ? 64'u64 : 0'u64
+        const HighDegree = 64 - LowDegree
+        const NextBlock  = cast(Simd.U64x2, [#run foldPower(128 + LowDegree, Polynomial, Reflected),
+                                             #run foldPower(128 + HighDegree, Polynomial, Reflected)])
         const NextPair = cast(Simd.U64x2, [#run foldPower(256 + LowDegree, Polynomial, Reflected),
                                            #run foldPower(256 + HighDegree, Polynomial, Reflected)])
         const NextGroup = cast(Simd.U64x2, [#run foldPower(512 + LowDegree, Polynomial, Reflected),
                                             #run foldPower(512 + HighDegree, Polynomial, Reflected)])
 
         #[Swag.Inline]
-        func orient(block: Simd.U8x16)->Simd.U8x16
-        {
-            #static if Reflected do
-                return block
-            else do
-                return Simd.shuffle(block, ReverseBytes)
-        }
-
-        #[Swag.Inline]
-        func loadBlock(source: const [*] u8)->Simd.U64x2 => cast #bit(Simd.U64x2, orient(Simd.load(source)))
-
-        #[Swag.Inline]
         func fold(value, powers, next: Simd.U64x2)->Simd.U64x2
-            => Simd.clmulLowLow(value, powers) ^ Simd.clmulHighHigh(value, powers) ^ next
+            => multiplyHalves(value, powers) ^ next
 
         let seed      = cast(Simd.U64x2, [initial, 0'u64])
-        let blockSeed = cast #bit(Simd.U64x2, orient(cast #bit(Simd.U8x16, seed)))
-        var first     = loadBlock(bytes) ^ blockSeed
-        var second    = loadBlock(bytes + 16)
-        var third     = loadBlock(bytes + 32)
-        var fourth    = loadBlock(bytes + 48)
+        let blockSeed = orientBlock'Reflected(cast #bit(Simd.U8x16, seed))
+        var first     = readFoldBlock'Reflected(bytes) ^ blockSeed
+        var second    = readFoldBlock'Reflected(bytes + 16)
+        var third     = readFoldBlock'Reflected(bytes + 32)
+        var fourth    = readFoldBlock'Reflected(bytes + 48)
 
         // Advance four independent lanes to hide carry-less multiplication latency.
         var offset = 64'u64
         while length - offset >= 64
         {
-            first  = fold(first, NextGroup, loadBlock(bytes + offset))
-            second = fold(second, NextGroup, loadBlock(bytes + offset + 16))
-            third  = fold(third, NextGroup, loadBlock(bytes + offset + 32))
-            fourth = fold(fourth, NextGroup, loadBlock(bytes + offset + 48))
+            first  = fold(first, NextGroup, readFoldBlock'Reflected(bytes + offset))
+            second = fold(second, NextGroup, readFoldBlock'Reflected(bytes + offset + 16))
+            third  = fold(third, NextGroup, readFoldBlock'Reflected(bytes + offset + 32))
+            fourth = fold(fourth, NextGroup, readFoldBlock'Reflected(bytes + offset + 48))
             offset += 64
         }
 
@@ -157,30 +204,14 @@ private impl Crc64
         first = fold(first, NextPair, third)
         while offset < length
         {
-            first  = fold(first, NextBlock, loadBlock(bytes + offset))
+            first  = fold(first, NextBlock, readFoldBlock'Reflected(bytes + offset))
             offset += 16
         }
 
         // Carry the usual 64 zero bits implicit in a width-64 CRC into the reduction.
         const FinalPowers = cast(Simd.U64x2, [#run foldPower(64 + LowDegree, Polynomial, Reflected),
                                               #run foldPower(64 + HighDegree, Polynomial, Reflected)])
-        const Zero = cast(Simd.U64x2, [0'u64, 0])
-        let finalBlock = fold(first, FinalPowers, Zero)
-
-        #static if Reflected
-        {
-            // Reflect the quotient and divisor at the same scale as foldPower.
-            const Mu      = #run barrettQuotient(Polynomial)
-            const Factors = cast(Simd.U64x2, [(#run Math.reverse(Mu)) << 1 | 1,
-                                              (#run Math.reverse(Polynomial)) << 1])
-            let quotient = Simd.clmulLowLow(finalBlock, Factors)
-            let reduced  = Simd.clmulLowHigh(quotient, Factors)
-            return finalBlock[1] ^ quotient[0] ^ reduced[1]
-        }
-        else
-        {
-            return Swag.byteSwap(reduceMsb'Polynomial(finalBlock))
-        }
+        return reduceFolded'(Polynomial, Reflected)(multiplyHalves(first, FinalPowers))
     }
 
     func(Polynomial: u64, Reflected: bool) foldParallel(bytes: const [*] u8, length, initial: u64, table: const [..] ChecksumRow)->u64
@@ -233,35 +264,38 @@ private impl Crc64
         else
         {
             discard table
+            if length == 64 do
+                return foldFourBlocks'(Polynomial, Reflected)(bytes, initial)
             return foldBlocks'(Polynomial, Reflected)(bytes, length, initial)
         }
     }
 
     #[Swag.NoInline]
-    mtd(Parallel: bool) foldAligned(bytes: const [*] u8, length: u64)
+    func(Parallel: bool) foldAligned(bytes: const [*] u8, length, previous: u64, kind: Crc64Kind)->u64
     {
-        switch #complete .kind
+        switch #complete kind
         {
         case .Ecma182:
-            let crc = foldInput'(EcmaPolynomial, false, Parallel)(bytes, length, Swag.byteSwap(.currentValue), Ecma182Table)
-            .currentValue = Swag.byteSwap(crc)
+            let crc = foldInput'(EcmaPolynomial, false, Parallel)(bytes, length, Swag.byteSwap(previous), Ecma182Table)
+            return Swag.byteSwap(crc)
 
         case .Iso:
-            .currentValue = ~foldInput'(IsoPolynomial, true, Parallel)(bytes, length, ~.currentValue, IsoTable)
+            return ~foldInput'(IsoPolynomial, true, Parallel)(bytes, length, ~previous, IsoTable)
 
         case .IsoXz:
-            .currentValue = ~foldInput'(EcmaPolynomial, true, Parallel)(bytes, length, ~.currentValue, XzTable)
+            return ~foldInput'(EcmaPolynomial, true, Parallel)(bytes, length, ~previous, XzTable)
         }
     }
 
     #[ConstExpr, Swag.Safety(.All, false)]
     func updateTable(bytes: const [*] u8, length, initial: u64, table: const [..] ChecksumRow)->u64
     {
-        var crc    = initial
-        var offset = 0'u64
-        while length - offset >= 8
+        var crc       = initial
+        var current   = bytes
+        var remaining = length
+        while remaining >= 8
         {
-            let word  = Math.littleEndianToNative(cast(const [*] u64, bytes + offset)[0])
+            let word  = Math.littleEndianToNative(cast(const [*] u64, current)[0])
             let mixed = word ^ crc
             crc = table[7, mixed & 0xFF] ^
                   table[6, (mixed >> 8) & 0xFF] ^
@@ -271,12 +305,46 @@ private impl Crc64
                   table[2, (mixed >> 40) & 0xFF] ^
                   table[1, (mixed >> 48) & 0xFF] ^
                   table[0, mixed >> 56]
-            offset += 8
+            current   += 8
+            remaining -= 8
         }
 
-        for index in offset until length do
-            crc = (crc >> 8) ^ table[0, (crc & 0xFF) ^ bytes[index]]
+        for index in remaining do
+            crc = (crc >> 8) ^ table[0, (crc & 0xFF) ^ current[index]]
         return crc
+    }
+
+    #[ConstExpr, Swag.Inline, Swag.Safety(.All, false)]
+    func updateValue(data: const [..] u8?, previous: u64, kind: Crc64Kind)->u64
+    {
+        var length = data.count
+        if length == 0 do
+            return previous
+
+        var crc   = previous
+        var bytes = cast(const [*] u8, unwrap data.buffer)
+        #static if not BIG_ENDIAN
+        {
+            if length >= 64 and Swag.hasCpuFeature(.CarrylessMultiply)
+            {
+                let folded = length & ~15'u64
+                if folded >= 4 * TileBytes and not Swag.jit() and Swag.workerCount() > 1 do
+                    crc = foldAligned'true(bytes, folded, crc, kind)
+                else do
+                    crc = foldAligned'false(bytes, folded, crc, kind)
+                bytes  += folded
+                length -= folded
+                if length == 0 do
+                    return crc
+            }
+        }
+
+        switch #complete kind
+        {
+        case .Ecma182: return Swag.byteSwap(updateTable(bytes, length, Swag.byteSwap(crc), Ecma182Table))
+        case .Iso:     return ~updateTable(bytes, length, ~crc, IsoTable)
+        case .IsoXz:   return ~updateTable(bytes, length, ~crc, XzTable)
+        }
     }
 }
 
@@ -290,42 +358,10 @@ public impl Crc64
     }
 
     // Includes `data` in the running checksum.
-    #[ConstExpr, Swag.Safety(.All, false)]
+    #[ConstExpr]
     mtd update(data: const [..] u8?)
     {
-        var length = data.count
-        if length == 0 do
-            return
-
-        var bytes = cast(const [*] u8, unwrap data.buffer)
-        #static if not BIG_ENDIAN
-        {
-            if length >= 64 and Swag.hasCpuFeature(.CarrylessMultiply)
-            {
-                let folded = length & ~15'u64
-                if folded >= 4 * TileBytes and not Swag.jit() and Swag.workerCount() > 1 do
-                    .foldAligned'true(bytes, folded)
-                else do
-                    .foldAligned'false(bytes, folded)
-                bytes  += folded
-                length -= folded
-                if length == 0 do
-                    return
-            }
-        }
-
-        switch #complete .kind
-        {
-        case .Ecma182:
-            let crc = updateTable(bytes, length, Swag.byteSwap(.currentValue), Ecma182Table)
-            .currentValue = Swag.byteSwap(crc)
-
-        case .Iso:
-            .currentValue = ~updateTable(bytes, length, ~.currentValue, IsoTable)
-
-        case .IsoXz:
-            .currentValue = ~updateTable(bytes, length, ~.currentValue, XzTable)
-        }
+        .currentValue = updateValue(data, .currentValue, .kind)
     }
 
     // Returns the checksum accumulated since construction or the latest [[reset]].
@@ -333,11 +369,5 @@ public impl Crc64
 
     // Computes the CRC-64 checksum of `buffer` with the `kind` algorithm in one operation.
     #[Swag.ConstExpr]
-    func compute(buffer: const [..] u8, kind = Crc64Kind.Ecma182)->u64
-    {
-        var v: Crc64
-        v.reset(kind)
-        v.update(buffer)
-        return v.value()
-    }
+    func compute(buffer: const [..] u8, kind = Crc64Kind.Ecma182)->u64 => updateValue(buffer, 0, kind)
 }

@@ -10,6 +10,50 @@ private impl Crc32
 {
     const LookupTable = #run buildLookupTable()
 
+    #[Swag.Inline]
+    func updateValue(data: const [..] u8?, previous: u32)->u32
+    {
+        var length = data.count
+        if not length do
+            return previous
+        var current = unwrap data.buffer
+        var cur     = ~previous
+
+        // Carry-less folding processes whole vectors. The slicing table handles short
+        // messages and the remainder of a folded message.
+        #static if not BIG_ENDIAN
+        {
+            if length >= 64 and Swag.hasCpuFeature(.CarrylessMultiply)
+            {
+                let folded = length & ~15'u64
+                cur     = foldClmul(cur, current, folded)
+                current += folded
+                length  -= folded
+            }
+        }
+
+        while length >= 8
+        {
+            let word  = Math.littleEndianToNative(cast(const [*] u64, current)[0])
+            let mixed = word ^ cast(u64, cur)
+            cur = LookupTable[7, mixed & 0xFF] ^
+                  LookupTable[6, (mixed >> 8) & 0xFF] ^
+                  LookupTable[5, (mixed >> 16) & 0xFF] ^
+                  LookupTable[4, (mixed >> 24) & 0xFF] ^
+                  LookupTable[3, (mixed >> 32) & 0xFF] ^
+                  LookupTable[2, (mixed >> 40) & 0xFF] ^
+                  LookupTable[1, (mixed >> 48) & 0xFF] ^
+                  LookupTable[0, mixed >> 56]
+            current += 8
+            length  -= 8
+        }
+
+        for index in length do
+            cur = (cur >> 8) ^ LookupTable[0, (cur & 0xFF) ^ current[index]]
+
+        return ~cur
+    }
+
     func buildLookupTable()->[8, 256] u32
     {
         const Polynomial = 0xEDB8_8320'u32
@@ -150,45 +194,7 @@ public impl Crc32
     // Includes `data` in the running checksum.
     mtd update(data: const [..] u8?)
     {
-        var length = data.count
-        if not length do
-            return
-        var current = unwrap data.buffer
-        var cur     = ~.currentValue
-
-        // Carry-less folding processes whole vectors. The slicing table handles short
-        // messages and the remainder of a folded message.
-        #static if not BIG_ENDIAN
-        {
-            if length >= 64 and Swag.hasCpuFeature(.CarrylessMultiply)
-            {
-                let folded = length & ~15'u64
-                cur     = foldClmul(cur, current, folded)
-                current += folded
-                length  -= folded
-            }
-        }
-
-        while length >= 8
-        {
-            let word  = Math.littleEndianToNative(cast(const [*] u64, current)[0])
-            let mixed = word ^ cast(u64, cur)
-            cur = LookupTable[7, mixed & 0xFF] ^
-                  LookupTable[6, (mixed >> 8) & 0xFF] ^
-                  LookupTable[5, (mixed >> 16) & 0xFF] ^
-                  LookupTable[4, (mixed >> 24) & 0xFF] ^
-                  LookupTable[3, (mixed >> 32) & 0xFF] ^
-                  LookupTable[2, (mixed >> 40) & 0xFF] ^
-                  LookupTable[1, (mixed >> 48) & 0xFF] ^
-                  LookupTable[0, mixed >> 56]
-            current += 8
-            length  -= 8
-        }
-
-        for index in length do
-            cur = (cur >> 8) ^ LookupTable[0, (cur & 0xFF) ^ current[index]]
-
-        .currentValue = ~cur
+        .currentValue = updateValue(data, .currentValue)
     }
 
     // Returns the checksum accumulated since construction or the latest [[reset]].
@@ -196,11 +202,5 @@ public impl Crc32
 
     // Computes the CRC-32 checksum of `buffer` in one operation.
     #[Swag.ConstExpr]
-    func compute(buffer: const [..] u8)->u32
-    {
-        var v: Crc32
-        v.reset()
-        v.update(buffer)
-        return v.value()
-    }
+    func compute(buffer: const [..] u8)->u32 => updateValue(buffer, 0)
 }

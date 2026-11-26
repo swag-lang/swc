@@ -190,6 +190,51 @@ def fixtures(scratch, filesamples):
             svg.write('</g></svg>\n')
         yield path, width, height
 
+    width, height = 1280, 920
+    path = scratch / "folded-bands.svg"
+    with path.open("w", encoding="ascii", newline="\n") as svg:
+        svg.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">\n')
+        for color in ("#487c40", "#803b74"):
+            svg.write(f'<path fill="{color}" fill-opacity=".51" fill-rule="evenodd" d="\n')
+            for index in range(716):
+                left = 16 + 29 * index % 1248
+                middle = 600 + 7 * index % 120
+                right = width - left
+                upper = (left + middle) // 2
+                lower = (middle + right) // 2
+                svg.write(f'M{left}.125 3.375L{upper}.125 220.375 {middle}.625 422.875 '
+                          f'{lower}.375 630.125 {right}.875 910.25l1.25 0L{lower + 2}.125 630.125 '
+                          f'{middle + 1}.875 422.875 {upper + 1}.375 220.375 {left + 1}.375 3.375Z\n')
+            svg.write('"/>\n')
+        svg.write('</svg>\n')
+    yield path, width, height
+
+    width, height = 1280, 853
+    gradient_random = random.Random(71)
+    path = scratch / "gradient-fills.svg"
+    with path.open("w", encoding="ascii", newline="\n") as svg:
+        svg.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">\n')
+        svg.write(
+            '<defs>\n'
+            '<linearGradient id="wash" x1=".05" y1=".2" x2=".95" y2=".8">'
+            '<stop stop-color="#d1423a" stop-opacity=".66"/><stop offset="1" stop-color="#075f99"/></linearGradient>\n'
+            '<radialGradient id="glow" r=".42" spreadMethod="reflect">'
+            '<stop stop-color="#e1a736" stop-opacity=".83"/><stop offset=".38" stop-color="#9242a8"/>'
+            '<stop offset="1" stop-color="#1b494f" stop-opacity=".43"/></radialGradient>\n'
+            '<linearGradient id="stripe" x1=".2" y1=".1" x2=".6" y2=".7" spreadMethod="repeat">'
+            '<stop offset=".17" stop-color="#2db393"/><stop offset=".53" stop-color="#bdd1b3" stop-opacity=".71"/>'
+            '<stop offset=".67" stop-color="#4c546e"/><stop offset=".92" stop-color="#9d495c"/></linearGradient>\n'
+            '</defs>\n'
+        )
+        paints = ("wash", "glow", "stripe")
+        for index in range(420):
+            x, y = gradient_random.randrange(-32, width - 20), gradient_random.randrange(-32, 820)
+            dx, dy = gradient_random.randrange(39, 105), gradient_random.randrange(33, 96)
+            svg.write(f'<path fill="url(#{paints[index % len(paints)]})" fill-opacity=".77" '
+                      f'd="M{x}.125 {y}.375c{dx} -9 0 {dy} {dx} {dy}l-5 17 {5 - dx} -11Z"/>\n')
+        svg.write('</svg>\n')
+    yield path, width, height
+
     yield clipped_image(scratch)
 
 

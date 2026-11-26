@@ -139,156 +139,167 @@ func copyBigEndianWords(target: [*] u8, source: const [*] u8, count: u64)
     }
 }
 
-func(CHANNELS: u64) storeRawWords(image: *Image, source: const [*] u8, rowBytes, planeBytes: u64)
+private func(CHANNELS: u64) storeWordRow(destination: [*] u8, first: const [*] u8, width, planeBytes: u64)
 {
-    let width = cast(u64, image.width)
-    for y in image.height
+    let second = first + planeBytes
+    let third  = second + planeBytes
+    let fourth = third + planeBytes
+    var target = cast([*] u16, destination)
+    var x: u64
+    while width - x >= 8
     {
-        let first  = source + cast(u64, y) * rowBytes
-        let second = first + planeBytes
-        let third  = second + planeBytes
-        let fourth = third + planeBytes
-        var target = cast([*] u16, image.pixels.storage() + cast(u64, (image.height - y - 1)) * image.rowStride)
-        var x: u64
-        while width - x >= 8
+        let offset = x * 2
+        let a      = loadBigEndianWords(first + offset)
+        let b      = loadBigEndianWords(second + offset)
+        #static if CHANNELS == 2
         {
-            let offset = x * 2
-            let a      = loadBigEndianWords(first + offset)
-            let b      = loadBigEndianWords(second + offset)
-            #static if CHANNELS == 2
-            {
-                Simd.store(target, Simd.interleaveLow(a, b))
-                Simd.store(target + 8, Simd.interleaveHigh(a, b))
-            }
+            Simd.store(target, Simd.interleaveLow(a, b))
+            Simd.store(target + 8, Simd.interleaveHigh(a, b))
+        }
+        else
+        {
+            let p0  = cast #bit(Simd.U8x16, a)
+            let p1  = cast #bit(Simd.U8x16, b)
+            let p2  = cast #bit(Simd.U8x16, loadBigEndianWords(third + offset))
+            let dst = cast([*] u8, target)
+            #static if CHANNELS == 3 do
+                PackedPixel.storeTriplets'2(dst, p0, p1, p2)
             else
             {
-                let p0  = cast #bit(Simd.U8x16, a)
-                let p1  = cast #bit(Simd.U8x16, b)
-                let p2  = cast #bit(Simd.U8x16, loadBigEndianWords(third + offset))
-                let dst = cast([*] u8, target)
-                #static if CHANNELS == 3 do
-                    PackedPixel.storeTriplets'2(dst, p0, p1, p2)
-                else
-                {
-                    let p3 = cast #bit(Simd.U8x16, loadBigEndianWords(fourth + offset))
-                    PackedPixel.storeQuads'(Simd.U16x8, Simd.U32x4)(dst, p0, p1, p2, p3)
-                }
+                let p3 = cast #bit(Simd.U8x16, loadBigEndianWords(fourth + offset))
+                PackedPixel.storeQuads'(Simd.U16x8, Simd.U32x4)(dst, p0, p1, p2, p3)
             }
-
-            target += 8 * CHANNELS
-            x      += 8
         }
 
-        for sample in x until width
-        {
-            let offset = sample * 2
-            target[0] = readU16(first + offset)
-            target[1] = readU16(second + offset)
-            #static if CHANNELS >= 3 do
-                target[2] = readU16(third + offset)
-            #static if CHANNELS == 4 do
-                target[3] = readU16(fourth + offset)
-            target += CHANNELS
-        }
+        target += 8 * CHANNELS
+        x      += 8
+    }
+
+    for sample in x until width
+    {
+        let offset = sample * 2
+        target[0] = readU16(first + offset)
+        target[1] = readU16(second + offset)
+        #static if CHANNELS >= 3 do
+            target[2] = readU16(third + offset)
+        #static if CHANNELS == 4 do
+            target[3] = readU16(fourth + offset)
+        target += CHANNELS
     }
 }
 
-func storeRawComposite(image: *Image, source: const [*] u8, rowBytes: u64, depth: u16)
+private func(CHANNELS: u64) storeByteRow(destination: [*] u8, first: const [*] u8, width, planeBytes: u64)
 {
-    let planeBytes = rowBytes * cast(u64, image.height)
-    if image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8
+    let second = first + planeBytes
+    let third  = second + planeBytes
+    let fourth = third + planeBytes
+    var x: u64
+    while width - x >= 16
     {
-        let hasAlpha = image.pixelFormat == .RGBA8
-        for y in image.height
+        let a = Simd.load(first + x)
+        let b = Simd.load(second + x)
+        let target = destination + x * CHANNELS
+        #static if CHANNELS == 2
         {
-            let red   = source + cast(u64, y) * rowBytes
-            let green = red + planeBytes
-            let blue  = green + planeBytes
-            let alpha = blue + planeBytes
-            let row   = image.pixels.storage() + cast(u64, (image.height - y - 1)) * image.rowStride
-            let width = cast(u64, image.width)
-            var x     = 0'u64
-            if hasAlpha
-            {
-                let target = cast([*] u32, row)
-                while width - x >= 16
-                {
-                    PackedPixel.storeQuads16(row + x * 4,
-                                             Math.Simd.load(red + x),
-                                             Math.Simd.load(green + x),
-                                             Math.Simd.load(blue + x),
-                                             Math.Simd.load(alpha + x))
-                    x += 16
-                }
-
-                while x < width
-                {
-                    target[x] = cast(u32, red[x]) | (cast(u32, green[x]) << 8) |
-                                (cast(u32, blue[x]) << 16) | (cast(u32, alpha[x]) << 24)
-                    x += 1
-                }
-            }
-            else
-            {
-                var target = row
-                while width - x >= 16
-                {
-                    PackedPixel.storeTriplets16(target, Math.Simd.load(red + x), Math.Simd.load(green + x), Math.Simd.load(blue + x))
-                    target += 48
-                    x      += 16
-                }
-
-                while x < width
-                {
-                    target[0] = red[x]
-                    target[1] = green[x]
-                    target[2] = blue[x]
-                    target    += 3
-                    x         += 1
-                }
-            }
+            Simd.store(target, Simd.interleaveLow(a, b))
+            Simd.store(target + 16, Simd.interleaveHigh(a, b))
+        }
+        elif CHANNELS == 3
+        {
+            PackedPixel.storeTriplets16(target, a, b, Simd.load(third + x))
+        }
+        else
+        {
+            PackedPixel.storeQuads16(target, a, b, Simd.load(third + x), Simd.load(fourth + x))
         }
 
-        return
+        x += 16
     }
 
-    if image.pixelFormat == .Gray8 or image.pixelFormat == .Gray16
+    for i in x until width
     {
-        let highDepth = image.pixelFormat == .Gray16
-        for y in image.height
-        {
-            let target = image.pixels.storage() + cast(u64, (image.height - y - 1)) * image.rowStride
-            let row    = source + cast(u64, y) * rowBytes
-            if highDepth do
-                copyBigEndianWords(target, row, cast(u64, image.width))
-            else do
-                Memory.copy(target, row, rowBytes)
-        }
-
-        return
+        let target = destination + i * CHANNELS
+        target[0] = first[i]
+        target[1] = second[i]
+        #static if CHANNELS >= 3 do
+            target[2] = third[i]
+        #static if CHANNELS == 4 do
+            target[3] = fourth[i]
     }
+}
 
+private func storeCompositeRow(image: *Image, y: s32, source: const [*] u8, planeBytes: u64)
+{
+    let target = image.pixels.storage() + cast(u64, (image.height - y - 1)) * image.rowStride
+    let width  = cast(u64, image.width)
     switch image.pixelFormat
     {
-    case .GrayAlpha16:
-        storeRawWords'2(image, source, rowBytes, planeBytes)
-        return
+    case .Gray8:       Memory.copy(target, source, width)
+    case .Gray16:      copyBigEndianWords(target, source, width)
+    case .GrayAlpha8:  storeByteRow'2(target, source, width, planeBytes)
+    case .GrayAlpha16: storeWordRow'2(target, source, width, planeBytes)
+    case .RGB8:        storeByteRow'3(target, source, width, planeBytes)
+    case .RGB16:       storeWordRow'3(target, source, width, planeBytes)
+    case .RGBA8:       storeByteRow'4(target, source, width, planeBytes)
+    case .RGBA16:      storeWordRow'4(target, source, width, planeBytes)
+    default:          unreachable
+    }
+}
 
-    case .RGB16:
-        storeRawWords'3(image, source, rowBytes, planeBytes)
-        return
+func storeRawComposite(image: *Image, source: const [*] u8, rowBytes: u64)
+{
+    let planeBytes = rowBytes * cast(u64, image.height)
+    for y in image.height do
+        storeCompositeRow(image, y, source + cast(u64, y) * rowBytes, planeBytes)
+}
 
-    case .RGBA16:
-        storeRawWords'4(image, source, rowBytes, planeBytes)
-        return
-
-    default:
-        break
+private func decodePackedComposite(image: *Image, buffer: const [..] u8, rowLengths: const [*] u8, offset, rowBytes: u64, channels: u16) fail
+{
+    let visible = cast(u64, image.pixelFormat.channels())
+    let height = cast(u64, image.height)
+    // Index the planar data once, then reconstruct one row across the visible channels.
+    var cursors: [4] u64
+    var end = offset
+    for channel in visible
+    {
+        cursors[channel] = end
+        for y in height
+        {
+            let size = cast(u64, readU16(rowLengths + (channel * height + y) * 2))
+            if size > buffer.count - end do
+                fail InvalidFormatError{"PSD PackBits row is truncated"}
+            end += size
+        }
     }
 
-    for channel in image.pixelFormat.channels() do
-        for y in image.height do
-            storeChannel(image, channel, y, Swag.makeSlice(source + channel * planeBytes + cast(u64, y) * rowBytes, rowBytes), depth)
+    var planes: Array'u8
+    planes.reserve(rowBytes * visible)
+    let rows = planes.storage()
+    for y in height
+    {
+        for channel in visible
+        {
+            let size = cast(u64, readU16(rowLengths + (channel * height + y) * 2))
+            let at = cursors[channel]
+            try decodePackBits(rows + rowBytes * channel, rowBytes, Swag.makeSlice(buffer.buffer + at, size))
+            cursors[channel] += size
+        }
+
+        storeCompositeRow(image, cast(s32, y), rows, rowBytes)
+    }
+
+    // Validate the remaining channel data even though the output does not store those channels.
+    for channel in visible until channels
+    {
+        for y in height
+        {
+            let size = cast(u64, readU16(rowLengths + (channel * height + y) * 2))
+            if size > buffer.count - end do
+                fail InvalidFormatError{"PSD PackBits row is truncated"}
+            try decodePackBits(rows, rowBytes, Swag.makeSlice(buffer.buffer + end, size))
+            end += size
+        }
+    }
 }
 
 internal impl IImageDecoder for Decoder
@@ -374,7 +385,7 @@ internal impl IImageDecoder for Decoder
             if rowCount * rowBytes > buffer.count - offset do
                 fail InvalidFormatError{"PSD raw composite is truncated"}
             result.allocPixels()
-            storeRawComposite(&result, source + offset, rowBytes, depth)
+            storeRawComposite(&result, source + offset, rowBytes)
             return result
         }
 
@@ -384,21 +395,7 @@ internal impl IImageDecoder for Decoder
         offset += rowCount * 2
 
         result.allocPixels()
-        var row: Array'u8
-        row.resize(rowBytes)
-        for channel in channels
-        {
-            for y in cast(s32, height)
-            {
-                let rowIndex    = cast(u64, channel) * height + cast(u64, y)
-                let encodedSize = cast(u64, readU16(rowLengths + rowIndex * 2))
-                if encodedSize > buffer.count - offset do
-                    fail InvalidFormatError{"PSD PackBits row is truncated"}
-                try decodePackBits(row.storage(), rowBytes, Swag.makeSlice(source + offset, encodedSize))
-                offset += encodedSize
-                storeChannel(&result, channel, y, row.toSlice(), depth)
-            }
-        }
+        try decodePackedComposite(&result, buffer, rowLengths, offset, rowBytes, channels)
 
         return result
     }

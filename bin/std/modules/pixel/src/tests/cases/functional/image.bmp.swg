@@ -29,7 +29,8 @@ private func checkBmp16Masks(masks: Bmp.Masks)
         expected[3 + 3 * i + 2] = Bmp.maskToByte(value, masks.r)
     }
 
-    Bmp.decode16Row(source.storage() + 1, actual.storage() + 3, Pixels, masks)
+    let decoder = Bmp.prepareRowDecoder16(masks)
+    Bmp.decode16Row(source.storage() + 1, actual.storage() + 3, Pixels, &decoder)
     for i in actual.count do
         Swag.require(actual[i] == expected[i])
 }
@@ -64,11 +65,20 @@ private func checkBmp16Masks(masks: Bmp.Masks)
     masks.b = Bmp.readMask(0xF000)
     checkBmp16Masks(masks)
 
-    // A channel wider than eight bits needs 32-bit arithmetic for normalization.
-    masks.r = Bmp.readMask(0x01FF)
-    masks.g = Bmp.readMask(0x3E00)
-    masks.b = Bmp.readMask(0xC000)
-    checkBmp16Masks(masks)
+    // Cover every wide field width and test both low and high bit alignment.
+    for bits in 9 until 15
+    {
+        let mask = (1'u32 << bits) - 1
+        masks.r = Bmp.readMask(mask)
+        masks.g = Bmp.readMask(1'u32 << bits)
+        masks.b = Bmp.readMask(1'u32 << (bits + 1))
+        checkBmp16Masks(masks)
+
+        masks.r = Bmp.readMask(2)
+        masks.g = Bmp.readMask(1)
+        masks.b = Bmp.readMask(mask << (16 - bits))
+        checkBmp16Masks(masks)
+    }
 }
 
 // Create an image in memory and verify its metadata.

@@ -147,6 +147,57 @@ func scale26_6(value: s32, ppem, unitsPerEm: u32)->s32 fail
     return cast(s32, rounded)
 }
 
+// Reuses the divisor for all points in a simple glyph. The upper bound keeps
+// the 40-bit reciprocal product in 64 bits for every u16 units-per-em value.
+struct PointScale
+{
+    divisor:       u64
+    reciprocal:    u64
+    fastNumerator: u64
+}
+
+impl PointScale
+{
+    const ReciprocalBits = 40
+    const ReciprocalUnit = 1'u64 << ReciprocalBits
+
+    func create(unitsPerEm: u16)->PointScale fail
+    {
+        if not unitsPerEm do
+            try fault(0x17)
+
+        let divisor       = cast(u64, unitsPerEm)
+        let reciprocal    = (ReciprocalUnit + divisor - 1) / divisor
+        let fastNumerator = ((1'u64 << (64 - ReciprocalBits)) - 1) * divisor
+        return {divisor, reciprocal, fastNumerator}
+    }
+
+    #[Swag.Inline]
+    mtd const apply(value: s32, pixelScale: s64)->s32 fail
+    {
+        let scaled    = cast(s64, value) * pixelScale
+        let numerator = cast(u64, Math.abs(scaled)) + .divisor / 2
+        var quotient: u64
+        if numerator <= .fastNumerator
+        {
+            quotient = (numerator * .reciprocal) >> ReciprocalBits
+
+            // The rounded-up reciprocal can overshoot by one in this range.
+            if quotient * .divisor > numerator do
+                quotient -= 1
+        }
+        else
+        {
+            quotient = numerator / .divisor
+        }
+
+        let rounded = scaled < 0 ? -cast(s64, quotient) : cast(s64, quotient)
+        if rounded < Swag.S32.Min or rounded > Swag.S32.Max do
+            try fault(0x17)
+        return cast(s32, rounded)
+    }
+}
+
 #[Swag.Inline]
 func readPackedOffset(entry: const [*] u8, width: u8)->u32
 {

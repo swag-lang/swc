@@ -711,3 +711,39 @@ The WOFF controls include a 12% increase on Noto Sans SC with lazy worker
 startup and a 0.5% increase with the prestarted pool. Glyph indices,
 advances, dimensions, and CRC-64 agree across the two Swag builds for
 every run. FreeType selects the same glyph indices.
+
+## TrueType outline point scaling
+
+Simple glyphs compute a reciprocal once and reuse it for both axes. The
+fast calculation corrects the quotient before applying the sign. Large
+intermediate values use integer division with the same rounding rule.
+
+The comparison with `08cc42d7d8` uses nine interleaved batches of five
+passes on one CPU. The point, tag, contour, and bitmap fingerprints match
+at both pixel sizes. The six CJK fixtures take 27–42% less time to load
+their outlines. Bitmap results also include the unchanged raster stage.
+[Raw timings and fingerprints](font-glyph-linux-point-scale.json)
+
+| Fixture | Pixels | Outline before (µs/glyph) | After | Bitmap before (µs/glyph) | After |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `DejaVuSans.ttf` | 24 | 3.090 | 3.111 | 9.832 | 8.031 |
+| `DejaVuSans.ttf` | 64 | 3.138 | 2.984 | 17.174 | 15.569 |
+| `GowunBatang-Regular.ttf` | 24 | 8.534 | 5.835 | 68.820 | 65.254 |
+| `GowunBatang-Regular.ttf` | 64 | 7.988 | 5.835 | 172.318 | 167.222 |
+| `Lato-Regular.ttf` | 24 | 1.905 | 1.538 | 13.594 | 13.493 |
+| `Lato-Regular.ttf` | 64 | 1.814 | 1.394 | 30.272 | 29.511 |
+| `MaShanZheng-Regular.ttf` | 24 | 10.484 | 7.287 | 92.065 | 90.235 |
+| `MaShanZheng-Regular.ttf` | 64 | 10.168 | 7.145 | 248.289 | 251.704 |
+| `NotoSansJP-Variable.ttf` | 24 | 4.515 | 2.978 | 33.384 | 31.170 |
+| `NotoSansJP-Variable.ttf` | 64 | 4.301 | 3.093 | 75.311 | 76.817 |
+| `NotoSansSC-Variable.ttf` | 24 | 4.490 | 3.296 | 35.503 | 33.639 |
+| `NotoSansSC-Variable.ttf` | 64 | 4.680 | 3.344 | 82.134 | 78.215 |
+| `NotoSansTC-Variable.ttf` | 24 | 4.800 | 3.492 | 35.133 | 33.267 |
+| `NotoSansTC-Variable.ttf` | 64 | 4.523 | 3.217 | 81.547 | 80.546 |
+| `OpenSans-Regular.ttf` | 24 | 1.899 | 1.317 | 15.616 | 14.758 |
+| `OpenSans-Regular.ttf` | 64 | 1.987 | 1.382 | 35.607 | 36.250 |
+| `ZenKakuGothicNew-Regular.ttf` | 24 | 4.419 | 3.164 | 33.681 | 31.201 |
+| `ZenKakuGothicNew-Regular.ttf` | 64 | 5.474 | 3.186 | 74.013 | 70.635 |
+
+DejaVu Sans is within 5% at both sizes for outline loading. The 64 px
+bitmap timings rise by 1–2% on Ma Shan Zheng, Noto Sans JP, and Open Sans.

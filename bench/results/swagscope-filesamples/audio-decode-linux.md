@@ -336,3 +336,26 @@ one PCM16 unit from the original Swag output.
 
 Native Release passes 314 functional and stress tests. Release-safe passes
 27 focused Vorbis, MDCT, Ogg and AAC encoder tests.
+
+### Full ninth-pass comparison
+
+All nine fixtures were measured again with the ninth-pass build `c235d7a7eb` and
+the fifth-pass baseline. Each value is the median of 35 runs on the same CPU set
+as the sixth pass. The reported time includes opening and decoding ten seconds to
+interleaved PCM16. [Raw stage times and PCM deltas](audio-decode-linux-round9.json)
+
+| Format | R5 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AAC | 8.72 | 7.38 | 6.67 | 6.28 | 6.90 |
+| AC-3 | 12.32 | 10.25 | 8.03 | 10.77 | 8.50 |
+| DTS | 14.30 | 14.42 | 15.08 | 14.24 | 15.39 |
+| FLAC | 10.35 | 10.34 | 11.44 | 7.25 | 8.01 |
+| MP3 | 12.60 | 10.89 | 8.49 | 7.47 | 8.14 |
+| OGA (FLAC) | 9.62 | 9.55 | 11.08 | 6.86 | 7.40 |
+| Ogg Vorbis | 8.04 | 7.45 | 7.23 | 7.38 | 7.21 |
+| Opus | 22.66 | 22.03 | 19.62 | 24.10 | 20.10 |
+| WAV | 1.77 | 1.74 | 26.14 | 1.73 | 25.83 |
+
+The Swag PCM matches between worker budgets for all nine fixtures. FLAC and OGA
+match FFmpeg byte for byte. The largest difference from the original Swag output
+is one PCM16 unit.

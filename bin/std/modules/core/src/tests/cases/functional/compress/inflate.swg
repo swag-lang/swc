@@ -251,7 +251,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 }
 
 // Back-references of every distance class the block loop distinguishes: a run of
-// one byte, the short distances it has to copy byte by byte, and the distances it
+// one byte, short overlapping patterns, and the distances it
 // copies in whole words, including matches that end right at the buffer.
 #test
 {

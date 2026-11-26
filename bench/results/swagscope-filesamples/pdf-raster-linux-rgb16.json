@@ -1,0 +1,728 @@
+{
+  "baseline_revision": "2be5b5ed98 PDF raster code with the 8890aed342 library dependencies",
+  "cpu_model": "AMD EPYC 7763",
+  "focused_by_size": [
+    {
+      "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+      "cpu_affinity": [
+        2
+      ],
+      "side": 1200,
+      "pdfium": "159.0.8149.0@sourcebuild-toolchained",
+      "pypdfium2": "5.15.2",
+      "batches": 11,
+      "samples_per_batch": 1,
+      "cases": [
+        {
+          "file": "perf_images_16bit.pdf",
+          "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_16bit.pdf",
+          "source": "Mozilla PDF.js",
+          "workload": "16-bit image samples",
+          "sha256": "bd0d025a30762fbbeac70b0f610836aae12679062128776a9c60bcdcbc68a419",
+          "page": 1,
+          "results": {
+            "baseline": {
+              "image": {
+                "width": 928,
+                "height": 1200,
+                "crc32": 1524435494,
+                "ink_samples": 1024,
+                "objects": {
+                  "text": 0,
+                  "path": 0,
+                  "image": 1
+                }
+              },
+              "samples_ns": [
+                [
+                  601633,
+                  94637835,
+                  57381179
+                ],
+                [
+                  463172,
+                  94365472,
+                  28784102
+                ],
+                [
+                  524327,
+                  92003995,
+                  29055953
+                ],
+                [
+                  718893,
+                  105705802,
+                  30012063
+                ],
+                [
+                  585532,
+                  95686721,
+                  30979074
+                ],
+                [
+                  605010,
+                  99637780,
+                  41214377
+                ],
+                [
+                  747627,
+                  100102185,
+                  29360726
+                ],
+                [
+                  463413,
+                  101178200,
+                  30128293
+                ],
+                [
+                  553552,
+                  101202307,
+                  31749345
+                ],
+                [
+                  537382,
+                  95964112,
+                  29808781
+                ],
+                [
+                  671264,
+                  97805630,
+                  29461366
+                ]
+              ],
+              "median_ms": {
+                "open": 0.585532,
+                "load": 97.80563,
+                "render": 30.012063,
+                "total": 130.210538
+              }
+            },
+            "swag": {
+              "image": {
+                "width": 928,
+                "height": 1200,
+                "crc32": 1524435494,
+                "ink_samples": 1024,
+                "objects": {
+                  "text": 0,
+                  "path": 0,
+                  "image": 1
+                }
+              },
+              "samples_ns": [
+                [
+                  756164,
+                  23575633,
+                  35746752
+                ],
+                [
+                  580153,
+                  16781650,
+                  42284682
+                ],
+                [
+                  468954,
+                  17536661,
+                  29329035
+                ],
+                [
+                  557480,
+                  16836423,
+                  30454697
+                ],
+                [
+                  723202,
+                  16871239,
+                  29138920
+                ],
+                [
+                  519388,
+                  18126503,
+                  31206592
+                ],
+                [
+                  587497,
+                  17127822,
+                  31805430
+                ],
+                [
+                  533124,
+                  16664049,
+                  31966564
+                ],
+                [
+                  495433,
+                  18019711,
+                  31852258
+                ],
+                [
+                  643131,
+                  19004085,
+                  29051194
+                ],
+                [
+                  498830,
+                  18163442,
+                  30501775
+                ]
+              ],
+              "median_ms": {
+                "open": 0.55748,
+                "load": 17.536661,
+                "render": 31.206592,
+                "total": 49.164047
+              }
+            },
+            "pdfium": {
+              "image": {
+                "width": 928,
+                "height": 1200,
+                "crc32": 1097653429,
+                "ink_samples": 1024,
+                "objects": {
+                  "image": 1
+                }
+              },
+              "samples_ns": [
+                [
+                  176503,
+                  614216,
+                  18589314
+                ],
+                [
+                  87034,
+                  306587,
+                  24971332
+                ],
+                [
+                  51488,
+                  203793,
+                  18790383
+                ],
+                [
+                  59832,
+                  215346,
+                  19317961
+                ],
+                [
+                  62799,
+                  263325,
+                  18208267
+                ],
+                [
+                  132018,
+                  210086,
+                  19087502
+                ],
+                [
+                  63841,
+                  231997,
+                  19791467
+                ],
+                [
+                  61767,
+                  289455,
+                  20578580
+                ],
+                [
+                  139422,
+                  216328,
+                  21529350
+                ],
+                [
+                  62819,
+                  210296,
+                  19575510
+                ],
+                [
+                  64572,
+                  213622,
+                  18198909
+                ]
+              ],
+              "median_ms": {
+                "open": 0.063841,
+                "load": 0.216328,
+                "render": 19.317961,
+                "total": 19.593139
+              }
+            }
+          },
+          "same_dimensions": true
+        }
+      ]
+    },
+    {
+      "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+      "cpu_affinity": [
+        2
+      ],
+      "side": 2400,
+      "pdfium": "159.0.8149.0@sourcebuild-toolchained",
+      "pypdfium2": "5.15.2",
+      "batches": 11,
+      "samples_per_batch": 1,
+      "cases": [
+        {
+          "file": "perf_images_16bit.pdf",
+          "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_16bit.pdf",
+          "source": "Mozilla PDF.js",
+          "workload": "16-bit image samples",
+          "sha256": "bd0d025a30762fbbeac70b0f610836aae12679062128776a9c60bcdcbc68a419",
+          "page": 1,
+          "results": {
+            "baseline": {
+              "image": {
+                "width": 1855,
+                "height": 2400,
+                "crc32": 668551589,
+                "ink_samples": 1024,
+                "objects": {
+                  "text": 0,
+                  "path": 0,
+                  "image": 1
+                }
+              },
+              "samples_ns": [
+                [
+                  687795,
+                  103029991,
+                  136167932
+                ],
+                [
+                  524136,
+                  93596227,
+                  80412652
+                ],
+                [
+                  704166,
+                  99549367,
+                  89538837
+                ],
+                [
+                  723513,
+                  92223341,
+                  80493163
+                ],
+                [
+                  489231,
+                  94402575,
+                  105885198
+                ],
+                [
+                  644073,
+                  105717522,
+                  80933051
+                ],
+                [
+                  562018,
+                  109962637,
+                  109731416
+                ],
+                [
+                  487819,
+                  94261760,
+                  81109864
+                ],
+                [
+                  659662,
+                  100995987,
+                  90048452
+                ],
+                [
+                  566357,
+                  96361920,
+                  81174182
+                ],
+                [
+                  467069,
+                  93719054,
+                  82214842
+                ]
+              ],
+              "median_ms": {
+                "open": 0.566357,
+                "load": 96.36192,
+                "render": 82.214842,
+                "total": 187.294646
+              }
+            },
+            "swag": {
+              "image": {
+                "width": 1855,
+                "height": 2400,
+                "crc32": 668551589,
+                "ink_samples": 1024,
+                "objects": {
+                  "text": 0,
+                  "path": 0,
+                  "image": 1
+                }
+              },
+              "samples_ns": [
+                [
+                  839621,
+                  21410918,
+                  108962022
+                ],
+                [
+                  532052,
+                  18245567,
+                  78964755
+                ],
+                [
+                  577988,
+                  18746431,
+                  85514128
+                ],
+                [
+                  2427220,
+                  20235796,
+                  91530066
+                ],
+                [
+                  772094,
+                  17471480,
+                  139491872
+                ],
+                [
+                  518556,
+                  17174070,
+                  81038239
+                ],
+                [
+                  469373,
+                  19344557,
+                  113734710
+                ],
+                [
+                  538023,
+                  18127526,
+                  79243560
+                ],
+                [
+                  607093,
+                  18707346,
+                  92364403
+                ],
+                [
+                  516262,
+                  16560885,
+                  78786636
+                ],
+                [
+                  541099,
+                  16636326,
+                  77955342
+                ]
+              ],
+              "median_ms": {
+                "open": 0.541099,
+                "load": 18.245567,
+                "render": 85.514128,
+                "total": 104.838547
+              }
+            },
+            "pdfium": {
+              "image": {
+                "width": 1855,
+                "height": 2400,
+                "crc32": 2410009704,
+                "ink_samples": 1024,
+                "objects": {
+                  "image": 1
+                }
+              },
+              "samples_ns": [
+                [
+                  69481,
+                  570484,
+                  31664185
+                ],
+                [
+                  87155,
+                  323870,
+                  26688044
+                ],
+                [
+                  65574,
+                  238940,
+                  26872262
+                ],
+                [
+                  66175,
+                  220195,
+                  28490619
+                ],
+                [
+                  91983,
+                  268937,
+                  26044152
+                ],
+                [
+                  65383,
+                  283253,
+                  26739963
+                ],
+                [
+                  66776,
+                  248037,
+                  26257715
+                ],
+                [
+                  70623,
+                  218341,
+                  27956163
+                ],
+                [
+                  66184,
+                  306678,
+                  28196484
+                ],
+                [
+                  63520,
+                  261723,
+                  25054608
+                ],
+                [
+                  121329,
+                  277573,
+                  25729248
+                ]
+              ],
+              "median_ms": {
+                "open": 0.066776,
+                "load": 0.268937,
+                "render": 26.739963,
+                "total": 27.099069
+              }
+            }
+          },
+          "same_dimensions": true
+        }
+      ]
+    }
+  ],
+  "corpus_checksums": [
+    {
+      "file": "sample1.pdf",
+      "page": 1,
+      "crc32": 2822926812
+    },
+    {
+      "file": "sample2.pdf",
+      "page": 1,
+      "crc32": 2521675381
+    },
+    {
+      "file": "sample3.pdf",
+      "page": 1,
+      "crc32": 2592610810
+    },
+    {
+      "file": "pdfbox-tiger.pdf",
+      "page": 1,
+      "crc32": 3234978172
+    },
+    {
+      "file": "pdfbox-jpeg.pdf",
+      "page": 1,
+      "crc32": 599853123
+    },
+    {
+      "file": "pdfbox-ligatures.pdf",
+      "page": 1,
+      "crc32": 2942640759
+    },
+    {
+      "file": "pdfbox-rotation.pdf",
+      "page": 1,
+      "crc32": 556749203
+    },
+    {
+      "file": "pdfbox-scan.pdf",
+      "page": 1,
+      "crc32": 3502252808
+    },
+    {
+      "file": "tracemonkey.pdf",
+      "page": 1,
+      "crc32": 2112370132
+    },
+    {
+      "file": "tracemonkey.pdf",
+      "page": 6,
+      "crc32": 2024770355
+    },
+    {
+      "file": "tracemonkey.pdf",
+      "page": 9,
+      "crc32": 1126275785
+    },
+    {
+      "file": "perf_paths_operators.pdf",
+      "page": 1,
+      "crc32": 2698030146
+    },
+    {
+      "file": "perf_paths_polygons.pdf",
+      "page": 1,
+      "crc32": 3366394781
+    },
+    {
+      "file": "perf_paths_curves.pdf",
+      "page": 1,
+      "crc32": 559875757
+    },
+    {
+      "file": "perf_paths_map.pdf",
+      "page": 1,
+      "crc32": 3898920302
+    },
+    {
+      "file": "perf_paths_hairlines.pdf",
+      "page": 1,
+      "crc32": 1022939979
+    },
+    {
+      "file": "perf_paths_clips.pdf",
+      "page": 1,
+      "crc32": 3927393158
+    },
+    {
+      "file": "perf_text_cmap_mixed.pdf",
+      "page": 1,
+      "crc32": 4189143138
+    },
+    {
+      "file": "perf_text_transformed.pdf",
+      "page": 1,
+      "crc32": 438458626
+    },
+    {
+      "file": "perf_text_type3_vector.pdf",
+      "page": 1,
+      "crc32": 3419766736
+    },
+    {
+      "file": "perf_images_jpeg_large.pdf",
+      "page": 1,
+      "crc32": 1754463271
+    },
+    {
+      "file": "perf_images_jpeg_thumbnails.pdf",
+      "page": 1,
+      "crc32": 428520968
+    },
+    {
+      "file": "perf_images_repeated.pdf",
+      "page": 1,
+      "crc32": 3844355408
+    },
+    {
+      "file": "perf_images_scan_gray.pdf",
+      "page": 1,
+      "crc32": 3806838581
+    },
+    {
+      "file": "perf_images_scan_bilevel.pdf",
+      "page": 1,
+      "crc32": 1816550870
+    },
+    {
+      "file": "perf_images_flate_predictor.pdf",
+      "page": 1,
+      "crc32": 3684783824
+    },
+    {
+      "file": "perf_images_smask.pdf",
+      "page": 1,
+      "crc32": 1934753807
+    },
+    {
+      "file": "perf_structure_forms.pdf",
+      "page": 1,
+      "crc32": 2467866889
+    },
+    {
+      "file": "perf_transparency_blend_modes.pdf",
+      "page": 1,
+      "crc32": 2116962028
+    },
+    {
+      "file": "perf_transparency_soft_masks.pdf",
+      "page": 1,
+      "crc32": 1159117847
+    },
+    {
+      "file": "perf_patterns_tiling_images.pdf",
+      "page": 1,
+      "crc32": 4189143138
+    },
+    {
+      "file": "large_jpeg_downscale.pdf",
+      "page": 1,
+      "crc32": 3358219485
+    },
+    {
+      "file": "cmykjpeg.pdf",
+      "page": 1,
+      "crc32": null
+    },
+    {
+      "file": "images_1bit_grayscale.pdf",
+      "page": 1,
+      "crc32": 900641845
+    },
+    {
+      "file": "perf_images_inline_raw.pdf",
+      "page": 1,
+      "crc32": 1032081608
+    },
+    {
+      "file": "perf_images_indexed.pdf",
+      "page": 1,
+      "crc32": 201132636
+    },
+    {
+      "file": "perf_images_16bit.pdf",
+      "page": 1,
+      "crc32": 1524435494
+    },
+    {
+      "file": "perf_images_stencil_masks.pdf",
+      "page": 1,
+      "crc32": 2502164838
+    },
+    {
+      "file": "perf_codecs_jpeg_gray_progressive.pdf",
+      "page": 1,
+      "crc32": 3241296742
+    },
+    {
+      "file": "perf_codecs_jpeg_cmyk.pdf",
+      "page": 1,
+      "crc32": 1127202292
+    },
+    {
+      "file": "perf_structure_colorspace_images.pdf",
+      "page": 1,
+      "crc32": 125335159
+    },
+    {
+      "file": "pdfbox-source.pdf",
+      "page": 1,
+      "crc32": 794449442
+    },
+    {
+      "file": "pdfbox-survey.pdf",
+      "page": 1,
+      "crc32": 1536724342
+    },
+    {
+      "file": "pdfbox-survey.pdf",
+      "page": 5,
+      "crc32": 3322083909
+    }
+  ]
+}

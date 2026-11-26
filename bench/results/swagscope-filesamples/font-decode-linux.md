@@ -1671,3 +1671,28 @@ faces, Swag takes 12–35 µs and FreeType takes 668–816 µs.
 | `NotoSerifSC-Regular.otf` | 0 | U+6587 | 1469.74 | 515.48 | 1757.77 | 20.88 | 527.71 |
 | `GothicA1-Regular.ttf` | 0 | U+D55C | 252.41 | 63.75 | 273.14 | 22.44 | 49.54 |
 | `GothicA1-Regular.ttf` | 0 | U+AC01 | 243.53 | 61.74 | 241.65 | 15.46 | 49.49 |
+
+## Vector decoding of adjacent Type 1 hexadecimal digits
+
+A vector validates sixteen adjacent hexadecimal digits and packs
+them into eight cipher bytes. The scalar path covers whitespace
+and partial groups. The same cipher recurrence decrypts both
+paths. The native test checks lowercase and uppercase PFA spelling.
+
+Eleven interleaved batches with 51 opens on one CPU compare with
+`bdf45200be`. PFA opening falls by 30–32% to 855–869 µs. Binary
+controls and exact glyph fingerprints are included.
+[Raw timings and fingerprints](font-decode-linux-type1-hex-simd.json)
+
+| Fixture | Character | Pathname open before (µs) | After |
+| --- | ---: | ---: | ---: |
+| `NimbusSans-Regular.t1` | U+0041 | 688.57 | 693.19 |
+| `NimbusSans-Regular.t1` | U+0067 | 699.12 | 670.38 |
+| `NimbusMonoPS-Regular.t1` | U+0057 | 863.08 | 850.95 |
+| `NimbusMonoPS-Regular.t1` | U+0069 | 880.95 | 852.79 |
+| `P052-Roman.t1` | U+0067 | 981.26 | 1022.42 |
+| `P052-Roman.t1` | U+0045 | 975.57 | 977.71 |
+| `NimbusSans-Regular.pfa` | U+0041 | 1264.07 | 854.98 |
+| `NimbusSans-Regular.pfa` | U+0067 | 1241.80 | 868.47 |
+| `P052-Roman.pfb` | U+0067 | 978.99 | 1010.52 |
+| `P052-Roman.pfb` | U+0045 | 1025.47 | 987.93 |

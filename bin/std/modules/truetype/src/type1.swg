@@ -249,6 +249,24 @@ private const HexDigits: [256] u8 = #run
     return digits
 }
 
+// The common PFA line contains adjacent hexadecimal digits. Whitespace and
+// unusual tails fall through to the scalar decoder.
+#[Swag.Inline]
+private func scanHexPairs(input: const [*] u8, output: [*] u8)->bool
+{
+    let ascii = Math.Simd.load(input)
+    let lower = ascii | 0x20'u8
+    let digit = (ascii >= Math.Simd.splat(0x30'u8)) & (ascii <= Math.Simd.splat(0x39'u8))
+    let alpha = (lower >= Math.Simd.splat(0x61'u8)) & (lower <= Math.Simd.splat(0x66'u8))
+    if Swag.vecMask(digit | alpha) != 0xFFFF do
+        return false
+    const Weights = cast(Math.Simd.S8x16, [16's8, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1])
+    let nibbles = (ascii & 0x0F'u8) + (alpha & 9'u8)
+    let pairs   = Math.Simd.mulAddPairs(nibbles, Weights)
+    Math.Simd.storeLow8(output, Math.Simd.packUnsigned(pairs, pairs))
+    return true
+}
+
 // Recognizes and decrypts the hexadecimal form in one pass over its digits.
 private func decryptHexPrivateSection(data: const [..] u8)->{hex: bool, bytes: Array'u8}
 {
@@ -280,8 +298,30 @@ private func decryptHexPrivateSection(data: const [..] u8)->{hex: bool, bytes: A
     var state  = cast(u32, EexecPrivateKey)
     var skip   = EexecPrivateSkip
     var count  = 0'u64
-    for c, index in data
+    var source = 0'u64
+    var block: [8] u8
+    let input  = data.buffer
+    while source < data.count
     {
+        if not have and
+           not skip and
+           data.count - source >= 16 and
+           scanHexPairs(input + source, &block[0])
+        {
+            for cipher, lane in block
+            {
+                output[count + lane] = cipher ^ cast #wrap(u8, state >> 8)
+                state = (cast(u32, cipher) + #wrap state) * #wrap EexecC1 + #wrap EexecC2
+            }
+
+            source += 16
+            count  += 8
+            continue
+        }
+
+        let index = source
+        let c     = input[source]
+        source += 1
         let value = HexDigits[c]
         if value == 0xFF
         {

@@ -78,6 +78,19 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
 
     let pfa = expect parseType1Font(buildBinaryType1Fixture(BinaryPrefix, true).toSlice())
     Swag.require(pfa.glyphNames.count == 2)
+
+    var lowercase = buildBinaryType1Fixture(BinaryPrefix, true)
+    let start     = findBytes(lowercase.toSlice(), 0, "eexec") + 5
+    for index in start until lowercase.count
+    {
+        let c = lowercase[index]
+        if c >= 'A' and c <= 'F' do
+            lowercase[index] = c + 32
+    }
+
+    let lower = expect parseType1Font(lowercase.toSlice())
+    Swag.require(lower.glyphNames[1] == "A")
+    Swag.require(expect type1CharstringWidth(&lower, 1) == 50)
 }
 
 // CRLF after RD is consumed as one separator without discarding binary bytes.

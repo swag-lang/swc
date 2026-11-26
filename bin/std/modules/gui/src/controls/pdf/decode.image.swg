@@ -334,7 +334,7 @@ func spaceColor(space: const *ImageSpace, values: const [..] f32)->Color
     var target: [3] u8
     if space.kind != .Indexed
     {
-        writeColor(space, space.kind, operands, target)
+        writeColor(space.kind, space.components, operands, target)
         return Color.fromRgb(target[0], target[1], target[2])
     }
 
@@ -346,9 +346,7 @@ func spaceColor(space: const *ImageSpace, values: const [..] f32)->Color
     for i in Math.min(space.baseComponents, 8'u32) do
         base[i] = cast(f32, space.palette[entry + i]) / 255.0
 
-    var palette = space[]
-    palette.components = space.baseComponents
-    writeColor(&palette, space.baseKind, base, target)
+    writeColor(space.baseKind, space.baseComponents, base, target)
     return Color.fromRgb(target[0], target[1], target[2])
 }
 
@@ -552,7 +550,7 @@ private func cmykToRgb(c, m, y, k: f32, target: [..] u8)
 //
 // `components` always carries the full working set, so a space whose operands were short still
 // reads defined zeroes rather than the tail of an earlier color.
-private func writeColor(space: const *ImageSpace, kind: ImageSpaceKind, components: const [8] f32, target: [..] u8)
+private func writeColor(kind: ImageSpaceKind, count: u32, components: const [8] f32, target: [..] u8)
 {
     switch kind
     {
@@ -577,7 +575,7 @@ private func writeColor(space: const *ImageSpace, kind: ImageSpaceKind, componen
         // Without evaluating the tint transform, the darkest colorant is the best neutral
         // approximation of the painted ink.
         var tint = 0.0'f32
-        for i in Math.min(space.components, 8'u32) do
+        for i in Math.min(count, 8'u32) do
             tint = Math.max(tint, components[i])
         target[0] = componentByte(1.0 - tint)
         target[1] = target[0]
@@ -585,6 +583,88 @@ private func writeColor(space: const *ImageSpace, kind: ImageSpaceKind, componen
 
     case .Indexed:
         break
+    }
+}
+
+// Resolves the palette and Decode mapping before expanding the packed raster.
+private func expandIndexedPlane(plane: *SamplePlane, space: const *ImageSpace, bytes: const [..] u8, depth: u32, rowBytes: u64, low, high, maxValue: f32)
+{
+    var palette: [256] Color
+    let baseCount = Math.min(space.baseComponents, 8'u32)
+    for index in space.hival + 1
+    {
+        let entry = cast(u64, index) * space.baseComponents
+        var base: [8] f32
+        for i in baseCount do
+            base[i] = cast(f32, space.palette[entry + i]) / 255.0
+
+        // Eight-bit Lab palette components encode the base space's own ranges.
+        if space.baseKind == .Lab and baseCount >= 3
+        {
+            base[0] *= 100.0
+            base[1] = space.range[0] + base[1] * (space.range[1] - space.range[0])
+            base[2] = space.range[2] + base[2] * (space.range[3] - space.range[2])
+        }
+
+        var rgb: [3] u8
+        writeColor(space.baseKind, space.baseComponents, base, rgb)
+        palette[index] = Color.fromRgb(rgb[0], rgb[1], rgb[2])
+    }
+
+    let span  = high - low
+    let limit = cast(s32, space.hival)
+    let width = cast(u64, plane.width)
+    var dst   = plane.rgb.storage()
+    if depth <= 8
+    {
+        var colors: [256] Color
+        for raw in 1'u32 << depth
+        {
+            let value = low + cast(f32, raw) * span / maxValue
+            colors[raw] = palette[Math.clamp(cast(s32, Math.round(value)), 0, limit)]
+        }
+
+        if depth == 8
+        {
+            for raw in bytes[0 until width * cast(u64, plane.height)]
+            {
+                let color = colors[raw]
+                dst[0] = color.r
+                dst[1] = color.g
+                dst[2] = color.b
+                dst    += 3
+            }
+
+            return
+        }
+
+        for y in cast(u64, plane.height)
+        {
+            for x in width
+            {
+                let color = colors[sampleAt(bytes, y * rowBytes, x, depth)]
+                dst[0] = color.r
+                dst[1] = color.g
+                dst[2] = color.b
+                dst    += 3
+            }
+        }
+
+        return
+    }
+
+    for y in cast(u64, plane.height)
+    {
+        for x in width
+        {
+            let raw   = sampleAt(bytes, y * rowBytes, x, depth)
+            let value = low + cast(f32, raw) * span / maxValue
+            let color = palette[Math.clamp(cast(s32, Math.round(value)), 0, limit)]
+            dst[0] = color.r
+            dst[1] = color.g
+            dst[2] = color.b
+            dst    += 3
+        }
     }
 }
 
@@ -649,7 +729,16 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
     }
 
     result.rgb.resize(pixelCount * 3)
-    if depth == 1 and space.kind == .Gray and space.components == 1 and
+    if space.kind == .Indexed
+    {
+        expandIndexedPlane(&result, &space, bytes.toSlice(), depth, rowBytes, lowest[0], highest[0], maxValue)
+        try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
+        return result
+    }
+
+    if depth == 1 and
+       space.kind == .Gray and
+       space.components == 1 and
        ((lowest[0] == 0 and highest[0] == 1) or (lowest[0] == 1 and highest[0] == 0))
     {
         if lowest[0] == 1 do
@@ -695,34 +784,7 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
             }
 
             let pixel = (y * cast(u64, width) + x) * 3
-            if space.kind != .Indexed
-            {
-                writeColor(&space, space.kind, components, target)
-                result.rgb[pixel + 0] = target[0]
-                result.rgb[pixel + 1] = target[1]
-                result.rgb[pixel + 2] = target[2]
-                continue
-            }
-
-            let index     = cast(u32, Math.clamp(cast(s32, Math.round(components[0])), 0, cast(s32, space.hival)))
-            let baseCount = Math.min(space.baseComponents, 8'u32)
-            let entry     = cast(u64, index) * cast(u64, space.baseComponents)
-            var base: [8] f32
-            for i in baseCount do
-                base[i] = cast(f32, space.palette[entry + i]) / 255.0
-
-            // A palette entry is always eight bits wide, so a Lab base needs its own ranges
-            // restored before the entry becomes a color.
-            if space.baseKind == .Lab and baseCount >= 3
-            {
-                base[0] *= 100.0
-                base[1] = space.range[0] + base[1] * (space.range[1] - space.range[0])
-                base[2] = space.range[2] + base[2] * (space.range[3] - space.range[2])
-            }
-
-            var palette = space
-            palette.components = space.baseComponents
-            writeColor(&palette, space.baseKind, base, target)
+            writeColor(space.kind, space.components, components, target)
             result.rgb[pixel + 0] = target[0]
             result.rgb[pixel + 1] = target[1]
             result.rgb[pixel + 2] = target[2]

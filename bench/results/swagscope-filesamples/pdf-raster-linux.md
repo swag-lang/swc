@@ -254,3 +254,31 @@ changed on each page. The mean difference from PDFium fell on `sample1.pdf`
 and rose by 0.003 and 0.035 on `sample2.pdf` and `sample3.pdf`, respectively.
 The flat hairline fixture matched pixel for pixel at both sizes. The focused
 painter test covers a crossing translucent stroke and round-capped dashes.
+
+## Indexed image decoding
+
+Swag converts each palette entry to RGB once per image. Packed samples up
+to eight bits use a table that accounts for the image's Decode array, and
+sixteen-bit indexed samples share the converted palette. Color-key masks
+still compare the original packed values.
+
+These one-core Release medians use seven interleaved measurements at
+each size. Both Swag builds have the joined stroke changes. PDFium
+159.0.8149.0 defers most image work until render, so compare the totals
+across engines. Times are milliseconds.
+[Phase timings and corpus checksums](pdf-raster-linux-indexed-decode.json)
+
+| PDF | Page | Long side | Swag before | Swag after | PDFium | Load before | Load after | PDFium load |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `perf_images_indexed.pdf` | 1 | 1200 | 389.32 | 54.56 | 33.66 | 356.29 | 20.00 | 0.13 |
+| `perf_structure_colorspace_images.pdf` | 1 | 1200 | 96.33 | 95.98 | 85.99 | 65.08 | 65.58 | 0.70 |
+| `pdfbox-survey.pdf` | 1 | 1200 | 25.98 | 20.32 | 10.02 | 11.41 | 5.68 | 4.93 |
+| `pdfbox-survey.pdf` | 5 | 1200 | 19.31 | 19.09 | 9.75 | 6.67 | 6.99 | 5.89 |
+| `perf_images_indexed.pdf` | 1 | 2400 | 488.39 | 151.97 | 53.49 | 362.12 | 19.05 | 0.14 |
+| `perf_structure_colorspace_images.pdf` | 1 | 2400 | 158.02 | 154.62 | 91.44 | 67.33 | 67.22 | 0.41 |
+| `pdfbox-survey.pdf` | 1 | 2400 | 51.28 | 47.44 | 14.83 | 11.04 | 5.49 | 4.88 |
+| `pdfbox-survey.pdf` | 5 | 2400 | 40.09 | 40.63 | 13.67 | 6.43 | 6.51 | 5.65 |
+
+All 43 supported page cases produced the same Swag bitmap CRC-32. A
+focused test covers two odd-width rows of four-bit samples with a reversed
+Decode range and a raw color key.

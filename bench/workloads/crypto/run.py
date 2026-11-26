@@ -198,6 +198,8 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
     parser.add_argument("--swag", action="append", type=program, required=True,
                         help="LABEL=PATH, with baseline first when comparing multiple Swag builds")
     parser.add_argument("--reference", required=True, type=lambda value: Path(value).resolve())
+    parser.add_argument("--openssl-reference", action="append", type=program, default=[],
+                        help="LABEL=PATH for an additional OpenSSL reference executable")
     parser.add_argument("--cpu", action="append", type=int, required=True,
                         help="CPU in the common affinity mask, repeat to allow several CPUs")
     parser.add_argument("--workers", action="append", type=worker_count, default=[],
@@ -224,9 +226,11 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
     sizes = {name: args.size or OPERATION_SIZES.get(name, (64, 4096, 65536, 1048576))
              for name in algorithms}
     labels = [label for label, _ in args.swag]
-    if (len(set(labels)) != len(labels) or
-        any(label in refs for refs in references.values() for label in labels)):
-        parser.error("Swag labels must be unique and distinct from reference labels")
+    extra_labels = [label for label, _ in args.openssl_reference]
+    all_labels = labels + extra_labels
+    if (len(set(all_labels)) != len(all_labels) or
+        any(label in refs for refs in references.values() for label in all_labels)):
+        parser.error("Swag and additional OpenSSL labels must be unique and distinct from built-in references")
     requested_workers = dict(args.workers)
     if len(requested_workers) != len(args.workers) or any(label not in labels for label in requested_workers):
         parser.error("worker counts must name distinct Swag build labels")
@@ -263,11 +267,22 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
                               for label, executable in args.swag},
               "rounds": 0 if args.verify_only else args.rounds,
               "target_ms": args.target_ms, "clock": args.clock, "rows": []}
+    if args.openssl_reference:
+        report["additional_openssl"] = {
+            label: {
+                "version": subprocess.check_output([executable, "--version"], text=True).strip(),
+                "sha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
+            }
+            for label, executable in args.openssl_reference
+        }
     order = random.Random(0xC0DEC0DE)
     with tempfile.TemporaryDirectory(dir=args.scratch, prefix="crypto-") as directory:
         for name in algorithms:
             runners = {label: (args.reference, algorithm, 1)
                        for label, algorithm in references[name].items()}
+            if "OpenSSL" in references[name]:
+                command = references[name]["OpenSSL"]
+                runners.update({label: (executable, command, 1) for label, executable in args.openssl_reference})
             runners.update({label: (executable, name, workers[label]) for label, executable in args.swag})
             for size in sizes[name]:
                 for offset in offsets:

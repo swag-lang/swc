@@ -79,6 +79,19 @@ Pass `--blake2-references --algorithm blake2b-512 --algorithm blake2s-256` to
 the runner. It compares both algorithms with OpenSSL and libb2, and BLAKE2b
 also with libsodium.
 
+## Comparing OpenSSL releases
+
+Build the same reference executable with each OpenSSL version's headers
+and library. For static upstream builds, replace `-lcrypto` in the reference
+compile command with the absolute path of `libcrypto.a` and include the
+matching build's `include` directory. Keep its assembly dispatch enabled.
+
+Pass each additional executable using `--openssl-reference LABEL=PATH`.
+Every OpenSSL operation runs with the original reference and all added
+builds in the same paired rounds. The JSON records each version and
+executable fingerprint. CRC, BLAKE, and other reference implementations
+run once per round as usual.
+
 ## Worker scaling
 
 Repeat `--cpu` to set a common affinity mask for every build and reference. Give each Swag

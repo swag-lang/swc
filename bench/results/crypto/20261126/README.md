@@ -155,3 +155,4 @@ optimizations moved each result.
 - [Cumulative KDF comparison against libargon2, libsodium, Nettle and OpenSSL](kdf-replay.md)
 - [Interleaved AES-CCM authentication and counter rounds](aes-ccm-interleaved.md)
 - [P-256 aligned local word clearing](p256-aligned-wipes.md)
+- [OpenSSL release comparison](openssl-current-references.md)

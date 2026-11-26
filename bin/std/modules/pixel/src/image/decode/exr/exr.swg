@@ -564,13 +564,18 @@ struct CachedScanlines
     firstRow, rows: s32
 }
 
+struct ScanlineCache
+{
+    entries: [2] CachedScanlines
+    next:    u64
+}
+
 struct ScanlineScratch
 {
     zlib:      Compress.ZLib
     unpacked:  Array'u8
     reordered: Array'u8
-    cached:    [2] CachedScanlines
-    nextCache: u64
+    smallCache, largeCache: ScanlineCache
 }
 
 struct Part
@@ -811,15 +816,21 @@ impl Part
     #[Swag.Inline]
     mtd const decodeScanlineChunk(image: *Image, chunk: ScanlineChunk, layout: ScanlineLayout, scratch: *ScanlineScratch) fail
     {
-        // Comparing only small packed blocks keeps cache misses cheap.
-        let cacheable = .compression and chunk.pixels.count < chunk.expected / 4
+        let packedSize = chunk.pixels.count
+        let smallBlock = packedSize < chunk.expected / 4
+        // A larger block is worth checking when decompression does enough work.
+        let largeBlock = packedSize >= 4 * 1024 and packedSize < chunk.expected
+        let cacheable  = .compression and (smallBlock or largeBlock)
+        let cache      = smallBlock ? &scratch.smallCache : &scratch.largeCache
         if cacheable
         {
-            for entry in scratch.cached
+            for entry in cache.entries
             {
                 let packed = entry.pixels
-                if packed and entry.rows == chunk.rows and packed.count == chunk.pixels.count and
-                   Memory.compare(packed.buffer, chunk.pixels.buffer, chunk.pixels.count) == 0
+                // Check the last word of a large block before comparing all its bytes.
+                if packed and entry.rows == chunk.rows and packed.count == packedSize and
+                   (smallBlock or readU32(packed.buffer + packedSize - 4) == readU32(chunk.pixels.buffer + packedSize - 4)) and
+                   Memory.compare(packed.buffer, chunk.pixels.buffer, packedSize) == 0
                 {
                     let rowBytes = cast(u64, image.rowStride)
                     let first    = cast(u64, image.height - chunk.relativeY - chunk.rows) * rowBytes
@@ -834,8 +845,8 @@ impl Part
         try .writeScanlineChunk(image, chunk, layout, scratch)
         if cacheable
         {
-            scratch.cached[scratch.nextCache] = {pixels: chunk.pixels, firstRow: chunk.relativeY, rows: chunk.rows}
-            scratch.nextCache ^= 1
+            cache.entries[cache.next] = {pixels: chunk.pixels, firstRow: chunk.relativeY, rows: chunk.rows}
+            cache.next ^= 1
         }
     }
 

@@ -186,22 +186,31 @@ impl Sha512Core
         var f = .state[5]
         var g = .state[6]
         var h = .state[7]
-        for index in 80
+
+        #[Swag.Inline]
+        func round(a, b, c: u64, d: *u64, e, f, g: u64, h: *u64, scheduled: u64)
         {
             let sum1     = Swag.ror(e, 14'u8) ^ Swag.ror(e, 18'u8) ^ Swag.ror(e, 41'u8)
             let choice   = (e & f) ^ (~e & g)
-            let temp1    = h + sum1 + choice + Sha512Constants[index] + words[index]
+            let temp1    = h[] + sum1 + choice + scheduled
             let sum0     = Swag.ror(a, 28'u8) ^ Swag.ror(a, 34'u8) ^ Swag.ror(a, 39'u8)
             let majority = (a & b) ^ (a & c) ^ (b & c)
-            let temp2    = sum0 + majority
-            h = g
-            g = f
-            f = e
-            e = d + temp1
-            d = c
-            c = b
-            b = a
-            a = temp1 + temp2
+            d[] += temp1
+            h[] = temp1 + sum0 + majority
+        }
+
+        // Rotate the roles of the local variables through all eight positions.
+        for group in 10
+        {
+            let index = group * 8
+            round(a, b, c, &d, e, f, g, &h, Sha512Constants[index] + words[index])
+            round(h, a, b, &c, d, e, f, &g, Sha512Constants[index + 1] + words[index + 1])
+            round(g, h, a, &b, c, d, e, &f, Sha512Constants[index + 2] + words[index + 2])
+            round(f, g, h, &a, b, c, d, &e, Sha512Constants[index + 3] + words[index + 3])
+            round(e, f, g, &h, a, b, c, &d, Sha512Constants[index + 4] + words[index + 4])
+            round(d, e, f, &g, h, a, b, &c, Sha512Constants[index + 5] + words[index + 5])
+            round(c, d, e, &f, g, h, a, &b, Sha512Constants[index + 6] + words[index + 6])
+            round(b, c, d, &e, f, g, h, &a, Sha512Constants[index + 7] + words[index + 7])
         }
 
         .state[0]     += a

@@ -22,8 +22,11 @@ CASES = (
     ("aac-lc-48k-stereo.aac", 48000, "stereo", ("aac", "-b:a", "192k")),
     ("aac-lc-48k-5.1.aac", 48000, "5.1", ("aac", "-b:a", "384k")),
     ("ac3-32k-mono.ac3", 32000, "mono", ("ac3", "-b:a", "96k")),
+    ("ac3-32k-stereo.ac3", 32000, "stereo", ("ac3", "-b:a", "160k")),
     ("ac3-44k-stereo.ac3", 44100, "stereo", ("ac3", "-b:a", "192k")),
+    ("ac3-48k-stereo.ac3", 48000, "stereo", ("ac3", "-b:a", "192k")),
     ("ac3-48k-5.1.ac3", 48000, "5.1", ("ac3", "-b:a", "448k")),
+    ("dts-48k-stereo.dts", 48000, "stereo", ("dca", "-strict", "experimental", "-b:a", "384k")),
     ("dts-48k-5.1.dts", 48000, "5.1", ("dca", "-strict", "experimental", "-b:a", "768k")),
     ("eac3-48k-5.1.eac3", 48000, "5.1", ("eac3", "-b:a", "448k")),
     ("flac-44k-stereo-16.flac", 44100, "stereo", ("flac", "-sample_fmt", "s16")),
@@ -31,17 +34,20 @@ CASES = (
     ("flac-48k-5.1-16.flac", 48000, "5.1", ("flac", "-sample_fmt", "s16")),
     ("mp3-8k-mono.mp3", 8000, "mono", ("libmp3lame", "-b:a", "16k")),
     ("mp3-24k-mono.mp3", 24000, "mono", ("libmp3lame", "-q:a", "5")),
+    ("mp3-44k-stereo-cbr.mp3", 44100, "stereo", ("libmp3lame", "-b:a", "128k")),
     ("mp3-48k-stereo.mp3", 48000, "stereo", ("libmp3lame", "-q:a", "2")),
     ("ogg-flac-48k-mono-16.oga", 48000, "mono", ("flac", "-sample_fmt", "s16", "-f", "ogg")),
     ("opus-voip-48k-mono.opus", 48000, "mono", ("libopus", "-b:a", "16k", "-application", "voip")),
     ("opus-5ms-48k-stereo.opus", 48000, "stereo", ("libopus", "-b:a", "96k", "-application", "lowdelay", "-frame_duration", "5")),
+    ("opus-voip-16k-mono.opus", 16000, "mono", ("libopus", "-b:a", "12k", "-application", "voip")),
     ("opus-20ms-48k-stereo.opus", 48000, "stereo", ("libopus", "-b:a", "128k", "-frame_duration", "20")),
     ("vorbis-32k-mono.ogg", 32000, "mono", ("libvorbis", "-q:a", "2")),
     ("vorbis-48k-stereo.ogg", 48000, "stereo", ("libvorbis", "-q:a", "5")),
     ("vorbis-48k-5.1.ogg", 48000, "5.1", ("libvorbis", "-q:a", "5")),
+    ("vorbis-48k-7.1.ogg", 48000, "7.1", ("libvorbis", "-q:a", "5")),
     ("wav-48k-stereo-24.wav", 48000, "stereo", ("pcm_s24le",)),
 )
-CHANNELS = {"mono": 1, "stereo": 2, "5.1": 6}
+CHANNELS = {"mono": 1, "stereo": 2, "5.1": 6, "7.1": 8}
 PHASE_BITS = 16
 
 
@@ -54,8 +60,8 @@ def sine_table():
 def write_pcm(path, rate, layout):
     channels = CHANNELS[layout]
     sine = sine_table()
-    # Conventional 5.1 order is FL, FR, FC, LFE, BL, BR.
-    pitches = (167, 199, 241, 51, 337, 439)
+    # Multichannel order is FL, FR, FC, LFE, BL, BR, then SL and SR for 7.1.
+    pitches = (167, 199, 241, 51, 337, 439, 523, 613)
     steps = [(hz << PHASE_BITS) // rate for hz in pitches[:channels]]
     phases = [2779 * c for c in range(channels)]
     state = 0x3C6EF372

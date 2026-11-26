@@ -988,11 +988,23 @@ private impl SilkChannel
                 let pred   = bias + Simd.sum(upper0 + upper1 +
                                              Swag.vecMulAddPairs(lower0, Ones) +
                                              Swag.vecMulAddPairs(lower1, Ones))
-                let value = addSat32(resQ14[i], lshiftSat32(pred, 4))
-                olderHigh      = Simd.align(olderHigh, newerHigh, 2)
-                olderLow       = Simd.align(olderLow, newerLow, 2)
-                newerHigh      = Simd.align(newerHigh, Simd.splat(cast #wrap(u16, (value >> 16))), 2)
-                newerLow       = Simd.align(newerLow, Simd.splat(cast #wrap(u16, value)), 2)
+
+                // Spelling out the rare saturation cases keeps the predictor
+                // recurrence in signed 32-bit arithmetic on the common path.
+                var shifted = pred << 4
+                if shifted >> 4 != pred do
+                    shifted = lshiftSat32(pred, 4)
+                let residual = resQ14[i]
+                var value    = shifted + residual
+                if ((shifted ^ value) & (residual ^ value)) < 0 do
+                    value = addSat32(shifted, residual)
+                olderHigh = Simd.align(olderHigh, newerHigh, 2)
+                olderLow  = Simd.align(olderLow, newerLow, 2)
+
+                // Only the first half-word enters each history register.
+                let words = cast #bit (Simd.U16x8, Simd.splat(value))
+                newerHigh      = Simd.align(newerHigh, Simd.align(words, words, 2), 2)
+                newerLow       = Simd.align(newerLow, words, 2)
                 out[outAt + i] = cast(s16, sat16(rshiftRound(smulww(value, gainQ10), 8)))
             }
 

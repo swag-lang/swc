@@ -670,3 +670,48 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
             Swag.require(Math.abs(cast(s32, expected[sample]) - cast(s32, actual[sample])) <= 1)
     }
 }
+
+// Guarded Dolby reads zero-pad partial fields and report the physical end of the packet.
+#test
+{
+    var bytes: [7] u8 = [0xB5, 0x29, 0xF0, 0x16, 0x43, 0x87, 0xFE]
+    for size in 8
+    {
+        let end = size * 8
+        for start in end + 9
+        {
+            for width in 17
+            {
+                var unsigned = Dolby.BitReader.create(&bytes[0], size)
+                var signed   = Dolby.BitReader.create(&bytes[0], size)
+                unsigned.skip(start)
+                signed.skip(start)
+
+                var wanted = 0'u32
+                for bit in width
+                {
+                    let position = start + bit
+                    wanted <<= 1
+                    if position < end do
+                        wanted |= (cast(u32, bytes[position >> 3]) >> cast(u32, 7 - (position & 7))) & 1
+                }
+
+                var wantedSigned = cast(s32, wanted)
+                if width and (wanted & (1'u32 << cast(u32, width - 1))) do
+                    wantedSigned -= cast(s32, 1'u32 << cast(u32, width))
+                Swag.require(unsigned.read(cast(u32, width)) == wanted)
+                Swag.require(signed.readSigned(cast(u32, width)) == wantedSigned)
+                Swag.require(unsigned.overrun == (start + width > end))
+                Swag.require(signed.overrun == (start + width > end))
+
+                if width == 1
+                {
+                    var flag = Dolby.BitReader.create(&bytes[0], size)
+                    flag.skip(start)
+                    Swag.require(flag.readBit() == wanted)
+                    Swag.require(flag.overrun == (start >= end))
+                }
+            }
+        }
+    }
+}

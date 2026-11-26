@@ -98,33 +98,33 @@ private func parseEac3Bsi(reader: *BitReader)->Eac3Bsi fail
 
     result.acmod   = reader.read(3)
     result.nfchans = FullBandwidthChannels[result.acmod]
-    result.lfeon   = reader.read(1) != 0
+    result.lfeon   = reader.readBit() != 0
     let bsid = reader.read(5)
     if bsid < 11 or bsid > 16 do
         fail InvalidFormatError{"E-AC-3 packet has an invalid bit-stream identification"}
 
     discard reader.read(5)
-    if reader.read(1) do
+    if reader.readBit() do
         reader.skip(8)
     if not result.acmod
     {
         reader.skip(5)
-        if reader.read(1) do
+        if reader.readBit() do
             reader.skip(8)
     }
 
-    if reader.read(1) do
+    if reader.readBit() do
         fail UnsupportedFormatError{"E-AC-3 mixing metadata is not supported"}
-    if reader.read(1)
+    if reader.readBit()
     {
         reader.skip(5)     // bsmod, copyrightb, origbs
         if result.acmod == 2 do
             reader.skip(4)     // dsurmod, dheadphonmod
         if result.acmod >= 6 do
             reader.skip(2)     // dsurexmod
-        if reader.read(1) do
+        if reader.readBit() do
             reader.skip(8)     // mixlevel, roomtyp, adconvtyp
-        if not result.acmod and reader.read(1) do
+        if not result.acmod and reader.readBit() do
             reader.skip(8)
         if result.fscod < 3 do
             reader.skip(1)     // sourcefscod
@@ -132,7 +132,7 @@ private func parseEac3Bsi(reader: *BitReader)->Eac3Bsi fail
             reader.skip(1)     // convsync
     }
 
-    if reader.read(1)
+    if reader.readBit()
     {
         let bytes = reader.read(6) + 1
         reader.skip(cast(u64, bytes) * 8)
@@ -148,8 +148,8 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
     var result: #returntype
     if bsi.blocks == 6
     {
-        result.expstre = reader.read(1) != 0
-        if reader.read(1) do
+        result.expstre = reader.readBit() != 0
+        if reader.readBit() do
             fail UnsupportedFormatError{"E-AC-3 adaptive hybrid transform is not supported"}
     }
     else
@@ -158,28 +158,28 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
     }
 
     result.snrStrategy = reader.read(2)
-    if reader.read(1) do
+    if reader.readBit() do
         fail UnsupportedFormatError{"E-AC-3 transient pre-noise processing is not supported"}
-    result.blockSwitch = reader.read(1) != 0
-    result.ditherFlags = reader.read(1) != 0
-    result.allocation  = reader.read(1) != 0
-    result.fastGain    = reader.read(1) != 0
-    result.delta       = reader.read(1) != 0
-    result.skip        = reader.read(1) != 0
-    if reader.read(1) do
+    result.blockSwitch = reader.readBit() != 0
+    result.ditherFlags = reader.readBit() != 0
+    result.allocation  = reader.readBit() != 0
+    result.fastGain    = reader.readBit() != 0
+    result.delta       = reader.readBit() != 0
+    result.skip        = reader.readBit() != 0
+    if reader.readBit() do
         fail UnsupportedFormatError{"E-AC-3 spectral-extension attenuation is not supported"}
 
     if bsi.acmod > 1
     {
-        result.coupling[0]    = reader.read(1) != 0
+        result.coupling[0]    = reader.readBit() != 0
         result.couplingNew[0] = true
         var previous = result.coupling[0]
         var block    = 1'u32
         while block < bsi.blocks
         {
-            result.couplingNew[block] = reader.read(1) != 0
+            result.couplingNew[block] = reader.readBit() != 0
             if result.couplingNew[block] do
-                previous = reader.read(1) != 0
+                previous = reader.readBit() != 0
             result.coupling[block] = previous
             block += 1
         }
@@ -221,12 +221,12 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
     if bsi.lfeon
     {
         for block in bsi.blocks do
-            result.lfeExp[block] = reader.read(1)
+            result.lfeExp[block] = reader.readBit()
     }
 
     if bsi.streamType == 0
     {
-        let converterStrategies = bsi.blocks == 6 or reader.read(1) != 0
+        let converterStrategies = bsi.blocks == 6 or reader.readBit() != 0
         if converterStrategies
         {
             for bsi.nfchans do
@@ -240,7 +240,7 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
         result.fineSnr   = reader.read(4)
     }
 
-    if bsi.blocks != 1 and reader.read(1)
+    if bsi.blocks != 1 and reader.readBit()
     {
         var frameBits = bsi.frameSize * 8
         var log2      = 0'u32
@@ -291,7 +291,7 @@ private impl Eac3Codec
                 return
             }
 
-            if reader.read(1) do
+            if reader.readBit() do
                 fail UnsupportedFormatError{"E-AC-3 enhanced coupling is not supported"}
             if bsi.acmod == 2
             {
@@ -301,24 +301,24 @@ private impl Eac3Codec
             else
             {
                 for channel in bsi.nfchans do
-                    block.channelCoupled[channel] = reader.read(1) != 0
+                    block.channelCoupled[channel] = reader.readBit() != 0
             }
 
-            block.phaseFlagsInUse = bsi.acmod == 2 and reader.read(1) != 0
+            block.phaseFlagsInUse = bsi.acmod == 2 and reader.readBit() != 0
             block.couplingBegin   = reader.read(4)
             block.couplingEnd     = reader.read(4)
             let subbands = 3's32 + cast(s32, block.couplingEnd) - cast(s32, block.couplingBegin)
             if subbands < 1 or subbands > 18 do
                 fail InvalidFormatError{"E-AC-3 coupling range is invalid"}
             block.couplingSubbands = cast(u32, subbands)
-            let explicitBands = reader.read(1) != 0
+            let explicitBands = reader.readBit() != 0
             block.couplingBandJoin[0] = false
             block.couplingBands       = block.couplingSubbands
             var subband = 1'u32
             while subband < block.couplingSubbands
             {
                 if explicitBands do
-                    block.couplingBandJoin[subband] = reader.read(1) != 0
+                    block.couplingBandJoin[subband] = reader.readBit() != 0
                 elif firstStrategy[] do
                     block.couplingBandJoin[subband] = isDefaultEac3CouplingJoin(block.couplingBegin + subband)
                 if block.couplingBandJoin[subband] do
@@ -337,7 +337,7 @@ private impl Eac3Codec
         var anyCoordinates = false
         for channel in bsi.nfchans where block.channelCoupled[channel]
         {
-            let newCoordinates = firstCoordinates[][channel] or reader.read(1) != 0
+            let newCoordinates = firstCoordinates[][channel] or reader.readBit() != 0
             firstCoordinates[][channel] = false
             if newCoordinates
             {
@@ -354,7 +354,7 @@ private impl Eac3Codec
         if bsi.acmod == 2 and block.phaseFlagsInUse and anyCoordinates
         {
             for band in block.couplingBands do
-                block.couplingPhase[band] = reader.read(1) != 0
+                block.couplingPhase[band] = reader.readBit() != 0
         }
 
         for channel in bsi.nfchans where block.channelCoupled[channel]
@@ -425,7 +425,7 @@ private impl Eac3Codec
         // A new frame resets the allocation defaults, even when later blocks reuse them.
         var refreshAll      = not blockIndex
         var refreshCoupling = couplingChanged
-        if frame.allocation and reader.read(1)
+        if frame.allocation and reader.readBit()
         {
             refreshAll          = true
             block.slowDecayCode = reader.read(2)
@@ -460,7 +460,7 @@ private impl Eac3Codec
 
         if frame.snrStrategy != 0
         {
-            let present = not blockIndex or reader.read(1) != 0
+            let present = not blockIndex or reader.readBit() != 0
             if present
             {
                 refreshAll      = true
@@ -485,7 +485,7 @@ private impl Eac3Codec
             }
         }
 
-        if frame.fastGain and reader.read(1)
+        if frame.fastGain and reader.readBit()
         {
             refreshAll = true
             if block.coupling do
@@ -496,11 +496,11 @@ private impl Eac3Codec
                 block.lfeFastGain = reader.read(3)
         }
 
-        if bsi.streamType == 0 and reader.read(1) do
+        if bsi.streamType == 0 and reader.readBit() do
             reader.skip(10)
         if block.coupling
         {
-            let leakPresent = not blockIndex or reader.read(1) != 0
+            let leakPresent = not blockIndex or reader.readBit() != 0
             if leakPresent
             {
                 refreshCoupling        = true
@@ -509,7 +509,7 @@ private impl Eac3Codec
             }
         }
 
-        if frame.delta and reader.read(1)
+        if frame.delta and reader.readBit()
         {
             refreshAll = true
             if block.coupling
@@ -566,7 +566,7 @@ private impl Eac3Codec
             }
         }
 
-        if frame.skip and reader.read(1)
+        if frame.skip and reader.readBit()
         {
             let bytes = reader.read(9)
             reader.skip(cast(u64, bytes) * 8)
@@ -610,16 +610,16 @@ private impl Eac3Codec
         for blockIndex in bsi.blocks
         {
             for channel in bsi.nfchans do
-                .block.blockSwitch[channel] = frame.blockSwitch and reader.read(1) != 0
+                .block.blockSwitch[channel] = frame.blockSwitch and reader.readBit() != 0
             for channel in bsi.nfchans do
-                .block.dither[channel] = not frame.ditherFlags or reader.read(1) != 0
-            if reader.read(1) do
+                .block.dither[channel] = not frame.ditherFlags or reader.readBit() != 0
+            if reader.readBit() do
                 reader.skip(8)
-            if not bsi.acmod and reader.read(1) do
+            if not bsi.acmod and reader.readBit() do
                 reader.skip(8)
 
-            let spxStrategy = not blockIndex or reader.read(1) != 0
-            if spxStrategy and reader.read(1) do
+            let spxStrategy = not blockIndex or reader.readBit() != 0
+            if spxStrategy and reader.readBit() do
                 fail UnsupportedFormatError{"E-AC-3 spectral extension is not supported"}
             let previousChannelEnd = .block.channelEnd
             let hadCoupling        = .block.coupling
@@ -628,7 +628,7 @@ private impl Eac3Codec
             try .readCoupling(&reader, &bsi, &frame, blockIndex, &firstCoordinates, &firstStrategy)
             if bsi.acmod == 2
             {
-                let rematrixNew = not blockIndex or reader.read(1) != 0
+                let rematrixNew = not blockIndex or reader.readBit() != 0
                 if rematrixNew
                 {
                     var rematrixCount = 4'u32
@@ -644,7 +644,7 @@ private impl Eac3Codec
 
                     .block.rematrixCount = rematrixCount
                     for band in .block.rematrixCount do
-                        .block.rematrix[band] = reader.read(1) != 0
+                        .block.rematrix[band] = reader.readBit() != 0
                 }
             }
 

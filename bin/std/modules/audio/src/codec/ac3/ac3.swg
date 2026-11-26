@@ -120,27 +120,27 @@ private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
         discard reader.read(2)
     if result.acmod == 2 do
         discard reader.read(2)
-    result.lfeon = reader.read(1) != 0
+    result.lfeon = reader.readBit() != 0
     discard reader.read(5)
-    if reader.read(1) do
+    if reader.readBit() do
         discard reader.read(8)
-    if reader.read(1) do
+    if reader.readBit() do
         discard reader.read(8)
-    if reader.read(1) do
+    if reader.readBit() do
         reader.skip(7)
     if not result.acmod
     {
         reader.skip(5)
-        if reader.read(1) do
+        if reader.readBit() do
             reader.skip(8)
-        if reader.read(1) do
+        if reader.readBit() do
             reader.skip(8)
-        if reader.read(1) do
+        if reader.readBit() do
             reader.skip(7)
     }
 
     reader.skip(2)
-    if reader.read(1)
+    if reader.readBit()
     {
         if result.bsid == 6 do
             reader.skip(14)
@@ -148,7 +148,7 @@ private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
             reader.skip(14)
     }
 
-    if reader.read(1)
+    if reader.readBit()
     {
         if result.bsid == 6 do
             reader.skip(14)
@@ -156,7 +156,7 @@ private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
             reader.skip(14)
     }
 
-    if reader.read(1)
+    if reader.readBit()
     {
         let additional = reader.read(6) + 1
         reader.skip(cast(u64, additional) * 8)
@@ -227,15 +227,15 @@ private impl Ac3Codec
     mtd readCoupling(reader: *BitReader, bsi: const *Ac3Bsi) fail
     {
         let block = &.block
-        if reader.read(1)
+        if reader.readBit()
         {
-            block.coupling = reader.read(1) != 0
+            block.coupling = reader.readBit() != 0
             if block.coupling
             {
                 for channel in bsi.nfchans do
-                    block.channelCoupled[channel] = reader.read(1) != 0
+                    block.channelCoupled[channel] = reader.readBit() != 0
                 if bsi.acmod == 2 do
-                    block.phaseFlagsInUse = reader.read(1) != 0
+                    block.phaseFlagsInUse = reader.readBit() != 0
                 block.couplingBegin    = reader.read(4)
                 block.couplingEnd      = reader.read(4)
                 block.couplingSubbands = 3 + block.couplingEnd - block.couplingBegin
@@ -246,7 +246,7 @@ private impl Ac3Codec
                 var band = 1'u32
                 while band < block.couplingSubbands
                 {
-                    block.couplingBandJoin[band] = reader.read(1) != 0
+                    block.couplingBandJoin[band] = reader.readBit() != 0
                     if block.couplingBandJoin[band] do
                         block.couplingBands -= 1
                     band += 1
@@ -263,7 +263,7 @@ private impl Ac3Codec
             return
         for channel in bsi.nfchans where block.channelCoupled[channel]
         {
-            block.couplingCoordNew[channel] = reader.read(1) != 0
+            block.couplingCoordNew[channel] = reader.readBit() != 0
             if block.couplingCoordNew[channel]
             {
                 block.couplingMaster[channel] = reader.read(2)
@@ -298,7 +298,7 @@ private impl Ac3Codec
            (block.couplingCoordNew[0] or block.couplingCoordNew[1])
         {
             for band in block.couplingBands do
-                block.couplingPhase[band] = reader.read(1) != 0
+                block.couplingPhase[band] = reader.readBit() != 0
         }
     }
 
@@ -310,7 +310,7 @@ private impl Ac3Codec
         for channel in bsi.nfchans do
             block.channelExpStrategy[channel] = reader.read(2)
         if bsi.lfeon do
-            block.lfeExpStrategy = reader.read(1)
+            block.lfeExpStrategy = reader.readBit()
 
         for channel in bsi.nfchans where block.channelExpStrategy[channel] != 0 and not block.channelCoupled[channel]
         {
@@ -357,7 +357,7 @@ private impl Ac3Codec
         // An unchanged allocation is valid only within the current sync frame.
         var refreshAll      = not blockIndex
         var refreshCoupling = couplingChanged
-        if reader.read(1)
+        if reader.readBit()
         {
             refreshAll          = true
             block.slowDecayCode = reader.read(2)
@@ -371,7 +371,7 @@ private impl Ac3Codec
             fail InvalidFormatError{"first AC-3 block omits bit-allocation parameters"}
         }
 
-        if reader.read(1)
+        if reader.readBit()
         {
             refreshAll      = true
             block.coarseSnr = reader.read(6)
@@ -398,14 +398,14 @@ private impl Ac3Codec
             fail InvalidFormatError{"first AC-3 block omits signal-to-noise offsets"}
         }
 
-        if block.coupling and reader.read(1)
+        if block.coupling and reader.readBit()
         {
             refreshCoupling        = true
             block.couplingFastLeak = reader.read(3)
             block.couplingSlowLeak = reader.read(3)
         }
 
-        if reader.read(1)
+        if reader.readBit()
         {
             refreshAll = true
             if block.coupling do
@@ -468,19 +468,19 @@ private impl Ac3Codec
     {
         let block = &.block
         for channel in bsi.nfchans do
-            block.blockSwitch[channel] = reader.read(1) != 0
+            block.blockSwitch[channel] = reader.readBit() != 0
         for channel in bsi.nfchans do
-            block.dither[channel] = reader.read(1) != 0
-        if reader.read(1) do
+            block.dither[channel] = reader.readBit() != 0
+        if reader.readBit() do
             reader.skip(8)
-        if not bsi.acmod and reader.read(1) do
+        if not bsi.acmod and reader.readBit() do
             reader.skip(8)
 
         let hadCoupling   = block.coupling
         let previousStart = block.couplingStart
         let previousEnd   = block.couplingEndMantissa
         try .readCoupling(reader, bsi)
-        if bsi.acmod == 2 and reader.read(1)
+        if bsi.acmod == 2 and reader.readBit()
         {
             var rematrixCount = 4'u32
             if block.coupling
@@ -495,7 +495,7 @@ private impl Ac3Codec
 
             block.rematrixCount = rematrixCount
             for band in block.rematrixCount do
-                block.rematrix[band] = reader.read(1) != 0
+                block.rematrix[band] = reader.readBit() != 0
         }
 
         try .readExponents(reader, bsi)
@@ -503,7 +503,7 @@ private impl Ac3Codec
                               previousStart != block.couplingStart or
                               previousEnd != block.couplingEndMantissa
         try .readAllocation(reader, bsi, blockIndex, couplingChanged)
-        if reader.read(1)
+        if reader.readBit()
         {
             let skipBytes = reader.read(9)
             reader.skip(cast(u64, skipBytes) * 8)

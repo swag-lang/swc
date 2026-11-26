@@ -20,6 +20,11 @@ private struct Ed25519Point
     t: X25519Field
 }
 
+private struct Ed25519Affine
+{
+    yMinusX, yPlusX, twiceDT: X25519Field
+}
+
 private func ed25519FieldConstant(limbs: [5] u64)->X25519Field
 {
     var result: #returntype
@@ -64,6 +69,21 @@ private func ed25519Add(left, right: Ed25519Point)->Ed25519Point
     let c2 = x25519Add(c, c)
     let z  = x25519Multiply(left.z, right.z)
     let d  = x25519Add(z, z)
+    return ed25519CompleteAddition(a, b, c2, d)
+}
+
+private func ed25519AddAffine(left: Ed25519Point, right: Ed25519Affine)->Ed25519Point
+{
+    let a   = x25519Multiply(x25519Subtract(left.y, left.x), right.yMinusX)
+    let b   = x25519Multiply(x25519Add(left.y, left.x), right.yPlusX)
+    let c2  = x25519Multiply(left.t, right.twiceDT)
+    let d   = x25519Add(left.z, left.z)
+    return ed25519CompleteAddition(a, b, c2, d)
+}
+
+#[Swag.Inline]
+private func ed25519CompleteAddition(a, b, c2, d: X25519Field)->Ed25519Point
+{
     let e  = x25519Subtract(b, a)
     let f  = x25519Subtract(d, c2)
     let g  = x25519Add(d, c2)
@@ -155,21 +175,62 @@ private func ed25519BasePoint()->Ed25519Point
 // The table is built at compile time from public coordinates.
 private const Ed25519GeneratorComb = #run ed25519BuildGeneratorComb()
 
-private func ed25519BuildGeneratorComb()->[16] Ed25519Point
+private func ed25519BuildGeneratorComb()->[16] Ed25519Affine
 {
-    var result: #returntype
-    result[0] = ed25519Identity()
+    var points: [16] Ed25519Point
+    points[0] = ed25519Identity()
     var base = ed25519BasePoint()
     for column in 4
     {
         let count = 1'u32 << column
         for index in count do
-            result[count + index] = ed25519Add(result[index], base)
+            points[count + index] = ed25519Add(points[index], base)
 
         if column < 3
         {
             for 64 do
                 base = ed25519Double(base)
+        }
+    }
+
+    // Normalize all 16 public points with one inversion.
+    var prefixes: [16] X25519Field
+    var product: X25519Field
+    product.limbs[0] = 1
+    for point, index in points
+    {
+        prefixes[index] = product
+        product = x25519Multiply(product, point.z)
+    }
+
+    var inverse = x25519InvertPublic(product)
+    let twiceD = x25519Add(ed25519D(), ed25519D())
+    var result: #returntype
+    for row in 16
+    {
+        let index = 15 - row
+        let inverseZ = x25519Multiply(inverse, prefixes[index])
+        inverse = x25519Multiply(inverse, points[index].z)
+        let x = x25519Multiply(points[index].x, inverseZ)
+        let y = x25519Multiply(points[index].y, inverseZ)
+        result[index] = {yMinusX: x25519Subtract(y, x), yPlusX: x25519Add(y, x),
+                         twiceDT: x25519Multiply(twiceD, x25519Multiply(x, y))}
+    }
+
+    return result
+}
+
+private func ed25519SelectAffine(multiples: const [..] Ed25519Affine, digit: u8)->Ed25519Affine
+{
+    var result: #returntype
+    for index in 16
+    {
+        let mask = 0'u64 - cast(u64, index == digit)
+        for limb in result.yMinusX.limbs.count
+        {
+            result.yMinusX.limbs[limb] |= multiples[index].yMinusX.limbs[limb] & mask
+            result.yPlusX.limbs[limb]  |= multiples[index].yPlusX.limbs[limb] & mask
+            result.twiceDT.limbs[limb] |= multiples[index].twiceDT.limbs[limb] & mask
         }
     }
 
@@ -191,8 +252,8 @@ private func ed25519MultiplyGenerator(scalar: const [..] u8)->Ed25519Point
         let fourth = (scalar[byte + 24] >> shift) & 1
         let digit  = first | (second << 1) | (third << 2) | (fourth << 3)
 
-        var selected = ed25519SelectMultiple(Ed25519GeneratorComb, digit)
-        result = ed25519Add(result, selected)
+        var selected = ed25519SelectAffine(Ed25519GeneratorComb, digit)
+        result = ed25519AddAffine(result, selected)
         Crypto.secureClear(Swag.makeSlice(&selected, 1))
     }
 

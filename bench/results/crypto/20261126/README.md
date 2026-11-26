@@ -41,6 +41,8 @@ optimizations moved each result.
 
 [Integrated comparison on the original 19 operations](integrated-checkpoint.md).
 
+[Integrated 19-operation replay with OpenSSL 4.1 and 3.5.9](integrated-replay-1517.md).
+
 ## Optimization campaigns
 
 - [CRC-64 portable slicing-by-eight](crc64-portable.md)

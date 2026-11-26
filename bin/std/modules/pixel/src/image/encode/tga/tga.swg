@@ -16,41 +16,40 @@ public struct EncodeOptions
     public rle = false     // Use TGA run-length encoded packets when true.
 }
 
-func writeTgaPixel(result: *ConcatBuffer, src: const [*] u8, pixelFormat: PixelFormat)
+#[Swag.Inline]
+private func writeTgaPixel(target: [*] u8, src: const [*] u8, pixelFormat: PixelFormat)
 {
     switch pixelFormat
     {
     case .BGR8:
-        result.addBytes(Swag.makeSlice(src, 3))
+        cast(*u16, target)[] = cast(const *u16, src)[]
+        target[2] = src[2]
 
     case .BGRA8:
-        result.addBytes(Swag.makeSlice(src, 4))
+        cast(*u32, target)[] = cast(const *u32, src)[]
 
     case .RGB8:
-        result.addNative(src[2])
-        result.addNative(src[1])
-        result.addNative(src[0])
+        target[0] = src[2]
+        target[1] = src[1]
+        target[2] = src[0]
 
     case .RGBA8:
-        result.addNative(src[2])
-        result.addNative(src[1])
-        result.addNative(src[0])
-        result.addNative(src[3])
+        target[0] = src[2]
+        target[1] = src[1]
+        target[2] = src[0]
+        target[3] = src[3]
 
     default:
-        break
+        unreachable
     }
 }
 
+#[Swag.Inline]
 func sameTgaPixel(left, right: const [*] u8, bytesPerPixel: u64)->bool
 {
-    for i in bytesPerPixel
-    {
-        if left[i] != right[i] do
-            return false
-    }
-
-    return true
+    if bytesPerPixel == 4 do
+        return cast(const *u32, left)[] == cast(const *u32, right)[]
+    return cast(const *u16, left)[] == cast(const *u16, right)[] and left[2] == right[2]
 }
 
 func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
@@ -79,12 +78,57 @@ func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
     return result
 }
 
+private func nextTgaRawEnd(source: const [*] u8, first, packetEnd, pixelCount, bytesPerPixel: u64)->u64
+{
+    using Math.Simd
+
+    let end = Math.min(packetEnd, pixelCount - 1)
+    if first >= end do
+        return packetEnd
+
+    var x = first
+    if bytesPerPixel == 4
+    {
+        let pixels = cast(const [*] u32, source)
+        while end - x >= 4
+        {
+            let matches = bitmask(load(pixels + x) == load(pixels + x + 1))
+            if matches do
+                return x + Math.trailingZeros(matches)
+            x += 4
+        }
+    }
+    else
+    {
+        // Matching triplets leave bits 0, 3, 6, or 9 set after combining the byte masks.
+        while end - x >= 6
+        {
+            let at      = source + x * 3
+            let matches = bitmask(load(at) == load(at + 3))
+            let pairs   = matches & (matches >> 1) & (matches >> 2) & 0x249
+            if pairs do
+                return x + Math.trailingZeros(pairs) / 3
+            x += 4
+        }
+    }
+
+    for i in x until end
+    {
+        let pixel = source + i * bytesPerPixel
+        if sameTgaPixel(pixel, pixel + bytesPerPixel, bytesPerPixel) do
+            return i
+    }
+
+    return packetEnd
+}
+
 func writeTgaRle(result: *ConcatBuffer, image: Image)
 {
     let src           = cast(const [*] u8, image.pixels.storage())
     let bytesPerPixel = cast(u64, image.bytesPerPixel)
     let pixelCount    = cast(u64, image.width) * cast(u64, image.height)
-    var converted: [512] u8
+    const BucketBytes = 32 * 1024
+    result.setBucketSize(Math.min(image.byteCount + 128, cast(u64, BucketBytes)))
 
     var index: u64
     while index < pixelCount
@@ -92,39 +136,29 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
         let runLength = tgaRunLength(src, index, pixelCount, bytesPerPixel)
         if runLength >= 2
         {
-            result.addNative(cast(u8, (0x80 | (runLength - 1))))
-            writeTgaPixel(result, src + index * bytesPerPixel, image.pixelFormat)
+            let packet = result.reserveInPlace(1 + bytesPerPixel)
+            packet[0] = cast(u8, (0x80 | (runLength - 1)))
+            writeTgaPixel(packet + 1, src + index * bytesPerPixel, image.pixelFormat)
             index += runLength
             continue
         }
 
-        let rawStart = index
-        index += 1
-        while index < pixelCount and index - rawStart < 128
-        {
-            if tgaRunLength(src, index, pixelCount, bytesPerPixel) >= 2 do
-                break
-            index += 1
-        }
+        let rawStart  = index
+        let packetEnd = Math.min(pixelCount, rawStart + 128)
+        index = nextTgaRawEnd(src, rawStart + 1, packetEnd, pixelCount, bytesPerPixel)
 
-        let rawCount = index - rawStart
-        result.addNative(cast(u8, (rawCount - 1)))
+        let rawCount  = index - rawStart
+        let rawSize   = rawCount * bytesPerPixel
         let rawSource = src + rawStart * bytesPerPixel
+        let packet    = result.reserveInPlace(1 + rawSize)
+        packet[0] = cast(u8, (rawCount - 1))
+        let target = packet + 1
         switch image.pixelFormat
         {
-        case .BGR8, .BGRA8:
-            result.addBytes(Swag.makeSlice(rawSource, rawCount * bytesPerPixel))
-
-        case .RGB8:
-            PackedPixel.swapRedBlue24Row(rawSource, converted.buffer, rawCount)
-            result.addBytes(Swag.makeSlice(converted.buffer, rawCount * bytesPerPixel))
-
-        case .RGBA8:
-            PackedPixel.swapRedBlue32Row(rawSource, converted.buffer, rawCount)
-            result.addBytes(Swag.makeSlice(converted.buffer, rawCount * bytesPerPixel))
-
-        default:
-            break
+        case .BGR8, .BGRA8: Memory.copy(target, rawSource, rawSize)
+        case .RGB8:         PackedPixel.swapRedBlue24Row(rawSource, target, rawCount)
+        case .RGBA8:        PackedPixel.swapRedBlue32Row(rawSource, target, rawCount)
+        default:            unreachable
         }
     }
 }
@@ -164,6 +198,8 @@ internal impl IImageEncoder for Encoder
             .descriptorByte = image.pixelFormat.hasAlpha() ? 8'u8 : 0'u8
         }
 
+        if not userOptions.rle do
+            result.grow(#sizeof(Header) + image.byteCount)
         result.addStruct(header)
 
         if userOptions.rle
@@ -182,12 +218,10 @@ internal impl IImageEncoder for Encoder
             return
         }
 
-        var converted: Array'u8
-        converted.resize(pixelCount * bytesPerPixel)
+        let converted = result.reserveInPlace(pixelCount * bytesPerPixel)
         if image.pixelFormat == .RGB8 do
-            PackedPixel.swapRedBlue24Row(src, converted.storage(), pixelCount)
+            PackedPixel.swapRedBlue24Row(src, converted, pixelCount)
         else do
-            PackedPixel.swapRedBlue32Row(src, converted.storage(), pixelCount)
-        result.addBytes(converted.toSlice())
+            PackedPixel.swapRedBlue32Row(src, converted, pixelCount)
     }
 }

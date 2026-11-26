@@ -358,4 +358,22 @@ func ddsRoundtrip(source: Image)->Image
             Swag.require(image.pixelColor(Width - 1, first) == color)
         }
     }
+
+    // Repeating one encoded block must still preserve each of its four rows.
+    const Word = 0xFFAA5500_07E0F800'u64
+    let repeated = Core.BIG_ENDIAN ? Swag.byteSwap(Word) : Word
+    for i in blocks.count do
+        blocks[i] = repeated
+    let colors = [Color.fromRgb(255, 0, 0), Color.fromRgb(0, 255, 0), Color.fromRgb(170, 85, 0), Color.fromRgb(85, 170, 0)]
+    for topDown in [true, false]
+    {
+        expect TextureBlocks.decode(&image, packed, .BC1, topDown)
+        for y in Height
+        {
+            let first = cast(s32, (topDown ? y : Height - 1 - y))
+            let color = colors[y & 3]
+            Swag.require(image.pixelColor(0, first) == color)
+            Swag.require(image.pixelColor(Width - 1, first) == color)
+        }
+    }
 }

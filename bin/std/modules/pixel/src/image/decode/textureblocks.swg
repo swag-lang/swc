@@ -334,9 +334,86 @@ private func(FMT: Format) decodeBlockRange(image: *Image, source: const [*] u8, 
     }
 }
 
+private const ParallelOutputBytes = 64'u64 * 1024 * 1024
+
+private func repeatedTextureBlock(source: const [*] u8, blockCount, blockSize: u64)->bool
+{
+    let size = blockCount * blockSize
+    let last = source + size - blockSize
+    var pattern = Simd.load(source)
+    if blockSize == 8
+    {
+        let word = cast(const *u64, source)[]
+        if cast(const *u64, last)[] != word do
+            return false
+        pattern = cast #bit(Simd.U8x16, Simd.splat(word))
+    }
+    elif not Simd.allTrue(Simd.load(last) == pattern) do
+        return false
+
+    var offset = blockSize == 8 ? 0'u64 : 16'u64
+    while size - offset >= 16
+    {
+        if not Simd.allTrue(Simd.load(source + offset) == pattern) do
+            return false
+        offset += 16
+    }
+
+    // A remaining eight-byte block was compared with the pattern above.
+    return true
+}
+
+private func(FMT: Format) fillRepeatedTexture(image: *Image, source: const [*] u8, blockSize: u64, sourceTopDown: bool)
+{
+    var tile = Image.create(4, 4, .RGBA8)
+    decodeBlockRange'FMT(&tile, source, 1, 0, 1, blockSize, false)
+    let width      = cast(u64, image.width)
+    let height     = cast(u64, image.height)
+    let rowBytes   = cast(u64, image.rowStride)
+    let pixels     = image.pixels.storage()
+    let firstRows  = Math.min(height, 4'u64)
+    for y in firstRows
+    {
+        let tileRow = sourceTopDown ? (height - y - 1) & 3 : y
+        let sample  = tile.pixels.storage() + tileRow * 16
+        let pattern = Simd.load(sample)
+        let target  = pixels + y * rowBytes
+        for i in width / 4 do
+            Simd.store(target + i * 16, pattern)
+        if width & 3 do
+            Memory.copy(target + (width & ~3'u64) * 4, sample, (width & 3) * 4)
+    }
+
+    let workers = image.byteCount >= ParallelOutputBytes ? cast(u64, Swag.workerCount()) : 0
+    if workers > 1 and height - firstRows >= 8
+    {
+        let remaining = height - firstRows
+        let batchRows = (remaining + workers - 1) / workers
+        let batches   = (remaining + batchRows - 1) / batchRows
+        parallel for |pixels, rowBytes, firstRows, height, batchRows| batch in batches
+        {
+            let start = firstRows + batch * batchRows
+            let end   = Math.min(start + batchRows, height)
+            for y in start until end do
+                Memory.copy(pixels + y * rowBytes, pixels + (y & 3) * rowBytes, rowBytes)
+        }
+    }
+    else
+    {
+        for y in firstRows until height do
+            Memory.copy(pixels + y * rowBytes, pixels + (y & 3) * rowBytes, rowBytes)
+    }
+}
+
 private func(FMT: Format) decodeBlocks(image: *Image, source: const [*] u8, columns, rows, oneBlock: u64, sourceTopDown: bool)
 {
-    const ParallelOutputBytes = 64'u64 * 1024 * 1024
+    // Scanning encoded blocks costs much less than reconstructing identical rows.
+    if image.byteCount >= 1024 * 1024 and repeatedTextureBlock(source, columns * rows, oneBlock)
+    {
+        fillRepeatedTexture'FMT(image, source, oneBlock, sourceTopDown)
+        return
+    }
+
     if image.byteCount >= ParallelOutputBytes and rows >= 8
     {
         let workers = cast(u64, Swag.workerCount())

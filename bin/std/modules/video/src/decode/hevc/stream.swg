@@ -89,7 +89,6 @@ struct HevcStream
     prefix:              Array!{u8}      // Bytes the container took off the front of every stored frame.
     dropped:             Array!{u64}     // Display ranks of pictures the standard says not to show.
     decodeLimit:         u64 = Swag.U64.Max
-    reachedEnd:          bool
     skippedNonReference: u64
     width:               s32
     height:              s32
@@ -161,7 +160,6 @@ impl HevcStream
         .skipBefore  = 0
         .decodeLimit = Swag.U64.Max
         .dropped.clear()
-        .reachedEnd = false
         .installFrames(#move frames)
     }
 
@@ -295,15 +293,7 @@ impl HevcStream
             merged.add(entry[])
         }
 
-        let decode = .nextDecode
-        let rank   = .nextRank
-        let limit  = .decodeLimit
-        let skip   = .skipBefore
         .installFrames(#move merged)
-        .nextDecode  = decode
-        .nextRank    = rank
-        .decodeLimit = limit
-        .skipBefore  = skip
     }
 
     mtd opDrop()
@@ -375,7 +365,6 @@ impl HevcStream
             }
 
             .nextDecode = sync
-            .reachedEnd = false
         }
         else
         {
@@ -467,7 +456,7 @@ impl HevcStream
                 .decodeLimit = Swag.U64.Max
             }
 
-            if .threadedCount == 0 and .reachedEnd
+            if .threadedCount == 0 and .nextDecode >= .frames.count
             {
                 fail InvalidFormatError{"H.265 stream has no picture for the requested position"}
             }
@@ -605,28 +594,12 @@ impl HevcStream
             decoder.inheritPredictionState(&.decoders[.lastSetupLane])
         }
 
-        if .nextDecode >= .frames.count or .nextDecode >= .decodeLimit
-        {
-            .laneStates[lane] = .Free
-            if .nextDecode >= .frames.count
-            {
-                .reachedEnd = true
-            }
-
-            return false
-        }
-
         let sample  = .nextDecode
         let entry   = .frames[sample]
         let payload = &.payloads[lane]
         try readStoredFrame(source, entry, .prefix.toSlice(), payload)
 
         .nextDecode += 1
-        if .nextDecode >= .frames.count
-        {
-            .reachedEnd = true
-        }
-
         let frameThread = &.frameThreads[lane]
         let codedUnits  = try .codedUnitCount(payload.toSlice())
         let rank        = cast(u64, .rankOfSample[sample])
@@ -690,7 +663,8 @@ impl HevcStream
     private mtd fillFrameThreads(source: *ByteSource) fail
     {
         .ensureFrameThreads()
-        while .threadedCount < .laneCount and not .reachedEnd
+        // A file-backed reader can append packets after this window has been exhausted.
+        while .threadedCount < .laneCount and .nextDecode < Math.min(.frames.count, .decodeLimit)
         {
             if not try .startFrame(source)
             {

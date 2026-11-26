@@ -2,10 +2,25 @@
 
 `compare.py` compares planar H.264, HEVC, MPEG-4 Part 2 and RealVideo 4.0 through
 `Video.Reader` in Release.
-It needs the built Swag compiler and its runtime, Python 3.11 or newer with NumPy, and FFmpeg
-and ffprobe. Timing also needs a C compiler, pkg-config and the FFmpeg development libraries
-`libavformat`, `libavcodec`, `libavutil` and `libswscale`. Use `--quality-only` for the picture comparison
-alone or `--reference` to use an independently built `ffmpeg_native` from this workload.
+It needs the built Swag compiler, its runtime and Python 3.11 or newer. The reference comparison
+uses NumPy, FFmpeg and ffprobe. Reference timings also need a C compiler, pkg-config and the
+FFmpeg development libraries `libavformat`, `libavcodec`, `libavutil` and `libswscale`.
+Use `--quality-only` for the picture comparison alone or `--reference` to use an independently
+built `ffmpeg_native` from this workload.
+
+Use `--swag-only FRAMES` to time a bounded window from the start of a movie with
+the file-backed reader. The window begins after `--warmup` pictures. This mode
+skips FFmpeg and produces timing samples without reading the entire movie for a
+hash or exporting decoded pictures. The run log identifies the zero-based rank
+of any picture the reader could not decode. This mode also accepts `--lanes`,
+`--repetitions`, `--baseline-bin` and `--rgb`. Run this from the repository root in PowerShell.
+
+```powershell
+$output = Join-Path $env:TEMP ('swag-video-' + [guid]::NewGuid())
+py -3.12 bench/workloads/videodecode/compare.py --compiler bin/swc.exe `
+    --output $output --lanes 8 --warmup 30 --swag-only 240 --repetitions 3 `
+    'Z:\Films\movie.mkv'
+```
 
 For comparable timings, generate single-slice MP4 clips on the same FFmpeg installation and
 pin the benchmark to one otherwise idle logical CPU.

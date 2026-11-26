@@ -270,6 +270,37 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     videoAssertReferenceStream("ffmpeg-hevc-main", 96, 64, 60, "mkv")
 }
 
+// The decoder can use every packet in its current window before the container appends more.
+// The next picture still uses references from that window.
+#test
+{
+    var source = expect ByteSource.openFile(videoFixturePath("ffmpeg-hevc-main.mp4").toString())
+    var decoder: Mp4.Decoder
+    let idecoder: IDecoder = &decoder
+    discard expect idecoder.open(&source)
+
+    const WindowCount = 9_u64
+    let stream  = &decoder.video.hevc
+    let samples = stream.frames.toSlice()
+    var first, following: Array!{SampleEntry}
+    first.add(samples[0 until WindowCount])
+    following.add(samples[WindowCount until samples.count])
+    expect stream.replaceFrames(#move first)
+
+    let reference = expect File.readAllBytes(videoFixturePath("ffmpeg-hevc-main.yuv").toString())
+    var frame: Image
+    for index in WindowCount + following.count
+    {
+        if index == WindowCount
+        {
+            expect stream.appendFrames(following.toSlice())
+        }
+
+        expect stream.decodeNext(&source, &frame)
+        videoAssertReferenceFrame(frame, reference.toSlice(), index, 96, 64)
+    }
+}
+
 // An `hev1` sample entry, whose access units repeat the parameter sets the entry already carries,
 // with three slices per picture so entropy contexts restart inside a frame.
 #test

@@ -12,9 +12,6 @@ import statistics
 import subprocess
 from fractions import Fraction
 
-import numpy as np
-
-
 WORKLOAD = Path(__file__).resolve().parent
 REPO = WORKLOAD.parents[2]
 WARMUP = 30
@@ -32,7 +29,10 @@ def arguments():
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--warmup", type=int, default=WARMUP,
                         help=f"pictures decoded before the timed window (default {WARMUP})")
-    parser.add_argument("--quality-only", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--quality-only", action="store_true")
+    mode.add_argument("--swag-only", type=int, metavar="FRAMES",
+                      help="time this many pictures after warmup without an FFmpeg comparison")
     parser.add_argument("--rgb", action="store_true", help="compare RGB24 output for Y4M, raw AVI and Motion JPEG")
     parser.add_argument("--mpeg4-max-sample-difference", type=int, default=0,
                         help="allow this per-sample difference from FFmpeg for MPEG-4 Part 2")
@@ -46,6 +46,11 @@ def arguments():
         parser.error("--repetitions must be positive")
     if not 0 < args.warmup <= 0xFFFFFFFF:
         parser.error("--warmup must be positive and fit in 32 bits")
+    if args.swag_only is not None:
+        if not 0 < args.swag_only <= 0xFFFFFFFF:
+            parser.error("--swag-only needs a positive picture count that fits in 32 bits")
+        if args.reference or args.jpeg_reference:
+            parser.error("--swag-only cannot use an FFmpeg or JPEG reference")
     if not 0 <= args.mpeg4_max_sample_difference <= 255:
         parser.error("--mpeg4-max-sample-difference must be in 0 through 255")
     if args.jpeg_reference and not args.rgb:
@@ -73,8 +78,9 @@ def build_reference(output):
 
 def run(command, log, *, env=None):
     with log.open("w") as capture:
-        subprocess.run(command, cwd=log.parent, env=env, stdout=capture,
-                       stderr=subprocess.STDOUT, check=True)
+        result = subprocess.run(command, cwd=log.parent, env=env, stdout=capture, stderr=subprocess.STDOUT)
+    if result.returncode:
+        raise RuntimeError(f"{Path(command[0]).name} exited with code {result.returncode}. See {log}")
     return log.read_text()
 
 
@@ -85,12 +91,42 @@ def build_swag(args, name, library):
                "--out-dir", output / "bin", "--work-dir", output / "work"]
     run(command, args.output / f"{name}.build.log",
         env={**os.environ, "SWAG_PATH": str(library.resolve())})
-    return output / "bin" / WORKLOAD.name
+    executable = WORKLOAD.name + (".exe" if os.name == "nt" else "")
+    return output / "bin" / executable
 
 
 def swag(executable, log, lanes, *values):
     return run([executable, *(str(value) for value in values)], log,
                env={**os.environ, "SWAG_RUNTIME_THREADS": str(lanes)})
+
+
+def time_swag(args, executable, log, path, frames):
+    output = swag(executable, log, args.lanes, "time-rgb" if args.rgb else "time",
+                  path, 1, args.warmup + frames, args.warmup)
+    (sample,) = SWAG_TIMING.findall(output)
+    count, ticks, frequency = map(int, sample)
+    return count, ticks / frequency
+
+
+def timing_summary(timing):
+    return {name: {"samples": samples, "median": statistics.median(samples)}
+            for name, samples in timing.items()}
+
+
+def time_excerpt(args, executables, path, prefix):
+    frames = args.swag_only
+    timing = {name: [] for name in executables}
+    order = list(timing)
+    for repetition in range(args.repetitions):
+        for name in order:
+            log = prefix.with_suffix(f".{name}.{repetition + 1}.log")
+            count, elapsed = time_swag(args, executables[name], log, path, frames)
+            if count != frames:
+                raise ValueError(f"{name} decoded {count} timed pictures from {path}, expected {frames}")
+            timing[name].append(elapsed * 1000 / frames)
+        order = order[1:] + order[:1]
+    return {"path": str(path), "warmup_frames": args.warmup, "timed_frames": frames,
+            "wall_ms_per_frame": timing_summary(timing)}
 
 
 def fixture_timeline(path, rgb=False):
@@ -127,6 +163,8 @@ def fixture_timeline(path, rgb=False):
 
 
 def compare_pictures(path, stream, frames, pictures, rgb):
+    import numpy as np
+
     width, height, fmt = (stream[key] for key in ("width", "height", "pix_fmt"))
     luma = width * height
     chroma = luma if fmt == "yuv444p" else ((width + 1) // 2) * ((height + 1) // 2)
@@ -208,10 +246,7 @@ def benchmark_fixture(args, reference, executables, path, prefix):
         for name in order:
             log = prefix.with_suffix(f".{name}.{repetition + 1}.log")
             if name in executables:
-                text = swag(executables[name], log, args.lanes, "time-rgb" if rgb else "time",
-                            path, 1, len(times), args.warmup)
-                count, ticks, frequency = map(int, SWAG_TIMING.findall(text)[0])
-                elapsed = ticks / frequency
+                count, elapsed = time_swag(args, executables[name], log, path, frames)
             else:
                 if name == "jpeg_turbo":
                     command = [args.jpeg_reference, path, "1", str(args.warmup)]
@@ -234,8 +269,7 @@ def benchmark_fixture(args, reference, executables, path, prefix):
 
     result["timed_frames"] = frames
     result["warmup_frames"] = args.warmup
-    result["wall_ms_per_frame"] = {name: {"samples": samples, "median": statistics.median(samples)}
-                                   for name, samples in timing.items()}
+    result["wall_ms_per_frame"] = timing_summary(timing)
     if "jpeg_turbo" in native_cpu:
         result["jpeg_turbo_cpu_ms_per_frame"] = native_cpu.pop("jpeg_turbo")
     result["ffmpeg_cpu_ms_per_frame"] = native_cpu
@@ -246,20 +280,24 @@ def main():
     args = arguments()
     args.output.mkdir(parents=True)
     reference = None
-    if not args.quality_only:
+    if not args.quality_only and args.swag_only is None:
         reference = args.reference.resolve() if args.reference else build_reference(args.output)
     executables = {"candidate": build_swag(args, "candidate", args.library_bin)}
     if args.baseline_bin:
         executables["baseline"] = build_swag(args, "baseline", args.baseline_bin)
     results = []
     for index, input_path in enumerate(args.input):
-        result = benchmark_fixture(args, reference, executables, input_path.resolve(), args.output / f"fixture-{index}")
+        prefix = args.output / f"fixture-{index}"
+        if args.swag_only is not None:
+            result = time_excerpt(args, executables, input_path.absolute(), prefix)
+        else:
+            result = benchmark_fixture(args, reference, executables, input_path.resolve(), prefix)
         results.append(result)
         print(json.dumps(result), flush=True)
-    version = subprocess.check_output(["ffmpeg", "-version"], text=True).splitlines()[0]
-    report = {"ffmpeg": version, "lanes": args.lanes, "rgb": args.rgb,
-              "mpeg4_max_sample_difference": args.mpeg4_max_sample_difference,
-              "results": results}
+    report = {"lanes": args.lanes, "rgb": args.rgb, "results": results}
+    if args.swag_only is None:
+        report["ffmpeg"] = subprocess.check_output(["ffmpeg", "-version"], text=True).splitlines()[0]
+        report["mpeg4_max_sample_difference"] = args.mpeg4_max_sample_difference
     if reference:
         native_version = subprocess.run([reference, "--version"], capture_output=True, text=True)
         if native_version.returncode == 0:
@@ -267,7 +305,7 @@ def main():
     if not args.quality_only and args.jpeg_reference:
         report["jpeg_reference"] = subprocess.check_output([args.jpeg_reference, "--version"], text=True).strip()
     (args.output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
-    if not args.rgb:
+    if args.swag_only is None and not args.rgb:
         for result in results:
             limit = args.mpeg4_max_sample_difference if result["stream"]["codec_name"] == "mpeg4" else 0
             if any(quality["max_difference"] > limit for quality in result["quality"].values()):

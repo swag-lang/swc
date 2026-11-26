@@ -46,6 +46,10 @@ intra-only and textured inter pictures. The MPEG-4 inputs include Simple Profile
 textured intra pictures, and both P and B pictures with MPEG quantization matrices.
 The manifest records each command and input hash.
 
+Use `generate.py --avc-slices` for one-, eight- and 32-slice variants of the same 1080p
+pattern. Run `compare.py` with `--baseline-bin` to isolate work that scales with the slice
+count, and add the six-slice 4K fixture from the default generator for a resolution control.
+
 ```sh
 python3 bench/workloads/videodecode/generate.py --output /tmp/swag-video-expanded
 python3 bench/workloads/videodecode/compare.py \

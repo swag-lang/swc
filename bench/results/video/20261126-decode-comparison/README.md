@@ -152,6 +152,26 @@ The single-CPU results use nine rotated runs and FFmpeg 9.1 with libswscale.
 | 4:2:2 limited range, 720p | 1.345 | 0.980 | −27.6% | 0.634 |
 | 4:4:4, 720p control | 1.698 | 1.355 | −2.9% | 5.008 |
 
+### AVC CABAC slice initialization
+
+The AVC decoder copies precomputed initial CABAC contexts for the slice's QP and
+initialization table. The static table occupies 208 KiB. The arithmetic engine and
+adaptation continue to use the slice's own context storage.
+
+Nine rotated runs used one logical CPU and FFmpeg 9.1. All 336 pictures matched the
+original Swag decoder and FFmpeg exactly. The focused native Release selection passed
+70 AVC, MP4 and Matroska tests. [Timing samples](avc-slice-contexts.json)
+
+| Stream | Before, ms/picture | Cached contexts, ms/picture | Paired time change | FFmpeg 9.1, ms/picture |
+| --- | ---: | ---: | ---: | ---: |
+| One slice, 1080p | 6.884 | 6.960 | −1.8% | 4.061 |
+| Eight slices, 1080p | 7.007 | 6.713 | −5.2% | 3.872 |
+| 32 slices, 1080p | 8.322 | 6.608 | −12.2% | 4.239 |
+| Six slices, 4K | 35.237 | 34.175 | −3.0% | 19.525 |
+
+Generate the 1080p cases with `generate.py --avc-slices`. For the 4K case, retain the
+first 48 pictures of the default generator's six-slice clip with FFmpeg stream copy.
+
 ## HEVC CABAC look-ahead
 
 The CABAC decoder now shifts the arithmetic offset and the next 32 input bits together.

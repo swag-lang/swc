@@ -1169,7 +1169,8 @@ private func matchesJpegFrame(bytes: const [..] u8, width, height: s32, channels
 
 private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [..] u8, image: const *Image)->u8
 {
-    if not parser.retainImageStreams or raw.count >= image.byteCount or
+    let colorBytes = image.pixelFormat == .Gray8 ? image.byteCount * 3 : image.byteCount
+    if not parser.retainImageStreams or raw.count >= colorBytes or
        parser.dict(nodeId, "Decode") != InvalidNode or
        parser.dict(nodeId, "DecodeParms") != InvalidNode or
        parser.dict(nodeId, "Mask") != InvalidNode or
@@ -1324,7 +1325,8 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         if codec != "DCTDecode" and codec != "DCT" do
             fail UnsupportedFormatError{"PDF image codec is not supported"}
         var raw     = #move try parser.decodeStream(nodeId, true)
-        var decoded = #move try Image.decode(".jpg", raw.toSlice())
+        let options = DecodeOptions{keepJpegGrayscale: deviceOnly and colorName == "DeviceGray"}
+        var decoded = #move try Image.decode(".jpg", raw.toSlice(), options)
 
         // An unmasked photograph is already the answer. It comes back bottom-up, which is how
         // an image stores its rows, so routing it through the sample plane would flip it to
@@ -1333,7 +1335,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         if maskId == InvalidNode
         {
             var result: Image
-            if decoded.pixelFormat == .RGB8 or decoded.pixelFormat == .BGR8 do
+            if decoded.pixelFormat == .Gray8 or decoded.pixelFormat == .RGB8 or decoded.pixelFormat == .BGR8 do
                 result = #move decoded
             else do
                 result = decoded.convertedTo(.RGB8)

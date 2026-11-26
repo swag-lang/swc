@@ -725,3 +725,24 @@ logical CPU compare `e43cc4c68b` with the SIMD change and PDFium
 All 55 supported corpus pages keep their raster CRC. The 996 Pixel
 tests include an odd-width, fractional-position grayscale image whose
 output is compared pixel for pixel with the same image in RGB8.
+
+## Single-component JPEG output
+
+PDF decoding requests Gray8 for unmasked DeviceGray JPEGs. The JPEG
+codec emits the decoded grayscale scanline directly when it fits the
+destination row and copies only visible samples on padded rows. The
+saved PDF can still retain the original compressed stream.
+
+On a single AMD EPYC 7763 logical CPU, nine paired Release batches of
+two samples measure opening, loading and rendering the progressive
+JPEG fixture. The Swag baseline is `747be17d13`. PDFium is 159.0.8149.0.
+[Raw timings and checksums](pdf-raster-linux-jpeg-gray.json)
+
+| Long side | Swag before, ms | Swag after, ms | PDFium, ms |
+| --- | ---: | ---: | ---: |
+| 1200 px | 78.77 | 55.77 | 74.20 |
+| 2400 px | 208.50 | 115.92 | 91.12 |
+
+All 55 supported pages in the 56-page pre-expansion corpus retain their
+raster CRC. The 39 JPEG tests check exact equality with the existing
+three-channel output for baseline, progressive and 1 × 1 images.

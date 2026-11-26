@@ -266,3 +266,32 @@ using Swag, Core
     let corner = Math.max(Math.min(msdfBuf[0], msdfBuf[1]), Math.min(Math.max(msdfBuf[0], msdfBuf[1]), msdfBuf[2]))
     Swag.require(corner < 128)
 }
+
+// Edge filtering preserves winding at band boundaries and in the final partial band.
+#test
+{
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = unwrap faceScope.face
+
+    var points: [8] Vector = [{0, 0}, {256, 0}, {256, 1088}, {0, 1088},
+                              {64, 64}, {64, 576}, {192, 576}, {192, 64}]
+    var tags: [8] u8
+    Memory.set(&tags[0], CURVE_TAG_ON, tags.count)
+    var contours: [2] s16 = [3, 7]
+    face.glyph.beginLoad(0)
+    face.glyph.outline.setView(&points[0], &tags[0], &contours[0], 8, 2)
+
+    expect face.renderGlyph()
+    let bitmap = &face.glyph.bitmap
+    Swag.require(bitmap.width == 4 and bitmap.rows == 17)
+    for row in bitmap.rows
+    {
+        let pixels = expect bitmap.row(row)
+        for pixel, column in pixels
+        {
+            let inHole = row >= 8 and row < 16 and column >= 1 and column < 3
+            Swag.require(pixel == (inHole ? 0'u8 : 255'u8))
+        }
+    }
+}

@@ -889,3 +889,56 @@ retained-source loads, and matches Swag glyph fingerprints in every case.
 | 4 | 4096 | 1.426 | 1.201 |
 | 4 | 16384 | 5.789 | 5.041 |
 | 4 | 60000 | 20.075 | 17.799 |
+
+## Raster scanline bands
+
+The grayscale rasterizer filters edges once for each eight-row band
+of a tall glyph. Scanlines preserve contour order and the original
+coverage arithmetic. Small bitmaps use one band with the full edge list.
+
+The comparison with `0cacd90c1f` uses nine interleaved batches of three
+passes. Both builds match the outline and bitmap fingerprints on 15
+fonts at both pixel sizes, including supplied TrueType and public CFF
+fonts. The 64 px cases improve by 12–50%. A 15-batch repeat confirms
+the gain on the large cases. Zen Kaku Gothic New at 24 px moves from
+an 11% increase in the broad run to an 18% improvement in the repeat.
+[Raw timings, repeat, and golden results](font-glyph-linux-raster-bands.json)
+
+| Fixture | Face | Pixels | Load and render before (µs/glyph) | After |
+| --- | ---: | ---: | ---: | ---: |
+| `DejaVuSans.ttf` | 0 | 24 | 7.838 | 7.963 |
+| `DejaVuSans.ttf` | 0 | 64 | 17.362 | 12.696 |
+| `GowunBatang-Regular.ttf` | 0 | 24 | 76.062 | 55.677 |
+| `GowunBatang-Regular.ttf` | 0 | 64 | 179.821 | 97.373 |
+| `Lato-Regular.ttf` | 0 | 24 | 12.214 | 12.166 |
+| `Lato-Regular.ttf` | 0 | 64 | 30.633 | 21.311 |
+| `MaShanZheng-Regular.ttf` | 0 | 24 | 106.344 | 80.685 |
+| `MaShanZheng-Regular.ttf` | 0 | 64 | 255.675 | 128.972 |
+| `NotoSansJP-Variable.ttf` | 0 | 24 | 32.326 | 25.894 |
+| `NotoSansJP-Variable.ttf` | 0 | 64 | 73.583 | 49.693 |
+| `NotoSansSC-Variable.ttf` | 0 | 24 | 33.342 | 28.595 |
+| `NotoSansSC-Variable.ttf` | 0 | 64 | 78.646 | 54.570 |
+| `NotoSansTC-Variable.ttf` | 0 | 24 | 33.727 | 28.055 |
+| `NotoSansTC-Variable.ttf` | 0 | 64 | 81.421 | 54.478 |
+| `OpenSans-Regular.ttf` | 0 | 24 | 14.700 | 13.989 |
+| `OpenSans-Regular.ttf` | 0 | 64 | 35.666 | 25.514 |
+| `ZenKakuGothicNew-Regular.ttf` | 0 | 24 | 30.163 | 33.556 |
+| `ZenKakuGothicNew-Regular.ttf` | 0 | 64 | 71.458 | 48.368 |
+| `NimbusSans-Regular.otf` | 0 | 24 | 10.126 | 9.988 |
+| `NimbusSans-Regular.otf` | 0 | 64 | 21.852 | 17.986 |
+| `NotoSansCJK-Regular.ttc` | 1 | 24 | 26.800 | 24.149 |
+| `NotoSansCJK-Regular.ttc` | 1 | 64 | 56.111 | 41.408 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 24 | 27.730 | 21.861 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 64 | 58.230 | 40.983 |
+| `NotoSerifCJK-Regular.ttc` | 4 | 24 | 46.982 | 39.596 |
+| `NotoSerifCJK-Regular.ttc` | 4 | 64 | 90.723 | 65.551 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 24 | 53.335 | 38.601 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 64 | 97.899 | 64.526 |
+| `SourceSans3-Regular.otf` | 0 | 24 | 11.418 | 11.327 |
+| `SourceSans3-Regular.otf` | 0 | 64 | 23.972 | 21.086 |
+
+Native TrueType tests and the GUI, Pixel, and Swag Vault golden suites
+pass. The baseline and candidate both report the same Swag Capture
+borrow-check diagnostic and the same six Swag Scope golden failures.
+All seven Scope PNGs produced by those failures are byte-identical
+between the two builds.

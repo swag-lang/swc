@@ -589,3 +589,49 @@ bit for bit.
 
 Native Release passes 316 audio tests. Release-safe passes
 37 focused DTS, Opus and WAV tests.
+
+## Seventeenth optimization pass
+
+This follow-up compares the changed codecs with commit `b56213567d` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round17.json)
+
+| Format | R16 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R16 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FLAC | 16.67 | 16.43 | 22.74 | 8.93 | 8.76 | 11.35 |
+| Ogg FLAC | 16.31 | 16.30 | 22.70 | 8.53 | 8.57 | 11.04 |
+| AAC | 6.11 | 6.05 | 6.67 | 6.33 | 6.39 | 6.65 |
+
+| Format | R16 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| FLAC | 6.25 | 6.43 | 7.43 |
+| Ogg FLAC | 6.73 | 6.68 | 7.91 |
+| AAC | 4.70 | 4.64 | 6.73 |
+
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | R16 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | R16 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `aac-lc-48k-5.1.aac` | 19.12 | 19.32 | 17.36 | 11.85 | 13.15 | 18.70 |
+| `flac-44k-stereo-16.flac` | 5.87 | 5.76 | 11.30 | 3.33 | 3.55 | 8.29 |
+| `flac-48k-5.1-16.flac` | 22.90 | 22.78 | 36.23 | 12.13 | 13.05 | 21.86 |
+| `flac-96k-stereo-24.flac` | 22.91 | 20.99 | 26.37 | 12.89 | 11.08 | 14.60 |
+
+FLAC extends grouped LPC prediction to wide sample histories, including
+the 24-bit generated fixture, with a scalar fallback for values outside the
+SIMD range. AAC bounds stereo reconstruction by the bands actually signaled
+by both channels. This closes the 248-sample, one-unit cross-worker difference
+on the generated 5.1 fixture. Its output now matches across worker budgets.
+
+The four-core surround repeat used 84 samples. AAC 5.1 measured 15.40 ms for
+R16 and 14.12 ms for Swag. FLAC 5.1 measured 12.38 ms for R16 and 12.86 ms
+for Swag, versus 22.80 ms for FFmpeg. The 24-bit FLAC gains occurred at both
+worker budgets.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output. The FLAC and Ogg FLAC PCM
+match the preceding build exactly.
+
+Native Release passes 318 audio tests. Release-safe passes
+71 focused FLAC and AAC tests.

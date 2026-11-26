@@ -1175,10 +1175,15 @@ private impl AacCodec
 
     mtd applyStereoPair(left: s32)
     {
-        let right     = left + 1
-        let value     = &.ics[left]
-        let offsets   = value.windowSequence == 2 ? swbShort(.sampleRateIndex) : swbLong(.sampleRateIndex)
-        let bandCount = value.windowSequence == 2 ? value.numWindowGroups * value.maxSfb : value.maxSfb
+        let right      = left + 1
+        let value      = &.ics[left]
+        let offsets    = value.windowSequence == 2 ? swbShort(.sampleRateIndex) : swbLong(.sampleRateIndex)
+        let leftBands  = value.windowSequence == 2 ? value.numWindowGroups * value.maxSfb : value.maxSfb
+        let rightIcs   = &.ics[right]
+        let rightBands = rightIcs.windowSequence == 2 ? rightIcs.numWindowGroups * rightIcs.maxSfb : rightIcs.maxSfb
+
+        // Independently coded channels can signal different numbers of bands.
+        let bandCount = Math.min(leftBands, rightBands)
         var line: s32
         for band in bandCount
         {
@@ -1819,4 +1824,28 @@ impl IPacketCodec for AacCodec
 {
     initializeTables()
     registerPacketCodec'AacCodec()
+}
+
+// Independently coded pairs must not reuse an unsignaled right-channel book.
+#test
+{
+    var decoder: AacCodec
+    decoder.sampleRateIndex        = 3
+    decoder.channels               = 2
+    decoder.ics[0].windowSequence  = 2
+    decoder.ics[0].maxSfb          = 12
+    decoder.ics[0].numWindowGroups = 4
+    decoder.ics[0].groupLength     = [2, 2, 2, 2, 0, 0, 0, 0]
+    decoder.ics[1].windowSequence  = 3
+    decoder.ics[1].maxSfb          = 42
+    decoder.books[1, 47]           = 15
+    for index in FrameSamples
+    {
+        decoder.coefficients[0, index] = 1
+        decoder.coefficients[1, index] = 2
+    }
+
+    decoder.applyStereoPair(0)
+    for index in FrameSamples do
+        Swag.require(decoder.coefficients[1, index] == 2)
 }

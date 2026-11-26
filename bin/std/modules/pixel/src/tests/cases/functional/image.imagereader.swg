@@ -437,3 +437,38 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
     Swag.require(ownerBacking.stats().countAlloc < activeOwnerAllocations)
     Swag.require(currentBacking.stats().countAlloc == currentBaseline)
 }
+
+// Packed animation blending preserves the scalar rounding and hidden-color rules.
+#test
+{
+    const Width = 11
+    var source, behind, expected: [Width] u32
+    var state = 0x819CF293'u32
+    for a in 256
+    {
+        for b in 256
+        {
+            for x in Width
+            {
+                state = state * #wrap 1664525 + #wrap 1013904223
+                let sourceAlpha = x == 1 ? 0'u32 : (x == 4 ? 255'u32 : cast(u32, a))
+                source[x] = (sourceAlpha << 24) | ((state >> 3) & 0xFFFFFF)
+                state = state * #wrap 1664525 + #wrap 1013904223
+                behind[x] = (cast(u32, b) << 24) | ((state >> 3) & 0xFFFFFF)
+            }
+
+            let input  = cast(const [*] u8, source.buffer)
+            let canvas = cast([*] u8, behind.buffer)
+            let output = cast([*] u8, expected.buffer)
+            for x in Width
+            {
+                let value = readPixelValue(input + x * 4, .RGBA8)
+                let prior = readPixelValue(canvas + x * 4, .RGBA8)
+                writePixelValue(output + x * 4, .RGBA8, ImageReader.blendOver(value, prior))
+            }
+
+            ImageReader.blendRgba8Row(input, canvas, Width)
+            Swag.require(Memory.compare(output, canvas, Width * 4) == 0)
+        }
+    }
+}

@@ -759,7 +759,53 @@ private impl Codec
     {
         let first  = .channels[0].storage()
         let second = .channels[1].storage()
-        for sample in blockSize
+        var done   = 0'u32
+        #static if not Core.BIG_ENDIAN
+        {
+            const Bias = cast(Math.Simd.U64x2, [0x2000_0000'u64, 0x2000_0000])
+            const High = cast(Math.Simd.U64x2, [0xFFFF_FFFF_C000_0000'u64, 0xFFFF_FFFF_C000_0000])
+            const Zero = cast(Math.Simd.U64x2, [0'u64, 0])
+            const One  = cast(Math.Simd.S32x4, [1's32, 1, 1, 1])
+            while blockSize - done >= 4
+            {
+                let a0 = cast #bit (Math.Simd.U64x2, Math.Simd.load(first + done))
+                let a1 = cast #bit (Math.Simd.U64x2, Math.Simd.load(first + done + 2))
+                let b0 = cast #bit (Math.Simd.U64x2, Math.Simd.load(second + done))
+                let b1 = cast #bit (Math.Simd.U64x2, Math.Simd.load(second + done + 2))
+
+                // Inputs in [-2^29, 2^29) keep the doubled mid and both sums in signed 32 bits.
+                // The bias maps that interval to the unsigned low thirty bits.
+                let large = ((a0 + Bias) | (a1 + Bias) | (b0 + Bias) | (b1 + Bias)) & High
+                if Math.Simd.bitmask(large == Zero) != 0b11 do
+                    break
+
+                var left  = cast #bit (Math.Simd.S32x4, Math.Simd.deinterleaveEven(cast #bit(Math.Simd.U32x4, a0), cast #bit(Math.Simd.U32x4, a1)))
+                var right = cast #bit (Math.Simd.S32x4, Math.Simd.deinterleaveEven(cast #bit(Math.Simd.U32x4, b0), cast #bit(Math.Simd.U32x4, b1)))
+                #static if Assignment == 8
+                {
+                    right = left - right
+                }
+                elif Assignment == 9
+                {
+                    left += right
+                }
+                elif Assignment == 10
+                {
+                    let mid = (left << 1) | (right & One)
+                    left  = (mid + right) >> 1
+                    right = (mid - right) >> 1
+                }
+
+                let leftWords  = cast #bit (Math.Simd.U32x4, left)
+                let rightWords = cast #bit (Math.Simd.U32x4, right)
+                let low        = cast #bit (Math.Simd.S32x4, Math.Simd.interleaveLow(leftWords, rightWords))
+                let high       = cast #bit (Math.Simd.S32x4, Math.Simd.interleaveHigh(leftWords, rightWords))
+                Math.Simd.store(destination + 2 * done, Math.Simd.packSigned(low, high))
+                done += 4
+            }
+        }
+
+        for sample in done until blockSize
         {
             var left  = first[sample]
             var right = second[sample]

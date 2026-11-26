@@ -504,3 +504,44 @@ one PCM16 unit from the original Swag output.
 
 Native Release passes 314 audio tests. Release-safe passes
 54 focused AC-3, MP3 and Opus tests.
+
+## Fifteenth optimization pass
+
+This follow-up compares the changed codecs with commit `96158d6b28` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round15.json)
+
+| Format | R14 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R14 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FLAC | 10.79 | 9.38 | 11.49 | 10.85 | 9.45 | 11.74 |
+| Ogg FLAC | 10.24 | 8.92 | 11.24 | 9.91 | 8.57 | 10.89 |
+| AAC | 6.45 | 6.18 | 6.54 | 6.50 | 6.27 | 6.49 |
+
+| Format | R14 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| FLAC | 7.33 | 6.32 | 7.20 |
+| Ogg FLAC | 7.54 | 6.38 | 7.96 |
+| AAC | 4.66 | 4.06 | 6.91 |
+
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | R14 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | R14 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `aac-lc-32k-mono.aac` | 3.02 | 2.48 | 3.44 | 2.96 | 1.88 | 3.53 |
+| `aac-lc-48k-5.1.aac` | 23.67 | 19.55 | 17.88 | 16.91 | 10.73 | 17.53 |
+| `aac-lc-48k-stereo.aac` | 9.33 | 8.93 | 8.21 | 6.27 | 5.10 | 8.43 |
+| `flac-44k-stereo-16.flac` | 6.76 | 5.75 | 11.27 | 4.12 | 3.59 | 7.95 |
+
+FLAC packs four guarded 16-bit stereo samples directly after restoring the
+channel assignment. AAC specializes mono and 5.1 PCM conversion while isolating
+the new code from stereo. The generated-fixture PCM matches the corresponding
+baseline bit for bit at each worker budget. The generated 5.1 AAC stream has an
+existing one-unit PCM16 difference across worker budgets in both builds.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output. The FLAC and Ogg FLAC PCM
+match the preceding build exactly.
+
+Native Release passes 314 audio tests. Release-safe passes
+69 focused FLAC and AAC tests.

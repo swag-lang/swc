@@ -174,3 +174,6 @@ optimizations moved each result.
 
 - [Preserve stack stores at frame object boundaries](blake3-compiler-frame-objects.md)
 - [Signed P-256 generator comb](p256-signed-comb.md)
+
+- [MD5 round arithmetic screen](md5-round-arithmetic.md)
+- [P-256 verification with signed sparse windows](p256-verify-wnaf.md)

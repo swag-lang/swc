@@ -777,6 +777,58 @@ private func p256ScalarMultiply(scalar: const *P256Field, point: P256Point)->P25
     return converted
 }
 
+// Verification alone uses direct indexing with digits from the public
+// signature. ECDH continues to use the masked arbitrary-point multiplier.
+private func p256MultiplyVerificationPoint(scalar: P256Field, point: P256Point)->P256HomogeneousPoint
+{
+    var digits: [257] s8
+    var bit   = 0'u32
+    var carry = 0'u64
+    while bit < 256
+    {
+        let word = bit / 64
+        let shift = bit % 64
+        var window = scalar.limbs[word] >> shift
+        if shift > 59 and word < 3 do
+            window |= scalar.limbs[word + 1] << (64 - shift)
+
+        let value = (window & 31) + carry
+        if (value & 1) == 0
+        {
+            bit += 1
+            continue
+        }
+
+        carry = value >> 4
+        digits[bit] = cast(s8, value) - cast(s8, carry * 32)
+        bit += 5
+    }
+
+    digits[256] = cast(s8, carry)
+    var oddMultiples: [8] P256HomogeneousPoint
+    let one = P256Field{limbs: P256MontgomeryOne}
+    oddMultiples[0] = P256HomogeneousPoint{x: point.x, y: point.y, z: one}
+    let doubled = p256HomogeneousDouble(oddMultiples[0])
+    for index in 1 until oddMultiples.count do
+        oddMultiples[index] = p256HomogeneousAddProjective(oddMultiples[index - 1], doubled)
+
+    var result = P256HomogeneousPoint{y: one}
+    for step in digits.count
+    {
+        result = p256HomogeneousDouble(result)
+        let digit = digits[digits.count - 1 - step]
+        if digit == 0 do
+            continue
+
+        let magnitude = digit < 0 ? -digit : digit
+        var selected = oddMultiples[cast(u32, magnitude) / 2]
+        if digit < 0 do
+            selected.y = p256FieldSubtract(P256Field{}, selected.y)
+        result = p256HomogeneousAddProjective(result, selected)
+    }
+    return result
+}
+
 private func p256MultiplyGenerator(scalar: const *P256Field)->P256Point
 {
     const Steps = 8
@@ -1009,7 +1061,7 @@ func p256EcdsaVerify(publicKey, message, signature: const [..] u8)->bool fail
 
     var first = p256MultiplyGenerator(&u1)
     defer Crypto.secureClear(Swag.makeSlice(&first, 1))
-    var second = p256ScalarMultiply(&u2, publicPoint)
+    var second = p256HomogeneousToJacobian(p256MultiplyVerificationPoint(u2, publicPoint))
     defer Crypto.secureClear(Swag.makeSlice(&second, 1))
     var sum = p256PointAdd(first, second, p256PointDouble(first))
     defer Crypto.secureClear(Swag.makeSlice(&sum, 1))

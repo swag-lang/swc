@@ -471,21 +471,37 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 ### std.gui.pdf.045 — First-page rendering trails PDFium on FileSamples
 
 - Evidence: the [comparison report](../bench/results/swagscope-filesamples/README.md) records the
-  original Windows timings. A Linux x86-64 Release comparison used the same fixtures and measured
-  opening, loading page 1 and rendering the long side to 1200 px. With one Swag worker and 15
-  interleaved measurements after warm-up, the median totals in milliseconds were:
+  original Windows timings. A Linux x86-64 Release recheck at `3bb8cc76d7` used one Swag worker
+  and nine interleaved runs after warm-up. Both paths materialized a BGRA bitmap with a 1200 px
+  long side. PDFium 159.0.8149.0 used its raw bitmap API. Times are medians in milliseconds.
 
-  | Fixture | Swag at `335b91f31e` | Swag | PDFium 159.0.8149.0 |
-  | --- | ---: | ---: | ---: |
-  | `sample1.pdf` | 99.42 | 86.81 | 26.85 |
-  | `sample2.pdf` | 30.01 | 26.47 | 4.88 |
-  | `sample3.pdf` | 65.04 | 63.31 | 11.36 |
+  | Fixture | Swag open | Swag load | Swag render | Swag total | PDFium total |
+  | --- | ---: | ---: | ---: | ---: | ---: |
+  | `sample1.pdf` | 0.49 | 16.27 | 61.07 | 77.79 | 29.54 |
+  | `sample2.pdf` | 0.19 | 3.05 | 20.21 | 23.64 | 4.66 |
+  | `sample3.pdf` | 1.08 | 7.00 | 47.74 | 55.81 | 11.02 |
 
-  The Swag builds produced matching raster CRC-64 values. PDFium rendered to BGRA through its raw
-  bitmap API without a PIL conversion. Swag's CPU raster stage still accounts for 22.89–67.46 ms
-  per file. Loading the first page of the JPEG-heavy `sample1.pdf` also accounts for 17.82 ms.
-- Next: profile the remaining CPU cost in vector command recording and rasterization, bitmap
-  glyphs, and scaled image draws. Compare equivalent BGRA output through the same PDFium API.
+  On `sample1`, Swag spends 14.6 ms building the images during page load and 18.4 ms shading
+  textured triangles. PDFium decodes the image pixels during rendering. Its native profile shows
+  JPEG entropy decoding, AVX2 IDCT and color conversion, and scanline resampling. On `sample2`,
+  Swag spends 7.6 ms shading textured triangles and 5.8 ms shading bitmap glyphs.
+
+  On `sample3`, Swag records commands in 18.6 ms, including 12.3 ms for glyph cache misses,
+  and executes them in 24.5 ms. It submits about 53,000 solid triangles. The three pages produce
+  603, 845 and 937 Swag text items versus 166, 33 and 142 PDFium text objects. The PDF parser
+  emits one item per string inside a `TJ` array. PDFium's profile shows FreeType and AGG
+  scanline compositing, while Swag runs a triangle pipeline for those draws.
+
+  Rendering the same `sample3` page again still rebuilt 433 glyph cache entries. A diagnostic
+  variant that retained the CPU renderer cut that repaint from 45.8 to 31.4 ms with the same
+  raster CRC-32. `PdfView` already keeps its renderer and page textures and prepares geometry on
+  a worker, outside this bitmap benchmark. At 2400 px, an experimental bitmap-only font policy
+  cut the Swag raster time on `sample1` from about 304 to 154 ms and on `sample3` from 130 to 66 ms.
+  The pixel checksums changed. The automatic font policy selects MSDF at larger device sizes,
+  which made MSDF shading alone cost 133 ms on `sample1` at that scale.
+- Next: batch the recording of adjacent, compatible PDF text runs while preserving the PDF's
+  positioned glyphs. Compare a reusable CPU raster context and a purpose-built bitmap text
+  path against the same inputs at 1200 and 2400 px, including output fidelity.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

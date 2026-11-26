@@ -125,10 +125,18 @@ def measure(reference, source, size, rounds, samples):
     return destination.raw[:written], times
 
 
-def run_swag(program, codec, direction, source, output, size, rounds, samples):
-    command = [program, codec, direction, source, output, str(rounds), str(size)]
-    times = [int(subprocess.check_output(command, cwd=output.parent)) / rounds for _ in range(samples)]
-    return output.read_bytes(), times
+def run_swag(builds, codec, direction, source, output, size, rounds, samples):
+    times = {label: [] for label, _ in builds}
+    results = {}
+    for sample in range(samples):
+        order = builds if sample % 2 == 0 else reversed(builds)
+        for label, program in order:
+            command = [program, codec, direction, source, output, str(rounds), str(size)]
+            elapsed = int(subprocess.check_output(command, cwd=output.parent))
+            times[label].append(elapsed / rounds)
+            if sample == samples - 1:
+                results[label] = output.read_bytes()
+    return {label: (results[label], times[label]) for label, _ in builds}
 
 
 def record(packed, encode, decode):
@@ -155,14 +163,15 @@ def benchmark(path, args, libraries, work):
             continue
         reference_file.write_bytes(ref_packed)
         builds = [("swag", args.swag)]
-        if args.baseline and codec.startswith("zlib"):
+        if args.baseline and codec in args.baseline_codecs:
             builds.insert(0, ("baseline", args.baseline))
-        for label, program in builds:
-            packed, encode = run_swag(program, codec, "encode", path, output, size, rounds, args.samples)
+        encoded = run_swag(builds, codec, "encode", path, output, size, rounds, args.samples)
+        decoded = run_swag(builds, codec, "decode", reference_file, output, size, rounds, args.samples)
+        for label, (packed, encode) in encoded.items():
             destination = c.create_string_buffer(size)
             written = library.decode(packed, destination)
             require(written == size and destination.raw == data, f"{label}/{codec} to reference on {path}")
-            plain, decode = run_swag(program, codec, "decode", reference_file, output, size, rounds, args.samples)
+            plain, decode = decoded[label]
             require(plain == data, f"reference to {label}/{codec} on {path}")
             result["codecs"][f"{label}/{codec}"] = record(packed, encode, decode)
 
@@ -184,6 +193,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--swag", type=Path, required=True)
     parser.add_argument("--baseline", type=Path)
+    parser.add_argument("--baseline-codec", action="append", choices=("lz4", "snappy", "zlib1", "zlib6"),
+                        dest="baseline_codecs", help="format available in the baseline executable (repeatable)")
     parser.add_argument("--scratch", type=Path, required=True)
     parser.add_argument("--json", type=Path)
     parser.add_argument("--samples", type=int, default=5)
@@ -192,6 +203,8 @@ def main():
     args = parser.parse_args()
     if args.samples < 1 or args.batch_mib < 1:
         parser.error("--samples and --batch-mib must be positive")
+    if args.baseline_codecs is None:
+        args.baseline_codecs = ("zlib1", "zlib6")
     args.swag = args.swag.resolve(strict=True)
     if args.baseline:
         args.baseline = args.baseline.resolve(strict=True)

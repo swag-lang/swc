@@ -35,15 +35,12 @@ func compress(buffer: const [..] u8)->Array'u8 fail
             if not match.length do
                 break
 
-            writeLiterals(&result, buffer[literalStart until match.at], match.length - 4)
-            result.add(Math.byteAt(match.distance, 0))
-            result.add(Math.byteAt(match.distance, 1))
-            writeLengthExtension(&result, match.length - 4)
+            writeSequence(&result, buffer[literalStart until match.at], match.distance, match.length - 4)
             literalStart = match.at + match.length
         }
     }
 
-    writeLiterals(&result, buffer[literalStart to], 0)
+    writeSequence(&result, buffer[literalStart to], 0, 0)
     return result
 }
 
@@ -150,25 +147,40 @@ func decompressInto(output: [..] u8, buffer: const [..] u8) fail
     fail InvalidFormatError{"LZ4 block is missing its final literal sequence"}
 }
 
-private func writeLiterals(result: *Array'u8, literals: const [..] u8, matchLength: u64)
+private func writeSequence(result: *Array'u8, literals: const [..] u8, distance, matchLength: u64)
 {
-    result.add(cast(u8, (Math.min(literals.count, 15'u64) << 4) | Math.min(matchLength, 15'u64)))
-    writeLengthExtension(result, literals.count)
-    result.add(literals)
+    let literalExtra = literals.count >= 15 ? (literals.count - 15) / 255 + 1 : 0
+    let matchExtra   = matchLength >= 15 ? (matchLength - 15) / 255 + 1 : 0
+    let size         = 1 + literalExtra + literals.count + (distance ? 2 + matchExtra : 0)
+    result.grow(result.count + size)
+
+    let token = result.storage() + result.count
+    token[0] = cast(u8, (Math.min(literals.count, 15'u64) << 4) | Math.min(matchLength, 15'u64))
+    if literalExtra do
+        writeLengthExtension(token + 1, literals.count, literalExtra)
+
+    let literalOutput = token + 1 + literalExtra
+    if literals.count do
+        Memory.copy(literalOutput, literals.buffer, literals.count)
+
+    // A zero distance marks the final, literal-only sequence.
+    if distance
+    {
+        let matchOutput = literalOutput + literals.count
+        matchOutput[0] = Math.byteAt(distance, 0)
+        matchOutput[1] = Math.byteAt(distance, 1)
+        if matchExtra do
+            writeLengthExtension(matchOutput + 2, matchLength, matchExtra)
+    }
+
+    result.count += size
 }
 
-private func writeLengthExtension(result: *Array'u8, length: u64)
+private func writeLengthExtension(output: [*] u8, length, size: u64)
 {
-    if length < 15 do
-        return
-
-    let extra = length - 15
-    let full  = extra / 255
-    result.grow(result.count + full + 1)
-    if full do
-        Memory.set(result.storage() + result.count, 255, full)
-    result.count += full
-    result.add(cast(u8, extra % 255))
+    let full = size - 1
+    Memory.set(output, 255, full)
+    output[full] = cast(u8, length - 15 - full * 255)
 }
 
 private func readExtendedLength(buffer: const [..] u8, offset: *u64)->u64 fail

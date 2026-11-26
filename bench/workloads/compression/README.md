@@ -63,6 +63,19 @@ LZ4 had the highest Swag decode throughput across both corpora. Snappy had the h
 throughput in this run and the smaller of the two new formats on the media sample. [lzbench on
 Silesia](https://inikep.github.io/lzbench/) covers a broader set of implementations and data.
 
+## LZ4 sequence writer
+
+Reserving the output space for an entire sequence once avoids repeating capacity and alias
+checks for each field. On the same host, seven paired batches per file measured the encoder
+against the initial LZ4 implementation. All 18 files produced byte-identical streams.
+
+| Corpus | Original MiB/s | Batched MiB/s | Speedup |
+| --- | ---: | ---: | ---: |
+| Canterbury | 313.4 | 365.8 | 1.17× |
+| Swag media | 245.6 | 273.7 | 1.11× |
+| Canterbury Large | 265.3 | 319.1 | 1.20× |
+| Combined | 272.7 | 325.3 | 1.19× |
+
 ## Reproduce the comparison
 
 Set `REPO` to the checkout, `WORK` to an existing scratch directory outside the checkout and `SWC`
@@ -104,3 +117,8 @@ for `bin/examples/modules/pixel7/src/data/succulent.png` and
 `bin/examples/modules/pixel7/src/data/fox.jpg` with Pillow 12.3.0 and export the pixels with
 `image.convert("RGBA").tobytes("raw", "BGRA")`. Pass the three generated files and
 `bin/apps/modules/swagcapture/src/tests/datas/capture-all-forms.scc` as the runner's input paths.
+
+For a paired LZ4 comparison, use `b35a70a19b` as the archived baseline and omit
+`--tag compression.baseline` from that build. Pass `--baseline-codec lz4 --samples 7 --batch-mib 8`
+to the runner. The Canterbury Large inputs are `large/E.coli`, `large/bible.txt`, and
+`large/world192.txt` in the corpus checkout.

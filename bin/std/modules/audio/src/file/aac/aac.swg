@@ -89,6 +89,8 @@ internal func openFile(path: string)->SoundFile fail
 {
     var source    = try ByteSource.openFile(path)
     let fileBytes = source.size()
+    if fileBytes < 7 do
+        fail InvalidFormatError{"file carries no ADTS frame"}
 
     var packets: Array'SoundPacket
     var config:  Array'u8
@@ -96,6 +98,8 @@ internal func openFile(path: string)->SoundFile fail
     var totalFrames  = 0'u64
     var sampleRate   = 0'u32
     var channelCount = 0'u32
+    var windowStart  = 0'u64
+    var window       = try source.peek(Math.min(HeaderBytes, fileBytes))
 
     for
     {
@@ -103,9 +107,16 @@ internal func openFile(path: string)->SoundFile fail
             break
         if fileBytes - byteOffset < 7 do
             break
-        try source.seek(byteOffset)
-        let probe  = try source.peek(Math.min(HeaderBytes, fileBytes - byteOffset))
-        let header = try readAdtsHeader(probe)
+        let length = Math.min(HeaderBytes, fileBytes - byteOffset)
+        if byteOffset - windowStart + length > window.count
+        {
+            windowStart = byteOffset
+            try source.seek(windowStart)
+            window = try source.peek(length)
+        }
+
+        let offset = byteOffset - windowStart
+        let header = try readAdtsHeader(window[offset until offset + length])
         if header.blocks != 1 do
             fail UnsupportedFormatError{"ADTS frames with multiple raw data blocks are not supported"}
         if header.frameBytes > fileBytes - byteOffset do

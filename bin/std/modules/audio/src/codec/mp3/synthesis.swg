@@ -22,8 +22,8 @@ alias SubbandOverlap = [18, 32] f32
 struct ChannelState
 {
     overlap:  SubbandOverlap     // Second half of the previous inverse transform, grouped by time slot.
-    filter:   [1024] f32         // The filter bank's delay line, addressed through `filterAt`.
-    filterAt: u32                // Where the newest block of 64 starts in `filter`.
+    filter:   [16, 33] f32       // Even and odd taps for paired samples, plus the unpaired first sample.
+    filterAt: u32     // Newest block of the delay line.
 }
 
 impl ChannelState
@@ -32,7 +32,7 @@ impl ChannelState
     mtd reset()
     {
         Memory.set(cast(*void, &.overlap[0, 0]), 0, #sizeof(f32) * 32 * 18)
-        Memory.set(cast(*void, &.filter[0]), 0, #sizeof(f32) * 1024)
+        Memory.set(cast(*void, &.filter[0, 0]), 0, #sizeof(f32) * 16 * 33)
         .filterAt = 0
     }
 }
@@ -287,26 +287,62 @@ private func inverseTransform(lines: *Granule576, overlap: *SubbandOverlap, subb
 // for the polyphase pass that follows.
 private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, subband, blockType: u32)
 {
+    using Math.Simd
     let base = cast(u64, subband) * 18
-    var input: [18] Math.Simd.F32x4
-    for i in 18'u64
+    var input: [18] F32x4
+
+    // Four contiguous time slots per subband form a tile to transpose into SIMD lanes.
+    for group in 4'u64
     {
-        let at = base + i
-        input[i] = cast(Math.Simd.F32x4, [lines[][at], lines[][at + 18], lines[][at + 36], lines[][at + 54]])
+        let slot = group * 4
+        let at   = base + slot
+        var rows: [4] U32x4 = [
+            cast #bit(U32x4, load(&lines[][at])),
+            cast #bit(U32x4, load(&lines[][at + 18])),
+            cast #bit(U32x4, load(&lines[][at + 36])),
+            cast #bit(U32x4, load(&lines[][at + 54]))]
+        transpose4x4(&rows)
+        for lane in 4'u64 do
+            input[slot + lane] = cast #bit(F32x4, rows[lane])
     }
 
-    var raw: [36] Math.Simd.F32x4
-    windowedTransform'Math.Simd.F32x4(&input[0], &raw[0], blockType)
+    for i in 16 until 18'u64
+    {
+        let at = base + i
+        input[i] = cast(F32x4, [lines[][at], lines[][at + 18], lines[][at + 36], lines[][at + 54]])
+    }
+
+    var raw: [36] F32x4
+    windowedTransform'F32x4(&input[0], &raw[0], blockType)
     for i in 18'u64
     {
-        let previous = Math.Simd.load(&overlap[][i, subband])
-        let sample   = raw[i] + previous
-        let at       = base + i
+        raw[i] += load(&overlap[][i, subband])
+        store(&overlap[][i, subband], raw[18 + i])
+    }
+
+    // Transpose back after windowing and overlap so synthesis can read continuous time slots.
+    for group in 4'u64
+    {
+        let slot = group * 4
+        let at   = base + slot
+        var rows: [4] U32x4 = [
+            cast #bit(U32x4, raw[slot]), cast #bit(U32x4, raw[slot + 1]),
+            cast #bit(U32x4, raw[slot + 2]), cast #bit(U32x4, raw[slot + 3])]
+        transpose4x4(&rows)
+        store(&lines[][at], cast #bit(F32x4, rows[0]))
+        store(&lines[][at + 18], cast #bit(F32x4, rows[1]))
+        store(&lines[][at + 36], cast #bit(F32x4, rows[2]))
+        store(&lines[][at + 54], cast #bit(F32x4, rows[3]))
+    }
+
+    for i in 16 until 18'u64
+    {
+        let at     = base + i
+        let sample = raw[i]
         lines[][at]      = sample[0]
         lines[][at + 18] = sample[1]
         lines[][at + 36] = sample[2]
         lines[][at + 54] = sample[3]
-        Math.Simd.store(&overlap[][i, subband], raw[18 + i])
     }
 }
 
@@ -369,52 +405,91 @@ func invertFrequencies(lines: *Granule576)
     }
 }
 
-#[Swag.Inline]
-private func(Tap: u64) addWindowPair(state: const *ChannelState, at, lane: u64, sum: Math.Simd.F32x4)->Math.Simd.F32x4
+// Samples i and 32-i use the same DCT bins. Their even-delay bins have opposite
+// signs, so the second window can carry that reflection in its coefficients.
+private func buildMirroredWeights()->[2, 16, 4] Math.Simd.F32x4
 {
-    let filter = (at + Tap * 128) & 1023
-    let first  = Math.Simd.load(&state.filter[filter + lane])
-    let second = Math.Simd.load(&state.filter[((filter + 96) & 1023) + lane])
-    let weight = Tap * 64 + lane
-    return (sum + first * Math.Simd.load(&SynthesisWindow[weight])) +
-           second * Math.Simd.load(&SynthesisWindow[weight + 32])
-}
-
-// Creates the next filter block from one lane of the 32 DCT-II bins and their reflections.
-private func synthesizeBlock(state: *ChannelState, bins: const [*] f32, destination: [*] f32)
-{
-    state.filterAt = (state.filterAt + 1024 - 64) & 1023
-    let at     = cast(u64, state.filterAt)
-    let newest = cast([*] f32, &state.filter[at])
-
-    newest[0]  = bins[16 * 4]
-    newest[16] = 0
-    newest[32] = -bins[16 * 4]
-    newest[48] = -bins[0]
-    for i in 1 until 16'u64
+    var weights: #returntype
+    for tap in 16'u64
     {
-        let high = bins[(32 - i) * 4]
-        let low  = bins[i * 4]
-        newest[16 - i] = high
-        newest[16 + i] = -high
-        newest[48 - i] = -low
-        newest[48 + i] = -low
+        let sign = (tap & 1) == 0 ? -1'f32 : 1'f32
+        for group in 4'u64
+        {
+            var left, right: [4] f32
+            for lane in 4'u64
+            {
+                let i = group * 4 + lane + 1
+                left[lane]  = SynthesisWindow[tap * 32 + i]
+                right[lane] = SynthesisWindow[tap * 32 + 32 - i] * sign
+            }
+
+            weights[0, tap, group] = cast(Math.Simd.F32x4, left)
+            weights[1, tap, group] = cast(Math.Simd.F32x4, right)
+        }
     }
 
-    for group in 8'u64
-    {
-        let lane = group * 4
-        var sum: Math.Simd.F32x4
-        sum = addWindowPair'0(state, at, lane, sum)
-        sum = addWindowPair'1(state, at, lane, sum)
-        sum = addWindowPair'2(state, at, lane, sum)
-        sum = addWindowPair'3(state, at, lane, sum)
-        sum = addWindowPair'4(state, at, lane, sum)
-        sum = addWindowPair'5(state, at, lane, sum)
-        sum = addWindowPair'6(state, at, lane, sum)
-        sum = addWindowPair'7(state, at, lane, sum)
+    return weights
+}
 
-        Math.Simd.store(destination + lane, sum)
+private const MirroredWeights = #run buildMirroredWeights()
+
+#[Swag.Inline]
+private func(Tap: u64) addMirroredPair(state: const *ChannelState, at, group: u64, left, right: *Math.Simd.F32x4)
+{
+    let even   = (at + 2 * Tap) & 15
+    let odd    = (even + 1) & 15
+    let lane   = group * 4
+    let first  = Math.Simd.load(&state.filter[even, lane])
+    let second = Math.Simd.load(&state.filter[odd, 16 + lane])
+    left[]  += first * MirroredWeights[0, 2 * Tap, group]
+    left[]  += second * MirroredWeights[0, 2 * Tap + 1, group]
+    right[] += first * MirroredWeights[1, 2 * Tap, group]
+    right[] += second * MirroredWeights[1, 2 * Tap + 1, group]
+}
+
+// Retains each DCT bin once, then applies the two windows to the shared history.
+private func synthesizeBlock(state: *ChannelState, bins: const [*] f32, destination: [*] f32)
+{
+    using Math.Simd
+    const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
+    state.filterAt = (state.filterAt + 15) & 15
+    let at     = cast(u64, state.filterAt)
+    let newest = cast([*] f32, &state.filter[at, 0])
+
+    for i in 15'u64 do
+        newest[i] = bins[(17 + i) * 4]
+    newest[15] = 0
+    for i in 16'u64 do
+        newest[16 + i] = -bins[(15 - i) * 4]
+    newest[32] = bins[16 * 4]
+
+    var firstSample: f32
+    for tap in 8'u64
+    {
+        let even = (at + 2 * tap) & 15
+        let odd  = (even + 1) & 15
+        firstSample += state.filter[even, 32] * SynthesisWindow[tap * 64]
+        firstSample += -state.filter[odd, 32] * SynthesisWindow[tap * 64 + 32]
+    }
+
+    destination[0] = firstSample
+
+    for group in 4'u64
+    {
+        var left, right: F32x4
+        addMirroredPair'0(state, at, group, &left, &right)
+        addMirroredPair'1(state, at, group, &left, &right)
+        addMirroredPair'2(state, at, group, &left, &right)
+        addMirroredPair'3(state, at, group, &left, &right)
+        addMirroredPair'4(state, at, group, &left, &right)
+        addMirroredPair'5(state, at, group, &left, &right)
+        addMirroredPair'6(state, at, group, &left, &right)
+        addMirroredPair'7(state, at, group, &left, &right)
+
+        // The final stores meet at sample 16. Its even-delay bin is zero,
+        // so both lanes produce the same sample.
+        store(destination + 1 + group * 4, left)
+        store(destination + 28 - group * 4, permute(right, Reverse))
     }
 }
 

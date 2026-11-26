@@ -97,6 +97,8 @@ private func readFrameIndex(source: *ByteSource,
     var totalFrames   = 0'u64
     var hasFirstFrame = false
     var skippedJunk   = false
+    var previousKey   = 0'u32
+    var previous: FrameHeader
     var windowStart   = audioOffset
     try source.seek(windowStart)
     var window = try source.peek(Math.min(HeaderBytes, fileBytes - windowStart))
@@ -115,12 +117,36 @@ private func readFrameIndex(source: *ByteSource,
         }
 
         let offset = byteOffset - windowStart
-        let header = catch readHeader(window[offset until offset + HeaderBytes])
-        {     // Tags and padding sit between frames often enough that one bad byte is not the end
-            // of the stream; a run of them is.
-            byteOffset  += 1
-            skippedJunk = true
-            continue
+        let bytes  = window[offset until offset + HeaderBytes]
+
+        // A run often repeats the header fields used by the index.
+        // Packet padding changes the length by a byte and is applied separately.
+        // Copyright, original, emphasis and private bits are outside the shape.
+        let word = Math.littleEndianToNative(cast(const [*] u32, bytes.buffer)[0])
+        let key  = word & 0xF0FC_FFFF
+        var header: FrameHeader
+        if key and key == previousKey
+        {
+            header = previous
+            header.frameBytes += (word >> 17) & 1
+        }
+        else
+        {
+            header = catch readHeader(bytes)
+            {
+                // Resynchronize within this window without parsing non-marker bytes.
+                skippedJunk = true
+                var scan = offset + 1
+                let end  = window.count - HeaderBytes + 1
+                while scan < end and window[scan] != 0xFF do
+                    scan += 1
+                byteOffset = windowStart + scan
+                continue
+            }
+
+            previousKey         = key
+            previous            = header
+            previous.frameBytes -= (word >> 17) & 1
         }
 
         if header.frameBytes > fileBytes - byteOffset

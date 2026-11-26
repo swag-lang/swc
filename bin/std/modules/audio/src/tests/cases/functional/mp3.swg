@@ -238,6 +238,39 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     Swag.require(bare.leadingTrim == 0)
 }
 
+// Resynchronization crosses a read window and reuses the prior shape with a changed padding bit.
+#test
+{
+    let fixture = audioGetTestDataPath("mp3-stereo-44100.mp3")
+    let sound   = expect SoundFile.load(fixture.toString())
+    let packet  = expect sound.packet(0)
+    let source  = expect File.readAllBytes(fixture.toString())
+    let frame   = source[packet.sourceOffset until packet.sourceOffset + packet.byteSize]
+    const NextOffset = ByteSource.WindowSize - 2
+    let padding  = (frame[2] & 2) != 0
+    let nextSize = cast(u64, packet.byteSize) + (padding ? 0 : 1) - (padding ? 1 : 0)
+
+    var bytes: Array'u8
+    bytes.add(frame)
+    bytes.resize(NextOffset)
+    bytes.add(frame)
+    bytes[NextOffset + 2] ^= 3     // Toggle the padding and private bits.
+    bytes.resize(NextOffset + nextSize)
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("audio-mp3-index-window-%.mp3", Guid64.random()))
+    expect File.writeAllBytes(path.toString(), bytes.toSlice())
+    defer discard catch File.delete(path.toString())
+
+    let indexed = expect SoundFile.load(path.toString())
+    Swag.require(indexed.packetCount() == 2)
+    let first  = expect indexed.packet(0)
+    let second = expect indexed.packet(1)
+    Swag.require(first.sourceOffset == 0 and first.byteSize == packet.byteSize)
+    Swag.require(second.sourceOffset == NextOffset and second.byteSize == nextSize)
+    Swag.require(second.sampleFrameCount == packet.sampleFrameCount)
+}
+
 // A CRC-protected Xing frame includes the CRC word before its side information.
 #test
 {

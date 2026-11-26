@@ -60,6 +60,7 @@ private struct Eac3Codec
     channels:     u32
     block:        Ac3Block
     imdct:        [MaxChannels] Imdct
+    stereoImdct:  StereoImdct
     coefficients: [MaxChannels, SamplesPerBlock] f64
     ditherState:  u32 = 0x6E624EB7
 }
@@ -268,6 +269,7 @@ private impl Eac3Codec
     {
         Memory.set(&.block, 0, #sizeof(.block))
         Memory.set(&.coefficients, 0, #sizeof(.coefficients))
+        .stereoImdct.active = false
         for channel in MaxChannels do
             .imdct[channel].reset()
         .ditherState = 0x6E624EB7
@@ -696,6 +698,15 @@ private impl Eac3Codec
                 fail InvalidFormatError{"E-AC-3 audio block is truncated"}
 
             let target = destination + blockIndex * SamplesPerBlock * .channels
+            if .channels == 2 and
+               not .block.blockSwitch[0] and
+               (bsi.nfchans < 2 or not .block.blockSwitch[1])
+            {
+                .stereoImdct.process(&.imdct, &.coefficients, target)
+                continue
+            }
+
+            .stereoImdct.restore(&.imdct)
             for channel in .channels
             {
                 let source     = .sourceChannel(channel, &bsi)

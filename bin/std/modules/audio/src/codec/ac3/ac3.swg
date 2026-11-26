@@ -84,6 +84,7 @@ private struct Ac3Codec
     channels:     u32
     block:        Ac3Block
     imdct:        [MaxChannels] Imdct
+    stereoImdct:  StereoImdct
     coefficients: [MaxChannels, SamplesPerBlock] f64
     ditherState:  u32 = 0x1234ABCD
 }
@@ -214,6 +215,7 @@ private impl Ac3Codec
     {
         Memory.set(&.block, 0, #sizeof(.block))
         Memory.set(&.coefficients, 0, #sizeof(.coefficients))
+        .stereoImdct.active = false
         for channel in MaxChannels do
             .imdct[channel].reset()
         .ditherState = 0x1234ABCD
@@ -564,6 +566,13 @@ private impl Ac3Codec
         if reader.overrun do
             fail InvalidFormatError{"AC-3 audio block is truncated"}
 
+        if .channels == 2 and not block.blockSwitch[0] and (bsi.nfchans < 2 or not block.blockSwitch[1])
+        {
+            .stereoImdct.process(&.imdct, &.coefficients, destination)
+            return
+        }
+
+        .stereoImdct.restore(&.imdct)
         for channel in .channels
         {
             let source     = .sourceChannel(channel, bsi)

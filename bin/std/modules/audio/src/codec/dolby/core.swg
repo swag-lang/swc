@@ -336,6 +336,195 @@ private func imdctShort(coefficients: const [*] f64, output: [*] f64)
     }
 }
 
+// The long stereo kernel keeps its overlap in PCM channel order.
+// Stereo, dual mono, and mono with LFE already have that order in the bitstream.
+private struct StereoImdct
+{
+    delay:  [2 * SamplesPerBlock] f32
+    active: bool
+}
+
+private struct StereoSpectrum
+{
+    real, imaginary: [256] f32
+}
+
+private var g_StereoCos, g_StereoSin: [256] f32
+private var g_StereoTwiddleReal, g_StereoTwiddleImag: [256] f32
+private var g_StereoWindow: [512] f32
+
+#[Swag.Inline]
+private func(Half: u64) fftStereoStage(fft: *StereoSpectrum)
+{
+    const Width = 2 * Half
+    for group in 128 / Width
+    {
+        let base = group * Width * 2
+        for row in Half / 2
+        {
+            let offset      = row * 4
+            let left        = base + offset
+            let right       = left + 2 * Half
+            let r           = Simd.load(&fft.real[right])
+            let i           = Simd.load(&fft.imaginary[right])
+            let c           = Simd.load(&g_StereoTwiddleReal[2 * Half + offset])
+            let w           = Simd.load(&g_StereoTwiddleImag[2 * Half + offset])
+            let productReal = r * c - i * w
+            let productImag = i * c + r * w
+            let leftReal    = Simd.load(&fft.real[left])
+            let leftImag    = Simd.load(&fft.imaginary[left])
+            Simd.store(&fft.real[left], leftReal + productReal)
+            Simd.store(&fft.imaginary[left], leftImag + productImag)
+            Simd.store(&fft.real[right], leftReal - productReal)
+            Simd.store(&fft.imaginary[right], leftImag - productImag)
+        }
+    }
+}
+
+private func prepareStereoSpectrum(fft: *StereoSpectrum, coefficients: const *[MaxChannels, SamplesPerBlock] f64)
+{
+    for k in 128
+    {
+        let hi     = 255 - 2 * k
+        let lo     = 2 * k
+        let a      = cast(f32, coefficients[][0, hi])
+        let b      = cast(f32, coefficients[][0, lo])
+        let c      = cast(f32, coefficients[][1, hi])
+        let d      = cast(f32, coefficients[][1, lo])
+        let index  = 2 * cast(u32, g_FftReverse[k])
+        let cosine = g_StereoCos[lo]
+        let sine   = g_StereoSin[lo]
+        fft.real[index]          = a * cosine - b * sine
+        fft.imaginary[index]     = b * cosine + a * sine
+        fft.real[index + 1]      = c * cosine - d * sine
+        fft.imaginary[index + 1] = d * cosine + c * sine
+    }
+
+    // Each vector holds one complex component for two bins in both channels.
+    const DuplicateFirst   = cast(Simd.U32x4, [0'u32, 1, 0, 1])
+    const DuplicateLast    = cast(Simd.U32x4, [2'u32, 3, 2, 3])
+    const SumAndDifference = cast(Simd.F32x4, [1.0'f32, 1, -1, -1])
+    for group in 64
+    {
+        let index = 4 * group
+        let r     = Simd.load(&fft.real[index])
+        let i     = Simd.load(&fft.imaginary[index])
+        let r0    = Simd.permute(r, DuplicateFirst)
+        let i0    = Simd.permute(i, DuplicateFirst)
+        let r1    = Simd.permute(r, DuplicateLast)
+        let i1    = Simd.permute(i, DuplicateLast)
+        Simd.store(&fft.real[index], r0 + r1 * SumAndDifference)
+        Simd.store(&fft.imaginary[index], i0 + i1 * SumAndDifference)
+    }
+
+    fftStereoStage'2(fft)
+    fftStereoStage'4(fft)
+    fftStereoStage'8(fft)
+    fftStereoStage'16(fft)
+    fftStereoStage'32(fft)
+    fftStereoStage'64(fft)
+
+    for group in 64
+    {
+        let index = group * 4
+        let r     = Simd.load(&fft.real[index])
+        let i     = Simd.load(&fft.imaginary[index])
+        let c     = Simd.load(&g_StereoCos[index])
+        let w     = Simd.load(&g_StereoSin[index])
+        Simd.store(&fft.real[index], r * c - i * w)
+        Simd.store(&fft.imaginary[index], i * c + r * w)
+    }
+}
+
+#[Swag.Inline]
+private func(Upper: bool) writeStereoHalf(fft: const *StereoSpectrum, delay: [*] f32, destination: [*] s16)
+{
+    // Reverse the time samples and keep the two channel lanes in order.
+    const ReverseFrames = cast(Simd.U32x4, [2'u32, 3, 0, 1])
+    const MixFirst      = cast(Simd.U32x4, [0'u32, 1, 4, 5])
+    const MixLast       = cast(Simd.U32x4, [2'u32, 3, 6, 7])
+    const Gain          = cast(Simd.F32x4, [65_534.0'f32, 65_534.0, 65_534.0, 65_534.0])
+    const High          = cast(Simd.F32x4, [32_767.0'f32, 32_767.0, 32_767.0, 32_767.0])
+    const Low           = cast(Simd.F32x4, [-32_768.0'f32, -32_768.0, -32_768.0, -32_768.0])
+    for group in 32
+    {
+        let bin    = 4 * group
+        let mirror = 124 - bin
+        var offset = 2 * bin
+        var even, odd, futureEven, futureOdd: Simd.F32x4
+        if Upper
+        {
+            offset     += 256
+            even       = -Simd.load(&fft.real[bin])
+            odd        = Simd.permute(Simd.load(&fft.imaginary[128 + mirror]), ReverseFrames)
+            futureEven = Simd.load(&fft.imaginary[bin])
+            futureOdd  = -Simd.permute(Simd.load(&fft.real[128 + mirror]), ReverseFrames)
+        }
+        else
+        {
+            even       = -Simd.load(&fft.imaginary[128 + bin])
+            odd        = Simd.permute(Simd.load(&fft.real[mirror]), ReverseFrames)
+            futureEven = -Simd.load(&fft.real[128 + bin])
+            futureOdd  = Simd.permute(Simd.load(&fft.imaginary[mirror]), ReverseFrames)
+        }
+
+        let a       = Simd.permute2(even, odd, MixFirst)
+        let b       = Simd.permute2(even, odd, MixLast)
+        let sampleA = (a * Simd.load(&g_StereoWindow[offset]) + Simd.load(delay + offset)) * Gain
+        let sampleB = (b * Simd.load(&g_StereoWindow[offset + 4]) + Simd.load(delay + offset + 4)) * Gain
+        let pcmA    = Simd.truncateToS32(Swag.min(Swag.max(sampleA, Low), High))
+        let pcmB    = Simd.truncateToS32(Swag.min(Swag.max(sampleB, Low), High))
+        Simd.store(destination + offset, Simd.packSigned(pcmA, pcmB))
+
+        var nextA = Simd.permute2(futureEven, futureOdd, MixFirst)
+        var nextB = Simd.permute2(futureEven, futureOdd, MixLast)
+        if Upper
+        {
+            nextA *= Simd.permute(Simd.load(&g_StereoWindow[508 - offset]), ReverseFrames)
+            nextB *= Simd.permute(Simd.load(&g_StereoWindow[504 - offset]), ReverseFrames)
+        }
+
+        Simd.store(delay + offset, nextA)
+        Simd.store(delay + offset + 4, nextB)
+    }
+}
+
+impl StereoImdct
+{
+    // Hand the previous block's delay back to the scalar path on a window switch.
+    mtd restore(states: *[MaxChannels] Imdct)
+    {
+        if not .active do
+            return
+        for index in SamplesPerBlock
+        {
+            states[][0].delay[index] = cast(f64, .delay[2 * index])
+            states[][1].delay[index] = cast(f64, .delay[2 * index + 1])
+        }
+
+        .active = false
+    }
+
+    mtd process(states: *[MaxChannels] Imdct, coefficients: const *[MaxChannels, SamplesPerBlock] f64, output: [*] s16)
+    {
+        if not .active
+        {
+            for index in SamplesPerBlock
+            {
+                .delay[2 * index]     = cast(f32, states[][0].delay[index])
+                .delay[2 * index + 1] = cast(f32, states[][1].delay[index])
+            }
+
+            .active = true
+        }
+
+        var fft: StereoSpectrum
+        prepareStereoSpectrum(&fft, coefficients)
+        writeStereoHalf'false(&fft, &.delay[0], output)
+        writeStereoHalf'true(&fft, &.delay[0], output)
+    }
+}
+
 impl Imdct
 {
     mtd reset() => Memory.set(&.delay, 0, #sizeof(.delay))
@@ -673,6 +862,18 @@ private func initializeDolbyCore()
         g_LongCos[index] = -Math.cos(angle)
         g_LongSin[index] = -Math.sin(angle)
     }
+
+    for index in 256
+    {
+        let bin = index / 2
+        g_StereoCos[index]         = cast(f32, g_LongCos[bin])
+        g_StereoSin[index]         = cast(f32, g_LongSin[bin])
+        g_StereoTwiddleReal[index] = cast(f32, g_FftTwiddleReal[bin])
+        g_StereoTwiddleImag[index] = cast(f32, g_FftTwiddleImag[bin])
+    }
+
+    for index in 512 do
+        g_StereoWindow[index] = cast(f32, WINDOW[index / 2])
 
     for index in 64
     {

@@ -221,3 +221,37 @@ All three fixtures match the R4 PCM exactly.
 
 Native Release passes all 312 functional and stress tests. A focused
 Release-safe run passes 72 tests.
+
+## Sixth optimization pass
+
+The comparison repeats the fourth-pass one-core and four-core budgets, with Swag
+commit `10ee17ffa0` as the baseline. Each median uses 35 samples and includes opening
+the file and materializing the first ten seconds as PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round6.json)
+
+| Format | R5 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AAC | 8.62 | 8.56 | 6.56 | 5.96 | 6.59 |
+| AC-3 | 12.56 | 10.53 | 8.03 | 10.49 | 8.28 |
+| DTS | 14.69 | 14.07 | 14.92 | 14.42 | 15.21 |
+| FLAC | 10.04 | 10.17 | 11.09 | 7.36 | 7.40 |
+| MP3 | 12.39 | 10.89 | 7.96 | 6.51 | 9.13 |
+| OGA (FLAC) | 9.85 | 9.79 | 11.31 | 7.15 | 8.04 |
+| Ogg Vorbis | 7.96 | 7.83 | 7.28 | 8.21 | 8.04 |
+| Opus | 23.03 | 23.62 | 20.12 | 23.37 | 20.79 |
+| WAV | 1.85 | 1.90 | 27.21 | 1.89 | 28.03 |
+
+The MP3 synthesis window reuses the same delay-line loads for reflected samples.
+The hybrid transform transposes four subbands at each end using packed SIMD.
+The MP3 index reuses parsed header fields across a run and handles padding separately.
+The ADTS reader walks frame headers in one byte-source window at a time.
+
+AC-3 and E-AC-3 process long blocks with two channels in packed single precision.
+The decoder carries the overlap between the packed and per-channel transforms when
+the block changes window size. The AC-3 FileSamples PCM differs from R5 by
+at most one PCM16 unit. The MP3 and AAC samples match R5 exactly.
+
+The one-core and four-core Swag PCM matches byte for byte. FLAC and OGA match reference
+FFmpeg PCM exactly. The largest change from the original Swag output remains one PCM16
+unit. Native Release passes all 314 functional and stress tests. Native
+Release-safe passes 111 focused decoder tests.

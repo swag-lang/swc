@@ -1260,6 +1260,38 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertLoadedPng("basi6a08.png", 32, 32, .RGBA8, 0'u8, 32'u8, 255'u8, 0'u8)
 }
 
+// The last Adam7 pass reconstructs packed rows against the previous row in that pass.
+#test
+{
+    const Width  = 5
+    const Height = 5
+    const Rows   = [
+        0x00'u8, 0x00,                          // Pass 1
+        0x00, 0x00,                             // Pass 2
+        0x00, 0xA0,                             // Pass 3
+        0x00, 0x80, 0x00, 0x00,                 // Pass 4
+        0x00, 0x74,                             // Pass 5
+        0x00, 0x70, 0x00, 0x80, 0x00, 0xD0,     // Pass 6
+        0x00, 0xB1, 0x80, 0x02, 0x15, 0x40      // Pass 7 (None, Up)
+        ]
+    var encoded: ConcatBuffer
+    addPngSignature(&encoded)
+    addPngHeader(&encoded, Width, Height, 2, 0, true)
+    addPngImageData(&encoded, Rows)
+    addPngChunk(&encoded, "IEND", "")
+
+    let image = expect Image.decode("gray2-adam7.png", nnBytes(encoded.toSlice()), {})
+    Swag.require(image.pixelFormat == .Gray8)
+    for y in Height
+    {
+        for x in Width
+        {
+            let sample = cast(u8, (((x + 2 * y + y / 2) % 4) * 85))
+            assertPngPixelAt(image, x, Height - y - 1, sample, sample, sample, 255'u8)
+        }
+    }
+}
+
 // Native 16-bit conversion handles unaligned vectors and every short tail
 // without touching the surrounding bytes.
 #test

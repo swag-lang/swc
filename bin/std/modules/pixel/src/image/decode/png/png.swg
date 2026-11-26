@@ -113,7 +113,6 @@ internal struct Decoder
         seenTRSN:      bool                   // Whether a transparency chunk was seen.
         seenBKGD:      bool                   // Whether a background chunk was seen.
         seenPLTE:      bool                   // Whether a palette chunk was seen.
-        orderDefilter: bool                   // Whether scanlines defilter in interlaced order.
         input:         const [..] u8?
         animation:     ImageSetInfo
     }

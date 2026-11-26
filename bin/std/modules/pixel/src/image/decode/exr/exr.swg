@@ -13,7 +13,7 @@ const Magic = 20000630'u32
 
 struct Channel
 {
-    name:      String
+    name:      string     // Borrows the encoded channel list.
     pixelType: u32
 }
 
@@ -31,16 +31,20 @@ func readU64(source: const [*] u8)->u64 => cast(u64, readU32(source)) | (cast(u6
 #[Swag.Inline]
 func readF32(source: const [*] u8)->f32 => cast #bit (f32, readU32(source))
 
-func readText(buffer: const [..] u8, offset: *u64, maxLength: u64)->String fail
+func readText(buffer: const [..] u8, offset: *u64)->string fail
 {
     let start = offset[]
-    while offset[] < buffer.count and buffer[offset[]] and offset[] - start <= maxLength do
-        offset[] += 1
-    if offset[] >= buffer.count or offset[] - start > maxLength do
+    if start >= buffer.count do
         fail InvalidFormatError{"OpenEXR header string is not terminated"}
-    let result = String.from(cast(string, Swag.makeSlice(buffer.buffer + start, offset[] - start)))
-    offset[] += 1
-    return result
+    let source = buffer.buffer + start
+    let limit  = Math.min(buffer.count - start, 256'u64)
+    var length: u64
+    while length < limit and source[length] do
+        length += 1
+    if length == limit do
+        fail InvalidFormatError{"OpenEXR header string is not terminated"}
+    offset[] = start + length + 1
+    return cast(string, Swag.makeSlice(source, length))
 }
 
 func parseChannels(payload: const [..] u8)->Array'Channel fail
@@ -49,7 +53,7 @@ func parseChannels(payload: const [..] u8)->Array'Channel fail
     var offset = 0'u64
     while offset < payload.count and payload[offset]
     {
-        let name = #move try readText(payload, &offset, 255)
+        let name = try readText(payload, &offset)
         if offset + 16 > payload.count do
             fail InvalidFormatError{"OpenEXR channel entry is truncated"}
         let pixelType = readU32(payload.buffer + offset)
@@ -61,14 +65,14 @@ func parseChannels(payload: const [..] u8)->Array'Channel fail
             fail UnsupportedFormatError{"OpenEXR subsampled channels are not supported"}
         for &channel in result
         {
-            if channel.name.toString() == name.toString() do
+            if channel.name == name do
                 fail InvalidFormatError{"OpenEXR channel name is duplicated"}
         }
 
         var channel: Channel
-        channel.name      = #move name
+        channel.name      = name
         channel.pixelType = pixelType
-        result.add(#move channel)
+        result.add(channel)
         offset += 16
     }
 
@@ -333,6 +337,57 @@ func writeMixedColorChunk(image: *Image, offsets: [4] u64, halfChannels: u8, sou
     }
 }
 
+func(ALPHA: bool) writeGrayHalfRow(source: const [*] u8, target: [*] u8, width: u64, alphaFirst: bool)
+{
+    const PixelBytes = ALPHA ? 4'u64 : 2'u64
+    let planeBytes = width * 2
+    let gray       = alphaFirst ? source + planeBytes : source
+    let alpha      = alphaFirst ? source : source + planeBytes
+    #static if not ALPHA do
+        discard alpha
+    var x: u64
+    while width - x >= 8
+    {
+        let destination = cast([*] u16, target + x * PixelBytes)
+        let luminance   = loadCanonicalHalves(gray + x * 2)
+        #static if ALPHA
+        {
+            let opacity = loadCanonicalHalves(alpha + x * 2)
+            Simd.store(destination, Simd.interleaveLow(luminance, opacity))
+            Simd.store(destination + 8, Simd.interleaveHigh(luminance, opacity))
+        }
+        else do
+            Simd.store(destination, luminance)
+        x += 8
+    }
+
+    while x < width
+    {
+        let destination = cast([*] u16, target + x * PixelBytes)
+        destination[0] = canonicalHalf(readU16(gray + x * 2))
+        #static if ALPHA do
+            destination[1] = canonicalHalf(readU16(alpha + x * 2))
+        x += 1
+    }
+}
+
+func writeGrayHalfChunk(image: *Image, source: const [..] u8, firstRow, rows: s32, alphaFirst: bool)
+{
+    let width    = cast(u64, image.width)
+    let rowBytes = cast(u64, image.rowStride)
+    let hasAlpha = image.pixelFormat == .GrayAlphaF16
+    for row in rows
+    {
+        let targetY = image.height - firstRow - row - 1
+        let target  = image.pixels.storage() + cast(u64, targetY) * rowBytes
+        let input   = source.buffer + cast(u64, row) * rowBytes
+        if hasAlpha do
+            writeGrayHalfRow'true(input, target, width, alphaFirst)
+        else do
+            writeGrayHalfRow'false(input, target, width, false)
+    }
+}
+
 func writeGrayscaleChunk(image: *Image, channels: const [..] Channel, source: const [..] u8, firstY, rowCount, yMin: s32) fail
 {
     var offset = 0'u64
@@ -348,7 +403,7 @@ func writeGrayscaleChunk(image: *Image, channels: const [..] Channel, source: co
             let channelBytes = cast(u64, image.width) * bytes
             if channelBytes > source.count - offset do
                 fail InvalidFormatError{"OpenEXR channel pixels are truncated"}
-            let component = channelComponent(channel.name.toString())
+            let component = channelComponent(channel.name)
             if component >= 0
             {
                 for x in image.width
@@ -410,11 +465,11 @@ impl Part
         var hasDataWindow = false
         var declaredChunks:         u32
         var hasChunkCount = false
-        var partType:               String
+        var partType      = ""
         while offset[] < buffer.count and buffer[offset[]]
         {
-            let name = try readText(buffer, offset, 255)
-            let type = try readText(buffer, offset, 255)
+            let name = try readText(buffer, offset)
+            let type = try readText(buffer, offset)
             if offset[] + 4 > buffer.count do
                 fail InvalidFormatError{"OpenEXR attribute size is truncated"}
             let size = cast(u64, readU32(buffer.buffer + offset[]))
@@ -422,17 +477,17 @@ impl Part
             if size > buffer.count - offset[] do
                 fail InvalidFormatError{"OpenEXR attribute exceeds the file"}
             let payload = buffer[offset[] until offset[] + size]
-            if name.toString() == "channels" and type.toString() == "chlist"
+            if name == "channels" and type == "chlist"
             {
                 result.channels = try parseChannels(payload)
             }
-            elif name.toString() == "compression" and type.toString() == "compression"
+            elif name == "compression" and type == "compression"
             {
                 if size != 1 do
                     fail InvalidFormatError{"OpenEXR compression attribute has an invalid size"}
                 result.compression = payload[0]
             }
-            elif name.toString() == "dataWindow" and type.toString() == "box2i"
+            elif name == "dataWindow" and type == "box2i"
             {
                 if size != 16 do
                     fail InvalidFormatError{"OpenEXR data window has an invalid size"}
@@ -442,18 +497,18 @@ impl Part
                 yMax = cast #bit(s32, readU32(payload.buffer + 12))
                 hasDataWindow = true
             }
-            elif name.toString() == "chunkCount" and type.toString() == "int"
+            elif name == "chunkCount" and type == "int"
             {
                 if size != 4 do
                     fail InvalidFormatError{"OpenEXR chunk count has an invalid size"}
                 declaredChunks = readU32(payload.buffer)
                 hasChunkCount  = true
             }
-            elif name.toString() == "name" and type.toString() == "string"
+            elif name == "name" and type == "string"
             {
                 result.info.name = cast(string, payload)
             }
-            elif name.toString() == "type" and type.toString() == "string"
+            elif name == "type" and type == "string"
             {
                 partType = cast(string, payload)
             }
@@ -466,7 +521,7 @@ impl Part
         offset[] += 1
         if not result.channels.count or not hasDataWindow or result.compression == 255 do
             fail InvalidFormatError{"OpenEXR required attributes are missing"}
-        if multipart and (not hasChunkCount or not result.info.name.count or partType.toString() != "scanlineimage") do
+        if multipart and (not hasChunkCount or not result.info.name.count or partType != "scanlineimage") do
             fail UnsupportedFormatError{"OpenEXR parts require a name, chunk count, and scanline image type"}
         if result.compression != 0 and result.compression != 2 and result.compression != 3 do
             fail UnsupportedFormatError{"OpenEXR compression is not NONE, ZIPS, or ZIP"}
@@ -477,7 +532,7 @@ impl Part
         var hasR, hasG, hasB, hasY, hasAlpha, hasFloat: bool
         for channel in result.channels
         {
-            switch channel.name.toString()
+            switch channel.name
             {
             case "R": hasR = true
             case "G": hasG = true
@@ -535,6 +590,14 @@ impl Part
         return result
     }
 
+    mtd readChunkTable(fileSize, offset: u64)->u64 fail
+    {
+        if .chunkCount > (fileSize - offset) / 8 do
+            fail InvalidFormatError{"OpenEXR chunk offset table is truncated"}
+        .tableOffset = offset
+        return offset + .chunkCount * 8
+    }
+
     mtd decode(buffer: const [..] u8, index: u32, multipart: bool, options: DecodeOptions)->Image fail
     {
         var result: #returntype
@@ -544,9 +607,12 @@ impl Part
         result.allocPixels()
         let grayscale = result.pixelFormat.isGrayscale()
         let halfColor = result.pixelFormat == .RGBF16 or result.pixelFormat == .RGBAF16
+        let grayHalf  = (result.pixelFormat == .GrayF16 or result.pixelFormat == .GrayAlphaF16) and
+                        .channels.count == result.pixelFormat.channels()
+        let alphaFirst = grayHalf and .channels[0].name == "A"
 
-        // Validated RGB(A) channels write every component, and chunk validation covers every row.
-        if grayscale do
+        // The packed paths write all channels of each validated row.
+        if grayscale and not grayHalf do
             result.fill(Argb.Black)
 
         // Each scanline repeats the same channel planes in file order.
@@ -624,7 +690,11 @@ impl Part
 
             if pixels.count != expected do
                 fail InvalidFormatError{"OpenEXR scanline chunk has an invalid size"}
-            if grayscale
+            if grayHalf
+            {
+                writeGrayHalfChunk(&result, pixels, cast(s32, relativeY), rows, alphaFirst)
+            }
+            elif grayscale
             {
                 try writeGrayscaleChunk(&result, .channels.toSlice(), pixels, firstY, rows, .yMin)
             }
@@ -646,17 +716,23 @@ impl Part
     }
 }
 
+func readVersion(buffer: const [..] u8)->u32 fail
+{
+    if buffer.count < 9 or readU32(buffer.buffer) != Magic do
+        fail InvalidFormatError{"OpenEXR signature or header is truncated"}
+    let version = readU32(buffer.buffer + 4)
+    if (version & 0xFF) != 2 do
+        fail UnsupportedFormatError{"OpenEXR file version is not 2"}
+    if version & 0xA00 do
+        fail UnsupportedFormatError{"tiled and deep OpenEXR images are not supported"}
+    return version
+}
+
 impl IImageSetDecoder for Decoder
 {
     mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
     {
-        if buffer.count < 9 or readU32(buffer.buffer) != Magic do
-            fail InvalidFormatError{"OpenEXR signature or header is truncated"}
-        let version = readU32(buffer.buffer + 4)
-        if (version & 0xFF) != 2 do
-            fail UnsupportedFormatError{"OpenEXR file version is not 2"}
-        if version & 0xA00 do
-            fail UnsupportedFormatError{"tiled and deep OpenEXR images are not supported"}
+        let version = try readVersion(buffer)
         .multipart = (version & 0x1000) != 0
         .bytes     = buffer
         .parts.clear()
@@ -679,13 +755,8 @@ impl IImageSetDecoder for Decoder
             }
         }
 
-        for &part in .parts
-        {
-            if part.chunkCount > (buffer.count - offset) / 8 do
-                fail InvalidFormatError{"OpenEXR chunk offset table is truncated"}
-            part.tableOffset = offset
-            offset += part.chunkCount * 8
-        }
+        for &part in .parts do
+            offset = try part.readChunkTable(buffer.count, offset)
 
         return result
     }
@@ -704,8 +775,18 @@ impl IImageDecoder for Decoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        let multiple: IImageSetDecoder = me
-        discard try multiple.open(buffer, options)
-        return try multiple.readFrame(0, options)
+        let version = try readVersion(buffer)
+        if version & 0x1000
+        {
+            let multiple: IImageSetDecoder = me
+            discard try multiple.open(buffer, options)
+            return try multiple.readFrame(0, options)
+        }
+
+        try options.checkFrameCount(1)
+        var offset = 8'u64
+        var part   = try Part.parse(buffer, &offset, false, options)
+        discard try part.readChunkTable(buffer.count, offset)
+        return try part.decode(buffer, 0, false, options)
     }
 }

@@ -401,9 +401,21 @@ func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count
     }
 }
 
+func(PIXEL_BYTES: u64) scatterAdam7Row(source: const [*] u8, target: [*] u8, width: u32, targetStep: u64)
+{
+    var src = source
+    var dst = target
+    for width
+    {
+        Memory.copy(dst, src, PIXEL_BYTES)
+        src += PIXEL_BYTES
+        dst += targetStep
+    }
+}
+
 impl Decoder
 {
-    mtd expand8(width, height: u32, output: [*] u8)
+    mtd expand8(width, height: u32, output: [*] u8, rowStep: s64)
     {
         let rowStrideIn  = .getStrideIn(width)
         let rowStrideOut = .inChannels * width
@@ -418,7 +430,7 @@ impl Decoder
             for height
             {
                 let dest = orgDest
-                orgDest += rowStrideOut
+                orgDest += rowStep
                 expand1Row(dest + srcOffset, dest, rowStrideOut, cast(u8, mul))
             }
         }
@@ -429,7 +441,7 @@ impl Decoder
             for height
             {
                 let dest = orgDest
-                orgDest += rowStrideOut
+                orgDest += rowStep
                 expand2Row(dest + srcOffset, dest, rowStrideOut, cast(u8, mul))
             }
         }
@@ -440,7 +452,7 @@ impl Decoder
             for height
             {
                 let dest = orgDest
-                orgDest += rowStrideOut
+                orgDest += rowStep
                 expand4Row(dest + srcOffset, dest, rowStrideOut, cast(u8, mul))
             }
         }
@@ -453,76 +465,62 @@ impl Decoder
         return cast(u64, .inChannels) * width * (.header.bitDepth / 8)
     }
 
-    mtd defilter8(width, height: u32, input, output: [*] u8)->bool
-    {
-        let rowStrideIn  = .getStrideIn(width)
-        let rowStrideOut = .header.bitDepth < 8 ? cast(u64, .inChannels) * width : rowStrideIn
-        let destOffset   = rowStrideOut - rowStrideIn
+    mtd getStrideOut(width: u32)->u64 => cast(u64, .inChannels) * width * (.header.bitDepth == 16 ? 2 : 1)
 
+    mtd defilterRows(height: u32, input, output: [*] u8, rowBytes: u64, rowStep: s64)->bool
+    {
         var src  = input
         var dest = output
-        if not .orderDefilter do
-            dest += rowStrideOut * (height - 1)
 
         // The first row's filters see all-zero bytes above it.
-        var tmpRow: Array'u8
-        tmpRow.resize(rowStrideIn)
-        let tmpRowBuffer = tmpRow.storage()
-        Memory.clear(tmpRowBuffer, rowStrideIn)
-        var up = tmpRowBuffer
+        var zeroRow: Array'u8
+        zeroRow.resize(rowBytes)
+        var up = zeroRow.storage()
 
-        // PNG filtering references the previous byte of the same pixel. Packed
-        // samples (bit depths below 8) have an effective byte offset of 1, not
-        // the number of channels; otherwise narrow Adam7 passes underflow here.
+        // PNG filtering references the previous byte of the same pixel. Packed samples
+        // (bit depths below 8) have an effective byte offset of 1, even in a short Adam7 pass.
         let filterOffset = .header.bitDepth < 8 ? 1'u64 : cast(u64, .inChannels) * (.header.bitDepth / 8)
-        var row = 0'u32
-        while row < height
+        for height
         {
             let filter = src[0]
             src += 1
 
-            var destOff = dest + destOffset
             switch filter
             {
-            case 0:  Memory.copy(destOff, src, rowStrideIn)
-            case 1:  defilterSubRow(src, destOff, rowStrideIn, filterOffset)
-            case 2:  defilterUpRow(src, up, destOff, rowStrideIn)
-            case 3:  defilterAverageRow(src, up, destOff, rowStrideIn, filterOffset)
-            case 4:  defilterPaethRow(src, up, destOff, rowStrideIn, filterOffset)
+            case 0:  Memory.copy(dest, src, rowBytes)
+            case 1:  defilterSubRow(src, dest, rowBytes, filterOffset)
+            case 2:  defilterUpRow(src, up, dest, rowBytes)
+            case 3:  defilterAverageRow(src, up, dest, rowBytes, filterOffset)
+            case 4:  defilterPaethRow(src, up, dest, rowBytes, filterOffset)
             default: return false
             }
 
-            src += rowStrideIn
-            up  = destOff
-            if .orderDefilter do
-                dest += rowStrideOut
-            else do
-                dest -= rowStrideOut
-            row += 1
+            src  += rowBytes
+            up   = dest
+            dest += rowStep
         }
 
         return true
     }
 
-    mtd defilter(width, height: u32, input, output: [*] u8)->bool
+    mtd defilter(width, height: u32, input, firstRow: [*] u8, rowStep: s64)->bool
     {
-        if .header.bitDepth < 8
-        {
-            if not .defilter8(width, height, input, output) do
-                return false
-            .expand8(width, height, output)
-            return true
-        }
+        let packedBytes = .getStrideIn(width)
+        let offset      = .getStrideOut(width) - packedBytes
+        if not .defilterRows(height, input, firstRow + offset, packedBytes, rowStep) do
+            return false
 
-        if .header.bitDepth == 8 or .header.bitDepth == 16 do
-            return .defilter8(width, height, input, output)
-        return false
+        if .header.bitDepth < 8 do
+            .expand8(width, height, firstRow, rowStep)
+        return true
     }
 
     mtd adam7(dstPixels: [*] u8)->bool
     {
         var tmpArr: Array'u8
-        var input = .dcmpBuf.storage()
+        var input      = .dcmpBuf.storage()
+        let rowStride  = .getStrideOut(.header.width)
+        let pixelBytes = cast(u64, .inChannels) * (.header.bitDepth == 16 ? 2 : 1)
         for p in 7
         {
             let x = (.header.width - Adam7OrigX[p] + Adam7SpacingX[p] - 1) / Adam7SpacingX[p]
@@ -530,39 +528,44 @@ impl Decoder
             if x <= 0 or y <= 0 do
                 continue
 
-            let pixelBytes = cast(u64, .inChannels) * (.header.bitDepth == 16 ? 2 : 1)
-            tmpArr.resize(cast(u64, (x * y)) * pixelBytes + 16)
-            let tmpBuffer = tmpArr.storage()
-            Memory.clear(tmpBuffer, tmpArr.count)
+            let passWidth  = cast(u32, x)
+            let passHeight = cast(u32, y)
+            let rowBytes   = cast(u64, passWidth) * pixelBytes
+            if Adam7SpacingX[p] == 1
+            {
+                // The last pass owns whole rows and can reconstruct them in place.
+                let firstRow = cast(u64, (.header.height - Adam7OrigY[p] - 1)) * rowStride
+                let rowStep  = -cast(s64, rowStride) * Adam7SpacingY[p]
+                return .defilter(passWidth, passHeight, input, dstPixels + firstRow, rowStep)
+            }
 
-            if not .defilter(cast(u32, x), cast(u32, y), input, tmpBuffer) do
+            tmpArr.resize(rowBytes * passHeight)
+            let tmpBuffer = tmpArr.storage()
+            if not .defilter(passWidth, passHeight, input, tmpBuffer, cast(s64, rowBytes)) do
                 return false
 
-            let rowBytes    = cast(u64, x) * pixelBytes
             let targetStep  = cast(u64, Adam7SpacingX[p]) * pixelBytes
             let targetStart = cast(u64, Adam7OrigX[p]) * pixelBytes
             var source      = tmpBuffer
-            for j in y
+            for j in passHeight
             {
                 let outY   = .header.height - (j * Adam7SpacingY[p] + Adam7OrigY[p]) - 1
-                var target = dstPixels + outY * .header.width * pixelBytes + targetStart
-                if targetStep == pixelBytes
+                let target = dstPixels + outY * rowStride + targetStart
+                switch pixelBytes
                 {
-                    Memory.copy(target, source, rowBytes)
-                    source += rowBytes
-                    continue
+                case 1:  scatterAdam7Row'1(source, target, passWidth, targetStep)
+                case 2:  scatterAdam7Row'2(source, target, passWidth, targetStep)
+                case 3:  scatterAdam7Row'3(source, target, passWidth, targetStep)
+                case 4:  scatterAdam7Row'4(source, target, passWidth, targetStep)
+                case 6:  scatterAdam7Row'6(source, target, passWidth, targetStep)
+                case 8:  scatterAdam7Row'8(source, target, passWidth, targetStep)
+                default: return false
                 }
 
-                for x
-                {
-                    for byte in pixelBytes do
-                        target[byte] = source[byte]
-                    source += pixelBytes
-                    target += targetStep
-                }
+                source += rowBytes
             }
 
-            let stride = (.getStrideIn(cast(u32, x)) + 1) * y
+            let stride = (.getStrideIn(passWidth) + 1) * passHeight
             input += stride
         }
 
@@ -572,16 +575,11 @@ impl Decoder
     // Defilters the decompressed rows into `dstPixels`, which holds the whole image.
     mtd defilter(dstPixels: [*] u8)->bool
     {
-        if .header.interlaceMethod != .Adam7
-        {
-            .orderDefilter = false
-            let input = .dcmpBuf.storage()
-            return .defilter(.header.width, .header.height, input, dstPixels)
-        }
-        else
-        {
-            .orderDefilter = true
+        if .header.interlaceMethod == .Adam7 do
             return .adam7(dstPixels)
-        }
+
+        let rowBytes = .getStrideOut(.header.width)
+        let firstRow = dstPixels + rowBytes * (.header.height - 1)
+        return .defilter(.header.width, .header.height, .dcmpBuf.storage(), firstRow, -cast(s64, rowBytes))
     }
 }

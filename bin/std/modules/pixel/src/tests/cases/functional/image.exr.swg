@@ -31,7 +31,7 @@ func exrAddAttribute(result: *ConcatBuffer, name, type: string, payload: const [
     result.addBytes(payload)
 }
 
-func exrZipFixture(width: u32, packed: const [..] u8)->ConcatBuffer
+func exrZipFixture(width: u32, packed: const [..] u8, extraName = "")->ConcatBuffer
 {
     var channels: ConcatBuffer
     exrAddText(&channels, "Y")
@@ -52,6 +52,8 @@ func exrZipFixture(width: u32, packed: const [..] u8)->ConcatBuffer
     exrAddAttribute(&header, "channels", "chlist", unwrap channels.toSlice())
     exrAddAttribute(&header, "compression", "compression", compression)
     exrAddAttribute(&header, "dataWindow", "box2i", unwrap dataWindow.toSlice())
+    if extraName.count do
+        exrAddAttribute(&header, extraName, "string", "ignored")
     header.addNative(0'u8)
 
     var result: ConcatBuffer
@@ -256,6 +258,27 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     }
 }
 
+// HALF luminance and opacity retain the scalar conversion's special-value representation.
+#test
+{
+    const Values:   [10] u16 = [0x0001, 0x3C00, 0x8000, 0xC000, 0x7BFF, 0x7C00, 0x7CF1, 0xFE03, 0xFC00, 0x8001]
+    const Expected: [10] u16 = [0x0001, 0x3C00, 0x8000, 0xC000, 0x7BFF, 0x7C00, 0x7E00, 0xFE00, 0xFC00, 0x8001]
+    for format in [PixelFormat.GrayF16, PixelFormat.GrayAlphaF16]
+    {
+        var source  = Image.create(9, 3, format)
+        let samples = cast([*] u16, source.pixels.storage())
+        for index in source.byteCount / 2 do
+            samples[index] = Values[index % Values.count]
+
+        let encoded = expect source.encode("gray-half.exr")
+        let decoded = expect Image.decode("gray-half.exr", nnBytes(encoded.toSlice()))
+        assertImage(decoded, 9, 3, format)
+        let restored = cast(const [*] u16, decoded.pixels.storage())
+        for index in decoded.byteCount / 2 do
+            Swag.require(restored[index] == Expected[index % Expected.count])
+    }
+}
+
 #test
 {
     const Values: [10] u32 = [0x0000_0001, 0x3F00_0000, 0x8000_0000, 0x4000_0000, 0xC000_0000,
@@ -396,6 +419,25 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     var errorOutcome: Swag.Error
     discard catch Image.decode("oversized-zips.exr", nnBytes(bytes.toSlice())) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.UnsupportedFormatError)
+}
+
+// Header names may contain up to 255 bytes before their terminator.
+#test
+{
+    var name: [256] u8
+    for index in name.count do
+        name[index] = 'x'
+    const RawHalf: [2] u8 = [0, 0x3C]
+    let largestName = cast(string, name[0 until 255])
+    let accepted    = exrZipFixture(1, RawHalf, extraName: largestName)
+    let decoded     = expect Image.decode("long-header.exr", nnBytes(accepted.toSlice()))
+    assertImage(decoded, 1, 1, .GrayF16)
+
+    let oversizedName = cast(string, name[0 until name.count])
+    let rejected      = exrZipFixture(1, RawHalf, extraName: oversizedName)
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("oversized-header.exr", nnBytes(rejected.toSlice())) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
 }
 
 // Error: RGB and Y channels cannot be mapped to one output image without ambiguity.

@@ -521,7 +521,7 @@ impl Layer
         let required = rowBytes * cast(u64, result.height)
         let alpha    = result.pixelFormat.isGrayscale() ? 1'u16 : 3'u16
         var present: u8
-        for channel in .channels where channel.id >= -1 and channel.id < alpha
+        for channel in .channels where channel.id >= -1 and channel.id < cast(s16, alpha)
         {
             let component = channel.id == -1 ? alpha : cast(u16, channel.id)
             present |= 1'u8 << component

@@ -275,6 +275,38 @@ using Core
         Swag.require(byte == images[1].pixels[index])
 }
 
+// Skipping leading samples and clamping both clip boundaries preserves crossings and winding.
+#test
+{
+    let contour: [6] Math.Vector2 = [{2.125, 1.375}, {3.625, 27.625}, {9.375, 45.125},
+                   {21.125, 41.625}, {26.375, 6.625}, {11.875, 4.625}]
+    let transform = Math.Transform2.Identity
+    const FirstRow = 19
+    const Height   = 48
+    var reference, clipped: ScanScratch
+    let all = reference.startRows(Height)
+    let visible = clipped.startRows(Height)
+    addScanContour(all, contour, &transform, 1, {}, true, 32)
+    addScanContour(visible, contour, &transform, 1, {}, true, 14, 7, FirstRow)
+
+    for &line, row in visible
+    {
+        if row < FirstRow * VerticalSamples
+        {
+            Swag.require(line.crossings.isEmpty())
+            continue
+        }
+
+        let expected = &all[row].crossings
+        Swag.require(line.crossings.count == expected.count)
+        for crossing, index in line.crossings
+        {
+            Swag.require(crossing.x == Math.clamp(expected[index].x, 7, 14))
+            Swag.require(crossing.winding == expected[index].winding)
+        }
+    }
+}
+
 // Separating translucent fills with transform commands gives the same pixels as grouped fills.
 #[Swag.TestTag("parallel")]
 #test

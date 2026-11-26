@@ -390,15 +390,21 @@ public func restorePredictorRows(input: const [..] u8, output: [..] u8, rowBytes
     return defilterRowsInto(count, input.buffer, output.buffer, rowBytes, cast(s64, rowBytes), pixelBytes)
 }
 
-private func defilterRowsInto(height: u64, input: const [*] u8, output: [*] u8, rowBytes: u64, rowStep: s64, filterOffset: u64)->bool
+private func defilterRowsInto(height: u64, input: const [*] u8, output: [*] u8, rowBytes: u64, rowStep: s64, filterOffset: u64, previous: const [*] u8? = null)->bool
 {
     var src  = input
     var dest = output
 
-    // The first row's filters see all-zero bytes above it.
     var zeroRow: Array'u8
-    zeroRow.resize(rowBytes)
-    var up = zeroRow.storage()
+    var up: const [*] u8
+    if let above = previous do
+        up = above
+    else
+    {
+        // The first row of each pass sees all-zero bytes above it.
+        zeroRow.resize(rowBytes)
+        up = zeroRow.storage()
+    }
 
     let pairPaeth    = rowBytes >= 16 and (filterOffset == 3 or filterOffset == 4)
     var row          = 0'u64
@@ -499,11 +505,11 @@ impl Decoder
 
     mtd getStrideOut(width: u32)->u64 => cast(u64, .inChannels) * width * (.header.bitDepth == 16 ? 2 : 1)
 
-    mtd defilterRows(height: u32, input, output: [*] u8, rowBytes: u64, rowStep: s64)->bool
+    mtd defilterRows(height: u32, input, output: [*] u8, rowBytes: u64, rowStep: s64, previous: const [*] u8? = null)->bool
     {
         // Packed samples still reference the previous byte of the row.
         let pixelBytes = .header.bitDepth < 8 ? 1'u64 : cast(u64, .inChannels) * (.header.bitDepth / 8)
-        return defilterRowsInto(height, input, output, rowBytes, rowStep, pixelBytes)
+        return defilterRowsInto(height, input, output, rowBytes, rowStep, pixelBytes, previous)
     }
 
     mtd defilter(width, height: u32, input, firstRow: [*] u8, rowStep: s64)->bool
@@ -542,34 +548,49 @@ impl Decoder
                 return .defilter(passWidth, passHeight, input, dstPixels + firstRow, rowStep)
             }
 
-            tmpArr.resize(rowBytes * passHeight)
-            let tmpBuffer = tmpArr.storage()
-            if not .defilter(passWidth, passHeight, input, tmpBuffer, cast(s64, rowBytes)) do
-                return false
-
+            // Keep only a small span of rows for strided passes. Save the last
+            // packed row before expansion so the next batch has the right predictor.
+            const BatchRows = 32'u32
+            let packedBytes = .getStrideIn(passWidth)
+            let frontBytes  = rowBytes - packedBytes
             let targetStep  = cast(u64, Adam7SpacingX[p]) * pixelBytes
             let targetStart = cast(u64, Adam7OrigX[p]) * pixelBytes
-            var source      = tmpBuffer
-            for j in passHeight
+            tmpArr.reserve(rowBytes * (Math.min(BatchRows, passHeight) + 1))
+            let storage     = tmpArr.storage()
+            let batch       = storage + rowBytes
+            var first       = 0'u32
+            while first < passHeight
             {
-                let outY   = .header.height - (j * Adam7SpacingY[p] + Adam7OrigY[p]) - 1
-                let target = dstPixels + outY * rowStride + targetStart
-                switch pixelBytes
+                let count = Math.min(BatchRows, passHeight - first)
+                let prior = first ? cast(const [*] u8, storage) : null
+                if not .defilterRows(count, input, batch + frontBytes, packedBytes, cast(s64, rowBytes), prior) do
+                    return false
+                if first + count < passHeight do
+                    Memory.copy(storage, batch + (count - 1) * rowBytes + frontBytes, packedBytes)
+                if .header.bitDepth < 8 do
+                    .expand8(passWidth, count, batch, cast(s64, rowBytes))
+
+                var source = batch
+                for j in first until first + count
                 {
-                case 1:  scatterAdam7Row'1(source, target, passWidth, targetStep)
-                case 2:  scatterAdam7Row'2(source, target, passWidth, targetStep)
-                case 3:  scatterAdam7Row'3(source, target, passWidth, targetStep)
-                case 4:  scatterAdam7Row'4(source, target, passWidth, targetStep)
-                case 6:  scatterAdam7Row'6(source, target, passWidth, targetStep)
-                case 8:  scatterAdam7Row'8(source, target, passWidth, targetStep)
-                default: return false
+                    let outY   = .header.height - (j * Adam7SpacingY[p] + Adam7OrigY[p]) - 1
+                    let target = dstPixels + outY * rowStride + targetStart
+                    switch pixelBytes
+                    {
+                    case 1:  scatterAdam7Row'1(source, target, passWidth, targetStep)
+                    case 2:  scatterAdam7Row'2(source, target, passWidth, targetStep)
+                    case 3:  scatterAdam7Row'3(source, target, passWidth, targetStep)
+                    case 4:  scatterAdam7Row'4(source, target, passWidth, targetStep)
+                    case 6:  scatterAdam7Row'6(source, target, passWidth, targetStep)
+                    case 8:  scatterAdam7Row'8(source, target, passWidth, targetStep)
+                    default: return false
+                    }
+                    source += rowBytes
                 }
 
-                source += rowBytes
+                input += (packedBytes + 1) * count
+                first += count
             }
-
-            let stride = (.getStrideIn(passWidth) + 1) * passHeight
-            input += stride
         }
 
         return true

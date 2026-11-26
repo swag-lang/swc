@@ -654,3 +654,28 @@ baseline `2534d3961d`, one AMD EPYC 7763 logical CPU, and PDFium
 The large JPEG render phase drops from 33.18 to 28.71 ms. The process
 peak stays near 128 MiB in the seven-sample memory check. All 55
 supported raster checksums, 987 Pixel tests, and 144 PDF tests pass.
+
+## Decoding opaque images into their final row layout
+
+Unmasked device images can write straight to the bottom-up output
+buffer. Eight-bit gray samples and expanded one-bit gray samples use
+one byte per pixel, with the same quantized bilinear filtering. RGB and
+CMYK samples on this path also skip the top-down intermediate buffer.
+
+Nine alternating Release runs of two samples use a single AMD EPYC 7763
+logical CPU, baseline `238120e726`, and PDFium 159.0.8149.0. Totals cover
+open, load, and rendering to a 1200 px long side. Peak RSS is the median
+from seven additional runs for the three large grayscale scans.
+[Raw phases, raster checksums, and memory](pdf-raster-linux-packed-gray.json)
+
+| PDF | Swag before, ms | Swag after, ms | PDFium, ms | Peak RSS before, KiB | Peak RSS after, KiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `perf_codecs_ccitt.pdf` | 70.74 | 38.06 | 30.35 | 100,596 | 43,368 |
+| `perf_images_scan_bilevel.pdf` | 89.28 | 36.17 | 28.12 | 101,208 | 43,892 |
+| `perf_images_scan_gray.pdf` | 124.84 | 49.10 | 37.41 | 110,080 | 58,912 |
+| `perf_images_16bit.pdf` | 59.81 | 49.27 | 17.75 | | |
+| `pdfbox-scan.pdf` | 8.55 | 9.84 | 1.79 | | |
+
+All 55 supported corpus rasters are byte-identical to baseline.
+The 145 PDF and 992 Pixel tests pass. The odd-width bilevel
+regression checks both the compact format and bit polarity.

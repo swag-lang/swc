@@ -773,6 +773,27 @@ generated controls and thirteen public SVGs. A renderer regression compares a
 clipped fill and partial stencil clear with the same stencil held in larger
 bounds.
 
+### Skipping crossings before and outside the visible stencil
+
+Scan gathering starts at the first visible subrow of a band on the existing
+sample grid. An edge whose endpoints both fall beyond the same horizontal
+clip boundary can contribute its winding at that boundary without
+interpolating every crossing. The reference test checks discarded rows,
+crossing coordinates and winding against the full band.
+
+Eleven interleaved Release runs report median parse-plus-raster milliseconds.
+All three narrow masks and the generated, public, and attached controls retain
+their Swag CRC-64s.
+
+| Fixture | Worker budget | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: | ---: |
+| `mask-band.svg` | 1 | 8.31 | 7.15 | 5.65 |
+| `mask-column.svg` | 1 | 11.90 | 10.39 | 8.94 |
+| `mask-compact.svg` | 1 | 3.09 | 2.24 | 0.97 |
+| `mask-band.svg` | 4 | 8.39 | 7.23 | 5.75 |
+| `mask-column.svg` | 4 | 12.46 | 10.72 | 9.67 |
+| `mask-compact.svg` | 4 | 2.89 | 2.20 | 0.94 |
+
 ## Mapping path coordinates during parsing
 
 The parser evaluates the two affine coordinates inline, in the same arithmetic
@@ -933,3 +954,25 @@ four workers, with resvg 0.50.0 at 250.54 ms on the same CPUs. Bitmap and
 thumbnail CRC-64s match for the originals. The generated and public control
 rasters also match. Regression cases compare implicit signed cubic groups
 to explicit commands and exercise the arc bound.
+
+## Filtering four clipped image pixels at once
+
+The stencil path interpolates four BGRA or RGBA pixels and blends
+their clipped alpha in SIMD. Each lane uses the existing scalar
+barycentric coordinates and two quantized lerps. Stencil coverage
+and the coordinates of edge pixels keep their original rounding.
+
+Thirteen alternating Release runs use one AMD EPYC 7763 logical CPU
+and baseline `2727488a0f`. The resvg 0.50.0 reference uses nine
+separate samples on that logical CPU. Times cover rasterization.
+[Raw timings and raster comparisons](resvg-clipped-image-simd.json)
+
+| Long side | Swag before, ms | Swag after, ms | resvg, ms |
+| ---: | ---: | ---: | ---: |
+| 1200 px | 84.48 | 46.28 | 61.62 |
+| 2400 px | 333.66 | 194.82 | 239.97 |
+
+Both sizes of the clipped image keep every RGBA byte. All 16
+generated SVG cases, 13 public SVG cases and 55 supported PDF
+cases keep their Swag checksums. The 991 Pixel tests include
+independent bilinear weights and edge clamps for all four lanes.

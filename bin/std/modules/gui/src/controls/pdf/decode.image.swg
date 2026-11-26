@@ -709,7 +709,35 @@ private func expandIndexedPlane(plane: *SamplePlane, space: const *ImageSpace, b
 }
 
 // Reads the samples of an image XObject into a top-down RGB plane.
-private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->SamplePlane fail
+// Opaque device images can expand directly into the renderer's bottom-up pixels.
+private func decodeOpaqueSamples(image: *Image, bytes: const [..] u8, rowBytes: u64, plane: const *SamplePlane, space: ImageSpaceKind, bits: u32, invert: bool)
+{
+    let pixelFormat = space == .Gray ? PixelFormat.Gray8 : PixelFormat.RGB8
+    image[] = #move Image.create(plane.width, plane.height, pixelFormat)
+    let height = cast(u64, plane.height)
+    let width  = cast(u64, plane.width)
+    let stride = cast(u64, image.rowStride)
+    for y in height
+    {
+        let source = bytes.buffer + y * rowBytes
+        let target = image.pixels.storage() + (height - y - 1) * stride
+        if space == .Gray and bits == 1
+        {
+            if invert do
+                expandMask1'(true)(target, source, width, 1, rowBytes)
+            else do
+                expandMask1'(false)(target, source, width, 1, rowBytes)
+        }
+        elif space == .Cmyk do
+            expandCmyk8(target, source, width)
+        elif bits == 16 do
+            quantizeRgb16(target, source, stride)
+        else do
+            Memory.copy(target, source, stride)
+    }
+}
+
+private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direct: *Image?)->SamplePlane fail
 {
     var result: #returntype
     let width  = parser.integer(parser.dict(nodeId, "Width"))
@@ -766,6 +794,18 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
             lowest[i]  = cast(f32, parser.number(parser.nodes[decodeId].values[i * 2]))
             highest[i] = cast(f32, parser.number(parser.nodes[decodeId].values[i * 2 + 1]))
         }
+    }
+
+    if direct and
+       ((space.kind == .Gray and space.components == 1 and depth == 1 and
+           ((lowest[0] == 0 and highest[0] == 1) or (lowest[0] == 1 and highest[0] == 0))) or
+        (decodeId == InvalidNode and
+            ((space.kind == .Gray and depth == 8 and space.components == 1) or
+             (space.kind == .Rgb and space.components == 3 and (depth == 8 or depth == 16)) or
+             (space.kind == .Cmyk and depth == 8 and space.components == 4))))
+    {
+        decodeOpaqueSamples(direct, bytes.toSlice(), rowBytes, &result, space.kind, depth, lowest[0] == 1)
+        return result
     }
 
     result.rgb.resize(pixelCount * 3)
@@ -1339,7 +1379,13 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     }
     else
     {
-        plane = #move try readSamplePlane(parser, nodeId, resourcesId)
+        var direct: Image
+        plane = #move try readSamplePlane(parser, nodeId, resourcesId, deviceOnly ? &direct : null)
+        if direct.isValid()
+        {
+            var encoded = #move retainLosslessImage(parser, nodeId, &direct, colorName)
+            return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move direct, #move encoded)
+        }
         if maskId != InvalidNode do
             mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
     }

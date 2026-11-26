@@ -43,10 +43,8 @@ private func addPostGlyphName(faceData: *FaceImpl, name: string, glyphIndex: u32
 {
     if name.count == 0 do
         return
-    faceData.postGlyphNames[glyphIndex] = String.from(name)
-    let key = String.from(name)
-    if not faceData.postNameToGid.contains(key) do
-        faceData.postNameToGid.add(key, glyphIndex)
+    faceData.postGlyphNames[glyphIndex] = name
+    faceData.postNameToGid.add(name, glyphIndex, updateValue: false)
 }
 
 func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: u32) fail
@@ -81,29 +79,29 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
                 maxCustomIndex = nameIndex
         }
 
-        var customNames: Array'String
+        var customNames: Array'string
         let customCount  = cast(u64, maxCustomIndex) - 257
         let customOffset = 34 + cast(u64, count) * 2
         if customCount > postTable.count - customOffset do
             try fault(0x9B)
         if maxCustomIndex >= 258
         {
-            customNames.resize(customCount)
+            customNames.reserve(customCount)
             var offset = customOffset
-            for customIndex in 258'u32 until cast(u32, maxCustomIndex) + 1
+            for customCount
             {
                 let length = try readU8(postTable, offset)
                 offset += 1
                 let rawName = try getSlice(postTable, offset, length)
                 offset += length
-                customNames[customIndex - 258] = String.from(cast(string?, rawName))
+                customNames.add(cast(string?, rawName) orelse "")
             }
         }
 
         for glyphIndex in count
         {
             let nameIndex = indices[glyphIndex]
-            let name      = nameIndex < 258 ? MacStandardGlyphNames[nameIndex] : customNames[nameIndex - 258].toString()
+            let name      = nameIndex < 258 ? MacStandardGlyphNames[nameIndex] : customNames[nameIndex - 258]
             addPostGlyphName(faceData, name, glyphIndex)
         }
 

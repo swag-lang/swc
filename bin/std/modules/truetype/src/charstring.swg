@@ -768,9 +768,7 @@ private func runComposedAccent(font: *CffFont, gid: u32, builder: *OutlineBuilde
 func cffGlyphForStandardCode(font: *CffFont, code: u8)->u32
 {
     let name = standardEncodingName(code)
-    if not name.count do
-        return 0
-    return font.nameToGid.getOrDefault(String.from(name), 0)
+    return name.count ? font.nameToGid.getOrDefault(name, 0) : 0
 }
 
 // Everything one run of a Type 1 charstring carries between its operators.

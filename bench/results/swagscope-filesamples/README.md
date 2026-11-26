@@ -123,8 +123,64 @@ they do not represent a full character-map browse.
 | `otf/slick.otf` | 0.110 | 0.071 | 1.56× |
 | `otf/NotoSansShavian-Regular.otf` | 0.118 | 0.069 | 1.71× |
 
-Times are below 0.2 ms and mixed; this is not a current optimization lead without a larger font
-corpus and a character-map or page-level workload.
+All four timings are below 0.2 ms. The following benchmark isolates the cost of loading a face and
+also measures glyphs present in the fonts.
+
+#### Font loader follow-up on Linux
+
+The Release benchmark compares `335b91f31e` with borrowed PostScript names in `post` and CFF and
+on-demand lookup for predefined CFF encodings. It uses fresh faces at 20 px on Linux x86-64
+(Intel Xeon Platinum 8573C), with a warm file cache and one pinned CPU. Each table cell is the
+median of 11 interleaved batches of 1,001 loads. The total includes file reading, face parsing,
+pixel-size setup and glyph rendering. It excludes face destruction and checksum calculation.
+Pillow 12.3.0 with FreeType 2.14.3 used `ImageFont.truetype` and `getmask` on the same files.
+
+The two TTFs match the sizes from the Windows comparison. The OTFs in this follow-up were generated
+from those TTFs with FontTools 4.61.1, scaling the em to 1000 units and converting quadratic outlines
+to CFF charstrings. The upstream Shavian OTF is a separate 5,468-byte build. Slick and Noto Sans
+Shavian both lack `A`, so the table also includes the mapped `a` and `U+10450` respectively.
+The glyph indices and bitmap checksums matched between the two Swag builds on all 15 workloads.
+
+| Fixture | Character | Swag before (µs) | Swag after (µs) | Pillow (µs) |
+| --- | --- | ---: | ---: | ---: |
+| `slick.ttf` | `A` | 15.50 | 13.84 | 169.48 |
+| `slick.ttf` | `a` | 33.62 | 34.18 | 168.15 |
+| `NotoSansShavian-Regular.ttf` | `A` | 51.28 | 37.95 | 204.69 |
+| `NotoSansShavian-Regular.ttf` | `U+10450` | 52.52 | 43.90 | 227.05 |
+| Slick converted to CFF OTF | `A` | 29.13 | 16.82 | 47.95 |
+| Slick converted to CFF OTF | `a` | 46.70 | 31.24 | 105.11 |
+| Noto Sans Shavian converted to CFF OTF | `A` | 54.22 | 39.20 | 67.53 |
+| Noto Sans Shavian converted to CFF OTF | `U+10450` | 57.11 | 41.03 | 72.04 |
+| Noto Sans Shavian upstream OTF | `A` | 59.73 | 40.77 | 74.85 |
+| Noto Sans Shavian upstream OTF | `U+10450` | 58.99 | 43.50 | 73.85 |
+
+The `A` workload dropped by 26% on the Noto Sans Shavian TTF, 42% on the converted Slick OTF,
+and 28–32% on the two Shavian OTFs. Face parsing accounts for most of the improvement. Four
+additional TTFs (Lato, Open Sans, Source Code Pro, and Font Awesome) also improved by 30–43%.
+Open Sans, Source Code Pro, and Font Awesome still take longer than Pillow in this workload.
+
+#### Original FileSamples OTFs on Linux
+
+The six supplied OTF files were measured with the same Linux Release protocol, Pillow version,
+and `335b91f31e` baseline. The Slick and Noto Sans Shavian files are 2,888 and 16,848 bytes,
+matching the Windows measurement record. The final loader also copies the font bytes directly
+and reads packed CFF offsets and horizontal metrics after checking their complete table ranges.
+
+| Fixture | Character | Swag before (µs) | Swag after (µs) | Pillow (µs) | Time saved |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `slick.otf` | `A` | 35.28 | 17.30 | 57.87 | 51% |
+| `NotoSansShavian-Regular.otf` | `A` | 77.59 | 41.11 | 77.22 | 47% |
+| `slick.otf` | `a` | 68.12 | 39.64 | 133.63 | 42% |
+| `NotoSansShavian-Regular.otf` | `U+10450` | 75.00 | 43.15 | 81.41 | 42% |
+| `Lato-Regular.otf` | `A` | 221.31 | 76.35 | 104.89 | 66% |
+| `OpenSans-Regular.otf` | `A` | 516.90 | 157.94 | 125.35 | 69% |
+| `SourceCodePro-Regular.otf` | `A` | 356.82 | 105.29 | 104.42 | 70% |
+| `fontawesome-webfont.otf` | `A` | 710.10 | 209.40 | 117.98 | 71% |
+| `fontawesome-webfont.otf` | `U+F000` | 718.45 | 210.63 | 139.90 | 71% |
+
+Glyph indices, bitmap dimensions and bitmap checksums matched between the Swag builds in every
+scenario. The Slick and Shavian `A` workloads both finish ahead of Pillow on this host. Open Sans
+and Font Awesome retain the largest gaps. The Windows timings are from the earlier comparison.
 
 ### SVG results already reported
 
@@ -185,7 +241,7 @@ measurement for those viewer transformations.
   and four fonts. Larger images, full audio files, all video codec profiles, long playback,
   document interaction and UI first-content latency remain unmeasured.
 
-The seven raw timing samples for this report's new comparisons are preserved in
+The seven raw timing samples for the Windows comparisons are preserved in
 [`measurements.json`](measurements.json). SVG phase medians remain in the linked `.057` entry. The
 Filesamples catalogue records each source URL and SHA-256; benchmark inputs are not copied into
 this repository.

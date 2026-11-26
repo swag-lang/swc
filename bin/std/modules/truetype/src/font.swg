@@ -144,9 +144,9 @@ struct FaceImpl
     gposPairSubtables: Array'u32
     gposPairLookups:   Array'GposPairLookup
 
-    // Names declared by an sfnt `post` table. Keys are owned by this face.
-    postNameToGid:  HashTable'(String, u32)
-    postGlyphNames: Array'String
+    // Names borrow the owned sfnt bytes or the static Macintosh glyph vocabulary.
+    postNameToGid:  HashTable'(string, u32)
+    postGlyphNames: Array'(string?)
 }
 
 impl FaceImpl
@@ -155,7 +155,6 @@ impl FaceImpl
     {
         // These buffers belong to the face, so release capacity instead of only
         // clearing elements; the reusable glyph workspace dies with the face too.
-        .fontData.free()
         .tables.free()
         .glyphMetrics.free()
         .verticalGlyphMetrics.free()
@@ -180,6 +179,7 @@ impl FaceImpl
         Swag.init(&.cff, 1)
         Swag.drop(&.type1)
         Swag.init(&.type1, 1)
+        .fontData.free()
     }
 
     // Returns the glyph selected by a PostScript glyph name, or zero when no name matches.
@@ -189,12 +189,11 @@ impl FaceImpl
     // When a name occurs more than once, the lowest glyph index is returned.
     mtd glyphIndexByName(name: string)->u32
     {
-        let key = String.from(name)
         switch #complete .outlineSource
         {
-        case .Cff:   return .cff.nameToGid.getOrDefault(key, 0)
-        case .Type1: return .type1.nameToGid.getOrDefault(key, 0)
-        case .Glyf:  return .postNameToGid.getOrDefault(key, 0)
+        case .Cff:   return .cff.nameToGid.getOrDefault(name, 0)
+        case .Type1: return .type1.nameToGid.getOrDefault(String.from(name), 0)
+        case .Glyf:  return .postNameToGid.getOrDefault(name, 0)
         }
     }
 
@@ -209,9 +208,8 @@ impl FaceImpl
         case .Cff:
             if glyphIndex >= .cff.glyphNames.count do
                 return null
-            if not .cff.glyphNames[glyphIndex].length do
-                return null
-            return .cff.glyphNames[glyphIndex].toString()
+            let name = .cff.glyphNames[glyphIndex]
+            return name.count ? name : null
 
         case .Type1:
             if glyphIndex >= .type1.glyphNames.count do
@@ -223,9 +221,7 @@ impl FaceImpl
         case .Glyf:
             if glyphIndex >= .postGlyphNames.count do
                 return null
-            if not .postGlyphNames[glyphIndex].length do
-                return null
-            return .postGlyphNames[glyphIndex].toString()
+            return .postGlyphNames[glyphIndex]
         }
     }
 
@@ -234,7 +230,7 @@ impl FaceImpl
     {
         switch #complete .outlineSource
         {
-        case .Cff:   return .cff.codeToGid.getOrDefault(code, 0)
+        case .Cff:   return .cff.glyphIndexByCode(code)
         case .Type1: return .type1.codeToGid.getOrDefault(code, 0)
         case .Glyf:  return 0
         }

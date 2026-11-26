@@ -94,14 +94,21 @@ func standardString(sid: u32)->string
     return ""
 }
 
+private const StandardEncodingSids: [256] u16 = #run
+{
+    var sids: [256] u16
+    for code in 32 until 127 do
+        sids[code] = cast(u16, code - 31)
+    for entry in StandardEncodingHigh do
+        sids[entry.code] = entry.sid
+    return sids
+}
+
 // Returns the name StandardEncoding gives to one code, or an empty name for an unused slot.
 func standardEncodingName(code: u8)->string
 {
-    if code >= 32 and code <= 126 do
-        return StandardStrings[cast(u32, code) - 31]
-    for entry in StandardEncodingHigh where entry.code == code do
-        return StandardStrings[entry.sid]
-    return ""
+    let sid = StandardEncodingSids[code]
+    return sid ? StandardStrings[sid] : ""
 }
 
 // Returns the character StandardEncoding places at `code`, or zero for an unused slot.

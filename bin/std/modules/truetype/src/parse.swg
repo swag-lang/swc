@@ -454,37 +454,30 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
 
 func buildGlyphMetrics(faceData: *FaceImpl) fail
 {
-    let glyphCount = faceData.face.glyphCount
-    if not faceData.numLongMetrics or faceData.numLongMetrics > glyphCount do
+    let glyphCount      = faceData.face.glyphCount
+    let longMetricCount = cast(u32, faceData.numLongMetrics)
+    if not longMetricCount or longMetricCount > glyphCount do
         try fault(0x95)
 
     let hmtx = try getTableSlice(faceData, TAG_HMTX, 0x93)
-    let shortMetricCount = glyphCount - faceData.numLongMetrics
-    let requiredBytes    = cast(u64, faceData.numLongMetrics) * 4 + cast(u64, shortMetricCount) * 2
+    let requiredBytes = cast(u64, longMetricCount) * 4 + cast(u64, glyphCount - longMetricCount) * 2
     if hmtx.count < requiredBytes do
         try fault(0x95)
 
-    faceData.glyphMetrics.resize(glyphCount)
-
-    var lastAdvance = 0'u16
-    for index in glyphCount
+    let metrics = faceData.glyphMetrics.emplaceAddress(glyphCount)
+    var entry   = hmtx.buffer
+    for index in longMetricCount
     {
-        var metric: GlyphMetric
-        if index < faceData.numLongMetrics
-        {
-            let base = cast(u64, index) * 4
-            metric.advanceWidth    = try readU16(hmtx, base + 0)
-            metric.leftSideBearing = try readS16(hmtx, base + 2)
-            lastAdvance            = metric.advanceWidth
-        }
-        else
-        {
-            let base = cast(u64, faceData.numLongMetrics) * 4 + cast(u64, (index - faceData.numLongMetrics)) * 2
-            metric.advanceWidth    = lastAdvance
-            metric.leftSideBearing = try readS16(hmtx, base)
-        }
+        metrics[index] = {Math.make16(entry[0], entry[1]), cast #bit(s16, Math.make16(entry[2], entry[3]))}
+        entry += 4
+    }
 
-        faceData.glyphMetrics[index] = metric
+    // The remaining records store only a bearing and reuse the final long advance.
+    let lastAdvance = metrics[longMetricCount - 1].advanceWidth
+    for index in longMetricCount until glyphCount
+    {
+        metrics[index] = {lastAdvance, cast #bit(s16, Math.make16(entry[0], entry[1]))}
+        entry += 2
     }
 }
 
@@ -859,12 +852,22 @@ func buildSyntheticCMap(faceData: *FaceImpl)
 
     // A subset that names its glyphs by code point still resolves, which is the convention
     // a document writer falls back to when no standard name fits.
-    let names = faceData.outlineSource == .Cff ? &faceData.cff.glyphNames : &faceData.type1.glyphNames
-    for name, gid in names
+    func addNamedGlyph(faceData: *FaceImpl, name: string, gid: u64)
     {
-        let value = glyphNameRune(name.toString())
-        if value and not faceData.syntheticCMap.contains(cast(u32, value)) do
-            faceData.syntheticCMap.add(cast(u32, value), cast(u32, gid))
+        let value = glyphNameRune(name)
+        if value do
+            faceData.syntheticCMap.add(cast(u32, value), cast(u32, gid), updateValue: false)
+    }
+
+    if faceData.outlineSource == .Cff
+    {
+        for name, gid in faceData.cff.glyphNames do
+            addNamedGlyph(faceData, name, gid)
+    }
+    else
+    {
+        for name, gid in faceData.type1.glyphNames do
+            addNamedGlyph(faceData, name.toString(), gid)
     }
 }
 

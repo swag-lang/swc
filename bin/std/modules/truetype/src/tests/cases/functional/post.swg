@@ -6,9 +6,10 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let font  = expect buildPostFormat2Font(bytes.toSlice(), 36, 36, 200, 258, ["CustomGlyph"])
+    var font  = expect buildPostFormat2Font(bytes.toSlice(), 36, 36, 200, 258, ["CustomGlyph"])
     let face  = expect Face.load(font.toSlice())
     defer face.destroy()
+    font.fill(0)
 
     Swag.require(face.glyphIndexByName("A") == 36)
     Swag.require(face.glyphIndexByName("CustomGlyph") == 200)
@@ -83,9 +84,7 @@ using Swag, Core
     var cffFace: FaceImpl
     cffFace.face.setGlyphCount(3)
     cffFace.outlineSource = .Cff
-    cffFace.cff.glyphNames.add(String.from(".notdef"))
-    cffFace.cff.glyphNames.add(String.from("fi"))
-    cffFace.cff.glyphNames.add(String.from(null))
+    cffFace.cff.glyphNames.add([".notdef", "fi", ""])
     Swag.require(cffFace.face.glyphName(0) == ".notdef")
     Swag.require(cffFace.face.glyphName(1) == "fi")
     Swag.require(cffFace.face.glyphName(2) == null)

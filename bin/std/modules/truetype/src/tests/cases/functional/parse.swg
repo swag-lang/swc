@@ -122,6 +122,11 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
     var rejected: Swag.Error
     discard catch readCffIndex(BadCffIndex, 0) as rejected
     Swag.require(rejected.value() != null)
+
+    // The declared entry count also needs a complete packed offset table.
+    const TruncatedCffIndex: [6] u8 = [0x00, 0x01, 0x02, 0x00, 0x01, 0x00]
+    discard catch readCffIndex(TruncatedCffIndex, 0) as rejected
+    Swag.require(rejected.value() != null)
 }
 
 #test
@@ -129,16 +134,41 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
     // The predefined Expert charsets map glyph IDs through their canonical SIDs.
     var expertBytes = buildPredefinedCffCharset(1)
     let expert      = expect parseCffFont(expertBytes.toSlice())
-    Swag.require(expert.glyphNames[2].toString() == "exclamsmall")
+    Swag.require(expert.glyphNames[2] == "exclamsmall")
 
     let expertSubsetBytes = buildPredefinedCffCharset(2)
     let expertSubset      = expect parseCffFont(expertSubsetBytes.toSlice())
-    Swag.require(expertSubset.glyphNames[2].toString() == "dollaroldstyle")
+    Swag.require(expertSubset.glyphNames[2] == "dollaroldstyle")
 
     let encodingBytes  = buildCffExpertEncoding()
     let expertEncoding = expect parseCffFont(encodingBytes.toSlice())
-    let code33         = expertEncoding.codeToGid.tryFind(33)
-    Swag.require(code33 != null and code33.value == 2)
+    Swag.require(expertEncoding.glyphIndexByCode(33) == 2)
+    Swag.require(expertEncoding.glyphIndexByCode(0) == 0)
+    Swag.require(expertEncoding.glyphIndexByCode(256) == 0)
+}
+
+#test
+{
+    var bytes: Array'u8
+    bytes.add([
+        0x01, 0x00, 0x04, 0x04,                       // Header
+        0x00, 0x01, 0x01, 0x01, 0x02, 0x41,           // Name INDEX
+        0x00, 0x01, 0x01, 0x01, 0x05,                 // Top DICT INDEX
+        0xB1, 0x0F, 0xA7, 0x11,                       // charset 38, CharStrings offset 28
+        0x00, 0x01, 0x01, 0x01, 0x03, 0x66, 0x69,     // String INDEX holds a custom SID
+        0x00, 0x00,     // GlobalSubrs INDEX
+        0x00, 0x03, 0x01, 0x01, 0x02, 0x03, 0x04,     // Three-entry CharStrings INDEX
+        0x0E, 0x0E, 0x0E,
+        0x00, 0x01, 0x87, 0x01, 0x87])     // Format 0 charset repeats custom SID 391
+
+    let face = expect Face.load(bytes.toSlice())
+    defer face.destroy()
+    bytes.fill(0)
+
+    Swag.require(face.glyphName(1) == "fi")
+    Swag.require(face.glyphName(2) == "fi")
+    Swag.require(face.glyphIndexByName("fi") == 1)
+    Swag.require(face.glyphIndexByCode(0xAE) == 1)
 }
 
 #test
@@ -147,7 +177,7 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
     var completeCharset = buildPredefinedCffCharset(33)
     completeCharset.add([0x01, 0x00, 0x02, 0x01])
     let parsed = expect parseCffFont(completeCharset.toSlice())
-    Swag.require(parsed.glyphNames[2].toString() == "quotedbl")
+    Swag.require(parsed.glyphNames[2] == "quotedbl")
 
     var overlongCharset = buildPredefinedCffCharset(33)
     overlongCharset.add([0x01, 0x00, 0x02, 0x02])
@@ -490,6 +520,19 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
     const TrailingRealSign: [3] u8 = [30, 0x1E, 0x1F]
     var rejected: Swag.Error
     discard catch parseCffDict(TrailingRealSign) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    // A single 0xC nibble introduces the negative exponent in 5E-4.
+    const NegativeExponent: [2] u8 = [0x5C, 0x4F]
+    let parsed = expect readCffReal(NegativeExponent, 0)
+    Swag.require(Math.isEqualEpsilon(parsed.value, 0.0005, 1e-12))
+
+    const RepeatedExponent: [3] u8 = [0x5B, 0xC4, 0xFF]
+    var rejected: Swag.Error
+    discard catch readCffReal(RepeatedExponent, 0) as rejected
     Swag.require(rejected.value() != null)
 }
 

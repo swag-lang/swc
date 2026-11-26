@@ -227,23 +227,73 @@ private impl ScanFill
     // across each pixel and vertical coverage sampled at four evenly spaced positions.
     mtd rasterize(paths: *LinePathList, transform: Transform2, density: f32, tile: Rectangle, color: Color, evenOdd: bool)->Image
     {
-        func addEdge(rows: *Array'Array'Crossing, a, b: Vector2)
+        func addEdge(rows: *Array'Array'Crossing, a, b: Vector2, width: f32)
         {
-            if a.y == b.y or not Math.isFinite(a.x) or not Math.isFinite(a.y) or
-               not Math.isFinite(b.x) or not Math.isFinite(b.y) do
+            if a.y == b.y or
+               not Math.isFinite(a.x) or
+               not Math.isFinite(a.y) or
+               not Math.isFinite(b.x) or
+               not Math.isFinite(b.y) do
                 return
-            let top    = a.y < b.y ? a : b
-            let bottom = a.y < b.y ? b : a
-            let limit  = cast(f32, rows.count)
-            let start  = cast(u64, Math.clamp(Math.ceil(top.y * VerticalSamples - 0.5), 0.0, limit))
-            let end    = cast(u64, Math.clamp(Math.ceil(bottom.y * VerticalSamples - 0.5), 0.0, limit))
+            let top     = a.y < b.y ? a : b
+            let bottom  = a.y < b.y ? b : a
+            let limit   = cast(f32, rows.count)
+            let start   = cast(u64, Math.clamp(Math.ceil(top.y * VerticalSamples - 0.5), 0.0, limit))
+            let end     = cast(u64, Math.clamp(Math.ceil(bottom.y * VerticalSamples - 0.5), 0.0, limit))
             let winding = a.y < b.y ? 1 : -1
             for row in start until end
             {
-                let y = (cast(f32, row) + 0.5) / VerticalSamples
+                let y       = (cast(f32, row) + 0.5) / VerticalSamples
                 let portion = (cast(f64, y) - cast(f64, top.y)) / (cast(f64, bottom.y) - cast(f64, top.y))
                 let x       = cast(f32, cast(f64, top.x) + (cast(f64, bottom.x) - cast(f64, top.x)) * portion)
-                rows[row].add(Crossing{x, winding})
+
+                // Crossings outside the tile can share its boundary: between them
+                // there is no span of visible pixels, only a change of winding.
+                rows[row].add(Crossing{Math.clamp(x, 0, width), winding})
+            }
+        }
+
+        func sortLine(line: *Array'Crossing, scratch: *Array'Crossing)
+        {
+            if line.count < 128
+            {
+                line.sort(func(left, right) => left.x <=> right.x)
+                return
+            }
+
+            // Nonnegative f32 values have the same order as their unsigned bits.
+            // Radix sorting long lines avoids repeated comparison calls at each sample.
+            scratch.resize(line.count)
+            var source = line.storage()
+            var target = scratch.storage()
+            for digit in 4
+            {
+                let shift = digit * 8
+                var offsets: [256] u64
+                for index in line.count
+                {
+                    let key = cast #bit(u32, source[index].x) & 0x7FFF_FFFF
+                    offsets[(key >> shift) & 0xFF] += 1
+                }
+
+                var total = 0'u64
+                for &offset in offsets
+                {
+                    let count = offset[]
+                    offset[] = total
+                    total    += count
+                }
+
+                for index in line.count
+                {
+                    let crossing = source[index]
+                    let key      = cast #bit(u32, crossing.x) & 0x7FFF_FFFF
+                    let bucket   = (key >> shift) & 0xFF
+                    target[offsets[bucket]] = crossing
+                    offsets[bucket]         += 1
+                }
+
+                swap(&source, &target)
             }
         }
 
@@ -311,7 +361,7 @@ private impl ScanFill
                 for point in points
                 {
                     let next = transform.transformPoint(point) * density - origin
-                    addEdge(&crossings, previous, next)
+                    addEdge(&crossings, previous, next, tile.width)
                     previous = next
                 }
             }
@@ -320,18 +370,19 @@ private impl ScanFill
         var image = Image.create(width, height, .RGBA8)
         var coverage: Array'f32
         coverage.resize(cast(u64, width))
+        var sortScratch: Array'Crossing
         for row in height
         {
             Memory.clear(coverage.storage(), coverage.count * #sizeof(f32))
             for sample in VerticalSamples
             {
                 let line = &crossings[row * VerticalSamples + sample]
-                line.sort(func(left, right) => left.x <=> right.x)
-                var winding: s32
+                sortLine(line, &sortScratch)
+                var winding:  s32
                 var previous: f32
                 for crossing in line
                 {
-                    let x = Math.clamp(crossing.x, 0, tile.width)
+                    let x = crossing.x
                     if x > previous and (evenOdd ? (winding & 1) != 0 : winding != 0)
                     {
                         let first = cast(u64, Math.floor(previous))
@@ -343,7 +394,7 @@ private impl ScanFill
                         }
                     }
 
-                    winding += crossing.winding
+                    winding  += crossing.winding
                     previous = x
                 }
             }

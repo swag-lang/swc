@@ -124,12 +124,11 @@ ships; history lives in Git, not here.
   `bf29681a8b952f06b8d5a61a4ac5a18e0194e9f6a207e57ab6ab9b32f4e64801`.
   Benchmark host: Windows 11 x64, Intel Core Ultra 9 185H. The comparison measures this corpus
   and these output sizes only; it does not establish whole-format correctness or universal speed.
-- Next: verify fixture provenance and license, then preserve this corpus or minimized equivalents
-  in a repeatable Release benchmark. Profile parsing and rasterization separately, starting with
-  the 453 KiB and 7.9 MiB samples, and optimize the dominant geometry and fill paths.
-- Done when: a maintained benchmark reproduces separate parse, raster, and combined timings for
-  representative simple, complex, and large SVGs; agreed performance budgets are met without
-  changing the renderer's verified output behavior.
+- Next: run the [Release SVG benchmark](../bench/workloads/svgraster/README.md) against the four
+  SHA-256-verified original files. Profile the remaining gap on the 453 KiB and 7.9 MiB samples,
+  particularly triangle setup and raster work for large collections of individual paths.
+- Done when: the original corpus meets agreed parse and raster budgets against resvg and the
+  renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010
 
 ### std.pixel.image.026 — No AVIF codec

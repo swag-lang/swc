@@ -7,14 +7,16 @@ using Swag, Core
 {
     const Rings = "M2 2h12v12H2z M5 5h6v6H5z "
     var path = String.from(Rings)
-    for 512 do
+    for 64 do
+        path += "M-4 3h24v8H-4z M-4 3v8h24V3z "
+    for 384 do
         path += "M18 18h1v1h-1z "
 
     for rule in ["nonzero", "evenodd"]
     {
-        let source = Format.toString("<svg width='16' height='16'><path fill='#ff0000' fill-rule='%' d='%'/></svg>", rule, path)
+        let source  = Format.toString("<svg width='16' height='16'><path fill='#ff0000' fill-rule='%' d='%'/></svg>", rule, path)
         let drawing = expect Svg.Drawing.parse(source)
-        let image = drawing.rasterize(16, 16, 1)
+        let image   = drawing.rasterize(16, 16, 1)
         Swag.require(image.pixelColor(0, 0).a == 0)
         Swag.require(image.pixelColor(3, 3).argb == Color.fromRgb(255, 0, 0).argb)
         Swag.require(image.pixelColor(7, 7).a == (rule == "evenodd" ? 0 : 255))

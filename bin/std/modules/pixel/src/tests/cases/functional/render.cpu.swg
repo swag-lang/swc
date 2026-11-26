@@ -455,6 +455,49 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     assertPixel(image, 6, 4, Argb.Zero)
 }
 
+// An aligned RGBA texture must blend the same bytes under a scissor as the full-mask path.
+#test
+{
+    var source = Image.create(7, 5, .RGBA8)
+    for y in source.height
+    {
+        for x in source.width
+        {
+            let pixel = source.pixels.storage() + cast(u64, ((source.height - y - 1) * source.rowStride + x * 4))
+            pixel[0] = cast(u8, x * 37)
+            pixel[1] = cast(u8, y * 51)
+            pixel[2] = 29
+            pixel[3] = cast(u8, (x * 255 / 6))
+        }
+    }
+
+    var cpu: RenderCpu
+    cpu.begin(11, 9)
+    let renderer: IRenderer = &cpu
+    defer renderer.end()
+    var texture = renderer.addImage(source)
+    defer renderer.removeTexture(&texture)
+
+    var images: [2] Image
+    for i in images.count
+    {
+        var painter = Painter.create(renderer)
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromRgb(73, 21, 131))
+        if i do
+            painter.setColorMaskColor()
+        painter.setClippingRect({3, 2, 6, 5})
+        painter.drawTexture({2, 2, 7, 5}, texture)
+        painter.end()
+        expect renderer.draw(&painter)
+        images[i] = cpu.surfaceImage()
+    }
+
+    for byte, index in images[0].pixels do
+        Swag.require(byte == images[1].pixels[index])
+}
+
 // Scissor and stencil clipping both reject pixels outside their active region.
 #test
 {
@@ -476,6 +519,30 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     assertPixel(image, 3, 5, Argb.Zero)
     assertPixel(image, 5, 5, Argb.DodgerBlue)
     assertPixel(image, 9, 5, Argb.Zero)
+}
+
+// A replacement region clears the old footprint even when the new scissor excludes it.
+#test
+{
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Zero))
+    painter.startClippingRegion()
+    painter.fillRect({1, 1, 4, 8}, Color.fromArgb(Argb.White))
+    painter.endClippingRegion()
+
+    painter.setClippingRect({6, 0, 6, 10})
+    painter.startClippingRegion()
+    painter.fillRect({7, 2, 4, 6}, Color.fromArgb(Argb.White))
+    painter.endClippingRegion()
+    painter.resetClippingRect()
+    painter.fillRect({0, 0, 12, 10}, Color.fromArgb(Argb.Red))
+    painter.end()
+
+    let image = renderCpu(12, 10, &painter)
+    assertPixel(image, 2, 5, Argb.Zero)
+    assertPixel(image, 8, 5, Argb.Red)
 }
 
 // The CPU backend executes nested targets with stable texture handles.

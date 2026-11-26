@@ -5900,10 +5900,7 @@ impl Drawing
         tr.multiply(outerTransform)
         painter.setTransform(tr)
 
-        // The clipping region persists across draws, so the one in force is tracked and only
-        // exchanged when it changes: the outgoing clip is taken back out with a `Clear` pass
-        // before the incoming one is put in. Consecutive items of one clipped group therefore
-        // stamp their clip once.
+        // Keep the clipping region across consecutive items that share it.
         var activeClip: s64
 
         // What the painter can still reach, in surface space. An item landing outside it is
@@ -5956,7 +5953,7 @@ impl Drawing
 
                 if not .sameClip(item.clip, activeClip)
                 {
-                    .exchangeClip(painter, activeClip, item.clip)
+                    .setPaintClip(painter, item.clip)
                     activeClip = item.clip
                 }
 
@@ -6002,7 +5999,7 @@ impl Drawing
             }
         }
 
-        .exchangeClip(painter, activeClip, 0)
+        painter.resetClippingRegion()
 
         // Use the new text bounds to cull both authored runs and spatial bins.
         if measuredText
@@ -6014,28 +6011,16 @@ impl Drawing
         }
     }
 
-    // Replaces the clip in force by another, leaving the region empty for an empty incoming one.
-    //
-    // A region persists until coverage is taken back out of it, so the outgoing clip is drawn
-    // again in `Clear` mode rather than assumed gone.
-    private mtd const exchangeClip(painter: *Painter, outgoing, incoming: s64)
+    // Starting a region clears the previous mask. Resetting disables it.
+    private mtd const setPaintClip(painter: *Painter, incoming: s64)
     {
-        let white = Brush.createSolid(Color.fromArgb(Argb.White))
-        if outgoing
-        {
-            let range = .clipRange(outgoing)
-            painter.startClippingRegion(.Clear)
-            for i in range.count do
-                painter.fillPath(.pathsFor(&.shapes[range.first + i]), white)
-            painter.endClippingRegion()
-        }
-
         if not incoming
         {
             painter.resetClippingRegion()
             return
         }
 
+        let white = Brush.createSolid(Color.fromArgb(Argb.White))
         let range = .clipRange(incoming)
         painter.startClippingRegion(.Set)
         for i in range.count do
@@ -6061,7 +6046,7 @@ impl Drawing
 
         var cpu:      RenderCpu
         let renderer: IRenderer = &cpu
-        cpu.begin(width, height)
+        renderer.init()
         var result = .rasterize(renderer, width, height, supersample)
         renderer.end()
         return result
@@ -6138,11 +6123,15 @@ impl Drawing
                     .paintImpl(&painter, cast(f32, (-tileX * ss)), cast(f32, (-tileY * ss)), cast(f32, (width * ss)) / .width)
                     painter.popClippingRect()
 
-                    // Restore opaque coverage after stroke scratch, so the resolve averages
-                    // matte colors without unpremultiplying them by a discarded alpha plane.
-                    painter.setColorMaskAlpha()
-                    painter.setBlendingMode(.Copy)
-                    painter.fillRect(Rectangle{0, 0, cast(f32, sampledWidth), cast(f32, sampledHeight)}, Argb.White)
+                    if ss > 1
+                    {
+                        // The resolve needs opaque samples after strokes use alpha as scratch.
+                        // Direct readback consumes only the matte's color channels.
+                        painter.setColorMaskAlpha()
+                        painter.setBlendingMode(.Copy)
+                        painter.fillRect(Rectangle{0, 0, cast(f32, sampledWidth), cast(f32, sampledHeight)}, Argb.White)
+                    }
+
                     painter.unbindRenderTarget()
 
                     // Average each matte before recovering straight RGB; averaging straight
@@ -6191,9 +6180,28 @@ impl Drawing
                         continue
                     }
 
-                    let white = mattes[1].pixels.storage() + cast(u64, row) * cast(u64, mattes[1].rowStride)
+                    let white      = mattes[1].pixels.storage() + cast(u64, row) * cast(u64, mattes[1].rowStride)
+                    let blackWords = cast(const [*] u32, black)
+                    let whiteWords = cast(const [*] u32, white)
+                    let output     = cast([*] u32, destination)
                     for column in copyWidth
                     {
+                        // Identical matte colors have full coverage. Strokes may have
+                        // used the black matte's alpha byte as scratch.
+                        let blackRgb = blackWords[column] & 0x00FF_FFFF
+                        let whiteRgb = whiteWords[column] & 0x00FF_FFFF
+                        if blackRgb == whiteRgb
+                        {
+                            output[column] = blackRgb | 0xFF00_0000
+                            continue
+                        }
+
+                        if blackRgb == 0 and whiteRgb == 0x00FF_FFFF
+                        {
+                            output[column] = 0x00FF_FFFF
+                            continue
+                        }
+
                         let offset = cast(u64, column) * 4
                         var uncovered: s32
                         for channel in 3 do

@@ -281,6 +281,9 @@ SFNT parsing. Swag leads in 38 of the 44 scenarios. [Packed glyph table results]
 The collection follow-up measures individual CJK faces opened from a file and from an
 existing buffer. [Compact collection results](font-decode-linux.md#compact-collection-members)
 
+The CJK follow-up compares the FreeType mapped-file path with a private snapshot and
+profiles Swag's CFF setup. [CJK ownership and parsing results](font-decode-linux.md#cjk-file-ownership-and-cff-parsing)
+
 ### SVG results already reported
 
 The prior four-file comparison measured Scope's SVG parse plus CPU rasterization against resvg

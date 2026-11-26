@@ -46,3 +46,29 @@ candidate against the reference for that scenario.
 Pass `--collection-memory` to measure TTC faces opened with `Face.loadAt` from a buffer
 read before timing starts. Both Swag executables need to be built from the probe source above.
 This mode compares the two Swag builds and checks the same glyph measurements.
+
+## CJK ownership comparison
+
+The native FreeType probe exercises the pathname load, the owned snapshot load, and the
+stream callback independently. Build it against the FreeType version used for the comparison.
+
+```sh
+cc -std=c11 -O2 bench/workloads/fontdecode/freetype_native.c \
+  $(pkg-config --cflags --libs freetype2) -o /tmp/fontdecode/freetype
+/tmp/fontdecode/freetype --version
+for mode in file snapshot count
+do
+  /tmp/fontdecode/freetype "$mode" /tmp/fontdecode/fonts/NotoSansCJKjp-Regular.otf 0 0x65e5 20 21
+done
+```
+
+Each mode opens a fresh face, sets its size, and renders one glyph. Five warmups are
+excluded. The six output fields are mean input acquisition, face opening with size setup,
+and glyph loading with rendering in nanoseconds, followed by bytes requested during open,
+bytes requested for the glyph, and the glyph index.
+
+The `file` mode uses `FT_New_Face`. The `snapshot` mode reads the whole file with `pread`
+into a reusable buffer before calling `FT_New_Memory_Face`. The `count` mode wraps an
+already-read buffer in an `FT_Stream` and counts logical byte requests. Overlapping
+requests count each time they occur. The counts describe stream access rather than
+filesystem pages or faults.

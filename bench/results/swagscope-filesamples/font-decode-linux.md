@@ -139,3 +139,67 @@ Their glyph measurements and CRC-64 also match the file run.
 | 1 | 2200.66 | 1751.38 |
 | 2 | 2012.76 | 1781.62 |
 | 7 | 2117.45 | 1786.22 |
+
+## CJK file ownership and CFF parsing
+
+Pillow passes filename inputs to `FT_New_Face`. On this Linux build, FreeType maps
+the file with `mmap(PROT_READ, MAP_PRIVATE)` and closes the descriptor. Its CFF loader
+initializes the CharStrings INDEX with `load = 0`. It reads the terminal offset to size
+the index and leaves the charstrings in the stream until glyph loading requests them.
+[Pillow pathname loading](https://github.com/python-pillow/Pillow/blob/12.3.0/src/_imagingft.c#L191-L214) · [FreeType mapping](https://github.com/freetype/freetype/blob/VER-2-14-3/builds/unix/ftsystem.c#L247-L338) · [FreeType CFF index loading](https://github.com/freetype/freetype/blob/VER-2-14-3/src/cff/cffload.c#L234-L310) · [FreeType CharStrings call](https://github.com/freetype/freetype/blob/VER-2-14-3/src/cff/cffload.c#L2383-L2390)
+
+A syscall trace of the Japanese Sans OTF confirmed a file mapping and zero `read`
+or `pread64` calls against the font descriptor. A separate FreeType stream callback
+counted 1.50–1.54 MB requested during open and 69–166 additional bytes for the first
+rendered glyph. These are logical byte requests, with repeated requests included.
+Replacing a 55-byte charstring in place on a fixture copy changed the output of the
+already-open FreeType face on this host.
+
+Swag holds an independent copy, as required by `Face.loadFile`. It acquires
+16.39–16.47 MB for the selected Sans TTC members, 16.47 MB for the Sans OTF, and
+24.57 MB for the Serif OTF. Charstrings are interpreted on demand from that copy.
+Acquisition represents about 90–93% of the profiled opening time after the changes below.
+[Swag file loading](../../../bin/std/modules/truetype/src/fontfile.swg) · [Face ownership contract](../../../bin/std/modules/truetype/src/face.swg#L354)
+
+The native FreeType snapshot column includes `pread` of the entire file into
+a reusable buffer, then `FT_New_Memory_Face`, size setup, and one rendered glyph.
+The file descriptor and buffer are acquired before timing. The OTF rows copy the
+same file on both sides. Swag takes 1.81 and 2.93 ms against FreeType snapshot totals
+of 2.61 and 3.66 ms. Swag copies just one member on the TTC rows.
+
+The six scenarios use a warm cache, a single Intel Xeon Platinum 8573C CPU, 20 px,
+and 11 interleaved batches of 21 fresh faces after five warmups. The Swag baseline
+is `685df90fe2`. The Pillow 12.3.0 and native probes use the same FreeType 2.14.3
+library. The two Swag builds agree on glyph indices, advances, dimensions, and CRC-64.
+A separate sweep checked 2,935 glyphs from the 10 TTC members and the two OTF files,
+sampling the first, middle, and last mapped glyph of each FDSelect range.
+[Raw timings and phase samples](font-decode-linux-cjk.json) · [Native probe instructions](../../workloads/fontdecode/README.md#cjk-ownership-comparison)
+
+| Fixture | Face | Swag before (µs) | Swag after (µs) | Pillow (µs) | FreeType file (µs) | FreeType snapshot (µs) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | 1745.95 | 1719.71 | 860.58 | 765.23 | 2828.29 |
+| `NotoSansCJK-Regular.ttc` | 1 | 1803.25 | 1656.37 | 917.25 | 805.88 | 2776.02 |
+| `NotoSansCJK-Regular.ttc` | 2 | 1828.86 | 1761.69 | 877.56 | 793.78 | 2759.99 |
+| `NotoSansCJK-Regular.ttc` | 7 | 1739.59 | 1739.02 | 880.85 | 743.40 | 2651.52 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 1888.89 | 1806.60 | 878.91 | 927.47 | 2609.75 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 3051.54 | 2933.38 | 955.57 | 876.42 | 3664.34 |
+
+FreeType retains packed FDSelect ranges and caches its last range lookup. Swag used
+to allocate and fill one byte per glyph, even for 65,535-glyph faces with only 118
+or 221 ranges. The updated parser validates the packed table once. Rendering looks
+up format 0 directly and binary-searches format 3. DICT operands also go directly
+into their final pool.
+[FreeType FDSelect](https://github.com/freetype/freetype/blob/VER-2-14-3/src/cff/cffload.c#L704-L817)
+
+The parser phases below are medians of nine dedicated batches of 11 opens in
+instrumented builds. The existing validity checks still cover the entire FDSelect
+table at open, including dictionary indices and the final glyph sentinel.
+
+| Fixture | Face | Swag after input acquisition (µs) | SFNT before → after (µs) | FDSelect before → after (µs) |
+| --- | ---: | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | 1489.38 | 212.59 → 174.18 | 40.61 → 0.48 |
+| `NotoSansCJK-Regular.ttc` | 1 | 1494.49 | 200.08 → 165.68 | 33.56 → 0.48 |
+| `NotoSansCJK-Regular.ttc` | 2 | 1608.87 | 202.81 → 180.36 | 36.35 → 0.50 |
+| `NotoSansCJK-Regular.ttc` | 7 | 1525.74 | 208.98 → 163.95 | 35.23 → 0.48 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 1581.79 | 226.72 → 176.34 | 37.25 → 0.47 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 2868.31 | 266.73 → 207.34 | 45.67 → 0.77 |

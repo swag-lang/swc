@@ -63,7 +63,7 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
     result.add([0x01, 0x00, 0x04, 0x04, 0x00, 0x01, 0x01, 0x01, 0x02, 0x41])
 
     // Top DICT INDEX ends at 30.
-    result.add([0x00, 0x01, 0x01, 0x01, 0x10, 0xF8, 0x1B, 0xF8, 0x1C, 0x8B, 0x0C, 0x1E, 0xC6, 0x0C, 0x24, 0xCB, 0x0C, 0x25, 0xBE, 0x11])
+    result.add([0x00, 0x01, 0x01, 0x01, 0x10, 0xF8, 0x1B, 0xF8, 0x1C, 0x8B, 0x0C, 0x1E, 0xC6, 0x0C, 0x24, 0xCC, 0x0C, 0x25, 0xBE, 0x11])
 
     // Adobe and Identity String INDEX ends at 49.
     result.add([0x00, 0x02, 0x01, 0x01, 0x06, 0x0E, 0x41, 0x64, 0x6F, 0x62, 0x65, 0x49, 0x64, 0x65, 0x6E, 0x74, 0x69, 0x74, 0x79])
@@ -71,8 +71,8 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
     // Empty Global Subrs and two-glyph CharStrings end at 59.
     result.add([0x00, 0x00, 0x00, 0x02, 0x01, 0x01, 0x02, 0x03, 0x0E, 0x0E])
 
-    // One empty FD DICT; FDArray ends at 64.
-    result.add([0x00, 0x01, 0x01, 0x01, 0x01])
+    // Two empty FD DICTs; FDArray ends at 65.
+    result.add([0x00, 0x02, 0x01, 0x01, 0x01, 0x01])
     return result
 }
 
@@ -424,7 +424,7 @@ private func lookupCffName(thread: const *Threading.Thread)
     var completeCoverage = buildCffWithFdSelectPrefix()
     completeCoverage.add([0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01])
     let parsed = expect parseCffFont(completeCoverage.toSlice())
-    Swag.require(parsed.fdSelect.count == 1)
+    Swag.require(parsed.fdSelect.count and parsed.dictionaryIndex(0) == 0)
 
     var outOfRangeSentinel = buildCffWithFdSelectPrefix()
     outOfRangeSentinel.add([0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x02])
@@ -440,7 +440,7 @@ private func lookupCffName(thread: const *Threading.Thread)
     var completeCoverage = buildTwoGlyphCffWithFdSelectPrefix()
     completeCoverage.add([0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x02])
     let parsed = expect parseCffFont(completeCoverage.toSlice())
-    Swag.require(parsed.fdSelect.count == 2)
+    Swag.require(parsed.fdSelect.count and parsed.dictionaryIndex(1) == 0)
 
     var missingGlyphZero = buildTwoGlyphCffWithFdSelectPrefix()
     missingGlyphZero.add([0x03, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x02])
@@ -454,9 +454,15 @@ private func lookupCffName(thread: const *Threading.Thread)
 {
     // Format-3 FDSelect range starts must increase strictly.
     var orderedRanges = buildTwoGlyphCffWithFdSelectPrefix()
-    orderedRanges.add([0x03, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x02])
+    orderedRanges.add([0x03, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x02])
     let parsed = expect parseCffFont(orderedRanges.toSlice())
-    Swag.require(parsed.fdSelect.count == 2)
+    Swag.require(parsed.dictionaryIndex(0) == 0 and parsed.dictionaryIndex(1) == 1)
+    Swag.require(parsed.dictionaryIndex(2) == 0)
+
+    var direct = buildTwoGlyphCffWithFdSelectPrefix()
+    direct.add([0x00, 0x01, 0x00])
+    let directParsed = expect parseCffFont(direct.toSlice())
+    Swag.require(directParsed.dictionaryIndex(0) == 1 and directParsed.dictionaryIndex(1) == 0)
 
     var duplicateRangeStart = buildTwoGlyphCffWithFdSelectPrefix()
     duplicateRangeStart.add([0x03, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02])
@@ -614,6 +620,18 @@ private func lookupCffName(thread: const *Threading.Thread)
     var rejected: Swag.Error
     discard catch Face.load(bytes.toSlice()) as rejected
     Swag.require(rejected.value() != null)
+}
+
+// The CFF operand pool keeps each operator's slice, including empty operators.
+#test
+{
+    const Dict: [7] u8 = [140, 141, 5, 20, 142, 21, 143]
+    let parsed = expect parseCffDict(Dict)
+    Swag.require(parsed.value(CFF_OP_FONT_BBOX, 0, -1) == 1)
+    Swag.require(parsed.value(CFF_OP_FONT_BBOX, 1, -1) == 2)
+    Swag.require(parsed.has(CFF_OP_DEFAULT_WIDTH) and parsed.value(CFF_OP_DEFAULT_WIDTH, 0, -1) == -1)
+    Swag.require(parsed.value(CFF_OP_NOMINAL_WIDTH, 0, -1) == 3)
+    Swag.require(parsed.operands.count == 3)
 }
 
 // A CFF real without its terminating nibble fails instead of reading zero bytes forever.

@@ -914,6 +914,26 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(tiffDecodeFails(nnBytes(tooShort.toSlice())))
 }
 
+// A short phrase can use a full initialized word inside the strip. The same
+// optimization must stop before an exact-length tail and its sentinels.
+#test
+{
+    var writer: TestTiffLzwWriter
+    for code in [256'u32, 65, 66, 67, 68, 258, 259, 257] do
+        writer.write(code, 9)
+    writer.finish()
+
+    const Expected: [8] u8 = [65, 66, 67, 68, 65, 66, 66, 67]
+    var bytes: [10] u8
+    bytes[0], bytes[9] = 0xA5
+    var dictionary: Array'u64
+    let dst = cast([*] u8, &bytes[1])
+    expect Tiff.unpackLzw(dst, Expected.count, writer.bytes.storage(), cast(u32, writer.bytes.count), &dictionary)
+    Swag.require(bytes[0] == 0xA5 and bytes[9] == 0xA5)
+    for value, index in Expected do
+        Swag.require(dst[index] == value)
+}
+
 // Exercise independent literal streams across every TIFF LZW code-width edge.
 #test
 {

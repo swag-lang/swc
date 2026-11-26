@@ -21,30 +21,32 @@ struct LzwBitReader
 
 impl LzwBitReader
 {
-    // Refill several MSB-first codes at a time. The tail never reads outside the strip.
+    // Refill several MSB-first codes at a time while a full input word remains.
+    #[Swag.Inline]
+    mtd refillWord()->bool
+    {
+        let next = .source + 4
+        if next > .end do
+            return false
+        let word = Math.byteSwap(cast(const [*] u32, .source)[0])
+        .bits      = (.bits << 32) | word
+        .available += 32
+        .source    = next
+        return true
+    }
+
     #[Swag.Inline]
     mtd read(width, mask: u32)->u32 fail
     {
-        if .available < width
+        if .available < width and not .refillWord()
         {
-            let next = .source + 4
-            if next <= .end
+            while .available < width
             {
-                let word = Math.byteSwap(cast(const [*] u32, .source)[0])
-                .bits      = (.bits << 32) | word
-                .available += 32
-                .source    = next
-            }
-            else
-            {
-                while .available < width
-                {
-                    if .source == .end do
-                        fail InvalidFormatError{"invalid source buffer"}
-                    .bits      = (.bits << 8) | .source[0]
-                    .available += 8
-                    .source    += 1
-                }
+                if .source == .end do
+                    fail InvalidFormatError{"invalid source buffer"}
+                .bits      = (.bits << 8) | .source[0]
+                .available += 8
+                .source    += 1
             }
         }
 
@@ -78,6 +80,33 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
 
     while true
     {
+        #static if LITERAL_PAIRS
+        {
+            let pairWidth = width * 2
+            if reader.available < pairWidth do
+                discard reader.refillWord()
+
+            // Both literals must use this code width and fit in the output.
+            if reader.available >= pairWidth and nextCode + 2 < mask and expected - output >= 2
+            {
+                let codes  = cast(u32, (reader.bits >> (reader.available - pairWidth)))
+                let first  = (codes >> width) & mask
+                let second = codes & mask
+                if (first | second) < LZW_CLEAR_CODE
+                {
+                    let firstWord = output << LengthBits
+                    cast(*u16, (dst + output))[] = cast(u16, (first | (second << 8)))
+                    words[nextCode]     = previousWord + 1
+                    words[nextCode + 1] = firstWord | 2
+                    previousWord        = ((output + 1) << LengthBits) | 1
+                    output              += 2
+                    reader.available    -= pairWidth
+                    nextCode            += 2
+                    continue
+                }
+            }
+        }
+
         let code = try reader.read(width, mask)
         if code == LZW_EOI_CODE do
             break
@@ -96,27 +125,6 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
         var length = 1'u64
         if code < LZW_CLEAR_CODE
         {
-            #static if LITERAL_PAIRS
-            {
-                // Both literals must use this code width and fit in the output.
-                if reader.available >= width and nextCode + 2 < mask and expected - output >= 2
-                {
-                    let second = cast(u32, ((reader.bits >> (reader.available - width)) & mask))
-                    if second < LZW_CLEAR_CODE
-                    {
-                        let firstWord = output << LengthBits
-                        cast(*u16, target)[] = cast(u16, (code | (second << 8)))
-                        words[nextCode]      = previousWord + 1
-                        words[nextCode + 1]  = firstWord | 2
-                        previousWord         = ((output + 1) << LengthBits) | 1
-                        output               += 2
-                        reader.available     -= width
-                        nextCode             += 2
-                        continue
-                    }
-                }
-            }
-
             target[0] = cast(u8, code)
         }
         else
@@ -132,24 +140,34 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
             if length > expected - output do
                 fail InvalidFormatError{"invalid lzw stream"}
 
-            let source = dst + (word >> LengthBits)
-            switch wordLength
+            let sourceOffset = word >> LengthBits
+            let source       = dst + sourceOffset
+            if wordLength <= 4 and sourceOffset + 4 <= output and expected - output >= 4
             {
-            case 1:
-                target[0] = source[0]
+                // The source is already decoded and the extra destination bytes
+                // stay inside the strip until later phrases overwrite them.
+                cast(*u32, target)[] = cast(const *u32, source)[]
+            }
+            else
+            {
+                switch wordLength
+                {
+                case 1:
+                    target[0] = source[0]
 
-            case 2:
-                cast([*] u16, target)[0] = cast(const [*] u16, source)[0]
+                case 2:
+                    cast([*] u16, target)[0] = cast(const [*] u16, source)[0]
 
-            case 3:
-                cast([*] u16, target)[0] = cast(const [*] u16, source)[0]
-                target[2] = source[2]
+                case 3:
+                    cast([*] u16, target)[0] = cast(const [*] u16, source)[0]
+                    target[2] = source[2]
 
-            case 4:
-                cast([*] u32, target)[0] = cast(const [*] u32, source)[0]
+                case 4:
+                    cast([*] u32, target)[0] = cast(const [*] u32, source)[0]
 
-            default:
-                Memory.copy(target, source, wordLength)
+                default:
+                    Memory.copy(target, source, wordLength)
+                }
             }
 
             if repeat do

@@ -268,3 +268,31 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
         Swag.require(image.pixelColor(8, 50).r == 0)
     }
 }
+
+// A deferred marker outside the intersection of two clips remains invisible.
+#test
+{
+    let drawing = expect Svg.Drawing.parse(#raw """
+        <svg width="200" height="100">
+          <defs>
+            <clipPath id="round"><ellipse cx="105" cy="63" rx="90" ry="38"/></clipPath>
+            <clipPath id="inner"><path d="M12 11h170v78H12Z M75 40h40v27H75Z"/></clipPath>
+            <marker id="tip" markerWidth="4.3" markerHeight="4.9" viewBox="0 0 8 8"
+                    refX="4" refY="3" orient="auto-start-reverse">
+              <circle cx="3" cy="3" r="1" fill="red"/>
+            </marker>
+          </defs>
+          <g clip-path="url(#inner)" transform="rotate(-8 100 50)">
+            <g clip-path="url(#round)">
+              <line x1="14.1957" y1="61.5535" x2="25.6469" y2="42.5062" marker-start="url(#tip)"/>
+            </g>
+          </g>
+        </svg>
+        """)
+    let clip    = Math.Rectangle{8, 7, 184, 86}
+    let mirror  = Math.Transform2.createScale(-1, 1, 100, 50)
+    let image   = renderViewport(&drawing, 200, 100, 0, 0, 1, clip, true, mirror)
+    for y in image.height do
+        for x in image.width do
+            Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)).r == 0)
+}

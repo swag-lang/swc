@@ -255,3 +255,31 @@ The one-core and four-core Swag PCM matches byte for byte. FLAC and OGA match re
 FFmpeg PCM exactly. The largest change from the original Swag output remains one PCM16
 unit. Native Release passes all 314 functional and stress tests. Native
 Release-safe passes 111 focused decoder tests.
+
+## Seventh optimization pass
+
+This follow-up compares the changed codecs with commit `0f7a7ecb02` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round7.json)
+
+| Format | R6 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R6 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| AAC | 8.98 | 8.09 | 6.86 | 8.90 | 8.46 | 7.02 |
+| Opus | 23.05 | 22.61 | 19.44 | 23.92 | 23.14 | 20.03 |
+
+| Format | R6 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| AAC | 6.43 | 6.08 | 6.87 |
+| Opus | 23.54 | 24.72 | 20.00 |
+
+AAC applies the long-window overlap as the IMDCT writes samples and packs the
+short-window overlap and mid/side reconstruction into SIMD vectors. Opus uses compact
+codebooks for small pulse tails and packs the CELT spreading recurrences.
+A second four-core Opus series of 70 samples measures R6 at 24.52 ms, this build at
+23.26 ms and FFmpeg at 20.50 ms. The four-core change varies across the two series.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output.
+
+Native Release passes 314 functional and stress tests. Release-safe passes
+50 focused decoder tests.

@@ -109,6 +109,82 @@ private const PulseArrangements: [PulseLayout.count] u32 = #run
 private func pulseArrangements(dimensions, pulses: u32)->u32
     => PulseArrangements[PulseLayout.offset[dimensions] + pulses]
 
+// Complete, small codebooks for the four- and eight-bin tails.
+// Each record packs five bits per signed coefficient and its squared norm.
+private const PulseTailLimits: [9] u32 = [0, 0, 0, 0, 6, 0, 0, 0, 3]
+private const PulseTailLayout = #run
+{
+    var result: {offset: [9, 7] u32, count: u32}
+
+    // Zero is reserved for states that have no table.
+    result.count = 1
+    for limit, dimensions in PulseTailLimits where limit
+    {
+        for k in 2'u32 until limit + 1
+        {
+            result.offset[dimensions, k] = result.count
+            result.count += pulseArrangements(cast(u32, dimensions), k) +
+                            pulseArrangements(cast(u32, dimensions), k + 1)
+        }
+    }
+
+    return result
+}
+
+private const PulseTails: [PulseTailLayout.count] u64 = #run
+{
+    var result: [PulseTailLayout.count] u64
+    for limit, dimensions in PulseTailLimits where limit
+    {
+        for k in 2'u32 until limit + 1
+        {
+            let count = pulseArrangements(cast(u32, dimensions), k) + pulseArrangements(cast(u32, dimensions), k + 1)
+            for rank in count
+            {
+                var index     = rank
+                var remaining = k
+                var code      = 0'u64
+                var norm      = 0'u32
+                for position in dimensions
+                {
+                    let n         = cast(u32, dimensions - position)
+                    let threshold = pulseArrangements(n, remaining + 1)
+                    let negative  = index >= threshold
+                    if negative do
+                        index -= threshold
+                    let before = remaining
+                    var offset = pulseArrangements(n, remaining)
+                    while offset > index
+                    {
+                        remaining -= 1
+                        offset    = pulseArrangements(n, remaining)
+                    }
+
+                    index -= offset
+                    let value  = cast(s32, before - remaining)
+                    let signed = negative ? -value : value
+                    code |= cast(u64, signed + 16) << (5 * position)
+                    norm += cast(u32, value * value)
+                }
+
+                result[PulseTailLayout.offset[dimensions, k] + rank] = code | (cast(u64, norm) << 40)
+            }
+        }
+    }
+
+    return result
+}
+
+#[Swag.Inline]
+private func unpackPulseTail(code: u32)->Simd.F32x4
+{
+    const Place = cast(Simd.U32x4, [1'u32 << 27, 1'u32 << 22, 1'u32 << 17, 1'u32 << 12])
+
+    // Place each biased integer into the mantissa of exactly 2^23, then remove both biases.
+    let integers = (Simd.splat(code) * Place) >> 27
+    return cast #bit(Simd.F32x4, (integers | 0x4B00_0000'u32)) - 8_388_624.0'f32
+}
+
 private const PulseChoiceRows = #run
 {
     var result: {indices: [CeltCacheBits.count] u8, count: u32}
@@ -1042,9 +1118,22 @@ internal impl CeltDecoder
         while remaining > 1 and position + 2 < n
         {
             let dimensions = n - position
-            let row        = cast(const [*] u32, &PulseArrangements[PulseLayout.offset[dimensions]])
-            let threshold  = row[remaining + 1]
-            let negative   = cast #bit(u32, -cast(s32, index >= threshold))
+            if dimensions <= 8 and remaining <= 6
+            {
+                let start = PulseTailLayout.offset[dimensions, remaining]
+                if start
+                {
+                    let code = PulseTails[start + index]
+                    Simd.store(target + position, unpackPulseTail(cast #wrap(u32, code)))
+                    if dimensions == 8 do
+                        Simd.store(target + position + 4, unpackPulseTail(cast(u32, code >> 20)))
+                    return cast(f32, norm + cast(u32, code >> 40))
+                }
+            }
+
+            let row       = cast(const [*] u32, &PulseArrangements[PulseLayout.offset[dimensions]])
+            let threshold = row[remaining + 1]
+            let negative  = cast #bit(u32, -cast(s32, index >= threshold))
             index -= threshold & negative
 
             let available = remaining
@@ -1161,6 +1250,104 @@ internal impl CeltDecoder
         x[0] = carried
     }
 
+    // Each lane follows an independent stride-four chain through both passes.
+    mtd expRotationStridedFour(x: [*] f32, len: u32, c, s: f32)
+    {
+        let last    = len - 4
+        let ms      = -s
+        var carried = Simd.load(x)
+        for block in 1 until len / 4
+        {
+            let at   = x + 4 * block
+            let next = Simd.load(at)
+            Simd.store(at - 4, c * carried + ms * next)
+            carried = c * next + s * carried
+        }
+
+        Simd.store(x + last, carried)
+
+        var i = len - 8
+        carried = Simd.load(x + i)
+        while i
+        {
+            let previous = Simd.load(x + i - 4)
+            Simd.store(x + i, c * carried + s * previous)
+            carried = c * previous + ms * carried
+            i       -= 4
+        }
+
+        Simd.store(x, carried)
+    }
+
+    // Expand the carry recurrence across four coefficients as a weighted prefix sum.
+    mtd expRotationAdjacentPacked(x: [*] f32, len: u32, c, s: f32)
+    {
+        #[Swag.Inline]
+        func scan(input, memory: Simd.F32x4, c, s: f32, powers: Simd.F32x4)->Simd.F32x4
+        {
+            const LeftOne = cast(Simd.U32x4, [4'u32, 0, 1, 2])
+            const LeftTwo = cast(Simd.U32x4, [4'u32, 4, 0, 1])
+            let zero   = Simd.splat(0.0'f32)
+            let values = c * input
+            let pair   = values + Swag.vecShuffle2(values, zero, LeftOne) * s
+            return pair + Swag.vecShuffle2(pair, zero, LeftTwo) * (s * s) + memory * powers
+        }
+
+        const Last    = cast(Simd.U32x4, [3'u32, 3, 3, 3])
+        const Link    = cast(Simd.U32x4, [0'u32, 4, 5, 6])
+        const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
+        let s2        = s * s
+        let s3        = s2 * s
+        let s4        = s2 * s2
+        let ms        = -s
+        let forward   = cast(Simd.F32x4, [s, s2, s3, s4])
+        let reverse   = cast(Simd.F32x4, [ms, s2, -s3, s4])
+        let vectorEnd = (len - 1) & ~3'u32
+        var carried   = Simd.splat(x[0])
+        for block in vectorEnd / 4
+        {
+            let at     = x + 4 * block
+            let next   = Simd.load(at + 1)
+            let result = scan(next, carried, c, s, forward)
+            let prior  = Swag.vecShuffle2(carried, result, Link)
+            Simd.store(at, c * prior + ms * next)
+            carried = Swag.vecShuffle(result, Last)
+        }
+
+        var scalar = carried[0]
+        for i in vectorEnd until len - 1
+        {
+            let next = x[i + 1]
+            x[i]   = c * scalar + ms * next
+            scalar = c * next + s * scalar
+        }
+
+        x[len - 1] = scalar
+
+        var i = len - 2
+        carried = Simd.splat(x[i])
+        while i >= 4
+        {
+            let previous = Swag.vecShuffle(Simd.load(x + i - 4), Reverse)
+            let result   = scan(previous, carried, c, ms, reverse)
+            let prior    = Swag.vecShuffle2(carried, result, Link)
+            Simd.store(x + i - 3, Swag.vecShuffle(c * prior + s * previous, Reverse))
+            carried = Swag.vecShuffle(result, Last)
+            i       -= 4
+        }
+
+        scalar = carried[0]
+        while i
+        {
+            let previous = x[i - 1]
+            x[i]   = c * scalar + s * previous
+            scalar = c * previous + ms * scalar
+            i      -= 1
+        }
+
+        x[0] = scalar
+    }
+
     mtd expRotation(x: [*] f32, len: u32, stride, k, spread: u32)
     {
         if 2 * k >= len or spread == SpreadNone do
@@ -1174,9 +1361,15 @@ internal impl CeltDecoder
         let stride2 = SpreadStride[part]
         for i in stride
         {
-            if stride2 do
-                .expRotation1(x + i * part, part, cast(u32, stride2), s, c)
-            .expRotationAdjacent(x + i * part, part, c, s)
+            let at = x + i * part
+            if stride2 == 4 and (part & 3) == 0 do
+                .expRotationStridedFour(at, part, s, c)
+            elif stride2 do
+                .expRotation1(at, part, cast(u32, stride2), s, c)
+            if part >= 12 do
+                .expRotationAdjacentPacked(at, part, c, s)
+            else do
+                .expRotationAdjacent(at, part, c, s)
         }
     }
 

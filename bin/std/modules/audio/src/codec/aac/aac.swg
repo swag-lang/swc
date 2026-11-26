@@ -227,10 +227,15 @@ private impl HuffTree
     }
 }
 
+private struct ImdctOverlap
+{
+    leftWindow:  const [*] f32
+    rightWindow: const [*] f32
+    history:     [*] f32
+}
+
 private struct ImdctPlan
 {
-    size:    s32
-    quarter: s32
     reverse: [512] u32
     fftReal: [512] f32
     fftImag: [512] f32
@@ -242,14 +247,12 @@ private impl ImdctPlan
 {
     mtd init(size: s32)
     {
-        .size    = size
-        .quarter = size / 4
-        let quarter = cast(u32, .quarter)
+        let quarter = cast(u32, size / 4)
         let shift   = Swag.leadingZeros(quarter) + 1
         for i in quarter do
             .reverse[i] = Math.reverse(cast(u32, i)) >> shift
 
-        // Each stage's adjacent twiddle factors are contiguous for two-wide loads.
+        // Each stage stores adjacent twiddle factors for contiguous SIMD loads.
         let pi        = Math.ConstF64.Pi
         var stride    = quarter / 2
         var butterfly = 1'u32
@@ -267,7 +270,7 @@ private impl ImdctPlan
         }
 
         let half = size / 2
-        for i in cast(u64, .quarter)
+        for i in cast(u64, quarter)
         {
             let angle = pi * (cast(f64, i) + 0.125) / cast(f64, half)
             .twReal[i] = cast(f32, Math.cos(angle))
@@ -275,20 +278,19 @@ private impl ImdctPlan
         }
     }
 
-    mtd const run(spectrum: const [*] f64, output: [*] f32)
+    mtd(Quarter: u64) const run(spectrum: const [*] f64, output: [*] f32, window: const *ImdctOverlap? = null)
     {
-        let half    = .size / 2
-        let quarter = .quarter
-        var real: [512] f32
-        var imag: [512] f32
-        let re      = cast([*] f32, &real[0])
-        let im      = cast([*] f32, &imag[0])
-        let cos     = cast(const [*] f32, &.fftReal[0])
-        let sin     = cast(const [*] f32, &.fftImag[0])
-        for k in cast(u64, quarter)
+        const Half = 2 * Quarter
+        var real: [Quarter] f32
+        var imag: [Quarter] f32
+        let re  = cast([*] f32, &real[0])
+        let im  = cast([*] f32, &imag[0])
+        let cos = cast(const [*] f32, &.fftReal[0])
+        let sin = cast(const [*] f32, &.fftImag[0])
+        for k in Quarter
         {
             let a     = cast(f32, spectrum[2 * k]) * 0.5
-            let b     = -cast(f32, spectrum[cast(u64, half) - 1 - 2 * k]) * 0.5
+            let b     = -cast(f32, spectrum[Half - 1 - 2 * k]) * 0.5
             let index = .reverse[k]
             re[index] = a * .twReal[k] + b * .twImag[k]
             im[index] = -a * .twImag[k] + b * .twReal[k]
@@ -299,7 +301,7 @@ private impl ImdctPlan
         {
             let span   = 1'u32 << stage
             let length = 2 * span
-            for group in cast(u32, quarter) / length
+            for group in Quarter / length
             {
                 let base = group * length
                 for j in span
@@ -317,11 +319,11 @@ private impl ImdctPlan
         }
 
         var butterfly = 4'u32
-        while butterfly < quarter
+        while butterfly < Quarter
         {
             let length = 2 * butterfly
             var base   = 0'u32
-            while base < quarter
+            while base < Quarter
             {
                 var j = 0'u32
                 while j < butterfly
@@ -349,10 +351,10 @@ private impl ImdctPlan
             butterfly = length
         }
 
-        let inv   = cast(f32, (1.0 / cast(f64, quarter)))
+        let inv   = cast(f32, (1.0 / cast(f64, Quarter)))
         let rotRe = cast(const [*] f32, &.twReal[0])
         let rotIm = cast(const [*] f32, &.twImag[0])
-        let span  = cast(u64, quarter)
+        let span  = Quarter
         for group in span / 4
         {
             let i       = 4 * group
@@ -367,6 +369,8 @@ private impl ImdctPlan
         // Each FFT half supplies four even lanes and four reflected odd lanes.
         const FirstTwo = cast(Simd.U32x4, [0'u32, 7, 1, 6])
         const LastTwo  = cast(Simd.U32x4, [2'u32, 5, 3, 4])
+
+        // Long-window samples can be windowed as they leave the transform.
         for group in span / 8
         {
             let i             = 4 * group
@@ -381,33 +385,62 @@ private impl ImdctPlan
             let reverseLowIm  = Simd.load(im + lowMirror)
             let reverseHighRe = Simd.load(re + highMirror)
             let reverseHighIm = Simd.load(im + highMirror)
-            let first         = output + 2 * i
-            let second        = first + span
-            let third         = second + span
-            let fourth        = third + span
-            Simd.store(first, Simd.permute2(highRe, reverseLowIm, FirstTwo))
-            Simd.store(first + 4, Simd.permute2(highRe, reverseLowIm, LastTwo))
-            Simd.store(second, -Simd.permute2(lowIm, reverseHighRe, FirstTwo))
-            Simd.store(second + 4, -Simd.permute2(lowIm, reverseHighRe, LastTwo))
-            Simd.store(third, -Simd.permute2(highIm, reverseLowRe, FirstTwo))
-            Simd.store(third + 4, -Simd.permute2(highIm, reverseLowRe, LastTwo))
-            Simd.store(fourth, -Simd.permute2(lowRe, reverseHighIm, FirstTwo))
-            Simd.store(fourth + 4, -Simd.permute2(lowRe, reverseHighIm, LastTwo))
+            let firstLow      = Simd.permute2(highRe, reverseLowIm, FirstTwo)
+            let firstHigh     = Simd.permute2(highRe, reverseLowIm, LastTwo)
+            let secondLow     = -Simd.permute2(lowIm, reverseHighRe, FirstTwo)
+            let secondHigh    = -Simd.permute2(lowIm, reverseHighRe, LastTwo)
+            let thirdLow      = -Simd.permute2(highIm, reverseLowRe, FirstTwo)
+            let thirdHigh     = -Simd.permute2(highIm, reverseLowRe, LastTwo)
+            let fourthLow     = -Simd.permute2(lowRe, reverseHighIm, FirstTwo)
+            let fourthHigh    = -Simd.permute2(lowRe, reverseHighIm, LastTwo)
+            let index         = 2 * i
+            #static if Quarter == 512
+            {
+                let upper       = index + Quarter
+                let leftWindow  = window!.leftWindow
+                let rightWindow = window!.rightWindow
+                let overlap     = window!.history
+                Simd.store(output + index, firstLow * Simd.load(leftWindow + index) + Simd.load(overlap + index))
+                Simd.store(output + index + 4, firstHigh * Simd.load(leftWindow + index + 4) + Simd.load(overlap + index + 4))
+                Simd.store(output + upper, secondLow * Simd.load(leftWindow + upper) + Simd.load(overlap + upper))
+                Simd.store(output + upper + 4, secondHigh * Simd.load(leftWindow + upper + 4) + Simd.load(overlap + upper + 4))
+                Simd.store(overlap + index, thirdLow * Simd.load(rightWindow + index))
+                Simd.store(overlap + index + 4, thirdHigh * Simd.load(rightWindow + index + 4))
+                Simd.store(overlap + upper, fourthLow * Simd.load(rightWindow + upper))
+                Simd.store(overlap + upper + 4, fourthHigh * Simd.load(rightWindow + upper + 4))
+            }
+            else
+            {
+                let first  = output + index
+                let second = first + span
+                let third  = second + span
+                let fourth = third + span
+                Simd.store(first, firstLow)
+                Simd.store(first + 4, firstHigh)
+                Simd.store(second, secondLow)
+                Simd.store(second + 4, secondHigh)
+                Simd.store(third, thirdLow)
+                Simd.store(third + 4, thirdHigh)
+                Simd.store(fourth, fourthLow)
+                Simd.store(fourth + 4, fourthHigh)
+            }
         }
     }
 }
 
-private var g_SpectralTrees:     [11] HuffTree
-private var g_SpectralPrefixes:  [11, 1 << SpectralPrefixBits] u32
-private var g_SignedPowers:      [2 * SpectralValueBias + 1] f64
-private var g_SpectralValues:    [11, 289, 4] s32
-private var g_ScaleTree:         HuffTree
-private var g_ImdctLong:         ImdctPlan
-private var g_ImdctShort:        ImdctPlan
-private var g_LongWindows:       [2, 1024] f32
-private var g_TransitionWindows: [2, 1024] f32
-private var g_ShortWindows:      [2, 128] f32
-private var g_QuantizedPowers:   [1024] f64
+private var g_SpectralTrees:          [11] HuffTree
+private var g_SpectralPrefixes:       [11, 1 << SpectralPrefixBits] u32
+private var g_SignedPowers:           [2 * SpectralValueBias + 1] f64
+private var g_SpectralValues:         [11, 289, 4] s32
+private var g_ScaleTree:              HuffTree
+private var g_ImdctLong:              ImdctPlan
+private var g_ImdctShort:             ImdctPlan
+private var g_LongWindows:            [2, 1024] f32
+private var g_TransitionWindows:      [2, 1024] f32
+private var g_RightLongWindows:       [2, 1024] f32
+private var g_RightTransitionWindows: [2, 1024] f32
+private var g_ShortWindows:           [2, 128] f32
+private var g_QuantizedPowers:        [1024] f64
 
 private const BandGainBias = 256
 private var g_BandGains: [2 * BandGainBias] f64
@@ -526,6 +559,11 @@ private func initializeTables()
             g_TransitionWindows[shape, 448 + index] = g_ShortWindows[shape, index]
         for index in 576 until 1024 do
             g_TransitionWindows[shape, index] = 1
+        for index in 1024
+        {
+            g_RightLongWindows[shape, index]       = g_LongWindows[shape, 1023 - index]
+            g_RightTransitionWindows[shape, index] = g_TransitionWindows[shape, 1023 - index]
+        }
     }
 }
 
@@ -784,46 +822,46 @@ private impl AacCodec
 
         if value.windowSequence != 2
         {
-            var transformed: [2048] f32
-            g_ImdctLong.run(&.coefficients[channel, 0], &transformed)
             let leftWindow = value.windowSequence == 3 ? cast(const [*] f32, &g_TransitionWindows[previousShape, 0]) :
                              cast(const [*] f32, &g_LongWindows[previousShape, 0])
-            let rightWindow = value.windowSequence == 1 ? cast(const [*] f32, &g_TransitionWindows[currentShape, 0]) :
-                              cast(const [*] f32, &g_LongWindows[currentShape, 0])
-            let raw     = cast(const [*] f32, &transformed[0])
+            let rightWindow = value.windowSequence == 1 ? cast(const [*] f32, &g_RightTransitionWindows[currentShape, 0]) :
+                              cast(const [*] f32, &g_RightLongWindows[currentShape, 0])
             let overlap = cast([*] f32, &.overlap[channel, 0])
-            const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
-            for group in FrameSamples / 4
-            {
-                let index    = 4 * group
-                let left     = Simd.load(raw + index) * Simd.load(leftWindow + index)
-                let right    = Simd.load(raw + FrameSamples + index)
-                let reversed = Simd.load(rightWindow + FrameSamples - index - 4)
-                let tail     = Simd.permute(reversed, Reverse)
-                Simd.store(output + index, left + Simd.load(overlap + index))
-                Simd.store(overlap + index, right * tail)
-            }
+            let window: ImdctOverlap = {leftWindow, rightWindow, overlap}
+            g_ImdctLong.run'512(&.coefficients[channel, 0], output, &window)
         }
         else
         {
             var time: [2048] f32
+            let buffer      = cast([*] f32, &time[0])
+            let overlap     = cast([*] f32, &.overlap[channel, 0])
+            let rightWindow = cast(const [*] f32, &g_ShortWindows[currentShape, 0])
+            const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
             for window in 8
             {
                 var transformed: [256] f32
-                g_ImdctShort.run(&.coefficients[channel, 128 * window], &transformed)
-                let leftShape = window == 0 ? previousShape : currentShape
-                let base      = 448 + 128 * window
-                for index in 128
+                g_ImdctShort.run'64(&.coefficients[channel, 128 * window], &transformed)
+                let leftShape  = window == 0 ? previousShape : currentShape
+                let leftWindow = cast(const [*] f32, &g_ShortWindows[leftShape, 0])
+                let raw        = cast(const [*] f32, &transformed[0])
+                let base       = buffer + 448 + 128 * window
+                for group in 32
                 {
-                    time[base + index]       += transformed[index] * g_ShortWindows[leftShape, index]
-                    time[base + 128 + index] += transformed[128 + index] * g_ShortWindows[currentShape, 127 - index]
+                    let index = 4 * group
+                    let left  = Simd.load(raw + index) * Simd.load(leftWindow + index)
+                    let right = Simd.load(raw + 128 + index) * Simd.permute(Simd.load(rightWindow + 124 - index), Reverse)
+                    Simd.store(base + index, Simd.load(base + index) + left)
+
+                    // Only the next short window contributes to this segment.
+                    Simd.store(base + 128 + index, right)
                 }
             }
 
-            for index in FrameSamples
+            for group in FrameSamples / 4
             {
-                output[index] = (time[index] + .overlap[channel, index])
-                .overlap[channel, index] = time[FrameSamples + index]
+                let index = 4 * group
+                Simd.store(output + index, Simd.load(buffer + index) + Simd.load(overlap + index))
+                Simd.store(overlap + index, Simd.load(buffer + FrameSamples + index))
             }
         }
 
@@ -1121,12 +1159,16 @@ private impl AacCodec
             let intensity = rightBook == 14 or rightBook == 15
             if .usesMs[left] and .msUsed[left, band] and not intensity
             {
-                for index in line until line + width
+                // AAC scalefactor band widths are multiples of four.
+                let middleBand = cast([*] f64, &.coefficients[left, line])
+                let sideBand   = cast([*] f64, &.coefficients[right, line])
+                for pair in cast(u64, width) / 2
                 {
-                    let middle = .coefficients[left, index]
-                    let side   = .coefficients[right, index]
-                    .coefficients[left, index]  = middle + side
-                    .coefficients[right, index] = middle - side
+                    let index  = 2 * pair
+                    let middle = Simd.load(middleBand + index)
+                    let side   = Simd.load(sideBand + index)
+                    Simd.store(middleBand + index, middle + side)
+                    Simd.store(sideBand + index, middle - side)
                 }
             }
 
@@ -1135,9 +1177,14 @@ private impl AacCodec
                 var sign = rightBook == 15 ? 1'f64 : -1'f64
                 if .usesMs[left] and .msUsed[left, band] do
                     sign = -sign
-                let scale = sign * bandGain(.scaleFactors[right, band])
-                for index in line until line + width do
-                    .coefficients[right, index] = scale * .coefficients[left, index]
+                let scale     = Simd.splat(sign * bandGain(.scaleFactors[right, band]))
+                let leftBand  = cast(const [*] f64, &.coefficients[left, line])
+                let rightBand = cast([*] f64, &.coefficients[right, line])
+                for pair in cast(u64, width) / 2
+                {
+                    let index = 2 * pair
+                    Simd.store(rightBand + index, scale * Simd.load(leftBand + index))
+                }
             }
 
             line += width

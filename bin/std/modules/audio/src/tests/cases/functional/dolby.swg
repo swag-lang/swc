@@ -15,7 +15,7 @@ private func ac3TestAppendBits(bytes: *Array'u8, bitCount: *u64, value: u32, cou
     }
 }
 
-private func ac3TestFrameWithBandwidth(bandwidth, exponentStrategy: u32, invalidDelta: bool)->Array'u8
+private func ac3TestFrameWithBandwidth(bandwidth, exponentStrategy: u32, invalidDelta: bool, absoluteExponent = 12'u32, groupCode = 62'u32)->Array'u8
 {
     var frame: Array'u8
     var bits = 0'u64
@@ -42,11 +42,11 @@ private func ac3TestFrameWithBandwidth(bandwidth, exponentStrategy: u32, invalid
     if exponentStrategy
     {
         ac3TestAppendBits(&frame, &bits, bandwidth, 6)
-        ac3TestAppendBits(&frame, &bits, 12, 4)     // Absolute exponent.
+        ac3TestAppendBits(&frame, &bits, absoluteExponent, 4)     // Absolute exponent.
         let end    = 37 + 3 * cast(s32, (bandwidth + 12))
         let groups = cast(u32, ((end - 1 + 2) / 3))
         for groups do
-            ac3TestAppendBits(&frame, &bits, 62, 7)     // Keep every exponent at the absolute value.
+            ac3TestAppendBits(&frame, &bits, groupCode, 7)
         ac3TestAppendBits(&frame, &bits, 0, 2)     // Gain range.
     }
 
@@ -458,6 +458,28 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
         discard catch sound.decodePcm16(func(_)->bool => true) as error
         Swag.require(error.value() is InvalidFormatError)
     }
+}
+
+// The exponent-group decoder rejects reserved fields and out-of-range cumulative exponents.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("dolby-exponent-%.ac3", Guid128.random()))
+    defer discard catch File.delete(path.toString())
+
+    for code in 125 until 128
+    {
+        let bytes = ac3TestFrameWithBandwidth(0, 1, false, 12, cast(u32, code))
+        dolbyRequireDecodeFormatError(path.toString(), .Ac3, 1536, bytes.toSlice(), "AC-3 exponent group has a reserved code")
+    }
+
+    // The first two offsets are zero, and only the third takes the exponent below zero.
+    let underflow = ac3TestFrameWithBandwidth(0, 1, false, 0, 60)
+    dolbyRequireDecodeFormatError(path.toString(), .Ac3, 1536, underflow.toSlice(), "AC-3 exponent is outside its valid range")
+
+    // Repeated +2 offsets cross the upper limit in the second group.
+    let overflow = ac3TestFrameWithBandwidth(0, 1, false, 15, 124)
+    dolbyRequireDecodeFormatError(path.toString(), .Ac3, 1536, overflow.toSlice(), "AC-3 exponent is outside its valid range")
 }
 
 // The native AC-3 path decodes complete sync frames, preserves all 5.1 channels, and reorders

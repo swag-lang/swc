@@ -844,7 +844,6 @@ private impl SilkChannel
         var sLtpQ15: [2 * MaxFrameLength + MaxSubFrameLength] s32
         var resQ14:  [MaxSubFrameLength] s32
         var sLpcQ14: [MaxLpcOrder] s32
-        var aQ12:    [MaxLpcOrder] s32
 
         let offsetQ10 = cast(s32,
                              SilkQuantizationOffsetsQ10[
@@ -874,14 +873,11 @@ private impl SilkChannel
         var sLtpBufIdx = .ltpMemLength
         for k in .nbSubfr
         {
-            let coefSet = k >> 1
-            for i in .lpcOrder do
-                aQ12[i] = control.predCoefQ12[coefSet, i]
-            let ltpBase    = k * LtpOrder
-            var signalType = .indices.signalType
-            let gainQ10    = control.gainsQ16[k] >> 6
-            var invGainQ31 = inverse32VarQ(control.gainsQ16[k], 47)
-            var gainAdjQ16 = 1's32 << 16
+            // Both LPC coefficient rows are zero-padded to MaxLpcOrder.
+            let coefficients = cast(const [*] s32, &control.predCoefQ12[k >> 1, 0])
+            let signalType   = .indices.signalType
+            let gainQ10      = control.gainsQ16[k] >> 6
+            var gainAdjQ16   = 1's32 << 16
             if control.gainsQ16[k] != .prevGainQ16
             {
                 gainAdjQ16 = div32VarQ(.prevGainQ16, control.gainsQ16[k], 16)
@@ -897,17 +893,15 @@ private impl SilkChannel
                 if k == 0 or (k == 2 and interpolating)
                 {
                     let startIdx = cast(s32, .ltpMemLength) - lag - cast(s32, .lpcOrder) - cast(s32, LtpOrder) / 2
-                    if k == 2
-                    {
-                        for i in 2 * .subfrLength do
-                            .outBuf[.ltpMemLength + i] = out[i]
-                    }
+                    if k == 2 do
+                        Memory.copy(&.outBuf[.ltpMemLength], out, 2 * cast(u64, .subfrLength) * #sizeof(s16))
 
                     .analysisFilter(&sLtp[cast(u32, startIdx)],
                                     &.outBuf[cast(u32, startIdx) + k * .subfrLength],
-                                    &aQ12[0],
+                                    coefficients,
                                     .ltpMemLength - cast(u32, startIdx),
                                     .lpcOrder)
+                    var invGainQ31 = inverse32VarQ(control.gainsQ16[k], 47)
                     if k == 0 do
                         invGainQ31 = smulwb(invGainQ31, control.ltpScaleQ14) << 2
                     for i in cast(u32, lag) + LtpOrder / 2 do
@@ -920,18 +914,20 @@ private impl SilkChannel
                 }
             }
 
+            let exc = cast(const [*] s32, &.excQ14[0]) + excAt
+            var predictorInput = exc
             if signalType == TypeVoiced
             {
-                let ltp  = cast([*] s32, &sLtpQ15[0])
-                let exc  = cast(const [*] s32, &.excQ14[0])
-                let res  = cast([*] s32, &resQ14[0])
-                let c0   = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase])))
-                let c1   = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 1])))
-                let c2   = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 2])))
-                let c3   = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 3])))
-                let c4   = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 4])))
-                let past = ltp + sLtpBufIdx - cast(u32, lag) - LtpOrder / 2
-                let next = ltp + sLtpBufIdx
+                let ltpBase = k * LtpOrder
+                let ltp     = cast([*] s32, &sLtpQ15[0])
+                let res     = cast([*] s32, &resQ14[0])
+                let c0      = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase])))
+                let c1      = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 1])))
+                let c2      = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 2])))
+                let c3      = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 3])))
+                let c4      = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 4])))
+                let past    = ltp + sLtpBufIdx - cast(u32, lag) - LtpOrder / 2
+                let next    = ltp + sLtpBufIdx
                 for block in .subfrLength / 4
                 {
                     let at   = block * 4
@@ -941,24 +937,19 @@ private impl SilkChannel
                                multiplySilkQ16(Simd.load(from + 2), c2) +
                                multiplySilkQ16(Simd.load(from + 1), c3) +
                                multiplySilkQ16(Simd.load(from), c4)
-                    let value = Simd.load(exc + excAt + at) + (pred << 1)
+                    let value = Simd.load(exc + at) + (pred << 1)
                     Simd.store(res + at, value)
                     Simd.store(next + at, value << 1)
                 }
 
-                sLtpBufIdx += .subfrLength
-            }
-            else
-            {
-                for i in .subfrLength do
-                    resQ14[i] = .excQ14[excAt + i]
+                predictorInput = res
+                sLtpBufIdx     += .subfrLength
             }
 
             // Keep the eight oldest and eight newest predictor samples in registers.
             // Each signed product is split at bit 16 before the individually truncated terms are summed.
             const Reverse = cast(Simd.U16x8, [7'u16, 6, 5, 4, 3, 2, 1, 0])
             const Ones    = cast(Simd.S16x8, [1's16, 1, 1, 1, 1, 1, 1, 1])
-            let coefficients = cast(const [*] s32, &aQ12[0])
             let a0 = Swag.vecShuffle(Simd.packSigned((Simd.load(coefficients) << 16) >> 16,
                                                      (Simd.load(coefficients + 4) << 16) >> 16),
                                      Reverse)
@@ -994,7 +985,7 @@ private impl SilkChannel
                 var shifted = pred << 4
                 if shifted >> 4 != pred do
                     shifted = lshiftSat32(pred, 4)
-                let residual = resQ14[i]
+                let residual = predictorInput[i]
                 var value    = shifted + residual
                 if ((shifted ^ value) & (residual ^ value)) < 0 do
                     value = addSat32(shifted, residual)
@@ -1064,11 +1055,10 @@ private impl SilkChannel
         .decodeParameters(&control, condCoding)
         .decodeCore(&control, out, &pulses[0])
 
-        let keep = .ltpMemLength - .frameLength
-        for i in keep do
-            .outBuf[i] = .outBuf[.frameLength + i]
-        for i in .frameLength do
-            .outBuf[keep + i] = out[i]
+        let keep    = .ltpMemLength - .frameLength
+        let history = cast([*] s16, &.outBuf[0])
+        Memory.copyOverlapping(history, history + .frameLength, cast(u64, keep) * #sizeof(s16))
+        Memory.copy(history + keep, out, cast(u64, .frameLength) * #sizeof(s16))
         .prevSignalType       = .indices.signalType
         .firstFrameAfterReset = false
         .lagPrev              = control.pitchLags[.nbSubfr - 1]
@@ -1760,7 +1750,7 @@ internal impl SilkDecoder
         // Every channel goes through its own resampler to 48 kHz; a mono stream on a stereo
         // output plays on both sides.
         let outSamples = frameLength * OutputRate / (.channels[0].fsKHz * 1000)
-        let resampled  = .resampled.storage()
+        let resampled  = .apiChannels == 2 ? .resampled.storage() : out
         for n in Math.min(.apiChannels, internalChannels)
         {
             let source = .scratch[n].storage() + 1
@@ -1771,11 +1761,6 @@ internal impl SilkDecoder
             {
                 for i in outSamples do
                     out[n + 2 * i] = resampled[i]
-            }
-            else
-            {
-                for i in outSamples do
-                    out[i] = resampled[i]
             }
         }
 

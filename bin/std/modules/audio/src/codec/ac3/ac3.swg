@@ -167,11 +167,36 @@ private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
     return result
 }
 
-private func decodeExponents(reader: *BitReader, strategy, groups, absolute, skip: u32, destination: [*] s32) fail
+// The group code contains three cumulative offsets, each in [-2, 2].
+// Coupling can supply a five-bit starting value. Bit 15 distinguishes a valid
+// zero tuple from reserved codes and tuples with an out-of-range exponent.
+private const Ac3ExponentGroups: [32, 128] u16 = #run
 {
-    let groupSize = ExponentGroupSize[strategy]
-    var previous  = cast(s32, absolute)
-    var written   = 0'u32
+    var result: [32, 128] u16
+    for base in 32
+    {
+        for code in 125
+        {
+            let first  = cast(s32, base) + cast(s32, code / 25) - 2
+            let second = first + cast(s32, (code / 5) % 5) - 2
+            let third  = second + cast(s32, code % 5) - 2
+            if first >= 0 and
+               first <= 24 and
+               second >= 0 and
+               second <= 24 and
+               third >= 0 and
+               third <= 24 do
+                result[base, code] = cast(u16, first | (second << 5) | (third << 10) | 0x8000)
+        }
+    }
+
+    return result
+}
+
+private func(GroupSize: u32) decodeExponentGroups(reader: *BitReader, groups, absolute, skip: u32, destination: [*] s32) fail
+{
+    var previous = cast(s32, absolute)
+    var written  = 0'u32
     if skip
     {
         destination[0] = previous
@@ -180,21 +205,51 @@ private func decodeExponents(reader: *BitReader, strategy, groups, absolute, ski
 
     for groups
     {
-        let code = reader.read(7)
-        if code >= 125 do
-            fail InvalidFormatError{"AC-3 exponent group has a reserved code"}
-        const Divisors: [3] u32 = [25, 5, 1]
-        for part in 3
+        let code    = reader.read(7)
+        let decoded = cast(u32, Ac3ExponentGroups[previous, code])
+        if not decoded
         {
-            previous += cast(s32, ((code / Divisors[part]) % 5)) - 2
-            if previous < 0 or previous > 24 do
-                fail InvalidFormatError{"AC-3 exponent is outside its valid range"}
-            for groupSize
-            {
-                destination[written] = previous
-                written += 1
-            }
+            if code >= 125 do
+                fail InvalidFormatError{"AC-3 exponent group has a reserved code"}
+            fail InvalidFormatError{"AC-3 exponent is outside its valid range"}
         }
+
+        let first  = cast(s32, decoded & 31)
+        let second = cast(s32, (decoded >> 5) & 31)
+        previous = cast(s32, (decoded >> 10) & 31)
+        if GroupSize == 1
+        {
+            destination[written]     = first
+            destination[written + 1] = second
+            destination[written + 2] = previous
+        }
+        elif GroupSize == 2
+        {
+            destination[written]     = first
+            destination[written + 1] = first
+            destination[written + 2] = second
+            destination[written + 3] = second
+            destination[written + 4] = previous
+            destination[written + 5] = previous
+        }
+        else
+        {
+            Simd.store(destination + written, Simd.splat(first))
+            Simd.store(destination + written + 4, Simd.splat(second))
+            Simd.store(destination + written + 8, Simd.splat(previous))
+        }
+
+        written += 3 * GroupSize
+    }
+}
+
+private func decodeExponents(reader: *BitReader, strategy, groups, absolute, skip: u32, destination: [*] s32) fail
+{
+    switch strategy
+    {
+    case 1: try decodeExponentGroups'1(reader, groups, absolute, skip, destination)
+    case 2: try decodeExponentGroups'2(reader, groups, absolute, skip, destination)
+    case 3: try decodeExponentGroups'4(reader, groups, absolute, skip, destination)
     }
 }
 

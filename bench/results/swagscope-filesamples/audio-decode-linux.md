@@ -1158,3 +1158,56 @@ behind FFmpeg 9.1.
 
 Native Release passes 328 audio tests. Release-safe passes 19 focused
 DTS and Vorbis tests.
+
+## Thirty-fifth optimization pass
+
+The same native Release compiler compares the updated Swag decoders,
+`b6e4283c9a` and native FFmpeg 9.1. Each median uses 42 samples and
+includes opening and materializing up to ten seconds of interleaved PCM16.
+
+[Raw stage times and PCM digests](audio-decode-linux-round35.json)
+
+| FileSamples format | Before CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | Before CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample3.ac3` | 8.22 | 7.45 | 6.79 | 7.39 | 7.04 | 6.17 | 7.53 | 7.17 | 6.44 |
+| `sample3.mp3` | 8.15 | 7.90 | 7.08 | 8.11 | 8.00 | 7.36 | 5.20 | 5.11 | 7.05 |
+| `sample3.ogg` | 6.50 | 6.63 | 6.48 | 6.46 | 6.51 | 6.43 | 6.50 | 6.56 | 6.52 |
+| `sample3.opus` | 19.47 | 19.63 | 17.73 | 19.57 | 19.80 | 18.07 | 19.92 | 20.23 | 17.98 |
+
+| Generated input | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `ac3-32k-mono.ac3` | 4.44 | 4.26 | 3.50 | 4.47 | 4.28 | 3.66 |
+| `ac3-32k-stereo.ac3` | 7.19 | 6.88 | 6.28 | 6.98 | 6.87 | 6.20 |
+| `ac3-44k-stereo.ac3` | 8.68 | 8.44 | 7.25 | 8.69 | 8.31 | 7.06 |
+| `ac3-48k-5.1.ac3` | 21.99 | 21.31 | 20.96 | 22.80 | 21.82 | 21.79 |
+| `ac3-48k-stereo.ac3` | 8.46 | 8.30 | 7.13 | 9.19 | 8.85 | 8.05 |
+| `eac3-48k-5.1.eac3` | 22.52 | 22.42 | 22.00 | 22.85 | 22.37 | 22.91 |
+| `mp3-24k-mono.mp3` | 2.74 | 2.62 | 2.67 | 1.88 | 1.87 | 2.81 |
+| `mp3-44k-stereo-cbr.mp3` | 8.49 | 8.04 | 7.12 | 4.87 | 4.08 | 7.03 |
+| `mp3-48k-stereo.mp3` | 9.62 | 9.45 | 8.52 | 6.38 | 5.87 | 8.57 |
+| `mp3-8k-mono.mp3` | 1.03 | 0.97 | 1.10 | 0.84 | 0.74 | 1.19 |
+| `vorbis-32k-mono.ogg` | 3.48 | 3.46 | 4.42 | 3.75 | 3.58 | 4.41 |
+| `vorbis-48k-5.1.ogg` | 27.83 | 27.80 | 26.22 | 27.06 | 20.30 | 26.45 |
+| `vorbis-48k-7.1.ogg` | 34.66 | 34.54 | 32.35 | 33.60 | 25.03 | 32.77 |
+| `vorbis-48k-stereo.ogg` | 8.66 | 8.87 | 9.38 | 8.51 | 8.54 | 9.04 |
+| `opus-20ms-48k-stereo.opus` | 28.31 | 28.99 | 27.18 | 27.93 | 28.11 | 26.93 |
+| `opus-5ms-48k-stereo.opus` | 27.26 | 27.41 | 29.38 | 27.65 | 28.06 | 29.54 |
+| `opus-voip-16k-mono.opus` | 8.17 | 7.53 | 9.71 | 7.96 | 7.47 | 9.58 |
+| `opus-voip-48k-mono.opus` | 15.11 | 14.96 | 13.24 | 14.77 | 14.32 | 13.09 |
+
+Offline Vorbis decoding can split complete packets on a surround Ogg page
+into two independent batches and reconstruct the worker overlap with one
+preceding packet. It retains serial handling of packet fragments. The
+new path applies to native offline surround decodes with multiple workers.
+AC-3 uses precomputed exponent group deltas. MP3 uses a second Huffman
+lookup and fuses its first IMDCT butterfly. SILK avoids duplicate copies and
+unneeded work for unvoiced frames.
+
+All 22 selected inputs produce byte-identical PCM to the preceding build
+and across one and four workers. Four-core Vorbis 5.1 and 7.1 lead FFmpeg
+in this series. FileSamples MP3 is ahead at four cores and still trails
+on one. FileSamples Opus takes 0.16–0.31 ms longer in these cohorts, while
+both generated voice cases improve in the four-core runs.
+
+Native Release passes 330 audio tests. Release-safe passes 68 focused
+Dolby, MP3, Opus, Ogg and Vorbis tests.

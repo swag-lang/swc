@@ -942,3 +942,28 @@ pass. The baseline and candidate both report the same Swag Capture
 borrow-check diagnostic and the same six Swag Scope golden failures.
 All seven Scope PNGs produced by those failures are byte-identical
 between the two builds.
+
+## Scope glyph-name index
+
+The picker borrows glyph-name strings from the displayed face. It
+keeps the same name comparison and sorted lookup. Changing collection
+members rebuilds the name index before releasing the old face.
+
+The comparison with `72139801f6` uses 11 fresh-process loads per variant
+with one worker. The two large named TrueType controls improve by 20%
+and 30%. Face, glyph, page and name counts match in all ten cases. The
+sorted name and glyph ID CRC-64 also matches in every case.
+[Raw timings and fingerprints](font-scope-linux-borrowed-names.json)
+
+| Fixture | Scope load before (ms) | After |
+| --- | ---: | ---: |
+| `NotoSansCJKjp-Regular.otf` | 13.778 | 13.870 |
+| `NotoSerifCJKjp-Regular.otf` | 18.476 | 18.787 |
+| `NotoSansCJK-Regular.ttc` | 27.917 | 29.796 |
+| `NotoSerifCJK-Regular.ttc` | 40.237 | 38.724 |
+| `NotoSansSC-Variable.ttf` | 14.423 | 13.712 |
+| `NotoSansKR-Variable.ttf` | 6.963 | 7.300 |
+| `GowunBatang-Regular.ttf` | 24.510 | 19.720 |
+| `LXGWWenKaiTC-Regular.ttf` | 53.915 | 37.711 |
+| `Lato-Regular.ttf` | 0.633 | 0.704 |
+| `SourceCodePro-Regular.otf` | 1.133 | 0.837 |

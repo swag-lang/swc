@@ -202,19 +202,30 @@ private func finitePoint(point: Vector2)->bool => Math.isFinite(point.x) and Mat
 
 private impl PaintBlock
 {
-    mtd const misses(transform: Math.Transform2, visible: Rectangle)->bool
+    mtd const misses(transform: Math.Transform2, visible: Rectangle, axisAligned: bool)->bool
     {
         if not .bounded do
             return false
 
-        // The caller uses an axis-aligned transform, so these two corners enclose the block.
         let first = transform.transformPoint(.minimum)
         let last  = transform.transformPoint(.maximum)
         if not finitePoint(first) or not finitePoint(last) do
             return false
 
-        let lower = Vector2.min(first, last)
-        let upper = Vector2.max(first, last)
+        var lower = Vector2.min(first, last)
+        var upper = Vector2.max(first, last)
+
+        // Under a rotation or shear an extremum can be at either remaining corner.
+        if not axisAligned
+        {
+            let topRight   = transform.transformPoint(Vector2{.maximum.x, .minimum.y})
+            let bottomLeft = transform.transformPoint(Vector2{.minimum.x, .maximum.y})
+            if not finitePoint(topRight) or not finitePoint(bottomLeft) do
+                return false
+            lower = Vector2.min(lower, Vector2.min(topRight, bottomLeft))
+            upper = Vector2.max(upper, Vector2.max(topRight, bottomLeft))
+        }
+
         if not finitePoint(upper - lower) do
             return false
 
@@ -4888,7 +4899,7 @@ impl Drawing
     }
 
     // Collect the spatial candidates in authored order when only a small portion is visible.
-    private mtd const collectPaintCandidates(transform: Transform2, visible: Rectangle, candidates: *Array'u64)->bool
+    private mtd const collectPaintCandidates(transform: Transform2, visible: Rectangle, axisAligned: bool, candidates: *Array'u64)->bool
     {
         if .paintIndex.isEmpty() do
             return false
@@ -4898,7 +4909,7 @@ impl Drawing
 
         var selected: StaticArray'(u64, PaintBinCount)
         var count = 0'u64
-        for &bin, index in bins where bin.indices.count and not bin.bounds.misses(transform, visible)
+        for &bin, index in bins where bin.indices.count and not bin.bounds.misses(transform, visible, axisAligned)
         {
             count += bin.indices.count
             if count > .items.count / 4 do
@@ -5284,9 +5295,10 @@ impl Drawing
         // all of its geometry.
         let visible = painter.clippingRect()
 
-        let useBlocks    = .paintBlocks.count and painter.hasClippingRect() and tr.m12 == 0 and tr.m21 == 0
+        let axisAligned  = tr.m12 == 0 and tr.m21 == 0
+        let useBlocks    = .paintBlocks.count and painter.hasClippingRect()
         var candidates: Array'u64
-        let useBins      = useBlocks and .collectPaintCandidates(tr, visible, &candidates)
+        let useBins      = useBlocks and .collectPaintCandidates(tr, visible, axisAligned, &candidates)
         let useRuns      = useBlocks and not useBins
         var shapedText: ShapedRun
         var measuredText = false
@@ -5296,7 +5308,7 @@ impl Drawing
             var end   = useBins ? candidates.count : .items.count
             if useRuns
             {
-                if .paintBlocks[blockIndex].misses(tr, visible) do
+                if .paintBlocks[blockIndex].misses(tr, visible, axisAligned) do
                     continue
                 first = blockIndex * PaintBlockSize
                 end   = first + Math.min(PaintBlockSize, .items.count - first)
@@ -5308,7 +5320,7 @@ impl Drawing
                 let item      = &.items[itemIndex]
                 if item.hasBounds
                 {
-                    var painted = useBlocks ? transformAxisAlignedBounds(tr, item.bounds) : tr.transformBounds(item.bounds)
+                    var painted = useBlocks and axisAligned ? transformAxisAlignedBounds(tr, item.bounds) : tr.transformBounds(item.bounds)
                     painted.inflate(InkFringeMargin)
                     if not visible.intersects(painted) do
                         continue

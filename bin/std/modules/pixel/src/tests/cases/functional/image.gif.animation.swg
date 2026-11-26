@@ -390,3 +390,29 @@ func localPaletteFlags(bytes: const [..] u8)->Array'bool
     for frame in frames.count do
         Swag.require(sameColors(expect reader.read(cast(u32, frame)), frames[frame]))
 }
+
+// A caller can reuse its image after adding each frame, including a cropped change.
+#test
+{
+    let name = Format.toString("gif-reused-input-%.gif", Guid64.random())
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
+    defer discard catch File.delete(path)
+
+    var source = Image.create(37, 29, .BGRA8)
+    source.fill(Color.fromArgb(0, 28, 59, 118))
+    let initial = source
+    var writer  = expect Gif.AnimationWriter.create(path, source.width, source.height)
+    expect writer.addFrame(source, 100_000)
+
+    let changed = source.pixels.storage() + 8 * source.rowStride + 11 * 4
+    changed[0] = 213
+    let updated = source
+    expect writer.addFrame(source, 100_000)
+    changed[0] = 173
+    expect writer.end()
+
+    var reader = expect ImageReader.load(path)
+    Swag.require(reader.info.frames.count == 2)
+    Swag.require(sameColors(expect reader.read(0), initial))
+    Swag.require(sameColors(expect reader.read(1), updated))
+}

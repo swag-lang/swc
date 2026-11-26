@@ -13,6 +13,16 @@ private const Dither: [16] s32 = [-8, 0, -6, 2, 4, -4, 6, -2, -5, 3, -7, 1, 7, -
 
 private const PaletteMapSize = 512'u32
 
+// A top-down rectangle in the image's bottom-up pixel buffer.
+private struct PalettePixels
+{
+    firstRow:      const [*] u8
+    rowStride:     s32
+    width, height: s32
+    pixelFormat:   PixelFormat
+    bytesPerPixel: u8
+}
+
 impl Encoder
 {
     func tableBitsForColorCount(count: u32)->u8
@@ -28,14 +38,14 @@ impl Encoder
         return bits
     }
 
-    func pixelChannelOffsets(image: Image)->{ red, green, blue, alpha: u8 }
+    func pixelChannelOffsets(pixelFormat: PixelFormat, bytesPerPixel: u8)->{ red, green, blue, alpha: u8 }
     {
-        let gray = image.pixelFormat == .Gray8 or image.pixelFormat == .GrayAlpha8
-        let bgr  = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
+        let gray = pixelFormat == .Gray8 or pixelFormat == .GrayAlpha8
+        let bgr  = pixelFormat == .BGR8 or pixelFormat == .BGRA8
         return {gray or not bgr ? 0 : 2,
                 gray ? 0 : 1,
                 gray or bgr ? 0 : 2,
-                image.bytesPerPixel - 1}
+                bytesPerPixel - 1}
     }
 
     func imageHasTransparentPixels(image: Image)->bool
@@ -141,7 +151,7 @@ impl Encoder
             }
         }
 
-        let offsets = pixelChannelOffsets(image)
+        let offsets = pixelChannelOffsets(image.pixelFormat, image.bytesPerPixel)
         if transparent do
             data.transparentIndex = 0
         else do
@@ -191,7 +201,7 @@ impl Encoder
         return true
     }
 
-    func(PixelBytes: u8, ReverseChannels: bool) tryBuildExactPalettePacked(data: *PaletteData, image: Image, hasTransparent: bool)->bool
+    func(PixelBytes: u8, ReverseChannels: bool) tryBuildExactPalettePacked(data: *PaletteData, image: PalettePixels, hasTransparent: bool)->bool
     {
         let pixelCount = cast(u64, image.width) * image.height
         resetPaletteResult(data, pixelCount)
@@ -208,7 +218,7 @@ impl Encoder
         var target = data.indexes.storage()
         for y in image.height
         {
-            var pix = image.pixels.storage() + cast(u64, (image.height - y - 1)) * image.rowStride
+            var pix = image.firstRow - cast(u64, y) * image.rowStride
             for image.width
             {
                 var paletteIndex: u8
@@ -280,7 +290,7 @@ impl Encoder
         return true
     }
 
-    func tryBuildExactPalette(data: *PaletteData, image: Image, hasTransparent: bool)->bool
+    func tryBuildExactPalette(data: *PaletteData, image: PalettePixels, hasTransparent: bool)->bool
     {
         switch image.pixelFormat
         {
@@ -416,7 +426,7 @@ impl Encoder
         return true
     }
 
-    func(T) buildQuantizedPalette(data: *PaletteData, image: Image, hasTransparent, dither: bool)
+    func(T) buildQuantizedPalette(data: *PaletteData, image: PalettePixels, hasTransparent, dither: bool)
     {
         let pixelCount = cast(u64, image.width) * image.height
         resetPaletteResult(data, pixelCount)
@@ -424,10 +434,10 @@ impl Encoder
         // Five bits per channel keep the histogram bounded independently of image size.
         var histogram: Array'(HistogramCell'T)
         histogram.resize(32 * 32 * 32)
-        let offsets = pixelChannelOffsets(image)
+        let offsets = pixelChannelOffsets(image.pixelFormat, image.bytesPerPixel)
         for y in image.height
         {
-            var pix = image.pixels.storage() + cast(u64, image.height - 1 - y) * image.rowStride
+            var pix = image.firstRow - cast(u64, y) * image.rowStride
             for image.width
             {
                 if not hasTransparent or pix[offsets.alpha] >= 128
@@ -567,7 +577,7 @@ impl Encoder
         var destination = 0'u64
         for y in image.height
         {
-            var pix = image.pixels.storage() + cast(u64, image.height - 1 - y) * image.rowStride
+            var pix = image.firstRow - cast(u64, y) * image.rowStride
             for x in image.width
             {
                 if hasTransparent and pix[offsets.alpha] < 128
@@ -591,17 +601,23 @@ impl Encoder
         finishPaletteResult(data)
     }
 
-    func buildPalette(image: Image, dither: bool = false)->PaletteData
+    func buildPalette(image: Image)->PaletteData
     {
-        let hasTransparent = imageHasTransparentPixels(image)
+        return buildPaletteRegion(image, 0, 0, image.width, image.height, imageHasTransparentPixels(image), false)
+    }
+
+    func buildPaletteRegion(image: Image, x, y, width, height: s32, hasTransparent, dither: bool)->PaletteData
+    {
+        let firstRow = image.pixels.storage() + cast(u64, image.height - 1 - y) * image.rowStride + cast(u64, x) * image.bytesPerPixel
+        let pixels   = PalettePixels{firstRow, image.rowStride, width, height, image.pixelFormat, image.bytesPerPixel}
         var result: #returntype
-        if not tryBuildExactPalette(&result, image, hasTransparent)
+        if not tryBuildExactPalette(&result, pixels, hasTransparent)
         {
             // An individual cell's channel totals are bounded by 255 per pixel.
-            if cast(u64, image.width) * image.height <= Swag.U32.Max / 255 do
-                buildQuantizedPalette'u32(&result, image, hasTransparent, dither)
+            if cast(u64, width) * height <= Swag.U32.Max / 255 do
+                buildQuantizedPalette'u32(&result, pixels, hasTransparent, dither)
             else do
-                buildQuantizedPalette'u64(&result, image, hasTransparent, dither)
+                buildQuantizedPalette'u64(&result, pixels, hasTransparent, dither)
         }
         return result
     }

@@ -579,6 +579,10 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - [Applying soft mask coverage](../bench/results/swagscope-filesamples/pdf-raster-linux.md#applying-soft-mask-coverage-to-images)
   brings the transformed mask fixture from 927 to 174 ms at 1200 px.
   PDFium takes 106 ms. The 43 supported cases keep their bitmap checksums.
+- [Shared PNG predictor kernels](../bench/results/swagscope-filesamples/pdf-raster-linux.md#shared-png-predictor-kernels)
+  take the public Flate predictor page from 107 to 71 ms at 1200 px and reduce
+  loading from 68 to 37 ms. PDFium takes 48 ms overall. All 43 supported cases
+  retain their bitmap checksums.
 - Profile the remaining stroke coverage and image span composition. Retaining encoded images for
   later zoom levels would let decoding use the requested image size.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×

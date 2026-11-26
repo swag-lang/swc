@@ -24,6 +24,7 @@ def arguments():
     parser.add_argument("--rate", type=int, required=True)
     parser.add_argument("--channels", type=int, required=True)
     parser.add_argument("--bandwidth", choices=("full", "voice"), default="full")
+    parser.add_argument("--aac-adaptive", action="store_true", help="enable short-window selection for candidate AAC")
     parser.add_argument("--compiler", type=Path, required=True)
     parser.add_argument("--library-bin", type=Path, default=WORKLOAD.parents[2] / "bin")
     parser.add_argument("--baseline-bin", type=Path)
@@ -49,6 +50,8 @@ def arguments():
         parser.error("--rounds and --repetitions must be positive")
     if args.exact_baseline and not args.baseline_bin:
         parser.error("--exact-baseline needs --baseline-bin")
+    if args.aac_adaptive and args.codec != "aac":
+        parser.error("--aac-adaptive applies to AAC")
     if args.aac_reference == "fdk" and args.codec != "aac":
         parser.error("--aac-reference fdk applies to AAC")
     if args.libflac is not None and args.codec != "flac":
@@ -75,6 +78,8 @@ def build_swag(args, name, library):
     command = [args.compiler.resolve(), "build", "-d", WORKLOAD / "src",
                "--module-file", WORKLOAD / "module.swg", "-bc", "release", "-j", "1",
                "--out-dir", build / "bin", "--work-dir", build / "work"]
+    if name == "candidate" and args.aac_adaptive:
+        command += ["--tag", "AudioEncodeAdaptive"]
     env = {**os.environ, "SWAG_PATH": str(library.resolve()),
            "SWAG_RUNTIME_THREADS": "1", "TMPDIR": str(temp)}
     log = build / "build.log"
@@ -251,6 +256,8 @@ def main():
                   "sha256": hashlib.sha256(input_pcm).hexdigest()},
         "engines": {},
     }
+    if args.aac_adaptive:
+        report["protocol"]["aac_adaptive_candidate"] = True
     if args.libflac is not None:
         report["protocol"]["libflac"] = subprocess.check_output(
             [sys.executable, binaries["libflac"], "--version"], text=True,

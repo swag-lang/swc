@@ -215,3 +215,62 @@ takes 27.57 ms and produces 2,635,460 bytes.
 
 Native Release passes 329 audio tests. Release-safe passes 57 focused AAC,
 MDCT and FLAC writer tests.
+
+## AAC short windows and higher-order FLAC
+
+Both builds use the same native Release compiler with audio sources based on
+`0bf578ab3d`. The encoder benchmarks use 12 samples per engine on CPU 3.
+FLAC and the steady AAC comparisons submit ten seconds of PCM16. The two
+AAC attack fixtures use 138,240 frames each.
+
+[Raw timing, achieved bitrates, PCM checks, and per-phase measurements](audio-encode-linux-round6.json)
+
+### Optional AAC short windows
+
+`StreamEncoder.createAdaptive` switches to short AAC windows around attacks,
+retains one 1,024-frame input block for lookahead, and preserves the coded
+priming delay of 1,024 frames. The regular encoder's ADTS output is byte-identical
+on five full-band and two voice inputs. The default-only timing repeat finds
+paired differences between −0.02 and +0.18 ms per ten-second input.
+
+| Input | Regular (kb/s) | Adaptive (kb/s) | Reference (kb/s) | Regular SNR (dB) | Adaptive SNR (dB) | Reference SNR (dB) | Adaptive (ms) | Reference (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Isolated attacks, FFmpeg 9.1 | 40.58 | 7.15 | 7.07 | 29.33 | 29.30 | 2.47 | 0.88 | 9.83 |
+| Attacks over tones, FFmpeg 9.1 | 61.09 | 40.70 | 40.77 | 28.75 | 28.66 | 9.76 | 1.47 | 53.89 |
+| FileSamples stereo 44.1 kHz, FDK 2.0.3 | 221.53 | 230.05 | 228.96 | 28.45 | 28.47 | 33.12 | 10.55 | 118.28 |
+| Generated stereo 48 kHz, FDK 2.0.3 | 188.41 | 125.80 | 125.85 | 28.80 | 28.84 | 24.36 | 9.57 | 107.08 |
+
+At nine isolated attack positions, the adaptive decode has zero PCM16
+amplitude from 1,536 to 256 samples before the attack. Its first excursion
+at or above 64 PCM16 units is at most 87 samples early. The regular Swag
+encoder reaches 915 samples early and FFmpeg 9.1 reaches 123 at 7.07 kb/s.
+The adaptive stream locates all nine peaks at their original frames.
+
+For the mixed fixture, subtracting each encoder's background-only result
+reduces the maximum far-pre-attack residual from 1,738 to 402 PCM16 units
+in Swag. Residuals of 64 units appear earlier on some phases. This difference
+includes context-dependent quantization of the tones. The adaptive FileSamples
+output uses 3.8% more bitrate than regular Swag at similar waveform SNR.
+FDK leads that adaptive output by 4.65 dB SNR at a matched payload rate.
+
+### Higher-order FLAC PCM16
+
+| Input | Before (ms) | Swag (ms) | FFmpeg 9.1 level 0 (ms) | libFLAC 1.5.0 level 0 (ms) | Before bytes | Swag bytes | FFmpeg bytes | libFLAC bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| FileSamples stereo 44.1 kHz | 8.63 | 8.43 | 10.85 | 10.35 | 1,186,502 | 1,051,716 | 1,078,821 | 1,052,820 |
+| Mono 48 kHz | 4.58 | 4.54 | 6.39 | 6.11 | 415,717 | 402,152 | 415,243 | 423,470 |
+| Stereo 44.1 kHz | 8.77 | 9.61 | 12.12 | 10.07 | 798,436 | 771,329 | 783,952 | 806,276 |
+| Stereo 48 kHz | 12.16 | 9.75 | 12.75 | 11.42 | 836,626 | 740,253 | 798,556 | 782,810 |
+| 5.1 at 48 kHz | 36.64 | 29.44 | 30.58 | 29.84 | 2,635,460 | 2,344,299 | 2,359,222 | 2,430,017 |
+| Stereo noise 48 kHz | 8.06 | 8.38 | 14.31 | 13.44 | 1,921,810 | 1,921,810 | 1,932,749 | 1,924,547 |
+
+The writer can select third- or fourth-order fixed prediction and up to
+16 Rice partitions. All six Swag files are smaller than the two level-0
+references and encode faster in this series. All engines restore the source
+PCM exactly. Relative to the previous Swag build, stereo 44.1 kHz takes
+0.84 ms longer and saves 27,107 bytes. The incompressible noise file stays
+the same size and takes 0.32 ms longer.
+
+Native Release passes 333 audio tests. Release-safe passes 60 focused AAC,
+MDCT and FLAC writer tests. The audio API audit documents all 221 items and
+reports no unresolved references or broken anchors.

@@ -1,5 +1,5 @@
 //! Format: Native FLAC PCM16 streaming writer.
-//! Supported: One to eight channels, independent variable-block frames, constant, verbatim, and first- or second-order fixed subframes.
+//! Supported: One to eight channels, independent variable-block frames, constant, verbatim, and fixed subframes of orders one through four.
 //! Role: This file writes bounded PCM blocks and keeps every flushed file prefix playable.
 //
 #global namespace Flac
@@ -12,7 +12,7 @@ private const WriterBlockFrames    = 4_096'u32
 private const WriterMaxSamples     = (1'u64 << 36) - 1
 private const WriterPrologueBytes  = 58'u64
 
-private const WriterMaxPartitionOrder = 3'u32
+private const WriterMaxPartitionOrder = 4'u32
 private const WriterMaxPartitions     = 1'u32 << WriterMaxPartitionOrder
 
 private struct WriterRicePartition
@@ -38,7 +38,7 @@ private struct WriterRicePlan
 // The writer buffers at most 4096 sample frames and one encoded frame. A flush completes a
 // partial frame, updates STREAMINFO (including its PCM MD5), and makes the prefix playable.
 // Input samples are interleaved and owned by the caller. Each channel chooses constant,
-// first- or second-order fixed prediction with partitioned Rice coding, or verbatim coding.
+// fixed prediction of orders one to four with partitioned Rice coding, or verbatim coding.
 #[Swag.NoCopy]
 struct Writer
 {
@@ -484,8 +484,9 @@ private impl Writer
 
         var residual1: [WriterBlockFrames - 1] u32
         var residual2: [WriterBlockFrames - 2] u32
-        let availableOrder = count >= 64 ? Math.min(WriterMaxPartitionOrder, cast(u32, Swag.trailingZeros(count))) : 0
-        var sums = fillFixedPairs(.pending.storage(), channel, stride, count, availableOrder, cast([*] u32, &residual1[0]), cast([*] u32, &residual2[0]))
+        let depthBudget    = count >= 64 ? 31 - cast(u32, Swag.leadingZeros(count >> 3)) : 0
+        let availableOrder = count >= 64 ? Math.min(WriterMaxPartitionOrder, depthBudget, cast(u32, Swag.trailingZeros(count))) : 0
+        var sums           = fillFixedPairs(.pending.storage(), channel, stride, count, availableOrder, cast([*] u32, &residual1[0]), cast([*] u32, &residual2[0]))
 
         let verbatimBits    = cast(u64, count) * 16 + 8
         let firstResiduals  = Swag.makeSlice(&residual1[0], count - 1)
@@ -495,22 +496,69 @@ private impl Writer
         var bestBits        = verbatimBits
         var bestRice        = 15'u32
         var plannedOrder    = 0'u32
-        var partitionPlan: WriterRicePlan
-        if availableOrder
+        var partitionPlan:   WriterRicePlan
+        let estimateNeeded  = availableOrder or count >= 256
+        let firstEstimate   = estimateNeeded ? estimatePartitions(&sums.partitionSums[0, 0], count, 1, availableOrder) : verbatimBits
+        let secondEstimate  = estimateNeeded ? estimatePartitions(&sums.partitionSums[1, 0], count, 2, availableOrder) : verbatimBits
+        let estimatedBase   = Math.min(firstEstimate, secondEstimate)
+        var higherResiduals: [WriterBlockFrames - 3] u32
+        let pilotDepth      = Math.min(availableOrder, 3'u32)
+        if estimatedBase < verbatimBits and (count >> pilotDepth) >= 256
         {
-            let firstEstimate  = estimatePartitions(&sums.partitionSums[0, 0], count, 1, availableOrder)
-            let secondEstimate = estimatePartitions(&sums.partitionSums[1, 0], count, 2, availableOrder)
-            if Math.min(firstEstimate, secondEstimate) < verbatimBits
+            let predictor = chooseHigherOrder(secondResiduals, count, pilotDepth, estimatedBase)
+            if predictor
             {
-                let predictor = firstEstimate <= secondEstimate ? 1'u32 : 2
-                let residuals = predictor == 1 ? firstResiduals : secondResiduals
-                partitionPlan = planRicePartitions(residuals, &sums.partitionSums[predictor - 1, 0], count, predictor, availableOrder, bestBits)
-                if partitionPlan.bits < bestBits
+                let destination = cast([*] u32, &higherResiduals[0])
+                let higher      = Swag.makeSlice(destination, count - predictor)
+                let parts       = predictor == 3 ? fillHigherOrder'3(secondResiduals, count, availableOrder, destination) :
+                                  fillHigherOrder'4(secondResiduals, count, availableOrder, destination)
+                if availableOrder
                 {
-                    bestBits     = partitionPlan.bits
-                    order        = predictor
-                    chosen       = residuals
-                    plannedOrder = availableOrder
+                    let plan = planRicePartitions(higher, &parts[0], count, predictor, availableOrder, bestBits)
+                    if plan.bits < bestBits
+                    {
+                        bestBits      = plan.bits
+                        order         = predictor
+                        chosen        = higher
+                        plannedOrder  = availableOrder
+                        partitionPlan = plan
+                    }
+                }
+
+                var foldedSum = 0'u32
+                for part in 1'u32 << availableOrder do
+                    foldedSum += parts[part]
+                let overhead = 18'u64 + 16 * predictor
+                if minimumRiceCost(foldedSum, count - predictor) + overhead < bestBits
+                {
+                    let plan = selectRice(higher, foldedSum, overhead, bestBits)
+                    if plan.rice < 15
+                    {
+                        bestBits     = plan.bits
+                        bestRice     = plan.rice
+                        order        = predictor
+                        chosen       = higher
+                        plannedOrder = 0
+                    }
+                }
+            }
+        }
+
+        if availableOrder and estimatedBase < verbatimBits
+        {
+            let predictor = firstEstimate <= secondEstimate ? 1'u32 : 2
+            let residuals = predictor == 1 ? firstResiduals : secondResiduals
+            let sumByPart = &sums.partitionSums[predictor - 1, 0]
+            if bestBits == verbatimBits or minimumPartitionCost(sumByPart, count, predictor, availableOrder) < bestBits
+            {
+                let plan = planRicePartitions(residuals, sumByPart, count, predictor, availableOrder, bestBits)
+                if plan.bits < bestBits
+                {
+                    bestBits      = plan.bits
+                    order         = predictor
+                    chosen        = residuals
+                    plannedOrder  = availableOrder
+                    partitionPlan = plan
                 }
             }
         }
@@ -699,34 +747,44 @@ private impl Writer
     // Scores the exact size of a single Rice partition, including fixed warmup.
     func selectRice(residuals: const [..] u32, foldedSum: u32, overhead, limitBits: u64)->{bits: u64, rice: u32}
     {
-        let residualCount = cast(u32, residuals.count)
-        var bestBits      = limitBits
-        var bestRice      = 15'u32
+        let count = cast(u32, residuals.count)
+        let range = riceRange(foldedSum, count)
+        var first = range.start
+        while first < range.stop and overhead + riceLowerBound(foldedSum, count, first) >= limitBits do
+            first += 1
+        if first == range.stop do
+            return {limitBits, 15'u32}
 
-        // The cost difference for increasing k is N minus the sum of ceil((folded >> k) / 2).
-        // It increases with k. If 2^b <= the mean < 2^(b+1), it is negative below b-1 and
-        // positive from b+1. Testing b-1 through b+1 preserves the exact minimum and tie order.
-        let range = riceRange(foldedSum, residualCount)
-        for rice in range.start until range.stop
+        // The other candidate quotients are right shifts of the same first quotient.
+        var sums0 = Math.Simd.splat(0'u32)
+        var sums1 = Math.Simd.splat(0'u32)
+        var sums2 = Math.Simd.splat(0'u32)
+        let bound = count & ~3'u32
+        let data  = residuals.buffer
+        var index = 0'u32
+        while index < bound
         {
-            let lowerBound = overhead + riceLowerBound(foldedSum, residualCount, rice)
-            if lowerBound >= bestBits do
-                continue
-            const Zero = cast(Math.Simd.U32x4, [0'u32, 0, 0, 0])
-            var sums   = Zero
-            let limit  = residualCount & ~3'u32
-            let values = residuals.buffer
-            var index  = 0'u32
-            while index < limit
-            {
-                sums  += Math.Simd.load(values + index) >> rice
-                index += 4
-            }
+            let quotient = Math.Simd.load(data + index) >> first
+            sums0 += quotient
+            sums1 += quotient >> 1
+            sums2 += quotient >> 2
+            index += 4
+        }
 
-            var quotients = Math.Simd.sum(sums)
-            for tail in index until residualCount do
-                quotients += residuals[tail] >> rice
-            let bits = overhead + cast(u64, residualCount) * (1 + rice) + quotients
+        var sums = [Math.Simd.sum(sums0), Math.Simd.sum(sums1), Math.Simd.sum(sums2)]
+        for tail in index until count
+        {
+            let quotient = residuals[tail] >> first
+            sums[0] += quotient
+            sums[1] += quotient >> 1
+            sums[2] += quotient >> 2
+        }
+
+        var bestBits = limitBits
+        var bestRice = 15'u32
+        for rice in first until range.stop
+        {
+            let bits = overhead + cast(u64, count) * (1 + rice) + sums[rice - first]
             if bits < bestBits
             {
                 bestBits = bits
@@ -759,6 +817,16 @@ private impl Writer
         for rice in range.start until range.stop do
             best = Math.min(best, riceLowerBound(foldedSum, count, rice))
         return best
+    }
+
+    // A lower bound allows a measured higher-order plan to skip the standard partition scan.
+    func minimumPartitionCost(sums: const [*] u32, count, order, partitionOrder: u32)->u64
+    {
+        let size = count >> partitionOrder
+        var bits = 14'u64 + 16 * order
+        for part in 1'u32 << partitionOrder do
+            bits += 4 + minimumRiceCost(sums[part], part ? size : size - order)
+        return bits
     }
 
     // The estimated size only decides which partitioned predictor to measure.
@@ -802,6 +870,106 @@ private impl Writer
         }
 
         return plan
+    }
+
+    // Estimate the extra predictors from sampled differences and compare with the measured incumbent.
+    func chooseHigherOrder(second: const [..] u32, count, partitionOrder: u32, incumbent: u64)->u32
+    {
+        let size  = count >> partitionOrder
+        let parts = 1'u32 << partitionOrder
+        var costs = [(14'u64 + 16 * 3 + 4 * parts) << 8,
+                     (14'u64 + 16 * 4 + 4 * parts) << 8]
+        for part in parts
+        {
+            let end     = (part + 1) * size
+            var frame   = Math.max(4'u32, part * size)
+            let length  = end - frame
+            var sums: [2] u32
+            var samples = 0'u32
+            while frame < end
+            {
+                let current = unfoldDelta(second[frame - 2])
+                let prev    = unfoldDelta(second[frame - 3])
+                let earlier = unfoldDelta(second[frame - 4])
+                sums[0] += foldDelta(current - prev)
+                sums[1] += foldDelta(current - 2 * prev + earlier)
+                samples += 1
+                frame   += 61
+            }
+
+            for lane in 2
+            {
+                let mean     = sums[lane] / samples
+                let rice     = mean ? Math.min(14'u32, 31 - cast(u32, Swag.leadingZeros(mean))) : 0
+                let quotient = (mean << 8) >> rice
+                let rate     = ((1 + rice) << 8) + Math.max(quotient, 128'u32) - 128
+                costs[lane] += cast(u64, rate) * length
+            }
+        }
+
+        let better = Math.min(costs[0], costs[1])
+        if better + (cast(u64, count) * 64) >= incumbent << 8 do
+            return 0
+        return costs[0] <= costs[1] ? 3 : 4
+    }
+
+    #[Swag.Inline]
+    func unfoldDelta(value: u32)->s32 => cast(s32, value >> 1) ^ -cast(s32, value & 1)
+
+    #[Swag.Inline]
+    func unfoldDeltaVector(value: Math.Simd.U32x4)->Math.Simd.S32x4
+    {
+        let sign = cast #bit(Math.Simd.S32x4, value & Math.Simd.splat(1'u32))
+        return cast #bit(Math.Simd.S32x4, value >> 1) ^ (Math.Simd.splat(0's32) - sign)
+    }
+
+    // Third and fourth differences are the first and second differences of order two.
+    func(Order: u32) fillHigherOrder(second: const [..] u32, count, partitionOrder: u32, target: [*] u32)->[WriterMaxPartitions] u32
+    {
+        let size  = count >> partitionOrder
+        let input = second.buffer
+        var sums: [WriterMaxPartitions] u32
+        var start = 0'u32
+        for part in 1'u32 << partitionOrder
+        {
+            let end    = (part + 1) * size - Order
+            var totals = Math.Simd.splat(0'u32)
+            const EarlierSamples = Order - 2
+            let olderValue = unfoldDelta(second[start])
+            let newerValue = unfoldDelta(second[start + EarlierSamples - 1])
+            var history    = cast(Math.Simd.S32x4, [olderValue, olderValue, olderValue, newerValue])
+            while end - start >= 4
+            {
+                let current    = unfoldDeltaVector(Math.Simd.load(input + start + EarlierSamples))
+                let previous   = Swag.vecAlign(history, current, 12)
+                var difference = current - previous
+                #static if Order == 4 do
+                    difference -= previous - Swag.vecAlign(history, current, 8)
+                history = current
+                let folded = foldDeltaVector(difference)
+                Math.Simd.store(target + start, folded)
+                totals += folded
+                start  += 4
+            }
+
+            var sum = Math.Simd.sum(totals)
+            for at in start until end
+            {
+                let older      = unfoldDelta(second[at])
+                let newer      = unfoldDelta(second[at + 1])
+                var difference = newer - older
+                #static if Order == 4 do
+                    difference = unfoldDelta(second[at + 2]) - newer - difference
+                let folded = foldDelta(difference)
+                target[at] = folded
+                sum        += folded
+            }
+
+            sums[part] = sum
+            start      = end
+        }
+
+        return sums
     }
 
     // The exact Rice cost lets us allocate all complete output words once.

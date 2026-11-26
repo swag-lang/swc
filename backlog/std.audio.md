@@ -143,7 +143,8 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   In the ten-second cases it takes 5.82 ms for 48 kHz mono and 32.70 ms for 5.1.
   Second-order fixed prediction reduces the structured files by a further 8.2–13.5%.
   Partitioned Rice reduces the 5.1 file to 2,635,460 bytes and restores the source PCM.
-  The native FLAC references still produce smaller files on structured audio.
+  Up to sixteen partitions and third- or fourth-order fixed prediction reduce the 5.1 file
+  further to 2,344,299 bytes at exact PCM, below both native level-0 reference outputs.
   [FLAC and WAV encoding comparison](../bench/results/swagscope-filesamples/audio-encode-linux.md#flac-encoder)
   `Aac.Encoder`
   now encodes mono/stereo 44.1/48 kHz PCM16 into AAC-LC in pure Swag, with full-band and voice
@@ -175,15 +176,18 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   music-only decode. The extra pre-attack RMS is 24.75 dB below the music alone;
   pre-attack energy extends at least 1,536 frames before the peak. Subtraction also
   reflects context-dependent quantization.
-  The encoder currently uses only long AAC windows; transient pre-echo needs short-window
-  coding and an A/B quality test before a regression bound is chosen.
+  The optional `StreamEncoder.createAdaptive` uses a 1024-frame lookahead and switches to
+  short windows around detected attacks. All nine isolated attack phases decode with zero
+  PCM16 amplitude from 1536 to 256 frames before the peak. Mixed-signal pre-attack metrics
+  remain dependent on the background and quantization.
+  [Adaptive AAC and higher-order FLAC](../bench/results/swagscope-filesamples/audio-encode-linux.md#aac-short-windows-and-higher-order-flac)
   Tests cover irregular input chunks and packet boundaries. The decoded AAC stream has 1024
   priming frames; the MP4 presentation edit reports the exact audible final frame count to
   `Video.Reader`, while FFmpeg currently ignores edits in fragmented MP4 and exposes at most
   1023 padding frames at the end.
 - Next: add bounded target bitrate and transient coding with AAC LONG_START, EIGHT_SHORT
-  and LONG_STOP window transitions. Compare pre-attack energy on isolated and music-backed
-  impulses against the measured long-window baseline before setting a quality threshold.
+  and LONG_STOP window transitions. Further compare short-window pre-attack energy on
+  music-backed impulses before setting a quality threshold.
   Test sample-accurate final trimming in other reference players while keeping the
   resumable fragmented prefix and an implementation independent of external codec libraries.
 - Done when: a captured non-silent recording plays in the module and reference players with

@@ -77,7 +77,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     expect writer.end()
 }
 
-// Blocks with changing residual widths can use up to eight Rice partitions.
+// Blocks with changing residual widths use several Rice partitions.
 #test
 {
     let path = flacWriterPath("rice-partitions")
@@ -101,7 +101,29 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     Swag.require(kind == 0x12 or kind == 0x14)
     let warmup         = (kind - 0x10) >> 1
     let residualHeader = file[67 + 2 * warmup]
-    Swag.require((residualHeader >> 2) == 3)     // Rice method zero, eight partitions.
+    Swag.require((residualHeader >> 2) == 3 or (residualHeader >> 2) == 4)
+}
+
+// A smooth periodic block can benefit from a third- or fourth-order fixed predictor.
+#test
+{
+    let path = flacWriterPath("higher-predictor")
+    defer discard catch File.delete(path)
+    const Frames = 4096
+    var samples: [Frames] s16
+    for index in Frames
+    {
+        let radians = cast(f64, index) * (6.283185307179586'f64 / 257)
+        samples[index] = cast(s16, Math.sin(radians) * 20_000)
+    }
+
+    let pcm    = Swag.makeSlice(&samples[0], samples.count)
+    var writer = expect Flac.Writer.create(path.toString(), 1, 48_000)
+    expect writer.addFrames(pcm)
+    expect writer.end()
+    assertFlacWriterSamples(path.toString(), pcm, 1, 48_000)
+    let file = expect File.readAllBytes(path)
+    Swag.require(file[66] == 0x16 or file[66] == 0x18)
 }
 
 // Silence and smooth ramps choose compact subframes; irregular noise stays verbatim.

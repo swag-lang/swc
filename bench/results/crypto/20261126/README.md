@@ -156,3 +156,4 @@ optimizations moved each result.
 - [Interleaved AES-CCM authentication and counter rounds](aes-ccm-interleaved.md)
 - [P-256 aligned local word clearing](p256-aligned-wipes.md)
 - [OpenSSL release comparison](openssl-current-references.md)
+- [Cached inverse round keys for AES-XTS](aes-xts-inverse-schedule.md)

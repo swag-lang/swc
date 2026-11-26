@@ -220,7 +220,7 @@ public impl Aes
         try .validateBlockRanges(source, destination)
         if .useHardware
         {
-            store(destination.buffer, .decryptBlockHardware(load(source.buffer)))
+            store(destination.buffer, .decryptBlockHardware'false(load(source.buffer)))
             return
         }
 
@@ -325,7 +325,16 @@ public impl Aes
     #[Swag.Inline]
     internal mtd usesHardwareRounds() => .useHardware
 
+    // Converts the intermediate hardware round keys for use by the decryption rounds.
+    internal mtd prepareHardwareDecryption()
+    {
+        let bytes = cast([*] u8, &.roundKeys[0])
+        for round in 1 until .rounds do
+            store(bytes + round * AesBlockSize, Swag.vecAesInverseMixColumns(.roundKey(round)))
+    }
+
     // The caller provides four complete blocks and has selected the hardware rounds.
+    // Decryption uses a schedule prepared by prepareHardwareDecryption.
     #[Swag.Inline]
     internal mtd(Xts: bool, Decrypt: bool) xorFourHardware(first, second, third, fourth: U8x16, source: const [*] u8, destination: [*] u8)
     {
@@ -362,7 +371,7 @@ public impl Aes
 
         for index in 1 until .rounds
         {
-            let key = Decrypt ? Swag.vecAesInverseMixColumns(.roundKey(.rounds - index)) : .roundKey(index)
+            let key = .roundKey(Decrypt ? .rounds - index : index)
             firstState  = round(firstState, key)
             secondState = round(secondState, key)
             thirdState  = round(thirdState, key)
@@ -387,13 +396,13 @@ public impl Aes
     }
 
     #[Swag.Inline]
-    internal mtd decryptBlockHardware(value: U8x16)->U8x16
+    internal mtd(Prepared: bool) decryptBlockHardware(value: U8x16)->U8x16
     {
         var state = value ^ .roundKey(.rounds)
         for round in 1 until .rounds
         {
-            let inverseRoundKey = Swag.vecAesInverseMixColumns(.roundKey(.rounds - round))
-            state = Swag.vecAesDecryptRound(state, inverseRoundKey)
+            let key = .roundKey(.rounds - round)
+            state = Swag.vecAesDecryptRound(state, Prepared ? key : Swag.vecAesInverseMixColumns(key))
         }
 
         return Swag.vecAesDecryptLastRound(state, .roundKey(0))

@@ -36,7 +36,7 @@ private func aesXtsMultiplyTweak(tweak: U8x16)->U8x16
 private func(Decrypt: bool) aesXtsCryptBlockHardware(aes: *Aes, tweak, input: U8x16)->U8x16
 {
     #static if Decrypt do
-        return aes[].decryptBlockHardware(input ^ tweak) ^ tweak
+        return aes[].decryptBlockHardware'true(input ^ tweak) ^ tweak
     else do
         return aes[].encryptBlockHardware(input ^ tweak) ^ tweak
 }
@@ -125,6 +125,8 @@ func aesXtsCrypt(key, dataUnitNumber, input: const [..] u8, output: [..] u8, dec
     let ordinaryBlocks = fullBlocks - cast(u64, remainder != 0)
     if dataAes.usesHardwareRounds()
     {
+        if decrypt do
+            dataAes.prepareHardwareDecryption()
         let initial = load(&tweak[0])
         let next = decrypt ? aesXtsCryptBlocksHardware'true(&dataAes, initial, input.buffer, output.buffer, ordinaryBlocks) :
                             aesXtsCryptBlocksHardware'false(&dataAes, initial, input.buffer, output.buffer, ordinaryBlocks)

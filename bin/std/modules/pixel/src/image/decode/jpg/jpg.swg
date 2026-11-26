@@ -150,8 +150,9 @@ private
 
         func extendSign(r: u32, s: s32)->s32
         {
-            let value = cast(s32, r)
-            return value < ExtendTest[s] ? value + ExtendOff[s] : value
+            let value    = cast(s32, r)
+            let negative = (value - ExtendTest[s]) >> 31
+            return value + (negative & ExtendOff[s])
         }
 
         func rol(i, j: u32)->u32 => Math.rol(i, cast(u8, j & 31))

@@ -167,34 +167,58 @@ private func makeByteToHalfTable()->[256] u16
 private const ByteToHalf = makeByteToHalfTable()
 
 #[Swag.Inline]
-private func(CHANNELS: u64, BLUE_FIRST: bool) writeBytePlanes(destination: [*] u8, source: const [*] u8, width: u64)
+private func(INPUT, GRAY: bool) integerToHalf(value: INPUT)->u16
+{
+    #static if INPUT == u8 do
+        return ByteToHalf[value]
+    else
+    {
+        // The first three positive 16-bit samples round to these exact HALF subnormals.
+        if value < 4 do
+            return value << 8
+        let unit       = cast(f32, value) / 65535.0
+        let normalized = GRAY ? unit * 0.2126 + unit * 0.7152 + unit * 0.0722 : unit
+        let bits       = cast #bit(u32, normalized)
+
+        // The remaining samples are finite, positive normals. Round the significand to nearest even.
+        return cast(u16, (bits - 0x3800_0000 + 0x0FFF + ((bits >> 13) & 1)) >> 13)
+    }
+}
+
+#[Swag.Inline]
+private func(INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeIntegerPlanes(destination: [*] u8, source: const [*] u8, width: u64)
 {
     const FirstColor = CHANNELS == 4 ? 1'u64 : 0'u64
     const Blue       = BLUE_FIRST ? 0'u64 : 2'u64
     const Red        = 2 - Blue
     let planes = cast([*] u16, destination)
     let colors = planes + FirstColor * width
+    let packed = cast(const [*] INPUT, source)
     for x in width
     {
-        let pixel = source + x * CHANNELS
+        let pixel = packed + x * CHANNELS
         #static if CHANNELS >= 3
         {
             #static if CHANNELS == 4 do
-                planes[x] = ByteToHalf[pixel[3]]
-            colors[x]             = ByteToHalf[pixel[Blue]]
-            colors[width + x]     = ByteToHalf[pixel[1]]
-            colors[2 * width + x] = ByteToHalf[pixel[Red]]
+                planes[x] = integerToHalf'(INPUT, false)(pixel[3])
+            colors[x]             = integerToHalf'(INPUT, false)(pixel[Blue])
+            colors[width + x]     = integerToHalf'(INPUT, false)(pixel[1])
+            colors[2 * width + x] = integerToHalf'(INPUT, false)(pixel[Red])
         }
         else
         {
-            planes[x] = ByteToHalf[pixel[CHANNELS - 1]]
-            #static if CHANNELS == 2 do
-                planes[width + x] = ByteToHalf[pixel[0]]
+            #static if CHANNELS == 2
+            {
+                planes[x]         = integerToHalf'(INPUT, false)(pixel[1])
+                planes[width + x] = integerToHalf'(INPUT, true)(pixel[0])
+            }
+            else do
+                planes[x] = integerToHalf'(INPUT, true)(pixel[0])
         }
     }
 }
 
-func(T, CHANNELS: u64, BYTE_INPUT: bool, BLUE_FIRST: bool) writeScanlines(destination: [*] u8, source: const *Image, fileOffset: u64)
+func(T, INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeScanlines(destination: [*] u8, source: const *Image, fileOffset: u64)
 {
     let width      = cast(u64, source.width)
     let rows       = cast(u64, source.height)
@@ -215,8 +239,8 @@ func(T, CHANNELS: u64, BYTE_INPUT: bool, BLUE_FIRST: bool) writeScanlines(destin
         header[0] = Math.nativeToLittleEndian(cast(u32, y))
         header[1] = Math.nativeToLittleEndian(cast(u32, rowBytes))
         let row = pixels + (rows - y - 1) * stride
-        #static if BYTE_INPUT do
-            writeBytePlanes'(CHANNELS, BLUE_FIRST)(chunk + 8, row, width)
+        #static if INPUT != void do
+            writeIntegerPlanes'(INPUT, CHANNELS, BLUE_FIRST)(chunk + 8, row, width)
         else do
             writeScanlinePlanes'(T, CHANNELS)(chunk + 8, row, width)
     }
@@ -226,24 +250,28 @@ func(T) writeChannelLayout(destination: [*] u8, source: const *Image, fileOffset
 {
     switch source.pixelFormat.channels()
     {
-    case 1:  writeScanlines'(T, 1, false, false)(destination, source, fileOffset)
-    case 2:  writeScanlines'(T, 2, false, false)(destination, source, fileOffset)
-    case 3:  writeScanlines'(T, 3, false, false)(destination, source, fileOffset)
-    default: writeScanlines'(T, 4, false, false)(destination, source, fileOffset)
+    case 1:  writeScanlines'(T, void, 1, false)(destination, source, fileOffset)
+    case 2:  writeScanlines'(T, void, 2, false)(destination, source, fileOffset)
+    case 3:  writeScanlines'(T, void, 3, false)(destination, source, fileOffset)
+    default: writeScanlines'(T, void, 4, false)(destination, source, fileOffset)
     }
 }
 
-private func writeByteScanlines(destination: [*] u8, source: const *Image, fileOffset: u64) fail
+private func writeIntegerScanlines(destination: [*] u8, source: const *Image, fileOffset: u64) fail
 {
     switch source.pixelFormat
     {
-    case .Gray8:      writeScanlines'(u16, 1, true, false)(destination, source, fileOffset)
-    case .GrayAlpha8: writeScanlines'(u16, 2, true, false)(destination, source, fileOffset)
-    case .RGB8:       writeScanlines'(u16, 3, true, false)(destination, source, fileOffset)
-    case .BGR8:       writeScanlines'(u16, 3, true, true)(destination, source, fileOffset)
-    case .RGBA8:      writeScanlines'(u16, 4, true, false)(destination, source, fileOffset)
-    case .BGRA8:      writeScanlines'(u16, 4, true, true)(destination, source, fileOffset)
-    default:          fail InvalidFormatError{"invalid OpenEXR byte source layout"}
+    case .Gray8:       writeScanlines'(u16, u8, 1, false)(destination, source, fileOffset)
+    case .GrayAlpha8:  writeScanlines'(u16, u8, 2, false)(destination, source, fileOffset)
+    case .RGB8:        writeScanlines'(u16, u8, 3, false)(destination, source, fileOffset)
+    case .BGR8:        writeScanlines'(u16, u8, 3, true)(destination, source, fileOffset)
+    case .RGBA8:       writeScanlines'(u16, u8, 4, false)(destination, source, fileOffset)
+    case .BGRA8:       writeScanlines'(u16, u8, 4, true)(destination, source, fileOffset)
+    case .Gray16:      writeScanlines'(u16, u16, 1, false)(destination, source, fileOffset)
+    case .GrayAlpha16: writeScanlines'(u16, u16, 2, false)(destination, source, fileOffset)
+    case .RGB16:       writeScanlines'(u16, u16, 3, false)(destination, source, fileOffset)
+    case .RGBA16:      writeScanlines'(u16, u16, 4, false)(destination, source, fileOffset)
+    default:           fail InvalidFormatError{"invalid OpenEXR integer source layout"}
     }
 }
 
@@ -285,15 +313,19 @@ internal impl IImageEncoder for Encoder
             }
         }
 
-        let byteInput = image.pixelFormat == .Gray8 or
-                        image.pixelFormat == .GrayAlpha8 or
-                        image.pixelFormat == .RGB8 or
-                        image.pixelFormat == .BGR8 or
-                        image.pixelFormat == .RGBA8 or
-                        image.pixelFormat == .BGRA8
+        let integerInput = image.pixelFormat == .Gray8 or
+                           image.pixelFormat == .GrayAlpha8 or
+                           image.pixelFormat == .RGB8 or
+                           image.pixelFormat == .BGR8 or
+                           image.pixelFormat == .RGBA8 or
+                           image.pixelFormat == .BGRA8 or
+                           image.pixelFormat == .Gray16 or
+                           image.pixelFormat == .GrayAlpha16 or
+                           image.pixelFormat == .RGB16 or
+                           image.pixelFormat == .RGBA16
         var converted: Image
         var source:    const *Image = &image
-        if image.pixelFormat != target and not byteInput
+        if image.pixelFormat != target and not integerInput
         {
             converted = image.convertedTo(target)
             source    = &converted
@@ -348,8 +380,8 @@ internal impl IImageEncoder for Encoder
 
         let fileOffset = result.count()
         let scanlines  = result.reserveInPlace(scanlineBytes)
-        if byteInput do
-            try writeByteScanlines(scanlines, source, fileOffset)
+        if integerInput do
+            try writeIntegerScanlines(scanlines, source, fileOffset)
         elif fullFloat do
             writeChannelLayout'u32(scanlines, source, fileOffset)
         else do

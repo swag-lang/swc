@@ -168,6 +168,7 @@ struct FaceImpl
     tables:                 Array'TableRecord
     charstringAdvances:     Array'u16
     verticalGlyphMetrics:   Array'GlyphVerticalMetrics
+    verticalMetrics:        const [..] GlyphVerticalMetrics?
     glyphLocations:         const [..] u8?
     late horizontalMetrics: const [..] u8
     late chosenCMap:        const [..] u8
@@ -176,7 +177,6 @@ struct FaceImpl
     numLongMetrics:         u16
     lineGap:                s16
     macStyle:               u16
-    hasVerticalMetrics:     bool
     indexToLocFormat:       s16
 
     // Format-14 subtable holding the Unicode variation sequences, when the face

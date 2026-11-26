@@ -747,3 +747,35 @@ their outlines. Bitmap results also include the unchanged raster stage.
 
 DejaVu Sans is within 5% at both sizes for outline loading. The 64 px
 bitmap timings rise by 1–2% on Ma Shan Zheng, Noto Sans JP, and Open Sans.
+
+## Vertical metrics shared by a retained font source
+
+Faces from the same source reuse expanded vertical metrics when they
+reference the same table range and have the same glyph and long-record
+counts. The face keeps the source alive for the duration of any
+vertical-metrics borrow. Standalone loads expand into face-owned storage.
+
+The comparison with `8e3e1dea33` uses 11 interleaved batches on one
+CPU. Each batch measures 251 reopens of a retained source at 20 px.
+The loading phase takes 36–55% less time across the 11 CJK CFF cases.
+Opening and rendering together takes 23–46% less time. Swag glyph
+indices, advances, dimensions, and bitmap fingerprints match in every
+case. FreeType 2.14.3 opens the same face from a retained memory buffer.
+[Raw timings including pathname controls](font-decode-linux-vertical-metrics.json)
+
+| Fixture | Face | Open before (µs) | After | Open and render before (µs) | After | FreeType (µs) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | 20.84 | 9.32 | 28.25 | 15.66 | 820.17 |
+| `NotoSansCJK-Regular.ttc` | 1 | 19.34 | 9.38 | 34.80 | 22.87 | 783.95 |
+| `NotoSansCJK-Regular.ttc` | 2 | 19.94 | 9.41 | 27.60 | 16.35 | 782.04 |
+| `NotoSansCJK-Regular.ttc` | 7 | 19.78 | 8.94 | 26.04 | 14.76 | 784.38 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 20.32 | 9.88 | 28.77 | 15.65 | 990.85 |
+| `NotoSerifCJK-Regular.ttc` | 0 | 19.99 | 9.84 | 28.81 | 16.57 | 853.98 |
+| `NotoSerifCJK-Regular.ttc` | 1 | 19.34 | 11.45 | 56.17 | 40.08 | 882.69 |
+| `NotoSerifCJK-Regular.ttc` | 2 | 20.16 | 10.69 | 29.97 | 19.63 | 886.56 |
+| `NotoSerifCJK-Regular.ttc` | 3 | 21.00 | 11.73 | 60.01 | 43.78 | 934.95 |
+| `NotoSerifCJK-Regular.ttc` | 4 | 19.80 | 12.66 | 38.65 | 29.70 | 883.52 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 21.61 | 10.74 | 37.71 | 23.73 | 872.79 |
+
+Pathname controls for these CFF faces vary between 5% faster and 7% slower.
+That path performs its own file read and expands the metrics per call.

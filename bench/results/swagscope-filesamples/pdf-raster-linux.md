@@ -558,3 +558,40 @@ in order and retains it. Times are milliseconds.
 All 52 supported cases in the expanded corpus keep their Swag raster
 checksums. The 141 PDF tests include both direct image reuse and an image
 whose named color space resolves differently on two pages.
+
+## Integrating edge area for small simple outlines
+
+The CPU painter clips each directed edge to device rows and cells. It
+adds its signed vertical coverage and trapezoid area to the row, then
+accumulates coverage from left to right. Simple contours up to 32 points
+with bounded scratch use area integration. Compound and crossing paths
+and stencil writes use four vertical samples per row.
+
+Nine alternating native Release runs with two samples per batch use one
+AMD EPYC 7763 logical CPU, baseline `5c169b416c`, and PDFium
+159.0.8149.0. Times include opening the PDF, loading the page, and
+rendering. [Raw phases, checksums, and pixel deltas](pdf-raster-linux-edge-area.json)
+
+| PDF | 1200 px before, ms | After, ms | PDFium, ms | 2400 px before, ms | After, ms | PDFium, ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample1.pdf` | 31.53 | 31.11 | 25.47 | 65.18 | 60.45 | 37.91 |
+| `sample2.pdf` | 10.77 | 10.35 | 4.43 | 28.62 | 28.53 | 8.63 |
+| `sample3.pdf` | 22.35 | 21.37 | 11.19 | 43.51 | 42.21 | 15.51 |
+| `perf_paths_polygons.pdf` | 108.72 | 82.38 | 96.60 | 273.88 | 197.35 | 214.66 |
+| `perf_paths_hairlines.pdf` | 132.58 | 99.62 | 114.01 | 262.02 | 223.50 | 220.90 |
+| `perf_structure_graphics_states.pdf` | 274.12 | 273.38 | 193.88 | 575.61 | 530.94 | 410.68 |
+
+On `sample3.pdf`, an earlier experimental 2400 px run had totals of
+45.80 and 60.57 ms. A subsequent run on one executable with the
+analytic path switched on and off measured 35.63 and 38.01 ms for
+rendering. The final matched binaries measure 35.36 and 36.49 ms
+for the same phase. These series are included alongside the timings
+for the final bounded sort.
+
+The baseline and candidate render 52 of the 53 corpus cases. Of those,
+31 rasters match exactly. The other 21 have antialiasing changes.
+On the hairline page the mean absolute RGB change is 1.056 on a scale
+of 255, and the mean distance to PDFium drops from 22.69 to 22.35.
+On the three FileSamples pages the mean change stays below 0.108.
+The 973 Pixel and 141 PDF tests pass, including analytic coverage of
+clipped and wide diagonal edges and detection of a self-crossing path.

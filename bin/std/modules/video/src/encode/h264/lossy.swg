@@ -163,10 +163,21 @@ impl LossyCoder
         let targetV      = .sourceV.storage()
         for row in rows / 2
         {
-            let from  = chroma.buffer + Math.min(row, chromaHeight - 1) * width
-            let lineU = targetU + row * chromaStride
-            let lineV = targetV + row * chromaStride
-            for column in chromaWidth
+            let from    = chroma.buffer + Math.min(row, chromaHeight - 1) * width
+            let lineU   = targetU + row * chromaStride
+            let lineV   = targetV + row * chromaStride
+            let groups  = chromaWidth / 16
+            let lowByte = Simd.splat(255'u16)
+            for group in groups
+            {
+                let column = group * 16
+                let first  = cast #bit(Simd.U16x8, Simd.load(from + column * 2))
+                let next   = cast #bit(Simd.U16x8, Simd.load(from + column * 2 + 16))
+                Simd.store(lineU + column, Simd.packUnsigned(cast #bit(Simd.S16x8, first & lowByte), cast #bit(Simd.S16x8, next & lowByte)))
+                Simd.store(lineV + column, Simd.packUnsigned(cast #bit(Simd.S16x8, first >> 8), cast #bit(Simd.S16x8, next >> 8)))
+            }
+
+            for column in groups * 16 until chromaWidth
             {
                 lineU[column] = from[column * 2]
                 lineV[column] = from[column * 2 + 1]
@@ -995,24 +1006,33 @@ impl LossyCoder
 // Sum of absolute differences of a 16-wide block.
 func lossySad16(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64, rows: u64)->u32
 {
-    var sum = 0'u32
+    var lanes: Simd.U64x2
     for row in rows do
-        sum += Simd.sumAbsoluteDifferences(Simd.load(a + row * aStride), Simd.load(b + row * bStride))
-    return sum
+        lanes += Swag.vecSumAbsDiff(Simd.load(a + row * aStride), Simd.load(b + row * bStride))
+    return cast(u32, Swag.vecReduceAdd(lanes))
 }
 
 // Exact SAD below a strict winner bound, or the bound itself when this candidate cannot win.
 func lossySad16Below(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64, rows: u64, bound: u32)->u32
 {
-    var sum = 0'u32
-    for row in rows
+    // Try the first row alone so a poor match can still stop after one vector load per block.
+    var sum = Simd.sumAbsoluteDifferences(Simd.load(a), Simd.load(b))
+    if sum >= bound do
+        return bound
+    let pairs = (rows - 1) / 2
+    for pair in pairs
     {
-        sum += Simd.sumAbsoluteDifferences(Simd.load(a + row * aStride), Simd.load(b + row * bStride))
+        let row = pair * 2 + 1
+        let lo  = Swag.vecSumAbsDiff(Simd.load(a + row * aStride), Simd.load(b + row * bStride))
+        let hi  = Swag.vecSumAbsDiff(Simd.load(a + (row + 1) * aStride), Simd.load(b + (row + 1) * bStride))
+        sum += cast(u32, Swag.vecReduceAdd(lo + hi))
         if sum >= bound do
             return bound
     }
 
-    return sum
+    if rows % 2 == 0 do
+        sum += Simd.sumAbsoluteDifferences(Simd.load(a + (rows - 1) * aStride), Simd.load(b + (rows - 1) * bStride))
+    return Math.min(sum, bound)
 }
 
 // Sum of the absolute Hadamard coefficients of the difference of two 16x16 blocks, halved. It
@@ -1570,9 +1590,17 @@ impl LossyCoder
         func rowCells(plane: const [*] u8, stride: u64, x, y, width: s64, cells: [*] s32)
         {
             var zero: Simd.U8x16
-            let line = plane + cast(u64, y) * stride + cast(u64, x)
-            for chunk in cast(u64, width) / 16 do
-                cells[chunk / 2] += cast(s32, Simd.sumAbsoluteDifferences(Simd.load(line + chunk * 16), zero))
+            let line   = plane + cast(u64, y) * stride + cast(u64, x)
+            let groups = cast(u64, width) / 32
+            for group in groups
+            {
+                let low  = Swag.vecSumAbsDiff(Simd.load(line + group * 32), zero)
+                let high = Swag.vecSumAbsDiff(Simd.load(line + group * 32 + 16), zero)
+                cells[group] = cast(s32, Swag.vecReduceAdd(low + high))
+            }
+
+            if width % 32 do
+                cells[groups] = cast(s32, Simd.sumAbsoluteDifferences(Simd.load(line + groups * 32), zero))
         }
 
         var profile: Array's32
@@ -1595,6 +1623,7 @@ impl LossyCoder
             // Rows the shift takes outside the picture have nothing to be compared with; the
             // others must still be most of the region, and their score is scaled to all of it.
             var score = 0's64
+            var lanes: Simd.S32x4
             var valid = 0's64
             for pair in rows / 2
             {
@@ -1602,16 +1631,19 @@ impl LossyCoder
                 let y   = top + row + shift
                 if y < 0 or y >= height do
                     continue
-                let here  = profile.storage() + cast(u64, row * cellsX)
-                let there = before.storage() + cast(u64, (row + range + shift) * cellsX)
-                for cell in cast(u64, cellsX) do
+                let here   = profile.storage() + cast(u64, row * cellsX)
+                let there  = before.storage() + cast(u64, (row + range + shift) * cellsX)
+                let groups = cast(u64, cellsX) / 4
+                for group in groups do
+                    lanes += Math.abs(Simd.load(here + group * 4) - Simd.load(there + group * 4))
+                for cell in groups * 4 until cast(u64, cellsX) do
                     score += cast(s64, Math.abs(here[cell] - there[cell]))
                 valid += 1
             }
 
             if valid * 4 < rows do
                 continue
-            score = score * rows / valid
+            score = (score + Simd.sumWide(lanes)) * rows / valid
 
             // Between equal scores the shorter vector wins, and no motion wins over all.
             if score < bestScore or (score == bestScore and Math.abs(shift) < Math.abs(bestY))

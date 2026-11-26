@@ -809,3 +809,13 @@ Scope options. The table shows median raster time, excluding parsing.
 
 The largest bitmap and thumbnail and the generated and public controls keep
 their CRC-64s. The existing contour tests check the bounds of flattened paths.
+
+## Integrating the area of simple edges
+
+The CPU painter now integrates small simple contours per pixel.
+All 15 generated SVG cases and 12 of 13 public rasters are identical
+to Swag `5c169b416c`. The public transformed rectangle differs by at
+most one in premultiplied RGB and alpha. At its fixed dimensions, nine
+alternating Release runs measured 9.00 ms before and 8.72 ms after,
+with resvg 0.50.0 at 8.90 ms.
+[Timings and comparisons](resvg-edge-area.json)

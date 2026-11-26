@@ -409,6 +409,17 @@ private func lookupCffName(thread: const *Threading.Thread)
     defer ranged.destroy()
     Swag.require(ranged.glyphIndexByCid(1) == 1 and ranged.glyphIndexByCid(2) == 2)
     Swag.require(ranged.glyphIndexByCid(3) == 0)
+
+    // The final byte of a format 1 or 2 range is required before reading it.
+    for format in [1'u8, 2]
+    {
+        bytes[57] = format
+        let limit = format == 1 ? 60 : 61
+        var rejected: Swag.Error
+        discard catch parseCffFont(bytes[until limit]) as rejected
+        Swag.require(not rejected.isEmpty())
+    }
+
     bytes[57] = 0
 
     // Nonidentity maps keep the final glyph index for a repeated CID.

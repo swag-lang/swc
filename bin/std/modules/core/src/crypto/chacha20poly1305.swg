@@ -22,18 +22,9 @@ private func updatePadded(mac: *Poly1305, data: const [..] u8)
     }
 }
 
-// Computes the authentication tag over the associated data and the ciphertext.
-//
-// The trailing lengths are what stop an attacker from moving bytes between the
-// two parts while keeping the tag valid.
-func chacha20Poly1305Authenticate(key, nonce, associatedData, ciphertext: const [..] u8)->Poly1305Tag fail
+private func authenticatePolyKey(authKey, associatedData, ciphertext: const [..] u8)->Poly1305Tag fail
 {
-    // The one-time Poly1305 key is the first half of key-stream block zero, so
-    // every nonce gets a key it never shares with the payload it protects.
-    var stream = try chacha20Block(key, 0, nonce)
-    defer secureClear(stream)
-
-    var mac = try Poly1305.create(stream[0 until Poly1305KeySize])
+    var mac = try Poly1305.create(authKey)
     updatePadded(&mac, associatedData)
     updatePadded(&mac, ciphertext)
 
@@ -46,6 +37,20 @@ func chacha20Poly1305Authenticate(key, nonce, associatedData, ciphertext: const 
 
     mac.update(lengths)
     return mac.finalize()
+}
+
+// Computes the authentication tag over the associated data and the ciphertext.
+//
+// The trailing lengths are what stop an attacker from moving bytes between the
+// two parts while keeping the tag valid.
+func chacha20Poly1305Authenticate(key, nonce, associatedData, ciphertext: const [..] u8)->Poly1305Tag fail
+{
+    // The one-time Poly1305 key is the first half of key-stream block zero, so
+    // every nonce gets a key it never shares with the payload it protects.
+    var stream = try chacha20Block(key, 0, nonce)
+    defer secureClear(stream)
+
+    return try authenticatePolyKey(stream[until Poly1305KeySize], associatedData, ciphertext)
 }
 
 // Encrypts and authenticates `plaintext` with ChaCha20-Poly1305, RFC 8439.
@@ -77,11 +82,20 @@ public func chacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [.
     if ciphertext.count != plaintext.count do
         fail Errors.BadParameterError{"ChaCha20-Poly1305 needs matching plaintext and ciphertext lengths"}
 
-    // Block zero produced the one-time authentication key, so the payload starts
-    // at block one.
-    try chacha20Xor(key, nonce, plaintext, ciphertext, 1)
-
-    var computed = try chacha20Poly1305Authenticate(key, nonce, associatedData, ciphertext)
+    var computed: Poly1305Tag
+    if plaintext.count and plaintext.count <= ChaCha20BlockSize
+    {
+        var authKey: [Poly1305KeySize] u8
+        defer secureClear(authKey)
+        try chacha20SealShort(key, nonce, plaintext, ciphertext, &authKey)
+        computed = try authenticatePolyKey(authKey, associatedData, ciphertext)
+    }
+    else
+    {
+        // Block zero supplies the authentication key, so payload starts at block one.
+        try chacha20Xor(key, nonce, plaintext, ciphertext, 1)
+        computed = try chacha20Poly1305Authenticate(key, nonce, associatedData, ciphertext)
+    }
     Swag.memcpy(tag.buffer, &computed[0], ChaCha20Poly1305TagSize)
     secureClear(computed)
 }

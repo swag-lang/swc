@@ -171,6 +171,119 @@ internal func hchacha20(key: const [..] u8, nonce: const [..] u8)->[ChaCha20KeyS
     return subkey
 }
 
+#[Swag.Mixin]
+private func quarterRoundPair()
+{
+    a += b
+    e += f
+    d = rotate32By16(d ^ a)
+    h = rotate32By16(h ^ e)
+    c += d
+    g += h
+    b = Math.rol(b ^ c, 12)
+    f = Math.rol(f ^ g, 12)
+    a += b
+    e += f
+    d = Math.rol(d ^ a, 8)
+    h = Math.rol(h ^ e, 8)
+    c += d
+    g += h
+    b = Math.rol(b ^ c, 7)
+    f = Math.rol(f ^ g, 7)
+}
+
+#[Swag.Inline]
+private func roundRowsPair(zero, first: *[4] Simd.U32x4)
+{
+    const left1 = cast(Simd.U32x4, [1'u32, 2, 3, 0])
+    const left2 = cast(Simd.U32x4, [2'u32, 3, 0, 1])
+    const left3 = cast(Simd.U32x4, [3'u32, 0, 1, 2])
+    var a = zero[][0]
+    var b = zero[][1]
+    var c = zero[][2]
+    var d = zero[][3]
+    var e = first[][0]
+    var f = first[][1]
+    var g = first[][2]
+    var h = first[][3]
+    for 10
+    {
+        quarterRoundPair()
+        b = Simd.permute(b, left1)
+        c = Simd.permute(c, left2)
+        d = Simd.permute(d, left3)
+        f = Simd.permute(f, left1)
+        g = Simd.permute(g, left2)
+        h = Simd.permute(h, left3)
+        quarterRoundPair()
+        b = Simd.permute(b, left3)
+        c = Simd.permute(c, left2)
+        d = Simd.permute(d, left1)
+        f = Simd.permute(f, left3)
+        g = Simd.permute(g, left2)
+        h = Simd.permute(h, left1)
+    }
+    zero[][0] = a
+    zero[][1] = b
+    zero[][2] = c
+    zero[][3] = d
+    first[][0] = e
+    first[][1] = f
+    first[][2] = g
+    first[][3] = h
+}
+
+// Produces the Poly1305 key and one block of ciphertext for a short AEAD message.
+internal func chacha20SealShort(key, nonce, plaintext: const [..] u8, ciphertext: [..] u8,
+                                authKey: *[Poly1305KeySize] u8) fail
+{
+    if key.count != ChaCha20KeySize do
+        fail Errors.BadParameterError{"ChaCha20 needs a 32-byte key"}
+    if nonce.count != ChaCha20NonceSize do
+        fail Errors.BadParameterError{"ChaCha20 needs a 12-byte nonce"}
+
+    var scratch: struct
+    {
+        initial, zero, first: [4] Simd.U32x4
+        tail: [16] u8
+    }
+
+    with scratch
+    {
+        loadChaChaKeyRows(key.buffer, &.initial)
+        .initial[3] = cast(Simd.U32x4, [0'u32, load32(nonce.buffer), load32(nonce.buffer + 4), load32(nonce.buffer + 8)])
+        let counterStep = cast(Simd.U32x4, [1'u32, 0, 0, 0])
+        .zero = .initial
+        .first = .initial
+        .first[3] += counterStep
+        roundRowsPair(&.zero, &.first)
+        .first[3] += counterStep
+
+        for row in Poly1305KeySize / #sizeof(Simd.U8x16)
+        {
+            let stream = swapWordBytesOnBigEndian(cast #bit(Simd.U8x16, .zero[row] + .initial[row]))
+            Simd.store(authKey[].buffer + row * #sizeof(Simd.U8x16), stream)
+        }
+        let rowCount = plaintext.count / #sizeof(Simd.U8x16)
+        for row in rowCount
+        {
+            let offset = row * #sizeof(Simd.U8x16)
+            let stream = swapWordBytesOnBigEndian(cast #bit(Simd.U8x16, .first[row] + .initial[row]))
+            Simd.store(ciphertext.buffer + offset, Simd.load(plaintext.buffer + offset) ^ stream)
+        }
+        let remaining = plaintext.count % #sizeof(Simd.U8x16)
+        if remaining
+        {
+            let offset = rowCount * #sizeof(Simd.U8x16)
+            let stream = swapWordBytesOnBigEndian(cast #bit(Simd.U8x16, .first[rowCount] + .initial[rowCount]))
+            Simd.store(.tail.buffer, stream)
+            for byte in remaining do
+                ciphertext.buffer[offset + byte] = plaintext.buffer[offset + byte] ^ .tail[byte]
+        }
+    }
+    secureClear(Swag.makeSlice(&scratch, 1))
+}
+
 private func chacha20XorTail(key, nonce, source: const [*] u8, destination: [*] u8,
                               length: u64, counter: u32)
 {

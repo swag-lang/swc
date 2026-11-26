@@ -213,3 +213,4 @@ optimizations moved each result.
 - [scrypt ROMix storage alignment](scrypt-romix-alignment.md)
 - [Paired software AES counters in GCM and CCM](aes-aead-software-pairs.md)
 - [Wide-word scalar Poly1305 fallback](poly1305-wide-scalar.md)
+- [Interleaved ChaCha20-Poly1305 short seals](chacha20-poly1305-short-pair.md)

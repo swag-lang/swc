@@ -922,15 +922,37 @@ impl Codec
             [0.0, 1.0], [0.211324865, 0.788675135], [0.366025404, 0.633974596], [0.5, 0.5],
             [0.633974596, 0.366025404], [0.788675135, 0.211324865], [1.0, 0.0]]
 
-        let left     = &.lines[0]
-        let right    = &.lines[1]
+        let left      = &.lines[0]
+        let right     = &.lines[1]
+        let midSide   = header.isMidSide()
+        let intensity = header.isIntensity()
+        if not intensity
+        {
+            if not midSide do
+                return
+
+            // Long and short band tables cover every line. Mixed bands may end sooner.
+            if info.bandKind != 2
+            {
+                for group in 144'u64
+                {
+                    let line = group * 4
+                    let a = Math.Simd.load(&left[][line])
+                    let b = Math.Simd.load(&right[][line])
+                    Math.Simd.store(&left[][line], a + b)
+                    Math.Simd.store(&right[][line], a - b)
+                }
+
+                return
+            }
+        }
+
         let maxPos   = header.isMpeg1 ? 7'u32 : 64'u32
-        let midSide  = header.isMidSide()
         let takeBack = midSide ? cast(f32, Math.sqrt(2.0'f64)) : 1.0'f32
 
         // The intensity region starts where the right channel stopped carrying anything.
         var topBand: [3] s32 = [-1, -1, -1]
-        if header.isIntensity()
+        if intensity
         {
             var line = 0'u64
             for band in info.bandCount()
@@ -988,7 +1010,7 @@ impl Codec
                 break
 
             let position = cast(u32, .intensityPos[1, band])
-            if header.isIntensity() and cast(s32, band) > topBand[band % 3] and position < maxPos
+            if intensity and cast(s32, band) > topBand[band % 3] and position < maxPos
             {
                 var kl = 1.0'f32
                 var kr = 1.0'f32

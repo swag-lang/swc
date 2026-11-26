@@ -423,3 +423,30 @@ one PCM16 unit from the original Swag output.
 
 Native Release passes 314 functional and stress tests. Release-safe passes
 66 focused AAC, Dolby and Opus tests.
+
+## Twelfth optimization pass
+
+This follow-up compares the changed codecs with commit `7447dae0a7` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round12.json)
+
+| Format | R11 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R11 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| MP3 | 10.29 | 9.59 | 7.74 | 10.30 | 9.62 | 7.63 |
+
+| Format | R11 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| MP3 | 6.58 | 6.24 | 8.02 |
+
+MP3 reconstructs pure mid/side stereo with packed adds and subtracts on complete long
+and short band layouts. The polyphase filter shares fourteen history rows between
+windows two time slots apart. The ring keeps the rows that all four time slots
+need during the shared synthesis pass.
+
+The FileSamples PCM matches R11 byte for byte at both worker budgets.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output.
+
+Native Release passes 314 functional and stress tests. Release-safe
+passes 27 focused MP3 tests.

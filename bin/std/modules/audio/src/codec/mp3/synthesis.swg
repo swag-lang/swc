@@ -14,6 +14,9 @@ using Core
 alias Granule576     = [576] f32
 alias SubbandOverlap = [18, 32] f32
 
+private const FilterHistory = 32'u64
+private const FilterMask    = FilterHistory - 1
+
 // What one channel carries from one granule to the next.
 //
 // The inverse transform of a granule overlaps the one before it, and the filter bank looks back
@@ -21,9 +24,9 @@ alias SubbandOverlap = [18, 32] f32
 // alone. A seek resets both.
 struct ChannelState
 {
-    overlap:  SubbandOverlap     // Second half of the previous inverse transform, grouped by time slot.
-    filter:   [16, 33] f32       // Even and odd taps for paired samples, plus the unpaired first sample.
-    filterAt: u32     // Newest block of the delay line.
+    overlap:  SubbandOverlap          // Second half of the previous inverse transform, grouped by time slot.
+    filter:   [FilterHistory, 33] f32 // Even and odd bins for paired samples, plus the unpaired first sample.
+    filterAt: u64                     // Newest block of the delay line.
 }
 
 impl ChannelState
@@ -32,7 +35,7 @@ impl ChannelState
     mtd reset()
     {
         Memory.set(cast(*void, &.overlap[0, 0]), 0, #sizeof(f32) * 32 * 18)
-        Memory.set(cast(*void, &.filter[0, 0]), 0, #sizeof(f32) * 16 * 33)
+        Memory.set(cast(*void, &.filter[0, 0]), 0, #sizeof(f32) * FilterHistory * 33)
         .filterAt = 0
     }
 }
@@ -436,8 +439,8 @@ private const MirroredWeights = #run buildMirroredWeights()
 #[Swag.Inline]
 private func(Tap: u64) addMirroredPair(state: const *ChannelState, at, group: u64, left, right: *Math.Simd.F32x4)
 {
-    let even   = (at + 2 * Tap) & 15
-    let odd    = (even + 1) & 15
+    let even   = (at + 2 * Tap) & FilterMask
+    let odd    = (even + 1) & FilterMask
     let lane   = group * 4
     let first  = Math.Simd.load(&state.filter[even, lane])
     let second = Math.Simd.load(&state.filter[odd, 16 + lane])
@@ -447,14 +450,11 @@ private func(Tap: u64) addMirroredPair(state: const *ChannelState, at, group: u6
     right[] += second * MirroredWeights[1, 2 * Tap + 1, group]
 }
 
-// Retains each DCT bin once, then applies the two windows to the shared history.
-private func synthesizeBlock(state: *ChannelState, bins: const [*] f32, destination: [*] f32)
+// Store each DCT bin once for the reflected windows that read this history row.
+private func saveSynthesisBins(state: *ChannelState, bins: const [*] f32)
 {
-    using Math.Simd
-    const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
-    state.filterAt = (state.filterAt + 15) & 15
-    let at     = cast(u64, state.filterAt)
-    let newest = cast([*] f32, &state.filter[at, 0])
+    state.filterAt = (state.filterAt + FilterMask) & FilterMask
+    let newest = cast([*] f32, &state.filter[state.filterAt, 0])
 
     for i in 15'u64 do
         newest[i] = bins[(17 + i) * 4]
@@ -462,18 +462,27 @@ private func synthesizeBlock(state: *ChannelState, bins: const [*] f32, destinat
     for i in 16'u64 do
         newest[16 + i] = -bins[(15 - i) * 4]
     newest[32] = bins[16 * 4]
+}
 
+private func synthesizeFirstSample(state: const *ChannelState, at: u64)->f32
+{
     var firstSample: f32
     for tap in 8'u64
     {
-        let even = (at + 2 * tap) & 15
-        let odd  = (even + 1) & 15
+        let even = (at + 2 * tap) & FilterMask
+        let odd  = (even + 1) & FilterMask
         firstSample += state.filter[even, 32] * SynthesisWindow[tap * 64]
         firstSample += -state.filter[odd, 32] * SynthesisWindow[tap * 64 + 32]
     }
 
-    destination[0] = firstSample
+    return firstSample
+}
 
+private func synthesizeBlock(state: const *ChannelState, at: u64, destination: [*] f32)
+{
+    using Math.Simd
+    const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
+    destination[0] = synthesizeFirstSample(state, at)
     for group in 4'u64
     {
         var left, right: F32x4
@@ -490,6 +499,51 @@ private func synthesizeBlock(state: *ChannelState, bins: const [*] f32, destinat
         // so both lanes produce the same sample.
         store(destination + 1 + group * 4, left)
         store(destination + 28 - group * 4, permute(right, Reverse))
+    }
+}
+
+// Windows two time slots apart share fourteen rows and the same tap parity.
+#[Swag.Inline]
+private func(Tap: u64) addSharedMirroredPair(state: const *ChannelState, at, group: u64, left, right, laterLeft, laterRight: *Math.Simd.F32x4)
+{
+    let even   = (at + 2 * Tap) & FilterMask
+    let odd    = (even + 1) & FilterMask
+    let lane   = group * 4
+    let first  = Math.Simd.load(&state.filter[even, lane])
+    let second = Math.Simd.load(&state.filter[odd, 16 + lane])
+    left[]       += first * MirroredWeights[0, 2 * Tap, group]
+    left[]       += second * MirroredWeights[0, 2 * Tap + 1, group]
+    right[]      += first * MirroredWeights[1, 2 * Tap, group]
+    right[]      += second * MirroredWeights[1, 2 * Tap + 1, group]
+    laterLeft[]  += first * MirroredWeights[0, 2 * Tap + 2, group]
+    laterLeft[]  += second * MirroredWeights[0, 2 * Tap + 3, group]
+    laterRight[] += first * MirroredWeights[1, 2 * Tap + 2, group]
+    laterRight[] += second * MirroredWeights[1, 2 * Tap + 3, group]
+}
+
+private func synthesizeBlockPair(state: const *ChannelState, at: u64, destination: [*] f32)
+{
+    using Math.Simd
+    const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
+    let laterAt = (at + FilterMask - 1) & FilterMask
+    destination[0]  = synthesizeFirstSample(state, at)
+    destination[64] = synthesizeFirstSample(state, laterAt)
+    for group in 4'u64
+    {
+        var left, right, laterLeft, laterRight: F32x4
+        addMirroredPair'0(state, laterAt, group, &laterLeft, &laterRight)
+        addSharedMirroredPair'0(state, at, group, &left, &right, &laterLeft, &laterRight)
+        addSharedMirroredPair'1(state, at, group, &left, &right, &laterLeft, &laterRight)
+        addSharedMirroredPair'2(state, at, group, &left, &right, &laterLeft, &laterRight)
+        addSharedMirroredPair'3(state, at, group, &left, &right, &laterLeft, &laterRight)
+        addSharedMirroredPair'4(state, at, group, &left, &right, &laterLeft, &laterRight)
+        addSharedMirroredPair'5(state, at, group, &left, &right, &laterLeft, &laterRight)
+        addSharedMirroredPair'6(state, at, group, &left, &right, &laterLeft, &laterRight)
+        addMirroredPair'7(state, at, group, &left, &right)
+        store(destination + 1 + group * 4, left)
+        store(destination + 28 - group * 4, permute(right, Reverse))
+        store(destination + 65 + group * 4, laterLeft)
+        store(destination + 92 - group * 4, permute(laterRight, Reverse))
     }
 }
 
@@ -510,6 +564,19 @@ func synthesizeGranule(state: *ChannelState, lines: const *Granule576, destinati
 
         let values = cast(const [*] f32, &bins[0])
         for lane in first - start until 4'u64 do
-            synthesizeBlock(state, values + lane, destination + (start + lane) * 32)
+            saveSynthesisBins(state, values + lane)
+
+        // Keep all sixteen taps of the earliest slot after saving the later three.
+        let at = state.filterAt
+        if first == start
+        {
+            synthesizeBlockPair(state, (at + 3) & FilterMask, destination + first * 32)
+            synthesizeBlockPair(state, (at + 2) & FilterMask, destination + (first + 1) * 32)
+        }
+        else
+        {
+            synthesizeBlock(state, (at + 1) & FilterMask, destination + first * 32)
+            synthesizeBlock(state, at, destination + (first + 1) * 32)
+        }
     }
 }

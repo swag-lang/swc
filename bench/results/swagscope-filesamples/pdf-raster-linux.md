@@ -746,3 +746,31 @@ JPEG fixture. The Swag baseline is `747be17d13`. PDFium is 159.0.8149.0.
 All 55 supported pages in the 56-page pre-expansion corpus retain their
 raster CRC. The 39 JPEG tests check exact equality with the existing
 three-channel output for baseline, progressive and 1 × 1 images.
+
+## SIMD bilinear filtering for packed RGB and BGR
+
+The axis-aligned CPU sampler filters four three-channel texels per
+group and keeps each row tightly packed. Enlarged images also share
+SIMD-filtered horizontal rows. The two bilinear stages preserve
+integer rounding and leave destination alpha intact.
+
+Nine paired Release batches of two samples run on one AMD EPYC 7763
+logical CPU with PDFium 159.0.8149.0. At 1200 px the baseline is
+`747be17d13`, and the candidate also includes compact grayscale JPEGs.
+At 2400 px the baseline already vectorizes direct RGB and BGR sampling,
+so this series isolates the contribution of vectorized cached rows.
+[Timings and raster checksums](pdf-raster-linux-simd-rgb24.json)
+
+| PDF | Long side | Swag before, ms | Swag after, ms | PDFium, ms |
+| --- | ---: | ---: | ---: | ---: |
+| `sample2.pdf` | 1200 px | 10.03 | 8.75 | 4.37 |
+| `pdfbox-scan.pdf` | 1200 px | 6.08 | 3.97 | 1.55 |
+| `perf_images_jpeg_large.pdf` | 1200 px | 72.69 | 51.98 | 95.15 |
+| `perf_images_16bit.pdf` | 1200 px | 44.74 | 25.45 | 16.30 |
+| `pdfbox-jpeg.pdf` | 2400 px | 28.82 | 23.68 | 6.81 |
+| `pdfbox-scan.pdf` | 2400 px | 25.70 | 20.04 | 5.70 |
+| `perf_images_16bit.pdf` | 2400 px | 66.28 | 46.27 | 28.22 |
+
+The two changes together preserve the 61 supported PDF raster CRCs
+and all 31 SVG rasters. The combined build passes 1,000 Pixel tests,
+124 PDF tests and seven printing tests.

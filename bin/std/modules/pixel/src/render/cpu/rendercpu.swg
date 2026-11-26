@@ -2820,7 +2820,23 @@ private impl RenderCpu
     }
 
     #[Swag.Inline]
-    func gatherLinearSamples(row: const [*] u8, group: const *LinearSamples4)->Math.Simd.U8x16
+    func loadLinearTexel24(row: const [*] u8, index: u32)->u32
+    {
+        let texel = row + cast(u64, index) * 3
+        // Read exactly three bytes, including when the texel ends the row.
+        return cast(u32, cast(const [*] u16, texel)[0]) | (cast(u32, texel[2]) << 16)
+    }
+
+    #[Swag.Inline]
+    func gatherLinearTexels24(row: const [*] u8, indices: Math.Simd.U32x4)->Math.Simd.U8x16
+    {
+        let texels = cast(Math.Simd.U32x4, [loadLinearTexel24(row, indices[0]), loadLinearTexel24(row, indices[1]),
+                                            loadLinearTexel24(row, indices[2]), loadLinearTexel24(row, indices[3])])
+        return cast #bit(Math.Simd.U8x16, texels)
+    }
+
+    #[Swag.Inline]
+    func(const Format: PixelFormat) gatherLinearSamples(row: const [*] u8, group: const *LinearSamples4)->Math.Simd.U8x16
     {
         #[Swag.Inline]
         func blend(lowTexels, highTexels: Math.Simd.U16x8, weight: Math.Simd.S16x8, upper: Math.Simd.U16x8)->Math.Simd.S16x8
@@ -2830,9 +2846,17 @@ private impl RenderCpu
             return base + Math.Simd.mulHigh(difference, weight)
         }
 
-        let pixels       = cast(const [*] s32, row)
-        let gatheredLow  = cast #bit(Math.Simd.U8x16, Math.Simd.gather(pixels, group.low))
-        let gatheredHigh = cast #bit(Math.Simd.U8x16, Math.Simd.gather(pixels, group.high))
+        #static if Format == .BGR8 or Format == .RGB8
+        {
+            let gatheredLow  = gatherLinearTexels24(row, group.low)
+            let gatheredHigh = gatherLinearTexels24(row, group.high)
+        }
+        else
+        {
+            let pixels       = cast(const [*] s32, row)
+            let gatheredLow  = cast #bit(Math.Simd.U8x16, Math.Simd.gather(pixels, group.low))
+            let gatheredHigh = cast #bit(Math.Simd.U8x16, Math.Simd.gather(pixels, group.high))
+        }
         let lo           = blend(Math.Simd.widenLow(gatheredLow), Math.Simd.widenLow(gatheredHigh), group.weights0, group.upper0)
         let hi           = blend(Math.Simd.widenHigh(gatheredLow), Math.Simd.widenHigh(gatheredHigh), group.weights1, group.upper1)
         return Math.Simd.packUnsigned(lo, hi)
@@ -2882,14 +2906,41 @@ private impl RenderCpu
         colors:  Array'u32
     }
 
-    func(const Format: PixelFormat) filterTextureRow(cached: *FilteredTextureRow, pixels: const [*] u8, samples: const [..] LinearSample, sourceY: s32)
+    func(const Format: PixelFormat) filterTextureRow(cached: *FilteredTextureRow, pixels: const [*] u8, samples: const [..] LinearSample, groups: const [..] LinearSamples4, sourceY: s32)
     {
         if sourceY == cached.sourceY do
             return
         cached.sourceY = sourceY
         cached.colors.resize(samples.count)
-        for sample, index in samples do
+        var packedColumns: u64
+        #static if Format == .Gray8 or (not Core.BIG_ENDIAN and (Format == .BGR8 or Format == .RGB8))
+        {
+            for &group in groups
+            {
+                #static if Format == .Gray8
+                {
+                    let gray = cast #bit(Math.Simd.U32x4, gatherGrayRow4(pixels, group))
+                    let ink  = cast #bit(Math.Simd.U8x16, gray * 0x0001_0101'u32)
+                }
+                else
+                {
+                    var ink = gatherLinearSamples'Format(pixels, group)
+                    #static if Format == .RGB8
+                    {
+                        const SwapRgb = cast(Math.Simd.U8x16, [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
+                        ink = Math.Simd.shuffle(ink, SwapRgb)
+                    }
+                }
+                Math.Simd.store(cast([*] u8, cached.colors.storage() + packedColumns), ink)
+                packedColumns += 4
+            }
+        }
+
+        for index in packedColumns until samples.count
+        {
+            let sample = samples[index]
             cached.colors[index] = lerpBgra8(loadColor8'Format(pixels, sample.low), loadColor8'Format(pixels, sample.high), sample.weight)
+        }
     }
 
     func(const Format: PixelFormat) drawLinearImageTriangle(batch: *RasterBatch, source: const *Image, triangle: const *TriangleSpan, paintRect: Vector4, matte: [*] u8?, stenciled: bool)
@@ -2980,9 +3031,11 @@ private impl RenderCpu
 
         let cacheRows = columns.count and Math.abs(deviceH) >= 1.25 * source.height
         var groups: Array'LinearSamples4
-        #static if Format == .Gray8 or Format == .BGRA8 or Format == .RGBA8
+        #static if Format == .Gray8 or Format == .BGRA8 or Format == .RGBA8 or
+                   (not Core.BIG_ENDIAN and (Format == .BGR8 or Format == .RGB8))
         {
-            if not cacheRows and columns.count >= 16 do
+            const PackedOpaque = Format == .Gray8 or Format == .BGR8 or Format == .RGB8
+            if (PackedOpaque or not cacheRows) and columns.count >= 16 do
                 groups = #move packLinearSamples(columns.toSlice())
         }
 
@@ -3018,9 +3071,9 @@ private impl RenderCpu
                     // Upscaling revisits the same horizontal samples on consecutive rows.
                     if sampleY.low == filteredBottom.sourceY or (twoRows and sampleY.high == filteredTop.sourceY) do
                         swap(&filteredTop, &filteredBottom)
-                    filterTextureRow'Format(&filteredTop, top, columns.toSlice(), sampleY.low)
+                    filterTextureRow'Format(&filteredTop, top, columns.toSlice(), groups.toSlice(), sampleY.low)
                     if twoRows do
-                        filterTextureRow'Format(&filteredBottom, bottom, columns.toSlice(), sampleY.high)
+                        filterTextureRow'Format(&filteredBottom, bottom, columns.toSlice(), groups.toSlice(), sampleY.high)
 
                     let first  = cast(u64, x0 - triangle.bounds.minX)
                     let savedA = cast(const [*] u8, filteredTop.colors.storage() + first)
@@ -3076,7 +3129,8 @@ private impl RenderCpu
                 while x <= x1
                 {
                     let column = cast(u64, x - triangle.bounds.minX)
-                    #static if Format == .Gray8 or Format == .BGRA8 or Format == .RGBA8
+                    #static if Format == .Gray8 or Format == .BGRA8 or Format == .RGBA8 or
+                   (not Core.BIG_ENDIAN and (Format == .BGR8 or Format == .RGB8))
                     {
                         if groups.count and (column & 3) == 0 and x1 - x >= 3
                         {
@@ -3098,27 +3152,39 @@ private impl RenderCpu
                             }
                             else
                             {
-                                var ink = gatherLinearSamples(top, group)
+                                var ink = gatherLinearSamples'Format(top, group)
                                 if twoRows
                                 {
                                     let weight = Math.Simd.splat(cast #bit(s16, cast(u16, sampleY.weight)))
-                                    ink = lerpBgra8x4(ink, gatherLinearSamples(bottom, group), weight, sampleY.weight >= 32768)
+                                    ink = lerpBgra8x4(ink, gatherLinearSamples'Format(bottom, group), weight, sampleY.weight >= 32768)
                                 }
 
-                                #static if Format == .RGBA8
+                                #static if Format == .RGBA8 or Format == .RGB8
                                 {
                                     const SwapRGB = cast(Math.Simd.U8x16, [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
                                     ink = Math.Simd.shuffle(ink, SwapRGB)
                                 }
 
-                                let alpha   = (cast #bit(Math.Simd.U32x4, ink) >> 24) * 0x0101_0101'u32
-                                let weights = cast #bit(Math.Simd.U8x16, alpha)
                                 let target = row + cast(u64, x) * 4
-                                Math.Simd.store(target, blendAlphaBgra8x4(ink, Math.Simd.load(target), weights))
-                                if white
+                                #static if Format == .BGR8 or Format == .RGB8
                                 {
-                                    let other = white + cast(u64, x) * 4
-                                    Math.Simd.store(other, blendAlphaBgra8x4(ink, Math.Simd.load(other), weights))
+                                    Math.Simd.store(target, Math.Simd.select(CpuBgraRgbMask, ink, Math.Simd.load(target)))
+                                    if white
+                                    {
+                                        let other = white + cast(u64, x) * 4
+                                        Math.Simd.store(other, Math.Simd.select(CpuBgraRgbMask, ink, Math.Simd.load(other)))
+                                    }
+                                }
+                                else
+                                {
+                                    let alpha   = (cast #bit(Math.Simd.U32x4, ink) >> 24) * 0x0101_0101'u32
+                                    let weights = cast #bit(Math.Simd.U8x16, alpha)
+                                    Math.Simd.store(target, blendAlphaBgra8x4(ink, Math.Simd.load(target), weights))
+                                    if white
+                                    {
+                                        let other = white + cast(u64, x) * 4
+                                        Math.Simd.store(other, blendAlphaBgra8x4(ink, Math.Simd.load(other), weights))
+                                    }
                                 }
                             }
 

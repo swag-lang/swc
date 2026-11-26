@@ -1302,6 +1302,32 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(outcome.value() != null)
 }
 
+// Unordered fields keep the first value of a duplicate tag.
+#test
+{
+    const Pixels: [1] u8 = [17]
+    var fixture = buildTiff(false, 1, 1, 1, 1, 1, 1, 8, Pixels, null, false)
+    let start   = cast(u32, fixture.count)
+    let first   = fixture.storage() + Tiff.rd32(fixture.storage() + 4, false)
+    let entries = Tiff.rd16(first, false)
+    var directory: ConcatBuffer
+    tw16(&directory, false, cast(u16, entries + 1))
+    for i in entries
+    {
+        let entry = first + 2 + (entries - i - 1) * 12
+        directory.addBytes(Swag.makeSlice(entry, 12))
+    }
+
+    entLong(&directory, false, 256, 0)
+    tw32(&directory, false, 0)
+    directory.makeLinear()
+    fixture.add(directory.toSlice())
+    cast(*u32, (fixture.storage() + 4))[] = Math.byteSwap(start)
+
+    let image = expect decodeTiff(nnBytes(fixture.toSlice()))
+    Swag.require(image.width == 1 and image.height == 1 and image.pixelColor(0, 0).r == 17)
+}
+
 // A scalar tag still validates the entire declared field before using its first value.
 #test
 {

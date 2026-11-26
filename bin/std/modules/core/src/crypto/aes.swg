@@ -305,7 +305,7 @@ public impl Aes
     }
 
     #[Swag.Inline]
-    private mtd roundKey(round: u32)->U8x16
+    internal mtd roundKey(round: u32)->U8x16
     {
         return load(cast(const [*] u8, &.roundKeys[round * 4]))
     }
@@ -318,6 +318,9 @@ public impl Aes
             state = Swag.vecAesEncryptRound(state, .roundKey(round))
         return Swag.vecAesEncryptLastRound(state, .roundKey(.rounds))
     }
+
+    #[Swag.Inline]
+    internal mtd hardwareRoundCount() => .rounds
 
     #[Swag.Inline]
     internal mtd usesHardwareRounds() => .useHardware

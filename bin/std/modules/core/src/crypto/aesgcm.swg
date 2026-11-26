@@ -10,6 +10,8 @@ public const AesGcmNonceSize = 12
 // AES-GCM authentication tag size in bytes.
 public const AesGcmTagSize = 16
 
+private const AesGcmParallelThreshold = 64 * 1024
+
 #[Swag.Inline]
 private func aesGcmReverseBytes(value: U8x16)->U8x16
 {
@@ -71,9 +73,15 @@ private func aesGcmGhashMultiply(value, key: U64x2)->U64x2
 }
 
 #[Swag.Inline]
+private func aesGcmGhashWords(value: U8x16)->U64x2
+{
+    return cast #bit (U64x2, aesGcmReverseBytes(value))
+}
+
+#[Swag.Inline]
 private func aesGcmGhashLoad(source: const [*] u8)->U64x2
 {
-    return cast #bit (U64x2, aesGcmReverseBytes(load(source)))
+    return aesGcmGhashWords(load(source))
 }
 
 internal func aesGcmGhashBlockClmul(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
@@ -319,12 +327,18 @@ private func aesGcmTag(aes: *Aes, nonce: const [..] u8, associatedData: const [.
         fail Errors.BadParameterError{"AES-GCM input is too large"}
 
     var state = initialHash
+    defer Crypto.secureClear(state)
     aesGcmGhashData(&state, hashKey, ciphertext)
+    return try aesGcmFinishTag(aes, nonce, associatedData.count, ciphertext.count, hashKey, &state)
+}
 
+#[Swag.Inline]
+private func aesGcmFinishTag(aes: *Aes, nonce: const [..] u8, associatedSize, ciphertextSize: u64, hashKey: [16] u8, state: *[16] u8)->[AesGcmTagSize] u8 fail
+{
     var lengths: [16] u8
-    aesGcmWriteU64(&lengths[0], associatedData.count * 8)
-    aesGcmWriteU64(&lengths[8], ciphertext.count * 8)
-    aesGcmGhashBlock(&state, hashKey, &lengths[0])
+    aesGcmWriteU64(&lengths[0], associatedSize * 8)
+    aesGcmWriteU64(&lengths[8], ciphertextSize * 8)
+    aesGcmGhashBlock(state, hashKey, &lengths[0])
 
     var initialCounter: [16] u8
     Swag.memcpy(&initialCounter[0], nonce.buffer, AesGcmNonceSize)
@@ -334,12 +348,111 @@ private func aesGcmTag(aes: *Aes, nonce: const [..] u8, associatedData: const [.
 
     var tag: #returntype
     for index in AesGcmTagSize do
-        tag[index] = state[index] ^ encryptedCounter[index]
-    Crypto.secureClear(state)
+        tag[index] = state[][index] ^ encryptedCounter[index]
     Crypto.secureClear(lengths)
     Crypto.secureClear(initialCounter)
     Crypto.secureClear(encryptedCounter)
     return tag
+}
+
+private func aesGcmCryptAndHashHardware(aes: *Aes, nonce: const [..] u8, source: const [..] u8, destination: [..] u8, hashKey: [16] u8, state: *[16] u8)
+{
+    var counter: [16] u8
+    Swag.memcpy(&counter[0], nonce.buffer, AesGcmNonceSize)
+    let prefix = cast #bit (U64x2, load(&counter[0]))
+    let key    = aesGcmGhashPrepareKey(hashKey)
+    let key2   = aesGcmGhashMultiply(key, key)
+    let key3   = aesGcmGhashMultiply(key2, key)
+    let key4   = aesGcmGhashMultiply(key2, key2)
+    var authenticator = aesGcmGhashLoad(&state[][0])
+    let numRounds = aes[].hardwareRoundCount()
+    let initial   = aes[].roundKey(0)
+    let final     = aes[].roundKey(numRounds)
+
+    var first  = aesGcmHardwareCounter(prefix, 0) ^ initial
+    var second = aesGcmHardwareCounter(prefix, 1) ^ initial
+    var third  = aesGcmHardwareCounter(prefix, 2) ^ initial
+    var fourth = aesGcmHardwareCounter(prefix, 3) ^ initial
+
+    #[Swag.Mixin]
+    func applyRound(index: u32)
+    {
+        scope
+        {
+            let roundKey = aes[].roundKey(index)
+            first  = Swag.vecAesEncryptRound(first, roundKey)
+            second = Swag.vecAesEncryptRound(second, roundKey)
+            third  = Swag.vecAesEncryptRound(third, roundKey)
+            fourth = Swag.vecAesEncryptRound(fourth, roundKey)
+        }
+    }
+
+    #[Swag.Mixin]
+    func writeCiphertext(offset: u64)
+    {
+        scope
+        {
+            let input  = source.buffer + offset
+            let output = destination.buffer + offset
+            first  = Swag.vecAesEncryptLastRound(first, final) ^ load(input)
+            second = Swag.vecAesEncryptLastRound(second, final) ^ load(input + 16)
+            third  = Swag.vecAesEncryptLastRound(third, final) ^ load(input + 32)
+            fourth = Swag.vecAesEncryptLastRound(fourth, final) ^ load(input + 48)
+            store(output, first)
+            store(output + 16, second)
+            store(output + 32, third)
+            store(output + 48, fourth)
+        }
+    }
+
+    for round in 1 until numRounds do
+        applyRound(round)
+    writeCiphertext(0)
+    let fullBatchBytes = source.count & ~63'u64
+    for batch in 1 until fullBatchBytes / 64
+    {
+        let offset         = batch * 64
+        let block          = batch * 4
+        let previousFirst  = first
+        let previousSecond = second
+        let previousThird  = third
+        let previousFourth = fourth
+        first  = aesGcmHardwareCounter(prefix, block) ^ initial
+        second = aesGcmHardwareCounter(prefix, block + 1) ^ initial
+        third  = aesGcmHardwareCounter(prefix, block + 2) ^ initial
+        fourth = aesGcmHardwareCounter(prefix, block + 3) ^ initial
+        var low, high, cross: U64x2
+        // Carry-less products for the previous ciphertext can issue between the next AES rounds.
+        applyRound(1)
+        aesGcmGhashAddProduct(&low, &high, &cross, authenticator ^ aesGcmGhashWords(previousFirst), key4)
+        applyRound(2)
+        applyRound(3)
+        aesGcmGhashAddProduct(&low, &high, &cross, aesGcmGhashWords(previousSecond), key3)
+        applyRound(4)
+        applyRound(5)
+        aesGcmGhashAddProduct(&low, &high, &cross, aesGcmGhashWords(previousThird), key2)
+        applyRound(6)
+        applyRound(7)
+        aesGcmGhashAddProduct(&low, &high, &cross, aesGcmGhashWords(previousFourth), key)
+        for round in 8 until numRounds do
+            applyRound(round)
+        authenticator = aesGcmGhashReduceProducts(low, high, cross)
+        writeCiphertext(offset)
+    }
+
+    var low, high, cross: U64x2
+    aesGcmGhashAddProduct(&low, &high, &cross, authenticator ^ aesGcmGhashWords(first), key4)
+    aesGcmGhashAddProduct(&low, &high, &cross, aesGcmGhashWords(second), key3)
+    aesGcmGhashAddProduct(&low, &high, &cross, aesGcmGhashWords(third), key2)
+    aesGcmGhashAddProduct(&low, &high, &cross, aesGcmGhashWords(fourth), key)
+    authenticator = aesGcmGhashReduceProducts(low, high, cross)
+    store(&state[][0], aesGcmReverseBytes(cast #bit (U8x16, authenticator)))
+    let tailBytes = source.count - fullBatchBytes
+    if tailBytes
+    {
+        aesXorCounterBlocksHardware'32(aes, prefix, source, destination, fullBatchBytes / 16, (tailBytes + 15) / 16)
+        aesGcmGhashData(state, hashKey, destination[fullBatchBytes until])
+    }
 }
 
 private func aesGcmCryptBlocks(aes: *Aes, nonce: const [..] u8, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64) fail
@@ -379,10 +492,9 @@ private func aesGcmCryptBlocks(aes: *Aes, nonce: const [..] u8, source: const [.
 
 private func aesGcmCrypt(aes: *Aes, nonce: const [..] u8, source: const [..] u8, destination: [..] u8) fail
 {
-    const ParallelThreshold = 64 * 1024
-    const BatchBlocks       = 1024
+    const BatchBlocks = 1024
     let blockCount = source.count / 16 + cast(u64, (source.count % 16) != 0)
-    if source.count < ParallelThreshold or Swag.workerCount() <= 1
+    if source.count < AesGcmParallelThreshold or Swag.workerCount() <= 1
     {
         try aesGcmCryptBlocks(aes, nonce, source, destination, 0, blockCount)
         return
@@ -424,9 +536,18 @@ func aesGcmEncrypt(key, nonce, associatedData, plaintext: const [..] u8, ciphert
     defer Crypto.secureClear(hashKey)
     var initialHash = try aesGcmInitialHash(hashKey, associatedData)
     defer Crypto.secureClear(initialHash)
-    try aesGcmCrypt(&aes, nonceCopy, plaintext, ciphertext)
-
-    let computedTag = try aesGcmTag(&aes, nonceCopy, associatedData, hashKey, initialHash, ciphertext)
+    var computedTag: [AesGcmTagSize] u8
+    if plaintext.count >= 128 and aes.usesHardwareRounds() and Swag.hasCpuFeature(.CarrylessMultiply) and
+       (plaintext.count < AesGcmParallelThreshold or Swag.workerCount() <= 1)
+    {
+        aesGcmCryptAndHashHardware(&aes, nonceCopy, plaintext, ciphertext, hashKey, &initialHash)
+        computedTag = try aesGcmFinishTag(&aes, nonceCopy, associatedData.count, ciphertext.count, hashKey, &initialHash)
+    }
+    else
+    {
+        try aesGcmCrypt(&aes, nonceCopy, plaintext, ciphertext)
+        computedTag = try aesGcmTag(&aes, nonceCopy, associatedData, hashKey, initialHash, ciphertext)
+    }
     Swag.memcpy(tag.buffer, &computedTag[0], AesGcmTagSize)
     Crypto.secureClear(computedTag)
 }

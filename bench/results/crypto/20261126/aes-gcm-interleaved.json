@@ -1,0 +1,1188 @@
+{
+  "utc": "2026-11-26T13:40:38.163153+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 2,
+  "affinity": [
+    2
+  ],
+  "workers": {
+    "current": 1,
+    "interleaved": 1,
+    "aesni-reference": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "dee64c74fe4097a71b7455e9df1a67d2c69721ae3fdf60239166590a885125f4",
+  "swag_builds": {
+    "current": "e0335d2a051d270ce3000bf7aa0d3f45707f01122ba7f17557beb7070da8d949",
+    "interleaved": "fc958deb76f483299fd09ce722df045df547f4376a53a0264ada193c3e1d2a4f",
+    "aesni-reference": "2cc1fc31666e0e2fd5d181f851ca03fc512fc08f1901315914db4482c8b247ca"
+  },
+  "rounds": 11,
+  "target_ms": 25,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "142b56eb233b8b0e92bac4d814537439a4e30528bd59e96eec0ea8b623085612",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 71387,
+          "wall": [
+            0.032699471,
+            0.03876408,
+            0.0328379,
+            0.032965262,
+            0.032847685,
+            0.033011843,
+            0.033009479,
+            0.033435542,
+            0.03403819,
+            0.051162044,
+            0.034936376
+          ],
+          "cpu": [
+            0.024646856,
+            0.025386036,
+            0.024761706,
+            0.02491254,
+            0.024793072,
+            0.024966259,
+            0.024953611,
+            0.025411393,
+            0.025992439,
+            0.03940315,
+            0.026869214
+          ]
+        },
+        "current": {
+          "iterations": 72277,
+          "wall": [
+            0.031761767,
+            0.035824806,
+            0.032267099,
+            0.031713113,
+            0.031750921,
+            0.027528811,
+            0.033398275,
+            0.032145135,
+            0.034940712,
+            0.053247755,
+            0.033066926
+          ],
+          "cpu": [
+            0.02370356,
+            0.027807641,
+            0.023409543,
+            0.023671273,
+            0.023666976,
+            0.023480637,
+            0.025330734,
+            0.02407928,
+            0.023970807,
+            0.041207131,
+            0.023324115
+          ]
+        },
+        "interleaved": {
+          "iterations": 74201,
+          "wall": [
+            0.032145295,
+            0.0321486,
+            0.032343454,
+            0.032521012,
+            0.033861314,
+            0.035459776,
+            0.032638259,
+            0.032276573,
+            0.033017681,
+            0.039273394,
+            0.033677717
+          ],
+          "cpu": [
+            0.024021984,
+            0.024101493,
+            0.024309512,
+            0.024476261,
+            0.024387728,
+            0.02683257,
+            0.024596351,
+            0.024065799,
+            0.024917737,
+            0.031230163,
+            0.025617621
+          ]
+        },
+        "aesni-reference": {
+          "iterations": 58708,
+          "wall": [
+            0.032419499,
+            0.032760323,
+            0.032627202,
+            0.032965432,
+            0.040714392,
+            0.032728234,
+            0.033093355,
+            0.033456222,
+            0.040856437,
+            0.042837946,
+            0.032728435
+          ],
+          "cpu": [
+            0.024357836,
+            0.024714045,
+            0.024591764,
+            0.024931228,
+            0.026843506,
+            0.024709228,
+            0.025058157,
+            0.025416161,
+            0.027512002,
+            0.029139185,
+            0.024676238
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "interleaved",
+          "OpenSSL",
+          "current",
+          "aesni-reference"
+        ],
+        [
+          "current",
+          "OpenSSL",
+          "interleaved",
+          "aesni-reference"
+        ],
+        [
+          "current",
+          "OpenSSL",
+          "interleaved",
+          "aesni-reference"
+        ],
+        [
+          "OpenSSL",
+          "aesni-reference",
+          "current",
+          "interleaved"
+        ],
+        [
+          "OpenSSL",
+          "current",
+          "aesni-reference",
+          "interleaved"
+        ],
+        [
+          "aesni-reference",
+          "interleaved",
+          "current",
+          "OpenSSL"
+        ],
+        [
+          "current",
+          "OpenSSL",
+          "interleaved",
+          "aesni-reference"
+        ],
+        [
+          "aesni-reference",
+          "current",
+          "OpenSSL",
+          "interleaved"
+        ],
+        [
+          "interleaved",
+          "current",
+          "OpenSSL",
+          "aesni-reference"
+        ],
+        [
+          "OpenSSL",
+          "interleaved",
+          "aesni-reference",
+          "current"
+        ],
+        [
+          "OpenSSL",
+          "interleaved",
+          "aesni-reference",
+          "current"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 128,
+      "offset": 0,
+      "input_sha256": "c3f1487055db249295bd5ea4794ac64a5da6402ef281912f92512675957310ff",
+      "output_sha256": "05fa28b789d7cd75c4e419b5ed7d92704dd1935265362179bfd76504ce7a0acb",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 69399,
+          "wall": [
+            0.036270649,
+            0.047886653,
+            0.03257289,
+            0.032862307,
+            0.028644463,
+            0.03301652,
+            0.032715506,
+            0.032551618,
+            0.032763267,
+            0.033153276,
+            0.03266487
+          ],
+          "cpu": [
+            0.028153557,
+            0.03583715,
+            0.024512745,
+            0.024813734,
+            0.024627686,
+            0.024955735,
+            0.024660895,
+            0.024543872,
+            0.024694006,
+            0.024629618,
+            0.024600998
+          ]
+        },
+        "current": {
+          "iterations": 67870,
+          "wall": [
+            0.030539523,
+            0.030658672,
+            0.033805394,
+            0.030567775,
+            0.032185846,
+            0.036375687,
+            0.030680645,
+            0.047295972,
+            0.032415914,
+            0.026541411,
+            0.030303146
+          ],
+          "cpu": [
+            0.023956517,
+            0.022634879,
+            0.025764214,
+            0.02250744,
+            0.032183038,
+            0.022451766,
+            0.02242838,
+            0.035226702,
+            0.022453999,
+            0.02252882,
+            0.023633085
+          ]
+        },
+        "interleaved": {
+          "iterations": 78958,
+          "wall": [
+            0.044833918,
+            0.031955859,
+            0.031588405,
+            0.032162641,
+            0.047627242,
+            0.028439915,
+            0.047549024,
+            0.03283123,
+            0.032114959,
+            0.035790385,
+            0.032437116
+          ],
+          "cpu": [
+            0.032731235,
+            0.02387778,
+            0.0235429,
+            0.024104286,
+            0.035582219,
+            0.028437239,
+            0.035474439,
+            0.024762057,
+            0.024054933,
+            0.023815027,
+            0.023761547
+          ]
+        },
+        "aesni-reference": {
+          "iterations": 56969,
+          "wall": [
+            0.032780914,
+            0.033941585,
+            0.037450769,
+            0.032783408,
+            0.039050562,
+            0.024722247,
+            0.032887945,
+            0.04068969,
+            0.032707954,
+            0.032795937,
+            0.033202631
+          ],
+          "cpu": [
+            0.024713855,
+            0.025918768,
+            0.024806614,
+            0.024727174,
+            0.03904704,
+            0.024720424,
+            0.024841835,
+            0.026670074,
+            0.024674987,
+            0.024721207,
+            0.025134141
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "aesni-reference",
+          "current",
+          "OpenSSL",
+          "interleaved"
+        ],
+        [
+          "interleaved",
+          "aesni-reference",
+          "current",
+          "OpenSSL"
+        ],
+        [
+          "current",
+          "interleaved",
+          "aesni-reference",
+          "OpenSSL"
+        ],
+        [
+          "aesni-reference",
+          "interleaved",
+          "current",
+          "OpenSSL"
+        ],
+        [
+          "interleaved",
+          "OpenSSL",
+          "aesni-reference",
+          "current"
+        ],
+        [
+          "interleaved",
+          "aesni-reference",
+          "current",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "aesni-reference",
+          "interleaved",
+          "current"
+        ],
+        [
+          "interleaved",
+          "current",
+          "aesni-reference",
+          "OpenSSL"
+        ],
+        [
+          "aesni-reference",
+          "OpenSSL",
+          "interleaved",
+          "current"
+        ],
+        [
+          "aesni-reference",
+          "OpenSSL",
+          "interleaved",
+          "current"
+        ],
+        [
+          "OpenSSL",
+          "aesni-reference",
+          "interleaved",
+          "current"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 256,
+      "offset": 0,
+      "input_sha256": "f20d918c9f7e63430deddbbb8cea4d79972eafb79603e7f4d9725182a5d6ed88",
+      "output_sha256": "3d301b8cf6fd5d38077be2d6c1e32570b8f5c903bbee8de11d3176494083ba2b",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 67489,
+          "wall": [
+            0.032785041,
+            0.033304043,
+            0.032759331,
+            0.035324611,
+            0.040110952,
+            0.040436894,
+            0.033399326,
+            0.033048016,
+            0.03285153,
+            0.034541017,
+            0.033167196
+          ],
+          "cpu": [
+            0.024692963,
+            0.025263344,
+            0.024705992,
+            0.025684721,
+            0.030463337,
+            0.026378873,
+            0.025339576,
+            0.025014783,
+            0.024797219,
+            0.026200009,
+            0.025092388
+          ]
+        },
+        "current": {
+          "iterations": 57476,
+          "wall": [
+            0.025348892,
+            0.025756357,
+            0.033320348,
+            0.047412217,
+            0.030045087,
+            0.029581097,
+            0.031095952,
+            0.031036712,
+            0.026236764,
+            0.031429865,
+            0.025383568
+          ],
+          "cpu": [
+            0.021361443,
+            0.021725816,
+            0.025498623,
+            0.033095636,
+            0.021999492,
+            0.021531406,
+            0.023081454,
+            0.021263466,
+            0.022203427,
+            0.021812823,
+            0.021381803
+          ]
+        },
+        "interleaved": {
+          "iterations": 72750,
+          "wall": [
+            0.028451682,
+            0.043030376,
+            0.032483726,
+            0.039654995,
+            0.034993392,
+            0.033157753,
+            0.033776428,
+            0.033404694,
+            0.032755124,
+            0.034361296,
+            0.033078062
+          ],
+          "cpu": [
+            0.024425145,
+            0.035033854,
+            0.024325546,
+            0.028346225,
+            0.027009303,
+            0.025140742,
+            0.02505337,
+            0.025353076,
+            0.024698832,
+            0.02484481,
+            0.024961062
+          ]
+        },
+        "aesni-reference": {
+          "iterations": 52297,
+          "wall": [
+            0.032756668,
+            0.03356026,
+            0.032700784,
+            0.033430955,
+            0.036607257,
+            0.030279821,
+            0.033023829,
+            0.033038452,
+            0.03278608,
+            0.033015878,
+            0.033029879
+          ],
+          "cpu": [
+            0.024716369,
+            0.024759973,
+            0.024660605,
+            0.025363913,
+            0.025426877,
+            0.025166228,
+            0.025002265,
+            0.024984457,
+            0.024790389,
+            0.024941153,
+            0.025008844
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "current",
+          "interleaved",
+          "aesni-reference"
+        ],
+        [
+          "aesni-reference",
+          "interleaved",
+          "OpenSSL",
+          "current"
+        ],
+        [
+          "aesni-reference",
+          "interleaved",
+          "OpenSSL",
+          "current"
+        ],
+        [
+          "current",
+          "interleaved",
+          "OpenSSL",
+          "aesni-reference"
+        ],
+        [
+          "aesni-reference",
+          "current",
+          "OpenSSL",
+          "interleaved"
+        ],
+        [
+          "aesni-reference",
+          "current",
+          "interleaved",
+          "OpenSSL"
+        ],
+        [
+          "interleaved",
+          "OpenSSL",
+          "aesni-reference",
+          "current"
+        ],
+        [
+          "interleaved",
+          "aesni-reference",
+          "current",
+          "OpenSSL"
+        ],
+        [
+          "aesni-reference",
+          "current",
+          "OpenSSL",
+          "interleaved"
+        ],
+        [
+          "current",
+          "interleaved",
+          "OpenSSL",
+          "aesni-reference"
+        ],
+        [
+          "OpenSSL",
+          "interleaved",
+          "current",
+          "aesni-reference"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "4fdcd42881eef7df191040c0152fb84867acd9105dfe7fa1740b5629ac791669",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 32144,
+          "wall": [
+            0.034832708,
+            0.033953831,
+            0.033749323,
+            0.03353526,
+            0.033762013,
+            0.047798939,
+            0.035368886,
+            0.03937076,
+            0.034359173,
+            0.033308067,
+            0.034041123
+          ],
+          "cpu": [
+            0.026774322,
+            0.025883336,
+            0.025634716,
+            0.025482268,
+            0.025709668,
+            0.033143948,
+            0.027431682,
+            0.025948203,
+            0.026308259,
+            0.025274949,
+            0.025977036
+          ]
+        },
+        "current": {
+          "iterations": 15387,
+          "wall": [
+            0.030234313,
+            0.033701211,
+            0.03179744,
+            0.03291815,
+            0.032160207,
+            0.032114508,
+            0.031888918,
+            0.032809686,
+            0.032570926,
+            0.032667152,
+            0.033181287
+          ],
+          "cpu": [
+            0.023881435,
+            0.02563808,
+            0.023751802,
+            0.023966411,
+            0.024141914,
+            0.023990348,
+            0.023847535,
+            0.024766493,
+            0.024500916,
+            0.02462982,
+            0.025138818
+          ]
+        },
+        "interleaved": {
+          "iterations": 19156,
+          "wall": [
+            0.034155015,
+            0.033295128,
+            0.033152773,
+            0.033165122,
+            0.033494448,
+            0.03525901,
+            0.033649613,
+            0.033718516,
+            0.034593576,
+            0.033497774,
+            0.033638576
+          ],
+          "cpu": [
+            0.024921885,
+            0.025242271,
+            0.025083927,
+            0.025098327,
+            0.02547634,
+            0.027212326,
+            0.025595448,
+            0.02505974,
+            0.026556098,
+            0.025446497,
+            0.025580014
+          ]
+        },
+        "aesni-reference": {
+          "iterations": 19100,
+          "wall": [
+            0.033314257,
+            0.032992682,
+            0.033401849,
+            0.033453507,
+            0.033373967,
+            0.034421727,
+            0.044037978,
+            0.03491361,
+            0.033645046,
+            0.033265604,
+            0.03536521
+          ],
+          "cpu": [
+            0.02530811,
+            0.024954193,
+            0.025330822,
+            0.025373206,
+            0.025313989,
+            0.02636951,
+            0.031771196,
+            0.026912089,
+            0.025601506,
+            0.025215171,
+            0.025158027
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "aesni-reference",
+          "OpenSSL",
+          "interleaved",
+          "current"
+        ],
+        [
+          "interleaved",
+          "OpenSSL",
+          "current",
+          "aesni-reference"
+        ],
+        [
+          "aesni-reference",
+          "current",
+          "OpenSSL",
+          "interleaved"
+        ],
+        [
+          "interleaved",
+          "aesni-reference",
+          "current",
+          "OpenSSL"
+        ],
+        [
+          "aesni-reference",
+          "OpenSSL",
+          "current",
+          "interleaved"
+        ],
+        [
+          "current",
+          "interleaved",
+          "OpenSSL",
+          "aesni-reference"
+        ],
+        [
+          "OpenSSL",
+          "current",
+          "aesni-reference",
+          "interleaved"
+        ],
+        [
+          "aesni-reference",
+          "current",
+          "OpenSSL",
+          "interleaved"
+        ],
+        [
+          "OpenSSL",
+          "current",
+          "aesni-reference",
+          "interleaved"
+        ],
+        [
+          "interleaved",
+          "current",
+          "OpenSSL",
+          "aesni-reference"
+        ],
+        [
+          "OpenSSL",
+          "interleaved",
+          "current",
+          "aesni-reference"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 65536,
+      "offset": 0,
+      "input_sha256": "f9554b39b3292980513df4bc441c226ae0d9eefe56846162d0e9ff6792ffe656",
+      "output_sha256": "01194b081806e8b41d242af6a2c891de04f4685e1890e9bc53fbc8d676275118",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 3755,
+          "wall": [
+            0.024973679,
+            0.031064194,
+            0.029126171,
+            0.029293393,
+            0.029044065,
+            0.029126891,
+            0.029670491,
+            0.038044974,
+            0.029283757,
+            0.028877636,
+            0.028922853
+          ],
+          "cpu": [
+            0.024971148,
+            0.027008601,
+            0.025105807,
+            0.025247519,
+            0.025004768,
+            0.025093701,
+            0.025623059,
+            0.029996268,
+            0.025233207,
+            0.024834585,
+            0.024854734
+          ]
+        },
+        "current": {
+          "iterations": 1216,
+          "wall": [
+            0.024467527,
+            0.033679789,
+            0.02937014,
+            0.028724233,
+            0.028493995,
+            0.028421225,
+            0.02886842,
+            0.029248124,
+            0.028565494,
+            0.028739957,
+            0.028712425
+          ],
+          "cpu": [
+            0.024420809,
+            0.024707536,
+            0.02535577,
+            0.024667896,
+            0.024450844,
+            0.024400509,
+            0.024847595,
+            0.025232517,
+            0.024520016,
+            0.024694026,
+            0.02467667
+          ]
+        },
+        "interleaved": {
+          "iterations": 1338,
+          "wall": [
+            0.022581252,
+            0.029559285,
+            0.027180767,
+            0.027614277,
+            0.027594828,
+            0.026873779,
+            0.027125249,
+            0.026756563,
+            0.031766647,
+            0.027828151,
+            0.027020341
+          ],
+          "cpu": [
+            0.022579476,
+            0.023080362,
+            0.023171718,
+            0.023566996,
+            0.023554198,
+            0.022730149,
+            0.023092659,
+            0.022699385,
+            0.027106177,
+            0.023772794,
+            0.022989207
+          ]
+        },
+        "aesni-reference": {
+          "iterations": 1553,
+          "wall": [
+            0.023961704,
+            0.027227429,
+            0.027757016,
+            0.027828381,
+            0.027458112,
+            0.028000821,
+            0.027332702,
+            0.028080822,
+            0.029660817,
+            0.027321816,
+            0.027298391
+          ],
+          "cpu": [
+            0.023959952,
+            0.023211618,
+            0.023726345,
+            0.023784951,
+            0.023450864,
+            0.023956347,
+            0.023310635,
+            0.024026952,
+            0.025622949,
+            0.023283025,
+            0.023270275
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "current",
+          "interleaved",
+          "OpenSSL",
+          "aesni-reference"
+        ],
+        [
+          "interleaved",
+          "current",
+          "OpenSSL",
+          "aesni-reference"
+        ],
+        [
+          "interleaved",
+          "current",
+          "aesni-reference",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "current",
+          "aesni-reference",
+          "interleaved"
+        ],
+        [
+          "current",
+          "OpenSSL",
+          "interleaved",
+          "aesni-reference"
+        ],
+        [
+          "OpenSSL",
+          "aesni-reference",
+          "current",
+          "interleaved"
+        ],
+        [
+          "interleaved",
+          "current",
+          "aesni-reference",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "current",
+          "aesni-reference",
+          "interleaved"
+        ],
+        [
+          "current",
+          "OpenSSL",
+          "aesni-reference",
+          "interleaved"
+        ],
+        [
+          "current",
+          "OpenSSL",
+          "aesni-reference",
+          "interleaved"
+        ],
+        [
+          "OpenSSL",
+          "interleaved",
+          "aesni-reference",
+          "current"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 1048576,
+      "offset": 0,
+      "input_sha256": "1e8e8f15703ff175699f1e1588b5a85d378c7c1aa34a320c37dffae28c916b32",
+      "output_sha256": "5aba9fa773dec8c62b29404f76c05d9ee00f53663a29146aa6a8d8619bb536ca",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 247,
+          "wall": [
+            0.029315535,
+            0.029414336,
+            0.033152558,
+            0.033698452,
+            0.035161341,
+            0.034164696,
+            0.034552362,
+            0.033871943,
+            0.033693715,
+            0.039138294,
+            0.103625359
+          ],
+          "cpu": [
+            0.025310683,
+            0.025380988,
+            0.02514117,
+            0.025642517,
+            0.027113357,
+            0.026117025,
+            0.026496299,
+            0.025827443,
+            0.025671229,
+            0.025711671,
+            0.07504566
+          ]
+        },
+        "current": {
+          "iterations": 79,
+          "wall": [
+            0.032518751,
+            0.033582097,
+            0.033751862,
+            0.033164116,
+            0.035692112,
+            0.034904604,
+            0.034691001,
+            0.034442426,
+            0.033635196,
+            0.033290427,
+            0.034085216
+          ],
+          "cpu": [
+            0.025591071,
+            0.025529389,
+            0.025713041,
+            0.025138988,
+            0.027675856,
+            0.026860051,
+            0.026615936,
+            0.026365616,
+            0.025573254,
+            0.025245066,
+            0.026011076
+          ]
+        },
+        "interleaved": {
+          "iterations": 86,
+          "wall": [
+            0.026930886,
+            0.02309863,
+            0.03122581,
+            0.032095813,
+            0.03246434,
+            0.032649729,
+            0.032184527,
+            0.032588386,
+            0.032516547,
+            0.031873678,
+            0.03443354
+          ],
+          "cpu": [
+            0.022903809,
+            0.023060001,
+            0.023182523,
+            0.024043107,
+            0.024391064,
+            0.024553327,
+            0.024055874,
+            0.024554407,
+            0.02451561,
+            0.023814024,
+            0.026425503
+          ]
+        },
+        "aesni-reference": {
+          "iterations": 107,
+          "wall": [
+            0.029652604,
+            0.033317167,
+            0.033837162,
+            0.034089803,
+            0.040049831,
+            0.03402105,
+            0.034162913,
+            0.034493102,
+            0.033818994,
+            0.03349153,
+            0.034212394
+          ],
+          "cpu": [
+            0.02563664,
+            0.025288761,
+            0.025774073,
+            0.026043895,
+            0.027064476,
+            0.025989957,
+            0.026117415,
+            0.026433837,
+            0.025798542,
+            0.025450271,
+            0.026177553
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "aesni-reference",
+          "interleaved",
+          "OpenSSL",
+          "current"
+        ],
+        [
+          "OpenSSL",
+          "interleaved",
+          "current",
+          "aesni-reference"
+        ],
+        [
+          "current",
+          "interleaved",
+          "OpenSSL",
+          "aesni-reference"
+        ],
+        [
+          "OpenSSL",
+          "current",
+          "interleaved",
+          "aesni-reference"
+        ],
+        [
+          "current",
+          "OpenSSL",
+          "aesni-reference",
+          "interleaved"
+        ],
+        [
+          "aesni-reference",
+          "interleaved",
+          "current",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "aesni-reference",
+          "current",
+          "interleaved"
+        ],
+        [
+          "interleaved",
+          "OpenSSL",
+          "aesni-reference",
+          "current"
+        ],
+        [
+          "OpenSSL",
+          "interleaved",
+          "current",
+          "aesni-reference"
+        ],
+        [
+          "aesni-reference",
+          "current",
+          "interleaved",
+          "OpenSSL"
+        ],
+        [
+          "current",
+          "aesni-reference",
+          "interleaved",
+          "OpenSSL"
+        ]
+      ]
+    }
+  ]
+}

@@ -21,6 +21,15 @@ private func aesCtrAddCounter(counter: *[AesCtrCounterSize] u8, amount: u64)->bo
     return carry == 0
 }
 
+#[Swag.Inline]
+internal func aesGcmHardwareCounter(initial: U64x2, index: u64)->U8x16
+{
+    var words = cast #bit (U32x4, initial)
+    // GCM reserves counter one for its tag mask.
+    words[3] = Swag.byteSwap(cast(u32, index + 2))
+    return cast #bit (U8x16, words)
+}
+
 // The mode validates its full counter range before selecting the counter width.
 internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U64x2, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64)
 {
@@ -30,10 +39,7 @@ internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U
         #static if CounterBits == 32
         {
             discard low
-            var words = cast #bit (U32x4, initial)
-            // GCM reserves counter one for its tag mask.
-            words[3] = Swag.byteSwap(cast(u32, index + 2))
-            return cast #bit (U8x16, words)
+            return aesGcmHardwareCounter(initial, index)
         }
         else
         {

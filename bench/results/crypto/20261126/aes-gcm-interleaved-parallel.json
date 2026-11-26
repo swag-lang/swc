@@ -1,0 +1,121 @@
+{
+  "utc": "2026-11-26T13:41:38.752323+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 0,
+  "affinity": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "workers": {
+    "current": 4,
+    "interleaved": 4
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "dee64c74fe4097a71b7455e9df1a67d2c69721ae3fdf60239166590a885125f4",
+  "swag_builds": {
+    "current": "e0335d2a051d270ce3000bf7aa0d3f45707f01122ba7f17557beb7070da8d949",
+    "interleaved": "fc958deb76f483299fd09ce722df045df547f4376a53a0264ada193c3e1d2a4f"
+  },
+  "rounds": 0,
+  "target_ms": 50,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 145,
+      "offset": 1,
+      "input_sha256": "21bcae4430af21694414a49b48449cb76b5953d356ad08e6f5e5a147f6f13d2e",
+      "output_sha256": "0332a8fc89fca11c8fb46cd63f2501d57e3572e08091ec7b0811566e6b20e7f8",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 145,
+      "offset": 15,
+      "input_sha256": "ad32be64341c5b32a92aa0e9c8ac6fa5b7dbdeb3639f47e31dee5509597afd29",
+      "output_sha256": "2cc52d9e2b1f46938ef157acad87b9c9021d52ec20e96c0aade40e455bc0a9c5",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 65535,
+      "offset": 1,
+      "input_sha256": "b9baf4da14afb449c416e7b0d5f982c583bb64ef3ea8ca059f82892f814b549a",
+      "output_sha256": "d8fce3732f6b9b3e00a4e1af4866bb5c55897938c55ee4d491f75f71d4872eee",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 65535,
+      "offset": 15,
+      "input_sha256": "6f2f29ec2ba226eb382c36dd8511c5a93b6dffc9ca09637e7ba4a052d2259d03",
+      "output_sha256": "a780979fe62e5bffe6d8391167353e8a82ee891048796bc8973f5bb21226c2c6",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 65536,
+      "offset": 1,
+      "input_sha256": "5c082962e74048fc09e760e9dd56e0428081bf511fc87dc728e9714a2bb635f4",
+      "output_sha256": "dd097a1eee72d5f141dbd775094a4325d6c07418db2ad0f395214b574acfe373",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 65536,
+      "offset": 15,
+      "input_sha256": "38958924970c6812fecc2b3c9951f3559adb4967197eedd64b0145cfec806f4d",
+      "output_sha256": "d974a0ab9090c130b4f0458da1a4b68d99133d39eca7f93bacf7fd81a1510705",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 65537,
+      "offset": 1,
+      "input_sha256": "d43400f960537e92f98f63d902bbe7ec4f1968dab083b76a49b0f45c2424eafe",
+      "output_sha256": "36224c803d4f0e87745abc5dea2c1f5b56fd3959943fa504a9fef2ae61fc6ac0",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 65537,
+      "offset": 15,
+      "input_sha256": "2647556c34dc9e1cb0a75b67cf92fadb00c979283391ec80ea98d25e99f5ce40",
+      "output_sha256": "68e76a401239d4d75631d2aad033caf3410bee3911a29ef81e04973bf3f299f5",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 1048593,
+      "offset": 1,
+      "input_sha256": "8df098aeb805c4eb018c28583fade4b81a0b58bd158095a68906837834c083b0",
+      "output_sha256": "b5a6acac3f0a6fbab1def1731394adf303e711ed1c245a7e75a07d3576a448ba",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 1048593,
+      "offset": 15,
+      "input_sha256": "9dfd8e73abdda5f0e957b15b4fe3cb76b79510de22e67fe389bb837800abc2e4",
+      "output_sha256": "1b4247198d9abed3db29c1b537b5a08b58f39418afacbc40049d231735e4fa28",
+      "samples": {},
+      "round_order": []
+    }
+  ]
+}

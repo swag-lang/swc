@@ -146,3 +146,4 @@ optimizations moved each result.
 - [Constant-time byte equality](constant-time-equal.md)
 - [BLAKE3 C++ leaf SIMD width comparison](blake3-leaf-width.md)
 - [SHA-512 block batches and packed schedule additions](sha512-block-batch.md)
+- [Interleaved AES-GCM counter encryption and GHASH](aes-gcm-interleaved.md)

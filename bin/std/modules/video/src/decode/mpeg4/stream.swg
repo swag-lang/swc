@@ -30,7 +30,6 @@ private const HeldPictures = 4'u64
 struct Mpeg4Stream
 {
     decoder:        Decoder
-    config:         Array'u8
     frames:         Array'SampleEntry     // Samples in decoding order.
     sampleAtRank:   Array'u32             // Sample of each display rank, by container time.
     payload:        Array'u8
@@ -56,9 +55,7 @@ impl Mpeg4Stream
         if not config.count do
             fail InvalidFormatError{"MPEG-4 track has no decoder configuration"}
 
-        .config.clear()
-        .config.add(config)
-        try .decoder.configure(.config.toSlice())
+        try .decoder.configure(config)
         .width          = cast(s32, .decoder.layer.width)
         .height         = cast(s32, .decoder.layer.height)
         .lowDelay       = .decoder.layer.lowDelay

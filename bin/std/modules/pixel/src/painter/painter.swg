@@ -973,10 +973,34 @@ impl Painter
 
     private mtd aaHalfPathSpace(normal: Vector2)->f32
     {
-        let sc = .curState.transform.transformVector(normal).length() * .curContentScale
+        let device = .curState.transform.transformVector(normal)
+        let length = device.x == 0 ? Math.abs(device.y) :
+                     device.y == 0 ? Math.abs(device.x) : device.length()
+        let sc = length * .curContentScale
         if sc <= 0.001 do
             return AAHalf
         return AAHalf / sc
+    }
+
+    // Axis-aligned edges have an exact unit normal. Skip the length and normalization
+    // divisions for the two long edges and the butt ends of every small dash.
+    internal func strokeUnitVector(value: Vector2)->Vector2
+    {
+        if value.x == 0 and Math.isFinite(value.y)
+        {
+            if Math.isZeroEpsilon(value.y) do
+                return {}
+            return {value.x, value.y < 0 ? -1.0 : 1.0}
+        }
+
+        if value.y == 0 and Math.isFinite(value.x)
+        {
+            if Math.isZeroEpsilon(value.x) do
+                return {}
+            return {value.x < 0 ? -1.0 : 1.0, value.y}
+        }
+
+        return value.normalizedOrZero()
     }
 
     // Emit a centered antialiasing fringe along the edge (startx,starty)-(endx,endy)
@@ -993,9 +1017,8 @@ impl Painter
 
         // Outward normal: perpendicular to the edge, pointing away from the centroid.
         let centroid = (v0[0].pos + v0[1].pos + v0[2].pos) * (1.0 / 3.0)
-        var n        = Vector2{q.y - p.y, p.x - q.x}
-        n.normalizeOrZero()
-        let mid = (p + q) * 0.5
+        var n        = strokeUnitVector({q.y - p.y, p.x - q.x})
+        let mid      = (p + q) * 0.5
         if n.dot(mid - centroid) < 0 do
             n = -n
 
@@ -1018,8 +1041,7 @@ impl Painter
     #[Swag.Safety(.All, false)]
     private mtd addEdgeAAFlipped(p, q: Vector2, flip: bool, color: u32)
     {
-        var n = Vector2{q.y - p.y, p.x - q.x}
-        n.normalizeOrZero()
+        var n = strokeUnitVector({q.y - p.y, p.x - q.x})
         if flip do
             n = -n
 

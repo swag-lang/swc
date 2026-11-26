@@ -528,6 +528,20 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   stream read and decode. Swag materializes the images and their mask at the stored
   resolution. PDFium supports reduced-scale JPEG decoding and can request a higher
   resolution when needed. [PDFium JPEG decoding](https://pdfium.googlesource.com/pdfium/+/refs/heads/main/core/fpdfapi/page/cpdf_dib.cpp#562)
+- Against `eab46cd563`, the sampled stroke optimizations take `sample3.pdf` from 46.09
+  to 43.75 ms at 1200 px and from 77.51 to 74.89 ms at 2400 px. The same one-core
+  PDFium 159 runs take 11.96 and 18.71 ms. These are medians of 14 interleaved
+  measurements after warm-up. Both paths reopen the file and materialize the first
+  page as BGRA each time.
+
+  At 1200 px, about 21,000 of the 50,500 solid-stroke triangles on that page have no
+  pixel centre inside their axis-aligned bounds. The CPU renderer rejects those
+  triangles before accumulating coverage and uses the painter's recorded extrema to
+  bound axis-aligned batches. Short spans reuse their edge values for coverage. The
+  raster comparison matches byte for byte on every FileSamples document at 600,
+  1200, and 2400 px. Timing changes on `sample1.pdf` and `sample2.pdf` were small.
+  The painter still emits the full dash geometry. Caching character-to-glyph
+  lookups during PDF recording showed little benefit in isolation.
 - Measure direct scan conversion of dash patterns and size-aware JPEG decoding with the
   encoded image retained for later zoom levels. Profile text recording and the remaining
   image sampling on `sample2`.

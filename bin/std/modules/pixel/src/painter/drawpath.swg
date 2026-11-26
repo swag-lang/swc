@@ -561,7 +561,7 @@ impl Painter
         // the last normal
         if not n.isZeroEpsilon()
         {
-            n.normalize()
+            n          = strokeUnitVector(n)
             cxt.dir    = n
             cxt.normal = n.cross(1)
             cxt.normal *= cxt.penSize2

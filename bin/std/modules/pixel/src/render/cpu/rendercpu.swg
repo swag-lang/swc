@@ -438,22 +438,35 @@ private impl RenderCpu
 
     // Returns the pixels a triangle range can touch, clipped to the target and the scissor.
     //
-    // Rounding matches [[Pixel.RenderCpu.drawTriangle]] exactly, so the result is a superset of
-    // the pixels the range actually shades. It bounds the scratch resets of the overlap passes
-    // and the band split of the parallel rasterizer.
-    mtd triangleRangeBounds(image: *Image, painter: *Painter, start, count: u32)->PixelBounds
+    // Rounding matches drawTriangleBatch. The result bounds scratch resets and band splits.
+    mtd triangleRangeBounds(image: *Image, painter: *Painter, triangles: const *TriangleBatch, transform: Transform2)->PixelBounds
     {
-        let transform = .deviceTransform()
-
         var lowest  = Vector2.Max
         var highest = Vector2.Min
-        for var i = start; i < start + count; i += 1
+
+        // Each output axis depends on one input axis, so transforming the recorded
+        // extrema gives exactly the same bounds as transforming every vertex.
+        let axisAligned = (transform.m12 == 0 and transform.m21 == 0) or
+                          (transform.m11 == 0 and transform.m22 == 0)
+        if axisAligned
         {
-            let p = transform.transformPoint(painter.vertexBuffer[i].pos)
-            lowest.x  = Math.min(lowest.x, p.x)
-            lowest.y  = Math.min(lowest.y, p.y)
-            highest.x = Math.max(highest.x, p.x)
-            highest.y = Math.max(highest.y, p.y)
+            let first = transform.transformPoint(triangles.bbMin)
+            let last  = transform.transformPoint(triangles.bbMax)
+            lowest  = {Math.min(first.x, last.x), Math.min(first.y, last.y)}
+            highest = {Math.max(first.x, last.x), Math.max(first.y, last.y)}
+        }
+        else
+        {
+            let start = triangles.start
+            let end   = start + triangles.count
+            for var i = start; i < end; i += 1
+            {
+                let p = transform.transformPoint(painter.vertexBuffer[i].pos)
+                lowest.x  = Math.min(lowest.x, p.x)
+                lowest.y  = Math.min(lowest.y, p.y)
+                highest.x = Math.max(highest.x, p.x)
+                highest.y = Math.max(highest.y, p.y)
+            }
         }
 
         var result: #returntype
@@ -1974,8 +1987,29 @@ private impl RenderCpu
 
         if let rows = batch.overlapRows
         {
+            var bounds = PixelBounds{minX: minX, minY: minY, maxX: maxX, maxY: maxY}
+
+            // The sides of an axis-aligned stroke triangle can reject whole columns and
+            // rows. Subpixel dashes often have no pixel centre between those sides.
+            // Boundary samples still go through the normal edge tie rule.
+            if (maxX - minX < 2 or maxY - minY < 2) and
+               (p0.x == p1.x or p0.x == p2.x or p1.x == p2.x) and
+               (p0.y == p1.y or p0.y == p2.y or p1.y == p2.y)
+            {
+                if cast(f32, minX) + 0.5 < Math.min(p0.x, p1.x, p2.x) do
+                    bounds.minX += 1
+                if cast(f32, maxX) + 0.5 > Math.max(p0.x, p1.x, p2.x) do
+                    bounds.maxX -= 1
+                if cast(f32, minY) + 0.5 < Math.min(p0.y, p1.y, p2.y) do
+                    bounds.minY += 1
+                if cast(f32, maxY) + 0.5 > Math.max(p0.y, p1.y, p2.y) do
+                    bounds.maxY -= 1
+                if bounds.isEmpty() do
+                    return
+            }
+
             let triangle = TriangleSpan{
-                bounds: {minX: minX, minY: minY, maxX: maxX, maxY: maxY},
+                bounds: bounds,
                 origin: [edge0Origin, edge1Origin, edge2Origin],
                 dx: [dx0, dx1, dx2], dy: [dy0, dy1, dy2],
                 topLeft: [edge0TopLeft, edge1TopLeft, edge2TopLeft], invArea: invArea}
@@ -2500,6 +2534,7 @@ private impl RenderCpu
         let mask         = .overlapAlpha.storage()
         let stencil      = .stencilOn
         let needCoverage = .program == CpuProgram_Default
+        let trim         = bounds.maxX - bounds.minX >= 4
         for y in bounds.minY until bounds.maxY + 1
         {
             let sy = cast(f32, y) + 0.5
@@ -2515,9 +2550,13 @@ private impl RenderCpu
                 narrowEdgeSpan(&x0, &x1, -dy[2], c2, origin[2].x)
             }
 
-            trimEdgeSpan(&x0, &x1, -dy[0], c0, origin[0].x, topLeft[0])
-            trimEdgeSpan(&x0, &x1, -dy[1], c1, origin[1].x, topLeft[1])
-            trimEdgeSpan(&x0, &x1, -dy[2], c2, origin[2].x, topLeft[2])
+            if trim
+            {
+                trimEdgeSpan(&x0, &x1, -dy[0], c0, origin[0].x, topLeft[0])
+                trimEdgeSpan(&x0, &x1, -dy[1], c1, origin[1].x, topLeft[1])
+                trimEdgeSpan(&x0, &x1, -dy[2], c2, origin[2].x, topLeft[2])
+            }
+
             if x0 > x1 do
                 continue
 
@@ -2534,14 +2573,26 @@ private impl RenderCpu
                     continue
 
                 var ink = alpha
-                if needCoverage
+                if needCoverage or not trim
                 {
-                    let sx  = cast(f32, x) + 0.5
-                    let w0  = Math.mulAdd(-dy[0], sx - origin[0].x, c0) * invArea
-                    let w1  = Math.mulAdd(-dy[1], sx - origin[1].x, c1) * invArea
-                    let w2  = Math.mulAdd(-dy[2], sx - origin[2].x, c2) * invArea
-                    let cov = Math.saturate(signedCoverage(coverage[0] * w0 + coverage[1] * w1 + coverage[2] * w2) / covWidth + 0.5)
-                    ink = coverageAlpha(alpha, cov)
+                    let sx = cast(f32, x) + 0.5
+                    let e0 = Math.mulAdd(-dy[0], sx - origin[0].x, c0)
+                    let e1 = Math.mulAdd(-dy[1], sx - origin[1].x, c1)
+                    let e2 = Math.mulAdd(-dy[2], sx - origin[2].x, c2)
+                    if not trim and
+                       (not insideEdge(e0, topLeft[0]) or
+                        not insideEdge(e1, topLeft[1]) or
+                        not insideEdge(e2, topLeft[2])) do
+                        continue
+
+                    if needCoverage
+                    {
+                        let w0  = e0 * invArea
+                        let w1  = e1 * invArea
+                        let w2  = e2 * invArea
+                        let cov = Math.saturate(signedCoverage(coverage[0] * w0 + coverage[1] * w1 + coverage[2] * w2) / covWidth + 0.5)
+                        ink = coverageAlpha(alpha, cov)
+                    }
                 }
 
                 let clipped = cast(u8, (cast(u32, ink) * clip / 255))
@@ -2851,13 +2902,13 @@ private impl RenderCpu
     // Resolves everything a triangle range needs exactly once: transform, clip, target bytes,
     // stencil plane, paint texture, and font atlas. Command state cannot change inside a range,
     // so per-pixel work then reads plain locals.
-    mtd setupBatch(batch: *RasterBatch, image: *Image, painter: *Painter, start, count: u32)
+    mtd setupBatch(batch: *RasterBatch, image: *Image, painter: *Painter, triangles: const *TriangleBatch, transform: Transform2)
     {
         batch.image     = image
         batch.painter   = painter
-        batch.start     = start
-        batch.count     = count
-        batch.transform = .deviceTransform()
+        batch.start     = triangles.start
+        batch.count     = triangles.count
+        batch.transform = transform
         batch.pixels    = image.pixels.storage()
         batch.rowStride = image.rowStride
         batch.width     = image.width
@@ -3297,10 +3348,10 @@ private impl RenderCpu
         return true
     }
 
-    mtd drawTriangles(painter: *Painter, start, count: u32)
+    mtd drawTriangles(painter: *Painter, triangles: const *TriangleBatch)
     {
         let image = .currentImage()
-        if not image or count < 3 do
+        if not image or triangles.count < 3 do
             return
 
         // A direct serial draw clips each triangle anyway. A range-wide walk is only needed
@@ -3310,8 +3361,9 @@ private impl RenderCpu
                          .overlapMode or
                          .program == CpuProgram_Backdrop or
                          Swag.workerCount() > 1
-        let bounds = needsRange ? .triangleRangeBounds(image, painter, start, count) :
-                     PixelBounds{minX: 0, minY: 0, maxX: image.width - 1, maxY: image.height - 1}
+        let transform = .deviceTransform()
+        let bounds    = needsRange ? .triangleRangeBounds(image, painter, triangles, transform) :
+                        PixelBounds{minX: 0, minY: 0, maxX: image.width - 1, maxY: image.height - 1}
         if bounds.isEmpty() do
             return
 
@@ -3333,7 +3385,7 @@ private impl RenderCpu
         }
 
         var batch: RasterBatch
-        .setupBatch(&batch, image, painter, start, count)
+        .setupBatch(&batch, image, painter, triangles, transform)
         if .tryDrawSolidRect(&batch, bounds) or
            .tryDrawTextureRect(&batch) or
            .tryResolveTextureRect(&batch) do
@@ -3849,7 +3901,7 @@ private impl RenderCpu
             .overlapMode = false
 
         case .DrawTriangles:
-            .drawTriangles(painter, cmd.drawTriangles.start, cmd.drawTriangles.count)
+            .drawTriangles(painter, &cmd.drawTriangles)
 
         case .StartFont:
             .program = CpuProgram_Font

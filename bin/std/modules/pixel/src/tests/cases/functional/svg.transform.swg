@@ -104,3 +104,21 @@ private func inkBounds(source: string, side = 100's32)->{ minX, minY, maxX, maxY
     Swag.require(leaning.area > upright.area and leaning.area < quarter.area)
     Swag.require(leaning.minX < upright.minX)
 }
+
+// Relative control points under an affine transform match the mapped coordinates.
+#test
+{
+    let transformed = expect Svg.Drawing.parse("""
+        <svg width='64' height='64'>
+          <path fill='#286490' transform='matrix(1.25 .5 -.25 .75 8 6)' d='M8 10c4-8 22 8 26-2q-4 26-22 24z'/>
+        </svg>""")
+    let mapped = expect Svg.Drawing.parse("""
+        <svg width='64' height='64'>
+          <path fill='#286490' d='M15.5 17.5C22.5 13.5 41 34.5 48.5 29Q37 46.5 15 36Z'/>
+        </svg>""")
+    let first  = transformed.rasterize(64, 64, 2)
+    let second = mapped.rasterize(64, 64, 2)
+    Swag.require(first.pixelColor(24, 26).a > 0)
+    for byte, index in first.pixels do
+        Swag.require(byte == second.pixels[index])
+}

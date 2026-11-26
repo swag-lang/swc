@@ -1623,9 +1623,14 @@ private func prependTranslation(transform: Math.Transform2, x, y: f32)->Math.Tra
     return result
 }
 
-// Maps one user-space point into drawing space.
+// Maps path coordinates in place in the parser, with the same operation order as Transform2.
 #[Swag.Inline]
-private func mapPoint(state: *GroupState, x, y: f32)->Vector2 => state.transform.transformPoint(Vector2{x, y})
+private func mapPoint(state: *GroupState, x, y: f32)->Vector2
+{
+    let transform = &state.transform
+    return {x * transform.m11 + y * transform.m21 + transform.tx,
+            x * transform.m12 + y * transform.m22 + transform.ty}
+}
 
 // The single length scale a transform applies, as the square root of the area it multiplies.
 //

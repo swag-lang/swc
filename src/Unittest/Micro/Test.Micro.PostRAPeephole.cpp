@@ -1754,6 +1754,42 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsIndexedAddressIntoNextLoad)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FoldsSharedIndexedAddressWhenInputsStayLive)
+{
+    constexpr MicroReg base    = MicroReg::intReg(8);
+    constexpr MicroReg index   = MicroReg::intReg(9);
+    constexpr MicroReg address = MicroReg::intReg(10);
+    constexpr MicroReg value   = MicroReg::intReg(11);
+    constexpr MicroReg sum     = MicroReg::intReg(0);
+    const MicroReg     stack   = CallConv::get(CallConvKind::Swag).stackPointer;
+
+    for (const uint32_t variant : {0u, 1u, 2u})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAddressAmcRegMem(address, MicroOpBits::B64, base, index, 4, 0, MicroOpBits::B64);
+        builder.emitLoadZeroExtendRegMem(value, address, 0, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitOpBinaryRegReg(sum, value, MicroOp::Add, MicroOpBits::B64);
+        if (variant == 1)
+            builder.emitOpBinaryRegImm(base, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadZeroExtendRegMem(value, address, 1, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitOpBinaryRegReg(sum, value, MicroOp::Add, MicroOpBits::B64);
+        const MicroReg last = variant == 2 ? value : address;
+        builder.emitLoadZeroExtendRegMem(last, address, 2, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitOpBinaryRegReg(sum, last, MicroOp::Add, MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitLoadMemReg(stack, 8, address, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrAmcRegMem) != (variant == 0 ? 0u : 1u) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtAmcRegMem) != (variant == 0 ? 3u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FoldsPointerAddIntoNextLoad)
 {
     constexpr MicroReg table    = MicroReg::intReg(10);

@@ -2007,28 +2007,24 @@ namespace PostRaPeephole
         return true;
     }
 
-    // Folds the address `base + index*scale + disp`, computed into `address`
-    // by the instruction at `addressRef`, into the load right after it. The
-    // load reads base and index at the same point the address did, so the
-    // only condition is that no later instruction reads `address`: the load
-    // overwrites it, or liveness proves it dead.
-    static bool foldAddressIntoNextLoad(Context& ctx, const MicroInstrRef addressRef, const MicroReg address, const MicroReg base, const MicroReg index, const uint64_t scale, const uint64_t disp)
+    struct IndexedLoad
     {
-        if (scale != 1 && scale != 2 && scale != 4 && scale != 8)
-            return false;
+        MicroInstrRef     ref;
+        MicroInstrOpcode  op;
+        MicroInstrOperand operands[7] = {};
+    };
 
-        const MicroInstrRef loadRef = ctx.nextRef(addressRef);
-        const MicroInstr*   load    = ctx.instruction(loadRef);
-        const auto*         loadOps = load ? load->ops(*ctx.operands) : nullptr;
-        if (!load || !loadOps || ctx.isClaimed(loadRef))
+    static bool indexedLoad(IndexedLoad& out, const Context& ctx, const MicroInstr& load, const MicroReg address, const MicroReg base, const MicroReg index, const uint64_t scale, const uint64_t disp)
+    {
+        const auto* loadOps = load.ops(*ctx.operands);
+        if (!loadOps)
             return false;
-
         // Base + offset layouts: [dst, base, bits, offset] for a plain load,
         // [dst, base, dstBits, srcBits, offset] for an extending one.
-        MicroInstrOpcode  indexedOp = MicroInstrOpcode::Nop;
-        MicroInstrOperand folded[7] = {};
+        MicroInstrOpcode& indexedOp = out.op;
+        auto&             folded    = out.operands;
         uint64_t          offset    = 0;
-        switch (load->op)
+        switch (load.op)
         {
             case MicroInstrOpcode::LoadRegMem:
                 indexedOp        = MicroInstrOpcode::LoadAmcRegMem;
@@ -2068,8 +2064,7 @@ namespace PostRaPeephole
         }
 
         const MicroReg result = loadOps[0].reg;
-        if (loadOps[1].reg != address || !result.isInt() || ctx.isPrivateFrameBase(result) ||
-            (result != address && !ctx.isRegDeadAfter(address, ctx.instructionIndex + 1)))
+        if (loadOps[1].reg != address || !result.isInt() || ctx.isPrivateFrameBase(result))
             return false;
         const int64_t displacement = static_cast<int64_t>(disp + offset);
         if (displacement != static_cast<int64_t>(static_cast<int32_t>(displacement)))
@@ -2084,19 +2079,68 @@ namespace PostRaPeephole
         probe.op          = indexedOp;
         probe.numOperands = 7;
         MicroConformanceIssue issue;
-        if (ctx.encoder->queryConformanceIssue(issue, probe, folded) || !ctx.claimAll({addressRef, loadRef}))
-            return false;
-        ctx.emitRewrite(loadRef, indexedOp, folded, true);
-        ctx.emitErase(addressRef);
-        return true;
+        return !ctx.encoder->queryConformanceIssue(issue, probe, folded);
     }
 
-    // An indexed address read once, by the load right after it, can be the
-    // load's own operand:
+    // Eliminate a common LEA when every live read of its value is one of
+    // a small number of loads with the same untouched base and index.
+    // Changing a register, branching or using the pointer as a value ends
+    // the proof. Keep shared nonzero displacements to avoid code growth.
+    static bool foldAddressIntoLoads(Context& ctx, const MicroInstrRef addressRef, const MicroReg address, const MicroReg base, const MicroReg index, const uint64_t scale, const uint64_t disp, const bool multiple)
+    {
+        if (scale != 1 && scale != 2 && scale != 4 && scale != 8)
+            return false;
+
+        constexpr uint32_t                 maxLoads      = 3;
+        const bool                         allowMultiple = multiple && address != base && address != index && disp == 0;
+        const uint32_t                     scanLength    = allowMultiple ? K_MAX_LIVENESS_WINDOW : 1;
+        SmallVector<IndexedLoad, maxLoads> loads;
+        SmallVector<MicroInstrRef, 16>     proof{addressRef};
+        MicroInstrRef                      ref = ctx.nextRef(addressRef);
+        for (uint32_t step = 1; ref.isValid() && step <= scanLength; ++step, ref = ctx.nextRef(ref))
+        {
+            const MicroInstr* inst = ctx.instruction(ref);
+            if (!inst || ctx.isClaimed(ref))
+                return false;
+            proof.push_back(ref);
+
+            IndexedLoad load{.ref = ref};
+            if (indexedLoad(load, ctx, *inst, address, base, index, scale, disp))
+            {
+                const MicroReg result = load.operands[0].reg;
+                loads.push_back(load);
+                if (result == address || ctx.isRegDeadAfter(address, ctx.instructionIndex + step))
+                {
+                    if (!ctx.claimAll(proof.span()))
+                        return false;
+                    for (const IndexedLoad& folded : loads)
+                        ctx.emitRewrite(folded.ref, folded.op, folded.operands, true);
+                    ctx.emitErase(addressRef);
+                    return true;
+                }
+                if (loads.size() == maxLoads || result == base || result == index)
+                    return false;
+                continue;
+            }
+            if (loads.empty())
+                return false;
+            const auto& info = MicroInstr::info(inst->op);
+            if (inst->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+            const auto useDef = inst->collectUseDef(*ctx.operands, ctx.encoder);
+            if (std::ranges::contains(useDef.uses, address) || std::ranges::contains(useDef.defs, address) ||
+                std::ranges::contains(useDef.defs, base) || std::ranges::contains(useDef.defs, index))
+                return false;
+        }
+        return false;
+    }
+
+    // An indexed address can become the operand of each of its loads:
     //
     //     lea   T, [B + I*s + d]
     //     movzx R, byte [T + k]   ->   movzx R, byte [B + I*s + d + k]
-    bool tryFoldIndexedAddressIntoNextLoad(Context& ctx, const MicroInstrRef addressRef, const MicroInstr& addressInst)
+    bool tryFoldIndexedAddressIntoLoads(Context& ctx, const MicroInstrRef addressRef, const MicroInstr& addressInst)
     {
         if (ctx.isClaimed(addressRef) || !ctx.encoder)
             return false;
@@ -2106,7 +2150,7 @@ namespace PostRaPeephole
             ctx.isPrivateFrameBase(address[0].reg) || ctx.isPrivateFrameBase(address[1].reg) ||
             ctx.isPrivateFrameBase(address[2].reg))
             return false;
-        return foldAddressIntoNextLoad(ctx, addressRef, address[0].reg, address[1].reg, address[2].reg, address[5].valueU64, address[6].valueU64);
+        return foldAddressIntoLoads(ctx, addressRef, address[0].reg, address[1].reg, address[2].reg, address[5].valueU64, address[6].valueU64, true);
     }
 
     // A pointer advanced in place by a register and then dereferenced once is
@@ -2136,7 +2180,7 @@ namespace PostRaPeephole
             base  = index;
             index = add[0].reg;
         }
-        return foldAddressIntoNextLoad(ctx, addRef, add[0].reg, base, index, 1, 0);
+        return foldAddressIntoLoads(ctx, addRef, add[0].reg, base, index, 1, 0, false);
     }
 
     // A field address advanced by a register is one indexed address:

@@ -1477,7 +1477,7 @@ namespace
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldScaledOffsetAddressAdd);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryShortenAddressAdd);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldScaledAdd);
-        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldIndexedAddressIntoNextLoad);
+        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldIndexedAddressIntoLoads);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldMaskedDoubleIntoAddress);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldPointerAddIntoNextLoad);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldAddIntoFieldAddress);

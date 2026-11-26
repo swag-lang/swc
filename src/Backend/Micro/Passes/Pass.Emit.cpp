@@ -37,18 +37,17 @@
 // In optimized code every loop header - a label some later jump returns to -
 // starts on a 16-byte boundary, as LLVM's block placement does on x86. Without
 // it, where a small loop body falls relative to the 32- and 64-byte fetch
-// windows is decided by the size and order of everything emitted before it: a
-// 16-byte scan loop straddling a cache line ran csvagg 20% slower than the same
-// bytes one line over. Functions start 16-byte aligned in both the native image
+// windows is decided by the size and order of everything emitted before it.
+// Crossing a fetch boundary can slow a short loop with identical instructions.
+// Functions start 16-byte aligned in both the native image
 // and the JIT, so an offset aligned here stays aligned once placed. The padding
 // before a header is executed once per loop entry, never per iteration.
 //
 // Alignment alone still leaves the branch that closes the loop wherever the body
 // puts it. When that branch - with the compare it fuses with - crosses a 32-byte
-// boundary or ends on one, the pair no longer issues as one fused operation, and
-// leven ran 12% slower with the same bytes 16 bytes over. This is the case LLVM's
-// branch alignment exists for (MCAssembler needPadding, X86 isMacroFused). Once the
-// branches are settled, such a loop's header is pinned to the other half of the
+// boundary or ends on one, the pair can stop issuing as one fused operation.
+// LLVM's branch alignment handles that case (MCAssembler needPadding, X86 isMacroFused).
+// Once the branches are settled, such a loop's header is pinned to the other half of the
 // 32-byte window (pinLoopBranchGroups) and the layout is redone; the function then
 // asks to start on a 32-byte boundary so the window measured here is the real one.
 

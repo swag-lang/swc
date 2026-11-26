@@ -268,9 +268,8 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
         // definition: the input slot stays free, so a value read for the
         // last time by that very instruction keeps its register to the end
         // instead of being split one position short of it, which put a pair
-        // of connectors in front of every call argument (raytrace's pixel
-        // loop: 20 moves against 10). Every other claim (read, or carried
-        // through) spans the whole instruction: a register live across an
+        // of unnecessary connectors in front of each call argument. Every other
+        // claim (read or carried through) spans the whole instruction: a register live across an
         // instruction must own its output slot too, or a definition there
         // would clobber it.
         LiveInterval& fixed = outByPoolIndex[poolIndex];
@@ -514,8 +513,7 @@ namespace
     // a pressure point late in the body, its next one being at the top of
     // the next iteration, behind the back-edge. Ranked by linear distance it
     // is the farthest candidate of all and the one evicted, and its reload
-    // lands on the back-edge of the hottest loop of the function (leven's
-    // `g_Bytes` and `bo`, interpolateLuma's parameters). LLVM prices the
+    // can land on the hottest loop's back-edge. LLVM prices the
     // same use with block frequency in its spill weight; the walk can read
     // it directly: a node live across the back-edge of a loop enclosing the
     // point, with an access earlier in that iteration, is needed again at

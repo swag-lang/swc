@@ -12,8 +12,8 @@
 // SSE only writes its result back into one of its inputs, so `c = a * b` is
 // built as `c = a` followed by `c *= b`. The copy is not an artifact of register
 // allocation - no allocator can remove it, because the destination genuinely has
-// to start out holding one of the operands - and it lands squarely in hot loops:
-// raytrace's sphere-intersection loop spends 14 of its 102 instructions on them.
+// to start out holding one of the operands. Each such operation in a hot loop
+// would otherwise execute the copy again.
 //
 // AVX's VEX encoding names all three registers, so the copy disappears.
 
@@ -1330,9 +1330,9 @@ namespace PostRaPeephole
     //
     // x86 arithmetic can read one operand straight from memory, but the
     // encoder only ever built the register form, so every value coming out of a
-    // spill slot cost a separate load. raytrace's inner loop reloads twenty-two
-    // times; each fold turns two instructions into one and frees the scratch
-    // register the value was staged in. The integer side covers the same
+    // spill slot cost a separate load. Each fold turns two instructions into
+    // one and frees the scratch register that held the value. The integer side
+    // covers the same
     // shape for the operations x64 reads from memory, and a compare whose
     // left operand is the reload.
     static bool tryFoldLoadIntoBinaryForm(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst, bool lateFloatMemory)

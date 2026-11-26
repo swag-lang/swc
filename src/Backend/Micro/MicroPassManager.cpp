@@ -703,9 +703,8 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
         // is what clang-cl and MSVC emit and one instruction per iteration
         // cheaper. It runs here rather than pre-RA on purpose: the same rewrite
         // before allocation also moves where the loop header sits, and the
-        // allocator reads that - it cost csvagg's digit loops the register
-        // holding their accumulator. After allocation there is no register left
-        // to lose.
+        // allocator can spill a loop-carried accumulator when that boundary moves.
+        // Rotating the test here keeps the allocator's register assignments.
         addPostRaOptimPass(*postRaLoopRotatePass_);
     }
     addFinalPass(*prologEpilogSanitizePass_);

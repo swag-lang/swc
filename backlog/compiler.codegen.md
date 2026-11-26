@@ -112,27 +112,24 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
   `Slice.parsePlaneResidualCavlc` gained six plus thirteen instructions.
   The full register pool remains available.
 - Additional case: promoting whole-copied locals with scalar lane reads removes
-  frame traffic in ChaCha, nbody and H.264. In CSV data generation, a copied region
-  string's pointer/length become GP values live across several multiplications.
-  The printed bodies gain 18 instructions / 11 memory operations, 14 explicit
-  RSP accesses and 64 frame bytes. The suffix from the first timing call remains
-  444 instructions / 151 memory operations, and the checksum remains 24828641.
-- Next: inspect splitting and rematerialization around the implicit multiply
-  claims in CSV setup, and compare the two H.264 functions' interval choices.
+  frame traffic in ChaCha and H.264. A promoted string's pointer and length can live
+  across several integer multiplications and earn spills that its old aggregate copy avoided.
+- Next: inspect splitting and rematerialization around implicit multiply claims in an existing
+  consumer. Compare the two H.264 functions' interval choices.
   Preserve the extra register and legal packed promotion while correcting these
   local allocation costs. No elapsed-time regression is inferred.
 - Done when: these local increases are removed or explained by a necessary tradeoff.
 
 ### compiler.codegen.008 — Defer callee-saved XMM traffic past an early exit
 
-- Evidence: MSVC avoids saving and restoring four XMM registers on `raytrace`'s no-hit path by
-  saving them only after the early guard. Swag's native and JIT unwind interfaces currently publish
+- Evidence: MSVC can delay callee-saved XMM spills until a function passes its early guard.
+  Swag's native and JIT unwind interfaces currently publish
   one range per function/allocation, so delayed saves cannot yet describe every path correctly.
   The save slots must remain in the entry frame and each return path needs the matching unwind state.
 - Next: represent chained unwind ranges in `MachineCode`, emit them from the final instruction
   stream, and publish all ranges in native `.pdata` and the JIT function table. Then delay only saves
   for registers first defined below the guard. Cover both arms, nested calls, and exceptional unwind
-  in native and JIT output; compare hit and no-hit paths with MSVC.
+  in native and JIT output. Compare the early and late paths with MSVC.
 - Done when: the short path skips unused saves and restores without adding spill traffic to the hit
   path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
 
@@ -145,12 +142,9 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
 - Existing boundary: the unroller already renames independent temporaries in straight-line
   copies, but leaves carried values and bodies with internal labels unchanged. A flattened
   nested loop can therefore still contain independent values sharing a register.
-- Evidence: a union-find reconstruction over SSA values, with live phi and read-modify-write
-  unions, worsens unrelated floating code under interval splitting (raytrace `intersect`
-  and `trace` gain instructions, memory operands and frame references) and was discarded.
-  Splitting only a reused register whose stored old value is later read leaves raytrace
-  unchanged and enables nbody's cross-group velocity forwarding;
-  it is not a general policy for arithmetic temporaries.
+- Evidence: reconstructing value groups from SSA phi nodes and read-modify-write operations
+  lengthened live ranges and increased frame traffic in floating-point code. Splitting a reused
+  register at a specific store-to-load use enabled forwarding with a smaller change to liveness.
 - Next: attribute the extra floating interference and improve residency before expanding
   eligibility beyond a concrete store-to-load forwarding opportunity. Recheck deblocking
   and another floating-point consumer under any broader rule, including instruction counts
@@ -161,14 +155,11 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
 
 ### compiler.codegen.010 — Retain one floating zero across unrolled arms
 
-- Evidence: MSVC's unrolled four-sphere raytrace `intersect` clears XMM5 once and compares
-  each discriminant against it; Swag's clears XMM9 before each of the four comparisons,
-  three extra executed instructions. The full unroller renames private temporaries only in
-  bodies without internal labels, so `intersect`'s copies reuse one virtual zero register,
-  overwritten before the next clear. These attempts all kept the four clears: naming the
-  zero in source, sharing dominating `ClearReg` definitions in value numbering, and renaming
-  single-definition private values in branched unrolled bodies (which also added four
-  instructions).
+- Evidence: a zero can serve several consecutive floating-point comparisons, as in MSVC
+  output. Swag can clear the same register again in each unrolled arm. The unroller renames
+  private temporaries in straight-line bodies. When internal labels keep the same virtual
+  register in several arms, the value may be overwritten before its next comparison.
+  Straight-line value numbering and simple per-arm renaming left those clears in place.
 - Next: inspect a control-flow-aware way to split a private zero definition across cloned
   arms. A candidate should retain a single zero only where that saves executed clears
   without adding copies, spills, or saved registers. Compare an unrelated unrolled floating
@@ -181,14 +172,13 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
 
 - Evidence: a post-allocation rule (`PostRALoopHoist`) moves a folded bitwise memory operand
   into an idle, already saved register when the base is stable, the loop has no memory
-  writes and only `ReadOnly` direct calls. In wordfreq's first inlined probe `r15` now
-  carries the mask across `memcmp`, matching LDC's two memory operands on the collision
-  step. The final-token probe still reads `[m+mask]` because its entry read uses a
-  different base expression. Csvagg's eight region keys never collide modulo 64, so
-  retaining its mask would only add an entry instruction.
-- Rejected: hoisting every invariant field load across a read-only call, and inlining
-  `mapInit` to expose the mask constant. Both enlarged the probe or `main` with spills,
-  frame reloads and jumps.
+  writes and only `ReadOnly` direct calls. A collision step can keep its mask across
+  `memcmp` when the entry and repeated reads have a common base. Establishing the base
+  equivalence across different address expressions remains open. On collision-free input,
+  keeping the mask in a register can add entry work with zero repeated reads saved.
+- Rejected: indiscriminately hoisting invariant fields across read-only calls and inlining
+  map initialization only to expose the mask constant. Both approaches added spills,
+  frame reloads or jumps.
 - Next: find a real map lookup where retaining the mask across a read-only comparison can
   remove a repeated load. Inspect dependencies, register and frame traffic, and emitted
   layout against a preserved compiler. Include collision-free queries as a control.
@@ -197,21 +187,23 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
 
 ### compiler.codegen.012 — Reuse one relocation base for indexed constant arrays
 
-- Evidence: C++/MSVC's raytrace `trace` function materializes one image base with `lea rdi, [__ImageBase]` and reads eight distinct constant arrays through indexed memory operands. Swag's Release Micro for the same function uses eight `LoadRegPtrReloc` instructions followed by eight indexed loads, four for `SRAD`/`SCX`/`SCY`/`SCZ` and four for `SR`/`SG`/`SB`/`SRE`: 16 instructions for those reads versus MSVC's nine. This is an instruction and address-dependency gap, not a timing claim about an edit.
+- Evidence: MSVC can materialize `__ImageBase` once and read several immutable arrays
+  through indexed operands. Swag's `LoadRegPtrReloc` materializes a separate pointer for
+  each allocation. Sharing a base would remove repeated address work where the target's
+  relocation model can describe the indexed displacement.
 - A post-allocation rewrite that keeps the first array pointer and adds source-address differences to later loads is invalid for native artifacts: `NativeRDataCollector` emits only reachable allocations and may compact the gaps between them. JIT constants are resolved from shard and offset at patch time. Each indexed consumer therefore needs a relocation relative to a reusable segment or image base, or an equivalent layout contract that survives both backends. The existing emitter binds only RIP-relative scalar accesses, not indexed displacements.
-- The native linker already understands `IMAGE_REL_AMD64_ADDR32NB` as an image-relative `Rva32` relocation, but code emission has no base-relative indexed relocation form, and the internal linker does not expose `__ImageBase` as a code symbol. The JIT's 2 GiB proximity arena can host code and constant shards together; its exhaustion fallback needs an explicit range or copy strategy for any base-relative displacement. In `trace`, the transient pointer register is clobbered by the intervening `intersect` call, so reusing that register alone yields at most two four-array groups. One base across both groups requires an allocation and callee-save decision.
-- Folding a scalar indexed load into each floating operation is not an independent instruction saving here. Swag's load plus AVX three-register `fsub`/`fmul` is two encoded instructions; MSVC's copy plus memory-form SSE operation is also two in the corresponding `SCX`/`SCY`/`SCZ` and colour paths. The existing post-RA fold requires the destination to hold the left operand because the memory-form SSE instruction overwrites it. Adding a copy to force that fold would leave the instruction count unchanged and add a copy dependency.
-- Next: design and validate a relocation-aware indexed displacement against one reusable base in JIT and native output. Compare eight-array code with MSVC; include unrelated arrays in different allocations and shards, a library artifact, and a negative case whose address cannot share the base. Account for register lifetime across the intervening call and JIT arena exhaustion before selecting the base.
-- Done when: indexed reads of separate immutable arrays reuse one base without relying on source allocation spacing, pass JIT/native relocation checks, and close the eight-materialization gap without extra spills.
+- The native linker already understands `IMAGE_REL_AMD64_ADDR32NB` as an image-relative `Rva32` relocation, but code emission has no base-relative indexed relocation form, and the internal linker does not expose `__ImageBase` as a code symbol. The JIT's 2 GiB proximity arena can host code and constant shards together; its exhaustion fallback needs an explicit range or copy strategy for any base-relative displacement. An intervening call can clobber a transient base register. Keeping the base across the call requires an allocation and callee-save decision.
+- Folding a scalar indexed load into each floating operation is not an independent instruction saving here. A load and three-register AVX operation take two instructions, as do a copy and a destructive memory-form SSE operation. The existing post-RA fold requires the destination to hold the left operand because the memory-form SSE instruction overwrites it. Adding a copy to force that fold would leave the instruction count unchanged and add a copy dependency.
+- Next: design and validate a relocation-aware indexed displacement against one reusable base in JIT and native output. Compare a current indexed-table consumer with MSVC. Include arrays in different allocations and shards, a library artifact, and an address that cannot share the base. Account for register lifetime across the intervening call and JIT arena exhaustion before selecting the base.
+- Done when: indexed reads of separate immutable arrays reuse one base without relying on source allocation spacing, pass JIT/native relocation checks, and eliminate repeated base materialization without extra spills.
 
 ### compiler.codegen.013 — Keep unsigned 64-bit float conversion branchless in hot loops
 
 - Evidence: Swag lowers `u64` to `f64` branchlessly with a packed low/high-32-bit conversion
   and two vector constants (`CodeGen.Cast.cpp`). MSVC uses a signed conversion on the
   common lower half and a shift/or/double fallback for values with the high bit set. Both
-  execute five instructions on csvagg's common path. MSVC's formula, tried in Swag, stayed
-  exact but added eight static jumps to csvagg's timed row loop and a conditional plus an
-  unconditional jump to every conversion. It was reverted.
+  can execute five instructions on the common lower-half path. A branchy Swag trial
+  preserved exactness and added two jumps to each conversion, including inside hot loops.
 - Next: find a range proof that a conversion input stays below `2^63`, or a branchless
   lowering that uses fewer operations and less XMM pressure than the current packed
   conversion. Compare both sides of the range and an unrelated cast before revisiting the

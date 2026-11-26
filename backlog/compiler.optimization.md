@@ -149,13 +149,11 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
 ### compiler.optimization.005 — Investigate the remaining Levenshtein outer-loop allocation costs
 
 - Evidence: the exact indexed load/store copy loop now has a four-way scalar unroll with the
-  original loop retained as its tail. Leven's checksum is unchanged, but its full `main` grows by
-  15 instructions and noisy paired samples do not establish a timing gain. Odin vectorizes the
-  row-copy loop; Swag's SLP pass does not, and a general vectorization proof is still absent.
-  A runtime overlap guard made longer straight-line copies legal after allocation, but
-  Fannkuch slowed by 4.8% to 5.1% in independent paired comparisons despite fewer memory
-  operations. Account for the guard, wide-store forwarding and critical-path costs; amortize
-  an indexed-loop guard outside the repeated region rather than assuming packing alone wins.
+  original loop retained as its tail. Odin can vectorize the equivalent row-copy loop.
+  Swag's SLP pass needs a proof of the loop's memory dependencies. A runtime overlap guard
+  made large copies legal after allocation, but could erase the savings from wider accesses.
+  Account for the guard, store forwarding and critical-path costs. Amortize the check outside
+  the repeated region.
 - Next: reproduce the row-copy shape with current sources and inspect native code in a paired
   comparison. Keep the unroll only if measurements confirm the hot-path estimate without a loss; investigate SIMD
   separately with an alias/disjointness proof and cost model.
@@ -192,10 +190,9 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
 
 - Evidence: local cold-block placement and loop alignment exist; the integrated linker owns
   final symbols/relocations and can retain function/block boundaries and profile edges
-  instead of reconstructing them from an executable. DevMode `fannkuch` lost 7.14% when its
-  `main` moved from RVA `0xaee0` to `0xafd0` with unchanged hot instructions. Blanket
-  modulo-32 alignment (candidate `5d3338007`, not on master) recovered 5.10% on `fannkuch`
-  but cost 4.50% on `binarytrees` and grew text by 3.32%, so the trial was discarded.
+  instead of reconstructing them from an executable. Moving unchanged loop instructions
+  across fetch boundaries changed their runtime. Blanket modulo-32 alignment enlarged text
+  and gave mixed execution results, which favors investigating selective placement.
 - Next: investigate selective alignment and repeat independent quiet blocks across native
   execution, compiler time/memory, and binary size with unchanged-binary controls. Then retain
   layout metadata through object/cache boundaries and reorder functions by weighted
@@ -503,10 +500,10 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
   in preserved transient registers. Machine-code and incremental-function caches retain
   those masks. A body containing a call still publishes the full conservative mask, so
   transitive non-leaf contracts remain unavailable.
-  Expanding candidates to calls erased by inlining reduced Wordfreq partition traffic
-  (27 to 26 instructions, 11 to 10 memory operations), but independent paired timings
-  regressed the whole task by 8.8% to 9.5% beyond unchanged controls. Keep the existing
-  eligibility until the new register assignment and hot dependencies are understood.
+  Accepting callees whose nested calls disappear through inlining can change the caller's
+  register assignment and critical path. A trial reduced memory traffic in a map probe and
+  increased execution time. Explain that tradeoff in a current consumer before widening
+  eligibility.
 - Next: extend the existing masks to transitive callees and retain caller values in proven
   preserved registers. Lower acyclic callees first; use conservative fixed points or the
   ordinary ABI inside recursive components, preserving the existing leaf path.

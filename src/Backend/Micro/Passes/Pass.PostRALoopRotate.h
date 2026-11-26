@@ -8,17 +8,11 @@ SWC_BEGIN_NAMESPACE();
 //
 // A `while` lowers to a header that tests and a body that jumps back, so every
 // iteration pays an unconditional jump on top of its test. clang-cl and MSVC
-// both emit the rotated form, where the test itself is the back edge; csvagg's
-// four byte scans are 6 instructions here against their 5, and that jump is the
-// whole difference.
+// both emit the rotated form, where the test itself is the back edge.
 //
-// This runs after register allocation on purpose. The same rewrite pre-RA also
-// removes the jump, but it moves where the loop header sits, and the allocator
-// reads loop structure: csvagg's digit loops lost their accumulator's register
-// and went from 2 memory operations per iteration to 4 while its scans
-// improved. After allocation there are no registers left to lose, so the
-// transformation is purely the jump it removes. It therefore also sees the
-// allocator's own insertions around the header test, and copies them with it.
+// The allocator uses loop boundaries when ranking spill candidates. Rotating
+// the test after allocation preserves its register assignments and also sees
+// the allocator's insertions around the header test.
 class MicroPostRaLoopRotatePass final : public MicroPass
 {
 public:

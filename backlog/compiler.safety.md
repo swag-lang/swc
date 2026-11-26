@@ -84,9 +84,7 @@ is the current scorecard.
   Frame-write proofs and an inline address-extent test avoid unnecessary runtime checks.
   `Pass.ValueBorrowFastPath` also hoists the extent load before eligible loops, or to function
   entry when the function calls only write checks and fault reports; a call-free function
-  with no remaining write check registers no borrow. Earlier same-program comparisons found
-  about 1.9x for nbody, 1.4x for fannkuch and 1.3x for dijkstra; they predate the latest hoists
-  and do not establish their current overhead.
+  with no remaining write check registers no borrow.
   On the full `aoc2024` console workload with always-active result checks,
   `release-safe` took 2585 ms median versus 545 ms with only `.ValueBorrow`
   disabled (twelve alternating samples each). Disabling `.BoundCheck` or `.Overflow`

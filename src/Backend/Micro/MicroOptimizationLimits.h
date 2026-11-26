@@ -553,7 +553,7 @@ namespace MicroOptimizationLimits
         // [profitability-policy] Keep register-benefit density comparisons in integer arithmetic.
         inline constexpr uint64_t K_DENSITY_SCALE = 1024;
 
-        // [profitability-policy] Require half the best density for span-scoped claims; looser admission regressed sha256 and leven.
+        // [profitability-policy] Require half the best density for span-scoped claims. Looser admission slowed distinct hot loops.
         inline constexpr uint64_t K_SPAN_SCOPED_DENSITY_DIVISOR = 2;
 
         // [register-reserve] Reserve four named integer operands plus three legalization scratch registers for local allocation.

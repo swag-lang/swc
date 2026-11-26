@@ -392,9 +392,8 @@ namespace PostRaPeephole
     //     mov eax, 255 ; cmp rcx, 255 ; cmovg rdx, rax ; mov eax, 255 ; ...
     //
     // The register allocator rematerializes rather than keeping a constant
-    // live, which is the right call across a spill but not two instructions
-    // later. raytrace clamps three colour channels against 255 in a row and
-    // reloaded the bound before each one.
+    // live across a spill. A later comparison, such as a clamp of another
+    // colour channel, can still reuse the immediate already in the register.
     //
     // The search stays inside the block and stops at anything that writes the
     // register, so the earlier value is the one still there.

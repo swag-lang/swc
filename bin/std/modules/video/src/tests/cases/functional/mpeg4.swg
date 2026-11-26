@@ -111,6 +111,26 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
     return bodyOffset * 8 + reader.bitPos
 }
 
+// Start code lookahead must accept a full code across a vector boundary and ignore a partial tail.
+#test
+{
+    const Length = 80'u64
+    var bytes: [Length] u8
+    for prefix in [0'u64, 1, 15, 16, 17, 31, 32, 60, 63, 64, 76]
+    {
+        Memory.set(&bytes[0], 0x55, Length)
+        bytes[prefix]     = 0
+        bytes[prefix + 1] = 0
+        bytes[prefix + 2] = 1
+        bytes[prefix + 3] = 0xB6
+
+        for at in prefix + 1 do
+            Swag.require(Mpeg4.nextStartCode(bytes, at) == prefix)
+        Swag.require(Mpeg4.nextStartCode(bytes, prefix + 1) == Length)
+        Swag.require(Mpeg4.nextStartCode(bytes[until prefix + 3], 0) == prefix + 3)
+    }
+}
+
 // A constant intra block must match both passes of the transform and the final byte clamp.
 #test
 {

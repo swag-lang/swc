@@ -336,15 +336,37 @@ func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHead
         fail InvalidFormatError{"MPEG-4 plane header is truncated"}
 }
 
-// Finds the next start code at or after `at`, and returns where its payload begins.
+// Finds the start of the next complete four-byte start code at or after `at`.
 //
 // Returns the size of `bytes` when none is left.
 func nextStartCode(bytes: const [..] u8, at: u64)->u64
 {
-    var index = at
-    while index + 3 < bytes.count
+    if at >= bytes.count or bytes.count - at < 4 do
+        return bytes.count
+
+    // Most samples have a code immediately at the current position.
+    let data = bytes.buffer
+    if data[at] == 0 and data[at + 1] == 0 and data[at + 2] == 1 do
+        return at
+
+    const Lanes = #sizeof(Math.Simd.U8x16)
+    let zero  = Math.Simd.splat(0'u8)
+    let one   = Math.Simd.splat(1'u8)
+    var index = at + 1
+    while bytes.count - index >= Lanes + 3
     {
-        if bytes[index] == 0 and bytes[index + 1] == 0 and bytes[index + 2] == 1 do
+        let first  = Math.Simd.load(data + index) == zero
+        let second = Math.Simd.load(data + index + 1) == zero
+        let third  = Math.Simd.load(data + index + 2) == one
+        let mask   = Math.Simd.bitmask(first & second & third)
+        if mask do
+            return index + Math.trailingZeros(mask)
+        index += Lanes
+    }
+
+    while bytes.count - index >= 4
+    {
+        if data[index] == 0 and data[index + 1] == 0 and data[index + 2] == 1 do
             return index
         index += 1
     }

@@ -76,12 +76,14 @@ func bitmapCompression(header: const [..] u8)->u32
 // can read anything, so they are taken from where the stream itself carries them.
 func inlineSetupHeaders(sample: const [..] u8)->const [..] u8
 {
-    if sample.count < 4 do
-        return sample
-    for at in sample.count - 3 where not sample[at] and
-                                     not sample[at + 1] and
-                                     sample[at + 2] == 1 and
-                                     cast(u32, sample[at + 3]) == Mpeg4.CodeVop do
-        return sample[0 until at]
+    var at = Mpeg4.nextStartCode(sample, 0)
+    while at < sample.count
+    {
+        let code = cast(u32, sample[at + 3])
+        if code == Mpeg4.CodeVop do
+            return sample[until at]
+        at = Mpeg4.nextStartCode(sample, at + 1)
+    }
+
     return sample
 }

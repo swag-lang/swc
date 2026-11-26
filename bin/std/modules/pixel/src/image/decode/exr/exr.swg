@@ -81,13 +81,8 @@ func parseChannels(payload: const [..] u8)->Array'Channel fail
     return result
 }
 
-func undoZipPredictor(data: [..] u8, reordered: *Array'u8)
+func restoreZipPlanes(data: [..] u8)
 {
-    reordered.grow(data.count)
-    reordered.count = data.count
-    if not data.count do
-        return
-
     // The predictor runs across the two byte planes in file order. Removing 128 from
     // each difference after the first is equivalent to flipping the sign bit at odd offsets.
     const Zero = Simd.splat(0'u8)
@@ -115,11 +110,20 @@ func undoZipPredictor(data: [..] u8, reordered: *Array'u8)
         data[offset] = tail ^ (offset & 1 ? 128 : 0)
         offset       += 1
     }
+}
+
+func undoZipPredictor(data: [..] u8, reordered: *Array'u8)
+{
+    reordered.grow(data.count)
+    reordered.count = data.count
+    if not data.count do
+        return
+    restoreZipPlanes(data)
 
     // Interleave the restored byte planes without reading beyond the last complete pair.
-    let pairs = data.count / 2
-    let high  = data.buffer + data.count - pairs
-    offset = 0
+    let pairs  = data.count / 2
+    let high   = data.buffer + data.count - pairs
+    var offset = 0'u64
     while pairs - offset >= 16
     {
         let lowBytes  = Simd.load(data.buffer + offset)
@@ -159,13 +163,15 @@ func channelComponent(name: string)->s32
 func canonicalHalf(value: u16)->u16 => (value & 0x7FFF) > 0x7C00 ? (value & 0x8000) | 0x7E00 : value
 
 #[Swag.Inline]
-func loadCanonicalHalves(source: const [*] u8)->Simd.U16x8
+func canonicalHalves(values: Simd.U16x8)->Simd.U16x8
 {
     const Infinity = Simd.splat(0x7C00's16)
-    let values    = cast #bit(Simd.U16x8, Simd.load(source))
     let magnitude = cast #bit(Simd.S16x8, values & 0x7FFF'u16)
     return Simd.select(magnitude > Infinity, (values & 0x8000'u16) | 0x7E00'u16, values)
 }
+
+#[Swag.Inline]
+func loadCanonicalHalves(source: const [*] u8)->Simd.U16x8 => canonicalHalves(cast #bit(Simd.U16x8, Simd.load(source)))
 
 #[Swag.Inline]
 func(T) loadColorSamples(source: const [*] u8)->Simd.U8x16
@@ -371,6 +377,39 @@ func(ALPHA: bool) writeGrayHalfRow(source: const [*] u8, target: [*] u8, width: 
     }
 }
 
+func writeGrayZipHalfChunk(image: *Image, source: [..] u8, firstRow, rows: s32)
+{
+    restoreZipPlanes(source)
+    let width       = cast(u64, image.width)
+    let planeBytes  = source.count / 2
+    let low         = source.buffer
+    let high        = low + planeBytes
+    let destination = cast([*] u16, image.pixels.storage())
+    for row in rows
+    {
+        let targetY = image.height - firstRow - row - 1
+        let target  = destination + cast(u64, targetY) * width
+        let src     = cast(u64, row) * width
+        var x: u64
+        while width - x >= 16
+        {
+            let lo     = Simd.load(low + src + x)
+            let hi     = Simd.load(high + src + x)
+            let first  = canonicalHalves(cast #bit(Simd.U16x8, Simd.interleaveLow(lo, hi)))
+            let second = canonicalHalves(cast #bit(Simd.U16x8, Simd.interleaveHigh(lo, hi)))
+            Simd.store(target + x, first)
+            Simd.store(target + x + 8, second)
+            x += 16
+        }
+
+        while x < width
+        {
+            target[x] = canonicalHalf(Math.make16(high[src + x], low[src + x]))
+            x         += 1
+        }
+    }
+}
+
 func writeGrayHalfChunk(image: *Image, source: const [..] u8, firstRow, rows: s32, alphaFirst: bool)
 {
     let width    = cast(u64, image.width)
@@ -442,6 +481,20 @@ func writeGrayscaleChunk(image: *Image, channels: const [..] Channel, source: co
 
     if offset != source.count do
         fail InvalidFormatError{"OpenEXR chunk has bytes after its channel data"}
+}
+
+struct ScanlineLayout
+{
+    channelOffsets: [4] u64
+    halfChannels:   u8
+    grayscale, grayHalf, halfColor, floatColor, alphaFirst: bool
+}
+
+struct ScanlineChunk
+{
+    pixels:   const [..] u8
+    firstY, relativeY, rows: s32
+    expected: u64
 }
 
 struct Part
@@ -598,6 +651,141 @@ impl Part
         return offset + .chunkCount * 8
     }
 
+    #[Swag.Inline]
+    mtd const readScanlineChunk(buffer: const [..] u8, chunkIndex: u64, index: u32, multipart: bool, linesPerChunk: u64, seenRows: [..] bool, maxDecodedBytes: u64)->ScanlineChunk fail
+    {
+        var chunkOffset = readU64(buffer.buffer + .tableOffset + chunkIndex * 8)
+        let headerSize  = multipart ? 12'u64 : 8'u64
+        if chunkOffset > buffer.count or headerSize > buffer.count - chunkOffset do
+            fail InvalidFormatError{"OpenEXR chunk offset points outside the file"}
+        if multipart
+        {
+            if readU32(buffer.buffer + chunkOffset) != index do
+                fail InvalidFormatError{"OpenEXR chunk belongs to another part"}
+            chunkOffset += 4
+        }
+
+        let firstY     = cast #bit(s32, readU32(buffer.buffer + chunkOffset))
+        let packedSize = cast(u64, readU32(buffer.buffer + chunkOffset + 4))
+        if packedSize > buffer.count - chunkOffset - 8 do
+            fail InvalidFormatError{"OpenEXR chunk is truncated"}
+        let relativeY = cast(s64, firstY) - .yMin
+        if relativeY < 0 or relativeY >= .info.height or cast(u64, relativeY) & (linesPerChunk - 1) do
+            fail InvalidFormatError{"OpenEXR chunk starts outside its scanline block"}
+        let start = cast(u64, relativeY)
+        if seenRows[start] do
+            fail InvalidFormatError{"OpenEXR scanline occurs more than once"}
+        seenRows[start] = true
+        let rows     = Math.min(cast(s32, linesPerChunk), .info.height - cast(s32, relativeY))
+        let expected = .rowBytes * cast(u64, rows)
+        if maxDecodedBytes and expected > maxDecodedBytes do
+            fail UnsupportedFormatError{"OpenEXR chunk exceeds the decoded byte limit"}
+        return {pixels: buffer[chunkOffset + 8 until chunkOffset + 8 + packedSize], firstY, relativeY: cast(s32, relativeY), rows, expected}
+    }
+
+    #[Swag.Inline]
+    mtd const decodeScanlineChunk(image: *Image, chunk: ScanlineChunk, layout: ScanlineLayout, reordered: *Array'u8) fail
+    {
+        var pixels = chunk.pixels
+
+        // OpenEXR writes the original bytes when ZIP cannot make the block smaller.
+        if .compression and pixels.count < chunk.expected
+        {
+            var zlib: Compress.ZLib
+            var unpacked = try zlib.decompress(pixels, chunk.expected, maxOutputSize: chunk.expected)
+            if unpacked.count != chunk.expected do
+                fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
+            if layout.grayHalf and image.pixelFormat == .GrayF16
+            {
+                writeGrayZipHalfChunk(image, unpacked.toSlice(), chunk.relativeY, chunk.rows)
+                return
+            }
+
+            undoZipPredictor(unpacked.toSlice(), reordered)
+            pixels = reordered.toSlice()
+        }
+
+        if pixels.count != chunk.expected do
+            fail InvalidFormatError{"OpenEXR scanline chunk has an invalid size"}
+        if layout.grayHalf
+        {
+            writeGrayHalfChunk(image, pixels, chunk.relativeY, chunk.rows, layout.alphaFirst)
+        }
+        elif layout.grayscale
+        {
+            try writeGrayscaleChunk(image, .channels.toSlice(), pixels, chunk.firstY, chunk.rows, .yMin)
+        }
+        elif layout.halfColor
+        {
+            writePackedColorChunk'u16(image, layout.channelOffsets, pixels, chunk.relativeY, chunk.rows)
+        }
+        elif layout.floatColor
+        {
+            writePackedColorChunk'u32(image, layout.channelOffsets, pixels, chunk.relativeY, chunk.rows)
+        }
+        else
+        {
+            writeMixedColorChunk(image, layout.channelOffsets, layout.halfChannels, pixels, chunk.relativeY, chunk.rows, .rowBytes)
+        }
+    }
+
+    #[Swag.NoInline]
+    mtd const decodeZipBatches(buffer: const [..] u8, index: u32, multipart: bool, options: DecodeOptions, image: *Image, layout: const *ScanlineLayout, seenRows: [..] bool) fail
+    {
+        var chunks: Array'ScanlineChunk
+        chunks.reserve(.chunkCount)
+        var indexError:      Swag.Error
+        var compressedBytes: u64
+        for chunkIndex in .chunkCount
+        {
+            catch
+            {
+                let chunk = try .readScanlineChunk(buffer, chunkIndex, index, multipart, 16, seenRows, options.maxDecodedBytes)
+                if chunk.pixels.count < chunk.expected do
+                    compressedBytes += chunk.pixels.count
+                chunks.add(chunk)
+            } as indexError
+            if not indexError.isEmpty() do
+                break
+        }
+
+        let workers = chunks.count >= 2 and compressedBytes >= 512 * 1024 ? Swag.workerCount() : 0
+        if workers <= 1
+        {
+            var reordered: Array'u8
+            for chunk in chunks do
+                try .decodeScanlineChunk(image, chunk[], layout[], &reordered)
+            try indexError.raise()
+            return
+        }
+
+        // Aligned and unique block starts make worker output rows disjoint. Each batch owns
+        // its scratch and records its first error, so failures are reported in file order.
+        const MaxBatches = 8'u64
+        let batches = Math.min(chunks.count, Math.min(cast(u64, workers) * 2, MaxBatches))
+        let part    = me
+        let work:   const [..] ScanlineChunk = chunks.toSlice()
+        var errors: [MaxBatches] Swag.Error
+        parallel for |part, image, layout, work, batches, &errors| batch in batches
+        {
+            var reordered: Array'u8
+            let first = batch * work.count / batches
+            let end   = (batch + 1) * work.count / batches
+            for chunkIndex in first until end
+            {
+                catch part.decodeScanlineChunk(image, work[chunkIndex], layout[], &reordered)
+                {
+                    errors[batch].capture(Swag.err)
+                    break
+                }
+            }
+        }
+
+        for batch in batches do
+            try errors[batch].raise()
+        try indexError.raise()
+    }
+
     mtd decode(buffer: const [..] u8, index: u32, multipart: bool, options: DecodeOptions)->Image fail
     {
         var result: #returntype
@@ -642,74 +830,25 @@ impl Part
         let linesPerChunk = .compression == 3 ? 16'u64 : 1'u64
         var seenRows: Array'bool
         seenRows.resize(cast(u64, .info.height))
+        var layout: ScanlineLayout = {channelOffsets, halfChannels, grayscale, grayHalf, halfColor, floatColor, alphaFirst}
+
+        // A fully stored single part needs a table entry and a scanline header per block.
+        // Let the serial path copy these blocks without an auxiliary chunk index.
+        if .compression == 3 and
+           .chunkCount >= 8 and
+           buffer.count >= 512 * 1024 and
+           result.byteCount >= 1024 * 1024 and
+           (multipart or buffer.count < .tableOffset + .chunkCount * 16 + result.byteCount)
+        {
+            try .decodeZipBatches(buffer, index, multipart, options, &result, &layout, seenRows.toSlice())
+            return result
+        }
+
         var reordered: Array'u8
         for chunkIndex in .chunkCount
         {
-            var chunkOffset = readU64(buffer.buffer + .tableOffset + chunkIndex * 8)
-            let headerSize  = multipart ? 12'u64 : 8'u64
-            if chunkOffset > buffer.count or headerSize > buffer.count - chunkOffset do
-                fail InvalidFormatError{"OpenEXR chunk offset points outside the file"}
-            if multipart
-            {
-                if readU32(buffer.buffer + chunkOffset) != index do
-                    fail InvalidFormatError{"OpenEXR chunk belongs to another part"}
-                chunkOffset += 4
-            }
-
-            let firstY     = cast #bit(s32, readU32(buffer.buffer + chunkOffset))
-            let packedSize = cast(u64, readU32(buffer.buffer + chunkOffset + 4))
-            if packedSize > buffer.count - chunkOffset - 8 do
-                fail InvalidFormatError{"OpenEXR chunk is truncated"}
-            let relativeY = cast(s64, firstY) - .yMin
-            if relativeY < 0 or relativeY >= .info.height or cast(u64, relativeY) % linesPerChunk do
-                fail InvalidFormatError{"OpenEXR chunk starts outside its scanline block"}
-            let rows = Math.min(cast(s32, linesPerChunk), .info.height - cast(s32, relativeY))
-            for row in rows
-            {
-                let y = cast(u64, relativeY) + cast(u64, row)
-                if seenRows[y] do
-                    fail InvalidFormatError{"OpenEXR scanline occurs more than once"}
-                seenRows[y] = true
-            }
-
-            let expected = .rowBytes * cast(u64, rows)
-            if options.maxDecodedBytes and expected > options.maxDecodedBytes do
-                fail UnsupportedFormatError{"OpenEXR chunk exceeds the decoded byte limit"}
-            var pixels = buffer[chunkOffset + 8 until chunkOffset + 8 + packedSize]
-
-            // OpenEXR writes the original bytes when ZIP cannot make the block smaller.
-            if .compression and packedSize < expected
-            {
-                var zlib: Compress.ZLib
-                var unpacked = try zlib.decompress(pixels, expected, maxOutputSize: expected)
-                if unpacked.count != expected do
-                    fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
-                undoZipPredictor(unpacked.toSlice(), &reordered)
-                pixels = reordered.toSlice()
-            }
-
-            if pixels.count != expected do
-                fail InvalidFormatError{"OpenEXR scanline chunk has an invalid size"}
-            if grayHalf
-            {
-                writeGrayHalfChunk(&result, pixels, cast(s32, relativeY), rows, alphaFirst)
-            }
-            elif grayscale
-            {
-                try writeGrayscaleChunk(&result, .channels.toSlice(), pixels, firstY, rows, .yMin)
-            }
-            elif halfColor
-            {
-                writePackedColorChunk'u16(&result, channelOffsets, pixels, cast(s32, relativeY), rows)
-            }
-            elif floatColor
-            {
-                writePackedColorChunk'u32(&result, channelOffsets, pixels, cast(s32, relativeY), rows)
-            }
-            else
-            {
-                writeMixedColorChunk(&result, channelOffsets, halfChannels, pixels, cast(s32, relativeY), rows, .rowBytes)
-            }
+            let chunk = try .readScanlineChunk(buffer, chunkIndex, index, multipart, linesPerChunk, seenRows.toSlice(), options.maxDecodedBytes)
+            try .decodeScanlineChunk(&result, chunk, layout, &reordered)
         }
 
         return result

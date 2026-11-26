@@ -45,35 +45,45 @@ private
 
     const CharacterPageSize = 192'u64
     const FirstCharacter    = 0x20'u32
-    const CharacterLimit    = 0x110000'u32
 }
 
 // Collects one page of mapped Unicode scalars without materializing the whole character map.
 func characterPage(face: *Face, start: u32, pageSize = CharacterPageSize)->{characters: Array'rune, end: u32, hasNext: bool}
 {
     var result: #returntype
-    var code = Math.max(start, FirstCharacter)
-    result.end = code
-
-    while code < CharacterLimit
+    result.end = Math.max(start, FirstCharacter)
+    face.visitCharacters(result.end, func|pageSize, &result|(character: rune, glyphIndex: u32)->bool
     {
-        let character = cast(rune, code)
-        if Utf8.isValidRune(character) and face.hasChar(character)
+        discard glyphIndex
+        if result.characters.count == pageSize
         {
-            if result.characters.count == pageSize
-            {
-                result.hasNext = true
-                break
-            }
-
-            result.characters.add(character)
-            result.end = code
+            result.hasNext = true
+            return false
         }
 
-        code += 1
-    }
-
+        result.characters.add(character)
+        result.end = cast(u32, character)
+        return true
+    })
     return result
+}
+
+// Builds the page starts and the first mapped character of each glyph in a single visit.
+func buildCharacterIndex(face: *Face, pages: *Array'u32, glyphCharacters: *Array'rune)
+{
+    pages.clear()
+    glyphCharacters.clear()
+    glyphCharacters.resize(face.glyphCount)
+    var count = 0'u64
+    face.visitCharacters(FirstCharacter, func|pages, glyphCharacters, &count|(character: rune, glyphIndex: u32)->bool
+    {
+        if count % CharacterPageSize == 0 do
+            pages.add(cast(u32, character))
+        if not glyphCharacters[glyphIndex] do
+            glyphCharacters[glyphIndex] = character
+        count += 1
+        return true
+    })
 }
 
 // One character of the loaded page, with the two texts its cell is drawn from.
@@ -541,27 +551,7 @@ impl DocumentView
         .fontGlyph = .app().renderer.fontCache().createFont(typeFace, GlyphSize)
         .shown     = 0
         .pageIndex = 0
-        .pageStarts.clear()
-        .glyphCharacters.clear()
-        .glyphCharacters.resize(face.glyphCount)
-        var start = FirstCharacter
-        while start < 0x110000
-        {
-            let page = characterPage(face, start)
-            if page.characters.isEmpty() do
-                break
-            .pageStarts.add(cast(u32, page.characters[0]))
-            for character in page.characters
-            {
-                let glyphIndex = face.glyphIndex(character)
-                if glyphIndex < .glyphCharacters.count and not .glyphCharacters[glyphIndex] do
-                    .glyphCharacters[glyphIndex] = character
-            }
-
-            if not page.hasNext do
-                break
-            start = page.end + 1
-        }
+        buildCharacterIndex(face, &.pageStarts, &.glyphCharacters)
 
         .loadPage(FirstCharacter)
         .scroll.setScrollPos(0, 0)

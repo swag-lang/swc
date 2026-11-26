@@ -722,3 +722,73 @@ func parseTestCmap(faceData: *FaceImpl, cmap: Array'u8) fail
     Swag.require(second.cmapFormat == 12)
     Swag.require(expect lookupGlyphIndex(&second, 0x10000) == 7)
 }
+
+// Visiting a grouped map skips glyph zero and the surrogate interval.
+#test
+{
+    var cmap: Array'u8
+    cmap.resize(12 + 16 + 36)
+    cmap[3]  = 1
+    cmap[7]  = 4
+    cmap[11] = 12
+    writeBigU16(&cmap, 12, 12)
+    writeBigU32(&cmap, 16, 52)
+    writeBigU32(&cmap, 24, 3)
+    writeBigU32(&cmap, 28, 0x41)
+    writeBigU32(&cmap, 32, 0x43)
+    writeBigU32(&cmap, 40, 0xD7FF)
+    writeBigU32(&cmap, 44, 0xE001)
+    writeBigU32(&cmap, 48, 10)
+    writeBigU32(&cmap, 52, 0x1F600)
+    writeBigU32(&cmap, 56, 0x1F601)
+    writeBigU32(&cmap, 60, 4)
+
+    var faceData: FaceImpl
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    faceData.face.setGlyphCount(3000)
+    expect parseCMap(&faceData, false)
+
+    var characters: Array'rune
+    var glyphs:     Array'u32
+    faceData.face.visitCharacters(0, func|&characters, &glyphs|(character: rune, glyphIndex: u32)->bool
+    {
+        characters.add(character)
+        glyphs.add(glyphIndex)
+        return true
+    })
+
+    const Expected: [7] rune = ['B', 'C', cast(rune, 0xD7FF), cast(rune, 0xE000),
+                                cast(rune, 0xE001), cast(rune, 0x1F600), cast(rune, 0x1F601)]
+    Swag.require(Slice.equals(characters.toSlice(), cast(const [..] rune, Expected)))
+    for character, index in characters do
+        Swag.require(glyphs[index] == faceData.face.glyphIndex(character))
+
+    var visited = 0'u32
+    faceData.face.visitCharacters(0xD800, func|&visited|(character: rune, glyphIndex: u32)->bool
+    {
+        Swag.require(character == 0xE000 and glyphIndex == 2059)
+        visited += 1
+        return false
+    })
+    Swag.require(visited == 1)
+}
+
+// Format 13 visits aliases and skips groups that map to the missing glyph.
+#test
+{
+    var faceData: FaceImpl
+    expect parseTestCmap(&faceData, makeCmap13Fixture())
+    var codes:  Array'rune
+    var glyphs: Array'u32
+    faceData.face.visitCharacters('B', func|&codes, &glyphs|(character: rune, glyphIndex: u32)->bool
+    {
+        codes.add(character)
+        glyphs.add(glyphIndex)
+        return true
+    })
+    const Codes:  [4] rune = ['B', 'C', 'E', 'F']
+    const Glyphs: [4] u32  = [9, 9, 20, 20]
+    Swag.require(Slice.equals(codes.toSlice(), cast(const [..] rune, Codes)))
+    Swag.require(Slice.equals(glyphs.toSlice(), cast(const [..] u32, Glyphs)))
+}

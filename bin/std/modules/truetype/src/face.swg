@@ -596,6 +596,17 @@ public impl Face
     // Returns whether the selected character map contains a glyph for `charCode`.
     mtd hasChar(charCode: rune)->bool => .glyphIndex(charCode) != 0
 
+    // Visits mapped Unicode scalars in ascending order, starting at or after `first`.
+    //
+    // The visitor receives each character and its nonzero glyph index. Separate characters
+    // can map to the same glyph. Returning false stops the visit. An empty map or a start
+    // beyond U+10FFFF makes no calls. Keep the face alive for the duration of the visit.
+    mtd const visitCharacters(first: u32, visitor: func||(rune, u32)->bool)
+    {
+        let faceData = cast(const *FaceImpl, cast(const *void, me))
+        visitMappedCharacters(faceData, first, visitor)
+    }
+
     // Resolves a PostScript glyph name to a glyph index.
     //
     // CFF and Type 1 programs key their outlines by name, which is how a document format

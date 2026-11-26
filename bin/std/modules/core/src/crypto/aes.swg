@@ -262,12 +262,40 @@ public impl Aes
     }
 
     #[Swag.Inline]
-    private mtd encryptBlockHardware(value: U8x16)->U8x16
+    internal mtd encryptBlockHardware(value: U8x16)->U8x16
     {
         var state = value ^ .roundKey(0)
         for round in 1 until .rounds do
             state = Swag.vecAesEncryptRound(state, .roundKey(round))
         return Swag.vecAesEncryptLastRound(state, .roundKey(.rounds))
+    }
+
+    #[Swag.Inline]
+    internal mtd usesHardwareRounds() => .useHardware
+
+    // The caller provides four complete blocks and has selected the hardware rounds.
+    #[Swag.Inline]
+    internal mtd xorFourHardware(first, second, third, fourth: U8x16, source: const [*] u8, destination: [*] u8)
+    {
+        let initial     = .roundKey(0)
+        var firstState  = first ^ initial
+        var secondState = second ^ initial
+        var thirdState  = third ^ initial
+        var fourthState = fourth ^ initial
+        for round in 1 until .rounds
+        {
+            let key = .roundKey(round)
+            firstState  = Swag.vecAesEncryptRound(firstState, key)
+            secondState = Swag.vecAesEncryptRound(secondState, key)
+            thirdState  = Swag.vecAesEncryptRound(thirdState, key)
+            fourthState = Swag.vecAesEncryptRound(fourthState, key)
+        }
+
+        let final = .roundKey(.rounds)
+        store(destination, load(source) ^ Swag.vecAesEncryptLastRound(firstState, final))
+        store(destination + AesBlockSize, load(source + AesBlockSize) ^ Swag.vecAesEncryptLastRound(secondState, final))
+        store(destination + 2 * AesBlockSize, load(source + 2 * AesBlockSize) ^ Swag.vecAesEncryptLastRound(thirdState, final))
+        store(destination + 3 * AesBlockSize, load(source + 3 * AesBlockSize) ^ Swag.vecAesEncryptLastRound(fourthState, final))
     }
 
     #[Swag.Inline]

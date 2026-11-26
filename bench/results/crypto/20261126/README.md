@@ -69,3 +69,4 @@ optimizations moved each result.
 - [Argon2id packed BlaMka permutation](argon2-packed.md)
 - [Five-limb Curve25519 field arithmetic](curve25519-limbs.md)
 - [P-256 fixed-base generator comb](p256-comb.md)
+- [AES-GCM four-counter encryption](aes-batched.md)

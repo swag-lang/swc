@@ -3,7 +3,7 @@
 Swag is ahead of Pillow in 81 of 103 pathname cases, including all seven
 WOFF1 cases. The report includes the 22 remaining CJK cases and timings
 with native FreeType under three input acquisition modes.
-[Complete corpus](#complete-103-case-comparison) · [Native CJK comparison](#native-cjk-pathname-snapshot-and-retained-source-comparison)
+[Final verification](#final-corpus-verification) · [Native CJK comparison](#native-cjk-pathname-snapshot-and-retained-source-comparison)
 
 The expanded corpus has 41 files and 44 scenarios. It includes the 12 supplied files,
 26 public fonts, and three WOFF1 files generated from the public inputs. Four scenarios
@@ -1696,3 +1696,77 @@ controls and exact glyph fingerprints are included.
 | `NimbusSans-Regular.pfa` | U+0067 | 1241.80 | 868.47 |
 | `P052-Roman.pfb` | U+0067 | 978.99 | 1010.52 |
 | `P052-Roman.pfb` | U+0045 | 1025.47 | 987.93 |
+
+## Final corpus verification
+
+The complete standard library at `903c822263` is built with the
+Release compiler from `d643cd7688`. The baseline is `9a7d0f5cdc`.
+Seven interleaved batches on one CPU warm the filesystem cache and
+open fresh faces at 20 px. The candidate leads Pillow 12.3.0 with
+FreeType 2.14.3 in 81 of 103 cases. All glyph indices, advances,
+bitmap dimensions, and CRC-64 checksums agree across the two Swag
+versions. The 22 remaining pathname cases are CJK.
+[Raw batches, fingerprints and fixture hashes](font-decode-linux-full-corpus-verified.json)
+
+| Input | Swag ahead | Cases |
+| --- | ---: | ---: |
+| TTF | 48 | 51 |
+| OTF | 10 | 20 |
+| TTC | 0 | 9 |
+| WOFF1 | 7 | 7 |
+| Bare CFF | 6 | 6 |
+| Type 1 | 6 | 6 |
+| PFA | 2 | 2 |
+| PFB | 2 | 2 |
+
+| Example | Character | Baseline Swag (µs) | Candidate | Pillow |
+| --- | ---: | ---: | ---: | ---: |
+| `NimbusSans-Regular.pfa` | U+0041 | 4419.99 | 838.11 | 1880.84 |
+| `NimbusSans-Regular.pfa` | U+0067 | 4334.44 | 876.46 | 2046.00 |
+
+### CJK with the verified build
+
+The native comparison repeats the pathname, snapshot, and retained
+source workloads above. Swag is ahead of FreeType in 11 of the 13
+standalone cases that copy the same complete file. Both Gothic A1
+glyphs favor FreeType in this run. Including collections, Swag is
+ahead of FreeType's snapshot in 20 of 22 cases. Collection rows
+copy a selected member in Swag and the entire collection in
+FreeType. The 11 full Noto faces take 12–37 µs to reopen and render
+from Swag's retained source. FreeType takes 658–821 µs from a
+buffer acquired before timing.
+[Raw native timings and fingerprints](font-decode-linux-cjk-native-verified.json)
+
+The parallel comparison requests one or four workers on the same
+four CPUs and starts the workers before timing. The 16 cases that
+qualify for parallel reads take 19–43% less time with four workers,
+with a median reduction of 37%. Gowun Batang, Noto Sans JP, and
+Noto Serif KR pass Pillow in this set. Gothic A1 is below the
+parallel read threshold and serves as a control. Glyph outputs
+agree across worker counts.
+[Raw worker timings and fingerprints](font-decode-linux-cjk-workers-verified.json)
+
+| Fixture | Face | Character | One worker (µs) | Four workers | Pillow |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | U+65E5 | 1792.46 | 1270.00 | 918.23 |
+| `NotoSansCJK-Regular.ttc` | 1 | U+D55C | 1922.80 | 1327.38 | 902.10 |
+| `NotoSansCJK-Regular.ttc` | 2 | U+4E2D | 1923.91 | 1286.70 | 922.00 |
+| `NotoSansCJK-Regular.ttc` | 7 | U+FF21 | 1867.30 | 1217.56 | 860.75 |
+| `NotoSansCJKjp-Regular.otf` | 0 | U+65E5 | 2316.63 | 1326.06 | 840.89 |
+| `NotoSerifCJK-Regular.ttc` | 0 | U+65E5 | 3031.51 | 1832.46 | 989.20 |
+| `NotoSerifCJK-Regular.ttc` | 1 | U+D55C | 3140.51 | 1916.19 | 1148.10 |
+| `NotoSerifCJK-Regular.ttc` | 2 | U+4E2D | 3289.72 | 1927.70 | 921.93 |
+| `NotoSerifCJK-Regular.ttc` | 3 | U+9F8D | 3069.75 | 2011.58 | 1063.25 |
+| `NotoSerifCJK-Regular.ttc` | 4 | U+2000B | 3134.77 | 1891.21 | 866.10 |
+| `GowunBatang-Regular.ttf` | 0 | U+D55C | 1229.09 | 734.40 | 871.04 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | U+672C | 3348.83 | 1959.35 | 990.95 |
+| `NotoSansJP-Regular.otf` | 0 | U+3042 | 780.04 | 562.77 | 654.45 |
+| `NotoSansHK-Regular.otf` | 0 | U+9AA8 | 839.57 | 683.87 | 590.99 |
+| `NotoSerifKR-Regular.otf` | 0 | U+D55C | 1153.62 | 790.17 | 889.86 |
+| `NotoSerifSC-Regular.otf` | 0 | U+4E2D | 1748.23 | 1043.26 | 637.30 |
+| `GothicA1-Regular.ttf` | 0 | U+D55C | 278.82 | 259.80 | 132.82 |
+
+The verified build passes 210 native TrueType tests in Release and
+108 selected tests in Release Safe. The 46 Core compression tests
+pass in both configurations. The 12 Scope font tests pass and the
+Scope Release application builds.

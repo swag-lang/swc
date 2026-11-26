@@ -208,11 +208,13 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
   Compact CID lookup takes 60–75% off fresh-source opening. FreeType still leads
   the pathname comparisons.
   [CID subset timings](../bench/results/swagscope-filesamples/font-decode-linux.md#compact-cff-cid-maps)
-- Evidence: 81 of 103 pathname cases are ahead of Pillow. The remaining 22 cover 11 full
+- Evidence: the verified build leads Pillow on 81 of 103 paths. The remaining 22 cover 11 full
   CJK CFF faces, eight regional CFF cases, and three static CJK TrueType cases. When native
-  FreeType also reads an independent snapshot, Swag wins 21 of those cases. Reopening the
-  full Noto CJK faces from a retained source takes 12–35 µs across the 11 cases.
-  [Complete corpus and native CJK comparison](../bench/results/swagscope-filesamples/font-decode-linux.md#complete-103-case-comparison)
+  FreeType and Swag copy the same complete file, Swag wins 11 of 13 cases. The two Gothic A1
+  cases still trail. The 11 full Noto CJK cases take 12–37 µs from a retained source.
+  Four requested workers reduce opening and rendering by 19–43% across the 16 tested cases
+  eligible for parallel reads. Three of those cases move ahead of Pillow.
+  [Verified corpus and native CJK comparison](../bench/results/swagscope-filesamples/font-decode-linux.md#final-corpus-verification)
 - Next: isolate the remaining cost of a single-worker CFF outline copy and check whether
   a host can provide independent snapshot storage. Preserve the face's guarantee after
   in-place file edits.

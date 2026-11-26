@@ -1189,3 +1189,76 @@ Both PSD layers matched ImageMagick at the stored sample precision. QOI matched
 the reference C decoder byte for byte on all 12 images, spanning small and odd
 sizes, photos, noise, gradients, palettes, alpha and long repeated spans. TGA
 kept the Swag checksums on six fixtures and passed 50 focused native tests.
+
+### Additional decode controls
+
+TIFF expanding LZW strips, DDS byte masks and the whole-block BC4/BC5 path kept the
+same output pixels. The table uses Linux thread CPU medians, with elapsed time for
+four-worker EXR and a separate reference that packs the same output.
+
+| Fixture | Swag before (ms) | Swag after (ms) | Reference (ms) |
+| --- | ---: | ---: | ---: |
+| Predicted RGB noise TIFF, LZW, big-endian | 23.855 | 17.493 | LibTIFF 4.7.0, 16.793 |
+| RGB noise TIFF, LZW, multiple strips | 16.899 | 15.392 | LibTIFF 4.7.0, 12.548 |
+| DDS BGRA32 with byte-aligned masks, 2051 × 1153 | 25.029 | 1.309 | ImageMagick 7.1.1-43, 64.711 |
+| DDS BC5, 2053 × 1155 | 4.517 | 3.405 | bcdec 0.985, 9.167 |
+| Stored RGB FLOAT EXR, 3073 × 2049, four workers | 25.620 | 15.974 | OpenEXR 3.5.5 C++, 93.796 |
+| JPEG 8 × 8, standard Huffman map reuse | 0.030 | 0.026 | libjpeg-turbo 2.1.5, 0.011 |
+
+The DDS mask corpus has 19 cases, including unsupported mask positions,
+padding, gray alpha and short rows. The block corpus covered BC1 through BC5,
+including partial blocks and both sample orderings. The six BC4/BC5 files
+matched bcdec after expansion to RGBA8. The combined DDS, KTX2 and ImageReader
+suite passed 26 native Release tests. JPEG large APP1 extraction fell from
+0.573 to 0.042 ms on the 61 KiB metadata fixture. The libjpeg-turbo timing
+harness omits that extraction. The TIFF literal path passed 57 tests.
+
+## Image encoding on Linux
+
+The encoder measurements use warmed input pixels and include output buffer
+materialization. The TIFF comparison also writes the file for each reader.
+Each row uses its own pinned rotating series, usually on one native Release
+worker. Rows from different series can have different host load. Reference
+settings and output size matter when comparing compression throughput.
+
+| Fixture and mode | Swag before (ms) | Swag after (ms) | Reference (ms) |
+| --- | ---: | ---: | ---: |
+| FileSamples PNG, compression level 0 | 22.207 | 0.628 | libpng 1.6.48 with zlib 1.238, zlib-ng 0.640 |
+| Flat RGBA8 PNG, compression level 0 | 77.758 | 2.445 | libpng with zlib 5.215, zlib-ng 2.777 |
+| JPEG solid 8 × 8, 4:4:4 baseline | 0.217 | 0.004 | libjpeg-turbo 2.1.5, 0.006 |
+| FileSamples JPG, 4:4:4 baseline with matched quantizers | 6.975 | 5.972 | libjpeg-turbo 2.1.5, 1.632 |
+| QOI photograph with alpha, 1601 × 1067 | 116.399 | 11.768 | QOI reference C, 13.001 |
+| QOI noise RGBA, 1601 × 1067 | 86.910 | 10.780 | QOI reference C, 9.067 |
+| GIF from the FileSamples first frame, RGB input | 9.947 | 5.591 | Pillow 12.3.0 RGB input, 32.850 |
+| GIF, five quantized animation frames with dithering | 323.892 | 29.253 | |
+| GIF, 12 RGB animation frames with small moving regions | 9.950 | 6.440 | |
+| VP8L, 4275 × 2451, pixels from FileSamples WebP | 653.593 | 93.535 | libwebp 1.5.0 lossless speed 0, 604.661 |
+| VP8L, photographic RGBA, 1921 × 1081 | 228.798 | 22.340 | |
+| FileSamples EXR, uncompressed scanline writer | 16.802 | 0.844 | OpenEXR 3.5.5 C++, 0.856 |
+| FileSamples EXR, SIMD scanline follow-up | 0.868 | 0.275 | OpenEXR 3.5.5 C++, 0.655 |
+| JPG FileSamples pixels to HALF EXR, direct byte conversion | 11.797 | 0.783 | |
+| RGB FLOAT EXR, 75.6 MB, transfer linear output | 48.131 | 16.598 | |
+| FileSamples TIFF, LZW with horizontal predictor | 32.344 | 9.599 | LibTIFF 4.7.0, 13.310 |
+| RGB noise TIFF, LZW with horizontal predictor | 221.307 | 48.917 | LibTIFF 4.7.0, 62.200 |
+| Photograph RGB TIFF, PackBits | 31.533 | 5.305 | LibTIFF 4.7.0, 23.595 |
+
+The PNG, JPEG, QOI, GIF, WebP and TIFF changes in this table preserve the Swag
+encoded bytes on their measured corpus. OpenEXR also matched the emitted files
+byte for byte on the native HALF and FLOAT comparison. The direct byte path
+checks all 256 values in six input layouts. Linear buffer transfer kept exact
+bytes on three EXRs and passed 30 native Core ownership and buffer tests.
+
+Libwebp produced 6,745,522 bytes on the large FileSamples image versus
+16,147,454 bytes for Swag, with equal decoded pixels including RGB under zero
+alpha. On the RGB-input GIF comparison, Pillow can skip its quantization stage
+when supplied a prepared palette. This reduced its sample time to 3.88 ms;
+giflib used 4.97 ms with the same indexed input. On the FileSamples PNG photo
+converted to GIF, Swag produced 161,910 bytes with color mean absolute error
+4.025, and Pillow produced 179,412 bytes at 3.952.
+
+The JPEG test supplies the same 4:4:4 quantization tables and decodes each
+output with the same library for PSNR. At Swag quality 95 on FileSamples JPG,
+Swag produced 226,578 bytes at 43.876 dB, and libjpeg-turbo produced 224,587 at
+46.832 dB. The speed change retains the prior JPEG pixels. TIFF used the same
+compression and scanline layout and matched LibTIFF pixel checksums on all 21
+profiles. The FileSamples LZW output sizes are 580,698 and 580,486 bytes.

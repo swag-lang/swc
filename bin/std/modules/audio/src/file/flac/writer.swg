@@ -7,9 +7,10 @@
 
 using Core, Core.Errors
 
-private const WriterBlockFrames   = 4_096'u32
-private const WriterMaxSamples    = (1'u64 << 36) - 1
-private const WriterPrologueBytes = 58'u64
+private const WriterMinBlockFrames = 16'u16
+private const WriterBlockFrames    = 4_096'u32
+private const WriterMaxSamples     = (1'u64 << 36) - 1
+private const WriterPrologueBytes  = 58'u64
 
 // Writes signed PCM16 frames to a native FLAC file without retaining the recording.
 //
@@ -168,8 +169,12 @@ impl Writer
         {
             let minimumFrame = (cast(u32, header[12]) << 16) | (cast(u32, header[13]) << 8) | header[14]
             let maximumFrame = (cast(u32, header[15]) << 16) | (cast(u32, header[16]) << 8) | header[17]
-            if codec.info.minBlockSize != minBlock or
-               codec.info.maxBlockSize != maxBlock or
+
+            // Older writers recorded short committed blocks directly in STREAMINFO.
+            let exactBounds      = codec.info.minBlockSize == minBlock and codec.info.maxBlockSize == maxBlock
+            let normalizedBounds = codec.info.minBlockSize == Math.max(minBlock, WriterMinBlockFrames) and
+                                   codec.info.maxBlockSize == Math.max(maxBlock, WriterMinBlockFrames)
+            if (not exactBounds and not normalizedBounds) or
                minimumFrame != minFrameBytes or
                maximumFrame != maxFrameBytes do
                 fail InvalidFormatError{"FLAC resume frame bounds differ from STREAMINFO"}
@@ -328,7 +333,7 @@ private impl Writer
         try .sink.writeByte(0)
         try .sink.writeByte(0)
         try .sink.writeByte(34)
-        try .sink.writeBigEndian(16'u16)
+        try .sink.writeBigEndian(WriterMinBlockFrames)
         try .sink.writeBigEndian(cast(u16, WriterBlockFrames))
         for 6 do
             try .sink.writeByte(0)
@@ -349,8 +354,11 @@ private impl Writer
     mtd patchStreamInfo() fail
     {
         var sizes: [10] u8
-        let minimum = .minBlock ? .minBlock : 16'u16
-        let maximum = .maxBlock ? .maxBlock : cast(u16, WriterBlockFrames)
+
+        // STREAMINFO requires block-size bounds of at least sixteen samples.
+        // The frame headers retain the exact sizes of short flushes.
+        let minimum = Math.max(.minBlock, WriterMinBlockFrames)
+        let maximum = .maxBlock ? Math.max(.maxBlock, WriterMinBlockFrames) : cast(u16, WriterBlockFrames)
         sizes[0] = cast(u8, minimum >> 8)
         sizes[1] = cast(u8, minimum & 0xFF)
         sizes[2] = cast(u8, maximum >> 8)

@@ -129,3 +129,37 @@ its FLAC file is smaller.
 
 Native Release passes 326 audio tests. Release-safe passes 55 focused AAC,
 MDCT and FLAC writer tests.
+
+## AAC packet buffering and short FLAC prefixes
+
+Swag builds use the same native Release compiler and `642ebed850` as the
+baseline. Each input contains ten seconds of PCM16. The Swag repeat alternates
+builds at the same tmpfs output path on CPU 3, with 60 samples from each.
+The separate overlay series compares native FFmpeg 9.1 with x86 assembly,
+with 12 samples per engine on CPU 3.
+
+[Raw stage times, output sizes, and decoded PCM checks](audio-encode-linux-round4.json)
+
+| AAC input | Before tmpfs (ms) | Swag tmpfs (ms) | Swag overlay (ms) | FFmpeg 9.1 overlay (ms) | Swag (kb/s) | FFmpeg (kb/s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FileSamples stereo 44.1 kHz | 14.05 | 11.46 | 13.15 | 516.08 | 221.53 | 222.76 |
+| Mono 48 kHz | 7.20 | 5.71 | 9.85 | 275.16 | 93.57 | 93.94 |
+| Stereo 44.1 kHz | 13.28 | 10.63 | 12.26 | 680.97 | 182.14 | 182.72 |
+| Stereo 48 kHz | 13.78 | 11.24 | 12.83 | 625.47 | 188.41 | 189.29 |
+| Stereo noise 48 kHz | 18.78 | 14.41 | 14.59 | 207.73 | 527.71 | 475.83 |
+| Voice mono 48 kHz | 3.73 | 3.37 | 5.58 | 125.56 | 26.47 | 26.71 |
+
+The encoder collects per-band magnitude peaks with SIMD and flushes full
+32-bit words into bounded packet storage. All six ADTS outputs remain
+byte-identical to the previous Swag build. The noise comparison uses
+different achieved payload rates. The other native reference rates stay
+within 1% of Swag.
+
+The FLAC writer keeps STREAMINFO block bounds at or above 16 samples while
+preserving the exact lengths of short frames and accepting older checkpoints
+on resume. FFmpeg and libFLAC decode single-sample, mixed-size flush and
+legacy-resume cases to the original PCM. The two ten-second FLAC benchmark
+files remain byte-identical to the previous writer.
+
+Native Release passes 328 audio tests. Release-safe passes 56 focused AAC,
+MDCT and FLAC writer tests.

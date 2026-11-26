@@ -149,9 +149,9 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   profiles; `Aac.StreamEncoder` accepts arbitrary input chunks, reports packet sample times,
   pads the last block and drains the transform. `Aac.SilenceEncoder` covers source gaps.
   The module and FFmpeg decode non-silent AAC inside fragmented MP4. The software encoder uses an
-  FFT-backed MDCT. Native Release encodes ten seconds of 48 kHz stereo PCM16 in about 14 ms on
-  the generated fixture. The output is byte-identical to the previous encoder.
-  [Audio encoding comparison](../bench/results/swagscope-filesamples/audio-encode-linux.md#aac-lc-encoder)
+  FFT-backed MDCT. Native Release encodes ten seconds of 48 kHz stereo PCM16 in about 11 ms on
+  the generated fixture with tmpfs output. Its output is byte-identical to the previous encoder.
+  [Audio encoding comparison](../bench/results/swagscope-filesamples/audio-encode-linux.md#aac-packet-buffering-and-short-flac-prefixes)
   Bounded spectral gains per band now retain a 12 kHz component 43.5 dB below a 440 Hz tone
   in the same channel: FFmpeg decodes amplitude 160.47 for an input of 160, instead of 0.01
   before the change. Consecutive AAC sections with the same codebook now share their syntax.

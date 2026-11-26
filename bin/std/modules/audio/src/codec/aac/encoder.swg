@@ -5,7 +5,7 @@
 #global namespace Aac
 #global export
 
-using Core, Core.Errors
+using Core, Core.Errors, Core.Math
 
 private const EncoderFrames    = 1_024'u64
 private const VoiceLines       = 176'u64
@@ -13,6 +13,10 @@ private const VoiceBands       = 23'u64
 private const FullLines        = 1_024'u64
 private const FullBands        = 49'u64
 private const MaximumBandBoost = 48's32
+
+// AAC spectral pairs use at most 16 bits. Four bytes per band cover its
+// section and scalefactor. The remaining space covers the fixed headers.
+private const MaximumPacketBytes = 2 * (FullLines + 4 * FullBands + 32)
 
 private const MaxMagnitude     = 15
 private const SignedMagnitudes = 2 * MaxMagnitude + 1
@@ -157,9 +161,10 @@ struct Encoder
         sampleRate:  u32
         lineCount:   u64
         bandCount:   u64
-        bitWord:     u32
+        bitWord:     u64
         pendingBits: u32
-        output:      Array'u8
+        wordCount:   u64
+        output:      [MaximumPacketBytes / #sizeof(u32)] u32
     }
 }
 
@@ -236,7 +241,7 @@ impl Encoder
             return
         }
 
-        .output.clear()
+        .wordCount   = 0
         .bitWord     = 0
         .pendingBits = 0
         if .channels == 2
@@ -262,15 +267,28 @@ impl Encoder
 
             var transformed: [FullLines] f32
             .transform.forward(&windowed[0], &transformed[0])
-            var spectrum: [FullLines] f64
-            var largest = 0.0'f64
-            for line in .lineCount
+            let rateIndex = .sampleRate == 48_000 ? 3'u32 : 4'u32
+            let offsets   = swbLong(rateIndex)
+            var peaks: [FullBands] f32
+            var maximum   = 0'f32
+            for band in .bandCount
             {
-                spectrum[line] = cast(f64, transformed[line]) * 2.0
-                largest        = Math.max(largest, Math.abs(spectrum[line]))
+                let first = cast(const [*] f32, &transformed[offsets[band]])
+                let width = cast(u64, offsets[band + 1] - offsets[band])
+                var lanes = Simd.splat(0'f32)
+                for group in width / 4
+                {
+                    let values = Math.abs(Simd.load(first + 4 * group))
+                    lanes = Simd.select(values > lanes, values, lanes)
+                }
+
+                let peak = Simd.maximum(lanes)
+                peaks[band] = peak
+                maximum     = Math.max(maximum, peak)
             }
 
-            var gain = 100's32
+            let largest = 2.0 * cast(f64, maximum)
+            var gain    = 100's32
             if largest > 0 do
                 gain = Math.clamp(cast(s32,
                                        Math.ceil(100.0 + 4.0 *
@@ -280,8 +298,6 @@ impl Encoder
             var quantized: [FullLines] s32
             var active:    [FullBands] bool
             var bandGain:  [FullBands] s32
-            let rateIndex = .sampleRate == 48_000 ? 3'u32 : 4'u32
-            let offsets   = swbLong(rateIndex)
 
             // Keep each band's quiet components above the global quantization floor. AAC
             // codes scalefactor differences in [-60, 60]; limiting the boost to 48 steps
@@ -289,9 +305,7 @@ impl Encoder
             let minimumGain = Math.max(0's32, gain - MaximumBandBoost)
             for band in .bandCount
             {
-                var bandPeak = 0.0'f64
-                for line in offsets[band] until offsets[band + 1] do
-                    bandPeak = Math.max(bandPeak, Math.abs(spectrum[line]))
+                let bandPeak = 2.0 * cast(f64, peaks[band])
                 var selected = gain
 
                 // Ignore far-off leakage and numerical residue around a strong tone.
@@ -358,9 +372,22 @@ impl Encoder
         }
 
         .writeBits(7, 3)     // End element.
-        if .pendingBits do
-            .output.add(cast(u8, (.bitWord << (8 - .pendingBits)) & 255))
-        packet.add(.output.toSlice())
+        let output = Swag.makeSlice(cast([*] u8, &.output[0]), MaximumPacketBytes)
+        var size   = .wordCount * #sizeof(u32)
+        while .pendingBits >= 8
+        {
+            .pendingBits -= 8
+            output[size] = cast(u8, (.bitWord >> .pendingBits) & 255)
+            size         += 1
+        }
+
+        if .pendingBits
+        {
+            output[size] = cast(u8, (.bitWord << (8 - .pendingBits)) & 255)
+            size         += 1
+        }
+
+        packet.add(output[until size])
     }
 }
 
@@ -368,14 +395,16 @@ private impl Encoder
 {
     mtd writeBits(value: u32, count: u32)
     {
-        // An AAC word is at most 19 bits and at most seven bits are pending.
+        // At most 31 bits are pending before a codeword of at most 19 bits.
         .bitWord     = (.bitWord << count) | value
         .pendingBits += count
-        while .pendingBits >= 8
-        {
-            .pendingBits -= 8
-            .output.add(cast(u8, (.bitWord >> .pendingBits) & 255))
-        }
+        if .pendingBits < 32 do
+            return
+
+        .pendingBits -= 32
+        let next = cast(u32, (.bitWord >> .pendingBits) & 0xFFFF_FFFF)
+        .output[.wordCount] = Math.nativeToBigEndian(next)
+        .wordCount += 1
     }
 }
 

@@ -210,6 +210,44 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     assertFlacWriterSamples(single.toString(), Swag.makeSlice(&Last[0], 1), 1, 48_000)
 }
 
+// Short flushed prefixes keep legal STREAMINFO bounds and resume with their exact frame sizes.
+#test
+{
+    const Samples: [19] s16 = [7, 15, 6, -4, 3, -5, 8, 9, -42, 7, 3, 4, 5, 8, 2, 10, 9, -8, 0]
+    let pcm = Swag.makeSlice(&Samples[0], Samples.count)
+    for legacy in [false, true]
+    {
+        let path = flacWriterPath("short-prefix")
+        defer discard catch File.delete(path)
+        scope
+        {
+            var writer = expect Flac.Writer.create(path.toString(), 1, 48_000)
+            expect writer.addFrames(pcm[until 1])
+            expect writer.flush()
+        }
+
+        let prefix = expect File.readAllBytes(path)
+        Swag.require(prefix[8] == 0 and prefix[9] == 16 and prefix[10] == 0 and prefix[11] == 16)
+        assertFlacWriterSamples(path.toString(), pcm[until 1], 1, 48_000)
+        if legacy
+        {
+            var oldPrefix = prefix
+            oldPrefix[9]  = 1
+            oldPrefix[11] = 1
+            discard expect File.writeAllBytes(path, oldPrefix.toSlice())
+        }
+
+        var resumed = expect Flac.Writer.resume(path.toString())
+        Swag.require(resumed.sampleFrameCount() == 1 and resumed.writtenByteCount() == prefix.count)
+        expect resumed.addFrames(pcm[1 until])
+        expect resumed.end()
+        let completed = expect File.readAllBytes(path)
+        Swag.require(completed[8] == 0 and completed[9] == 16 and completed[10] == 0 and completed[11] == 18)
+        Swag.require(Slice.equals(completed.toSlice()[58 until prefix.count], prefix.toSlice()[58 until]))
+        assertFlacWriterSamples(path.toString(), pcm, 1, 48_000)
+    }
+}
+
 // Resume validates the committed prefix, discards an incomplete tail, and continues its MD5.
 #test
 {

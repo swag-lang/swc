@@ -42,6 +42,8 @@ clipped CFF glyph, the rotated fallback pattern glyphs, the tiling
 patterns and several other fixtures. Use the raw images' metrics when
 interpreting their timings. The two Swag builds have identical raster
 CRCs on all 61 supported pages at 1200 px and all 15 at 2400 px.
+A Release rebuild from published `master` at `6ec62ae0aa` reproduces
+all 61 raster CRCs at 1200 px with its matching compiler and runtime.
 
 The dense curve fixture spends most of its time in stroke replay. AGG
 builds joined outlines and accumulates edge area into cells before

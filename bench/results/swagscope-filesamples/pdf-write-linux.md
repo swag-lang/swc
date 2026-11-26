@@ -262,3 +262,11 @@ control contains 2,000 pages of 10 by 10 points.
 All three saved outputs have identical bytes and PDFium rasters in the
 two builds. The 124 focused PDF tests pass.
 [Reproducing the empty-page fixture](../../workloads/pdfwrite/README.md#many-empty-pages)
+
+## FileSamples save coverage
+
+The build at `26c6d26269` saves `sample2.pdf` with the same output bytes
+as `747be17d13`. Both builds reject `sample1.pdf` and `sample3.pdf` during
+save because their text contains characters outside the writer's
+Windows-1252 repertoire. All three PDFs remain in the raster benchmark.
+[PDF text encoding backlog](../../../backlog/std.gui.pdf.md#stdguipdf019--text-output-cannot-leave-windows-1252-and-the-fourteen-standard-faces)

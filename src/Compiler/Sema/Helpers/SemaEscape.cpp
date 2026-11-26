@@ -6143,7 +6143,8 @@ namespace SemaEscape
 
     void propagateCompletedFreesSummaries(TaskContext& ctx, std::span<SymbolFunction* const> completedFunctions, const uint64_t orderFingerprint)
     {
-        if (ctx.compiler().freeForwardingEdgeCount() == 0)
+        const size_t forwardingCount = ctx.compiler().freeForwardingEdgeCount();
+        if (!forwardingCount)
             return;
 
         // Cache the fixpoint by edge/release versions and semantic-completion count.
@@ -6177,10 +6178,6 @@ namespace SemaEscape
             ctx.compiler().noteFreesPropagationDone(signature);
             return;
         }
-
-        // A guarded forwarding is judged against the call graph this pass was handed, so its
-        // eligible set is local to the call.
-        std::vector<SemaEscapeFreesForwarding> forwardings;
 
         struct ReturnSummary
         {
@@ -6469,8 +6466,10 @@ namespace SemaEscape
             }
         });
 
-        // The return fixpoints have converged. Guard eligibility cannot change
-        // while only frees masks grow, so retain each eligible edge once, in order.
+        // Eligibility uses this call's return summaries. Reserve from the source edge count
+        // so the eligible prefix can grow without copying the retained entries.
+        std::vector<SemaEscapeFreesForwarding> forwardings;
+        forwardings.reserve(forwardingCount);
         ctx.compiler().visitFreesPropagationEdges(false, [&](const SemaEscapeSummaryEdge& edge) {
             const bool ineligible = std::ranges::any_of(edge.returnGuards, [&returns](const SemaEscapeDeferredGuard& guard) {
                 if (guard.indirect)

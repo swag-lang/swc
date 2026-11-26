@@ -605,3 +605,30 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     for sample in 3 * Width do
         Swag.require(pixels[sample] == 0x3C00)
 }
+
+// Direct byte input has the same HALF samples and scanline layout as image conversion.
+#test
+{
+    for format in [PixelFormat.Gray8, PixelFormat.GrayAlpha8, PixelFormat.RGB8, PixelFormat.BGR8, PixelFormat.RGBA8, PixelFormat.BGRA8]
+    {
+        var input    = Image.create(257, 3, format)
+        let samples  = input.pixels.storage()
+        let channels = cast(u64, format.channels())
+        for pixel in 257'u64 * 3
+        {
+            for channel in channels do
+                samples[pixel * channels + channel] = cast(u8, (pixel + channel * 59) & 255)
+        }
+
+        var halfFormat: PixelFormat
+        if format.isGrayscale() do
+            halfFormat = format.hasAlpha() ? .GrayAlphaF16 : .GrayF16
+        else do
+            halfFormat = format.hasAlpha() ? .RGBAF16 : .RGBF16
+        let converted = input.convertedTo(halfFormat)
+        let expected  = expect converted.encodeToBytes("half.exr")
+        let output    = expect input.encodeToBytes("byte.exr")
+        Swag.require(output.count == expected.count)
+        Swag.require(Memory.compare(output.storage(), expected.storage(), output.count) == 0)
+    }
+}

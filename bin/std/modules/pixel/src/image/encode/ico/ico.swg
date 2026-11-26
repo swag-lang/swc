@@ -101,15 +101,7 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
 
         entries[index] = entry
         let destination = output + offset
-        if image.alphaMode == .Premultiplied
-        {
-            let straight = image.convertedAlphaTo(.Straight)
-            writeDib(destination, straight)
-        }
-        else
-        {
-            writeDib(destination, image)
-        }
+        writeDib(destination, image)
 
         offset += dibBytes
         index  += 1
@@ -164,6 +156,40 @@ private func expandIconPixels(source: const [*] u8, destination: [*] u8, count: 
     }
 }
 
+// Eight-bit alpha conversion is independent for each channel. Use the same normalized
+// rounding as Image.convertAlphaTo, including zeroing RGB when the alpha sample is zero.
+private func buildIconStraightChannelTable()->[65536] u8
+{
+    var result: #returntype
+    for alpha in 1 until 256
+    {
+        let a = cast(f32, alpha) / 255.0
+        for channel in 256
+            do
+            result[(alpha << 8) | channel] = normalizedToU8((cast(f32, channel) / 255.0) / a)
+    }
+
+    return result
+}
+
+private const IconStraightChannels = #run buildIconStraightChannelTable()
+
+private func writePremultipliedIconPixels(source: const [*] u8, target: [*] u8, count: u64, swapRedBlue: bool)
+{
+    let blue = swapRedBlue ? 2 : 0
+    let red  = 2 - blue
+    for i in count
+    {
+        let input  = source + i * 4
+        let output = target + i * 4
+        let values = IconStraightChannels.buffer + (cast(u32, input[3]) << 8)
+        output[0] = values[input[blue]]
+        output[1] = values[input[1]]
+        output[2] = values[input[red]]
+        output[3] = input[3]
+    }
+}
+
 private func writeDib(destination: [*] u8, image: Image)
 {
     let count    = cast(u64, image.width) * image.height
@@ -183,11 +209,18 @@ private func writeDib(destination: [*] u8, image: Image)
     // The image already stores tightly packed bottom-up rows.
     let pixels = destination + #sizeof(DibHeader)
     let source = image.pixels.storage()
-    switch image.pixelFormat
+    if image.alphaMode == .Premultiplied
     {
-    case .BGRA8: Memory.copy(pixels, source, xorBytes)
-    case .RGBA8: PackedPixel.swapRedBlue32Row(source, pixels, count)
-    default:     expandIconPixels(source, pixels, count, image.pixelFormat == .RGB8)
+        writePremultipliedIconPixels(source, pixels, count, image.pixelFormat == .RGBA8)
+    }
+    else
+    {
+        switch image.pixelFormat
+        {
+        case .BGRA8: Memory.copy(pixels, source, xorBytes)
+        case .RGBA8: PackedPixel.swapRedBlue32Row(source, pixels, count)
+        default:     expandIconPixels(source, pixels, count, image.pixelFormat == .RGB8)
+        }
     }
 
     // Alpha carries transparency. Every bit of the AND mask stays clear.

@@ -870,6 +870,44 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(bytes[65] == 128'u8)     // Alpha.
 }
 
+// Writing premultiplied ICO pixels matches the normal straight-alpha conversion.
+#test
+{
+    for format in [PixelFormat.RGBA8, .BGRA8]
+    {
+        let source = Image.create(256, 256, format, alphaMode: .Premultiplied)
+        for alpha in 256
+        {
+            for sample in 256
+            {
+                let p = source.pixels.storage() + (alpha * 256 + sample) * 4
+                p[0] = cast(u8, sample)
+                p[1] = cast(u8, 255 - sample)
+                p[2] = cast #wrap(u8, sample * 73)
+                p[3] = cast(u8, alpha)
+            }
+        }
+
+        let expected = source.convertedAlphaTo(.Straight)
+        let entries: [1] Image = [source]
+        var encoded  = expect Ico.encodeAll(entries)
+        let bytes    = encoded.moveToArray()
+        Swag.require(bytes.count == 270398)
+        let output = bytes.storage() + 62
+        let first  = format == .BGRA8 ? 0 : 2
+        let last   = 2 - first
+        for index in 256 * 256
+        {
+            let actual = output + index * 4
+            let ref    = expected.pixels.storage() + index * 4
+            Swag.require(actual[0] == ref[first] and
+                         actual[1] == ref[1] and
+                         actual[2] == ref[last] and
+                         actual[3] == ref[3])
+        }
+    }
+}
+
 // The whole set reaches a file through the namespace entry point.
 #test
 {

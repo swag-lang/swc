@@ -199,6 +199,52 @@ impl ImageReader
         return {0, 0, 0, 0}
     }
 
+    #[Swag.Inline]
+    func normalizedByteLanes(samples: Math.Simd.U32x4)->Math.Simd.F32x4
+    {
+        using Math.Simd
+        let integer = cast #bit(F32x4, (samples | splat(0x4B00_0000'u32))) - splat(8388608'f32)
+        return integer / splat(255'f32)
+    }
+
+    #[Swag.Inline]
+    func normalizedLaneBytes(values: Math.Simd.F32x4, nearTie: *Math.Simd.U32x4)->Math.Simd.U32x4
+    {
+        using Math.Simd
+        let scaled    = values * splat(255'f32)
+        let floor     = Math.floor(scaled)
+        let fraction  = scaled - floor
+        let halfway   = splat(0.5'f32)
+        nearTie[] |= Math.abs(fraction - halfway) <= splat(0.0001220703125'f32)
+        let increment = fraction >= halfway
+        return cast #bit(U32x4, truncateToS32(floor)) - increment
+    }
+
+    #[Swag.Inline]
+    func(SHIFT: u32) blendChannelLanes(source, behind: Math.Simd.U32x4, sourceAlpha, remainder, divisor: Math.Simd.F32x4, nearTie: *Math.Simd.U32x4)->Math.Simd.U32x4
+    {
+        using Math.Simd
+        let mask = splat(255'u32)
+        let a    = normalizedByteLanes((source >> SHIFT) & mask)
+        let b    = normalizedByteLanes((behind >> SHIFT) & mask)
+        return normalizedLaneBytes((a * sourceAlpha + b * remainder) / divisor, nearTie) << SHIFT
+    }
+
+    #[Swag.Inline]
+    func blendRgba8Lanes(source, behind: Math.Simd.U32x4, nearTie: *Math.Simd.U32x4)->Math.Simd.U32x4
+    {
+        using Math.Simd
+        let sourceAlpha = normalizedByteLanes(source >> 24)
+        let behindAlpha = normalizedByteLanes(behind >> 24)
+        let remainder   = behindAlpha * (splat(1'f32) - sourceAlpha)
+        let alpha       = sourceAlpha + remainder
+        let divisor     = select(alpha == splat(0'f32), splat(1'f32), alpha)
+        return blendChannelLanes'0(source, behind, sourceAlpha, remainder, divisor, nearTie) |
+               blendChannelLanes'8(source, behind, sourceAlpha, remainder, divisor, nearTie) |
+               blendChannelLanes'16(source, behind, sourceAlpha, remainder, divisor, nearTie) |
+               (normalizedLaneBytes(alpha, nearTie) << 24)
+    }
+
     func blendRgba8Row(source: const [*] u8, target: [*] u8, width: s32)
     {
         let input   = cast(const [*] u32, source)
@@ -211,13 +257,31 @@ impl ImageReader
             let colors = Math.Simd.load(input + x)
             let alpha  = colors >> 24
             let opaque = alpha == maximum
-            if Math.Simd.bitmask(opaque | (alpha == zero)) != 0xF do
-                break
+            let behind = Math.Simd.load(output + x)
+            if Math.Simd.bitmask(opaque | (alpha == zero)) == 0xF
+            {
+                // A transparent source retains visible destination colors and clears hidden RGB.
+                let visible = (behind >> 24) != zero
+                Math.Simd.store(output + x, (colors & opaque) | (behind & visible & ~opaque))
+            }
+            else
+            {
+                var nearTie = zero
+                Math.Simd.store(output + x, blendRgba8Lanes(colors, behind, &nearTie))
 
-            // A transparent source retains visible destination colors and clears hidden RGB.
-            let behind  = Math.Simd.load(output + x)
-            let visible = (behind >> 24) != zero
-            Math.Simd.store(output + x, (colors & opaque) | (behind & visible & ~opaque))
+                // Preserve scalar rounding near halfway points between output bytes.
+                var pending = Math.Simd.bitmask(nearTie)
+                while pending
+                {
+                    let lane   = Math.trailingZeros(pending)
+                    let offset = cast(u64, x + lane) * 4
+                    var prior  = behind[lane]
+                    let value  = readPixelValue(source + offset, .RGBA8)
+                    let old    = readPixelValue(cast(const [*] u8, &prior), .RGBA8)
+                    writePixelValue(target + offset, .RGBA8, blendOver(value, old))
+                    pending &= pending - 1
+                }
+            }
             x += 4
         }
 

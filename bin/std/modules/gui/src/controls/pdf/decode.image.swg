@@ -1088,26 +1088,29 @@ private func(const SwapRedBlue: bool) maskedJpegImage(decoded: const *Image, mas
     return #move result
 }
 
-// Remembers a decoded image against the object it came from, for as long as the document is open.
-private func cacheDecodedImage(parser: *PdfParser, key: u64, image: const *Image)
+// Keeps one reference in the cache while each page owns its own reference.
+private func cacheDecodedImage(parser: *PdfParser, key: u64, image: #move Image)->ImageReference
 {
-    if parser.imageCacheBytes + image.byteCount > ImageCacheBudget do
-        return
-    parser.imageCacheBytes += image.byteCount
-    parser.imageCache[key] = image[]
+    let size = image.byteCount
+    var result = #move ImageReference.create(#move image)
+    if parser.imageCacheBytes + size <= ImageCacheBudget
+    {
+        parser.imageCacheBytes += size
+        parser.imageCache[key] = result
+    }
+
+    return #move result
 }
 
-// Decodes one image XObject or inline image into an owned Pixel image.
-//
-// `fillColor` paints a stencil mask, whose samples carry coverage rather than color.
-internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColor: Color)->Image fail
+internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColor: Color)->ImageReference fail
 {
     if parser.boolean(parser.dict(nodeId, "ImageMask"))
     {
         // A stencil is painted in the fill color in force, so two pages that share the object
         // do not share the result; it is also the cheapest kind to read back.
         let stencil = #move try readMaskPlane(parser, nodeId, resourcesId, true)
-        return planeToImage(&stencil, &fillColor)
+        var painted = #move planeToImage(&stencil, &fillColor)
+        return ImageReference.create(#move painted)
     }
 
     let cacheKey = imageCacheKey(nodeId, resourcesId)
@@ -1146,13 +1149,12 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         // what loading an illustrated document used to cost.
         if maskId == InvalidNode
         {
-            var result: #returntype
+            var result: Image
             if decoded.pixelFormat == .RGB8 do
                 result = #move decoded
             else do
                 result = decoded.convertedTo(.RGB8)
-            cacheDecodedImage(parser, cacheKey, &result)
-            return #move result
+            return cacheDecodedImage(parser, cacheKey, #move result)
         }
 
         mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
@@ -1161,8 +1163,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         {
             // JPEG pixels already have the destination row order.
             var result = decoded.pixelFormat == .BGR8 ? maskedJpegImage'(true)(&decoded, &mask) : maskedJpegImage'(false)(&decoded, &mask)
-            cacheDecodedImage(parser, cacheKey, &result)
-            return #move result
+            return cacheDecodedImage(parser, cacheKey, #move result)
         }
 
         plane.width  = decoded.width
@@ -1245,6 +1246,5 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     }
 
     var result = #move planeToImage(&plane, null)
-    cacheDecodedImage(parser, cacheKey, &result)
-    return #move result
+    return cacheDecodedImage(parser, cacheKey, #move result)
 }

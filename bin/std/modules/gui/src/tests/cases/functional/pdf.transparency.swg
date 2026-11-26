@@ -252,7 +252,8 @@ private func markedPixels(frame: const *Image)->u64
     for transform in Transforms
     {
         var item: Pdf.Item
-        item.image     = source
+        var copied = source
+        item.image     = #move ImageReference.create(#move copied)
         item.transform = transform
         maskImagePixels(&item, &coverage, Region)
         for y in source.height
@@ -266,7 +267,7 @@ private func markedPixels(frame: const *Image)->u64
                 let maskY = cast(s32, ((point.y - Region.y) / Region.height * coverage.height))
                 let color = source.pixelColor(x, y)
                 let alpha = cast(u8, (cast(u32, color.a) * coverage.pixelColor(maskX, maskY).a) / 255)
-                Swag.require(item.image.pixelColor(x, y) == color.withAlpha(alpha))
+                Swag.require(item.image.value()!.pixelColor(x, y) == color.withAlpha(alpha))
             }
         }
     }

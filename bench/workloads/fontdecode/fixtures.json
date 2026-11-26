@@ -399,6 +399,96 @@
     ]
   },
   {
+    "file": "NotoSansKR-Variable.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosanskr/NotoSansKR%5Bwght%5D.ttf",
+    "sha256": "194018e6b2b293a7964f037b25c0249ce1418bc9ab3c971060a03aa57861e252",
+    "cases": [
+      {
+        "character": 44033,
+        "profile": "CJK variable TrueType (Hangul)"
+      },
+      {
+        "character": 38867,
+        "profile": "CJK variable TrueType (Hanja)"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansHK-Variable.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosanshk/NotoSansHK%5Bwght%5D.ttf",
+    "sha256": "76098ee78ec234cd4f8c950742b3f766fea2f8b43d5180d901048f4fc86c6849",
+    "cases": [
+      {
+        "character": 131105,
+        "profile": "CJK variable TrueType (Extension B)"
+      },
+      {
+        "character": 39592,
+        "profile": "CJK variable TrueType (Han)"
+      }
+    ]
+  },
+  {
+    "file": "NotoSerifJP-Variable.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notoserifjp/NotoSerifJP%5Bwght%5D.ttf",
+    "sha256": "2fd527ba12b6a44ec30d796d633360da0aeba6c5d4af1304ce12bb4dc15a7dfc",
+    "cases": [
+      {
+        "character": 12354,
+        "profile": "CJK variable TrueType (Hiragana)"
+      },
+      {
+        "character": 39640,
+        "profile": "CJK variable TrueType (Kanji)"
+      }
+    ]
+  },
+  {
+    "file": "NotoSerifKR-Variable.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notoserifkr/NotoSerifKR%5Bwght%5D.ttf",
+    "sha256": "11f8d5de6f1b79195efba3828aaa2ec95c1178f5ae976fb23c8d53250a9938f3",
+    "cases": [
+      {
+        "character": 54620,
+        "profile": "CJK variable TrueType (Hangul)"
+      },
+      {
+        "character": 37329,
+        "profile": "CJK variable TrueType (Hanja)"
+      }
+    ]
+  },
+  {
+    "file": "LXGWWenKaiTC-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/lxgwwenkaitc/LXGWWenKaiTC-Regular.ttf",
+    "sha256": "4fcc5aec11cbbf737b0cfab7b63796f7f280087a7a656b2f13342cd5e5318d95",
+    "cases": [
+      {
+        "character": 22283,
+        "profile": "CJK static TrueType (Han)"
+      },
+      {
+        "character": 40845,
+        "profile": "CJK static TrueType (Han)"
+      }
+    ]
+  },
+  {
+    "file": "Iansui-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/iansui/Iansui-Regular.ttf",
+    "sha256": "6e6340d80d618a42b48ade9370c34fa37a8210750c6fbc8efe65f23716538a2b",
+    "cases": [
+      {
+        "character": 33274,
+        "profile": "CJK static TrueType (Han)"
+      },
+      {
+        "character": 40860,
+        "profile": "CJK static TrueType (Han)"
+      }
+    ]
+  },
+  {
     "file": "DejaVuSans.woff",
     "source": "DejaVuSans.ttf",
     "cases": [

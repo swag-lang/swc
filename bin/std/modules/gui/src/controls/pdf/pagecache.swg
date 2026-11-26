@@ -42,7 +42,7 @@ impl PdfResidentPage
         {
             var uploaded: Pixel.Texture
             if item.kind == .Image do
-                uploaded = renderer.addImage(item.image)
+                uploaded = renderer.addImage(item.imageValue()![])
             elif item.hasMask do
                 uploaded = renderer.addImage(item.maskImage)
             else do

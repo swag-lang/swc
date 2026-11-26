@@ -57,7 +57,7 @@ struct Item
         textAdvances:  Array'f32
         invisibleText: bool
         path:          LinePathList
-        image:         Image
+        image:         ImageReference
         transform:     Transform2 = Transform2.Identity
 
         fillColor:    Color        = Color.fromArgb(Argb.Black)
@@ -127,7 +127,8 @@ internal impl Item
         result += .textAdvances.capacity * #sizeof(f32)
         result += .path.memoryUsage()
         result += .imageClip.memoryUsage()
-        result += .image.byteCount
+        if let pixels = .image.value() do
+            result += pixels.byteCount
         if .hasMask do
             result += .maskImage.byteCount
         return result
@@ -306,7 +307,7 @@ impl Item
     // Returns a borrowed image for an image item, or null for another kind.
     //
     // The pointer remains valid until the owning page or its item array is mutated.
-    mtd const imageValue()->const *Image? => .kind == .Image ? &.image : null
+    mtd const imageValue()->const *Image? => .kind == .Image ? .image.value() : null
 }
 
 internal impl Item

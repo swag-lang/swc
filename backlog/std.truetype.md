@@ -193,6 +193,9 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
   CJK CFF faces and the static TrueType fixture Gowun Batang. Retained-source opens
   can share CFF dictionaries and validated character maps.
   [Expanded CJK timings](../bench/results/swagscope-filesamples/font-decode-linux.md#shared-character-map-selection)
+- Evidence: the 71-case pathname comparison adds 12 TrueType CJK scenarios and records
+  60 wins. The remaining 11 losses all use large Noto CJK CFF outlines.
+  [71-case comparison](../bench/results/swagscope-filesamples/font-decode-linux.md#expanded-chinese-japanese-and-korean-fixtures)
 - Next: isolate the remaining cost of a single-worker CFF outline copy and check whether
   a host can provide independent snapshot storage. Preserve the face's guarantee after
   in-place file edits.

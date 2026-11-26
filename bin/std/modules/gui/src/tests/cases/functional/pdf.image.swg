@@ -752,3 +752,40 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
             Swag.require(output.pixelColor(x, y) == source.pixelColor(x, y))
     }
 }
+
+
+// A cached bitmap stays alive in both pages after the reader releases its own reference.
+#test
+{
+    let file = Testing.tempFilePath("pdf-shared-image-", ".pdf")
+    defer discard catch File.delete(file)
+    let source = imageDocument("/Type /XObject /Subtype /Image /Width 2 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8",
+                               [19'u8, 28, 240, 107, 80, 17])
+    expect source.save(file)
+
+    func laterPage(path: string)->Page
+    {
+        var reader = expect Reader.open(path)
+        let first  = expect reader.loadPage(0)
+        var second = #move expect reader.loadPage(0)
+        Swag.require(first.items.count == 1 and second.items.count == 1)
+        Swag.require(first.items[0].imageValue() == second.items[0].imageValue())
+        return #move second
+    }
+
+    let page = laterPage(file)
+    let pixels = unwrap page.items[0].imageValue()
+    Swag.require(pixels.pixelColor(0, 0) == Color.fromRgb(19, 28, 240))
+}
+
+// Editing coverage separates one page's image from any other owners.
+#test
+{
+    var image = Image.create(1, 1, .RGBA8, [9'u8, 17, 92, 255])
+    var first = #move ImageReference.create(#move image)
+    let other = first
+    let target = first.edit()
+    target.pixels[3] = 64
+    Swag.require(first.value()!.pixelColor(0, 0).a == 64)
+    Swag.require(other.value()!.pixelColor(0, 0).a == 255)
+}

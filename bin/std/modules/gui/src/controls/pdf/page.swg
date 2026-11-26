@@ -154,7 +154,8 @@ impl Page
                     "invalid image placement")
         with var item = Item.createImage()
         {
-            .image     = image
+            var copied = image
+            .image     = #move ImageReference.create(#move copied)
             .transform = Transform2{width, 0, 0, height, x, y}
         }
 

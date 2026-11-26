@@ -482,3 +482,27 @@ logical CPU. Both Swag builds use the same compiler and Core at
 All 43 supported cases and every focused comparison keep their Swag
 raster checksums. The focused Pixel suite also compares mirrored RGBA8
 and BGRA8 downscales with scalar reference samples across span tails.
+
+
+## Sharing immutable decoded images
+
+A decoded image and its cache entry now share the same pixel allocation.
+Pages own references that can outlive their reader. A page-specific
+transparency change copies the image before editing shared pixels.
+
+These median Release times cover loads from a warmed reader, keeping
+each returned page alive. The first image decode is outside the timed
+interval. The reference is Swag `c488c3c599` on one AMD EPYC 7763 logical
+CPU. Peak RSS is the maximum across the nine processes in each series.
+[Timings, memory measurements, and checksums](pdf-raster-linux-shared-images.json)
+
+| PDF | Pages retained | Load before, ms | Load after, ms | Peak RSS before, KiB | Peak RSS after, KiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `perf_images_jpeg_large.pdf` | 16 | 227.81 | 0.072 | 624,876 | 79,212 |
+| `sample1.pdf` | 24 | 75.19 | 32.54 | 151,316 | 31,508 |
+
+For a fresh 1200 px load, the repeated image fixture drops from 8.12
+to 6.92 ms and the transformed soft-mask fixture from 43.66 to 29.56 ms
+in the focused comparison. All 43 supported cases keep their Swag
+checksums against the matched build at `5d769d9d98`. The 138 PDF tests
+include a retained page that outlives its reader and a detached alpha edit.

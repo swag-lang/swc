@@ -632,7 +632,7 @@ private func allocatePageObjects(page: const *Page, nextObject: *u32, sources: *
     objects.content = nextObject[]
     nextObject[]    += 1
     for item in page.items where item.kind == .Image do
-        objects.images.add(allocateImageObject(&item.image, nextObject, sources))
+        objects.images.add(allocateImageObject(unwrap item.imageValue(), nextObject, sources))
     return objects
 }
 
@@ -692,8 +692,9 @@ private impl Writer
             if not imageObject.firstUse do
                 continue
 
-            let encoded    = encodeImagePixels(&item.image)
-            let width      = cast(u64, item.image.width)
+            let image      = unwrap item.imageValue()
+            let encoded    = encodeImagePixels(image)
+            let width      = cast(u64, image.width)
             let components = encoded.isGray ? 1'u64 : 3'u64
             let samples    = #move try compressImageSamples(&.zlib, encoded.samples.toSlice(), width, components, encoded.bitsPerComponent)
             var maskObject: u32
@@ -703,7 +704,7 @@ private impl Writer
                 nextObject[] += 1
             }
 
-            var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /FlateDecode", item.image.width, item.image.height, encoded.isGray ? "Gray" : "RGB", encoded.bitsPerComponent)
+            var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /FlateDecode", image.width, image.height, encoded.isGray ? "Gray" : "RGB", encoded.bitsPerComponent)
             if maskObject do
                 dictionary.appendFormat(" /SMask % 0 R", maskObject)
             if samples.predicted do
@@ -713,7 +714,7 @@ private impl Writer
             if maskObject
             {
                 let maskData = #move try compressImageSamples(&.zlib, encoded.alpha.toSlice(), width, 1)
-                var maskDict = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height)
+                var maskDict = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", image.width, image.height)
                 if maskData.predicted do
                     maskDict.appendFormat(" /DecodeParms << /Predictor 15 /Colors 1 /Columns % >>", width)
                 .streamObject(maskObject, maskData.bytes.toSlice(), maskDict.toString())

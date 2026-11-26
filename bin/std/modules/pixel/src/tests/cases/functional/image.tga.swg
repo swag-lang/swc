@@ -857,8 +857,8 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
         Swag.require(img.pixelFormat == .BGR8)
         for pixel in Samples.count
         {
-            let x = pixel % Width
-            let y = pixel / Width
+            let x       = pixel % Width
+            let y       = pixel / Width
             let targetX = descriptor & TGA_DESC_RIGHT ? Width - x - 1 : x
             let targetY = descriptor & TGA_DESC_TOP ? Height - y - 1 : y
             let offset  = (targetY * Width + targetX) * 3
@@ -1199,4 +1199,37 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     Swag.require(img.pixels.buffer[1] == 2'u8)
     Swag.require(img.pixels.buffer[2] == 1'u8)
     Swag.require(img.pixels.buffer[3] == 4'u8)
+}
+
+// The encoder closes both repeated and literal packets at the end of a scanline.
+#test
+{
+    const Width  = 5
+    const Height = 3
+    var image = Image.create(Width, Height, .RGB8)
+    for i in Width * Height
+    {
+        let value = i <= Width ? 0'u8 : cast(u8, i)
+        for channel in 3 do
+            image.pixels[3 * i + channel] = value
+    }
+
+    let bytes  = expect image.encodeToBytes("row-packets.tga", Tga.EncodeOptions{rle: true})
+    var offset = 18'u64
+    for Height
+    {
+        var remaining = cast(u64, Width)
+        while remaining
+        {
+            let tag   = bytes[offset]
+            let count = cast(u64, (tag & 127)) + 1
+            Swag.require(count <= remaining)
+            offset    += 1 + (tag & 128 ? 3 : 3 * count)
+            remaining -= count
+        }
+    }
+
+    Swag.require(offset == bytes.count)
+    let decoded = expect Image.decode("row-packets.tga", bytes.toSlice())
+    Swag.require(Memory.compare(decoded.pixels.storage(), image.pixels.storage(), image.byteCount) == 0)
 }

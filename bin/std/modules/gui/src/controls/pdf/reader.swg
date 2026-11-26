@@ -28,7 +28,8 @@ struct OutlineEntry
 //
 // Opening indexes the object and page trees but does not decompress page content, images, or
 // fonts. Each call to [[Gui.Pdf.Reader.loadPage]] returns an independent owned page; releasing that
-// page releases its decoded resources without affecting this reader.
+// page releases its decoded resources without affecting this reader. Pages can share immutable
+// image pixels while each page holds its own reference.
 #[Swag.Opaque, Swag.NoCopy]
 struct Reader
 {

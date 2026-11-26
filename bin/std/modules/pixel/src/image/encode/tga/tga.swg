@@ -52,11 +52,11 @@ func sameTgaPixel(left, right: const [*] u8, bytesPerPixel: u64)->bool
     return cast(const *u16, left)[] == cast(const *u16, right)[] and left[2] == right[2]
 }
 
-func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
+func tgaRunLength(src: const [*] u8, index, rowEnd, bytesPerPixel: u64)->u64
 {
     var result: #returntype = 1
     let first = src + index * bytesPerPixel
-    let limit = Math.min(128'u64, pixelCount - index)
+    let limit = Math.min(128'u64, rowEnd - index)
     if limit == 1 or not sameTgaPixel(first, first + bytesPerPixel, bytesPerPixel) do
         return result
 
@@ -78,11 +78,11 @@ func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
     return result
 }
 
-private func nextTgaRawEnd(source: const [*] u8, first, packetEnd, pixelCount, bytesPerPixel: u64)->u64
+private func nextTgaRawEnd(source: const [*] u8, first, packetEnd, rowEnd, bytesPerPixel: u64)->u64
 {
     using Math.Simd
 
-    let end = Math.min(packetEnd, pixelCount - 1)
+    let end = Math.min(packetEnd, rowEnd - 1)
     if first >= end do
         return packetEnd
 
@@ -124,41 +124,47 @@ private func nextTgaRawEnd(source: const [*] u8, first, packetEnd, pixelCount, b
 
 func writeTgaRle(result: *ConcatBuffer, image: Image)
 {
-    let src           = cast(const [*] u8, image.pixels.storage())
+    let src = cast(const [*] u8, image.pixels.storage())
     let bytesPerPixel = cast(u64, image.bytesPerPixel)
-    let pixelCount    = cast(u64, image.width) * cast(u64, image.height)
     const BucketBytes = 32 * 1024
     result.setBucketSize(Math.min(image.byteCount + 128, cast(u64, BucketBytes)))
 
+    let width = cast(u64, image.width)
     var index: u64
-    while index < pixelCount
+
+    // Each packet stays within a scanline as required by TGA 2.0 readers.
+    for y in image.height
     {
-        let runLength = tgaRunLength(src, index, pixelCount, bytesPerPixel)
-        if runLength >= 2
+        let rowEnd = (y + 1) * width
+        while index < rowEnd
         {
-            let packet = result.reserveInPlace(1 + bytesPerPixel)
-            packet[0] = cast(u8, (0x80 | (runLength - 1)))
-            writeTgaPixel(packet + 1, src + index * bytesPerPixel, image.pixelFormat)
-            index += runLength
-            continue
-        }
+            let runLength = tgaRunLength(src, index, rowEnd, bytesPerPixel)
+            if runLength >= 2
+            {
+                let packet = result.reserveInPlace(1 + bytesPerPixel)
+                packet[0] = cast(u8, (0x80 | (runLength - 1)))
+                writeTgaPixel(packet + 1, src + index * bytesPerPixel, image.pixelFormat)
+                index += runLength
+                continue
+            }
 
-        let rawStart  = index
-        let packetEnd = Math.min(pixelCount, rawStart + 128)
-        index = nextTgaRawEnd(src, rawStart + 1, packetEnd, pixelCount, bytesPerPixel)
+            let rawStart  = index
+            let packetEnd = Math.min(rowEnd, rawStart + 128)
+            index = nextTgaRawEnd(src, rawStart + 1, packetEnd, rowEnd, bytesPerPixel)
 
-        let rawCount  = index - rawStart
-        let rawSize   = rawCount * bytesPerPixel
-        let rawSource = src + rawStart * bytesPerPixel
-        let packet    = result.reserveInPlace(1 + rawSize)
-        packet[0] = cast(u8, (rawCount - 1))
-        let target = packet + 1
-        switch image.pixelFormat
-        {
-        case .BGR8, .BGRA8: Memory.copy(target, rawSource, rawSize)
-        case .RGB8:         PackedPixel.swapRedBlue24Row(rawSource, target, rawCount)
-        case .RGBA8:        PackedPixel.swapRedBlue32Row(rawSource, target, rawCount)
-        default:            unreachable
+            let rawCount  = index - rawStart
+            let rawSize   = rawCount * bytesPerPixel
+            let rawSource = src + rawStart * bytesPerPixel
+            let packet    = result.reserveInPlace(1 + rawSize)
+            packet[0] = cast(u8, (rawCount - 1))
+            let target = packet + 1
+            switch image.pixelFormat
+            {
+            case .BGR8, .BGRA8: Memory.copy(target, rawSource, rawSize)
+            case .RGB8:         PackedPixel.swapRedBlue24Row(rawSource, target, rawCount)
+            case .RGBA8:        PackedPixel.swapRedBlue32Row(rawSource, target, rawCount)
+            default:            unreachable
+            }
         }
     }
 }

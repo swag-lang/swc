@@ -245,18 +245,26 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
 }
 
 // A scan-converted path retains its visible band when a viewport mirrors the vertical axis.
+// Exercise both authored runs and contours ordered by the viewport index.
 #test
 {
-    var source = String.from("<svg viewBox='0 0 40 12400'><path fill='red' d='")
-    for i in 640 do
-        source.appendFormat("M2 %h20v8h-20z ", 10 + i * 14)
-    source += "M2 12200h20v20h-20z'/></svg>"
+    for shuffled in [false, true]
+    {
+        var source = String.from("<svg viewBox='0 0 40 12400'><path fill='red' d='")
+        for i in 640
+        {
+            let index = shuffled ? (i * 37) % 640 : i
+            source.appendFormat("M2 %h20v8h-20z ", 10 + index * 14)
+        }
 
-    let drawing = expect Svg.Drawing.parse(source.toString())
-    let clip    = Math.Rectangle{0, 0, 40, 64}
-    let mirror  = Math.Transform2{m11: 1, m22: -1, ty: 12240}
-    let image   = renderViewport(&drawing, 40, 64, 0, 0, 1, clip, true, mirror)
-    Swag.require(image.pixelColor(8, 30).r > 240)
-    Swag.require(image.pixelColor(8, 10).r == 0)
-    Swag.require(image.pixelColor(8, 50).r == 0)
+        source += "M2 12200h20v20h-20z'/></svg>"
+
+        let drawing = expect Svg.Drawing.parse(source.toString())
+        let clip    = Math.Rectangle{0, 0, 40, 64}
+        let mirror  = Math.Transform2{m11: 1, m22: -1, ty: 12240}
+        let image   = renderViewport(&drawing, 40, 64, 0, 0, 1, clip, true, mirror)
+        Swag.require(image.pixelColor(8, 30).r > 240)
+        Swag.require(image.pixelColor(8, 10).r == 0)
+        Swag.require(image.pixelColor(8, 50).r == 0)
+    }
 }

@@ -2,10 +2,11 @@
 
 using Core, Core.Math
 
-private const ScanTileSide = 1024
+private const ScanTileSide    = 1024
 private const VerticalSamples = 4
 
-private const ScanBandSize = 64'u64
+private const ScanBandSize    = 64'u64
+private const ScanBucketCount = 128'u64
 
 private struct ScanBand
 {
@@ -35,6 +36,12 @@ private impl ScanBand
     }
 }
 
+private struct ScanBucket
+{
+    bounds:  ScanBand
+    indices: Array'u32
+}
+
 // A crossing of a horizontal sample line and one directed contour edge.
 private struct Crossing
 {
@@ -45,8 +52,10 @@ private struct Crossing
 // A dense solid fill keeps its authored contours and evaluates coverage at the device scale.
 struct ScanFill
 {
-    bounds: Rectangle
-    bands:  Array'ScanBand
+    bounds:          Rectangle
+    bands:           Array'ScanBand
+    buckets:         Array'ScanBucket
+    measuredBuckets: bool
 
     lastTile:      Rectangle
     lastTransform: Transform2
@@ -95,6 +104,57 @@ impl ScanFill
             .bands.free()
     }
 
+    // Wide authored bands offer little culling when contours were emitted out of spatial order.
+    // Group the contours by position once a clipped paint needs the index.
+    private mtd measureBuckets(paths: const *LinePathList)
+    {
+        .measuredBuckets = true
+        let count  = paths.paths.count
+        let extent = cast(f64, .bounds.height)
+        if count < ScanBandSize * 8 or
+           count > Swag.U32.Max or
+           not Math.isFinite(extent) or
+           extent <= 0 do
+            return
+
+        let origin  = cast(f64, .bounds.y)
+        let density = cast(f64, ScanBucketCount) / extent
+        var buckets: Array'ScanBucket
+        buckets.resize(ScanBucketCount)
+        var occupied = 0'u64
+        for path, index in paths.paths
+        {
+            let bounds = path.controlBounds()
+            let last   = bounds.bottom()
+            if not Math.isFinite(bounds.y) or not Math.isFinite(last) do
+                return
+
+            let middle = (cast(f64, bounds.y) + last) * 0.5
+            let key    = cast(u64, Math.clamp((middle - origin) * density, 0.0'f64, cast(f64, ScanBucketCount - 1)))
+            let bucket = &buckets[key]
+            let low    = Math.min(bounds.y, last)
+            let high   = Math.max(bounds.y, last)
+            if bucket.indices.isEmpty()
+            {
+                bucket.bounds = ScanBand{low, high, true}
+                occupied      += 1
+            }
+            else
+            {
+                bucket.bounds.minY = Math.min(bucket.bounds.minY, low)
+                bucket.bounds.maxY = Math.max(bucket.bounds.maxY, high)
+            }
+
+            bucket.indices.add(cast(u32, index))
+        }
+
+        var span = 0.0'f64
+        for &bucket in buckets where bucket.indices.count do
+            span += cast(f64, bucket.bounds.maxY) - bucket.bounds.minY
+        if occupied > 1 and span < extent * cast(f64, occupied) * 0.25 do
+            .buckets = #move buckets
+    }
+
     // Records a texture whose pixel grid is aligned with the destination's device pixels.
     mtd paint(painter: *Painter, paths: *LinePathList, color: Color, evenOdd: bool)
     {
@@ -117,7 +177,14 @@ impl ScanFill
            not Math.isFinite(right) or not Math.isFinite(bottom) do
             return
 
-        let fitsInOneTile = right - left <= ScanTileSide and bottom - top <= ScanTileSide
+        let windowHeight  = bottom - top
+        let fitsInOneTile = right - left <= ScanTileSide and windowHeight <= ScanTileSide
+        if .bands.isEmpty() and
+           not .measuredBuckets and
+           transform.m12 == 0 and
+           (windowHeight > ScanTileSide or windowHeight * 2 < .bounds.height * Math.abs(transform.m22) * density) do
+            .measureBuckets(paths)
+
         var y = top
         while y < bottom
         {
@@ -182,14 +249,25 @@ private impl ScanFill
         let height = cast(s32, tile.height)
         var crossings: Array'Array'Crossing
         crossings.resize(cast(u64, height) * VerticalSamples)
-        let origin   = Vector2{tile.x, tile.y}
-        let scale    = transform.axisScale()
-        let useBands = .bands.count and transform.m12 == 0
-        for band in (useBands ? .bands.count : 1'u64)
+        let origin     = Vector2{tile.x, tile.y}
+        let scale      = transform.axisScale()
+        let useBands   = .bands.count and transform.m12 == 0
+        let useBuckets = .buckets.count and transform.m12 == 0
+        let bandCount  = useBuckets ? .buckets.count : (useBands ? .bands.count : 1'u64)
+        for band in bandCount
         {
             var first = 0'u64
             var end   = paths.paths.count
-            if useBands
+            var indices: const [..] u32 = []
+            if useBuckets
+            {
+                let bucket = &.buckets[band]
+                if bucket.indices.isEmpty() or bucket.bounds.misses(transform, density, tile) do
+                    continue
+                indices = bucket.indices.toSlice()
+                end     = indices.count
+            }
+            elif useBands
             {
                 if .bands[band].misses(transform, density, tile) do
                     continue
@@ -199,7 +277,7 @@ private impl ScanFill
 
             for index in first until end
             {
-                let path = paths.paths[index]
+                let path = paths.paths[useBuckets ? cast(u64, indices[index]) : index]
                 path.flattenPoints(.Normal, Math.max(scale.x, scale.y) * density)
                 let points = path.polygon.points.toSlice()
                 if points.count < 2 do

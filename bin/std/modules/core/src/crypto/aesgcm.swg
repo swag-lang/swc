@@ -11,30 +11,76 @@ public const AesGcmNonceSize = 12
 public const AesGcmTagSize = 16
 
 #[Swag.Inline]
+private func aesGcmReverseBytes(value: U8x16)->U8x16
+{
+    const Order = cast(U8x16, [15'u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+    return shuffle(value, Order)
+}
+
+#[Swag.Inline]
+private func aesGcmGhashPrepareKey(hashKey: [16] u8)->U64x2
+{
+    const Reciprocal = cast(U64x2, [1'u64, 0xC200_0000_0000_0000])
+    const Zero       = cast(U64x2, [0'u64, 0])
+    const HighLanes  = cast(U64x2, [1'u64, 1])
+
+    // Reversing bytes maps GHASH bit numbering to the reciprocal polynomial.
+    // Multiply by x in that field to account for the normalization in reduction.
+    let reversed = cast #bit (U64x2, aesGcmReverseBytes(load(&hashKey[0])))
+    let carry    = reversed >> 63
+    let mask     = Zero - permute(carry, HighLanes)
+    return ((reversed << 1) | align(Zero, carry, 8)) ^ (mask & Reciprocal)
+}
+
+#[Swag.Inline]
+private func aesGcmGhashReduce(low, high: U64x2)->U64x2
+{
+    const Polynomial = cast(U64x2, [0xC200_0000_0000_0000'u64, 0])
+    const Zero       = cast(U64x2, [0'u64, 0])
+
+    // The reciprocal polynomial is x^128 + x^127 + x^126 + x^121 + 1.
+    // Cancel the low words in succession to divide by x^128. The prepared key
+    // includes an extra x so the result is still in the reflected representation.
+    let correction = clmulLowLow(low, Polynomial)
+    let quotient   = low ^ align(Zero, correction, 8)
+    let second     = clmulHighLow(quotient, Polynomial)
+    return high ^ low ^ align(correction, correction, 8) ^ second
+}
+
+#[Swag.Inline]
+private func aesGcmGhashReduceProducts(low, high, cross: U64x2)->U64x2
+{
+    const Zero = cast(U64x2, [0'u64, 0])
+    return aesGcmGhashReduce(low ^ align(Zero, cross, 8), high ^ align(cross, Zero, 8))
+}
+
+#[Swag.Inline]
+private func aesGcmGhashAddProduct(low, high, cross: *U64x2, value, key: U64x2)
+{
+    low[]   ^= clmulLowLow(value, key)
+    high[]  ^= clmulHighHigh(value, key)
+    cross[] ^= clmulLowHigh(value, key) ^ clmulHighLow(value, key)
+}
+
+#[Swag.Inline]
 private func aesGcmGhashMultiply(value, key: U64x2)->U64x2
 {
-    const Polynomial = cast(U64x2, [0x87'u64, 0])
-    const Zero       = cast(U64x2, [0'u64, 0])
-    let cross = clmulLowHigh(value, key) ^ clmulHighLow(value, key)
-    let low   = clmulLowLow(value, key) ^ align(Zero, cross, 8)
-    let high  = clmulHighHigh(value, key) ^ align(cross, Zero, 8)
+    var low, high, cross: U64x2
+    aesGcmGhashAddProduct(&low, &high, &cross, value, key)
+    return aesGcmGhashReduceProducts(low, high, cross)
+}
 
-    // Replacing x^128 by x^7 + x^2 + x + 1 folds the upper 128 bits into the lower half.
-    // Fold the overflow once more. Its degree is at most six, so no third fold is needed.
-    let foldLow  = clmulLowLow(high, Polynomial)
-    let foldHigh = clmulHighLow(high, Polynomial)
-    let overflow = clmulHighLow(foldHigh, Polynomial)
-    return low ^ foldLow ^ align(Zero, foldHigh, 8) ^ overflow
+#[Swag.Inline]
+private func aesGcmGhashLoad(source: const [*] u8)->U64x2
+{
+    return cast #bit (U64x2, aesGcmReverseBytes(load(source)))
 }
 
 internal func aesGcmGhashBlockClmul(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
 {
-    // GHASH assigns its first byte's most-significant bit to coefficient zero.
-    // Reverse bits within each byte to match the coefficient order used by CLMUL.
-    let value   = cast #bit (U64x2, Math.reverse(load(&state[][0]) ^ load(block)))
-    let key     = cast #bit (U64x2, Math.reverse(load(&hashKey[0])))
-    let product = aesGcmGhashMultiply(value, key)
-    store(&state[][0], Math.reverse(cast #bit (U8x16, product)))
+    let value   = cast #bit (U64x2, aesGcmReverseBytes(load(&state[][0]) ^ load(block)))
+    let product = aesGcmGhashMultiply(value, aesGcmGhashPrepareKey(hashKey))
+    store(&state[][0], aesGcmReverseBytes(cast #bit (U8x16, product)))
 }
 
 internal func aesGcmGhashBlockScalar(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
@@ -105,21 +151,40 @@ private func aesGcmGhashData(state: *[16] u8, hashKey: [16] u8, data: const [..]
     {
         if Swag.hasCpuFeature(.CarrylessMultiply)
         {
-            let key         = cast #bit (U64x2, Math.reverse(load(&hashKey[0])))
-            var accumulator = cast #bit (U64x2, Math.reverse(load(&state[][0])))
-            for block in fullBlockBytes / 16
+            let key         = aesGcmGhashPrepareKey(hashKey)
+            var accumulator = aesGcmGhashLoad(&state[][0])
+            var offset      = 0'u64
+            if fullBlockBytes >= 128
             {
-                let value = cast #bit (U64x2, Math.reverse(load(source + block * 16)))
-                accumulator = aesGcmGhashMultiply(accumulator ^ value, key)
+                // Expand four steps of the recurrence so the products share one reduction.
+                let key2 = aesGcmGhashMultiply(key, key)
+                let key3 = aesGcmGhashMultiply(key2, key)
+                let key4 = aesGcmGhashMultiply(key2, key2)
+                while offset + 64 <= fullBlockBytes
+                {
+                    var low, high, cross: U64x2
+                    aesGcmGhashAddProduct(&low, &high, &cross, accumulator ^ aesGcmGhashLoad(source + offset), key4)
+                    aesGcmGhashAddProduct(&low, &high, &cross, aesGcmGhashLoad(source + offset + 16), key3)
+                    aesGcmGhashAddProduct(&low, &high, &cross, aesGcmGhashLoad(source + offset + 32), key2)
+                    aesGcmGhashAddProduct(&low, &high, &cross, aesGcmGhashLoad(source + offset + 48), key)
+                    accumulator = aesGcmGhashReduceProducts(low, high, cross)
+                    offset      += 64
+                }
+            }
+
+            while offset < fullBlockBytes
+            {
+                accumulator = aesGcmGhashMultiply(accumulator ^ aesGcmGhashLoad(source + offset), key)
+                offset      += 16
             }
 
             if tailBytes != 0
             {
-                let value = cast #bit (U64x2, Math.reverse(load(&tail[0])))
+                let value = cast #bit (U64x2, aesGcmReverseBytes(load(&tail[0])))
                 accumulator = aesGcmGhashMultiply(accumulator ^ value, key)
             }
 
-            store(&state[][0], Math.reverse(cast #bit (U8x16, accumulator)))
+            store(&state[][0], aesGcmReverseBytes(cast #bit (U8x16, accumulator)))
             return
         }
     }

@@ -70,3 +70,4 @@ optimizations moved each result.
 - [Five-limb Curve25519 field arithmetic](curve25519-limbs.md)
 - [P-256 fixed-base generator comb](p256-comb.md)
 - [AES-GCM four-counter encryption](aes-batched.md)
+- [Four-product reciprocal GHASH](aes-reciprocal.md)

@@ -1044,10 +1044,16 @@ impl Deflate
                 d.totalLzBytes ^= 0xFFFF
             }
 
-            for i in d.totalLzBytes
-            {
-                .putBits(cast(u32, d.dict[(d.lzCodeBufDictPos + i) & LzDictSizeMask]), 8)
-            }
+            // Stored bytes are already aligned. The logical limit also applies
+            // to the direct copy, just as it does to each call to putBits.
+            let destination = unwrap d.outputBufAddr
+            let position    = d.lzCodeBufDictPos & LzDictSizeMask
+            let count       = Math.min(cast(u64, d.totalLzBytes), cast(u64, (d.outputBufEndAddr - destination)))
+            let first       = Math.min(count, cast(u64, LzDictSize - position))
+            Memory.copy(destination, &d.dict[position], first)
+            if count > first do
+                Memory.copy(destination + first, &d.dict[0], count - first)
+            d.outputBufAddr += count
         }
         elif not compBlockSucceeded
         {

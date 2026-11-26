@@ -567,6 +567,34 @@ func assertEncodedWebpRoundtrip(source: Image)
     }
 }
 
+// Repeated odd-width rows use the preceding row as an overlapping copy source.
+#test
+{
+    const Width  = 517
+    const Height = 129
+    var image  = Image.create(Width, Height, .RGBA8)
+    let pixels = cast([*] u32, image.pixels.storage())
+    for y in Height
+    {
+        for x in Width
+        {
+            let color = cast(u32, (y / 9 * 67 + x / 8))
+            let red   = color & 255
+            let green = color >> 8
+            let blue  = (color * 17) & 255
+            pixels[y * Width + x] = 0xFF000000'u32 | red | (green << 8) | (blue << 16)
+        }
+    }
+
+    let encoded = expect image.encodeToBytes("repeated-rows.webp")
+    Swag.require(encoded.count >= 26 and encoded.count < Width * Height / 8)
+    Swag.require((encoded[25] & 1) == 0)
+    let decoded = expect Image.decode("repeated-rows.webp", encoded.toSlice())
+    Swag.require(decoded.width == Width and decoded.height == Height)
+    Swag.require(decoded.pixelFormat == .RGBA8)
+    Swag.require(Hash.Crc64.compute(decoded.pixels.toSlice()) == Hash.Crc64.compute(image.pixels.toSlice()))
+}
+
 // A uniform image uses four single-symbol trees, including for fully transparent RGB.
 #test
 {

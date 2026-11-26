@@ -98,6 +98,19 @@ private func(GREEN: bool, Count: u32) buildResidualCodes()->[Count] u32
     return result
 }
 
+enum EncodeColorStrategy
+{
+    Direct
+    AboveMatches
+    Predicted
+}
+
+struct EncodePixelMatch
+{
+    length: u32
+    above:  bool
+}
+
 struct EncodeRun
 {
     symbol: u32
@@ -457,7 +470,40 @@ impl Encoder
         return length
     }
 
-    func(RESIDUAL: bool) writePixels(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels)
+    #[Swag.Inline]
+    func repeatedPixelMatch(data: const [*] u32, index: u64, limit: u32, width: u64)->EncodePixelMatch
+    {
+        using Math.Simd
+
+        let runStart = data + index
+        var candidate: EncodePixelMatch
+        if index and runStart[0] == data[index - 1] do
+            candidate.length = repeatedPixelCount(runStart, runStart[0], limit)
+        if index < width or limit < 2 or candidate.length == limit do
+            return candidate
+
+        let aboveStart = runStart - width
+        if runStart[0] != aboveStart[0] or runStart[1] != aboveStart[1] do
+            return candidate
+        var length = 2'u32
+        while limit - length >= 4
+        {
+            let different = bitmask(load(runStart + length) == load(aboveStart + length)) ^ 0xF
+            if different
+            {
+                length += Math.trailingZeros(different)
+                return length > candidate.length ? EncodePixelMatch{length, true} : candidate
+            }
+
+            length += 4
+        }
+
+        while length < limit and runStart[length] == aboveStart[length] do
+            length += 1
+        return length > candidate.length ? EncodePixelMatch{length, true} : candidate
+    }
+
+    func(RESIDUAL: bool, ROWS: bool) writePixels(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels, rowWidth: u32 = 0)
     {
         #static if not RESIDUAL
         {
@@ -471,13 +517,28 @@ impl Encoder
         var index: u64
         while index < pixels.count
         {
-            if index and data[index] == data[index - 1]
+            #static if ROWS
             {
-                let limit  = cast(u32, Math.min(4096'u64, pixels.count - index))
-                let length = repeatedPixelCount(data + index, data[index - 1], limit)
-                writeLength'(RESIDUAL)(writer, length)
-                index += length
-                continue
+                let limit = cast(u32, Math.min(4096'u64, pixels.count - index))
+                let match = repeatedPixelMatch(data, index, limit, rowWidth)
+                if match.length
+                {
+                    writeLength'(false)(writer, match.length)
+                    writer.writeBits(match.above ? 0 : 1, 1)
+                    index += match.length
+                    continue
+                }
+            }
+            else
+            {
+                if index and data[index] == data[index - 1]
+                {
+                    let limit  = cast(u32, Math.min(4096'u64, pixels.count - index))
+                    let length = repeatedPixelCount(data + index, data[index - 1], limit)
+                    writeLength'(RESIDUAL)(writer, length)
+                    index += length
+                    continue
+                }
             }
 
             let pixel = data[index]
@@ -597,7 +658,7 @@ impl Encoder
         // Single-symbol trees can fill the image without any literal bits.
     }
 
-    func writeColorImage(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels, topLevel: bool)
+    func writeColorImage(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels, topLevel: bool, rowWidth: u32 = 0)
     {
         writer.writeBits(0, 1)     // Color cache.
         if topLevel do
@@ -606,8 +667,17 @@ impl Encoder
         writeByteTree(writer, channels.red)
         writeByteTree(writer, channels.blue)
         writeByteTree(writer, channels.alpha)
-        writeDistanceTree(writer)
-        writePixels'(false)(writer, pixels, channels)
+        if rowWidth
+        {
+            // The two plane codes refer to the pixels above and to the left.
+            writeSimpleTree(writer, EncodeChannel{values: [0, 1], count: 2})
+            writePixels'(false, true)(writer, pixels, channels, rowWidth)
+        }
+        else
+        {
+            writeDistanceTree(writer)
+            writePixels'(false, false)(writer, pixels, channels)
+        }
     }
 
     #[Swag.Inline]
@@ -683,12 +753,12 @@ impl Encoder
             return cast(u32, WEBP_ENCODE_GREEN_CODES[run.symbol] >> 9) + run.width
     }
 
-    func preferVerticalPrediction(pixels: const [..] u32, channels: EncodeChannels, width: s32, hasAlpha: bool)->bool
+    func chooseColorStrategy(pixels: const [..] u32, channels: EncodeChannels, width: s32, hasAlpha: bool)->EncodeColorStrategy
     {
         const Windows    = 32'u32
         const WindowSize = 32'u32
         if pixels.count < 65536 do
-            return false
+            return .Direct
 
         let stride    = cast(u64, width)
         let data      = pixels.buffer
@@ -739,9 +809,39 @@ impl Encoder
             predictedCost += repeatCost'(true)(predictedRun)
         }
 
+        if not hasAlpha and rawCost < 8 * Windows * WindowSize
+        {
+            // Images dominated by runs can reduce both size and decoding work
+            // by copying the preceding row, without changing their literal codes.
+            var aboveCost: u32
+            for window in Windows
+            {
+                var index = stride + 1 + window * step
+                let end   = index + WindowSize
+                while index < end
+                {
+                    let match = repeatedPixelMatch(data, index, cast(u32, (end - index)), stride)
+                    if match.length
+                    {
+                        aboveCost += repeatCost'(false)(match.length) + 1
+                        index     += match.length
+                    }
+                    else
+                    {
+                        let green = (data[index] >> 8) & 0xFF
+                        aboveCost += rawColors + (WEBP_ENCODE_GREEN_CODES[green] >> 9)
+                        index     += 1
+                    }
+                }
+            }
+
+            if aboveCost * 8 < rawCost * 7 do
+                return .AboveMatches
+        }
+
         // The sampled reduction must cover the larger tree headers and
         // short-scale variation between sampled rows.
-        return predictedCost * 8 < rawCost * 7
+        return predictedCost * 8 < rawCost * 7 ? .Predicted : .Direct
     }
 
     func writeResidualTree(writer: *EncodeBitWriter, codes: const [..] u32)
@@ -783,7 +883,7 @@ impl Encoder
         writeDistanceTree(writer)
 
         applyVerticalPrediction(cast([*] u32, pixels.storage()), width, height)
-        writePixels'(true)(writer, pixels[], channels)
+        writePixels'(true, false)(writer, pixels[], channels)
     }
 
     func writePalette(writer: *EncodeBitWriter, palette: *EncodePalette)
@@ -1106,14 +1206,19 @@ impl Encoder
                 writeIndexedImage(&writer, &palette, pixels, image.width, image.height)
             }
         }
-        elif preferVerticalPrediction(pixels.toSlice(), channels, image.width, hasAlpha)
-        {
-            writePredictedImage(&writer, &pixels, image.width, image.height, hasAlpha)
-        }
         else
         {
-            writer.writeBits(0, 1)
-            writeColorImage(&writer, pixels, channels, true)
+            let strategy = chooseColorStrategy(pixels.toSlice(), channels, image.width, hasAlpha)
+            if strategy == .Predicted
+            {
+                writePredictedImage(&writer, &pixels, image.width, image.height, hasAlpha)
+            }
+            else
+            {
+                writer.writeBits(0, 1)     // End transforms.
+                let rowWidth = strategy == .AboveMatches ? cast(u32, image.width) : 0
+                writeColorImage(&writer, pixels, channels, true, rowWidth)
+            }
         }
 
         writer.finish()

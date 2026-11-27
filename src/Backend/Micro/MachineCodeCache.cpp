@@ -36,6 +36,7 @@ namespace
     constexpr uint32_t K_MAX_IMAGE_SIZE       = 64 * 1024 * 1024;
     constexpr uint32_t K_GENERATED_CONSTANT   = 1u << 31;
     constexpr uint32_t K_CONSTANT_HEADER_SIZE = 12;
+    constexpr uint64_t K_POINTER_SENTINEL_LIMIT = 4096;
 
     void appendString(ByteArray& out, const std::string_view text)
     {
@@ -593,7 +594,10 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
     for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
     {
         const MicroInstr& instruction = *it;
-        if (instruction.op == MicroInstrOpcode::LoadRegPtrImm)
+        // Empty containers use aligned, non-null sentinels in the first page.
+        // Their immediate bits are stable and are included in the identity below.
+        if (instruction.op == MicroInstrOpcode::LoadRegPtrImm &&
+            instruction.ops(builder.operands())[2].valueU64 >= K_POINTER_SENTINEL_LIMIT)
             return {};
         const uint32_t* target = targetByInstruction.find(it.current.get());
         identity.appendLe32(target ? *target - 1 : INVALID_REF);

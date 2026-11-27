@@ -454,6 +454,22 @@ SWC_TEST_BEGIN(MachineCodeCache_PreservesFunctionReferenceSharing)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MachineCodeCache_FingerprintsPointerSentinels)
+{
+    const auto* function = makeCacheFunction(ctx, "cachePointerSentinels");
+    const auto  reg      = MicroReg::virtualIntReg(0);
+    MicroBuilder byteAligned(ctx), wordAligned(ctx), processAddress(ctx);
+    byteAligned.emitLoadRegPtrImm(reg, 1);
+    wordAligned.emitLoadRegPtrImm(reg, 8);
+    processAddress.emitLoadRegPtrImm(reg, reinterpret_cast<uint64_t>(function));
+
+    const Utf8 byteKey = cacheKey(ctx, *function, byteAligned);
+    const Utf8 wordKey = cacheKey(ctx, *function, wordAligned);
+    if (byteKey.empty() || wordKey.empty() || byteKey == wordKey || !cacheKey(ctx, *function, processAddress).empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MachineCodeCache_RejectsUntypedEvaluators)
 {
     auto* evaluator = makeCacheFunction(ctx, "cacheEvaluator");

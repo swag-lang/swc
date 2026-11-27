@@ -82,15 +82,19 @@ private func(Extend: bool) sha512SchedulePair(index: u64, schedule: [*] u64)->Ma
 }
 
 #[Swag.Inline]
-private func sha512Round(a, b, c: u64, d: *u64, e, f, g: u64, h: *u64, scheduled: u64)
+private func sha512RoundFirst(e, f, g, h, scheduled: u64)->u64
 {
-    let sum1     = Swag.ror(e, 14_u8) ^ Swag.ror(e, 18_u8) ^ Swag.ror(e, 41_u8)
-    let choice   = (e & f) ^ (~e & g)
-    let temp1    = h[] + sum1 + choice + scheduled
-    let sum0     = Swag.ror(a, 28_u8) ^ Swag.ror(a, 34_u8) ^ Swag.ror(a, 39_u8)
+    let sum    = Swag.ror(e, 14_u8) ^ Swag.ror(e, 18_u8) ^ Swag.ror(e, 41_u8)
+    let choice = (e & f) ^ (~e & g)
+    return h + sum + choice + scheduled
+}
+
+#[Swag.Inline]
+private func sha512RoundSecond(a, b, c: u64)->u64
+{
+    let sum      = Swag.ror(a, 28_u8) ^ Swag.ror(a, 34_u8) ^ Swag.ror(a, 39_u8)
     let majority = (a & b) ^ (a & c) ^ (b & c)
-    d[] += temp1
-    h[] = temp1 + sum0 + majority
+    return sum + majority
 }
 
 private struct Sha512Core
@@ -265,40 +269,56 @@ impl Sha512Core
             var g = .state[6]
             var h = .state[7]
 
-            // Rotate the roles of the local variables through all eight positions.
-            #[Swag.Inline]
-            func(Extend: bool) compressGroup(index: u64, schedule: [*] u64, a, b, c, d, e, f, g, h: *u64)
+            // Rotate the roles of the locals through all eight positions.
+            #[Swag.Mixin]
+            func(Index: u64, Extend: bool) compressGroup()
             {
-                let pair0 = sha512SchedulePair!{Extend}(index, schedule)
+                scope
+                {
+                    let pair0 = sha512SchedulePair!{Extend}(Index, schedule)
+                    let first0 = sha512RoundFirst(e, f, g, h, pair0[0])
+                    d += first0
+                    h = first0 + sha512RoundSecond(a, b, c)
+                    let first1 = sha512RoundFirst(d, e, f, g, pair0[1])
+                    c += first1
+                    g = first1 + sha512RoundSecond(h, a, b)
 
-                sha512Round(a[], b[], c[], d, e[], f[], g[], h, pair0[0])
-                sha512Round(h[], a[], b[], c, d[], e[], f[], g, pair0[1])
+                    let pair1 = sha512SchedulePair!{Extend}(Index + 2, schedule)
+                    let first2 = sha512RoundFirst(c, d, e, f, pair1[0])
+                    b += first2
+                    f = first2 + sha512RoundSecond(g, h, a)
+                    let first3 = sha512RoundFirst(b, c, d, e, pair1[1])
+                    a += first3
+                    e = first3 + sha512RoundSecond(f, g, h)
 
-                let pair1 = sha512SchedulePair!{Extend}(index + 2, schedule)
-                sha512Round(g[], h[], a[], b, c[], d[], e[], f, pair1[0])
-                sha512Round(f[], g[], h[], a, b[], c[], d[], e, pair1[1])
+                    let pair2 = sha512SchedulePair!{Extend}(Index + 4, schedule)
+                    let first4 = sha512RoundFirst(a, b, c, d, pair2[0])
+                    h += first4
+                    d = first4 + sha512RoundSecond(e, f, g)
+                    let first5 = sha512RoundFirst(h, a, b, c, pair2[1])
+                    g += first5
+                    c = first5 + sha512RoundSecond(d, e, f)
 
-                let pair2 = sha512SchedulePair!{Extend}(index + 4, schedule)
-                sha512Round(e[], f[], g[], h, a[], b[], c[], d, pair2[0])
-                sha512Round(d[], e[], f[], g, h[], a[], b[], c, pair2[1])
-
-                let pair3 = sha512SchedulePair!{Extend}(index + 6, schedule)
-                sha512Round(c[], d[], e[], f, g[], h[], a[], b, pair3[0])
-                sha512Round(b[], c[], d[], e, f[], g[], h[], a, pair3[1])
+                    let pair3 = sha512SchedulePair!{Extend}(Index + 6, schedule)
+                    let first6 = sha512RoundFirst(g, h, a, b, pair3[0])
+                    f += first6
+                    b = first6 + sha512RoundSecond(c, d, e)
+                    let first7 = sha512RoundFirst(f, g, h, a, pair3[1])
+                    e += first7
+                    a = first7 + sha512RoundSecond(b, c, d)
+                }
             }
 
-            // The first two groups consume the original sixteen words. Each later
-            // group extends the schedule just before consuming its words.
-            compressGroup!{false}(0, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{false}(8, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(16, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(24, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(32, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(40, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(48, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(56, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(64, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(72, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup!{0, false}()
+            compressGroup!{8, false}()
+            compressGroup!{16, true}()
+            compressGroup!{24, true}()
+            compressGroup!{32, true}()
+            compressGroup!{40, true}()
+            compressGroup!{48, true}()
+            compressGroup!{56, true}()
+            compressGroup!{64, true}()
+            compressGroup!{72, true}()
 
             .state[0]     += a
             .state[1]     += b

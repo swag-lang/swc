@@ -222,8 +222,7 @@ namespace Command
             std::vector<uint32_t>                runtimeDependencyDropOrder;
             {
                 NativeBackendBuilder nativeBuilder(compiler, false);
-                SWC_RESULT(nativeBuilder.prepare());
-                allFunctions               = nativeBuilder.collectPreparedFunctions();
+                SWC_RESULT(nativeBuilder.prepareForJit(allFunctions));
                 initFunctions              = std::move(nativeBuilder.initFunctions);
                 preMainFunctions           = std::move(nativeBuilder.preMainFunctions);
                 mainFunctions              = std::move(nativeBuilder.mainFunctions);

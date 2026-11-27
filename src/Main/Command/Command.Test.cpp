@@ -558,14 +558,13 @@ namespace
 
         {
             NativeBackendBuilder nativeBuilder(compiler, false);
-            if (nativeBuilder.prepare() != Result::Continue)
+            if (nativeBuilder.prepareForJit(allFunctions) != Result::Continue)
                 return false;
 
             std::erase_if(nativeBuilder.testFunctions, [&compiler](const SymbolFunction* function) {
                 return !function || !compiler.matchesTestFilter(*function);
             });
 
-            allFunctions                            = nativeBuilder.collectPreparedFunctions();
             const JitFunctionSelection jitSelection = selectJitFunctions(compiler, allFunctions, nativeBuilder.testFunctions);
             expectedTestCount                       = jitSelection.expectedTestCount;
             initFunctions                           = std::move(nativeBuilder.initFunctions);

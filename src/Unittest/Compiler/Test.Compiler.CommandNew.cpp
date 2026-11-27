@@ -206,6 +206,108 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_SmokeScriptRunsNativeWithModuleSetup)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_ScriptJitUsesMachineCodeAfterNativeSmoke)
+{
+    // A large, relocation-free arithmetic body exercises native object reuse.
+    static constexpr std::string_view SOURCE = R"(#[Swag.NoInline]
+func mix(seed: u64)->u64
+{
+    var value = seed
+    value ^= value << 13
+    value ^= value >> 7
+    value ^= value << 17
+    value ^= value << 19
+    value ^= value >> 9
+    value ^= value << 7
+    value ^= value << 11
+    value ^= value >> 17
+    value ^= value << 23
+    value ^= value << 5
+    value ^= value >> 13
+    value ^= value << 9
+    value ^= value << 13
+    value ^= value >> 7
+    value ^= value << 17
+    value ^= value << 19
+    value ^= value >> 9
+    value ^= value << 7
+    value ^= value << 11
+    value ^= value >> 17
+    value ^= value << 23
+    value ^= value << 5
+    value ^= value >> 13
+    value ^= value << 9
+    return value
+}
+
+var Callback: func(u64)->u64 = &mix
+var Phase: s32
+
+#init
+{
+    Phase = 1
+}
+
+#premain
+{
+    Phase = 2 * Phase
+}
+
+#main
+{
+    Swag.print("separation ", Phase, " ", Callback(42), "\n")
+    Phase = 3 * Phase
+}
+
+#drop
+{
+    Swag.print("separation drop ", Phase, "\n")
+}
+)";
+    NewCommandTestDirectory           directory("ScriptJitAfterNativeSmoke");
+    const fs::path                    source = directory.path() / "separation.swgs";
+    SWC_RESULT(CompilerTestFile::writeText(source, SOURCE));
+
+    const std::vector<Utf8> commonArgs{
+        "-bc", "release",
+        "--num-cores", Utf8(std::to_string(Unittest::compilerWorkerCount(ctx))),
+        "--work-dir", Utf8(directory.path() / "work"),
+        "--out-dir", Utf8(directory.path() / "output"),
+    };
+    std::vector<Utf8> smokeArgs{"smoke", "--file", Utf8(source), "--run-timeout", "5"};
+    smokeArgs.insert(smokeArgs.end(), commonArgs.begin(), commonArgs.end());
+    auto scriptArgs = commonArgs;
+    scriptArgs.emplace_back(source);
+
+    std::string           output;
+    Os::ProcessRunOptions options;
+    options.capturedOutput = &output;
+    options.forwardOutput  = false;
+    const auto run         = [&](const std::vector<Utf8>& args) {
+        output.clear();
+        uint32_t exitCode = UINT32_MAX;
+        if (Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options) != Os::ProcessRunResult::Ok ||
+            exitCode != 0 ||
+            !output.contains("separation 2 15226019399384522140") ||
+            !output.contains("separation drop 6"))
+        {
+            std::println(stderr, "[script after native smoke] exit={}\n{}", exitCode, output);
+            return Result::Error;
+        }
+        return Result::Continue;
+    };
+
+    SWC_RESULT(run(smokeArgs));
+    SWC_RESULT(run(smokeArgs));
+    if (!output.contains(" unchanged function"))
+    {
+        std::println(stderr, "[script after native smoke] expected a native function cache hit\n{}", output);
+        return Result::Error;
+    }
+    SWC_RESULT(run(scriptArgs));
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_NewCommandCreatesAndExtendsWorkspace)
 {
     static constexpr std::string_view EXPECTED_MAIN   = "#main\n{\n    Swag.print(\"Hello, world!\\n\")\n}\n";

@@ -196,19 +196,21 @@ namespace SemaGeneric
         if (impl)
             scopeFlags.add(SemaScopeFlagsE::Impl);
 
-        // Source opens one top-level scope per enclosing namespace segment, so a body sees
-        // what each outer namespace declares. Restore those scopes, outermost first.
+        // Source opens a top-level scope for the file's root namespace, then one per enclosing
+        // namespace segment, so a body sees what each of them declares. Restore those scopes,
+        // outermost first.
         SmallVector<SymbolMap*> outerNamespaces;
         if (startSymMap)
         {
             const SymbolMap* moduleRoot = sema.moduleNamespace().asSymMap();
-            for (const SymbolMap* current = namespacePathOwner(startSymMap); current && current != moduleRoot; current = namespacePathOwner(current))
+            for (const SymbolMap* current = namespacePathOwner(startSymMap); current && !current->isModule(); current = namespacePathOwner(current))
             {
-                const SymbolMap* owner = current->ownerSymMap();
-                if (current->isModule() || (owner && owner->isModule()))
-                    break;
                 if (current->isNamespace())
                     outerNamespaces.push_back(const_cast<SymbolMap*>(current));
+
+                const SymbolMap* owner = current->ownerSymMap();
+                if (current == moduleRoot || (owner && owner->isModule()))
+                    break;
             }
         }
 

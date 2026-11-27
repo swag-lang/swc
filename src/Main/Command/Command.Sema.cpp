@@ -146,6 +146,8 @@ namespace Command
 
         compiler.assignSourceNamespaces(ctx, files);
         const auto semaFiles = [&](const std::span<SourceFile* const> group) {
+            const auto dbgT0 = std::chrono::steady_clock::now();
+            auto dbgT1 = dbgT0;
             {
                 SWC_SCHED_PHASE(jobMgr, "sema declarations");
                 for (SourceFile* file : group)
@@ -154,6 +156,7 @@ namespace Command
                     jobMgr.enqueue(*job, JobPriority::Normal, clientId);
                 }
                 jobMgr.waitAll(clientId);
+                dbgT1 = std::chrono::steady_clock::now();
             }
 
             {
@@ -164,6 +167,13 @@ namespace Command
                     jobMgr.enqueue(*job, JobPriority::Normal, clientId);
                 }
                 Sema::waitDone(ctx, clientId);
+            }
+            if (std::getenv("SWC_SEMA_TIMES"))
+            {
+                const auto dbgT2 = std::chrono::steady_clock::now();
+                std::fprintf(stderr, "SEMAGROUP files=%zu first=%s decl=%lldms full=%lldms\n", group.size(), group.empty() ? "" : group.front()->path().generic_string().c_str(),
+                             static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(dbgT1 - dbgT0).count()),
+                             static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(dbgT2 - dbgT1).count()));
             }
         };
 

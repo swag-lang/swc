@@ -13,6 +13,7 @@ class SemaJob : public Job
     // while the compiler retains the job until module teardown.
     std::unique_ptr<Sema> sema_;
     SymbolNamespace*      moduleNamespace_          = nullptr;
+    SymbolFunction*       lazyFunction_             = nullptr;
     bool                  enqueueFullPassAfterDecl_ = false;
 
 #if SWC_DEV_MODE
@@ -27,6 +28,10 @@ public:
     SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, bool declPass, bool enqueueFullPassAfterDecl);
     SemaJob(const TaskContext& ctx, Sema& parentSema, AstNodeRef root);
     SemaJob(const TaskContext& ctx, Sema& parentSema, NodePayload& nodePayloadContext, AstNodeRef root);
+
+    // Analyzes the deferred body of 'function' for a consumer that reached it without a caller
+    // analysis to complete it, such as native code generation.
+    SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, SymbolFunction& function);
 
     JobResult exec() override;
 

@@ -1538,6 +1538,25 @@ std::vector<SemaEscapeDeferredCheck> CompilerInstance::takeDeferredEscapeChecks(
     return std::exchange(deferredEscapeChecks_, {});
 }
 
+void CompilerInstance::appendEscapeSummaryCallees(std::vector<const SymbolFunction*>& outCallees) const
+{
+    const std::shared_lock lock(deferredEscapeChecksMutex_);
+    for (const SemaEscapeDeferredCheck& check : deferredEscapeChecks_)
+    {
+        outCallees.push_back(check.callee);
+        for (const SemaEscapeDeferredGuard& guard : check.guards)
+            outCallees.push_back(guard.callee);
+    }
+    for (const SemaEscapeSummaryEdge& edge : escapeSummaryEdges_)
+    {
+        outCallees.push_back(edge.callee);
+        for (const SemaEscapeDeferredGuard& guard : edge.returnGuards)
+            outCallees.push_back(guard.callee);
+    }
+    for (const SemaEscapeFieldSummaryForwarding& forwarding : fieldSummaryForwardings_)
+        outCallees.push_back(forwarding.callee);
+}
+
 void CompilerInstance::addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)
 {
     const std::unique_lock lock(deferredEscapeChecksMutex_);

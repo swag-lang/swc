@@ -23,6 +23,7 @@ struct CastRequest;
 enum class TaskStateKind : uint8_t;
 class SymbolNamespace;
 class SymbolFunction;
+extern std::atomic<int> g_dbgLazy[8];
 class SymbolVariable;
 class SymbolImpl;
 class SymbolInterface;
@@ -706,6 +707,9 @@ public:
     Result waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
 
     Result completeLazyFunction(SymbolFunction& calledFn);
+    // A deferred body of a source dependency is analyzed when a consumer of its body reaches it:
+    // code generation, compile-time execution, or inlining. A call needs only its signature.
+    bool defersLazyBodyToConsumers(const SymbolFunction& calledFn) const;
     Result waitSemaCompletedNoLazy(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result waitCodeGenPreSolved(const Symbol* symbol, const SourceCodeRef& codeRef);
@@ -722,6 +726,10 @@ public:
     Result      makeRuntimeTypeInfo(ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef);
     Result      prepareFunctionSignature(AstNodeRef functionRef);
     static void waitDone(TaskContext& ctx, JobClientId clientId);
+
+    // Enqueues the analysis of each deferred body in 'functions' that nothing completed yet, for
+    // a consumer that reads it without a calling analysis. Returns whether a job was enqueued.
+    static bool scheduleLazyBodies(TaskContext& ctx, std::span<const SymbolFunction* const> functions, int dbgSource = 0);
 
 private:
     friend struct SemaNodeView;

@@ -19,6 +19,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -773,6 +774,18 @@ namespace
             }
         }
         return true;
+    }
+
+    // A reached function whose body analysis was deferred needs it before code generation. Its
+    // analysis can name further functions, so the caller walks the call graph again after it.
+    Result materializeLazyBodies(NativeBackendBuilder& builder, const std::span<SymbolFunction* const> functions, bool& outMaterialized)
+    {
+        outMaterialized = Sema::scheduleLazyBodies(builder.ctx(), std::span<const SymbolFunction* const>(functions.data(), functions.size()), 2);
+        if (!outMaterialized)
+            return Result::Continue;
+
+        Sema::waitDone(builder.ctx(), builder.compiler().jobClientId());
+        return Stats::hasError() ? Result::Error : Result::Continue;
     }
 
     Result scheduleCodeGen(NativeBackendBuilder& builder, SourceFile* firstFile, const std::span<SymbolFunction* const> functions)
@@ -1576,6 +1589,16 @@ Result NativeBackendBuilder::prepareBackend(std::vector<SymbolFunction*>* outJit
                 }
             }
         }
+        bool materialized = false;
+        SWC_RESULT(materializeLazyBodies(*this, functions, materialized));
+        if (materialized)
+        {
+            // The analyzed bodies published their calls and constants: walk them before lowering.
+            callsWalked       = 0;
+            functionsNeedSort = true;
+            continue;
+        }
+
         SWC_RESULT(scheduleCodeGen(*this, codeGenSource, functions));
 
         size_t     nextCallDependencyIndex = 0;

@@ -31,6 +31,13 @@ SemaJob::SemaJob(const TaskContext& ctx, Sema& parentSema, NodePayload& nodePayl
 {
 }
 
+SemaJob::SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, SymbolFunction& function) :
+    Job(ctx, JobKind::Sema),
+    sema_(std::make_unique<Sema>(Job::ctx(), nodePayloadContext, false)),
+    lazyFunction_(&function)
+{
+}
+
 #if SWC_DEV_MODE
 Utf8 SemaJob::statsLabel() const
 {
@@ -43,6 +50,15 @@ JobResult SemaJob::exec()
 #if SWC_DEV_MODE
     file_ = sema_->file();
 #endif
+
+    if (lazyFunction_)
+    {
+        // A paused body keeps its walk on the function; the next run adopts it.
+        const JobResult result = Job::toJobResult(ctx(), sema_->completeLazyFunction(*lazyFunction_));
+        if (result != JobResult::Sleep)
+            sema_.reset();
+        return result;
+    }
 
     const JobResult result = sema_->exec();
     if (result == JobResult::Sleep)

@@ -190,6 +190,25 @@ namespace
         return node.nodeBodyRef.isValid();
     }
 
+    bool lazyDebugFilter(std::string_view path)
+    {
+        const char* filter = std::getenv("SWC_LAZY_FILTER");
+        if (!filter)
+            return true;
+        std::string_view rest = filter;
+        while (!rest.empty())
+        {
+            const size_t     sep  = rest.find('|');
+            std::string_view part = rest.substr(0, sep);
+            if (!part.empty() && path.find(part) != std::string_view::npos)
+                return true;
+            if (sep == std::string_view::npos)
+                break;
+            rest = rest.substr(sep + 1);
+        }
+        return false;
+    }
+
     bool canDelayRuntimeFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
     {
         if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
@@ -204,7 +223,7 @@ namespace
         if (!sym.ownerSymMap())
             return false;
 
-        if (!file->isRuntime())
+        if (!file->isRuntime() && !(std::getenv("SWC_LAZY_DEPS") && (file->sourceOwner() || std::getenv("SWC_LAZY_ALL")) && (!declImpl || std::getenv("SWC_LAZY_METHODS")) && lazyDebugFilter(file->genericPathString().view())))
             return false;
         if (declImpl && declImpl->isForInterface())
             return false;
@@ -381,6 +400,10 @@ namespace
         const AstNodeRef declRef = calledFn.declNodeRef();
         if (declRef.isInvalid())
             return Result::Continue;
+        {
+            if (sema.defersLazyBodyToConsumers(calledFn))
+                g_dbgLazy[4]++;
+        }
 
         Sema* child = nullptr;
         {
@@ -538,6 +561,15 @@ namespace
 Result Sema::completeLazyFunction(SymbolFunction& calledFn)
 {
     return completeLazyFunctionImpl(*this, calledFn);
+}
+
+bool Sema::defersLazyBodyToConsumers(const SymbolFunction& calledFn) const
+{
+    if (!calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyBody))
+        return false;
+
+    const SourceFile* file = compiler().sourceViewFile(calledFn);
+    return file && !file->isRuntime() && file->sourceOwner() != 0;
 }
 
 Result Sema::prepareFunctionSignature(AstNodeRef functionRef)
@@ -1884,7 +1916,11 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         // Publish deferred body work before Typed wakes signature-only callers,
         // or they may consume an empty borrow summary while the body is unanalysed.
         if (!sym.isTyped() && canDelayFunctionBody(sema, *this, sym, functionDeclImplContext(sema, &sym)))
+        {
             sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
+            if (sema.defersLazyBodyToConsumers(sym))
+                g_dbgLazy[3]++;
+        }
         sym.setTyped(sema.ctx());
 
         SWC_RESULT(SemaCheck::isValidSignature(sema, sym.parameters(), false));

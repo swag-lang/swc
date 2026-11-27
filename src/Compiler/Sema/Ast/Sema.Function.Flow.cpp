@@ -1628,9 +1628,9 @@ namespace
             return Result::Continue;
         SWC_ASSERT(nodeSymView.hasSymbol());
 
-        auto&        calledFn   = nodeSymView.sym()->cast<SymbolFunction>();
-        const Result lazyResult = sema.completeLazyFunction(calledFn);
-        SWC_RESULT(lazyResult);
+        auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
+        if (!sema.defersLazyBodyToConsumers(calledFn))
+            SWC_RESULT(sema.completeLazyFunction(calledFn));
 
         const AttributeList& attributes  = calledFn.attributes();
         const bool           isMixinCall = attributes.hasRtFlag(RtAttributeFlagsE::Mixin);

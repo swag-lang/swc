@@ -22,6 +22,7 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Report/Assert.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -2096,6 +2097,42 @@ namespace
     }
 }
 
+std::atomic<int> g_dbgLazy[8];
+bool Sema::scheduleLazyBodies(TaskContext& ctx, std::span<const SymbolFunction* const> functions, int dbgSource)
+{
+    CompilerInstance&           compiler = ctx.compiler();
+    JobManager&                 jobMgr   = ctx.global().jobMgr();
+    PointerSet<SymbolFunction>  scheduled;
+    bool                        any = false;
+    for (const SymbolFunction* function : functions)
+    {
+        if (!function || function->isSemaCompleted() || function->isIgnored())
+            continue;
+        if (!function->hasExtraFlag(SymbolFunctionFlagsE::LazyBody) || function->hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
+            continue;
+
+        auto& mutableFunction = *const_cast<SymbolFunction*>(function);
+        if (!scheduled.insert(&mutableFunction))
+            continue;
+
+        auto* payloadContext = const_cast<NodePayload*>(function->declNodePayloadContext());
+        if (!payloadContext)
+        {
+            const SourceFile* file = compiler.sourceViewFile(*function);
+            if (!file)
+                continue;
+            payloadContext = &compiler.file(file->ref()).nodePayloadContext();
+        }
+
+        auto* job = compiler.makeJob<SemaJob>(ctx, *payloadContext, mutableFunction);
+        jobMgr.enqueue(*job, JobPriority::Normal, compiler.jobClientId());
+        g_dbgLazy[dbgSource]++;
+        any = true;
+    }
+
+    return any;
+}
+
 void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 {
     auto&             jobMgr   = ctx.global().jobMgr();
@@ -2207,9 +2244,24 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     jobMgr.wakeAll(clientId);
     jobMgr.waitAll(clientId);
 
+    // A judged call site reads its callee's final borrow summary. A deferred callee body that
+    // no consumer completed yet is analyzed first, and the wave drains again.
+    {
+        std::vector<const SymbolFunction*> callees;
+        ctx.compiler().appendEscapeSummaryCallees(callees);
+        if (scheduleLazyBodies(ctx, callees, 1))
+        {
+            g_dbgLazy[6]++;
+            waitDone(ctx, clientId);
+            return;
+        }
+    }
+
     // Every sema job of this wave is done: the per-function borrow summaries are final,
     // so the call sites that snapshotted their argument borrows can be judged now.
     SemaEscape::reportDeferredChecks(ctx);
+    if (std::getenv("SWC_LAZY_STATS"))
+        std::fprintf(stderr, "LAZYSTATS deferred=%d escape=%d builder=%d callsite=%d jitprep=%dms waves=%d\n", g_dbgLazy[3].load(), g_dbgLazy[1].load(), g_dbgLazy[2].load(), g_dbgLazy[4].load(), g_dbgLazy[5].load() / 1000, g_dbgLazy[6].load());
 
     if (!Stats::hasError() && ctx.cmdLine().command != CommandKind::Test)
     {

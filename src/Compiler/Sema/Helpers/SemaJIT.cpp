@@ -632,7 +632,7 @@ namespace
         // Build membership alongside the output so previously reached roots need no walk.
         // A pure leaf cannot read a mutable global or call its initializer. Pulling unrelated
         // callbacks into its closure can wait on the very function currently folding this leaf.
-        const bool needsGlobalRoots = SemaRuntime::isRuntimeArtifactFunction(sema.compiler(), symFn) &&
+        const bool needsGlobalRoots = !std::getenv("SWC_NO_GLOBAL_ROOTS") && SemaRuntime::isRuntimeArtifactFunction(sema.compiler(), symFn) &&
                                       (!symFn.isPure() || symFn.hasCallDependencies() || !extraRoots.empty());
         const bool mayRepeat = !extraRoots.empty() || needsGlobalRoots;
         if (!mayRepeat)
@@ -728,7 +728,19 @@ namespace
         return currentFn;
     }
 
+    Result prepareJitFunctionImpl(Sema& sema, SymbolFunction& symFn);
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
+    {
+        const auto   t0 = std::chrono::steady_clock::now();
+        const Result r  = prepareJitFunctionImpl(sema, symFn);
+        const int    us = static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t0).count());
+        g_dbgLazy[5] += us;
+        if (std::getenv("SWC_JIT_TRACE") && us > 2000)
+            std::fprintf(stderr, "JITPREP %dus %s %s\n", us, r == Result::Pause ? "pause" : "done", symFn.getFullScopedName(sema.ctx()).c_str());
+        return r;
+    }
+
+    Result prepareJitFunctionImpl(Sema& sema, SymbolFunction& symFn)
     {
         TaskContext& ctx = sema.ctx();
 
@@ -762,6 +774,8 @@ namespace
             semaOrderTargetsVersion   = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
             semaOrder.clear();
             buildJitOrderWithNativeRoots(sema, symFn, semaOrder);
+            if (std::getenv("SWC_JIT_TRACE"))
+                std::fprintf(stderr, "JITORDER %zu pure=%d calls=%d %s\n", semaOrder.size(), symFn.isPure(), symFn.hasCallDependencies(), symFn.getFullScopedName(sema.ctx()).c_str());
 
             for (const SymbolFunction* function : semaOrder)
                 SWC_RESULT(sema.waitSemaCompleted(function, function->codeRef()));

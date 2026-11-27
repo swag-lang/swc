@@ -281,6 +281,8 @@ public:
     void                                          recordErrorDiagnostic() { hasErrorDiagnostic_.store(true, std::memory_order_release); }
     void                                          addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check);
     std::vector<SemaEscapeDeferredCheck>          takeDeferredEscapeChecks();
+    // The callees whose final borrow summaries the recorded escape checks and summary edges read.
+    void                                          appendEscapeSummaryCallees(std::vector<const SymbolFunction*>& outCallees) const;
     void                                          addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge);
     std::vector<SemaEscapeSummaryEdge>            copyEscapeSummaryEdges() const;
     void                                          addEscapeFieldSummaryForwarding(const SemaEscapeFieldSummaryForwarding& forwarding);

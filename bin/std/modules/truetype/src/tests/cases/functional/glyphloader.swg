@@ -99,3 +99,71 @@ using Swag, Core
                  faceData.outlineTags.isEmpty() and
                  faceData.outlineContours.isEmpty())
 }
+
+// Every combination of four coordinate modes decodes to the same signed deltas on both axes.
+#test
+{
+    const PointCount = 16_u32
+    const Deltas     = [-32768_s32, -249, 0, 250]
+    const XFlags     = [0_u8, 0x02, 0x10, 0x12]
+    const YFlags     = [0_u8, 0x04, 0x20, 0x24]
+    var glyph:    Array!{u8}
+    var faceData: FaceImpl
+    faceData.unitsPerEm = 64000
+    for key in 256
+    {
+        glyph.clear()
+        glyph.resize(14 + PointCount)
+        writeBigU16(&glyph, 0, 1)
+        writeBigU16(&glyph, 10, cast(u16, PointCount - 1))
+
+        var expected: [PointCount] Vector
+        var x, y:     s32
+        for point in PointCount
+        {
+            let shift = (point % 4) * 2
+            let xMode = (key >> shift) & 3
+            let yMode = ((key ^ 0xFF) >> shift) & 3
+            glyph[14 + point] = XFlags[xMode] | YFlags[yMode] | cast(u8, point & 1)
+            x                 += Deltas[xMode]
+            y                 += Deltas[yMode]
+            expected[point]   = {x: x, y: y}
+        }
+
+        for keyAxis in [key, key ^ 0xFF]
+        {
+            for point in PointCount
+            {
+                let mode = (keyAxis >> ((point % 4) * 2)) & 3
+                switch mode
+                {
+                case 0: glyph.add([0x80_u8, 0])
+                case 1: glyph.add(249_u8)
+                case 3: glyph.add(250_u8)
+                }
+            }
+        }
+
+        // Give the final group room for its full load, independent of its encoded size.
+        let end = glyph.count
+        glyph.resize(end + 16)
+        faceData.outlinePoints.clear()
+        faceData.outlineTags.clear()
+        faceData.outlineContours.clear()
+        expect appendSimpleGlyph(&faceData, glyph.toSlice(), 1000, 1000)
+        Swag.require(faceData.outlinePoints.count == PointCount)
+        for point in PointCount
+        {
+            Swag.require(faceData.outlinePoints[point].x == expected[point].x)
+            Swag.require(faceData.outlinePoints[point].y == expected[point].y)
+            Swag.require(faceData.outlineTags[point] == (point & 1))
+        }
+
+        Swag.require(faceData.outlineContours.count == 1 and faceData.outlineContours[0] == PointCount - 1)
+
+        glyph.resize(end - 1)
+        var rejected: Swag.Error
+        discard catch appendSimpleGlyph(&faceData, glyph.toSlice(), 1000, 1000) as rejected
+        Swag.require(rejected.value() != null)
+    }
+}

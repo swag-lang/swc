@@ -279,69 +279,6 @@ private impl AnimationWriter
     }
 
     #[Inline]
-    func changedByteMask(first, second: const [*] u8, channels: u32)->u32
-    {
-        let equal = Math.Simd.load(first) == Math.Simd.load(second)
-        return ~Math.Simd.bitmask(equal) & channels
-    }
-
-    // Finds the first and last byte of a changed RGB channel in one packed row.
-    func changedPackedRow(first, second: const [*] u8, rowBytes: s32, alpha: bool)->{ left, right: s32 }
-    {
-        let channels  = alpha ? 0x7777_u32 : 0xFFFF_u32
-        let vectorEnd = rowBytes & ~15
-        var start     = 0
-        var mask: u32
-        while start < vectorEnd
-        {
-            mask = changedByteMask(first + start, second + start, channels)
-            if mask
-            {
-                break
-            }
-
-            start += 16
-        }
-
-        var left  = mask ? start + cast(s32, Math.trailingZeros(mask)) : rowBytes
-        var right = -1
-        for offset in vectorEnd until rowBytes
-        {
-            if (alpha and (offset & 3) == 3) or first[offset] == second[offset]
-            {
-                continue
-            }
-
-            if left == rowBytes
-            {
-                left = offset
-            }
-
-            right = offset
-        }
-
-        if right >= 0 or not mask
-        {
-            return {left, right}
-        }
-
-        // The earliest changed group already supplies both bounds when no later group differs.
-        var stop = vectorEnd - 16
-        while stop > start
-        {
-            let last = changedByteMask(first + stop, second + stop, channels)
-            if last
-            {
-                return {left, stop + 31 - cast(s32, Math.leadingZeros(last))}
-            }
-
-            stop -= 16
-        }
-
-        return {left, start + 31 - cast(s32, Math.leadingZeros(mask))}
-    }
-
-    #[Inline]
     func channelsDiffer(first, second: const [*] u8, swap: bool)->bool
     {
         let red  = swap ? 2 : 0
@@ -434,7 +371,7 @@ private impl AnimationWriter
             var rowRight  = -1
             if sameFormat
             {
-                let changed = changedPackedRow(firstRow, secondRow, after.rowStride, after.bytesPerPixel == 4)
+                let changed = PackedPixel.changedPackedRow(firstRow, secondRow, after.rowStride, after.bytesPerPixel == 4)
                 if changed.right < 0
                 {
                     continue

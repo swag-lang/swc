@@ -251,6 +251,16 @@ libvorbis 1.3.7 and reordered into WAVE speaker order.
 - License: same as this repository.
 
 
+`vorbis-floor0-5.1-48000.ogg` was generated for this repository from the Vorbis I packet
+definitions. It contains 3,405 synthetic 5.1 frames with odd and even Floor 0 LSP orders,
+short and long blocks, distinct channel amplitudes and intermittent silence.
+The `.pcm` reference is interleaved signed 16-bit PCM decoded by libvorbis 1.3.7
+and reordered into WAVE speaker order.
+- `vorbis-floor0-5.1-48000.ogg` SHA-256: `fae0f16091c3eb753668bfbbf81c11ff40d67d8720b946cebc0a661a34e981b3`
+- `vorbis-floor0-5.1-48000.pcm` SHA-256: `144f3eceae443ce661c69bee900bf3f57a6daf8849535cb2c1d68392b2b414d7`
+- License: same as this repository.
+
+
 `opus-stereo-48000.opus`, `opus-mono-silk.opus`, `opus-stereo-hybrid.opus`, and
 `opus-transient-48000.opus` are one-second Ogg Opus files generated for this repository with the
 FFmpeg libraries bundled by PyAV 17.1.0 (libavformat 62.12, `libopus` encoder). The first is the

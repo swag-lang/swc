@@ -8,31 +8,8 @@
 
 using Core, Core.Errors, Pixel
 
-private const MaxAnnexAccessUnit = 64 * 1024 * 1024_u64
-private const MaxAnnexFrames     = 1_048_576_u64
-
 // The decoder caps every slice-header reference list and marking-operation list.
 private const MaxAnnexSliceHeader = 16 * 1024_u64
-
-// Copies a stored Annex B access unit into the same packet representation as the containers.
-func packAnnexAccessUnit(bytes: const [..] u8, packet: *Array!{u8}) fail
-{
-    var source = ByteSource.openMemory(bytes)
-    var scanner: AnnexBScanner
-    try scanner.open(&source)
-
-    packet.clear()
-    var unit: AnnexBNal
-    while try scanner.next(&source, &unit)
-    {
-        let size = unit.size
-        packet.add(cast(u8, size >> 24))
-        packet.add(cast(u8, ((size >> 16) & 255)))
-        packet.add(cast(u8, ((size >> 8) & 255)))
-        packet.add(cast(u8, (size & 255)))
-        packet.add(bytes[unit.payload until unit.payload + size])
-    }
-}
 
 // Compares the fields that identify the primary coded picture, section 7.4.1.2.4.
 private func samePicture(a, b: SliceHeader, aIsReference, bIsReference: bool)->bool

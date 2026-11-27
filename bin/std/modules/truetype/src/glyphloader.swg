@@ -548,6 +548,8 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
         try appendCharstringGlyph(faceData, glyphIndex, xPpem, yPpem)
     }
 
+    faceData.emptyOutlineSize = faceData.outlinePoints.count ? 0 : (cast(u32, xPpem) << 16) | yPpem
+
     slot.outline.setView(faceData.outlinePoints.count ? faceData.outlinePoints.buffer : null,
                          faceData.outlineTags.count ? faceData.outlineTags.buffer : null,
                          faceData.outlineContours.count ? faceData.outlineContours.buffer : null,

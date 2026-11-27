@@ -1,5 +1,5 @@
 //! Format: Animated Portable Network Graphics (APNG) encoder component.
-//! Supported: Full-canvas RGBA8 frames, exact rational frame delays, looping, and Adam7 output.
+//! Supported: Lossless RGBA8 frames, changed rectangles, rational frame delays, looping, and Adam7 output.
 //! Role: This file owns the public APNG writer and its animation chunks.
 
 #global namespace Png
@@ -11,6 +11,14 @@ private
     const TypeAcTl: [4] u8 = ['a', 'c', 'T', 'L']
     const TypeFcTl: [4] u8 = ['f', 'c', 'T', 'L']
     const TypeFdAt: [4] u8 = ['f', 'd', 'A', 'T']
+
+    struct FrameRectangle
+    {
+        x:      s32
+        y:      s32
+        width:  s32
+        height: s32
+    }
 }
 
 // Configures animated PNG output.
@@ -25,9 +33,10 @@ public struct AnimationOptions
 
 // Writes an animated PNG frame by frame.
 //
-// Every frame covers the canvas and is stored as straight RGBA8. A static PNG
-// reader can display the first frame. Call [[Pixel.Png.AnimationWriter.end]]
-// to finalize the frame count and close the file.
+// The writer stores straight RGBA8 pixels and keeps one previous canvas to
+// encode changed rectangles. The first frame covers the canvas so a static PNG
+// reader can display it. Call [[Pixel.Png.AnimationWriter.end]] to finalize
+// the frame count and close the file.
 //
 // ```swag
 // using Pixel
@@ -53,6 +62,7 @@ public struct AnimationWriter
         controlOffset: u64
         options:       AnimationOptions
         compressor:    Compress.ZLib
+        previous:      Image
         isEnded:       bool
     }
 }
@@ -114,29 +124,26 @@ public impl AnimationWriter
             fail UnsupportedFormatError{"PNG animation has too many frames"}
         }
 
-        var compressed: Array!{u8}
         switch image.pixelFormat
         {
         case .RGB8, .BGR8:
             let rgba   = image.convertedTo(.RGBA8)
-            compressed = try Encoder.encodeAnimationFrame(rgba, .options.png, &.compressor)
+            try .encodeFrame(rgba, duration, ticksPerSecond)
 
         case .RGBA8, .BGRA8:
             if image.alphaMode == .Premultiplied
             {
                 let straight = image.convertedAlphaTo(.Straight)
-                compressed   = try Encoder.encodeAnimationFrame(straight, .options.png, &.compressor)
+                try .encodeFrame(straight, duration, ticksPerSecond)
             }
             else
             {
-                compressed = try Encoder.encodeAnimationFrame(image, .options.png, &.compressor)
+                try .encodeFrame(image, duration, ticksPerSecond)
             }
 
         default:
             fail UnsupportedFormatError{"unsupported PNG animation pixel format"}
         }
-
-        try .writeFrame(compressed.toSlice(), duration, ticksPerSecond)
     }
 
     // Finalizes the animation and closes the file.
@@ -166,6 +173,7 @@ public impl AnimationWriter
         try .sink.patch(.controlOffset, Swag.makeSlice(payload, 12))
         try .writeChunk(TypeIEnd, "")
         try .sink.close()
+        .previous = {}
         .isEnded = true
     }
 }
@@ -206,15 +214,91 @@ private impl AnimationWriter
         try .writeChunk(TypeAcTl, control)
     }
 
-    mtd writeFrame(payload: const [..] u8, duration, ticksPerSecond: u16) fail
+    mtd encodeFrame(image: Image, duration, ticksPerSecond: u16) fail
+    {
+        let sameFormat = .previous.isValid() and .previous.pixelFormat == image.pixelFormat
+        let area = sameFormat ? changedRectangle(.previous, image) : FrameRectangle{width: .width, height: .height}
+        let compressed = try Encoder.encodeAnimationFrame(image, area, .options.png, &.compressor)
+        try .writeFrame(compressed.toSlice(), area, duration, ticksPerSecond)
+
+        if not sameFormat
+        {
+            .previous = Image.create(.width, .height, image.pixelFormat, image.pixels.toSlice())
+            return
+        }
+
+        if area.width == .width and area.height == .height
+        {
+            Memory.copy(.previous.pixels.storage(), image.pixels.storage(), image.byteCount)
+            return
+        }
+
+        let start = (cast(u64, .height - area.y - 1) * .previous.rowStride) + cast(u64, area.x) * 4
+        let copyBytes = cast(u64, area.width) * 4
+        let source = image.pixels.storage() + start
+        let destination = .previous.pixels.storage() + start
+        for row in area.height
+        {
+            let offset = cast(u64, row) * .previous.rowStride
+            Memory.copy(destination - offset, source - offset, copyBytes)
+        }
+    }
+
+    func changedRectangle(before, after: Image)->FrameRectangle
+    {
+        let width  = after.width
+        let height = after.height
+        let first  = before.pixels.storage()
+        let second = after.pixels.storage()
+        let topRow = cast(u64, height - 1) * after.rowStride
+        let rightColumn = cast(u64, width - 1) * 4
+        if cast(const [*] u32, first + topRow)[0] != cast(const [*] u32, second + topRow)[0] and
+           cast(const [*] u32, first + rightColumn)[0] != cast(const [*] u32, second + rightColumn)[0]
+        {
+            return {width: width, height: height}
+        }
+
+        var left = width
+        var right, top, bottom = -1
+        for y in height
+        {
+            let offset = cast(u64, height - 1 - y) * after.rowStride
+            let changed = PackedPixel.changedPackedRow(first + offset, second + offset, after.rowStride, false)
+            if changed.right < 0
+            {
+                continue
+            }
+
+            if top < 0
+            {
+                top = y
+            }
+
+            bottom = y
+            left = Math.min(left, changed.left / 4)
+            right = Math.max(right, changed.right / 4)
+        }
+
+        if top < 0
+        {
+            // Preserve the duration of a repeated image with one unchanged pixel.
+            return {width: 1, height: 1}
+        }
+
+        return {x: left, y: top, width: right - left + 1, height: bottom - top + 1}
+    }
+
+    mtd writeFrame(payload: const [..] u8, area: FrameRectangle, duration, ticksPerSecond: u16) fail
     {
         let first = not .count
         try validateChunkLength(payload.count + (first ? 0 : 4))
 
         var frame: [26] u8
         Encoder.writeU32(&frame[0], .sequence)
-        Encoder.writeU32(&frame[4], cast(u32, .width))
-        Encoder.writeU32(&frame[8], cast(u32, .height))
+        Encoder.writeU32(&frame[4], cast(u32, area.width))
+        Encoder.writeU32(&frame[8], cast(u32, area.height))
+        Encoder.writeU32(&frame[12], cast(u32, area.x))
+        Encoder.writeU32(&frame[16], cast(u32, area.y))
         frame[20] = Math.byteAt(duration, 1)
         frame[21] = Math.byteAt(duration, 0)
         frame[22] = Math.byteAt(ticksPerSecond, 1)

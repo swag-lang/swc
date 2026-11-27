@@ -381,6 +381,68 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
 
 #test
 {
+    let face = expect Face.loadFile(getTestDataPath("bungee-color-regular.ttf"))
+    defer face.destroy()
+    Swag.require(face.glyphCount == 868)
+
+    // Several first queries may validate the same immutable directory.
+    let letter = face.glyphIndex('A')
+    parallel for |face, letter| 16
+    {
+        let layers = expect face.getColorLayers(letter)
+        Swag.require(layers.count == 2)
+    }
+
+    // Reference counts and ordered glyph, palette, and ARGB records from FreeType 2.14.3.
+    func hashWords(hash: *Hash.Crc64, words: const [..] u32)
+    {
+        for word in words
+        {
+            let little = Math.nativeToLittleEndian(word)
+            hash.update(Swag.makeSlice(cast(const [*] u8, &little), 4))
+        }
+    }
+
+    var checksum:   Hash.Crc64
+    var layerCount: u32
+    for glyph in face.glyphCount
+    {
+        let layers = expect face.getColorLayers(glyph)
+        layerCount += cast(u32, layers.count)
+        hashWords(&checksum, [glyph, cast(u32, layers.count)])
+        for layer in layers
+        {
+            let flags = layer.hasColor ? 1_u32 : 0
+            hashWords(&checksum, [cast(u32, layer.glyphIndex), cast(u32, layer.paletteIndex), layer.argb, flags])
+        }
+    }
+
+    Swag.require(layerCount == 576)
+    Swag.require(checksum.value() == 0x4CCE13FB3B5340F6)
+}
+
+#test
+{
+    // Duplicates inside a block, across blocks, and in the scalar tail all fail.
+    for previous in [3_u64, 8, 286]
+    {
+        var bytes = loadFontBytes("bungee-color-regular.ttf")
+        let table = readBigU32(&bytes, colorTableRecord(&bytes, TAG_COLR) + 8)
+        let bases = cast(u64, table) + readBigU32(&bytes, table + 4)
+        let glyph = readBigU16(&bytes, bases + previous * 6)
+        writeColorU16(&bytes, bases + (previous + 1) * 6, glyph)
+        let face = expect Face.load(bytes.toSlice())
+        defer face.destroy()
+
+        let first = readBigU16(&bytes, bases)
+        var malformed: Swag.Error
+        discard catch face.getColorLayers(first) as malformed
+        Swag.require(malformed.value() != null)
+    }
+}
+
+#test
+{
     var bytes = buildCompositeColorFont(36, 36, 36)
     let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()

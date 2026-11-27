@@ -57,6 +57,19 @@ using Swag, Core
     Swag.require(Memory.compare(image.pixels.storage(), Expected.buffer, Expected.count) == 0)
 }
 
+// Four RGB chunks update colliding indices and write exactly twelve bytes.
+#test
+{
+    const Bytes: [43] u8 = [
+        'q', 'o', 'i', 'f', 0, 0, 0, 6, 0, 0, 0, 1, 3, 0,
+        0xFE, 1, 2, 3, 0xFE, 5, 6, 7, 0xFE, 9, 10, 11, 0xFE, 65, 2, 3,
+        23, 0xFE, 39, 53, 82, 0, 0, 0, 0, 0, 0, 0, 1]
+    const Expected: [18] u8 = [1, 2, 3, 5, 6, 7, 9, 10, 11, 65, 2, 3, 65, 2, 3, 39, 53, 82]
+    let image = expect Image.decode("rgb-batch-index.qoi", Bytes)
+    Swag.require(image.pixelFormat == .RGB8 and image.byteCount == Expected.count)
+    Swag.require(Memory.compare(image.pixels.storage(), Expected.buffer, Expected.count) == 0)
+}
+
 // A run updates the QOI index table for a following INDEX chunk of the same pixel.
 #test
 {

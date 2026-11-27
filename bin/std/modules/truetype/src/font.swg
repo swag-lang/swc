@@ -281,6 +281,9 @@ struct FaceImpl
     sharedProgramTables: const *ProgramTables?
     hasCMap:             bool
 
+    // The color lookup checks a packed base directory once for each face.
+    colorBaseGlyphsValidated: Swag.AtomicFlag
+
     // Current point scales are shared by all simple outlines of a composite glyph.
     pointScaleKey: u64 = Swag.U64.Max
     pointScaleX:   PointScale
@@ -291,6 +294,10 @@ struct FaceImpl
     outlineContours:   Array!{s16}
     bitmapPixels:      Array!{u8}
     colorBitmapPixels: Array!{u8}
+
+    // Mono strikes borrow the font bytes and use the size at which the slot was loaded.
+    embeddedBitmapTables: EmbeddedBitmapTables
+    emptyOutlineSize:      u32
 
     // A single ordered legacy kerning subtable can stay packed. Unordered or merged
     // pairs use the hash table with `(leftGlyph << 16) | rightGlyph` as the key.

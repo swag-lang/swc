@@ -231,6 +231,13 @@ ships; history lives in Git, not here.
   resvg 0.50.0 drops from 36.21 to 0.09 levels per channel and the alpha masks
   agree. Six public `meet` and `slice` fixtures also agree within 0.6 levels per
   channel on average.
+- Direct SVG path output reduces four 15,360-contour encoding cases from
+  52.8 to 3.6 ms for integer paths, 73.4 to 15.1 ms for cubics, 282.3 to
+  107.7 ms for flattened paths, and 77.2 to 25.8 ms for separate shapes.
+  The eleven interleaved Release runs exclude disk I/O. The four SVG outputs
+  and their resvg renders match their respective baselines. The flattened
+  baseline includes the correction that writes the coordinate after `M` or `L`.
+  Regression tests cover locale, large coordinates, and flattened curves.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.
@@ -353,18 +360,6 @@ ships; history lives in Git, not here.
   captures and measure file size on representative animations.
 - Done when: a screen recording with anti-aliased text exports without visible banding at a size
   comparable to the former encoder, and still frames keep their exact palette.
-- Related: std.pixel.image.052
-
-### std.pixel.image.052 — No animated PNG encoding
-
-- Evidence: the PNG encoder writes one image; an animated capture exported losslessly, or with
-  more than 256 colors, has no output.
-- Next: add APNG output (`acTL`, `fcTL`, `fdAT`) on the existing PNG filter and Deflate path,
-  reusing the changed-rectangle reduction of std.pixel.image.051.
-- Done when: an animation written as APNG decodes back with identical pixels and timing, and
-  viewers without APNG support show its first frame.
-- Related: std.pixel.image.051
-
 ---
 
 ### std.pixel.image.053 — Remaining PNG sample conversion needs a current profile

@@ -95,11 +95,12 @@ private impl PizBits
 
 private struct PizHuffman
 {
-    counts:   [PizMaxLength + 1] u32
-    offsets:  [PizMaxLength + 1] u32
-    first:    [PizMaxLength + 1] u64
-    longest:  u32
-    rootBits: u32
+    counts:       [PizMaxLength + 1] u32
+    offsets:      [PizMaxLength + 1] u32
+    first:        [PizMaxLength + 1] u64
+    longest:      u32
+    rootBits:     u32
+    extendedBits: u32
 }
 
 private impl PizHuffman
@@ -163,13 +164,22 @@ private impl PizHuffman
             fail InvalidFormatError{"OpenEXR PIZ Huffman tree is incomplete"}
         }
 
-        .rootBits = Math.min(.longest, PizDirectBits)
-        scratch.direct.resize(1_u64 << .rootBits)
-        if .longest > .rootBits
+        .rootBits     = Math.min(.longest, PizDirectBits)
+        .extendedBits = Math.min(.longest, .rootBits + 4)
+        let rootEntries = 1_u64 << .rootBits
+
+        // Only the numerically lowest root prefixes are occupied by longer codes.
+        let extensions = .first[.rootBits] << (.extendedBits - .rootBits)
+        scratch.direct.resize(rootEntries + extensions)
+        if extensions
         {
             Memory.clear(scratch.direct.storage(), scratch.direct.count * #sizeof(u32))
+        }
+
+        if .longest > .extendedBits
+        {
             var longCount: u32
-            for width in .rootBits + 1 to .longest
+            for width in .extendedBits + 1 to .longest
             {
                 .offsets[width] = longCount
                 longCount       += .counts[width]
@@ -189,11 +199,12 @@ private impl PizHuffman
             let symbol  = firstSymbol + cast(u32, symbolIndex)
             let ordinal = next[width]
             next[width] += 1
-            if width <= .rootBits
+            if width <= .extendedBits
             {
-                let shift = .rootBits - width
-                let begin = (.first[width] + ordinal) << shift
-                let entry = (symbol << PizCodeBits) | width
+                let extended = width > .rootBits
+                let shift    = (extended ? .extendedBits : .rootBits) - width
+                let begin    = (extended ? rootEntries : 0) + ((.first[width] + ordinal) << shift)
+                let entry    = (symbol << PizCodeBits) | width
                 for slot in begin until begin + (1_u64 << shift)
                 {
                     scratch.direct[slot] = entry
@@ -216,7 +227,7 @@ private impl PizHuffman
 
         let available = Math.min(cast(u64, .longest), bits.remaining)
         let cached    = cast(u32, Math.min(available, cast(u64, bits.buffered)))
-        for width in .rootBits + 1 to cached
+        for width in .extendedBits + 1 to cached
         {
             let index = bits.peek(width)
             let first = .first[width]
@@ -279,7 +290,17 @@ private func decodePizHuffman(packed: const [..] u8, output: [..] u16, scratch: 
             bits.refill()
         }
 
-        let entry = scratch.direct[bits.peek(table.rootBits)]
+        var entry = scratch.direct[bits.peek(table.rootBits)]
+        if not entry and table.extendedBits > table.rootBits
+        {
+            if bits.buffered < table.extendedBits
+            {
+                bits.refill()
+            }
+
+            entry = scratch.direct[(1_u64 << table.rootBits) + bits.peek(table.extendedBits)]
+        }
+
         var symbol: u32
         if entry
         {

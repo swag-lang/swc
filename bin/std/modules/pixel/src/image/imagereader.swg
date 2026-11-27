@@ -529,10 +529,22 @@ public impl ImageReader
         }
 
         let gif    = .decoderType == #typeof(Gif.SetDecoder) ? cast(*Gif.SetDecoder, .decoder) : null
+        let png    = .decoderType == #typeof(Png.Decoder) ? cast(*Png.Decoder, .decoder) : null
         let target = cast(s32, index)
         let reset  = .lastIndex < 0 or target < .lastIndex
         let next   = reset ? 0 : .lastIndex + 1
-        let replay = gif and next < target ? gif.replayFrame(target, next) : next
+        var replay = next
+        if next < target
+        {
+            if let decoder = gif
+            {
+                replay = decoder.replayFrame(target, next)
+            }
+            else if let decoder = png
+            {
+                replay = decoder.replayFrame(target, next)
+            }
+        }
         if reset
         {
             let format = .animationCanvasFormat()
@@ -545,10 +557,20 @@ public impl ImageReader
             .lastIndex = -1
         }
 
-        if gif and replay > next
+        if replay > next
         {
-            try gif.compositeFrame(cast(u32, replay), &.canvas)
-            .canvas.metadata.clear()
+            if let decoder = gif
+            {
+                try decoder.compositeFrame(cast(u32, replay), &.canvas)
+                .canvas.metadata.clear()
+            }
+            else
+            {
+                let image = try multiple.readFrame(cast(u32, replay), .options)
+                try .composite(.info.frames[replay], image)
+                .canvas.metadata = image.metadata
+            }
+
             .lastIndex = replay
         }
 

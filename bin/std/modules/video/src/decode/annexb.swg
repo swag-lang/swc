@@ -7,6 +7,9 @@
 
 using Core, Core.Errors
 
+const MaxAnnexAccessUnit = 64 * 1024 * 1024_u64
+const MaxAnnexFrames     = 1_048_576_u64
+
 struct AnnexBNal
 {
     start:   u64     // First zero of the run before the start code's final one.
@@ -106,4 +109,30 @@ impl AnnexBScanner
 
         return {source.position() - precedingZeros, false}
     }
+}
+
+// Copies a stored Annex B access unit into the same packet representation as the containers.
+func packAnnexAccessUnit(bytes: const [..] u8, packet: *Array!{u8}) fail
+{
+    var source = ByteSource.openMemory(bytes)
+    var scanner: AnnexBScanner
+    try scanner.open(&source)
+
+    packet.clear()
+    var unit: AnnexBNal
+    while try scanner.next(&source, &unit)
+    {
+        appendAnnexNal(packet, bytes[unit.payload until unit.payload + unit.size])
+    }
+}
+
+// Appends one unit to the same four-byte length framing used by container samples.
+func appendAnnexNal(packet: *Array!{u8}, bytes: const [..] u8)
+{
+    let size = bytes.count
+    packet.add(cast(u8, size >> 24))
+    packet.add(cast(u8, ((size >> 16) & 255)))
+    packet.add(cast(u8, ((size >> 8) & 255)))
+    packet.add(cast(u8, (size & 255)))
+    packet.add(bytes)
 }

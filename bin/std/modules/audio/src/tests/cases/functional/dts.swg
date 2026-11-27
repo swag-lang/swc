@@ -87,7 +87,7 @@ private func dtsVqPacket()->Array!{u8}
 
 // Builds one mono Core packet with an impulse in its first scalar subband. A wide
 // residual exercises dequantizer saturation. The ordinary packet uses predictor vector zero.
-private func dtsScalarPacket(huffman = false, frameBytes = 32_u32, predictorHistory = false, wideResidual = 0_s32)->Array!{u8}
+private func dtsScalarPacket(huffman = false, frameBytes = 32_u32, predictorHistory = false, wideResidual = 0_s32, dynamicRange = false)->Array!{u8}
 {
     var bits: DtsTestBits
     bits.add(0x7FFE8001, 32)
@@ -98,8 +98,10 @@ private func dtsScalarPacket(huffman = false, frameBytes = 32_u32, predictorHist
     bits.add(frameBytes - 1, 14)
     bits.add(0, 6)
     bits.add(13, 4)
-    bits.add(0, 5)
-    bits.add(0, 5)
+    bits.add(0, 5)     // Transmission rate.
+    bits.add(0, 1)     // Reserved.
+    bits.add(dynamicRange ? 1 : 0, 1)
+    bits.add(0, 3)     // Timestamp, auxiliary data, HDCD.
     bits.add(0, 3)
     bits.add(0, 1)
     bits.add(0, 1)
@@ -148,6 +150,11 @@ private func dtsScalarPacket(huffman = false, frameBytes = 32_u32, predictorHist
     bits.add(wideResidual ? 26 : huffman ? 1 : 8, 5)
     bits.add(0, 5)
     bits.add(wideResidual ? 124 : huffman ? 104 : 64, 7)
+    if dynamicRange
+    {
+        bits.add(0xA7, 8)
+    }
+
     if wideResidual
     {
         bits.add(cast #bit(u32, wideResidual) & 0x7F_FFFF, 23)
@@ -516,6 +523,25 @@ private func dtsDecodePcm(path: string)->Array!{s16}
 
         Swag.require(nonZero > 8)
     }
+}
+
+// Advisory dynamic range metadata preserves the decoded subframe samples.
+#test
+{
+    func decodeSubframe(dynamicRange: bool)->Array!{s16}
+    {
+        let packet = dtsScalarPacket(frameBytes: 96, dynamicRange: dynamicRange)
+        let path   = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                  Format.toString("audio-dts-dynamic-range-%.dts", Guid64.random()).toString())
+        defer discard catch File.delete(path)
+        expect File.writeAllBytes(path, packet.toSlice())
+        return dtsDecodePcm(path)
+    }
+
+    let ordinary = decodeSubframe(false)
+    let withGain = decodeSubframe(true)
+    Swag.require(ordinary.count == 256 and withGain.count == ordinary.count)
+    Swag.require(Slice.equals(ordinary.toSlice(), withGain.toSlice()))
 }
 
 // Word order and transport packing preserve every decoded sample, including across packets.

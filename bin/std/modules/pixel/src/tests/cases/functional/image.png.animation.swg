@@ -66,6 +66,50 @@ func pngAnimationPath()->String
     }
 }
 
+// Alpha-only changes and repeated frames keep exact pixels and timing after cropping.
+#test
+{
+    for interlace in [false, true]
+    {
+        const Width = 37
+        const Height = 17
+        let path = pngAnimationPath()
+        defer discard catch File.delete(path)
+
+        var first = Image.create(Width, Height, .RGBA8)
+        first.fill(Color.fromArgb(61, 25, 83, 132))
+        var second = first
+        second.pixels[(Height - 1 - 3) * second.rowStride + 7 * 4 + 3] = 0
+        second.pixels[(Height - 1 - 8) * second.rowStride + 19 * 4 + 3] = 255
+        var writer = expect Png.AnimationWriter.create(path, Width, Height, {png: {interlace: interlace}})
+        expect writer.addFrame(first, 13)
+        expect writer.addFrame(second, 17)
+        expect writer.addFrame(second, 43)
+        expect writer.addFrame(first, 19)
+        expect writer.end()
+
+        var reader = expect ImageReader.load(path)
+        Swag.require(reader.info.frames.count == 4)
+        let firstRect = reader.info.frames[0]
+        Swag.require(firstRect.x == 0 and firstRect.y == 0 and firstRect.width == Width and firstRect.height == Height)
+        for index in [1, 3]
+        {
+            let rectangle = reader.info.frames[index]
+            Swag.require(rectangle.x == 7 and rectangle.y == 3 and rectangle.width == 13 and rectangle.height == 6)
+        }
+
+        let unchanged = reader.info.frames[2]
+        Swag.require(unchanged.x == 0 and unchanged.y == 0 and unchanged.width == 1 and unchanged.height == 1)
+        Swag.require(unchanged.durationSeconds == 0.043)
+        for index in [1_u32, 3, 0, 2]
+        {
+            let image = expect reader.read(index)
+            let expected = index == 0 or index == 3 ? &first : &second
+            Swag.require(Slice.equals(image.pixels.toSlice(), expected.pixels.toSlice()))
+        }
+    }
+}
+
 // A rejected frame or empty finalization leaves the writer open for valid frames.
 #test
 {

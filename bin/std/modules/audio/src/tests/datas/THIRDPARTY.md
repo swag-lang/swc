@@ -91,6 +91,34 @@ and they were not produced by this module.
 - `flac-5.1-48000.pcm` SHA-256: `e2038b86051b34518ae4b5ce35db8d7d23cdcade1c846e066a0c19fe499e63e6`
 - License: same as this repository.
 
+The FLAC sample-width fixtures contain deterministic integer ramps generated for this repository.
+libFLAC 1.5.0 encodes 69 frames at compression level 8 with 32-frame blocks and streamable subset
+disabled. The expected little-endian PCM16 is calculated from the source ramps by shifting each
+sample to 16 bits. FFmpeg 9.1 produces the same interleaved samples.
+
+For each zero-based frame and channel, the ramp combines `(channel + 3) * 1447 * frame` with
+`(frame + phase) >> 2` using XOR, shifts the result left by `max(0, bits - 13)`, and wraps it to
+the signed source width. Phases for the 4-, 8-, 12-, 20-, 31-, and 32-bit multichannel files are
+0, 1, 2, 3, 3, and 2. If `(frame + channel) % 37 == 0`, the sample is the signed minimum.
+Otherwise, if `(frame + 2 * channel) % 107 == 0`, it is the signed maximum. At other positions
+where `(phase + channel) % 2 == 1`, the ramp clears up to four low bits, leaving the sign bit.
+For the 32-bit mid/side file, the left channel starts at signed maximum and follows
+`INT32_MAX - frame * (140801 << 7) + 43 * frame * frame`. The right channel is its negation
+plus `frame % 11 - 5`, with signed wrapping. Frame zero uses the signed maximum and minimum.
+libFLAC uses mid/side on its first frame and the side needs all 33 bits.
+
+| Fixture | FLAC SHA-256 | PCM16 SHA-256 |
+| --- | --- | --- |
+| `flac-mono-4bit-11025` | `2ae70d410e1e0a85bd66f37f809c827cade79b1f665959aa96fb19e989789d15` | `a2f14e7b71a998d43da4151eded5209ff0cecf7f6c26d344f35db75c26ceff98` |
+| `flac-stereo-8bit-12345` | `e5c06ed6e6db4649296e14b67d478d7f296e5da531ce22cea727e6b420c2f49e` | `d0f4bc00fe347a2f6ed87b8277d360f9ecbc2daf8a1d34d802532e2ed12b0cf1` |
+| `flac-3ch-12bit-192000` | `1b705c13766ec5791028483e7a96110e69534961ef5d00ddde073bd8d7915e8c` | `0b59ead089673fe0a8167f608857e5525de9af6d27eab50db6670dd5d4b44e7c` |
+| `flac-quad-20bit-250000` | `fb19e607831a2825611182fc56779798c7dba28a78ac7176f961596086b9db43` | `e00da588df1335a1d14e347cd43eabbd029149784c4e3084d0ff78c7707b45e3` |
+| `flac-6.1-31bit-44100` | `ed7bd4df6a3c9c3aa74ae3a489d6703005297c0590cd34752fefc71b97d7faca` | `11e8a333dcdb8b74e9057a0203dc1c066f4a4d5678e41999908603f3ad9b8f30` |
+| `flac-7.1-32bit-48000` | `d22bcca9cc61edbf96dec76c90d26a47a79373b864771707735c560258fcc4fe` | `2f88c61ee0ffe5af3e3e1a57ec7c085986466742b0087eac2d95dc482ae58094` |
+| `flac-mid-side-32bit-48000` | `d749398195aceec184e6f95253949a88df4ed12df9c139c7c2611fac91a9a235` | `7f69cec8d1fd516ca12083bb04285cd39fabe9fe2853e2c80e875f013c6042f0` |
+
+The fixtures share the repository license.
+
 The ten `mp3-*.mp3` files are MPEG Layer III streams generated for this repository with
 libmp3lame through PyAV 17.1, from mathematically generated inputs, so they contain no third-party
 recording. There is one per sampling frequency of the three MPEG versions, because each frequency

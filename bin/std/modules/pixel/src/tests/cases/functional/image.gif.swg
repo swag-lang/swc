@@ -998,6 +998,35 @@ func gifPalette32Fixture(withAlpha: bool, invalidOffset: s32 = -1)->Array!{u8}
     assertGifPixelAt(img, 0, 0, 12_u8, 34_u8, 56_u8, 255_u8)
 }
 
+// Direct palette lookups stay valid across repeated dictionary epochs at both table sizes.
+#test
+{
+    for colorCount in [32_u8, 128]
+    {
+        let source = Image.create(colorCount == 32 ? 641 : 769, colorCount == 32 ? 321 : 349, .RGB8)
+        var pixels = source.pixels.storage()
+        var state  = 0x8F01943C_u32
+        for cast(u64, source.width) * source.height
+        {
+            state ^= state << 13
+            state ^= state >> 17
+            state ^= state << 5
+            let index = cast #wrap(u8, state) & (colorCount - 1)
+            pixels[0] = index * #wrap 23_u8
+            pixels[1] = index * #wrap 39_u8
+            pixels[2] = index * #wrap 97_u8
+            pixels    += 3
+        }
+
+        let encoded = expect source.encodeToBytes("direct-palette-epochs.gif")
+        let crc     = colorCount == 32 ? 1974264148_u32 : 839454945_u32
+        Swag.require(Hash.Crc32.compute(encoded.toSlice()) == crc)
+        let decoded = expect Image.decode("direct-palette-epochs.gif", encoded.toSlice())
+        Swag.require(decoded.pixelFormat == .RGB8 and decoded.pixels.count == source.pixels.count)
+        Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.pixels.count) == 0)
+    }
+}
+
 // A dense palette crosses enough dictionary clears to reuse its literal-pair epochs.
 #test
 {

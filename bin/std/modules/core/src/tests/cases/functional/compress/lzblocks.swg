@@ -87,12 +87,14 @@ func checkRoundTrip(input: const [..] u8)
 
 #test
 {
-    // The vector copy can write ahead only within the size declared by the block.
+    // Short literals and copies can write ahead within the size declared by the block.
     const Expected = "abcdefghijklmnopqrstabcdefgh0123456789"
     var packed: Array!{u8}
     packed.add(38)
-    packed.add(76)
-    packed.add("abcdefghijklmnopqrst")
+    packed.add(28)
+    packed.add("abcdefgh")
+    packed.add(44)
+    packed.add("ijklmnopqrst")
     packed.add(30)
     packed.add(20)
     packed.add(0)
@@ -107,7 +109,7 @@ func checkRoundTrip(input: const [..] u8)
     Swag.require(Slice.equals(output[1 until written + 1], cast(const [..] u8, Expected)))
     Swag.require(output[0] == 0xA5 and output[Expected.count + 1] == 0xA5)
 
-    packed.resize(25)
+    packed.resize(26)
     packed[0]  = 28
     output[29] = 0xA5
     let tailWritten = expect Snappy.decompressInto(output[1 until 29], packed.toSlice())

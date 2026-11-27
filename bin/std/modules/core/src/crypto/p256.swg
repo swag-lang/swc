@@ -903,14 +903,24 @@ private func p256MultiplyGenerator(scalar: const *P256Field)->P256Point
             let negate  = 0_u64 - (digits3 ^ 1)
             let entry   = digit ^ (negate & 7)
 
-            var selection: P256AffinePoint
+            using Math.Simd
+
+            var xLow, xHigh, yLow, yHigh: U64x2
             for index in P256GeneratorComb[stripe].count
             {
-                let matched = index == entry
-                let point   = P256GeneratorComb[stripe][index]
-                selection.x = p256FieldSelect(selection.x, point.x, matched)
-                selection.y = p256FieldSelect(selection.y, point.y, matched)
+                let point = &P256GeneratorComb[stripe][index]
+                let mask  = splat(0_u64 - cast(u64, index == entry))
+                xLow  |= load(point.x.limbs.buffer) & mask
+                xHigh |= load(point.x.limbs.buffer + 2) & mask
+                yLow  |= load(point.y.limbs.buffer) & mask
+                yHigh |= load(point.y.limbs.buffer + 2) & mask
             }
+
+            var selection: P256AffinePoint
+            store(selection.x.limbs.buffer, xLow)
+            store(selection.x.limbs.buffer + 2, xHigh)
+            store(selection.y.limbs.buffer, yLow)
+            store(selection.y.limbs.buffer + 2, yHigh)
 
             // These finite table points have nonzero Y.
             var borrow = 0_u64

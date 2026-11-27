@@ -66,22 +66,6 @@ private func quarterRoundLanes()
 }
 
 #[Swag.Inline]
-private func quarterRound(first, second, third, fourth: *Simd.U32x4)
-{
-    var a = first[]
-    var b = second[]
-    var c = third[]
-    var d = fourth[]
-
-    quarterRoundLanes()
-
-    first[]  = a
-    second[] = b
-    third[]  = c
-    fourth[] = d
-}
-
-#[Swag.Inline]
 private func roundRows(rows: *[4] Simd.U32x4)
 {
     const left1 = cast(Simd.U32x4, [1_u32, 2, 3, 0])
@@ -405,6 +389,52 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
 {
     func chacha20XorBatches(key, nonce: const [..] u8, counter: u32, source: const [*] u8, destination: [*] u8, count: u64)
     {
+        // Interleave arithmetic from four independent quarter rounds.
+        #[Swag.Mixin]
+        func quarterRoundColumns(a0, b0, c0, d0, a1, b1, c1, d1,
+                                 a2, b2, c2, d2, a3, b3, c3, d3: *Simd.U32x4)
+        {
+            a0[] += b0[]
+            a1[] += b1[]
+            a2[] += b2[]
+            a3[] += b3[]
+
+            d0[] = rotate32By16(d0[] ^ a0[])
+            d1[] = rotate32By16(d1[] ^ a1[])
+            d2[] = rotate32By16(d2[] ^ a2[])
+            d3[] = rotate32By16(d3[] ^ a3[])
+
+            c0[] += d0[]
+            c1[] += d1[]
+            c2[] += d2[]
+            c3[] += d3[]
+
+            b0[] = Math.rol(b0[] ^ c0[], 12)
+            b1[] = Math.rol(b1[] ^ c1[], 12)
+            b2[] = Math.rol(b2[] ^ c2[], 12)
+            b3[] = Math.rol(b3[] ^ c3[], 12)
+
+            a0[] += b0[]
+            a1[] += b1[]
+            a2[] += b2[]
+            a3[] += b3[]
+
+            d0[] = Math.rol(d0[] ^ a0[], 8)
+            d1[] = Math.rol(d1[] ^ a1[], 8)
+            d2[] = Math.rol(d2[] ^ a2[], 8)
+            d3[] = Math.rol(d3[] ^ a3[], 8)
+
+            c0[] += d0[]
+            c1[] += d1[]
+            c2[] += d2[]
+            c3[] += d3[]
+
+            b0[] = Math.rol(b0[] ^ c0[], 7)
+            b1[] = Math.rol(b1[] ^ c1[], 7)
+            b2[] = Math.rol(b2[] ^ c2[], 7)
+            b3[] = Math.rol(b3[] ^ c3[], 7)
+        }
+
         var initial: [16] Simd.U32x4
         initial[0] = Simd.splat(0x61707865_u32)
         initial[1] = Simd.splat(0x3320646E_u32)
@@ -425,18 +455,52 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
         for batch in count
         {
             initial[12] = Simd.splat(counter + cast(u32, (batch * 4))) + counterOffsets
-            state       = initial
+            var a0 = initial[0]
+            var a1 = initial[1]
+            var a2 = initial[2]
+            var a3 = initial[3]
+            var b0 = initial[4]
+            var b1 = initial[5]
+            var b2 = initial[6]
+            var b3 = initial[7]
+            var c0 = initial[8]
+            var c1 = initial[9]
+            var c2 = initial[10]
+            var c3 = initial[11]
+            var d0 = initial[12]
+            var d1 = initial[13]
+            var d2 = initial[14]
+            var d3 = initial[15]
+
             for 10
             {
-                quarterRound(&state[0], &state[4], &state[8], &state[12])
-                quarterRound(&state[1], &state[5], &state[9], &state[13])
-                quarterRound(&state[2], &state[6], &state[10], &state[14])
-                quarterRound(&state[3], &state[7], &state[11], &state[15])
-                quarterRound(&state[0], &state[5], &state[10], &state[15])
-                quarterRound(&state[1], &state[6], &state[11], &state[12])
-                quarterRound(&state[2], &state[7], &state[8], &state[13])
-                quarterRound(&state[3], &state[4], &state[9], &state[14])
+                quarterRoundColumns(&a0, &b0, &c0, &d0,
+                                    &a1, &b1, &c1, &d1,
+                                    &a2, &b2, &c2, &d2,
+                                    &a3, &b3, &c3, &d3)
+
+                quarterRoundColumns(&a0, &b1, &c2, &d3,
+                                    &a1, &b2, &c3, &d0,
+                                    &a2, &b3, &c0, &d1,
+                                    &a3, &b0, &c1, &d2)
             }
+
+            state[0] = a0
+            state[1] = a1
+            state[2] = a2
+            state[3] = a3
+            state[4] = b0
+            state[5] = b1
+            state[6] = b2
+            state[7] = b3
+            state[8] = c0
+            state[9] = c1
+            state[10] = c2
+            state[11] = c3
+            state[12] = d0
+            state[13] = d1
+            state[14] = d2
+            state[15] = d3
 
             // Transpose each four-word group from lanes of independent blocks into
             // consecutive words, so it can be applied directly to the input.

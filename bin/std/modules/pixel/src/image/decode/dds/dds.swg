@@ -296,23 +296,27 @@ func copyRows(image: *Image, buffer: const [..] u8, offset, pitch: u64, forceOpa
     {
         let targetY = image.height - y - 1
         let target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride
-        Memory.copy(target, buffer.buffer + offset + cast(u64, y) * pitch, rowBytes)
-        if forceOpaqueAlpha
+        let source  = buffer.buffer + offset + cast(u64, y) * pitch
+        if not forceOpaqueAlpha
         {
-            using Math.Simd
-            let width = cast(u64, image.width)
-            let words = cast([*] u32, target)
-            var x     = 0_u64
-            while width - x >= 4
-            {
-                store(words + x, load(words + x) | 0xFF000000_u32)
-                x += 4
-            }
+            Memory.copy(target, source, rowBytes)
+            continue
+        }
 
-            for i in x until width
-            {
-                words[i] |= 0xFF000000_u32
-            }
+        using Math.Simd
+        let width  = cast(u64, image.width)
+        let input  = cast(const [*] u32, source)
+        let output = cast([*] u32, target)
+        var x      = 0_u64
+        while width - x >= 4
+        {
+            store(output + x, load(input + x) | 0xFF000000_u32)
+            x += 4
+        }
+
+        for i in x until width
+        {
+            output[i] = input[i] | 0xFF000000_u32
         }
     }
 }

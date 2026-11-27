@@ -178,6 +178,20 @@ fixtures and is not a build or runtime dependency.
 - `adpcm-ima-mono-11025.wav` SHA-256: `b1d255f10ec34b383493891d6843c6e9bf3d5eacbc38f206574914363deb2bbe`
 - License: same as this repository.
 
+The `wav-g711-*` files are synthetic stereo 8 kHz WAVE files with 256 frames. At frame
+`i` the channels carry the G.711 code bytes `i` and `255 - i`. The classic headers use
+tags `0x0006` (A-law) and `0x0007` (mu-law). The extensible headers use the corresponding
+subtype UUID and stereo mask `0x3`. Each `fact` chunk declares 256 frames. FFmpeg 9.1
+and 7.1.5 decode both headers to the same 1,024-byte interleaved PCM16 reference.
+
+- `wav-g711-alaw-extensible.wav` SHA-256: `4dc28fe778b1b51c73da84c2ce7ff51f0108dc1f2766e33eb900b1a8d37fe2c1`
+- `wav-g711-alaw.pcm` SHA-256: `7967cc01ed1d28560003f4b91de960ce72c2d960c863233d1d20d55d83fbacc7`
+- `wav-g711-alaw.wav` SHA-256: `34477e0e7f8993481f62c2099e5d2de6ec05eb3dd715777826bbc0a26860e3e5`
+- `wav-g711-mulaw-extensible.wav` SHA-256: `8fe141897fb4148d4568cc41bbc3464b10052a1041c759c74620f173199cc499`
+- `wav-g711-mulaw.pcm` SHA-256: `8ceb8b3749bf4a8d5bc598cf4de62e082b7681183c710425e8dbd806ebfa512f`
+- `wav-g711-mulaw.wav` SHA-256: `609eddd60c9b91cf9d84755365af26551ef6b5555a3d07b7abdd21376281e7d6`
+- License: same as this repository.
+
 `flac-stereo-44100.oga` is the same synthetic lossless track as the shared
 `flac-stereo-44100.flac`, remuxed into Ogg without re-encoding by PyAV 17.1.0
 and libavformat 62.12.101. It carries the same licence as the original fixture.

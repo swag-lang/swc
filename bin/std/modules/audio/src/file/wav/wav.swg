@@ -1,5 +1,5 @@
 //! Format: RIFF/WAVE sound-file decoder.
-//! Supported: PCM8/16/24/32 and IEEE Float32 in classic or WAVE_FORMAT_EXTENSIBLE `fmt ` chunks, including speaker masks and streamed `data` chunks, and Microsoft or IMA ADPCM blocks indexed as a streamed packet sound.
+//! Supported: PCM8/16/24/32, IEEE Float32, and G.711 A-law and mu-law in classic and extensible headers. Microsoft and IMA ADPCM blocks are indexed as packets.
 //! Not supported: Other compressed WAVE codecs, IEEE Float64, RF64/WAVE64, big-endian RIFX, and multiple data segments.
 //! Role: This file owns RIFF chunk traversal, WAVE format validation, metadata, and SoundFile construction.
 //
@@ -71,6 +71,8 @@ const WAVE_FORMAT_UNKNOWN    = 0x0000     /* Microsoft Corporation */
 const WAVE_FORMAT_PCM        = 0x0001     /* Microsoft Corporation */
 const WAVE_FORMAT_ADPCM      = 0x0002     /* Microsoft Corporation */
 const WAVE_FORMAT_IEEE_FLOAT = 0x0003     /* Microsoft Corporation */
+const WAVE_FORMAT_ALAW       = 0x0006     /* G.711 A-law */
+const WAVE_FORMAT_MULAW      = 0x0007     /* G.711 mu-law */
 const WAVE_FORMAT_IMA_ADPCM  = 0x0011     /* Intel Corporation */
 const WAVE_FORMAT_EXTENSIBLE = 0xFFFE     /* Microsoft */
 
@@ -89,6 +91,8 @@ struct SubformatUuid
 const SubformatPcm       = SubformatUuid{0x00000001, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
 const SubformatAdpcm     = SubformatUuid{0x00000002, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
 const SubformatIeeeFloat = SubformatUuid{0x00000003, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+const SubformatALaw      = SubformatUuid{0x00000006, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+const SubformatMuLaw     = SubformatUuid{0x00000007, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
 const SubformatImaAdpcm  = SubformatUuid{0x00000011, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
 
 func copySubformat(destination: *void, source: SubformatUuid)
@@ -183,6 +187,14 @@ private func encodingOf(tag, bitsPerSample: u32)->SoundFileEncoding fail
 
         return .Float32
 
+    case WAVE_FORMAT_ALAW, WAVE_FORMAT_MULAW:
+        if bitsPerSample != 8
+        {
+            fail UnsupportedFormatError{"WAV G.711 requires eight bits per sample"}
+        }
+
+        return tag == WAVE_FORMAT_ALAW ? .ALaw : .MuLaw
+
     case WAVE_FORMAT_ADPCM:
         if bitsPerSample != 4
         {
@@ -220,6 +232,16 @@ private func subformatTag(subformat: const [..] u8)->u32 fail
     if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatAdpcm)
     {
         return WAVE_FORMAT_ADPCM
+    }
+
+    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatALaw)
+    {
+        return WAVE_FORMAT_ALAW
+    }
+
+    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatMuLaw)
+    {
+        return WAVE_FORMAT_MULAW
     }
 
     if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatImaAdpcm)
@@ -301,7 +323,7 @@ private func parseFormat(bytes: const [..] u8)->Format fail
     result.encoding = try encodingOf(classicTag, result.bitsPerSample)
     switch result.encoding
     {
-    case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32:
+    case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32, .ALaw, .MuLaw:
         if result.hasExtensible and result.validBits > result.bitsPerSample
         {
             fail InvalidFormatError{"WAV valid sample width exceeds its container width"}
@@ -314,7 +336,7 @@ private func parseFormat(bytes: const [..] u8)->Format fail
            result.blockAlign != expectedAlign or
            expectedRate != averageBytes
         {
-            fail InvalidFormatError{"WAV PCM/float frame alignment or byte rate is inconsistent"}
+            fail InvalidFormatError{"WAV frame alignment or byte rate is inconsistent"}
         }
 
     default:
@@ -530,9 +552,8 @@ private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
 
 // Opens a RIFF/WAVE file.
 //
-// PCM and floating-point audio describe the sound in place, kept in memory when `preloadData` is
-// set and streamed from `path` otherwise. ADPCM audio is always streamed: its blocks are indexed
-// as packets and decoded on demand, so `preloadData` does not apply to it.
+// Fixed-width samples are kept in memory when `preloadData` is set and streamed from `path`
+// otherwise. ADPCM blocks are indexed as packets and always decoded on demand.
 internal func openFile(path: string, preloadData: bool)->SoundFile fail
 {
     var stream = try File.openRead(path)

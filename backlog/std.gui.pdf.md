@@ -478,8 +478,11 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   `decode.image.swg`. Different-size masks use exact quotient-and-remainder coordinates.
   Non-default decode arrays, other sample widths and remaining composition paths still need
   separate profiling and vectorization.
-- Next: vectorize non-default decode arrays, packed and 16-bit samples, other color-key comparisons,
-  mask scaling, and remaining alpha composition; use gather for indexed spaces only when profitable.
+- Inverting complete RGB samples in a packed pass and resolving color-key bounds once per
+  image reduces load on the public mask fixture from 58.49 to 27.48 ms. Its matching CPU
+  total goes from 73.41 to 43.38 ms against PDFium's 58.06 ms, with identical Swag pixels.
+- Next: vectorize remaining decode arrays, packed and 16-bit samples, color-key comparisons,
+  mask scaling, and remaining alpha composition.
 - Done when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
   arrays, and indexed spaces, with separate conversion benchmarks.
 - Related: std.core.042, std.core.044, std.core.047.

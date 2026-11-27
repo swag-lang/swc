@@ -582,6 +582,44 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     }
 }
 
+// An inverted RGB Decode keeps the row and channel order. Its color key sees the raw samples.
+#test
+{
+    const Width  = 7
+    const Height = 2
+    const Red: [Width] u8 = [0, 99, 100, 142, 180, 181, 255]
+    var samples: [Width * Height * 3] u8
+    for y in Height
+    {
+        for x in Width
+        {
+            let pixel = (y * Width + x) * 3
+            samples[pixel + 0] = Red[x]
+            samples[pixel + 1] = y == 0 ? 60 : 59
+            samples[pixel + 2] = cast(u8, 128 + x + y)
+        }
+    }
+
+    var zlib: Compress.ZLib
+    let packed = expect zlib.compress(samples)
+    const Dictionary = "/Type /XObject /Subtype /Image /Width 7 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Decode [1 0 1 0 1 0]"
+    let direct = imageDocument(Dictionary, packed.toSlice())
+    let keyed  = imageDocument(Format.toString("% /Mask [100 180 60 255 -100 500]", Dictionary).toString(), packed.toSlice())
+    let opaque = unwrap onlyItem(direct.pages[0], .Image).imageValue()
+    let masked = unwrap onlyItem(keyed.pages[0], .Image).imageValue()
+    for y in Height
+    {
+        for x in Width
+        {
+            let color = opaque.pixelColor(cast(s32, x), cast(s32, y))
+            let key   = masked.pixelColor(cast(s32, x), cast(s32, y))
+            Swag.require(color == Color.fromRgb(255 - Red[x], y == 0 ? 195 : 196, cast(u8, 127 - x - y)))
+            Swag.require(key.r == color.r and key.g == color.g and key.b == color.b)
+            Swag.require(key.a == (y == 0 and x >= 2 and x <= 4 ? 0 : 255))
+        }
+    }
+}
+
 // A color key mask turns the sample ranges it names transparent.
 #test
 {

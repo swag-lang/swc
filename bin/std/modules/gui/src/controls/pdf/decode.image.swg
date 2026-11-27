@@ -143,7 +143,7 @@ private func expandCmyk8(destination: [*] u8, source: const [*] u8, count: u64)
     }
 }
 
-private func invertMask8(destination: [*] u8, source: const [*] u8, count: u64)
+private func invertSamples8(destination: [*] u8, source: const [*] u8, count: u64)
 {
     var src  = source
     var dst  = destination
@@ -799,6 +799,10 @@ private func decodeOpaqueSamples(image: *Image, bytes: const [..] u8, rowBytes: 
         {
             quantizeRgb16(target, source, stride)
         }
+        else if invert
+        {
+            invertSamples8(target, source, stride)
+        }
         else
         {
             Memory.copy(target, source, stride)
@@ -873,8 +877,15 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direc
         }
     }
 
+    let invertRgb8 = decodeId != InvalidNode and
+                     depth == 8 and
+                     space.kind == .Rgb and
+                     space.components == 3 and
+                     Slice.equals(lowest[0 until 3], [1.0_f32, 1.0, 1.0]) and
+                     Slice.equals(highest[0 until 3], [0.0_f32, 0.0, 0.0])
     if direct and
        ((space.kind == .Gray and space.components == 1 and depth == 1 and ((lowest[0] == 0 and highest[0] == 1) or (lowest[0] == 1 and highest[0] == 0))) or
+        invertRgb8 or
         (decodeId == InvalidNode and
          ((space.kind == .Gray and depth == 8 and space.components == 1) or
           (space.kind == .Rgb and space.components == 3 and (depth == 8 or depth == 16)) or
@@ -931,7 +942,7 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direc
         return result
     }
 
-    if decodeId == InvalidNode and
+    if (decodeId == InvalidNode or invertRgb8) and
        space.kind == .Rgb and
        space.components == 3 and
        (depth == 8 or depth == 16)
@@ -939,6 +950,10 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direc
         if depth == 16
         {
             quantizeRgb16(result.rgb.storage(), bytes.storage(), result.rgb.count)
+        }
+        else if invertRgb8
+        {
+            invertSamples8(result.rgb.storage(), bytes.storage(), result.rgb.count)
         }
         else
         {
@@ -1003,9 +1018,12 @@ private func applyColorKeyMask(parser: *PdfParser, nodeId: u32, plane: *SamplePl
         return
     }
 
-    for i in plane.alpha.count
+    // Resolve indirect ranges once before walking the samples.
+    var bounds: Array!{s64}
+    bounds.resize(cast(u64, space.components) * 2)
+    for i in bounds.count
     {
-        plane.alpha[i] = 0xFF
+        bounds[i] = parser.integer(ranges[i])
     }
 
     for y in cast(u64, plane.height)
@@ -1016,20 +1034,15 @@ private func applyColorKeyMask(parser: *PdfParser, nodeId: u32, plane: *SamplePl
             var masked = true
             for i in space.components
             {
-                let raw   = cast(s64, sampleAt(bytes, rowBase, x * cast(u64, space.components) + i, depth))
-                let lower = parser.integer(ranges[i * 2])
-                let upper = parser.integer(ranges[i * 2 + 1])
-                if raw < lower or raw > upper
+                let raw = cast(s64, sampleAt(bytes, rowBase, x * cast(u64, space.components) + i, depth))
+                if raw < bounds[i * 2] or raw > bounds[i * 2 + 1]
                 {
                     masked = false
                     break
                 }
             }
 
-            if masked
-            {
-                plane.alpha[y * cast(u64, plane.width) + x] = 0
-            }
+            plane.alpha[y * cast(u64, plane.width) + x] = masked ? 0 : 255
         }
     }
 }
@@ -1081,7 +1094,7 @@ private func applyJpegDecode(parser: *PdfParser, nodeId, decodeId: u32, raw: con
     let pixels = image.pixels.storage()
     if inverted
     {
-        invertMask8(pixels, pixels, image.byteCount)
+        invertSamples8(pixels, pixels, image.byteCount)
         return
     }
 
@@ -1222,7 +1235,7 @@ private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->S
 
     if depth == 8 and lowest == 1.0 and highest == 0.0
     {
-        invertMask8(result.alpha.storage(), bytes.storage(), result.alpha.count)
+        invertSamples8(result.alpha.storage(), bytes.storage(), result.alpha.count)
         return result
     }
 

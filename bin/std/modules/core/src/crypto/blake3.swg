@@ -42,7 +42,7 @@ private struct Blake3Output
 
 private alias Blake3Vector = Math.Simd.U32x4
 
-private func blake3Compress(inputCv: [8] u32, block: [16] u32, counter: u64, blockSize, flags: u32)->[16] u32
+private func(Words: u64, LittleEndianOutput: bool) blake3CompressTo(inputCv, block: const [*] u32, counter: u64, blockSize, flags: u32, destination: [*] u32)
 {
     const Left   = cast(Blake3Vector, [1_u32, 2, 3, 0])
     const Across = cast(Blake3Vector, [2_u32, 3, 0, 1])
@@ -51,8 +51,8 @@ private func blake3Compress(inputCv: [8] u32, block: [16] u32, counter: u64, blo
     const Rot8   = cast(Math.Simd.U8x16, [1_u8, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12])
 
     // Keep one state row in each SIMD vector.
-    let cvLow  = Math.Simd.load(&inputCv[0])
-    let cvHigh = Math.Simd.load(&inputCv[4])
+    let cvLow  = Math.Simd.load(inputCv)
+    let cvHigh = Math.Simd.load(inputCv + 4)
     var a      = cvLow
     var b      = cvHigh
     var c      = Math.Simd.load(&Blake3Iv[0])
@@ -85,10 +85,10 @@ private func blake3Compress(inputCv: [8] u32, block: [16] u32, counter: u64, blo
     }
 
     // Start the diagonal message vectors with the last word pair so row b stays in place.
-    let block0    = Math.Simd.load(&block[0])
-    let block1    = Math.Simd.load(&block[4])
-    let block2    = Math.Simd.load(&block[8])
-    let block3    = Math.Simd.load(&block[12])
+    let block0    = Math.Simd.load(block)
+    let block1    = Math.Simd.load(block + 4)
+    let block2    = Math.Simd.load(block + 8)
+    let block3    = Math.Simd.load(block + 12)
     var columnX   = Math.Simd.deinterleaveEven(block0, block1)
     var columnY   = Math.Simd.deinterleaveOdd(block0, block1)
     var diagonalX = Math.Simd.permute(Math.Simd.deinterleaveEven(block2, block3), Right)
@@ -116,15 +116,28 @@ private func blake3Compress(inputCv: [8] u32, block: [16] u32, counter: u64, blo
         mixRound(columnX, columnY, diagonalX, diagonalY)
     }
 
-    var state: #returntype
-    Math.Simd.store(&state[0], a ^ c)
-    Math.Simd.store(&state[4], b ^ d)
-    Math.Simd.store(&state[8], c ^ cvLow)
-    Math.Simd.store(&state[12], d ^ cvHigh)
-    return state
+    blake3StoreWords!{LittleEndianOutput}(destination, a ^ c)
+    blake3StoreWords!{LittleEndianOutput}(destination + 4, b ^ d)
+    #static if Words == 16
+    {
+        blake3StoreWords!{LittleEndianOutput}(destination + 8, c ^ cvLow)
+        blake3StoreWords!{LittleEndianOutput}(destination + 12, d ^ cvHigh)
+    }
 }
 
 #[Swag.Inline]
+private func(LittleEndian: bool) blake3StoreWords(destination: [*] u32, value: Blake3Vector)
+{
+    #static if LittleEndian
+    {
+        Math.Simd.store(destination, Math.nativeToLittleEndian(value))
+    }
+    else
+    {
+        Math.Simd.store(destination, value)
+    }
+}
+
 private func(Count: u64) blake3ReadWords(block: const [*] u8)->[Count] u32
 {
     let source = cast(const [*] u32, block)
@@ -137,15 +150,25 @@ private func(Count: u64) blake3ReadWords(block: const [*] u8)->[Count] u32
     return words
 }
 
-private func blake3OutputCv(output: Blake3Output)->[8] u32
+// The compressor reads both halves of the current CV before writing the next CV in place.
+#[Swag.Inline]
+private func blake3CompressBlock(cv: [*] u32, bytes: const [*] u8, counter: u64, flags: u32)
 {
-    let words = blake3Compress(output.inputCv, output.block, output.counter, output.blockSize, output.flags)
-    var cv: [8] u32
-    for index in 8
+    #static if BIG_ENDIAN
     {
-        cv[index] = words[index]
+        let words = blake3ReadWords!{16}(bytes)
+        blake3CompressTo!{8, false}(cv, &words[0], counter, Blake3BlockSize, flags, cv)
     }
+    else
+    {
+        blake3CompressTo!{8, false}(cv, cast(const [*] u32, bytes), counter, Blake3BlockSize, flags, cv)
+    }
+}
 
+private func blake3OutputCv(output: const *Blake3Output)->[8] u32
+{
+    var cv: #returntype
+    blake3CompressTo!{8, false}(&output.inputCv[0], &output.block[0], output.counter, output.blockSize, output.flags, &cv[0])
     return cv
 }
 
@@ -175,10 +198,9 @@ private func blake3ChunkOutput(data: const [..] u8, counter: u64, key: [8] u32, 
     var offset = 0_u64
     while data.count - offset > Blake3BlockSize
     {
-        output.block   = blake3ReadWords!{16}(data.buffer + offset)
-        output.inputCv = blake3OutputCv(output)
-        output.flags   = flags
-        offset         += Blake3BlockSize
+        blake3CompressBlock(&output.inputCv[0], data.buffer + offset, counter, output.flags)
+        output.flags = flags
+        offset       += Blake3BlockSize
     }
 
     let remaining = data.count - offset
@@ -371,10 +393,11 @@ private const Blake3SubtreeChunks = 2 * Blake3ChunksPerBatch
 
 private func blake3EightChunkSubtreeCv(children: const [*] u32, key: [8] u32, flags: u32)->[8] u32
 {
-    let parents = blake3BatchCvs!{true, Blake3ChunksPerBatch}(cast(const [*] u8, children), 0, key, flags)
-    let left    = blake3OutputCv(blake3ParentOutput(key, parents[0], parents[1], flags))
-    let right   = blake3OutputCv(blake3ParentOutput(key, parents[2], parents[3], flags))
-    return blake3OutputCv(blake3ParentOutput(key, left, right, flags))
+    let parents     = blake3BatchCvs!{true, Blake3ChunksPerBatch}(cast(const [*] u8, children), 0, key, flags)
+    let leftParent  = blake3ParentOutput(key, parents[0], parents[1], flags)
+    let rightParent = blake3ParentOutput(key, parents[2], parents[3], flags)
+    let parent      = blake3ParentOutput(key, blake3OutputCv(&leftParent), blake3OutputCv(&rightParent), flags)
+    return blake3OutputCv(&parent)
 }
 
 private func blake3HashCompleteSubtree(input: const [*] u8, firstChunk: u64, key: [8] u32, flags: u32)->[8] u32
@@ -481,7 +504,7 @@ public impl Blake3
                 if .blocksCompressed == Blake3BlocksPerChunk - 1
                 {
                     let output = .chunkOutput()
-                    .pushSubtreeCv(blake3OutputCv(output), .chunkCounter + 1)
+                    .pushSubtreeCv(blake3OutputCv(&output), .chunkCounter + 1)
                     .chunkCounter     += 1
                     .chunkCv          = .key
                     .blocksCompressed = 0
@@ -570,10 +593,10 @@ public impl Blake3
         while stackIndex
         {
             stackIndex -= 1
-            output     = blake3ParentOutput(.key, .cvStack[stackIndex], blake3OutputCv(output), .flags)
+            output     = blake3ParentOutput(.key, .cvStack[stackIndex], blake3OutputCv(&output), .flags)
         }
 
-        writeRootOutput(output, destination)
+        writeRootOutput(&output, destination)
         .clear()
     }
 
@@ -651,7 +674,7 @@ public impl Blake3
         if data.count <= Blake3ChunkSize
         {
             var output = blake3ChunkOutput(data, 0, key, flags)
-            writeRootOutput(output, destination)
+            writeRootOutput(&output, destination)
             Crypto.secureClear(Swag.makeSlice(&output, 1))
             return
         }
@@ -747,7 +770,7 @@ public impl Blake3
             Swag.assert(.stackSize, "BLAKE3 chaining value stack underflow")
             .stackSize -= 1
             let parent = blake3ParentOutput(.key, .cvStack[.stackSize], merged, .flags)
-            merged      = blake3OutputCv(parent)
+            merged      = blake3OutputCv(&parent)
             totalChunks >>= 1
         }
 
@@ -764,12 +787,7 @@ public impl Blake3
             blockFlags |= Blake3ChunkStart
         }
 
-        let words      = blake3ReadWords!{16}(block)
-        let compressed = blake3Compress(.chunkCv, words, .chunkCounter, Blake3BlockSize, blockFlags)
-        for index in 8
-        {
-            .chunkCv[index] = compressed[index]
-        }
+        blake3CompressBlock(&.chunkCv[0], block, .chunkCounter, blockFlags)
 
         .blocksCompressed += 1
     }
@@ -791,31 +809,30 @@ public impl Blake3
         return result
     }
 
-    private func writeRootOutput(output: Blake3Output, destination: [..] u8)
+    private func writeRootOutput(output: const *Blake3Output, destination: [..] u8)
     {
+        let flags = output.flags | Blake3Root
+        if destination.count == #sizeof(output.inputCv)
+        {
+            blake3CompressTo!{8, true}(&output.inputCv[0], &output.block[0], 0, output.blockSize, flags, cast([*] u32, destination.buffer))
+            return
+        }
+
         var written       = 0_u64
         var outputCounter = 0_u64
-        while written < destination.count
+        while destination.count - written >= Blake3BlockSize
         {
-            let words = blake3Compress(output.inputCv, output.block, outputCounter, output.blockSize, output.flags | Blake3Root)
-            let count = Math.min(destination.count - written, Blake3BlockSize)
-            #static if BIG_ENDIAN
-            {
-                var littleEndian: [16] u32
-                for index in 16
-                {
-                    littleEndian[index] = Math.nativeToLittleEndian(words[index])
-                }
-
-                Swag.memcpy(destination.buffer + written, &littleEndian[0], count)
-            }
-            else
-            {
-                Swag.memcpy(destination.buffer + written, &words[0], count)
-            }
-
-            written       += count
+            let words = cast([*] u32, destination.buffer + written)
+            blake3CompressTo!{16, true}(&output.inputCv[0], &output.block[0], outputCounter, output.blockSize, flags, words)
+            written       += Blake3BlockSize
             outputCounter += 1
+        }
+
+        if written < destination.count
+        {
+            var words: [16] u32
+            blake3CompressTo!{16, true}(&output.inputCv[0], &output.block[0], outputCounter, output.blockSize, flags, &words[0])
+            Swag.memcpy(destination.buffer + written, &words[0], destination.count - written)
         }
     }
 

@@ -42,30 +42,7 @@ impl HmacSha3
         .initialized = false
         .digestSize  = digestSize
         .blockSize   = 200 - 2 * digestSize
-        try .inner.reset(digestSize)
-        try .outer.reset(digestSize)
-
-        var pad: [Hash.Sha3MaxRate / 8] u64
-        defer Crypto.secureClear(pad)
-        let bytes = cast([*] u8, pad.buffer)
-        let block = Swag.makeSlice(bytes, .blockSize)
-        Hash.normalizeHmacSha3Key(key, digestSize, block)
-
-        // HMAC pads use one repeated byte, so they can be applied a word at a time.
-        let wordCount = .blockSize / 8
-        for index in wordCount
-        {
-            pad[index] ^= Hash.HmacSha3InnerPad
-        }
-
-        .inner.update(block)
-
-        for index in wordCount
-        {
-            pad[index] ^= Hash.HmacSha3InnerPad ^ Hash.HmacSha3OuterPad
-        }
-
-        .outer.update(block)
+        Hash.resetHmacSha3Sponges(&.inner, &.outer, key, .blockSize, digestSize)
         .initialized = true
     }
 
@@ -91,12 +68,7 @@ impl HmacSha3
             fail Errors.BadParameterError{"HMAC-SHA-3 destination must match the configured digest size"}
         }
 
-        var innerHash: [HmacSha3MaxDigestSize] u8
-        defer Crypto.secureClear(innerHash)
-        let innerDigest = Swag.makeSlice(&innerHash[0], .digestSize)
-        try .inner.finalize(innerDigest)
-        .outer.update(innerDigest)
-        try .outer.finalize(destination)
+        Hash.finalizeHmacSha3Sponges(&.inner, &.outer, destination)
         .initialized = false
         .digestSize  = 0
         .blockSize   = 0
@@ -105,7 +77,11 @@ impl HmacSha3
     // Clears keyed state when this value leaves scope.
     mtd opDrop()
     {
-        .clear()
+        // Finalize and clear reset the digest size after wiping both sponges.
+        if .digestSize
+        {
+            .clear()
+        }
     }
 
     // Clears both sponge states and the selected digest parameters.

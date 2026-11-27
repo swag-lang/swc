@@ -235,11 +235,11 @@ private const Blake3BlocksPerChunk = Blake3ChunkSize / Blake3BlockSize
 #[Swag.Mixin]
 private func blake3MixChunk(a, b, c, d: *Blake3Vector, x, y: Blake3Vector)
 {
-    a[] += b[] + x
+    a[] = (a[] + x) + b[]
     d[] = Math.ror(d[] ^ a[], 16)
     c[] += d[]
     b[] = Math.ror(b[] ^ c[], 12)
-    a[] += b[] + y
+    a[] = (a[] + y) + b[]
     d[] = Math.ror(d[] ^ a[], 8)
     c[] += d[]
     b[] = Math.ror(b[] ^ c[], 7)

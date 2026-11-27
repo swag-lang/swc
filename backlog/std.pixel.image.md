@@ -248,6 +248,11 @@ ships; history lives in Git, not here.
   from 71.2 to 42.7 ms for 96 stops, and from 62.0 to 38.3 ms for hard
   stops. resvg takes 29.7, 56.7, and 44.4 ms on the same affinities. The
   132 before/after raster comparisons match, including one-worker output.
+- Repeated embedded images bypass the URI hash on an exact consecutive hit.
+  On 16 placements of the same 1.1 MiB PNG data URI, parse time drops from
+  8.28 to 5.00 ms at one worker and from 7.84 to 5.04 ms at four. An alternating
+  long-URI control retains its parse time. Eight raster comparisons match,
+  and a regression distinguishes equal-length URIs with identical tails.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.

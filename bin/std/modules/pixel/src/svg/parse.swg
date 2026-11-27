@@ -568,6 +568,8 @@ private struct Parser
     lastDashScaling: DashScaling
     lastSolidStroke: u64
     embeddedImages:  HashTable!{string, u64}     // Raster indices plus one, keyed by the authored URI.
+    lastEmbeddedHref:  string = ""
+    lastEmbeddedIndex: u64
     externalImages:  HashTable!{string, CachedExternalRaster}     // Encoded bytes and raster indices for small files.
     options:         ParseOptions
     typeFaces:       [FontFamilyKind.count] (*TypeFace?)
@@ -4034,16 +4036,30 @@ private impl Parser
                 fail Swag.SystemError{"embedded SVG image exceeds the configured byte limit"}
             }
 
-            let entry = .embeddedImages.findOrAdd(.sourceView(href))
-            if entry.value
+            // Compare from the end so a changed tail does not scan a common bitmap
+            // payload before the hash table would scan it again.
+            let previous = .lastEmbeddedHref
+            if href.count == previous.count
             {
-                return entry.value - 1
+                let tail = href.count - Math.min(href.count, 64_u64)
+                if href[tail to] == previous[tail to] and (not tail or href[until tail] == previous[until tail])
+                {
+                    return .lastEmbeddedIndex
+                }
             }
 
-            var raster = #move try Image.fromDataUri(href)
-            .drawing.rasterImages.add(#move raster)
-            entry.value = index + 1
-            return index
+            let key   = .sourceView(href)
+            let entry = .embeddedImages.findOrAdd(key)
+            if not entry.value
+            {
+                var raster = #move try Image.fromDataUri(href)
+                .drawing.rasterImages.add(#move raster)
+                entry.value = index + 1
+            }
+
+            .lastEmbeddedHref  = key
+            .lastEmbeddedIndex = entry.value - 1
+            return .lastEmbeddedIndex
         }
 
         if (.options.externalResourceRoot).count == 0

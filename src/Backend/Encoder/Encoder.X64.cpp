@@ -2753,7 +2753,7 @@ void X64Encoder::encodeVecClmulXorQuad(MicroReg value, MicroReg factor, MicroReg
         emitCpuOp(store_, 0x6F);
         emitMemoryOperand(store_, 0, dst, src);
     };
-    const auto multiply = [this](MicroReg dst, uint8_t selector) {
+    const auto multiply = [this, zmm1](MicroReg dst, uint8_t selector) {
         emitEvex(store_, 0x66, VEX_MAP_0F3A, microRegToX64Reg(dst), X64Reg::Xmm0, X64Reg::Xmm1, length);
         emitCpuOp(store_, 0x44);
         emitModRm(store_, dst, zmm1);

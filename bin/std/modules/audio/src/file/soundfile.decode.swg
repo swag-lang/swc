@@ -46,16 +46,7 @@ impl SoundFile
     // ```
     mtd const decodePcm16(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer) fail
     {
-        if not .availableFields.has(.Data) or not .channelCount
-        {
-            fail BadParameterError{"sound file has no audio data"}
-        }
-
-        if firstFrame > .frameCount or frameCount > .frameCount - firstFrame
-        {
-            fail BadParameterError{"sound decode range is outside its audible sample frames"}
-        }
-
+        try .checkPcm16Range(firstFrame, frameCount)
         if not frameCount
         {
             return
@@ -176,6 +167,72 @@ impl SoundFile
             }
 
             byteOffset += wantedBytes
+        }
+    }
+
+    // Decodes a selected range to a caller-owned buffer of interleaved PCM16 samples.
+    //
+    // The length of `destination` must be a multiple of [[Audio.SoundFile.numChannels]] and
+    // selects the number of audible sample frames starting at `firstFrame`. The range must fit
+    // [[Audio.SoundFile.sampleFrameCount]]. An empty slice writes nothing. A decode failure may
+    // leave part of `destination` written.
+    mtd const decodePcm16(firstFrame: u64, destination: [..] s16) fail
+    {
+        if not .channelCount or destination.count % .channelCount
+        {
+            fail BadParameterError{"PCM16 destination must contain complete sample frames"}
+        }
+
+        let frameCount = destination.count / .channelCount
+        if .encoding != .Pcm16 or not .packets.isEmpty()
+        {
+            var remaining = destination
+            try .decodePcm16(firstFrame, frameCount, func|&remaining|(part)
+            {
+                Memory.copy(remaining.buffer, part.buffer, part.count * #sizeof(s16))
+                remaining = remaining[part.count to]
+                return true
+            })
+            return
+        }
+
+        try .checkPcm16Range(firstFrame, frameCount)
+        if not frameCount
+        {
+            return
+        }
+
+        let offset = firstFrame * .channelCount * #sizeof(s16)
+        let bytes = destination.count * #sizeof(s16)
+        if offset >= .dataSize or bytes > .dataSize - offset
+        {
+            fail InvalidFormatError{"sound payload is truncated"}
+        }
+
+        if .isDataPreloaded()
+        {
+            Memory.copy(destination.buffer, .data.storage() + offset, bytes)
+            return
+        }
+
+        var stream = try File.open(.path.toString(), .Open, .Read, .ReadWrite)
+        try stream.seek(.Begin, .dataOffset + offset)
+        if not (try stream.readExact(Swag.makeSlice(cast([*] u8, destination.buffer), bytes)))
+        {
+            fail InvalidFormatError{"sound payload is truncated"}
+        }
+    }
+
+    private mtd const checkPcm16Range(firstFrame, frameCount: u64) fail
+    {
+        if not .availableFields.has(.Data) or not .channelCount
+        {
+            fail BadParameterError{"sound file has no audio data"}
+        }
+
+        if firstFrame > .frameCount or frameCount > .frameCount - firstFrame
+        {
+            fail BadParameterError{"sound decode range is outside its audible sample frames"}
         }
     }
 

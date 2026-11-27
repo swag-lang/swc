@@ -371,8 +371,8 @@ impl Encoder
             .transformChannel!{false}(samples, channel, .Long, &spectra[channel, 0])
         }
 
-        try .encodeWindowed!{false, true}(samples, packet, .Long, &spectra)
-        if packet.count > maximumBytes
+        try .encodeWindowed!{false, true}(samples, packet, .Long, &spectra, trialLimit: maximumBytes)
+        if not packet.count or packet.count > maximumBytes
         {
             var choices:     RateChoices
             var initialGain: [2] s32
@@ -416,7 +416,8 @@ impl Encoder
                                                                packet: *Array!{u8},
                                                                sequence: EncodeWindow,
                                                                spectra: const *[2, FullLines] f32? = null,
-                                                               choices: const *RateGains? = null) fail
+                                                               choices: const *RateGains? = null,
+                                                               trialLimit: u64 = MaximumPacketBytes) fail
     {
         if samples.count != EncoderFrames * .channels
         {
@@ -632,6 +633,16 @@ impl Encoder
                         .writeBits(pair & 0xFFFF, pair >> 16)
                         line += 2
                     }
+                    #static if Limited
+                    {
+                        // Leave the packet empty when the initial rate trial cannot fit.
+                        let used = .wordCount * #sizeof(u32) + (.pendingBits + 7) / 8
+                        if used > trialLimit
+                        {
+                            return
+                        }
+                    }
+
                 }
             }
 

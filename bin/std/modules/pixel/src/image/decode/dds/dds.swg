@@ -1,6 +1,6 @@
 //! Format: DirectDraw Surface decoder.
 //! Supported: Mip levels, array layers, cube faces, and volume slices of legacy or DX10 DDS files; RGB/luminance integer pixels,
-//!            RGBA 8/16-bit and half/full-float DXGI pixels, and BC1 through BC5 compression.
+//!            RGBA 8/16-bit and half/full-float D3D9 or DXGI pixels, and BC1 through BC5 compression.
 //! Not supported: Signed blocks, BC6H, BC7, or palette data.
 //! Role: This file validates DDS headers and exposes their base texture as a Pixel image.
 //
@@ -45,6 +45,39 @@ func blockFormat(fourCc: u32)->TextureBlocks.Format
     }
 
     return .None
+}
+
+// D3D9 used numeric FourCC fields for these uncompressed pixel formats.
+private func legacyPackedFormat(fourCc: u32, format: *PixelFormat)->bool
+{
+    switch fourCc
+    {
+    case 36:
+        format[] = .RGBA16     // A16B16G16R16
+
+    case 111:
+        format[] = .GrayF16     // R16F
+
+    case 112:
+        format[] = .GrayAlphaF16     // G16R16F
+
+    case 113:
+        format[] = .RGBAF16     // A16B16G16R16F
+
+    case 114:
+        format[] = .GrayF32     // R32F
+
+    case 115:
+        format[] = .GrayAlphaF32     // G32R32F
+
+    case 116:
+        format[] = .RGBAF32     // A32B32G32R32F
+
+    default:
+        return false
+    }
+
+    return true
 }
 
 func dxgiFormat(dxgi: u32, pixelFormat: *PixelFormat, blocks: *TextureBlocks.Format)->bool
@@ -451,7 +484,12 @@ impl Decoder
                 blocks = blockFormat(fourCc)
                 if blocks == .None
                 {
-                    fail UnsupportedFormatError{"DDS FourCC pixel format is not supported"}
+                    if not legacyPackedFormat(fourCc, &format)
+                    {
+                        fail UnsupportedFormatError{"DDS FourCC pixel format is not supported"}
+                    }
+
+                    directCopy = true
                 }
 
                 if fourCc == 0x32545844 or fourCc == 0x34545844

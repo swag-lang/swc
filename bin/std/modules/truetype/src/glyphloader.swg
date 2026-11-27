@@ -17,6 +17,19 @@ const CMP_WE_HAVE_AN_XY_SCALE   = 0x0040_u16
 const CMP_WE_HAVE_A_2X2         = 0x0080_u16
 const CMP_WE_HAVE_INSTRUCTIONS  = 0x0100_u16
 
+private const GlyfCoordinateBytes: [64] u8 = #run
+{
+    var sizes: [64] u8
+    for flag in sizes.count
+    {
+        let x = (flag & 0x02) != 0 ? 1_u8 : ((flag & 0x10) != 0 ? 0 : 2)
+        let y = (flag & 0x04) != 0 ? 1_u8 : ((flag & 0x20) != 0 ? 0 : 2)
+        sizes[flag] = cast(u8, x + y)
+    }
+
+    return sizes
+}
+
 func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u32) fail
 {
     if glyphData.count < 10
@@ -86,6 +99,24 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
     var i     = 0_u32
     while i < pointCount
     {
+        if pointCount - i >= 4 and glyphData.count - offset >= 4
+        {
+            let packed = cast(const [*] u32, input + offset)[0]
+            if (packed & 0x0808_0808) == 0
+            {
+                // Each axis uses one byte for a short delta, two for a long delta,
+                // and none when the short bit is clear and the same bit is set.
+                const ShortBits = 0x0606_0606_u32
+                let shortDeltas = packed & ShortBits
+                let longDeltas  = ~(packed | (packed >> 3)) & ShortBits
+                coordinateBytes += Math.countOnes(shortDeltas) + 2 * Math.countOnes(longDeltas)
+                cast([*] u32, flags + i)[0] = packed
+                i      += 4
+                offset += 4
+                continue
+            }
+        }
+
         if offset >= glyphData.count
         {
             try fault(0x14)
@@ -114,9 +145,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
             i += repeat
         }
 
-        let xBytes = (flag & 0x02) != 0 ? 1_u64 : ((flag & 0x10) != 0 ? 0 : 2)
-        let yBytes = (flag & 0x04) != 0 ? 1_u64 : ((flag & 0x20) != 0 ? 0 : 2)
-        coordinateBytes += (xBytes + yBytes) * (cast(u64, repeat) + 1)
+        coordinateBytes += cast(u64, GlyfCoordinateBytes[flag & 0x3F]) * (repeat + 1)
     }
 
     if coordinateBytes > glyphData.count - offset

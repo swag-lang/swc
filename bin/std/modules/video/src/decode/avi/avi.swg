@@ -28,12 +28,12 @@ const IndexId        = fourCc('i'_u32, 'd'_u32, 'x'_u32, '1'_u32)
 const VideoStreamId  = fourCc('v'_u32, 'i'_u32, 'd'_u32, 's'_u32)
 const AudioStreamId  = fourCc('a'_u32, 'u'_u32, 'd'_u32, 's'_u32)
 
-private const AvixId            = fourCc('A'_u32, 'V'_u32, 'I'_u32, 'X'_u32)
-private const OpenDmlListId     = fourCc('o'_u32, 'd'_u32, 'm'_u32, 'l'_u32)
-private const OpenDmlHeaderId   = fourCc('d'_u32, 'm'_u32, 'l'_u32, 'h'_u32)
-private const OpenDmlIndexId    = fourCc('i'_u32, 'n'_u32, 'd'_u32, 'x'_u32)
-private const IndexOfIndexes    = 0_u8
-private const IndexOfChunks     = 1_u8
+const AvixId          = fourCc('A'_u32, 'V'_u32, 'I'_u32, 'X'_u32)
+const OpenDmlListId   = fourCc('o'_u32, 'd'_u32, 'm'_u32, 'l'_u32)
+const OpenDmlHeaderId = fourCc('d'_u32, 'm'_u32, 'l'_u32, 'h'_u32)
+const OpenDmlIndexId  = fourCc('i'_u32, 'n'_u32, 'd'_u32, 'x'_u32)
+const IndexOfIndexes  = 0_u8
+const IndexOfChunks   = 1_u8
 private const OpenDmlNonKeyFlag = 0x8000_0000_u32
 
 // WAVE format tag used by uncompressed integer PCM streams.
@@ -159,7 +159,7 @@ private struct MovieList
 
 // Standard indexes and superindexes both start with these 24 bytes.
 #[Swag.Pack(1)]
-private struct OpenDmlIndexHeader
+struct OpenDmlIndexHeader
 {
     entryWords: u16
     subtype:    u8
@@ -173,7 +173,7 @@ private struct OpenDmlIndexHeader
 #assert(#sizeof(OpenDmlIndexHeader) == 24)
 
 #[Swag.Pack(1)]
-private struct OpenDmlIndexReference
+struct OpenDmlIndexReference
 {
     offset:   u64
     size:     u32
@@ -201,7 +201,7 @@ private struct FrameEntry
 
 // One on-disk record of the idx1 table. RIFF only aligns chunks to two bytes.
 #[Swag.Pack(1)]
-private struct IndexRecord
+struct IndexRecord
 {
     id:     u32
     flags:  u32
@@ -212,7 +212,7 @@ private struct IndexRecord
 #assert(#sizeof(IndexRecord) == IndexEntrySize)
 
 // Index flag a frame carries when it depends on nothing before it.
-private const IndexKeyFrameFlag = 0x0000_0010_u32
+const IndexKeyFrameFlag = 0x0000_0010_u32
 
 // One playable audio stream found in the AVI header.
 private struct AudioTrack

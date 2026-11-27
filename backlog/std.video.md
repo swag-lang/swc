@@ -35,16 +35,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: the measured gap shrinks with identical RGB relative to the current Swag decoder
   across 4:2:0, 4:2:2 and 4:4:4 in the video readers.
 
-### std.video.004 — AVI output is limited to one RIFF
-
-- Evidence: `encode/avi/avi.swg` writes a classic RIFF and a 32-bit `idx1` table. Its
-  size limit prevents longer Motion JPEG recordings from being finalized. `Reader`
-  can follow the 64-bit OpenDML frame index and `RIFF AVIX` continuations.
-- Next: emit OpenDML standard indexes and a continuation before exhausting the RIFF
-  size. Backpatch the superindex and total frame count when finalizing the stream.
-- Done when: the writer can finalize an AVI past the four-gigabyte boundary, and
-  both `Reader` and FFmpeg seek and decode pictures beyond it.
-
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
 - Evidence: one-slice 1080p Baseline takes 2.50× the time of native single-threaded FFmpeg

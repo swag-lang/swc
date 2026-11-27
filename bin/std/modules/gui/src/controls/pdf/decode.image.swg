@@ -1170,23 +1170,46 @@ private func applyJpegDecode(parser: *PdfParser, nodeId, decodeId: u32, raw: con
     return retained
 }
 
-// Each entry holds the mapped color and that sample's contribution to opacity.
-// OR-ing the component entries writes a pixel whose alpha sees the original samples.
-private func keyedJpegImage(parser: *PdfParser, decodeId, keyId: u32, decoded: const *Image, components: u8)->Image fail
+private struct JpegColorKey
 {
-    if parser.nodes[keyId].values.count < cast(u64, components) * 2
+    bounds: [6] s64
+    exact:  bool
+}
+
+private func readJpegColorKey(parser: *PdfParser, keyId: u32, components: u8)->JpegColorKey fail
+{
+    let count = cast(u64, components) * 2
+    if parser.nodes[keyId].values.count < count
     {
         fail InvalidFormatError{"PDF color key mask does not cover every component"}
     }
 
-    let ranges = readJpegDecodeRanges(parser, decodeId, components)
+    var result: #returntype
+    result.exact = parser.nodes[keyId].values.count == count
+    for i in count
+    {
+        let bound = parser.resolve(parser.nodes[keyId].values[i])
+        if bound == InvalidNode or parser.nodes[bound].kind != .Integer
+        {
+            result.exact = false
+            continue
+        }
+
+        result.bounds[i] = parser.nodes[bound].integer
+    }
+
+    return result
+}
+
+// Each entry holds the mapped color and that sample's contribution to opacity.
+// OR-ing the component entries writes a pixel whose alpha sees the original samples.
+private func keyedJpegImage(decoded: const *Image, components: u8, ranges: JpegDecodeRanges, colorKey: JpegColorKey)->Image
+{
     var maps: [3][256] u32
     for channel in components
     {
-        let lowNode  = parser.nodes[keyId].values[channel * 2]
-        let highNode = parser.nodes[keyId].values[channel * 2 + 1]
-        let lower    = parser.integer(lowNode)
-        let upper    = parser.integer(highNode)
+        let lower = colorKey.bounds[channel * 2]
+        let upper = colorKey.bounds[channel * 2 + 1]
         for sample in 256
         {
             let value   = cast(u32, jpegMappedSample(ranges, channel, sample))
@@ -1768,7 +1791,25 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
             if (keyComponents == 1 and decoded.pixelFormat == .Gray8) or
                (keyComponents == 3 and matchesJpegFrame(raw.toSlice(), decoded.width, decoded.height, 3))
             {
-                var keyed = #move try keyedJpegImage(parser, decodeId, explicitMask, &decoded, keyComponents)
+                let ranges   = readJpegDecodeRanges(parser, decodeId, keyComponents)
+                let colorKey = try readJpegColorKey(parser, explicitMask, keyComponents)
+                var keyed    = #move keyedJpegImage(&decoded, keyComponents, ranges, colorKey)
+                if parser.retainImageStreams and
+                   raw.count < keyed.byteCount and
+                   colorKey.exact and
+                   (decodeId == InvalidNode or ranges.canonical) and
+                   parser.dict(nodeId, "DecodeParms") == InvalidNode and
+                   parser.integer(parser.dict(nodeId, "Width")) == keyed.width and
+                   parser.integer(parser.dict(nodeId, "Height")) == keyed.height and
+                   parser.integer(parser.dict(nodeId, "BitsPerComponent"), 8) == 8
+                {
+                    let interpolate = parser.boolean(parser.dict(nodeId, "Interpolate"), false)
+                    var encoded     = EncodedImageStream{channels: keyComponents, invertedSamples: ranges.inverted, interpolate: interpolate}
+                    encoded.colorKey.add(colorKey.bounds[0 until cast(u64, keyComponents) * 2])
+                    encoded.bytes = #move raw
+                    return cacheDecodedImage(parser, nodeId, resourcesId, false, #move keyed, #move encoded)
+                }
+
                 return cacheDecodedImage(parser, nodeId, resourcesId, false, #move keyed)
             }
 

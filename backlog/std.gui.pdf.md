@@ -411,6 +411,9 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Gray and RGB JPEG streams with default or inverted component directions also survive saving.
   Three public-derived range variants save in 0.14–0.46 ms, down from 104–557 ms, with
   unchanged raw JPEG bytes and PDFium raster. A fourth case retains explicit interpolation.
+- JPEGs with direct gray or RGB color keys retain their original compressed data and mask
+  bounds. Three derived fixtures save in 0.18–0.46 ms, down from 175–572 ms. PDFium renders
+  the stored JPEGs identically at scales 1 and 0.44, and differing keys remain distinct.
 - Next: retain fractional JPEG decode ranges and encode newly authored palette images.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and

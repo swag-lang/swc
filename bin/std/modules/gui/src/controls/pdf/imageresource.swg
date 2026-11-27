@@ -25,6 +25,7 @@ struct EncodedImageStream
 {
     bytes:           Array!{u8}
     palette:         Array!{u8}
+    colorKey:        Array!{s64}     // Bounds of the original JPEG /Mask array.
     paletteChannels: u8
     filter:          EncodedImageFilter
     channels:        u8
@@ -37,7 +38,7 @@ struct EncodedImageStream
 
 impl EncodedImageStream
 {
-    mtd const byteCount()->u64 => .bytes.count + .palette.count
+    mtd const byteCount()->u64 => .bytes.count + .palette.count + .colorKey.count * #sizeof(s64)
 }
 
 private struct ImageResource

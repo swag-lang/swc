@@ -1004,18 +1004,18 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array!{u8}, width
         {
             if losslessUniformByteTree(alpha) and
                losslessDecodeByteLiterals!
-            {
+                {
                 4
-            }(reader, target, pixelCount, 0)
+                }(reader, target, pixelCount, 0)
             {
                 return
             }
 
             if not alpha.maxLength and
                losslessDecodeByteLiterals!
-            {
+                {
                 3
-            }(reader, target, pixelCount, alpha.nodes[0].symbol << 24)
+                }(reader, target, pixelCount, alpha.nodes[0].symbol << 24)
             {
                 return
             }
@@ -1024,9 +1024,9 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array!{u8}, width
         {
             let color = red.nodes[0].symbol | (blue.nodes[0].symbol << 16) | (alpha.nodes[0].symbol << 24)
             if losslessDecodeByteLiterals!
-            {
+                {
                 1
-            }(reader, target, pixelCount, color)
+                }(reader, target, pixelCount, color)
             {
                 return
             }
@@ -1035,16 +1035,14 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array!{u8}, width
 
     let huffmanData = huffmanBits ? cast([*] u8, huffmanPixels.storage()) : null
 
-    var offset:       u64
-    var cachedOffset: u64
-    var x:            s32
-    var y:            s32
-    var group       = groupData
-    var lookupGroup = huffmanMask != 0
-
+    var offset, cachedOffset: u64
+    var x, y: s32
     while offset < byteCount
     {
-        if lookupGroup
+        var group   = groupData
+        var spanEnd = byteCount
+        var endX: s32
+        if huffmanBits
         {
             let mapIndex   = 4 * (tilesPerRow * (y >> huffmanBits) + (x >> huffmanBits))
             let mapData    = cast([*] u8, unwrap huffmanData)
@@ -1055,95 +1053,86 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array!{u8}, width
             }
 
             group = groupData + groupIndex
+
+            // Huffman groups are constant until the next tile or row boundary.
+            endX    = Math.min((x | huffmanMask) + 1, width)
+            spanEnd = offset + cast(u64, (endX - x)) * 4
         }
 
-        var green = try group.trees[LOSSLESS_HUFF_GREEN].next(reader)
-        switch
+        while offset < spanEnd
         {
-        case green < LOSSLESS_LITERAL_CODES:
-            cast([*] u32, output + offset)[0] = try group.readLiteral(reader, green)
-            offset += 4
-
-            x += 1
-            if x == width
+            var green = try group.trees[LOSSLESS_HUFF_GREEN].next(reader)
+            switch
             {
-                x = 0
-                y += 1
+            case green < LOSSLESS_LITERAL_CODES:
+                cast([*] u32, output + offset)[0] = try group.readLiteral(reader, green)
+                offset += 4
+
+            case green < LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES:
+                let length         = try losslessLz77Parameter(reader, green - LOSSLESS_LITERAL_CODES)
+                let distanceSymbol = try group.trees[LOSSLESS_HUFF_DISTANCE].next(reader)
+                let distanceCode   = try losslessLz77Parameter(reader, distanceSymbol)
+                let distance       = losslessDistance(width, distanceCode)
+                let copyBytes      = cast(u64, length) * 4
+
+                if distance <= 0 or cast(u64, distance) * 4 > offset or offset + copyBytes > byteCount
+                {
+                    fail InvalidFormatError{"WebP lossless back-reference is outside the decoded image"}
+                }
+
+                losslessCopyRun(cast([*] u32, output + offset), cast(u64, distance), length)
+                offset += copyBytes
+
+            default:
+                using Math.Simd
+
+                const RgbaToArgb = cast(U8x16, [2_u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
+                let multiplier = splat(LOSSLESS_COLOR_CACHE_MULTIPLIER)
+                while offset - cachedOffset >= 16
+                {
+                    let rgba   = load(output + cachedOffset)
+                    let argb   = cast #bit(U32x4, shuffle(rgba, RgbaToArgb))
+                    let hashes = (argb * multiplier) >> colorCacheShift
+                    let colors = cast #bit(U32x4, rgba)
+
+                    // Preserve insertion order for lanes that hash to the same slot.
+                    colorCache[hashes[0]] = colors[0]
+                    colorCache[hashes[1]] = colors[1]
+                    colorCache[hashes[2]] = colors[2]
+                    colorCache[hashes[3]] = colors[3]
+                    cachedOffset += 16
+                }
+
+                while cachedOffset < offset
+                {
+                    let rgba = cast(const [*] u32, output + cachedOffset)[0]
+
+                    // The WebP hash uses ARGB, while the decoded pixels are stored as RGBA.
+                    let argb = (rgba & 0xFF00FF00_u32) | ((rgba & 0xFF) << 16) | ((rgba >> 16) & 0xFF)
+                    colorCache[(argb * #wrap LOSSLESS_COLOR_CACHE_MULTIPLIER) >> colorCacheShift] = rgba
+                    cachedOffset += 4
+                }
+
+                green -= LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES
+                if green >= colorCache.count
+                {
+                    fail InvalidFormatError{"WebP lossless color-cache index is out of range"}
+                }
+
+                cast([*] u32, output + offset)[0] = colorCache[green]
+                offset += 4
             }
+        }
 
-            lookupGroup = huffmanMask != 0 and (x & huffmanMask) == 0
-
-        case green < LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES:
-            let length         = try losslessLz77Parameter(reader, green - LOSSLESS_LITERAL_CODES)
-            let distanceSymbol = try group.trees[LOSSLESS_HUFF_DISTANCE].next(reader)
-            let distanceCode   = try losslessLz77Parameter(reader, distanceSymbol)
-            let distance       = losslessDistance(width, distanceCode)
-            let copyBytes      = cast(u64, length) * 4
-
-            if distance <= 0 or cast(u64, distance) * 4 > offset or offset + copyBytes > byteCount
-            {
-                fail InvalidFormatError{"WebP lossless back-reference is outside the decoded image"}
-            }
-
-            losslessCopyRun(cast([*] u32, output + offset), cast(u64, distance), length)
-            offset += copyBytes
-
-            x += cast(s32, length)
+        if huffmanBits
+        {
+            // A match can cross one or more group boundaries.
+            x = endX + cast(s32, ((offset - spanEnd) >> 2))
             while x >= width
             {
                 x -= width
                 y += 1
             }
-
-            lookupGroup = huffmanMask != 0
-
-        default:
-            using Math.Simd
-
-            const RgbaToArgb = cast(U8x16, [2_u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
-            let multiplier = splat(LOSSLESS_COLOR_CACHE_MULTIPLIER)
-            while offset - cachedOffset >= 16
-            {
-                let rgba   = load(output + cachedOffset)
-                let argb   = cast #bit(U32x4, shuffle(rgba, RgbaToArgb))
-                let hashes = (argb * multiplier) >> colorCacheShift
-                let colors = cast #bit(U32x4, rgba)
-
-                // Preserve insertion order for lanes that hash to the same slot.
-                colorCache[hashes[0]] = colors[0]
-                colorCache[hashes[1]] = colors[1]
-                colorCache[hashes[2]] = colors[2]
-                colorCache[hashes[3]] = colors[3]
-                cachedOffset += 16
-            }
-
-            while cachedOffset < offset
-            {
-                let rgba = cast(const [*] u32, output + cachedOffset)[0]
-
-                // The WebP hash uses ARGB, while the decoded pixels are stored as RGBA.
-                let argb = (rgba & 0xFF00FF00_u32) | ((rgba & 0xFF) << 16) | ((rgba >> 16) & 0xFF)
-                colorCache[(argb * #wrap LOSSLESS_COLOR_CACHE_MULTIPLIER) >> colorCacheShift] = rgba
-                cachedOffset += 4
-            }
-
-            green -= LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES
-            if green >= colorCache.count
-            {
-                fail InvalidFormatError{"WebP lossless color-cache index is out of range"}
-            }
-
-            cast([*] u32, output + offset)[0] = colorCache[green]
-            offset += 4
-
-            x += 1
-            if x == width
-            {
-                x = 0
-                y += 1
-            }
-
-            lookupGroup = huffmanMask != 0 and (x & huffmanMask) == 0
         }
     }
 }
@@ -1458,30 +1447,43 @@ func losslessInverseCrossColor(transform: *LosslessTransform, pixels: *Array!{u8
     }
 }
 
-func losslessInverseSubtractGreen(pixels: *Array!{u8})
+#[Swag.Inline]
+private func losslessAddGreen(rgba: Math.Simd.U8x16)->Math.Simd.U8x16
 {
     using Math.Simd
 
     const Green = cast(U8x16, [1_u8, 0x80, 1, 0x80, 5, 0x80, 5, 0x80, 9, 0x80, 9, 0x80, 13, 0x80, 13, 0x80])
-    let data = cast([*] u8, pixels.storage())
+    return rgba + shuffle(rgba, Green)
+}
+
+#[Swag.Inline]
+private func losslessAddGreen(rgba: u32)->u32
+{
+    let green  = (rgba >> 8) & 0xFF
+    let colors = (rgba & 0x00FF00FF) + (green | (green << 16))
+    return (colors & 0x00FF00FF) | (rgba & 0xFF00FF00)
+}
+
+func losslessInverseSubtractGreen(data: [*] u8, byteCount: u64)
+{
+    using Math.Simd
+
     var offset: u64
-    while pixels.count - offset >= 16
+    while byteCount - offset >= 16
     {
-        let rgba = load(data + offset)
-        store(data + offset, rgba + shuffle(rgba, Green))
+        store(data + offset, losslessAddGreen(load(data + offset)))
         offset += 16
     }
 
-    while offset < pixels.count
+    while offset < byteCount
     {
-        let green = data[offset + 1]
-        data[offset + 0] += #wrap green
-        data[offset + 2] += #wrap green
-        offset += 4
+        let pixel = cast([*] u32, data + offset)
+        pixel[0] = losslessAddGreen(pixel[0])
+        offset   += 4
     }
 }
 
-func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array!{u8}, height: s32)
+func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array!{u8}, height: s32, bottomUp: bool)
 {
     using Math.Simd
 
@@ -1516,7 +1518,7 @@ func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array!
     for y in height
     {
         let input  = data + cast(u64, y) * packedWidth
-        let output = target + cast(u64, y) * width
+        let output = target + cast(u64, (bottomUp ? height - 1 - y : y)) * width
         var x: s32
         var packedColumn: s32
         if transform.bits == 3
@@ -1550,26 +1552,71 @@ func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array!
     swap(pixels, &decoded)
 }
 
-func losslessApplyInverseTransform(transform: *LosslessTransform, pixels: *Array!{u8}, height: s32)
+func losslessApplyInverseTransform(transform: *LosslessTransform, pixels: *Array!{u8}, height: s32, bottomUp: bool = false)
 {
     switch transform.kind
     {
     case LOSSLESS_TRANSFORM_PREDICTOR:      losslessInversePredictor(transform, pixels, height)
     case LOSSLESS_TRANSFORM_CROSS_COLOR:    losslessInverseCrossColor(transform, pixels, height)
-    case LOSSLESS_TRANSFORM_SUBTRACT_GREEN: losslessInverseSubtractGreen(pixels)
-    case LOSSLESS_TRANSFORM_COLOR_INDEXING: losslessInverseColorIndexing(transform, pixels, height)
+    case LOSSLESS_TRANSFORM_SUBTRACT_GREEN: losslessInverseSubtractGreen(pixels.storage(), pixels.count)
+    case LOSSLESS_TRANSFORM_COLOR_INDEXING: losslessInverseColorIndexing(transform, pixels, height, bottomUp)
     }
 }
 
-func losslessDecode(source: const [..] u8, pixels: *Array!{u8}, width: *s32, height: *s32) fail
+private func(ADD_GREEN: bool) losslessFlipRows(pixels: *Array!{u8}, width, height: s32)
 {
-    var reader: LosslessBitReader
-    try losslessDecodeHeader(&reader, source, width, height)
+    using Math.Simd
 
-    try losslessDecodeStream(&reader, pixels, width[], height[])
+    let data = cast([*] u32, pixels.storage())
+    for y in height / 2
+    {
+        let upper = data + cast(u64, y) * width
+        let lower = data + cast(u64, (height - y - 1)) * width
+        var x: s32
+        while width - x >= 4
+        {
+            let top    = load(upper + x)
+            let bottom = load(lower + x)
+            #static if ADD_GREEN
+            {
+                store(upper + x, cast #bit(U32x4, losslessAddGreen(cast #bit(U8x16, bottom))))
+                store(lower + x, cast #bit(U32x4, losslessAddGreen(cast #bit(U8x16, top))))
+            }
+            else
+            {
+                store(upper + x, bottom)
+                store(lower + x, top)
+            }
+
+            x += 4
+        }
+
+        for column in x until width
+        {
+            #static if ADD_GREEN
+            {
+                let top = upper[column]
+                upper[column] = losslessAddGreen(lower[column])
+                lower[column] = losslessAddGreen(top)
+            }
+            else
+            {
+                swap(&upper[column], &lower[column])
+            }
+        }
+    }
+
+    #static if ADD_GREEN
+    {
+        if height & 1
+        {
+            let center = data + cast(u64, height >> 1) * width
+            losslessInverseSubtractGreen(cast([*] u8, center), cast(u64, width) * 4)
+        }
+    }
 }
 
-func losslessDecodeStream(reader: *LosslessBitReader, pixels: *Array!{u8}, width, height: s32) fail
+func losslessDecodeStream(reader: *LosslessBitReader, pixels: *Array!{u8}, width, height: s32, bottomUp: bool = false) fail
 {
     var transforms:     Array!{LosslessTransform}
     var seenTransforms: [LOSSLESS_TRANSFORM_COUNT] bool
@@ -1596,16 +1643,39 @@ func losslessDecodeStream(reader: *LosslessBitReader, pixels: *Array!{u8}, width
 
     try losslessDecodePixels(reader, pixels, transformedWidth, height, 0, true)
 
-    var index = transforms.count
+    let expectedSize = cast(u64, originalWidth) * height * 4
+    var index        = transforms.count
+    var flipped      = false
     while index
     {
         index -= 1
-        losslessApplyInverseTransform(&transforms[index], pixels, height)
+        let transform = &transforms[index]
+
+        // The last subtract-green pass can reverse the rows in the same scan.
+        if bottomUp and
+           not index and
+           transform.kind == LOSSLESS_TRANSFORM_SUBTRACT_GREEN and
+           pixels.count == expectedSize
+        {
+            losslessFlipRows!{true}(pixels, originalWidth, height)
+            flipped = true
+            continue
+        }
+
+        flipped = bottomUp and
+                  not index and
+                  transform.kind == LOSSLESS_TRANSFORM_COLOR_INDEXING and
+                  transform.bits != 0
+        losslessApplyInverseTransform(transform, pixels, height, flipped)
     }
 
-    let expectedSize = cast(u64, originalWidth) * height * 4
     if pixels.count != expectedSize
     {
         fail InvalidFormatError{"WebP lossless transforms produce a pixel count different from the image dimensions"}
+    }
+
+    if bottomUp and not flipped
+    {
+        losslessFlipRows!{false}(pixels, originalWidth, height)
     }
 }

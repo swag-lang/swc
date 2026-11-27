@@ -2107,6 +2107,40 @@ const CompileTimeValue = #run Provider.observed() + Offset
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_ArtifactReusePreservesSourceWarnings)
+{
+    const LinkerTestDirectory directory("artifact_source_warning");
+    SWC_RESULT(directory.write("modules/app/module.swg", "\n"));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
+#warning("workspace source warning")
+#main { Swag.print("native app\n") }
+#test { Swag.require(true) }
+)"));
+
+    for (const std::string_view command : {"run", "test"})
+    {
+        std::vector<Utf8> arguments = {Utf8(command), "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                       "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        if (command == "test")
+            arguments.push_back("--no-test-jit");
+        for (const bool rebuild : {false, false, true})
+        {
+            if (rebuild)
+                arguments.push_back("--rebuild");
+            std::string                 output;
+            uint32_t                    exitCode = 0;
+            const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
+            if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode ||
+                !output.contains("sema_warn_compiler_warning") || output.contains("module up-to-date: app"))
+            {
+                std::println(stderr, "[workspace source warning] {}", output);
+                return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Workspace_LoadsSharedFileInEachSourceGroup)
 {
     const LinkerTestDirectory directory("shared_source_load");

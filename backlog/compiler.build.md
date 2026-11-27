@@ -515,8 +515,9 @@ before relying on them.
   updates both the `#run` result and the executable. An added overload changes the selected
   call, a signature edit matches a forced build's diagnostic, and a damaged manifest that
   omits a discovered `#include` is rebuilt. Over seven Linux Release pairs, the median
-  unchanged `gui1` build went from 20 ms to 21 ms. The workspace shortcut can still suppress
-  source warnings and output from a compile-time `#run` statement on a hit.
+  unchanged `gui1` build went from 20 ms to 21 ms. Builds that report warnings leave no
+  reusable manifest, so subsequent `run` and `test` commands report the same warnings. A
+  manifest hit can still suppress output from a compile-time `#run` statement.
 - Measure a separate cache of deterministic `#ast` results before JIT preparation. Record the
   metadata properties and external inputs each generator observes, and analyze restored text
   in the destination scope. Start with a proof that allows replay only for effect-free

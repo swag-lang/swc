@@ -87,7 +87,7 @@ private func dtsVqPacket()->Array!{u8}
 
 // Builds one mono Core packet whose first scalar subband uses predictor vector zero. The first
 // residual is an impulse, so the following reconstructed samples exercise the four-tap feedback.
-private func dtsPredictionPacket(huffman = false, frameBytes = 32_u32)->Array!{u8}
+private func dtsPredictionPacket(huffman = false, frameBytes = 32_u32, predictorHistory = false)->Array!{u8}
 {
     var bits: DtsTestBits
     bits.add(0x7FFE8001, 32)
@@ -104,7 +104,7 @@ private func dtsPredictionPacket(huffman = false, frameBytes = 32_u32)->Array!{u
     bits.add(0, 1)
     bits.add(0, 1)
     bits.add(0, 2)
-    bits.add(0, 1)
+    bits.add(predictorHistory ? 1 : 0, 1)
     bits.add(0, 1)
     bits.add(0, 6)
     bits.add(0, 3)
@@ -447,6 +447,32 @@ private func dtsDecodePcm(path: string)->Array!{s16}
     })
 
     return result
+}
+
+// The history flag selects the preceding band's last four reconstructed samples.
+#test
+{
+    let first = dtsPredictionPacket()
+    var decoded: [2] Array!{s16}
+    for useHistory, index in [false, true]
+    {
+        let second = dtsPredictionPacket(predictorHistory: useHistory)
+        var packets: Array!{u8}
+        packets.add(first.toSlice())
+        packets.add(second.toSlice())
+        let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                Format.toString("audio-dts-prediction-history-%.dts", Guid64.random()).toString())
+        defer discard catch File.delete(path)
+        expect File.writeAllBytes(path, packets.toSlice())
+        decoded[index] = dtsDecodePcm(path)
+    }
+
+    const PacketSamples = 256
+    let reset     = decoded[0].toSlice()
+    let continued = decoded[1].toSlice()
+    Swag.require(reset.count == 2 * PacketSamples and continued.count == reset.count)
+    Swag.require(Slice.equals(reset[until PacketSamples], continued[until PacketSamples]))
+    Swag.require(not Slice.equals(reset[PacketSamples until], continued[PacketSamples until]))
 }
 
 // Word order and transport packing preserve every decoded sample, including across packets.

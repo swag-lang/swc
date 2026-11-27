@@ -1058,6 +1058,30 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     }
 }
 
+// LZW preserves the packed stream across dictionary clears and appends after existing bytes.
+#test
+{
+    const Count = 96 * 1024 + 37
+    var bytes: Array!{u8}
+    bytes.resize(Count)
+    let data   = bytes.storage()
+    var random = 0xCA67_B123_u32
+    for i in Count
+    {
+        random  ^= random << 13
+        random  ^= random >> 17
+        random  ^= random << 5
+        data[i] = cast(u8, (random & 255))
+    }
+
+    var encoded: Array!{u8}
+    encoded.add(37_u8)
+    Tiff.packLzw(&encoded, data, Count)
+    Swag.require(encoded[0] == 37 and encoded.count == 134649 + 1)
+    let payload = Swag.makeSlice(encoded.storage() + 1, encoded.count - 1)
+    Swag.require(Hash.Crc64.compute(payload) == 0x2F3C01CE9052ADE0_u64)
+}
+
 // Exercise independent literal streams across every TIFF LZW code-width edge.
 #test
 {

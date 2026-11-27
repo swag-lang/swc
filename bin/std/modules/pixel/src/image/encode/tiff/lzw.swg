@@ -19,12 +19,39 @@ impl LzwBitWriter
     #[Swag.Inline]
     mtd write(code, width: u32)
     {
-        .pending = (.pending << width) | code
         let total = .pendingBits + width
-        let bytes = total >> 3
-        .pendingBits = total & 7
-        let word = cast(u16, ((.pending >> .pendingBits) & 0xFFFF))
+        if total < 64
+        {
+            .pending     = (.pending << width) | code
+            .pendingBits = total
+            return
+        }
 
+        // Write a full big-endian word and carry the remaining low bits.
+        let extra = total - 64
+        let word  = (.pending << (width - extra)) | (code >> extra)
+        let count = .result.count
+        let end   = count + 8
+        if end > .result.capacity
+        {
+            .result.grow(end)
+        }
+
+        cast(*u64, (.result.storage() + count))[] = Math.byteSwap(word)
+        .result.count = end
+        .pending      = code
+        .pendingBits  = extra
+    }
+
+    mtd finish()
+    {
+        let bytes = (.pendingBits + 7) >> 3
+        if not bytes
+        {
+            return
+        }
+
+        let word  = .pending << (bytes * 8 - .pendingBits)
         let count = .result.count
         let end   = count + bytes
         if end > .result.capacity
@@ -33,29 +60,17 @@ impl LzwBitWriter
         }
 
         let dst = .result.storage() + count
-        if bytes == 2
+        for i in bytes
         {
-            cast(*u16, dst)[] = Math.byteSwap(word)
-        }
-        else
-        {
-            dst[0] = cast(u8, (word & 255))
+            dst[i] = cast(u8, ((word >> ((bytes - i - 1) * 8)) & 255))
         }
 
         .result.count = end
     }
-
-    mtd finish()
-    {
-        if .pendingBits
-        {
-            .result.add(cast(u8, ((.pending << (8 - .pendingBits)) & 255)))
-        }
-    }
 }
 
 // Encode one TIFF strip with MSB-first, early-transition LZW codes.
-func packLzw(result: *Array!{u8}, src: const [*] u8, count: u64)
+private func(DIRECT_KEYS: bool) packLzwStrip(result: *Array!{u8}, src: const [*] u8, count: u64)
 {
     var writer: LzwBitWriter
     writer.result      = result
@@ -76,34 +91,68 @@ func packLzw(result: *Array!{u8}, src: const [*] u8, count: u64)
     var dictionary: [Capacity] u32
     let slots = cast([*] u32, &dictionary[0])
 
+    // A one-byte prefix and its next sample form a directly addressable key.
+    const ShortKeys     = 1 << 16
+    const MaxGeneration = 1 << 20
+    var shortWords: Array!{u32}
+    #static if DIRECT_KEYS
+    {
+        shortWords.resize(ShortKeys)
+    }
+
+    let pairs      = shortWords.storage()
+    var generation = 1_u32
+
     var width    = 9_u32
     var nextCode = LZW_FIRST_CODE
     var prefix   = cast(u32, src[0])
 
     for i in count - 1
     {
-        let value = cast(u32, src[i + 1])
-        let key   = (prefix << 8) | value
-        var slot  = (key * #wrap 0x9E37_79B1_u32) >> 19
-        var entry = slots[slot]
-        while entry and entry >> 12 != key
+        let value         = cast(u32, src[i + 1])
+        let key           = (prefix << 8) | value
+        let hasDirectSlot = DIRECT_KEYS and key < ShortKeys
+        var slot: u32
+        if hasDirectSlot
         {
-            slot  = (slot + 1) & (Capacity - 1)
-            entry = slots[slot]
+            let pair = pairs[key]
+            if (pair >> 12) == generation
+            {
+                prefix = pair & LZW_MAX_CODE
+                continue
+            }
         }
-
-        if entry
+        else
         {
-            prefix = entry & LZW_MAX_CODE
-            continue
+            slot = (key * #wrap 0x9E37_79B1_u32) >> 19
+            var entry = slots[slot]
+            while entry and entry >> 12 != key
+            {
+                slot  = (slot + 1) & (Capacity - 1)
+                entry = slots[slot]
+            }
+
+            if entry
+            {
+                prefix = entry & LZW_MAX_CODE
+                continue
+            }
         }
 
         writer.write(prefix, width)
 
         if nextCode <= LZW_MAX_CODE
         {
-            slots[slot] = (key << 12) | nextCode
-            nextCode    += 1
+            if hasDirectSlot
+            {
+                pairs[key] = (generation << 12) | nextCode
+            }
+            else
+            {
+                slots[slot] = (key << 12) | nextCode
+            }
+
+            nextCode += 1
 
             if width < 12 and nextCode > (1_u32 << width) - 1
             {
@@ -114,6 +163,16 @@ func packLzw(result: *Array!{u8}, src: const [*] u8, count: u64)
         {
             writer.write(LZW_CLEAR_CODE, width)
             Memory.clear(slots, Capacity * #sizeof(u32))
+            #static if DIRECT_KEYS
+            {
+                generation += 1
+                if generation == MaxGeneration
+                {
+                    Memory.clear(pairs, ShortKeys * #sizeof(u32))
+                    generation = 1
+                }
+            }
+
             width    = 9
             nextCode = LZW_FIRST_CODE
         }
@@ -124,6 +183,52 @@ func packLzw(result: *Array!{u8}, src: const [*] u8, count: u64)
     writer.write(prefix, width)
     writer.write(LZW_EOI_CODE, width)
     writer.finish()
+}
+
+// A sparse dictionary is cheaper when sampled bytes form few different pairs.
+private func hasVariedPairs(source: const [*] u8, count: u64)->bool
+{
+    const ProbeBytes  = 128
+    const ProbeBlocks = 4
+    const TargetPairs = 64
+    let step = (count - ProbeBytes) / (ProbeBlocks - 1)
+    var buckets:  [4] u64
+    var occupied: u32
+    for block in ProbeBlocks
+    {
+        let bytes = source + block * step
+        for i in 1 until ProbeBytes
+        {
+            let pair = (cast(u32, bytes[i - 1]) << 8) | bytes[i]
+            let key  = (pair * #wrap 0x9E37_79B1_u32) >> 24
+            let bit  = 1_u64 << (key & 63)
+            let word = &buckets[key >> 6]
+            if not (word[] & bit)
+            {
+                word[]   |= bit
+                occupied += 1
+                if occupied == TargetPairs
+                {
+                    return true
+                }
+            }
+        }
+    }
+
+    return false
+}
+
+func packLzw(result: *Array!{u8}, src: const [*] u8, count: u64)
+{
+    // Leave small strips in the compact hash table and sample large inputs once.
+    if count >= 64 * 1024 and hasVariedPairs(src, count)
+    {
+        packLzwStrip!{true}(result, src, count)
+    }
+    else
+    {
+        packLzwStrip!{false}(result, src, count)
+    }
 }
 
 func applyHorizontalPredictor(data: [*] u8, rowBytes, rows, samples: u64)

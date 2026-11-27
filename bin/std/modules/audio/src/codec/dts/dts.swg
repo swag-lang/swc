@@ -14,6 +14,9 @@ private const MaxSubbandSamples  = 128
 private const HistorySamples     = 512
 private const SamplesPerSubband  = 8
 
+private const SubbandMinimum: f64 = -8_388_608.0
+private const SubbandMaximum: f64 = 8_388_607.0
+
 private const ModeChannels:     [10] u32  = [1, 2, 2, 2, 2, 3, 3, 4, 4, 5]
 private const SampleRates:      [16] u32  = [0, 8_000, 16_000, 32_000, 0, 0, 11_025, 22_050, 44_100, 0, 0, 12_000, 24_000, 48_000, 0, 0]
 private const QuantLevels:      [8] u32   = [0, 3, 5, 7, 9, 13, 17, 25]
@@ -935,9 +938,11 @@ private impl Codec
                         let adjustedScale = adjustment == 1.0 ? scale : Math.min(Math.floor(scale * adjustment), 8_388_607.0)
                         let factor        = step * adjustedScale / 4_194_304.0
                         let samples       = subbands + channel * samplesPerChannel + band * samplesPerBand + subbandPosition + subsubframe * SamplesPerSubband
+
+                        // Dequantized residuals enter the signed 24-bit prediction and synthesis range.
                         for index in SamplesPerSubband
                         {
-                            samples[index] = cast(f64, audio[index]) * factor
+                            samples[index] = Math.clamp(cast(f64, audio[index]) * factor, SubbandMinimum, SubbandMaximum)
                         }
                     }
                 }
@@ -992,7 +997,7 @@ private impl Codec
                         predicted += recent1 * coefficient1
                         predicted += recent2 * coefficient2
                         predicted += recent3 * coefficient3
-                        let sample = Math.clamp(current[offset] + predicted / 8_192.0, -8_388_608.0, 8_388_607.0)
+                        let sample = Math.clamp(current[offset] + predicted / 8_192.0, SubbandMinimum, SubbandMaximum)
                         current[offset] = sample
                         recent3         = recent2
                         recent2         = recent1

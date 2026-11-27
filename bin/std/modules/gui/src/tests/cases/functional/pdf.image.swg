@@ -947,6 +947,56 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.require(image.value()!.pixelColor(15, 15) == Color.fromRgb(139, 139, 139))
 }
 
+// Indexed Flate retains packed rows and palettes, including different palettes for the same samples.
+#test
+{
+    var rows: [5 * 16] u8
+    for y in 16
+    {
+        let row = y * 5
+        rows[row + 1] = 0x01
+        rows[row + 2] = 0x20
+        rows[row + 3] = 0x12
+    }
+
+    var zlib: Compress.ZLib
+    let packed = expect zlib.compress(rows)
+    const ImageDictionary = "/Type /XObject /Subtype /Image /Width 7 /Height 16 /BitsPerComponent 4 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Columns 7 /BitsPerComponent 4 >> /Interpolate true "
+    const FirstPalette    = "/ColorSpace [/Indexed /DeviceRGB 2 <FF0000 00FF00 0000FF>]"
+    const SecondPalette   = "/ColorSpace [/Indexed /DeviceRGB 2 8 0 R]"
+    var extra: Array!{u8}
+    addStreamObject(&extra, 5, Format.toString("% %", ImageDictionary, FirstPalette).toString(), packed.toSlice())
+    addStreamObject(&extra, 6, Format.toString("% %", ImageDictionary, SecondPalette).toString(), packed.toSlice())
+    addStreamObject(&extra, 7, Format.toString("% %", ImageDictionary, FirstPalette).toString(), packed.toSlice())
+    addStreamObject(&extra, 8, "", [0_u8, 0, 255, 255, 0, 0, 0, 255, 0])
+    let commands = "q 7 0 0 16 0 0 cm /Im0 Do Q q 7 0 0 16 7 0 cm /Im1 Do Q q 7 0 0 16 14 0 cm /Im2 Do Q"
+    let fixture  = singlePagePdf("/XObject << /Im0 5 0 R /Im1 6 0 R /Im2 7 0 R >>", cast(const [..] u8, commands), extra.toSlice())
+    let source   = expect Document.decode(fixture.toSlice())
+    let encoded  = expect source.encode()
+    let saved    = expect Document.decode(encoded.toSlice())
+    let items    = saved.pages[0].items
+    Swag.require(items.count == 3)
+    for item in items
+    {
+        let stream = item.image.encoded()
+        Swag.require(stream.filter == .Flate and
+                     stream.bits == 4 and
+                     stream.channels == 1 and
+                     stream.paletteChannels == 3)
+        Swag.require(stream.predictor == 15 and stream.interpolate)
+        Swag.require(Slice.equals(stream.bytes.toSlice(), packed.toSlice()))
+    }
+
+    let first  = unwrap items[0].imageValue()
+    let second = unwrap items[1].imageValue()
+    let third  = unwrap items[2].imageValue()
+    Swag.require(first == third and first != second)
+    Swag.require(first.pixelColor(0, 0) == Color.fromRgb(255, 0, 0))
+    Swag.require(first.pixelColor(2, 0) == Color.fromRgb(0, 0, 255))
+    Swag.require(second.pixelColor(0, 0) == Color.fromRgb(0, 0, 255))
+    Swag.require(second.pixelColor(2, 0) == Color.fromRgb(0, 255, 0))
+}
+
 // An owned stream can go straight to a file without changing offsets or bytes.
 #test
 {

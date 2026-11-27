@@ -396,8 +396,11 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Retaining a CMYK JPEG and its inverted ink ranges brings the public CMYK stress page
   from 223 to 0.20 ms to save and from 5.47 to 0.83 MB. PDFium renders the saved page
   byte for byte like the source.
-- Next: extend encoded stream retention to remaining JPEG dictionary forms and preserve
-  indexed image representations.
+- Retaining indexed Flate images and device palettes brings the public indexed fixture
+  from 65.56 to 0.15 ms to save and from 355 to 275 kB. PDFium renders the saved page
+  pixel for pixel like the source. Different palettes for equal packed samples keep distinct
+  image objects.
+- Next: retain remaining JPEG dictionary forms and encode newly authored palette images.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and
   an image written more than once shares one object.

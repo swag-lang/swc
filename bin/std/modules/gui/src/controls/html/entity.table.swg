@@ -2,8 +2,7 @@
 
 // The named character references of the HTML standard, generated from its published list.
 //
-// The list is data, not code: it is sorted here so a reference costs a binary search, where a
-// switch over two thousand names would compare them one at a time.
+// Complete spellings seed the packed lookup table. Legacy spellings keep a small sorted table.
 
 // One named character reference. A handful of them expand to two code points, which is what
 // `second` carries; it is zero for every other one.
@@ -2256,3 +2255,87 @@ const HtmlLegacyRefs: [106] HtmlNamedRef = [
 
 // The longest name either table holds, which bounds every scan for a reference.
 const HtmlMaxRefName = 31_u64
+
+// Legacy forms are shorter than many complete names. Skip lengths the legacy table cannot contain.
+const HtmlMaxLegacyRefName = #run
+{
+    var maximum: u64
+    for &entry in HtmlLegacyRefs
+    {
+        if entry.name.count > maximum
+        {
+            maximum = entry.name.count
+        }
+    }
+
+    return maximum
+}
+
+struct HtmlPackedNamedRef
+{
+    offset: u16
+    length: u8
+    first:  rune
+    second: rune
+}
+
+const HtmlNamedRefSlotCount = 4096
+const HtmlNamedRefBytes     = #run
+{
+    var size: u64
+    for &entry in HtmlNamedRefs
+    {
+        size += entry.name.count
+    }
+
+    return size
+}
+
+#assert(HtmlNamedRefBytes <= Swag.U16.Max)
+#assert(HtmlNamedRefs.count < HtmlNamedRefSlotCount)
+#assert(HtmlMaxRefName <= Swag.U8.Max)
+
+struct HtmlNamedRefTable
+{
+    slots:   [HtmlNamedRefSlotCount] u16
+    entries: [HtmlNamedRefs.count] HtmlPackedNamedRef
+    names:   [HtmlNamedRefBytes] u8
+}
+
+func htmlNamedRefSlot(name: string)->u32
+{
+    let bytes: const [..] u8 = name
+    var hash = 2166136261_u32
+    for byte in bytes
+    {
+        hash = (hash ^ byte) * #wrap 16777619
+    }
+
+    // Fold the high bits of the FNV-1a hash into the slot index.
+    return (hash ^ (hash >> 16)) & (HtmlNamedRefSlotCount - 1)
+}
+
+// Build the lookup table once. The image needs only offsets and the contiguous name bytes.
+const HtmlPackedNamedRefs = #run
+{
+    var table:  HtmlNamedRefTable
+    var offset: u64
+    for index in HtmlNamedRefs.count
+    {
+        let entry = &HtmlNamedRefs[index]
+        Swag.require(entry.name.count <= HtmlMaxRefName)
+
+        var slot = htmlNamedRefSlot(entry.name)
+        while table.slots[slot]
+        {
+            slot = (slot + 1) & (HtmlNamedRefSlotCount - 1)
+        }
+
+        table.slots[slot]    = cast(u16, index + 1)
+        table.entries[index] = {offset: cast(u16, offset), length: cast(u8, entry.name.count), first: entry.first, second: entry.second}
+        Swag.memcpy(&table.names[offset], entry.name.buffer, entry.name.count)
+        offset += entry.name.count
+    }
+
+    return table
+}

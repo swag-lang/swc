@@ -493,7 +493,10 @@ before relying on them.
   preparing unrelated targets. Then retry deferred dependency bodies with the call-site and
   escape-check changes above, and measure CPU time as well as elapsed time.
   Caching the combined initializer order left `gui1` unchanged and slowed the PNG script by
-  1.8% by median across three pairs. Investigate which roots are needed for each evaluation.
+  1.8% by median across three pairs. A trace counted 463 queued `#run` expressions for `gui1`
+  and 452 for the PNG script. CRC32 and CRC64 power and reciprocal calculations led both counts.
+  Start result reuse with checked scalar calculations, including loops and direct calls, and
+  fingerprint their arguments, constants, and selected transitive bodies before JIT preparation.
 - Versioning JIT constant relocation metadata by allocation region reduced median warm time
   by 1.2% to 4.9% on a `gui1` edit and by 0.9% to 1.0% on a PNG script rerun, across two Linux
   Release series with four workers and five paired runs each. Instrumented runs avoided about
@@ -516,8 +519,13 @@ before relying on them.
   call, a signature edit matches a forced build's diagnostic, and a damaged manifest that
   omits a discovered `#include` is rebuilt. Over seven Linux Release pairs, the median
   unchanged `gui1` build went from 20 ms to 21 ms. Builds that report warnings leave no
-  reusable manifest, so subsequent `run` and `test` commands report the same warnings. A
-  manifest hit can still suppress output from a compile-time `#run` statement.
+  reusable manifest, so subsequent `run` and `test` commands report the same warnings.
+  Actual `write` and `WriteFile` calls from compiler-thread JIT execution prevent publication
+  of the corresponding setup snapshot or workspace manifest. A setup write still runs before
+  an unchanged native artifact is reused. Other external effects need their own tracking.
+  A prototype reused an analyzed short integer expression after a caller edit and missed
+  after a body edit. None of the bodies in `gui1` or the PNG script met its closed-expression
+  proof, so it is not merged.
 - Measure a separate cache of deterministic `#ast` results before JIT preparation. Record the
   metadata properties and external inputs each generator observes, and analyze restored text
   in the destination scope. Start with a proof that allows replay only for effect-free

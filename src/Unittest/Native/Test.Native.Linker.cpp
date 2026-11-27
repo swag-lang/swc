@@ -2141,6 +2141,43 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_ArtifactReusePreservesSourceWarnings)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_RepeatsCompileTimeWrites)
+{
+    const LinkerTestDirectory directory("artifact_compile_time_write");
+    SWC_RESULT(directory.write("modules/setup_write/module.swg", R"(
+#run { Swag.print("compile-time write marker\n") }
+)"));
+    SWC_RESULT(directory.write("modules/setup_write/src/main.swg", R"(
+#main { Swag.print("native run marker\n") }
+)"));
+    SWC_RESULT(directory.write("modules/source_write/module.swg", "\n"));
+    SWC_RESULT(directory.write("modules/source_write/src/main.swg", R"(
+#run { Swag.print("compile-time write marker\n") }
+#main { Swag.print("native run marker\n") }
+)"));
+
+    for (const std::string_view module : {"setup_write", "source_write"})
+    {
+        const std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", Utf8(module),
+                                             "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        for (const bool warm : {false, true})
+        {
+            std::string                 output;
+            uint32_t                    exitCode = 0;
+            const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
+            const bool reuseArtifact = warm && module == "setup_write";
+            if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode ||
+                !output.contains("compile-time write marker") || !output.contains("native run marker") ||
+                output.contains("module up-to-date") != reuseArtifact)
+            {
+                std::println(stderr, "[workspace compile-time write] {}", output);
+                return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Workspace_LoadsSharedFileInEachSourceGroup)
 {
     const LinkerTestDirectory directory("shared_source_load");

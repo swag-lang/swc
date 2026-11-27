@@ -343,6 +343,13 @@ namespace
         return FlsFree(slot);
     }
 
+    BOOL WINAPI jitTrackedWriteFile(HANDLE file, LPCVOID buffer, DWORD size, LPDWORD written, LPOVERLAPPED overlapped)
+    {
+        if (const TaskContext* ctx = TaskContext::current(); ctx && ctx->hasCompiler())
+            ctx->compiler().recordJitWrite();
+        return WriteFile(file, buffer, size, written, overlapped);
+    }
+
     [[noreturn]]
     void WINAPI jitBlockedExitProcess(const UINT exitCode)
     {
@@ -362,6 +369,13 @@ namespace
 #endif
 
 #ifdef __linux__
+    ssize_t jitTrackedWrite(const int descriptor, const void* buffer, const size_t size)
+    {
+        if (const TaskContext* ctx = TaskContext::current(); ctx && ctx->hasCompiler())
+            ctx->compiler().recordJitWrite();
+        return ::write(descriptor, buffer, size);
+    }
+
     [[noreturn]] void jitBlockedExit(const int status)
     {
         raiseJitProcessTerminationException("exit", status);
@@ -396,11 +410,15 @@ namespace
                 return reinterpret_cast<void*>(&jitTrackedFlsAlloc);
             if (asciiEqualsIgnoreCase(functionName, "FlsFree"))
                 return reinterpret_cast<void*>(&jitTrackedFlsFree);
+            if (asciiEqualsIgnoreCase(functionName, "WriteFile"))
+                return reinterpret_cast<void*>(&jitTrackedWriteFile);
         }
 #elif defined(__linux__)
         SWC_UNUSED(moduleName);
-        // Compare resolved addresses so a user library's unrelated function named
-        // exit keeps its semantics, and alternate libc module spellings stay guarded.
+        // Compare resolved addresses so a user library's unrelated function with
+        // the same name keeps its semantics, and alternate libc spellings stay guarded.
+        if (functionAddress == reinterpret_cast<void*>(&::write))
+            return reinterpret_cast<void*>(&jitTrackedWrite);
         if (functionAddress == reinterpret_cast<void*>(&pthread_key_create))
             return reinterpret_cast<void*>(&JITThreadStorage::create);
         if (functionAddress == reinterpret_cast<void*>(&pthread_key_delete))

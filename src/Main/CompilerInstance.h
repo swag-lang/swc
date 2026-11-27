@@ -412,6 +412,8 @@ public:
     static Result            collectDocumentation(TaskContext& ctx);
     std::vector<SourceFile*> files() const;
     bool                     isModuleSetupMode() const { return moduleSetupMode_; }
+    bool                     jitWroteOutput() const { return jitWroteOutput_.load(std::memory_order_relaxed); }
+    void                     recordJitWrite() const { jitWroteOutput_.store(true, std::memory_order_relaxed); }
     Result                   registerModuleSetupImport(std::string_view moduleName, std::string_view location);
     Result                   registerModuleSetupLoad(const fs::path& filePath);
     void                     registerCompilerInputFile(const fs::path& filePath, std::optional<std::span<const std::byte>> contents = {});
@@ -567,6 +569,7 @@ private:
     WarningPolicy                          warningPolicy_;
     std::optional<ModuleApiFileEntries>    moduleApiPublicEntries_;
     bool                                   moduleSetupMode_ = false;
+    mutable std::atomic_bool               jitWroteOutput_ = false;
     std::vector<ModuleSetupImport>         moduleSetupImports_;
     std::set<fs::path>                     moduleSetupLoadedFiles_;
     mutable std::mutex                     moduleInputsMutex_;

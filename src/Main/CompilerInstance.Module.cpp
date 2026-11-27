@@ -905,7 +905,7 @@ namespace
     bool shouldWriteWorkspaceArtifactManifest(const CompilerInstance& compiler)
     {
         const CommandLine& cmdLine = compiler.cmdLine();
-        if (cmdLine.dryRun || cmdLine.showConfig || compiler.buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
+        if (cmdLine.dryRun || cmdLine.showConfig || compiler.jitWroteOutput() || compiler.buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
             return false;
         if (cmdLine.command != CommandKind::Test)
             return cmdLine.command == CommandKind::Build || isRunLikeCommand(cmdLine.command);
@@ -1901,9 +1901,9 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
         outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles();
         ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
 
-        // A cached setup has no diagnostics to replay. Let a warning-producing setup
-        // run again so its diagnostic remains visible on every invocation.
-        if (!setupCompiler.moduleSetupInputsConsistent_ || !setupCompiler.reportedDiagnostics_.empty())
+        // A setup that emits diagnostics or writes through the JIT must run again
+        // so its externally visible effects occur on every invocation.
+        if (!setupCompiler.moduleSetupInputsConsistent_ || setupCompiler.jitWroteOutput() || !setupCompiler.reportedDiagnostics_.empty())
             return;
 
         auto& checksums = outSnapshot.inputChecksums;

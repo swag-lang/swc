@@ -31,7 +31,7 @@ func exrAddAttribute(result: *ConcatBuffer, name, type: string, payload: const [
     result.addBytes(payload)
 }
 
-func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlock = 1_u32, blocks = 1_u32, alternate: const [..] u8? = null)->ConcatBuffer
+func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlock = 1_u32, blocks = 1_u32, alternate: const [..] u8? = null, compressionMode = 0_u8)->ConcatBuffer
 {
     var channels: ConcatBuffer
     exrAddText(&channels, "Y")
@@ -41,7 +41,8 @@ func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlo
     exrAddU32(&channels, 1)
     channels.addNative(0_u8)
 
-    var compression: [1] u8 = [rowsPerBlock == 32 ? 4 : (rowsPerBlock == 16 ? 3 : 2)]
+    let inferred = rowsPerBlock == 32 ? 4_u8 : (rowsPerBlock == 16 ? 3_u8 : 2_u8)
+    var compression: [1] u8 = [compressionMode ? compressionMode : inferred]
     var dataWindow:  ConcatBuffer
     exrAddU32(&dataWindow, 0)
     exrAddU32(&dataWindow, 0)
@@ -489,6 +490,39 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1_u32)->ConcatBu
     var outcome: Swag.Error
     discard catch Image.decode("truncated-piz.exr", nnBytes(bytes.toSlice())) as outcome
     Swag.require(outcome.value() is Errors.InvalidFormatError)
+}
+
+#test
+{
+    // A row of HALF 1.0 has two short literal packets and two repeated plane values.
+    const Encoded: [8] u8 = [0xFF, 0, 126, 128, 0xFF, 188, 126, 128]
+    var stored: [256] u8
+    for x in 128
+    {
+        stored[x * 2 + 1] = 0x40
+    }
+
+    let input = exrZipFixture(128, Encoded, blocks: 2, alternate: stored, compressionMode: Exr.RleCompression)
+    let image = expect Image.decode("rle.exr", nnBytes(input.toSlice()))
+    assertImage(image, 128, 2, .GrayF16)
+    let samples = cast(const [*] u16, image.pixels.storage())
+    for x in 128
+    {
+        Swag.require(samples[x] == 0x4000)
+        Swag.require(samples[x + 128] == 0x3C00)
+    }
+}
+
+#test
+{
+    // One packet has too few literal bytes, the other repeats past the decoded row.
+    for packed in [[0xFE_u8, 1], [0x7F_u8, 0]]
+    {
+        let input = exrZipFixture(4, packed, compressionMode: Exr.RleCompression)
+        var outcome: Swag.Error
+        discard catch Image.decode("invalid-rle.exr", nnBytes(input.toSlice())) as outcome
+        Swag.require(outcome.value() is Errors.InvalidFormatError)
+    }
 }
 
 #test

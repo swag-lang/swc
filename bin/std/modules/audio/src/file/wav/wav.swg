@@ -585,11 +585,14 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     result.durationSeconds = cast(f32, (result.frameCount / cast(f64, format.sampleRate)))
     if preloadData
     {
-        result.data.resize(layout.dataSize)
-        if not (try stream.readExactAt(layout.dataOffset, result.data.toSlice()))
+        result.data.reserve(layout.dataSize)
+        let payload = Swag.makeSlice(result.data.storage(), layout.dataSize)
+        if not (try stream.readExactAt(layout.dataOffset, payload))
         {
             fail InvalidFormatError{"WAV audio data is truncated"}
         }
+
+        result.data.count = layout.dataSize
     }
 
     return result

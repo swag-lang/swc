@@ -75,6 +75,23 @@ coupling and rematrixing, complementing the multichannel fixture.
 - SHA-256: `4b5cfef8680e681e82745a30abe5166fbfc316908b504f13b8e487da8e78ef4c`
 - License: same as this repository.
 
+`eac3-mono-32000.eac3` contains three independent mono frames encoded by FFmpeg 7.1.5
+at 96 kbit/s, with a synthetic mix of 337 Hz and 1,219 Hz sine waves at amplitudes
+0.16 and 0.05, plus a 2,993 Hz cosine at amplitude 0.03. The `.pcm` reference is
+interleaved PCM16 from FFmpeg 9.1.
+
+`eac3-mono-24000.eac3` uses the first three frames of a mono FFmpeg 7.1.5 stream
+encoded at 48 kHz and 128 kbit/s, with amplitudes 0.18, 0.07, and 0.03 for the same
+tones. Set `fscod=3` and `fscod2=0` to signal 24 kHz with six blocks per frame and
+recompute the trailing CRC-16 (polynomial 0x8005). The resulting first tone is
+168.5 Hz. Swag checks the reduced-rate geometry and tone. FFmpeg 9.1 does not
+decode this sample-rate mode.
+
+- `eac3-mono-32000.eac3` SHA-256: `54a220d56152b3e1ac5b55e7bd13941853a5b2d04a61092c29424261fb1ebbf1`
+- `eac3-mono-32000.pcm` SHA-256: `29afb98d5bc0b3a18861c8e7f23f027a00a3805786e96a01f0a56a4d46f4089e`
+- `eac3-mono-24000.eac3` SHA-256: `7e3b73b727097dfc5d8a2c59c03e4b1f0960a6d16137a909b62a6b28352386eb`
+- License: same as this repository.
+
 `flac-stereo-44100.flac` and `flac-5.1-48000.flac` are FLAC streams generated for this repository
 with PyAV 17.1 from mathematically generated sine waves, so they contain no third-party recording.
 The stereo file is one second of a 440 Hz left and 660 Hz right sine at 44.1 kHz; the multichannel

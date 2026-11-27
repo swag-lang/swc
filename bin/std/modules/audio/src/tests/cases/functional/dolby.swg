@@ -575,27 +575,25 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
     Swag.require(dolbyTonePower(samples, 2048, 2048, 2, 1, 660) > 8.0 * dolbyTonePower(samples, 2048, 2048, 2, 1, 440))
 }
 
-private func eac3DecodeMono(fixture: string, rate: u32)->Array!{s16}
+private func decodeDolbyFixture(fixture: string, encoding: SoundFileEncoding, rate, channels: u32, packets = 3_u64)->Array!{s16}
 {
     let sound = expect SoundFile.load(audioGetTestDataPath(fixture).toString(), preloadData: false)
-    Swag.require(sound.sampleEncoding() == .Eac3 and sound.numChannels() == 1)
-    Swag.require(sound.sampleRateHz() == rate and sound.packetCount() == 3)
-    Swag.require(sound.sampleFrameCount() == 3 * 1536)
+    Swag.require(sound.sampleEncoding() == encoding and sound.numChannels() == channels)
+    Swag.require(sound.sampleRateHz() == rate and sound.packetCount() == packets)
+    Swag.require(sound.sampleFrameCount() == packets * 1536)
     var samples: #returntype
     expect sound.decodePcm16(func|&samples|(part)
     {
         samples.add(part)
         return true
     })
-    Swag.require(samples.count == sound.sampleFrameCount())
+    Swag.require(samples.count == sound.sampleFrameCount() * channels)
     return samples
 }
 
-// Independent mono frames exercise the 32 kHz bit allocation table and overlap across packets.
-#test
+private func requireDolbyPcmRms(samples: const [..] s16, fixture: string, tolerance: f64)
 {
-    let samples = eac3DecodeMono("eac3-mono-32000.eac3", 32_000)
-    let reference = expect File.readAllBytes(audioGetTestDataPath("eac3-mono-32000.pcm").toString())
+    let reference = expect File.readAllBytes(audioGetTestDataPath(fixture).toString())
     Swag.require(reference.count == samples.count * #sizeof(s16))
     let wanted = cast(const [*] s16, reference.storage())
     var energy = 0.0_f64
@@ -606,13 +604,36 @@ private func eac3DecodeMono(fixture: string, rate: u32)->Array!{s16}
     }
 
     // The reference decoder uses a different zero-mantissa dither sequence.
-    Swag.require(Math.sqrt(energy / cast(f64, samples.count)) < 0.012 * 32_768.0)
+    Swag.require(Math.sqrt(energy / cast(f64, samples.count)) < tolerance * 32_768.0)
+}
+
+// AC-3 bitstream identifiers 9 and 10 use half and quarter rates. Both the
+// packet duration and bit allocation have to follow the declared rate.
+#test
+{
+    for rate in [12_000_u32, 22_050, 24_000]
+    {
+        let channels = rate == 22_050 ? 2_u32 : 1
+        let layout   = channels == 2 ? "stereo" : "mono"
+        let fixture  = Format.toString("ac3-%-%", layout, rate)
+        let stream   = Format.toString("%.ac3", fixture.toString())
+        let reference = Format.toString("%.pcm", fixture.toString())
+        let samples  = decodeDolbyFixture(stream.toString(), .Ac3, rate, channels, 4)
+        requireDolbyPcmRms(samples.toSlice(), reference.toString(), 0.018)
+    }
+}
+
+// Independent mono frames exercise the 32 kHz bit allocation table and overlap across packets.
+#test
+{
+    let samples = decodeDolbyFixture("eac3-mono-32000.eac3", .Eac3, 32_000, 1)
+    requireDolbyPcmRms(samples.toSlice(), "eac3-mono-32000.pcm", 0.012)
 }
 
 // Reduced-rate E-AC-3 uses six blocks per frame and selects the rate through fscod2.
 #test
 {
-    let samples = eac3DecodeMono("eac3-mono-24000.eac3", 24_000)
+    let samples = decodeDolbyFixture("eac3-mono-24000.eac3", .Eac3, 24_000, 1)
     let tone = dolbyTonePower(samples.storage(), 512, 2048, 1, 0, 168.5, 24_000.0)
     let unrelated = dolbyTonePower(samples.storage(), 512, 2048, 1, 0, 275.0, 24_000.0)
     Swag.require(tone > 8.0 * unrelated and tone > 1_000_000.0)

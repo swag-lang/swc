@@ -96,6 +96,8 @@ private struct Ac3Codec
     packetCopyBytes: u64
 }
 
+private func ac3RateShift(bsid: u32)->u32 => bsid > 8 and bsid <= 10 ? bsid - 8 : 0
+
 private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
 {
     if reader.read(16) != 0x0B77
@@ -594,25 +596,27 @@ private impl Ac3Codec
             }
         }
 
-        let slowDecay = SLOW_DECAY[block.slowDecayCode]
-        let fastDecay = FAST_DECAY[block.fastDecayCode]
+        let rateShift = ac3RateShift(bsi.bsid)
+        let rateIndex = bsi.fscod + 3 * rateShift
+        let slowDecay = SLOW_DECAY[block.slowDecayCode] >> rateShift
+        let fastDecay = FAST_DECAY[block.fastDecayCode] >> rateShift
         let slowGain  = SLOW_GAIN[block.slowGainCode]
         let dbKnee    = DB_PER_BIT[block.dbPerBitCode]
         let floor     = FLOOR[block.floorCode]
         for channel in bsi.nfchans where refreshAll or block.channelExpStrategy[channel]
         {
             let delta = &block.channelDelta[channel]
-            try bitAllocation(bsi.fscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, delta, &block.channelBap[channel, 0], &.mantissaGains.channel[channel, 0])
+            try bitAllocation(rateIndex, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, delta, &block.channelBap[channel, 0], &.mantissaGains.channel[channel, 0])
         }
 
         if block.coupling and (refreshAll or refreshCoupling or block.couplingExpStrategy)
         {
-            try bitAllocation(bsi.fscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap, &.mantissaGains.coupling)
+            try bitAllocation(rateIndex, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap, &.mantissaGains.coupling)
         }
 
         if bsi.lfeon and (refreshAll or block.lfeExpStrategy)
         {
-            try bitAllocation(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap, &.mantissaGains.lfe)
+            try bitAllocation(rateIndex, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap, &.mantissaGains.lfe)
         }
     }
 
@@ -798,7 +802,7 @@ private impl Ac3Codec
             fail InvalidFormatError{"AC-3 packet size does not match its sync-frame header"}
         }
 
-        if SampleRates[bsi.fscod] != .sampleRate
+        if (SampleRates[bsi.fscod] >> ac3RateShift(bsi.bsid)) != .sampleRate
         {
             fail InvalidFormatError{"AC-3 packet sample rate differs from its container track"}
         }
@@ -1010,7 +1014,7 @@ internal func ac3FrameInfo(packet: const [..] u8)->FrameInfo fail
     }
 
     var result: #returntype
-    result.sampleRate = Rates[cast(u64, fscod)]
+    result.sampleRate = Rates[cast(u64, fscod)] >> ac3RateShift(cast(u32, packet[5] >> 3))
     result.frames     = 1536
 
     let bitRate = cast(u64, BitRates[cast(u64, sizeCode) >> 1])

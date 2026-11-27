@@ -68,6 +68,20 @@ the fixtures and is not a build or runtime dependency.
 - `eac3-5.1-48000.eac3` SHA-256: `828691e88bdacef3ce7ea18147463a7dfb4b5b6f52b6a7234d4ca5aa6e7fe21d`
 - License: same as this repository.
 
+The reduced-rate `ac3-mono-12000`, `ac3-mono-24000`, and `ac3-stereo-22050` fixtures
+hold four synthetic sinusoidal frames each. FFmpeg 9.1's AC-3 encoder was adapted
+for fixture generation to write legacy bitstream IDs 9 and 10 and use their
+corresponding bit allocation at half or quarter rate. The unmodified FFmpeg 9.1
+decoder generated the interleaved PCM16 references and verified the frame CRCs.
+
+- `ac3-mono-12000.ac3` SHA-256: `77f3aa7caf3c0aca8c2b6dca7f42bff0194f9f970ca257a1225f3f4ae742920d`
+- `ac3-mono-12000.pcm` SHA-256: `46a783e73783466df5ab082b18ad462558ad7f9463a51c3ba22dc3e6593031bb`
+- `ac3-mono-24000.ac3` SHA-256: `5d38ff0a5bde4517e83735fa92fc3e859f27598546b2b70adda842cac5a97136`
+- `ac3-mono-24000.pcm` SHA-256: `90ceee21a6d6dda8e07e407b011434a2f37617e5bfd8991f566be5d30c3644eb`
+- `ac3-stereo-22050.ac3` SHA-256: `8b01ceb286166510420acda07e20dfc0741a7740927ff2564af78738ffeae7c9`
+- `ac3-stereo-22050.pcm` SHA-256: `caa63a6ca91c8e8c1410302adf51a84d52c049e0cfedd7d9ea678b53e0d2c5a9`
+- License: same as this repository.
+
 `eac3-stereo-48000.eac3` is a half-second 128 kbit/s E-AC-3 stream made by the same FFmpeg
 build from synthetic 440 Hz left and 660 Hz right sine waves. Its encoder output uses standard
 coupling and rematrixing, complementing the multichannel fixture.

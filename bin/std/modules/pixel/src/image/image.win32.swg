@@ -14,7 +14,7 @@ impl Image
         var result: #returntype
 
         var bitmap: BITMAP
-        discard Gdi32Priv.GetObjectA(cast(HANDLE, hbitmap), #sizeof(BITMAP), &bitmap)
+        try GetObjectA(cast(HANDLE, hbitmap), #sizeof(BITMAP), &bitmap)
 
         switch bitmap.bmBitsPixel
         {

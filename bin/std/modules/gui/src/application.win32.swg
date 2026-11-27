@@ -312,7 +312,28 @@ impl Application
             }
             else
             {
-                TranslateMessage(&msg)
+                // The queue exposes each key's state as its message is removed. A press and
+                // release in one frame would otherwise look like no change to the snapshot.
+                let isKey = msg.message == WM_KEYDOWN or msg.message == WM_KEYUP or
+                            msg.message == WM_SYSKEYDOWN or msg.message == WM_SYSKEYUP
+                if let source = .nativeFocusSurface where isKey and source.win32Handle() == msg.hwnd
+                {
+                    .keyboard.update()
+                    let modifiers = .keyboard.pressedModifiers()
+                    // Control shortcuts do not type into the control they activate. Preserve
+                    // Control+Alt translation because Windows also uses it for AltGr.
+                    if not modifiers.has(.Control) or modifiers.has(.Alt)
+                    {
+                        TranslateMessage(&msg)
+                    }
+
+                    .dispatchKeyboardChanges()
+                }
+                else
+                {
+                    TranslateMessage(&msg)
+                }
+
                 DispatchMessageW(&msg)
             }
         }

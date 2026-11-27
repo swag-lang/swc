@@ -570,11 +570,14 @@ private impl Application
     mtd sendKeyboardEvents()
     {
         .keyboard.update()
-        if .nativeKeyboardEvents
+        if not .nativeKeyboardEvents
         {
-            return
+            .dispatchKeyboardChanges()
         }
+    }
 
+    internal mtd dispatchKeyboardChanges()
+    {
         // Polling sees other applications' keys as well. Only the confirmed native surface may
         // receive physical transitions from this snapshot.
         let source = .nativeFocusSurface

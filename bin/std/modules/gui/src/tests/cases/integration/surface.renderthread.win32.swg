@@ -15,8 +15,9 @@ using Core, Win32, Ogl
 
     for maximize in [false, true]
     {
-        let normal = Math.Rectangle{60, 50, 400, 240}
-        surface.setPosition(normal)
+        surface.setPosition({60, 50, 400, 240})
+        // The surface's logical minimum can enlarge the requested physical bounds at high DPI.
+        let normal = surface.position
         if maximize
         {
             surface.showMaximized()

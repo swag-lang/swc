@@ -22,7 +22,9 @@ using Core, Gui
     Swag.require(window.home.isLocallyVisible() and window.focusedWindow() == null)
     input.shortcut(.Space, .Control)
     Swag.require(window.lens.isOpen())
+    Swag.require(window.lens.query().count == 0, "the opening shortcut typed into the lens")
     input.shortcut(.Escape, .None)
+    Swag.require(not window.lens.isOpen(), "the lens did not close after Escape")
     input.shortcut(.F11, .None)
     Swag.require(window.fullScreen)
 }

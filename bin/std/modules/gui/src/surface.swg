@@ -609,10 +609,11 @@ impl Surface
         .setPosition(pos)
     }
 
-    // Moves the surface inside the closest monitor's bounds.
+    // Moves the selected surface edges inside the closest monitor's bounds.
     //
     // `topLeft` and `bottomRight` select which corners are constrained. `margin` keeps the
-    // selected edges that many physical pixels away from the monitor boundary.
+    // selected edges that many physical pixels away from the monitor boundary. If both corners
+    // are selected and the surface is too large, the top left takes priority.
     mtd constrainPositionToScreen(topLeft = true, bottomRight = true, margin = 0_f32)
     {
         if .isMaximized or .isMinimized
@@ -624,18 +625,18 @@ impl Surface
         let monitor = Env.monitorForPoint(Math.Point{.position.x, .position.y})
         var np      = .position
 
+        if bottomRight
+        {
+            np.x = Math.min(np.x, monitor.physicalBounds.right() - margin - .position.width)
+            np.y = Math.min(np.y, monitor.physicalBounds.bottom() - margin - .position.height)
+        }
+
         if topLeft
         {
             np.x = Math.max(np.x, monitor.physicalBounds.x + margin)
             np.x = Math.min(np.x, monitor.physicalBounds.right() - margin)
             np.y = Math.max(np.y, monitor.physicalBounds.y + margin)
             np.y = Math.min(np.y, monitor.physicalBounds.bottom() - margin)
-        }
-
-        if bottomRight
-        {
-            np.x = Math.min(np.x, monitor.physicalBounds.right() - margin - .position.width)
-            np.y = Math.min(np.y, monitor.physicalBounds.bottom() - margin - .position.height)
         }
 
         .setPosition(np)

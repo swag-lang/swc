@@ -579,7 +579,7 @@ impl Encoder
         return length > candidate.length ? EncodePixelMatch{length, true} : candidate
     }
 
-    func(RESIDUAL: bool, ROWS: bool) writePixels(writer: *EncodeBitWriter, pixels: Array!{u32}, channels: EncodeChannels, rowWidth: u32 = 0)
+    func(RESIDUAL: bool, ROWS: bool, ALPHA: bool = false) writePixels(writer: *EncodeBitWriter, pixels: Array!{u32}, channels: EncodeChannels, rowWidth: u32 = 0)
     {
         #static if not RESIDUAL
         {
@@ -590,9 +590,16 @@ impl Encoder
         }
 
         let data = cast(const [*] u32, pixels.storage())
+        #static if not ROWS
+        {
+            // The first pixel has no previous pixel to match.
+            var previous = ~data[0]
+        }
+
         var index: u64
         while index < pixels.count
         {
+            let pixel = data[index]
             #static if ROWS
             {
                 let limit = cast(u32, Math.min(4096_u64, pixels.count - index))
@@ -607,27 +614,33 @@ impl Encoder
             }
             else
             {
-                if index and data[index] == data[index - 1]
+                if pixel == previous
                 {
                     let limit  = cast(u32, Math.min(4096_u64, pixels.count - index))
-                    let length = repeatedPixelCount(data + index, data[index - 1], limit)
+                    let length = repeatedPixelCount(data + index, previous, limit)
                     writeLength!{RESIDUAL}(writer, length)
                     index += length
                     continue
                 }
+
+                previous = pixel
             }
 
-            let pixel = data[index]
             let red   = cast(u8, (pixel & 0xFF))
             let green = cast(u8, ((pixel >> 8) & 0xFF))
             let blue  = cast(u8, ((pixel >> 16) & 0xFF))
             let alpha = cast(u8, (pixel >> 24))
             #static if RESIDUAL
             {
-                let greenCode  = WEBP_ENCODE_RESIDUAL_GREEN_CODES[green]
-                let redCode    = WEBP_ENCODE_RESIDUAL_COLOR_CODES[red]
-                let blueCode   = WEBP_ENCODE_RESIDUAL_COLOR_CODES[blue]
-                let alphaCode  = channels.alpha.count == 1 ? 0 : WEBP_ENCODE_RESIDUAL_COLOR_CODES[alpha]
+                let greenCode = WEBP_ENCODE_RESIDUAL_GREEN_CODES[green]
+                let redCode   = WEBP_ENCODE_RESIDUAL_COLOR_CODES[red]
+                let blueCode  = WEBP_ENCODE_RESIDUAL_COLOR_CODES[blue]
+                #static if not ALPHA
+                {
+                    discard alpha
+                }
+
+                let alphaCode  = ALPHA ? WEBP_ENCODE_RESIDUAL_COLOR_CODES[alpha] : 0
                 let redShift   = greenCode >> 16
                 let blueShift  = redShift + (redCode >> 16)
                 let alphaShift = blueShift + (blueCode >> 16)
@@ -1006,7 +1019,14 @@ impl Encoder
         writeDistanceTree(writer)
 
         applyVerticalPrediction(cast([*] u32, pixels.storage()), width, height)
-        writePixels!{true, false}(writer, pixels[], channels)
+        if hasAlpha
+        {
+            writePixels!{true, false, true}(writer, pixels[], channels)
+        }
+        else
+        {
+            writePixels!{true, false}(writer, pixels[], channels)
+        }
     }
 
     func writePalette(writer: *EncodeBitWriter, palette: *EncodePalette)

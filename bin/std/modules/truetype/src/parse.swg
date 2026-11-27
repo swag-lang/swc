@@ -802,6 +802,7 @@ func buildGlyphLocations(faceData: *FaceImpl) fail
     }
 
     faceData.glyphLocations = locations
+    faceData.glyphOutlines  = glyf
 }
 
 private func keepOrderedKernPairs(faceData: *FaceImpl, pairs: const [..] u8)->bool

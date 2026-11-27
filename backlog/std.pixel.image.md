@@ -231,6 +231,13 @@ ships; history lives in Git, not here.
   resvg 0.50.0 drops from 36.21 to 0.09 levels per channel and the alpha masks
   agree. Six public `meet` and `slice` fixtures also agree within 0.6 levels per
   channel on average.
+- Direct SVG path output reduces four 15,360-contour encoding cases from
+  52.8 to 3.6 ms for integer paths, 73.4 to 15.1 ms for cubics, 282.3 to
+  107.7 ms for flattened paths, and 77.2 to 25.8 ms for separate shapes.
+  The eleven interleaved Release runs exclude disk I/O. The four SVG outputs
+  and their resvg renders match their respective baselines. The flattened
+  baseline includes the correction that writes the coordinate after `M` or `L`.
+  Regression tests cover locale, large coordinates, and flattened curves.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.

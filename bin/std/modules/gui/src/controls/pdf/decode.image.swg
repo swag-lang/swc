@@ -45,6 +45,8 @@ private const CmykSpreadK = cast(Math.Simd.U8x16, [3_u8, 3, 3, 7, 7, 7, 11, 11, 
 private const RgbToRgba   = cast(Math.Simd.U8x16, [0_u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
 private const BgrToRgba   = cast(Math.Simd.U8x16, [2_u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80])
 private const RgbaAlpha   = cast(Math.Simd.U8x16, [0x80_u8, 0x80, 0x80, 0, 0x80, 0x80, 0x80, 1, 0x80, 0x80, 0x80, 2, 0x80, 0x80, 0x80, 3])
+private const GrayToRgba  = cast(Math.Simd.U8x16, [0_u8, 0, 0, 0x80, 1, 1, 1, 0x80, 2, 2, 2, 0x80, 3, 3, 3, 0x80])
+private const RgbaToMask  = cast(Math.Simd.U8x16, [0_u8, 4, 8, 12, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
 private const MaskBits    = cast(Math.Simd.U8x16, [128_u8, 64, 32, 16, 8, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0])
 
 private func expandGray8(destination: [*] u8, source: const [*] u8, count: u64)
@@ -258,6 +260,90 @@ private func colorKey8(destination: [*] u8, source: const [*] u8, count: u64, lo
         src   += 1
         dst   += 1
         left  -= 1
+    }
+}
+
+private func(const SwapRedBlue: bool) colorKeyRgb8(destination: [*] u8, source: const [*] u8, count: u64, lower, upper: [3] s64)
+{
+    var low, high: [3] u8
+    for channel in 3
+    {
+        if lower[channel] > 255 or upper[channel] < 0 or lower[channel] > upper[channel]
+        {
+            Memory.set(destination, 255, count)
+            return
+        }
+
+        low[channel]  = cast(u8, Math.max(lower[channel], 0))
+        high[channel] = cast(u8, Math.min(upper[channel], 255))
+    }
+
+    const Channels = SwapRedBlue ? BgrToRgba : RgbToRgba
+    let packedLow  = Math.make32(0, low[2], low[1], low[0])
+    let packedHigh = Math.make32(0, high[2], high[1], high[0])
+    let lowVector  = cast #bit(Math.Simd.U8x16, Math.Simd.splat(packedLow))
+    let highVector = cast #bit(Math.Simd.U8x16, Math.Simd.splat(packedHigh))
+    let zero       = Math.Simd.splat(0_u32)
+    var src        = source
+    var dst        = destination
+    var left       = count
+
+    // A sixteen-byte RGB load needs at least six pixels remaining.
+    while left >= 6
+    {
+        let pixels  = Math.Simd.shuffle(Math.Simd.load(src), Channels)
+        let outside = Math.Simd.subSaturating(lowVector, pixels) | Math.Simd.subSaturating(pixels, highVector)
+        let opaque  = cast #bit(Math.Simd.U32x4, outside) != zero
+        let packed  = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, opaque), RgbaToMask)
+        cast([*] u32, dst)[0] = cast #bit(Math.Simd.U32x4, packed)[0]
+        src  += 12
+        dst  += 4
+        left -= 4
+    }
+
+    while left
+    {
+        let r      = src[SwapRedBlue ? 2 : 0]
+        let g      = src[1]
+        let b      = src[SwapRedBlue ? 0 : 2]
+        let inside = r >= low[0] and
+                     r <= high[0] and
+                     g >= low[1] and
+                     g <= high[1] and
+                     b >= low[2] and
+                     b <= high[2]
+        dst[] = inside ? 0 : 255
+        src   += 3
+        dst   += 1
+        left  -= 1
+    }
+}
+
+private func composeGrayRgba8(destination: [*] u8, source, alpha: const [*] u8, count: u64)
+{
+    var dst  = destination
+    var gray = source
+    var mask = alpha
+    var left = count
+    while left >= 4
+    {
+        let packedGray = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, gray)[0]))
+        let packedMask = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, mask)[0]))
+        Math.Simd.store(dst, Math.Simd.shuffle(packedGray, GrayToRgba) | Math.Simd.shuffle(packedMask, RgbaAlpha))
+        gray += 4
+        mask += 4
+        dst  += 16
+        left -= 4
+    }
+
+    while left
+    {
+        dst[0], dst[1], dst[2] = gray[]
+        dst[3] = mask[]
+        gray   += 1
+        mask   += 1
+        dst    += 4
+        left   -= 1
     }
 }
 
@@ -1148,6 +1234,55 @@ private func applyJpegDecode(parser: *PdfParser, nodeId, decodeId: u32, raw: con
     return retained
 }
 
+// The color key compares JPEG samples before /Decode changes their values.
+private func keyedJpegImage(parser: *PdfParser, nodeId, decodeId, keyId: u32, raw: const [..] u8, decoded: *Image, components: u8)->Image fail
+{
+    if parser.nodes[keyId].values.count < cast(u64, components) * 2
+    {
+        fail InvalidFormatError{"PDF color key mask does not cover every component"}
+    }
+
+    var lower, upper: [3] s64
+    for channel in components
+    {
+        let lowNode  = parser.nodes[keyId].values[channel * 2]
+        let highNode = parser.nodes[keyId].values[channel * 2 + 1]
+        lower[channel] = parser.integer(lowNode)
+        upper[channel] = parser.integer(highNode)
+    }
+
+    let count = cast(u64, decoded.width) * cast(u64, decoded.height)
+    var alpha: Array!{u8}
+    alpha.resize(count)
+    let samples = decoded.pixels.storage()
+    if components == 1
+    {
+        colorKey8(alpha.storage(), samples, count, lower[0], upper[0])
+    }
+    else
+    {
+        colorKeyRgb8!{true}(alpha.storage(), samples, count, lower, upper)
+    }
+
+    if decodeId != InvalidNode
+    {
+        discard applyJpegDecode(parser, nodeId, decodeId, raw, decoded, components)
+    }
+
+    var result = #move Image.create(decoded.width, decoded.height, .RGBA8)
+    let target = result.pixels.storage()
+    if components == 1
+    {
+        composeGrayRgba8(target, samples, alpha.storage(), count)
+    }
+    else
+    {
+        composeRgba8!{true}(target, samples, alpha.storage(), count)
+    }
+
+    return #move result
+}
+
 // Reads an image XObject as an 8-bit coverage plane, which is what a soft mask carries.
 private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->SamplePlane fail
 {
@@ -1625,8 +1760,21 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
             fail UnsupportedFormatError{"PDF image codec is not supported"}
         }
 
+        let hasKey = maskId == InvalidNode and
+                     explicitMask != InvalidNode and
+                     parser.nodes[explicitMask].kind == .Array
+        var keyComponents: u8
+        if hasKey
+        {
+            switch colorName
+            {
+            case "DeviceGray": keyComponents = 1
+            case "DeviceRGB" where parser.dict(nodeId, "DecodeParms") == InvalidNode: keyComponents = 3
+            }
+        }
+
         var raw            = #move try parser.decodeStream(nodeId, true)
-        let options        = DecodeOptions{keepJpegGrayscale: deviceOnly and colorName == "DeviceGray"}
+        let options        = DecodeOptions{keepJpegGrayscale: keyComponents == 1 or (deviceOnly and colorName == "DeviceGray")}
         var decoded:         Image
         var canReuseDecode = false
         var invertedSamples: u8
@@ -1681,6 +1829,13 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         else
         {
             decoded = #move try Image.decode(".jpg", raw.toSlice(), options)
+            if (keyComponents == 1 and decoded.pixelFormat == .Gray8) or
+               (keyComponents == 3 and matchesJpegFrame(raw.toSlice(), decoded.width, decoded.height, 3))
+            {
+                var keyed = #move try keyedJpegImage(parser, nodeId, decodeId, explicitMask, raw.toSlice(), &decoded, keyComponents)
+                return cacheDecodedImage(parser, nodeId, resourcesId, false, #move keyed)
+            }
+
             if decodeId != InvalidNode and (maskId != InvalidNode or explicitMask == InvalidNode)
             {
                 var directions = -1_s32

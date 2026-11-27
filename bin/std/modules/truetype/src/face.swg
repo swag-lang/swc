@@ -748,7 +748,7 @@ public impl Face
     //
     // The active pixel size controls scaling. Existing outline and bitmap pointers
     // from this face are invalidated. Add `.Render` to produce a grayscale bitmap
-    // in the same operation.
+    // in the same operation, using [[TrueType.Face.renderGlyph]].
     mtd loadGlyph(glyphIndex: u32, loadFlags = LoadFlag.Default) fail
     {
         try loadGlyphInternal(me, glyphIndex)
@@ -783,11 +783,15 @@ public impl Face
         try renderColorGlyph(me, baseGlyph, paletteIndex, foregroundArgb)
     }
 
-    // Rasterizes the current outline into an 8-bit grayscale bitmap.
+    // Renders the current glyph into an 8-bit grayscale bitmap.
     //
+    // An empty TrueType outline can use a one-bit `EBDT` / `EBLC` strike at the
+    // pixel size used to load the glyph. Index and image format pairs 1/7 and 2/5
+    // are supported. An absent, unsupported, malformed, or blank strike leaves
+    // the bitmap empty. The loaded advances are retained.
     // The result is stored in [[TrueType.GlyphSlot.bitmap]] and replaces any
     // previous bitmap from this face.
-    mtd renderGlyph() fail => try renderCurrentOutline(&.glyph)
+    mtd renderGlyph() fail => try renderCurrentOutline(&.glyph, allowEmbeddedBitmap: true)
 
     // Aligns important vertical zones of the current outline to whole pixels.
     //

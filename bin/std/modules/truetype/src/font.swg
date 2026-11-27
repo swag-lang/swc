@@ -295,6 +295,10 @@ struct FaceImpl
     bitmapPixels:      Array!{u8}
     colorBitmapPixels: Array!{u8}
 
+    // Mono strikes borrow the font bytes and use the size at which the slot was loaded.
+    embeddedBitmapTables: EmbeddedBitmapTables
+    emptyOutlineSize:      u32
+
     // A single ordered legacy kerning subtable can stay packed. Unordered or merged
     // pairs use the hash table with `(leftGlyph << 16) | rightGlyph` as the key.
     kernData:  const [..] u8?

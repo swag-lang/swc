@@ -206,6 +206,7 @@ struct SetDecoder
 {
     decoder: Decoder
     frames:  Array!{IndexedFrame}
+    validatedThrough: s32 = -1
 }
 
 private func clearTransparentMargins(canvas: *Image, frame: const *IndexedFrame)
@@ -290,6 +291,7 @@ impl IImageSetDecoder for SetDecoder
 {
     mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
     {
+        .validatedThrough = -1
         var result: #returntype
         result.background   = try .openCanvas(buffer, options)
         result.canvasWidth  = .decoder.width
@@ -579,6 +581,29 @@ impl SetDecoder
         let bottom = canvas.height - indexed.y - indexed.height
         let target = canvas.pixels.storage() + cast(u64, bottom) * canvas.rowStride + cast(u64, indexed.x) * 4
         try .decoder.compositeCanvasPixels(indexed, target, canvas.rowStride)
+        .validatedThrough = Math.max(.validatedThrough, cast(s32, index))
+    }
+
+    // Only a validated frame that fills the canvas opaquely can skip earlier updates.
+    // Previous disposal would still need the preceding canvas when reading its successor.
+    mtd replayFrame(index, next: s32)->s32
+    {
+        var candidate = Math.min(index, .validatedThrough)
+        while candidate > next
+        {
+            let frame = &.frames[candidate]
+            if not frame.control.transparency and
+               frame.control.disposal != 3 and
+               frame.width == .decoder.width and
+               frame.height == .decoder.height
+            {
+                return candidate
+            }
+
+            candidate -= 1
+        }
+
+        return next
     }
 }
 

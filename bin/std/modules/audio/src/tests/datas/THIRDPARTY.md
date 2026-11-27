@@ -136,6 +136,26 @@ libFLAC uses mid/side on its first frame and the side needs all 33 bits.
 
 The fixtures share the repository license.
 
+`flac-4.0-20bit-250000.flac` has the same coded frames as `flac-quad-20bit-250000.flac`. Its
+Vorbis comment replaces the empty comment list with `TITLE=Deterministic four-channel ramp`
+and `waveformatextensible_channel_mask=0x0107`, keeping the original vendor string. The
+explicit layout uses front left, front right, front center, and back center. Its PCM16 bytes
+match the untagged quad fixture. FFmpeg 9.1 reports masks `0x0107` and `0x0033`, respectively.
+
+- SHA-256 `ad5dcba225ce70e8ecd967caf98dc7eaaab19e2af9fc5438ceea15e7a8258397`
+- License is the same as this repository.
+
+`flac-quad-20bit-250000.oga` and `flac-4.0-20bit-250000.oga` wrap the respective native
+FLAC fixture’s STREAMINFO, Vorbis comment, and three coded frames in an Ogg FLAC 1.0 stream.
+The Ogg serial number is `0x464C4143`. Both use a dedicated identification page and a final audio
+page whose granule position is 69. The tagged fixture adds a description field with 270 `x`
+characters before its other Vorbis comment fields, so its speaker mask is on the continuation
+page. Both files decode to the same PCM16 as the native fixtures in FFmpeg 9.1.
+
+- `flac-4.0-20bit-250000.oga` SHA-256 `eefbaf212e34f9429ce6cdd66f9d566861d2b3fe082adfd1dbeb9bcfac5576d3`
+- `flac-quad-20bit-250000.oga` SHA-256 `21937830c7845730fbbb262051666c0eb681d1ca50ee03478e42e70639ad4335`
+- License is the same as this repository.
+
 The ten `mp3-*.mp3` files are MPEG Layer III streams generated for this repository with
 libmp3lame through PyAV 17.1, from mathematically generated inputs, so they contain no third-party
 recording. There is one per sampling frequency of the three MPEG versions, because each frequency

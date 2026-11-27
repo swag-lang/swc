@@ -83,7 +83,7 @@ enum SoundFileFields
     Data                   // The location and byte size of the audio payload are known.
 }
 
-// Describes how a sound stores its samples or encoded packets.
+// Describes the in-memory encoding of sound samples.
 enum SoundFileEncoding
 {
     Unknown      // The loader or codec has not identified the encoding.
@@ -102,8 +102,6 @@ enum SoundFileEncoding
     AdpcmIma     // IMA ADPCM blocks of a WAVE file.
     Vorbis       // Vorbis I packets, raw or inside Ogg pages.
     Opus         // Opus packets, raw or inside Ogg pages.
-    ALaw         // G.711 A-law, one companded byte per sample.
-    MuLaw        // G.711 mu-law, one companded byte per sample.
 }
 
 // Configures an indexed compressed sound stream.
@@ -354,9 +352,10 @@ impl SoundFile
 
     // Loads and validates a sound file.
     //
-    // `preloadData` keeps the complete PCM, float, or G.711 WAVE payload in memory. Otherwise,
-    // voices stream it from `path`. Packet formats, including ADPCM WAVE, are always streamed.
-    // Unsupported extensions, encodings, and malformed files fail.
+    // `preloadData` keeps the complete payload in memory; otherwise voices stream it from `path`.
+    // A compressed file is always streamed — keeping it in memory would keep the wrong bytes — so
+    // `preloadData` applies to PCM WAV alone; an ADPCM WAV is indexed and streamed like any other
+    // compressed source. Unsupported extensions, encodings, and malformed files fail.
     #[Swag.Propagate]
     func load(path: string, preloadData = true)->SoundFile fail
     {
@@ -459,7 +458,7 @@ impl SoundFile
             case 1: result.waveSpeakerMask = 0x0004
             case 2: result.waveSpeakerMask = 0x0003
             case 3: result.waveSpeakerMask = 0x0007
-            case 4: result.waveSpeakerMask = 0x0107
+            case 4: result.waveSpeakerMask = encoding == .Flac ? 0x0033 : 0x0107
             case 5: result.waveSpeakerMask = 0x0037
             case 6: result.waveSpeakerMask = 0x003F
             case 7: result.waveSpeakerMask = 0x070F

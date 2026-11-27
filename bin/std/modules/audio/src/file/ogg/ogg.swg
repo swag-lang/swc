@@ -692,6 +692,64 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 
 // Opens an Ogg file as a streamed packet sound.
 //
+// FLAC Ogg places its Vorbis comment block in the second packet. The setup pages
+// have already been checked, and a comment contained in one page can be read in place.
+private func readFlacQuadSpeakerMask(config: const [..] u8, serial: u32)->u32 fail
+{
+    const MaxMetadataPacket = 0xFF_FFFF_u64 + 4
+    var comment: Array!{u8}
+    var packets = 0_u32
+    var offset  = 0_u64
+    while offset < config.count
+    {
+        let page = try readPageHeader(config, offset)
+        let end  = offset + page.totalBytes()
+        if end > config.count
+        {
+            return 0
+        }
+
+        if page.serial == serial
+        {
+            var at = offset + page.headerBytes
+            for segment in page.segments
+            {
+                let size = page.lacing[segment]
+                let last = size < 255
+                if packets == 1
+                {
+                    let part = config[at until at + size]
+                    if last and comment.isEmpty()
+                    {
+                        return try Flac.readQuadSpeakerMask(part)
+                    }
+
+                    if comment.count + size > MaxMetadataPacket
+                    {
+                        return 0
+                    }
+
+                    comment.add(part)
+                    if last
+                    {
+                        return try Flac.readQuadSpeakerMask(comment.toSlice())
+                    }
+                }
+
+                at += size
+                if last
+                {
+                    packets += 1
+                }
+            }
+        }
+
+        offset = end
+    }
+
+    return 0
+}
+
 // The audio stays in the file: opening verifies every page and records where each run of pages
 // starts and how many sample frames it completes. The codec receives the header pages as its
 // configuration and the runs as its packets.
@@ -715,6 +773,11 @@ func openFile(path: string)->SoundFile fail
     walker.source.seek(0)
     walker.source.readExact(config.toSlice())
     walker.source.close()
+
+    if info.kind == .Flac and info.channels == 4 and info.headerPackets > 1
+    {
+        info.speakerMask = catch readFlacQuadSpeakerMask(config.toSlice(), info.serial) orelse 0
+    }
 
     var encoding: SoundFileEncoding
     switch info.kind

@@ -248,3 +248,40 @@ func aesGcmHexBytes(text: string)->Array!{u8}
     expect Crypto.aesGcmDecrypt(key, nonce, aad, message, tag, message)
     Swag.require(Crypto.constantTimeEqual(textBytes, plaintext))
 }
+
+#test
+{
+    // Both the associated data and ciphertext cross the sixteen-block GHASH path.
+    const Key   = "0123456789abcdefghijklmnopqrstuv"
+    const Nonce = "0123456789ab"
+    var aad:     [3089] u8
+    var payload: [8193] u8
+    for index in aad.count
+    {
+        aad[index] = cast(u8, (index * 29 + 7) & 0xFF)
+    }
+    for index in payload.count
+    {
+        payload[index] = cast(u8, (index * 73 + 11) & 0xFF)
+    }
+
+    // Independently computed with OpenSSL 4.1.0.
+    let expectedTag = aesGcmHexBytes("d89ee607471cf6690b2b509edcb4f05a")
+    var tag: [16] u8
+    expect Crypto.aesGcmEncrypt(Key, Nonce, aad, payload, payload, tag)
+    Swag.require(Crypto.constantTimeEqual(tag, expectedTag.toSlice()))
+
+    let ciphertext = payload
+    aad[3069] ^= 1
+    var error: Swag.Error
+    discard catch Crypto.aesGcmDecrypt(Key, Nonce, aad, payload, tag, payload) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+    Swag.require(Crypto.constantTimeEqual(payload, ciphertext))
+
+    aad[3069] ^= 1
+    expect Crypto.aesGcmDecrypt(Key, Nonce, aad, payload, tag, payload)
+    for index in payload.count
+    {
+        Swag.require(payload[index] == cast(u8, (index * 73 + 11) & 0xFF))
+    }
+}

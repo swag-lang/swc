@@ -11,6 +11,8 @@ public const AesGcmNonceSize = 12
 public const AesGcmTagSize = 16
 
 private const AesGcmParallelThreshold = 64 * 1024
+private const AesGcmWideGhashThreshold = 3 * 1024
+private const AesGcmWideGhashBytes     = 256
 
 #[Swag.Inline]
 private func aesGcmReverseBytes(value: U8x16)->U8x16
@@ -234,6 +236,37 @@ private func aesGcmGhashBlock(state: *[16] u8, hashKey: [16] u8, block: const [*
     aesGcmGhashBlockScalar(state, hashKey, block)
 }
 
+#[Swag.NoInline]
+private func aesGcmGhashWideBlocks(accumulator, key: U64x2, source: const [*] u8, byteCount: u64)->U64x2
+{
+    const Reverse = cast(U8x16, [15_u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+
+    var factors: [32] u64
+    var product: [4] u64
+    defer Crypto.secureClear(factors)
+    defer Crypto.secureClear(product)
+
+    // H^16 through H are the weights for sixteen consecutive blocks.
+    var power = key
+    for index in 15
+    {
+        store(&factors[(15 - index) * 2], power)
+        power = aesGcmGhashMultiply(power, key)
+    }
+    store(&factors[0], power)
+
+    var wideAccumulator = accumulator
+    var wideOffset      = 0_u64
+    while wideOffset < byteCount
+    {
+        store(&product[0], wideAccumulator)
+        Swag.vecCarrylessProductSum16(&product, cast(const *[AesGcmWideGhashBytes] u8, source + wideOffset), &factors, Reverse)
+        wideAccumulator = aesGcmGhashReduce(load(&product[0]), load(&product[2]))
+        wideOffset += AesGcmWideGhashBytes
+    }
+    return wideAccumulator
+}
+
 private func aesGcmGhashData(state: *[16] u8, hashKey: [16] u8, data: const [..] u8)
 {
     if data.count == 0
@@ -257,7 +290,12 @@ private func aesGcmGhashData(state: *[16] u8, hashKey: [16] u8, data: const [..]
             let key         = aesGcmGhashPrepareKey(hashKey)
             var accumulator = aesGcmGhashLoad(&state[][0])
             var offset      = 0_u64
-            if fullBlockBytes >= 128
+            if fullBlockBytes >= AesGcmWideGhashThreshold and Swag.hasCpuFeature(.CarrylessMultiply512)
+            {
+                offset = fullBlockBytes & ~cast(u64, AesGcmWideGhashBytes - 1)
+                accumulator = aesGcmGhashWideBlocks(accumulator, key, source, offset)
+            }
+            if fullBlockBytes - offset >= 128
             {
                 // Expand four steps of the recurrence so the products share one reduction.
                 let key2 = aesGcmGhashMultiply(key, key)

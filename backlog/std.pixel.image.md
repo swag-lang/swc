@@ -222,6 +222,10 @@ ships; history lives in Git, not here.
   121.0 to 110.7 ms on one logical CPU, 101.9 to 92.1 ms on two, and 78.0 to
   73.2 ms on four, with identical pixels. The 96-stop fixture drops from
   96.8 to 84.0 ms at four, against 53.7 ms for resvg 0.50.0.
+- Evidence: packed linear and radial gradient coordinates reduce the 420-path
+  fixture from 102.8 to 76.9 ms on one logical CPU, 84.4 to 70.4 ms on two,
+  and 72.4 to 60.9 ms on four. resvg 0.50.0 takes 29.8, 32.0, and 31.6 ms.
+  The 132 comparisons across one and four Swag workers have identical pixels.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.

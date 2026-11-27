@@ -743,6 +743,31 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
     assertGifPixelAt(img, 0, 0, 12_u8, 34_u8, 56_u8, 255_u8)
 }
 
+// A dense palette crosses enough dictionary clears to reuse its literal-pair epochs.
+#test
+{
+    let source = Image.create(433, 181, .RGB8)
+    var pixels = source.pixels.storage()
+    var state  = 0x985842A1_u32
+    for cast(u64, source.width) * source.height
+    {
+        state ^= state << 13
+        state ^= state >> 17
+        state ^= state << 5
+        let color = cast #wrap(u8, state)
+        pixels[0] = color
+        pixels[1] = color * #wrap 37_u8
+        pixels[2] = color * #wrap 73_u8
+        pixels    += 3
+    }
+
+    let encoded = expect source.encodeToBytes("dense-pairs.gif")
+    Swag.require(Hash.Crc32.compute(encoded.toSlice()) == 3227398783_u32)
+    let decoded = expect Image.decode("dense-pairs.gif", encoded.toSlice())
+    Swag.require(decoded.pixelFormat == .RGB8 and decoded.pixels.count == source.pixels.count)
+    Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.pixels.count) == 0)
+}
+
 // A uniform palette's LZW run codes cross several code widths and clear the dictionary.
 #test
 {

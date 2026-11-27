@@ -49,6 +49,38 @@ impl BitWriter
         }
     }
 
+    // Reserve for one dictionary interval, including its clear and end codes and the final word store.
+    mtd reserveCodes(count: u64)
+    {
+        .bytes.grow(.bytes.count + (Math.min(count, 4096_u64) + 4) * 3 / 2 + 4)
+    }
+
+    // Complete bytes advance the output. The next store replaces any bytes beyond that position.
+    #[Inline]
+    mtd writeReserved(code: u16, codeSize: u8)
+    {
+        .curBits  |= cast(u64, code) << .bitCount
+        .bitCount += codeSize
+        let count = .bitCount >> 3
+        cast([*] u32, .bytes.storage() + .bytes.count)[0] = cast #wrap(u32, .curBits)
+        .bytes.count += count
+        .curBits     >>= count * 8
+        .bitCount    &= 7
+    }
+
+    #[Inline]
+    mtd(ReservedOutput: bool) writeStreamCode(code: u16, codeSize: u8)
+    {
+        #static if ReservedOutput
+        {
+            .writeReserved(code, codeSize)
+        }
+        else
+        {
+            .write(code, codeSize)
+        }
+    }
+
     mtd flush()
     {
         let count  = (.bitCount + 7) >> 3
@@ -187,24 +219,67 @@ impl Encoder
         return true
     }
 
+    func sampleHasMostlyDistinctPairs(source: const [*] u8)->bool
+    {
+        var seen:     [1024] u64
+        var repeated: u32
+        var previous = cast(u32, source[0])
+        for i in 1 until 512
+        {
+            let index = source[i]
+            let pair  = previous << 8 | index
+            let bit   = 1_u64 << (pair & 63)
+            let word  = &seen[pair >> 6]
+            if word[] & bit
+            {
+                repeated += 1
+                if repeated == 32
+                {
+                    return false
+                }
+            }
+            else
+            {
+                word[] |= bit
+            }
+
+            previous = index
+        }
+
+        return true
+    }
+
     func(RemapLiterals: bool) lzwCompressSelected(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array!{u8}
     {
-        if indexes.count >= 4096 and
-           sampleHasConsistentTransitions(indexes.buffer) and
+        if indexes.count < 4096
+        {
+            return lzwCompressStream!{RemapLiterals, false, false}(indexes, minCodeSize, literals)
+        }
+
+        if sampleHasConsistentTransitions(indexes.buffer) and
            sampleHasConsistentTransitions(indexes.buffer + indexes.count / 2) and
            sampleHasConsistentTransitions(indexes.buffer + indexes.count * 3 / 4)
         {
-            return lzwCompressStream!{RemapLiterals, true}(indexes, minCodeSize, literals)
+            return lzwCompressStream!{RemapLiterals, true, false}(indexes, minCodeSize, literals)
         }
 
-        return lzwCompressStream!{RemapLiterals, false}(indexes, minCodeSize, literals)
+        if minCodeSize == 8 and
+           indexes.count >= 65_536 and
+           sampleHasMostlyDistinctPairs(indexes.buffer) and
+           sampleHasMostlyDistinctPairs(indexes.buffer + indexes.count / 2) and
+           sampleHasMostlyDistinctPairs(indexes.buffer + indexes.count * 3 / 4)
+        {
+            return lzwCompressStream!{RemapLiterals, false, true}(indexes, minCodeSize, literals)
+        }
+
+        return lzwCompressStream!{RemapLiterals, false, false}(indexes, minCodeSize, literals)
     }
 
     // Compresses palette indexes into GIF LZW codes.
     //
     // The dictionary maps a known string, as its code, followed by one more index to the code of
     // the longer string. It is reset with a clear code once every 12-bit code is taken.
-    func(RemapLiterals: bool, FirstTransition: bool) lzwCompressStream(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array!{u8}
+    func(RemapLiterals: bool, FirstTransition: bool, DensePairs: bool) lzwCompressStream(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array!{u8}
     {
         var enc: LzwEncoder
         enc.init(minCodeSize)
@@ -223,7 +298,22 @@ impl Encoder
         var table: Array!{u32}
         table.resize(capacity + (FirstTransition ? MaxLzwCode + 1 : 0))
         let dictionary = table.storage()
-        var nextCode   = cast(u32, enc.endCode) + 1
+
+        // Most prefixes in a dense stream are literals. The high four bits distinguish dictionary epochs.
+        var literalPairs: Array!{u16}
+        const EpochStep = 0x1000_u16
+        var epoch = EpochStep
+        #static if DensePairs
+        {
+            literalPairs.resize(256 * 256)
+        }
+
+        var nextCode = cast(u32, enc.endCode) + 1
+
+        #static if DensePairs
+        {
+            enc.bits.reserveCodes(indexes.count)
+        }
 
         enc.writeCode(enc.clearCode)
         var prefix = cast(u32, indexes[0])
@@ -254,7 +344,18 @@ impl Encoder
                 }
             }
 
-            if search
+            let literalPair = DensePairs and prefix < 256
+            if literalPair
+            {
+                slot = prefix << 8 | index
+                let entry = literalPairs[slot]
+                if (entry & 0xF000) == epoch
+                {
+                    prefix = entry & MaxLzwCode
+                    continue
+                }
+            }
+            else if search
             {
                 key  = (prefix << 8 | index) << 12
                 slot = ((key >> 12) * #wrap 0x9E3779B9_u32) >> shift
@@ -272,24 +373,47 @@ impl Encoder
                 }
             }
 
-            enc.bits.write(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix), enc.codeSize)
+            enc.bits.writeStreamCode!{DensePairs}(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix), enc.codeSize)
             if nextCode < MaxLzwCode
             {
-                dictionary[slot] = key | nextCode
-                nextCode         += 1
+                if literalPair
+                {
+                    literalPairs[slot] = epoch | cast(u16, nextCode)
+                }
+                else
+                {
+                    dictionary[slot] = key | nextCode
+                }
+
+                nextCode += 1
                 enc.growCodeSize(nextCode)
             }
             else
             {
                 enc.writeCode(enc.clearCode)
+                #static if DensePairs
+                {
+                    enc.bits.reserveCodes(indexes.count - i)
+                }
+
                 Memory.clear(dictionary, table.count * #sizeof(u32))
+                #static if DensePairs
+                {
+                    epoch = epoch + #wrap EpochStep
+                    if not epoch
+                    {
+                        Memory.clear(literalPairs.storage(), literalPairs.count * #sizeof(u16))
+                        epoch = EpochStep
+                    }
+                }
+
                 nextCode = cast(u32, enc.endCode) + 1
             }
 
             prefix = index
         }
 
-        enc.bits.write(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix), enc.codeSize)
+        enc.bits.writeStreamCode!{DensePairs}(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix), enc.codeSize)
         enc.writeCode(enc.endCode)
         enc.bits.flush()
         return enc.bits.bytes

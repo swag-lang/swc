@@ -238,6 +238,11 @@ ships; history lives in Git, not here.
   and their resvg renders match their respective baselines. The flattened
   baseline includes the correction that writes the coordinate after `M` or `L`.
   Regression tests cover locale, large coordinates, and flattened curves.
+- Color tracing gathers opacity during the first image pass and traces each
+  color inside its coverage bounds. The 24-color sparse fixture drops from
+  68.3 to 1.7 ms, the repeated-color fixture from 20.5 to 12.8 ms, and the
+  monochrome fixture from 3.37 to 2.81 ms. All 135 SVG output comparisons
+  and the six resvg render comparisons are byte-identical.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.

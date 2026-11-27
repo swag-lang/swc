@@ -82,6 +82,22 @@ impl Decoder
     #[Swag.NoInline]
     private mtd refillEntropyBits()
     {
+        if .progressiveFlag and .inBufLeft >= 8
+        {
+            let word = cast(const [*] u64, unwrap .inBufOfs)[] & 0x0000_FFFF_FFFF_FFFF_u64
+            let low  = word & 0x7F7F_7F7F_7F7F_7F7F_u64
+
+            // Read six entropy bytes at once without crossing a marker or stuffed byte.
+            if ((low + 0x0101_0101_0101_0101_u64) & word & 0x8080_8080_8080_8080_u64) == 0
+            {
+                .inBufOfs     += 6
+                .inBufLeft    -= 6
+                .entropyBits  |= Math.bigEndianToNative(word) >> .entropyCount
+                .entropyCount += 48
+                return
+            }
+        }
+
         .entropyBits  |= cast(u64, .readEntropyWord()) << (32 - .entropyCount)
         .entropyCount += 32
     }

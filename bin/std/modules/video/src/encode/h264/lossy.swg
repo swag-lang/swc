@@ -1416,19 +1416,11 @@ impl LossyCoder
             let hasTop    = by > 0 or mbY > firstRow
             let hasCorner = hasLeft and hasTop
 
-            // The samples above and to the right exist only when their block was decoded first.
-            var hasTopRight = false
-            if by == 0
-            {
-                hasTopRight = mbY > firstRow and (bx < 3 or mbX + 1 < .mbWidth)
-            }
-            else if bx < 3
-            {
-                for other in index where LossyBlockColumn[other] == bx + 1 and LossyBlockRow[other] == by - 1
-                {
-                    hasTopRight = true
-                }
-            }
+            // Within the macroblock the 8x8 groups are scanned in raster order. An odd
+            // block row can reach above-right only within its group, from an even column.
+            let hasTopRight = by == 0 ? hasTop and (bx < 3 or mbX + 1 < .mbWidth) :
+                              bx < 3 and (by & 1 == 0 or bx & 1 == 0)
+            let edges = readIntra4Edges(pixels, stride, hasLeft, hasTop, hasCorner, hasTopRight)
 
             let expected = .predictedMode4(mbX, mbY, bx, by, firstRow)
             var best     = Swag.U32.Max
@@ -1446,7 +1438,7 @@ impl LossyCoder
                     continue
                 }
 
-                intraPredict4x4(mode, pixels, stride, hasLeft, hasTop, hasCorner, hasTopRight)
+                intraPredict4x4WithEdges(mode, pixels, stride, hasLeft, hasTop, edges)
                 last = mode
                 let distance = lossySatd4(from, .lumaStride(), pixels, stride) + cast(u32, .lambda) * (mode == expected ? 1 : 4)
                 if distance < best
@@ -1458,7 +1450,7 @@ impl LossyCoder
 
             if last != bestMode
             {
-                intraPredict4x4(bestMode, pixels, stride, hasLeft, hasTop, hasCorner, hasTopRight)
+                intraPredict4x4WithEdges(bestMode, pixels, stride, hasLeft, hasTop, edges)
             }
 
             mb.modes[block] = cast(u8, bestMode)
@@ -1593,17 +1585,11 @@ struct LossyRegionResult
 }
 
 // Returns the bit count of a signed Exp-Golomb code.
+#[Swag.Inline]
 func lossySignedBits(value: s32)->s32
 {
-    var code = cast(u32, value > 0 ? value * 2 - 1 : -value * 2) + 1
-    var size = 0_s32
-    while code
-    {
-        size += 1
-        code >>= 1
-    }
-
-    return size * 2 - 1
+    let code = cast(u32, value > 0 ? value * 2 - 1 : -value * 2) + 1
+    return 63 - 2 * cast(s32, Swag.leadingZeros(code))
 }
 
 impl LossyCoder

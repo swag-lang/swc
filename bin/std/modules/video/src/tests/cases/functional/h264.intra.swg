@@ -5,7 +5,7 @@ using Core
 
 const IntraTestStride = 32_u64
 
-func referenceIntra4x4(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopRight: bool)
+func referenceIntra4x4(mode: u32, dst: [*] u8, hasLeft, hasTop, hasCorner, hasTopRight: bool)
 {
     var top:  [8] u8
     var left: [4] u8
@@ -91,6 +91,58 @@ func referenceIntra4x4(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopRight: boo
                 let diag  = row + column
                 let value = diag == 6 ? (cast(s32, top[6]) + 3 * cast(s32, top[7]) + 2) >> 2 : (cast(s32, top[diag]) + 2 * cast(s32, top[1 + diag]) + cast(s32, top[2 + diag]) + 2) >> 2
                 dst[row * IntraTestStride + column] = cast(u8, value)
+            }
+        }
+
+    case H264.IntraDownRight, H264.IntraVerticalRight, H264.IntraHorizontalDown:
+        let corner = hasCorner ? cast(s32, (dst - IntraTestStride - 1)[0]) : 128
+        let above  = [cast(s32, left[0]), corner, cast(s32, top[0]), cast(s32, top[1]), cast(s32, top[2]), cast(s32, top[3])]
+        let beside = [cast(s32, top[0]), corner, cast(s32, left[0]), cast(s32, left[1]), cast(s32, left[2]), cast(s32, left[3])]
+        for row in 4_s32
+        {
+            for column in 4_s32
+            {
+                var value: s32
+                if mode == H264.IntraDownRight
+                {
+                    let diagonal = column - row
+                    if diagonal > 0
+                    {
+                        value = (above[diagonal] + 2 * above[diagonal + 1] + above[diagonal + 2] + 2) >> 2
+                    }
+                    else if diagonal < 0
+                    {
+                        value = (beside[-diagonal] + 2 * beside[1 - diagonal] + beside[2 - diagonal] + 2) >> 2
+                    }
+                    else
+                    {
+                        value = (beside[2] + 2 * corner + above[2] + 2) >> 2
+                    }
+                }
+                else
+                {
+                    let vertical = mode == H264.IntraVerticalRight
+                    let across   = vertical ? column : row
+                    let down     = vertical ? row : column
+                    let first    = vertical ? above.buffer : beside.buffer
+                    let other    = vertical ? beside.buffer : above.buffer
+                    let edge     = across - (down >> 1)
+                    let position = 2 * across - down
+                    if position >= 0 and position & 1 == 0
+                    {
+                        value = (first[edge + 1] + first[edge + 2] + 1) >> 1
+                    }
+                    else if position >= -1
+                    {
+                        value = (first[edge] + 2 * first[edge + 1] + first[edge + 2] + 2) >> 2
+                    }
+                    else
+                    {
+                        value = (other[-position + 1] + 2 * other[-position] + other[-position - 1] + 2) >> 2
+                    }
+                }
+
+                dst[cast(u64, row) * IntraTestStride + cast(u64, column)] = cast(u8, value)
             }
         }
 
@@ -635,13 +687,12 @@ func initializeIntraBuffers(expected, actual: [*] u8)
 #test
 {
     const Availability = [false, true]
-    const Intra4Modes  = [H264.IntraVertical, H264.IntraHorizontal, H264.IntraDc, H264.IntraDownLeft, H264.IntraVerticalLeft, H264.IntraHorizontalUp]
-    const Intra8Modes  = [H264.IntraVertical, H264.IntraHorizontal, H264.IntraDc, H264.IntraDownLeft, H264.IntraDownRight, H264.IntraVerticalRight, H264.IntraHorizontalDown, H264.IntraVerticalLeft, H264.IntraHorizontalUp]
+    const IntraModes   = [H264.IntraVertical, H264.IntraHorizontal, H264.IntraDc, H264.IntraDownLeft, H264.IntraDownRight, H264.IntraVerticalRight, H264.IntraHorizontalDown, H264.IntraVerticalLeft, H264.IntraHorizontalUp]
     const Modes        = [H264.Intra16Vertical, H264.Intra16Horizontal, H264.Intra16Dc, H264.Intra16Plane]
     var expected: [1024] u8
     var actual:   [1024] u8
 
-    for mode in Intra4Modes
+    for mode in IntraModes
     {
         for hasLeft in Availability
         {
@@ -649,10 +700,13 @@ func initializeIntraBuffers(expected, actual: [*] u8)
             {
                 for hasTopRight in Availability
                 {
-                    initializeIntraBuffers(expected.buffer, actual.buffer)
-                    referenceIntra4x4(mode, expected.buffer + 33, hasLeft, hasTop, hasTopRight)
-                    H264.intraPredict4x4(mode, actual.buffer + 33, IntraTestStride, hasLeft, hasTop, true, hasTopRight)
-                    Swag.require(Slice.equals(expected, actual))
+                    for hasCorner in Availability
+                    {
+                        initializeIntraBuffers(expected.buffer, actual.buffer)
+                        referenceIntra4x4(mode, expected.buffer + 33, hasLeft, hasTop, hasCorner, hasTopRight)
+                        H264.intraPredict4x4(mode, actual.buffer + 33, IntraTestStride, hasLeft, hasTop, hasCorner, hasTopRight)
+                        Swag.require(Slice.equals(expected, actual))
+                    }
                 }
             }
         }
@@ -687,7 +741,7 @@ func initializeIntraBuffers(expected, actual: [*] u8)
         }
     }
 
-    for mode in Intra8Modes
+    for mode in IntraModes
     {
         for hasLeft in Availability
         {

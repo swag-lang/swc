@@ -253,6 +253,10 @@ ships; history lives in Git, not here.
   8.28 to 5.00 ms at one worker and from 7.84 to 5.04 ms at four. An alternating
   long-URI control retains its parse time. Eight raster comparisons match,
   and a regression distinguishes equal-length URIs with identical tails.
+- The SVG reader accepts XML whitespace before attribute equals signs and
+  resolves named and numeric character references in text and spans. The
+  whitespace fixture agrees with resvg pixel for pixel. Each renderer gives
+  identical output for the two equivalent spellings of the text fixture.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.

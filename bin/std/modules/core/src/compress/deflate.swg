@@ -160,14 +160,18 @@ internal
 
         lzCodeBuf: [LzCodeBufSize] u8     // Pending literal and match records of the current block.
 
+        outputBuf: [OutBufSize] u8     // Staging buffer used when 'result' lacks room for a whole block.
+        result:    *Array!{u8}?        // Destination of the compressed stream.
+
+        // Inserted links are overwritten before each valid search. The bucket
+        // heads and the final unindexed position are reset for every stream.
         next:  [LzDictSize * 2] u16 // Previous position with the same four-byte hash.
         hash:  [LzHashSize] u16     // Most recent position of each four-byte hash.
         hash3: [LzHashSize] u16     // Most recent position of each three-byte sequence.
         prev3: [LzDictSize] u16     // Position that held a three-byte sequence before this one.
-
-        outputBuf: [OutBufSize] u8     // Staging buffer used when 'result' lacks room for a whole block.
-        result:    *Array!{u8}?        // Destination of the compressed stream.
     }
+
+    #assert(Reflection.isPod(Compressor))
 }
 
 // Compresses data into the raw Deflate format (RFC 1951).
@@ -1318,6 +1322,37 @@ impl Deflate
         d.hash3[hash3] = last
     }
 
+    mtd prepareMatchIndex(source: const [..] u8)
+    {
+        let d = unwrap .state
+        if source.count <= 2048
+        {
+            // Small streams only visit buckets named by their four-byte windows.
+            for offset in Math.max(source.count, 3_u64) - 3
+            {
+                let word  = Math.bigEndianToNative(cast(const [*] u32, source.buffer + offset)[0])
+                let hash  = (word * LzHashMultiplier) >> LzHashDiscard
+                let hash3 = ((word >> 8) * LzHash3Multiplier) >> LzHashDiscard
+                d.hash[hash]   = 0
+                d.hash3[hash3] = 0
+            }
+        }
+        else
+        {
+            Memory.clear(&d.hash[0], #sizeof(d.hash))
+            Memory.clear(&d.hash3[0], #sizeof(d.hash3))
+        }
+
+        if source.count >= 3 and source.count - 3 < LzDictSize
+        {
+            // The final three-byte position has no window or prior ring entry.
+            let tail = source.count - 3
+            d.next[tail] = 0
+            d.next[tail + LzDictSize] = 0
+            d.prev3[tail] = 0
+        }
+    }
+
     mtd(DETECT_RUNS: bool) compress(source: const [..] u8)
     {
         let d         = unwrap .state
@@ -1517,13 +1552,12 @@ public impl Deflate
 
         if not .state
         {
-            .state = Memory.new!{Compressor}()
-        }
-        else
-        {
-            Swag.init(.state, 1)
+            .state = cast(*Compressor, Memory.alloc(#sizeof(Compressor), alignment: #alignof(Compressor), hint: #stringof(Compressor)))
         }
 
+        let d = .state
+        let bytes = cast([*] u8, &d.next[0]) - cast([*] u8, d)
+        Memory.clear(d, cast(u64, bytes))
         .setup(createCompFlagsFromZipParams(level, strategy))
     }
 
@@ -1562,6 +1596,7 @@ public impl Deflate
             let d = unwrap .state
             d.result     = result
             d.outBufOfs  = result.count
+            .prepareMatchIndex(source)
 
             if Deflate.hasRepeatedRuns(source)
             {

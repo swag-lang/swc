@@ -195,6 +195,35 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
     }
 }
 
+// Reusing the match index preserves results across small streams and ring boundaries.
+#test
+{
+    var data: Array!{u8}
+    data.resize(66001)
+    fillText(data.toSlice()[until 33000])
+    fillRandom(data.toSlice()[33000 to], 479)
+
+    var reused: Compress.Deflate
+    for size in [66001_u64, 3, 32770, 37, 32771, 2048, 66000, 512, 0, 2049]
+    {
+        let source = data.toSlice()[data.count - size to]
+        reused.init(.Default)
+        var actual: Array!{u8}
+        expect reused.compress(&actual, source)
+
+        var fresh: Compress.Deflate
+        fresh.init(.Default)
+        var expected: Array!{u8}
+        expect fresh.compress(&expected, source)
+        Swag.require(Slice.equals(actual.toSlice(), expected.toSlice()))
+
+        var inflater: Compress.Inflate
+        var decoded: Array!{u8}
+        expect inflater.decompress(&decoded, actual.toSlice())
+        Swag.require(Slice.equals(decoded.toSlice(), source))
+    }
+}
+
 // One encoder and one decoder serve several streams in a row.
 #test
 {

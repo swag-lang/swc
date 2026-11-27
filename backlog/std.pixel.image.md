@@ -226,6 +226,11 @@ ships; history lives in Git, not here.
   fixture from 102.8 to 76.9 ms on one logical CPU, 84.4 to 70.4 ms on two,
   and 72.4 to 60.9 ms on four. resvg 0.50.0 takes 29.8, 32.0, and 31.6 ms.
   The 132 comparisons across one and four Swag workers have identical pixels.
+- The embedded image fixture exercises default centered `meet`, explicit alignment,
+  transformed `slice`, and `none`. The mean premultiplied RGBA error against
+  resvg 0.50.0 drops from 36.21 to 0.09 levels per channel and the alpha masks
+  agree. Six public `meet` and `slice` fixtures also agree within 0.6 levels per
+  channel on average.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.

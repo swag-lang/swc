@@ -53,14 +53,15 @@ namespace
             appendLz4Sequence(packed, bytes, 0, 0);
             return;
         }
-        constexpr size_t      hashBits = 16;
-        std::vector<uint32_t> last(1 << hashBits, UINT32_MAX);
-        size_t                literalStart = 0;
-        size_t                cursor       = 0;
+        constexpr size_t hashBits = 16;
+        using MatchPositions      = std::array<uint32_t, 2>;
+        std::vector<MatchPositions> recent(1 << hashBits, {UINT32_MAX, UINT32_MAX});
+        size_t                      literalStart = 0;
+        size_t                      cursor       = 0;
         // LZ4 leaves at least five trailing literals, and the last match starts
         // at least twelve bytes before the end of the block.
         const size_t matchLimit = bytes.size() - 5;
-        const auto readWord = [&](const size_t offset) {
+        const auto   readWord   = [&](const size_t offset) {
             uint32_t word;
             std::memcpy(&word, bytes.data() + offset, sizeof(word));
             if constexpr (std::endian::native == std::endian::big)
@@ -69,24 +70,40 @@ namespace
         };
         while (cursor + 12 <= bytes.size())
         {
-            const uint32_t word     = readWord(cursor);
-            const uint32_t hash     = (word * 2654435761u) >> (32 - hashBits);
-            const uint32_t previous = std::exchange(last[hash], static_cast<uint32_t>(cursor));
-            if (previous == UINT32_MAX || cursor - previous > UINT16_MAX || readWord(previous) != word)
+            const uint32_t       word       = readWord(cursor);
+            const uint32_t       hash       = (word * 2654435761u) >> (32 - hashBits);
+            const MatchPositions candidates = std::exchange(recent[hash], {static_cast<uint32_t>(cursor), recent[hash][0]});
+            const size_t         maxLength  = matchLimit - cursor;
+            const auto*          match      = bytes.data() + cursor;
+            size_t               length     = 0;
+            uint16_t             distance   = 0;
+
+            // A newer name can share only the prefix with an older, longer match.
+            for (const uint32_t position : candidates)
+            {
+                if (position == UINT32_MAX || cursor - position > UINT16_MAX || readWord(position) != word)
+                    continue;
+                const auto* candidate       = bytes.data() + position;
+                size_t      candidateLength = 4;
+                while (candidateLength + sizeof(uint64_t) <= maxLength &&
+                       std::memcmp(match + candidateLength, candidate + candidateLength, sizeof(uint64_t)) == 0)
+                    candidateLength += sizeof(uint64_t);
+                while (candidateLength < maxLength && match[candidateLength] == candidate[candidateLength])
+                    ++candidateLength;
+                if (candidateLength <= length)
+                    continue;
+                length   = candidateLength;
+                distance = static_cast<uint16_t>(cursor - position);
+                if (length == maxLength)
+                    break;
+            }
+
+            if (!distance)
             {
                 ++cursor;
                 continue;
             }
-            const size_t maxLength = matchLimit - cursor;
-            const auto*  match     = bytes.data() + cursor;
-            const auto*  candidate = bytes.data() + previous;
-            size_t       length    = 4;
-            while (length + sizeof(uint64_t) <= maxLength &&
-                   std::memcmp(match + length, candidate + length, sizeof(uint64_t)) == 0)
-                length += sizeof(uint64_t);
-            while (length < maxLength && match[length] == candidate[length])
-                ++length;
-            appendLz4Sequence(packed, bytes.subspan(literalStart, cursor - literalStart), static_cast<uint16_t>(cursor - previous), length);
+            appendLz4Sequence(packed, bytes.subspan(literalStart, cursor - literalStart), distance, length);
             cursor += length;
             literalStart = cursor;
         }

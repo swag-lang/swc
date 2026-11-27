@@ -145,6 +145,7 @@ namespace Command
         }
 
         compiler.assignSourceNamespaces(ctx, files);
+        compiler.prepareSemaBodyCache(files);
         const auto semaFiles = [&](const std::span<SourceFile* const> group) {
             {
                 SWC_SCHED_PHASE(jobMgr, "sema declarations");

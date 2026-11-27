@@ -575,6 +575,7 @@
         <ClCompile Include="src\Compiler\Sema\Core\SemaJob.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Core\SemaNodeView.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaAccess.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaBodyCache.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCheck.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCycle.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp"/>
@@ -966,6 +967,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaAccess.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaAstLookup.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCallArgument.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaBodyCache.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.Modifier.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h"/>

@@ -28,7 +28,7 @@ SWC_BEGIN_NAMESPACE();
 
 const Runtime::BuildCfg& Sema::buildCfg() const
 {
-    return compiler().buildCfg();
+    return buildConfigOverride_ ? *buildConfigOverride_ : compiler().buildCfg();
 }
 
 Runtime::SafetyWhat Sema::runtimeSafetyGuards() const
@@ -229,6 +229,7 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
     ctx_(&ctx),
     nodePayloadContext_(&payloadContext),
     startSymMap_(childStartSymMap(parent, payloadContext)),
+    buildConfigOverride_(parent.buildConfigOverride_),
     declPass_(declPass)
 {
     visit_.start(nodePayloadContext_->ast(), root);

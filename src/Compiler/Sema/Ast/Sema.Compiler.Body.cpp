@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
@@ -484,6 +485,7 @@ namespace
 
     Result setupCompilerRunFunction(Sema& sema, TypeRef returnTypeRef)
     {
+        SemaBodyCache::recordEffect(sema);
         const AstNodeRef nodeRef = sema.curNodeRef();
         const AstNode&   node    = sema.node(nodeRef);
         AstNodeRef       symRef  = compilerRunFunctionStorageRef(node);

@@ -2233,6 +2233,104 @@ const Computed = #run Provider.observed(7_s64)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_RechecksDeferredSourceBodyOnDemand)
+{
+    const LinkerTestDirectory directory("deferred_source_body");
+    SWC_RESULT(directory.write("modules/provider/module.swg", "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None }\n"));
+    SWC_RESULT(directory.write("modules/app/module.swg", "#import(\"provider\")\n"));
+    SWC_RESULT(directory.write("modules/provider/src/functions.swg", R"(
+namespace Definition
+{
+    struct Number { value: s32 }
+}
+using Definition
+
+private var stored: *s32?
+#[Swag.NoInline]
+public func remember(value: *s32)
+{
+    stored = value
+}
+
+#[Swag.NoInline]
+public func dormant()->s32
+{
+    let number: Number = {value: 73}
+    return number.value
+}
+
+private func readValue()->s32 fail => 45
+#[Swag.NoInline, Swag.Propagate]
+public func propagated()->s32 fail
+{
+    return readValue()
+}
+
+public func initial()->s32 => 17
+)"));
+    const std::vector<Utf8> warm = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                    "-bc", "release-safe", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    auto fresh = warm;
+    fresh.push_back("--rebuild");
+
+    SWC_RESULT(directory.write("modules/app/src/main.swg", "#main { Swag.print(\"initial=\", Provider.initial()) }\n"));
+    SWC_RESULT(runCompiler(fresh, ExitCode::Success, "initial=17"));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
+#main
+{
+    var local = 7_s32
+    let callback = &Provider.remember
+    callback(&local)
+}
+)"));
+    SWC_RESULT(runCompiler(warm, ExitCode::CompileError, "sanity_err_borrow_escape"));
+    SWC_RESULT(runCompiler(fresh, ExitCode::CompileError, "sanity_err_borrow_escape"));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
+const Value = #run Provider.dormant()
+#main
+{
+    Swag.print("demand=", Value, "/", Provider.dormant(), "/", (expect Provider.propagated()))
+}
+)"));
+    SWC_RESULT(runCompiler(warm, ExitCode::Success, "demand=73/73/45"));
+    SWC_RESULT(runCompiler(fresh, ExitCode::Success, "demand=73/73/45"));
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_DeferredSourceBodyUsesDeclarationSafety)
+{
+    const LinkerTestDirectory directory("deferred_body_safety");
+    SWC_RESULT(directory.write("modules/provider/module.swg", "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None }\n"));
+    SWC_RESULT(directory.write("modules/app/module.swg", "#import(\"provider\")\n"));
+    SWC_RESULT(directory.write("modules/provider/src/functions.swg", R"(
+#[Swag.NoInline]
+public func narrow(value: s32)->s8
+{
+    return cast(s8, value)
+}
+public func initial()->s32 => 17
+)"));
+    const std::vector<Utf8> warm = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                    "-bc", "release", "--num-cores", "1"};
+    auto fresh = warm;
+    fresh.push_back("--rebuild");
+    SWC_RESULT(directory.write("modules/app/src/main.swg", "#main { Swag.print(\"initial=\", Provider.initial()) }\n"));
+    SWC_RESULT(runCompiler(fresh, ExitCode::Success, "initial=17"));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
+func enableOverflow()->s32
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.safetyGuards = .Overflow
+    return 300
+}
+const Input = #run enableOverflow()
+#main { Swag.print("narrowed=", Provider.narrow(Input)) }
+)"));
+    SWC_RESULT(runCompiler(warm, ExitCode::Success, "narrowed=44"));
+    SWC_RESULT(runCompiler(fresh, ExitCode::Success, "narrowed=44"));
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Workspace_LoadsSharedFileInEachSourceGroup)
 {
     const LinkerTestDirectory directory("shared_source_load");

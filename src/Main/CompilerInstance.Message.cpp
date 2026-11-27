@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaJob.h"
+#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -482,6 +483,8 @@ Runtime::BuildCfg* CompilerInstance::runtimeCompilerGetBuildCfg(CompilerInstance
 void CompilerInstance::runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str)
 {
     SWC_ASSERT(owner != nullptr);
+    if (owner->semaBodyCache_)
+        owner->semaBodyCache_->recordInput();
     const TaskContext* currentCtx = TaskContext::current();
     if (!currentCtx || !currentCtx->hasCompiler())
         return;
@@ -778,6 +781,8 @@ void CompilerInstance::onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol)
 void CompilerInstance::beginSourceSemanticPass(const uint32_t sourceOwner)
 {
     // The preceding group's semantic jobs and callbacks have reached their barrier.
+    if (semaBodyCache_)
+        semaBodyCache_->beginOwner(sourceOwner);
     semanticPassSourceOwner_ = sourceOwner;
     compilerMessageExecutedPassMask_.fetch_and(~compilerMessageBit(Runtime::CompilerMsgKind::PassAfterSemantic), std::memory_order_release);
 }

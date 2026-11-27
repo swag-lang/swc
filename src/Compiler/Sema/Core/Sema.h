@@ -293,6 +293,7 @@ public:
     const CompilerInstance& compiler() const { return ctx().compiler(); }
 
     const Runtime::BuildCfg&        buildCfg() const;
+    void                            setBuildConfigOverride(const Runtime::BuildCfg& cfg) { buildConfigOverride_ = &cfg; }
     Runtime::SafetyWhat             runtimeSafetyGuards() const;
     const Runtime::BuildCfgBackend& buildCfgBackend() const { return buildCfg().backend; }
     Runtime::BuildCfgBackendKind    buildCfgBackendKind() const { return buildCfg().backendKind; }
@@ -836,8 +837,9 @@ private:
 
     SemaScopeArena            scopeArena_;
     std::vector<SemaScopePtr> scopes_;
-    SymbolMap*                startSymMap_ = nullptr;
-    SemaScope*                curScope_    = nullptr;
+    SymbolMap*                 startSymMap_         = nullptr;
+    SemaScope*                 curScope_            = nullptr;
+    const Runtime::BuildCfg*   buildConfigOverride_ = nullptr;
 
     bool declPass_              = false;
     bool rootVisitDone_         = false;

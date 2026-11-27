@@ -25,6 +25,7 @@ class Job;
 class Diagnostic;
 class SourceView;
 class Sema;
+class SemaBodyCache;
 class TaskContext;
 class TypeManager;
 class TypeGen;
@@ -401,6 +402,9 @@ public:
     // Appends a position text that every build of the same sources spells the same way.
     void appendStableSourceIdentity(Utf8& out, const SourceCodeRef& codeRef) const;
 
+    void                     appendBuildConfigCacheIdentity(ByteArray& out) const;
+    void                     prepareSemaBodyCache(std::span<SourceFile* const> files);
+    SemaBodyCache*           semaBodyCache() const { return semaBodyCache_.get(); }
     void                     beginSourceSemanticPass(uint32_t sourceOwner);
     bool                     canSeeSourceOwner(uint32_t from, uint32_t owner) const;
     bool                     hasSourceDependencies() const { return sourceDependencyPlan_ != nullptr; }
@@ -535,6 +539,7 @@ private:
 
     const SourceDependencyPlan*                sourceDependencyPlan_ = nullptr;
     std::unique_ptr<SourceDependencyPlan>       ownedSourceDependencyPlan_;
+    std::unique_ptr<SemaBodyCache>              semaBodyCache_;
     const CommandLine*                          cmdLine_ = nullptr;
     const Global*                               global_  = nullptr;
     std::vector<std::unique_ptr<SourceFile>>    files_;

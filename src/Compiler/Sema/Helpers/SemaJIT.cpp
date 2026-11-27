@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCallArgument.h"
+#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
@@ -738,6 +739,7 @@ namespace
 
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
     {
+        SemaBodyCache::recordEffect(sema);
         TaskContext& ctx = sema.ctx();
 
         // This version is published only after the runtime setup and this root's
@@ -1566,6 +1568,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     payload.resultStorage.resize(resultMeta.resultSize);
     if (calledFn.isForeign())
     {
+        SemaBodyCache::recordEffect(sema);
         const JITReturn jitReturn = {.typeRef = exprTypeRef, .valuePtr = payload.resultStorage.data()};
         SWC_RESULT(emitForeignConstExprCall(sema, calledFn, payload.jitArgs.span(), jitReturn));
         verifyJitFoldRedzones(sema, calledFn, payload.argStorage);

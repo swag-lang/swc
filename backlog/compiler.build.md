@@ -478,7 +478,7 @@ before relying on them.
   faster but intermittently failed to resolve a pointer parameter or fold the count.
   In an earlier series the PNG-decoding script took a median 3.48 s, including 3.12 s of sema
   over 1,073 files, with a median peak of 1,131 MiB RSS.
-- Only runtime bodies and generic-instance methods are analyzed on demand
+- Runtime bodies and generic-instance methods were the first to be analyzed on demand
   (`canDelayFunctionBody`). A prototype deferred every source-dependency body, free functions
   and methods: call sites kept only the signature, native code generation analyzed reached
   bodies through `SemaJob` jobs, and `Sema::waitDone` analyzed the callees that deferred
@@ -486,7 +486,7 @@ before relying on them.
   analyzed about 5,600; 32,006 and about 18,000 entries for `gui1`. CPU time fell from about
   12.5 s to 7.5 s on the PNG script, but rose from about 24.8 s to 32.5 s on the `gui1` edit:
   paused bodies were resumed repeatedly and the extra analysis ran in 42 drained waves instead
-  of 16. The prototype is not merged. A later trace found 3,094 completed pure functions
+  of 16. The prototype was kept out of the compiler. A later trace found 3,094 completed pure functions
   without native or JIT code in `gui1`, and 2,436 in PNG. A scratch experiment deferred
   previously unreached bodies at 604 and 577 source locations, respectively. Two warm
   pairs on each workload showed no consistent gain. Source locations also combine some
@@ -527,12 +527,15 @@ before relying on them.
   saved 5.4% on `gui1` by median paired time before accounting for concurrent relocation
   publication. The guarded variant saved 0.7% and used more CPU. The progressive variant
   regressed `gui1` by 13.3% in median time. Focus reuse earlier than JIT graph discovery.
-- Next: start with completed ordinary bodies in the runtime and source dependencies. Record
-  dependencies as phase-specific fingerprints, including successful and failed lookups, overload
-  membership, layout, constants, generic arguments, inline and macro bodies, and compiler hook
-  inputs. Try reuse before body analysis and lowering. Measure time saved and lookup and
-  restoration cost on applications and scripts that share the same dependency.
-  Workspace artifact reuse now checks filesystem change times alongside write times and
+- Executable builds record ordinary source-dependency function bodies that passed semantic
+  checks without being emitted or performing compile-time work. The archive keys the exact
+  parsed bytes of visible source groups and the runtime, their visibility, the target, build
+  configuration, and warning policy. A warm build rechecks declarations and signatures and
+  delays eligible bodies until demanded. A demanded body resumes with its declaration's
+  namespace, attributes, and build configuration. Groups that observe external input or
+  compiler messages still check their bodies eagerly. Generic instantiation, macro expansion,
+  compile-time execution, and diagnostics prevent publication of the affected bodies.
+- Workspace artifact reuse now checks filesystem change times alongside write times and
   verifies the manifest's checksum. A same-size private-body edit with a restored write time
   updates both the `#run` result and the executable. An added overload changes the selected
   call, a signature edit matches a forced build's diagnostic, and a damaged manifest that

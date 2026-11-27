@@ -8,6 +8,7 @@
 #include "Compiler/ModuleApi/ModuleApi.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
+#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
@@ -98,8 +99,8 @@ namespace
 
     // Every string a build configuration carries, in one place: ownership, the setup cache
     // writer and its reader all walk the same list, so a field added here reaches all three.
-    template<typename Visit>
-    void visitBuildCfgStrings(Runtime::BuildCfg& buildCfg, Visit&& visit)
+    template<typename Config, typename Visit>
+    void visitBuildCfgStrings(Config& buildCfg, Visit&& visit)
     {
         visit(buildCfg.moduleNamespace);
 
@@ -1726,10 +1727,51 @@ std::set<fs::path> CompilerInstance::moduleSetupLoadedFiles() const
     return moduleSetupLoadedFiles_;
 }
 
+void CompilerInstance::appendBuildConfigCacheIdentity(ByteArray& out) const
+{
+    const auto& cfg = buildCfg();
+    out.appendLe32(cfg.moduleVersion);
+    out.appendLe32(cfg.moduleRevision);
+    out.appendLe32(cfg.moduleBuildNum);
+    out.appendLe32(cfg.ignoreInWorkspace);
+    out.appendLe32(cfg.tempAllocatorCapacity);
+    out.appendLe32(cfg.errorAllocatorCapacity);
+    out.appendLe32(static_cast<uint32_t>(cfg.safetyGuards));
+    out.appendLe32(static_cast<uint32_t>(cfg.sanityGuards));
+    out.appendLe32(cfg.allocatorCaptureStack);
+    out.appendLe32(cfg.allocatorLeaks);
+    out.appendLe32(cfg.allocatorTrackAllocations);
+    out.appendLe32(cfg.allocatorElectricMode);
+    out.appendLe32(cfg.allocatorFillMemory);
+    out.appendLe32(cfg.errorStackTrace);
+    out.appendLe32(static_cast<uint32_t>(cfg.backendKind));
+    out.appendLe32(static_cast<uint32_t>(cfg.backendSubKind));
+    cfg.backend.appendCacheIdentity(out);
+
+    const auto& doc = cfg.genDoc;
+    out.appendLe32(static_cast<uint32_t>(doc.kind));
+    out.appendLe32(doc.syntaxDefaultColor);
+    out.appendLe32(std::bit_cast<uint32_t>(doc.syntaxColorLum));
+    out.appendLe32(doc.accentColor);
+    out.appendLe32(static_cast<uint32_t>(doc.theme));
+    out.appendLe32(doc.hasSwagWatermark);
+    out.appendLe32(doc.hasSymbolIndex);
+    out.appendLe32(doc.hasSearch);
+
+    visitBuildCfgStrings(cfg, [&out](const Runtime::String& value) {
+        out.appendLe32(value.ptr != nullptr);
+        out.appendLe64(value.length);
+        if (value.ptr && value.length)
+            out.append(std::string_view(value.ptr, value.length));
+    });
+}
+
 void CompilerInstance::registerCompilerInputFile(const fs::path& filePath, std::optional<std::span<const std::byte>> contents)
 {
     if (filePath.empty())
         return;
+    if (semaBodyCache_)
+        semaBodyCache_->recordInput();
 
     const fs::path normalizedPath = FileSystem::normalizePath(filePath);
     const auto     checksum       = moduleSetupMode_ && contents ? std::optional{sha256(*contents)} : std::nullopt;

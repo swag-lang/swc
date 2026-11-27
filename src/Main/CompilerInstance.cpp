@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaJob.h"
+#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -22,6 +23,7 @@
 #include "Compiler/Verify.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerCache.h"
 #include "Main/CompilerCacheStore.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
@@ -389,6 +391,13 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 
 CompilerInstance::~CompilerInstance()
 {
+    if (semaBodyCache_)
+    {
+        std::unordered_set<uint32_t> messageOwners;
+        for (const auto& listener : compilerMessageListeners_)
+            messageOwners.insert(listener.sourceOwner);
+        semaBodyCache_->publish(nativeCodeSegment_, messageOwners);
+    }
     CompilerCacheStore::flushAll();
     // Generated TLS cleanup reads this instance's code and globals, such as the runtime
     // allocator's thread heap. Retire its values and wait for active cleanup before unmapping
@@ -414,6 +423,20 @@ CompilerInstance::~CompilerInstance()
     globalInitSegment_.fill(std::byte{0xCD});
     compilerSegment_.fill(std::byte{0xCD});
 #endif
+}
+
+void CompilerInstance::prepareSemaBodyCache(std::span<SourceFile* const> files)
+{
+    if (!hasSourceDependencies() || isModuleSetupMode() ||
+        buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
+        cmdLine().semaOnly || !cmdLine().output || !cmdLine().printMicro.empty() ||
+        cmdLine().targetArch != Runtime::TargetArch::X86_64)
+        return;
+
+    const auto command = cmdLine().command;
+    if ((command == CommandKind::Build || command == CommandKind::Run || command == CommandKind::Smoke) &&
+        !compilerCacheIdentity().empty())
+        semaBodyCache_ = std::make_unique<SemaBodyCache>(*this, files);
 }
 
 size_t CompilerInstance::numPerThreadData() const noexcept

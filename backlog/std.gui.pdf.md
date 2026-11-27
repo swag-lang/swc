@@ -602,6 +602,11 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   every supported Swag raster checksum. The remaining curve and transformed-text
   gaps call for reducing compound stroke and glyph scan conversion work. Keeping
   encoded images available could let bitmap rendering decode at the requested size.
+- Merging equally oriented intervals in the CPU scan converter reduces the compound curve
+  page from 688 to 645 ms at 1200 px and from 1484 to 1405 ms at 2400 px. In the same
+  one-core series PDFium takes 231 and 448 ms. At 1200 px, 60 of 61 supported pages keep
+  their previous bitmap checksum. The remaining forms page differs by at most one byte per
+  color channel because overlapping spans add their coverage in a different order.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

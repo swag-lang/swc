@@ -476,18 +476,26 @@ before relying on them.
   over 1,072 files; JIT took 0.35 s. No-op `gui1` builds took 18 ms. The CPU profile is flat
   (no symbol above 2.4%): the cost is the volume of bodies analyzed, not one hot path.
 - Only runtime bodies and generic-instance methods are analyzed on demand
-  (`canDelayFunctionBody`); every body of an imported source group is analyzed even when
-  nothing reaches it. Allowing source-dependency bodies (`sourceOwner() != 0`) to be lazy
-  failed in three ways: an unbounded `where` re-evaluation loop for methods, callers reading
-  body-derived facts (fallibility at `try`, copy ownership through `opDrop`) before demanding
-  the callee, and `sema_err_stalled_dependency` cycles because each call site completes the
-  callee body (`Sema::completeLazyFunction` in `semaCallExprCommon`), so mutually recursive
-  bodies wait on each other. Context reconstruction for on-demand bodies was also wrong for
-  nested namespaces; that part is fixed.
-- Next for the lazy route: make call sites depend on the signature only and move body demand
-  to the consumers of body facts (codegen reachability, borrow and effect summaries), with
-  cycles resolved as eager analysis resolves them. Then retry dependency bodies, free
-  functions first, and measure both workloads above.
+  (`canDelayFunctionBody`). A prototype deferred every source-dependency body, free functions
+  and methods: call sites kept only the signature, native code generation analyzed reached
+  bodies through `SemaJob` jobs, and `Sema::waitDone` analyzed the callees that deferred
+  borrow checks read before judging them. It deferred 15,884 bodies of the PNG script and
+  analyzed about 5,600; 32,006 and about 18,000 entries for `gui1`. CPU time fell from about
+  12.5 s to 7.5 s on the PNG script, but rose from about 24.8 s to 32.5 s on the `gui1` edit:
+  paused bodies were resumed repeatedly and the extra analysis ran in 42 drained waves instead
+  of 16. The prototype is not merged.
+- `gui1` spends most semantic time in compile-time evaluation, not in unreached bodies. Its
+  `gui` source group took about 5 to 7 s of the warm sema. `prepareJitFunction` accumulated
+  13 to 23 s of worker time; 566 evaluations of the `#static if` condition inside the
+  `Array.opVisit` macro, one per expansion, accounted for about 8.7 s, and 114 evaluations of
+  `signalParameterType` from the `SigArray` `#ast` for about 4.7 s. Each evaluation of
+  `Reflection.isStruct(T)` builds a 404-function JIT order, because any root with calls adds
+  every global function-initializer target, and usually pauses and rebuilds it. Rewriting
+  the condition as `#typeof(T).kind == .Struct` still goes through the JIT.
+- Next: evaluate a compile-time condition or `#ast` once per source expression and generic
+  binding, and fold reads of constant type information during semantic analysis. Then retry
+  deferred dependency bodies with the call-site and escape-check changes above, and measure
+  CPU time rather than wall time on the shared host.
 - Versioning JIT constant relocation metadata by allocation region reduced median warm time
   by 1.2% to 4.9% on a `gui1` edit and by 0.9% to 1.0% on a PNG script rerun, across two Linux
   Release series with four workers and five paired runs each. Instrumented runs avoided about

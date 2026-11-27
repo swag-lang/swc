@@ -59,13 +59,11 @@ before relying on them.
   representation in compiler.optimization.107 with explicit call targets, frame storage and
   memory operations. Validate callee ABI and effects, storage layouts and referenced constants
   before loading emitted code.
-- Coverage: on a warm `gui1` rebuild, 274 reflection-heavy key attempts hit the limit of 4,096
-  constant allocations. Those misses used about 1.60 CPU seconds to build keys and
-  0.91 CPU seconds to emit code. Start with constants used solely as opaque ABI arguments.
-  Keep relocation identity, allocation size, alignment and interior offset in the key and
-  rebind the current payload. Extend coverage by recording the byte ranges and alias facts
-  actually read by optimization and static sanity. Fall back to the full constant graph
-  when uses cannot be classified.
+- The machine key covers directly referenced allocations, including readable bytes, pointer
+  slots and allocation identities. Native layout and JIT patching rebind the current pointer
+  graph. This increased warm `gui1` reuse from 9,399 to 9,730 of 9,813 functions in a
+  three-pair Release comparison. The remaining lookup still pays for fresh semantic analysis
+  and Micro lowering.
 - Done when: warm builds skip the corresponding runtime IR generation, fresh and reused paths
   preserve diagnostics and native/JIT behavior, and complete compilation remains faster after
   fingerprinting and reference fixups.

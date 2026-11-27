@@ -670,6 +670,42 @@ SWC_TEST_BEGIN(ConstantFolding_ConstantAddressLoadsWithoutKnownValues)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantFolding_ConstantReadRespectsRelocatedPointerSlotAndSourceBounds)
+{
+    DataSegment& segment = ctx.cstMgr().shardDataSegment(0);
+    const auto [rootOffset, root] = segment.reserve<std::array<uint64_t, 2>>();
+    const auto [nextOffset, next] = segment.reserve<uint64_t>();
+    (*root)[0] = reinterpret_cast<uint64_t>(next);
+    (*root)[1] = 0x1234;
+    *next      = 0x5678;
+    segment.addRelocation(rootOffset, nextOffset);
+
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    const uint64_t     start = reinterpret_cast<uint64_t>(root);
+    const uint64_t     cross = reinterpret_cast<uint64_t>(next) - start;
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegPtrReloc(base, start, ctx.cstMgr().addS32(ctx, 1));
+    builder.emitLoadRegMem(MicroReg::virtualIntReg(2), base, 4, MicroOpBits::B32);
+    const MicroInstrRef pointerTail = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegMem(MicroReg::virtualIntReg(3), base, 8, MicroOpBits::B64);
+    const MicroInstrRef scalar = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegMem(MicroReg::virtualIntReg(4), base, cross, MicroOpBits::B64);
+    const MicroInstrRef unrelated = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
+
+    const auto* tailInst    = builder.instructions().ptr(pointerTail);
+    const auto* scalarInst  = builder.instructions().ptr(scalar);
+    const auto* outsideInst = builder.instructions().ptr(unrelated);
+    if (!tailInst || tailInst->op != MicroInstrOpcode::LoadRegMem ||
+        !outsideInst || outsideInst->op != MicroInstrOpcode::LoadRegMem ||
+        !scalarInst || scalarInst->op != MicroInstrOpcode::LoadRegImm ||
+        scalarInst->ops(builder.operands())[2].valueU64 != 0x1234)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 // A chain of address steps from a constant, as an unrolled counter leaves it,
 // folds whole in one run.
 SWC_TEST_BEGIN(ConstantFolding_AddressChainFromConstantFolds)

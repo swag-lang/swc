@@ -559,9 +559,9 @@ SWC_TEST_BEGIN(MachineCodeCache_IdentifiesGlobalsByAllocation)
 }
 SWC_TEST_END()
 
-// Constant shards intern their own copy of a string: which copy a load names is not
-// part of the input, but the bytes are.
-SWC_TEST_BEGIN(MachineCodeCache_IdentifiesPointerFreeConstantsByContent)
+// Two loads of equal bytes can still name distinct allocations. The key preserves
+// that distinction without depending on which shards own the copies.
+SWC_TEST_BEGIN(MachineCodeCache_PreservesPointerFreeAllocationSharing)
 {
     auto*          caller = makeCacheFunction(ctx, "cacheLeafCaller");
     const uint32_t copyA  = ctx.cstMgr().shardDataSegment(0).addString("cache leaf").second;
@@ -574,15 +574,16 @@ SWC_TEST_BEGIN(MachineCodeCache_IdentifiesPointerFreeConstantsByContent)
     emitConstantLoad(ctx, twoCopies, 1, 1, copyB);
     emitConstantLoad(ctx, changed, 0, 0, copyA);
     emitConstantLoad(ctx, changed, 1, 1, other);
-    const Utf8 key = cacheKey(ctx, *caller, sameCopy);
-    if (key.empty() || key != cacheKey(ctx, *caller, twoCopies) || key == cacheKey(ctx, *caller, changed))
+    const Utf8 key         = cacheKey(ctx, *caller, sameCopy);
+    const Utf8 distinctKey = cacheKey(ctx, *caller, twoCopies);
+    if (key.empty() || distinctKey.empty() || key == distinctKey || distinctKey == cacheKey(ctx, *caller, changed))
         return Result::Error;
 }
 SWC_TEST_END()
 
-// Pointer addresses and shard placement are incidental; graph edges, interior
-// offsets and scalar bytes must still distinguish cached inputs.
-SWC_TEST_BEGIN(MachineCodeCache_TracksRelocatedConstantGraphs)
+// Runtime relocations follow the current graph from the rebound root. The
+// code identity depends on readable bytes and slot locations in that root.
+SWC_TEST_BEGIN(MachineCodeCache_IgnoresDescendantsOfRelocatedConstantSlots)
 {
     auto*               caller = makeCacheFunction(ctx, "cacheGraphCaller");
     std::array<Utf8, 5> keys;
@@ -606,7 +607,68 @@ SWC_TEST_BEGIN(MachineCodeCache_TracksRelocatedConstantGraphs)
         if (keys[variant].empty())
             return Result::Error;
     }
-    if (keys[0] != keys[1] || keys[0] == keys[2] || keys[0] == keys[3] || keys[0] == keys[4])
+    if (keys[0] != keys[1] || keys[0] != keys[2] || keys[0] != keys[3] || keys[0] == keys[4])
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_RebindsConstantRootAfterPointeeEdit)
+{
+    ModuleCacheFixture producer(ctx, "cacheConstantGraph");
+    ModuleCacheFixture consumer(ctx, "cacheConstantGraph");
+
+    const auto makeRoot = [](TaskContext& buildCtx, const uint32_t shard, const uint64_t value) {
+        DataSegment& segment = buildCtx.cstMgr().shardDataSegment(shard);
+        const auto [leafOffset, leaf] = segment.reserve<uint64_t>();
+        const auto [rootOffset, root] = segment.reserve<uint64_t>();
+        *leaf = value;
+        *root = reinterpret_cast<uint64_t>(leaf);
+        segment.addRelocation(rootOffset, leafOffset);
+        return rootOffset;
+    };
+    const uint32_t producerRoot = makeRoot(*producer.context, 0, 17);
+    const uint32_t consumerRoot = makeRoot(*consumer.context, 1, 23);
+
+    MicroBuilder producerBody(*producer.context);
+    MicroBuilder consumerBody(*consumer.context);
+    emitConstantLoad(*producer.context, producerBody, 0, 0, producerRoot);
+    emitConstantLoad(*consumer.context, consumerBody, 0, 1, consumerRoot);
+    MachineCodeCache writeCache(*producer.context, *producer.function, producerBody);
+    MachineCodeCache readCache(*consumer.context, *consumer.function, consumerBody);
+
+    MachineCode original;
+    original.bytes.resize(sizeof(uint64_t), std::byte{0});
+    original.codeRelocations = producerBody.codeRelocations();
+    writeCache.write(original);
+
+    MachineCode restored;
+    if (!readCache.read(restored) || restored.bytes != original.bytes || restored.codeRelocations.size() != 1)
+        return Result::Error;
+    const MicroRelocation& rebound = restored.codeRelocations.front();
+    const auto&            segment = consumer.context->cstMgr().shardDataSegment(1);
+    const auto*            root    = segment.ptr<const uint64_t>(consumerRoot);
+    if (rebound.constantShard != 1 || rebound.constantOffset != consumerRoot ||
+        rebound.targetAddress != reinterpret_cast<uint64_t>(root) || *reinterpret_cast<const uint64_t*>(*root) != 23)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MachineCodeCache_PreservesConstantRefSharing)
+{
+    auto* caller = makeCacheFunction(ctx, "cacheConstantRefCaller");
+    const uint32_t offset = ctx.cstMgr().shardDataSegment(0).addString("same allocation").second;
+    MicroBuilder shared(ctx);
+    MicroBuilder distinct(ctx);
+    for (MicroBuilder* builder : {&shared, &distinct})
+    {
+        emitConstantLoad(ctx, *builder, 0, 0, offset);
+        emitConstantLoad(ctx, *builder, 1, 0, offset);
+    }
+    distinct.codeRelocations().back().constantRef = ctx.cstMgr().addS32(ctx, 2);
+
+    const Utf8 sharedKey   = cacheKey(ctx, *caller, shared);
+    const Utf8 distinctKey = cacheKey(ctx, *caller, distinct);
+    if (sharedKey.empty() || distinctKey.empty() || sharedKey == distinctKey)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -628,7 +690,7 @@ SWC_TEST_BEGIN(MachineCodeCache_PreservesConstantLeafAlignmentBytesAndOffsets)
             secondBytes[5] = std::byte{'x'};
         MicroBuilder builder(ctx);
         emitConstantLoad(ctx, builder, 0, shard, first);
-        emitConstantLoad(ctx, builder, 1, shard, variant == 0 ? first : second + (variant == 4 ? 1 : 0));
+        emitConstantLoad(ctx, builder, 1, shard, second + (variant == 4 ? 1 : 0));
         keys[variant] = cacheKey(ctx, *caller, builder);
         if (keys[variant].empty())
             return Result::Error;

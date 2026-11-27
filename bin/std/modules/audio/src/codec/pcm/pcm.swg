@@ -1,6 +1,6 @@
 //! Format: Pulse-code modulation conversion codec.
-//! Supported: Unsigned PCM8, signed little-endian PCM16/24/32, IEEE Float32, and G.711 converted to interleaved PCM16.
-//! Not supported: Big-endian PCM, Float64, packet codecs, channel remixing, and sample-rate conversion.
+//! Supported: Unsigned PCM8, signed little-endian PCM16/24/32, IEEE Float32/64, and G.711 converted to interleaved PCM16.
+//! Not supported: Big-endian PCM, packet codecs, channel remixing, and sample-rate conversion.
 //! Role: This file owns SIMD/scalar sample conversion and streaming progress accounting.
 //
 using Core, Core.Errors, Core.Math
@@ -36,6 +36,27 @@ private const MuLawSamples: [256] s16 = #run
         result[index] = cast(s16, code & 0x80 ? -magnitude : magnitude)
     }
     return result
+}
+
+private func float64ToPcm16(bits: u64)->s16
+{
+    // Classify the bits before floating-point arithmetic so guarded builds treat NaNs the same way.
+    const MagnitudeMask = 0x7FFF_FFFF_FFFF_FFFF_u64
+    const Infinity      = 0x7FF0_0000_0000_0000_u64
+    const Unity         = 0x3FF0_0000_0000_0000_u64
+    let magnitude = bits & MagnitudeMask
+    if magnitude >= Unity
+    {
+        if magnitude > Infinity
+        {
+            return 0
+        }
+
+        return bits >> 63 ? Swag.S16.Min : Swag.S16.Max
+    }
+
+    let sample = cast #bit(f64, bits) * 32768.0_f64
+    return cast(s16, cast #wrap(s32, sample))
 }
 
 private func(SampleBytes: s32, SourceEncoding: SoundFileEncoding) convertSamples(destination: [*] void,
@@ -138,6 +159,9 @@ private func(SampleBytes: s32, SourceEncoding: SoundFileEncoding) convertSamples
             let clampedSample = cast #wrap (s32, sample)
             outputSamples[0] = cast(s16, clampedSample)
 
+        case .Float64:
+            outputSamples[0] = float64ToPcm16(cast(const [*] u64, sourceBytes)[0])
+
         default:
             #assert(false)
         }
@@ -160,7 +184,7 @@ impl ICodec for CodecPcmToPcm16
     {
         switch encoding
         {
-        case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32, .ALaw, .MuLaw: return true
+        case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32, .Float64, .ALaw, .MuLaw: return true
         default: return false
         }
     }
@@ -184,6 +208,7 @@ impl ICodec for CodecPcmToPcm16
         case .Pcm24:   return convertSamples!{3, Pcm24}(destination, destinationSize, source, sourceSize)
         case .Pcm32:   return convertSamples!{4, Pcm32}(destination, destinationSize, source, sourceSize)
         case .Float32: return convertSamples!{4, Float32}(destination, destinationSize, source, sourceSize)
+        case .Float64: return convertSamples!{8, Float64}(destination, destinationSize, source, sourceSize)
         default:       fail UnsupportedFormatError{"invalid encoding"}
         }
     }

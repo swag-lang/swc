@@ -47,7 +47,7 @@ impl Voice
         let file = unwrap voice.file
         switch file.encoding
         {
-        case .AacLc, .ALaw, .MuLaw: voice.requestedEncoding = .Pcm16
+        case .AacLc, .ALaw, .MuLaw, .Float64: voice.requestedEncoding = .Pcm16
         default:                  voice.requestedEncoding = file.encoding
         }
         if not voice.handle

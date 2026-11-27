@@ -5,6 +5,9 @@ default `preloadData: true`, it also keeps the payload of a PCM, float, or G.711
 memory. Pass `preloadData: false` for long sounds that should be read from disk while they play.
 Packet formats, including ADPCM WAVE, are always indexed and streamed.
 
+Converting a Float64 WAVE sample to PCM16 scales it by 32,768, truncates toward zero,
+and saturates to the signed 16-bit range. NaN samples produce silence.
+
 ```swag
 let music = try Audio.SoundFile.load("assets/music.wav", preloadData: false)
 let voice = try Audio.Voice.create(&music)

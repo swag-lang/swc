@@ -1,6 +1,6 @@
 //! Format: RIFF/WAVE sound-file decoder.
-//! Supported: PCM8/16/24/32, IEEE Float32, and G.711 A-law and mu-law in classic and extensible headers. Microsoft and IMA ADPCM blocks are indexed as packets.
-//! Not supported: Other compressed WAVE codecs, IEEE Float64, RF64/WAVE64, big-endian RIFX, and multiple data segments.
+//! Supported: PCM8/16/24/32, IEEE Float32/64, and G.711 A-law and mu-law in classic and extensible headers. Microsoft and IMA ADPCM blocks are indexed as packets.
+//! Not supported: Other compressed WAVE codecs, RF64/WAVE64, big-endian RIFX, and multiple data segments.
 //! Role: This file owns RIFF chunk traversal, WAVE format validation, metadata, and SoundFile construction.
 //
 #global namespace Wav
@@ -180,12 +180,12 @@ private func encodingOf(tag, bitsPerSample: u32)->SoundFileEncoding fail
         }
 
     case WAVE_FORMAT_IEEE_FLOAT:
-        if bitsPerSample != 32
+        switch bitsPerSample
         {
-            fail UnsupportedFormatError{"unsupported float bitPerSample"}
+        case 32: return .Float32
+        case 64: return .Float64
+        default: fail UnsupportedFormatError{"unsupported float bitPerSample"}
         }
-
-        return .Float32
 
     case WAVE_FORMAT_ALAW, WAVE_FORMAT_MULAW:
         if bitsPerSample != 8
@@ -323,7 +323,7 @@ private func parseFormat(bytes: const [..] u8)->Format fail
     result.encoding = try encodingOf(classicTag, result.bitsPerSample)
     switch result.encoding
     {
-    case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32, .ALaw, .MuLaw:
+    case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32, .Float64, .ALaw, .MuLaw:
         if result.hasExtensible and result.validBits > result.bitsPerSample
         {
             fail InvalidFormatError{"WAV valid sample width exceeds its container width"}

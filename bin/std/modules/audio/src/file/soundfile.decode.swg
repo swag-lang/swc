@@ -72,6 +72,7 @@ impl SoundFile
         case .Pcm24:   bytesPerSample = 3
         case .Pcm32:   bytesPerSample = 4
         case .Float32: bytesPerSample = 4
+        case .Float64: bytesPerSample = 8
         default:       fail UnsupportedFormatError{"unsupported sound encoding"}
         }
 

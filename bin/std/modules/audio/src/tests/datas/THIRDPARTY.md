@@ -276,3 +276,21 @@ format. FFmpeg and libopus generated only the fixtures and are not build or runt
 - `opus-stereo-hybrid.opus` SHA-256: `46a38b2e33b943ad20f313d2cdc331c6026da67f49da537d90495c9a1c183cf1`
 - `opus-transient-48000.opus` SHA-256: `330464417a632d26350ab67648ebf86a7672c8b1ed6a3a5c0e470936d7806e9e`
 - License: same as this repository.
+
+## IEEE Float64 WAVE
+
+`wav-float64.wav` and `wav-float64-extensible.wav` are synthetic 48 kHz stereo files containing
+8 frames. Both files use the same finite values on the PCM16 quantization grid, including
+signed zero and samples that saturate. The extensible header uses the standard IEEE float
+subformat and the stereo speaker mask 0x3. FFmpeg 9.1 (source `74e4393595cf2b5857f0da925c4e0dd74ea306e5`)
+produces the same interleaved S16LE reference from both headers.
+
+`wav-float64-edge-values.wav` is an 11-frame stereo fixture. It exercises truncation on either
+side of the first nonzero PCM16 value, saturation of finite extremes and infinities, quiet and
+signaling NaNs, and the smallest positive and negative subnormals. Its expected PCM is defined
+in the Float64 conversion test.
+
+- `wav-float64-edge-values.wav` SHA-256: `e376de0ed1a95e290fe729ad23c5c56b3a46e226c2122f38913ffeb8eaa94c1b`
+- `wav-float64-extensible.wav` SHA-256: `084ef6a006b6ce561239e0052eabbe70f9826b487a709bda8c2a5794cb0c75bc`
+- `wav-float64.pcm` SHA-256: `793427fdcc86fb43aa4f6caa6864828cac2f93726f2f3c48c357747d153d1756`
+- `wav-float64.wav` SHA-256: `42c62c2e82642e26fdc5d573ae3d2a67504cf5bddde65a961b2d9b9eb718c0fd`

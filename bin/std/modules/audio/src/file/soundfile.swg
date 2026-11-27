@@ -104,6 +104,7 @@ enum SoundFileEncoding
     Opus         // Opus packets, raw or inside Ogg pages.
     ALaw         // G.711 A-law, one companded byte per sample.
     MuLaw        // G.711 mu-law, one companded byte per sample.
+    Float64      // IEEE 64-bit floating-point samples.
 }
 
 // Configures an indexed compressed sound stream.

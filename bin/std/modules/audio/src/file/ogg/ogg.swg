@@ -300,10 +300,14 @@ private func identify(body: const [..] u8)->StreamInfo fail
 
         var probe: Flac.Codec
         try probe.readStreamInfo(body[9 to])
-        result.kind          = .Flac
-        result.channels      = probe.info.channels
-        result.sampleRate    = probe.info.sampleRate
-        result.headerPackets = 1 + (cast(u32, body[7]) << 8) + cast(u32, body[8])
+        result.kind       = .Flac
+        result.channels   = probe.info.channels
+        result.sampleRate = probe.info.sampleRate
+        let following = (cast(u32, body[7]) << 8) | body[8]
+        if following or (body[13] & 0x80)
+        {
+            result.headerPackets = following + 1
+        }
     }
 
     return result
@@ -406,9 +410,78 @@ private struct HeaderEnd
     audioStart: u64     // Start of that page when audio follows its headers; otherwise `configEnd`.
 }
 
+// A zero Ogg FLAC header count leaves the last-block flag to identify the end of metadata.
+private func countFlacHeaders(walker: *Walker, serial: u32)->u32 fail
+{
+    let start = walker.offset
+    defer walker.offset = start
+
+    var headers       = 0_u32
+    var packetBytes   = 0_u64
+    var metadataBytes = 0_u64
+    var last          = false
+    var page: PageHeader
+    while try walker.nextStreamPage(serial, &page)
+    {
+        let body   = walker.body(&page)
+        var offset = 0_u64
+        for segment in page.segments
+        {
+            let size = page.lacing[segment]
+            if headers
+            {
+                if not packetBytes
+                {
+                    if size < 4
+                    {
+                        fail InvalidFormatError{"Ogg FLAC metadata packet has no complete block header"}
+                    }
+
+                    let kind = body[offset] & 0x7F
+                    if not kind or kind == 127 or (headers == 1 and kind != 4)
+                    {
+                        fail InvalidFormatError{"Ogg FLAC metadata packet has an invalid block type"}
+                    }
+
+                    metadataBytes = 4 + Math.make32(0, body[offset + 1], body[offset + 2], body[offset + 3])
+                    last = (body[offset] & 0x80) != 0
+                }
+
+                packetBytes += size
+                if packetBytes > metadataBytes or (size < 255 and packetBytes != metadataBytes)
+                {
+                    fail InvalidFormatError{"Ogg FLAC metadata packet size differs from its block header"}
+                }
+            }
+
+            if size < 255
+            {
+                headers += 1
+                if last
+                {
+                    return headers
+                }
+
+                packetBytes = 0
+            }
+
+            offset += size
+        }
+
+        walker.offset += page.totalBytes()
+    }
+
+    fail InvalidFormatError{"Ogg FLAC stream ends before its last metadata block"}
+}
+
 // Advances past the pages holding the codec's header packets and returns where the sound starts.
 private func skipHeaders(walker: *Walker, info: *StreamInfo)->HeaderEnd fail
 {
+    if not info.headerPackets
+    {
+        info.headerPackets = try countFlacHeaders(walker, info.serial)
+    }
+
     var completed         = 0_u32
     var sequence          = 0_u32
     var hasSequence       = false

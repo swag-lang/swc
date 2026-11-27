@@ -17,8 +17,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.041 — Reduce the remaining Y4M subsampled RGB conversion cost
 
-- Evidence: the sixteen-bit matrix comparison puts 1080p 4:2:0 at 1.71 ms per picture and 720p 4:2:2 at 0.91 ms, against 1.20 and
-  0.58 ms for libswscale. The odd full-range 4:2:0 fixture exposes a chroma placement difference.
+- Evidence: adding signed remainders before rounding puts limited 1080p 4:2:0 at
+  1.48–1.55 ms per picture and 720p 4:2:2 at 0.75–0.77 ms, against 1.20–1.28 and
+  0.55–0.56 ms for libswscale. All 216 Swag pictures match the previous decoder.
+  The odd full-range 4:2:0 fixture exposes a chroma placement difference.
 - Next: profile packed RGB stores and file input separately. Use a fixture with isolated chroma
   transitions to compare siting conventions separately from matrix rounding.
 - Done when: the 4:2:0 and 4:2:2 conversion narrows the measured gap and existing RGB pictures

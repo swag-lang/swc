@@ -355,7 +355,7 @@ private func(Shift: u32, Mono: bool, Full: bool) decodeRows(target: *Image, payl
 private struct ChromaCorrection
 {
     red, green, blue: Math.Simd.S16x8
-    redFraction, greenFraction, blueFraction: Math.Simd.S16x8
+    redRemainder, greenRemainder, blueRemainder: Math.Simd.S16x8
 }
 
 #[Swag.Inline]
@@ -381,16 +381,14 @@ private func(Full: bool) chromaCorrection8(cb, cr: const [*] u8)->ChromaCorrecti
     }
     else
     {
-        // Split coefficients at 256 so each correction and its fraction fit signed lanes.
-        let red   = 153 * v
-        let green = -100 * u + 48 * v
-        let blue  = 4 * u
-        result.red           = v + (red >> 8)
-        result.green         = (green >> 8) - v
-        result.blue          = (u << 1) + (blue >> 8)
-        result.redFraction   = red & 255
-        result.greenFraction = green & 255
-        result.blueFraction  = blue & 255
+        // Split the coefficients at 256. The luma remainder and each signed chroma
+        // remainder fit in an s16 lane even when added together.
+        result.red            = v
+        result.green          = -v
+        result.blue           = u << 1
+        result.redRemainder   = 153 * v
+        result.greenRemainder = -100 * u + 48 * v
+        result.blueRemainder  = 4 * u
     }
 
     return result
@@ -406,13 +404,11 @@ private func(Full: bool) convertSubsampled8(target: [*] u8, luma: const [*] u8, 
     const TripletHighB  = cast(U8x16, [128_u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 128, 128, 128, 128, 128, 128])
     let lumaBytes = cast #bit(U8x16, splat(cast(const [*] u64, luma)[0]))
     var y         = cast #bit(S16x8, widenLow(lumaBytes))
-    var fraction: S16x8
+    var remainder: S16x8
     #static if not Full
     {
-        y = Math.max(y - 16, splat(0_s16))
-        let remainder = 42 * y + 128
-        y        += remainder >> 8
-        fraction = remainder & 255
+        y         = Math.max(y - 16, splat(0_s16))
+        remainder = 42 * y + 128
     }
 
     var red   = y + correction.red
@@ -420,10 +416,10 @@ private func(Full: bool) convertSubsampled8(target: [*] u8, luma: const [*] u8, 
     var blue  = y + correction.blue
     #static if not Full
     {
-        // Carry the low byte into the combined value before clamping to an RGB sample.
-        red   += (fraction + correction.redFraction) >> 8
-        green += (fraction + correction.greenFraction) >> 8
-        blue  += (fraction + correction.blueFraction) >> 8
+        // Add the signed remainders before rounding, then clamp with the unsigned pack.
+        red   += (remainder + correction.redRemainder) >> 8
+        green += (remainder + correction.greenRemainder) >> 8
+        blue  += (remainder + correction.blueRemainder) >> 8
     }
 
     let rg = packUnsigned(red, green)

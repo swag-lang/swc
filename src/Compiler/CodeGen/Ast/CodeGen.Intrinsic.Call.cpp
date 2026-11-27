@@ -812,9 +812,14 @@ namespace
         const MicroReg left        = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
         const MicroReg right       = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
         const MicroReg high        = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2 + addendCount]), MicroOpBits::B64);
-        std::array<MicroReg, 2> addends{};
+        std::array<MicroReg, 2> addends;
+        size_t                  added = 0;
         for (size_t index = 0; index < addendCount; ++index)
-            addends[index] = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2 + index]), MicroOpBits::B64);
+        {
+            const AstNodeRef addendRef = children[2 + index];
+            if (!isIntrinsicIntConstantZero(codeGen, addendRef))
+                addends[added++] = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(addendRef), MicroOpBits::B64);
+        }
         SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, high, sizeof(uint64_t)));
 
         constexpr MicroReg rax     = MicroReg::intReg(0);
@@ -822,7 +827,7 @@ namespace
         MicroBuilder&      builder = codeGen.builder();
         builder.emitLoadRegReg(rax, left, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(rax, right, MicroOp::MultiplyWideUnsigned, MicroOpBits::B64);
-        for (size_t index = 0; index < addendCount; ++index)
+        for (size_t index = 0; index < added; ++index)
         {
             builder.emitOpBinaryRegReg(rax, addends[index], MicroOp::Add, MicroOpBits::B64);
             builder.emitAddCarryRegImm(rdx, 0, MicroOpBits::B64);

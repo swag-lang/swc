@@ -73,7 +73,7 @@ private const StandardEncodingHigh: [54] { code: u8, sid: u16 } = [
 //
 // A font program that ships no `cmap` is addressed through its built-in encoding, so this
 // is what turns that encoding into the Unicode map the rest of the module expects.
-private const StandardEncodingRunes: [56] { code: u8, value: u16 } = [
+private const StandardEncodingOverrides: [56] { code: u8, value: u16 } = [
     {code: 0x27, value: 0x2019}, {code: 0x60, value: 0x2018}, {code: 0xA1, value: 0x00A1}, {code: 0xA2, value: 0x00A2}, {code: 0xA3, value: 0x00A3}, {code: 0xA4, value: 0x2044},
     {code: 0xA5, value: 0x00A5}, {code: 0xA6, value: 0x0192}, {code: 0xA7, value: 0x00A7}, {code: 0xA8, value: 0x00A4}, {code: 0xA9, value: 0x0027}, {code: 0xAA, value: 0x201C},
     {code: 0xAB, value: 0x00AB}, {code: 0xAC, value: 0x2039}, {code: 0xAD, value: 0x203A}, {code: 0xAE, value: 0xFB01}, {code: 0xAF, value: 0xFB02}, {code: 0xB1, value: 0x2013},
@@ -120,21 +120,24 @@ func standardEncodingName(code: u8)->string
     return sid ? StandardStrings[sid] : ""
 }
 
-// Returns the character StandardEncoding places at `code`, or zero for an unused slot.
-func standardEncodingRune(code: u8)->rune
+private const StandardEncodingRunes: [256] u16 = #run
 {
-    for entry in StandardEncodingRunes where entry.code == code
+    var runes: [256] u16
+    for code in 0x20 until 0x7F
     {
-        return cast(rune, entry.value)
+        runes[code] = cast(u16, code)
     }
 
-    if code >= 0x20 and code < 0x7F
+    for entry in StandardEncodingOverrides
     {
-        return cast(rune, code)
+        runes[entry.code] = entry.value
     }
 
-    return 0
+    return runes
 }
+
+// Returns the character StandardEncoding places at `code`, or zero for an unused slot.
+func standardEncodingRune(code: u8)->rune => cast(rune, StandardEncodingRunes[code])
 
 // Returns the character a glyph name stands for, or zero when the name is unknown.
 //

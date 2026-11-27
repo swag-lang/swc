@@ -563,9 +563,8 @@ namespace
             return false;
         }
 
-        // Loading an explicit library may execute its initializer during relocation,
-        // before any source-level foreign call executes.
-        if (fs::path(Utf8(moduleName).c_str()).has_parent_path())
+        // Relocation can run a library initializer before a foreign call executes.
+        if (ctx.compiler().externalModuleMgr().hadUntrackedLibraryLoad())
             ctx.compiler().recordUntrackedJitEffect();
 
         outFunctionAddress = guardedForeignFunctionAddress(moduleName, functionName, functionAddress);

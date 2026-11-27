@@ -554,9 +554,10 @@ before relying on them.
   Runtime host inputs outside the guarded APIs still need tracking. Preparing an
   untaken foreign call can load a native library and run an initializer. An explicit
   library path now prevents publication of that setup snapshot or workspace manifest.
-  Linux tests ran the initializer on fresh and repeated builds. An unchanged artifact
-  can still be reused after its setup initializer runs. A library resolved by bare name
-  through a loader search directory still needs the same treatment.
+  Linux tests ran the initializer on fresh and repeated builds, both by explicit path
+  and by name through `LD_LIBRARY_PATH`. The compiler checks the loaded library path
+  and treats the host system library directories as platform dependencies. An unchanged
+  artifact can still be reused after its setup initializer runs.
   A prototype reused an analyzed short integer expression after a caller edit and missed
   after a body edit. None of the bodies in `gui1` or the PNG script met its closed-expression
   proof, so it is not merged.

@@ -1548,6 +1548,26 @@ namespace Os
         return tryLoadExternalModulePath(outModuleHandle, dllPath);
     }
 
+    bool isSystemExternalModule(void* moduleHandle)
+    {
+        if (!moduleHandle)
+            return false;
+
+        constexpr DWORD capacity = 32768;
+        std::wstring    resolved(capacity, L'\0');
+        const DWORD     resolvedLength = GetModuleFileNameW(static_cast<HMODULE>(moduleHandle), resolved.data(), capacity);
+        if (!resolvedLength || resolvedLength >= capacity)
+            return false;
+        resolved.resize(resolvedLength);
+
+        std::wstring system(capacity, L'\0');
+        const DWORD   systemLength = GetSystemDirectoryW(system.data(), capacity);
+        if (!systemLength || systemLength >= capacity)
+            return false;
+        system.resize(systemLength);
+        return FileSystem::pathEquals(fs::path(resolved).parent_path(), fs::path(system));
+    }
+
     bool getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName)
     {
         outFunctionAddress = nullptr;

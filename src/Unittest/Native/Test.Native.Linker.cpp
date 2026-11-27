@@ -2444,34 +2444,45 @@ extern "C" int probe() { return 42; }
         return Result::Error;
 
     SWC_RESULT(directory.write("modules/app/module.swg", ""));
-    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
-#[Swag.Foreign("./probe.so", callconv: .C)]
+    for (const std::string_view module : {"./probe.so", "probe.so"})
+    {
+        SWC_RESULT(directory.write("modules/app/src/main.swg", std::format(R"(
+#[Swag.Foreign("{}", callconv: .C)]
 func probe()->s32
 
 #[Swag.NoInline, Swag.Optimize(false)]
 func evaluate(enabled: bool)->s32
-{
+{{
     if enabled
-    {
+    {{
         return probe()
-    }
+    }}
     return 17
-}
+}}
 const Observed = #run evaluate(false)
-#main { Swag.print("library-result=", Observed, "\n") }
-)"));
-    for (const bool rebuild : {true, false, false})
-    {
-        std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
-                                       "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
-        if (rebuild)
-            arguments.push_back("--rebuild");
-        output.clear();
-        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode ||
-            !output.contains("compile-time library loaded") || !output.contains("library-result=17") || output.contains("module up-to-date"))
+#main {{ Swag.print("library-result=", Observed, "\n") }}
+)", module)));
+        for (const bool rebuild : {true, false})
         {
-            std::println(stderr, "[compile-time library initializer] {}", output);
-            return Result::Error;
+            std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                           "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+            if (rebuild)
+                arguments.push_back("--rebuild");
+
+            fs::path executable = Os::getExeFullName();
+            if (module == "probe.so")
+            {
+                arguments.insert(arguments.begin(), {Utf8(std::format("LD_LIBRARY_PATH={}", Utf8(fs::absolute(directory.path())))), Utf8(executable)});
+                executable = "/usr/bin/env";
+            }
+
+            output.clear();
+            if (Os::runProcess(exitCode, executable, arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode ||
+                !output.contains("compile-time library loaded") || !output.contains("library-result=17") || output.contains("module up-to-date"))
+            {
+                std::println(stderr, "[compile-time library initializer] {}", output);
+                return Result::Error;
+            }
         }
     }
 }

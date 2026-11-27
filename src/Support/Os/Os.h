@@ -135,6 +135,7 @@ namespace Os
     void     removeHostJitFunctionTable(JITMemory& executableMemory);
     void     registerExternalModuleSearchPath(const fs::path& path);
     bool     loadExternalModule(void*& outModuleHandle, std::string_view moduleName);
+    bool     isSystemExternalModule(void* moduleHandle);
     bool     getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName);
     uint64_t tlsAlloc();
     void     tlsSetValue(uint64_t id, void* value);

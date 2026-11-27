@@ -126,7 +126,9 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type0 /BaseFont /Inter /Encoding /Identity-H /DescendantFonts [6 0 R] /ToUnicode 9 0 R >>")
     addObject(&objects, 6, "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Inter /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 7 0 R /DW 750 /W [2 [1000 720]] /CIDToGIDMap 10 0 R >>")
     addObject(&objects, 7, "<< /Type /FontDescriptor /FontName /Inter /Flags 32 /FontBBox [-700 -350 2600 1200] /Ascent 968 /Descent -241 /CapHeight 728 /ItalicAngle 0 /StemV 80 /FontFile2 8 0 R >>")
-    addStreamObject(&objects, 8, "", FontBytes)
+    var zlib: Compress.ZLib
+    let packed = expect zlib.compress(FontBytes, .BestSpeed)
+    addStreamObject(&objects, 8, "/Filter /FlateDecode", packed.toSlice())
     let unicode = "2 beginbfchar\n<0002> <004F>\n<0003> <03A9>\nendbfchar\n"
     addStreamObject(&objects, 9, "", cast(const [..] u8, unicode))
 
@@ -137,6 +139,13 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     let source    = singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice())
     var document  = #move expect Document.decode(source.toSlice())
     let encoded   = expect document.encode()
+    Swag.require(Slice.findSubslice(encoded.toSlice(), packed.toSlice()) != Swag.U64.Max)
+    let file = Testing.tempFilePath("pdf-save-cid-font-", ".pdf")
+    defer discard catch File.delete(file)
+    expect document.save(file)
+    let saved = expect File.readAllBytes(file)
+    Swag.require(Slice.equals(encoded.toSlice(), saved.toSlice()))
+
     var rewritten = #move expect Document.decode(encoded.toSlice())
     let item      = onlyItem(rewritten.pages[0], .Text)
     let font      = &rewritten.pages[0].fonts[item.fontIndex]

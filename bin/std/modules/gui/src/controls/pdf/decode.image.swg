@@ -1539,7 +1539,7 @@ private func matchesJpegFrame(bytes: const [..] u8, width, height: s32, channels
 private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [..] u8, image: const *Image, canKeepSamples: bool)->u8
 {
     let colorBytes = image.pixelFormat == .Gray8 ? image.byteCount * 3 : image.byteCount
-    if not parser.retainImageStreams or
+    if not parser.retainEncodedStreams or
        raw.count >= colorBytes or
        not canKeepSamples or
        parser.dict(nodeId, "DecodeParms") != InvalidNode or
@@ -1565,7 +1565,7 @@ private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [.
 private func retainLosslessImage(parser: *PdfParser, nodeId: u32, width: s32, colorBytes: u64, channels: u8, indexed = false)->EncodedImageStream
 {
     var result: #returntype
-    if not parser.retainImageStreams or
+    if not parser.retainEncodedStreams or
        parser.dict(nodeId, "Decode") != InvalidNode or
        parser.boolean(parser.dict(nodeId, "ImageMask"), false)
     {
@@ -1794,7 +1794,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                 let ranges   = readJpegDecodeRanges(parser, decodeId, keyComponents)
                 let colorKey = try readJpegColorKey(parser, explicitMask, keyComponents)
                 var keyed    = #move keyedJpegImage(&decoded, keyComponents, ranges, colorKey)
-                if parser.retainImageStreams and
+                if parser.retainEncodedStreams and
                    raw.count < keyed.byteCount and
                    colorKey.exact and
                    (decodeId == InvalidNode or ranges.canonical) and
@@ -1893,7 +1893,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     else
     {
         var direct: Image
-        let retainIndexed = parser.retainImageStreams and
+        let retainIndexed = parser.retainEncodedStreams and
                             not deviceOnly and
                             maskId == InvalidNode and
                             explicitMask == InvalidNode

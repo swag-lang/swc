@@ -179,9 +179,19 @@ private impl Writer
 
         let number = nextObject[]
         nextObject[] += 1
-        let bytes      = #move try .zlib.compress(font.programBytes())
         let dictionary = Format.toString("/Length1 % /Filter /FlateDecode", font.programBytes().count)
-        .streamObject(number, bytes.toSlice(), dictionary.toString())
+        let retained   = font.programData.flate.toSlice()
+        if retained.count
+        {
+            let borrow = .borrowStreams and retained.count >= MinBorrowedStreamSize
+            .streamObject(number, retained, dictionary.toString(), borrow)
+        }
+        else
+        {
+            let bytes = #move try .zlib.compress(font.programBytes())
+            .streamObject(number, bytes.toSlice(), dictionary.toString())
+        }
+
         if .shareFontPrograms
         {
             .fontPrograms.add(font.programKey(), {number, font})

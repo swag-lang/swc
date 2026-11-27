@@ -35,8 +35,8 @@ impl Document
     // Decodes one complete PDF byte buffer.
     //
     // The document copies all content it retains. The input may be released after
-    // this function returns. Eligible JPEG streams are retained for saving. Encryption and
-    // embedded executable content are not supported; embedded actions are ignored.
+    // this function returns. Eligible image and font streams are retained for saving.
+    // Encryption and embedded executable content are unsupported. Embedded actions are ignored.
     func decode(bytes: const [..] u8)->Document fail
     {
         return try decodeDocument(bytes)
@@ -44,12 +44,12 @@ impl Document
 
     // Loads and decodes every page of a PDF file.
     //
-    // Eligible JPEG streams are retained for saving. Use [[Gui.Pdf.Reader.open]]
+    // Eligible image and font streams are retained for saving. Use [[Gui.Pdf.Reader.open]]
     // when pages should be decoded on demand.
     func load(fileName: string)->Document fail
     {
         var reader = #move try Reader.open(fileName)
-        reader.parser.retainImageStreams = true
+        reader.parser.retainEncodedStreams = true
         var result = Document.create()
         result.metadata = reader.metadata()
         for index in reader.pageCount()
@@ -91,8 +91,8 @@ impl Document
     // Encodes the complete document as PDF 1.7 bytes.
     //
     // The writer emits a deterministic classic cross-reference table and Flate
-    // compressed content and image streams, with eligible JPEG streams retained in
-    // their source format. Text uses the standard PDF faces and Windows-1252. For
+    // compressed content and image streams. It preserves eligible image and font
+    // streams in their source format. Text uses the standard PDF faces and Windows-1252. For
     // decoded runs outside that encoding, the writer can preserve an embedded
     // horizontal CID TrueType font and its character map. Other unsupported text fails.
     mtd const encode()->Array!{u8} fail

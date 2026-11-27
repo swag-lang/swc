@@ -26,6 +26,7 @@ struct CidFontDescriptor
 struct FontProgram
 {
     bytes: SharedBytes
+    flate: SharedBytes
     key:   String
 }
 
@@ -482,6 +483,23 @@ private func decodeEmbeddedProgram(parser: *PdfParser, streamId: u32)->FontProgr
     if bytes.count
     {
         result.key   = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(bytes.toSlice()))
+        if parser.retainEncodedStreams and
+           bytes.count >= 4 and
+           isSingleTrueTypeProgram(bytes.toSlice()) and
+           parser.dict(streamId, "DecodeParms") == InvalidNode
+        {
+            let filter = parser.name(parser.dict(streamId, "Filter"))
+            if filter == "FlateDecode" or filter == "Fl"
+            {
+                let raw = parser.nodes[streamId].stream.toSlice()
+                if raw.count and raw.count < bytes.count
+                {
+                    var flate: Array!{u8} = raw
+                    result.flate = #move SharedBytes.create(#move flate)
+                }
+            }
+        }
+
         result.bytes = #move SharedBytes.create(#move bytes)
     }
 

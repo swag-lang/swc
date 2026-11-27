@@ -161,7 +161,7 @@ func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
 {
     let defaultStyle = String.from(DEFAULT_STYLE_NAME)
     let rec = findTable(faceData, TAG_NAME)
-    if not rec
+    if not rec.tag
     {
         if not fallbackFamilyName.count
         {
@@ -198,7 +198,7 @@ func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
 func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
 {
     let rec = findTable(faceData, TAG_POST)
-    if not rec
+    if not rec.tag
     {
         if allowMissing
         {
@@ -208,8 +208,7 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
         try fault(0x94)
     }
 
-    let record    = unwrap rec
-    let postTable = try getSlice(faceData.fontBytes(), record.offset, record.length)
+    let postTable = try getSlice(faceData.fontBytes(), rec.offset, rec.length)
     if postTable.count < 32
     {
         try fault(0x9B)
@@ -240,7 +239,7 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
 func parseOS2(faceData: *FaceImpl) fail
 {
     let rec = findTable(faceData, TAG_OS2)
-    if not rec
+    if not rec.tag
     {
         return
     }
@@ -617,7 +616,7 @@ func selectCMap(cmapTable: const [..] u8, glyphCount: u32)->CMapSelection fail
 func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
 {
     let record = findTable(faceData, TAG_CMAP)
-    if not record
+    if not record.tag
     {
         if allowMissing
         {
@@ -627,8 +626,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         try fault(0x92)
     }
 
-    let table     = unwrap record
-    let cmapTable = try getSlice(faceData.fontBytes(), table.offset, table.length)
+    let cmapTable = try getSlice(faceData.fontBytes(), record.offset, record.length)
     let selection = try faceData.fontSource.cachedCMap(cmapTable, faceData.face.glyphCount)
     faceData.variationCMap = selection.variation
     if let base = selection.base
@@ -668,19 +666,17 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
 {
     let vheaRecord = findTable(faceData, TAG_VHEA)
     let vmtxRecord = findTable(faceData, TAG_VMTX)
-    if not vheaRecord and not vmtxRecord
+    if not vheaRecord.tag and not vmtxRecord.tag
     {
         return
     }
 
-    if not vheaRecord or not vmtxRecord
+    if not vheaRecord.tag or not vmtxRecord.tag
     {
         try fault(0x98)
     }
 
-    let vheaTable = unwrap vheaRecord
-    let vmtxTable = unwrap vmtxRecord
-    let vhea      = try getSlice(faceData.fontBytes(), vheaTable.offset, vheaTable.length)
+    let vhea      = try getSlice(faceData.fontBytes(), vheaRecord.offset, vheaRecord.length)
     if vhea.count < 36
     {
         try fault(0x98)
@@ -693,7 +689,7 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
         try fault(0x98)
     }
 
-    let vmtx = try getSlice(faceData.fontBytes(), vmtxTable.offset, vmtxTable.length)
+    let vmtx = try getSlice(faceData.fontBytes(), vmtxRecord.offset, vmtxRecord.length)
     let requiredBytes = cast(u64, longMetricCount) * 4 + cast(u64, glyphCount - longMetricCount) * 2
     if vmtx.count < requiredBytes
     {
@@ -908,7 +904,7 @@ private func storeKernPairs(faceData: *FaceImpl, pairs: const [..] u8)
 func parseKern(faceData: *FaceImpl) fail
 {
     let rec = findTable(faceData, TAG_KERN)
-    if not rec
+    if not rec.tag
     {
         return
     }
@@ -1392,22 +1388,17 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     let faceOffset = findFaceOffset(data, faceIndex)
 
     let numTables = readU16(data, faceOffset + 4)
-    faceData.tables.resize(numTables)
-
-    for idx in numTables
+    let directory = getSlice(data, faceOffset + 12, cast(u64, numTables) * 16)
+    var entry = cast(const [*] u32, directory.buffer)
+    for numTables
     {
-        let base   = faceOffset + 12 + cast(u64, idx) * 16
-        let offset = readU32(data, base + 8)
-        let length = readU32(data, base + 12)
-        assertRange(data, offset, length)
-
-        faceData.tables[idx].tag    = readU32(data, base + 0)
-        faceData.tables[idx].offset = offset
-        faceData.tables[idx].length = length
+        assertRange(data, Math.bigEndianToNative(entry[2]), Math.bigEndianToNative(entry[3]))
+        entry += 4
     }
+    faceData.sfntDirectory = directory
 
     let cffTable = findTable(faceData, TAG_CFF)
-    if cffTable
+    if cffTable.tag
     {
         faceData.outlineSource = .Cff
     }
@@ -1455,8 +1446,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     // `glyf` nor the `loca` index into it; everything else it declares is unchanged.
     if faceData.outlineSource == .Cff
     {
-        let record = unwrap cffTable
-        faceData.loadCff(getSlice(data, record.offset, record.length))
+        faceData.loadCff(getSlice(data, cffTable.offset, cffTable.length))
     }
     else
     {

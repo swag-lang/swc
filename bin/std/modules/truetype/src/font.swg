@@ -244,6 +244,7 @@ struct FaceImpl
     fontData:               Array!{u8}
     fontSource:             FontSource
     tables:                 Array!{TableRecord}
+    sfntDirectory:          const [..] u8?    // Validated directory borrowed from the owned sfnt bytes.
     verticalMetrics:        *VerticalMetricTable?
     ownsVerticalMetrics:    bool
     glyphLocations:         const [..] u8?
@@ -496,24 +497,42 @@ func getFaceImpl(face: *Face?)->*FaceImpl fail
 
 func getSlotImpl(slot: *GlyphSlot)->*FaceImpl fail => try getFaceImpl(slot.face)
 
-func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord?
+func findTable(faceData: const *FaceImpl, tag: u32)->TableRecord
 {
+    if let directory = faceData.sfntDirectory
+    {
+        let target = Math.nativeToBigEndian(tag)
+        var entry  = cast(const [*] u32, directory.buffer)
+        for directory.count / 16
+        {
+            if entry[0] == target
+            {
+                return {tag: tag, offset: Math.bigEndianToNative(entry[2]), length: Math.bigEndianToNative(entry[3])}
+            }
+            entry += 4
+        }
+
+        return {}
+    }
+
     for it in faceData.tables
     {
-        if it.tag == tag {
-            return it
+        if it.tag == tag
+        {
+            return it[]
         }
     }
 
-    return null
+    return {}
 }
 
 func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u8 fail
 {
-    let rec = findTable(faceData, tag)
-    if not rec {
+    let record = findTable(faceData, tag)
+    if not record.tag
+    {
         try fault(missingCode)
     }
-    let r = unwrap rec
-    return try getSlice(faceData.fontBytes(), r.offset, r.length)
+
+    return try getSlice(faceData.fontBytes(), record.offset, record.length)
 }

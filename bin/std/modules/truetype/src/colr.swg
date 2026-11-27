@@ -1,18 +1,5 @@
 using Swag, Core
 
-private func findColorTableIndex(faceData: const *FaceImpl, tag: u32)->u32
-{
-    for index in faceData.tables.count
-    {
-        if faceData.tables[index].tag == tag
-        {
-            return cast(u32, index)
-        }
-    }
-
-    return Swag.U32.Max
-}
-
 func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteIndex: u16)->Array!{ColorGlyphLayer} fail
 {
     var result: Array!{ColorGlyphLayer}
@@ -21,13 +8,12 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
         try fault(0x10)
     }
 
-    let colrIndex = findColorTableIndex(faceData, TAG_COLR)
-    if colrIndex == Swag.U32.Max
+    let colrRecord = findTable(faceData, TAG_COLR)
+    if not colrRecord.tag
     {
         return result
     }
 
-    let colrRecord = faceData.tables[colrIndex]
     let colr       = try getSlice(faceData.fontBytes(), colrRecord.offset, colrRecord.length)
     try assertRange(colr, 0, 14)
 
@@ -97,13 +83,12 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
         try fault(0x08)
     }
 
-    let cpalIndex = findColorTableIndex(faceData, TAG_CPAL)
-    if cpalIndex == Swag.U32.Max
+    let cpalRecord = findTable(faceData, TAG_CPAL)
+    if not cpalRecord.tag
     {
         try fault(0x08)
     }
 
-    let cpalRecord = faceData.tables[cpalIndex]
     let cpal       = try getSlice(faceData.fontBytes(), cpalRecord.offset, cpalRecord.length)
     try assertRange(cpal, 0, 12)
     if try readU16(cpal, 0) != 0

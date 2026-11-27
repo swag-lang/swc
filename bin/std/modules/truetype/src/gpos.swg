@@ -206,13 +206,12 @@ func hasKernLookup(bitmap: const [..] u64, lookupIndex: u16)->bool
 func parseGpos(faceData: *FaceImpl) fail
 {
     let rec = findTable(faceData, TAG_GPOS)
-    if not rec
+    if not rec.tag
     {
         return
     }
 
-    let r     = rec
-    let table = try getSlice(faceData.fontBytes(), r.offset, r.length)
+    let table = try getSlice(faceData.fontBytes(), rec.offset, rec.length)
     if table.count < 10
     {
         return

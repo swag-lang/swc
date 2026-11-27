@@ -502,7 +502,11 @@ before relying on them.
   7.34 s with the cache (1,714 to 1,717 MiB peak RSS). The PNG script took 3.55 s
   before and 3.38 s with the cache (1,139 to 1,130 MiB peak RSS). The median paired
   elapsed-time change was -1.0% on `gui1`, with mixed results, and -4.8% on PNG,
-  which improved in every pair.
+  which improved in every pair. With the foreign-call guards in a1e77511ab, six more
+  Linux Release pairs against the same baseline measured 7.39 to 7.16 s on `gui1`
+  (1,707 to 1,712 MiB peak RSS) and 3.66 to 3.33 s on PNG (1,135 to 1,144 MiB).
+  The median paired elapsed-time change was -0.4% for `gui1`, with mixed results, and
+  -8.4% for PNG, which improved in all six pairs. Both still reused 408 results.
 - Next: profile the remaining compile-time evaluations. A runtime root with calls adds every
   global function-initializer target even when its expression only reads type information.
   Caching the combined initializer order left `gui1` unchanged and slowed the PNG script by

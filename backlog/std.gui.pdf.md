@@ -307,8 +307,11 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   gains the public `cmykjpeg.pdf` page and improves the explicitly inverted stress page's
   mean RGB difference against PDFium from 20.40 to 12.49 channel levels. The other 60 pages
   have the same bitmap checksums in that comparison.
-- Remaining: grayscale, RGB, masked and resource-named DCT paths still drop their `/Decode`
-  arrays. The direct CMYK path uses a device-colour approximation without an ICC transform.
+- Direct grayscale and RGB JPEGs also apply the declared component ranges before composition.
+  The public mask page's mean RGB difference against PDFium drops from 8.64 to 1.25 levels.
+  A large default JPEG soft mask loads in 16.29 ms, down from 24.15 ms, with the same raster.
+- Color-key-masked and resource-named DCT paths and RGB `DecodeParms` remain open. The direct
+  CMYK path uses a device-colour approximation without an ICC transform.
 - Done when: each DCT image path honours `/Decode` with coverage for ranges, masks and
   colour spaces.
 - Related: std.gui.pdf.002

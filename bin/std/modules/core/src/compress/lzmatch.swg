@@ -82,10 +82,11 @@ private func matchLength(current, previous: const [*] u8, limit: u64)->u64
 
 // Copies a validated LZ back-reference, extending a repeated prefix when it overlaps the output.
 #[Swag.Inline]
-func copyLzMatch(output: [*] u8, distance, length: u64)
+func(BulkLongMatches: bool = false) copyLzMatch(output: [*] u8, distance, length: u64)
 {
     let from = output - distance
-    if distance >= 8 and length >= 8
+    // Long matches amortize the bulk copies that double the decoded prefix.
+    if distance >= 8 and length >= 8 and (not BulkLongMatches or length < 512)
     {
         var copied = 0_u64
         while length - copied >= 8

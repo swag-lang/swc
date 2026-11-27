@@ -163,7 +163,7 @@ func decompressInto(output: [..] u8, buffer: const [..] u8) fail
         {
             fail InvalidFormatError{"LZ4 match exceeds the output size"}
         }
-        copyLzMatch(output.buffer + written, distance, matchLength + 4)
+        copyLzMatch!{true}(output.buffer + written, distance, matchLength + 4)
         written  += matchLength + 4
         hasMatch = true
     }

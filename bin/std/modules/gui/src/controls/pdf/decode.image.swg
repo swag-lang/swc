@@ -918,10 +918,11 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direc
     let depth = cast(u32, bits)
 
     let space      = #move try resolveImageSpace(parser, parser.dictRaw(nodeId, "ColorSpace"), resourcesId, 0)
-    let bytes      = #move try parser.decodeStream(nodeId)
     let pixelCount = cast(u64, width) * cast(u64, height)
     let rowBytes   = (cast(u64, space.components) * cast(u64, depth) * cast(u64, width) + 7) / 8
-    if bytes.count < rowBytes * cast(u64, height)
+    let byteCount  = rowBytes * cast(u64, height)
+    let bytes      = #move try parser.decodeStream(nodeId, outputHint: byteCount)
+    if bytes.count < byteCount
     {
         fail InvalidFormatError{"PDF image stream is truncated"}
     }

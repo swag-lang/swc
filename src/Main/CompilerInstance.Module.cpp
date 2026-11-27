@@ -3119,6 +3119,7 @@ struct WorkspaceModuleLink
     std::unique_ptr<CompilerInstance>     compiler;
     std::unique_ptr<NativeBackendBuilder> builder;
     bool                                  writeManifest = false;
+    size_t                                warningsBefore = 0;
     WorkspaceArtifactManifest             manifest;
     fs::path                              manifestPath;
     fs::path                              outDir;
@@ -3165,7 +3166,7 @@ namespace
 
         SWC_RESULT(link.builder->finishDeferredLink());
 
-        if (link.writeManifest)
+        if (link.writeManifest && Stats::get().numWarnings.load(std::memory_order_relaxed) == link.warningsBefore)
         {
             const LinkJob& linkJob = link.builder->deferredToolRun();
             if (linkJob.incrementalCachePublished)
@@ -3936,7 +3937,8 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
         }
     }
 
-    const uint64_t errorsBefore = Stats::getNumErrors();
+    const uint64_t errorsBefore   = Stats::getNumErrors();
+    const size_t   warningsBefore = Stats::get().numWarnings.load(std::memory_order_relaxed);
 
     // The compiler outlives this call when its link is deferred (the builder holds a pointer to it,
     // and the compiler holds a pointer to the CommandLine), so both are heap-owned and handed to the
@@ -3963,6 +3965,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
             return Result::Error;
         moduleStage.setStat(formatWorkspaceModuleStageStat(moduleCtx, *moduleCompiler, moduleStage.delta()));
         const bool commandFailed = Stats::getNumErrors() != errorsBefore;
+        // An artifact hit skips semantic analysis, so a build that reported warnings
+        // needs to run that phase again on the next invocation.
+        const bool canWriteManifest = Stats::get().numWarnings.load(std::memory_order_relaxed) == warningsBefore &&
+                                      shouldWriteWorkspaceArtifactManifest(*moduleCompiler);
 
         deferredBuilder = moduleCompiler->takeDeferredBuilder();
         if (!deferredBuilder)
@@ -3972,7 +3978,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
             // A test executable is a successful build even when running it reports a failing
             // test. Persist that build manifest so the next test run reuses and re-executes the
             // same artifact, exactly as `run` reuses an executable whose program returned nonzero.
-            if (shouldWriteWorkspaceArtifactManifest(*moduleCompiler) && (!commandFailed || moduleCompiler->nativeArtifactBuilt()))
+            if (canWriteManifest && (!commandFailed || moduleCompiler->nativeArtifactBuilt()))
             {
                 WorkspaceArtifactManifest manifest;
                 manifest.inputsReadTime       = moduleBuild.setup.inputsReadTime;
@@ -4001,11 +4007,12 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
 
         // Capture the manifest inputs now, while the compiler state is fully available; the artifact
         // list and the manifest write happen once the background link finishes (finalizeWorkspaceModuleLink).
-        auto link           = std::make_unique<WorkspaceModuleLink>();
-        link->moduleName    = moduleBuild.name;
-        link->outDir        = moduleCmdLine.outDir;
-        link->manifestPath  = workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine);
-        link->writeManifest = shouldWriteWorkspaceArtifactManifest(*moduleCompiler);
+        auto link            = std::make_unique<WorkspaceModuleLink>();
+        link->moduleName     = moduleBuild.name;
+        link->outDir         = moduleCmdLine.outDir;
+        link->manifestPath   = workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine);
+        link->writeManifest  = canWriteManifest;
+        link->warningsBefore = warningsBefore;
         if (link->writeManifest)
         {
             link->manifest.inputsReadTime       = moduleBuild.setup.inputsReadTime;

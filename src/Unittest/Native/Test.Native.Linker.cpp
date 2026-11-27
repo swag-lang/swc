@@ -2108,6 +2108,70 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxRelinksChangedStaticDependenciesAndRecover
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_ArtifactReusePreservesSourceWarnings)
+{
+    const LinkerTestDirectory directory("artifact_source_warning");
+    SWC_RESULT(directory.write("modules/app/module.swg", "\n"));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
+#warning("workspace source warning")
+#main { Swag.print("native app\n") }
+#test { Swag.require(true) }
+)"));
+
+    for (const std::string_view command : {"run", "test"})
+    {
+        std::vector<Utf8> arguments = {Utf8(command), "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                       "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        if (command == "test")
+            arguments.push_back("--no-test-jit");
+        for (const bool rebuild : {false, false, true})
+        {
+            if (rebuild)
+                arguments.push_back("--rebuild");
+            std::string                 output;
+            uint32_t                    exitCode = 0;
+            const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
+            if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode ||
+                !output.contains("sema_warn_compiler_warning") || output.contains("module up-to-date: app"))
+            {
+                std::println(stderr, "[workspace source warning] {}", output);
+                return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_LoadsSharedFileInEachSourceGroup)
+{
+    const LinkerTestDirectory directory("shared_source_load");
+    constexpr std::string_view load = "#load(\"../../shared.swg\")\n";
+    constexpr std::string_view sourceKind = "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None }\n";
+    const auto dependencySetup = std::format("{}{}", load, sourceKind);
+    SWC_RESULT(directory.write("shared.swg", "func sharedValue()->s32 => 17\n"));
+    SWC_RESULT(directory.write("modules/left/module.swg", dependencySetup));
+    SWC_RESULT(directory.write("modules/right/module.swg", dependencySetup));
+    SWC_RESULT(directory.write("modules/left/src/main.swg", "public func value()->s32 => sharedValue()\n"));
+    SWC_RESULT(directory.write("modules/right/src/main.swg", "public func value()->s32 => sharedValue()\n"));
+    SWC_RESULT(directory.write("modules/app/module.swg", "#import(\"left\")\n#import(\"right\")\n#load(\"../../shared.swg\")\n"));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
+#main
+{
+    Swag.require(sharedValue() == 17 and Left.value() == 17 and Right.value() == 17)
+    Swag.print("shared source load passed\n")
+}
+)"));
+
+    const std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    SWC_RESULT(runCompiler(arguments, ExitCode::Success, "shared source load passed"));
+
+    constexpr std::string_view conflictingSetup = "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None; cfg.moduleNamespace = \"Left\" }\n";
+    SWC_RESULT(directory.write("modules/right/module.swg", conflictingSetup));
+    SWC_RESULT(runCompiler(arguments, ExitCode::CompileError, "source group namespace 'Left' is already declared by"));
+}
+SWC_TEST_END()
+
+#if defined(__linux__) && defined(__x86_64__)
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObjects)
 {
     const LinkerTestDirectory directory("elf_function_cache");

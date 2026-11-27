@@ -313,6 +313,8 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Direct grayscale and RGB DCT color keys now test the decoded JPEG samples before color
   mapping. The inverted grayscale fixture matches PDFium pixel for pixel. The partial-range
   RGB fixture's mean channel difference against PDFium drops from 62.31 to 0.47 levels.
+- Composing the keyed RGB samples straight into RGBA reduces load on the large JPEG key
+  fixture from 75.08 to 56.47 ms against the new key-aware reader, with identical Swag pixels.
 - Resource-named DCT paths, CMYK masks and RGB `DecodeParms` remain open. Direct CMYK refers
   to device colours without an ICC transform.
 - Done when: each DCT image path honours `/Decode` with coverage for ranges, masks and

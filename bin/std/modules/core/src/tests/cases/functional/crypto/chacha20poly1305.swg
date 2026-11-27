@@ -100,6 +100,32 @@ func rangeBytes(count: u64, first: u8)->Array!{u8}
     }
 }
 
+// With r = 1, the sum of these two blocks straddles 2^130 - 5.
+#test
+{
+    var key:  [Crypto.Poly1305KeySize] u8
+    var data: [2 * Crypto.Poly1305BlockSize] u8
+    key[0] = 1
+    Swag.memset(data.buffer, 0xFF, data.count)
+    const LowBytes: [7] u8 = [0xF8, 0xF9, 0xFA, 0, 1, 2, 3]
+    for lowByte, index in LowBytes
+    {
+        data[Crypto.Poly1305BlockSize] = cast(u8, 0xF9 + index)
+        var tag: Crypto.Poly1305Tag
+        if index < 3
+        {
+            Swag.memset(tag.buffer, 0xFF, tag.count)
+        }
+
+        tag[0] = lowByte
+        Swag.require(Crypto.constantTimeEqual(expect Crypto.Poly1305.compute(key, data), tag))
+        var mac = expect Crypto.Poly1305.create(key)
+        mac.update(data[until 15])
+        mac.update(data[15 until data.count])
+        Swag.require(Crypto.constantTimeEqual(mac.finalize(), tag))
+    }
+}
+
 // Authentication sees every completed parallel write; a rejected in-place open changes nothing.
 #test
 {

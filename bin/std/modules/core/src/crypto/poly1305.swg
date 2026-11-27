@@ -262,16 +262,119 @@ private func poly64FromLimbs(limbs: [5] u64)->[3] u64
 }
 
 #[Swag.Inline]
+private func poly64Reduce(limbs: [3] u64)->[3] u64
+{
+    // The carry from adding five across bit 130 selects subtraction of the modulus.
+    let lowPlusFive     = limbs[0] + 5
+    let middlePlusCarry = limbs[1] + cast(u64, lowPlusFive < limbs[0])
+    let quotient        = (limbs[2] + cast(u64, middlePlusCarry < limbs[1])) >> 2
+    let low             = limbs[0] + quotient * 5
+    let middle          = limbs[1] + cast(u64, low < limbs[0])
+    let high            = (limbs[2] + cast(u64, middle < limbs[1])) & 3
+    return [low, middle, high]
+}
+
+#[Swag.Inline]
 private func poly64ToLimbs(limbs: [3] u64)->[5] u64
 {
-    let lowPlusFive = limbs[0] + 5
-    let middlePlusCarry = limbs[1] + cast(u64, lowPlusFive < limbs[0])
-    let quotient = (limbs[2] + cast(u64, middlePlusCarry < limbs[1])) >> 2
-    let low = limbs[0] + quotient * 5
-    let middle = limbs[1] + cast(u64, low < limbs[0])
-    let high = (limbs[2] + cast(u64, middle < limbs[1])) & 3
+    let reduced = poly64Reduce(limbs)
+    let low     = reduced[0]
+    let middle  = reduced[1]
+    let high    = reduced[2]
     return [low & LimbMask, (low >> 26) & LimbMask, ((low >> 52) | (middle << 12)) & LimbMask,
             (middle >> 14) & LimbMask, (middle >> 40) | (high << 24)]
+}
+
+private struct Poly1305WordState
+{
+    accumulator: [3] u64
+    key:         [3] u64
+    wrapped:     u64
+}
+
+#[Swag.Inline]
+private func poly64Absorb(state: *Poly1305WordState, data: const [*] u64, highBit: u64)
+{
+    let low  = Math.littleEndianToNative(data[0])
+    let high = Math.littleEndianToNative(data[1])
+    let a0   = state.accumulator[0] + low
+    let mid  = state.accumulator[1] + high
+    let a1   = mid + cast(u64, a0 < state.accumulator[0])
+    let a2   = state.accumulator[2] + highBit + cast(u64, mid < state.accumulator[1]) + cast(u64, a1 < mid)
+
+    let product00 = Math.mulU64(a0, state.key[0])
+    let product01 = Math.mulU64(a0, state.key[1])
+    var carry0, carry1: u64
+    let d0        = Swag.mulWide(a1, state.wrapped, product00.lo, 0, &carry0)
+
+    // The top limb is at most six and the clamped key bounds this sum below one word.
+    let advance = product00.hi + carry0 + a2 * state.wrapped
+    let d1      = Swag.mulWide(a1, state.key[0], product01.lo, advance, &carry1)
+    let d2      = a2 * state.key[0] + product01.hi + carry1
+    let first   = d0 + ((d2 & ~3_u64) + (d2 >> 2))
+    let second  = d1 + cast(u64, first < d0)
+    state.accumulator[0] = first
+    state.accumulator[1] = second
+    state.accumulator[2] = (d2 & 3) + cast(u64, second < d1)
+}
+
+#[Swag.Inline]
+private func poly64Tag(reduced: [3] u64, padLow, padHigh: u64)->Poly1305Tag
+{
+    let low   = reduced[0] + padLow
+    let high  = reduced[1] + padHigh + cast(u64, low < reduced[0])
+    var result: #returntype
+    let words = cast([*] u64, result.buffer)
+    words[0] = Math.nativeToLittleEndian(low)
+    words[1] = Math.nativeToLittleEndian(high)
+    return result
+}
+
+private func computeSmallPoly1305(key: const [*] u8, data: const [..] u8)->Poly1305Tag
+{
+    var scratch: struct
+    {
+        state:   Poly1305WordState
+        partial: [Poly1305BlockSize] u8
+        reduced: [3] u64
+        pad:     [2] u64
+    }
+    defer secureClear(Swag.makeSlice(&scratch, 1))
+    with scratch
+    {
+        let keyWords = cast(const [*] u64, key)
+        .state.key[0]  = Math.littleEndianToNative(keyWords[0]) & 0x0FFF_FFFC_0FFF_FFFF
+        .state.key[1]  = Math.littleEndianToNative(keyWords[1]) & 0x0FFF_FFFC_0FFF_FFFC
+        .state.wrapped = .state.key[1] + (.state.key[1] >> 2)
+
+        let blocks = data.count / Poly1305BlockSize
+        let words  = cast(const [*] u64, data.buffer)
+        for block in blocks
+        {
+            poly64Absorb(&.state, words + block * 2, 1)
+        }
+
+        let remaining = data.count % Poly1305BlockSize
+        if remaining
+        {
+            Swag.memcpy(.partial.buffer, data.buffer + blocks * Poly1305BlockSize, remaining)
+            .partial[remaining] = 1
+            poly64Absorb(&.state, cast(const [*] u64, .partial.buffer), 0)
+        }
+
+        .reduced = poly64Reduce(.state.accumulator)
+        .pad[0]  = Math.littleEndianToNative(keyWords[2])
+        .pad[1]  = Math.littleEndianToNative(keyWords[3])
+        return poly64Tag(.reduced, .pad[0], .pad[1])
+    }
+}
+
+private func checkPoly1305Key(key: const [..] u8) fail
+{
+    if key.count != Poly1305KeySize
+    {
+        fail Errors.BadParameterError{"Poly1305 needs a 32-byte key"}
+    }
 }
 
 // Authenticates a message under a one-time key, following RFC 8439.
@@ -306,10 +409,7 @@ public impl Poly1305
     // Fails with [[Core.Errors.BadParameterError]] when `key` does not hold 32 bytes.
     mtd reset(key: const [..] u8) fail
     {
-        if key.count != Poly1305KeySize
-        {
-            fail Errors.BadParameterError{"Poly1305 needs a 32-byte key"}
-        }
+        try checkPoly1305Key(key)
 
         if .initialized
         {
@@ -425,64 +525,12 @@ public impl Poly1305
             .bufferCount = 0
         }
 
-        var scratch: struct
-        {
-            h, g: [5] u64
-        }
-        scratch.h = .accumulator
-        var result: #returntype
-        with scratch
-        {
-            var carry = .h[1] >> 26
-            .h[1] &= LimbMask
-            for i in 2 to 4
-            {
-                .h[i] += carry
-                carry = .h[i] >> 26
-                .h[i] &= LimbMask
-            }
+        var reduced = poly64Reduce(poly64FromLimbs(.accumulator))
+        let padLow  = .pad[0] | (.pad[1] << 32)
+        let padHigh = .pad[2] | (.pad[3] << 32)
+        let result  = poly64Tag(reduced, padLow, padHigh)
 
-            .h[0] += carry * 5
-            carry = .h[0] >> 26
-            .h[0] &= LimbMask
-            .h[1] += carry
-
-            // Compute `h - p` and keep it only when it did not borrow, which is the
-            // branch-free way to reduce the last time.
-            .g[0] = .h[0] + 5
-            carry = .g[0] >> 26
-            .g[0] &= LimbMask
-            for i in 1 to 3
-            {
-                .g[i] = .h[i] + carry
-                carry = .g[i] >> 26
-                .g[i] &= LimbMask
-            }
-
-            .g[4] = .h[4] + carry - (1 << 26)
-
-            let borrowed = (.g[4] >> 63) & 1
-            let keepG    = borrowed - 1
-            let keepH    = ~keepG
-            for i in 5
-            {
-                .h[i] = (.h[i] & keepH) | (.g[i] & keepG)
-
-                // Store the low 128 bits in two words and propagate the pad carry once.
-            }
-
-            let low     = .h[0] | (.h[1] << 26) | (.h[2] << 52)
-            let high    = (.h[2] >> 12) | (.h[3] << 14) | (.h[4] << 40)
-            let padLow  = me.pad[0] | (me.pad[1] << 32)
-            let padHigh = me.pad[2] | (me.pad[3] << 32)
-            let lowSum  = low + padLow
-            let highSum = high + padHigh + cast(u64, lowSum < low)
-            let words   = cast([*] u64, result.buffer)
-            words[0] = Math.nativeToLittleEndian(lowSum)
-            words[1] = Math.nativeToLittleEndian(highSum)
-        }
-
-        secureClear(Swag.makeSlice(&scratch, 1))
+        secureClear(reduced)
         .clear()
         return result
     }
@@ -506,6 +554,12 @@ public impl Poly1305
     // Computes the Poly1305 tag of `data` under `key` in one operation.
     func compute(key, data: const [..] u8)->Poly1305Tag fail
     {
+        if data.count < IfmaBlockThreshold * Poly1305BlockSize
+        {
+            try checkPoly1305Key(key)
+            return computeSmallPoly1305(key.buffer, data)
+        }
+
         var mac = try Poly1305.create(key)
         mac.update(data)
         return mac.finalize()
@@ -513,49 +567,19 @@ public impl Poly1305
 
     private mtd absorbScalar64(blocks: const [*] u8, count: u64)
     {
-        var scratch: struct
-        {
-            h, r: [3] u64
-            wrapped: u64
-        }
-        with scratch
-        {
-            .h = poly64FromLimbs(me.accumulator)
-            .r = poly64FromLimbs(me.r)
-            // The clamped upper key word is a multiple of four. Its
-            // products that wrap at bit 130 carry a factor of five.
-            .wrapped = .r[1] + (.r[1] >> 2)
-            for block in count
-            {
-                let data = cast(const [*] u64, blocks + block * Poly1305BlockSize)
-                let low = Math.littleEndianToNative(data[0])
-                let high = Math.littleEndianToNative(data[1])
-                let a0 = .h[0] + low
-                let mid = .h[1] + high
-                let a1 = mid + cast(u64, a0 < .h[0])
-                // The folded top limb is at most four. A full block adds at most two.
-                let a2 = .h[2] + 1 + cast(u64, mid < .h[1]) + cast(u64, a1 < mid)
+        var state: Poly1305WordState
+        state.accumulator = poly64FromLimbs(.accumulator)
+        state.key = poly64FromLimbs(.r)
+        state.wrapped = state.key[1] + (state.key[1] >> 2)
 
-                let p00 = Math.mulU64(a0, .r[0])
-                let p11 = Math.mulU64(a1, .wrapped)
-                let p01 = Math.mulU64(a0, .r[1])
-                let p10 = Math.mulU64(a1, .r[0])
-                let d0 = p00.lo + p11.lo
-                let carry0 = p00.hi + p11.hi + cast(u64, d0 < p00.lo)
-                let middle = p01.lo + p10.lo
-                let sub    = middle + carry0
-                let d1     = sub + a2 * .wrapped
-                let d2     = a2 * .r[0] + p01.hi + p10.hi +
-                             cast(u64, middle < p01.lo) + cast(u64, sub < middle) + cast(u64, d1 < sub)
-                let first  = d0 + ((d2 & ~3_u64) + (d2 >> 2))
-                let second = d1 + cast(u64, first < d0)
-                .h[0] = first
-                .h[1] = second
-                .h[2] = (d2 & 3) + cast(u64, second < d1)
-            }
-            me.accumulator = poly64ToLimbs(.h)
+        let words = cast(const [*] u64, blocks)
+        for block in count
+        {
+            poly64Absorb(&state, words + block * 2, 1)
         }
-        secureClear(Swag.makeSlice(&scratch, 1))
+
+        .accumulator = poly64ToLimbs(state.accumulator)
+        secureClear(Swag.makeSlice(&state, 1))
     }
 
     // The implicit high bit belongs to each full block. Finalization supplies a

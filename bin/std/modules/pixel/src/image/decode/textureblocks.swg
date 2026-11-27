@@ -28,61 +28,44 @@ internal func blockBytes(format: Format)->u64
 }
 
 #[Swag.Inline]
-func readEndpoint(source: const [*] u8)->u16
+func readBlockWord(source: const [*] u8)->u32
 {
-    let value = cast(const *u16, source)[]
-    return Core.BIG_ENDIAN ? Swag.byteSwap(value) : value
+    let word = cast(const *u32, source)[]
+    return Core.BIG_ENDIAN ? Swag.byteSwap(word) : word
 }
 
 #[Swag.Inline]
-func expandRgb565(value: u16)->u32
+func colorPalette(source: const [*] u8, forceFourColors: bool)->Simd.U32x4
 {
-    let red   = cast(u32, value >> 11)
-    let green = cast(u32, ((value >> 5) & 63))
-    let blue  = cast(u32, (value & 31))
-    return 0xFF000000 | (red << 3) | (red >> 2) |
-           (green << 10) | ((green >> 4) << 8) |
-           (blue << 19) | ((blue >> 2) << 16)
-}
+    const EndpointWords = cast(Simd.U8x16, [0_u8, 1, 0, 1, 0, 1, 0, 1, 2, 3, 2, 3, 2, 3, 2, 3])
+    const HighShift     = cast(Simd.U16x8, [1_u16, 32, 2048, 0, 1, 32, 2048, 0])
+    const HighMask      = cast(Simd.U16x8, [0xF800_u16, 0xFC00, 0xF800, 0, 0xF800, 0xFC00, 0xF800, 0])
+    const RepeatShift   = cast(Simd.U16x8, [1_u16, 16, 2048, 0, 1, 16, 2048, 0])
+    const RepeatMask    = cast(Simd.U16x8, [7_u16, 3, 7, 0, 7, 3, 7, 0])
+    const OpaqueAlpha   = cast(Simd.U16x8, [0_u16, 0, 0, 255, 0, 0, 0, 255])
 
-#[Swag.Inline]
-func loadColorIndices(source: const [*] u8)->u32
-{
-    let indices = cast(const *u32, source)[]
-    return Core.BIG_ENDIAN ? Swag.byteSwap(indices) : indices
-}
+    // Expand both RGB565 words to 8-bit channels by repeating their high bits.
+    let pair      = readBlockWord(source)
+    let packed    = cast #bit(Simd.U8x16, Simd.splat(pair))
+    let channels  = cast #bit(Simd.U16x8, Simd.shuffle(packed, EndpointWords))
+    let high      = ((channels * HighShift) & HighMask) >> 8
+    let low       = ((channels * RepeatShift) >> 13) & RepeatMask
+    let endpoints = high | low | OpaqueAlpha
+    let swapped   = cast #bit(Simd.U16x8, Simd.permute(cast #bit(Simd.U64x2, endpoints), cast(Simd.U64x2, [1_u64, 0])))
 
-#[Swag.Inline]
-func colorPalette(result: *[4] u32, source: const [*] u8, forceFourColors: bool)
-{
-    let endpointA = readEndpoint(source)
-    let endpointB = readEndpoint(source + 2)
-    let a         = expandRgb565(endpointA)
-    let b         = expandRgb565(endpointB)
-    result[][0] = a
-    result[][1] = b
-    if forceFourColors or endpointA > endpointB
+    var mixed: Simd.U16x8
+    if forceFourColors or (pair & 0xFFFF) > (pair >> 16)
     {
-        let first  = Simd.splat(a)
-        let second = Simd.splat(b)
-        let zero   = Simd.splat(0_u8)
-        let ab     = cast #bit(Simd.U8x16, Simd.interleaveLow(first, second))
-        let ba     = cast #bit(Simd.U8x16, Simd.interleaveLow(second, first))
-        let words  = cast #bit(Simd.U16x8, Simd.interleaveLow(ab, zero))
-        let other  = cast #bit(Simd.U16x8, Simd.interleaveLow(ba, zero))
-        let sums   = words + words + other
-
         // The high product divides both RGB sums by three exactly through 765.
-        let values       = cast #bit(Simd.S16x8, Simd.mulHigh(sums, Simd.splat(21846_u16)))
-        let interpolated = cast #bit(Simd.U32x4, Simd.packUnsigned(values, values))
-        result[][2] = interpolated[0]
-        result[][3] = interpolated[1]
+        mixed = Simd.mulHigh(endpoints + endpoints + swapped, Simd.splat(21846_u16))
     }
     else
     {
-        result[][2] = (a & b) + (((a ^ b) & 0xFEFEFEFE_u32) >> 1)
-        result[][3] = 0
+        const OpaqueColor = cast(Simd.U16x8, [65535_u16, 65535, 65535, 65535, 0, 0, 0, 0])
+        mixed = ((endpoints + swapped) >> 1) & OpaqueColor
     }
+
+    return cast #bit(Simd.U32x4, Simd.packUnsigned(cast #bit(Simd.S16x8, endpoints), cast #bit(Simd.S16x8, mixed)))
 }
 
 #[Swag.Inline]
@@ -204,15 +187,15 @@ private func(FMT: Format) decodeBlockRange(image: *Image, source: const [*] u8, 
             let countX = Math.min(4_u64, width - firstX)
             let block  = sourceRow + blockX * oneBlock
 
-            var colors:                      [4] u32
+            var colors:                      Simd.U32x4
             var firstPalette, secondPalette: [8] u8
             var firstIndices, secondIndices: u64
             var colorIndices:                u32
             #static if FMT == .BC1 or FMT == .BC2 or FMT == .BC3
             {
                 let colorBlock = FMT == .BC1 ? block : block + 8
-                colorPalette(&colors, colorBlock, FMT != .BC1)
-                colorIndices = loadColorIndices(colorBlock + 4)
+                colors       = colorPalette(colorBlock, FMT != .BC1)
+                colorIndices = readBlockWord(colorBlock + 4)
             }
 
             #static if FMT == .BC2
@@ -288,7 +271,7 @@ private func(FMT: Format) decodeBlockRange(image: *Image, source: const [*] u8, 
                     }
                     else
                     {
-                        let palette = Simd.load(cast(const [*] u8, &colors[0]))
+                        let palette = cast #bit(Simd.U8x16, colors)
                         let indices = (colorIndices >> (row * 8)) & 255
                         rgba = cast #bit(Simd.U32x4, Simd.shuffle(palette, ColorRowShuffles[indices]))
                         #static if FMT == .BC2 or FMT == .BC3
@@ -320,7 +303,8 @@ private func(FMT: Format) decodeBlockRange(image: *Image, source: const [*] u8, 
                     }
                     else
                     {
-                        let rgb = colors[(colorIndices >> (pixel * 2)) & 3]
+                        let entries = cast([4] u32, colors)
+                        let rgb     = entries[(colorIndices >> (pixel * 2)) & 3]
                         #static if FMT == .BC2
                         {
                             let alpha = cast(u32, ((firstIndices >> (pixel * 4)) & 15)) * 17

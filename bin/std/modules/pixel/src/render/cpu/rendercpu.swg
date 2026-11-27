@@ -1716,6 +1716,7 @@ private impl RenderCpu
         }
 
         var i = 1_u64
+
         // Find the first stop at or above t, including the first of any coincident stops.
         if .orderedGradientStops
         {
@@ -2928,13 +2929,13 @@ private impl RenderCpu
                     {
                         if len2 > 0.000001 or Math.isNaN(len2)
                         {
-                            let yPart   = py * vecDy
+                            let yPart = py * vecDy
                             coordinates = (px * vecDx + yPart) / len2
                         }
                     }
                     else
                     {
-                        let yPart   = py * py
+                        let yPart = py * py
                         coordinates = (Math.sqrt(px * px + yPart) - paint.gradientRadius0) / radius
                     }
                 }
@@ -2952,9 +2953,8 @@ private impl RenderCpu
                     // Apply the same byte-truncating tint to both halves.
                     let lo = Math.Simd.widenLow(pixels) * tint + 1_u16
                     let hi = Math.Simd.widenHigh(pixels) * tint + 1_u16
-                    pixels = Math.Simd.packUnsigned(
-                        cast #bit(Math.Simd.S16x8, (lo + (lo >> 8)) >> 8),
-                        cast #bit(Math.Simd.S16x8, (hi + (hi >> 8)) >> 8))
+                    pixels = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8, (lo + (lo >> 8)) >> 8),
+                                                    cast #bit(Math.Simd.S16x8, (hi + (hi >> 8)) >> 8))
                 }
 
                 if cov or opacity
@@ -4778,6 +4778,43 @@ private impl RenderCpu
         return roundScanAlpha4(scaled)
     }
 
+    mtd tryDrawStrokeIntervalBand(scratch: *ScanScratch, painter: const *Painter, fill: const *ScanFillBatch, image: *Image, transform: const *Transform2, left, y, width, height, firstRow: s32, minX, maxX: f32)->bool
+    {
+        let direction = cast(f64, transform.m11) * transform.m22 - cast(f64, transform.m12) * transform.m21
+        if direction == 0 or not Math.isFinite(direction)
+        {
+            return false
+        }
+
+        let rows   = scratch.startIntervalRows(height)
+        let origin = Vector2{cast(f32, left), cast(f32, y)}
+        let points = painter.scanPoints.toSlice()
+        let ends   = painter.scanContourEnds.toSlice()[fill.first until fill.end]
+        var point  = firstScanPoint(painter, fill)
+        for end in ends
+        {
+            if not addStrokeIntervals(rows, points[point until end], transform, origin, direction > 0, firstRow, minX, maxX)
+            {
+                return false
+            }
+
+            point = end
+        }
+
+        let color      = fill.color
+        let tint       = cast #bit(Math.Simd.U8x16, Math.Simd.splat(color.argb))
+        let alphaScale = Math.Simd.splat(cast(f32, color.a) / VerticalSamples)
+        let stencil    = .stencilOn ? .currentStencil().pixels.storage() : null
+        for row in firstRow until height
+        {
+            let deviceY = y + cast(s32, row)
+            let {values: coverage, first: firstX, end: endX} = scratch.resolveIntervals(rows, cast(s32, row), width)
+            .drawScanCoverageRow(image, left, deviceY, color, tint, alphaScale, stencil, coverage, firstX, endX)
+        }
+
+        return true
+    }
+
     mtd drawScanFillBand(scratch: *ScanScratch, crossings: [..] ScanSample, image: *Image, fill: const *ScanFillBatch, left, y, width, height, firstRow: s32)
     {
         let color      = fill.color
@@ -5011,10 +5048,19 @@ private impl RenderCpu
 
         for band in bandCount
         {
-            let y         = firstBand + cast(s32, band) * bandHeight
-            let height    = Math.min(bandHeight, visibleBottom - y)
-            let firstRow  = Math.max(0, visibleTop - y)
-            let origin    = Vector2{cast(f32, left), cast(f32, y)}
+            let y        = firstBand + cast(s32, band) * bandHeight
+            let height   = Math.min(bandHeight, visibleBottom - y)
+            let firstRow = Math.max(0, visibleTop - y)
+            let origin   = Vector2{cast(f32, left), cast(f32, y)}
+            if fill.stroke and
+               fill.end - fill.first >= 8 and
+               not projected.bounds.count and
+               not .stencilWrite and
+               .tryDrawStrokeIntervalBand(scratch, painter, fill, image, transform, left, y, width, height, firstRow, minX, maxX)
+            {
+                continue
+            }
+
             let indices   = indexed.count ? &indexed[band] : null
             let crossings = projected.bounds.count ? gatherProjectedRows(scratch, painter, fill, &projected, origin, minX, maxX, height, firstRow, indices) :
                             gatherScanRows(scratch, painter, fill, transform, origin, minX, maxX, height, firstRow)

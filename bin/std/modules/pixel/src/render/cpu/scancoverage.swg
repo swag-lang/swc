@@ -28,6 +28,7 @@ internal struct ScanScratch
     order:        Array!{u32}
     reordered:    Array!{Crossing}
     keys, sorted: Array!{u64}
+    intervalRows: Array!{Array!{ScanInterval}}
 }
 
 internal impl ScanScratch
@@ -332,22 +333,7 @@ internal impl ScanScratch
         {
             if unionRows[index]
             {
-                let spans = .intervals[index].toSlice()
-                var first = spans[0]
-                for span in spans[1 until spans.count]
-                {
-                    if span.left > first.right
-                    {
-                        addCoverageSpan(coverage, first.left, first.right)
-                        first = span
-                    }
-                    else
-                    {
-                        first.right = Math.max(first.right, span.right)
-                    }
-                }
-
-                addCoverageSpan(coverage, first.left, first.right)
+                paintIntervals(coverage, .intervals[index].toSlice())
                 continue
             }
 

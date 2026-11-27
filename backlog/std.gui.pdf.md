@@ -626,6 +626,11 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   0.95 s at 2400 px. In the expanded comparison at 1200 px all other 86 supported pages keep
   their checksums. The stress page's mean RGB difference from PDFium is 21.61 to 21.56 at
   1200 px and 17.11 to 17.30 at 2400 px out of 255 levels.
+- Collecting stroke fragments directly as intervals and merging neighboring overlaps takes
+  the dense curve page from 663 to 465 ms at 1200 px and from 1419 to 948 ms at 2400 px.
+  PDFium takes 277 and 448 ms in those series. Of 88 pages, 87 keep their bitmap checksums
+  and the remaining forms page differs by one level in one pixel. The native stroke comparison
+  goes from 34.86 to 29.77 ms against AGG's 19.27 ms with the same Swag coverage.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

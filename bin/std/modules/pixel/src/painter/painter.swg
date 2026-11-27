@@ -245,6 +245,8 @@ struct ScanFillBatch
         color: Color            // Straight-alpha solid paint.
         rule:  PathFillRule     // Winding rule used to resolve the contours.
     }
+
+    internal stroke: bool     // Contours are stroke fragments with matching orientation.
 }
 
 // Describes the paint source bound by a `BindTexture0` command.

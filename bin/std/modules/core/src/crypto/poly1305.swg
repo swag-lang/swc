@@ -252,6 +252,65 @@ private func poly44Pairs(words: const [*] u64, count: u64, state: *Poly44Lanes, 
 }
 
 #[Swag.Inline]
+private func poly44Quads(words: const [*] u64, count: u64, left, right: *Poly44Lanes,
+                             factor: Poly44Lanes, scaled: [2] Simd.U64x2)
+{
+    var lowA = left[][0]
+    var midA = left[][1]
+    var hiA = left[][2]
+    var lowB = right[][0]
+    var midB = right[][1]
+    var hiB = right[][2]
+    let r0 = factor[0]
+    let r1 = factor[1]
+    let r2 = factor[2]
+    let s1 = scaled[0]
+    let s2 = scaled[1]
+    for group in count
+    {
+        let messageA = poly44LoadPair(words + group * 8)
+        let messageB = poly44LoadPair(words + group * 8 + 4)
+        let a0 = lowA + messageA[0]
+        let a1 = midA + messageA[1]
+        let a2 = hiA + messageA[2]
+        let b0 = lowB + messageB[0]
+        let b1 = midB + messageB[1]
+        let b2 = hiB + messageB[2]
+        let p0A = poly44Dot!{false}(a0, r0, a1, s2, a2, s1)
+        let p0B = poly44Dot!{false}(b0, r0, b1, s2, b2, s1)
+        let h0A = poly44Dot!{true}(a0, r0, a1, s2, a2, s1)
+        let h0B = poly44Dot!{true}(b0, r0, b1, s2, b2, s1)
+        let p1A = poly44Dot!{false}(a0, r1, a1, r0, a2, s2)
+        let p1B = poly44Dot!{false}(b0, r1, b1, r0, b2, s2)
+        let h1A = poly44Dot!{true}(a0, r1, a1, r0, a2, s2)
+        let h1B = poly44Dot!{true}(b0, r1, b1, r0, b2, s2)
+        let p2A = poly44Dot!{false}(a0, r2, a1, r1, a2, r0)
+        let p2B = poly44Dot!{false}(b0, r2, b1, r1, b2, r0)
+        let h2A = poly44Dot!{true}(a0, r2, a1, r1, a2, r0)
+        let h2B = poly44Dot!{true}(b0, r2, b1, r1, b2, r0)
+
+        let d1A = p1A + (h0A << 8)
+        let d2A = p2A + (h1A << 8)
+        let wrapA = (d2A >> 42) + (h2A << 10)
+        let d0A = (p0A & Limb44Mask) + wrapA + (wrapA << 2)
+        lowA = d0A & Limb44Mask
+        midA = (d1A & Limb44Mask) + (p0A >> 44) + (d0A >> 44)
+        hiA = (d2A & Limb42Mask) + (d1A >> 44)
+
+        let d1B = p1B + (h0B << 8)
+        let d2B = p2B + (h1B << 8)
+        let wrapB = (d2B >> 42) + (h2B << 10)
+        let d0B = (p0B & Limb44Mask) + wrapB + (wrapB << 2)
+        lowB = d0B & Limb44Mask
+        midB = (d1B & Limb44Mask) + (p0B >> 44) + (d0B >> 44)
+        hiB = (d2B & Limb42Mask) + (d1B >> 44)
+    }
+
+    left[] = [lowA, midA, hiA]
+    right[] = [lowB, midB, hiB]
+}
+
+#[Swag.Inline]
 private func poly64FromLimbs(limbs: [5] u64)->[3] u64
 {
     let first = limbs[0] + (limbs[1] << 26)
@@ -479,7 +538,15 @@ public impl Poly1305
 
             // Precompute the powers once for a run of full input blocks.
             const QuadBlockThreshold = 64
-            if useIfma and blocks >= IfmaBlockThreshold
+            const IfmaQuadBlockThreshold = 128
+            if useIfma and blocks >= IfmaQuadBlockThreshold
+            {
+                let quads = blocks / 4
+                .absorbIfmaQuads(data.buffer + offset, quads)
+                offset += quads * 4 * Poly1305BlockSize
+                blocks &= 3
+            }
+            else if useIfma and blocks >= IfmaBlockThreshold
             {
                 let pairs = blocks / 2
                 .absorbIfmaPairs(data.buffer + offset, pairs)
@@ -737,6 +804,72 @@ public impl Poly1305
         secureClear(Swag.makeSlice(&scratch, 1))
     }
 
+    private mtd absorbIfmaQuads(blocks: const [*] u8, count: u64)
+    {
+        // Hold four independent accumulators, one for each position in a group.
+        var scratch: struct
+        {
+            key, square, cube, fourth: Poly44Lanes
+            first, second, firstFinal, secondFinal: Poly44Lanes
+            firstMessage, secondMessage: Poly44Lanes
+            keyScaled, fourthScaled, firstFinalScaled, secondFinalScaled: [2] Simd.U64x2
+            products1, products2: Poly44Products
+            keyWords, initial, low, high, result: [3] u64
+        }
+
+        defer secureClear(Swag.makeSlice(&scratch, 1))
+        with scratch
+        {
+            .keyWords = poly44FromLimbs(me.r)
+            .initial = poly44FromLimbs(me.accumulator)
+            for limb in 3
+            {
+                .key[limb] = Simd.splat(.keyWords[limb])
+                .first[limb] = cast(Simd.U64x2, [.initial[limb], 0_u64])
+            }
+
+            .keyScaled = poly44Scale(.key)
+            poly44Multiply(.key, .key, .keyScaled, &.products1)
+            poly44Carry(.products1.low, .products1.high, &.square)
+            poly44Multiply(.square, .key, .keyScaled, &.products1)
+            poly44Carry(.products1.low, .products1.high, &.cube)
+            poly44Multiply(.square, .square, poly44Scale(.square), &.products1)
+            poly44Carry(.products1.low, .products1.high, &.fourth)
+
+            // Apply r^4,r^3,r^2,r to the last group to recover input order.
+            for limb in 3
+            {
+                .firstFinal[limb] = cast(Simd.U64x2, [cast([2] u64, .fourth[limb])[0], cast([2] u64, .cube[limb])[0]])
+                .secondFinal[limb] = cast(Simd.U64x2, [cast([2] u64, .square[limb])[0], .keyWords[limb]])
+            }
+
+            let words = cast(const [*] u64, blocks)
+            .fourthScaled = poly44Scale(.fourth)
+            poly44Quads(words, count - 1, &.first, &.second, .fourth, .fourthScaled)
+            let final = words + (count - 1) * 8
+            .firstMessage = poly44LoadPair(final)
+            .secondMessage = poly44LoadPair(final + 4)
+            for limb in 3
+            {
+                .first[limb] += .firstMessage[limb]
+                .second[limb] += .secondMessage[limb]
+            }
+
+            .firstFinalScaled = poly44Scale(.firstFinal)
+            .secondFinalScaled = poly44Scale(.secondFinal)
+            poly44Multiply(.first, .firstFinal, .firstFinalScaled, &.products1)
+            poly44Multiply(.second, .secondFinal, .secondFinalScaled, &.products2)
+            for limb in 3
+            {
+                .low[limb] = Simd.sum(.products1.low[limb] + .products2.low[limb])
+                .high[limb] = Simd.sum(.products1.high[limb] + .products2.high[limb])
+            }
+
+            poly44Carry(.low, .high, &.result)
+            me.accumulator = poly44ToLimbs(.result)
+        }
+    }
+
     private mtd absorbTiles(bytes: const [*] u8, tileCount: u64, useIfma: bool)
     {
         // A tile can start with zero and run independently. Concatenation
@@ -762,7 +895,7 @@ public impl Poly1305
                 state.r = key[]
                 if useIfma
                 {
-                    state.absorbIfmaPairs(source + tile * TileSize, TileBlocks / 2)
+                    state.absorbIfmaQuads(source + tile * TileSize, TileBlocks / 4)
                 }
                 else
                 {

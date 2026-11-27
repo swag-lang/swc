@@ -136,6 +136,8 @@ SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "{what} '{type}' has no member '{sy
 SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "{what} '{type}' has no member '{sym}'")
 SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "unknown name '{sym}'; [help] use '{value}' instead")
 SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "unknown name '{sym}'")
+SWC_DIAG_DEF(sema_err_instance_field_needs_receiver, Error, "instance field '{sym}' of '{type}' needs a receiver, but this {what} has none; [help] capture the receiver with 'func|me|' and read 'me.{sym}'")
+SWC_DIAG_DEF(sema_err_instance_field_needs_receiver, Error, "instance field '{sym}' of '{type}' needs a receiver, but this function has none; [help] declare the function with 'mtd', or read the field through a '{type}' value")
 SWC_DIAG_DEF(sema_err_modifier_only_integer, Error, "modifier '{tok}' needs an integer type, found '{type}'")
 SWC_DIAG_DEF(sema_err_modifier_unsupported, Error, "modifier '{what}' is not supported on '{tok}'")
 SWC_DIAG_DEF(sema_err_bit_cast_size, Error, "cannot bit-cast from '{type}' to '{requested-type}'; source is {left} bits, destination is {right} bits")

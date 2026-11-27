@@ -192,6 +192,47 @@ namespace
         return symVar.isFrameVariable() && !isTypeOnlyCompilerIdentifierUse(sema);
     }
 
+    // A bare instance field reads the current receiver. Only a function whose 'me' belongs to the
+    // field's struct has one: a static function, a local function or a closure does not.
+    Result checkInstanceFieldReceiver(Sema& sema, const SymbolVariable& symVar)
+    {
+        const SymbolMap* owner = symVar.ownerSymMap();
+        if (!owner || !owner->isStruct() || symVar.hasGlobalStorage())
+            return Result::Continue;
+
+        const SymbolFunction* function = sema.currentFunction();
+        if (!function)
+            return Result::Continue;
+
+        const AstNodeRef parentRef = sema.visit().parentNodeRef();
+        if (parentRef.isValid())
+        {
+            const auto* memberAccess = sema.node(parentRef).safeCast<AstMemberAccessExpr>();
+            if (memberAccess && memberAccess->nodeRightRef == sema.curNodeRef())
+                return Result::Continue;
+        }
+
+        const auto&         fieldStruct = owner->cast<SymbolStruct>();
+        const SymbolStruct* ownerStruct = function->ownerStruct();
+        const auto&         parameters  = function->parameters();
+        const bool          hasReceiver = !parameters.empty() && parameters.front() &&
+                                 parameters.front()->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        if (hasReceiver && ownerStruct && ownerStruct->sameGenericFamily(fieldStruct))
+            return Result::Continue;
+
+        if (isTypeOnlyCompilerIdentifierUse(sema))
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_instance_field_needs_receiver, sema.curNodeRef());
+        diag.addArgument(Diagnostic::ARG_SYM, symVar.name(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_TYPE, fieldStruct.typeRef());
+        const AstNode* decl = function->decl();
+        if (decl && (decl->is(AstNodeId::ClosureExpr) || decl->is(AstNodeId::FunctionExpr)))
+            diag.addArgument(Diagnostic::ARG_WHAT, Utf8{"function literal"});
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     bool inlinePayloadOwnsVariable(const SemaInlinePayload* inlinePayload, const SymbolFunction& function, const SymbolVariable& symVar)
     {
         while (inlinePayload)
@@ -873,6 +914,8 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
             return Result::Error;
         }
+
+        SWC_RESULT(checkInstanceFieldReceiver(sema, symVar));
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
             SWC_RESULT(setupLateGlobalReadGuard(sema, codeRef()));

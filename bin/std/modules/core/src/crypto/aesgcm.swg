@@ -13,6 +13,7 @@ public const AesGcmTagSize = 16
 private const AesGcmParallelThreshold = 64 * 1024
 private const AesGcmWideGhashThreshold = 3 * 1024
 private const AesGcmWideGhashBytes     = 256
+private const AesGcmWideSealThreshold  = 8 * 1024
 
 #[Swag.Inline]
 private func aesGcmReverseBytes(value: U8x16)->U8x16
@@ -629,7 +630,8 @@ func aesGcmEncrypt(key, nonce, associatedData, plaintext: const [..] u8, ciphert
     if plaintext.count >= 128 and
        aes.usesHardwareRounds() and
        Swag.hasCpuFeature(.CarrylessMultiply) and
-       (plaintext.count < AesGcmParallelThreshold or Swag.workerCount() <= 1)
+       (plaintext.count < AesGcmParallelThreshold or Swag.workerCount() <= 1) and
+       (plaintext.count < AesGcmWideSealThreshold or not Swag.hasCpuFeature(.CarrylessMultiply512))
     {
         aesGcmCryptAndHashHardware(&aes, nonceCopy, plaintext, ciphertext, hashKey, &initialHash)
         computedTag = aesGcmFinishTag(&tagMask, associatedData.count, ciphertext.count, hashKey, &initialHash)

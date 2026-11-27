@@ -14,6 +14,9 @@ private const MaxSubbandSamples  = 128
 private const HistorySamples     = 512
 private const SamplesPerSubband  = 8
 
+private const SubbandMinimum: f64 = -8_388_608.0
+private const SubbandMaximum: f64 = 8_388_607.0
+
 private const ModeChannels:     [10] u32  = [1, 2, 2, 2, 2, 3, 3, 4, 4, 5]
 private const SampleRates:      [16] u32  = [0, 8_000, 16_000, 32_000, 0, 0, 11_025, 22_050, 44_100, 0, 0, 12_000, 24_000, 48_000, 0, 0]
 private const QuantLevels:      [8] u32   = [0, 3, 5, 7, 9, 13, 17, 25]
@@ -576,9 +579,9 @@ private impl Codec
             {
                 // The header requires a multiple of eight blocks. Each vector lane
                 // runs the DCT of one of two consecutive blocks independently.
-                var transformed: [32, 2] f64
+                var transformed: [32] Simd.F64x2
                 let bands = cast(const [*] Simd.F64x2, channelBands + 2 * block)
-                synthesisDct(bands, samplesPerBand / 2, cast(*[32] Simd.F64x2, &transformed))
+                synthesisDct!{Simd.F64x2, true}(bands, samplesPerBand / 2, &transformed)
                 for lane in 2
                 {
                     let sample = 2 * block + lane
@@ -588,8 +591,8 @@ private impl Codec
                     let history = cast([*] f32, &.history[channel, historyStart])
                     for index in 16
                     {
-                        let first  = cast(f32, (transformed[index, lane] - transformed[31 - index, lane]))
-                        let second = cast(f32, (transformed[index, lane] + transformed[31 - index, lane]))
+                        let first  = cast(f32, transformed[index][lane])
+                        let second = cast(f32, transformed[16 + index][lane])
                         history[index]                       = first
                         history[16 + index]                  = second
                         history[HistorySamples + index]      = first
@@ -756,20 +759,22 @@ private impl Codec
                 fail InvalidFormatError{"DTS subframe sample table exceeds the frame"}
             }
 
-            var prediction:      [MaxPrimaryChannels, MaxSubbands] bool
+            // Each channel's flags are contiguous, with the lowest band in the first bit.
+            var prediction:      [MaxPrimaryChannels] u32
             var predictionIndex: [MaxPrimaryChannels, MaxSubbands] u32
             for channel in channels
             {
-                for band in subbandCount[channel]
-                {
-                    prediction[channel, band] = reader.read(1) != 0
-                }
+                let count = subbandCount[channel]
+                prediction[channel] = reader.read(count) << (32 - count)
             }
 
             for channel in channels
             {
-                for band in subbandCount[channel] where prediction[channel, band]
+                var flags = prediction[channel]
+                while flags
                 {
+                    let band = Math.leadingZeros(flags)
+                    flags &= ~(0x8000_0000_u32 >> band)
                     predictionIndex[channel, band] = reader.read(12)
                 }
             }
@@ -933,9 +938,11 @@ private impl Codec
                         let adjustedScale = adjustment == 1.0 ? scale : Math.min(Math.floor(scale * adjustment), 8_388_607.0)
                         let factor        = step * adjustedScale / 4_194_304.0
                         let samples       = subbands + channel * samplesPerChannel + band * samplesPerBand + subbandPosition + subsubframe * SamplesPerSubband
+
+                        // Dequantized residuals enter the signed 24-bit prediction and synthesis range.
                         for index in SamplesPerSubband
                         {
-                            samples[index] = cast(f64, audio[index]) * factor
+                            samples[index] = Math.clamp(cast(f64, audio[index]) * factor, SubbandMinimum, SubbandMaximum)
                         }
                     }
                 }
@@ -946,39 +953,56 @@ private impl Codec
                 }
             }
 
-            // The four-tap predictor is applied after every scalar sample of this subframe has
-            // been dequantized. A frame whose predictor-history switch is clear starts from zero;
-            // otherwise its first four references come from the preceding frame.
+            // Each predicted band needs the four most recent dequantized samples.
             for channel in channels
             {
-                for band in Math.min(vqStart[channel], subbandCount[channel]) where prediction[channel, band]
+                let endBand = Math.min(vqStart[channel], subbandCount[channel])
+                var flags   = prediction[channel]
+                while flags
                 {
-                    let vector      = predictionIndex[channel, band]
-                    let bandSamples = subbands + channel * samplesPerChannel + band * samplesPerBand
+                    let band = Math.leadingZeros(flags)
+                    if band >= endBand
+                    {
+                        break
+                    }
+
+                    flags &= ~(0x8000_0000_u32 >> band)
+                    let vector       = predictionIndex[channel, band]
+                    let bandSamples  = subbands + channel * samplesPerChannel + band * samplesPerBand
+                    let coefficient0 = cast(f64, AdpcmCoefficients[vector, 0])
+                    let coefficient1 = cast(f64, AdpcmCoefficients[vector, 1])
+                    let coefficient2 = cast(f64, AdpcmCoefficients[vector, 2])
+                    let coefficient3 = cast(f64, AdpcmCoefficients[vector, 3])
+                    var recent0, recent1, recent2, recent3: f64
+                    if subbandPosition
+                    {
+                        recent0 = bandSamples[subbandPosition - 1]
+                        recent1 = bandSamples[subbandPosition - 2]
+                        recent2 = bandSamples[subbandPosition - 3]
+                        recent3 = bandSamples[subbandPosition - 4]
+                    }
+                    else if header.predictorHistory
+                    {
+                        recent0 = .predictionHistory[channel, band, 3]
+                        recent1 = .predictionHistory[channel, band, 2]
+                        recent2 = .predictionHistory[channel, band, 1]
+                        recent3 = .predictionHistory[channel, band, 0]
+                    }
+
+                    let current = bandSamples + subbandPosition
                     for offset in subbandSamples
                     {
-                        let position = subbandPosition + offset
                         var predicted: f64
-                        for tap in 4
-                        {
-                            let source = cast(s32, position) - 1 - cast(s32, tap)
-                            var value  = 0.0_f64
-                            if source < 0
-                            {
-                                if header.predictorHistory
-                                {
-                                    value = .predictionHistory[channel, band, 4 + source]
-                                }
-                            }
-                            else
-                            {
-                                value = bandSamples[source]
-                            }
-
-                            predicted += value * cast(f64, AdpcmCoefficients[vector, tap])
-                        }
-
-                        bandSamples[position] = Math.clamp(bandSamples[position] + predicted / 8_192.0, -8_388_608.0, 8_388_607.0)
+                        predicted += recent0 * coefficient0
+                        predicted += recent1 * coefficient1
+                        predicted += recent2 * coefficient2
+                        predicted += recent3 * coefficient3
+                        let sample = Math.clamp(current[offset] + predicted / 8_192.0, SubbandMinimum, SubbandMaximum)
+                        current[offset] = sample
+                        recent3         = recent2
+                        recent2         = recent1
+                        recent1         = recent0
+                        recent0         = sample
                     }
                 }
             }

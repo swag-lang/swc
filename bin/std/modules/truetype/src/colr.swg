@@ -14,24 +14,27 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
         return result
     }
 
-    let colr       = try getSlice(faceData.fontBytes(), colrRecord.offset, colrRecord.length)
-    try assertRange(colr, 0, 14)
-
-    if try readU16(colr, 0) != 0
+    let colr        = try getSlice(faceData.fontBytes(), colrRecord.offset, colrRecord.length)
+    let colrVersion = try readU16(colr, 0)
+    if colrVersion > 1
     {
         try fault(0x07)
     }
+
+    // Both headers describe the v0 layer records in their first 14 bytes.
+    let colrHeaderSize = colrVersion == 0 ? 14_u64 : 34_u64
+    try assertRange(colr, 0, colrHeaderSize)
 
     let baseGlyphCount     = try readU16(colr, 2)
     let baseRecordsOffset  = cast(u64, try readU32(colr, 4))
     let layerRecordsOffset = cast(u64, try readU32(colr, 8))
     let layerRecordCount   = try readU16(colr, 12)
-    if baseGlyphCount and baseRecordsOffset < 14
+    if baseGlyphCount and baseRecordsOffset < colrHeaderSize
     {
         try fault(0x08)
     }
 
-    if layerRecordCount and layerRecordsOffset < 14
+    if layerRecordCount and layerRecordsOffset < colrHeaderSize
     {
         try fault(0x08)
     }
@@ -89,9 +92,10 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
         try fault(0x08)
     }
 
-    let cpal       = try getSlice(faceData.fontBytes(), cpalRecord.offset, cpalRecord.length)
+    let cpal = try getSlice(faceData.fontBytes(), cpalRecord.offset, cpalRecord.length)
     try assertRange(cpal, 0, 12)
-    if try readU16(cpal, 0) != 0
+    let cpalVersion = try readU16(cpal, 0)
+    if cpalVersion > 1
     {
         try fault(0x07)
     }
@@ -105,8 +109,32 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
         try fault(0x06)
     }
 
-    try assertRange(cpal, 12, cast(u64, paletteCount) * 2)
-    if colorRecordCount and colorRecordsOffset < 12 + cast(u64, paletteCount) * 2
+    let paletteIndicesEnd = 12_u64 + cast(u64, paletteCount) * 2
+    let cpalHeaderSize    = paletteIndicesEnd + (cpalVersion == 0 ? 0 : 12)
+    try assertRange(cpal, 0, cpalHeaderSize)
+
+    // CPAL v1 appends three offsets for optional palette metadata.
+    if cpalVersion == 1
+    {
+        let metadataSizes = [cast(u64, paletteCount) * 4,
+                             cast(u64, paletteCount) * 2,
+                             cast(u64, paletteEntryCount) * 2]
+        for size, index in metadataSizes
+        {
+            let offset = try readU32(cpal, paletteIndicesEnd + cast(u64, index) * 4)
+            if offset
+            {
+                if offset < cpalHeaderSize
+                {
+                    try fault(0x08)
+                }
+
+                try assertRange(cpal, offset, size)
+            }
+        }
+    }
+
+    if colorRecordCount and colorRecordsOffset < cpalHeaderSize
     {
         try fault(0x08)
     }

@@ -5,8 +5,8 @@ using Core, Pixel, Gui
 
 // Describes the picture viewer to the host.
 //
-// It offers itself for every raster format the imaging module can decode, plus SVG, so a decoder
-// added there reaches the viewer without a list to update here.
+// It offers itself for SVG and SVGZ, and uses the imaging module's registry to pick up
+// raster decoders as they are added.
 func viewerPlugin()->Viewer.Plugin
 {
     with var result: #returntype
@@ -26,7 +26,7 @@ func viewerPlugin()->Viewer.Plugin
         result.addSelectors(format.extensions)
     }
 
-    result.addSelectors(".svg")
+    result.addSelectors(".svg;.svgz")
     return result
 }
 
@@ -38,6 +38,11 @@ private const ImageItemSelectorWidth = 272.0
 private const ImageItemSelectorLimit = 128
 private const ImageThumbnailWidth    = 32
 private const ImageThumbnailHeight   = 24
+
+// Caps the expanded SVG source before parsing.
+private const SvgzSourceLimit = 64 * 1024 * 1024
+
+private func isSvgExtension(extension: string)->bool => extension == ".svg" or extension == ".svgz"
 
 private func commandWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16
 private func imageSetCommandWidth(metrics: const *ThemeMetrics, animated: bool)->f32 =>
@@ -130,7 +135,7 @@ private func loadItemThumbnail(fileName: string, index: u32)->Image fail
 // need pixels — a thumbnail, an export, a comparison against a decoded picture.
 func loadViewerImage(fileName: string)->Image fail
 {
-    if Path.lowercaseExtension(fileName) != ".svg"
+    if not isSvgExtension(Path.lowercaseExtension(fileName))
     {
         var file   = try File.MappedFile.open(fileName)
         let region = try file.mapAll()
@@ -154,7 +159,7 @@ func loadViewerImage(fileName: string)->Image fail
 // softer picture than sampling twice per axis at the size that is kept.
 func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 {
-    if Path.lowercaseExtension(fileName) != ".svg"
+    if not isSvgExtension(Path.lowercaseExtension(fileName))
     {
         var image   = try loadViewerImage(fileName)
         let largest = Math.max(image.width, image.height)
@@ -183,6 +188,13 @@ func loadViewerDrawing(fileName: string, options: Svg.ParseOptions = {})->Svg.Dr
 {
     var file   = try File.MappedFile.open(fileName)
     let region = try file.mapAll()
+    if Latin1.compare(Path.extension(fileName) orelse "", ".svgz", ignoreCase: true) == 0
+    {
+        var gzip: Compress.Gzip
+        let text = try gzip.decompress(region.bytes(), maxOutputSize: SvgzSourceLimit)
+        return try Svg.Drawing.parse(cast(string, text.toSlice()), options)
+    }
+
     return try Svg.Drawing.parse(cast(string, region.bytes()), options)
 }
 
@@ -193,7 +205,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     let extension = String.toLower(Path.extension(fileName))
     result.information.add(.Image, group: true)
     result.information.add(.Format, String.toUpper(extension.toString()[Math.min(extension.count, 1) to]))
-    if extension == ".svg"
+    if isSvgExtension(extension)
     {
         result.drawing      = try loadViewerDrawing(fileName)
         result.facts.width  = formatViewBoxExtent(result.drawing.width)

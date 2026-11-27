@@ -1,6 +1,6 @@
 //! Format: Audio Video Interleave (AVI/RIFF) decoder component.
-//! Supported: Indexed Motion JPEG, MPEG-4 Part 2, uncompressed RGB555 16-bit or RGB 24-/32-bit video, integer PCM, and MPEG Layer III audio with complete frames in each AVI chunk.
-//! Not supported: OpenDML files beyond the supported RIFF index model and video codecs other than Motion JPEG, MPEG-4 Part 2, or uncompressed RGB.
+//! Supported: Motion JPEG, MPEG-4 Part 2, uncompressed RGB555 16-bit or RGB 24-/32-bit video, integer PCM, and MPEG Layer III audio with complete frames in each AVI chunk. Reads classic idx1 and OpenDML frame indexes across RIFF AVIX continuations.
+//! Not supported: OpenDML field-level indexes and video codecs other than Motion JPEG, MPEG-4 Part 2, or uncompressed RGB.
 //! Role: This file owns RIFF chunks, stream indexes, frame/audio packet lookup, and top-level decode.
 //
 #global namespace Avi
@@ -27,6 +27,14 @@ const StreamFormatId = fourCc('s'_u32, 't'_u32, 'r'_u32, 'f'_u32)
 const IndexId        = fourCc('i'_u32, 'd'_u32, 'x'_u32, '1'_u32)
 const VideoStreamId  = fourCc('v'_u32, 'i'_u32, 'd'_u32, 's'_u32)
 const AudioStreamId  = fourCc('a'_u32, 'u'_u32, 'd'_u32, 's'_u32)
+
+private const AvixId            = fourCc('A'_u32, 'V'_u32, 'I'_u32, 'X'_u32)
+private const OpenDmlListId     = fourCc('o'_u32, 'd'_u32, 'm'_u32, 'l'_u32)
+private const OpenDmlHeaderId   = fourCc('d'_u32, 'm'_u32, 'l'_u32, 'h'_u32)
+private const OpenDmlIndexId    = fourCc('i'_u32, 'n'_u32, 'd'_u32, 'x'_u32)
+private const IndexOfIndexes    = 0_u8
+private const IndexOfChunks     = 1_u8
+private const OpenDmlNonKeyFlag = 0x8000_0000_u32
 
 // WAVE format tag used by uncompressed integer PCM streams.
 private const PcmFormatTag = 1_u16
@@ -143,6 +151,44 @@ private struct Chunk
     next: u64
 }
 
+// The range of chunk headers and payloads in one `movi` list.
+private struct MovieList
+{
+    start, end: u64
+}
+
+// Standard indexes and superindexes both start with these 24 bytes.
+#[Swag.Pack(1)]
+private struct OpenDmlIndexHeader
+{
+    entryWords: u16
+    subtype:    u8
+    kind:       u8
+    count:      u32
+    chunkId:    u32
+    base:       u64
+    reserved:   u32
+}
+
+#assert(#sizeof(OpenDmlIndexHeader) == 24)
+
+#[Swag.Pack(1)]
+private struct OpenDmlIndexReference
+{
+    offset:   u64
+    size:     u32
+    duration: u32
+}
+
+#assert(#sizeof(OpenDmlIndexReference) == 16)
+
+// Indexed movie chunks advance in file order across the RIFF continuations.
+private struct OpenDmlIndexCursor
+{
+    movie: u64
+    next:  u64
+}
+
 // One video slot and the payload used to decode it.
 private struct FrameEntry
 {
@@ -185,17 +231,18 @@ private struct AudioPackets
 // What walking the container found, before it is turned into a stream description.
 private struct Layout
 {
-    main:        MainHeader             // Contents of the `avih` chunk.
-    stream:      StreamHeader           // Stream header of the first video stream.
-    format:      Bmp.Header             // Bitmap header describing the frames of that stream.
-    frameList:   u64                    // Offset of the `movi` identifier.
-    frameEnd:    u64                    // Offset just past the frames of the `movi` list.
-    indexStart:  u64                    // Offset of the `idx1` payload, or zero when the file has none.
-    indexSize:   u64                    // Length of the `idx1` payload, in bytes.
-    streamIndex: u32                    // Ordinal of the video stream among the streams of the file.
-    audioTracks: Array!{AudioTrack}     // Playable sound streams, in declaration order.
-    hasMain:     bool
-    hasStream:   bool
+    main:              MainHeader             // Contents of the `avih` chunk.
+    stream:            StreamHeader           // Stream header of the first video stream.
+    format:            Bmp.Header             // Bitmap header describing the frames of that stream.
+    movieLists:        Array!{MovieList}      // Every `movi` list in file order.
+    openDmlIndex:      Chunk                  // The video stream's `indx` chunk, if any.
+    openDmlFrameCount: u32                    // Total video frames in the OpenDML header.
+    indexStart:        u64                    // Offset of the `idx1` payload, or zero when the file has none.
+    indexSize:         u64                    // Length of the `idx1` payload, in bytes.
+    streamIndex:       u32                    // Ordinal of the video stream among the streams of the file.
+    audioTracks:       Array!{AudioTrack}     // Playable sound streams, in declaration order.
+    hasMain:           bool
+    hasStream:         bool
 }
 
 // Returns the identifier a frame chunk of stream `index` carries.
@@ -225,7 +272,8 @@ private func readChunk(source: *ByteSource, end: u64)->Chunk fail
     }
 
     // RIFF pads an odd payload with one byte that belongs to neither chunk.
-    result.next = Math.min(result.data + result.size + (result.size & 1), end)
+    let payloadEnd = result.data + result.size
+    result.next = payloadEnd + (payloadEnd < end ? result.size & 1 : 0)
     return result
 }
 
@@ -247,37 +295,68 @@ private func describeId(id: u32)->String
 
 private impl Layout
 {
-    // Walks the top-level chunks of the file, keeping the ones a picture stream needs.
+    // Collects the movie lists of the initial AVI RIFF and any OpenDML AVIX continuations.
     mtd parse(source: *ByteSource) fail
     {
-        if try source.readLittleEndian!
-        {
-            u32
-        }() != RiffId
+        let tag = try source.readLittleEndian!{u32}()
+        if tag != RiffId
         {
             fail InvalidFormatError{"AVI stream is not a RIFF file"}
         }
 
-        // A capture interrupted before its header was patched leaves a size of zero behind, and a
-        // size larger than the file means the same thing: the file itself is the bound.
+        // An interrupted classic capture can leave the RIFF length unset or overstated.
+        let fileEnd  = source.size()
         let declared = cast(u64, (try source.readLittleEndian!{u32}()))
-        let end      = declared < FourCcSize ? source.size() : Math.min(source.size(), source.position() + declared)
-        if try source.readLittleEndian!
-        {
-            u32
-        }() != AviId
+        let end      = declared < FourCcSize ? fileEnd : Math.min(fileEnd, source.position() + declared)
+        let form     = try source.readLittleEndian!{u32}()
+        if form != AviId
         {
             fail InvalidFormatError{"RIFF stream does not hold an AVI file"}
         }
 
-        while source.position() + ChunkHeaderSize <= end
+        // The file bounds a chunk in the first RIFF because classic writers sometimes leave
+        // the form length a few bytes short even though the final chunk is complete.
+        try .parseRiff(source, end, fileEnd, initial: true)
+        let next = end + (end < fileEnd ? declared & 1 : 0)
+        if source.position() > next
         {
-            // The declared size says where the writer meant the form to end, and writers of that
-            // era got it wrong by a few bytes often enough that a last chunk overruns it while
-            // still lying inside the file. What the file holds is readable, so the file is what
-            // bounds a chunk; the declared size only says how far to walk.
-            let chunk = try readChunk(source, source.size())
-            if chunk.id == IndexId
+            return
+        }
+
+        try source.seek(next)
+        while source.remaining() >= ChunkHeaderSize + FourCcSize
+        {
+            let continuation = try source.readLittleEndian!{u32}()
+            if continuation != RiffId
+            {
+                return
+            }
+
+            let size = cast(u64, (try source.readLittleEndian!{u32}()))
+            let kind = try source.readLittleEndian!{u32}()
+            if kind != AvixId
+            {
+                return
+            }
+
+            if size < FourCcSize or size - FourCcSize > source.remaining()
+            {
+                fail InvalidFormatError{"AVI continuation runs past the end of the stream"}
+            }
+
+            let segmentEnd = source.position() + (size - FourCcSize)
+            try .parseRiff(source, segmentEnd, segmentEnd, initial: false)
+            try source.seek(segmentEnd + (segmentEnd < fileEnd ? size & 1 : 0))
+        }
+    }
+
+    // Reads top-level chunks without consuming frame data.
+    mtd parseRiff(source: *ByteSource, end, chunkBound: u64, initial: bool) fail
+    {
+        while source.position() <= end and ChunkHeaderSize <= end - source.position()
+        {
+            let chunk = try readChunk(source, chunkBound)
+            if initial and chunk.id == IndexId
             {
                 .indexStart = chunk.data
                 .indexSize  = chunk.size
@@ -286,12 +365,8 @@ private impl Layout
             {
                 switch try source.readLittleEndian!{u32}()
                 {
-                case HeaderListId:
-                    try .parseHeaderList(source, chunk.next)
-
-                case FrameListId:
-                    .frameList = chunk.data
-                    .frameEnd  = chunk.next
+                case HeaderListId where initial: try .parseHeaderList(source, chunk.data + chunk.size)
+                case FrameListId: .movieLists.add(MovieList{chunk.data + FourCcSize, chunk.data + chunk.size})
                 }
             }
 
@@ -311,12 +386,32 @@ private impl Layout
                 .main    = try source.readNative!{MainHeader}()
                 .hasMain = true
             }
-            else if chunk.id == ListId and
-                    chunk.size >= FourCcSize and
-                    (try source.readLittleEndian!{u32}()) == StreamListId
+            else if chunk.id == ListId and chunk.size >= FourCcSize
             {
-                try .parseStreamList(source, chunk.next, index)
-                index += 1
+                switch try source.readLittleEndian!{u32}()
+                {
+                case StreamListId:
+                    try .parseStreamList(source, chunk.data + chunk.size, index)
+                    index += 1
+
+                case OpenDmlListId:
+                    try .parseOpenDmlHeader(source, chunk.data + chunk.size)
+                }
+            }
+
+            try source.seek(chunk.next)
+        }
+    }
+
+    // Reads the total frame count from the OpenDML header, including continuations.
+    mtd parseOpenDmlHeader(source: *ByteSource, end: u64) fail
+    {
+        while source.position() <= end and ChunkHeaderSize <= end - source.position()
+        {
+            let chunk = try readChunk(source, end)
+            if chunk.id == OpenDmlHeaderId and chunk.size >= 4
+            {
+                .openDmlFrameCount = try source.readLittleEndian!{u32}()
             }
 
             try source.seek(chunk.next)
@@ -326,9 +421,10 @@ private impl Layout
     // Reads one `strl` list, keeping the first video stream and every playable audio stream.
     mtd parseStreamList(source: *ByteSource, end: u64, index: u32) fail
     {
-        var header:    StreamHeader
-        var hasHeader: bool
-        var hasAudio:  bool
+        var header:     StreamHeader
+        var indexChunk: Chunk
+        var hasHeader:  bool
+        var hasAudio:   bool
 
         while source.position() + ChunkHeaderSize <= end
         {
@@ -337,6 +433,10 @@ private impl Layout
             {
                 header    = try source.readNative!{StreamHeader}()
                 hasHeader = true
+            }
+            else if chunk.id == OpenDmlIndexId
+            {
+                indexChunk = chunk
             }
             else if chunk.id == StreamFormatId and
                     hasHeader and
@@ -368,6 +468,11 @@ private impl Layout
             }
 
             try source.seek(chunk.next)
+        }
+
+        if .hasStream and .streamIndex == index
+        {
+            .openDmlIndex = indexChunk
         }
     }
 
@@ -486,7 +591,7 @@ impl IDecoder for Decoder
             fail UnsupportedFormatError{"AVI file has no video stream"}
         }
 
-        if not layout.frameList
+        if layout.movieLists.isEmpty()
         {
             fail InvalidFormatError{"AVI file has no frame list"}
         }
@@ -705,7 +810,7 @@ private impl Decoder
         }
     }
 
-    // Walks the movie list once and routes each packet to its declared audio stream.
+    // Walks each movie list once and routes each packet to its declared audio stream.
     mtd walkSoundPackets(source: *ByteSource, layout: const *Layout, trackForStream: const [..] u8, tracks: *Array!{AudioPackets}) fail
     {
         #[Swag.Inline]
@@ -770,44 +875,47 @@ private impl Decoder
             }
         }
 
-        var position = layout.frameList + FourCcSize
-        while position + ChunkHeaderSize <= layout.frameEnd
+        for movie in layout.movieLists
         {
-            try source.seek(position)
-            let chunk = try readChunk(source, layout.frameEnd)
-            let index = trackIndex(chunk.id, trackForStream)
-            if index
+            var position = movie.start
+            while position <= movie.end and ChunkHeaderSize <= movie.end - position
             {
-                let track = &tracks[index - 1]
-                try addChunk(source, &chunk, &track.format, &track.packets)
-            }
-            else if chunk.id == ListId and
-                    chunk.size >= FourCcSize and
-                    (try source.readLittleEndian!{u32}()) == RecordListId
-            {
-                let groupEnd       = chunk.data + chunk.size
-                var nestedPosition = chunk.data + FourCcSize
-                while nestedPosition <= groupEnd and ChunkHeaderSize <= groupEnd - nestedPosition
+                try source.seek(position)
+                let chunk = try readChunk(source, movie.end)
+                let index = trackIndex(chunk.id, trackForStream)
+                if index
                 {
-                    try source.seek(nestedPosition)
-                    let nested      = try readChunk(source, groupEnd)
-                    let nestedIndex = trackIndex(nested.id, trackForStream)
-                    if nestedIndex
+                    let track = &tracks[index - 1]
+                    try addChunk(source, &chunk, &track.format, &track.packets)
+                }
+                else if chunk.id == ListId and
+                        chunk.size >= FourCcSize and
+                        (try source.readLittleEndian!{u32}()) == RecordListId
+                {
+                    let groupEnd       = chunk.data + chunk.size
+                    var nestedPosition = chunk.data + FourCcSize
+                    while nestedPosition <= groupEnd and ChunkHeaderSize <= groupEnd - nestedPosition
                     {
-                        let track = &tracks[nestedIndex - 1]
-                        try addChunk(source, &nested, &track.format, &track.packets)
+                        try source.seek(nestedPosition)
+                        let nested      = try readChunk(source, groupEnd)
+                        let nestedIndex = trackIndex(nested.id, trackForStream)
+                        if nestedIndex
+                        {
+                            let track = &tracks[nestedIndex - 1]
+                            try addChunk(source, &nested, &track.format, &track.packets)
+                        }
+
+                        nestedPosition = nested.next
                     }
 
-                    nestedPosition = nested.next
+                    if nestedPosition != groupEnd
+                    {
+                        fail InvalidFormatError{"AVI record list ends with a partial chunk"}
+                    }
                 }
 
-                if nestedPosition != groupEnd
-                {
-                    fail InvalidFormatError{"AVI record list ends with a partial chunk"}
-                }
+                position = chunk.next
             }
-
-            position = chunk.next
         }
     }
 
@@ -875,7 +983,8 @@ private impl Decoder
 
         let dataId       = frameChunkId(layout.streamIndex, 'd'_u32, 'b'_u32)
         let compressedId = frameChunkId(layout.streamIndex, 'd'_u32, 'c'_u32)
-        if .readIndex(source, layout, dataId, compressedId)
+        if .readOpenDmlIndex(source, layout, dataId, compressedId) or
+           (layout.movieLists.count == 1 and .readIndex(source, layout, dataId, compressedId))
         {
             return
         }
@@ -896,6 +1005,139 @@ private impl Decoder
 
         let previous = .frames.back()
         .frames.add(FrameEntry{previous.offset, previous.size, isSync})
+    }
+
+    // Tries the OpenDML frame index before scanning movie lists.
+    mtd readOpenDmlIndex(source: *ByteSource, layout: const *Layout, dataId, compressedId: u32)->bool
+    {
+        let declared = layout.openDmlFrameCount ? layout.openDmlFrameCount : layout.stream.length
+        if not layout.openDmlIndex.size or not declared
+        {
+            return false
+        }
+
+        var indexError: Swag.Error
+        catch .readOpenDmlIndexEntries(source, layout, dataId, compressedId) as indexError
+        if indexError.value() == null and .frames.count == declared
+        {
+            return true
+        }
+
+        .frames.clear()
+        return false
+    }
+
+    mtd readOpenDmlIndexEntries(source: *ByteSource, layout: const *Layout, dataId, compressedId: u32) fail
+    {
+        let root   = layout.openDmlIndex
+        let header = try readOpenDmlIndexHeader(source, root, dataId, compressedId)
+        var cursor: OpenDmlIndexCursor
+        if header.kind == IndexOfChunks
+        {
+            try .readOpenDmlFrameEntries(source, layout, header, &cursor)
+        }
+        else
+        {
+            let indexId = fourCc('i'_u32, 'x'_u32, '0'_u32 + layout.streamIndex / 10, '0'_u32 + layout.streamIndex % 10)
+            let end     = source.size()
+            for header.count
+            {
+                let reference = try source.readNative!{OpenDmlIndexReference}()
+                let resume    = source.position()
+                let offset    = Math.littleEndianToNative(reference.offset)
+                let size      = cast(u64, Math.littleEndianToNative(reference.size))
+                if offset > end or size > end - offset
+                {
+                    fail InvalidFormatError{"AVI OpenDML index points past the end of the stream"}
+                }
+
+                try source.seek(offset)
+                let child = try readChunk(source, offset + size)
+                if child.id != indexId or child.size + ChunkHeaderSize != size
+                {
+                    fail InvalidFormatError{"AVI OpenDML index points at the wrong chunk"}
+                }
+
+                let table = try readOpenDmlIndexHeader(source, child, dataId, compressedId)
+                if table.kind != IndexOfChunks
+                {
+                    fail InvalidFormatError{"AVI OpenDML index does not point at a frame table"}
+                }
+
+                try .readOpenDmlFrameEntries(source, layout, table, &cursor)
+                try source.seek(resume)
+            }
+        }
+
+        if not cursor.next
+        {
+            fail InvalidFormatError{"AVI OpenDML index contains no frame payload"}
+        }
+    }
+
+    mtd readOpenDmlFrameEntries(source: *ByteSource, layout: const *Layout, table: OpenDmlIndexHeader, cursor: *OpenDmlIndexCursor) fail
+    {
+        var probed: bool
+        for entry in table.count
+        {
+            let record = try source.readNative!{[2] u32}()
+            let offset = cast(u64, Math.littleEndianToNative(record[0]))
+            let flags  = Math.littleEndianToNative(record[1])
+            let size   = cast(u64, flags & ~OpenDmlNonKeyFlag)
+            if not size
+            {
+                .appendFrame(0, 0, isSync: false)
+                continue
+            }
+
+            // Standard index offsets address the payload eight bytes after its chunk header.
+            // Compare before adding the relative offset to the unsigned 64-bit base.
+            if offset > Swag.U64.Max - table.base or table.base + offset < ChunkHeaderSize
+            {
+                fail InvalidFormatError{"AVI OpenDML frame offset exceeds the stream"}
+            }
+
+            let start  = table.base + offset
+            let header = start - ChunkHeaderSize
+            while cursor.movie < layout.movieLists.count and header >= layout.movieLists[cursor.movie].end
+            {
+                cursor.movie += 1
+            }
+
+            if cursor.movie >= layout.movieLists.count
+            {
+                fail InvalidFormatError{"AVI OpenDML frame lies outside a movie list"}
+            }
+
+            let movie = layout.movieLists[cursor.movie]
+            if header < movie.start or
+               header < cursor.next or
+               start > movie.end or
+               size > movie.end - start
+            {
+                fail InvalidFormatError{"AVI OpenDML frame lies outside a movie list or overlaps an earlier frame"}
+            }
+
+            // Sample both ends of the index so a bad base or offset convention triggers the
+            // fallback without reading the headers of every picture in a large recording.
+            if not probed or entry + 1 == table.count
+            {
+                let resume = source.position()
+                try source.seek(header)
+                let chunk = try readChunk(source, movie.end)
+                if chunk.id != table.chunkId or chunk.size != size
+                {
+                    fail InvalidFormatError{"AVI OpenDML index does not identify the frame chunk"}
+                }
+
+                try source.seek(resume)
+                probed = true
+            }
+
+            let payloadEnd = start + size
+            cursor.next = payloadEnd + (payloadEnd < movie.end ? size & 1 : 0)
+            .appendFrame(start, size, (flags & OpenDmlNonKeyFlag) == 0)
+        }
     }
 
     // Builds the frame table from the `idx1` chunk, and reports whether it produced one.
@@ -1076,62 +1318,65 @@ private impl Decoder
         }
 
         var layer: Mpeg4.Layer
-        var position = layout.frameList + FourCcSize
-        while position + ChunkHeaderSize <= layout.frameEnd
+        for movie in layout.movieLists
         {
-            try source.seek(position)
-            let chunk = try readChunk(source, layout.frameEnd)
-            if chunk.id == dataId or chunk.id == compressedId
+            var position = movie.start
+            while position <= movie.end and ChunkHeaderSize <= movie.end - position
             {
-                var isSync = .frames.isEmpty()
-                if .isCoded
+                try source.seek(position)
+                let chunk = try readChunk(source, movie.end)
+                if chunk.id == dataId or chunk.id == compressedId
                 {
-                    isSync = try isMpeg4SyncFrame(source, chunk.data, chunk.size, &layer)
-                }
-
-                .appendFrame(chunk.data, chunk.size, isSync)
-                position = chunk.next
-                continue
-            }
-
-            // An OpenDML file groups its frames into `rec ` lists, one level below the frame
-            // list; descending into one reaches the frames it holds without a second walk. Any
-            // other list is skipped rather than entered, since its content is not chunks.
-            let isGroup = chunk.id == ListId and
-                          chunk.size >= FourCcSize and
-                          (try source.readLittleEndian!{u32}()) == RecordListId
-            if isGroup
-            {
-                let groupEnd       = chunk.data + chunk.size
-                var nestedPosition = chunk.data + FourCcSize
-                while nestedPosition <= groupEnd and ChunkHeaderSize <= groupEnd - nestedPosition
-                {
-                    try source.seek(nestedPosition)
-                    let nested = try readChunk(source, groupEnd)
-                    if nested.id == dataId or nested.id == compressedId
+                    var isSync = .frames.isEmpty()
+                    if .isCoded
                     {
-                        var isSync = .frames.isEmpty()
-                        if .isCoded
-                        {
-                            isSync = try isMpeg4SyncFrame(source, nested.data, nested.size, &layer)
-                        }
-
-                        .appendFrame(nested.data, nested.size, isSync)
+                        isSync = try isMpeg4SyncFrame(source, chunk.data, chunk.size, &layer)
                     }
 
-                    nestedPosition = nested.next
+                    .appendFrame(chunk.data, chunk.size, isSync)
+                    position = chunk.next
+                    continue
                 }
 
-                if nestedPosition != groupEnd
+                // An OpenDML file groups its frames into `rec ` lists, one level below the frame
+                // list; descending into one reaches the frames it holds without a second walk. Any
+                // other list is skipped rather than entered, since its content is not chunks.
+                let isGroup = chunk.id == ListId and
+                              chunk.size >= FourCcSize and
+                              (try source.readLittleEndian!{u32}()) == RecordListId
+                if isGroup
                 {
-                    fail InvalidFormatError{"AVI record list ends with a partial chunk"}
-                }
+                    let groupEnd       = chunk.data + chunk.size
+                    var nestedPosition = chunk.data + FourCcSize
+                    while nestedPosition <= groupEnd and ChunkHeaderSize <= groupEnd - nestedPosition
+                    {
+                        try source.seek(nestedPosition)
+                        let nested = try readChunk(source, groupEnd)
+                        if nested.id == dataId or nested.id == compressedId
+                        {
+                            var isSync = .frames.isEmpty()
+                            if .isCoded
+                            {
+                                isSync = try isMpeg4SyncFrame(source, nested.data, nested.size, &layer)
+                            }
 
-                position = chunk.next
-            }
-            else
-            {
-                position = chunk.next
+                            .appendFrame(nested.data, nested.size, isSync)
+                        }
+
+                        nestedPosition = nested.next
+                    }
+
+                    if nestedPosition != groupEnd
+                    {
+                        fail InvalidFormatError{"AVI record list ends with a partial chunk"}
+                    }
+
+                    position = chunk.next
+                }
+                else
+                {
+                    position = chunk.next
+                }
             }
         }
     }
@@ -1350,6 +1595,37 @@ private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Ima
     }
 }
 
+// Reads one index header and bounds its records before a caller consumes them.
+private func readOpenDmlIndexHeader(source: *ByteSource, chunk: Chunk, dataId, compressedId: u32)->OpenDmlIndexHeader fail
+{
+    if chunk.size < #sizeof(OpenDmlIndexHeader)
+    {
+        fail InvalidFormatError{"AVI OpenDML index header is truncated"}
+    }
+
+    try source.seek(chunk.data)
+    var table = try source.readNative!{OpenDmlIndexHeader}()
+    table.entryWords = Math.littleEndianToNative(table.entryWords)
+    table.count      = Math.littleEndianToNative(table.count)
+    table.chunkId    = Math.littleEndianToNative(table.chunkId)
+    table.base       = Math.littleEndianToNative(table.base)
+    if table.subtype or
+       (table.kind != IndexOfIndexes and table.kind != IndexOfChunks) or
+       table.entryWords != (table.kind == IndexOfIndexes ? 4 : 2) or
+       (table.chunkId != dataId and table.chunkId != compressedId)
+    {
+        fail InvalidFormatError{"AVI OpenDML index has an unsupported layout"}
+    }
+
+    let bytes = cast(u64, table.entryWords) * 4
+    if table.count > (chunk.size - #sizeof(OpenDmlIndexHeader)) / bytes
+    {
+        fail InvalidFormatError{"AVI OpenDML index ends inside a frame entry"}
+    }
+
+    return table
+}
+
 // Returns the base the offsets of an index are counted from.
 //
 // Most writers count them from the frame-list identifier and some store absolute stream offsets,
@@ -1357,9 +1633,10 @@ private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Ima
 // entry names where the entry claims it is, is the base the file used.
 private func probeIndexBase(source: *ByteSource, layout: const *Layout, id: u32, offset: u64)->u64 fail
 {
-    if matchesChunkId(source, layout.frameList + offset, id)
+    let movieType = layout.movieLists[0].start - FourCcSize
+    if matchesChunkId(source, movieType + offset, id)
     {
-        return layout.frameList
+        return movieType
     }
 
     if matchesChunkId(source, offset, id)

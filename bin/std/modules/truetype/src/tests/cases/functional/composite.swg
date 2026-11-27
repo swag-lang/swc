@@ -152,3 +152,22 @@ private func setCompositeTestGlyphs(faceData: *FaceImpl, first, second: const [.
     discard expect face.renderGlyph()
     Swag.require(countBitmapCoverage(&face.glyph.bitmap) > 0)
 }
+
+// A composite translation uses the horizontal and vertical scales and keeps its last point.
+#test
+{
+    const Simple: [23] u8 = [
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x02, 0x00, 0x00, 0x37, 0x27, 0x17, 1, 2, 3, 2, 4, 3]
+    const Composite: [18] u8 = [
+        0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x03, 0x00, 0x00, 0xFF, 0xFC, 0x00, 0x05]
+    var faceData: FaceImpl
+    faceData.unitsPerEm = 1000
+    setCompositeTestGlyphs(&faceData, Simple, [])
+    expect appendCompositeGlyph(&faceData, Composite, 1000, 500, 0)
+    Swag.require(faceData.outlinePoints.count == 3)
+    Swag.require(faceData.outlinePoints[0].x == -192 and faceData.outlinePoints[0].y == 224)
+    Swag.require(faceData.outlinePoints[1].x == -320 and faceData.outlinePoints[1].y == 352)
+    Swag.require(faceData.outlinePoints[2].x == -128 and faceData.outlinePoints[2].y == 256)
+}

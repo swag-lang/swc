@@ -162,3 +162,39 @@ using Swag, Core
         Swag.require(Memory.compare(shared.pixels.storage(), separate.pixels.storage(), separate.byteCount) == 0)
     }
 }
+
+// Raster images default to centered meet. An explicit alignment moves the letterbox, and slice
+// crops before the transform. An authored none stretches all the way to the viewport edges.
+#test
+{
+    let path    = getTestDataPath("svg.image.aspect-ratio.svg")
+    let source  = expect File.readAllText(path.toString())
+    let drawing = expect Svg.Drawing.parse(source.toString())
+    let image   = drawing.rasterize(144, 32, 1)
+
+    let red   = Color.fromArgb(Argb.Red)
+    let green = Color.fromArgb(Argb.Lime)
+    let blue  = Color.fromArgb(Argb.Blue)
+
+    Swag.require(image.pixelColor(6, 8).a == 0)
+    Swag.require(image.pixelColor(6, 11) == red)
+    Swag.require(image.pixelColor(26, 20) == blue)
+    Swag.require(image.pixelColor(26, 23).a == 0)
+
+    Swag.require(image.pixelColor(34, 14).a == 0)
+    Swag.require(image.pixelColor(34, 17) == red)
+    Swag.require(image.pixelColor(54, 27) == blue)
+
+    Swag.require(image.pixelColor(59, 12).a == 0)
+    Swag.require(image.pixelColor(62, 8) == green)
+    Swag.require(image.pixelColor(82, 23) == blue)
+    Swag.require(image.pixelColor(84, 12).a == 0)
+
+    Swag.require(image.pixelColor(87, 12).a == 0)
+    Swag.require(image.pixelColor(90, 8) == green)
+    Swag.require(image.pixelColor(110, 23) == red)
+    Swag.require(image.pixelColor(112, 12).a == 0)
+
+    Swag.require(image.pixelColor(118, 4) == red)
+    Swag.require(image.pixelColor(138, 27) == blue)
+}

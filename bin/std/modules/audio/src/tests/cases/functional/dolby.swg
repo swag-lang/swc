@@ -122,12 +122,12 @@ private func ac3TestPackets(path: string)->Array!{SoundPacket} fail
     return result
 }
 
-private func dolbyTonePower(samples: const [*] s16, firstFrame, frameCount, channels, channel: u64, frequency: f64)->f64
+private func dolbyTonePower(samples: const [*] s16, firstFrame, frameCount, channels, channel: u64, frequency: f64, sampleRate = 48_000.0_f64)->f64
 {
     var real, imaginary: f64
     for frame in frameCount
     {
-        let angle = 2.0 * Math.ConstF64.Pi * frequency * cast(f64, frame) / 48_000.0
+        let angle = 2.0 * Math.ConstF64.Pi * frequency * cast(f64, frame) / sampleRate
         let value = cast(f64, samples[(firstFrame + frame) * channels + channel])
         real      += value * Math.cos(angle)
         imaginary -= value * Math.sin(angle)
@@ -573,6 +573,49 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
     let samples = cast(const [*] s16, unwrap decoded.buffer)
     Swag.require(dolbyTonePower(samples, 2048, 2048, 2, 0, 440) > 8.0 * dolbyTonePower(samples, 2048, 2048, 2, 0, 660))
     Swag.require(dolbyTonePower(samples, 2048, 2048, 2, 1, 660) > 8.0 * dolbyTonePower(samples, 2048, 2048, 2, 1, 440))
+}
+
+private func eac3DecodeMono(fixture: string, rate: u32)->Array!{s16}
+{
+    let sound = expect SoundFile.load(audioGetTestDataPath(fixture).toString(), preloadData: false)
+    Swag.require(sound.sampleEncoding() == .Eac3 and sound.numChannels() == 1)
+    Swag.require(sound.sampleRateHz() == rate and sound.packetCount() == 3)
+    Swag.require(sound.sampleFrameCount() == 3 * 1536)
+    var samples: #returntype
+    expect sound.decodePcm16(func|&samples|(part)
+    {
+        samples.add(part)
+        return true
+    })
+    Swag.require(samples.count == sound.sampleFrameCount())
+    return samples
+}
+
+// Independent mono frames exercise the 32 kHz bit allocation table and overlap across packets.
+#test
+{
+    let samples = eac3DecodeMono("eac3-mono-32000.eac3", 32_000)
+    let reference = expect File.readAllBytes(audioGetTestDataPath("eac3-mono-32000.pcm").toString())
+    Swag.require(reference.count == samples.count * #sizeof(s16))
+    let wanted = cast(const [*] s16, reference.storage())
+    var energy = 0.0_f64
+    for index in samples.count
+    {
+        let difference = cast(f64, samples[index]) - cast(f64, wanted[index])
+        energy += difference * difference
+    }
+
+    // The reference decoder uses a different zero-mantissa dither sequence.
+    Swag.require(Math.sqrt(energy / cast(f64, samples.count)) < 0.012 * 32_768.0)
+}
+
+// Reduced-rate E-AC-3 uses six blocks per frame and selects the rate through fscod2.
+#test
+{
+    let samples = eac3DecodeMono("eac3-mono-24000.eac3", 24_000)
+    let tone = dolbyTonePower(samples.storage(), 512, 2048, 1, 0, 168.5, 24_000.0)
+    let unrelated = dolbyTonePower(samples.storage(), 512, 2048, 1, 0, 275.0, 24_000.0)
+    Swag.require(tone > 8.0 * unrelated and tone > 1_000_000.0)
 }
 
 // The independent E-AC-3 path decodes the common six-block, standard-coupling profile and

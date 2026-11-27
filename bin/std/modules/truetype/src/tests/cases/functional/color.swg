@@ -224,6 +224,80 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
 
 #test
 {
+    let face = expect Face.loadFile(getTestDataPath("google-colrv1-test-glyphs.ttf"))
+    defer face.destroy()
+
+    // Layer order, palette entries, and ARGB values from FreeType 2.14.3.
+    let base = face.glyphIndex(cast(rune, 0xF0E00))
+    Swag.require(base == 168)
+    let glyphIndices       = [176_u32, 175, 174, 173, 172, 171, 170, 5]
+    let entryIndices       = [0_u16, 1, 2, 3, 4, 5, 6, 10]
+    let colors: [3][8] u32 = [
+        [0xFFFF0000, 0xFFFFA500, 0xFFFFFF00, 0xFF008000, 0xFF0000FF, 0xFF4B0082, 0xFFEE82EE, 0xFF000000],
+        [0xFF2A294A, 0xFF244163, 0xFF1B6388, 0xFF157DA3, 0xFF0E9AC2, 0xFF05BEE8, 0xFF00D4FF, 0xFF808080],
+        [0xFFFC7118, 0xFFFB8115, 0xFFFA9511, 0xFFFAA80D, 0xFFF9BE09, 0xFFF8D304, 0xFFF8E700, 0xFF808080]]
+    for palette, paletteIndex in colors
+    {
+        let layers = expect face.getColorLayers(base, cast(u16, paletteIndex))
+        Swag.require(layers.count == 8)
+        for layer, index in layers
+        {
+            Swag.require(layer.glyphIndex == glyphIndices[index])
+            Swag.require(layer.paletteIndex == entryIndices[index])
+            Swag.require(layer.hasColor and layer.argb == palette[index])
+        }
+    }
+
+    let paintOnly = face.glyphIndex(cast(rune, 0xF0100))
+    Swag.require(paintOnly == 8)
+    let noLayers = expect face.getColorLayers(paintOnly)
+    Swag.require(noLayers.isEmpty())
+
+    var invalidPalette: Swag.Error
+    discard catch face.getColorLayers(base, 3) as invalidPalette
+    Swag.require(invalidPalette.value() != null)
+
+    expect face.setPixelSize(0, 48)
+    expect face.loadColorGlyph(base, 2)
+    let bitmap = &face.glyph.bitmap
+    Swag.require(bitmap.pixelMode == .ColorRgba)
+    Swag.require(bitmap.width != 0 and bitmap.rows != 0)
+}
+
+#test
+{
+    // The common v0 fields fit, but the v1 header fields are truncated.
+    for tag, index in [TAG_COLR, TAG_CPAL]
+    {
+        var bytes  = loadFontBytes("google-colrv1-test-glyphs.ttf")
+        let record = colorTableRecord(&bytes, tag)
+        writeBigU32(&bytes, record + 12, index == 0 ? 14 : 18)
+        let face = expect Face.load(bytes.toSlice())
+        defer face.destroy()
+
+        let base = face.glyphIndex(cast(rune, 0xF0E00))
+        var malformed: Swag.Error
+        discard catch face.getColorLayers(base) as malformed
+        Swag.require(malformed.value() != null)
+    }
+
+    var bytes  = loadFontBytes("google-colrv1-test-glyphs.ttf")
+    let record = colorTableRecord(&bytes, TAG_CPAL)
+    let offset = readBigU32(&bytes, record + 8)
+    let length = readBigU32(&bytes, record + 12)
+    let metadataOffsets = cast(u64, offset) + 12 + cast(u64, readBigU16(&bytes, offset + 4)) * 2
+    writeBigU32(&bytes, metadataOffsets, length - 1)
+    let face = expect Face.load(bytes.toSlice())
+    defer face.destroy()
+
+    let base = face.glyphIndex(cast(rune, 0xF0E00))
+    var malformed: Swag.Error
+    discard catch face.getColorLayers(base) as malformed
+    Swag.require(malformed.value() != null)
+}
+
+#test
+{
     var bytes = loadFontBytes("arial.ttf")
     let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()

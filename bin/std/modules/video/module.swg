@@ -48,9 +48,10 @@ The built-in formats cover these streams.
   4:2:2, or 4:4:4 frames. It does not compress, so it favors a small
   implementation over the size of what it produces.
 - AVI (`.avi`) reads Motion JPEG, MPEG-4 Part 2, and uncompressed RGB555 16-bit or RGB 24-/32-bit
-  frames, exposes integer PCM and MPEG Layer III sound
-  tracks, and writes Motion JPEG pictures. A coded stream states its codec through the bitmap
-  header of the container and its setup headers inside the stream, and stores a bidirectional plane
+  frames and exposes integer PCM and MPEG Layer III sound tracks. The reader follows OpenDML
+  frame indexes and `RIFF AVIX` continuations. The writer emits Motion JPEG in classic RIFF.
+  A coded stream states its codec through the bitmap header of the container and its setup headers
+  inside the stream, and stores a bidirectional plane
   behind the plane it refers forward to, which is what this container's lack of a decoding order
   costs. The container index locates Motion JPEG and uncompressed frames directly.
   MPEG-4 Part 2 seeks to a preceding sync picture and reconstructs prediction dependencies
@@ -127,6 +128,13 @@ The built-in formats cover these streams.
 - Raw Motion JPEG (`.mjpeg` and `.mjpg`) reads consecutive, self-contained JPEG pictures of
   constant dimensions. Each picture is a seek point. The reader indexes the picture boundaries
   at open and assumes 25 frames per second because the stream carries no timestamps.
+
+- H.264 Annex B (`.h264` and `.264`) indexes progressive pictures in a file or memory
+  stream. Opening scans start codes and slice headers. Seek and planar decode use the
+  AVC picture order and preceding IDR. The supported stream begins at an IDR, uses one
+  stable SPS and PPS, and keeps picture order across non-IDR pictures. The index holds
+  up to 1,048,576 pictures with access units of at most 64 MiB. The nominal VUI rate, or
+  25 frames per second when that timing is absent, gives the display timeline.
 
 [[Video.Subtitle.Track.loadOwned]] decodes SubRip (`.srt`), WebVTT (`.vtt`), ASS/SSA (`.ass` and
 `.ssa`), LRC (`.lrc`), and MicroDVD (`.sub`) documents. UTF-8, UTF-16, UTF-32, and Windows-1252

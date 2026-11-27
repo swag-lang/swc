@@ -102,6 +102,7 @@ struct Sps
     fullRange:            bool
     sampleAspectWidth:    u32 = 1
     sampleAspectHeight:   u32 = 1
+    frameRate:            FrameRate
     matrixCoefficients:   u8  = 2     // H.273 matrix_coefficients; 2 means unspecified.
     hasScaling:           bool
     scaling4:             [96] u8     // Six weight lists of Table 7-2, in zig-zag scan order.
@@ -251,13 +252,14 @@ private func parseScalingMatrices(bits: *BitReader, sps: *Sps, scaling4: [..] u8
 impl Sps
 {
     // Parses one sequence parameter set payload.
-    mtd parse(payload: const [..] u8) fail
+    mtd parse(payload: const [..] u8, readVuiTiming = false) fail
     {
         var bits: BitReader
         bits.init(payload)
 
         .sampleAspectWidth  = 1
         .sampleAspectHeight = 1
+        .frameRate          = {}
 
         .profile = cast(u8, bits.read(8))
         bits.skip(8)          // Constraint flags and reserved bits.
@@ -419,8 +421,7 @@ impl Sps
             .cropBottom = cast(s32, cropBottom)
         }
 
-        // The first VUI fields describe colour range and matrix. Later timing and HRD
-        // fields do not affect picture reconstruction.
+        // Only the elementary stream needs the VUI clock. Containers already provide one.
         if bits.bit()
         {
             if bits.bit()
@@ -443,6 +444,11 @@ impl Sps
                     .matrixCoefficients = cast(u8, bits.read(8))
                 }
             }
+
+            if readVuiTiming
+            {
+                try .readTiming(&bits)
+            }
         }
 
         if bits.overran
@@ -458,6 +464,38 @@ impl Sps
         }
 
         .valid = true
+    }
+
+    // AVC counts two clock ticks per progressive picture.
+    private mtd readTiming(bits: *BitReader) fail
+    {
+        if bits.bit()
+        {
+            discard bits.ue()
+            discard bits.ue()
+        }
+
+        if not bits.bit()
+        {
+            return
+        }
+
+        let units = bits.read(32)
+        let scale = bits.read(32)
+        discard bits.bit()     // fixed_frame_rate_flag. Without it the rate is nominal.
+        if bits.overran or not units or not scale
+        {
+            fail InvalidFormatError{"H.264 sequence set has invalid VUI timing"}
+        }
+
+        let ticks   = 2 * cast(s64, units)
+        let divisor = try Math.gcd(cast(s64, scale), ticks)
+        if ticks / divisor > Swag.U32.Max
+        {
+            fail UnsupportedFormatError{"H.264 VUI rate exceeds the frame-rate range"}
+        }
+
+        .frameRate = try FrameRate.create(cast(u32, (scale / divisor)), cast(u32, (ticks / divisor)))
     }
 
     // Reports whether the sequence codes its two colour planes at the resolution of luma.

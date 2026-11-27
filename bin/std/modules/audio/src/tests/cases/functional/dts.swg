@@ -85,9 +85,9 @@ private func dtsVqPacket()->Array!{u8}
     return bits.bytes
 }
 
-// Builds one mono Core packet whose first scalar subband uses predictor vector zero. The first
-// residual is an impulse, so the following reconstructed samples exercise the four-tap feedback.
-private func dtsPredictionPacket(huffman = false, frameBytes = 32_u32)->Array!{u8}
+// Builds one mono Core packet with an impulse in its first scalar subband. A wide
+// residual exercises dequantizer saturation. The ordinary packet uses predictor vector zero.
+private func dtsScalarPacket(huffman = false, frameBytes = 32_u32, predictorHistory = false, wideResidual = 0_s32)->Array!{u8}
 {
     var bits: DtsTestBits
     bits.add(0x7FFE8001, 32)
@@ -104,7 +104,7 @@ private func dtsPredictionPacket(huffman = false, frameBytes = 32_u32)->Array!{u
     bits.add(0, 1)
     bits.add(0, 1)
     bits.add(0, 2)
-    bits.add(0, 1)
+    bits.add(predictorHistory ? 1 : 0, 1)
     bits.add(0, 1)
     bits.add(0, 6)
     bits.add(0, 3)
@@ -138,13 +138,25 @@ private func dtsPredictionPacket(huffman = false, frameBytes = 32_u32)->Array!{u
 
     bits.add(0, 2)     // One subsubframe.
     bits.add(0, 3)
-    bits.add(1, 1)     // Prediction in subband 0.
+    bits.add(not wideResidual ? 1 : 0, 1)
     bits.add(0, 1)
-    bits.add(0, 12)     // Predictor vector zero.
-    bits.add(huffman ? 1 : 8, 5)
+    if not wideResidual
+    {
+        bits.add(0, 12)     // Predictor vector zero.
+    }
+
+    bits.add(wideResidual ? 26 : huffman ? 1 : 8, 5)
     bits.add(0, 5)
-    bits.add(huffman ? 104 : 64, 7)
-    if huffman
+    bits.add(wideResidual ? 124 : huffman ? 104 : 64, 7)
+    if wideResidual
+    {
+        bits.add(cast #bit(u32, wideResidual) & 0x7F_FFFF, 23)
+        for 7
+        {
+            bits.add(0, 23)
+        }
+    }
+    else if huffman
     {
         bits.add(0b10, 2)     // Symbol +1 in the three-level codebook.
         for 7
@@ -162,8 +174,9 @@ private func dtsPredictionPacket(huffman = false, frameBytes = 32_u32)->Array!{u
     }
 
     bits.add(0xFFFF, 16)
-    Swag.require(bits.bitCount <= 32 * 8)
-    bits.bytes.resize(32)
+    let packetBytes = Math.max(frameBytes, 32)
+    Swag.require(bits.bitCount <= packetBytes * 8)
+    bits.bytes.resize(packetBytes)
     return bits.bytes
 }
 
@@ -323,7 +336,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
 // The packet may carry extensions, but a truncated core header cannot borrow from them.
 #test
 {
-    let bytes = dtsPredictionPacket(frameBytes: 12)
+    let bytes = dtsScalarPacket(frameBytes: 12)
     let info  = expect Dts.frameInfo(bytes.toSlice())
     let path  = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
                              Format.toString("audio-dts-truncated-core-%.bin", Guid64.random()).toString())
@@ -369,7 +382,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     defer destroyEngine()
     for huffman in [false, true]
     {
-        let bytes = dtsPredictionPacket(huffman)
+        let bytes = dtsScalarPacket(huffman)
         let info  = expect Dts.frameInfo(bytes.toSlice())
         let path  = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("audio-dts-prediction-%.bin", Guid64.random()).toString())
         defer discard catch File.delete(path)
@@ -447,6 +460,62 @@ private func dtsDecodePcm(path: string)->Array!{s16}
     })
 
     return result
+}
+
+// The history flag selects the preceding band's last four reconstructed samples.
+#test
+{
+    let first = dtsScalarPacket()
+    var decoded: [2] Array!{s16}
+    for useHistory, index in [false, true]
+    {
+        let second = dtsScalarPacket(predictorHistory: useHistory)
+        var packets: Array!{u8}
+        packets.add(first.toSlice())
+        packets.add(second.toSlice())
+        let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                Format.toString("audio-dts-prediction-history-%.dts", Guid64.random()).toString())
+        defer discard catch File.delete(path)
+        expect File.writeAllBytes(path, packets.toSlice())
+        decoded[index] = dtsDecodePcm(path)
+    }
+
+    const PacketSamples = 256
+    let reset     = decoded[0].toSlice()
+    let continued = decoded[1].toSlice()
+    Swag.require(reset.count == 2 * PacketSamples and continued.count == reset.count)
+    Swag.require(Slice.equals(reset[until PacketSamples], continued[until PacketSamples]))
+    Swag.require(not Slice.equals(reset[PacketSamples until], continued[PacketSamples until]))
+}
+
+// Each 23-bit impulse below exceeds the dequantizer's signed 24-bit range.
+#test
+{
+    func decodeImpulse(residual: s32)->Array!{s16}
+    {
+        let packet = dtsScalarPacket(frameBytes: 64, wideResidual: residual)
+        let path   = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                  Format.toString("audio-dts-clip-%.dts", Guid64.random()).toString())
+        defer discard catch File.delete(path)
+        expect File.writeAllBytes(path, packet.toSlice())
+        return dtsDecodePcm(path)
+    }
+
+    for polarity in [1_s32, -1]
+    {
+        let first  = decodeImpulse(polarity * 250_000)
+        let second = decodeImpulse(polarity * 320_000)
+        Swag.require(first.count == 256 and second.count == first.count)
+        Swag.require(Slice.equals(first.toSlice(), second.toSlice()))
+
+        var nonZero: u64
+        for sample in first.toSlice() where sample
+        {
+            nonZero += 1
+        }
+
+        Swag.require(nonZero > 8)
+    }
 }
 
 // Word order and transport packing preserve every decoded sample, including across packets.

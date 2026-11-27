@@ -307,8 +307,14 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   gains the public `cmykjpeg.pdf` page and improves the explicitly inverted stress page's
   mean RGB difference against PDFium from 20.40 to 12.49 channel levels. The other 60 pages
   have the same bitmap checksums in that comparison.
-- Remaining: grayscale, RGB, masked and resource-named DCT paths still drop their `/Decode`
-  arrays. The direct CMYK path uses a device-colour approximation without an ICC transform.
+- Direct grayscale and RGB JPEGs also apply the declared component ranges before composition.
+  The public mask page's mean RGB difference against PDFium drops from 8.64 to 1.25 levels.
+  A large default JPEG soft mask loads in 16.29 ms, down from 24.15 ms, with the same raster.
+- Direct grayscale and RGB DCT color keys now test the decoded JPEG samples before color
+  mapping. The inverted grayscale fixture matches PDFium pixel for pixel. The partial-range
+  RGB fixture's mean channel difference against PDFium drops from 62.31 to 0.47 levels.
+- Resource-named DCT paths, CMYK masks and RGB `DecodeParms` remain open. Direct CMYK refers
+  to device colours without an ICC transform.
 - Done when: each DCT image path honours `/Decode` with coverage for ranges, masks and
   colour spaces.
 - Related: std.gui.pdf.002
@@ -400,7 +406,10 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   from 65.56 to 0.15 ms to save and from 355 to 275 kB. PDFium renders the saved page
   pixel for pixel like the source. Different palettes for equal packed samples keep distinct
   image objects.
-- Next: retain remaining JPEG dictionary forms and encode newly authored palette images.
+- Gray and RGB JPEG streams with default or inverted component directions also survive saving.
+  Three public-derived range variants save in 0.14–0.46 ms, down from 104–557 ms, with
+  unchanged raw JPEG bytes and PDFium raster. A fourth case retains explicit interpolation.
+- Next: retain fractional JPEG decode ranges and encode newly authored palette images.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and
   an image written more than once shares one object.
@@ -475,8 +484,11 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   `decode.image.swg`. Different-size masks use exact quotient-and-remainder coordinates.
   Non-default decode arrays, other sample widths and remaining composition paths still need
   separate profiling and vectorization.
-- Next: vectorize non-default decode arrays, packed and 16-bit samples, other color-key comparisons,
-  mask scaling, and remaining alpha composition; use gather for indexed spaces only when profitable.
+- Inverting complete RGB samples in a packed pass and resolving color-key bounds once per
+  image reduces load on the public mask fixture from 58.49 to 27.48 ms. Its matching CPU
+  total goes from 73.41 to 43.38 ms against PDFium's 58.06 ms, with identical Swag pixels.
+- Next: vectorize remaining decode arrays, packed and 16-bit samples, color-key comparisons,
+  mask scaling, and remaining alpha composition.
 - Done when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
   arrays, and indexed spaces, with separate conversion benchmarks.
 - Related: std.core.042, std.core.044, std.core.047.
@@ -617,6 +629,11 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   0.95 s at 2400 px. In the expanded comparison at 1200 px all other 86 supported pages keep
   their checksums. The stress page's mean RGB difference from PDFium is 21.61 to 21.56 at
   1200 px and 17.11 to 17.30 at 2400 px out of 255 levels.
+- Collecting stroke fragments directly as intervals and merging neighboring overlaps takes
+  the dense curve page from 663 to 465 ms at 1200 px and from 1419 to 948 ms at 2400 px.
+  PDFium takes 277 and 448 ms in those series. Of 88 pages, 87 keep their bitmap checksums
+  and the remaining forms page differs by one level in one pixel. The native stroke comparison
+  goes from 34.86 to 29.77 ms against AGG's 19.27 ms with the same Swag coverage.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

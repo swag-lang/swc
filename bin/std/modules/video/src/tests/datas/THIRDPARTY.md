@@ -76,6 +76,33 @@ The luma and chroma probes come from FFmpeg's planar decode of the file.
 - License: same as this repository.
 
 
+`ffmpeg-h264-annexb.h264` contains twelve synthetic 80×50 pictures at 30000/1001.
+The stream has three slices per picture, two IDR groups and reordered B pictures.
+FFmpeg 7.1.5 generated it without access unit delimiters.
+
+```sh
+ffmpeg -f lavfi -i 'testsrc2=size=80x50:rate=30000/1001' -frames:v 12 -an \
+  -c:v libx264 -threads 1 -profile:v high -pix_fmt yuv420p \
+  -x264-params 'keyint=6:min-keyint=6:scenecut=0:open-gop=0:bframes=2:b-adapt=0:slices=3:aud=0' \
+  source.mp4
+ffmpeg -i source.mp4 -map 0:v:0 -an -c:v copy -bsf:v h264_mp4toannexb \
+  -f h264 ffmpeg-h264-annexb.h264
+```
+
+In `ffmpeg-h264-annexb-no-vui.h264`, the two copies of the SPS have
+`vui_parameters_present_flag` cleared, with a new RBSP stop bit and emulation
+prevention where needed. The slice bytes are unchanged. FFmpeg 9.1's AVC parser
+and decoder read both raw streams to the same 72,000-byte 4:2:0 picture sequence
+in display order, recorded as `ffmpeg-h264-annexb.yuv`.
+
+| Local file | Size in bytes | SHA-256 |
+| --- | ---: | --- |
+| `ffmpeg-h264-annexb.h264` | 3,642 | `24cf670e0317288791335e765077b95c86524e5946b4d30f307032f6a6c6ab4f` |
+| `ffmpeg-h264-annexb-no-vui.h264` | 3,614 | `afc266478de75e0a101533bb33a1043dfc52c0f354fd753010c8faa4ba54b61e` |
+| `ffmpeg-h264-annexb.yuv` | 72,000 | `07c10342ee781be3aca4b55630dfcb228b56a0f3008cc629f70af3e35f045a19` |
+
+The fixture and reference use the same license as this repository.
+
 ## Written by ffmpeg, then edited
 
 `edited-two-pcm-record-group.avi` uses two frames of synthetic grey video and two synthetic tones.
@@ -153,6 +180,16 @@ the same six pictures.
 | `edited-absolute-index.avi` | The index offsets are counted from the start of the file rather than from the frame list, which some writers do and nothing in the format distinguishes |
 | `edited-record-groups.avi` | Every frame is wrapped in a `rec ` list and the index removed, as an OpenDML file groups its frames |
 | `edited-dropped-frames.avi` | The payloads of frames 3 and 4 are emptied and the index updated, which is how the container says a frame repeats the picture before it |
+
+`synthetic-opendml.avi` remuxes the six synthetic `ffmpeg-rawvideo-bgr24.avi` pictures
+with their original payloads and timeline. The first `RIFF AVI ` holds three pictures
+and an `idx1` for those pictures. A `RIFF AVIX` continuation holds the last three in a
+`rec ` list. The video `indx` refers to one `ix00` standard index in each RIFF and
+`dmlh` declares the complete picture count. A separately generated mono 8,000 Hz
+signed 16-bit PCM track holds samples −1,000 through −985 in the first RIFF and
+1,000 through 1,015 in the continuation. The fixture is distributed under the
+repository's licence. Its 14,812 bytes have SHA-256
+`9a993c84e1f8cd0dbd96340993ae139d6186c3ac9ba2e1400c2ce4b2df4566f9`.
 
 `edited-truncated-tail.mkv` is `ffmpeg-h264-two-aac.mkv` with everything from its second cluster
 onward replaced by zeros, which is what a write that stopped part way leaves behind, and what two

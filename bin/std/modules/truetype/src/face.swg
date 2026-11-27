@@ -575,13 +575,14 @@ public impl Face
         return faceData.glyphAdvance(glyphIndex)
     }
 
-    // Returns the ordered color layers declared for a glyph by COLR version 0.
+    // Returns the ordered COLR version 0 layers for a glyph.
     //
-    // `paletteIndex` selects a CPAL palette. Each returned layer identifies its glyph,
-    // CPAL entry, and resolved color in 0xAARRGGBB form. `hasColor` is false and `argb`
-    // is zero for the special COLR foreground entry (0xFFFF). The returned array is
-    // owned by the caller. An absent COLR table or base glyph returns an empty array;
-    // invalid glyph or palette indices and malformed or unsupported tables fail.
+    // COLR versions 0 and 1 can both contain version 0 layers. `paletteIndex` selects
+    // a palette from CPAL version 0 or 1. Each layer identifies its glyph, CPAL entry,
+    // and resolved color in 0xAARRGGBB form. `hasColor` is false and `argb` is zero
+    // for the special COLR foreground entry (0xFFFF). The caller owns the array.
+    // A glyph without version 0 layers returns an empty array. Invalid glyph or
+    // palette indices and malformed or unsupported layer and palette records fail.
     mtd const getColorLayers(baseGlyph: u32, paletteIndex: u16 = 0)->Array!{ColorGlyphLayer} fail
     {
         let faceData = cast(const *FaceImpl, cast(const *void, me))
@@ -775,8 +776,8 @@ public impl Face
     // entries use `foregroundArgb`, defaulting to opaque black. The slot's outline and
     // metrics describe `baseGlyph`, while its bitmap uses [[TrueType.PixelMode.ColorRgba]]
     // with bytes in red, green, blue, alpha order. This replaces the slot's current
-    // outline and bitmap, like [[TrueType.Face.loadGlyph]]. It fails if the glyph has no
-    // color layers.
+    // outline and bitmap, like [[TrueType.Face.loadGlyph]]. It fails if the glyph has
+    // no layers through [[TrueType.Face.getColorLayers]].
     mtd loadColorGlyph(baseGlyph: u32, paletteIndex: u16 = 0, foregroundArgb: u32 = 0xFF000000) fail
     {
         try renderColorGlyph(me, baseGlyph, paletteIndex, foregroundArgb)

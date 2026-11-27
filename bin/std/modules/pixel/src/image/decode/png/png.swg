@@ -973,7 +973,12 @@ impl Decoder
         }
 
         let intoResult = .header.bitDepth >= 8 and .inChannels == .outChannels
-        if intoResult
+        let oneBitPalette = .header.bitDepth == 1 and
+                            .header.colorType & .Paletted and
+                            .header.interlaceMethod == .None and
+                            .paletteCount == 2 and
+                            .dstPixelsSize >= 64 * 1024
+        if intoResult or oneBitPalette
         {
             result.allocPixels()
         }
@@ -989,6 +994,16 @@ impl Decoder
         if .dcmpBuf.count != hintSize
         {
             fail InvalidFormatError{"invalid PNG decompressed scanline size"}
+        }
+
+        if oneBitPalette
+        {
+            if not .convertOneBitPalette(result)
+            {
+                fail InvalidFormatError{"invalid PNG row filter"}
+            }
+
+            return
         }
 
         // defilter content

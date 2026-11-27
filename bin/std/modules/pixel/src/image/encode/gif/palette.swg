@@ -203,27 +203,38 @@ impl Encoder
         return true
     }
 
-    // If the first row used every gray value, it determines the entire palette. The image's
-    // bytes can serve as LZW dictionary literals; only literal codes written to the file need
-    // translating to the palette order.
+    // Once an initial part of the image used every gray value, it determines the entire
+    // palette. The image bytes can serve as dictionary literals, translated on emission.
     func tryBuildFullGrayPalette(data: *PaletteData, image: Image, order: *[256] u8)->bool
     {
-        let first = image.pixels.storage() + cast(u64, image.height - 1) * image.rowStride
+        let first     = image.pixels.storage() + cast(u64, image.height - 1) * image.rowStride
         var seen:  [256] bool
         var count: u32
-        for x in image.width
+        var remaining = Math.max(image.width, 4096)
+        for y in image.height
         {
-            let gray = first[x]
-            if seen[gray]
+            let source = first - cast(u64, y) * image.rowStride
+            let length = Math.min(image.width, remaining)
+            for x in length
             {
-                continue
+                let gray = source[x]
+                if seen[gray]
+                {
+                    continue
+                }
+
+                seen[gray]         = true
+                order[][gray]      = cast(u8, count)
+                data.colors[count] = {gray, gray, gray}
+                count              += 1
+                if count == MaxPaletteColors
+                {
+                    break
+                }
             }
 
-            seen[gray]         = true
-            order[][gray]      = cast(u8, count)
-            data.colors[count] = {gray, gray, gray}
-            count              += 1
-            if count == MaxPaletteColors
+            remaining -= length
+            if not remaining or count == MaxPaletteColors
             {
                 break
             }
@@ -587,21 +598,18 @@ impl Encoder
         // Each row of the grid tracks occupied blue bins for one red/green pair.
         // A zero border also makes reads outside the color cube empty.
         var occupied: [34, 34] u32
-        if dither
+        for red in 32
         {
-            for red in 32
+            for green in 32
             {
-                for green in 32
+                let index = (red << 10) | (green << 5)
+                var bits: u32
+                for blue in 32
                 {
-                    let index = (red << 10) | (green << 5)
-                    var bits: u32
-                    for blue in 32
-                    {
-                        bits |= cast(u32, histogram[index + blue].count != 0) << blue
-                    }
-
-                    occupied[red + 1, green + 1] = bits
+                    bits |= cast(u32, histogram[index + blue].count != 0) << blue
                 }
+
+                occupied[red + 1, green + 1] = bits
             }
         }
 
@@ -611,23 +619,25 @@ impl Encoder
         {
             for green in 32
             {
-                var needed: u32
+                var needed = occupied[red + 1, green + 1]
                 if dither
                 {
-                    let own = occupied[red + 1, green + 1]
-
                     // The same offset in [-8, 7] applies to all three channels. Each output
                     // bin can also be reached from the adjoining bins in either direction.
-                    let lighter = own | occupied[red, green + 1] | occupied[red + 1, green] | occupied[red, green]
-                    let darker  = own |
-                                  occupied[red + 2, green + 1] |
-                                  occupied[red + 1, green + 2] |
-                                  occupied[red + 2, green + 2]
+                    let lighter = needed |
+                                  occupied[red, green + 1] |
+                                  occupied[red + 1, green] |
+                                  occupied[red, green]
+                    let darker = needed |
+                                 occupied[red + 2, green + 1] |
+                                 occupied[red + 1, green + 2] |
+                                 occupied[red + 2, green + 2]
                     needed = lighter | (lighter << 1) | darker | (darker >> 1)
-                    if not needed
-                    {
-                        continue
-                    }
+                }
+
+                if not needed
+                {
+                    continue
                 }
 
                 var rgCosts: [Groups] Math.Simd.S32x4
@@ -636,22 +646,34 @@ impl Encoder
                     rgCosts[group] = redCosts[red, group] + greenCosts[green, group]
                 }
 
-                for blue in 32
+                while needed
                 {
-                    let index = (red << 10) | (green << 5) | blue
-                    if dither ? not (needed & (1_u32 << blue)) : not histogram[index].count
+                    let blue    = Math.trailingZeros(needed)
+                    let index   = (red << 10) | (green << 5) | blue
+                    let blueRow = cast(const [*] Math.Simd.S32x4, &blueCosts[blue, 0])
+                    let ceiling = Math.Simd.splat(Swag.S32.Max)
+                    var best0   = ceiling
+                    var best1   = ceiling
+                    var best2   = ceiling
+                    var best3   = ceiling
+                    var group   = 0_u32
+                    while groups - group >= 4
                     {
-                        continue
+                        best0 = Math.min(rgCosts[group] + blueRow[group], best0)
+                        best1 = Math.min(rgCosts[group + 1] + blueRow[group + 1], best1)
+                        best2 = Math.min(rgCosts[group + 2] + blueRow[group + 2], best2)
+                        best3 = Math.min(rgCosts[group + 3] + blueRow[group + 3], best3)
+                        group += 4
                     }
 
-                    var best = Math.Simd.splat(Swag.S32.Max)
-                    for group in groups
+                    var best = Math.min(best0, best1, best2, best3)
+                    for tail in group until groups
                     {
-                        let cost = rgCosts[group] + blueCosts[blue, group]
-                        best = Math.Simd.select(cost < best, cost, best)
+                        best = Math.min(rgCosts[tail] + blueRow[tail], best)
                     }
 
                     mapping[index] = cast #wrap(u8, Math.Simd.minimum(best))
+                    needed         &= needed - 1
                 }
             }
         }

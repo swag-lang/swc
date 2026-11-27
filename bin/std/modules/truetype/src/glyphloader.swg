@@ -312,6 +312,45 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
     }
 }
 
+private func translateGlyphPoints(points: [*] Vector, count: u64, dx, dy: f64)
+{
+    var index = 0_u64
+    #static if Math.nativeToBigEndian(1_u32) != 1
+    {
+        if count >= 2 and
+           dx >= Swag.S32.Min and
+           dx <= Swag.S32.Max and
+           dy >= Swag.S32.Min and
+           dy <= Swag.S32.Max
+        {
+            let x      = cast #bit(u32, cast(s32, dx))
+            let y      = cast #bit(u32, cast(s32, dy))
+            let offset = cast(Math.Simd.U32x4, [x, y, x, y])
+            while count - index >= 2
+            {
+                let target  = cast([*] u32, points + index)
+                let old     = Math.Simd.load(target)
+                let shifted = old + offset
+
+                // Any signed overflow falls back to the existing checked conversions.
+                if Swag.vecMask((old ^ shifted) & (offset ^ shifted))
+                {
+                    break
+                }
+
+                Math.Simd.store(target, shifted)
+                index += 2
+            }
+        }
+    }
+
+    for point in index until count
+    {
+        points[point].x = cast(s32, points[point].x + dx)
+        points[point].y = cast(s32, points[point].y + dy)
+    }
+}
+
 func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u16, depth: u32) fail
 {
     if depth >= MAX_RECURSE
@@ -407,8 +446,9 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
             var dy     = 0.0
             if (flags & CMP_ARGS_ARE_XY_VALUES) != 0
             {
-                dx = try scale26_6(arg1, xPpem, faceData.unitsPerEm)
-                dy = try scale26_6(arg2, yPpem, faceData.unitsPerEm)
+                // A nonempty component has already prepared the two point scales.
+                dx = try faceData.pointScaleX.apply(arg1)
+                dy = try faceData.pointScaleY.apply(arg2)
             }
 
             if xx != 1.0 or yy != 1.0 or xy != 0.0 or yx != 0.0
@@ -434,11 +474,7 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
             // The scaled offsets and both anchors are already integer 26.6 coordinates.
             if dx != 0 or dy != 0
             {
-                for index in addedPointCount
-                {
-                    points[index].x = cast(s32, points[index].x + dx)
-                    points[index].y = cast(s32, points[index].y + dy)
-                }
+                translateGlyphPoints(points, addedPointCount, dx, dy)
             }
         }
 

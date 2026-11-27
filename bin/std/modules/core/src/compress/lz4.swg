@@ -82,9 +82,15 @@ func decompressInto(output: [..] u8, buffer: const [..] u8) fail
         fail BadParameterError{}
     }
 
-    var offset   = 0_u64
-    var written  = 0_u64
-    var hasMatch = false
+    discard try decodeBlock!{true}(output, buffer, 0)
+}
+
+// The prefix of 'output' holds history from preceding blocks in a linked frame.
+internal func(ExactSize: bool) decodeBlock(output: [..] u8, buffer: const [..] u8, history: u64, limited = false)->u64 fail
+{
+    var offset      = 0_u64
+    var written     = history
+    var latestMatch = 0_u64
     while offset < buffer.count
     {
         let token = buffer[offset]
@@ -112,7 +118,7 @@ func decompressInto(output: [..] u8, buffer: const [..] u8) fail
                 cast([*] u16, destination + 16)[0] = cast(const [*] u16, from + 16)[0]
                 offset                             = matchOffset + 2
                 written                            = matchStart + matchLength + 4
-                hasMatch                           = true
+                latestMatch                        = ExactSize ? 1 : matchStart + 1
                 continue
             }
         }
@@ -123,6 +129,10 @@ func decompressInto(output: [..] u8, buffer: const [..] u8) fail
         }
         if literalLength > buffer.count - offset or literalLength > output.count - written
         {
+            if not ExactSize and limited and literalLength <= buffer.count - offset
+            {
+                fail UnsupportedFormatError{"LZ4 output exceeds the configured limit"}
+            }
             fail InvalidFormatError{"LZ4 literals exceed the input or output size"}
         }
 
@@ -135,16 +145,21 @@ func decompressInto(output: [..] u8, buffer: const [..] u8) fail
 
         if offset == buffer.count
         {
-            if written != output.count or (hasMatch and literalLength < 5)
+            if (ExactSize and written != output.count) or
+               (latestMatch and (literalLength < 5 or (not ExactSize and written - (latestMatch - 1) < 12)))
             {
                 fail InvalidFormatError{"LZ4 final literals disagree with the output size or block ending"}
             }
-            return
+            return written - history
         }
 
         let remaining = output.count - written
         if buffer.count - offset < 2 or remaining < 12
         {
+            if not ExactSize and limited and buffer.count - offset >= 2
+            {
+                fail UnsupportedFormatError{"LZ4 output exceeds the configured limit"}
+            }
             fail InvalidFormatError{"LZ4 block ends inside a match"}
         }
 
@@ -161,11 +176,15 @@ func decompressInto(output: [..] u8, buffer: const [..] u8) fail
         }
         if matchLength > remaining - 4
         {
+            if not ExactSize and limited
+            {
+                fail UnsupportedFormatError{"LZ4 output exceeds the configured limit"}
+            }
             fail InvalidFormatError{"LZ4 match exceeds the output size"}
         }
-        copyLzMatch!{true}(output.buffer + written, distance, matchLength + 4)
-        written  += matchLength + 4
-        hasMatch = true
+        Compress.copyLzMatch!{true}(output.buffer + written, distance, matchLength + 4)
+        latestMatch = ExactSize ? 1 : written + 1
+        written    += matchLength + 4
     }
 
     fail InvalidFormatError{"LZ4 block is missing its final literal sequence"}

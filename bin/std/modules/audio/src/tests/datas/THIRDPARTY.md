@@ -11,6 +11,35 @@ both with a 512-sample attack, so it contains no third-party recording. It was e
 - SHA-256: `e002c74b334f68808367d2a0881afa9928efed09f1433a6ead214e452d117b8f`
 - License: same as this repository.
 
+`aac-lc-mono-44100-fdk.aac` and `aac-lc-stereo-44100-transients.aac` are ADTS AAC-LC streams
+generated from 26,460 synthetic sample frames at 44.1 kHz. No random seed or recording is used.
+For mono, with `t = frame / 44100` and `p = 2*pi*(260*t + 150*t*t)`, round
+`(0.8 + 0.2*sin(6*pi*t)) * (5700*sin(p) + 800*sin(3*p) + 200*sin(12*p))` to PCM16.
+FDK AAC 2.0.3 encodes this signal at 64 kbit/s with afterburner enabled.
+
+For stereo channel `c` (0 left, 1 right), add sine waves at `440 + 220*c` and `2240 + 370*c`
+Hz with amplitudes 1,700 and 260. With `d = (frame - 3551 - 793*c) mod 5011`, add
+`A * ((96-d)/96)^2` when `d < 96`, where `A` is 10,500 on the left and -8,800 on the right,
+then round to PCM16. FFmpeg 9.1 encodes it at 128 kbit/s with `aac_coder=twoloop`,
+`aac_pns=0` and `aac_is=0`, exercising all four window sequences.
+
+The matching `.pcm` files are interleaved little-endian PCM16 from FFmpeg 9.1, including
+encoder priming and end padding. The encoders are used only to generate test data.
+
+- `aac-lc-mono-44100-fdk.aac` SHA-256: `e9f16073e30bf47c9c59727d5c5a0de23ce38a4811d0615aff39f1937a87110f`
+- `aac-lc-mono-44100-fdk.pcm` SHA-256: `f941af40b2c7204eedae6e33c9d3f361613a8b87b243c4b94b502cfa1df96ee8`
+- `aac-lc-stereo-44100-transients.aac` SHA-256: `aadaec3d8bb944401ccaa9af305e335da2437a064729cdb9946dd60fea7f14f6`
+- `aac-lc-stereo-44100-transients.pcm` SHA-256: `5dce9cc2164bf7be8464f48e6a917030b0f4cb8e66b5c1610dac96c12726f0a5`
+- License: same as this repository.
+
+`aac-lc-stereo-44100-intensity.aac` uses the same synthetic stereo input, FFmpeg 9.1 encoder,
+and ADTS settings as the transients fixture above, with intensity stereo enabled (`aac_is=1`).
+The `.pcm` file is the matching FFmpeg 9.1 decode to interleaved little-endian PCM16.
+
+- `aac-lc-stereo-44100-intensity.aac` SHA-256: `26d0b2f2ad30f31038db6571cb85d8645de05952c086c083a4ce68f12c9760ac`
+- `aac-lc-stereo-44100-intensity.pcm` SHA-256: `9b0f40f4edc4db74b2f07fba3fb2ae2ebe6ae621e1170590a9ab9e1c215a9227`
+- License: same as this repository.
+
 `dts-5.1-48000.dts` is a half-second 1,509 kbit/s DTS Core stream generated for this repository
 with dcaenc commit `68ed0d6d370268f04c22cadc9c8fc54a479958ab`. Its six synthetic inputs are
 300, 400, 500, 60, 700, and 800 Hz sine waves at amplitude 12,000 in signed 16-bit PCM, assigned
@@ -46,6 +75,23 @@ coupling and rematrixing, complementing the multichannel fixture.
 - SHA-256: `4b5cfef8680e681e82745a30abe5166fbfc316908b504f13b8e487da8e78ef4c`
 - License: same as this repository.
 
+`eac3-mono-32000.eac3` contains three independent mono frames encoded by FFmpeg 7.1.5
+at 96 kbit/s, with a synthetic mix of 337 Hz and 1,219 Hz sine waves at amplitudes
+0.16 and 0.05, plus a 2,993 Hz cosine at amplitude 0.03. The `.pcm` reference is
+interleaved PCM16 from FFmpeg 9.1.
+
+`eac3-mono-24000.eac3` uses the first three frames of a mono FFmpeg 7.1.5 stream
+encoded at 48 kHz and 128 kbit/s, with amplitudes 0.18, 0.07, and 0.03 for the same
+tones. Set `fscod=3` and `fscod2=0` to signal 24 kHz with six blocks per frame and
+recompute the trailing CRC-16 (polynomial 0x8005). The resulting first tone is
+168.5 Hz. Swag checks the reduced-rate geometry and tone. FFmpeg 9.1 does not
+decode this sample-rate mode.
+
+- `eac3-mono-32000.eac3` SHA-256: `54a220d56152b3e1ac5b55e7bd13941853a5b2d04a61092c29424261fb1ebbf1`
+- `eac3-mono-32000.pcm` SHA-256: `29afb98d5bc0b3a18861c8e7f23f027a00a3805786e96a01f0a56a4d46f4089e`
+- `eac3-mono-24000.eac3` SHA-256: `7e3b73b727097dfc5d8a2c59c03e4b1f0960a6d16137a909b62a6b28352386eb`
+- License: same as this repository.
+
 `flac-stereo-44100.flac` and `flac-5.1-48000.flac` are FLAC streams generated for this repository
 with PyAV 17.1 from mathematically generated sine waves, so they contain no third-party recording.
 The stereo file is one second of a 440 Hz left and 660 Hz right sine at 44.1 kHz; the multichannel
@@ -61,6 +107,54 @@ and they were not produced by this module.
 - `flac-5.1-48000.flac` SHA-256: `c6bf538b517d18795cccd5317f44f1c0b996da783ce12f9ee93cde122a98d3a2`
 - `flac-5.1-48000.pcm` SHA-256: `e2038b86051b34518ae4b5ce35db8d7d23cdcade1c846e066a0c19fe499e63e6`
 - License: same as this repository.
+
+The FLAC sample-width fixtures contain deterministic integer ramps generated for this repository.
+libFLAC 1.5.0 encodes 69 frames at compression level 8 with 32-frame blocks and streamable subset
+disabled. The expected little-endian PCM16 is calculated from the source ramps by shifting each
+sample to 16 bits. FFmpeg 9.1 produces the same interleaved samples.
+
+For each zero-based frame and channel, the ramp combines `(channel + 3) * 1447 * frame` with
+`(frame + phase) >> 2` using XOR, shifts the result left by `max(0, bits - 13)`, and wraps it to
+the signed source width. Phases for the 4-, 8-, 12-, 20-, 31-, and 32-bit multichannel files are
+0, 1, 2, 3, 3, and 2. If `(frame + channel) % 37 == 0`, the sample is the signed minimum.
+Otherwise, if `(frame + 2 * channel) % 107 == 0`, it is the signed maximum. At other positions
+where `(phase + channel) % 2 == 1`, the ramp clears up to four low bits, leaving the sign bit.
+For the 32-bit mid/side file, the left channel starts at signed maximum and follows
+`INT32_MAX - frame * (140801 << 7) + 43 * frame * frame`. The right channel is its negation
+plus `frame % 11 - 5`, with signed wrapping. Frame zero uses the signed maximum and minimum.
+libFLAC uses mid/side on its first frame and the side needs all 33 bits.
+
+| Fixture | FLAC SHA-256 | PCM16 SHA-256 |
+| --- | --- | --- |
+| `flac-mono-4bit-11025` | `2ae70d410e1e0a85bd66f37f809c827cade79b1f665959aa96fb19e989789d15` | `a2f14e7b71a998d43da4151eded5209ff0cecf7f6c26d344f35db75c26ceff98` |
+| `flac-stereo-8bit-12345` | `e5c06ed6e6db4649296e14b67d478d7f296e5da531ce22cea727e6b420c2f49e` | `d0f4bc00fe347a2f6ed87b8277d360f9ecbc2daf8a1d34d802532e2ed12b0cf1` |
+| `flac-3ch-12bit-192000` | `1b705c13766ec5791028483e7a96110e69534961ef5d00ddde073bd8d7915e8c` | `0b59ead089673fe0a8167f608857e5525de9af6d27eab50db6670dd5d4b44e7c` |
+| `flac-quad-20bit-250000` | `fb19e607831a2825611182fc56779798c7dba28a78ac7176f961596086b9db43` | `e00da588df1335a1d14e347cd43eabbd029149784c4e3084d0ff78c7707b45e3` |
+| `flac-6.1-31bit-44100` | `ed7bd4df6a3c9c3aa74ae3a489d6703005297c0590cd34752fefc71b97d7faca` | `11e8a333dcdb8b74e9057a0203dc1c066f4a4d5678e41999908603f3ad9b8f30` |
+| `flac-7.1-32bit-48000` | `d22bcca9cc61edbf96dec76c90d26a47a79373b864771707735c560258fcc4fe` | `2f88c61ee0ffe5af3e3e1a57ec7c085986466742b0087eac2d95dc482ae58094` |
+| `flac-mid-side-32bit-48000` | `d749398195aceec184e6f95253949a88df4ed12df9c139c7c2611fac91a9a235` | `7f69cec8d1fd516ca12083bb04285cd39fabe9fe2853e2c80e875f013c6042f0` |
+
+The fixtures share the repository license.
+
+`flac-4.0-20bit-250000.flac` has the same coded frames as `flac-quad-20bit-250000.flac`. Its
+Vorbis comment replaces the empty comment list with `TITLE=Deterministic four-channel ramp`
+and `waveformatextensible_channel_mask=0x0107`, keeping the original vendor string. The
+explicit layout uses front left, front right, front center, and back center. Its PCM16 bytes
+match the untagged quad fixture. FFmpeg 9.1 reports masks `0x0107` and `0x0033`, respectively.
+
+- SHA-256 `ad5dcba225ce70e8ecd967caf98dc7eaaab19e2af9fc5438ceea15e7a8258397`
+- License is the same as this repository.
+
+`flac-quad-20bit-250000.oga` and `flac-4.0-20bit-250000.oga` wrap the respective native
+FLAC fixture’s STREAMINFO, Vorbis comment, and three coded frames in an Ogg FLAC 1.0 stream.
+The Ogg serial number is `0x464C4143`. Both use a dedicated identification page and a final audio
+page whose granule position is 69. The tagged fixture adds a description field with 270 `x`
+characters before its other Vorbis comment fields, so its speaker mask is on the continuation
+page. Both files decode to the same PCM16 as the native fixtures in FFmpeg 9.1.
+
+- `flac-4.0-20bit-250000.oga` SHA-256 `eefbaf212e34f9429ce6cdd66f9d566861d2b3fe082adfd1dbeb9bcfac5576d3`
+- `flac-quad-20bit-250000.oga` SHA-256 `21937830c7845730fbbb262051666c0eb681d1ca50ee03478e42e70639ad4335`
+- License is the same as this repository.
 
 The ten `mp3-*.mp3` files are MPEG Layer III streams generated for this repository with
 libmp3lame through PyAV 17.1, from mathematically generated inputs, so they contain no third-party
@@ -104,6 +198,20 @@ fixtures and is not a build or runtime dependency.
 - `adpcm-ima-mono-11025.wav` SHA-256: `b1d255f10ec34b383493891d6843c6e9bf3d5eacbc38f206574914363deb2bbe`
 - License: same as this repository.
 
+The `wav-g711-*` files are synthetic stereo 8 kHz WAVE files with 256 frames. At frame
+`i` the channels carry the G.711 code bytes `i` and `255 - i`. The classic headers use
+tags `0x0006` (A-law) and `0x0007` (mu-law). The extensible headers use the corresponding
+subtype UUID and stereo mask `0x3`. Each `fact` chunk declares 256 frames. FFmpeg 9.1
+and 7.1.5 decode both headers to the same 1,024-byte interleaved PCM16 reference.
+
+- `wav-g711-alaw-extensible.wav` SHA-256: `4dc28fe778b1b51c73da84c2ce7ff51f0108dc1f2766e33eb900b1a8d37fe2c1`
+- `wav-g711-alaw.pcm` SHA-256: `7967cc01ed1d28560003f4b91de960ce72c2d960c863233d1d20d55d83fbacc7`
+- `wav-g711-alaw.wav` SHA-256: `34477e0e7f8993481f62c2099e5d2de6ec05eb3dd715777826bbc0a26860e3e5`
+- `wav-g711-mulaw-extensible.wav` SHA-256: `8fe141897fb4148d4568cc41bbc3464b10052a1041c759c74620f173199cc499`
+- `wav-g711-mulaw.pcm` SHA-256: `8ceb8b3749bf4a8d5bc598cf4de62e082b7681183c710425e8dbd806ebfa512f`
+- `wav-g711-mulaw.wav` SHA-256: `609eddd60c9b91cf9d84755365af26551ef6b5555a3d07b7abdd21376281e7d6`
+- License: same as this repository.
+
 `flac-stereo-44100.oga` is the same synthetic lossless track as the shared
 `flac-stereo-44100.flac`, remuxed into Ogg without re-encoding by PyAV 17.1.0
 and libavformat 62.12.101. It carries the same licence as the original fixture.
@@ -129,6 +237,17 @@ fixtures and are not build or runtime dependencies.
 - `vorbis-mono-48000.pcm` SHA-256: `b13c8faa41ee4613693560aeee8f8d25b9c192ebf1d786408462a1e4a555841f`
 - `vorbis-8ch-48000.ogg` SHA-256: `43294b77936f660cf900e7602b4b44e2030e23483b7b3a6806f7546c5f567292`
 - `vorbis-8ch-48000.pcm` SHA-256: `bf5fa675368e9731efbb088b827ab0ea417ff13c45638187df72d2d369769729`
+- License: same as this repository.
+
+
+`vorbis-6.1-continued-48000.ogg` contains 16,003 frames of synthetic, distinct speaker tones
+with short seeded noise bursts in 6.1 WAVE order. FFmpeg 7.1.5 and its `libvorbis` encoder
+produced the stream at quality 6. The first audio packet was then split across two Ogg
+pages without changing its data. The packet windows include short blocks and all four
+long-block window shapes. The accompanying `.pcm` stores 16-bit samples decoded by
+libvorbis 1.3.7 and reordered into WAVE speaker order.
+- `vorbis-6.1-continued-48000.ogg` SHA-256: `e3210b2183debc9d8f65f3c75463c30a766e72541e30f3bacd02fb4e68ae7a1d`
+- `vorbis-6.1-continued-48000.pcm` SHA-256: `bb99ddbd3fb2a6421e75ba8cbb14c209627bfb7f77d3751347c31be0b35bf05f`
 - License: same as this repository.
 
 

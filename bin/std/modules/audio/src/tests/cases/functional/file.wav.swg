@@ -342,3 +342,24 @@ using Swag, Core
     let err12 = err12Outcome.value()
     Swag.require((err12 is Errors.InvalidFormatError))
 }
+
+// A streamed PCM24 decode rejects a partial frame when its file shrinks after loading.
+#test
+{
+    let source = expect File.readAllBytes(audioGetTestDataPath("pcm24_extensible_stereo.wav"))
+    let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("pcm24-truncated-%.wav", Guid128.random()))
+    defer discard catch File.delete(path)
+    discard expect File.writeAllBytes(path, source.toSlice())
+
+    let sound = expect SoundFile.load(path, preloadData: false)
+    let truncatedSize = sound.dataOffset + sound.payloadSize() - 1
+    discard expect File.writeAllBytes(path, source.toSlice()[until truncatedSize])
+    var calls = 0_u64
+    var failure: Swag.Error
+    catch sound.decodePcm16(func|&calls|(_)
+    {
+        calls += 1
+        return true
+    }) as failure
+    Swag.require(failure.value() is Errors.InvalidFormatError and calls == 0)
+}

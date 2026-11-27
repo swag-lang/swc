@@ -188,6 +188,80 @@ impl Decoder
 
     func reduce16(value: u16)->u8 => cast(u8, ((cast(u32, value) + 128) / 257))
 
+    // For a complete one-bit palette, map packed samples directly to output.
+    // Each table entry holds a group of packed RGB or RGBA pixels.
+    mtd(CHANNELS: u32) writeOneBitPalette(result: *Image, packed: const [*] u8, rowBytes: u64)
+    {
+        const GroupPixels = 8
+        const GroupBytes = GroupPixels * CHANNELS
+        var colors: [2, CHANNELS] u8
+        for index in 2
+        {
+            let color = .palette[index]
+            colors[index, 0] = cast(u8, (color >> 16) & 255)
+            colors[index, 1] = cast(u8, (color >> 8) & 255)
+            colors[index, 2] = cast(u8, color & 255)
+            #static if CHANNELS == 4
+            {
+                let alpha = .safeTRNSData()
+                colors[index, 3] = index < alpha.count ? alpha[index] : 255
+            }
+        }
+
+        var groups: [1 << GroupPixels, GroupBytes] u8
+        for entry in 1 << GroupPixels
+        {
+            for sample in GroupPixels
+            {
+                let index = (entry >> (GroupPixels - sample - 1)) & 1
+                Memory.copy(&groups[entry, sample * CHANNELS], &colors[index, 0], CHANNELS)
+            }
+        }
+
+        let width  = cast(u64, .header.width)
+        let whole  = width / 8
+        let tail   = width % 8
+        let stride = width * CHANNELS
+        let image  = result.pixels.storage()
+        for row in .header.height
+        {
+            let source = packed + row * rowBytes
+            var dest   = image + (.header.height - row - 1) * stride
+            for index in whole
+            {
+                Memory.copy(dest, &groups[source[index], 0], GroupBytes)
+                dest += GroupBytes
+            }
+
+            if tail
+            {
+                Memory.copy(dest, &groups[source[whole], 0], tail * CHANNELS)
+            }
+        }
+    }
+
+    mtd convertOneBitPalette(result: *Image)->bool
+    {
+        let rowBytes = .getStrideIn(.header.width)
+        var packed: Array!{u8}
+        packed.reserve(rowBytes * .header.height)
+        if not .defilterRows(.header.height, .dcmpBuf.storage(), packed.storage(), rowBytes, cast(s64, rowBytes))
+        {
+            return false
+        }
+
+        if .seenTRSN
+        {
+            .writeOneBitPalette!{4}(result, packed.storage(), rowBytes)
+        }
+        else
+        {
+            .writeOneBitPalette!{3}(result, packed.storage(), rowBytes)
+        }
+
+        return true
+    }
+
     mtd convertPaletteRgb(result: *Image)
     {
         let pixelCount = cast(u64, result.width) * result.height

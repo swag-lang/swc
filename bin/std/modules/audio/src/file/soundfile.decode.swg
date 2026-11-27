@@ -1,5 +1,5 @@
 //! Format: Sequential sound-file decoding.
-//! Supported: PCM16 decoding in bounded input windows and sample-frame ranges, with direct PCM/AAC positioning.
+//! Supported: PCM16 decoding in bounded input windows and sample-frame ranges, with direct positioning for fixed-width sources and selected packet codecs.
 //! Not supported: Channel remixing, sample-rate conversion, and retaining callback slices.
 //! Role: This file owns device-independent decoding for analysis and export consumers.
 //
@@ -11,7 +11,7 @@ private const SoundDecodeReadSize = 256 * 1024_u64
 
 // Receives one borrowed chunk of interleaved PCM16 samples.
 //
-// The slice remains valid only for the duration of the call. PCM sources are read in complete
+// The slice remains valid only for the duration of the call. Fixed-width sources are read in complete
 // sample frames with a 256 KiB input window, enlarged when one frame is larger. Packet codecs
 // deliver one decoded packet per call. Return `true` to continue or `false` to stop successfully.
 alias SoundPcm16Consumer = func||(const [..] s16)->bool
@@ -21,7 +21,7 @@ impl SoundFile
     // Decodes this sound sequentially to interleaved PCM16 chunks.
     //
     // Compressed packets are decoded in playback order with codec priming and padding omitted.
-    // The delivered frame count matches [[Audio.SoundFile.sampleFrameCount]]. PCM sources are converted
+    // The delivered frame count matches [[Audio.SoundFile.sampleFrameCount]]. Fixed-width sources are converted
     // without requiring an audio engine; their input reads target 256 KiB and contain whole frames,
     // except that a frame larger than the window is read in full. Packet-codec callback sizes follow
     // the decoded packet size. `consumer` borrows each chunk only until it returns; returning `false`
@@ -32,8 +32,8 @@ impl SoundFile
     // Decodes a selected audible sample-frame range to interleaved PCM16 chunks.
     //
     // `firstFrame` and `frameCount` exclude codec priming and padding and must fit
-    // [[Audio.SoundFile.sampleFrameCount]]. An empty range makes no callback. PCM seeks directly;
-    // built-in FLAC starts at the containing packet, and indexed AAC starts one packet
+    // [[Audio.SoundFile.sampleFrameCount]]. An empty range makes no callback. Fixed-width samples seek directly.
+    // Built-in FLAC starts at the containing packet, and indexed AAC starts one packet
     // earlier for transform preroll. Other packet codecs decode preceding history as needed.
     // No audio engine is needed.
     //
@@ -46,16 +46,7 @@ impl SoundFile
     // ```
     mtd const decodePcm16(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer) fail
     {
-        if not .availableFields.has(.Data) or not .channelCount
-        {
-            fail BadParameterError{"sound file has no audio data"}
-        }
-
-        if firstFrame > .frameCount or frameCount > .frameCount - firstFrame
-        {
-            fail BadParameterError{"sound decode range is outside its audible sample frames"}
-        }
-
+        try .checkPcm16Range(firstFrame, frameCount)
         if not frameCount
         {
             return
@@ -76,7 +67,7 @@ impl SoundFile
         var bytesPerSample: u64
         switch .encoding
         {
-        case .Pcm8:    bytesPerSample = 1
+        case .Pcm8, .ALaw, .MuLaw: bytesPerSample = 1
         case .Pcm16:   bytesPerSample = 2
         case .Pcm24:   bytesPerSample = 3
         case .Pcm32:   bytesPerSample = 4
@@ -94,22 +85,17 @@ impl SoundFile
         var byteOffset    = firstFrame * bytesPerFrame
         let byteEnd       = byteOffset + frameCount * bytesPerFrame
 
-        // A contiguous PCM payload can reuse one read window for the whole range.
         let contiguous = .packets.isEmpty()
         let direct     = contiguous and .encoding == .Pcm16
-        var source: ByteSource
-        if contiguous
+        let preloaded  = contiguous and .isDataPreloaded()
+        let readSize   = Math.max(SoundDecodeReadSize, bytesPerFrame)
+        var stream: File.FileStream
+        var window: Array!{u8}
+        if contiguous and not preloaded
         {
-            if .isDataPreloaded()
-            {
-                source = ByteSource.openMemory(.data.toSlice())
-                try source.seek(byteOffset)
-            }
-            else
-            {
-                source = try ByteSource.openFile(.path.toString(), .ReadWrite)
-                try source.seek(.dataOffset + byteOffset)
-            }
+            stream = try File.open(.path.toString(), .Open, .Read, .ReadWrite)
+            try stream.seek(.Begin, .dataOffset + byteOffset)
+            window.reserve(Math.min(readSize, byteEnd - byteOffset))
         }
 
         var decoded: Array!{s16}
@@ -117,7 +103,7 @@ impl SoundFile
         {
             // Keep reads bounded, except when one complete interleaved frame is larger than
             // the window. A non-empty range always has at least one full frame remaining.
-            var wantedBytes = Math.min(Math.max(SoundDecodeReadSize, bytesPerFrame), byteEnd - byteOffset)
+            var wantedBytes = Math.min(readSize, byteEnd - byteOffset)
             wantedBytes -= wantedBytes % bytesPerFrame
             if not wantedBytes
             {
@@ -133,8 +119,20 @@ impl SoundFile
                     fail InvalidFormatError{"sound payload is truncated"}
                 }
 
-                let window = try source.peek(wantedBytes)
-                input = window[until wantedBytes]
+                if preloaded
+                {
+                    input = .data.toSlice()[byteOffset until byteOffset + wantedBytes]
+                }
+                else
+                {
+                    let read = Swag.makeSlice(window.storage(), wantedBytes)
+                    if not (try stream.readExact(read))
+                    {
+                        fail InvalidFormatError{"sound payload is truncated"}
+                    }
+
+                    input = read
+                }
             }
             else
             {
@@ -156,26 +154,88 @@ impl SoundFile
             }
             else
             {
-                decoded.resize(input.count / bytesPerSample)
-                let outputBytes = decoded.count * #sizeof(s16)
+                let samples = input.count / bytesPerSample
+                decoded.reserve(samples)
+                let outputBytes = samples * #sizeof(s16)
                 let progress    = try decoder.decode(decoded.storage(), outputBytes, input.buffer, input.count)
                 if progress.bytesRead != input.count or progress.bytesWritten != outputBytes
                 {
                     fail InvalidFormatError{"sound payload decoded to an unexpected size"}
                 }
 
-                if not consumer(decoded.toSlice())
+                if not consumer(Swag.makeSlice(decoded.storage(), samples))
                 {
                     return
                 }
             }
 
-            if contiguous
-            {
-                try source.skip(wantedBytes)
-            }
-
             byteOffset += wantedBytes
+        }
+    }
+
+    // Decodes a selected range to a caller-owned buffer of interleaved PCM16 samples.
+    //
+    // The length of `destination` must be a multiple of [[Audio.SoundFile.numChannels]] and
+    // selects the number of audible sample frames starting at `firstFrame`. The range must fit
+    // [[Audio.SoundFile.sampleFrameCount]]. An empty slice writes nothing. A decode failure may
+    // leave part of `destination` written.
+    mtd const decodePcm16(firstFrame: u64, destination: [..] s16) fail
+    {
+        if not .channelCount or destination.count % .channelCount
+        {
+            fail BadParameterError{"PCM16 destination must contain complete sample frames"}
+        }
+
+        let frameCount = destination.count / .channelCount
+        if .encoding != .Pcm16 or not .packets.isEmpty()
+        {
+            var remaining = destination
+            try .decodePcm16(firstFrame, frameCount, func|&remaining|(part)
+            {
+                Memory.copy(remaining.buffer, part.buffer, part.count * #sizeof(s16))
+                remaining = remaining[part.count to]
+                return true
+            })
+            return
+        }
+
+        try .checkPcm16Range(firstFrame, frameCount)
+        if not frameCount
+        {
+            return
+        }
+
+        let offset = firstFrame * .channelCount * #sizeof(s16)
+        let bytes = destination.count * #sizeof(s16)
+        if offset >= .dataSize or bytes > .dataSize - offset
+        {
+            fail InvalidFormatError{"sound payload is truncated"}
+        }
+
+        if .isDataPreloaded()
+        {
+            Memory.copy(destination.buffer, .data.storage() + offset, bytes)
+            return
+        }
+
+        var stream = try File.open(.path.toString(), .Open, .Read, .ReadWrite)
+        try stream.seek(.Begin, .dataOffset + offset)
+        if not (try stream.readExact(Swag.makeSlice(cast([*] u8, destination.buffer), bytes)))
+        {
+            fail InvalidFormatError{"sound payload is truncated"}
+        }
+    }
+
+    private mtd const checkPcm16Range(firstFrame, frameCount: u64) fail
+    {
+        if not .availableFields.has(.Data) or not .channelCount
+        {
+            fail BadParameterError{"sound file has no audio data"}
+        }
+
+        if firstFrame > .frameCount or frameCount > .frameCount - firstFrame
+        {
+            fail BadParameterError{"sound decode range is outside its audible sample frames"}
         }
     }
 

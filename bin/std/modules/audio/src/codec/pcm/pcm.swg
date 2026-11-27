@@ -1,6 +1,6 @@
 //! Format: Pulse-code modulation conversion codec.
-//! Supported: Little-endian unsigned PCM8, signed PCM16/24/32, and IEEE Float32 input converted incrementally to interleaved PCM16.
-//! Not supported: Big-endian PCM, Float64, compressed audio, channel remixing, and sample-rate conversion.
+//! Supported: Unsigned PCM8, signed little-endian PCM16/24/32, IEEE Float32, and G.711 converted to interleaved PCM16.
+//! Not supported: Big-endian PCM, Float64, packet codecs, channel remixing, and sample-rate conversion.
 //! Role: This file owns SIMD/scalar sample conversion and streaming progress accounting.
 //
 using Core, Core.Errors, Core.Math
@@ -8,6 +8,34 @@ using Core, Core.Errors, Core.Math
 struct CodecPcmToPcm16
 {
     using base: Codec
+}
+
+// G.711 alternates the bits of the A-law code and complements the mu-law code on the wire.
+private const ALawSamples: [256] s16 = #run
+{
+    var result: [256] s16
+    for index in result.count
+    {
+        let code = cast(u32, index) ^ 0x55
+        let segment = (code >> 4) & 7
+        let quantized = cast(s32, code & 15) << 4
+        let magnitude = segment == 0 ? quantized + 8 : (quantized + 264) << (segment - 1)
+        result[index] = cast(s16, code & 0x80 ? magnitude : -magnitude)
+    }
+    return result
+}
+
+private const MuLawSamples: [256] s16 = #run
+{
+    var result: [256] s16
+    for index in result.count
+    {
+        let code = cast(u32, index) ^ 0xFF
+        let segment = (code >> 4) & 7
+        let magnitude = (((cast(s32, code & 15) << 3) + 132) << segment) - 132
+        result[index] = cast(s16, code & 0x80 ? -magnitude : magnitude)
+    }
+    return result
 }
 
 private func(SampleBytes: s32, SourceEncoding: SoundFileEncoding) convertSamples(destination: [*] void,
@@ -82,6 +110,12 @@ private func(SampleBytes: s32, SourceEncoding: SoundFileEncoding) convertSamples
         case .Pcm8:
             outputSamples[0] = cast(s16, ((cast(s32, sourceBytes[0]) - 128) << 8))
 
+        case .ALaw:
+            outputSamples[0] = ALawSamples[sourceBytes[0]]
+
+        case .MuLaw:
+            outputSamples[0] = MuLawSamples[sourceBytes[0]]
+
         case .Pcm24:
             let low    = sourceBytes[0]
             let middle = sourceBytes[1]
@@ -126,7 +160,7 @@ impl ICodec for CodecPcmToPcm16
     {
         switch encoding
         {
-        case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32: return true
+        case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32, .ALaw, .MuLaw: return true
         default: return false
         }
     }
@@ -145,6 +179,8 @@ impl ICodec for CodecPcmToPcm16
         switch .sourceEncoding
         {
         case .Pcm8:    return convertSamples!{1, Pcm8}(destination, destinationSize, source, sourceSize)
+        case .ALaw:    return convertSamples!{1, ALaw}(destination, destinationSize, source, sourceSize)
+        case .MuLaw:   return convertSamples!{1, MuLaw}(destination, destinationSize, source, sourceSize)
         case .Pcm24:   return convertSamples!{3, Pcm24}(destination, destinationSize, source, sourceSize)
         case .Pcm32:   return convertSamples!{4, Pcm32}(destination, destinationSize, source, sourceSize)
         case .Float32: return convertSamples!{4, Float32}(destination, destinationSize, source, sourceSize)

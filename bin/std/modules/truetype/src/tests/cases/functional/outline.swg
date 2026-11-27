@@ -62,6 +62,21 @@ using Swag, Core
     Swag.require(emptyBounds.xMax == 0 and emptyBounds.yMax == 0)
 }
 
+// Bounds combine all packed coordinates with the final scalar point.
+#test
+{
+    var points: [9] Vector = [
+        {x: 15, y: -22}, {x: -83, y: 551}, {x: 8, y: 7},
+        {x: 199, y: 44}, {x: 24, y: 38}, {x: -110, y: -29},
+        {x: 35, y: 9}, {x: -50, y: 52}, {x: -141, y: 39}]
+    var tags:     [9] u8  = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+    var contours: [1] s16 = [8]
+    let outline           = Outline.borrowed(&points[0], &tags[0], &contours[0], 9, 1)
+    let bounds            = outline.bounds()
+    Swag.require(bounds.xMin == -141 and bounds.yMin == -29)
+    Swag.require(bounds.xMax == 199 and bounds.yMax == 551)
+}
+
 #test
 {
     var points:   [4] Vector = [Vector{0, 0}, Vector{64, 128}, Vector{128, 128}, Vector{192, 0}]

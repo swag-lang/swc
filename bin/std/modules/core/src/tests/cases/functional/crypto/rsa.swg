@@ -108,3 +108,15 @@ func rsaTestPrivateExponent()->Array!{u8} => rsaTestHexBytes("4c6a3f341bae7b9922
     Swag.require(expect Crypto.rsaPssSha256Verify(modulus.toSlice(), exponent, message.toSlice(), signature.toSlice()))
     Swag.require(not expect Crypto.rsaPssSha256Verify(modulus.toSlice(), exponent, "wrong message", signature.toSlice()))
 }
+
+#test
+{
+    // OpenSSL fixture with a partial 64-bit word and an odd number of 52-bit words.
+    let modulus         = rsaTestHexBytes("be8137079fdc5285aa3e5148c7db93fb63e08e8e4dbf120610179446a59a0c11253f5b52a26a3e9f56d1edb57df606ff372bac7de48a4bb8a0bab4aef2c48335e18cab1c760f7d8b0ad4931c8e0b8e888c9a6aadf3b1cd1228fb35689db40d0274eb0b9b69c342d04f133737e24b0e3d49e19e4ada98b87feab4a71b61aebdf2ee12113187f92b0bcd8aad68956167c9e9a66750d7fd42b94f2f3c8115754dbef6e23270840916441713f7a5066111a2aae1181ba28a2c2b107b33179247a21e22dd36e1f2d812b4c734f7306771b47ee3db3b7e1370bdba7962e5cfb5b3d3afb22bdc913a67d3fac94408643ce9b9402da0312a770a642ce0cc846fc207609ed4dd4ef4c79f73d35a211868d2c67ca3971fd4f3")
+    let privateExponent = rsaTestHexBytes("2799274da3ea8192bc20e8f776678b7a8137bf9a0fca0c1e8b80c336ee1c37aee6ada53767802b1526d04b17631fdd33768dd2f4762952f5051fda07d57988868e2415bb3c451b04e852e86352994f5ecdcf1926a05590795a6061292642b34393f6f97a2c0144e594d23b33980b9ee1997656d75b59cc5bf676e79756f622109970d2f7173af13a2a5671532525b9ead1c67e5b859891ab26a8528b9cf06ff626512ee8de05bd35829ab2d131898f3644474acc98ae196f52f7c58d8f4c42e3c8a97966d174b7d209dd218501f2143502a32cc1e72adad34bec37dc6294b9fa123aa416103ded36b99a38cf0f1a9005a782f06fb7d26b53ecfd726263a099a742156f4783bffc3e8625f528979f2ea8a2bc1981")
+    let ciphertext      = rsaTestHexBytes("5187ed314e6d81b25c4b1145aab23d4d3bfbcd91041678f321cb2e869cc44527fd2a5a3490ea87944537f86a4b7dd96a6ebedd3fe957caea05ec667d20a0042c54d5ef92d7e3220e8ea1133b3778ac71ffc819fa8e7f5102d665297925ee539cdc91baf02495ffb03552e2d55eff63acf6a92424aa38b09d071d86eda65adb32615c721f35bddebe7b49ff35cfca722ee84f940b4751b031ed16f6df2363c2aa54900e165f59f1e3c397ba8b21f20d709379967f569c19eb7a0f6a337232bdd43f937d13442ecdb0efe819b12a186d991396f6f66c9762e624ca9e4b1747f6170dbea8f25ed55d4638b2ab6048d877e0ebde6d9c18d1ed92c262fca063131879549cc5c44c5f088feba33d4641c7de6a227e401f")
+    var plaintext: [276] u8
+    let length = expect Crypto.rsaOaepSha256Decrypt(modulus.toSlice(), privateExponent.toSlice(),
+                                                   ciphertext.toSlice(), "montgomery-repack", plaintext)
+    Swag.require(Crypto.constantTimeEqual(plaintext[until length], "Radix-52 padded intermediate"))
+}

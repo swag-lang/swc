@@ -220,6 +220,7 @@ private struct Imdct
     delay: [SamplesPerBlock] f64
 }
 
+private var g_MonoWindow: [SamplesPerBlock] f64
 private var g_LongCos:  [128] f64
 private var g_LongSin:  [128] f64
 private var g_ShortCos: [64] f64
@@ -297,6 +298,124 @@ private func writeSynthesisSample(output: [*] s16, offset: u64, value, window, p
     output[offset] = cast(s16, Math.clamp(scaled, -32768.0, 32767.0))
 }
 
+// Carry two consecutive radix-two stages through each four-way group.
+#[Swag.Inline]
+private func(Half: u64) inverseFftPair(real, imaginary: [*] f64)
+{
+    const Width = 4 * Half
+    for group in 128 / Width
+    {
+        let base = group * Width
+        for row in Half / 2
+        {
+            let offset = row * 2
+            let a      = base + offset
+            let b      = a + Half
+            let c      = a + 2 * Half
+            let d      = a + 3 * Half
+
+            let firstC    = Simd.load(&g_FftTwiddleReal[Half + offset])
+            let firstS    = Simd.load(&g_FftTwiddleImag[Half + offset])
+            let br        = Simd.load(real + b)
+            let bi        = Simd.load(imaginary + b)
+            let dr        = Simd.load(real + d)
+            let di        = Simd.load(imaginary + d)
+            let brRotated = firstC * br - firstS * bi
+            let biRotated = firstC * bi + firstS * br
+            let drRotated = firstC * dr - firstS * di
+            let diRotated = firstC * di + firstS * dr
+
+            let cr            = Simd.load(real + c)
+            let ci            = Simd.load(imaginary + c)
+            let upperEvenReal = cr + drRotated
+            let upperEvenImag = ci + diRotated
+            let upperOddReal  = cr - drRotated
+            let upperOddImag  = ci - diRotated
+            let cEven         = Simd.load(&g_FftTwiddleReal[2 * Half + offset])
+            let sEven         = Simd.load(&g_FftTwiddleImag[2 * Half + offset])
+            let evenReal      = cEven * upperEvenReal - sEven * upperEvenImag
+            let evenImag      = cEven * upperEvenImag + sEven * upperEvenReal
+            let ar            = Simd.load(real + a)
+            let ai            = Simd.load(imaginary + a)
+            let firstReal     = ar + brRotated
+            let firstImag     = ai + biRotated
+            Simd.store(real + a, firstReal + evenReal)
+            Simd.store(imaginary + a, firstImag + evenImag)
+            Simd.store(real + c, firstReal - evenReal)
+            Simd.store(imaginary + c, firstImag - evenImag)
+
+            let cOdd       = Simd.load(&g_FftTwiddleReal[3 * Half + offset])
+            let sOdd       = Simd.load(&g_FftTwiddleImag[3 * Half + offset])
+            let oddReal    = cOdd * upperOddReal - sOdd * upperOddImag
+            let oddImag    = cOdd * upperOddImag + sOdd * upperOddReal
+            let secondReal = ar - brRotated
+            let secondImag = ai - biRotated
+            Simd.store(real + b, secondReal + oddReal)
+            Simd.store(imaginary + b, secondImag + oddImag)
+            Simd.store(real + d, secondReal - oddReal)
+            Simd.store(imaginary + d, secondImag - oddImag)
+        }
+    }
+}
+
+#[Swag.Inline]
+private func(Upper: bool) writeMonoHalf(real, imaginary, delay: [*] f64, destination: [*] s16)
+{
+    const Reverse  = cast(Simd.U64x2, [1_u64, 0])
+    const MixA     = cast(Simd.U64x2, [0_u64, 2])
+    const MixB     = cast(Simd.U64x2, [1_u64, 3])
+    const Twice    = cast(Simd.F64x2, [2.0_f64, 2.0])
+    const Gain     = cast(Simd.F64x2, [32_767.0_f64, 32_767.0])
+    const Bias     = cast(Simd.F64x2, [6_755_399_441_055_744.0_f64, 6_755_399_441_055_744.0])
+    const MinPcm   = cast(Simd.F64x2, [-32_768.0_f64, -32_768.0])
+    const MaxPcm   = cast(Simd.F64x2, [32_767.0_f64, 32_767.0])
+    const PcmWords = cast(Simd.U32x4, [0_u32, 2, 4, 6])
+    for group in 32
+    {
+        let bin    = 2 * group
+        let mirror = 62 - bin
+        let offset = 2 * bin + (Upper ? 128 : 0)
+        var even, odd, futureEven, futureOdd: Simd.F64x2
+        #static if Upper
+        {
+            even       = -Simd.load(real + bin)
+            odd        = Simd.permute(Simd.load(imaginary + 64 + mirror), Reverse)
+            futureEven = Simd.load(imaginary + bin)
+            futureOdd  = -Simd.permute(Simd.load(real + 64 + mirror), Reverse)
+        }
+        else
+        {
+            even       = -Simd.load(imaginary + 64 + bin)
+            odd        = Simd.permute(Simd.load(real + mirror), Reverse)
+            futureEven = -Simd.load(real + 64 + bin)
+            futureOdd  = Simd.permute(Simd.load(imaginary + mirror), Reverse)
+        }
+
+        let a    = Simd.permute2(even, odd, MixA)
+        let b    = Simd.permute2(even, odd, MixB)
+        let pcmA = (Twice * (a * Simd.load(&g_MonoWindow[offset]) + Simd.load(delay + offset))) * Gain
+        let pcmB = (Twice * (b * Simd.load(&g_MonoWindow[offset + 2]) + Simd.load(delay + offset + 2))) * Gain
+
+        // Above 2^52, adjacent double values differ by one. The offset of
+        // 1.5 * 2^52 leaves room for both signs and has low 32 bits zero.
+        let wordsA = cast #bit(Simd.S32x4, Math.trunc(Math.clamp(pcmA, MinPcm, MaxPcm)) + Bias)
+        let wordsB = cast #bit(Simd.S32x4, Math.trunc(Math.clamp(pcmB, MinPcm, MaxPcm)) + Bias)
+        let pcm    = Simd.permute2(wordsA, wordsB, PcmWords)
+        Simd.storeLow8(cast([*] u8, destination + offset), cast #bit(Simd.U8x16, Simd.packSigned(pcm, pcm)))
+
+        var nextA = Simd.permute2(futureEven, futureOdd, MixA)
+        var nextB = Simd.permute2(futureEven, futureOdd, MixB)
+        #static if Upper
+        {
+            nextA *= Simd.permute(Simd.load(&g_MonoWindow[254 - offset]), Reverse)
+            nextB *= Simd.permute(Simd.load(&g_MonoWindow[252 - offset]), Reverse)
+        }
+
+        Simd.store(delay + offset, nextA)
+        Simd.store(delay + offset + 2, nextB)
+    }
+}
+
 private func imdctLong(coefficients: const [*] f64, output: [*] s16, stride: u32, delay: [*] f64)
 {
     var real, imaginary: [128] f64
@@ -345,6 +464,56 @@ private func imdctLong(coefficients: const [*] f64, output: [*] s16, stride: u32
         delay[highEven] = lowImag * WINDOW[lowOdd]
         delay[highOdd]  = -highReal * WINDOW[lowEven]
     }
+}
+private func imdctMonoLong(coefficients: const [*] f64, output: [*] s16, delay: [*] f64)
+{
+    var real, imaginary: [128] f64
+    // Rotate two bins together, then place their first butterflies in FFT order.
+    const Even = cast(Simd.U64x2, [0_u64, 2])
+    const Odd  = cast(Simd.U64x2, [1_u64, 3])
+    for pair in 32
+    {
+        let k   = pair * 2
+        let low = 2 * k
+        let hi  = 254 - low
+        let a0  = Simd.permute2(Simd.load(coefficients + hi), Simd.load(coefficients + hi - 2), Odd)
+        let b0  = Simd.permute2(Simd.load(coefficients + low), Simd.load(coefficients + low + 2), Even)
+        let a1  = Simd.permute2(Simd.load(coefficients + hi - 128), Simd.load(coefficients + hi - 130), Odd)
+        let b1  = Simd.permute2(Simd.load(coefficients + low + 128), Simd.load(coefficients + low + 130), Even)
+        let c0  = Simd.load(&g_LongCos[k])
+        let s0  = Simd.load(&g_LongSin[k])
+        let c1  = Simd.load(&g_LongCos[k + 64])
+        let s1  = Simd.load(&g_LongSin[k + 64])
+        let r0  = a0 * c0 - b0 * s0
+        let i0  = b0 * c0 + a0 * s0
+        let r1  = a1 * c1 - b1 * s1
+        let i1  = b1 * c1 + a1 * s1
+
+        let first  = g_FftReverse[k]
+        let second = g_FftReverse[k + 1]
+        Simd.store(&real[first], Simd.permute2(r0 + r1, r0 - r1, Even))
+        Simd.store(&real[second], Simd.permute2(r0 + r1, r0 - r1, Odd))
+        Simd.store(&imaginary[first], Simd.permute2(i0 + i1, i0 - i1, Even))
+        Simd.store(&imaginary[second], Simd.permute2(i0 + i1, i0 - i1, Odd))
+    }
+
+    inverseFftPair!{2}(&real, &imaginary)
+    inverseFftPair!{8}(&real, &imaginary)
+    inverseFftPair!{32}(&real, &imaginary)
+
+    for pair in 64
+    {
+        let bin = 2 * pair
+        let r = Simd.load(&real[bin])
+        let i = Simd.load(&imaginary[bin])
+        let c = Simd.load(&g_LongCos[bin])
+        let s = Simd.load(&g_LongSin[bin])
+        Simd.store(&real[bin], r * c - i * s)
+        Simd.store(&imaginary[bin], i * c + r * s)
+    }
+
+    writeMonoHalf!{false}(&real, &imaginary, delay, output)
+    writeMonoHalf!{true}(&real, &imaginary, delay, output)
 }
 
 private func imdctShort(coefficients: const [*] f64, output: [*] f64)
@@ -711,6 +880,12 @@ impl Imdct
     {
         if not shortBlocks
         {
+            if stride == 1
+            {
+                imdctMonoLong(coefficients, output, &.delay[0])
+                return
+            }
+
             imdctLong(coefficients, output, stride, &.delay[0])
             return
         }
@@ -741,7 +916,7 @@ private func logarithmicAdd(a, b: s32)->s32
 {
     let difference = a - b
     let address    = Math.min(Math.abs(difference) >> 1, 255)
-    return difference >= 0 ? a + LATAB[address] : b + LATAB[address]
+    return Math.max(a, b) + LATAB[address]
 }
 
 private func lowCompensation(value, first, second, bin: s32)->s32
@@ -951,19 +1126,20 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
         fail InvalidFormatError{"Dolby bit-allocation bands exceed the core limit"}
     }
 
-    var source = start
-    var band   = bandStart
+    var index = 0_s32
+    var band  = bandStart
     while band < bandEnd
     {
-        let last = Math.min(BNDTAB[band] + BNDSZ[band], end)
-        bandPsd[band] = 3072 - (exponents[source - start] << 7)
-        source        += 1
-        while source < last
+        let last = Math.min(BNDTAB[band] + BNDSZ[band], end) - start
+        var sum  = 3072 - (exponents[index] << 7)
+        index   += 1
+        while index < last
         {
-            bandPsd[band] = logarithmicAdd(bandPsd[band], 3072 - (exponents[source - start] << 7))
-            source        += 1
+            sum    = logarithmicAdd(sum, 3072 - (exponents[index] << 7))
+            index += 1
         }
 
+        bandPsd[band] = sum
         band += 1
     }
 
@@ -1049,11 +1225,11 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
         }
     }
 
-    source = start
-    band   = bandStart
-    while source < end
+    index = 0
+    band  = bandStart
+    while index < end - start
     {
-        let last   = Math.min(BNDTAB[band] + BNDSZ[band], end)
+        let last   = Math.min(BNDTAB[band] + BNDSZ[band], end) - start
         var masked = mask[band] - snrOffset - floor
         if masked < 0
         {
@@ -1064,15 +1240,14 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
 
         // One exponent step removes 128 PSD units, or four address units.
         let addressBase = (3072 - masked) >> 5
-        while source < last
+        while index < last
         {
-            let index    = source - start
             let exponent = exponents[index]
             let address  = Math.clamp(addressBase - (exponent << 2), 0, 63)
             let prepared = PreparedMantissaAddress[address]
             result[index] = cast(s32, prepared & 31)
             gains[index]  = PreparedMantissaGain[(prepared >> 5) + cast(u32, exponent)]
-            source        += 1
+            index         += 1
         }
 
         band += 1
@@ -1371,6 +1546,11 @@ private func initializeDolbyCore()
         g_StereoSin[index]         = cast(f32, g_LongSin[bin])
         g_StereoTwiddleReal[index] = cast(f32, g_FftTwiddleReal[bin])
         g_StereoTwiddleImag[index] = cast(f32, g_FftTwiddleImag[bin])
+    }
+
+    for index in SamplesPerBlock
+    {
+        g_MonoWindow[index] = WINDOW[index]
     }
 
     for index in 512

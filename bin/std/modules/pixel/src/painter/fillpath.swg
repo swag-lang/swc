@@ -633,12 +633,12 @@ public impl Painter
                not mask.a
     }
 
-    private mtd emitScanFill(start: u64, lowest, highest: Vector2, color: Color, rule: PathFillRule)
+    private mtd emitScanFill(start: u64, lowest, highest: Vector2, color: Color, rule: PathFillRule, stroke = false)
     {
         let end = .scanContourEnds.count
         if start < end
         {
-            .newCommand(.DrawScanFill).op = .DrawScanFill{first: start, end: end, low: lowest, high: highest, color: color, rule: rule}
+            .newCommand(.DrawScanFill).op = .DrawScanFill{first: start, end: end, low: lowest, high: highest, color: color, rule: rule, stroke: stroke}
         }
     }
 

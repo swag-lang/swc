@@ -1271,9 +1271,9 @@ func buildSyntheticCMap(faceData: *FaceImpl, cmap: *HashTable!{u32, u32})
         }
 
         let value = standardEncodingRune(cast(u8, code))
-        if value and not cmap.contains(cast(u32, value))
+        if value
         {
-            cmap.add(cast(u32, value), gid)
+            cmap.add(cast(u32, value), gid, updateValue: false)
         }
     }
 

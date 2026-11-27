@@ -537,6 +537,16 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV:
     }
 
     pos += 12
+    let declaredCount = readPostScriptNumber(data, pos).value
+
+    // An entry needs at least a name, a length and an operator.
+    if declaredCount > 0 and declaredCount <= Math.min(data.count / 6, 65535_u64)
+    {
+        let capacity = cast(u64, declaredCount)
+        font.charstrings.reserve(capacity)
+        font.glyphNames.reserve(capacity)
+        font.nameToGid.reserve(capacity * 2)
+    }
 
     // A Type 1 dictionary is unordered, so the first glyph it happens to spell out would
     // otherwise take index zero — the index every caller reads as "no such glyph". Holding

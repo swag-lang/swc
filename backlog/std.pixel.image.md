@@ -226,6 +226,11 @@ ships; history lives in Git, not here.
   fixture from 102.8 to 76.9 ms on one logical CPU, 84.4 to 70.4 ms on two,
   and 72.4 to 60.9 ms on four. resvg 0.50.0 takes 29.8, 32.0, and 31.6 ms.
   The 132 comparisons across one and four Swag workers have identical pixels.
+- The embedded image fixture exercises default centered `meet`, explicit alignment,
+  transformed `slice`, and `none`. The mean premultiplied RGBA error against
+  resvg 0.50.0 drops from 36.21 to 0.09 levels per channel and the alpha masks
+  agree. Six public `meet` and `slice` fixtures also agree within 0.6 levels per
+  channel on average.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.
@@ -280,18 +285,6 @@ ships; history lives in Git, not here.
   metadata behavior is explicit, and decoded distortion/size regressions are measured.
 - Related: std.pixel.001
 
-### std.pixel.image.049 — OpenEXR PIZ compression is not decoded
-
-- Evidence: decode accepts single- and multipart RGB/RGBA/Y scanlines with none, ZIPS, or ZIP compression;
-  encode is uncompressed. OpenEXR identifies PIZ as its wavelet/Huffman lossless option, and files
-  using it are rejected before the otherwise supported half/float channels can be reconstructed.
-- Next: implement PIZ decode for the existing scanline RGB(A)/Y contract and validate it against
-  the reference library before deciding whether PIZ encoding is justified.
-- Done when: half and float PIZ scanline fixtures decode to reference pixels, malformed wavelet
-  and Huffman data fail within std.pixel.image.036 limits, and unsupported channel layouts still fail
-  explicitly.
-- Related: std.pixel.image.036, std.pixel.image.050
-
 ### std.pixel.image.050 — Tiled and multi-resolution OpenEXR images are rejected
 
 - Evidence: OpenEXR tiles provide random rectangular access and can carry mipmap or ripmap levels,
@@ -302,7 +295,7 @@ ships; history lives in Git, not here.
 - Done when: callers can inspect levels and decode a selected tile or bounded region without
   materializing the base image, with reference fixtures for incomplete edge tiles and both level
   rounding modes.
-- Related: std.pixel.image.039, std.pixel.019, std.pixel.image.049
+- Related: std.pixel.image.039, std.pixel.019
 
 ### std.pixel.image.044 — Orientation and common metadata have no typed contract
 

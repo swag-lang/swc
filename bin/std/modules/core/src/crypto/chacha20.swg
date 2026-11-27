@@ -227,7 +227,7 @@ private func roundRowsPair(zero, first: *[4] Simd.U32x4)
     first[][3] = h
 }
 
-// Produces the Poly1305 key and one block of ciphertext for a short AEAD message.
+// Produces the Poly1305 key and ciphertext for a short AEAD message.
 internal func chacha20SealShort(key, nonce, plaintext: const [..] u8, ciphertext: [..] u8,
                                 authKey: *[Poly1305KeySize] u8) fail
 {
@@ -238,6 +238,12 @@ internal func chacha20SealShort(key, nonce, plaintext: const [..] u8, ciphertext
     if nonce.count != ChaCha20NonceSize
     {
         fail Errors.BadParameterError{"ChaCha20 needs a 12-byte nonce"}
+    }
+
+    if plaintext.count > ChaCha20BlockSize
+    {
+        chacha20XorBatches!{true}(key, nonce, 0, plaintext.buffer, ciphertext.buffer, 1, plaintext.count, authKey[].buffer)
+        return
     }
 
     var scratch: struct
@@ -376,6 +382,183 @@ private func chacha20XorTailPairs(key, nonce, source: const [*] u8, destination:
     secureClear(Swag.makeSlice(&scratch, 1))
 }
 
+private func(Seal: bool) chacha20XorBatches(key, nonce: const [..] u8, counter: u32, source: const [*] u8, destination: [*] u8,
+                                           count: u64, payloadSize = 0_u64, authKey: [*] u8? = null)
+{
+    // Interleave arithmetic from four independent quarter rounds.
+    #[Swag.Mixin]
+    func quarterRoundColumns(a0, b0, c0, d0, a1, b1, c1, d1,
+                             a2, b2, c2, d2, a3, b3, c3, d3: *Simd.U32x4)
+    {
+        a0[] += b0[]
+        a1[] += b1[]
+        a2[] += b2[]
+        a3[] += b3[]
+
+        d0[] = rotate32By16(d0[] ^ a0[])
+        d1[] = rotate32By16(d1[] ^ a1[])
+        d2[] = rotate32By16(d2[] ^ a2[])
+        d3[] = rotate32By16(d3[] ^ a3[])
+
+        c0[] += d0[]
+        c1[] += d1[]
+        c2[] += d2[]
+        c3[] += d3[]
+
+        b0[] = Math.rol(b0[] ^ c0[], 12)
+        b1[] = Math.rol(b1[] ^ c1[], 12)
+        b2[] = Math.rol(b2[] ^ c2[], 12)
+        b3[] = Math.rol(b3[] ^ c3[], 12)
+
+        a0[] += b0[]
+        a1[] += b1[]
+        a2[] += b2[]
+        a3[] += b3[]
+
+        d0[] = Math.rol(d0[] ^ a0[], 8)
+        d1[] = Math.rol(d1[] ^ a1[], 8)
+        d2[] = Math.rol(d2[] ^ a2[], 8)
+        d3[] = Math.rol(d3[] ^ a3[], 8)
+
+        c0[] += d0[]
+        c1[] += d1[]
+        c2[] += d2[]
+        c3[] += d3[]
+
+        b0[] = Math.rol(b0[] ^ c0[], 7)
+        b1[] = Math.rol(b1[] ^ c1[], 7)
+        b2[] = Math.rol(b2[] ^ c2[], 7)
+        b3[] = Math.rol(b3[] ^ c3[], 7)
+    }
+
+    var initial: [16] Simd.U32x4
+    initial[0] = Simd.splat(0x61707865_u32)
+    initial[1] = Simd.splat(0x3320646E_u32)
+    initial[2] = Simd.splat(0x79622D32_u32)
+    initial[3] = Simd.splat(0x6B206574_u32)
+    for i in 8
+    {
+        initial[4 + i] = Simd.splat(load32(key.buffer + i * 4))
+    }
+
+    initial[13] = Simd.splat(load32(nonce.buffer))
+    initial[14] = Simd.splat(load32(nonce.buffer + 4))
+    initial[15] = Simd.splat(load32(nonce.buffer + 8))
+
+    const counterOffsets = cast(Simd.U32x4, [0_u32, 1, 2, 3])
+    var state: [16] Simd.U32x4
+    var words: [4] Simd.U32x4
+    for batch in count
+    {
+        initial[12] = Simd.splat(counter + cast(u32, (batch * 4))) + counterOffsets
+        var a0 = initial[0]
+        var a1 = initial[1]
+        var a2 = initial[2]
+        var a3 = initial[3]
+        var b0 = initial[4]
+        var b1 = initial[5]
+        var b2 = initial[6]
+        var b3 = initial[7]
+        var c0 = initial[8]
+        var c1 = initial[9]
+        var c2 = initial[10]
+        var c3 = initial[11]
+        var d0 = initial[12]
+        var d1 = initial[13]
+        var d2 = initial[14]
+        var d3 = initial[15]
+
+        for 10
+        {
+            quarterRoundColumns(&a0, &b0, &c0, &d0,
+                                &a1, &b1, &c1, &d1,
+                                &a2, &b2, &c2, &d2,
+                                &a3, &b3, &c3, &d3)
+
+            quarterRoundColumns(&a0, &b1, &c2, &d3,
+                                &a1, &b2, &c3, &d0,
+                                &a2, &b3, &c0, &d1,
+                                &a3, &b0, &c1, &d2)
+        }
+
+        state[0] = a0
+        state[1] = a1
+        state[2] = a2
+        state[3] = a3
+        state[4] = b0
+        state[5] = b1
+        state[6] = b2
+        state[7] = b3
+        state[8] = c0
+        state[9] = c1
+        state[10] = c2
+        state[11] = c3
+        state[12] = d0
+        state[13] = d1
+        state[14] = d2
+        state[15] = d3
+
+        // Transpose each four-word group from lanes of independent blocks into
+        // consecutive words, so it can be applied directly to the input.
+        for group in 4
+        {
+            for word in 4
+            {
+                words[word] = state[group * 4 + word] + initial[group * 4 + word]
+            }
+
+            Simd.transpose4x4(&words)
+            #static if Seal
+            {
+                const RowSize = #sizeof(Simd.U8x16)
+                if group < Poly1305KeySize / RowSize
+                {
+                    let stream = swapWordBytesOnBigEndian(cast #bit(Simd.U8x16, words[0]))
+                    Simd.store((unwrap authKey) + group * RowSize, stream)
+                }
+
+                for block in 1 to 3
+                {
+                    let offset = (block - 1) * ChaCha20BlockSize + group * RowSize
+                    if offset < payloadSize
+                    {
+                        let remaining = payloadSize - offset
+                        let stream = swapWordBytesOnBigEndian(cast #bit(Simd.U8x16, words[block]))
+                        if remaining >= RowSize
+                        {
+                            Simd.store(destination + offset, Simd.load(source + offset) ^ stream)
+                        }
+                        else
+                        {
+                            var tail: [RowSize] u8
+                            Simd.store(tail.buffer, stream)
+                            for byte in remaining
+                            {
+                                destination[offset + byte] = source[offset + byte] ^ tail[byte]
+                            }
+
+                            secureClear(tail)
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for block in 4
+                {
+                    let offset = (batch * 4 + block) * ChaCha20BlockSize + group * #sizeof(Simd.U8x16)
+                    let stream = swapWordBytesOnBigEndian(cast #bit (Simd.U8x16, words[block]))
+                    Simd.store(destination + offset, Simd.load(source + offset) ^ stream)
+                }
+            }
+        }
+    }
+
+    secureClear(initial)
+    secureClear(state)
+    secureClear(words)
+}
+
 // XORs `source` with the IETF ChaCha20 key stream into `destination`.
 //
 // The first block uses the key-stream counter `initialCounter`. Source and destination can be
@@ -387,145 +570,6 @@ private func chacha20XorTailPairs(key, nonce, source: const [*] u8, destination:
 // input needs more blocks than the counter range starting at `initialCounter` provides.
 func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initialCounter = 0_u32) fail
 {
-    func chacha20XorBatches(key, nonce: const [..] u8, counter: u32, source: const [*] u8, destination: [*] u8, count: u64)
-    {
-        // Interleave arithmetic from four independent quarter rounds.
-        #[Swag.Mixin]
-        func quarterRoundColumns(a0, b0, c0, d0, a1, b1, c1, d1,
-                                 a2, b2, c2, d2, a3, b3, c3, d3: *Simd.U32x4)
-        {
-            a0[] += b0[]
-            a1[] += b1[]
-            a2[] += b2[]
-            a3[] += b3[]
-
-            d0[] = rotate32By16(d0[] ^ a0[])
-            d1[] = rotate32By16(d1[] ^ a1[])
-            d2[] = rotate32By16(d2[] ^ a2[])
-            d3[] = rotate32By16(d3[] ^ a3[])
-
-            c0[] += d0[]
-            c1[] += d1[]
-            c2[] += d2[]
-            c3[] += d3[]
-
-            b0[] = Math.rol(b0[] ^ c0[], 12)
-            b1[] = Math.rol(b1[] ^ c1[], 12)
-            b2[] = Math.rol(b2[] ^ c2[], 12)
-            b3[] = Math.rol(b3[] ^ c3[], 12)
-
-            a0[] += b0[]
-            a1[] += b1[]
-            a2[] += b2[]
-            a3[] += b3[]
-
-            d0[] = Math.rol(d0[] ^ a0[], 8)
-            d1[] = Math.rol(d1[] ^ a1[], 8)
-            d2[] = Math.rol(d2[] ^ a2[], 8)
-            d3[] = Math.rol(d3[] ^ a3[], 8)
-
-            c0[] += d0[]
-            c1[] += d1[]
-            c2[] += d2[]
-            c3[] += d3[]
-
-            b0[] = Math.rol(b0[] ^ c0[], 7)
-            b1[] = Math.rol(b1[] ^ c1[], 7)
-            b2[] = Math.rol(b2[] ^ c2[], 7)
-            b3[] = Math.rol(b3[] ^ c3[], 7)
-        }
-
-        var initial: [16] Simd.U32x4
-        initial[0] = Simd.splat(0x61707865_u32)
-        initial[1] = Simd.splat(0x3320646E_u32)
-        initial[2] = Simd.splat(0x79622D32_u32)
-        initial[3] = Simd.splat(0x6B206574_u32)
-        for i in 8
-        {
-            initial[4 + i] = Simd.splat(load32(key.buffer + i * 4))
-        }
-
-        initial[13] = Simd.splat(load32(nonce.buffer))
-        initial[14] = Simd.splat(load32(nonce.buffer + 4))
-        initial[15] = Simd.splat(load32(nonce.buffer + 8))
-
-        const counterOffsets = cast(Simd.U32x4, [0_u32, 1, 2, 3])
-        var state: [16] Simd.U32x4
-        var words: [4] Simd.U32x4
-        for batch in count
-        {
-            initial[12] = Simd.splat(counter + cast(u32, (batch * 4))) + counterOffsets
-            var a0 = initial[0]
-            var a1 = initial[1]
-            var a2 = initial[2]
-            var a3 = initial[3]
-            var b0 = initial[4]
-            var b1 = initial[5]
-            var b2 = initial[6]
-            var b3 = initial[7]
-            var c0 = initial[8]
-            var c1 = initial[9]
-            var c2 = initial[10]
-            var c3 = initial[11]
-            var d0 = initial[12]
-            var d1 = initial[13]
-            var d2 = initial[14]
-            var d3 = initial[15]
-
-            for 10
-            {
-                quarterRoundColumns(&a0, &b0, &c0, &d0,
-                                    &a1, &b1, &c1, &d1,
-                                    &a2, &b2, &c2, &d2,
-                                    &a3, &b3, &c3, &d3)
-
-                quarterRoundColumns(&a0, &b1, &c2, &d3,
-                                    &a1, &b2, &c3, &d0,
-                                    &a2, &b3, &c0, &d1,
-                                    &a3, &b0, &c1, &d2)
-            }
-
-            state[0] = a0
-            state[1] = a1
-            state[2] = a2
-            state[3] = a3
-            state[4] = b0
-            state[5] = b1
-            state[6] = b2
-            state[7] = b3
-            state[8] = c0
-            state[9] = c1
-            state[10] = c2
-            state[11] = c3
-            state[12] = d0
-            state[13] = d1
-            state[14] = d2
-            state[15] = d3
-
-            // Transpose each four-word group from lanes of independent blocks into
-            // consecutive words, so it can be applied directly to the input.
-            for group in 4
-            {
-                for word in 4
-                {
-                    words[word] = state[group * 4 + word] + initial[group * 4 + word]
-                }
-
-                Simd.transpose4x4(&words)
-                for block in 4
-                {
-                    let offset = (batch * 4 + block) * ChaCha20BlockSize + group * #sizeof(Simd.U8x16)
-                    let stream = swapWordBytesOnBigEndian(cast #bit (Simd.U8x16, words[block]))
-                    Simd.store(destination + offset, Simd.load(source + offset) ^ stream)
-                }
-            }
-        }
-
-        secureClear(initial)
-        secureClear(state)
-        secureClear(words)
-    }
-
     if key.count != ChaCha20KeySize
     {
         fail Errors.BadParameterError{"ChaCha20 needs a 32-byte key"}
@@ -556,7 +600,7 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
     // Chunks own disjoint ranges, so exact in-place XOR remains valid.
     if batches == 1
     {
-        chacha20XorBatches(key, nonce, initialCounter, source.buffer, destination.buffer, 1)
+        chacha20XorBatches!{false}(key, nonce, initialCounter, source.buffer, destination.buffer, 1)
     }
     else if batches
     {
@@ -566,7 +610,7 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
             let count   = Math.min(batches - first, BatchesPerChunk)
             let start   = first * BatchSize
             let counter = initialCounter + cast(u32, (first * 4))
-            chacha20XorBatches(key, nonce, counter, source.buffer + start, destination.buffer + start, count)
+            chacha20XorBatches!{false}(key, nonce, counter, source.buffer + start, destination.buffer + start, count)
         }
     }
 

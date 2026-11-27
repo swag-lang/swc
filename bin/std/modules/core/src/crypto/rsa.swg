@@ -388,8 +388,274 @@ private func rsaPublicPower(base: [64] u64, exponent: const [..] u8, context: *R
     return result
 }
 
+// IFMA accumulates the low and high 52-bit halves of two products.
+private const Rsa52Bits     = 52
+private const Rsa52Mask     = (1_u64 << Rsa52Bits) - 1
+private const Rsa52MaxWords = (RsaMaxModulusSize * 8 + Rsa52Bits - 1) / Rsa52Bits
+private const Rsa52Words    = (Rsa52MaxWords + 1) & ~1
+private alias Rsa52Digits = [Rsa52Words] u64
+
+private struct Rsa52Context
+{
+    modulus: Rsa52Digits
+    one:     Rsa52Digits
+    r2:      Rsa52Digits
+    words:   u64
+    inverse: u64
+}
+
+private struct Rsa52Temporary
+{
+    low, high: [2 * Rsa52Words + 2] u64
+}
+
+private func rsa52Pack(input: const *[64] u64, sourceWords: u64, output: *Rsa52Digits, count: u64)
+{
+    for index in count
+    {
+        let offset = index * Rsa52Bits
+        let word   = offset / 64
+        let shift  = offset % 64
+        var digit  = input[][word] >> shift
+        if shift > 64 - Rsa52Bits and word + 1 < sourceWords
+        {
+            digit |= input[][word + 1] << (64 - shift)
+        }
+
+        output[][index] = digit & Rsa52Mask
+    }
+}
+
+private func rsa52Unpack(input: const *Rsa52Digits, count, targetWords: u64)->[64] u64
+{
+    var output: #returntype
+    for index in count
+    {
+        let offset = index * Rsa52Bits
+        let word   = offset / 64
+        let shift  = offset % 64
+        let digit  = input[][index]
+        output[word] |= digit << shift
+        if shift > 64 - Rsa52Bits and word + 1 < targetWords
+        {
+            output[word + 1] |= digit >> (64 - shift)
+        }
+    }
+
+    return output
+}
+
+#[Swag.Inline]
+private func rsa52Accumulate(low, high: [*] u64, factor: const [*] u64, digit, count: u64)
+{
+    let broadcast = Simd.splat(digit)
+    var column = 0_u64
+    while column < count
+    {
+        let operands = Simd.load(factor + column)
+        let lowPair  = Simd.load(low + column)
+        let highPair = Simd.load(high + column)
+        Simd.store(low + column, Swag.vecMultiplyAdd52Low(lowPair, operands, broadcast))
+        Simd.store(high + column, Swag.vecMultiplyAdd52High(highPair, operands, broadcast))
+        column += 2
+    }
+}
+
+private func(Square: bool) rsa52Product(output: *Rsa52Digits, left, right: const *Rsa52Digits, context: const *Rsa52Context,
+                          temporary: *Rsa52Temporary)
+{
+    let count     = context[].words
+    let pairWords = (count + 1) & ~1_u64
+    let low       = temporary[].low.buffer
+    let high      = temporary[].high.buffer
+    let clearSize = (count * 2 + 3) * #sizeof(u64)
+    Swag.memset(low, 0, clearSize)
+    Swag.memset(high, 0, clearSize)
+
+    // Each limb sums at most twice the word count in 52-bit terms.
+    // Unused vector lanes read the zero padding above the active words.
+    #static if Square
+    {
+        // Only the cross-product triangle contributes twice.
+        for index in count
+        {
+            let tail = (count - index) & ~1_u64
+            rsa52Accumulate(low + 2 * index + 1, high + 2 * index + 2, left[].buffer + index + 1, left[][index], tail)
+        }
+
+        for index in count * 2
+        {
+            low[index] <<= 1
+            high[index] <<= 1
+        }
+
+        for index in count
+        {
+            var upper: u64
+            let bottom = Swag.mulWide(left[][index], left[][index], &upper)
+            low[2 * index] += bottom & Rsa52Mask
+            high[2 * index + 1] += (bottom >> Rsa52Bits) | (upper << (64 - Rsa52Bits))
+        }
+    }
+
+    for index in count
+    {
+        #static if not Square
+        {
+            rsa52Accumulate(low + index, high + index + 1, left[].buffer, right[][index], pairWords)
+        }
+        let reduction = ((low[index] + high[index]) * context[].inverse) & Rsa52Mask
+        rsa52Accumulate(low + index, high + index + 1, context[].modulus.buffer, reduction, pairWords)
+        low[index + 1] += (low[index] + high[index]) >> Rsa52Bits
+    }
+
+    var carry  = 0_u64
+    var borrow = 0_u64
+    for index in count
+    {
+        let value = low[count + index] + high[count + index] + carry
+        carry = value >> Rsa52Bits
+        let word = value & Rsa52Mask
+        output[][index] = word
+        let difference = word - context[].modulus[index] - borrow
+        borrow = difference >> 63
+        low[index] = difference & Rsa52Mask
+    }
+
+    let top  = low[count * 2] + high[count * 2] + carry
+    let mask = 0_u64 - (cast(u64, top != 0) | cast(u64, borrow == 0))
+    for index in count
+    {
+        output[][index] = (low[index] & mask) | (output[][index] & ~mask)
+    }
+}
+
+// The initialization only uses the public modulus and its encoded width.
+private func rsa52Double(value: *Rsa52Digits, context: const *Rsa52Context)
+{
+    var difference: Rsa52Digits
+    var carry  = 0_u64
+    var borrow = 0_u64
+    for index in context[].words
+    {
+        let doubled = (value[][index] << 1) | carry
+        carry = doubled >> Rsa52Bits
+        let word = doubled & Rsa52Mask
+        value[][index] = word
+        let reduced = word - context[].modulus[index] - borrow
+        borrow = reduced >> 63
+        difference[index] = reduced & Rsa52Mask
+    }
+
+    if carry or not borrow
+    {
+        Swag.memcpy(value[].buffer, difference.buffer, context[].words * #sizeof(u64))
+    }
+}
+
+private func rsa52Initialize(result: *Rsa52Context, source: const *RsaMontgomery, temporary: *Rsa52Temporary)
+{
+    let bits    = cast(u64, source[].byteCount) * 8
+    let count   = (bits + Rsa52Bits - 1) / Rsa52Bits
+    let padding = count * Rsa52Bits - bits
+    result[].words = count
+    result[].inverse = source[].n0Inverse & Rsa52Mask
+    rsa52Pack(&source[].modulus, source[].limbCount, &result[].modulus, count)
+
+    // The modulus is full width. Subtract it from 2^bits and extend to R.
+    var borrow = 0_u64
+    for index in count
+    {
+        let word = 0_u64 - result[].modulus[index] - borrow
+        borrow = word >> 63
+        result[].one[index] = word & Rsa52Mask
+    }
+
+    result[].one[count - 1] &= Rsa52Mask >> padding
+    for padding
+    {
+        rsa52Double(&result[].one, result)
+    }
+
+    var seed = result[].one
+    for Rsa52Bits
+    {
+        rsa52Double(&seed, result)
+    }
+
+    // Raise 2^52 to the public word count in the Montgomery domain.
+    result[].r2 = seed
+    let highest = 63_u64 - Swag.leadingZeros(count)
+    for step in highest
+    {
+        rsa52Product!{true}(&result[].r2, &result[].r2, &result[].r2, result, temporary)
+        if (count >> (highest - step - 1)) & 1
+        {
+            rsa52Product!{false}(&result[].r2, &result[].r2, &seed, result, temporary)
+        }
+    }
+}
+
+private struct Rsa52PrivateStorage
+{
+    temporary: Rsa52Temporary
+    powers:    [16] Rsa52Digits
+    working:   Rsa52Digits
+    selection: Rsa52Digits
+}
+
+private func rsa52PrivatePower(input: const *[64] u64, exponent: const [..] u8,
+                              source: const *RsaMontgomery)->[64] u64
+{
+    var context: Rsa52Context
+    var scratch: Rsa52PrivateStorage
+    defer Crypto.secureClear(Swag.makeSlice(&scratch, 1))
+    rsa52Initialize(&context, source, &scratch.temporary)
+
+    scratch.powers[0] = context.one
+    rsa52Pack(input, source[].limbCount, &scratch.powers[1], context.words)
+    rsa52Product!{false}(&scratch.powers[1], &scratch.powers[1], &context.r2, &context, &scratch.temporary)
+    for digit in 2 until scratch.powers.count
+    {
+        rsa52Product!{false}(&scratch.powers[digit], &scratch.powers[digit - 1], &scratch.powers[1], &context, &scratch.temporary)
+    }
+
+    scratch.working = context.one
+    for step in source[].byteCount * 2
+    {
+        for 4
+        {
+            rsa52Product!{true}(&scratch.working, &scratch.working, &scratch.working, &context, &scratch.temporary)
+        }
+
+        let shift = (1 - (step & 1)) * 4
+        let digit = (exponent[step / 2] >> shift) & 15
+        Swag.memset(scratch.selection.buffer, 0, context.words * #sizeof(u64))
+        for index in scratch.powers.count
+        {
+            let mask = 0_u64 - cast(u64, index == digit)
+            for word in context.words
+            {
+                scratch.selection[word] |= scratch.powers[index][word] & mask
+            }
+        }
+
+        rsa52Product!{false}(&scratch.working, &scratch.working, &scratch.selection, &context, &scratch.temporary)
+    }
+
+    var one: Rsa52Digits
+    one[0] = 1
+    rsa52Product!{false}(&scratch.working, &scratch.working, &one, &context, &scratch.temporary)
+    return rsa52Unpack(&scratch.working, context.words, source[].limbCount)
+}
+
 private func rsaModularPower(base: [64] u64, exponent: const [..] u8, fixedTime: bool, context: *RsaMontgomery)->[64] u64
 {
+    if fixedTime and Swag.hasCpuFeature(.MultiplyAdd52)
+    {
+        return rsa52PrivatePower(&base, exponent, context)
+    }
+
     var one: [64] u64
     one[0] = 1
     var baseMontgomery = rsaMontgomeryMultiply(base, context[].r2, context)

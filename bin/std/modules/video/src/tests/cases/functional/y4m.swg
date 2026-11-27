@@ -583,7 +583,7 @@ func y4mAspectBytes(aspect: string)->Array!{u8}
     // read-only formats.
     let decodable = Reader.decodableFormats()
     let encodable = Writer.encodableFormats()
-    Swag.require(decodable.count == 5 and encodable.count == 3)
+    Swag.require(decodable.count == 6 and encodable.count == 3)
     for index in encodable.count
     {
         Swag.require(decodable[index].name == encodable[index].name)
@@ -597,4 +597,5 @@ func y4mAspectBytes(aspect: string)->Array!{u8}
                  decodable[2].matches("a.F4V"))
     Swag.require(decodable[3].matches("a.mkv") and not decodable[3].matches("a.webm"))
     Swag.require(decodable[4].matches("a.mjpeg") and decodable[4].matches("a.MJPG"))
+    Swag.require(decodable[5].matches("a.h264") and decodable[5].matches("a.264"))
 }

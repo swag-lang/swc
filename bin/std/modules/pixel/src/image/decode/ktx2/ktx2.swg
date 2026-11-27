@@ -31,7 +31,8 @@ func vkPixelFormat(vk: u32, format: *PixelFormat, blocks: *TextureBlocks.Format)
     case 16, 22:   format[] = .GrayAlpha8
     case 23, 29:   format[] = .RGB8
     case 30, 36:   format[] = .BGR8
-    case 37, 43:   format[] = .RGBA8
+    // A8B8G8R8 packed words use RGBA byte order in the little-endian file.
+    case 37, 43, 51, 57: format[] = .RGBA8
     case 44, 50:   format[] = .BGRA8
     case 70:       format[] = .Gray16
     case 76:       format[] = .GrayF16
@@ -182,7 +183,9 @@ impl Decoder
                 if key == "KTXorientation"
                 {
                     let expectedLength = baseHeight ? (depth ? 3_u64 : 2_u64) : 1_u64
-                    if valueLength != expectedLength
+                    // KTX strings include a terminating NUL. Older files may omit it.
+                    let terminated = valueLength == expectedLength + 1 and not buffer[valueOffset + expectedLength]
+                    if valueLength != expectedLength and not terminated
                     {
                         fail InvalidFormatError{"KTX2 orientation length disagrees with the texture dimensions"}
                     }

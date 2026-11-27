@@ -1,7 +1,7 @@
 //! Format: OpenEXR scanline decoder.
 //! Supported: Single-part and multipart RGB, RGBA, or Y scanline images with half/float channels and
-//!            no compression, ZIPS, or ZIP lossless compression.
-//! Not supported: Tiled, deep, subsampled, UINT, PIZ/PXR24/B44/DWA/HTJ2K data,
+//!            no compression, ZIPS, ZIP, or PIZ lossless compression.
+//! Not supported: Tiled, deep, subsampled, UINT, PXR24/B44/DWA/HTJ2K data,
 //!                or layered channel names.
 //! Role: This file reconstructs high-dynamic-range channels into half/full-float Pixel images.
 //
@@ -11,6 +11,17 @@ using Core, Core.Errors, Core.Math
 
 const Magic = 20000630_u32
 const ParallelZipBytes = 512_u64 * 1024
+
+#[Swag.Inline]
+func scanlinesPerChunk(compression: u8)->u64
+{
+    switch compression
+    {
+    case 3:  return 16
+    case PizCompression: return 32
+    default: return 1
+    }
+}
 
 struct Channel
 {
@@ -699,6 +710,7 @@ struct ScanlineCache
 struct ScanlineScratch
 {
     zlib:      Compress.ZLib
+    piz:       PizScratch
     unpacked:  Array!{u8}
     reordered: Array!{u8}
     smallCache, largeCache: ScanlineCache
@@ -807,9 +819,12 @@ impl Part
             fail UnsupportedFormatError{"OpenEXR parts require a name, chunk count, and scanline image type"}
         }
 
-        if result.compression != 0 and result.compression != 2 and result.compression != 3
+        if result.compression != 0 and
+           result.compression != 2 and
+           result.compression != 3 and
+           result.compression != PizCompression
         {
-            fail UnsupportedFormatError{"OpenEXR compression is not NONE, ZIPS, or ZIP"}
+            fail UnsupportedFormatError{"OpenEXR compression is not NONE, ZIPS, ZIP, or PIZ"}
         }
 
         let width  = cast(s64, xMax) - xMin + 1
@@ -879,7 +894,7 @@ impl Part
         result.info.pixelFormat = format
         result.yMin             = yMin
         try options.checkImage(result.info.width, result.info.height, format)
-        let linesPerChunk = result.compression == 3 ? 16_u64 : 1_u64
+        let linesPerChunk = scanlinesPerChunk(result.compression)
         result.chunkCount = (cast(u64, height) + linesPerChunk - 1) / linesPerChunk
         if hasChunkCount and declaredChunks != result.chunkCount
         {
@@ -955,23 +970,31 @@ impl Part
     {
         var pixels = chunk.pixels
 
-        // OpenEXR writes the original bytes when ZIP cannot make the block smaller.
+        // OpenEXR writes the original bytes when compression cannot make the block smaller.
         if .compression and pixels.count < chunk.expected
         {
-            scratch.unpacked.clear()
-            try scratch.zlib.decompress(&scratch.unpacked, pixels, chunk.expected, maxOutputSize: chunk.expected)
-            if scratch.unpacked.count != chunk.expected
+            if .compression == PizCompression
             {
-                fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
+                try decodePizScanlines(pixels, chunk.expected, cast(u64, .info.width), cast(u64, chunk.rows), .channels.toSlice(), &scratch.piz, &scratch.reordered)
+            }
+            else
+            {
+                scratch.unpacked.clear()
+                try scratch.zlib.decompress(&scratch.unpacked, pixels, chunk.expected, maxOutputSize: chunk.expected)
+                if scratch.unpacked.count != chunk.expected
+                {
+                    fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
+                }
+
+                if layout.grayHalf and image.pixelFormat == .GrayF16
+                {
+                    writeGrayZipHalfChunk(image, scratch.unpacked.toSlice(), chunk.relativeY, chunk.rows)
+                    return
+                }
+
+                undoZipPredictor(scratch.unpacked.toSlice(), &scratch.reordered)
             }
 
-            if layout.grayHalf and image.pixelFormat == .GrayF16
-            {
-                writeGrayZipHalfChunk(image, scratch.unpacked.toSlice(), chunk.relativeY, chunk.rows)
-                return
-            }
-
-            undoZipPredictor(scratch.unpacked.toSlice(), &scratch.reordered)
             pixels = scratch.reordered.toSlice()
         }
 
@@ -1253,7 +1276,7 @@ impl Part
             }
         }
 
-        let linesPerChunk = .compression == 3 ? 16_u64 : 1_u64
+        let linesPerChunk = scanlinesPerChunk(.compression)
         var seenRows: Array!{bool}
         seenRows.resize(cast(u64, .info.height))
         var layout: ScanlineLayout = {channelOffsets, grayBytes, alphaBytes, halfChannels, grayscale, grayHalf, halfColor, floatColor, alphaFirst}

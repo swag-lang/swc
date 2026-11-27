@@ -241,6 +241,10 @@ impl Reader
     // Raw Motion JPEG indexes up to 1,048,576 pictures at open and assumes 25 frames per second.
     // It needs consecutive complete JPEG pictures of constant dimensions.
     //
+    // An H.264 Annex B stream is scanned for picture offsets when opened. Its nominal
+    // cadence comes from the sequence's VUI timing, or is 25 frames per second when
+    // timing is absent. Frame times are derived from display order and this cadence.
+    //
     // `pictureOnly` opens the pictures alone: the reader reports no sound or subtitle track,
     // and a container that indexes its sound beside its pictures reads nothing for it. A
     // caller that wants a few frames, such as a thumbnail, then pays for those frames rather
@@ -637,4 +641,5 @@ impl Reader
     Reader.registerDecoder!{Mp4.Decoder}()
     Reader.registerDecoder!{Matroska.Decoder}()
     Reader.registerDecoder!{Mjpeg.Decoder}()
+    Reader.registerDecoder!{H264.AnnexBReader}()
 }

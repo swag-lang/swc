@@ -582,6 +582,44 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     }
 }
 
+// An inverted RGB Decode keeps the row and channel order. Its color key sees the raw samples.
+#test
+{
+    const Width  = 7
+    const Height = 2
+    const Red: [Width] u8 = [0, 99, 100, 142, 180, 181, 255]
+    var samples: [Width * Height * 3] u8
+    for y in Height
+    {
+        for x in Width
+        {
+            let pixel = (y * Width + x) * 3
+            samples[pixel + 0] = Red[x]
+            samples[pixel + 1] = y == 0 ? 60 : 59
+            samples[pixel + 2] = cast(u8, 128 + x + y)
+        }
+    }
+
+    var zlib: Compress.ZLib
+    let packed = expect zlib.compress(samples)
+    const Dictionary = "/Type /XObject /Subtype /Image /Width 7 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Decode [1 0 1 0 1 0]"
+    let direct = imageDocument(Dictionary, packed.toSlice())
+    let keyed  = imageDocument(Format.toString("% /Mask [100 180 60 255 -100 500]", Dictionary).toString(), packed.toSlice())
+    let opaque = unwrap onlyItem(direct.pages[0], .Image).imageValue()
+    let masked = unwrap onlyItem(keyed.pages[0], .Image).imageValue()
+    for y in Height
+    {
+        for x in Width
+        {
+            let color = opaque.pixelColor(cast(s32, x), cast(s32, y))
+            let key   = masked.pixelColor(cast(s32, x), cast(s32, y))
+            Swag.require(color == Color.fromRgb(255 - Red[x], y == 0 ? 195 : 196, cast(u8, 127 - x - y)))
+            Swag.require(key.r == color.r and key.g == color.g and key.b == color.b)
+            Swag.require(key.a == (y == 0 and x >= 2 and x <= 4 ? 0 : 255))
+        }
+    }
+}
+
 // A color key mask turns the sample ranges it names transparent.
 #test
 {
@@ -856,10 +894,23 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         Swag.require(editable.isValid() and not changed.encoded().bytes.count)
         Swag.require(item.image.encoded().bytes.toSlice().count == before.count)
 
-        let pixels     = unwrap item.imageValue()
-        let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Decode [1 0 1 0 1 0]", pixels.width, pixels.height)
-        let custom     = imageDocument(dictionary.toString(), before)
-        Swag.require(not custom.pages[0].items[0].image.encoded().bytes.toSlice().count)
+        let pixels = unwrap item.imageValue()
+        for range in [{ranges: "1 0 1 0 1 0", bits: 7_u8}, {ranges: "1 0 0 1 1 0", bits: 5_u8}]
+        {
+            let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Decode [%] /Interpolate true", pixels.width, pixels.height, range.ranges)
+            let custom     = imageDocument(dictionary.toString(), before)
+            let inverted   = unwrap onlyItem(custom.pages[0], .Image).imageValue()
+            let preserved  = custom.pages[0].items[0].image.encoded()
+            Swag.require(Slice.equals(before, preserved.bytes.toSlice()))
+            Swag.require(preserved.invertedSamples == range.bits and preserved.interpolate)
+
+            let rewritten  = expect custom.encode()
+            let reopened   = expect Document.decode(rewritten.toSlice())
+            let savedImage = reopened.pages[0].items[0].image
+            Swag.require(Slice.equals(before, savedImage.encoded().bytes.toSlice()))
+            Swag.require(savedImage.encoded().invertedSamples == range.bits and savedImage.encoded().interpolate)
+            Swag.require(Slice.equals(inverted.pixels.toSlice(), savedImage.value()!.pixels.toSlice()))
+        }
     }
 
     Swag.require(found)
@@ -896,7 +947,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     let reversed = imageDocument(inverted.toString(), jpeg.toSlice())
     let second   = reversed.pages[0].items[0].image
     Swag.require(second.value()!.pixelColor(10, 12) == Color.fromRgb(4, 16, 27))
-    Swag.require(second.encoded().invertedInk == 15)
+    Swag.require(second.encoded().invertedSamples == 15)
     Swag.require(Slice.equals(second.encoded().bytes.toSlice(), jpeg.toSlice()))
 
     // Identical source bytes with different ink directions must stay distinct in the writer.
@@ -911,7 +962,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     let forwardImage   = combinedRead.pages[0].items[0].image
     let reverseImage   = combinedRead.pages[0].items[1].image
     Swag.require(Slice.equals(forwardImage.encoded().bytes.toSlice(), reverseImage.encoded().bytes.toSlice()))
-    Swag.require(forwardImage.encoded().invertedInk == 0 and reverseImage.encoded().invertedInk == 15)
+    Swag.require(forwardImage.encoded().invertedSamples == 0 and reverseImage.encoded().invertedSamples == 15)
     Swag.require(forwardImage.value()!.pixelColor(10, 12) == Color.fromRgb(189, 141, 92))
     Swag.require(reverseImage.value()!.pixelColor(10, 12) == Color.fromRgb(4, 16, 27))
 }

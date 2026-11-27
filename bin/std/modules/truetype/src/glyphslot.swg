@@ -161,7 +161,33 @@ func computeOutlineBounds(outline: const *Outline)->{ minX: s32, minY: s32, maxX
     result.maxY = Swag.S32.Min
 
     let points = cast(const [*] Vector, unwrap outline.points)
-    for index in cast(u32, outline.pointCount)
+    let count  = cast(u32, outline.pointCount)
+    var index: u32
+    if count >= 8
+    {
+        let coordinates  = cast(const [*] s32, points)
+        var low0, low1   = Math.Simd.splat(Swag.S32.Max)
+        var high0, high1 = Math.Simd.splat(Swag.S32.Min)
+        while count - index >= 4
+        {
+            let first  = Math.Simd.load(coordinates + 2 * index)
+            let second = Math.Simd.load(coordinates + 2 * index + 4)
+            low0  = Math.min(low0, first)
+            low1  = Math.min(low1, second)
+            high0 = Math.max(high0, first)
+            high1 = Math.max(high1, second)
+            index += 4
+        }
+
+        let low  = Math.min(low0, low1)
+        let high = Math.max(high0, high1)
+        result.minX = Math.min(low[0], low[2])
+        result.minY = Math.min(low[1], low[3])
+        result.maxX = Math.max(high[0], high[2])
+        result.maxY = Math.max(high[1], high[3])
+    }
+
+    for index in index until count
     {
         let pt = points[index]
         result.minX = Math.min(result.minX, pt.x)

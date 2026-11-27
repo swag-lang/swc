@@ -129,9 +129,9 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
 
 ### std.truetype.016 — Color glyph rendering is opt-in
 
-- Evidence: `Face.loadColorGlyph` composites ordered `COLR` version-0 layers with `CPAL` version-0
-  colors into an RGBA bitmap. `loadChar` and `loadGlyph(..., .Render)` remain grayscale operations,
-  so a caller must choose the color path and palette explicitly.
+- Evidence: `Face.loadColorGlyph` composites ordered version-0 layers from `COLR` versions 0 and 1
+  with `CPAL` version-0 or version-1 colors. `loadChar` and `loadGlyph(..., .Render)` remain
+  grayscale operations, so a caller must choose the color path and palette explicitly.
 - Next: integrate palette and color-glyph selection into a higher-level text or emoji drawing path.
 - Done when: the chosen text or emoji presentation is rendered in color automatically by that path,
   while ordinary monochrome glyph rendering remains available.

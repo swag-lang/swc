@@ -1,6 +1,6 @@
 //! Format: Portable Network Graphics (PNG) encoder component.
 //! Supported: 8-bit grayscale and 8- or 16-bit RGB/BGR images with optional alpha, PNG filters, Deflate compression, and optional Adam7 interlacing.
-//! Not supported: APNG animation and palette generation.
+//! Not supported: Palette generation.
 //! Role: This file owns PNG chunk emission, validation, and top-level encoding.
 //
 // @LICENCE: BSD-2-Clause
@@ -258,15 +258,20 @@ impl Encoder
     {
         .writeData(PngSignature, 8)
 
-        var dst = cast([*] u8, &.tmpBuf[0])
-        writeU32(dst, .ihdr.width)
-        writeU32(dst + 4, .ihdr.height)
-        dst[8]  = .ihdr.bitDepth
-        dst[9]  = cast(u8, .ihdr.colorType)
-        dst[10] = .ihdr.compressionMethod
-        dst[11] = .ihdr.filterMethod
-        dst[12] = .ihdr.interlaceMethod
+        let dst = cast([*] u8, &.tmpBuf[0])
+        writeHeaderPayload(dst, .ihdr)
         try .writeChunk(TypeIHdr, dst, 13)
+    }
+
+    func writeHeaderPayload(dst: [*] u8, header: Ihdr)
+    {
+        writeU32(dst, header.width)
+        writeU32(dst + 4, header.height)
+        dst[8]  = header.bitDepth
+        dst[9]  = cast(u8, header.colorType)
+        dst[10] = header.compressionMethod
+        dst[11] = header.filterMethod
+        dst[12] = header.interlaceMethod
     }
 
     mtd writeMetadata(image: Image) fail
@@ -313,6 +318,77 @@ impl Encoder
 
             .finishChunk()
         }
+    }
+}
+
+
+impl Encoder
+{
+    #[Swag.Inline]
+    mtd encodeScanlines(image: Image) fail
+    {
+        try .calculateSubImages()
+
+        var filteredBytes = 0_u64
+        for pass in .subimage
+        {
+            filteredBytes += cast(u64, pass.scanlineWidth) * pass.height
+        }
+
+        .bufferToCompress.reserve(filteredBytes)
+
+        .bytesPerPixel = .numChannels() * (.ihdr.bitDepth / 8)
+        var scanlineBufSize = .subimage[.widestPass].scanlineWidth
+        scanlineBufSize += 32
+
+        .scanlineBuf     = Memory.alloc(cast(u64, scanlineBufSize))
+        .prevScanlineBuf = Memory.alloc(cast(u64, scanlineBufSize))
+        defer Memory.free(.scanlineBuf, cast(u64, scanlineBufSize))
+        defer Memory.free(.prevScanlineBuf, cast(u64, scanlineBufSize))
+
+        .scanline     = .scanlineBuf + 16
+        .prevScanline = .prevScanlineBuf + 16
+
+        .pixelSize = image.bytesPerPixel
+        .encodeFlags.toBigEndian  = image.pixelFormat.bitDepth() == 16
+        .encodeFlags.filterChoice = .Disabled
+        if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression
+        {
+            .encodeFlags.filterChoice = .All
+        }
+
+        let srcPixels  = cast([*] u8, image.pixels.storage())
+        let directRows = not .ihdr.interlaceMethod and not .swapRB and not .encodeFlags.toBigEndian
+        for
+        {
+            let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bytesPerPixel
+            let row     = srcPixels + ioffset
+
+            // Reuse input rows in encoded channel and byte order.
+            if directRows
+            {
+                .scanline = row
+            }
+
+            if try .encodeRow(row)
+            {
+                break
+            }
+        }
+    }
+
+    func encodeAnimationFrame(image: Image, options: EncodeOptions, compressor: *Compress.ZLib)->Array!{u8} fail
+    {
+        var encoder: Encoder
+        encoder.userOptions = options
+        encoder.ihdr = {width: cast(u32, image.width),
+                        height: cast(u32, image.height),
+                        bitDepth: 8,
+                        colorType: .AlphaColor,
+                        interlaceMethod: options.interlace ? 1 : 0}
+        encoder.swapRB = image.pixelFormat == .BGRA8
+        try encoder.encodeScanlines(image)
+        return try compressor.compress(encoder.bufferToCompress.toSlice(), options.compressionLevel)
     }
 }
 
@@ -392,55 +468,7 @@ internal impl IImageEncoder for Encoder
             try .writeMetadata(image)
         }
 
-        try .calculateSubImages()
-
-        var filteredBytes = 0_u64
-        for pass in .subimage
-        {
-            filteredBytes += cast(u64, pass.scanlineWidth) * pass.height
-        }
-
-        .bufferToCompress.reserve(filteredBytes)
-
-        .bytesPerPixel = .numChannels() * (.ihdr.bitDepth / 8)
-        var scanlineBufSize = .subimage[.widestPass].scanlineWidth
-        scanlineBufSize += 32
-
-        .scanlineBuf     = Memory.alloc(cast(u64, scanlineBufSize))
-        .prevScanlineBuf = Memory.alloc(cast(u64, scanlineBufSize))
-        defer Memory.free(.scanlineBuf, cast(u64, scanlineBufSize))
-        defer Memory.free(.prevScanlineBuf, cast(u64, scanlineBufSize))
-
-        .scanline     = .scanlineBuf + 16
-        .prevScanline = .prevScanlineBuf + 16
-
-        .pixelSize = image.bytesPerPixel
-        .encodeFlags.toBigEndian  = image.pixelFormat.bitDepth() == 16
-        .encodeFlags.filterChoice = .Disabled
-        if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression
-        {
-            .encodeFlags.filterChoice = .All
-        }
-
-        let srcPixels  = cast([*] u8, image.pixels.storage())
-        let directRows = not .ihdr.interlaceMethod and not .swapRB and not .encodeFlags.toBigEndian
-        for
-        {
-            let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bytesPerPixel
-            let row     = srcPixels + ioffset
-
-            // Reuse input rows in encoded channel and byte order.
-            if directRows
-            {
-                .scanline = row
-            }
-
-            if try .encodeRow(row)
-            {
-                break
-            }
-        }
-
+        try .encodeScanlines(image)
         try .finishIDat(deferHeader)
         discard try .writeHeader(TypeIEnd, 0)
         .finishChunk()

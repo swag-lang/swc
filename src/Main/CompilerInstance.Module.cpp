@@ -286,16 +286,22 @@ namespace
         }
     }
 
-    constexpr std::string_view K_WORKSPACE_ARTIFACT_MANIFEST_FILE = ".swc-artifacts";
+    constexpr std::string_view K_WORKSPACE_ARTIFACT_MANIFEST_FILE    = ".swc-artifacts";
+    constexpr std::string_view K_WORKSPACE_ARTIFACT_MANIFEST_VERSION = "version=11";
 
     struct WorkspaceArtifactManifest
     {
         std::vector<fs::path>                  inputs;
         std::vector<fs::path>                  artifacts;
-        fs::file_time_type                     inputsReadTime{};
+        Os::FileChangeTime                      inputsReadTime{};
         Utf8                                   configuration;
         Utf8                                   tagsFingerprint;
     };
+
+    Utf8 workspaceFingerprint(const std::string_view contents)
+    {
+        return Utf8Helper::toLowerHex(sha256(std::as_bytes(std::span{contents})));
+    }
 
     Utf8 workspaceTagsFingerprint(const std::span<const Utf8> tags)
     {
@@ -307,8 +313,7 @@ namespace
             identity += std::format("{}:", tag.size());
             identity += tag;
         }
-        const auto digest = sha256(std::span{reinterpret_cast<const std::byte*>(identity.data()), identity.size()});
-        return Utf8Helper::toLowerHex(digest);
+        return workspaceFingerprint(identity.view());
     }
 
     // What a command line changes in a module's code without changing where its artifacts go.
@@ -358,45 +363,35 @@ namespace
         return std::ranges::includes(paths, expectedPaths, {}, &fs::path::native, &fs::path::native);
     }
 
-    bool tryGetWorkspacePathWriteTime(fs::file_time_type& outTime, const fs::path& path)
+    bool tryCollectLatestWorkspaceTreeChangeTime(Os::FileChangeTime& outTime, const fs::path& root)
     {
-        std::error_code ec;
-        outTime = fs::last_write_time(path, ec);
-        return !ec;
-    }
-
-    bool tryCollectLatestWorkspaceTreeWriteTime(fs::file_time_type& outTime, const fs::path& root)
-    {
-        if (!tryGetWorkspacePathWriteTime(outTime, root))
+        if (!Os::tryGetFileChangeTime(outTime, root))
             return false;
 
         std::error_code ec;
-        for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        for (fs::recursive_directory_iterator it(root, fs::directory_options::none, ec), end; !ec && it != end; it.increment(ec))
         {
-            if (ec)
-                return false;
-
-            const auto entryTime = it->last_write_time(ec);
-            if (ec)
+            Os::FileChangeTime entryTime;
+            if (!Os::tryGetFileChangeTime(entryTime, it->path()))
                 return false;
             if (entryTime > outTime)
                 outTime = entryTime;
         }
 
-        return true;
+        return !ec;
     }
 
     // Dates the compiler that is about to consume a build.
     //
     // The embedded runtime sources (<resource root>/runtime/*.swg) are compiled into every
     // module, so a change there must invalidate a build exactly like a new compiler binary.
-    bool tryGetCompilerBuildTime(fs::file_time_type& outTime, const fs::path& compilerPath)
+    bool tryGetCompilerBuildTime(Os::FileChangeTime& outTime, const fs::path& compilerPath)
     {
-        if (!tryGetWorkspacePathWriteTime(outTime, compilerPath))
+        if (!Os::tryGetFileChangeTime(outTime, compilerPath))
             return false;
 
-        fs::file_time_type runtimeTime{};
-        if (!tryCollectLatestWorkspaceTreeWriteTime(runtimeTime, FileSystem::compilerResourceRoot(compilerPath) / "runtime"))
+        Os::FileChangeTime runtimeTime{};
+        if (!tryCollectLatestWorkspaceTreeChangeTime(runtimeTime, FileSystem::compilerResourceRoot(compilerPath) / "runtime"))
             return false;
 
         outTime = std::max(outTime, runtimeTime);
@@ -503,8 +498,8 @@ namespace
         // in this process uses that same runtime tree.
         static const Utf8 preludeIdentity = [&] -> Utf8 {
             const fs::path runtime = FileSystem::compilerResourceRoot(compilerPath) / "runtime";
-            fs::file_time_type time{};
-            if (!tryCollectLatestWorkspaceTreeWriteTime(time, runtime))
+            Os::FileChangeTime time{};
+            if (!tryCollectLatestWorkspaceTreeChangeTime(time, runtime))
                 return {};
             return std::format("{}:{}", Utf8Helper::normalizePathForCompare(runtime).view(), time.time_since_epoch().count());
         }();
@@ -764,18 +759,26 @@ namespace
 
     bool readWorkspaceArtifactManifest(WorkspaceArtifactManifest& out, const fs::path& path)
     {
-        std::ifstream in(path, std::ios::binary);
-        std::string line;
-        if (!std::getline(in, line) || line != "version=10" ||
-            !std::getline(in, static_cast<std::string&>(out.configuration)) || !std::getline(in, static_cast<std::string&>(out.tagsFingerprint)) ||
-            !std::getline(in, line))
+        std::ifstream file(path, std::ios::binary);
+        std::string   line;
+        std::string   fingerprint;
+        if (!std::getline(file, line) || line != K_WORKSPACE_ARTIFACT_MANIFEST_VERSION || !std::getline(file, fingerprint))
             return false;
 
-        fs::file_time_type::duration::rep ticks{};
+        // A damaged list can still parse after losing a dynamically discovered input.
+        std::string contents{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+        if (workspaceFingerprint(contents) != fingerprint)
+            return false;
+
+        std::istringstream in(std::move(contents));
+        if (!std::getline(in, static_cast<std::string&>(out.configuration)) || !std::getline(in, static_cast<std::string&>(out.tagsFingerprint)) || !std::getline(in, line))
+            return false;
+
+        Os::FileChangeTime::duration::rep ticks{};
         const auto [end, ec] = std::from_chars(line.data(), line.data() + line.size(), ticks);
         if (ec != std::errc{} || end != line.data() + line.size() || !std::getline(in, line) || line != "[inputs]")
             return false;
-        out.inputsReadTime = fs::file_time_type{fs::file_time_type::duration{ticks}};
+        out.inputsReadTime = Os::FileChangeTime{Os::FileChangeTime::duration{ticks}};
 
         bool readingInputs = true;
         while (std::getline(in, line))
@@ -799,12 +802,15 @@ namespace
 
     Result writeWorkspaceArtifactManifest(TaskContext& ctx, const WorkspaceArtifactManifest& manifest, const fs::path& path)
     {
-        Utf8 content = std::format("version=10\n{}\n{}\n{}\n[inputs]\n", manifest.configuration.view(), manifest.tagsFingerprint.view(), manifest.inputsReadTime.time_since_epoch().count());
+        Utf8 content = std::format("{}\n{}\n{}\n[inputs]\n", manifest.configuration.view(), manifest.tagsFingerprint.view(), manifest.inputsReadTime.time_since_epoch().count());
         for (const fs::path& entry : manifest.inputs)
             content += std::format("{}\n", Utf8(entry).view());
         content += "[artifacts]\n";
         for (const fs::path& entry : manifest.artifacts)
             content += std::format("{}\n", Utf8(entry).view());
+
+        const Utf8 fingerprint = workspaceFingerprint(content.view());
+        content.insert(0, std::format("{}\n{}\n", K_WORKSPACE_ARTIFACT_MANIFEST_VERSION, fingerprint.view()));
 
         FileSystem::IoErrorInfo error;
         if (FileSystem::writeBinaryFileAtomic(path, content.data(), content.size(), error) != Result::Continue)
@@ -830,18 +836,19 @@ namespace
         UpToDate,
     };
 
+    // Treat changes in the same clock tick as the start of the build as stale as well.
     bool workspaceInputsAreCurrent(const WorkspaceArtifactManifest& manifest, const fs::path& compilerPath, const std::span<const fs::path> currentInputs)
     {
         if (!workspacePathListContainsAll(manifest.inputs, currentInputs))
             return false;
 
-        fs::file_time_type compilerTime;
-        if (!tryGetCompilerBuildTime(compilerTime, compilerPath) || manifest.inputsReadTime < compilerTime)
+        Os::FileChangeTime compilerTime;
+        if (!tryGetCompilerBuildTime(compilerTime, compilerPath) || manifest.inputsReadTime <= compilerTime)
             return false;
         for (const fs::path& path : manifest.inputs)
         {
-            fs::file_time_type pathTime;
-            if (!tryGetWorkspacePathWriteTime(pathTime, path) || manifest.inputsReadTime < pathTime)
+            Os::FileChangeTime pathTime;
+            if (!Os::tryGetFileChangeTime(pathTime, path) || manifest.inputsReadTime <= pathTime)
                 return false;
         }
         return true;
@@ -853,8 +860,8 @@ namespace
             !workspaceInputsAreCurrent(manifest, compilerPath, inputs))
             return WorkspaceArtifactState::Stale;
 
-        fs::file_time_type manifestTime;
-        if (!tryGetWorkspacePathWriteTime(manifestTime, manifestPath) || manifest.inputsReadTime > manifestTime)
+        Os::FileChangeTime manifestTime;
+        if (!Os::tryGetFileChangeTime(manifestTime, manifestPath) || manifest.inputsReadTime > manifestTime)
             return WorkspaceArtifactState::Stale;
 
         std::error_code error;
@@ -1842,7 +1849,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 {
     SWC_UNUSED(ctx);
     outSnapshot                = {};
-    outSnapshot.inputsReadTime = fs::file_time_type::clock::now();
+    outSnapshot.inputsReadTime = std::chrono::floor<Os::FileChangeTime::duration>(std::chrono::system_clock::now());
     CompilerInstance setupCompiler(global(), setupCmdLine);
     setupCompiler.moduleSetupMode_ = true;
     struct ConstCallCacheResetGuard
@@ -1979,7 +1986,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const fs::path& moduleFile, ModuleSetupSnapshot& outSnapshot) const
 {
     ModuleSetupSnapshot literalImports;
-    literalImports.inputsReadTime = fs::file_time_type::clock::now();
+    literalImports.inputsReadTime = std::chrono::floor<Os::FileChangeTime::duration>(std::chrono::system_clock::now());
     if (tryCaptureLiteralModuleImports(moduleFile, literalImports.imports))
     {
         literalImports.buildCfg = setupCmdLine.defaultBuildCfg;
@@ -1995,7 +2002,7 @@ Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, cons
     if (!setupCmdLine.rebuild)
     {
         ModuleSetupSnapshot cached;
-        cached.inputsReadTime = fs::file_time_type::clock::now();
+        cached.inputsReadTime = literalImports.inputsReadTime;
         if (readModuleSetupCache(cached, key, moduleFile))
         {
             outSnapshot = std::move(cached);

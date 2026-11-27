@@ -448,13 +448,13 @@ private:
 
     struct ModuleSetupSnapshot
     {
-        Runtime::BuildCfg                  buildCfg{};
-        fs::file_time_type                 inputsReadTime{};
-        std::vector<ModuleSetupImport>     imports;
-        std::set<fs::path>                 loadedFiles;
-        std::set<fs::path>                 compilerInputFiles;
-        SetupInputChecksums               inputChecksums;
-        std::vector<std::unique_ptr<Utf8>> ownedStrings;
+        std::chrono::sys_time<std::chrono::microseconds> inputsReadTime{};
+        Runtime::BuildCfg                               buildCfg{};
+        std::vector<ModuleSetupImport>                  imports;
+        std::set<fs::path>                              loadedFiles;
+        std::set<fs::path>                              compilerInputFiles;
+        SetupInputChecksums                            inputChecksums;
+        std::vector<std::unique_ptr<Utf8>>             ownedStrings;
 
         ModuleSetupSnapshot()                                          = default;
         ModuleSetupSnapshot(const ModuleSetupSnapshot&)                = delete;

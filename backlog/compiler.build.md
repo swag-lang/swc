@@ -507,9 +507,12 @@ before relying on them.
   membership, layout, constants, generic arguments, inline and macro bodies, and compiler hook
   inputs. Try reuse before body analysis and lowering. Measure time saved and lookup and
   restoration cost on applications and scripts that share the same dependency.
-  The workspace artifact manifest still trusts input timestamps. A same-size private-body edit
-  preserving the timestamp ran the old executable, while a forced rebuild ran the edited body.
-  Check that artifact reuse sees the same source changes as the semantic cache.
+  Workspace artifact reuse now checks filesystem change times alongside write times and
+  verifies the manifest's checksum. A same-size private-body edit with a restored write time
+  updates both the `#run` result and the executable. An added overload changes the selected
+  call, a signature edit matches a forced build's diagnostic, and a damaged manifest that
+  omits a discovered `#include` is rebuilt. The workspace shortcut can still suppress source
+  warnings and output from a compile-time `#run` statement on a hit.
 - Measure a separate cache of deterministic `#ast` results before JIT preparation. Record the
   metadata properties and external inputs each generator observes, and analyze restored text
   in the destination scope. Start with a proof that allows replay only for effect-free

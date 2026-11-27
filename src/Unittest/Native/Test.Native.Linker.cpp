@@ -2032,6 +2032,81 @@ using Base
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_ArtifactManifestChecksDependencyEditsAndDamage)
+{
+    const LinkerTestDirectory directory("source_dependency_preserved_write_time");
+    const fs::path            sourcePath = "modules/provider/src/main.swg";
+    SWC_RESULT(directory.write("modules/provider/module.swg", "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None }\n"));
+    SWC_RESULT(directory.write("modules/app/module.swg", "#import(\"provider\")\n"));
+    SWC_RESULT(directory.write("modules/app/payload.bin", std::string_view("\0", 1)));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
+const Offset = cast(s32, #include("../payload.bin")[0])
+const CompileTimeValue = #run Provider.observed() + Offset
+#main { Swag.print("values=", CompileTimeValue, "/", Provider.observed() + Offset, "\n") }
+)"));
+    const auto writeProvider = [&](const int value) {
+        return directory.write(sourcePath, std::format("private func value()->s32 => {}\npublic func observed()->s32 => value()\n", value));
+    };
+    SWC_RESULT(writeProvider(41));
+
+    std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                   "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    const auto checkBuild = [&](const int value, const bool upToDate) -> Result {
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
+        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode ||
+            !output.contains(std::format("values={}/{}", value, value)) || output.contains("module up-to-date: app") != upToDate)
+        {
+            std::println(stderr, "[source dependency edit] {}", output);
+            return Result::Error;
+        }
+        return Result::Continue;
+    };
+    SWC_RESULT(checkBuild(41, false));
+    SWC_RESULT(checkBuild(41, true));
+
+    std::error_code ec;
+    const fs::path  sourceFile     = directory.path() / sourcePath;
+    const auto      priorWriteTime = fs::last_write_time(sourceFile, ec);
+    if (ec)
+        return Result::Error;
+    SWC_RESULT(writeProvider(42));
+    fs::last_write_time(sourceFile, priorWriteTime, ec);
+    if (ec)
+        return Result::Error;
+    const auto restoredWriteTime = fs::last_write_time(sourceFile, ec);
+    if (ec || restoredWriteTime != priorWriteTime)
+        return Result::Error;
+
+    SWC_RESULT(checkBuild(42, false));
+    SWC_RESULT(checkBuild(42, true));
+    arguments.push_back("--rebuild");
+    SWC_RESULT(checkBuild(42, false));
+    arguments.pop_back();
+
+    // Deleting this line leaves a parseable manifest. The probe learns about the
+    // include only from the previous compilation, so it must check the manifest's bytes.
+    const fs::path manifestPath = ".output/app/executable/release/x86_64/.swc-artifacts";
+    std::ifstream manifest(directory.path() / manifestPath, std::ios::binary);
+    std::string contents{std::istreambuf_iterator<char>{manifest}, std::istreambuf_iterator<char>{}};
+    manifest.close();
+    constexpr std::string_view payloadLineEnd = "payload.bin\n";
+    const size_t payloadEnd = contents.find(payloadLineEnd);
+    if (payloadEnd == std::string::npos)
+        return Result::Error;
+    const size_t precedingNewline = contents.rfind('\n', payloadEnd);
+    if (precedingNewline == std::string::npos)
+        return Result::Error;
+    const size_t payloadStart = precedingNewline + 1;
+    contents.erase(payloadStart, payloadEnd + payloadLineEnd.size() - payloadStart);
+    SWC_RESULT(directory.write(manifestPath, contents));
+    SWC_RESULT(directory.write("modules/app/payload.bin", std::string_view("\1", 1)));
+    SWC_RESULT(checkBuild(43, false));
+    SWC_RESULT(checkBuild(43, true));
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Workspace_LoadsSharedFileInEachSourceGroup)
 {
     const LinkerTestDirectory directory("shared_source_load");

@@ -1039,6 +1039,26 @@ namespace Os
         }
     }
 
+    bool tryGetFileChangeTime(FileChangeTime& outTime, const fs::path& path)
+    {
+        const HANDLE file = CreateFileW(path.c_str(), FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+        if (file == INVALID_HANDLE_VALUE)
+            return false;
+
+        FILE_BASIC_INFO info{};
+        const BOOL      gotInfo = GetFileInformationByHandleEx(file, FileBasicInfo, &info, sizeof(info));
+        CloseHandle(file);
+        if (!gotInfo || info.ChangeTime.QuadPart <= 0)
+            return false;
+
+        // Windows reports 100 ns ticks since 1601-01-01.
+        constexpr auto epochOffset = std::chrono::sys_days{std::chrono::year{1970} / 1 / 1} -
+                                     std::chrono::sys_days{std::chrono::year{1601} / 1 / 1};
+        const auto latest = std::max(info.LastWriteTime.QuadPart, info.ChangeTime.QuadPart);
+        outTime = FileChangeTime{std::chrono::microseconds{latest / 10} - epochOffset};
+        return true;
+    }
+
     void queryFileLockOwners(std::vector<FileLockOwner>& outOwners, const fs::path& path)
     {
         outOwners.clear();

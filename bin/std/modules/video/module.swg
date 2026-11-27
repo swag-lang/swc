@@ -136,6 +136,13 @@ The built-in formats cover these streams.
   up to 1,048,576 pictures with access units of at most 64 MiB. The nominal VUI rate, or
   25 frames per second when that timing is absent, gives the display timeline.
 
+- H.265 Annex B (`.hevc` and `.h265`) reads progressive Main and Main 10 streams
+  in a file or memory. It indexes up to 1,048,576 pictures at open, with access units
+  up to 64 MiB. It uses picture order for display and seeks from the preceding IDR.
+  The stream requires closed IDR groups, a stable VPS, SPS and PPS, and output for
+  every picture. The nominal SPS VUI rate, or 25 frames per second when timing is
+  absent, gives the display timeline.
+
 [[Video.Subtitle.Track.loadOwned]] decodes SubRip (`.srt`), WebVTT (`.vtt`), ASS/SSA (`.ass` and
 `.ssa`), LRC (`.lrc`), and MicroDVD (`.sub`) documents. UTF-8, UTF-16, UTF-32, and Windows-1252
 text are detected. The decoder keeps cue timing and readable text while leaving font, color,

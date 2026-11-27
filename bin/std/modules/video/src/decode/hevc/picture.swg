@@ -265,12 +265,7 @@ impl Decoder
             .raslSuppressed = isIdrNal(nalType) or isBlaNal(nalType) or .firstPicture
         }
 
-        .computePoc(nalType, header, sps)
-        if isReferenceNal(nalType) and header.temporalId == 0
-        {
-            .prevPocLsb = header.pocLsb
-            .prevPocMsb = .pocMsb
-        }
+        .updatePictureOrder(nalType, header.temporalId, header.pocLsb, sps)
 
         let frame = .acquireFrame()
         if not frame
@@ -846,6 +841,7 @@ impl Decoder
             {
                 job.events![row].signal()
             }
+
             let finalBlock = row + 1 == job.rowCount and column + 1 == job.width
             if endOfSlice != finalBlock
             {

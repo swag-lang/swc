@@ -401,6 +401,34 @@ to 23,219,954 ns by MKVToolNix. At 44.1 kHz this removes exactly 1,024 decoded A
 - SHA-256: `f015d034f3226285f969b6c3f15bd0f79b7985494f07ecb56c6c810940b3f560`
 - License: same as `ffmpeg-h264-two-aac.mkv`.
 
+The `ffmpeg-hevc-annexb-*` fixtures are synthetic 96×64 elementary streams made with FFmpeg
+7.1.5 and libx265. The common encoder options are `-c:v libx265 -threads 1 -preset fast` and
+`frame-threads=1:log-level=error:keyint=6:min-keyint=6:scenecut=0:repeat-headers=1:info=0`
+in `-x265-params`. For each stream, use `-an -f hevc` and the following settings.
+
+| Stream suffix | Input, profile and duration | Additional x265 parameters |
+| --- | --- | --- |
+| `main10` | `testsrc2=size=96x64:rate=30000/1001,format=yuv420p10le`, Main 10, 12 pictures | `pools=none:open-gop=0:bframes=2:b-adapt=0:aud=0` |
+| `main` | `testsrc2=size=96x64:rate=24`, Main, 5 pictures | `pools=1:ctu=32:wpp=1:slices=2:open-gop=0:bframes=0:aud=1:vui-timing-info=0:sao=0` |
+| `open-gop` | `testsrc2=size=96x64:rate=24`, Main, 9 pictures | `pools=none:open-gop=1:bframes=2:b-adapt=0:aud=0` |
+
+The Main 10 stream contains two IDR groups and reordered B pictures. The Main stream uses
+two slices per picture, disables SAO, and carries no VUI timing. The open-GOP stream contains a CRA and
+leading RASL pictures. FFmpeg 9.1's HEVC parser and decoder read the closed streams to the
+reference 4:2:0 YUV planes in display order. The Main 10 reference keeps the original
+ten-bit samples in little-endian words. Reader tests compare after rounding those samples
+to the eight bits the planar API returns.
+
+| Local file | Size in bytes | SHA-256 |
+| --- | ---: | --- |
+| `ffmpeg-hevc-annexb-main10.hevc` | 3,755 | `a7249e53dd6f1e136934af593da00acc3830c43b49759454e59c535a0eb4da60` |
+| `ffmpeg-hevc-annexb-main10.yuv` | 221,184 | `9b2fd1324b1a59aa2c2e3bd7529e5fbf2b7ed7763a29e7b59599f351a1b578ce` |
+| `ffmpeg-hevc-annexb-main.hevc` | 1,993 | `e949cc955e856578df36bf3d46b9cd27d36362189499a1dc128c8e7ae9455e81` |
+| `ffmpeg-hevc-annexb-main.yuv` | 46,080 | `f65b6b8692e2f82b2d58def341d582674d7609fb7256beb1c8238a18ca8aa749` |
+| `ffmpeg-hevc-annexb-open-gop.hevc` | 3,363 | `4aefd375be1f1431059fa4eae632fcc3e344aa22f24ad092ce1568aea3061e79` |
+
+These fixtures use the same license as this repository.
+
 `ffmpeg-hevc-main.mp4`, `ffmpeg-hevc-inband.mp4`, and `ffmpeg-hevc-main.mkv` re-encode the source
 pictures of `ffmpeg-h264-pyramid.yuv` with x265 through PyAV 17.1, so the H.264 and H.265 fixtures
 carry the same 96x64, 60-frame content and a difference between them is the codec alone.

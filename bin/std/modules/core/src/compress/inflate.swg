@@ -15,7 +15,7 @@ internal
     const SymbolMask          = 0x1FF_u16
     const NarrowLiteralBits   = 9_u32
     const WideLiteralBits     = 11_u32
-    const MinWideLiteralBytes = 16 * 1024
+    const MinWideLiteralBytes = 1024
     const DistanceBits        = 8_u32
     const CodeLengthBits      = 7_u32
     const DistanceMask        = (1 << DistanceBits) - 1
@@ -351,6 +351,10 @@ impl Inflate
 
         for
         {
+            // Start the lookup before refilling when all prefix bits are already buffered.
+            let bufferedEntry = repeatHt.fast[cb & LiteralMask]
+            let hadFullPrefix = nb >= LiteralBits
+
             // Refill to at least 56 bits with one unaligned load. Bits above nb are
             // from the next partial source byte. Each lookup masks the bits it needs,
             // and the next refill overlays that same byte.
@@ -391,7 +395,7 @@ impl Inflate
             }
 
             var value: u32
-            let b = repeatHt.fast[cb & LiteralMask]
+            let b = hadFullPrefix ? bufferedEntry : repeatHt.fast[cb & LiteralMask]
             if b
             {
                 let s = cast(u32, (b >> SymbolBits))

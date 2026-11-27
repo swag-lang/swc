@@ -461,15 +461,15 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1_u32)->ConcatBu
     }
 }
 
-// This synthetic image puts a 58-bit code across two bit-buffer fills.
+// This synthetic image exercises a 14-bit code and a 58-bit code that spans two refills.
 #test
 {
     let image = expect Image.load(getTestDataPath("exr-piz-long-code.exr"))
-    assertImage(image, 64, 1, .GrayF16)
+    assertImage(image, 58, 1, .GrayF16)
     let samples = cast(const [*] u16, image.pixels.storage())
     for x in image.width
     {
-        Swag.require(samples[x] == (x == 7 ? 57 : 0))
+        Swag.require(samples[x] == (x == 7 ? 57 : (x == 8 ? 13 : 0)))
     }
 }
 

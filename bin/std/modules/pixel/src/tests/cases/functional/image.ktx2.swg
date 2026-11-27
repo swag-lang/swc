@@ -180,3 +180,20 @@ func ktx2Roundtrip(source: Image)->Image
     let frame  = expect reader.read(0)
     Swag.require(Slice.equals(result.pixels.toSlice(), frame.pixels.toSlice()))
 }
+
+// Four-byte rows reverse in complete vectors with a separate odd-height tail.
+#test
+{
+    for format in [PixelFormat.RGBA8, PixelFormat.GrayAlpha16]
+    {
+        var source = Image.create(1, 259, format)
+        for index in source.pixels.count
+        {
+            source.pixels[index] = cast #wrap(u8, index * 37 + index / 11)
+        }
+
+        let decoded = ktx2Roundtrip(source)
+        assertImage(decoded, source.width, source.height, format)
+        Swag.require(Slice.equals(source.pixels.toSlice(), decoded.pixels.toSlice()))
+    }
+}

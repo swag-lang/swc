@@ -58,6 +58,26 @@ func vkPixelFormat(vk: u32, format: *PixelFormat, blocks: *TextureBlocks.Format)
     return true
 }
 
+// Four narrow scanlines occupy one vector. Keep a scalar tail for odd heights.
+#[Swag.NoInline]
+private func flipWordRows(target: [*] u32, source: const [*] u32, rows: u64)
+{
+    using Math.Simd
+
+    const Reverse = cast(U32x4, [3_u32, 2, 1, 0])
+    var loaded: u64
+    while rows - loaded >= 4
+    {
+        store(target + rows - loaded - 4, permute(load(source + loaded), Reverse))
+        loaded += 4
+    }
+
+    for row in loaded until rows
+    {
+        target[rows - row - 1] = source[row]
+    }
+}
+
 func copyRows(image: *Image, source: const [..] u8, sourceTopDown: bool) fail
 {
     let required = cast(u64, image.rowStride) * cast(u64, image.height)
@@ -74,6 +94,12 @@ func copyRows(image: *Image, source: const [..] u8, sourceTopDown: bool) fail
     }
 
     let stride = cast(u64, image.rowStride)
+    if stride == 4 and image.height >= 16
+    {
+        flipWordRows(cast([*] u32, pixels), cast(const [*] u32, source.buffer), cast(u64, image.height))
+        return
+    }
+
     for y in image.height
     {
         let targetY = image.height - y - 1

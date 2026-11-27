@@ -82,12 +82,13 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.039 — Reduce the measured serial cost of MPEG-4 Part 2 decoding
 
-- Evidence: the sparse transform comparison
-  measures Simple Profile at 2.44× native single-threaded FFmpeg, textured intra at 3.14×,
-  and MPEG matrix B pictures at 2.30×. Skipping zero coefficients retained the exact
-  Swag planes on all four fixtures.
-- Next: profile the updated coefficient loop on the textured intra and predicted streams.
-  Measure any more compact coefficient representation against the same sample-error bounds.
+- Evidence: with complete coefficient lookahead, the confirmation run puts 720p Simple
+  Profile at 2.28× single-threaded FFmpeg 9.1, weighted 720p at 2.09×, textured intra at
+  3.16×, and MPEG matrix B pictures at 2.19×. The four clips keep their exact Swag planes;
+  their maximum differences from FFmpeg are one to four sample levels.
+- Next: profile the remaining coefficient and inverse-transform cost on the textured intra
+  and predicted streams. Measure any more compact representation against the same
+  sample-error bounds.
 - Done when: the same fixtures approach the single-threaded FFmpeg time while preserving
   the measured sample-error bounds and the MPEG-4 conformance tests.
 

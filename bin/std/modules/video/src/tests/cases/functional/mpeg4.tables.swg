@@ -121,7 +121,7 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
     }
 }
 
-// Short lookahead and the tree fallback must consume the same normative code and sign.
+// The two lookahead widths and the tree fallback must consume the same normative code and sign.
 #test
 {
     for table in 2_u32
@@ -135,7 +135,7 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
         for index in lengths.count
         {
             let length = cast(u32, lengths[index])
-            for offset in [0_u32, 7]
+            for offset in 8_u32
             {
                 for sign in 2_u32
                 {
@@ -153,9 +153,10 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
                         var reader = Mpeg4.BitReader.create(bytes[until size])
                         reader.bitPos = offset
                         var coefficient: Mpeg4.Coefficient
-                        let shortCode = Mpeg4.readCoefficientPrefix(&reader, prefixes, &coefficient)
-                        Swag.require(shortCode == (length <= 8 and offset + 16 <= size * 8))
-                        if not shortCode
+                        let lookedAhead = Mpeg4.readCoefficientPrefix(&reader, prefixes, &coefficient)
+                        let window      = length <= 8 ? 16_u32 : 24_u32
+                        Swag.require(lookedAhead == (offset + window <= size * 8))
+                        if not lookedAhead
                         {
                             Swag.require(expect Mpeg4.readCoefficient(&reader, table != 0, &coefficient))
                         }

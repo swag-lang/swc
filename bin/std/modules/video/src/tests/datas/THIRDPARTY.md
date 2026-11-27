@@ -521,6 +521,13 @@ PyAV 17.1.0 remuxed the RealMedia packets into Matroska without re-encoding, wit
 the same packets as `rv40-ipb.mkv`, but stamps each B picture one millisecond after its preceding
 stored reference. It exercises the RV40 clock correction required by legacy Matroska muxers.
 
+`rv40-cluster-wrap.mkv` derives from `rv40-slices.mkv` under the same licence. It keeps
+its picture payloads and presentation times, except for adding 8,120 milliseconds modulo
+8,192 to the codec clock of every slice. It remuxes the 13 blocks in decoding order into
+six clusters holding 2, 3, 1, 3, 1, and 3 blocks, at timestamps 0, 80, 200, 240, 360,
+and 400 milliseconds. The cluster boundaries separate the future references from their
+B pictures. FFmpeg 9.1 decodes the fixture to the exact `rv40-slices.yuv` samples.
+
 The `.yuv` expectations in `../goldens/` were decoded independently by FFmpeg through PyAV,
 in presentation order, with tightly packed Y, U, then V planes. They are exact sample references.
 The legacy-clock fixture uses `rv40-ipb.yuv`.
@@ -532,6 +539,7 @@ The legacy-clock fixture uses `rv40-ipb.yuv`.
 | `rv40-adaptive.mkv` | 14626 | `f22405aedca2e28350698f838ac59a9f483bf0233a73e50cc32dfb00db8880a5` |
 | `rv40-legacy-clock.mkv` | 7264 | `3f0ae80c6a2a54412c938a7105ffc1c6a5df2eb580f90454d7ec85d43f31f01a` |
 | `rv40-slices.mkv` | 11480 | `dc302d9e5a7fbb393a248fa6f14ccd2822353842e44c4019d422bb194b4bae36` |
+| `rv40-cluster-wrap.mkv` | 11193 | `03987af157225ef8934b9a9986369115ba8878f452f29d973867018f2e5d5756` |
 | `../goldens/rv40-intra.yuv` | 101376 | `e47cac82c2655dd85976bb5fd802b48fcf839c0a7fb071749e622098d767eb8d` |
 | `../goldens/rv40-ipb.yuv` | 82944 | `1017f69a52657dcf75e9fc8a9d6662b87f624a28a8676a2cb045a7375f523485` |
 | `../goldens/rv40-adaptive.yuv` | 82944 | `24ca1301f039a0db96a0295c70413c70446a7ac5cf1507372efd4f96f8be59fe` |

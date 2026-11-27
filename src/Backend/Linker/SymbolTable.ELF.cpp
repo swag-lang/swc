@@ -303,7 +303,7 @@ bool ELFSymbolTable::finalizeImage(ByteArray& image, Utf8& outError, const bool 
         return true;
     }
     ByteArray table;
-    SymbolTable::build(table, entries);
+    SymbolTable::buildImage(table, entries);
     if (table.size() > section.size)
         return tableError(outError, "the ELF runtime symbol table exceeds its reserved section");
     for (size_t index = 0; index < addresses.size(); ++index)

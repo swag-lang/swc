@@ -369,7 +369,7 @@ func smallPaletteTables(packed: const [*] u32, paletteSize: u64)->[4] Math.Simd.
 const PaletteDropAlpha = cast(Math.Simd.U8x16, [0_u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
 
 #[Swag.Inline]
-private func(HAS_ALPHA: bool) writeSmallPaletteHalf(target: [*] u8, redGreen, blueAlpha: Math.Simd.U8x16)
+func(HAS_ALPHA: bool) writeSmallPaletteHalf(target: [*] u8, redGreen, blueAlpha: Math.Simd.U8x16)
 {
     let rg     = cast #bit(Math.Simd.U16x8, redGreen)
     let ba     = cast #bit(Math.Simd.U16x8, blueAlpha)

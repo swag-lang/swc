@@ -435,6 +435,21 @@ impl Decoder
             return
         }
 
+        if palette.size == 32 and width >= 64 and cast(u64, width) * height >= 256
+        {
+            let table = cast(const [*] u32, &packed[0])
+            if hasAlpha
+            {
+                try .writeBankedPalettePixels!{true}(indexed, pixels, stride, table)
+            }
+            else
+            {
+                try .writeBankedPalettePixels!{false}(indexed, pixels, stride, table)
+            }
+
+            return
+        }
+
         let indices         = .frame.storage()
         var combinedIndices = 0_u8
         for y in height
@@ -730,6 +745,74 @@ impl Decoder
             {
                 fail InvalidFormatError{"GIF palette index is out of range"}
             }
+        }
+    }
+}
+
+impl Decoder
+{
+    #[Swag.NoInline]
+    private mtd(HAS_ALPHA: bool) writeBankedPalettePixels(indexed: const *IndexedFrame, pixels: [*] u8, stride: s32, packed: const [*] u32) fail
+    {
+        const Step = HAS_ALPHA ? 4 : 3
+        let width       = cast(s32, indexed.width)
+        let height      = cast(s32, indexed.height)
+        let indices     = .frame.storage()
+        let low         = PackedPixel.smallPaletteTables(packed, 16)
+        let high        = PackedPixel.smallPaletteTables(packed + 16, 16)
+        let transparent = Math.Simd.splat(indexed.control.tindex)
+        let allOpaque   = Math.Simd.splat(indexed.control.transparency ? 0_u8 : 255_u8)
+        let highBit     = Math.Simd.splat(128_u8)
+        let zero        = Math.Simd.splat(0_u8)
+        var combined    = zero
+        var combinedTail: u8
+        for y in height
+        {
+            let source = indices + cast(u64, y) * width
+            let row    = indexed.interlaced ? Decoder.interlacedLineIndex(height, y) : y
+            let target = pixels + cast(u64, (height - row - 1)) * stride
+            var x      = 0
+            while width - x >= 16
+            {
+                let keys = Math.Simd.load(source + x)
+                combined |= keys
+
+                // The shuffle zeroes positions with bit 7 set and looks up the low nibble.
+                let bankBits = cast #bit(Math.Simd.U16x8, keys) << 3
+                let lo       = keys | (cast #bit(Math.Simd.U8x16, bankBits) & highBit)
+                let hi       = lo ^ highBit
+                let red      = Math.Simd.shuffle(low[0], lo) | Math.Simd.shuffle(high[0], hi)
+                let green    = Math.Simd.shuffle(low[1], lo) | Math.Simd.shuffle(high[1], hi)
+                let blue     = Math.Simd.shuffle(low[2], lo) | Math.Simd.shuffle(high[2], hi)
+                let alpha    = HAS_ALPHA ? ((keys != transparent) | allOpaque) : zero
+                let output   = target + x * Step
+                PackedPixel.writeSmallPaletteHalf!{HAS_ALPHA}(output, Math.Simd.interleaveLow(red, green), Math.Simd.interleaveLow(blue, alpha))
+                PackedPixel.writeSmallPaletteHalf!{HAS_ALPHA}(output + 8 * Step, Math.Simd.interleaveHigh(red, green), Math.Simd.interleaveHigh(blue, alpha))
+                x += 16
+            }
+
+            for tail in x until width
+            {
+                let key    = source[tail]
+                let color  = packed[key]
+                let output = target + tail * Step
+                #static if HAS_ALPHA
+                {
+                    cast([*] u32, output)[0] = color
+                }
+                else
+                {
+                    cast([*] u16, output)[0] = cast(u16, color & 0xFFFF)
+                    output[2] = cast(u8, color >> 16)
+                }
+
+                combinedTail |= key
+            }
+        }
+
+        if combinedTail >= 32 or Math.Simd.anyTrue((combined & Math.Simd.splat(0xE0_u8)) != zero)
+        {
+            fail InvalidFormatError{"GIF palette index is out of range"}
         }
     }
 }

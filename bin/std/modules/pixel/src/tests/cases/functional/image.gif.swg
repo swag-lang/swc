@@ -600,6 +600,91 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool, width: u8 = 33,
     Swag.require(canvasError.value() is Errors.InvalidFormatError)
 }
 
+func gifPalette32Fixture(withAlpha: bool, invalidOffset: s32 = -1)->Array!{u8}
+{
+    const Header:  [13] u8 = ['G', 'I', 'F', '8', '9', 'a', 79, 0, 4, 0, 0x84, 0, 0]
+    const Control: [8] u8  = [0x21, 0xF9, 4, 1, 0, 0, 17, 0]
+    const Frame:   [11] u8 = [0x2C, 0, 0, 0, 0, 79, 0, 4, 0, 0, 6]
+    var bytes: #returntype
+    bytes.add(Header)
+    for index in 32
+    {
+        bytes.add([cast(u8, index * 7 + 4), cast(u8, 191 - index * 5), cast(u8, index * 3 + 17)])
+    }
+
+    if withAlpha
+    {
+        bytes.add(Control)
+    }
+
+    bytes.add(Frame)
+    var payload:   Array!{u8}
+    var bits:      u32
+    var available: u32
+    for pixel in 79 * 4 + 1
+    {
+        let colorIndex = pixel == invalidOffset ? 32 : pixel & 31
+        let finalCode  = pixel == 79 * 4
+        bits      |= cast(u32, finalCode ? 65 : (64 | colorIndex << 7)) << available
+        available += finalCode ? 7 : 14
+        while available >= 8
+        {
+            payload.add(cast(u8, bits & 255))
+            bits      >>= 8
+            available -= 8
+        }
+    }
+
+    if available
+    {
+        payload.add(cast(u8, bits))
+    }
+
+    bytes.add(255_u8)
+    bytes.add(Swag.makeSlice(payload.storage(), 255))
+    bytes.add(255_u8)
+    bytes.add(Swag.makeSlice(payload.storage() + 255, 255))
+    bytes.add(cast(u8, payload.count - 510))
+    bytes.add(Swag.makeSlice(payload.storage() + 510, payload.count - 510))
+    bytes.add([0_u8, 0x3B])
+    return bytes
+}
+
+// A 32-entry palette handles both shuffle banks, RGB and RGBA, and the right edge.
+#test
+{
+    for withAlpha in [false, true]
+    {
+        let bytes = gifPalette32Fixture(withAlpha)
+        let image = expect Image.decode("palette32.gif", nnBytes(bytes.toSlice()))
+        Swag.require(image.width == 79 and image.height == 4)
+        Swag.require(image.pixelFormat == (withAlpha ? .RGBA8 : .RGB8))
+        for y in 4
+        {
+            for x in 79
+            {
+                let index = (y * 79 + x) & 31
+                if withAlpha and index == 17
+                {
+                    assertGifPixelAt(image, x, 3 - y, 0, 0, 0, 0)
+                }
+                else
+                {
+                    assertGifPixelAt(image, x, 3 - y, cast(u8, index * 7 + 4), cast(u8, 191 - index * 5), cast(u8, index * 3 + 17), 255)
+                }
+            }
+        }
+    }
+
+    for offset in [22, 78]
+    {
+        let bytes = gifPalette32Fixture(true, offset)
+        var errorOutcome: Swag.Error
+        discard catch Image.decode("palette32-invalid.gif", nnBytes(bytes.toSlice())) as errorOutcome
+        Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+    }
+}
+
 // A literal allowed by LZW is still invalid when it has no palette entry.
 #test
 {

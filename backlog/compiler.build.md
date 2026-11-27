@@ -48,6 +48,10 @@ before relying on them.
   relocations across script and application builds, with consumer-owned reference fixups.
   Lookup still follows fresh semantic analysis and unoptimized IR generation. Conservative
   global-distance and source-context differences can also produce misses for unchanged sources.
+- Keep per-function machine records shared when their code-generation contracts agree. On
+  the same PNG script with a fresh compiler cache namespace for each order, the second
+  backend reused 1,932 of 1,961 functions in either direction. First runs reused 121–122.
+  Use separate products for a relocatable JIT image and native ELF/COFF objects or executables.
 - Next: move eligible lookup ahead of IR generation using stable body and semantic dependency
   identities, preserving configuration, target, ABI, constants, effects and source provenance.
   A scalar leaf whitelist covers too little work. Functions with call dependencies account for
@@ -55,10 +59,13 @@ before relying on them.
   representation in compiler.optimization.107 with explicit call targets, frame storage and
   memory operations. Validate callee ABI and effects, storage layouts and referenced constants
   before loading emitted code.
-- Coverage: `gui1` reaches the per-key limit of 4,096 constant allocations while hashing
-  many reflection-heavy functions. The failures are spread across many roots. Identify shared
-  subgraphs under a versioned layout and relocation identity. Measure key construction alongside
-  emission avoided when extending graph coverage.
+- Coverage: on a warm `gui1` rebuild, 274 reflection-heavy key attempts hit the limit of 4,096
+  constant allocations. Those misses used about 1.60 CPU seconds to build keys and
+  0.91 CPU seconds to emit code. Start with constants used solely as opaque ABI arguments.
+  Keep relocation identity, allocation size, alignment and interior offset in the key and
+  rebind the current payload. Extend coverage by recording the byte ranges and alias facts
+  actually read by optimization and static sanity. Fall back to the full constant graph
+  when uses cannot be classified.
 - Done when: warm builds skip the corresponding runtime IR generation, fresh and reused paths
   preserve diagnostics and native/JIT behavior, and complete compilation remains faster after
   fingerprinting and reference fixups.
@@ -273,10 +280,20 @@ before relying on them.
 - Next: persist the compiled script artifact under a dependency-complete key (loaded
   sources, transitive source dependencies, compiler build, target, relevant configuration), and
   make cache population atomic.
+- The PNG script spends about 3.27 of 3.62 seconds in sema on a warm run with 1,931 of 1,961
+  machine functions reused. Probe before parsing, after enumerating the source closure. Use
+  the existing native artifact runner for a first `smoke` experiment. Ordinary script runs
+  need a relocatable JIT image containing code, data and lifecycle entry points, with imports,
+  TLS and process addresses rebound at invocation time.
 - Eligibility: attempt the lookup before parsing the full source closure. Include tracked inputs
   from setup and compiler-time execution. Fall back to the current JIT pipeline when an effect
   depends on an input that the compiler cannot track. On a hit, bind the current runtime context
   and forward this invocation's arguments and environment.
+- A warm PNG trace counted 438 explicit `#run` expressions and 2,626 calls to two OGL
+  compiler-message listeners. Four expression closures referenced foreign symbols or globals.
+  Certify actual effects and pointer inputs for expression replay. The listeners also produce
+  compiler-visible state and source. Investigate reusing OGL's generated source by owner and
+  observed extension signatures before treating it as covered by an artifact manifest.
 - Done when: a second unchanged invocation skips lexing, parsing, semantic analysis and code
   generation. Changes to the script, `#load` inputs, transitive source dependencies, compiler version,
   target or configuration invalidate the artifact. Cached and fresh paths preserve
@@ -434,10 +451,15 @@ before relying on them.
 - Evidence: front-end state is not persisted. Semantic analysis replaces expressions and
   appends generated nodes to the per-file AST, and `SourceFile::setContent` rejects a change
   once an AST owns the source view. Append-only symbol maps keep retired declaration ASTs
-  alive.
+  alive. Read, lex and parse jobs used 405 ms of worker time for `gui1` and 247 ms for the PNG
+  script in four-worker DevMode compiler runs targeting Release. The warm `gui1` sample placed
+  parsing below 1% of CPU.
 - Next: separate immutable per-file parse results from semantic substitutions. Key disk
   entries by source content and parse configuration, and measure file read, decode, AST
-  reconstruction, and peak memory on the integrated source graph.
+  reconstruction, and peak memory on the integrated source graph. Start with offset-based
+  token records. Typed AST reconstruction must bind the current source view and rerun the
+  module-wide inlining policy. Equivalent token streams can share syntax when spacing and
+  line-boundary flags agree.
 - Done when: adding, removing, or renaming files, and changing configuration or compiler
   version, give fresh and reused builds the same inputs and diagnostics. Reuse measurably
   reduces parse costs in a representative executable build.
@@ -457,13 +479,24 @@ before relying on them.
   fields from one snapshot helped the PNG script but gave back part of the `gui1` gain.
 - Finding JIT targets accounted for about 88% of constant allocation lookups in a separate
   instrumented `gui1` rebuild. A per-walk filter for repeated exact references left `gui1`
-  time flat and added 0.9% to the PNG script in a three-pair comparison. Reusing complete
-  target lists across callers of the same constant graph would remove the traversal itself.
+  time flat and added 0.9% to the PNG script in a three-pair comparison. A combined traversal
+  saved 5.4% on `gui1` by median paired time before accounting for concurrent relocation
+  publication. The guarded variant saved 0.7% and used more CPU. The progressive variant
+  regressed `gui1` by 13.3% in median time. Focus reuse earlier than JIT graph discovery.
 - Next: start with completed ordinary bodies in the runtime and source dependencies. Record
   dependencies as phase-specific fingerprints, including successful and failed lookups, overload
   membership, layout, constants, generic arguments, inline and macro bodies, and compiler hook
   inputs. Try reuse before body analysis and lowering. Measure time saved and lookup and
   restoration cost on applications and scripts that share the same dependency.
+- Measure a separate cache of deterministic `#ast` results before JIT preparation. In the warm
+  `gui1` sample, `SemaJIT::runFunctionResult` accounted for about 10% of CPU. The callback
+  generator in `sigarray.swg` reads parameter count and can emit the same source for distinct
+  callback types. A separate warm trace found 25 evaluations of one declaration and three
+  distinct output strings, all present in the cold run. The PNG script executed no block
+  `#ast` evaluations. Record the metadata properties and external inputs each generator
+  observes, and analyze restored text in the destination scope. Start with a proof that
+  allows replay only for effect-free execution. An application edit can preserve entries for
+  source owners that cannot see that application.
 - Cache contract: persist stable identities and remap them into each compiler invocation.
   Preserve namespace membership, source locations, safety and ABI information, and the
   required effects of compile-time code. Validate compiler and target identity, relevant

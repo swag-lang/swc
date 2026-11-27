@@ -44,10 +44,11 @@ struct RenderCpu
         blendingMode: BlendingMode = Alpha
         colorMask:    ColorMask    = {true, true, true, false}
 
-        paint:         BrushBinding
-        gradientStops: const [..] GradientStop?
-        paintOn:       bool
-        program:       u8
+        paint:                BrushBinding
+        gradientStops:        const [..] GradientStop?
+        orderedGradientStops: bool
+        paintOn:              bool
+        program:              u8
 
         // The clipping region is a coverage plane, one byte per device pixel of the target: a
         // region cut along a curve keeps the fraction of each pixel its edge covers, so what is
@@ -1708,20 +1709,41 @@ private impl RenderCpu
             return stops[0].color
         }
 
-        for var i = 1_u64; i < p.gradientStopCount; i += 1
+        var i = 1_u64
+        // Find the first stop at or above t, including the first of any coincident stops.
+        if .orderedGradientStops
         {
-            if t > stops[i].offset
+            var end = p.gradientStopCount
+            while i < end
             {
-                continue
+                let middle = i + (end - i) / 2
+                if t > stops[middle].offset
+                {
+                    i = middle + 1
+                }
+                else
+                {
+                    end = middle
+                }
             }
-
-            let lo = stops[i - 1].offset
-            let hi = stops[i].offset
-            let u  = hi == lo ? 1.0 : Math.saturate((t - lo) / (hi - lo))
-            return lerpColor(stops[i - 1].color, stops[i].color, u)
+        }
+        else
+        {
+            while i < p.gradientStopCount and t > stops[i].offset
+            {
+                i += 1
+            }
         }
 
-        return stops[p.gradientStopCount - 1].color
+        if i == p.gradientStopCount
+        {
+            return stops[i - 1].color
+        }
+
+        let lo = stops[i - 1].offset
+        let hi = stops[i].offset
+        let u  = hi == lo ? 1.0 : Math.saturate((t - lo) / (hi - lo))
+        return lerpColor(stops[i - 1].color, stops[i].color, u)
     }
 
     // Samples the bound paint like the general path did, with the texture storage resolved once
@@ -5791,6 +5813,23 @@ private impl RenderCpu
             else
             {
                 .gradientStops = null
+            }
+
+            // A brush can supply stops directly. Keep the ordered search for finite,
+            // nondecreasing offsets, and scan short or custom stop lists in authored order.
+            .orderedGradientStops = false
+            if let stops = .gradientStops where stops.count >= 24 and Math.isFinite(stops[0].offset)
+            {
+                .orderedGradientStops = true
+                for index in 1 until stops.count
+                {
+                    let offset = stops[index].offset
+                    if not Math.isFinite(offset) or offset < stops[index - 1].offset
+                    {
+                        .orderedGradientStops = false
+                        break
+                    }
+                }
             }
 
             .paintOn = true

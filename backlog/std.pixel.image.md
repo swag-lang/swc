@@ -212,6 +212,12 @@ ships; history lives in Git, not here.
 - Evidence: packed monochrome compositing
   reduces the 5184-pixel native bitmap from 391 to 382 ms at one CPU and
   from 180 to 172 ms at four, with identical pixels.
+- Evidence: binary stop lookup for long CPU gradients preserves hard transitions and
+  the authored order of unsorted brush stops. In eleven interleaved Release runs,
+  the 96-stop fixture drops from 167.0 to 140.4 ms on one logical CPU, 119.6 to
+  108.3 ms on two, and 103.0 to 96.2 ms on four. resvg 0.50.0 takes 54.5,
+  56.2 and 57.6 ms on the same CPU budgets. The hard-stop fixture drops
+  from 94.4 to 84.6 ms on four. The compared Swag raster checksums match.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.

@@ -872,6 +872,44 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     Swag.require(right.b > right.r)
 }
 
+// Long stop lists retain the first color at a hard stop and the last color immediately after it.
+#test
+{
+    var short = Brush.createLinearGradient(0.5, 0, 64.5, 0, Argb.Red, Argb.Blue)
+    short.addGradientStop(0.5, Argb.Red)
+    short.addGradientStop(0.5, Argb.Blue)
+
+    var long = short
+    for 32
+    {
+        long.addGradientStop(0.5, Argb.Blue)
+    }
+
+    var unsorted = long
+    unsorted.gradientStops.add({0.375, Color.fromArgb(Argb.Green)})
+
+    for paint in [short, long, unsorted]
+    {
+        var painter: Painter
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(Argb.Zero))
+        painter.fillRect({0, 0, 64, 4}, paint[])
+        painter.end()
+
+        let image = renderCpu(64, 4, &painter)
+        for x in 33
+        {
+            assertPixel(image, cast(s32, x), 1, Argb.Red)
+        }
+
+        for x in 33 until 64
+        {
+            assertPixel(image, cast(s32, x), 1, Argb.Blue)
+        }
+    }
+}
+
 // Parallel color-only gradient spans match scalar blending over an opaque target.
 #[Swag.TestTag("parallel")]
 #test

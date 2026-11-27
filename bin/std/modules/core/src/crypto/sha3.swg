@@ -156,6 +156,14 @@ private func buildEmptyKmacPrefixState(rate: u64)->[25] u64
 private const EmptyKmac128PrefixState = #run buildEmptyKmacPrefixState(168)
 private const EmptyKmac256PrefixState = #run buildEmptyKmacPrefixState(136)
 
+#[Swag.Inline]
+private func finishKeccak(state: *[25] u64, rate, complete, last: u64)
+{
+    state[][complete]     ^= last
+    state[][rate / 8 - 1] ^= 0x8000000000000000
+    permuteKeccak!{true}(state)
+}
+
 private func finalizeKeccak(state: *[25] u64, tail: const [..] u8, rate: u64, suffix: u8)
 {
     let complete = tail.count / 8
@@ -170,9 +178,7 @@ private func finalizeKeccak(state: *[25] u64, tail: const [..] u8, rate: u64, su
     }
 
     last |= cast(u64, suffix) << cast(u32, remaining * 8)
-    state[][complete]     ^= last
-    state[][rate / 8 - 1] ^= 0x8000000000000000
-    permuteKeccak!{true}(state)
+    finishKeccak(state, rate, complete, last)
 }
 
 #[Swag.Inline]
@@ -254,6 +260,62 @@ private func computeKeccak(data: const [..] u8, rate: u64, suffix: u8, destinati
     finalizeKeccak(&state, tail, rate, suffix)
     squeezeKeccak(&state, rate, destination)
     Crypto.secureClear(state)
+}
+
+internal const HmacSha3InnerPad = 0x3636363636363636_u64
+internal const HmacSha3OuterPad = 0x5C5C5C5C5C5C5C5C_u64
+
+#[Swag.Inline]
+internal func normalizeHmacSha3Key(key: const [..] u8, digestSize: u64, block: [..] u8)
+{
+    if key.count > block.count
+    {
+        computeKeccak(key, block.count, 0x06, block[until digestSize])
+    }
+    else if key.count
+    {
+        Swag.memcpy(block.buffer, key.buffer, key.count)
+    }
+}
+
+internal func computeHmacSha3(key, data: const [..] u8, destination: [..] u8)
+{
+    let digestSize = destination.count
+    let rate       = 200 - 2 * digestSize
+    var state: [2] [25] u64
+    defer Crypto.secureClear(state)
+
+    let inner = &state[0]
+    let outer = &state[1]
+    let bytes = cast([*] u8, inner[].buffer)
+    normalizeHmacSha3Key(key, digestSize, Swag.makeSlice(bytes, rate))
+
+    // Seed both sponges with the normalized key and their respective pad bytes.
+    for lane in rate / 8
+    {
+        let word = Math.littleEndianToNative(inner[][lane])
+        inner[][lane] = word ^ HmacSha3InnerPad
+        outer[][lane] = word ^ HmacSha3OuterPad
+    }
+
+    permuteKeccak!{true}(inner)
+    permuteKeccak!{true}(outer)
+
+    let tail = absorbFullKeccakBlocks(inner, rate, data)
+    finalizeKeccak(inner, tail, rate, 0x06)
+
+    // Both states use numeric little-endian lanes, so the outer digest needs no byte buffer.
+    let complete = digestSize / 8
+    for lane in complete
+    {
+        outer[][lane] ^= inner[][lane]
+    }
+
+    let tailBits = cast(u32, (digestSize % 8) * 8)
+    let tailMask = (1_u64 << tailBits) - 1
+    let last     = (inner[][complete] & tailMask) | (0x06_u64 << tailBits)
+    finishKeccak(outer, rate, complete, last)
+    squeezeKeccak(outer, rate, destination)
 }
 
 private func sha3Rate(digestSize: u64)->u64 fail

@@ -75,16 +75,9 @@ impl LzwBits
     mtd readLiteralPair(width, clear: s32)->u32
     {
         let required = width * 2
-        if .available < required
+        if not .prepareKeyPair(required)
         {
-            if .blockEnd - .cursor < 4
-            {
-                return LzwNoLiteralPair
-            }
-
-            .bits      |= cast(u64, cast(const [*] u32, .cursor)[0]) << .available
-            .cursor    += 4
-            .available += 32
+            return LzwNoLiteralPair
         }
 
         let mask   = (1_u64 << width) - 1
@@ -98,6 +91,25 @@ impl LzwBits
         .bits      >>= required
         .available -= required
         return cast(u32, first | (second << 8))
+    }
+
+    #[Swag.Inline]
+    mtd prepareKeyPair(required: s32)->bool
+    {
+        if .available >= required
+        {
+            return true
+        }
+
+        if .blockEnd - .cursor < 4
+        {
+            return false
+        }
+
+        .bits      |= cast(u64, cast(const [*] u32, .cursor)[0]) << .available
+        .cursor    += 4
+        .available += 32
+        return true
     }
 }
 
@@ -328,6 +340,14 @@ impl Decoder
         // The low word stores the prefix length and suffix index. The high word stores
         // whole phrases up to four bytes and the output offset of longer prefixes.
         var entries: [LzwDictionaryLimit] u64
+        for literal in clear
+        {
+            entries[literal] = cast(u64, literal) << 32
+        }
+
+        // A sentinel length keeps control codes out of the short-phrase path.
+        entries[clear] = 4_u64 << 8
+        entries[stop]  = entries[clear]
         var frameOffset    = 0_u32
         var nextCode       = stop + 1
         var widthLimit     = 1 << keySize
@@ -336,6 +356,45 @@ impl Decoder
         var previousFirst  = 0_u32
         for
         {
+            let required = keySize * 2
+            if previousLength and
+               nextCode + 2 < widthLimit and
+               frameSize - frameOffset >= 8 and
+               bits.prepareKeyPair(required)
+            {
+                let mask     = widthLimit - 1
+                let packed   = cast #wrap(u32, bits.bits)
+                let leftKey  = packed & mask
+                let rightKey = (packed >> keySize) & mask
+                if Math.max(leftKey, rightKey) < nextCode
+                {
+                    let left  = entries[leftKey]
+                    let right = entries[rightKey]
+                    if ((left | right) >> 8) & LzwPrefixMask < 4
+                    {
+                        let leftLength   = cast(u32, (left >> 8) & LzwPrefixMask) + 1
+                        let rightLength  = cast(u32, (right >> 8) & LzwPrefixMask) + 1
+                        let leftPayload  = cast(u32, left >> 32)
+                        let rightPayload = cast(u32, right >> 32)
+                        let leftData     = leftLength < 4 ? leftPayload : frameOffset
+                        let middle       = frameOffset + leftLength
+                        let rightFirst   = rightPayload & 255
+                        cast([*] u32, frame + frameOffset)[0] = leftPayload
+                        cast([*] u32, frame + middle)[0]      = rightPayload
+                        entries[nextCode]                     = packPhrase(previousData, previousLength, leftPayload & 255)
+                        entries[nextCode + 1]                 = packPhrase(leftData, leftLength, rightFirst)
+                        previousData                          = rightLength < 4 ? rightPayload : middle
+                        previousFirst                         = rightFirst
+                        previousLength                        = rightLength
+                        frameOffset                           = middle + rightLength
+                        nextCode                              += 2
+                        bits.bits                             >>= required
+                        bits.available                        -= required
+                        continue
+                    }
+                }
+            }
+
             key = bits.readKey(keySize)
             if key == clear
             {

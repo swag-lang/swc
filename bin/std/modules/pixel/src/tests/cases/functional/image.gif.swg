@@ -359,6 +359,23 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(errorOutcome.value() != null)
 }
 
+// Paired short LZW phrases can be followed by self-references, longer phrases, and a clear.
+#test
+{
+    const Bytes: [71] u8 = [
+        'G', 'I', 'F', '8', '9', 'a', 88, 0, 1, 0, 0x81, 0, 0,
+        14, 24, 34, 44, 54, 64, 74, 84, 94, 104, 114, 124,
+        0x2C, 0, 0, 0, 0, 88, 0, 1, 0, 0, 2,
+        4, 68, 52, 1, 50,
+        8, 96, 135, 146, 57, 180, 218, 171, 152,
+        2, 57, 40,
+        15, 153, 67, 76, 1, 153, 128, 177, 67, 201, 28, 148, 204, 65, 169, 0,
+        0, 0x3B]
+    let image = expect Image.decode("paired-lzw-boundaries.gif", Bytes)
+    Swag.require(image.width == 88 and image.height == 1 and image.pixelFormat == .RGB8)
+    Swag.require(Hash.Crc32.compute(image.pixels.toSlice()) == 1112078511_u32)
+}
+
 // Dense literals can cross both LZW code widths and GIF sub-block boundaries.
 #test
 {

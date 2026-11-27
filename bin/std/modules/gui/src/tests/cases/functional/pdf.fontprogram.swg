@@ -23,13 +23,13 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     for font in page.fonts
     {
         var face: *TypeFace?
-        if not font.bytes.isEmpty()
+        if font.programBytes().count
         {
             result.embedded += 1
-            let key = Format.toString("probe-%{X08}", Hash.Crc32.compute(font.bytes.toSlice()))
+            let key = Format.toString("probe-%{X08}", Hash.Crc32.compute(font.programBytes()))
             catch
             {
-                face = try TypeFace.create(key.toString(), font.bytes.toSlice())
+                face = try TypeFace.create(key.toString(), font.programBytes())
                 result.loaded += 1
             }
         }
@@ -145,7 +145,7 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     Swag.require(item.textAdvances.count == 2 and
                  item.textAdvances[0] == 24 and
                  Math.abs(item.textAdvances[1] - 17.28) < 0.001)
-    Swag.require(Slice.equals(font.bytes.toSlice(), FontBytes))
+    Swag.require(Slice.equals(font.programBytes(), FontBytes))
     Swag.require(font.glyphIndices[2] == 321 and font.glyphIndices[3] == 1042)
     var originalPage  = document.pages[0]
     var roundTripPage = rewritten.pages[0]
@@ -199,5 +199,42 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
         }
 
         Swag.require(ink > 120 and hasCounter)
+    }
+}
+
+// Distinct font dictionaries and pages can refer to one program. Each page retains its bytes.
+#test
+{
+    const FontBytes = #include("../../../theme/inter-regular.ttf")
+    let file = Testing.tempFilePath("pdf-shared-font-", ".pdf")
+    defer discard catch File.delete(file)
+
+    var objects: Array!{u8}
+    addObject(&objects, 5, "<< /Type /Font /Subtype /TrueType /BaseFont /Inter /FontDescriptor 7 0 R >>")
+    addObject(&objects, 6, "<< /Type /Font /Subtype /TrueType /BaseFont /InterAlternate /FontDescriptor 7 0 R >>")
+    addObject(&objects, 7, "<< /Type /FontDescriptor /FontName /Inter /FontFile2 8 0 R >>")
+    addStreamObject(&objects, 8, "", FontBytes)
+    let content = "BT /F0 20 Tf 10 20 Td (A) Tj /F1 20 Tf (B) Tj ET"
+    let source = singlePagePdf("/Font << /F0 5 0 R /F1 6 0 R >>", cast(const [..] u8, content), objects.toSlice())
+    expect File.writeAllBytes(file, source.toSlice())
+
+    func laterPage(path: string)->Page
+    {
+        var reader = expect Reader.open(path)
+        let first  = expect reader.loadPage(0)
+        var second = #move expect reader.loadPage(0)
+        Swag.require(first.fonts.count == 2 and second.fonts.count == 2)
+        let bytes = first.fonts[0].programBytes()
+        Swag.require(bytes.count != 0)
+        Swag.require(bytes.buffer == first.fonts[1].programBytes().buffer)
+        Swag.require(bytes.buffer == second.fonts[0].programBytes().buffer)
+        Swag.require(second.fonts[0].baseName != second.fonts[1].baseName)
+        return #move second
+    }
+
+    let page = laterPage(file)
+    for font in page.fonts
+    {
+        Swag.require(Slice.equals(font.programBytes(), FontBytes))
     }
 }

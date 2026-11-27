@@ -21,21 +21,22 @@ struct CidFontDescriptor
     ascent, descent, capHeight, italicAngle, stemV: f32
 }
 
+// Embedded program bytes are immutable after decoding, so the cache and every page can own
+// their own reference.
+struct FontProgram
+{
+    bytes: SharedBytes
+    key:   String
+}
+
 // A font a decoded page refers to, with everything needed to lay its text out again.
 struct FontResource
 {
     objectId: u32
     name:     String
     baseName: String
-    bytes:    Array!{u8}
-    program:  FontProgramKind
-
-    // Key this program takes in the process-wide typeface table.
-    //
-    // It is a hash over the whole program, so it is computed when the program is read and
-    // carried from there: recomputing it per page shown would read the font again on every
-    // paint, which a viewer feels as a pause on each zoom step.
-    programKey: String
+    program:     FontProgramKind
+    programData: FontProgram
 
     // Code to text, from a `/ToUnicode` CMap, and code to character from the font's simple
     // encoding. The CMap wins when both describe a code.
@@ -78,6 +79,9 @@ struct FontResource
 
 impl FontResource
 {
+    mtd const programBytes()->const [..] u8 => .programData.bytes.toSlice()
+    mtd const programKey()->string => .programData.key.toString()
+
     // Returns the advance width of one character code, in fractions of the text size.
     mtd const codeWidth(code: u32)->f32
     {
@@ -439,9 +443,8 @@ private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor
     let file2 = parser.dict(descriptor, "FontFile2")
     if file2 != InvalidNode
     {
-        font.bytes   = #move try parser.decodeStream(file2)
+        font.programData = #move try decodeEmbeddedProgram(parser, file2)
         font.program = .TrueType
-        keyFontProgram(font)
         return
     }
 
@@ -449,34 +452,41 @@ private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor
     if file3 != InvalidNode
     {
         let isOpenType = parser.name(parser.dict(file3, "Subtype")) == "OpenType"
-        font.bytes = #move try parser.decodeStream(file3)
+        font.programData = #move try decodeEmbeddedProgram(parser, file3)
 
         // An OpenType wrapper may carry either outline flavour; the loader tells them
         // apart from the file itself, so the distinction that matters here is only
         // whether glyphs are addressed by name.
         font.program = isOpenType ? .TrueType : .Cff
-        keyFontProgram(font)
         return
     }
 
     let file1 = parser.dict(descriptor, "FontFile")
     if file1 != InvalidNode
     {
-        font.bytes   = #move try parser.decodeStream(file1)
+        font.programData = #move try decodeEmbeddedProgram(parser, file1)
         font.program = .Type1
-        keyFontProgram(font)
     }
 }
 
-// Names the program in the process-wide typeface table.
-private func keyFontProgram(font: *FontResource)
+// More than one font dictionary can name the same program stream.
+private func decodeEmbeddedProgram(parser: *PdfParser, streamId: u32)->FontProgram fail
 {
-    if font.bytes.isEmpty()
+    if let cached = parser.fontPrograms.tryFind(streamId)
     {
-        return
+        return cached.value
     }
 
-    font.programKey = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(font.bytes.toSlice()))
+    var bytes = #move try parser.decodeStream(streamId)
+    var result: #returntype
+    if bytes.count
+    {
+        result.key   = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(bytes.toSlice()))
+        result.bytes = #move SharedBytes.create(#move bytes)
+    }
+
+    parser.fontPrograms[streamId] = result
+    return #move result
 }
 
 private func readSimpleWidths(parser: *PdfParser, font: *FontResource, metricsId: u32)

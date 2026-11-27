@@ -133,7 +133,7 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   resources without double-counting shared typefaces, and compare against measured eviction.
 - Done when: decode, first paint, text indexing and zoom update the documented accounting,
   evictions respect that budget, and a measured corpus comparison states the remaining error.
-- Related: std.pixel.027, std.gui.pdf.028, std.gui.pdf.036
+- Related: std.pixel.027, std.gui.pdf.036
 
 ### std.gui.pdf.001 — Encrypted documents are refused, including the empty-password case
 
@@ -449,21 +449,7 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Evidence: sharing device images across page resources
   reduces four warmed page loads on the public shared-resource document from 49 to 1.8 ms.
   Named spaces keep their resource context and all 52 supported rasters match.
-- Related: std.gui.pdf.028, std.gui.pdf.025.
-
-### std.gui.pdf.028 — An embedded font program is copied once per page that uses it
-
-- Intent: the *work* of decoding a font is now paid once per document, but each page still takes
-  its own copy of the bytes, so a hundred-page thesis with a four-hundred-kilobyte embedded family
-  still carries forty megabytes of duplicated font data. Sharing the bytes instead of copying them
-  runs into the contract `Reader.loadPage` states — a page owns what it retains and stays valid
-  after its reader is released — so it needs a shared buffer, which `Core` does not have, or a
-  decision to narrow that contract.
-- Next: settle shared-byte-buffer ownership or the page lifetime contract, then share font programs
-  between pages.
-- Done when: `Core` publishes a shared byte buffer or the page ownership contract is settled,
-  a decoded font program is shared between the pages that reference the same font object, and a
-  `Document` load of the corpus costs one copy per distinct program.
+- Related: std.gui.pdf.025.
 
 ### std.gui.pdf.043 — Store a page item's representation in a tagged union
 

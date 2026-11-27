@@ -153,9 +153,9 @@ internal impl RenderFontCache
         if not .embeddedResolved[index]
         {
             .embeddedResolved[index] = true
-            if not resource.bytes.isEmpty()
+            if resource.programBytes().count
             {
-                catch { .embedded[index] = try TypeFace.create(resource.programKey.toString(), resource.bytes.toSlice()) }
+                catch { .embedded[index] = try TypeFace.create(resource.programKey(), resource.programBytes()) }
             }
         }
 
@@ -506,7 +506,7 @@ private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *Fo
                         effectiveSize >= 12 and
                         effectiveSize <= 128
 
-    if not resource.bytes.isEmpty()
+    if resource.programBytes().count
     {
         let embedded = fonts.embeddedFace(item.fontIndex, resource)
         if embedded

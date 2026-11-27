@@ -632,6 +632,9 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   from 315 to 248 ms in the first series, then from 195 to 90 ms in the opaque-span series.
   PDFium takes 81 ms in the latter. Mean RGB difference from PDFium changes from 2.52 to
   2.44 levels at 1200 px. The group and graphics-state controls retain identical pixels.
+- Packed constant CCITT tables take the six-image CCITT fixture from 0.178 to 0.107 ms
+  of load, and the large fax page from 5.95 to 5.74 ms. The three measured rasters are exact
+  matches for the previous Swag output.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

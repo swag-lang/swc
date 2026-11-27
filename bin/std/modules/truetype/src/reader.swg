@@ -195,55 +195,52 @@ func scale26_6(value: s32, ppem, unitsPerEm: u32)->s32 fail
     return cast(s32, rounded)
 }
 
-// Reuses the divisor for all points in a simple glyph. The upper bound keeps
-// the 40-bit reciprocal product in 64 bits for every u16 units-per-em value.
 struct PointScale
 {
-    divisor:       u64
-    reciprocal:    u64
-    fastNumerator: u64
+    divisor:    u64
+    pixelScale: u64
+    multiplier: u64
+    fastLimit:  u64
 }
 
 impl PointScale
 {
-    const ReciprocalBits = 40
-    const ReciprocalUnit = 1_u64 << ReciprocalBits
+    const FractionBits = 32
+    const HalfUnit     = 1_u64 << (FractionBits - 1)
 
-    func create(unitsPerEm: u16)->PointScale fail
+    func create(unitsPerEm, ppem: u16)->PointScale fail
     {
         if not unitsPerEm
         {
             try fault(0x17)
         }
 
-        let divisor       = cast(u64, unitsPerEm)
-        let reciprocal    = (ReciprocalUnit + divisor - 1) / divisor
-        let fastNumerator = ((1_u64 << (64 - ReciprocalBits)) - 1) * divisor
-        return {divisor, reciprocal, fastNumerator}
+        let divisor    = cast(u64, unitsPerEm)
+        let pixelScale = cast(u64, ppem) * 64
+        let multiplier = ((pixelScale << FractionBits) + divisor - 1) / divisor
+
+        // Bias the multiplier upward to round exact ties away from zero. Keep
+        // its error below 1/(2*divisor), the closest other result can be to a tie.
+        let errorLimit   = (HalfUnit - 1) / divisor
+        let productLimit = (Swag.U64.Max - HalfUnit) / Math.max(multiplier, 1_u64)
+        return {divisor, pixelScale, multiplier, Math.min(errorLimit, productLimit)}
     }
 
     #[Swag.Inline]
-    mtd const apply(value: s32, pixelScale: s64)->s32 fail
+    mtd const apply(value: s32)->s32 fail
     {
-        let scaled    = cast(s64, value) * pixelScale
-        let numerator = cast(u64, Math.abs(scaled)) + .divisor / 2
+        let magnitude = cast(u64, Math.abs(cast(s64, value)))
         var quotient: u64
-        if numerator <= .fastNumerator
+        if magnitude <= .fastLimit
         {
-            quotient = (numerator * .reciprocal) >> ReciprocalBits
-
-            // The rounded-up reciprocal can overshoot by one in this range.
-            if quotient * .divisor > numerator
-            {
-                quotient -= 1
-            }
+            quotient = (magnitude * .multiplier + HalfUnit) >> FractionBits
         }
         else
         {
-            quotient = numerator / .divisor
+            quotient = (magnitude * .pixelScale + .divisor / 2) / .divisor
         }
 
-        let rounded = scaled < 0 ? -cast(s64, quotient) : cast(s64, quotient)
+        let rounded = value < 0 ? -cast(s64, quotient) : cast(s64, quotient)
         if rounded < Swag.S32.Min or rounded > Swag.S32.Max
         {
             try fault(0x17)

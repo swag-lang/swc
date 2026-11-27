@@ -63,7 +63,7 @@ private const GlyphAxisChunks: [256] GlyphAxisChunk = #run
     return chunks
 }
 
-private func(horizontal: bool) decodeGlyphAxis(data: const [..] u8, first: u64, flags: [*] u8, points: [*] Vector, count: u32, scaler: const *PointScale, pixelScale: s64)->u64 fail
+private func(horizontal: bool) decodeGlyphAxis(data: const [..] u8, first: u64, flags: [*] u8, points: [*] Vector, count: u32, scaler: const *PointScale)->u64 fail
 {
     const ShortShift = horizontal ? 1 : 2
     const SameShift  = horizontal ? 3 : 4
@@ -98,17 +98,17 @@ private func(horizontal: bool) decodeGlyphAxis(data: const [..] u8, first: u64, 
                 let sums  = cast #bit(Math.Simd.S32x4, pairs + Math.Simd.align(zero, pairs, 8)) + value
                 #static if horizontal
                 {
-                    points[index].x     = try scaler.apply(sums[0], pixelScale)
-                    points[index + 1].x = try scaler.apply(sums[1], pixelScale)
-                    points[index + 2].x = try scaler.apply(sums[2], pixelScale)
-                    points[index + 3].x = try scaler.apply(sums[3], pixelScale)
+                    points[index].x     = try scaler.apply(sums[0])
+                    points[index + 1].x = try scaler.apply(sums[1])
+                    points[index + 2].x = try scaler.apply(sums[2])
+                    points[index + 3].x = try scaler.apply(sums[3])
                 }
                 else
                 {
-                    points[index].y     = try scaler.apply(sums[0], pixelScale)
-                    points[index + 1].y = try scaler.apply(sums[1], pixelScale)
-                    points[index + 2].y = try scaler.apply(sums[2], pixelScale)
-                    points[index + 3].y = try scaler.apply(sums[3], pixelScale)
+                    points[index].y     = try scaler.apply(sums[0])
+                    points[index + 1].y = try scaler.apply(sums[1])
+                    points[index + 2].y = try scaler.apply(sums[2])
+                    points[index + 3].y = try scaler.apply(sums[3])
                     cast([*] u32, flags + index)[0] = packed & 0x0101_0101
                 }
 
@@ -137,11 +137,11 @@ private func(horizontal: bool) decodeGlyphAxis(data: const [..] u8, first: u64, 
 
         #static if horizontal
         {
-            points[point].x = try scaler.apply(value, pixelScale)
+            points[point].x = try scaler.apply(value)
         }
         else
         {
-            points[point].y = try scaler.apply(value, pixelScale)
+            points[point].y = try scaler.apply(value)
             flags[point]    = flag & CURVE_TAG_ON
         }
     }
@@ -162,7 +162,7 @@ private const GlyfCoordinateBytes: [64] u8 = #run
     return sizes
 }
 
-func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u32) fail
+func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u16) fail
 {
     if glyphData.count < 10
     {
@@ -290,12 +290,19 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
         return
     }
 
-    let scaler  = try PointScale.create(faceData.unitsPerEm)
-    let xScale  = cast(s64, xPpem) * 64
-    let yScale  = cast(s64, yPpem) * 64
+    let scaleKey = (cast(u64, faceData.unitsPerEm) << 32) | (cast(u64, xPpem) << 16) | yPpem
+    if faceData.pointScaleKey != scaleKey
+    {
+        let xScale = try PointScale.create(faceData.unitsPerEm, xPpem)
+        let yScale = xPpem == yPpem ? xScale : (try PointScale.create(faceData.unitsPerEm, yPpem))
+        faceData.pointScaleX   = xScale
+        faceData.pointScaleY   = yScale
+        faceData.pointScaleKey = scaleKey
+    }
+
     let points  = faceData.outlinePoints.emplaceAddress(pointCount)
-    let yOffset = try decodeGlyphAxis!{true}(glyphData, offset, flags, points, pointCount, &scaler, xScale)
-    discard try decodeGlyphAxis!{false}(glyphData, yOffset, flags, points, pointCount, &scaler, yScale)
+    let yOffset = try decodeGlyphAxis!{true}(glyphData, offset, flags, points, pointCount, &faceData.pointScaleX)
+    discard try decodeGlyphAxis!{false}(glyphData, yOffset, flags, points, pointCount, &faceData.pointScaleY)
 
     let contours = faceData.outlineContours.emplaceAddress(contourCount)
     for index in contourCount
@@ -304,7 +311,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
     }
 }
 
-func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u32, depth: u32) fail
+func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u16, depth: u32) fail
 {
     if depth >= MAX_RECURSE
     {
@@ -440,7 +447,7 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
     if hasMore and (peekU16(glyphData, offset) & CMP_WE_HAVE_INSTRUCTIONS) != 0 {}
 }
 
-func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth: u32 = 0) fail
+func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u16, depth: u32 = 0) fail
 {
     if glyphIndex >= faceData.face.glyphCount
     {
@@ -493,8 +500,8 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
 
     slot.beginLoad(glyphIndex)
 
-    let xPpem = Math.max(1_u32, face.size.metrics.xPpem)
-    let yPpem = Math.max(1_u32, face.size.metrics.yPpem)
+    let xPpem = Math.max(1_u16, face.size.metrics.xPpem)
+    let yPpem = Math.max(1_u16, face.size.metrics.yPpem)
     if faceData.outlineSource == .Glyf
     {
         try appendGlyph(faceData, glyphIndex, xPpem, yPpem)

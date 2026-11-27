@@ -280,6 +280,11 @@ struct FaceImpl
     sharedProgramTables: const *ProgramTables?
     hasCMap:             bool
 
+    // Current point scales are shared by all simple outlines of a composite glyph.
+    pointScaleKey: u64 = Swag.U64.Max
+    pointScaleX:   PointScale
+    pointScaleY:   PointScale
+
     outlinePoints:     Array!{Vector}
     outlineTags:       Array!{u8}
     outlineContours:   Array!{s16}

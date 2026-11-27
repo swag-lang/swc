@@ -57,6 +57,7 @@ protected:
     void encodeXGetBv() override;
     void encodeVecClmulXorPair(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second) override;
     void encodeVecClmulXorQuad(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second) override;
+    void encodeVecCarrylessProductSum16(MicroReg result, MicroReg input, MicroReg factors, bool finishRun) override;
     void encodeTrap() override;
     void encodePrefetch(MicroReg memReg) override;
     void encodeRet() override;

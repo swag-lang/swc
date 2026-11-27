@@ -764,6 +764,21 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenVecCarrylessProductSum16(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 4);
+
+        const MicroReg result  = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg input   = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
+        const MicroReg factors = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2]), MicroOpBits::B64);
+        const MicroReg shuffle = CodeGenVectorHelpers::loadVectorOperand(codeGen, codeGen.payload(children[3]));
+
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, result, 4 * sizeof(uint64_t)));
+        codeGen.builder().emitVecCarrylessProductSum16(result, input, factors, shuffle);
+        return Result::Continue;
+    }
+
     Result codeGenX64ReadXcr0(CodeGen& codeGen)
     {
         constexpr MicroReg eax = MicroReg::intReg(0);
@@ -2891,6 +2906,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         case TokenId::IntrinsicVecClmul2XorPair:
         case TokenId::IntrinsicVecClmul2XorQuad:
             return codeGenVecClmulXor(codeGen, *this);
+        case TokenId::IntrinsicVecCarrylessProductSum16:
+            return codeGenVecCarrylessProductSum16(codeGen, *this);
 
         case TokenId::IntrinsicX64ReadXcr0:
             return codeGenX64ReadXcr0(codeGen);

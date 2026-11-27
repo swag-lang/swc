@@ -747,6 +747,10 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
                     numRequiredArgs = args.size() == 5 ? 5 : 3;
                     break;
 
+                case TokenId::IntrinsicVecCarrylessProductSum16:
+                    numRequiredArgs = 4;
+                    break;
+
                 case TokenId::IntrinsicVecClmul2XorPair:
                 case TokenId::IntrinsicVecClmul2XorQuad:
                     numRequiredArgs = 5;

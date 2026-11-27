@@ -442,6 +442,17 @@ func atomicStore(addr: *u64, value: u64)
     // Each pointer names 64 bytes. Call only when [[hasCpuFeature]] reports `.CarrylessMultiply512`.
     func vecCarrylessMul2XorQuad(value: *[8] u64, factor, addend: const *[8] u64, first, second: u8)
 
+    // XORs the full carry-less products of sixteen 128-bit lanes.
+    //
+    // Each output byte of a shuffled input lane reads the input byte selected
+    // by the low four bits of the matching shuffle byte. A set high bit selects
+    // zero. The first shuffled lane is XORed with the low two words of
+    // `result` before multiplication. Each factor occupies two little-endian
+    // words. The four output words are written in increasing polynomial degree.
+    // The three ranges may be unaligned and overlap. Call only when
+    // [[hasCpuFeature]] reports `.CarrylessMultiply512`.
+    func vecCarrylessProductSum16(result: *[4] u64, input: const *[256] u8, factors: const *[32] u64, shuffle: #simd [16] u8)
+
     // Adds the low 52 bits of each product to its 64-bit accumulator lane.
     // Multiplies the low 52 bits of each factor. Requires [[Swag.CpuFeature.MultiplyAdd52]].
     func vecMultiplyAdd52Low(accumulator, left, right: #simd [2] u64)->#simd [2] u64

@@ -466,6 +466,17 @@ void MicroBuilder::emitXGetBv()
     addInstruction(MicroInstrOpcode::XGetBv, 0);
 }
 
+void MicroBuilder::emitVecCarrylessProductSum16(MicroReg result, MicroReg input, MicroReg factors, MicroReg shuffle)
+{
+    // XMM6 carries the shuffle as a fixed input to the encoder operation.
+    emitLoadRegReg(MicroReg::floatReg(6), shuffle, MicroOpBits::B128);
+    const auto& inst = addInstruction(MicroInstrOpcode::VecCarrylessProductSum16, 3);
+    auto*       ops  = inst.ops(operands_);
+    ops[0].reg       = result;
+    ops[1].reg       = input;
+    ops[2].reg       = factors;
+}
+
 void MicroBuilder::emitVecClmulXor(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second, bool quad)
 {
     const auto& inst = addInstruction(quad ? MicroInstrOpcode::VecClmulXorQuad : MicroInstrOpcode::VecClmulXorPair, 5);

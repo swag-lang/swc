@@ -379,6 +379,7 @@ SWC_TOKEN_DEF(IntrinsicVecMultiplyAdd52High, "Swag.vecMultiplyAdd52High", TokenI
 SWC_TOKEN_DEF(IntrinsicVecClmul, "Swag.vecCarrylessMul", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecClmul2XorPair, "Swag.vecCarrylessMul2XorPair", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)
 SWC_TOKEN_DEF(IntrinsicVecClmul2XorQuad, "Swag.vecCarrylessMul2XorQuad", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicVecCarrylessProductSum16, "Swag.vecCarrylessProductSum16", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)
 SWC_TOKEN_DEF(IntrinsicVecSha1Schedule1, "Swag.vecSha1Schedule1", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecSha1Schedule2, "Swag.vecSha1Schedule2", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecSha1NextE, "Swag.vecSha1NextE", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)

@@ -141,7 +141,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Enumerations</span><span class="toc-count">26</span></summary>
+<summary><span class="toc-label">Enumerations</span><span class="toc-count">27</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-enumerations">All Enumerations</a></li>
 <li><a href="#Swag_Build_BackendInlineMode">Build.BackendInlineMode</a></li>
@@ -156,6 +156,7 @@
 <li><a href="#Swag_CompilerCommand">Swag.CompilerCommand</a></li>
 <li><a href="#Swag_CompilerMsgKind">Swag.CompilerMsgKind</a></li>
 <li><a href="#Swag_CompilerMsgMask">Swag.CompilerMsgMask</a></li>
+<li><a href="#Swag_CpuFeature">Swag.CpuFeature</a></li>
 <li><a href="#Swag_ExceptionKind">Swag.ExceptionKind</a></li>
 <li><a href="#Swag_ExportWhat">Swag.ExportWhat</a></li>
 <li><a href="#Swag_Operator">Swag.Operator</a></li>
@@ -254,7 +255,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">388</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">390</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Swag_Allocator_acquireBlock">Allocator.acquireBlock</a></li>
@@ -509,6 +510,7 @@
 <li><a href="#Swag_FullInit">Swag.FullInit</a></li>
 <li><a href="#Swag_getContext">Swag.getContext</a></li>
 <li><a href="#Swag_globalsToDrop">Swag.globalsToDrop</a></li>
+<li><a href="#Swag_hasCpuFeature">Swag.hasCpuFeature</a></li>
 <li><a href="#Swag_hasSerialWorkerPool">Swag.hasSerialWorkerPool</a></li>
 <li><a href="#Swag_Implicit">Swag.Implicit</a></li>
 <li><a href="#Swag_Incomplete">Swag.Incomplete</a></li>
@@ -594,6 +596,7 @@
 <li><a href="#Swag_vecAny">Swag.vecAny</a></li>
 <li><a href="#Swag_vecAvgRound">Swag.vecAvgRound</a></li>
 <li><a href="#Swag_vecCarrylessMul">Swag.vecCarrylessMul</a></li>
+<li><a href="#Swag_vecCarrylessProductSum16">Swag.vecCarrylessProductSum16</a></li>
 <li><a href="#Swag_vecGather">Swag.vecGather</a></li>
 <li><a href="#Swag_vecInterleaveHi">Swag.vecInterleaveHi</a></li>
 <li><a href="#Swag_vecInterleaveLo">Swag.vecInterleaveLo</a></li>
@@ -835,6 +838,8 @@
 <tr><td class="code-type"><a href="#Swag_CompilerMsgKind">Swag.CompilerMsgKind</a></td><td><p>The kind of message in <a href="#Swag_CompilerMessage">CompilerMessage</a></p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_CompilerMsgMask">Swag.CompilerMsgMask</a></td><td><p>The type of message you want to retrieve in a <span class="code-inline">#message</span> function.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_CpuFeature">Swag.CpuFeature</a></td><td><p>An optional instruction family that can be selected at runtime.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_ExceptionKind">Swag.ExceptionKind</a></td><td><p>What raised an exception.</p>
 </td></tr>
@@ -1418,6 +1423,8 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_globalsToDrop">Swag.globalsToDrop</a></td><td><p>Returns the global variables the runtime drops when the process exits.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_hasCpuFeature">Swag.hasCpuFeature</a></td><td><p>Reports whether the executing CPU supports <span class="code-inline">feature</span>.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_hasSerialWorkerPool">Swag.hasSerialWorkerPool</a></td><td><p>Observe an existing roster without creating a scheduler or starting workers.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_Implicit">Swag.Implicit</a></td><td><p>Lets an <span class="code-inline">opCast</span> overload apply as an implicit conversion.</p>
@@ -1572,6 +1579,8 @@
 <tr><td class="code-type"><a href="#Swag_vecAvgRound">Swag.vecAvgRound</a></td><td><p>Rounding average: '(a + b + 1) &gt;&gt; 1' per lane, without overflow.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_vecCarrylessMul">Swag.vecCarrylessMul</a></td><td><p>Carry-less multiplication of one 64-bit half of each source into a full 128-bit product.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_vecCarrylessProductSum16">Swag.vecCarrylessProductSum16</a></td><td><p>XORs the full carry-less products of sixteen 128-bit lanes.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_vecGather">Swag.vecGather</a></td><td><p>Indexed memory load: result lane i reads base[indices[i]].</p>
 </td></tr>
@@ -1808,6 +1817,8 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_CompilerMsgMask">Swag.CompilerMsgMask</a></td><td><p>The type of message you want to retrieve in a <span class="code-inline">#message</span> function.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Swag_CpuFeature">Swag.CpuFeature</a></td><td><p>An optional instruction family that can be selected at runtime.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Swag_ExceptionKind">Swag.ExceptionKind</a></td><td><p>What raised an exception.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_ExportWhat">Swag.ExportWhat</a></td><td><p>Runtime reflection data that <a href="#Swag_ExportType">ExportType</a> adds to the type information of a struct.</p>
@@ -1970,6 +1981,8 @@
 <tr><td class="code-type"><a href="#Swag_Foreign">Swag.Foreign</a></td><td><p>Declares a function implemented outside the current module.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_FullInit">Swag.FullInit</a></td><td><p>Asserts that an opaque <span class="code-inline">opSet</span> body fully initializes its destination.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Swag_hasCpuFeature">Swag.hasCpuFeature</a></td><td><p>Reports whether the executing CPU supports <span class="code-inline">feature</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_hasSerialWorkerPool">Swag.hasSerialWorkerPool</a></td><td><p>Observe an existing roster without creating a scheduler or starting workers.</p>
 </td></tr>
@@ -4186,6 +4199,29 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <tr><td id="Swag_CompilerMsgMask_SemFunctions" class="code-type">SemFunctions</td><td></td></tr>
 <tr><td id="Swag_CompilerMsgMask_SemGlobals" class="code-type">SemGlobals</td><td></td></tr>
 <tr><td id="Swag_CompilerMsgMask_SemTypes" class="code-type">SemTypes</td><td></td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Swag_CpuFeature" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.CpuFeature</span> <a class="api-item-permalink" href="#Swag_CpuFeature" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/cpu.swg#L4">src</a></div>
+<p>An optional instruction family that can be selected at runtime.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">CpuFeature</span>: <span class="STpe">u32</span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Swag_CpuFeature_Aes" class="code-type">Aes</td><td><p>AES block rounds and round-key operations.</p>
+</td></tr>
+<tr><td id="Swag_CpuFeature_CarrylessMultiply" class="code-type">CarrylessMultiply</td><td><p>Carry-less multiplication of polynomial coefficients.</p>
+</td></tr>
+<tr><td id="Swag_CpuFeature_CarrylessMultiply512" class="code-type">CarrylessMultiply512</td><td><p>512-bit carry-less multiplication with independent 128-bit lanes.</p>
+</td></tr>
+<tr><td id="Swag_CpuFeature_MultiplyAdd52" class="code-type">MultiplyAdd52</td><td><p>Packed 52-bit unsigned integer multiply-add.</p>
+</td></tr>
+<tr><td id="Swag_CpuFeature_Sha" class="code-type">Sha</td><td><p>SHA-1 and SHA-256 compression instructions.</p>
+</td></tr>
+<tr><td id="Swag_CpuFeature_WideCarrylessMultiply" class="code-type">WideCarrylessMultiply</td><td><p>256-bit carry-less multiplication with independent 128-bit lanes.</p>
+</td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -6418,6 +6454,13 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">globalsToDrop</span>()-&gt;<span class="SKwd">const</span> [..] <span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_GlobalToDrop">GlobalToDrop</a></span>?</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_hasCpuFeature" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.hasCpuFeature</span> <a class="api-item-permalink" href="#Swag_hasCpuFeature" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/cpu.swg#L91">src</a></div>
+<p>Reports whether the executing CPU supports <span class="code-inline">feature</span>.</p>
+<p>Use this query before running instructions that require <a href="#Swag_CpuFeature">Swag.CpuFeature</a>. During compile-time execution it reports the compiler host's capabilities.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="#Swag_Inline">Inline</a>]</span>
+<span class="SKwd">func</span> <span class="SFct">hasCpuFeature</span>(feature: <span class="SCst"><a href="#Swag_CpuFeature">CpuFeature</a></span>)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_hasSerialWorkerPool" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.hasSerialWorkerPool</span> <a class="api-item-permalink" href="#Swag_hasSerialWorkerPool" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/scheduler.swg#L107">src</a></div>
 <p>Observe an existing roster without creating a scheduler or starting workers.</p>
 <p>A concurrent growth can leave this call serial; the next call observes the larger pool. Before startup completes, a zero count says nothing about the requested roster.</p>
@@ -7022,6 +7065,12 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <p>Carry-less multiplication of one 64-bit half of each source into a full 128-bit product.</p>
 <p>Bit 0 of the constant <span class="code-inline">selector</span> picks the half of <span class="code-inline">value1</span> and bit 4 the half of <span class="code-inline">value2</span>. This is what CRC folding is made of.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">vecCarrylessMul</span>(value1, value2: <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span>, selector: <span class="STpe">u8</span>)-&gt;<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Swag_vecCarrylessProductSum16" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.vecCarrylessProductSum16</span> <a class="api-item-permalink" href="#Swag_vecCarrylessProductSum16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/intrinsics.swg#L454">src</a></div>
+<p>XORs the full carry-less products of sixteen 128-bit lanes.</p>
+<p>Each output byte of a shuffled input lane reads the input byte selected by the low four bits of the matching shuffle byte. A set high bit selects zero. The first shuffled lane is XORed with the low two words of <span class="code-inline">result</span> before multiplication. Each factor occupies two little-endian words. The four output words are written in increasing polynomial degree. The three ranges may be unaligned and overlap. Call only when <a href="#Swag_hasCpuFeature">hasCpuFeature</a> reports <span class="code-inline">.CarrylessMultiply512</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">vecCarrylessProductSum16</span>(result: *[<span class="SNum">4</span>] <span class="STpe">u64</span>, input: <span class="SKwd">const</span> *[<span class="SNum">256</span>] <span class="STpe">u8</span>, factors: <span class="SKwd">const</span> *[<span class="SNum">32</span>] <span class="STpe">u64</span>, shuffle: <span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_vecGather" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.vecGather</span> <a class="api-item-permalink" href="#Swag_vecGather" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/intrinsics.swg#L514">src</a></div>
@@ -8118,6 +8167,13 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 "k|Swag.CompilerMsgMask.SemFunctions|Swag_CompilerMsgMask_SemFunctions|",
 "k|Swag.CompilerMsgMask.SemGlobals|Swag_CompilerMsgMask_SemGlobals|",
 "k|Swag.CompilerMsgMask.SemTypes|Swag_CompilerMsgMask_SemTypes|",
+"e|Swag.CpuFeature|Swag_CpuFeature|An optional instruction family that can be selected at runtime.",
+"k|Swag.CpuFeature.Aes|Swag_CpuFeature_Aes|AES block rounds and round-key operations.",
+"k|Swag.CpuFeature.CarrylessMultiply|Swag_CpuFeature_CarrylessMultiply|Carry-less multiplication of polynomial coefficients.",
+"k|Swag.CpuFeature.CarrylessMultiply512|Swag_CpuFeature_CarrylessMultiply512|512-bit carry-less multiplication with independent 128-bit lanes.",
+"k|Swag.CpuFeature.MultiplyAdd52|Swag_CpuFeature_MultiplyAdd52|Packed 52-bit unsigned integer multiply-add.",
+"k|Swag.CpuFeature.Sha|Swag_CpuFeature_Sha|SHA-1 and SHA-256 compression instructions.",
+"k|Swag.CpuFeature.WideCarrylessMultiply|Swag_CpuFeature_WideCarrylessMultiply|256-bit carry-less multiplication with independent 128-bit lanes.",
 "e|Swag.ExceptionKind|Swag_ExceptionKind|What raised an exception.",
 "k|Swag.ExceptionKind.Assert|Swag_ExceptionKind_Assert|",
 "k|Swag.ExceptionKind.Check|Swag_ExceptionKind_Check|A failed 'Swag.check', which lets the running test go on",
@@ -8591,6 +8647,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 "f|Swag.floor|Swag_floor|Rounds toward minus infinity.",
 "f|Swag.getContext|Swag_getContext|Returns the context of the current thread.",
 "f|Swag.globalsToDrop|Swag_globalsToDrop|Returns the global variables the runtime drops when the process exits.",
+"f|Swag.hasCpuFeature|Swag_hasCpuFeature|Reports whether the executing CPU supports feature.",
 "f|Swag.hasSerialWorkerPool|Swag_hasSerialWorkerPool|Observe an existing roster without creating a scheduler or starting workers.",
 "f|Swag.IAllocator.alloc|Swag_IAllocator_alloc|Allocates a block of memory and stores its address in 'request.address'.",
 "f|Swag.IAllocator.assertAllocated|Swag_IAllocator_assertAllocated|Asserts that 'request.address' is a block this allocator currently owns.",
@@ -8695,6 +8752,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 "f|Swag.vecAny|Swag_vecAny|True when any (respectively every) mask lane is all-ones.",
 "f|Swag.vecAvgRound|Swag_vecAvgRound|Rounding average: '(a + b + 1) >> 1' per lane, without overflow.",
 "f|Swag.vecCarrylessMul|Swag_vecCarrylessMul|Carry-less multiplication of one 64-bit half of each source into a full 128-bit product.",
+"f|Swag.vecCarrylessProductSum16|Swag_vecCarrylessProductSum16|XORs the full carry-less products of sixteen 128-bit lanes.",
 "f|Swag.vecGather|Swag_vecGather|Indexed memory load: result lane i reads baseindices[i].",
 "f|Swag.vecInterleaveHi|Swag_vecInterleaveHi|",
 "f|Swag.vecInterleaveLo|Swag_vecInterleaveLo|",

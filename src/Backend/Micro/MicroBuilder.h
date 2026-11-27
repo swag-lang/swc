@@ -143,6 +143,7 @@ public:
     void emitCpuId();
     void emitXGetBv();
     void emitVecClmulXor(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second, bool quad);
+    void emitVecCarrylessProductSum16(MicroReg result, MicroReg input, MicroReg factors, MicroReg shuffle);
     void emitTrap();
     void emitPrefetch(MicroReg addrReg);
     void emitSanityInvalidate(MicroReg addrReg, uint64_t sizeInBytes);

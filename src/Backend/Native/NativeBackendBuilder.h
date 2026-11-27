@@ -134,6 +134,9 @@ public:
     Result runExistingArtifact(ArtifactRunReport* report = nullptr);
     Result prepare();
 
+    // The JIT consumes machine code and relocations from the prepared functions.
+    Result prepareForJit(std::vector<SymbolFunction*>& outFunctions);
+
     std::vector<SymbolFunction*> collectPreparedFunctions() const
     {
         std::vector<SymbolFunction*> result;
@@ -232,7 +235,8 @@ private:
     size_t      selectedNativeTestCount() const;
     void        parseNativeTestSummary(const std::string& output);
     Result      validateTarget();
-    void        prepareFunctionCache();
+    Result      prepareBackend(std::vector<SymbolFunction*>* outJitFunctions);
+    void        prepareFunctionCache(bool preparesArtifact);
     Result      buildObjects();
     Result      buildArtifactObjects(std::optional<ScopedTimedLog>& outStage);
     void        adoptArtifactPaths();

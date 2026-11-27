@@ -914,7 +914,7 @@ NativeBackendBuilder::~NativeBackendBuilder()
         compiler_->setActiveNativeBuilder(nullptr);
 }
 
-void NativeBackendBuilder::prepareFunctionCache()
+void NativeBackendBuilder::prepareFunctionCache(const bool preparesArtifact)
 {
     functionCacheEnabled_ = false;
     existingFunctionCacheArchive_.reset();
@@ -925,7 +925,7 @@ void NativeBackendBuilder::prepareFunctionCache()
     functionCacheIndexPath_.clear();
 
     const CommandLine& commandLine = compiler_->cmdLine();
-    if (commandLine.rebuild || commandLine.command == CommandKind::Test ||
+    if (!preparesArtifact || commandLine.rebuild || commandLine.command == CommandKind::Test ||
         compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
         compiler_->buildCfg().backend.debugInfo)
         return;
@@ -1448,6 +1448,16 @@ Result NativeBackendBuilder::runExistingArtifact(ArtifactRunReport* report)
 
 Result NativeBackendBuilder::prepare()
 {
+    return prepareBackend(nullptr);
+}
+
+Result NativeBackendBuilder::prepareForJit(std::vector<SymbolFunction*>& outFunctions)
+{
+    return prepareBackend(&outFunctions);
+}
+
+Result NativeBackendBuilder::prepareBackend(std::vector<SymbolFunction*>* outJitFunctions)
+{
     SWC_SCHED_PHASE(ctx_.global().jobMgr(), "backend prepare");
     SWC_ASSERT(compiler_ != nullptr);
     compiler_->markNativeBackendStarted();
@@ -1455,7 +1465,8 @@ Result NativeBackendBuilder::prepare()
     functionInfos.clear();
     functionBySymbol.clear();
     generatedMachineCodes.clear();
-    prepareFunctionCache();
+    const bool preparesArtifact = outJitFunctions == nullptr;
+    prepareFunctionCache(preparesArtifact);
     if (functionCacheEnabled_)
         compiler_->setActiveNativeBuilder(this);
     testFunctions    = compiler_->nativeTestFunctions();
@@ -1613,16 +1624,17 @@ Result NativeBackendBuilder::prepare()
             SWC_SCHED_PHASE(ctx_.global().jobMgr(), "function infos");
             orderLocationTies(ctx_, functions);
             orderClosureAdapters(ctx_, functions);
-            SWC_RESULT(rebuildFunctionInfos(*this, functions, sortKeys));
+            if (preparesArtifact)
+                SWC_RESULT(rebuildFunctionInfos(*this, functions, sortKeys));
             if (microStage)
             {
                 std::vector<Utf8> stats;
-                stats.push_back(ScopedTimedLog::formatStatCount(functionInfos.size(), "function"));
+                stats.push_back(ScopedTimedLog::formatStatCount(functions.size(), "function"));
                 // Two sources, reported apart so a reader can tell them apart: machine code the
                 // shared machine-code archive supplied, and functions this output's
                 // previous build already produced from the same input.
-                const size_t reused    = std::ranges::count_if(functionInfos, [](const NativeFunctionInfo& info) {
-                    return info.symbol->hasFlag(SymbolFlagsE::MachineCodeReused);
+                const size_t reused    = std::ranges::count_if(functions, [](const SymbolFunction* function) {
+                    return function->hasFlag(SymbolFlagsE::MachineCodeReused);
                 });
                 const size_t unchanged = std::ranges::count_if(functionInfos, &NativeFunctionInfo::cacheHit);
                 if (reused)
@@ -1631,6 +1643,8 @@ Result NativeBackendBuilder::prepare()
                     stats.push_back(ScopedTimedLog::formatStatCount(unchanged, "unchanged function"));
                 microStage->setStat(ScopedTimedLog::joinStatItems(stats));
             }
+            if (outJitFunctions)
+                *outJitFunctions = std::move(functions);
             return Result::Continue;
         }
     }

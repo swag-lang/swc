@@ -248,6 +248,35 @@ impl PointScale
 
         return cast(s32, rounded)
     }
+
+    #[Swag.Inline]
+    mtd const applyFour(values: Math.Simd.S32x4)->Math.Simd.S32x4 fail
+    {
+        let magnitudes = cast #bit(Math.Simd.U32x4, Math.abs(values))
+        if not Swag.vecMask(magnitudes > Math.Simd.splat(cast(u32, .fastLimit)))
+        {
+            // The integer part contributes directly. Widen the fractional products
+            // so their rounded carry can join it without losing low bits.
+            let fraction = Math.Simd.splat(cast(u32, .multiplier & Swag.U32.Max))
+            let whole    = cast(u32, .multiplier >> FractionBits)
+            let low      = (Math.Simd.mulWidenLow(magnitudes, fraction) + HalfUnit) >> FractionBits
+            let high     = (Math.Simd.mulWidenHigh(magnitudes, fraction) + HalfUnit) >> FractionBits
+            let carried  = Math.Simd.deinterleaveEven(cast #bit(Math.Simd.U32x4, low), cast #bit(Math.Simd.U32x4, high))
+            let quotient = magnitudes * whole + carried
+            let signs    = cast #bit(Math.Simd.U32x4, values >> 31)
+            let limits   = cast(u32, Swag.S32.Max) - signs
+            if not Swag.vecMask(quotient > limits)
+            {
+                return cast #bit(Math.Simd.S32x4, (quotient ^ signs) - signs)
+            }
+        }
+
+        let first  = try .apply(values[0])
+        let second = try .apply(values[1])
+        let third  = try .apply(values[2])
+        let fourth = try .apply(values[3])
+        return cast(Math.Simd.S32x4, [first, second, third, fourth])
+    }
 }
 
 #[Swag.Inline]

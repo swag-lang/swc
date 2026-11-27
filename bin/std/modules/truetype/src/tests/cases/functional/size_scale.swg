@@ -81,3 +81,24 @@ using Swag, Core
         Swag.require(faceData.outlinePoints[0].y == cast(s32, height) * 7)
     }
 }
+
+// A group still uses exact scaling at half units, large coordinates and the s32 limit.
+#test
+{
+    let halfScale = expect PointScale.create(128, 1)
+    let halves    = expect halfScale.applyFour(cast(Math.Simd.S32x4, [-3_s32, -1, 1, 3]))
+    Swag.require(halves[0] == -2 and halves[1] == -1 and halves[2] == 1 and halves[3] == 2)
+
+    let wideScale = expect PointScale.create(Swag.U16.Max, 64)
+    let values    = cast(Math.Simd.S32x4, [Swag.S32.Min, -32769_s32, 32769, Swag.S32.Max])
+    let scaled    = expect wideScale.applyFour(values)
+    for index in 4
+    {
+        Swag.require(scaled[index] == expect wideScale.apply(values[index]))
+    }
+
+    let largeScale = expect PointScale.create(16, Swag.U16.Max)
+    var rejected: Swag.Error
+    discard catch largeScale.applyFour(cast(Math.Simd.S32x4, [0_s32, 0, -8193, 0])) as rejected
+    Swag.require(rejected.value() != null)
+}

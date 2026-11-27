@@ -94,21 +94,22 @@ private func(horizontal: bool) decodeGlyphAxis(data: const [..] u8, first: u64, 
 
                 // A simple glyph has at most 65,536 signed 16-bit deltas per axis.
                 // Both partial sums and the final coordinates fit in signed 32 bits.
-                let pairs = delta + Math.Simd.align(zero, delta, 12)
-                let sums  = cast #bit(Math.Simd.S32x4, pairs + Math.Simd.align(zero, pairs, 8)) + value
+                let pairs  = delta + Math.Simd.align(zero, delta, 12)
+                let sums   = cast #bit(Math.Simd.S32x4, pairs + Math.Simd.align(zero, pairs, 8)) + value
+                let scaled = cast #bit(Math.Simd.U32x4, try scaler.applyFour(sums))
+                let target = cast([*] u32, points + index)
                 #static if horizontal
                 {
-                    points[index].x     = try scaler.apply(sums[0])
-                    points[index + 1].x = try scaler.apply(sums[1])
-                    points[index + 2].x = try scaler.apply(sums[2])
-                    points[index + 3].x = try scaler.apply(sums[3])
+                    Math.Simd.store(target, Math.Simd.interleaveLow(scaled, zero))
+                    Math.Simd.store(target + 4, Math.Simd.interleaveHigh(scaled, zero))
                 }
                 else
                 {
-                    points[index].y     = try scaler.apply(sums[0])
-                    points[index + 1].y = try scaler.apply(sums[1])
-                    points[index + 2].y = try scaler.apply(sums[2])
-                    points[index + 3].y = try scaler.apply(sums[3])
+                    const MaskY = cast(Math.Simd.U32x4, [0_u32, 0xFFFF_FFFF, 0, 0xFFFF_FFFF])
+                    let low  = Math.Simd.interleaveLow(zero, scaled)
+                    let high = Math.Simd.interleaveHigh(zero, scaled)
+                    Math.Simd.store(target, Math.Simd.select(MaskY, low, Math.Simd.load(target)))
+                    Math.Simd.store(target + 4, Math.Simd.select(MaskY, high, Math.Simd.load(target + 4)))
                     cast([*] u32, flags + index)[0] = packed & 0x0101_0101
                 }
 
@@ -137,7 +138,7 @@ private func(horizontal: bool) decodeGlyphAxis(data: const [..] u8, first: u64, 
 
         #static if horizontal
         {
-            points[point].x = try scaler.apply(value)
+            points[point] = {x: try scaler.apply(value), y: 0}
         }
         else
         {

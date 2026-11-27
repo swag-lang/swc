@@ -117,3 +117,39 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
         Swag.require(image.pixelColor(49, top + 9).r == 255)
     }
 }
+
+// Saving decoded CID text retains its character mapping, outlines and advances.
+#test
+{
+    const FontBytes = #include("../../../theme/inter-regular.ttf")
+    var objects: Array!{u8}
+    addObject(&objects, 5, "<< /Type /Font /Subtype /Type0 /BaseFont /Inter /Encoding /Identity-H /DescendantFonts [6 0 R] /ToUnicode 9 0 R >>")
+    addObject(&objects, 6, "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Inter /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 7 0 R /DW 750 /W [2 [1000 720]] /CIDToGIDMap 10 0 R >>")
+    addObject(&objects, 7, "<< /Type /FontDescriptor /FontName /Inter /Flags 32 /FontBBox [-700 -350 2600 1200] /Ascent 968 /Descent -241 /CapHeight 728 /ItalicAngle 0 /StemV 80 /FontFile2 8 0 R >>")
+    addStreamObject(&objects, 8, "", FontBytes)
+    let unicode = "2 beginbfchar\n<0002> <004F>\n<0003> <03A9>\nendbfchar\n"
+    addStreamObject(&objects, 9, "", cast(const [..] u8, unicode))
+
+    // The codes point to Inter's O and Omega glyphs by index.
+    addStreamObject(&objects, 10, "", [0_u8, 0, 0, 0, 0x01, 0x41, 0x04, 0x12])
+
+    let content   = "BT /F0 24 Tf 1 0 0 1 18 42 Tm <00020003> Tj ET"
+    let source    = singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice())
+    var document  = #move expect Document.decode(source.toSlice())
+    let encoded   = expect document.encode()
+    var rewritten = #move expect Document.decode(encoded.toSlice())
+    let item      = onlyItem(rewritten.pages[0], .Text)
+    let font      = &rewritten.pages[0].fonts[item.fontIndex]
+    Swag.require(item.text == "OΩ")
+    Swag.require(Slice.equals(item.textCodes.toSlice(), [2_u32, 3]))
+    Swag.require(item.textAdvances.count == 2 and
+                 item.textAdvances[0] == 24 and
+                 Math.abs(item.textAdvances[1] - 17.28) < 0.001)
+    Swag.require(Slice.equals(font.bytes.toSlice(), FontBytes))
+    Swag.require(font.glyphIndices[2] == 321 and font.glyphIndices[3] == 1042)
+    var originalPage  = document.pages[0]
+    var roundTripPage = rewritten.pages[0]
+    let before        = expect originalPage.render()
+    let after         = expect roundTripPage.render()
+    Swag.require(Slice.equals(before.pixels.toSlice(), after.pixels.toSlice()))
+}

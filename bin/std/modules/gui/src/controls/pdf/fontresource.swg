@@ -14,6 +14,13 @@ enum FontProgramKind
     Cff          // A `FontFile3` bare CFF program, keyed by name or by character identifier.
 }
 
+struct CidFontDescriptor
+{
+    bounds: [4] f32
+    flags:  u32
+    ascent, descent, capHeight, italicAngle, stemV: f32
+}
+
 // A font a decoded page refers to, with everything needed to lay its text out again.
 struct FontResource
 {
@@ -44,8 +51,11 @@ struct FontResource
 
     // A CIDFontType2 either addresses the embedded TrueType glyphs directly or provides the
     // explicit CID-to-GID table used to do so.
-    glyphIndices:   Array!{u32}
-    identityGlyphs: bool
+    glyphIndices:       Array!{u32}
+    identityGlyphs:     bool
+    identityHorizontal: bool
+    hasCidDescriptor:   bool
+    cidDescriptor:      CidFontDescriptor
 
     // A composite font whose descendant is a CIDFontType0 addresses a CID-keyed CFF through
     // its charset rather than through a glyph index.
@@ -280,8 +290,9 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
     var metrics = fontId
     if parser.name(parser.dict(fontId, "Subtype")) == "Type0"
     {
-        result.codeBytes    = 2
-        result.defaultWidth = 1
+        result.codeBytes          = 2
+        result.defaultWidth       = 1
+        result.identityHorizontal = parser.name(parser.dict(fontId, "Encoding")) == "Identity-H"
         let descendants = parser.dict(fontId, "DescendantFonts")
         if descendants != InvalidNode and
            parser.nodes[descendants].kind == .Array and
@@ -335,6 +346,10 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
         }
 
         try readFontProgram(parser, &result, descriptor)
+        if result.identityHorizontal and result.program == .TrueType
+        {
+            result.hasCidDescriptor = readCidDescriptor(parser, descriptor, &result.cidDescriptor)
+        }
     }
 
     let toUnicode = parser.dict(fontId, "ToUnicode")
@@ -393,6 +408,29 @@ private func readDescriptorTraits(parser: *PdfParser, font: *FontResource, descr
     {
         font.fixedPitch = true
     }
+}
+
+private func readCidDescriptor(parser: *PdfParser, descriptor: u32, result: *CidFontDescriptor)->bool
+{
+    let box = parser.dict(descriptor, "FontBBox")
+    if box == InvalidNode or parser.nodes[box].kind != .Array or parser.nodes[box].values.count != 4
+    {
+        return false
+    }
+
+    for index in 4
+    {
+        let value = parser.nodes[box].values[index]
+        result.bounds[index] = cast(f32, parser.number(value))
+    }
+
+    result.flags       = cast(u32, parser.integer(parser.dict(descriptor, "Flags"), 0))
+    result.ascent      = cast(f32, parser.number(parser.dict(descriptor, "Ascent")))
+    result.descent     = cast(f32, parser.number(parser.dict(descriptor, "Descent")))
+    result.capHeight   = cast(f32, parser.number(parser.dict(descriptor, "CapHeight"), result.ascent))
+    result.italicAngle = cast(f32, parser.number(parser.dict(descriptor, "ItalicAngle")))
+    result.stemV       = cast(f32, parser.number(parser.dict(descriptor, "StemV")))
+    return true
 }
 
 // Reads the embedded font program, whichever of the three forms a descriptor stores it in.

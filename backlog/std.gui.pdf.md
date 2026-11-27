@@ -180,9 +180,11 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 
 ### std.gui.pdf.019 — Text output cannot leave Windows-1252 and the fourteen standard faces
 
-- Intent: `Page.addText` accepts UTF-8 and `windows1252` then fails the whole `save` on the first
-  character outside that encoding. No font can be embedded, so the writer cannot express text
-  such as Greek, Cyrillic, Hebrew, CJK or emoji.
+- Decoded text outside Windows-1252 can keep its horizontal CID TrueType program, glyph
+  mapping and Unicode map when saved. This allows the FileSamples Wingdings and Symbol runs
+  to be saved with the original font bytes and extracted characters.
+- Authored text and edited runs still use Windows-1252 and the standard faces. The writer
+  cannot author new runs in Greek, Cyrillic, Hebrew, CJK or emoji.
 - Next: embed and subset TrueType/OpenType fonts with composite encoding and `ToUnicode` while
   retaining standard faces as the default.
 - Done when: a TrueType or OpenType program can be embedded, subset to the glyphs used, with a

@@ -92,8 +92,9 @@ impl Document
     //
     // The writer emits a deterministic classic cross-reference table and Flate
     // compressed content and image streams, with eligible JPEG streams retained in
-    // their source format. It fails when text cannot be represented
-    // by the writer's Windows-1252 encoding with the standard PDF faces.
+    // their source format. Text uses the standard PDF faces and Windows-1252. For
+    // decoded runs outside that encoding, the writer can preserve an embedded
+    // horizontal CID TrueType font and its character map. Other unsupported text fails.
     mtd const encode()->Array!{u8} fail
     {
         return try encodeDocument(me)

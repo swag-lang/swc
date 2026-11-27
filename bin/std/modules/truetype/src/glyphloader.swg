@@ -254,8 +254,7 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
             offset += 8
         }
 
-        let basePointCount   = faceData.outlinePoints.count
-        let baseContourCount = faceData.outlineContours.count
+        let basePointCount = faceData.outlinePoints.count
 
         try appendGlyph(faceData, componentIdx, xPpem, yPpem, depth + 1)
 
@@ -271,43 +270,44 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
 
         if addedPointCount
         {
-            var dx = 0.0
-            var dy = 0.0
+            let points = faceData.outlinePoints.storage() + basePointCount
+            var dx     = 0.0
+            var dy     = 0.0
             if (flags & CMP_ARGS_ARE_XY_VALUES) != 0
             {
                 dx = try scale26_6(arg1, xPpem, faceData.unitsPerEm)
                 dy = try scale26_6(arg2, yPpem, faceData.unitsPerEm)
             }
 
-            for index in addedPointCount
+            if xx != 1.0 or yy != 1.0 or xy != 0.0 or yx != 0.0
             {
-                let idx = basePointCount + cast(u32, index)
-                let src = faceData.outlinePoints[idx]
-                let tx  = cast(f64, src.x)
-                let ty  = cast(f64, src.y)
-                faceData.outlinePoints[idx].x = cast(s32, Math.round(tx * xx + ty * xy))
-                faceData.outlinePoints[idx].y = cast(s32, Math.round(tx * yx + ty * yy))
+                for index in addedPointCount
+                {
+                    let src = points[index]
+                    let tx  = cast(f64, src.x)
+                    let ty  = cast(f64, src.y)
+                    points[index].x = cast(s32, Math.round(tx * xx + ty * xy))
+                    points[index].y = cast(s32, Math.round(tx * yx + ty * yy))
+                }
             }
 
             if (flags & CMP_ARGS_ARE_XY_VALUES) == 0
             {
                 let anchorParent = faceData.outlinePoints[compositePointStart + cast(u32, arg1)]
-                let anchorChild  = faceData.outlinePoints[basePointCount + arg2]
+                let anchorChild  = points[arg2]
                 dx = anchorParent.x - anchorChild.x
                 dy = anchorParent.y - anchorChild.y
             }
 
-            for index in addedPointCount
+            // The scaled offsets and both anchors are already integer 26.6 coordinates.
+            if dx != 0 or dy != 0
             {
-                let idx = basePointCount + cast(u32, index)
-                faceData.outlinePoints[idx].x = cast(s32, Math.round(faceData.outlinePoints[idx].x + dx))
-                faceData.outlinePoints[idx].y = cast(s32, Math.round(faceData.outlinePoints[idx].y + dy))
+                for index in addedPointCount
+                {
+                    points[index].x = cast(s32, points[index].x + dx)
+                    points[index].y = cast(s32, points[index].y + dy)
+                }
             }
-        }
-
-        for index in faceData.outlineContours.count - baseContourCount
-        {
-            faceData.outlineContours[baseContourCount + index] = cast(s16, faceData.outlineContours[baseContourCount + index])
         }
 
         hasMore = (flags & CMP_MORE_COMPONENTS) != 0

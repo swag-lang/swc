@@ -243,6 +243,11 @@ ships; history lives in Git, not here.
   68.3 to 1.7 ms, the repeated-color fixture from 20.5 to 12.8 ms, and the
   monochrome fixture from 3.37 to 2.81 ms. All 135 SVG output comparisons
   and the six resvg render comparisons are byte-identical.
+- Consecutive gradient draws share row jobs and keep painting order within
+  each row. Four-worker medians drop from 60.9 to 35.5 ms for 420 paths,
+  from 71.2 to 42.7 ms for 96 stops, and from 62.0 to 38.3 ms for hard
+  stops. resvg takes 29.7, 56.7, and 44.4 ms on the same affinities. The
+  132 before/after raster comparisons match, including one-worker output.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.

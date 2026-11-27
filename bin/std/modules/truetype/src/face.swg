@@ -656,12 +656,10 @@ public impl Face
 
     // Resolves a PostScript glyph name to a glyph index.
     //
-    // CFF and Type 1 programs key their outlines by name, which is how a document format
-    // addresses them: the encoding of such a font is a table of names, not of characters.
-    // TrueType outlines use names from `post` formats 1, 2, or 2.5. Format 3 contains no
-    // names. If a name appears more than once, the lowest glyph index wins. Zero is returned
-    // when the name is absent; as with [[TrueType.Face.glyphIndex]], zero is also the
-    // conventional missing-glyph index.
+    // CFF1 and Type 1 carry glyph names in their font programs. TrueType and CFF2
+    // use names from `post` formats 1, 2, or 2.5. Format 3 contains no names. If
+    // a name appears more than once, the lowest glyph index wins. A missing name
+    // returns zero, the conventional missing-glyph index.
     //
     // ```swag
     // let face  = try TrueType.Face.load(bytes)
@@ -675,10 +673,10 @@ public impl Face
 
     // Returns the name assigned to a glyph index, or null when the font has no name for it.
     //
-    // CFF and Type 1 use their charstring glyph names. TrueType outlines use names from
-    // `post` formats 1, 2, or 2.5. Format 3 has no names. The returned string borrows storage
-    // owned by this face and remains valid until [[TrueType.Face.destroy]]. Invalid glyph
-    // indices and empty or unavailable names return null.
+    // CFF1 and Type 1 carry glyph names in their font programs. TrueType and CFF2
+    // use names from `post` formats 1, 2, or 2.5. Format 3 contains no names.
+    // The returned string borrows storage from this face until [[TrueType.Face.destroy]].
+    // Invalid glyph indices and empty or unavailable names return null.
     //
     // ```swag
     // if let name = face.glyphName(glyphIndex) do

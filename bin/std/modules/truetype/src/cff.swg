@@ -10,6 +10,9 @@ const CFF_OP_PRIVATE         = 18_u16
 const CFF_OP_SUBRS           = 19_u16
 const CFF_OP_DEFAULT_WIDTH   = 20_u16
 const CFF_OP_NOMINAL_WIDTH   = 21_u16
+const CFF2_OP_VSINDEX        = 22_u16
+const CFF2_OP_BLEND          = 23_u16
+const CFF2_OP_VAR_STORE      = 24_u16
 const CFF_OP_ITALIC_ANGLE    = 0x0C02_u16
 const CFF_OP_WEIGHT          = 0x0C04_u16
 const CFF_OP_CHARSTRING_TYPE = 0x0C06_u16
@@ -106,17 +109,57 @@ struct CffDict
 impl CffDict
 {
     // Decodes into the existing buffers so a series of dictionaries can reuse them.
+    #[Swag.Inline]
     mtd decode(data: const [..] u8) fail
+    {
+        try .decodeEntries!{false}(data)
+    }
+
+    mtd(cff2: bool) decodeEntries(data: const [..] u8, variations: const *Cff2VariationStore? = null) fail
     {
         .ops.clear()
         .operands.clear()
         var first = 0_u64
         var pos   = 0_u64
+        var vsIndex: u32
+        var sawIndex, sawBlend: bool
 
         while pos < data.count
         {
             let b0 = peekU8(data, pos)
-            if b0 <= 21
+            #static if cff2
+            {
+                if b0 == CFF2_OP_BLEND
+                {
+                    if not variations
+                    {
+                        try fault(0x08)
+                    }
+
+                    let depth = try blendCff2Operands(unwrap variations, vsIndex, .operands.toSlice()[first to])
+                    .operands.resize(first + depth)
+                    sawBlend = true
+                    pos      += 1
+                    continue
+                }
+
+                if b0 == CFF2_OP_VSINDEX
+                {
+                    if not variations or sawIndex or sawBlend or .operands.count - first != 1
+                    {
+                        try fault(0x08)
+                    }
+
+                    vsIndex  = try cff2UInt(.operands[first])
+                    sawIndex = true
+                    if vsIndex >= variations!.data.count
+                    {
+                        try fault(0x08)
+                    }
+                }
+            }
+
+            if b0 <= (cff2 ? 25 : 21)
             {
                 var op = cast(u16, b0)
                 pos += 1
@@ -172,6 +215,22 @@ impl CffDict
             {
                 try fault(0x08)
             }
+
+            #static if cff2
+            {
+                if .operands.count - first > MaxCff2CharstringStack
+                {
+                    try fault(0x82)
+                }
+            }
+        }
+
+        #static if cff2
+        {
+            if .operands.count != first
+            {
+                try fault(0x08)
+            }
         }
 
         // Operands without a following operator do not belong to the dictionary.
@@ -218,6 +277,7 @@ struct CffPrivate
     subrs:        CffIndex
     defaultWidth: f64
     nominalWidth: f64
+    vsIndex:      u32
 }
 
 // A parsed CFF font program, from a bare `Type1C` stream or an OpenType `CFF ` table.
@@ -249,11 +309,16 @@ struct CffFont
     // per glyph, so the subroutines and width defaults are per dictionary rather than
     // per font.
     isCid:          bool
+    isCff2:         bool
     late fdSelect:  const [..] u8
     fdPrivate:      Array!{CffPrivate}
     defaultPrivate: CffPrivate
     charstringType: u32 = 2
     unitsPerEm:     u16 = 1000
+
+    // An explicit CFF2 FontMatrix must agree with the SFNT design units.
+    matrixScale: f64
+    variations:  Cff2VariationStore
 
     // Identity and metrics a bare CFF has to supply itself, because it ships without the
     // sfnt tables an OpenType file would state them in.
@@ -271,7 +336,7 @@ impl CffFont
     // Returns the local subroutines and width defaults that apply to one glyph.
     mtd const privateFor(gid: u32)->const *CffPrivate
     {
-        if not .isCid or .fdPrivate.isEmpty()
+        if .fdPrivate.isEmpty()
         {
             return &.defaultPrivate
         }
@@ -291,6 +356,27 @@ impl CffFont
         if data[0] == 0
         {
             return data[1 + gid]
+        }
+
+        if data[0] == 4
+        {
+            let ranges = data + 5
+            var first  = 0_u32
+            var end    = readPackedOffset(data + 1, 4)
+            while end - first > 1
+            {
+                let middle = first + (end - first) / 2
+                if readPackedOffset(ranges + cast(u64, middle) * 6, 4) <= gid
+                {
+                    first = middle
+                }
+                else
+                {
+                    end = middle
+                }
+            }
+
+            return readPackedOffset(ranges + cast(u64, first) * 6 + 4, 2)
         }
 
         let ranges = data + 3
@@ -521,17 +607,32 @@ func subrBias(count: u32)->s32
     return 32768
 }
 
+#[Swag.Inline]
 func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 {
+    return try readCffIndexWithCount!{2}(block, offset)
+}
+
+func(countSize: u64) readCffIndexWithCount(block: const [..] u8, offset: u64)->CffIndex fail
+{
     var result: #returntype
-    let count = try readU16(block, offset)
+    var count:  u32
+    #static if countSize == 2
+    {
+        count = try readU16(block, offset)
+    }
+    else
+    {
+        count = try readU32(block, offset)
+    }
+
     if not count
     {
-        result.end = offset + 2
+        result.end = offset + countSize
         return result
     }
 
-    let offSize = try readU8(block, offset + 2)
+    let offSize = try readU8(block, offset + countSize)
     if offSize < 1 or offSize > 4
     {
         try fault(0x08)
@@ -540,7 +641,7 @@ func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
         // all the preceding items once the offsets have been checked for monotonicity.
     }
 
-    let table     = offset + 3
+    let table     = offset + countSize + 1
     let offsets   = try getSlice(block, table, (cast(u64, count) + 1) * offSize)
     let dataStart = table + offsets.count
     if readPackedOffset(offsets.buffer, offSize) != 1
@@ -1095,7 +1196,7 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
 }
 
 // Keeps the validated FDSelect table in the owned font buffer.
-private func readCffFdSelect(font: const *CffFont, offset: u64)->const [..] u8 fail
+func readCffFdSelect(font: const *CffFont, offset: u64)->const [..] u8 fail
 {
     let glyphCount = font.charStrings.count()
     let fdCount    = font.fdPrivate.count
@@ -1109,6 +1210,11 @@ private func readCffFdSelect(font: const *CffFont, offset: u64)->const [..] u8 f
         }
 
         return table
+    }
+
+    if format == 4 and font.isCff2
+    {
+        return try readCff2FdSelect(font, offset)
     }
 
     if format != 3
@@ -1242,4 +1348,14 @@ func parseCffFont(block: const [..] u8)->CffFont fail
     try readCffCharset(&result, cast(u64, top.value(CFF_OP_CHARSET, 0, 0)))
     try readCffEncoding(&result, cast(u64, top.value(CFF_OP_ENCODING, 0, 0)))
     return result
+}
+
+func parseCffProgram(block: const [..] u8, cff2: bool)->CffFont fail
+{
+    if cff2
+    {
+        return try parseCff2Font(block)
+    }
+
+    return try parseCffFont(block)
 }

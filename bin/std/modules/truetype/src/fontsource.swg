@@ -167,7 +167,7 @@ impl FontSource
     }
 
     // Different faces of a collection can reference the same CFF byte range.
-    mtd const cachedCff(bytes: const [..] u8)->*CffFont? fail
+    mtd const cachedCff(bytes: const [..] u8, cff2: bool)->*CffFont? fail
     {
         if not .storage
         {
@@ -178,7 +178,9 @@ impl FontSource
         Sync.scopedLock(&storage.parseMutex)
         for program in storage.cffPrograms
         {
-            if program.block.buffer == bytes.buffer and program.block.count == bytes.count
+            if program.block.buffer == bytes.buffer and
+               program.block.count == bytes.count and
+               program.isCff2 == cff2
             {
                 return program
             }
@@ -189,7 +191,7 @@ impl FontSource
         context.allocator = storage.allocator
         defer context.allocator = previousAllocator
 
-        var parsed  = try parseCffFont(bytes)
+        var parsed  = try parseCffProgram(bytes, cff2)
         let program = Memory.new!{CffFont}(storage.allocator)
         program[] = #move parsed
         storage.cffPrograms.add(program)

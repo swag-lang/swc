@@ -1397,7 +1397,13 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     }
     faceData.sfntDirectory = directory
 
-    let cffTable = findTable(faceData, TAG_CFF)
+    var cffTable = findTable(faceData, TAG_CFF)
+    if not cffTable.tag and peekU32(data, faceOffset) == TAG_OTTO
+    {
+        cffTable = findTable(faceData, TAG_CFF2)
+    }
+
+    let cff2 = cffTable.tag == TAG_CFF2
     if cffTable.tag
     {
         faceData.outlineSource = .Cff
@@ -1446,7 +1452,20 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     // `glyf` nor the `loca` index into it; everything else it declares is unchanged.
     if faceData.outlineSource == .Cff
     {
-        faceData.loadCff(getSlice(data, cffTable.offset, cffTable.length))
+        faceData.loadCff(getSlice(data, cffTable.offset, cffTable.length), cff2)
+        if cff2
+        {
+            let font = faceData.cffFont()
+            if font.charStrings.count() != faceData.face.glyphCount
+            {
+                fault(0x08)
+            }
+
+            if font.matrixScale and Math.abs(font.matrixScale * faceData.unitsPerEm - 1.0) > 1e-10
+            {
+                fault(0x07)
+            }
+        }
     }
     else
     {
@@ -1455,7 +1474,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
 
     let isSubset = fallbackFamilyName.count != 0
     parseCMap(faceData, isSubset)
-    if not faceData.hasCMap and faceData.outlineSource == .Cff
+    if not faceData.hasCMap and faceData.outlineSource == .Cff and not cff2
     {
         buildSyntheticCMap(faceData, &faceData.programTables.cmap)
     }

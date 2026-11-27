@@ -23,9 +23,10 @@ let bitmap = &face.glyph.bitmap
 // bitmap.buffer remains valid until this face loads or renders another glyph.
 ```
 
-The module covers TrueType `glyf` outlines, OpenType and bare CFF programs,
-Type 1 programs, `ttcf` collections, Unicode character
-maps including variation sequences, kerning from `GPOS` and from the legacy
+The module covers TrueType `glyf` outlines, OpenType and bare CFF1 programs,
+OpenType CFF2 at the default variation coordinates, Type 1 programs, `ttcf`
+collections, Unicode character maps including variation sequences,
+kerning from `GPOS` and from the legacy
 `kern` table, source-over RGBA rendering for COLR v0 and v0 fallback layers with
 CPAL v0 or v1 palettes, grayscale rasterization, and single- or multi-channel
 signed-distance fields. Faces with

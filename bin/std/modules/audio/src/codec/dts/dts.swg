@@ -366,6 +366,7 @@ private struct FrameHeader
     bitRateIndex:     u32
     lfe:              u32
     crc:              bool
+    dynamicRange:     bool
     syncSubsubframes: bool
     predictorHistory: bool
     perfectFilter:    bool
@@ -426,6 +427,7 @@ private func parseFrameHeader(reader: *BitReader)->FrameHeader fail
     }
 
     let flags = reader.read(13)
+    result.dynamicRange     = (flags & (1_u32 << 11)) != 0
     result.syncSubsubframes = (flags & 8) != 0
     result.lfe = (flags >> 1) & 3
     if result.lfe == 3
@@ -835,6 +837,12 @@ private impl Codec
             for channel in channels where joint[channel]
             {
                 fail UnsupportedFormatError{"DTS joint-intensity coding is not supported"}
+            }
+
+            // The dynamic range coefficient is advisory playback gain for this subframe.
+            if header.dynamicRange
+            {
+                reader.skip(8)
             }
 
             if header.crc

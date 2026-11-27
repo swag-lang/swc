@@ -300,6 +300,12 @@ namespace
         SWC_UNREACHABLE();
     }
 
+    [[maybe_unused]] void recordUntrackedJitEffect()
+    {
+        if (const TaskContext* ctx = TaskContext::current(); ctx && ctx->hasCompiler())
+            ctx->compiler().recordUntrackedJitEffect();
+    }
+
 #ifdef _WIN32
     // Windows can invoke FLS callbacks after their CompilerInstance is gone.
     // Track slots so the instance can release them while callback code is alive.
@@ -345,9 +351,20 @@ namespace
 
     BOOL WINAPI jitTrackedWriteFile(HANDLE file, LPCVOID buffer, DWORD size, LPDWORD written, LPOVERLAPPED overlapped)
     {
-        if (const TaskContext* ctx = TaskContext::current(); ctx && ctx->hasCompiler())
-            ctx->compiler().recordJitWrite();
+        recordUntrackedJitEffect();
         return WriteFile(file, buffer, size, written, overlapped);
+    }
+
+    DWORD WINAPI jitTrackedGetEnvironmentVariableA(LPCSTR name, LPSTR buffer, DWORD size)
+    {
+        recordUntrackedJitEffect();
+        return GetEnvironmentVariableA(name, buffer, size);
+    }
+
+    DWORD WINAPI jitTrackedGetEnvironmentVariableW(LPCWSTR name, LPWSTR buffer, DWORD size)
+    {
+        recordUntrackedJitEffect();
+        return GetEnvironmentVariableW(name, buffer, size);
     }
 
     [[noreturn]]
@@ -371,9 +388,20 @@ namespace
 #ifdef __linux__
     ssize_t jitTrackedWrite(const int descriptor, const void* buffer, const size_t size)
     {
-        if (const TaskContext* ctx = TaskContext::current(); ctx && ctx->hasCompiler())
-            ctx->compiler().recordJitWrite();
+        recordUntrackedJitEffect();
         return ::write(descriptor, buffer, size);
+    }
+
+    char* jitTrackedGetenv(const char* name)
+    {
+        recordUntrackedJitEffect();
+        return std::getenv(name);
+    }
+
+    char* jitTrackedSecureGetenv(const char* name)
+    {
+        recordUntrackedJitEffect();
+        return ::secure_getenv(name);
     }
 
     [[noreturn]] void jitBlockedExit(const int status)
@@ -412,6 +440,10 @@ namespace
                 return reinterpret_cast<void*>(&jitTrackedFlsFree);
             if (asciiEqualsIgnoreCase(functionName, "WriteFile"))
                 return reinterpret_cast<void*>(&jitTrackedWriteFile);
+            if (asciiEqualsIgnoreCase(functionName, "GetEnvironmentVariableA"))
+                return reinterpret_cast<void*>(&jitTrackedGetEnvironmentVariableA);
+            if (asciiEqualsIgnoreCase(functionName, "GetEnvironmentVariableW"))
+                return reinterpret_cast<void*>(&jitTrackedGetEnvironmentVariableW);
         }
 #elif defined(__linux__)
         SWC_UNUSED(moduleName);
@@ -419,6 +451,10 @@ namespace
         // the same name keeps its semantics, and alternate libc spellings stay guarded.
         if (functionAddress == reinterpret_cast<void*>(&::write))
             return reinterpret_cast<void*>(&jitTrackedWrite);
+        if (functionAddress == reinterpret_cast<void*>(&std::getenv))
+            return reinterpret_cast<void*>(&jitTrackedGetenv);
+        if (functionAddress == reinterpret_cast<void*>(&::secure_getenv))
+            return reinterpret_cast<void*>(&jitTrackedSecureGetenv);
         if (functionAddress == reinterpret_cast<void*>(&pthread_key_create))
             return reinterpret_cast<void*>(&JITThreadStorage::create);
         if (functionAddress == reinterpret_cast<void*>(&pthread_key_delete))

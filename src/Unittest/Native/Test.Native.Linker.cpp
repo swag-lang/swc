@@ -2263,6 +2263,62 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_LoadsSharedFileInEachSourceGroup)
 SWC_TEST_END()
 
 #if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_JitEnvironmentReadsPreventStaleArtifacts)
+{
+    const LinkerTestDirectory directory("jit_environment");
+    constexpr std::string_view variable = "SWAG_INCREMENTAL_ENV_TEST_PROBE";
+    constexpr std::string_view declaration = R"(
+#[Swag.Foreign("libc.so.6", link: "c", callconv: .C)]
+func getenv(name: const [*] u8)->const [*] u8?
+)";
+    const auto run = [&](const bool present, const bool force, const std::string_view expected, const bool reuse = false) -> Result {
+        std::vector<Utf8> arguments = {"-u", Utf8(variable)};
+        if (present)
+            arguments.emplace_back(std::format("{}=yes", variable));
+        arguments.insert(arguments.end(), {
+            Utf8(Os::getExeFullName()), "run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+            "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))});
+        if (force)
+            arguments.push_back("--rebuild");
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 30000};
+        if (Os::runProcess(exitCode, "/usr/bin/env", arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode ||
+            !output.contains(expected) || output.contains("module up-to-date") != reuse)
+        {
+            std::println(stderr, "[compile-time environment] {}", output);
+            return Result::Error;
+        }
+        return Result::Continue;
+    };
+
+    SWC_RESULT(directory.write("modules/app/module.swg", ""));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", std::format(R"(
+{}
+func readEnvironment()->bool => getenv("{}".buffer) != null
+const Observed = #run readEnvironment()
+#main {{ Swag.print("body=", Observed, "\n") }}
+)", declaration, variable)));
+    SWC_RESULT(run(false, true, "body=false"));
+    SWC_RESULT(run(true, false, "body=true"));
+    SWC_RESULT(run(false, false, "body=false"));
+
+    SWC_RESULT(directory.write("modules/app/module.swg", std::format(R"(
+{}
+#run
+{{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.name = getenv("{}".buffer) == null ? "without-setup-env" : "with-setup-env"
+}}
+)", declaration, variable)));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", "#main { Swag.print(\"setup executable\\n\") }\n"));
+    SWC_RESULT(run(false, true, "without-setup-env"));
+    SWC_RESULT(run(true, false, "with-setup-env"));
+    SWC_RESULT(run(true, false, "with-setup-env", true));
+    SWC_RESULT(run(false, false, "without-setup-env", true));
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObjects)
 {
     const LinkerTestDirectory directory("elf_function_cache");

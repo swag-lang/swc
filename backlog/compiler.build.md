@@ -530,9 +530,12 @@ before relying on them.
   omits a discovered `#include` is rebuilt. Over seven Linux Release pairs, the median
   unchanged `gui1` build went from 20 ms to 21 ms. Builds that report warnings leave no
   reusable manifest, so subsequent `run` and `test` commands report the same warnings.
-  Actual `write` and `WriteFile` calls from compiler-thread JIT execution prevent publication
-  of the corresponding setup snapshot or workspace manifest. A setup write still runs before
-  an unchanged native artifact is reused. Other external effects need their own tracking.
+  Compiler-thread JIT writes and environment reads through the guarded platform APIs
+  prevent publication of the corresponding setup snapshot or workspace manifest. On Linux
+  setting an environment variable updates both the setup-selected executable name and a
+  value calculated during compilation. Stable setup results still allow native artifact
+  reuse. A direct file read through `fopen` and `fgetc` can still reuse a stale value after
+  an edit to the external file. Guard foreign dependencies outside tracked compiler inputs.
   A prototype reused an analyzed short integer expression after a caller edit and missed
   after a body edit. None of the bodies in `gui1` or the PNG script met its closed-expression
   proof, so it is not merged.

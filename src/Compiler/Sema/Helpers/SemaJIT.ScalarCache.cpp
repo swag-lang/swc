@@ -364,7 +364,7 @@ namespace SemaJIT::ScalarCache
     Utf8 buildKey(Sema& sema, const SymbolFunction& evaluator, AstNodeRef ref, const TypeRef resultType)
     {
         const auto& command = sema.ctx().cmdLine();
-        if (sema.compiler().isModuleSetupMode() || sema.compiler().jitWroteOutput() ||
+        if (sema.compiler().isModuleSetupMode() || sema.compiler().jitHasUntrackedEffects() ||
             !sema.node(ref).is(AstNodeId::CallExpr) || command.optimizerStats || sema.buildCfgBackend().debugInfo || compilerCacheIdentity().empty())
             return {};
 #if SWC_DEV_MODE

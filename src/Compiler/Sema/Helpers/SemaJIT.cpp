@@ -348,7 +348,7 @@ namespace
 
         if (pendingEntry.payload.constCallCacheKey)
             cacheConstCallResult(sema, std::move(*pendingEntry.payload.constCallCacheKey), cstRef);
-        if (!pendingEntry.scalarRunKey.empty() && !sema.ctx().hasWarning() && !sema.compiler().jitWroteOutput() &&
+        if (!pendingEntry.scalarRunKey.empty() && !sema.ctx().hasWarning() && !sema.compiler().jitHasUntrackedEffects() &&
             Stats::get().numWarnings.load(std::memory_order_relaxed) == pendingEntry.scalarRunWarningsBefore)
             SemaJIT::ScalarCache::write(pendingEntry.scalarRunKey, pendingEntry.payload.resultStorage.span());
     }

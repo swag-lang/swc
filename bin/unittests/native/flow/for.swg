@@ -25,7 +25,7 @@ impl CountedLoop
 
 impl FixedCountedLoop
 {
-    mtd opCount() => 4'u64
+    mtd opCount() => 4_u64
 }
 
 impl StringRefIndexBox
@@ -79,8 +79,10 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     {
         var x = i
         discard x
-        if first == -1 do
+        if first == -1
+        {
             first = cast(s32, i)
+        }
         last = cast(s32, i)
         sum  += cast(s32, i)
     }
@@ -219,22 +221,28 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     var count       = 0
     var first:  u64 = 0
     var second: u64 = 0
-    for i in 0xFFFF_FFFF_FFFF_FFFF'u64 to 0xFFFF_FFFF_FFFF_FFFF'u64
+    for i in 0xFFFF_FFFF_FFFF_FFFF_u64 to 0xFFFF_FFFF_FFFF_FFFF_u64
     {
-        if count == 0 do
+        if count == 0
+        {
             first = i
+        }
         else
         {
-            if count == 1 do
+            if count == 1
+            {
                 second = i
+            }
         }
         count += 1
-        if count > 1 do
+        if count > 1
+        {
             break
+        }
     }
 
     Swag.require(count == 1)
-    Swag.require(first == 0xFFFF_FFFF_FFFF_FFFF'u64)
+    Swag.require(first == 0xFFFF_FFFF_FFFF_FFFF_u64)
     Swag.require(second == 0)
 }
 
@@ -242,7 +250,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
 {
     var count      = 0
     var first: u64 = 42
-    for i in 0xFFFF_FFFF_FFFF_FFFF'u64
+    for i in 0xFFFF_FFFF_FFFF_FFFF_u64
     {
         first = i
         count += 1
@@ -274,8 +282,10 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     {
         var x = i
         discard x
-        if first == -1 do
+        if first == -1
+        {
             first = cast(s32, i)
+        }
         last = cast(s32, i)
         sum  += cast(s32, i)
     }
@@ -293,8 +303,10 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     {
         var x = i
         discard x
-        if first == -1 do
+        if first == -1
+        {
             first = cast(s32, i)
+        }
         last = cast(s32, i)
         sum  += cast(s32, i)
     }
@@ -325,11 +337,15 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     var count0 = 0
     var count1 = 0
 
-    for value0 do
+    for value0
+    {
         count0 += 1
+    }
 
-    for value1 do
+    for value1
+    {
         count1 += 1
+    }
 
     Swag.require(count0 == 4)
     Swag.require(count1 == 0)
@@ -341,11 +357,15 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     var count = 0
     var sum   = 0
 
-    for value do
+    for value
+    {
         count += 1
+    }
 
-    for i in value.count do
+    for i in value.count
+    {
         sum += cast(s32, i)
+    }
 
     Swag.require(count == 4)
     Swag.require(sum == 6)
@@ -390,8 +410,10 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     {
         var x = i
         discard x
-        if first == -1 do
+        if first == -1
+        {
             first = cast(s32, i)
+        }
         last  = cast(s32, i)
         count += 1
     }
@@ -530,16 +552,20 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    for 3 do
+    for 3
+    {
         count += 1
+    }
     Swag.require(count == 3)
 }
 
 #test
 {
     var sum = 0
-    for i in 3 do
+    for i in 3
+    {
         sum += cast(s32, i)
+    }
     Swag.require(sum == 3)
 }
 
@@ -637,8 +663,10 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
 {
     var box = StringRefIndexBox{rows: ["10110", "00100"]}
     var sum = 0
-    for i in box[0].count do
+    for i in box[0].count
+    {
         sum += cast(s32, i)
+    }
 
     Swag.require(sum == 10)
 }

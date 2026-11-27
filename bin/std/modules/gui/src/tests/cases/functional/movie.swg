@@ -54,9 +54,13 @@ using Core, Pixel
 
     // The independent WebP decoder places this frame's blue square in the lower left.
     // Disposal clears the rest of the canvas, including the upper-left pixel.
-    for y in 4 do
-        for x in 4 do
+    for y in 4
+    {
+        for x in 4
+        {
             Swag.require(movie.frame.pixelColor(x, y).argb == (x < 2 and y >= 2 ? 0xFF0000FF : 0))
+        }
+    }
 
     movie.setFrameIndex(0)
     Swag.require(movie.frameIndex == 0 and movie.frame.pixelColor(0, 0).r == 255)

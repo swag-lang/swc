@@ -45,8 +45,10 @@ func triangleContainsPoint(point, a, b, c: Vector2)->bool
 
         let direction = end - start
         let offset    = point - start
-        if span == 0 do
+        if span == 0
+        {
             return point.x == start.x and point.y == start.y
+        }
 
         return direction.cross(offset) == 0 and
                offset.dot(direction) >= 0 and
@@ -91,19 +93,25 @@ func distanceFromPointToLine(point, lineStart, lineEnd: Vector2)->f32
 func distanceFromPointToSegment(point, segmentStart, segmentEnd: Vector2)->f32
 {
     let direction = segmentEnd - segmentStart
-    if Math.isZeroEpsilon(direction.lengthSquared(), ConstF32.Epsilon * ConstF32.Epsilon) do
+    if Math.isZeroEpsilon(direction.lengthSquared(), ConstF32.Epsilon * ConstF32.Epsilon)
+    {
         return (point - segmentStart).length()
+    }
 
     let fromEnd   = point - segmentEnd
     let fromStart = point - segmentStart
 
     let endProjection = direction.dot(fromEnd)
-    if endProjection > 0 do
+    if endProjection > 0
+    {
         return fromEnd.length()
+    }
 
     let startProjection = direction.dot(fromStart)
-    if startProjection < 0 do
+    if startProjection < 0
+    {
         return fromStart.length()
+    }
 
     // The projection falls inside the segment: the parallelogram area over the base length is
     // the height.
@@ -144,7 +152,7 @@ func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, se
 
     if a <= epsilonSquared
     {
-        let t = Math.clamp(e / c, 0'f32, 1'f32)
+        let t = Math.clamp(e / c, 0_f32, 1_f32)
         result.first    = firstStart
         result.second   = secondStart + t * q1q0
         result.distance = (result.first - result.second).length()
@@ -153,7 +161,7 @@ func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, se
 
     if c <= epsilonSquared
     {
-        let s = Math.clamp(-d / a, 0'f32, 1'f32)
+        let s = Math.clamp(-d / a, 0_f32, 1_f32)
         result.first    = firstStart + s * p1p0
         result.second   = secondStart
         result.distance = (result.first - result.second).length()
@@ -173,12 +181,16 @@ func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, se
             {
                 t = 0
                 let nd = -d
-                if nd >= a do
+                if nd >= a
+                {
                     s = 1
-                elif nd > 0 do
+                }
+                else if nd > 0
+                {
                     s = nd / a
+                }
             }
-            elif e < c
+            else if e < c
             {
                 t = e / c
             }
@@ -186,10 +198,14 @@ func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, se
             {
                 t = 1
                 let bmd = b - d
-                if bmd >= a do
+                if bmd >= a
+                {
                     s = 1
-                elif bmd > 0 do
+                }
+                else if bmd > 0
+                {
                     s = bmd / a
+                }
             }
         }
         else
@@ -203,12 +219,16 @@ func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, se
                 {
                     t = 0
                     let nd = -d
-                    if nd <= 0 do
+                    if nd <= 0
+                    {
                         s = 0
-                    elif nd < a do
+                    }
+                    else if nd < a
+                    {
                         s = nd / a
+                    }
                 }
-                elif bpe < c
+                else if bpe < c
                 {
                     t = bpe / c
                 }
@@ -216,10 +236,14 @@ func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, se
                 {
                     t = 1
                     let bmd = b - d
-                    if bmd <= 0 do
+                    if bmd <= 0
+                    {
                         s = 0
-                    elif bmd < a do
+                    }
+                    else if bmd < a
+                    {
                         s = bmd / a
+                    }
                 }
             }
             else
@@ -230,12 +254,18 @@ func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, se
                 {
                     t = 0
                     let nd = -d
-                    if nd <= 0 do
+                    if nd <= 0
+                    {
                         s = 0
-                    elif nd >= a do
+                    }
+                    else if nd >= a
+                    {
                         s = 1
-                    else do
+                    }
+                    else
+                    {
                         s = nd / a
+                    }
                 }
                 else
                 {
@@ -244,12 +274,18 @@ func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, se
                     {
                         t = 1
                         let bmd = b - d
-                        if bmd <= 0 do
+                        if bmd <= 0
+                        {
                             s = 0
-                        elif bmd >= a do
+                        }
+                        else if bmd >= a
+                        {
                             s = 1
-                        else do
+                        }
+                        else
+                        {
                             s = bmd / a
+                        }
                     }
                     else
                     {
@@ -266,23 +302,35 @@ func closestPointsBetweenSegments(firstStart, firstEnd: Vector2, secondStart, se
         {
             t = 0
             let nd = -d
-            if nd <= 0 do
+            if nd <= 0
+            {
                 s = 0
-            elif nd >= a do
+            }
+            else if nd >= a
+            {
                 s = 1
-            else do
+            }
+            else
+            {
                 s = nd / a
+            }
         }
-        elif e >= c
+        else if e >= c
         {
             t = 1
             let bmd = b - d
-            if bmd <= 0 do
+            if bmd <= 0
+            {
                 s = 0
-            elif bmd >= a do
+            }
+            else if bmd >= a
+            {
                 s = 1
-            else do
+            }
+            else
+            {
                 s = bmd / a
+            }
         }
         else
         {
@@ -312,8 +360,10 @@ private func lineIntersectionFactors(start0, end0, start1, end1: Vector2, epsilo
                       (end1.x - start1.x) * (end0.y - start0.y)
 
     // Parallel or coincident lines have no single crossing.
-    if denominator == 0 or Math.abs(denominator) < epsilon do
+    if denominator == 0 or Math.abs(denominator) < epsilon
+    {
         return result
+    }
 
     result.intersects   = true
     result.firstFactor  = firstNumerator / denominator
@@ -331,8 +381,10 @@ func intersectLines(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32
     var result: #returntype
 
     let {intersects, firstFactor, secondFactor: _} = lineIntersectionFactors(start0, end0, start1, end1, epsilon)
-    if not intersects do
+    if not intersects
+    {
         return result
+    }
 
     result.intersects = true
     result.point.x    = start0.x + firstFactor * (end0.x - start0.x)
@@ -413,8 +465,10 @@ func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
 
         let overlapStart = Math.max(a0, b0)
         let overlapEnd   = Math.min(a1, b1)
-        if overlapStart > overlapEnd + epsilon do
+        if overlapStart > overlapEnd + epsilon
+        {
             return result
+        }
 
         let denom  = useHorizontalAxis ? r.x : r.y
         let origin = useHorizontalAxis ? start0.x : start0.y
@@ -426,14 +480,18 @@ func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
     }
 
     let {intersects, firstFactor, secondFactor} = lineIntersectionFactors(start0, end0, start1, end1, epsilon)
-    if not intersects do
+    if not intersects
+    {
         return result
+    }
 
     if firstFactor < -epsilon or
        firstFactor > 1 + epsilon or
        secondFactor < -epsilon or
-       secondFactor > 1 + epsilon do
+       secondFactor > 1 + epsilon
+    {
         return result
+    }
 
     result.intersects = true
     result.point.x    = start0.x + firstFactor * (end0.x - start0.x)
@@ -446,10 +504,12 @@ func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
 // The last vertex connects back to the first, and a self-intersecting polygon follows the
 // even-odd rule. A point exactly on an edge may land on either side, and an empty polygon
 // contains nothing. This is the PNPoly algorithm by W. Randolph Franklin.
-func polygonContainsPoint(polygon: Array'Math.Vector2, point: Math.Vector2)->bool
+func polygonContainsPoint(polygon: Array!{Math.Vector2}, point: Math.Vector2)->bool
 {
-    if polygon.isEmpty() do
+    if polygon.isEmpty()
+    {
         return false
+    }
 
     // A horizontal ray leaving the point crosses the outline an odd number of times exactly
     // when the point is inside, so every crossed edge flips the answer.
@@ -463,8 +523,10 @@ func polygonContainsPoint(polygon: Array'Math.Vector2, point: Math.Vector2)->boo
         {
             let crossingX = (previousVertex.x - vertex.x) * (point.y - vertex.y) /
                             (previousVertex.y - vertex.y) + vertex.x
-            if point.x < crossingX do
+            if point.x < crossingX
+            {
                 contains = not contains
+            }
         }
 
         previous = index

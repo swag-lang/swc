@@ -11,7 +11,7 @@ var MethodReads: s32
 func reflectedMethod()->const *void?
 {
     MethodReads += 1
-    let info = cast(const *Swag.TypeInfoStruct, #type DeferredMethodProbe's32)
+    let info = cast(const *Swag.TypeInfoStruct, #type DeferredMethodProbe!{s32})
     return info.methods![0].value
 }
 
@@ -29,15 +29,19 @@ impl DeferredMethodProbe
 
 func callDeferredMethod()->bool
 {
-    var probe = DeferredMethodProbe's32{value: 42}
-    if probe.get() != 42 do
+    var probe = DeferredMethodProbe!{s32}{value: 42}
+    if probe.get() != 42
+    {
         return false
+    }
 
     // Reuse the already JIT-compiled reader after the method acquires an address.
     let pointer = reflectedMethod()
-    if pointer == null do
+    if pointer == null
+    {
         return false
-    let method = cast(func(const *DeferredMethodProbe's32)->s32, pointer)
+    }
+    let method = cast(func(const *DeferredMethodProbe!{s32})->s32, pointer)
     return method(&probe) == 42
 }
 

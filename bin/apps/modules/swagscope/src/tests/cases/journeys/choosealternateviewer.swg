@@ -18,8 +18,11 @@ using Core, Gui, Pixel
     Swag.require(window.choices[window.activeChoiceIndex].key == "text")
 
     var hexIndex = Swag.U32.Max
-    for choice, index in window.choices where choice.key == "hex" do
+    for choice, index in window.choices where choice.key == "hex"
+    {
         hexIndex = cast(u32, index)
+    }
+
     Swag.require(hexIndex != Swag.U32.Max)
     window.selectViewer(hexIndex)
     journey.waitFor("hex viewer", func|window|()->bool => window.choices[window.activeChoiceIndex].key == "hex")

@@ -34,13 +34,13 @@ func negate8(values: [*] s8, index: u64)
                  unsigned64[2] == 0x7FFFFFFFFFFFFFFF and
                  unsigned64[3] == 0xFFFFFFFFFFFFFFFF)
 
-    var signed64: [4] s64 = [0, 1, -1, -9223372036854775808's64]
+    var signed64: [4] s64 = [0, 1, -1, -9223372036854775808_s64]
     negate64(&signed64[0], 1)
     negate64(&signed64[0], 3)
     Swag.require(signed64[0] == 0 and
                  signed64[1] == -1 and
                  signed64[2] == -1 and
-                 signed64[3] == -9223372036854775808's64)
+                 signed64[3] == -9223372036854775808_s64)
 
     var unsigned32: [4] u32 = [0, 1, 0x80000000, 0xFFFFFFFF]
     complement32(&unsigned32[0], 1)
@@ -50,8 +50,8 @@ func negate8(values: [*] s8, index: u64)
                  unsigned32[2] == 0x80000000 and
                  unsigned32[3] == 0)
 
-    var signed8: [4] s8 = [0, 1, -1, -128's8]
+    var signed8: [4] s8 = [0, 1, -1, -128_s8]
     negate8(&signed8[0], 1)
     negate8(&signed8[0], 3)
-    Swag.require(signed8[0] == 0 and signed8[1] == -1 and signed8[2] == -1 and signed8[3] == -128's8)
+    Swag.require(signed8[0] == 0 and signed8[1] == -1 and signed8[2] == -1 and signed8[3] == -128_s8)
 }

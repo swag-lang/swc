@@ -743,6 +743,98 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenVecClmulXor(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 5);
+
+        SWC_RESULT(SemaCheck::isConstant(codeGen.sema(), children[3]));
+        SWC_RESULT(SemaCheck::isConstant(codeGen.sema(), children[4]));
+        const SemaNodeView firstView  = codeGen.viewTypeConstant(children[3]);
+        const SemaNodeView secondView = codeGen.viewTypeConstant(children[4]);
+        const auto first             = static_cast<uint8_t>(firstView.cst()->getIntLike().as64());
+        const auto second            = static_cast<uint8_t>(secondView.cst()->getIntLike().as64());
+
+        const MicroReg value  = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg factor = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
+        const MicroReg addend = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2]), MicroOpBits::B64);
+        const bool quad = node.intrinsicId == TokenId::IntrinsicVecClmul2XorQuad;
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, value, (quad ? 8 : 4) * sizeof(uint64_t)));
+        codeGen.builder().emitVecClmulXor(value, factor, addend, first, second, quad);
+        return Result::Continue;
+    }
+
+    Result codeGenX64ReadXcr0(CodeGen& codeGen)
+    {
+        constexpr MicroReg eax = MicroReg::intReg(0);
+        constexpr MicroReg ecx = MicroReg::intReg(2);
+        MicroBuilder& builder  = codeGen.builder();
+        builder.emitLoadRegImm(ecx, ApInt(uint64_t{0}, 32), MicroOpBits::B32);
+        builder.emitXGetBv();
+
+        CodeGenNodePayload& result = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        result.reg                 = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(result.reg, eax, MicroOpBits::B32);
+        return Result::Continue;
+    }
+
+    Result codeGenX64CpuId(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 3);
+
+        const MicroReg output = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg leaf = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B32);
+        const MicroReg subleaf = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2]), MicroOpBits::B32);
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, output, 4 * sizeof(uint32_t)));
+
+        constexpr MicroReg eax = MicroReg::intReg(0);
+        constexpr MicroReg ebx = MicroReg::intReg(1);
+        constexpr MicroReg ecx = MicroReg::intReg(2);
+        constexpr MicroReg edx = MicroReg::intReg(3);
+        MicroBuilder& builder = codeGen.builder();
+        builder.emitLoadRegReg(eax, leaf, MicroOpBits::B32);
+        builder.emitLoadRegReg(ecx, subleaf, MicroOpBits::B32);
+        builder.emitCpuId();
+        builder.emitLoadMemReg(output, 0, eax, MicroOpBits::B32);
+        builder.emitLoadMemReg(output, 4, ebx, MicroOpBits::B32);
+        builder.emitLoadMemReg(output, 8, ecx, MicroOpBits::B32);
+        builder.emitLoadMemReg(output, 12, edx, MicroOpBits::B32);
+        return Result::Continue;
+    }
+
+    Result codeGenMulWide(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 3 || children.size() == 5);
+
+        const size_t   addendCount = children.size() - 3;
+        const MicroReg left        = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg right       = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
+        const MicroReg high        = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2 + addendCount]), MicroOpBits::B64);
+        std::array<MicroReg, 2> addends{};
+        for (size_t index = 0; index < addendCount; ++index)
+            addends[index] = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2 + index]), MicroOpBits::B64);
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, high, sizeof(uint64_t)));
+
+        constexpr MicroReg rax     = MicroReg::intReg(0);
+        constexpr MicroReg rdx     = MicroReg::intReg(3);
+        MicroBuilder&      builder = codeGen.builder();
+        builder.emitLoadRegReg(rax, left, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(rax, right, MicroOp::MultiplyWideUnsigned, MicroOpBits::B64);
+        for (size_t index = 0; index < addendCount; ++index)
+        {
+            builder.emitOpBinaryRegReg(rax, addends[index], MicroOp::Add, MicroOpBits::B64);
+            builder.emitAddCarryRegImm(rdx, 0, MicroOpBits::B64);
+        }
+        builder.emitLoadMemReg(high, 0, rdx, MicroOpBits::B64);
+
+        CodeGenNodePayload& result = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        result.reg                 = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(result.reg, rax, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
     Result codeGenPrefetch(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
         const AstNodeRef argumentRef = codeGen.ast().oneNode(node.spanChildrenRef);
@@ -2371,6 +2463,46 @@ namespace
                 return Result::Continue;
             }
 
+            case TokenId::IntrinsicVecSha1Schedule1:
+            case TokenId::IntrinsicVecSha1Schedule2:
+            case TokenId::IntrinsicVecSha1NextE:
+            case TokenId::IntrinsicVecSha1Rounds4:
+            case TokenId::IntrinsicVecSha256Schedule1:
+            case TokenId::IntrinsicVecSha256Schedule2:
+            case TokenId::IntrinsicVecSha256Rounds2:
+            {
+                MicroOp shaOp;
+                switch (tokId)
+                {
+                    case TokenId::IntrinsicVecSha1NextE:     shaOp = MicroOp::VecSha1NextE; break;
+                    case TokenId::IntrinsicVecSha1Schedule1: shaOp = MicroOp::VecSha1Schedule1; break;
+                    case TokenId::IntrinsicVecSha1Schedule2: shaOp = MicroOp::VecSha1Schedule2; break;
+                    case TokenId::IntrinsicVecSha256Schedule1: shaOp = MicroOp::VecSha256Schedule1; break;
+                    case TokenId::IntrinsicVecSha256Schedule2: shaOp = MicroOp::VecSha256Schedule2; break;
+                    case TokenId::IntrinsicVecSha256Rounds2: shaOp = MicroOp::VecSha256Rounds2; break;
+                    case TokenId::IntrinsicVecSha1Rounds4:
+                    {
+                        SWC_RESULT(SemaCheck::isConstant(codeGen.sema(), children[2]));
+                        const SemaNodeView phaseView = codeGen.viewTypeConstant(children[2]);
+                        const uint8_t      phase     = static_cast<uint8_t>(phaseView.cst()->getIntLike().as64()) & 3;
+                        shaOp = static_cast<MicroOp>(static_cast<uint8_t>(MicroOp::VecSha1Rounds4Phase0) + phase);
+                        break;
+                    }
+                    default: SWC_UNREACHABLE();
+                }
+
+                const MicroReg      leftReg       = loadArg(0);
+                const MicroReg      rightReg      = loadArg(1);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                resultPayload.reg                 = codeGen.nextVirtualFloatRegister();
+                if (shaOp == MicroOp::VecSha256Rounds2)
+                    builder.emitLoadRegReg(MicroReg::floatReg(0), loadArg(2), MicroOpBits::B128);
+                builder.emitLoadRegReg(resultPayload.reg, leftReg, MicroOpBits::B128);
+                builder.emitOpBinaryRegReg(resultPayload.reg, rightReg, shaOp, MicroOpBits::B128);
+                outHandled = true;
+                return Result::Continue;
+            }
+
             case TokenId::IntrinsicVecSad:
             {
                 const MicroReg      leftReg       = loadArg(0);
@@ -2433,6 +2565,13 @@ namespace
                 break;
 
             case TokenId::IntrinsicMulAdd:
+                isMulAdd = true;
+                break;
+
+            case TokenId::IntrinsicVecMultiplyAdd52Low:
+            case TokenId::IntrinsicVecMultiplyAdd52High:
+                SWC_ASSERT(laneBits == 64 && laneCount == 2 && !floatLanes);
+                op = tokId == TokenId::IntrinsicVecMultiplyAdd52Low ? MicroOp::VecMultiplyAdd52Low : MicroOp::VecMultiplyAdd52High;
                 isMulAdd = true;
                 break;
 
@@ -2504,6 +2643,23 @@ namespace
                 op = MicroOp::VecMaddUBS16;
                 break;
 
+            case TokenId::IntrinsicVecAesEncryptRound:
+                op = MicroOp::VecAesEncryptRound;
+                break;
+            case TokenId::IntrinsicVecAesEncryptLastRound:
+                op = MicroOp::VecAesEncryptLastRound;
+                break;
+            case TokenId::IntrinsicVecAesDecryptRound:
+                op = MicroOp::VecAesDecryptRound;
+                break;
+            case TokenId::IntrinsicVecAesDecryptLastRound:
+                op = MicroOp::VecAesDecryptLastRound;
+                break;
+            case TokenId::IntrinsicVecAesInverseMixColumns:
+                op      = MicroOp::VecAesInverseMixColumns;
+                isUnary = true;
+                break;
+
             case TokenId::IntrinsicVecPerm:
                 op = MicroOp::VecPermB;
                 break;
@@ -2557,7 +2713,8 @@ namespace
             const MicroReg aReg = loadArg(0);
             const MicroReg bReg = loadArg(1);
             const MicroReg cReg = loadArg(2);
-            const MicroOp  op   = laneBits == 32 ? MicroOp::VecMultiplyAddF32 : MicroOp::VecMultiplyAddF64;
+            if (tokId == TokenId::IntrinsicMulAdd)
+                op = laneBits == 32 ? MicroOp::VecMultiplyAddF32 : MicroOp::VecMultiplyAddF64;
             builder.emitLoadRegReg(resultPayload.reg, aReg, MicroOpBits::B128);
             builder.emitOpTernaryRegRegReg(resultPayload.reg, bReg, cReg, op, MicroOpBits::B128);
             outHandled = true;
@@ -2704,6 +2861,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
         case TokenId::IntrinsicMulAdd:
             return codeGenMulAdd(codeGen, *this);
+        case TokenId::IntrinsicMulWide:
+            return codeGenMulWide(codeGen, *this);
 
         case TokenId::IntrinsicFloor:
             return codeGenFloatRoundIntrinsic(codeGen, *this, FloatRoundKind::Floor);
@@ -2724,6 +2883,15 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenMemCmpIntrinsic(codeGen, *this);
         case TokenId::IntrinsicPrefetch:
             return codeGenPrefetch(codeGen, *this);
+        case TokenId::IntrinsicVecClmul2XorPair:
+        case TokenId::IntrinsicVecClmul2XorQuad:
+            return codeGenVecClmulXor(codeGen, *this);
+
+        case TokenId::IntrinsicX64ReadXcr0:
+            return codeGenX64ReadXcr0(codeGen);
+
+        case TokenId::IntrinsicX64CpuId:
+            return codeGenX64CpuId(codeGen, *this);
 
         case TokenId::IntrinsicAtomicAdd:
             return codeGenAtomicBinaryRmw(codeGen, *this, MicroOp::Add);

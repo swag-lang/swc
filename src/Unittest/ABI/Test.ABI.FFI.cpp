@@ -891,13 +891,13 @@ alias NativeFloatCallback = func(u64, u64, u64, u64, f32, u64)->u64
 #[Swag.CallingConvention(.C)]
 func probeFloatInbound(a: u64, b: u64, c: u64, d: u64, ratio: f32, tail: u64)->u64
 {
-    return a == 11 and b == 22 and c == 33 and d == 44 and ratio == 2.0'f32 and tail == 55 ? 12345 : 0
+    return a == 11 and b == 22 and c == 33 and d == 44 and ratio == 2.0_f32 and tail == 55 ? 12345 : 0
 }
 
 #[Swag.CallingConvention(.C)]
 func probeFloatOutbound(target: NativeFloatCallback)->u64
 {
-    return target(11, 22, 33, 44, 2.0'f32, 55)
+    return target(11, 22, 33, 44, 2.0_f32, 55)
 }
 
 #[Swag.CallingConvention(.C)]
@@ -909,7 +909,7 @@ struct NativeFloatVtbl
 #[Swag.CallingConvention(.C)]
 func probeFloatVtbl(vtbl: *NativeFloatVtbl)->u64
 {
-    return vtbl.invoke(11, 22, 33, 44, 2.0'f32, 55)
+    return vtbl.invoke(11, 22, 33, 44, 2.0_f32, 55)
 }
 
 var GProbePairReg: NativePairReg = &probePairReg

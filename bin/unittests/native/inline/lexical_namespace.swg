@@ -56,8 +56,10 @@ namespace CallSpace
 
     #test
     {
-        for value in [0's32, 1, 35, 100] do
+        for value in [0_s32, 1, 35, 100]
+        {
             Swag.require(runtime(value) == 2 * (value + 7))
+        }
     }
 
 }

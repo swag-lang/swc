@@ -37,9 +37,11 @@ func sumAcrossGather(base: const [*] s32)->f64
 
 #test
 {
-    for i in 12 do
+    for i in 12
+    {
         g_Values[i] = cast(f64, i + 1)
+    }
 
-    let table = [10's32, 20, 30, 40]
+    let table = [10_s32, 20, 30, 40]
     Swag.require(sumAcrossGather(table.buffer) == 78.0 + 30.0)
 }

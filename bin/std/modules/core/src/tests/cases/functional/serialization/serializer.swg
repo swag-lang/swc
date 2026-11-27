@@ -12,8 +12,8 @@ struct SerializerPayload
 func(T) roundTripSerializedField(value: T)->T fail
 {
     var buffer:     ConcatBuffer
-    var encoder:    Serialization.Encoder'Serialization.Write.TagBin
-    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var encoder:    Serialization.Encoder!{Serialization.Write.TagBin}
+    var decoder:    Serialization.Decoder!{Serialization.Read.TagBin}
     var serializer: Serialization.Serializer
     var stored = value
 
@@ -34,7 +34,7 @@ func(T) roundTripSerializedField(value: T)->T fail
 
 #test
 {
-    let number = expect roundTripSerializedField(42'u32)
+    let number = expect roundTripSerializedField(42_u32)
     Swag.require(number == 42)
 
     let payload = expect roundTripSerializedField(SerializerPayload{number: 7, active: true})
@@ -45,11 +45,11 @@ func(T) roundTripSerializedField(value: T)->T fail
 #test
 {
     var buffer:     ConcatBuffer
-    var encoder:    Serialization.Encoder'Serialization.Write.TagBin
-    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var encoder:    Serialization.Encoder!{Serialization.Write.TagBin}
+    var decoder:    Serialization.Decoder!{Serialization.Read.TagBin}
     var serializer: Serialization.Serializer
-    var first  = 17's32
-    var second = -9's32
+    var first  = 17_s32
+    var second = -9_s32
 
     expect serializer.startWrite(&encoder, &buffer)
     expect serializer.beginSection(.Ordered)

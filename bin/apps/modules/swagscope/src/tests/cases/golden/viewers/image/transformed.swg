@@ -33,12 +33,20 @@ private func assertTransformedImageReading(light: bool, golden: string)
     var foundMenu: *Lens.Entry?
     for &entry in results.sections[0]!.entries
     {
-        if entry.title == appStrings().cmd_ZoomIn do
+        if entry.title == appStrings().cmd_ZoomIn
+        {
             foundIn = entry
-        if entry.title == appStrings().cmd_ZoomOut do
+        }
+
+        if entry.title == appStrings().cmd_ZoomOut
+        {
             foundOut = entry
-        if entry.title == appStrings().cmd_ZoomMenu do
+        }
+
+        if entry.title == appStrings().cmd_ZoomMenu
+        {
             foundMenu = entry
+        }
     }
 
     Swag.require(foundIn != null and foundOut != null and foundMenu != null)

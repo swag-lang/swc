@@ -9,19 +9,34 @@
 func toDisplaySize(value: u64)->String
 {
     var size = value
-    if size == 1 do
+    if size == 1
+    {
         return "1 byte"
-    if size < 1024 do
+    }
+
+    if size < 1024
+    {
         return Format.toString("% bytes", size)
+    }
+
     size /= 1024
-    if size < 1024 do
+    if size < 1024
+    {
         return Format.toString("% KB", size)
+    }
+
     size /= 1024
-    if size < 1024 do
+    if size < 1024
+    {
         return Format.toString("% MB", size)
+    }
+
     size /= 1024
-    if size < 1024 do
+    if size < 1024
+    {
         return Format.toString("% GB", size)
+    }
+
     size /= 1024
     return Format.toString("% TB", size)
 }
@@ -32,14 +47,23 @@ func toDisplaySize(value: u64)->String
 func toDisplayBitrate(value: u64)->String
 {
     var rate = value
-    if rate < 1000 do
+    if rate < 1000
+    {
         return Format.toString("% bps", rate)
+    }
+
     rate /= 1000
-    if rate < 1000 do
+    if rate < 1000
+    {
         return Format.toString("% Kbps", rate)
+    }
+
     rate /= 1000
-    if rate < 1000 do
+    if rate < 1000
+    {
         return Format.toString("% Mbps", rate)
+    }
+
     rate /= 1000
     return Format.toString("% Gbps", rate)
 }
@@ -55,11 +79,20 @@ func toDisplayDuration(ms: u64)->String
     let minutes = (seconds % 3600) / 60
     let secs    = seconds % 60
 
-    if days > 0 do
+    if days > 0
+    {
         return Format.toString("%d %h %m %s", days, hours, minutes, secs)
-    if hours > 0 do
+    }
+
+    if hours > 0
+    {
         return Format.toString("%h %m %s", hours, minutes, secs)
-    if minutes > 0 do
+    }
+
+    if minutes > 0
+    {
         return Format.toString("%m %s", minutes, secs)
+    }
+
     return Format.toString("%s", secs)
 }

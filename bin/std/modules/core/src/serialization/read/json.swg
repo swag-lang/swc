@@ -3,6 +3,12 @@
 
 using Swag, Core.Errors
 
+internal struct JsonObject
+{
+    properties:  HashTable!{String, u64}
+    endPosition: u64
+}
+
 // Reads declaration-driven JSON objects independently of property order.
 //
 // Missing fields retain their initialized value and unknown properties are ignored.
@@ -13,13 +19,11 @@ public struct Json
 {
     internal
     {
-        stream:         ByteStream     // Input cursor.
-        propName:       String         // Reusable decoded property name.
-        containerKinds: [64] u8        // Zero for arrays and one for objects.
-        contentStarts:  [64] u64       // First byte inside each active object.
-        endPositions:   [64] u64       // First byte after each active object.
-        firstValues:    [64] bool      // Whether an active array has read no value yet.
-        containerDepth: u64            // Number of active array and object scopes.
+        stream:         ByteStream             // Input cursor.
+        objects:        Array!{JsonObject}     // Active object indexes, outermost first.
+        containerKinds: [64] u8                // Zero for arrays and one for objects.
+        firstValues:    [64] bool              // Whether an active array has read no value yet.
+        containerDepth: u64                    // Number of active array and object scopes.
     }
 }
 
@@ -58,8 +62,10 @@ public impl Json
 
     internal mtd expectByte(expected: u8, message: string) fail
     {
-        if .stream.readU8() != expected do
+        if .stream.readU8() != expected
+        {
             fail .getError(message)
+        }
     }
 
     internal mtd zapBlanks()
@@ -77,20 +83,28 @@ public impl Json
 
     internal mtd readHexQuad()->u32 fail
     {
-        var value = 0'u32
+        var value = 0_u32
         for 4
         {
             let c = .stream.readU8()
-            if not Latin1.isHexDigit(c) do
+            if not Latin1.isHexDigit(c)
+            {
                 fail .getError("JSON Unicode escape needs four hexadecimal digits")
+            }
 
             value <<= 4
-            if Latin1.isDigit(c) do
-                value += c - '0'u8
-            elif c <= 'F'u8 do
-                value += 10 + c - 'A'u8
-            else do
-                value += 10 + c - 'a'u8
+            if Latin1.isDigit(c)
+            {
+                value += c - '0'_u8
+            }
+            else if c <= 'F'_u8
+            {
+                value += 10 + c - 'A'_u8
+            }
+            else
+            {
+                value += 10 + c - 'a'_u8
+            }
         }
 
         return value
@@ -99,54 +113,88 @@ public impl Json
     internal mtd readUnicodeEscape()->u32 fail
     {
         let firstCodeUnit = try .readHexQuad()
-        if firstCodeUnit >= 0xDC00 and firstCodeUnit <= 0xDFFF do
+        if firstCodeUnit >= 0xDC00 and firstCodeUnit <= 0xDFFF
+        {
             fail .getError("JSON Unicode escape contains an unpaired low surrogate")
-        if firstCodeUnit < 0xD800 or firstCodeUnit > 0xDBFF do
+        }
+
+        if firstCodeUnit < 0xD800 or firstCodeUnit > 0xDBFF
+        {
             return firstCodeUnit
+        }
 
         // A high surrogate must be followed by a second Unicode escape.
-        if .stream.readU8() != '\\' or .stream.readU8() != 'u' do
+        if .stream.readU8() != '\\' or .stream.readU8() != 'u'
+        {
             fail .getError("JSON Unicode escape is missing the low surrogate")
+        }
 
         let lowSurrogate = try .readHexQuad()
-        if lowSurrogate < 0xDC00 or lowSurrogate > 0xDFFF do
+        if lowSurrogate < 0xDC00 or lowSurrogate > 0xDFFF
+        {
             fail .getError("JSON Unicode escape contains an invalid low surrogate")
+        }
 
         return 0x10000 + ((firstCodeUnit - 0xD800) << 10) + lowSurrogate - 0xDC00
     }
 
-    internal mtd readString(result: *String) fail
+    internal mtd readString(result: *String?) fail
     {
         try .expectByte('"', "JSON string is missing its opening quote")
-        result.clear()
+        if result
+        {
+            result.clear()
+        }
         while true
         {
-            let c = .stream.readU8()
-            if not c do
-                fail .getError("JSON string is missing its closing quote")
-            if c == '"' do
-                return
-            if c < 0x20 do
-                fail .getError("JSON string contains an unescaped control character")
-            if c != '\\'
+            let bytes  = .stream.remainingBytes()
+            let length = jsonPlainByteCount(bytes)
+            if length
             {
-                result.append(c)
-                continue
+                if result
+                {
+                    result.append(Swag.makeString(bytes.buffer, length))
+                }
+                .stream.advance(length)
             }
 
-            switch .stream.readU8()
+            let c = .stream.readU8()
+            if not c
             {
-            case '"':  result.append('"'u8)
-            case '\\': result.append('\\'u8)
-            case '/':  result.append('/'u8)
-            case 'b':  result.append('\b'u8)
-            case 'f':  result.append('\f'u8)
-            case 'n':  result.append('\n'u8)
-            case 'r':  result.append('\r'u8)
-            case 't':  result.append('\t'u8)
-            case 'u':  result.append(cast(rune, (try .readUnicodeEscape())))
-            default:   fail .getError("JSON string contains an unknown escape sequence")
+                fail .getError("JSON string is missing its closing quote")
             }
+
+            if c == '"'
+            {
+                return
+            }
+
+            if c < 0x20
+            {
+                fail .getError("JSON string contains an unescaped control character")
+            }
+
+            let escaped = try .readStringEscape()
+            if result
+            {
+                result.append(escaped)
+            }
+        }
+    }
+
+    private mtd readStringEscape()->rune fail
+    {
+        let c = .stream.readU8()
+        switch c
+        {
+        case '"', '\\', '/': return cast(rune, c)
+        case 'b': return '\b'
+        case 'f': return '\f'
+        case 'n': return '\n'
+        case 'r': return '\r'
+        case 't': return '\t'
+        case 'u': return cast(rune, (try .readUnicodeEscape()))
+        default:  fail .getError("JSON string contains an unknown escape sequence")
         }
     }
 
@@ -154,27 +202,35 @@ public impl Json
     {
         for c in literal
         {
-            if .stream.readU8() != c do
+            if .stream.readU8() != c
+            {
                 fail .getError("JSON literal is malformed")
+            }
         }
     }
 
     internal mtd skipNumber() fail
     {
-        if .stream.peekU8() == '-' do
+        if .stream.peekU8() == '-'
+        {
             .stream.advance()
+        }
 
         let first = .stream.peekU8()
         if first == '0'
         {
             .stream.advance()
-            if Latin1.isDigit(.stream.peekU8()) do
+            if Latin1.isDigit(.stream.peekU8())
+            {
                 fail .getError("JSON number has a leading zero")
+            }
         }
-        elif first >= '1' and first <= '9'
+        else if first >= '1' and first <= '9'
         {
-            while Latin1.isDigit(.stream.peekU8()) do
+            while Latin1.isDigit(.stream.peekU8())
+            {
                 .stream.advance()
+            }
         }
         else
         {
@@ -184,10 +240,15 @@ public impl Json
         if .stream.peekU8() == '.'
         {
             .stream.advance()
-            if not Latin1.isDigit(.stream.peekU8()) do
+            if not Latin1.isDigit(.stream.peekU8())
+            {
                 fail .getError("JSON number is missing digits after its decimal point")
-            while Latin1.isDigit(.stream.peekU8()) do
+            }
+
+            while Latin1.isDigit(.stream.peekU8())
+            {
                 .stream.advance()
+            }
         }
 
         let exponent = .stream.peekU8()
@@ -195,29 +256,40 @@ public impl Json
         {
             .stream.advance()
             let sign = .stream.peekU8()
-            if sign == '+' or sign == '-' do
+            if sign == '+' or sign == '-'
+            {
                 .stream.advance()
-            if not Latin1.isDigit(.stream.peekU8()) do
+            }
+
+            if not Latin1.isDigit(.stream.peekU8())
+            {
                 fail .getError("JSON number is missing exponent digits")
-            while Latin1.isDigit(.stream.peekU8()) do
+            }
+
+            while Latin1.isDigit(.stream.peekU8())
+            {
                 .stream.advance()
+            }
         }
     }
 
-    internal mtd skipValue(depth = 0'u32) fail
+    internal mtd skipValue(depth: u32) fail
     {
-        if depth >= 64 do
+        if depth >= 64
+        {
             fail .getError("JSON nesting is too deep")
+        }
+
         .zapBlanks()
         switch .stream.peekU8()
         {
         case '"':
-            var ignored: String
-            try .readString(&ignored)
+            try .readString(null)
 
         case '{':
             .stream.advance()
-            try .skipObjectContent(depth + 1)
+            var properties: HashTable!{String, u64}
+            try .scanObject(&properties, depth + 1)
 
         case '[':
             .stream.advance()
@@ -233,13 +305,21 @@ public impl Json
                 try .skipValue(depth + 1)
                 .zapBlanks()
                 let separator = .stream.readU8()
-                if separator == ']' do
+                if separator == ']'
+                {
                     return
-                if separator != ',' do
+                }
+
+                if separator != ','
+                {
                     fail .getError("JSON array needs a comma between values")
+                }
+
                 .zapBlanks()
-                if .stream.peekU8() == ']' do
+                if .stream.peekU8() == ']'
+                {
                     fail .getError("JSON array has a trailing comma")
+                }
             }
 
         case 't':
@@ -256,7 +336,7 @@ public impl Json
         }
     }
 
-    internal mtd skipObjectContent(depth = 0'u32) fail
+    private mtd scanObject(properties: *HashTable!{String, u64}, depth: u32) fail
     {
         .zapBlanks()
         if .stream.peekU8() == '}'
@@ -265,59 +345,73 @@ public impl Json
             return
         }
 
-        var names:   HashSet'String
-        var ignored: String
+        var name: String
         while true
         {
-            try .readString(&ignored)
-            if names.contains(ignored) do
+            try .readString(&name)
+            let property = properties.findOrAdd(name)
+            if property.value
+            {
                 fail .getError("JSON object contains a duplicate property")
-            names.add(ignored)
+            }
 
             .zapBlanks()
             try .expectByte(':', "JSON property is missing a colon after its name")
+            .zapBlanks()
+            property.value = .stream.position()
             try .skipValue(depth)
 
             .zapBlanks()
             let separator = .stream.readU8()
-            if separator == '}' do
+            if separator == '}'
+            {
                 return
-            if separator != ',' do
+            }
+
+            if separator != ','
+            {
                 fail .getError("JSON object needs a comma between properties")
+            }
+
             .zapBlanks()
-            if .stream.peekU8() == '}' do
+            if .stream.peekU8() == '}'
+            {
                 fail .getError("JSON object has a trailing comma")
+            }
         }
     }
 
     internal mtd beginObject() fail
     {
-        if .containerDepth == (.containerKinds).count do
+        if .containerDepth == (.containerKinds).count
+        {
             fail .getError("JSON nesting is too deep")
+        }
+
         .zapBlanks()
         try .expectByte('{', "JSON object is missing its opening brace")
+        let contentStart = .stream.position()
 
-        let index = .containerDepth
-        .containerKinds[index] = 1
-        .contentStarts[index]  = .stream.position()
-
-        // Validate the whole object, then rewind so fields can be requested in any order.
-        try .skipObjectContent(1)
-        .endPositions[index] = .stream.position()
-        .stream.setPosition(.contentStarts[index])
+        // Validate even unknown properties while indexing values in this object once.
+        var object: JsonObject
+        try .scanObject(&object.properties, 1)
+        object.endPosition = .stream.position()
+        .objects.add(#move object)
+        .stream.setPosition(contentStart)
+        .containerKinds[.containerDepth] = 1
         .containerDepth += 1
     }
-
-    internal mtd propertyMatches(val: TypeValue)->bool => .propName == wireFieldKey(val)
 
     // Starts reading a borrowed JSON buffer.
     mtd startRead(input: const [..] u8) fail
     {
         .stream = ByteStream.openRead(input)
-        if not Utf8.isValid(input) do
-            fail .getError("JSON document is not valid UTF-8")
-        .propName.clear()
+        .objects.clear()
         .containerDepth = 0
+        if not Utf8.isValid(input)
+        {
+            fail .getError("JSON document is not valid UTF-8")
+        }
     }
 
     // Begins an array.
@@ -325,8 +419,11 @@ public impl Json
     {
         .zapBlanks()
         try .expectByte('[', "JSON array is missing its opening bracket")
-        if .containerDepth == (.containerKinds).count do
+        if .containerDepth == (.containerKinds).count
+        {
             fail .getError("JSON nesting is too deep")
+        }
+
         let index = .containerDepth
         .containerKinds[index] = 0
         .firstValues[index]    = true
@@ -356,8 +453,10 @@ public impl Json
     mtd endRoot() fail
     {
         .zapBlanks()
-        if .stream.position() != .stream.length() do
+        if .stream.position() != .stream.length()
+        {
             fail .getError("JSON document has trailing data")
+        }
     }
 
     // Begins an object section.
@@ -366,7 +465,8 @@ public impl Json
     // Ends an object section.
     mtd endSection() fail
     {
-        .stream.setPosition(.endPositions[.containerDepth - 1])
+        .stream.setPosition(.objects.backPtr().endPosition)
+        .objects.removeBack()
         .containerDepth -= 1
     }
 
@@ -383,50 +483,25 @@ public impl Json
     // Finds a property by name in the current object.
     mtd beginElement(val: TypeValue)->bool fail
     {
-        if not .containerDepth do
+        if not .containerDepth
+        {
             fail .getError("JSON property is outside an object")
-        let index = .containerDepth - 1
-        if .containerKinds[index] != 1 do
+        }
+
+        if .containerKinds[.containerDepth - 1] != 1
+        {
             fail .getError("JSON named property is inside an array")
-
-        .stream.setPosition(.contentStarts[index])
-        .zapBlanks()
-        if .stream.peekU8() == '}' do
-            return false
-
-        // Remember the match while checking the remaining properties for duplicates.
-        var foundPosition = Swag.U64.Max
-        while true
-        {
-            try .readString(&.propName)
-            .zapBlanks()
-            try .expectByte(':', "JSON property is missing a colon after its name")
-            .zapBlanks()
-            let valuePosition = .stream.position()
-            if .propertyMatches(val)
-            {
-                if foundPosition != Swag.U64.Max do
-                    fail .getError("JSON object contains a duplicate property")
-                foundPosition = valuePosition
-            }
-
-            try .skipValue()
-            .zapBlanks()
-            let separator = .stream.readU8()
-            if separator == '}' do
-                break
-            if separator != ',' do
-                fail .getError("JSON object needs a comma between properties")
-            .zapBlanks()
         }
 
-        if foundPosition == Swag.U64.Max
+        let object   = .objects.backPtr()
+        let property = object.properties.tryFind(String.from(wireFieldKey(val)))
+        if not property
         {
-            .stream.setPosition(.endPositions[index])
+            .stream.setPosition(object.endPosition)
             return false
         }
 
-        .stream.setPosition(foundPosition)
+        .stream.setPosition(property.value)
         return true
     }
 
@@ -436,11 +511,16 @@ public impl Json
     // Begins a value, consuming the separator required by an enclosing array.
     mtd beginValue() fail
     {
-        if not .containerDepth do
+        if not .containerDepth
+        {
             return
+        }
+
         let index = .containerDepth - 1
-        if .containerKinds[index] != 0 do
+        if .containerKinds[index] != 0
+        {
             return
+        }
 
         .zapBlanks()
         if .firstValues[index]
@@ -451,8 +531,10 @@ public impl Json
 
         try .expectByte(',', "JSON array needs a comma between values")
         .zapBlanks()
-        if .stream.peekU8() == ']' do
+        if .stream.peekU8() == ']'
+        {
             fail .getError("JSON array has a trailing comma")
+        }
     }
 
     // Completes a value.
@@ -500,62 +582,92 @@ public impl Json
             {
             case f32:
                 let val = try StrConv.parseF32Invariant(token)
-                if val.eat != length or val.ovf do
+                if val.eat != length or val.ovf
+                {
                     fail .getError("JSON number cannot be represented as f32")
+                }
+
                 return val.value
 
             case f64:
                 let val = try StrConv.parseF64Invariant(token)
-                if val.eat != length or val.ovf do
+                if val.eat != length or val.ovf
+                {
                     fail .getError("JSON number cannot be represented as f64")
+                }
+
                 return val.value
 
             case s8:
                 let val = try StrConv.parseS8(token)
-                if val.eat != length or val.ovf do
+                if val.eat != length or val.ovf
+                {
                     fail .getError("JSON number cannot be represented as s8")
+                }
+
                 return val.value
 
             case s16:
                 let val = try StrConv.parseS16(token)
-                if val.eat != length or val.ovf do
+                if val.eat != length or val.ovf
+                {
                     fail .getError("JSON number cannot be represented as s16")
+                }
+
                 return val.value
 
             case s32:
                 let val = try StrConv.parseS32(token)
-                if val.eat != length or val.ovf do
+                if val.eat != length or val.ovf
+                {
                     fail .getError("JSON number cannot be represented as s32")
+                }
+
                 return val.value
 
             case s64:
                 let val = try StrConv.parseS64(token)
-                if val.eat != length or val.ovf do
+                if val.eat != length or val.ovf
+                {
                     fail .getError("JSON number cannot be represented as s64")
+                }
+
                 return val.value
 
             case u8:
                 let val = try StrConv.parseU8(token)
-                if val.eat != length or val.ovf do
+                if val.eat != length or val.ovf
+                {
                     fail .getError("JSON number cannot be represented as u8")
+                }
+
                 return val.value
 
             case u16:
                 let val = try StrConv.parseU16(token)
-                if val.eat != length or val.ovf do
+                if val.eat != length or val.ovf
+                {
                     fail .getError("JSON number cannot be represented as u16")
+                }
+
                 return val.value
 
             case u32:
                 let val = try StrConv.parseU32(token)
-                if val.eat != length or val.ovf do
+                if val.eat != length or val.ovf
+                {
                     fail .getError("JSON number cannot be represented as u32")
+                }
+
                 return val.value
 
             case u64:
                 let val = try StrConv.parseU64(token)
-                if val.eat != length or val.ovf do
+                if val.eat != length or val.ovf
+                {
                     fail .getError("JSON number cannot be represented as u64")
+                }
+
                 return val.value
             }
         }

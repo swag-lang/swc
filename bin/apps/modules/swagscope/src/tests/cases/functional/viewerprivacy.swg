@@ -111,7 +111,7 @@ using Core, Gui, Pixel
     window.queueFile(file)
     completeQueuedViewerFile(&host, window)
     Swag.require(window.recent.contains(window.currentFile))
-    let textView = assume cast(*PlainText.Panel, window.currentView)
+    let textView  = assume cast(*PlainText.Panel, window.currentView)
     let lineStart = textView.lines.offsetOfLine(file, 1, textView.encoding, textView.contentStart)
     Swag.require(textView.storeBookmark("Private bookmark", 1, lineStart))
     window.rememberExplored(root)

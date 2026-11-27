@@ -7,11 +7,17 @@ public func mousePosition()->Math.Point
     let context    = catch LinuxDesktop.ensure() { return {} }
     let connection = unwrap context.connection
     let reply      = context.xcb_query_pointer_reply(connection, context.xcb_query_pointer(connection, context.screen.root), null)
-    if not reply do
+    if not reply
+    {
         return {}
+    }
+
     defer Linux.free(reply)
-    if not reply.same_screen do
+    if not reply.same_screen
+    {
         return {}
+    }
+
     return {cast(f32, reply.root_x), cast(f32, reply.root_y)}
 }
 
@@ -20,8 +26,11 @@ public func mousePosition()->Math.Point
 // Core X11 pointer coordinates must fit signed 16-bit integers.
 public func setMousePosition(x, y: s32)
 {
-    if x < -32768 or x > 32767 or y < -32768 or y > 32767 do
+    if x < -32768 or x > 32767 or y < -32768 or y > 32767
+    {
         return
+    }
+
     let context = catch LinuxDesktop.ensure() { return; }
     catch LinuxDesktop.check(context,
                              context.xcb_warp_pointer_checked(unwrap context.connection,

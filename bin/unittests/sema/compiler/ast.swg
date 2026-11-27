@@ -114,16 +114,16 @@ impl AstStringBox
     #assert(fields.x == 42)
     #assert(fields.y == 42)
 
-    var genericBool: GenericFields'bool
+    var genericBool: GenericFields!{bool}
     #assert(#typeof(genericBool.first) == bool)
     #assert(#typeof(genericBool.second) == bool)
     #assert(#typeof(genericBool.label) == string)
 
-    var genericFloat: GenericFields'f64
+    var genericFloat: GenericFields!{f64}
     #assert(#typeof(genericFloat.first) == f64)
     #assert(#typeof(genericFloat.second) == f64)
 
-    var genericParts: GenericPartsFields'u16
+    var genericParts: GenericPartsFields!{u16}
     #assert(#typeof(genericParts.first) == u16)
     #assert(#typeof(genericParts.second) == u16)
     #assert(#typeof(genericParts.label) == string)

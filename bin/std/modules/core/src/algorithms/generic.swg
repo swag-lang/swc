@@ -18,14 +18,18 @@ func(T) swap(x, y: *T)
 #[Swag.Inline]
 func(T) orderMinMax(x, y: *T)
 {
-    if x[] > y[] do
+    if x[] > y[]
+    {
         swap(x, y)
+    }
 }
 
 // Swaps the values that `x` and `y` point to when `x` is smaller, so that `x` holds the greater one.
 #[Swag.Inline]
 func(T) orderMaxMin(x, y: *T)
 {
-    if x[] < y[] do
+    if x[] < y[]
+    {
         swap(x, y)
+    }
 }

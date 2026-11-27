@@ -58,10 +58,14 @@ func day4A()
         let secondStart = expect StrConv.toS32(r.getCapture(3))
         let secondEnd   = expect StrConv.toS32(r.getCapture(4))
 
-        if firstStart >= secondStart and firstEnd <= secondEnd do
+        if firstStart >= secondStart and firstEnd <= secondEnd
+        {
             total += 1
-        elif secondStart >= firstStart and secondEnd <= firstEnd do
+        }
+        else if secondStart >= firstStart and secondEnd <= firstEnd
+        {
             total += 1
+        }
     }
 
     Swag.assert(total == 471)

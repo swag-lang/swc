@@ -11,12 +11,15 @@ using Core, Pixel, Gui, Viewers
     let fileName = Testing.tempFilePath("scope-text-continuous-", ".txt")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 12_000 do
+    for index in 12_000
+    {
         source += Format.toString("// Line % keeps the viewport covered during a resident transition.\n", index)
+    }
+
     discard expect File.writeAllBytes(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 200, 36})
     var session  = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, session.view)
@@ -35,7 +38,7 @@ using Core, Pixel, Gui, Viewers
     completeTextReads(&host, view)
     Swag.require(view.residentStart == 0)
 
-    for ratio in [0.85'f32, 0.15'f32, 0.65'f32]
+    for ratio in [0.85_f32, 0.15_f32, 0.65_f32]
     {
         let previousStart = view.residentStart
         view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.45})

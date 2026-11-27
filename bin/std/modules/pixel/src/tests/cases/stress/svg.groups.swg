@@ -11,11 +11,17 @@ using Swag, Core
         <svg width='36' height='16'><defs><clipPath id='window'>\
         <rect width='12' height='10'/></clipPath></defs>\
         <g transform='translate(4 2)' clip-path='url(#window)' fill='lime'><g fill='red'>""")
-    for Depth do
+    for Depth
+    {
         source += "<g>"
+    }
+
     source += "<rect width='16' height='10'/>"
-    for Depth do
+    for Depth
+    {
         source += "</g>"
+    }
+
     source += """\
         </g><rect x='8' width='8' height='10'/></g>\
         <rect x='20' width='12' height='10' fill='blue'/></svg>"""
@@ -34,11 +40,17 @@ using Swag, Core
 {
     const Depth = 4096
     var source = String.from("<svg width='40' height='16'><g transform='translate(4,2)'><a>")
-    for Depth do
+    for Depth
+    {
         source += "<g><svg x='0'>"
+    }
+
     source += "<rect width='12' height='8' fill='red'/>"
-    for Depth do
+    for Depth
+    {
         source += "</svg></g>"
+    }
+
     source += "</a></g><rect x='16' width='8' height='8' fill='blue'/></svg>"
 
     let drawing = expect Svg.Drawing.parse(source.toString())

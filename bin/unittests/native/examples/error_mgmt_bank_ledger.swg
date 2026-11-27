@@ -163,8 +163,10 @@ impl Ledger
             var errOutcome: Swag.Error
             catch .transfer(op.from, op.dest, op.amount) as errOutcome
             let err = errOutcome.value()
-            if err == null do
+            if err == null
+            {
                 successes += 1
+            }
         }
         return successes
     }

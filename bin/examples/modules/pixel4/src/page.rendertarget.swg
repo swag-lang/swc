@@ -56,7 +56,7 @@ func drawRenderTargetPreviewCard(painter: *Pixel.Painter, rect: Math.Rectangle, 
     let midDst = insetRect(midRect, 18, 38, 18, 18)
     painter.drawString(midRect.x + 14, midRect.y + 12, "Rotated drawTexture", g_HelpFont, Argb.DarkSlateGray)
     painter.pushTransform()
-    painter.rotateTransform(8.0'deg, midDst.horzCenter(), midDst.vertCenter())
+    painter.rotateTransform(8.0_deg, midDst.horzCenter(), midDst.vertCenter())
     painter.drawTexture(midDst, texture)
     painter.popTransform()
 

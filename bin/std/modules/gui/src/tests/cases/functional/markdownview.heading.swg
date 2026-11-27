@@ -9,8 +9,11 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-final-heading-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 160 do
+    for index in 160
+    {
         source += Format.toString("## Section %\n\nA long paragraph keeps the reader far from the final section. This sentence repeats its content so the initial viewport cannot contain the closing heading.\n\n", index)
+    }
+
     let closingOffset = source.length
     source += "## Closing\n\nDone.\n"
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
@@ -20,12 +23,17 @@ using Swag, Core
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(720, 480)
     view.applyLayout()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
 
     Swag.require(view.revealHeading(closingOffset))
-    for 1_024 where view.isLoading() do
+    for 1_024 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     discard host.render(view)
 
     let viewport = view.scroll.paddedClientRect()
@@ -44,16 +52,25 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-reveal-block-", ".md")
     defer discard catch File.delete(fileName)
     var source: String = "# Opening\n\n"
-    for index in 12 do
+    for index in 12
+    {
         source += Format.toString("Near paragraph %, long enough to take a line of the reading column.\n\n", index)
+    }
+
     let nearOffset = source.length
     source += "The near paragraph the reader stopped on.\n\n"
-    for index in 1200 do
+    for index in 1200
+    {
         source += Format.toString("Filler paragraph %, with enough text to fill the reading column.\n\n", index)
+    }
+
     let farOffset = source.length
     source += "The far paragraph the reader stopped on.\n\n"
-    for 40 do
+    for 40
+    {
         source += "A paragraph after the far place.\n\n"
+    }
+
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -61,8 +78,11 @@ using Swag, Core
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(640, 360)
     view.applyLayout()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     discard host.render(view)
 
     // A paragraph still laid out is scrolled to, exactly as a heading is.
@@ -74,13 +94,19 @@ using Swag, Core
     discard host.render(view)
     Swag.require(view.readingOffset() == farOffset)
     Swag.require(view.blocks.count < 64, "a block jump prepares its viewport, not the preceding document")
-    for 256 where view.isLoading() do
+    for 256 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     Swag.require(view.readingOffset() == farOffset)
 
     Swag.require(view.revealBlock(nearOffset))
-    for 256 where view.isLoading() do
+    for 256 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     discard host.render(view)
     Swag.require(view.readingOffset() == nearOffset)
     Swag.require(not view.revealBlock(source.length + 10))
@@ -91,20 +117,28 @@ using Swag, Core
 #test
 {
     var source: String = "# Title\n\n"
-    for 30 do
+    for 30
+    {
         source += "A paragraph that gives the document some height.\n\n"
+    }
+
     let offset = source.length
     source += "The paragraph to return to.\n\n"
-    for 30 do
+    for 30
+    {
         source += "A paragraph after it.\n\n"
+    }
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     let view = Markdown.View.createText(&host.root, source.toString())
     view.resize(640, 360)
     view.applyLayout()
-    for 256 where view.isLoading() do
+    for 256 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     discard host.render(view)
 
     Swag.require(view.revealBlock(offset) and view.readingOffset() == offset)
@@ -125,13 +159,19 @@ using Swag, Core
     Swag.require(short.readingProgress() == 1)
 
     var source: String = "# Title\n\n"
-    for 80 do
+    for 80
+    {
         source += "A paragraph that gives the document some height.\n\n"
+    }
+
     let long = Markdown.View.createText(&host.root, source.toString())
     long.resize(640, 360)
     long.applyLayout()
-    for 256 where long.isLoading() do
+    for 256 where long.isLoading()
+    {
         host.fireTimers()
+    }
+
     discard host.render(long)
     Swag.require(long.readingProgress() == 0)
     long.scroll.setScrollPos(0, long.scroll.scrollSize.y)

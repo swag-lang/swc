@@ -111,8 +111,10 @@ struct InvalidVersion
 // catch scope ends, or retain the typed error with [[Swag.Error]] and inspect a later capture.
 func message(err: any?)->string
 {
-    if err == null do
+    if err == null
+    {
         return ""
+    }
 
     var type = Reflection.resolveAliases(Swag.kindOf(err))
     let name = type.name orelse ""
@@ -130,12 +132,16 @@ func message(err: any?)->string
 
         let structType = assume cast(const *Swag.TypeInfoStruct, type)
         let fields     = structType.fields
-        if fields.count == 0 or fields![0].offset != 0 do
+        if fields.count == 0 or fields![0].offset != 0
+        {
             break
+        }
 
         let fieldType = fields![0].pointedType
-        if fieldType == null do
+        if fieldType == null
+        {
             break
+        }
 
         type = fieldType
     }
@@ -155,10 +161,15 @@ func message(err: any?)->string
 // it into [[Core.String]] to keep it independently. A null `str` returns null.
 func mkString(str: string?)->string?
 {
-    if str == null do
+    if str == null
+    {
         return null
-    if not str.count do
+    }
+
+    if not str.count
+    {
         return ""
+    }
 
     // A foreign thread can copy a message before its first 'fail' initializes error storage.
     let context = Swag.getContext()
@@ -174,8 +185,11 @@ func mkString(str: string?)->string?
     request.size = count
     allocator.alloc(&request)
     let ptr = cast([*] u8?, request.address)
-    if not ptr do
+    if not ptr
+    {
         return null
+    }
+
     Swag.memcpy(ptr, str.buffer, count)
     return Swag.makeString(ptr, count)
 }

@@ -212,7 +212,7 @@ using Swag, Core
 
     let undo = f.capture.newUndo(.CreateForm)
 
-    with let newText = Memory.new'FormText()
+    with let newText = Memory.new!{FormText}()
     {
         .IForm.setup(f.capture)
         .IForm.setBaseForm(70, 80, 20, 25)
@@ -370,7 +370,7 @@ using Swag, Core
 
     f.capture.selection.clear()
     f.capture.selection.add(1)
-    with let model = Memory.new'FormShape()
+    with let model = Memory.new!{FormShape}()
     {
         .subKind    = .None
         .borderSize = 12
@@ -398,7 +398,7 @@ using Swag, Core
     f.capture.selection.add(0)
 
     var evt = Gui.Testing.commandState(ActionSelection.Freeze)
-    Swag.require(Gui.Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionSelection}(f.main, ActionSelection.Freeze, &evt))
     Swag.require(not evt.disabled)
 
     f.main.sendCommandEvent(ActionSelection.Freeze)
@@ -415,7 +415,7 @@ using Swag, Core
 
     // Without a capture the command is disabled and freezing does nothing.
     evt = Gui.Testing.commandState(ActionSelection.Freeze)
-    Swag.require(Gui.Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionSelection}(f.main, ActionSelection.Freeze, &evt))
     Swag.require(evt.disabled)
 
     f.main.freezeSelection(true)

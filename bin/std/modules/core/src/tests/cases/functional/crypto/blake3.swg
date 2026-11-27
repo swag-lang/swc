@@ -3,16 +3,19 @@
 
 func blake3HexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func blake3HexBytes(text: string)->Array'u8
+func blake3HexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, (blake3HexDigit(text[index]) << 4) | blake3HexDigit(text[index + 1])))
@@ -22,12 +25,15 @@ func blake3HexBytes(text: string)->Array'u8
     return result
 }
 
-func blake3Pattern(length: u64)->Array'u8
+func blake3Pattern(length: u64)->Array!{u8}
 {
     var result: #returntype
     result.resize(length)
-    for index in length do
+    for index in length
+    {
         result[index] = cast(u8, index % 251)
+    }
+
     return result
 }
 
@@ -41,7 +47,7 @@ func assertBlake3(input: const [..] u8, expected: string)
 
 func assertBlake3Output(output: const [..] u8, expected: const [..] string)
 {
-    var offset = 0'u64
+    var offset = 0_u64
     for hex in expected
     {
         let block = blake3HexBytes(hex)
@@ -107,10 +113,10 @@ func assertBlake3Output(output: const [..] u8, expected: const [..] string)
     let input = blake3Pattern(4097)
     var expected: [32] u8
     expect Hash.Blake3.compute(input.toSlice(), expected)
-    for split in [1'u64, 63, 64, 65, 1023, 1024, 1025, 2048, 4096]
+    for split in [1_u64, 63, 64, 65, 1023, 1024, 1025, 2048, 4096]
     {
         var hash   = Hash.Blake3.create()
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < input.count
         {
             let count = Math.min(split, input.count - offset)
@@ -124,8 +130,18 @@ func assertBlake3Output(output: const [..] u8, expected: const [..] string)
     }
 
     // This published vector crosses the parallel threshold and checks multi-level tree merging.
+    const LargeDigest = "bc3e3d41a1146b069abffad3c0d44860cf664390afce4d9661f7902e7943e085"
     let large = blake3Pattern(102400)
-    assertBlake3(large.toSlice(), "bc3e3d41a1146b069abffad3c0d44860cf664390afce4d9661f7902e7943e085")
+    assertBlake3(large.toSlice(), LargeDigest)
+
+    // Resume inside a chunk before feeding enough data for a worker range.
+    var hash = Hash.Blake3.create()
+    hash.update(large.toSlice()[until 1025])
+    hash.update(large.toSlice()[1025 to])
+    var streamed: [32] u8
+    expect hash.finalize(streamed)
+    let reference = blake3HexBytes(LargeDigest)
+    Swag.require(Crypto.constantTimeEqual(streamed, reference.toSlice()))
 }
 
 #test
@@ -142,11 +158,21 @@ func assertBlake3Output(output: const [..] u8, expected: const [..] string)
         "9a9286c4a56af4de975a9aa4a5c497654914d279bea60bb6d2cf7225a2fa0ff5ef56bbe4b149f3ed15860f78",
         "b4e2ad04e158e375c1e0c0b551cd7dfc82f1b155c11b6b3ed51ec9edb30d133653bb5709d1dbd55f4e1ff6"])
 
-    expect Hash.Blake3.computeKeyed(key, input.toSlice(), digest)
-    assertBlake3Output(digest, [
+    let keyed = [
         "954a2a75420c8d6547e3ba5b98d963e6fa6491addc8c023189cc519821b4a1f5f03228648fd983aef045c2fa",
         "8290934b0866b615f585149587dda2299039965328835a2b18f1d63b7e300fc76ff260b571839fe44876a4ea",
-        "e66cbac8c67694411ed7e09df51068a22c6e67d6d3dd2cca8ff12e3275384006c80f4db68023f24eebba57"])
+        "e66cbac8c67694411ed7e09df51068a22c6e67d6d3dd2cca8ff12e3275384006c80f4db68023f24eebba57"]
+    expect Hash.Blake3.computeKeyed(key, input.toSlice(), digest)
+    assertBlake3Output(digest, keyed)
+
+    for split in [1025_u64, 4096, 4097, 8193]
+    {
+        var hash = expect Hash.Blake3.createKeyed(key)
+        hash.update(input.toSlice()[until split])
+        hash.update(input.toSlice()[split to])
+        expect hash.finalize(digest)
+        assertBlake3Output(digest, keyed)
+    }
 
     expect Hash.Blake3.deriveKey(context, input.toSlice(), digest)
     assertBlake3Output(digest, [
@@ -168,4 +194,32 @@ func assertBlake3Output(output: const [..] u8, expected: const [..] string)
     var finalizeError: Swag.Error
     discard catch hash.finalize(digest) as finalizeError
     Swag.require(finalizeError.value() is Errors.BadParameterError)
+}
+
+#test
+{
+    // Check the retained final block of partial SIMD batches before and after an update.
+    let input = blake3Pattern(7169)
+    let data  = input.toSlice()
+    assertBlake3(data[until 2048], "e776b6028c7cd22a4d0ba182a8bf62205d2ef576467e838ed6f2529b85fba24a")
+    assertBlake3(data[until 2049], "5f4d72f40d7a5f82b15ca2b2e44b1de3c2ef86c426c95c1af0b6879522563030")
+    assertBlake3(data[until 3072], "b98cb0ff3623be03326b373de6b9095218513e64f1ee2edd2525c7ad1e5cffd2")
+    assertBlake3(data[until 3073], "7124b49501012f81cc7f11ca069ec9226cecb8a2c850cfe644e327d22d3e1cd3")
+    assertBlake3(data[until 7168], "61da957ec2499a95d6b8023e2b0e604ec7f6b50e80a9678b89d2628e99ada77a")
+    assertBlake3(data[until 7169], "a003fc7a51754a9b3c7fae0367ab3d782dccf28855a03d435f8cfe74605e7817")
+
+    for fixture in [
+        {split: 2048_u64, expected: "5f4d72f40d7a5f82b15ca2b2e44b1de3c2ef86c426c95c1af0b6879522563030"},
+        {split: 3072_u64, expected: "7124b49501012f81cc7f11ca069ec9226cecb8a2c850cfe644e327d22d3e1cd3"},
+        {split: 7168_u64, expected: "a003fc7a51754a9b3c7fae0367ab3d782dccf28855a03d435f8cfe74605e7817"}]
+    {
+        let split = fixture.split
+        var hash = Hash.Blake3.create()
+        hash.update(data[until split])
+        hash.update(data[split until split + 1])
+        var actual: [32] u8
+        expect hash.finalize(actual)
+        let reference = blake3HexBytes(fixture.expected)
+        Swag.require(Crypto.constantTimeEqual(actual, reference.toSlice()))
+    }
 }

@@ -83,27 +83,40 @@ impl Decoder
         var i = 1536
         while i > 0
         {
-            if .getChar() == 0xFF do
+            if .getChar() == 0xFF
+            {
                 break
+            }
+
             i -= 1
         }
 
-        if i == 0 do
+        if i == 0
+        {
             fail InvalidFormatError{"bad restart marker"}
+        }
 
         var c = 0
         while i > 0
         {
             c = .getChar()
-            if c != 0xFF do
+            if c != 0xFF
+            {
                 break
+            }
+
             i -= 1
         }
 
-        if i == 0 do
+        if i == 0
+        {
             fail InvalidFormatError{"bad restart marker"}
-        if c != (.nextRestartNum + cast(u32, Marker.M_RST0)) do
+        }
+
+        if c != (.nextRestartNum + cast(u32, Marker.M_RST0))
+        {
             fail InvalidFormatError{"bad restart marker"}
+        }
 
         Memory.clear(&.lastDcVal, cast(u64, .compsInFrame) * #sizeof(u32))
 
@@ -118,8 +131,10 @@ impl Decoder
     {
         // A short code carries its own length in the look-ahead table.
         let symbol = ph.lookUp[.entropyBits >> (64 - HuffLookupBits)]
-        if symbol < 0 do
+        if symbol < 0
+        {
             return .decodeLongHuffCode(ph, symbol, HuffLookupBits)
+        }
 
         .skipEntropyBits(symbol >> 8)
         return symbol & 0xFF
@@ -133,26 +148,72 @@ impl Decoder
         for
         {
             symbol = ph.tree[~symbol + (1 - .readEntropyBits(1))]
-            if symbol >= 0 do
+            if symbol >= 0
+            {
                 break
+            }
         }
 
         return symbol
     }
 
+    // Baseline scans keep their bit cursor in locals between entropy words.
+    #[Swag.Inline]
+    mtd skipLocalEntropyBits(bits: *u64, count: *s32, consumed: s32)
+    {
+        bits[]  <<= consumed
+        count[] -= consumed
+        if count[] < 16
+        {
+            bits[]  |= cast(u64, .readBaselineEntropyWord()) << (32 - count[])
+            count[] += 32
+        }
+    }
+
+    #[Swag.Inline]
+    mtd readLocalEntropyBits(bits: *u64, count: *s32, consumed: s32)->u32
+    {
+        let value = cast(u32, bits[] >> (64 - consumed))
+        .skipLocalEntropyBits(bits, count, consumed)
+        return value
+    }
+
+    #[Swag.NoInline]
+    mtd readLocalLongCode(table: *HuffTables, prefix, prefixBits: s32, bits: *u64, count: *s32)->s32
+    {
+        .skipLocalEntropyBits(bits, count, prefixBits)
+        var value = prefix
+        for
+        {
+            value = table.tree[~value + (1 - .readLocalEntropyBits(bits, count, 1))]
+            if value >= 0
+            {
+                return value
+            }
+        }
+    }
+
     mtd decodeNextRow() fail
     {
         let missing = .maxBlocksPerRow - .mcusPerRow * cast(s32, .blocksPerMcu)
-        if missing < 0 do
+        if missing < 0
+        {
             fail InvalidFormatError{"decode error"}
+        }
 
         var coefficients: [64] s16
         let p      = cast([*] s16, &coefficients[0])
         var sample = .safeSampleBuf()
+        var bits   = .entropyBits
+        var count  = .entropyCount
         for .mcusPerRow
         {
-            if .restartInterval and (.restartsLeft == 0) do
+            if .restartInterval and (.restartsLeft == 0)
+            {
                 try .restartProcess()
+                bits  = .entropyBits
+                count = .entropyCount
+            }
 
             for mcuBlock in .blocksPerMcu
             {
@@ -160,10 +221,22 @@ impl Decoder
                 let q          = unwrap block.quant
                 let previousDc = unwrap block.previousDc
 
-                var s = .huffDecode(unwrap block.dc)
+                let dc   = unwrap block.dc
+                let code = dc.lookUp[bits >> (64 - HuffLookupBits)]
+                var s: s32
+                if code < 0
+                {
+                    s = .readLocalLongCode(dc, code, HuffLookupBits, &bits, &count)
+                }
+                else
+                {
+                    .skipLocalEntropyBits(&bits, &count, code >> 8)
+                    s = code & 255
+                }
+
                 if s != 0
                 {
-                    s = extendSign(.readEntropyBits(s), s)
+                    s = extendSign(.readLocalEntropyBits(&bits, &count, s), s)
                 }
 
                 s += previousDc[]
@@ -174,15 +247,15 @@ impl Decoder
                 let lookup = ph.baselineAc.storage()
 
                 var k  = 1
-                var ac = 0's16
+                var ac = 0_s16
                 while k < 64
                 {
-                    let entry = lookup[.entropyBits >> (64 - BaselineAcLookupBits)]
+                    let entry = lookup[bits >> (64 - BaselineAcLookupBits)]
                     var run, amplitude: s32
                     if entry >= 1 << 24
                     {
                         // This prefix includes both the code and the amplitude bits.
-                        .skipEntropyBits(entry >> 24)
+                        .skipLocalEntropyBits(&bits, &count, entry >> 24)
                         run       = (entry >> 4) & 0x0F
                         amplitude = (entry << 8) >> 24
                     }
@@ -190,11 +263,11 @@ impl Decoder
                     {
                         if entry < 0
                         {
-                            s = .decodeLongHuffCode(ph, entry, BaselineAcLookupBits)
+                            s = .readLocalLongCode(ph, entry, BaselineAcLookupBits, &bits, &count)
                         }
                         else
                         {
-                            .skipEntropyBits(entry >> 8)
+                            .skipLocalEntropyBits(&bits, &count, entry >> 8)
                             s = entry & 0xFF
                         }
 
@@ -202,31 +275,49 @@ impl Decoder
                         s   &= 0x0F
                         if not s
                         {
-                            if run != 15 do
+                            if run != 15
+                            {
                                 break
-                            if k + 15 > 63 do
+                            }
+
+                            if k + 15 > 63
+                            {
                                 fail InvalidFormatError{"decode error"}
+                            }
+
                             k += 16
                             continue
                         }
 
-                        amplitude = extendSign(.readEntropyBits(s), s)
+                        amplitude = extendSign(.readLocalEntropyBits(&bits, &count, s), s)
                     }
 
                     k += run
-                    if k > 63 do
+                    if k > 63
+                    {
                         fail InvalidFormatError{"decode error"}
+                    }
+
                     let value = cast(s16, (amplitude * q[k]))
-                    p[Zag[k]] = value
-                    ac        |= value
-                    k         += 1
+                    p[ZigzagToTransposed[k]] = value
+                    ac |= value
+                    k  += 1
                 }
 
                 // Keep the current coefficients hot and reuse their storage for the next block.
                 if ac
                 {
-                    idctFull(p, sample)
-                    Memory.clear(p, 64'u64 * #sizeof(s16))
+                    // The first ten zigzag positions lie in the low-frequency 4x4 corner.
+                    if k <= 10
+                    {
+                        idctFull!{true}(p, sample)
+                    }
+                    else
+                    {
+                        idctFull!{false}(p, sample)
+                    }
+
+                    Memory.clear(p, 64_u64 * #sizeof(s16))
                 }
                 else
                 {
@@ -239,12 +330,17 @@ impl Decoder
             .restartsLeft -= 1
         }
 
+        .entropyBits  = bits
+        .entropyCount = count
+
         // Blocks omitted by a partial scan had zero coefficients in the row buffer.
-        if missing do
+        if missing
+        {
             Memory.set(sample, 128, cast(u64, missing) * 64)
+        }
     }
 
-    mtd decodeScanLine(destination: [*] u8? = null)->[*] u8 fail
+    mtd(Rgb: bool) decodeScanLine(destination: [*] u8? = null)->[*] u8 fail
     {
         if .mcuLinesLeft == 0
         {
@@ -257,8 +353,11 @@ impl Decoder
                 try .decodeNextRow()
             }
 
-            if .totalLinesLeft <= .maxMcuSizeY do
+            if .totalLinesLeft <= .maxMcuSizeY
+            {
                 try .findEoi()
+            }
+
             .mcuLinesLeft = .maxMcuSizeY
         }
 
@@ -271,10 +370,14 @@ impl Decoder
             {
                 let second = destination and .totalLinesLeft > 1 ?
                              first - cast(u64, .realDestBytesPerScanLine) : .scanLine1.storage()
-                if .scanType == YH2V2 do
-                    .convertH2V2(first, second)
-                else do
-                    .convertH1V2(first, second)
+                if .scanType == YH2V2
+                {
+                    .convertH2V2!{Rgb}(first, second)
+                }
+                else
+                {
+                    .convertH1V2!{Rgb}(first, second)
+                }
             }
             else
             {
@@ -282,19 +385,19 @@ impl Decoder
             }
 
         case YH2V1:
-            .convertH2V1(first)
+            .convertH2V1!{Rgb}(first)
 
         case YH1V1:
-            .convertH1V1(first)
+            .convertH1V1!{Rgb}(first)
 
         case RGBH1V1:
-            .convertRgbH1V1(first)
+            .convertRgbH1V1!{Rgb}(first)
 
         case CmykH1V1:
-            .convertCmykH1V1(first)
+            .convertCmykH1V1!{Rgb}(first)
 
         case YGeneric:
-            .convertGeneric(first)
+            .convertGeneric!{Rgb}(first)
 
         case GrayScale:
             .convertGrayscale(first)
@@ -314,7 +417,7 @@ impl Decoder
             .maxMcuSizeX     = 8
             .maxMcuSizeY     = 8
         }
-        elif .compsInFrame == 3
+        else if .compsInFrame == 3
         {
             let directRgb = (.hasAdobeMarker and .adobeTransform == 0) or
                             (not .hasAdobeMarker and not .hasJfifMarker and .compIdent[0] == 'R' and .compIdent[1] == 'G' and .compIdent[2] == 'B')
@@ -322,8 +425,10 @@ impl Decoder
             {
                 for i in 3
                 {
-                    if .compSampH[i] != 1 or .compSampV[i] != 1 do
+                    if .compSampH[i] != 1 or .compSampV[i] != 1
+                    {
                         fail UnsupportedFormatError{"JPEG direct RGB only supports 1x1 component sampling"}
+                    }
                 }
 
                 .scanType        = RGBH1V1
@@ -344,11 +449,11 @@ impl Decoder
                     .maxMcuSizeX     = 8
                     .maxMcuSizeY     = 8 * .compSampV[0]
                 }
-                elif (.compSampH[0] == 2) and
-                     (.compSampH[1] == 1) and
-                     (.compSampH[2] == 1) and
-                     (.compSampV[1] == .compSampV[0]) and
-                     (.compSampV[2] == .compSampV[0])
+                else if (.compSampH[0] == 2) and
+                        (.compSampH[1] == 1) and
+                        (.compSampH[2] == 1) and
+                        (.compSampV[1] == .compSampV[0]) and
+                        (.compSampV[2] == .compSampV[0])
                 {
                     // Some encoders group two vertical block rows without subsampling them.
                     .scanType        = YH2V1
@@ -356,24 +461,24 @@ impl Decoder
                     .maxMcuSizeX     = 16
                     .maxMcuSizeY     = 8 * .compSampV[0]
                 }
-                elif (.compSampH[0] == 1) and
-                     (.compSampV[0] == 2) and
-                     (.compSampH[1] == 1) and
-                     (.compSampV[1] == 1) and
-                     (.compSampH[2] == 1) and
-                     (.compSampV[2] == 1)
+                else if (.compSampH[0] == 1) and
+                        (.compSampV[0] == 2) and
+                        (.compSampH[1] == 1) and
+                        (.compSampV[1] == 1) and
+                        (.compSampH[2] == 1) and
+                        (.compSampV[2] == 1)
                 {
                     .scanType        = YH1V2
                     .maxBlocksPerMcu = 4
                     .maxMcuSizeX     = 8
                     .maxMcuSizeY     = 16
                 }
-                elif (.compSampH[0] == 2) and
-                     (.compSampV[0] == 2) and
-                     (.compSampH[1] == 1) and
-                     (.compSampV[1] == 1) and
-                     (.compSampH[2] == 1) and
-                     (.compSampV[2] == 1)
+                else if (.compSampH[0] == 2) and
+                        (.compSampV[0] == 2) and
+                        (.compSampH[1] == 1) and
+                        (.compSampV[1] == 1) and
+                        (.compSampH[2] == 1) and
+                        (.compSampV[2] == 1)
                 {
                     .scanType        = YH2V2
                     .maxBlocksPerMcu = 6
@@ -386,8 +491,11 @@ impl Decoder
                     let maxSamplingV = Math.max(.compSampV[0], .compSampV[1], .compSampV[2])
                     for component in 3
                     {
-                        if maxSamplingH % .compSampH[component] or maxSamplingV % .compSampV[component] do
+                        if maxSamplingH % .compSampH[component] or maxSamplingV % .compSampV[component]
+                        {
                             fail UnsupportedFormatError{"JPEG component sampling ratios must divide the MCU sampling grid"}
+                        }
+
                         .maxBlocksPerMcu += .compSampH[component] * .compSampV[component]
                     }
 
@@ -397,7 +505,7 @@ impl Decoder
                 }
             }
         }
-        elif .compsInFrame == 4
+        else if .compsInFrame == 4
         {
             // Four components are the inks of a printed page, written either as they are or with
             // their three chromatic channels carried the way luma and chroma are. Neither form
@@ -405,8 +513,10 @@ impl Decoder
             // here.
             for i in 4
             {
-                if .compSampH[i] != 1 or .compSampV[i] != 1 do
+                if .compSampH[i] != 1 or .compSampV[i] != 1
+                {
                     fail UnsupportedFormatError{Errors.mkString(Format.toString("JPEG four-component sampling of %x% is not supported", .compSampH[i], .compSampV[i]))}
+                }
             }
 
             .scanType        = CmykH1V1
@@ -419,16 +529,22 @@ impl Decoder
             fail UnsupportedFormatError{"unsupported color space"}
         }
 
-        if .maxBlocksPerMcu > MaxBlocksPerMcu do
+        if .maxBlocksPerMcu > MaxBlocksPerMcu
+        {
             fail UnsupportedFormatError{"JPEG MCU has too many blocks"}
+        }
 
         .maxMcusPerRow = (.imageSizeX + (.maxMcuSizeX - 1)) / .maxMcuSizeX
         .maxMcusPerCol = (.imageSizeY + (.maxMcuSizeY - 1)) / .maxMcuSizeY
 
-        if .scanType == GrayScale do
+        if .scanType == GrayScale
+        {
             .destBytesPerPixel = 1
-        else do
+        }
+        else
+        {
             .destBytesPerPixel = 3
+        }
 
         // Conversion writes whole MCUs, including padding at the right edge.
         .destBytesPerScanLine     = .maxMcusPerRow * .maxMcuSizeX * .destBytesPerPixel
@@ -437,8 +553,10 @@ impl Decoder
         .maxBlocksPerRow = .maxMcusPerRow * .maxBlocksPerMcu
         .totalLinesLeft  = .imageSizeY
         .mcuLinesLeft    = 0
-        if not .decOptions.decodePixels do
+        if not .decOptions.decodePixels
+        {
             return
+        }
 
         .scanLine0.resize(cast(u64, .destBytesPerScanLine) + 8)
         let scanLine0 = .scanLine0.storage()
@@ -457,11 +575,16 @@ impl Decoder
     mtd initScan()->bool fail
     {
         let res = try .locateSosMarker()
-        if not res do
+        if not res
+        {
             return false
+        }
 
-        if .progressiveFlag do
+        if .progressiveFlag
+        {
             try .validateProgressiveScan()
+        }
+
         .calcMcuBlockOrder()
         try .checkHuffTables()
         try .checkQuantTables()
@@ -502,10 +625,15 @@ impl Decoder
 
     mtd fixInBuffer()
     {
-        if .bitsLeft == 16 do
+        if .bitsLeft == 16
+        {
             .stuffChar(cast(u8, ((.bitBuf >> 16) & 0xFF)))
-        if .bitsLeft >= 8 do
+        }
+
+        if .bitsLeft >= 8
+        {
             .stuffChar(cast(u8, ((.bitBuf >> 24) & 0xFF)))
+        }
 
         .stuffChar(cast(u8, (.bitBuf & 0xFF)))
         .stuffChar(cast(u8, ((.bitBuf >> 8) & 0xFF)))
@@ -516,21 +644,71 @@ impl Decoder
     {
         for i in .compsInScan
         {
-            if .quant[.compQuant[.compList[i]]].isEmpty() do
+            if .quant[.compQuant[.compList[i]]].isEmpty()
+            {
                 fail InvalidFormatError{"undefined quant table"}
+            }
+        }
+    }
+
+    // Lookup ranges are powers of two, so vector fills never have a partial group.
+    #[Swag.Inline]
+    func repeatHuffEntry(destination: [*] s32, count, value: s32)
+    {
+        if count >= 4
+        {
+            let entry = Math.Simd.splat(value)
+            for group in count / 4
+            {
+                Math.Simd.store(destination + group * 4, entry)
+            }
+        }
+        else
+        {
+            for i in count
+            {
+                destination[i] = value
+            }
         }
     }
 
     mtd makeHuffTable(idx: s32, hs: *HuffTables)
     {
+        let packAmplitude = idx >= MaxHuffTables / 2 and (.decOptions.decodePixels or (.progressiveFlag and .decOptions.decodeMetadata))
+        let wideAc        = packAmplitude and not .progressiveFlag and .decOptions.decodePixels
+        let lookupBits    = wideAc ? BaselineAcLookupBits : HuffLookupBits
+        var lookup        = cast([*] s32, &hs.lookUp[0])
+        if wideAc
+        {
+            hs.baselineAc.resize(BaselineAcLookupCount)
+            lookup = hs.baselineAc.storage()
+        }
+
+        let counts  = .huffNum[idx].storage()
+        let symbols = .huffVal[idx].storage()
+        if not .progressiveFlag
+        {
+            let standard = standardHuffMap(idx, counts, symbols)
+            if standard.lookup.count
+            {
+                Memory.copy(lookup, (unwrap standard.lookup).buffer, standard.lookup.count * #sizeof(s32))
+                Memory.copy(hs.tree, (unwrap standard.tree).buffer, #sizeof(hs.tree))
+                return
+            }
+        }
+
+        buildHuffMap(counts, symbols, lookup, hs.tree, lookupBits, packAmplitude)
+    }
+
+    func buildHuffMap(counts, symbols: const [*] u8, lookup, tree: [*] s32, lookupBits: s32, packAmplitude: bool)
+    {
         var huffSize: [257] u8
         var huffCode: [257] u32
 
         var p = 0
-        let huffNumBuf = .huffNum[idx].storage()
         for l in 1 to 16
         {
-            for var i = 1; i <= huffNumBuf[l]; i += 1
+            for var i = 1; i <= counts[l]; i += 1
             {
                 huffSize[p] = cast(u8, l)
                 p += 1
@@ -555,29 +733,18 @@ impl Decoder
             si  += 1
         }
 
-        Memory.clear(hs.tree, #sizeof(hs.tree))
-
-        let packAmplitude = idx >= MaxHuffTables / 2 and not .progressiveFlag and .decOptions.decodePixels
-        let lookupBits    = packAmplitude ? BaselineAcLookupBits : HuffLookupBits
-        let lookupCount   = 1 << lookupBits
-        var lookup        = cast([*] s32, &hs.lookUp[0])
-        if packAmplitude
-        {
-            hs.baselineAc.resize(BaselineAcLookupCount)
-            lookup = hs.baselineAc.storage()
-        }
+        Memory.clear(tree, 512 * #sizeof(s32))
 
         // A prefix that no code covers only appears in a malformed stream. Reading it as a
         // one-bit symbol keeps the scan moving, where an entry consuming no bit would not.
-        for i in lookupCount do
-            lookup[i] = 1 << 8
+        let lookupCount = 1 << lookupBits
+        repeatHuffEntry(lookup, lookupCount, 1 << 8)
 
         var nextFreeEntry = -1
-        let huffValBuf    = .huffVal[idx].storage()
         p = 0
         while p < lastp
         {
-            let i = huffValBuf[p]
+            let i = symbols[p]
             cde = huffCode[p]
             let codeSize = huffSize[p]
             if codeSize <= lookupBits
@@ -588,22 +755,19 @@ impl Decoder
                 let totalSize     = cast(s32, codeSize) + amplitudeSize
                 if packAmplitude and amplitudeSize and amplitudeSize <= 7 and totalSize <= lookupBits
                 {
-                    let amplitudeMask = (1 << amplitudeSize) - 1
-                    for 1 << (lookupBits - codeSize)
+                    // Lookaheads with the same amplitude differ only in their trailing bits.
+                    let repetitions = 1 << (lookupBits - totalSize)
+                    for raw in 1 << amplitudeSize
                     {
-                        let amplitudeBits = cast(u32, ((cde >> (lookupBits - totalSize)) & amplitudeMask))
-                        let amplitude     = extendSign(amplitudeBits, amplitudeSize)
-                        lookup[cde] = entry | ((amplitude & 0xFF) << 16) | (totalSize << 24)
-                        cde         += 1
+                        let amplitude = extendSign(cast(u32, raw), amplitudeSize)
+                        let packed    = entry | ((amplitude & 0xFF) << 16) | (totalSize << 24)
+                        repeatHuffEntry(lookup + cde, repetitions, packed)
+                        cde += repetitions
                     }
                 }
                 else
                 {
-                    for 1 << (lookupBits - codeSize)
-                    {
-                        lookup[cde] = entry
-                        cde         += 1
-                    }
+                    repeatHuffEntry(lookup + cde, 1 << (lookupBits - codeSize), entry)
                 }
             }
             else
@@ -622,26 +786,31 @@ impl Decoder
                 cde <<= (16 - (codeSize - lookupBits))
                 for var l = codeSize; l > lookupBits + 1; l -= 1
                 {
-                    if (cde & 0x8000) == 0 do
-                        currentEntry -= 1
-
-                    if hs.tree[-currentEntry - 1] == 0
+                    if (cde & 0x8000) == 0
                     {
-                        hs.tree[-currentEntry - 1] = nextFreeEntry
+                        currentEntry -= 1
+                    }
+
+                    if tree[-currentEntry - 1] == 0
+                    {
+                        tree[-currentEntry - 1] = nextFreeEntry
                         currentEntry  = nextFreeEntry
                         nextFreeEntry -= 2
                     }
                     else
                     {
-                        currentEntry = hs.tree[-currentEntry - 1]
+                        currentEntry = tree[-currentEntry - 1]
                     }
 
                     cde <<= 1
                 }
 
-                if (cde & 0x8000) == 0 do
+                if (cde & 0x8000) == 0
+                {
                     currentEntry -= 1
-                hs.tree[-currentEntry - 1] = i
+                }
+
+                tree[-currentEntry - 1] = i
             }
 
             p += 1
@@ -653,21 +822,29 @@ impl Decoder
         // An abbreviated stream defines no entropy coding of its own and relies on the tables of
         // the specification, which is exactly how a camera writes the Motion JPEG frames of a
         // recording.
-        if .hasNoHuffTable() do
+        if .hasNoHuffTable()
+        {
             .installDefaultHuffTables()
+        }
 
         for i in .compsInScan
         {
-            if (.spectralStart == 0) and (.huffNum[.compDcTab[.compList[i]]].isEmpty()) do
+            if (.spectralStart == 0) and (.huffNum[.compDcTab[.compList[i]]].isEmpty())
+            {
                 fail InvalidFormatError{"undefined huff table"}
+            }
 
-            if (.spectralEnd > 0) and (.huffNum[.compAcTab[.compList[i]]].isEmpty()) do
+            if (.spectralEnd > 0) and (.huffNum[.compAcTab[.compList[i]]].isEmpty())
+            {
                 fail InvalidFormatError{"undefined huff table"}
+            }
         }
 
         // Header-only probes validate the referenced tables but do not consume entropy codes.
-        if not .decOptions.decodePixels and (not .progressiveFlag or not .decOptions.decodeMetadata) do
+        if not .decOptions.decodePixels and (not .progressiveFlag or not .decOptions.decodeMetadata)
+        {
             return
+        }
 
         for i in MaxHuffTables where .huffNum[i].count and not .h[i].ready
         {
@@ -729,7 +906,9 @@ impl Decoder
     mtd initFirstScan() fail
     {
         let res = try .initScan()
-        if not res do
+        if not res
+        {
             fail InvalidFormatError{"unexpected marker"}
+        }
     }
 }

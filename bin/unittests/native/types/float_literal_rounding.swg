@@ -11,7 +11,7 @@
     Swag.require(cast #bit (u64, 0.1) == 0x3FB999999999999A)
     Swag.require(cast #bit (u64, 0.3) == 0x3FD3333333333333)
     Swag.require(cast #bit (u64, 1e23) == 0x44B52D02C7E14AF6)
-    Swag.require(cast #bit (u64, 9007199254740993.0'f64) == 0x4340000000000000)
+    Swag.require(cast #bit (u64, 9007199254740993.0_f64) == 0x4340000000000000)
     Swag.require(cast #bit (u64, 1.7976931348623157e308) == 0x7FEFFFFFFFFFFFFF)
     Swag.require(cast #bit (u64, 2.2250738585072011e-308) == 0x000FFFFFFFFFFFFF)
     Swag.require(cast #bit (u64, 4.9406564584124654e-324) == 1)

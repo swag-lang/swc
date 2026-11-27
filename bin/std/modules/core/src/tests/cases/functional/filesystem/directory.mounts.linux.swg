@@ -26,10 +26,15 @@
     {
         Swag.require(mount.length > 0 and mount[0] == '/' and mount[mount.length - 1] == '/')
         Swag.require(Directory.exists(mount[]))
-        if mount[] == "/" do
+        if mount[] == "/"
+        {
             foundRoot = true
-        for previous in 0'u64 until index do
+        }
+
+        for previous in 0_u64 until index
+        {
             Swag.require(mounts[previous] != mount[])
+        }
     }
 
     Swag.require(foundRoot)

@@ -50,7 +50,7 @@ impl Properties
 {
     // Process-wide registry of custom editors, consulted by every grid before the built-in
     // editors. Mirrors Image.decoders / Image.encoders.
-    internal var editors: Array'PropertyEditorReg
+    internal var editors: Array!{PropertyEditorReg}
 
     // Registers the editor type `T`, which must implement [[Gui.IPropertyEditor]], for every grid.
     //
@@ -83,8 +83,11 @@ impl Properties
     // live in this one registry.
     internal func findEditor(type: typeinfo?)->*PropertyEditorReg?
     {
-        for i in reversed(Properties.editors.count) where Properties.editors[i].itf.canEdit(type) do
+        for i in reversed(Properties.editors.count) where Properties.editors[i].itf.canEdit(type)
+        {
             return &Properties.editors[i]
+        }
+
         return null
     }
 }

@@ -7,16 +7,16 @@ using Core, Core.Errors, Pixel
 // that follow it in the same RBSP. Check both the initial load and a refill.
 #test
 {
-    const Lengths    = [2'u64, 4, 6]
-    const Bins       = [24'u64, 1_616_276, 105_924_311_481]
-    const PaddedBins = [43305'u32, 47417, 47417]
-    let bytes = [0x31'u8, 0x21, 0xD6, 0x49, 0xFF, 0xFF, 0xF4, 0xFA]
+    const Lengths    = [2_u64, 4, 6]
+    const Bins       = [24_u64, 1_616_276, 105_924_311_481]
+    const PaddedBins = [43305_u32, 47417, 47417]
+    let bytes = [0x31_u8, 0x21, 0xD6, 0x49, 0xFF, 0xFF, 0xF4, 0xFA]
     for size, index in Lengths
     {
         var reader: Hevc.CabacReader
         expect reader.start(bytes.buffer, size)
         let available  = cast(u32, (size * 8 - 9))
-        let firstCount = Math.min(available, 24'u32)
+        let firstCount = Math.min(available, 24_u32)
         let remaining  = available - firstCount
         let first      = cast(u64, reader.bypassBits(firstCount))
         let decoded    = (first << remaining) | reader.bypassBits(remaining)
@@ -30,9 +30,9 @@ using Core, Core.Errors, Pixel
 // The two reserved nine-bit offsets exceed the initial arithmetic range.
 #test
 {
-    for second in [0'u8, 0x80]
+    for second in [0_u8, 0x80]
     {
-        let bytes = [0xFF'u8, second]
+        let bytes = [0xFF_u8, second]
         var reader:   Hevc.CabacReader
         var rejected: Swag.Error
         catch reader.start(bytes.buffer, bytes.count) as rejected
@@ -45,12 +45,12 @@ using Core, Core.Errors, Pixel
 {
     var sps:      Hevc.Sps
     var standard: BitReader
-    standard.init([14'u8])
+    standard.init([14_u8])
     Hevc.readSampleAspectRatio(&standard, &sps)
     Swag.require(sps.sampleAspectWidth == 4 and sps.sampleAspectHeight == 3)
 
     var extended: BitReader
-    extended.init([255'u8, 0x03, 0x00, 0x02, 0x00])
+    extended.init([255_u8, 0x03, 0x00, 0x02, 0x00])
     Hevc.readSampleAspectRatio(&extended, &sps)
     Swag.require(sps.sampleAspectWidth == 768 and sps.sampleAspectHeight == 512)
 }
@@ -109,8 +109,8 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 // fixed reference lists before that addition is accepted.
 #test
 {
-    const TooManyL0References = [0xC0'u8, 0x04, 0x71, 0x80, 0x10, 0x00]
-    const TooManyL1References = [0xC0'u8, 0x42, 0x31, 0x80, 0x10, 0x00]
+    const TooManyL0References = [0xC0_u8, 0x04, 0x71, 0x80, 0x10, 0x00]
+    const TooManyL1References = [0xC0_u8, 0x42, 0x31, 0x80, 0x10, 0x00]
     assertInvalidDefaultReferences(TooManyL0References)
     assertInvalidDefaultReferences(TooManyL1References)
 }
@@ -118,10 +118,10 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 // Tile rows and columns must be positive and fit inside the coded picture before scan tables are built.
 #test
 {
-    const TooManyUniformColumns  = [0xC0'u8, 0x71, 0x84, 0xB8, 0x48]
-    const ExplicitColumnsTooWide = [0xC0'u8, 0x71, 0x84, 0xA7, 0x09]
-    const TooManyUniformRows     = [0xC0'u8, 0x71, 0x85, 0x58, 0x48]
-    const ExplicitRowsTooHigh    = [0xC0'u8, 0x71, 0x85, 0x47, 0x09]
+    const TooManyUniformColumns  = [0xC0_u8, 0x71, 0x84, 0xB8, 0x48]
+    const ExplicitColumnsTooWide = [0xC0_u8, 0x71, 0x84, 0xA7, 0x09]
+    const TooManyUniformRows     = [0xC0_u8, 0x71, 0x85, 0x58, 0x48]
+    const ExplicitRowsTooHigh    = [0xC0_u8, 0x71, 0x85, 0x47, 0x09]
     assertInvalidTilePps(TooManyUniformColumns, 1, 1)
     assertInvalidTilePps(ExplicitColumnsTooWide, 3, 1)
     assertInvalidTilePps(TooManyUniformRows, 1, 1)
@@ -134,11 +134,13 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 {
     var sets: [2] Hevc.ShortTermRps
     sets[0].negativeCount = Hevc.MaxRefPics
-    for index in Hevc.MaxRefPics do
+    for index in Hevc.MaxRefPics
+    {
         sets[0].negativeDelta[index] = -cast(s32, index + 1)
+    }
 
     var reader: BitReader
-    reader.init([0xFF'u8, 0xFF, 0xF8])
+    reader.init([0xFF_u8, 0xFF, 0xF8])
     var rejected: Swag.Error
     discard catch Hevc.readShortTermRps(&reader, &sets[0], 1, 2) as rejected
     Swag.require(rejected.value() is Errors.InvalidFormatError)
@@ -150,8 +152,8 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     var stream: Hevc.HevcStream
     stream.lengthSize = 4
 
-    let accessUnit  = [0'u8, 0, 0, 2, 0x02, 0x01]
-    let truncated   = [0'u8, 0, 0, 2, 0x02, 0x01, 0x00]
+    let accessUnit  = [0_u8, 0, 0, 2, 0x02, 0x01]
+    let truncated   = [0_u8, 0, 0, 2, 0x02, 0x01, 0x00]
     let isReference = expect stream.isReferenceAccessUnit(cast(const [..] u8, accessUnit))
     Swag.require(isReference)
 
@@ -167,21 +169,21 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     var decoder:  Hevc.Decoder
     var rejected: Swag.Error
 
-    discard catch decoder.readNalUnit([0x02'u8, 0x01]) as rejected
+    discard catch decoder.readNalUnit([0x02_u8, 0x01]) as rejected
     Swag.require(rejected.value() is Errors.InvalidFormatError)
 
-    discard catch decoder.readNalUnit([0x80'u8, 0x01, 0x00]) as rejected
+    discard catch decoder.readNalUnit([0x80_u8, 0x01, 0x00]) as rejected
     Swag.require(rejected.value() is Errors.InvalidFormatError)
 
     // The decoder supports only layer zero, and temporal_id_plus1 cannot be zero.
-    discard catch decoder.readNalUnit([0x02'u8, 0x09, 0x00]) as rejected
+    discard catch decoder.readNalUnit([0x02_u8, 0x09, 0x00]) as rejected
     Swag.require(rejected.value() is Errors.InvalidFormatError)
 
-    discard catch decoder.readNalUnit([0x02'u8, 0x00, 0x00]) as rejected
+    discard catch decoder.readNalUnit([0x02_u8, 0x00, 0x00]) as rejected
     Swag.require(rejected.value() is Errors.InvalidFormatError)
 
     // IDR_W_RADL, temporal_id_plus1 = 1, first segment, no prior-picture flag, PPS id zero.
-    discard catch decoder.readNalUnit([0x26'u8, 0x01, 0xA0]) as rejected
+    discard catch decoder.readNalUnit([0x26_u8, 0x01, 0xA0]) as rejected
     Swag.require(rejected.value() is Errors.InvalidFormatError)
 }
 
@@ -243,7 +245,7 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 #test
 {
     var reader: BitReader
-    reader.init([0xEE'u8, 0x81, 0x07, 0xFF, 0xFF, 0xFF, 0xFC])
+    reader.init([0xEE_u8, 0x81, 0x07, 0xFF, 0xFF, 0xFF, 0xFC])
     var sps: Hevc.Sps
     var pps: Hevc.Pps
     pps.tilesEnabled = true
@@ -268,6 +270,37 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     videoAssertReferenceStream("ffmpeg-hevc-main", 96, 64, 60, "mkv")
 }
 
+// The decoder can use every packet in its current window before the container appends more.
+// The next picture still uses references from that window.
+#test
+{
+    var source = expect ByteSource.openFile(videoFixturePath("ffmpeg-hevc-main.mp4").toString())
+    var decoder: Mp4.Decoder
+    let idecoder: IDecoder = &decoder
+    discard expect idecoder.open(&source)
+
+    const WindowCount = 9_u64
+    let stream  = &decoder.video.hevc
+    let samples = stream.frames.toSlice()
+    var first, following: Array!{SampleEntry}
+    first.add(samples[0 until WindowCount])
+    following.add(samples[WindowCount until samples.count])
+    expect stream.replaceFrames(#move first)
+
+    let reference = expect File.readAllBytes(videoFixturePath("ffmpeg-hevc-main.yuv").toString())
+    var frame: Image
+    for index in WindowCount + following.count
+    {
+        if index == WindowCount
+        {
+            expect stream.appendFrames(following.toSlice())
+        }
+
+        expect stream.decodeNext(&source, &frame)
+        videoAssertReferenceFrame(frame, reference.toSlice(), index, 96, 64)
+    }
+}
+
 // An `hev1` sample entry, whose access units repeat the parameter sets the entry already carries,
 // with three slices per picture so entropy contexts restart inside a frame.
 #test
@@ -286,8 +319,11 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     Swag.require(decoder.video.sampleAspectWidth == 1 and decoder.video.sampleAspectHeight == 1)
 
     var expectedSync = cast(u64, decoder.video.hevc.sampleAtRank[47])
-    while expectedSync > 0 and decoder.video.hevc.syncFlags[expectedSync] == 0 do
+    while expectedSync > 0 and decoder.video.hevc.syncFlags[expectedSync] == 0
+    {
         expectedSync -= 1
+    }
+
     decoder.video.hevc.seekTo(47)
     Swag.require(expectedSync > 0 and decoder.video.hevc.nextDecode == expectedSync)
 
@@ -331,7 +367,7 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 
     let reference = expect File.readAllBytes(videoFixturePath("ffmpeg-hevc-main.yuv").toString())
     var frame: Image
-    var index     = 0'u64
+    var index     = 0_u64
     while index < 60
     {
         expect idecoder.seekFrame(&source, index)
@@ -372,18 +408,18 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     current.prepare(&sps)
     reference0.prepare(&sps)
     reference1.prepare(&sps)
-    for y in 32's32
+    for y in 32_s32
     {
-        for x in 32's32
+        for x in 32_s32
         {
             reference0.lumaAtMutable(x, y)[0] = cast(u16, (x + y))
             reference1.lumaAtMutable(x, y)[0] = cast(u16, (100 + 2 * x + y))
         }
     }
 
-    for y in 16's32
+    for y in 16_s32
     {
-        for x in 16's32
+        for x in 16_s32
         {
             reference0.chromaAtMutable(0, x, y)[0] = cast(u16, (20 + x + y))
             reference1.chromaAtMutable(0, x, y)[0] = cast(u16, (60 + 2 * x + y))
@@ -414,29 +450,31 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     motion.refIdx    = [0, 0]
 
     // Exercise the direct prediction paths at several block widths.
-    for blockWidth in [4'u32, 8, 16, 32]
+    for blockWidth in [4_u32, 8, 16, 32]
     {
         for blockY in 32 / blockWidth
         {
-            for blockX in 32 / blockWidth do
+            for blockX in 32 / blockWidth
+            {
                 decoder.interPredict(cast(s32, (blockX * blockWidth)), cast(s32, (blockY * blockWidth)), blockWidth, blockWidth, &motion)
+            }
         }
 
         var picture: PlanarFrame
         current.writePlanar(&picture)
         Swag.require(picture.matrix == .Bt709 and not picture.studioRange)
-        for y in 32's32
+        for y in 32_s32
         {
-            for x in 32's32
+            for x in 32_s32
             {
                 let reconstructed = (x + y + 100 + 2 * x + y + 1) >> 1
                 Swag.require(picture.luma[cast(u64, y) * cast(u64, picture.strideLuma) + cast(u64, x)] == cast(u8, ((reconstructed + 2) >> 2)))
             }
         }
 
-        for y in 16's32
+        for y in 16_s32
         {
-            for x in 16's32
+            for x in 16_s32
             {
                 let blue  = (20 + x + y + 60 + 2 * x + y + 1) >> 1
                 let red   = (40 + x + y + 80 + 2 * x + y + 1) >> 1
@@ -447,7 +485,7 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
         }
     }
 
-    for bitDepth in [8'u32, 10]
+    for bitDepth in [8_u32, 10]
     {
         sps.bitDepthLuma   = bitDepth
         sps.bitDepthChroma = bitDepth
@@ -459,23 +497,27 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
         motion.predFlags                             = 1
         motion.mv[0, 0]                              = 0
         motion.mv[0, 1]                              = 0
-        for blockWidth in [4'u32, 8, 16, 32]
+        for blockWidth in [4_u32, 8, 16, 32]
         {
             for blockY in 32 / blockWidth
             {
-                for blockX in 32 / blockWidth do
+                for blockX in 32 / blockWidth
+                {
                     decoder.interPredict(cast(s32, (blockX * blockWidth)), cast(s32, (blockY * blockWidth)), blockWidth, blockWidth, &motion)
+                }
             }
 
-            for y in 32's32
+            for y in 32_s32
             {
-                for x in 32's32 do
+                for x in 32_s32
+                {
                     Swag.require(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * (x + y))))
+                }
             }
 
-            for y in 16's32
+            for y in 16_s32
             {
-                for x in 16's32
+                for x in 16_s32
                 {
                     Swag.require(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + x + y))))
                     Swag.require(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + x + y))))
@@ -485,23 +527,27 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 
         // A motion vector beyond the padded reference exercises the gathered window as well.
         motion.mv[0, 0] = -800
-        for blockWidth in [4'u32, 8, 16, 32]
+        for blockWidth in [4_u32, 8, 16, 32]
         {
             for blockY in 32 / blockWidth
             {
-                for blockX in 32 / blockWidth do
+                for blockX in 32 / blockWidth
+                {
                     decoder.interPredict(cast(s32, (blockX * blockWidth)), cast(s32, (blockY * blockWidth)), blockWidth, blockWidth, &motion)
+                }
             }
 
-            for y in 32's32
+            for y in 32_s32
             {
-                for x in 32's32 do
+                for x in 32_s32
+                {
                     Swag.require(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * y)))
+                }
             }
 
-            for y in 16's32
+            for y in 16_s32
             {
-                for x in 16's32
+                for x in 16_s32
                 {
                     Swag.require(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + y))))
                     Swag.require(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + y))))
@@ -510,10 +556,10 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
         }
 
         // Exercise scalar remainders and fractional interpolation on gathered references.
-        for motionX in [0's16, -800, -799]
+        for motionX in [0_s16, -800, -799]
         {
             motion.mv[0, 0] = motionX
-            for blockWidth in [5'u32, 7, 12, 13]
+            for blockWidth in [5_u32, 7, 12, 13]
             {
                 decoder.interPredict(0, 0, blockWidth, blockWidth, &motion)
                 for y in cast(s32, blockWidth)
@@ -540,17 +586,25 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
         // Both fractional filters read a gathered reference clamped to its top-left sample.
         motion.mv[0, 0] = -799
         motion.mv[0, 1] = -799
-        for blockWidth in [4'u32, 5, 8, 12, 16, 32]
+        for blockWidth in [4_u32, 5, 8, 12, 16, 32]
         {
-            for index in 64'u32 * 64 do
+            for index in 64_u32 * 64
+            {
                 decoder.predSamples[index] = 0x5A5A
-            for index in 32'u32 * 32 do
+            }
+
+            for index in 32_u32 * 32
+            {
                 decoder.residual[index] = 0x35353535
+            }
+
             decoder.interPredict(0, 0, blockWidth, blockWidth, &motion)
             for y in cast(s32, blockWidth)
             {
-                for x in cast(s32, blockWidth) do
+                for x in cast(s32, blockWidth)
+                {
                     Swag.require(current.lumaAtMutable(x, y)[0] == 0)
+                }
             }
 
             for y in cast(s32, (blockWidth / 2))
@@ -581,15 +635,17 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     var current, reference: Hevc.Frame
     current.prepare(&sps)
     reference.prepare(&sps)
-    for y in 64's32
+    for y in 64_s32
     {
-        for x in 64's32 do
+        for x in 64_s32
+        {
             reference.lumaAtMutable(x, y)[0] = 49
+        }
     }
 
-    for y in 32's32
+    for y in 32_s32
     {
-        for x in 32's32
+        for x in 32_s32
         {
             reference.chromaAtMutable(0, x, y)[0] = 24
             reference.chromaAtMutable(1, x, y)[0] = 36
@@ -614,24 +670,29 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     motion.refIdx    = [0, 0]
     motion.mv[0, 0]  = -799
     motion.mv[0, 1]  = -799
-    for bitDepth in [8'u32, 10]
+    for bitDepth in [8_u32, 10]
     {
         sps.bitDepthLuma   = bitDepth
         sps.bitDepthChroma = bitDepth
-        for height in [56'u32, 57, 64]
+        for height in [56_u32, 57, 64]
         {
-            for index in 64'u32 * 64 do
+            for index in 64_u32 * 64
+            {
                 decoder.predSamples[index] = 0x5A5A
+            }
+
             decoder.interPredict(0, 0, 64, height, &motion)
             for y in cast(s32, height)
             {
-                for x in 64's32 do
+                for x in 64_s32
+                {
                     Swag.require(current.lumaAtMutable(x, y)[0] == 98)
+                }
             }
 
             for y in cast(s32, (height / 2))
             {
-                for x in 32's32
+                for x in 32_s32
                 {
                     Swag.require(current.chromaAtMutable(0, x, y)[0] == 48)
                     Swag.require(current.chromaAtMutable(1, x, y)[0] == 72)
@@ -648,11 +709,11 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     var reference: Hevc.IntraReference
     reference.size  = 32
     reference.count = 129
-    var seed = 0x43A0CB16'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0x43A0CB16_u32
+    for bitDepth in [8_u32, 10]
     {
-        let maximum = (1'u32 << bitDepth) - 1
-        for iteration in 128'u32
+        let maximum = (1_u32 << bitDepth) - 1
+        for iteration in 128_u32
         {
             seed = seed * #wrap 1664525 + #wrap 1013904223
             let corner = iteration == 0 ? maximum : (seed >> 16) & maximum
@@ -664,7 +725,7 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
             reference.setTop(63, cast(u16, top))
             reference.setLeft(63, cast(u16, left))
             Hevc.smoothStrongReference(&reference, cast(u16, corner), cast(u16, top), cast(u16, left))
-            for index in 63'u32
+            for index in 63_u32
             {
                 let weight       = index + 1
                 let expectedTop  = ((64 - weight) * corner + weight * top + 32) >> 6
@@ -689,16 +750,16 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     decoder.activeSps = &sps
     var reference: Hevc.IntraReference
     var original:  [129] u16
-    var seed = 0xAB72D851'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0xAB72D851_u32
+    for bitDepth in [8_u32, 10]
     {
-        let maximum = (1'u32 << bitDepth) - 1
-        for log2Size in [3'u32, 4, 5]
+        let maximum = (1_u32 << bitDepth) - 1
+        for log2Size in [3_u32, 4, 5]
         {
-            let size = 1'u32 << log2Size
+            let size = 1_u32 << log2Size
             reference.size  = size
             reference.count = 4 * size + 1
-            for iteration in 32'u32
+            for iteration in 32_u32
             {
                 for index in reference.count
                 {
@@ -740,15 +801,17 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     var pps:   Hevc.Pps
     var frame: Hevc.Frame
     frame.prepare(&sps)
-    for y in 64's32
+    for y in 64_s32
     {
-        for x in 64's32 do
+        for x in 64_s32
+        {
             frame.lumaAtMutable(x, y)[0] = cast(u16, ((x * 13 + y * 7) & 255))
+        }
     }
 
-    for y in 32's32
+    for y in 32_s32
     {
-        for x in 32's32
+        for x in 32_s32
         {
             frame.chromaAtMutable(0, x, y)[0] = cast(u16, ((x * 17 + y * 11) & 255))
             frame.chromaAtMutable(1, x, y)[0] = cast(u16, ((x * 19 + y * 3) & 255))
@@ -765,21 +828,21 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     decoder.tileId.resize(1)
     decoder.ctbSliceAddr.resize(1)
     var expected: [32 * 32] u16
-    for log2Size in [2'u32, 3, 4, 5]
+    for log2Size in [2_u32, 3, 4, 5]
     {
-        let size = 1'u32 << log2Size
-        for position in 4'u32
+        let size = 1_u32 << log2Size
+        for position in 4_u32
         {
-            let xLuma = (position & 1) != 0 ? 16's32 : 0's32
-            let yLuma = (position & 2) != 0 ? 16's32 : 0's32
-            for component in [0'u32, 1, 2]
+            let xLuma = (position & 1) != 0 ? 16_s32 : 0_s32
+            let yLuma = (position & 2) != 0 ? 16_s32 : 0_s32
+            for component in [0_u32, 1, 2]
             {
                 let x = component == 0 ? xLuma : xLuma / 2
                 let y = component == 0 ? yLuma : yLuma / 2
                 var reference: Hevc.IntraReference
                 decoder.gatherReference(&reference, x, y, xLuma, yLuma, size, component, 8)
-                let step  = component == 0 ? 4'u32 : 2'u32
-                let scale = component == 0 ? 1's32 : 2's32
+                let step  = component == 0 ? 4_u32 : 2_u32
+                let scale = component == 0 ? 1_s32 : 2_s32
                 for index in 2 * size
                 {
                     let group     = (index / step) * step
@@ -806,18 +869,29 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                     }
                 }
 
-                for mode in 35'u32
+                for mode in 35_u32
                 {
-                    for index in decoder.residual.count do
+                    for index in decoder.residual.count
+                    {
                         decoder.residual[index] = 0x35353535
+                    }
+
                     decoder.intraPredict(x, y, xLuma, yLuma, log2Size, component, mode)
-                    for index in size * size do
+                    for index in size * size
+                    {
                         expected[index] = decoder.predSamples[index]
-                    for index in decoder.residual.count do
+                    }
+
+                    for index in decoder.residual.count
+                    {
                         decoder.residual[index] = -0x5A5A5A5A
+                    }
+
                     decoder.intraPredict(x, y, xLuma, yLuma, log2Size, component, mode)
-                    for index in size * size do
+                    for index in size * size
+                    {
                         Swag.require(decoder.predSamples[index] == expected[index])
+                    }
                 }
             }
         }
@@ -830,8 +904,8 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 {
     var reference: Hevc.IntraReference
     var main:      [66] u16
-    var seed = 0x5690A13B'u32
-    for size in [4'u32, 8, 16, 32]
+    var seed = 0x5690A13B_u32
+    for size in [4_u32, 8, 16, 32]
     {
         reference.size = size
         for index in 4 * size + 1
@@ -844,8 +918,11 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
         {
             for extended in [false, true]
             {
-                for index in main.count do
+                for index in main.count
+                {
                     main[index] = 0x5A5A
+                }
+
                 let count = extended ? 2 * size : size
                 Hevc.prepareAngularMain(&reference, &main[0], size, vertical, extended)
                 Swag.require(main[0] == reference.corner())
@@ -868,13 +945,13 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     var reference: Hevc.IntraReference
     var decoder:   Hevc.Decoder
     var expected:  [32 * 32] u16
-    var seed = 0x91C2E86D'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0x91C2E86D_u32
+    for bitDepth in [8_u32, 10]
     {
-        let maximum = (1'u32 << bitDepth) - 1
-        for log2Size in [2'u32, 3, 4, 5]
+        let maximum = (1_u32 << bitDepth) - 1
+        for log2Size in [2_u32, 3, 4, 5]
         {
-            let size = 1'u32 << log2Size
+            let size = 1_u32 << log2Size
             reference.size = size
             for index in 4 * size + 1
             {
@@ -882,20 +959,31 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                 reference.samples[index] = cast(u16, ((seed >> 16) & maximum))
             }
 
-            for mode in 2'u32 to 34
+            for mode in 2_u32 to 34
             {
-                for component in [0'u32, 1]
+                for component in [0_u32, 1]
                 {
-                    for index in decoder.residual.count do
+                    for index in decoder.residual.count
+                    {
                         decoder.residual[index] = 0x35353535
+                    }
+
                     decoder.predictAngular(&reference, size, component, mode, bitDepth)
-                    for index in size * size do
+                    for index in size * size
+                    {
                         expected[index] = decoder.predSamples[index]
-                    for index in decoder.residual.count do
+                    }
+
+                    for index in decoder.residual.count
+                    {
                         decoder.residual[index] = -0x5A5A5A5A
+                    }
+
                     decoder.predictAngular(&reference, size, component, mode, bitDepth)
-                    for index in size * size do
+                    for index in size * size
+                    {
                         Swag.require(decoder.predSamples[index] == expected[index])
+                    }
                 }
             }
         }
@@ -908,13 +996,13 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 {
     var main:   [160] u16
     var output: [32 * 32 + 1] u16
-    var seed = 0x18BFA293'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0x18BFA293_u32
+    for bitDepth in [8_u32, 10]
     {
-        let maximum = (1'u32 << bitDepth) - 1
-        for size in [4'u32, 8, 16, 32]
+        let maximum = (1_u32 << bitDepth) - 1
+        for size in [4_u32, 8, 16, 32]
         {
-            for angle in [-32's32, -26, -17, -9, -2, 0, 2, 9, 17, 26, 32]
+            for angle in [-32_s32, -26, -17, -9, -2, 0, 2, 9, 17, 26, 32]
             {
                 for i in main.count
                 {
@@ -940,12 +1028,19 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                 }
 
                 Swag.require(output[size * size] == 0x5A5A)
-                if angle == 0 do
+                if angle == 0
+                {
                     Hevc.predictAngularHorizontalZero(&main[64], &output[0], size)
-                elif size == 4 do
+                }
+                else if size == 4
+                {
                     Hevc.predictAngularHorizontal4(&main[64], &output[0], angle)
-                else do
+                }
+                else
+                {
                     Hevc.predictAngularHorizontalPacked(&main[64], &output[0], size, angle)
+                }
+
                 for column in size
                 {
                     let step  = cast(s32, (column + 1)) * angle
@@ -973,14 +1068,14 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 {
     var reference: Hevc.IntraReference
     var output:    [16 * 16 + 1] u16
-    var seed = 0x7DB21349'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0x7DB21349_u32
+    for bitDepth in [8_u32, 10]
     {
-        let maximum = cast(s32, ((1'u32 << bitDepth) - 1))
-        for size in [4'u32, 8, 16]
+        let maximum = cast(s32, ((1_u32 << bitDepth) - 1))
+        for size in [4_u32, 8, 16]
         {
             reference.size = size
-            for iteration in 128'u32
+            for iteration in 128_u32
             {
                 seed = seed * #wrap 1664525 + #wrap 1013904223
                 let corner = iteration == 0 ? maximum : cast(s32, ((seed >> 16) & cast(u32, maximum)))
@@ -1008,16 +1103,21 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                 }
 
                 Swag.require(output[size] == 0x5A5A)
-                for index in size * size + 1 do
+                for index in size * size + 1
+                {
                     output[index] = 0x5A5A
+                }
+
                 Hevc.blendAngularLeftEdge(&reference, &output[0], size, maximum)
                 let top = cast(s32, reference.top(0))
                 for y in size
                 {
                     let expected = Math.clamp(top + ((cast(s32, reference.left(y)) - corner) >> 1), 0, maximum)
                     Swag.require(output[y * size] == cast(u16, expected))
-                    for x in 1 until size do
+                    for x in 1 until size
+                    {
                         Swag.require(output[y * size + x] == 0x5A5A)
+                    }
                 }
 
                 Swag.require(output[size * size] == 0x5A5A)
@@ -1032,15 +1132,15 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 {
     var reference: Hevc.IntraReference
     var decoder:   Hevc.Decoder
-    var seed = 0x62EA417F'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0x62EA417F_u32
+    for bitDepth in [8_u32, 10]
     {
-        let maximum = (1'u32 << bitDepth) - 1
-        for log2Size in [2'u32, 3, 4, 5]
+        let maximum = (1_u32 << bitDepth) - 1
+        for log2Size in [2_u32, 3, 4, 5]
         {
-            let size = 1'u32 << log2Size
+            let size = 1_u32 << log2Size
             reference.size = size
-            for iteration in 32'u32
+            for iteration in 32_u32
             {
                 var sum = size
                 for index in size
@@ -1055,7 +1155,7 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                 }
 
                 let dc = sum >> (log2Size + 1)
-                for component in [0'u32, 1, 2]
+                for component in [0_u32, 1, 2]
                 {
                     decoder.predSamples[size * size] = 0x5A5A
                     decoder.predictDc(&reference, size, log2Size, component)
@@ -1066,12 +1166,18 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                             var expected = dc
                             if component == 0 and size < 32
                             {
-                                if x == 0 and y == 0 do
+                                if x == 0 and y == 0
+                                {
                                     expected = (cast(u32, reference.left(0)) + 2 * dc + cast(u32, reference.top(0)) + 2) >> 2
-                                elif y == 0 do
+                                }
+                                else if y == 0
+                                {
                                     expected = (cast(u32, reference.top(x)) + 3 * dc + 2) >> 2
-                                elif x == 0 do
+                                }
+                                else if x == 0
+                                {
                                     expected = (cast(u32, reference.left(y)) + 3 * dc + 2) >> 2
+                                }
                             }
 
                             Swag.require(decoder.predSamples[y * size + x] == cast(u16, expected))
@@ -1091,15 +1197,15 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 {
     var reference:   Hevc.IntraReference
     var destination: [32 * 32 + 1] u16
-    var seed = 0x63A21F89'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0x63A21F89_u32
+    for bitDepth in [8_u32, 10]
     {
-        let maximum = (1'u32 << bitDepth) - 1
-        for log2Size in [2'u32, 3, 4, 5]
+        let maximum = (1_u32 << bitDepth) - 1
+        for log2Size in [2_u32, 3, 4, 5]
         {
-            let size = 1'u32 << log2Size
+            let size = 1_u32 << log2Size
             reference.size = size
-            for iteration in 32'u32
+            for iteration in 32_u32
             {
                 for index in size + 1
                 {
@@ -1112,10 +1218,15 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                 }
 
                 destination[size * size] = 0x5A5A
-                if size == 4 do
+                if size == 4
+                {
                     Hevc.predictPlanar4(&reference, &destination[0])
-                else do
+                }
+                else
+                {
                     Hevc.predictPlanarPacked(&reference, &destination[0], size, log2Size)
+                }
+
                 let right  = cast(u32, reference.top(size))
                 let bottom = cast(u32, reference.left(size))
                 for y in size
@@ -1143,22 +1254,25 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     var decoder: Hevc.Decoder
     decoder.activeSps = &sps
     decoder.activePps = &pps
-    var seed = 0x825B9F31'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0x825B9F31_u32
+    for bitDepth in [8_u32, 10]
     {
         sps.bitDepthLuma   = bitDepth
         sps.bitDepthChroma = bitDepth
-        for log2Size in [2'u32, 3, 4, 5]
+        for log2Size in [2_u32, 3, 4, 5]
         {
-            let size  = 1'u32 << log2Size
+            let size  = 1_u32 << log2Size
             let count = size * size
             var block: Hevc.TransformBlock
             block.size     = size
             block.log2Size = log2Size
             block.qp       = 20
-            decoder.coefficientColumns = cast(u32, ((1'u64 << size) - 1))
-            for x in size do
+            decoder.coefficientColumns = cast(u32, ((1_u64 << size) - 1))
+            for x in size
+            {
                 decoder.coefficientRows[x] = decoder.coefficientColumns
+            }
+
             for index in count
             {
                 seed = seed * #wrap 1664525 + #wrap 1013904223
@@ -1166,14 +1280,22 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                 decoder.residual[index]     = 0x35353535
             }
 
-            if count < 1024 do
+            if count < 1024
+            {
                 decoder.residual[count] = 0x35353535
+            }
+
             block.bypass = true
             decoder.reconstructResidual(&block)
-            for index in count do
+            for index in count
+            {
                 Swag.require(decoder.residual[index] == cast(s32, decoder.coefficients[index]))
-            if count < 1024 do
+            }
+
+            if count < 1024
+            {
                 Swag.require(decoder.residual[count] == 0x35353535)
+            }
 
             block.bypass        = false
             block.transformSkip = true
@@ -1186,8 +1308,10 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                 Swag.require(decoder.residual[index] == value)
             }
 
-            if count < 1024 do
+            if count < 1024
+            {
                 Swag.require(decoder.residual[count] == 0x35353535)
+            }
         }
     }
 }
@@ -1209,13 +1333,13 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     var decoder: Hevc.Decoder
     decoder.activeSps = &sps
     decoder.current   = &frame
-    var seed = 0x2A72F8D5'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0x2A72F8D5_u32
+    for bitDepth in [8_u32, 10]
     {
         sps.bitDepthLuma   = bitDepth
         sps.bitDepthChroma = bitDepth
-        let maximum = cast(s32, ((1'u32 << bitDepth) - 1))
-        for component in 3'u32
+        let maximum = cast(s32, ((1_u32 << bitDepth) - 1))
+        for component in 3_u32
         {
             var block: Hevc.TransformBlock
             block.x         = component == 0 ? 1 : 2
@@ -1227,9 +1351,9 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
             for 64
             {
                 var expected: [6, 6] u16
-                for y in 6'u64
+                for y in 6_u64
                 {
-                    for x in 6'u64
+                    for x in 6_u64
                     {
                         seed = seed * #wrap 1664525 + #wrap 1013904223
                         let value = cast(u16, ((seed >> 16) & cast(u32, maximum)))
@@ -1238,9 +1362,9 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                     }
                 }
 
-                for y in 4'u64
+                for y in 4_u64
                 {
-                    for x in 4'u64
+                    for x in 4_u64
                     {
                         seed = seed * #wrap 1664525 + #wrap 1013904223
                         let residual = cast(s32, ((seed >> 16) & 4095)) - 2048
@@ -1251,30 +1375,38 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                 }
 
                 decoder.addResidualInPlace(&block)
-                for y in 6'u64
+                for y in 6_u64
                 {
-                    for x in 6'u64 do
+                    for x in 6_u64
+                    {
                         Swag.require(origin[y * stride + x] == expected[y, x])
+                    }
                 }
 
-                for y in 4'u64
+                for y in 4_u64
                 {
-                    for x in 4'u64 do
+                    for x in 4_u64
+                    {
                         origin[(y + 1) * stride + x + 1] = 0x5A5A
+                    }
                 }
 
                 decoder.addResidual(&block, true)
-                for y in 6'u64
+                for y in 6_u64
                 {
-                    for x in 6'u64 do
+                    for x in 6_u64
+                    {
                         Swag.require(origin[y * stride + x] == expected[y, x])
+                    }
                 }
 
                 decoder.addResidual(&block, false)
-                for y in 4'u64
+                for y in 4_u64
                 {
-                    for x in 4'u64 do
+                    for x in 4_u64
+                    {
                         Swag.require(origin[(y + 1) * stride + x + 1] == decoder.predSamples[y * 4 + x])
+                    }
                 }
             }
         }
@@ -1285,14 +1417,14 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 // writing their neighbours. Compare the packed result to the normative scalar formula.
 #test
 {
-    const Stride = 7'u64
+    const Stride = 7_u64
     var samples:  [Stride * 4] u16
     var expected: [Stride * 4] u16
-    var seed = 0x931BE27D'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0x931BE27D_u32
+    for bitDepth in [8_u32, 10]
     {
-        let maximum = cast(s32, ((1'u32 << bitDepth) - 1))
-        for tc in [1's32, 2, 4, 16, 96]
+        let maximum = cast(s32, ((1_u32 << bitDepth) - 1))
+        for tc in [1_s32, 2, 4, 16, 96]
         {
             for 256
             {
@@ -1303,7 +1435,7 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                     expected[index] = samples[index]
                 }
 
-                for lane in 2'u64
+                for lane in 2_u64
                 {
                     let p1    = cast(s32, expected[1 + lane])
                     let p0    = cast(s32, expected[Stride + 1 + lane])
@@ -1324,14 +1456,14 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 // The vertical pair reads two rows and writes only p0 and q0 in each.
 #test
 {
-    const Stride = 7'u64
+    const Stride = 7_u64
     var samples:  [Stride * 2] u16
     var expected: [Stride * 2] u16
-    var seed = 0x817F3C21'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0x817F3C21_u32
+    for bitDepth in [8_u32, 10]
     {
-        let maximum = cast(s32, ((1'u32 << bitDepth) - 1))
-        for tc in [1's32, 2, 4, 16, 96]
+        let maximum = cast(s32, ((1_u32 << bitDepth) - 1))
+        for tc in [1_s32, 2, 4, 16, 96]
         {
             for 256
             {
@@ -1342,7 +1474,7 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                     expected[index] = samples[index]
                 }
 
-                for row in 2'u64
+                for row in 2_u64
                 {
                     let base  = row * Stride
                     let p1    = cast(s32, expected[base])
@@ -1365,15 +1497,15 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
 // weak-filter rejection and both optional sides. Sentinel samples surround each row.
 #test
 {
-    const Stride = 13'u64
+    const Stride = 13_u64
     var decoder:  Hevc.Decoder
     var samples:  [Stride * 4] u16
     var expected: [Stride * 4] u16
-    var seed = 0x15BDE271'u32
-    for bitDepth in [8'u32, 10]
+    var seed = 0x15BDE271_u32
+    for bitDepth in [8_u32, 10]
     {
-        let maximum = cast(s32, ((1'u32 << bitDepth) - 1))
-        for tc in [1's32, 2, 16, 96]
+        let maximum = cast(s32, ((1_u32 << bitDepth) - 1))
+        for tc in [1_s32, 2, 16, 96]
         {
             for strong in [false, true]
             {
@@ -1390,7 +1522,7 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
                                 expected[index] = samples[index]
                             }
 
-                            for row in 4'u64
+                            for row in 4_u64
                             {
                                 let base = row * Stride + 5
                                 let p3   = cast(s32, expected[base - 4])
@@ -1459,25 +1591,29 @@ private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInC
     let reference = expect File.readAllBytes(videoFixturePath("edited-open-group-start.yuv").toString())
     let bytes     = reference.toSlice()
     let frameSize = 96 * 64 * 3 / 2
-    const Skipped = 4'u64
+    const Skipped = 4_u64
 
     var frame: PlanarFrame
-    for rank in 12'u64
+    for rank in 12_u64
     {
         expect reader.decodeFramePlanesInto(&frame, Skipped + rank)
-        for y in 64'u64
+        for y in 64_u64
         {
-            for x in 96'u64 do
+            for x in 96_u64
+            {
                 Swag.require(frame.luma[y * cast(u64, frame.strideLuma) + x] == bytes[rank * frameSize + y * 96 + x])
+            }
         }
     }
 
     // Every rank the skipped pictures would have taken answers with the first one that is shown.
     var early: PlanarFrame
     expect reader.decodeFramePlanesInto(&early, 0)
-    for y in 64'u64
+    for y in 64_u64
     {
-        for x in 96'u64 do
+        for x in 96_u64
+        {
             Swag.require(early.luma[y * cast(u64, early.strideLuma) + x] == bytes[y * 96 + x])
+        }
     }
 }

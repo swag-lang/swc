@@ -22,7 +22,7 @@ func probeContext(thread: const *Threading.Thread)
 func checkThreadContext() fail
 {
     var thread: Threading.Thread
-    let probe = Memory.new'ContextProbe()
+    let probe = Memory.new!{ContextProbe}()
     defer Memory.delete(probe)
     probe.parent = Swag.getContext()
     expect thread.init(&probeContext, probe)

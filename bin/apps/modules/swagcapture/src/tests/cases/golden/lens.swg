@@ -66,8 +66,11 @@ using Swag, Core
     Swag.require(section.link == appStrings().lens_LibraryLink and section.linkRun != null)
 
     // The keys reach the strip: down into it, then along it to the link and back.
-    for rows.count do
+    for rows.count
+    {
         host.keyPress(.Down)
+    }
+
     Swag.require(main.lens.chosen == rows.count - 1 and main.lens.chosenPicture == 0)
     host.keyPress(.Right)
     Swag.require(main.lens.chosenPicture == 1)

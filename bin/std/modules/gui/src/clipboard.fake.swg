@@ -13,18 +13,18 @@ struct FakeTypedData
 {
     fmt:  ValueFormat     // Registered clipboard format.
     crc:  u32             // Type fingerprint stored with the payload.
-    data: Array'u8        // Serialized payload bytes.
+    data: Array!{u8}      // Serialized payload bytes.
 }
 
 struct FakeStore
 {
-    enabled: bool                    // Whether clipboard calls use this process-local store.
-    hasStr:  bool                    // Whether text is available.
-    str:     String                  // Stored UTF-8 text.
-    hasImg:  bool                    // Whether an image is available.
-    img:     Image                   // Stored image copy.
-    typed:   Array'FakeTypedData     // Stored typed payloads by registered format.
-    files:   Array'String            // Stored file paths.
+    enabled: bool                      // Whether clipboard calls use this process-local store.
+    hasStr:  bool                      // Whether text is available.
+    str:     String                    // Stored UTF-8 text.
+    hasImg:  bool                      // Whether an image is available.
+    img:     Image                     // Stored image copy.
+    typed:   Array!{FakeTypedData}     // Stored typed payloads by registered format.
+    files:   Array!{String}            // Stored file paths.
 }
 
 var g_Fake: FakeStore
@@ -33,8 +33,10 @@ var g_Fake: FakeStore
 // running the process, and a test or a smoke run must not be able to read or overwrite it.
 #init
 {
-    if Env.isSandboxed() do
+    if Env.isSandboxed()
+    {
         g_Fake.enabled = true
+    }
 }
 
 // Reports whether clipboard calls go to the process-local store rather than to the system.
@@ -46,8 +48,11 @@ public func isFake()->bool => g_Fake.enabled
 // clearing the system clipboard instead would destroy the user's own content.
 public func resetFake() fail
 {
-    if not g_Fake.enabled do
+    if not g_Fake.enabled
+    {
         fail Core.Errors.BadParameterError{"the clipboard is not faked outside a sandbox"}
+    }
+
     fakeClear()
 }
 
@@ -61,8 +66,11 @@ func fakeClear()
 
 func fakeFind(fmt: ValueFormat)->*FakeTypedData?
 {
-    for &entry in g_Fake.typed where entry.fmt == fmt do
+    for &entry in g_Fake.typed where entry.fmt == fmt
+    {
         return entry
+    }
+
     return null
 }
 
@@ -81,12 +89,14 @@ func fakeAddTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
     e.data.add(data)
 }
 
-func fakeGetTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
+func fakeGetTypedData(fmt: ValueFormat, type: typeinfo?)->Array!{u8}
 {
     var result: #returntype
     let entry = fakeFind(fmt)
-    if not entry or (type and entry.crc != type.crc) do
+    if not entry or (type and entry.crc != type.crc)
+    {
         return result
+    }
 
     result.add(entry.data.toSlice())
     return result

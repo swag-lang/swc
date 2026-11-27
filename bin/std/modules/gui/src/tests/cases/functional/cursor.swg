@@ -45,7 +45,7 @@ using Core
     header.addColumn("Field", 100)
     header.addColumn("Value", 110)
 
-    let gap = header.themeMetrics().header_Separator
+    let gap   = header.themeMetrics().header_Separator
     var point = header.localToSurface(Math.Point{header.itemPositionAt(0) + header.itemWidthAt(0) + gap * 0.5, 12})
     host.surface.surfaceToScreen(&point)
     host.mouseDown(point)

@@ -8,8 +8,10 @@ func touch(_: ...)->u32
 #test
 {
     var count: s32 = 0
-    for i in 1 to 5 do
+    for i in 1 to 5
+    {
         count += cast(s32, touch(i, " "))
+    }
 
     Swag.require(count == 5)
 }

@@ -9,15 +9,17 @@ using Core, MappedDll
     Swag.assert(mappedDllValue() == 42)
     let output  = Path.combine(Path.directoryName(#curlocation.fileName), "..", "..", "..", ".output")
     let request = Path.combine(output.toString(), "mapped_holder.hold")
-    if not File.exists(request.toString()) do
+    if not File.exists(request.toString())
+    {
         return
+    }
 
     let marker = Path.combine(output.toString(), "mapped_holder.mapped")
     discard catch File.writeAllText(marker.toString(), "mapped")
     var waited = 0
     while File.exists(request.toString()) and waited < 600
     {
-        Threading.Thread.sleep(100'ms)
+        Threading.Thread.sleep(100_ms)
         waited += 1
     }
 }

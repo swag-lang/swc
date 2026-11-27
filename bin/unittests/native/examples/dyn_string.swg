@@ -6,7 +6,7 @@
 // destination after a move, opDrop to release the heap buffer, plus
 // opIndex / opIndexSet / opAssign("+=") / opEquals for day-to-day use.
 
-const MinCapacity = 8'u64
+const MinCapacity = 8_u64
 
 struct DynString
 {
@@ -22,19 +22,29 @@ struct DynString
 
 func reserve(s: *DynString, want: u64)
 {
-    if want <= s.capacity do
+    if want <= s.capacity
+    {
         return
+    }
 
     var newCap = s.capacity
-    if newCap < MinCapacity do
+    if newCap < MinCapacity
+    {
         newCap = MinCapacity
-    while newCap < want do
+    }
+    while newCap < want
+    {
         newCap *= 2
+    }
 
-    if s.data do
+    if s.data
+    {
         s.data = cast([*] u8?, testRealloc(s.data, newCap))
-    else do
+    }
+    else
+    {
         s.data = cast([*] u8?, testAlloc(newCap))
+    }
     s.capacity = newCap
 }
 
@@ -42,20 +52,26 @@ func storeBytes(s: *DynString, src: const [*] u8, len: u64)
 {
     reserve(s, len)
     let data = unwrap s.data
-    for i in len do
+    for i in len
+    {
         data[i] = src[i]
+    }
     s.count = len
 }
 
 func appendBytes(s: *DynString, src: const [*] u8?, len: u64)
 {
-    if len == 0 do
+    if len == 0
+    {
         return
+    }
     reserve(s, s.count + len)
     let data = unwrap s.data
     let from = unwrap src
-    for i in len do
+    for i in len
+    {
         data[s.count + i] = from[i]
+    }
     s.count += len
 }
 
@@ -94,8 +110,10 @@ impl DynString
         .capacity = 0
         reserve(me, .count)
         let data = unwrap .data
-        for i in .count do
+        for i in .count
+        {
             data[i] = oldData[i]
+        }
     }
 
     // Called on the destination right after a bytewise move. The raw bytes
@@ -111,8 +129,10 @@ impl DynString
         .capacity = 0
 
         let len = cast(u64, text.count)
-        if len == 0 do
+        if len == 0
+        {
             return
+        }
         storeBytes(me, cast(const [*] u8, text.buffer), len)
     }
 
@@ -136,31 +156,41 @@ impl DynString
         where op == .AddAssign
     {
         let len = cast(u64, text.count)
-        if len > 0 do
+        if len > 0
+        {
             appendBytes(me, cast(const [*] u8, text.buffer), len)
+        }
     }
 
     // Append: `s += other`
     mtd(op: Swag.Operator) opAssign(other: DynString)
         where op == .AddAssign
     {
-        if other.count > 0 do
+        if other.count > 0
+        {
             appendBytes(me, other.data, other.count)
+        }
     }
 
     // Byte-exact equality: `s == other`
     mtd opEquals(other: DynString)->bool
     {
-        if .count != other.count do
+        if .count != other.count
+        {
             return false
-        if .count == 0 do
+        }
+        if .count == 0
+        {
             return true
+        }
         let data      = unwrap .data
         let otherData = unwrap other.data
         for i in .count
         {
-            if data[i] != otherData[i] do
+            if data[i] != otherData[i]
+            {
                 return false
+            }
         }
         return true
     }
@@ -177,8 +207,8 @@ impl DynString
 
     Swag.require(s.count == 5)
     Swag.require(s.capacity >= 5)
-    Swag.require(s[0] == 'h'u8)
-    Swag.require(s[4] == 'o'u8)
+    Swag.require(s[0] == 'h'_u8)
+    Swag.require(s[4] == 'o'_u8)
 }
 
 #test
@@ -187,8 +217,8 @@ impl DynString
 
     Swag.require(s.count == 5)
     Swag.require(s.capacity >= 5)
-    Swag.require(s[0] == 'h'u8)
-    Swag.require(s[4] == 'o'u8)
+    Swag.require(s[0] == 'h'_u8)
+    Swag.require(s[4] == 'o'_u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -207,9 +237,9 @@ impl DynString
     Swag.require(dst.count == 5)
     Swag.require(src.data != dst.data)     // distinct heap buffers
 
-    dst[0] = 'A'u8
-    Swag.require(dst[0] == 'A'u8)
-    Swag.require(src[0] == 'a'u8)     // original untouched
+    dst[0] = 'A'_u8
+    Swag.require(dst[0] == 'A'_u8)
+    Swag.require(src[0] == 'a'_u8)     // original untouched
 }
 
 // ---------------------------------------------------------------------------
@@ -224,14 +254,14 @@ impl DynString
     dst = #move src
 
     Swag.require(dst.count == 8)
-    Swag.require(dst[0] == 't'u8)
-    Swag.require(dst[7] == 'r'u8)
+    Swag.require(dst[0] == 't'_u8)
+    Swag.require(dst[7] == 'r'_u8)
 
     // src was moved-from; it won't be opDrop'd at scope exit, so dst owns the
     // sole buffer. Rebind src to prove it is still a usable DynString.
     src = "reused"
     Swag.require(src.count == 6)
-    Swag.require(src[0] == 'r'u8)
+    Swag.require(src[0] == 'r'_u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -247,13 +277,13 @@ impl DynString
     for i in s.count
     {
         let c = s[i]
-        s[i] = c - ('a'u8 - 'A'u8)
+        s[i] = c - ('a'_u8 - 'A'_u8)
     }
 
     Swag.require(s.count == 6)
-    Swag.require(s[0] == 'A'u8)
-    Swag.require(s[1] == 'B'u8)
-    Swag.require(s[5] == 'F'u8)
+    Swag.require(s[0] == 'A'_u8)
+    Swag.require(s[1] == 'B'_u8)
+    Swag.require(s[5] == 'F'_u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -270,27 +300,29 @@ impl DynString
     s += "-"
     s += "bar"
     Swag.require(s.count == 7)
-    Swag.require(s[0] == 'f'u8)
-    Swag.require(s[3] == '-'u8)
-    Swag.require(s[6] == 'r'u8)
+    Swag.require(s[0] == 'f'_u8)
+    Swag.require(s[3] == '-'_u8)
+    Swag.require(s[6] == 'r'_u8)
 
     // Append another DynString by const reference.
     var tail: DynString
     tail = "-baz"
     s    += tail
     Swag.require(s.count == 11)
-    Swag.require(s[7] == '-'u8)
-    Swag.require(s[10] == 'z'u8)
+    Swag.require(s[7] == '-'_u8)
+    Swag.require(s[10] == 'z'_u8)
 
     // Force at least one grow past the initial capacity.
     var wide: DynString
     wide = "x"
-    for 40 do
+    for 40
+    {
         wide += "y"
+    }
     Swag.require(wide.count == 41)
     Swag.require(wide.capacity > startCap)
-    Swag.require(wide[0] == 'x'u8)
-    Swag.require(wide[40] == 'y'u8)
+    Swag.require(wide[0] == 'x'_u8)
+    Swag.require(wide[40] == 'y'_u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -337,5 +369,5 @@ impl DynString
     copy += "kick"
     Swag.require(copy.count == 4)
     Swag.require(empty.count == 0)
-    Swag.require(copy[0] == 'k'u8)
+    Swag.require(copy[0] == 'k'_u8)
 }

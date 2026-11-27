@@ -6,8 +6,11 @@ using Swag, Core
 func distToPixel(v: s32)->s32
 {
     var r = v % 64
-    if r < 0 do
+    if r < 0
+    {
         r += 64
+    }
+
     return Math.min(r, 64 - r)
 }
 

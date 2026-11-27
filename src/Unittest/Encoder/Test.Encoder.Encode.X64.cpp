@@ -113,6 +113,10 @@ namespace
         ENCODE_CASE("jump_reg_r13", "41 FF E5", b.emitJumpReg(R13););
         ENCODE_CASE("ret", "C3", b.emitRet(););
         ENCODE_CASE("trap", "0F 0B", b.emitTrap(););
+        ENCODE_CASE("packed_multiply_add52_low", "62 F2 ED 08 B4 CB", b.emitOpTernaryRegRegReg(MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroOp::VecMultiplyAdd52Low, MicroOpBits::B128););
+        ENCODE_CASE("packed_multiply_add52_high_extended", "62 52 AD 08 B5 CB", b.emitOpTernaryRegRegReg(MicroReg::floatReg(9), MicroReg::floatReg(10), MicroReg::floatReg(11), MicroOp::VecMultiplyAdd52High, MicroOpBits::B128););
+        ENCODE_CASE("wide_unsigned_multiply", "48 F7 E1", b.emitOpBinaryRegReg(RAX, RCX, MicroOp::MultiplyWideUnsigned, MicroOpBits::B64););
+        ENCODE_CASE("wide_unsigned_multiply_extended", "49 F7 E1", b.emitOpBinaryRegReg(RAX, R9, MicroOp::MultiplyWideUnsigned, MicroOpBits::B64););
         ENCODE_CASE("prefetch_rax", "0F 18 08", b.emitPrefetch(RAX););
         ENCODE_CASE("prefetch_rsp", "0F 18 0C 24", b.emitPrefetch(RSP););
         ENCODE_CASE("prefetch_rbp", "0F 18 4D 00", b.emitPrefetch(RBP););
@@ -582,7 +586,28 @@ namespace
         ENCODE_CASE("vec_muls32wide_vex", "C4 E2 69 28 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecMulS32Wide, MicroOpBits::B128););
         ENCODE_CASE("vec_shuff32_vex", "C5 E8 C6 CB 1B", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, XMM3, 0x1B, MicroOp::VecShufF32, MicroOpBits::B128););
         ENCODE_CASE("vec_alignr_vex", "C4 E3 69 0F CB 04", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, XMM3, 4, MicroOp::VecAlignR, MicroOpBits::B128););
+        ENCODE_CASE("cpuid", "0F A2", b.emitCpuId(););
+        ENCODE_CASE("sha1nexte", "45 0F 38 C8 CA", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::VecSha1NextE, MicroOpBits::B128););
+        ENCODE_CASE("sha1schedule1", "45 0F 38 C9 CA", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::VecSha1Schedule1, MicroOpBits::B128););
+        ENCODE_CASE("sha1schedule2", "45 0F 38 CA CA", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::VecSha1Schedule2, MicroOpBits::B128););
+        ENCODE_CASE("sha256rounds2", "45 0F 38 CB CA", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::VecSha256Rounds2, MicroOpBits::B128););
+        ENCODE_CASE("sha256schedule1", "45 0F 38 CC CA", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::VecSha256Schedule1, MicroOpBits::B128););
+        ENCODE_CASE("sha256schedule2", "45 0F 38 CD CA", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::VecSha256Schedule2, MicroOpBits::B128););
+        ENCODE_CASE("sha1rounds4phase0", "45 0F 3A CC CA 00", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::VecSha1Rounds4Phase0, MicroOpBits::B128););
+        ENCODE_CASE("sha1rounds4phase1", "45 0F 3A CC CA 01", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::VecSha1Rounds4Phase1, MicroOpBits::B128););
+        ENCODE_CASE("sha1rounds4phase2", "45 0F 3A CC CA 02", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::VecSha1Rounds4Phase2, MicroOpBits::B128););
+        ENCODE_CASE("sha1rounds4phase3", "45 0F 3A CC CA 03", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::VecSha1Rounds4Phase3, MicroOpBits::B128););
         ENCODE_CASE("vec_clmul_vex", "C4 E3 69 44 CB 11", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, XMM3, 0x11, MicroOp::VecClmul, MicroOpBits::B128););
+        ENCODE_CASE("vec_clmul_xor_pair", "C4 C1 7E 6F 02 C4 C1 7E 6F 0C 24 C4 E3 7D 44 D1 11 C4 E3 7D 44 C1 00 C5 FD EF C2 C4 C1 7D EF 01 C4 C1 7E 7F 02 C5 F8 77",
+                    b.emitVecClmulXor(R10, R12, R9, 0x00, 0x11, false););
+        ENCODE_CASE("vec_clmul_xor_quad", "62 D1 FE 48 6F 02 62 D1 FE 48 6F 0C 24 62 F3 7D 48 44 D1 11 62 F3 7D 48 44 C1 00 62 D3 6D 48 25 01 96 62 D1 FE 48 7F 02 C5 F8 77",
+                    b.emitVecClmulXor(R10, R12, R9, 0x00, 0x11, true););
+        ENCODE_CASE("xgetbv", "0F 01 D0", b.emitXGetBv(););
+        ENCODE_CASE("vec_aesenc_vex", "C4 E2 69 DC CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAesEncryptRound, MicroOpBits::B128););
+        ENCODE_CASE("vec_aesenclast_vex", "C4 E2 69 DD CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAesEncryptLastRound, MicroOpBits::B128););
+        ENCODE_CASE("vec_aesdec_vex", "C4 E2 69 DE CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAesDecryptRound, MicroOpBits::B128););
+        ENCODE_CASE("vec_aesdeclast_vex", "C4 E2 69 DF CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAesDecryptLastRound, MicroOpBits::B128););
+        ENCODE_CASE("vec_aesimc_vex", "C4 E2 79 DB CB", b.emitVecUnaryRegReg(XMM1, XMM3, MicroOp::VecAesInverseMixColumns, MicroOpBits::B128););
         ENCODE_CASE("vec_test_vex", "C4 E2 79 17 C9", b.emitVecTestReg(XMM1););
         ENCODE_CASE("vec_insert8_vex", "C4 E3 69 20 C8 05", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, RAX, 5, MicroOp::VecInsert8, MicroOpBits::B128););
         ENCODE_CASE("vec_insert16_vex", "C5 E9 C4 C8 03", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, RAX, 3, MicroOp::VecInsert16, MicroOpBits::B128););
@@ -895,6 +920,23 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(EncodeX64_TernaryAndConvert)
 {
     SWC_RESULT(runCase(ctx, buildTernaryAndConvert));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_XGetBvTracksImplicitRegisters)
+{
+    MicroBuilder builder(ctx);
+    builder.emitXGetBv();
+
+    X64Encoder encoder(ctx);
+    const auto* inst = builder.instructions().ptr(builder.instructions().lastInstructionRef());
+    const auto useDef = inst->collectUseDef(builder.operands(), &encoder);
+    if (useDef.uses.size() != 1 || useDef.uses[0] != RCX ||
+        useDef.defs.size() != 2 ||
+        std::ranges::find(useDef.defs, RAX) == useDef.defs.end() ||
+        std::ranges::find(useDef.defs, RDX) == useDef.defs.end())
+        return Result::Error;
+    return Result::Continue;
 }
 SWC_TEST_END()
 

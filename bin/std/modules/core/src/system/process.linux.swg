@@ -14,12 +14,18 @@ func exit(exitCode: s32) => Linux.exit(exitCode)
 // an empty string. The caller must synchronize this with any concurrent environment mutation.
 func variable(name: string)->String
 {
-    if not validEnvironmentVariableName(name) do
+    if not validEnvironmentVariableName(name)
+    {
         return ""
+    }
+
     let native = String.from(name)
     let value  = Linux.getenv(native.storage())
-    if not value do
+    if not value
+    {
         return ""
+    }
+
     return String.from(cast(string, cast(cstring, value)))
 }
 
@@ -27,15 +33,19 @@ internal func setVariableNative(name: string, value: string) fail
 {
     let nativeName  = String.from(name)
     let nativeValue = String.from(value)
-    if Linux.setenv(nativeName.storage(), nativeValue.storage(), 1) != 0 do
+    if Linux.setenv(nativeName.storage(), nativeValue.storage(), 1) != 0
+    {
         try Errors.failLinuxError(Linux.errno())
+    }
 }
 
 internal func removeVariableNative(name: string) fail
 {
     let nativeName = String.from(name)
-    if Linux.unsetenv(nativeName.storage()) != 0 do
+    if Linux.unsetenv(nativeName.storage()) != 0
+    {
         try Errors.failLinuxError(Linux.errno())
+    }
 }
 
 impl Process
@@ -52,12 +62,18 @@ impl Process
 internal func nativeEnvironmentAddress()->const *([*] ([*] u8?)?) fail
 {
     let image = Linux.dlopen(null, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
-    if not image do
+    if not image
+    {
         fail Swag.SystemError{"cannot open the current process image"}
+    }
+
     defer discard Linux.dlclose(unwrap image)
     let address = Linux.dlsym(image, "environ".buffer)
-    if not address do
+    if not address
+    {
         fail Swag.SystemError{"cannot find the current process environment"}
+    }
+
     return cast(const *([*] ([*] u8?)?), address)
 }
 
@@ -70,18 +86,27 @@ func currentEnvironment()->ProcessEnvironment
     let address = catch nativeEnvironmentAddress() { return {} }
     let values  = address[]
     var result: #returntype
-    if not values do
+    if not values
+    {
         return result
-    var index = 0'u64
+    }
+
+    var index = 0_u64
     for
     {
         let entry = values[index]
-        if not entry do
+        if not entry
+        {
             return result
+        }
+
         let text      = cast(string, cast(cstring, entry))
         let separator = Utf8.indexOf(cast(const [..] u8, text), "=")
-        if separator != Swag.U64.Max and separator != 0 do
+        if separator != Swag.U64.Max and separator != 0
+        {
             result.set(text[until separator], text[separator + 1 to])
+        }
+
         index += 1
     }
 }
@@ -94,7 +119,7 @@ impl Process
     // when the executable was unlinked; that spelling is retained and may not name an openable file.
     func currentExecutablePath()->String fail
     {
-        var buffer: Array'u8
+        var buffer: Array!{u8}
         buffer.reserve(256)
         for
         {
@@ -102,17 +127,25 @@ impl Process
             if count < 0
             {
                 let error = Linux.errno()
-                if error == Linux.EINTR do
+                if error == Linux.EINTR
+                {
                     continue
+                }
+
                 try Errors.failLinuxError(error, "/proc/self/exe")
             }
 
-            if cast(u64, count) < buffer.capacity do
+            if cast(u64, count) < buffer.capacity
+            {
                 return String.from(cast(string, Swag.makeSlice(buffer.storage(), cast(u64, count))))
+            }
 
             // readlink has no terminator, and filling the whole buffer can mean truncation.
-            if buffer.capacity > Swag.U64.Max / 2 do
+            if buffer.capacity > Swag.U64.Max / 2
+            {
                 fail Errors.OverflowError{}
+            }
+
             buffer.reserve(buffer.capacity * 2)
         }
     }

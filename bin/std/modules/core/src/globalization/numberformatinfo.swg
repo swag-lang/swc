@@ -20,8 +20,11 @@ public impl NumberFormatInfo
 {
     internal mtd const groupSize(index: u64)->u64
     {
-        if not .groupSizeCount do
+        if not .groupSizeCount
+        {
             return 0
+        }
+
         let safeCount = Math.min(cast(u64, .groupSizeCount), (.groupSizes).count)
         let safeIndex = Math.min(index, safeCount - 1)
         return .groupSizes[safeIndex]
@@ -29,18 +32,26 @@ public impl NumberFormatInfo
 
     internal mtd const isGroupBoundary(remainingDigits: u64)->bool
     {
-        if not .groupSizeCount or not .groupSeparator do
+        if not .groupSizeCount or not .groupSeparator
+        {
             return false
+        }
 
         var boundary = .groupSize(0)
-        var index    = 1'u64
+        var index    = 1_u64
         while boundary and boundary <= 64
         {
-            if remainingDigits == boundary do
+            if remainingDigits == boundary
+            {
                 return true
+            }
+
             let next = .groupSize(index)
-            if not next do
+            if not next
+            {
                 return false
+            }
+
             boundary += next
             index    += 1
         }
@@ -51,22 +62,27 @@ public impl NumberFormatInfo
     internal mtd const appendUnsigned(result: *String, value: u64, grouped: bool)
     {
         var digits: [20] u8
-        var count   = 0'u64
+        var count   = 0_u64
         var current = value
         while true
         {
-            digits[count] = cast(u8, ('0'u8 + current % 10))
+            digits[count] = cast(u8, ('0'_u8 + current % 10))
             count         += 1
             current       /= 10
-            if not current do
+            if not current
+            {
                 break
+            }
         }
 
         for i in count
         {
             let remaining = count - i
-            if grouped and i and .isGroupBoundary(remaining) do
+            if grouped and i and .isGroupBoundary(remaining)
+            {
                 result.append(.groupSeparator)
+            }
+
             result.append(digits[remaining - 1])
         }
     }
@@ -100,9 +116,12 @@ public impl NumberFormatInfo
     // Returns whether `value` rounds to zero at `decimals` fractional digits, and so prints without a sign.
     internal mtd const roundsToZero(value: f64, decimals: u8)->bool
     {
-        var scale = 1.0'f64
-        for decimals do
+        var scale = 1.0_f64
+        for decimals
+        {
             scale *= 10
+        }
+
         return Math.round(Math.abs(value) * scale) == 0
     }
 
@@ -110,14 +129,16 @@ public impl NumberFormatInfo
     //
     // `decimals` must be at most 18. Values are rounded to the nearest representable
     // unit at that precision before grouping is applied to the integer part.
-    mtd const format(value: f64, decimals = 2'u8, grouped = false)->String
+    mtd const format(value: f64, decimals = 2_u8, grouped = false)->String
     {
         Swag.assert(decimals <= 18, "numeric precision is too large")
         Swag.assert(Math.isFinite(value), "cannot format a non-finite number")
 
-        var scale = 1'u64
-        for decimals do
+        var scale = 1_u64
+        for decimals
+        {
             scale *= 10
+        }
 
         let negative = value < 0
         let absolute = Math.abs(value)
@@ -130,8 +151,11 @@ public impl NumberFormatInfo
 
         // A value that rounds to zero prints without a sign: '-0.00' is not a number anyone wrote.
         var result: #returntype
-        if negative and scaled != 0 do
+        if negative and scaled != 0
+        {
             result.append(.negativeSign)
+        }
+
         .appendUnsigned(&result, whole, grouped)
         if decimals
         {
@@ -139,7 +163,7 @@ public impl NumberFormatInfo
             var divisor = scale / 10
             for decimals
             {
-                result.append(cast(u8, ('0'u8 + (fraction / divisor) % 10)))
+                result.append(cast(u8, ('0'_u8 + (fraction / divisor) % 10)))
                 divisor /= 10
             }
         }

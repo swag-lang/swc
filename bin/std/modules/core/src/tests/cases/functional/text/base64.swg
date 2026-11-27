@@ -7,7 +7,7 @@ func base64Reference(bytes: const [..] u8)->String
 {
     const Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
     var result: #returntype
-    var index = 0'u64
+    var index = 0_u64
     while index + 3 <= bytes.count
     {
         let group = (cast(u32, bytes[index]) << 16) | (cast(u32, bytes[index + 1]) << 8) | bytes[index + 2]
@@ -23,16 +23,16 @@ func base64Reference(bytes: const [..] u8)->String
         let group = cast(u32, bytes[index]) << 16
         result.append(Alphabet[group >> 18])
         result.append(Alphabet[(group >> 12) & 63])
-        result.append('='u8)
-        result.append('='u8)
+        result.append('='_u8)
+        result.append('='_u8)
     }
-    elif bytes.count - index == 2
+    else if bytes.count - index == 2
     {
         let group = (cast(u32, bytes[index]) << 16) | (cast(u32, bytes[index + 1]) << 8)
         result.append(Alphabet[group >> 18])
         result.append(Alphabet[(group >> 12) & 63])
         result.append(Alphabet[(group >> 6) & 63])
-        result.append('='u8)
+        result.append('='_u8)
     }
 
     return result
@@ -117,8 +117,11 @@ func base64Reference(bytes: const [..] u8)->String
     Swag.require(scalarOutcome.value() is Errors.UnsupportedFormatError)
 
     var raw: [24] u8
-    for index in raw.count do
+    for index in raw.count
+    {
         raw[index] = cast(u8, ((index * 17 + 3) & 0xFF))
+    }
+
     let rawSlice    = Swag.makeSlice(&raw[0], raw.count)
     let encoded     = Base64.encode(rawSlice)
     let exactVector = expect Base64.decode(encoded.toString(), 24)
@@ -134,8 +137,10 @@ func base64Reference(bytes: const [..] u8)->String
 #test
 {
     var input: [129] u8
-    for i in 129 do
+    for i in 129
+    {
         input[i] = cast(u8, ((i * 73 + 19) & 0xFF))
+    }
 
     for length in 130
     {

@@ -41,10 +41,14 @@ func changed(values: [16] u64)->u64
 #test
 {
     var values: [16] u64
-    for i in 16 do
+    for i in 16
+    {
         values[i] = i * 17
-    for index in 16'u32 do
+    }
+    for index in 16_u32
+    {
         Swag.require(chooseLocal(&values, index) == 255)
+    }
     Swag.require(changed(values) == 378)
     Swag.require(values[0] == 0)
 }

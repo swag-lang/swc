@@ -10,8 +10,10 @@ using Swag
 #[Inline]
 func copy(destination: [*] void, source: const [*] void, size: u64)
 {
-    if size do
+    if size
+    {
         Swag.memcpy(destination, source, size)
+    }
 }
 
 // Copies `size` bytes from `source` to `destination`, which may overlap.
@@ -20,8 +22,10 @@ func copy(destination: [*] void, source: const [*] void, size: u64)
 #[Inline]
 func copyOverlapping(destination: [*] void, source: const [*] void, size: u64)
 {
-    if size do
+    if size
+    {
         Swag.memmove(destination, source, size)
+    }
 }
 
 // Compares `size` bytes of `left` and `right` lexicographically.
@@ -31,8 +35,11 @@ func copyOverlapping(destination: [*] void, source: const [*] void, size: u64)
 #[Inline]
 func compare(left, right: const [*] void, size: u64)->s32
 {
-    if not size do
+    if not size
+    {
         return 0
+    }
+
     return Swag.memcmp(left, right, size)
 }
 
@@ -46,16 +53,20 @@ func(T) bytesEqual(left, right: const *T)->bool => Swag.memcmp(left, right, #siz
 #[Inline]
 func clear(dest: [*] void, size: u64)
 {
-    if size do
+    if size
+    {
         Swag.memset(dest, 0, size)
+    }
 }
 
 // Fills `size` bytes at `dest` with `value`.
 #[Inline]
 func set(dest: [*] void, value: u8, size: u64)
 {
-    if size do
+    if size
+    {
         Swag.memset(dest, value, size)
+    }
 }
 
 // Rounds `value` up to a multiple of `alignment`, which must be a power of two.
@@ -69,8 +80,10 @@ func align(value: u64, alignment: u32)->u64
     let effectiveAlignment = alignment != 0 ? alignment : cast(u32, #sizeof(*void))
     let mask      = cast(u64, effectiveAlignment) - 1
     let remainder = value & mask
-    if not remainder do
+    if not remainder
+    {
         return value
+    }
 
     let increment = cast(u64, effectiveAlignment) - remainder
     Swag.assert(value <= Swag.U64.Max - increment, "aligned value exceeds addressable range")

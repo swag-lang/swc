@@ -20,11 +20,13 @@ impl Theme
     // stays concentric with the outline it surrounds. A control with no shape of its own — a check
     // box and its label, a slider, a tab — passes zero and gets
     // [[Gui.ThemeMetrics.focusRing_Radius]], which is the softest corner the ring ever takes.
-    mtd drawFocusRing(painter: *Painter, rect: Math.Rectangle, corner = 0'f32)
+    mtd drawFocusRing(painter: *Painter, rect: Math.Rectangle, corner = 0_f32)
     {
         let color = .colors.focusRing
-        if color.a == 0 or rect.isEmpty() do
+        if color.a == 0 or rect.isEmpty()
+        {
             return
+        }
 
         // The pen is centered on the path, so the path runs half a ring beyond the gap.
         let size   = .metrics.focusRing_Size
@@ -47,8 +49,11 @@ impl Theme
     {
         let half   = Math.max(.metrics.floating_ShadowBlur * 0.5, 0)
         let offset = .metrics.floating_ShadowOffsetY
-        if half == 0 or .colors.floating_Shadow.a == 0 do
+        if half == 0 or .colors.floating_Shadow.a == 0
+        {
             return {}
+        }
+
         return {half, Math.max(half - offset, 0), half, Math.max(half + offset, 0)}
     }
 
@@ -73,8 +78,10 @@ impl Theme
     {
         let color = .colors.floating_Shadow
         let blur  = .metrics.floating_ShadowBlur
-        if color.a == 0 or blur <= 0 or body.isEmpty() do
+        if color.a == 0 or blur <= 0 or body.isEmpty()
+        {
             return
+        }
 
         // A blur is centred on the edge of the shape it softens, half of it under the shape. The
         // ramp therefore starts half a blur inside the offset body: the darkening is half its
@@ -105,10 +112,12 @@ impl Theme
     //
     // `subRect` is expressed in authored atlas texels; `srcScale` maps it onto a texture
     // rasterized that many times larger, as the theme atlas is on a scaled display.
-    func drawSubRect(painter: *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: *ThemeImageRect?, color: Color, center = true, interpol = InterpolationMode.Linear, srcScale = 1'f32)
+    func drawSubRect(painter: *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: *ThemeImageRect?, color: Color, center = true, interpol = InterpolationMode.Linear, srcScale = 1_f32)
     {
-        if not subRect or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
+        if not subRect or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0
+        {
             return
+        }
 
         let k = srcScale > 0 ? srcScale : 1
 
@@ -119,10 +128,14 @@ impl Theme
         // coarser than the surface — does pixel sampling, sharpened by the renderers
         // to one device pixel of smoothing per texel edge, preserve the tile look.
         var effInterpol = interpol
-        if painter.contentScale() > k do
+        if painter.contentScale() > k
+        {
             effInterpol = .Pixel
-        elif k > 1 do
+        }
+        else if k > 1
+        {
             effInterpol = .Linear
+        }
 
         let oldInterpol = painter.interpolationMode()
         painter.setInterpolationMode(effInterpol)
@@ -148,10 +161,15 @@ impl Theme
         }
 
         var cxd, cyd = subRect.corner
-        if cxd * 2 > dstRect.width do
+        if cxd * 2 > dstRect.width
+        {
             cxd = dstRect.width / 2
-        if cyd * 2 > dstRect.height do
+        }
+
+        if cyd * 2 > dstRect.height
+        {
             cyd = dstRect.height / 2
+        }
 
         if subRect.keepBordersRatio
         {
@@ -204,8 +222,10 @@ impl Theme
                 d.height = dstRect.height - (cyd * 2)
                 s.width  = subRect.rect.width - (cx * 2)
                 s.height = subRect.rect.height - (cy * 2)
-                if center do
+                if center
+                {
                     painter.drawTexture(d, s.scaledFromOrigin(k), texture, color)
+                }
 
             case 5:
                 d.x     += d.width
@@ -232,11 +252,13 @@ impl Theme
     //
     // When `showAccessKey` is true, the first matching rune in plain text is underlined; a zero
     // `accessKey` draws the label unchanged. Existing styled text keeps its source formatting.
-    func drawIconText(painter: *Painter, position: Math.Rectangle, icon: Icon, name: *RichString, stringFormat: RichStringFormat, iconMargin = 4'f32, accessKey: rune = 0, showAccessKey = false)
+    func drawIconText(painter: *Painter, position: Math.Rectangle, icon: Icon, name: *RichString, stringFormat: RichStringFormat, iconMargin = 4_f32, accessKey: rune = 0, showAccessKey = false)
     {
         let count = (name[]).count
-        if count == 0 and not icon.isValid() do
+        if count == 0 and not icon.isValid()
+        {
             return
+        }
 
         var pos       = position
         let iconColor = stringFormat.palette[0]
@@ -250,8 +272,10 @@ impl Theme
         }
 
         // Text + icon
-        if icon.isValid() do
+        if icon.isValid()
+        {
             pos.moveLeft(icon.sizeX + iconMargin)
+        }
 
         // Text
         drawAccessKeyText(painter, pos, name, stringFormat, accessKey, showAccessKey)

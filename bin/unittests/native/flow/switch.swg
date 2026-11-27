@@ -438,8 +438,10 @@ func switchStringName(value: string)->s32
 // cannot fold away.
 func switchStringAtRuntime(buffer: [*] u8, text: string)->string
 {
-    for index in text.count do
+    for index in text.count
+    {
         buffer[index] = text[index]
+    }
     return Swag.makeString(buffer, text.count)
 }
 

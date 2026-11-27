@@ -22,7 +22,10 @@ func update(table: *Table, index: u32, value: u64)->u64
 func localArray(index: u32)->u64
 {
     var table: Table
-    for i in 32 do table.wide[i] = cast(u64, i) * 7
+    for i in 32
+    {
+        table.wide[i] = cast(u64, i) * 7
+    }
     return table.wide[index] + table.wide[(index + 1) & 31]
 }
 
@@ -42,7 +45,10 @@ func acrossJoin(first, second: *Table, index: u32, redirect: bool)->u64
 {
     var selected = first
     let saved    = &selected.wide[0]
-    if redirect do selected = second
+    if redirect
+    {
+        selected = second
+    }
     saved[] += selected.wide[index]
     return first.wide[0]
 }

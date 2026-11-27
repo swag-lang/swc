@@ -4,8 +4,10 @@ struct AnyEmptyBoxingJit {}
 
 func makeAnyEmptyBoxingJit(flag: bool)->AnyEmptyBoxingJit
 {
-    if flag do
+    if flag
+    {
         return AnyEmptyBoxingJit{}
+    }
     return AnyEmptyBoxingJit{}
 }
 

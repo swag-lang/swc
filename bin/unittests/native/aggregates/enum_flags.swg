@@ -208,12 +208,16 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     }
 
     var tookSouth = false
-    if values.refAt(1)[] & .South do
+    if values.refAt(1)[] & .South
+    {
         tookSouth = true
+    }
 
     var missingWest = false
-    if not (values.refAt(1)[] & .West) do
+    if not (values.refAt(1)[] & .West)
+    {
         missingWest = true
+    }
 
     values.refAt(0)[] &= ~.West
 

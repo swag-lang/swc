@@ -13,8 +13,8 @@ struct TrayNotice
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigOptionChanged: SigArray'func||(*TrayNotice, bool)     // Emits the checked state of the optional preference.
-        sigDismissed:     SigArray'func||(*TrayNotice)           // Emitted when the notice's surface is destroyed.
+        sigOptionChanged: SigArray!{func||(*TrayNotice, bool)}     // Emits the checked state of the optional preference.
+        sigDismissed:     SigArray!{func||(*TrayNotice)}           // Emitted when the notice's surface is destroyed.
 
         readonly
         {
@@ -61,7 +61,7 @@ impl TrayNotice
     // returned notice is owned by its new surface and becomes invalid after `sigDismissed`.
     // On desktops without icon geometry, the notice stands near the pointer's screen edge.
     #[Swag.Discardable]
-    func open(iconOwner: *Surface, title, message: string, dontShowAgainLabel: string? = null, lifetime: Time.Duration = 10's)->*TrayNotice?
+    func open(iconOwner: *Surface, title, message: string, dontShowAgainLabel: string? = null, lifetime: Time.Duration = 10_s)->*TrayNotice?
     {
         Swag.assert(lifetime.seconds > 0, "a tray notice needs a positive lifetime")
 
@@ -85,7 +85,7 @@ impl TrayNotice
                                Math.max(metrics.trayNotice_MinWidth, work.width / scale - 2 * inset))
         let content = width - 2 * inset
 
-        with let result = Wnd.create'TrayNotice(surface.wnd)
+        with let result = Wnd.create!{TrayNotice}(surface.wnd)
         {
             .backgroundStyle = .Transparent
         }
@@ -145,8 +145,10 @@ impl TrayNotice
             {
                 let checked = button.isChecked()
                 notice.sigOptionChanged.call(notice, checked)
-                if checked do
+                if checked
+                {
                     notice.dismissSoon()
+                }
             }
 
             height = choiceY + choiceHeight + inset
@@ -162,8 +164,11 @@ impl TrayNotice
                                         work.x + margin,
                                         Math.max(work.right() - physicalWidth - margin, work.x + margin))
         var y = hasIcon ? icon.y - physicalHeight - margin : work.bottom() - physicalHeight - margin
-        if y < work.y + margin and hasIcon do
+        if y < work.y + margin and hasIcon
+        {
             y = icon.bottom() + margin
+        }
+
         y = Math.clamp(y, work.y + margin, Math.max(work.bottom() - physicalHeight - margin, work.y + margin))
         surface.setPosition({x, y, physicalWidth, physicalHeight})
         surface.show()
@@ -181,6 +186,6 @@ impl TrayNotice
     private mtd dismissSoon()
     {
         .stopTimer(&.timer)
-        .timer = .addTimer(1'ms)
+        .timer = .addTimer(1_ms)
     }
 }

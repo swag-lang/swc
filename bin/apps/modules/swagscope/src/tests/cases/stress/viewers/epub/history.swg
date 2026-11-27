@@ -10,20 +10,32 @@ using Core, Gui, Viewers
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), false)
     let panel  = assume cast(*Epub.Panel, window.currentView)
-    for index in 160 do
+    for index in 160
+    {
         panel.showChapter(0, index % 2 == 0 ? "passage" : "")
+    }
+
     Swag.require(panel.history.backVisits.count == 128 and panel.history.forwardVisits.isEmpty())
     var oversized: String
-    for 4097 do
+    for 4097
+    {
         oversized += "x"
+    }
+
     panel.showChapter(1, oversized)
     Swag.require(panel.chapter == 0 and panel.history.backVisits.count == 128)
-    for 128 do
+    for 128
+    {
         panel.goBack()
+    }
+
     Swag.require(panel.history.backVisits.isEmpty() and panel.history.forwardVisits.count == 128)
     panel.goBack()
     Swag.require(panel.history.forwardVisits.count == 128)
-    for 128 do
+    for 128
+    {
         panel.goForward()
+    }
+
     Swag.require(panel.history.backVisits.count == 128 and panel.history.forwardVisits.isEmpty())
 }

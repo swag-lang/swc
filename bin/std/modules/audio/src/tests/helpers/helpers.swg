@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-func audioAssertFloat(actual, expected: f32, epsilon = 0.0001'f32)
+func audioAssertFloat(actual, expected: f32, epsilon = 0.0001_f32)
 {
     Swag.require(Math.isEqualEpsilon(actual, expected, epsilon))
 }
@@ -18,8 +18,10 @@ func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
 {
     Swag.require(actual.count == expected.count * #sizeof(s16))
     let samples = cast(const [*] s16, actual.buffer)
-    for index in expected.count do
+    for index in expected.count
+    {
         Swag.require(samples[index] == expected[index])
+    }
 }
 
 // Returns the OWNED path: a 'string' view would dangle as soon as the intermediate
@@ -33,7 +35,7 @@ func audioGetTestDataPath(fileName: string, loc = #callerlocation)->String
 
 func audioDecodePcmToPcm16(sourceEncoding: SoundFileEncoding,
                            source: [..] u8,
-                           destinationCapacity: u64)->{ destination: Array'u8, progress: CodecProgress } fail
+                           destinationCapacity: u64)->{ destination: Array!{u8}, progress: CodecProgress } fail
 {
     var codec: CodecPcmToPcm16
     let allocator = unwrap Swag.getContext().allocator
@@ -54,8 +56,11 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" do
+        if Path.fileName(directory) == "cases"
+        {
             return unwrap Path.directoryName(directory)
+        }
+
         directory = Path.directoryName(directory)
     }
 

@@ -10,8 +10,10 @@ impl Volume
                                              HeaderKind,
                                              slot,
                                              HeaderPlainSize)
-        if result.plain.isEmpty() do
+        if result.plain.isEmpty()
+        {
             return result
+        }
 
         let sequence = catch parseHeaderSequence(result.plain.toSlice()) { return result }
 
@@ -23,7 +25,7 @@ impl Volume
     // Serializes the volume header: the scalars, and the index of the blocks
     // that hold the metadata image. The node table itself is not here, which is
     // what removes the ceiling on how many files a container can hold.
-    mtd serializeHeader()->Array'u8 fail
+    mtd serializeHeader()->Array!{u8} fail
     {
         var result: #returntype
         var writer = ByteStream.openWrite(&result)
@@ -40,8 +42,8 @@ impl Volume
 
         // The page index is stored as runs, so a container whose metadata sits
         // in one contiguous stretch costs a single record.
-        var runCount = 0'u64
-        var index    = 0'u64
+        var runCount = 0_u64
+        var index    = 0_u64
         while index < .metadataPages.count
         {
             runCount += 1
@@ -62,18 +64,24 @@ impl Volume
         // the random camouflage tail.
         writer.writeLittleEndian(.physicalSize)
 
-        if result.count > HeaderPlainSize do
+        if result.count > HeaderPlainSize
+        {
             fail volumeError(.DiskFull)
+        }
+
         return result
     }
 
     // How many metadata pages, from `index`, are stored in consecutive blocks.
     mtd const pageRunLength(index: u64)->u64
     {
-        var result = 1'u64
+        var result = 1_u64
         while index + result < .metadataPages.count and
-              .metadataPages[index + result] == .metadataPages[index] + result do
+              .metadataPages[index + result] == .metadataPages[index] + result
+        {
             result += 1
+        }
+
         return result
     }
 
@@ -84,58 +92,84 @@ impl Volume
         var reader = ByteStream.openRead(plain)
         .sequence     = try readHeaderPrefix(&reader)
         .checkpointAt = .sequence
-        if .sequence == Swag.U64.Max do
+        if .sequence == Swag.U64.Max
+        {
             fail volumeError(.Corrupted)
+        }
+
         let actualSize = .physicalSize
-        let storedSize = try reader.readLittleEndian'u64()
-        .blockCount   = try reader.readLittleEndian'u64()
-        .nextNodeId   = try reader.readLittleEndian'u64()
+        let storedSize = try reader.readLittleEndian!{u64}()
+        .blockCount   = try reader.readLittleEndian!{u64}()
+        .nextNodeId   = try reader.readLittleEndian!{u64}()
         .label        = try reader.readSizedString(MaximumLabelSize)
-        .keySlotMask  = try reader.readLittleEndian'u32()
-        .metadataSize = try reader.readLittleEndian'u64()
+        .keySlotMask  = try reader.readLittleEndian!{u32}()
+        .metadataSize = try reader.readLittleEndian!{u64}()
         if storedSize < MinimumSize or
            storedSize > actualSize or
-           .blockCount != (storedSize - DataOffset) / BlockRecordSize do
+           .blockCount != (storedSize - DataOffset) / BlockRecordSize
+        {
             fail volumeError(.Corrupted)
+        }
+
         .containerSize = storedSize
 
         var expectedPages = .metadataSize / BlockSize
-        if .metadataSize % BlockSize do
+        if .metadataSize % BlockSize
+        {
             expectedPages += 1
-        if expectedPages > .blockCount do
-            fail volumeError(.Corrupted)
+        }
 
-        let runCount = try reader.readLittleEndian'u64()
-        if runCount > expectedPages do
+        if expectedPages > .blockCount
+        {
             fail volumeError(.Corrupted)
+        }
+
+        let runCount = try reader.readLittleEndian!{u64}()
+        if runCount > expectedPages
+        {
+            fail volumeError(.Corrupted)
+        }
 
         .metadataPages.reserve(expectedPages)
         for runCount
         {
-            let first = try reader.readLittleEndian'u64()
-            let count = try reader.readLittleEndian'u64()
+            let first = try reader.readLittleEndian!{u64}()
+            let count = try reader.readLittleEndian!{u64}()
             if not count or
                first >= .blockCount or
                count > .blockCount - first or
-               count > expectedPages - .metadataPages.count do
+               count > expectedPages - .metadataPages.count
+            {
                 fail volumeError(.Corrupted)
-            for i in count do
+            }
+
+            for i in count
+            {
                 .metadataPages.add(first + i)
+            }
         }
 
-        if .metadataPages.count != expectedPages do
+        if .metadataPages.count != expectedPages
+        {
             fail volumeError(.Corrupted)
+        }
 
-        let storedPhysicalSize = try reader.readLittleEndian'u64()
-        if storedPhysicalSize < storedSize or storedPhysicalSize > actualSize do
+        let storedPhysicalSize = try reader.readLittleEndian!{u64}()
+        if storedPhysicalSize < storedSize or storedPhysicalSize > actualSize
+        {
             fail volumeError(.Corrupted)
+        }
+
         .physicalSize = storedPhysicalSize
 
-        var image: Array'u8
+        var image: Array!{u8}
         defer Core.Crypto.secureClear(image.toSlice())
         image.resize(.metadataPages.count * BlockSize)
-        for page, i in .metadataPages do
+        for page, i in .metadataPages
+        {
             try .readMetadataPage(page, image[i * BlockSize until (i + 1) * BlockSize])
+        }
+
         image.resize(.metadataSize)
         try .loadNodes(image.toSlice())
 
@@ -148,22 +182,30 @@ impl Volume
         try .replayJournal()
 
         let root = .nodeById(RootNodeId)
-        if not root or not root.isDirectory() or root.parentId != RootNodeId do
+        if not root or not root.isDirectory() or root.parentId != RootNodeId
+        {
             fail volumeError(.Corrupted)
-        var maximumNodeId = 0'u64
+        }
+
+        var maximumNodeId = 0_u64
         for node in .nodes
         {
             maximumNodeId = Math.max(maximumNodeId, node.id)
             if node.id != RootNodeId
             {
                 let parent = .nodeById(node.parentId)
-                if not parent or not parent.isDirectory() do
+                if not parent or not parent.isDirectory()
+                {
                     fail volumeError(.Corrupted)
+                }
             }
         }
 
-        if not .nextNodeId or .nextNodeId <= maximumNodeId do
+        if not .nextNodeId or .nextNodeId <= maximumNodeId
+        {
             fail volumeError(.Corrupted)
+        }
+
         try .rebuildFreeList()
     }
 
@@ -171,9 +213,11 @@ impl Volume
     mtd loadNodes(image: const [..] u8) fail
     {
         var reader    = ByteStream.openRead(image)
-        let nodeCount = try reader.readLittleEndian'u64()
-        if not nodeCount or nodeCount > MaximumNodeCount do
+        let nodeCount = try reader.readLittleEndian!{u64}()
+        if not nodeCount or nodeCount > MaximumNodeCount
+        {
             fail volumeError(.Corrupted)
+        }
 
         .nodes.reserve(nodeCount)
         for nodeCount
@@ -181,8 +225,10 @@ impl Volume
             let node      = try Node.deserialize(&reader, .blockCount)
             let nodeIndex = .nodes.count
             .nodes.add(#move node)
-            if not .nodeLookup.add(&.nodes[nodeIndex], nodeIndex) do
+            if not .nodeLookup.add(&.nodes[nodeIndex], nodeIndex)
+            {
                 fail volumeError(.Corrupted)
+            }
         }
     }
 
@@ -198,8 +244,11 @@ impl Volume
 
         for page in .metadataPages
         {
-            if page >= .blockCount or used.get(page) do
+            if page >= .blockCount or used.get(page)
+            {
                 fail volumeError(.Corrupted)
+            }
+
             used.set(page, true)
         }
 
@@ -209,12 +258,18 @@ impl Volume
             {
                 if mapping.physical >= .blockCount or
                    not mapping.count or
-                   mapping.count > .blockCount - mapping.physical do
+                   mapping.count > .blockCount - mapping.physical
+                {
                     fail volumeError(.Corrupted)
+                }
+
                 for physical in mapping.physical until mapping.physical + mapping.count
                 {
-                    if used.get(physical) do
+                    if used.get(physical)
+                    {
                         fail volumeError(.Corrupted)
+                    }
+
                     used.set(physical, true)
                 }
             }
@@ -232,15 +287,19 @@ impl Volume
         scope
         {
             Sync.scopedLock(&.ioLock)
-            if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, record)) do
+            if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, record))
+            {
                 fail volumeError(.Io)
+            }
         }
 
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
         let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
-        if not (try Crypto.open(&.keys, kind, physical, nonce, ciphertext, tag, destination)) do
+        if not (try Crypto.open(&.keys, kind, physical, nonce, ciphertext, tag, destination))
+        {
             fail volumeError(.Corrupted)
+        }
     }
 
     // Reads the metadata page stored at block `physical`.
@@ -271,14 +330,19 @@ impl Volume
     mtd checkpoint() fail
     {
         try .requireWritable()
-        if not .dirty do
+        if not .dirty
+        {
             return
-        if .sequence >= Swag.U64.Max - 1 do
-            fail volumeError(.DiskFull)
+        }
 
-        var previousPages: Array'u64
+        if .sequence >= Swag.U64.Max - 1
+        {
+            fail volumeError(.DiskFull)
+        }
+
+        var previousPages: Array!{u64}
         previousPages.add(.metadataPages.toSlice())
-        var previousFree: Array'FreeExtent
+        var previousFree: Array!{FreeExtent}
         previousFree.add(.blocks.free.toSlice())
         let previousFreeBlocksCount = .blocks.freeBlocksCount
         let previousMetadataSize    = .metadataSize
@@ -301,35 +365,48 @@ impl Volume
         defer Core.Crypto.secureClear(image.toSlice())
         let imageSize = image.count
         var pageCount = imageSize / BlockSize
-        if imageSize % BlockSize do
+        if imageSize % BlockSize
+        {
             pageCount += 1
-        if pageCount > Swag.U64.Max / BlockSize do
+        }
+
+        if pageCount > Swag.U64.Max / BlockSize
+        {
             fail volumeError(.DiskFull)
+        }
+
         image.resize(pageCount * BlockSize)
 
         // The pages are allocated before anything is released, so a checkpoint
         // never writes over a block the previous one still needs.
-        var pages: Array'u64
+        var pages: Array!{u64}
         pages.reserve(pageCount)
-        for pageCount do
+        for pageCount
+        {
             pages.add(try .blocks.allocate())
+        }
 
-        for page, i in pages do
+        for page, i in pages
+        {
             try .writeMetadataPage(page, image[i * BlockSize until (i + 1) * BlockSize])
+        }
 
         .metadataPages = #move pages
         .metadataSize  = imageSize
         .sequence      += 1
 
-        let slot  = 1'u32 - .activeSlot
+        let slot  = 1_u32 - .activeSlot
         var plain = try .serializeHeader()
         defer Core.Crypto.secureClear(plain.toSlice())
         try .writeFramedRecord(HeaderAreaOffset + slot * HeaderSlotSize, HeaderSlotSize, HeaderLocatorKind, HeaderKind, slot, plain.toSlice())
 
         // The header is durable, so the blocks the previous checkpoint held can
         // finally go back to the free list.
-        for page in previousPages do
+        for page in previousPages
+        {
             .blocks.release(page)
+        }
+
         .blocks.publishDeferred()
         .blocks.completeCommit()
 
@@ -348,14 +425,16 @@ impl Volume
     mtd writeFramedRecord(offset, area: u64, locatorKind, recordKind: u32, recordId: u64, plain: const [..] u8) fail
     {
         let used = HeaderRecordPrefixSize + plain.count + Crypto.TagSize
-        if used > area do
+        if used > area
+        {
             fail volumeError(.DiskFull)
+        }
 
         // Only the bytes the record occupies are written. The rest of the area
         // still holds the noise the container was created with, or an older
         // record's ciphertext, and rewriting it every time would cost a full
         // slot of random bytes per checkpoint for nothing.
-        var record: Array'u8
+        var record: Array!{u8}
         record.resize(used)
 
         var locator = try Crypto.recordLocator(.keys.locator, locatorKind, recordId)
@@ -374,35 +453,45 @@ impl Volume
 
     // Reads a record written by `writeFramedRecord`. An empty result means the
     // area holds no record for this key.
-    mtd readFramedRecord(offset, _: u64, locatorKind, recordKind: u32, recordId, maximumPlain: u64)->Array'u8 fail
+    mtd readFramedRecord(offset, _: u64, locatorKind, recordKind: u32, recordId, maximumPlain: u64)->Array!{u8} fail
     {
         var result: #returntype
 
         var prefix: [Crypto.RecordLocatorSize] u8
-        if not (try .file.readExactAt(offset, prefix)) do
+        if not (try .file.readExactAt(offset, prefix))
+        {
             return result
+        }
 
         var locator = try Crypto.recordLocator(.keys.locator, locatorKind, recordId)
         defer Core.Crypto.secureClear(locator)
-        if not Core.Crypto.constantTimeEqual(prefix[until HeaderLocatorCheckSize], locator[until HeaderLocatorCheckSize]) do
+        if not Core.Crypto.constantTimeEqual(prefix[until HeaderLocatorCheckSize], locator[until HeaderLocatorCheckSize])
+        {
             return result
+        }
 
         let plainSize = Crypto.load32(&prefix[HeaderLocatorCheckSize]) ^ Crypto.load32(&locator[HeaderLocatorCheckSize])
-        if not plainSize or plainSize > maximumPlain do
+        if not plainSize or plainSize > maximumPlain
+        {
             return result
+        }
 
-        var record: Array'u8
+        var record: Array!{u8}
         record.resize(Crypto.NonceSize + plainSize + Crypto.TagSize)
-        if not (try .file.readExactAt(offset + #sizeof(prefix), record.toSlice())) do
+        if not (try .file.readExactAt(offset + #sizeof(prefix), record.toSlice()))
+        {
             return result
+        }
 
-        var plain: Array'u8
+        var plain: Array!{u8}
         plain.resize(plainSize)
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + plainSize]
         let tag        = record[Crypto.NonceSize + plainSize until record.count]
-        if not (try Crypto.open(&.keys, recordKind, recordId, nonce, ciphertext, tag, plain.toSlice())) do
+        if not (try Crypto.open(&.keys, recordKind, recordId, nonce, ciphertext, tag, plain.toSlice()))
+        {
             return result
+        }
 
         result = #move plain
         return result
@@ -410,13 +499,16 @@ impl Volume
 
     // Serializes the node table. This is the only thing the metadata image
     // holds; the scalars live in the header and the free list is derived.
-    mtd serializeNodes()->Array'u8
+    mtd serializeNodes()->Array!{u8}
     {
         var result: #returntype
         var writer = ByteStream.openWrite(&result)
         writer.writeLittleEndian(.nodes.count)
-        for node in .nodes do
+        for node in .nodes
+        {
             node.serialize(&writer)
+        }
+
         return result
     }
 
@@ -449,8 +541,11 @@ impl Volume
     mtd touchMetadata(id: u64)
     {
         .dirty = true
-        if .touchedSet.contains(id) or .metadataTouchedSet.contains(id) do
+        if .touchedSet.contains(id) or .metadataTouchedSet.contains(id)
+        {
             return
+        }
+
         .metadataTouchedSet.add(id)
         .metadataTouched.add(id)
     }
@@ -521,31 +616,46 @@ impl Volume
     mtd commit() fail
     {
         try .requireWritable()
-        if not .dirty do
+        if not .dirty
+        {
             return
-        if not .hasPendingChanges() do
-            return try .checkpoint()
-        if .sequence - .checkpointAt >= JournalCapacity do
-            return try .checkpoint()
-        if .sequence >= Swag.U64.Max - 1 do
-            fail volumeError(.DiskFull)
+        }
 
-        var upserted: Array'(*Node)
+        if not .hasPendingChanges()
+        {
+            return try .checkpoint()
+        }
+
+        if .sequence - .checkpointAt >= JournalCapacity
+        {
+            return try .checkpoint()
+        }
+
+        if .sequence >= Swag.U64.Max - 1
+        {
+            fail volumeError(.DiskFull)
+        }
+
+        var upserted: Array!{*Node}
         upserted.reserve(.touched.count)
         for id in .touched
         {
             let node = .nodeById(id)
-            if node do
+            if node
+            {
                 upserted.add(node)
+            }
         }
 
-        var metadata: Array'(*Node)
+        var metadata: Array!{*Node}
         metadata.reserve(.metadataTouched.count)
         for id in .metadataTouched
         {
             let node = .nodeById(id)
-            if node do
+            if node
+            {
                 metadata.add(node)
+            }
         }
 
         var plain = JournalRecord.encode(.sequence + 1, .nextNodeId, .label, .removed.toSlice(), upserted.toSlice(), metadata.toSlice())
@@ -554,8 +664,10 @@ impl Volume
         // A change that does not fit one record is rare — a file with a very
         // fragmented block map, or a large security descriptor. Rewriting the
         // whole image is the honest answer rather than a second record format.
-        if plain.count > JournalPlainSize do
+        if plain.count > JournalPlainSize
+        {
             return try .checkpoint()
+        }
 
         let sequence = .sequence + 1
         try .writeFramedRecord(JournalAreaOffset + (sequence % JournalCapacity) * JournalRecordSize,
@@ -582,15 +694,19 @@ impl Volume
     // 256 stale records left behind by earlier checkpoints.
     mtd replayJournal() fail
     {
-        #static if #command == Swag.CompilerCommand.Test do
+        #static if #command == Swag.CompilerCommand.Test
+        {
             .journalRecordsRead = 0
+        }
 
         var expected = .checkpointAt + 1
         for JournalCapacity
         {
             let slot = expected % JournalCapacity
-            #static if #command == Swag.CompilerCommand.Test do
+            #static if #command == Swag.CompilerCommand.Test
+            {
                 .journalRecordsRead += 1
+            }
 
             let plain = try .readFramedRecord(JournalAreaOffset + slot * JournalRecordSize,
                                               JournalRecordSize,
@@ -598,17 +714,25 @@ impl Volume
                                               JournalKind,
                                               slot,
                                               JournalPlainSize)
-            if plain.isEmpty() do
+            if plain.isEmpty()
+            {
                 break
+            }
 
             var decodeErrorOutcome: Swag.Error
             var record: #decltype(expect JournalRecord.decode(plain.toSlice(), .blockCount))
             catch { record = try JournalRecord.decode(plain.toSlice(), .blockCount) } as decodeErrorOutcome
             let decodeError = decodeErrorOutcome.value()
-            if decodeError != null or record.sequence != expected do
+            if decodeError != null or record.sequence != expected
+            {
                 break
-            if record.sequence == Swag.U64.Max do
+            }
+
+            if record.sequence == Swag.U64.Max
+            {
                 fail volumeError(.Corrupted)
+            }
+
             try .applyJournal(record)
             .sequence = record.sequence
             expected  += 1
@@ -623,37 +747,50 @@ impl Volume
         for id in record.removed
         {
             let index = .nodeIndex(id)
-            if index != Swag.U64.Max do
+            if index != Swag.U64.Max
+            {
                 .removeNodeAt(index)
+            }
         }
 
         for node in record.upserted
         {
             let index = .nodeIndex(node.id)
-            if index != Swag.U64.Max do
+            if index != Swag.U64.Max
+            {
                 .removeNodeAt(index)
-            elif .nodes.count >= MaximumNodeCount do
+            }
+            else if .nodes.count >= MaximumNodeCount
+            {
                 fail volumeError(.Corrupted)
+            }
 
             var copy   = node[]
             let target = .nodes.count
             .nodes.add(#move copy)
-            if not .nodeLookup.add(&.nodes[target], target) do
+            if not .nodeLookup.add(&.nodes[target], target)
+            {
                 fail volumeError(.Corrupted)
+            }
         }
 
         for patch in record.metadata
         {
             let node = .nodeById(patch.id)
-            if not node do
+            if not node
+            {
                 fail volumeError(.Corrupted)
+            }
+
             if patch.id != RootNodeId
             {
                 let parent = .nodeById(patch.parentId)
                 if not parent or
                    not parent.isDirectory() or
-                   not .nodeLookup.changeParent(node, patch.parentId, patch.name) do
+                   not .nodeLookup.changeParent(node, patch.parentId, patch.name)
+                {
                     fail volumeError(.Corrupted)
+                }
             }
 
             node.attributes     = patch.attributes

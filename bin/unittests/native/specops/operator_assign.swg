@@ -55,7 +55,7 @@ struct RuntimeAssignHolder
 #test
 {
     var box = RuntimeAssignBox{a: 1, b: 2}
-    box += 3's32
+    box += 3_s32
 
     Swag.require(box.a == 4)
     Swag.require(box.b == 5)
@@ -65,7 +65,7 @@ struct RuntimeAssignHolder
 #test
 {
     var box = RuntimeAssignBox{a: 2, b: 3}
-    box *= 4's32
+    box *= 4_s32
 
     Swag.require(box.a == 8)
     Swag.require(box.b == 12)
@@ -75,7 +75,7 @@ struct RuntimeAssignHolder
 #test
 {
     var box = RuntimeAssignBox{a: 3, b: 5}
-    box <<= 2'u32
+    box <<= 2_u32
 
     Swag.require(box.a == 12)
     Swag.require(box.b == 20)
@@ -96,7 +96,7 @@ struct RuntimeAssignHolder
 #test
 {
     var holder = RuntimeAssignHolder{}
-    holder.value += 9's32
+    holder.value += 9_s32
 
     Swag.require(holder.value.a == 9)
     Swag.require(holder.value.b == 9)
@@ -107,7 +107,7 @@ struct RuntimeAssignHolder
 {
     var box = RuntimeAssignBox{a: 10, b: 20}
     let ptr = &box
-    ptr[] += 5's32
+    ptr[] += 5_s32
 
     Swag.require(box.a == 15)
     Swag.require(box.b == 25)

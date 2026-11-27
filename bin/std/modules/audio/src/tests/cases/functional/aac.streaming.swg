@@ -3,15 +3,15 @@
 
 using Swag, Core, Core.Errors
 
-func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
+func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array!{u8} fail
 {
     var encoder = try Aac.StreamEncoder.create(48_000, 1, .Voice)
-    var result: Array'u8
-    var cursor  = 0'u64
+    var result: Array!{u8}
+    var cursor  = 0_u64
     while cursor < samples.count
     {
         let count    = Math.min(chunk, samples.count - cursor)
-        var packet: Array'u8
+        var packet: Array!{u8}
         let consumed = try encoder.push(samples[cursor until cursor + count], &packet)
         cursor += consumed
         if packet.count
@@ -22,7 +22,7 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
         }
     }
 
-    var tail: Array'u8
+    var tail: Array!{u8}
     while try encoder.finish(&tail)
     {
         result.add(cast(u8, tail.count & 255))
@@ -38,8 +38,11 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
 #test
 {
     var source: [2_500] s16
-    for index in source.count do
+    for index in source.count
+    {
         source[index] = cast(s16, cast(s32, index * 31 % 20_000) - 10_000)
+    }
+
     let one  = expect collectStreamPackets(Swag.makeSlice(&source[0], source.count), source.count)
     let many = expect collectStreamPackets(Swag.makeSlice(&source[0], source.count), 137)
     Swag.require(Slice.equals(one.toSlice(), many.toSlice()))
@@ -52,9 +55,12 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
     Swag.require(encoder.channelCount() == 2 and encoder.sampleRateHz() == 44_100)
     Swag.require(encoder.encoderDelayFrames() == 1_024 and encoder.upperFrequencyHz() == 22_050)
     var source: [1_030 * 2] s16
-    for frame in 1_030 do
+    for frame in 1_030
+    {
         source[frame * 2] = cast(s16, frame * 3)
-    var packet: Array'u8
+    }
+
+    var packet: Array!{u8}
     let first = expect encoder.push(Swag.makeSlice(&source[0], source.count), &packet)
     Swag.require(first == 1_024 and packet.count > 0)
     Swag.require(encoder.lastPacketStartSample() == 0 and encoder.lastPacketValidFrames() == 1_024)
@@ -78,18 +84,21 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
                             Format.toString("aac-stream-%.aac", Guid128.random()))
     defer discard catch File.delete(path)
     var source: [2_500] s16
-    for index in source.count do
+    for index in source.count
+    {
         source[index] = cast(s16,
                              Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                             1_000.0 * index / 48_000.0)))
+    }
+
     var encoder = expect Aac.StreamEncoder.create(48_000, 1, .Voice)
-    var encoded: Array'u8
-    var packets: Array'SoundPacket
-    var cursor  = 0'u64
+    var encoded: Array!{u8}
+    var packets: Array!{SoundPacket}
+    var cursor  = 0_u64
     while cursor < source.count
     {
-        var packet: Array'u8
-        let count = Math.min(113'u64, source.count - cursor)
+        var packet: Array!{u8}
+        let count = Math.min(113_u64, source.count - cursor)
         cursor += expect encoder.push(Swag.makeSlice(&source[cursor], count), &packet)
         if packet.count
         {
@@ -98,7 +107,7 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
         }
     }
 
-    var tail: Array'u8
+    var tail: Array!{u8}
     while expect encoder.finish(&tail)
     {
         packets.add({encoded.count, cast(u32, tail.count), 1_024})
@@ -108,15 +117,15 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
     Swag.require(packets.count == 4)
     discard expect File.writeAllBytes(path.toString(), encoded.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 1, 4 * 1_024, packets.toSlice(), encoder.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
     Swag.require(decoded.count == 4 * 1_024)
-    var error = 0.0'f64
-    var power = 0.0'f64
+    var error = 0.0_f64
+    var power = 0.0_f64
     for index in 2_048 until source.count
     {
         let expected = cast(f64, source[index])
@@ -133,8 +142,8 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
 {
     var encoder = expect Aac.StreamEncoder.create(48_000, 2, .Voice)
     const Odd: [3] s16 = [1, 2, 3]
-    var packet: Array'u8
-    packet.add(99'u8)
+    var packet: Array!{u8}
+    packet.add(99_u8)
     var rejected: Swag.Error
     discard catch encoder.push(Swag.makeSlice(&Odd[0], Odd.count), &packet) as rejected
     Swag.require(rejected.value() is BadParameterError)
@@ -150,14 +159,14 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
     var encoder = expect Aac.StreamEncoder.create(48_000, 1, .Voice)
     const Input: [3] s16 = [100, 200, 300]
     const Extra: [1] s16 = [400]
-    var packet: Array'u8
+    var packet: Array!{u8}
     Swag.require(expect encoder.push(Swag.makeSlice(&Input[0], Input.count), &packet) == Input.count)
     Swag.require(packet.isEmpty())
     Swag.require(expect encoder.finish(&packet))
     Swag.require(packet.count > 0 and encoder.lastPacketValidFrames() == Input.count)
 
     packet.clear()
-    packet.add(0xA5'u8)
+    packet.add(0xA5_u8)
     var rejected: Swag.Error
     discard catch encoder.push(Swag.makeSlice(&Extra[0], Extra.count), &packet) as rejected
     Swag.require(rejected.value() is BadParameterError)

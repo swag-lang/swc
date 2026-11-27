@@ -87,7 +87,7 @@ using Swag, Core, Pixel
 
     // Under the surface window, as every window of an application is: the standalone test root
     // is outside the application's tree.
-    let styled = Wnd.create'Wnd(&host.surfaceWnd)
+    let styled = Wnd.create!{Wnd}(&host.surfaceWnd)
     styled.style.setStyleSheetColors("btn_Text $white")
     styled.computeStyle()
     Swag.require(styled.theme() != host.app.theme)

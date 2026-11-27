@@ -21,8 +21,8 @@ struct RichEditUndo
         concatChars: bool               // Whether typed runes may still be appended to this record.
         selBeg:      RichEditCursor     // Selection anchor where the edit applies.
         cursorPos:   RichEditCursor     // Caret where the edit applies.
-        runes:       Array'rune         // Runes inserted or deleted.
-        styles:      Array'u8           // Style index of each rune in `runes`.
+        runes:       Array!{rune}       // Runes inserted or deleted.
+        styles:      Array!{u8}         // Style index of each rune in `runes`.
         serial:      u64                // Group number; records sharing it undo and redo together.
         hasSelRect:  bool               // Whether the edit applied to a rectangular selection.
 
@@ -41,8 +41,11 @@ private impl RichEditCtrl
         while count
         {
             if (.undoMgr[count - 1]!.type == .Delete) or
-               (.undoMgr[count - 1]!.type == .Insert) do
+               (.undoMgr[count - 1]!.type == .Insert)
+            {
                 return count
+            }
+
             count -= 1
         }
 
@@ -52,8 +55,10 @@ private impl RichEditCtrl
     mtd resetUndo()
     {
         // Its impossible to restore an unmodified state in that case
-        if .modifiedUndoMarker > .currentUndo do
+        if .modifiedUndoMarker > .currentUndo
+        {
             .modifiedUndoMarker = Swag.U64.Max
+        }
 
         while .undoMgr.count > .currentUndo
         {
@@ -118,8 +123,10 @@ impl RichEditCtrl
     // Reverts the newest recorded edit.
     mtd undo()
     {
-        if not .canUndo() do
+        if not .canUndo()
+        {
             return
+        }
 
         .currentUndo -= 1
         var undo   = unwrap .undoMgr[.currentUndo]
@@ -134,7 +141,7 @@ impl RichEditCtrl
                 var cp = .selectionStart()
                 .insertTextPrivate(&cp, undo.runes, undo.styles, undo.hasSelRect)
             }
-            elif undo.type == .Insert
+            else if undo.type == .Insert
             {
                 .selBeg    = undo.selBeg
                 .cursorPos = undo.cursorPos
@@ -146,18 +153,29 @@ impl RichEditCtrl
             .selBeg    = undo.begSelectionBefore
             .cursorPos = undo.endSelectionBefore
             .setRectangularSelection(undo.hasSelRect)
-            if not .currentUndo do
+            if not .currentUndo
+            {
                 break
+            }
+
             undo = unwrap .undoMgr[.currentUndo - 1]
-            if undo.serial != serial do
+            if undo.serial != serial
+            {
                 break
+            }
+
             .currentUndo -= 1
         }
 
-        if .lastModificationUndoIndex() == .modifiedUndoMarker do
+        if .lastModificationUndoIndex() == .modifiedUndoMarker
+        {
             .setModified(false)
-        else do
+        }
+        else
+        {
             .setModified(true)
+        }
+
         .computeScrollY()
         .reportCaretMove()
     }
@@ -168,8 +186,10 @@ impl RichEditCtrl
     // Reapplies the newest reverted edit.
     mtd redo()
     {
-        if not .canRedo() do
+        if not .canRedo()
+        {
             return
+        }
 
         var undo   = unwrap .undoMgr[.currentUndo]
         let serial = undo.serial
@@ -185,7 +205,7 @@ impl RichEditCtrl
                 .computeRectangularSelection(.selectionStart(), .selectionEnd())
                 .deleteTextPrivate(.selectionStart(), .selectionEnd(), undo.hasSelRect)
             }
-            elif undo.type == .Insert
+            else if undo.type == .Insert
             {
                 .selBeg    = undo.selBeg
                 .cursorPos = undo.cursorPos
@@ -197,18 +217,29 @@ impl RichEditCtrl
             .cursorPos = undo.endSelectionAfter
             .setRectangularSelection(undo.hasSelRect)
 
-            if .currentUndo == .undoMgr.count do
+            if .currentUndo == .undoMgr.count
+            {
                 break
+            }
+
             undo = unwrap .undoMgr[.currentUndo]
-            if undo.serial != serial do
+            if undo.serial != serial
+            {
                 break
+            }
+
             .currentUndo += 1
         }
 
-        if .lastModificationUndoIndex() == .modifiedUndoMarker do
+        if .lastModificationUndoIndex() == .modifiedUndoMarker
+        {
             .setModified(false)
-        else do
+        }
+        else
+        {
             .setModified(true)
+        }
+
         .computeScrollY()
         .reportCaretMove()
     }

@@ -27,12 +27,12 @@ struct FragmentedTrackSummary
 // [[Video.Mp4.rebuildFragmentedIndex]].
 struct FragmentedRecordingSummary
 {
-    public width:                  s32                              // Video width in pixels.
-    public height:                 s32                              // Video height in pixels.
-    public video:                  FragmentedTrackSummary           // Complete video packets.
-    public audioTracks:            Array'FragmentedTrackSummary     // Complete AAC-LC packets by track.
-    public completeMediaByteCount: u64                              // Byte offset after the last complete media-data box.
-    public hasIncompleteTail:      bool                             // Whether an incomplete final box stopped the scan.
+    public width:                  s32                                // Video width in pixels.
+    public height:                 s32                                // Video height in pixels.
+    public video:                  FragmentedTrackSummary             // Complete video packets.
+    public audioTracks:            Array!{FragmentedTrackSummary}     // Complete AAC-LC packets by track.
+    public completeMediaByteCount: u64                                // Byte offset after the last complete media-data box.
+    public hasIncompleteTail:      bool                               // Whether an incomplete final box stopped the scan.
 }
 
 // Scans fragment headers and returns recording lengths without reading encoded payloads.
@@ -49,16 +49,22 @@ func summarizeFragmentedRecording(fileName: string)->FragmentedRecordingSummary 
     result.height = cursor.height()
     result.video.timescale = cursor.timescale()
     result.audioTracks.resize(cursor.audioTrackCount())
-    for index in result.audioTracks.count do
+    for index in result.audioTracks.count
+    {
         result.audioTracks[index].timescale = (try cursor.audioTrack(index)).sampleRate
+    }
 
     var packet: FragmentedCursorPacket
     while try cursor.nextPacket(&packet)
     {
-        if packet.isVideo do
+        if packet.isVideo
+        {
             addFragmentedSummaryPacket(&result.video, packet.info)
-        else do
+        }
+        else
+        {
             addFragmentedSummaryPacket(&result.audioTracks[packet.trackIndex], packet.info)
+        }
     }
 
     result.completeMediaByteCount = cursor.completeMediaByteCount()
@@ -68,8 +74,11 @@ func summarizeFragmentedRecording(fileName: string)->FragmentedRecordingSummary 
 
 private func addFragmentedSummaryPacket(track: *FragmentedTrackSummary, packet: FragmentedPacketInfo)
 {
-    if not track.packetCount do
+    if not track.packetCount
+    {
         track.firstDecodeTime = packet.decodeTime
+    }
+
     track.packetCount   += 1
     track.endDecodeTime = packet.decodeTime + packet.duration
 }

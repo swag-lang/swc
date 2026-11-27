@@ -250,8 +250,11 @@ private struct Fixture
     {
         let isAlias = item.aliasOf.count != 0
         let path    = isAlias ? isolatedScopeFixture(item.aliasOf, asName: item.name) : scopeTestDataPath(item.name)
-        defer if isAlias do
+        defer if isAlias
+        {
             discardIsolatedScopeFixture(path)
+        }
+
         Swag.require(File.exists(path), item.name)
         let choices = registry.choices(path)
         Swag.require(not choices.isEmpty() and choices[0].key == item.viewer, item.name)
@@ -268,23 +271,33 @@ private struct Fixture
     {
         Swag.require(raster.width == 76 and raster.height == 84)
         var ink: u64
-        for y in raster.height do
-            for x in raster.width where raster.pixelColor(x, y).a == 255 do
+        for y in raster.height
+        {
+            for x in raster.width where raster.pixelColor(x, y).a == 255
+            {
                 ink += 1
+            }
+        }
+
         Swag.require(ink == 528 * 4 + 12 * 12 - 6 * 6)
     }
 }
 
 private func requireStereoSignal(sound: const *SoundFile, encoding: SoundFileEncoding, sampleRate: u32)
 {
-    Swag.require(sound.sampleEncoding() == encoding and sound.sampleRateHz() == sampleRate and sound.numChannels() == 2)
+    Swag.require(sound.sampleEncoding() == encoding and
+                 sound.sampleRateHz() == sampleRate and
+                 sound.numChannels() == 2)
     var channels: [2] bool
-    var count: u64
+    var count:    u64
     let frames = Math.min(sound.sampleFrameCount(), cast(u64, sampleRate) / 4)
     expect sound.decodePcm16(0, frames, func|&channels, &count|(samples)
     {
-        for sample, index in samples where sample do
+        for sample, index in samples where sample
+        {
             channels[index % 2] = true
+        }
+
         count += samples.count
         return true
     })

@@ -1,7 +1,7 @@
 #global private
 using Swag
 
-const OperatorS64Min = -9_223_372_036_854_775_807's64 - 1
+const OperatorS64Min = -9_223_372_036_854_775_807_s64 - 1
 
 // Element-wise '#simd' operators, checked lane by lane against scalar
 // arithmetic on every shape the operator supports.
@@ -33,8 +33,8 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
 #test
 {
     // Wrapping is the definition, not an error: no overflow guard fires.
-    let big  = Swag.vecSplat(2_147_483_647's32)
-    let one  = Swag.vecSplat(1's32)
+    let big  = Swag.vecSplat(2_147_483_647_s32)
+    let one  = Swag.vecSplat(1_s32)
     let wrap = lanesOf(big + one)
     Swag.require(wrap[0] == -2_147_483_648)
     Swag.require(wrap[3] == -2_147_483_648)
@@ -89,7 +89,7 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
     Swag.require(r[0] == -13 and r[2] == 0 and r[3] == -1)
 
     // A splat is a constant too, and so is the result of a constant cast.
-    let splat = Swag.vecSplat(5's32)
+    let splat = Swag.vecSplat(5_s32)
     r = lanesOf(-splat)
     Swag.require(r[0] == -5 and r[3] == -5)
 
@@ -197,21 +197,21 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
 #test
 {
     // Sixteen u8 lanes and eight s16 lanes.
-    let a8 = Swag.vecSplat(200'u8)
-    let b8 = Swag.vecSplat(100'u8)
+    let a8 = Swag.vecSplat(200_u8)
+    let b8 = Swag.vecSplat(100_u8)
     let r8 = cast([16] u8, (a8 + b8))
     Swag.require(r8[0] == 44 and r8[15] == 44)
 
     let mul8a = cast(#simd [16] u8, [200, 255, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
-    let mul8  = cast([16] u8, (mul8a * Swag.vecSplat(2'u8)))
+    let mul8  = cast([16] u8, (mul8a * Swag.vecSplat(2_u8)))
     Swag.require(mul8[0] == 144 and mul8[1] == 254 and mul8[15] == 32)
 
     let signedMul8a = cast(#simd [16] s8, [-100, -128, -3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
-    let signedMul8  = cast([16] s8, (signedMul8a * Swag.vecSplat(3's8)))
+    let signedMul8  = cast([16] s8, (signedMul8a * Swag.vecSplat(3_s8)))
     Swag.require(signedMul8[0] == -44 and signedMul8[1] == -128 and signedMul8[2] == -9)
 
     let a16 = cast(#simd [8] s16, [1, -2, 3, -4, 5, -6, 7, -8])
-    let b16 = Swag.vecSplat(10's16)
+    let b16 = Swag.vecSplat(10_s16)
     let r16 = cast([8] s16, (a16 * b16))
     Swag.require(r16[0] == 10 and r16[1] == -20 and r16[7] == -80)
 
@@ -230,7 +230,7 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
 {
     // Float lanes: the four arithmetic operators.
     let a = cast(#simd [4] f32, [1.0, 2.0, 3.0, 4.0])
-    let b = Swag.vecSplat(2.0'f32)
+    let b = Swag.vecSplat(2.0_f32)
     var r = cast([4] f32, (a * b))
     Swag.require(r[0] == 2.0 and r[3] == 8.0)
     r = cast([4] f32, (a / b))
@@ -267,7 +267,7 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
 
     // Float compares use the hardware predicates.
     let fa = cast(#simd [4] f32, [1.0, 2.0, 3.0, 4.0])
-    let fb = Swag.vecSplat(2.5'f32)
+    let fb = Swag.vecSplat(2.5_f32)
     m = cast([4] u32, (fa < fb))
     Swag.require(m[0] == 0xFFFF_FFFF and m[1] == 0xFFFF_FFFF and m[2] == 0 and m[3] == 0)
 }
@@ -316,14 +316,14 @@ func addEight(a, b, c, d, e, f, g, h: #simd [4] s32)->#simd [4] s32 => a + b + c
     let r = lanesOf(addAll(makeS32(1, 2, 3, 4), makeS32(10, 20, 30, 40), makeS32(100, 200, 300, 400)))
     Swag.require(r[0] == 111 and r[1] == 222 and r[2] == 333 and r[3] == 444)
 
-    let one   = Swag.vecSplat(1's32)
-    let two   = Swag.vecSplat(2's32)
-    let three = Swag.vecSplat(3's32)
-    let four  = Swag.vecSplat(4's32)
-    let five  = Swag.vecSplat(5's32)
-    let six   = Swag.vecSplat(6's32)
-    let seven = Swag.vecSplat(7's32)
-    let eight = Swag.vecSplat(8's32)
+    let one   = Swag.vecSplat(1_s32)
+    let two   = Swag.vecSplat(2_s32)
+    let three = Swag.vecSplat(3_s32)
+    let four  = Swag.vecSplat(4_s32)
+    let five  = Swag.vecSplat(5_s32)
+    let six   = Swag.vecSplat(6_s32)
+    let seven = Swag.vecSplat(7_s32)
+    let eight = Swag.vecSplat(8_s32)
     let many  = lanesOf(addEight(one, two, three, four, five, six, seven, eight))
     Swag.require(many[0] == 36 and many[1] == 36 and many[2] == 36 and many[3] == 36)
 }
@@ -336,4 +336,70 @@ var g_Vector = cast(#simd [4] s32, [7, 8, 9, 10])
     Swag.require(g_Vector[0] == 7)
     g_Vector += 1
     Swag.require(g_Vector[3] == 11)
+}
+
+#test
+{
+    const LowWords: #simd [2] u64 = [0xFFFF_FFFF, 0xFFFF]
+    const HighWord: #simd [2] u64 = [0x1_FFFF_FFFF, 0xFFFF_FFFF]
+    let a = cast(#simd [2] u64, [0xCAFE_BABE_FFFF_FFFF, 0x00AB_1234_0000_FFFF])
+    let b = cast(#simd [2] u64, [0xFEED_BABE_FFFF_FFFF, 0xCAFE_5678_0000_8001])
+
+    let narrow = cast([2] u64, ((LowWords & a) * (b & LowWords)))
+    Swag.require(narrow[0] == 0xFFFF_FFFE_0000_0001 and narrow[1] == 0x8000_7FFF)
+
+    let wide = cast([2] u64, ((HighWord & a) * (b & LowWords)))
+    Swag.require(wide[0] == narrow[0] and wide[1] == narrow[1])
+    let highA = cast(#simd [2] u64, [0x1_0000_0002, 0])
+    let high  = cast([2] u64, ((HighWord & highA) * (b & LowWords)))
+    Swag.require(high[0] == 0xFFFF_FFFE and high[1] == 0)
+}
+
+struct MaskedPair
+{
+    value: #simd [2] u64
+}
+
+impl MaskedPair
+{
+    #[Swag.NoInline]
+    mtd(op: Swag.Operator) const opBinary(_: #simd [2] u64)->MaskedPair
+        where op == .BitAnd
+    {
+        return me[]
+    }
+
+    #[Swag.Implicit, Swag.NoInline]
+    mtd const opCast()->#simd [2] u64 => .value
+}
+
+#test
+{
+    const LowWords: #simd [2] u64 = [0xFFFF_FFFF, 0xFFFF_FFFF]
+    let left    = MaskedPair{[0x1_0000_0002, 2]}
+    let right   = MaskedPair{[0xFFFF_FFFF, 3]}
+    let product = cast([2] u64, (cast(#simd [2] u64, left & LowWords) * (right.value & LowWords)))
+    Swag.require(product[0] == 0xFFFF_FFFE and product[1] == 6)
+}
+
+#[Swag.NoInline]
+func replaceProductOperand(value: *#simd [2] u64)->#simd [2] u64
+{
+    value[] = [0xFFF0_0000_0000_0002, 3]
+    return [0xF000_0000_0000_000D, 0xE000_0000_0000_0011]
+}
+
+#test
+{
+    const LowWords: #simd [2] u64 = [0xFFFF_FFFF, 0xFFFF_FFFF]
+    var operand = cast(#simd [2] u64, [0xABCD_0123_0000_0007, 0x1122_3344_0000_000B])
+    let product = cast([2] u64, ((operand & LowWords) * (LowWords & replaceProductOperand(&operand))))
+    Swag.require(product[0] == 91 and product[1] == 187)
+    Swag.require((cast([2] u64, operand))[1] == 3)
+
+    const Partial: #simd [2] u64 = [0xFF, 0xFFFF]
+    let source = cast(#simd [2] u64, [0xABCD_0000_0001_2345, 0xEF00_0000_0003_012C])
+    let factor = cast(#simd [2] u64, [0xBCDE_0000_0000_000D, 0xFED0_0000_0000_0011])
+    let partial = cast([2] u64, ((Partial & source) * (factor & LowWords)))
+    Swag.require(partial[0] == 897 and partial[1] == 5100)
 }

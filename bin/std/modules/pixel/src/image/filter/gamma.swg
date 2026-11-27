@@ -8,8 +8,10 @@ public impl Image
     // above one brighten the image. Alpha is unchanged.
     mtd gamma(level: f32 = 2.2)
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         let inverseGamma = 1.0 / Math.clamp(level, Math.ConstF32.Epsilon, 5.0)
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
@@ -27,8 +29,10 @@ public impl Image
         }
 
         var channelLut: [256] u8
-        for i in 256 do
+        for i in 256
+        {
             channelLut[i] = cast(u8, (Math.pow(i / 255.0, inverseGamma) * 255))
+        }
 
         let table = cast(const [*] u8, &channelLut[0])
         .applyColorLuts(table, table, table)

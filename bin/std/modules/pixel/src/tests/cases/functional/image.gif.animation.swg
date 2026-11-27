@@ -34,64 +34,80 @@ func sameColors(decoded: Image, source: Image)->bool
         {
             let a = decoded.pixelColor(x, y)
             let b = source.pixelColor(x, y)
-            if a.r != b.r or a.g != b.g or a.b != b.b do
+            if a.r != b.r or a.g != b.g or a.b != b.b
+            {
                 return false
+            }
         }
     }
 
     return true
 }
 
+func localPaletteFlags(bytes: const [..] u8)->Array!{bool}
+{
+    var result: #returntype
+    let packed = bytes[10]
+    var offset = 13_u64
+    if packed & 0x80
+    {
+        offset += 3_u64 * (1_u64 << ((packed & 7) + 1))
+    }
+
+    while offset < bytes.count
+    {
+        let marker = bytes[offset]
+        offset += 1
+        if marker == 0x3B
+        {
+            return result
+        }
+
+        if marker == 0x21
+        {
+            offset += 1     // Extension label.
+        }
+        else
+        {
+            Swag.require(marker == 0x2C)
+            let flags = bytes[offset + 8]
+            result.add((flags & 0x80) != 0)
+            offset += 9
+            if flags & 0x80
+            {
+                offset += 3_u64 * (1_u64 << ((flags & 7) + 1))
+            }
+
+            offset += 1     // LZW minimum code size.
+        }
+
+        for
+        {
+            let size = bytes[offset]
+            offset += 1
+            if not size
+            {
+                break
+            }
+
+            offset += size
+        }
+    }
+
+    Swag.require(false)
+    return result
+}
+
 // An animation written frame by frame decodes back with its frames, its timing and its looping;
 // an unchanged frame lengthens the one before it.
 #test
 {
-    func localPaletteFlags(bytes: const [..] u8)->Array'bool
+    let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-tests")
+    if not Directory.exists(folder)
     {
-        var result: #returntype
-        let packed = bytes[10]
-        var offset = 13'u64
-        if packed & 0x80 do
-            offset += 3'u64 * (1'u64 << ((packed & 7) + 1))
-
-        while offset < bytes.count
-        {
-            let marker = bytes[offset]
-            offset += 1
-            if marker == 0x3B do
-                return result
-            if marker == 0x21
-            {
-                offset += 1     // Extension label.
-            }
-            else
-            {
-                Swag.require(marker == 0x2C)
-                let flags = bytes[offset + 8]
-                result.add((flags & 0x80) != 0)
-                offset += 9
-                if flags & 0x80 do
-                    offset += 3'u64 * (1'u64 << ((flags & 7) + 1))
-                offset += 1     // LZW minimum code size.
-            }
-
-            for
-            {
-                let size = bytes[offset]
-                offset += 1
-                if not size do
-                    break
-                offset += size
-            }
-        }
-
-        Swag.require(false)
-        return result
+        expect Directory.create(folder)
     }
 
-    let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-tests")
-    if not Directory.exists(folder) do
-        expect Directory.create(folder)
     var name = String.from("animation-")
     name += Guid64.random().toString()
     name += ".gif"
@@ -108,8 +124,11 @@ func sameColors(decoded: Image, source: Image)->bool
     frames[4] = animationFrame(20, Color.fromArgb(255, 20, 90, 160))
 
     var writer = expect Gif.AnimationWriter.create(path, 40, 30)
-    for frame in frames do
+    for frame in frames
+    {
         expect writer.addFrame(frame, 100_000)
+    }
+
     expect writer.end()
 
     let bytes = expect File.readAllBytes(path)
@@ -305,4 +324,119 @@ func sameColors(decoded: Image, source: Image)->bool
     let ditherBytes = expect File.readAllBytes(ditherPath)
     Swag.require(plainBytes.count != ditherBytes.count or
                  Memory.compare(plainBytes.storage(), ditherBytes.storage(), plainBytes.count) != 0)
+    let decoded = expect Image.decode("dithered.gif", ditherBytes.toSlice())
+    Swag.require(Hash.Crc32.compute(decoded.pixels.toSlice()) == 148715985_u32)
+}
+
+// A change of channel layout alone still extends the previous frame's delay.
+#test
+{
+    let name = Format.toString("gif-channel-layout-%.gif", Guid64.random())
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
+    defer discard catch File.delete(path)
+
+    let baseColor   = Color.fromArgb(255, 20, 45, 99)
+    let changeColor = Color.fromArgb(255, 130, 19, 211)
+    var rgb         = Image.create(17, 3, .RGB8)
+    var bgra        = Image.create(17, 3, .BGRA8)
+    var rgba        = Image.create(17, 3, .RGBA8)
+    var bgr         = Image.create(17, 3, .BGR8)
+    rgb.fill(baseColor)
+    bgra.fill(baseColor)
+    rgba.fill(baseColor)
+    bgr.fill(baseColor)
+    let rgbaTail = rgba.pixels.storage() + 16 * 4
+    rgbaTail[0] = changeColor.r
+    rgbaTail[1] = changeColor.g
+    rgbaTail[2] = changeColor.b
+    let bgrFirst = bgr.pixels.storage() + 2 * bgr.rowStride
+    bgrFirst[0] = changeColor.b
+    bgrFirst[1] = changeColor.g
+    bgrFirst[2] = changeColor.r
+
+    var writer = expect Gif.AnimationWriter.create(path, 17, 3)
+    expect writer.addFrame(rgb, 50_000)
+    expect writer.addFrame(bgra, 50_000)
+    expect writer.addFrame(rgba, 50_000)
+    expect writer.addFrame(bgr, 50_000)
+    expect writer.end()
+
+    var reader = expect ImageReader.load(path)
+    Swag.require(reader.info.frames.count == 3)
+    Swag.require(Math.abs(reader.info.frames[0].durationSeconds - 0.1) < 0.001)
+    Swag.require(sameColors(expect reader.read(0), rgb))
+    Swag.require(sameColors(expect reader.read(1), rgba))
+    Swag.require(sameColors(expect reader.read(2), bgr))
+}
+
+// Colors in the padded part of a reused global table remain available to later frames.
+#test
+{
+    let name = Format.toString("gif-padded-colors-%.gif", Guid64.random())
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
+    defer discard catch File.delete(path)
+
+    const Width  = 61
+    const Height = 29
+    var frames: [2] Image
+    for frame in 2
+    {
+        frames[frame] = Image.create(Width, Height, .RGB8)
+        var pixels = frames[frame].pixels.storage()
+        for y in Height
+        {
+            for x in Width
+            {
+                let color = 1 + (x + y * 11 + frame * 7) % (37 + frame)
+                pixels[0] = color == 38 ? 0 : cast #wrap(u8, color * 101)
+                pixels[1] = color == 38 ? 0 : cast #wrap(u8, color * 181 + 11)
+                pixels[2] = color == 38 ? 0 : cast #wrap(u8, color * 251 + 17)
+                pixels    += 3
+            }
+        }
+    }
+
+    var writer = expect Gif.AnimationWriter.create(path, Width, Height)
+    for frame in frames
+    {
+        expect writer.addFrame(frame, 100_000)
+    }
+
+    expect writer.end()
+
+    let bytes  = expect File.readAllBytes(path)
+    let tables = localPaletteFlags(bytes.toSlice())
+    Swag.require(tables.count == 2 and not tables[0] and not tables[1])
+    var reader = expect ImageReader.load(path)
+    Swag.require(reader.info.frames.count == 2)
+    for frame in frames.count
+    {
+        Swag.require(sameColors(expect reader.read(cast(u32, frame)), frames[frame]))
+    }
+}
+
+// A caller can reuse its image after adding each frame, including a cropped change.
+#test
+{
+    let name = Format.toString("gif-reused-input-%.gif", Guid64.random())
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
+    defer discard catch File.delete(path)
+
+    var source = Image.create(37, 29, .BGRA8)
+    source.fill(Color.fromArgb(0, 28, 59, 118))
+    let initial = source
+    var writer  = expect Gif.AnimationWriter.create(path, source.width, source.height)
+    expect writer.addFrame(source, 100_000)
+
+    let changed = source.pixels.storage() + 8 * source.rowStride + 11 * 4
+    changed[0] = 213
+    let updated = source
+    expect writer.addFrame(source, 100_000)
+    changed[0] = 173
+    expect writer.end()
+
+    var reader = expect ImageReader.load(path)
+    Swag.require(reader.info.frames.count == 2)
+    Swag.require(sameColors(expect reader.read(0), initial))
+    Swag.require(sameColors(expect reader.read(1), updated))
 }

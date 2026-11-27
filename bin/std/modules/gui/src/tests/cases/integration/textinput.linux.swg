@@ -8,7 +8,7 @@ func runTextInputPeer(script, mode, saved: string)
     var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script, mode, saved],
                                                      standardOutput: .Pipe, standardError: .Pipe})
     defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
-    Swag.require(expect peer.tryWaitForExit(3000'ms), "X11 text-input peer timed out")
+    Swag.require(expect peer.tryWaitForExit(3000_ms), "X11 text-input peer timed out")
     Swag.require(peer.exitCode() == 0, peer.standardError())
 }
 
@@ -29,13 +29,16 @@ func runTextInputPeer(script, mode, saved: string)
     app.setMotionPreference(.Reduced)
     let surface = expect app.createSurface(60, 50, 320, 240, surfaceId: "linux-native-text-input")
     surface.show()
-    for 4 do
+    for 4
+    {
         app.runFrame()
+    }
+
     surface.wnd.view.focusPolicy = .Click
     surface.wnd.view.setFocus()
     var characters:        String
-    var presses, releases: Array'Input.Key
-    var letterPressModifiers, letterCharacterModifiers: Array'Input.KeyModifiers
+    var presses, releases: Array!{Input.Key}
+    var letterPressModifiers, letterCharacterModifiers: Array!{Input.KeyModifiers}
     var layoutChanges:     u32
     surface.wnd.view.hookOnEvent = func|&characters, &presses, &releases, &letterPressModifiers, &letterCharacterModifiers, &layoutChanges|(_, event)->bool
     {
@@ -50,16 +53,20 @@ func runTextInputPeer(script, mode, saved: string)
             if key.kind == .Character
             {
                 characters.append(key.character)
-                if key.key == .A do
+                if key.key == .A
+                {
                     letterCharacterModifiers.add(key.modifiers)
+                }
             }
-            elif key.kind == .Pressed
+            else if key.kind == .Pressed
             {
                 presses.add(key.key)
-                if key.key == .A do
+                if key.key == .A
+                {
                     letterPressModifiers.add(key.modifiers)
+                }
             }
-            elif key.kind == .Released
+            else if key.kind == .Released
             {
                 releases.add(key.key)
             }
@@ -83,11 +90,14 @@ func runTextInputPeer(script, mode, saved: string)
         while peer.isRunning() and Time.monotonicMilliseconds() < deadline
         {
             app.runFrame()
-            discard expect peer.tryWaitForExit(5'ms)
+            discard expect peer.tryWaitForExit(5_ms)
         }
 
-        for 8 do
+        for 8
+        {
             app.runFrame()
+        }
+
         Swag.require(not peer.isRunning() and peer.exitCode() == 0, peer.standardError())
         let expectedPresses = mode == "send" ? 7 : (mode == "remap" ? 8 : (mode == "held-remap" ? 10 : (mode == "repeat" ? 11 : 15)))
         Swag.require(presses.count == expectedPresses,
@@ -115,7 +125,7 @@ func runTextInputPeer(script, mode, saved: string)
             Swag.require(releases.count == presses.count)
             Swag.require(layoutChanges == priorLayoutChanges, "modifier-only changes notified a new keyboard layout")
         }
-        elif mode == "repeat"
+        else if mode == "repeat"
         {
             Swag.require(characters.count >= priorCharacterCount + 2 and Utf8.endsWith(characters.toString(), "aa"),
                          Format.toString("repeated text: %", characters))
@@ -141,8 +151,11 @@ func runTextInputPeer(script, mode, saved: string)
 
     runTextInputPeer(script.toString(), "group-setup", saved.toString())
     defer runTextInputPeer(script.toString(), "group-restore", saved.toString())
-    for 8 do
+    for 8
+    {
         app.runFrame()
+    }
+
     Swag.require(layoutChanges > 0, "XKB keymap replacement did not notify the surface")
     let changesBeforeGroupSwitch = layoutChanges
     let countBeforeGroups        = characters.count
@@ -155,11 +168,14 @@ func runTextInputPeer(script, mode, saved: string)
     while groupPeer.isRunning() and Time.monotonicMilliseconds() < groupDeadline
     {
         app.runFrame()
-        discard expect groupPeer.tryWaitForExit(5'ms)
+        discard expect groupPeer.tryWaitForExit(5_ms)
     }
 
-    for 8 do
+    for 8
+    {
         app.runFrame()
+    }
+
     Swag.require(not groupPeer.isRunning() and groupPeer.exitCode() == 0, groupPeer.standardError())
     Swag.require(characters.count == countBeforeGroups + 2 and Utf8.endsWith(characters.toString(), "zy"),
                  Format.toString("XKB group text: %", characters))

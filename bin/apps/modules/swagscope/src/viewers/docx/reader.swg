@@ -6,14 +6,22 @@ using Core
 // Only Word bookmark names made of ASCII letters, digits and underscores become HTML fragments.
 private func bookmarkFragment(name: string)->String
 {
-    if not name.count or name.count > 40 do
+    if not name.count or name.count > 40
+    {
         return {}
+    }
+
     for byte, index in name
     {
-        if byte >= 128 or (not Latin1.isLetterOrDigit(byte) and byte != '_'u8) do
+        if byte >= 128 or (not Latin1.isLetterOrDigit(byte) and byte != '_'_u8)
+        {
             return {}
-        if not index and not Latin1.isLetter(byte) and byte != '_'u8 do
+        }
+
+        if not index and not Latin1.isLetter(byte) and byte != '_'_u8
+        {
             return {}
+        }
     }
 
     return Format.toString("docx-bookmark-%", name)
@@ -28,7 +36,7 @@ private struct Reader
     footnotes:                FootnoteCatalog
     endnotes:                 EndnoteCatalog
     comments:                 CommentCatalog
-    externalRelationships:    Array'Package.ExternalRelationship
+    externalRelationships:    Array!{Package.ExternalRelationship}
     sectionLayout:            PageLayout
     sectionHtml:              String
     sectionBreak:             String
@@ -77,27 +85,27 @@ private struct Reader
     paragraphNumLevel:        u8
     inNumberProperties:       bool
     paragraphEndsSection:     bool
-    openListIds:              Array'String
-    openListLevels:           Array'u8
-    openListTags:             Array'String
+    openListIds:              Array!{String}
+    openListLevels:           Array!{u8}
+    openListTags:             Array!{String}
     numberingLimited:         bool
     paragraphHasNumPr:        bool
-    footnoteReferences:       Array'String
-    footnoteReferenceTargets: Array'String
-    footnoteReferenceAnchors: Array'String
+    footnoteReferences:       Array!{String}
+    footnoteReferenceTargets: Array!{String}
+    footnoteReferenceAnchors: Array!{String}
     footnoteReferenceSerial:  u64
     footnotesLimited:         bool
-    endnoteReferences:        Array'String
-    endnoteReferenceTargets:  Array'String
-    endnoteReferenceAnchors:  Array'String
+    endnoteReferences:        Array!{String}
+    endnoteReferenceTargets:  Array!{String}
+    endnoteReferenceAnchors:  Array!{String}
     endnoteReferenceSerial:   u64
     endnotesLimited:          bool
-    commentReferences:        Array'String
-    commentRangeStarts:       Array's32
-    commentRangeEnds:         Array's32
+    commentReferences:        Array!{String}
+    commentRangeStarts:       Array!{s32}
+    commentRangeEnds:         Array!{s32}
     commentsLimited:          bool
-    bookmarkNames:            Array'String
-    bookmarkReferences:       Array'String
+    bookmarkNames:            Array!{String}
+    bookmarkReferences:       Array!{String}
     hyperlinkOpen:            bool
 }
 
@@ -120,8 +128,10 @@ private impl Reader
     mtd readPageMargins(token: const *Package.Token)
     {
         let gutter = catch StrConv.toS32(token.attribute("gutter") orelse "0") orelse -1
-        if gutter != 0 do
+        if gutter != 0
+        {
             .document.sectionLayoutSimplified = true
+        }
 
         let names: [4] string = ["top", "right", "bottom", "left"]
         for name, index in names
@@ -156,7 +166,7 @@ private impl Reader
             .document.sectionLayoutSimplified = true
             .sectionBreak = "nextPage"
         }
-        elif .sectionBreak == "evenPage" or .sectionBreak == "oddPage"
+        else if .sectionBreak == "evenPage" or .sectionBreak == "oddPage"
         {
             // A continuous HTML flow cannot preserve which physical page parity Word starts on.
             .document.sectionLayoutSimplified = true
@@ -165,22 +175,29 @@ private impl Reader
 
     mtd closeCellTag()
     {
-        if not .cellTagOpen do
+        if not .cellTagOpen
+        {
             return
+        }
 
         if .cellVerticalMerge == 2
         {
             let firstColumn = cast(u32, .cellColumn)
-            let columnEnd  = firstColumn + cast(u32, .cellColumnSpan)
-            if .tableDepth == 1 and .cellColumnSpan and columnEnd <= 63 and .activeMergeRows[firstColumn]
+            let columnEnd   = firstColumn + cast(u32, .cellColumnSpan)
+            if .tableDepth == 1 and
+               .cellColumnSpan and
+               columnEnd <= 63 and
+               .activeMergeRows[firstColumn]
             {
                 let origin  = .activeMergeRows[firstColumn]
                 let oldSpan = .activeMergeSpans[firstColumn]
-                var valid = true
+                var valid   = true
                 for column in firstColumn until columnEnd
                 {
-                    if .activeMergeRows[column] != origin or .activeMergeSpans[column] != oldSpan do
+                    if .activeMergeRows[column] != origin or .activeMergeSpans[column] != oldSpan
+                    {
                         valid = false
+                    }
                 }
 
                 if valid
@@ -196,29 +213,40 @@ private impl Reader
                     let offsetChange = newDigits.count - oldDigits
                     for index in 63
                     {
-                        if .activeMergeRows[index] > digitOffset do .activeMergeRows[index] += offsetChange
-                        if .nextMergeRows[index] > digitOffset do .nextMergeRows[index] += offsetChange
+                        if .activeMergeRows[index] > digitOffset
+                        {
+                            .activeMergeRows[index] += offsetChange
+                        }
+
+                        if .nextMergeRows[index] > digitOffset
+                        {
+                            .nextMergeRows[index] += offsetChange
+                        }
                     }
+
                     for column in firstColumn until columnEnd
                     {
                         .nextMergeRows[column]  = origin
                         .nextMergeSpans[column] = span
                     }
 
-                    .cellTagOpen = false
+                    .cellTagOpen    = false
                     .skipMergedCell = true
-                    if .tableDepth and .tableDepth <= 8 do
+                    if .tableDepth and .tableDepth <= 8
+                    {
                         .tableRowColumns[.tableDepth - 1] += .cellColumnSpan
+                    }
+
                     return
                 }
             }
 
             .document.tableMergesSimplified = true
         }
-        elif .cellVerticalMerge == 1
+        else if .cellVerticalMerge == 1
         {
             let firstColumn = cast(u32, .cellColumn)
-            let columnEnd  = firstColumn + cast(u32, .cellColumnSpan)
+            let columnEnd   = firstColumn + cast(u32, .cellColumnSpan)
             if .tableDepth == 1 and .cellColumnSpan and columnEnd <= 63
             {
                 .sectionHtml.insert(.cellTagOffset + 3, " rowspan=\"1\"")
@@ -233,7 +261,7 @@ private impl Reader
                 .document.tableMergesSimplified = true
             }
         }
-        elif .cellVerticalMerge == 3
+        else if .cellVerticalMerge == 3
         {
             .document.tableMergesSimplified = true
         }
@@ -247,20 +275,26 @@ private impl Reader
 
         .sectionHtml += ">"
         .cellTagOpen = false
-        if .tableDepth and .tableDepth <= 8 do
+        if .tableDepth and .tableDepth <= 8
+        {
             .tableRowColumns[.tableDepth - 1] += .cellColumnSpan
+        }
     }
 
     mtd flushSection()
     {
         .closeLists()
-        if .sectionHtml.count do
+        if .sectionHtml.count
+        {
             .document.html += .sectionHtml
+        }
 
         // HtmlView exposes one flowing page box. Keep the final section's geometry on
         // the document body and disclose that earlier section geometry is a projection.
-        if .paragraphEndsSection do
+        if .paragraphEndsSection
+        {
             .document.sectionLayoutSimplified = true
+        }
 
         .document.pageWidth    = .sectionLayout.width
         .document.pageHeight   = .sectionLayout.height
@@ -270,18 +304,25 @@ private impl Reader
         .document.marginLeft   = .sectionLayout.marginLeft
         .document.marginMask   = .sectionLayout.marginMask
         .sectionHtml.clear()
-        if .paragraphEndsSection and .sectionBreak != "continuous" do
+        if .paragraphEndsSection and .sectionBreak != "continuous"
+        {
             .document.html += "<hr>"
+        }
+
         .sectionBreak         = "nextPage"
         .paragraphEndsSection = false
     }
 
     mtd appendInline(value: string)
     {
-        if .inRun do
+        if .inRun
+        {
             .run += value
-        else do
+        }
+        else
+        {
             .paragraph += value
+        }
     }
 
     mtd readFootnoteReference(token: const *Package.Token)
@@ -308,17 +349,23 @@ private impl Reader
             return
         }
 
-        if note.limited or .footnotesLimited do
+        if note.limited or .footnotesLimited
+        {
             .document.footnotesSimplified = true
+        }
+
         var known = false
-        for reference in .footnoteReferences where Utf8.compare(reference.toString(), id.toString()) == 0 do
+        for reference in .footnoteReferences where Utf8.compare(reference.toString(), id.toString()) == 0
+        {
             known = true
+        }
+
         var referenceOmitted = false
         if not known and .footnoteReferences.count < 4096
         {
             .footnoteReferences.add(id)
         }
-        elif not known
+        else if not known
         {
             .document.footnotesSimplified = true
             referenceOmitted = true
@@ -366,17 +413,23 @@ private impl Reader
             return
         }
 
-        if note.limited or .endnotesLimited do
+        if note.limited or .endnotesLimited
+        {
             .document.endnotesSimplified = true
+        }
+
         var known = false
-        for reference in .endnoteReferences where Utf8.compare(reference.toString(), id.toString()) == 0 do
+        for reference in .endnoteReferences where Utf8.compare(reference.toString(), id.toString()) == 0
+        {
             known = true
+        }
+
         var referenceOmitted = false
         if not known and .endnoteReferences.count < 4096
         {
             .endnoteReferences.add(id)
         }
-        elif not known
+        else if not known
         {
             .document.endnotesSimplified = true
             referenceOmitted = true
@@ -426,12 +479,21 @@ private impl Reader
         .appendInline("</a>")
         .appendInline("</sup>")
         .document.commentsSimplified = true
-        if comment.limited or .commentsLimited do
+        if comment.limited or .commentsLimited
+        {
             .document.commentsSimplified = true
-        for reference in .commentReferences where reference == id do
+        }
+
+        for reference in .commentReferences where reference == id
+        {
             return
-        if .commentReferences.count >= 4096 do
+        }
+
+        if .commentReferences.count >= 4096
+        {
             return
+        }
+
         .commentReferences.add(id)
     }
 
@@ -466,8 +528,11 @@ private impl Reader
         }
 
         var foundStart = false
-        for value in .commentRangeStarts where value == numericId do
+        for value in .commentRangeStarts where value == numericId
+        {
             foundStart = true
+        }
+
         if not foundStart
         {
             .document.commentsSimplified = true
@@ -511,8 +576,11 @@ private impl Reader
 
     mtd startHyperlink(token: const *Package.Token)
     {
-        if token.empty do
+        if token.empty
+        {
             return
+        }
+
         if .hyperlinkOpen
         {
             .document.linksSimplified = true
@@ -524,8 +592,8 @@ private impl Reader
         if relationshipId
         {
             for relationship in .externalRelationships
-            where Utf8.compare(relationship.id.toString(), relationshipId) == 0 and
-                  Utf8.endsWith(relationship.kind.toString(), "/hyperlink")
+                where Utf8.compare(relationship.id.toString(), relationshipId) == 0 and
+                      Utf8.endsWith(relationship.kind.toString(), "/hyperlink")
             {
                 var target: String
                 Package.appendHtmlEscaped(&target, relationship.target.toString())
@@ -550,28 +618,41 @@ private impl Reader
 
         .hyperlinkOpen = true
         var known = false
-        for reference in .bookmarkReferences where Utf8.compare(reference.toString(), name) == 0 do
+        for reference in .bookmarkReferences where Utf8.compare(reference.toString(), name) == 0
+        {
             known = true
-        if not known and .bookmarkReferences.count < 4096 do
+        }
+
+        if not known and .bookmarkReferences.count < 4096
+        {
             .bookmarkReferences.add(name)
-        elif not known do
+        }
+        else if not known
+        {
             .document.linksSimplified = true
+        }
 
         .appendInline(Format.toString("<a href=\"#%\">", fragment))
     }
 
     mtd finishHyperlink()
     {
-        if not .hyperlinkOpen do
+        if not .hyperlinkOpen
+        {
             return
+        }
+
         .appendInline("</a>")
         .hyperlinkOpen = false
     }
 
     internal mtd footnotesHtml()->String
     {
-        if not .footnoteReferences.count do
+        if not .footnoteReferences.count
+        {
             return {}
+        }
+
         var result: String = "<section><h2>"
         result += texts().ui_FootnotesTitle
         result += "</h2>"
@@ -584,17 +665,23 @@ private impl Reader
                 continue
             }
 
-            if note.limited or .footnotesLimited do
+            if note.limited or .footnotesLimited
+            {
                 .document.footnotesSimplified = true
+            }
+
             result += Format.toString("<div id=\"docx-footnote-%\"><sup>", id)
             Package.appendHtmlEscaped(&result, id.toString())
             result += "</sup>"
             result += note.html
-            var returnNumber = 0'u32
+            var returnNumber = 0_u32
             for target, index in .footnoteReferenceTargets
             {
-                if Utf8.compare(target.toString(), id.toString()) != 0 do
+                if Utf8.compare(target.toString(), id.toString()) != 0
+                {
                     continue
+                }
+
                 returnNumber += 1
                 result       += Format.toString("<p><a href=\"#%\">", .footnoteReferenceAnchors[index])
                 result       += Format.toString(texts().ui_FootnoteReturn, returnNumber)
@@ -610,8 +697,11 @@ private impl Reader
 
     internal mtd endnotesHtml()->String
     {
-        if not .endnoteReferences.count do
+        if not .endnoteReferences.count
+        {
             return {}
+        }
+
         var result: String = "<section class=\"docx-endnotes\"><h2>"
         result += texts().ui_EndnotesTitle
         result += "</h2>"
@@ -624,17 +714,23 @@ private impl Reader
                 continue
             }
 
-            if note.limited or .endnotesLimited do
+            if note.limited or .endnotesLimited
+            {
                 .document.endnotesSimplified = true
+            }
+
             result += Format.toString("<div id=\"docx-endnote-%\"><sup>", id)
             Package.appendHtmlEscaped(&result, id.toString())
             result += "</sup>"
             result += note.html
-            var returnNumber = 0'u32
+            var returnNumber = 0_u32
             for target, index in .endnoteReferenceTargets
             {
-                if Utf8.compare(target.toString(), id.toString()) != 0 do
+                if Utf8.compare(target.toString(), id.toString()) != 0
+                {
                     continue
+                }
+
                 returnNumber += 1
                 result       += Format.toString("<p><a href=\"#%\">", .endnoteReferenceAnchors[index])
                 result       += Format.toString(texts().ui_EndnoteReturn, returnNumber)
@@ -650,8 +746,11 @@ private impl Reader
 
     internal mtd commentsHtml()->String
     {
-        if not .commentReferences.count do
+        if not .commentReferences.count
+        {
             return {}
+        }
+
         var result: String = "<section class=\"docx-comments\"><h2>"
         result += texts().ui_CommentsTitle
         result += "</h2>"
@@ -659,8 +758,10 @@ private impl Reader
         for id in .commentReferences
         {
             let comment = .comments.lookup(id.toString())
-            if not comment.found do
+            if not comment.found
+            {
                 continue
+            }
 
             rendered = true
             result   += Format.toString("<div id=\"docx-comment-%\"><p class=\"docx-comment-author\"><strong>", id)
@@ -669,8 +770,10 @@ private impl Reader
             result += comment.html
             var hasRange  = false
             let numericId = catch StrConv.toS32(id.toString()) orelse -1
-            for start in .commentRangeStarts where start == numericId do
+            for start in .commentRangeStarts where start == numericId
+            {
                 hasRange = true
+            }
 
             if hasRange
             {
@@ -680,20 +783,28 @@ private impl Reader
             }
 
             result += "</div>"
-            if comment.limited or .commentsLimited do
+            if comment.limited or .commentsLimited
+            {
                 .document.commentsSimplified = true
+            }
         }
 
-        if not rendered do
+        if not rendered
+        {
             return {}
+        }
+
         result += "</section>"
         return result
     }
 
     mtd finishImage()
     {
-        if not .inImage do
+        if not .inImage
+        {
             return
+        }
+
         let image = .images.html(.imageId, .imageWidth, .imageHeight, .imageDescription)
         if image.isEmpty()
         {
@@ -722,16 +833,24 @@ private impl Reader
 
     mtd prepareParagraph()
     {
-        if .paragraphReady do
+        if .paragraphReady
+        {
             return
+        }
+
         .paragraphFormat = .styles.defaultParagraph
         .baseRun         = .styles.defaultRun
         if .styles.loaded
         {
-            if .baseRun.bold == .Inherit do
+            if .baseRun.bold == .Inherit
+            {
                 .baseRun.bold = .Off
-            if .baseRun.italic == .Inherit do
+            }
+
+            if .baseRun.italic == .Inherit
+            {
                 .baseRun.italic = .Off
+            }
         }
 
         let id = .paragraphId.isEmpty() ? .styles.defaultParagraphId : .paragraphId
@@ -741,34 +860,46 @@ private impl Reader
             {
                 .paragraphFormat.overlay(&style.paragraph)
                 .baseRun.applyStyle(&style.run)
-                if style.limited do
+                if style.limited
+                {
                     .document.stylesSimplified = true
+                }
             }
             else
             {
-                if .styles.loaded do
+                if .styles.loaded
+                {
                     .document.stylesSimplified = true
+                }
 
                 // Minimal producers sometimes omit the style part but retain built-in heading IDs.
                 let value = id.toString()
                 if Utf8.startsWith(value, "Heading") and
                    value.count == 8 and
-                   value[7] >= '1'u8 and
-                   value[7] <= '6'u8 do
-                    .paragraphFormat.outline = cast(s32, value[7] - '1'u8)
+                   value[7] >= '1'_u8 and
+                   value[7] <= '6'_u8
+                {
+                    .paragraphFormat.outline = cast(s32, value[7] - '1'_u8)
+                }
             }
         }
 
         .paragraphFormat.overlay(&.directParagraph)
-        if .paragraphFormat.limited or .baseRun.limited do
+        if .paragraphFormat.limited or .baseRun.limited
+        {
             .document.stylesSimplified = true
+        }
+
         .paragraphReady = true
     }
 
     mtd finishRun()
     {
-        if not .inRun do
+        if not .inRun
+        {
             return
+        }
+
         .prepareParagraph()
         var format = .baseRun
         if not .characterId.isEmpty()
@@ -776,8 +907,10 @@ private impl Reader
             if let style = .styles.lookup(.characterId, .Character)
             {
                 format.applyStyle(&style.run)
-                if style.limited do
+                if style.limited
+                {
                     .document.stylesSimplified = true
+                }
             }
             else
             {
@@ -786,10 +919,16 @@ private impl Reader
         }
 
         format.overlay(&.directRun)
-        if format.limited do
+        if format.limited
+        {
             .document.stylesSimplified = true
-        if not format.color.isEmpty() or not format.highlight.isEmpty() do
+        }
+
+        if not format.color.isEmpty() or not format.highlight.isEmpty()
+        {
             .document.usePaperColors = true
+        }
+
         format.appendHtml(&.paragraph, .run)
         .run.clear()
         .inRun  = false
@@ -799,8 +938,11 @@ private impl Reader
 
     mtd finishParagraph()
     {
-        if not .inParagraph do
+        if not .inParagraph
+        {
             return
+        }
+
         .finishRun()
         .prepareParagraph()
         let isList = not .paragraphNumId.isEmpty()
@@ -808,10 +950,12 @@ private impl Reader
         if isList
         {
             listStyle = .numbering.lookup(.paragraphNumId.toString(), .paragraphNumLevel)
-            if listStyle.limited or .numberingLimited do
+            if listStyle.limited or .numberingLimited
+            {
                 .document.stylesSimplified = true
+            }
         }
-        elif .paragraphHasNumPr
+        else if .paragraphHasNumPr
         {
             .document.stylesSimplified = true
         }
@@ -824,8 +968,10 @@ private impl Reader
 
         if isList
         {
-            while .openListLevels.count and .openListLevels[.openListLevels.count - 1] > .paragraphNumLevel do
+            while .openListLevels.count and .openListLevels[.openListLevels.count - 1] > .paragraphNumLevel
+            {
                 .closeListLevel()
+            }
 
             if .openListLevels.count and
                .openListLevels[.openListLevels.count - 1] == .paragraphNumLevel and
@@ -835,8 +981,11 @@ private impl Reader
             }
             else
             {
-                if .openListLevels.count and .openListLevels[.openListLevels.count - 1] == .paragraphNumLevel do
+                if .openListLevels.count and .openListLevels[.openListLevels.count - 1] == .paragraphNumLevel
+                {
                     .closeListLevel()
+                }
+
                 if .openListLevels.count and .paragraphNumLevel > .openListLevels[.openListLevels.count - 1] + 1
                 {
                     .document.stylesSimplified = true
@@ -852,8 +1001,11 @@ private impl Reader
                     .sectionHtml += "\""
                 }
 
-                if listStyle.tag == "ol" and listStyle.start != 1 do
+                if listStyle.tag == "ol" and listStyle.start != 1
+                {
                     .sectionHtml += Format.toString(" start=\"%\"", listStyle.start)
+                }
+
                 .sectionHtml += ">"
                 .sectionHtml += "<li>"
                 .openListIds.add(.paragraphNumId)
@@ -894,18 +1046,26 @@ private impl Reader
         .sectionHtml += ">"
         .paragraph.clear()
         .document.paragraphs += 1
-        if isList do
+        if isList
+        {
             .paragraphNumId.clear()
+        }
+
         .inParagraph = false
         .inParagraphProperties = false
-        if .paragraphEndsSection do
+        if .paragraphEndsSection
+        {
             .flushSection()
+        }
     }
 
     mtd closeListLevel()
     {
-        if not .openListLevels.count do
+        if not .openListLevels.count
+        {
             return
+        }
+
         .sectionHtml += "</li></"
         .sectionHtml += .openListTags[.openListTags.count - 1]
         .sectionHtml += ">"
@@ -916,30 +1076,42 @@ private impl Reader
 
     mtd closeLists()
     {
-        while .openListLevels.count do
+        while .openListLevels.count
+        {
             .closeListLevel()
+        }
     }
 
     mtd setParagraphProperty(token: const *Package.Token)
     {
-        if token.isElement("pStyle") do
+        if token.isElement("pStyle")
+        {
             .paragraphId = token.attribute("val") orelse ""
-        else do
+        }
+        else
+        {
             .directParagraph.read(token)
+        }
     }
 
     mtd setRunProperty(token: const *Package.Token)
     {
-        if token.isElement("rStyle") do
+        if token.isElement("rStyle")
+        {
             .characterId = token.attribute("val") orelse ""
-        else do
+        }
+        else
+        {
             .directRun.read(token, &.theme)
+        }
     }
 
     internal mtd start(token: const *Package.Token)
     {
-        if .skipMergedCell do
+        if .skipMergedCell
+        {
             return
+        }
 
         if not .inBody and token.isElement("background")
         {
@@ -949,19 +1121,26 @@ private impl Reader
                 .document.paperColor     = color
                 .document.usePaperColors = true
             }
-            elif color != "auto"
+            else if color != "auto"
             {
                 .document.stylesSimplified = true
             }
 
-            if not token.empty do
+            if not token.empty
+            {
                 .document.stylesSimplified = true
+            }
         }
 
-        if token.isElement("body") do
+        if token.isElement("body")
+        {
             .inBody = true
-        if not .inBody do
+        }
+
+        if not .inBody
+        {
             return
+        }
 
         if token.isElement("sectPr")
         {
@@ -975,8 +1154,10 @@ private impl Reader
             else
             {
                 .inSectionProperties = not token.empty
-                if token.empty do
+                if token.empty
+                {
                     .flushSection()
+                }
             }
 
             return
@@ -993,34 +1174,42 @@ private impl Reader
                 {
                     .document.pageElementsSimplified = true
                 }
-                elif kind == "header"
+                else if kind == "header"
                 {
-                    if .headerId.isEmpty() do
+                    if .headerId.isEmpty()
+                    {
                         .headerId = id
-                    elif .headerId != id do
+                    }
+                    else if .headerId != id
+                    {
                         .document.pageElementsSimplified = true
+                    }
                 }
                 else
                 {
-                    if .footerId.isEmpty() do
+                    if .footerId.isEmpty()
+                    {
                         .footerId = id
-                    elif .footerId != id do
+                    }
+                    else if .footerId != id
+                    {
                         .document.pageElementsSimplified = true
+                    }
                 }
             }
-            elif token.isElement("pgSz")
+            else if token.isElement("pgSz")
             {
                 .readPageSize(token)
             }
-            elif token.isElement("pgMar")
+            else if token.isElement("pgMar")
             {
                 .readPageMargins(token)
             }
-            elif token.isElement("type")
+            else if token.isElement("type")
             {
                 .readSectionType(token)
             }
-            elif token.isElement("cols") or token.isElement("docGrid")
+            else if token.isElement("cols") or token.isElement("docGrid")
             {
                 .document.sectionLayoutSimplified = true
             }
@@ -1028,10 +1217,15 @@ private impl Reader
             return
         }
 
-        if .cellTagOpen and not .inCellProperties and not token.isElement("tcPr") do
+        if .cellTagOpen and not .inCellProperties and not token.isElement("tcPr")
+        {
             .closeCellTag()
-        if .skipMergedCell do
+        }
+
+        if .skipMergedCell
+        {
             return
+        }
 
         if .inImage
         {
@@ -1045,19 +1239,23 @@ private impl Reader
                     .imageHeight = cast(u32, (cy + 4762) / 9525)
                 }
             }
-            elif token.isElement("blip")
+            else if token.isElement("blip")
             {
                 let id = token.attribute("r:embed")
-                if id do
+                if id
+                {
                     .imageId = id
+                }
             }
-            elif token.isElement("imagedata")
+            else if token.isElement("imagedata")
             {
                 let id = token.attribute("r:id")
-                if id do
+                if id
+                {
                     .imageId = id
+                }
             }
-            elif token.isElement("docPr")
+            else if token.isElement("docPr")
             {
                 let description = token.attribute("descr") orelse token.attribute("title") orelse ""
                 .imageDescription = description
@@ -1069,8 +1267,11 @@ private impl Reader
         if token.isElement("drawing") or token.isElement("pict")
         {
             .inImage = true
-            if token.empty do
+            if token.empty
+            {
                 .finishImage()
+            }
+
             return
         }
 
@@ -1089,12 +1290,16 @@ private impl Reader
                     .nextMergeSpans[index]   = 0
                 }
             }
+
             .tableDepth += 1
         }
-        elif token.isElement("tr")
+        else if token.isElement("tr")
         {
-            if .tableDepth and .tableDepth <= 8 do
+            if .tableDepth and .tableDepth <= 8
+            {
                 .tableRowColumns[.tableDepth - 1] = 0
+            }
+
             if .tableDepth == 1
             {
                 for index in 63
@@ -1103,52 +1308,55 @@ private impl Reader
                     .nextMergeSpans[index] = 0
                 }
             }
+
             .sectionHtml += "<tr>"
         }
-        elif token.isElement("tc")
+        else if token.isElement("tc")
         {
-            .sectionHtml      += "<td"
-            .cellTagOpen      = true
-            .cellTagOffset    = .sectionHtml.count - 3
-            .cellColumn       = .tableDepth and .tableDepth <= 8 ? .tableRowColumns[.tableDepth - 1] : 63
-            .cellColumnSpan   = 1
+            .sectionHtml       += "<td"
+            .cellTagOpen       = true
+            .cellTagOffset     = .sectionHtml.count - 3
+            .cellColumn        = .tableDepth and .tableDepth <= 8 ? .tableRowColumns[.tableDepth - 1] : 63
+            .cellColumnSpan    = 1
             .cellVerticalMerge = 0
-            .inCellProperties = false
-            .cellWidthSet     = false
-            .cellAlignmentSet = false
+            .inCellProperties  = false
+            .cellWidthSet      = false
+            .cellAlignmentSet  = false
             .cellStyle.clear()
-            if token.empty do
+            if token.empty
+            {
                 .closeCellTag()
+            }
         }
-        elif token.isElement("tcPr")
+        else if token.isElement("tcPr")
         {
             .inCellProperties = not token.empty
         }
-        elif .inCellProperties and token.isElement("gridSpan")
+        else if .inCellProperties and token.isElement("gridSpan")
         {
             let span = catch StrConv.toS32(token.attribute("val") orelse "") orelse 0
             if span > 1 and span <= 63
             {
-                .sectionHtml += Format.toString(" colspan=\"%\"", span)
+                .sectionHtml    += Format.toString(" colspan=\"%\"", span)
                 .cellColumnSpan = cast(u8, span)
             }
-            elif span != 1
+            else if span != 1
             {
                 .document.stylesSimplified = true
             }
         }
-        elif .inCellProperties and token.isElement("vMerge")
+        else if .inCellProperties and token.isElement("vMerge")
         {
             let value = token.attribute("val") orelse "continue"
             if .tableDepth != 1
             {
                 .cellVerticalMerge = 3
             }
-            elif value == "restart"
+            else if value == "restart"
             {
                 .cellVerticalMerge = 1
             }
-            elif value == "continue"
+            else if value == "continue"
             {
                 .cellVerticalMerge = 2
             }
@@ -1157,7 +1365,7 @@ private impl Reader
                 .cellVerticalMerge = 3
             }
         }
-        elif .inCellProperties and token.isElement("tcW")
+        else if .inCellProperties and token.isElement("tcW")
         {
             let width = catch StrConv.toS32(token.attribute("w") orelse "") orelse 0
             let kind  = token.attribute("type") orelse "dxa"
@@ -1165,13 +1373,13 @@ private impl Reader
             {
                 .document.stylesSimplified = true
             }
-            elif kind == "dxa" and width > 0 and width <= 43200
+            else if kind == "dxa" and width > 0 and width <= 43200
             {
                 let numbers: Globalization.NumberFormatInfo
                 .cellStyle    += Format.toString("width:%px;", numbers.format(cast(f64, width) / 15, 2))
                 .cellWidthSet = true
             }
-            elif kind == "pct" and width > 0 and width <= 10000
+            else if kind == "pct" and width > 0 and width <= 10000
             {
                 let numbers: Globalization.NumberFormatInfo
                 var percent = numbers.format(cast(f64, width) / 50, 2)
@@ -1179,20 +1387,20 @@ private impl Reader
                 .cellStyle    += Format.toString("width:%;", percent)
                 .cellWidthSet = true
             }
-            elif kind != "auto"
+            else if kind != "auto"
             {
                 .document.stylesSimplified = true
                 .cellWidthSet = true
             }
         }
-        elif .inCellProperties and token.isElement("vAlign")
+        else if .inCellProperties and token.isElement("vAlign")
         {
             let value = token.attribute("val") orelse "top"
             if .cellAlignmentSet
             {
                 .document.stylesSimplified = true
             }
-            elif value == "top" or value == "center" or value == "bottom"
+            else if value == "top" or value == "center" or value == "bottom"
             {
                 .cellStyle        += Format.toString("vertical-align:%;", value == "center" ? "middle" : value)
                 .cellAlignmentSet = true
@@ -1203,7 +1411,7 @@ private impl Reader
                 .cellAlignmentSet = true
             }
         }
-        elif token.isElement("p")
+        else if token.isElement("p")
         {
             .inParagraph = true
             .paragraphId.clear()
@@ -1212,19 +1420,21 @@ private impl Reader
             .paragraphHasNumPr = false
             .directParagraph   = {}
             .paragraphReady    = false
-            if token.empty do
+            if token.empty
+            {
                 .finishParagraph()
+            }
         }
-        elif .inParagraph and token.isElement("pPr")
+        else if .inParagraph and token.isElement("pPr")
         {
             .inParagraphProperties = not token.empty
         }
-        elif .inParagraphProperties and token.isElement("numPr")
+        else if .inParagraphProperties and token.isElement("numPr")
         {
             .inNumberProperties = not token.empty
             .paragraphHasNumPr  = true
         }
-        elif .inNumberProperties and token.isElement("numId")
+        else if .inNumberProperties and token.isElement("numId")
         {
             let numberId = token.attribute("val") orelse ""
             if numberId == "0"
@@ -1237,7 +1447,7 @@ private impl Reader
                 .paragraphNumId = numberId
             }
         }
-        elif .inNumberProperties and token.isElement("ilvl")
+        else if .inNumberProperties and token.isElement("ilvl")
         {
             let level = catch StrConv.toS32(token.attribute("val") orelse "") orelse -1
             if level >= 0 and level <= 8
@@ -1249,67 +1459,73 @@ private impl Reader
                 .document.stylesSimplified = true
             }
         }
-        elif .inParagraphProperties
+        else if .inParagraphProperties
         {
             .setParagraphProperty(token)
         }
-        elif .inParagraph and token.isElement("bookmarkStart")
+        else if .inParagraph and token.isElement("bookmarkStart")
         {
             .readBookmark(token)
         }
-        elif .inParagraph and token.isElement("commentRangeStart")
+        else if .inParagraph and token.isElement("commentRangeStart")
         {
             .readCommentRange(token, true)
         }
-        elif .inParagraph and token.isElement("commentRangeEnd")
+        else if .inParagraph and token.isElement("commentRangeEnd")
         {
             .readCommentRange(token, false)
         }
-        elif .inParagraph and token.isElement("hyperlink")
+        else if .inParagraph and token.isElement("hyperlink")
         {
             .startHyperlink(token)
         }
-        elif .inParagraph and token.isElement("r")
+        else if .inParagraph and token.isElement("r")
         {
             .inRun = true
             .prepareParagraph()
             .directRun = {}
             .characterId.clear()
-            if token.empty do
+            if token.empty
+            {
                 .finishRun()
+            }
         }
-        elif .inRun and token.isElement("rPr")
+        else if .inRun and token.isElement("rPr")
         {
             .inRunProperties = not token.empty
         }
-        elif .inRun and token.isElement("footnoteReference")
+        else if .inRun and token.isElement("footnoteReference")
         {
             .readFootnoteReference(token)
         }
-        elif .inRun and token.isElement("endnoteReference")
+        else if .inRun and token.isElement("endnoteReference")
         {
             .readEndnoteReference(token)
         }
-        elif .inRun and token.isElement("commentReference")
+        else if .inRun and token.isElement("commentReference")
         {
             .readCommentReference(token)
         }
-        elif .inRunProperties
+        else if .inRunProperties
         {
             .setRunProperty(token)
         }
-        elif token.isElement("t")
+        else if token.isElement("t")
         {
             .inText = not token.empty
         }
-        elif token.isElement("br")
+        else if token.isElement("br")
         {
-            if token.attribute("type") == "page" do
+            if token.attribute("type") == "page"
+            {
                 .appendInline("<hr>")
-            else do
+            }
+            else
+            {
                 .appendInline("<br>")
+            }
         }
-        elif token.isElement("tab")
+        else if token.isElement("tab")
         {
             .appendInline("&emsp;")
         }
@@ -1321,10 +1537,11 @@ private impl Reader
         {
             if token.isElement("tc")
             {
-                .skipMergedCell = false
+                .skipMergedCell   = false
                 .inCellProperties = false
-                .cellTagOpen = false
+                .cellTagOpen      = false
             }
+
             return
         }
 
@@ -1339,17 +1556,26 @@ private impl Reader
         if token.isElement("sectPr")
         {
             .inSectionProperties = false
-            if not .inParagraph do
+            if not .inParagraph
+            {
                 .flushSection()
+            }
+
             return
         }
 
-        if not .inBody do
+        if not .inBody
+        {
             return
+        }
+
         if .inImage
         {
-            if token.isElement("drawing") or token.isElement("pict") do
+            if token.isElement("drawing") or token.isElement("pict")
+            {
                 .finishImage()
+            }
+
             return
         }
 
@@ -1357,41 +1583,41 @@ private impl Reader
         {
             .finishHyperlink()
         }
-        elif token.isElement("t")
+        else if token.isElement("t")
         {
             .inText = false
         }
-        elif token.isElement("rPr")
+        else if token.isElement("rPr")
         {
             .inRunProperties = false
         }
-        elif token.isElement("r")
+        else if token.isElement("r")
         {
             .finishRun()
         }
-        elif token.isElement("pPr")
+        else if token.isElement("pPr")
         {
             .inParagraphProperties = false
         }
-        elif token.isElement("numPr")
+        else if token.isElement("numPr")
         {
             .inNumberProperties = false
         }
-        elif token.isElement("tcPr")
+        else if token.isElement("tcPr")
         {
             .inCellProperties = false
             .closeCellTag()
         }
-        elif token.isElement("p")
+        else if token.isElement("p")
         {
             .finishParagraph()
         }
-        elif token.isElement("tc")
+        else if token.isElement("tc")
         {
             .closeCellTag()
             .sectionHtml += "</td>"
         }
-        elif token.isElement("tr")
+        else if token.isElement("tr")
         {
             .sectionHtml += "</tr>"
             if .tableDepth == 1
@@ -1403,10 +1629,13 @@ private impl Reader
                 }
             }
         }
-        elif token.isElement("tbl")
+        else if token.isElement("tbl")
         {
             .sectionHtml += "</table>"
-            if .tableDepth do .tableDepth -= 1
+            if .tableDepth
+            {
+                .tableDepth -= 1
+            }
         }
     }
 }

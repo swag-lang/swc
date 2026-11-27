@@ -43,34 +43,62 @@ struct CabacReader
 // rebuilt one address for every table it touched, on every bin. Behind a single base they are
 // one address and a displacement, which the addressing of a memory operand already carries at no
 // cost, and the two registers this frees are two the loop no longer spills.
-const CabacSigAt            = 768'u64     // Table 9-43 frame coding, significance context per 8x8 scan position.
-const CabacLastAt           = 832'u64     // Table 9-43 frame coding, last-coefficient context per 8x8 scan position.
-const CabacLevel1At         = 896'u64     // Context of a level's first bin, per level node.
-const CabacLevelGtAt        = 904'u64     // Context of a level's later bins, per level node.
-const CabacNodeAt           = 912'u64     // The level node after a level of one, then after a larger level.
+const CabacSigAt            = 768_u64     // Table 9-43 frame coding, significance context per 8x8 scan position.
+const CabacLastAt           = 832_u64     // Table 9-43 frame coding, last-coefficient context per 8x8 scan position.
+const CabacLevel1At         = 896_u64     // Context of a level's first bin, per level node.
+const CabacLevelGtAt        = 904_u64     // Context of a level's later bins, per level node.
+const CabacNodeAt           = 912_u64     // The level node after a level of one, then after a larger level.
 const CabacTables: [928] u8 = #run buildCabacTables()
 
 func buildCabacTables()->[928] u8
 {
     var result: #returntype
 
-    for value, index in buildCabacDecisionTables() do
+    for value, index in buildCabacDecisionTables()
+    {
         result[index] = value
+    }
 
-    for scan in 63'u64
+    for scan in 63_u64
     {
         result[CabacSigAt + scan]  = SigCoeffCtx8x8[scan]
         result[CabacLastAt + scan] = LastCoeffCtx8x8[scan]
     }
 
-    for node in 8'u64
+    for node in 8_u64
     {
         result[CabacLevel1At + node]  = CoeffAbsLevel1Ctx[node]
         result[CabacLevelGtAt + node] = CoeffAbsLevelGt1Ctx[node]
     }
 
-    for index in 16'u64 do
+    for index in 16_u64
+    {
         result[CabacNodeAt + index] = CoeffAbsLevelTransition[index]
+    }
+
+    return result
+}
+
+// A slice chooses one of the four context tables and an integer QP in 0 through 51.
+private const InitialCabacContexts: [4 * 52 * 1024] u8 = #run buildInitialCabacContexts()
+
+private func buildInitialCabacContexts()->[4 * 52 * 1024] u8
+{
+    var result: #returntype
+    for set in 4_u64
+    {
+        for qp in 52_u64
+        {
+            for index in 1024_u64
+            {
+                let base     = set == 0 ? index * 2 : (set - 1) * 2048 + index * 2
+                let m        = cast(s32, set == 0 ? CabacInitI[base] : CabacInitPB[base])
+                let n        = cast(s32, set == 0 ? CabacInitI[base + 1] : CabacInitPB[base + 1])
+                let preState = Math.clamp(((m * cast(s32, qp)) >> 4) + n, 1, 126)
+                result[(set * 52 + qp) * 1024 + index] = preState <= 63 ? cast(u8, ((63 - preState) << 1)) : cast(u8, (((preState - 64) << 1) | 1))
+            }
+        }
+    }
 
     return result
 }
@@ -80,27 +108,9 @@ impl CabacReader
     // Initializes the contexts for one slice, section 9.3.1.1.
     mtd initContexts(sliceQp: s32, sliceType: u32, cabacInitIdc: u32)
     {
-        for index in 1024'u64
-        {
-            var m, n: s32
-            if sliceType == SliceTypeI
-            {
-                m = cast(s32, CabacInitI[index * 2])
-                n = cast(s32, CabacInitI[index * 2 + 1])
-            }
-            else
-            {
-                let base = cast(u64, cabacInitIdc) * 2048 + index * 2
-                m = cast(s32, CabacInitPB[base])
-                n = cast(s32, CabacInitPB[base + 1])
-            }
-
-            let preState = Math.clamp(((m * Math.clamp(sliceQp, 0, 51)) >> 4) + n, 1, 126)
-            if preState <= 63 do
-                .contexts[index] = cast(u8, ((63 - preState) << 1))
-            else do
-                .contexts[index] = cast(u8, (((preState - 64) << 1) | 1))
-        }
+        let set = sliceType == SliceTypeI ? 0_u64 : cast(u64, cabacInitIdc) + 1
+        let qp  = cast(u64, Math.clamp(sliceQp, 0, 51))
+        Memory.copy(.contexts.buffer, InitialCabacContexts.buffer + (set * 52 + qp) * 1024, #sizeof(.contexts))
     }
 
     // Starts the arithmetic engine on the byte-aligned slice data, section 9.3.1.2: nine bits of
@@ -131,11 +141,14 @@ impl CabacReader
     private mtd reload(low: u32)->u32
     {
         let extra = cast(u32, Swag.trailingZeros(low)) - 16
-        var bits  = 0'u32
-        if .position <= .size do
+        var bits  = 0_u32
+        if .position <= .size
+        {
             bits = (cast(u32, .data![.position]) << 9) | (cast(u32, .data[.position + 1]) << 1)
+        }
+
         .position += 2
-        return low - #wrap (0xFFFF'u32 << extra) + #wrap (bits << extra)
+        return low - #wrap (0xFFFF_u32 << extra) + #wrap (bits << extra)
     }
 }
 
@@ -164,13 +177,21 @@ impl Slice
     // Decodes the skip flag of the macroblock at the current address, section 9.3.3.1.1.1.
     mtd decodeSkipFlagCabac()->bool
     {
-        var ctx = 0'u32
-        if .neighbors.a.available and not .neighbors.a.info!.skipped do
+        var ctx = 0_u32
+        if .neighbors.a.available and not .neighbors.a.info!.skipped
+        {
             ctx += 1
-        if .neighbors.b.available and not .neighbors.b.info!.skipped do
+        }
+
+        if .neighbors.b.available and not .neighbors.b.info!.skipped
+        {
             ctx += 1
-        if .header.type == SliceTypeB do
+        }
+
+        if .header.type == SliceTypeB
+        {
             ctx += 13
+        }
 
         // Once per macroblock of an inter slice: decoded here rather than through a call.
         var range = .cabac.range
@@ -189,7 +210,7 @@ impl Slice
         let pps = unwrap dec.pps
 
         var isIntra = false
-        var mbType  = 0'u32
+        var mbType  = 0_u32
         if .header.type == SliceTypeI
         {
             isIntra = true
@@ -202,7 +223,7 @@ impl Slice
             var range     = .cabac.range
             var low       = .cabac.low
             var binState: s64
-            var intraBase = 0'u32
+            var intraBase = 0_u32
             if .header.type == SliceTypeP
             {
                 .binDecision(14)
@@ -227,11 +248,16 @@ impl Slice
             }
             else
             {
-                var ctx = 0'u32
-                if .neighbors.a.available and not .neighbors.a.info!.direct do
+                var ctx = 0_u32
+                if .neighbors.a.available and not .neighbors.a.info!.direct
+                {
                     ctx += 1
-                if .neighbors.b.available and not .neighbors.b.info!.direct do
+                }
+
+                if .neighbors.b.available and not .neighbors.b.info!.direct
+                {
                     ctx += 1
+                }
 
                 let states = .cabac.contexts.buffer + 32
                 .binDecision(27 + ctx)
@@ -257,15 +283,15 @@ impl Slice
                         {
                             mbType = bits + 3
                         }
-                        elif bits == 13
+                        else if bits == 13
                         {
                             intraBase = 32
                         }
-                        elif bits == 14
+                        else if bits == 14
                         {
                             mbType = 11
                         }
-                        elif bits == 15
+                        else if bits == 15
                         {
                             mbType = 22
                         }
@@ -287,15 +313,23 @@ impl Slice
             }
         }
 
-        if isIntra do
+        if isIntra
+        {
             try .parseIntraMb(mb, mbType, fromCabac: true)
-        elif .header.type == SliceTypeP do
+        }
+        else if .header.type == SliceTypeP
+        {
             try .parseInterMbP(mb, mbType)
-        else do
+        }
+        else
+        {
             try .parseInterMbB(mb, mbType)
+        }
 
-        if mb.class == MbClassIPcm do
+        if mb.class == MbClassIPcm
+        {
             return
+        }
 
         if mb.class != MbClassIntra16x16
         {
@@ -305,15 +339,20 @@ impl Slice
             if mb.cbpLuma != 0 and
                pps.transform8x8 and
                mb.class == MbClassInter and
-               .allowsTransform8x8(mb) do
+               .allowsTransform8x8(mb)
+            {
                 mb.transform8x8 = .transformFlagCabac(mb) != 0
+            }
         }
 
         if mb.cbpLuma != 0 or mb.cbpChroma != 0 or mb.class == MbClassIntra16x16
         {
             let delta = .qpDeltaCabac()
-            if delta < -26 or delta > 25 do
+            if delta < -26 or delta > 25
+            {
                 fail InvalidFormatError{"H.264 macroblock QP delta is out of range"}
+            }
+
             .qp = (.qp + delta + 52) % 52
             .lastQpDelta = delta
         }
@@ -332,27 +371,41 @@ impl Slice
         var base = ctxBase
         if intraSlice
         {
-            var ctx = 0'u32
-            if .neighbors.a.available and .neighbors.a.info!.class == MbClassIntra16x16 do
+            var ctx = 0_u32
+            if .neighbors.a.available and .neighbors.a.info!.class == MbClassIntra16x16
+            {
                 ctx += 1
-            if .neighbors.b.available and .neighbors.b.info!.class == MbClassIntra16x16 do
+            }
+
+            if .neighbors.b.available and .neighbors.b.info!.class == MbClassIntra16x16
+            {
                 ctx += 1
-            if .decision(base + ctx) == 0 do
+            }
+
+            if .decision(base + ctx) == 0
+            {
                 return 0
+            }
+
             base += 2
         }
-        elif .decision(base) == 0
+        else if .decision(base) == 0
         {
             return 0
         }
 
-        if .terminate() != 0 do
+        if .terminate() != 0
+        {
             return 25
+        }
 
-        var mbType = 1'u32
+        var mbType = 1_u32
         mbType += 12 * .decision(base + 1)
-        if .decision(base + 2) != 0 do
+        if .decision(base + 2) != 0
+        {
             mbType += 4 + 4 * .decision(base + (intraSlice ? 3 : 2))
+        }
+
         mbType += 2 * .decision(base + (intraSlice ? 4 : 3))
         mbType += .decision(base + (intraSlice ? 5 : 3))
         return mbType
@@ -364,7 +417,7 @@ impl Slice
         var range  = .cabac.range
         var low    = .cabac.low
         var binState: s64
-        var result = 0'u32
+        var result = 0_u32
         .binDecision(21)
         if (binState & 1) == 0
         {
@@ -389,7 +442,7 @@ impl Slice
         var low    = .cabac.low
         var binState: s64
         let last   = .cabac.contexts.buffer + 39
-        var result = 0'u32
+        var result = 0_u32
         .binDecision(36)
         if (binState & 1) != 0
         {
@@ -454,8 +507,10 @@ impl Slice
             mode += 2 * cast(u32, (binState & 1))
             .binDecisionAt(states)
             mode += 4 * cast(u32, (binState & 1))
-            if mode >= predicted do
+            if mode >= predicted
+            {
                 mode += 1
+            }
         }
 
         .cabac.range = range
@@ -466,15 +521,21 @@ impl Slice
     // Decodes the intra chroma prediction mode.
     mtd chromaModeCabac(_: *Mb)->u32
     {
-        var ctx = 0'u32
-        if .neighbors.a.available and .neighbors.a.info!.chromaMode != 0 do
+        var ctx = 0_u32
+        if .neighbors.a.available and .neighbors.a.info!.chromaMode != 0
+        {
             ctx += 1
-        if .neighbors.b.available and .neighbors.b.info!.chromaMode != 0 do
+        }
+
+        if .neighbors.b.available and .neighbors.b.info!.chromaMode != 0
+        {
             ctx += 1
+        }
+
         var range = .cabac.range
         var low   = .cabac.low
         var binState: s64
-        var mode  = 0'u32
+        var mode  = 0_u32
         .binDecision(64 + ctx)
         if (binState & 1) != 0
         {
@@ -496,11 +557,17 @@ impl Slice
     // Decodes the 8x8 transform flag with its neighbor context.
     mtd transformFlagCabac(_: *Mb)->u32
     {
-        var ctx = 0'u32
-        if .neighbors.a.available and .neighbors.a.info!.transform8x8 do
+        var ctx = 0_u32
+        if .neighbors.a.available and .neighbors.a.info!.transform8x8
+        {
             ctx += 1
-        if .neighbors.b.available and .neighbors.b.info!.transform8x8 do
+        }
+
+        if .neighbors.b.available and .neighbors.b.info!.transform8x8
+        {
             ctx += 1
+        }
+
         return .decision(399 + ctx)
     }
 
@@ -508,18 +575,23 @@ impl Slice
     mtd cbpLumaCabac(_: *Mb)->u32
     {
         // An unavailable neighbor reads as fully coded, so it never raises the context.
-        var leftCbp = 0xF'u32
-        var topCbp  = 0xF'u32
-        if .neighbors.a.available do
+        var leftCbp = 0xF_u32
+        var topCbp  = 0xF_u32
+        if .neighbors.a.available
+        {
             leftCbp = cast(u32, .neighbors.a.info!.cbpLuma)
-        if .neighbors.b.available do
+        }
+
+        if .neighbors.b.available
+        {
             topCbp = cast(u32, .neighbors.b.info!.cbpLuma)
+        }
 
         var range  = .cabac.range
         var low    = .cabac.low
         var binState: s64
         let states = .cabac.contexts.buffer + 73
-        var cbp    = 0'u32
+        var cbp    = 0_u32
         var ctx    = missingCbpContextBit(leftCbp, 0x02) + 2 * missingCbpContextBit(topCbp, 0x04)
         .binDecisionAt(states + ctx)
         cbp += cast(u32, (binState & 1))
@@ -540,30 +612,47 @@ impl Slice
     // Decodes the chroma coded block pattern, two bins.
     mtd cbpChromaCabac(_: *Mb)->u32
     {
-        var leftCbp = 0'u32
-        var topCbp  = 0'u32
-        if .neighbors.a.available do
+        var leftCbp = 0_u32
+        var topCbp  = 0_u32
+        if .neighbors.a.available
+        {
             leftCbp = cast(u32, .neighbors.a.info!.cbpChroma)
-        if .neighbors.b.available do
+        }
+
+        if .neighbors.b.available
+        {
             topCbp = cast(u32, .neighbors.b.info!.cbpChroma)
+        }
 
         var range = .cabac.range
         var low   = .cabac.low
         var binState: s64
-        var ctx   = 0'u32
-        if leftCbp > 0 do
+        var ctx   = 0_u32
+        if leftCbp > 0
+        {
             ctx += 1
-        if topCbp > 0 do
+        }
+
+        if topCbp > 0
+        {
             ctx += 2
-        var cbp = 0'u32
+        }
+
+        var cbp = 0_u32
         .binDecision(77 + ctx)
         if (binState & 1) != 0
         {
             ctx = 4
-            if leftCbp == 2 do
+            if leftCbp == 2
+            {
                 ctx += 1
-            if topCbp == 2 do
+            }
+
+            if topCbp == 2
+            {
                 ctx += 2
+            }
+
             .binDecision(77 + ctx)
             cbp = 1 + cast(u32, (binState & 1))
         }
@@ -579,17 +668,22 @@ impl Slice
         var range = .cabac.range
         var low   = .cabac.low
         var binState: s64
-        var ctx   = .lastQpDelta != 0 ? 1'u32 : 0'u32
-        var count = 0's32
+        var ctx   = .lastQpDelta != 0 ? 1_u32 : 0_u32
+        var count = 0_s32
         while true
         {
             .binDecision(60 + ctx)
-            if (binState & 1) == 0 do
+            if (binState & 1) == 0
+            {
                 break
+            }
+
             ctx   = ctx < 2 ? 2 : 3
             count += 1
-            if count > 104 do
+            if count > 104
+            {
                 break
+            }
         }
 
         .cabac.range = range
@@ -600,25 +694,35 @@ impl Slice
     // Decodes one reference index, section 9.3.3.1.1.6.
     mtd refIdxCabac(mb: *Mb, list: u32, x4, y4: s32)->u32
     {
-        var ctx = 0'u32
-        if .refCtxFlag(mb, list, x4 - 1, y4) do
+        var ctx = 0_u32
+        if .refCtxFlag(mb, list, x4 - 1, y4)
+        {
             ctx += 1
-        if .refCtxFlag(mb, list, x4, y4 - 1) do
+        }
+
+        if .refCtxFlag(mb, list, x4, y4 - 1)
+        {
             ctx += 2
+        }
 
         var range = .cabac.range
         var low   = .cabac.low
         var binState: s64
-        var ref   = 0'u32
+        var ref   = 0_u32
         while true
         {
             .binDecision(54 + ctx)
-            if (binState & 1) == 0 do
+            if (binState & 1) == 0
+            {
                 break
+            }
+
             ref += 1
             ctx = (ctx >> 2) + 4
-            if ref >= 32 do
+            if ref >= 32
+            {
                 break
+            }
         }
 
         .cabac.range = range
@@ -634,24 +738,38 @@ impl Slice
         if rx >= 0 and ry >= 0
         {
             let quad = cast(u64, ((ry >> 1) * 2 + (rx >> 1)))
-            if mb.subDirect[quad] or mb.directMb do
+            if mb.subDirect[quad] or mb.directMb
+            {
                 return false
+            }
+
             return mb.ctxRef[cast(u64, list), quad] > 0
         }
 
         let neighbor = rx < 0 ? &.neighbors.a : &.neighbors.b
-        if not neighbor.available do
+        if not neighbor.available
+        {
             return false
+        }
+
         let info = unwrap neighbor.info
-        if info.class != MbClassInter do
+        if info.class != MbClassInter
+        {
             return false
-        if .header.type == SliceTypeP and info.skipped do
+        }
+
+        if .header.type == SliceTypeP and info.skipped
+        {
             return false
+        }
 
         let dec   = unwrap .dec
         let index = neighbor.blockBase + cast(u64, ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3)))
-        if dec.directFlags[index] != 0 and .header.type == SliceTypeB do
+        if dec.directFlags[index] != 0 and .header.type == SliceTypeB
+        {
             return false
+        }
+
         let ref = list == 0 ? dec.motionL0[index].refIdx : dec.motionL1[index].refIdx
         return ref > 0
     }
@@ -672,17 +790,22 @@ impl Slice
         var binState: s64
         var level:    s32
         var result:   #returntype
-        for component in 2'u32
+        for component in 2_u32
         {
             let sumA    = Math.abs(cast(s32, a[component]))
             let sumB    = Math.abs(cast(s32, b[component]))
             let amvd    = sumA + sumB
-            var ctxBase = component == 0 ? 40'u32 : 47'u32
-            var ctx     = 0'u32
-            if amvd > 2 do
+            var ctxBase = component == 0 ? 40_u32 : 47_u32
+            var ctx     = 0_u32
+            if amvd > 2
+            {
                 ctx += 1
-            if amvd > 32 do
+            }
+
+            if amvd > 32
+            {
                 ctx += 1
+            }
 
             .binDecision(ctxBase + ctx)
             if (binState & 1) == 0
@@ -692,28 +815,37 @@ impl Slice
             }
 
             // The unary prefix walks its contexts through one state pointer.
-            var value = 1'u32
+            var value = 1_u32
             var unary = .cabac.contexts.buffer + cast(u64, (ctxBase + 3))
             while value < 9
             {
                 .binDecisionAt(unary)
-                if (binState & 1) == 0 do
+                if (binState & 1) == 0
+                {
                     break
-                if value < 4 do
+                }
+
+                if value < 4
+                {
                     unary += 1
+                }
+
                 value += 1
             }
 
             if value >= 9
             {
                 // Exp-Golomb suffix of order three, in bypass bins.
-                var k = 3'u32
+                var k = 3_u32
                 while true
                 {
                     .binBypass()
-                    if bin == 0 do
+                    if bin == 0
+                    {
                         break
-                    value += 1'u32 << k
+                    }
+
+                    value += 1_u32 << k
                     k     += 1
                     if k > 24
                     {
@@ -797,8 +929,10 @@ impl Slice
         let #uniq3 = Swag.leadingZeros(range) - 23
         range <<= #uniq3
         low   <<= #uniq3
-        if (low & 0xFFFF) == 0 do
+        if (low & 0xFFFF) == 0
+        {
             low = .cabac.reload(low)
+        }
     }
 
     // Decodes one bypass bin against the caller's arithmetic registers, section 9.3.3.2.3, into
@@ -807,8 +941,10 @@ impl Slice
     private mtd binBypass()
     {
         low <<= 1
-        if (low & 0xFFFF) == 0 do
+        if (low & 0xFFFF) == 0
+        {
             low = .cabac.reload(low)
+        }
 
         // The offset below the range is a zero bin and keeps the offset; above it the bin is one
         // and the range comes off. One comparison and one conditional move each.
@@ -824,8 +960,10 @@ impl Slice
     private mtd binSign(magnitude: s32)
     {
         low <<= 1
-        if (low & 0xFFFF) == 0 do
+        if (low & 0xFFFF) == 0
+        {
             low = .cabac.reload(low)
+        }
 
         // Same bin as the bypass, read as a sign: below the range it is positive. The negation
         // comes before the comparison, whose flags then serve both selects: after it, it would
@@ -867,15 +1005,20 @@ impl Slice
     {
         var range = .cabac.range - 2
         var low   = .cabac.low
-        if low >= range << 17 do
+        if low >= range << 17
+        {
             return 1
+        }
 
         // One renormalization step at most: a range below 256 shifts by one.
         let shift = (range - #wrap 256) >> 31
         range <<= shift
         low   <<= shift
-        if (low & 0xFFFF) == 0 do
+        if (low & 0xFFFF) == 0
+        {
             low = .cabac.reload(low)
+        }
+
         .cabac.range = range
         .cabac.low   = low
         return 0
@@ -895,7 +1038,7 @@ impl Slice
     func(const MaxCoeffs: u32, const IsDc: bool) residualCabac(me, mb: *Mb, cat: u32, coeffs: [*] s16, nzA, nzB: s32, scale: [*] u32?)->u32
     {
         const Order = IsDc ? ResidualOrderDc : MaxCoeffs == 64 ? ResidualOrder8x8 : MaxCoeffs == 15 ? ResidualOrderAc : ResidualOrder4x4
-        const Shift = MaxCoeffs == 64 ? 6'u32 : 4'u32
+        const Shift = MaxCoeffs == 64 ? 6_u32 : 4_u32
 
         var range = .cabac.range
         var low   = .cabac.low
@@ -909,10 +1052,16 @@ impl Slice
         {
             var ctx   = CabacCbfBase[cat]
             let intra = mb.class != MbClassInter
-            if nzA > 0 or (nzA < 0 and intra) do
+            if nzA > 0 or (nzA < 0 and intra)
+            {
                 ctx += 1
-            if nzB > 0 or (nzB < 0 and intra) do
+            }
+
+            if nzB > 0 or (nzB < 0 and intra)
+            {
                 ctx += 2
+            }
+
             .binDecision(ctx)
             if (binState & 1) == 0
             {
@@ -926,10 +1075,10 @@ impl Slice
         // categories map every scan position through a table while every other category uses
         // the position itself.
         var indices: [64] u8
-        var count      = 0'u32
+        var count      = 0_u32
         let sigStates  = .cabac.contexts.buffer + cast(u64, CabacSigBase[cat])
         let lastStates = .cabac.contexts.buffer + cast(u64, CabacLastBase[cat])
-        var scan       = 0'u64
+        var scan       = 0_u64
         var foundLast  = false
         while scan < MaxCoeffs - 1
         {
@@ -959,14 +1108,14 @@ impl Slice
         // Levels, last significant coefficient first, their contexts reached through one pointer
         // like the significance ones.
         let absStates = .cabac.contexts.buffer + cast(u64, CabacAbsBase[cat])
-        var node      = 0'u64
+        var node      = 0_u64
         var remaining = count
         var level: s32
         while remaining > 0
         {
             remaining -= 1
             let position  = cast(u64, indices[remaining])
-            var magnitude = 1's32
+            var magnitude = 1_s32
             .binDecisionAt(absStates + cast(u64, CabacTables[CabacLevel1At + node]))
             if (binState & 1) == 0
             {
@@ -980,24 +1129,30 @@ impl Slice
                 while magnitude < 15
                 {
                     .binDecisionAt(gt1State)
-                    if (binState & 1) == 0 do
+                    if (binState & 1) == 0
+                    {
                         break
+                    }
+
                     magnitude += 1
                 }
 
                 if magnitude >= 15
                 {
                     // Exp-Golomb order zero suffix in bypass bins.
-                    var zeros = 0'u32
+                    var zeros = 0_u32
                     while true
                     {
                         .binBypass()
-                        if bin == 0 or zeros >= 23 do
+                        if bin == 0 or zeros >= 23
+                        {
                             break
+                        }
+
                         zeros += 1
                     }
 
-                    var value = 1'u32
+                    var value = 1_u32
                     while zeros > 0
                     {
                         zeros -= 1
@@ -1011,10 +1166,14 @@ impl Slice
 
             .binSign(magnitude)
             let raster = cast(u64, ResidualOrder[Order + position])
-            if IsDc do
+            if IsDc
+            {
                 coeffs[raster] = cast(s16, Math.clamp(level, -32768, 32767))
-            else do
+            }
+            else
+            {
                 coeffs[raster] = dequantLevel(level, scale![raster], Shift)
+            }
         }
 
         .cabac.range = range
@@ -1029,39 +1188,48 @@ impl Slice
 
         // A 4:4:4 macroblock codes its colour planes exactly as luma, one whole plane after
         // another and all three under the same coded block pattern.
-        let planes = dec.sps!.is444() ? 3'u32 : 1'u32
-        for plane in planes do
+        let planes = dec.sps!.is444() ? 3_u32 : 1_u32
+        for plane in planes
+        {
             .parsePlaneResidualCabac(mb, plane)
-        if planes > 1 do
+        }
+
+        if planes > 1
+        {
             return
+        }
 
         if mb.cbpChroma != 0
         {
-            for plane in 2's32
+            for plane in 2_s32
             {
                 let nzA   = .dcFlagNeighbor(mb, -1, 0, 1 + plane)
                 let nzB   = .dcFlagNeighbor(mb, 0, -1, 1 + plane)
-                let count = .residualCabac'(4, true)(mb, 3, (mb.residual!.chromaDc).buffer + cast(u64, plane) * 4, nzA, nzB, null)
+                let count = .residualCabac!{4, true}(mb, 3, (mb.residual!.chromaDc).buffer + cast(u64, plane) * 4, nzA, nzB, null)
                 mb.dcFlags[cast(u64, (1 + plane))] = count > 0 ? 1 : 0
             }
         }
 
         if mb.cbpChroma == 2
         {
-            for plane in 2's32
+            for plane in 2_s32
             {
                 let scale  = .dequantRow4(mb, cast(u32, plane) + 1)
                 let counts = plane == 0 ? (mb.nzCb).buffer : (mb.nzCr).buffer
-                for block in 4's32
+                for block in 4_s32
                 {
                     // A neighbor inside the macroblock is its own count, decoded just before.
                     let nzA   = block & 1 ? cast(s32, counts[cast(u64, block) - 1]) : .chromaBlockNz(mb, cast(u32, plane), -1, block >> 1)
                     let nzB   = block >> 1 ? cast(s32, counts[cast(u64, block) - 2]) : .chromaBlockNz(mb, cast(u32, plane), block & 1, -1)
-                    let count = .residualCabac'(15, false)(mb, 4, (mb.residual!.chromaAc).buffer + cast(u64, plane) * 64 + cast(u64, block) * 16, nzA, nzB, scale)
-                    if plane == 0 do
+                    let count = .residualCabac!{15, false}(mb, 4, (mb.residual!.chromaAc).buffer + cast(u64, plane) * 64 + cast(u64, block) * 16, nzA, nzB, scale)
+                    if plane == 0
+                    {
                         mb.nzCb[cast(u64, block)] = cast(u8, count)
-                    else do
+                    }
+                    else
+                    {
                         mb.nzCr[cast(u64, block)] = cast(u8, count)
+                    }
                 }
             }
         }
@@ -1081,27 +1249,34 @@ impl Slice
         {
             let nzA   = .dcFlagNeighbor(mb, -1, 0, cast(s32, plane))
             let nzB   = .dcFlagNeighbor(mb, 0, -1, cast(s32, plane))
-            let count = .residualCabac'(16, true)(mb, CatPlaneDc[cast(u64, plane)], storage.dc, nzA, nzB, null)
+            let count = .residualCabac!{16, true}(mb, CatPlaneDc[cast(u64, plane)], storage.dc, nzA, nzB, null)
             mb.dcFlags[cast(u64, plane)] = count > 0 ? 1 : 0
             if count > 0 and isLuma
             {
-                for block in 16'u64 do
+                for block in 16_u64
+                {
                     mb.codedBlocks[block] = 1
+                }
             }
         }
 
-        if mb.cbpLuma == 0 do
+        if mb.cbpLuma == 0
+        {
             return
+        }
 
         // One transform size and one quantizer serve the whole macroblock, so its row of
         // dequantization factors is looked up once rather than for every block.
         let use8x8       = mb.transform8x8 and mb.class != MbClassIntra16x16
         let codesFlag8x8 = use8x8 and .dec!.sps!.is444()
         let scale        = use8x8 ? .dequantRow8(mb, plane) : .dequantRow4(mb, plane)
-        for quad in 4's32
+        for quad in 4_s32
         {
-            if (mb.cbpLuma & (1'u32 << cast(u32, quad))) == 0 do
+            if (mb.cbpLuma & (1_u32 << cast(u32, quad))) == 0
+            {
                 continue
+            }
+
             if use8x8
             {
                 // A 4:4:4 8x8 block codes a flag of its own, whose context reads the block left
@@ -1110,22 +1285,24 @@ impl Slice
                 let first = (quad >> 1) * 8 + (quad & 1) * 2
                 let nzA   = codesFlag8x8 ? .blockNz8x8(mb, plane, (first & 3) - 1, first >> 2) : 0
                 let nzB   = codesFlag8x8 ? .blockNz8x8(mb, plane, first & 3, (first >> 2) - 1) : 0
-                let count = .residualCabac'(64, false)(mb, CatPlane8x8[cast(u64, plane)], storage.t8 + cast(u64, quad) * 64, nzA, nzB, scale)
+                let count = .residualCabac!{64, false}(mb, CatPlane8x8[cast(u64, plane)], storage.t8 + cast(u64, quad) * 64, nzA, nzB, scale)
 
                 // In 4:4:4 the block states a coded flag of its own, so a quadrant the pattern
                 // named can still hold nothing.
-                for cell in 4's32
+                for cell in 4_s32
                 {
                     let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
                     storage.nz[cast(u64, raster)] = cast(u8, Math.min(count, 16))
-                    if isLuma do
+                    if isLuma
+                    {
                         mb.codedBlocks[cast(u64, raster)] = count > 0 ? 1 : 0
+                    }
                 }
 
                 continue
             }
 
-            for cell in 4's32
+            for cell in 4_s32
             {
                 let raster = (quad >> 1) * 8 + (quad & 1) * 2 + (cell >> 1) * 4 + (cell & 1)
                 let bx     = raster & 3
@@ -1136,13 +1313,20 @@ impl Slice
                 let nzA = bx > 0 ? cast(s32, storage.nz[cast(u64, raster) - 1]) : .blockNz(mb, plane, bx - 1, by)
                 let nzB = by > 0 ? cast(s32, storage.nz[cast(u64, raster) - 4]) : .blockNz(mb, plane, bx, by - 1)
                 var count: u32
-                if mb.class == MbClassIntra16x16 do
-                    count = .residualCabac'(15, false)(mb, CatPlaneI16Ac[cast(u64, plane)], storage.ac + cast(u64, raster) * 16, nzA, nzB, scale)
-                else do
-                    count = .residualCabac'(16, false)(mb, CatPlane4x4[cast(u64, plane)], storage.ac + cast(u64, raster) * 16, nzA, nzB, scale)
+                if mb.class == MbClassIntra16x16
+                {
+                    count = .residualCabac!{15, false}(mb, CatPlaneI16Ac[cast(u64, plane)], storage.ac + cast(u64, raster) * 16, nzA, nzB, scale)
+                }
+                else
+                {
+                    count = .residualCabac!{16, false}(mb, CatPlane4x4[cast(u64, plane)], storage.ac + cast(u64, raster) * 16, nzA, nzB, scale)
+                }
+
                 storage.nz[cast(u64, raster)] = cast(u8, count)
-                if isLuma do
+                if isLuma
+                {
                     mb.codedBlocks[cast(u64, raster)] = count > 0 ? 1 : 0
+                }
             }
         }
     }
@@ -1152,10 +1336,16 @@ impl Slice
     mtd const dcFlagNeighbor(_: *Mb, dx, _: s32, which: s32)->s32
     {
         let neighbor = dx < 0 ? &.neighbors.a : &.neighbors.b
-        if not neighbor.available do
+        if not neighbor.available
+        {
             return -1
-        if neighbor.info!.skipped do
+        }
+
+        if neighbor.info!.skipped
+        {
             return 0
+        }
+
         return cast(s32, .dec!.dcFlags[neighbor.mbIndex * 3 + cast(u64, which)])
     }
 }

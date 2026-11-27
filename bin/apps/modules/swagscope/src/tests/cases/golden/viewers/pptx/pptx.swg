@@ -121,7 +121,7 @@ using Core, Gui, Pixel, Viewers
     workspace.openScene([scopeTestDataPath("viewer.poi-sample.pptx"), scopeTestDataPath("viewer.geometry.pptx")], .SideBySide)
     openViews(&host, workspace)
     let scene = unwrap workspace.scene()
-    let deck = assume cast(*Pptx.Panel, scene.views[0].document!.currentView)
+    let deck  = assume cast(*Pptx.Panel, scene.views[0].document!.currentView)
     deck.openPages()
     let image = host.renderSettled(&host.surfaceWnd)
     assertScopeImageGolden(&image, "viewer.pptx.thumbnails.grid.paper")

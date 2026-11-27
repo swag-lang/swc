@@ -44,7 +44,7 @@ func day7A()
     let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var steps: HashTable'(u8, { prev, next: String })
+    var steps: HashTable!{u8, { prev, next: String }}
     for l in lines
     {
         steps.findOrAdd(l[5]).value.next.append(l[36])
@@ -55,24 +55,33 @@ func day7A()
     var last: u8
     for k, v in steps
     {
-        if v.next.isEmpty() do
+        if v.next.isEmpty()
+        {
             last = k
-        if v.prev.isEmpty() do
+        }
+
+        if v.prev.isEmpty()
+        {
             first = Math.min(first, k)
+        }
     }
 
     var result: String
     for
     {
         result.append(first)
-        if first == last do
+        if first == last
+        {
             break
+        }
 
         first = Swag.U8.Max
         for k, v in steps
         {
-            if Utf8.contains(result.toSlice(), cast(rune, k)) do
+            if Utf8.contains(result.toSlice(), cast(rune, k))
+            {
                 continue
+            }
 
             var bad = false
             for c in v.prev
@@ -84,8 +93,10 @@ func day7A()
                 }
             }
 
-            if not bad and k < first do
+            if not bad and k < first
+            {
                 first = k
+            }
         }
     }
 

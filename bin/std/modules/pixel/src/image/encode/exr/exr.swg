@@ -1,11 +1,11 @@
 //! Format: OpenEXR scanline encoder.
-//! Supported: Single-part, uncompressed RGB or RGBA scanlines stored as half or full float.
+//! Supported: Single-part, uncompressed Y, YA, RGB, and RGBA scanlines in half or full float.
 //! Not supported: Compression, tiles, deep data, multipart files, auxiliary channels, or previews.
 //! Role: This file writes fast, lossless HDR interchange from every packed Pixel image.
 //
 #global namespace Exr
 
-using Core, Core.Errors
+using Core, Core.Errors, Core.Math
 
 internal struct Encoder {}
 
@@ -18,17 +18,10 @@ func writeU32(result: *ConcatBuffer, value: u32)
     result.addNative(cast(u8, ((value >> 24) & 0xFF)))
 }
 
-#[Swag.Inline]
-func writeU64(result: *ConcatBuffer, value: u64)
-{
-    writeU32(result, cast(u32, (value & 0xFFFF_FFFF)))
-    writeU32(result, cast(u32, (value >> 32)))
-}
-
 func writeText(result: *ConcatBuffer, value: string)
 {
     result.addBytes(value)
-    result.addNative(0'u8)
+    result.addNative(0_u8)
 }
 
 func writeAttribute(result: *ConcatBuffer, name, type: string, payload: const [..] u8)
@@ -48,18 +41,478 @@ func channelEntry(result: *ConcatBuffer, name: string, pixelType: u32)
     writeU32(result, 1)
 }
 
-func channelOffset(name: string, grayscale: bool)->u64
+#[Swag.ConstExpr]
+private func planeShuffle(sampleBytes, channels, channel, block: u64)->Simd.U8x16
 {
-    switch name
+    var indices: [16] u8
+    for index in indices.count
     {
-    case "R": return 0
-    case "G": return 1
-    case "B": return 2
-    case "A": return grayscale ? 1 : 3
-    case "Y": return 0
+        let pixel = index / sampleBytes
+        let byte  = (pixel * channels + channel) * sampleBytes + index % sampleBytes
+        indices[index] = byte / 16 == block ? cast(u8, byte % 16) : 0x80
     }
 
-    return 0
+    return cast(Simd.U8x16, indices)
+}
+
+#[Swag.Inline]
+private func(SAMPLE_BYTES: u64, CHANNELS: u64, CHANNEL: u64) unpackPlane(first, second, third: Simd.U8x16)->Simd.U8x16
+{
+    const First  = planeShuffle(SAMPLE_BYTES, CHANNELS, CHANNEL, 0)
+    const Second = planeShuffle(SAMPLE_BYTES, CHANNELS, CHANNEL, 1)
+    let combined = Simd.shuffle(first, First) | Simd.shuffle(second, Second)
+    #static if CHANNELS == 3
+    {
+        const Third = planeShuffle(SAMPLE_BYTES, CHANNELS, CHANNEL, 2)
+        return combined | Simd.shuffle(third, Third)
+    }
+    else
+    {
+        return combined
+    }
+}
+
+#[Swag.Inline]
+private func(T, BLUE_FIRST: bool) unpackRgbaVectors(destination: [*] u8, planeBytes: u64, first, second, third, fourth: T)
+{
+    let low0  = Simd.interleaveLow(first, second)
+    let high0 = Simd.interleaveHigh(first, second)
+    let low1  = Simd.interleaveLow(third, fourth)
+    let high1 = Simd.interleaveHigh(third, fourth)
+
+    var rg0, ba0, rg1, ba1: Simd.U64x2
+    #static if T == Simd.U16x8
+    {
+        rg0 = cast #bit(Simd.U64x2, Simd.interleaveLow(low0, high0))
+        ba0 = cast #bit(Simd.U64x2, Simd.interleaveHigh(low0, high0))
+        rg1 = cast #bit(Simd.U64x2, Simd.interleaveLow(low1, high1))
+        ba1 = cast #bit(Simd.U64x2, Simd.interleaveHigh(low1, high1))
+    }
+    else
+    {
+        rg0 = cast #bit(Simd.U64x2, low0)
+        ba0 = cast #bit(Simd.U64x2, high0)
+        rg1 = cast #bit(Simd.U64x2, low1)
+        ba1 = cast #bit(Simd.U64x2, high1)
+    }
+
+    const ThirdChannelPlane = BLUE_FIRST ? 3_u64 : 1_u64
+    const FirstChannelPlane = BLUE_FIRST ? 1_u64 : 3_u64
+    Simd.store(destination, cast #bit(Simd.U8x16, Simd.interleaveHigh(ba0, ba1)))
+    Simd.store(destination + ThirdChannelPlane * planeBytes, cast #bit(Simd.U8x16, Simd.interleaveLow(ba0, ba1)))
+    Simd.store(destination + 2 * planeBytes, cast #bit(Simd.U8x16, Simd.interleaveHigh(rg0, rg1)))
+    Simd.store(destination + FirstChannelPlane * planeBytes, cast #bit(Simd.U8x16, Simd.interleaveLow(rg0, rg1)))
+}
+
+#[Swag.Inline]
+func(T) unpackRgba(destination: [*] u8, planeBytes: u64, source: const [*] u8)
+{
+    let first  = cast #bit(T, Simd.load(source))
+    let second = cast #bit(T, Simd.load(source + 16))
+    let third  = cast #bit(T, Simd.load(source + 32))
+    let fourth = cast #bit(T, Simd.load(source + 48))
+    unpackRgbaVectors!{T, false}(destination, planeBytes, first, second, third, fourth)
+}
+
+#[Swag.Inline]
+func(T, CHANNELS: u64) writeScanlinePlanes(destination: [*] u8, source: const [*] u8, width: u64)
+{
+    const SampleBytes = #sizeof(T)
+    #static if CHANNELS == 1
+    {
+        Memory.copy(destination, source, width * SampleBytes)
+    }
+    else
+    {
+        const Block = 16 / SampleBytes
+        let planeBytes = width * SampleBytes
+        var x: u64
+        while width - x >= Block
+        {
+            let input  = source + x * CHANNELS * SampleBytes
+            let output = destination + x * SampleBytes
+            #static if CHANNELS == 4
+            {
+                #static if T == u16
+                {
+                    unpackRgba!{Simd.U16x8}(output, planeBytes, input)
+                }
+                else
+                {
+                    unpackRgba!{Simd.U32x4}(output, planeBytes, input)
+                }
+            }
+            else
+            {
+                let first  = Simd.load(input)
+                let second = Simd.load(input + 16)
+                let third  = CHANNELS == 3 ? Simd.load(input + 32) : Simd.splat(0_u8)
+                Simd.store(output, unpackPlane!{SampleBytes, CHANNELS, CHANNELS - 1}(first, second, third))
+                Simd.store(output + planeBytes, unpackPlane!{SampleBytes, CHANNELS, CHANNELS - 2}(first, second, third))
+                #static if CHANNELS == 3
+                {
+                    Simd.store(output + 2 * planeBytes, unpackPlane!{SampleBytes, CHANNELS, 0}(first, second, third))
+                }
+            }
+
+            x += Block
+        }
+
+        let packed = cast(const [*] T, source)
+        let planes = cast([*] T, destination)
+        for tail in x until width
+        {
+            let pixel = packed + tail * CHANNELS
+            planes[tail]         = pixel[CHANNELS - 1]
+            planes[width + tail] = pixel[CHANNELS - 2]
+            #static if CHANNELS >= 3
+            {
+                planes[2 * width + tail] = pixel[CHANNELS - 3]
+            }
+
+            #static if CHANNELS == 4
+            {
+                planes[3 * width + tail] = pixel[0]
+            }
+        }
+    }
+}
+
+#[Swag.ConstExpr]
+private func makeByteToHalfTable()->[256] u16
+{
+    var samples: #returntype
+    for value in samples.count
+    {
+        samples[value] = floatToHalf(cast(f32, value) / 255.0)
+    }
+
+    return samples
+}
+
+private const ByteToHalf = makeByteToHalfTable()
+
+#[Swag.Inline]
+private func(INPUT, GRAY: bool) integerToHalf(value: INPUT)->u16
+{
+    #static if INPUT == u8
+    {
+        return ByteToHalf[value]
+    }
+    else
+    {
+        // The first three positive 16-bit samples round to these exact HALF subnormals.
+        if value < 4
+        {
+            return value << 8
+        }
+
+        let unit = cast(f32, value) * Gray16Scale
+        let bits = cast #bit(u32, unit)
+        #static if GRAY
+        {
+            let fraction = bits & 0x1FFF
+            if fraction >= GrayMidpointStart and fraction <= GrayMidpointStart + GrayMidpointSpan
+            {
+                return cast(u16, GrayMidpoints[(value >> 5) & 127])
+            }
+        }
+
+        let rounded = (bits + 0x0FFF + ((bits >> 13) & 1)) >> 13
+        return cast(u16, rounded - 0x1C000)
+    }
+}
+
+#[Swag.NoInline]
+private func encodeGray16Sample(value: u16)->u16
+{
+    var source = value
+    var target: u16
+    let color  = readPixelValue(cast(const [*] u8, &source), .Gray16)
+    writePixelValue(cast([*] u8, &target), .GrayF16, color)
+    return target
+}
+
+private const Gray16Scale       = 1.0_f32 / 65535_f32
+private const GrayMidpointStart = 0x0FF8_u32
+private const GrayMidpointSpan  = 16_u32
+
+#[Swag.ConstExpr]
+private func makeGrayMidpointTable()->[128] u32
+{
+    // Near-halfway words have distinct slots, so their exact values fit in 512 bytes.
+    var samples: #returntype
+    for word in 65536_u64
+    {
+        let unit     = cast(f32, word) * Gray16Scale
+        let fraction = cast #bit(u32, unit) & 0x1FFF
+        if fraction >= GrayMidpointStart and fraction <= GrayMidpointStart + GrayMidpointSpan
+        {
+            let slot = (word >> 5) & 127
+            Swag.require(samples[slot] == 0)
+            samples[slot] = encodeGray16Sample(cast(u16, word))
+        }
+    }
+
+    return samples
+}
+
+private const GrayMidpoints = makeGrayMidpointTable()
+
+#[Swag.Inline]
+private func(INPUT, GRAY: bool) unsignedSamplesToHalf(values: Simd.U32x4)->Simd.S32x4
+{
+    // Adding the bits of 2^23 converts these unsigned words to exact floats.
+    let integral = cast #bit(Simd.F32x4, values | Simd.splat(0x4B00_0000_u32)) - Simd.splat(8388608_f32)
+    const Scale = INPUT == u8 ? 1.0_f32 / 255_f32 : Gray16Scale
+    let unitVector = integral * Simd.splat(Scale)
+    let vectorBits = cast #bit(Simd.U32x4, unitVector)
+    let rounded    = (vectorBits + Simd.splat(0x0FFF_u32) + ((vectorBits >> 13) & Simd.splat(1_u32))) >> 13
+    let normal     = rounded - Simd.splat(0x1C000_u32)
+    #static if INPUT == u8
+    {
+        return cast #bit(Simd.S32x4, normal)
+    }
+    else
+    {
+        let tiny = values < Simd.splat(4_u32)
+        let half = Simd.select(tiny, values << 8, normal)
+        #static if GRAY
+        {
+            // Grayscale luminance can affect HALF rounding within eight binary32 ULPs of a midpoint.
+            let fraction = vectorBits & 0x1FFF_u32
+            let nearTie  = (fraction - GrayMidpointStart) <= Simd.splat(GrayMidpointSpan)
+            if Simd.anyTrue(nearTie)
+            {
+                let table   = cast(const [*] s32, GrayMidpoints.buffer)
+                let slots   = (values >> 5) & 127_u32
+                let samples = cast #bit(Simd.U32x4, Simd.gather(table, slots))
+                return cast #bit(Simd.S32x4, Simd.select(nearTie, samples, half))
+            }
+        }
+
+        return cast #bit(Simd.S32x4, half)
+    }
+}
+
+#[Swag.Inline]
+private func(INPUT, GRAY: bool) packIntegerHalf(words: Simd.U16x8)->Simd.U16x8
+{
+    let low  = unsignedSamplesToHalf!{INPUT, GRAY}(Simd.widenLow(words))
+    let high = unsignedSamplesToHalf!{INPUT, GRAY}(Simd.widenHigh(words))
+    return Simd.packUnsigned(low, high)
+}
+
+#[Swag.Inline]
+private func(INPUT) integerHalfVector(source: const [*] u8)->Simd.U16x8
+{
+    var words: Simd.U16x8
+    #static if INPUT == u8
+    {
+        var packedBytes: u64
+        Memory.copy(&packedBytes, source, 8)
+        words = Simd.widenLow(cast #bit(Simd.U8x16, Simd.splat(packedBytes)))
+    }
+    else
+    {
+        words = Simd.load(cast(const [*] u16, source))
+    }
+
+    return packIntegerHalf!{INPUT, false}(words)
+}
+
+#[Swag.Inline]
+private func(INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeIntegerBlock(destination: [*] u8, source: const [*] u8, planeBytes: u64)
+{
+    #static if INPUT == u16 and CHANNELS < 3
+    {
+        let firstWords = Simd.load(cast(const [*] u16, source))
+        #static if CHANNELS == 1
+        {
+            Simd.store(cast([*] u16, destination), packIntegerHalf!{u16, true}(firstWords))
+        }
+        else
+        {
+            let secondWords = Simd.load(cast(const [*] u16, source + 16))
+            let gray        = Simd.deinterleaveEven(firstWords, secondWords)
+            let alpha       = Simd.deinterleaveOdd(firstWords, secondWords)
+            Simd.store(cast([*] u16, destination), packIntegerHalf!{u16, false}(alpha))
+            Simd.store(cast([*] u16, destination + planeBytes), packIntegerHalf!{u16, true}(gray))
+        }
+    }
+    else
+    {
+        const GroupBytes = 8 * #sizeof(INPUT)
+        let first = integerHalfVector!{INPUT}(source)
+
+        #static if CHANNELS == 1
+        {
+            Simd.store(cast([*] u16, destination), first)
+        }
+        else if CHANNELS == 2
+        {
+            const Zero = Simd.splat(0_u8)
+            let second = integerHalfVector!{INPUT}(source + GroupBytes)
+            let x0     = cast #bit(Simd.U8x16, first)
+            let x1     = cast #bit(Simd.U8x16, second)
+            Simd.store(destination, unpackPlane!{2, 2, 1}(x0, x1, Zero))
+            Simd.store(destination + planeBytes, unpackPlane!{2, 2, 0}(x0, x1, Zero))
+        }
+        else
+        {
+            let second = integerHalfVector!{INPUT}(source + GroupBytes)
+            let third  = integerHalfVector!{INPUT}(source + 2 * GroupBytes)
+            #static if CHANNELS == 4
+            {
+                let fourth = integerHalfVector!{INPUT}(source + 3 * GroupBytes)
+                unpackRgbaVectors!{Simd.U16x8, BLUE_FIRST}(destination, planeBytes, first, second, third, fourth)
+            }
+            else
+            {
+                const BluePlane = BLUE_FIRST ? 0_u64 : 2_u64
+                const RedPlane  = 2 - BluePlane
+                let x0 = cast #bit(Simd.U8x16, first)
+                let x1 = cast #bit(Simd.U8x16, second)
+                let x2 = cast #bit(Simd.U8x16, third)
+                Simd.store(destination, unpackPlane!{2, 3, BluePlane}(x0, x1, x2))
+                Simd.store(destination + planeBytes, unpackPlane!{2, 3, 1}(x0, x1, x2))
+                Simd.store(destination + 2 * planeBytes, unpackPlane!{2, 3, RedPlane}(x0, x1, x2))
+            }
+        }
+    }
+}
+
+#[Swag.Inline]
+private func(INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeIntegerPlanes(destination: [*] u8, source: const [*] u8, width: u64)
+{
+    const FirstColor = CHANNELS == 4 ? 1_u64 : 0_u64
+    const Blue       = BLUE_FIRST ? 0_u64 : 2_u64
+    const Red        = 2 - Blue
+    let planes = cast([*] u16, destination)
+    let colors = planes + FirstColor * width
+    let packed = cast(const [*] INPUT, source)
+    var start: u64
+    while width - start >= 8
+    {
+        writeIntegerBlock!{INPUT, CHANNELS, BLUE_FIRST}(destination + start * 2, source + start * CHANNELS * #sizeof(INPUT), width * 2)
+        start += 8
+    }
+
+    for x in start until width
+    {
+        let pixel = packed + x * CHANNELS
+        #static if CHANNELS >= 3
+        {
+            #static if CHANNELS == 4
+            {
+                planes[x] = integerToHalf!{INPUT, false}(pixel[3])
+            }
+
+            colors[x]             = integerToHalf!{INPUT, false}(pixel[Blue])
+            colors[width + x]     = integerToHalf!{INPUT, false}(pixel[1])
+            colors[2 * width + x] = integerToHalf!{INPUT, false}(pixel[Red])
+        }
+        else
+        {
+            #static if CHANNELS == 2
+            {
+                planes[x]         = integerToHalf!{INPUT, false}(pixel[1])
+                planes[width + x] = integerToHalf!{INPUT, true}(pixel[0])
+            }
+            else
+            {
+                planes[x] = integerToHalf!{INPUT, true}(pixel[0])
+            }
+        }
+    }
+}
+
+private func(T, INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeScanlineRange(destination: [*] u8, source: const *Image, fileOffset, first, end: u64)
+{
+    let width      = cast(u64, source.width)
+    let rows       = cast(u64, source.height)
+    let rowBytes   = width * #sizeof(T) * CHANNELS
+    let chunkBytes = rowBytes + 8
+    let offsets    = cast([*] u64, destination)
+    let tableBytes = 8 * rows
+    let chunks     = destination + tableBytes
+    let pixels     = source.pixels.storage()
+    let stride     = cast(u64, source.rowStride)
+
+    for y in first until end
+    {
+        let chunkOffset = y * chunkBytes
+        offsets[y] = Math.nativeToLittleEndian(fileOffset + tableBytes + chunkOffset)
+        let chunk  = chunks + chunkOffset
+        let header = cast([*] u32, chunk)
+        header[0] = Math.nativeToLittleEndian(cast(u32, y))
+        header[1] = Math.nativeToLittleEndian(cast(u32, rowBytes))
+        let row = pixels + (rows - y - 1) * stride
+        #static if INPUT != void
+        {
+            writeIntegerPlanes!{INPUT, CHANNELS, BLUE_FIRST}(chunk + 8, row, width)
+        }
+        else
+        {
+            writeScanlinePlanes!{T, CHANNELS}(chunk + 8, row, width)
+        }
+    }
+}
+
+func(T) writeChannelLayout(destination: [*] u8, source: const *Image, fileOffset: u64)
+{
+    switch source.pixelFormat.channels()
+    {
+    case 1:  writeScanlines!{T, void, 1, false}(destination, source, fileOffset)
+    case 2:  writeScanlines!{T, void, 2, false}(destination, source, fileOffset)
+    case 3:  writeScanlines!{T, void, 3, false}(destination, source, fileOffset)
+    default: writeScanlines!{T, void, 4, false}(destination, source, fileOffset)
+    }
+}
+
+func(T, INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeScanlines(destination: [*] u8, source: const *Image, fileOffset: u64)
+{
+    const ParallelOutputBytes = 64_u64 * 1024 * 1024
+    let rows     = cast(u64, source.height)
+    let rowBytes = cast(u64, source.width) * #sizeof(T) * CHANNELS
+    if rows >= 8 and rowBytes * rows >= ParallelOutputBytes
+    {
+        let workers = Swag.workerCount()
+        if workers > 1
+        {
+            // Each worker owns the table entries and output bytes for its rows.
+            let rowsPerBlock = (rows + workers - 1) / workers
+            let blocks       = (rows + rowsPerBlock - 1) / rowsPerBlock
+            parallel for |destination, source, fileOffset, rowsPerBlock, rows| block in blocks
+            {
+                let first = block * rowsPerBlock
+                let end   = Math.min(first + rowsPerBlock, rows)
+                writeScanlineRange!{T, INPUT, CHANNELS, BLUE_FIRST}(destination, source, fileOffset, first, end)
+            }
+
+            return
+        }
+    }
+
+    writeScanlineRange!{T, INPUT, CHANNELS, BLUE_FIRST}(destination, source, fileOffset, 0, rows)
+}
+
+private func writeIntegerScanlines(destination: [*] u8, source: const *Image, fileOffset: u64) fail
+{
+    switch source.pixelFormat
+    {
+    case .Gray8:       writeScanlines!{u16, u8, 1, false}(destination, source, fileOffset)
+    case .GrayAlpha8:  writeScanlines!{u16, u8, 2, false}(destination, source, fileOffset)
+    case .RGB8:        writeScanlines!{u16, u8, 3, false}(destination, source, fileOffset)
+    case .BGR8:        writeScanlines!{u16, u8, 3, true}(destination, source, fileOffset)
+    case .RGBA8:       writeScanlines!{u16, u8, 4, false}(destination, source, fileOffset)
+    case .BGRA8:       writeScanlines!{u16, u8, 4, true}(destination, source, fileOffset)
+    case .Gray16:      writeScanlines!{u16, u16, 1, false}(destination, source, fileOffset)
+    case .GrayAlpha16: writeScanlines!{u16, u16, 2, false}(destination, source, fileOffset)
+    case .RGB16:       writeScanlines!{u16, u16, 3, false}(destination, source, fileOffset)
+    case .RGBA16:      writeScanlines!{u16, u16, 4, false}(destination, source, fileOffset)
+    default:           fail InvalidFormatError{"invalid OpenEXR integer source layout"}
+    }
 }
 
 internal impl IImageEncoder for Encoder
@@ -68,8 +521,10 @@ internal impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {
-        if not image.isValid() or not image.pixelFormat.isPacked() do
+        if not image.isValid() or not image.pixelFormat.isPacked()
+        {
             fail InvalidFormatError{"invalid packed image"}
+        }
 
         let grayscale = image.pixelFormat.isGrayscale()
         let fullFloat = image.pixelFormat == .GrayF32 or
@@ -100,32 +555,63 @@ internal impl IImageEncoder for Encoder
             }
         }
 
+        let integerInput = image.pixelFormat == .Gray8 or
+                           image.pixelFormat == .GrayAlpha8 or
+                           image.pixelFormat == .RGB8 or
+                           image.pixelFormat == .BGR8 or
+                           image.pixelFormat == .RGBA8 or
+                           image.pixelFormat == .BGRA8 or
+                           image.pixelFormat == .Gray16 or
+                           image.pixelFormat == .GrayAlpha16 or
+                           image.pixelFormat == .RGB16 or
+                           image.pixelFormat == .RGBA16
         var converted: Image
         var source:    const *Image = &image
-        if image.pixelFormat != target
+        if image.pixelFormat != target and not integerInput
         {
             converted = image.convertedTo(target)
             source    = &converted
         }
 
-        let pixelType   = fullFloat ? 2'u32 : 1'u32
-        let sampleBytes = pixelType == 2 ? 4'u64 : 2'u64
+        let pixelType   = fullFloat ? 2_u32 : 1_u32
+        let sampleBytes = pixelType == 2 ? 4_u64 : 2_u64
         const RgbNames:       [3] string = ["B", "G", "R"]
         const RgbaNames:      [4] string = ["A", "B", "G", "R"]
         const GrayNames:      [1] string = ["Y"]
         const GrayAlphaNames: [2] string = ["A", "Y"]
         var names: const [..] string
-        if grayscale do
+        if grayscale
+        {
             names = source.pixelFormat.hasAlpha() ? GrayAlphaNames : GrayNames
-        else do
+        }
+        else
+        {
             names = source.pixelFormat.hasAlpha() ? RgbaNames : RgbNames
+        }
+
+        let rowBytes = cast(u64, source.width) * sampleBytes * names.count
+        if rowBytes > Swag.U32.Max
+        {
+            fail InvalidFormatError{"OpenEXR scanline exceeds its packed size field"}
+        }
+
+        let scanlineBytes = cast(u64, source.height) * (rowBytes + 16)
+
+        // Leave room for the fixed attributes and the complete scanline data in one bucket.
+        if not result.count()
+        {
+            result.grow(512 + scanlineBytes)
+        }
 
         writeU32(result, Magic)
         writeU32(result, 2)
         var channels: ConcatBuffer
-        for name in names do
+        for name in names
+        {
             channelEntry(&channels, name, pixelType)
-        channels.addNative(0'u8)
+        }
+
+        channels.addNative(0_u8)
         writeAttribute(result, "channels", "chlist", unwrap channels.toSlice())
         const NoCompression: [1] u8 = [0]
         writeAttribute(result, "compression", "compression", NoCompression)
@@ -144,31 +630,21 @@ internal impl IImageEncoder for Encoder
         writeAttribute(result, "pixelAspectRatio", "float", One)
         writeAttribute(result, "screenWindowCenter", "v2f", Zero2)
         writeAttribute(result, "screenWindowWidth", "float", One)
-        result.addNative(0'u8)
+        result.addNative(0_u8)
 
-        let rowBytes    = cast(u64, source.width) * sampleBytes * names.count
-        var chunkOffset = result.count() + cast(u64, source.height) * 8
-        for source.height
+        let fileOffset = result.count()
+        let scanlines  = result.reserveInPlace(scanlineBytes)
+        if integerInput
         {
-            writeU64(result, chunkOffset)
-            chunkOffset += 8 + rowBytes
+            try writeIntegerScanlines(scanlines, source, fileOffset)
         }
-
-        for y in source.height
+        else if fullFloat
         {
-            writeU32(result, cast(u32, y))
-            writeU32(result, cast(u32, rowBytes))
-            let storageY = source.height - y - 1
-            for name in names
-            {
-                let component = channelOffset(name, grayscale)
-                for x in source.width
-                {
-                    let pixel  = source.pixels.storage() + cast(u64, storageY) * source.rowStride + cast(u64, x) * source.bytesPerPixel
-                    let sample = pixel + component * sampleBytes
-                    result.addBytes(Swag.makeSlice(sample, sampleBytes))
-                }
-            }
+            writeChannelLayout!{u32}(scanlines, source, fileOffset)
+        }
+        else
+        {
+            writeChannelLayout!{u16}(scanlines, source, fileOffset)
         }
     }
 }

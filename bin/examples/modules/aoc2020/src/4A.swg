@@ -54,18 +54,21 @@ func day4A()
     var validPassportCount, presentFields: u32
     for line, lineIndex in lines
     {
-        let fields = Tokenize.split(line[], ' 'u8)
+        let fields = Tokenize.split(line[], ' '_u8)
         for field in fields
         {
-            let fieldParts = Tokenize.split(field, ':'u8)
+            let fieldParts = Tokenize.split(field, ':'_u8)
             let fieldIndex = Slice.findLinear(["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid", "cid"], fieldParts[0])
             presentFields |= 1 << cast(u32, fieldIndex)
         }
 
         if lineIndex == lines.count - 1 or lines[lineIndex + 1].isEmpty()
         {
-            if presentFields & 0b1111111 == 0b1111111 do
+            if presentFields & 0b1111111 == 0b1111111
+            {
                 validPassportCount += 1
+            }
+
             presentFields = 0
         }
     }

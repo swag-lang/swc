@@ -15,8 +15,11 @@ struct MyError
 
 func count(name: string?)->u64 fail
 {
-    if name == null do
+    if name == null
+    {
         fail MyError{base: Swag.BaseError{"name cannot be null"}, code: 7}
+    }
+
     return name.count
 }
 
@@ -96,8 +99,8 @@ threads needs synchronization.
 
 /**
 # Handling on Failure
-'catch e { H }' runs the handler 'H' only when 'e' fails; 'catch e do S' runs a
-single statement. 'Swag.err' reads the error inside 'H'.
+'catch e { H }' runs the handler 'H' only when 'e' fails. 'Swag.err' reads the
+error inside 'H'.
 A handler may finish normally when its result is unused.
 When the result is read, the handler must leave the surrounding flow.
 
@@ -115,8 +118,11 @@ func recordTrace(name: string?, out: *s32) fail
 {
     var seen: s32 = -1
 
-    catch recordTrace("swag", &seen) do
+    catch recordTrace("swag", &seen)
+    {
         seen = -2
+    }
+
     Swag.require(seen == 4)     // success: the handler does not run
 
     catch recordTrace(null, &seen)
@@ -169,17 +175,26 @@ struct Settings
 
 func loadSettings(fileName: string?)->Settings fail
 {
-    if fileName == null do
+    if fileName == null
+    {
         fail MyError{base: Swag.BaseError{"no settings file"}}
+    }
+
     return Settings{width: 1024, title: fileName}
 }
 
 func findName(id: s32)->string? fail
 {
-    if id == 0 do
+    if id == 0
+    {
         fail MyError{base: Swag.BaseError{"unknown id"}}
-    if id == 1 do
+    }
+
+    if id == 1
+    {
         return null
+    }
+
     return "first"
 }
 
@@ -277,8 +292,10 @@ func blockCatchCode()->s32
 
     let err = errOutcome.value()
 
-    if err == null do
+    if err == null
+    {
         return -1
+    }
 
     return assume cast(MyError, err).code
 }

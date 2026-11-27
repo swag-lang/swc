@@ -10,8 +10,10 @@ impl Painter
     // size draw at the texture's own size, or at the size of `srcRect`.
     mtd drawTexture(x, y, width, height: f32, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
-        if width == 0 or height == 0 or .isInvisible(color) do
+        if width == 0 or height == 0 or .isInvisible(color)
+        {
             return
+        }
 
         let brush = Brush{color: color, type: .Texture, texture: texture, uvMode: .Fill}
         .fillRect(x, y, width, height, brush)
@@ -24,8 +26,10 @@ impl Painter
 
     mtd drawTexture(x, y: f32, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
-        if .isInvisible(color) do
+        if .isInvisible(color)
+        {
             return
+        }
 
         let brush = Brush{color: color, type: .Texture, texture: texture, uvMode: .Fill}
         .fillRect(x, y, cast(f32, texture.width), cast(f32, texture.height), brush)
@@ -34,8 +38,10 @@ impl Painter
     // Draws the `srcRect` texel rectangle of a texture stretched over a destination rectangle.
     mtd drawTexture(x, y, width, height: f32, srcRect: Math.Rectangle, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
-        if srcRect.isEmpty() or width == 0 or height == 0 or .isInvisible(color) do
+        if srcRect.isEmpty() or width == 0 or height == 0 or .isInvisible(color)
+        {
             return
+        }
 
         let brush = Brush{color: color, type: .Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}
         .fillRect(x, y, width, height, brush)
@@ -48,8 +54,10 @@ impl Painter
 
     mtd drawTexture(x, y: f32, srcRect: Math.Rectangle, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
-        if srcRect.isEmpty() or .isInvisible(color) do
+        if srcRect.isEmpty() or .isInvisible(color)
+        {
             return
+        }
 
         let brush = Brush{color: color, type: .Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}
         .fillRect(x, y, srcRect.width, srcRect.height, brush)

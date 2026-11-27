@@ -93,34 +93,34 @@ const PackedFormats: [18] PixelFormat = [
 {
     // The exact halfway point between zero and the smallest half subnormal rounds to even zero.
     // Its adjacent binary32 values prove that the interval above it rounds up, preserving sign.
-    Swag.require(floatToHalf(cast #bit (f32, 0x32FFFFFF'u32)) == 0)
-    Swag.require(floatToHalf(cast #bit (f32, 0x33000000'u32)) == 0)
-    Swag.require(floatToHalf(cast #bit (f32, 0x33000001'u32)) == 1)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB2FFFFFF'u32)) == 0x8000)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB3000000'u32)) == 0x8000)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB3000001'u32)) == 0x8001)
+    Swag.require(floatToHalf(cast #bit (f32, 0x32FFFFFF_u32)) == 0)
+    Swag.require(floatToHalf(cast #bit (f32, 0x33000000_u32)) == 0)
+    Swag.require(floatToHalf(cast #bit (f32, 0x33000001_u32)) == 1)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB2FFFFFF_u32)) == 0x8000)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB3000000_u32)) == 0x8000)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB3000001_u32)) == 0x8001)
 
     // Rounding around the largest subnormal keeps the tie-to-even boundary at 0x0400.
-    Swag.require(floatToHalf(cast #bit (f32, 0x387FDFFF'u32)) == 0x03FF)
-    Swag.require(floatToHalf(cast #bit (f32, 0x387FE000'u32)) == 0x0400)
-    Swag.require(floatToHalf(cast #bit (f32, 0x387FE001'u32)) == 0x0400)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB87FDFFF'u32)) == 0x83FF)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB87FE000'u32)) == 0x8400)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB87FE001'u32)) == 0x8400)
+    Swag.require(floatToHalf(cast #bit (f32, 0x387FDFFF_u32)) == 0x03FF)
+    Swag.require(floatToHalf(cast #bit (f32, 0x387FE000_u32)) == 0x0400)
+    Swag.require(floatToHalf(cast #bit (f32, 0x387FE001_u32)) == 0x0400)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB87FDFFF_u32)) == 0x83FF)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB87FE000_u32)) == 0x8400)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB87FE001_u32)) == 0x8400)
 
     // The overflow midpoint rounds to infinity, the even neighbor of max finite.
-    Swag.require(floatToHalf(cast #bit (f32, 0x477FEFFF'u32)) == 0x7BFF)
-    Swag.require(floatToHalf(cast #bit (f32, 0x477FF000'u32)) == 0x7C00)
-    Swag.require(floatToHalf(cast #bit (f32, 0x477FF001'u32)) == 0x7C00)
+    Swag.require(floatToHalf(cast #bit (f32, 0x477FEFFF_u32)) == 0x7BFF)
+    Swag.require(floatToHalf(cast #bit (f32, 0x477FF000_u32)) == 0x7C00)
+    Swag.require(floatToHalf(cast #bit (f32, 0x477FF001_u32)) == 0x7C00)
 
-    for value in [0.0'f32, -0.0'f32, 1.0'f32, -2.0'f32, 0.00006103515625'f32, 0.000000059604645'f32, 65504.0'f32]
+    for value in [0.0_f32, -0.0_f32, 1.0_f32, -2.0_f32, 0.00006103515625_f32, 0.000000059604645_f32, 65504.0_f32]
     {
         let restored = halfToFloat(floatToHalf(value))
         Swag.require(cast #bit (u32, restored) == cast #bit (u32, value))
     }
 
-    let positiveInfinity = cast #bit (f32, 0x7F800000'u32)
-    let nan = cast #bit (f32, 0x7FC01234'u32)
+    let positiveInfinity = cast #bit (f32, 0x7F800000_u32)
+    let nan = cast #bit (f32, 0x7FC01234_u32)
     Swag.require(cast #bit (u32, halfToFloat(floatToHalf(positiveInfinity))) == 0x7F800000)
     Swag.require(halfToFloat(floatToHalf(nan)) != halfToFloat(floatToHalf(nan)))
 }
@@ -148,6 +148,57 @@ const PackedFormats: [18] PixelFormat = [
     Swag.require(Math.abs(cast(s32, restored.pixels.storage()[1]) - 100) <= 1)
     Swag.require(Math.abs(cast(s32, restored.pixels.storage()[2]) - 50) <= 1)
     Swag.require(restored.pixels.storage()[3] == 128)
+}
+
+// Packed 8-bit alpha conversion agrees with the scalar logical-color helpers for every sample.
+#test
+{
+    for format in [PixelFormat.RGBA8, .BGRA8]
+    {
+        var source = Image.create(256, 256, format, alphaMode: .Premultiplied)
+        let pixels = source.pixels.storage()
+        for alpha in 256
+        {
+            for sample in 256
+            {
+                let pixel = pixels + (alpha * 256 + sample) * 4
+                pixel[0] = cast(u8, sample)
+                pixel[1] = cast(u8, 255 - sample)
+                pixel[2] = cast #wrap(u8, sample * 73)
+                pixel[3] = cast(u8, alpha)
+            }
+        }
+
+        var metadata: ImageMetadata
+        metadata.signature = 73
+        metadata.tag       = "alpha-test"
+        metadata.value.add(0x5A_u8)
+        source.metadata.add(#move metadata)
+
+        let before = Hash.Crc32.compute(source.pixels.toSlice())
+        let copy   = source.convertedAlphaTo(.Straight)
+        Swag.require(copy.alphaMode == .Straight and copy.pixelFormat == format)
+        Swag.require(copy.width == source.width and copy.height == source.height)
+        Swag.require(copy.metadata.count == 1 and copy.metadata[0].signature == 73)
+        Swag.require(copy.metadata[0].isTag("alpha-test"))
+        Swag.require(copy.metadata[0].value.count == 1 and copy.metadata[0].value[0] == 0x5A)
+        Swag.require(source.alphaMode == .Premultiplied)
+        Swag.require(Hash.Crc32.compute(source.pixels.toSlice()) == before)
+
+        var inPlace = source
+        inPlace.convertAlphaTo(.Straight)
+        Swag.require(inPlace.alphaMode == .Straight)
+        Swag.require(Memory.compare(copy.pixels.storage(), inPlace.pixels.storage(), copy.byteCount) == 0)
+
+        let converted = copy.pixels.storage()
+        for i in 256 * 256
+        {
+            var expected: [4] u8
+            let logical = readLogicalPixelValue(pixels + i * 4, format, .Premultiplied)
+            writePixelValue(&expected[0], format, logical)
+            Swag.require(Memory.compare(converted + i * 4, &expected[0], 4) == 0)
+        }
+    }
 }
 
 // Converting a fully transparent pixel clears hidden RGB in either alpha association.
@@ -182,7 +233,7 @@ const PackedFormats: [18] PixelFormat = [
     for &format in encodable
     {
         Swag.require(format.name.count != 0)
-        for ext in Tokenize.split(format.extensions, ';'rune)
+        for ext in Tokenize.split(format.extensions, ';'_rune)
         {
             Swag.require(Utf8.startsWith(ext, "."))
             Swag.require(Image.canSave(Format.toString("image%", ext)))
@@ -194,7 +245,7 @@ const PackedFormats: [18] PixelFormat = [
     for &format in decodable
     {
         Swag.require(format.name.count != 0)
-        for ext in Tokenize.split(format.extensions, ';'rune)
+        for ext in Tokenize.split(format.extensions, ';'_rune)
         {
             Swag.require(Utf8.startsWith(ext, "."))
             Swag.require(Image.canLoad(Format.toString("image%", ext)))
@@ -230,8 +281,10 @@ const PackedFormats: [18] PixelFormat = [
     for format in PackedFormats
     {
         var source = Image.create(4, 4, format)
-        for i in source.byteCount do
+        for i in source.byteCount
+        {
             source.pixels.storage()[i] = cast(u8, ((i * 29 + 7) & 0xFF))
+        }
 
         let mirrored = source.mirrored().mirrored()
         let flipped  = source.flipped().flipped()
@@ -258,8 +311,11 @@ const PackedFormats: [18] PixelFormat = [
     {
         var source = Image.create(3, 2, sourceFormat)
         source.fill(Color.fromArgb(137, 31, 109, 223))
-        if sourceFormat.hasAlpha() do
+        if sourceFormat.hasAlpha()
+        {
             source.convertAlphaTo(.Premultiplied)
+        }
+
         for destinationFormat in PackedFormats
         {
             let converted = source.convertedTo(destinationFormat)
@@ -320,5 +376,54 @@ const PackedFormats: [18] PixelFormat = [
         destination.mix(source, 1, 1, .Copy)
         destination.mix(source, 0, 0, .SourceOver)
         assertImage(destination, 3, 3, format)
+    }
+}
+
+// Splitting a large image into alpha batches preserves the whole packed buffer.
+#test
+{
+    var image = Image.create(4097, 4097, .BGRA8, alphaMode: .Premultiplied)
+    let words = cast([*] u32, image.pixels.storage())
+    let count = image.byteCount / 4
+    var state = 0x7892B1FD_u32
+    for index in count
+    {
+        state        = state * #wrap 1664525 + #wrap 1013904223
+        words[index] = state
+    }
+
+    var expected = image.pixels
+    PackedPixel.writeStraightAlpha8(expected.storage(), expected.storage(), count, false)
+    image.convertAlphaTo(.Straight)
+    Swag.require(image.alphaMode == .Straight)
+    Swag.require(Memory.compare(image.pixels.storage(), expected.storage(), image.byteCount) == 0)
+}
+
+// An opaque alpha conversion preserves RGB, including a partial vector at the row end.
+#test
+{
+    for opaque in [true, false]
+    {
+        var image = Image.create(41, 25, .RGBA8, alphaMode: .Premultiplied)
+        let words = cast([*] u32, image.pixels.storage())
+        let count = image.byteCount / 4
+        for i in count
+        {
+            words[i] = 0xFF132F5C
+        }
+
+        if not opaque
+        {
+            words[count - 1] &= 0x00FFFFFF
+        }
+
+        image.convertAlphaTo(.Straight)
+        Swag.require(image.alphaMode == .Straight)
+        for i in count - 1
+        {
+            Swag.require(words[i] == 0xFF132F5C)
+        }
+
+        Swag.require(words[count - 1] == (opaque ? 0xFF132F5C_u32 : 0_u32))
     }
 }

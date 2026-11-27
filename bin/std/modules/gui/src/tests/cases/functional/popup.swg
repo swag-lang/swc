@@ -40,8 +40,10 @@ func popupVisibilityChanged(_: *Wnd, popup: *PopupListCtrl, opened: bool)
 
 func popupVisibilityReenterClose(wnd: *Wnd, popup: *PopupListCtrl, opened: bool)
 {
-    if opened do
+    if opened
+    {
         return
+    }
 
     let combo = assume cast(*ComboBox, wnd)
     PopupVisibilityCloseSawDetached  = combo.popup == null
@@ -89,8 +91,10 @@ func popupVisibilityReenterClose(wnd: *Wnd, popup: *PopupListCtrl, opened: bool)
     combo.popupIconSize      = 32
     combo.maximumPopupHeight = 72
     combo.sigPopupChanged    += &popupVisibilityChanged
-    for index in 8 do
+    for index in 8
+    {
         combo.addItem(Format.toString("Entry %", index))
+    }
 
     host.click({100, 33})
     Swag.require(PopupVisibilityOpenCount == 1 and combo.popup != null)
@@ -229,8 +233,11 @@ func popupVisibilityReenterClose(wnd: *Wnd, popup: *PopupListCtrl, opened: bool)
     host.setup(320, 240)
     let popup = PopupListCtrl.create(&host.root)
     popup.maximumHeight = 90
-    for index in 20 do
+    for index in 20
+    {
         discard popup.addItem(Format.toString("Entry %", index))
+    }
+
     popup.show(20, 20, 180)
 
     let scroll = popup.scrollWnd
@@ -250,7 +257,7 @@ func popupVisibilityReenterClose(wnd: *Wnd, popup: *PopupListCtrl, opened: bool)
 // create a scrollbar for content that is supposed to fit without scrolling.
 #test
 {
-    for scale in [1.0'f32, 1.25'f32, 1.5'f32, 1.75'f32, 2.0'f32]
+    for scale in [1.0_f32, 1.25_f32, 1.5_f32, 1.75_f32, 2.0_f32]
     {
         var host: Testing.HeadlessHost
         host.setup(320, 240, scale)

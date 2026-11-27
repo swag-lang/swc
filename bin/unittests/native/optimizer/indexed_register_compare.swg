@@ -27,7 +27,7 @@ func lessSigned32(values: [*] s32, index: u64, value: s32)->u32 => cast(u32, (va
     Swag.require(notEqual32(&values32[0], 1, 0) == 1)
     Swag.require(notEqual32(&values32[0], 3, 0xFFFFFFFF) == 0)
 
-    var signed32: [4] s32 = [-2147483648's32, -1, 0, 2147483647]
+    var signed32: [4] s32 = [-2147483648_s32, -1, 0, 2147483647]
     Swag.require(lessSigned32(&signed32[0], 0, -1) == 1)
     Swag.require(lessSigned32(&signed32[0], 1, -1) == 0)
     Swag.require(lessSigned32(&signed32[0], 3, 0) == 0)

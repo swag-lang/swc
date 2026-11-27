@@ -16,7 +16,7 @@ using Swag, Core, Pixel
         g_Main = null
     }
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.file = testTempCapturePath()
     let file = String.from(capture.file)
     defer catch Capture.deleteFiles(file)

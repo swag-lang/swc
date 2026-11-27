@@ -20,8 +20,11 @@ impl MovieDetectionSettings
 
     mtd const validate() fail
     {
-        if .namePattern.isEmpty() do
+        if .namePattern.isEmpty()
+        {
             return
+        }
+
         var expression: Parser.RegExp
         try expression.compile(.namePattern, ignoreCase: true)
     }
@@ -30,10 +33,16 @@ impl MovieDetectionSettings
 
     mtd const nameMatches(path: string)->bool
     {
-        if not Reader.canOpen(path) or albumAudio(path) do
+        if not Reader.canOpen(path) or albumAudio(path)
+        {
             return false
-        if .namePattern.isEmpty() do
+        }
+
+        if .namePattern.isEmpty()
+        {
             return true
+        }
+
         var expression: Parser.RegExp
         catch expression.compile(.namePattern, ignoreCase: true) { return false }
         return expression.grep(Path.fileNameWithoutExtension(path) orelse path) != null

@@ -38,7 +38,7 @@ internal func saveCaptureImageFile(img: *Image, source: String, target: String) 
         optPng.filtering        = false
         optImg = optPng
     }
-    elif ext == ".jpg" or ext == ".jpeg"
+    else if ext == ".jpg" or ext == ".jpeg"
     {
         optJpg.quality = 95
         optImg         = optJpg
@@ -105,9 +105,9 @@ impl IActionUI for ActionFile
 
         case .Print:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name = Gui.strings().print_Command
-            evt.disabled = not capture or capture.isTimed() or main.libraryMode
-            evt.icon = main.theme().icon(.File)
+            evt.name          = Gui.strings().print_Command
+            evt.disabled      = not capture or capture.isTimed() or main.libraryMode
+            evt.icon          = main.theme().icon(.File)
 
         case .SaveAsLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
@@ -167,12 +167,19 @@ impl IActionUI for ActionFile
 
         case .CopyImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            if capture and capture.media == .Video do
+            if capture and capture.media == .Video
+            {
                 evt.name = appStrings().act_CopyVideoToClipboard
-            elif capture and capture.media == .Animation do
+            }
+            else if capture and capture.media == .Animation
+            {
                 evt.name = appStrings().act_CopyAnimationToClipboard
-            else do
+            }
+            else
+            {
                 evt.name = appStrings().act_CopyImageToClipboard
+            }
+
             evt.disabled = not capture or (capture.media == .Video and capture.mediaMissing)
             evt.icon     = main.theme().icon(.Copy)
 
@@ -218,8 +225,10 @@ impl IActionUI for ActionFile
         }
 
         let capture = main.getCapture()
-        if not capture do
+        if not capture
+        {
             return true
+        }
 
         switch cxt.id
         {
@@ -241,8 +250,10 @@ impl IActionUI for ActionFile
             main.openImage()
 
         case .UnlinkImage:
-            if MessageDlg.confirm(unwrap main.surface, appStrings().msg_RemoveAssociation) == Dialog.BtnYes do
+            if MessageDlg.confirm(unwrap main.surface, appStrings().msg_RemoveAssociation) == Dialog.BtnYes
+            {
                 main.unlinkImage(capture)
+            }
 
         case .UpdateLinkedImage:
             updateLinkedImage(main, capture)
@@ -250,17 +261,25 @@ impl IActionUI for ActionFile
         case .DeleteCapture:
             if MessageDlg.confirm(unwrap main.surface, appStrings().msg_DeleteCaptures) == Dialog.BtnYes
             {
-                if main.libraryMode do
+                if main.libraryMode
+                {
                     main.libWnd.removeSelected()
-                else do
+                }
+                else
+                {
                     main.recentWnd.removeRecent()
+                }
             }
 
         case .DupCapture:
-            if main.libraryMode do
+            if main.libraryMode
+            {
                 main.requestDuplicateCapture(capture.file)
-            else do
+            }
+            else
+            {
                 main.requestDuplicateActiveCapture(capture)
+            }
 
         case .RenameCapture:
 
@@ -274,8 +293,10 @@ impl IActionUI for ActionFile
             editOptions.message = appStrings().ui_CaptureName
             editOptions.text    = name
             let dialog = EditDlg.createSingleLine(unwrap main.surface, editOptions)
-            if dialog.doModal() == Dialog.BtnOk do
+            if dialog.doModal() == Dialog.BtnOk
+            {
                 main.setCaptureTitle(file, dialog.text())
+            }
 
         case .CopyImage:
             if main.libraryMode
@@ -294,12 +315,16 @@ impl IActionUI for ActionFile
             }
 
         case .CaptureFileLocation:
-            if not Env.showInFileExplorer(capture.file) do
+            if not Env.showInFileExplorer(capture.file)
+            {
                 MessageDlg.error(unwrap main.surface, appStrings().msg_FailedLocateCapture)
+            }
 
         case .LinkedFileLocation:
-            if not Env.showInFileExplorer(capture.linkedFile()) do
+            if not Env.showInFileExplorer(capture.linkedFile())
+            {
                 MessageDlg.error(unwrap main.surface, capture.media == .Video ? appStrings().msg_FailedLocateLinkedVideo : appStrings().msg_FailedLocateLinked)
+            }
 
         case .FileDetails:
             showFileDetails(main, capture)
@@ -349,8 +374,10 @@ private func updateLinkedImage(main: *MainWnd, capture: *Capture)
             dialog.setExtension(askAgain)
         }
 
-        if MessageDlg.confirm(unwrap main.surface, message, options: options) != Dialog.BtnYes do
+        if MessageDlg.confirm(unwrap main.surface, message, options: options) != Dialog.BtnYes
+        {
             return
+        }
     }
 
     // The library holds only the preview of the capture: the export loads the whole capture first.
@@ -390,34 +417,58 @@ private func showFileDetails(main: *MainWnd, capture: *Capture)
 
     addDetail(rows, texts.ui_DetailFile, capture.file)
     let linked = capture.linkedFile()
-    if not linked.isEmpty() do
+    if not linked.isEmpty()
+    {
         addDetail(rows, capture.media == .Video ? texts.ui_DetailLinkedVideo : texts.ui_DetailLinkedImage, linked)
+    }
+
     addDetail(rows, texts.ui_DetailImageSize, Format.toString("% × %", capture.width, capture.height))
-    if capture.capturedAt.isValid() do
+    if capture.capturedAt.isValid()
+    {
         addDetail(rows, texts.ui_DetailCapturedAt, Format.toString("%", capture.capturedAt))
-    if not capture.sourceApplication.isEmpty() do
+    }
+
+    if not capture.sourceApplication.isEmpty()
+    {
         addDetail(rows, texts.ui_DetailApplication, capture.sourceApplication)
-    if not capture.sourceWindowTitle.isEmpty() do
+    }
+
+    if not capture.sourceWindowTitle.isEmpty()
+    {
         addDetail(rows, texts.ui_DetailWindowTitle, capture.sourceWindowTitle)
-    if not capture.sourceExecutable.isEmpty() do
+    }
+
+    if not capture.sourceExecutable.isEmpty()
+    {
         addDetail(rows, texts.ui_DetailExecutable, capture.sourceExecutable)
-    if not capture.sourceWindowClass.isEmpty() do
+    }
+
+    if not capture.sourceWindowClass.isEmpty()
+    {
         addDetail(rows, texts.ui_DetailWindowClass, capture.sourceWindowClass)
+    }
+
     if not capture.tags.isEmpty()
     {
         var tags: String
         for tag in capture.tags
         {
-            if not tags.isEmpty() do
+            if not tags.isEmpty()
+            {
                 tags += ", "
+            }
+
             tags += tag[]
         }
 
         addDetail(rows, texts.ui_DetailTags, tags)
     }
 
-    if capture.rating do
+    if capture.rating
+    {
         addDetail(rows, texts.ui_DetailRating, ratingLabel(capture.rating))
+    }
+
     addDetail(rows, texts.ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size orelse 0))
     rows.computeLayout()
     dialog.applyLayout()
@@ -443,10 +494,15 @@ private func addDetail(rows: *FormLayoutCtrl, title, value: string)
 // appends its first extension to a name typed without one.
 private func addImageFilters(opt: *FileDlgOptions, formats: const [..] ImageFormat, preferred = ".png")
 {
-    for &format in formats where format.matches(preferred) do
+    for &format in formats where format.matches(preferred)
+    {
         opt.filters.add({name: format.name, extensions: format.extensions})
-    for &format in formats where not format.matches(preferred) do
+    }
+
+    for &format in formats where not format.matches(preferred)
+    {
         opt.filters.add({name: format.name, extensions: format.extensions})
+    }
 }
 
 impl MainWnd
@@ -469,8 +525,10 @@ impl MainWnd
         addImageFilters(&opt, formats.toSlice())
 
         let dialog = FileDlg.create(unwrap .surface, opt)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
 
         .loadExternalImage(dialog.selectedPath())
     }
@@ -485,8 +543,10 @@ impl MainWnd
     {
         for &f in data.files
         {
-            if Image.canLoad(f.toString()) do
+            if Image.canLoad(f.toString())
+            {
                 return true
+            }
         }
 
         return data.hasImage()
@@ -505,12 +565,16 @@ impl MainWnd
             opened = true
         }
 
-        if opened do
+        if opened
+        {
             return
+        }
 
         let image = data.image()
-        if image do
+        if image
+        {
             .newCapture(image[])
+        }
     }
 
     // Writes `img` to `nameFile` in the format its extension names, tuning the PNG and JPEG
@@ -542,8 +606,10 @@ impl MainWnd
         }
 
         .saveCapture(capture)
-        if .recentWnd != null do
+        if .recentWnd != null
+        {
             .recentWnd.updateRecent()
+        }
 
         .confirmSaved(nameFile)
     }
@@ -568,10 +634,15 @@ impl MainWnd
             .queueCaptureMetadata(capture.file, unlink: true)
         }
 
-        if .recentWnd != null do
+        if .recentWnd != null
+        {
             .recentWnd.updateRecent()
-        if .libraryMode do
+        }
+
+        if .libraryMode
+        {
             .libWnd.view.invalidate()
+        }
     }
 
     // Says that `nameFile` was saved, with a way to show it in the file explorer.
@@ -590,8 +661,11 @@ impl MainWnd
     mtd saveAsImage(linked = false)
     {
         let fileName = .getSaveAsImageName()
-        if fileName.isEmpty() do
+        if fileName.isEmpty()
+        {
             return
+        }
+
         .doSaveAsImage(fileName, linked)
     }
 
@@ -601,8 +675,10 @@ impl MainWnd
     {
         let capture     = unwrap .getCapture()
         var initialName = String.from(Path.fileNameWithoutExtension(capture.file) orelse "")
-        if capture.media == .Video do
+        if capture.media == .Video
+        {
             initialName += "-export"
+        }
 
         with var opt: FileDlgOptions
         {
@@ -629,18 +705,26 @@ impl MainWnd
         // it again does not silently change the format. PNG otherwise: it is lossless,
         // and a capture is text and flat color far more often than it is a photograph.
         var preferred = capture.linkedImage.toString()
-        if not Image.canSave(preferred) do
+        if not Image.canSave(preferred)
+        {
             preferred = ".png"
+        }
 
         // An animation is written as an animated picture. A video is written as an MP4.
         if capture.media == .Video
         {
             opt.filters.add({name: appStrings().ui_Mp4Video, extensions: ".mp4"})
             let dialog = FileDlg.create(unwrap .surface, opt)
-            if .inPlaceEdit do
+            if .inPlaceEdit
+            {
                 dialog.surface?.setTopMost()
-            if dialog.doModal() != Dialog.BtnOk do
+            }
+
+            if dialog.doModal() != Dialog.BtnOk
+            {
                 return ""
+            }
+
             return dialog.selectedPath()
         }
 
@@ -648,17 +732,25 @@ impl MainWnd
         if capture.media == .Animation
         {
             preferred = ".gif"
-            for i in reversed(formats.count) where not formats[i].matches(preferred) do
+            for i in reversed(formats.count) where not formats[i].matches(preferred)
+            {
                 formats.removeAtOrdered(i)
+            }
         }
 
         addImageFilters(&opt, formats.toSlice(), preferred)
 
         let dialog = FileDlg.create(unwrap .surface, opt)
-        if .inPlaceEdit do
+        if .inPlaceEdit
+        {
             dialog.surface?.setTopMost()
-        if dialog.doModal() != Dialog.BtnOk do
+        }
+
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return ""
+        }
+
         return dialog.selectedPath()
     }
 
@@ -726,8 +818,11 @@ impl MainWnd
         }
 
         var image = capture.toImage()
-        if linked do
+        if linked
+        {
             capture.linkedImage = fileName
+        }
+
         .doSaveImage(capture, &image, fileName)
     }
 
@@ -747,8 +842,10 @@ impl MainWnd
         edit0.setUnsignedIntegerRange(16, 4096)
         edit1.setUnsignedIntegerRange(16, 4096)
         dialog.form.computeLayout()
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
 
         let w     = catch StrConv.parseS32(edit0.text()).value orelse 512
         let h     = catch StrConv.parseS32(edit1.text()).value orelse 512

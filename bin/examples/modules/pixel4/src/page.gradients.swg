@@ -55,8 +55,8 @@ func drawGradientFillCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let sweepCenter = Math.Vector2{right.horzCenter(), right.vertCenter() - 2}
     let sweepRadius = Math.min(right.width, right.height) * 0.46
     var sweep       = Brush.createSweepGradient(sweepCenter,
-                                                0.0'deg,
-                                                360.0'deg,
+                                                0.0_deg,
+                                                360.0_deg,
                                                 Argb.DeepSkyBlue,
                                                 Argb.Crimson,
                                                 .Repeat)
@@ -145,13 +145,13 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.fillCircle(glowCenter.x, glowCenter.y, Math.min(back.width, back.height) * 0.42, glowBrush)
 
     var brush = Brush.createSweepGradient(Math.Vector2{x + size.width * 0.5, y + size.height * 0.5},
-                                          0.0'deg,
-                                          360.0'deg,
+                                          0.0_deg,
+                                          360.0_deg,
                                           Argb.DeepSkyBlue,
                                           Argb.Crimson,
                                           .Repeat)
     brush.addGradientStop(0.45, Argb.Goldenrod)
-    brush.multiplyTint(Color.fromArgb(235'u8, Argb.White))
+    brush.multiplyTint(Color.fromArgb(235_u8, Argb.White))
     painter.drawString(x, y, text, g_TitleFont, brush)
     painter.drawString(body.x + 22,
                        body.bottom() - 20,

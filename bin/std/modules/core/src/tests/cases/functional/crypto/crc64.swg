@@ -11,50 +11,62 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
     switch #complete kind
     {
     case Hash.Crc64Kind.Ecma182:
-        const Poly = 0x42F0_E1EB_A9EA_3693'u64
+        const Poly = 0x42F0_E1EB_A9EA_3693_u64
         for value in buffer
         {
             crc ^= cast(u64, value) << 56
             for 8
             {
-                if crc & 0x8000_0000_0000_0000'u64 do
+                if crc & 0x8000_0000_0000_0000_u64
+                {
                     crc = (crc << 1) ^ Poly
-                else do
+                }
+                else
+                {
                     crc <<= 1
+                }
             }
         }
 
         return crc
 
     case Hash.Crc64Kind.Iso:
-        const Poly = 0xD800_0000_0000_0000'u64
+        const Poly = 0xD800_0000_0000_0000_u64
         crc = ~crc
         for value in buffer
         {
             crc ^= value
             for 8
             {
-                if crc & 1 do
+                if crc & 1
+                {
                     crc = (crc >> 1) ^ Poly
-                else do
+                }
+                else
+                {
                     crc >>= 1
+                }
             }
         }
 
         return ~crc
 
     case Hash.Crc64Kind.IsoXz:
-        const Poly = 0xC96C_5795_D787_0F42'u64
+        const Poly = 0xC96C_5795_D787_0F42_u64
         crc = ~crc
         for value in buffer
         {
             crc ^= value
             for 8
             {
-                if crc & 1 do
+                if crc & 1
+                {
                     crc = (crc >> 1) ^ Poly
-                else do
+                }
+                else
+                {
                     crc >>= 1
+                }
             }
         }
 
@@ -77,7 +89,7 @@ func assertCrc64Kind(buffer: const [..] u8, kind: Hash.Crc64Kind)
     Swag.require(crc.value() == expected)
 
     crc.reset(kind)
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < buffer.count
     {
         let end = Math.min(offset + 37, buffer.count)
@@ -85,6 +97,12 @@ func assertCrc64Kind(buffer: const [..] u8, kind: Hash.Crc64Kind)
         offset = end
     }
 
+    Swag.require(crc.value() == expected)
+
+    let split = buffer.count / 3
+    crc.reset(kind)
+    crc.update(buffer[until split])
+    crc.update(buffer[split until])
     Swag.require(crc.value() == expected)
 }
 
@@ -97,7 +115,7 @@ func assertCrc64(buffer: const [..] u8)
 
 func fillCrc64Pattern(buffer: [..] u8)
 {
-    var i = 0'u64
+    var i = 0_u64
     while i < buffer.count
     {
         buffer[i] = cast(u8, (((i ^ (i >> 8)) * 109 + 41) & 0xFF))
@@ -107,12 +125,10 @@ func fillCrc64Pattern(buffer: [..] u8)
 
 #test
 {
-    const compileTime = #run Hash.Crc64.compute("123456789")
-    Swag.require(compileTime == 0x6C40_DF5F_0B49_7347'u64)
-    Swag.require(Hash.Crc64.compute("") == 0'u64)
-    Swag.require(Hash.Crc64.compute("123456789") == 0x6C40_DF5F_0B49_7347'u64)
-    Swag.require(Hash.Crc64.compute("123456789", Hash.Crc64Kind.Iso) == 0xB909_56C7_75A4_1001'u64)
-    Swag.require(Hash.Crc64.compute("123456789", Hash.Crc64Kind.IsoXz) == 0x995D_C9BB_DF19_39FA'u64)
+    Swag.require(Hash.Crc64.compute("") == 0_u64)
+    Swag.require(Hash.Crc64.compute("123456789") == 0x6C40_DF5F_0B49_7347_u64)
+    Swag.require(Hash.Crc64.compute("123456789", Hash.Crc64Kind.Iso) == 0xB909_56C7_75A4_1001_u64)
+    Swag.require(Hash.Crc64.compute("123456789", Hash.Crc64Kind.IsoXz) == 0x995D_C9BB_DF19_39FA_u64)
 
     assertCrc64("")
     assertCrc64("a")
@@ -122,7 +138,7 @@ func fillCrc64Pattern(buffer: [..] u8)
     var data: [1032] u8
     fillCrc64Pattern(data)
 
-    for length in 130
+    for length in 160
     {
         assertCrc64(data[until length])
     }
@@ -130,8 +146,10 @@ func fillCrc64Pattern(buffer: [..] u8)
     assertCrc64(data[until 255])
     assertCrc64(data[until 256])
     assertCrc64(data[until 257])
-    for offset in 8 do
+    for offset in 8
+    {
         assertCrc64(data[offset until offset + 1025])
+    }
 
     var split: Hash.Crc64
     split.reset(Hash.Crc64Kind.IsoXz)
@@ -140,4 +158,32 @@ func fillCrc64Pattern(buffer: [..] u8)
     split.update(data[64 until 129])
     split.update(data[129 until])
     Swag.require(split.value() == Hash.Crc64.compute(data, Hash.Crc64Kind.IsoXz))
+}
+
+#test
+{
+    const message = #run
+    {
+        var data: [4353] u8
+        fillCrc64Pattern(data)
+        return data
+    }
+
+    #assert(Hash.Crc64.compute(message, .IsoXz) == #run crc64Reference(message, .IsoXz))
+    #assert(Hash.Crc64.compute(message, .Ecma182) == #run crc64Reference(message, .Ecma182))
+
+    for size in [1023, 1024, 1025, 1151, 1152, 1153, 1279, 4095, 4096, 4097, 4351, 4352]
+    {
+        assertCrc64(message[1 until 1 + size])
+    }
+}
+
+#test
+{
+    var data: [8450] u8
+    fillCrc64Pattern(data)
+    for size in [2047, 2048, 2049, 2095, 2175, 2303, 2304, 8192, 8447]
+    {
+        assertCrc64Kind(data[1 until 1 + size], .Ecma182)
+    }
 }

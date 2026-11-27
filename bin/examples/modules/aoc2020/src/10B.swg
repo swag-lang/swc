@@ -62,20 +62,26 @@ func day10B()
 
     vals.sort()
 
-    func count(i: u64, input: Array's64, storage: *HashTable'(u64, u64))->u64
+    func count(i: u64, input: Array!{s64}, storage: *HashTable!{u64, u64})->u64
     {
-        if i == input.count - 1 do
+        if i == input.count - 1
+        {
             return 1
+        }
 
         let it = storage.tryFind(i)
-        if it do
+        if it
+        {
             return it.value
+        }
 
-        var total = 0'u64
+        var total = 0_u64
         for j in i + 1 until input.count
         {
-            if input[j] - input[i] <= 3 do
+            if input[j] - input[i] <= 3
+            {
                 total += count(j, input, storage)
+            }
         }
 
         storage[i] = total
@@ -85,6 +91,6 @@ func day10B()
     vals.insertAt(0, 0)
     vals.add(vals.back() + 3)
 
-    var dp: HashTable'(u64, u64)
+    var dp: HashTable!{u64, u64}
     Swag.assert(count(0, vals, &dp) == 1727094849536)
 }

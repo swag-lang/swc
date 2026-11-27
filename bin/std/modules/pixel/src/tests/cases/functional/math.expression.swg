@@ -64,8 +64,10 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
         #raw "\sin x+\cos y+\tan z+\log n+\ln n+\exp x+\det A+\gcd(a,b)",
         #raw "\lvert x\rvert+\lVert v\rVert+\vert y\vert+\Vert z\Vert+\|w\|"]
 
-    for commandLine in Commands do
+    for commandLine in Commands
+    {
         assertMathParses(commandLine)
+    }
 }
 
 #test
@@ -96,19 +98,28 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     Swag.require(copied.nodes[0] != original.nodes[0])
     Swag.require(copied.nodeCount() == original.nodeCount())
     Swag.require(copied.sourceText() == original.sourceText())
-    var originalPathCount, copiedPathCount = 0'u64
-    for nodeRef in original.nodes do
+    var originalPathCount, copiedPathCount = 0_u64
+    for nodeRef in original.nodes
+    {
         originalPathCount += nodeRef!.paths.count
-    for nodeRef in copied.nodes do
+    }
+
+    for nodeRef in copied.nodes
+    {
         copiedPathCount += nodeRef!.paths.count
+    }
+
     Swag.require(originalPathCount == 1)
     Swag.require(copiedPathCount == 0)
     let originalMetrics = original.measure(font)
     let copiedMetrics   = copied.measure(font)
     Swag.require(Math.isEqualEpsilon(originalMetrics.width, copiedMetrics.width, 0.001))
     Swag.require(Math.isEqualEpsilon(originalMetrics.height(), copiedMetrics.height(), 0.001))
-    for nodeRef in copied.nodes do
+    for nodeRef in copied.nodes
+    {
         copiedPathCount += nodeRef!.paths.count
+    }
+
     Swag.require(copiedPathCount == 1)
 }
 
@@ -254,8 +265,10 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
         #raw "\begin{vmatrix}a&b\\c&d\end{vmatrix}",
         #raw "\begin{Vmatrix}a&b\\c&d\end{Vmatrix}",
         #raw "\begin{aligned}a&=b+c\\d&=e-f\end{aligned}"]
-    for source in Environments do
+    for source in Environments
+    {
         assertMathParses(source)
+    }
 }
 
 #test
@@ -269,7 +282,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     Swag.require(metrics.width > 0)
     Swag.require(metrics.ascent > plainMetrics.ascent)
 
-    var ruleCount, pathCount = 0'u64
+    var ruleCount, pathCount = 0_u64
     var sawHat, sawTilde, sawVector: bool
     for nodeRef in accents.nodes
     {
@@ -280,12 +293,20 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
             pathCount += node.paths.count
             for path in node.paths
             {
-                if path.kind == .Hat do
+                if path.kind == .Hat
+                {
                     sawHat = true
-                if path.kind == .Tilde do
+                }
+
+                if path.kind == .Tilde
+                {
                     sawTilde = true
-                if path.kind == .Vector do
+                }
+
+                if path.kind == .Vector
+                {
                     sawVector = true
+                }
             }
         }
     }
@@ -307,16 +328,30 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     for nodeRef in styled.nodes
     {
         let node = unwrap nodeRef
-        if node.kind != .Style do
+        if node.kind != .Style
+        {
             continue
-        if node.fontVariant == .Roman do
+        }
+
+        if node.fontVariant == .Roman
+        {
             sawRoman = true
-        if node.fontVariant == .Italic do
+        }
+
+        if node.fontVariant == .Italic
+        {
             sawItalic = true
-        if node.fontVariant == .Bold do
+        }
+
+        if node.fontVariant == .Bold
+        {
             sawBold = true
-        if node.fontVariant == .BoldItalic do
+        }
+
+        if node.fontVariant == .BoldItalic
+        {
             sawBoldItalic = true
+        }
     }
 
     Swag.require(sawRoman and sawItalic and sawBold and sawBoldItalic)

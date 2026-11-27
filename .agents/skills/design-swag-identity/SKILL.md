@@ -210,7 +210,7 @@ When changing the geometry, update the generator, styles and VSCode icon togethe
 
 1. Run the generator.
 2. Paste the new path and its `viewBox` into `--swag-mark` in `DocPage::styles()`.
-3. Copy the icon into the VSCode extension with `tools/vsix.bat`.
+3. Copy the generated icon and syntax image into `vscode/images/`.
 
 ## Regenerate The Syntax Image
 

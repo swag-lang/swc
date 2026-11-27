@@ -22,21 +22,28 @@ using Core, Ogl
     defer readback.release()
     Swag.require(readback.submit(&target, 0, 0, 1, 2))
 
-    var destination: Array'u8
+    var destination: Array!{u8}
     destination.resize(4)
-    for index in 4 do
+    for index in 4
+    {
         destination[index] = 0xA5
+    }
+
     let copied = readback.tryCopyTo(destination.toSlice(), rowStride: Swag.U64.Max - 3)
     Swag.require(not copied and readback.hasFailed())
-    for byte in destination do
+    for byte in destination
+    {
         Swag.require(byte == 0xA5)
+    }
 
     readback.release()
     Swag.require(readback.submit(&target, 0, 0, 1, 2))
     let undersized = readback.tryCopyTo(destination.toSlice(), rowStride: 4)
     Swag.require(not undersized and readback.hasFailed())
-    for byte in destination do
+    for byte in destination
+    {
         Swag.require(byte == 0xA5)
+    }
 
     readback.release()
     gpu.end()

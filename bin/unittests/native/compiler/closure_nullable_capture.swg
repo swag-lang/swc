@@ -4,8 +4,10 @@ func readNullableCapture(value: *s32?)->s32
 {
     let read = func|value|()->s32
     {
-        if value != null do
+        if value != null
+        {
             return value[]
+        }
         return -1
     }
     return read()
@@ -15,8 +17,10 @@ func readNullableAliasCapture(value: *s32?)->s32
 {
     let read = func|pointer = value|()->s32
     {
-        if pointer == null do
+        if pointer == null
+        {
             return -1
+        }
         return pointer[]
     }
     return read()

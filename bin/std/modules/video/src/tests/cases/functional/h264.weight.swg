@@ -3,31 +3,35 @@
 
 using Core
 
-const WeightWidths  = [2's32, 4, 8, 16]
-const WeightHeights = [2's32, 4, 8, 16]
-const WeightDenoms  = [0's32, 1, 3, 7]
-const WeightValues  = [-128's32, -1, 0, 1, 23, 127, 128]
-const WeightOffsets = [-128's32, -1, 0, 1, 127]
-const WeightStride  = 19'u64
+const WeightWidths  = [2_s32, 4, 8, 16]
+const WeightHeights = [2_s32, 4, 8, 16]
+const WeightDenoms  = [0_s32, 1, 3, 7]
+const WeightValues  = [-128_s32, -1, 0, 1, 23, 127, 128]
+const WeightOffsets = [-128_s32, -1, 0, 1, 127]
+const WeightStride  = 19_u64
 
 func referenceWeightUni(dst: [*] u8, src: [*] u8, width, height, logDenom, weight, offset: s32)
 {
-    let rounding = logDenom > 0 ? 1's32 << cast(u32, (logDenom - 1)) : 0's32
+    let rounding = logDenom > 0 ? 1_s32 << cast(u32, (logDenom - 1)) : 0_s32
     for row in cast(u64, height)
     {
-        for column in cast(u64, width) do
+        for column in cast(u64, width)
+        {
             dst[row * WeightStride + column] = H264.clampPixel(((cast(s32, src[row * 16 + column]) * weight + rounding) >> cast(u32, logDenom)) + offset)
+        }
     }
 }
 
 func referenceWeightBi(dst: [*] u8, src0, src1: [*] u8, width, height, logDenom, weight0, weight1, offset0, offset1: s32)
 {
-    let rounding = 1's32 << cast(u32, logDenom)
+    let rounding = 1_s32 << cast(u32, logDenom)
     let offset   = (offset0 + offset1 + 1) >> 1
     for row in cast(u64, height)
     {
-        for column in cast(u64, width) do
+        for column in cast(u64, width)
+        {
             dst[row * WeightStride + column] = H264.clampPixel(((cast(s32, src0[row * 16 + column]) * weight0 + cast(s32, src1[row * 16 + column]) * weight1 + rounding) >> cast(u32, (logDenom + 1))) + offset)
+        }
     }
 }
 

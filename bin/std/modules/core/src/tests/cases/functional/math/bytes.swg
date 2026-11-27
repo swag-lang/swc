@@ -9,8 +9,8 @@ using Swag
     #assert(Math.make32(0x1234, 0x5678) == 0x12345678)
     #assert(Math.make32(0x12, 0x34, 0x56, 0x78) == 0x12345678)
     #assert(Math.make64(0x12345678, 0x9ABCDEF0) == 0x12345678_9ABCDEF0)
-    #assert(Math.byteAt(0x12345678'u32, 0) == 0x78)
-    #assert(Math.byteAt(0x12345678'u32, 3) == 0x12)
+    #assert(Math.byteAt(0x12345678_u32, 0) == 0x78)
+    #assert(Math.byteAt(0x12345678_u32, 3) == 0x12)
 
     Swag.require(Math.make16(0, 0) == 0)
     Swag.require(Math.make16(0xFF, 0xFF) == 0xFFFF)
@@ -22,15 +22,23 @@ using Swag
 #test
 {
     let bytes: [8] u8 = [0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]
-    let value         = 0x01234567_89ABCDEF'u64
-    for index in 8 do
+    let value         = 0x01234567_89ABCDEF_u64
+    for index in 8
+    {
         Swag.require(Math.byteAt(value, index) == bytes[index])
+    }
 
-    for index in 4 do
-        Swag.require(Math.byteAt(0x89ABCDEF'u32, index) == bytes[index])
-    for index in 2 do
-        Swag.require(Math.byteAt(0xCDEF'u16, index) == bytes[index])
-    Swag.require(Math.byteAt(0xEF'u8, 0) == bytes[0])
+    for index in 4
+    {
+        Swag.require(Math.byteAt(0x89ABCDEF_u32, index) == bytes[index])
+    }
+
+    for index in 2
+    {
+        Swag.require(Math.byteAt(0xCDEF_u16, index) == bytes[index])
+    }
+
+    Swag.require(Math.byteAt(0xEF_u8, 0) == bytes[0])
 }
 
 #test

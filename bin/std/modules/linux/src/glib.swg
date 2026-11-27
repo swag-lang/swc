@@ -1,8 +1,8 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const G_KEY_FILE_KEEP_COMMENTS     = 1's32
-const G_KEY_FILE_KEEP_TRANSLATIONS = 2's32
+const G_KEY_FILE_KEEP_COMMENTS     = 1_s32
+const G_KEY_FILE_KEEP_TRANSLATIONS = 2_s32
 
 #[Swag.CallingConvention(.C)]
 alias g_key_file_new_fn            = func()->*void

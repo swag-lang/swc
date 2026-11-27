@@ -22,7 +22,7 @@ using Swag, Core, Pixel
     pictures[1] = testFramePicture(40, 8)
     pictures[2] = testFramePicture(70, 16)
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.file = testTempCapturePath()
     let file = String.from(capture.file)
     defer catch Capture.deleteFiles(file)
@@ -82,7 +82,7 @@ using Swag, Core, Pixel
     pictures[1] = testFramePicture(40, 8)
     pictures[2] = testFramePicture(70, 16)
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.file = testTempCapturePath()
     let file = String.from(capture.file)
     defer catch Capture.deleteFiles(file)
@@ -105,8 +105,10 @@ using Swag, Core, Pixel
     var captured: bool
     host.app.sigFrame += func|host = &host, main, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
 
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items[3]!.separator and menu.items[7]!.separator)

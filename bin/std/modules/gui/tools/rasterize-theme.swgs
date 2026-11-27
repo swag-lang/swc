@@ -14,9 +14,11 @@ func generate(name: string, sizes: const [..] s32, units: f32, limit: s32) fail
     {
         let width   = cast(s32, Math.round(drawing.width * cast(f32, size) / units))
         let height  = cast(s32, Math.round(drawing.height * cast(f32, size) / units))
-        var samples = 4'u8
-        while samples > 1 and width * cast(s32, samples) > limit do
+        var samples = 4_u8
+        while samples > 1 and width * cast(s32, samples) > limit
+        {
             samples /= 2
+        }
 
         let image   = drawing.rasterize(width, height, samples)
         let encoded = image.encode(".png")

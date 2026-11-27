@@ -38,10 +38,14 @@ using Core, Gui
         else
         {
             let outcome = window.operation.error.value()
-            if outcome is Error as error do
+            if outcome is Error as error
+            {
                 Swag.require(error.kind == .PasswordOrDamaged)
-            else do
+            }
+            else
+            {
                 Swag.require(false, "protected launch should refuse empty access")
+            }
         }
     }
 }

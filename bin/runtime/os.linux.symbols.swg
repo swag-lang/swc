@@ -26,7 +26,7 @@ namespace __LinuxRT
 }
 
 // glibc's active mask includes the operating system's enabled XSAVE/YMM state.
-func __hostHasAvx2()->bool => (__LinuxRT.__x86_get_cpuid_feature_leaf(1).active[1] & (1'u32 << 5)) != 0
+func __hostHasAvx2()->bool => (__LinuxRT.__x86_get_cpuid_feature_leaf(1).active[1] & (1_u32 << 5)) != 0
 
 func __hostImageBaseForAddress(address: *void)->*void?
 {
@@ -82,8 +82,11 @@ func __hostAllocateDebugImage()->*SwagDebugImage? => cast(*SwagDebugImage?, __Li
 #[Swag.Safety(.ValueBorrow, false)]
 private func __linuxFindDebugSection(mapping: *void, length: u64, size: *u64)->[*] u8?
 {
-    if length < #sizeof(LinuxElfHeader) do
+    if length < #sizeof(LinuxElfHeader)
+    {
         return null
+    }
+
     let header = cast(const *LinuxElfHeader, mapping)
     if header.identity[0] != 0x7F or
        header.identity[1] != 'E' or
@@ -91,32 +94,53 @@ private func __linuxFindDebugSection(mapping: *void, length: u64, size: *u64)->[
        header.identity[3] != 'F' or
        header.identity[4] != 2 or
        header.identity[5] != 1 or
-       header.machine != 62 do
+       header.machine != 62
+    {
         return null
+    }
+
     if header.sectionEntrySize != #sizeof(LinuxElfSection) or
        header.sectionCount == 0 or
-       header.sectionNames >= header.sectionCount do
+       header.sectionNames >= header.sectionCount
+    {
         return null
+    }
+
     let tableSize = cast(u64, header.sectionCount) * #sizeof(LinuxElfSection)
-    if tableSize > length or header.sectionOffset > length - tableSize do
+    if tableSize > length or header.sectionOffset > length - tableSize
+    {
         return null
+    }
+
     let bytes    = cast([*] u8, mapping)
     let sections = cast(const [*] LinuxElfSection, &bytes[header.sectionOffset])
     let names    = &sections[header.sectionNames]
-    if names.size > length or names.offset > length - names.size or names.size < 9 do
+    if names.size > length or names.offset > length - names.size or names.size < 9
+    {
         return null
+    }
+
     for index in header.sectionCount
     {
         let section = &sections[index]
-        if section.name > names.size - 9 do
+        if section.name > names.size - 9
+        {
             continue
-        if Swag.memcmp(&bytes[names.offset + section.name], ".swagdbg".buffer, 9) != 0 do
+        }
+
+        if Swag.memcmp(&bytes[names.offset + section.name], ".swagdbg".buffer, 9) != 0
+        {
             continue
+        }
+
         if section.kind != 1 or
            section.size < 16 or
            section.size > length or
-           section.offset > length - section.size do
+           section.offset > length - section.size
+        {
             return null
+        }
+
         size[] = section.size
         return &bytes[section.offset]
     }
@@ -145,19 +169,31 @@ func __hostDebugSection(base: *void, size: *u64)->[*] u8?
     }
 
     var image: __LinuxRT.ImageInfo
-    if __LinuxRT.dladdr(base, &image) == 0 or not image.path do
+    if __LinuxRT.dladdr(base, &image) == 0 or not image.path
+    {
         return null
+    }
+
     let descriptor = __LinuxRT.open(image.path, __LinuxRT.CloseOnExec)
-    if descriptor < 0 do
+    if descriptor < 0
+    {
         return null
+    }
+
     defer discard __LinuxRT.close(descriptor)
     let fileSize = __LinuxRT.lseek(descriptor, 0, 2)
-    if fileSize <= 0 do
+    if fileSize <= 0
+    {
         return null
+    }
+
     let length  = cast(u64, fileSize)
     let mapping = __LinuxRT.mmap(null, length, 1, 2, descriptor, 0)
-    if not mapping or cast(s64, mapping) == -1 do
+    if not mapping or cast(s64, mapping) == -1
+    {
         return null
+    }
+
     var sectionSize: u64
     let section = __linuxFindDebugSection(mapping, length, &sectionSize)
     if not section
@@ -184,8 +220,10 @@ func __hostDebugSection(base: *void, size: *u64)->[*] u8?
 func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSize: *u64)->[*] u8?
 {
     decodedSize[] = 0
-    if sectionSize < 16 or sectionSize > 0xFFFF_FFFF or Swag.__dbgU32(section, 0) != 0x4244_5753 do
+    if sectionSize < 16 or sectionSize > 0xFFFF_FFFF or Swag.__dbgU32(section, 0) != 0x4244_5753
+    {
         return null
+    }
 
     let version = Swag.__dbgU32(section, 4)
     if version == 1
@@ -195,11 +233,17 @@ func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSize: *u
     }
 
     let packed = Swag.readCompressedDebugTable(section, sectionSize)
-    if not packed.decodedSize or packed.format == 2 do
+    if not packed.decodedSize or packed.format == 2
+    {
         return null
+    }
+
     let decoded = cast([*] u8?, __LinuxRT.malloc(packed.decodedSize))
-    if not decoded do
+    if not decoded
+    {
         return null
+    }
+
     if not packed.decode(section, decoded)
     {
         __LinuxRT.free(decoded)

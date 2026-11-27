@@ -23,9 +23,11 @@ func day4A()
     for l in lines
     {
         let s = Tokenize.split(l[], " ")
-        let set: HashSet'(string) = s[to]
-        if set.count == s.count do
+        let set: HashSet!{string} = s[to]
+        if set.count == s.count
+        {
             total += 1
+        }
     }
 
     Swag.assert(total == 455)

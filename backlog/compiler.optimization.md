@@ -193,6 +193,7 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
   instead of reconstructing them from an executable. Moving unchanged loop instructions
   across fetch boundaries changed their runtime. Blanket modulo-32 alignment enlarged text
   and gave mixed execution results, which favors investigating selective placement.
+  CRC-64/ECMA-182 throughput differed by 15% with identical loop bytes across eight linked builds.
 - Next: investigate selective alignment and repeat independent quiet blocks across native
   execution, compiler time/memory, and binary size with unchanged-binary controls. Then retain
   layout metadata through object/cache boundaries and reorder functions by weighted

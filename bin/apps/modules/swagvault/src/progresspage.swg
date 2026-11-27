@@ -13,15 +13,15 @@ struct ProgressFigure
 
 impl ProgressFigure
 {
-    const NumberSize = 96'u32
-    const SignSize   = 40'u32
-    const SignGap    = 12'f32
+    const NumberSize = 96_u32
+    const SignSize   = 40_u32
+    const SignGap    = 12_f32
 
     // Creates the figure in `parent`, at zero.
     func create(parent: *Wnd)->*ProgressFigure
     {
         let height      = parent.theme().createDefaultFont(NumberSize, .Light).height
-        with let result = Wnd.create'ProgressFigure(parent, Math.Rectangle{0, 0, 0, Math.ceil(height)})
+        with let result = Wnd.create!{ProgressFigure}(parent, Math.Rectangle{0, 0, 0, Math.ceil(height)})
         {
             .backgroundStyle = .Transparent
         }
@@ -32,8 +32,11 @@ impl ProgressFigure
     // Shows `percent`.
     mtd setPercent(percent: s32)
     {
-        if .percent == percent do
+        if .percent == percent
+        {
             return
+        }
+
         .percent = percent
         .invalidate()
     }
@@ -88,14 +91,14 @@ struct ProgressPage
 
 impl ProgressPage
 {
-    const BarHeight = 4'f32      // Height of the Arc line.
-    const LineGap   = 16'f32     // Air between the figure, the line, the reading and the sentence.
-    const StopGap   = 32'f32     // Air before the way to stop.
+    const BarHeight = 4_f32      // Height of the Arc line.
+    const LineGap   = 16_f32     // Air between the figure, the line, the reading and the sentence.
+    const StopGap   = 32_f32     // Air before the way to stop.
 
     // Creates the page in `window`, hidden.
     func create(window: *MainWindow)->*ProgressPage
     {
-        with let result = Wnd.create'ProgressPage(window, "vault.progress")
+        with let result = Wnd.create!{ProgressPage}(window, "vault.progress")
         {
             .window          = window
             .dockStyle       = .Center
@@ -121,7 +124,7 @@ impl ProgressPage
             .margin.y = LineGap
         }
 
-        with result.line = Wnd.create'Wnd(result.column, Math.Rectangle{0, 0, 0, NoticeLine.Height})
+        with result.line = Wnd.create!{Wnd}(result.column, Math.Rectangle{0, 0, 0, NoticeLine.Height})
         {
             .backgroundStyle = .Transparent
             .margin.y        = LineGap
@@ -198,15 +201,18 @@ impl ProgressPage
             break
         }
 
-        if .what.text() == what and .help.text() == help do
+        if .what.text() == what and .help.text() == help
+        {
             return
+        }
+
         .what.setText(what)
         .help.setText(help)
         .arrange()
     }
 
     // Shows how far the phase is, with the estimated seconds left when known.
-    mtd setProgress(ratio: f32, done, total: u64, secondsLeft = 0'u64)
+    mtd setProgress(ratio: f32, done, total: u64, secondsLeft = 0_u64)
     {
         .figure.setPercent(cast(s32, Math.saturate(ratio) * 100))
         .bar.setValue(ratio)
@@ -245,8 +251,11 @@ impl ProgressPage
     // Places the column in the middle of the page.
     mtd arrange()
     {
-        if .stop == null do
+        if .stop == null
+        {
             return
+        }
+
         placePageColumn(me, .column, centred: true)
         .arrangeLine()
     }

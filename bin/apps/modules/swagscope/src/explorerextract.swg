@@ -11,7 +11,7 @@ struct ArchiveExtraction
 {
     using operation: Viewer.BackgroundOperation
     archiveFile:     String
-    members:         Array'Viewers.Archive.ZipEntry
+    members:         Array!{Viewers.Archive.ZipEntry}
     strip:           String     // The folder of the archive the members are extracted from, left out of their paths.
     target:          String
     written:         u64
@@ -25,27 +25,39 @@ impl ArchiveExtraction
     // path when it could leave `target` or names what the system cannot.
     func destination(target, strip, member: string)->String
     {
-        if not Utf8.startsWith(member, strip) do
-            return {}
-        var result = String.from(target)
-        var parts  = 0'u64
-        for part in Tokenize.split(member[strip.count to], '/'rune)
+        if not Utf8.startsWith(member, strip)
         {
-            if not part.count do
+            return {}
+        }
+
+        var result = String.from(target)
+        var parts  = 0_u64
+        for part in Tokenize.split(member[strip.count to], '/'_rune)
+        {
+            if not part.count
+            {
                 continue
-            if part == "." or part == ".." or not Path.isValidFileName(part) do
+            }
+
+            if part == "." or part == ".." or not Path.isValidFileName(part)
+            {
                 return {}
+            }
+
             result = Path.combine(result, part)
             parts  += 1
         }
 
-        if not parts do
+        if not parts
+        {
             return {}
+        }
+
         return result
     }
 
     // Extracts `members` of `archiveFile` under `target`; `owner` receives a [[Gui.TaskEvent]] when it ends.
-    mtd start(archiveFile: string, members: #move Array'Viewers.Archive.ZipEntry, strip, target: string, owner: *Wnd)
+    mtd start(archiveFile: string, members: #move Array!{Viewers.Archive.ZipEntry}, strip, target: string, owner: *Wnd)
     {
         Swag.assert(not .started)
 
@@ -70,8 +82,11 @@ impl ArchiveExtraction
                 for &member in operation.members
                 {
                     let path = destination(operation.target, operation.strip, member.path)
-                    if path.isEmpty() do
+                    if path.isEmpty()
+                    {
                         continue
+                    }
+
                     if member.isDirectory
                     {
                         try Directory.create(path, recurse: true)
@@ -85,8 +100,11 @@ impl ArchiveExtraction
                     }
 
                     let parent = Path.directoryName(path)
-                    if parent != null and parent.count do
+                    if parent != null and parent.count
+                    {
                         try Directory.create(parent, recurse: true)
+                    }
+
                     try Viewers.Archive.Zip.extractEntry(operation.archiveFile, member, path)
                     operation.written += 1
                 }

@@ -66,8 +66,11 @@ using Swag, Core
     var captured: bool
     host.app.sigFrame += func|host = &host, main, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         Swag.require(host.capturedPopupMenu() != null)
         host.finishAnimations()
         var image = host.render(main)

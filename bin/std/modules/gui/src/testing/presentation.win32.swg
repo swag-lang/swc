@@ -14,12 +14,20 @@ using Core, Pixel
 // effects such as translucency over other windows, inspect the desktop separately.
 func verifyNativePresentation(surface: *Surface)->bool fail
 {
-    if not (surface.app.renderer is RenderOgl) do
+    if not (surface.app.renderer is RenderOgl)
+    {
         fail Errors.InvalidFormatError{Errors.mkString("presentation verification needs an OpenGL surface")}
-    if not surface.renderFailure.isEmpty() do
+    }
+
+    if not surface.renderFailure.isEmpty()
+    {
         fail Errors.InvalidFormatError{Errors.mkString(surface.renderFailure.toString())}
-    if not surface.presentedFrame do
+    }
+
+    if not surface.presentedFrame
+    {
         return false
+    }
 
     surface.app.renderer.setCurrentContext(surface.renderingContext())
     let tinted   = surface.hasDisabledTint() or surface.opacity < 1
@@ -27,8 +35,10 @@ func verifyNativePresentation(surface: *Surface)->bool fail
     let width    = surface.rc.width
     let height   = surface.rc.height
     let expected = surface.app.renderer.readRenderTarget(target, 0, 0, width, height)
-    if not expected.isValid() do
+    if not expected.isValid()
+    {
         fail Errors.InvalidFormatError{Errors.mkString("cannot read the GPU target for presentation verification")}
+    }
 
     let pixels    = cast(const [*] u8, unwrap surface.presentationPixels)
     let stride    = cast(u64, surface.presentationWidth) * 4
@@ -39,8 +49,10 @@ func verifyNativePresentation(surface: *Surface)->bool fail
     {
         let actual = Swag.makeSlice(pixels + (firstRow + row) * stride, rowBytes)
         let offset = row * rowBytes
-        if not Slice.equals(actual, reference[offset until offset + rowBytes]) do
+        if not Slice.equals(actual, reference[offset until offset + rowBytes])
+        {
             return false
+        }
     }
 
     return true

@@ -1,36 +1,36 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const EV_KEY      = 1'u32
-const EV_ABS      = 3'u32
-const BTN_GAMEPAD = 0x130'u32
-const ABS_X       = 0'u32
-const ABS_Y       = 1'u32
+const EV_KEY      = 1_u32
+const EV_ABS      = 3_u32
+const BTN_GAMEPAD = 0x130_u32
+const ABS_X       = 0_u32
+const ABS_Y       = 1_u32
 
-func EVIOCGBIT(ev: u32, len: u32)->u64 => (2'u64 << 30) | (cast(u64, len) << 16) | (0x45'u64 << 8) | (0x20 + ev)
+func EVIOCGBIT(ev: u32, len: u32)->u64 => (2_u64 << 30) | (cast(u64, len) << 16) | (0x45_u64 << 8) | (0x20 + ev)
 
-const EV_FF          = 0x15'u16
-const ABS_Z          = 2'u32
-const ABS_RX         = 3'u32
-const ABS_RY         = 4'u32
-const ABS_RZ         = 5'u32
-const ABS_HAT0X      = 16'u32
-const ABS_HAT0Y      = 17'u32
-const BTN_SOUTH      = 0x130'u32
-const BTN_EAST       = 0x131'u32
-const BTN_NORTH      = 0x133'u32
-const BTN_WEST       = 0x134'u32
-const BTN_TL         = 0x136'u32
-const BTN_TR         = 0x137'u32
-const BTN_SELECT     = 0x13A'u32
-const BTN_START      = 0x13B'u32
-const BTN_THUMBL     = 0x13D'u32
-const BTN_THUMBR     = 0x13E'u32
-const BTN_DPAD_UP    = 0x220'u32
-const BTN_DPAD_DOWN  = 0x221'u32
-const BTN_DPAD_LEFT  = 0x222'u32
-const BTN_DPAD_RIGHT = 0x223'u32
-const FF_RUMBLE      = 0x50'u16
+const EV_FF          = 0x15_u16
+const ABS_Z          = 2_u32
+const ABS_RX         = 3_u32
+const ABS_RY         = 4_u32
+const ABS_RZ         = 5_u32
+const ABS_HAT0X      = 16_u32
+const ABS_HAT0Y      = 17_u32
+const BTN_SOUTH      = 0x130_u32
+const BTN_EAST       = 0x131_u32
+const BTN_NORTH      = 0x133_u32
+const BTN_WEST       = 0x134_u32
+const BTN_TL         = 0x136_u32
+const BTN_TR         = 0x137_u32
+const BTN_SELECT     = 0x13A_u32
+const BTN_START      = 0x13B_u32
+const BTN_THUMBL     = 0x13D_u32
+const BTN_THUMBR     = 0x13E_u32
+const BTN_DPAD_UP    = 0x220_u32
+const BTN_DPAD_DOWN  = 0x221_u32
+const BTN_DPAD_LEFT  = 0x222_u32
+const BTN_DPAD_RIGHT = 0x223_u32
+const FF_RUMBLE      = 0x50_u16
 
 struct input_absinfo
 {
@@ -103,10 +103,10 @@ struct ff_effect
 #assert(#sizeof(input_event) == 24)
 #assert(#sizeof(ff_effect) == 48)
 
-func EVIOCGKEY(len: u32)->u64  => (2'u64 << 30) | (cast(u64, len) << 16) | (0x45'u64 << 8) | 0x18
-func EVIOCGABS(axis: u32)->u64 => (2'u64 << 30) | (24'u64 << 16) | (0x45'u64 << 8) | (0x40 + axis)
-const EVIOCSFF  = 0x40304580'u64
-const EVIOCRMFF = 0x40044581'u64
+func EVIOCGKEY(len: u32)->u64  => (2_u64 << 30) | (cast(u64, len) << 16) | (0x45_u64 << 8) | 0x18
+func EVIOCGABS(axis: u32)->u64 => (2_u64 << 30) | (24_u64 << 16) | (0x45_u64 << 8) | (0x40 + axis)
+const EVIOCSFF  = 0x40304580_u64
+const EVIOCRMFF = 0x40044581_u64
 
 #assert(#offsetof(ff_effect.u) == 16)
 #assert(#offsetof(ff_effect.replay) == 10)

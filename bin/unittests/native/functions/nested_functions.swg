@@ -42,8 +42,10 @@ func runLocalRecursion(value: s32)->s32
 {
     func factorial(n: s32)->s32
     {
-        if n <= 1 do
+        if n <= 1
+        {
             return 1
+        }
         return n * factorial(n - 1)
     }
 

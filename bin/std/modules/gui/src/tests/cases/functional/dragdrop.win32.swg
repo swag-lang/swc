@@ -110,8 +110,10 @@ func streamOnlyRelease(_: *IDataObject)->ULONG
 #[Swag.CallingConvention(.C)]
 func streamOnlyQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
 {
-    if not (fmt.tymed & TYMED_ISTREAM) do
+    if not (fmt.tymed & TYMED_ISTREAM)
+    {
         return DV_E_TYMED
+    }
 
     let inner = cast(*IDataObject, cast(*void, unwrap streamOnlyOf(itf).inner))
     var ask   = fmt[]
@@ -122,16 +124,20 @@ func streamOnlyQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
 #[Swag.CallingConvention(.C)]
 func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
 {
-    if not (fmt.tymed & TYMED_ISTREAM) do
+    if not (fmt.tymed & TYMED_ISTREAM)
+    {
         return DV_E_TYMED
+    }
 
     let inner = cast(*IDataObject, cast(*void, unwrap streamOnlyOf(itf).inner))
     var ask   = fmt[]
     ask.tymed = TYMED_HGLOBAL
 
     var block: STGMEDIUM
-    if inner.lpVtbl.GetData(inner, &ask, &block) != S_OK do
+    if inner.lpVtbl.GetData(inner, &ask, &block) != S_OK
+    {
         return DV_E_FORMATETC
+    }
 
     var raw: LPVOID
     if CreateStreamOnHGlobal(block.hGlobal, TRUE, &raw) != S_OK
@@ -215,8 +221,8 @@ func streamOnlyEnumAdvise(_: *IDataObject, ppenum: *LPVOID)->HRESULT
 internal struct ContentCatcher
 {
     using wnd: Wnd
-    names:     Array'String
-    blobs:     Array'(Array'u8)
+    names:     Array!{String}
+    blobs:     Array!{Array!{u8}}
 }
 
 impl IWnd for ContentCatcher
@@ -231,7 +237,7 @@ impl IWnd for ContentCatcher
             {
                 .names.add(evt.data.contents[i].name)
 
-                var blob: Array'u8
+                var blob: Array!{u8}
                 blob.add(evt.data.contentData(i))
                 .blobs.add(#move blob)
             }
@@ -246,7 +252,7 @@ internal struct PlatformCatcher
 {
     using wnd: Wnd
     drops:     u32
-    files:     Array'String
+    files:     Array!{String}
 }
 
 impl IWnd for PlatformCatcher
@@ -274,7 +280,7 @@ impl IWnd for PlatformCatcher
     var host: Testing.HeadlessHost
     host.setup(200, 200)
 
-    let catcher = Wnd.create'PlatformCatcher(&host.surfaceWnd, {0, 0, 200, 200})
+    let catcher = Wnd.create!{PlatformCatcher}(&host.surfaceWnd, {0, 0, 200, 200})
     host.surfaceWnd.view = catcher
 
     var data: DragData
@@ -567,10 +573,10 @@ impl IWnd for PlatformCatcher
     var host: Testing.HeadlessHost
     host.setup(200, 200)
 
-    let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, {0, 0, 200, 200})
+    let catcher = Wnd.create!{ContentCatcher}(&host.surfaceWnd, {0, 0, 200, 200})
     host.surfaceWnd.view = catcher
 
-    var produced = 0'u32
+    var produced = 0_u32
 
     var data: DragData
     data.addContent("report.txt", cast(const [..] u8, "already here"))
@@ -609,10 +615,10 @@ impl IWnd for PlatformCatcher
     var host: Testing.HeadlessHost
     host.setup(200, 200)
 
-    let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, {0, 0, 200, 200})
+    let catcher = Wnd.create!{ContentCatcher}(&host.surfaceWnd, {0, 0, 200, 200})
     host.surfaceWnd.view = catcher
 
-    var produced = 0'u32
+    var produced = 0_u32
     var data: DragData
     data.addFile("c:/tmp/large.mp4")
     data.addContent("large.mp4", func|&produced|()
@@ -779,12 +785,15 @@ impl IWnd for PlatformCatcher
 
     var fmt:     FORMATETC
     var fetched: ULONG
-    var checked = 0'u32
+    var checked = 0_u32
     while formats.lpVtbl.Next(formats, 1, &fmt, &fetched) == S_OK
     {
         fmt.tymed = TYMED_HGLOBAL
-        if fmt.cfFormat == cast(CLIPFORMAT, expect RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer)) do
+        if fmt.cfFormat == cast(CLIPFORMAT, expect RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer))
+        {
             fmt.lindex = 0
+        }
+
         var medium: STGMEDIUM
         let getDataResult = source.lpVtbl.GetData(source, &fmt, &medium)
         Swag.require(getDataResult == S_OK)
@@ -808,12 +817,17 @@ impl IWnd for PlatformCatcher
     for pixelFormat in pixelFormats
     {
         var image = Pixel.Image.create(3, 2, pixelFormat)
-        for i in image.pixels.count do
+        for i in image.pixels.count
+        {
             image.pixels[i] = cast(u8, (17 + i * 3))
+        }
+
         if image.bytesPerPixel == 4
         {
-            for i in 6 do
+            for i in 6
+            {
                 image.pixels[i * 4 + 3] = 255
+            }
         }
 
         var data: DragData
@@ -835,8 +849,10 @@ impl IWnd for PlatformCatcher
         Swag.require(decoded.width == image.width and decoded.height == image.height)
         for y in image.height
         {
-            for x in image.width do
+            for x in image.width
+            {
                 Swag.require(decoded.pixelColor(x, y) == image.pixelColor(x, y))
+            }
         }
     }
 }
@@ -844,13 +860,13 @@ impl IWnd for PlatformCatcher
 // Native text codecs respect the transfer extent and the advertised ANSI code page.
 #test
 {
-    let unterminatedWide = [65'u8, 0, 66, 0]
-    let oddWide          = [65'u8, 0, 0]
-    let terminatedWide   = [65'u8, 0, 0, 0, 66, 0]
+    let unterminatedWide = [65_u8, 0, 66, 0]
+    let oddWide          = [65_u8, 0, 0]
+    let terminatedWide   = [65_u8, 0, 0, 0, 66, 0]
     Swag.require(NativeText.decodeUnicode(unterminatedWide).isEmpty())
     Swag.require(NativeText.decodeUnicode(oddWide).isEmpty())
     Swag.require(NativeText.decodeUnicode(terminatedWide) == "A")
-    let unterminatedAnsi = [65'u8, 66]
+    let unterminatedAnsi = [65_u8, 66]
     Swag.require(NativeText.decodeAnsi(unterminatedAnsi).isEmpty())
 
     // Windows-1252 is explicit here, so the assertion is independent of the host locale.

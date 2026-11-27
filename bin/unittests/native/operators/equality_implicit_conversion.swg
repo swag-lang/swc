@@ -15,8 +15,8 @@ struct EqualityPoint
 
     Swag.require(mutableView == readOnlyView)
     Swag.require(readOnlyView == mutableView)
-    Swag.require(mutableView == [1'u8, 2'u8, 3'u8, 4'u8])
-    Swag.require([1'u8, 2'u8, 3'u8, 4'u8] == readOnlyView)
+    Swag.require(mutableView == [1_u8, 2_u8, 3_u8, 4_u8])
+    Swag.require([1_u8, 2_u8, 3_u8, 4_u8] == readOnlyView)
 
     let missing: const [..] u8? = null
     Swag.require(missing != mutableView)

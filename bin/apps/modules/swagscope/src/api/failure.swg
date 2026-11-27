@@ -12,8 +12,10 @@ using Core
 func failureText(err: any?)->String
 {
     var result: #returntype
-    if err == null do
+    if err == null
+    {
         return result
+    }
 
     let texts = appStrings()
     switch err

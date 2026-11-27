@@ -26,7 +26,7 @@ func checked(a, b: u64)->u64 => (a & 1) * b
 
 #test
 {
-    let values = [0'u64, 1, 2, 3, 0x20000, 0x20001, 0xFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 3, 0x20000, 0x20001, 0xFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         let odd = (a & 1) != 0

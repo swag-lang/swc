@@ -33,8 +33,11 @@ using Core, Gui, Pixel, Viewers
     window.sendCommandEvent(ViewerCommands.Outline)
     frame = host.renderSettled(&host.surfaceWnd)
     let seam = window.documentHost.surfaceRect()
-    for offset in [-4, -1, 1, 3] do
+    for offset in [-4, -1, 1, 3]
+    {
         Swag.require(frame.pixelColor(cast(s32, seam.x) + offset, cast(s32, seam.vertCenter())).argb == Argb.White)
+    }
+
     let rows = panel.outline.list.themeColors()
     Swag.require(rows.listItem_Text.contrastRatio(panel.canvasColor) >= 4.5)
     window.sendCommandEvent(ViewerCommands.Outline)

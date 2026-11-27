@@ -21,8 +21,11 @@ using Core, Gui, Pixel
     journey.waitFor("active duplicate written", func|main|()->bool => main.duplicateJob == null and g_Library.files.count == 2)
     journey.openLibrary(2)
     var copy: *LibraryItem?
-    for item in main.libWnd.view.items where item.fi.fullName != original do
+    for item in main.libWnd.view.items where item.fi.fullName != original
+    {
         copy = item
+    }
+
     Swag.require(copy != null)
     main.libWnd.view.openItem(copy)
     journey.waitFor("duplicate opened", func|main, &original|()->bool
@@ -39,8 +42,11 @@ using Core, Gui, Pixel
     defer app.sigFrame.clear()
     app.sigFrame += func|app, answered = &answered|(_)
     {
-        if answered[] or app.surfaces.count < 2 do
+        if answered[] or app.surfaces.count < 2
+        {
             return
+        }
+
         let dialog = assume cast(*EditDlg, app.surfaces.back().view())
         dialog.edit!.setText("Reviewed copy")
         answered[] = true

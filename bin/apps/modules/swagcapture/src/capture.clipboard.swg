@@ -1,17 +1,23 @@
 // Distance, in capture pixels, between a duplicated form and its original.
-const DuplicateOffset = 16's32
+const DuplicateOffset = 16_s32
 
 impl Capture
 {
     mtd copyAll() fail
     {
         Cursor.activateWait()
-        if .media == .Video do
+        if .media == .Video
+        {
             try .copyVideo()
-        elif .isTimed() do
+        }
+        else if .isTimed()
+        {
             try .copyAnimation()
-        else do
+        }
+        else
+        {
             Clipboard.addImage(.toImage())
+        }
     }
 
     // Puts the selected forms on the clipboard as Swag Capture forms; the first plain picture
@@ -48,8 +54,10 @@ impl Capture
     mtd pasteImageInside()
     {
         let image = Clipboard.getImage()
-        if not image.isValid() do
+        if not image.isValid()
+        {
             return
+        }
 
         let undo = .newUndo(.SetImageInside)
         undo.newImg = image
@@ -67,7 +75,7 @@ impl Capture
     // an image as a new image form. The pasted forms are centered on the mouse and selected.
     mtd paste()
     {
-        var result:  Array'IForm
+        var result:  Array!{IForm}
         var payload: CaptureClipboardForms
         if Clipboard.getTypedValue(&payload, #typeof(payload))
         {
@@ -78,7 +86,7 @@ impl Capture
             let image = Clipboard.getImage()
             if image.isValid()
             {
-                with let formImg = Memory.new'FormImage()
+                with let formImg = Memory.new!{FormImage}()
                 {
                     .w             = image.width
                     .h             = image.height
@@ -105,10 +113,14 @@ impl Capture
         {
             itf.setup(me)
             let bound = itf.boundRect()
-            if idx == 0 do
+            if idx == 0
+            {
                 boundRect = bound
-            else do
+            }
+            else
+            {
                 boundRect.combine(bound)
+            }
         }
 
         // Center the pasted forms on the mouse.
@@ -125,8 +137,10 @@ impl Capture
 
         let dx = -boundRect.x + pt.x - (boundRect.width * 0.5)
         let dy = -boundRect.y + pt.y - (boundRect.height * 0.5)
-        for itf in result do
+        for itf in result
+        {
             itf.moveForm(cast(s32, dx), cast(s32, dy))
+        }
 
         .addNewForms(result)
     }
@@ -136,8 +150,10 @@ impl Capture
     mtd duplicate()
     {
         var payload: CaptureClipboardForms
-        for s in .selection do
+        for s in .selection
+        {
             payload.add(.forms[s])
+        }
 
         var result = payload.toForms(me)
         .remapGroups(result)
@@ -151,7 +167,7 @@ impl Capture
     }
 
     // Adds `forms` on top of the capture as one undoable step and makes them the selection.
-    private mtd addNewForms(forms: Array'IForm)
+    private mtd addNewForms(forms: Array!{IForm})
     {
         let undo = .newUndo(.CreateForm)
         undo.oldForms = forms
@@ -160,8 +176,10 @@ impl Capture
         .pushUndo(undo)
 
         .selection.clear()
-        for i in undo.oldForms.count do
+        for i in undo.oldForms.count
+        {
             .selection.add(countBefore + i)
+        }
 
         .selectionHasChanged()
     }

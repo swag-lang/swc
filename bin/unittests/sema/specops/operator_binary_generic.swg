@@ -72,7 +72,7 @@ func semaTest001()
 func semaTest002()
 {
     var value = BinaryIntBox{value: 2}
-    let shift = value << 4'u32
+    let shift = value << 4_u32
 
     #assert(#typeof(shift) == BinaryIntBox)
     #assert(#typeof(shift.value) == u32)
@@ -81,7 +81,7 @@ func semaTest002()
 func semaTest003()
 {
     var value  = BinaryRightIntBox{value: 5}
-    let scaled = 3'u32 * value
+    let scaled = 3_u32 * value
 
     #assert(#typeof(scaled) == BinaryRightIntBox)
     #assert(#typeof(scaled.value) == u32)

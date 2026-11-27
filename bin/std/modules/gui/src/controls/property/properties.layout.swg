@@ -25,8 +25,11 @@ impl Properties
     // staying flat and edge-to-edge instead of floating as a smaller bordered box.
     internal mtd adaptCondensedControl(wnd: *Wnd)
     {
-        if .kind != .Condensed do
+        if .kind != .Condensed
+        {
             return
+        }
+
         wnd.dockStyle = .Center
         wnd.maxSize.x = 0
     }
@@ -35,19 +38,26 @@ impl Properties
     // field and its keyboard focus outline room before the drop-down is anchored.
     internal mtd adaptCondensedCombo(item: *PropertiesItem, combo: *ComboBox)
     {
-        if .kind != .Condensed do
+        if .kind != .Condensed
+        {
             return
+        }
 
         combo.dockStyle = .Center
-        if not combo.flags.has(.Segmented) do
+        if not combo.flags.has(.Segmented)
+        {
             combo.maxSize.x = 0
+        }
+
         combo.minSize.y = 0
         combo.quietCell = true
         let restingHeight = item.valueCellHeight
         combo.popupLayout = func|prop = me, item, restingHeight|(field, open)
         {
-            if item.line.isPendingDestroy do
+            if item.line.isPendingDestroy
+            {
                 return
+            }
 
             let metrics = field.themeMetrics()
             let inset   = open ? Math.ceil(metrics.focusRing_Offset + metrics.focusRing_Size) : 0
@@ -57,8 +67,10 @@ impl Properties
             item.line.position.height      = height + item.line.padding.w
             item.line.preferredSize.y      = item.line.position.height
             prop.edView.sendResizeEvent()
-            if open do
+            if open
+            {
                 prop.ensureItemVisible(item)
+            }
         }
     }
 
@@ -67,8 +79,11 @@ impl Properties
     // not touch the column separator.
     internal mtd flattenCondensedEdit(ed: *EditBox)
     {
-        if .kind != .Condensed do
+        if .kind != .Condensed
+        {
             return
+        }
+
         ed.setForm(.Transparent)
         let inset = ed.themeMetrics().property_FieldGap
         ed.setAllPaddings({inset, 0, inset, 0})
@@ -77,8 +92,10 @@ impl Properties
     // Sets the requested label-column width in grid layouts; other presentations ignore it.
     mtd setNameColumnWidth(width: s32)
     {
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             return
+        }
 
         .gridColumnSizeReq = Math.max(width, .gridMarginColumn)
         .refreshGridColumnLayout()
@@ -89,12 +106,17 @@ impl Properties
     // Re-clamps the grid label column to the current control width.
     internal mtd refreshGridColumnLayout()
     {
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             return
+        }
 
         var width = .gridColumnSizeReq
-        if width == 0 do
+        if width == 0
+        {
             width = cast(s32, .automaticGridColumnWidth())
+        }
+
         .gridColumnSize = .clampColumnSize(width)
         .syncColumnLabels()
     }
@@ -111,8 +133,11 @@ internal impl Properties
     {
         Swag.assert(not .isGridLike())
         var width = cast(f32, .editorWidth)
-        if .edView.position.width > 0 do
+        if .edView.position.width > 0
+        {
             width = .edView.position.width
+        }
+
         return Math.max(width, cast(f32, (.leftMargin + .rightMargin)) + 1.0)
     }
 
@@ -126,12 +151,17 @@ internal impl Properties
 
     mtd setListContentPadding(wnd: *Wnd?)
     {
-        if .isGridLike() or not wnd do
+        if .isGridLike() or not wnd
+        {
             return
+        }
+
         wnd.padding.x = .leftMargin
         wnd.padding.z = .rightMargin
-        if .kind == .List do
+        if .kind == .List
+        {
             wnd.padding.w = .listContentPaddingBottom
+        }
     }
 
     // Right edge (in row-content coordinates) of the revert/action column: anchored to
@@ -141,8 +171,10 @@ internal impl Properties
 
     mtd positionListActionButton(item: *PropertiesItem, btn: *IconButton?)
     {
-        if .isGridLike() or not btn or item.label == null do
+        if .isGridLike() or not btn or item.label == null
+        {
             return
+        }
 
         btn.position.x = Math.round(.listActionRight() - btn.position.width)
         btn.position.y = Math.round((item.label.position.height - btn.position.height) * 0.5)
@@ -152,18 +184,23 @@ internal impl Properties
     // the value column and let the captions end in an ellipsis.
     mtd automaticGridColumnWidth()->f32
     {
-        const DefaultWidth = 150'f32
+        const DefaultWidth = 150_f32
         let available = .edView.position.width
-        if available <= 0 do
+        if available <= 0
+        {
             return DefaultWidth
+        }
 
         let markSpace = .nameMarkSpace()
         var width     = DefaultWidth
         for entry in .items
         {
             let item = unwrap entry
-            if item.label == null or .isGridHeader(item) or item.flags.has(.Note) do
+            if item.label == null or .isGridHeader(item) or item.flags.has(.Note)
+            {
                 continue
+            }
+
             let caption = .captionWidth(item.label) + .itemIndent(item) + .itemLabelGutter(item)
             width = Math.max(width, caption + markSpace)
         }
@@ -173,8 +210,10 @@ internal impl Properties
 
     mtd captionWidth(label: *Label)->f32
     {
-        if not label.font().regular do
+        if not label.font().regular
+        {
             return 0
+        }
 
         // Measure the same glyphs, including fallback and device snapping, as the label paints.
         let width = label.itf.measureContent({}).x
@@ -188,18 +227,25 @@ internal impl Properties
     // still carries the reflected name, but it has no place in the rendered row.
     mtd panelCaption(item: *PropertiesItem)->*Label?
     {
-        if item.sliderBox != null do
+        if item.sliderBox != null
+        {
             return item.sliderBox.label
+        }
+
         if item.editBox != null
         {
-            if item.editBox.parent is EditCtrl as edit do
+            if item.editBox.parent is EditCtrl as edit
+            {
                 return edit.label
+            }
         }
 
         if item.comboBox != null
         {
-            if item.comboBox.parent is ComboCtrl as combo do
+            if item.comboBox.parent is ComboCtrl as combo
+            {
                 return combo.label
+            }
         }
 
         return null
@@ -207,16 +253,20 @@ internal impl Properties
 
     mtd resizePanelCaptions(contentWidth: f32)
     {
-        if .kind != .Panel do
+        if .kind != .Panel
+        {
             return
+        }
 
         let markSpace = .nameMarkSpace()
-        var width     = 60'f32
+        var width     = 60_f32
         for entry in .items
         {
             let item = unwrap entry
-            if let label = .panelCaption(item) do
+            if let label = .panelCaption(item)
+            {
                 width = Math.max(width, .captionWidth(label) + markSpace)
+            }
         }
 
         width = Math.min(width, Math.floor(contentWidth * 0.45))
@@ -224,26 +274,32 @@ internal impl Properties
         {
             let item  = unwrap entry
             let label = .panelCaption(item)
-            if not label do
+            if not label
+            {
                 continue
+            }
 
             label.updateFlags(.Ellipsis)
             label.setTextPadding({0, 0, markSpace, 0})
-            if .captionWidth(label) + markSpace > width do
+            if .captionWidth(label) + markSpace > width
+            {
                 label.toolTip = label.text()
-            else do
+            }
+            else
+            {
                 label.toolTip = item.description
+            }
 
             if item.sliderBox != null
             {
                 let slider = item.sliderBox
                 slider.setLayoutMetrics(width, slider.valueWidth, slider.spacing)
             }
-            elif label.parent is EditCtrl as edit
+            else if label.parent is EditCtrl as edit
             {
                 edit.setLayoutMetrics(width, edit.editWidth, edit.spacing)
             }
-            elif label.parent is ComboCtrl as combo
+            else if label.parent is ComboCtrl as combo
             {
                 combo.setLayoutMetrics(width, combo.comboWidth, combo.spacing)
             }
@@ -253,8 +309,11 @@ internal impl Properties
     mtd clampColumnSize(size: s32)->s32
     {
         let maxSize = cast(s32, .position.width) - .gridMarginColumn - .leftMargin - .rightMargin
-        if maxSize < .gridMarginColumn do
+        if maxSize < .gridMarginColumn
+        {
             return Math.max(size, .gridMarginColumn)
+        }
+
         return Math.clamp(size, .gridMarginColumn, maxSize)
     }
 
@@ -263,10 +322,16 @@ internal impl Properties
     mtd gridHeaderLabelWidth(item: *PropertiesItem)->f32
     {
         var width = .edView.position.width
-        if width <= 0 do
+        if width <= 0
+        {
             width = .position.width
-        if width <= 0 do
+        }
+
+        if width <= 0
+        {
             width = item.line.position.width
+        }
+
         return Math.max(width - item.line.margin.x - item.line.margin.z - item.label.margin.x - item.label.margin.z, 1.0)
     }
 
@@ -275,18 +340,23 @@ internal impl Properties
     // tint. Headers (section/category) span the full width and are never indented. Depth 0 is a
     // top-level field (level 1); every nested struct/array level adds one gridIndentSize step.
     // Data-column depth of a row: 0 for a top-level field (level 1), +1 per nested struct/array.
-    mtd itemDepth(item: *PropertiesItem)->u32 => item.level > 0 ? item.level - 1 : 0'u32
+    mtd itemDepth(item: *PropertiesItem)->u32 => item.level > 0 ? item.level - 1 : 0_u32
 
     mtd itemIndent(item: *PropertiesItem)->f32
     {
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             return 0
+        }
 
         // Headers (section/category/subgroup/decorator) indent by their own level: a top-level
         // header is at 0, a nested subgroup one step in — so its band label lines up with the
         // (level-1)-based indent of the fields it groups.
-        if .isGridHeader(item) do
+        if .isGridHeader(item)
+        {
             return cast(f32, item.level) * cast(f32, .gridIndentSize)
+        }
+
         return cast(f32, .itemDepth(item)) * cast(f32, .gridIndentSize)
     }
 
@@ -301,8 +371,11 @@ internal impl Properties
     // group of pure-leaf fields tucks in closer under its parent instead of leaving an empty slot.
     mtd itemLabelGutter(item: *PropertiesItem)->f32
     {
-        if not .isGridLike() or item.flags.has(.Category | .Header) do
+        if not .isGridLike() or item.flags.has(.Category | .Header)
+        {
             return cast(f32, .leftMargin)
+        }
+
         return .levelReservesMark(.itemDepth(item)) ? cast(f32, .leftMargin) : cast(f32, .leftMargin) * 0.5
     }
 
@@ -312,28 +385,41 @@ internal impl Properties
     mtd computeLevelMarks()
     {
         .gridLevelHasMark.clear()
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             return
+        }
+
         for itemIt in .items
         {
             let item = unwrap itemIt
-            if .isGridHeader(item) or not item.numChilds do
+            if .isGridHeader(item) or not item.numChilds
+            {
                 continue
+            }
+
             let depth = .itemDepth(item)
-            while .gridLevelHasMark.count <= depth do
+            while .gridLevelHasMark.count <= depth
+            {
                 .gridLevelHasMark.add(false)
+            }
+
             .gridLevelHasMark[depth] = true
         }
     }
 
     mtd syncColumnLabel(item: *PropertiesItem)
     {
-        if item.label == null do
+        if item.label == null
+        {
             return
+        }
 
         // Note rows own their layout (a full-width info bar with custom paddings), so leave them be.
-        if item.flags.has(.Note) do
+        if item.flags.has(.Note)
+        {
             return
+        }
 
         if .isGridHeader(item)
         {
@@ -355,8 +441,10 @@ internal impl Properties
 
     mtd syncColumnLabels()
     {
-        for item in .items do
+        for item in .items
+        {
             .syncColumnLabel(unwrap item)
+        }
     }
 
     mtd columnPosition()->f32 => .gridColumnSize + .gridMarginColumn * 0.5

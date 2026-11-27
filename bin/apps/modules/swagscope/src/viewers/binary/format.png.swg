@@ -7,7 +7,7 @@ using Core
 const PngSignature: [8] u8 = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
 
 // Bytes a chunk adds around its data: the length and the type before it, the CRC after it.
-private const PngChunkFrame = 12'u64
+private const PngChunkFrame = 12_u64
 
 // Returns whether the file is a PNG image.
 func isPngImage(image: *BinaryImage)->bool => image.matches(0, PngSignature)
@@ -25,19 +25,21 @@ func reportPngImage(image: *BinaryImage, report: *Report)
     report.field(0, 8, texts.fld_Signature, "89 50 4E 47 0D 0A 1A 0A", "PNG")
     report.endGroup()
 
-    var scan   = 8'u64
-    var count  = 0'u64
+    var scan   = 8_u64
+    var count  = 0_u64
     var ended  = false
-    var width  = 0'u32
-    var height = 0'u32
-    var colour = 0'u8
+    var width  = 0_u32
+    var height = 0_u32
+    var colour = 0_u8
     while scan + PngChunkFrame <= image.bytes.count and count < ListLimit
     {
         let size = cast(u64, image.u32At(scan))
         let kind = image.fixedTextAt(scan + 4, 4)
         let data = scan + 8
-        if size > image.bytes.count - data - 4 do
+        if size > image.bytes.count - data - 4
+        {
             break
+        }
 
         report.beginGroup(kind, StrConv.toDisplaySize(size), pngChunkMeaning(kind), offset: scan, length: size + PngChunkFrame)
         switch kind.toString()
@@ -59,7 +61,7 @@ func reportPngImage(image: *BinaryImage, report: *Report)
             report.numField(data, 4, "Image gamma", cast(u64, gamma), Format.toString("%{f5}", cast(f64, gamma) / 100_000))
 
         case "tEXt", "iTXt", "zTXt":
-            report.field(data, Math.min(size, 79'u64), "Keyword", image.cstringAt(data, Math.min(size, 79'u64)))
+            report.field(data, Math.min(size, 79_u64), "Keyword", image.cstringAt(data, Math.min(size, 79_u64)))
         }
 
         report.hexField(data + size, 4, "CRC", cast(u64, image.u32At(data + size)))
@@ -74,14 +76,20 @@ func reportPngImage(image: *BinaryImage, report: *Report)
         }
     }
 
-    if not ended do
+    if not ended
+    {
         report.note(texts.png_Malformed)
+    }
 
     report.formatName = "PNG"
-    if width do
+    if width
+    {
         report.summary = Format.toString("PNG · % × % · %", width, height, pngColourName(colour))
-    else do
+    }
+    else
+    {
         report.summary = String.from("PNG")
+    }
 }
 
 // Adds the seven fields of the image header, in the order the specification lists them.

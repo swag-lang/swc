@@ -281,8 +281,11 @@ using Swag, Core
     {
         menu.hookOnEvent = func|count = &destroyed|(_, evt)->bool
         {
-            if evt is DestroyEvent do
+            if evt is DestroyEvent
+            {
                 count[] += 1
+            }
+
             return false
         }
     }
@@ -305,8 +308,10 @@ func menuResolvedLabel()->string => MenuResolvedLabel
 
 func menuCommandSelected(_: *MenuCtrl, id: WndId)
 {
-    if id == Menu_Open do
+    if id == Menu_Open
+    {
         MenuSelectedCount += 1
+    }
 }
 
 // A menu bar holds items; a popup menu holds items, separators and disabled entries.
@@ -489,8 +494,11 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     var clicked: bool
     host.app.sigFrame += func|host = &host, popup, choice, clicked = &clicked|(_)
     {
-        if clicked[] do
+        if clicked[]
+        {
             return
+        }
+
         clicked[] = true
         Swag.require(host.capturedPopupMenu() == popup)
         var point = choice.surfaceRect().center()
@@ -621,7 +629,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
             Swag.require(popup.subVisible == sub)
             opened[] = true
         }
-        elif not clicked[]
+        else if not clicked[]
         {
             let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
             Swag.require(menuItemClicked)
@@ -654,8 +662,10 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     var checked: bool
     host.app.sigFrame += func|host = &host, popup, anchor, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
 
         let margin = popup.themeMetrics().menuPopup_WindowMargin
         Swag.require(popup.position.x >= margin)
@@ -708,14 +718,19 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     host.setup(320, 160)
 
     let popup = MenuCtrl.createPopup(&host.root)
-    for index in 8 do
+    for index in 8
+    {
         popup.addItem(Format.toString("Caption %", index).toString(), Menu_Open)
+    }
 
     var checked: bool
     host.app.sigFrame += func|host = &host, popup, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         let margin = popup.themeMetrics().menuPopup_WindowMargin
         Swag.require(popup.position.x >= margin and popup.position.y >= margin)
         Swag.require(popup.position.right() <= host.root.position.width - margin)
@@ -743,8 +758,11 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     var checked: bool
     host.app.sigFrame += func|host = &host, popup, sub, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         let submenuOpened = host.openPopupSubMenu("More choices")
         Swag.require(submenuOpened)
         Swag.require(sub.position.x >= popup.themeMetrics().menuPopup_WindowMargin)
@@ -793,7 +811,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
             Swag.require(host.dismissPopupMenu())
             stage[] = 1
         }
-        elif stage[] == 1
+        else if stage[] == 1
         {
             Swag.require(host.dismissPopupMenu())
             stage[] = 2
@@ -821,8 +839,11 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     var checked: bool
     host.app.sigFrame += func|host = &host, popup, sub, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         let submenuOpened = host.openPopupSubMenu("More choices")
         Swag.require(submenuOpened)
         Swag.require(sub.position.right() <= popup.position.x + 2 * popup.themeMetrics().menuPopup_ShadowSize)
@@ -951,8 +972,11 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     var placed: bool
     host.app.sigFrame += func|host = &host, popup, placed = &placed|(_)
     {
-        if placed[] do
+        if placed[]
+        {
             return
+        }
+
         let shadow = popup.themeMetrics().menuPopup_ShadowSize
         let body   = popup.surfaceRect()
         Swag.require(Math.abs(body.right() - shadow - 400) <= 1 and Math.abs(body.y + shadow - 40) <= 1)

@@ -30,10 +30,12 @@ impl ArrayDropTracked
 {
     mtd opDrop()
     {
-        if .value == 0 do
+        if .value == 0
+        {
             return
+        }
 
-        let bit = 1'u32 << cast(u32, .value)
+        let bit = 1_u32 << cast(u32, .value)
         if not (ArrayDropMask & bit)
         {
             ArrayDropCount += 1
@@ -55,20 +57,27 @@ func resetArrayDropTrace()
 // Owned strings and their expected literals have different types, which 'Slice.equals' does not compare.
 func sameStrings(values: const [..] String, expected: const [..] string)->bool
 {
-    if values.count != expected.count do
+    if values.count != expected.count
+    {
         return false
+    }
 
-    for i in values.count where values[i] != expected[i] do
+    for i in values.count where values[i] != expected[i]
+    {
         return false
+    }
+
     return true
 }
 
-func visitStructArray(values: *Array'ArrayVisitProbe)->s32
+func visitStructArray(values: *Array!{ArrayVisitProbe})->s32
 {
     for value, index in values[] where value.value != 12
     {
-        if index == 0 do
+        if index == 0
+        {
             continue
+        }
 
         return value.value + cast(s32, index)
     }
@@ -76,20 +85,22 @@ func visitStructArray(values: *Array'ArrayVisitProbe)->s32
     return 0
 }
 
-func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
+func visitStructArrayReverse(values: *Array!{ArrayVisitProbe})->s32
 {
     var score = 0
     for value, index in values.reversed()
     {
         score += value.value + cast(s32, index)
-        if value.value == 12 do
+        if value.value == 12
+        {
             return score
+        }
     }
 
     return score
 }
 
-func assertConstArrayBorrows(values: const *Array's32)->s32
+func assertConstArrayBorrows(values: const *Array!{s32})->s32
 {
     var total = 0
     for &item, index in values[]
@@ -107,7 +118,7 @@ func assertConstArrayBorrows(values: const *Array's32)->s32
     return total
 }
 
-func(T) assertConstArrayEnds(values: const *Array'T)->T
+func(T) assertConstArrayEnds(values: const *Array!{T})->T
 {
     let front = values[].frontPtr()
     let back  = values[].backPtr()
@@ -117,14 +128,14 @@ func(T) assertConstArrayEnds(values: const *Array'T)->T
 }
 
 #[Swag.Safety(.BoundCheck, true), Swag.Safety(.Overflow, false)]
-func callArrayPtr2(values: *Array's32, x, y, w: u64)
+func callArrayPtr2(values: *Array!{s32}, x, y, w: u64)
 {
     #assert(#safety(Swag.SafetyWhat.BoundCheck))
     #assert(not #safety(Swag.SafetyWhat.Overflow))
     discard values[].ptr2(x, y, w)
 }
 
-func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
+func arrayPtr2Rejects(values: *Array!{s32}, x, y, w: u64)->bool
 {
     let result = Swag.catchPanic(func|values, x, y, w|() { callArrayPtr2(values, x, y, w) })
     return result.raised
@@ -141,7 +152,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: Array's32
+    var values: Array!{s32}
     Swag.require(values.isEmpty())
 
     values.reserve(2)
@@ -182,7 +193,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 #test
 {
     var reject: RejectArraySetAllocator
-    var values: Array's32
+    var values: Array!{s32}
     values.add(10)
 
     let oldAllocator = values.allocator
@@ -201,7 +212,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 // Borrowed add-once handles duplicates and copies new values; pair views visit adjacent elements.
 #test
 {
-    var values: Array's32
+    var values: Array!{s32}
     values.add(1)
     values.add(2)
     var candidate = 3
@@ -211,7 +222,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     Swag.require(Slice.equals(values.toSlice(), [1, 2, 3]))
 
-    var pairCount = 0'u64
+    var pairCount = 0_u64
     var pairCode  = 0
     for left, right, index in values.pairs()
     {
@@ -222,17 +233,19 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     Swag.require(pairCount == 2 and pairCode == 1223)
 
-    var singleton: Array's32
+    var singleton: Array!{s32}
     singleton.add(9)
     for _, _, _ in singleton.pairs()
-        do
+    {
         pairCount += 1
+    }
+
     Swag.require(pairCount == 2)
 }
 
 #test
 {
-    var values: Array's32
+    var values: Array!{s32}
     let result = Swag.catchPanic(func|&values|() { values.reserve(Swag.U64.Max) })
     Swag.require(result.raised)
     Swag.require(result.message() == "Array capacity exceeds addressable memory")
@@ -241,7 +254,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 // The collection protocol follows the language rule for scalar bindings: copy the value.
 #test
 {
-    var values: Array's32
+    var values: Array!{s32}
     values.add([10, 20, 30])
 
     var sum = 0
@@ -257,7 +270,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: Array's32
+    var values: Array!{s32}
     let seed:   [4] s32 = [4, 1, 3, 2]
     values.add(seed)
 
@@ -319,7 +332,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values:   Array's32
+    var values:   Array!{s32}
     let seed:     [3] s32 = [1, 2, 3]
     let inserted: [2] s32 = [7, 8]
     values.add(seed)
@@ -354,7 +367,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: Array's32
+    var values: Array!{s32}
     let seed:   [6] s32 = [0, 1, 2, 3, 4, 5]
     values.add(seed)
 
@@ -369,7 +382,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 // a caller take the storage without asserting anything.
 #test
 {
-    var empty: Array's32
+    var empty: Array!{s32}
     Swag.require(empty.isEmpty())
     Swag.require(empty.buffer == null)
 
@@ -377,8 +390,11 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     Swag.require(raw != null)
 
     var walked = 0
-    for index in empty.count do
+    for index in empty.count
+    {
         walked += raw[index]
+    }
+
     Swag.require(walked == 0)
 
     // Once the array owns a block, 'storage' answers that block.
@@ -389,7 +405,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: Array's32
+    var values: Array!{s32}
     Swag.require(values.isEmpty())
     Swag.require(values.buffer == null)
 
@@ -429,13 +445,13 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 {
     let seed: [3] s32 = [1, 2, 3]
 
-    var values: Array's32
+    var values: Array!{s32}
     values = seed
     Swag.require(Slice.equals(values.toSlice(), seed))
 
-    var copy: Array's32 = values
-    let frontPtr        = copy.frontPtr()
-    let backPtr         = copy.backPtr()
+    var copy: Array!{s32} = values
+    let frontPtr = copy.frontPtr()
+    let backPtr  = copy.backPtr()
     frontPtr[] = 9
     backPtr[]  = 7
 
@@ -459,13 +475,15 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: Array'ArrayVisitProbe
+    var values: Array!{ArrayVisitProbe}
     values.add({value: 1})
     values.add({value: 2})
     values.add({value: 3})
 
-    for &value in values do
+    for &value in values
+    {
         value.value += 10
+    }
 
     Swag.require(values[0].value == 11)
     Swag.require(values[1].value == 12)
@@ -475,7 +493,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: Array's32
+    var values: Array!{s32}
 
     let seed:     [3] s32 = [1, 4, 5]
     let inserted: [2] s32 = [2, 3]
@@ -499,7 +517,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: Array's32
+    var values: Array!{s32}
     let seed:   [4] s32 = [10, 20, 30, 40]
     values.add(seed)
 
@@ -508,8 +526,10 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     var reverseIndex = Swag.U64.Max
     for value, index in values.reversed()
     {
-        if value == 30 do
+        if value == 30
+        {
             reverseIndex = index
+        }
     }
 
     Swag.require(reverseIndex == 2)
@@ -517,7 +537,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: Array'String
+    var values: Array!{String}
     values.add(String.from("11111111111111111111111111111111"))
     values.add(String.from("22222222222222222222222222222222"))
     values.add(String.from("33333333333333333333333333333333"))
@@ -533,7 +553,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: StaticArray'(String, 4'u64)
+    var values: StaticArray!{String, 4_u64}
     values.add(String.from("11111111111111111111111111111111"))
 
     let expected: [1] string =
@@ -543,7 +563,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: StaticArray'(String, 4'u64)
+    var values: StaticArray!{String, 4_u64}
     values.add(String.from("11111111111111111111111111111111"))
     values.add(String.from("22222222222222222222222222222222"))
     values.add(String.from("33333333333333333333333333333333"))
@@ -559,7 +579,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: Array'String
+    var values: Array!{String}
     values.reserve(8)
     values.add(String.from("11111111111111111111111111111111"))
     values.add(String.from("22222222222222222222222222222222"))
@@ -577,7 +597,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: StaticArray'(String, 8'u64)
+    var values: StaticArray!{String, 8_u64}
     values.add(String.from("11111111111111111111111111111111"))
     values.add(String.from("22222222222222222222222222222222"))
     values.add(String.from("33333333333333333333333333333333"))
@@ -594,7 +614,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values: StaticArray'(String, 8'u64)
+    var values: StaticArray!{String, 8_u64}
     values.add(String.from("11111111111111111111111111111111"))
     values.add(String.from("22222222222222222222222222222222"))
     values.add(String.from("33333333333333333333333333333333"))
@@ -611,12 +631,14 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    var values = Array'u8.createBuffer(6)
+    var values = Array!{u8}.createBuffer(6)
     Swag.require(values.count == 6)
     Swag.require(values.capacity >= 6)
 
-    for i in values.count do
+    for i in values.count
+    {
         Swag.require(values[i] == 0)
+    }
 
     values.fill(7)
     let frontPtr = values.frontPtr()
@@ -644,7 +666,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     scope
     {
-        var values: StaticArray'(ArrayDropTracked, 5'u64)
+        var values: StaticArray!{ArrayDropTracked, 5_u64}
         let seed = values.emplaceAddress(5)
         seed[0].value = 1
         seed[1].value = 2
@@ -668,7 +690,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     scope
     {
-        var values: Array'ArrayDropTracked
+        var values: Array!{ArrayDropTracked}
         let seed = values.emplaceAddress(5)
         seed[0].value = 1
         seed[1].value = 2
@@ -708,16 +730,20 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     context.allocator = scratchItf
     defer context.allocator = originalAllocator
 
-    var source: Array'u16
+    var source: Array!{u16}
     defer source.free()
-    for i in 21 do
+    for i in 21
+    {
         source.add(cast(u16, (i + 1)))
+    }
 
     var copy = source
     defer copy.free()
     Swag.require(copy.count == 21)
-    for i in 21 do
+    for i in 21
+    {
         Swag.require(copy[i] == cast(u16, (i + 1)))
+    }
 }
 
 var ArrayEmplaceDrops: s32
@@ -731,8 +757,10 @@ impl ArrayEmplaceOwned
 {
     mtd opDrop()
     {
-        if .value != 0 do
+        if .value != 0
+        {
             ArrayEmplaceDrops += 1
+        }
     }
 
     mtd opPostCopy() {}
@@ -741,12 +769,12 @@ impl ArrayEmplaceOwned
 // emplaceAt moves: the source is left empty, so each element is dropped once, at any index.
 #test
 {
-    for index in 2'u64
+    for index in 2_u64
     {
         ArrayEmplaceDrops = 0
         scope
         {
-            var values: Array'ArrayEmplaceOwned
+            var values: Array!{ArrayEmplaceOwned}
             values.add({1})
             var inserted: [2] ArrayEmplaceOwned = [ArrayEmplaceOwned{2}, ArrayEmplaceOwned{3}]
             values.emplaceAt(index, inserted)

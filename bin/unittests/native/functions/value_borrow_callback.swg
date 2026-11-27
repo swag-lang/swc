@@ -31,7 +31,7 @@ func same(value: Value, address: const *Value)->bool
     var value: Value = Value{first: 1, second: 2, third: 3}
     Swag.require(invoke(value, &same))
     Swag.require(forward(value, &same))
-    let expected = 1'u64
+    let expected = 1_u64
     Swag.require(invoke(value, func|expected|(arg, address) => arg.first == expected and &arg == address))
 }
 
@@ -87,8 +87,10 @@ func sameWithStatic(value: Value, address: const *Value)->bool
         default: return missingStaticSwitchFunction(value)
         }
     }
-    else do
+    else
+    {
         return missingStaticIfFunction(value)
+    }
 }
 
 #test

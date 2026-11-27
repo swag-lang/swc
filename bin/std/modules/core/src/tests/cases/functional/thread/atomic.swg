@@ -3,7 +3,7 @@
 
 using Swag
 
-#assert(not Reflection.canCopy(AtomicValue'u32))
+#assert(not Reflection.canCopy(AtomicValue!{u32}))
 #assert(not Reflection.canCopy(AtomicFlag))
 
 struct AtomicCounterShared
@@ -19,10 +19,12 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
 {
     let shared = cast(*AtomicCounterShared, unwrap thread.userParam)
     discard Atomic.add(&shared.ready, 1)
-    while Atomic.get(&shared.start) == 0 do
+    while Atomic.get(&shared.start) == 0
+    {
         Threading.Thread.yield()
+    }
 
-    var previousSum = 0'u64
+    var previousSum = 0_u64
     for 10000
     {
         previousSum += Atomic.add(&shared.value, 1)
@@ -34,8 +36,8 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
 
 #test
 {
-    const WorkerCount    = 4'u64
-    const IterationCount = 10000'u64
+    const WorkerCount    = 4_u64
+    const IterationCount = 10000_u64
     var shared:  AtomicCounterShared
     var threads: [WorkerCount] Threading.Thread
 
@@ -45,12 +47,17 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
         discard expect thread.start()
     }
 
-    while Atomic.get(&shared.ready) != WorkerCount do
+    while Atomic.get(&shared.ready) != WorkerCount
+    {
         Threading.Thread.yield()
+    }
+
     discard Atomic.exchange(&shared.start, 1)
 
-    for &thread in threads do
+    for &thread in threads
+    {
         thread.wait()
+    }
 
     let expectedCount = WorkerCount * IterationCount
     Swag.require(Atomic.get(&shared.value) == expectedCount)

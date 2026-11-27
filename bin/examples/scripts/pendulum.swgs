@@ -6,9 +6,9 @@
 
 using Core, Gui, Pixel, Core.Math
 
-const SimulationSpeed = 50'f32
-const MaxFrameStep    = 1'f32
-const FixedStep       = 0.05'f32
+const SimulationSpeed = 50_f32
+const MaxFrameStep    = 1_f32
+const FixedStep       = 0.05_f32
 
 // Width the sliders and their edit boxes need. The pendulum hangs from the middle of what is left
 // of the window, not from the middle of the window: measured against the whole width it leans
@@ -28,7 +28,7 @@ var angularVelocity1 = 0.0
 var angularVelocity2 = 0.0
 
 var originX, originY: f32
-var trailPoints:      Array'Vector2
+var trailPoints:      Array!{Vector2}
 
 func restartPendulum()
 {
@@ -64,8 +64,10 @@ func stepPendulum(dt: f32)->bool
     denominator = length2 * (2 * mass1 + mass2 - mass2 * cos(2 * angle1 - 2 * angle2))
     let acceleration2 = (term1 * (term2 + term3 + term4)) / denominator
 
-    if not Math.isFinite(acceleration1) or not Math.isFinite(acceleration2) do
+    if not Math.isFinite(acceleration1) or not Math.isFinite(acceleration2)
+    {
         return false
+    }
 
     angularVelocity1 += acceleration1 * dt
     angularVelocity2 += acceleration2 * dt
@@ -139,8 +141,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             remaining -= dt
         }
 
-        if not valid do
+        if not valid
+        {
             restartPendulum()
+        }
 
         let x1 = length1 * sin(angle1)
         let y1 = length1 * cos(angle1)
@@ -162,16 +166,21 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         // Generate trail
         trailPoints.add(Vector2{x2, y2})
-        if trailPoints.count > 500 do
+        if trailPoints.count > 500
+        {
             trailPoints.removeAtOrdered(0)
+        }
 
         // Draw trail
         if trailPoints.count > 1
         {
             var trail: LinePath
             trail.start(trailPoints[0].x, trailPoints[0].y)
-            for point in trailPoints do
+            for point in trailPoints
+            {
                 trail.curveTo(point.x, point.y)
+            }
+
             painter.drawPath(&trail, Argb.Red, 2)
         }
 

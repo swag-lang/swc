@@ -70,8 +70,11 @@ using Core, Core.Errors, Pixel
     Swag.require(decoder.video.sampleAspectWidth == 1 and decoder.video.sampleAspectHeight == 1)
 
     var expectedSync = cast(u64, decoder.video.avc.sampleAtRank[57])
-    while expectedSync > 0 and decoder.video.avc.syncFlags[expectedSync] == 0 do
+    while expectedSync > 0 and decoder.video.avc.syncFlags[expectedSync] == 0
+    {
         expectedSync -= 1
+    }
+
     decoder.video.avc.seekTo(57)
     Swag.require(expectedSync > 0 and decoder.video.avc.nextDecode == expectedSync)
 
@@ -107,13 +110,13 @@ using Core, Core.Errors, Pixel
 // prefixes and short codes followed by arbitrary bits from the next symbol.
 #test
 {
-    for table in 4'u64
+    for table in 4_u64
     {
-        for lookahead in 65_536'u32
+        for lookahead in 65_536_u32
         {
-            var expected = 68'u64
-            var consumed = 0'u32
-            for symbol in 68'u64
+            var expected = 68_u64
+            var consumed = 0_u32
+            for symbol in 68_u64
             {
                 let offset = table * 68 + symbol
                 let length = cast(u32, H264.CoeffTokenLen[offset])
@@ -154,12 +157,15 @@ using Core, Core.Errors, Pixel
     discard expect idecoder.open(&source)
 
     var frame: Image
-    for 20 do
+    for 20
+    {
         expect idecoder.decodeFrame(&source, &frame)
+    }
+
     decoder.video.avc.stopFrameThreads()
 
     let configuredLanes = decoder.video.avc.laneCount
-    Swag.require(configuredLanes >= 1 and configuredLanes <= Math.clamp(Swag.workerCount(), 1'u32, 16'u32))
+    Swag.require(configuredLanes >= 1 and configuredLanes <= Math.clamp(Swag.workerCount(), 1_u32, 16_u32))
     Swag.require(decoder.video.avc.threadedHighWater == configuredLanes)
 }
 
@@ -223,7 +229,7 @@ using Core, Core.Errors, Pixel
     discard expect idecoder.open(&source)
 
     var frame: Image
-    var index = 0'u64
+    var index = 0_u64
     while index < 60
     {
         expect idecoder.seekFrame(&source, index)
@@ -272,20 +278,24 @@ using Core, Core.Errors, Pixel
     Swag.require(first > 0)
 
     var frame: PlanarFrame
-    for rank in 12'u64
+    for rank in 12_u64
     {
         expect reader.decodeFramePlanesInto(&frame, first + rank)
-        for y in 64'u64
+        for y in 64_u64
         {
-            for x in 96'u64 do
+            for x in 96_u64
+            {
                 Swag.require(frame.luma[y * cast(u64, frame.strideLuma) + x] == bytes[rank * frameSize + y * 96 + x])
+            }
         }
     }
 
     expect reader.decodeFramePlanesInto(&frame, first)
-    for y in 64'u64
+    for y in 64_u64
     {
-        for x in 96'u64 do
+        for x in 96_u64
+        {
             Swag.require(early.luma[y * cast(u64, early.strideLuma) + x] == frame.luma[y * cast(u64, frame.strideLuma) + x])
+        }
     }
 }

@@ -21,7 +21,7 @@ struct(K, V) OrderedMap
 {
     private
     {
-        entries:    Array'(OrderedMapEntry'(K, V))
+        entries:    Array!{OrderedMapEntry!{K, V}}
         comparator: *void?
     }
 
@@ -32,7 +32,7 @@ struct(K, V) OrderedMap
 #[Swag.Opaque]
 struct(K, V) ReversedOrderedMap
 {
-    source: *OrderedMap'(K, V)
+    source: *OrderedMap!{K, V}
 }
 
 impl ReversedOrderedMap
@@ -48,41 +48,51 @@ impl ReversedOrderedMap
             let entry      = .source.entries.storage() + entryIndex
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             key = cast(const *K, &entry.key),
                             value = cast(*V, &entry.value),
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(K) and Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = cast(const *K, &entry.key),
                             value = cast(const *V, &entry.value),
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) do
+                }
+                else if Reflection.isStruct(K)
+                {
                     #inject(stmt,
                             key = cast(const *K, &entry.key),
                             value = entry.value,
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = entry.key,
                             value = cast(const *V, &entry.value),
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             key = entry.key,
                             value = entry.value,
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
         }
     }
@@ -92,7 +102,7 @@ impl ReversedOrderedMap
 #[Swag.Opaque]
 struct(K, V) ConstReversedOrderedMap
 {
-    source: const *OrderedMap'(K, V)
+    source: const *OrderedMap!{K, V}
 }
 
 impl ConstReversedOrderedMap
@@ -108,41 +118,51 @@ impl ConstReversedOrderedMap
             let entry      = .source.entries.storage() + entryIndex
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             key = cast(const *K, &entry.key),
                             value = cast(const *V, &entry.value),
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(K) and Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = cast(const *K, &entry.key),
                             value = cast(const *V, &entry.value),
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) do
+                }
+                else if Reflection.isStruct(K)
+                {
                     #inject(stmt,
                             key = cast(const *K, &entry.key),
                             value = entry.value,
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = entry.key,
                             value = cast(const *V, &entry.value),
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             key = entry.key,
                             value = entry.value,
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
         }
     }
@@ -185,15 +205,20 @@ impl OrderedMap
     // Requests at or below the current capacity, including zero, do nothing.
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity() do
+        if newCapacity <= .capacity()
+        {
             return
+        }
+
         .entries.reserve(newCapacity)
     }
 
     private mtd const compareKeys(left, right: K)->s32
     {
-        if .comparator do
+        if .comparator
+        {
             return cast(func(const *K, const *K)->s32, unwrap .comparator)(&left, &right)
+        }
 
         Swag.assert(false, "ordered map has not been initialized with a comparator")
         return 0
@@ -202,7 +227,7 @@ impl OrderedMap
     // Returns the first index whose key is not less than `key`.
     mtd const lowerBound(key: K)->u64
     {
-        var first  = 0'u64
+        var first  = 0_u64
         var length = .count
         while length
         {
@@ -225,7 +250,7 @@ impl OrderedMap
     // Returns the first index whose key is greater than `key`.
     mtd const upperBound(key: K)->u64
     {
-        var first  = 0'u64
+        var first  = 0_u64
         var length = .count
         while length
         {
@@ -248,12 +273,15 @@ impl OrderedMap
     // Returns the sorted entries with keys in the half-open interval `[lower, upper)`.
     //
     // The returned slice borrows the map and is invalidated by any insertion or removal.
-    mtd const range(lower, upper: K)->const [..] OrderedMapEntry'(K, V)
+    mtd const range(lower, upper: K)->const [..] OrderedMapEntry!{K, V}
     {
         let first = .lowerBound(lower)
         let last  = .lowerBound(upper)
-        if last <= first do
+        if last <= first
+        {
             return Swag.makeSlice(.entries.storage(), 0)
+        }
+
         return Swag.makeSlice(.entries.storage() + first, last - first)
     }
 
@@ -266,8 +294,11 @@ impl OrderedMap
     mtd tryFind(key: K)->*OrderedMapEntry?
     {
         let index = .lowerBound(key)
-        if index == .count or .compareKeys(.entries[index].key, key) != 0 do
+        if index == .count or .compareKeys(.entries[index].key, key) != 0
+        {
             return null
+        }
+
         return .entries.storage() + index
     }
 
@@ -277,8 +308,11 @@ impl OrderedMap
     mtd const tryFind(key: K)->const *OrderedMapEntry?
     {
         let index = .lowerBound(key)
-        if index == .count or .compareKeys(.entries[index].key, key) != 0 do
+        if index == .count or .compareKeys(.entries[index].key, key) != 0
+        {
             return null
+        }
+
         return .entries.storage() + index
     }
 
@@ -320,7 +354,7 @@ impl OrderedMap
             return .entries.storage() + index
         }
 
-        .entries.insertAt(index, OrderedMapEntry'(K, V){key: #fwd key, value: #fwd value})
+        .entries.insertAt(index, OrderedMapEntry!{K, V}{key: #fwd key, value: #fwd value})
         .count += 1
         return .entries.storage() + index
     }
@@ -335,8 +369,11 @@ impl OrderedMap
     mtd remove(key: K)->bool
     {
         let index = .lowerBound(key)
-        if index == .count or .compareKeys(.entries[index].key, key) != 0 do
+        if index == .count or .compareKeys(.entries[index].key, key) != 0
+        {
             return false
+        }
+
         .entries.removeAtOrdered(index)
         .count -= 1
         return true
@@ -368,41 +405,51 @@ impl OrderedMap
             let entry = &.entries[entryIndex]
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             key = cast(const *K, &entry.key),
                             value = cast(*V, &entry.value),
                             index = entryIndex,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(K) and Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = cast(const *K, &entry.key),
                             value = cast(const *V, &entry.value),
                             index = entryIndex,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) do
+                }
+                else if Reflection.isStruct(K)
+                {
                     #inject(stmt,
                             key = cast(const *K, &entry.key),
                             value = entry.value,
                             index = entryIndex,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = entry.key,
                             value = cast(const *V, &entry.value),
                             index = entryIndex,
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             key = entry.key,
                             value = entry.value,
                             index = entryIndex,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
         }
     }
@@ -410,6 +457,6 @@ impl OrderedMap
     // Returns a zero-allocation view that traverses entries in descending key order.
     //
     // The view preserves whether this map is mutable or const.
-    mtd reversed()->ReversedOrderedMap'(K, V) => {source: me}
-    mtd const reversed()->ConstReversedOrderedMap'(K, V) => {source: me}
+    mtd reversed()->ReversedOrderedMap!{K, V} => {source: me}
+    mtd const reversed()->ConstReversedOrderedMap!{K, V} => {source: me}
 }

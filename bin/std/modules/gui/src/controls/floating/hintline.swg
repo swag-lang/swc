@@ -48,10 +48,10 @@ struct HintLine
 
         readonly
         {
-            reading:   String                 // Faint mono reading leading the line; empty for none.
-            hints:     Array'HintLineItem     // Keys and what they open, in reading order.
-            alignment: HintLineAlignment      // Where the line stands along the bottom edge.
-            grounded:  bool                   // Whether the line stands on the floating ground, over a busy picture.
+            reading:   String                   // Faint mono reading leading the line; empty for none.
+            hints:     Array!{HintLineItem}     // Keys and what they open, in reading order.
+            alignment: HintLineAlignment        // Where the line stands along the bottom edge.
+            grounded:  bool                     // Whether the line stands on the floating ground, over a busy picture.
         }
     }
 }
@@ -61,8 +61,10 @@ impl IWnd for HintLine
     mtd impl onLayout()
     {
         let parent = .parent
-        if not parent do
+        if not parent
+        {
             return
+        }
 
         // The margins keep the line clear of what floats at the sides and of work at the foot.
         // The side insets centre it in the room left between a dock or an inspector.
@@ -132,8 +134,11 @@ impl IWnd for HintLine
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged do
+        if evt.kind == .ThemeChanged
+        {
             .itf.onLayout()
+        }
+
         evt.accepted = false
     }
 }
@@ -144,7 +149,7 @@ impl HintLine
     #[Swag.Discardable]
     func create(parent: *Wnd, id: WndId? = null)->*HintLine
     {
-        with let result = Wnd.create'HintLine(parent, null, {}, id)
+        with let result = Wnd.create!{HintLine}(parent, null, {}, id)
         {
             .dockStyle       = .Float
             .backgroundStyle = .Transparent
@@ -203,19 +208,27 @@ impl HintLine
         let metrics = .themeMetrics()
         let font    = .theme().createDefaultFont(metrics.hintLine_FontSize)
 
-        var width = 0'f32
-        if not .reading.isEmpty() do
+        var width = 0_f32
+        if not .reading.isEmpty()
+        {
             width = Painter.measureString(.reading, .theme().createDefaultFontFs(metrics.hintLine_FontSize)).width
+        }
 
-        var count = 0'u64
+        var count = 0_u64
         for hint in .hints
         {
             var next = width > 0 ? metrics.hintLine_GroupGap : 0
-            if not hint.key.isEmpty() do
+            if not hint.key.isEmpty()
+            {
                 next += keycapWidth(me, hint.key) + metrics.hintLine_KeyGap
+            }
+
             next += Painter.measureString(hint.text, font).width
-            if width + next > limit do
+            if width + next > limit
+            {
                 break
+            }
+
             width += next
             count += 1
         }
@@ -226,8 +239,11 @@ impl HintLine
     // The air between the floating ground and the words, nothing when the line has no ground.
     private mtd groundPadding()->Math.Point
     {
-        if not .grounded do
+        if not .grounded
+        {
             return {}
+        }
+
         let metrics = .themeMetrics()
         return {metrics.hintLine_KeyGap * 2, metrics.miniBar_Padding}
     }

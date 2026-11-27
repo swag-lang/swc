@@ -18,8 +18,10 @@ public impl Image
     // A format without an alpha channel has nowhere to put the result and is left as is.
     mtd keyOutGround(ground, foreground: Color)
     {
-        if not .pixelFormat.hasAlpha() or not .pixelFormat.isPacked() do
+        if not .pixelFormat.hasAlpha() or not .pixelFormat.isPacked()
+        {
             return
+        }
 
         // The axis the two colors span, and the inverse of its squared length, so the
         // projection of a pixel onto it is one dot product per pixel.
@@ -27,8 +29,10 @@ public impl Image
         let dg   = cast(f32, foreground.g) - cast(f32, ground.g)
         let db   = cast(f32, foreground.b) - cast(f32, ground.b)
         let len2 = dr * dr + dg * dg + db * db
-        if len2 <= 0 do
+        if len2 <= 0
+        {
             return
+        }
 
         let legacy = (.pixelFormat == .BGRA8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
         if not legacy

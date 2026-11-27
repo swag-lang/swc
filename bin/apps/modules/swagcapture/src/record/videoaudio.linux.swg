@@ -7,7 +7,7 @@ struct VideoRecordingAudio {}
 
 impl VideoRecordingAudio
 {
-    func configs(_: bool, _: bool)->Array'Mp4.SoftwareAudioConfig => {}
+    func configs(_: bool, _: bool)->Array!{Mp4.SoftwareAudioConfig} => {}
     mtd start(_: *VideoCaptureSession, _: bool, _: bool) fail {}
     mtd pump() fail {}
     mtd close() {}

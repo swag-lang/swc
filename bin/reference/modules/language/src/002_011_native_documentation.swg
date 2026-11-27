@@ -210,7 +210,7 @@ swc test -w path/to/workspace -m messages
 
 'doc' checks the source and renders pages; 'test' executes the examples. One does
 not replace the other. The documentation command also generates the public runtime
-API page. 'genDoc.outputName' sets the module page's base name, while
+API page. 'genDoc.outputName' sets the module page!{s} base name, while
 'genDoc.titleContent' sets its displayed title.
 
 Open the generated HTML and check the module overview, chapter or symbol index,

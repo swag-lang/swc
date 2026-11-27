@@ -71,23 +71,33 @@ private func reportSccManifest(report: *Report, manifest: const *Scc.Manifest)
     let profile = Format.toString("%", manifest.profileVersion)
     report.derived(texts.fld_Version, version)
     report.derived("ProfileVersion", profile)
-    if not manifest.description.isEmpty() do
+    if not manifest.description.isEmpty()
+    {
         report.derived("Description", manifest.description)
+    }
 
     let created  = manifest.createdAt.toString(.DateTimeIso)
     let modified = manifest.modifiedAt.toString(.DateTimeIso)
-    if manifest.createdAt.isValid() do
+    if manifest.createdAt.isValid()
+    {
         report.derived(texts.scc_Created, created)
-    if manifest.modifiedAt.isValid() do
+    }
+
+    if manifest.modifiedAt.isValid()
+    {
         report.derived(texts.scc_Modified, modified)
+    }
 
     if not manifest.tags.isEmpty()
     {
         var joined: String
         for tag in manifest.tags
         {
-            if not joined.isEmpty() do
+            if not joined.isEmpty()
+            {
                 joined += ", "
+            }
+
             joined += tag.toString()
         }
 
@@ -107,8 +117,10 @@ private func reportSccManifest(report: *Report, manifest: const *Scc.Manifest)
 
 private func reportSccProperties(report: *Report, properties: const [..] Scc.Property)
 {
-    if not properties.count do
+    if not properties.count
+    {
         return
+    }
 
     let texts = texts()
     let total = countText(properties.count, texts.word_Property, texts.word_Properties)
@@ -141,8 +153,10 @@ private func sccValueText(value: const *Scc.MetadataValue)->String
 // Adds the virtual hierarchy the manifest declares, parents before the entries they own.
 private func reportSccEntries(report: *Report, entries: const [..] Scc.Entry)
 {
-    if not entries.count do
+    if not entries.count
+    {
         return
+    }
 
     let texts = texts()
     let total = countText(entries.count, texts.word_Entry, texts.word_Entries)
@@ -228,10 +242,16 @@ private func reportSccChunks(report: *Report, chunks: const [..] Scc.ChunkInfo)
 private func sccCodecName(codecId: Guid128)->string
 {
     let texts = texts()
-    if codecId.isNull() do
+    if codecId.isNull()
+    {
         return texts.scc_Stored
-    if codecId == Scc.deflateCodecId() do
+    }
+
+    if codecId == Scc.deflateCodecId()
+    {
         return texts.scc_Deflate
+    }
+
     return texts.scc_Codec
 }
 

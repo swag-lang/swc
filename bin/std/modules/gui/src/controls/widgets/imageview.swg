@@ -12,11 +12,11 @@ struct ImageView
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigZoomChanged:      SigArray'func||(*Wnd)     // Emitted after the effective zoom changes.
-        sigPanChanged:       SigArray'func||(*Wnd)     // Emitted after a pan gesture or explicit pan offset changes the centre.
-        sigFrameChanged:     SigArray'func||(*Wnd)     // Emitted after an animation frame changes.
-        sigTransformChanged: SigArray'func||(*Wnd)     // Emitted after the temporary view transform changes.
-        sigDecodeFailed:     SigArray'func||(*Wnd)     // Emitted once when frame decoding fails; movie.failureReason contains the error.
+        sigZoomChanged:      SigArray!{func||(*Wnd)}     // Emitted after the effective zoom changes.
+        sigPanChanged:       SigArray!{func||(*Wnd)}     // Emitted after a pan gesture or explicit pan offset changes the centre.
+        sigFrameChanged:     SigArray!{func||(*Wnd)}     // Emitted after an animation frame changes.
+        sigTransformChanged: SigArray!{func||(*Wnd)}     // Emitted after the temporary view transform changes.
+        sigDecodeFailed:     SigArray!{func||(*Wnd)}     // Emitted once when frame decoding fails; movie.failureReason contains the error.
 
         readonly
         {
@@ -65,8 +65,11 @@ private impl ImageView
 {
     mtd const currentImage()->const *Image
     {
-        if .movie.isValid() do
+        if .movie.isValid()
+        {
             return &.movie.frame
+        }
+
         return &.image
     }
 
@@ -83,13 +86,22 @@ private impl ImageView
     // rectangle it is drawn into carries the shape.
     mtd const sourceSize()->{ width, height: s32 }
     {
-        if .displayWidth > 0 and .displayHeight > 0 do
+        if .displayWidth > 0 and .displayHeight > 0
+        {
             return {width: .displayWidth, height: .displayHeight}
+        }
+
         let source = .currentImage()
-        if source.isValid() do
+        if source.isValid()
+        {
             return {width: source.width, height: source.height}
-        if .hasDrawing() do
-            return {width: cast(s32, Math.max(Math.round(.drawing.width), 1.0'f32)), height: cast(s32, Math.max(Math.round(.drawing.height), 1.0'f32))}
+        }
+
+        if .hasDrawing()
+        {
+            return {width: cast(s32, Math.max(Math.round(.drawing.width), 1.0_f32)), height: cast(s32, Math.max(Math.round(.drawing.height), 1.0_f32))}
+        }
+
         return {width: .planarWidth, height: .planarHeight}
     }
 
@@ -97,15 +109,20 @@ private impl ImageView
     internal mtd const contentSize()->{ width, height: s32 }
     {
         let source = .sourceSize()
-        if .rotationQuarterTurns & 1 do
+        if .rotationQuarterTurns & 1
+        {
             return {width: source.height, height: source.width}
+        }
+
         return source
     }
 
     mtd const contentRect()->Math.Rectangle
     {
-        if not .hasContent() do
+        if not .hasContent()
+        {
             return {}
+        }
 
         let size   = .contentSize()
         let client = .paddedClientRect()
@@ -122,8 +139,10 @@ private impl ImageView
     // Reports whether the content extends beyond the padded viewport and can be panned.
     mtd const canPan()->bool
     {
-        if not .hasContent() do
+        if not .hasContent()
+        {
             return false
+        }
 
         let size   = .contentSize()
         let client = .paddedClientRect()
@@ -146,10 +165,16 @@ private impl ImageView
     mtd const transformedPaint(base: Math.Transform2, center: Math.Point)->Math.Transform2
     {
         var result = Math.Transform2.Identity
-        if .isMirrored do
+        if .isMirrored
+        {
             result.multiply(Math.Transform2.createScale(-1, 1, center.x, center.y))
-        if .rotationQuarterTurns do
+        }
+
+        if .rotationQuarterTurns
+        {
             result.multiply(Math.Transform2.createRotation(Math.toRadians(cast(f32, .rotationQuarterTurns) * 90), center.x, center.y))
+        }
+
         result.multiply(base)
         return result
     }
@@ -163,16 +188,24 @@ private impl ImageView
            .uploadedTexture.pixelFormat != frame.pixelFormat
         {
             let uploaded = .app().renderer.addImage(frame[])
-            if not uploaded.isValid() do
+            if not uploaded.isValid()
+            {
                 return
-            if .uploadedTexture.isValid() do
+            }
+
+            if .uploadedTexture.isValid()
+            {
                 .app().renderer.removeTexture(&.uploadedTexture)
+            }
+
             .uploadedTexture = uploaded
         }
         else
         {
-            if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer)) do
+            if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
+            {
                 .app().renderer.removeTexture(&.uploadedTexture)
+            }
         }
     }
 
@@ -194,8 +227,11 @@ private impl ImageView
             .panOffset.y += point.y - (next.y + next.height * ratioY)
         }
 
-        if oldZoom != .effectiveZoom() do
+        if oldZoom != .effectiveZoom()
+        {
             .sigZoomChanged.call(me)
+        }
+
         .invalidate()
     }
 
@@ -204,8 +240,10 @@ private impl ImageView
     // beyond one would otherwise move the other way: a zoom in that shrinks it.
     mtd stepZoom(target: f32, anchor: const *Math.Point? = null)
     {
-        if target > .effectiveZoom() ? .canZoomIn() : .canZoomOut() do
+        if target > .effectiveZoom() ? .canZoomIn() : .canZoomOut()
+        {
             .applyZoom(target, anchor)
+        }
     }
 
     // Draws the vector document at the scale the view currently shows it at.
@@ -220,16 +258,21 @@ private impl ImageView
 
         let content = .sourceRect()
         let scale   = .effectiveZoom()
-        if content.width <= 0 or content.height <= 0 or scale <= 0 do
+        if content.width <= 0 or content.height <= 0 or scale <= 0
+        {
             return
+        }
 
         painter.pushClippingRect(client)
         defer painter.popClippingRect()
         painter.fillRect(.contentRect(), Brush.createHatch(.CheckBoardLarge, .themeColors().colorPicker_BackAlpha))
 
         let base = painter.transform()
-        if .rotationQuarterTurns or .isMirrored do
+        if .rotationQuarterTurns or .isMirrored
+        {
             painter.setTransform(.transformedPaint(base, Math.Point{content.horzCenter(), content.vertCenter()}))
+        }
+
         .drawing.paint(painter, content.x, content.y, scale)
         painter.setTransform(base)
     }
@@ -254,8 +297,10 @@ impl IWnd for ImageView
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .isFitted do
+        if .isFitted
+        {
             .sigZoomChanged.call(me)
+        }
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -296,11 +341,15 @@ impl IWnd for ImageView
         // A picture that covers the view with opaque samples hides the ground completely, and a
         // video repaints this view as many times a second as it has frames. Filling first would
         // be one whole-view fill per frame that nothing can ever see.
-        if transparent or not tint.isOpaque() or not destination.contains(client) do
+        if transparent or not tint.isOpaque() or not destination.contains(client)
+        {
             painter.fillRect(client, .themeColors().view_Bk)
+        }
 
-        if transparent do
+        if transparent
+        {
             painter.fillRect(destination, Brush.createHatch(.CheckBoardLarge, .themeColors().colorPicker_BackAlpha))
+        }
 
         if .rotationQuarterTurns or .isMirrored
         {
@@ -314,8 +363,10 @@ impl IWnd for ImageView
             painter.drawTexture(sourceRect, .uploadedTexture, tint)
         }
 
-        if .movie.isValid() and .movie.frameCount > 1 and not .movie.isPaused do
+        if .movie.isValid() and .movie.frameCount > 1 and not .movie.isPaused
+        {
             .invalidate()
+        }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -329,19 +380,26 @@ impl IWnd for ImageView
                 return
             }
 
-            let factor = evt.delta.y > 0 ? 1.12'f32 : 1.0'f32 / 1.12
+            let factor = evt.delta.y > 0 ? 1.12_f32 : 1.0_f32 / 1.12
             let anchor = .surfaceToLocal(evt.surfacePos)
             .stepZoom(.effectiveZoom() * factor, &anchor)
 
         case .DoubleClick where evt.button == .Left:
-            if .isFitted do
+            if .isFitted
+            {
                 .actualSize()
-            else do
+            }
+            else
+            {
                 .zoomToFit()
+            }
 
         case .Pressed where evt.button == .Left:
-            if not .canPan() do
+            if not .canPan()
+            {
                 return
+            }
+
             .isPanning   = true
             .lastPointer = evt.surfacePos
             .captureMouse()
@@ -349,8 +407,11 @@ impl IWnd for ImageView
         case .Move:
             if not .isPanning
             {
-                if .canPan() do
+                if .canPan()
+                {
                     .app().setFrameCursor(Cursor.from(.Hand))
+                }
+
                 return
             }
 
@@ -372,15 +433,15 @@ impl IWnd for ImageView
 
 impl ImageView
 {
-    const MinZoom = 0.02'f32     // Smallest supported scale.
-    const MaxZoom = 64.0'f32     // Largest supported scale.
+    const MinZoom = 0.02_f32     // Smallest supported scale.
+    const MaxZoom = 64.0_f32     // Largest supported scale.
 
     // Creates an empty image viewer.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ImageView
     {
         Swag.assert(parent != null)
-        let result = Wnd.create'ImageView(parent, null, position, id)
+        let result = Wnd.create!{ImageView}(parent, null, position, id)
         result.focusPolicy = .Click
         return result
     }
@@ -388,8 +449,11 @@ impl ImageView
     // Releases renderer-owned content and restores an empty fitted view.
     mtd clear()
     {
-        if .uploadedTexture.isValid() do
+        if .uploadedTexture.isValid()
+        {
             .app().renderer.removeTexture(&.uploadedTexture)
+        }
+
         .movie.clear()
         Swag.drop(&.image, 1)
         Swag.init(&.image, 1)
@@ -434,8 +498,11 @@ impl ImageView
         }
 
         let uploaded = .app().renderer.addImage(image)
-        if not uploaded.isValid() do
+        if not uploaded.isValid()
+        {
             return
+        }
+
         .clear()
         .image = image
         .uploadedTexture = uploaded
@@ -452,10 +519,13 @@ impl ImageView
     // The caller owns the pixels. Returns an empty image when no drawing is displayed.
     mtd const rasterizeDrawing(maxSide: s32)->Image
     {
-        if not .hasDrawing() or maxSide <= 0 do
+        if not .hasDrawing() or maxSide <= 0
+        {
             return {}
-        let scale = Math.min(1, cast(f32, maxSide) / Math.max(.drawing.width, .drawing.height))
-        let width = Math.max(1, cast(s32, Math.round(.drawing.width * scale)))
+        }
+
+        let scale  = Math.min(1, cast(f32, maxSide) / Math.max(.drawing.width, .drawing.height))
+        let width  = Math.max(1, cast(s32, Math.round(.drawing.width * scale)))
         let height = Math.max(1, cast(s32, Math.round(.drawing.height * scale)))
         return .drawing.rasterize(width, height, 1)
     }
@@ -466,8 +536,11 @@ impl ImageView
     // empty view.
     mtd const picture()->const *Image?
     {
-        if .hasDrawing() do
+        if .hasDrawing()
+        {
             return null
+        }
+
         let image = .currentImage()
         return image.isValid() ? image : null
     }
@@ -481,13 +554,17 @@ impl ImageView
     mtd const pixelAt(local: Math.Point)->{ x: s32, y: s32, inside: bool }
     {
         var result: #returntype
-        if not .hasContent() do
+        if not .hasContent()
+        {
             return result
+        }
 
         let content = .contentRect()
         let scale   = .effectiveZoom()
-        if scale <= 0 do
+        if scale <= 0
+        {
             return result
+        }
 
         // Undo the rotation, then the mirror, about the centre of the content, in source units.
         var dx = (local.x - content.horzCenter()) / scale
@@ -499,14 +576,18 @@ impl ImageView
             dy = -x
         }
 
-        if .isMirrored do
+        if .isMirrored
+        {
             dx = -dx
+        }
 
         let source = .sourceSize()
         var x      = dx + cast(f32, source.width) * 0.5
         var y      = dy + cast(f32, source.height) * 0.5
-        if x < 0 or y < 0 or x >= cast(f32, source.width) or y >= cast(f32, source.height) do
+        if x < 0 or y < 0 or x >= cast(f32, source.width) or y >= cast(f32, source.height)
+        {
             return result
+        }
 
         // A picture shown at another shape than its samples maps back onto them.
         let image = .currentImage()
@@ -537,8 +618,11 @@ impl ImageView
         }
 
         let uploaded = .app().renderer.addImage(image[])
-        if not uploaded.isValid() do
+        if not uploaded.isValid()
+        {
             return
+        }
+
         .clear()
         .image = #move image[]
         .uploadedTexture = uploaded
@@ -570,8 +654,11 @@ impl ImageView
         }
 
         Memory.copy(.image.pixels.storage(), image.pixels.storage(), .image.byteCount)
-        if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer)) do
+        if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer))
+        {
             .app().renderer.removeTexture(&.uploadedTexture)
+        }
+
         .invalidate()
     }
 
@@ -587,12 +674,18 @@ impl ImageView
     // ```
     mtd setDisplaySize(width, height: s32)
     {
-        if width == .displayWidth and height == .displayHeight do
+        if width == .displayWidth and height == .displayHeight
+        {
             return
+        }
+
         .displayWidth  = Math.max(width, 0)
         .displayHeight = Math.max(height, 0)
-        if .isFitted do
+        if .isFitted
+        {
             .zoomToFit()
+        }
+
         .invalidate()
     }
 
@@ -624,8 +717,11 @@ impl ImageView
            view.chromaShift != .planarChromaShift
         {
             let uploaded = .app().renderer.addImage(view)
-            if not uploaded.isValid() do
+            if not uploaded.isValid()
+            {
                 return
+            }
+
             .clear()
             .planarWidth       = view.width
             .planarHeight      = view.height
@@ -635,8 +731,11 @@ impl ImageView
             return
         }
 
-        if not .app().renderer.updateTexture(.uploadedTexture, view) do
+        if not .app().renderer.updateTexture(.uploadedTexture, view)
+        {
             .app().renderer.removeTexture(&.uploadedTexture)
+        }
+
         .invalidate()
     }
 
@@ -676,8 +775,11 @@ impl ImageView
         }
 
         swap(&.image, image)
-        if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer)) do
+        if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer))
+        {
             .app().renderer.removeTexture(&.uploadedTexture)
+        }
+
         .invalidate()
     }
 
@@ -709,8 +811,11 @@ impl ImageView
         let mirror = .isMirrored
 
         let uploaded = .app().renderer.addImage(image)
-        if not uploaded.isValid() do
+        if not uploaded.isValid()
+        {
             return
+        }
+
         .clear()
         .image                = image
         .uploadedTexture      = uploaded
@@ -737,8 +842,10 @@ impl ImageView
         var movie: Movie
         try movie.load(fileName)
 
-        if not .exchangeMovie(&movie) do
+        if not .exchangeMovie(&movie)
+        {
             fail Pixel.RenderResourceError{"renderer cannot allocate the movie texture"}
+        }
     }
 
     // Displays a prepared movie by exchanging its owned decoding state with the view.
@@ -753,12 +860,17 @@ impl ImageView
         if movie.isValid()
         {
             uploaded = .app().renderer.addImage(movie.frame)
-            if not uploaded.isValid() do
+            if not uploaded.isValid()
+            {
                 return false
+            }
         }
 
-        if .uploadedTexture.isValid() do
+        if .uploadedTexture.isValid()
+        {
             .app().renderer.removeTexture(&.uploadedTexture)
+        }
+
         Swag.drop(&.image, 1)
         Swag.init(&.image, 1)
         Swag.drop(&.drawing, 1)
@@ -778,8 +890,11 @@ impl ImageView
     // Returns the scale currently used to paint the image.
     mtd const effectiveZoom()->f32
     {
-        if not .hasContent() do
+        if not .hasContent()
+        {
             return 1
+        }
+
         return .isFitted ? .fittedZoom() : .zoom
     }
 
@@ -790,8 +905,11 @@ impl ImageView
     mtd const fittedZoom()->f32
     {
         let client = .paddedClientRect()
-        if not .hasContent() or client.width <= 0 or client.height <= 0 do
+        if not .hasContent() or client.width <= 0 or client.height <= 0
+        {
             return 1
+        }
+
         let size = .contentSize()
         return Math.min(client.width / size.width, client.height / size.height)
     }
@@ -846,8 +964,11 @@ impl ImageView
     // Like pointer panning, the offset is not clamped to the image bounds.
     mtd setPanOffset(offset: Math.Point)
     {
-        if .panOffset == offset do
+        if .panOffset == offset
+        {
             return
+        }
+
         .panOffset = offset
         .sigPanChanged.call(me)
         .invalidate()
@@ -863,40 +984,55 @@ impl ImageView
     // Rotates the displayed content clockwise without changing its source pixels.
     mtd rotateClockwise()
     {
-        if not .hasContent() do
+        if not .hasContent()
+        {
             return
+        }
+
         .applyTransform(.rotationQuarterTurns + 1, .isMirrored)
     }
 
     // Rotates the displayed content counter-clockwise without changing its source pixels.
     mtd rotateCounterClockwise()
     {
-        if not .hasContent() do
+        if not .hasContent()
+        {
             return
+        }
+
         .applyTransform(.rotationQuarterTurns + 3, .isMirrored)
     }
 
     // Reflects the displayed content across the viewport's vertical axis.
     mtd mirrorHorizontally()
     {
-        if not .hasContent() do
+        if not .hasContent()
+        {
             return
+        }
+
         .applyTransform((4 - .rotationQuarterTurns) & 3, not .isMirrored)
     }
 
     // Reflects the displayed content across the viewport's horizontal axis.
     mtd mirrorVertically()
     {
-        if not .hasContent() do
+        if not .hasContent()
+        {
             return
+        }
+
         .applyTransform((6 - .rotationQuarterTurns) & 3, not .isMirrored)
     }
 
     // Removes every temporary rotation and reflection without changing zoom.
     mtd resetTransform()
     {
-        if not .rotationQuarterTurns and not .isMirrored do
+        if not .rotationQuarterTurns and not .isMirrored
+        {
             return
+        }
+
         .applyTransform(0, false)
     }
 
@@ -912,10 +1048,16 @@ impl ImageView
     {
         let previousIndex = .movie.frameIndex
         .movie.setFrameIndex(index)
-        if .movie.isValid() do
+        if .movie.isValid()
+        {
             .updateUploadedFrame()
-        if .movie.frameIndex != previousIndex do
+        }
+
+        if .movie.frameIndex != previousIndex
+        {
             .sigFrameChanged.call(me)
+        }
+
         .invalidate()
     }
 }

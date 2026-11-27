@@ -74,7 +74,7 @@ var g_Footer:        *Label?
 var g_PageNav:       *StackLayoutCtrl?
 var g_StatusLabel:   *Label?
 var g_Preview:       *Wnd?
-var g_PageMenus:     Array'(*MenuCtrl)
+var g_PageMenus:     Array!{*MenuCtrl}
 var g_ContextMenu:   *MenuCtrl?
 var g_StateMenu:     *MenuCtrl?
 var g_Page:          s32
@@ -104,11 +104,11 @@ func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
 
 func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*Wnd
 {
-    let frame = Wnd.create'FrameWnd(parent, rect)
+    let frame = Wnd.create!{FrameWnd}(parent, rect)
     frame.setFrameForm(.Round)
     frame.setFrameFlags(.Borders)
 
-    let view = frame.createView'Wnd()
+    let view = frame.createView!{Wnd}()
     discard createText(view, title, Math.Rectangle{16, 10, rect.width - 32, 24})
     discard createHelpText(view, subtitle, Math.Rectangle{16, 36, rect.width - 32, 44})
     return view
@@ -222,22 +222,33 @@ func setStatus(text: string)
 func updateThemeButton()
 {
     let btn = g_ThemeButton
-    if not btn do
+    if not btn
+    {
         return
+    }
 
-    if g_DarkTheme do
+    if g_DarkTheme
+    {
         btn.name = "Switch to Papier"
-    else do
+    }
+    else
+    {
         btn.name = "Switch to Encre"
+    }
+
     btn.invalidate()
 }
 
 func applyTheme()
 {
-    if g_DarkTheme do
+    if g_DarkTheme
+    {
         app.theme.colors.setDark()
-    else do
+    }
+    else
+    {
         app.theme.colors.setLight()
+    }
 
     updateThemeButton()
     app.notifyThemeChanged()
@@ -258,8 +269,10 @@ func createTrackedPopup(parent: *Wnd)->*MenuCtrl
 
 func destroyPageMenus()
 {
-    for menu in g_PageMenus do
+    for menu in g_PageMenus
+    {
         menu.destroy()
+    }
 
     g_PageMenus.clear()
     g_ContextMenu = null
@@ -354,7 +367,7 @@ func createStatusPanel(parent: *Wnd, rect: Math.Rectangle)
     g_StatusLabel = createHelpText(panel, g_StatusText, Math.Rectangle{20, 92, rect.width - 40, rect.height - 112})
 }
 
-func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font: *Font, color: Color, maxLines = 2'u32)
+func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font: *Font, color: Color, maxLines = 2_u32)
 {
     var richText: RichString = text
     var format:   RichStringFormat
@@ -411,7 +424,7 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
 
 func createPreview(parent: *Wnd, rect: Math.Rectangle)->*Wnd
 {
-    let view = Wnd.create'Wnd(parent, rect)
+    let view = Wnd.create!{Wnd}(parent, rect)
     view.hookOnEvent = &onPreviewEvent
     return view
 }
@@ -641,14 +654,15 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
             previousPage()
 
         default:
-            if not processMenuCommand(cmd.id) do
+            if not processMenuCommand(cmd.id) {
                 return false
+            }
         }
 
         cmd.accepted = true
         return true
     }
-    elif evt is CommandStateEvent as state where state.kind == .Compute
+    else if evt is CommandStateEvent as state where state.kind == .Compute
     {
         if computeMenuCommandState(state)
         {
@@ -656,13 +670,13 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
             return true
         }
     }
-    elif evt is ResizeEvent
+    else if evt is ResizeEvent
     {
         layoutRootView()
         buildPage()
         return true
     }
-    elif evt is DestroyEvent
+    else if evt is DestroyEvent
     {
         destroyPageMenus()
         app.sigFrame.disable()
@@ -717,8 +731,10 @@ func buildPage()
 
 func layoutRootView()
 {
-    if not g_View or not g_PageView do
+    if not g_View or not g_PageView
+    {
         return
+    }
 
     let view     = unwrap g_View
     let pageView = unwrap g_PageView
@@ -750,19 +766,26 @@ func nextPage()
 func previousPage()
 {
     g_Page -= 1
-    if g_Page < 0 do
+    if g_Page < 0
+    {
         g_Page = MaxPages - 1
+    }
+
     buildPage()
 }
 
 func updateTestMode()
 {
-    if not Env.isSmokeRun() or not g_Surface do
+    if not Env.isSmokeRun() or not g_Surface
+    {
         return
+    }
 
     g_TestFrame += 1
-    if g_TestFrame < TestFramesPerPage do
+    if g_TestFrame < TestFramesPerPage
+    {
         return
+    }
 
     g_TestFrame = 0
     if g_Page + 1 >= MaxPages
@@ -773,10 +796,36 @@ func updateTestMode()
     nextPage()
 }
 
-func onFrame(_: *Application)
+func canUsePageArrows()->bool
 {
-    if not g_Surface or not g_View or not g_PageView do
+    if not g_View or not g_PageView
+    {
+        return false
+    }
+
+    let view2     = unwrap g_View
+    let pageView2 = unwrap g_PageView
+
+    let focus = view2.focusedWindow()
+    if not focus or focus == g_View
+    {
+        return true
+    }
+
+    return not pageView2.isAncestorOf(focus)
+}
+
+func onFrame(app: *Application)
+{
+    if not g_Surface or not g_View or not g_PageView
+    {
         return
+    }
+
+    if app.keyboard.isKeyJustPressed(.F1)
+    {
+        nextPage()
+    }
 
     updateTestMode()
 }
@@ -818,7 +867,7 @@ func createRootView()
     themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
-    let pageView = Wnd.create'Wnd(view, {})
+    let pageView = Wnd.create!{Wnd}(view, {})
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
@@ -842,10 +891,14 @@ func createRootView()
 {
     for arg in Env.arguments()
     {
-        if arg == "--dark" do
+        if arg == "--dark"
+        {
             g_DarkTheme = true
-        elif arg == "--light" do
+        }
+        else if arg == "--light"
+        {
             g_DarkTheme = false
+        }
     }
 
     let flags = SurfaceFlags.SmallCaption |
@@ -862,8 +915,10 @@ func createRootView()
     buildPage()
 
     app.sigFrame += &onFrame
-    if Env.isSmokeRun() do
+    if Env.isSmokeRun()
+    {
         app.maxRunFrame = cast(u32, MaxPages) * cast(u32, TestFramesPerPage) + 10
+    }
 
     applyTheme()
     surface.show()

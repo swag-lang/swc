@@ -26,10 +26,12 @@ impl IImageDecoder for RegistryPadding
 
 func(N: u32) registerPaddingCodecs()
 {
-    Image.registerEncoder'(RegistryPadding'N)()
-    Image.registerDecoder'(RegistryPadding'N)()
-    #static if N > 0 do
-        registerPaddingCodecs'(N - 1)()
+    Image.registerEncoder!{RegistryPadding!{N}}()
+    Image.registerDecoder!{RegistryPadding!{N}}()
+    #static if N > 0
+    {
+        registerPaddingCodecs!{N - 1}()
+    }
 }
 
 struct RegistryEncoder
@@ -52,9 +54,12 @@ impl IImageEncoder for RegistryEncoder
 
     mtd impl encode(result: *ConcatBuffer, _: Image, options: any?) fail
     {
-        registerPaddingCodecs'31()
-        if options != null do
+        registerPaddingCodecs!{31}()
+        if options != null
+        {
             fail BadParameterError{}
+        }
+
         result.addBytes("encoded")
     }
 }
@@ -99,9 +104,12 @@ impl IImageDecoder for RegistryDecoder
 
     mtd impl decode(bytes: const [..] u8, _: DecodeOptions)->Image fail
     {
-        registerPaddingCodecs'31()
-        if bytes.count == 1 do
+        registerPaddingCodecs!{31}()
+        if bytes.count == 1
+        {
             fail BadParameterError{}
+        }
+
         return Image.create(1, 1, .RGBA8)
     }
 }
@@ -122,8 +130,8 @@ internal impl Image
 
         encoders.allocator = backing
         decoders.allocator = backing
-        registerEncoder'RegistryEncoder()
-        registerDecoder'RegistryDecoder()
+        registerEncoder!{RegistryEncoder}()
+        registerDecoder!{RegistryDecoder}()
         let encoderStorage = encoders.buffer
         let decoderStorage = decoders.buffer
         registryEncoderDrops, registryDecoderDrops = 0
@@ -136,8 +144,11 @@ internal impl Image
             catch { result = try Image.decode("image.registrytest", cast(const [..] u8, bytes)) } as errOutcome
             let err = errOutcome.value()
             Swag.require((err != null) == failing)
-            if not failing do
+            if not failing
+            {
                 Swag.require(result.width == 1 and result.height == 1)
+            }
+
             Swag.require(registryDecoderDrops == (failing ? 1 : 2))
         }
         else
@@ -149,8 +160,11 @@ internal impl Image
             catch { result = try image.encode("image.registrytest", options) } as errOutcome
             let err = errOutcome.value()
             Swag.require((err != null) == failing)
-            if not failing do
+            if not failing
+            {
                 Swag.require(result.toString() == "encoded")
+            }
+
             Swag.require(registryEncoderDrops == 1)
         }
 
@@ -179,7 +193,7 @@ internal impl Image
 // Direct decoding rejects incomplete pixels but permits metadata-only results.
 #test
 {
-    Image.registerDecoder'(TruncatedPixelDecoder)()
+    Image.registerDecoder!{TruncatedPixelDecoder}()
 
     var errorOutcome: Swag.Error
     var image:        #decltype(expect Image.decode("image.truncatedpixels", "input"))
@@ -188,4 +202,14 @@ internal impl Image
 
     let probe = expect Image.decode("image.truncatedpixels", "input", {decodePixels: false})
     Swag.require(probe.width == 1 and probe.height == 1 and probe.byteCount == 4 and probe.pixels.count == 0)
+}
+
+// Format strings preserve empty separators, aliases, and Unicode case folding.
+#test
+{
+    let aliases = ImageFormat{"Localized aliases", ";.tif;;.éx;"}
+    Swag.require(aliases.matches("scan.TIF"))
+    Swag.require(aliases.matches("scan.ÉX"))
+    Swag.require(not aliases.matches("scan.tif;"))
+    Swag.require(not aliases.matches("scan"))
 }

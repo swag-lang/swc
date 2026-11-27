@@ -11,18 +11,18 @@
 #test
 {
     func mul(a: f32, b: f32)->f32 { return a * b }
-    const V = #run mul(6.0'f32, 7.0'f32)
+    const V = #run mul(6.0_f32, 7.0_f32)
     #assert(#typeof(V) == f32)
-    #assert(V == 42.0'f32)
+    #assert(V == 42.0_f32)
 }
 
 #test
 {
     #[Swag.Optimize(true)]
     func mulChain(a: s64, b: s64, c: s64)->s64 { return a * b * c }
-    const V = #run mulChain(3's64, 2's64, 7's64)
+    const V = #run mulChain(3_s64, 2_s64, 7_s64)
     #assert(#typeof(V) == s64)
-    #assert(V == 42's64)
+    #assert(V == 42_s64)
 }
 
 #test
@@ -34,9 +34,9 @@
 #test
 {
     func mul(a: u64, b: u64)->u64 { return a * b }
-    const V = #run mul(6'u64, 7'u64)
+    const V = #run mul(6_u64, 7_u64)
     #assert(#typeof(V) == u64)
-    #assert(V == 42'u64)
+    #assert(V == 42_u64)
 }
 
 #test

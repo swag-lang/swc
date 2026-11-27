@@ -14,13 +14,13 @@ using Core, Core.Math
 struct Mdct
 {
     n:          u32
-    twiddleCos: Array'f32     // cos(2π (k + 1/8) / n), one entry per FFT point.
-    twiddleSin: Array'f32     // sin(2π (k + 1/8) / n), one entry per FFT point.
-    fftCos:     Array'f32     // Cosines packed in butterfly order for every FFT stage.
-    fftSin:     Array'f32     // Sines packed in butterfly order for every FFT stage.
-    reverse:    Array'u32     // Bit-reversed index of every FFT point.
-    real:       Array'f32     // FFT scratch.
-    imaginary:  Array'f32     // FFT scratch.
+    twiddleCos: Array!{f32}     // cos(2π (k + 1/8) / n), one entry per FFT point.
+    twiddleSin: Array!{f32}     // sin(2π (k + 1/8) / n), one entry per FFT point.
+    fftCos:     Array!{f32}     // Cosines packed in butterfly order for every FFT stage.
+    fftSin:     Array!{f32}     // Sines packed in butterfly order for every FFT stage.
+    reverse:    Array!{u32}     // Bit-reversed index of every FFT point.
+    real:       Array!{f32}     // FFT scratch.
+    imaginary:  Array!{f32}     // FFT scratch.
 }
 
 impl Mdct
@@ -54,7 +54,7 @@ impl Mdct
             result.fftSin[finalStage + j] = cast(f32, Math.sin(angle))
         }
 
-        var halfLength = 1'u32
+        var halfLength = 1_u32
         while halfLength < m / 2
         {
             let stride = (m / 2) / halfLength
@@ -69,15 +69,21 @@ impl Mdct
             halfLength *= 2
         }
 
-        var bits = 0'u32
-        while (1'u32 << bits) < m do
+        var bits = 0_u32
+        while (1_u32 << bits) < m
+        {
             bits += 1
+        }
+
         result.reverse.resize(m)
         for k in m
         {
-            var reversed = 0'u32
-            for bit in bits where k & (1'u32 << bit) do
-                reversed |= 1'u32 << (bits - 1 - bit)
+            var reversed = 0_u32
+            for bit in bits where k & (1_u32 << bit)
+            {
+                reversed |= 1_u32 << (bits - 1 - bit)
+            }
+
             result.reverse[k] = reversed
         }
 
@@ -99,7 +105,7 @@ impl Mdct
         let cos   = .twiddleCos.storage()
         let sin   = .twiddleSin.storage()
         let order = .reverse.storage()
-        const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
+        const Reverse = cast(Simd.U32x4, [3_u32, 2, 1, 0])
 
         #[Swag.Inline]
         func rotate(spectrum, cos, sin: const [*] f32, half, k: u32)->{re, im: Simd.F32x4}
@@ -117,7 +123,7 @@ impl Mdct
             return {first * c + second * s, second * c - first * s}
         }
 
-        var k = 0'u32
+        var k = 0_u32
         let fuseFirstStages = m >= 16
         if fuseFirstStages
         {
@@ -144,7 +150,7 @@ impl Mdct
             let span       = m / 4
             let quarterCos = .fftCos[2]
             let quarterSin = -.fftSin[2]
-            let zero       = Simd.splat(0'f32)
+            let zero       = Simd.splat(0_f32)
             while k < span
             {
                 let a        = rotate(spectrum, cos, sin, half, k)
@@ -269,18 +275,16 @@ impl Mdct
         let quarter = m / 2
         let re      = .real.storage()
         let im      = .imaginary.storage()
-        for k in m do
-            re[k], im[k] = 0
-        for k in quarter
+
+        // Each complex point receives exactly one sample from two quarters.
+        for point in quarter
         {
-            re[quarter + k]     += input[2 * k]
-            im[quarter - 1 - k] -= input[2 * k + 1]
-            im[k]               += input[m + 2 * k]
-            re[m - 1 - k]       -= input[m + 2 * k + 1]
-            im[quarter + k]     += input[2 * m + 2 * k]
-            re[quarter - 1 - k] -= input[2 * m + 2 * k + 1]
-            re[k]               -= input[3 * m + 2 * k]
-            im[m - 1 - k]       += input[3 * m + 2 * k + 1]
+            let mirror = m - 1 - 2 * point
+            let first  = 2 * point
+            re[point]           = -input[2 * m + mirror] - input[3 * m + first]
+            im[point]           = input[m + first] - input[mirror]
+            re[quarter + point] = input[first] - input[m + mirror]
+            im[quarter + point] = input[2 * m + first] + input[3 * m + mirror]
         }
 
         for k in m
@@ -308,6 +312,42 @@ impl Mdct
         }
 
         .fft(1)
+        let cosine = .twiddleCos.storage()
+        let sine   = .twiddleSin.storage()
+
+        if m >= 8
+        {
+            const Reverse = cast(Simd.U32x4, [3_u32, 2, 1, 0])
+
+            #[Swag.Inline]
+            func expand(output: [*] f32, even, odd: Simd.F32x4)
+            {
+                let first  = cast #bit(Simd.U32x4, even)
+                let second = cast #bit(Simd.U32x4, Simd.permute(odd, Reverse))
+                Simd.store(output, cast #bit(Simd.F32x4, Simd.interleaveLow(first, second)))
+                Simd.store(output + 4, cast #bit(Simd.F32x4, Simd.interleaveHigh(first, second)))
+            }
+
+            var point = 0_u32
+            while point < quarter
+            {
+                let mirror   = m - 4 - point
+                let lowCos   = Simd.load(cosine + point)
+                let lowSin   = Simd.load(sine + point)
+                let highCos  = Simd.load(cosine + mirror)
+                let highSin  = Simd.load(sine + mirror)
+                let lowReal  = Simd.load(re + point)
+                let lowImag  = Simd.load(im + point)
+                let highReal = Simd.load(re + mirror)
+                let highImag = Simd.load(im + mirror)
+                expand(spectrum + 2 * point, lowReal * lowCos - lowImag * lowSin, highImag * highCos + highReal * highSin)
+                expand(spectrum + 2 * mirror, highReal * highCos - highImag * highSin, lowImag * lowCos + lowReal * lowSin)
+                point += 4
+            }
+
+            return
+        }
+
         for k in m
         {
             let c = .twiddleCos[k]
@@ -328,17 +368,17 @@ impl Mdct
         if firstStages
         {
             // Fuse the first two stages inside each four-point group.
-            const Even       = cast(Simd.U32x4, [0'u32, 0, 2, 2])
-            const Odd        = cast(Simd.U32x4, [1'u32, 1, 3, 3])
-            const LowPair    = cast(Simd.U32x4, [0'u32, 1, 0, 1])
-            const HighPair   = cast(Simd.U32x4, [2'u32, 3, 2, 3])
-            const NegateOdd  = cast(Simd.U32x4, [0'u32, 0x8000_0000, 0, 0x8000_0000])
-            const NegateHigh = cast(Simd.U32x4, [0'u32, 0, 0x8000_0000, 0x8000_0000])
+            const Even       = cast(Simd.U32x4, [0_u32, 0, 2, 2])
+            const Odd        = cast(Simd.U32x4, [1_u32, 1, 3, 3])
+            const LowPair    = cast(Simd.U32x4, [0_u32, 1, 0, 1])
+            const HighPair   = cast(Simd.U32x4, [2_u32, 3, 2, 3])
+            const NegateOdd  = cast(Simd.U32x4, [0_u32, 0x8000_0000, 0, 0x8000_0000])
+            const NegateHigh = cast(Simd.U32x4, [0_u32, 0, 0x8000_0000, 0x8000_0000])
             let quarterCos = cos[2]
             let quarterSin = sign * sin[2]
-            let wr         = cast(Simd.F32x4, [1'f32, quarterCos, 1, quarterCos])
-            let wi         = cast(Simd.F32x4, [0'f32, quarterSin, 0, quarterSin])
-            var point      = 0'u32
+            let wr         = cast(Simd.F32x4, [1_f32, quarterCos, 1, quarterCos])
+            let wi         = cast(Simd.F32x4, [0_f32, quarterSin, 0, quarterSin])
+            var point      = 0_u32
             while point < m
             {
                 let real      = Simd.load(re + point)
@@ -359,15 +399,15 @@ impl Mdct
 
         // Later stages pair contiguous spans. Four butterflies use the same arithmetic
         // as above, with four adjacent samples and twiddles in each vector.
-        var halfLength = 4'u32
+        var halfLength = 4_u32
         while halfLength < m
         {
             let length = 2 * halfLength
             let offset = halfLength - 1
-            var start  = 0'u32
+            var start  = 0_u32
             while start < m
             {
-                var j = 0'u32
+                var j = 0_u32
                 while j < halfLength
                 {
                     let wr = Simd.load(cos + offset + j)

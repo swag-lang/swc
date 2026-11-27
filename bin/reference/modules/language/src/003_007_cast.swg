@@ -42,8 +42,8 @@ enum CastPermission: u32
 
 #test
 {
-    let severity:    CastSeverity   = cast(CastSeverity, 4's32)
-    let permissions: CastPermission = cast(CastPermission, 3'u32)
+    let severity:    CastSeverity   = cast(CastSeverity, 4_s32)
+    let permissions: CastPermission = cast(CastPermission, 3_u32)
     Swag.require(severity == .High)
     Swag.require(permissions == (CastPermission.Read | CastPermission.Write))
 }
@@ -128,8 +128,11 @@ struct CastButton
     var button: CastButton
     let node:   *CastNode = &button
     let found = catch cast(*CastButton?, node) orelse null
-    if found != null do
+    if found != null
+    {
         Swag.require(found.label == "Apply")
+    }
+
     Swag.require(found != null)
     Swag.require(assume cast(*CastButton, node) == &button)
     Swag.require(expect cast(*CastButton, node) == &button)
@@ -142,7 +145,7 @@ A type pattern tests compatibility and gives the branch a non-null borrowed view
 `if value is T as name` borrows a `*T`, or an interface view when `T` is an interface.
 Constness follows the source. The source is evaluated once; the name belongs only
 to the successful branch and its optional `where` guard. A false guard continues
-to `elif` or `else`. No pattern copies the object or extends its lifetime.
+to `else if` or `else`. No pattern copies the object or extends its lifetime.
 
 Prefer `is` when the purpose is selecting a branch by type. Use a checked cast
 when failure belongs to the operation's error contract, and `assume cast` when
@@ -152,8 +155,10 @@ the caller already guarantees compatibility.
 {
     var counter = Counter{42}
     let view    = cast(ICount, &counter)
-    if view is Counter as found do
+    if view is Counter as found
+    {
         Swag.require(found.value == 42)
+    }
 
     switch view
     {
@@ -172,8 +177,11 @@ types, bind with `catch cast(*T?, value) orelse null`. The early return narrows 
 func countOf(view: ICount)->s32
 {
     let counter = catch cast(*Counter?, view) orelse null
-    if not counter do
+    if not counter
+    {
         return -1
+    }
+
     return counter.value
 }
 
@@ -198,9 +206,12 @@ Neither mode extends the lifetime of the boxed value or its pointee.
 */
 #test
 {
-    var boxed: any = 42's32
-    if boxed is s32 as value do
+    var boxed: any = 42_s32
+    if boxed is s32 as value
+    {
         Swag.require(value[] == 42)
+    }
+
     Swag.require(not (boxed is s64))
     Swag.require(assume cast (s32, boxed) == 42)
 }
@@ -254,11 +265,14 @@ func supportsRuntimeType(target, source: typeinfo)->bool
     Swag.require(supportsCounterType(Counter))
     Swag.require(not supportsCounterType(s32))
 
-    var value = 42's32
+    var value = 42_s32
     let target: typeinfo = s32
     let view  = expect cast(target, &value)
-    if view is s32 as number do
+    if view is s32 as number
+    {
         Swag.require(number[] == 42)
+    }
+
     Swag.require(view != null)
 }
 
@@ -290,7 +304,7 @@ struct CastCount { value: u16 }
     let field           = CastCount{value: cast(u16, count)}
     let values: [2] u16 = [cast(u16, count), cast(u16, count)]
     Swag.require(field.value == 42)
-    Swag.require(values == [42'u16, 42'u16])
+    Swag.require(values == [42_u16, 42_u16])
 }
 
 /**
@@ -344,17 +358,17 @@ without requiring an explicit 'cast' statement.
 */
 #test
 {
-    let x: s16 = 1's8
-    let y: s32 = 1's16
-    let z: s64 = 1's32
+    let x: s16 = 1_s8
+    let y: s32 = 1_s16
+    let z: s64 = 1_s32
     Swag.require(x == 1 and y == 1 and z == 1)
 
-    let a: u16 = 255'u8
-    let b: u32 = 65535'u16
-    let c: u64 = 4294967295'u32
+    let a: u16 = 255_u8
+    let b: u32 = 65535_u16
+    let c: u64 = 4294967295_u32
     Swag.require(a == 255 and b == 65535 and c == 4294967295)
 
-    let d: f64 = 1.23'f32
+    let d: f64 = 1.23_f32
     Swag.require(d > 1.22 and d < 1.24)
 }
 
@@ -408,9 +422,9 @@ enum CastPointerTag: u64
     Swag.require(cast(s64, base) == cast(s64, address))
 
     // A narrower integer needs no second step towards a pointer.
-    Swag.require(cast(*void, 0xBEEF'u16) == cast(*void, 0xBEEF'u64))
-    Swag.require(cast(*void, CastPointerTag.First) == cast(*void, 7'u64))
-    Swag.require(cast(CastPointerTag, cast(*void, 9'u64)) == CastPointerTag.Second)
+    Swag.require(cast(*void, 0xBEEF_u16) == cast(*void, 0xBEEF_u64))
+    Swag.require(cast(*void, CastPointerTag.First) == cast(*void, 7_u64))
+    Swag.require(cast(CastPointerTag, cast(*void, 9_u64)) == CastPointerTag.Second)
 
     // 'cast(u32, base)' is refused. Widen the address first, then narrow that value with
     // '#wrap' to say that dropping its high half is intended.

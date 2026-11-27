@@ -38,8 +38,10 @@ func storeBits(dst: [*] u64, value: f64)
 {
     var plane: [4 * 64] u8
     var out:   [4 * 16] u8
-    for i in 4 * 64 do
+    for i in 4 * 64
+    {
         plane[i] = cast(u8, (i & 0x3F))
+    }
 
     storeLowRows(&out[0], 16, &plane[0], 64, 4)
     Swag.require(out[0] == 0 and out[1] == 2 and out[7] == 14)

@@ -7,7 +7,7 @@ using Core
 // of the extent list.
 #test
 {
-    const BlockCount = 64'u64
+    const BlockCount = 64_u64
 
     var allocator: BlockAllocator
     allocator.initialize(BlockCount)

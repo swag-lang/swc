@@ -42,8 +42,11 @@ func isCardKeyword(word: string)->bool
 {
     const Keywords = ["impl", "mtd", "func", "let", "var", "const", "for", "if", "while", "struct", "enum", "using", "return",
                       "fn", "def", "class", "import", "public", "private", "static", "void", "int", "pub", "use"]
-    for one in Keywords where one == word do
+    for one in Keywords where one == word
+    {
         return true
+    }
+
     return false
 }
 
@@ -52,13 +55,22 @@ func isCardKeyword(word: string)->bool
 func trackTitle(name: string)->String
 {
     let stem = Path.fileNameWithoutExtension(name) orelse name
-    var at   = 0'u64
-    while at < stem.count and Latin1.isDigit(stem[at]) do
+    var at   = 0_u64
+    while at < stem.count and Latin1.isDigit(stem[at])
+    {
         at += 1
-    if at == 0 or at == stem.count do
+    }
+
+    if at == 0 or at == stem.count
+    {
         return String.from(stem)
-    while at < stem.count and (stem[at] == ' ' or stem[at] == '-' or stem[at] == '.' or stem[at] == '_') do
+    }
+
+    while at < stem.count and (stem[at] == ' ' or stem[at] == '-' or stem[at] == '.' or stem[at] == '_')
+    {
         at += 1
+    }
+
     return String.from(stem[at to])
 }
 
@@ -67,8 +79,11 @@ func trackTitle(name: string)->String
 // anything shorter as minutes and seconds.
 func sheetDuration(seconds: u64)->String
 {
-    if seconds < 3600 do
+    if seconds < 3600
+    {
         return formatDuration(seconds)
+    }
+
     let minutes = Format.toString("%{02}", (seconds / 60) % 60)
     return Format.toString(appStrings().explore_Length, seconds / 3600, minutes)
 }
@@ -77,30 +92,41 @@ func formatDuration(seconds: u64)->String
 {
     let hours   = seconds / 3600
     let minutes = (seconds / 60) % 60
-    if hours do
+    if hours
+    {
         return Format.toString("%:%{02}:%{02}", hours, minutes, seconds % 60)
+    }
+
     return Format.toString("%:%{02}", minutes, seconds % 60)
 }
 
 // Writes a local file time in the current interface language and date order.
 func explorerFileTime(time, now: Time.DateTime, language: string)->String
 {
-    if time.year == now.year and time.month == now.month and time.day == now.day do
+    if time.year == now.year and time.month == now.month and time.day == now.day
+    {
         return time.toString(.TimeIsoHm)
+    }
 
-    let months = Tokenize.split(appStrings().explore_DateMonths, ';'rune)
+    let months = Tokenize.split(appStrings().explore_DateMonths, ';'_rune)
     let month  = months[time.month - 1]
     let date   = language == "fr" ? Format.toString("% %", time.day, month) : Format.toString("% %", month, time.day)
-    if time.year == now.year do
+    if time.year == now.year
+    {
         return Format.toString(appStrings().explore_DateSameYear, date, time.toString(.TimeIsoHm))
+    }
+
     return Format.toString(appStrings().explore_DateOtherYear, date, time.year)
 }
 
 // Returns the duration a thumbnail is labelled with, in seconds, or zero when it carries none.
 func thumbnailDuration(image: const *Image)->u64
 {
-    for &record in image.metadata where record.isTag(cast(const [..] u8, Viewer.ThumbnailDurationTag)) do
+    for &record in image.metadata where record.isTag(cast(const [..] u8, Viewer.ThumbnailDurationTag))
+    {
         return catch StrConv.toU64(cast(string, record.toSlice())) orelse 0
+    }
+
     return 0
 }
 
@@ -147,9 +173,9 @@ struct Explorer
     mode:            ExplorerMode          = .Medium
     history:         NavigationHistory
     listing:         ExplorerListing
-    entries:         Array'ExplorerEntry
-    sortOrder:       Array'u64
-    shown:           Array'u64
+    entries:         Array!{ExplorerEntry}
+    sortOrder:       Array!{u64}
+    shown:           Array!{u64}
     folder:          String
     requested:       String
     requestedFolder: String
@@ -160,20 +186,20 @@ struct Explorer
     dragOrigin:      Math.Point
     dragPath:        String
     draggingFile:    bool
-    previews:        Array'*ExplorerPreview     // Stable task storage while the runtime owns each preview.
+    previews:        Array!{*ExplorerPreview}     // Stable task storage while the runtime owns each preview.
     generation:      u64
-    selectedFiles:   Array'u64
+    selectedFiles:   Array!{u64}
     selected:        u64                   = Swag.U64.Max
     pendingOpen:     u64                   = Swag.U64.Max
-    temporaryFiles:  Array'ExplorerTemporary
-    cached:          Array'u64
+    temporaryFiles:  Array!{ExplorerTemporary}
+    cached:          Array!{u64}
     sortColumn:      u32
     descending:      bool
     kindFilter:      ExplorerKindFilter
     artworkSource:   ExplorerArtworkSource = .Online
     thumbnailCrop:   Image.SmartCropMode   = .Attention
     showTileCaption: bool                  = true
-    menuPaths:       Array'String
+    menuPaths:       Array!{String}
     previewSettings: String
     previewEpoch:    u64
     previewAspect:   f32                   = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
@@ -212,13 +238,13 @@ impl Explorer
     // path and the page under it, and the size the title of an album is set in.
     const PageMargin       = 72.0
     const HeaderGap        = 8.0
-    const TitleFontSize    = 36'u32
-    const MinTitleFontSize = 28'u32
+    const TitleFontSize    = 36_u32
+    const MinTitleFontSize = 28_u32
     const ToolHeight       = 32.0
 
     func create(parent: *Wnd, window: *ViewerWindow)->*Explorer
     {
-        with let result = Wnd.create'Explorer(parent, "scope.explorer")
+        with let result = Wnd.create!{Explorer}(parent, "scope.explorer")
         {
             .dockStyle       = .Center
             .backgroundStyle = .View
@@ -259,8 +285,11 @@ impl Explorer
             .backgroundStyle = .View
             .margin          = Math.Vector4{sheetMargin, 0, sheetMargin, 0}
             .updateFlags(.Ellipsis | .HotTrack)
-            if result.window.workspace do
+            if result.window.workspace
+            {
                 .setSelectionMode(.Multi)
+            }
+
             .addColumn(appStrings().explore_Name, 320)
             .addColumn(appStrings().explore_Type, 96)
             .addColumn(appStrings().explore_Size, 88, align: .Right)
@@ -279,9 +308,12 @@ impl Explorer
 
             .onFillVirtualLine = func(list, line, row)
             {
-                if not line do
+                if not line
+                {
                     return
-                let explorer = unwrap list.ancestorByType'Explorer()
+                }
+
+                let explorer = unwrap list.ancestorByType!{Explorer}()
                 let index    = explorer.shown[row]
                 let entry    = &explorer.entries[index]
                 line.setItem(0, entry.name, explorer.entryIcon(index))
@@ -335,10 +367,16 @@ impl Explorer
 
         result.list.listView.hookOnEvent = func|result|(source, evt)->bool
         {
-            if evt is ResizeEvent and result.mode == .Names do
+            if evt is ResizeEvent and result.mode == .Names
+            {
                 result.fitNameColumn()
-            if evt is MouseEvent as mouse do
+            }
+
+            if evt is MouseEvent as mouse
+            {
                 return result.handleFileDrag(source, mouse)
+            }
+
             return false
         }
 
@@ -347,7 +385,7 @@ impl Explorer
             result.sortBy(column, result.sortColumn == column and not result.descending)
         }
 
-        with result.scroll = Wnd.create'ScrollWnd(result)
+        with result.scroll = Wnd.create!{ScrollWnd}(result)
         {
             .dockStyle = .Center
             .margin    = Math.Vector4{sheetMargin, 0, sheetMargin, 0}
@@ -355,7 +393,7 @@ impl Explorer
             .sigScrollPositionChanged += func|result|(_, _, _) { result.prioritizeVisible() }
         }
 
-        with result.grid = result.scroll.createView'ExplorerGrid()
+        with result.grid = result.scroll.createView!{ExplorerGrid}()
         {
             .explorer        = result
             .backgroundStyle = .View
@@ -370,7 +408,7 @@ impl Explorer
         }
 
         result.retranslate()
-        result.previews.add(Memory.new'ExplorerPreview())
+        result.previews.add(Memory.new!{ExplorerPreview}())
         result.setMode(.Medium)
         return result
     }
@@ -378,14 +416,14 @@ impl Explorer
     // Builds the permanent query and listing controls; the location belongs to the caption.
     private mtd createHeader()
     {
-        with .header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, 2 * ToolHeight + HeaderGap}, "scope.explorer.header")
+        with .header = Wnd.create!{Wnd}(me, Math.Rectangle{0, 0, 0, 2 * ToolHeight + HeaderGap}, "scope.explorer.header")
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
             .padding         = Math.Vector4{PageMargin, 0, PageMargin, HeaderGap}
         }
 
-        with let line = Wnd.create'Wnd(.header)
+        with let line = Wnd.create!{Wnd}(.header)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -541,8 +579,11 @@ impl Explorer
 
     mtd layoutTools()
     {
-        if .layingHeader or .grid == null do
+        if .layingHeader or .grid == null
+        {
             return
+        }
+
         .layingHeader = true
         defer .layingHeader = false
 
@@ -565,10 +606,12 @@ impl Explorer
         var room = frame.captionRoomRect()
         room.x     += metrics.wnd_CaptionPathGap
         room.width = Math.max(room.width - metrics.wnd_CaptionPathGap, 0)
+
         // Below this width the ancestor menu alone would consume the title strip.
-        let inCaption = .window.stripInset() > 0 and (.window.workspace?.scenes.count orelse 0) < 2 and
+        let inCaption = .window.stripInset() > 0 and
+                        (.window.workspace?.scenes.count orelse 0) < 2 and
                         room.width >= ToolHeight * 4
-        let rowY      = inCaption ? 0 : ToolHeight + HeaderGap
+        let rowY = inCaption ? 0 : ToolHeight + HeaderGap
         .header.position.height = rowY + ToolHeight + HeaderGap
         .applyLayout()
 
@@ -619,15 +662,18 @@ impl Explorer
                 .window.searchOptionsButton.setPosition({fieldWidth - options, 0, options, ToolHeight})
                 fieldWidth -= options + ViewerWindow.SearchGroupSpacing
             }
+
             let field = .window.searchBox
             field.setPosition({0, 0, Math.max(fieldWidth, 0), ToolHeight})
-            let full = appStrings().ui_FilterFiles
-            let font = field.font().regular orelse .theme().createDefaultFont(metrics.defaultFontSize)
-            let textWidth = Painter.measureStringSnapped(full, font, deviceScale: .deviceScale())
-            let room = field.paddedClientRect().width - field.icon.sizeX - metrics.iconText_Margin
+            let full        = appStrings().ui_FilterFiles
+            let font        = field.font().regular orelse .theme().createDefaultFont(metrics.defaultFontSize)
+            let textWidth   = Painter.measureStringSnapped(full, font, deviceScale: .deviceScale())
+            let room        = field.paddedClientRect().width - field.icon.sizeX - metrics.iconText_Margin
             let placeholder = compact or textWidth > room ? appStrings().ui_FilterMode : full
-            if field.name.text != placeholder do
+            if field.name.text != placeholder
+            {
                 field.setPlaceholder(placeholder)
+            }
         }
 
         if inCaption
@@ -641,6 +687,7 @@ impl Explorer
             let origin = .window.surfaceToLocal(line.localToSurface(Math.Point{}))
             .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, space), ToolHeight})
         }
+
         .address.refreshPath()
         .address.show(.isVisible() and (not inCaption or .window.isWorkspaceActive()))
     }
@@ -665,39 +712,47 @@ impl Explorer
             const TextOptions = [ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression]
             page.addCommandLink(text.explore_Sort, SortOptions, .window, .theme().icon(.Sort, size))
             page.addCommandLink(text.explore_FilterByType, ViewerCommands.KindFilters, .window, .theme().icon(.Filter, size))
-            page.addCommandLink(text.ui_SearchOptions, TextOptions,
-                                .window, .theme().icon(.Search, size))
-            if .listing.isArchive do
+            page.addCommandLink(text.ui_SearchOptions, TextOptions, .window, .theme().icon(.Search, size))
+            if .listing.isArchive
+            {
                 page.addCommand(ViewerCommands.ExtractAll, .window)
+            }
         }
 
         if .isThumbnailView()
         {
             if not .listing.isArchive
             {
-            page.addLink(text.explore_Organization,
-                         .viewName(),
-                         func|view = me|(choices)
-                         {
-                                 for id in ViewerCommands.Boards do
+                page.addLink(text.explore_Organization,
+                             .viewName(),
+                             func|view = me|(choices)
+                             {
+                                 for id in ViewerCommands.Boards
+                                 {
                                      choices.addCommand(id, view.window)
-                         },
+                                 }
+                             },
                              icon: .theme().icon(.Grid, size))
-        }
+            }
 
             page.addCommandLink(text.explore_ThumbnailFraming, ViewerCommands.ThumbnailCrops, .window, .theme().icon(.CenterCrop, size))
         }
 
-        if .showsMedia() do
+        if .showsMedia()
+        {
             page.addCommandLink(text.explore_ArtworkSection, ViewerCommands.Artwork, .window, .theme().icon(.FileImage, size))
+        }
 
         page.addCommand(ViewerCommands.ThumbnailCaptions, .window)
     }
 
     mtd setTileCaption(show: bool)
     {
-        if .showTileCaption == show do
+        if .showTileCaption == show
+        {
             return
+        }
+
         .showTileCaption = show
         .grid.toolTip    = ""
         .grid.refreshLayout()
@@ -711,16 +766,22 @@ impl Explorer
 
     mtd setThumbnailCrop(mode: Image.SmartCropMode)
     {
-        if .thumbnailCrop == mode do
+        if .thumbnailCrop == mode
+        {
             return
+        }
+
         .thumbnailCrop = mode
         .grid.invalidate()
     }
 
     mtd setArtworkSource(source: ExplorerArtworkSource)
     {
-        if .artworkSource == source do
+        if .artworkSource == source
+        {
             return
+        }
+
         .artworkSource = source
         .refreshQuietMenus()
         .refreshPreviewSettings()
@@ -733,10 +794,14 @@ impl Explorer
     {
         .forced      = forced
         .forcedBoard = board
-        if .mode == .Names or .mode == .Details do
+        if .mode == .Names or .mode == .Details
+        {
             .setMode(.Medium)
-        else do
+        }
+        else
+        {
             .fill()
+        }
     }
 
     // Shows the orders of the listing under its menu: the column, then the direction, each one
@@ -749,8 +814,11 @@ impl Explorer
     {
         let text = appStrings()
         let menu = MenuCtrl.createPopup(me, owner: me)
-        for id in [ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize, ViewerCommands.SortModified] do
+        for id in [ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize, ViewerCommands.SortModified]
+        {
             menu.addRadioItem(sortCommandName(sortColumnOf(id)), id, checked: .sortColumn == sortColumnOf(id))
+        }
+
         menu.addSeparator()
         menu.addRadioItem(text.cmd_SortAscending, ViewerCommands.SortAscending, checked: not .descending)
         menu.addRadioItem(text.cmd_SortDescending, ViewerCommands.SortDescending, checked: .descending)
@@ -770,8 +838,10 @@ impl Explorer
         {
             let item = menu.addRadioItem(names[index], id, checked: cast(u64, .kindFilter) == index)
             item.icon = .theme().icon(kindFilterIcon(ExplorerKindFilterValues[index]), themeRowIconSize(.themeMetrics()))
-            if index == 0 do
+            if index == 0
+            {
                 menu.addSeparator()
+            }
         }
 
         discard menu.doModal(.kindMenu, autoDestroy: true)
@@ -796,8 +866,11 @@ impl Explorer
 
     mtd setKindFilter(filter: ExplorerKindFilter)
     {
-        if .kindFilter == filter do
+        if .kindFilter == filter
+        {
             return
+        }
+
         .kindFilter = filter
         .refreshQuietMenus()
         .fill()
@@ -806,20 +879,26 @@ impl Explorer
     // Sorts the published entries by index so selection, active jobs and cached tiles keep their identity.
     mtd sortBy(column: u32, descending: bool)
     {
-        if .sortColumn == column and .descending == descending do
+        if .sortColumn == column and .descending == descending
+        {
             return
+        }
+
         .sortColumn = column
         .descending = descending
         if .load.started
         {
-        .refreshQuietMenus()
+            .refreshQuietMenus()
             return
         }
 
         let explorer = me
         .sortOrder.resize(.entries.count)
-        for position in .sortOrder.count do
+        for position in .sortOrder.count
+        {
             .sortOrder[position] = position
+        }
+
         .sortOrder.sort(func|explorer, column, descending|(first, second)->s32
         {
             return explorer.entries[first].compareForSort(&explorer.entries[second], column, descending)
@@ -832,10 +911,14 @@ impl Explorer
     {
         let direction = .descending ? HeaderSortDirection.Descending : .Ascending
         .list.header.setSortIndicator(.sortColumn, direction)
-        if .archiveHeader.itemAt(.sortColumn).isClickable do
+        if .archiveHeader.itemAt(.sortColumn).isClickable
+        {
             .archiveHeader.setSortIndicator(.sortColumn, direction)
-        else do
+        }
+        else
+        {
             .archiveHeader.clearSortIndicator()
+        }
     }
 
     // Writes the order, filter, and presentation on their menus. The words of each name what the
@@ -898,8 +981,11 @@ impl Explorer
         let path    = .logicalPath(.listing.path)
         let location: String = .folder.isEmpty() ? String.from(path) : Format.toString("%/%", path, .folder)
         var trimmed = location.toString()
-        while trimmed.count > 1 and trimmed[trimmed.count - 1] == '/'u8 do
+        while trimmed.count > 1 and trimmed[trimmed.count - 1] == '/'_u8
+        {
             trimmed = trimmed[0 until trimmed.count - 1]
+        }
+
         return Path.fileName(trimmed) orelse trimmed
     }
 
@@ -920,8 +1006,11 @@ impl Explorer
     // Shows or hides the listing.
     mtd setShown(visible: bool)
     {
-        if not visible do
+        if not visible
+        {
             .clearFileDrag()
+        }
+
         .show(visible)
         .window.registerKeyShortcut(.None, .F5, visible ? ViewerCommands.Refresh : ViewerCommands.Reload)
         .updateWatchTimer()
@@ -961,16 +1050,25 @@ impl Explorer
 
     mtd chooseMusic()
     {
-        if .selected >= .entries.count do
+        if .selected >= .entries.count
+        {
             return
+        }
+
         let selected   = .selected
         let generation = .generation
         let previous   = .window.privacy.selectedMusicId(&.entries[selected])
         let dialog     = .createMusicChoiceDialog(previous)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
-        if generation != .generation or selected != .selected or selected >= .entries.count do
+        }
+
+        if generation != .generation or selected != .selected or selected >= .entries.count
+        {
             return
+        }
+
         let answer = dialog.text()
         let text   = Latin1.trim(answer.toString())
         if text.count and not validMusicId(text)
@@ -994,8 +1092,11 @@ impl Explorer
     // Describes the chosen item again in the window's sheet, when the sheet is showing.
     mtd showMediaInfo()
     {
-        if not .window.infoSheet.isLocallyVisible() do
+        if not .window.infoSheet.isLocallyVisible()
+        {
             return
+        }
+
         .window.refreshInformation()
     }
 
@@ -1010,8 +1111,11 @@ impl Explorer
     // Returns whether the selected filesystem item is the file now shown by the window.
     mtd describesFile(path: string)->bool
     {
-        if .listing.isArchive or .selected >= .entries.count do
+        if .listing.isArchive or .selected >= .entries.count
+        {
             return false
+        }
+
         var selectedPath = String.from(.entries[.selected].path)
         Path.normalize(&selectedPath)
         return Path.equals(selectedPath, path)
@@ -1027,8 +1131,11 @@ impl Explorer
             return
         }
 
-        if .grid.board != .Covers or .selected >= .entries.count do
+        if .grid.board != .Covers or .selected >= .entries.count
+        {
             return
+        }
+
         .window.setPlayMode(.Folder)
         let entry = &.entries[.selected]
         if not entry.albumTrack.isEmpty()
@@ -1044,13 +1151,19 @@ impl Explorer
     // shuffle, every track once before any comes again.
     mtd playAlbum(shuffle: bool)
     {
-        if shuffle do
+        if shuffle
+        {
             .window.setPlayMode(.Shuffle)
+        }
+
         for index in .shown
         {
             let entry = &.entries[index]
-            if entry.directory or .theme().fileGlyph(entry.name, false, 16).index != cast(s32, ThemeIcons.FileAudio) do
+            if entry.directory or .theme().fileGlyph(entry.name, false, 16).index != cast(s32, ThemeIcons.FileAudio)
+            {
                 continue
+            }
+
             .activate(index)
             return
         }
@@ -1060,10 +1173,15 @@ impl Explorer
     // or, without `all`, the chosen member or folder of the archive right there.
     mtd chooseExtraction(all: bool)
     {
-        if not .listing.isArchive or .extraction.started do
+        if not .listing.isArchive or .extraction.started
+        {
             return
-        if not all and .selected >= .entries.count do
+        }
+
+        if not all and .selected >= .entries.count
+        {
             return
+        }
 
         with var options: FileDlgOptions
         {
@@ -1073,8 +1191,11 @@ impl Explorer
         }
 
         let dialog = FileDlg.create(unwrap .window.surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
+
         let chosen = dialog.selectedPath()
         if all
         {
@@ -1090,9 +1211,12 @@ impl Explorer
     // Extracts into `target`: the whole archive with `all`, else the chosen member or folder.
     mtd extractTo(target: string, all: bool)
     {
-        if not .listing.isArchive or .extraction.started do
+        if not .listing.isArchive or .extraction.started
+        {
             return
-        var members: Array'Viewers.Archive.ZipEntry
+        }
+
+        var members: Array!{Viewers.Archive.ZipEntry}
         var strip:   String
         if all
         {
@@ -1100,16 +1224,21 @@ impl Explorer
         }
         else
         {
-            if .selected >= .entries.count do
+            if .selected >= .entries.count
+            {
                 return
+            }
+
             let entry = &.entries[.selected]
             strip = .folder
             if entry.directory
             {
-                for &member in .listing.archive.entries where Utf8.startsWith(member.path, entry.path) do
+                for &member in .listing.archive.entries where Utf8.startsWith(member.path, entry.path)
+                {
                     members.add(member[])
+                }
             }
-            elif entry.archiveIndex < .listing.archive.entries.count
+            else if entry.archiveIndex < .listing.archive.entries.count
             {
                 members.add(.listing.archive.entries[entry.archiveIndex])
             }
@@ -1123,8 +1252,11 @@ impl Explorer
     {
         .extraction.wait()
         let text = appStrings()
-        if not .toast do
+        if not .toast
+        {
             .toast = Toast.create(me, "scope.explorer.toast")
+        }
+
         if not .extraction.error.isEmpty()
         {
             .toast.show(text.explore_ExtractFailed, .extraction.error, .Failure)
@@ -1132,22 +1264,34 @@ impl Explorer
         }
 
         var message: String
-        if .extraction.written == 1 do
+        if .extraction.written == 1
+        {
             message = String.from(text.explore_ExtractedOne)
-        else do
+        }
+        else
+        {
             message = Format.toString(text.explore_Extracted, .extraction.written)
-        if .extraction.kept do
+        }
+
+        if .extraction.kept
+        {
             message = Format.toString(text.explore_ExtractedKept, message, .extraction.kept)
+        }
+
         .toast.show(message, .extraction.target)
     }
 
     // Gives the keyboard to the listing, in whichever form it is shown.
     mtd focusContent()
     {
-        if .list.isLocallyVisible() do
+        if .list.isLocallyVisible()
+        {
             .list.setFocus()
-        else do
+        }
+        else
+        {
             .grid.setFocus()
+        }
     }
 
     mtd retranslate()
@@ -1184,8 +1328,10 @@ impl Explorer
             if wasPrivate and not .privateView
             {
                 .filter.setText("", notify: false)
-                if .window.isExploring() do
+                if .window.isExploring()
+                {
                     .window.searchBox.setText("", notify: false)
+                }
             }
 
             .restoringView = false
@@ -1204,24 +1350,41 @@ impl Explorer
         .pendingOpen     = Swag.U64.Max
         .requested       = path
         .requestedFolder = folder
-        if .window.isExploring() do
+        if .window.isExploring()
+        {
             .window.workspace?.updateDocumentPath(.window, .sourceArchivePath(path))
-        .refreshPending  = false
-        if remember do
+        }
+
+        .refreshPending = false
+        if remember
+        {
             .history.push(Format.toString("%\n%", path, folder))
+        }
+
         .window.refreshExplorerCaption()
         .setStatus(appStrings().explore_Loading)
-        if not .load.started do
+        if not .load.started
+        {
             .startListing()
+        }
     }
 
     mtd rememberView()
     {
-        if .load.started or .listing.path.isEmpty() or not Path.equals(.listing.path, .requested) or
-           .folder != .requestedFolder or .failure.isLocallyVisible() do
+        if .load.started or
+           .listing.path.isEmpty() or
+           not Path.equals(.listing.path, .requested) or
+           .folder != .requestedFolder or
+           .failure.isLocallyVisible()
+        {
             return
-        if not .window.privacy.mayRemember(.listing.path) do
+        }
+
+        if not .window.privacy.mayRemember(.listing.path)
+        {
             .privateView = true
+        }
+
         .window.privacy.rememberFolderView(ExplorerFolderState.capture(me), transient: .privateView)
     }
 
@@ -1229,14 +1392,21 @@ impl Explorer
     // media on shares whose timestamps do not change when their contents do.
     mtd forceRefresh()
     {
-        if .requested.isEmpty() do
+        if .requested.isEmpty()
+        {
             return
+        }
+
         .previewEpoch = Time.Timestamp.utcNow().ticks
         .previewSettings.clear()
-        if .load.started do
+        if .load.started
+        {
             .refreshPending = true
-        else do
+        }
+        else
+        {
             .reloadListing()
+        }
     }
 
     private mtd reloadListing()
@@ -1251,19 +1421,26 @@ impl Explorer
         {
             .stopTimer(&.watchTimer)
         }
-        elif not .load.started
+        else if not .load.started
         {
-            if not .load.watcher.isOpen() do
+            if not .load.watcher.isOpen()
+            {
                 .stopTimer(&.watchTimer)
-            elif not .watchTimer do
-                .watchTimer = .addTimer(250'ms)
+            }
+            else if not .watchTimer
+            {
+                .watchTimer = .addTimer(250_ms)
+            }
         }
     }
 
     mtd clearCaches(root: string = "")
     {
-        if .clearingCaches do
+        if .clearingCaches
+        {
             return
+        }
+
         .clearingCaches = true
         .cacheRoot      = root
         .previewEpoch   = Time.Timestamp.utcNow().ticks
@@ -1281,10 +1458,16 @@ impl Explorer
 
     private mtd startCacheClearWhenIdle()
     {
-        if not .clearingCaches or .cacheClear.started do
+        if not .clearingCaches or .cacheClear.started
+        {
             return
-        for preview in .previews where preview.started do
+        }
+
+        for preview in .previews where preview.started
+        {
             return
+        }
+
         .cacheClear.start(me, .cacheRoot)
     }
 
@@ -1309,8 +1492,11 @@ impl Explorer
     mtd locationText()->String
     {
         let path = .logicalPath(.listing.path)
-        if .folder.isEmpty() do
+        if .folder.isEmpty()
+        {
             return path
+        }
+
         return Format.toString("%/%", path, .folder)
     }
 
@@ -1318,8 +1504,11 @@ impl Explorer
 
     mtd sourceArchivePath(path: string)->string
     {
-        for file in .temporaryFiles where file.file == path do
+        for file in .temporaryFiles where file.file == path
+        {
             return file.archive
+        }
+
         return path
     }
 
@@ -1331,10 +1520,16 @@ impl Explorer
     mtd navigateTyped(text: string)->bool
     {
         var typed = Latin1.trim(text)
-        if typed.count >= 2 and typed[0] == '"'u8 and typed[typed.count - 1] == '"'u8 do
+        if typed.count >= 2 and typed[0] == '"'_u8 and typed[typed.count - 1] == '"'_u8
+        {
             typed = typed[1 until typed.count - 1]
-        if .locationText() == typed and typed.count do
+        }
+
+        if .locationText() == typed and typed.count
+        {
             return true
+        }
+
         if .listing.isArchive
         {
             let archive = .logicalPath(.listing.path)
@@ -1356,8 +1551,11 @@ impl Explorer
                     return true
                 }
 
-                if not Utf8.endsWith(member, "/") do
-                    member += '/'u8
+                if not Utf8.endsWith(member, "/")
+                {
+                    member += '/'_u8
+                }
+
                 for &entry in .listing.archive.entries where Utf8.startsWith(entry.path, member)
                 {
                     .navigate(.listing.path, member)
@@ -1368,17 +1566,27 @@ impl Explorer
             }
         }
 
-        if not Path.isValidPathName(typed) do
+        if not Path.isValidPathName(typed)
+        {
             return false
+        }
+
         let base     = .listing.isArchive ? (Path.directoryName(.listing.path) orelse "") : .listing.path.toString()
         let path     = Path.isRooted(typed) ? String.from(typed) : Path.combine(base, typed)
         let absolute = catch Path.absolute(path) { return false }
-        if Directory.exists(absolute) do
+        if Directory.exists(absolute)
+        {
             .navigate(absolute)
-        elif File.exists(absolute) do
+        }
+        else if File.exists(absolute)
+        {
             .window.queueFile(absolute)
-        else do
+        }
+        else
+        {
             return false
+        }
+
         return true
     }
 
@@ -1394,15 +1602,21 @@ impl Explorer
         let message = appStrings().explore_NotFound
         .address.edit.toolTip = message
         .address.edit.setValidator(func||(_) => .InvalidVisible)
-        if not .toast do
+        if not .toast
+        {
             .toast = Toast.create(me, "scope.explorer.toast")
+        }
+
         .toast.show(message, "")
     }
 
     private mtd clearAddressError()
     {
-        if .address.edit.isValid() do
+        if .address.edit.isValid()
+        {
             return
+        }
+
         .address.edit.toolTip = ""
         .address.edit.setValidator(null)
     }
@@ -1412,10 +1626,16 @@ impl Explorer
         .address.endEdit()
         let initialFolder = .listing.isArchive ? (Path.directoryName(.nativeArchivePath()) orelse "") : .listing.path.toString()
         let chosen        = .window.selectExplorerFolder(initialFolder)
-        if chosen.isEmpty() do
+        if chosen.isEmpty()
+        {
             return
-        if .listing.isArchive or not Path.equals(chosen, .listing.path) do
+        }
+
+        if .listing.isArchive or not Path.equals(chosen, .listing.path)
+        {
             .navigate(chosen)
+        }
+
         .focusContent()
     }
 
@@ -1438,8 +1658,11 @@ impl Explorer
             break
         }
 
-        if path.count == 0 do
+        if path.count == 0
+        {
             return
+        }
+
         if .listing.isArchive and path == .listing.path
         {
             let archive  = .logicalPath(path)
@@ -1454,8 +1677,11 @@ impl Explorer
 
     mtd showEntryMenu(row: u64, position: Math.Point)
     {
-        if .load.started or row >= .shown.count do
+        if .load.started or row >= .shown.count
+        {
             return
+        }
+
         if .window.workspace and .selectionPaths().count > 1
         {
             let menu = MenuCtrl.createPopup(me, owner: .window)
@@ -1463,6 +1689,7 @@ impl Explorer
             discard menu.doModal(position, autoDestroy: true)
             return
         }
+
         if .isThumbnailView()
         {
             .grid.select(row)
@@ -1482,7 +1709,7 @@ impl Explorer
             let location = Format.toString("%/%", archive, path)
             .showLocationMenu(location, position, archive: .nativeArchivePath())
         }
-        elif entry.directory
+        else if entry.directory
         {
             .showLocationMenu(path, position, directory: true)
         }
@@ -1495,7 +1722,7 @@ impl Explorer
     private mtd showLocationMenu(path: string, position: Math.Point, directory = false, archive: string = "")
     {
         let stableArchive = String.from(archive)
-        let menu          = MenuCtrl.createPopup(me, owner: me)
+        let menu = MenuCtrl.createPopup(me, owner: me)
         .window.addLocationActions(menu, directory, not stableArchive.isEmpty())
         let location = String.from(path)
         let chosen   = menu.doModal(position, autoDestroy: true, dispatchCommand: false)
@@ -1510,14 +1737,17 @@ impl Explorer
     {
         let breadcrumb = .address.breadcrumb
         breadcrumb.clear()
-        var ancestors: Array'String
+        var ancestors: Array!{String}
         var path = .listing.path.toString()
         while path.count
         {
             ancestors.add(path)
             let parent = Path.directoryName(path) orelse ""
-            if not parent.count or parent == path do
+            if not parent.count or parent == path
+            {
                 break
+            }
+
             path = parent
         }
 
@@ -1533,7 +1763,7 @@ impl Explorer
         if .listing.isArchive
         {
             var begin: u64
-            for offset in .folder.length where .folder[offset] == '/'u8
+            for offset in .folder.length where .folder[offset] == '/'_u8
             {
                 breadcrumb.addItem(.folder.toString()[begin until offset],
                                    hasArrow: offset + 1 < .folder.length,
@@ -1551,13 +1781,16 @@ impl Explorer
     mtd fillBreadcrumbMenu(index: u64, menu: *MenuCtrl)
     {
         let breadcrumb = .address.breadcrumb
-        if index >= breadcrumb.items.count do
+        if index >= breadcrumb.items.count
+        {
             return
+        }
+
         let location = breadcrumb.items[index].tag.toString()
         let split    = Utf8.indexOf(location, "\n")
         let path     = location[0 until split]
         let folder   = location[split + 1 to]
-        var children: Array'ExplorerEntry
+        var children: Array!{ExplorerEntry}
         if .listing.isArchive and path == .listing.path.toString()
         {
             children = .listing.children(folder)
@@ -1569,9 +1802,11 @@ impl Explorer
                 return
             }
 
-            for directory in directories do
+            for directory in directories
+            {
                 children.add({name: Path.fileName(directory.fullName) orelse directory.fullName.toString(),
                               path: directory.fullName, directory: true})
+            }
         }
 
         children.sort(func(a, b)->s32 { return Text.compareNames(a.name, b.name) })
@@ -1596,20 +1831,27 @@ impl Explorer
 
     mtd goBack()
     {
-        if .history.canGoBack() do
+        if .history.canGoBack()
+        {
             .visit(.history.goBack())
+        }
     }
 
     mtd goForward()
     {
-        if .history.canGoForward() do
+        if .history.canGoForward()
+        {
             .visit(.history.goForward())
+        }
     }
 
     mtd goUp()
     {
-        if not .canGoUp() do
+        if not .canGoUp()
+        {
             return
+        }
+
         if .listing.isArchive and not .folder.isEmpty()
         {
             let trimmed = .folder.toString()[0 until .folder.length - 1]
@@ -1625,24 +1867,32 @@ impl Explorer
             else
             {
                 let parent = Path.directoryName(.listing.path) orelse ""
-                if parent.count do
+                if parent.count
+                {
                     .navigate(parent)
+                }
             }
         }
     }
 
     mtd canGoUp()->bool
     {
-        if .listing.isArchive and (not .folder.isEmpty() or .history.canGoBack()) do
+        if .listing.isArchive and (not .folder.isEmpty() or .history.canGoBack())
+        {
             return true
+        }
+
         let parent = Path.directoryName(.listing.path) orelse ""
         return parent.count != 0 and parent != .listing.path.toString()
     }
 
     private mtd clearTextures()
     {
-        for &entry in .entries where entry.texture.isValid() do
+        for &entry in .entries where entry.texture.isValid()
+        {
             .app().renderer.removeTexture(&entry.texture)
+        }
+
         .cached.clear()
     }
 
@@ -1660,10 +1910,15 @@ impl Explorer
         .updateBreadcrumb()
 
         .updateSortIndicators()
-        if entering and not .restoringView do
+        if entering and not .restoringView
+        {
             .setMode(.Details)
-        else do
+        }
+        else
+        {
             .setMode(.mode)
+        }
+
         .scroll.setScrollPos(0, 0)
         if .restoringView
         {
@@ -1682,16 +1937,24 @@ impl Explorer
         for index in .shown
         {
             let entry = &.entries[index]
-            if entry.directory do
+            if entry.directory
+            {
                 continue
+            }
+
             files += 1
             var pluginIndex: u64
-            if .window.index.namePlugin(entry.path, &pluginIndex) and .window.index.plugins[pluginIndex].key == "video" do
+            if .window.index.namePlugin(entry.path, &pluginIndex) and .window.index.plugins[pluginIndex].key == "video"
+            {
                 films += 1
+            }
         }
 
-        if films * 2 > files do
+        if films * 2 > files
+        {
             return ExplorerFilmPreviewAspect
+        }
+
         return ExplorerTilePreviewAspect
     }
 
@@ -1700,29 +1963,50 @@ impl Explorer
     // belong to the same, and anything else uses an even grid.
     mtd listingBoard()->ExplorerBoard
     {
-        if .listing.isArchive do
+        if .listing.isArchive
+        {
             return .Grid
-        if .forced do
+        }
+
+        if .forced
+        {
             return .forcedBoard
-        if .kindFilter == .Videos do
+        }
+
+        if .kindFilter == .Videos
+        {
             return .Posters
-        if .kindFilter == .Images do
+        }
+
+        if .kindFilter == .Images
+        {
             return .Grid
-        if .kindFilter == .Audio do
+        }
+
+        if .kindFilter == .Audio
+        {
             return .Covers
+        }
+
         var files, films, sounds: u64
         var album: String
         var oneAlbum = true
         for index in .shown
         {
             let entry = &.entries[index]
-            if entry.directory and entry.albumTrack.isEmpty() and entry.children == Swag.U64.Max do
+            if entry.directory and entry.albumTrack.isEmpty() and entry.children == Swag.U64.Max
+            {
                 continue
+            }
+
             files += 1
             if entry.directory
             {
-                if not entry.albumTrack.isEmpty() do
+                if not entry.albumTrack.isEmpty()
+                {
                     sounds += 1
+                }
+
                 oneAlbum = false
                 continue
             }
@@ -1732,35 +2016,56 @@ impl Explorer
             {
                 films += 1
             }
-            elif kind == cast(s32, ThemeIcons.FileAudio)
+            else if kind == cast(s32, ThemeIcons.FileAudio)
             {
                 sounds += 1
-                if entry.music.title.isEmpty() do
+                if entry.music.title.isEmpty()
+                {
                     oneAlbum = false
-                elif album.isEmpty() do
+                }
+                else if album.isEmpty()
+                {
                     album = entry.music.title
-                elif album != entry.music.title do
+                }
+                else if album != entry.music.title
+                {
                     oneAlbum = false
+                }
             }
         }
 
-        if not files do
+        if not files
+        {
             return .Grid
-        if films * 2 > files do
+        }
+
+        if films * 2 > files
+        {
             return .Posters
-        if sounds * 2 > files do
+        }
+
+        if sounds * 2 > files
+        {
             return oneAlbum and sounds >= 2 ? .Album : .Covers
+        }
+
         return .Grid
     }
 
     mtd entryIcon(index: u64, size: f32 = 16)->Icon
     {
         let entry = &.entries[index]
-        if entry.directory do
+        if entry.directory
+        {
             return .theme().icon(.Folder, size)
+        }
+
         var pluginIndex: u64
-        if .window.index.namePlugin(entry.path, &pluginIndex) do
+        if .window.index.namePlugin(entry.path, &pluginIndex)
+        {
             return .window.pluginIcon(&.window.index.plugins[pluginIndex], size)
+        }
+
         return .theme().icon(.OpenFile, size)
     }
 
@@ -1768,16 +2073,27 @@ impl Explorer
     private mtd matchesKind(index: u64)->bool
     {
         let entry = &.entries[index]
-        if .kindFilter == .All do
+        if .kindFilter == .All
+        {
             return true
-        if .kindFilter == .Folders do
+        }
+
+        if .kindFilter == .Folders
+        {
             return entry.directory
-        if entry.directory do
+        }
+
+        if entry.directory
+        {
             return true
+        }
 
         var pluginIndex: u64
-        if not .window.index.namePlugin(entry.path, &pluginIndex) do
+        if not .window.index.namePlugin(entry.path, &pluginIndex)
+        {
             return false
+        }
+
         let key   = .window.index.plugins[pluginIndex].key
         let glyph = .theme().fileGlyph(entry.name, false, 16).index
         switch .kindFilter
@@ -1817,35 +2133,51 @@ impl Explorer
                                            regularExpression: .window.searchRegexOption}
         let validPattern = Viewer.patternIsValid(query, options)
         var matcher: Text.NameMatcher
-        if query.count and validPattern do
+        if query.count and validPattern
+        {
             matcher = assume Viewer.createNameMatcher(query, options)
+        }
 
-        var matches: Array'Viewer.SearchMatch
+        var matches: Array!{Viewer.SearchMatch}
         let sorted = .sortOrder.count == .entries.count
         for position in .entries.count
         {
             let index = sorted ? .sortOrder[position] : position
             let entry = &.entries[index]
-            if not .matchesKind(index) do
+            if not .matchesKind(index)
+            {
                 continue
+            }
+
             if query.count
             {
-                if not validPattern do
+                if not validPattern
+                {
                     continue
+                }
+
                 matches.clear()
                 Viewer.collectTextMatches(entry.name, &matcher, 0, 0, 0, &matches)
-                if matches.isEmpty() do
+                if matches.isEmpty()
+                {
                     continue
+                }
             }
 
             .shown.add(index)
         }
 
         var selectionVisible = false
-        for index in .shown where index == .selected do
+        for index in .shown where index == .selected
+        {
             selectionVisible = true
-        if not selectionVisible do
+        }
+
+        if not selectionVisible
+        {
             .selected = Swag.U64.Max
+        }
+
         .previewAspect = .listingPreviewAspect()
         .holdsMedia    = false
         for index in .shown
@@ -1874,13 +2206,16 @@ impl Explorer
         // presentation; the count must still describe every item left on the page.
         if .shown.count > 1 and not .forced
         {
-            var albums: Array'String
+            var albums: Array!{String}
             var tracks, albumFolders, films: u64
             for index in .shown
             {
                 let entry = &.entries[index]
-                if isFilmFile(entry) do
+                if isFilmFile(entry)
+                {
                     films += 1
+                }
+
                 if not entry.albumTrack.isEmpty()
                 {
                     albumFolders += 1
@@ -1892,32 +2227,50 @@ impl Explorer
                 {
                     tracks += 1
                     var known = false
-                    for one in albums where one[] == entry.music.title do
+                    for one in albums where one[] == entry.music.title
+                    {
                         known = true
-                    if not known do
+                    }
+
+                    if not known
+                    {
                         albums.add(entry.music.title.isEmpty() ? entry.name : entry.music.title)
+                    }
                 }
             }
 
-            if board == .Covers and albumFolders == .shown.count do
+            if board == .Covers and albumFolders == .shown.count
+            {
                 count = Format.toString(appStrings().explore_Albums, albumFolders)
-            elif board == .Covers and tracks == .shown.count do
+            }
+            else if board == .Covers and tracks == .shown.count
+            {
                 count = Format.toString("% · %", Format.toString(appStrings().explore_Albums, albums.count), Format.toString(appStrings().explore_Tracks, tracks))
-            elif board == .Album and tracks == .shown.count do
+            }
+            else if board == .Album and tracks == .shown.count
+            {
                 count = Format.toString(appStrings().explore_Tracks, tracks)
-            elif board == .Posters and films == .shown.count do
+            }
+            else if board == .Posters and films == .shown.count
+            {
                 count = Format.toString(appStrings().explore_Films, films)
+            }
         }
 
         // A folder says what its files weigh; an archive what it weighs packed and what it will
         // weigh once extracted.
         if not .listing.isArchive and .shown.count
         {
-            var weight = 0'u64
-            for index in .shown where not .entries[index].directory do
+            var weight = 0_u64
+            for index in .shown where not .entries[index].directory
+            {
                 weight += .entries[index].size
-            if weight do
+            }
+
+            if weight
+            {
                 count = Format.toString("% · %", count, StrConv.toDisplaySize(weight))
+            }
         }
 
         if .listing.isArchive and .shown.count
@@ -1946,8 +2299,10 @@ impl Explorer
     private mtd fitNameColumn()
     {
         let width = .list.listView.paddedClientRect().width
-        if width > 0 and .list.header.itemWidthForColumn(0) != width do
+        if width > 0 and .list.header.itemWidthForColumn(0) != width
+        {
             .list.header.setItemWidthForColumn(0, width)
+        }
     }
 
     mtd setMode(mode: ExplorerMode)
@@ -1967,11 +2322,12 @@ impl Explorer
             .list.scrollWnd.updateFlags(.DisableHorizontal)
             .fitNameColumn()
         }
-        elif mode != .Names and namesOnly
+        else if mode != .Names and namesOnly
         {
             .list.header.setItemWidthForColumn(0, .detailNameWidth)
             .list.scrollWnd.updateFlags(remove: .DisableHorizontal)
         }
+
         .refreshQuietMenus()
 
         // Archive details keep their compression readings in a dedicated column.
@@ -1983,8 +2339,10 @@ impl Explorer
         .scroll.show(not rows)
         .applyLayout()
         .fill()
-        if changed do
+        if changed
+        {
             .rememberView()
+        }
     }
 
     mtd isThumbnailView()->bool => .mode != .Names and .mode != .Details
@@ -1994,8 +2352,10 @@ impl Explorer
         let source = .dragSource
         .dragSource = null
         .dragPath.clear()
-        if source and source.mouseCapture() == source do
+        if source and source.mouseCapture() == source
+        {
             source.releaseMouse()
+        }
     }
 
     // Leaves ordinary clicks to the list or grid. Capture lets the drag start even when the
@@ -2005,8 +2365,10 @@ impl Explorer
         if evt.kind == .Pressed and evt.button == .Left
         {
             .clearFileDrag()
-            if .listing.isArchive do
+            if .listing.isArchive
+            {
                 return false
+            }
 
             let row = source == .grid ? .grid.rowAt(source.surfaceToLocal(evt.surfacePos)) : cast(u64, .list.rowAt(evt.surfacePos))
             if row < .shown.count
@@ -2024,8 +2386,10 @@ impl Explorer
             return false
         }
 
-        if .dragSource != source do
+        if .dragSource != source
+        {
             return false
+        }
 
         if evt.kind == .Released and evt.button == .Left
         {
@@ -2033,16 +2397,21 @@ impl Explorer
             if inside and evt.modifiers == .None
             {
                 let row = source == .grid ? .grid.rowAt(source.surfaceToLocal(evt.surfacePos)) : cast(u64, .list.rowAt(evt.surfacePos))
-                if row < .shown.count and .entries[.shown[row]].path == .dragPath do
+                if row < .shown.count and .entries[.shown[row]].path == .dragPath
+                {
                     discard .window.workspace?.openLinkedExplorerFile(.window, .dragPath, singleClick: true) orelse false
+                }
             }
 
             .clearFileDrag()
             return not inside
         }
 
-        if evt.kind != .Move do
+        if evt.kind != .Move
+        {
             return false
+        }
+
         if source.mouseCapture() != source
         {
             .clearFileDrag()
@@ -2051,8 +2420,10 @@ impl Explorer
 
         // Polled input reports the new button state on a move before delivering the release.
         // Only the release can finish a click while this control still has capture.
-        if not .app().mouse.isButtonPressed(.Left) or not source.exceedsDragThreshold(.dragOrigin, evt.surfacePos) do
+        if not .app().mouse.isButtonPressed(.Left) or not source.exceedsDragThreshold(.dragOrigin, evt.surfacePos)
+        {
             return false
+        }
 
         var data: DragData
         data.addFile(.dragPath)
@@ -2069,10 +2440,14 @@ impl Explorer
         {
             if preview.started and preview.generation == .generation and preview.index < .entries.count
             {
-                if preview.online do
+                if preview.online
+                {
                     .entries[preview.index].onlinePending = true
-                else do
+                }
+                else
+                {
                     .entries[preview.index].attempted = false
+                }
             }
 
             preview.task.cancel()
@@ -2081,8 +2456,11 @@ impl Explorer
 
     mtd leave()
     {
-        if .isLocallyVisible() do
+        if .isLocallyVisible()
+        {
             .rememberView()
+        }
+
         .suspend()
         .generation  += 1
         .pendingOpen = Swag.U64.Max
@@ -2090,8 +2468,11 @@ impl Explorer
 
     mtd displayPath(path: string)->string
     {
-        for file in .temporaryFiles where file.file == path do
+        for file in .temporaryFiles where file.file == path
+        {
             return file.title
+        }
+
         return path
     }
 
@@ -2099,8 +2480,11 @@ impl Explorer
     // Path operations consume this name; filesystem operations still consume the temporary file.
     mtd logicalPath(path: string)->string
     {
-        for file in .temporaryFiles where file.file == path do
+        for file in .temporaryFiles where file.file == path
+        {
             return file.path
+        }
+
         return path
     }
 
@@ -2111,10 +2495,16 @@ impl Explorer
         {
             let file     = &.temporaryFiles[index]
             var retained = .listing.path == file.file
-            for location in .history.entries where Utf8.startsWith(location[], file.file) do
+            for location in .history.entries where Utf8.startsWith(location[], file.file)
+            {
                 retained = true
-            if retained do
+            }
+
+            if retained
+            {
                 continue
+            }
+
             catch File.delete(file.file)
             .temporaryFiles.removeAtOrdered(index)
         }
@@ -2125,8 +2515,11 @@ impl Explorer
         .grid.hovered = Swag.U64.Max
         let tiles = .isThumbnailView() or .grid.rows
         var range: #decltype(.grid.visibleRange())
-        if tiles do
+        if tiles
+        {
             range = .grid.visibleRange()
+        }
+
         for preview in .previews where preview.started and not preview.opening and preview.generation == .generation
         {
             var visible = not tiles and preview.index == .selected
@@ -2136,19 +2529,25 @@ impl Explorer
                 break
             }
 
-            if visible do
+            if visible
+            {
                 continue
+            }
 
             if preview.index < .entries.count
+            {
+                if preview.online
                 {
-                    if preview.online do
-                        .entries[preview.index].onlinePending = true
-                    else do
-                        .entries[preview.index].attempted = false
+                    .entries[preview.index].onlinePending = true
                 }
+                else
+                {
+                    .entries[preview.index].attempted = false
+                }
+            }
 
-                preview.generation = Swag.U64.Max
-                preview.task.cancel()
+            preview.generation = Swag.U64.Max
+            preview.task.cancel()
         }
 
         .requestPreview()
@@ -2157,18 +2556,24 @@ impl Explorer
     mtd isSelected(index: u64)->bool =>
         .selectedFiles.isEmpty() ? .selected == index : .selectedFiles.contains(index)
 
-    mtd selectionPaths()->Array'String
+    mtd selectionPaths()->Array!{String}
     {
         var result: #returntype
-        if .listing.isArchive or not .window.workspace do
+        if .listing.isArchive or not .window.workspace
+        {
             return result
+        }
+
         let rows = .list.isLocallyVisible()
         for index, row in .shown where not .entries[index].directory
         {
             let selected = rows ? .list.isLineSelected(cast(u32, row)) : .isSelected(index)
-            if selected do
+            if selected
+            {
                 result.add(.entries[index].path)
+            }
         }
+
         return result
     }
 
@@ -2180,30 +2585,41 @@ impl Explorer
             .window.workspace!.openScene(paths.toSlice(), compare ? .SideBySide : .Auto, compare)
             return
         }
+
         .activate(.selected)
     }
 
     mtd activate(index: u64)
     {
-        if .load.started or index >= .entries.count do
+        if .load.started or index >= .entries.count
+        {
             return
+        }
+
         let entry = &.entries[index]
         if entry.directory
         {
-            if not .isLocallyVisible() do
+            if not .isLocallyVisible()
+            {
                 .window.closeFile()
-            if .listing.isArchive do
+            }
+
+            if .listing.isArchive
+            {
                 .navigate(.listing.path, entry.path)
-            else do
+            }
+            else
+            {
                 .navigate(entry.path)
+            }
         }
-        elif .listing.isArchive
+        else if .listing.isArchive
         {
             .leave()
             .pendingOpen = index
             .requestPreview()
         }
-        elif not (.window.workspace?.openLinkedExplorerFile(.window, entry.path) orelse false)
+        else if not (.window.workspace?.openLinkedExplorerFile(.window, entry.path) orelse false)
         {
             .window.resumeFile(entry.path, fromHistory: false)
         }
@@ -2221,22 +2637,29 @@ impl Explorer
     // Submit every useful visible preview; the runtime admits background work for the host.
     mtd requestPreview()
     {
-        if .clearingCaches or .load.started or (.shown.isEmpty() and .pendingOpen == Swag.U64.Max) do
+        if .clearingCaches or .load.started or (.shown.isEmpty() and .pendingOpen == Swag.U64.Max)
+        {
             return
+        }
+
         .refreshPreviewSettings()
 
         for preview in .previews where not preview.started
         {
-            if not .startPreview(preview) do
+            if not .startPreview(preview)
+            {
                 return
+            }
         }
 
         for
         {
-            let preview = Memory.new'ExplorerPreview()
+            let preview = Memory.new!{ExplorerPreview}()
             .previews.add(preview)
-            if not .startPreview(preview) do
+            if not .startPreview(preview)
+            {
                 return
+            }
         }
     }
 
@@ -2245,12 +2668,16 @@ impl Explorer
         let settings = ThumbnailSettings.capture(.window,
                                                  localArtworkOnly: .artworkSource == .Local,
                                                  previewEpoch: .previewEpoch)
-        if .previewSettings == settings do
+        if .previewSettings == settings
+        {
             return
+        }
 
         // The first snapshot precedes all jobs; later changes retire every old publication.
-        if not .previewSettings.isEmpty() do
+        if not .previewSettings.isEmpty()
+        {
             .retirePreviews()
+        }
 
         .previewSettings = settings
     }
@@ -2260,10 +2687,14 @@ impl Explorer
         // Extracting an opened archive member does not depend on its thumbnail appearance.
         for preview in .previews
         {
-            if preview.opening and preview.generation == .generation do
+            if preview.opening and preview.generation == .generation
+            {
                 preview.generation += 1
-            else do
+            }
+            else
+            {
                 preview.task.cancel()
+            }
         }
 
         .generation += 1
@@ -2286,15 +2717,21 @@ impl Explorer
         for preview, slot in .previews where preview.started and
                                              not preview.opening and
                                              preview.generation == .generation and
-                                             preview.index == index do
+                                             preview.index == index
+        {
             return slot
+        }
+
         return Swag.U64.Max
     }
 
     private mtd startPreview(preview: *ExplorerPreview)->bool
     {
-        if .load.started or (not .isVisible() and .pendingOpen == Swag.U64.Max) do
+        if .load.started or (not .isVisible() and .pendingOpen == Swag.U64.Max)
+        {
             return false
+        }
+
         var wanted  = .pendingOpen
         var online  = false
         let opening = wanted != Swag.U64.Max
@@ -2302,8 +2739,11 @@ impl Explorer
         {
             if .mode == .Names or .mode == .Details
             {
-                if .selected >= .entries.count do
+                if .selected >= .entries.count
+                {
                     return false
+                }
+
                 let selected = &.entries[.selected]
                 var pluginIndex: u64
                 let movie    = File.exists(selected.path) and
@@ -2313,8 +2753,11 @@ impl Explorer
                 if (selected.directory and selected.albumTrack.isEmpty()) or
                    (selected.attempted and not selected.onlinePending) or
                    not (movie or music or .grid.rows) or
-                   .previewSlot(.selected) != Swag.U64.Max do
+                   .previewSlot(.selected) != Swag.U64.Max
+                {
                     return false
+                }
+
                 wanted = .selected
                 online = selected.onlinePending
             }
@@ -2353,8 +2796,11 @@ impl Explorer
             }
         }
 
-        if wanted >= .entries.count do
+        if wanted >= .entries.count
+        {
             return false
+        }
+
         if not opening and not online and .cached.count >= 128
         {
             let range = .grid.visibleRange()
@@ -2362,8 +2808,11 @@ impl Explorer
             for cached, position in .cached
             {
                 var visible = false
-                for row in Math.min(range.first, .shown.count) until Math.min(range.end, .shown.count) where .shown[row] == cached do
+                for row in Math.min(range.first, .shown.count) until Math.min(range.end, .shown.count) where .shown[row] == cached
+                {
                     visible = true
+                }
+
                 if not visible
                 {
                     evict = position
@@ -2371,19 +2820,27 @@ impl Explorer
                 }
             }
 
-            if evict == Swag.U64.Max do
+            if evict == Swag.U64.Max
+            {
                 return false
+            }
+
             let old = .cached[evict]
             .app().renderer.removeTexture(&.entries[old].texture)
             .entries[old].attempted = false
             .cached.removeAtOrdered(evict)
-            if old == .selected do
+            if old == .selected
+            {
                 .showMediaInfo()
+            }
         }
 
         let entry = &.entries[wanted]
-        if .listing.isArchive and entry.archiveIndex >= .listing.archive.entries.count do
+        if .listing.isArchive and entry.archiveIndex >= .listing.archive.entries.count
+        {
             return false
+        }
+
         .pendingOpen        = Swag.U64.Max
         preview.path        = entry.path
         preview.mediaFile   = entry.albumTrack
@@ -2393,8 +2850,11 @@ impl Explorer
         preview.settings    = ThumbnailSettings.capture(.window, entry, localArtworkOnly: .artworkSource == .Local, previewEpoch: .previewEpoch)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
         preview.privacy     = .listing.isArchive ? .window.privacy.policy(.listing.path) : {}
-        if .listing.isArchive do
+        if .listing.isArchive
+        {
             preview.entry = .listing.archive.entries[entry.archiveIndex]
+        }
+
         if not opening and
            not online and
            preview.archivePath.isEmpty() and
@@ -2402,14 +2862,19 @@ impl Explorer
            Reader.canOpen(entry.path)
         {
             let settings = catch ThumbnailSettings.decode(preview.settings) orelse {}
-            if onlinePreviewWanted(entry.path, &settings, entry.duration) do
+            if onlinePreviewWanted(entry.path, &settings, entry.duration)
+            {
                 online = true
+            }
         }
 
         preview.online  = online
         entry.attempted = true
-        if online do
+        if online
+        {
             entry.onlinePending = false
+        }
+
         preview.start(me, durationHint: entry.duration)
         .grid.invalidate()
         return true
@@ -2434,8 +2899,10 @@ impl IWnd for Explorer
             return
         }
 
-        if not .load.started and .load.pollChanges() do
+        if not .load.started and .load.pollChanges()
+        {
             .reloadListing()
+        }
     }
 
     mtd impl onTaskEvent(evt: *TaskEvent)
@@ -2446,16 +2913,27 @@ impl IWnd for Explorer
             .clearingCaches = false
             .cacheRoot.clear()
             .setStatus("")
-            for preview in .previews do
+            for preview in .previews
+            {
                 Memory.delete(preview)
+            }
+
             .previews.clear()
-            .previews.add(Memory.new'ExplorerPreview())
-            if not .toast do
+            .previews.add(Memory.new!{ExplorerPreview}())
+            if not .toast
+            {
                 .toast = Toast.create(me, "scope.explorer.toast")
-            if .cacheClear.error.isEmpty() do
+            }
+
+            if .cacheClear.error.isEmpty()
+            {
                 .toast.show(appStrings().explore_CachesCleared)
-            else do
+            }
+            else
+            {
                 .toast.show(appStrings().explore_CacheClearFailed, .cacheClear.error, .Failure)
+            }
+
             .requestPreview()
             return
         }
@@ -2530,23 +3008,39 @@ impl IWnd for Explorer
 
                 if preview.generation == .generation
                 {
-                    if not preview.opening and preview.durationHint do
+                    if not preview.opening and preview.durationHint
+                    {
                         .entries[preview.index].duration = preview.durationHint
-                    if not preview.opening and not preview.online do
+                    }
+
+                    if not preview.opening and not preview.online
+                    {
                         .entries[preview.index].onlinePending = preview.needsOnline
-                    if preview.index == .selected and not preview.error.isEmpty() do
+                    }
+
+                    if preview.index == .selected and not preview.error.isEmpty()
+                    {
                         .setStatus(preview.error)
+                    }
+
                     if preview.opening
                     {
-                        if preview.error.isEmpty() and not .temporaryFiles.isEmpty() do
+                        if preview.error.isEmpty() and not .temporaryFiles.isEmpty()
+                        {
                             .window.queueFile(.temporaryFiles.back().file, remember: false)
-                        else do
+                        }
+                        else
+                        {
                             .setStatus(preview.error)
+                        }
                     }
-                    elif preview.image.isValid() and (preview.online or not preview.needsOnline)
+                    else if preview.image.isValid() and (preview.online or not preview.needsOnline)
                     {
-                        if .entries[preview.index].directory and not preview.mediaFile.isEmpty() do
+                        if .entries[preview.index].directory and not preview.mediaFile.isEmpty()
+                        {
                             .entries[preview.index].albumTrack = preview.mediaFile
+                        }
+
                         let uploaded = .app().renderer.addImage(preview.image)
                         if not uploaded.isValid()
                         {
@@ -2561,42 +3055,70 @@ impl IWnd for Explorer
                             .app().renderer.removeTexture(&.entries[old].texture)
                             .entries[old].attempted = false
                             .cached.removeAtOrdered(0)
-                            if old == .selected do
+                            if old == .selected
+                            {
                                 .showMediaInfo()
+                            }
                         }
 
-                        if replacing do
+                        if replacing
+                        {
                             .app().renderer.removeTexture(&.entries[preview.index].texture)
+                        }
+
                         .entries[preview.index].texture = uploaded
                         .entries[preview.index].framing = ThumbnailFraming.fromImage(&preview.image)
                         let duration = thumbnailDuration(&preview.image)
-                        if duration or not preview.online do
+                        if duration or not preview.online
+                        {
                             .entries[preview.index].duration = duration
+                        }
+
                         .entries[preview.index].movie = MovieSummary.fromImage(&preview.image)
                         let technical = MediaInfoData.fromVideoThumbnail(&preview.image)
-                        if technical.rows.count do
+                        if technical.rows.count
+                        {
                             .entries[preview.index].technical = #move technical
+                        }
+
                         var music      = MusicSummary.fromImage(&preview.image)
                         let localMusic = &.entries[preview.index].music
-                        if not localMusic.track.isEmpty() do
+                        if not localMusic.track.isEmpty()
+                        {
                             music.track = localMusic.track
-                        if not localMusic.albumArtist.isEmpty() do
+                        }
+
+                        if not localMusic.albumArtist.isEmpty()
+                        {
                             music.albumArtist = localMusic.albumArtist
+                        }
+
                         if music.title.isEmpty() and
                            (not .entries[preview.index].albumTrack.isEmpty() or not localMusic.track.isEmpty())
                         {
                             music = .entries[preview.index].music
-                            if music.title.isEmpty() do
+                            if music.title.isEmpty()
+                            {
                                 music.title = .entries[preview.index].name
+                            }
                         }
 
                         .entries[preview.index].music = #move music
-                        if .selected == preview.index do
+                        if .selected == preview.index
+                        {
                             .showMediaInfo()
-                        if not replacing do
+                        }
+
+                        if not replacing
+                        {
                             .cached.add(preview.index)
-                        if .grid.board == .Album or .grid.board == .Covers do
+                        }
+
+                        if .grid.board == .Album or .grid.board == .Covers
+                        {
                             .grid.refreshLayout()
+                        }
+
                         .grid.invalidate()
                     }
                 }
@@ -2620,8 +3142,11 @@ impl IWnd for Explorer
         .load.wait()
         .extraction.wait()
 
-        for preview in .previews do
+        for preview in .previews
+        {
             preview.task.cancel()
+        }
+
         for preview in .previews
         {
             preview.wait()
@@ -2631,8 +3156,10 @@ impl IWnd for Explorer
         .cacheClear.task.cancel()
         .cacheClear.wait()
         .clearTextures()
-        for file in .temporaryFiles do
+        for file in .temporaryFiles
+        {
             catch File.delete(file.file)
+        }
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -2682,27 +3209,27 @@ private struct ExplorerNameScroll
 // A virtual tile viewport: one painted cell per visible file, independent of directory size.
 struct ExplorerGrid
 {
-    using wnd:     Wnd
-    late explorer: *Explorer
-    columns:       u64        = 1
-    cell:          Math.Point = {160, 152}
-    hovered:       u64        = Swag.U64.Max
-    selectionAnchor: u64     = Swag.U64.Max
-    spinners:      Array'(*Spinner)
-    busy:          Array'bool     // Which spinners a visible tile claimed during the current paint.
-    spinnerUse:    u64
-    nameTimer:     *Timer?
-    nameScrolls:   [2] ExplorerNameScroll     // At most the hovered and selected titles.
-    rows:          bool     // Whether the entries stand one per line, as an archive lists them.
-    posters:       bool     // Whether the tiles stand upright, as the posters of a folder of films.
-    tile:          Math.Point = {160, 142}
-    board:         ExplorerBoard
-    places:        Array'Math.Rectangle     // Where each album track stands.
-    contentHeight: f32
-    albumCover:    Math.Rectangle
-    albumText:     Math.Rectangle
-    playButton:    *PushButton?
-    shuffleButton: *PushButton?
+    using wnd:       Wnd
+    late explorer:   *Explorer
+    columns:         u64        = 1
+    cell:            Math.Point = {160, 152}
+    hovered:         u64        = Swag.U64.Max
+    selectionAnchor: u64        = Swag.U64.Max
+    spinners:        Array!{*Spinner}
+    busy:            Array!{bool}     // Which spinners a visible tile claimed during the current paint.
+    spinnerUse:      u64
+    nameTimer:       *Timer?
+    nameScrolls:     [2] ExplorerNameScroll     // At most the hovered and selected titles.
+    rows:            bool     // Whether the entries stand one per line, as an archive lists them.
+    posters:         bool     // Whether the tiles stand upright, as the posters of a folder of films.
+    tile:            Math.Point = {160, 142}
+    board:           ExplorerBoard
+    places:          Array!{Math.Rectangle}     // Where each album track stands.
+    contentHeight:   f32
+    albumCover:      Math.Rectangle
+    albumText:       Math.Rectangle
+    playButton:      *PushButton?
+    shuffleButton:   *PushButton?
 }
 
 impl ExplorerGrid
@@ -2720,8 +3247,8 @@ impl ExplorerGrid
     const PosterAspect = 1.38
 
     // Reveal the whole name even when the overflow would take too long at one pixel per tick.
-    const NameScrollInterval: Time.Duration = 50'ms
-    const NameScrollMaxTicks = 100'u64
+    const NameScrollInterval: Time.Duration = 50_ms
+    const NameScrollMaxTicks = 100_u64
 
     // One album: the side of its cover, the air between the cover and the tracks, and the pitch of
     // a track.
@@ -2767,22 +3294,31 @@ impl ExplorerGrid
         if .board == .Album
         {
             let at = point + .scrollPos
-            for place, row in .places where place.width > 0 and place.contains(at) do
+            for place, row in .places where place.width > 0 and place.contains(at)
+            {
                 return row
+            }
+
             return Swag.U64.Max
         }
 
         let local = point + .scrollPos - Math.Point{CellInset, CellInset}
-        if local.x < 0 or local.y < 0 do
+        if local.x < 0 or local.y < 0
+        {
             return Swag.U64.Max
+        }
+
         let column = cast(u64, local.x / .cell.x)
         let line   = cast(u64, local.y / .cell.y)
         let row    = line * .columns + column
         if column >= .columns or
            row >= .explorer.shown.count or
            local.x - cast(f32, column) * .cell.x >= .cell.x - (.rows ? 0 : Gap) or
-           local.y - cast(f32, line) * .cell.y >= .cell.y - (.rows ? 0 : Gap) do
+           local.y - cast(f32, line) * .cell.y >= .cell.y - (.rows ? 0 : Gap)
+        {
             return Swag.U64.Max
+        }
+
         return row
     }
 
@@ -2828,7 +3364,7 @@ impl ExplorerGrid
         }
 
         let room = Math.max(.clientRect().width - 2 * CellInset, 1)
-        .columns = Math.max(1'u64, cast(u64, (room + Gap) / (narrowest + Gap)))
+        .columns = Math.max(1_u64, cast(u64, (room + Gap) / (narrowest + Gap)))
         let width = Math.floor((room - Gap * cast(f32, .columns - 1)) / cast(f32, .columns))
         .tile = Math.Point{width, Math.round(width * cast(f32, aspect))}
         .cell = Math.Point{width + Gap, .tile.y + (.explorer.showTileCaption ? FileTile.captionHeight(me) : 0) + Gap}
@@ -2842,10 +3378,11 @@ impl ExplorerGrid
     {
         let header = .explorer.archiveHeader
         let room   = Math.max(.cell.x - 3 * .themeMetrics().header_Separator, 0)
+
         // Give a narrow cell the complete name and size first, then the date and compression.
-        let size   = room >= 176 ? Math.clamp(Math.floor(room * 0.18), 80.0, 96.0) : 0
-        let date   = room >= 320 ? Math.clamp(Math.floor(room * 0.24), 112.0, 136.0) : 0
-        let ratio  = room >= 480 ? Math.min(124.0, Math.floor(room * 0.23)) : 0
+        let size  = room >= 176 ? Math.clamp(Math.floor(room * 0.18), 80.0, 96.0) : 0
+        let date  = room >= 320 ? Math.clamp(Math.floor(room * 0.24), 112.0, 136.0) : 0
+        let ratio = room >= 480 ? Math.min(124.0, Math.floor(room * 0.23)) : 0
         header.setItemWidth(0, room - ratio - size - date)
         header.setItemWidth(1, ratio)
         header.setItemWidth(2, size)
@@ -2872,8 +3409,11 @@ impl ExplorerGrid
         for index, at in explorer.shown
         {
             let entry = &explorer.entries[index]
-            if entry.directory or .theme().fileGlyph(entry.name, false, 16).index != cast(s32, ThemeIcons.FileAudio) do
+            if entry.directory or .theme().fileGlyph(entry.name, false, 16).index != cast(s32, ThemeIcons.FileAudio)
+            {
                 continue
+            }
+
             .places[at] = Math.Rectangle{stacked ? CellInset : .albumText.x, y, .cell.x, TrackPitch - 4}
             y += TrackPitch
         }
@@ -2897,8 +3437,11 @@ impl ExplorerGrid
             .shuffleButton = shuffle
         }
 
-        if not .playButton do
+        if not .playButton
+        {
             return
+        }
+
         let height = .themeMetrics().btnPush_Height
         let top    = .albumCover.bottom() + .themeMetrics().infoSheet_BlockGap
         .playButton.setPosition(Math.Rectangle{CellInset, top, 96, height})
@@ -2912,8 +3455,11 @@ impl ExplorerGrid
     // Returns where the tile of `row` stands in the grid.
     mtd tileRect(row: u64)->Math.Rectangle
     {
-        if .board == .Album and row < .places.count do
+        if .board == .Album and row < .places.count
+        {
             return .places[row]
+        }
+
         return Math.Rectangle{CellInset + cast(f32, row % .columns) * .cell.x,
                               CellInset + cast(f32, row / .columns) * .cell.y, .tile.x, .tile.y}
     }
@@ -2922,8 +3468,11 @@ impl ExplorerGrid
     private mtd tilePaintRect(tile: Math.Rectangle)->Math.Rectangle
     {
         var rect = tile
-        if .explorer.showTileCaption do
+        if .explorer.showTileCaption
+        {
             rect.height += FileTile.captionHeight(me)
+        }
+
         let metrics = .themeMetrics()
 
         // Keep the selection stroke and its antialiased fringe inside the repaint.
@@ -2933,8 +3482,11 @@ impl ExplorerGrid
 
     private mtd invalidateTile(row: u64)
     {
-        if row >= .explorer.shown.count do
+        if row >= .explorer.shown.count
+        {
             return
+        }
+
         var rect = .tilePaintRect(.tileRect(row))
         rect.offset(-.scrollPos.x, -.scrollPos.y)
         rect.intersect(.clientRect())
@@ -2944,20 +3496,23 @@ impl ExplorerGrid
     // The virtual grid supplies data and custom document previews; Gui owns the tile rendering.
     mtd paintTile(painter: *Painter, row: u64, tile: Math.Rectangle)
     {
-        let index = .explorer.shown[row]
-        let entry = &.explorer.entries[index]
-        let glyph = .theme().fileGlyph(entry.name, entry.directory, 32)
-        let name  = safeMediaText(.tileName(entry))
-        let facts = .reading(entry)
-        let size  = .sizeText(entry)
+        let index   = .explorer.shown[row]
+        let entry   = &.explorer.entries[index]
+        let glyph   = .theme().fileGlyph(entry.name, entry.directory, 32)
+        let name    = safeMediaText(.tileName(entry))
+        let facts   = .reading(entry)
+        let size    = .sizeText(entry)
         let hovered = .hovered == row
         let badge   = hovered and entry.duration and not .explorer.showTileCaption and not .posters ? formatDuration(entry.duration) : String{}
-        let ext   = entry.directory ? "" : (Path.extension(entry.name) orelse "")
+        let ext     = entry.directory ? "" : (Path.extension(entry.name) orelse "")
         var content: FileTile.Content
-        content.texture     = entry.texture
-        content.icon        = glyph
-        if .explorer.showTileCaption do
+        content.texture = entry.texture
+        content.icon    = glyph
+        if .explorer.showTileCaption
+        {
             content.captionIcon = .explorer.entryIcon(index, .themeMetrics().chevron_Size)
+        }
+
         content.name        = name
         content.facts       = facts
         content.detail      = size
@@ -2968,8 +3523,11 @@ impl ExplorerGrid
         options.hovered     = hovered
         options.selected    = .explorer.isSelected(index)
         options.showCaption = .explorer.showTileCaption
-        for scroll in .nameScrolls where scroll.endTick and scroll.row == row do
+        for scroll in .nameScrolls where scroll.endTick and scroll.row == row
+        {
             options.nameTick = scroll.tick
+        }
+
         options.previewPainter = func|grid = me, index|(_, painter, tile)->bool
         {
             let entry = &grid.explorer.entries[index]
@@ -2980,10 +3538,14 @@ impl ExplorerGrid
                 let mode = grid.explorer.thumbnailCrop
                 let relativeAspect = cast(f32, entry.texture.width) * tile.height /
                                      (cast(f32, entry.texture.height) * tile.width)
+
                 // Automatic framing keeps the whole image when filling would discard over two thirds.
-                let severeCrop = relativeAspect > 3 or relativeAspect < 1.0'f32 / 3
-                if mode == .None or (mode != .Center and severeCrop) do
+                let severeCrop = relativeAspect > 3 or relativeAspect < 1.0_f32 / 3
+                if mode == .None or (mode != .Center and severeCrop)
+                {
                     return false
+                }
+
                 let shape: ThumbnailShape = grid.posters ? .Poster :
                                             (grid.board == .Covers ? .Square :
                                              (grid.explorer.previewAspect == ExplorerFilmPreviewAspect ? .Wide : .Grid))
@@ -2991,8 +3553,11 @@ impl ExplorerGrid
                 return true
             }
 
-            if grid.board == .Grid and grid.paintCard(painter, tile, entry) do
+            if grid.board == .Grid and grid.paintCard(painter, tile, entry)
+            {
                 return true
+            }
+
             if grid.board == .Covers and entry.texture.isValid() and entry.texture.width <= 1
             {
                 grid.paintBlankCover(painter, tile)
@@ -3010,8 +3575,8 @@ impl ExplorerGrid
             if let point = .explorer.window.resumePoint(entry.path)
             {
                 let emphasized = hovered or options.selected
-                let thread = emphasized ? .themeMetrics().fileTile_RingWidth : 1.0
-                let ink    = emphasized ? .themeColors().arc : .themeColors().arc.withAlphaF32(0.6)
+                let thread     = emphasized ? .themeMetrics().fileTile_RingWidth : 1.0
+                let ink        = emphasized ? .themeColors().arc : .themeColors().arc.withAlphaF32(0.6)
                 painter.fillRect(Math.Rectangle{tile.x, tile.bottom() - thread, Math.round(tile.width * point.progress), thread}, ink)
             }
         }
@@ -3079,8 +3644,11 @@ impl ExplorerGrid
                 let rule = Color.fromArgb(0xFFDADAD6)
                 let x    = page.x + 10
                 painter.fillRect(Math.Rectangle{x, page.y + 14, width * 0.45, 6}, ink)
-                for i in 4 do
+                for i in 4
+                {
                     painter.fillRect(Math.Rectangle{x, page.y + 30 + cast(f32, i) * 7, (width - 20) * (i == 3 ? 0.6 : 1.0), 2}, rule)
+                }
+
                 painter.fillRect(Math.Rectangle{x, page.y + 66, width - 20, 28}, Color.fromArgb(0xFFEAE8E4))
             }
 
@@ -3093,16 +3661,22 @@ impl ExplorerGrid
             let bold     = .theme().createDefaultFont(13, .Bold)
             let small    = .theme().createDefaultFont(10, .Bold)
             var y        = tile.y + 22
-            var headings = 0'u64
-            for line in Tokenize.split(entry.excerpt, '\n'rune)
+            var headings = 0_u64
+            for line in Tokenize.split(entry.excerpt, '\n'_rune)
             {
-                if y > tile.bottom() - 16 do
+                if y > tile.bottom() - 16
+                {
                     break
+                }
+
                 if line.count and line[0] == '#'
                 {
-                    var at = 0'u64
-                    while at < line.count and (line[at] == '#' or line[at] == ' ') do
+                    var at = 0_u64
+                    while at < line.count and (line[at] == '#' or line[at] == ' ')
+                    {
                         at += 1
+                    }
+
                     let font = headings == 0 ? bold : small
                     painter.pushClippingRect(Math.Rectangle{tile.x + 18, tile.y, tile.width - 36, tile.height})
                     painter.drawString(tile.x + 18, font.opticalLineTop(y), line[at to], font, headings == 0 ? colors.text : colors.softText)
@@ -3110,7 +3684,7 @@ impl ExplorerGrid
                     headings += 1
                     y        += 18
                 }
-                elif line.count
+                else if line.count
                 {
                     let width = Math.min(cast(f32, line.count) * 3.0, tile.width - 36)
                     painter.fillRect(Math.Rectangle{tile.x + 18, y - 1, width, 2}, colors.line)
@@ -3127,16 +3701,25 @@ impl ExplorerGrid
             let mono = .theme().createDefaultFontFs(10)
             var y    = tile.y + 22
             painter.pushClippingRect(Math.Rectangle{tile.x + 14, tile.y + 8, tile.width - 22, tile.height - 16})
-            for line in Tokenize.split(entry.excerpt, '\n'rune)
+            for line in Tokenize.split(entry.excerpt, '\n'_rune)
             {
-                if y > tile.bottom() - 12 do
+                if y > tile.bottom() - 12
+                {
                     break
-                var indent = 0'u64
-                while indent < line.count and (line[indent] == ' ' or line[indent] == '\t') do
+                }
+
+                var indent = 0_u64
+                while indent < line.count and (line[indent] == ' ' or line[indent] == '\t')
+                {
                     indent += 1
+                }
+
                 var word = indent
-                while word < line.count and Latin1.isLetter(line[word]) do
+                while word < line.count and Latin1.isLetter(line[word])
+                {
                     word += 1
+                }
+
                 let x       = tile.x + 16 + cast(f32, indent) * 3.5
                 let keyword = isCardKeyword(line[indent until word])
                 painter.drawString(x, mono.opticalLineTop(y), line[indent until word], mono, keyword ? colors.arc : colors.softText)
@@ -3165,10 +3748,16 @@ impl ExplorerGrid
     // the file name.
     mtd tileName(entry: const *ExplorerEntry)->String
     {
-        if .posters and entry.movie.title.length do
+        if .posters and entry.movie.title.length
+        {
             return entry.movie.title
-        if .board == .Covers and entry.music.title.length do
+        }
+
+        if .board == .Covers and entry.music.title.length
+        {
             return entry.music.title
+        }
+
         return entry.name
     }
 
@@ -3192,10 +3781,16 @@ impl ExplorerGrid
         for index, at in explorer.shown where .places[at].height > 0
         {
             let entry = &explorer.entries[index]
-            if not first do
+            if not first
+            {
                 first = entry
-            if not cover and entry.texture.isValid() and entry.texture.width > 1 do
+            }
+
+            if not cover and entry.texture.isValid() and entry.texture.width > 1
+            {
                 cover = entry
+            }
+
             tracks  += 1
             seconds += entry.duration
             bytes   += entry.size
@@ -3220,55 +3815,80 @@ impl ExplorerGrid
             .paintBlankCover(painter, coverRect)
         }
 
-        if not first do
+        if not first
+        {
             return
+        }
+
         let left  = .albumText.x
         let top   = .albumText.y
         let texts = appStrings()
         var kind  = String.from(texts.explore_Album)
-        if first.music.date.length >= 4 do
+        if first.music.date.length >= 4
+        {
             kind = Format.toString("% · %", kind, first.music.date.toString()[0 until 4])
+        }
+
         painter.pushClippingRect(.albumText)
         painter.drawString(left, mono.opticalLineTop(top + 8), String.toUpper(kind.toString(), .Unicode), mono, colors.faintText)
 
         var title     = first.music.title.length ? String.from(first.music.title) : explorer.locationName()
         var titleFont = .theme().createDefaultFont(Explorer.TitleFontSize, .Bold)
-        if Painter.measureString(title, titleFont).width > .albumText.width do
+        if Painter.measureString(title, titleFont).width > .albumText.width
+        {
             titleFont = .theme().createDefaultFont(Explorer.MinTitleFontSize, .Bold)
+        }
+
         painter.drawString(left, titleFont.opticalLineTop(top + 48), title, titleFont, colors.text)
-        if first.music.artist.length do
+        if first.music.artist.length
+        {
             painter.drawString(left, body.opticalLineTop(top + 86), first.music.artist, body, colors.softText)
+        }
 
         var facts = Format.toString(texts.explore_Tracks, tracks)
         if seconds
         {
-            if seconds >= 3600 do
+            if seconds >= 3600
+            {
                 facts = Format.toString("% · %", facts, Format.toString(texts.explore_Length, seconds / 3600, Format.toString("%{02}", (seconds / 60) % 60)))
-            else do
+            }
+            else
+            {
                 facts = Format.toString("% · % min", facts, (seconds + 30) / 60)
+            }
         }
 
-        if bytes do
+        if bytes
+        {
             facts = Format.toString("% · %", facts, StrConv.toDisplaySize(bytes))
+        }
+
         painter.drawString(left, mono.opticalLineTop(top + 114), facts, mono, colors.faintText)
 
         painter.popClippingRect()
 
         // The tracks.
-        var number = 0'u64
+        var number = 0_u64
         for index, at in explorer.shown
         {
             let place = .places[at]
-            if place.height <= 0 do
+            if place.height <= 0
+            {
                 continue
+            }
+
             number += 1
             let entry   = &explorer.entries[index]
             let chosen  = explorer.isSelected(index)
             let centerY = place.vertCenter()
-            if chosen do
+            if chosen
+            {
                 painter.fillRoundRect(place, radius, radius, colors.selection)
-            elif .hovered == at do
+            }
+            else if .hovered == at
+            {
                 painter.fillRoundRect(place, radius, radius, colors.raised)
+            }
 
             let ink   = chosen ? colors.arc : colors.text
             let label = Format.toString("%", number)
@@ -3286,8 +3906,11 @@ impl ExplorerGrid
     // Returns what a file weighs, written at the right of its facts; nothing for a folder.
     mtd sizeText(entry: const *ExplorerEntry)->String
     {
-        if entry.directory or not entry.size or .posters or .board == .Covers do
+        if entry.directory or not entry.size or .posters or .board == .Covers
+        {
             return {}
+        }
+
         return StrConv.toDisplaySize(entry.size)
     }
 
@@ -3317,10 +3940,14 @@ impl ExplorerGrid
             let entry   = &explorer.entries[index]
             let rect    = Math.Rectangle{CellInset, CellInset + cast(f32, row) * .cell.y, .cell.x, .cell.y}
             let centerY = rect.vertCenter()
-            if explorer.isSelected(index) do
+            if explorer.isSelected(index)
+            {
                 painter.fillRoundRect(rect, metrics.corner_Control, metrics.corner_Control, colors.selection)
-            elif .hovered == row do
+            }
+            else if .hovered == row
+            {
                 painter.fillRoundRect(rect, metrics.corner_Control, metrics.corner_Control, colors.raised)
+            }
 
             let glyph    = explorer.entryIcon(index, metrics.menuPopup_IconSize)
             let glyphInk = explorer.isSelected(index) ? colors.arc : colors.softText
@@ -3360,8 +3987,10 @@ impl ExplorerGrid
                         let track = Math.Rectangle{ratioRight - ratioWidth, Math.round(centerY - 1.5), ratioWidth, 3}
                         let fill  = Math.round(ratioWidth * saved)
                         painter.fillRoundRect(track, 1.5, 1.5, colors.raised)
-                        if fill >= 1 do
+                        if fill >= 1
+                        {
                             painter.fillRoundRect(Math.Rectangle{track.x, track.y, Math.max(fill, 3), 3}, 1.5, 1.5, colors.arc)
+                        }
                     }
                 }
             }
@@ -3383,8 +4012,11 @@ impl ExplorerGrid
             result = entry.music.artist
             if entry.music.date.length >= 4
             {
-                if result.length do
+                if result.length
+                {
                     result += " · "
+                }
+
                 result += entry.music.date.toString()[0 until 4]
             }
 
@@ -3393,10 +4025,15 @@ impl ExplorerGrid
 
         if entry.directory
         {
-            if entry.children == 1 do
+            if entry.children == 1
+            {
                 result = String.from(appStrings().explore_OneItem)
-            elif entry.children != Swag.U64.Max do
+            }
+            else if entry.children != Swag.U64.Max
+            {
                 result = Format.toString(appStrings().explore_Count, entry.children)
+            }
+
             return result
         }
 
@@ -3406,8 +4043,11 @@ impl ExplorerGrid
             result = entry.music.artist
             if entry.music.date.length >= 4
             {
-                if result.length do
+                if result.length
+                {
                     result += " · "
+                }
+
                 result += entry.music.date.toString()[0 until 4]
             }
 
@@ -3417,31 +4057,57 @@ impl ExplorerGrid
         // What a file measures: a picture its size, a document its pages, code its lines,
         // Markdown its sections, a font its face.
         let texts = appStrings()
-        if entry.width and entry.height do
+        if entry.width and entry.height
+        {
             return Format.toString("% × %", entry.width, entry.height)
-        if entry.pages do
-            return entry.pages == 1 ? String.from(texts.explore_OnePage) : Format.toString(texts.explore_Pages, entry.pages)
-        if entry.sections do
-            return Format.toString(texts.explore_Sections, entry.sections)
-        if entry.lines do
-            return Format.toString(texts.explore_Lines, entry.lines)
-        if not entry.face.isEmpty() do
-            return String.from(entry.face)
-        if entry.members do
-            return Format.toString(texts.explore_Files, entry.members)
+        }
 
-        if not entry.movie.date.isEmpty() do
-            result = entry.movie.date.toString()[0 until Math.min(entry.movie.date.length, 4'u64)]
+        if entry.pages
+        {
+            return entry.pages == 1 ? String.from(texts.explore_OnePage) : Format.toString(texts.explore_Pages, entry.pages)
+        }
+
+        if entry.sections
+        {
+            return Format.toString(texts.explore_Sections, entry.sections)
+        }
+
+        if entry.lines
+        {
+            return Format.toString(texts.explore_Lines, entry.lines)
+        }
+
+        if not entry.face.isEmpty()
+        {
+            return String.from(entry.face)
+        }
+
+        if entry.members
+        {
+            return Format.toString(texts.explore_Files, entry.members)
+        }
+
+        if not entry.movie.date.isEmpty()
+        {
+            result = entry.movie.date.toString()[0 until Math.min(entry.movie.date.length, 4_u64)]
+        }
+
         if entry.duration
         {
-            if not result.isEmpty() do
+            if not result.isEmpty()
+            {
                 result += " · "
+            }
 
             // A film is as long as its hours and minutes, the way a programme lists it.
-            if .posters and entry.duration >= 3600 do
+            if .posters and entry.duration >= 3600
+            {
                 result += Format.toString(appStrings().explore_Length, entry.duration / 3600, Format.toString("%{02}", (entry.duration / 60) % 60))
-            else do
+            }
+            else
+            {
                 result += formatDuration(entry.duration)
+            }
         }
 
         return result
@@ -3454,15 +4120,18 @@ impl ExplorerGrid
             let top    = .scrollPos.y
             let bottom = top + .clientRect().height
             var first  = Swag.U64.Max
-            var end    = 0'u64
+            var end    = 0_u64
             for place, row in .places where place.height > 0 and place.bottom() >= top and place.y <= bottom
             {
                 first = Math.min(first, row)
                 end   = row + 1
             }
 
-            if first == Swag.U64.Max do
+            if first == Swag.U64.Max
+            {
                 return {first: 0, end: 0}
+            }
+
             return {first: first, end: end}
         }
 
@@ -3482,43 +4151,58 @@ impl ExplorerGrid
     mtd startNameScroll()
     {
         .stopTimer(&.nameTimer)
-        for scroll in .nameScrolls where scroll.endTick and scroll.tick do
+        for scroll in .nameScrolls where scroll.endTick and scroll.tick
+        {
             .invalidateRect(.nameScrollRect(scroll.row))
+        }
+
         Swag.init(&.nameScrolls, 1)
-        if .rows or .board == .Album or not .isVisible() or .app().isReducedMotion() do
+        if .rows or .board == .Album or not .isVisible() or .app().isReducedMotion()
+        {
             return
+        }
 
         let range = .visibleRange()
-        var count = 0'u64
+        var count = 0_u64
         for row in range.first until range.end
         {
             let index = .explorer.shown[row]
-            if (row != .hovered and index != .explorer.selected) or .nameScrollRect(row).isEmpty() do
+            if (row != .hovered and index != .explorer.selected) or .nameScrollRect(row).isEmpty()
+            {
                 continue
+            }
+
             let name = safeMediaText(.tileName(&.explorer.entries[index]))
             let end  = FileTile.nameScrollTicks(me, name, .tile.x, .explorer.entryIcon(index, .themeMetrics().chevron_Size))
-            if not end do
+            if not end
+            {
                 continue
+            }
 
             .nameScrolls[count] = {row: row, endTick: end, step: (end + NameScrollMaxTicks - 1) / NameScrollMaxTicks}
             count += 1
         }
 
-        if count do
+        if count
+        {
             .nameTimer = .addTimer(NameScrollInterval)
+        }
     }
 
     mtd select(row: u64, modifiers = Input.KeyModifiers.None)
     {
-        if row >= .explorer.shown.count do
+        if row >= .explorer.shown.count
+        {
             return
+        }
+
         let explorer = .explorer
-        let entry = explorer.shown[row]
-        let multi = explorer.window.workspace and not explorer.listing.isArchive
+        let entry    = explorer.shown[row]
+        let multi    = explorer.window.workspace and not explorer.listing.isArchive
         if multi and modifiers.has(.Shift)
         {
             let anchorEntry = .selectionAnchor == Swag.U64.Max ? explorer.selected : .selectionAnchor
-            var anchor = row
+            var anchor      = row
             for index, slot in explorer.shown where index == anchorEntry
             {
                 anchor = slot
@@ -3530,21 +4214,32 @@ impl ExplorerGrid
             for slot in Math.min(row, anchor) to Math.max(row, anchor)
             {
                 let index = explorer.shown[slot]
-                if not explorer.entries[index].directory do
+                if not explorer.entries[index].directory
+                {
                     explorer.selectedFiles.add(index)
+                }
             }
 
             explorer.selected = entry
         }
-        elif multi and modifiers.has(.Control) and not explorer.entries[entry].directory
+        else if multi and modifiers.has(.Control) and not explorer.entries[entry].directory
         {
             let before = explorer.selected
-            if explorer.selectedFiles.isEmpty() and before < explorer.entries.count and not explorer.entries[before].directory do
+            if explorer.selectedFiles.isEmpty() and
+               before < explorer.entries.count and
+               not explorer.entries[before].directory
+            {
                 explorer.selectedFiles.add(before)
-            if explorer.selectedFiles.contains(entry) do
+            }
+
+            if explorer.selectedFiles.contains(entry)
+            {
                 explorer.selectedFiles.remove(entry)
-            else do
+            }
+            else
+            {
                 explorer.selectedFiles.add(entry)
+            }
 
             explorer.selected = explorer.selectedFiles.isEmpty() ? Swag.U64.Max : explorer.selectedFiles.back()
             .selectionAnchor  = explorer.selected
@@ -3557,15 +4252,23 @@ impl ExplorerGrid
         }
 
         .explorer.showMediaInfo()
-        if .rows do
+        if .rows
+        {
             .explorer.requestPreview()
+        }
+
         let place = .tileRect(row)
         let top   = .rows ? CellInset + cast(f32, row) * .cell.y : place.y - CellInset
         let reach = .rows ? .cell.y : place.height + (.board == .Album ? 0 : FileTile.captionHeight(me) + Gap)
-        if top < .scrollPos.y do
+        if top < .scrollPos.y
+        {
             .explorer.scroll.setScrollPos(0, top)
-        elif top + reach > .scrollPos.y + .clientRect().height do
+        }
+        else if top + reach > .scrollPos.y + .clientRect().height
+        {
             .explorer.scroll.setScrollPos(0, top + reach - .clientRect().height)
+        }
+
         .startNameScroll()
         .invalidate()
     }
@@ -3575,8 +4278,11 @@ impl IWnd for ExplorerGrid
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .nameTimer do
+        if evt.timer != .nameTimer
+        {
             return
+        }
+
         if not .isVisible() or .surface!.isMinimized or .app().isReducedMotion()
         {
             Swag.init(&.nameScrolls, 1)
@@ -3591,15 +4297,22 @@ impl IWnd for ExplorerGrid
             scroll.tick += scroll.step
             let active = scroll.row < .explorer.shown.count and
                          (scroll.row == .hovered or .explorer.shown[scroll.row] == .explorer.selected)
-            if not active or rect.isEmpty() or scroll.tick >= scroll.endTick do
+            if not active or rect.isEmpty() or scroll.tick >= scroll.endTick
+            {
                 scroll.endTick = 0
-            else do
+            }
+            else
+            {
                 moving = true
+            }
+
             .invalidateRect(rect)
         }
 
-        if not moving do
+        if not moving
+        {
             .stopTimer(&.nameTimer)
+        }
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)
@@ -3607,8 +4320,10 @@ impl IWnd for ExplorerGrid
         if .explorer != null
         {
             .refreshLayout()
-            if .isVisible() do
+            if .isVisible()
+            {
                 .explorer.prioritizeVisible()
+            }
         }
     }
 
@@ -3620,8 +4335,8 @@ impl IWnd for ExplorerGrid
         {
             let filtered = .explorer.filter.text().count or .explorer.kindFilter != .All
             let text     = filtered ? appStrings().explore_NoMatches : appStrings().explore_Empty
-            let font = unwrap .font().regular
-            let x    = Math.max(CellInset, (.clientRect().width - Painter.measureString(text, font).width) * 0.5)
+            let font     = unwrap .font().regular
+            let x        = Math.max(CellInset, (.clientRect().width - Painter.measureString(text, font).width) * 0.5)
 
             // The sentence answers the filter, so it stands under the find bar floating over
             // the page rather than behind it.
@@ -3635,16 +4350,22 @@ impl IWnd for ExplorerGrid
             }
 
             painter.drawString(x, font.opticalLineTop(y), text, font, .themeColors().faintText)
-            for spinner in .spinners do
+            for spinner in .spinners
+            {
                 spinner.hide()
+            }
+
             return
         }
 
         if .rows
         {
             .paintRows(painter, range.first, range.end)
-            for spinner in .spinners do
+            for spinner in .spinners
+            {
                 spinner.hide()
+            }
+
             return
         }
 
@@ -3663,20 +4384,27 @@ impl IWnd for ExplorerGrid
             for row in range.first until range.end
             {
                 let tile = .tileRect(row)
-                if .tilePaintRect(tile).intersects(clip) do
+                if .tilePaintRect(tile).intersects(clip)
+                {
                     .paintTile(painter, row, tile)
+                }
+
                 .positionTileSpinner(.explorer.shown[row], tile)
             }
         }
 
-        for spinner, slot in .spinners do
+        for spinner, slot in .spinners
+        {
             spinner.show(.busy[slot])
+        }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if .explorer.handleFileDrag(me, evt) do
+        if .explorer.handleFileDrag(me, evt)
+        {
             return
+        }
 
         if evt.kind == .Move or evt.kind == .Enter or evt.kind == .Leave
         {
@@ -3684,10 +4412,15 @@ impl IWnd for ExplorerGrid
             if not .explorer.showTileCaption and
                not .rows and
                .board != .Album and
-               row < .explorer.shown.count do
+               row < .explorer.shown.count
+            {
                 .toolTip = .tileToolTip(row)
-            else do
+            }
+            else
+            {
                 .toolTip = ""
+            }
+
             if .hovered != row
             {
                 let previous = .hovered
@@ -3722,8 +4455,10 @@ impl IWnd for ExplorerGrid
         let row = .rowAt(.surfaceToLocal(evt.surfacePos))
         .select(row, evt.modifiers)
         .setFocus()
-        if evt.kind == .DoubleClick and row < .explorer.shown.count do
+        if evt.kind == .DoubleClick and row < .explorer.shown.count
+        {
             .explorer.activate(.explorer.selected)
+        }
     }
 
     private mtd tileToolTip(row: u64)->String
@@ -3732,15 +4467,27 @@ impl IWnd for ExplorerGrid
         let entry  = &.explorer.entries[.explorer.shown[row]]
         var result = safeMediaText(.tileName(entry))
         result += Format.toString("\n%: %", text.explore_Type, entry.directory ? text.ui_Folder : (Path.extension(entry.name) orelse text.explore_File))
-        if not entry.directory do
+        if not entry.directory
+        {
             result += Format.toString("\n%: %", text.explore_Size, StrConv.toDisplaySize(entry.size))
-        if entry.when.year do
+        }
+
+        if entry.when.year
+        {
             result += Format.toString("\n%: %", text.explore_Modified, explorerFileTime(entry.when, Time.DateTime.now(), .explorer.window.language))
-        if entry.duration do
+        }
+
+        if entry.duration
+        {
             result += Format.toString("\n%", formatDuration(entry.duration))
+        }
+
         var pluginIndex: u64
-        if not entry.directory and .explorer.window.index.namePlugin(entry.path, &pluginIndex) do
+        if not entry.directory and .explorer.window.index.namePlugin(entry.path, &pluginIndex)
+        {
             result += Format.toString("\n%", .explorer.window.index.plugins[pluginIndex].displayName())
+        }
+
         return result
     }
 
@@ -3752,7 +4499,7 @@ impl IWnd for ExplorerGrid
             return
         }
 
-        var row = 0'u64
+        var row = 0_u64
         if .explorer.selected == Swag.U64.Max and
            (evt.key == .Left or evt.key == .Right or evt.key == .Up or evt.key == .Down)
         {
@@ -3760,8 +4507,11 @@ impl IWnd for ExplorerGrid
             return
         }
 
-        for index, at in .explorer.shown where index == .explorer.selected do
+        for index, at in .explorer.shown where index == .explorer.selected
+        {
             row = at
+        }
+
         let rangeModifiers = evt.modifiers & .Shift
         switch evt.key
         {

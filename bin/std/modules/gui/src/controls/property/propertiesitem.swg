@@ -47,7 +47,7 @@ struct PropertiesItem
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
     // Empty or a single entry means a plain single-instance edit. Items under a dynamic
     // array are left single (their element addresses are not at a fixed struct offset).
-    dataInstances: Array'(*u8)
+    dataInstances: Array!{*u8}
 
     // When set, the editor writes each instance itself (e.g. a vector component or an
     // enum-flags bit), so commitItemChange must not blindly copy the whole field over the
@@ -106,8 +106,8 @@ struct PropertiesItem
             sliderBox: *SliderCtrl      // Slider of the row, when its field uses one.
         }
 
-        sigResize:  SigArray'func||(*PropertiesItem)     // Emitted after the view resized the row.
-        sigRefresh: SigArray'func||(*PropertiesItem)     // Emitted when the grid reloads the row; an editor pushes the value back into its widgets.
+        sigResize:  SigArray!{func||(*PropertiesItem)}     // Emitted after the view resized the row.
+        sigRefresh: SigArray!{func||(*PropertiesItem)}     // Emitted when the grid reloads the row; an editor pushes the value back into its widgets.
     }
 
     ntfyItf: IPropertyNotify?

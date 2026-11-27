@@ -48,7 +48,7 @@ private func layoutCentered(font: *Font, text: string, box: Math.Rectangle)->Ric
     let font = makeBaselineTestFont(&cache)
 
     // A line box centered on this point, and the baseline the glyphs then stand on.
-    const Center = 50.0'f32
+    const Center = 50.0_f32
     let baseline   = Center - font.height * 0.5 + font.ascent
     let opticalMid = font.opticalTop(Center, 0)
 

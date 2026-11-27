@@ -9,9 +9,9 @@ func paintCaptureWindow(window: *Env.Window, pixel: u32)
     let library  = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
     Swag.require(library != null)
     defer discard Linux.dlclose(unwrap library)
-    let attributes = expect X11Capture.symbol'Linux.xcb_change_window_attributes_checked_fn(library, "xcb_change_window_attributes_checked")
-    let clear      = expect X11Capture.symbol'Linux.xcb_clear_area_checked_fn(library, "xcb_clear_area_checked")
-    let check      = expect X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+    let attributes = expect X11Capture.symbol!{Linux.xcb_change_window_attributes_checked_fn}(library, "xcb_change_window_attributes_checked")
+    let clear      = expect X11Capture.symbol!{Linux.xcb_clear_area_checked_fn}(library, "xcb_clear_area_checked")
+    let check      = expect X11Capture.symbol!{Linux.xcb_request_check_fn}(library, "xcb_request_check")
     let connection = unwrap drawable.connection
     let changed    = check(connection, attributes(connection, drawable.window, 2, &pixel))
     defer Linux.free(changed)
@@ -25,9 +25,12 @@ func openCaptureDescriptorCount()->u64
 {
     let directory = unwrap Linux.opendir("/proc/self/fd".buffer)
     defer discard Linux.closedir(directory)
-    var count = 0'u64
-    while Linux.readdir(directory) do
+    var count = 0_u64
+    while Linux.readdir(directory)
+    {
         count += 1
+    }
+
     return count
 }
 
@@ -35,21 +38,21 @@ func openCaptureDescriptorCount()->u64
 func setActiveCaptureWindow(capture: *X11Capture, window: u32)
 {
     let library    = unwrap capture.nativeLibrary()
-    let check      = expect X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+    let check      = expect X11Capture.symbol!{Linux.xcb_request_check_fn}(library, "xcb_request_check")
     let connection = unwrap capture.nativeConnection()
     let property   = capture.atom("_NET_ACTIVE_WINDOW", create: true)
     Swag.require(property != 0)
     var request: Linux.xcb_void_cookie_t
     if window
     {
-        let change = expect X11Capture.symbol'Linux.xcb_change_property_checked_fn(library, "xcb_change_property_checked")
+        let change = expect X11Capture.symbol!{Linux.xcb_change_property_checked_fn}(library, "xcb_change_property_checked")
         let kind   = capture.atom("WINDOW", create: true)
         Swag.require(kind != 0)
         request = change(connection, 0, capture.rootWindow(), property, kind, 32, 1, &window)
     }
     else
     {
-        let remove = expect X11Capture.symbol'Linux.xcb_delete_property_checked_fn(library, "xcb_delete_property_checked")
+        let remove = expect X11Capture.symbol!{Linux.xcb_delete_property_checked_fn}(library, "xcb_delete_property_checked")
         request = remove(connection, capture.rootWindow(), property)
     }
 
@@ -102,8 +105,8 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     expect window.show()
     paintCaptureWindow(&window, 0xFF0000)
     var capture    = expect X11Capture.create()
-    let warp       = expect X11Capture.symbol'Linux.xcb_warp_pointer_checked_fn(unwrap capture.nativeLibrary(), "xcb_warp_pointer_checked")
-    let check      = expect X11Capture.symbol'Linux.xcb_request_check_fn(unwrap capture.nativeLibrary(), "xcb_request_check")
+    let warp       = expect X11Capture.symbol!{Linux.xcb_warp_pointer_checked_fn}(unwrap capture.nativeLibrary(), "xcb_warp_pointer_checked")
+    let check      = expect X11Capture.symbol!{Linux.xcb_request_check_fn}(unwrap capture.nativeLibrary(), "xcb_request_check")
     let connection = unwrap capture.nativeConnection()
     let error      = check(connection, warp(connection, 0, capture.rootWindow(), 0, 0, 0, 0, 40, 50))
     defer Linux.free(error)
@@ -163,8 +166,10 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     Memory.set(image.pixels.storage(), 0x5A, image.byteCount)
     expect source.grabInto(&image, copyUnchanged: false)
     Swag.require(not source.fresh)
-    for byte in image.pixels do
+    for byte in image.pixels
+    {
         Swag.require(byte == 0x5A, "an unchanged frame should leave a reusable target untouched")
+    }
 
     expect source.grabInto(&image)
     Swag.require(not source.fresh and image.pixelColor(4, 5).argb == Argb.Blue)
@@ -212,7 +217,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     g_EndGrabX   = 74
     g_EndGrabY   = 68
 
-    Swag.require(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea))
+    Swag.require(Gui.Testing.actionExecute!{ActionCapture}(f.main, ActionCapture.LastArea))
     f.gui.pump()
 
     let capture = unwrap f.main.getCapture()
@@ -255,11 +260,14 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     f.main.captureOptions.delay              = 0
 
     f.main.monitors.clear()
-    for 4 do
+    for 4
+    {
         testAddMonitorAt(f.main, {0, 0, 8, 8})
+    }
+
     testAddMonitorAt(f.main, {10, 20, 64, 48})
 
-    Swag.require(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.screenId(4)))
+    Swag.require(Gui.Testing.actionExecute!{ActionCapture}(f.main, ActionCapture.screenId(4)))
     let image = Clipboard.getImage()
     Swag.require(image.isValid())
     Swag.require(image.width == 64 and image.height == 48)
@@ -289,7 +297,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     f.main.captureOptions.pictureDestination = .Editor
     f.main.captureOptions.delay              = 0
 
-    Swag.require(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ActiveWnd))
+    Swag.require(Gui.Testing.actionExecute!{ActionCapture}(f.main, ActionCapture.ActiveWnd))
     f.gui.pump()
     let capture = unwrap f.main.getCapture()
     defer
@@ -331,8 +339,11 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     let surface = expect g_App.createSurface(100, 100, 1100, 700, surfaceId: "capture-linux-app-journey")
     let main    = MainWnd.create(surface.wnd)
     surface.show()
-    for 12 do
+    for 12
+    {
         g_App.runFrame()
+    }
+
     Swag.require(expect Gui.Testing.verifyNativePresentation(surface))
 
     var window = expect Env.createWindow({identifier: "capture-gui-target", title: "Capture GUI fixture", width: 64, height: 48, stopLoopOnClose: false})
@@ -393,8 +404,10 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
             }
         }
 
-        if areaFrames[] > 100 do
+        if areaFrames[] > 100
+        {
             g_Exit = true
+        }
     }
 
     main.sendCommandEvent(ActionCapture.Area)
@@ -436,15 +449,20 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
             }
         }
 
-        if cancelFrames[] > 100 do
+        if cancelFrames[] > 100
+        {
             g_Exit = true
+        }
     }
 
     main.sendCommandEvent(ActionCapture.Area)
     g_App.sigFrame.clear()
     Swag.require(cancelled and main.editWnd.getCapture() == area)
-    for 8 do
+    for 8
+    {
         g_App.runFrame()
+    }
+
     Swag.require(g_App.surfaces.count == 1)
     Swag.require(expect Gui.Testing.verifyNativePresentation(surface))
 
@@ -456,13 +474,15 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     let deadline = Time.monotonicMilliseconds() + 5000
     g_App.sigFrame += func|deadline|(_)
     {
-        if Time.monotonicMilliseconds() > deadline do
+        if Time.monotonicMilliseconds() > deadline
+        {
             g_Exit = true
+        }
     }
 
     main.sendCommandEvent(ActionCapture.Area)
     g_App.sigFrame.clear()
-    Swag.require(expect peer.tryWaitForExit(3000'ms))
+    Swag.require(expect peer.tryWaitForExit(3000_ms))
     Swag.require(peer.exitCode() == 0, peer.standardError())
     let physical     = unwrap main.editWnd.getCapture()
     let physicalPath = physical.file

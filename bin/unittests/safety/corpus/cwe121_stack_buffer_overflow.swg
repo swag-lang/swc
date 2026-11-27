@@ -62,8 +62,10 @@ func stackWriteGrid(row, column: u64)
 func stackWriteInRange()->u8
 {
     var buffer: [8] u8
-    for index in buffer.count do
+    for index in buffer.count
+    {
         buffer[index] = cast(u8, index)
+    }
     return buffer[7]
 }
 

@@ -18,18 +18,27 @@ impl Decoder
     {
         var row      = encodedRow
         var passRows = (height - 1) / 8 + 1
-        if row < passRows do
+        if row < passRows
+        {
             return row * 8
+        }
+
         row -= passRows
 
         passRows = height > 4 ? (height - 5) / 8 + 1 : 0
-        if row < passRows do
+        if row < passRows
+        {
             return row * 8 + 4
+        }
+
         row -= passRows
 
         passRows = height > 2 ? (height - 3) / 4 + 1 : 0
-        if row < passRows do
+        if row < passRows
+        {
             return row * 4 + 2
+        }
+
         row -= passRows
 
         return row * 2 + 1
@@ -40,16 +49,20 @@ impl Decoder
         var result: #returntype
         result.x = try .readU16()
         result.y = try .readU16()
-        if result.x >= .width or result.y >= .height do
+        if result.x >= .width or result.y >= .height
+        {
             fail InvalidFormatError{"invalid frame size"}
+        }
 
         result.width  = try .readU16()
         result.height = try .readU16()
         if not result.width or
            not result.height or
            result.width > .width - result.x or
-           result.height > .height - result.y do
+           result.height > .height - result.y
+        {
             fail InvalidFormatError{"GIF frame rectangle lies outside its canvas"}
+        }
 
         let flags = try .readU8()
         result.interlaced = (flags & 0x40) != 0
@@ -57,22 +70,36 @@ impl Decoder
         if flags & 0x80
         {
             result.palette = {size: 1 << ((flags & 0x07) + 1), colors: .stream}
-            try .seek(3'u64 * result.palette.size)
+            try .seek(3_u64 * result.palette.size)
         }
 
-        if not result.palette.size do
+        if not result.palette.size
+        {
             fail InvalidFormatError{"GIF frame has no color table"}
+        }
 
         result.minKeySize = try .readU8()
-        if result.minKeySize < 2 or result.minKeySize > 8 do
+        if result.minKeySize < 2 or result.minKeySize > 8
+        {
             fail InvalidFormatError{"GIF LZW code size is invalid"}
+        }
 
         result.data = .stream
         let remaining = .streamLen
         try .discardSubBlocks()
 
-        // Longer dictionary strings favor copying already decoded prefixes.
-        result.copyLzwPrefixes = remaining - .streamLen <= cast(u64, result.width) * result.height * 3 / 16
+        let framePixels  = cast(u64, result.width) * result.height
+        let encodedBytes = remaining - .streamLen
+
+        // Very small payloads favor reused prefixes. Near the worst LZW ratio, most codes are literals.
+        if encodedBytes <= framePixels * 3 / 16
+        {
+            result.lzwMode = .CopyPrefixes
+        }
+        else if encodedBytes >= framePixels + framePixels / 4
+        {
+            result.lzwMode = .DenseLiterals
+        }
 
         result.control = .gce
         return result
@@ -84,10 +111,16 @@ impl Decoder
         var sep = try .readU8()
         while sep != ','
         {
-            if sep == ';' do
+            if sep == ';'
+            {
                 return false
-            if sep != '!' do
+            }
+
+            if sep != '!'
+            {
                 fail InvalidFormatError{"invalid format"}
+            }
+
             try .readExt()
             sep = try .readU8()
         }

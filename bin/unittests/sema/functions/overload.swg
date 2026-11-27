@@ -52,7 +52,7 @@ func preferFloatLiteral(_, y: f64)->f64 => y
 #[Swag.ConstExpr]
 func(T) preferFloatLiteral(x, y: T)->T => y
 
-#assert(preferConcrete(1'u64, 2'u64) == 1'u64)
-#assert(preferConcrete(1'u8, 2'u8) == 2'u8)
-#assert(#typeof(preferFloatLiteral(0.0001, 1.0'f32)) == f32)
-#assert(#typeof(preferFloatLiteral(0.0001, 1.0'f64)) == f64)
+#assert(preferConcrete(1_u64, 2_u64) == 1_u64)
+#assert(preferConcrete(1_u8, 2_u8) == 2_u8)
+#assert(#typeof(preferFloatLiteral(0.0001, 1.0_f32)) == f32)
+#assert(#typeof(preferFloatLiteral(0.0001, 1.0_f64)) == f64)

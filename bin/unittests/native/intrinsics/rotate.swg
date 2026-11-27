@@ -28,54 +28,54 @@ func rolStrictU32(value: RotateStrictU32, count: RotateStrictU8)->RotateStrictU3
 // u8
 #test
 {
-    Swag.require(rolU8(0b00000001'u8, 0'u8) == 0b00000001'u8)
-    Swag.require(rolU8(0b00000001'u8, 1'u8) == 0b00000010'u8)
-    Swag.require(rolU8(0b00000001'u8, 4'u8) == 0b00010000'u8)
-    Swag.require(rolU8(0b00000001'u8, 7'u8) == 0b10000000'u8)
-    Swag.require(rolU8(0b10000000'u8, 1'u8) == 0b00000001'u8)
-    Swag.require(rolU8(0b10110001'u8, 2'u8) == 0b11000110'u8)
-    Swag.require(rolU8(0xFF'u8, 3'u8) == 0xFF'u8)
-    Swag.require(rolU8(0'u8, 5'u8) == 0'u8)
+    Swag.require(rolU8(0b00000001_u8, 0_u8) == 0b00000001_u8)
+    Swag.require(rolU8(0b00000001_u8, 1_u8) == 0b00000010_u8)
+    Swag.require(rolU8(0b00000001_u8, 4_u8) == 0b00010000_u8)
+    Swag.require(rolU8(0b00000001_u8, 7_u8) == 0b10000000_u8)
+    Swag.require(rolU8(0b10000000_u8, 1_u8) == 0b00000001_u8)
+    Swag.require(rolU8(0b10110001_u8, 2_u8) == 0b11000110_u8)
+    Swag.require(rolU8(0xFF_u8, 3_u8) == 0xFF_u8)
+    Swag.require(rolU8(0_u8, 5_u8) == 0_u8)
 }
 
 // u16
 #test
 {
-    Swag.require(rolU16(0x0001'u16, 0'u8) == 0x0001'u16)
-    Swag.require(rolU16(0x0001'u16, 1'u8) == 0x0002'u16)
-    Swag.require(rolU16(0x0001'u16, 8'u8) == 0x0100'u16)
-    Swag.require(rolU16(0x0001'u16, 15'u8) == 0x8000'u16)
-    Swag.require(rolU16(0x8000'u16, 1'u8) == 0x0001'u16)
-    Swag.require(rolU16(0xFFFF'u16, 7'u8) == 0xFFFF'u16)
-    Swag.require(rolU16(0'u16, 9'u8) == 0'u16)
-    Swag.require(rolU16(0xA5A5'u16, 4'u8) == 0x5A5A'u16)
+    Swag.require(rolU16(0x0001_u16, 0_u8) == 0x0001_u16)
+    Swag.require(rolU16(0x0001_u16, 1_u8) == 0x0002_u16)
+    Swag.require(rolU16(0x0001_u16, 8_u8) == 0x0100_u16)
+    Swag.require(rolU16(0x0001_u16, 15_u8) == 0x8000_u16)
+    Swag.require(rolU16(0x8000_u16, 1_u8) == 0x0001_u16)
+    Swag.require(rolU16(0xFFFF_u16, 7_u8) == 0xFFFF_u16)
+    Swag.require(rolU16(0_u16, 9_u8) == 0_u16)
+    Swag.require(rolU16(0xA5A5_u16, 4_u8) == 0x5A5A_u16)
 }
 
 // u32
 #test
 {
-    Swag.require(rolU32(1'u32, 0'u8) == 1'u32)
-    Swag.require(rolU32(1'u32, 1'u8) == 2'u32)
-    Swag.require(rolU32(1'u32, 16'u8) == 0x00010000'u32)
-    Swag.require(rolU32(1'u32, 31'u8) == 0x80000000'u32)
-    Swag.require(rolU32(0x80000000'u32, 1'u8) == 1'u32)
-    Swag.require(rolU32(0xFFFFFFFF'u32, 13'u8) == 0xFFFFFFFF'u32)
-    Swag.require(rolU32(0'u32, 10'u8) == 0'u32)
-    Swag.require(rolU32(0x12345678'u32, 8'u8) == 0x34567812'u32)
-    Swag.require(rolU32(0x12345678'u32, 16'u8) == 0x56781234'u32)
+    Swag.require(rolU32(1_u32, 0_u8) == 1_u32)
+    Swag.require(rolU32(1_u32, 1_u8) == 2_u32)
+    Swag.require(rolU32(1_u32, 16_u8) == 0x00010000_u32)
+    Swag.require(rolU32(1_u32, 31_u8) == 0x80000000_u32)
+    Swag.require(rolU32(0x80000000_u32, 1_u8) == 1_u32)
+    Swag.require(rolU32(0xFFFFFFFF_u32, 13_u8) == 0xFFFFFFFF_u32)
+    Swag.require(rolU32(0_u32, 10_u8) == 0_u32)
+    Swag.require(rolU32(0x12345678_u32, 8_u8) == 0x34567812_u32)
+    Swag.require(rolU32(0x12345678_u32, 16_u8) == 0x56781234_u32)
 }
 
 // u64
 #test
 {
-    Swag.require(rolU64(1'u64, 0'u8) == 1'u64)
-    Swag.require(rolU64(1'u64, 1'u8) == 2'u64)
-    Swag.require(rolU64(1'u64, 32'u8) == 0x00000001_00000000'u64)
-    Swag.require(rolU64(1'u64, 63'u8) == 0x80000000_00000000'u64)
-    Swag.require(rolU64(0x80000000_00000000'u64, 1'u8) == 1'u64)
-    Swag.require(rolU64(0xFFFFFFFF_FFFFFFFF'u64, 17'u8) == 0xFFFFFFFF_FFFFFFFF'u64)
-    Swag.require(rolU64(0'u64, 33'u8) == 0'u64)
-    Swag.require(rolU64(0x01234567_89ABCDEF'u64, 32'u8) == 0x89ABCDEF_01234567'u64)
+    Swag.require(rolU64(1_u64, 0_u8) == 1_u64)
+    Swag.require(rolU64(1_u64, 1_u8) == 2_u64)
+    Swag.require(rolU64(1_u64, 32_u8) == 0x00000001_00000000_u64)
+    Swag.require(rolU64(1_u64, 63_u8) == 0x80000000_00000000_u64)
+    Swag.require(rolU64(0x80000000_00000000_u64, 1_u8) == 1_u64)
+    Swag.require(rolU64(0xFFFFFFFF_FFFFFFFF_u64, 17_u8) == 0xFFFFFFFF_FFFFFFFF_u64)
+    Swag.require(rolU64(0_u64, 33_u8) == 0_u64)
+    Swag.require(rolU64(0x01234567_89ABCDEF_u64, 32_u8) == 0x89ABCDEF_01234567_u64)
 }
 
 // ============================================================
@@ -100,51 +100,51 @@ func rorStrictU32(value: RotateStrictU32, count: RotateStrictU8)->RotateStrictU3
 // u8
 #test
 {
-    Swag.require(rorU8(0b00000001'u8, 0'u8) == 0b00000001'u8)
-    Swag.require(rorU8(0b00000001'u8, 1'u8) == 0b10000000'u8)
-    Swag.require(rorU8(0b10000000'u8, 1'u8) == 0b01000000'u8)
-    Swag.require(rorU8(0b10000000'u8, 7'u8) == 0b00000001'u8)
-    Swag.require(rorU8(0b00000010'u8, 1'u8) == 0b00000001'u8)
-    Swag.require(rorU8(0xFF'u8, 3'u8) == 0xFF'u8)
-    Swag.require(rorU8(0'u8, 5'u8) == 0'u8)
-    Swag.require(rorU8(0b11000110'u8, 2'u8) == 0b10110001'u8)
+    Swag.require(rorU8(0b00000001_u8, 0_u8) == 0b00000001_u8)
+    Swag.require(rorU8(0b00000001_u8, 1_u8) == 0b10000000_u8)
+    Swag.require(rorU8(0b10000000_u8, 1_u8) == 0b01000000_u8)
+    Swag.require(rorU8(0b10000000_u8, 7_u8) == 0b00000001_u8)
+    Swag.require(rorU8(0b00000010_u8, 1_u8) == 0b00000001_u8)
+    Swag.require(rorU8(0xFF_u8, 3_u8) == 0xFF_u8)
+    Swag.require(rorU8(0_u8, 5_u8) == 0_u8)
+    Swag.require(rorU8(0b11000110_u8, 2_u8) == 0b10110001_u8)
 }
 
 // u16
 #test
 {
-    Swag.require(rorU16(0x0001'u16, 0'u8) == 0x0001'u16)
-    Swag.require(rorU16(0x0001'u16, 1'u8) == 0x8000'u16)
-    Swag.require(rorU16(0x8000'u16, 15'u8) == 0x0001'u16)
-    Swag.require(rorU16(0x0100'u16, 8'u8) == 0x0001'u16)
-    Swag.require(rorU16(0xFFFF'u16, 7'u8) == 0xFFFF'u16)
-    Swag.require(rorU16(0'u16, 9'u8) == 0'u16)
-    Swag.require(rorU16(0x5A5A'u16, 4'u8) == 0xA5A5'u16)
+    Swag.require(rorU16(0x0001_u16, 0_u8) == 0x0001_u16)
+    Swag.require(rorU16(0x0001_u16, 1_u8) == 0x8000_u16)
+    Swag.require(rorU16(0x8000_u16, 15_u8) == 0x0001_u16)
+    Swag.require(rorU16(0x0100_u16, 8_u8) == 0x0001_u16)
+    Swag.require(rorU16(0xFFFF_u16, 7_u8) == 0xFFFF_u16)
+    Swag.require(rorU16(0_u16, 9_u8) == 0_u16)
+    Swag.require(rorU16(0x5A5A_u16, 4_u8) == 0xA5A5_u16)
 }
 
 // u32
 #test
 {
-    Swag.require(rorU32(1'u32, 0'u8) == 1'u32)
-    Swag.require(rorU32(1'u32, 1'u8) == 0x80000000'u32)
-    Swag.require(rorU32(0x80000000'u32, 31'u8) == 1'u32)
-    Swag.require(rorU32(0x00010000'u32, 16'u8) == 1'u32)
-    Swag.require(rorU32(0xFFFFFFFF'u32, 13'u8) == 0xFFFFFFFF'u32)
-    Swag.require(rorU32(0'u32, 10'u8) == 0'u32)
-    Swag.require(rorU32(0x12345678'u32, 8'u8) == 0x78123456'u32)
-    Swag.require(rorU32(0x12345678'u32, 16'u8) == 0x56781234'u32)
+    Swag.require(rorU32(1_u32, 0_u8) == 1_u32)
+    Swag.require(rorU32(1_u32, 1_u8) == 0x80000000_u32)
+    Swag.require(rorU32(0x80000000_u32, 31_u8) == 1_u32)
+    Swag.require(rorU32(0x00010000_u32, 16_u8) == 1_u32)
+    Swag.require(rorU32(0xFFFFFFFF_u32, 13_u8) == 0xFFFFFFFF_u32)
+    Swag.require(rorU32(0_u32, 10_u8) == 0_u32)
+    Swag.require(rorU32(0x12345678_u32, 8_u8) == 0x78123456_u32)
+    Swag.require(rorU32(0x12345678_u32, 16_u8) == 0x56781234_u32)
 }
 
 // u64
 #test
 {
-    Swag.require(rorU64(1'u64, 0'u8) == 1'u64)
-    Swag.require(rorU64(1'u64, 1'u8) == 0x80000000_00000000'u64)
-    Swag.require(rorU64(0x80000000_00000000'u64, 63'u8) == 1'u64)
-    Swag.require(rorU64(0x00000001_00000000'u64, 32'u8) == 1'u64)
-    Swag.require(rorU64(0xFFFFFFFF_FFFFFFFF'u64, 17'u8) == 0xFFFFFFFF_FFFFFFFF'u64)
-    Swag.require(rorU64(0'u64, 33'u8) == 0'u64)
-    Swag.require(rorU64(0x89ABCDEF_01234567'u64, 32'u8) == 0x01234567_89ABCDEF'u64)
+    Swag.require(rorU64(1_u64, 0_u8) == 1_u64)
+    Swag.require(rorU64(1_u64, 1_u8) == 0x80000000_00000000_u64)
+    Swag.require(rorU64(0x80000000_00000000_u64, 63_u8) == 1_u64)
+    Swag.require(rorU64(0x00000001_00000000_u64, 32_u8) == 1_u64)
+    Swag.require(rorU64(0xFFFFFFFF_FFFFFFFF_u64, 17_u8) == 0xFFFFFFFF_FFFFFFFF_u64)
+    Swag.require(rorU64(0_u64, 33_u8) == 0_u64)
+    Swag.require(rorU64(0x89ABCDEF_01234567_u64, 32_u8) == 0x01234567_89ABCDEF_u64)
 }
 
 // ============================================================
@@ -153,46 +153,46 @@ func rorStrictU32(value: RotateStrictU32, count: RotateStrictU8)->RotateStrictU3
 
 #test
 {
-    Swag.require(rorU8(rolU8(0xAB'u8, 3'u8), 3'u8) == 0xAB'u8)
-    Swag.require(rorU16(rolU16(0x1234'u16, 7'u8), 7'u8) == 0x1234'u16)
-    Swag.require(rorU32(rolU32(0xDEADBEEF'u32, 11'u8), 11'u8) == 0xDEADBEEF'u32)
-    Swag.require(rorU64(rolU64(0xCAFEBABE_DEADBEEF'u64, 37'u8), 37'u8) == 0xCAFEBABE_DEADBEEF'u64)
+    Swag.require(rorU8(rolU8(0xAB_u8, 3_u8), 3_u8) == 0xAB_u8)
+    Swag.require(rorU16(rolU16(0x1234_u16, 7_u8), 7_u8) == 0x1234_u16)
+    Swag.require(rorU32(rolU32(0xDEADBEEF_u32, 11_u8), 11_u8) == 0xDEADBEEF_u32)
+    Swag.require(rorU64(rolU64(0xCAFEBABE_DEADBEEF_u64, 37_u8), 37_u8) == 0xCAFEBABE_DEADBEEF_u64)
 }
 
 // Full rotation returns original value
 #test
 {
-    Swag.require(rolU8(0xAB'u8, 8'u8) == 0xAB'u8)
-    Swag.require(rorU8(0xAB'u8, 8'u8) == 0xAB'u8)
-    Swag.require(rolU16(0x1234'u16, 16'u8) == 0x1234'u16)
-    Swag.require(rorU16(0x1234'u16, 16'u8) == 0x1234'u16)
-    Swag.require(rolU32(0xDEADBEEF'u32, 32'u8) == 0xDEADBEEF'u32)
-    Swag.require(rorU32(0xDEADBEEF'u32, 32'u8) == 0xDEADBEEF'u32)
-    Swag.require(rolU64(0xCAFEBABE_DEADBEEF'u64, 64'u8) == 0xCAFEBABE_DEADBEEF'u64)
-    Swag.require(rorU64(0xCAFEBABE_DEADBEEF'u64, 64'u8) == 0xCAFEBABE_DEADBEEF'u64)
+    Swag.require(rolU8(0xAB_u8, 8_u8) == 0xAB_u8)
+    Swag.require(rorU8(0xAB_u8, 8_u8) == 0xAB_u8)
+    Swag.require(rolU16(0x1234_u16, 16_u8) == 0x1234_u16)
+    Swag.require(rorU16(0x1234_u16, 16_u8) == 0x1234_u16)
+    Swag.require(rolU32(0xDEADBEEF_u32, 32_u8) == 0xDEADBEEF_u32)
+    Swag.require(rorU32(0xDEADBEEF_u32, 32_u8) == 0xDEADBEEF_u32)
+    Swag.require(rolU64(0xCAFEBABE_DEADBEEF_u64, 64_u8) == 0xCAFEBABE_DEADBEEF_u64)
+    Swag.require(rorU64(0xCAFEBABE_DEADBEEF_u64, 64_u8) == 0xCAFEBABE_DEADBEEF_u64)
 }
 
 // Strict aliases
 #test
 {
-    const a = Swag.rol(cast(RotateStrictU32, 0x12345678'u32), cast(RotateStrictU8, 8))
-    const b = Swag.ror(cast(RotateStrictU32, 0x12345678'u32), cast(RotateStrictU8, 8))
+    const a = Swag.rol(cast(RotateStrictU32, 0x12345678_u32), cast(RotateStrictU8, 8))
+    const b = Swag.ror(cast(RotateStrictU32, 0x12345678_u32), cast(RotateStrictU8, 8))
 
     #assert(#typeof(a) == RotateStrictU32)
     #assert(#typeof(b) == RotateStrictU32)
 
-    Swag.require(a == cast(RotateStrictU32, 0x34567812'u32))
-    Swag.require(b == cast(RotateStrictU32, 0x78123456'u32))
+    Swag.require(a == cast(RotateStrictU32, 0x34567812_u32))
+    Swag.require(b == cast(RotateStrictU32, 0x78123456_u32))
 }
 
 #test
 {
-    let a = rolStrictU32(cast(RotateStrictU32, 0x80000001'u32), cast(RotateStrictU8, 1))
-    let b = rorStrictU32(cast(RotateStrictU32, 0x80000001'u32), cast(RotateStrictU8, 1))
+    let a = rolStrictU32(cast(RotateStrictU32, 0x80000001_u32), cast(RotateStrictU8, 1))
+    let b = rorStrictU32(cast(RotateStrictU32, 0x80000001_u32), cast(RotateStrictU8, 1))
 
     #assert(#typeof(a) == RotateStrictU32)
     #assert(#typeof(b) == RotateStrictU32)
 
-    Swag.require(a == cast(RotateStrictU32, 0x00000003'u32))
-    Swag.require(b == cast(RotateStrictU32, 0xC0000000'u32))
+    Swag.require(a == cast(RotateStrictU32, 0x00000003_u32))
+    Swag.require(b == cast(RotateStrictU32, 0xC0000000_u32))
 }

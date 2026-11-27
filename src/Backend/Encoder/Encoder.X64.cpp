@@ -373,6 +373,7 @@ namespace
                op == MicroOp::ModuloSigned ||
                op == MicroOp::MultiplyUnsigned ||
                op == MicroOp::MultiplyWideSigned ||
+               op == MicroOp::MultiplyWideUnsigned ||
                op == MicroOp::MultiplyHighSigned ||
                op == MicroOp::MultiplyHighUnsigned;
     }
@@ -672,6 +673,29 @@ namespace
         store.pushU8(static_cast<uint8_t>((wide ? 0x80 : 0) | (vvvv << 3) | (vector256 ? 4 : 0) | pp));
     }
 
+    enum class EvexVectorLength : uint8_t
+    {
+        Xmm = 0,
+        Ymm = 1,
+        Zmm = 2,
+    };
+
+    // Unmasked EVEX in the existing 16-register file. Bits R' and X' are set
+    // because there is no fifth register bit or extended SIB index here.
+    void emitEvex(PagedStore& store, uint8_t mandatoryPrefix, uint8_t map, X64Reg dst, X64Reg src1, X64Reg src2, EvexVectorLength length, bool wide = false)
+    {
+        const uint8_t pp   = vexPrefixBits(mandatoryPrefix);
+        const uint8_t vvvv = static_cast<uint8_t>(~x64RegNumber(src1) & 0x0F);
+        const uint8_t r    = isExtendedReg(dst) ? 0 : 0x80;
+        const uint8_t b    = isExtendedReg(src2) ? 0 : 0x20;
+        const uint8_t w    = wide ? 0x80 : 0;
+
+        store.pushU8(0x62);
+        store.pushU8(static_cast<uint8_t>(r | 0x50 | b | map));
+        store.pushU8(static_cast<uint8_t>(w | (vvvv << 3) | 0x04 | pp));
+        store.pushU8(static_cast<uint8_t>((static_cast<uint8_t>(length) << 5) | 0x08));
+    }
+
     struct VecOpEncoding
     {
         uint8_t map;
@@ -772,6 +796,12 @@ namespace
             case MicroOp::VecMinF64: return {VEX_MAP_0F, 0x66, 0x5D};
             case MicroOp::VecMaxF32: return {VEX_MAP_0F, 0x00, 0x5F};
             case MicroOp::VecMaxF64: return {VEX_MAP_0F, 0x66, 0x5F};
+
+            case MicroOp::VecAesEncryptRound: return {VEX_MAP_0F38, 0x66, 0xDC};
+            case MicroOp::VecAesEncryptLastRound: return {VEX_MAP_0F38, 0x66, 0xDD};
+            case MicroOp::VecAesDecryptRound: return {VEX_MAP_0F38, 0x66, 0xDE};
+            case MicroOp::VecAesDecryptLastRound: return {VEX_MAP_0F38, 0x66, 0xDF};
+            case MicroOp::VecAesInverseMixColumns: return {VEX_MAP_0F38, 0x66, 0xDB};
 
             case MicroOp::VecAbsS8: return {VEX_MAP_0F38, 0x66, 0x1C};
             case MicroOp::VecAbsS16: return {VEX_MAP_0F38, 0x66, 0x1D};
@@ -1182,8 +1212,33 @@ void X64Encoder::onInstructionEncoded(const MicroInstr& inst, const MicroInstrOp
 
 void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const
 {
+    if (inst.op == MicroInstrOpcode::CpuId)
+    {
+        info.addUseDef(x64RegToMicroReg(X64Reg::Rax));
+        info.addDef(x64RegToMicroReg(X64Reg::Rbx));
+        info.addUseDef(x64RegToMicroReg(X64Reg::Rcx));
+        info.addDef(x64RegToMicroReg(X64Reg::Rdx));
+        return;
+    }
+
+    if (inst.op == MicroInstrOpcode::XGetBv)
+    {
+        info.addUse(x64RegToMicroReg(X64Reg::Rcx));
+        info.addDef(x64RegToMicroReg(X64Reg::Rax));
+        info.addDef(x64RegToMicroReg(X64Reg::Rdx));
+        return;
+    }
+
     if (!ops)
         return;
+
+    if (inst.op == MicroInstrOpcode::VecClmulXorPair || inst.op == MicroInstrOpcode::VecClmulXorQuad)
+    {
+        info.addDef(x64RegToMicroReg(X64Reg::Xmm0));
+        info.addDef(x64RegToMicroReg(X64Reg::Xmm1));
+        info.addDef(x64RegToMicroReg(X64Reg::Xmm2));
+        return;
+    }
 
     if (inst.op == MicroInstrOpcode::VecGatherS32)
     {
@@ -1258,6 +1313,9 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
             if (shiftUsesFixedCount)
                 info.addUse(x64RegToMicroReg(X64Reg::Rcx));
             break;
+        case MicroOp::VecSha256Rounds2:
+            info.addUse(x64RegToMicroReg(X64Reg::Xmm0));
+            break;
         case MicroOp::MultiplySigned:
         {
             // B8 signed multiply uses one-operand IMUL (no two-operand 8-bit form exists),
@@ -1272,6 +1330,7 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
         }
         case MicroOp::MultiplyUnsigned:
         case MicroOp::MultiplyWideSigned:
+        case MicroOp::MultiplyWideUnsigned:
         case MicroOp::MultiplyHighSigned:
         case MicroOp::MultiplyHighUnsigned:
             info.addUseDef(x64RegToMicroReg(X64Reg::Rax));
@@ -1329,7 +1388,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         }
 
         const bool isB8SignedMul = op == MicroOp::MultiplySigned && ops[2].opBits == MicroOpBits::B8;
-        if (op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned ||
+        if (op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned || op == MicroOp::MultiplyWideUnsigned ||
             isB8SignedMul ||
             op == MicroOp::MultiplyHighSigned ||
             op == MicroOp::MultiplyHighUnsigned ||
@@ -2640,6 +2699,86 @@ void X64Encoder::encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uin
     emitValue(store_, control, MicroOpBits::B8);
 }
 
+void X64Encoder::encodeVecClmulXorPair(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second)
+{
+    SWC_ASSERT(value.isInt() && factor.isInt() && addend.isInt());
+    constexpr MicroReg ymm0 = MicroReg::floatReg(0);
+    constexpr MicroReg ymm1 = MicroReg::floatReg(1);
+    constexpr MicroReg ymm2 = MicroReg::floatReg(2);
+
+    const auto loadWide = [this](MicroReg dst, MicroReg src) {
+        emitVex(store_, 0xF3, VEX_MAP_0F, microRegToX64Reg(dst), X64Reg::Rax, microRegToX64Reg(src), false, false, true);
+        emitCpuOp(store_, 0x6F);
+        emitMemoryOperand(store_, 0, dst, src);
+    };
+    const auto multiplyWide = [this](MicroReg dst, MicroReg lhs, MicroReg rhs, uint8_t selector) {
+        emitVex(store_, 0x66, VEX_MAP_0F3A, microRegToX64Reg(dst), microRegToX64Reg(lhs), microRegToX64Reg(rhs), false, false, true);
+        emitCpuOp(store_, 0x44);
+        emitModRm(store_, dst, rhs);
+        store_.pushU8(selector);
+    };
+
+    loadWide(ymm0, value);
+    loadWide(ymm1, factor);
+    multiplyWide(ymm2, ymm0, ymm1, second);
+    multiplyWide(ymm0, ymm0, ymm1, first);
+    emitVex(store_, 0x66, VEX_MAP_0F, X64Reg::Xmm0, X64Reg::Xmm0, X64Reg::Xmm2, false, false, true);
+    emitCpuOp(store_, 0xEF);
+    emitModRm(store_, ymm0, ymm2);
+
+    emitVex(store_, 0x66, VEX_MAP_0F, X64Reg::Xmm0, X64Reg::Xmm0, microRegToX64Reg(addend), false, false, true);
+    emitCpuOp(store_, 0xEF);
+    emitMemoryOperand(store_, 0, ymm0, addend);
+    emitVex(store_, 0xF3, VEX_MAP_0F, X64Reg::Xmm0, X64Reg::Rax, microRegToX64Reg(value), false, false, true);
+    emitCpuOp(store_, 0x7F);
+    emitMemoryOperand(store_, 0, ymm0, value);
+
+    // No upper halves are live outside this instruction. End the wide run
+    // before the next potential call or legacy SSE instruction.
+    store_.pushU8(0xC5);
+    store_.pushU8(0xF8);
+    store_.pushU8(0x77);
+}
+
+void X64Encoder::encodeVecClmulXorQuad(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second)
+{
+    SWC_ASSERT(value.isInt() && factor.isInt() && addend.isInt());
+    constexpr auto     length = EvexVectorLength::Zmm;
+    constexpr MicroReg zmm0   = MicroReg::floatReg(0);
+    constexpr MicroReg zmm1   = MicroReg::floatReg(1);
+    constexpr MicroReg zmm2   = MicroReg::floatReg(2);
+
+    const auto load = [this](MicroReg dst, MicroReg src) {
+        emitEvex(store_, 0xF3, VEX_MAP_0F, microRegToX64Reg(dst), X64Reg::Rax, microRegToX64Reg(src), length, true);
+        emitCpuOp(store_, 0x6F);
+        emitMemoryOperand(store_, 0, dst, src);
+    };
+    const auto multiply = [this](MicroReg dst, uint8_t selector) {
+        emitEvex(store_, 0x66, VEX_MAP_0F3A, microRegToX64Reg(dst), X64Reg::Xmm0, X64Reg::Xmm1, length);
+        emitCpuOp(store_, 0x44);
+        emitModRm(store_, dst, zmm1);
+        store_.pushU8(selector);
+    };
+
+    load(zmm0, value);
+    load(zmm1, factor);
+    multiply(zmm2, second);
+    multiply(zmm0, first);
+
+    // A ternary XOR combines the two products and the memory addend.
+    emitEvex(store_, 0x66, VEX_MAP_0F3A, X64Reg::Xmm0, X64Reg::Xmm2, microRegToX64Reg(addend), length);
+    emitCpuOp(store_, 0x25);
+    emitMemoryOperand(store_, 0, zmm0, addend);
+    store_.pushU8(0x96);
+
+    emitEvex(store_, 0xF3, VEX_MAP_0F, X64Reg::Xmm0, X64Reg::Rax, microRegToX64Reg(value), length, true);
+    emitCpuOp(store_, 0x7F);
+    emitMemoryOperand(store_, 0, zmm0, value);
+    store_.pushU8(0xC5);
+    store_.pushU8(0xF8);
+    store_.pushU8(0x77);
+}
+
 void X64Encoder::encodeStoreZero32MemReg(MicroReg memReg, uint64_t memOffset, MicroReg zeroReg, bool finishRun)
 {
     SWC_ASSERT(memReg.isInt() && zeroReg.isFloat());
@@ -3267,6 +3406,30 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     SWC_ASSERT(op != MicroOp::ConvertUIntToFloat64);
 
     ///////////////////////////////////////////
+    if (isShaMicroOp(op))
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
+        emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
+        emitCpuOp(store_, 0x0F);
+
+        if (op >= MicroOp::VecSha1Rounds4Phase0)
+        {
+            emitCpuOp(store_, 0x3A);
+            emitCpuOp(store_, 0xCC);
+            emitModRm(store_, regDst, regSrc);
+            emitValue(store_, static_cast<uint8_t>(op) - static_cast<uint8_t>(MicroOp::VecSha1Rounds4Phase0), MicroOpBits::B8);
+        }
+        else
+        {
+            // The six register-only SHA opcodes follow the MicroOp order above.
+            emitCpuOp(store_, 0x38);
+            emitCpuOp(store_, static_cast<uint8_t>(0xC8 + static_cast<uint8_t>(op) - static_cast<uint8_t>(MicroOp::VecSha1NextE)));
+            emitModRm(store_, regDst, regSrc);
+        }
+
+        return;
+    }
+
     // Keep two-operand Micro operations in VEX form too: a caller may leave
     // the volatile upper YMM halves dirty, even when this function uses only XMM.
     if (isVecMicroOp(op))
@@ -3346,9 +3509,9 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
 
     ///////////////////////////////////////////
 
-    else if (op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned)
+    else if (op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned || op == MicroOp::MultiplyWideUnsigned)
     {
-        SWC_ASSERT(op != MicroOp::MultiplyWideSigned || opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+        SWC_ASSERT(op == MicroOp::MultiplyUnsigned || opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
         const auto rax = x64RegToMicroReg(X64Reg::Rax);
         emitRex(store_, opBits, rax, regSrc);
         emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
@@ -3509,7 +3672,7 @@ void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
     SWC_ASSERT(!reg.isFloat());
-    SWC_ASSERT(!(op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned || op == MicroOp::MultiplyHighSigned || op == MicroOp::MultiplyHighUnsigned));
+    SWC_ASSERT(!(op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned || op == MicroOp::MultiplyWideUnsigned || op == MicroOp::MultiplyHighSigned || op == MicroOp::MultiplyHighUnsigned));
 
     ///////////////////////////////////////////
 
@@ -3608,10 +3771,11 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
              op == MicroOp::DivideSigned ||
              op == MicroOp::MultiplyUnsigned ||
              op == MicroOp::MultiplyWideSigned ||
+             op == MicroOp::MultiplyWideUnsigned ||
              op == MicroOp::MultiplyHighSigned ||
              op == MicroOp::MultiplyHighUnsigned)
     {
-        SWC_ASSERT(!(op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned || op == MicroOp::MultiplyHighSigned || op == MicroOp::MultiplyHighUnsigned));
+        SWC_ASSERT(!(op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned || op == MicroOp::MultiplyWideUnsigned || op == MicroOp::MultiplyHighSigned || op == MicroOp::MultiplyHighUnsigned));
     }
 
     ///////////////////////////////////////////
@@ -3695,7 +3859,7 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
     const uint64_t value = immediateToU64(valueInt);
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
-    SWC_ASSERT(!(op == MicroOp::ModuloSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned));
+    SWC_ASSERT(!(op == MicroOp::ModuloSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned || op == MicroOp::MultiplyWideUnsigned));
 
     ///////////////////////////////////////////
     if (op == MicroOp::ShiftArithmeticRight)
@@ -4050,6 +4214,15 @@ void X64Encoder::encodeOpTernaryRegRegMem(MicroReg regDst, MicroReg regLeft, Mic
 
 void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)
 {
+    if (op == MicroOp::VecMultiplyAdd52Low || op == MicroOp::VecMultiplyAdd52High)
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B128 && reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
+        emitEvex(store_, 0x66, VEX_MAP_0F38, microRegToX64Reg(reg0), microRegToX64Reg(reg1), microRegToX64Reg(reg2), EvexVectorLength::Xmm, true);
+        emitCpuOp(store_, op == MicroOp::VecMultiplyAdd52Low ? 0xB4 : 0xB5);
+        emitModRm(store_, reg0, reg2);
+        return;
+    }
+
     if (op == MicroOp::VecMultiplyAddF32 || op == MicroOp::VecMultiplyAddF64)
     {
         SWC_ASSERT(opBits == MicroOpBits::B128 && reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
@@ -4415,7 +4588,20 @@ void X64Encoder::encodeBreakpoint()
     emitCpuOp(store_, 0xCC);
 }
 
+void X64Encoder::encodeCpuId()
+{
+    emitCpuOp(store_, 0x0F);
+    emitCpuOp(store_, 0xA2);
+}
+
 // prefetcht0 [memReg]: 0F 18 /1, the hint FFmpeg's prefetch_motion uses.
+void X64Encoder::encodeXGetBv()
+{
+    store_.pushU8(0x0F);
+    store_.pushU8(0x01);
+    store_.pushU8(0xD0);
+}
+
 void X64Encoder::encodePrefetch(MicroReg memReg)
 {
     SWC_ASSERT(memReg.isInt());

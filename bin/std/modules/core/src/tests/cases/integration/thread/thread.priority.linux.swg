@@ -11,8 +11,11 @@ func threadNice(id: u64)->s32
 
 func priorityErrorCode(error: any?)->u64
 {
-    if error is Swag.SystemError as system do
+    if error is Swag.SystemError as system
+    {
         return system.errorID
+    }
+
     Swag.panic("expected a system error", #curlocation)
 }
 
@@ -45,8 +48,10 @@ func waitForPriorityChanges(thread: const *Threading.Thread)
 {
     let probe = cast(*PriorityProbe, unwrap thread.userParam)
     probe.ready.raise()
-    while not thread.requestEnd.isRaised() do
-        Threading.Thread.sleep(1'ms)
+    while not thread.requestEnd.isRaised()
+    {
+        Threading.Thread.sleep(1_ms)
+    }
 }
 
 #[Swag.TestTag("integration.thread")]
@@ -126,8 +131,11 @@ func waitForPriorityChanges(thread: const *Threading.Thread)
     }
 
     let deadline = Time.monotonicMilliseconds() + 5000
-    while not probe.ready.isRaised() and Time.monotonicMilliseconds() < deadline do
-        Threading.Thread.sleep(1'ms)
+    while not probe.ready.isRaised() and Time.monotonicMilliseconds() < deadline
+    {
+        Threading.Thread.sleep(1_ms)
+    }
+
     Swag.require(probe.ready.isRaised())
     expect thread.setPriority(.BelowNormal)
     Swag.require(threadNice(thread.id) == Math.min(normal + 1, 19))
@@ -146,8 +154,11 @@ func waitForPriorityChanges(thread: const *Threading.Thread)
     Swag.require(thread.priority == (denied ? .Lowest : .Normal))
     thread.safeForceEnd()
     let taskPath = Format.toString("/proc/self/task/%", thread.id)
-    while Directory.exists(taskPath) and Time.monotonicMilliseconds() < deadline do
-        Threading.Thread.sleep(1'ms)
+    while Directory.exists(taskPath) and Time.monotonicMilliseconds() < deadline
+    {
+        Threading.Thread.sleep(1_ms)
+    }
+
     Swag.require(not Directory.exists(taskPath))
     var finished = false
     catch thread.setPriority(.Normal)

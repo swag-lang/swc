@@ -150,9 +150,71 @@ ships; history lives in Git, not here.
 - Evidence: sparse and dense scan comparisons show a gain from inline buffers on sparse rows and slower parallel scans on the largest
   original. A shared crossing store also slowed its one-worker bitmap. The short integer path
   cut the largest original's parse time in repeated one-worker runs.
-- Next: measure the cost of evaluating cubic sample positions after contours have chosen
-  their segment counts. Rerun the original Windows comparison at one worker and at the
-  runtime default.
+- Evidence: matched stroke widths
+  isolate the gap for hairlines. The CPU readback change
+  removes intermediate matte copies and preserves the tested tile bytes.
+- Evidence: direct scan conversion on color mattes
+  cuts the 16,000-path color fixture from 1088 to 396 ms with identical pixels.
+  resvg takes 570 ms. Clipped curves drop from 66 to 18 ms against 17 ms for
+  resvg. Thin and dashed strokes still spend time generating and scanning their
+  outline fragments.
+- Evidence: deferred stroke metrics
+  reduce first raster time for undashed strokes without changing the tested pixels.
+- Evidence: shared projection across scan bands
+  cuts the two-color compound fill from 806 to 96 ms at one worker with matching pixels.
+  resvg takes 50 ms on the same input.
+- Evidence: shared CPU matte sampling for bitmaps
+  brings a public embedded 16-bit PNG from 619 to 24 ms at 1200 px.
+  resvg takes 70 ms. The maximum premultiplied RGBA difference is two levels
+  and the existing color-and-clip case keeps its CRC-64.
+- Evidence: shared supersampled mattes
+  reduce duplicate raster work in the colored stroke and clip fixtures at two samples per axis.
+- Evidence: parallel scan bands
+  cut the colored compound fill from 104 to 45 ms at four workers with matching
+  pixels. resvg takes 55 ms with the same CPU affinity.
+- Evidence: horizontal contour rejection
+  reduces the colored compound fill from 99 to 64 ms at one worker and from 48 to
+  39 ms at four workers with matching pixels.
+- Evidence: contour lookup by scan band
+  reduces the short-contour compound fill from 62 to 54 ms at one worker and from
+  44 to 37 ms at four workers. The tall-contour fallback retains its pixels.
+- Evidence: stencil-bounded scan fills
+  reduce the three narrow-mask fixtures from 104–136 ms to 4–13 ms at one worker
+  with unchanged pixels. resvg takes 1–10 ms on the same fixtures.
+- Evidence: skipping clipped crossings
+  reduces the same three masks by 1–2 ms on one logical CPU with exact coverage.
+- Evidence: inline affine mapping in the parser
+  reduces largest-original parse time from 66 to 59 ms on one logical CPU.
+- Evidence: direct bounds updates on flattened points
+  reduce the largest-original raster time from 174 to 157 ms on one logical CPU
+  and from 124 to 116 ms on four, with unchanged pixels.
+- Evidence: parallel batches of color fills
+  reduce the 16,000-shape fixture from 233 to 120 ms and the stroke fixture from
+  64 to 44 ms at four workers with unchanged pixels.
+- Evidence: short stroke runs
+  reduce the 0.5 px case from 15.69 to 11.84 ms and the 4 px case from
+  19.36 to 15.16 ms at four workers with unchanged pixels.
+- Evidence: parallel single-ink bitmap rendering
+  reduces the largest original from 203 to 152 ms at four workers with the same
+  pixels. Its four-worker thumbnail drops from 148 to 126 ms.
+- Evidence: cubic allocations and control bounds
+  reduce parsing the largest original from 61 to 48 ms at four workers with
+  unchanged raster CRC-64s.
+- Evidence: packed gradient spans
+  reduce 420 overlapping gradient paths from 188 to 115 ms on one logical CPU.
+  resvg takes 30 ms. Scalar paint quantization and CRC-64s remain identical.
+- Evidence: parallel medium gradient ranges
+  reduce the same fixture from 112 to 77 ms at four workers. The bitmap
+  and public controls retain their CRC-64s.
+- Evidence: matched CPU budgets
+  put all four Scope bitmaps ahead of resvg at one, two, and four logical CPUs.
+  The largest full-size raster is slower at one CPU and faster at two and four.
+- Evidence: packed monochrome compositing
+  reduces the 5184-pixel native bitmap from 391 to 382 ms at one CPU and
+  from 180 to 172 ms at four, with identical pixels.
+- Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
+  raster costs. Rerun the original Windows comparison at one worker and at
+  the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010
@@ -315,19 +377,15 @@ ships; history lives in Git, not here.
   retain bounds protection, and every retained kernel improves representative decoding.
 - Related: std.core.043, std.core.044, compiler.codegen.022.
 
-### std.pixel.image.054 — The JPEG forward transform and quantization remain scalar
+### std.pixel.image.054 — Reduce the remaining JPEG encode cost on textured photographs
 
-- Evidence: the JPEG decoder and the encoder's colour conversion (`loadFromRGB` in
-  `encode/jpg/dct.swg`) are packed. The encoder's float AAN forward transform and the
-  quantization that follows it are scalar and now dominate encoding. Their samples go
-  through an `s16` staging array because no packed `s32` to `f32` lane conversion exists
-  (std.core.042).
-- Next: decide whether byte-exactness with today's encoded output must be kept. Lane-by-lane
-  float order can still change the last bit under multiply-add contraction, and an integer
-  transform changes the bytes outright. Then profile the encoder stages before writing the
-  kernel.
-- Done when: fixtures preserve accepted pixel tolerances, coefficient extremes are covered,
-  and encode throughput improves in an interleaved A/B on a quiet machine.
+- Evidence: the forward transform and quantization use packed lanes. The Motion JPEG
+  comparison uses the same JPEG encoder on 30 camera frames. At matched RGB PSNR, Swag spends
+  1.52× libjpeg-turbo's process CPU time and emits within 1% of its bytes.
+- Next: profile the packed forward transform and matrix-order quantization separately
+  on the camera clip using the current encoder.
+- Done when: at comparable RGB PSNR and packet size, camera encode time falls in
+  an interleaved A/B and uniform, saturated and odd-sized inputs retain their output.
 - Related: std.core.042, compiler.codegen.022.
 
 ### std.pixel.image.055 — Remaining WebP decode stages need performance decisions
@@ -347,6 +405,10 @@ ships; history lives in Git, not here.
   and reads and writes color-cache pixels as packed RGBA words.
 - Next: profile vertical deblocking and coefficient parsing against libwebp. Profile the
   VP8L noisy RGBA fixture and rerun the original Windows comparison.
+- Evidence: SIMD matte readback
+  brings the public SVG with an embedded 16-bit PNG from 23 to 16 ms,
+  and leaves all 24 SVG rasters identical. Dense stroke coverage still dominates
+  the generated stroke page.
 - Done when: remaining hot stages have measured decisions and lossy and lossless output is
   preserved at the tested predictor, filter, and image boundaries.
 - Related: std.core.043, compiler.codegen.022.

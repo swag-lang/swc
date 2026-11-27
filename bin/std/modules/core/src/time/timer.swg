@@ -60,13 +60,21 @@ impl Timer
     internal mtd initialize(delay: Duration, callback: func(*Timer), periodic: bool) fail
     {
         Swag.assert(.handle == null)
-        if not Math.isFinite(delay.seconds) or delay.seconds <= 0 do
+        if not Math.isFinite(delay.seconds) or delay.seconds <= 0
+        {
             fail Errors.BadParameterError{"timer delay must be positive and finite"}
-        if delay.seconds >= cast(f64, Swag.U32.Max) / 1000 do
+        }
+
+        if delay.seconds >= cast(f64, Swag.U32.Max) / 1000
+        {
             fail Errors.OverflowError{"timer delay must be between 1 and 4294967294 milliseconds"}
+        }
+
         let delayMs = delay.millisecondsCeiling()
-        if not delayMs or delayMs >= Swag.U32.Max do
+        if not delayMs or delayMs >= Swag.U32.Max
+        {
             fail Errors.OverflowError{"timer delay must be between 1 and 4294967294 milliseconds"}
+        }
 
         .callback = callback
         .context  = Swag.getContext()[]
@@ -93,8 +101,11 @@ impl Timer
     // Calls that release the same timer must be serialized. Repeated calls do nothing.
     mtd release()
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         releaseTimerWorker(.handle)
         .handle = null
     }

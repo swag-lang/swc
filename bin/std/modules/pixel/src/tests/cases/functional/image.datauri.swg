@@ -7,7 +7,7 @@ using Swag, Core
 #test
 {
     var source = Image.create(4, 3, .RGBA8)
-    source.fill(Color.fromArgb(255'u8, 40'u8, 80'u8, 120'u8))
+    source.fill(Color.fromArgb(255_u8, 40_u8, 80_u8, 120_u8))
     let bytes = expect source.encodeToBytes("embedded.png")
 
     var plain: String = "data:image/png;base64,"
@@ -41,7 +41,7 @@ using Swag, Core
 #test
 {
     var source = Image.create(8, 8, .RGB8)
-    source.fill(Color.fromArgb(255'u8, 128'u8, 128'u8, 128'u8))
+    source.fill(Color.fromArgb(255_u8, 128_u8, 128_u8, 128_u8))
     let bytes = expect source.encodeToBytes("embedded.jpg")
 
     var uri: String = "data:image/jpeg;base64,"

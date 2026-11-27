@@ -13,8 +13,10 @@ private func countMsdfSignMismatches(bitmap: const *Bitmap)->u32
         let p      = i * 4
         let median = Math.max(Math.min(buf[p], buf[p + 1]), Math.min(Math.max(buf[p], buf[p + 1]), buf[p + 2]))
         let alpha  = buf[p + 3]
-        if (alpha > 128 and median < 128) or (alpha < 128 and median > 128) do
+        if (alpha > 128 and median < 128) or (alpha < 128 and median > 128)
+        {
             result += 1
+        }
     }
 
     return result
@@ -33,17 +35,20 @@ private struct MsdfTexel
 // A square is `[left, bottom, right, top]` in 26.6 units.
 private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)->MsdfTexel
 {
-    var points:   Array'Vector
-    var tags:     Array'u8
-    var contours: Array's16
+    var points:   Array!{Vector}
+    var tags:     Array!{u8}
+    var contours: Array!{s16}
     for sq in squares
     {
         points.add(Vector{sq[0], sq[1]})
         points.add(Vector{sq[0], sq[3]})
         points.add(Vector{sq[2], sq[3]})
         points.add(Vector{sq[2], sq[1]})
-        for 4 do
+        for 4
+        {
             tags.add(CURVE_TAG_ON)
+        }
+
         contours.add(cast(s16, points.count) - 1)
     }
 

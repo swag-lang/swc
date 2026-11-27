@@ -11,12 +11,12 @@ using Swag
     //
     // Both 0 and 1 answer 1. The result must be representable, so `x` must not exceed the largest
     // power of two of its type.
-    func roundUpToPowerOf2(x: u32)->u32 => x <= 1 ? 1 : 1'u32 << (32 - Math.leadingZeros(x - 1))
-    func roundUpToPowerOf2(x: u64)->u64 => x <= 1 ? 1 : 1'u64 << cast(u32, (64 - Math.leadingZeros(x - 1)))
+    func roundUpToPowerOf2(x: u32)->u32 => x <= 1 ? 1 : 1_u32 << (32 - Math.leadingZeros(x - 1))
+    func roundUpToPowerOf2(x: u64)->u64 => x <= 1 ? 1 : 1_u64 << cast(u32, (64 - Math.leadingZeros(x - 1)))
 
     // Returns the largest power of two less than or equal to `x`, or 0 when `x` is 0.
-    func roundDownToPowerOf2(x: u32)->u32 => x == 0 ? 0 : 1'u32 << (31 - Math.leadingZeros(x))
-    func roundDownToPowerOf2(x: u64)->u64 => x == 0 ? 0 : 1'u64 << cast(u32, (63 - Math.leadingZeros(x)))
+    func roundDownToPowerOf2(x: u32)->u32 => x == 0 ? 0 : 1_u32 << (31 - Math.leadingZeros(x))
+    func roundDownToPowerOf2(x: u64)->u64 => x == 0 ? 0 : 1_u64 << cast(u32, (63 - Math.leadingZeros(x)))
 
     // Returns whether `x` is a power of two; 0 is not one.
     func isPowerOf2(x: u8)->bool  => x and not (x & (x - 1))
@@ -30,7 +30,7 @@ using Swag
 func hasZeroByte(v: u16)->bool
 {
     let v32 = cast(u32, v)
-    return cast(bool, ((v32 - #wrap 0x0101'u32) & ~v32 & 0x8080'u32))
+    return cast(bool, ((v32 - #wrap 0x0101_u32) & ~v32 & 0x8080_u32))
 }
 
 #[ConstExpr, Inline, Safety(.Overflow, false)]
@@ -43,19 +43,19 @@ func hasZeroByte(v: u64)->bool => cast(bool, ((v - #wrap 0x01010101_01010101) & 
 //
 // For example, 0x20 gives 0x2020.
 #[ConstExpr, Inline]
-func makeRepeat16(v: u8)->u16 => (~0'u16 / 255'u16 * cast(u16, v))
+func makeRepeat16(v: u8)->u16 => (~0_u16 / 255_u16 * cast(u16, v))
 
 // Returns a 32-bit value holding `v` in each of its four bytes.
 //
 // For example, 0x20 gives 0x20202020.
 #[ConstExpr, Inline]
-func makeRepeat32(v: u8)->u32 => (~0'u32 / 255 * v)
+func makeRepeat32(v: u8)->u32 => (~0_u32 / 255 * v)
 
 // Returns a 64-bit value holding `v` in each of its eight bytes.
 //
 // For example, 0x20 gives 0x20202020_20202020.
 #[ConstExpr, Inline]
-func makeRepeat64(v: u8)->u64 => (~0'u64 / 255 * v)
+func makeRepeat64(v: u8)->u64 => (~0_u64 / 255 * v)
 
 // Returns the 16-bit value whose high byte is `high` and low byte is `low`.
 //
@@ -162,15 +162,21 @@ func gcd(a, b: s64)->s64 fail
     while y != 0
     {
         // `S64.Min % -1` overflows even though the remainder and gcd are both representable.
-        if y == -1 do
+        if y == -1
+        {
             return 1
+        }
+
         let remainder = x % y
         x = y
         y = remainder
     }
 
-    if x == Swag.S64.Min do
+    if x == Swag.S64.Min
+    {
         fail Errors.OverflowError{"greatest common divisor does not fit in s64"}
+    }
+
     return abs(x)
 }
 
@@ -181,21 +187,29 @@ func gcd(a, b: s64)->s64 fail
 #[ConstExpr]
 func lcm(a, b: s64)->s64 fail
 {
-    if a == 0 or b == 0 do
+    if a == 0 or b == 0
+    {
         return 0
+    }
 
     let divisor = cast(u64, try gcd(a, b))
     let left    = integerMagnitude(a) / divisor
     let right   = integerMagnitude(b)
-    if left > cast(u64, Swag.S64.Max) / right do
+    if left > cast(u64, Swag.S64.Max) / right
+    {
         fail Errors.OverflowError{"least common multiple does not fit in s64"}
+    }
+
     return cast(s64, left * right)
 }
 
 #[ConstExpr]
 private func integerMagnitude(value: s64)->u64
 {
-    if value >= 0 do
+    if value >= 0
+    {
         return cast(u64, value)
+    }
+
     return cast(u64, -(value + 1)) + 1
 }

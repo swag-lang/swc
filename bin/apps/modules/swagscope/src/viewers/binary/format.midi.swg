@@ -47,8 +47,8 @@ func reportMidiFile(image: *BinaryImage, report: *Report)
     report.endGroup()
 
     var scan        = headerSize
-    var tracks      = 0'u64
-    var totalEvents = 0'u64
+    var tracks      = 0_u64
+    var totalEvents = 0_u64
     var complete    = headerLength >= 6
     report.beginGroup(texts.midi_Tracks, "", "", offset: scan, length: image.bytes.count - scan, open: true)
 
@@ -94,8 +94,11 @@ func reportMidiFile(image: *BinaryImage, report: *Report)
         scan        = bodyAt + length
     }
 
-    if not complete do
+    if not complete
+    {
         report.note(texts.midi_Malformed)
+    }
+
     report.listCut(Math.min(tracks, ListLimit), cast(u64, trackCount))
     report.endGroup()
 
@@ -155,7 +158,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *Report, at, end: u64,
         {
             running = status
             let kind  = status >> 4
-            let count = kind == 0xC or kind == 0xD ? 1'u64 : 2'u64
+            let count = kind == 0xC or kind == 0xD ? 1_u64 : 2_u64
             if not image.has(dataAt, count) or
                dataAt + count > end or
                image.u8At(dataAt) & 0x80 or
@@ -166,11 +169,14 @@ private func reportMidiTrack(image: *BinaryImage, report: *Report, at, end: u64,
             }
 
             let next = dataAt + count
-            if shown do
+            if shown
+            {
                 reportMidiChannelEvent(image, report, scan, next, status, dataAt, result.lastTick)
+            }
+
             scan = next
         }
-        elif status == 0xFF
+        else if status == 0xFF
         {
             running = 0
             if dataAt >= end
@@ -188,15 +194,23 @@ private func reportMidiTrack(image: *BinaryImage, report: *Report, at, end: u64,
             }
 
             let next = length.next + length.value
-            if kind == 0x2F do
+            if kind == 0x2F
+            {
                 result.ended = true
-            if shown do
+            }
+
+            if shown
+            {
                 reportMidiMetaEvent(image, report, &result, scan, next, kind, length.next, length.value, result.lastTick)
-            elif kind == 0x03 and result.name.isEmpty() do
+            }
+            else if kind == 0x03 and result.name.isEmpty()
+            {
                 result.name = image.fixedTextAt(length.next, length.value)
+            }
+
             scan = next
         }
-        elif status == 0xF0 or status == 0xF7
+        else if status == 0xF0 or status == 0xF7
         {
             running = 0
             let length = midiNumber(image, dataAt, end)
@@ -228,8 +242,10 @@ private func reportMidiTrack(image: *BinaryImage, report: *Report, at, end: u64,
     if show
     {
         report.listCut(Math.min(result.events, ListLimit), result.events)
-        if result.complete and not result.ended do
+        if result.complete and not result.ended
+        {
             report.note(texts().midi_NoEnd)
+        }
     }
 
     return result
@@ -267,24 +283,32 @@ private func reportMidiMetaEvent(image: *BinaryImage, report: *Report, track: *M
     {
     case 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07:
         value = image.fixedTextAt(bodyAt, length)
-        if kind == 0x03 and track.name.isEmpty() do
+        if kind == 0x03 and track.name.isEmpty()
+        {
             track.name = value
+        }
 
     case 0x20, 0x21:
-        if length do
+        if length
+        {
             value = Format.toString("%", image.u8At(bodyAt))
+        }
 
     case 0x51:
         if length == 3
         {
             let micros = image.scalarAt(bodyAt, 3)
-            if micros do
-                value = Format.toString("% BPM", 60_000_000'u64 / micros)
+            if micros
+            {
+                value = Format.toString("% BPM", 60_000_000_u64 / micros)
+            }
         }
 
     case 0x54:
-        if length == 5 do
+        if length == 5
+        {
             value = Format.toString("%:%:%:%.%", image.u8At(bodyAt), image.u8At(bodyAt + 1), image.u8At(bodyAt + 2), image.u8At(bodyAt + 3), image.u8At(bodyAt + 4))
+        }
 
     case 0x58:
         if length == 4
@@ -292,7 +316,7 @@ private func reportMidiMetaEvent(image: *BinaryImage, report: *Report, track: *M
             let power = image.u8At(bodyAt + 1)
             if power < 64
             {
-                let denominator = 1'u64 << power
+                let denominator = 1_u64 << power
                 value = Format.toString("%/%", image.u8At(bodyAt), denominator)
             }
         }
@@ -307,8 +331,10 @@ private func reportMidiMetaEvent(image: *BinaryImage, report: *Report, track: *M
         }
 
     default:
-        if length do
+        if length
+        {
             value = StrConv.toDisplaySize(length)
+        }
     }
 
     report.field(at, next - at, label, value, detail)
@@ -322,8 +348,11 @@ private func midiNumber(image: *BinaryImage, at, end: u64)->MidiNumber
 
     for 4
     {
-        if result.next >= end do
+        if result.next >= end
+        {
             return result
+        }
+
         let value = image.u8At(result.next)
         result.next  += 1
         result.value = (result.value << 7) | cast(u64, value & 0x7F)
@@ -351,10 +380,12 @@ private func midiFormatName(value: u16)->string
 
 private func midiDivisionText(value: u16)->String
 {
-    if not (value & 0x8000) do
+    if not (value & 0x8000)
+    {
         return Format.toString(texts().midi_TicksQuarter, value)
+    }
 
-    let frames = 256'u64 - cast(u64, value >> 8)
+    let frames = 256_u64 - cast(u64, value >> 8)
     let ticks  = cast(u64, value & 0xFF)
     return Format.toString(texts().midi_Smpte, frames, ticks)
 }

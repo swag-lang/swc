@@ -42,79 +42,83 @@ impl Encoder
         .dhtInfo.infoHTCbDC = 1
         .dhtInfo.infoHTCbAC = 0x11
 
-        for i in 16 do
+        for i in 16
+        {
             .dhtInfo.nrcodesYDC[i] = StdDcLuminanceNrCodes[i + 1]
-        for i in 12 do
+        }
+
+        for i in 12
+        {
             .dhtInfo.valuesYDC[i] = StdDcLuminanceValues[i]
-        for i in 16 do
+        }
+
+        for i in 16
+        {
             .dhtInfo.nrcodesYAC[i] = StdAcLuminanceNrCodes[i + 1]
-        for i in 162 do
+        }
+
+        for i in 162
+        {
             .dhtInfo.valuesYAC[i] = StdAcLuminanceValues[i]
-        for i in 16 do
+        }
+
+        for i in 16
+        {
             .dhtInfo.nrcodesCbDC[i] = StdDcChrominanceNrCodes[i + 1]
-        for i in 12 do
+        }
+
+        for i in 12
+        {
             .dhtInfo.valuesCbDC[i] = StdDcChrominanceValues[i]
-        for i in 16 do
+        }
+
+        for i in 16
+        {
             .dhtInfo.nrcodesCbAC[i] = StdAcChrominanceNrCodes[i + 1]
-        for i in 162 do
+        }
+
+        for i in 162
+        {
             .dhtInfo.valuesCbAC[i] = StdAcChrominanceValues[i]
-    }
-
-    func computeHuffmanTable(nrCodes: const [*] u8, stdTable: const [*] u8, hT: [*] BitString)
-    {
-        var codevalue  = 0'u16
-        var posInTable = 0
-        for k in 1 to 16
-        {
-            for var j = 1; j <= nrCodes[k]; j += 1
-            {
-                hT[stdTable[posInTable]].value  = codevalue
-                hT[stdTable[posInTable]].length = cast(u8, k)
-                posInTable                      += 1
-                codevalue                       += #wrap 1
-            }
-
-            codevalue *= #wrap 2
         }
     }
 
-    mtd initHuffmanTables()
-    {
-        computeHuffmanTable(StdDcLuminanceNrCodes, StdDcLuminanceValues, .htYDC)
-        computeHuffmanTable(StdDcChrominanceNrCodes, StdDcChrominanceValues, .htCbDC)
-        computeHuffmanTable(StdAcLuminanceNrCodes, StdAcLuminanceValues, .htYAC)
-        computeHuffmanTable(StdAcChrominanceNrCodes, StdAcChrominanceValues, .htCbAC)
-    }
+    const LumaDcCodes   = #run compileCodes!{12}(StdDcLuminanceNrCodes, StdDcLuminanceValues, false)
+    const LumaAcCodes   = #run compileCodes!{256}(StdAcLuminanceNrCodes, StdAcLuminanceValues, true)
+    const ChromaDcCodes = #run compileCodes!{12}(StdDcChrominanceNrCodes, StdDcChrominanceValues, false)
+    const ChromaAcCodes = #run compileCodes!{256}(StdAcChrominanceNrCodes, StdAcChrominanceValues, true)
 
-    mtd setNumbersCategoryAndBitcode()
+    // A symbol already determines the category. Keep the shifted prefix and combined bit count.
+    func(Size: u64) compileCodes(counts, symbols: const [..] u8, ac: bool)->[Size] u32
     {
-        .categoryAlloc.resize(65535)
-        .bitcodeAlloc.resize(65535)
-        .category = cast([*] u8, .categoryAlloc.storage()) + 32767
-        .bitcode  = cast([*] BitString, .bitcodeAlloc.storage()) + 32767
-
-        var nrlower = 1
-        var nrupper = 2
-        for cat in 1 to 15
+        var packed: #returntype
+        if ac
         {
-            for nr in nrlower until nrupper
+            // Undefined symbols still carry the amplitude bits, as with a zero-length prefix.
+            for i in packed.count
             {
-                .category[nr]       = cast(u8, cat)
-                .bitcode[nr].length = cast(u8, cat)
-                .bitcode[nr].value  = cast(u16, nr)
+                packed[i] = (cast(u32, i) & 15) << PackedLengthShift
             }
-
-            for nr in -(nrupper - 1) to -nrlower
-            {
-                let nof = cast #bit (u64, cast(s64, nr))
-                .category[nof]       = cast(u8, cat)
-                .bitcode[nof].length = cast(u8, cat)
-                .bitcode[nof].value  = cast(u16, (nrupper - 1 + nr))
-            }
-
-            nrlower <<= 1
-            nrupper <<= 1
         }
+
+        var code  = 0_u16
+        var index = 0
+        for length in 1 to 16
+        {
+            for counts[length]
+            {
+                let symbol   = symbols[index]
+                let category = ac ? symbol & 15 : symbol
+                let total    = cast(u32, length) + category
+                packed[symbol] = (total << PackedLengthShift) | (cast(u32, code) << category)
+                code  += #wrap 1
+                index += 1
+            }
+
+            code *= #wrap 2
+        }
+
+        return packed
     }
 
     mtd prepareQuantTables()

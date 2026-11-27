@@ -8,31 +8,43 @@ private var g_ColorChanged: bool
 
 #drop
 {
-    if g_ColorChanged do
+    if g_ColorChanged
+    {
         resetColor()
+    }
 }
 
 private func supportsColor()->bool
 {
-    if Linux.isatty(1) != 1 do
+    if Linux.isatty(1) != 1
+    {
         return false
+    }
+
     let term = Linux.getenv("TERM".buffer)
-    if not term do
+    if not term
+    {
         return false
+    }
+
     let kind = cast(string, cast(cstring, term))
     return kind.count != 0 and kind != "dumb"
 }
 
 internal func writeNative(message: string)
 {
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < message.count
     {
         let count = Linux.write(1, message.buffer + offset, message.count - offset)
-        if count > 0 do
+        if count > 0
+        {
             offset += cast(u64, count)
-        elif count == 0 or Linux.errno() != Linux.EINTR do
+        }
+        else if count == 0 or Linux.errno() != Linux.EINTR
+        {
             return
+        }
     }
 }
 
@@ -59,8 +71,11 @@ public func setBackColor(color: Color)
 // Restores terminal default colors; redirected output is unchanged.
 public func resetColor()
 {
-    if supportsColor() do
+    if supportsColor()
+    {
         writeNative("\x1b[0m")
+    }
+
     g_ColorChanged = false
 }
 
@@ -78,10 +93,12 @@ public func prompt()->String
         if count == 1
         {
             result += cast(string, Swag.makeSlice(&byte, 1))
-            if byte == '\n' do
+            if byte == '\n'
+            {
                 return result
+            }
         }
-        elif count == 0 or Linux.errno() != Linux.EINTR
+        else if count == 0 or Linux.errno() != Linux.EINTR
         {
             return result
         }

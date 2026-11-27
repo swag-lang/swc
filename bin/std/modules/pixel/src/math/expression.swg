@@ -158,13 +158,13 @@ internal struct MathNode
     atomClass: MathAtomClass = Ord
     text:      String
     text2:     String
-    children:  Array'(*MathNode)
+    children:  Array!{*MathNode}
 
     metrics: MathMetrics
-    offsets: Array'Math.Vector2
-    rules:   Array'MathRule
-    draws:   Array'MathDrawText
-    paths:   Array'MathDrawPath
+    offsets: Array!{Math.Vector2}
+    rules:   Array!{MathRule}
+    draws:   Array!{MathDrawText}
+    paths:   Array!{MathDrawPath}
 
     style:       MathStyle
     fontVariant: MathFontVariant = Default
@@ -172,7 +172,7 @@ internal struct MathNode
     spaceEm:     f32
     flag:        bool
     flag2:       bool
-    rowLengths:  Array'u32
+    rowLengths:  Array!{u32}
 }
 
 // Stores a parsed, reusable mathematical expression.
@@ -202,9 +202,9 @@ struct MathExpression
 
     internal
     {
-        source:    String                // Expression text the tree was parsed from.
-        nodes:     ArrayPtr'MathNode     // Pool owning every node of the tree.
-        late root: *MathNode             // Root of the tree, set by 'parse'.
+        source:    String        // Expression text the tree was parsed from.
+        nodes:     ArrayPtr!{MathNode}     // Pool owning every node of the tree.
+        late root: *MathNode     // Root of the tree, set by 'parse'.
     }
 }
 
@@ -232,8 +232,11 @@ private func mathFail(message: string, seek: u64) fail
 private func mathOwnedSlice(source: string, start, end: u64)->String
 {
     var result: #returntype
-    if end > start do
+    if end > start
+    {
         result = Swag.makeString(source.buffer + start, end - start)
+    }
+
     return result
 }
 
@@ -260,8 +263,11 @@ internal func mathNextStyle(style: MathStyle)->MathStyle
 
 internal func mathCrampedStyle(style: MathStyle)->MathStyle
 {
-    if style == .Display do
+    if style == .Display
+    {
         return .Text
+    }
+
     return mathNextStyle(style)
 }
 
@@ -269,8 +275,8 @@ private func mathLiteralClass(c: rune)->MathAtomClass
 {
     switch c
     {
-    case '+', '-', '*', '/', '\u00D7'rune, '\u00F7'rune: return .Bin
-    case '=', '<', '>', '\u2260'rune, '\u2264'rune, '\u2265'rune: return .Rel
+    case '+', '-', '*', '/', '\u00D7'_rune, '\u00F7'_rune: return .Bin
+    case '=', '<', '>', '\u2260'_rune, '\u2264'_rune, '\u2265'_rune: return .Rel
     case '(', '[', '{': return .Open
     case ')', ']', '}': return .Close
     case ',', ';', ':': return .Punct
@@ -282,8 +288,11 @@ private func mathLiteralClass(c: rune)->MathAtomClass
 
 private func mathIsAsciiVariable(text: string)->bool
 {
-    if text.count != 1 do
+    if text.count != 1
+    {
         return false
+    }
+
     return mathIsAsciiLetter(text.buffer[0])
 }
 
@@ -465,16 +474,22 @@ private impl MathParser
 
     mtd peek()->u8
     {
-        if .eof() do
+        if .eof()
+        {
             return 0
+        }
+
         return (.source).buffer[.pos]
     }
 
     mtd peekAt(offset: u64)->u8
     {
         let at = .pos + offset
-        if at >= .count() do
+        if at >= .count()
+        {
             return 0
+        }
+
         return (.source).buffer[at]
     }
 
@@ -483,15 +498,18 @@ private impl MathParser
         while not .eof()
         {
             let c = .peek()
-            if c != ' ' and c != '\t' and c != '\r' and c != '\n' do
+            if c != ' ' and c != '\t' and c != '\r' and c != '\n'
+            {
                 break
+            }
+
             .pos += 1
         }
     }
 
     mtd newNode(kind: MathNodeKind)->*MathNode
     {
-        let node = Memory.new'MathNode()
+        let node = Memory.new!{MathNode}()
         node.id   = .expression.nodes.count
         node.kind = kind
         .expression.nodes.add(node)
@@ -512,13 +530,18 @@ private impl MathParser
     {
         var result: #returntype
         result.start = .pos
-        if .eof() do
+        if .eof()
+        {
             try mathFail("math expression ends, but this position needs an atom", .pos)
+        }
 
         let slice    = Swag.makeSlice((.source).buffer + .pos, .count() - .pos)
         let {c, eat} = Utf8.decodeRune(slice)
-        if eat == 0 do
+        if eat == 0
+        {
             try mathFail("math expression contains an incomplete UTF-8 sequence", .pos)
+        }
+
         result.value = c
         .pos         += eat
         return result
@@ -526,33 +549,52 @@ private impl MathParser
 
     mtd atControlWord(word: string)->bool
     {
-        if .peek() != '\\' do
+        if .peek() != '\\'
+        {
             return false
+        }
+
         let size = word.count
-        if .pos + 1 + size > .count() do
+        if .pos + 1 + size > .count()
+        {
             return false
+        }
+
         let got = Swag.makeString((.source).buffer + .pos + 1, size)
-        if got != word do
+        if got != word
+        {
             return false
-        if .pos + 1 + size < .count() and mathIsAsciiLetter((.source).buffer[.pos + 1 + size]) do
+        }
+
+        if .pos + 1 + size < .count() and mathIsAsciiLetter((.source).buffer[.pos + 1 + size])
+        {
             return false
+        }
+
         return true
     }
 
     mtd readCommand()->String fail
     {
         let slash = .pos
-        if .peek() != '\\' do
+        if .peek() != '\\'
+        {
             try mathFail("math command needs a leading '\\'", .pos)
+        }
+
         .pos += 1
-        if .eof() do
+        if .eof()
+        {
             try mathFail("math expression ends after '\\'", slash)
+        }
 
         let start = .pos
         if mathIsAsciiLetter(.peek())
         {
-            while mathIsAsciiLetter(.peek()) do
+            while mathIsAsciiLetter(.peek())
+            {
                 .pos += 1
+            }
         }
         else
         {
@@ -564,8 +606,11 @@ private impl MathParser
 
     mtd consumeControlWord(word: string)->bool fail
     {
-        if not .atControlWord(word) do
+        if not .atControlWord(word)
+        {
             return false
+        }
+
         discard try .readCommand()
         .skipMathSpaces()
         return true
@@ -575,20 +620,26 @@ private impl MathParser
     {
         .skipMathSpaces()
         let open = .pos
-        if .peek() != '{' do
+        if .peek() != '{'
+        {
             try mathFail(Format.toString("% needs a '{...}' argument", label), .pos)
+        }
+
         .pos += 1
 
         let start = .pos
-        var depth = 1'u32
+        var depth = 1_u32
         while not .eof()
         {
             let c = .peek()
             if c == '\\'
             {
                 .pos += 1
-                if not .eof() do
+                if not .eof()
+                {
                     .pos += 1
+                }
+
                 continue
             }
 
@@ -596,7 +647,7 @@ private impl MathParser
             {
                 depth += 1
             }
-            elif c == '}'
+            else if c == '}'
             {
                 depth -= 1
                 if depth == 0
@@ -616,20 +667,37 @@ private impl MathParser
 
     mtd shouldStop(stop: MathParseStop)->bool
     {
-        if stop & .Brace and .peek() == '}' do
+        if stop & .Brace and .peek() == '}'
+        {
             return true
-        if stop & .Bracket and .peek() == ']' do
+        }
+
+        if stop & .Bracket and .peek() == ']'
+        {
             return true
-        if stop & .Right and .atControlWord("right") do
+        }
+
+        if stop & .Right and .atControlWord("right")
+        {
             return true
+        }
+
         if stop & .Matrix
         {
-            if .peek() == '&' do
+            if .peek() == '&'
+            {
                 return true
-            if .peek() == '\\' and .peekAt(1) == '\\' do
+            }
+
+            if .peek() == '\\' and .peekAt(1) == '\\'
+            {
                 return true
-            if .atControlWord("end") do
+            }
+
+            if .atControlWord("end")
+            {
                 return true
+            }
         }
 
         return false
@@ -641,15 +709,25 @@ private impl MathParser
         while true
         {
             .skipMathSpaces()
-            if .eof() or .shouldStop(stop) do
+            if .eof() or .shouldStop(stop)
+            {
                 break
+            }
 
-            if .peek() == '}' do
+            if .peek() == '}'
+            {
                 try mathFail("math expression has a closing '}' without a matching group", .pos)
-            if .peek() == ']' do
+            }
+
+            if .peek() == ']'
+            {
                 try mathFail("math expression has a closing ']' without a matching root index", .pos)
-            if .peek() == '&' do
+            }
+
+            if .peek() == '&'
+            {
                 try mathFail("math alignment marker '&' is outside a matrix", .pos)
+            }
 
             row.children.add(try .parseAtom())
         }
@@ -660,10 +738,15 @@ private impl MathParser
     mtd parseRequiredArgument(label: string)->*MathNode fail
     {
         .skipMathSpaces()
-        if .eof() do
+        if .eof()
+        {
             try mathFail(Format.toString("% needs an argument", label), .pos)
-        if .peek() == '{' do
+        }
+
+        if .peek() == '{'
+        {
             return try .parseGroup()
+        }
 
         // TeX consumes exactly one token for an unbraced argument. In `x_i^2`,
         // this keeps `^2` attached to x instead of accidentally nesting it under i.
@@ -673,12 +756,18 @@ private impl MathParser
     mtd parseGroup()->*MathNode fail
     {
         let open = .pos
-        if .peek() != '{' do
+        if .peek() != '{'
+        {
             try mathFail("math group needs an opening '{'", .pos)
+        }
+
         .pos += 1
         let result = try .parseRow(.Brace)
-        if .peek() != '}' do
+        if .peek() != '}'
+        {
             try mathFail("math group has no closing '}'", open)
+        }
+
         .pos += 1
         return result
     }
@@ -686,12 +775,18 @@ private impl MathParser
     mtd parseBracketGroup()->*MathNode fail
     {
         let open = .pos
-        if .peek() != '[' do
+        if .peek() != '['
+        {
             try mathFail("root index needs an opening '['", .pos)
+        }
+
         .pos += 1
         let result = try .parseRow(.Bracket)
-        if .peek() != ']' do
+        if .peek() != ']'
+        {
             try mathFail("root index has no closing ']'", open)
+        }
+
         .pos += 1
         return result
     }
@@ -699,16 +794,21 @@ private impl MathParser
     mtd parseDelimiter(label: string)->String fail
     {
         .skipMathSpaces()
-        if .eof() do
+        if .eof()
+        {
             try mathFail(Format.toString("% needs a delimiter", label), .pos)
+        }
 
         if .peek() == '\\'
         {
             let at      = .pos
             let command = try .readCommand()
             let spec    = mathCommandSymbol(command)
-            if not spec.found do
+            if not spec.found
+            {
                 try mathFail(Format.toString("% has no delimiter for command '\\%'", label, command), at)
+            }
+
             return spec.text
         }
 
@@ -720,8 +820,11 @@ private impl MathParser
     {
         let left = try .parseDelimiter("'\\left'")
         let body = try .parseRow(.Right)
-        if not (try .consumeControlWord("right")) do
+        if not (try .consumeControlWord("right"))
+        {
             try mathFail("'\\left' has no matching '\\right'", .pos)
+        }
+
         let right = try .parseDelimiter("'\\right'")
 
         let node = .newNode(.Delimited)
@@ -748,8 +851,11 @@ private impl MathParser
     {
         .skipMathSpaces()
         var index: *MathNode?
-        if .peek() == '[' do
+        if .peek() == '['
+        {
             index = try .parseBracketGroup()
+        }
+
         let radicand = try .parseRequiredArgument("radical")
         let node     = .newNode(.Radical)
         node.children.add(radicand)
@@ -797,27 +903,27 @@ private impl MathParser
             left  = "("
             right = ")"
         }
-        elif environment == "bmatrix"
+        else if environment == "bmatrix"
         {
             left  = "["
             right = "]"
         }
-        elif environment == "Bmatrix"
+        else if environment == "Bmatrix"
         {
             left  = "{"
             right = "}"
         }
-        elif environment == "vmatrix"
+        else if environment == "vmatrix"
         {
             left  = "|"
             right = "|"
         }
-        elif environment == "Vmatrix"
+        else if environment == "Vmatrix"
         {
             left  = "\u2016"
             right = "\u2016"
         }
-        elif environment == "cases"
+        else if environment == "cases"
         {
             left  = "{"
             right = "."
@@ -849,12 +955,14 @@ private impl MathParser
            environment != "vmatrix" and
            environment != "Vmatrix" and
            environment != "cases" and
-           environment != "aligned" do
+           environment != "aligned"
+        {
             try mathFail(Format.toString("math renderer does not support environment '%'", environment), beginAt)
+        }
 
         let matrix = .newNode(.Matrix)
         matrix.atomClass = .Inner
-        var columnsInRow = 0'u32
+        var columnsInRow = 0_u32
 
         while true
         {
@@ -881,8 +989,11 @@ private impl MathParser
             {
                 discard try .readCommand()
                 let closeEnvironment = try .readRawGroup("'\\end'")
-                if closeEnvironment != environment do
+                if closeEnvironment != environment
+                {
                     try mathFail(Format.toString("'\\begin{%}' ends with '\\end{%}'", environment, closeEnvironment), .pos)
+                }
+
                 matrix.rowLengths.add(columnsInRow)
                 break
             }
@@ -898,8 +1009,11 @@ private impl MathParser
         let at      = .pos
         let command = try .readCommand()
 
-        if command == "frac" or command == "dfrac" or command == "tfrac" do
+        if command == "frac" or command == "dfrac" or command == "tfrac"
+        {
             return try .parseFraction()
+        }
+
         if command == "binom"
         {
             let fraction = try .parseFraction(false)
@@ -911,49 +1025,101 @@ private impl MathParser
             return node
         }
 
-        if command == "sqrt" do
+        if command == "sqrt"
+        {
             return try .parseRadical()
-        if command == "left" do
+        }
+
+        if command == "left"
+        {
             return try .parseLeftRight()
-        if command == "right" do
+        }
+
+        if command == "right"
+        {
             try mathFail("'\\right' has no matching '\\left'", at)
-        if command == "begin" do
+        }
+
+        if command == "begin"
+        {
             return try .parseEnvironment()
-        if command == "end" do
+        }
+
+        if command == "end"
+        {
             try mathFail("'\\end' has no matching '\\begin'", at)
-        if command == "operatorname" do
+        }
+
+        if command == "operatorname"
+        {
             return try .parseOperatorName()
+        }
+
         if command == "text" or command == "textrm"
         {
             let text = try .readRawGroup(Format.toString("'\\%'", command))
             return .newSymbol(text)
         }
 
-        if command == "mathrm" do
+        if command == "mathrm"
+        {
             return try .parseStyle(.Roman, "'\\mathrm'")
-        if command == "mathit" do
-            return try .parseStyle(.Italic, "'\\mathit'")
-        if command == "mathbf" do
-            return try .parseStyle(.Bold, "'\\mathbf'")
-        if command == "boldsymbol" or command == "bm" do
-            return try .parseStyle(.BoldItalic, Format.toString("'\\%'", command))
+        }
 
-        if command == "hat" or command == "widehat" do
+        if command == "mathit"
+        {
+            return try .parseStyle(.Italic, "'\\mathit'")
+        }
+
+        if command == "mathbf"
+        {
+            return try .parseStyle(.Bold, "'\\mathbf'")
+        }
+
+        if command == "boldsymbol" or command == "bm"
+        {
+            return try .parseStyle(.BoldItalic, Format.toString("'\\%'", command))
+        }
+
+        if command == "hat" or command == "widehat"
+        {
             return try .parseAccent("^")
-        if command == "tilde" or command == "widetilde" do
+        }
+
+        if command == "tilde" or command == "widetilde"
+        {
             return try .parseAccent("~")
-        if command == "bar" do
+        }
+
+        if command == "bar"
+        {
             return try .parseAccent("\u00AF")
-        if command == "vec" do
+        }
+
+        if command == "vec"
+        {
             return try .parseAccent("\u2192")
-        if command == "dot" do
+        }
+
+        if command == "dot"
+        {
             return try .parseAccent("\u02D9")
-        if command == "ddot" do
+        }
+
+        if command == "ddot"
+        {
             return try .parseAccent("\u00A8")
-        if command == "overline" do
+        }
+
+        if command == "overline"
+        {
             return try .parseAccent("", false, true)
-        if command == "underline" do
+        }
+
+        if command == "underline"
+        {
             return try .parseAccent("", true, true)
+        }
 
         let spec = mathCommandSymbol(command)
         if spec.found
@@ -965,21 +1131,36 @@ private impl MathParser
         }
 
         // Explicit spacing commands
-        var space = 0.0'f32
-        if command == "," do
+        var space = 0.0_f32
+        if command == ","
+        {
             space = 3.0 / 18.0
-        elif command == ":" do
+        }
+        else if command == ":"
+        {
             space = 4.0 / 18.0
-        elif command == ";" do
+        }
+        else if command == ";"
+        {
             space = 5.0 / 18.0
-        elif command == "!" do
+        }
+        else if command == "!"
+        {
             space = -3.0 / 18.0
-        elif command == " " do
+        }
+        else if command == " "
+        {
             space = 1.0 / 3.0
-        elif command == "quad" do
+        }
+        else if command == "quad"
+        {
             space = 1.0
-        elif command == "qquad" do
+        }
+        else if command == "qquad"
+        {
             space = 2.0
+        }
+
         if space != 0
         {
             let node = .newNode(.Space)
@@ -988,26 +1169,55 @@ private impl MathParser
         }
 
         // Escaped TeX punctuation is literal.
-        if command == "{" do
+        if command == "{"
+        {
             return .newSymbol("{", .Open)
-        if command == "}" do
+        }
+
+        if command == "}"
+        {
             return .newSymbol("}", .Close)
-        if command == "_" do
+        }
+
+        if command == "_"
+        {
             return .newSymbol("_")
-        if command == "^" do
+        }
+
+        if command == "^"
+        {
             return .newSymbol("^")
-        if command == "%" do
+        }
+
+        if command == "%"
+        {
             return .newSymbol("%")
-        if command == "#" do
+        }
+
+        if command == "#"
+        {
             return .newSymbol("#")
-        if command == "&" do
+        }
+
+        if command == "&"
+        {
             return .newSymbol("&")
-        if command == "$" do
+        }
+
+        if command == "$"
+        {
             return .newSymbol("$")
-        if command == "|" do
+        }
+
+        if command == "|"
+        {
             return .newSymbol("\u2016", .Open)
-        if command == "\\" do
+        }
+
+        if command == "\\"
+        {
             try mathFail("math row break '\\\\' is outside a matrix", at)
+        }
 
         try mathFail(Format.toString("math renderer does not support command '\\%'", command), at)
         unreachable
@@ -1017,15 +1227,26 @@ private impl MathParser
     {
         .skipMathSpaces()
         let at = .pos
-        if .eof() do
+        if .eof()
+        {
             try mathFail("math expression ends, but this position needs an atom", at)
+        }
 
-        if .peek() == '{' do
+        if .peek() == '{'
+        {
             return try .parseGroup()
-        if .peek() == '\\' do
+        }
+
+        if .peek() == '\\'
+        {
             return try .parseCommand()
-        if .peek() == '^' or .peek() == '_' do
+        }
+
+        if .peek() == '^' or .peek() == '_'
+        {
             try mathFail(Format.toString("math script marker '%' has no base", Swag.makeString((.source).buffer + .pos, 1)), at)
+        }
+
         if .peek() == '~'
         {
             .pos += 1
@@ -1061,26 +1282,37 @@ private impl MathParser
             }
 
             let marker = .peek()
-            if marker != '^' and marker != '_' do
+            if marker != '^' and marker != '_'
+            {
                 break
+            }
+
             let markerAt = .pos
             .pos += 1
             if marker == '^'
             {
-                if sup do
+                if sup
+                {
                     try mathFail("math atom already has a superscript", markerAt)
+                }
+
                 sup = try .parseRequiredArgument("superscript")
             }
             else
             {
-                if sub do
+                if sub
+                {
                     try mathFail("math atom already has a subscript", markerAt)
+                }
+
                 sub = try .parseRequiredArgument("subscript")
             }
         }
 
-        if not sub and not sup and limitsMode == .Automatic do
+        if not sub and not sup and limitsMode == .Automatic
+        {
             return base
+        }
 
         if not sub and not sup
         {
@@ -1122,8 +1354,10 @@ impl MathExpression
     // through stable parse-time node identifiers.
     mtd opPostCopy()
     {
-        if .nodes.isEmpty() do
+        if .nodes.isEmpty()
+        {
             return
+        }
 
         let rootId = .root.id
         for nodeRef in .nodes
@@ -1163,8 +1397,11 @@ impl MathExpression
         parser.pos        = 0
         result.root       = try parser.parseRow()
         parser.skipMathSpaces()
-        if not parser.eof() do
+        if not parser.eof()
+        {
             try mathFail("math parser stopped before the end of the expression", parser.pos)
+        }
+
         return result
     }
 

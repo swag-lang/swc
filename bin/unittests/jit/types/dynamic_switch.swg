@@ -28,7 +28,7 @@ func readDynamicCase(value: const any)->s32
 {
     var value: SwitchDynamicValue
     Swag.require(readDynamicCase(&value) == 17)
-    Swag.require(readDynamicCase(42's32) == 42)
+    Swag.require(readDynamicCase(42_s32) == 42)
     Swag.require(readDynamicCase(false) == 0)
 }
 
@@ -51,15 +51,15 @@ func readCompleteDynamicCase(value: const any)->s32
 
 #test
 {
-    Swag.require(readCompleteDynamicCase(17's32) == 17)
-    Swag.require(readCompleteDynamicCase(42's64) == 42)
+    Swag.require(readCompleteDynamicCase(17_s32) == 17)
+    Swag.require(readCompleteDynamicCase(42_s64) == 42)
 }
 
 #test
 {
     var calls  = 0
     var result = 0
-    let value: const any = 42's32
+    let value: const any = 42_s32
     switch
     {
     case let number = inspectCaseCalls(false, &calls) where number[] == 0:
@@ -77,7 +77,7 @@ func readCompleteDynamicCase(value: const any)->s32
 #test
 {
     var result = 0
-    let value: const any = 42's32
+    let value: const any = 42_s32
     switch value
     {
     default:

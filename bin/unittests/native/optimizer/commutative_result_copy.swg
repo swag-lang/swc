@@ -16,7 +16,10 @@ func multiplied(a, b: u64)->u64 => a * (b + 7)
 func preserve(a, b: u64)->u64
 {
     let isolated = a & (0 - a)
-    if b != 0 do return isolated ^ a
+    if b != 0
+    {
+        return isolated ^ a
+    }
     return isolated
 }
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
@@ -27,7 +30,7 @@ func checked(a, b: u64)->u64 => a + b * 7
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         let isolated = a & (~a + 1)

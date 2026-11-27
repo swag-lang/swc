@@ -45,21 +45,28 @@ func day8A()
 
     for l, line in lines
     {
-        if line == 0 or line == lines.count - 1 do
+        if line == 0 or line == lines.count - 1
+        {
             continue
+        }
 
         var maxLeft: u8
 
         for _, col in l.bytes()
         {
-            if col == 0 or col == l.length - 1 do
+            if col == 0 or col == l.length - 1
+            {
                 continue
+            }
 
             var hidden = 0
 
-            if l[col] <= maxLeft do
+            if l[col] <= maxLeft
+            {
                 hidden += 1
-            else do
+            }
+            else
+            {
                 for x in 0 until col
                 {
                     if l[x] >= l[col]
@@ -68,6 +75,7 @@ func day8A()
                         break
                     }
                 }
+            }
 
             maxLeft = Math.max(maxLeft, l[col])
 
@@ -98,8 +106,10 @@ func day8A()
                 }
             }
 
-            if hidden != 4 do
+            if hidden != 4
+            {
                 total += 1
+            }
         }
     }
 

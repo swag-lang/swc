@@ -11,8 +11,10 @@ impl LazySignal
 {
     mtd call(params: ...)
     {
-        if .disabled do
+        if .disabled
+        {
             return
+        }
 
         for fn in .arr
         {
@@ -27,7 +29,7 @@ impl LazySignal
 
 struct LazyMovie
 {
-    sigFrameChanged: LazySignal'func||(*LazyMovie)
+    sigFrameChanged: LazySignal!{func||(*LazyMovie)}
 }
 
 impl LazyMovie

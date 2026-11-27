@@ -47,9 +47,9 @@ struct Circular
         circleGap:             f32 = 0      // Gap between two concentric track circles; zero draws a single circle.
         rangeColor:            Color        // Explicit range-arc color, or transparent for the theme color.
 
-        sigStartChange: SigArray'func||(*Wnd)     // Emitted when a user-style change transaction starts.
-        sigChanged:     SigArray'func||(*Wnd)     // Emitted after either value changes.
-        sigEndChange:   SigArray'func||(*Wnd)     // Emitted when a user-style change transaction ends.
+        sigStartChange: SigArray!{func||(*Wnd)}     // Emitted when a user-style change transaction starts.
+        sigChanged:     SigArray!{func||(*Wnd)}     // Emitted after either value changes.
+        sigEndChange:   SigArray!{func||(*Wnd)}     // Emitted when a user-style change transaction ends.
     }
 
     lowerRatio: f32         // Lower value normalized to the closed range 0 through 1.
@@ -104,19 +104,31 @@ impl IWnd for Circular
             colorCircle = colors.circular_Circle
             colorStep   = colors.circular_Step
 
-            if .isLowerPressed do
+            if .isLowerPressed
+            {
                 colorMark1 = colors.circular_PressedMark
-            elif .isLowerHot do
+            }
+            else if .isLowerHot
+            {
                 colorMark1 = colors.circular_HotMark
-            else do
+            }
+            else
+            {
                 colorMark1 = colors.circular_Mark
+            }
 
-            if .isUpperPressed do
+            if .isUpperPressed
+            {
                 colorMark2 = colors.circular_PressedMark
-            elif .isUpperHot do
+            }
+            else if .isUpperHot
+            {
                 colorMark2 = colors.circular_HotMark
-            else do
+            }
+            else
+            {
                 colorMark2 = colors.circular_Mark
+            }
         }
 
         .updateGeometry()
@@ -124,15 +136,19 @@ impl IWnd for Circular
         bc.painter.setAntialiased(true)
 
         // Draw range arc if enabled
-        if .flags.has(.Range) do
+        if .flags.has(.Range)
+        {
             .drawRangeArc(bc.painter)
+        }
 
         // Draw circular track
         .drawCircularTrack(bc.painter, colorCircle)
 
         // Draw steps if enabled
-        if .stepForm != .None and .tickCount > 0 do
+        if .stepForm != .None and .tickCount > 0
+        {
             .drawSteps(bc.painter, colorStep)
+        }
 
         // Draw value1 marker
         .lowerMarkerAnimation.apply(me, colorMark1)
@@ -171,10 +187,15 @@ impl IWnd for Circular
             let angle = .angleAt(pos)
             let normalizedValue = .angleToValue(angle)
 
-            if .isLowerPressed do
+            if .isLowerPressed
+            {
                 .setLowerRatio(normalizedValue)
-            elif .isUpperPressed do
+            }
+            else if .isUpperPressed
+            {
                 .setUpperRatio(normalizedValue)
+            }
+
             .invalidate()
 
         case .Pressed:
@@ -190,11 +211,11 @@ impl IWnd for Circular
                 {
                     .isLowerPressed = true
                 }
-                elif .isUpperHot
+                else if .isUpperHot
                 {
                     .isUpperPressed = true
                 }
-                elif not .flags.has(.Range)
+                else if not .flags.has(.Range)
                 {
                     .isLowerPressed = true
                     .setLowerRatio(normalizedValue)
@@ -244,8 +265,10 @@ private impl Circular
         .centerY = clientRect.y + clientRect.height * 0.5
         .radius  = Math.min(clientRect.width, clientRect.height) * 0.5
         .radius  -= 2
-        if .tickOuterRadiusFactor > 0 do
+        if .tickOuterRadiusFactor > 0
+        {
             .radius -= .tickOuterRadiusFactor
+        }
     }
 
     mtd angleToValue(angle: f32)->f32
@@ -262,14 +285,20 @@ private impl Circular
 
             // If we're closer to the start (going around the circle), snap to 0
             // Otherwise snap to the end
-            if distanceToStart < distanceToEnd do
+            if distanceToStart < distanceToEnd
+            {
                 normalizedAngle = 0
-            else do
+            }
+            else
+            {
                 normalizedAngle = totalAngle
+            }
         }
 
-        if normalizedAngle < 0 do
+        if normalizedAngle < 0
+        {
             normalizedAngle = 0
+        }
 
         return normalizedAngle / totalAngle
     }
@@ -293,10 +322,15 @@ private impl Circular
         angle = angle - .startAngle
 
         // Normalize to range [0, 2π]
-        while angle < 0 do
+        while angle < 0
+        {
             angle += Math.ConstF32.TwoPi
-        while angle > Math.ConstF32.TwoPi do
+        }
+
+        while angle > Math.ConstF32.TwoPi
+        {
             angle -= Math.ConstF32.TwoPi
+        }
 
         return angle
     }
@@ -385,8 +419,10 @@ private impl Circular
     // Dots implementation
     mtd drawStepDots(painter: *Painter, color: Color)
     {
-        if .tickCount <= 1 do
+        if .tickCount <= 1
+        {
             return
+        }
 
         let totalAngle  = .endAngle - .startAngle
         let stepAngle   = totalAngle / cast(f32, (.tickCount - 1))
@@ -406,8 +442,10 @@ private impl Circular
     // Tick marks implementation
     mtd drawStepTicks(painter: *Painter, color: Color)
     {
-        if .tickCount <= 1 do
+        if .tickCount <= 1
+        {
             return
+        }
 
         let totalAngle = .endAngle - .startAngle
         let stepAngle  = totalAngle / cast(f32, (.tickCount - 1))
@@ -430,8 +468,10 @@ private impl Circular
     {
         let pen = Pen.createSolid(color, 2.0)
         painter.drawCircle(.centerX, .centerY, .radius - .circleGap * 0.5, pen)
-        if .circleGap != 0 do
+        if .circleGap != 0
+        {
             painter.drawCircle(.centerX, .centerY, .radius + .circleGap * 0.5, pen)
+        }
     }
 
     mtd clamp(f: f32)->f32
@@ -455,10 +495,16 @@ private impl Circular
     mtd setLowerRatio(f: f32)
     {
         var fc = .clamp(f)
-        if .flags.has(.Range) do
+        if .flags.has(.Range)
+        {
             fc = Math.min(fc, .upperRatio)
-        if fc == .lowerRatio and .hasLowerValue do
+        }
+
+        if fc == .lowerRatio and .hasLowerValue
+        {
             return
+        }
+
         .hasLowerValue = true
         .lowerRatio    = fc
         .sigChanged.call(me)
@@ -468,10 +514,16 @@ private impl Circular
     mtd setUpperRatio(f: f32)
     {
         var fc = .clamp(f)
-        if .flags.has(.Range) do
+        if .flags.has(.Range)
+        {
             fc = Math.max(fc, .lowerRatio)
-        if fc == .upperRatio and .hasUpperValue do
+        }
+
+        if fc == .upperRatio and .hasUpperValue
+        {
             return
+        }
+
         .hasUpperValue = true
         .upperRatio    = fc
         .sigChanged.call(me)
@@ -626,10 +678,15 @@ impl Circular
         Swag.assert(steps >= 0 and steps <= (max - min))
         .min = min
         .max = max
-        if steps > 0 do
-            .steps = steps / (max - min)     // Convert to normalized step size
-        else do
+        if steps > 0
+        {
+            .steps = steps / (max - min)
+        }     // Convert to normalized step size
+        else
+        {
             .steps = 0
+        }
+
         .invalidate()
     }
 
@@ -646,8 +703,11 @@ impl Circular
     // Changes the visual form of step indicators.
     mtd setStepForm(form: CircularStepForm)
     {
-        if .stepForm == form do
+        if .stepForm == form
+        {
             return
+        }
+
         .stepForm = form
         .invalidate()
     }
@@ -655,8 +715,11 @@ impl Circular
     // Changes the number of dot or tick step indicators.
     mtd setStepCount(count: u32)
     {
-        if .tickCount == count do
+        if .tickCount == count
+        {
             return
+        }
+
         .tickCount = count
         .invalidate()
     }
@@ -668,15 +731,23 @@ impl Circular
         Swag.assert(parent != null)
         var pos = position
 
-        if pos.width == 0 do
+        if pos.width == 0
+        {
             pos.width = parent.themeMetrics().circular_Size
-        if pos.height == 0 do
-            pos.height = pos.width
+        }
 
-        let res = Wnd.create'Circular(parent, null, pos, id)
+        if pos.height == 0
+        {
+            pos.height = pos.width
+        }
+
+        let res = Wnd.create!{Circular}(parent, null, pos, id)
         res.focusPolicy = .Click
-        if range do
+        if range
+        {
             res.flags.add(.Range)
+        }
+
         return res
     }
 }

@@ -266,8 +266,10 @@ func makeTextUsingInline()->string
 {
     let value = makeInlineValue()
     var sum: u64
-    for index in reversed(value.a) do
+    for index in reversed(value.a)
+    {
         sum += index
+    }
     return value.a == 1 and sum == 0 ? "result" : "other"
 }
 
@@ -351,8 +353,10 @@ func readWithSeparateSink(value: Value, owner: *SinkOwner)->u64
 func writeSelectedSink(first: *SinkOwner, second: *SinkOwner, other: const *Value, chooseSecond: bool)->u64
 {
     var sink = first.sink
-    if chooseSecond do
+    if chooseSecond
+    {
         sink = second.sink
+    }
     writeSink(sink)
     return other.a
 }
@@ -444,7 +448,7 @@ impl EncodedSelf
 #[Swag.NoInline]
 func makeEncodedSelf()->EncodedSelf
 {
-    var result: #returntype = 1'u64
+    var result: #returntype = 1_u64
     return result
 }
 

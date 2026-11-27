@@ -7,8 +7,10 @@ using Swag
 #[ConstExpr]
 func enumUnderlyingType(type: typeinfo)->typeinfo
 {
-    if not isEnum(type) do
+    if not isEnum(type)
+    {
         return type
+    }
 
     let enumType = assume cast(const *TypeInfoEnum, type)
     return unwrap enumType.rawType
@@ -18,20 +20,27 @@ func enumUnderlyingType(type: typeinfo)->typeinfo
 #[ConstExpr]
 func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
 {
-    if not isEnum(type) do
+    if not isEnum(type)
+    {
         return null
+    }
 
     let typeEnum = assume cast(const *TypeInfoEnum, type)
-    for &caseInfo in typeEnum.values where caseInfo.name == name do
+    for &caseInfo in typeEnum.values where caseInfo.name == name
+    {
         return caseInfo
+    }
+
     return null
 }
 
 // Returns whether an underlying enum value stored at `valueAddress` names a declared member.
 func hasDeclaredValue(type: typeinfo?, valueAddress: const *void?)->bool
 {
-    if not isEnum(type) or not valueAddress do
+    if not isEnum(type) or not valueAddress
+    {
         return false
+    }
 
     let typeEnum = assume cast(const *TypeInfoEnum, type)
     let rawType  = unwrap typeEnum.rawType
@@ -39,50 +48,79 @@ func hasDeclaredValue(type: typeinfo?, valueAddress: const *void?)->bool
     {
     case 1:
         let value = cast(const *u8, valueAddress)[]
-        for &caseInfo in typeEnum.values where caseInfo.value do
-            if cast(const *u8, caseInfo.value)[] == value do
+        for &caseInfo in typeEnum.values where caseInfo.value
+        {
+            if cast(const *u8, caseInfo.value)[] == value
+            {
                 return true
+            }
+        }
 
     case 2:
         let value = cast(const *u16, valueAddress)[]
-        for &caseInfo in typeEnum.values where caseInfo.value do
-            if cast(const *u16, caseInfo.value)[] == value do
+        for &caseInfo in typeEnum.values where caseInfo.value
+        {
+            if cast(const *u16, caseInfo.value)[] == value
+            {
                 return true
+            }
+        }
 
     case 4:
         let value = cast(const *u32, valueAddress)[]
-        for &caseInfo in typeEnum.values where caseInfo.value do
-            if cast(const *u32, caseInfo.value)[] == value do
+        for &caseInfo in typeEnum.values where caseInfo.value
+        {
+            if cast(const *u32, caseInfo.value)[] == value
+            {
                 return true
+            }
+        }
 
     case 8:
         let value = cast(const *u64, valueAddress)[]
-        for &caseInfo in typeEnum.values where caseInfo.value do
-            if cast(const *u64, caseInfo.value)[] == value do
+        for &caseInfo in typeEnum.values where caseInfo.value
+        {
+            if cast(const *u64, caseInfo.value)[] == value
+            {
                 return true
+            }
+        }
 
     case 16:
         if rawType == string
         {
             let value = cast(const *(string?), valueAddress)[]
-            for &caseInfo in typeEnum.values where caseInfo.value do
-                if cast(const *(string?), caseInfo.value)[] == value do
+            for &caseInfo in typeEnum.values where caseInfo.value
+            {
+                if cast(const *(string?), caseInfo.value)[] == value
+                {
                     return true
+                }
+            }
+
             return false
         }
 
-        for &caseInfo in typeEnum.values where caseInfo.value do
+        for &caseInfo in typeEnum.values where caseInfo.value
+        {
             if Swag.memcmp(cast(const [*] void, valueAddress),
                            cast(const [*] void, caseInfo.value),
-                           cast(u64, rawType.sizeof)) == 0 do
+                           cast(u64, rawType.sizeof)) == 0
+            {
                 return true
+            }
+        }
 
     default:
-        for &caseInfo in typeEnum.values where caseInfo.value do
+        for &caseInfo in typeEnum.values where caseInfo.value
+        {
             if Swag.memcmp(cast(const [*] void, valueAddress),
                            cast(const [*] void, caseInfo.value),
-                           cast(u64, rawType.sizeof)) == 0 do
+                           cast(u64, rawType.sizeof)) == 0
+            {
                 return true
+            }
+        }
     }
 
     return false
@@ -99,8 +137,11 @@ func hasDeclaredValue(type: typeinfo?, valueAddress: const *void?)->bool
 func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true)->String
 {
     var result: #returntype
-    if not isEnum(type) or not valueAddress do
+    if not isEnum(type) or not valueAddress
+    {
         return result
+    }
+
     let enumTypeInfo      = unwrap type
     let inputValueAddress = valueAddress
     let typeEnum          = assume cast(const *TypeInfoEnum, enumTypeInfo)
@@ -114,8 +155,11 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
     {
         for caseInfo in typeEnum.values
         {
-            if not caseInfo.value do
+            if not caseInfo.value
+            {
                 continue
+            }
+
             if Swag.memcmp(cast(const [*] void, inputValueAddress),
                            cast(const [*] void, caseInfo.value),
                            cast(u64, rawType.sizeof)) == 0
@@ -147,12 +191,15 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
     default: return result
     }
 
-    var coveredBits = 0'u64
+    var coveredBits = 0_u64
 
     for caseInfo in typeEnum.values
     {
-        if not caseInfo.value do
+        if not caseInfo.value
+        {
             continue
+        }
+
         let caseValueAddress = caseInfo.value
 
         // Read this case using the same representation.
@@ -186,8 +233,10 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
         if isFlags and (zeroMatch or bitsMatch)
         {
             coveredBits |= caseBits
-            if not result.isEmpty() do
+            if not result.isEmpty()
+            {
                 result += " | "
+            }
 
             if fullyQualified
             {

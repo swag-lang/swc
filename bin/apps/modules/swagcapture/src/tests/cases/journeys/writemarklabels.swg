@@ -57,8 +57,11 @@ using Core, Gui, Pixel
     journey.waitFor("reopen written labels", func|main, &path|()->bool
     {
         let opened = main.editWnd.getCapture()
-        if main.libraryMode or not opened or opened.file != path or opened.forms.count != 3 do
+        if main.libraryMode or not opened or opened.file != path or opened.forms.count != 3
+        {
             return false
+        }
+
         let written  = assume cast(*FormText, opened.forms[0])
         let noted    = assume cast(*FormCallout, opened.forms[1])
         let numbered = assume cast(*FormStep, opened.forms[2])

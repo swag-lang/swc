@@ -13,8 +13,10 @@ func __itoa(result: [*] u8, value: s64)->[*] u8
         orgValue /= 10
         ptr[]    = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
-        if not orgValue do
+        if not orgValue
+        {
             break
+        }
     }
 
     if value < 0
@@ -53,8 +55,10 @@ func __utoa(result: [*] u8, value: u64)->[*] u8
         orgValue /= 10
         ptr[]    = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
-        if not orgValue do
+        if not orgValue
+        {
             break
+        }
     }
 
     let retVal = ptr
@@ -78,7 +82,7 @@ func __utoa(result: [*] u8, value: u64)->[*] u8
 private func __ftoaScientific(result: [*] u8, value: f64)
 {
     var mantissa = value < 0 ? -value : value
-    var exponent = 0's64
+    var exponent = 0_s64
     while mantissa >= 10
     {
         mantissa /= 10
@@ -155,8 +159,10 @@ func __ftoa(result: [*] u8, value: f64)
 
     const AfterFracN = 8
     var afterPoint = AfterFracN
-    if fpart < 0 do
+    if fpart < 0
+    {
         fpart = -fpart
+    }
 
     while afterPoint
     {
@@ -165,14 +171,22 @@ func __ftoa(result: [*] u8, value: f64)
     }
 
     var fractional = cast(s64, fpart)
-    if fpart - fractional > 0.5 do
+    if fpart - fractional > 0.5
+    {
         fractional += 1
+    }
+
     if fractional == 100000000
     {
-        if value < 0 do
+        if value < 0
+        {
             ipart -= 1
-        else do
+        }
+        else
+        {
             ipart += 1
+        }
+
         fractional = 0
     }
 
@@ -200,7 +214,7 @@ func __ftoa(result: [*] u8, value: f64)
     var leadingZeros = 0
     if fractional
     {
-        var place = 10000000's64
+        var place = 10000000_s64
         while fractional < place
         {
             leadingZeros += 1
@@ -319,16 +333,28 @@ func stringCmp(str1: string?, str2: string?)->bool
 {
     let num1 = str1.count
     let num2 = str2.count
-    if num1 != num2 do
+    if num1 != num2
+    {
         return false
-    if num1 == 0 and num2 == 0 do
+    }
+
+    if num1 == 0 and num2 == 0
+    {
         return true
+    }
+
     let data1 = str1.buffer
     let data2 = str2.buffer
-    if data1 == null or data2 == null do
+    if data1 == null or data2 == null
+    {
         return data1 == data2
-    if data1 == data2 do
+    }
+
+    if data1 == data2
+    {
         return true
+    }
+
     return not Swag.memcmp(data1, data2, num1)
 }
 
@@ -337,13 +363,25 @@ func stringCmp(str1: string?, str2: string?)->bool
 // same question as 'Swag.stringCmp' does for two strings.
 func __sliceCmp(data1, data2: const [*] void?, count1, count2, sizeOf: u64)->bool
 {
-    if count1 != count2 do
+    if count1 != count2
+    {
         return false
-    if count1 == 0 do
+    }
+
+    if count1 == 0
+    {
         return true
-    if data1 == null or data2 == null do
+    }
+
+    if data1 == null or data2 == null
+    {
         return data1 == data2
-    if data1 == data2 do
+    }
+
+    if data1 == data2
+    {
         return true
+    }
+
     return not Swag.memcmp(data1, data2, count1 * sizeOf)
 }

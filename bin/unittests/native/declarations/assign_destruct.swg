@@ -55,14 +55,14 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 
 #test
 {
-    var namedThenUnnamed = {x: 91's32, item1: 92's32}
+    var namedThenUnnamed = {x: 91_s32, item1: 92_s32}
     var first:  s32
     var second: s32
     {item1: second, x: first} = namedThenUnnamed
     Swag.require(first == 91)
     Swag.require(second == 92)
 
-    var unnamedThenNamed = {item0: 101's32, y: 102's32}
+    var unnamedThenNamed = {item0: 101_s32, y: 102_s32}
     {y: second, item0: first} = unnamedThenNamed
     Swag.require(first == 101)
     Swag.require(second == 102)
@@ -132,8 +132,10 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     {
         func read(value: u32)->{ next, sum: u32 }
         {
-            if value >= 3 do
+            if value >= 3
+            {
                 return {next: value + 1, sum: value * 10}
+            }
 
             var next = value
             var sum: u32
@@ -162,8 +164,10 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
         if not nc
         {
             var sum: u32
-            for i in nm do
+            for i in nm
+            {
                 sum += n[start + i]
+            }
             return {next: start + nm, sum: sum}
         }
 
@@ -179,8 +183,10 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
         for i in nm
         {
             let idx = n[start + i]
-            if idx and idx - 1 < nc do
+            if idx and idx - 1 < nc
+            {
                 sum += childValues[idx - 1]
+            }
         }
 
         return {next: start + nm, sum: sum}

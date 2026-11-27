@@ -27,7 +27,7 @@ enum class FormatRoleE : uint64_t
     RangeOp             = 1ULL << 11, // `..` of a range expression
     Arrow               = 1ULL << 12, // `->` of a signature or lambda type
     FatArrow            = 1ULL << 13, // `=>` of a short body
-    ControlKeyword      = 1ULL << 14, // `if`/`elif`/`while`/`for`/`switch`/`return`/`defer`/...
+    ControlKeyword      = 1ULL << 14, // `if`/`while`/`for`/`switch`/`return`/`defer`/...
     BlockOpen           = 1ULL << 15, // `{` opening a statement / declaration body
     BlockClose          = 1ULL << 16, // `}` closing a statement / declaration body
     LiteralOpen         = 1ULL << 17, // `{` opening an array / struct literal
@@ -37,8 +37,7 @@ enum class FormatRoleE : uint64_t
     AttrComma           = 1ULL << 21, // `,` directly inside an attribute list
     StmtStart           = 1ULL << 22, // first piece of a statement / declaration
     CaseLabel           = 1ULL << 23, // `case` / `default` keyword of a switch case
-    TrailingDo          = 1ULL << 24, // `do` introducing an inline body
-    ElseKeyword         = 1ULL << 25, // `else` / `elif`
+    ElseKeyword         = 1ULL << 25, // `else`
     UsingStart          = 1ULL << 26, // first piece of a `using` statement
     VarDeclStart        = 1ULL << 27, // first piece of a `var` / `let` declaration
     ConstDeclStart      = 1ULL << 28, // first piece of a `const` declaration
@@ -60,6 +59,8 @@ enum class FormatRoleE : uint64_t
     BlockModifierStart  = 1ULL << 44, // first visibility or storage modifier governing a braced declaration group
     TaggedCaseColon     = 1ULL << 45, // `:` closing the `case` label of a tagged union member
     RequiredTupleComma  = 1ULL << 46, // the comma distinguishing a singleton tuple from grouping
+    GenericArgsOpen     = 1ULL << 47, // `{` opening an explicit generic argument list
+    GenericArgsClose    = 1ULL << 48, // `}` closing an explicit generic argument list
 };
 using FormatRoles = EnumFlags<FormatRoleE>;
 
@@ -86,19 +87,10 @@ struct FormatBlock
     bool            exprLevel  = false; // embedded in an expression or type (closure body, anonymous struct / tuple type)
 };
 
-struct FormatInlineBody
-{
-    uint32_t headPiece = 0;
-    uint32_t doPiece   = 0;
-    uint32_t lastPiece = 0;
-};
-
-// One branch of an `if` / `elif` / `else` chain, or a lone `if`. A branch body
-// is either inline after `do` or braced.
+// One branch of an `if` / `else if` / `else` chain, or a lone `if`.
 struct FormatBranch
 {
-    uint32_t keyword   = 0xFFFFFFFFu; // `if`, `elif`, or `else`
-    uint32_t doPiece   = 0xFFFFFFFFu; // `do` introducing an inline body
+    uint32_t keyword   = 0xFFFFFFFFu; // `if` or `else`
     uint32_t openPiece = 0xFFFFFFFFu; // `{` opening a braced body
     uint32_t lastPiece = 0xFFFFFFFFu; // last piece of the body: the `}` of a braced one
 };
@@ -196,8 +188,6 @@ public:
 
     std::vector<FormatBlock>&            blocks() { return blocks_; }
     const std::vector<FormatBlock>&      blocks() const { return blocks_; }
-    std::vector<FormatInlineBody>&       inlineBodies() { return inlineBodies_; }
-    const std::vector<FormatInlineBody>& inlineBodies() const { return inlineBodies_; }
 
     std::vector<FormatBinaryExpression>&       logicalExpressions() { return logicalExpressions_; }
     const std::vector<FormatBinaryExpression>& logicalExpressions() const { return logicalExpressions_; }
@@ -282,7 +272,6 @@ private:
     std::vector<FormatGap>   gaps_; // gaps_[i] precedes pieces_[i]; gaps_.back() trails the last piece
 
     std::vector<FormatBlock>            blocks_;
-    std::vector<FormatInlineBody>       inlineBodies_;
     std::vector<FormatBinaryExpression> logicalExpressions_;
     std::vector<FormatBinaryExpression> bitwiseExpressions_;
     std::vector<FormatCaseValues>       caseValues_;

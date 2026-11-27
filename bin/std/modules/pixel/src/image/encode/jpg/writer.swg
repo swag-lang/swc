@@ -14,8 +14,10 @@ impl Encoder
     {
         .outBuf[.outCount] = b
         .outCount += 1
-        if .outCount == OutBufSize do
+        if .outCount == OutBufSize
+        {
             .flushStaged()
+        }
     }
 
     #[Swag.Inline]
@@ -36,32 +38,83 @@ impl Encoder
     // Hands the staged bytes to the output buffer. Call it once the stream is complete.
     mtd flushStaged()
     {
-        if not .outCount do
+        if not .outCount
+        {
             return
+        }
 
         .stream!.addBytes(Swag.makeSlice(cast(const [*] u8, &.outBuf[0]), cast(u64, .outCount)))
         .outCount = 0
     }
 
-    // Appends one Huffman or magnitude code to the entropy-coded segment.
-    //
-    // The pending bits are kept right-aligned in an accumulator that never holds a full byte on
-    // entry, so a code costs one shift and the loop below only runs when a byte completed.
-    mtd writeBits(bs: BitString)
+    // Entropy bits are accumulated until a complete word can be written.
+    #[Swag.Inline]
+    mtd writePackedCode(code: u32)
     {
-        let length = cast(u32, bs.length)
-        .bitBuffer = (.bitBuffer << #wrap length) | (cast(u32, bs.value) & ((1'u32 << length) - 1))
-        .bitCount  += length
+        .appendEntropyBits(code >> PackedLengthShift, code & PackedBitsMask)
+    }
 
+    #[Swag.Inline]
+    mtd writeAmplitude(code: u32, value: s32, category: u8)
+    {
+        let mask      = (1_u32 << category) - 1
+        let amplitude = cast #bit(u32, (value + (value >> 31))) & mask
+        .appendEntropyBits(code >> PackedLengthShift, (code & PackedBitsMask) | amplitude)
+    }
+
+    #[Swag.Inline]
+    mtd appendEntropyBits(length: u32, bits: u32)
+    {
+        .bitBuffer = (.bitBuffer << length) | bits
+        .bitCount  += length
+        if .bitCount >= 32
+        {
+            .writeEntropyWord()
+        }
+    }
+
+    #[Swag.Inline]
+    private mtd writeEntropyByte(byte: u8)
+    {
+        .writeByte(byte)
+        if byte == 0xFF
+        {
+            .writeByte(0)
+        }
+    }
+
+    #[Swag.NoInline]
+    private mtd writeEntropyWord()
+    {
+        .bitCount -= 32
+        let word        = cast(u32, ((.bitBuffer >> .bitCount) & 0xFFFFFFFF))
+        let low         = word & 0x7F7F7F7F_u32
+        let hasStuffing = ((low + 0x01010101_u32) & word & 0x80808080_u32) != 0
+
+        if not hasStuffing and .outCount <= OutBufSize - 4
+        {
+            cast([*] u32, &.outBuf[.outCount])[] = Math.nativeToBigEndian(word)
+            .outCount += 4
+            if .outCount == OutBufSize
+            {
+                .flushStaged()
+            }
+        }
+        else
+        {
+            .writeEntropyByte(cast(u8, word >> 24))
+            .writeEntropyByte(cast(u8, ((word >> 16) & 0xFF)))
+            .writeEntropyByte(cast(u8, ((word >> 8) & 0xFF)))
+            .writeEntropyByte(cast(u8, (word & 0xFF)))
+        }
+    }
+
+    mtd flushEntropyBytes()
+    {
         while .bitCount >= 8
         {
             .bitCount -= 8
-            let written = cast(u8, ((.bitBuffer >> .bitCount) & 0xFF))
-            .writeByte(written)
-
-            // A 0xFF inside entropy-coded data is stuffed, or a decoder reads it as a marker.
-            if written == 0xFF do
-                .writeByte(0)
+            .writeEntropyByte(cast(u8, ((.bitBuffer >> .bitCount) & 0xFF)))
         }
     }
 
@@ -69,19 +122,30 @@ impl Encoder
     {
         for md in image.metadata
         {
-            if md.signature > 15 do
+            if md.signature > 15
+            {
                 fail UnsupportedFormatError{"JPEG metadata signatures must be from 0 through 15"}
-            for c in md.tag where c == 0 do
+            }
+
+            for c in md.tag where c == 0
+            {
                 fail UnsupportedFormatError{"JPEG metadata tags cannot contain NUL"}
-            if md.tag.count > 65_532 do
+            }
+
+            if md.tag.count > 65_532
+            {
                 fail UnsupportedFormatError{"JPEG metadata tag and value exceed the segment size limit"}
-            if md.value.count > 65_532 - md.tag.count do
+            }
+
+            if md.value.count > 65_532 - md.tag.count
+            {
                 fail UnsupportedFormatError{"JPEG metadata tag and value exceed the segment size limit"}
+            }
         }
 
         for md in image.metadata
         {
-            .writeWord(0xFFE0'u16 + cast(u16, md.signature))
+            .writeWord(0xFFE0_u16 + cast(u16, md.signature))
             .writeWord(3 + cast(u16, md.tag.count) + cast(u16, md.value.count))
             .writeBytes(md.tag.toSlice())
             .writeByte(0)

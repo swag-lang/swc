@@ -10,19 +10,19 @@ SWC_TOKEN_DEF(CommentBlock, "", TokenIdKindE::Trivia)
 
 // LITERALS
 
-SWC_TOKEN_DEF(StringLine, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
-SWC_TOKEN_DEF(StringMultiLine, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
+SWC_TOKEN_DEF(StringLine, "", TokenIdKindE::Literal)
+SWC_TOKEN_DEF(StringMultiLine, "", TokenIdKindE::Literal)
 
 SWC_TOKEN_DEF(Character, "", TokenIdKindE::Literal)
 
-SWC_TOKEN_DEF(NumberHex, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
-SWC_TOKEN_DEF(NumberBin, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
-SWC_TOKEN_DEF(NumberInteger, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
-SWC_TOKEN_DEF(NumberFloat, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
+SWC_TOKEN_DEF(NumberHex, "", TokenIdKindE::Literal)
+SWC_TOKEN_DEF(NumberBin, "", TokenIdKindE::Literal)
+SWC_TOKEN_DEF(NumberInteger, "", TokenIdKindE::Literal)
+SWC_TOKEN_DEF(NumberFloat, "", TokenIdKindE::Literal)
 
 // IDENTIFIERS
 
-SWC_TOKEN_DEF(Identifier, "", TokenIdKindE::Zero | TokenIdKindE::SubTypeStart | TokenIdKindE::QuoteOperatorPredecessor)
+SWC_TOKEN_DEF(Identifier, "", TokenIdKindE::Zero | TokenIdKindE::SubTypeStart)
 SWC_TOKEN_DEF(SharpIdentifier, "", TokenIdKindE::Compiler)
 
 SWC_TOKEN_DEF(KwdMe, "me", TokenIdKindE::Keyword)
@@ -35,7 +35,7 @@ SWC_TOKEN_DEF(KwdVersion, "version", TokenIdKindE::Zero)
 
 // SYMBOLS
 
-SWC_TOKEN_DEF(SymSingleQuote, "'", TokenIdKindE::Symbol)
+SWC_TOKEN_DEF(SymLiteralSuffixStart, "_", TokenIdKindE::Symbol)
 SWC_TOKEN_DEF(SymBackSlash, "\\", TokenIdKindE::Symbol)
 SWC_TOKEN_DEF(SymLeftParen, "(", TokenIdKindE::Symbol | TokenIdKindE::SubTypeStart)
 SWC_TOKEN_DEF(SymRightParen, ")", TokenIdKindE::Symbol)
@@ -92,7 +92,6 @@ SWC_TOKEN_DEF(SymAttrStart, "#[", TokenIdKindE::Symbol)
 
 SWC_TOKEN_DEF(KwdIf, "if", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdElse, "else", TokenIdKindE::Keyword | TokenIdKindE::Logic)
-SWC_TOKEN_DEF(KwdElseIf, "elif", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdFor, "for", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdWhile, "while", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdParallel, "parallel", TokenIdKindE::Keyword | TokenIdKindE::Logic)
@@ -118,7 +117,6 @@ SWC_TOKEN_DEF(KwdUntil, "until", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdIn, "in", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdAs, "as", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdIs, "is", TokenIdKindE::Keyword | TokenIdKindE::Logic | TokenIdKindE::OpOrdering)
-SWC_TOKEN_DEF(KwdDo, "do", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 
 // MODULE / ERROR HANDLING
 
@@ -341,6 +339,7 @@ SWC_TOKEN_DEF(IntrinsicExp, "Swag.exp", TokenIdKindE::Intrinsic | TokenIdKindE::
 SWC_TOKEN_DEF(IntrinsicExp2, "Swag.exp2", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicPow, "Swag.pow", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicMulAdd, "Swag.mulAdd", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicMulWide, "Swag.mulWide", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 
 // INTRINSICS - MEMORY
 //
@@ -349,6 +348,8 @@ SWC_TOKEN_DEF(IntrinsicMemMove, "Swag.memmove", TokenIdKindE::Intrinsic | TokenI
 SWC_TOKEN_DEF(IntrinsicMemSet, "Swag.memset", TokenIdKindE::Intrinsic | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicMemCmp, "Swag.memcmp", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicPrefetch, "Swag.prefetch", TokenIdKindE::Intrinsic | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicX64CpuId, "Swag.__x64CpuId", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicX64ReadXcr0, "Swag.__x64ReadXcr0", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
 
 // INTRINSICS - ATOMIC
 
@@ -373,7 +374,23 @@ SWC_TOKEN_DEF(IntrinsicVecInterleaveHi, "Swag.vecInterleaveHi", TokenIdKindE::In
 SWC_TOKEN_DEF(IntrinsicVecWidenLo, "Swag.vecWidenLo", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecWidenHi, "Swag.vecWidenHi", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecAvgR, "Swag.vecAvgRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecMultiplyAdd52Low, "Swag.vecMultiplyAdd52Low", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecMultiplyAdd52High, "Swag.vecMultiplyAdd52High", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecClmul, "Swag.vecCarrylessMul", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecClmul2XorPair, "Swag.vecCarrylessMul2XorPair", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicVecClmul2XorQuad, "Swag.vecCarrylessMul2XorQuad", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicVecSha1Schedule1, "Swag.vecSha1Schedule1", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecSha1Schedule2, "Swag.vecSha1Schedule2", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecSha1NextE, "Swag.vecSha1NextE", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecSha1Rounds4, "Swag.vecSha1Rounds4", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecSha256Schedule1, "Swag.vecSha256Schedule1", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecSha256Schedule2, "Swag.vecSha256Schedule2", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecSha256Rounds2, "Swag.vecSha256Rounds2", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecAesEncryptRound, "Swag.vecAesEncryptRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecAesEncryptLastRound, "Swag.vecAesEncryptLastRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecAesDecryptRound, "Swag.vecAesDecryptRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecAesDecryptLastRound, "Swag.vecAesDecryptLastRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecAesInverseMixColumns, "Swag.vecAesInverseMixColumns", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecMadd, "Swag.vecMulAddPairs", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecMaddUBS, "Swag.vecMulAddPairsSat", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecSad, "Swag.vecSumAbsDiff", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)

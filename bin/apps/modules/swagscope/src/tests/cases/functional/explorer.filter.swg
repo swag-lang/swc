@@ -10,14 +10,17 @@ using Core, Gui
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, false, films: false, width: 960, height: 640)
     let explorer = unwrap window.explorer
-    for name in ["Alpha.txt", "Beta.md", "Alpine.png"] do
+    for name in ["Alpha.txt", "Beta.md", "Alpine.png"]
+    {
         explorer.entries.add({name: name, attempted: true})
+    }
+
     showBoard(&host, window, "Documents", "Notes")
 
     host.keyPress(.F, .Control)
     Swag.require(window.searchBox.hasFocus())
     Swag.require(not window.searchBar.isLocallyVisible() and window.searchGroup.isVisible())
-    let bar = window.searchGroup.surfaceRect()
+    let bar   = window.searchGroup.surfaceRect()
     let tools = explorer.tools.surfaceRect()
     Swag.require(bar.right() < tools.x)
     window.searchBox.setText("Alpha")
@@ -61,8 +64,11 @@ using Core, Gui
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, false, films: false, width: 960, height: 640)
     let explorer = unwrap window.explorer
-    for name in ["Alpha.txt", "alpha.md", "Alphabet.png", "Beta.txt"] do
+    for name in ["Alpha.txt", "alpha.md", "Alphabet.png", "Beta.txt"]
+    {
         explorer.entries.add({name: name, attempted: true})
+    }
+
     showBoard(&host, window, "Documents", "Notes")
     window.sendCommandEvent(ViewerCommands.Find)
     Swag.require(window.searchOptionsButton.isLocallyVisible())

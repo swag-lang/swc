@@ -37,7 +37,7 @@ func semaTest001()
     var d         = c.buffer
     #assert(#typeof(d) == const [*] u8)
 
-    var ebuf: [2] u8  = ['x'u8, 0]
+    var ebuf: [2] u8  = ['x'_u8, 0]
     var e:    cstring = cast(cstring, &ebuf[0])
     var f = e.buffer
     #assert(#typeof(f) == const [*] u8)
@@ -46,7 +46,7 @@ func semaTest001()
     var h = g.buffer
     #assert(#typeof(h) == [*] s32)
 
-    var i: any = 0's32
+    var i: any = 0_s32
     var j      = i.buffer
     #assert(#typeof(j) == [*] void)
 }
@@ -64,9 +64,9 @@ func semaTest003()
 {
     var arr: [3] u8 = [1, 2, 3]
     var p = arr.buffer
-    Swag.assert(p[0] == 1'u8)
-    Swag.assert(p[1] == 2'u8)
-    Swag.assert(p[2] == 3'u8)
+    Swag.assert(p[0] == 1_u8)
+    Swag.assert(p[1] == 2_u8)
+    Swag.assert(p[2] == 3_u8)
 }
 
 func semaTest004()
@@ -89,7 +89,7 @@ func semaTest006()
     const s: string = "abc"
     const p         = s.buffer
     #assert(p != null)
-    #assert(p[] == 'a'u8)
+    #assert(p[] == 'a'_u8)
 }
 
 func semaTest007()
@@ -97,7 +97,7 @@ func semaTest007()
     const s: const [..] u8 = cast(const [..] u8, "abc")
     const p = s.buffer
     #assert(p != null)
-    #assert(p[] == 'a'u8)
+    #assert(p[] == 'a'_u8)
 }
 
 func semaTest008()
@@ -121,9 +121,9 @@ func semaTest009()
 
 func semaTest010()
 {
-    const value: ConstDataOfSpecBuffer = ConstDataOfSpecBuffer{data: [7'u8, 9'u8]}
+    const value: ConstDataOfSpecBuffer = ConstDataOfSpecBuffer{data: [7_u8, 9_u8]}
     let p = value.buffer
     #assert(#typeof(p) == const [*] u8)
-    Swag.assert(p[] == 7'u8)
-    Swag.assert(p[1] == 9'u8)
+    Swag.assert(p[] == 7_u8)
+    Swag.assert(p[1] == 9_u8)
 }

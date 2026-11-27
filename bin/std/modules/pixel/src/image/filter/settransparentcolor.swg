@@ -17,11 +17,15 @@ public impl Image
     // A format without an alpha channel has no fully transparent pixel and is left as is.
     mtd setTransparentColor(color: Color)
     {
-        if not .pixelFormat.hasAlpha() or not .pixelFormat.isPacked() do
+        if not .pixelFormat.hasAlpha() or not .pixelFormat.isPacked()
+        {
             return
+        }
 
-        if .alphaMode == .Premultiplied do
+        if .alphaMode == .Premultiplied
+        {
             .convertAlphaTo(.Straight)
+        }
 
         if .pixelFormat != .BGRA8 and .pixelFormat != .RGBA8
         {
@@ -41,16 +45,20 @@ public impl Image
         }
 
         var replacement: u32
-        if .pixelFormat == .BGRA8 do
+        if .pixelFormat == .BGRA8
+        {
             replacement = Math.make32(0, color.r, color.g, color.b)
-        else do
+        }
+        else
+        {
             replacement = Math.make32(0, color.b, color.g, color.r)
+        }
 
         .visitVectorBytes(&replacement) #code(block, data)
         {
             let replacementWord = cast(*u32, unwrap data)
             let pixels          = Math.Simd.load(cast([*] u32, block))
-            let replaceMask     = (pixels & Math.Simd.splat(0xFF00_0000'u32)) == Math.Simd.splat(0'u32)
+            let replaceMask     = (pixels & Math.Simd.splat(0xFF00_0000_u32)) == Math.Simd.splat(0_u32)
             let result          = (pixels & ~replaceMask) | (Math.Simd.splat(replacementWord[]) & replaceMask)
             Math.Simd.store(cast([*] u32, block), result)
         }

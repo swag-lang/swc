@@ -34,13 +34,13 @@ private const HTBOTTOMLEFT = 16
 private const HTBOTTOMRIGHT = 17
 
 // WM_SIZE state emitted when a native window has no drawable client area.
-private const SizeMinimized = 1'u64
+private const SizeMinimized = 1_u64
 
 // Native timer that keeps the application clock running inside the desktop's move and size loop.
-private const DesktopLoopTimerId = 1'u64
+private const DesktopLoopTimerId = 1_u64
 
 // Period of that timer. USER32 raises anything shorter to its own minimum of ten milliseconds.
-private const DesktopLoopTimerPeriod = 10'u32
+private const DesktopLoopTimerPeriod = 10_u32
 
 // Windows storage embedded by `Surface`.
 #[Swag.Opaque]
@@ -104,8 +104,11 @@ internal impl Surface
         var message = cast(u32, lParam)
         if .native.trayIconVersion4
         {
-            if message >> 16 != TrayIconID do
+            if message >> 16 != TrayIconID
+            {
                 return .None
+            }
+
             message &= 0xFFFF
             switch message
             {
@@ -113,7 +116,7 @@ internal impl Surface
             case WM_LBUTTONDBLCLK, NIN_KEYSELECT: return .Activate
             }
         }
-        elif wParam == TrayIconID
+        else if wParam == TrayIconID
         {
             switch message
             {
@@ -141,8 +144,11 @@ private impl Surface
 
     mtd exitDesktopLoop()
     {
-        if not .inDesktopLoop do
+        if not .inDesktopLoop
+        {
             return
+        }
+
         .inDesktopLoop = false
         discard KillTimer(.hWnd, DesktopLoopTimerId)
     }
@@ -150,10 +156,12 @@ private impl Surface
 
 private func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind)
 {
-    if surface.wnd.isPendingDestroy do
+    if surface.wnd.isPendingDestroy
+    {
         return
+    }
 
-    let evt = Event.create'SysCommandEvent()
+    let evt = Event.create!{SysCommandEvent}()
     evt.kind = kind
     surface.wnd.view.postEvent(evt)
 }
@@ -191,7 +199,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             let action = surface.trayActionForNotification(wParam, lParam)
             if action != .None
             {
-                let evt = Event.create'SysUserEvent()
+                let evt = Event.create!{SysUserEvent}()
                 evt.kind       = .TrayIcon
                 evt.trayAction = action
 
@@ -239,8 +247,11 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_DEADCHAR:
-            if wParam == 27 do
+            if wParam == 27
+            {
                 return 1
+            }
+
             if surface.lastDeadChar != wParam
             {
                 surface.lastDeadChar = wParam
@@ -250,8 +261,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             fallthrough
 
         case WM_CHAR:
-            if wParam == 27 do
+            if wParam == 27
+            {
                 return 1
+            }
 
             surface.lastDeadChar = 0
 
@@ -275,8 +288,11 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_KILLFOCUS:
-            if surface.app.nativeFocusSurface == surface do
+            if surface.app.nativeFocusSurface == surface
+            {
                 surface.app.updateNativeFocus(null)
+            }
+
             return 0
 
         case WM_SETFOCUS:
@@ -314,8 +330,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             var pt = Math.Point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}
             surface.screenToSurface(&pt)
 
-            if surface.wnd.hitTestCaptionButton(pt) do
+            if surface.wnd.hitTestCaptionButton(pt)
+            {
                 return HTCLIENT
+            }
 
             if not surface.isMaximized
             {
@@ -333,16 +351,21 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                 }
             }
 
-            if surface.wnd.hitTestCaption(pt) do
+            if surface.wnd.hitTestCaption(pt)
+            {
                 return HTCAPTION
+            }
 
             return HTCLIENT
 
         case WM_PAINT:
             var ps: PAINTSTRUCT
             discard BeginPaint(hWnd, &ps)
-            if not surface.initializing and not surface.inDiscretePlacement do
+            if not surface.initializing and not surface.inDiscretePlacement
+            {
                 surface.invalidatePhysicalRect(Math.Rectangle{cast(f32, ps.rcPaint.left), cast(f32, ps.rcPaint.top), cast(f32, (ps.rcPaint.right - ps.rcPaint.left)), cast(f32, (ps.rcPaint.bottom - ps.rcPaint.top))})
+            }
+
             EndPaint(hWnd, &ps)
 
             // Publish from the application clock, including its timer inside USER32's
@@ -358,8 +381,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             {
                 var pt = Math.Point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}
                 surface.screenToSurface(&pt)
-                if surface.wnd.editCaptionPath(pt) do
+                if surface.wnd.editCaptionPath(pt)
+                {
                     return 0
+                }
             }
 
             break
@@ -385,10 +410,16 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return result
 
         case WM_TIMER:
-            if wParam != DesktopLoopTimerId do
+            if wParam != DesktopLoopTimerId
+            {
                 break
-            if surface.inDesktopLoop do
+            }
+
+            if surface.inDesktopLoop
+            {
                 surface.app.runClockFrame()
+            }
+
             return 0
 
         case WM_ENTERSIZEMOVE:
@@ -425,14 +456,25 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             // Enforce the surface min/max size during interactive (border-drag) resizing,
             // which is handled by the OS sizing loop and only honours the track sizes.
             // Track sizes are physical pixels; the surface limits are logical.
-            if surface.minSize.x > 0 do
+            if surface.minSize.x > 0
+            {
                 mm.ptMinTrackSize.x = cast(s32, (surface.minSize.x * surface.dpiScale))
-            if surface.minSize.y > 0 do
+            }
+
+            if surface.minSize.y > 0
+            {
                 mm.ptMinTrackSize.y = cast(s32, (surface.minSize.y * surface.dpiScale))
-            if surface.maxSize.x > 0 do
+            }
+
+            if surface.maxSize.x > 0
+            {
                 mm.ptMaxTrackSize.x = cast(s32, (surface.maxSize.x * surface.dpiScale))
-            if surface.maxSize.y > 0 do
+            }
+
+            if surface.maxSize.y > 0
+            {
                 mm.ptMaxTrackSize.y = cast(s32, (surface.maxSize.y * surface.dpiScale))
+            }
 
             var pt: POINT
             pt.x = cast(s32, surface.position.x)
@@ -463,8 +505,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             // the rectangle by newDpi/oldDpi, assuming an old-DPI size) would
             // double-scale it. Keep the requested rectangle and relayout at the new scale.
             surface.clientResizePending = true
-            if surface.inAppPlacement or surface.inDiscretePlacement do
+            if surface.inAppPlacement or surface.inDiscretePlacement
+            {
                 return 0
+            }
 
             // An interactive move adopts the suggested physical rectangle. The next
             // resize or frame lays out the tree at that committed size and scale.
@@ -476,8 +520,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
             // Windows moves a minimized HWND to its icon position. Keep the last window bounds
             // for restoration and for choosing the monitor when it is maximized again.
-            if surface.isMinimized do
+            if surface.isMinimized
+            {
                 return 0
+            }
 
             // lParam holds the client origin in screen space as *signed* 16-bit coordinates.
             // A maximized window is positioned slightly off the work area (negative origin
@@ -497,14 +543,19 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             }
 
             surface.clientResizePending = true
-            if surface.inDiscretePlacement do
+            if surface.inDiscretePlacement
+            {
                 return 0
+            }
+
             if surface.inDesktopLoop
             {
                 let width  = cast(s32, LOWORD(lParam))
                 let height = cast(s32, HIWORD(lParam))
-                if width != surface.rc.width or height != surface.rc.height do
+                if width != surface.rc.width or height != surface.rc.height
+                {
                     surface.setSizing(true)
+                }
             }
             else
             {
@@ -542,8 +593,10 @@ private impl Surface
 {
     internal mtd requestNativeFocus()
     {
-        if not .isHidden and not .isDisabled do
+        if not .isHidden and not .isDisabled
+        {
             SetFocus(.hWnd)
+        }
     }
 
     // Creates the hidden native window of a surface.
@@ -567,8 +620,10 @@ private impl Surface
             doneClass = true
 
             var hIcon: HICON
-            if app.appIcon.isValid() do
+            if app.appIcon.isValid()
+            {
                 hIcon = try app.appIcon.toHicon()
+            }
 
             var wc: WNDCLASSW
             wc.hInstance     = GetModuleHandleW(null)
@@ -581,14 +636,17 @@ private impl Surface
             try RegisterClassW(wc)
         }
 
-        var winFlags = 0'u32
+        var winFlags = 0_u32
         winFlags |= WS_POPUP | WS_CLIPCHILDREN
 
         // A layered window receives premultiplied pixels from a fixed offscreen OpenGL
         // drawable. Resizing the HWND then leaves the driver's drawable allocations alone.
         var winFlagsEx = WS_EX_LAYERED
-        if flags & .ToolWindow do
+        if flags & .ToolWindow
+        {
             winFlagsEx |= WS_EX_TOOLWINDOW
+        }
+
         if flags & .TopMost
         {
             result.topMost = true
@@ -597,8 +655,10 @@ private impl Surface
 
         // Create window
         result.hWnd = cast(const *void?, CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result))
-        if not result.hWnd do
+        if not result.hWnd
+        {
             try failWinError(GetLastError())
+        }
 
         // The identity lives on a property, so the native title is free to follow the title.
         discard SetPropW(result.hWnd, identityProperty(result.surfaceId).buffer, cast(HANDLE, result.hWnd))
@@ -623,8 +683,10 @@ private impl Surface
     {
         .destroyRendering()
         .releasePresentationBitmap()
-        if not .hWnd do
+        if not .hWnd
+        {
             return
+        }
 
         .revokeDropTarget()
         .removeTrayIcon()
@@ -645,29 +707,38 @@ impl Surface
     private mtd presentDiscretePlacement(bounds: RECT)
     {
         // A layered update can reenter WM_NCCALCSIZE. The enclosing placement owns the frame.
-        if .presentingPlacement or not .canPresentPlacement() do
+        if .presentingPlacement or not .canPresentPlacement()
+        {
             return
+        }
 
         let width  = bounds.right - bounds.left
         let height = bounds.bottom - bounds.top
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
             return
+        }
 
         let destination = Math.Rectangle{cast(f32, bounds.left), cast(f32, bounds.top), cast(f32, width), cast(f32, height)}
         let scale       = Env.monitorForRectangle(destination).scaleFactor
         if .presentedFrame and
            not .isDirty and
            destination == .position and
-           scale == .clientLayoutScale do
+           scale == .clientLayoutScale
+        {
             return
+        }
 
         .placementOrigin     = {bounds.left, bounds.top}
         .presentingPlacement = true
         defer .presentingPlacement = false
         .position.x = destination.x
         .position.y = destination.y
-        if scale != .dpiScale do
+        if scale != .dpiScale
+        {
             .setDpiScaleRaw(scale)
+        }
+
         .clientLayoutScale = .dpiScale
         .presentedFrame    = false
         .sendResizeEvent(destination.width, destination.height)
@@ -683,8 +754,11 @@ impl Surface
 
         // Reconcile the committed client even if native placement produced no size message.
         .clientResizePending = true
-        if .inDesktopLoop do
+        if .inDesktopLoop
+        {
             return
+        }
+
         .applyPendingNativeResize()
         if .canPresentPlacement()
         {
@@ -695,18 +769,27 @@ impl Surface
 
     private mtd applyPendingNativeResize()
     {
-        if not .clientResizePending or .isMinimized do
+        if not .clientResizePending or .isMinimized
+        {
             return
+        }
+
         .clientResizePending = false
 
         // Query the committed drawable once, even if several WM_SIZE messages arrived.
         var client: RECT
-        if not GetClientRect(.hWnd, &client) or client.right <= 0 or client.bottom <= 0 do
+        if not GetClientRect(.hWnd, &client) or client.right <= 0 or client.bottom <= 0
+        {
             return
+        }
+
         if .clientLayoutScale == .dpiScale and
            .rc.width == client.right and
-           .rc.height == client.bottom do
+           .rc.height == client.bottom
+        {
             return
+        }
+
         .clientLayoutScale = .dpiScale
         .presentedFrame    = false
         .sendResizeEvent(cast(f32, client.right), cast(f32, client.bottom))
@@ -746,10 +829,16 @@ impl Surface
 
     private mtd releasePresentationBitmap()
     {
-        if .presentationDC do
+        if .presentationDC
+        {
             catch DeleteDC(.presentationDC)
-        if .presentationBitmap do
+        }
+
+        if .presentationBitmap
+        {
             catch DeleteObject(cast(HGDIOBJ, .presentationBitmap))
+        }
+
         .presentationDC     = null
         .presentationBitmap = null
         .presentationPixels = null
@@ -800,14 +889,21 @@ impl Surface
         }
 
         // Tints can change the complete frame while the controls repaint only part of it.
-        if not .presentedFrame or tinted or .presentedTinted do
+        if not .presentedFrame or tinted or .presentedTinted
+        {
             rect = bounds
-        if rect.isEmpty() do
+        }
+
+        if rect.isEmpty()
+        {
             return true
+        }
 
         let dirty = RECT{cast(s32, rect.x), cast(s32, rect.y), cast(s32, rect.right()), cast(s32, rect.bottom())}
-        if not .readPresentationPixels(target, dirty) do
+        if not .readPresentationPixels(target, dirty)
+        {
             return false
+        }
 
         let source = POINT{}
         let blend  = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
@@ -820,8 +916,11 @@ impl Surface
             update.dwFlags = ULW_ALPHA
         }
 
-        if not UpdateLayeredWindowIndirect(.hWnd, &update) do
+        if not UpdateLayeredWindowIndirect(.hWnd, &update)
+        {
             return false
+        }
+
         .presentedTinted = tinted
         return true
     }
@@ -894,14 +993,18 @@ impl Surface
     // window procedure continues to recognize the version 0 mouse notifications.
     mtd setTrayIcon(icon: Pixel.Image, tip: string? = null)
     {
-        if not .app.renderer.needsNativeWindow() do
+        if not .app.renderer.needsNativeWindow()
+        {
             return
+        }
 
         var img     = icon
         let tipText = String.from(tip orelse "")
         let newIcon = catch img.toHicon() orelse null
-        if not newIcon do
+        if not newIcon
+        {
             return
+        }
 
         .removeTrayIcon()
         .trayIcon         = newIcon
@@ -936,8 +1039,11 @@ impl Surface
         }
 
         tnid.uVersion = TrayIconVersion4
-        catch Shell_NotifyIconA(NIM_SETVERSION, &tnid) do
+        catch Shell_NotifyIconA(NIM_SETVERSION, &tnid)
+        {
             return
+        }
+
         .native.trayIconVersion4 = true
     }
 
@@ -950,8 +1056,10 @@ impl Surface
     // without a notification-area icon.
     mtd showTrayMessage(title, message: string)
     {
-        if not .trayIcon or not .app.renderer.needsNativeWindow() do
+        if not .trayIcon or not .app.renderer.needsNativeWindow()
+        {
             return
+        }
 
         var tnid: NOTIFYICONDATAW
         tnid.cbSize      = #sizeof(NOTIFYICONDATAW)
@@ -965,8 +1073,10 @@ impl Surface
         {
             let wide  = Utf16.fromUtf8(text)
             let units = Math.min(wide.count, fieldBytes / #sizeof(u16) - 1)
-            for index in units do
+            for index in units
+            {
                 field[index] = wide[index]
+            }
         }
 
         fill(&tnid.szInfoTitle[0], #sizeof(tnid.szInfoTitle), title)
@@ -977,8 +1087,11 @@ impl Surface
     // Returns the visible Shell icon bounds for desktop input tests.
     internal mtd trayIconScreenRect(rect: *RECT)->bool
     {
-        if not .trayIcon do
+        if not .trayIcon
+        {
             return false
+        }
+
         var identifier = NOTIFYICONIDENTIFIER{cbSize: cast(DWORD, #sizeof(NOTIFYICONIDENTIFIER)),
                                               hWnd: .hWnd,
                                               uID: TrayIconID}
@@ -993,8 +1106,10 @@ impl Surface
     // Removes the notification-area icon owned by this surface, if any.
     mtd removeTrayIcon()
     {
-        if not .trayIcon do
+        if not .trayIcon
+        {
             return
+        }
 
         if .app.renderer.needsNativeWindow()
         {
@@ -1064,21 +1179,36 @@ impl Surface
         let topMostChanged  = .topMost != shouldBeTopMost
         .topMost = shouldBeTopMost
 
-        if not .app.renderer.needsNativeWindow() or not .hWnd do
+        if not .app.renderer.needsNativeWindow() or not .hWnd
+        {
             return
+        }
 
         var exStyle = cast #bit (u64, GetWindowLongPtrA(.hWnd, GWL_EXSTYLE))
-        if .flags & .ToolWindow do
+        if .flags & .ToolWindow
+        {
             exStyle |= WS_EX_TOOLWINDOW
-        else do
+        }
+        else
+        {
             exStyle &= ~WS_EX_TOOLWINDOW
-        if .flags & .TopMost do
+        }
+
+        if .flags & .TopMost
+        {
             exStyle |= WS_EX_TOPMOST
-        else do
+        }
+        else
+        {
             exStyle &= ~WS_EX_TOPMOST
+        }
+
         SetWindowLongPtrA(.hWnd, GWL_EXSTYLE, cast #bit (LONG_PTR, exStyle))
-        if topMostChanged do
+        if topMostChanged
+        {
             catch SetWindowPos(.hWnd, shouldBeTopMost ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
+        }
+
         .applyNativeDwmStyle()
     }
 
@@ -1094,10 +1224,15 @@ impl Surface
         for
         {
             hwnd = FindWindowExW(null, hwnd, className.buffer, null)
-            if not hwnd do
+            if not hwnd
+            {
                 return false
-            if GetPropW(hwnd, property.buffer) != null do
+            }
+
+            if GetPropW(hwnd, property.buffer) != null
+            {
                 break
+            }
         }
 
         discard SendMessageA(hwnd, WM_APP + id, 0, param)
@@ -1108,13 +1243,16 @@ impl Surface
     //
     // A surface is found by its identity, not by its native title: the title is what the task bar
     // and the window switcher show, and follows [[Gui.Surface.setTitle]].
-    internal func identityProperty(surfaceId: string)->Array'u16 => Utf16.toZeroTerminated(Format.toString("Swag.Gui.Surface:%", surfaceId))
+    internal func identityProperty(surfaceId: string)->Array!{u16} => Utf16.toZeroTerminated(Format.toString("Swag.Gui.Surface:%", surfaceId))
 
     // Gives the native window the title of the surface, or its identity while it has none.
     internal mtd applyNativeTitle()
     {
-        if not .hWnd do
+        if not .hWnd
+        {
             return
+        }
+
         let title = .wnd.name.text.isEmpty() ? Utf16.toZeroTerminated(.surfaceId) : Utf16.toZeroTerminated(.wnd.name.text)
         discard SetWindowTextW(.hWnd, title.buffer)
     }
@@ -1127,14 +1265,25 @@ impl Surface
     {
         var result = pos
 
-        if .minSize.x > 0 do
+        if .minSize.x > 0
+        {
             result.width = Math.max(result.width, .minSize.x * .dpiScale)
-        if .minSize.y > 0 do
+        }
+
+        if .minSize.y > 0
+        {
             result.height = Math.max(result.height, .minSize.y * .dpiScale)
-        if .maxSize.x > 0 do
+        }
+
+        if .maxSize.x > 0
+        {
             result.width = Math.min(result.width, .maxSize.x * .dpiScale)
-        if .maxSize.y > 0 do
+        }
+
+        if .maxSize.y > 0
+        {
             result.height = Math.min(result.height, .maxSize.y * .dpiScale)
+        }
 
         return result
     }
@@ -1164,10 +1313,15 @@ impl Surface
     // Enables or disables placement above all non-topmost windows.
     mtd setTopMost(enabled = true)
     {
-        if enabled do
+        if enabled
+        {
             .flags.add(.TopMost)
-        else do
+        }
+        else
+        {
             .flags.remove(.TopMost)
+        }
+
         .applyNativeSurfaceFlags()
     }
 
@@ -1177,8 +1331,10 @@ impl Surface
     // Brings the surface to the front of its current Z-order group.
     mtd bringToFront()
     {
-        if not .app.renderer.needsNativeWindow() do
+        if not .app.renderer.needsNativeWindow()
+        {
             return
+        }
 
         BringWindowToTop(.hWnd)
     }
@@ -1186,8 +1342,11 @@ impl Surface
     // Enables input for the surface.
     mtd enable()
     {
-        if not .isDisabled do
+        if not .isDisabled
+        {
             return
+        }
+
         .isDisabled = false
 
         .invalidate()
@@ -1202,8 +1361,11 @@ impl Surface
     // Disables input for the surface.
     mtd disable()
     {
-        if .isDisabled do
+        if .isDisabled
+        {
             return
+        }
+
         .isDisabled = true
         .invalidate()
         if not .app.renderer.needsNativeWindow()
@@ -1218,11 +1380,16 @@ impl Surface
     mtd setOpacity(opacity: f32)
     {
         let value = Math.saturate(opacity)
-        if .opacity == value do
+        if .opacity == value
+        {
             return
+        }
+
         .opacity = value
-        if not .isHidden do
+        if not .isHidden
+        {
             .invalidate()
+        }
     }
 
     // Shows the surface and emits its one-time initialization event when needed.
@@ -1231,8 +1398,10 @@ impl Surface
     // fades in over its owner, without travel, unless motion is reduced.
     mtd show()
     {
-        if not .isHidden do
+        if not .isHidden
+        {
             return
+        }
 
         .isHidden = false
         if .flags.has(.Sheet) and not .app.isReducedMotion()
@@ -1272,8 +1441,11 @@ impl Surface
         if not .app.renderer.needsNativeWindow()
         {
             let curFocus = .wnd.view.focusedWindow()
-            if not curFocus or not .wnd.isAncestorOf(curFocus) do
+            if not curFocus or not .wnd.isAncestorOf(curFocus)
+            {
                 discard .restoreFocus()
+            }
+
             .wnd.view.sendStateEvent(.Show)
             return
         }
@@ -1290,8 +1462,11 @@ impl Surface
     // Hides the surface without destroying it.
     mtd hide()
     {
-        if .isHidden do
+        if .isHidden
+        {
             return
+        }
+
         .isHidden = true
 
         if not .app.renderer.needsNativeWindow()
@@ -1318,8 +1493,11 @@ impl Surface
     // the whole monitor as the size to restore to.
     mtd showMaximized(restoreTo: Math.Rectangle)
     {
-        if .isMaximized and not .isMinimized do
+        if .isMaximized and not .isMinimized
+        {
             return
+        }
+
         if .isMaximized
         {
             .isMinimized = false
@@ -1393,8 +1571,10 @@ impl Surface
     // Restores a minimized or maximized surface to its normal bounds.
     mtd showNormal()
     {
-        if not .isMaximized and not .isMinimized do
+        if not .isMaximized and not .isMinimized
+        {
             return
+        }
 
         // SW_RESTORE returns a minimized maximized HWND to maximized state. Explicit normal
         // placement is needed when the caller asks to leave both states at once.
@@ -1404,10 +1584,16 @@ impl Surface
     // Shows the surface minimized.
     mtd showMinimized()
     {
-        if .isMinimized do
+        if .isMinimized
+        {
             return
-        if not .isMaximized do
+        }
+
+        if not .isMaximized
+        {
             .restoredPosition = .position
+        }
+
         .isMinimized = true
         if not .app.renderer.needsNativeWindow()
         {

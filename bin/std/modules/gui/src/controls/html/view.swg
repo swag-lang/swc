@@ -4,33 +4,33 @@ using Core, Pixel
 
 // Bytes read from disk per streaming step. One step consumes exactly one bounded chunk, so even a
 // fast machine presents a multi-megabyte document over several application frames.
-private const HtmlStreamChunkSize = 48 * 1024'u64
+private const HtmlStreamChunkSize = 48 * 1024_u64
 
 // Source bytes read before the first partial rendering. The threshold then grows fourfold at each
 // one, so a document shows its beginning quickly and the intermediate passes stay a bounded share
 // of the whole load instead of repeating once per chunk.
-private const HtmlFirstRefreshSize = 192 * 1024'u64
+private const HtmlFirstRefreshSize = 192 * 1024_u64
 
 // The largest document the engine keeps in memory. Past it the reader is told the file was cut
 // rather than shown a rendering that silently drops content.
-private const HtmlMaxDocumentSize = 48 * 1024 * 1024'u64
+private const HtmlMaxDocumentSize = 48 * 1024 * 1024_u64
 
 // File-backed source pages above this size are rendered through a bounded source window. Generated
 // documentation routinely wraps an entire source file in one `<pre><code>` element; retaining the
 // corresponding DOM, cascade and inline layout multiplies a few megabytes into hundreds of
 // megabytes. The window keeps the real HTML engine and author CSS, but only for nearby source.
-private const HtmlVirtualSourceThreshold = 2 * 1024 * 1024'u64
-private const HtmlVirtualProbeSize       = 256 * 1024'u64
-private const HtmlVirtualWindowSize      = 192 * 1024'u64
+private const HtmlVirtualSourceThreshold = 2 * 1024 * 1024_u64
+private const HtmlVirtualProbeSize       = 256 * 1024_u64
+private const HtmlVirtualWindowSize      = 192 * 1024_u64
 private const HtmlVirtualLookBehind      = HtmlVirtualWindowSize / 2
 private const HtmlStreamLookAhead        = 6.0
 
 // The air a revealed node keeps above it. The text being read is the first one below that
 // line, so the heading a reveal brought into view is the one read, not the lines left above it.
-internal const HtmlRevealClearance = 24.0'f32
+internal const HtmlRevealClearance = 24.0_f32
 
 // Source bytes inspected before the first parse to decide how the file spells its characters.
-private const HtmlCharsetProbeSize = 4 * 1024'u64
+private const HtmlCharsetProbeSize = 4 * 1024_u64
 
 // Returns the encoding a `charset=` declaration within the probe names, when it names one this
 // engine reads.
@@ -42,16 +42,21 @@ private const HtmlCharsetProbeSize = 4 * 1024'u64
 private func htmlDeclaredEncoding(probe: string)->{ encoding: Text.Encoding, matched: bool }
 {
     var result: #returntype
-    var scan = 0'u64
+    var scan = 0_u64
     while true
     {
         let found = Utf8.indexOf(probe, "charset", scan, .Latin1NoCase)
-        if found == Swag.U64.Max do
+        if found == Swag.U64.Max
+        {
             return result
+        }
 
         var index = found + ("charset").count
-        while index < probe.count and Latin1.isSpace(probe[index]) do
+        while index < probe.count and Latin1.isSpace(probe[index])
+        {
             index += 1
+        }
+
         if index >= probe.count or probe[index] != '='
         {
             scan = index
@@ -59,14 +64,21 @@ private func htmlDeclaredEncoding(probe: string)->{ encoding: Text.Encoding, mat
         }
 
         index += 1
-        while index < probe.count and Latin1.isSpace(probe[index]) do
+        while index < probe.count and Latin1.isSpace(probe[index])
+        {
             index += 1
-        if index < probe.count and (probe[index] == '"' or probe[index] == '\'') do
+        }
+
+        if index < probe.count and (probe[index] == '"' or probe[index] == '\'')
+        {
             index += 1
+        }
 
         let labelStart = index
-        while index < probe.count and (Latin1.isLetterOrDigit(probe[index]) or probe[index] == '-') do
+        while index < probe.count and (Latin1.isLetterOrDigit(probe[index]) or probe[index] == '-')
+        {
             index += 1
+        }
 
         let label = String.from(probe[labelStart until index]).toLower()
         switch label.toString()
@@ -170,10 +182,10 @@ struct HtmlView
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigLinkActivated:   SigArray'func||(*Wnd, string)     // Emitted when an activated link cannot be followed as a local document or fragment.
-        sigLoadFailed:      SigArray'func||(*Wnd, string)     // Emitted with the exact reason when progressive file loading stops.
-        sigDocumentChanged: SigArray'func||(*Wnd)             // Emitted after document content or layout is rebuilt; heading snapshots may be refreshed here.
-        sigScrolled:        SigArray'func||(*Wnd)             // Emitted after the document moved under the view.
+        sigLinkActivated:   SigArray!{func||(*Wnd, string)}     // Emitted when an activated link cannot be followed as a local document or fragment.
+        sigLoadFailed:      SigArray!{func||(*Wnd, string)}     // Emitted with the exact reason when progressive file loading stops.
+        sigDocumentChanged: SigArray!{func||(*Wnd)}             // Emitted after document content or layout is rebuilt; heading snapshots may be refreshed here.
+        sigScrolled:        SigArray!{func||(*Wnd)}             // Emitted after the document moved under the view.
 
         // Handles a clicked link before built-in fragment or local-file navigation.
         //
@@ -213,8 +225,8 @@ struct HtmlView
 
         // A completed style node is immutable while the streaming parser appends the rest of
         // the document, so its rules remain in the sheet until a new document or host width.
-        parsedStyleNodes: HashTable'(u32, bool)
-        styleSheetWidth = -1'f32
+        parsedStyleNodes: HashTable!{u32, bool}
+        styleSheetWidth = -1_f32
 
         stream:      File.FileStream
         fileName:    String
@@ -275,8 +287,10 @@ struct HtmlView
 
 internal func scrollDocumentWithKey(scroll: *ScrollWnd, evt: *KeyEvent)->bool
 {
-    if evt.kind != .Pressed do
+    if evt.kind != .Pressed
+    {
         return false
+    }
 
     let position = scroll.scrollPosition()
     let viewport = scroll.view.paddedClientRect()
@@ -350,14 +364,19 @@ internal impl HtmlView
             .styleSheetWidth      = .documentStyle.maxContentWidth
             .styleSheetReaderMode = .readerMode
             .readerStylesReady    = false
-            if .styleSheetWidth > 0 do
+            if .styleSheetWidth > 0
+            {
                 .sheet.parse(Format.toString("body { max-width: %px; margin-left: auto; margin-right: auto }", .styleSheetWidth).toString())
+            }
         }
 
         let parsedStyleCount = .parsedStyleNodes.count
         .appendStyleSheets(0)
-        if .parsedStyleNodes.count != parsedStyleCount do
+        if .parsedStyleNodes.count != parsedStyleCount
+        {
             .readerStylesReady = false
+        }
+
         if .readerMode and not .readerStylesReady
         {
             // This reader sheet is appended after the page's sheets. It uses the same parsed DOM
@@ -381,14 +400,22 @@ img, video, table { max-width: 100% !important; }
         {
             if current.tag == .Style
             {
-                if .parsedStyleNodes.tryFind(node) do
+                if .parsedStyleNodes.tryFind(node)
+                {
                     return
+                }
 
                 var css: String
-                for child in .document.children(node) where .document.constNode(child).kind == .Text do
+                for child in .document.children(node) where .document.constNode(child).kind == .Text
+                {
                     css += .document.textOf(child)
-                if css.isEmpty() do
+                }
+
+                if css.isEmpty()
+                {
                     return
+                }
+
                 .sheet.parse(css.toString())
                 .parsedStyleNodes.add(node, true)
                 return
@@ -396,22 +423,30 @@ img, video, table { max-width: 100% !important; }
 
             if current.tag == .Link and .isStyleSheetLink(node)
             {
-                if .parsedStyleNodes.tryFind(node) do
+                if .parsedStyleNodes.tryFind(node)
+                {
                     return
+                }
+
                 .appendExternalStyleSheet(.document.attribute(node, "href"))
                 .parsedStyleNodes.add(node, true)
                 return
             }
         }
 
-        for child in .document.children(node) do
+        for child in .document.children(node)
+        {
             .appendStyleSheets(child)
+        }
     }
 
     private mtd isStyleSheetLink(node: u32)->bool
     {
-        for part in Tokenize.split(.document.attribute(node, "rel"), ' 'u8) where Utf8.compare(part, "stylesheet", .Latin1NoCase) == 0 do
+        for part in Tokenize.split(.document.attribute(node, "rel"), ' '_u8) where Utf8.compare(part, "stylesheet", .Latin1NoCase) == 0
+        {
             return true
+        }
+
         return false
     }
 
@@ -421,11 +456,16 @@ img, video, table { max-width: 100% !important; }
     // reaching the network, whatever it links to.
     private mtd appendExternalStyleSheet(href: string)
     {
-        if not href.count or .images.basePath.isEmpty() do
+        if not href.count or .images.basePath.isEmpty()
+        {
             return
+        }
+
         let fileName = htmlLocalResourcePath(.images.basePath.toString(), href)
-        if fileName.isEmpty() do
+        if fileName.isEmpty()
+        {
             return
+        }
 
         let content = catch File.readAllText(fileName.toString())
         {
@@ -444,8 +484,11 @@ img, video, table { max-width: 100% !important; }
         // Text is measured against the grid it will be drawn on, so the display scale has to be
         // known before the first word is measured.
         let surface = .surface
-        if surface do
+        if surface
+        {
             .layout.deviceScale = surface.dpiScale
+        }
+
         .collectStyleSheets()
         .resolver.resolve(&.document, &.sheet, &.pool, .styleDefaults(), viewport, .darkScheme())
         .layout.build(&.document, &.resolver, .theme(), &.images)
@@ -471,8 +514,11 @@ img, video, table { max-width: 100% !important; }
         {
             let element = cast(u32, index)
             let node    = .document.constNode(element)
-            if node.kind != .Element do
+            if node.kind != .Element
+            {
                 continue
+            }
+
             switch node.tag
             {
             case .Title where result.title.isEmpty():
@@ -497,26 +543,34 @@ img, video, table { max-width: 100% !important; }
     //
     // Offsets address the current source and survive changes of zoom or width. Refresh the
     // snapshot on [[Gui.HtmlView.sigDocumentChanged]], including local document navigation.
-    public mtd headings()->Array'DocumentHeading
+    public mtd headings()->Array!{DocumentHeading}
     {
         var result: #returntype
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32, index))
-            if node.kind != .Element or node.tag < .H1 or node.tag > .H6 do
+            if node.kind != .Element or node.tag < .H1 or node.tag > .H6
+            {
                 continue
+            }
+
             let box = .layout.nodeBox.tryFind(cast(u32, index))
             if not box or
                .layout.constBox(box.value).rect.height <= 0 or
-               not .layout.constStyle(.layout.constBox(box.value).style).visible do
+               not .layout.constStyle(.layout.constBox(box.value).style).visible
+            {
                 continue
+            }
+
             var heading: DocumentHeading
             heading.title = .document.textContent(cast(u32, index))
             heading.title.trim()
             heading.level        = cast(u32, node.tag) - cast(u32, HtmlTag.H1) + 1
             heading.sourceOffset = node.sourceOffset
-            if not heading.title.isEmpty() do
+            if not heading.title.isEmpty()
+            {
                 result.add(#move heading)
+            }
         }
 
         return result
@@ -524,7 +578,7 @@ img, video, table { max-width: 100% !important; }
 
     // Captures independently scrolled element positions before a streaming rebuild replaces the
     // box tree. Node indices remain stable while the parser appends source.
-    private mtd captureRegionScrolls()->Array'HtmlRegionScrollState
+    private mtd captureRegionScrolls()->Array!{HtmlRegionScrollState}
     {
         var result: #returntype
         for box in .layout.boxes where box.node != HtmlNoNode and box.scrollTop > 0
@@ -543,12 +597,17 @@ img, video, table { max-width: 100% !important; }
         for state in states
         {
             let found = .layout.nodeBox.tryFind(state.node)
-            if not found do
+            if not found
+            {
                 continue
+            }
 
             let box = .layout.box(found.value)
-            if not box.scrollable do
+            if not box.scrollable
+            {
                 continue
+            }
+
             box.scrollTop = Math.clamp(state.top, 0, Math.max(box.scrollHeight - box.content.height, 0))
         }
     }
@@ -557,8 +616,10 @@ img, video, table { max-width: 100% !important; }
     mtd placeDocument()
     {
         let viewport = .viewportSize()
-        if .layout.root == HtmlNoNode do
+        if .layout.root == HtmlNoNode
+        {
             return
+        }
 
         .layout.layout(viewport.x, viewport.y)
 
@@ -580,8 +641,10 @@ img, video, table { max-width: 100% !important; }
     // bounded shell needed to style independent windows of its `<pre><code>` content.
     private mtd prepareVirtualSource()->bool
     {
-        if .fileSize < HtmlVirtualSourceThreshold or .encoding != .Utf8 do
+        if .fileSize < HtmlVirtualSourceThreshold or .encoding != .Utf8
+        {
             return false
+        }
 
         let contentStart = catch .stream.position() { return false }
         let probe        = catch .stream.readTextChunk(HtmlVirtualProbeSize, .encoding)
@@ -594,9 +657,9 @@ img, video, table { max-width: 100% !important; }
         let bodyStart     = Utf8.indexOf(probe.toString(), "<body", 0, .Latin1NoCase)
         let preStart      = Utf8.indexOf(probe.toString(), "<pre", bodyStart == Swag.U64.Max ? 0 : bodyStart, .Latin1NoCase)
         let codeStart     = Utf8.indexOf(probe.toString(), "<code", preStart == Swag.U64.Max ? 0 : preStart, .Latin1NoCase)
-        let bodyEnd       = bodyStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, bodyStart)
-        let preEnd        = preStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, preStart)
-        let codeEnd       = codeStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, codeStart)
+        let bodyEnd       = bodyStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'_rune, bodyStart)
+        let preEnd        = preStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'_rune, preStart)
+        let codeEnd       = codeStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'_rune, codeStart)
         let sourceListing = bodyEnd != Swag.U64.Max and
                             preEnd != Swag.U64.Max and
                             codeEnd != Swag.U64.Max and
@@ -636,7 +699,7 @@ img, video, table { max-width: 100% !important; }
     // Materializes one deterministic byte window of a generated source page. Replacing the
     // window releases the previous document's text, nodes, styles and boxes before parsing the
     // next one, so memory depends on this constant window rather than on file size.
-    private mtd loadVirtualWindow(requestedOffset: u64, requestedY = -1.0'f32)->bool
+    private mtd loadVirtualWindow(requestedOffset: u64, requestedY = -1.0_f32)->bool
     {
         .virtualRepositioning = true
         defer .virtualRepositioning = false
@@ -646,7 +709,7 @@ img, video, table { max-width: 100% !important; }
         .stream = catch File.openReadLive(.fileName.toString()) { return false }
         let actual = Math.min(wanted, .fileSize)
         discard catch .stream.seek(.Begin, actual)
-        var bytes: Array'u8
+        var bytes: Array!{u8}
         bytes.resize(Math.min(HtmlVirtualWindowSize + HtmlVirtualLookBehind * 2, .fileSize - actual))
         let count = catch .stream.read(bytes.toSlice())
         {
@@ -658,7 +721,7 @@ img, video, table { max-width: 100% !important; }
         bytes.resize(count)
         let chunk = Text.decode(bytes.toSlice(), .Utf8)
 
-        var begin = 0'u64
+        var begin = 0_u64
         if actual != .virtualContentStart
         {
             // The seek begins inside an arbitrary source line. Drop only that incomplete line;
@@ -671,9 +734,11 @@ img, video, table { max-width: 100% !important; }
             }
             else
             {
-                let line = Utf8.indexOf(chunk.toString(), '\n'rune)
-                if line != Swag.U64.Max do
+                let line = Utf8.indexOf(chunk.toString(), '\n'_rune)
+                if line != Swag.U64.Max
+                {
                     begin = line + 1
+                }
             }
         }
 
@@ -681,12 +746,16 @@ img, video, table { max-width: 100% !important; }
         if end < chunk.length
         {
             let boundary = Utf8.indexOf(chunk.toString(), "\n<a ", end, .Latin1NoCase)
-            if boundary != Swag.U64.Max do
+            if boundary != Swag.U64.Max
+            {
                 end = boundary + 1
+            }
         }
 
-        if end <= begin do
+        if end <= begin
+        {
             return false
+        }
 
         .document.clear()
         .sheet.clear()
@@ -729,8 +798,11 @@ img, video, table { max-width: 100% !important; }
         // Rebuild already laid out this window. Only its virtual extent and origin changed;
         // neither needs a second text layout or a restart of the current scroll animation.
         .scroll.setScrollSize(.viewportSize().x, .virtualHeight)
-        if requestedY < 0 or .scroll.scrollPosition().y != Math.round(targetY) do
+        if requestedY < 0 or .scroll.scrollPosition().y != Math.round(targetY)
+        {
             .scroll.setScrollPos(.scroll.scrollPosition().x, targetY)
+        }
+
         .resolvePending()
         .canvas.invalidate()
         return true
@@ -743,13 +815,13 @@ img, video, table { max-width: 100% !important; }
     // [[Core.Text.detectEncoding]].
     mtd detectDocumentEncoding()->Text.Encoding
     {
-        var probe: Array'u8
+        var probe: Array!{u8}
         probe.resize(HtmlCharsetProbeSize)
         let count = catch .stream.read(probe.toSlice()) orelse 0
         probe.resize(count)
 
         var result       = Text.detectEncoding(probe.toSlice())
-        var contentStart = 0'u64
+        var contentStart = 0_u64
         .encodingSource = .Content
         if Text.hasBom(probe.toSlice(), result)
         {
@@ -794,7 +866,7 @@ img, video, table { max-width: 100% !important; }
                 .reportLoadFailure(Errors.message(readError))
                 .finishSource("<p>Unable to read this HTML document.</p>")
             }
-            elif chunk.isEmpty()
+            else if chunk.isEmpty()
             {
                 // The depth cap behaves like the size cap: the reader is told what was cut
                 // rather than shown a silently flattened rendering.
@@ -810,8 +882,10 @@ img, video, table { max-width: 100% !important; }
                     // chunk also reaches EOF. Otherwise, an exact decoded-byte match is only a
                     // truncation when encoded source bytes remain unread.
                     if .bytesRead > HtmlMaxDocumentSize or
-                       (.bytesRead == HtmlMaxDocumentSize and .hasUnreadSourceBytes()) do
+                       (.bytesRead == HtmlMaxDocumentSize and .hasUnreadSourceBytes())
+                    {
                         .finishSource("<p>This document is too large to be displayed in full; the rest of the file was not read.</p>")
+                    }
                 }
             }
         }
@@ -827,28 +901,39 @@ img, video, table { max-width: 100% !important; }
            fragmentReady or
            revealReady
         {
-            if not .sourceDone do
+            if not .sourceDone
+            {
                 .nextRefresh = .bytesRead * 4
+            }
+
             .rebuild()
             .resolvePending()
         }
 
-        if not .sourceDone do
+        if not .sourceDone
+        {
             .scheduleMore()
+        }
     }
 
     mtd reportLoadFailure(reason: string)
     {
         .failureReason = reason
-        if .failureReason.isEmpty() do
+        if .failureReason.isEmpty()
+        {
             .failureReason = "HTML source could not be read"
+        }
+
         .sigLoadFailed.call(me, .failureReason.toString())
     }
 
     private mtd finishSource(notice: string)
     {
-        if notice.count do
+        if notice.count
+        {
             .parser.feed(notice)
+        }
+
         .parser.finish()
         .sourceDone = true
         .stream.close()
@@ -856,9 +941,12 @@ img, video, table { max-width: 100% !important; }
 
     mtd scheduleMore()
     {
-        if .loadTimer or (.sourceDone and not .virtualPendingSeek) do
+        if .loadTimer or (.sourceDone and not .virtualPendingSeek)
+        {
             return
-        .loadTimer = .addTimer(4'ms)
+        }
+
+        .loadTimer = .addTimer(4_ms)
     }
 
     mtd stopLoading()
@@ -884,7 +972,7 @@ img, video, table { max-width: 100% !important; }
                 .pendingFragment.clear()
                 discard .scrollToNode(node, useScrollMargin: true)
             }
-            elif .sourceDone
+            else if .sourceDone
             {
                 .hasPendingFragment = false
                 .pendingFragment.clear()
@@ -894,28 +982,40 @@ img, video, table { max-width: 100% !important; }
         if .hasReveal and (.sourceDone or .revealOffset < .bytesRead)
         {
             .hasReveal = false
-            if not .pendingSearch.isEmpty() and .highlightSourceMatch(.revealOffset, .pendingSearch.toString()) do
+            if not .pendingSearch.isEmpty() and .highlightSourceMatch(.revealOffset, .pendingSearch.toString())
+            {
                 .pendingSearch.clear()
-            else do
+            }
+            else
+            {
                 discard .scrollToNode(.nodeAtSourceOffset(.revealOffset))
+            }
         }
 
-        if not .pendingSearch.isEmpty() and .findText(.pendingSearch.toString()) do
+        if not .pendingSearch.isEmpty() and .findText(.pendingSearch.toString())
+        {
             .pendingSearch.clear()
+        }
     }
 
     // Returns the node the given byte offset of the source belongs to.
     mtd const nodeAtSourceOffset(offset: u64)->u32
     {
         var best       = HtmlNoNode
-        var bestOffset = 0'u64
+        var bestOffset = 0_u64
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32, index))
-            if node.kind == .Document or node.sourceOffset > offset do
+            if node.kind == .Document or node.sourceOffset > offset
+            {
                 continue
-            if best != HtmlNoNode and node.sourceOffset < bestOffset do
+            }
+
+            if best != HtmlNoNode and node.sourceOffset < bestOffset
+            {
                 continue
+            }
+
             best       = cast(u32, index)
             bestOffset = node.sourceOffset
         }
@@ -926,17 +1026,28 @@ img, video, table { max-width: 100% !important; }
     // Highlights the exact rendered text range named by a source-file match.
     private mtd highlightSourceMatch(offset: u64, text: string)->bool
     {
-        if .virtualSource do
+        if .virtualSource
+        {
             return false
+        }
+
         let nodeIndex = .nodeAtSourceOffset(offset)
-        if nodeIndex == HtmlNoNode do
+        if nodeIndex == HtmlNoNode
+        {
             return false
+        }
+
         let node = .document.constNode(nodeIndex)
-        if node.kind != .Text or offset < node.sourceOffset or not .isSearchableText(nodeIndex) do
+        if node.kind != .Text or offset < node.sourceOffset or not .isSearchableText(nodeIndex)
+        {
             return false
+        }
+
         let start = offset - node.sourceOffset
-        if start + text.count > node.text.count do
+        if start + text.count > node.text.count
+        {
             return false
+        }
 
         .searchNode  = nodeIndex
         .searchStart = start
@@ -949,10 +1060,16 @@ img, video, table { max-width: 100% !important; }
     // Returns the element carrying an identifier, or `HtmlNoNode` when the document has none.
     public mtd const elementById(id: string)->u32
     {
-        if not id.count do
+        if not id.count
+        {
             return HtmlNoNode
-        for index in .document.nodes.count where .document.id(cast(u32, index)) == id do
+        }
+
+        for index in .document.nodes.count where .document.id(cast(u32, index)) == id
+        {
             return cast(u32, index)
+        }
+
         return HtmlNoNode
     }
 
@@ -972,9 +1089,11 @@ img, video, table { max-width: 100% !important; }
     // caller to treat the link as a destination of its own.
     public mtd navigateToFragment(url: string)->bool
     {
-        let hash = Utf8.indexOf(url, '#'rune)
-        if hash != 0 do
+        let hash = Utf8.indexOf(url, '#'_rune)
+        if hash != 0
+        {
             return false
+        }
 
         let fragment = url[1 to]
         if not fragment.count
@@ -984,8 +1103,11 @@ img, video, table { max-width: 100% !important; }
             return true
         }
 
-        if .scrollToNode(.elementById(fragment), useScrollMargin: true) do
+        if .scrollToNode(.elementById(fragment), useScrollMargin: true)
+        {
             return true
+        }
+
         if not .sourceDone
         {
             .pendingFragment    = fragment
@@ -1004,8 +1126,11 @@ img, video, table { max-width: 100% !important; }
         while walk != HtmlNoNode
         {
             let found = .layout.nodeBox.tryFind(walk)
-            if found do
+            if found
+            {
                 return found.value
+            }
+
             walk = .document.constNode(walk).parent
         }
 
@@ -1014,15 +1139,20 @@ img, video, table { max-width: 100% !important; }
 
     private mtd const isSearchableText(node: u32)->bool
     {
-        if not .layout.styleOfNode(node).visible do
+        if not .layout.styleOfNode(node).visible
+        {
             return false
+        }
 
         var walk = .document.constNode(node).parent
         while walk != HtmlNoNode
         {
             if .document.constNode(walk).kind == .Element and
-               .layout.styleOfNode(walk).display == .None do
+               .layout.styleOfNode(walk).display == .None
+            {
                 return false
+            }
+
             walk = .document.constNode(walk).parent
         }
 
@@ -1032,12 +1162,16 @@ img, video, table { max-width: 100% !important; }
     // Brings the box that draws a node into view.
     mtd scrollToNode(node: u32, useScrollMargin = false)->bool
     {
-        if node == HtmlNoNode do
+        if node == HtmlNoNode
+        {
             return false
+        }
 
         let box = .boxOfNode(node)
-        if box == HtmlNoNode do
+        if box == HtmlNoNode
+        {
             return false
+        }
 
         // A node whose text lives in a line box is found more precisely through that line, so a
         // match inside a long block scrolls to the line and not to the top of the block.
@@ -1067,24 +1201,35 @@ img, video, table { max-width: 100% !important; }
     // destinations this offline renderer does not own.
     private mtd navigateToLocalDocument(url: string)->bool
     {
-        if .images.basePath.isEmpty() or not url.count do
+        if .images.basePath.isEmpty() or not url.count
+        {
             return false
-        if Utf8.contains(url, "://") or Utf8.startsWith(url, "//") or Utf8.startsWith(url, "data:") do
-            return false
+        }
 
-        let hash     = Utf8.indexOf(url, '#'rune)
+        if Utf8.contains(url, "://") or Utf8.startsWith(url, "//") or Utf8.startsWith(url, "data:")
+        {
+            return false
+        }
+
+        let hash     = Utf8.indexOf(url, '#'_rune)
         let path     = hash == Swag.U64.Max ? url : url[0 until hash]
         let fragment = hash == Swag.U64.Max ? "" : url[hash + 1 to]
-        if not path.count do
+        if not path.count
+        {
             return false
+        }
 
         var fileName = htmlLocalResourcePath(.images.basePath.toString(), path)
-        if fileName.isEmpty() do
+        if fileName.isEmpty()
+        {
             return false
+        }
 
         Path.normalize(&fileName)
-        if not File.exists(fileName.toString()) do
+        if not File.exists(fileName.toString())
+        {
             return false
+        }
 
         if Path.equals(fileName.toString(), .fileName.toString())
         {
@@ -1097,38 +1242,59 @@ img, video, table { max-width: 100% !important; }
 
     private mtd activateLink(url: string)->bool
     {
-        if .linkHandler and .linkHandler(me, url) do
+        if .linkHandler and .linkHandler(me, url)
+        {
             return true
-        if .embedded do
+        }
+
+        if .embedded
+        {
             return false
-        if .navigateToFragment(url) do
+        }
+
+        if .navigateToFragment(url)
+        {
             return true
+        }
+
         return .navigateToLocalDocument(url)
     }
 
     // Scrolls to the next node whose text contains `text`, wrapping once at the end.
     public mtd findText(text: string)->bool
     {
-        if not text.count do
+        if not text.count
+        {
             return false
+        }
 
         let count = .document.nodes.count
-        if not count do
+        if not count
+        {
             return false
+        }
 
-        var start = 0'u64
-        if .searchNode != HtmlNoNode do
+        var start = 0_u64
+        if .searchNode != HtmlNoNode
+        {
             start = cast(u64, .searchNode) + 1
+        }
 
         for offset in count
         {
             let index = cast(u32, ((start + offset) % count))
             let node  = .document.constNode(index)
-            if node.kind != .Text or not node.text.count or not .isSearchableText(index) do
+            if node.kind != .Text or not node.text.count or not .isSearchableText(index)
+            {
                 continue
+            }
+
             let match = Utf8.indexOf(.document.textOf(index), text, 0, .Latin1NoCase)
-            if match == Swag.U64.Max do
+            if match == Swag.U64.Max
+            {
                 continue
+            }
+
             if .scrollToNode(index)
             {
                 .searchNode  = index
@@ -1144,8 +1310,10 @@ img, video, table { max-width: 100% !important; }
 
     mtd searchMatchCount(text: string)->u64
     {
-        if not text.count do
+        if not text.count
+        {
             return 0
+        }
 
         var result: u64
         for index in .document.nodes.count where .document.constNode(cast(u32, index)).kind == .Text and
@@ -1156,8 +1324,11 @@ img, video, table { max-width: 100% !important; }
             while true
             {
                 let match = Utf8.indexOf(content, text, from, .Latin1NoCase)
-                if match == Swag.U64.Max do
+                if match == Swag.U64.Max
+                {
                     break
+                }
+
                 result += 1
                 from   = match + text.count
             }
@@ -1168,23 +1339,30 @@ img, video, table { max-width: 100% !important; }
 
     mtd findTextOccurrence(text: string, occurrence: u64)->bool
     {
-        if not text.count do
+        if not text.count
+        {
             return false
+        }
 
         .clearSearchHighlight()
         var remaining = occurrence
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32, index))
-            if node.kind != .Text or not node.text.count or not .isSearchableText(cast(u32, index)) do
+            if node.kind != .Text or not node.text.count or not .isSearchableText(cast(u32, index))
+            {
                 continue
+            }
 
             var from: u64
             while true
             {
                 let match = Utf8.indexOf(.document.textOf(cast(u32, index)), text, from, .Latin1NoCase)
-                if match == Swag.U64.Max do
+                if match == Swag.U64.Max
+                {
                     break
+                }
+
                 if remaining
                 {
                     remaining -= 1
@@ -1192,8 +1370,11 @@ img, video, table { max-width: 100% !important; }
                     continue
                 }
 
-                if not .scrollToNode(cast(u32, index)) do
+                if not .scrollToNode(cast(u32, index))
+                {
                     return false
+                }
+
                 .searchNode  = cast(u32, index)
                 .searchStart = match
                 .searchEnd   = match + text.count
@@ -1218,10 +1399,15 @@ img, video, table { max-width: 100% !important; }
     mtd const selectionRange()->{ startNode: u32, startOffset: u64, endNode: u32, endOffset: u64, has: bool }
     {
         var result: #returntype
-        if .selAnchorNode == HtmlNoNode or .selCaretNode == HtmlNoNode do
+        if .selAnchorNode == HtmlNoNode or .selCaretNode == HtmlNoNode
+        {
             return result
-        if .selAnchorNode == .selCaretNode and .selAnchorOffset == .selCaretOffset do
+        }
+
+        if .selAnchorNode == .selCaretNode and .selAnchorOffset == .selCaretOffset
+        {
             return result
+        }
 
         let anchorFirst = .selAnchorNode < .selCaretNode or (.selAnchorNode == .selCaretNode and .selAnchorOffset < .selCaretOffset)
         result.startNode   = anchorFirst ? .selAnchorNode : .selCaretNode
@@ -1238,8 +1424,11 @@ img, video, table { max-width: 100% !important; }
     // Empties the selection.
     public mtd clearSelection()
     {
-        if .selAnchorNode == HtmlNoNode and .selCaretNode == HtmlNoNode do
+        if .selAnchorNode == HtmlNoNode and .selCaretNode == HtmlNoNode
+        {
             return
+        }
+
         .selAnchorNode = HtmlNoNode
         .selCaretNode  = HtmlNoNode
         .selAnchorOffset, .selCaretOffset = 0
@@ -1255,15 +1444,24 @@ img, video, table { max-width: 100% !important; }
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32, index))
-            if node.kind != .Text or not node.text.count do
+            if node.kind != .Text or not node.text.count
+            {
                 continue
-            if first == HtmlNoNode do
+            }
+
+            if first == HtmlNoNode
+            {
                 first = cast(u32, index)
+            }
+
             last = cast(u32, index)
         }
 
-        if first == HtmlNoNode do
+        if first == HtmlNoNode
+        {
             return
+        }
+
         .selAnchorNode   = first
         .selAnchorOffset = 0
         .selCaretNode    = last
@@ -1283,11 +1481,17 @@ img, video, table { max-width: 100% !important; }
     // Puts the selected text on the clipboard, and reports whether there was one.
     public mtd copySelection()->bool
     {
-        if not .hasSelection() do
+        if not .hasSelection()
+        {
             return false
+        }
+
         let text = .selectedText()
-        if text.isEmpty() do
+        if text.isEmpty()
+        {
             return false
+        }
+
         Clipboard.setString(text.toString())
         return true
     }
@@ -1315,39 +1519,51 @@ img, video, table { max-width: 100% !important; }
     // Selects the word around one text position, the double-click gesture.
     mtd selectWordAt(node: u32, offset: u64)
     {
-        if node == HtmlNoNode or cast(u64, node) >= .document.nodes.count do
+        if node == HtmlNoNode or cast(u64, node) >= .document.nodes.count
+        {
             return
+        }
+
         let source = .document.textOf(node)
-        if not source.count do
+        if not source.count
+        {
             return
+        }
 
         // One pass records where each rune starts and whether it belongs to a word; the word is
         // then the run of word runes around the rune holding the offset, or that rune alone.
-        var starts: Array'u64
-        var words:  Array'bool
-        var scan = 0'u64
+        var starts: Array!{u64}
+        var words:  Array!{bool}
+        var scan = 0_u64
         while scan < source.count
         {
             let {c: value, eat} = Utf8.decodeRune(source[scan to])
             starts.add(scan)
-            words.add(Unicode.isLetterOrDigit(value) or value == '_'rune)
+            words.add(Unicode.isLetterOrDigit(value) or value == '_'_rune)
             scan += eat
         }
 
         starts.add(scan)
         let position  = Math.min(offset, source.count - 1)
-        var runeIndex = 0'u64
-        for i in words.count where starts[i] <= position do
+        var runeIndex = 0_u64
+        for i in words.count where starts[i] <= position
+        {
             runeIndex = i
+        }
 
         var lo = runeIndex
         var hi = runeIndex
         if words[runeIndex]
         {
-            while lo and words[lo - 1] do
+            while lo and words[lo - 1]
+            {
                 lo -= 1
-            while hi + 1 < words.count and words[hi + 1] do
+            }
+
+            while hi + 1 < words.count and words[hi + 1]
+            {
                 hi += 1
+            }
         }
 
         .selAnchorNode   = node
@@ -1364,8 +1580,11 @@ img, video, table { max-width: 100% !important; }
         var walk = node
         while walk != HtmlNoNode
         {
-            if .document.constNode(walk).tag == .A and .document.hasAttribute(walk, "href") do
+            if .document.constNode(walk).tag == .A and .document.hasAttribute(walk, "href")
+            {
                 return walk
+            }
+
             walk = .document.constNode(walk).parent
         }
 
@@ -1423,8 +1642,10 @@ img, video, table { max-width: 100% !important; }
     // agree. An empty `text` only scrolls.
     public mtd revealFileOffset(offset: u64, text: string)->bool
     {
-        if .fileName.isEmpty() and not .sourceDone do
+        if .fileName.isEmpty() and not .sourceDone
+        {
             return false
+        }
 
         if .virtualSource
         {
@@ -1466,8 +1687,11 @@ img, video, table { max-width: 100% !important; }
     {
         var local: Math.Rectangle
         var paint = .painter()
-        if not paint.searchMatchRect(&local) do
+        if not paint.searchMatchRect(&local)
+        {
             return false
+        }
+
         result[] = .canvas.localToSurface(local)
         return not result.isEmpty()
     }
@@ -1493,8 +1717,11 @@ img, video, table { max-width: 100% !important; }
     // their normal navigation behavior. The first readable passage is restored after reflow.
     public mtd setReaderMode(enabled: bool)
     {
-        if .readerMode == enabled do
+        if .readerMode == enabled
+        {
             return
+        }
+
         let passage = .readingPosition()
         .readerMode = enabled
         .rebuild()
@@ -1523,7 +1750,7 @@ img, video, table { max-width: 100% !important; }
 
     func createBase(contentParent: *Wnd, documentStyle: HtmlStyle)->*HtmlView
     {
-        with let result = Wnd.create'HtmlView(contentParent, "gui.html")
+        with let result = Wnd.create!{HtmlView}(contentParent, "gui.html")
         {
             .backgroundStyle = .View
             .focusPolicy     = .Tab
@@ -1534,14 +1761,14 @@ img, video, table { max-width: 100% !important; }
             .parser.start(&.document)
         }
 
-        result.scroll = Wnd.create'ScrollWnd(result, "", {})
+        result.scroll = Wnd.create!{ScrollWnd}(result, "", {})
         result.scroll.dockStyle = .Center
         result.scroll.updateFlags(.DisableHorizontal)
 
-        let view = result.scroll.createView'Wnd()
+        let view = result.scroll.createView!{Wnd}()
         view.backgroundStyle = .View
 
-        result.canvas          = Wnd.create'HtmlCanvas(view, "gui.html.canvas")
+        result.canvas          = Wnd.create!{HtmlCanvas}(view, "gui.html.canvas")
         result.canvas.owner    = result
         result.canvas.wndFlags |= .NoScroll
 
@@ -1549,8 +1776,11 @@ img, video, table { max-width: 100% !important; }
         // including when a bar appears without a resize of the outer frame.
         view.hookOnEvent = func|target = result|(_, evt)->bool
         {
-            if evt is ResizeEvent do
+            if evt is ResizeEvent
+            {
                 target.placeDocument()
+            }
+
             return false
         }
 
@@ -1571,8 +1801,11 @@ img, video, table { max-width: 100% !important; }
         result.scroll.sigScrollPositionChanged += func|target = result|(_, oldPosition, newPosition)
         {
             target.sigScrolled.call(target)
-            if target.virtualRepositioning do
+            if target.virtualRepositioning
+            {
                 return
+            }
+
             if target.virtualSource and
                target.virtualHeight > 0 and
                target.fileSize > target.virtualContentStart
@@ -1736,8 +1969,11 @@ img, video, table { max-width: 100% !important; }
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
         result.embedded = true
-        if preparedImages do
+        if preparedImages
+        {
             result.images = #move preparedImages[]
+        }
+
         result.images.basePath     = basePath
         result.images.asynchronous = not result.app().deterministicStreaming
 
@@ -1776,8 +2012,10 @@ internal impl IWnd for HtmlView
         if .layout.root != HtmlNoNode
         {
             let canvas = .painter().canvasBackground()
-            if canvas.box != HtmlNoNode do
+            if canvas.box != HtmlNoNode
+            {
                 evt.paintContext.painter.fillRect(.clientRect(), canvas.color)
+            }
         }
 
         // Publish the latest thumb destination before the canvas uses its virtual origin.
@@ -1790,8 +2028,10 @@ internal impl IWnd for HtmlView
 
     mtd impl onThemeEvent(_: *ThemeEvent)
     {
-        if .scroll != null do
+        if .scroll != null
+        {
             .rebuild()
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -1800,23 +2040,27 @@ internal impl IWnd for HtmlView
         {
             if (evt.key == .C and evt.modifiers == .Control) or (evt.key == .Insert and evt.modifiers == .Control)
             {
-                if .copySelection() do
+                if .copySelection()
+                {
                     return
+                }
             }
-            elif evt.key == .A and evt.modifiers == .Control
+            else if evt.key == .A and evt.modifiers == .Control
             {
                 .selectAll()
                 return
             }
-            elif evt.key == .Escape and evt.modifiers == .None and .hasSelection()
+            else if evt.key == .Escape and evt.modifiers == .None and .hasSelection()
             {
                 .clearSelection()
                 return
             }
         }
 
-        if .embedded or not scrollDocumentWithKey(.scroll, evt) do
+        if .embedded or not scrollDocumentWithKey(.scroll, evt)
+        {
             evt.accepted = false
+        }
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -1853,8 +2097,10 @@ internal impl IWnd for HtmlCanvas
     mtd impl onPaint(evt: *PaintEvent)
     {
         let owner = .owner
-        if owner.layout.root == HtmlNoNode do
+        if owner.layout.root == HtmlNoNode
+        {
             return
+        }
 
         var painter = owner.painter()
         painter.painter           = evt.paintContext.painter
@@ -1902,24 +2148,35 @@ internal impl IWnd for HtmlCanvas
                 // a long document feel slow.
                 let previousLink = owner.linkElementAt(owner.hovered)
                 owner.hovered = node
-                if owner.linkElementAt(node) != previousLink do
+                if owner.linkElementAt(node) != previousLink
+                {
                     .invalidate()
+                }
             }
 
-            if (owner.linkAt(node)).count do
+            if (owner.linkAt(node)).count
+            {
                 .app().setFrameCursor(Cursor.from(.Hand))
-            elif node != HtmlNoNode and owner.document.constNode(node).kind == .Text do
+            }
+            else if node != HtmlNoNode and owner.document.constNode(node).kind == .Text
+            {
                 .app().setFrameCursor(Cursor.from(.IBeam))
+            }
 
         case .Leave:
-            if owner.scrollDragBox == HtmlNoNode do
+            if owner.scrollDragBox == HtmlNoNode
+            {
                 owner.hoverRegionBar(HtmlNoNode)
+            }
+
             if owner.hovered != HtmlNoNode
             {
                 let hadLink = owner.linkElementAt(owner.hovered) != HtmlNoNode
                 owner.hovered = HtmlNoNode
-                if hadLink do
+                if hadLink
+                {
                     .invalidate()
+                }
             }
 
         case .Pressed where evt.button == .Left:
@@ -1950,8 +2207,11 @@ internal impl IWnd for HtmlCanvas
             {
                 // A reference into the document itself is followed here; anything else is a
                 // destination only the host knows how to open.
-                if not owner.activateLink(url) do
+                if not owner.activateLink(url)
+                {
                     owner.sigLinkActivated.call(owner, url)
+                }
+
                 return
             }
 
@@ -1991,8 +2251,11 @@ internal impl IWnd for HtmlCanvas
             if owner.selecting
             {
                 owner.selecting = false
-                if .mouseCapture() == me do
+                if .mouseCapture() == me
+                {
                     .releaseMouse()
+                }
+
                 return
             }
 
@@ -2004,8 +2267,10 @@ internal impl IWnd for HtmlCanvas
 
             owner.endRegionScrollDrag()
             owner.hoverRegionBar(owner.painter().scrollBarAt(point).box)
-            if .mouseCapture() == me do
+            if .mouseCapture() == me
+            {
                 .releaseMouse()
+            }
 
         case .Wheel:
 
@@ -2013,10 +2278,14 @@ internal impl IWnd for HtmlCanvas
             // at an edge. One frame never moves another frame as a side effect.
             let painter = owner.painter()
             let region  = painter.scrollableAt(point)
-            if region == HtmlNoNode do
+            if region == HtmlNoNode
+            {
                 evt.accepted = false
-            else do
+            }
+            else
+            {
                 discard owner.scrollRegion(region, -evt.delta.y * 50)
+            }
 
         default:
             evt.accepted = false
@@ -2038,14 +2307,18 @@ internal impl HtmlView
 
     private mtd dragRegionScroll(pointerY: f32)
     {
-        if .scrollDragBox == HtmlNoNode or .scrollDragTravel <= 0 do
+        if .scrollDragBox == HtmlNoNode or .scrollDragTravel <= 0
+        {
             return
+        }
 
         let thumbY = Math.clamp(pointerY - .scrollDragGrab - .scrollDragTrackTop, 0, .scrollDragTravel)
         let target = .layout.box(.scrollDragBox)
         let wanted = thumbY * .scrollDragLimit / .scrollDragTravel
-        if wanted == target.scrollTop do
+        if wanted == target.scrollTop
+        {
             return
+        }
 
         target.scrollTop = wanted
         .canvas.invalidate()
@@ -2063,8 +2336,10 @@ internal impl HtmlView
         let target = .layout.box(box)
         let limit  = Math.max(target.scrollHeight - target.content.height, 0)
         let wanted = Math.clamp(target.scrollTop + delta, 0, limit)
-        if wanted == target.scrollTop do
+        if wanted == target.scrollTop
+        {
             return false
+        }
 
         target.scrollTop = wanted
         .canvas.invalidate()
@@ -2080,8 +2355,12 @@ internal impl HtmlView
             .barExpansion  = 0
             .isBarExpanded = false
         }
-        if .isBarExpanded == expanded do
+
+        if .isBarExpanded == expanded
+        {
             return
+        }
+
         .isBarExpanded = expanded
 
         var options: AnimationOptions

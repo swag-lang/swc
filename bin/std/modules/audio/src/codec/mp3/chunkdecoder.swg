@@ -6,12 +6,12 @@
 using Core, Core.Errors
 
 // At most 32 packets of PCM per lane are staged before delivering the next callback.
-private const ChunkPackets = 32'u64
-private const MaxLanes     = 4'u64
+private const ChunkPackets = 32_u64
+private const MaxLanes     = 4_u64
 
 // MPEG-1 at 320 kb/s and 32 kHz reaches this bound with padding.
-private const MaxFrameBytes   = 1441'u64
-private const MaxFrameSamples = 1152'u64
+private const MaxFrameBytes   = 1441_u64
+private const MaxFrameSamples = 1152_u64
 
 private struct Reservoir
 {
@@ -39,9 +39,9 @@ private struct ChunkEntry
 private struct ChunkDecoder
 {
     codec:      Codec
-    entries:    Array'ChunkEntry
-    mainData:   Array'u8
-    samples:    Array's16
+    entries:    Array!{ChunkEntry}
+    mainData:   Array!{u8}
+    samples:    Array!{s16}
     warmCount:  u64
     outputSize: u64
 }
@@ -70,12 +70,14 @@ private impl ChunkDecoder
 
     mtd decode()
     {
-        var at = 0'u64
+        var at = 0_u64
         for index in .entries.count
         {
             let entry = &.entries[index]
-            if not entry.frame.header.frameSamples do
+            if not entry.frame.header.frameSamples
+            {
                 continue
+            }
 
             let payload = .mainData.toSlice()[entry.offset until entry.offset + entry.size]
             .codec.decodeFrame(&entry.frame, payload)
@@ -88,10 +90,10 @@ private impl ChunkDecoder
     }
 
     // Only the caller delivers PCM, in packet order and with the serial callback boundaries.
-    mtd const deliver(discardFrames, remaining: *u64, gap: *Array's16, consumer: SoundPcm16Consumer)->bool
+    mtd const deliver(discardFrames, remaining: *u64, gap: *Array!{s16}, consumer: SoundPcm16Consumer)->bool
     {
         let channels = cast(u64, .codec.channels)
-        var at       = 0'u64
+        var at       = 0_u64
         for index in .warmCount until .entries.count
         {
             let entry  = &.entries[index]
@@ -115,12 +117,16 @@ private impl ChunkDecoder
                 }
 
                 remaining[] -= count
-                if not consumer(pcm) or not remaining[] do
+                if not consumer(pcm) or not remaining[]
+                {
                     return false
+                }
             }
 
-            if entry.frame.header.frameSamples do
+            if entry.frame.header.frameSamples
+            {
                 at += frames * channels
+            }
         }
 
         return true
@@ -144,10 +150,13 @@ private impl ChunkPlanner
 
         // One granule restores MDCT overlap. The following granule replaces all sixteen
         // synthesis slots. MPEG-1 carries both granules in one packet, LSF needs two.
-        let wanted = sampleRate >= 32_000 ? 1'u64 : 2
+        let wanted = sampleRate >= 32_000 ? 1_u64 : 2
         let count  = Math.min(wanted, .saved)
-        if not count do
+        if not count
+        {
             return
+        }
+
         let first = (.next + 2 - count) & 1
         let seed  = &.history[first].preceding
         chunk.codec.mainData.add(seed.bytes[until seed.size])
@@ -182,8 +191,11 @@ private impl ChunkPlanner
 
         let samples = cast(u64, packet.sampleFrameCount) * channels
         let frame   = try prepareFrame(bytes, samples * #sizeof(s16), sampleRate, channels)
-        if frame.header.frameSamples != packet.sampleFrameCount do
+        if frame.header.frameSamples != packet.sampleFrameCount
+        {
             fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
+        }
+
         let payload = bytes[frame.payloadOffset until frame.header.frameBytes]
         if chunk
         {
@@ -195,8 +207,11 @@ private impl ChunkPlanner
         history.preceding = .reservoir
         history.frame     = frame
         history.size      = payload.count
-        if payload.count do
+        if payload.count
+        {
             Memory.copy(&history.payload[0], payload.buffer, payload.count)
+        }
+
         .next  = (.next + 1) & 1
         .saved = Math.min(.saved + 1, 2)
 
@@ -204,13 +219,15 @@ private impl ChunkPlanner
         // Its next reservoir is therefore the unconsumed suffix, even for a malformed
         // spectral code. When history is missing it consumes no bits and resets synthesis.
         let available = Math.min(frame.mainDataBegin, .reservoir.size)
-        var bits      = 0'u64
+        var bits      = 0_u64
         if available == frame.mainDataBegin
         {
             for granule in frame.header.granules
             {
-                for channel in channels do
+                for channel in channels
+                {
                     bits += frame.granules[granule, channel].part23Length
+                }
             }
         }
 
@@ -219,10 +236,16 @@ private impl ChunkPlanner
         let kept        = Math.min(total - consumed, ReservoirBytes)
         let fromPayload = Math.min(kept, payload.count)
         let fromHistory = kept - fromPayload
-        if fromHistory do
+        if fromHistory
+        {
             Memory.copyOverlapping(&.reservoir.bytes[0], &.reservoir.bytes[.reservoir.size - fromHistory], fromHistory)
-        if fromPayload do
+        }
+
+        if fromPayload
+        {
             Memory.copy(&.reservoir.bytes[fromHistory], payload.buffer + payload.count - fromPayload, fromPayload)
+        }
+
         .reservoir.size = kept
     }
 }
@@ -231,25 +254,35 @@ private impl ChunkPlanner
 // range untouched for the sequential path.
 func decodeParallel(sound: const *SoundFile, firstFrame, frameCount: u64, consumer: SoundPcm16Consumer)->bool fail
 {
-    if not frameCount do
+    if not frameCount
+    {
         return false
+    }
+
     let decodedTarget = sound.leadingTrim + firstFrame
     let firstPacket   = sound.packetAtDecodedFrame(decodedTarget)
     let endPacket     = sound.packetAtDecodedFrame(decodedTarget + frameCount - 1) + 1
-    if endPacket - firstPacket < 2 * ChunkPackets do
+    if endPacket - firstPacket < 2 * ChunkPackets
+    {
         return false
+    }
 
     let lanes = Math.min(cast(u64, Swag.workerCount()), MaxLanes)
-    if lanes < 2 do
+    if lanes < 2
+    {
         return false
 
-    // Arbitrary packet streams may include padding or long timestamp gaps. Leave those
-    // to the serial path so every parallel lane stays within the MPEG frame bounds.
+        // Arbitrary packet streams may include padding or long timestamp gaps. Leave those
+        // to the serial path so every parallel lane stays within the MPEG frame bounds.
+    }
+
     for i in endPacket
     {
         let packet = sound.packets[i]
-        if packet.byteSize > MaxFrameBytes or packet.sampleFrameCount > MaxFrameSamples do
+        if packet.byteSize > MaxFrameBytes or packet.sampleFrameCount > MaxFrameSamples
+        {
             return false
+        }
     }
 
     try decodeChunks(sound, firstFrame, frameCount, lanes, consumer)
@@ -266,23 +299,28 @@ func decodeChunks(sound: const *SoundFile, firstFrame, frameCount, lanes: u64, c
     planner.source = try ByteSource.openFile(sound.path.toString(), .ReadWrite)
     let sampleRate = sound.sampleRate
     let channels   = sound.channelCount
-    for index in firstPacket do
+    for index in firstPacket
+    {
         try planner.read(sound.packets[index], sampleRate, channels, null)
+    }
 
     var chunks: [MaxLanes] ChunkDecoder
-    var gap:    Array's16
+    var gap:    Array!{s16}
     var index         = firstPacket
     var discardFrames = decodedTarget - sound.packetStarts[firstPacket]
     var remaining     = frameCount
     while index < endPacket
     {
         var group:   Swag.TaskGroup
-        var count = 0'u64
+        var count = 0_u64
         var pending: Swag.Error
         for lane in lanes
         {
-            if index == endPacket or not pending.isEmpty() do
+            if index == endPacket or not pending.isEmpty()
+            {
                 break
+            }
+
             let chunk = &chunks[lane]
             planner.startChunk(chunk, sampleRate, channels)
             for Math.min(ChunkPackets, endPacket - index)
@@ -302,18 +340,24 @@ func decodeChunks(sound: const *SoundFile, firstFrame, frameCount, lanes: u64, c
             {
                 chunk.samples.resize(chunk.outputSize)
                 count += 1
-                if lane + 1 < lanes and index < endPacket and pending.isEmpty() do
+                if lane + 1 < lanes and index < endPacket and pending.isEmpty()
+                {
                     group.spawn(func|chunk|() => chunk.decode())
-                else do
+                }
+                else
+                {
                     chunk.decode()
+                }
             }
         }
 
         group.wait()
         for lane in count
         {
-            if not chunks[lane].deliver(&discardFrames, &remaining, &gap, consumer) do
+            if not chunks[lane].deliver(&discardFrames, &remaining, &gap, consumer)
+            {
                 return
+            }
         }
 
         try pending.raise()

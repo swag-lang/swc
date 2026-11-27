@@ -4,9 +4,9 @@
 using Swag, Core, Core.Math
 
 // Returns the total darkness a horizontal stroke of `size` lays over a white ground.
-func strokeDarkness(size: f32, contentScale = 1.0'f32)->u64
+func strokeDarkness(size: f32, contentScale = 1.0_f32)->u64
 {
-    const Side = 64's32
+    const Side = 64_s32
 
     var path: LinePath
     path.start(8, 32)
@@ -27,11 +27,13 @@ func strokeDarkness(size: f32, contentScale = 1.0'f32)->u64
     render.end()
 
     let image  = renderer.surfaceImage()
-    var result = 0'u64
+    var result = 0_u64
     for y in image.height
     {
-        for x in image.width do
+        for x in image.width
+        {
             result += cast(u64, (255 - image.pixelColor(x, y).r))
+        }
     }
 
     return result

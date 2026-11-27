@@ -15,8 +15,10 @@ using Swag, Core
     let drawing = expect Svg.Drawing.parse(source.toString())
 
     // Paint references belong to the drawing after parsing.
-    for &byte in source.toSlice() do
+    for &byte in source.toSlice()
+    {
         byte[] = ' '
+    }
 
     let image = drawing.rasterize(20, 12, 1)
     Swag.require(image.pixelColor(0, 6).a == 0)

@@ -25,7 +25,7 @@ func day6B()
     // Time.Stopwatch.scopeMeasure()
 
     day6EnsureInstructions()
-    var lights: Array's32
+    var lights: Array!{s32}
     lights.resize(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
     let lightsBuf = lights.storage()
 
@@ -55,8 +55,11 @@ func day6B()
                 var scan = lightsBuf + (y * DAY6_GRID_SIZE) + x0
                 for writeCount
                 {
-                    if scan[0] do
+                    if scan[0]
+                    {
                         scan[0] -= 1
+                    }
+
                     scan += 1
                 }
             }
@@ -75,8 +78,10 @@ func day6B()
     }
 
     var total: s64
-    for v in lights do
+    for v in lights
+    {
         total += v
+    }
 
     Swag.assert(total == 14110788)
 }

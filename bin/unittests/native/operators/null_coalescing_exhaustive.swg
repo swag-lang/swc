@@ -21,7 +21,7 @@ impl IOrelseProbe for OrelseProbe
 
 func zeroLiteralOrelseReturn(value: u8)->u8
 {
-    return 0'u8 != 0 ? 0'u8 : value
+    return 0_u8 != 0 ? 0_u8 : value
 }
 
 func strictHandleFallback()->bool
@@ -43,7 +43,7 @@ func typeInfoFallback()->bool
 
 func cstringFallback()->bool
 {
-    var data: [3] u8 = ['o'u8, 'k'u8, 0]
+    var data: [3] u8 = ['o'_u8, 'k'_u8, 0]
     let resolved     = cast(cstring?, null) orelse cast(cstring, &data[0])
     #assert(#typeof(resolved) == cstring)
     return resolved != null and resolved.count == 2
@@ -60,7 +60,7 @@ func interfaceFallback()->bool
 
 #test
 {
-    Swag.require(zeroLiteralOrelseReturn(9'u8) == 9'u8)
+    Swag.require(zeroLiteralOrelseReturn(9_u8) == 9_u8)
 }
 
 #test

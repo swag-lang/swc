@@ -69,8 +69,10 @@
         let left          = cast(string?, null)
         let right: string = "ok"
         let resolved      = flag ? left : right
-        if flag do
+        if flag
+        {
             return resolved == null
+        }
         return resolved == "ok"
     }
 

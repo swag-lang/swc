@@ -26,8 +26,10 @@ func createContextMenuModel(parent: *Wnd)
 func showContextMenuAt(pt: Math.Point)
 {
     let menu = g_ContextMenu
-    if not menu do
+    if not menu
+    {
         return
+    }
 
     discard menu.doModal(pt)
 }
@@ -39,12 +41,12 @@ func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool
         mouse.accepted = true
         return true
     }
-    elif evt is MouseEvent as mouse where mouse.kind == .Released and mouse.button == .Right
+    else if evt is MouseEvent as mouse where mouse.kind == .Released and mouse.button == .Right
     {
         showContextMenuAt(mouse.surfacePos)
         return true
     }
-    elif evt is PaintEvent as paintEvt
+    else if evt is PaintEvent as paintEvt
     {
         let painter   = paintEvt.paintContext.painter
         let rect      = view.clientRect()
@@ -52,9 +54,11 @@ func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool
         let font      = view.theme().createDefaultFont(15)
         let titleFont = view.theme().createDefaultFont(20, .Bold)
 
-        painter.fillRoundRect(rect, 8, 8, colors.ground)
-        let card = Math.Rectangle{20, 16, rect.width - 40, rect.height - 32}
-        painter.drawString(card.x, card.y + 4, "Right-click target", titleFont, colors.text)
+        painter.fillRect(rect, colors.view_Bk)
+        let card = Math.Rectangle{24, 24, Math.max(rect.width - 48, 1.0), Math.max(rect.height - 48, 1.0)}
+        painter.fillRoundRect(card, 22, 22, Color.fromArgb(255, 246, 248, 250))
+        painter.drawRoundRect(card, 22, 22, Color.fromArgb(70_u8, Argb.Black), 1)
+        painter.drawString(card.x + 28, card.y + 28, "Right-click target", titleFont, Argb.DarkSlateGray)
         drawWrappedText(painter,
                         Math.Rectangle{card.x, card.y + 42, card.width, 56},
                         "Right-click this panel or use the buttons to open the same context menu at different anchors.",
@@ -84,7 +88,7 @@ func createContextMenuPage(parent: *Wnd)
     createContextMenuModel(parent)
 
     let left   = createPanel(parent, "Context surface", "The menu is reusable and can be opened from the canvas or command buttons.", layout.left)
-    let canvas = Wnd.create'Wnd(left, Math.Rectangle{18, 86, layout.left.width - 36, layout.left.height - 104})
+    let canvas = Wnd.create!{Wnd}(left, Math.Rectangle{18, 86, layout.left.width - 36, layout.left.height - 104})
     canvas.hookOnEvent = &onContextCanvasEvent
 
     let right = createPanel(parent,

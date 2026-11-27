@@ -26,23 +26,31 @@ func countAdjacentRolls(plan: const [..] string, row, column: u32)->u32
     {
         for columnOffset in -1 to 1
         {
-            if rowOffset == 0 and columnOffset == 0 do
+            if rowOffset == 0 and columnOffset == 0
+            {
                 continue
+            }
 
             let neighborRow    = cast(s32, row) + rowOffset
             let neighborColumn = cast(s32, column) + columnOffset
 
-            if neighborRow < 0 or neighborColumn < 0 do
+            if neighborRow < 0 or neighborColumn < 0
+            {
                 continue
+            }
 
-            if neighborRow >= cast(s32, plan.count) do
+            if neighborRow >= cast(s32, plan.count)
+            {
                 continue
+            }
 
             let line = cast(const [..] u8, plan[cast(u32, neighborRow)])
-            if neighborColumn >= cast(s32, line.count) do
+            if neighborColumn >= cast(s32, line.count)
+            {
                 continue
+            }
 
-            neighbors += line[cast(u32, neighborColumn)] == 64'u8 ? 1'u32 : 0'u32
+            neighbors += line[cast(u32, neighborColumn)] == 64_u8 ? 1_u32 : 0_u32
         }
     }
 
@@ -66,14 +74,22 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
         {
             var neighbors: u32
 
-            if bytes[column] == 64'u8 do
+            if bytes[column] == 64_u8
+            {
                 neighbors = countAdjacentRolls(plan, cast(u32, row), cast(u32, column))
-            if bytes[column] == 64'u8 do
+            }
+            if bytes[column] == 64_u8
+            {
                 result.totalRolls += 1
-            if bytes[column] == 64'u8 do
+            }
+            if bytes[column] == 64_u8
+            {
                 result.densestCluster = maxU32(result.densestCluster, neighbors)
-            if bytes[column] == 64'u8 and neighbors < 4 do
+            }
+            if bytes[column] == 64_u8 and neighbors < 4
+            {
                 result.accessibleRolls += 1
+            }
         }
     }
 
@@ -99,14 +115,14 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
 
     let sampleAudit = auditForkliftAccess(samplePlan)
 
-    Swag.require(sampleAudit.rowCount == 10'u32)
-    Swag.require(sampleAudit.columnCount == 10'u32)
-    Swag.require(sampleAudit.totalRolls == 71'u32)
-    Swag.require(sampleAudit.accessibleRolls == 13'u32)
-    Swag.require(sampleAudit.blockedRolls == 58'u32)
-    Swag.require(sampleAudit.densestCluster == 8'u32)
-    Swag.require(countAdjacentRolls(samplePlan, 0, 2) == 3'u32)
-    Swag.require(countAdjacentRolls(samplePlan, 5, 4) == 7'u32)
+    Swag.require(sampleAudit.rowCount == 10_u32)
+    Swag.require(sampleAudit.columnCount == 10_u32)
+    Swag.require(sampleAudit.totalRolls == 71_u32)
+    Swag.require(sampleAudit.accessibleRolls == 13_u32)
+    Swag.require(sampleAudit.blockedRolls == 58_u32)
+    Swag.require(sampleAudit.densestCluster == 8_u32)
+    Swag.require(countAdjacentRolls(samplePlan, 0, 2) == 3_u32)
+    Swag.require(countAdjacentRolls(samplePlan, 5, 4) == 7_u32)
 
     const loadingBayPlan: [6] string =
         [
@@ -120,12 +136,12 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
 
     let loadingBayAudit = auditForkliftAccess(loadingBayPlan)
 
-    Swag.require(loadingBayAudit.rowCount == 6'u32)
-    Swag.require(loadingBayAudit.columnCount == 6'u32)
-    Swag.require(loadingBayAudit.totalRolls == 15'u32)
-    Swag.require(loadingBayAudit.accessibleRolls == 3'u32)
-    Swag.require(loadingBayAudit.blockedRolls == 12'u32)
-    Swag.require(loadingBayAudit.densestCluster == 6'u32)
-    Swag.require(countAdjacentRolls(loadingBayPlan, 0, 2) == 3'u32)
-    Swag.require(countAdjacentRolls(loadingBayPlan, 3, 3) == 6'u32)
+    Swag.require(loadingBayAudit.rowCount == 6_u32)
+    Swag.require(loadingBayAudit.columnCount == 6_u32)
+    Swag.require(loadingBayAudit.totalRolls == 15_u32)
+    Swag.require(loadingBayAudit.accessibleRolls == 3_u32)
+    Swag.require(loadingBayAudit.blockedRolls == 12_u32)
+    Swag.require(loadingBayAudit.densestCluster == 6_u32)
+    Swag.require(countAdjacentRolls(loadingBayPlan, 0, 2) == 3_u32)
+    Swag.require(countAdjacentRolls(loadingBayPlan, 3, 3) == 6_u32)
 }

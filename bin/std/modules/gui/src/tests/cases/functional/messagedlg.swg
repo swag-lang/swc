@@ -8,8 +8,11 @@ func unbreakableMessage()->String
 {
     var result: #returntype
     result = "This will overwrite the original image.\n<i>Z:"
-    for 8 do
+    for 8
+    {
         result += "\\a-very-long-and-unbreakable-directory-name"
+    }
+
     result += "\\picture.png</i>"
     return result
 }
@@ -62,11 +65,14 @@ func unbreakableMessage()->String
     Swag.require(dlg.label.parent!.parent == dlg.contentView)
 
     // The box sizes itself as it opens, so its rectangle is read from inside the modal loop.
-    var width = 0'f32
+    var width = 0_f32
     host.app.sigFrame += func|host = &host, dlg, width = &width|(_)
     {
-        if width[] != 0 do
+        if width[] != 0
+        {
             return
+        }
+
         width[] = dlg.surface!.position.width
         let modalButtonClicked = host.clickModalButton(Dialog.BtnOk)
         Swag.require(modalButtonClicked)

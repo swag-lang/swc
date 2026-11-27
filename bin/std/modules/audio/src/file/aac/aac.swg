@@ -10,7 +10,7 @@ using Core, Core.Errors
 
 // Bytes the longest ADTS header spans: seven, or nine with the frame checksum. The walk peeks
 // at that many at each frame.
-private const HeaderBytes = 9'u64
+private const HeaderBytes = 9_u64
 
 // The sampling frequencies an ADTS header names by index, clause 1.6.2.4.
 private const AdtsRates: [13] u32 = [
@@ -31,38 +31,59 @@ private struct AdtsHeader
 // Reads one ADTS header, clause 1.A.3.2.1.
 private func readAdtsHeader(bytes: const [..] u8)->AdtsHeader fail
 {
-    if bytes.count < 7 do
+    if bytes.count < 7
+    {
         fail InvalidFormatError{"ADTS header is truncated"}
-    if bytes[0] != 0xFF or (bytes[1] & 0xF0) != 0xF0 do
+    }
+
+    if bytes[0] != 0xFF or (bytes[1] & 0xF0) != 0xF0
+    {
         fail InvalidFormatError{"ADTS frame has no sync word"}
+    }
 
     let layer = cast(u32, (bytes[1] >> 1)) & 3
-    if layer do
+    if layer
+    {
         fail InvalidFormatError{"ADTS frame states a layer, which the format reserves"}
+    }
 
     var result: #returntype
     result.headerBytes = (bytes[1] & 1) != 0 ? 7 : 9
 
     let profile = cast(u32, (bytes[2] >> 6)) & 3
-    if profile != 1 do
+    if profile != 1
+    {
         fail UnsupportedFormatError{"audio decoder reads AAC Low Complexity only"}
+    }
 
     result.rateIndex = cast(u32, (bytes[2] >> 2)) & 15
-    if result.rateIndex >= 13 do
+    if result.rateIndex >= 13
+    {
         fail InvalidFormatError{"ADTS frame states a reserved sampling frequency"}
-    if result.rateIndex == 12 do
+    }
+
+    if result.rateIndex == 12
+    {
         fail UnsupportedFormatError{"AAC decoder does not support a 7350 Hz sampling frequency"}
+    }
+
     result.sampleRate = AdtsRates[cast(u64, result.rateIndex)]
 
     result.channelIndex = (cast(u32, (bytes[2] & 1)) << 2) | (cast(u32, (bytes[3] >> 6)) & 3)
-    if not result.channelIndex or result.channelIndex > 6 do
+    if not result.channelIndex or result.channelIndex > 6
+    {
         fail UnsupportedFormatError{"audio decoder supports AAC channel configurations 1 through 6"}
+    }
+
     result.channels = result.channelIndex
 
     result.frameBytes = (cast(u64, (bytes[3] & 3)) << 11) | (cast(u64, bytes[4]) << 3) | (cast(u64, bytes[5]) >> 5)
     result.blocks     = (cast(u32, bytes[6]) & 3) + 1
-    if result.frameBytes < result.headerBytes do
+    if result.frameBytes < result.headerBytes
+    {
         fail InvalidFormatError{"ADTS frame is shorter than its own header"}
+    }
+
     return result
 }
 
@@ -70,7 +91,7 @@ private func readAdtsHeader(bytes: const [..] u8)->AdtsHeader fail
 //
 // A transport frame states the profile, the sampling frequency, and the channel configuration in
 // every header; a packet codec expects them once, in the two bytes an `AudioSpecificConfig` holds.
-private func audioSpecificConfig(header: const *AdtsHeader)->Array'u8
+private func audioSpecificConfig(header: const *AdtsHeader)->Array!{u8}
 {
     var result: #returntype
     let first  = cast(u8, ((2 << 3) | ((header.rateIndex >> 1) & 7)))
@@ -89,24 +110,32 @@ internal func openFile(path: string)->SoundFile fail
 {
     var source    = try ByteSource.openFile(path)
     let fileBytes = source.size()
-    if fileBytes < 7 do
+    if fileBytes < 7
+    {
         fail InvalidFormatError{"file carries no ADTS frame"}
+    }
 
-    var packets: Array'SoundPacket
-    var config:  Array'u8
-    var byteOffset   = 0'u64
-    var totalFrames  = 0'u64
-    var sampleRate   = 0'u32
-    var channelCount = 0'u32
-    var windowStart  = 0'u64
+    var packets: Array!{SoundPacket}
+    var config:  Array!{u8}
+    var byteOffset   = 0_u64
+    var totalFrames  = 0_u64
+    var sampleRate   = 0_u32
+    var channelCount = 0_u32
+    var windowStart  = 0_u64
     var window       = try source.peek(Math.min(HeaderBytes, fileBytes))
 
     for
     {
-        if byteOffset > fileBytes do
+        if byteOffset > fileBytes
+        {
             break
-        if fileBytes - byteOffset < 7 do
+        }
+
+        if fileBytes - byteOffset < 7
+        {
             break
+        }
+
         let length = Math.min(HeaderBytes, fileBytes - byteOffset)
         if byteOffset - windowStart + length > window.count
         {
@@ -117,10 +146,15 @@ internal func openFile(path: string)->SoundFile fail
 
         let offset = byteOffset - windowStart
         let header = try readAdtsHeader(window[offset until offset + length])
-        if header.blocks != 1 do
+        if header.blocks != 1
+        {
             fail UnsupportedFormatError{"ADTS frames with multiple raw data blocks are not supported"}
-        if header.frameBytes > fileBytes - byteOffset do
+        }
+
+        if header.frameBytes > fileBytes - byteOffset
+        {
             break
+        }
 
         if not packets.count
         {
@@ -128,29 +162,39 @@ internal func openFile(path: string)->SoundFile fail
             channelCount = header.channels
             config       = audioSpecificConfig(&header)
         }
-        elif header.sampleRate != sampleRate or header.channels != channelCount
+        else if header.sampleRate != sampleRate or header.channels != channelCount
         {
             break
         }
 
-        if header.frameBytes > Swag.U32.Max do
+        if header.frameBytes > Swag.U32.Max
+        {
             fail InvalidFormatError{"ADTS frame is larger than a packet may be"}
+        }
 
         // The transport header belongs to the file, not to the access unit: the codec is handed
         // the raw audio the same way a container hands it over.
         let payload = header.frameBytes - header.headerBytes
-        if not payload do
+        if not payload
+        {
             fail InvalidFormatError{"ADTS frame carries no audio"}
+        }
+
         packets.add(SoundPacket{byteOffset + header.headerBytes, cast(u32, payload), header.blocks * 1024})
         let frameCount = cast(u64, header.blocks) * 1024
-        if totalFrames > Swag.U64.Max - frameCount do
+        if totalFrames > Swag.U64.Max - frameCount
+        {
             fail OverflowError{"ADTS stream sample count overflows"}
+        }
+
         totalFrames += frameCount
         byteOffset  += header.frameBytes
     }
 
-    if not packets.count do
+    if not packets.count
+    {
         fail InvalidFormatError{"file carries no ADTS frame"}
+    }
 
     source.close()
     return try SoundFile.openPacketStream(path,

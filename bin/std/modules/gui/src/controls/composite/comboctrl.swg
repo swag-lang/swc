@@ -22,8 +22,10 @@ impl IWnd for ComboCtrl
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .label == null do
+        if .label == null
+        {
             return
+        }
 
         let rect = .clientRect()
 
@@ -48,12 +50,17 @@ impl ComboCtrl
         Swag.assert(parent != null)
         let metrics = parent.themeMetrics()
         var pos     = position
-        if pos.width == 0 do
+        if pos.width == 0
+        {
             pos.width = metrics.comboBox_Width * 2
-        if pos.height == 0 do
-            pos.height = metrics.comboBox_Height
+        }
 
-        with let ctrl = Wnd.create'ComboCtrl(parent, pos, id)
+        if pos.height == 0
+        {
+            pos.height = metrics.comboBox_Height
+        }
+
+        with let ctrl = Wnd.create!{ComboCtrl}(parent, pos, id)
         {
             .label = Label.create(ctrl, name)
             .label.setTextHorizontalAlignment(.Right)
@@ -68,8 +75,11 @@ impl ComboCtrl
     mtd setLayoutMetrics(labelWidth: f32 = 5, comboWidth: f32 = 5, spacing: f32 = 5)
     {
         Swag.assert(labelWidth >= 0 and comboWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
-        if .labelWidth == labelWidth and .comboWidth == comboWidth and .spacing == spacing do
+        if .labelWidth == labelWidth and .comboWidth == comboWidth and .spacing == spacing
+        {
             return
+        }
+
         .labelWidth = labelWidth
         .comboWidth = comboWidth
         .spacing    = spacing

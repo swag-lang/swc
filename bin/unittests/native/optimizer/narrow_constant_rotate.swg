@@ -17,11 +17,13 @@ func swapWordAt(p: const [*] u16, i: u64)->u32 => cast(u32, swapWord(p[i])) + 1
 
 func slowRotate(x: u64, bits, count: u32)->u64
 {
-    var result = 0'u64
+    var result = 0_u64
     for i in bits
     {
-        if ((x >> i) & 1) == 1 do
-            result |= 1'u64 << ((i + count) % bits)
+        if ((x >> i) & 1) == 1
+        {
+            result |= 1_u64 << ((i + count) % bits)
+        }
     }
     return result
 }

@@ -28,10 +28,12 @@ internal impl RenderTarget
     func pooledExtent(size: s32)->u32
     {
         let extent = cast(u32, size)
-        if extent <= 64 do
+        if extent <= 64
+        {
             return Core.Math.roundUpToPowerOf2(extent)
+        }
 
-        let rounded = (cast(u64, extent) + 63) & ~63'u64
+        let rounded = (cast(u64, extent) + 63) & ~63_u64
         return rounded <= Swag.S32.Max ? cast(u32, rounded) : 0
     }
 

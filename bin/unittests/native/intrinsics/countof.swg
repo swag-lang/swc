@@ -76,36 +76,36 @@ const EmptyConst = ""
     const a = (3).count
     const b = (0).count
     const c = (100).count
-    const d = (3's8).count
-    const e = (4's32).count
-    const f = (5's64).count
+    const d = (3_s8).count
+    const e = (4_s32).count
+    const f = (5_s64).count
     #assert(a == 3)
     #assert(b == 0)
     #assert(c == 100)
     #assert(#typeof(d) == s8)
     #assert(#typeof(e) == s32)
     #assert(#typeof(f) == s64)
-    #assert(d == 3's8)
-    #assert(e == 4's32)
-    #assert(f == 5's64)
+    #assert(d == 3_s8)
+    #assert(e == 4_s32)
+    #assert(f == 5_s64)
     Swag.require(a == 3)
     Swag.require(b == 0)
     Swag.require(c == 100)
-    Swag.require(d == 3's8)
-    Swag.require(e == 4's32)
-    Swag.require(f == 5's64)
+    Swag.require(d == 3_s8)
+    Swag.require(e == 4_s32)
+    Swag.require(f == 5_s64)
 }
 
 #test
 {
-    var runtime = cast(CountOfStrictU32, 7'u32)
-    const constant = cast(CountOfStrictU32, 5'u32).count
+    var runtime = cast(CountOfStrictU32, 7_u32)
+    const constant = cast(CountOfStrictU32, 5_u32).count
     let value = runtime.count
 
     #assert(#typeof(constant) == CountOfStrictU32)
     #assert(#typeof(value) == CountOfStrictU32)
-    Swag.require(constant == cast(CountOfStrictU32, 5'u32))
-    Swag.require(value == cast(CountOfStrictU32, 7'u32))
+    Swag.require(constant == cast(CountOfStrictU32, 5_u32))
+    Swag.require(value == cast(CountOfStrictU32, 7_u32))
 }
 
 // ============================================================
@@ -262,40 +262,50 @@ func countSpecOpRef(value: RefCountedRuntime)->u64
 func loopStringRef(value: string)->u64
 {
     var count: u64 = 0
-    for value do
+    for value
+    {
         count += 1
+    }
     return count
 }
 
 func loopCStringRef(value: *cstring)->u64
 {
     var count: u64 = 0
-    for value[] do
+    for value[]
+    {
         count += 1
+    }
     return count
 }
 
 func loopSliceRef(value: [..] u8)->u64
 {
     var count: u64 = 0
-    for value do
+    for value
+    {
         count += 1
+    }
     return count
 }
 
 func loopUnsignedRef(value: *u32)->u32
 {
     var count: u32 = 0
-    for value[] do
+    for value[]
+    {
         count += 1
+    }
     return count
 }
 
 func loopSignedRef(value: *s32)->s32
 {
     var count: s32 = 0
-    for value[] do
+    for value[]
+    {
         count += 1
+    }
     return count
 }
 
@@ -310,7 +320,7 @@ func loopSignedRef(value: *s32)->s32
 
 #test
 {
-    var data:    [5] u8   = ['a'u8, 'b'u8, 'c'u8, 'd'u8, 0]
+    var data:    [5] u8   = ['a'_u8, 'b'_u8, 'c'_u8, 'd'_u8, 0]
     var cstr:    cstring  = cast(cstring, &data[0])
     var cstrRef: *cstring = &cstr
     Swag.require((cstrRef[]).count == 4)
@@ -371,9 +381,11 @@ func loopSignedRef(value: *s32)->s32
 #[Swag.NoInline]
 func countedRuntimeIsNotEmpty(value: CountedRuntime)->s32
 {
-    var result = 0's32
-    if value.count do
+    var result = 0_s32
+    if value.count
+    {
         result = 1
+    }
     return result
 }
 

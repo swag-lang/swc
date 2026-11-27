@@ -53,11 +53,11 @@ func advance(bodies: [..] Body, dt: f64)
 #[Swag.Optimize(true)]
 func upperInto(dst: [*] u8, text: string)->u64
 {
-    var count = 0'u64
+    var count = 0_u64
     for i in text.count
     {
         var c = text[i]
-        if c >= 'a'u8 and c <= 'z'u8
+        if c >= 'a'_u8 and c <= 'z'_u8
         {
             c     -= 32
             count += 1
@@ -74,7 +74,7 @@ func upperInto(dst: [*] u8, text: string)->u64
 #[Swag.Optimize(true)]
 func scaleInto(dst: [*] s64, src: const [*] s64, scale: Scale)->s64
 {
-    var total = 0's64
+    var total = 0_s64
     for i in scale.limit
     {
         dst[i] = src[i] * scale.factor + scale.bias
@@ -98,7 +98,7 @@ func touch(value: u64)
 #[Swag.Optimize(true)]
 func scaleAround(dst: [*] s64, src: const [*] s64, scale: Scale)->s64
 {
-    var total = 0's64
+    var total = 0_s64
     for i in scale.limit
     {
         dst[i] = src[i] * scale.factor + scale.bias
@@ -136,7 +136,7 @@ func byteAt(text: string, index: u64)->u64
 #[Swag.Optimize(true)]
 func sumForwarded(dst: [*] u64, text: string)->u64
 {
-    var total = 0'u64
+    var total = 0_u64
     for i in text.count
     {
         dst[i] = byteAt(text, i)
@@ -159,21 +159,25 @@ struct Worker
 func nudge(worker: *Worker, round: s64)
 {
     worker.rounds += 1
-    if round == 2 do
+    if round == 2
+    {
         worker.requestEnd = true
+    }
 }
 
 #[Swag.NoInline]
 #[Swag.Optimize(true)]
 func pollUntilEnd(worker: const *Worker, same: *Worker)->s64
 {
-    var round = 0's64
+    var round = 0_s64
     while not worker.requestEnd
     {
         nudge(same, round)
         round += 1
-        if round == 100 do
+        if round == 100
+        {
             break
+        }
     }
 
     return round + worker.rounds * 10
@@ -185,8 +189,10 @@ func pollUntilEnd(worker: const *Worker, same: *Worker)->s64
 #[Swag.Optimize(true)]
 func prefixSums(values: [6] s64)->s64
 {
-    for i in 1 until 6 do
+    for i in 1 until 6
+    {
         values[i] += values[i - 1]
+    }
     return values[5] + values[0]
 }
 
@@ -198,7 +204,7 @@ func fieldSum(scale: const *Scale)->s64 => scale.factor + scale.bias
 #[Swag.Optimize(true)]
 func sumThroughAddress(dst: [*] s64, scale: Scale)->s64
 {
-    var total = 0's64
+    var total = 0_s64
     for i in scale.limit
     {
         dst[i] = fieldSum(&scale)
@@ -225,7 +231,7 @@ func sumThroughAddress(dst: [*] s64, scale: Scale)->s64
     var upper: [16] u8
     let raised = upperInto(&upper[0], "swag, 2026!")
     Swag.require(raised == 4)
-    Swag.require(upper[0] == 'S'u8 and upper[3] == 'G'u8 and upper[4] == ','u8 and upper[10] == '!'u8)
+    Swag.require(upper[0] == 'S'_u8 and upper[3] == 'G'_u8 and upper[4] == ','_u8 and upper[10] == '!'_u8)
 
     let src: [4] s64 = [1, -2, 3, 40]
     var dst: [4] s64

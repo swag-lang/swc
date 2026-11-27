@@ -14,26 +14,30 @@ struct ArtifactDigest
 #[Swag.Safety(.Overflow, false)]
 func computeCrc32(bytes: const [..] u8)->u32
 {
-    var crc = 0xFFFF_FFFF'u32
+    var crc = 0xFFFF_FFFF_u32
     for ch in bytes
     {
         crc ^= cast(u32, ch)
         for 8
         {
-            if (crc & 1'u32) != 0'u32 do
-                crc = (crc >> 1) ^ 0xEDB8_8320'u32
-            else do
+            if (crc & 1_u32) != 0_u32
+            {
+                crc = (crc >> 1) ^ 0xEDB8_8320_u32
+            }
+            else
+            {
                 crc >>= 1
+            }
         }
     }
 
-    return crc ^ 0xFFFF_FFFF'u32
+    return crc ^ 0xFFFF_FFFF_u32
 }
 
 #[Swag.Safety(.Overflow, false)]
 func computeCrc64(bytes: const [..] u8)->u64
 {
-    const Polynomial = 0x42F0_E1EB_A9EA_3693'u64
+    const Polynomial = 0x42F0_E1EB_A9EA_3693_u64
 
     var crc: u64
     for ch in bytes
@@ -41,10 +45,14 @@ func computeCrc64(bytes: const [..] u8)->u64
         crc ^= cast(u64, ch) << 56
         for 8
         {
-            if (crc & 0x8000_0000_0000_0000'u64) != 0'u64 do
+            if (crc & 0x8000_0000_0000_0000_u64) != 0_u64
+            {
                 crc = (crc << #wrap 1) ^ Polynomial
-            else do
+            }
+            else
+            {
                 crc = crc << #wrap 1
+            }
         }
     }
 
@@ -70,16 +78,16 @@ func buildDigest(payload: string, expectedCrc32: u32, expectedCrc64: u64)->Artif
     let manifestBytes = cast(const [..] u8, manifest)
 
     Swag.require(manifestBytes.count == 71)
-    Swag.require(computeCrc32("") == 0x0000_0000'u32)
-    Swag.require(computeCrc64("") == 0x0000_0000_0000_0000'u64)
-    Swag.require(computeCrc32("123456789") == 0xCBF4_3926'u32)
-    Swag.require(computeCrc64("123456789") == 0x6C40_DF5F_0B49_7347'u64)
+    Swag.require(computeCrc32("") == 0x0000_0000_u32)
+    Swag.require(computeCrc64("") == 0x0000_0000_0000_0000_u64)
+    Swag.require(computeCrc32("123456789") == 0xCBF4_3926_u32)
+    Swag.require(computeCrc64("123456789") == 0x6C40_DF5F_0B49_7347_u64)
 
-    let digest = buildDigest(manifest, 0x4BDB_F65B'u32, 0x5533_3ADA_1E22_8DD4'u64)
+    let digest = buildDigest(manifest, 0x4BDB_F65B_u32, 0x5533_3ADA_1E22_8DD4_u64)
 
     Swag.require(digest.byteCount == 71)
-    Swag.require(digest.crc32 == 0x4BDB_F65B'u32)
-    Swag.require(digest.crc64 == 0x5533_3ADA_1E22_8DD4'u64)
+    Swag.require(digest.crc32 == 0x4BDB_F65B_u32)
+    Swag.require(digest.crc64 == 0x5533_3ADA_1E22_8DD4_u64)
     Swag.require(digest.matchesCrc32)
     Swag.require(digest.matchesCrc64)
 }

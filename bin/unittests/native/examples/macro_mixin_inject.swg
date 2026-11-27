@@ -64,11 +64,15 @@ func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code(line: InvoiceL
 func tieredDiscount(subtotalExpr: #code->s32)->s32
 {
     let subtotal = #inject(subtotalExpr)
-    if subtotal >= 40000 do
+    if subtotal >= 40000
+    {
         return 3500
+    }
 
-    if subtotal >= 20000 do
+    if subtotal >= 20000
+    {
         return 1200
+    }
 
     return 0
 }
@@ -88,8 +92,10 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
     }
 
     var shippingCents = standardShippingCents
-    if expeditedShipping do
+    if expeditedShipping
+    {
         shippingCents = expeditedShippingCents
+    }
 
     let discountCents = tieredDiscount(subtotalCents)
     let taxCents      = taxableSubtotalCents / 10

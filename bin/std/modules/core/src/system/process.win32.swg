@@ -23,27 +23,34 @@ func currentEnvironment()->ProcessEnvironment
     var result: #returntype
 
     let block = GetEnvironmentStringsW()
-    if not block do
+    if not block
+    {
         return result
+    }
+
     defer discard FreeEnvironmentStringsW(block)
 
     // The block is a run of zero-terminated 'name=value' strings closed by an empty one. An
     // entry whose name is empty records a per-drive current directory instead of a variable,
     // and the system rebuilds those for a child on its own.
-    var offset = 0'u64
+    var offset = 0_u64
     while block[offset] != 0
     {
         let start = offset
-        while block[offset] != 0 do
+        while block[offset] != 0
+        {
             offset += 1
+        }
 
         let entry = Utf8.fromUtf16(Swag.makeSlice(block + start, offset - start))
         offset += 1
 
         let text      = entry.toString()
         let separator = Utf8.indexOf(entry.toSlice(), "=")
-        if separator != Swag.U64.Max and separator != 0 do
+        if separator != Swag.U64.Max and separator != 0
+        {
             result.set(text[until separator], text[separator + 1 to])
+        }
     }
 
     return result
@@ -56,20 +63,28 @@ func currentEnvironment()->ProcessEnvironment
 // when that difference matters, or when more than a couple of variables are wanted.
 func variable(name: string)->String
 {
-    if not validEnvironmentVariableName(name) do
+    if not validEnvironmentVariableName(name)
+    {
         return ""
+    }
+
     let name16 = Utf16.toZeroTerminated(name)
 
     let needed = GetEnvironmentVariableW(name16.buffer, null, 0)
-    if not needed do
+    if not needed
+    {
         return ""
+    }
 
-    var buffer: Array'u16
+    var buffer: Array!{u16}
     buffer.resize(needed)
 
     let written = GetEnvironmentVariableW(name16.buffer, (buffer.toSlice()).buffer, needed)
-    if not written or written >= needed do
+    if not written or written >= needed
+    {
         return ""
+    }
+
     return Utf8.fromUtf16(buffer.toSlice()[until written])
 }
 
@@ -77,15 +92,19 @@ internal func setVariableNative(name: string, value: string) fail
 {
     let name16  = Utf16.toZeroTerminated(name)
     let value16 = Utf16.toZeroTerminated(value)
-    if not SetEnvironmentVariableW(name16.buffer, value16.buffer) do
+    if not SetEnvironmentVariableW(name16.buffer, value16.buffer)
+    {
         try failWinError(GetLastError())
+    }
 }
 
 internal func removeVariableNative(name: string) fail
 {
     let name16 = Utf16.toZeroTerminated(name)
-    if not SetEnvironmentVariableW(name16.buffer, null) do
+    if not SetEnvironmentVariableW(name16.buffer, null)
+    {
         try failWinError(GetLastError())
+    }
 }
 
 // Serializes one argument using the Windows C-runtime command-line grammar.
@@ -110,8 +129,11 @@ func joinArguments(arguments: const [..] string)->String
     var result: #returntype
     for argument, index in arguments
     {
-        if index != 0 do
+        if index != 0
+        {
             result.append(" ")
+        }
+
         appendQuoted(&result, argument)
     }
 
@@ -121,8 +143,10 @@ func joinArguments(arguments: const [..] string)->String
 private func appendQuoted(commandLine: *String, argument: string)
 {
     var mustQuote = argument.count == 0
-    for c in argument where c == ' ' or c == '\t' or c == '"' do
+    for c in argument where c == ' ' or c == '\t' or c == '"'
+    {
         mustQuote = true
+    }
 
     if not mustQuote
     {
@@ -132,7 +156,7 @@ private func appendQuoted(commandLine: *String, argument: string)
 
     commandLine.append("\"")
 
-    var slashes = 0'u64
+    var slashes = 0_u64
     for c in argument
     {
         if c == '\\'
@@ -145,22 +169,31 @@ private func appendQuoted(commandLine: *String, argument: string)
         // each pair as one backslash; doubling the run is what keeps the pairs balanced.
         if c == '"'
         {
-            for slashes * 2 + 1 do
+            for slashes * 2 + 1
+            {
                 commandLine.append("\\")
+            }
+
             commandLine.append("\"")
         }
         else
         {
-            for slashes do
+            for slashes
+            {
                 commandLine.append("\\")
+            }
+
             commandLine.append(c)
         }
 
         slashes = 0
     }
 
-    for slashes * 2 do
+    for slashes * 2
+    {
         commandLine.append("\\")
+    }
+
     commandLine.append("\"")
 }
 
@@ -180,8 +213,10 @@ private func nativePath(path: string)->String
 private func releaseHandle(handle: *ProcessHandle)
 {
     let native = cast(HANDLE, handle[])
-    if not native do
+    if not native
+    {
         return
+    }
 
     CloseHandle(native)
     handle[] = null
@@ -219,8 +254,11 @@ private func prepareChildStream(redirection: StreamRedirection, parentEnd, owned
     func inheritableStandardHandle(which: DWORD)->HANDLE
     {
         let handle = GetStdHandle(which)
-        if handle == INVALID_HANDLE_VALUE do
+        if handle == INVALID_HANDLE_VALUE
+        {
             return null
+        }
+
         return handle
     }
 
@@ -254,8 +292,10 @@ private func prepareChildStream(redirection: StreamRedirection, parentEnd, owned
         // A standard handle belongs to the current process. Naming it for the child must not
         // make this side responsible for closing it, or the stream would be taken away from
         // everyone still using it here.
-        if anyRedirection do
+        if anyRedirection
+        {
             return inheritableStandardHandle(standardHandle)
+        }
     }
 
     return ownedChildEnd[]
@@ -265,21 +305,29 @@ internal func startProcessNative(info: StartInfo)->Process fail
 {
     // Builds the zero-terminated block of 'name=value' entries expected by CreateProcessW.
     // Windows reads the entries without regard to case, so sort them that way.
-    func buildEnvironmentBlock(environment: const *ProcessEnvironment)->Array'u16
+    func buildEnvironmentBlock(environment: const *ProcessEnvironment)->Array!{u16}
     {
-        var entries: Array'String
-        for name, value in environment.variables do
+        var entries: Array!{String}
+        for name, value in environment.variables
+        {
             entries.add(Format.toString("%=%", name.toString(), value.toString()))
+        }
+
         entries.sort(func||(a, b) => Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase))
 
         var result: #returntype
-        for entry in entries do
+        for entry in entries
+        {
             result.add(Utf16.toZeroTerminated(entry.toString()).toSlice())
+        }
 
         // One more zero closes the block. An empty environment still needs the two-zero
         // terminator, so add the first one explicitly when there are no entries.
-        if entries.isEmpty() do
+        if entries.isEmpty()
+        {
             result.add(0)
+        }
+
         result.add(0)
         return result
     }
@@ -330,7 +378,7 @@ internal func startProcessNative(info: StartInfo)->Process fail
         commandLine.append(" ")
         commandLine.append(info.nativeArguments)
     }
-    elif info.arguments
+    else if info.arguments
     {
         for argument in info.arguments
         {
@@ -339,7 +387,7 @@ internal func startProcessNative(info: StartInfo)->Process fail
         }
     }
 
-    var directory16:  Array'u16
+    var directory16:  Array!{u16}
     var directoryPtr: LPCWSTR
     if info.workingDirectory
     {
@@ -347,9 +395,9 @@ internal func startProcessNative(info: StartInfo)->Process fail
         directoryPtr = directory16.buffer
     }
 
-    var environmentBlock: Array'u16
+    var environmentBlock: Array!{u16}
     var environmentPtr:   LPVOID
-    var creationFlags = 0'u32
+    var creationFlags = 0_u32
     if info.environment
     {
         environmentBlock = buildEnvironmentBlock(info.environment)
@@ -370,16 +418,20 @@ internal func startProcessNative(info: StartInfo)->Process fail
     // Nothing here decides whether a window appears for a program that draws its own; the flag
     // only stops the system from building a console, and the host process that draws it, for a
     // console child that has none to inherit.
-    if not info.consoleWindow do
+    if not info.consoleWindow
+    {
         creationFlags |= CREATE_NO_WINDOW
+    }
 
     // Accounting and affinity both have to be in place before the first instruction runs: a job
     // only counts what a process does after it joins, and a pinned run that starts anywhere else
     // has already been measured on the wrong core. So the process is created suspended and
     // resumed below, once it has been placed.
     let placeBeforeStart = info.measureResources or info.affinityMask != 0
-    if placeBeforeStart do
+    if placeBeforeStart
+    {
         creationFlags |= CREATE_SUSPENDED
+    }
 
     let commandLine16 = Utf16.toZeroTerminated(commandLine.toString())
     var information: PROCESS_INFORMATION
@@ -414,8 +466,11 @@ internal func startProcessNative(info: StartInfo)->Process fail
 
         try result.placeStartedProcess(info)
         let resumeCount = try ResumeThread(information.hThread)
-        if resumeCount == Swag.U32.Max do
+        if resumeCount == Swag.U32.Max
+        {
             try failWinError(GetLastError())
+        }
+
         started = true
         return result
     }
@@ -439,15 +494,19 @@ impl Process
         if info.measureResources
         {
             let job = CreateJobObjectW(null, null)
-            if not job do
+            if not job
+            {
                 try failWinError(GetLastError())
+            }
 
             .jobHandle = cast(ProcessHandle, job)
             try AssignProcessToJobObject(job, cast(HANDLE, .handle))
         }
 
-        if info.affinityMask != 0 do
+        if info.affinityMask != 0
+        {
             try SetProcessAffinityMask(cast(HANDLE, .handle), info.affinityMask)
+        }
     }
 
     internal mtd closeNative()
@@ -467,8 +526,10 @@ impl Process
     mtd const resources()->ProcessResources
     {
         var result: #returntype
-        if not .jobHandle do
+        if not .jobHandle
+        {
             return result
+        }
 
         var accounting: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
         if QueryInformationJobObject(cast(HANDLE, .jobHandle), JobObjectBasicAccountingInformation, cast(LPVOID, &accounting), #sizeof(accounting), null)
@@ -501,8 +562,11 @@ impl Process
     internal mtd drainPipeNative(pipe: *ProcessHandle, text: *String, limit: u64)
     {
         let handle = cast(HANDLE, pipe[])
-        if not handle do
+        if not handle
+        {
             return
+        }
+
         var available: DWORD
         if not PeekNamedPipe(handle, null, 0, null, &available, null)
         {
@@ -530,8 +594,10 @@ impl Process
     internal mtd pollExitNative(milliseconds: u32) fail
     {
         let status = try WaitForSingleObject(cast(HANDLE, .handle), milliseconds)
-        if status == WAIT_OBJECT_0 do
+        if status == WAIT_OBJECT_0
+        {
             try .collectExitCode()
+        }
     }
 
     internal mtd killNative() fail
@@ -549,8 +615,11 @@ impl Process
     // in the captured streams. Killing a process that already exited does nothing.
     mtd kill(exitCode: s32) fail
     {
-        if .exited or not .handle do
+        if .exited or not .handle
+        {
             return
+        }
+
         try TerminateProcess(cast(HANDLE, .handle), cast #bit (u32, exitCode))
     }
 
@@ -562,16 +631,21 @@ impl Process
     mtd writeStandardInput(data: string) fail
     {
         let handle = cast(HANDLE, .inputPipe)
-        if not handle do
+        if not handle
+        {
             fail BadParameterError{"standard input is not redirected to a pipe"}
+        }
 
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < data.count
         {
             var written: DWORD
             try WriteFile(handle, data.buffer + offset, cast(u32, Math.min(data.count - offset, cast(u64, Swag.U32.Max))), &written, null)
-            if not written do
+            if not written
+            {
                 try failWinError(ERROR_NO_DATA)
+            }
+
             offset += written
         }
     }
@@ -591,10 +665,16 @@ impl Process
     {
         var buffer: [32768] u16
         let count = GetModuleFileNameW(null, buffer.buffer, cast(u32, buffer.count))
-        if not count do
+        if not count
+        {
             try failWinError(GetLastError())
-        if count >= buffer.count do
+        }
+
+        if count >= buffer.count
+        {
             try failWinError(ERROR_INSUFFICIENT_BUFFER)
+        }
+
         return Utf8.fromUtf16(buffer[until count])
     }
 

@@ -63,16 +63,20 @@ func npcErrInterface(i: INpcFace?)->s32
 // Null test first.
 func npcOkGuarded(x: *s32?)->s32
 {
-    if x == null do
+    if x == null
+    {
         return 0
+    }
     return x[]
 }
 
 // Truthiness guard first.
 func npcOkTruthGuard(v: *NpcItem?)->s32
 {
-    if not v do
+    if not v
+    {
         return 0
+    }
     return v.value
 }
 
@@ -87,10 +91,14 @@ func npcOkAsserted(v: *NpcItem?)->s32
 // fatal for null. The dereference itself still needs its own local proof.
 func npcOkDelegated(x: *s32?)->s32
 {
-    if not npcCheck(x) do
+    if not npcCheck(x)
+    {
         return 0
-    if x == null do
+    }
+    if x == null
+    {
         return 0
+    }
     return x[]
 }
 
@@ -104,8 +112,10 @@ func npcOkFailFirst(x: *s32?)->s32 fail
 // Dereference on one branch only: some executions never touch the parameter.
 func npcOkConditional(x: *s32?, use: bool)->s32
 {
-    if use and x != null do
+    if use and x != null
+    {
         return x[]
+    }
     return 0
 }
 
@@ -124,16 +134,20 @@ var g_npcStorage: s32
 
 func npcErrReturnNeverNull(c: bool)->*s32?     // swc-expected-error {{sema_err_nullable_return_contract}}
 {
-    if c do
+    if c
+    {
         return &g_npcStorage
+    }
     return &g_npcStorage
 }
 
 // An explicit null return keeps the contract alive.
 func npcOkReturnNull(c: bool)->*s32?
 {
-    if c do
+    if c
+    {
         return null
+    }
     return &g_npcStorage
 }
 
@@ -146,8 +160,10 @@ func npcOkReturnNullable(x: *s32?)->*s32?
 // A fallible function is exempt: its 'catch' error path synthesizes null.
 func npcOkReturnFallible()->*s32? fail
 {
-    if g_npcStorage == 0 do
+    if g_npcStorage == 0
+    {
         fail Swag.BaseError{"boom"}
+    }
     return &g_npcStorage
 }
 
@@ -166,8 +182,10 @@ func npcFillPtrPtr(pp: *(*s32?))
 func npcErrLocalNeverNull()->s32
 {
     var p: *s32? = &g_npcStorage     // swc-expected-error {{sema_err_nullable_local_contract}}
-    if p == null do
+    if p == null
+    {
         return 0
+    }
     return p[]
 }
 
@@ -175,8 +193,10 @@ func npcErrLocalNeverNull()->s32
 func npcOkLocalDefaultsNull(use: bool)->s32
 {
     var p: *s32?
-    if use do
+    if use
+    {
         p = &g_npcStorage
+    }
     return p == null ? 0 : p[]
 }
 
@@ -192,8 +212,10 @@ func npcOkLocalNullableValue()->s32
 func npcOkLocalNullAssign(c: bool)->s32
 {
     var p: *s32? = &g_npcStorage
-    if c do
+    if c
+    {
         p = null
+    }
     return p == null ? 0 : p[]
 }
 

@@ -13,8 +13,10 @@
             resource = false
         }
 
-        if index == 2 do
+        if index == 2
+        {
             break
+        }
     }
 
     Swag.require(not InlineRegressionBug15.isResourceCreated(resource))

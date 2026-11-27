@@ -3,7 +3,7 @@
 
 using Swag
 
-func assertStringArray(values: Array'(string), expected: const [..] string)->bool => Slice.equals(values.toSlice(), expected)
+func assertStringArray(values: Array!{string}, expected: const [..] string)->bool => Slice.equals(values.toSlice(), expected)
 
 #test
 {
@@ -25,11 +25,11 @@ func assertStringArray(values: Array'(string), expected: const [..] string)->boo
     Swag.require(Tokenize.alphanumericPrefix("abc123!?") == "abc123")
     Swag.require(Tokenize.alphanumericPrefix("caf\u00E942!?") == "caf\u00E942")
 
-    Swag.require(Tokenize.sliceToDelimiter("a,b,c", ','u8) == "a,")
-    Swag.require(Tokenize.sliceToDelimiter("a,b,c", ','u8, includeDelimiter: false) == "a")
-    Swag.require(Tokenize.sliceToDelimiter("a,b,c", ','u8, startByteIndex: 2) == "b,")
-    Swag.require(Tokenize.sliceToDelimiter("abc", ','u8) == "abc")
-    Swag.require(Tokenize.sliceToDelimiter("abc", ','u8, startByteIndex: 3) == "")
+    Swag.require(Tokenize.sliceToDelimiter("a,b,c", ','_u8) == "a,")
+    Swag.require(Tokenize.sliceToDelimiter("a,b,c", ','_u8, includeDelimiter: false) == "a")
+    Swag.require(Tokenize.sliceToDelimiter("a,b,c", ','_u8, startByteIndex: 2) == "b,")
+    Swag.require(Tokenize.sliceToDelimiter("abc", ','_u8) == "abc")
+    Swag.require(Tokenize.sliceToDelimiter("abc", ','_u8, startByteIndex: 3) == "")
 }
 
 #test
@@ -41,7 +41,7 @@ func assertStringArray(values: Array'(string), expected: const [..] string)->boo
 
 #test
 {
-    let bytes = Tokenize.split("alpha,beta,gamma", ','u8, maxSplit: 2)
+    let bytes = Tokenize.split("alpha,beta,gamma", ','_u8, maxSplit: 2)
     let expected: [3] string = ["alpha", "beta", "gamma"]
     Swag.require(assertStringArray(bytes, expected))
 
@@ -52,7 +52,7 @@ func assertStringArray(values: Array'(string), expected: const [..] string)->boo
 
 #test
 {
-    let bytes = Tokenize.split(",alpha,,beta,", ','u8, removeEmpty: false)
+    let bytes = Tokenize.split(",alpha,,beta,", ','_u8, removeEmpty: false)
     let expectedBytes: [5] string = ["", "alpha", "", "beta", ""]
     Swag.require(assertStringArray(bytes, expectedBytes))
 
@@ -60,16 +60,16 @@ func assertStringArray(values: Array'(string), expected: const [..] string)->boo
     let expectedString: [5] string = ["", "alpha", "", "beta", ""]
     Swag.require(assertStringArray(byString, expectedString))
 
-    let byRune = Tokenize.split("|alpha||beta|", '|'rune, removeEmpty: false)
+    let byRune = Tokenize.split("|alpha||beta|", '|'_rune, removeEmpty: false)
     let expectedRune: [5] string = ["", "alpha", "", "beta", ""]
     Swag.require(assertStringArray(byRune, expectedRune))
 }
 
 #test
 {
-    let byteKeep = Tokenize.split("", ','u8, removeEmpty: false)
+    let byteKeep = Tokenize.split("", ','_u8, removeEmpty: false)
     Swag.require(byteKeep.count == 1 and byteKeep[0] == "")
-    Swag.require(Tokenize.split("", ','u8).isEmpty())
+    Swag.require(Tokenize.split("", ','_u8).isEmpty())
 
     let stringKeep = Tokenize.split("", "", removeEmpty: false)
     Swag.require(stringKeep.count == 1 and stringKeep[0] == "")
@@ -77,7 +77,7 @@ func assertStringArray(values: Array'(string), expected: const [..] string)->boo
     const Unsplit: [1] string = ["core"]
     Swag.require(assertStringArray(Tokenize.split("core", ""), Unsplit))
 
-    const Separators: [2] rune = [','rune, ';'rune]
+    const Separators: [2] rune = [','_rune, ';'_rune]
     let runeSetKeep = Tokenize.splitAny("", Separators, removeEmpty: false)
     Swag.require(runeSetKeep.count == 1 and runeSetKeep[0] == "")
     Swag.require(Tokenize.splitAny("", Separators).isEmpty())
@@ -85,7 +85,7 @@ func assertStringArray(values: Array'(string), expected: const [..] string)->boo
 
 #test
 {
-    let byRune = Tokenize.split("é🙂🙂x", '🙂'rune, removeEmpty: false)
+    let byRune = Tokenize.split("é🙂🙂x", '🙂'_rune, removeEmpty: false)
     let expectedRune: [3] string = ["é", "", "x"]
     Swag.require(assertStringArray(byRune, expectedRune))
 

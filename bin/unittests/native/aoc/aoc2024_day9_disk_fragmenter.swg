@@ -5,8 +5,8 @@
 // Exercises: using on struct fields, namespace, #assert/#typeof, anonymous
 // struct returns, default parameter values, break-to-label, C-style for.
 
-const MaxBlocks = 131072'u32
-const FreeId    = 0xFFFF'u16
+const MaxBlocks = 131072_u32
+const FreeId    = 0xFFFF_u16
 
 const SampleInput  = "2333133121414131402"
 const SmallInput   = "12345"
@@ -44,8 +44,10 @@ namespace DiskLayout
 
     func freeDiskMap(dm: DiskMap)
     {
-        if dm.blocks do
+        if dm.blocks
+        {
             testFree(dm.blocks)
+        }
     }
 
     func copyDiskMap(src: DiskMap, capacity: u32 = MaxBlocks)->DiskMap
@@ -72,8 +74,10 @@ namespace DiskLayout
         for index in bytes.count
         {
             let ch = bytes[index]
-            if ch < '0' or ch > '9' do
+            if ch < '0' or ch > '9'
+            {
                 continue
+            }
 
             let runLength = cast(u32, (ch - '0'))
             let isFile    = (index & 1) == 0
@@ -118,8 +122,10 @@ namespace Compaction
 
     func compactBlocks(dm: *DiskMap)
     {
-        if dm.blockCount < 2 do
+        if dm.blockCount < 2
+        {
             return
+        }
 
         var left: u32
         var right  = dm.blockCount - 1
@@ -128,12 +134,18 @@ namespace Compaction
         scope(Outer)
         for
         {
-            while left < right and blocks[left] != FreeId do
+            while left < right and blocks[left] != FreeId
+            {
                 left += 1
-            while right > left and blocks[right] == FreeId do
+            }
+            while right > left and blocks[right] == FreeId
+            {
                 right -= 1
-            if left >= right do
+            }
+            if left >= right
+            {
                 break to Outer
+            }
 
             blocks[left]  = blocks[right]
             blocks[right] = FreeId
@@ -144,8 +156,10 @@ namespace Compaction
 
     func compactWholeFiles(dm: *DiskMap)
     {
-        if dm.fileCount == 0 do
+        if dm.fileCount == 0
+        {
             return
+        }
 
         var fileId = dm.fileCount - 1
         for
@@ -164,8 +178,10 @@ namespace Compaction
                 }
             }
 
-            if fileId == 0 do
+            if fileId == 0
+            {
                 break
+            }
             fileId -= 1
         }
     }
@@ -182,8 +198,10 @@ namespace Compaction
                 outStart[] = cast(u32, i)
                 outLen[]   += 1
             }
-            elif outLen[] > 0 do
+            else if outLen[] > 0
+            {
                 break
+            }
         }
     }
 
@@ -246,8 +264,10 @@ namespace Checksum
         {
             let pos = cast(u32, index)
             let blk = blocks[pos]
-            if blk != FreeId do
+            if blk != FreeId
+            {
                 total += cast(u64, pos) * cast(u64, blk)
+            }
         }
         return total
     }
@@ -325,31 +345,31 @@ func getSpanInfo(text: string)->{spanCount: u32, firstFree: u32}
 {
     let sample = analyzeDisk(SampleInput)
 
-    Swag.require(sample.blockCount == 42'u32)
-    Swag.require(sample.fileCount == 10'u16)
-    Swag.require(sample.checksumBlocks == 1928'u64)
-    Swag.require(sample.checksumWholeFile == 2858'u64)
+    Swag.require(sample.blockCount == 42_u32)
+    Swag.require(sample.fileCount == 10_u16)
+    Swag.require(sample.checksumBlocks == 1928_u64)
+    Swag.require(sample.checksumWholeFile == 2858_u64)
 }
 
 #test
 {
     let small = analyzeDisk(SmallInput)
 
-    Swag.require(small.blockCount == 15'u32)
-    Swag.require(small.fileCount == 3'u16)
-    Swag.require(small.checksumBlocks == 60'u64)
+    Swag.require(small.blockCount == 15_u32)
+    Swag.require(small.fileCount == 3_u16)
+    Swag.require(small.checksumBlocks == 60_u64)
 
     let info = getSpanInfo(SmallInput)
-    Swag.require(info.spanCount == 5'u32)
-    Swag.require(info.firstFree == 1'u32)
+    Swag.require(info.spanCount == 5_u32)
+    Swag.require(info.firstFree == 1_u32)
 }
 
 #test
 {
     let trivial = analyzeDisk(TrivialInput)
 
-    Swag.require(trivial.blockCount == 9'u32)
-    Swag.require(trivial.fileCount == 1'u16)
-    Swag.require(trivial.checksumBlocks == 0'u64)
-    Swag.require(trivial.checksumWholeFile == 0'u64)
+    Swag.require(trivial.blockCount == 9_u32)
+    Swag.require(trivial.fileCount == 1_u16)
+    Swag.require(trivial.checksumBlocks == 0_u64)
+    Swag.require(trivial.checksumWholeFile == 0_u64)
 }

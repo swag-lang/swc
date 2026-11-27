@@ -12,6 +12,6 @@ impl Duration
     }
 }
 
-const ExplicitCast    = cast(Duration, 30'ms)
-const Typed: Duration = 30'ms
+const ExplicitCast    = cast(Duration, 30_ms)
+const Typed: Duration = 30_ms
 #assert(ExplicitCast.milliseconds == 30 and Typed.milliseconds == 30)

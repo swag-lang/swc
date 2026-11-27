@@ -15,17 +15,17 @@ enum SceneLayout
 
 struct SceneView
 {
-    path:      String
-    document:  *ViewerWindow?
-    reading:   ViewerReadingState
-    readState: bool
-    explorerState: ExplorerFolderState
+    path:            String
+    document:        *ViewerWindow?
+    reading:         ViewerReadingState
+    readState:       bool
+    explorerState:   ExplorerFolderState
     explorerHistory: NavigationHistory
     explorerArchive: bool
-    playMode:  Viewer.PlayMode
-    offset:    f64
-    behind:    bool
-    cellPlusOne: u64  // Zero follows document order. A file placed in a hole keeps its chosen cell.
+    playMode:        Viewer.PlayMode
+    offset:          f64
+    behind:          bool
+    cellPlusOne:     u64     // Zero follows document order. A file placed in a hole keeps its chosen cell.
 }
 
 // Fractional cuts for each square grid, with zero entries denoting equal tracks.
@@ -38,10 +38,16 @@ impl SceneTrackCuts
 {
     mtd const fraction(track, count: u64)->f32
     {
-        if track == 0 do
+        if track == 0
+        {
             return 0
-        if track == count do
+        }
+
+        if track == count
+        {
             return 1
+        }
+
         let cut = .cuts[count - 2][track - 1]
         return cut == 0 ? cast(f32, track) / cast(f32, count) : cut
     }
@@ -54,7 +60,7 @@ impl SceneTrackCuts
         .cuts[count - 2][track - 1] = Math.clamp(fraction, lower, Math.max(lower, upper))
     }
 
-    mtd clear(count: u64) { .cuts[count - 2] = [0'f32, 0, 0] }
+    mtd clear(count: u64) { .cuts[count - 2] = [0_f32, 0, 0] }
 
     mtd validate()
     {
@@ -78,7 +84,7 @@ impl SceneTrackCuts
 
 struct ViewerScene
 {
-    views:              Array'SceneView
+    views:              Array!{SceneView}
     layout:             SceneLayout = .Auto
     active:             u64
     recent:             u64
@@ -101,8 +107,11 @@ impl ViewerScene
 
     mtd const viewInCell(cell: u64)->u64
     {
-        for _, index in .views where .cellOf(index) == cell do
+        for _, index in .views where .cellOf(index) == cell
+        {
             return index
+        }
+
         return Swag.U64.Max
     }
 
@@ -114,8 +123,10 @@ impl ViewerScene
 
     mtd packCells()
     {
-        for &view in .views do
+        for &view in .views
+        {
             view.cellPlusOne = 0
+        }
     }
 
     mtd removeView(index: u64)
@@ -126,15 +137,19 @@ impl ViewerScene
             sparse = true
             break
         }
+
         if sparse
         {
-            for &view, i in .views do
+            for &view, i in .views
+            {
                 view.cellPlusOne = .cellOf(i) + 1
+            }
         }
+
         .views.removeAtOrdered(index)
         if sparse and .views.count > 1
         {
-            let dims = .dimensions(useMaximized: false)
+            let dims  = .dimensions(useMaximized: false)
             let cells = cast(u64, dims.x * dims.y)
             for _, i in .views where .cellOf(i) >= cells
             {
@@ -152,8 +167,11 @@ impl ViewerScene
 
     mtd const dimensions(useMaximized = true)->Math.Point
     {
-        if useMaximized and (.layout == .Single or .maximized) do
+        if useMaximized and (.layout == .Single or .maximized)
+        {
             return {1, 1}
+        }
+
         switch .layout
         {
         case .SideBySide where .views.count <= 2: return {2, 1}
@@ -164,14 +182,26 @@ impl ViewerScene
         default:                                  break
         }
 
-        if .views.count <= 1 do
+        if .views.count <= 1
+        {
             return {1, 1}
-        if .views.count == 2 do
+        }
+
+        if .views.count == 2
+        {
             return {2, 1}
-        if .views.count <= 4 do
+        }
+
+        if .views.count <= 4
+        {
             return {2, 2}
-        if .views.count <= 9 do
+        }
+
+        if .views.count <= 9
+        {
             return {3, 3}
+        }
+
         return {4, 4}
     }
 
@@ -192,8 +222,8 @@ impl ViewerScene
         .views[first]  = #move .views[second]
         .views[second] = #move view
         swap(&.views[first].cellPlusOne, &.views[second].cellPlusOne)
-        .links.leader  = remapSwappedView(.links.leader, first, second)
-        .links.solo    = remapSwappedView(.links.solo, first, second)
+        .links.leader = remapSwappedView(.links.leader, first, second)
+        .links.solo   = remapSwappedView(.links.solo, first, second)
     }
 }
 
@@ -201,8 +231,11 @@ private func remapSwappedView(index, first, second: u64)->u64 => index == first 
 
 private func remapClosedView(index, removed: u64)->u64
 {
-    if index == Swag.U64.Max or index == removed do
+    if index == Swag.U64.Max or index == removed
+    {
         return Swag.U64.Max
+    }
+
     return index > removed ? index - 1 : index
 }
 
@@ -210,47 +243,47 @@ struct ViewerWorkspace
 {
     using wnd: Wnd
 
-    late primary:         *ViewerWindow
-    late tabs:            *SceneTabs
-    late newTabButton:    *CaptionButton
+    late primary:        *ViewerWindow
+    late tabs:           *SceneTabs
+    late newTabButton:   *CaptionButton
     columnDividers:      [3] (*SceneDivider?)
     rowDividers:         [3] (*SceneDivider?)
-    late mediaLinks:      *CaptionButton
-    late mediaTransport:  *CaptionButton
-    late mediaPlayPause:  *CaptionButton
+    late mediaLinks:     *CaptionButton
+    late mediaTransport: *CaptionButton
+    late mediaPlayPause: *CaptionButton
     captionMoves:        [CaptionActionCount] AnimationHandle
 
-    scenes:           ArrayPtr'ViewerScene
-    active:           u64
-    activation:       u64
-    paintedScene:     u64
+    scenes:              ArrayPtr!{ViewerScene}
+    active:              u64
+    activation:          u64
+    paintedScene:        u64
     sceneCaptionPending: bool
-    retiring:         Array'(*ViewerWindow)
-    retireTimer:      *Timer?
-    restored:         Array'SavedScene
-    restoredTab:      u64
-    startupFiles:     Array'String
-    startupLayout:    SceneLayout
-    switchOrder:      Array'u64
-    switchCursor:     u64
-    switcher:         *FloatingPanel?
-    switchBackdrop:   *Wnd?
-    focusOnGrid:      bool          // The title strip has released the cell while the scene keeps its playback leader.
-    hoveredDocument:  *ViewerWindow?
-    pointerKnown:     bool
-    pointerPosition:  Math.Point
-    maxHint:          *HintLine?
-    maxHintTimer:     *Timer?
-    comparison:       *SceneComparison?
-    comparisonScene:  *ViewerScene?
-    comparisonSheet:  *ComparisonSheet?
-    mediaTimer:       *Timer?
-    mediaPlayKeyDown: bool
-    alignSound:       SceneSoundAlignment
-    dropView:         u64 = Swag.U64.Max
-    vacancy:          *ViewerWindow?
-    vacantCell:       u64
-    readingLinksBusy: bool
+    retiring:            Array!{*ViewerWindow}
+    retireTimer:         *Timer?
+    restored:            Array!{SavedScene}
+    restoredTab:         u64
+    startupFiles:        Array!{String}
+    startupLayout:       SceneLayout
+    switchOrder:         Array!{u64}
+    switchCursor:        u64
+    switcher:            *FloatingPanel?
+    switchBackdrop:      *Wnd?
+    focusOnGrid:         bool     // The title strip has released the cell while the scene keeps its playback leader.
+    hoveredDocument:     *ViewerWindow?
+    pointerKnown:        bool
+    pointerPosition:     Math.Point
+    maxHint:             *HintLine?
+    maxHintTimer:        *Timer?
+    comparison:          *SceneComparison?
+    comparisonScene:     *ViewerScene?
+    comparisonSheet:     *ComparisonSheet?
+    mediaTimer:          *Timer?
+    mediaPlayKeyDown:    bool
+    alignSound:          SceneSoundAlignment
+    dropView:            u64 = Swag.U64.Max
+    vacancy:             *ViewerWindow?
+    vacantCell:          u64
+    readingLinksBusy:    bool
 }
 
 impl ViewerWorkspace
@@ -261,19 +294,22 @@ impl ViewerWorkspace
 
     func create(parent: *Wnd, index: #move ViewerPluginRegistry)->*ViewerWorkspace
     {
-        let result = Wnd.create'ViewerWorkspace(parent, "scope.workspace")
-        result.focusPolicy = .Click
+        let result = Wnd.create!{ViewerWorkspace}(parent, "scope.workspace")
+        result.focusPolicy     = .Click
         result.backgroundStyle = .Application
         result.wndFlags.add(.AfterChildrenPaint)
         result.surface!.setView(result)
         result.surface.wnd.sigCaptionPressed += func(frame)
         {
-            if frame.view is ViewerWorkspace as workspace do
+            if frame.view is ViewerWorkspace as workspace
+            {
                 workspace.releaseCellFocus()
+            }
         }
-        result.primary             = ViewerWindow.create(result, #move index, result)
+
+        result.primary = ViewerWindow.create(result, #move index, result)
         result.primary.focusPolicy = .Click
-        result.tabs                = SceneTabs.create(result)
+        result.tabs    = SceneTabs.create(result)
         for slot in result.columnDividers.count
         {
             result.columnDividers[slot] = SceneDivider.create(result, slot + 1, columns: true)
@@ -285,8 +321,9 @@ impl ViewerWorkspace
         {
             .sigPressed += func|workspace = result|(_) { workspace.newTab() }
         }
+
         result.bindSceneCaptionInput()
-        result.hookOnChildEvent    = func|workspace = result|(_, evt)
+        result.hookOnChildEvent = func|workspace = result|(_, evt)
         {
             switch evt
             {
@@ -294,17 +331,22 @@ impl ViewerWorkspace
                 return key.target != null and workspace.routeSceneKey(key, key.target)
 
             case DragDropEvent as drag where drag.data.hasFiles() and workspace.documentCount() > 1:
+
                 // A cell owns its file drops. An explorer still ignores its own drag.
                 let explorer = workspace.activeDocument().explorer
-                if not explorer or not explorer.draggingFile or not explorer.isOwnerOf(drag.target) do
+                if not explorer or not explorer.draggingFile or not explorer.isOwnerOf(drag.target)
+                {
                     return workspace.dropFiles(drag)
+                }
 
             case MouseEvent as pointer where pointer.kind == .Move or pointer.kind == .Enter or pointer.kind == .Leave:
                 workspace.trackViewHover(pointer)
 
             case MouseEvent as pointer where pointer.kind == .Pressed or pointer.kind == .DoubleClick:
-                if pointer.target do
+                if pointer.target
+                {
                     return workspace.activateFromPointer(pointer.target, pointer)
+                }
             }
 
             return false
@@ -316,36 +358,54 @@ impl ViewerWorkspace
 
     mtd scene()->*ViewerScene?
     {
-        if .active >= .scenes.count do
+        if .active >= .scenes.count
+        {
             return null
+        }
+
         return .scenes[.active]
     }
 
     mtd activeDocument()->*ViewerWindow
     {
-        if .vacancy do
+        if .vacancy
+        {
             return .vacancy
+        }
+
         let scene = .scene()
-        if not scene or scene.active >= scene.views.count do
+        if not scene or scene.active >= scene.views.count
+        {
             return .primary
+        }
+
         return scene.views[scene.active].document orelse .primary
     }
 
     mtd sceneName(scene: const *ViewerScene)->String
     {
-        if scene.views.isEmpty() do
+        if scene.views.isEmpty()
+        {
             return scene.layout == .Single ? appStrings().tab_New : sceneLayoutTitle(scene.layout)
+        }
+
         let first: string = Path.fileName(scene.views[0].path) orelse scene.views[0].path
-        if scene.views.count == 1 do
+        if scene.views.count == 1
+        {
             return first
+        }
+
         if scene.views.count == 2
         {
             let second: string = Path.fileName(scene.views[1].path) orelse scene.views[1].path
             return Format.toString("% ↔ %", first, second)
         }
 
-        for view in scene.views where .scenePlaybackKind(view) != .Film do
+        for view in scene.views where .scenePlaybackKind(view) != .Film
+        {
             return Format.toString(appStrings().scene_Files, scene.views.count)
+        }
+
         return Format.toString(appStrings().scene_Videos, scene.views.count)
     }
 
@@ -364,9 +424,9 @@ impl ViewerWorkspace
     func attachDocument(workspace: *ViewerWorkspace, view: *SceneView, remember: bool)
     {
         let document = ViewerWindow.create(workspace, createViewerPluginRegistry(), workspace)
-        view.document        = document
-        document.focusPolicy = .Click
-        document.playMode    = view.playMode
+        view.document         = document
+        document.focusPolicy  = .Click
+        document.playMode     = view.playMode
         document.onlineMovies = workspace.primary.onlineMovies
         document.onlineMusic  = workspace.primary.onlineMusic
         document.applyFullScreenPresentation(workspace.primary.fullScreen)
@@ -387,8 +447,11 @@ impl ViewerWorkspace
 
     mtd adoptPrimary(path: string)
     {
-        if not .scenes.isEmpty() do
+        if not .scenes.isEmpty()
+        {
             return
+        }
+
         let scene = .scenes.addNew()
         scene.views.add({path: String.from(path), document: .primary})
         scene.layout = .Single
@@ -405,11 +468,12 @@ impl ViewerWorkspace
             Toast.create(me).show(appStrings().scene_TabLimit, tone: .Failure)
             return
         }
+
         .suspendScene()
         let scene = .scenes.addNew()
         scene.manual = true
         scene.layout = layout
-        .active = .scenes.count - 1
+        .active      = .scenes.count - 1
         .resumeScene(false)
         catch .primary.saveState()
     }
@@ -431,15 +495,18 @@ impl ViewerWorkspace
             return
         }
 
-        var paths: Array'String
+        var paths: Array!{String}
         paths.add(path)
         .openScene(paths.toSlice(), .Single, remember: remember, manual: newTab)
     }
 
     mtd openScene(paths: const [..] String, layout: SceneLayout, compare = false, remember = true, manual = false)
     {
-        if not paths.count do
+        if not paths.count
+        {
             return
+        }
+
         .adoptExplorerTab()
         if paths.count > MaxViews or .scenes.count >= MaxScenes
         {
@@ -451,13 +518,16 @@ impl ViewerWorkspace
         var next: ViewerScene
         next.manual    = manual
         next.maximized = layout == .Single and paths.count > 1
-        next.layout   = next.maximized ? .Auto : layout
-        next.compared = compare and paths.count == 2
-        for path in paths do
+        next.layout    = next.maximized ? .Auto : layout
+        next.compared  = compare and paths.count == 2
+        for path in paths
+        {
             next.views.add({path: path[]})
-        next.linked = next.compared or paths.count > 1 and layout != .SideBySide and .allMedia(&next)
+        }
+
+        next.linked        = next.compared or paths.count > 1 and layout != .SideBySide and .allMedia(&next)
         .scenes.addNew()[] = #move next
-        .active = .scenes.count - 1
+        .active            = .scenes.count - 1
 
         if .active == 0 and
            .primary.currentFile.isEmpty() and
@@ -475,8 +545,10 @@ impl ViewerWorkspace
     mtd replaceGridDocument(document: *ViewerWindow, path: string)->bool
     {
         let scene = .scene()
-        if not scene or .focusOnGrid or (not scene.maximized and not .isTiled()) do
+        if not scene or .focusOnGrid or (not scene.maximized and not .isTiled())
+        {
             return false
+        }
 
         for view, index in scene.views where view.document == document
         {
@@ -490,46 +562,72 @@ impl ViewerWorkspace
     mtd replaceDocument(index: u64, path: string, select = true)
     {
         let scene = .scene()
-        if not scene or index >= scene.views.count do
+        if not scene or index >= scene.views.count
+        {
             return
-        let view = &scene.views[index]
-        let document = view.document
-        if not document do
-            return
+        }
 
-        view.path      = path
-        view.reading   = {}
-        view.readState = false
+        let view     = &scene.views[index]
+        let document = view.document
+        if not document
+        {
+            return
+        }
+
+        view.path          = path
+        view.reading       = {}
+        view.readState     = false
         view.explorerState = {}
         view.explorerHistory.clear()
         view.explorerArchive = false
-        view.offset    = 0
-        view.behind    = false
-        if scene.links.leader == index do
+        view.offset = 0
+        view.behind = false
+        if scene.links.leader == index
+        {
             scene.links.leader = Swag.U64.Max
-        if scene.links.solo == index do
+        }
+
+        if scene.links.solo == index
+        {
             scene.links.solo = Swag.U64.Max
+        }
+
         document.queueFile(path)
-        if not select do
+        if not select
+        {
             .layoutScene()
-        elif scene.active == index and not .focusOnGrid do
+        }
+        else if scene.active == index and not .focusOnGrid
+        {
             .showScene()
-        else do
+        }
+        else
+        {
             .selectView(index)
+        }
     }
 
     mtd openBeside(path: string)
     {
         let scene = .scene()
-        if not scene or scene.views.count >= MaxViews do
+        if not scene or scene.views.count >= MaxViews
+        {
             return
+        }
+
         .dismissVacancy()
         scene.packCells()
         let index = scene.active + 1
-        if scene.links.leader >= index and scene.links.leader < scene.views.count do
+        if scene.links.leader >= index and scene.links.leader < scene.views.count
+        {
             scene.links.leader += 1
-        if scene.links.solo >= index and scene.links.solo < scene.views.count do
+        }
+
+        if scene.links.solo >= index and scene.links.solo < scene.views.count
+        {
             scene.links.solo += 1
+        }
+
         scene.views.insertAt(index, SceneView{path: String.from(path)})
         scene.active    = index
         scene.layout    = scene.views.count == 2 ? .SideBySide : .Auto
@@ -543,8 +641,11 @@ impl ViewerWorkspace
     mtd updateDocumentPath(document: *ViewerWindow, path: string)
     {
         let scene = .scene()
-        if not scene do
+        if not scene
+        {
             return
+        }
+
         for &view in scene.views where view.document == document and view.path != path
         {
             view.path      = path
@@ -558,27 +659,36 @@ impl ViewerWorkspace
     {
         // Retiring viewers briefly report an empty document. Keep that state out of the caption.
         .sceneCaptionPending = .scene() != null
-        .focusOnGrid = false
+        .focusOnGrid         = false
         .dismissVacancy()
         .clearDropHighlight()
-        .hoveredDocument = null
+        .hoveredDocument  = null
         .mediaPlayKeyDown = false
         .showMaximizedHint(false)
         .stopDividerDrags()
         .closeSwitcher(choose: false)
         let scene = .scene()
-        if not scene do
+        if not scene
+        {
             return
-        if capturePreview do
+        }
+
+        if capturePreview
+        {
             .captureScenePreview()
+        }
+
         .storeComparisonState()
         .comparisonScene = null
         .closeComparisonSheet()
         for &view in scene.views
         {
             let document = view.document
-            if not document do
+            if not document
+            {
                 continue
+            }
+
             .captureView(view)
             .primary.privacy.track(view.path, document.privacy.policy(view.path))
             view.document = null
@@ -589,19 +699,30 @@ impl ViewerWorkspace
     mtd captureView(view: *SceneView)
     {
         let document = view.document
-        if not document do
+        if not document
+        {
             return
+        }
+
         view.playMode = document.playMode
+
         // An Explorer can still be visible while a different file is opening in this pane.
         if document.isExploring() and not document.explorerTransition
         {
             let explorer = unwrap document.explorer
-            if explorer.restoringView do
+            if explorer.restoringView
+            {
                 view.explorerState = explorer.restoredView
-            elif Path.equals(explorer.listing.path, explorer.requested) and explorer.folder == explorer.requestedFolder do
+            }
+            else if Path.equals(explorer.listing.path, explorer.requested) and explorer.folder == explorer.requestedFolder
+            {
                 view.explorerState = ExplorerFolderState.capture(explorer)
-            else do
+            }
+            else
+            {
                 view.explorerState = {path: explorer.requested, folder: explorer.requestedFolder}
+            }
+
             view.explorerHistory = explorer.history
             view.explorerArchive = explorer.listing.isArchive and Path.equals(explorer.listing.path, explorer.requested)
             return
@@ -611,11 +732,17 @@ impl ViewerWorkspace
         view.explorerHistory.clear()
         view.explorerArchive = false
         if document.currentFile != view.path or
-           document.activeChoiceIndex >= document.instances.count do
+           document.activeChoiceIndex >= document.instances.count
+        {
             return
+        }
+
         let session = &document.instances[document.activeChoiceIndex]
-        if not session.view or document.readingState.restoring do
+        if not session.view or document.readingState.restoring
+        {
             return
+        }
+
         view.reading.capture(session, document.choices[document.activeChoiceIndex].key, document.searchBox.text())
         view.reading.captureSearchSettings(document)
         view.readState = true
@@ -628,8 +755,10 @@ impl ViewerWorkspace
         {
             .activation  += 1
             scene.recent = .activation
-            for &view in scene.views where not view.document do
+            for &view in scene.views where not view.document
+            {
                 ViewerWorkspace.attachDocument(me, view, remember)
+            }
         }
 
         .showScene()
@@ -637,8 +766,11 @@ impl ViewerWorkspace
 
     mtd selectScene(index: u64, capturePreview = true)
     {
-        if index >= .scenes.count or index == .active do
+        if index >= .scenes.count or index == .active
+        {
             return
+        }
+
         .suspendScene(capturePreview)
         .active = index
         .resumeScene(false)
@@ -647,8 +779,11 @@ impl ViewerWorkspace
 
     mtd releaseCellFocus()
     {
-        if not .isTiled() or .focusOnGrid or .documentCount() == 0 do
+        if not .isTiled() or .focusOnGrid or .documentCount() == 0
+        {
             return
+        }
+
         let previous = .activeDocument()
         previous.hideSearch()
         previous.closeInformation()
@@ -660,8 +795,13 @@ impl ViewerWorkspace
     mtd selectView(index: u64)
     {
         let scene = .scene()
-        if not scene or index >= scene.views.count or (index == scene.active and not .vacancy and not .focusOnGrid) do
+        if not scene or
+           index >= scene.views.count or
+           (index == scene.active and not .vacancy and not .focusOnGrid)
+        {
             return
+        }
+
         let previous = .activeDocument()
         if previous != scene.views[index].document
         {
@@ -670,6 +810,7 @@ impl ViewerWorkspace
             previous.closeInformation()
             previous.concealViewerBar()
         }
+
         .dismissVacancy()
         .focusOnGrid = false
         scene.active = index
@@ -681,9 +822,14 @@ impl ViewerWorkspace
     mtd focusVacancy(cell: u64)
     {
         let scene = .scene()
-        if not scene or (not .isTiled() and not scene.views.isEmpty()) or
-           cell >= scene.cellCount() or scene.viewInCell(cell) != Swag.U64.Max do
+        if not scene or
+           (not .isTiled() and not scene.views.isEmpty()) or
+           cell >= scene.cellCount() or
+           scene.viewInCell(cell) != Swag.U64.Max
+        {
             return
+        }
+
         .focusOnGrid = false
         if not .vacancy
         {
@@ -693,9 +839,9 @@ impl ViewerWorkspace
             previous.closeInformation()
             previous.concealViewerBar()
             .vacancy = ViewerWindow.create(me, createViewerPluginRegistry(), me)
-            .vacancy.focusPolicy = .Click
+            .vacancy.focusPolicy  = .Click
             .vacancy.onlineMovies = .primary.onlineMovies
-            .vacancy.onlineMusic = .primary.onlineMusic
+            .vacancy.onlineMusic  = .primary.onlineMusic
             .vacancy.applyFullScreenPresentation(.primary.fullScreen)
             .vacancy.home.show(not .isTiled())
             .vacancy.hintLine.clearHints()
@@ -703,6 +849,7 @@ impl ViewerWorkspace
             .vacancy.hintLine.addHint(.vacancy.keyShortcutName(ViewerCommands.Explore), appStrings().cmd_Explore)
             .vacancy.hintLine.show()
         }
+
         .vacantCell = cell
         .showScene()
     }
@@ -710,16 +857,22 @@ impl ViewerWorkspace
     mtd dismissVacancy()
     {
         let document = .vacancy
-        if not document do
+        if not document
+        {
             return
+        }
+
         .vacancy = null
         .retireDocument(document)
     }
 
     mtd fillVacancy(document: *ViewerWindow, path: string)
     {
-        if .vacancy != document do
+        if .vacancy != document
+        {
             return
+        }
+
         let scene = unwrap .scene()
         scene.views.add({path: String.from(path), document: document, cellPlusOne: .vacantCell + 1})
         scene.active = scene.views.count - 1
@@ -735,9 +888,13 @@ impl ViewerWorkspace
             .closeView()
             return
         }
+
         let scene = .scene()
-        if not scene do
+        if not scene
+        {
             return
+        }
+
         for view, index in scene.views where view.document == document
         {
             .closeView(index)
@@ -750,8 +907,11 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene
         {
-            if index == Swag.U64.Max do
+            if index == Swag.U64.Max
+            {
                 .primary.closeFile()
+            }
+
             return
         }
 
@@ -770,9 +930,13 @@ impl ViewerWorkspace
                 return
             }
         }
+
         let closing = index == Swag.U64.Max ? scene.active : index
-        if closing >= scene.views.count do
+        if closing >= scene.views.count
+        {
             return
+        }
+
         if scene.views.count == 1 and (not scene.manual or not .isTiled())
         {
             .closeScene(.active)
@@ -784,22 +948,35 @@ impl ViewerWorkspace
         scene.removeView(closing)
         scene.links.leader = remapClosedView(scene.links.leader, closing)
         scene.links.solo   = remapClosedView(scene.links.solo, closing)
-        if scene.views.isEmpty() do
-            scene.active = 0
-        elif scene.active == closing do
-            scene.active = Math.min(closing, scene.views.count - 1)
-        else do
-            scene.active = remapClosedView(scene.active, closing)
-        scene.compared     = false
-        scene.maximized    = false
-        if scene.views.isEmpty() do
-            scene.linked = false
-        elif scene.views.count == 1 and not (scene.links.explorer and (scene.views[0].document?.isExploring() orelse false))
+        if scene.views.isEmpty()
         {
-            if not scene.manual do
-                scene.layout = .Single
+            scene.active = 0
+        }
+        else if scene.active == closing
+        {
+            scene.active = Math.min(closing, scene.views.count - 1)
+        }
+        else
+        {
+            scene.active = remapClosedView(scene.active, closing)
+        }
+
+        scene.compared  = false
+        scene.maximized = false
+        if scene.views.isEmpty()
+        {
             scene.linked = false
         }
+        else if scene.views.count == 1 and not (scene.links.explorer and (scene.views[0].document?.isExploring() orelse false))
+        {
+            if not scene.manual
+            {
+                scene.layout = .Single
+            }
+
+            scene.linked = false
+        }
+
         .showScene()
         .showMaximizedHint(false)
         catch .primary.saveState()
@@ -807,12 +984,18 @@ impl ViewerWorkspace
 
     mtd closeScene(index: u64)
     {
-        if index >= .scenes.count do
+        if index >= .scenes.count
+        {
             return
+        }
+
         .closeSwitcher(choose: false)
         let selected = index == .active
-        if selected do
+        if selected
+        {
             .suspendScene(capturePreview: false)
+        }
+
         .app().renderer.removeTexture(&.scenes[index]!.preview)
         .scenes.deleteAt(index)
         if selected
@@ -820,7 +1003,7 @@ impl ViewerWorkspace
             .active = Math.min(index, .scenes.isEmpty() ? 0 : .scenes.count - 1)
             .resumeScene(false)
         }
-        elif index < .active
+        else if index < .active
         {
             .active -= 1
         }
@@ -831,14 +1014,19 @@ impl ViewerWorkspace
 
     mtd closeTabs(keep = Swag.U64.Max)
     {
-        if .scenes.isEmpty() or (keep < .scenes.count and .scenes.count == 1) do
+        if .scenes.isEmpty() or (keep < .scenes.count and .scenes.count == 1)
+        {
             return
+        }
 
         .closeSwitcher(choose: false)
-        let keepTab = keep < .scenes.count
+        let keepTab    = keep < .scenes.count
         let keepActive = keepTab and keep == .active
-        if not keepActive do
+        if not keepActive
+        {
             .suspendScene(capturePreview: false)
+        }
+
         for index in reversed(.scenes.count) where not keepTab or index != keep
         {
             .app().renderer.removeTexture(&.scenes[index]!.preview)
@@ -846,48 +1034,77 @@ impl ViewerWorkspace
         }
 
         .active = 0
-        if keepActive do
+        if keepActive
+        {
             .showScene()
-        else do
+        }
+        else
+        {
             .resumeScene(false)
+        }
+
         catch .primary.saveState()
     }
 
     mtd retireDocument(document: *ViewerWindow)
     {
-        if .isHoveredDocument(document) do
+        if .isHoveredDocument(document)
+        {
             .hoveredDocument = null
+        }
+
         document.lens.close()
-        if document.searchBar.parent != document do
+        if document.searchBar.parent != document
+        {
             document.hideSearch()
-        if document != .primary do
+        }
+
+        if document != .primary
+        {
             document.lens.destroy()
+        }
+
         document.closeInformation()
         document.closeFile()
         document.stopTimer(&document.startupTimer)
         document.hide()
         .retiring.add(document)
-        if not .retireTimer do
-            .retireTimer = .addTimer(20'ms)
+        if not .retireTimer
+        {
+            .retireTimer = .addTimer(20_ms)
+        }
     }
 
     mtd setLayout(layout: SceneLayout)
     {
-        if layout != .Single do
-            .adoptExplorerTab()
-        let scene = .scene()
-        if not scene or not scene.supportsLayout(layout) do
-            return
-        .dismissVacancy()
-        .stopDividerDrags()
-        if layout != scene.layout and layout != .Single do
-            scene.packCells()
-        if layout == .Single and scene.views.count > 1
+        if layout != .Single
         {
-            if not scene.maximized do
-                .toggleMaximized()
+            .adoptExplorerTab()
+        }
+
+        let scene = .scene()
+        if not scene or not scene.supportsLayout(layout)
+        {
             return
         }
+
+        .dismissVacancy()
+        .stopDividerDrags()
+        if layout != scene.layout and layout != .Single
+        {
+            scene.packCells()
+        }
+
+        if layout == .Single and scene.views.count > 1
+        {
+            if not scene.maximized
+            {
+                .toggleMaximized()
+            }
+
+            return
+        }
+
         if scene.compared and layout != .SideBySide
         {
             .storeComparisonState()
@@ -905,11 +1122,17 @@ impl ViewerWorkspace
     mtd toggleMaximized()
     {
         let scene = .scene()
-        if not scene or scene.views.count < 2 or .vacancy or .focusOnGrid do
+        if not scene or scene.views.count < 2 or .vacancy or .focusOnGrid
+        {
             return
+        }
+
         scene.maximized = not scene.maximized
-        if scene.maximized do
+        if scene.maximized
+        {
             .closeComparisonSheet()
+        }
+
         .layoutScene()
         .showMaximizedHint(scene.maximized)
         catch .primary.saveState()
@@ -925,29 +1148,42 @@ impl ViewerWorkspace
 
         .layoutScene()
         let document = .activeDocument()
-        if .sceneCaptionPending do
+        if .sceneCaptionPending
+        {
             .finishSceneCaption()
+        }
         else
         {
             document.refreshTitle()
             document.refreshReadingAppearance()
         }
+
         .tabs.invalidate()
         let focused = document.focusedWindow()
-        if .focusOnGrid do
+        if .focusOnGrid
+        {
             .setFocus()
-        elif focused != document and not document.isAncestorOf(focused) do
+        }
+        else if focused != document and not document.isAncestorOf(focused)
+        {
             document.setFocus()
+        }
     }
 
     mtd layoutScene()
     {
-        if .mediaTransport == null do
+        if .mediaTransport == null
+        {
             return
-        let area         = .sceneArea()
-        let scene        = .scene()
-        if not .isTiled() do
+        }
+
+        let area  = .sceneArea()
+        let scene = .scene()
+        if not .isTiled()
+        {
             .focusOnGrid = false
+        }
+
         var primaryShown = not scene
         if scene
         {
@@ -955,24 +1191,42 @@ impl ViewerWorkspace
             {
                 let visible = not (scene.maximized or scene.layout == .Single) or index == scene.active
                 let player  = ScenePlayer.from(view.document)
-                if player.film do
+                if player.film
+                {
                     player.film.keepPlayingHidden = scene.maximized or scene.layout == .Single
-                if player.sound do
+                }
+
+                if player.sound
+                {
                     player.sound.keepPlayingHidden = scene.maximized or scene.layout == .Single
-                if visible do
+                }
+
+                if visible
+                {
                     view.document.show()
-                else do
+                }
+                else
+                {
                     view.document.hide(keepActivities: true)
-                if view.document == .primary do
+                }
+
+                if view.document == .primary
+                {
                     primaryShown = visible
+                }
+
                 if visible
                 {
                     view.document.setPosition(.viewRect(scene, index))
-                    if view.document.isExploring() do
+                    if view.document.isExploring()
+                    {
                         view.document.teachHints(true)
+                    }
+
                     view.document.layoutFileInfo()
                     view.document.applyLayout()
                 }
+
                 .updateMediaViewport(view.document)
             }
         }
@@ -982,14 +1236,18 @@ impl ViewerWorkspace
             .primary.applyLayout()
         }
 
-        if primaryShown and .retiring.contains(.primary) and not .primary.pendingEmpty.isEmpty() do
+        if primaryShown and .retiring.contains(.primary) and not .primary.pendingEmpty.isEmpty()
+        {
             .primary.continueStartup()
+        }
+
         .primary.show(primaryShown)
         if .vacancy
         {
             .vacancy.setPosition(.gridPaneRect(unwrap scene, .vacantCell))
             .vacancy.applyLayout()
         }
+
         .focusDelegate = .focusOnGrid ? null : .activeDocument()
         .updateMedia()
         if .newTabButton != null
@@ -999,6 +1257,7 @@ impl ViewerWorkspace
             .newTabButton.toolTip = shortcut.isEmpty() ? String.from(appStrings().tab_New) :
                                     Format.toString("% (%)", appStrings().tab_New, shortcut)
         }
+
         .tabs.layoutTabs()
         .invalidate()
         for index in .columnDividers.count
@@ -1009,8 +1268,11 @@ impl ViewerWorkspace
 
         .switchBackdrop?.setPosition(area, computeLayout: false)
         .refreshComparison()
-        if .pointerKnown do
+        if .pointerKnown
+        {
             .updateHoveredDocument(.documentAtPointer(.pointerPosition))
+        }
+
         .comparisonSheet?.refresh()
     }
 
@@ -1043,9 +1305,9 @@ impl ViewerWorkspace
 
     mtd gridBody()->Math.Rectangle
     {
-        var body = .clientRect()
-        let tabs = .tabStripHeight()
-        let gap = tabs > 0 ? .themeMetrics().floating_Inset * 0.5 : 0
+        var body  = .clientRect()
+        let tabs  = .tabStripHeight()
+        let gap   = tabs > 0 ? .themeMetrics().floating_Inset * 0.5 : 0
         let strip = .stripInset() + tabs + gap
         body.y      += strip
         body.height = Math.max(body.height - strip, 0)
@@ -1056,12 +1318,16 @@ impl ViewerWorkspace
 
     mtd gridCellRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
     {
-        if scene.cellCount() == 1 and scene.views.count <= 1 do
+        if scene.cellCount() == 1 and scene.views.count <= 1
+        {
             return .sceneArea()
+        }
 
         let body = .gridBody()
-        if scene.maximized or scene.layout == .Single do
+        if scene.maximized or scene.layout == .Single
+        {
             return body
+        }
 
         let grid = scene.dimensions()
         let cols = cast(u64, grid.x)
@@ -1072,8 +1338,11 @@ impl ViewerWorkspace
 
         func trackSpan(cuts: const *SceneTrackCuts, span, split, gap: f32, i, count: u64)->Math.Point
         {
-            if count == 1 do
+            if count == 1
+            {
                 return {0, span}
+            }
+
             let room   = Math.max(0, span - cast(f32, count - 1) * gap)
             let offset = cast(f32, i) * gap
             let first  = split ? (i == 0 ? 0 : split) : cuts.fraction(i, count)
@@ -1089,21 +1358,31 @@ impl ViewerWorkspace
     mtd activateFromPointer(child: *Wnd, evt: *MouseEvent)->bool
     {
         let scene = .scene()
-        if not scene or (scene.views.count < 2 and not .isTiled()) or evt.button != .Left do
+        if not scene or (scene.views.count < 2 and not .isTiled()) or evt.button != .Left
+        {
             return false
+        }
+
         if .vacancy and evt.kind == .DoubleClick and (child == .vacancy or .vacancy.isOwnerOf(child))
         {
             .vacancy.chooseFile()
             return true
         }
+
         for view, index in scene.views where view.document and (view.document == child or view.document.isOwnerOf(child))
         {
             let document = view.document
-            if child == document.readingLine.close do
+            if child == document.readingLine.close
+            {
                 return false
+            }
+
             .selectView(index)
-            if evt.kind != .DoubleClick do
+            if evt.kind != .DoubleClick
+            {
                 return false
+            }
+
             let content = document.currentView
             let caption = child == document.cellCaption or child == document.cellCaption.title
             let frame   = ScenePlayer.from(document).film?.imageView == child
@@ -1112,16 +1391,21 @@ impl ViewerWorkspace
                 .toggleMaximized()
                 return true
             }
+
             break
         }
+
         return false
     }
 
     mtd neighbourCell(key: Input.Key)->u64
     {
         let scene = .scene()
-        if not scene or (scene.views.count < 2 and not .isTiled()) do
+        if not scene or (scene.views.count < 2 and not .isTiled())
+        {
             return Swag.U64.Max
+        }
+
         let single = scene.maximized or scene.layout == .Single
         let cols   = cast(s64, scene.dimensions().x)
         let index  = cast(s64, single ? scene.active : (.vacancy ? .vacantCell : scene.cellOf(scene.active)))
@@ -1144,18 +1428,27 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene or
            (scene.views.count < 2 and not .isTiled()) or
-           (key != .Left and key != .Right and key != .Up and key != .Down) do
+           (key != .Left and key != .Right and key != .Up and key != .Down)
+        {
             return false
+        }
+
         if .focusOnGrid
         {
-            if not swap do
+            if not swap
+            {
                 .selectView(scene.active)
+            }
+
             return true
         }
 
         let cell = .neighbourCell(key)
-        if cell == Swag.U64.Max do
-                return true
+        if cell == Swag.U64.Max
+        {
+            return true
+        }
+
         let view = scene.maximized or scene.layout == .Single ? cell : scene.viewInCell(cell)
         if view == Swag.U64.Max
         {
@@ -1165,13 +1458,14 @@ impl ViewerWorkspace
                 .showScene()
                 catch .primary.saveState()
             }
-            elif not swap
+            else if not swap
             {
                 .focusVacancy(cell)
             }
 
             return true
         }
+
         if swap and .vacancy
         {
             scene.views[view].cellPlusOne = .vacantCell + 1
@@ -1179,13 +1473,19 @@ impl ViewerWorkspace
         }
         else
         {
-        if swap do
-            .swapSceneViews(scene.active, view)
-        .selectView(view)
+            if swap
+            {
+                .swapSceneViews(scene.active, view)
+            }
+
+            .selectView(view)
         }
 
-        if swap do
+        if swap
+        {
             catch .primary.saveState()
+        }
+
         return true
     }
 }
@@ -1202,14 +1502,19 @@ impl IWnd for ViewerWorkspace
 
         .primary.sendStateEvent(.Init)
         let files = #move .startupFiles
-        if not .primary.smokeRunning and .scenes.isEmpty() do
+        if not .primary.smokeRunning and .scenes.isEmpty()
+        {
             .restoreScenes(resume: files.isEmpty())
+        }
+
         if not files.isEmpty()
         {
             let selected = .scene()
             .openScene(files.toSlice(), .startupLayout)
-            if selected and selected == .scene() do
+            if selected and selected == .scene()
+            {
                 .resumeScene(false)
+            }
         }
     }
 
@@ -1222,8 +1527,10 @@ impl IWnd for ViewerWorkspace
     {
         let scene = .scene()
         .paintedScene = scene?.recent orelse 0
-        if scene and .isTiled() and not .comparisonVisible() do
+        if scene and .isTiled() and not .comparisonVisible()
+        {
             .paintGridDividers(evt.paintContext.painter, scene)
+        }
     }
 
     mtd impl onAfterPaint(evt: *PaintEvent)
@@ -1237,8 +1544,11 @@ impl IWnd for ViewerWorkspace
         {
             .synchronizeMedia()
             .updateMediaTransport()
-            if .comparisonVisible() do
+            if .comparisonVisible()
+            {
                 .comparison!.invalidate()
+            }
+
             return
         }
 
@@ -1257,28 +1567,48 @@ impl IWnd for ViewerWorkspace
         for index in reversed(.retiring.count)
         {
             let document = .retiring[index]
-            if document.choiceLoad.started and not document.choiceLoad.isDone() do
+            if document.choiceLoad.started and not document.choiceLoad.isDone()
+            {
                 continue
-            if not document.pendingEmpty.isEmpty() do
+            }
+
+            if not document.pendingEmpty.isEmpty()
+            {
                 document.continueStartup()
-            if document.choiceLoad.started or not document.pendingEmpty.isEmpty() do
+            }
+
+            if document.choiceLoad.started or not document.pendingEmpty.isEmpty()
+            {
                 continue
-            if document != .primary do
+            }
+
+            if document != .primary
+            {
                 document.destroy()
+            }
+
             .retiring.removeAtOrdered(index)
         }
 
-        if .retiring.isEmpty() do
+        if .retiring.isEmpty()
+        {
             .stopTimer(&.retireTimer)
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if .routeSceneKey(evt, me) do
+        if .routeSceneKey(evt, me)
+        {
             return
+        }
+
         let document = .activeDocument()
         let focused  = .focusedWindow()
-        if evt.kind == .Pressed and not document.lens.isOpen() and focused != document and not document.isAncestorOf(focused)
+        if evt.kind == .Pressed and
+           not document.lens.isOpen() and
+           focused != document and
+           not document.isAncestorOf(focused)
         {
             if let id = document.keyShortcut(evt.modifiers, evt.key)
             {
@@ -1295,15 +1625,19 @@ impl IWnd for ViewerWorkspace
         if evt.kind == .Pressed and evt.button == .Left and .isTiled()
         {
             let scene = unwrap .scene()
-            let cell = .vacantCellAt(scene, .surfaceToLocal(evt.surfacePos))
+            let cell  = .vacantCellAt(scene, .surfaceToLocal(evt.surfacePos))
             if cell != Swag.U64.Max
             {
                 .focusVacancy(cell)
                 return
             }
         }
-        if evt.kind == .Move or evt.kind == .Enter or evt.kind == .Leave do
+
+        if evt.kind == .Move or evt.kind == .Enter or evt.kind == .Leave
+        {
             .trackViewHover(evt)
+        }
+
         evt.accepted = false
     }
 
@@ -1316,8 +1650,10 @@ impl IWnd for ViewerWorkspace
     {
         .alignSound.task.cancel()
         .alignSound.wait()
-        for scene in .scenes do
+        for scene in .scenes
+        {
             .app().renderer.removeTexture(&scene!.preview)
+        }
     }
 
     mtd impl onDragDropEvent(evt: *DragDropEvent)

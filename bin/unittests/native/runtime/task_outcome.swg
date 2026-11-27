@@ -11,7 +11,7 @@ struct OutcomeFailure
 // A produced value is handed over once; the task can then run again.
 #test
 {
-    var task: Swag.Task'u64
+    var task: Swag.Task!{u64}
     task.submit(func()->u64 => 6 * 7)
     let first = expect task.take()
     Swag.require(first == 42 and not task.isDone())
@@ -24,14 +24,16 @@ struct OutcomeFailure
 // A failing body hands its error over with its dynamic type, on every result type.
 #test
 {
-    var valued: Swag.Task'u64
+    var valued: Swag.Task!{u64}
     valued.submit(func()->u64 fail { fail OutcomeFailure{3} })
     var errorOutcome: Swag.Error
     discard catch valued.take() as errorOutcome
     let error = errorOutcome.value()
     Swag.require(error is OutcomeFailure)
-    if error is OutcomeFailure as failure do
+    if error is OutcomeFailure as failure
+    {
         Swag.require(failure.code == 3)
+    }
 
     var plain: Swag.Task
     plain.submit(func() fail { fail OutcomeFailure{4} })
@@ -39,8 +41,10 @@ struct OutcomeFailure
     catch plain.take() as plainErrorOutcome
     let plainError = plainErrorOutcome.value()
     Swag.require(plainError is OutcomeFailure)
-    if plainError is OutcomeFailure as plainFailure do
+    if plainError is OutcomeFailure as plainFailure
+    {
         Swag.require(plainFailure.code == 4)
+    }
 
     // The next run starts from a clean outcome.
     plain.submit(func() {})
@@ -59,8 +63,10 @@ impl OwnedOutcome
 {
     mtd opDrop()
     {
-        if .label != 0 do
+        if .label != 0
+        {
             releasedOutcomes += 1
+        }
     }
 }
 
@@ -70,7 +76,7 @@ impl OwnedOutcome
     releasedOutcomes = 0
     scope
     {
-        var task: Swag.Task'OwnedOutcome
+        var task: Swag.Task!{OwnedOutcome}
         task.submit(func()->OwnedOutcome => OwnedOutcome{1})
         task.wait()
         task.submit(func()->OwnedOutcome => OwnedOutcome{2})
@@ -84,16 +90,18 @@ impl OwnedOutcome
 // The notification runs once, before the task reads as done.
 #test
 {
-    var notified: Swag.AtomicValue'u32
-    var doneSeen: Swag.AtomicValue'u32
-    var task:     Swag.Task'u32
+    var notified: Swag.AtomicValue!{u32}
+    var doneSeen: Swag.AtomicValue!{u32}
+    var task:     Swag.Task!{u32}
     let observed = &task
 
     task.submit(func()->u32 => 5, func|&notified, &doneSeen, observed|()
     {
         notified.add(1)
-        if observed.isDone() do
+        if observed.isDone()
+        {
             doneSeen.add(1)
+        }
     })
 
     let value = expect task.take()
@@ -110,7 +118,7 @@ impl OwnedOutcome
 // of a group it spawns.
 #test
 {
-    var task: Swag.Task'u64
+    var task: Swag.Task!{u64}
     let self = &task
 
     task.submit(func|self|()->u64
@@ -118,18 +126,25 @@ impl OwnedOutcome
         self.cancel()
         Swag.assert(Swag.isCancelled())
 
-        var seen: Swag.AtomicValue'u64
+        var seen: Swag.AtomicValue!{u64}
         parallel for |&seen| 64
         {
-            if Swag.isCancelled() do
+            if Swag.isCancelled()
+            {
                 seen.add(1)
+            }
         }
 
         scope
         {
             var group: Swag.TaskGroup
-            for 4 do
-                group.spawn(func|&seen|() { if Swag.isCancelled() do seen.add(1) })
+            for 4
+            {
+                group.spawn(func|&seen|() { if Swag.isCancelled()
+                    {
+                        seen.add(1)
+                    } })
+            }
         }
 
         return seen.load()
@@ -143,7 +158,7 @@ impl OwnedOutcome
 // A request belongs to one submission: the next run starts without it.
 #test
 {
-    var task: Swag.Task'bool
+    var task: Swag.Task!{bool}
     let self = &task
     task.submit(func|self|()->bool
     {
@@ -160,12 +175,12 @@ impl OwnedOutcome
 // A task's own request does not leak into a task its body submits: that task can outlive the body.
 #test
 {
-    var outer: Swag.Task'bool
+    var outer: Swag.Task!{bool}
     let self = &outer
     outer.submit(func|self|()->bool
     {
         self.cancel()
-        var inner: Swag.Task'bool
+        var inner: Swag.Task!{bool}
         inner.submit(func()->bool => Swag.isCancelled())
         return expect inner.take()
     })
@@ -184,7 +199,7 @@ impl OwnedOutcome
         task.submit(func|&stopped|()
         {
             // Compile-time execution runs this inside the submission, before any request exists.
-            let attempts = Swag.jit() ? 1'u64 : 2_000_000_000'u64
+            let attempts = Swag.jit() ? 1_u64 : 2_000_000_000_u64
             for attempts
             {
                 if Swag.isCancelled()
@@ -202,13 +217,18 @@ impl OwnedOutcome
 // A group's own request reaches its children, and so does the request of the work spawning it.
 #test
 {
-    var seen: Swag.AtomicValue'u32
+    var seen: Swag.AtomicValue!{u32}
     scope
     {
         var group: Swag.TaskGroup
         group.cancel()
-        for 3 do
-            group.spawn(func|&seen|() { if Swag.isCancelled() do seen.add(1) })
+        for 3
+        {
+            group.spawn(func|&seen|() { if Swag.isCancelled()
+                {
+                    seen.add(1)
+                } })
+        }
     }
 
     Swag.require(seen.load() == 3)
@@ -217,7 +237,7 @@ impl OwnedOutcome
 // A background task runs at a lower priority and hands its value over like any other task.
 #test
 {
-    var task: Swag.Task'u32
+    var task: Swag.Task!{u32}
     task.submit(func()->u32 => 11, priority: .Background)
     let value = expect task.take()
     Swag.require(value == 11)
@@ -250,7 +270,7 @@ impl OwnedOutcome
     })
 
     let target = &awaited
-    var waiter: Swag.Task'bool
+    var waiter: Swag.Task!{bool}
     waiter.submit(func|target|()->bool => target.waitUnlessCancelled())
     waiter.cancel()
     let finished = expect waiter.take()
@@ -264,7 +284,7 @@ impl OwnedOutcome
 // Outside a cancelled task, a cancellable join waits for the end like a plain one.
 #test
 {
-    var task: Swag.Task'u32
+    var task: Swag.Task!{u32}
     task.submit(func()->u32 => 3)
     Swag.require(task.waitUnlessCancelled())
     let value = expect task.take()
@@ -275,8 +295,8 @@ impl OwnedOutcome
 // A joined group starts empty, without the stop request.
 #test
 {
-    var stopped: Swag.AtomicValue'u32
-    var fresh:   Swag.AtomicValue'u32
+    var stopped: Swag.AtomicValue!{u32}
+    var fresh:   Swag.AtomicValue!{u32}
     var group:   Swag.TaskGroup
     group.spawn(func() fail { fail OutcomeFailure{7} })
     for 3
@@ -284,7 +304,7 @@ impl OwnedOutcome
         group.spawn(func|&stopped|()
         {
             // Compile-time execution runs each child during its spawn, after the failure.
-            let attempts = Swag.jit() ? 1'u64 : 2_000_000_000'u64
+            let attempts = Swag.jit() ? 1_u64 : 2_000_000_000_u64
             for attempts
             {
                 if Swag.isCancelled()
@@ -301,7 +321,10 @@ impl OwnedOutcome
     let error = errorOutcome.value()
     Swag.require(error is OutcomeFailure and stopped.load() == 3)
 
-    group.spawn(func|&fresh|() { if not Swag.isCancelled() do fresh.add(1) })
+    group.spawn(func|&fresh|() { if not Swag.isCancelled()
+        {
+            fresh.add(1)
+        } })
     expect group.join()
     Swag.require(fresh.load() == 1)
 }
@@ -309,7 +332,7 @@ impl OwnedOutcome
 // 'whenAll' waits for every task and leaves each value to take.
 #test
 {
-    var tasks: [3] Swag.Task'u32
+    var tasks: [3] Swag.Task!{u32}
     for &task, index in tasks
     {
         let value = cast(u32, index) * 10
@@ -317,17 +340,19 @@ impl OwnedOutcome
     }
 
     expect Swag.whenAll(tasks)
-    var total = 0'u32
-    for &task in tasks do
+    var total = 0_u32
+    for &task in tasks
+    {
         total += expect task.take()
+    }
     Swag.require(total == 30)
 }
 
 // 'whenAll' raises a completed failure and asks the other tasks to stop, even with one worker.
 #test
 {
-    var stopped: Swag.AtomicValue'u32
-    var tasks:   [3] Swag.Task'u32
+    var stopped: Swag.AtomicValue!{u32}
+    var tasks:   [3] Swag.Task!{u32}
     tasks[0].submit(func()->u32 fail { fail OutcomeFailure{1} })
     tasks[0].wait()
     Swag.require(tasks[0].hasFailed())
@@ -335,7 +360,7 @@ impl OwnedOutcome
     {
         tasks[index].submit(func|&stopped|()->u32
         {
-            let attempts = Swag.jit() ? 1'u64 : 100_000_000'u64
+            let attempts = Swag.jit() ? 1_u64 : 100_000_000_u64
             for attempts
             {
                 if Swag.isCancelled()
@@ -359,7 +384,7 @@ impl OwnedOutcome
 // 'whenAny' returns the first task that succeeded, and raises the first error when all fail.
 #test
 {
-    var tasks: [2] Swag.Task'u32
+    var tasks: [2] Swag.Task!{u32}
     tasks[0].submit(func()->u32 fail { fail OutcomeFailure{2} })
     tasks[1].submit(func()->u32 => 5)
     let winner = expect Swag.whenAny(tasks)
@@ -367,23 +392,27 @@ impl OwnedOutcome
     let value = expect tasks[1].take()
     Swag.require(value == 5)
 
-    var failing: [2] Swag.Task'u32
+    var failing: [2] Swag.Task!{u32}
     failing[0].submit(func()->u32 fail { fail OutcomeFailure{3} })
     failing[1].submit(func()->u32 fail { fail OutcomeFailure{4} })
     var errorOutcome: Swag.Error
     discard catch Swag.whenAny(failing) as errorOutcome
     let error = errorOutcome.value()
     Swag.require(error is OutcomeFailure)
-    if error is OutcomeFailure as failure do
+    if error is OutcomeFailure as failure
+    {
         Swag.require(failure.code == 3)
+    }
 }
 
 // The task's capture ends before take() reads its copied message.
 func failWithTaskMessage()->s32 fail
 {
     let context = Swag.getContext()
-    if not context.errorAllocator.capacity do
+    if not context.errorAllocator.capacity
+    {
         context.errorAllocator.setCapacity(64, unwrap context.allocator)
+    }
     let allocator = Swag.makeInterface(&context.errorAllocator, Swag.ScratchAllocator, Swag.IAllocator)
     let text      = "a task retains the copied text of its failure"
     var request: Swag.AllocatorRequest
@@ -396,7 +425,7 @@ func failWithTaskMessage()->s32 fail
 
 #test
 {
-    var task: Swag.Task's32
+    var task: Swag.Task!{s32}
     task.submit(func()->s32 fail { return try failWithTaskMessage() })
     task.wait()
     var handled = false

@@ -51,8 +51,10 @@ impl ICalorieSource for Elf
     func impl totalCalories(me)->u32
     {
         var total: u32
-        for item in me.items[until me.itemCount] do
+        for item in me.items[until me.itemCount]
+        {
             total += item.calories
+        }
         return total
     }
 }
@@ -63,15 +65,19 @@ impl ICalorieSource for Elf
 
 func(T) maxOf(a, b: T)->T
 {
-    if a >= b do
+    if a >= b
+    {
         return a
+    }
     return b
 }
 
 func(T) minOf(a, b: T)->T
 {
-    if a <= b do
+    if a <= b
+    {
         return a
+    }
     return b
 }
 
@@ -109,25 +115,31 @@ func collectTotals(outTotals: [..] u32, elves: const [..] Elf, mapper: func(Elf)
 func sortDescending(values: [..] u32)
 {
     let count = values.count
-    for var i = 0'u64; i < count; i += 1
+    for var i = 0_u64; i < count; i += 1
     {
         var best = i
         for var j = i + 1; j < count; j += 1
         {
-            if values[j] > values[best] do
+            if values[j] > values[best]
+            {
                 best = j
+            }
         }
 
-        if best != i do
-            swap'(u32)(&values[i], &values[best])
+        if best != i
+        {
+            swap!{u32}(&values[i], &values[best])
+        }
     }
 }
 
 func solvePartOne(elves: const [..] Elf)->u32
 {
     var best: u32
-    for e in elves do
-        best = maxOf'(u32)(best, elfTotal(e))
+    for e in elves
+    {
+        best = maxOf!{u32}(best, elfTotal(e))
+    }
     return best
 }
 
@@ -138,9 +150,11 @@ func(N: u32 = 3) solvePartTwo(elves: const [..] Elf)->u32
     sortDescending(totals[until totalCount])
 
     var sum: u32
-    let limit = minOf'(u32)(N, totalCount)
-    for var i = 0'u32; i < limit; i += 1 do
+    let limit = minOf!{u32}(N, totalCount)
+    for var i = 0_u32; i < limit; i += 1
+    {
         sum += totals[i]
+    }
     return sum
 }
 
@@ -150,8 +164,14 @@ func(N: u32 = 3) solvePartTwo(elves: const [..] Elf)->u32
 
 func rankFromIndex(idx: u32)->Rank
 {
-    if idx == 0 do return Rank.First
-    if idx == 1 do return Rank.Second
+    if idx == 0
+    {
+        return Rank.First
+    }
+    if idx == 1
+    {
+        return Rank.Second
+    }
     return Rank.Third
 }
 
@@ -172,8 +192,10 @@ func makeElf(id: u32, cals: const [..] u32)->Elf
     var elf: Elf
     elf.id = id
 
-    for c in cals do
+    for c in cals
+    {
         addFoodItem(&elf, "food", c)
+    }
 
     return elf
 }
@@ -200,16 +222,16 @@ func makeElf(id: u32, cals: const [..] u32)->Elf
     addFoodItem(&e0, "apple", 3000)
     elves[0] = e0
 
-    elves[1] = makeElf(1, [4000'u32])
+    elves[1] = makeElf(1, [4000_u32])
 
     var e2: Elf
     e2.id = 2
-    addFoodItem(&e2, "candy", 5000'u32)
+    addFoodItem(&e2, "candy", 5000_u32)
     addFoodItem(&e2, "energy", 6000)
     elves[2] = e2
 
-    elves[3] = makeElf(3, [7000'u32, 8000, 9000])
-    elves[4] = makeElf(4, [10000'u32])
+    elves[3] = makeElf(3, [7000_u32, 8000, 9000])
+    elves[4] = makeElf(4, [10000_u32])
 
     let elfSlice = elves[to]
     Swag.require(elfSlice.count == 5)
@@ -220,18 +242,18 @@ func makeElf(id: u32, cals: const [..] u32)->Elf
     let top3 = solvePartTwo(elfSlice)
     Swag.require(top3 == 45000)
 
-    let top2 = solvePartTwo'(2)(elfSlice)
+    let top2 = solvePartTwo!{2}(elfSlice)
     Swag.require(top2 == 35000)
 
     let totalE0 = e0.ICalorieSource.totalCalories()
     Swag.require(totalE0 == 6000)
 
-    Swag.require(maxOf'(u32)(10, 20) == 20)
-    Swag.require(minOf'(u32)(10, 20) == 10)
+    Swag.require(maxOf!{u32}(10, 20) == 20)
+    Swag.require(minOf!{u32}(10, 20) == 10)
 
-    var a = 42'u32
-    var b = 99'u32
-    swap'(u32)(&a, &b)
+    var a = 42_u32
+    var b = 99_u32
+    swap!{u32}(&a, &b)
     Swag.require(a == 99 and b == 42)
 
     Swag.require(rankFromIndex(0) == .First)

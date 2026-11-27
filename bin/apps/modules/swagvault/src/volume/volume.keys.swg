@@ -8,8 +8,10 @@ impl Volume
     {
         var area: [KeySlotAreaSize] u8
         defer Core.Crypto.secureClear(area)
-        if not (try .file.readExactAt(KeySlotAreaOffset, area)) do
+        if not (try .file.readExactAt(KeySlotAreaOffset, area))
+        {
             fail volumeError(.PasswordOrDamaged)
+        }
 
         Swag.memcpy(&.slotSalt[0], &area[0], Crypto.SaltSize)
         var slotKey = try Crypto.deriveSlotKey(password, .slotSalt)
@@ -29,8 +31,11 @@ impl Volume
             }
         }
 
-        if not found do
+        if not found
+        {
             fail volumeError(.PasswordOrDamaged)
+        }
+
         .keys = try Crypto.deriveKeys(.master)
     }
 
@@ -49,8 +54,10 @@ impl Volume
         {
             try HiddenLocator.write(&.file.stream, index, password, FreeExtent{.file.base, .file.limit})
             let verified = try HiddenLocator.find(&.file.stream, password)
-            if verified.first != .file.base or verified.count != .file.limit do
+            if verified.first != .file.base or verified.count != .file.limit
+            {
                 fail volumeError(.Io)
+            }
         }
     }
 
@@ -63,8 +70,10 @@ impl Volume
         try Core.Crypto.randomBytes(record)
         try .file.writeAllAt(keySlotPayloadOffset(index), record[until KeySlotPlainSize])
         try .file.flush()
-        if .file.base do
+        if .file.base
+        {
             try HiddenLocator.erase(&.file.stream, index)
+        }
     }
 
     // Reports which slot `password` opens, or `Swag.U64.Max` when none does.
@@ -72,8 +81,10 @@ impl Volume
     {
         var area: [KeySlotAreaSize] u8
         defer Core.Crypto.secureClear(area)
-        if not (try .file.readExactAt(KeySlotAreaOffset, area)) do
+        if not (try .file.readExactAt(KeySlotAreaOffset, area))
+        {
             return Swag.U64.Max
+        }
 
         var slotKey = try Crypto.deriveSlotKey(password, .slotSalt)
         defer Core.Crypto.secureClear(slotKey)
@@ -84,8 +95,10 @@ impl Volume
             Core.Crypto.secureClear(candidate)
             var slot = KeySlot.decode(area[index * KeySlotSize + KeySlotPrefixSize until (index + 1) * KeySlotSize])
             defer slot.clear()
-            if try slot.unwrapKey(slotKey, index, candidate) do
+            if try slot.unwrapKey(slotKey, index, candidate)
+            {
                 return index
+            }
         }
 
         return Swag.U64.Max
@@ -104,16 +117,22 @@ impl Volume
     mtd changePassword(current, replacement: const [..] u8) fail
     {
         try .requireWritable()
-        if .file.base and (not replacement.count or (try HiddenLocator.opensOuter(&.file.stream, replacement))) do
+        if .file.base and (not replacement.count or (try HiddenLocator.opensOuter(&.file.stream, replacement)))
+        {
             fail volumeError(.InvalidInput)
+        }
 
         let currentIndex = try .findKeySlot(current)
-        if currentIndex == Swag.U64.Max do
+        if currentIndex == Swag.U64.Max
+        {
             fail volumeError(.AccessDenied)
+        }
 
         let existingReplacement = try .findKeySlot(replacement)
-        if existingReplacement == currentIndex do
+        if existingReplacement == currentIndex
+        {
             return
+        }
 
         var replacementIndex = existingReplacement
         if replacementIndex == Swag.U64.Max
@@ -124,8 +143,10 @@ impl Volume
                 break
             }
 
-            if replacementIndex == Swag.U64.Max do
+            if replacementIndex == Swag.U64.Max
+            {
                 fail volumeError(.DiskFull)
+            }
 
             // Reserve before writing. A stopped write may waste this slot, but it cannot expose
             // the current one to reuse or make the vault lose its existing access.
@@ -135,14 +156,18 @@ impl Volume
             try .checkpoint()
             try .writeKeySlot(replacementIndex, replacement)
 
-            if (try .findKeySlot(replacement)) != replacementIndex do
+            if (try .findKeySlot(replacement)) != replacementIndex
+            {
                 fail volumeError(.Io)
+            }
         }
 
         // An already occupied hidden slot can have lost its locator independently. Repair and
         // verify that access before revoking the current one as well.
-        if .file.base and existingReplacement != Swag.U64.Max do
+        if .file.base and existingReplacement != Swag.U64.Max
+        {
             try .writeKeySlot(replacementIndex, replacement)
+        }
 
         // Only a verified replacement makes the previous access removable.
         try .eraseKeySlot(currentIndex)
@@ -164,13 +189,20 @@ impl Volume
     mtd addPassword(additional: const [..] u8)->u64 fail
     {
         try .requireWritable()
-        if .file.base and (not additional.count or (try HiddenLocator.opensOuter(&.file.stream, additional))) do
+        if .file.base and (not additional.count or (try HiddenLocator.opensOuter(&.file.stream, additional)))
+        {
             fail volumeError(.InvalidInput)
+        }
 
-        if not additional.count do
+        if not additional.count
+        {
             fail volumeError(.PasswordRequired)
-        if (try .findKeySlot(additional)) != Swag.U64.Max do
+        }
+
+        if (try .findKeySlot(additional)) != Swag.U64.Max
+        {
             fail volumeError(.AlreadyExists)
+        }
 
         for index in KeySlotCount where (.keySlotMask & keySlotBit(index)) == 0
         {
@@ -197,13 +229,21 @@ impl Volume
     {
         try .requireWritable()
         let index = try .findKeySlot(password)
-        if index == Swag.U64.Max do
+        if index == Swag.U64.Max
+        {
             fail volumeError(.NotFound)
+        }
+
         let retainedIndex = try .findKeySlot(retainedPassword)
-        if retainedIndex == Swag.U64.Max or retainedIndex == index do
+        if retainedIndex == Swag.U64.Max or retainedIndex == index
+        {
             fail volumeError(.AccessDenied)
-        if (.keySlotMask & keySlotBit(retainedIndex)) == 0 do
+        }
+
+        if (.keySlotMask & keySlotBit(retainedIndex)) == 0
+        {
             fail volumeError(.AccessDenied)
+        }
 
         try .eraseKeySlot(index)
         .keySlotMask  &= ~keySlotBit(index)

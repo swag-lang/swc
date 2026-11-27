@@ -108,7 +108,7 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 #test
 {
     var canvas = expect ImageCanvas.create(8, 8)
-    let ground = Color.fromArgb(128'u8, 200'u8, 40'u8, 20'u8)
+    let ground = Color.fromArgb(128_u8, 200_u8, 40_u8, 20_u8)
     canvas.clear(ground)
 
     let image = expect canvas.toImage()
@@ -119,7 +119,7 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 #test
 {
     var canvas = expect ImageCanvas.create(32, 32)
-    let ground = Color.fromArgb(128'u8, 200'u8, 40'u8, 20'u8)
+    let ground = Color.fromArgb(128_u8, 200_u8, 40_u8, 20_u8)
     canvas.clear(ground)
 
     var path: LinePath

@@ -26,8 +26,8 @@ struct(U) WrapperAliasBox
 
 func semaTest001()
 {
-    #assert(functionLocalAliasBox'u16())
+    #assert(functionLocalAliasBox!{u16}())
 
-    let data: WrapperAliasBox'f32
+    let data: WrapperAliasBox!{f32}
     #assert(#typeof(data.item.value) == f32)
 }

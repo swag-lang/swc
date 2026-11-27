@@ -29,5 +29,6 @@ func assertSceneParity(scene: RenderParityScene, name: string, width, height: s3
     {
         Swag.require(not expect ogl.recoverLostDevice(), "OpenGL device reset during renderer parity scene")
     }
+
     Testing.assertRenderersAgree(&expected, &actual, name, options, loc)
 }

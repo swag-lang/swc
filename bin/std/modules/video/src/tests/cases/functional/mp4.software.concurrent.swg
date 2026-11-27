@@ -3,11 +3,11 @@
 
 using Core, Audio, Pixel
 
-func concurrentAudioBlock(track, block: u64)->Array's16
+func concurrentAudioBlock(track, block: u64)->Array!{s16}
 {
     var result: #returntype
     result.resize(2 * 1_024)
-    for frame in 1_024'u64
+    for frame in 1_024_u64
     {
         let time = cast(f64, block * 1_024 + frame) / 48_000
         result[frame * 2]     = cast(s16, Math.round(7_000 * Math.sin(Math.ConstF64.TwoPi * (440 + track * 220) * time)))
@@ -29,7 +29,7 @@ func concurrentAudioBlock(track, block: u64)->Array's16
     start.init(true)
     var errors:  [2] Swag.Error
     var threads: [2] Threading.Thread
-    for index in 2'u64
+    for index in 2_u64
     {
         expect threads[index].init(func|recording = &recording, start = &start,
                                    error = &errors[index], index|(_)
@@ -37,7 +37,7 @@ func concurrentAudioBlock(track, block: u64)->Array's16
             start.wait()
             catch
             {
-                for block in 32'u64
+                for block in 32_u64
                 {
                     let samples = concurrentAudioBlock(index, block)
                     try recording.addAudioFrames(samples.toSlice(), cast(u32, index))
@@ -53,29 +53,38 @@ func concurrentAudioBlock(track, block: u64)->Array's16
 
     start.signal()
     let picture = videoGrayImage(64, 48, 96)
-    for frame in 35'u64
+    for frame in 35_u64
     {
         expect recording.addFrame(&picture, FrameSlot{frame, frame * 3_000, 3_000, 0})
-        if frame % 5 == 0 do
+        if frame % 5 == 0
+        {
             expect recording.flush()
+        }
+
         Threading.Thread.yield()
     }
 
-    for &thread in threads do
+    for &thread in threads
+    {
         thread.wait()
-    for &error in errors do
+    }
+
+    for &error in errors
+    {
         expect error.raise()
+    }
+
     expect recording.end()
     var reader = expect Reader.open(path)
     Swag.require(reader.frameCount() == 35 and reader.audioTrackCount() == 2)
     discard expect reader.decodeFrame(34)
     var packets = expect Mp4.FragmentedPacketReader.open(path)
-    for track in 2'u64
+    for track in 2_u64
     {
         Swag.require(reader.audioTrack(cast(u32, track))!.sampleFrameCount() == 32 * 1_024)
         var encoder = expect Aac.StreamEncoder.create(48_000, 2)
-        var expected, actual: Array'u8
-        for block in 32'u64
+        var expected, actual: Array!{u8}
+        for block in 32_u64
         {
             let samples = concurrentAudioBlock(track, block)
             Swag.require(expect encoder.push(samples.toSlice(), &expected) == 1_024)

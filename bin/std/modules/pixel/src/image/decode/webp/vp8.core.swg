@@ -12,7 +12,7 @@ using Core, Core.Errors
 // @MODIFIED: Ported and modified for Swag.
 // @NOTICE: /bin/THIRDPARTY.md#go-x-image
 
-const VP8_UNIFORM_PROB     = 128'u8
+const VP8_UNIFORM_PROB     = 128_u8
 const VP8_SEGMENTS         = 4
 const VP8_TOKEN_PLANES     = 4
 const VP8_TOKEN_BANDS      = 8
@@ -47,7 +47,7 @@ struct Vp8Partition
     offset:        u32
     rangeM1:       u32
     bits:          u64     // Valid bits start at the most significant bit.
-    bitCount:      u8
+    bitCount:      s32     // Available bits beyond the next decision byte.
     unexpectedEnd: bool
 }
 
@@ -60,7 +60,7 @@ impl Vp8Partition
         .offset        = 0
         .rangeM1       = 254
         .bits          = 0
-        .bitCount      = 0
+        .bitCount      = -8
         .unexpectedEnd = false
     }
 
@@ -71,13 +71,13 @@ impl Vp8Partition
         {
             // Keep seven bytes so the refill fits even when the buffer has seven live bits.
             let word = cast(const [*] u64, (unwrap .data) + .offset)[0]
-            .bits     |= (Math.byteSwap(word) & 0xFFFFFFFFFFFFFF00'u64) >> .bitCount
+            .bits     |= (Math.byteSwap(word) & 0xFFFFFFFFFFFFFF00_u64) >> (8 + .bitCount)
             .offset   += 7
             .bitCount += 56
         }
-        elif remaining
+        else if remaining
         {
-            .bits     |= cast(u64, .data![.offset]) << (56 - .bitCount)
+            .bits     |= cast(u64, .data![.offset]) << (48 - .bitCount)
             .offset   += 1
             .bitCount += 8
         }
@@ -93,41 +93,37 @@ impl Vp8Partition
     #[Swag.Inline]
     mtd readBit(probability: u8)->bool
     {
-        if .bitCount < 8 and not .refill() do
-            return false
-
-        let split = ((.rangeM1 * probability) >> 8) + 1
-        let bit   = cast(u32, .bits >> 56) >= split
-        var range = split
-        var bits  = .bits
-        if bit
+        if .bitCount < 0 and not .refill()
         {
-            range = .rangeM1 - split + 1
-            bits  -= cast(u64, split) << 56
+            return false
         }
 
-        let shift = Math.leadingZeros(range) - 24
-        .bits     = bits << shift
-        .rangeM1  = (range << shift) - 1
-        .bitCount -= cast(u8, shift)
+        var rangeM1  = .rangeM1
+        var bits     = .bits
+        var bitCount = .bitCount
+        let bit      = vp8AdvanceBit(probability)
+        .rangeM1  = rangeM1
+        .bits     = bits
+        .bitCount = bitCount
         return bit
     }
 
-    // A coefficient sign follows a magnitude token, so the normalized range is
-    // already below 255 and either half needs exactly one normalization bit.
     #[Swag.Inline]
     mtd readCoefficientSign(value: s32)->s32
     {
-        if .bitCount < 8 and not .refill() do
+        if .bitCount < 0 and not .refill()
+        {
             return value
+        }
 
-        let split = .rangeM1 >> 1
-        let mask  = (cast(s32, split) - cast(s32, .bits >> 56)) >> 31
-        let delta = (split + 1) & cast #bit(u32, mask)
-        .bits     = (.bits - (cast(u64, delta) << 56)) << 1
-        .rangeM1  = (.rangeM1 - cast(u32, -mask)) | 1
-        .bitCount -= 1
-        return (value ^ mask) - mask
+        var rangeM1     = .rangeM1
+        var bits        = .bits
+        var bitCount    = .bitCount
+        let signedValue = vp8AdvanceSign(value)
+        .rangeM1  = rangeM1
+        .bits     = bits
+        .bitCount = bitCount
+        return signedValue
     }
 
     mtd readUint(probability, count: u8)->u32
@@ -137,8 +133,10 @@ impl Vp8Partition
         while remaining
         {
             remaining -= 1
-            if .readBit(probability) do
+            if .readBit(probability)
+            {
                 result |= 1 << remaining
+            }
         }
 
         return result
@@ -152,10 +150,46 @@ impl Vp8Partition
 
     mtd readOptionalInt(probability, count: u8)->s32
     {
-        if not .readBit(probability) do
+        if not .readBit(probability)
+        {
             return 0
+        }
+
         return .readInt(probability, count)
     }
+}
+
+// Update the caller's rangeM1, bits and bitCount after a successful refill.
+#[Swag.Mixin]
+func vp8AdvanceBit(probability: u8)->bool
+{
+    let #uniq0 = ((rangeM1 * probability) >> 8) + 1
+    let #uniq1 = cast(u32, bits >> 56) >= #uniq0
+    var #uniq2 = #uniq0
+    if #uniq1
+    {
+        #uniq2 = rangeM1 - #uniq0 + 1
+        bits   -= cast(u64, #uniq0) << 56
+    }
+
+    let #uniq3 = Math.leadingZeros(#uniq2) - 24
+    bits     <<= #uniq3
+    rangeM1  = (#uniq2 << #uniq3) - 1
+    bitCount -= cast(s32, #uniq3)
+    return #uniq1
+}
+
+// A coefficient sign follows a magnitude token. Either half normalizes by one bit.
+#[Swag.Mixin]
+func vp8AdvanceSign(value: s32)->s32
+{
+    let #uniq0 = rangeM1 >> 1
+    let #uniq1 = (cast(s32, #uniq0) - cast(s32, bits >> 56)) >> 31
+    let #uniq2 = (#uniq0 + 1) & cast #bit(u32, #uniq1)
+    bits     = (bits - (cast(u64, #uniq2) << 56)) << 1
+    rangeM1  = (rangeM1 - cast(u32, -#uniq1)) | 1
+    bitCount -= 1
+    return (value ^ #uniq1) - #uniq1
 }
 
 struct Vp8FrameHeader
@@ -227,10 +261,10 @@ struct Vp8Decoder
     skipProb:       u8
 
     filterParams:      [VP8_SEGMENTS][2] Vp8FilterParam
-    perMbFilterParams: Array'Vp8FilterParam
+    perMbFilterParams: Array!{Vp8FilterParam}
     segment:           s32
     leftMb:            Vp8Macroblock
-    upMb:              Array'Vp8Macroblock
+    upMb:              Array!{Vp8Macroblock}
 
     nzDcMask:   u32
     nzAcMask:   u32
@@ -241,9 +275,9 @@ struct Vp8Decoder
 
     coeff:   [400] s16
     ybr:     [26][32] u8
-    y:       Array'u8
-    cb:      Array'u8
-    cr:      Array'u8
+    y:       Array!{u8}
+    cb:      Array!{u8}
+    cr:      Array!{u8}
     yStride: s32
     cStride: s32
 }
@@ -252,39 +286,61 @@ func vp8Clip(value, minimum, maximum: s32)->s32 => Math.min(Math.max(value, mini
 
 func vp8DecodeFrameHeader(decoder: *Vp8Decoder, source: const [..] u8) fail
 {
-    if source.count < 10 do
+    if source.count < 10
+    {
         fail InvalidFormatError{"WebP VP8 data ends before the frame header"}
+    }
 
     decoder.source = source.buffer
     decoder.size   = cast(u32, source.count)
     let data = decoder.source
-    if data[0] & 1 do
+    if data[0] & 1
+    {
         fail UnsupportedFormatError{"WebP still image contains a non-key VP8 frame"}
+    }
 
     decoder.header.version       = (data[0] >> 1) & 7
     decoder.header.firstPartSize = (cast(u32, data[0]) >> 5) | (cast(u32, data[1]) << 3) | (cast(u32, data[2]) << 11)
-    if decoder.header.version > 3 do
+    if decoder.header.version > 3
+    {
         fail UnsupportedFormatError{"WebP VP8 frame uses a reserved version"}
-    if (data[0] & 0x10) == 0 do
+    }
+
+    if (data[0] & 0x10) == 0
+    {
         fail UnsupportedFormatError{"WebP VP8 frame is not marked for display"}
-    if data[3] != 0x9D or data[4] != 0x01 or data[5] != 0x2A do
+    }
+
+    if data[3] != 0x9D or data[4] != 0x01 or data[5] != 0x2A
+    {
         fail InvalidFormatError{"WebP VP8 frame does not start with the key-frame code"}
+    }
 
     decoder.header.width  = data[6] | (cast(s32, (data[7] & 0x3F)) << 8)
     decoder.header.height = data[8] | (cast(s32, (data[9] & 0x3F)) << 8)
-    if decoder.header.width == 0 or decoder.header.height == 0 do
+    if decoder.header.width == 0 or decoder.header.height == 0
+    {
         fail InvalidFormatError{"WebP VP8 frame has an empty image"}
-    if cast(u64, decoder.header.width) * decoder.header.height > 0x1FFFFFFF do
+    }
+
+    if cast(u64, decoder.header.width) * decoder.header.height > 0x1FFFFFFF
+    {
         fail UnsupportedFormatError{"WebP image needs more than 2 GiB of decoded pixel memory"}
-    if decoder.header.firstPartSize > decoder.size - 10 do
+    }
+
+    if decoder.header.firstPartSize > decoder.size - 10
+    {
         fail InvalidFormatError{"WebP data ends inside the first VP8 partition"}
+    }
 
     decoder.mbWidth  = (decoder.header.width + 15) >> 4
     decoder.mbHeight = (decoder.header.height + 15) >> 4
     decoder.segmentHeader.probability = [0xFF, 0xFF, 0xFF]
     decoder.segment  = 0
-    for i in VP8_TOKEN_PROB_COUNT do
+    for i in VP8_TOKEN_PROB_COUNT
+    {
         decoder.tokenProb[i] = VP8_DEFAULT_TOKEN_PROB[i]
+    }
 }
 
 func vp8ParseSegmentHeader(decoder: *Vp8Decoder)
@@ -301,14 +357,22 @@ func vp8ParseSegmentHeader(decoder: *Vp8Decoder)
     if part.readBit(VP8_UNIFORM_PROB)
     {
         decoder.segmentHeader.relativeDelta = not part.readBit(VP8_UNIFORM_PROB)
-        for i in VP8_SEGMENTS do
+        for i in VP8_SEGMENTS
+        {
             decoder.segmentHeader.quantizer[i] = cast(s8, part.readOptionalInt(VP8_UNIFORM_PROB, 7))
-        for i in VP8_SEGMENTS do
+        }
+
+        for i in VP8_SEGMENTS
+        {
             decoder.segmentHeader.filterStrength[i] = cast(s8, part.readOptionalInt(VP8_UNIFORM_PROB, 6))
+        }
     }
 
-    if not decoder.segmentHeader.updateMap do
+    if not decoder.segmentHeader.updateMap
+    {
         return
+    }
+
     for i in 3
     {
         decoder.segmentHeader.probability[i] = part.readBit(VP8_UNIFORM_PROB)
@@ -326,10 +390,15 @@ func vp8ParseFilterHeader(decoder: *Vp8Decoder)
     decoder.filterHeader.useDelta  = part.readBit(VP8_UNIFORM_PROB)
     if decoder.filterHeader.useDelta and part.readBit(VP8_UNIFORM_PROB)
     {
-        for i in 4 do
+        for i in 4
+        {
             decoder.filterHeader.referenceDelta[i] = cast(s8, part.readOptionalInt(VP8_UNIFORM_PROB, 6))
-        for i in 4 do
+        }
+
+        for i in 4
+        {
             decoder.filterHeader.modeDelta[i] = cast(s8, part.readOptionalInt(VP8_UNIFORM_PROB, 6))
+        }
     }
 }
 
@@ -337,8 +406,10 @@ func vp8ParseOtherPartitions(decoder: *Vp8Decoder, offset: u32) fail
 {
     decoder.otherPartCount = 1 << decoder.firstPart.readUint(VP8_UNIFORM_PROB, 2)
     let lengthBytes = cast(u32, (3 * (decoder.otherPartCount - 1)))
-    if offset + lengthBytes > decoder.size do
+    if offset + lengthBytes > decoder.size
+    {
         fail InvalidFormatError{"WebP data ends inside the VP8 partition table"}
+    }
 
     var lengths: [8] u32
     var remaining  = decoder.size - offset - lengthBytes
@@ -346,15 +417,20 @@ func vp8ParseOtherPartitions(decoder: *Vp8Decoder, offset: u32) fail
     for i in decoder.otherPartCount - 1
     {
         let length = readU24(lengthData + 3 * i)
-        if length > remaining do
+        if length > remaining
+        {
             fail InvalidFormatError{"WebP VP8 partition length exceeds the image data"}
+        }
+
         lengths[i] = length
         remaining  -= length
     }
 
     lengths[decoder.otherPartCount - 1] = remaining
-    if remaining >= 1 << 24 do
+    if remaining >= 1 << 24
+    {
         fail UnsupportedFormatError{"WebP VP8 coefficient partition is too large"}
+    }
 
     var data = lengthData + lengthBytes
     for i in decoder.otherPartCount
@@ -393,7 +469,7 @@ func vp8ParseQuant(decoder: *Vp8Decoder)
         decoder.quant[i].y1[0] = VP8_DEQUANT_DC[y1Dc]
         decoder.quant[i].y1[1] = VP8_DEQUANT_AC[y1Ac]
         decoder.quant[i].y2[0] = VP8_DEQUANT_DC[y2Dc] * 2
-        decoder.quant[i].y2[1] = Math.max(8'u16, cast(u16, (VP8_DEQUANT_AC[y2Ac] * 155 / 100)))
+        decoder.quant[i].y2[1] = Math.max(8_u16, cast(u16, (VP8_DEQUANT_AC[y2Ac] * 155 / 100)))
         decoder.quant[i].uv[0] = VP8_DEQUANT_DC[uvDc]
         decoder.quant[i].uv[1] = VP8_DEQUANT_AC[uvAc]
     }
@@ -403,14 +479,16 @@ func vp8ParseTokenProbabilities(decoder: *Vp8Decoder)
 {
     for i in VP8_TOKEN_PROB_COUNT
     {
-        if decoder.firstPart.readBit(VP8_TOKEN_UPDATE_PROB[i]) do
+        if decoder.firstPart.readBit(VP8_TOKEN_UPDATE_PROB[i])
+        {
             decoder.tokenProb[i] = cast(u8, decoder.firstPart.readUint(VP8_UNIFORM_PROB, 8))
+        }
     }
 }
 
 func vp8ParseHeaders(decoder: *Vp8Decoder) fail
 {
-    let firstOffset = 10'u32
+    let firstOffset = 10_u32
     decoder.firstPart.init(decoder.source + firstOffset, decoder.header.firstPartSize)
     discard decoder.firstPart.readBit(VP8_UNIFORM_PROB)
     discard decoder.firstPart.readBit(VP8_UNIFORM_PROB)
@@ -423,10 +501,15 @@ func vp8ParseHeaders(decoder: *Vp8Decoder) fail
     discard decoder.firstPart.readBit(VP8_UNIFORM_PROB)
     vp8ParseTokenProbabilities(decoder)
     decoder.useSkipProb = decoder.firstPart.readBit(VP8_UNIFORM_PROB)
-    if decoder.useSkipProb do
+    if decoder.useSkipProb
+    {
         decoder.skipProb = cast(u8, decoder.firstPart.readUint(VP8_UNIFORM_PROB, 8))
-    if decoder.firstPart.unexpectedEnd do
+    }
+
+    if decoder.firstPart.unexpectedEnd
+    {
         fail InvalidFormatError{"WebP data ends inside the VP8 control partition"}
+    }
 }
 
 func vp8AllocatePlanes(decoder: *Vp8Decoder, rows: s32)

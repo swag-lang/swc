@@ -18,7 +18,7 @@ impl Signal
 
 struct Receiver
 {
-    signal: Signal'func||(*Receiver)
+    signal: Signal!{func||(*Receiver)}
 }
 
 func semaTest001()

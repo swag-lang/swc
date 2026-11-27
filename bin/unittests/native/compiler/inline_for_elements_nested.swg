@@ -27,8 +27,10 @@ func contains(v: Visits, target: s32)->bool
 {
     for value in v
     {
-        if value == target do
+        if value == target
+        {
             return true
+        }
     }
     return false
 }
@@ -38,8 +40,10 @@ func countCommon(a: Visits, b: Visits)->s32
     var n = 0
     for value in a
     {
-        if contains(b, value) do
+        if contains(b, value)
+        {
             n += 1
+        }
     }
     return n
 }

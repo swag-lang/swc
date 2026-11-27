@@ -7,7 +7,7 @@ var objectDrops: u32
 
 struct AllocatedObject
 {
-    value = 37'u64
+    value = 37_u64
 }
 
 impl AllocatedObject
@@ -30,13 +30,16 @@ impl AllocatedObject
 #test
 {
     objectDrops = 0
-    let object = Memory.new'AllocatedObject()
+    let object = Memory.new!{AllocatedObject}()
     Swag.require(object.value == 37)
     Memory.delete(object)
     Swag.require(objectDrops == 1)
 
-    let objects = Memory.new'AllocatedObject(3)
-    for i in 3 do Swag.require(objects[i].value == 37)
+    let objects = Memory.new!{AllocatedObject}(3)
+    for i in 3
+    {
+        Swag.require(objects[i].value == 37)
+    }
     Memory.delete(objects, 3)
     Swag.require(objectDrops == 4)
 }

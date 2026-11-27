@@ -54,9 +54,9 @@ const SampleInput =
 // Pin heights: 5 columns, each 0-5
 // ---------------------------------------------------------------------------
 
-const NumCols   = 5'u32
-const MaxHeight = 5'u32
-const GridRows  = 7'u32     // each schematic is 7 rows
+const NumCols   = 5_u32
+const MaxHeight = 5_u32
+const GridRows  = 7_u32     // each schematic is 7 rows
 
 struct Heights
 {
@@ -81,7 +81,10 @@ impl Heights
     {
         for i in NumCols
         {
-            if me.col[i] != other.col[i] do return false
+            if me.col[i] != other.col[i]
+            {
+                return false
+            }
         }
         return true
     }
@@ -91,7 +94,7 @@ impl Heights
 // Parsing
 // ---------------------------------------------------------------------------
 
-const MaxSchematics = 512'u32
+const MaxSchematics = 512_u32
 
 struct ParseResult
 {
@@ -111,8 +114,14 @@ func parseInit()->ParseResult
 
 func parseFree(r: *ParseResult)
 {
-    if r.locks do testFree(r.locks)
-    if r.keys do testFree(r.keys)
+    if r.locks
+    {
+        testFree(r.locks)
+    }
+    if r.keys
+    {
+        testFree(r.keys)
+    }
 }
 
 // Parse a single 7-row schematic starting at `startPos`.
@@ -124,12 +133,21 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
     // Skip leading whitespace/blank lines
     for
     {
-        if pos >= bytes.count do break
-        if bytes[pos] != '\n' and bytes[pos] != '\r' do break
+        if pos >= bytes.count
+        {
+            break
+        }
+        if bytes[pos] != '\n' and bytes[pos] != '\r'
+        {
+            break
+        }
         pos += 1
     }
 
-    if pos >= bytes.count do return pos
+    if pos >= bytes.count
+    {
+        return pos
+    }
 
     // Read 7 rows × 5 cols
     var grid: [GridRows] [NumCols] u8
@@ -146,8 +164,14 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
         // Skip line ending
         for
         {
-            if pos >= bytes.count do break
-            if bytes[pos] != '\n' and bytes[pos] != '\r' do break
+            if pos >= bytes.count
+            {
+                break
+            }
+            if bytes[pos] != '\n' and bytes[pos] != '\r'
+            {
+                break
+            }
             pos += 1
         }
     }
@@ -164,8 +188,14 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             var count: u8
             for row in 1 until GridRows
             {
-                if grid[row][col] == '#' do count += 1
-                else do break
+                if grid[row][col] == '#'
+                {
+                    count += 1
+                }
+                else
+                {
+                    break
+                }
             }
             h.col[col] = count
         }
@@ -181,8 +211,14 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             var count: u8
             for row in range(1, GridRows).reversed()
             {
-                if grid[row - 1][col] == '#' do count += 1
-                else do break
+                if grid[row - 1][col] == '#'
+                {
+                    count += 1
+                }
+                else
+                {
+                    break
+                }
             }
             h.col[col] = count
         }
@@ -202,9 +238,15 @@ func parse(text: string)->ParseResult
 
     for
     {
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
         let newPos = parseOneSchematic(bytes, pos, &result)
-        if newPos == pos do break     // no progress
+        if newPos == pos
+        {
+            break
+        }     // no progress
         pos = newPos
     }
 
@@ -302,8 +344,8 @@ func solve(text: string)->SolveResult
     var pr = parse(SampleInput)
     defer parseFree(&pr)
 
-    Swag.require(pr.lockCount == 2'u32)
-    Swag.require(pr.keyCount == 3'u32)
+    Swag.require(pr.lockCount == 2_u32)
+    Swag.require(pr.keyCount == 3_u32)
 
     let locks = unwrap pr.locks
 
@@ -358,14 +400,14 @@ func solve(text: string)->SolveResult
     var pr = parse(SampleInput)
     defer parseFree(&pr)
     let count = countFittingPairs(&pr)
-    Swag.require(count == 3'u64)
+    Swag.require(count == 3_u64)
 }
 
 // Part 1: sample answer = 3
 #test
 {
     let result = solve(SampleInput)
-    Swag.require(result.part1 == 3'u64)
+    Swag.require(result.part1 == 3_u64)
 }
 
 // with &ptr (exercises with-pointer codegen)
@@ -376,7 +418,7 @@ func solve(text: string)->SolveResult
     {
         .part1 = 42
     }
-    Swag.require(sr.part1 == 42'u64)
+    Swag.require(sr.part1 == 42_u64)
 }
 
 // Inline #returntype struct return
@@ -426,8 +468,8 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 #test
 {
     var pr = parseInit()
-    Swag.require(pr.lockCount == 0'u32)
-    Swag.require(pr.keyCount == 0'u32)
+    Swag.require(pr.lockCount == 0_u32)
+    Swag.require(pr.keyCount == 0_u32)
     parseFree(&pr)
 }
 
@@ -444,8 +486,8 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 ....."""
     var pr = parse(single)
     defer parseFree(&pr)
-    Swag.require(pr.lockCount == 1'u32)
-    Swag.require(pr.keyCount == 0'u32)
+    Swag.require(pr.lockCount == 1_u32)
+    Swag.require(pr.keyCount == 0_u32)
     let locks = unwrap pr.locks
     Swag.require(locks[0].col[0] == 0)
     Swag.require(locks[0].col[1] == 5)
@@ -467,8 +509,8 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 #####"""
     var pr = parse(single)
     defer parseFree(&pr)
-    Swag.require(pr.lockCount == 0'u32)
-    Swag.require(pr.keyCount == 1'u32)
+    Swag.require(pr.lockCount == 0_u32)
+    Swag.require(pr.keyCount == 1_u32)
     let keys = unwrap pr.keys
     Swag.require(keys[0].col[0] == 5)
     Swag.require(keys[0].col[1] == 0)
@@ -521,7 +563,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 #test
 {
     let result = solve(SampleInput)
-    Swag.require(result.part1 == 3'u64)
+    Swag.require(result.part1 == 3_u64)
 }
 
 // Pair-by-pair verification from puzzle description
@@ -561,7 +603,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 #####"""
     var pr = parse(keyStr)
     defer parseFree(&pr)
-    Swag.require(pr.keyCount == 1'u32)
+    Swag.require(pr.keyCount == 1_u32)
     let keys = unwrap pr.keys
     // Only bottom 2 rows have '#' → heights should be 1 for cols 0,2,4
     Swag.require(keys[0].col[0] == 1)

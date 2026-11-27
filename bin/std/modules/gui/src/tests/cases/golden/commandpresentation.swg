@@ -22,8 +22,11 @@ using Core
     var captured: bool
     host.app.sigFrame += func|host = &host, menu, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         menu.hotIdx = 3
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "commands.destructive.ink")

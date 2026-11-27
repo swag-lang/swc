@@ -27,11 +27,15 @@ func centerRows(dst: [*] u16, src: const [*] u8, stride: u64, height: u64)
 func sumTable(values: const [*] u32, count: u64)->u32
 {
     var table: [16] u32
-    var total = 0'u32
-    for i in count do
+    var total = 0_u32
+    for i in count
+    {
         table[i] = values[i] * 2
-    for i in count do
+    }
+    for i in count
+    {
         total += table[i]
+    }
     return total + cast(u32, count)
 }
 
@@ -39,8 +43,10 @@ func sumTable(values: const [*] u32, count: u64)->u32
 {
     var plane: [16 * 64] u8
     var out:   [4 * 8] u16
-    for i in 16 * 64 do
+    for i in 16 * 64
+    {
         plane[i] = cast(u8, (i & 0x3F))
+    }
     centerRows(&out[0], &plane[0], 64, 4)
 
     // Lane 0 of row r of `sums` is p[r*64] + p[r*64 + 1] + p[r*64 + 8].
@@ -52,8 +58,10 @@ func sumTable(values: const [*] u32, count: u64)->u32
         let c = cast(u16, plane[r * 64 + 8])
         expected[r] = a + b + c
     }
-    for row in 4 do
+    for row in 4
+    {
         Swag.require(out[row * 8] == expected[row] + expected[row + 2] + expected[row + 5])
+    }
 
     var values: [6] u32 = [1, 2, 3, 4, 5, 6]
     Swag.require(sumTable(&values[0], 6) == 42 + 6)

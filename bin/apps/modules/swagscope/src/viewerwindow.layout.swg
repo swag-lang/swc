@@ -33,7 +33,7 @@ impl ViewerWindow
             .hide()
         }
 
-        .searchGroup = Wnd.create'Wnd(.searchBar)
+        .searchGroup = Wnd.create!{Wnd}(.searchBar)
         .searchGroup.backgroundStyle = .Transparent
         with .searchBox = EditBox.create(.searchGroup, "", {0, 0, SearchFieldWidth, height}, flags: .ClearButton)
         {
@@ -47,10 +47,14 @@ impl ViewerWindow
 
             .sigSubmitted += func|window = me|(_)
             {
-                if window.isExploring() do
+                if window.isExploring()
+                {
                     window.explorer!.focusContent()
-                else do
+                }
+                else
+                {
                     window.findNext()
+                }
             }
 
             .sigCancelled += func|window = me|(_)
@@ -61,7 +65,7 @@ impl ViewerWindow
             .enable(false)
         }
 
-        .searchNavigation = Wnd.create'Wnd(.searchGroup)
+        .searchNavigation = Wnd.create!{Wnd}(.searchGroup)
         .searchNavigation.backgroundStyle = .Transparent
         with .searchCountLabel = Label.create(.searchNavigation, "", {}, null, .SecondaryText)
         {
@@ -126,8 +130,11 @@ impl ViewerWindow
             panel.show(show)
             return
         }
-        if panel.isLocallyVisible() == show do
+
+        if panel.isLocallyVisible() == show
+        {
             return
+        }
 
         let metrics  = .themeMetrics()
         let duration = Time.Duration.fromSeconds(metrics.motion_PanelSeconds)
@@ -136,27 +143,38 @@ impl ViewerWindow
             let travel = metrics.motion_AnchorTravel
             discard .app().animator.arrive(panel, {0, travel}, duration, .EaseInOut)
         }
-        else do
+        else
+        {
             discard .app().animator.leave(panel, duration, .EaseInOut)
+        }
     }
 
-    mtd hasSoloCaption()->bool => .workspace and .workspace.scenes.count == 1 and .workspace.tabStripHeight() == 0 and
-                                 .workspace.documentCount() == 1 and not .workspace.isTiled() and
-                                 .isWorkspaceActive() and not .fullScreen
+    mtd hasSoloCaption()->bool => .workspace and
+                                  .workspace.scenes.count == 1 and
+                                  .workspace.tabStripHeight() == 0 and
+                                  .workspace.documentCount() == 1 and
+                                  not .workspace.isTiled() and
+                                  .isWorkspaceActive() and
+                                  not .fullScreen
 
-    mtd hasCellFooter()->bool => .workspace and .workspace.vacancy != me and (.hasSoloCaption() or .workspace.usesCellCaptions()) and
+    mtd hasCellFooter()->bool => .workspace and
+                                 .workspace.vacancy != me and
+                                 (.hasSoloCaption() or .workspace.usesCellCaptions()) and
                                  (not .fullScreen or .workspace.isTiled()) and
                                  (.isExploring() or not .currentFile.isEmpty() or not .pendingFile.isEmpty())
 
     mtd layoutCellCaption()
     {
-        if .cellCaption == null do
+        if .cellCaption == null
+        {
             return
-        let showClose = .hasCellFooter()
-        let exploring = .isExploring()
+        }
+
+        let showClose    = .hasCellFooter()
+        let exploring    = .isExploring()
         let path: string = exploring ? .explorer!.requested : (.pendingFile.isEmpty() ? .currentFile : .pendingFile)
-        let name = Path.fileName(path) orelse path
-        let close = .readingLine.close
+        let name         = Path.fileName(path) orelse path
+        let close        = .readingLine.close
         close.show(showClose)
         if showClose
         {
@@ -175,26 +193,31 @@ impl ViewerWindow
 
         let footer = .workspace!.usesCellCaptions()
         let parent = footer ? cast(*Wnd, .readingLine) : cast(*Wnd, me)
-        if caption.parent != parent do
+        if caption.parent != parent
+        {
             caption.setParent(parent)
+        }
+
         let label = footer ? .workspace.mediaCaption(me, name) : String.from(name)
         caption.setFile(path, label)
         caption.show()
         .readingLine.computeLayout()
-        if footer do
+        if footer
+        {
             return
+        }
 
-        let frame = .surface!.wnd
-        let room = frame.captionContentRect()
-        let width = caption.widthFor(room.width)
-        let x = Math.clamp(frame.clientRect().horzCenter() - width * 0.5, room.x, Math.max(room.x, room.right() - width))
+        let frame  = .surface!.wnd
+        let room   = frame.captionContentRect()
+        let width  = caption.widthFor(room.width)
+        let x      = Math.clamp(frame.clientRect().horzCenter() - width * 0.5, room.x, Math.max(room.x, room.right() - width))
         let origin = .surfaceToLocal(frame.localToSurface(Math.Point{x, room.vertCenter()}))
         caption.place(origin.x, origin.y, width)
     }
 
     private mtd createCellCaption()
     {
-        .cellCaption = ViewerFileCaption.create(me)
+        .cellCaption         = ViewerFileCaption.create(me)
         .readingLine.close.sigPressed += func|document = me|(_) { document.workspace?.closeDocument(document) }
         .readingLine.caption = .cellCaption
     }
@@ -216,7 +239,7 @@ impl ViewerWindow
     // and the loading and search overlays drawn above the active viewer.
     private mtd createDocumentPanel()
     {
-        with .documentHost = Wnd.create'Wnd(.mainSplitter)
+        with .documentHost = Wnd.create!{Wnd}(.mainSplitter)
         {
             .backgroundStyle = .Transparent
         }
@@ -228,7 +251,7 @@ impl ViewerWindow
             .hide()
         }
 
-        with .documentPanel = Wnd.create'Wnd(.documentHost)
+        with .documentPanel = Wnd.create!{Wnd}(.documentHost)
         {
             .dockStyle       = .Center
             .backgroundStyle = .View
@@ -238,7 +261,7 @@ impl ViewerWindow
 
         .loadingOverlay = ViewerLoadingOverlay.create(.documentPanel)
         .searchOverlay  = ViewerSearchOverlay.create(.documentPanel)
-        with .outlinePanelPlaceholder = Wnd.create'Wnd(.mainSplitter)
+        with .outlinePanelPlaceholder = Wnd.create!{Wnd}(.mainSplitter)
         {
             .backgroundStyle = .Transparent
             .hide()
@@ -254,7 +277,7 @@ impl ViewerWindow
         }
 
         .mainSplitter.addPane(.documentHost).minimumSize = DocumentMinWidth
-        with .sidePanelPlaceholder = Wnd.create'Wnd(.mainSplitter)
+        with .sidePanelPlaceholder = Wnd.create!{Wnd}(.mainSplitter)
         {
             .backgroundStyle = .Transparent
             .hide()
@@ -274,8 +297,11 @@ impl ViewerWindow
     // A splitter inside a cell shares the available width between the document and its optional side panel.
     func fitDocumentPanes(splitter: *SplitterCtrl, width: f32)
     {
-        if splitter.items.count <= RightPanelIndex do
+        if splitter.items.count <= RightPanelIndex
+        {
             return
+        }
+
         let metrics = splitter.themeMetrics()
         let panel   = RightPanelMinWidth + metrics.floating_Inset
         let room    = Math.max(0, width - metrics.splitView_BarSize)
@@ -290,14 +316,14 @@ impl ViewerWindow
     mtd updateDocumentInsets()
     {
         let metrics = .themeMetrics()
-        let inset = .hasCellFooter() ? Math.clamp(.clientRect().width / 16, metrics.miniBar_Padding, metrics.floating_Inset) : metrics.floating_Inset
+        let inset   = .hasCellFooter() ? Math.clamp(.clientRect().width / 16, metrics.miniBar_Padding, metrics.floating_Inset) : metrics.floating_Inset
         .readingLine.margin.x = inset
         .readingLine.margin.z = inset
         let compact    = .compactVideoCell()
         let tiledVideo = .currentView is Viewers.Film.Panel and (.workspace?.isTiled() orelse false)
-        let strip = .fullScreen or .isEdgeToEdge() ? 0.0 : .stripInset()
-        let search = .searchBar != null and .searchBar.isLocallyVisible() ?
-                     Math.max(.searchBar.position.height, themeActionButtonSize(.themeMetrics())) + .themeMetrics().floating_Inset : 0
+        let strip      = .fullScreen or .isEdgeToEdge() ? 0.0 : .stripInset()
+        let search     = .searchBar != null and .searchBar.isLocallyVisible() ?
+                         Math.max(.searchBar.position.height, themeActionButtonSize(.themeMetrics())) + .themeMetrics().floating_Inset : 0
         .documentHost.padding = Math.Vector4{0, strip + search, 0, 0}
         if .currentView is Markdown.View as markdown
         {
@@ -315,7 +341,7 @@ impl ViewerWindow
 
         if .viewerBar != null
         {
-            let commands     = visibleViewerCommands(.currentCommands)
+            let commands = visibleViewerCommands(.currentCommands)
             if .currentView is Viewers.Film.Panel as film where film.bottomVeil.compact != compact
             {
                 film.bottomVeil.compact = compact
@@ -330,16 +356,20 @@ impl ViewerWindow
             }
 
             // The dedicated comparison paints its own canvas above the two transport bars.
-            let comparison = tiledVideo and (.workspace?.wantsComparisonSheet() orelse false) and
-                             (.workspace?.isMediaScene() orelse false) and not .fullScreen
-            let clearance  = comparison ? .themeMetrics().floating_Inset : .themeMetrics().miniBar_Distance
+            let comparison = tiledVideo and
+                             (.workspace?.wantsComparisonSheet() orelse false) and
+                             (.workspace?.isMediaScene() orelse false) and
+                             not .fullScreen
+            let clearance = comparison ? .themeMetrics().floating_Inset : .themeMetrics().miniBar_Distance
             .documentPanel.margin.w = commands and (comparison or not .overlaysViewerBar()) ?
                                       commands.position.height + .viewerBar.padding.y + .viewerBar.padding.w +
                                       2 * clearance : 0
         }
 
-        if .currentSidePanelHost is ViewerSidePanelHost as side do
+        if .currentSidePanelHost is ViewerSidePanelHost as side
+        {
             side.placeBelowStrip(strip)
+        }
     }
 
     mtd compactVideoCell()->bool
@@ -355,8 +385,11 @@ impl ViewerWindow
         // received its new bounds, so a narrower window cannot leave search outside the work.
         .documentPanel.hookOnEvent = func|window = me|(_, evt)
         {
-            if evt is ResizeEvent do
+            if evt is ResizeEvent
+            {
                 window.layoutFloatingParts()
+            }
+
             return false
         }
 

@@ -38,8 +38,8 @@ struct PropertiesCtrl
         readonly flags: PropertiesCtrlFlags     // Active optional UI features.
     }
 
-    sectionLines: Array'(*ListLine)     // Line of the section list of each section of the editor, in order.
-    sectionIcons: Array'PropertiesSectionIcon     // Caller-owned section glyphs, reapplied when the list is rebuilt.
+    sectionLines: Array!{*ListLine}     // Line of the section list of each section of the editor, in order.
+    sectionIcons: Array!{PropertiesSectionIcon}     // Caller-owned section glyphs, reapplied when the list is rebuilt.
 }
 
 // The commands of the presentations of the view menu, in the order of [[Gui.PropertiesKind]].
@@ -51,7 +51,7 @@ impl PropertiesCtrl
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionNavigation, id: WndId? = null)->*PropertiesCtrl
     {
-        with let ed = Wnd.create'PropertiesCtrl(parent, "", position, id)
+        with let ed = Wnd.create!{PropertiesCtrl}(parent, "", position, id)
         {
             .flags = flags
 
@@ -64,8 +64,11 @@ impl PropertiesCtrl
             .list.sigSelectionChanged += func|ed|(list)
             {
                 let sel = list.focusedLine()
-                if not sel do
+                if not sel
+                {
                     return
+                }
+
                 list.toggleExpand(sel)
                 let item = cast(*PropertiesItem, unwrap sel.userData0)
                 let pos  = item.label.rectRelativeTo(ed.properties.edView)
@@ -78,14 +81,16 @@ impl PropertiesCtrl
             .splitter.addPane(.list)
             .splitter.addPane(.properties)
 
-            if not flags.has(.SectionNavigation) do
+            if not flags.has(.SectionNavigation)
+            {
                 .splitter.setPaneVisible(0, false)
+            }
         }
 
         // Filter bar and view options
         if flags.has(.SearchBar)
         {
-            with let bar = Wnd.create'Wnd(ed, {0, 0, 0, 36})
+            with let bar = Wnd.create!{Wnd}(ed, {0, 0, 0, 36})
             {
                 .dockStyle = .Top
                 .margin.w  = 8
@@ -136,8 +141,10 @@ impl PropertiesCtrl
                 .sigSelectionChanged += func|ed|(tab)
                 {
                     let item = tab.selectedItem()
-                    if item do
+                    if item
+                    {
                         ed.properties.setCurrentSection(cast(u32, cast(u64, item.userData0)))
+                    }
                 }
             }
         }
@@ -165,16 +172,24 @@ impl PropertiesCtrl
             var naked: String
 
             // A category header writes its name in capitals; the list names it as declared.
-            if item.flags.has(.Category) do
+            if item.flags.has(.Category)
+            {
                 naked = Properties.resolveText(item.typeValue.name orelse "")
-            elif item.label != null do
+            }
+            else if item.label != null
+            {
                 naked = item.label.text()
-            else do
+            }
+            else
+            {
                 naked = Properties.resolveText(item.typeValue.name orelse "")
+            }
 
             var icon: Icon
-            for &entry in .sectionIcons where entry.name == naked do
+            for &entry in .sectionIcons where entry.name == naked
+            {
                 icon = entry.icon
+            }
 
             // In the filter bar
             if .tab != null and it.lvl == 0
@@ -199,18 +214,25 @@ impl PropertiesCtrl
 
             let line = .list.createLine(naked, parentLine: parentLine)
             line.userData0 = it.item
-            if icon.isValid() do
+            if icon.isValid()
+            {
                 line.setItem(0, naked, icon)
+            }
+
             .sectionLines.add(line)
         }
 
         // Every section is listed.
-        for line in .sectionLines where not line.lines.isEmpty() do
+        for line in .sectionLines where not line.lines.isEmpty()
+        {
             .list.expand(line)
+        }
 
         .refreshSectionCounts()
-        if .flags.has(.SectionNavigation) and .list.lineCount() > 0 do
+        if .flags.has(.SectionNavigation) and .list.lineCount() > 0
+        {
             .list.selectLine(0)
+        }
     }
 
     // Writes after each section of the list how many of its fields the filters let through. A
@@ -239,8 +261,11 @@ impl PropertiesCtrl
     // Shows the editor in the `kind` presentation, with the same structures and filters.
     mtd setKind(kind: PropertiesKind)
     {
-        if .properties.kind == kind do
+        if .properties.kind == kind
+        {
             return
+        }
+
         .properties.setKind(kind)
         .fillSections()
     }
@@ -276,8 +301,11 @@ impl PropertiesCtrl
         let texts = strings()
         let kinds = [texts.prop_KindList, texts.prop_KindGrid, texts.prop_KindCondensed, texts.prop_KindPanel]
         menu.addLabel(texts.prop_Presentation)
-        for name, index in kinds do
+        for name, index in kinds
+        {
             menu.addItem(name, KindCommands[index], checked: cast(u64, .properties.kind) == index)
+        }
+
         menu.addSeparator()
 
         menu.addItem(strings().prop_ExpandAll, ExpandAll, .theme().icon(.ChevronDown), disabled: not gridLike)
@@ -303,8 +331,10 @@ impl PropertiesCtrl
             .refreshSectionCounts()
 
         default:
-            for id, index in KindCommands where sel == id do
+            for id, index in KindCommands where sel == id
+            {
                 .setKind(PropertiesKindValues[index])
+            }
         }
     }
 
@@ -324,14 +354,19 @@ impl PropertiesCtrl
         for &entry in .sectionIcons where entry.name == section
         {
             entry.icon = icon
-            for line in .sectionLines where line.items[0]!.name == section do
+            for line in .sectionLines where line.items[0]!.name == section
+            {
                 line.setItem(0, section, icon)
+            }
+
             if .tab != null
             {
                 for item in .tab.items where item
                 {
-                    if item.name == section do
+                    if item.name == section
+                    {
                         item.icon = icon
+                    }
                 }
 
                 .tab.applyLayout()
@@ -343,14 +378,19 @@ impl PropertiesCtrl
         }
 
         .sectionIcons.add({name: section, icon: icon})
-        for line in .sectionLines where line.items[0]!.name == section do
+        for line in .sectionLines where line.items[0]!.name == section
+        {
             line.setItem(0, section, icon)
+        }
+
         if .tab != null
         {
             for item in .tab.items where item
             {
-                if item.name == section do
+                if item.name == section
+                {
                     item.icon = icon
+                }
             }
 
             .tab.applyLayout()

@@ -30,7 +30,7 @@ impl Struct
 
 #test
 {
-    let v: Struct = 4's32
+    let v: Struct = 4_s32
     Swag.require(v.x == 4)
     Swag.require(v.y == 4)
     Swag.require(v.z == 666)
@@ -66,7 +66,7 @@ impl Struct
 
 #test
 {
-    let v: Struct = 2'u64
+    let v: Struct = 2_u64
     Swag.require(v.x == 2)
     Swag.require(v.y == 2)
     Swag.require(v.z == 2)
@@ -96,10 +96,10 @@ Function arguments are not automatically converted through 'opSet' unless
     }
 
     // Explicit cast triggers 'opSet(s32)'
-    takesExplicit(cast(Struct, 5's32))
+    takesExplicit(cast(Struct, 5_s32))
 
     // Implicit conversion via 'opSet(u16)'
-    takesImplicit(5'u16)
+    takesImplicit(5_u16)
 }
 
 /**

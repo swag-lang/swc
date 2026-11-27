@@ -19,9 +19,9 @@ func getTestDataPath(fileName: string, loc = #callerlocation)->String
     return path
 }
 
-func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8 => expect File.readAllBytes(getTestDataPath(fileName))
+func loadFontBytes(fileName: string = "segoeui.ttf")->Array!{u8} => expect File.readAllBytes(getTestDataPath(fileName))
 
-func writeBigU32(buffer: *Array'u8, offset: u64, value: u32)
+func writeBigU32(buffer: *Array!{u8}, offset: u64, value: u32)
 {
     buffer[offset + 0] = cast(u8, ((value >> 24) & 0xFF))
     buffer[offset + 1] = cast(u8, ((value >> 16) & 0xFF))
@@ -29,35 +29,35 @@ func writeBigU32(buffer: *Array'u8, offset: u64, value: u32)
     buffer[offset + 3] = cast(u8, (value & 0xFF))
 }
 
-func writeBigU16(buffer: *Array'u8, offset: u64, value: u16)
+func writeBigU16(buffer: *Array!{u8}, offset: u64, value: u16)
 {
     buffer[offset]     = cast(u8, value >> 8)
     buffer[offset + 1] = cast(u8, value & 0xFF)
 }
 
-func readBigU16(buffer: *Array'u8, offset: u64)->u16 => cast(u16, buffer[offset]) << 8 | buffer[offset + 1]
+func readBigU16(buffer: *Array!{u8}, offset: u64)->u16 => cast(u16, buffer[offset]) << 8 | buffer[offset + 1]
 
-func readBigU32(buffer: *Array'u8, offset: u64)->u32 => cast(u32, buffer[offset]) << 24 |
+func readBigU32(buffer: *Array!{u8}, offset: u64)->u32 => cast(u32, buffer[offset]) << 24 |
                                                         cast(u32, buffer[offset + 1]) << 16 |
                                                         cast(u32, buffer[offset + 2]) << 8 |
                                                         buffer[offset + 3]
 
 // Replaces the sfnt `post` table with a small synthetic name map for parser tests.
-func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16, secondGlyph, secondNameIndex: u16, customNames: const [..] string, truncate: bool = false)->Array'u8 fail
+func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16, secondGlyph, secondNameIndex: u16, customNames: const [..] string, truncate: bool = false)->Array!{u8} fail
 {
-    var glyphCount = 0'u16
-    var postRecord = 0'u64
+    var glyphCount = 0_u16
+    var postRecord = 0_u64
     let tableCount = try readU16(sfnt, 4)
     for index in tableCount
     {
-        let record = 12'u64 + cast(u64, index) * 16
+        let record = 12_u64 + cast(u64, index) * 16
         let tag    = try readU32(sfnt, record)
-        if tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32)
+        if tag == imageTag('m'_u32, 'a'_u32, 'x'_u32, 'p'_u32)
         {
             let offset = try readU32(sfnt, record + 8)
             glyphCount = try readU16(sfnt, offset + 4)
         }
-        elif tag == imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
+        else if tag == imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32)
         {
             postRecord = record
         }
@@ -66,7 +66,7 @@ func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16, 
     Swag.require(glyphCount > secondGlyph)
     Swag.require(postRecord != 0)
 
-    var post: Array'u8
+    var post: Array!{u8}
     post.resize(34 + cast(u64, glyphCount) * 2)
     writeBigU32(&post, 0, 0x00020000)
     writeBigU16(&post, 32, glyphCount)
@@ -78,13 +78,15 @@ func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16, 
         post.add(cast(const [..] u8, name))
     }
 
-    if truncate and post.count do
+    if truncate and post.count {
         post.resize(post.count - 1)
 
-    var result: Array'u8
+    }
+    var result: Array!{u8}
     result.add(sfnt)
-    while (result.count & 3) != 0 do
+    while (result.count & 3) != 0 {
         result.add(0)
+    }
     let postOffset = cast(u32, result.count)
     result.add(post.toSlice())
     writeBigU32(&result, postRecord + 8, postOffset)
@@ -92,39 +94,43 @@ func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16, 
     return result
 }
 
-func buildPostFormat25Font(sfnt: const [..] u8, glyphIndex: u16, standardNameIndex: u8)->Array'u8 fail
+func buildPostFormat25Font(sfnt: const [..] u8, glyphIndex: u16, standardNameIndex: u8)->Array!{u8} fail
 {
-    var postRecord = 0'u64
+    var postRecord = 0_u64
     var maxpOffset = Swag.U32.Max
     var hheaOffset = Swag.U32.Max
     let tableCount = try readU16(sfnt, 4)
     for index in tableCount
     {
-        let record = 12'u64 + cast(u64, index) * 16
+        let record = 12_u64 + cast(u64, index) * 16
         let tag    = try readU32(sfnt, record)
-        if tag == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) do
+        if tag == imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32) {
             postRecord = record
-        elif tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32) do
+        }
+        else if tag == imageTag('m'_u32, 'a'_u32, 'x'_u32, 'p'_u32) {
             maxpOffset = try readU32(sfnt, record + 8)
-        elif tag == imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32) do
+        }
+        else if tag == imageTag('h'_u32, 'h'_u32, 'e'_u32, 'a'_u32) {
             hheaOffset = try readU32(sfnt, record + 8)
+        }
     }
 
     Swag.require(postRecord != 0 and maxpOffset != Swag.U32.Max and hheaOffset != Swag.U32.Max)
     Swag.require(258 > glyphIndex)
 
-    var post: Array'u8
+    var post: Array!{u8}
     post.resize(34 + 258)
     writeBigU32(&post, 0, 0x00025000)
     writeBigU16(&post, 32, 258)
     post[34 + glyphIndex] = cast(u8, cast(s16, standardNameIndex) - cast(s16, glyphIndex))
 
-    var result: Array'u8
+    var result: Array!{u8}
     result.add(sfnt)
     writeBigU16(&result, maxpOffset + 4, 258)
     writeBigU16(&result, hheaOffset + 34, 258)
-    while (result.count & 3) != 0 do
+    while (result.count & 3) != 0 {
         result.add(0)
+    }
     let postOffset = cast(u32, result.count)
     result.add(post.toSlice())
     writeBigU32(&result, postRecord + 8, postOffset)
@@ -132,26 +138,28 @@ func buildPostFormat25Font(sfnt: const [..] u8, glyphIndex: u16, standardNameInd
     return result
 }
 
-func buildPostFormat3Font(sfnt: const [..] u8)->Array'u8 fail
+func buildPostFormat3Font(sfnt: const [..] u8)->Array!{u8} fail
 {
-    var postRecord = 0'u64
+    var postRecord = 0_u64
     let tableCount = try readU16(sfnt, 4)
     for index in tableCount
     {
-        let record = 12'u64 + cast(u64, index) * 16
-        if try readU32(sfnt, record) == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) do
+        let record = 12_u64 + cast(u64, index) * 16
+        if try readU32(sfnt, record) == imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32) {
             postRecord = record
+        }
     }
 
     Swag.require(postRecord != 0)
 
-    var post: Array'u8
+    var post: Array!{u8}
     post.resize(32)
     writeBigU32(&post, 0, 0x00030000)
-    var result: Array'u8
+    var result: Array!{u8}
     result.add(sfnt)
-    while (result.count & 3) != 0 do
+    while (result.count & 3) != 0 {
         result.add(0)
+    }
     let postOffset = cast(u32, result.count)
     result.add(post.toSlice())
     writeBigU32(&result, postRecord + 8, postOffset)
@@ -159,12 +167,12 @@ func buildPostFormat3Font(sfnt: const [..] u8)->Array'u8 fail
     return result
 }
 
-func truncatePostTable(font: *Array'u8, length: u32)
+func truncatePostTable(font: *Array!{u8}, length: u32)
 {
     for index in readBigU16(font, 4)
     {
-        let record = 12'u64 + cast(u64, index) * 16
-        if readBigU32(font, record) == imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
+        let record = 12_u64 + cast(u64, index) * 16
+        if readBigU32(font, record) == imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32)
         {
             writeBigU32(font, record + 12, length)
             return
@@ -174,36 +182,40 @@ func truncatePostTable(font: *Array'u8, length: u32)
     Swag.panic("post table missing from test font", #curlocation)
 }
 
-func buildPostFormat1Font(sfnt: const [..] u8)->Array'u8 fail
+func buildPostFormat1Font(sfnt: const [..] u8)->Array!{u8} fail
 {
     var maxpOffset = Swag.U32.Max
     var hheaOffset = Swag.U32.Max
-    var postRecord = 0'u64
+    var postRecord = 0_u64
     let tableCount = try readU16(sfnt, 4)
     for index in tableCount
     {
-        let record = 12'u64 + cast(u64, index) * 16
+        let record = 12_u64 + cast(u64, index) * 16
         let tag    = try readU32(sfnt, record)
-        if tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32) do
+        if tag == imageTag('m'_u32, 'a'_u32, 'x'_u32, 'p'_u32) {
             maxpOffset = try readU32(sfnt, record + 8)
-        elif tag == imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32) do
+        }
+        else if tag == imageTag('h'_u32, 'h'_u32, 'e'_u32, 'a'_u32) {
             hheaOffset = try readU32(sfnt, record + 8)
-        elif tag == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) do
+        }
+        else if tag == imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32) {
             postRecord = record
+        }
     }
 
     Swag.require(maxpOffset != Swag.U32.Max and hheaOffset != Swag.U32.Max and postRecord != 0)
 
-    var result: Array'u8
+    var result: Array!{u8}
     result.add(sfnt)
     writeBigU16(&result, maxpOffset + 4, 258)
     writeBigU16(&result, hheaOffset + 34, 258)
 
-    var post: Array'u8
+    var post: Array!{u8}
     post.resize(32)
     writeBigU32(&post, 0, 0x00010000)
-    while (result.count & 3) != 0 do
+    while (result.count & 3) != 0 {
         result.add(0)
+    }
     let postOffset = cast(u32, result.count)
     result.add(post.toSlice())
     writeBigU32(&result, postRecord + 8, postOffset)
@@ -212,10 +224,10 @@ func buildPostFormat1Font(sfnt: const [..] u8)->Array'u8 fail
 }
 
 // Wraps an sfnt font in WOFF1, compressing tables where zlib saves space.
-func buildWoffFont(sfnt: const [..] u8, reverseBlocks = false)->Array'u8 fail
+func buildWoffFont(sfnt: const [..] u8, reverseBlocks = false)->Array!{u8} fail
 {
     let numTables = try readU16(sfnt, 4)
-    var result: Array'u8
+    var result: Array!{u8}
     result.resize(44 + cast(u64, numTables) * 20)
     writeBigU32(&result, 0, TAG_WOFF)
     writeBigU32(&result, 4, try readU32(sfnt, 0))
@@ -226,7 +238,7 @@ func buildWoffFont(sfnt: const [..] u8, reverseBlocks = false)->Array'u8 fail
     for position in numTables
     {
         let index         = reverseBlocks ? numTables - 1 - position : position
-        let sfntRecord    = 12'u64 + cast(u64, index) * 16
+        let sfntRecord    = 12_u64 + cast(u64, index) * 16
         let tag           = try readU32(sfnt, sfntRecord)
         let checksum      = try readU32(sfnt, sfntRecord + 4)
         let offset        = try readU32(sfnt, sfntRecord + 8)
@@ -236,12 +248,13 @@ func buildWoffFont(sfnt: const [..] u8, reverseBlocks = false)->Array'u8 fail
         let useCompressed = compressed.count < original.count
         let payload       = useCompressed ? compressed.toSlice() : original
 
-        while (result.count & 3) != 0 do
+        while (result.count & 3) != 0 {
             result.add(0)
+        }
         let woffOffset = cast(u32, result.count)
         result.add(payload)
 
-        let woffRecord = 44'u64 + cast(u64, index) * 20
+        let woffRecord = 44_u64 + cast(u64, index) * 20
         writeBigU32(&result, woffRecord, tag)
         writeBigU32(&result, woffRecord + 4, woffOffset)
         writeBigU32(&result, woffRecord + 8, cast(u32, payload.count))
@@ -258,18 +271,18 @@ func buildWoffFont(sfnt: const [..] u8, reverseBlocks = false)->Array'u8 fail
 //
 // Every table record addresses the whole file rather than its own offset table, so
 // each font's records are shifted by wherever that font landed after the header.
-func buildFontCollection(fileNames: const [..] string)->Array'u8
+func buildFontCollection(fileNames: const [..] string)->Array!{u8}
 {
     var result: #returntype
 
     let headerSize = 12 + cast(u64, fileNames.count) * 4
     result.resize(headerSize)
 
-    var fontOffsets: Array'u32
+    var fontOffsets: Array!{u32}
     for name in fileNames
     {
         // Every offset table is four-byte aligned, which is what a real collection does.
-        result.resize((result.count + 3) & ~3'u64)
+        result.resize((result.count + 3) & ~3_u64)
         let fontOffset = cast(u32, result.count)
         fontOffsets.add(fontOffset)
 
@@ -284,18 +297,19 @@ func buildFontCollection(fileNames: const [..] string)->Array'u8
         }
     }
 
-    writeBigU32(&result, 0, imageTag('t'u32, 't'u32, 'c'u32, 'f'u32))
+    writeBigU32(&result, 0, imageTag('t'_u32, 't'_u32, 'c'_u32, 'f'_u32))
     writeBigU32(&result, 4, 0x0001_0000)
     writeBigU32(&result, 8, cast(u32, fileNames.count))
-    for offset, index in fontOffsets do
+    for offset, index in fontOffsets {
         writeBigU32(&result, 12 + cast(u64, index) * 4, offset)
 
+    }
     return result
 }
 
 struct FaceScope
 {
-    bytes: Array'u8
+    bytes: Array!{u8}
     face:  *Face?
 }
 
@@ -327,14 +341,16 @@ func getFaceData(face: *Face?)->*FaceImpl
 
 func countBitmapCoverage(bitmap: const *Bitmap)->u32
 {
-    if not bitmap.buffer do
+    if not bitmap.buffer {
         return 0
 
-    var count = 0'u32
+    }
+    var count = 0_u32
     for index in cast(u64, bitmap.width) * bitmap.rows
     {
-        if bitmap.buffer[index] != 0 do
+        if bitmap.buffer[index] != 0 {
             count += 1
+        }
     }
 
     return count
@@ -346,8 +362,9 @@ func findPointWithNonZeroY(outline: const *Outline)->u32
     let pts = unwrap outline.points
     for index in cast(u32, outline.pointCount)
     {
-        if pts[index].y != 0 do
+        if pts[index].y != 0 {
             return index
+        }
     }
 
     Swag.require(false)
@@ -357,7 +374,7 @@ func findPointWithNonZeroY(outline: const *Outline)->u32
 const ReaderBytes:     [8] u8 = [0x12, 0x34, 0xFF, 0x80, 0x80, 0x00, 0x00, 0x01]
 const ReaderS32Bytes:  [4] u8 = [0xFF, 0xFF, 0xFF, 0x80]
 const FixedPointBytes: [2] u8 = [0x20, 0x00]
-const BrokenFontBytes: [8] u8 = ['b'u8, 'a'u8, 'd'u8, 0x00, 0x01, 0x02, 0x03, 0x04]
+const BrokenFontBytes: [8] u8 = ['b'_u8, 'a'_u8, 'd'_u8, 0x00, 0x01, 0x02, 0x03, 0x04]
 
 const Cmap4Fixture: [32] u8 = [
     0x00, 0x04, 0x00, 0x20, 0x00, 0x00, 0x00, 0x04,
@@ -429,9 +446,9 @@ const CmapVariationFixture: [101] u8 = [
 // A twelve-byte OpenType header declaring no table at all. The container is one this
 // module reads, so the failure has to come from the missing tables rather than the
 // signature.
-const OpenTypeCffBytes: [12] u8 = ['O'u8, 'T'u8, 'T'u8, 'O'u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-const WoffBytes:        [12] u8 = ['w'u8, 'O'u8, 'F'u8, 'F'u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-const Woff2Bytes:       [12] u8 = ['w'u8, 'O'u8, 'F'u8, '2'u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+const OpenTypeCffBytes: [12] u8 = ['O'_u8, 'T'_u8, 'T'_u8, 'O'_u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+const WoffBytes:        [12] u8 = ['w'_u8, 'O'_u8, 'F'_u8, 'F'_u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+const Woff2Bytes:       [12] u8 = ['w'_u8, 'O'_u8, 'F'_u8, '2'_u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
 // Rejected loads are caught by tests without weakening the successful face type.
 func checkFaceLoad(bytes: const [..] u8) fail { (try Face.load(bytes)).destroy() }
@@ -443,8 +460,9 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers" do
+        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers" {
             return unwrap Path.directoryName(directory)
+        }
         directory = Path.directoryName(directory)
     }
 

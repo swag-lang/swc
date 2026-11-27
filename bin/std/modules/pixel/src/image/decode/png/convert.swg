@@ -12,39 +12,45 @@
 
 using Core, Core.Errors
 
-const Swap16Bytes = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
-const ExpandRgb16Transparency = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 0x80, 0x80, 7, 6, 9, 8, 11, 10, 0x80, 0x80])
-const ExpandRgbTransparency   = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
+const Swap16Bytes = cast(Math.Simd.U8x16, [1_u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+const ExpandRgb16Transparency = cast(Math.Simd.U8x16, [1_u8, 0, 3, 2, 5, 4, 0x80, 0x80, 7, 6, 9, 8, 11, 10, 0x80, 0x80])
+const ExpandRgbTransparency   = cast(Math.Simd.U8x16, [0_u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
 
 // Building the packed table breaks even at 512 pixels on the supported x64 baseline.
-const PackedPaletteThreshold = 512'u64
+const PackedPaletteThreshold = 512_u64
 
 // A transparency lookup table pays for itself from 512 grayscale pixels.
-const PackedGrayscaleTransparencyThreshold = 512'u64
+const PackedGrayscaleTransparencyThreshold = 512_u64
 
 // Direct grayscale-plus-alpha packing wins from 256 pixels.
-const PackedGrayscaleAlphaThreshold = 256'u64
+const PackedGrayscaleAlphaThreshold = 256_u64
 
 // RGB transparency expansion amortizes its shuffle and masks on image-sized inputs.
-const SimdRgbTransparencyThreshold = 4096'u64
+const SimdRgbTransparencyThreshold = 4096_u64
 
 // Checks the expanded indices before the palette conversion looks them up.
 func hasInvalidPaletteIndex(indices: const [*] u8, count: u64, paletteCount: u8)->bool
 {
     using Math.Simd
 
-    var offset   = 0'u64
-    var maxIndex = splat(0'u8)
+    var offset   = 0_u64
+    var maxIndex = splat(0_u8)
     while count - offset >= 16
     {
         maxIndex = Math.max(maxIndex, load(indices + offset))
         offset   += 16
     }
 
-    if anyTrue(maxIndex >= splat(paletteCount)) do
+    if anyTrue(maxIndex >= splat(paletteCount))
+    {
         return true
-    for index in offset until count where indices[index] >= paletteCount do
+    }
+
+    for index in offset until count where indices[index] >= paletteCount
+    {
         return true
+    }
+
     return false
 }
 
@@ -95,7 +101,7 @@ func convertGray16Transparency(source: const [*] u8, destination: [*] u8, sample
     {
         let gray = (cast(u16, src[0]) << 8) | src[1]
         cast([*] u16, dst)[0] = gray
-        cast([*] u16, dst)[1] = gray == key ? 0'u16 : 65535'u16
+        cast([*] u16, dst)[1] = gray == key ? 0_u16 : 65535_u16
         src                   += 2
         dst                   += 4
         remaining             -= 1
@@ -110,7 +116,7 @@ func convertRgb16Transparency(source: const [*] u8, destination: [*] u8, pixelCo
     var remaining = pixelCount
     let key       = cast(u64, red) | (cast(u64, green) << 16) | (cast(u64, blue) << 32)
     let keys      = Math.Simd.splat(key)
-    let alphaMask = Math.Simd.splat(0xFFFF_0000_0000_0000'u64)
+    let alphaMask = Math.Simd.splat(0xFFFF_0000_0000_0000_u64)
 
     // The sixteen-byte load spans two pixels and four bytes of the next one.
     while remaining >= 3
@@ -131,7 +137,7 @@ func convertRgb16Transparency(source: const [*] u8, destination: [*] u8, pixelCo
         cast([*] u16, dst)[0] = r
         cast([*] u16, dst)[1] = g
         cast([*] u16, dst)[2] = b
-        cast([*] u16, dst)[3] = r == red and g == green and b == blue ? 0'u16 : 65535'u16
+        cast([*] u16, dst)[3] = r == red and g == green and b == blue ? 0_u16 : 65535_u16
         src                   += 6
         dst                   += 8
         remaining             -= 1
@@ -146,8 +152,8 @@ func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64
     while count >= 8
     {
         let words    = cast #bit(Math.Simd.U16x8, Math.Simd.shuffle(Math.Simd.load(src), Swap16Bytes))
-        let low      = ((Math.Simd.widenLow(words) + 129'u32) * 255'u32) >> 16
-        let high     = ((Math.Simd.widenHigh(words) + 129'u32) * 255'u32) >> 16
+        let low      = ((Math.Simd.widenLow(words) + 129_u32) * 255_u32) >> 16
+        let high     = ((Math.Simd.widenHigh(words) + 129_u32) * 255_u32) >> 16
         let packed16 = Math.Simd.packUnsigned(cast #bit(Math.Simd.S32x4, low), cast #bit(Math.Simd.S32x4, high))
         let packed8  = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8, packed16), cast #bit(Math.Simd.S16x8, packed16))
         Math.Simd.storeLow8(dst, packed8)
@@ -164,6 +170,16 @@ func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64
         dst    += 1
         count  -= 1
     }
+}
+
+#[Swag.NoInline]
+private func(HAS_ALPHA: bool) convertSmallPalette(source: const [*] u8, destination: [*] u8, count: u64, palette: const [*] u32, paletteSize: s32)->u64
+{
+    var tables   = PackedPixel.smallPaletteTables(palette, cast(u64, paletteSize))
+    var combined = Math.Simd.splat(0_u8)
+
+    // The 2 GiB output limit keeps the signed pixel and byte offsets in range.
+    return cast(u64, PackedPixel.writeSmallPaletteRow!{HAS_ALPHA}(source, destination, cast(s32, count), &tables[0], &combined))
 }
 
 impl Decoder
@@ -202,6 +218,18 @@ impl Decoder
         var src       = .safeDstPixels()
         var dst       = cast([*] u8, result.pixels.storage())
         var remaining = pixelCount
+
+        if .paletteCount <= 16
+        {
+            let written = convertSmallPalette!{false}(src, dst, remaining, &packedPalette[0], .paletteCount)
+            src       += written
+            dst       += written * 3
+            remaining -= written
+            if not remaining
+            {
+                return
+            }
+        }
 
         // The fourth byte lands on the next pixel and is overwritten there; four
         // independent lookups per step keep the table loads in flight together. Stop
@@ -258,13 +286,21 @@ impl Decoder
         for i in 256
         {
             let color      = .palette[i]
-            let alphaValue = i < alpha.count ? cast(u32, alpha[i]) : 255'u32
+            let alphaValue = i < alpha.count ? cast(u32, alpha[i]) : 255_u32
             packedPalette[i] = ((color >> 16) & 0xFF) | (color & 0xFF00) | ((color & 0xFF) << 16) | (alphaValue << 24)
         }
 
         var src       = .safeDstPixels()
         var dst       = cast([*] u32, result.pixels.storage())
         var remaining = pixelCount
+        if .paletteCount <= 16
+        {
+            let written = convertSmallPalette!{true}(src, cast([*] u8, dst), remaining, &packedPalette[0], .paletteCount)
+            src       += written
+            dst       += written
+            remaining -= written
+        }
+
         while remaining >= 4
         {
             dst[0]    = packedPalette[src[0]]
@@ -314,7 +350,7 @@ impl Decoder
         for i in 256
         {
             let gray  = cast(u32, i)
-            let alpha = i == key ? 0'u32 : 255'u32
+            let alpha = i == key ? 0_u32 : 255_u32
             packed[i] = cast(u16, (gray | (alpha << 8)))
         }
 
@@ -353,8 +389,8 @@ impl Decoder
     mtd convertRgbTransparencyRgba(result: *Image, key0, key1, key2: u8)
     {
         let key       = Math.Simd.splat(cast(u32, key0) | (cast(u32, key1) << 8) | (cast(u32, key2) << 16))
-        let colorMask = Math.Simd.splat(0x00FFFFFF'u32)
-        let alphaMask = Math.Simd.splat(0xFF000000'u32)
+        let colorMask = Math.Simd.splat(0x00FFFFFF_u32)
+        let alphaMask = Math.Simd.splat(0xFF000000_u32)
         var src       = .safeDstPixels()
         var dst       = cast([*] u8, result.pixels.storage())
         var remaining = cast(u64, result.width) * result.height
@@ -418,17 +454,17 @@ impl Decoder
             .convertPaletteRgb(result)
         }
         // Paletted, transparency
-        elif .inChannels == 1 and .seenPLTE and .seenTRSN
+        else if .inChannels == 1 and .seenPLTE and .seenTRSN
         {
             .convertPaletteRgba(result)
         }
         // Grayscale without alpha channel, no transparency
-        elif .inChannels == 1 and not .seenTRSN
+        else if .inChannels == 1 and not .seenTRSN
         {
             .convertGrayscaleRgb(result)
         }
         // Grayscale without alpha channel, but transparency
-        elif .inChannels == 1 and .seenTRSN
+        else if .inChannels == 1 and .seenTRSN
         {
             var key = .safeTRNSData()[1]
             var scale: u8
@@ -444,12 +480,12 @@ impl Decoder
             .convertGrayscaleTransparencyRgba(result, key)
         }
         // Grayscale with alpha channel
-        elif .inChannels == 2
+        else if .inChannels == 2
         {
             .convertGrayscaleAlphaRgba(result)
         }
         // Color without alpha but transparency
-        elif .inChannels == 3 and .seenTRSN
+        else if .inChannels == 3 and .seenTRSN
         {
             let key  = cast(const [*] u8, (.safeTRNSData()).buffer)
             let key0 = key[1]

@@ -28,14 +28,14 @@ func checkedSubtractNegative(a, b: s64)->s64 => a - -b
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 2, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values
         {
             Swag.require(addNegative(a, b) == a - b)
             Swag.require(subtractNegative(a, b) == a + b)
-            Swag.require(sharedNegative(a, b) == ((a - b) ^ (0'u64 - b)))
+            Swag.require(sharedNegative(a, b) == ((a - b) ^ (0_u64 - b)))
             let a32 = cast(u32, (a & 0xFFFFFFFF))
             let b32 = cast(u32, (b & 0xFFFFFFFF))
             Swag.require(addNegative32(a32, b32) == a32 - b32)

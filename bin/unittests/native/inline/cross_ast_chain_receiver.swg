@@ -2,7 +2,7 @@
 
 struct Holder
 {
-    slab: InlineChain.Slab'InlineChain.Cell
+    slab: InlineChain.Slab!{InlineChain.Cell}
 }
 
 impl Holder
@@ -24,7 +24,7 @@ impl Holder
 // Same chain off a plain local (no method auto-member): the always-working baseline.
 func probeLocal(i: u64)->bool
 {
-    var s: InlineChain.Slab'InlineChain.Cell
+    var s: InlineChain.Slab!{InlineChain.Cell}
     return s[i].isOn()
 }
 

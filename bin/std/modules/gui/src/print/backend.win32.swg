@@ -4,13 +4,15 @@
 
 using Core, Core.Math, Pixel, Win32
 
-func printers()->Array'Printer
+func printers()->Array!{Printer}
 {
     var result:  #returntype
-    var storage: Array'u8
+    var storage: Array!{u8}
     let count = enumerateQueues(PRINTER_ENUM_LOCAL | PRINTER_ENUM_CONNECTIONS, 4, &storage)
-    if not count do
+    if not count
+    {
         return result
+    }
 
     let interactive = interactiveQueues()
     var defaultLength: DWORD
@@ -18,53 +20,72 @@ func printers()->Array'Printer
     var defaultName: String
     if defaultLength
     {
-        var wide: Array'u16
+        var wide: Array!{u16}
         wide.resize(defaultLength)
-        if GetDefaultPrinterW(wide.buffer, &defaultLength) do
+        if GetDefaultPrinterW(wide.buffer, &defaultLength)
+        {
             defaultName = printerName(wide.buffer)
+        }
     }
 
     let entries = assume cast([*] PRINTER_INFO_4W, storage.buffer)
     for i in count
     {
         let name = printerName(entries[i].pPrinterName)
-        if not name.isEmpty() and not interactive.contains(name) do
+        if not name.isEmpty() and not interactive.contains(name)
+        {
             result.add({name, id: name, isDefault: name == defaultName})
+        }
     }
 
     return result
 }
 
-private func enumerateQueues(flags, level: DWORD, storage: *Array'u8)->DWORD
+private func enumerateQueues(flags, level: DWORD, storage: *Array!{u8})->DWORD
 {
     var needed, count: DWORD
     discard EnumPrintersW(flags, null, level, null, 0, &needed, &count)
-    if not needed do
+    if not needed
+    {
         return 0
+    }
+
     storage.resize(needed)
-    if not EnumPrintersW(flags, null, level, storage.buffer, needed, &needed, &count) do
+    if not EnumPrintersW(flags, null, level, storage.buffer, needed, &needed, &count)
+    {
         return 0
+    }
+
     return count
 }
 
 // Read local port names without opening each queue or asking remote drivers for their settings.
-private func interactiveQueues()->HashSet'String
+private func interactiveQueues()->HashSet!{String}
 {
     var result:  #returntype
-    var storage: Array'u8
+    var storage: Array!{u8}
     let count = enumerateQueues(PRINTER_ENUM_LOCAL, 5, &storage)
-    if not count do
+    if not count
+    {
         return result
+    }
+
     let entries = assume cast([*] PRINTER_INFO_5W, storage.buffer)
-    for i in count where needsDriverDialog(entries[i]) do
+    for i in count where needsDriverDialog(entries[i])
+    {
         discard result.add(printerName(entries[i].pPrinterName))
+    }
+
     return result
 }
 
 private func printerName(wide: LPCWSTR)->String
 {
-    if not wide do
+    if not wide
+    {
         return {}
+    }
+
     return Utf8.fromUtf16(Swag.makeSlice(wide, Utf16.lengthZeroTerminated(wide)))
 }
 
@@ -82,13 +103,17 @@ private func isUnattendedQueue(printer: HANDLE)->bool
 {
     var needed: DWORD
     GetPrinterW(printer, 5, null, 0, &needed)
-    if not needed do
+    if not needed
+    {
         return false
+    }
 
-    var storage: Array'u8
+    var storage: Array!{u8}
     storage.resize(needed)
-    if not GetPrinterW(printer, 5, storage.buffer, needed, &needed) do
+    if not GetPrinterW(printer, 5, storage.buffer, needed, &needed)
+    {
         return false
+    }
 
     let info = assume cast(const *PRINTER_INFO_5W, storage.buffer)
     return not needsDriverDialog(info[]) and not printerName(info.pPortName).isEmpty()
@@ -96,17 +121,21 @@ private func isUnattendedQueue(printer: HANDLE)->bool
 
 private func needsDriverDialog(info: PRINTER_INFO_5W)->bool
 {
-    if info.Attributes & PRINTER_ATTRIBUTE_FAX do
+    if info.Attributes & PRINTER_ATTRIBUTE_FAX
+    {
         return true
+    }
 
     // These ports ask the spooler to open a Windows file picker from StartDoc.
     var ports = printerName(info.pPortName)
     ports.makeUpper()
-    for port in Tokenize.split(ports, ','u8)
+    for port in Tokenize.split(ports, ','_u8)
     {
         let name = Latin1.trim(port)
-        if name == "FILE:" or name == "PORTPROMPT:" do
+        if name == "FILE:" or name == "PORTPROMPT:"
+        {
             return true
+        }
     }
 
     return false
@@ -116,21 +145,30 @@ private func device(printer: const *Printer, setup: PageSetup)->HDC fail
 {
     var name = Utf16.toZeroTerminated(printer.id)
     var handle: HANDLE
-    if not OpenPrinterW(name.buffer, &handle, null) do
+    if not OpenPrinterW(name.buffer, &handle, null)
+    {
         fail PrintError{.PrinterUnavailable}
+    }
+
     defer ClosePrinter(handle)
-    if not isUnattendedQueue(handle) do
+    if not isUnattendedQueue(handle)
+    {
         fail PrintError{.PrinterUnavailable}
+    }
 
     let bytes = DocumentPropertiesW(null, handle, name.buffer, null, null, 0)
-    if bytes < cast(s32, #sizeof(DEVMODEW)) do
+    if bytes < cast(s32, #sizeof(DEVMODEW))
+    {
         fail PrintError{.PrinterFailed}
+    }
 
-    var storage: Array'u8
+    var storage: Array!{u8}
     storage.resize(cast(u64, bytes))
     let mode = assume cast(*DEVMODEW, storage.buffer)
-    if DocumentPropertiesW(null, handle, name.buffer, mode, null, DM_OUT_BUFFER) != IDOK do
+    if DocumentPropertiesW(null, handle, name.buffer, mode, null, DM_OUT_BUFFER) != IDOK
+    {
         fail PrintError{.PrinterFailed}
+    }
 
     let orientation = setup.landscape ? DMORIENT_LANDSCAPE : DMORIENT_PORTRAIT
     let paper       = paperId(setup.paper)
@@ -140,21 +178,28 @@ private func device(printer: const *Printer, setup: PageSetup)->HDC fail
     mode.dmCopies      = 1
     if DocumentPropertiesW(null, handle, name.buffer, mode, mode, DM_IN_BUFFER | DM_OUT_BUFFER) != IDOK or
        mode.dmPaperSize != paper or
-       mode.dmOrientation != orientation do
+       mode.dmOrientation != orientation
+    {
         fail PrintError{.UnsupportedPaper}
+    }
 
     let driver = Utf16.toZeroTerminated("WINSPOOL")
     let dc     = Gdi32.CreateDCW(driver.buffer, name.buffer, null, mode)
-    if not dc do
+    if not dc
+    {
         fail PrintError{.PrinterUnavailable}
+    }
+
     return dc
 }
 
 private func sheetForDevice(dc: HDC)->Sheet fail
 {
     let dpi = Point{Gdi32.GetDeviceCaps(dc, Gdi32.LOGPIXELSX), Gdi32.GetDeviceCaps(dc, Gdi32.LOGPIXELSY)}
-    if dpi.x <= 0 or dpi.y <= 0 do
+    if dpi.x <= 0 or dpi.y <= 0
+    {
         fail PrintError{.PrinterFailed}
+    }
 
     let x    = PointsPerInch / dpi.x
     let y    = PointsPerInch / dpi.y
@@ -192,8 +237,10 @@ private func sendPage(dc: HDC, image: *Image) fail
     let width  = Gdi32.GetDeviceCaps(dc, Gdi32.PHYSICALWIDTH)
     let height = Gdi32.GetDeviceCaps(dc, Gdi32.PHYSICALHEIGHT)
     let lines  = Gdi32.StretchDIBits(dc, x, y, width, height, 0, 0, image.width, image.height, cast(LPCVOID, image.pixels.storage()), &info, Gdi32.DIB_RGB_COLORS, Gdi32.SRCCOPY)
-    if lines == 0 or lines == -1 do
+    if lines == 0 or lines == -1
+    {
         fail PrintError{.PrinterFailed}
+    }
 }
 
 // An unsubmitted result carries the geometry the caller needs to preview.
@@ -204,19 +251,26 @@ func printNative(printer: const *Printer, layout: const *Layout, options: JobOpt
     defer discard catch Gdi32.DeleteDC(dc)
     try checkCancelled()
     let sheet = try sheetForDevice(dc)
-    if not layout.fitsPrinter(sheet) do
+    if not layout.fitsPrinter(sheet)
+    {
         return {sheet: sheet}
+    }
 
     let title = Utf16.toZeroTerminated(layout.document.name)
     let info  = Gdi32.DOCINFOW{cbSize: cast(s32, #sizeof(Gdi32.DOCINFOW)), lpszDocName: title.buffer}
     try checkCancelled()
-    if Gdi32.StartDocW(dc, &info) <= 0 do
+    if Gdi32.StartDocW(dc, &info) <= 0
+    {
         fail PrintError{.PrinterFailed}
+    }
+
     var complete = false
     defer
     {
-        if not complete do
+        if not complete
+        {
             Gdi32.AbortDoc(dc)
+        }
     }
 
     for options.copies
@@ -225,17 +279,25 @@ func printNative(printer: const *Printer, layout: const *Layout, options: JobOpt
         {
             var page = #move try layout.render(index, OutputDpi)
             try checkCancelled()
-            if Gdi32.StartPage(dc) <= 0 do
+            if Gdi32.StartPage(dc) <= 0
+            {
                 fail PrintError{.PrinterFailed}
+            }
+
             try sendPage(dc, &page)
-            if Gdi32.EndPage(dc) <= 0 do
+            if Gdi32.EndPage(dc) <= 0
+            {
                 fail PrintError{.PrinterFailed}
+            }
         }
     }
 
     try checkCancelled()
-    if Gdi32.EndDoc(dc) <= 0 do
+    if Gdi32.EndDoc(dc) <= 0
+    {
         fail PrintError{.PrinterFailed}
+    }
+
     complete = true
     return {submitted: true}
 }

@@ -22,7 +22,7 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-alias Panel = RichDocumentPage'Document
+alias Panel = RichDocumentPage!{Document}
 
 func createViewer(host: Viewer.Host)
 {
@@ -30,7 +30,7 @@ func createViewer(host: Viewer.Host)
     {
         var style = HtmlStyle.theme()
         style.maxContentWidth = 680
-        style.followTheme = not doc.usePaperColors
+        style.followTheme     = not doc.usePaperColors
         return style
     })
     view.openLink = func(url) { Env.openUrl(url) }

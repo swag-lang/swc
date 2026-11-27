@@ -7,9 +7,9 @@ using Core
 #[Swag.TestTag("stress")]
 #test
 {
-    const Count     = 65535'u64
+    const Count     = 65535_u64
     const DataStart = 3 + (Count + 1) * 3
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(DataStart + Count)
     bytes[0] = 0xFF
     bytes[1] = 0xFF
@@ -22,8 +22,10 @@ using Core
         bytes[3 + i * 3 + 2] = cast(u8, offset & 0xFF)
     }
 
-    for i in Count do
+    for i in Count
+    {
         bytes[DataStart + i] = cast(u8, i % 251)
+    }
 
     let index = expect readCffIndex(bytes.toSlice(), 0)
     Swag.require(index.count() == Count)

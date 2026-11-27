@@ -17,16 +17,16 @@ private struct EncoderMotion
 
 private struct EncoderSlicePacket
 {
-    bytes: Array'u8
+    bytes: Array!{u8}
 }
 
 // One scratch set per parallel slice keeps neighbour tables between pictures.
 private struct EncoderSliceScratch
 {
-    motions:       Array'EncoderMotion
-    pcm:           Array'bool
-    nonZero:       Array'u8
-    chromaNonZero: Array'u8
+    motions:       Array!{EncoderMotion}
+    pcm:           Array!{bool}
+    nonZero:       Array!{u8}
+    chromaNonZero: Array!{u8}
 }
 
 private const MotionOffsets: [16, 2] s32 = [
@@ -77,10 +77,10 @@ struct Encoder
 {
     private
     {
-        config:         Array'u8
-        packet:         Array'u8
-        previous:       Array'u8
-        previousInput:  Array'u8
+        config:         Array!{u8}
+        packet:         Array!{u8}
+        previous:       Array!{u8}
+        previousInput:  Array!{u8}
         width:          s32
         height:         s32
         mbWidth:        u32
@@ -122,14 +122,22 @@ impl Encoder
            keyInterval > 255 or
            quantizationQp > 51 or
            not sliceCount or
-           sliceCount > 8 do
+           sliceCount > 8
+        {
             fail BadParameterError{"H.264 encoder needs even dimensions, an IDR interval of 1 to 255, QP of 0 to 51 and 1 to 8 slices"}
+        }
+
         let mbWidth  = cast(u32, (width + 15) / 16)
         let mbHeight = cast(u32, (height + 15) / 16)
-        if mbWidth * mbHeight > 36_864 do
+        if mbWidth * mbHeight > 36_864
+        {
             fail UnsupportedFormatError{"H.264 encoder picture exceeds level 5.2 frame size"}
-        if sliceCount > mbHeight do
+        }
+
+        if sliceCount > mbHeight
+        {
             fail BadParameterError{"H.264 encoder needs at least one macroblock row per slice"}
+        }
 
         with var result: #returntype
         {
@@ -143,8 +151,11 @@ impl Encoder
         }
 
         result.buildConfig()
-        if quantizationQp do
+        if quantizationQp
+        {
             result.lossy.create(width, height, mbWidth, mbHeight, quantizationQp)
+        }
+
         return result
     }
 
@@ -163,41 +174,53 @@ impl Encoder
     mtd encode(frame: const *Nv12Frame, decodeTime: u64, duration: u32)->EncodedPacket fail
     {
         let expected = cast(u64, .width) * cast(u64, .height) * 3 / 2
-        if frame.width != .width or frame.height != .height or frame.bytes.count != expected do
+        if frame.width != .width or frame.height != .height or frame.bytes.count != expected
+        {
             fail BadParameterError{"H.264 encoder needs one NV12 picture of its configured size"}
+        }
+
         if not duration or
            decodeTime > Swag.U64.Max - duration or
-           (.hasFrame and decodeTime < .previousEnd) do
+           (.hasFrame and decodeTime < .previousEnd)
+        {
             fail BadParameterError{"H.264 encoder packet timing is invalid"}
+        }
 
         if .hasFrame and .framesSinceKey < .keyInterval
         {
             let prior = .quantizationQp ? .previousInput.toSlice() : .previous.toSlice()
             if prior.count == frame.bytes.count and
-               Memory.compare(prior.buffer, frame.bytes.storage(), prior.count) == 0 do
+               Memory.compare(prior.buffer, frame.bytes.storage(), prior.count) == 0
+            {
                 return try .repeatPrevious(decodeTime, duration)
+            }
         }
 
         let key = not .hasFrame or .framesSinceKey >= .keyInterval
-        var packet: Array'u8
+        var packet: Array!{u8}
         if .quantizationQp
         {
             .lossy.encodeFrame(frame, key, .frameNumber, .sliceCount, &packet)
         }
-        elif .sliceCount == 1
+        else if .sliceCount == 1
         {
             .encodeSlice(frame, key, 0, &.sliceScratch[0], &packet)
         }
         else
         {
-            var slices: Array'EncoderSlicePacket
+            var slices: Array!{EncoderSlicePacket}
             slices.resize(.sliceCount)
             let encoder = me
             let slots   = slices.storage()
-            parallel for |encoder, frame, key, slots| sliceIndex in cast(u64, .sliceCount) do
+            parallel for |encoder, frame, key, slots| sliceIndex in cast(u64, .sliceCount)
+            {
                 encoder.encodeSlice(frame, key, cast(u32, sliceIndex), &encoder.sliceScratch[sliceIndex], &slots[sliceIndex].bytes)
-            for &slice in slices do
+            }
+
+            for &slice in slices
+            {
                 packet.add(slice.bytes.toSlice())
+            }
         }
 
         .packet = #move packet
@@ -233,16 +256,24 @@ impl Encoder
     // This is used by the software rate controller; fixed-QP callers use `encode`.
     internal mtd encodeAtQp(frame: const *Nv12Frame, decodeTime: u64, duration, qp: u32)->EncodedPacket fail
     {
-        if not .quantizationQp or qp < 1 or qp > 51 do
+        if not .quantizationQp or qp < 1 or qp > 51
+        {
             fail BadParameterError{"H.264 per-picture quantization needs an encoder in lossy mode and QP 1 to 51"}
+        }
+
         if frame.width != .width or
            frame.height != .height or
-           frame.bytes.count != cast(u64, .width) * cast(u64, .height) * 3 / 2 do
+           frame.bytes.count != cast(u64, .width) * cast(u64, .height) * 3 / 2
+        {
             fail BadParameterError{"H.264 encoder needs one NV12 picture of its configured size"}
+        }
+
         if not duration or
            decodeTime > Swag.U64.Max - duration or
-           (.hasFrame and decodeTime < .previousEnd) do
+           (.hasFrame and decodeTime < .previousEnd)
+        {
             fail BadParameterError{"H.264 encoder packet timing is invalid"}
+        }
 
         .quantizationQp = qp
         .lossy.baseQp   = qp
@@ -256,10 +287,15 @@ impl Encoder
     // borrows its bytes until the next encode or repeat call.
     mtd repeatPrevious(decodeTime: u64, duration: u32)->EncodedPacket fail
     {
-        if not .hasFrame do
+        if not .hasFrame
+        {
             fail BadParameterError{"H.264 encoder has no previous picture to repeat"}
-        if not duration or decodeTime > Swag.U64.Max - duration or decodeTime < .previousEnd do
+        }
+
+        if not duration or decodeTime > Swag.U64.Max - duration or decodeTime < .previousEnd
+        {
             fail BadParameterError{"H.264 encoder packet timing is invalid"}
+        }
 
         if .framesSinceKey >= .keyInterval
         {
@@ -268,7 +304,7 @@ impl Encoder
             return try .encode(&frame, decodeTime, duration)
         }
 
-        var packet: Array'u8
+        var packet: Array!{u8}
         for sliceIndex in .sliceCount
         {
             let sliceStartY = sliceIndex * .mbHeight / .sliceCount
@@ -300,7 +336,7 @@ impl Encoder
 private impl Encoder
 {
     // One independently coded row band. All spatial contexts restart at its first row.
-    mtd encodeSlice(frame: const *Nv12Frame, key: bool, sliceIndex: u32, scratch: *EncoderSliceScratch, packet: *Array'u8)
+    mtd encodeSlice(frame: const *Nv12Frame, key: bool, sliceIndex: u32, scratch: *EncoderSliceScratch, packet: *Array!{u8})
     {
         let sliceStartY = sliceIndex * .mbHeight / .sliceCount
         let sliceEndY   = (sliceIndex + 1) * .mbHeight / .sliceCount
@@ -309,8 +345,10 @@ private impl Encoder
         bits.unsigned(key ? 2 : 0)     // I or P slice.
         bits.unsigned(0)     // pic_parameter_set_id.
         bits.bits(key ? 0 : .frameNumber, 8)
-        if key do
-            bits.unsigned(0)     // idr_pic_id.
+        if key
+        {
+            bits.unsigned(0)
+        }     // idr_pic_id.
         else
         {
             bits.bit(0)     // num_ref_idx_active_override_flag.
@@ -322,35 +360,47 @@ private impl Encoder
             bits.bit(0)     // no_output_of_prior_pics_flag.
             bits.bit(0)     // long_term_reference_flag.
         }
-        else do
-            bits.bit(0)     // adaptive_ref_pic_marking_mode_flag.
+        else
+        {
+            bits.bit(0)
+        }     // adaptive_ref_pic_marking_mode_flag.
         bits.unsigned(0)     // slice_qp_delta = 0.
         bits.unsigned(1)     // Disable deblocking; coded samples stay exact.
 
-        var skipped       = 0'u32
-        var currentQp     = 26's32
+        var skipped       = 0_u32
+        var currentQp     = 26_s32
         let motions       = &scratch.motions
         let pcm           = &scratch.pcm
         let nonZero       = &scratch.nonZero
         let chromaNonZero = &scratch.chromaNonZero
         pcm.resize(cast(u64, .mbWidth) * .mbHeight)
-        for &value in pcm[] do
+        for &value in pcm[]
+        {
             value[] = false
+        }
+
         if not key
         {
             motions.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight))
-            for &value in motions[] do
+            for &value in motions[]
+            {
                 value[] = {}
+            }
         }
 
         if not key
         {
             nonZero.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight) * 16)
-            for &value in nonZero[] do
+            for &value in nonZero[]
+            {
                 value[] = 0
+            }
+
             chromaNonZero.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight) * 8)
-            for &value in chromaNonZero[] do
+            for &value in chromaNonZero[]
+            {
                 value[] = 0
+            }
         }
 
         for mbY in sliceStartY until sliceEndY
@@ -359,7 +409,7 @@ private impl Encoder
             {
                 let motionIndex    = cast(u64, mbY) * .mbWidth + mbX
                 let prediction     = key ? EncoderMotion{} : .predictMotion(motions.toSlice(), mbX, mbY, sliceStartY)
-                var firstDifferent = 256'u32
+                var firstDifferent = 256_u32
                 let same           = not key and .unchanged(frame, mbX, mbY, &firstDifferent)
                 if same and .skipMotionIsZero(motions.toSlice(), mbX, mbY, sliceStartY)
                 {
@@ -368,8 +418,11 @@ private impl Encoder
                     continue
                 }
 
-                if not key do
+                if not key
+                {
                     bits.unsigned(skipped)
+                }
+
                 if .flatIntra(frame, mbX, mbY, sliceStartY)
                 {
                     bits.unsigned(key ? 3 : 8)     // Intra_16x16 DC, no coded AC/chroma.
@@ -411,16 +464,22 @@ private impl Encoder
                         var chromaLevels:   [8] s16
                         var chromaAcLevels: [128] s16
                         var chromaChanged = false
-                        var chromaCbp     = 0'u32
+                        var chromaCbp     = 0_u32
                         var chromaOkay    = .chromaDcResidual(frame, mbX, mbY, chromaLevels.buffer, &chromaChanged)
-                        if chromaOkay and chromaChanged do
+                        if chromaOkay and chromaChanged
+                        {
                             chromaCbp = 1
-                        if not chromaOkay do
+                        }
+
+                        if not chromaOkay
+                        {
                             chromaOkay = .chromaAcResidual(frame, mbX, mbY, chromaLevels.buffer, chromaAcLevels.buffer, &chromaCbp)
+                        }
+
                         if chromaOkay
                         {
                             var levels: [16] s32
-                            var cbp = 0'u32
+                            var cbp = 0_u32
                             if (firstDifferent >= 256 and chromaCbp != 0) or
                                .dcResidual(frame, mbX, mbY, firstDifferent, levels.buffer, &cbp)
                             {
@@ -445,10 +504,15 @@ private impl Encoder
                                 bits.current = oldCurrent
                                 bits.used    = oldUsed
                                 currentQp    = oldQp
-                                for block in 16'u64 do
+                                for block in 16_u64
+                                {
                                     nonZero[][motionIndex * 16 + block] = 0
-                                for block in 8'u64 do
+                                }
+
+                                for block in 8_u64
+                                {
                                     chromaNonZero[][motionIndex * 8 + block] = 0
+                                }
                             }
 
                             var acLevels: [256] s16
@@ -475,10 +539,15 @@ private impl Encoder
                                 bits.current = oldCurrent
                                 bits.used    = oldUsed
                                 currentQp    = oldQp
-                                for block in 16'u64 do
+                                for block in 16_u64
+                                {
                                     nonZero[][motionIndex * 16 + block] = 0
-                                for block in 8'u64 do
+                                }
+
+                                for block in 8_u64
+                                {
                                     chromaNonZero[][motionIndex * 8 + block] = 0
+                                }
                             }
                         }
                     }
@@ -490,18 +559,26 @@ private impl Encoder
                 pcm[][motionIndex] = true
                 if not key
                 {
-                    for block in 16'u64 do
+                    for block in 16_u64
+                    {
                         nonZero[][motionIndex * 16 + block] = 16
-                    for block in 8'u64 do
+                    }
+
+                    for block in 8_u64
+                    {
                         chromaNonZero[][motionIndex * 8 + block] = 16
+                    }
                 }
 
                 skipped = 0
             }
         }
 
-        if not key and skipped do
+        if not key and skipped
+        {
             bits.unsigned(skipped)
+        }
+
         bits.trailing()
         appendEncoderNal(packet, key ? 0x65 : 0x41, bits.bytes.toSlice())
     }
@@ -516,32 +593,44 @@ private impl Encoder
                                            mbY,
                                            firstDifferent: u32)->bool
     {
-        if firstDifferent >= 256 do
+        if firstDifferent >= 256
+        {
             return false
+        }
+
         let x     = cast(u64, mbX) * 16
         let y     = cast(u64, mbY) * 16
         let width = cast(u64, .width)
-        if x + 16 > width or y + 16 > cast(u64, .height) do
-            return false
-        let current       = frame.luma()
-        var changed       = 0'u32
-        var varyingBlocks = 0'u32
-        var smallest      = 256's32
-        var largest       = -256's32
-        var smallestPair  = 512's32
-        var largestPair   = -512's32
-        for by in 4'u64
+        if x + 16 > width or y + 16 > cast(u64, .height)
         {
-            for bx in 4'u64
+            return false
+        }
+
+        let current       = frame.luma()
+        var changed       = 0_u32
+        var varyingBlocks = 0_u32
+        var smallest      = 256_s32
+        var largest       = -256_s32
+        var smallestPair  = 512_s32
+        var largestPair   = -512_s32
+        for by in 4_u64
+        {
+            for bx in 4_u64
             {
                 let offset    = (y + by * 4) * width + x + bx * 4
                 let delta     = cast(s32, current[offset]) - cast(s32, .previous[offset])
                 let nextDelta = cast(s32, current[offset + 1]) -
                                 cast(s32, .previous[offset + 1])
-                if delta != 0 do
+                if delta != 0
+                {
                     changed += 1
-                if Math.abs(nextDelta - delta) >= 16 do
+                }
+
+                if Math.abs(nextDelta - delta) >= 16
+                {
                     varyingBlocks += 1
+                }
+
                 smallest = Math.min(smallest, delta)
                 largest  = Math.max(largest, delta)
                 let pair = delta + nextDelta
@@ -564,7 +653,7 @@ private impl Encoder
         let width     = cast(u64, .width)
         let current   = frame.luma()
         var unchanged = true
-        for row in 4'u64
+        for row in 4_u64
         {
             let offset = (y + row) * width + x
             if Memory.compare(current.buffer + offset, .previous.storage() + offset, 4) != 0
@@ -576,13 +665,16 @@ private impl Encoder
 
         if unchanged
         {
-            for scan in 16'u64 do
+            for scan in 16_u64
+            {
                 levels[scan] = 0
+            }
+
             return true
         }
 
         var horizontal: [16] s32
-        for row in 4'u64
+        for row in 4_u64
         {
             let offset = (y + row) * width + x
             let a0     = cast(s32, current[offset]) - cast(s32, .previous[offset])
@@ -600,7 +692,7 @@ private impl Encoder
         }
 
         var scaled: [16] s16
-        for column in 4'u64
+        for column in 4_u64
         {
             let a0 = horizontal[column]
             let a1 = horizontal[4 + column]
@@ -612,15 +704,18 @@ private impl Encoder
             let s3 = a0 - a3
             var coeffs: [4] s32 = [s0 + s1, 2 * s3 + s2,
                                    s0 - s1, s3 - 2 * s2]
-            for row in 4'u64
+            for row in 4_u64
             {
                 let class       = (row & 1) + (column & 1)
-                let factor      = class == 0 ? 13_107's32 : (class == 1 ? 8_066's32 : 5_243's32)
-                let scale       = class == 0 ? 10's32 : (class == 1 ? 13's32 : 16's32)
+                let factor      = class == 0 ? 13_107_s32 : (class == 1 ? 8_066_s32 : 5_243_s32)
+                let scale       = class == 0 ? 10_s32 : (class == 1 ? 13_s32 : 16_s32)
                 let coefficient = coeffs[row]
                 let magnitude   = (Math.abs(coefficient) * factor + 16_384) >> 15
-                if magnitude > 2_000 do
+                if magnitude > 2_000
+                {
                     return false
+                }
+
                 let quantized = coefficient < 0 ? -magnitude : magnitude
                 scaled[column * 4 + row] = cast(s16, quantized * scale)
 
@@ -631,20 +726,24 @@ private impl Encoder
         }
 
         var reconstructed: [16] u8
-        for row in 4'u64
+        for row in 4_u64
         {
             let offset = (y + row) * width + x
-            for column in 4'u64 do
+            for column in 4_u64
+            {
                 reconstructed[row * 4 + column] = .previous[offset + column]
+            }
         }
 
         addIdct4x4Scalar(reconstructed.buffer, 4, scaled.buffer)
-        for row in 4'u64
+        for row in 4_u64
         {
             let offset = (y + row) * width + x
-            for column in 4'u64 where
-                reconstructed[row * 4 + column] != current[offset + column] do
+            for column in 4_u64 where
+                reconstructed[row * 4 + column] != current[offset + column]
+            {
                 return false
+            }
         }
 
         return true
@@ -658,31 +757,39 @@ private impl Encoder
         let y      = cast(u64, mbY) * 16
         let width  = cast(u64, .width)
         let height = cast(u64, .height)
-        if x + 16 > width or y + 16 > height do
+        if x + 16 > width or y + 16 > height
+        {
             return false
+        }
+
         let current        = frame.chroma()
         let previousOffset = width * height
         changed[] = false
-        for plane in 2'u64
+        for plane in 2_u64
         {
             var delta: [4] s32
-            for by in 2'u64
+            for by in 2_u64
             {
-                for bx in 2'u64
+                for bx in 2_u64
                 {
                     let first = (y / 2 + by * 4) * width + x + bx * 8 + plane
                     let block = by * 2 + bx
                     delta[block] = cast(s32, current[first]) -
                                    cast(s32, .previous[previousOffset + first])
-                    if delta[block] != 0 do
+                    if delta[block] != 0
+                    {
                         changed[] = true
-                    for row in 4'u64
+                    }
+
+                    for row in 4_u64
                     {
                         let offset = first + row * width
-                        for column in 4'u64 where
+                        for column in 4_u64 where
                             cast(s32, current[offset + column * 2]) -
-                            cast(s32, .previous[previousOffset + offset + column * 2]) != delta[block] do
+                            cast(s32, .previous[previousOffset + offset + column * 2]) != delta[block]
+                        {
                             return false
+                        }
                     }
                 }
             }
@@ -693,11 +800,14 @@ private impl Encoder
             let d3 = delta[3]
             var transformed: [4] s32 = [d0 + d1 + d2 + d3, d0 - d1 + d2 - d3,
                                         d0 + d1 - d2 - d3, d0 - d1 - d2 + d3]
-            for index in 4'u64
+            for index in 4_u64
             {
                 let level = transformed[index] * 16 / 5
-                if Math.abs(level) > 1_000 do
+                if Math.abs(level) > 1_000
+                {
                     return false
+                }
+
                 levels[plane * 4 + index] = cast(s16, level)
             }
 
@@ -708,8 +818,10 @@ private impl Encoder
             if ((q0 + q1 + q2 + q3) * 5 + 32) >> 6 != d0 or
                ((q0 - q1 + q2 - q3) * 5 + 32) >> 6 != d1 or
                ((q0 + q1 - q2 - q3) * 5 + 32) >> 6 != d2 or
-               ((q0 - q1 - q2 + q3) * 5 + 32) >> 6 != d3 do
+               ((q0 - q1 - q2 + q3) * 5 + 32) >> 6 != d3
+            {
                 return false
+            }
         }
 
         return true
@@ -723,17 +835,20 @@ private impl Encoder
         let y      = cast(u64, mbY) * 8
         let width  = cast(u64, .width)
         let height = cast(u64, .height)
-        if x + 16 > width or (cast(u64, mbY) + 1) * 16 > height do
+        if x + 16 > width or (cast(u64, mbY) + 1) * 16 > height
+        {
             return false
+        }
+
         let current        = frame.chroma()
         let previousOffset = width * cast(u64, .height)
         var scaled:       [128] s16
         var blockChanged: [8] bool
         cbp[] = 0
-        for plane in 2'u64
+        for plane in 2_u64
         {
             var rawDc: [4] s32
-            for block in 4'u64
+            for block in 4_u64
             {
                 let bx      = block & 1
                 let by      = block >> 1
@@ -741,10 +856,10 @@ private impl Encoder
                 let blockY  = y + by * 4
                 let base    = (plane * 4 + block) * 16
                 var changed = false
-                for row in 4'u64
+                for row in 4_u64
                 {
                     let offset = (blockY + row) * width + blockX
-                    for column in 4'u64 where
+                    for column in 4_u64 where
                         current[offset + column * 2] !=
                         .previous[previousOffset + offset + column * 2]
                     {
@@ -752,15 +867,17 @@ private impl Encoder
                         break
                     }
 
-                    if changed do
+                    if changed
+                    {
                         break
+                    }
                 }
 
                 blockChanged[plane * 4 + block] = changed
                 if not changed
                 {
                     rawDc[block] = 0
-                    for index in 16'u64
+                    for index in 16_u64
                     {
                         scaled[base + index] = 0
                         ac[base + index]     = 0
@@ -770,7 +887,7 @@ private impl Encoder
                 }
 
                 var horizontal: [16] s32
-                for row in 4'u64
+                for row in 4_u64
                 {
                     let offset = (blockY + row) * width + blockX
                     let a0     = cast(s32, current[offset]) - cast(s32, .previous[previousOffset + offset])
@@ -787,7 +904,7 @@ private impl Encoder
                     horizontal[row * 4 + 3] = s3 - 2 * s2
                 }
 
-                for column in 4'u64
+                for column in 4_u64
                 {
                     let a0 = horizontal[column]
                     let a1 = horizontal[4 + column]
@@ -799,7 +916,7 @@ private impl Encoder
                     let s3 = a0 - a3
                     var coeffs: [4] s32 = [s0 + s1, 2 * s3 + s2,
                                            s0 - s1, s3 - 2 * s2]
-                    for row in 4'u64
+                    for row in 4_u64
                     {
                         let raster = column * 4 + row
                         if not raster
@@ -810,17 +927,22 @@ private impl Encoder
                         }
 
                         let class       = (row & 1) + (column & 1)
-                        let factor      = class == 0 ? 13_107's32 : (class == 1 ? 8_066's32 : 5_243's32)
-                        let scale       = class == 0 ? 10's32 : (class == 1 ? 13's32 : 16's32)
+                        let factor      = class == 0 ? 13_107_s32 : (class == 1 ? 8_066_s32 : 5_243_s32)
+                        let scale       = class == 0 ? 10_s32 : (class == 1 ? 13_s32 : 16_s32)
                         let coefficient = coeffs[row]
                         let magnitude   = (Math.abs(coefficient) * factor + 16_384) >> 15
-                        if magnitude > 2_000 do
+                        if magnitude > 2_000
+                        {
                             return false
+                        }
+
                         let quantized = coefficient < 0 ? -magnitude : magnitude
                         scaled[base + raster] = cast(s16, quantized * scale)
                         ac[base + EncoderZigzagInverse[row * 4 + column]] = cast(s16, quantized)
-                        if quantized != 0 do
+                        if quantized != 0
+                        {
                             cbp[] = 2
+                        }
                     }
                 }
             }
@@ -831,16 +953,21 @@ private impl Encoder
             let c3 = rawDc[3]
             var transformed: [4] s32 = [c0 + c1 + c2 + c3, c0 - c1 + c2 - c3,
                                         c0 + c1 - c2 - c3, c0 - c1 - c2 + c3]
-            for index in 4'u64
+            for index in 4_u64
             {
                 let coefficient = transformed[index]
                 let magnitude   = (Math.abs(coefficient) * 13_107 + 32_768) >> 16
-                if magnitude > 1_000 do
+                if magnitude > 1_000
+                {
                     return false
+                }
+
                 let quantized = coefficient < 0 ? -magnitude : magnitude
                 dc[plane * 4 + index] = cast(s16, quantized)
-                if quantized != 0 and cbp[] == 0 do
+                if quantized != 0 and cbp[] == 0
+                {
                     cbp[] = 1
+                }
             }
 
             let q0 = cast(s32, dc[plane * 4])
@@ -849,31 +976,38 @@ private impl Encoder
             let q3 = cast(s32, dc[plane * 4 + 3])
             var inverse: [4] s32 = [q0 + q1 + q2 + q3, q0 - q1 + q2 - q3,
                                     q0 + q1 - q2 - q3, q0 - q1 - q2 + q3]
-            for block in 4'u64
+            for block in 4_u64
             {
                 let bx     = block & 1
                 let by     = block >> 1
                 let blockX = x + bx * 8 + plane
                 let blockY = y + by * 4
                 let base   = (plane * 4 + block) * 16
-                if not blockChanged[plane * 4 + block] and inverse[block] == 0 do
+                if not blockChanged[plane * 4 + block] and inverse[block] == 0
+                {
                     continue
+                }
+
                 scaled[base] = cast(s16, inverse[block] * 5)
                 var reconstructed: [16] u8
-                for row in 4'u64
+                for row in 4_u64
                 {
                     let offset = (blockY + row) * width + blockX
-                    for column in 4'u64 do
+                    for column in 4_u64
+                    {
                         reconstructed[row * 4 + column] = .previous[previousOffset + offset + column * 2]
+                    }
                 }
 
                 addIdct4x4Scalar(reconstructed.buffer, 4, scaled.buffer + base)
-                for row in 4'u64
+                for row in 4_u64
                 {
                     let offset = (blockY + row) * width + blockX
-                    for column in 4'u64 where
-                        reconstructed[row * 4 + column] != current[offset + column * 2] do
+                    for column in 4_u64 where
+                        reconstructed[row * 4 + column] != current[offset + column * 2]
+                    {
                         return false
+                    }
                 }
             }
         }
@@ -887,19 +1021,25 @@ private impl Encoder
         let y      = cast(u64, mbY) * 16
         let width  = cast(u64, .width)
         let height = cast(u64, .height)
-        if x + 16 > width or y + 16 > height do
-            return false
-        cbp[] = 0
-        for by in 4'u64
+        if x + 16 > width or y + 16 > height
         {
-            for bx in 4'u64
+            return false
+        }
+
+        cbp[] = 0
+        for by in 4_u64
+        {
+            for bx in 4_u64
             {
                 let blockIndex = by * 4 + bx
-                if not .acBlock(frame, x + bx * 4, y + by * 4, levels + blockIndex * 16) do
-                    return false
-                for scan in 16'u64 where levels[blockIndex * 16 + scan] != 0
+                if not .acBlock(frame, x + bx * 4, y + by * 4, levels + blockIndex * 16)
                 {
-                    cbp[] |= 1'u32 << cast(u32, (by / 2) * 2 + bx / 2)
+                    return false
+                }
+
+                for scan in 16_u64 where levels[blockIndex * 16 + scan] != 0
+                {
+                    cbp[] |= 1_u32 << cast(u32, (by / 2) * 2 + bx / 2)
                     break
                 }
             }
@@ -918,9 +1058,9 @@ private impl Encoder
             currentQp[] = targetQp
         }
 
-        for quad in 4'u64 where cbp & (1'u32 << cast(u32, quad)) != 0
+        for quad in 4_u64 where cbp & (1_u32 << cast(u32, quad)) != 0
         {
-            for cell in 4'u64
+            for cell in 4_u64
             {
                 let bx          = cast(u32, (quad & 1) * 2 + (cell & 1))
                 let by          = cast(u32, (quad >> 1) * 2 + (cell >> 1))
@@ -928,18 +1068,24 @@ private impl Encoder
                 let blockLevels = levels + block * 16
                 let context     = .lumaNc(nonZero, mbX, mbY, bx, by, sliceStartY)
                 let index       = (cast(u64, mbY) * .mbWidth + mbX) * 16 + block
-                if simpleLumaMask & (1'u32 << block)
+                if simpleLumaMask & (1_u32 << block)
                 {
                     bits.singleDc(blockLevels[0], context)
                     nonZero[index] = blockLevels[0] ? 1 : 0
                     continue
                 }
 
-                if not bits.residual4(blockLevels, context) do
+                if not bits.residual4(blockLevels, context)
+                {
                     return false
-                var total = 0'u8
-                for scan in 16'u64 where blockLevels[scan] != 0 do
+                }
+
+                var total = 0_u8
+                for scan in 16_u64 where blockLevels[scan] != 0
+                {
                     total += 1
+                }
+
                 nonZero[index] = total
             }
         }
@@ -955,52 +1101,67 @@ private impl Encoder
         // The first changed luma sample is already known from the skip test. A DC-only
         // block needs one uniform delta, so reject an AC block before scanning
         // the other luma blocks. A chroma-only change uses the caller's DC path.
-        if firstDifferent >= 256 do
+        if firstDifferent >= 256
+        {
             return false
+        }
+
         let x      = cast(u64, mbX) * 16
         let y      = cast(u64, mbY) * 16
         let width  = cast(u64, .width)
         let height = cast(u64, .height)
-        if x + 16 > width or y + 16 > height do
+        if x + 16 > width or y + 16 > height
+        {
             return false
+        }
+
         let luma        = frame.luma()
         let firstX      = x + cast(u64, firstDifferent % 16)
         let firstY      = y + cast(u64, firstDifferent / 16)
-        let blockX      = firstX & ~3'u64
-        let blockY      = firstY & ~3'u64
+        let blockX      = firstX & ~3_u64
+        let blockY      = firstY & ~3_u64
         let firstOffset = firstY * width + firstX
         let firstDelta  = cast(s32, luma[firstOffset]) - cast(s32, .previous[firstOffset])
-        for row in 4'u64
+        for row in 4_u64
         {
             let offset = (blockY + row) * width + blockX
-            for column in 4'u64 where
-                cast(s32, luma[offset + column]) - cast(s32, .previous[offset + column]) != firstDelta do
+            for column in 4_u64 where
+                cast(s32, luma[offset + column]) - cast(s32, .previous[offset + column]) != firstDelta
+            {
                 return false
+            }
         }
 
         cbp[] = 0
-        for by in 4'u64
+        for by in 4_u64
         {
-            for bx in 4'u64
+            for bx in 4_u64
             {
                 let offset = (y + by * 4) * width + x + bx * 4
                 let delta  = cast(s32, luma[offset]) - cast(s32, .previous[offset])
                 let level  = delta * 64 / 10
-                if (level * 10 + 32) >> 6 != delta do
-                    return false
-                for row in 4'u64
+                if (level * 10 + 32) >> 6 != delta
                 {
-                    for column in 4'u64
+                    return false
+                }
+
+                for row in 4_u64
+                {
+                    for column in 4_u64
                     {
                         let pixel = offset + row * width + column
-                        if cast(s32, luma[pixel]) - cast(s32, .previous[pixel]) != delta do
+                        if cast(s32, luma[pixel]) - cast(s32, .previous[pixel]) != delta
+                        {
                             return false
+                        }
                     }
                 }
 
                 levels[by * 4 + bx] = level
-                if level != 0 do
-                    cbp[] |= 1'u32 << cast(u32, (by / 2) * 2 + bx / 2)
+                if level != 0
+                {
+                    cbp[] |= 1_u32 << cast(u32, (by / 2) * 2 + bx / 2)
+                }
             }
         }
 
@@ -1021,8 +1182,11 @@ private impl Encoder
                       (mbX > 0 ? .lumaNonZeroAt(nonZero, mbX - 1, mbY, 3, by) : 0)
         let top = by > 0 ? .lumaNonZeroAt(nonZero, mbX, mbY, bx, by - 1) :
                   (mbY > sliceStartY ? .lumaNonZeroAt(nonZero, mbX, mbY - 1, bx, 3) : 0)
-        if hasLeft and hasTop do
+        if hasLeft and hasTop
+        {
             return (left + top + 1) / 2
+        }
+
         return left + top
     }
 
@@ -1051,36 +1215,53 @@ private impl Encoder
                       (mbX > 0 ? .chromaNonZeroAt(nonZero, mbX - 1, mbY, plane, 1, by) : 0)
         let top = by > 0 ? .chromaNonZeroAt(nonZero, mbX, mbY, plane, bx, by - 1) :
                   (mbY > sliceStartY ? .chromaNonZeroAt(nonZero, mbX, mbY - 1, plane, bx, 1) : 0)
-        if hasLeft and hasTop do
+        if hasLeft and hasTop
+        {
             return (left + top + 1) / 2
+        }
+
         return left + top
     }
 
     mtd const writeChromaResidual(bits: *EncoderBits, nonZero: [..] u8, mbX, mbY: u32, dc: const [*] s16, ac: const [*] s16, cbp: u32, sliceStartY: u32)->bool
     {
-        if not cbp do
-            return true
-        for plane in 2'u64
+        if not cbp
         {
-            if not bits.chromaDc(dc + plane * 4) do
-                return false
+            return true
         }
 
-        if cbp < 2 do
-            return true
-        for plane in 2'u32
+        for plane in 2_u64
         {
-            for block in 4'u32
+            if not bits.chromaDc(dc + plane * 4)
+            {
+                return false
+            }
+        }
+
+        if cbp < 2
+        {
+            return true
+        }
+
+        for plane in 2_u32
+        {
+            for block in 4_u32
             {
                 let bx      = block & 1
                 let by      = block >> 1
                 let context = .chromaNc(nonZero, mbX, mbY, plane, bx, by, sliceStartY)
                 let levels  = ac + (plane * 4 + block) * 16
-                if not bits.residual15(levels + 1, context) do
+                if not bits.residual15(levels + 1, context)
+                {
                     return false
-                var total = 0'u8
-                for scan in 1'u64 until 16 where levels[scan] != 0 do
+                }
+
+                var total = 0_u8
+                for scan in 1_u64 until 16 where levels[scan] != 0
+                {
                     total += 1
+                }
+
                 let index = (cast(u64, mbY) * .mbWidth + mbX) * 8 + plane * 4 + block
                 nonZero[index] = total
             }
@@ -1096,9 +1277,9 @@ private impl Encoder
         bits.signed(-currentQp[])
         currentQp[] = 0
 
-        for quad in 4'u64 where cbp & (1'u32 << cast(u32, quad)) != 0
+        for quad in 4_u64 where cbp & (1_u32 << cast(u32, quad)) != 0
         {
-            for cell in 4'u64
+            for cell in 4_u64
             {
                 let bx    = cast(u32, (quad & 1) * 2 + (cell & 1))
                 let by    = cast(u32, (quad >> 1) * 2 + (cell >> 1))
@@ -1120,8 +1301,11 @@ private impl Encoder
         let y      = cast(u64, mbY) * 16
         let width  = cast(u64, .width)
         let height = cast(u64, .height)
-        if not mbX and mbY == sliceStartY do
+        if not mbX and mbY == sliceStartY
+        {
             return false
+        }
+
         let luma   = frame.luma()
         let chroma = frame.chroma()
         let valueY = luma[y * width + x]
@@ -1133,24 +1317,33 @@ private impl Encoder
         if x + 16 <= width and y + 16 <= height
         {
             var expectedY, expectedUv: [16] u8
-            for index in 16'u64 do
+            for index in 16_u64
+            {
                 expectedY[index] = valueY
-            for index in 8'u64
+            }
+
+            for index in 8_u64
             {
                 expectedUv[index * 2]     = valueU
                 expectedUv[index * 2 + 1] = valueV
             }
 
-            for row in 16'u64 where
+            for row in 16_u64 where
                 Memory.compare(luma.buffer + (y + row) * width + x,
                                expectedY.buffer,
-                               16) != 0 do
+                               16) != 0
+            {
                 return false
-            for row in 8'u64 where
+            }
+
+            for row in 8_u64 where
                 Memory.compare(chroma.buffer + (y / 2 + row) * width + x,
                                expectedUv.buffer,
-                               16) != 0 do
+                               16) != 0
+            {
                 return false
+            }
+
             if mbY > sliceStartY
             {
                 if Memory.compare(luma.buffer + (y - 1) * width + x,
@@ -1158,65 +1351,86 @@ private impl Encoder
                                   16) != 0 or
                    Memory.compare(chroma.buffer + (y / 2 - 1) * width + x,
                                   expectedUv.buffer,
-                                  16) != 0 do
+                                  16) != 0
+                {
                     return false
+                }
             }
 
             if mbX
             {
-                for row in 16'u64 where luma[(y + row) * width + x - 1] != valueY do
+                for row in 16_u64 where luma[(y + row) * width + x - 1] != valueY
+                {
                     return false
-                for row in 8'u64
+                }
+
+                for row in 8_u64
                 {
                     let at = (y / 2 + row) * width + x - 2
-                    if chroma[at] != valueU or chroma[at + 1] != valueV do
+                    if chroma[at] != valueU or chroma[at + 1] != valueV
+                    {
                         return false
+                    }
                 }
             }
 
             return true
         }
 
-        for row in 16'u64
+        for row in 16_u64
         {
             let sourceY = Math.min(y + row, height - 1)
-            for column in 16'u64 where luma[sourceY * width + Math.min(x + column, width - 1)] != valueY do
+            for column in 16_u64 where luma[sourceY * width + Math.min(x + column, width - 1)] != valueY
+            {
                 return false
+            }
         }
 
-        for row in 8'u64
+        for row in 8_u64
         {
-            for column in 8'u64
+            for column in 8_u64
             {
                 let sourceY = Math.min(y / 2 + row, height / 2 - 1)
                 let sourceX = Math.min(x + column * 2, width - 2)
                 let offset  = sourceY * width + sourceX
-                if chroma[offset] != valueU or chroma[offset + 1] != valueV do
+                if chroma[offset] != valueU or chroma[offset + 1] != valueV
+                {
                     return false
+                }
             }
         }
 
         if mbY > sliceStartY
         {
-            for column in 16'u64 where luma[(y - 1) * width + Math.min(x + column, width - 1)] != valueY do
+            for column in 16_u64 where luma[(y - 1) * width + Math.min(x + column, width - 1)] != valueY
+            {
                 return false
-            for column in 8'u64
+            }
+
+            for column in 8_u64
             {
                 let offset = (y / 2 - 1) * width + Math.min(x + column * 2, width - 2)
-                if chroma[offset] != valueU or chroma[offset + 1] != valueV do
+                if chroma[offset] != valueU or chroma[offset + 1] != valueV
+                {
                     return false
+                }
             }
         }
 
         if mbX
         {
-            for row in 16'u64 where luma[Math.min(y + row, height - 1) * width + x - 1] != valueY do
+            for row in 16_u64 where luma[Math.min(y + row, height - 1) * width + x - 1] != valueY
+            {
                 return false
-            for row in 8'u64
+            }
+
+            for row in 8_u64
             {
                 let offset = Math.min(y / 2 + row, height / 2 - 1) * width + x - 2
-                if chroma[offset] != valueU or chroma[offset + 1] != valueV do
+                if chroma[offset] != valueU or chroma[offset + 1] != valueV
+                {
                     return false
+                }
             }
         }
 
@@ -1225,23 +1439,34 @@ private impl Encoder
 
     mtd const writeEmptyIntraDc(bits: *EncoderBits, pcm: const [..] bool, mbX, mbY, sliceStartY: u32)
     {
-        let left = mbX > 0 ? (pcm[cast(u64, mbY) * .mbWidth + mbX - 1] ? 16'u32 : 0) : 0
-        let top  = mbY > sliceStartY ? (pcm[cast(u64, mbY - 1) * .mbWidth + mbX] ? 16'u32 : 0) : 0
+        let left = mbX > 0 ? (pcm[cast(u64, mbY) * .mbWidth + mbX - 1] ? 16_u32 : 0) : 0
+        let top  = mbY > sliceStartY ? (pcm[cast(u64, mbY - 1) * .mbWidth + mbX] ? 16_u32 : 0) : 0
         let nC   = mbX > 0 and mbY > sliceStartY ? (left + top + 1) / 2 : left + top
-        if nC < 2 do
+        if nC < 2
+        {
             bits.bit(1)
-        elif nC < 4 do
+        }
+        else if nC < 4
+        {
             bits.bits(3, 2)
-        elif nC < 8 do
+        }
+        else if nC < 8
+        {
             bits.bits(15, 4)
-        else do
+        }
+        else
+        {
             bits.bits(3, 6)
+        }
     }
 
     mtd const motionAt(motions: const [..] EncoderMotion, x, y: s32)->EncoderMotion
     {
-        if x < 0 or y < 0 or x >= cast(s32, .mbWidth) or y >= cast(s32, .mbHeight) do
+        if x < 0 or y < 0 or x >= cast(s32, .mbWidth) or y >= cast(s32, .mbHeight)
+        {
             return {}
+        }
+
         return motions[cast(u64, y) * .mbWidth + cast(u64, x)]
     }
 
@@ -1256,20 +1481,33 @@ private impl Encoder
         let a = .motionAt(motions, x - 1, y)
         let b = mbY > sliceStartY ? .motionAt(motions, x, y - 1) : EncoderMotion{}
         var c = mbY > sliceStartY ? .motionAt(motions, x + 1, y - 1) : EncoderMotion{}
-        if mbY > sliceStartY and x + 1 >= cast(s32, .mbWidth) do
+        if mbY > sliceStartY and x + 1 >= cast(s32, .mbWidth)
+        {
             c = .motionAt(motions, x - 1, y - 1)
+        }
 
         let availableA = x > 0
         let availableB = mbY > sliceStartY
         let availableC = mbY > sliceStartY and (x + 1 < cast(s32, .mbWidth) or x > 0)
-        if availableA and not availableB and not availableC do
+        if availableA and not availableB and not availableC
+        {
             return a
-        if a.inter and not b.inter and not c.inter do
+        }
+
+        if a.inter and not b.inter and not c.inter
+        {
             return a
-        if b.inter and not a.inter and not c.inter do
+        }
+
+        if b.inter and not a.inter and not c.inter
+        {
             return b
-        if c.inter and not a.inter and not b.inter do
+        }
+
+        if c.inter and not a.inter and not b.inter
+        {
             return c
+        }
 
         let middleX = Math.max(Math.min(a.x, b.x), Math.min(Math.max(a.x, b.x), c.x))
         let middleY = Math.max(Math.min(a.y, b.y), Math.min(Math.max(a.y, b.y), c.y))
@@ -1281,14 +1519,23 @@ private impl Encoder
                                mbY,
                                sliceStartY: u32)->bool
     {
-        if mbX == 0 or mbY == sliceStartY do
+        if mbX == 0 or mbY == sliceStartY
+        {
             return true
+        }
+
         let a = .motionAt(motions, cast(s32, mbX) - 1, cast(s32, mbY))
         let b = .motionAt(motions, cast(s32, mbX), cast(s32, mbY) - 1)
-        if a.inter and a.x == 0 and a.y == 0 do
+        if a.inter and a.x == 0 and a.y == 0
+        {
             return true
-        if b.inter and b.x == 0 and b.y == 0 do
+        }
+
+        if b.inter and b.x == 0 and b.y == 0
+        {
             return true
+        }
+
         let predicted = .predictMotion(motions, mbX, mbY, sliceStartY)
         return predicted.x == 0 and predicted.y == 0
     }
@@ -1304,26 +1551,33 @@ private impl Encoder
            x + dx < 0 or
            y + dy < 0 or
            x + dx + 16 > .width or
-           y + dy + 16 > .height do
+           y + dy + 16 > .height
+        {
             return false
+        }
+
         let width      = cast(u64, .width)
         let current    = frame.luma()
         let uv         = frame.chroma()
         let previousUv = width * cast(u64, .height)
-        for row in 16'u64
+        for row in 16_u64
         {
             let currentStart = (cast(u64, y) + row) * width + cast(u64, x)
             let priorStart   = (cast(u64, y + dy) + row) * width + cast(u64, x + dx)
-            for column in 16'u64 where current[currentStart + column] != .previous[priorStart + column] do
+            for column in 16_u64 where current[currentStart + column] != .previous[priorStart + column]
+            {
                 return false
+            }
         }
 
-        for row in 8'u64
+        for row in 8_u64
         {
             let currentStart = (cast(u64, y) / 2 + row) * width + cast(u64, x)
             let priorStart   = (cast(u64, y + dy) / 2 + row) * width + cast(u64, x + dx)
-            for column in 16'u64 where uv[currentStart + column] != .previous[previousUv + priorStart + column] do
+            for column in 16_u64 where uv[currentStart + column] != .previous[previousUv + priorStart + column]
+            {
                 return false
+            }
         }
 
         return true
@@ -1357,7 +1611,7 @@ private impl Encoder
             return true
         }
 
-        for index in 16'u64
+        for index in 16_u64
         {
             let dx = MotionOffsets[index, 0]
             let dy = MotionOffsets[index, 1]
@@ -1433,22 +1687,22 @@ private impl Encoder
         pps.bit(0)          // No redundant pictures.
         pps.trailing()
 
-        var sequence: Array'u8
-        var picture:  Array'u8
+        var sequence: Array!{u8}
+        var picture:  Array!{u8}
         appendEncoderNal(&sequence, 0x67, sps.bytes.toSlice())
         appendEncoderNal(&picture, 0x68, pps.bytes.toSlice())
         let sequenceNal = sequence.toSlice()[4 until sequence.count]
         let pictureNal  = picture.toSlice()[4 until picture.count]
-        .config.add(1'u8)
-        .config.add(66'u8)
-        .config.add(0xC0'u8)
-        .config.add(52'u8)
-        .config.add(0xFF'u8)
-        .config.add(0xE1'u8)
+        .config.add(1_u8)
+        .config.add(66_u8)
+        .config.add(0xC0_u8)
+        .config.add(52_u8)
+        .config.add(0xFF_u8)
+        .config.add(0xE1_u8)
         .config.add(cast(u8, sequenceNal.count >> 8))
         .config.add(cast(u8, sequenceNal.count))
         .config.add(sequenceNal)
-        .config.add(1'u8)
+        .config.add(1_u8)
         .config.add(cast(u8, pictureNal.count >> 8))
         .config.add(cast(u8, pictureNal.count))
         .config.add(pictureNal)
@@ -1456,8 +1710,11 @@ private impl Encoder
 
     mtd const unchanged(frame: const *Nv12Frame, mbX, mbY: u32, firstDifferent: *u32)->bool
     {
-        if .previous.isEmpty() do
+        if .previous.isEmpty()
+        {
             return false
+        }
+
         let width  = cast(u64, .width)
         let height = cast(u64, .height)
         let luma   = frame.luma()
@@ -1466,12 +1723,12 @@ private impl Encoder
         let y      = cast(u64, mbY) * 16
         if x + 16 <= width and y + 16 <= height
         {
-            for row in 16'u64
+            for row in 16_u64
             {
                 let offset = (y + row) * width + x
                 if Memory.compare(luma.buffer + offset, .previous.storage() + offset, 16) != 0
                 {
-                    for column in 16'u64 where luma[offset + column] != .previous[offset + column]
+                    for column in 16_u64 where luma[offset + column] != .previous[offset + column]
                     {
                         firstDifferent[] = cast(u32, row * 16 + column)
                         return false
@@ -1479,7 +1736,7 @@ private impl Encoder
                 }
             }
 
-            for row in 8'u64
+            for row in 8_u64
             {
                 let offset = (y / 2 + row) * width + x
                 if Memory.compare(uv.buffer + offset,
@@ -1494,9 +1751,9 @@ private impl Encoder
             return true
         }
 
-        for row in 16'u64
+        for row in 16_u64
         {
-            for column in 16'u64
+            for column in 16_u64
             {
                 let x      = Math.min(cast(u64, mbX) * 16 + column, width - 1)
                 let y      = Math.min(cast(u64, mbY) * 16 + row, height - 1)
@@ -1509,9 +1766,9 @@ private impl Encoder
             }
         }
 
-        for row in 8'u64
+        for row in 8_u64
         {
-            for column in 8'u64
+            for column in 8_u64
             {
                 let x      = Math.min(cast(u64, mbX) * 8 + column, width / 2 - 1)
                 let y      = Math.min(cast(u64, mbY) * 8 + row, height / 2 - 1)
@@ -1537,7 +1794,7 @@ private impl Encoder
         if cast(u64, mbX) * 16 + 16 <= width and
            cast(u64, mbY) * 16 + 16 <= height
         {
-            for row in 16'u64
+            for row in 16_u64
             {
                 let offset = (cast(u64, mbY) * 16 + row) * width + cast(u64, mbX) * 16
                 bits.alignedBytes(luma[offset until offset + 16])
@@ -1546,9 +1803,9 @@ private impl Encoder
         else
         {
             var paddedLuma: [256] u8
-            for row in 16'u64
+            for row in 16_u64
             {
-                for column in 16'u64
+                for column in 16_u64
                 {
                     let x = Math.min(cast(u64, mbX) * 16 + column, width - 1)
                     let y = Math.min(cast(u64, mbY) * 16 + row, height - 1)
@@ -1559,12 +1816,12 @@ private impl Encoder
             bits.alignedBytes(Swag.makeSlice(&paddedLuma[0], paddedLuma.count))
         }
 
-        for plane in 2'u64
+        for plane in 2_u64
         {
             var planar: [64] u8
-            for row in 8'u64
+            for row in 8_u64
             {
-                for column in 8'u64
+                for column in 8_u64
                 {
                     let x = Math.min(cast(u64, mbX) * 8 + column, width / 2 - 1)
                     let y = Math.min(cast(u64, mbY) * 8 + row, height / 2 - 1)

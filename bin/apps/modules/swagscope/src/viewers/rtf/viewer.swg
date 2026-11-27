@@ -7,8 +7,11 @@ private func loadThumbnail(fileName: string, _: u32)->Image fail
 {
     let source  = catch Document.load(fileName) { return {} }
     let content = HtmlView.extractText(source.html.toString())
-    if not content.count do
+    if not content.count
+    {
         return {}
+    }
+
     var renderer = try ThumbnailRenderer.create()
     return try renderer.renderContent("RTF", content.toString())
 }
@@ -35,15 +38,19 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-alias Panel = RichDocumentPage'Document
+alias Panel = RichDocumentPage!{Document}
 
 func createViewer(host: Viewer.Host)
 {
-    discard Panel.create(host, "scope.rtf", texts().ui_Preparing, func(doc)->HtmlStyle
-    {
-        var style = HtmlStyle.theme()
-        style.maxContentWidth = 680
-        style.followTheme = not doc.paper
-        return style
-    }, withOutline: false)
+    discard Panel.create(host,
+                         "scope.rtf",
+                         texts().ui_Preparing,
+                         func(doc)->HtmlStyle
+                         {
+                             var style = HtmlStyle.theme()
+                             style.maxContentWidth = 680
+                             style.followTheme     = not doc.paper
+                             return style
+                         },
+                         withOutline: false)
 }

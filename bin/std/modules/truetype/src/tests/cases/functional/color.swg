@@ -3,30 +3,32 @@
 
 using Swag, Core
 
-func writeColorU16(bytes: *Array'u8, offset: u64, value: u16)
+func writeColorU16(bytes: *Array!{u8}, offset: u64, value: u16)
 {
     bytes[offset]     = cast(u8, value >> 8)
     bytes[offset + 1] = cast(u8, value & 0xFF)
 }
 
-func colorTableRecord(bytes: *Array'u8, tag: u32)->u64
+func colorTableRecord(bytes: *Array!{u8}, tag: u32)->u64
 {
     for index in readBigU16(bytes, 4)
     {
-        let record = 12'u64 + cast(u64, index) * 16
-        if readBigU32(bytes, record) == tag do
+        let record = 12_u64 + cast(u64, index) * 16
+        if readBigU32(bytes, record) == tag
+        {
             return record
+        }
     }
 
     Swag.require(false, "color fixture must contain the requested table")
     return 0
 }
 
-func buildColorFont()->Array'u8
+func buildColorFont()->Array!{u8}
 {
     var source       = loadFontBytes("arial.ttf")
     let tableCount   = readBigU16(&source, 4)
-    let directoryEnd = 12'u64 + cast(u64, tableCount) * 16
+    let directoryEnd = 12_u64 + cast(u64, tableCount) * 16
 
     var result: #returntype
     result.add(Swag.makeSlice(source.buffer, directoryEnd))
@@ -36,11 +38,11 @@ func buildColorFont()->Array'u8
 
     for index in tableCount
     {
-        let record = 12'u64 + cast(u64, index) * 16
+        let record = 12_u64 + cast(u64, index) * 16
         writeBigU32(&result, record + 8, readBigU32(&result, record + 8) + 32)
     }
 
-    var colr: Array'u8
+    var colr: Array!{u8}
     colr.resize(32)
     writeColorU16(&colr, 0, 0)       // version
     writeColorU16(&colr, 2, 1)       // base glyph records
@@ -57,12 +59,15 @@ func buildColorFont()->Array'u8
     writeColorU16(&colr, 28, 72)
     writeColorU16(&colr, 30, 0xFFFF)     // foreground color
 
-    while (result.count & 3) != 0 do
+    while (result.count & 3) != 0
+    {
         result.add(0)
+    }
+
     let colrOffset = cast(u32, result.count)
     result.add(colr.toSlice())
 
-    var cpal: Array'u8
+    var cpal: Array!{u8}
     cpal.resize(32)
     writeColorU16(&cpal, 0, 0)     // CPAL v0
     writeColorU16(&cpal, 2, 2)     // entries per palette
@@ -90,8 +95,11 @@ func buildColorFont()->Array'u8
     cpal[30] = 0xAA
     cpal[31] = 0xFF
 
-    while (result.count & 3) != 0 do
+    while (result.count & 3) != 0
+    {
         result.add(0)
+    }
+
     let cpalOffset = cast(u32, result.count)
     result.add(cpal.toSlice())
 
@@ -108,14 +116,14 @@ func buildColorFont()->Array'u8
     return result
 }
 
-func buildTwoBaseColorFont(firstBase, secondBase: u16)->Array'u8
+func buildTwoBaseColorFont(firstBase, secondBase: u16)->Array!{u8}
 {
     var source     = buildColorFont()
     let colrRecord = colorTableRecord(&source, TAG_COLR)
     let colrOffset = cast(u64, readBigU32(&source, colrRecord + 8))
     let insertion  = colrOffset + 32
 
-    var result: Array'u8
+    var result: Array!{u8}
     result.add(Swag.makeSlice(source.buffer, insertion))
     result.resize(insertion + 8)
     result.add(Swag.makeSlice(source.buffer + insertion, source.count - insertion))
@@ -124,7 +132,7 @@ func buildTwoBaseColorFont(firstBase, secondBase: u16)->Array'u8
     let cpalOffset = readBigU32(&result, cpalRecord + 8)
     writeBigU32(&result, cpalRecord + 8, cpalOffset + 8)
 
-    var layerRecords: Array'u8
+    var layerRecords: Array!{u8}
     layerRecords.add(Swag.makeSlice(result.buffer + colrOffset + 20, 12))
     writeColorU16(&result, colrOffset + 2, 2)
     writeBigU32(&result, colrOffset + 8, 26)
@@ -139,7 +147,7 @@ func buildTwoBaseColorFont(firstBase, secondBase: u16)->Array'u8
     return result
 }
 
-func buildCompositeColorFont(firstGlyph, secondGlyph, thirdGlyph: u16)->Array'u8
+func buildCompositeColorFont(firstGlyph, secondGlyph, thirdGlyph: u16)->Array!{u8}
 {
     var result     = buildColorFont()
     let colrRecord = colorTableRecord(&result, TAG_COLR)
@@ -157,8 +165,10 @@ func buildCompositeColorFont(firstGlyph, secondGlyph, thirdGlyph: u16)->Array'u8
 func blendExpectedColor(destination, source: u32, coverage: u8)->u32
 {
     let sourceAlpha = (((source >> 24) & 255) * cast(u32, coverage) + 127) / 255
-    if not sourceAlpha do
+    if not sourceAlpha
+    {
         return destination
+    }
 
     let destinationAlpha = (destination >> 24) & 255
     let outputAlpha      = sourceAlpha + (destinationAlpha * (255 - sourceAlpha) + 127) / 255
@@ -263,8 +273,11 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
     var emptyPaletteBytes = buildColorFont()
     let emptyColrRecord   = colorTableRecord(&emptyPaletteBytes, TAG_COLR)
     let emptyColrOffset   = cast(u64, readBigU32(&emptyPaletteBytes, emptyColrRecord + 8))
-    for index in 3 do
+    for index in 3
+    {
         writeColorU16(&emptyPaletteBytes, emptyColrOffset + 22 + cast(u64, index) * 4, 0xFFFF)
+    }
+
     let emptyCpalRecord = colorTableRecord(&emptyPaletteBytes, TAG_CPAL)
     let emptyCpalOffset = cast(u64, readBigU32(&emptyPaletteBytes, emptyCpalRecord + 8))
     writeColorU16(&emptyPaletteBytes, emptyCpalOffset + 12, 3)
@@ -306,11 +319,13 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
     let baseTop     = face.glyph.bitmapTop
     let gray        = face.glyph.bitmap
     Swag.require(gray.pixelMode == .Gray)
-    var mask: Array'u8
-    for row in gray.rows do
+    var mask: Array!{u8}
+    for row in gray.rows
+    {
         mask.add(expect gray.row(row))
+    }
 
-    let foreground = 0x8000FF00'u32
+    let foreground = 0x8000FF00_u32
     expect face.loadColorGlyph(base, 0, foreground)
     let colorBitmap = face.glyph.bitmap
     Swag.require(face.glyph.index == base)
@@ -327,7 +342,7 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
         for x in colorBitmap.width
         {
             let coverage = mask[maskRow + x]
-            var expected = 0'u32
+            var expected = 0_u32
             expected = blendExpectedColor(expected, 0xFF112233, coverage)
             expected = blendExpectedColor(expected, 0x80445566, coverage)
             expected = blendExpectedColor(expected, foreground, coverage)
@@ -349,7 +364,7 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
         for x in alternate.width
         {
             let coverage = mask[maskRow + x]
-            var expected = 0'u32
+            var expected = 0_u32
             expected = blendExpectedColor(expected, 0x80778899, coverage)
             expected = blendExpectedColor(expected, 0xFFAABBCC, coverage)
             expected = blendExpectedColor(expected, foreground, coverage)
@@ -378,12 +393,15 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
     var right     = 0
     var top       = 0
     var bottom    = 0
-    for glyph in [36'u32, 37, 38]
+    for glyph in [36_u32, 37, 38]
     {
         expect face.loadGlyph(glyph, .Render)
         let bitmap = face.glyph.bitmap
-        if not bitmap.width or not bitmap.rows do
+        if not bitmap.width or not bitmap.rows
+        {
             continue
+        }
+
         let itemLeft   = face.glyph.bitmapLeft
         let itemRight  = itemLeft + cast(s32, bitmap.width)
         let itemTop    = face.glyph.bitmapTop

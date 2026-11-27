@@ -29,7 +29,7 @@ func day2B()
     var total = 0
     for l in lines
     {
-        let levels = Slice.map(Tokenize.split(l[], ' 'u8).toSlice(),
+        let levels = Slice.map(Tokenize.split(l[], ' '_u8).toSlice(),
                                func(value) => expect StrConv.toS32(value))
         if isReportSafe(levels.toSlice())
         {
@@ -39,8 +39,11 @@ func day2B()
 
         for skipIndex in levels.count
         {
-            if not isReportSafe(levels.toSlice(), skipIndex) do
+            if not isReportSafe(levels.toSlice(), skipIndex)
+            {
                 continue
+            }
+
             total += 1
             break
         }

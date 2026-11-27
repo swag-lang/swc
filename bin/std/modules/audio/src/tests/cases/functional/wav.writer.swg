@@ -6,7 +6,7 @@ using Swag, Core, Core.Errors
 // Flushed mono and stereo prefixes decode exactly, including the minimum PCM value.
 #test
 {
-    for channels in [1'u16, 2]
+    for channels in [1_u16, 2]
     {
         let path = Path.combine(Env.getSpecialDirectory(.Temp),
                                 Format.toString("audio-writer-%-%.wav", channels, Guid128.random()))
@@ -26,7 +26,7 @@ using Swag, Core, Core.Errors
         Swag.require(complete.sampleEncoding() == .Pcm16)
         Swag.require(complete.sampleRateHz() == 44_100 and complete.numChannels() == channels)
         Swag.require(complete.sampleFrameCount() == 4 / channels)
-        var decoded: Array's16
+        var decoded: Array!{s16}
         expect complete.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
         {
             decoded.add(part)
@@ -90,7 +90,7 @@ using Swag, Core, Core.Errors
 // The largest stereo sample rate whose PCM16 byte rate fits the RIFF header remains valid.
 #test
 {
-    const MaxStereoRate = 1_073_741_823'u32
+    const MaxStereoRate = 1_073_741_823_u32
     let path = Path.combine(Env.getSpecialDirectory(.Temp),
                             Format.toString("audio-writer-max-rate-%.wav", Guid128.random()))
     defer discard catch File.delete(path)
@@ -132,13 +132,13 @@ using Swag, Core, Core.Errors
     expect complete.end()
     let sound = expect SoundFile.load(path.toString())
     Swag.require(sound.sampleFrameCount() == 3)
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
-    Swag.require(Slice.equals(decoded.toSlice(), [100's16, -100, 300]))
+    Swag.require(Slice.equals(decoded.toSlice(), [100_s16, -100, 300]))
 }
 
 // A truncated committed sample fails before resume can alter the source.
@@ -180,12 +180,15 @@ using Swag, Core, Core.Errors
     let sound = expect SoundFile.load(path.toString(), preloadData: false)
     Swag.require(sound.sampleFrameCount() == 20_002 and sound.payloadSize() == 80_008)
     let start = expect sound.readPayload(0, 8)
-    Swag.require(Slice.equals(start.toSlice(), [123'u8, 0, 133, 255, 0, 0, 0, 0]))
+    Swag.require(Slice.equals(start.toSlice(), [123_u8, 0, 133, 255, 0, 0, 0, 0]))
     let middle = expect sound.readPayload(32 * 1024, 16)
-    for byte in middle do
+    for byte in middle
+    {
         Swag.require(byte == 0)
+    }
+
     let end = expect sound.readPayload(80_004, 4)
-    Swag.require(Slice.equals(end.toSlice(), [200'u8, 1, 56, 254]))
+    Swag.require(Slice.equals(end.toSlice(), [200_u8, 1, 56, 254]))
     discard catch writer.addSilence(0) as rejected
     Swag.require(rejected.value() is BadParameterError)
 }
@@ -202,24 +205,24 @@ using Swag, Core, Core.Errors
     expect writer.end()
 
     var interrupted = expect ByteSink.openAppendFile(path.toString())
-    expect interrupted.writeLittleEndian(300's16)
-    expect interrupted.writeLittleEndian(400's16)
-    var nextRiffSize = Math.nativeToLittleEndian(44'u32)
+    expect interrupted.writeLittleEndian(300_s16)
+    expect interrupted.writeLittleEndian(400_s16)
+    var nextRiffSize = Math.nativeToLittleEndian(44_u32)
     expect interrupted.patch(4, Swag.makeSlice(cast(const [*] u8, &nextRiffSize), 4))
     expect interrupted.close()
     Swag.require((expect File.info(path)).size == 52)
 
     var resumed = expect Wav.Writer.resume(path.toString())
     Swag.require(resumed.sampleFrameCount() == 2 and resumed.writtenByteCount() == 48)
-    expect resumed.addFrames([500's16])
+    expect resumed.addFrames([500_s16])
     expect resumed.end()
     let sound = expect SoundFile.load(path.toString())
     Swag.require(sound.sampleFrameCount() == 3 and sound.payloadSize() == 6)
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
-    Swag.require(Slice.equals(decoded.toSlice(), [100's16, 200, 500]))
+    Swag.require(Slice.equals(decoded.toSlice(), [100_s16, 200, 500]))
 }

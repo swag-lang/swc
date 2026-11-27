@@ -9,50 +9,112 @@ private impl FileAttributes
     func fromDWORD(attributes: DWORD)->FileAttributes
     {
         using FileAttributes
-        if attributes == 0xFFFFFFFF do
+        if attributes == 0xFFFFFFFF
+        {
             return None
+        }
 
         var result: FileAttributes = None
-        if attributes & FILE_ATTRIBUTE_READONLY do
+        if attributes & FILE_ATTRIBUTE_READONLY
+        {
             result |= ReadOnly
-        if attributes & FILE_ATTRIBUTE_HIDDEN do
+        }
+
+        if attributes & FILE_ATTRIBUTE_HIDDEN
+        {
             result |= Hidden
-        if attributes & FILE_ATTRIBUTE_SYSTEM do
+        }
+
+        if attributes & FILE_ATTRIBUTE_SYSTEM
+        {
             result |= System
-        if attributes & FILE_ATTRIBUTE_DIRECTORY do
+        }
+
+        if attributes & FILE_ATTRIBUTE_DIRECTORY
+        {
             result |= Directory
-        if attributes & FILE_ATTRIBUTE_ARCHIVE do
+        }
+
+        if attributes & FILE_ATTRIBUTE_ARCHIVE
+        {
             result |= Archive
-        if attributes & FILE_ATTRIBUTE_DEVICE do
+        }
+
+        if attributes & FILE_ATTRIBUTE_DEVICE
+        {
             result |= Device
-        if attributes & FILE_ATTRIBUTE_NORMAL do
+        }
+
+        if attributes & FILE_ATTRIBUTE_NORMAL
+        {
             result |= Normal
-        if attributes & FILE_ATTRIBUTE_TEMPORARY do
+        }
+
+        if attributes & FILE_ATTRIBUTE_TEMPORARY
+        {
             result |= Temporary
-        if attributes & FILE_ATTRIBUTE_SPARSE_FILE do
+        }
+
+        if attributes & FILE_ATTRIBUTE_SPARSE_FILE
+        {
             result |= SparseFile
-        if attributes & FILE_ATTRIBUTE_REPARSE_POINT do
+        }
+
+        if attributes & FILE_ATTRIBUTE_REPARSE_POINT
+        {
             result |= ReparsePoint
-        if attributes & FILE_ATTRIBUTE_COMPRESSED do
+        }
+
+        if attributes & FILE_ATTRIBUTE_COMPRESSED
+        {
             result |= Compressed
-        if attributes & FILE_ATTRIBUTE_OFFLINE do
+        }
+
+        if attributes & FILE_ATTRIBUTE_OFFLINE
+        {
             result |= Offline
-        if attributes & FILE_ATTRIBUTE_NOT_CONTENT_INDEXED do
+        }
+
+        if attributes & FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
+        {
             result |= NotContentIndexed
-        if attributes & FILE_ATTRIBUTE_ENCRYPTED do
+        }
+
+        if attributes & FILE_ATTRIBUTE_ENCRYPTED
+        {
             result |= Encrypted
-        if attributes & FILE_ATTRIBUTE_INTEGRITY_STREAM do
+        }
+
+        if attributes & FILE_ATTRIBUTE_INTEGRITY_STREAM
+        {
             result |= IntegrityStream
-        if attributes & FILE_ATTRIBUTE_NO_SCRUB_DATA do
+        }
+
+        if attributes & FILE_ATTRIBUTE_NO_SCRUB_DATA
+        {
             result |= NoScrubData
-        if attributes & FILE_ATTRIBUTE_RECALL_ON_OPEN do
+        }
+
+        if attributes & FILE_ATTRIBUTE_RECALL_ON_OPEN
+        {
             result |= RecallOnOpen
-        if attributes & FILE_ATTRIBUTE_PINNED do
+        }
+
+        if attributes & FILE_ATTRIBUTE_PINNED
+        {
             result |= Pinned
-        if attributes & FILE_ATTRIBUTE_UNPINNED do
+        }
+
+        if attributes & FILE_ATTRIBUTE_UNPINNED
+        {
             result |= Unpinned
-        if attributes & FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS do
+        }
+
+        if attributes & FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS
+        {
             result |= RecallOnDataAccess
+        }
+
         return result
     }
 }

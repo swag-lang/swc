@@ -132,7 +132,7 @@ safety guards a shift's amount only.
 */
 #test
 {
-    var x = 255'u8
+    var x = 255_u8
     discard x
 
     // x += 1  // Uncomment to see overflow panic
@@ -146,7 +146,7 @@ It is unnecessary for shifts, whose discarded bits already truncate normally.
 */
 #test
 {
-    var x = 255'u8
+    var x = 255_u8
     x += #wrap 1
     Swag.require(x == 0)
 }
@@ -159,7 +159,7 @@ Disable overflow safety checks in a scope with '#[Swag.Safety(.Overflow, false)]
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    var x = 255'u8
+    var x = 255_u8
     x += 1
     Swag.require(x == 0)
 }
@@ -171,7 +171,7 @@ For 8/16-bit operations, use '#prom' to promote to 32-bit and avoid overflow.
 */
 #test
 {
-    let x = 255'u8 + #prom 1
+    let x = 255_u8 + #prom 1
     Swag.require(x == 256)
     Swag.require(#typeof(x) == u32)
 }
@@ -183,14 +183,14 @@ Swag checks casts for potential information loss between integer types.
 */
 #test
 {
-    let x1 = 255'u8
+    let x1 = 255_u8
 
     // var y0 = cast(s8, x1)  // Would panic: 255 not representable as s8
 
     let y1 = cast #wrap (s8, x1)
     Swag.require(y1 == -1)
 
-    let x2 = -1's8
+    let x2 = -1_s8
 
     // var y2 = cast(u8, x2)  // Would panic: negative to unsigned
     let y2 = cast #wrap (u8, x2)
@@ -205,7 +205,7 @@ Same as above: '#[Swag.Safety(.Overflow, false)]' allows overflowing operations.
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    var x = 255'u8
+    var x = 255_u8
     x += 255     // -> 254 (wrap)
     x += 1       // -> 255
     x >>= 1      // -> 127
@@ -315,8 +315,11 @@ of the sliced value panics under '.BoundCheck'.
     func sumRange(low, high: s32)->s32
     {
         var sum = 0
-        for i in low until high do
+        for i in low until high
+        {
             sum += i
+        }
+
         return sum
     }
 
@@ -349,8 +352,8 @@ no longer provably zero, so whichever layer is enabled is the one that speaks.
 */
 #test
 {
-    var value   = 10's32
-    var divisor = 2's32
+    var value   = 10_s32
+    var divisor = 2_s32
     Swag.require(value / divisor == 5)
 
     // divisor = 0
@@ -365,12 +368,12 @@ Swag validates arguments for several math intrinsics and panics if invalid.
 #test
 {
     // Swag.abs(-128)        // Invalid for abs on this target
-    // Swag.log(-2'f32)      // Invalid: log of negative
-    // Swag.log2(-2'f32)     // Invalid: log2 of negative
-    // Swag.log10(2'f64)     // Example: implementation-specific constraints
-    // Swag.sqrt(-2'f32)     // Invalid: sqrt of negative
-    // Swag.asin(-2'f32)     // Invalid: asin out of range
-    // Swag.acos(2'f32)      // Invalid: acos out of range
+    // Swag.log(-2_f32)      // Invalid: log of negative
+    // Swag.log2(-2_f32)     // Invalid: log2 of negative
+    // Swag.log10(2_f64)     // Example: implementation-specific constraints
+    // Swag.sqrt(-2_f32)     // Invalid: sqrt of negative
+    // Swag.asin(-2_f32)     // Invalid: asin out of range
+    // Swag.acos(2_f32)      // Invalid: acos out of range
 }
 
 /**

@@ -3,7 +3,7 @@
 using Swag
 
 // DXGI 1.2 declarations from dxgi.h and dxgi1_2.h.
-const DXGI_FORMAT_B8G8R8A8_UNORM   = 87'u32
+const DXGI_FORMAT_B8G8R8A8_UNORM   = 87_u32
 const DXGI_ERROR_NOT_FOUND         = cast #bit (HRESULT, 0x887A_0002)
 const DXGI_ERROR_WAS_STILL_DRAWING = cast #bit (HRESULT, 0x887A_000A)
 const DXGI_ERROR_ACCESS_LOST       = cast #bit (HRESULT, 0x887A_0026)

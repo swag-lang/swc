@@ -40,9 +40,11 @@ func passFloats(s, t: const *Sample)->f32 => mixFloat(s.weight, t.tag, t.weight,
 #[Swag.Optimize(true), Swag.NoInline]
 func sumPicked(p: const [*] u8, n: u64)->u32
 {
-    var total = 0'u32
-    for i in n do
+    var total = 0_u32
+    for i in n
+    {
         total += cast(u32, pick(p, cast(u64, p[i])))
+    }
     return total
 }
 
@@ -57,7 +59,7 @@ func sumPicked(p: const [*] u8, n: u64)->u32
     var bytes: [4] u8  = [255, 1, 2, 3]
     var words: [3] s16 = [-32768, 32767, -1]
     Swag.require(passElements(&bytes[0], &words[0], 0, 0) == 255_000_000 - 32_768_000 - 7 + 5)
-    Swag.require(passElements(&bytes[0], &words[0], 1, 1) == 4_328_804_295's64)
+    Swag.require(passElements(&bytes[0], &words[0], 1, 1) == 4_328_804_295_s64)
     Swag.require(passElements(&bytes[0], &words[0], 3, 2) == 3_000_000 - 1000 + 70000 + 5)
 
     var table: [4] u8 = [3, 0, 1, 2]

@@ -26,8 +26,11 @@ var g_Rng:       Random.Generator
 func initC(i: s32)
 {
     g_RD[i].length = g_Rng.nextS32(MinTrailSize, MaxTrailSize - 1)
-    for j in g_RD[i].length do
+    for j in g_RD[i].length
+    {
         g_RD[i].c[j] = cast(rune, g_Rng.nextS32(FirstRune, LastRune))
+    }
+
     g_RD[i].speed = g_Rng.nextF32(400, 800)
     g_RD[i].y     = 0
 }
@@ -38,8 +41,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     {
     case CreateEvent:
         g_Font = wnd.theme().createDefaultFont(FontSize)
-        for i in MaxColumns do
+        for i in MaxColumns
+        {
             initC(i)
+        }
 
     case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
@@ -54,18 +59,26 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             for j in g_RD[i].length
             {
                 // Once in a while, change the rune in the trail
-                if g_Rng.nextU32(0, 300) < 2 do
+                if g_Rng.nextU32(0, 300) < 2
+                {
                     g_RD[i].c[j] = cast(rune, g_Rng.nextS32(FirstRune, LastRune))
+                }
+
                 let c = g_RD[i].c[j]
 
                 var y = g_RD[i].y
                 y -= j * FontSize
 
                 // No need to paint if rune is outside window
-                if y > rect.bottom() do
+                if y > rect.bottom()
+                {
                     continue
-                if y < rect.y - FontSize do
+                }
+
+                if y < rect.y - FontSize
+                {
                     break
+                }
 
                 // If the move is equivalent to one fontsize, then insert a new rune
                 // at the start of the trail
@@ -80,10 +93,14 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
                 // First rune is white, the rest blends to black
                 var color: Color
-                if j == 0 do
+                if j == 0
+                {
                     color = Color.lerp(Argb.Green, Argb.White, 0.5)
-                else do
+                }
+                else
+                {
                     color = Color.lerp(Argb.Green, Argb.Black, j / cast(f32, g_RD[i].length))
+                }
 
                 y = yi * FontSize
 
@@ -95,8 +112,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             g_RD[i].y += g_RD[i].speed * wnd.app().deltaSeconds()
 
             // If the full trail is outside the window, randomize a new one
-            if g_RD[i].y - (g_RD[i].length * FontSize) > rect.bottom() + FontSize do
+            if g_RD[i].y - (g_RD[i].length * FontSize) > rect.bottom() + FontSize
+            {
                 initC(i)
+            }
         }
 
         wnd.invalidate()

@@ -26,27 +26,42 @@ internal impl IImageEncoder for Encoder
         var userOptions: EncodeOptions
         if options.buffer != null
         {
-            if Swag.kindOf(options) != EncodeOptions do
+            if Swag.kindOf(options) != EncodeOptions
+            {
                 fail BadParameterError{"BMP encoder options must be Bmp.EncodeOptions"}
+            }
+
             userOptions = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
-        if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
+        if image.width <= 0 or image.height <= 0 or not image.pixels.buffer
+        {
             fail InvalidFormatError{"invalid image"}
+        }
+
         if image.pixelFormat != .BGR8 and
            image.pixelFormat != .BGRA8 and
            image.pixelFormat != .RGB8 and
-           image.pixelFormat != .RGBA8 do
+           image.pixelFormat != .RGBA8
+        {
             fail UnsupportedFormatError{"BMP encoding accepts only 8-bit RGB and BGR pixels"}
-        if image.width > Swag.S32.Max / image.bytesPerPixel or image.height > Swag.S32.Max / image.width do
+        }
+
+        if image.width > Swag.S32.Max / image.bytesPerPixel or image.height > Swag.S32.Max / image.width
+        {
             fail UnsupportedFormatError{"image is too big"}
+        }
 
         let rowBytes  = cast(u64, image.width) * image.bytesPerPixel
         let stride    = rowStride(image.width, image.bitsPerPixel)
         let imageSize = stride * cast(u64, image.height)
         let fileSize  = (userOptions.fileHeader ? cast(u64, #sizeof(FileHeader)) : 0) + #sizeof(Header) + imageSize
-        if fileSize > Swag.U32.Max do
+        if fileSize > Swag.U32.Max
+        {
             fail UnsupportedFormatError{"image is too big"}
+        }
+
+        result.grow(fileSize)
 
         if userOptions.fileHeader
         {
@@ -73,47 +88,30 @@ internal impl IImageEncoder for Encoder
 
         result.addStruct(header)
 
-        if image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8
+        let target  = result.reserveInPlace(imageSize)
+        let source  = image.pixels.storage()
+        let padding = stride - rowBytes
+        if not padding and (image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8)
         {
-            var converted: Array'u8
-            converted.resize(imageSize)
-            let src = image.pixels.storage()
-            for y in image.height
-            {
-                let srcRow = src + cast(u64, y) * rowBytes
-                let dstRow = converted.storage() + cast(u64, y) * stride
-                if image.pixelFormat == .RGB8 do
-                    PackedPixel.swapRedBlue24Row(srcRow, dstRow, image.width)
-                else do
-                    PackedPixel.swapRedBlue32Row(srcRow, dstRow, image.width)
-
-                let padding = stride - rowBytes
-                if padding do
-                    Memory.set(dstRow + rowBytes, 0, padding)
-            }
-
-            result.addBytes(converted.toSlice())
+            Memory.copy(target, source, imageSize)
             return
         }
 
-        var psrc = image.pixels.buffer
-        for image.height
+        for y in image.height
         {
+            let src = source + cast(u64, y) * rowBytes
+            let dst = target + cast(u64, y) * stride
             switch image.pixelFormat
             {
-            case .BGR8, .BGRA8:
-                result.addBytes(Swag.makeSlice(psrc, rowBytes))
-                psrc += rowBytes
-
-            default:
-                break
+            case .RGB8:         PackedPixel.swapRedBlue24Row(src, dst, image.width)
+            case .RGBA8:        PackedPixel.swapRedBlue32Row(src, dst, image.width)
+            case .BGR8, .BGRA8: Memory.copy(dst, src, rowBytes)
+            default:            unreachable
             }
 
-            let padding = stride - rowBytes
             if padding
             {
-                for padding do
-                    result.addNative(0'u8)
+                Memory.set(dst + rowBytes, 0, padding)
             }
         }
     }

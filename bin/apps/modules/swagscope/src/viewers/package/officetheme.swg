@@ -7,10 +7,16 @@ private const SchemeNames = ["dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "
 
 func isRgbHex(value: string)->bool
 {
-    if value.count != 6 do
+    if value.count != 6
+    {
         return false
-    for digit in value where not Latin1.isHexDigit(digit) do
+    }
+
+    for digit in value where not Latin1.isHexDigit(digit)
+    {
         return false
+    }
+
     return true
 }
 
@@ -29,15 +35,21 @@ impl OfficeTheme
     {
         var result: #returntype
         let values = ["000000", "FFFFFF", "1F497D", "EEECE1", "4F81BD", "C0504D", "9BBB59", "8064A2", "4BACC6", "F79646", "0000FF", "800080"]
-        for value, index in values do
+        for value, index in values
+        {
             result.colors[index] = value
+        }
+
         return result
     }
 
     mtd const color(name: string)->String
     {
-        for value, index in SchemeNames where value == name do
+        for value, index in SchemeNames where value == name
+        {
             return .colors[index]
+        }
+
         return {}
     }
 
@@ -52,21 +64,29 @@ impl OfficeTheme
         {
             if token.kind == .Start
             {
-                if token.isElement("theme") do
+                if token.isElement("theme")
+                {
                     .defined = true
+                }
+
                 if token.isElement("clrScheme")
                 {
                     inScheme = not token.empty
                 }
-                elif inScheme
+                else if inScheme
                 {
-                    for name, index in SchemeNames where token.isElement(name) do
+                    for name, index in SchemeNames where token.isElement(name)
+                    {
                         selected = index
+                    }
+
                     if selected < .colors.count
                     {
                         let value = token.isElement("sysClr") ? (token.attribute("lastClr") orelse "") : (token.attribute("val") orelse "")
-                        if (token.isElement("srgbClr") or token.isElement("sysClr")) and isRgbHex(value) do
+                        if (token.isElement("srgbClr") or token.isElement("sysClr")) and isRgbHex(value)
+                        {
                             .colors[selected] = value
+                        }
                     }
                 }
 
@@ -74,28 +94,37 @@ impl OfficeTheme
                 {
                     font = "major"
                 }
-                elif token.isElement("minorFont")
+                else if token.isElement("minorFont")
                 {
                     font = "minor"
                 }
-                elif font.count and token.isElement("latin")
+                else if font.count and token.isElement("latin")
                 {
                     let name = token.attribute("typeface") orelse ""
                     if name.count <= 256
                     {
-                        if font == "major" do
+                        if font == "major"
+                        {
                             .majorFont = name
-                        else do
+                        }
+                        else
+                        {
                             .minorFont = name
+                        }
                     }
                 }
             }
-            elif token.kind == .End
+            else if token.kind == .End
             {
-                if token.isElement("clrScheme") do
+                if token.isElement("clrScheme")
+                {
                     inScheme = false
-                if token.isElement("majorFont") or token.isElement("minorFont") do
+                }
+
+                if token.isElement("majorFont") or token.isElement("minorFont")
+                {
                     font = ""
+                }
             }
         }
     }

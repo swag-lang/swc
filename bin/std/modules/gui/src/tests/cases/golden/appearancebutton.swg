@@ -140,8 +140,11 @@ using Swag, Core, Pixel
     host.app.sigFrame += func|host = &host, button, checked = &sheetChecked|(_)
     {
         let sheet = host.capturedOptionSheet()
-        if checked[] or not sheet do
+        if checked[] or not sheet
+        {
             return
+        }
+
         host.finishAnimations()
         Swag.require(sheet.parent == &host.surfaceWnd and not sheet.opensUp)
         Swag.require(Math.abs(sheet.localToSurface(Math.Point{0, sheet.body.y}).y - button.surfaceRect().bottom() - sheet.themeMetrics().menuPopup_AnchorGap) < 0.5)
@@ -167,8 +170,10 @@ using Swag, Core, Pixel
     var popupChecked: bool
     host.app.sigFrame += func|host = &host, button, popup, sub, checked = &popupChecked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
 
         let anchor  = button.surfaceRect()
         let bodyTop = popup.localToSurface(popup.getPopupBodyRect()).y

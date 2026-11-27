@@ -51,7 +51,7 @@ func videoGrayImage(width, height: s32, value: u8)->Image
 }
 
 // Returns one YUV4MPEG2 4:2:0 payload of a flat frame of luma `luma`.
-func videoFlatPayload(width, height: s32, luma: u8)->Array'u8
+func videoFlatPayload(width, height: s32, luma: u8)->Array!{u8}
 {
     let lumaSize = cast(u64, width) * cast(u64, height)
 
@@ -127,8 +127,10 @@ func videoFixtureSamples(width, height: s32, index: u64)->[4] VideoFixtureSample
 func videoAssertFixtureFrame(frame: Image, index: u64, tolerance = 3)
 {
     Swag.require(frame.isValid())
-    for sample in videoFixtureSamples(frame.width, frame.height, index) do
+    for sample in videoFixtureSamples(frame.width, frame.height, index)
+    {
         videoAssertColor(frame.pixelColor(sample.x, sample.y), sample.r, sample.g, sample.b, tolerance)
+    }
 }
 
 // Asserts that `frame` is frame `index` of a fixture clip carrying luma alone.
@@ -139,8 +141,11 @@ func videoAssertFixtureLumaFrame(frame: Image, index: u64, tolerance = 3)
 {
     let samples = videoFixtureSamples(frame.width, frame.height, index)
     const Luma: [3] s32 = [76, 150, 29]
-    for value, position in Luma do
+    for value, position in Luma
+    {
         videoAssertGray(frame.pixelColor(samples[position].x, samples[position].y), value, tolerance)
+    }
+
     videoAssertGray(frame.pixelColor(samples[3].x, samples[3].y), videoFixtureGray(index), tolerance)
 }
 
@@ -149,9 +154,9 @@ func videoAssertFixtureLumaFrame(frame: Image, index: u64, tolerance = 3)
 //
 // `chromaShift` is how far a pixel coordinate shifts right to reach the chroma planes: one for a
 // 4:2:0 dump, none for a 4:4:4 one.
-func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32, chromaShift = 1's32)->Image
+func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32, chromaShift = 1_s32)->Image
 {
-    let round        = cast(u64, ((1's32 << chromaShift) - 1))
+    let round        = cast(u64, ((1_s32 << chromaShift) - 1))
     let lumaSize     = cast(u64, width) * cast(u64, height)
     let chromaWidth  = (cast(u64, width) + round) >> chromaShift
     let chromaHeight = (cast(u64, height) + round) >> chromaShift
@@ -183,15 +188,21 @@ func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32, c
 }
 
 // Compares a decoded frame against the reference, reporting the first difference.
-func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u64, width, height: s32, chromaShift = 1's32)
+func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u64, width, height: s32, chromaShift = 1_s32)
 {
     Swag.require(frame.width == width and frame.height == height and frame.pixelFormat == .RGB8)
     let expected   = videoReferenceFrame(reference, index, width, height, chromaShift)
-    var mismatches = 0'u64
-    for position in frame.pixels.count where frame.pixels.storage()[position] != expected.pixels.storage()[position] do
+    var mismatches = 0_u64
+    for position in frame.pixels.count where frame.pixels.storage()[position] != expected.pixels.storage()[position]
+    {
         mismatches += 1
-    if mismatches > 0 do
+    }
+
+    if mismatches > 0
+    {
         Swag.print("frame ", index, ": ", mismatches, " of ", frame.pixels.count, " bytes differ\n")
+    }
+
     Swag.require(mismatches == 0)
 }
 
@@ -199,7 +210,7 @@ func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u6
 //
 // `container` carries no leading dot: it names the file beside `name.yuv` the stream is read from,
 // so one reference dump serves every container the same access units were muxed into.
-func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u64, container = "mp4", chromaShift = 1's32, workers = 16'u32)
+func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u64, container = "mp4", chromaShift = 1_s32, workers = 16_u32)
 {
     Swag.setWorkerCount(workers)
 
@@ -226,8 +237,11 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers" do
+        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers"
+        {
             return unwrap Path.directoryName(directory)
+        }
+
         directory = Path.directoryName(directory)
     }
 

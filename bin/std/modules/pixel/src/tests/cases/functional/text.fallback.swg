@@ -8,7 +8,7 @@ using Core
     var cache: FontCache
     cache.setFallbackTypeFaces([expect fallbackTestFace(true)])
     let font = cache.createFont(expect fallbackTestFace(false), 19, .Bitmap, true, true)
-    for c in [0'rune, '\t'rune, '\n'rune, '\r'rune, '\u007F'rune, '\u0085'rune, '\u009F'rune, '\U0010FFFF'rune]
+    for c in [0_rune, '\t'_rune, '\n'_rune, '\r'_rune, '\u007F'_rune, '\u0085'_rune, '\u009F'_rune, '\U0010FFFF'_rune]
     {
         let resolved = font.resolveRune(c)
         Swag.require(not isFontFallbackRune(c))
@@ -16,7 +16,7 @@ using Core
         Swag.require(font.fallbackFonts.count == 0)
     }
 
-    Swag.require(isFontFallbackRune(' ') and isFontFallbackRune('\u2192'rune))
+    Swag.require(isFontFallbackRune(' ') and isFontFallbackRune('\u2192'_rune))
 }
 
 // Coverage, negative caching, policy replacement, UTF-8 byte clusters, spacing and cache identity.
@@ -25,18 +25,18 @@ using Core
     var cache: FontCache
     let primary = expect fallbackTestFace(false)
     let symbols = expect fallbackTestFace(true)
-    var empty: Array'(*TypeFace)
+    var empty: Array!{*TypeFace}
     cache.setFallbackTypeFaces(empty.toSlice(), false)
     let font = cache.createFont(primary, 24, .Bitmap)
-    Swag.require(font.glyphIndex('\u2192'rune) == 0)
-    Swag.require(font.resolveRune('\u2192'rune) == font)
+    Swag.require(font.glyphIndex('\u2192'_rune) == 0)
+    Swag.require(font.resolveRune('\u2192'_rune) == font)
     cache.setFallbackTypeFaces([primary, symbols], false)
-    let fallback = font.resolveRune('\u2192'rune)
+    let fallback = font.resolveRune('\u2192'_rune)
     Swag.require(fallback != font)
-    Swag.require(fallback == font.resolveRune('\u2192'rune))
+    Swag.require(fallback == font.resolveRune('\u2192'_rune))
     Swag.require(font.resolveRune('A') == font)
-    Swag.require(font.resolveRune('\U0010FFFF'rune) == font)
-    Swag.require(font.getGlyphDesc('\u2192'rune) == fallback.getGlyphDescByIndex(fallback.glyphIndex('\u2192'rune)))
+    Swag.require(font.resolveRune('\U0010FFFF'_rune) == font)
+    Swag.require(font.getGlyphDesc('\u2192'_rune) == fallback.getGlyphDescByIndex(fallback.glyphIndex('\u2192'_rune)))
 
     let run = Painter.shapeRun("A\u2192V\U0001F680", font, letterSpacing: 2)
     Swag.require(run.glyphs.count == 4)
@@ -58,7 +58,7 @@ using Core
     Swag.require(Math.isEqualEpsilon(run.metrics.width, expected, 0.001))
     let descriptors = Painter.glyphs("A\u2192V", font)
     Swag.require(Math.isEqualEpsilon(Painter.measureString(descriptors, font).width, Painter.measureString("A\u2192V", font).width, 0.001))
-    Swag.require(Math.isEqualEpsilon(Painter.measureRune('\u2192'rune, font).x, Painter.measureString("\u2192", fallback).width, 0.001))
+    Swag.require(Math.isEqualEpsilon(Painter.measureRune('\u2192'_rune, font).x, Painter.measureString("\u2192", fallback).width, 0.001))
     let crossFace = Painter.shapeRun("A\U0001F680", font)
     let kerned    = Painter.shapeRun("AV", font)
     Swag.require(kerned.glyphs[1].offsetX != 0)
@@ -70,7 +70,7 @@ using Core
     Painter.computeLayout({0, 0, 300, 300}, &rich, format)
     Swag.require(rich.boundRect.height >= Painter.measureString("A\u2192V", font).height * 2)
     cache.setFallbackTypeFaces(empty.toSlice(), false)
-    Swag.require(font.resolveRune('\u2192'rune) == font)
+    Swag.require(font.resolveRune('\u2192'_rune) == font)
     Swag.require(Painter.shapeRun("", font).glyphs.isEmpty())
 }
 
@@ -97,7 +97,7 @@ using Core
         }
     }
 
-    for scale in [1.0'f32, 1.5'f32, 2.0'f32]
+    for scale in [1.0_f32, 1.5_f32, 2.0_f32]
     {
         let drawFont = Painter.computeTextDrawInfo(font, 1, scale).drawFont
         let resolved = Painter.shapeRun("A\u2192 V\t\U0001F680", drawFont, 8, 1.5, 3)

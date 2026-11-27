@@ -27,8 +27,10 @@ impl Converted
 
     mtd opDrop()
     {
-        if .value != 0 do
+        if .value != 0
+        {
             ConvertedDrops += 1
+        }
     }
 }
 
@@ -38,8 +40,10 @@ func convertedReturn()->Converted => convertedSource()
 
 func convertedReturnFallible()->Converted fail
 {
-    if ConvertedSeed == 0 do
+    if ConvertedSeed == 0
+    {
         return {}
+    }
     return convertedSource()
 }
 

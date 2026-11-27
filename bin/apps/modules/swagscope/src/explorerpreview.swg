@@ -6,14 +6,19 @@ func albumAudio(file: string)->bool => Path.hasExtension(file, ".mp3") or Path.h
 
 func localAlbumArtwork(file: string)->String
 {
-    if not albumAudio(file) do
+    if not albumAudio(file)
+    {
         return {}
+    }
+
     let folder = Path.directoryName(file) orelse ""
     for name in ["cover.jpg", "folder.jpg", "front.jpg", "cover.png", "folder.png", "front.png"]
     {
         let image = Path.combine(folder, name)
-        if File.exists(image) do
+        if File.exists(image)
+        {
             return image
+        }
     }
 
     return {}
@@ -34,8 +39,11 @@ func localSoundDuration(file: string)->u64
 // Adds a duration to the image that carries the Explorer preview, unless it already has one.
 private func labelPreviewDuration(image: *Image, seconds: u64)
 {
-    if not seconds or thumbnailDuration(image) do
+    if not seconds or thumbnailDuration(image)
+    {
         return
+    }
+
     var duration: ImageMetadata
     duration.tag   = Viewer.ThumbnailDurationTag
     duration.value = Format.toString("%", seconds)
@@ -45,8 +53,11 @@ private func labelPreviewDuration(image: *Image, seconds: u64)
 func onlinePreviewStamped(image: const *Image)->bool
 {
     for &record in image.metadata where record.isTag(cast(const [..] u8, MovieCachedAtTag)) or
-                                        record.isTag(cast(const [..] u8, MusicCachedAtTag)) do
+                                        record.isTag(cast(const [..] u8, MusicCachedAtTag))
+    {
         return true
+    }
+
     return false
 }
 
@@ -93,24 +104,30 @@ impl ExplorerPreview
 
     private mtd produce() fail
     {
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return
+        }
 
         // The listing probes only a bounded number of folders. A large library discovers the
         // remaining albums as their tiles enter the viewport.
         if .archivePath.isEmpty() and .mediaFile.isEmpty() and Directory.exists(.path)
         {
             let inside = try Directory.enumerate(.path, {})
-            var tracks = 0'u64
+            var tracks = 0_u64
             for &entry in inside where not entry.isDirectory() and albumAudio(entry.fullName)
             {
                 tracks += 1
-                if .mediaFile.isEmpty() do
+                if .mediaFile.isEmpty()
+                {
                     .mediaFile = entry.fullName
+                }
             }
 
-            if not tracks or tracks * 2 < inside.count do
+            if not tracks or tracks * 2 < inside.count
+            {
                 return
+            }
         }
 
         let source       = .archivePath.isEmpty() ? .path.toString() : .archivePath.toString()
@@ -129,8 +146,11 @@ impl ExplorerPreview
             ThumbnailCache.pruneOnce()
             cache  = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy) orelse {}
             .image = ThumbnailCache.read(cache)
-            if .image.isValid() and (.online and onlinePreviewStamped(&.image)) do
+            if .image.isValid() and (.online and onlinePreviewStamped(&.image))
+            {
                 return
+            }
+
             if .image.isValid() and not .online
             {
                 let settings = try ThumbnailSettings.decode(.settings)
@@ -145,12 +165,18 @@ impl ExplorerPreview
         if not .archivePath.isEmpty()
         {
             var extension = String.from(Path.extension(.path) orelse ".bin")
-            if extension.length > 24 do
+            if extension.length > 24
+            {
                 extension = ".bin"
+            }
+
             var name = Format.toString("scope-preview-%", Guid64.random())
             name += extension
-            if not Path.isValidFileName(name) do
+            if not Path.isValidFileName(name)
+            {
                 fail Errors.InvalidFormatError{}
+            }
+
             let temporary = Path.combine(Env.getSpecialDirectory(.Temp), name)
             try Viewers.Archive.Zip.extractEntry(.archivePath, &.entry, temporary)
             .temporary = temporary
@@ -169,8 +195,11 @@ impl ExplorerPreview
         if not .opening
         {
             var settings = try ThumbnailSettings.decode(.settings)
-            if .online do
+            if .online
+            {
                 discard try File.info(file)
+            }
+
             if not settings.musicId.isEmpty()
             {
                 let info = try File.info(.mediaFile.isEmpty() ? file.toString() : source)
@@ -199,16 +228,28 @@ impl ExplorerPreview
                 // A named release goes straight to its final artwork. Decode a local frame
                 // only if the catalog has no poster, so a successful lookup never pays for it.
                 .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(file, &settings, .durationHint)
-                if .needsOnline and not albumAudio(file) do
+                if .needsOnline and not albumAudio(file)
+                {
                     return
+                }
+
                 if albumAudio(file)
                 {
-                    if not localArtwork.isEmpty() do
+                    if not localArtwork.isEmpty()
+                    {
                         .image = catch .service.render(localArtwork) orelse {}
-                    if not .image.isValid() do
+                    }
+
+                    if not .image.isValid()
+                    {
                         .image = catch .service.render(file) orelse {}
-                    if not .image.isValid() do
+                    }
+
+                    if not .image.isValid()
+                    {
                         .image = Image.create(1, 1, .RGBA8)
+                    }
+
                     let tags = SoundTags.read(file)
                     labelLocalMusic(&.image, &tags)
                     labelPreviewDuration(&.image, localSoundDuration(file))
@@ -225,8 +266,11 @@ impl ExplorerPreview
 
                 ThumbnailFraming.labelImage(&.image)
                 let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy) orelse {}
-                if .image.isValid() and not Swag.isCancelled() and cache == current do
+                if .image.isValid() and not Swag.isCancelled() and cache == current
+                {
                     catch ThumbnailCache.write(cache, &.image, source, .privacy)
+                }
+
                 return
             }
 
@@ -235,8 +279,11 @@ impl ExplorerPreview
             var musicTags: SoundTags
             var localDuration = Math.max(.durationHint, thumbnailDuration(&.image))
             var posterLoaded  = false
-            if not localDuration and albumAudio(file) do
+            if not localDuration and albumAudio(file)
+            {
                 localDuration = localSoundDuration(file)
+            }
+
             var providerFailed    = false
             var providerAttempted = false
             if settings.onlineMovies and
@@ -262,10 +309,10 @@ impl ExplorerPreview
                     providerFailed = true
                 }
             }
-            elif settings.onlineMusic and
-                 not settings.localArtworkOnly and
-                 .archivePath.isEmpty() and
-                 albumAudio(file)
+            else if settings.onlineMusic and
+                    not settings.localArtworkOnly and
+                    .archivePath.isEmpty() and
+                    albumAudio(file)
             {
                 musicTags = SoundTags.read(file)
                 if not settings.musicId.isEmpty() or (not musicTags.album.isEmpty() and musicSearchArtist(&musicTags).count > 0)
@@ -277,29 +324,41 @@ impl ExplorerPreview
                         if not music.id.isEmpty() and not Swag.isCancelled()
                         {
                             let cover = try music.coverBytes()
-                            if not cover.isEmpty() do
+                            if not cover.isEmpty()
+                            {
                                 .image = try .renderOnlineImage(cover.toSlice())
+                            }
                         }
                     }
                     {
                         providerFailed = true
-                        if not settings.musicId.isEmpty() do
+                        if not settings.musicId.isEmpty()
+                        {
                             .error = appStrings().explore_ChosenMusicFailed
+                        }
                     }
                 }
             }
 
             // Retired online work must not decode another frame before releasing its worker.
-            if Swag.isCancelled() do
+            if Swag.isCancelled()
+            {
                 return
+            }
+
             if not .image.isValid()
             {
                 if albumAudio(file)
                 {
-                    if not localArtwork.isEmpty() do
+                    if not localArtwork.isEmpty()
+                    {
                         .image = catch .service.render(localArtwork) orelse {}
-                    if not .image.isValid() do
+                    }
+
+                    if not .image.isValid()
+                    {
                         .image = Image.create(1, 1, .RGBA8)
+                    }
                 }
                 else
                 {
@@ -318,25 +377,35 @@ impl ExplorerPreview
                 }
             }
 
-            if movie.found() and .image.isValid() do
+            if movie.found() and .image.isValid()
+            {
                 movie.label(&.image)
-            elif not music.id.isEmpty() and .image.isValid() do
+            }
+            else if not music.id.isEmpty() and .image.isValid()
+            {
                 music.label(&.image, &musicTags)
-            elif settings.onlineMusic and
-                 not settings.localArtworkOnly and
-                 albumAudio(file) and
-                 not providerFailed and
-                 .image.isValid() do
+            }
+            else if settings.onlineMusic and
+                    not settings.localArtworkOnly and
+                    albumAudio(file) and
+                    not providerFailed and
+                    .image.isValid()
+            {
                 stampMusicCache(&.image)
-            elif providerAttempted and not providerFailed and .image.isValid() do
+            }
+            else if providerAttempted and not providerFailed and .image.isValid()
+            {
                 stampMovieCache(&.image)
+            }
 
             ThumbnailFraming.labelImage(&.image)
 
             // A file replaced during rendering must not publish an image under its old identity.
             let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy) orelse {}
-            if not .needsOnline and not providerFailed and not Swag.isCancelled() and cache == current do
+            if not .needsOnline and not providerFailed and not Swag.isCancelled() and cache == current
+            {
                 catch ThumbnailCache.write(cache, &.image, source, .privacy)
+            }
         }
     }
 
@@ -348,20 +417,27 @@ impl ExplorerPreview
            bytes[0] == 0x89 and
            bytes[1] == 'P' and
            bytes[2] == 'N' and
-           bytes[3] == 'G' do
+           bytes[3] == 'G'
+        {
             extension = ".png"
-        elif bytes.count >= 12 and
-             cast(string, bytes[0 until 4]) == "RIFF" and
-             cast(string, bytes[8 until 12]) == "WEBP" do
+        }
+        else if bytes.count >= 12 and
+                cast(string, bytes[0 until 4]) == "RIFF" and
+                cast(string, bytes[8 until 12]) == "WEBP"
+        {
             extension = ".webp"
+        }
+
         var name = Format.toString("scope-artwork-%", Guid64.random())
         name += extension
         let file = Path.combine(Env.getSpecialDirectory(.Temp), name)
         var ownsTemporary = false
         defer
         {
-            if ownsTemporary do
+            if ownsTemporary
+            {
                 discard catch File.delete(file)
+            }
         }
 
         var output = try File.open(file, .CreateNew, .Write, .Delete)
@@ -374,7 +450,9 @@ impl ExplorerPreview
     mtd opDrop()
     {
         .wait()
-        if not .temporary.isEmpty() do
+        if not .temporary.isEmpty()
+        {
             catch File.delete(.temporary)
+        }
     }
 }

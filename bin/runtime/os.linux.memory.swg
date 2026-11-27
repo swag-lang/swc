@@ -11,13 +11,13 @@ namespace __LinuxRT
         name:         [256] u8
     }
 
-    const OpenDirectory       = 0x10000's32
-    const CloseOnExec         = 0x80000's32
-    const LockExclusive       = 2's32
-    const MapPrivateAnonymous = 0x22's32
-    const MapShared           = 1's32
-    const ProtectReadWrite    = 3's32
-    const DiscardPages        = 4's32
+    const OpenDirectory       = 0x10000_s32
+    const CloseOnExec         = 0x80000_s32
+    const LockExclusive       = 2_s32
+    const MapPrivateAnonymous = 0x22_s32
+    const MapShared           = 1_s32
+    const ProtectReadWrite    = 3_s32
+    const DiscardPages        = 4_s32
 
     #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
     {
@@ -49,17 +49,24 @@ namespace __LinuxRT
 func __hostProcessStorage(key: u32, size: u32)->*void?
 {
     using __LinuxRT
-    if size == 0 do
+    if size == 0
+    {
         return null
+    }
 
     let lock = open("/proc/self".buffer, OpenDirectory | CloseOnExec)
-    if lock < 0 do
+    if lock < 0
+    {
         return null
+    }
+
     defer discard close(lock)
     while flock(lock, LockExclusive) != 0
     {
-        if __errno_location()[] != Interrupted do
+        if __errno_location()[] != Interrupted
+        {
             return null
+        }
     }
 
     const Prefix = "Swag.Rt."
@@ -67,7 +74,7 @@ func __hostProcessStorage(key: u32, size: u32)->*void?
     var name: [26] u8
     Swag.memcpy(&name[0], Prefix.buffer, Prefix.count)
     let processId = cast(u32, getpid())
-    for index in 8'u32
+    for index in 8_u32
     {
         name[8 + index]  = Digits[(processId >> (28 - index * 4)) & 15]
         name[17 + index] = Digits[(key >> (28 - index * 4)) & 15]
@@ -84,33 +91,50 @@ func __hostProcessStorage(key: u32, size: u32)->*void?
     const WantedLength = LinkPrefix.count + 25 + LinkSuffix.count
 
     let directory = opendir("/proc/self/fd".buffer)
-    if not directory do
+    if not directory
+    {
         return null
+    }
+
     defer discard closedir(unwrap directory)
     let directoryId = dirfd(directory)
     for
     {
         let entry = readdir(directory)
-        if not entry do
+        if not entry
+        {
             break
+        }
+
         var target: [64] u8
         let length = readlinkat(directoryId, &entry.name[0], &target[0], target.count)
-        if length != cast(s64, WantedLength) or Swag.memcmp(&target[0], &wanted[0], WantedLength) != 0 do
+        if length != cast(s64, WantedLength) or Swag.memcmp(&target[0], &wanted[0], WantedLength) != 0
+        {
             continue
+        }
 
         let descriptor = openat(directoryId, &entry.name[0], 2 | CloseOnExec)
-        if descriptor < 0 do
+        if descriptor < 0
+        {
             return null
+        }
+
         defer discard close(descriptor)
-        if lseek(descriptor, 0, 2) != cast(s64, size) do
+        if lseek(descriptor, 0, 2) != cast(s64, size)
+        {
             return null
+        }
+
         let view = mmap(null, size, ProtectReadWrite, MapShared, descriptor, 0)
         return cast(s64, view) == -1 ? null : view
     }
 
     let descriptor = memfd_create(&name[0], 1)
-    if descriptor < 0 do
+    if descriptor < 0
+    {
         return null
+    }
+
     if ftruncate(descriptor, cast(s64, size)) != 0
     {
         discard close(descriptor)
@@ -132,8 +156,11 @@ func __hostProcessStorage(key: u32, size: u32)->*void?
 func __hostProcessSingleton(key: u32, candidate: *void)->*void
 {
     let view = __hostProcessStorage(key, 8)
-    if not view do
+    if not view
+    {
         return candidate
+    }
+
     let previous = Swag.atomicCompareExchange(cast(*u64, view), 0, cast(u64, candidate))
     return previous == 0 ? candidate : cast(*void, previous)
 }
@@ -152,7 +179,7 @@ private struct LinuxPageRegistry
     processId: s32
 }
 
-private const LinuxPageRegistryKey = 4'u32
+private const LinuxPageRegistryKey = 4_u32
 private var linuxPageRegistryCache: u64
 
 #[Swag.Safety(.ValueBorrow, false)]
@@ -160,11 +187,17 @@ private func __linuxPageRegistry()->*LinuxPageRegistry?
 {
     let processId = __LinuxRT.getpid()
     let known     = Swag.atomicLoad(&linuxPageRegistryCache)
-    if known and cast(*LinuxPageRegistry, known).processId == processId do
+    if known and cast(*LinuxPageRegistry, known).processId == processId
+    {
         return cast(*LinuxPageRegistry, known)
+    }
+
     let registry = __hostProcessStorage(LinuxPageRegistryKey, #sizeof(LinuxPageRegistry))
-    if not registry do
+    if not registry
+    {
         return null
+    }
+
     cast(*LinuxPageRegistry, registry).processId = processId
     let previous = Swag.atomicCompareExchange(&linuxPageRegistryCache, known, cast(u64, registry))
     if previous != known
@@ -175,8 +208,11 @@ private func __linuxPageRegistry()->*LinuxPageRegistry?
 
     // A forked child has its own process-storage anchor. The inherited mapping still belongs to
     // the parent's reservation list and must not receive the child's private mapping addresses.
-    if known do
+    if known
+    {
         discard __LinuxRT.munmap(cast(*void, known), #sizeof(LinuxPageRegistry))
+    }
+
     return cast(*LinuxPageRegistry, registry)
 }
 
@@ -188,15 +224,24 @@ func __hostPageReserve(size: u64)->[*] u8?
     using __LinuxRT
     if size == 0 or
        size % AllocatorHostCommitGranularity != 0 or
-       size > Swag.U64.Max - AllocatorHostCommitGranularity do
+       size > Swag.U64.Max - AllocatorHostCommitGranularity
+    {
         return null
+    }
+
     let registry = __linuxPageRegistry()
-    if not registry do
+    if not registry
+    {
         return null
+    }
+
     let total   = size + AllocatorHostCommitGranularity
     let mapping = mmap(null, total, 0, MapPrivateAnonymous, -1, 0)
-    if cast(s64, mapping) == -1 do
+    if cast(s64, mapping) == -1
+    {
         return null
+    }
+
     if mprotect(mapping, AllocatorHostCommitGranularity, ProtectReadWrite) != 0
     {
         discard munmap(mapping, total)
@@ -216,8 +261,11 @@ func __hostPageReserve(size: u64)->[*] u8?
 private func __linuxSetPageCommitted(address: *void?, size: u64, committed: bool)
 {
     let registry = __linuxPageRegistry()
-    if not registry do
+    if not registry
+    {
         return
+    }
+
     __linuxLockProcessWide(&registry.lock)
     defer __linuxUnlockProcessWide(&(unwrap registry).lock)
     var record = registry.first
@@ -236,8 +284,11 @@ private func __linuxSetPageCommitted(address: *void?, size: u64, committed: bool
 
 func __hostPageCommit(address: *void?, size: u64)->bool
 {
-    if __LinuxRT.mprotect(address, size, __LinuxRT.ProtectReadWrite) != 0 do
+    if __LinuxRT.mprotect(address, size, __LinuxRT.ProtectReadWrite) != 0
+    {
         return false
+    }
+
     __linuxSetPageCommitted(address, size, true)
     return true
 }
@@ -262,8 +313,11 @@ func __hostPageDecommit(address: *void?, size: u64)
 
 func __hostPageRelease(address: *void?, size: u64)
 {
-    if not address do
+    if not address
+    {
         return
+    }
+
     #static if #safety(Swag.SafetyWhat.ValueBorrow)
     {
         let location = #curlocation
@@ -275,8 +329,11 @@ func __hostPageRelease(address: *void?, size: u64)
 
 func allocatorHostPageRelease(address: *void?, reservedSize, committedSize: u64)
 {
-    if not address do
+    if not address
+    {
         return
+    }
+
     #static if #safety(Swag.SafetyWhat.ValueBorrow)
     {
         let location = #curlocation
@@ -290,8 +347,11 @@ func allocatorHostPageRelease(address: *void?, reservedSize, committedSize: u64)
 private func __linuxReleaseReservation(address: *void, size: u64)
 {
     let registry = __linuxPageRegistry()
-    if not registry do
+    if not registry
+    {
         return
+    }
+
     __linuxLockProcessWide(&registry.lock)
     defer __linuxUnlockProcessWide(&(unwrap registry).lock)
     var link = &registry.first
@@ -300,11 +360,17 @@ private func __linuxReleaseReservation(address: *void, size: u64)
         let record = unwrap link[]
         if cast(u64, record) + AllocatorHostCommitGranularity == cast(u64, address)
         {
-            if record.size != size do
+            if record.size != size
+            {
                 return
+            }
+
             let next = record.next
-            if __LinuxRT.munmap(record, size + AllocatorHostCommitGranularity) == 0 do
+            if __LinuxRT.munmap(record, size + AllocatorHostCommitGranularity) == 0
+            {
                 link[] = next
+            }
+
             return
         }
 
@@ -316,16 +382,22 @@ private func __linuxReleaseReservation(address: *void, size: u64)
 func __hostPageAllocationBase(address: u64)->u64
 {
     let registry = __linuxPageRegistry()
-    if not registry do
+    if not registry
+    {
         return 0
+    }
+
     __linuxLockProcessWide(&registry.lock)
     defer __linuxUnlockProcessWide(&(unwrap registry).lock)
     var record = registry.first
     while record
     {
         let base = cast(u64, record) + AllocatorHostCommitGranularity
-        if address >= base and address - base < record.size do
+        if address >= base and address - base < record.size
+        {
             return record.firstPageCommitted ? base : 0
+        }
+
         record = record.next
     }
 

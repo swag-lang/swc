@@ -24,7 +24,7 @@ using Core
 // group focuses its checked eligible member or the earliest eligible member.
 struct FocusOrder
 {
-    public readonly stops: Array'(*Wnd)     // Traversal stops of the collected tree, in reading order.
+    public readonly stops: Array!{*Wnd}     // Traversal stops of the collected tree, in reading order.
 }
 
 impl FocusOrder
@@ -53,15 +53,19 @@ impl FocusOrder
         while scan
         {
             let direct = .rank(scan)
-            if direct >= 0 do
+            if direct >= 0
+            {
                 return direct
+            }
 
             if scan is RadioButton as radio where radio.groupId.count and radio.parent
             {
                 for stop, index in .stops where stop.parent == radio.parent
                 {
-                    if stop is RadioButton as member where member.groupId == radio.groupId do
+                    if stop is RadioButton as member where member.groupId == radio.groupId
+                    {
                         return cast(s64, index)
+                    }
                 }
             }
 
@@ -78,14 +82,18 @@ impl FocusOrder
     mtd const next(from: *Wnd?, forward = true)->*Wnd?
     {
         let count = cast(s64, .stops.count)
-        if not count do
+        if not count
+        {
             return null
+        }
 
         let index = .indexOf(from)
-        if index < 0 do
+        if index < 0
+        {
             return forward ? .stops[0] : .stops[cast(u64, (count - 1))]
+        }
 
-        let step = forward ? 1's64 : count - 1
+        let step = forward ? 1_s64 : count - 1
         return .stops[cast(u64, ((index + step) % count))]
     }
 
@@ -96,26 +104,36 @@ impl FocusOrder
     mtd const nextInGroup(from: *Wnd?, forward = true)->*Wnd?
     {
         let index = .indexOf(from)
-        if index < 0 do
+        if index < 0
+        {
             return null
+        }
 
         let parent = .stops[cast(u64, index)].parent
-        if not parent or not parent.arrowNavigation do
+        if not parent or not parent.arrowNavigation
+        {
             return null
-        var group: Array'(*Wnd)
-        var current = 0's64
+        }
+
+        var group: Array!{*Wnd}
+        var current = 0_s64
         for stop in .stops where stop.parent == parent
         {
-            if stop == .stops[cast(u64, index)] do
+            if stop == .stops[cast(u64, index)]
+            {
                 current = cast(s64, group.count)
+            }
+
             group.add(stop)
         }
 
         let count = cast(s64, group.count)
-        if count < 2 do
+        if count < 2
+        {
             return null
+        }
 
-        let step = forward ? 1's64 : count - 1
+        let step = forward ? 1_s64 : count - 1
         return group[cast(u64, ((current + step) % count))]
     }
 
@@ -131,8 +149,11 @@ private impl FocusOrder
     // Returns the position of `wnd` in the ring, or `-1` when it is not a stop of it.
     mtd const rank(wnd: *Wnd?)->s64
     {
-        for stop, index in .stops where stop == wnd do
+        for stop, index in .stops where stop == wnd
+        {
             return cast(s64, index)
+        }
+
         return -1
     }
 
@@ -144,8 +165,10 @@ private impl FocusOrder
     // parts of itself rather than controls of the surface.
     mtd addTree(wnd: *Wnd)
     {
-        if not FocusOrder.isReachable(wnd) do
+        if not FocusOrder.isReachable(wnd)
+        {
             return
+        }
 
         if wnd.isFocusStop()
         {
@@ -153,19 +176,25 @@ private impl FocusOrder
             if target.surface == wnd.surface and
                target.focusPolicy != .None and
                target.isVisible() and
-               target.isEnabled() do
+               target.isEnabled()
+            {
                 .stops.add(wnd)
+            }
         }
 
-        if wnd.focusPolicy == .Inner do
+        if wnd.focusPolicy == .Inner
+        {
             return
+        }
 
         for child in FocusOrder.readingOrder(wnd)
         {
             if child is RadioButton as radio where radio.groupId.count and radio.isFocusStop()
             {
-                if let member = FocusOrder.groupRepresentative(radio) do
+                if let member = FocusOrder.groupRepresentative(radio)
+                {
                     .addTree(member)
+                }
             }
             else
             {
@@ -185,69 +214,96 @@ private impl FocusOrder
     // previously focused pointer unless it is still part of the current tree.
     internal func contains(root: *Wnd, target: *Wnd)->bool
     {
-        if not FocusOrder.isReachable(root) do
+        if not FocusOrder.isReachable(root)
+        {
             return false
-        if root == target do
-            return true
+        }
 
-        for child in root.children where FocusOrder.contains(child, target) do
+        if root == target
+        {
             return true
+        }
+
+        for child in root.children where FocusOrder.contains(child, target)
+        {
+            return true
+        }
+
         return false
     }
 
     // Returns the children of `wnd` in the order their rectangles read.
-    func readingOrder(wnd: *Wnd)->Array'(*Wnd)
+    func readingOrder(wnd: *Wnd)->Array!{*Wnd}
     {
         var result: #returntype
 
-        var explicit, candidates: Array'(*Wnd)
+        var explicit, candidates: Array!{*Wnd}
         for child in wnd.children
         {
             if child is RadioButton as radio where radio.groupId.count and radio.isFocusStop()
             {
-                if not FocusOrder.groupRepresentative(radio) do
+                if not FocusOrder.groupRepresentative(radio)
+                {
                     continue
+                }
             }
-            elif not FocusOrder.isReachable(child)
+            else if not FocusOrder.isReachable(child)
             {
                 continue
             }
 
-            if child.tabIndex >= 0 do
+            if child.tabIndex >= 0
+            {
                 explicit.add(child)
-            else do
+            }
+            else
+            {
                 candidates.add(child)
+            }
         }
 
         explicit.sort(func(a, b: *Wnd)->s32
         {
-            if a.tabIndex != b.tabIndex do
+            if a.tabIndex != b.tabIndex
+            {
                 return a.tabIndex <=> b.tabIndex
+            }
+
             return a.tabSequence <=> b.tabSequence
         })
-        for child in explicit do
+        for child in explicit
+        {
             result.add(child)
+        }
 
         // Top to bottom first, so the rows come out in the order they are stacked.
         candidates.sort(func(a, b: *Wnd)->s32
         {
-            if a.position.y != b.position.y do
+            if a.position.y != b.position.y
+            {
                 return a.position.y < b.position.y ? -1 : 1
-            if a.position.x != b.position.x do
+            }
+
+            if a.position.x != b.position.x
+            {
                 return a.position.x < b.position.x ? -1 : 1
+            }
+
             return a.tabSequence <=> b.tabSequence
         })
 
         // A row is what shares a band with the window that opens it: the controls of one line
         // rarely share a top edge, since a short one is centered against a taller neighbour.
-        var taken: Array'bool
+        var taken: Array!{bool}
         taken.resize(candidates.count)
 
-        var row: Array'(*Wnd)
-        for var seed = 0'u64; seed < candidates.count; seed += 1
+        var row: Array!{*Wnd}
+        for var seed = 0_u64; seed < candidates.count; seed += 1
         {
-            if taken[seed] do
+            if taken[seed]
+            {
                 continue
+            }
 
             let band = candidates[seed].position
             row.clear()
@@ -256,24 +312,35 @@ private impl FocusOrder
 
             for var other = seed + 1; other < candidates.count; other += 1
             {
-                if taken[other] do
+                if taken[other]
+                {
                     continue
+                }
+
                 let center = candidates[other].position.vertCenter()
-                if center < band.y or center >= band.bottom() do
+                if center < band.y or center >= band.bottom()
+                {
                     continue
+                }
+
                 row.add(candidates[other])
                 taken[other] = true
             }
 
             row.sort(func(a, b: *Wnd)->s32
             {
-                if a.position.x != b.position.x do
+                if a.position.x != b.position.x
+                {
                     return a.position.x < b.position.x ? -1 : 1
+                }
+
                 return a.tabSequence <=> b.tabSequence
             })
 
-            for one in row do
+            for one in row
+            {
                 result.add(one)
+            }
         }
 
         return result
@@ -283,25 +350,41 @@ private impl FocusOrder
     // option receives the keyboard. The anchor can be hidden or disabled while the group lasts.
     func groupRepresentative(anchor: *RadioButton)->*Wnd?
     {
-        if anchor.isPendingDestroy do
+        if anchor.isPendingDestroy
+        {
             return null
+        }
+
         let parent = anchor.parent
-        if not parent do
+        if not parent
+        {
             return null
+        }
 
         var first, checked: *Wnd?
         for sibling in parent.children
         {
             if sibling is RadioButton as radio where radio.groupId == anchor.groupId and radio.isFocusStop() and not radio.isPendingDestroy
             {
-                if sibling.tabSequence < anchor.tabSequence do
+                if sibling.tabSequence < anchor.tabSequence
+                {
                     return null
-                if not FocusOrder.isReachable(sibling) do
+                }
+
+                if not FocusOrder.isReachable(sibling)
+                {
                     continue
-                if radio.isChecked() do
+                }
+
+                if radio.isChecked()
+                {
                     checked = sibling
-                if not first or sibling.tabSequence < first.tabSequence do
+                }
+
+                if not first or sibling.tabSequence < first.tabSequence
+                {
                     first = sibling
+                }
             }
         }
 

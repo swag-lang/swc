@@ -49,7 +49,7 @@ using Core, Viewers
             <r><rPr><strike/></rPr><t> crossed</t></r>
             <r><rPr><b val="0"/><u val="none"/></rPr><t> plain</t></r></p><tbl/></endnote>
     </endnotes>""")
-    let note = notes.lookup("8")
+    let note  = notes.lookup("8")
     Swag.require(note.found and note.limited)
     Swag.require(note.html == "<p><b><i><u>Bold &amp; styled</u></i></b><s> crossed</s> plain</p>")
 }

@@ -31,8 +31,10 @@ impl IWnd for CaptureRectWnd
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
         evt.accepted = evt.kind == .Close
-        if evt.accepted do
+        if evt.accepted
+        {
             g_Exit = true
+        }
     }
 
     mtd testAutoGrab()
@@ -60,8 +62,10 @@ impl IWnd for CaptureRectWnd
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind == .Pressed and evt.key == .Escape and evt.modifiers == .None do
+        if evt.kind == .Pressed and evt.key == .Escape and evt.modifiers == .None
+        {
             g_Exit = true
+        }
 
         if evt.kind == .Pressed and evt.key == .W and evt.modifiers == .None and not .startGrab
         {
@@ -149,7 +153,7 @@ impl IWnd for CaptureRectWnd
                 g_GrabDone = true
                 g_Exit     = true
             }
-            elif .startGrab
+            else if .startGrab
             {
                 g_EndGrabX = physPosX
                 g_EndGrabY = physPosY
@@ -232,8 +236,10 @@ impl IWnd for CaptureRectWnd
         // Redraw the selected region at full brightness from the same texture. The
         // desktop texture texels are physical desktop pixels, so the grab rect is
         // the source rect directly.
-        if not grabRect.isEmpty() do
+        if not grabRect.isEmpty()
+        {
             painter.drawTexture(dstGrab, grabRect, g_DesktopTexture)
+        }
 
         // The cursor, where it stood, when the capture keeps it.
         if .main.captureOptions.captureCursor and g_CursorTexture.isValid()
@@ -252,8 +258,10 @@ impl IWnd for CaptureRectWnd
         // pixels about to be captured.
         let colors = .themeColors()
         painter.setParams(.Antialiased)
-        if not grabRect.isEmpty() do
+        if not grabRect.isEmpty()
+        {
             painter.drawRect(dstGrab, colors.signature, 1)
+        }
 
         // Crosshair guides - only in manual grab mode. The cursor sits on the dragged
         // corner, so split each line around the selection instead of running it along
@@ -275,8 +283,10 @@ impl IWnd for CaptureRectWnd
 
         // The loupe serves the corner being dragged; while the zone follows the windows, the
         // pointer only names a window and the loupe would hide the work beside it.
-        if .startGrab do
+        if .startGrab
+        {
             .paintLoupe(painter)
+        }
     }
 }
 
@@ -302,8 +312,10 @@ impl CaptureRectWnd
     // when the screen has no room above.
     mtd paintSizeChip(painter: *Painter, grabRect, dstGrab: Math.Rectangle)
     {
-        if grabRect.width <= 0 or grabRect.height <= 0 do
+        if grabRect.width <= 0 or grabRect.height <= 0
+        {
             return
+        }
 
         let metrics = .themeMetrics()
         let colors  = .themeColors()
@@ -318,8 +330,11 @@ impl CaptureRectWnd
         let height = font.height + AreaChipPadding
 
         var chip = Math.Rectangle{dstGrab.x, dstGrab.y - height - AreaChipGap, width, height}
-        if chip.y < 0 do
+        if chip.y < 0
+        {
             chip.y = dstGrab.y + AreaChipGap
+        }
+
         painter.fillRoundRect(chip, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
 
         let top = font.opticalLineTop(chip.vertCenter())
@@ -344,10 +359,15 @@ impl CaptureRectWnd
 
         var cx = .pointer.x + AreaLoupeOffset + r
         var cy = .pointer.y + AreaLoupeOffset + r
-        if cx + r > screen.right() do
+        if cx + r > screen.right()
+        {
             cx = .pointer.x - AreaLoupeOffset - r
-        if cy + r + 32 > screen.bottom() do
+        }
+
+        if cy + r + 32 > screen.bottom()
+        {
             cy = .pointer.y - AreaLoupeOffset - r
+        }
 
         // The source is a square of desktop pixels centred on the one under the pointer.
         let px   = Math.floor(.pointer.x * k)

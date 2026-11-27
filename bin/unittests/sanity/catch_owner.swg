@@ -198,8 +198,10 @@ func returnJoinedCatchText(ordinaryBranch: bool)->string?
         var ordinary = CapturedText{}
         ordinary.text = "permanent"
         var selected = assume cast(const *CapturedText, Swag.err)
-        if ordinaryBranch do
+        if ordinaryBranch
+        {
             selected = &ordinary
+        }
         return selected.text     // swc-expected-error {{sanity_err_borrow_escape}}
     }
     return null
@@ -210,7 +212,9 @@ func returnIndependentJoinedText(secondBranch: bool)->string
     var first    = IndependentText{"first permanent text"}
     var second   = IndependentText{"second permanent text"}
     var selected = &first
-    if secondBranch do
+    if secondBranch
+    {
         selected = &second
+    }
     return selected.text
 }

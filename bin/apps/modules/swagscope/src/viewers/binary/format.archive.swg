@@ -7,7 +7,7 @@ using Core
 private const ArMagic = "!<arch>\n"
 
 // Size of the fixed header in front of every member.
-private const ArHeaderSize = 60'u64
+private const ArHeaderSize = 60_u64
 
 // Returns whether the file is an `ar` archive, which is what a static or import library is.
 func isArchive(image: *BinaryImage)->bool => image.matches(0, ArMagic)
@@ -26,8 +26,8 @@ func reportArchive(image: *BinaryImage, report: *Report)
 
     // The members are counted first: the group above the list has to name how many there are, and
     // the chain has to be walked to know that.
-    var offsets: Array'u64
-    var scan     = 8'u64
+    var offsets: Array!{u64}
+    var scan     = 8_u64
     var complete = true
     while scan + ArHeaderSize <= image.bytes.count and offsets.count < ListLimit
     {
@@ -42,13 +42,15 @@ func reportArchive(image: *BinaryImage, report: *Report)
         scan += ArHeaderSize + size + (size & 1)
     }
 
-    if scan < image.fileSize and offsets.count < ListLimit and complete and not image.isBounded() do
+    if scan < image.fileSize and offsets.count < ListLimit and complete and not image.isBounded()
+    {
         complete = false
+    }
 
     let longNamesAt = arLongNamesAt(image, offsets.toSlice())
     let members     = countText(offsets.count, texts.word_Member, texts.word_Members)
-    var objects     = 0'u64
-    var imports     = 0'u64
+    var objects     = 0_u64
+    var imports     = 0_u64
 
     report.beginGroup(texts.ar_Members, members, "", offset: 8, length: image.bytes.count - 8, open: true)
 
@@ -67,16 +69,16 @@ func reportArchive(image: *BinaryImage, report: *Report)
         {
             reportArLinkerMember(image, report, dataAt, size, rawName == "/" and at == offsets[0])
         }
-        elif rawName == "//"
+        else if rawName == "//"
         {
             report.derived(texts.ar_LongNames, stored)
         }
-        elif image.u16At(dataAt) == 0 and image.u16At(dataAt + 2) == 0xFFFF
+        else if image.u16At(dataAt) == 0 and image.u16At(dataAt + 2) == 0xFFFF
         {
             reportArImportMember(image, report, dataAt)
             imports += 1
         }
-        elif isCoffObject(image) or image.has(dataAt, PeFileHeaderSize)
+        else if isCoffObject(image) or image.has(dataAt, PeFileHeaderSize)
         {
             let machine = image.u16At(dataAt)
             report.hexField(dataAt, 2, "Machine", cast(u64, machine), peMachineName(machine))
@@ -88,8 +90,11 @@ func reportArchive(image: *BinaryImage, report: *Report)
         report.endGroup()
     }
 
-    if not complete do
+    if not complete
+    {
         report.note(texts.ar_Malformed)
+    }
+
     report.listCut(offsets.count, offsets.count)
     report.endGroup()
 
@@ -106,10 +111,16 @@ private func reportArHeader(image: *BinaryImage, report: *Report, at, size: u64)
     let mode     = image.fixedTextAt(at + 40, 8)
 
     report.field(at + 16, 12, texts.ar_Modified, modified)
-    if not owner.isEmpty() do
+    if not owner.isEmpty()
+    {
         report.field(at + 28, 12, texts.ar_Owner, owner)
-    if not mode.isEmpty() do
+    }
+
+    if not mode.isEmpty()
+    {
         report.field(at + 40, 8, texts.ar_Mode, mode)
+    }
+
     report.numField(at + 48, 10, "Size", size)
 }
 
@@ -145,8 +156,11 @@ private func reportArLinkerMember(image: *BinaryImage, report: *Report, at, size
     for index in shown
     {
         let name = image.cstringAt(nameAt)
-        if name.isEmpty() do
+        if name.isEmpty()
+        {
             break
+        }
+
         let target = first ? cast(u64, image.u32At(offsetAt + index * 4)) : cast(u64, image.u16At(offsetAt + index * 2))
         let value  = first ? hexText(target, 8) : Format.toString("%", target)
         report.field(nameAt, name.length + 1, name, value)
@@ -197,8 +211,11 @@ private func arImportTypeName(value: u16)->string
 // Returns where the member holding the long file names starts, or `Swag.U64.Max`.
 private func arLongNamesAt(image: *BinaryImage, offsets: const [..] u64)->u64
 {
-    for at in offsets where image.fixedTextAt(at, 16) == "//" do
+    for at in offsets where image.fixedTextAt(at, 16) == "//"
+    {
         return at + ArHeaderSize
+    }
+
     return Swag.U64.Max
 }
 
@@ -208,20 +225,27 @@ private func arLongNamesAt(image: *BinaryImage, offsets: const [..] u64)->u64
 // a slash followed by an offset into the member that holds the names too long to fit here.
 private func arMemberName(image: *BinaryImage, raw: string, longNamesAt: u64)->String
 {
-    if raw.count == 0 do
-        return NoValue
-
-    if raw[0] == '/'u8 and raw.count > 1 and raw[1] >= '0'u8 and raw[1] <= '9'u8
+    if raw.count == 0
     {
-        if longNamesAt == Swag.U64.Max do
-            return raw
+        return NoValue
+    }
 
-        var offset = 0'u64
+    if raw[0] == '/'_u8 and raw.count > 1 and raw[1] >= '0'_u8 and raw[1] <= '9'_u8
+    {
+        if longNamesAt == Swag.U64.Max
+        {
+            return raw
+        }
+
+        var offset = 0_u64
         for index in 1 until raw.count
         {
-            if raw[index] < '0'u8 or raw[index] > '9'u8 do
+            if raw[index] < '0'_u8 or raw[index] > '9'_u8
+            {
                 break
-            offset = offset * 10 + cast(u64, raw[index] - '0'u8)
+            }
+
+            offset = offset * 10 + cast(u64, raw[index] - '0'_u8)
         }
 
         let name = image.cstringAt(longNamesAt + offset)
@@ -229,23 +253,32 @@ private func arMemberName(image: *BinaryImage, raw: string, longNamesAt: u64)->S
     }
 
     // GNU archives close a short name with a slash so a trailing blank cannot be part of it.
-    if raw[raw.count - 1] == '/'u8 and raw.count > 1 do
+    if raw[raw.count - 1] == '/'_u8 and raw.count > 1
+    {
         return raw[0 until raw.count - 1]
+    }
+
     return raw
 }
 
 // Returns the decimal number written in ASCII across `length` bytes, blanks ignored.
 private func arDecimalAt(image: *BinaryImage, at, length: u64)->u64
 {
-    var result = 0'u64
+    var result = 0_u64
     for index in length
     {
         let value = image.u8At(at + index)
-        if value == ' 'u8 do
+        if value == ' '_u8
+        {
             continue
-        if value < '0'u8 or value > '9'u8 do
+        }
+
+        if value < '0'_u8 or value > '9'_u8
+        {
             break
-        result = result * 10 + cast(u64, value - '0'u8)
+        }
+
+        result = result * 10 + cast(u64, value - '0'_u8)
     }
 
     return result

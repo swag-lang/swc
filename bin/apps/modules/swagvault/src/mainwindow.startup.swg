@@ -3,12 +3,16 @@ impl MainWindow
     mtd queueAutomaticMount(path: string)
     {
         // Keep an earlier file in the session list when a newer one takes the pending mount.
-        if not .pendingMountPath.isEmpty() and .pendingMountPath != path do
+        if not .pendingMountPath.isEmpty() and .pendingMountPath != path
+        {
             .addVault(.pendingMountPath)
+        }
 
         .pendingMountPath = path
-        if not .automaticMountTimer do
-            .automaticMountTimer = .addTimer(40'ms)
+        if not .automaticMountTimer
+        {
+            .automaticMountTimer = .addTimer(40_ms)
+        }
     }
 
     // Tries empty access for an explicitly opened file. A selected vault can already have
@@ -22,8 +26,13 @@ impl MainWindow
 
     private mtd checkEmptyAccess(path: string)
     {
-        if .operation.kind != .None or not .pendingMountPath.isEmpty() or .chosenLockedPath() != path or not .canMount() do
+        if .operation.kind != .None or
+           not .pendingMountPath.isEmpty() or
+           .chosenLockedPath() != path or
+           not .canMount()
+        {
             return
+        }
 
         let startup = .startupIndex(path)
         if startup != Swag.U64.Max and
@@ -34,8 +43,10 @@ impl MainWindow
             .refreshVaults()
         }
 
-        if not .mountPassword.isEmpty() or not .unlockKeyFiles.isEmpty() or .protectHiddenOnMount do
+        if not .mountPassword.isEmpty() or not .unlockKeyFiles.isEmpty() or .protectHiddenOnMount
+        {
             return
+        }
 
         // Checking for empty access is part of opening the file. Driver setup begins only
         // once the container has opened successfully.
@@ -46,23 +57,39 @@ impl MainWindow
     // Continues opening the selected vault after its background access check.
     mtd finishEmptyAccessCheck(error: any?)
     {
-        let active = not .resident.isHidden() and not .resident.batch and not .surface!.isDisabled and .page == .List
+        let active = not .resident.isHidden() and
+                     not .resident.batch and
+                     not .surface!.isDisabled and
+                     .page == .List
         let selected = .chosenLockedPath()
-        let manual = active and selected.count != 0 and .manualMountPath == selected and
-                     (.pendingMountPath.isEmpty() or .pendingMountPath == selected)
-        let current = active and selected.count != 0 and .operation.path == selected and .pendingMountPath.isEmpty()
+        let manual   = active and
+                       selected.count != 0 and
+                       .manualMountPath == selected and
+                       (.pendingMountPath.isEmpty() or .pendingMountPath == selected)
+        let current = active and
+                      selected.count != 0 and
+                      .operation.path == selected and
+                      .pendingMountPath.isEmpty()
 
         .operation.forgetRequest()
         .manualMountPath.clear()
-        for row in .list.rows do
+        for row in .list.rows
+        {
             row.unmount.enable(true)
+        }
+
         .refreshActions()
 
         defer
         {
-            if .operation.kind == .None and .pendingMountPath.isEmpty() and not .resident.batch and .startupQueue.count and
-               (.startupWaiting.isEmpty() or .startupWaiting != .chosenPath or .isMounted(.startupWaiting)) do
+            if .operation.kind == .None and
+               .pendingMountPath.isEmpty() and
+               not .resident.batch and
+               .startupQueue.count and
+               (.startupWaiting.isEmpty() or .startupWaiting != .chosenPath or .isMounted(.startupWaiting))
+            {
                 .pumpStartupQueue()
+            }
         }
 
         if manual
@@ -75,23 +102,30 @@ impl MainWindow
 
             .mountContainer()
         }
-        elif not .pendingMountPath.isEmpty() and not .automaticMountTimer
+        else if not .pendingMountPath.isEmpty() and not .automaticMountTimer
         {
             let path = #move .pendingMountPath
-            if active and path == selected do
+            if active and path == selected
+            {
                 .checkEmptyAccess(path)
+            }
         }
-        elif current
+        else if current
         {
             if error == null
             {
-                if .mountPassword.isEmpty() and .unlockKeyFiles.isEmpty() and not .protectHiddenOnMount do
+                if .mountPassword.isEmpty() and .unlockKeyFiles.isEmpty() and not .protectHiddenOnMount
+                {
                     .mountContainer()
+                }
             }
             else
             {
-                if error is Error as volumeError where volumeError.kind == .PasswordOrDamaged do
+                if error is Error as volumeError where volumeError.kind == .PasswordOrDamaged
+                {
                     return
+                }
+
                 .finishMount(error)
             }
         }
@@ -100,8 +134,11 @@ impl MainWindow
     // Returns the startup entry for `path`, or `Swag.U64.Max` when there is none.
     mtd startupIndex(path: string)->u64
     {
-        for &one, index in .startupVaults where one.path == path do
+        for &one, index in .startupVaults where one.path == path
+        {
             return index
+        }
+
         return Swag.U64.Max
     }
 
@@ -113,15 +150,22 @@ impl MainWindow
     mtd toggleStartup(path: string)
     {
         let drive = .mountedDrives.find(path)
-        if .privacyMode or not drive do
+        if .privacyMode or not drive
+        {
             return
+        }
 
         drive.atStartup = not drive.atStartup
         let known = .startupIndex(drive.path)
-        if known != Swag.U64.Max do
+        if known != Swag.U64.Max
+        {
             .startupVaults.removeAtOrdered(known)
-        if drive.atStartup do
+        }
+
+        if drive.atStartup
+        {
             .startupVaults.add(StartupVault{drive.path, drive.drive, drive.needsPassword, drive.readOnly, drive.protectHidden})
+        }
 
         .refreshVaults()
         catch g_App.saveState()
@@ -146,15 +190,23 @@ impl MainWindow
             let entry = .startupQueue[0]
             .startupQueue.removeAtOrdered(0)
 
-            if entry.drive.isEmpty() or not File.exists(entry.path) or .isMounted(entry.path) do
+            if entry.drive.isEmpty() or not File.exists(entry.path) or .isMounted(entry.path)
+            {
                 continue
+            }
 
             if entry.needsPassword or .needsDriverChoice()
             {
-                if hidden do
+                if hidden
+                {
                     continue
-                if not .chosenPath.isEmpty() do
+                }
+
+                if not .chosenPath.isEmpty()
+                {
                     continue
+                }
+
                 .unfoldStartupVault(entry)
                 return
             }
@@ -162,8 +214,11 @@ impl MainWindow
             .operation.access.clear()
             .operation.protectHidden = entry.protectHidden and not entry.readOnly
             .operation.hiddenAccess.clear()
-            if hidden and .operation.protectHidden do
+            if hidden and .operation.protectHidden
+            {
                 continue
+            }
+
             if .operation.protectHidden and not .askHiddenProtection()
             {
                 .operation.access.clear()
@@ -195,8 +250,11 @@ impl MainWindow
     // access without mounting it.
     mtd skipStartupVault()
     {
-        if .startupWaiting.isEmpty() or .chosenPath == .startupWaiting or .operation.kind != .None do
+        if .startupWaiting.isEmpty() or .chosenPath == .startupWaiting or .operation.kind != .None
+        {
             return
+        }
+
         .pumpStartupQueue()
     }
 }

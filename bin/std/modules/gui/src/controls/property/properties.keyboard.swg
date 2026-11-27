@@ -27,15 +27,20 @@ public impl Properties
     // When no row is selected yet and `fallbackToFirst` is true, the first navigable row is selected.
     mtd focusNavigation(fallbackToFirst = true)
     {
-        if .edView == null do
+        if .edView == null
+        {
             return
+        }
 
         // Keep the current selection (e.g. the row just clicked, even when it is a
         // header/value row); only fall back to the first row when nothing is set.
         // A mouse click on empty space opts out (fallbackToFirst false): selecting the
         // first row would ensure-visible it and yank the scroll back to the top.
-        if not .selItem and fallbackToFirst do
+        if not .selItem and fallbackToFirst
+        {
             .setSelItem(.firstNavigable(forward: true))
+        }
+
         .edView.setFocus()
         .invalidate()
     }
@@ -48,8 +53,10 @@ internal impl Properties
     mtd navKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return
+        }
 
         // Undo/redo shortcuts, available in navigation mode (an editor with the focus keeps
         // its own Ctrl+Z for in-place text editing). Ctrl+Y and Ctrl+Shift+Z both redo.
@@ -59,10 +66,15 @@ internal impl Properties
             switch evt.key
             {
             case .Z:
-                if shift do
+                if shift
+                {
                     .redo()
-                else do
+                }
+                else
+                {
                     .undo()
+                }
+
                 evt.accepted = true
                 return
 
@@ -96,8 +108,10 @@ internal impl Properties
             return
         }
 
-        if not .selItem or not .isNavigable(.selItem) do
+        if not .selItem or not .isNavigable(.selItem)
+        {
             .setSelItem(.firstNavigable(forward: true))
+        }
 
         switch evt.key
         {
@@ -123,10 +137,14 @@ internal impl Properties
             .activateSel()
 
         case .Space:
-            if .selItem and (.selItem.checkBox != null) do
+            if .selItem and (.selItem.checkBox != null)
+            {
                 .selItem.checkBox.toggle()
-            else do
+            }
+            else
+            {
                 .activateSel()
+            }
 
         case .Right:
 
@@ -137,10 +155,10 @@ internal impl Properties
                 .selItem.sliderBox.slider.setFocus()
                 .selItem.sliderBox.slider.stepBy(1)
             }
-            elif .isGridLike() and
-                 .selItem and
-                 .selItem.numChilds > 0 and
-                 not .selItem.flags.has(.Expanded)
+            else if .isGridLike() and
+                    .selItem and
+                    .selItem.numChilds > 0 and
+                    not .selItem.flags.has(.Expanded)
             {
                 .selItem.flags.add(.Expanded)
                 .updateStates()
@@ -156,7 +174,7 @@ internal impl Properties
                 .selItem.sliderBox.slider.setFocus()
                 .selItem.sliderBox.slider.stepBy(-1)
             }
-            elif .isGridLike() and .selItem and .selItem.numChilds > 0 and .selItem.flags.has(.Expanded)
+            else if .isGridLike() and .selItem and .selItem.numChilds > 0 and .selItem.flags.has(.Expanded)
             {
                 .selItem.flags.remove(.Expanded)
                 .updateStates()
@@ -173,8 +191,10 @@ internal impl Properties
     // focused editor processes the key. Returns true when the key is consumed.
     mtd editKeyEvent(evt: *KeyEvent)->bool
     {
-        if not .isEditing() do
+        if not .isEditing()
+        {
             return false
+        }
 
         let shift = evt.modifiers.has(.Shift)
         let alt   = evt.modifiers.has(.Alt)
@@ -197,10 +217,15 @@ internal impl Properties
             return true
 
         case .Escape:
-            if .focusedWindow() is EditBox as editor do
+            if .focusedWindow() is EditBox as editor
+            {
                 editor.cancelEdit(.edView)
-            else do
+            }
+            else
+            {
                 .commitEdit()
+            }
+
             return true
 
         case .Tab where evt.modifiers == .None or evt.modifiers == .Shift:
@@ -223,8 +248,10 @@ internal impl Properties
     // popup-trigger icon buttons.
     mtd isEditorWnd(w: *Wnd?)->bool
     {
-        if not w do
+        if not w
+        {
             return false
+        }
 
         return w is EditBox or
                w is ComboBox or
@@ -239,8 +266,11 @@ private impl Properties
     mtd isEditing()->bool
     {
         let f = .focusedWindow()
-        if not f or f == cast(*Wnd?, .edView) do
+        if not f or f == cast(*Wnd?, .edView)
+        {
             return false
+        }
+
         return .isEditorWnd(f)
     }
 
@@ -248,15 +278,23 @@ private impl Properties
     // start edition on rows whose editor is a composite/custom control.
     mtd firstEditorIn(wnd: *Wnd?)->*Wnd?
     {
-        if not wnd do
+        if not wnd
+        {
             return null
+        }
+
         for c in wnd.children
         {
-            if .isEditorWnd(c) do
+            if .isEditorWnd(c)
+            {
                 return c
+            }
+
             let sub = .firstEditorIn(c)
-            if sub do
+            if sub
+            {
                 return sub
+            }
         }
 
         return null
@@ -270,18 +308,36 @@ private impl Properties
     // section/category headers (no data, no type, no editor) are skipped.
     mtd isNavigable(item: *PropertiesItem?)->bool
     {
-        if not item or item.line == null do
+        if not item or item.line == null
+        {
             return false
-        if not item.line.isVisible() do
+        }
+
+        if not item.line.isVisible()
+        {
             return false
-        if .itemHasEditor(item) do
+        }
+
+        if .itemHasEditor(item)
+        {
             return true
-        if item.data and item.type do
+        }
+
+        if item.data and item.type
+        {
             return true
-        if .isGridLike() and item.numChilds > 0 do
+        }
+
+        if .isGridLike() and item.numChilds > 0
+        {
             return true
-        if not item.flags.has(.NoFocus) and .firstEditorIn(item.line) do
+        }
+
+        if not item.flags.has(.NoFocus) and .firstEditorIn(item.line)
+        {
             return true
+        }
+
         return false
     }
 
@@ -296,16 +352,20 @@ private impl Properties
         {
             for item in .items
             {
-                if .isNavigable(item) do
+                if .isNavigable(item)
+                {
                     return item
+                }
             }
         }
         else
         {
             for var i = cast(s64, .items.count) - 1; i >= 0; i -= 1
             {
-                if .isNavigable(.items[cast(u64, i)]) do
+                if .isNavigable(.items[cast(u64, i)])
+                {
                     return .items[cast(u64, i)]
+                }
             }
         }
 
@@ -314,12 +374,17 @@ private impl Properties
 
     mtd indexOfItem(item: *PropertiesItem?)->s64
     {
-        if not item do
+        if not item
+        {
             return -1
+        }
+
         for it, idx in .items
         {
-            if it == item do
+            if it == item
+            {
                 return cast(s64, idx)
+            }
         }
 
         return -1
@@ -329,16 +394,21 @@ private impl Properties
     internal mtd setSelItem(item: *PropertiesItem?)
     {
         .selItem = item
-        if item do
+        if item
+        {
             .ensureItemVisible(item)
+        }
+
         .invalidate()
     }
 
     // Move the selection by 'dir' (+1/-1) over the navigable rows, clamped.
     mtd moveSel(dir: s32)
     {
-        if .items.isEmpty() do
+        if .items.isEmpty()
+        {
             return
+        }
 
         let cur = .indexOfItem(.selItem)
         if cur < 0
@@ -351,8 +421,11 @@ private impl Properties
         for
         {
             i += dir
-            if i < 0 or i >= cast(s64, .items.count) do
+            if i < 0 or i >= cast(s64, .items.count)
+            {
                 return
+            }
+
             if .isNavigable(.items[cast(u64, i)])
             {
                 .setSelItem(.items[cast(u64, i)])
@@ -367,8 +440,10 @@ private impl Properties
         let lh    = .isGridLike() ? .gridLineHeight : 40.0
         let viewH = .scrollWnd.clientRect().height
         let count = cast(u32, Math.max(1.0, Math.floor(viewH / Math.max(lh, 1.0))))
-        for count do
+        for count
+        {
             .moveSel(dir)
+        }
     }
 
     // Start editing the selected row: focus its editor, toggle a bool in place,
@@ -376,8 +451,10 @@ private impl Properties
     mtd activateSel()
     {
         let item = .selItem
-        if not item do
+        if not item
+        {
             return
+        }
 
         if item.checkBox != null
         {
@@ -429,15 +506,19 @@ private impl Properties
     // path (e.g. EditBox.sigCommitted -> validateNative).
     mtd commitEdit()
     {
-        if .edView != null do
+        if .edView != null
+        {
             .edView.setFocus()
+        }
     }
 
     // Scroll the grid so the given row is fully visible.
     mtd ensureItemVisible(item: *PropertiesItem?)
     {
-        if not item or item.line == null do
+        if not item or item.line == null
+        {
             return
+        }
 
         let lineTop       = item.line.position.y
         let lineBottom    = item.line.position.bottom()
@@ -445,12 +526,17 @@ private impl Properties
         let viewH         = .scrollWnd.clientRect().height
         let visibleBottom = sc.y + viewH
 
-        if lineTop >= sc.y and lineBottom <= visibleBottom do
+        if lineTop >= sc.y and lineBottom <= visibleBottom
+        {
             return
+        }
 
         var y = lineTop
-        if lineBottom > visibleBottom do
+        if lineBottom > visibleBottom
+        {
             y = lineBottom - viewH
+        }
+
         .scrollWnd.setScrollPos(sc.x, y)
     }
 }

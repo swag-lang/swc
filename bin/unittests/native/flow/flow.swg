@@ -104,8 +104,10 @@ namespace compiler241
         var a = 10
         while a > 0
         {
-            a -= 1; if (a == 5) do
+            a -= 1; if (a == 5)
+            {
                 break
+            }
             continue
         }
         Swag.assert(a == 5)
@@ -197,8 +199,10 @@ namespace compiler260
     //
     func fact(v: s32)->s32
     {
-        if v == 1 do
+        if v == 1
+        {
             return 1
+        }
         let res = fact(v - 1) * v
         return res
     }
@@ -219,8 +223,10 @@ namespace compiler262
     //
     func fact(v: s32)->s32
     {
-        if (v == 1) do
+        if (v == 1)
+        {
             return 1
+        }
         let res = v * fact(v - 1)
         return res
     }
@@ -241,15 +247,19 @@ namespace compiler265
     //
     func test2(v: s32)->s32
     {
-        if (v == 1) do
+        if (v == 1)
+        {
             return 1
+        }
         return v * test1(v - 1)
     }
 
     func test1(v: s32)->s32
     {
-        if (v == 1) do
+        if (v == 1)
+        {
             return 1
+        }
         return v * test2(v - 1)
     }
 
@@ -344,7 +354,7 @@ namespace compiler314
     func len(str: string)->u32
     {
         var p = str.buffer
-        var l = 0'u32
+        var l = 0_u32
         while p[0] != 0
         {
             l += 1

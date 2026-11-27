@@ -26,12 +26,14 @@ func scan(source: [*] u64, rounds, mask: u64)->u64
     let v9  = source[9]
     let v10 = source[10]
     let v11 = source[11]
-    var sum = 0'u64
+    var sum = 0_u64
     for i in rounds
     {
         sum += ((v0 ^ v1) + (v2 ^ v3) + (v4 ^ v5) + (v6 ^ v7) + (v8 ^ v9) + (v10 ^ v11)) * (i + 1)
-        if i & mask == 0 do
+        if i & mask == 0
+        {
             sum ^= cast(u64, cold(source, i))
+        }
         sum = (sum << 3) ^ (sum >> 61) ^ v0 ^ v3 ^ v6 ^ v9
     }
     return sum + v1 + v4 + v7 + v10
@@ -52,12 +54,14 @@ func reference(source: [*] u64, rounds, mask: u64)->u64
     let v9  = source[9]
     let v10 = source[10]
     let v11 = source[11]
-    var sum = 0'u64
+    var sum = 0_u64
     for i in rounds
     {
         sum += ((v0 ^ v1) + (v2 ^ v3) + (v4 ^ v5) + (v6 ^ v7) + (v8 ^ v9) + (v10 ^ v11)) * (i + 1)
-        if i & mask == 0 do
+        if i & mask == 0
+        {
             sum ^= cast(u64, cold(source, i))
+        }
         sum = (sum << 3) ^ (sum >> 61) ^ v0 ^ v3 ^ v6 ^ v9
     }
     return sum + v1 + v4 + v7 + v10
@@ -78,11 +82,13 @@ func scanMutable(source: [*] u64, rounds, mask, stop: u64)->u64
     var v9  = source[9]
     var v10 = source[10]
     var v11 = source[11]
-    var sum = 0'u64
+    var sum = 0_u64
     for i in rounds
     {
-        if i == stop do
+        if i == stop
+        {
             break
+        }
         v0  += (v1 ^ i) + 1
         v1  += (v2 ^ i) + 2
         v2  += (v3 ^ i) + 3
@@ -96,8 +102,10 @@ func scanMutable(source: [*] u64, rounds, mask, stop: u64)->u64
         v10 += (v11 ^ i) + 11
         v11 += (v0 ^ i) + 12
         sum += ((v0 ^ v1) + (v2 ^ v3) + (v4 ^ v5) + (v6 ^ v7) + (v8 ^ v9) + (v10 ^ v11)) * (i + 1)
-        if i & mask == 0 do
+        if i & mask == 0
+        {
             sum ^= cast(u64, cold(source, i))
+        }
         sum = (sum << 3) ^ (sum >> 61) ^ v0 ^ v3 ^ v6 ^ v9
     }
     return sum + v1 + v4 + v7 + v10
@@ -118,11 +126,13 @@ func mutableReference(source: [*] u64, rounds, mask, stop: u64)->u64
     var v9  = source[9]
     var v10 = source[10]
     var v11 = source[11]
-    var sum = 0'u64
+    var sum = 0_u64
     for i in rounds
     {
-        if i == stop do
+        if i == stop
+        {
             break
+        }
         v0  += (v1 ^ i) + 1
         v1  += (v2 ^ i) + 2
         v2  += (v3 ^ i) + 3
@@ -136,8 +146,10 @@ func mutableReference(source: [*] u64, rounds, mask, stop: u64)->u64
         v10 += (v11 ^ i) + 11
         v11 += (v0 ^ i) + 12
         sum += ((v0 ^ v1) + (v2 ^ v3) + (v4 ^ v5) + (v6 ^ v7) + (v8 ^ v9) + (v10 ^ v11)) * (i + 1)
-        if i & mask == 0 do
+        if i & mask == 0
+        {
             sum ^= cast(u64, cold(source, i))
+        }
         sum = (sum << 3) ^ (sum >> 61) ^ v0 ^ v3 ^ v6 ^ v9
     }
     return sum + v1 + v4 + v7 + v10
@@ -145,20 +157,24 @@ func mutableReference(source: [*] u64, rounds, mask, stop: u64)->u64
 
 #test
 {
-    for seed in [0'u64, 1, 0x123456789ABCDEF0, 0xFFFFFFFFFFFFFFFF]
+    for seed in [0_u64, 1, 0x123456789ABCDEF0, 0xFFFFFFFFFFFFFFFF]
     {
-        for rounds in [0'u64, 1, 2, 17, 65]
+        for rounds in [0_u64, 1, 2, 17, 65]
         {
-            for mask in [0'u64, 3, 31]
+            for mask in [0_u64, 3, 31]
             {
                 var actual: [12] u64
-                for i in 12 do
+                for i in 12
+                {
                     actual[i] = seed + i * 0x17ABCDEF
+                }
                 var expected = actual
                 Swag.require(scan(&actual[0], rounds, mask) == reference(&expected[0], rounds, mask))
                 Swag.require(scanMutable(&actual[0], rounds, mask, rounds / 2) == mutableReference(&expected[0], rounds, mask, rounds / 2))
-                for i in 12 do
+                for i in 12
+                {
                     Swag.require(actual[i] == expected[i])
+                }
             }
         }
     }

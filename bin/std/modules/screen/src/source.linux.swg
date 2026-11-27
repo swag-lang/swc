@@ -10,13 +10,17 @@ internal func validateCaptureRect(options: SourceOptions, desktopWidth, desktopH
        options.x > 32767 or
        options.y > 32767 or
        options.width <= 0 or
-       options.height <= 0 do
+       options.height <= 0
+    {
         fail Errors.BadParameterError{"capture rectangle lies outside the X11 screen"}
+    }
 
     let right  = cast(s64, options.x) + cast(s64, options.width)
     let bottom = cast(s64, options.y) + cast(s64, options.height)
-    if right > desktopWidth or bottom > desktopHeight do
+    if right > desktopWidth or bottom > desktopHeight
+    {
         fail Errors.BadParameterError{"capture rectangle lies outside the X11 screen"}
+    }
 }
 
 // X11 uses an independent XCB connection and MIT-SHM when available.

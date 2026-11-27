@@ -24,10 +24,15 @@ impl ScopeJourney
         registerAppStrings(&.app.resources)
         .surface = expect .app.createSurface(40, 40, 1100, 790, surfaceId: "scope-test-journey")
         .surface.setTitle(ProductName)
-        if withWorkspace do
+        if withWorkspace
+        {
             .window = ViewerWorkspace.create(.surface.wnd, createViewerPluginRegistry()).primary
-        else do
+        }
+        else
+        {
             .window = ViewerWindow.create(.surface.wnd, createViewerPluginRegistry())
+        }
+
         .window.onlineMovies = false
         .window.onlineMusic  = false
         .surface.show()
@@ -36,10 +41,15 @@ impl ScopeJourney
 
     mtd opDrop()
     {
-        if .started do
+        if .started
+        {
             .surface.destroy()
-        if not .root.isEmpty() do
+        }
+
+        if not .root.isEmpty()
+        {
             discard catch Directory.delete(.root, recurse: true)
+        }
     }
 
     mtd copyData(name: string, asName: string, loc: Swag.SourceCodeLocation = #callerlocation)->String
@@ -60,8 +70,11 @@ impl ScopeJourney
         {
             .app.runFrame()
             Swag.require(.surface.renderFailure.isEmpty(), .surface.renderFailure.toString())
-            if ready() and expect Testing.verifyNativePresentation(.surface) do
+            if ready() and expect Testing.verifyNativePresentation(.surface)
+            {
                 return
+            }
+
             Swag.require(watch.elapsedMilliseconds() < 30_000, Format.toString("Scope journey timed out at %", stage))
         }
     }
@@ -71,28 +84,35 @@ impl ScopeJourney
         let window = document orelse .window
         .waitFor("file loaded", func|window, path|()->bool
         {
-            if window.currentFile != path or not window.pendingFile.isEmpty() or window.outgoingView or
+            if window.currentFile != path or
+               not window.pendingFile.isEmpty() or
+               window.outgoingView or
                window.currentView == null or
-               window.activeChoiceIndex >= window.instances.count do
+               window.activeChoiceIndex >= window.instances.count
+            {
                 return false
+            }
+
             let instance = &window.instances[window.activeChoiceIndex]
             Swag.require(instance.failureReason.isEmpty(), instance.failureReason.toString())
             return instance.isLoading == null or not instance.isLoading()
         })
     }
 
-    mtd chooseFile(document: *ViewerWindow, path: string, command: WndId = ViewerCommands.Open,
-                   cancel = false, input: *Testing.DesktopInput? = null)
+    mtd chooseFile(document: *ViewerWindow, path: string, command: WndId = ViewerCommands.Open, cancel = false, input: *Testing.DesktopInput? = null)
     {
         var answered: bool
-        var watch: Time.Stopwatch
+        var watch:    Time.Stopwatch
         watch.start()
         let folder = Path.directoryName(path) orelse ""
         let name   = Path.fileName(path) orelse ""
         .app.sigFrame += func|folder, name, cancel, &answered, &watch|(app)
         {
-            if answered do
+            if answered
+            {
                 return
+            }
+
             Swag.require(watch.elapsedMilliseconds() < 5_000, "The file dialog did not become ready")
             for surface in app.surfaces
             {
@@ -102,8 +122,10 @@ impl ScopeJourney
                     {
                         Swag.require(dialog.browser.setCurrentFolder(folder))
                         dialog.browser.setFileName(name)
-                        if not dialog.browser.hasValidSelection() do
+                        if not dialog.browser.hasValidSelection()
+                        {
                             return
+                        }
                     }
 
                     answered = dialog.closeWithResult(cancel ? Dialog.BtnCancel : Dialog.BtnOk)
@@ -111,11 +133,17 @@ impl ScopeJourney
                 }
             }
         }
+
         defer .app.sigFrame.clear()
-        if input do
+        if input
+        {
             input.shortcut(.O, .Control)
-        else do
+        }
+        else
+        {
             document.sendCommandEvent(command)
+        }
+
         Swag.require(answered, "The command did not open a file dialog")
     }
 }

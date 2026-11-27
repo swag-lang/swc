@@ -32,13 +32,13 @@ func genericFamilyBare()
 
 func genericFamilyMissing()
 {
-    var pair: GenericFamilyPair'(s32)     // swc-expected-error {{sema_err_generic_struct_missing_arg}}
+    var pair: GenericFamilyPair!{s32}     // swc-expected-error {{sema_err_generic_struct_missing_arg}}
     discard pair
 }
 
 func genericFamilyTooMany()
 {
-    var box: GenericFamilyBox'(s32, bool)     // swc-expected-error {{sema_err_generic_struct_too_many_args}}
+    var box: GenericFamilyBox!{s32, bool}     // swc-expected-error {{sema_err_generic_struct_too_many_args}}
     discard box
 }
 

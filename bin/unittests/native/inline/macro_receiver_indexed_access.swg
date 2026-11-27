@@ -33,8 +33,10 @@ impl Rack
     #[Swag.Macro]
     func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
-        if not .count do
+        if not .count
+        {
             return
+        }
         let buffer = unwrap .buffer
 
         var scan = buffer - 1
@@ -43,10 +45,14 @@ impl Rack
             scan += 1
             let visitIdx = idx
 
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = cast(*T, scan), index = visitIdx)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = scan[0], index = visitIdx)
+            }
         }
     }
 }
@@ -54,14 +60,14 @@ impl Rack
 struct Crate
 {
     cratePad: u64 = 0xCCCC
-    inner:    Rack'u64
+    inner:    Rack!{u64}
 }
 
 struct Depot
 {
     depotPad: u64 = 0xDDDD
-    racks:    Rack'(Rack'u64)
-    crates:   Rack'Crate
+    racks:    Rack!{Rack!{u64}}
+    crates:   Rack!{Crate}
 }
 
 impl Depot
@@ -72,8 +78,10 @@ impl Depot
     mtd const sumRack(i: u64)->u64
     {
         var sum: u64
-        for v in .racks[i] do
+        for v in .racks[i]
+        {
             sum += v
+        }
         return sum
     }
 
@@ -82,15 +90,19 @@ impl Depot
     mtd const sumCrate(i: u64)->u64
     {
         var sum: u64
-        for v in .crates[i].inner do
+        for v in .crates[i].inner
+        {
             sum += v
+        }
         return sum
     }
 
     mtd scaleCrate(i, k: u64)
     {
-        for &v in .crates[i].inner do
+        for &v in .crates[i].inner
+        {
             v[] *= k
+        }
     }
 }
 
@@ -99,11 +111,11 @@ impl Depot
     var values: [3] u64 = [1, 2, 4]
     var more:   [2] u64 = [10, 20]
 
-    var rackA: Rack'u64
+    var rackA: Rack!{u64}
     rackA.set(values)
-    var rackB: Rack'u64
+    var rackB: Rack!{u64}
     rackB.set(more)
-    var pair: [2] Rack'u64 = [rackA, rackB]
+    var pair: [2] Rack!{u64} = [rackA, rackB]
 
     var crateA: Crate
     crateA.inner.set(values)

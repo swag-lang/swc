@@ -15,8 +15,10 @@ impl BorrowInvClosureBuffer
 {
     mtd opDrop()
     {
-        if not .data do
+        if not .data
+        {
             return
+        }
 
         var req: AllocatorRequest
         req.address = .data
@@ -29,8 +31,10 @@ impl BorrowInvClosureBuffer
     // Grows the payload: the block can move.
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
+        }
 
         var req: AllocatorRequest
         req.address = .data

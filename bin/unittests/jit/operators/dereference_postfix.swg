@@ -4,7 +4,7 @@
 {
     func postfixDerefRead()->s32
     {
-        var value = 42's32
+        var value = 42_s32
         let p     = &value
         return p[]
     }
@@ -16,7 +16,7 @@
 {
     func postfixDerefWrite()->s32
     {
-        var value = 1's32
+        var value = 1_s32
         let p     = &value
         p[] = 7
         return value
@@ -29,7 +29,7 @@
 {
     func postfixDerefChain()->s32
     {
-        var value = 5's32
+        var value = 5_s32
         var p     = &value
         var pp    = &p
         pp[][] += 4
@@ -43,7 +43,7 @@
 {
     func derefCastRead()->s32
     {
-        var bits = 0xFFFF_FFFF'u32
+        var bits = 0xFFFF_FFFF_u32
         let p    = &bits
         return cast(const *s32, p)[]
     }
@@ -55,13 +55,13 @@
 {
     func derefCastWrite()->u32
     {
-        var value = 0x0102_0304'u32
+        var value = 0x0102_0304_u32
         let p     = &value
         cast(*u8, p)[] = 0xFF
         return value
     }
     const V = #run derefCastWrite()
-    #assert(V == 0x0102_03FF'u32)
+    #assert(V == 0x0102_03FF_u32)
 }
 
 struct DerefPlaceReceiver

@@ -22,8 +22,11 @@ using Core, Core.Errors, Pixel
     Swag.require(stream.sampleAtRank[0] == 0 and stream.sampleAtRank[1] == 2)
     Swag.require(stream.sampleAtRank[2] == 5 and stream.sampleAtRank[3] == 4)
     Swag.require(stream.sampleAtRank[4] == 1 and stream.sampleAtRank[5] == 3)
-    for rank in stream.sampleAtRank.count do
+    for rank in stream.sampleAtRank.count
+    {
         Swag.require(stream.rankOfSample[cast(u64, stream.sampleAtRank[rank])] == cast(u32, rank))
+    }
+
     Swag.require(stream.nextRank == 2 and stream.nextDecode == 0 and stream.skipBefore == 2)
 }
 
@@ -72,12 +75,12 @@ using Core, Core.Errors, Pixel
 // frame it belongs to. That block is what makes a decoded frame provable: a seek that landed on
 // the wrong frame, or a stream walked from the wrong offset, cannot produce the right value.
 const BarsFixture        = "bars-scroll-c420.y4m"
-const BarsWidth          = 128's32
-const BarsHeight         = 72's32
-const BarsFrameCount     = 400'u64
-const BarsBlockSize      = 16's32
-const BarsBarWidth       = 16's32
-const BarsTimecodePeriod = 220'u64
+const BarsWidth          = 128_s32
+const BarsHeight         = 72_s32
+const BarsFrameCount     = 400_u64
+const BarsBlockSize      = 16_s32
+const BarsBarWidth       = 16_s32
+const BarsTimecodePeriod = 220_u64
 
 // One bar of the fixture, in the channel order the assertions read.
 struct BarColor
@@ -177,9 +180,9 @@ func barsAssertFrame(frame: Image, index: u64)
 
 // Geometry of the stream the writer test produces. One frame is far larger than the write
 // window, and the whole stream is far larger than anything the module holds at once.
-const WrittenWidth      = 160's32
-const WrittenHeight     = 120's32
-const WrittenFrameCount = 300'u64
+const WrittenWidth      = 160_s32
+const WrittenHeight     = 120_s32
+const WrittenFrameCount = 300_u64
 
 // Encoding is streamed too: three hundred frames are written one at a time, and the result is
 // read back the same way.
@@ -240,9 +243,9 @@ const WrittenFrameCount = 300'u64
 
 // Geometry of the stream with a hole. Sixty-nine megabytes is far more than any buffer of this
 // module holds, and one frame payload alone is larger than the read window.
-const HoleWidth      = 320's32
-const HoleHeight     = 240's32
-const HoleFrameCount = 600'u64
+const HoleWidth      = 320_s32
+const HoleHeight     = 240_s32
+const HoleFrameCount = 600_u64
 
 // Opening validates every frame marker while skipping the image payloads. Keep the markers
 // present in this sparse file so arithmetic seeking remains valid; only the first and last
@@ -263,10 +266,12 @@ const HoleFrameCount = 600'u64
     expect stream.writeAll(cast(const [..] u8, "FRAME\n"))
     expect stream.writeAll(videoFlatPayload(HoleWidth, HoleHeight, 100).toSlice())
     expect stream.resize(header.count + HoleFrameCount * frameSize)
-    for index in 1'u64 until HoleFrameCount - 1 do
+    for index in 1_u64 until HoleFrameCount - 1
+    {
         expect stream.writeAllAt(header.count + index * frameSize, cast(const [..] u8, "FRAME\n"))
+    }
 
-    var lastFrame: Array'u8
+    var lastFrame: Array!{u8}
     lastFrame.add(cast(const [..] u8, "FRAME\n"))
     lastFrame.add(videoFlatPayload(HoleWidth, HoleHeight, 200).toSlice())
     expect stream.writeAllAt(header.count + (HoleFrameCount - 1) * frameSize, lastFrame.toSlice())

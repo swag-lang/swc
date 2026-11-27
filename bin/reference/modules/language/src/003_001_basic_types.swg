@@ -29,7 +29,7 @@ for efficient integer operations at varying levels of precision.
 /**
 # Unsigned Integers
 
-Swag also supports unsigned integer types: 'u8', 'u16', 'u32', and 'u64'.
+Swag also supports unsigned integer types: 'u8', '_u16', '_u32', and '_u64'.
 These types can only represent non-negative values, making them ideal for
 counting, indexing, and other operations where negative numbers are not applicable.
 */
@@ -45,10 +45,10 @@ counting, indexing, and other operations where negative numbers are not applicab
     Swag.require(c == 3)
     Swag.require(d == 4)
 
-    Swag.require(#sizeof(a) == 1)     // 'a' is a 'u8' → 1 byte
-    Swag.require(#sizeof(b) == 2)     // 'b' is a 'u16' → 2 bytes
-    Swag.require(#sizeof(c) == 4)     // 'c' is a 'u32' → 4 bytes
-    Swag.require(#sizeof(d) == 8)     // 'd' is a 'u64' → 8 bytes
+    Swag.require(#sizeof(a) == 1)     // 'a' is a '_u8' → 1 byte
+    Swag.require(#sizeof(b) == 2)     // 'b' is a '_u16' → 2 bytes
+    Swag.require(#sizeof(c) == 4)     // 'c' is a '_u32' → 4 bytes
+    Swag.require(#sizeof(d) == 8)     // 'd' is a '_u64' → 8 bytes
 }
 
 /**

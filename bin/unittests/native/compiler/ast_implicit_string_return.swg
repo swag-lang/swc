@@ -26,11 +26,15 @@ impl AstGeneratedBuilder
 {
     mtd opDrop()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
-        for i in .length do
+        for i in .length
+        {
             .buffer[i] = 0
+        }
         testFree(.buffer)
     }
 

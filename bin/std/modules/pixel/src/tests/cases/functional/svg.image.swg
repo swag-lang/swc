@@ -109,3 +109,56 @@ using Swag, Core
     let escapeErr = escapeErrOutcome.value()
     Swag.require(escapeErr != null)
 }
+
+// The bitmap sampler reads sixteen-bit texels in the same eight-bit color domain.
+#test
+{
+    const Width   = 132
+    const Height  = 96
+    const Samples = [20_u8, 60, 100, 16, 225, 35, 64, 200,
+                     120, 10, 240, 127, 1, 128, 254, 230]
+
+    func rasterize(source: const *Image, samples = 1_u8, paired = true)->Image
+    {
+        let bytes   = expect source.encodeToBytes("embedded.png")
+        let svg     = Format.toString("""\
+            <svg width='132' height='96'>\
+                <rect width='12' height='96' fill='#193942'/>\
+                <image width='132' height='96' preserveAspectRatio='none' href='data:image/png;base64,%'/>\
+            </svg>""", Base64.encode(bytes.toSlice()))
+        let drawing = expect Svg.Drawing.parse(svg.toString(), {preferScanFills: true})
+        if samples == 1
+        {
+            return drawing.rasterize(Width, Height, 1)
+        }
+
+        var cpu:      RenderCpu
+        let renderer: IRenderer = &cpu
+        renderer.init()
+        defer renderer.end()
+        return drawing.rasterizeWithSampleTileSide(renderer, Width, Height, samples, 48, paired ? &cpu : null)
+    }
+
+    let source8  = Image.create(2, 2, .RGBA8, Samples)
+    var source16 = Image.create(2, 2, .RGBA16)
+    let words    = cast([*] u16, source16.pixels.storage())
+    for value, index in Samples
+    {
+        words[index] = cast(u16, cast(u32, value) * 257 + 120)
+    }
+
+    let eight = rasterize(&source8)
+    let deep  = rasterize(&source16)
+    Swag.require(eight.isValid() and deep.isValid())
+    Swag.require(deep.pixelColor(100, 25).a < 255)
+    Swag.require(Memory.compare(eight.pixels.storage(), deep.pixels.storage(), deep.byteCount) == 0)
+
+    for samples in [2_u8, 4]
+    {
+        let shared   = rasterize(&source16, samples)
+        let separate = rasterize(&source16, samples, paired: false)
+        Swag.require(shared.isValid() and separate.isValid())
+        Swag.require(shared.pixelColor(100, 25).a < 255)
+        Swag.require(Memory.compare(shared.pixels.storage(), separate.pixels.storage(), separate.byteCount) == 0)
+    }
+}

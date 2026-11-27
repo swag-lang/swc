@@ -13,7 +13,7 @@ make the struct act like an iterable object with a controlled length.
 impl MyStruct
 {
     // Return the number of iterations for loops using this struct
-    mtd opCount() => 4'u64
+    mtd opCount() => 4_u64
 }
 
 /**
@@ -27,7 +27,10 @@ of times returned by 'opCount'.
     let v = MyStruct{}
     Swag.require(v.count == 4)
     var cpt = 0
-    for v do
+    for v
+    {
         cpt += 1
+    }
+
     Swag.require(cpt == 4)
 }

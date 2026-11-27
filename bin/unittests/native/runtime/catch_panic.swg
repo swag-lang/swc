@@ -39,8 +39,10 @@ func stopWith(message: string)
 #test
 {
     var long: [300] u8
-    for i in long.count do
+    for i in long.count
+    {
         long[i] = 'x'
+    }
     let message = Swag.makeString(&long[0], long.count)
     let caught  = Swag.catchPanic(func|message|() { stopWith(message) })
     Swag.require(caught.raised and caught.message().count == 256)

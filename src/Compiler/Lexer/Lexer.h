@@ -34,8 +34,6 @@ private:
     bool prevTokenWasWhitespace_ = false;
     bool prevTokenHadEolInside_  = false;
 
-    // Track the last meaningful token on this line to distinguish quotes from
-    // character literals. Trivia preserves it; a line break clears it.
     TokenId prevCodeTokenId_ = TokenId::Invalid;
 
     // #raw must be known before scanning the next string for its closing delimiter.
@@ -90,7 +88,6 @@ private:
     void     lexNumber();
 
     void lexSymbol();
-    bool canPrecedeQuoteOperator() const;
 
     void lexIdentifier();
 

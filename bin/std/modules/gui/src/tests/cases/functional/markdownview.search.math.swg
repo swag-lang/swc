@@ -7,8 +7,11 @@ using Swag, Core
 #test
 {
     var source = String.from("$$\\alpha + \\alpha$$\n\n")
-    for index in 40 do
+    for index in 40
+    {
         source += Format.toString("A filler paragraph % keeps the next formula outside the viewport.\n\n", index)
+    }
+
     source += "$$\\alpha + \\alpha$$"
 
     var host: Testing.HeadlessHost

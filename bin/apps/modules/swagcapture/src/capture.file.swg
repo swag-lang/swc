@@ -5,12 +5,21 @@ impl Capture
     // of them yet. The library file name is generated, so an opened picture keeps its own name.
     mtd const displayName()->String
     {
-        if not .title.isEmpty() do
+        if not .title.isEmpty()
+        {
             return .title
-        if not .sourceApplication.isEmpty() do
+        }
+
+        if not .sourceApplication.isEmpty()
+        {
             return .sourceApplication
-        if not .linkedImage.isEmpty() do
+        }
+
+        if not .linkedImage.isEmpty()
+        {
             return Path.fileNameWithoutExtension(.linkedImage) orelse ""
+        }
+
         return Path.fileNameWithoutExtension(.file) orelse ""
     }
 
@@ -20,8 +29,11 @@ impl Capture
     {
         var result    = .displayName()
         let generated = Path.fileNameWithoutExtension(.file) orelse ""
-        if result == generated do
+        if result == generated
+        {
             result.clear()
+        }
+
         return result
     }
 
@@ -38,16 +50,21 @@ impl Capture
         // interactive gestures do (GizmoRect.apply, the body drag and the create drag
         // in Capture.mouse). Skip the heavy refresh while dragging; it is done once
         // when the drag ends (see Capture.mouse / endInteractiveMove).
-        if .interactiveMove do
+        if .interactiveMove
+        {
             return
+        }
 
         // A form that just left the capture loses its retained rendering here, before
         // its memory can be recycled by a later allocation.
         .pruneFormCaches()
 
         let editView = .editView
-        if not editView do
+        if not editView
+        {
             return
+        }
+
         editView.invalidate()
         editView.main.captureHasChanged()
     }
@@ -56,8 +73,11 @@ impl Capture
     // state / recent strip / full view that hasChanged() skipped during the drag.
     mtd endInteractiveMove()
     {
-        if not .interactiveMove do
+        if not .interactiveMove
+        {
             return
+        }
+
         .interactiveMove = false
         .hasChanged()
     }
@@ -91,18 +111,20 @@ impl Capture
     // document using the SCC extension.
     func isFile(file: string)->bool
     {
-        if not isFileName(file) do
+        if not isFileName(file)
+        {
             return false
+        }
 
         var reader: Scc.Reader
         catch reader.initialize(file) { return false }
         return reader.kind() == containerKind()
     }
 
-    private func(T) encodeValue(value: const *T)->Array'u8 fail
+    private func(T) encodeValue(value: const *T)->Array!{u8} fail
     {
         var output:  ConcatBuffer
-        var encoder: Encoder'Write.TagBin
+        var encoder: Encoder!{Write.TagBin}
         try encoder.writeAll(&output, value[])
         output.makeLinear()
 
@@ -164,7 +186,7 @@ impl Capture
     // Creates a capture from the metadata the library reads without decoding the image.
     private func fromLibraryMetadata(metadata: CaptureLibraryMetadata, manifest: const *Scc.Manifest)->*Capture
     {
-        with let result = Memory.new'Capture()
+        with let result = Memory.new!{Capture}()
         {
             .width             = metadata.width
             .height            = metadata.height
@@ -190,7 +212,7 @@ impl Capture
     // Creates a capture from what its file stored, taking over the forms of `model`.
     private func fromFileModel(model: *CaptureFileModel)->*Capture
     {
-        with let result = Memory.new'Capture()
+        with let result = Memory.new!{Capture}()
         {
             .width             = model.width
             .height            = model.height
@@ -221,8 +243,10 @@ impl Capture
 
     mtd save() fail
     {
-        if not .changed do
+        if not .changed
+        {
             return
+        }
 
         // A scheduled save may still be writing this same file; land it first so the
         // two writes cannot interleave. Its outcome is superseded by this save.
@@ -244,8 +268,10 @@ impl Capture
         g_CaptureSaves.adopt(job)
         job.task.submit(func|job|()
         {
-            catch writeScc(job) do
+            catch writeScc(job)
+            {
                 job.failed = true
+            }
         })
 
         .changed = false
@@ -255,8 +281,11 @@ impl Capture
     // The caller owns this detached capture and has verified the document does not exist.
     internal mtd saveRecoveredDocument() fail
     {
-        if File.exists(.file) do
+        if File.exists(.file)
+        {
             fail Core.Errors.BadParameterError{"the recovered capture document already exists"}
+        }
+
         let job = try .snapshotSave()
         defer Memory.delete(job)
         try writeScc(job)
@@ -270,8 +299,10 @@ impl Capture
     private mtd snapshotSave(target: string = "", duplicate = false)->*CaptureSaveJob fail
     {
         // A library preview holds no pixels: written as a document, it would erase its picture.
-        if .previewOnly do
+        if .previewOnly
+        {
             fail Core.Errors.BadParameterError{"a capture loaded as a preview cannot be saved"}
+        }
 
         var metadata = .libraryMetadata()
         var model    = .fileModel()
@@ -286,7 +317,7 @@ impl Capture
         var profileBytes = try encodeValue(&metadata)
         var modelBytes   = try encodeValue(&model)
 
-        let job = Memory.new'CaptureSaveJob()
+        let job = Memory.new!{CaptureSaveJob}()
         job.file                    = target.count == 0 ? .file : String.from(target)
         job.manifest.profileVersion = .isTimed() ? CaptureProfileVersion : CapturePictureProfileVersion
         job.manifest.name           = .title
@@ -298,8 +329,10 @@ impl Capture
         job.preview                 = .preview
 
         // The frames of a timed capture stay in their own file, which a save never rewrites.
-        if .isTimed() do
+        if .isTimed()
+        {
             return job
+        }
 
         // An unchanged background is copied from the file as stored. Only the automatic or
         // explicit save of this document reuses it: the save lane writes that file in order.
@@ -313,10 +346,16 @@ impl Capture
 
         job.backImg  = .backImg
         job.backOrig = .backImgOriginal
-        if .backImg.isValid() do
+        if .backImg.isValid()
+        {
             job.backChunk = Guid128.random()
-        if .backImgOriginal.isValid() do
+        }
+
+        if .backImgOriginal.isValid()
+        {
             job.origChunk = Guid128.random()
+        }
+
         if target.count == 0 and not duplicate
         {
             .savedBackKnown    = true
@@ -333,17 +372,28 @@ impl Capture
     // leaves other chunks there, and the pixels are then encoded again.
     private mtd savedBackgroundStored()->bool
     {
-        if not .savedBackKnown or .savedBackRevision != .backRevision do
+        if not .savedBackKnown or .savedBackRevision != .backRevision
+        {
             return false
-        if .backImg.isValid() == .savedBackChunk.isNull() or .backImgOriginal.isValid() == .savedOrigChunk.isNull() do
+        }
+
+        if .backImg.isValid() == .savedBackChunk.isNull() or .backImgOriginal.isValid() == .savedOrigChunk.isNull()
+        {
             return false
+        }
 
         var reader: Scc.Reader
-        catch reader.initialize(.file) do
+        catch reader.initialize(.file)
+        {
             return false
+        }
+
         defer reader.close()
-        if reader.kind() != containerKind() do
+        if reader.kind() != containerKind()
+        {
             return false
+        }
+
         return storedChunkIs(&reader, .savedBackChunk, backgroundRole()) and
                storedChunkIs(&reader, .savedOrigChunk, originalRole())
     }
@@ -351,8 +401,11 @@ impl Capture
     // Whether a null `id` is absent, or the chunk `id` exists with `role`.
     private func storedChunkIs(reader: *Scc.Reader, id: Guid128, role: Guid128)->bool
     {
-        if id.isNull() do
+        if id.isNull()
+        {
             return true
+        }
+
         let info = reader.findChunk(id)
         return info != null and info.roleId == role
     }
@@ -379,7 +432,7 @@ impl Capture
         let codecDeflate   = Scc.deflateCodecId()
         let modelId        = try writer.addChunk(job.modelBytes.toSlice(), {typeId: typeTagBin, roleId: roleModel, codecId: codecDeflate, flags: .Required | .Metadata})
 
-        var variants: Array'Guid128
+        var variants: Array!{Guid128}
         if job.reuseBack
         {
             // The file is replaced only by `saveAtomic` below, so the stored bytes are read
@@ -390,8 +443,11 @@ impl Capture
             for id in [job.backChunk, job.origChunk] where not id.isNull()
             {
                 let info = reader.findChunk(id)
-                if not info do
+                if not info
+                {
                     fail Core.Errors.InvalidFormatError{"Capture background chunk is missing"}
+                }
+
                 let stored = try reader.readStoredChunk(id)
                 try writer.addStoredChunk(stored.toSlice(), info)
                 variants.add(id)
@@ -433,10 +489,12 @@ impl Capture
     // preview images. The model chunk is rewritten so older readers see the same values as the
     // manifest; every other stored chunk keeps its exact bytes and identifier.
     // `unlink` removes the link to an external image.
-    func updateFileMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null, unlink = false) fail
+    func updateFileMetadata(file: String, title: string? = null, tags: const *Array!{String}? = null, favorite: const *bool? = null, rating: const *u8? = null, unlink = false) fail
     {
-        if title == null and not tags and not favorite and not rating and not unlink do
+        if title == null and not tags and not favorite and not rating and not unlink
+        {
             return
+        }
 
         try rewriteFileMetadata(file, file, title, tags, favorite, rating, false, unlink)
     }
@@ -448,8 +506,10 @@ impl Capture
         for kind in [CaptureMedia.Animation, CaptureMedia.Video]
         {
             let media = mediaPathOf(source, kind)
-            if File.exists(media) do
+            if File.exists(media)
+            {
                 try File.duplicate(mediaPathOf(target, kind), media)
+            }
         }
     }
 
@@ -457,8 +517,11 @@ impl Capture
     // bytes while removing the copy's link to an external image.
     func duplicateDocument(source: String, target: String) fail
     {
-        if Path.equals(source, target) do
+        if Path.equals(source, target)
+        {
             fail Core.Errors.BadParameterError{"a capture cannot duplicate itself"}
+        }
+
         defer #fail discard catch deleteFiles(target)
         try duplicateMediaFiles(source, target)
         try rewriteFileMetadata(source, target, null, null, null, null, true, true)
@@ -468,41 +531,66 @@ impl Capture
     func duplicateSnapshot(source: String, snapshot: *CaptureSaveJob) fail
     {
         let target = snapshot.file
-        if Path.equals(source, target) do
+        if Path.equals(source, target)
+        {
             fail Core.Errors.BadParameterError{"a capture cannot duplicate itself"}
+        }
+
         defer #fail discard catch deleteFiles(target)
         try duplicateMediaFiles(source, target)
         try writeScc(snapshot)
     }
 
-    private func rewriteFileMetadata(source: String, target: String, title: string?, tags: const *Array'String?, favorite: const *bool?, rating: const *u8?, duplicate: bool, unlink: bool) fail
+    private func rewriteFileMetadata(source: String, target: String, title: string?, tags: const *Array!{String}?, favorite: const *bool?, rating: const *u8?, duplicate: bool, unlink: bool) fail
     {
         var reader: Scc.Reader
         try reader.initialize(source)
-        if reader.kind() != containerKind() do
+        if reader.kind() != containerKind()
+        {
             fail Core.Errors.InvalidFormatError{}
-        if reader.manifest().profileVersion > CaptureProfileVersion do
+        }
+
+        if reader.manifest().profileVersion > CaptureProfileVersion
+        {
             fail Core.Errors.InvalidVersion{wantedVersion: CaptureProfileVersion, foundVersion: reader.manifest().profileVersion}
+        }
 
         let modelInfo = reader.findRole(modelRole())
-        if not modelInfo do
+        if not modelInfo
+        {
             fail Core.Errors.InvalidFormatError{}
-        let modelBytes = try reader.readChunk(modelInfo.id)
-        var decoder: Decoder'Read.TagBin
-        decoder.flags |= .IgnoreStructFieldError
-        let model = try decoder.readAll'CaptureFileModel(modelBytes.toSlice())
-        defer Memory.delete(model)
-        if decoder.serializer.diag.lostCount() != 0 do
-            fail Core.Errors.InvalidFormatError{"Capture metadata update would discard document fields"}
+        }
 
-        if title != null do
+        let modelBytes = try reader.readChunk(modelInfo.id)
+        var decoder: Decoder!{Read.TagBin}
+        decoder.flags |= .IgnoreStructFieldError
+        let model = try decoder.readAll!{CaptureFileModel}(modelBytes.toSlice())
+        defer Memory.delete(model)
+        if decoder.serializer.diag.lostCount() != 0
+        {
+            fail Core.Errors.InvalidFormatError{"Capture metadata update would discard document fields"}
+        }
+
+        if title != null
+        {
             model.title = title
-        if tags do
+        }
+
+        if tags
+        {
             model.tags = tags[]
-        if favorite do
+        }
+
+        if favorite
+        {
             model.favorite = favorite[]
-        if rating do
+        }
+
+        if rating
+        {
             model.rating = rating[]
+        }
+
         if unlink
         {
             model.linkedImage.clear()
@@ -513,8 +601,11 @@ impl Capture
         writer.initialize(containerKind())
         if not duplicate
         {
-            if reader.generation() == Swag.U64.Max do
+            if reader.generation() == Swag.U64.Max
+            {
                 fail Core.Errors.OverflowError{"Capture container generation cannot advance"}
+            }
+
             writer.setIdentity(reader.id(), reader.generation() + 1)
         }
 
@@ -522,30 +613,46 @@ impl Capture
         writer.manifest().modifiedAt = Time.DateTime.now()
         if duplicate
         {
-            for &entry in writer.manifest().entries do
+            for &entry in writer.manifest().entries
+            {
                 entry.name = Path.fileName(target) orelse ""
+            }
         }
 
-        if title != null do
+        if title != null
+        {
             writer.manifest().name = title
+        }
+
         if tags
         {
             writer.manifest().tags = tags[]
-            for &entry in writer.manifest().entries where entry.primaryChunk == modelInfo.id do
+            for &entry in writer.manifest().entries where entry.primaryChunk == modelInfo.id
+            {
                 entry.tags = tags[]
+            }
         }
 
         if favorite or rating or unlink
         {
-            var metadataDecoder: Decoder'Read.TagBin
-            let metadata = try metadataDecoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())
+            var metadataDecoder: Decoder!{Read.TagBin}
+            let metadata = try metadataDecoder.readAll!{CaptureLibraryMetadata}(reader.manifest().profileData.toSlice())
             defer Memory.delete(metadata)
-            if metadataDecoder.serializer.diag.lostCount() != 0 do
+            if metadataDecoder.serializer.diag.lostCount() != 0
+            {
                 fail Core.Errors.InvalidFormatError{"Capture metadata update would discard library fields"}
-            if favorite do
+            }
+
+            if favorite
+            {
                 metadata.favorite = favorite[]
-            if rating do
+            }
+
+            if rating
+            {
                 metadata.rating = rating[]
+            }
+
             if unlink
             {
                 metadata.linkedImage.clear()
@@ -587,29 +694,39 @@ impl Capture
         func readImage(reader: *Scc.Reader, chunk: Guid128, issues: *u32)->Image fail
         {
             let bytes = try reader.readChunk(chunk)
-            var decoder: Decoder'Read.TagBin
-            let image = try decoder.readAll'Image(bytes.toSlice())
+            var decoder: Decoder!{Read.TagBin}
+            let image = try decoder.readAll!{Image}(bytes.toSlice())
             defer Memory.delete(image)
             issues[] += decoder.serializer.diag.lostCount()
             return #move image[]
         }
 
         let background = reader.findRole(backgroundRole())
-        if background do
+        if background
+        {
             .backImg = try readImage(reader, background.id, &.loadIssues)
+        }
+
         let original = reader.findRole(originalRole())
-        if original do
+        if original
+        {
             .backImgOriginal = try readImage(reader, original.id, &.loadIssues)
+        }
 
         // Pixels read without loss are those of the file, so a save that comes before any
         // background change copies the stored chunks instead of encoding them again.
         if .loadIssues == 0
         {
             .savedBackKnown = true
-            if background do
+            if background
+            {
                 .savedBackChunk = background.id
-            if original do
+            }
+
+            if original
+            {
                 .savedOrigChunk = original.id
+            }
         }
     }
 
@@ -621,16 +738,21 @@ impl Capture
     {
         var reader: Scc.Reader
         try reader.initialize(file)
-        if reader.kind() != containerKind() do
+        if reader.kind() != containerKind()
+        {
             fail Core.Errors.InvalidFormatError{}
-        if reader.manifest().profileVersion > CaptureProfileVersion do
+        }
+
+        if reader.manifest().profileVersion > CaptureProfileVersion
+        {
             fail Core.Errors.InvalidVersion{wantedVersion: CaptureProfileVersion, foundVersion: reader.manifest().profileVersion}
+        }
 
         var capture: *Capture
         if preview
         {
-            var decoder: Decoder'Read.TagBin
-            let metadata = try decoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())
+            var decoder: Decoder!{Read.TagBin}
+            let metadata = try decoder.readAll!{CaptureLibraryMetadata}(reader.manifest().profileData.toSlice())
             defer Memory.delete(metadata)
             metadata.sanitize()
             capture = fromLibraryMetadata(metadata[], reader.manifest())
@@ -638,12 +760,15 @@ impl Capture
         else
         {
             let info = reader.findRole(modelRole())
-            if not info do
+            if not info
+            {
                 fail Core.Errors.InvalidFormatError{}
+            }
+
             var bytes = try reader.readChunk(info.id)
-            var decoder: Decoder'Read.TagBin
+            var decoder: Decoder!{Read.TagBin}
             decoder.flags |= .IgnoreStructFieldError
-            let model = try decoder.readAll'CaptureFileModel(bytes.toSlice())
+            let model = try decoder.readAll!{CaptureFileModel}(bytes.toSlice())
             defer Memory.delete(model)
             capture = fromFileModel(model)
 
@@ -653,27 +778,39 @@ impl Capture
         // A chunk that cannot be read past this point leaves no capture to the caller.
         defer #fail Memory.delete(capture)
 
-        if not preview do
+        if not preview
+        {
             try capture.readBackgrounds(&reader)
+        }
 
         let previewInfo = reader.findRole(previewRole())
         if previewInfo
         {
             var imageBytes = try reader.readChunk(previewInfo.id)
-            if deferPreviewDecode do
+            if deferPreviewDecode
+            {
                 capture.previewBytes = #move imageBytes
-            else do
+            }
+            else
+            {
                 capture.preview = try Image.decode("preview.png", imageBytes.toSlice())
+            }
         }
 
         capture.file        = file
         capture.previewOnly = preview
-        for itf in capture.forms do
+        for itf in capture.forms
+        {
             itf.setup(capture)
+        }
+
         reader.close()
 
-        if not preview and capture.isTimed() do
+        if not preview and capture.isTimed()
+        {
             capture.openMedia()
+        }
+
         return capture
     }
 }

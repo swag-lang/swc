@@ -5,9 +5,9 @@ using Core, Gui
 
 // The text zoom every reading viewer offers, in percent: its range, and the notch a key or a
 // wheel step moves it by.
-const MinZoom  = 50'u32
-const MaxZoom  = 300'u32
-const ZoomStep = 25'u32
+const MinZoom  = 50_u32
+const MaxZoom  = 300_u32
+const ZoomStep = 25_u32
 
 // The zoom button of an information group: its width, the inset on each side, and the slot
 // both take in the group.
@@ -37,7 +37,7 @@ func createZoomButton(info: *Wnd, id, toolTip: string, width = ZoomButtonWidth)-
 }
 
 // Applies the shared zoom button's appearance and keyboard behavior to specialized reader controls.
-func configureZoomButton(button: *IconButton, toolTip: string, percent = 100'u32)
+func configureZoomButton(button: *IconButton, toolTip: string, percent = 100_u32)
 {
     with button
     {
@@ -59,8 +59,11 @@ func configureZoomButton(button: *IconButton, toolTip: string, percent = 100'u32
 // resets it.
 func isZoomKey(key: const *KeyEvent)->bool
 {
-    if key.kind != .Pressed or key.modifiers != .Control do
+    if key.kind != .Pressed or key.modifiers != .Control
+    {
         return false
+    }
+
     switch key.key
     {
     case .Add, .OemPlus, .Subtract, .OemMinus, .D0: return true
@@ -76,10 +79,16 @@ func isZoomWheel(mouse: const *MouseEvent)->bool => mouse.kind == .Wheel and mou
 // turns away from the reader, one notch out when it turns towards them.
 func zoomAfterWheel(mouse: const *MouseEvent, percent: u32)->u32
 {
-    if mouse.delta.y > 0 do
+    if mouse.delta.y > 0
+    {
         return zoomIn(percent)
-    if mouse.delta.y < 0 do
+    }
+
+    if mouse.delta.y < 0
+    {
         return zoomOut(percent)
+    }
+
     return percent
 }
 
@@ -140,14 +149,20 @@ func pickZoom(owner: *Wnd, at: Math.Point, pos: PopupPosition, current: u32)->u3
 private func createZoomMenu(owner: *Wnd, current: u32)->*MenuCtrl
 {
     let menu = MenuCtrl.createPopup(owner, owner: owner)
-    for preset in ZoomPresets do
+    for preset in ZoomPresets
+    {
         menu.addItem(preset.label, preset.id, checked: preset.percent == current)
+    }
+
     return menu
 }
 
 private func zoomChoice(chosen: WndId?)->u32
 {
-    for preset in ZoomPresets where preset.id == chosen do
+    for preset in ZoomPresets where preset.id == chosen
+    {
         return preset.percent
+    }
+
     return 0
 }

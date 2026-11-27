@@ -38,8 +38,10 @@ impl IWnd for FloatingPanel
 {
     mtd impl onBeforePaint(evt: *PaintEvent)
     {
-        if .shadow do
+        if .shadow
+        {
             paintFloatingShadow(me, evt.paintContext.painter, .clientRect(), .radius())
+        }
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -50,8 +52,11 @@ impl IWnd for FloatingPanel
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         // The reach of the shadow follows the theme, and so does the room a repaint takes along.
-        if evt.kind == .ThemeChanged do
+        if evt.kind == .ThemeChanged
+        {
             .lift()
+        }
+
         evt.accepted = false
     }
 }
@@ -63,7 +68,7 @@ impl FloatingPanel
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*FloatingPanel
     {
         let pad         = parent.themeMetrics().miniBar_Padding
-        with let result = Wnd.create'FloatingPanel(parent, null, position, id)
+        with let result = Wnd.create!{FloatingPanel}(parent, null, position, id)
         {
             .backgroundStyle = .Transparent
             .padding         = Math.Vector4{x: pad, y: pad, z: pad, w: pad}

@@ -36,8 +36,11 @@ impl HtmlView
         {
             let box   = .layout.constBox(current)
             let style = .layout.constStyle(box.style)
-            if box.scrollable or style.position == .Fixed or style.position == .Sticky do
+            if box.scrollable or style.position == .Fixed or style.position == .Sticky
+            {
                 return false
+            }
+
             current = box.parent
         }
 
@@ -48,30 +51,48 @@ impl HtmlView
     private mtd const firstTextBelow(line: f32)->HtmlReadingPosition
     {
         var result: HtmlReadingPosition
-        if .virtualSource do
+        if .virtualSource
+        {
             return result
+        }
+
         let bottom = .scroll.scrollPosition().y + .scroll.view.paddedClientRect().height
         var best   = Swag.F32.Inf
         var left   = Swag.F32.Inf
         for box, index in .layout.boxes
         {
-            if not .isRootReadingBox(cast(u32, index)) do
+            if not .isRootReadingBox(cast(u32, index))
+            {
                 continue
+            }
+
             for item in box.items
             {
                 if item.kind != .Text or
                    not item.visible or
                    item.node == HtmlNoNode or
-                   item.sourceStart >= item.sourceEnd do
+                   item.sourceStart >= item.sourceEnd
+                {
                     continue
+                }
+
                 let node = .document.constNode(item.node)
-                if node.kind != .Text or not .layout.constStyle(item.style).visible do
+                if node.kind != .Text or not .layout.constStyle(item.style).visible
+                {
                     continue
+                }
+
                 let height = Math.max(item.ascent + item.descent, 1)
-                if item.y + height <= line or item.y >= bottom do
+                if item.y + height <= line or item.y >= bottom
+                {
                     continue
-                if item.y > best or (item.y == best and item.x >= left) do
+                }
+
+                if item.y > best or (item.y == best and item.x >= left)
+                {
                     continue
+                }
+
                 best                = item.y
                 left                = item.x
                 result.sourceOffset = node.sourceOffset
@@ -104,8 +125,11 @@ impl HtmlView
     {
         let top     = .scroll.scrollPosition().y
         var reading = .firstTextBelow(top + HtmlRevealClearance)
-        if not reading.hasValue do
+        if not reading.hasValue
+        {
             reading = .firstTextBelow(top)
+        }
+
         return reading.hasValue ? reading.sourceOffset : Swag.U64.Max
     }
 
@@ -136,8 +160,11 @@ impl HtmlView
     // ```
     mtd restoreReadingPosition(position: HtmlReadingPosition)->bool
     {
-        if not position.hasValue or .virtualSource do
+        if not position.hasValue or .virtualSource
+        {
             return false
+        }
+
         if position.atStart
         {
             .scroll.setScrollPos(.scroll.scrollPosition().x, 0)
@@ -155,20 +182,29 @@ impl HtmlView
             }
         }
 
-        if node == HtmlNoNode do
+        if node == HtmlNoNode
+        {
             return false
+        }
+
         for box, index in .layout.boxes
         {
-            if not .isRootReadingBox(cast(u32, index)) do
+            if not .isRootReadingBox(cast(u32, index))
+            {
                 continue
+            }
+
             for item in box.items where item.kind == .Text and
                                         item.visible and
                                         item.node == node and
                                         item.sourceStart <= position.textOffset and
                                         item.sourceEnd > position.textOffset
             {
-                if not .layout.constStyle(item.style).visible do
+                if not .layout.constStyle(item.style).visible
+                {
                     continue
+                }
+
                 let height = Math.max(item.ascent + item.descent, 1)
                 .scroll.setScrollPos(.scroll.scrollPosition().x, Math.max(item.y + height * position.lineFraction, 0))
                 .canvas.invalidate()

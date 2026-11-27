@@ -1,12 +1,12 @@
 #global private
 
-const A: [5] s32 = [1's32, 2, 3, 4, 5]
+const A: [5] s32 = [1_s32, 2, 3, 4, 5]
 #assert(#typeof(A) == #type [5] s32)
 
 const A1: [5] s32 = [1, 2, 3, 4, 5]
 #assert(#typeof(A1) == #type [5] s32)
 
-const Af: [2] f64 = [1.0'f64, 2.0]
+const Af: [2] f64 = [1.0_f64, 2.0]
 #assert(#typeof(Af) == #type [2] f64)
 
 const A2 = [1, true, 3]
@@ -23,7 +23,7 @@ func semaTest001()
     var C: [3] s32 = [x, 2, 3]
     #assert(#typeof(C) == #type [3] s32)
 
-    var D: [2] f32 = [1.0'f32, cast(f32, 2)]
+    var D: [2] f32 = [1.0_f32, cast(f32, 2)]
     #assert(#typeof(D) == #type [2] f32)
     #assert(#typeof(D[0]) == f32)
     #assert(#typeof(D[1]) == f32)
@@ -66,22 +66,22 @@ const AB2: [?] u32 = [[1], [2]]
 const SemaLitArr0 = [10, 20, 30]
 #assert(#typeof(SemaLitArr0) == #type [3] s32)
 
-const SemaLitArr1 = [1'f64, 2, 3]
+const SemaLitArr1 = [1_f64, 2, 3]
 #assert(#typeof(SemaLitArr1) == #type [3] f64)
 
 const SemaLitArr2 = [[1, 2], [3, 4]]
 #assert(#typeof(SemaLitArr2) == #type [2][2] s32)
 #assert(SemaLitArr2.count == 2)
 
-const SemaLitArr3 = [0'u16, 31, 59]
+const SemaLitArr3 = [0_u16, 31, 59]
 #assert(#typeof(SemaLitArr3) == #type [3] u16)
-#assert(SemaLitArr3[1] == 31'u16)
-#assert(SemaLitArr3[2] == 59'u16)
+#assert(SemaLitArr3[1] == 31_u16)
+#assert(SemaLitArr3[2] == 59_u16)
 
-const SemaLitArr4 = [[0'u16, 31], [59, 90]]
+const SemaLitArr4 = [[0_u16, 31], [59, 90]]
 #assert(#typeof(SemaLitArr4) == #type [2][2] u16)
-#assert(SemaLitArr4[0][1] == 31'u16)
-#assert(SemaLitArr4[1][1] == 90'u16)
+#assert(SemaLitArr4[0][1] == 31_u16)
+#assert(SemaLitArr4[1][1] == 90_u16)
 
 private
 {
@@ -90,13 +90,13 @@ private
 
 const SemaLitArr5: [2] u8 = [HexFill, HexFill]
 #assert(#typeof(SemaLitArr5) == #type [2] u8)
-#assert(SemaLitArr5[0] == 0xF0'u8)
-#assert(SemaLitArr5[1] == 0xF0'u8)
+#assert(SemaLitArr5[0] == 0xF0_u8)
+#assert(SemaLitArr5[1] == 0xF0_u8)
 
 const SemaLitArr6: [3] u8 = HexFill
 #assert(#typeof(SemaLitArr6) == #type [3] u8)
-#assert(SemaLitArr6[0] == 0xF0'u8)
-#assert(SemaLitArr6[2] == 0xF0'u8)
+#assert(SemaLitArr6[0] == 0xF0_u8)
+#assert(SemaLitArr6[2] == 0xF0_u8)
 
 func semaTest003()
 {

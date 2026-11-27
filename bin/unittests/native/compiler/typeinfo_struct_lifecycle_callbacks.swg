@@ -172,8 +172,10 @@ func typeinfoDirectDropWorks()->bool
 {
     resetCounts()
 
-    if not hasDropFlag(#typeof(LifecycleProbe)) or not hasDropPointer(#typeof(LifecycleProbe)) do
+    if not hasDropFlag(#typeof(LifecycleProbe)) or not hasDropPointer(#typeof(LifecycleProbe))
+    {
         return false
+    }
 
     var value = LifecycleProbe{}
     runDrop(#typeof(LifecycleProbe), &value)
@@ -184,8 +186,10 @@ func typeinfoDirectCopyWorks()->bool
 {
     resetCounts()
 
-    if not hasPostCopyFlag(#typeof(LifecycleProbe)) or not hasPostCopyPointer(#typeof(LifecycleProbe)) do
+    if not hasPostCopyFlag(#typeof(LifecycleProbe)) or not hasPostCopyPointer(#typeof(LifecycleProbe))
+    {
         return false
+    }
 
     var value = LifecycleProbe{value: 5}
     runPostCopy(#typeof(LifecycleProbe), &value)
@@ -196,8 +200,10 @@ func typeinfoDirectMoveWorks()->bool
 {
     resetCounts()
 
-    if not hasPostMoveFlag(#typeof(LifecycleProbe)) or not hasPostMovePointer(#typeof(LifecycleProbe)) do
+    if not hasPostMoveFlag(#typeof(LifecycleProbe)) or not hasPostMovePointer(#typeof(LifecycleProbe))
+    {
         return false
+    }
 
     var value = LifecycleProbe{value: 7}
     runPostMove(#typeof(LifecycleProbe), &value)
@@ -209,19 +215,27 @@ func typeinfoComposedLifecycleWorks()->bool
     resetCounts()
 
     let type = #typeof(LifecycleContainer)
-    if not hasDropFlag(type) or not hasPostCopyFlag(type) or not hasPostMoveFlag(type) do
+    if not hasDropFlag(type) or not hasPostCopyFlag(type) or not hasPostMoveFlag(type)
+    {
         return false
-    if not hasDropPointer(type) or not hasPostCopyPointer(type) or not hasPostMovePointer(type) do
+    }
+    if not hasDropPointer(type) or not hasPostCopyPointer(type) or not hasPostMovePointer(type)
+    {
         return false
+    }
 
     var value = LifecycleContainer{value: LifecycleProbe{value: 4}}
     runPostCopy(type, &value)
-    if PostCopyCount != 1 or value.value.value != 14 do
+    if PostCopyCount != 1 or value.value.value != 14
+    {
         return false
+    }
 
     runPostMove(type, &value)
-    if PostMoveCount != 1 or value.value.value != 114 do
+    if PostMoveCount != 1 or value.value.value != 114
+    {
         return false
+    }
 
     runDrop(type, &value)
     return DropCount == 1
@@ -231,7 +245,7 @@ func typeinfoGenericComposedLifecycleWorks()->bool
 {
     resetCounts()
 
-    let type = #typeof(GenericLifecycleContainer'LifecycleProbe)
+    let type = #typeof(GenericLifecycleContainer!{LifecycleProbe})
     Swag.assert(hasDropFlag(type))
     Swag.assert(hasPostCopyFlag(type))
     Swag.assert(hasPostMoveFlag(type))
@@ -239,7 +253,7 @@ func typeinfoGenericComposedLifecycleWorks()->bool
     Swag.assert(hasPostCopyPointer(type))
     Swag.assert(hasPostMovePointer(type))
 
-    var value = GenericLifecycleContainer'LifecycleProbe{value: LifecycleProbe{value: 3}}
+    var value = GenericLifecycleContainer!{LifecycleProbe}{value: LifecycleProbe{value: 3}}
     runPostCopy(type, &value)
     Swag.assert(PostCopyCount == 1)
     Swag.assert(value.value.value == 13)
@@ -257,7 +271,7 @@ func typeinfoGenericDirectLifecycleWorks()->bool
 {
     resetCounts()
 
-    let type = #typeof(GenericDirectLifecycleProbe's32)
+    let type = #typeof(GenericDirectLifecycleProbe!{s32})
     Swag.assert(hasDropFlag(type))
     Swag.assert(hasPostCopyFlag(type))
     Swag.assert(hasPostMoveFlag(type))
@@ -265,7 +279,7 @@ func typeinfoGenericDirectLifecycleWorks()->bool
     Swag.assert(hasPostCopyPointer(type))
     Swag.assert(hasPostMovePointer(type))
 
-    var value = GenericDirectLifecycleProbe's32{value: 3}
+    var value = GenericDirectLifecycleProbe!{s32}{value: 3}
     runPostCopy(type, &value)
     Swag.assert(PostCopyCount == 10)
 
@@ -282,8 +296,10 @@ func typeinfoOrderedDropWorks()->bool
     resetEvents()
 
     let type = #typeof(OrderedLifecycleContainer)
-    if not hasDropFlag(type) or not hasDropPointer(type) do
+    if not hasDropFlag(type) or not hasDropPointer(type)
+    {
         return false
+    }
 
     var value = OrderedLifecycleContainer{}
     runDrop(type, &value)
@@ -295,8 +311,10 @@ func typeinfoOrderedCopyWorks()->bool
     resetEvents()
 
     let type = #typeof(OrderedLifecycleContainer)
-    if not hasPostCopyFlag(type) or not hasPostCopyPointer(type) do
+    if not hasPostCopyFlag(type) or not hasPostCopyPointer(type)
+    {
         return false
+    }
 
     var value = OrderedLifecycleContainer{child: OrderedLifecycleProbe{value: 8}, value: 11}
     runPostCopy(type, &value)
@@ -312,8 +330,10 @@ func typeinfoOrderedMoveWorks()->bool
     resetEvents()
 
     let type = #typeof(OrderedLifecycleContainer)
-    if not hasPostMoveFlag(type) or not hasPostMovePointer(type) do
+    if not hasPostMoveFlag(type) or not hasPostMovePointer(type)
+    {
         return false
+    }
 
     var value = OrderedLifecycleContainer{child: OrderedLifecycleProbe{value: 8}, value: 11}
     runPostMove(type, &value)

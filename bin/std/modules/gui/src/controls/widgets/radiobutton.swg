@@ -17,7 +17,7 @@ struct RadioButton
             checked: bool     // Whether this option is selected.
         }
 
-        sigChanged: SigArray'func||(*Wnd)     // Emitted after a user action selects the button.
+        sigChanged: SigArray!{func||(*Wnd)}     // Emitted after a user action selects the button.
     }
 
     // The chosen look is laid over the resting one at `markPresence`, which eases when the button
@@ -81,12 +81,14 @@ impl IWnd for RadioButton
             chosenBk     = colors.btnCheck_Bk
             chosenBorder = engaged ? colors.btnRadio_CheckedHotMark : colors.btnRadio_CheckedBorder
             colorMark    = engaged ? colors.btnRadio_CheckedHotMark : colors.btnRadio_CheckedMark
-            if .checked do
+            if .checked
+            {
                 colorText = colors.btnCheck_CheckedText
+            }
         }
 
         // A disabled button shows its state as it is; an enabled one at the share its dot has reached.
-        let presence = bc.isDisabled ? (.checked ? 1'f32 : 0) : .markPresence
+        let presence = bc.isDisabled ? (.checked ? 1_f32 : 0) : .markPresence
 
         // Box
         let clientRect = .clientRect()
@@ -97,8 +99,11 @@ impl IWnd for RadioButton
         // sitting under the label it belongs to.
         posBox.y     = .name.isEmpty() ? clientRect.vertCenter() - posBox.height * 0.5 : opticalTop(.font(), clientRect.vertCenter(), posBox.height)
         posBox.width = posBox.height
-        if .flags.has(.RightAligned) do
+        if .flags.has(.RightAligned)
+        {
             posBox.x = clientRect.right() - posBox.width
+        }
+
         let markerInset = metrics.btnCheck_Size * metrics.btnCheck_AtlasInsetRatio
         var focusBox    = posBox
         focusBox.width  -= markerInset * 2
@@ -133,24 +138,34 @@ impl IWnd for RadioButton
         // Content
         var format: RichStringFormat
         theme.setTextColors(&format, colorText)
-        if .flags.has(.RightAligned) do
+        if .flags.has(.RightAligned)
+        {
             format.horzAlignment = .Right
-        else do
+        }
+        else
+        {
             format.horzAlignment = .Left
+        }
+
         format.vertAlignment = .Center
         format.flags         = .Clip
         format.font          = .font()
         var labelPos     = clientRect
         let markerAndGap = focusBox.width + metrics.btnCheck_Padding
-        if not .flags.has(.RightAligned) do
+        if not .flags.has(.RightAligned)
+        {
             labelPos.x += markerAndGap
+        }
+
         labelPos.width -= markerAndGap
         Theme.drawIconText(bc.painter, labelPos, .icon, &.name, format, metrics.iconText_Margin, accessKey: me.accessKey, showAccessKey: .surface?.accessKeysVisible orelse false)
 
         // The box and the wording are one target, and the ring is drawn around that rather than
         // around the cell the layout gave the control. See [[Gui.Button.markerFocusRect]].
-        if not bc.isDisabled and .showsFocusRing() do
+        if not bc.isDisabled and .showsFocusRing()
+        {
             theme.drawFocusRing(bc.painter, .markerFocusRect(focusBox))
+        }
     }
 
     // Reports the room the radio box, its padding, and the caption need.
@@ -166,16 +181,20 @@ impl IWnd for RadioButton
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if .processMouseEvent(evt) do
+        if .processMouseEvent(evt)
+        {
             .selectFromUser()
+        }
     }
 
     // Space or Enter selects the focused radio button, and the arrows move inside its group.
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return
+        }
 
         if evt.modifiers == .None and
            (evt.key == .Return or (evt.key == .Space and .hasVisibleFocus()))
@@ -185,8 +204,10 @@ impl IWnd for RadioButton
             return
         }
 
-        if evt.modifiers != .None do
+        if evt.modifiers != .None
+        {
             return
+        }
 
         // A group of options is one stop of the keyboard traversal, so Tab is what leaves it and
         // the arrows are what choose inside it. Selecting is what moving means here: an option
@@ -208,11 +229,17 @@ impl RadioButton
     {
         Swag.assert(parent != null)
         var pos = position
-        if pos.height == 0 do
+        if pos.height == 0
+        {
             pos.height = parent.themeMetrics().btnPush_Height
-        if pos.width == 0 do
+        }
+
+        if pos.width == 0
+        {
             pos.width = parent.themeMetrics().btnPush_Width
-        let result = Wnd.create'RadioButton(parent, name, pos, id)
+        }
+
+        let result = Wnd.create!{RadioButton}(parent, name, pos, id)
         result.flags       = flags
         result.focusPolicy = .Tab
         result.wndFlags    |= .ActivatesOnKey
@@ -222,8 +249,11 @@ impl RadioButton
         result.wndFlags |= .NoFocusRing
 
         // An unstated width belongs to the caption; the theme width above stays its floor.
-        if position.width == 0 do
+        if position.width == 0
+        {
             result.preferredSize.x = 0
+        }
+
         return result
     }
 
@@ -232,11 +262,17 @@ impl RadioButton
     // Selecting a grouped button clears its selected siblings.
     mtd setChecked(checked: bool)
     {
-        if .checked == checked do
+        if .checked == checked
+        {
             return
+        }
+
         .checked = checked
-        if checked do
+        if checked
+        {
             .uncheckGroupSiblings()
+        }
+
         .easeMark()
     }
 
@@ -253,8 +289,11 @@ impl RadioButton
 
     internal mtd selectFromUser()
     {
-        if .checked do
+        if .checked
+        {
             return
+        }
+
         .setChecked(true)
         .sigChanged.call(me)
         .postCommandEvent(.id)
@@ -269,31 +308,43 @@ impl RadioButton
     // keeps standing on the option that is checked.
     mtd selectSibling(forward: bool)->bool
     {
-        if (.groupId).count == 0 or not .parent do
+        if (.groupId).count == 0 or not .parent
+        {
             return false
+        }
 
-        var group: Array'(*RadioButton)
+        var group: Array!{*RadioButton}
         for child in .parent.children
         {
             if child is RadioButton as other where other.groupId == .groupId and
                                                    other.isFocusStop() and
                                                    other.isLocallyVisible() and
-                                                   other.isLocallyEnabled() do
+                                                   other.isLocallyEnabled()
+            {
                 group.add(other)
+            }
         }
 
         let count = cast(s64, group.count)
-        if count < 2 or not .isFocusStop() do
+        if count < 2 or not .isFocusStop()
+        {
             return false
+        }
 
         group.sort(func(a, b: *RadioButton)->s32 => a.tabSequence <=> b.tabSequence)
         let current = Slice.findLinear(group.toSlice(), me)
-        if current == Swag.U64.Max do
+        if current == Swag.U64.Max
+        {
             return false
-        let step = forward ? 1's64 : count - 1
+        }
+
+        let step = forward ? 1_s64 : count - 1
         let next = group[cast(u64, ((cast(s64, current) + step) % count))]
-        if not next.requestFocus(.Navigation) do
+        if not next.requestFocus(.Navigation)
+        {
             return false
+        }
+
         next.selectFromUser()
         return true
     }
@@ -301,15 +352,22 @@ impl RadioButton
     // Clears selected sibling radios from the same non-null group.
     mtd uncheckGroupSiblings()
     {
-        if (.groupId).count == 0 or not .parent do
+        if (.groupId).count == 0 or not .parent
+        {
             return
+        }
 
         for c in .parent.children
         {
-            if c == cast(*Wnd, me) do
+            if c == cast(*Wnd, me)
+            {
                 continue
-            if c is RadioButton as other where other.groupId == .groupId do
+            }
+
+            if c is RadioButton as other where other.groupId == .groupId
+            {
                 other.setChecked(false)
+            }
         }
     }
 }
@@ -321,11 +379,14 @@ private impl RadioButton
     {
         .invalidate()
 
-        let destination = .checked ? 1'f32 : 0
+        let destination = .checked ? 1_f32 : 0
         if not .surface or not .isVisible() or .app().isReducedMotion()
         {
-            if .surface do
+            if .surface
+            {
                 .app().animator.cancel(me, AnimationChannel.from("Gui.Radio.Mark"))
+            }
+
             .markPresence = destination
             return
         }

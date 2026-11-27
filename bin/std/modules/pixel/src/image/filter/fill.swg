@@ -5,8 +5,10 @@ public impl Image
     // Sets every pixel to `color`.
     mtd fill(color: Color)
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
         {
@@ -26,17 +28,17 @@ public impl Image
             var pix = .pixels.buffer
             for .width
             {
-                convertToRGBA8'PF(cast([*] u8, unwrap pix), color.r, color.g, color.b, color.a)
+                convertToRGBA8!{PF}(cast([*] u8, unwrap pix), color.r, color.g, color.b, color.a)
                 pix += .bytesPerPixel
             }
         }
 
         switch .pixelFormat
         {
-        case .BGR8:  .fillFirstLine'BGR8()
-        case .BGRA8: .fillFirstLine'BGRA8()
-        case .RGB8:  .fillFirstLine'RGB8()
-        case .RGBA8: .fillFirstLine'RGBA8()
+        case .BGR8:  .fillFirstLine!{BGR8}()
+        case .BGRA8: .fillFirstLine!{BGRA8}()
+        case .RGB8:  .fillFirstLine!{RGB8}()
+        case .RGBA8: .fillFirstLine!{RGBA8}()
         default:     unreachable
         }
 

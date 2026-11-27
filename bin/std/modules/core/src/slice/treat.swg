@@ -5,16 +5,21 @@
 #[Swag.Inline]
 func(T) forEachMutable(values: [..] T, action: func||(*T))
 {
-    for &value in values do
+    for &value in values
+    {
         action(value)
+    }
 }
 
 // Returns an array holding the result of `transform` for every element, in order.
-func(T, R) map(values: const [..] T, transform: func||(T)->R)->Array'R
+func(T, R) map(values: const [..] T, transform: func||(T)->R)->Array!{R}
 {
     var result: #returntype
-    for v in values do
+    for v in values
+    {
         result.add(transform(v))
+    }
+
     return result
 }
 
@@ -26,8 +31,11 @@ func(T) reduce(values: const [..] T, combine: func||(T, T)->T)->T
 {
     Swag.assert(values.count > 0, "cannot reduce an empty slice")
     var result = values[0]
-    for i in 1 until values.count do
+    for i in 1 until values.count
+    {
         result = combine(result, values[i])
+    }
+
     return result
 }
 
@@ -37,8 +45,11 @@ func(T) reduce(values: const [..] T, combine: func||(T, T)->T)->T
 func(T, A) fold(values: const [..] T, initial: A, combine: func||(A, T)->A)->A
 {
     var result = initial
-    for value in values do
+    for value in values
+    {
         result = combine(result, value)
+    }
+
     return result
 }
 
@@ -87,8 +98,11 @@ func(T) max(values: const [..] T)->{ value: T, index: u64 }
 // Returns true for an empty slice.
 func(T) allOf(values: const [..] T, predicate: func||(T)->bool)->bool
 {
-    for v in values where not predicate(v) do
+    for v in values where not predicate(v)
+    {
         return false
+    }
+
     return true
 }
 
@@ -97,8 +111,11 @@ func(T) allOf(values: const [..] T, predicate: func||(T)->bool)->bool
 // Returns false for an empty slice.
 func(T) anyOf(values: const [..] T, predicate: func||(T)->bool)->bool
 {
-    for v in values where predicate(v) do
+    for v in values where predicate(v)
+    {
         return true
+    }
+
     return false
 }
 
@@ -107,17 +124,23 @@ func(T) anyOf(values: const [..] T, predicate: func||(T)->bool)->bool
 // Returns true for an empty slice.
 func(T) noneOf(values: const [..] T, predicate: func||(T)->bool)->bool
 {
-    for v in values where predicate(v) do
+    for v in values where predicate(v)
+    {
         return false
+    }
+
     return true
 }
 
 // Reverses the order of the elements in place.
 func(T) reverse(values: [..] T)
 {
-    if values.count <= 1 do
+    if values.count <= 1
+    {
         return
-    var i = 0'u64
+    }
+
+    var i = 0_u64
     var j = values.count - 1
     let d = values.buffer
     while i < j
@@ -136,24 +159,33 @@ func(T) reverse(values: [..] T)
 func(T) nextPermutation(values: [..] T)->bool
 {
     let count = values.count
-    if count < 2 do
+    if count < 2
+    {
         return false
+    }
 
     var pivot = count - 2
     while values[pivot] >= values[pivot + 1]
     {
-        if not pivot do
+        if not pivot
+        {
             return false
+        }
+
         pivot -= 1
     }
 
     var successor = count - 1
-    while values[successor] <= values[pivot] do
+    while values[successor] <= values[pivot]
+    {
         successor -= 1
+    }
 
     swap(&values[pivot], &values[successor])
-    if pivot + 1 != count - 1 do
+    if pivot + 1 != count - 1
+    {
         reverse(values[pivot + 1 to count - 1])
+    }
 
     return true
 }

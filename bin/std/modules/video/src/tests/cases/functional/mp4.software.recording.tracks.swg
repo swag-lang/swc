@@ -15,8 +15,10 @@ using Swag, Core, Core.Errors, Audio, Pixel
     var recorder = expect Mp4.SoftwareRecording.createWithAudioTracks(path, 32, 16, 90_000, Swag.makeSlice(&configs[0], configs.count))
     Swag.require(recorder.audioTrackCount() == 2 and recorder.videoPrerollTicks() == 1_920)
     let pacer = expect FramePacer.create(expect FrameRate.create(60, 1), 48_000, 90_000)
-    for frame in 13'u64 do
+    for frame in 13_u64
+    {
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
+    }
 
     var microphone: [10 * 1_024] s16
     var system:     [10 * 1_024 * 2] s16
@@ -33,7 +35,7 @@ using Swag, Core, Core.Errors, Audio, Pixel
                                                                    3_000.0 * frame / 48_000.0)))
     }
 
-    for block in 10'u64
+    for block in 10_u64
     {
         expect recorder.addAudioFrames(Swag.makeSlice(&microphone[block * 1_024], 1_024), 0)
         expect recorder.addAudioFrames(Swag.makeSlice(&system[block * 2 * 1_024], 2 * 1_024), 1)
@@ -52,25 +54,25 @@ using Swag, Core, Core.Errors, Audio, Pixel
     Swag.require(summary.audioTracks[0].packetCount == 11 and summary.audioTracks[1].packetCount == 11)
     var reader = expect Reader.open(path)
     Swag.require(reader.frameCount() == 13 and reader.audioTrackCount() == 2)
-    for trackIndex in 2'u64
+    for trackIndex in 2_u64
     {
         let sound = unwrap reader.audioTrack(cast(u32, trackIndex))
         Swag.require(sound.sampleFrameCount() == 10 * 1_024)
         Swag.require(Math.abs(sound.timelineStartSeconds()) < 0.000001)
-        var pcm: Array's16
+        var pcm: Array!{s16}
         expect sound.decodePcm16(func|pcm = &pcm|(part: const [..] s16)->bool
         {
             pcm.add(part)
             return true
         })
-        let channels = trackIndex == 0 ? 1'u64 : 2'u64
+        let channels = trackIndex == 0 ? 1_u64 : 2_u64
         Swag.require(pcm.count == 10 * 1_024 * channels)
         for channel in channels
         {
-            var error        = 0.0'f64
-            var power        = 0.0'f64
-            var cross        = 0.0'f64
-            var decodedPower = 0.0'f64
+            var error        = 0.0_f64
+            var power        = 0.0_f64
+            var cross        = 0.0_f64
+            var decodedPower = 0.0_f64
             for frame in 2_048 until 8_192
             {
                 let expected = trackIndex == 0 ? cast(f64, microphone[frame]) :
@@ -134,8 +136,11 @@ using Swag, Core, Core.Errors, Audio, Pixel
     let image = Image.create(32, 16, .BGRA8)
     Memory.set(image.pixels.storage(), 81, image.pixels.count)
     let pacer = expect FramePacer.create(expect FrameRate.create(60, 1), 1_000_000, 90_000)
-    for frame in 4'u64 do
+    for frame in 4_u64
+    {
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
+    }
+
     var rejected: Swag.Error
     discard catch recorder.addAudioFrames([]) as rejected
     Swag.require(rejected.value() is BadParameterError)
@@ -161,29 +166,35 @@ using Swag, Core, Core.Errors, Audio, Pixel
     Swag.require(recorder.videoPrerollTicks() == 2_089)
     let image = Image.create(16, 16, .BGRA8)
     let pacer = expect FramePacer.create(expect FrameRate.create(60, 1), 44_100, 90_000)
-    for frame in 14'u64 do
+    for frame in 14_u64
+    {
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
+    }
+
     var signal: [10 * 1_024] s16
-    for frame in signal.count do
+    for frame in signal.count
+    {
         signal[frame] = cast(s16,
                              Math.round(9_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                            1_000.0 * frame / 44_100.0)))
+    }
+
     expect recorder.addAudioFrames(Swag.makeSlice(&signal[0], signal.count))
     expect recorder.end()
     var reader = expect Reader.open(path)
     let sound  = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == signal.count)
     Swag.require(Math.abs(sound.timelineStartSeconds()) < 0.000012)
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
     Swag.require(decoded.count == signal.count)
-    var cross        = 0.0'f64
-    var sourcePower  = 0.0'f64
-    var decodedPower = 0.0'f64
+    var cross        = 0.0_f64
+    var sourcePower  = 0.0_f64
+    var decodedPower = 0.0_f64
     for frame in 2_048 until 8_192
     {
         let source = cast(f64, signal[frame])

@@ -2,10 +2,10 @@
 
 using Core, Core.Math
 
-private const ScanTileSide    = 1024
+private const ScanTileSide = 1024
 
-private const ScanBandSize    = 64'u64
-private const ScanBucketCount = 128'u64
+private const ScanBandSize    = 64_u64
+private const ScanBucketCount = 128_u64
 
 private struct ScanBand
 {
@@ -40,15 +40,15 @@ private impl ScanBand
 private struct ScanBucket
 {
     bounds:  ScanBand
-    indices: Array'u32
+    indices: Array!{u32}
 }
 
 // A dense solid fill keeps its authored contours and evaluates coverage at the device scale.
 struct ScanFill
 {
     bounds:          Rectangle
-    bands:           Array'ScanBand
-    buckets:         Array'ScanBucket
+    bands:           Array!{ScanBand}
+    buckets:         Array!{ScanBucket}
     measuredBuckets: bool
     preparedScale:   f32
 
@@ -74,10 +74,14 @@ impl ScanFill
         for path, index in paths.paths
         {
             let bounds = path.controlBounds()
-            if not index do
+            if not index
+            {
                 .bounds = bounds
-            else do
+            }
+            else
+            {
                 .bounds.expandToInclude(bounds)
+            }
 
             let lastY = bounds.bottom()
             band.bounded = band.bounded and Math.isFinite(bounds.y) and Math.isFinite(lastY)
@@ -92,11 +96,16 @@ impl ScanFill
 
         // Contours scattered through every band still need the original straight pass.
         let extent = cast(f64, .bounds.height)
-        var span   = 0.0'f64
-        for &current in .bands do
+        var span   = 0.0_f64
+        for &current in .bands
+        {
             span += current.bounded ? cast(f64, current.maxY) - current.minY : extent
-        if not Math.isFinite(extent) or span >= extent * cast(f64, .bands.count) * 0.25 do
+        }
+
+        if not Math.isFinite(extent) or span >= extent * cast(f64, .bands.count) * 0.25
+        {
             .bands.free()
+        }
     }
 
     // Wide authored bands offer little culling when contours were emitted out of spatial order.
@@ -109,23 +118,27 @@ impl ScanFill
         if count < ScanBandSize * 8 or
            count > Swag.U32.Max or
            not Math.isFinite(extent) or
-           extent <= 0 do
+           extent <= 0
+        {
             return
+        }
 
         let origin  = cast(f64, .bounds.y)
         let density = cast(f64, ScanBucketCount) / extent
-        var buckets: Array'ScanBucket
+        var buckets: Array!{ScanBucket}
         buckets.resize(ScanBucketCount)
-        var occupied = 0'u64
+        var occupied = 0_u64
         for path, index in paths.paths
         {
             let bounds = path.controlBounds()
             let last   = bounds.bottom()
-            if not Math.isFinite(bounds.y) or not Math.isFinite(last) do
+            if not Math.isFinite(bounds.y) or not Math.isFinite(last)
+            {
                 return
+            }
 
             let middle = (cast(f64, bounds.y) + last) * 0.5
-            let key    = cast(u64, Math.clamp((middle - origin) * density, 0.0'f64, cast(f64, ScanBucketCount - 1)))
+            let key    = cast(u64, Math.clamp((middle - origin) * density, 0.0_f64, cast(f64, ScanBucketCount - 1)))
             let bucket = &buckets[key]
             let low    = Math.min(bounds.y, last)
             let high   = Math.max(bounds.y, last)
@@ -143,42 +156,63 @@ impl ScanFill
             bucket.indices.add(cast(u32, index))
         }
 
-        var span = 0.0'f64
-        for &bucket in buckets where bucket.indices.count do
+        var span = 0.0_f64
+        for &bucket in buckets where bucket.indices.count
+        {
             span += cast(f64, bucket.bounds.maxY) - bucket.bounds.minY
-        if occupied > 1 and span < extent * cast(f64, occupied) * 0.25 do
+        }
+
+        if occupied > 1 and span < extent * cast(f64, occupied) * 0.25
+        {
             .buckets = #move buckets
+        }
     }
 
     // Records a texture whose pixel grid is aligned with the destination's device pixels.
     mtd paint(painter: *Painter, paths: *LinePathList, color: Color, evenOdd: bool)
     {
+        if painter.recordScanFill(paths, color, evenOdd ? .EvenOdd : .NonZero)
+        {
+            return
+        }
+
         let transform = painter.transform()
         let density   = painter.contentScale()
         let target    = painter.recordingTargetSize()
         let surface   = Rectangle{0, 0, cast(f32, target.width) / density, cast(f32, target.height) / density}
         var area      = transform.transformBounds(.bounds)
         area.intersect(surface)
-        if painter.hasClippingRect() do
+        if painter.hasClippingRect()
+        {
             area.intersect(painter.clippingRect())
-        if area.isEmpty() do
+        }
+
+        if area.isEmpty()
+        {
             return
+        }
 
         let left   = Math.floor(area.x * density)
         let top    = Math.floor(area.y * density)
         let right  = Math.ceil(area.right() * density)
         let bottom = Math.ceil(area.bottom() * density)
-        if not Math.isFinite(left) or not Math.isFinite(top) or
-           not Math.isFinite(right) or not Math.isFinite(bottom) do
+        if not Math.isFinite(left) or
+           not Math.isFinite(top) or
+           not Math.isFinite(right) or
+           not Math.isFinite(bottom)
+        {
             return
+        }
 
         let windowHeight  = bottom - top
         let fitsInOneTile = right - left <= ScanTileSide and windowHeight <= ScanTileSide
         if .bands.isEmpty() and
            not .measuredBuckets and
            transform.m12 == 0 and
-           (windowHeight > ScanTileSide or windowHeight * 2 < .bounds.height * Math.abs(transform.m22) * density) do
+           (windowHeight > ScanTileSide or windowHeight * 2 < .bounds.height * Math.abs(transform.m22) * density)
+        {
             .measureBuckets(paths)
+        }
 
         var scratch: ScanScratch
         var y = top
@@ -188,10 +222,16 @@ impl ScanFill
             while x < right
             {
                 let tile = Rectangle{x, y, Math.min(right - x, ScanTileSide), Math.min(bottom - y, ScanTileSide)}
-                let sameTransform = transform.m11 == .lastTransform.m11 and transform.m12 == .lastTransform.m12 and
-                                    transform.m21 == .lastTransform.m21 and transform.m22 == .lastTransform.m22 and
-                                    transform.tx == .lastTransform.tx and transform.ty == .lastTransform.ty
-                if not sameTransform or density != .lastDensity or tile != .lastTile or not .lastImage.isValid()
+                let sameTransform = transform.m11 == .lastTransform.m11 and
+                                    transform.m12 == .lastTransform.m12 and
+                                    transform.m21 == .lastTransform.m21 and
+                                    transform.m22 == .lastTransform.m22 and
+                                    transform.tx == .lastTransform.tx and
+                                    transform.ty == .lastTransform.ty
+                if not sameTransform or
+                   density != .lastDensity or
+                   tile != .lastTile or
+                   not .lastImage.isValid()
                 {
                     .lastImage = Image.create(cast(s32, tile.width), cast(s32, tile.height), .RGBA8)
                     .writeCoverage(paths, transform, density, tile, color, evenOdd, &scratch, &.lastImage, false)
@@ -211,21 +251,27 @@ impl ScanFill
             y += Math.min(bottom - y, ScanTileSide)
         }
 
-        if not fitsInOneTile do
+        if not fitsInOneTile
+        {
             .lastImage = {}
+        }
     }
 
     // Blends one solid fill into a bitmap that contains only ink of this color.
     mtd blend(paths: *LinePathList, transform: Transform2, result: *Image, scratch: *ScanScratch, tileSide: s32, color: Color, evenOdd: bool)
     {
-        if not color.a do
+        if not color.a
+        {
             return
+        }
 
         let bounds = transform.transformBounds(.bounds)
         var area   = bounds
         area.intersect({0, 0, cast(f32, result.width), cast(f32, result.height)})
-        if area.isEmpty() do
+        if area.isEmpty()
+        {
             return
+        }
 
         let left   = Math.floor(area.x)
         let top    = Math.floor(area.y)
@@ -234,15 +280,66 @@ impl ScanFill
         if not Math.isFinite(left) or
            not Math.isFinite(top) or
            not Math.isFinite(right) or
-           not Math.isFinite(bottom) do
+           not Math.isFinite(bottom)
+        {
             return
+        }
 
-        if .bands.isEmpty() and not .measuredBuckets and bottom - top > tileSide do
+        if .bands.isEmpty() and not .measuredBuckets and bottom - top > tileSide
+        {
             .measureBuckets(paths)
+        }
 
         // Keep lazy, tile-local preparation when the destination crops away rows.
-        if area.height + 1 >= bounds.height do
-            .prepareContours(paths, Math.max(transform.m11, 1.0))
+        let scale = Math.max(transform.m11, 1.0)
+        if area.height + 1 >= bounds.height
+        {
+            .prepareContours(paths, scale)
+        }
+
+        // A small remainder tile leaves the main tile's row bands as the better split.
+        let parallelTileSpan = cast(f32, tileSide) * 1.5
+        if .preparedScale >= scale and
+           Swag.workerCount() > 1 and
+           (right - left >= parallelTileSpan or bottom - top >= parallelTileSpan) and
+           right <= 16_777_216 and
+           bottom <= 16_777_216
+        {
+            let tolerance = LinePath.getFlattenDistance(.Normal) / scale
+            var cached    = true
+            for path in paths.paths where not path.isPolyOnly
+            {
+                if path.isDirty or not path.isFlatten or path.flattenTolerance > tolerance
+                {
+                    cached = false
+                    break
+                }
+            }
+
+            if cached
+            {
+                let columns = cast(u64, Math.ceil((right - left) / cast(f32, tileSide)))
+                let rows    = cast(u64, Math.ceil((bottom - top) / cast(f32, tileSide)))
+                let count   = columns * rows
+                let jobs    = Math.min(4_u64, cast(u64, Swag.workerCount()), count)
+                var state   = {scan: me, paths: paths, transform: transform, result: result,
+                               left: left, top: top, right: right, bottom: bottom, tileSide: cast(f32, tileSide),
+                               columns: columns, count: count, jobs: jobs, color: color, evenOdd: evenOdd}
+                parallel for |&state| job in jobs
+                {
+                    var local: ScanScratch
+                    for var index = job; index < state.count; index += state.jobs
+                    {
+                        let x    = state.left + cast(f32, index % state.columns) * state.tileSide
+                        let y    = state.top + cast(f32, index / state.columns) * state.tileSide
+                        let tile = Rectangle{x, y, Math.min(state.right - x, state.tileSide), Math.min(state.bottom - y, state.tileSide)}
+                        state.scan.writeCoverage(state.paths, state.transform, 1, tile, state.color, state.evenOdd, &local, state.result, true, true)
+                    }
+                }
+
+                return
+            }
+        }
 
         var y = top
         while y < bottom
@@ -258,6 +355,11 @@ impl ScanFill
 
             y += height
         }
+    }
+
+    mtd const blendPreparedRows(paths: *LinePathList, transform: Transform2, result: *Image, scratch: *ScanScratch, tile: Rectangle, color: Color, evenOdd: bool, first, end: s32)
+    {
+        .writeCoverage(paths, transform, 1, tile, color, evenOdd, scratch, result, true, true, first, end)
     }
 }
 
@@ -286,17 +388,49 @@ private impl ScanRows
         let bottomRow    = .bottomRow
         let evenOdd      = .evenOdd
         let composite    = .composite
+        let wideOutput   = image.width > 2048
         for row in firstRow until lastRow
         {
             let {values: coverage, first, end} = scratch.resolveRow(crossings, row, width, evenOdd, not composite)
             let pixels = image.pixels.storage() + cast(u64, bottomRow - row) * image.rowStride + columnOffset
             if composite
             {
-                let output = cast([*] u32, pixels)
-                for column in first until end
+                let output    = cast([*] u32, pixels)
+                let full      = Math.Simd.splat(255_u32)
+                let zero      = Math.Simd.splat(0_u32)
+                let rgb       = Math.Simd.splat(ink)
+                let opacity   = Math.Simd.splat(cast(f32, color.a))
+                let samples   = Math.Simd.splat(cast(f32, VerticalSamples))
+                var laneStart = first
+                while wideOutput and end - laneStart >= 4
                 {
-                    if coverage[column] <= 0 do
+                    let values = Math.Simd.load(coverage + laneStart)
+                    let scaled = Math.min(values, samples) / VerticalSamples * opacity
+                    let alpha  = roundScanAlpha4(scaled)
+                    let target = output + laneStart
+                    if Math.Simd.allTrue(alpha == full)
+                    {
+                        Math.Simd.store(target, rgb | 0xFF00_0000_u32)
+                    }
+                    else if Math.Simd.anyTrue(alpha != zero)
+                    {
+                        let previous = Math.Simd.load(target)
+
+                        // Add one to the rounded numerator for exact division by 255.
+                        let product  = (previous >> 24) * (full - alpha) + 128_u32
+                        let combined = alpha + ((product + (product >> 8)) >> 8)
+                        Math.Simd.store(target, Math.Simd.select(alpha != zero, rgb | (combined << 24), previous))
+                    }
+
+                    laneStart += 4
+                }
+
+                for column in laneStart until end
+                {
+                    if coverage[column] <= 0
+                    {
                         continue
+                    }
 
                     let alpha = coverage[column] >= VerticalSamples ? cast(u32, color.a) :
                                 cast(u32, Math.round(coverage[column] / VerticalSamples * color.a))
@@ -304,7 +438,7 @@ private impl ScanRows
                     {
                         output[column] = ink | 0xFF00_0000
                     }
-                    elif alpha
+                    else if alpha
                     {
                         let previous = output[column] >> 24
                         let combined = alpha + (previous * (255 - alpha) + 127) / 255
@@ -333,30 +467,43 @@ private impl ScanFill
     {
         const MinContours = 1024
         let count = paths.paths.count
-        if count < MinContours or scale <= .preparedScale do
+        if count < MinContours or scale <= .preparedScale
+        {
             return
+        }
+
         let workers = Swag.workerCount()
-        if workers < 2 do
+        if workers < 2
+        {
             return
+        }
+
         let allocator = Swag.getContext().allocator
         let allocatorType: typeinfo = Swag.Allocator
-        if not allocator or Swag.kindOf(allocator) != allocatorType do
+        if not allocator or Swag.kindOf(allocator) != allocatorType
+        {
             return
+        }
 
         // Each job owns its paths. Use the caller's thread-safe allocator for new
         // buffers and leave contours with other allocators to the scan thread.
         let contours = paths.paths.toSlice()
-        let batch    = Math.max(256'u64, count / (cast(u64, workers) * 4))
+        let batch    = Math.max(256_u64, count / (cast(u64, workers) * 4))
         parallel for |contours, scale, allocator, batch, count| job in (count - 1) / batch + 1
         {
             let first = job * batch
             for index in first until Math.min(first + batch, count)
             {
                 let path = contours[index]
-                if not path.polygon.points.allocator do
+                if not path.polygon.points.allocator
+                {
                     path.polygon.points.allocator = allocator
-                if path.polygon.points.allocator == allocator do
+                }
+
+                if path.polygon.points.allocator == allocator
+                {
                     path.flattenPoints(.Normal, scale)
+                }
             }
         }
 
@@ -365,17 +512,17 @@ private impl ScanFill
 
     // Fills spans from the winding of all contours. Horizontal coverage is integrated
     // across each pixel and vertical coverage sampled at four evenly spaced positions.
-    mtd const writeCoverage(paths: *LinePathList, transform: Transform2, density: f32, tile: Rectangle, color: Color, evenOdd: bool, scratch: *ScanScratch, image: *Image, composite: bool)
+    mtd const writeCoverage(paths: *LinePathList, transform: Transform2, density: f32, tile: Rectangle, color: Color, evenOdd: bool, scratch: *ScanScratch, image: *Image, composite: bool, prepared = false, firstRow = 0_s32, endRow = -1_s32)
     {
-        let width     = cast(s32, tile.width)
-        let height    = cast(s32, tile.height)
-        let crossings = scratch.startRows(height)
+        let width        = cast(s32, tile.width)
+        let height       = cast(s32, tile.height)
+        let crossings    = scratch.startRows(height)
         let origin       = Vector2{tile.x, tile.y}
         let scale        = transform.axisScale()
         let flattenScale = Math.max(scale.x, scale.y) * density
         let useBands     = .bands.count and transform.m12 == 0
         let useBuckets   = .buckets.count and transform.m12 == 0
-        let bandCount    = useBuckets ? .buckets.count : (useBands ? .bands.count : 1'u64)
+        let bandCount    = useBuckets ? .buckets.count : (useBands ? .bands.count : 1_u64)
         let axisAligned  = transform.m12 == 0 and transform.m21 == 0
         let uniform      = axisAligned and
                            density == 1 and
@@ -389,21 +536,27 @@ private impl ScanFill
         let useRows = axisAligned and tile.height < .bounds.height * Math.abs(transform.m22) * density
         for band in bandCount
         {
-            var first = 0'u64
+            var first = 0_u64
             var end   = paths.paths.count
             var indices: const [..] u32 = []
             if useBuckets
             {
                 let bucket = &.buckets[band]
-                if bucket.indices.isEmpty() or bucket.bounds.misses(transform, density, tile) do
+                if bucket.indices.isEmpty() or bucket.bounds.misses(transform, density, tile)
+                {
                     continue
+                }
+
                 indices = bucket.indices.toSlice()
                 end     = indices.count
             }
-            elif useBands
+            else if useBands
             {
-                if .bands[band].misses(transform, density, tile) do
+                if .bands[band].misses(transform, density, tile)
+                {
                     continue
+                }
+
                 first = band * ScanBandSize
                 end   = first + Math.min(ScanBandSize, end - first)
             }
@@ -412,7 +565,10 @@ private impl ScanFill
             {
                 let path = paths.paths[useBuckets ? cast(u64, indices[index]) : index]
 
-                path.flattenPoints(.Normal, flattenScale)
+                if not prepared
+                {
+                    path.flattenPoints(.Normal, flattenScale)
+                }
 
                 // A closed contour outside either tile axis contributes no visible span.
                 if (useColumns and scanIntervalMisses(path.minBounds.x, path.maxBounds.x, transform.m11, transform.tx, density, tile.x, tile.width)) or
@@ -425,8 +581,10 @@ private impl ScanFill
                         break
                     }
 
-                    if finite do
+                    if finite
+                    {
                         continue
+                    }
                 }
 
                 addScanContour(crossings, path.polygon.points.toSlice(), &transform, density, origin, uniform, tile.width)
@@ -435,12 +593,13 @@ private impl ScanFill
 
         var state = ScanRows{crossings, image, width,
                              composite ? image.height - 1 - cast(s32, tile.y) : height - 1,
-                             composite ? cast(u64, tile.x) * 4 : 0'u64, color, evenOdd, composite}
+                             composite ? cast(u64, tile.x) * 4 : 0_u64, color, evenOdd, composite}
 
         // A band owns its crossing lists and the matching destination rows.
         // Join before the next tile or fill can composite over this one.
         const BandRows = 64
         if composite and
+           not prepared and
            paths.paths.count >= ScanBandSize * 2 and
            height > BandRows and
            cast(u64, width) * cast(u64, height) >= 64 * 1024 and
@@ -457,6 +616,6 @@ private impl ScanFill
             return
         }
 
-        state.resolve(scratch, 0, height)
+        state.resolve(scratch, firstRow, endRow < 0 ? height : endRow)
     }
 }

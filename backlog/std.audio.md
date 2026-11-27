@@ -138,12 +138,20 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 
 ### std.audio.015 — AAC recording still needs precise timing and rate control
 
-- Evidence: `Wav.Writer` and `Flac.Writer` stream resumable PCM16 recordings. `Aac.Encoder`
+- Evidence: `Wav.Writer` and `Flac.Writer` stream resumable PCM16 recordings.
+  The FLAC writer preserves encoded bytes with an exact Rice search and buffered bit writes.
+  In the ten-second cases it takes 5.82 ms for 48 kHz mono and 32.70 ms for 5.1.
+  Second-order fixed prediction reduces the structured files by a further 8.2–13.5%.
+  Partitioned Rice reduces the 5.1 file to 2,635,460 bytes and restores the source PCM.
+  Up to sixteen partitions and third- or fourth-order fixed prediction reduce the 5.1 file
+  further to 2,344,299 bytes at exact PCM, below both native level-0 reference outputs.
+  `Aac.Encoder`
   now encodes mono/stereo 44.1/48 kHz PCM16 into AAC-LC in pure Swag, with full-band and voice
   profiles; `Aac.StreamEncoder` accepts arbitrary input chunks, reports packet sample times,
   pads the last block and drains the transform. `Aac.SilenceEncoder` covers source gaps.
-  The module and FFmpeg decode non-silent AAC inside fragmented MP4. In Release, full-band stereo
-  takes about 3.9 ms per 1024-frame packet and an encoder instance needs an 8 MiB basis table.
+  The module and FFmpeg decode non-silent AAC inside fragmented MP4. The software encoder uses an
+  FFT-backed MDCT. Native Release encodes ten seconds of 48 kHz stereo PCM16 in about 9 ms on
+  the generated fixture. Its output is byte-identical to the previous encoder.
   Bounded spectral gains per band now retain a 12 kHz component 43.5 dB below a 440 Hz tone
   in the same channel: FFmpeg decodes amplitude 160.47 for an input of 160, instead of 0.01
   before the change. Consecutive AAC sections with the same codebook now share their syntax.
@@ -166,17 +174,20 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   music-only decode. The extra pre-attack RMS is 24.75 dB below the music alone;
   pre-attack energy extends at least 1,536 frames before the peak. Subtraction also
   reflects context-dependent quantization.
-  The encoder currently uses only long AAC windows; transient pre-echo needs short-window
-  coding and an A/B quality test before a regression bound is chosen.
+  The optional `StreamEncoder.createAdaptive` uses a 1024-frame lookahead and switches to
+  short windows around detected attacks. All nine isolated attack phases decode with zero
+  PCM16 amplitude from 1536 to 256 frames before the peak. Mixed-signal pre-attack metrics
+  remain dependent on the background and quantization.
+  The optional `StreamEncoder.createRateLimited` enforces the AAC payload ceiling over
+  each coded prefix. The regular and adaptive outputs are byte-identical across the measured
+  inputs. At about 126 kb/s on FileSamples, FDK waveform SNR is 1.90 dB higher.
   Tests cover irregular input chunks and packet boundaries. The decoded AAC stream has 1024
   priming frames; the MP4 presentation edit reports the exact audible final frame count to
   `Video.Reader`, while FFmpeg currently ignores edits in fragmented MP4 and exposes at most
   1023 padding frames at the end.
-- Next: add bounded target bitrate and transient coding with AAC LONG_START, EIGHT_SHORT
-  and LONG_STOP window transitions. Compare pre-attack energy on isolated and music-backed
-  impulses against the measured long-window baseline before setting a quality threshold.
+- Next: refine capped AAC rate–distortion and mixed-signal pre-attack handling.
   Test sample-accurate final trimming in other reference players while keeping the
-  resumable fragmented prefix and an implementation independent of external codec libraries.
+  resumable fragmented prefix and native codec implementation.
 - Done when: a captured non-silent recording plays in the module and reference players with
   video/audio sync within one video frame, including its start, end, source gaps and long runs.
 - Related: app.capture.013, std.video.016, platform.portability.099
@@ -198,13 +209,16 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   a stream slaved to a clock drifting 100 ppm stays within one millisecond over four hours.
 - Related: std.audio.011, app.capture.013
 
-### std.audio.017 — Compressed audio decode still trails native FFmpeg on FileSamples
+### std.audio.017 — Single-core audio decode gaps remain on selected fixtures
 
-- Evidence: native Linux Release timings cover opening and materializing the first
-  ten seconds of PCM16. AAC, DTS, FLAC, OGA and Vorbis lead at one core.
-  AAC and MP3 lead with four cores. AC-3, MP3 and Opus still trail at one core.
-- Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
-  AAC spectral decoding, and Opus CELT allocation.
+- Evidence: native Linux Release compares opening and materializing ten seconds
+  of PCM16 on nine FileSamples and 38 generated inputs. Against FFmpeg 9.1,
+  Swag has the lower median on 9 FileSamples inputs on CPU 0,
+  8 on CPU 1 and 9 on four cores. The corpus exposes
+  the remaining channel-layout and single-core issues. libsndfile leads on
+  FileSamples WAV decoding in the independent library comparison.
+- Next: reduce one-core Dolby and generated AAC decode time and the PCM WAV
+  materialization gap against libsndfile.
 - Done when: Swag opens and materializes the same PCM16 windows faster than native
   FFmpeg on all eight compressed inputs on one core, with format validation and
   PCM tolerances intact. Repeat the four-core comparison to track scaling.

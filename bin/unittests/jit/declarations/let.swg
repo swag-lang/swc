@@ -147,7 +147,7 @@ enum IfElseKind: u16
         }
         else
         {
-            let a: u8  = 7'u8
+            let a: u8  = 7_u8
             let b: u16 = cast(u16, (20 + 5))
             return cast(s32, a) + cast(s32, b)
         }
@@ -165,12 +165,12 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let v: f32 = (1.25'f32 + 0.75'f32) * 10.0'f32
+            let v: f32 = (1.25_f32 + 0.75_f32) * 10.0_f32
             return cast(s32, v)
         }
         else
         {
-            let v: f64 = cast(f64, (3 + 2)) * 4.0'f64
+            let v: f64 = cast(f64, (3 + 2)) * 4.0_f64
             return cast(s32, v)
         }
     }
@@ -237,8 +237,8 @@ enum IfElseKind: u16
 
     const V0 = #run stringInit(true)
     const V1 = #run stringInit(false)
-    #assert(V0 == 177'u32)
-    #assert(V1 == 187'u32)
+    #assert(V0 == 177_u32)
+    #assert(V1 == 187_u32)
 }
 
 #test
@@ -327,7 +327,7 @@ enum IfElseKind: u16
         }
         else
         {
-            let p: *void = cast(*void, 0x12'u64)
+            let p: *void = cast(*void, 0x12_u64)
             if p != null
             {
                 return 2
@@ -392,12 +392,12 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let v: s8 = -12's8
+            let v: s8 = -12_s8
             return v
         }
         else
         {
-            let v: s8 = 45's8
+            let v: s8 = 45_s8
             return v
         }
     }
@@ -406,12 +406,12 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let v: s16 = -1234's16
+            let v: s16 = -1234_s16
             return v
         }
         else
         {
-            let v: s16 = 2345's16
+            let v: s16 = 2345_s16
             return v
         }
     }
@@ -434,12 +434,12 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let v: s64 = -5000000000's64
+            let v: s64 = -5000000000_s64
             return v
         }
         else
         {
-            let v: s64 = 7000000000's64
+            let v: s64 = 7000000000_s64
             return v
         }
     }
@@ -448,12 +448,12 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let v: u8 = 12'u8
+            let v: u8 = 12_u8
             return v
         }
         else
         {
-            let v: u8 = 34'u8
+            let v: u8 = 34_u8
             return v
         }
     }
@@ -462,12 +462,12 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let v: u16 = 1234'u16
+            let v: u16 = 1234_u16
             return v
         }
         else
         {
-            let v: u16 = 4321'u16
+            let v: u16 = 4321_u16
             return v
         }
     }
@@ -476,12 +476,12 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let v: u32 = 123456'u32
+            let v: u32 = 123456_u32
             return v
         }
         else
         {
-            let v: u32 = 654321'u32
+            let v: u32 = 654321_u32
             return v
         }
     }
@@ -490,12 +490,12 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let v: u64 = 5000000000'u64
+            let v: u64 = 5000000000_u64
             return v
         }
         else
         {
-            let v: u64 = 7000000000'u64
+            let v: u64 = 7000000000_u64
             return v
         }
     }
@@ -504,12 +504,12 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let v: f32 = 1.25'f32
+            let v: f32 = 1.25_f32
             return v
         }
         else
         {
-            let v: f32 = 2.5'f32
+            let v: f32 = 2.5_f32
             return v
         }
     }
@@ -518,12 +518,12 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let v: f64 = 1.5'f64
+            let v: f64 = 1.5_f64
             return v
         }
         else
         {
-            let v: f64 = 3.25'f64
+            let v: f64 = 3.25_f64
             return v
         }
     }
@@ -621,7 +621,7 @@ enum IfElseKind: u16
         }
         else
         {
-            let v: *void = cast(*void, 0x34'u64)
+            let v: *void = cast(*void, 0x34_u64)
             return v
         }
     }
@@ -637,15 +637,15 @@ enum IfElseKind: u16
     const S81 = #run matrixS8(false)
     #assert(#typeof(S80) == s8)
     #assert(#typeof(S81) == s8)
-    #assert(S80 == -12's8)
-    #assert(S81 == 45's8)
+    #assert(S80 == -12_s8)
+    #assert(S81 == 45_s8)
 
     const S160 = #run matrixS16(true)
     const S161 = #run matrixS16(false)
     #assert(#typeof(S160) == s16)
     #assert(#typeof(S161) == s16)
-    #assert(S160 == -1234's16)
-    #assert(S161 == 2345's16)
+    #assert(S160 == -1234_s16)
+    #assert(S161 == 2345_s16)
 
     const S320 = #run matrixS32(true)
     const S321 = #run matrixS32(false)
@@ -658,50 +658,50 @@ enum IfElseKind: u16
     const S641 = #run matrixS64(false)
     #assert(#typeof(S640) == s64)
     #assert(#typeof(S641) == s64)
-    #assert(S640 == -5000000000's64)
-    #assert(S641 == 7000000000's64)
+    #assert(S640 == -5000000000_s64)
+    #assert(S641 == 7000000000_s64)
 
     const U80 = #run matrixU8(true)
     const U81 = #run matrixU8(false)
     #assert(#typeof(U80) == u8)
     #assert(#typeof(U81) == u8)
-    #assert(U80 == 12'u8)
-    #assert(U81 == 34'u8)
+    #assert(U80 == 12_u8)
+    #assert(U81 == 34_u8)
 
     const U160 = #run matrixU16(true)
     const U161 = #run matrixU16(false)
     #assert(#typeof(U160) == u16)
     #assert(#typeof(U161) == u16)
-    #assert(U160 == 1234'u16)
-    #assert(U161 == 4321'u16)
+    #assert(U160 == 1234_u16)
+    #assert(U161 == 4321_u16)
 
     const U320 = #run matrixU32(true)
     const U321 = #run matrixU32(false)
     #assert(#typeof(U320) == u32)
     #assert(#typeof(U321) == u32)
-    #assert(U320 == 123456'u32)
-    #assert(U321 == 654321'u32)
+    #assert(U320 == 123456_u32)
+    #assert(U321 == 654321_u32)
 
     const U640 = #run matrixU64(true)
     const U641 = #run matrixU64(false)
     #assert(#typeof(U640) == u64)
     #assert(#typeof(U641) == u64)
-    #assert(U640 == 5000000000'u64)
-    #assert(U641 == 7000000000'u64)
+    #assert(U640 == 5000000000_u64)
+    #assert(U641 == 7000000000_u64)
 
     const F320 = #run matrixF32(true)
     const F321 = #run matrixF32(false)
     #assert(#typeof(F320) == f32)
     #assert(#typeof(F321) == f32)
-    #assert(F320 == 1.25'f32)
-    #assert(F321 == 2.5'f32)
+    #assert(F320 == 1.25_f32)
+    #assert(F321 == 2.5_f32)
 
     const F640 = #run matrixF64(true)
     const F641 = #run matrixF64(false)
     #assert(#typeof(F640) == f64)
     #assert(#typeof(F641) == f64)
-    #assert(F640 == 1.5'f64)
-    #assert(F641 == 3.25'f64)
+    #assert(F640 == 1.5_f64)
+    #assert(F641 == 3.25_f64)
 
     const R0 = #run matrixRune(true)
     const R1 = #run matrixRune(false)
@@ -728,8 +728,8 @@ enum IfElseKind: u16
     const E1 = #run matrixEnum(false)
     #assert(#typeof(E0) == IfElseKind)
     #assert(#typeof(E1) == IfElseKind)
-    #assert(cast(u16, E0) == 2'u16)
-    #assert(cast(u16, E1) == 5'u16)
+    #assert(cast(u16, E0) == 2_u16)
+    #assert(cast(u16, E1) == 5_u16)
 
     const P0 = #run matrixStruct(true)
     const P1 = #run matrixStruct(false)

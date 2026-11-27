@@ -49,17 +49,23 @@ impl FontFamily
     // selects the closest installed slant, width, and weight using [[Pixel.FontCatalog.findFace]].
     // Fontconfig aliases are not resolved. Later filesystem changes do not refresh this snapshot.
     // Without [[Pixel.FontFamily.hasSystemFontAccess]] the array is empty.
-    public func enumerateSystemFonts()->Array'SystemFontFamilyInfo
+    public func enumerateSystemFonts()->Array!{SystemFontFamilyInfo}
     {
-        if not hasSystemFontAccess() do
+        if not hasSystemFontAccess()
+        {
             return {}
+        }
+
         Sync.scopedLock(&g_LinuxFontFallbackLock)
         ensureSystemFontCatalog()
         var result: #returntype
         for &face in g_LinuxFontFallback.catalog.toSlice()
         {
-            if result.isEmpty() or Utf8.compare(result.back().name.toString(), face.metadata.typographicFamilyName.toString(), .UnicodeNoCase) != 0 do
+            if result.isEmpty() or Utf8.compare(result.back().name.toString(), face.metadata.typographicFamilyName.toString(), .UnicodeNoCase) != 0
+            {
                 result.add(SystemFontFamilyInfo{name: face.metadata.typographicFamilyName})
+            }
+
             let family = result.backPtr()
             for i in FontFamilyStyle.count
             {
@@ -83,8 +89,11 @@ impl FontFamily
     // [[Pixel.FontFamily.hasSystemFontAccess]]; otherwise each slot owns its closest installed face.
     public func findSystemFont(fontFamily: string)->SystemFontFamilyInfo
     {
-        if not hasSystemFontAccess() do
+        if not hasSystemFontAccess()
+        {
             return {}
+        }
+
         Sync.scopedLock(&g_LinuxFontFallbackLock)
         ensureSystemFontCatalog()
         var result: #returntype
@@ -92,8 +101,11 @@ impl FontFamily
         {
             if let face = g_LinuxFontFallback.catalog.findFace(fontFamily, FontFamilyStyleValues[i])
             {
-                if result.name.isEmpty() do
+                if result.name.isEmpty()
+                {
                     result.name = face.metadata.typographicFamilyName
+                }
+
                 result.faces[i] = SystemFontFaceInfo{face.metadata.typographicStyleName, face[]}
             }
         }
@@ -109,16 +121,22 @@ impl FontFamily
     // the returned pointer; it remains valid until module shutdown. Invalid style values fail.
     public func createTypeFace(fontFamily: SystemFontFamilyInfo, style: FontFamilyStyle)->*TypeFace? fail
     {
-        if cast(u64, style) >= FontFamilyStyle.count do
+        if cast(u64, style) >= FontFamilyStyle.count
+        {
             fail Errors.BadParameterError{}
+        }
+
         var selected = fontFamily.faces[cast(u64, style)].face
         if selected.path.isEmpty()
         {
-            var score = 0xFFFFFFFF'u32
+            var score = 0xFFFFFFFF_u32
             for &slot in fontFamily.faces
             {
-                if slot.face.path.isEmpty() do
+                if slot.face.path.isEmpty()
+                {
                     continue
+                }
+
                 let candidate = fontCatalogStyleScore(&slot.face, style)
                 if candidate < score
                 {
@@ -128,8 +146,11 @@ impl FontFamily
             }
         }
 
-        if selected.path.isEmpty() do
+        if selected.path.isEmpty()
+        {
             return null
+        }
+
         return try TypeFace.loadStyledAt(selected.path.toString(), selected.faceIndex, style)
     }
 
@@ -138,12 +159,15 @@ impl FontFamily
         Sync.scopedLock(&g_LinuxFontFallbackLock)
         ensureSystemFontCatalog()
         let face = g_LinuxFontFallback.catalog.findFace(fontFamily, style)
-        if not face do
+        if not face
+        {
             return null
+        }
+
         return try TypeFace.loadStyledAt(face.path.toString(), face.faceIndex, style)
     }
 
-    internal func systemFontNamesNative()->Array'String
+    internal func systemFontNamesNative()->Array!{String}
     {
         Sync.scopedLock(&g_LinuxFontFallbackLock)
         ensureSystemFontCatalog()
@@ -152,8 +176,11 @@ impl FontFamily
 
     internal func findSystemFallback(c: rune, bold, italic: bool)->*TypeFace?
     {
-        if not isFontFallbackRune(c) or not hasSystemFontAccess() do
+        if not isFontFallbackRune(c) or not hasSystemFontAccess()
+        {
             return null
+        }
+
         Sync.scopedLock(&g_LinuxFontFallbackLock)
         ensureSystemFontCatalog()
         let style = bold ? (italic ? FontFamilyStyle.BoldItalic : .Bold) : (italic ? FontFamilyStyle.Italic : .Regular)

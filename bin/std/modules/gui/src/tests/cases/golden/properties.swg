@@ -26,7 +26,7 @@ impl IPropertyEditor for PropAngleEditor
             // writer parses the leading number out of the free text.
             .sigCommitted += func|list, item, angle|(ed)
             {
-                angle.deg = cast(s32, (expect StrConv.toNum's64(ed.text())))
+                angle.deg = cast(s32, (expect StrConv.toNum!{s64}(ed.text())))
                 list.commitItemChange(item)
             }
         }
@@ -40,7 +40,7 @@ impl IPropertyEditor for PropAngleEditor
 
 #init
 {
-    Properties.registerEditor'(PropAngleEditor)()
+    Properties.registerEditor!{PropAngleEditor}()
 }
 
 // The property editor's options menu keeps its right-aligned trigger inside the popup outline.
@@ -48,13 +48,18 @@ func assertPropertyViewMenuAnchor(light: bool)
 {
     var host: Testing.HeadlessHost
     host.setup(520, 480)
-    if light do
+    if light
+    {
         host.theme.setLight()
-    else do
+    }
+    else
+    {
         host.theme.setDark()
+    }
+
     host.notify(.ThemeChanged)
 
-    let panel = Wnd.create'Wnd(&host.root, {36, 40, 440, 280})
+    let panel = Wnd.create!{Wnd}(&host.root, {36, 40, 440, 280})
     let ctrl  = PropertiesCtrl.create(panel, flags: .SearchBar)
     ctrl.dockStyle = .Center
     host.root.applyLayout()
@@ -63,8 +68,11 @@ func assertPropertyViewMenuAnchor(light: bool)
     var checked: bool
     host.app.sigFrame += func|host = &host, ctrl, light, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         let popup  = unwrap host.capturedPopupMenu()
         let anchor = ctrl.viewButton.surfaceRect()
         let body   = popup.getPopupBodyRect()
@@ -117,8 +125,11 @@ func assertPropertyPresentationGolden(kind: PropertiesKind, name: string, light:
     let ctrl = PropertiesCtrl.create(&host.root, kind: kind, flags: .SearchBar)
     ctrl.dockStyle = .Center
     ctrl.properties.setEditorWidth(280)
-    if ctrl.properties.isGridLike() do
+    if ctrl.properties.isGridLike()
+    {
         ctrl.properties.setNameColumnWidth(150)
+    }
+
     ctrl.addStruct(data, "Inspector")
 
     host.root.applyLayout()
@@ -200,8 +211,11 @@ func assertPropertiesCtrlGolden(light: bool)
     var checked: bool
     host.app.sigFrame += func|host = &host, light, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         let popup = unwrap host.capturedPopupMenu()
         let image = host.render()
         Pixel.Testing.assertImageGolden(&image, light ? "properties.ctrl.paper" : "properties.ctrl.ink")

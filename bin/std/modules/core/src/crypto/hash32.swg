@@ -18,9 +18,9 @@ public interface IHash32
 #[ConstExpr, Safety(.All, false)]
 public func hashBytes32(buffer: const [..] u8?)->u32
 {
-    const Mix1  = 0x9E3779B97F4A7C15'u64
-    const Mix2  = 0xC2B2AE3D27D4EB4F'u64
-    const Final = 0xD6E8FEB86659FD93'u64
+    const Mix1  = 0x9E3779B97F4A7C15_u64
+    const Mix2  = 0xC2B2AE3D27D4EB4F_u64
+    const Final = 0xD6E8FEB86659FD93_u64
 
     let length = buffer.count
     var result = Mix1 ^ (length * Mix2)
@@ -30,7 +30,7 @@ public func hashBytes32(buffer: const [..] u8?)->u32
         let data = cast(const [*] u8, unwrap buffer.buffer)
         if length >= 8
         {
-            var offset = 0'u64
+            var offset = 0_u64
             while length - offset >= 8
             {
                 var chunk: u64
@@ -50,7 +50,7 @@ public func hashBytes32(buffer: const [..] u8?)->u32
                 result *= Mix2
             }
         }
-        elif length >= 4
+        else if length >= 4
         {
             var head: u32
             var tail: u32
@@ -86,44 +86,75 @@ public func hashBytes32(buffer: const [..] u8?)->u32
 #[ConstExpr, Safety(.All, false)]
 public func(T) hash32(value: T)->u32
 {
-    #static if Reflection.isString(T) do
+    #static if Reflection.isString(T)
+    {
         return hashBytes32(value orelse "")
-    elif Reflection.isStruct(T) and #defined(T.IHash32) do
+    }
+    else if Reflection.isStruct(T) and #defined(T.IHash32)
+    {
         #ast("return ", #typeof(T).fullname, ".IHash32.compute(value)")
-    elif Reflection.isStruct(T) and #defined(T.IHash64) do
+    }
+    else if Reflection.isStruct(T) and #defined(T.IHash64)
+    {
         #ast("return cast(u32, ", #typeof(T).fullname, ".IHash64.compute(value))")
-    elif Reflection.hasDynamicStorage(T) or containsContentString(T) do
+    }
+    else if Reflection.hasDynamicStorage(T) or containsContentString(T)
+    {
         return cast(u32, hashDynamicStorage(T, cast(const [*] u8, &value)))
-    elif Reflection.isStruct(T) and #sizeof(T) == 8 do
+    }
+    else if Reflection.isStruct(T) and #sizeof(T) == 8
+    {
         return cast(u32, murmur3(cast(const *u64, (&value))[]))
-    elif Reflection.isStruct(T) and #sizeof(T) == 4 do
+    }
+    else if Reflection.isStruct(T) and #sizeof(T) == 4
+    {
         return murmur3(cast(const *u32, (&value))[])
-    elif Reflection.isStruct(T) do
+    }
+    else if Reflection.isStruct(T)
+    {
         return hashBytes32(Swag.makeSlice(cast(const [*] u8, &value), #sizeof(T)))
-    elif Reflection.isFloat(T)
+    }
+    else if Reflection.isFloat(T)
     {
         // IEEE-754 positive and negative zero compare equal, so they must share a hash.
-        if value == 0 do
-            return murmur3(0'u32)
-        #static if #sizeof(T) == 8 do
+        if value == 0
+        {
+            return murmur3(0_u32)
+        }
+
+        #static if #sizeof(T) == 8
+        {
             return cast(u32, murmur3(cast #bit (u64, value)))
-        else do
+        }
+        else
+        {
             return murmur3(cast #bit (u32, value))
+        }
     }
-    elif Reflection.isInteger(T) and #sizeof(T) == 8
+    else if Reflection.isInteger(T) and #sizeof(T) == 8
     {
         let hashed = cast #bit (u64, value)
         let folded = cast(u32, hashed) ^ cast(u32, (hashed >> 32))
-        return folded * 0x9E3779B1'u32
+        return folded * 0x9E3779B1_u32
     }
-    elif Reflection.isInteger(T) and #sizeof(T) == 4 do
-        return cast #bit (u32, value) * 0x9E3779B1'u32
-    elif Reflection.isInteger(T) do
-        return cast(u32, value) * 0x9E3779B1'u32
-    elif #sizeof(T) == 8 do
+    else if Reflection.isInteger(T) and #sizeof(T) == 4
+    {
+        return cast #bit (u32, value) * 0x9E3779B1_u32
+    }
+    else if Reflection.isInteger(T)
+    {
+        return cast(u32, value) * 0x9E3779B1_u32
+    }
+    else if #sizeof(T) == 8
+    {
         return cast(u32, murmur3(cast #bit (u64, value)))
-    elif #sizeof(T) == 4 do
+    }
+    else if #sizeof(T) == 4
+    {
         return murmur3(cast #bit (u32, value))
-    else do
+    }
+    else
+    {
         return hashBytes32(Swag.makeSlice(cast(const [*] u8, &value), #sizeof(T)))
+    }
 }

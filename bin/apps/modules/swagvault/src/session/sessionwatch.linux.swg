@@ -50,8 +50,11 @@ namespace SessionWatch
     func(T) symbol(library: *void, name: string)->T fail
     {
         let address = Linux.dlsym(library, name.buffer)
-        if not address do
+        if not address
+        {
             fail volumeError(.DriverUnavailable)
+        }
+
         return cast(T, address)
     }
 
@@ -68,8 +71,11 @@ namespace SessionWatch
     {
         let monitor = cast(*Monitor, unwrap data)
         var preparing: s32
-        if monitor.read(message, "b".buffer, &preparing) >= 0 and preparing != 0 do
+        if monitor.read(message, "b".buffer, &preparing) >= 0 and preparing != 0
+        {
             monitor.suspendPending = true
+        }
+
         return 0
     }
 
@@ -80,32 +86,51 @@ namespace SessionWatch
         var interfaceName: [*]u8?
         if monitor.read(message, "s".buffer, &interfaceName) < 0 or
            not interfaceName or
-           cast(string, cast(cstring, interfaceName)) != SessionInterface do
+           cast(string, cast(cstring, interfaceName)) != SessionInterface
+        {
             return 0
-        if monitor.enter(message, 'a', "{sv}".buffer) <= 0 do
+        }
+
+        if monitor.enter(message, 'a', "{sv}".buffer) <= 0
+        {
             return 0
+        }
+
         while monitor.enter(message, 'e', "sv".buffer) > 0
         {
             var key: [*]u8?
-            if monitor.read(message, "s".buffer, &key) < 0 or not key do
-                return 0
-            if cast(string, cast(cstring, key)) == "LockedHint"
-            {
-                if monitor.enter(message, 'v', "b".buffer) <= 0 do
-                    return 0
-                var locked: s32
-                if monitor.read(message, "b".buffer, &locked) >= 0 and locked != 0 do
-                    monitor.lockPending = true
-                if monitor.leave(message) < 0 do
-                    return 0
-            }
-            elif monitor.skip(message, "v".buffer) < 0
+            if monitor.read(message, "s".buffer, &key) < 0 or not key
             {
                 return 0
             }
 
-            if monitor.leave(message) < 0 do
+            if cast(string, cast(cstring, key)) == "LockedHint"
+            {
+                if monitor.enter(message, 'v', "b".buffer) <= 0
+                {
+                    return 0
+                }
+
+                var locked: s32
+                if monitor.read(message, "b".buffer, &locked) >= 0 and locked != 0
+                {
+                    monitor.lockPending = true
+                }
+
+                if monitor.leave(message) < 0
+                {
+                    return 0
+                }
+            }
+            else if monitor.skip(message, "v".buffer) < 0
+            {
                 return 0
+            }
+
+            if monitor.leave(message) < 0
+            {
+                return 0
+            }
         }
 
         return 0
@@ -116,50 +141,75 @@ namespace SessionWatch
         mtd openBus() fail
         {
             .systemd = Linux.dlopen("libsystemd.so.0".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
-            if not .systemd do
+            if not .systemd
+            {
                 fail volumeError(.DriverUnavailable)
-            .process      = try symbol'Linux.sd_bus_process_fn(.systemd, "sd_bus_process")
-            .match        = try symbol'Linux.sd_bus_add_match_fn(.systemd, "sd_bus_add_match")
-            .enter        = try symbol'Linux.sd_bus_message_enter_container_fn(.systemd, "sd_bus_message_enter_container")
-            .leave        = try symbol'Linux.sd_bus_message_exit_container_fn(.systemd, "sd_bus_message_exit_container")
-            .skip         = try symbol'Linux.sd_bus_message_skip_fn(.systemd, "sd_bus_message_skip")
-            .unref        = try symbol'Linux.sd_bus_unref_fn(.systemd, "sd_bus_unref")
-            .property     = try symbol'Linux.sd_bus_get_property_trivial_fn(.systemd, "sd_bus_get_property_trivial")
-            .call         = try symbol'Linux.sd_bus_call_method_fn(.systemd, "sd_bus_call_method")
-            .read         = try symbol'Linux.sd_bus_message_read_fn(.systemd, "sd_bus_message_read")
-            .messageUnref = try symbol'Linux.sd_bus_message_unref_fn(.systemd, "sd_bus_message_unref")
-            let open    = try symbol'Linux.sd_bus_open_system_fn(.systemd, "sd_bus_open_system")
-            let timeout = try symbol'Linux.sd_bus_set_method_call_timeout_fn(.systemd, "sd_bus_set_method_call_timeout")
-            let session = try symbol'Linux.sd_pid_get_session_fn(.systemd, "sd_pid_get_session")
-            let encode  = try symbol'Linux.sd_bus_path_encode_fn(.systemd, "sd_bus_path_encode")
-            if open(&.bus) < 0 or not .bus do
+            }
+
+            .process      = try symbol!{Linux.sd_bus_process_fn}(.systemd, "sd_bus_process")
+            .match        = try symbol!{Linux.sd_bus_add_match_fn}(.systemd, "sd_bus_add_match")
+            .enter        = try symbol!{Linux.sd_bus_message_enter_container_fn}(.systemd, "sd_bus_message_enter_container")
+            .leave        = try symbol!{Linux.sd_bus_message_exit_container_fn}(.systemd, "sd_bus_message_exit_container")
+            .skip         = try symbol!{Linux.sd_bus_message_skip_fn}(.systemd, "sd_bus_message_skip")
+            .unref        = try symbol!{Linux.sd_bus_unref_fn}(.systemd, "sd_bus_unref")
+            .property     = try symbol!{Linux.sd_bus_get_property_trivial_fn}(.systemd, "sd_bus_get_property_trivial")
+            .call         = try symbol!{Linux.sd_bus_call_method_fn}(.systemd, "sd_bus_call_method")
+            .read         = try symbol!{Linux.sd_bus_message_read_fn}(.systemd, "sd_bus_message_read")
+            .messageUnref = try symbol!{Linux.sd_bus_message_unref_fn}(.systemd, "sd_bus_message_unref")
+            let open    = try symbol!{Linux.sd_bus_open_system_fn}(.systemd, "sd_bus_open_system")
+            let timeout = try symbol!{Linux.sd_bus_set_method_call_timeout_fn}(.systemd, "sd_bus_set_method_call_timeout")
+            let session = try symbol!{Linux.sd_pid_get_session_fn}(.systemd, "sd_pid_get_session")
+            let encode  = try symbol!{Linux.sd_bus_path_encode_fn}(.systemd, "sd_bus_path_encode")
+            if open(&.bus) < 0 or not .bus
+            {
                 fail volumeError(.DriverUnavailable)
-            if timeout(.bus, 100_000) < 0 do
+            }
+
+            if timeout(.bus, 100_000) < 0
+            {
                 fail volumeError(.DriverUnavailable)
+            }
+
             var sessionId: [*]u8?
-            defer if sessionId do
+            defer if sessionId
+            {
                 Linux.free(sessionId)
+            }
+
             var id = Env.variable("XDG_SESSION_ID")
-            if session(0, &sessionId) >= 0 and sessionId do
+            if session(0, &sessionId) >= 0 and sessionId
+            {
                 id = cast(string, cast(cstring, sessionId))
+            }
+
             if not id.isEmpty()
             {
                 var path: [*]u8?
-                defer if path do
+                defer if path
+                {
                     Linux.free(path)
-                if encode("/org/freedesktop/login1/session".buffer, unwrap id.buffer, &path) >= 0 and path do
+                }
+
+                if encode("/org/freedesktop/login1/session".buffer, unwrap id.buffer, &path) >= 0 and path
+                {
                     .sessionPath = cast(string, cast(cstring, path))
+                }
             }
 
-            if .match(.bus, null, "type='signal',sender='org.freedesktop.login1',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'".buffer, &sleepSignal, me) < 0 do
+            if .match(.bus, null, "type='signal',sender='org.freedesktop.login1',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'".buffer, &sleepSignal, me) < 0
+            {
                 fail volumeError(.DriverUnavailable)
+            }
+
             if not .sessionPath.isEmpty()
             {
                 let lockRule     = Format.toString("type='signal',sender='org.freedesktop.login1',path='%',interface='org.freedesktop.login1.Session',member='Lock'", .sessionPath)
                 let propertyRule = Format.toString("type='signal',sender='org.freedesktop.login1',path='%',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged'", .sessionPath)
                 if .match(.bus, null, unwrap lockRule.buffer, &lockSignal, me) < 0 or
-                   .match(.bus, null, unwrap propertyRule.buffer, &propertySignal, me) < 0 do
+                   .match(.bus, null, unwrap propertyRule.buffer, &propertySignal, me) < 0
+                {
                     fail volumeError(.DriverUnavailable)
+                }
             }
 
             .acquireInhibitor()
@@ -170,18 +220,26 @@ namespace SessionWatch
             // X11 has a precise last-input clock. A private connection keeps this observer
             // independent of the GUI renderer's XCB connection and event ownership.
             .xlib = Linux.dlopen("libX11.so.6".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
-            if not .xlib do
+            if not .xlib
+            {
                 fail volumeError(.DriverUnavailable)
-            .closeDisplay = try symbol'Linux.XCloseDisplay_fn(.xlib, "XCloseDisplay")
-            .rootWindow   = try symbol'Linux.XDefaultRootWindow_fn(.xlib, "XDefaultRootWindow")
-            let open = try symbol'Linux.XOpenDisplay_fn(.xlib, "XOpenDisplay")
+            }
+
+            .closeDisplay = try symbol!{Linux.XCloseDisplay_fn}(.xlib, "XCloseDisplay")
+            .rootWindow   = try symbol!{Linux.XDefaultRootWindow_fn}(.xlib, "XDefaultRootWindow")
+            let open = try symbol!{Linux.XOpenDisplay_fn}(.xlib, "XOpenDisplay")
             .xss = Linux.dlopen("libXss.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
-            if not .xss do
+            if not .xss
+            {
                 fail volumeError(.DriverUnavailable)
-            .queryIdle = try symbol'Linux.XScreenSaverQueryInfo_fn(.xss, "XScreenSaverQueryInfo")
+            }
+
+            .queryIdle = try symbol!{Linux.XScreenSaverQueryInfo_fn}(.xss, "XScreenSaverQueryInfo")
             .display   = open(null)
-            if not .display do
+            if not .display
+            {
                 fail volumeError(.DriverUnavailable)
+            }
         }
 
         mtd start()
@@ -196,18 +254,27 @@ namespace SessionWatch
             // use the compositor's login1 hint rather than inventing inactivity from X11 alone.
             let sessionType    = Env.variable("XDG_SESSION_TYPE")
             let waylandDisplay = Env.variable("WAYLAND_DISPLAY")
-            if sessionType == "wayland" or not waylandDisplay.isEmpty() do
+            if sessionType == "wayland" or not waylandDisplay.isEmpty()
+            {
                 return
+            }
+
             catch .openDisplay() { .closeDisplayConnection() }
         }
 
         mtd acquireInhibitor()
         {
-            if not .bus or .inhibitor >= 0 do
+            if not .bus or .inhibitor >= 0
+            {
                 return
+            }
+
             var reply: *void?
-            defer if reply do
+            defer if reply
+            {
                 discard .messageUnref(reply)
+            }
+
             if .call(.bus,
                      LoginService.buffer,
                      ManagerPath.buffer,
@@ -220,25 +287,36 @@ namespace SessionWatch
                      "Swag Vault".buffer,
                      "Close encrypted volumes before suspend".buffer,
                      "delay".buffer) < 0 or
-               not reply do
+               not reply
+            {
                 return
+            }
+
             var descriptor: s32 = -1
-            if .read(reply, "h".buffer, &descriptor) >= 0 and descriptor >= 0 do
-                .inhibitor = Linux.fcntl(descriptor, Linux.F_DUPFD_CLOEXEC, 3's32)
+            if .read(reply, "h".buffer, &descriptor) >= 0 and descriptor >= 0
+            {
+                .inhibitor = Linux.fcntl(descriptor, Linux.F_DUPFD_CLOEXEC, 3_s32)
+            }
         }
 
         mtd finishSuspend()
         {
-            if .inhibitor < 0 do
+            if .inhibitor < 0
+            {
                 return
+            }
+
             discard Linux.close(.inhibitor)
             .inhibitor = -1
         }
 
         mtd readProperty(path: string, interfaceName: string, name: string, kind: u8, output: *void)->bool
         {
-            if not .bus do
+            if not .bus
+            {
                 return false
+            }
+
             return .property(.bus, LoginService.buffer, path.buffer, interfaceName.buffer, name.buffer, null, kind, output) >= 0
         }
 
@@ -249,15 +327,20 @@ namespace SessionWatch
             {
                 // Drain queued transitions before polling state. A lock followed by an unlock
                 // between timer ticks must still close the protected mounts.
-                for 64 where .process(.bus, null) <= 0 do
+                for 64 where .process(.bus, null) <= 0
+                {
                     break
+                }
+
                 var preparing: s32
                 if .readProperty(ManagerPath, ManagerInterface, "PreparingForSleep", 'b', &preparing)
                 {
                     result.suspending = preparing != 0 and not .wasSuspending
                     .wasSuspending    = preparing != 0
-                    if not .wasSuspending do
+                    if not .wasSuspending
+                    {
                         .acquireInhibitor()
+                    }
                 }
 
                 if not .sessionPath.isEmpty()
@@ -275,8 +358,10 @@ namespace SessionWatch
                        .readProperty(.sessionPath, SessionInterface, "IdleSinceHintMonotonic", 't', &since)
                     {
                         let now = Time.monotonicMilliseconds()
-                        if since / 1000 <= now do
+                        if since / 1000 <= now
+                        {
                             result.idleMilliseconds = now - since / 1000
+                        }
                     }
                 }
             }
@@ -284,8 +369,10 @@ namespace SessionWatch
             if .display
             {
                 var info: Linux.XScreenSaverInfo
-                if .queryIdle(.display, .rootWindow(.display), &info) != 0 do
+                if .queryIdle(.display, .rootWindow(.display), &info) != 0
+                {
                     result.idleMilliseconds = info.idle
+                }
             }
 
             result.locked     = result.locked or .lockPending

@@ -21,7 +21,7 @@ using Core, Gui, Gui.Testing, Viewers
     let view    = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
     let session = &window.instances[window.activeChoiceIndex]
     Swag.require(session.collectMatches != null and session.revealMatch != null and session.searchBounds != null)
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     collectViewerMatches(session.collectMatches, "Paragraph 0.", &matches)
 
     Swag.require(matches.count == 2)

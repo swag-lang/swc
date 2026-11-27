@@ -8,9 +8,9 @@
 
 using Core, Core.Math
 
-const LumaPairWeights: [4, 4] Simd.S16x8 = [[cast(Simd.S16x8, [0's16, 0, 0, 0, 0, 0, 0, 0]), cast(Simd.S16x8, [0's16, 64, 0, 64, 0, 64, 0, 64]), cast(Simd.S16x8, [0's16, 0, 0, 0, 0, 0, 0, 0]), cast(Simd.S16x8, [0's16, 0, 0, 0, 0, 0, 0, 0])], [cast(Simd.S16x8, [-1's16, 4, -1, 4, -1, 4, -1, 4]), cast(Simd.S16x8, [-10's16, 58, -10, 58, -10, 58, -10, 58]), cast(Simd.S16x8, [17's16, -5, 17, -5, 17, -5, 17, -5]), cast(Simd.S16x8, [1's16, 0, 1, 0, 1, 0, 1, 0])], [cast(Simd.S16x8, [-1's16, 4, -1, 4, -1, 4, -1, 4]), cast(Simd.S16x8, [-11's16, 40, -11, 40, -11, 40, -11, 40]), cast(Simd.S16x8, [40's16, -11, 40, -11, 40, -11, 40, -11]), cast(Simd.S16x8, [4's16, -1, 4, -1, 4, -1, 4, -1])], [cast(Simd.S16x8, [0's16, 1, 0, 1, 0, 1, 0, 1]), cast(Simd.S16x8, [-5's16, 17, -5, 17, -5, 17, -5, 17]), cast(Simd.S16x8, [58's16, -10, 58, -10, 58, -10, 58, -10]), cast(Simd.S16x8, [4's16, -1, 4, -1, 4, -1, 4, -1])]]
+const LumaPairWeights: [4, 4] Simd.S16x8 = [[cast(Simd.S16x8, [0_s16, 0, 0, 0, 0, 0, 0, 0]), cast(Simd.S16x8, [0_s16, 64, 0, 64, 0, 64, 0, 64]), cast(Simd.S16x8, [0_s16, 0, 0, 0, 0, 0, 0, 0]), cast(Simd.S16x8, [0_s16, 0, 0, 0, 0, 0, 0, 0])], [cast(Simd.S16x8, [-1_s16, 4, -1, 4, -1, 4, -1, 4]), cast(Simd.S16x8, [-10_s16, 58, -10, 58, -10, 58, -10, 58]), cast(Simd.S16x8, [17_s16, -5, 17, -5, 17, -5, 17, -5]), cast(Simd.S16x8, [1_s16, 0, 1, 0, 1, 0, 1, 0])], [cast(Simd.S16x8, [-1_s16, 4, -1, 4, -1, 4, -1, 4]), cast(Simd.S16x8, [-11_s16, 40, -11, 40, -11, 40, -11, 40]), cast(Simd.S16x8, [40_s16, -11, 40, -11, 40, -11, 40, -11]), cast(Simd.S16x8, [4_s16, -1, 4, -1, 4, -1, 4, -1])], [cast(Simd.S16x8, [0_s16, 1, 0, 1, 0, 1, 0, 1]), cast(Simd.S16x8, [-5_s16, 17, -5, 17, -5, 17, -5, 17]), cast(Simd.S16x8, [58_s16, -10, 58, -10, 58, -10, 58, -10]), cast(Simd.S16x8, [4_s16, -1, 4, -1, 4, -1, 4, -1])]]
 
-const ChromaPairWeights: [8, 2] Simd.S16x8 = [[cast(Simd.S16x8, [0's16, 64, 0, 64, 0, 64, 0, 64]), cast(Simd.S16x8, [0's16, 0, 0, 0, 0, 0, 0, 0])], [cast(Simd.S16x8, [-2's16, 58, -2, 58, -2, 58, -2, 58]), cast(Simd.S16x8, [10's16, -2, 10, -2, 10, -2, 10, -2])], [cast(Simd.S16x8, [-4's16, 54, -4, 54, -4, 54, -4, 54]), cast(Simd.S16x8, [16's16, -2, 16, -2, 16, -2, 16, -2])], [cast(Simd.S16x8, [-6's16, 46, -6, 46, -6, 46, -6, 46]), cast(Simd.S16x8, [28's16, -4, 28, -4, 28, -4, 28, -4])], [cast(Simd.S16x8, [-4's16, 36, -4, 36, -4, 36, -4, 36]), cast(Simd.S16x8, [36's16, -4, 36, -4, 36, -4, 36, -4])], [cast(Simd.S16x8, [-4's16, 28, -4, 28, -4, 28, -4, 28]), cast(Simd.S16x8, [46's16, -6, 46, -6, 46, -6, 46, -6])], [cast(Simd.S16x8, [-2's16, 16, -2, 16, -2, 16, -2, 16]), cast(Simd.S16x8, [54's16, -4, 54, -4, 54, -4, 54, -4])], [cast(Simd.S16x8, [-2's16, 10, -2, 10, -2, 10, -2, 10]), cast(Simd.S16x8, [58's16, -2, 58, -2, 58, -2, 58, -2])]]
+const ChromaPairWeights: [8, 2] Simd.S16x8 = [[cast(Simd.S16x8, [0_s16, 64, 0, 64, 0, 64, 0, 64]), cast(Simd.S16x8, [0_s16, 0, 0, 0, 0, 0, 0, 0])], [cast(Simd.S16x8, [-2_s16, 58, -2, 58, -2, 58, -2, 58]), cast(Simd.S16x8, [10_s16, -2, 10, -2, 10, -2, 10, -2])], [cast(Simd.S16x8, [-4_s16, 54, -4, 54, -4, 54, -4, 54]), cast(Simd.S16x8, [16_s16, -2, 16, -2, 16, -2, 16, -2])], [cast(Simd.S16x8, [-6_s16, 46, -6, 46, -6, 46, -6, 46]), cast(Simd.S16x8, [28_s16, -4, 28, -4, 28, -4, 28, -4])], [cast(Simd.S16x8, [-4_s16, 36, -4, 36, -4, 36, -4, 36]), cast(Simd.S16x8, [36_s16, -4, 36, -4, 36, -4, 36, -4])], [cast(Simd.S16x8, [-4_s16, 28, -4, 28, -4, 28, -4, 28]), cast(Simd.S16x8, [46_s16, -6, 46, -6, 46, -6, 46, -6])], [cast(Simd.S16x8, [-2_s16, 16, -2, 16, -2, 16, -2, 16]), cast(Simd.S16x8, [54_s16, -4, 54, -4, 54, -4, 54, -4])], [cast(Simd.S16x8, [-2_s16, 10, -2, 10, -2, 10, -2, 10]), cast(Simd.S16x8, [58_s16, -2, 58, -2, 58, -2, 58, -2])]]
 
 // The taps of one filter, in the pair layout `pmaddwd` sums, read once for a whole block.
 //
@@ -43,6 +43,15 @@ private func storeLow4(destination: [*] s16, value: Simd.S16x8)
 private func storeLow4(destination: [*] u16, value: Simd.U16x8)
 {
     cast([*] u64, destination)[0] = cast #bit(Simd.U64x2, value)[0]
+}
+
+// At the supported bit depths, the sample range ends below 32768 even before the
+// final shift. Saturating the intermediate sum only affects values that clip anyway.
+#[Swag.Inline]
+private func roundPrediction(samples, rounding, maxima: Simd.S16x8, shift: u32)->Simd.U16x8
+{
+    let rounded = Simd.addSaturating(samples, rounding) >> shift
+    return cast #bit(Simd.U16x8, Math.max(Math.min(rounded, maxima), Simd.splat(0_s16)))
 }
 
 #[Swag.Inline]
@@ -125,27 +134,40 @@ private func filterLumaSigned8(source: const [*] s16, stride: u64, taps: LumaTap
     return Simd.packSigned(low >> shift, high >> shift)
 }
 
-// Separate coefficient lanes keep the two-direction filter weights in registers across its rows.
+// Horizontal tap pairs are adjacent in memory. Compute even and odd outputs separately so
+// the filter only interleaves the sums, after multiplying the samples by their weights.
 #[Swag.Inline]
-private func filterLumaUnsigned8Parts(source: const [*] u16, stride: u64, pair0, pair1, pair2, pair3: Simd.S16x8, shift: u32)->Simd.S16x8
+private func interleaveHorizontal8(even, odd: Simd.S32x4, shift: u32)->Simd.S16x8
 {
-    var first0  = Simd.load(source)
-    var second0 = Simd.load(source + stride)
-    var low     = Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first0, second0)), pair0)
-    var high    = Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first0, second0)), pair0)
-    var first1  = Simd.load(source + 2 * stride)
-    var second1 = Simd.load(source + 3 * stride)
-    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first1, second1)), pair1)
-    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first1, second1)), pair1)
-    var first2  = Simd.load(source + 4 * stride)
-    var second2 = Simd.load(source + 5 * stride)
-    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first2, second2)), pair2)
-    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first2, second2)), pair2)
-    var first3  = Simd.load(source + 6 * stride)
-    var second3 = Simd.load(source + 7 * stride)
-    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveLow(first3, second3)), pair3)
-    high += Simd.mulAddPairs(cast #bit(Simd.S16x8, Simd.interleaveHigh(first3, second3)), pair3)
+    let a    = cast #bit(Simd.U32x4, even)
+    let b    = cast #bit(Simd.U32x4, odd)
+    let low  = cast #bit(Simd.S32x4, Simd.interleaveLow(a, b))
+    let high = cast #bit(Simd.S32x4, Simd.interleaveHigh(a, b))
     return Simd.packSigned(low >> shift, high >> shift)
+}
+
+#[Swag.Inline]
+private func filterLumaHorizontal8(source: const [*] u16, pair0, pair1, pair2, pair3: Simd.S16x8, shift: u32)->Simd.S16x8
+{
+    let samples = cast(const [*] s16, source)
+    var even    = Simd.mulAddPairs(Simd.load(samples), pair0)
+    var odd     = Simd.mulAddPairs(Simd.load(samples + 1), pair0)
+    even += Simd.mulAddPairs(Simd.load(samples + 2), pair1)
+    odd  += Simd.mulAddPairs(Simd.load(samples + 3), pair1)
+    even += Simd.mulAddPairs(Simd.load(samples + 4), pair2)
+    odd  += Simd.mulAddPairs(Simd.load(samples + 5), pair2)
+    even += Simd.mulAddPairs(Simd.load(samples + 6), pair3)
+    odd  += Simd.mulAddPairs(Simd.load(samples + 7), pair3)
+    return interleaveHorizontal8(even, odd, shift)
+}
+
+#[Swag.Inline]
+private func filterChromaHorizontal8(source: const [*] u16, taps: ChromaTaps, shift: u32)->Simd.S16x8
+{
+    let samples = cast(const [*] s16, source)
+    let even    = Simd.mulAddPairs(Simd.load(samples), taps.pair0) + Simd.mulAddPairs(Simd.load(samples + 2), taps.pair1)
+    let odd     = Simd.mulAddPairs(Simd.load(samples + 1), taps.pair0) + Simd.mulAddPairs(Simd.load(samples + 3), taps.pair1)
+    return interleaveHorizontal8(even, odd, shift)
 }
 
 #[Swag.Inline]
@@ -211,15 +233,17 @@ impl Decoder
         let usesL0   = (motion.predFlags & 1) != 0
         let usesL1   = (motion.predFlags & 2) != 0
         let weighted = .header.hasWeights and ((.header.sliceType == SliceTypeP and .activePps!.weightedPred) or (.header.sliceType == SliceTypeB and .activePps!.weightedBipred))
-        for component in 3'u32
+        for component in 3_u32
         {
-            let scale  = component == 0 ? 1's32 : 2's32
+            let scale  = component == 0 ? 1_s32 : 2_s32
             let width  = cast(u32, (nPbW / scale))
             let height = cast(u32, (nPbH / scale))
             let x      = xPb / scale
             let y      = yPb / scale
-            if not width or not height do
+            if not width or not height
+            {
                 continue
+            }
 
             // A signaled weight table often carries the identity weights. Those samples follow
             // the same direct paths as an unweighted prediction.
@@ -228,7 +252,7 @@ impl Decoder
             {
                 identityWeights = true
                 let denominator = component == 0 ? .header.lumaLog2WeightDenom : .header.chromaLog2WeightDenom
-                for list in ListCount where (cast(u32, motion.predFlags) & (1'u32 << list)) != 0
+                for list in ListCount where (cast(u32, motion.predFlags) & (1_u32 << list)) != 0
                 {
                     let entry = &.header.weights[list, cast(u32, motion.refIdx[list])]
                     if (not component and (entry.lumaWeight != 1 << denominator or entry.lumaOffset != 0)) or (component and (entry.chromaWeight[component - 1] != 1 << denominator or entry.chromaOffset[component - 1] != 0))
@@ -241,7 +265,7 @@ impl Decoder
 
             if identityWeights and usesL0 and usesL1
             {
-                let unit = component == 0 ? 4's32 : 8's32
+                let unit = component == 0 ? 4_s32 : 8_s32
                 let mv0X = cast(s32, motion.mv[0, 0])
                 let mv0Y = cast(s32, motion.mv[0, 1])
                 let mv1X = cast(s32, motion.mv[1, 0])
@@ -266,8 +290,8 @@ impl Decoder
             // would copy every sample three times and shift it out and back for no change.
             if identityWeights and usesL0 != usesL1
             {
-                let list = usesL0 ? 0'u32 : 1'u32
-                let unit = component == 0 ? 4's32 : 8's32
+                let list = usesL0 ? 0_u32 : 1_u32
+                let unit = component == 0 ? 4_s32 : 8_s32
                 let mvX  = cast(s32, motion.mv[list, 0])
                 let mvY  = cast(s32, motion.mv[list, 1])
                 if (mvX & (unit - 1)) == 0 and (mvY & (unit - 1)) == 0
@@ -283,18 +307,26 @@ impl Decoder
 
             for list in ListCount
             {
-                if (cast(u32, motion.predFlags) & (1'u32 << list)) == 0 do
+                if (cast(u32, motion.predFlags) & (1_u32 << list)) == 0
+                {
                     continue
+                }
 
                 let refIdx = cast(u32, motion.refIdx[list])
                 let frame  = .refList.frames[list, refIdx]
-                if not frame do
+                if not frame
+                {
                     continue
+                }
 
-                if not component do
+                if not component
+                {
                     .interpolateLuma(frame, x, y, width, height, motion.mv[list, 0], motion.mv[list, 1], list)
-                else do
+                }
+                else
+                {
                     .interpolateChroma(frame, component, x, y, width, height, motion.mv[list, 0], motion.mv[list, 1], list)
+                }
             }
 
             .combinePrediction(component, x, y, width, height, motion, sps, identityWeights)
@@ -356,7 +388,7 @@ impl Decoder
                 let line0  = first0 + cast(u64, row) * source0Stride
                 let line1  = first1 + cast(u64, row) * source1Stride
                 let out    = destination + cast(u64, row) * destinationStride
-                var column = 0'u32
+                var column = 0_u32
                 while column + 8 <= width
                 {
                     Simd.store(out + column, Simd.average(Simd.load(line0 + column), Simd.load(line1 + column)))
@@ -449,27 +481,29 @@ impl Decoder
             switch width
             {
             case 2:
-                copyRows'2(destination, first, destinationStride, sourceStride, height)
+                copyRows!{2}(destination, first, destinationStride, sourceStride, height)
 
             case 4:
-                copyRows'4(destination, first, destinationStride, sourceStride, height)
+                copyRows!{4}(destination, first, destinationStride, sourceStride, height)
 
             case 8:
-                copyRows'8(destination, first, destinationStride, sourceStride, height)
+                copyRows!{8}(destination, first, destinationStride, sourceStride, height)
 
             case 16:
-                copyRows'16(destination, first, destinationStride, sourceStride, height)
+                copyRows!{16}(destination, first, destinationStride, sourceStride, height)
 
             case 32:
-                copyRows'32(destination, first, destinationStride, sourceStride, height)
+                copyRows!{32}(destination, first, destinationStride, sourceStride, height)
 
             case 64:
-                copyRows'64(destination, first, destinationStride, sourceStride, height)
+                copyRows!{64}(destination, first, destinationStride, sourceStride, height)
 
             default:
                 let bytes = cast(u64, width) * #sizeof(u16)
-                for row in height do
+                for row in height
+                {
                     Memory.copy(destination + cast(u64, row) * destinationStride, first + cast(u64, row) * sourceStride, bytes)
+                }
             }
 
             return
@@ -480,8 +514,10 @@ impl Decoder
             let sy   = Math.clamp(sourceY + cast(s32, row), 0, sourceHeight - 1)
             let line = source + cast(u64, (sy + cast(s32, FramePadding))) * sourceStride + cast(u64, FramePadding)
             let out  = destination + cast(u64, row) * destinationStride
-            for column in width do
+            for column in width
+            {
                 out[column] = line[cast(u64, Math.clamp(sourceX + cast(s32, column), 0, sourceWidth - 1))]
+            }
         }
     }
 
@@ -526,8 +562,10 @@ impl Decoder
                 continue
             }
 
-            for column in columns do
+            for column in columns
+            {
                 out[column] = line[cast(u64, Math.clamp(firstX + cast(s32, column), 0, planeWidth - 1))]
+            }
         }
     }
 
@@ -570,8 +608,8 @@ impl Decoder
     private mtd interpolateLumaWindow(reference: const [*] u16, referenceStride: u64, width, height, xFrac, yFrac, list: u32)
     {
         let bitDepth = .activeSps!.bitDepthLuma
-        let shift1   = Math.min(4'u32, bitDepth - 8)
-        let shift3   = Math.max(2'u32, 14 - bitDepth)
+        let shift1   = Math.min(4_u32, bitDepth - 8)
+        let shift3   = Math.max(2_u32, 14 - bitDepth)
 
         let lumaTapsX = lumaTaps(xFrac)
         let lumaTapsY = lumaTaps(yFrac)
@@ -583,7 +621,7 @@ impl Decoder
                 for row in height
                 {
                     let source = cast(u64, (row + 3)) * referenceStride + 3
-                    var column = 0'u32
+                    var column = 0_u32
                     while column + 8 <= width
                     {
                         let pixels = Simd.load(&reference[source + cast(u64, column)]) << shift3
@@ -609,7 +647,7 @@ impl Decoder
                         let source = cast(u64, (row + 3)) * referenceStride + 3
                         let pixels = Simd.load(&reference[source]) << shift3
                         storeLow4(&.predBuffer[list, row * width], cast #bit(Simd.S16x8, pixels))
-                        var column = 4'u32
+                        var column = 4_u32
                         while column < width
                         {
                             .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
@@ -622,8 +660,10 @@ impl Decoder
                     for row in height
                     {
                         let source = cast(u64, (row + 3)) * referenceStride + 3
-                        for column in width do
+                        for column in width
+                        {
                             .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                        }
                     }
                 }
             }
@@ -636,10 +676,12 @@ impl Decoder
             for row in height
             {
                 let source = cast(u64, (row + 3)) * referenceStride
-                var column = 0'u32
+                var column = 0_u32
                 while column + 8 <= width
                 {
-                    Simd.store(&.predBuffer[list, row * width + column], filterLumaUnsigned8(&reference[source + cast(u64, column)], 1, lumaTapsX, shift1))
+                    let samples  = &reference[source + cast(u64, column)]
+                    let filtered = filterLumaHorizontal8(samples, lumaTapsX.pair0, lumaTapsX.pair1, lumaTapsX.pair2, lumaTapsX.pair3, shift1)
+                    Simd.store(&.predBuffer[list, row * width + column], filtered)
                     column += 8
                 }
 
@@ -651,9 +693,12 @@ impl Decoder
 
                 while column < width
                 {
-                    var sum = 0's32
-                    for tap in 8'u32 do
+                    var sum = 0_s32
+                    for tap in 8_u32
+                    {
                         sum += cast(s32, LumaFilter[xFrac, tap]) * cast(s32, reference[source + cast(u64, (column + tap))])
+                    }
+
                     .predBuffer[list, row * width + column] = cast(s16, (sum >> shift1))
                     column += 1
                 }
@@ -666,7 +711,7 @@ impl Decoder
         {
             for row in height
             {
-                var column = 0'u32
+                var column = 0_u32
                 while column + 8 <= width
                 {
                     let source = &reference[cast(u64, row) * referenceStride + cast(u64, (column + 3))]
@@ -683,9 +728,12 @@ impl Decoder
 
                 while column < width
                 {
-                    var sum = 0's32
-                    for tap in 8'u32 do
+                    var sum = 0_s32
+                    for tap in 8_u32
+                    {
                         sum += cast(s32, LumaFilter[yFrac, tap]) * cast(s32, reference[cast(u64, (row + tap)) * referenceStride + cast(u64, (column + 3))])
+                    }
+
                     .predBuffer[list, row * width + column] = cast(s16, (sum >> shift1))
                     column += 1
                 }
@@ -697,10 +745,14 @@ impl Decoder
         // Both directions need the horizontal result until the vertical filter consumes it.
         // Most blocks fit the decoder-local scratch; the largest block needs a separate buffer.
         // Four extra samples cover the high lanes of the final four-lane SIMD load.
-        if cast(u64, width) * cast(u64, (height + 7)) + 4 <= 64 * 64 do
+        if cast(u64, width) * cast(u64, (height + 7)) + 4 <= 64 * 64
+        {
             .interpolateLumaBoth(reference, referenceStride, width, height, xFrac, yFrac, list, cast([*] s16, &.predSamples[0]))
-        else do
+        }
+        else
+        {
             .interpolateLumaBothLarge(reference, referenceStride, width, height, xFrac, yFrac, list)
+        }
     }
 
     #[Swag.NoInline]
@@ -713,8 +765,8 @@ impl Decoder
     #[Swag.NoInline]
     private mtd interpolateLumaBoth(reference: const [*] u16, referenceStride: u64, width, height, xFrac, yFrac, list: u32, intermediate: [*] s16)
     {
-        let shift1    = Math.min(4'u32, .activeSps!.bitDepthLuma - 8)
-        let shift2    = 6'u32
+        let shift1    = Math.min(4_u32, .activeSps!.bitDepthLuma - 8)
+        let shift2    = 6_u32
         let lumaTapsX = lumaTaps(xFrac)
         let lumaTapsY = lumaTaps(yFrac)
         let x0        = lumaTapsX.pair0
@@ -728,10 +780,10 @@ impl Decoder
         for row in height + 7
         {
             let source = cast(u64, row) * referenceStride
-            var column = 0'u32
+            var column = 0_u32
             while column + 8 <= width
             {
-                Simd.store(&intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)], filterLumaUnsigned8Parts(&reference[source + cast(u64, column)], 1, x0, x1, x2, x3, shift1))
+                Simd.store(&intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)], filterLumaHorizontal8(&reference[source + cast(u64, column)], x0, x1, x2, x3, shift1))
                 column += 8
             }
 
@@ -743,9 +795,12 @@ impl Decoder
 
             while column < width
             {
-                var sum = 0's32
-                for tap in 8'u32 do
+                var sum = 0_s32
+                for tap in 8_u32
+                {
                     sum += cast(s32, LumaFilter[xFrac, tap]) * cast(s32, reference[source + cast(u64, (column + tap))])
+                }
+
                 intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)] = cast(s16, (sum >> shift1))
                 column += 1
             }
@@ -753,7 +808,7 @@ impl Decoder
 
         for row in height
         {
-            var column = 0'u32
+            var column = 0_u32
             while column + 8 <= width
             {
                 let source = &intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)]
@@ -770,9 +825,12 @@ impl Decoder
 
             while column < width
             {
-                var sum = 0's32
-                for tap in 8'u32 do
+                var sum = 0_s32
+                for tap in 8_u32
+                {
                     sum += cast(s32, LumaFilter[yFrac, tap]) * cast(s32, intermediate[cast(u64, (row + tap)) * cast(u64, width) + cast(u64, column)])
+                }
+
                 .predBuffer[list, row * width + column] = cast(s16, (sum >> shift2))
                 column += 1
             }
@@ -820,9 +878,9 @@ impl Decoder
     private mtd interpolateChromaWindow(reference: const [*] u16, referenceStride: u64, width, height, xFrac, yFrac, list: u32)
     {
         let bitDepth = .activeSps!.bitDepthChroma
-        let shift1   = Math.min(4'u32, bitDepth - 8)
-        let shift2   = 6'u32
-        let shift3   = Math.max(2'u32, 14 - bitDepth)
+        let shift1   = Math.min(4_u32, bitDepth - 8)
+        let shift2   = 6_u32
+        let shift3   = Math.max(2_u32, 14 - bitDepth)
 
         let chromaTapsX = chromaTaps(xFrac)
         let chromaTapsY = chromaTaps(yFrac)
@@ -834,7 +892,7 @@ impl Decoder
                 for row in height
                 {
                     let source = cast(u64, (row + 1)) * referenceStride + 1
-                    var column = 0'u32
+                    var column = 0_u32
                     while column + 8 <= width
                     {
                         let pixels = Simd.load(&reference[source + cast(u64, column)]) << shift3
@@ -861,7 +919,7 @@ impl Decoder
                         let low    = cast(const [*] u64, &reference[source])[0]
                         let pixels = cast #bit(Simd.U16x8, Simd.splat(low)) << shift3
                         storeLow4(&.predBuffer[list, row * width], cast #bit(Simd.S16x8, pixels))
-                        var column = 4'u32
+                        var column = 4_u32
                         while column < width
                         {
                             .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
@@ -874,8 +932,10 @@ impl Decoder
                     for row in height
                     {
                         let source = cast(u64, (row + 1)) * referenceStride + 1
-                        for column in width do
+                        for column in width
+                        {
                             .predBuffer[list, row * width + column] = cast(s16, (cast(s32, reference[source + cast(u64, column)]) << shift3))
+                        }
                     }
                 }
             }
@@ -888,10 +948,10 @@ impl Decoder
             for row in height
             {
                 let source = cast(u64, (row + 1)) * referenceStride
-                var column = 0'u32
+                var column = 0_u32
                 while column + 8 <= width
                 {
-                    Simd.store(&.predBuffer[list, row * width + column], filterChromaUnsigned8(&reference[source + cast(u64, column)], 1, chromaTapsX, shift1))
+                    Simd.store(&.predBuffer[list, row * width + column], filterChromaHorizontal8(&reference[source + cast(u64, column)], chromaTapsX, shift1))
                     column += 8
                 }
 
@@ -903,9 +963,12 @@ impl Decoder
 
                 while column < width
                 {
-                    var sum = 0's32
-                    for tap in 4'u32 do
+                    var sum = 0_s32
+                    for tap in 4_u32
+                    {
                         sum += cast(s32, ChromaFilter[xFrac, tap]) * cast(s32, reference[source + cast(u64, (column + tap))])
+                    }
+
                     .predBuffer[list, row * width + column] = cast(s16, (sum >> shift1))
                     column += 1
                 }
@@ -918,7 +981,7 @@ impl Decoder
         {
             for row in height
             {
-                var column = 0'u32
+                var column = 0_u32
                 while column + 8 <= width
                 {
                     let source = &reference[cast(u64, row) * referenceStride + cast(u64, (column + 1))]
@@ -935,9 +998,12 @@ impl Decoder
 
                 while column < width
                 {
-                    var sum = 0's32
-                    for tap in 4'u32 do
+                    var sum = 0_s32
+                    for tap in 4_u32
+                    {
                         sum += cast(s32, ChromaFilter[yFrac, tap]) * cast(s32, reference[cast(u64, (row + tap)) * referenceStride + cast(u64, (column + 1))])
+                    }
+
                     .predBuffer[list, row * width + column] = cast(s16, (sum >> shift1))
                     column += 1
                 }
@@ -952,10 +1018,10 @@ impl Decoder
         for row in height + 3
         {
             let source = cast(u64, row) * referenceStride
-            var column = 0'u32
+            var column = 0_u32
             while column + 8 <= width
             {
-                Simd.store(&intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)], filterChromaUnsigned8(&reference[source + cast(u64, column)], 1, chromaTapsX, shift1))
+                Simd.store(&intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)], filterChromaHorizontal8(&reference[source + cast(u64, column)], chromaTapsX, shift1))
                 column += 8
             }
 
@@ -967,9 +1033,12 @@ impl Decoder
 
             while column < width
             {
-                var sum = 0's32
-                for tap in 4'u32 do
+                var sum = 0_s32
+                for tap in 4_u32
+                {
                     sum += cast(s32, ChromaFilter[xFrac, tap]) * cast(s32, reference[source + cast(u64, (column + tap))])
+                }
+
                 intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)] = cast(s16, (sum >> shift1))
                 column += 1
             }
@@ -977,7 +1046,7 @@ impl Decoder
 
         for row in height
         {
-            var column = 0'u32
+            var column = 0_u32
             while column + 8 <= width
             {
                 let source = &intermediate[cast(u64, row) * cast(u64, width) + cast(u64, column)]
@@ -994,9 +1063,12 @@ impl Decoder
 
             while column < width
             {
-                var sum = 0's32
-                for tap in 4'u32 do
+                var sum = 0_s32
+                for tap in 4_u32
+                {
                     sum += cast(s32, ChromaFilter[yFrac, tap]) * cast(s32, intermediate[cast(u64, (row + tap)) * cast(u64, width) + cast(u64, column)])
+                }
+
                 .predBuffer[list, row * width + column] = cast(s16, (sum >> shift2))
                 column += 1
             }
@@ -1009,7 +1081,7 @@ impl Decoder
         let header   = &.header
         let frame    = unwrap .current
         let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
-        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
+        let maximum  = cast(s32, ((1_u32 << bitDepth) - 1))
 
         var destination: [*] u16
         var stride:      u64
@@ -1036,37 +1108,33 @@ impl Decoder
             return
         }
 
-        let shift1  = Math.max(2'u32, 14 - bitDepth)
-        let shift2  = Math.max(3'u32, 15 - bitDepth)
-        let offset1 = 1's32 << (shift1 - 1)
-        let offset2 = 1's32 << (shift2 - 1)
-        let zeros   = Simd.splat(0's32)
-        let maxima  = Simd.splat(maximum)
+        let shift1  = Math.max(2_u32, 14 - bitDepth)
+        let shift2  = Math.max(3_u32, 15 - bitDepth)
+        let offset1 = 1_s32 << (shift1 - 1)
+        let offset2 = 1_s32 << (shift2 - 1)
+        let maxima  = Simd.splat(cast(s16, maximum))
 
         if usesL0 and usesL1
         {
+            let rounding = Simd.splat(cast(s16, offset2))
             for row in height
             {
                 let out    = destination + cast(u64, row) * stride
                 let base   = row * width
-                var column = 0'u32
+                var column = 0_u32
                 while column + 8 <= width
                 {
                     let first  = Simd.load(&.predBuffer[0, base + column])
                     let second = Simd.load(&.predBuffer[1, base + column])
-                    let low    = (Simd.widenLow(first) + Simd.widenLow(second) + offset2) >> shift2
-                    let high   = (Simd.widenHigh(first) + Simd.widenHigh(second) + offset2) >> shift2
-                    Simd.store(out + column, Simd.packUnsigned(Math.max(Math.min(low, maxima), zeros), Math.max(Math.min(high, maxima), zeros)))
+                    Simd.store(out + column, roundPrediction(Simd.addSaturating(first, second), rounding, maxima, shift2))
                     column += 8
                 }
 
                 if column + 4 <= width
                 {
-                    let first   = Simd.load(&.predBuffer[0, base + column])
-                    let second  = Simd.load(&.predBuffer[1, base + column])
-                    let low     = (Simd.widenLow(first) + Simd.widenLow(second) + offset2) >> shift2
-                    let clipped = Math.max(Math.min(low, maxima), zeros)
-                    storeLow4(out + column, Simd.packUnsigned(clipped, clipped))
+                    let first  = Simd.load(&.predBuffer[0, base + column])
+                    let second = Simd.load(&.predBuffer[1, base + column])
+                    storeLow4(out + column, roundPrediction(Simd.addSaturating(first, second), rounding, maxima, shift2))
                     column += 4
                 }
 
@@ -1082,27 +1150,24 @@ impl Decoder
             return
         }
 
-        let list = usesL0 ? 0'u32 : 1'u32
+        let list     = usesL0 ? 0_u32 : 1_u32
+        let rounding = Simd.splat(cast(s16, offset1))
         for row in height
         {
             let out    = destination + cast(u64, row) * stride
             let base   = row * width
-            var column = 0'u32
+            var column = 0_u32
             while column + 8 <= width
             {
                 let pixels = Simd.load(&.predBuffer[list, base + column])
-                let low    = (Simd.widenLow(pixels) + offset1) >> shift1
-                let high   = (Simd.widenHigh(pixels) + offset1) >> shift1
-                Simd.store(out + column, Simd.packUnsigned(Math.max(Math.min(low, maxima), zeros), Math.max(Math.min(high, maxima), zeros)))
+                Simd.store(out + column, roundPrediction(pixels, rounding, maxima, shift1))
                 column += 8
             }
 
             if column + 4 <= width
             {
-                let pixels  = Simd.load(&.predBuffer[list, base + column])
-                let low     = (Simd.widenLow(pixels) + offset1) >> shift1
-                let clipped = Math.max(Math.min(low, maxima), zeros)
-                storeLow4(out + column, Simd.packUnsigned(clipped, clipped))
+                let pixels = Simd.load(&.predBuffer[list, base + column])
+                storeLow4(out + column, roundPrediction(pixels, rounding, maxima, shift1))
                 column += 4
             }
 
@@ -1119,7 +1184,7 @@ impl Decoder
     private mtd combineWeighted(destination: [*] u16, stride: u64, component, width, height: u32, motion: const *PuMotion, usesL0, usesL1: bool, bitDepth: u32, maximum: s32)
     {
         let header      = &.header
-        let shift1      = Math.max(2'u32, 14 - bitDepth)
+        let shift1      = Math.max(2_u32, 14 - bitDepth)
         let denom       = component == 0 ? header.lumaLog2WeightDenom : header.chromaLog2WeightDenom
         let log2Wd      = denom + shift1
         let offsetShift = bitDepth - 8
@@ -1128,8 +1193,11 @@ impl Decoder
         var offset: [ListCount] s32
         for list in ListCount
         {
-            if (cast(u32, motion.predFlags) & (1'u32 << list)) == 0 do
+            if (cast(u32, motion.predFlags) & (1_u32 << list)) == 0
+            {
                 continue
+            }
+
             let entry = &header.weights[list, cast(u32, motion.refIdx[list])]
             if not component
             {
@@ -1143,7 +1211,7 @@ impl Decoder
             }
         }
 
-        let zeros  = Simd.splat(0's32)
+        let zeros  = Simd.splat(0_s32)
         let maxima = Simd.splat(maximum)
 
         if usesL0 and usesL1
@@ -1153,7 +1221,7 @@ impl Decoder
             {
                 let out    = destination + cast(u64, row) * stride
                 let base   = row * width
-                var column = 0'u32
+                var column = 0_u32
                 while column + 8 <= width
                 {
                     let first  = Simd.load(&.predBuffer[0, base + column])
@@ -1185,13 +1253,13 @@ impl Decoder
             return
         }
 
-        let list     = usesL0 ? 0'u32 : 1'u32
-        let rounding = 1's32 << (log2Wd - 1)
+        let list     = usesL0 ? 0_u32 : 1_u32
+        let rounding = 1_s32 << (log2Wd - 1)
         for row in height
         {
             let out    = destination + cast(u64, row) * stride
             let base   = row * width
-            var column = 0'u32
+            var column = 0_u32
             while column + 8 <= width
             {
                 let pixels = Simd.load(&.predBuffer[list, base + column])

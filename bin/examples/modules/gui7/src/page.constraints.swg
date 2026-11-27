@@ -30,7 +30,7 @@ func createConstraintsPage(parent: *Wnd)
                              "Docked children consume the client rectangle in order; center fills the remaining space while min/max sizes clamp panes.",
                              layout.full)
 
-    let host = Wnd.create'Wnd(page, Math.Rectangle{18, 92, layout.full.width - 36, layout.full.height - 114})
+    let host = Wnd.create!{Wnd}(page, Math.Rectangle{18, 92, layout.full.width - 36, layout.full.height - 114})
     host.padding = 8
 
     with let topStack = StackLayoutCtrl.create(host, .Left, {0, 0, 0, 56})
@@ -62,7 +62,7 @@ func createConstraintsPage(parent: *Wnd)
     right.minSize.x = 180
     right.maxSize.x = 280
 
-    let center = Wnd.create'Wnd(host, {0, 0, 260, 160})
+    let center = Wnd.create!{Wnd}(host, {0, 0, 260, 160})
     center.backgroundStyle = .View
     center.dockStyle       = .Center
     center.margin          = 0

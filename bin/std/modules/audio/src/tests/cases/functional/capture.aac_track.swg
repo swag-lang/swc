@@ -11,19 +11,22 @@ using Swag, Core, Core.Errors
     defer discard catch File.delete(path)
     var queue = expect CaptureQueue.create(48_000, 1, 0, 48_000, blockFrames: 1_024, tolerance: 0)
     var tone: [1_024] s16
-    for frame in tone.count do
+    for frame in tone.count
+    {
         tone[frame] = cast(s16,
                            Math.round(9_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                          1_000.0 * frame / 48_000.0)))
+    }
+
     discard expect queue.push(Swag.makeSlice(&tone[0], tone.count), 0)
     discard expect queue.push(Swag.makeSlice(&tone[0], tone.count), 2_048)
     var track = expect CaptureAacTrack.create(&queue)
     Swag.require(track.sampleRateHz() == 48_000 and track.encoderDelayFrames() == 1_024)
-    var file:    Array'u8
-    var packets: Array'SoundPacket
-    var packet:  Array'u8
+    var file:    Array!{u8}
+    var packets: Array!{SoundPacket}
+    var packet:  Array!{u8}
     var info:    CaptureAacPacket
-    var count = 0'u64
+    var count = 0_u64
     while expect track.nextPacket(&packet, &info)
     {
         Swag.require(info.startSample == count * 1_024 and info.validFrames == 1_024)
@@ -45,16 +48,16 @@ using Swag, Core, Core.Errors
     Swag.require(count == 4)
     discard expect File.writeAllBytes(path.toString(), file.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 1, count * 1_024, packets.toSlice(), track.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
     Swag.require(decoded.count == count * 1_024)
-    var before = 0.0'f64
-    var gap    = 0.0'f64
-    var after  = 0.0'f64
+    var before = 0.0_f64
+    var gap    = 0.0_f64
+    var after  = 0.0_f64
     for frame in 1_024
     {
         before += cast(f64, decoded[1_024 + frame]) * decoded[1_024 + frame]
@@ -72,13 +75,16 @@ using Swag, Core, Core.Errors
 {
     var queue = expect CaptureQueue.create(48_000, 1, 0, 48_000, blockFrames: 1_024, tolerance: 0)
     var samples: [1_024] s16
-    for frame in samples.count do
+    for frame in samples.count
+    {
         samples[frame] = cast(s16, frame % 255)
+    }
+
     discard expect queue.push(Swag.makeSlice(&samples[0], samples.count), 0)
     expect queue.markLost(1_024)
     expect queue.markLost(4_096)
     var track = expect CaptureAacTrack.create(&queue, .Voice)
-    var packet: Array'u8
+    var packet: Array!{u8}
     var info:   CaptureAacPacket
     for index in 4
     {
@@ -110,7 +116,7 @@ using Swag, Core, Core.Errors
     discard expect queue.push(Swag.makeSlice(&second[0], second.count), 300)
     discard expect queue.push(Swag.makeSlice(&third[0], third.count), 1_300)
     var track = expect CaptureAacTrack.create(&queue)
-    var packet: Array'u8
+    var packet: Array!{u8}
     var info:   CaptureAacPacket
     for index in 3
     {
@@ -140,7 +146,7 @@ using Swag, Core, Core.Errors
     discard expect queue.push(Swag.makeSlice(&restored[0], restored.count), 1_024)
 
     var track = expect CaptureAacTrack.create(&queue)
-    var packet: Array'u8
+    var packet: Array!{u8}
     var info:   CaptureAacPacket
     Swag.require(expect track.nextPacket(&packet, &info))
     Swag.require(info.startSample == 0 and info.validFrames == 1_024 and not info.sourceInterrupted)
@@ -170,7 +176,7 @@ using Swag, Core, Core.Errors
 
     Swag.require(queue.droppedBlockCount() == 1)
     var track = expect CaptureAacTrack.create(&queue)
-    var packet: Array'u8
+    var packet: Array!{u8}
     var info:   CaptureAacPacket
     for index in 3
     {
@@ -195,7 +201,7 @@ using Swag, Core, Core.Errors
     expect queue.markRestored(600)
     discard expect queue.push(Swag.makeSlice(&second[0], second.count), 600)
     var track = expect CaptureAacTrack.create(&queue)
-    var packet: Array'u8
+    var packet: Array!{u8}
     var info:   CaptureAacPacket
     Swag.require(expect track.nextPacket(&packet, &info))
     Swag.require(info.startSample == 0 and info.validFrames == 1_024)
@@ -217,7 +223,7 @@ using Swag, Core, Core.Errors
 
     var queue = expect CaptureQueue.create(48_000, 1, 0, 48_000)
     var track = expect CaptureAacTrack.create(&queue)
-    var packet: Array'u8
+    var packet: Array!{u8}
     var info:   CaptureAacPacket
     info = CaptureAacPacket{startSample: 42, validFrames: 2, syntheticFrames: 1,
                             sourceInterrupted: true}

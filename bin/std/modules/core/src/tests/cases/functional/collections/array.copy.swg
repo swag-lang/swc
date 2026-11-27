@@ -4,7 +4,7 @@
 // An empty retained allocation copies as an independent empty array, including owning elements.
 #test
 {
-    var source: Array'String
+    var source: Array!{String}
     source.add(String.from("Before clearing"))
     source.clear()
     Swag.require(source.isEmpty() and source.buffer != null)

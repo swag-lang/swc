@@ -38,75 +38,115 @@ private func truncate32(value: u64)->u64 => value & 0xFFFF_FFFF
 #[Swag.Inline]
 private func store32Le(data: [*] u8, value: u32)
 {
-    for i in 4 do
+    for i in 4
+    {
         data[i] = cast(u8, ((value >> cast(u32, (i * 8))) & 0xFF))
+    }
 }
 
-// Argon2's BLAKE2b mixer uses the low 32 bits of each operand for its extra product.
+private alias Argon2Pair = Math.Simd.U64x2
+private const Argon2Pairs = Argon2Words / 2
+
 #[Swag.Inline]
-private func mixBlock(block: [*] u64, a, b, c, d: u64)
+private func blamka(a, b: Argon2Pair)->Argon2Pair
 {
-    var va = block[a]
-    var vb = block[b]
-    var vc = block[c]
-    var vd = block[d]
-
-    va += vb + 2 * truncate32(va) * truncate32(vb)
-    vd = Swag.ror(vd ^ va, 32'u8)
-    vc += vd + 2 * truncate32(vc) * truncate32(vd)
-    vb = Swag.ror(vb ^ vc, 24'u8)
-    va += vb + 2 * truncate32(va) * truncate32(vb)
-    vd = Swag.ror(vd ^ va, 16'u8)
-    vc += vd + 2 * truncate32(vc) * truncate32(vd)
-    vb = Swag.ror(vb ^ vc, 63'u8)
-
-    block[a] = va
-    block[b] = vb
-    block[c] = vc
-    block[d] = vd
+    const LowHalf: Argon2Pair = [0xFFFF_FFFF, 0xFFFF_FFFF]
+    let product = (a & LowHalf) * (b & LowHalf)
+    return (a + b) + (product + product)
 }
 
-// The permutation uses eight word pairs. Adjacent pairs are two words apart
-// in a row and sixteen words apart in a column.
-private func permute(block: [*] u64, stride: u64)
+#[Swag.Inline]
+private func mixPairs(a, b, c, d: *Argon2Pair)
 {
-    mixBlock(block, 0, 2 * stride, 4 * stride, 6 * stride)
-    mixBlock(block, 1, 2 * stride + 1, 4 * stride + 1, 6 * stride + 1)
-    mixBlock(block, stride, 3 * stride, 5 * stride, 7 * stride)
-    mixBlock(block, stride + 1, 3 * stride + 1, 5 * stride + 1, 7 * stride + 1)
+    const Rotate32: Math.Simd.U32x4 = [1, 0, 3, 2]
+    const Rotate24: Math.Simd.U8x16 = [3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10]
+    const Rotate16: Math.Simd.U8x16 = [2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9]
 
-    mixBlock(block, 0, 2 * stride + 1, 5 * stride, 7 * stride + 1)
-    mixBlock(block, 1, 3 * stride, 5 * stride + 1, 6 * stride)
-    mixBlock(block, stride, 3 * stride + 1, 4 * stride, 6 * stride + 1)
-    mixBlock(block, stride + 1, 2 * stride, 4 * stride + 1, 7 * stride)
+    a[] = blamka(a[], b[])
+    d[] = cast #bit (Argon2Pair, Swag.vecShuffle(cast #bit (Math.Simd.U32x4, d[] ^ a[]), Rotate32))
+    c[] = blamka(c[], d[])
+    b[] = cast #bit (Argon2Pair, Swag.vecShuffle(cast #bit (Math.Simd.U8x16, b[] ^ c[]), Rotate24))
+    a[] = blamka(a[], b[])
+    d[] = cast #bit (Argon2Pair, Swag.vecShuffle(cast #bit (Math.Simd.U8x16, d[] ^ a[]), Rotate16))
+    c[] = blamka(c[], d[])
+    b[] = Swag.ror(b[] ^ c[], 63_u8)
+}
+
+// Each lane handles an independent G. Realign the pairs between the column
+// and diagonal steps, then restore the original word order.
+#[Swag.Inline]
+private func(Stride: u64) permute(block: [*] Argon2Pair)
+{
+    var a0 = block[0]
+    var a1 = block[Stride]
+    var b0 = block[2 * Stride]
+    var b1 = block[3 * Stride]
+    var c0 = block[4 * Stride]
+    var c1 = block[5 * Stride]
+    var d0 = block[6 * Stride]
+    var d1 = block[7 * Stride]
+
+    mixPairs(&a0, &b0, &c0, &d0)
+    mixPairs(&a1, &b1, &c1, &d1)
+
+    var b0Diagonal = Swag.vecAlign(b0, b1, 8)
+    var b1Diagonal = Swag.vecAlign(b1, b0, 8)
+    var d0Diagonal = Swag.vecAlign(d1, d0, 8)
+    var d1Diagonal = Swag.vecAlign(d0, d1, 8)
+    mixPairs(&a0, &b0Diagonal, &c1, &d0Diagonal)
+    mixPairs(&a1, &b1Diagonal, &c0, &d1Diagonal)
+
+    block[0]          = a0
+    block[Stride]     = a1
+    block[2 * Stride] = Swag.vecAlign(b1Diagonal, b0Diagonal, 8)
+    block[3 * Stride] = Swag.vecAlign(b0Diagonal, b1Diagonal, 8)
+    block[4 * Stride] = c0
+    block[5 * Stride] = c1
+    block[6 * Stride] = Swag.vecAlign(d0Diagonal, d1Diagonal, 8)
+    block[7 * Stride] = Swag.vecAlign(d1Diagonal, d0Diagonal, 8)
 }
 
 // Argon2's compression function. Writes `G(x, y)` to `destination`, or XORs it
 // into `destination` when `accumulate` is set, which is what the second and
-// later passes do.
-private func compress(destination: [*] u64, x, y: const [*] u64, accumulate: bool)
+// later passes do. Each call replaces the segment scratch before using it.
+private func compress(destination: [*] u64, x, y: const [*] u64, scratch: [*] Argon2Pair, accumulate: bool)
 {
-    var mixed:  [Argon2Words] u64
-    var result: [Argon2Words] u64
-    for i in Argon2Words
+    let left   = cast(const [*] Argon2Pair, x)
+    let right  = cast(const [*] Argon2Pair, y)
+    let target = cast([*] Argon2Pair, destination)
+
+    for i in Argon2Pairs
     {
-        mixed[i]  = x[i] ^ y[i]
-        result[i] = mixed[i]
+        scratch[i] = left[i] ^ right[i]
     }
 
-    for i in 8 do
-        permute(&result[i * 16], 2)
-    for i in 8 do
-        permute(&result[i * 2], 16)
-
-    for i in Argon2Words
+    for i in 8
     {
-        let value = result[i] ^ mixed[i]
-        destination[i] = accumulate ? destination[i] ^ value : value
+        permute!{1}(&scratch[i * 8])
     }
 
-    secureClear(mixed)
-    secureClear(result)
+    for i in 8
+    {
+        permute!{8}(&scratch[i])
+
+        // Address generation can overwrite its right operand. Read each pair's
+        // inputs before publishing the corresponding output.
+    }
+
+    if accumulate
+    {
+        for i in Argon2Pairs
+        {
+            target[i] ^= scratch[i] ^ left[i] ^ right[i]
+        }
+    }
+    else
+    {
+        for i in Argon2Pairs
+        {
+            target[i] = scratch[i] ^ left[i] ^ right[i]
+        }
+    }
 }
 
 // RFC 9106 variable-length hash `H'`. BLAKE2b caps its digest at 64 bytes, so a
@@ -137,13 +177,15 @@ private func variableHash(input: const [..] u8, destination: [..] u8) fail
     // exact length rather than truncated, because BLAKE2b binds the digest
     // length into its state and the two do not agree.
     const strideSize = Hash.Blake2bMaxDigestSize / 2
-    var written = 0'u64
+    var written = 0_u64
     while destination.count - written > Hash.Blake2bMaxDigestSize
     {
         Swag.memcpy(destination.buffer + written, &current[0], strideSize)
         written += strideSize
-        if destination.count - written > Hash.Blake2bMaxDigestSize do
+        if destination.count - written > Hash.Blake2bMaxDigestSize
+        {
             try Hash.Blake2b.compute(current, current)
+        }
     }
 
     let remaining = destination.count - written
@@ -156,11 +198,11 @@ private func variableHash(input: const [..] u8, destination: [..] u8) fail
 // Regenerates the block of pseudo-random addresses used by the data-independent passes.
 //
 // The address counter in `input` advances first, so each call yields the next block of addresses.
-private func nextAddresses(addresses, input: [*] u64, zero: const [*] u64)
+private func nextAddresses(addresses, input: [*] u64, zero: const [*] u64, scratch: [*] Argon2Pair)
 {
     input[6] += 1
-    compress(addresses, zero, input, false)
-    compress(addresses, zero, addresses, false)
+    compress(addresses, zero, input, scratch, false)
+    compress(addresses, zero, addresses, scratch, false)
 }
 
 // A segment owns its destination blocks and scratch. References into other lanes only
@@ -170,8 +212,10 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
     var zero:      [Argon2Words] u64
     var input:     [Argon2Words] u64
     var addresses: [Argon2Words] u64
+    var scratch:   [Argon2Pairs] Argon2Pair
     defer secureClear(input)
     defer secureClear(addresses)
+    defer secureClear(scratch)
 
     // Argon2id takes its addresses from a counter for the first half
     // of the first pass, and from the previous block afterwards.
@@ -191,11 +235,14 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
     let sliceStart = slice * segmentLength
     let laneStart  = lane * laneLength
     let firstStep  = firstSlice ? 2 : 0
-    if firstSlice do
-        nextAddresses(&addresses[0], &input[0], &zero[0])
+    if firstSlice
+    {
+        nextAddresses(addresses.buffer, input.buffer, zero.buffer, scratch.buffer)
 
-    // During the first pass only earlier slices are visible in other lanes.
-    // Later passes have all three previous slices available.
+        // During the first pass only earlier slices are visible in other lanes.
+        // Later passes have all three previous slices available.
+    }
+
     let priorBlocks = pass ? laneLength - segmentLength : sliceStart
     let windowStart = pass and slice != Argon2SyncPoints - 1 ? sliceStart + segmentLength : 0
     let laneMask    = lanes - 1
@@ -210,8 +257,11 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
         if independent
         {
             let address = step % Argon2AddressCount
-            if address == 0 do
-                nextAddresses(&addresses[0], &input[0], &zero[0])
+            if address == 0
+            {
+                nextAddresses(addresses.buffer, input.buffer, zero.buffer, scratch.buffer)
+            }
+
             random = addresses[address]
         }
         else
@@ -233,12 +283,13 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
         let scaled   = (low * low) >> 32
         let relative = areaSize - 1 - ((areaSize * scaled) >> 32)
         var offset   = windowStart + relative
-        // Both terms fit within one lane, so their sum needs at most one wrap.
-        if offset >= laneLength do
+        if offset >= laneLength
+        {
             offset -= laneLength
+        }
 
         let reference = blocks + ((referenceLane * laneLength + offset) * Argon2Words)
-        compress(current, previous, reference, pass != 0)
+        compress(current, previous, reference, scratch.buffer, pass != 0)
         previous = current
         current  += Argon2Words
     }
@@ -284,21 +335,40 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     if password.count > Swag.U32.Max or
        salt.count > Swag.U32.Max or
        associatedData.count > Swag.U32.Max or
-       destination.count > Swag.U32.Max do
+       destination.count > Swag.U32.Max
+    {
         fail Errors.BadParameterError{"Argon2 byte lengths exceed the 32-bit limit"}
+    }
 
-    if destination.count < Argon2MinTagSize do
+    if destination.count < Argon2MinTagSize
+    {
         fail Errors.BadParameterError{"Argon2 needs a tag of at least 4 bytes"}
-    if salt.count < Argon2MinSaltSize do
+    }
+
+    if salt.count < Argon2MinSaltSize
+    {
         fail Errors.BadParameterError{"Argon2 needs a salt of at least 8 bytes"}
-    if not parameters.parallelism or parameters.parallelism > 0xFF_FFFF do
+    }
+
+    if not parameters.parallelism or parameters.parallelism > 0xFF_FFFF
+    {
         fail Errors.BadParameterError{"Argon2 needs 1 to 16777215 lanes"}
-    if not parameters.iterations do
+    }
+
+    if not parameters.iterations
+    {
         fail Errors.BadParameterError{"Argon2 needs at least one pass"}
-    if parameters.memoryKib < 8 * parameters.parallelism do
+    }
+
+    if parameters.memoryKib < 8 * parameters.parallelism
+    {
         fail Errors.BadParameterError{"Argon2 needs at least eight kibibytes of memory per lane"}
-    if secret.count > Hash.Blake2bMaxKeySize do
+    }
+
+    if secret.count > Hash.Blake2bMaxKeySize
+    {
         fail Errors.BadParameterError{"Argon2 accepts a secret of at most 64 bytes"}
+    }
 
     let lanes         = cast(u64, parameters.parallelism)
     let passes        = cast(u64, parameters.iterations)
@@ -370,21 +440,28 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
         {
             // The structured join is Argon2's slice boundary. No worker waits on a
             // sibling, and the owning memory stays alive until every lane is finished.
-            parallel for |blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice| lane in lanes do
+            parallel for |blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice| lane in lanes
+            {
                 fillSegment(blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice, lane)
+            }
         }
     }
 
     // The tag folds the last block of every lane together.
     var final: [Argon2Words] u64
     defer secureClear(final)
-    for i in Argon2Words do
+    for i in Argon2Words
+    {
         final[i] = blocks[((lanes - 1) * laneLength + laneLength - 1) * Argon2Words + i]
+    }
+
     for lane in lanes - 1
     {
         let last = (lane * laneLength + laneLength - 1) * Argon2Words
-        for i in Argon2Words do
+        for i in Argon2Words
+        {
             final[i] ^= blocks[last + i]
+        }
     }
 
     try variableHash(Swag.makeSlice(cast(const [*] u8, &final[0]), Argon2BlockSize), destination)

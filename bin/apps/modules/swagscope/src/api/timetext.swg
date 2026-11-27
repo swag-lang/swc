@@ -8,8 +8,11 @@ private func wholeTimeText(total: u64)->String
     let hours   = total / 3_600
     let minutes = total / 60 % 60
     let rest    = total % 60
-    if hours do
+    if hours
+    {
         return Format.toString("%:%{02}:%{02}", hours, minutes, rest)
+    }
+
     return Format.toString("%:%{02}", total / 60, rest)
 }
 
@@ -35,36 +38,57 @@ func timeRangeText(current, duration: f64)->String => Format.toString("% / %", t
 func parseTimeAddress(text: string, current, duration: f64)->f64
 {
     let input = Latin1.trim(text)
-    if not input.count do
+    if not input.count
+    {
         return -1
+    }
+
     let relative = input[0] == '+' or input[0] == '-'
     let number   = relative ? input[1 to] : input
-    if not number.count do
+    if not number.count
+    {
         return -1
-    let parts = Tokenize.split(number, ':'u8, removeEmpty: false)
-    if parts.count > 3 or (relative and parts.count != 1) do
-        return -1
+    }
 
-    var seconds = 0.0'f64
+    let parts = Tokenize.split(number, ':'_u8, removeEmpty: false)
+    if parts.count > 3 or (relative and parts.count != 1)
+    {
+        return -1
+    }
+
+    var seconds = 0.0_f64
     for part, index in parts
     {
-        if not part.count do
+        if not part.count
+        {
             return -1
+        }
+
         let last = index + 1 == parts.count
         var dots: u32
         for byte in part
         {
-            if byte == '.' and last do
+            if byte == '.' and last
+            {
                 dots += 1
-            elif byte < '0' or byte > '9' do
+            }
+            else if byte < '0' or byte > '9'
+            {
                 return -1
+            }
         }
 
-        if dots > 1 do
+        if dots > 1
+        {
             return -1
+        }
+
         let value = catch StrConv.toF64(part) orelse -1
-        if value < 0 or (index > 0 and value >= 60) do
+        if value < 0 or (index > 0 and value >= 60)
+        {
             return -1
+        }
+
         seconds = seconds * 60 + value
     }
 

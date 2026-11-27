@@ -14,17 +14,19 @@ using Core, Core.Errors
 // little over two megabytes; the peek grows to whatever a particular file turns out to need and
 // starts at one header, because the read window of the source already looks ahead further than
 // the few kilobytes a real encoder produces.
-private const FrameHeaderBytes = 16'u64
+private const FrameHeaderBytes = 16_u64
 
 // The polynomial a FLAC frame header protects itself with, clause 9.1.
 private func headerCrc8(bytes: const [..] u8)->u8
 {
-    var crc = 0'u8
+    var crc = 0_u8
     for value in bytes
     {
         crc ^= value
-        for 8 do
+        for 8
+        {
             crc = (crc & 0x80) != 0 ? cast(u8, ((crc << 1) ^ 0x07)) : cast(u8, (crc << 1))
+        }
     }
 
     return crc
@@ -37,8 +39,11 @@ private const FrameCrcTable: [8, 256] u16 = #run
     for byte in 256
     {
         var checksum = cast(u32, byte) << 8
-        for 8 do
+        for 8
+        {
             checksum = ((checksum << 1) ^ (checksum & 0x8000 ? 0x8005 : 0)) & 0xFFFF
+        }
+
         table[0, byte] = cast(u16, checksum)
     }
 
@@ -57,7 +62,7 @@ private const FrameCrcTable: [8, 256] u16 = #run
 private func frameCrc16Table(bytes: const [..] u8, initial: u16)->u16
 {
     var checksum = initial
-    var offset   = 0'u64
+    var offset   = 0_u64
     while bytes.count - offset >= 8
     {
         checksum = FrameCrcTable[7, bytes[offset] ^ (checksum >> 8)] ^
@@ -71,20 +76,23 @@ private func frameCrc16Table(bytes: const [..] u8, initial: u16)->u16
         offset += 8
     }
 
-    for byte in bytes[offset until] do
+    for byte in bytes[offset until]
+    {
         checksum = ((checksum & 0xFF) << 8) ^ FrameCrcTable[0, byte ^ (checksum >> 8)]
+    }
+
     return checksum
 }
 
 // FLAC's frame trailer protects the complete header and coded subframes.
-internal func frameCrc16(bytes: const [..] u8, initial = 0'u16)->u16
+internal func frameCrc16(bytes: const [..] u8, initial = 0_u16)->u16
 {
     #static if not Core.BIG_ENDIAN
     {
         if bytes.count >= 64
         {
-            let foldedCount = bytes.count & ~15'u64
-            let block       = foldMsbChecksum'(16'u32, 0x8005'u32)(bytes[until foldedCount], cast(u32, initial))
+            let foldedCount = bytes.count & ~15_u64
+            let block       = foldMsbChecksum!{16_u32, 0x8005_u32}(bytes[until foldedCount], cast(u32, initial))
             let checksum    = frameCrc16Table(block, 0)
             return frameCrc16Table(bytes[foldedCount until], checksum)
         }
@@ -100,74 +108,99 @@ internal func frameCrc16(bytes: const [..] u8, initial = 0'u16)->u16
 // residuals — so the header's own checksum identifies a candidate.
 private func frameHeaderSize(bytes: const [..] u8, offset: u64)->u64
 {
-    if bytes.count - offset < 5 do
+    if bytes.count - offset < 5
+    {
         return 0
-    if bytes[offset] != 0xFF or (bytes[offset + 1] & 0xFC) != 0xF8 do
+    }
+
+    if bytes[offset] != 0xFF or (bytes[offset + 1] & 0xFC) != 0xF8
+    {
         return 0
+    }
 
     let blockSizeCode  = bytes[offset + 2] >> 4
     let sampleRateCode = bytes[offset + 2] & 0x0F
-    if not blockSizeCode or sampleRateCode == 0x0F do
+    if not blockSizeCode or sampleRateCode == 0x0F
+    {
         return 0
+    }
 
     // The frame or sample number is stored the way UTF-8 stores a code point.
     let lead = bytes[offset + 4]
-    var size = 5'u64
-    var continuationBytes = 0'u64
+    var size = 5_u64
+    var continuationBytes = 0_u64
     if lead == 0xFE
     {
         size += 6
         continuationBytes = 6
     }
-    elif lead == 0xFF
+    else if lead == 0xFF
     {
         return 0
     }
-    elif lead >= 0xFC
+    else if lead >= 0xFC
     {
         size += 5
         continuationBytes = 5
     }
-    elif lead >= 0xF8
+    else if lead >= 0xF8
     {
         size += 4
         continuationBytes = 4
     }
-    elif lead >= 0xF0
+    else if lead >= 0xF0
     {
         size += 3
         continuationBytes = 3
     }
-    elif lead >= 0xE0
+    else if lead >= 0xE0
     {
         size += 2
         continuationBytes = 2
     }
-    elif lead >= 0xC0
+    else if lead >= 0xC0
     {
         size += 1
         continuationBytes = 1
     }
-    elif lead >= 0x80
+    else if lead >= 0x80
     {
         return 0
     }
 
-    if blockSizeCode == 6 do
+    if blockSizeCode == 6
+    {
         size += 1
-    elif blockSizeCode == 7 do
+    }
+    else if blockSizeCode == 7
+    {
         size += 2
-    if sampleRateCode == 12 do
-        size += 1
-    elif sampleRateCode == 13 or sampleRateCode == 14 do
-        size += 2
+    }
 
-    if bytes.count - offset < size + 1 do
+    if sampleRateCode == 12
+    {
+        size += 1
+    }
+    else if sampleRateCode == 13 or sampleRateCode == 14
+    {
+        size += 2
+    }
+
+    if bytes.count - offset < size + 1
+    {
         return 0
-    for index in continuationBytes where (bytes[offset + 5 + index] & 0xC0) != 0x80 do
+    }
+
+    for index in continuationBytes where (bytes[offset + 5 + index] & 0xC0) != 0x80
+    {
         return 0
-    if headerCrc8(bytes[offset until offset + size]) != bytes[offset + size] do
+    }
+
+    if headerCrc8(bytes[offset until offset + size]) != bytes[offset + size]
+    {
         return 0
+    }
+
     return size + 1
 }
 
@@ -178,8 +211,8 @@ private func findFrameSync(bytes: const [..] u8, start, end: u64)->u64
     #[Swag.Inline]
     func syncMask(data: const [*] u8)->Math.Simd.U8x16
     {
-        let leading  = Math.Simd.load(data) == Math.Simd.splat(0xFF'u8)
-        let trailing = (Math.Simd.load(data + 1) & Math.Simd.splat(0xFC'u8)) == Math.Simd.splat(0xF8'u8)
+        let leading  = Math.Simd.load(data) == Math.Simd.splat(0xFF_u8)
+        let trailing = (Math.Simd.load(data + 1) & Math.Simd.splat(0xFC_u8)) == Math.Simd.splat(0xF8_u8)
         return leading & trailing
     }
 
@@ -195,30 +228,39 @@ private func findFrameSync(bytes: const [..] u8, start, end: u64)->u64
                        syncMask(at + VectorBytes) |
                        syncMask(at + 2 * VectorBytes) |
                        syncMask(at + 3 * VectorBytes)
-        if Math.Simd.bitmask(combined) do
+        if Math.Simd.bitmask(combined)
+        {
             break
+        }
+
         scan += 4 * VectorBytes
     }
 
     while limit - scan >= VectorBytes
     {
         let matches = Math.Simd.bitmask(syncMask(data + scan))
-        if matches do
+        if matches
+        {
             return scan + Math.trailingZeros(matches)
+        }
+
         scan += VectorBytes
     }
 
-    for index in scan until limit where data[index] == 0xFF and (data[index + 1] & 0xFC) == 0xF8 do
+    for index in scan until limit where data[index] == 0xFF and (data[index + 1] & 0xFC) == 0xF8
+    {
         return index
+    }
+
     return end
 }
 
 // What the metadata prologue of a file says about the stream that follows it.
 private struct Prologue
 {
-    config:      Array'u8     // The marker and every metadata block, as a container would carry it.
-    firstFrame:  u64          // Offset of the first audio frame.
-    mediaEnd:    u64          // End of the last committed frame when this writer left a checkpoint.
+    config:      Array!{u8}     // The marker and every metadata block, as a container would carry it.
+    firstFrame:  u64            // Offset of the first audio frame.
+    mediaEnd:    u64            // End of the last committed frame when this writer left a checkpoint.
     sampleRate:  u32
     channels:    u32
     totalFrames: u64     // Sample frames the stream information states, or zero when unknown.
@@ -231,19 +273,26 @@ private func readPrologue(source: *ByteSource)->Prologue fail
 
     let size = source.size()
     result.mediaEnd = size
-    if size < 4 do
+    if size < 4
+    {
         fail InvalidFormatError{"file does not start with the FLAC stream marker"}
+    }
+
     try source.seek(0)
     let marker = try source.peek(4)
-    if marker[0] != 'f' or marker[1] != 'L' or marker[2] != 'a' or marker[3] != 'C' do
+    if marker[0] != 'f' or marker[1] != 'L' or marker[2] != 'a' or marker[3] != 'C'
+    {
         fail InvalidFormatError{"file does not start with the FLAC stream marker"}
+    }
 
-    var offset   = 4'u64
+    var offset   = 4_u64
     var sawFirst = false
     for
     {
-        if offset > size or size - offset < 4 do
+        if offset > size or size - offset < 4
+        {
             fail InvalidFormatError{"FLAC metadata block header is truncated"}
+        }
 
         try source.seek(offset)
         let header = try source.peek(4)
@@ -251,14 +300,19 @@ private func readPrologue(source: *ByteSource)->Prologue fail
         let isLast = (header[0] & 0x80) != 0
         let kind   = header[0] & 0x7F
         let length = (cast(u64, header[1]) << 16) | (cast(u64, header[2]) << 8) | cast(u64, header[3])
-        if size - offset - 4 < length do
+        if size - offset - 4 < length
+        {
             fail InvalidFormatError{"FLAC metadata block runs past the end of the file"}
+        }
 
         // The stream information block is the first one, and the only one this reads.
         if not kind and not sawFirst
         {
-            if length != StreamInfoSize do
+            if length != StreamInfoSize
+            {
                 fail InvalidFormatError{"FLAC stream information block has the wrong size"}
+            }
+
             sawFirst = true
         }
 
@@ -268,22 +322,32 @@ private func readPrologue(source: *ByteSource)->Prologue fail
             let application = try source.peek(12)
             if Memory.compare(application.buffer, "SWAG".buffer, 4) == 0
             {
-                var boundary = 0'u64
-                for index in 4 until 12 do
+                var boundary = 0_u64
+                for index in 4 until 12
+                {
                     boundary = (boundary << 8) | application[index]
+                }
+
                 result.mediaEnd = boundary
             }
         }
 
         offset += 4 + length
-        if isLast do
+        if isLast
+        {
             break
+        }
     }
 
-    if not sawFirst do
+    if not sawFirst
+    {
         fail InvalidFormatError{"FLAC file has no stream information block"}
-    if result.mediaEnd < offset or result.mediaEnd > size do
+    }
+
+    if result.mediaEnd < offset or result.mediaEnd > size
+    {
         fail InvalidFormatError{"FLAC recording checkpoint is outside the file"}
+    }
 
     result.config.resize(offset)
     try source.seek(0)
@@ -316,16 +380,18 @@ internal func findFrameEnd(source: *ByteSource,
     let boundaryBytes = Math.min(FrameHeaderBytes, remaining)
     let scanLimit     = boundedFrame > remaining - boundaryBytes ? remaining : boundedFrame + boundaryBytes
     var want          = Math.min(FrameHeaderBytes, scanLimit)
-    var scan          = 2'u64
-    var checkedBytes  = 0'u64
-    var checksum      = 0'u16
+    var scan          = 2_u64
+    var checkedBytes  = 0_u64
+    var checksum      = 0_u16
     for
     {
         try source.seek(start)
         let available = try source.peek(want)
         let bytes     = available[until Math.min(available.count, scanLimit)]
-        if not frameHeaderSize(bytes, 0) do
+        if not frameHeaderSize(bytes, 0)
+        {
             fail InvalidFormatError{"FLAC file does not start a frame where one is expected"}
+        }
 
         // Leave room to retry a header split across windows without scanning the prefix again.
         let overlap = bytes.count < scanLimit ? Math.min(bytes.count, FrameHeaderBytes - 1) : 0
@@ -333,16 +399,20 @@ internal func findFrameEnd(source: *ByteSource,
         while scan < scanEnd
         {
             scan = findFrameSync(bytes, scan, scanEnd)
-            if scan == scanEnd do
+            if scan == scanEnd
+            {
                 break
+            }
 
             if frameHeaderSize(bytes, scan)
             {
                 // Including the two-byte trailer makes the checksum of a complete frame zero.
                 checksum     = frameCrc16(bytes[checkedBytes until scan], checksum)
                 checkedBytes = scan
-                if not checksum do
+                if not checksum
+                {
                     return start + scan
+                }
             }
 
             scan += 1
@@ -350,13 +420,19 @@ internal func findFrameEnd(source: *ByteSource,
 
         if start + bytes.count >= limit
         {
-            if bytes.count < 2 or frameCrc16(bytes[checkedBytes until], checksum) do
+            if bytes.count < 2 or frameCrc16(bytes[checkedBytes until], checksum)
+            {
                 fail InvalidFormatError{"FLAC frame checksum differs from its trailer"}
+            }
+
             return limit
         }
 
-        if bytes.count >= scanLimit do
+        if bytes.count >= scanLimit
+        {
             fail InvalidFormatError{"FLAC frame exceeds its maximum size before the next frame boundary"}
+        }
+
         want = Math.min(bytes.count * 2, scanLimit)
     }
 }
@@ -365,18 +441,21 @@ internal func findFrameEnd(source: *ByteSource,
 //
 // Only the read window of the source is held at a time, so indexing a long album costs its
 // index and not its audio.
-private func readFrameIndex(source: *ByteSource, firstFrame, mediaEnd: u64, packets: *Array'SoundPacket)->u64 fail
+private func readFrameIndex(source: *ByteSource, firstFrame, mediaEnd: u64, packets: *Array!{SoundPacket})->u64 fail
 {
     var start = firstFrame
-    var total = 0'u64
+    var total = 0_u64
 
     while start < mediaEnd
     {
         let next  = try findFrameEnd(source, start, mediaEnd)
         let frame = try source.peek(next - start)
         let count = try packetFrameCount(frame[0 until next - start])
-        if next - start > Swag.U32.Max do
+        if next - start > Swag.U32.Max
+        {
             fail InvalidFormatError{"FLAC audio frame is larger than a packet may be"}
+        }
+
         packets.add(SoundPacket{start, cast(u32, (next - start)), count})
         total += count
         start = next
@@ -395,14 +474,18 @@ internal func openFile(path: string)->SoundFile fail
     var source   = try ByteSource.openFile(path, .ReadWrite)
     let prologue = try readPrologue(&source)
 
-    var packets: Array'SoundPacket
+    var packets: Array!{SoundPacket}
     let frames = try readFrameIndex(&source, prologue.firstFrame, prologue.mediaEnd, &packets)
-    if not packets.count do
+    if not packets.count
+    {
         fail InvalidFormatError{"FLAC file carries no audio frame"}
+    }
 
     // The stream information may state the length; when it does, it is what the file promises.
-    if prologue.totalFrames and prologue.totalFrames != frames do
+    if prologue.totalFrames and prologue.totalFrames != frames
+    {
         fail InvalidFormatError{"FLAC stream sample count differs from its frames"}
+    }
 
     source.close()
     return try SoundFile.openPacketStream(path, .Flac, prologue.sampleRate, prologue.channels, frames, packets.toSlice(), prologue.config.toSlice())

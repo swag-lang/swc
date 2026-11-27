@@ -9,8 +9,11 @@ Once the condition becomes `false`, the loop terminates.
 #test
 {
     var i = 0
-    while i < 10 do
+    while i < 10
+    {
         i += 1
+    }
+
     Swag.require(i == 10)
 }
 
@@ -25,8 +28,11 @@ This is useful when you need to stop the loop based on a specific condition.
     var i = 0
     while i < 10
     {
-        if i == 5 do
+        if i == 5
+        {
             break
+        }
+
         i += 1
     }
 
@@ -47,8 +53,11 @@ It is useful for ignoring specific cases within the loop.
     while i < 10
     {
         i += 1
-        if i % 2 == 0 do
+        if i % 2 == 0
+        {
             continue
+        }
+
         sum += i
     }
 
@@ -72,8 +81,11 @@ A `while` loop can contain another `while` loop.
         j = 0
         while j < 3
         {
-            if j == 2 do
+            if j == 2
+            {
                 break
+            }
+
             count += 1
             j     += 1
         }

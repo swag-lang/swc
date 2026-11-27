@@ -51,8 +51,10 @@ func chachaRounds(state: *[16] u32)
 func chachaRoundsLocal()->u32
 {
     var state: [16] u32
-    for i in 16 do
+    for i in 16
+    {
         state[i] = cast(u32, (i * 0x01010101))
+    }
 
     for 10
     {
@@ -66,9 +68,11 @@ func chachaRoundsLocal()->u32
         quarterRound(&state, 3, 4, 9, 14)
     }
 
-    var acc = 0'u32
-    for i in 16 do
+    var acc = 0_u32
+    for i in 16
+    {
         acc ^= state[i]
+    }
     return acc
 }
 
@@ -195,8 +199,10 @@ func threeLanes(values: *[8] u32)
 #test
 {
     var state: [16] u32
-    for i in 16 do
+    for i in 16
+    {
         state[i] = cast(u32, (i * 0x01010101))
+    }
     chachaRounds(&state)
 
     // Reference values from an independent scalar implementation of the same
@@ -206,8 +212,10 @@ func threeLanes(values: *[8] u32)
         0x3D381414, 0x7C02A81A, 0x67490CA5, 0xEC264FC3,
         0x2A598CB0, 0xBCDF0F50, 0xA0FF67B6, 0x1E1813E1,
         0x6E6F2414, 0x3611BE53, 0x90B57CBF, 0x885F04F2]
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(state[i] == Expected[i])
+    }
 }
 
 #test
@@ -335,10 +343,10 @@ func lanesAbsFloat(values: *[8] f32)
 #[Swag.Optimize(true)]
 func lanesAddFloatConstant(values: *[8] f32)
 {
-    values[][4] = values[][0] + 1.5'f32
-    values[][5] = values[][1] + 1.5'f32
-    values[][6] = values[][2] + 1.5'f32
-    values[][7] = values[][3] + 1.5'f32
+    values[][4] = values[][0] + 1.5_f32
+    values[][5] = values[][1] + 1.5_f32
+    values[][6] = values[][2] + 1.5_f32
+    values[][7] = values[][3] + 1.5_f32
 }
 
 struct FloatToIntLanes
@@ -369,8 +377,10 @@ func lanesFloorFloat(values: *[8] f32)
 {
     var values: [16] u32 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
     lanesAddConstantTwice(&values)
-    for i in 8 do
+    for i in 8
+    {
         Swag.require(values[i + 8] == i + 5)
+    }
 }
 
 #test
@@ -382,94 +392,94 @@ func lanesFloorFloat(values: *[8] f32)
 
 #test
 {
-    var values: [12] f32 = [1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32, 10.0'f32, 20.0'f32, 30.0'f32, 40.0'f32, 0, 0, 0, 0]
+    var values: [12] f32 = [1.0_f32, 2.0_f32, 3.0_f32, 4.0_f32, 10.0_f32, 20.0_f32, 30.0_f32, 40.0_f32, 0, 0, 0, 0]
     lanesAddFloatPairs(&values)
-    Swag.require(values[8] == 11.0'f32 and
-                 values[9] == 22.0'f32 and
-                 values[10] == 33.0'f32 and
-                 values[11] == 44.0'f32)
+    Swag.require(values[8] == 11.0_f32 and
+                 values[9] == 22.0_f32 and
+                 values[10] == 33.0_f32 and
+                 values[11] == 44.0_f32)
 }
 
 #test
 {
-    var values: [12] f32 = [1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32, 10.0'f32, 20.0'f32, 30.0'f32, 40.0'f32, 0, 0, 0, 0]
+    var values: [12] f32 = [1.0_f32, 2.0_f32, 3.0_f32, 4.0_f32, 10.0_f32, 20.0_f32, 30.0_f32, 40.0_f32, 0, 0, 0, 0]
     lanesMulFloatPairs(&values)
-    Swag.require(values[8] == 10.0'f32 and
-                 values[9] == 40.0'f32 and
-                 values[10] == 90.0'f32 and
-                 values[11] == 160.0'f32)
+    Swag.require(values[8] == 10.0_f32 and
+                 values[9] == 40.0_f32 and
+                 values[10] == 90.0_f32 and
+                 values[11] == 160.0_f32)
 }
 
 #test
 {
-    var values: [12] f32 = [10.0'f32, 20.0'f32, 30.0'f32, 40.0'f32, 2.0'f32, 4.0'f32, 5.0'f32, 8.0'f32, 0, 0, 0, 0]
+    var values: [12] f32 = [10.0_f32, 20.0_f32, 30.0_f32, 40.0_f32, 2.0_f32, 4.0_f32, 5.0_f32, 8.0_f32, 0, 0, 0, 0]
     lanesDivFloatPairs(&values)
-    Swag.require(values[8] == 5.0'f32 and
-                 values[9] == 5.0'f32 and
-                 values[10] == 6.0'f32 and
-                 values[11] == 5.0'f32)
+    Swag.require(values[8] == 5.0_f32 and
+                 values[9] == 5.0_f32 and
+                 values[10] == 6.0_f32 and
+                 values[11] == 5.0_f32)
 }
 
 #test
 {
-    var values: [12] f32 = [10.0'f32, 2.0'f32, 30.0'f32, 4.0'f32, 1.0'f32, 20.0'f32, 3.0'f32, 40.0'f32, 0, 0, 0, 0]
+    var values: [12] f32 = [10.0_f32, 2.0_f32, 30.0_f32, 4.0_f32, 1.0_f32, 20.0_f32, 3.0_f32, 40.0_f32, 0, 0, 0, 0]
     lanesMinFloatPairs(&values)
-    Swag.require(values[8] == 1.0'f32 and
-                 values[9] == 2.0'f32 and
-                 values[10] == 3.0'f32 and
-                 values[11] == 4.0'f32)
+    Swag.require(values[8] == 1.0_f32 and
+                 values[9] == 2.0_f32 and
+                 values[10] == 3.0_f32 and
+                 values[11] == 4.0_f32)
 }
 
 #test
 {
-    var values: [12] f32 = [10.0'f32, 2.0'f32, 30.0'f32, 4.0'f32, 1.0'f32, 20.0'f32, 3.0'f32, 40.0'f32, 0, 0, 0, 0]
+    var values: [12] f32 = [10.0_f32, 2.0_f32, 30.0_f32, 4.0_f32, 1.0_f32, 20.0_f32, 3.0_f32, 40.0_f32, 0, 0, 0, 0]
     lanesMaxFloatPairs(&values)
-    Swag.require(values[8] == 10.0'f32 and
-                 values[9] == 20.0'f32 and
-                 values[10] == 30.0'f32 and
-                 values[11] == 40.0'f32)
+    Swag.require(values[8] == 10.0_f32 and
+                 values[9] == 20.0_f32 and
+                 values[10] == 30.0_f32 and
+                 values[11] == 40.0_f32)
 }
 
 #test
 {
-    var values: [8] f32 = [1.0'f32, 4.0'f32, 9.0'f32, 16.0'f32, 0, 0, 0, 0]
+    var values: [8] f32 = [1.0_f32, 4.0_f32, 9.0_f32, 16.0_f32, 0, 0, 0, 0]
     lanesSqrtFloat(&values)
-    Swag.require(values[4] == 1.0'f32 and values[5] == 2.0'f32 and values[6] == 3.0'f32 and values[7] == 4.0'f32)
+    Swag.require(values[4] == 1.0_f32 and values[5] == 2.0_f32 and values[6] == 3.0_f32 and values[7] == 4.0_f32)
 }
 
 #test
 {
-    var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32, 0, 0, 0, 0]
+    var values: [8] f32 = [-1.5_f32, 0.0_f32, 2.25_f32, -4.0_f32, 0, 0, 0, 0]
     lanesAbsFloat(&values)
-    Swag.require(values[4] == 1.5'f32 and values[5] == 0.0'f32 and values[6] == 2.25'f32 and values[7] == 4.0'f32)
+    Swag.require(values[4] == 1.5_f32 and values[5] == 0.0_f32 and values[6] == 2.25_f32 and values[7] == 4.0_f32)
 }
 
 #test
 {
-    var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32, 0, 0, 0, 0]
+    var values: [8] f32 = [-1.5_f32, 0.0_f32, 2.25_f32, -4.0_f32, 0, 0, 0, 0]
     lanesAddFloatConstant(&values)
-    Swag.require(values[4] == 0.0'f32 and
-                 values[5] == 1.5'f32 and
-                 values[6] == 3.75'f32 and
-                 values[7] == -2.5'f32)
+    Swag.require(values[4] == 0.0_f32 and
+                 values[5] == 1.5_f32 and
+                 values[6] == 3.75_f32 and
+                 values[7] == -2.5_f32)
 }
 
 #test
 {
     var values: FloatToIntLanes
-    values.input = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32]
+    values.input = [-1.5_f32, 0.0_f32, 2.25_f32, -4.0_f32]
     lanesTruncFloatToS32(&values)
     Swag.require(values.output == [-1, 0, 2, -4])
 }
 
 #test
 {
-    var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.75'f32, -4.0'f32, 0, 0, 0, 0]
+    var values: [8] f32 = [-1.5_f32, 0.0_f32, 2.75_f32, -4.0_f32, 0, 0, 0, 0]
     lanesFloorFloat(&values)
-    Swag.require(values[4] == -2.0'f32 and
-                 values[5] == 0.0'f32 and
-                 values[6] == 2.0'f32 and
-                 values[7] == -4.0'f32)
+    Swag.require(values[4] == -2.0_f32 and
+                 values[5] == 0.0_f32 and
+                 values[6] == 2.0_f32 and
+                 values[7] == -4.0_f32)
 }
 
 #test

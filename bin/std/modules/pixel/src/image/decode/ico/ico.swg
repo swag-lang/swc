@@ -56,8 +56,10 @@ internal struct Decoder
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
-    if ptr + size > last do
+    if ptr + size > last
+    {
         fail InvalidFormatError{"invalid source buffer"}
+    }
 }
 
 // Width/height of 0 in a directory entry means 256
@@ -65,14 +67,19 @@ func dimFromByte(value: u8)->s32 => value == 0 ? 256 : cast(s32, value)
 
 func checkEntryDimensions(entry: IconDirEntry, width, height: s32) fail
 {
-    if width != dimFromByte(entry.width) or height != dimFromByte(entry.height) do
+    if width != dimFromByte(entry.width) or height != dimFromByte(entry.height)
+    {
         fail InvalidFormatError{"icon entry dimensions do not match its directory"}
+    }
 }
 
 func isPngSignature(p: const [*] u8, size: u64)->bool
 {
-    if size < 8 do
+    if size < 8
+    {
         return false
+    }
+
     return p[0] == 0x89 and
            p[1] == 0x50 and
            p[2] == 0x4E and
@@ -103,6 +110,184 @@ func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
 
 func maskBit(andRow: const [*] u8, x: s32)->u32 => cast(u32, ((andRow[x / 8] >> cast(u32, (7 - (x & 7)))) & 1))
 
+private const DibAlpha  = 0xFF000000_u32
+private const DibColors = 0x00FFFFFF_u32
+private const AndFirst  = cast(Math.Simd.U32x4, [128_u32, 64, 32, 16])
+private const AndLast   = cast(Math.Simd.U32x4, [8_u32, 4, 2, 1])
+private const BgrToBgra = cast(Math.Simd.U8x16, [0_u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128])
+
+func hasDibAlpha(pixels: const [*] u32, count: u64)->bool
+{
+    if count and (pixels[0] & DibAlpha)
+    {
+        return true
+    }
+
+    let alpha = Math.Simd.splat(DibAlpha)
+    let zero  = Math.Simd.splat(0_u32)
+    var x     = 0_u64
+    while count - x >= 16
+    {
+        let first  = Math.Simd.load(pixels + x) | Math.Simd.load(pixels + x + 4)
+        let second = Math.Simd.load(pixels + x + 8) | Math.Simd.load(pixels + x + 12)
+        if Math.Simd.anyTrue(((first | second) & alpha) != zero)
+        {
+            return true
+        }
+
+        x += 16
+    }
+
+    while count - x >= 4
+    {
+        if Math.Simd.anyTrue((Math.Simd.load(pixels + x) & alpha) != zero)
+        {
+            return true
+        }
+
+        x += 4
+    }
+
+    for i in x until count
+    {
+        if pixels[i] & DibAlpha
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
+#[Swag.Inline]
+func(BIT_COUNT: u16) loadDibColors(source: const [*] u8)->Math.Simd.U32x4
+{
+    #static if BIT_COUNT == 32
+    {
+        return Math.Simd.load(cast(const [*] u32, source))
+    }
+    else
+    {
+        return cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(Math.Simd.load(source), BgrToBgra))
+    }
+}
+
+func(BIT_COUNT: u16, MASKED: bool) decodeTrueColorDib(result: *Image, xorData, andData: const [*] u8, xorStride, andStride: u64)
+{
+    const Step = BIT_COUNT / 8
+
+    // A 24-bit row needs two more pixels for the second 16-byte load.
+    const MinimumWidth = BIT_COUNT == 24 ? 10 : 8
+    let alpha  = Math.Simd.splat(DibAlpha)
+    let zero   = Math.Simd.splat(0_u32)
+    let output = cast([*] u32, result.pixels.storage())
+    let width  = result.width
+    for y in result.height
+    {
+        let source = xorData + y * xorStride
+        let mask   = MASKED ? andData + y * andStride : andData
+        let target = output + y * width
+        var x      = 0
+        while width - x >= MinimumWidth
+        {
+            let bits       = Math.Simd.splat(MASKED ? cast(u32, mask[x / 8]) : 0_u32)
+            let firstAlpha = ((bits & AndFirst) == zero) & alpha
+            let lastAlpha  = ((bits & AndLast) == zero) & alpha
+            Math.Simd.store(target + x, loadDibColors!{BIT_COUNT}(source + x * Step) | firstAlpha)
+            Math.Simd.store(target + x + 4, loadDibColors!{BIT_COUNT}(source + (x + 4) * Step) | lastAlpha)
+            x += 8
+        }
+
+        for i in x until width
+        {
+            let pixel  = source + i * Step
+            let colors = cast(u32, pixel[0]) | (cast(u32, pixel[1]) << 8) | (cast(u32, pixel[2]) << 16)
+            target[i] = colors | (MASKED and maskBit(mask, i) ? 0_u32 : DibAlpha)
+        }
+    }
+}
+
+#[Swag.Inline]
+func(BIT_COUNT: u16) loadDibIndices(source: const [*] u8)->Math.Simd.U16x8
+{
+    #static if BIT_COUNT == 4
+    {
+        let nibble = Math.Simd.splat(15_u8)
+        let pairs  = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, source)[0]))
+        let upper  = cast #bit(Math.Simd.U8x16, (cast #bit(Math.Simd.U16x8, pairs) >> 4)) & nibble
+        return Math.Simd.widenLow(Math.Simd.interleaveLow(upper, pairs & nibble))
+    }
+    else
+    {
+        let bytes = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u64, source)[0]))
+        return Math.Simd.widenLow(bytes)
+    }
+}
+
+func(BIT_COUNT: u16, CHECK_INDEX: bool) decodeIndexedDib(result: *Image, palette, xorData, andData: const [*] u8, xorStride, andStride: u64, hasAndMask: bool, paletteCount: u32) fail
+{
+    let colors     = Math.Simd.splat(DibColors)
+    let alpha      = Math.Simd.splat(DibAlpha)
+    let zero       = Math.Simd.splat(0_u32)
+    let entries    = cast(const [*] s32, palette)
+    let words      = cast(const [*] u32, palette)
+    let first      = Math.Simd.splat(BIT_COUNT == 1 ? words[0] & DibColors : 0_u32)
+    let difference = Math.Simd.splat(BIT_COUNT == 1 ? (words[0] ^ words[1]) & DibColors : 0_u32)
+    let limit      = Math.Simd.splat(CHECK_INDEX ? cast(u16, paletteCount) : 0_u16)
+    let width      = result.width
+    let output     = cast([*] u32, result.pixels.storage())
+    for y in result.height
+    {
+        let source = xorData + y * xorStride
+        let mask   = hasAndMask ? andData + y * andStride : andData
+        let target = output + y * width
+        var x      = 0
+        while width - x >= 8
+        {
+            let bits       = Math.Simd.splat(hasAndMask ? cast(u32, mask[x / 8]) : 0_u32)
+            let firstAlpha = ((bits & AndFirst) == zero) & alpha
+            let lastAlpha  = ((bits & AndLast) == zero) & alpha
+            #static if BIT_COUNT == 1
+            {
+                let indexes     = Math.Simd.splat(cast(u32, source[x / 8]))
+                let firstColors = first ^ (difference & ((indexes & AndFirst) != zero))
+                let lastColors  = first ^ (difference & ((indexes & AndLast) != zero))
+                Math.Simd.store(target + x, firstColors | firstAlpha)
+                Math.Simd.store(target + x + 4, lastColors | lastAlpha)
+            }
+            else
+            {
+                let indexes = loadDibIndices!{BIT_COUNT}(source + x * BIT_COUNT / 8)
+                #static if CHECK_INDEX
+                {
+                    if Math.Simd.anyTrue(indexes >= limit)
+                    {
+                        fail InvalidFormatError{"invalid palette index"}
+                    }
+                }
+
+                let firstColors = cast #bit(Math.Simd.U32x4, Math.Simd.gather(entries, Math.Simd.widenLow(indexes))) & colors
+                let lastColors  = cast #bit(Math.Simd.U32x4, Math.Simd.gather(entries, Math.Simd.widenHigh(indexes))) & colors
+                Math.Simd.store(target + x, firstColors | firstAlpha)
+                Math.Simd.store(target + x + 4, lastColors | lastAlpha)
+            }
+
+            x += 8
+        }
+
+        for i in x until width
+        {
+            let index = packedIndex(source, BIT_COUNT, i)
+            if CHECK_INDEX and index >= paletteCount
+            {
+                fail InvalidFormatError{"invalid palette index"}
+            }
+
+            target[i] = (words[index] & DibColors) | (hasAndMask and maskBit(mask, i) ? 0_u32 : DibAlpha)
+        }
+    }
+}
+
 // Decode the embedded BITMAPINFOHEADER icon image into a BGRA8 result.
 func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
 {
@@ -110,18 +295,25 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
        dib.bitCount != 4 and
        dib.bitCount != 8 and
        dib.bitCount != 24 and
-       dib.bitCount != 32 do
+       dib.bitCount != 32
+    {
         fail UnsupportedFormatError{"unsupported icon bit count"}
-    if dib.compression != 0 do
+    }
+
+    if dib.compression != 0
+    {
         fail UnsupportedFormatError{"unsupported icon compression"}
+    }
 
     let width  = result.width
     let height = result.height
 
     // Palette (for indexed images): one BGRA quad per entry
     var paletteCount = dib.clrUsed
-    if not paletteCount and dib.bitCount <= 8 do
-        paletteCount = 1'u32 << cast(u32, dib.bitCount)
+    if not paletteCount and dib.bitCount <= 8
+    {
+        paletteCount = 1_u32 << cast(u32, dib.bitCount)
+    }
 
     let palette = src
     var dataof  = src
@@ -141,205 +333,289 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
     // The AND mask is optional for 32-bit images that carry their own alpha
     let hasAndMask = andData + andStride * cast(u64, height) <= last
 
-    // Older 32-bit icons leave every alpha byte at zero and carry transparency
-    // exclusively in the AND mask. A non-zero alpha byte means the entry uses
-    // the modern alpha channel instead.
-    var useAndMaskFor32 = dib.bitCount == 32 and hasAndMask
-    if useAndMaskFor32
+    if dib.bitCount == 32
     {
-        for y in height
+        // A nonzero alpha byte means native alpha. The older all-zero
+        // layout takes its transparency from the AND mask.
+        let pixels = cast(const [*] u32, xorData)
+        if not hasAndMask or hasDibAlpha(pixels, cast(u64, width) * height)
         {
-            let xorRow = xorData + xorStride * cast(u64, y)
-            for x in width
-            {
-                if xorRow[cast(u64, x) * 4 + 3] != 0
-                {
-                    useAndMaskFor32 = false
-                    break
-                }
-            }
-
-            if not useAndMaskFor32 do
-                break
+            Memory.copy(result.pixels.storage(), xorData, result.byteCount)
         }
-    }
+        else
+        {
+            decodeTrueColorDib!{32, true}(result, xorData, andData, xorStride, andStride)
+        }
 
-    if dib.bitCount == 32 and not useAndMaskFor32
-    {
-        Memory.copy(result.pixels.storage(), xorData, result.byteCount)
         return
     }
 
-    // Icon pixel data is bottom-up, matching the internal buffer convention
+    if dib.bitCount == 24
+    {
+        if hasAndMask
+        {
+            decodeTrueColorDib!{24, true}(result, xorData, andData, xorStride, andStride)
+        }
+        else
+        {
+            decodeTrueColorDib!{24, false}(result, xorData, andData, xorStride, andStride)
+        }
+
+        return
+    }
+
+    if width >= 8
+    {
+        let fullPalette = paletteCount >= 1_u32 << dib.bitCount
+        switch dib.bitCount
+        {
+        case 1:
+            if fullPalette
+            {
+                try decodeIndexedDib!{1, false}(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
+                return
+            }
+
+        case 4:
+            if fullPalette
+            {
+                try decodeIndexedDib!{4, false}(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
+            }
+            else
+            {
+                try decodeIndexedDib!{4, true}(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
+            }
+
+            return
+
+        case 8:
+            if fullPalette
+            {
+                try decodeIndexedDib!{8, false}(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
+            }
+            else
+            {
+                try decodeIndexedDib!{8, true}(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
+            }
+
+            return
+        }
+    }
+
+    let words  = cast(const [*] u32, palette)
+    let output = cast([*] u32, result.pixels.storage())
     for y in height
     {
         let xorRow = xorData + xorStride * cast(u64, y)
-        let andRow = andData + andStride * cast(u64, y)
-        var dst    = cast([*] u8, result.pixels.storage()) + cast(u64, y) * result.rowStride
-
+        let andRow = hasAndMask ? andData + andStride * cast(u64, y) : andData
+        let target = output + y * width
         for x in width
         {
-            var b, g, r, a: u8
-
-            switch dib.bitCount
+            let index = packedIndex(xorRow, dib.bitCount, x)
+            if index >= paletteCount
             {
-            case 32:
-                let pix = xorRow + cast(u64, x) * 4
-                b = pix[0]
-                g = pix[1]
-                r = pix[2]
-                a = maskBit(andRow, x) ? 0'u8 : 255'u8
-
-            case 24:
-                let pix = xorRow + cast(u64, x) * 3
-                b = pix[0]
-                g = pix[1]
-                r = pix[2]
-                a = hasAndMask and maskBit(andRow, x) ? 0'u8 : 255'u8
-
-            default:
-                let index = packedIndex(xorRow, dib.bitCount, x)
-                if index >= paletteCount do
-                    fail InvalidFormatError{"invalid palette index"}
-                let entry = palette + cast(u64, index) * 4
-                b = entry[0]
-                g = entry[1]
-                r = entry[2]
-                a = hasAndMask and maskBit(andRow, x) ? 0'u8 : 255'u8
+                fail InvalidFormatError{"invalid palette index"}
             }
 
-            dst[0] = b
-            dst[1] = g
-            dst[2] = r
-            dst[3] = a
-            dst    += 4
+            target[x] = (words[index] & DibColors) | (hasAndMask and maskBit(andRow, x) ? 0_u32 : DibAlpha)
         }
     }
 }
 
-impl Decoder
+#[Swag.Inline]
+func directoryEntries(buffer: const [..] u8)->const [*] IconDirEntry => cast(const [*] IconDirEntry, buffer.buffer + #sizeof(IconDir))
+
+func readDirectory(buffer: const [..] u8)->const [..] IconDirEntry fail
 {
-    mtd decodeEntry(buffer: const [..] u8, options: DecodeOptions, index: s32 = -1)->Image fail
+    let base = buffer.buffer
+    if buffer.count < #sizeof(IconDir)
     {
-        let base    = buffer.buffer
-        let countof = buffer.count
-        let last    = base + countof
+        fail InvalidFormatError{"invalid source buffer"}
+    }
 
-        if countof < #sizeof(IconDir) do
-            fail InvalidFormatError{"invalid source buffer"}
+    let dir = cast(const *IconDir, base)[]
+    if dir.type != 1 and dir.type != 2
+    {
+        fail InvalidFormatError{"not an icon"}
+    }
 
-        let dir = cast(const *IconDir, base)[]
-        if dir.type != 1 and dir.type != 2 do
-            fail InvalidFormatError{"not an icon"}
-        if dir.count == 0 do
-            fail InvalidFormatError{"empty icon"}
-        if index >= dir.count do
-            fail InvalidFormatError{"icon entry index is out of range"}
+    if dir.count == 0
+    {
+        fail InvalidFormatError{"empty icon"}
+    }
 
-        try checkBuffer(base, last, cast(u64, #sizeof(IconDir)) + cast(u64, dir.count) * #sizeof(IconDirEntry))
+    try checkBuffer(base, base + buffer.count, cast(u64, #sizeof(IconDir)) + cast(u64, dir.count) * #sizeof(IconDirEntry))
+    return Swag.makeSlice(directoryEntries(buffer), dir.count)
+}
 
-        // Select the best image: largest area, tie-break on bit depth
-        var bestEntry: IconDirEntry
-        var bestScore: u64
-        var found:     bool
-        for i in dir.count
+func representativeIndex(entries: const [..] IconDirEntry)->u32
+{
+    // The largest area wins, with bit depth breaking ties.
+    var bestIndex: u32
+    var bestScore: u64
+    for i in entries.count
+    {
+        let entry = entries[i]
+        let area  = cast(u64, dimFromByte(entry.width)) * dimFromByte(entry.height)
+        let score = (area << 16) + entry.bitCount
+        if score > bestScore
         {
-            if index >= 0 and i != index do
-                continue
-            let entry = cast(const *IconDirEntry, (base + #sizeof(IconDir) + cast(u64, i) * #sizeof(IconDirEntry)))[]
-            let area  = cast(u64, dimFromByte(entry.width)) * cast(u64, dimFromByte(entry.height))
-            let score = (area << 16) + entry.bitCount
-            if not found or score > bestScore
-            {
-                bestScore = score
-                bestEntry = entry
-                found     = true
-            }
+            bestScore = score
+            bestIndex = cast(u32, i)
+        }
+    }
+
+    return bestIndex
+}
+
+func checkPngEntryGeometry(entry: IconDirEntry, image: const [*] u8, size: u64) fail
+{
+    // PNG validates the full IHDR and its checksum before decoding. Check the
+    // directory geometry as soon as its fixed-size PNG header is available.
+    if size < 33
+    {
+        return
+    }
+
+    let header = cast(const [*] u32, image + 8)
+    if Math.bigEndianToNative(header[0]) != 13 or Math.bigEndianToNative(header[1]) != 0x49484452
+    {
+        return
+    }
+
+    let width  = Math.bigEndianToNative(header[2])
+    let height = Math.bigEndianToNative(header[3])
+    if width != cast(u32, dimFromByte(entry.width)) or height != cast(u32, dimFromByte(entry.height))
+    {
+        fail InvalidFormatError{"icon entry dimensions do not match its directory"}
+    }
+}
+
+func decodeEntry(buffer: const [..] u8, options: DecodeOptions, entry: IconDirEntry)->Image fail
+{
+    if cast(u64, entry.imageOffset) + entry.bytesInRes > buffer.count
+    {
+        fail InvalidFormatError{"invalid source buffer"}
+    }
+
+    let imgPtr = buffer.buffer + entry.imageOffset
+    let imgLen = cast(u64, entry.bytesInRes)
+
+    // PNG-compressed entry: delegate to the PNG decoder
+    if isPngSignature(imgPtr, imgLen)
+    {
+        if options.decodePixels
+        {
+            try checkPngEntryGeometry(entry, imgPtr, imgLen)
         }
 
-        if cast(u64, bestEntry.imageOffset) + bestEntry.bytesInRes > countof do
-            fail InvalidFormatError{"invalid source buffer"}
+        var pngDec: Png.Decoder
+        let itf    = Swag.makeInterface(&pngDec, #typeof(Png.Decoder), IImageDecoder)
+        var result = #move try itf.decode(Swag.makeSlice(imgPtr, imgLen), options)
+        try checkEntryDimensions(entry, result.width, result.height)
+        return #move result
+    }
 
-        let imgPtr = base + bestEntry.imageOffset
-        let imgLen = cast(u64, bestEntry.bytesInRes)
+    // BMP/DIB-encoded entry
+    if imgLen < #sizeof(DibHeader)
+    {
+        fail InvalidFormatError{"invalid source buffer"}
+    }
 
-        // PNG-compressed entry: delegate to the PNG decoder
-        if isPngSignature(imgPtr, imgLen)
-        {
-            var pngDec: Png.Decoder
-            let itf    = Swag.makeInterface(&pngDec, #typeof(Png.Decoder), IImageDecoder)
-            var result = #move try itf.decode(Swag.makeSlice(imgPtr, imgLen), options)
-            try checkEntryDimensions(bestEntry, result.width, result.height)
-            return #move result
-        }
+    let dib = cast(const *DibHeader, imgPtr)[]
+    if dib.size < #sizeof(DibHeader)
+    {
+        fail UnsupportedFormatError{"unsupported icon header"}
+    }
 
-        // BMP/DIB-encoded entry
-        if imgLen < #sizeof(DibHeader) do
-            fail InvalidFormatError{"invalid source buffer"}
+    if dib.planes != 1
+    {
+        fail UnsupportedFormatError{"icon DIB must have one color plane"}
+    }
 
-        let dib = cast(const *DibHeader, imgPtr)[]
-        if dib.size < #sizeof(DibHeader) do
-            fail UnsupportedFormatError{"unsupported icon header"}
-        if dib.planes != 1 do
-            fail UnsupportedFormatError{"icon DIB must have one color plane"}
-        if dib.width <= 0 or dib.height <= 0 or (dib.height & 1) do
-            fail InvalidFormatError{"invalid dimensions"}
-        try checkEntryDimensions(bestEntry, dib.width, dib.height / 2)
+    if dib.width <= 0 or dib.height <= 0 or (dib.height & 1)
+    {
+        fail InvalidFormatError{"invalid dimensions"}
+    }
 
-        var result: #returntype
-        result.init(dib.width, dib.height / 2, PixelFormat.BGRA8)
-        try options.checkImage(result.width, result.height, result.pixelFormat)
+    try checkEntryDimensions(entry, dib.width, dib.height / 2)
 
-        if not options.decodePixels do
-            return result
+    var result: #returntype
+    result.init(dib.width, dib.height / 2, PixelFormat.BGRA8)
+    try options.checkImage(result.width, result.height, result.pixelFormat)
 
-        result.allocPixels()
-        if dib.size > imgLen do
-            fail InvalidFormatError{"icon DIB header is truncated"}
-        try decodeDib(&result, dib, imgPtr + dib.size, imgPtr + imgLen)
+    if not options.decodePixels
+    {
         return result
     }
+
+    result.allocPixels()
+    if dib.size > imgLen
+    {
+        fail InvalidFormatError{"icon DIB header is truncated"}
+    }
+
+    try decodeDib(&result, dib, imgPtr + dib.size, imgPtr + imgLen)
+    return result
 }
 
 impl IImageDecoder for Decoder
 {
     mtd impl format()->ImageFormat => {"ICO - Windows Icon and Cursor", ".ico;.cur"}
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => try .decodeEntry(buffer, options)
+
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
+    {
+        let entries = try readDirectory(buffer)
+        return try decodeEntry(buffer, options, entries[representativeIndex(entries)])
+    }
+}
+
+func describeEntry(buffer: const [..] u8, options: DecodeOptions, entry: IconDirEntry)->ImageFrameInfo fail
+{
+    let probe = try decodeEntry(buffer, options, entry)
+    return {kind: ImageFrameKind.Variant, width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat}
 }
 
 impl IImageSetDecoder for Decoder
 {
     mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
     {
+        let entries      = try readDirectory(buffer)
+        let selected     = representativeIndex(entries)
         var probeOptions = options
-        probeOptions.decodePixels = false
-        discard try .decodeEntry(buffer, probeOptions)
-        .bytes      = buffer
-        .entryCount = cast(const *IconDir, buffer.buffer)[].count
-        try options.checkFrameCount(.entryCount)
-        var result:    #returntype
-        var bestScore: u64
-        for index in .entryCount
-        {
-            let probe = try .decodeEntry(buffer, probeOptions, cast(s32, index))
-            let entry = cast(const *IconDirEntry, (buffer.buffer + #sizeof(IconDir) + cast(u64, index) * #sizeof(IconDirEntry)))[]
-            let score = (cast(u64, dimFromByte(entry.width)) * dimFromByte(entry.height) << 16) + entry.bitCount
-            if score > bestScore
-            {
-                bestScore = score
-                result.representativeIndex = index
-            }
+        probeOptions.decodePixels   = false
+        probeOptions.decodeMetadata = false
+        let representative = try describeEntry(buffer, probeOptions, entries[selected])
+        try options.checkFrameCount(entries.count)
 
-            result.frames.add({kind: ImageFrameKind.Variant, width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
+        var result: #returntype
+        result.representativeIndex = selected
+        result.frames.reserve(entries.count)
+        for i in entries.count
+        {
+            if i == selected
+            {
+                result.frames.add(representative)
+            }
+            else
+            {
+                result.frames.add(try describeEntry(buffer, probeOptions, entries[i]))
+            }
         }
 
+        .bytes      = buffer
+        .entryCount = cast(u32, entries.count)
         return result
     }
 
     mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
     {
-        if index >= .entryCount do
+        if index >= .entryCount
+        {
             fail InvalidFormatError{"icon entry index is out of range"}
-        return try .decodeEntry(unwrap .bytes, options, cast(s32, index))
+        }
+
+        let buffer = unwrap .bytes
+        return try decodeEntry(buffer, options, directoryEntries(buffer)[index])
     }
 }

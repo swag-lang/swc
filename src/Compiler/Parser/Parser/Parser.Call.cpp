@@ -97,6 +97,9 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
     SmallVector<AstNodeRef> nodeArgs;
     const TokenRef          openRef = parseParenArgumentExpressions(nodeArgs);
 
+    if (nodePtr->intrinsicId == TokenId::IntrinsicMulWide && nodeArgs.size() == 5)
+        numParams = 5;
+
     if (numParams != UINT32_MAX)
         reportArgumentCountForList(tokRef, nodeArgs, numParams, numParams, false);
     else

@@ -147,8 +147,10 @@ func nestedJump()->s32
 #[Swag.Macro, Swag.CalleeReturn]
 func maybeRun(flag: bool, stmt: #code)
 {
-    if flag do
+    if flag
+    {
         #inject(stmt)
+    }
 }
 
 // A trailing block is the call's '#code' argument, not a statement of this block, so

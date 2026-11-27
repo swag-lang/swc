@@ -74,16 +74,20 @@ func createDirectoryJunction(link, target: string)->bool
 
     let files = expect Directory.enumerateFiles(root)
     Swag.require(files.count == 2)
-    for entry in files do
+    for entry in files
+    {
         Swag.require(not entry.isDirectory())
+    }
 
     let directories = expect Directory.enumerateDirectories(root)
     Swag.require(directories.count == 1 and directories[0].fullName == child)
 
     let nested = expect Directory.enumerateFiles(root, ".txt", recurse: true)
     Swag.require(nested.count == 2)
-    for entry in nested do
+    for entry in nested
+    {
         Swag.require(not entry.isDirectory() and Path.hasExtension(entry.fullName, ".txt"))
+    }
 
     let either = expect Directory.enumerate(root, {matchExtension: ".txt", matchFileName: "second.bin"})
     Swag.require(either.count == 2)
@@ -113,13 +117,16 @@ func createDirectoryJunction(link, target: string)->bool
 {
     let drives = expect Directory.drives()
     var missingRoot: String
-    for letter in 'A'u8 until 'Z'u8 + 1
+    for letter in 'A'_u8 until 'Z'_u8 + 1
     {
         var candidate = String.from("A:\\")
         candidate[0] = cast(u8, letter)
         var mounted = false
-        for &drive in drives where Utf8.compare(drive.toSlice(), candidate.toSlice(), .Latin1NoCase) == 0 do
+        for &drive in drives where Utf8.compare(drive.toSlice(), candidate.toSlice(), .Latin1NoCase) == 0
+        {
             mounted = true
+        }
+
         if not mounted
         {
             missingRoot = #move candidate
@@ -127,8 +134,10 @@ func createDirectoryJunction(link, target: string)->bool
         }
     }
 
-    if not missingRoot.isEmpty() do
+    if not missingRoot.isEmpty()
+    {
         Swag.require(not Directory.exists(missingRoot.toString()))
+    }
 }
 
 // Empty paths are rejected before they can act like the current directory.

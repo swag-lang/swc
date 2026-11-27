@@ -7,20 +7,20 @@ private
 {
     const SeekOverlaySize    = Math.Point{112, 64}
     const SeekOverlayOffsetY = 56.0
-    const SeekOverlayLifetime: Time.Duration = 650'ms
+    const SeekOverlayLifetime: Time.Duration = 650_ms
 
     // Subtitle readability effects are proportional to the text, so every text size keeps the
     // same look. Widths are distance-field units (0.1 is 4% of the em); offsets and paddings
     // are fractions of the font size.
-    const SubtitleLineGap        = 4'f32
-    const SubtitleEdgeColor      = 0xE6000000'u32
-    const SubtitleBackdropColor  = 0xA6000000'u32
-    const SubtitleOutlineWidth   = 0.18'f32
-    const SubtitleShadowOffset   = 0.06'f32
-    const SubtitleShadowDilate   = 0.08'f32
-    const SubtitleShadowSoftness = 0.3'f32
-    const SubtitleBackdropPadX   = 0.3'f32
-    const SubtitleBackdropPadY   = 0.1'f32
+    const SubtitleLineGap        = 4_f32
+    const SubtitleEdgeColor      = 0xE6000000_u32
+    const SubtitleBackdropColor  = 0xA6000000_u32
+    const SubtitleOutlineWidth   = 0.18_f32
+    const SubtitleShadowOffset   = 0.06_f32
+    const SubtitleShadowDilate   = 0.08_f32
+    const SubtitleShadowSoftness = 0.3_f32
+    const SubtitleBackdropPadX   = 0.3_f32
+    const SubtitleBackdropPadY   = 0.1_f32
 }
 
 private func subtitleFontSize(size: SubtitleSize)->u32
@@ -45,14 +45,17 @@ private func subtitleBackdrop(lines: const [..] string, font: *Font, centerX, to
     let padY    = Math.round(cast(f32, font.size) * SubtitleBackdropPadY)
     let advance = font.height + SubtitleLineGap
 
-    var rows: Array'f32
+    var rows: Array!{f32}
     rows.add(top - padY)
-    for index in 1 until lines.count do
+    for index in 1 until lines.count
+    {
         rows.add(Math.round(top + cast(f32, index) * advance - SubtitleLineGap * 0.5))
+    }
+
     rows.add(Math.round(top + cast(f32, lines.count - 1) * advance + font.height + padY))
 
-    var lefts:  Array'f32
-    var rights: Array'f32
+    var lefts:  Array!{f32}
+    var rights: Array!{f32}
     for line in lines
     {
         let width = Painter.measureString(line, font).width
@@ -87,8 +90,10 @@ private func drawStringKeyline(painter: *Painter, x, y: f32, text: string, font:
 {
     for row in 3
     {
-        for column in 3 where row != 1 or column != 1 do
+        for column in 3 where row != 1 or column != 1
+        {
             painter.drawString(x + (cast(f32, column) - 1) * offset, y + (cast(f32, row) - 1) * offset, text, font, color)
+        }
     }
 }
 
@@ -97,8 +102,8 @@ struct SubtitleOverlay
 {
     using wnd: Wnd
 
-    text:              String
-    sidecars:          Array'*Subtitle.Track
+    text:     String
+    sidecars: Array!{*Subtitle.Track}
     bottomObstruction: f32
 }
 
@@ -106,25 +111,32 @@ private impl IWnd for SubtitleOverlay
 {
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
-        for track in .sidecars do
+        for track in .sidecars
+        {
             Subtitle.Track.destroy(track)
+        }
+
         .sidecars.clear()
     }
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if .text.isEmpty() do
+        if .text.isEmpty()
+        {
             return
+        }
 
         let painter = evt.paintContext.painter
         let rect    = .clientRect()
         let font    = unwrap .font().regular
         let lines   = Tokenize.splitLines(.text)
-        if lines.isEmpty() do
+        if lines.isEmpty()
+        {
             return
+        }
 
         let height = cast(f32, lines.count) * font.height + cast(f32, lines.count - 1) * SubtitleLineGap
-        let inset  = Math.max(24'f32, rect.height * 0.06)
+        let inset  = Math.max(24_f32, rect.height * 0.06)
         var y: f32
         switch g_SubtitleSettings.position
         {
@@ -175,7 +187,7 @@ impl SubtitleOverlay
 {
     func create(parent: *Wnd)->*SubtitleOverlay
     {
-        with let result = Wnd.create'SubtitleOverlay(parent, "scope.video.subtitle")
+        with let result = Wnd.create!{SubtitleOverlay}(parent, "scope.video.subtitle")
         {
             .dockStyle       = .Center
             .wndFlags        |= .TopMost | .Disabled
@@ -199,8 +211,11 @@ impl SubtitleOverlay
 
     mtd setSubtitle(text: string)
     {
-        if .text == text do
+        if .text == text
+        {
             return
+        }
+
         .text.clear()
         .text += text
         .invalidate()
@@ -208,8 +223,11 @@ impl SubtitleOverlay
 
     mtd setBottomObstruction(height: f32)
     {
-        if .bottomObstruction == height do
+        if .bottomObstruction == height
+        {
             return
+        }
+
         .bottomObstruction = height
         .invalidate()
     }
@@ -272,7 +290,7 @@ impl SeekOverlay
 {
     func create(parent: *Wnd)->*SeekOverlay
     {
-        with let result = Wnd.create'SeekOverlay(parent, "scope.video.seek", {0, 0, SeekOverlaySize.x, SeekOverlaySize.y})
+        with let result = Wnd.create!{SeekOverlay}(parent, "scope.video.seek", {0, 0, SeekOverlaySize.x, SeekOverlaySize.y})
         {
             .wndFlags        |= .TopMost | .Disabled
             .backgroundStyle = .Transparent
@@ -285,16 +303,27 @@ impl SeekOverlay
     // Restarts the feedback for one signed jump in seconds.
     mtd showSeek(seconds: f64)
     {
-        if seconds == 0 do
+        if seconds == 0
+        {
             return
+        }
 
         let animator = &.app().animator
-        if animator.isActive(.offsetAni) do
+        if animator.isActive(.offsetAni)
+        {
             animator.cancel(.offsetAni)
-        if animator.isActive(.scaleAni) do
+        }
+
+        if animator.isActive(.scaleAni)
+        {
             animator.cancel(.scaleAni)
-        if animator.isActive(.opacityAni) do
+        }
+
+        if animator.isActive(.opacityAni)
+        {
             animator.cancel(.opacityAni)
+        }
+
         .stopTimer(&.timer)
 
         .direction = seconds < 0 ? -1 : 1
@@ -316,15 +345,17 @@ impl SeekOverlay
         .timer = .addTimer(SeekOverlayLifetime)
 
         // Reduced motion keeps the information but removes its travel and zoom.
-        if .app().isReducedMotion() do
+        if .app().isReducedMotion()
+        {
             return
+        }
 
         let direction = cast(f32, .direction)
         .setPresentationOffset(Math.Point{-10 * direction, 0})
         .setPresentationScale({0.9, 0.9})
 
-        .offsetAni  = animator.animatePoint(me, AnimationChannel.from("scope.VideoSeek.Offset"), Math.Point{-10 * direction, 0}, Math.Point{14 * direction, 0}, func(wnd, value) { wnd.setPresentationOffset(value) }, {duration: 600'ms, easing: .EaseOut})
-        .scaleAni   = animator.animatePoint(me, AnimationChannel.from("scope.VideoSeek.Scale"), {0.9, 0.9}, {1, 1}, func(wnd, value) { wnd.setPresentationScale(value) }, {duration: 180'ms, easing: .EaseOut})
-        .opacityAni = animator.animateF32(me, AnimationChannel.from("scope.VideoSeek.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value) }, {delay: 350'ms, duration: 250'ms, easing: .EaseIn})
+        .offsetAni  = animator.animatePoint(me, AnimationChannel.from("scope.VideoSeek.Offset"), Math.Point{-10 * direction, 0}, Math.Point{14 * direction, 0}, func(wnd, value) { wnd.setPresentationOffset(value) }, {duration: 600_ms, easing: .EaseOut})
+        .scaleAni   = animator.animatePoint(me, AnimationChannel.from("scope.VideoSeek.Scale"), {0.9, 0.9}, {1, 1}, func(wnd, value) { wnd.setPresentationScale(value) }, {duration: 180_ms, easing: .EaseOut})
+        .opacityAni = animator.animateF32(me, AnimationChannel.from("scope.VideoSeek.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value) }, {delay: 350_ms, duration: 250_ms, easing: .EaseIn})
     }
 }

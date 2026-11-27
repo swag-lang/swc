@@ -16,7 +16,7 @@ func apply(value: Action, target: *s32) { value(target) }
 #test
 {
     var count: s32
-    let callback = expect checked'Action(&increment)
+    let callback = expect checked!{Action}(&increment)
     callback(&count)
     let zeroArguments = expect action()
     zeroArguments(&count)
@@ -32,9 +32,9 @@ func apply(value: Action, target: *s32) { value(target) }
 
 #test
 {
-    let callback = expect checked'Value(&twice)
+    let callback = expect checked!{Value}(&twice)
     Swag.require(callback(21) == 42)
-    let pointer = expect checked'Pointer(&absent)
+    let pointer = expect checked!{Pointer}(&absent)
     Swag.require(pointer() == null)
 }
 
@@ -48,9 +48,9 @@ struct CallbackValues
 #test
 {
     var callbacks: CallbackValues
-    callbacks.action  = expect checked'Action(&increment)
-    callbacks.value   = expect checked'Value(&twice)
-    callbacks.pointer = expect checked'Pointer(&absent)
+    callbacks.action  = expect checked!{Action}(&increment)
+    callbacks.value   = expect checked!{Value}(&twice)
+    callbacks.pointer = expect checked!{Pointer}(&absent)
     var count: s32
     defer Swag.require(count == 1)
     defer callbacks.action(&count)

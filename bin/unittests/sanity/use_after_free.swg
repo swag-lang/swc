@@ -583,11 +583,15 @@ func useAfterConditionalFree(cond: bool)->s32
 {
     let p = cast(*s32, myAlloc(4))
     p[] = 4
-    if cond do
+    if cond
+    {
         myFree(p, 4)
+    }
     let x = p[]
-    if not cond do
+    if not cond
+    {
         myFree(p, 4)
+    }
     return x
 }
 

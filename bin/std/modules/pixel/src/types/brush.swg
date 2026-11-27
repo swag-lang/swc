@@ -68,7 +68,7 @@ struct Brush
         gradientAngle0:  f32                        // Sweep start angle, in radians.
         gradientAngle1:  f32                        // Sweep end angle, in radians.
         gradientSpread:  GradientSpread = Clamp     // Sampling outside the endpoint interval.
-        gradientStops:   Array'GradientStop         // Stops sorted by increasing offset, without a format-specific fixed limit.
+        gradientStops:   Array!{GradientStop}       // Stops sorted by increasing offset, without a format-specific fixed limit.
     }
 }
 
@@ -83,16 +83,22 @@ impl Brush
             return .color.a != 0
 
         case .LinearGradient, .RadialGradient, .SweepGradient:
-            if .color.a == 0 do
+            if .color.a == 0
+            {
                 return false
+            }
 
-            if .gradientStops.isEmpty() do
+            if .gradientStops.isEmpty()
+            {
                 return true
+            }
 
             for stop in .gradientStops
             {
-                if stop.color.a do
+                if stop.color.a
+                {
                     return true
+                }
             }
 
             return false
@@ -114,13 +120,17 @@ impl Brush
             return .color.a == 255 and not .texture.pixelFormat.hasAlpha()
 
         case .LinearGradient, .RadialGradient, .SweepGradient:
-            if .color.a != 255 do
+            if .color.a != 255
+            {
                 return false
+            }
 
             for stop in .gradientStops
             {
-                if stop.color.a != 255 do
+                if stop.color.a != 255
+                {
                     return false
+                }
             }
 
             return true
@@ -293,7 +303,7 @@ impl Brush
     }
 
     // Creates a two-stop sweep gradient covering one full turn.
-    func createSweepGradient(center: Math.Vector2, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush => createSweepGradient(center, 0.0'deg, 360.0'deg, color0, color1, spread)
+    func createSweepGradient(center: Math.Vector2, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush => createSweepGradient(center, 0.0_deg, 360.0_deg, color0, color1, spread)
 
     // Creates a two-stop full-turn sweep gradient from center coordinates.
     func createSweepGradient(centerX, centerY: f32, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush => createSweepGradient(Math.Vector2{centerX, centerY}, color0, color1, spread)

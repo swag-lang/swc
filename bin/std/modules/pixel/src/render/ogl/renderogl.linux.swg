@@ -10,13 +10,21 @@ internal impl NativeRenderOgl
     mtd createWindowContext(renderHandle: const *void?, width, height: s32, mainRC: const *void? = null)->OglContext fail
     {
         var context: *Ogl.Platform.Xcb.Context
-        if mainRC do
+        if mainRC
+        {
             context = cast #unconst (*Ogl.Platform.Xcb.Context, mainRC)
-        else do
-            context = Memory.new'Ogl.Platform.Xcb.Context()
-        defer #fail if not mainRC do
+        }
+        else
+        {
+            context = Memory.new!{Ogl.Platform.Xcb.Context}()
+        }
+
+        defer #fail if not mainRC
+        {
             Memory.delete(context)
-        let surface = Memory.new'Ogl.Platform.Xcb.Surface()
+        }
+
+        let surface = Memory.new!{Ogl.Platform.Xcb.Surface}()
         defer #fail Memory.delete(surface)
         if renderHandle
         {
@@ -31,7 +39,7 @@ internal impl NativeRenderOgl
                 surface[] = try context.takeSurface()
             }
         }
-        elif mainRC
+        else if mainRC
         {
             surface[] = try context.createPbufferSurface(width, height)
         }
@@ -46,16 +54,23 @@ internal impl NativeRenderOgl
 
     mtd dropContext(rc: OglContext)
     {
-        if rc.ownsDC do
+        if rc.ownsDC
+        {
             Memory.delete(xcbSurface(rc))
-        if rc.ownsRC do
+        }
+
+        if rc.ownsRC
+        {
             .deleteContextHandle(rc.hRC)
+        }
     }
 
     mtd deleteContextHandle(handle: const *void?)
     {
-        if handle do
+        if handle
+        {
             Memory.delete(cast #unconst (*Ogl.Platform.Xcb.Context, handle))
+        }
     }
 
     // EGL contexts here are not created to report device resets, so the renderer never asks for
@@ -71,8 +86,10 @@ internal impl NativeRenderOgl
 
     mtd resizeWindowBackBuffer(context: *OglContext, width, height: s32) fail
     {
-        if context.width == width and context.height == height do
+        if context.width == width and context.height == height
+        {
             return
+        }
 
         // Mesa's XCB EGL window surface retains its original back-buffer size. Replace
         // the drawable after xcb_configure_window and keep the shared GL context.

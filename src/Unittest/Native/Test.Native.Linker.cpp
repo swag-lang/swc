@@ -482,8 +482,9 @@ var gCallback = &reflect
 #main
 {
     var enabled = false
-    if enabled do
+    if enabled {
         deadReflection()
+    }
     gCallback(#typeof(RetainedReflectionPayload))
 }
 )";
@@ -618,8 +619,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeStartupPreservesArguments)
     let actual = Swag.args()
     let values: [6] string = ["", "two words", "a\"b", "tail\\", "\t", "café"]
     Swag.assert(actual.count == 7)
-    for expected, index in values do
+    for expected, index in values {
         Swag.assert(actual[index + 1] == expected)
+    }
     Swag.print("native arguments passed\n")
 }
 )";
@@ -846,28 +848,28 @@ impl Cell
 }
 
 var gTotal:  s64
-var gScale = 3's64
+var gScale = 3_s64
 var gLabel = "determinism"
 
 func(T) typeName(value: T)->string? => #typeof(T).name
 
 func(T) accumulate(value: T)
 {
-    let cell: Cell'T = {value: value}
+    let cell: Cell!{T} = {value: value}
     gTotal += cast(s64, cell.doubled()) * gScale
     Swag.print(typeName(value), " ", gLabel, "\n")
 }
 
 #main
 {
-    accumulate(1's8)
-    accumulate(2's16)
-    accumulate(3's32)
-    accumulate(4's64)
-    accumulate(5'u8)
-    accumulate(6'u16)
-    accumulate(7'u32)
-    accumulate(8'u64)
+    accumulate(1_s8)
+    accumulate(2_s16)
+    accumulate(3_s32)
+    accumulate(4_s64)
+    accumulate(5_u8)
+    accumulate(6_u16)
+    accumulate(7_u32)
+    accumulate(8_u64)
     Swag.print(gTotal, "\n")
 }
 )";
@@ -1494,8 +1496,23 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsCallGraphsWithTheirUnwindAndRuntimeNames
     }
     const auto names  = elfImageSection(bytes, SymbolTable::IMAGE_SECTION);
     const auto unwind = elfImageSection(bytes, ".eh_frame_hdr");
-    if (!names || !unwind || bytes.readLe32(names->offset + 4) != SymbolTable::VERSION_LZ4 || bytes.readLe32(unwind->offset + 8) != 1)
+    if (!names || names->size <= SymbolTable::HEADER_SIZE || bytes.readLe32(names->offset) != SymbolTable::MAGIC ||
+        !unwind || unwind->size < 12 || bytes.readLe32(unwind->offset + 8) != 1)
         return Result::Error;
+
+    // Both LZ4 layouts are valid. The compact header also records the number
+    // of distinct ranges left after pairs of functions have been folded.
+    const uint32_t version = bytes.readLe32(names->offset + 4);
+    if (version == SymbolTable::VERSION_COMPACT_LZ4)
+    {
+        if (names->size <= SymbolTable::COMPACT_HEADER_SIZE ||
+            bytes.readLe32(names->offset + 12) != names->size - SymbolTable::COMPACT_HEADER_SIZE ||
+            bytes.readLe32(names->offset + 20) != depth)
+            return Result::Error;
+    }
+    else if (version != SymbolTable::VERSION_LZ4 || bytes.readLe32(names->offset + 12) != 0)
+        return Result::Error;
+
     const auto rules = elfImageSection(bytes, ".eh_frame");
     if (!rules)
         return Result::Error;
@@ -2099,7 +2116,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObj
         uint64_t expected = 7;
         for (uint64_t step = 0; step < 32; ++step)
         {
-            source += std::format("    result = ((result << 3) ^ (result >> 2)) ^ {}'u64\n", seed + step);
+            source += std::format("    result = ((result << 3) ^ (result >> 2)) ^ {}_u64\n", seed + step);
             expected = ((expected << 3) ^ (expected >> 2)) ^ (seed + step);
         }
         source += "    return result\n}\n";
@@ -2110,7 +2127,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObj
 {{
     let first = cachedLeaf(7)
     let second = cachedLeaf(first)
-    Swag.assert(first == {}'u64 and second == {}'u64)
+    Swag.assert(first == {}_u64 and second == {}_u64)
     let symbol = Swag.symbolizeStackAddress(cast(*void, &cachedLeaf))
     let location = #curlocation
     Swag.require(symbol.hasLine and symbol.file == location.fileName and symbol.line == {})

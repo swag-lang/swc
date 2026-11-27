@@ -3,16 +3,19 @@
 
 func sha3HexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func sha3HexBytes(text: string)->Array'u8
+func sha3HexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, ((sha3HexDigit(text[index]) << 4) | sha3HexDigit(text[index + 1]))))
@@ -25,18 +28,18 @@ func sha3HexBytes(text: string)->Array'u8
 func assertSha3(data: const [..] u8, expected: string)
 {
     let reference = sha3HexBytes(expected)
-    var oneShot: Array'u8
+    var oneShot: Array!{u8}
     oneShot.resize(reference.count)
     expect Hash.Sha3.compute(data, oneShot.toSlice())
     Swag.require(Crypto.constantTimeEqual(oneShot.toSlice(), reference.toSlice()))
 
-    var streamed: Array'u8
+    var streamed: Array!{u8}
     streamed.resize(reference.count)
     var hash   = expect Hash.Sha3.create(reference.count)
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < data.count
     {
-        let count = Math.min(data.count - offset, 13'u64)
+        let count = Math.min(data.count - offset, 13_u64)
         hash.update(data[offset until offset + count])
         offset += count
     }
@@ -48,18 +51,18 @@ func assertSha3(data: const [..] u8, expected: string)
 func assertShake(data: const [..] u8, securityBits: u64, expected: string)
 {
     let reference = sha3HexBytes(expected)
-    var oneShot: Array'u8
+    var oneShot: Array!{u8}
     oneShot.resize(reference.count)
     expect Hash.Shake.compute(data, securityBits, oneShot.toSlice())
     Swag.require(Crypto.constantTimeEqual(oneShot.toSlice(), reference.toSlice()))
 
-    var streamed: Array'u8
+    var streamed: Array!{u8}
     streamed.resize(reference.count)
     var shake  = expect Hash.Shake.create(securityBits)
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < data.count
     {
-        let count = Math.min(data.count - offset, 17'u64)
+        let count = Math.min(data.count - offset, 17_u64)
         shake.update(data[offset until offset + count])
         offset += count
     }
@@ -82,16 +85,18 @@ func assertShake(data: const [..] u8, securityBits: u64, expected: string)
 #test
 {
     var input: [400] u8
-    for index in input.count do
-        input[index] = cast(u8, ((index * 37 + 11) & 0xFF))
-
-    for digestSize in [28'u64, 32, 48, 64]
+    for index in input.count
     {
-        var expected: Array'u8
+        input[index] = cast(u8, ((index * 37 + 11) & 0xFF))
+    }
+
+    for digestSize in [28_u64, 32, 48, 64]
+    {
+        var expected: Array!{u8}
         expected.resize(digestSize)
         expect Hash.Sha3.compute(input, expected.toSlice())
 
-        var actual: Array'u8
+        var actual: Array!{u8}
         actual.resize(digestSize)
         var hash = expect Hash.Sha3.create(digestSize)
         hash.update(input[until 1])
@@ -112,10 +117,12 @@ func assertShake(data: const [..] u8, securityBits: u64, expected: string)
 #test
 {
     var input: [400] u8
-    for index in input.count do
+    for index in input.count
+    {
         input[index] = cast(u8, ((index * 19 + 5) & 0xFF))
+    }
 
-    for securityBits in [128'u64, 256]
+    for securityBits in [128_u64, 256]
     {
         var expected: [400] u8
         expect Hash.Shake.compute(input, securityBits, expected)
@@ -132,4 +139,24 @@ func assertShake(data: const [..] u8, securityBits: u64, expected: string)
     var bad: Swag.Error
     discard catch Hash.Shake.create(192) as bad
     Swag.require(bad.value() is Errors.BadParameterError)
+}
+
+#test
+{
+    const Rate     = 136
+    const Expected = [
+        "13cd5fd4d7feff75baa52e91c0032b5756571928c34f80e7e1a83e50e3df148d",
+        "77cbe913361279b31c7a689ae5f130d16ef69cf6b3b0c55962a264d13df12a45",
+        "37a597ce7ddc39aaf8cd156338eda5180f7609396093f0e70d6affa0d44cffb9"]
+
+    var input: [Rate + 2] u8
+    for index in input.count
+    {
+        input[index] = cast(u8, (index * 37 + 11) & 0xFF)
+    }
+
+    for expected, index in Expected
+    {
+        assertSha3(input[1 until Rate + index], expected)
+    }
 }

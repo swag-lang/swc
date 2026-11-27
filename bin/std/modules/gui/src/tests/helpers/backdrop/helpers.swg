@@ -24,10 +24,15 @@ func paintBackdropDocument(wnd: *Wnd, event: IEvent)->bool
 func backdropLens(host: *Testing.HeadlessHost, light: bool, scale: f32 = 1, compact = false)->*Lens.View
 {
     host.setup(compact ? 320 : 760, compact ? 240 : 520, scale)
-    if light do
+    if light
+    {
         host.theme.setLight()
-    else do
+    }
+    else
+    {
         host.theme.setDark()
+    }
+
     host.notify(.ThemeChanged)
     host.root.backgroundStyle = .Window
     host.root.hookOnEvent     = &paintBackdropDocument

@@ -8,8 +8,11 @@ using Core, Gui, Gui.Testing, Viewers
 {
     let document = expect Rtf.Document.load(scopeTestDataPath("viewer.styles.rtf"))
     Swag.require(document.paper and not document.simplifiedStyles and document.paragraphs == 7)
-    for style in ["font-family:'Segoe UI'", "font-family:'Courier New'", "font-size:24pt", "color:#196051", "background-color:#FFEDAE", "margin-bottom:14pt", "margin-left:18pt", "line-height:1.25"] do
+    for style in ["font-family:'Segoe UI'", "font-family:'Courier New'", "font-size:24pt", "color:#196051", "background-color:#FFEDAE", "margin-bottom:14pt", "margin-left:18pt", "line-height:1.25"]
+    {
         Swag.require(Utf8.contains(document.html, style), style)
+    }
+
     Swag.require(Utf8.contains(document.html, "<i>Keep the useful things close.") and Utf8.contains(document.html, "Read at your own pace."))
     Swag.require(not Utf8.contains(document.html, "FIELD NOTES;") and not Utf8.contains(document.html, "fonttbl"))
 }

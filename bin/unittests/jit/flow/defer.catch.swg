@@ -15,8 +15,10 @@ func cleanup() fail
 #[Swag.NoInline]
 func readValue(shouldFail: bool)->s32 fail
 {
-    if shouldFail do
+    if shouldFail
+    {
         fail CleanupError{code: 9}
+    }
     return 42
 }
 

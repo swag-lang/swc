@@ -14,12 +14,12 @@ func halve(a: f64)->f64 => a * 0.5 + 1.0
 #[Swag.Optimize(true), Swag.NoInline]
 func churn(count: u64)->u64
 {
-    var h0      = 1'u64
-    var h1      = 3'u64
-    var h2      = 5'u64
-    var h3      = 7'u64
-    var h4      = 11'u64
-    var h5      = 13'u64
+    var h0      = 1_u64
+    var h1      = 3_u64
+    var h2      = 5_u64
+    var h3      = 7_u64
+    var h4      = 11_u64
+    var h5      = 13_u64
     var f0: f64 = 0.25
     var f1: f64 = 2.5
     var f2: f64 = 8.0
@@ -42,12 +42,12 @@ func churn(count: u64)->u64
 #[Swag.Optimize(false), Swag.NoInline]
 func churnReference(count: u64)->u64
 {
-    var h0      = 1'u64
-    var h1      = 3'u64
-    var h2      = 5'u64
-    var h3      = 7'u64
-    var h4      = 11'u64
-    var h5      = 13'u64
+    var h0      = 1_u64
+    var h1      = 3_u64
+    var h2      = 5_u64
+    var h3      = 7_u64
+    var h4      = 11_u64
+    var h5      = 13_u64
     var f0: f64 = 0.25
     var f1: f64 = 2.5
     var f2: f64 = 8.0

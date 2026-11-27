@@ -30,16 +30,21 @@ using Swag, Core
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 1)
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, 2)
 
-    for shift in [1's32, 0]
+    for shift in [1_s32, 0]
     {
         let chromaWidth = shift == 1 ? 2 : 3
         let chromaSize  = cast(u64, chromaWidth) * cast(u64, chromaWidth)
-        var initial: Array'u8
+        var initial: Array!{u8}
         initial.resize(9 + chromaSize * 2)
-        for i in 9'u64 do
+        for i in 9_u64
+        {
             initial[i] = 16
-        for i in 9'u64 until initial.count do
+        }
+
+        for i in 9_u64 until initial.count
+        {
             initial[i] = 128
+        }
 
         let planes = YuvPlanarView{
             luma: initial.storage(),
@@ -53,12 +58,18 @@ using Swag, Core
         var texture = gpu.addImage(&planes)
         defer gpu.removeTexture(&texture)
 
-        var updated: Array'u8
+        var updated: Array!{u8}
         updated.resize(texture.byteCount())
-        for i in 9'u64 do
+        for i in 9_u64
+        {
             updated[i] = 235
-        for i in 9'u64 until updated.count do
+        }
+
+        for i in 9_u64 until updated.count
+        {
             updated[i] = 128
+        }
+
         Swag.require(gpu.updateTexture(texture, updated.storage()))
 
         var unpackBinding, alignment, rowLength, skipRows, skipPixels: GLint
@@ -87,10 +98,12 @@ using Swag, Core
         expect gpu.draw(&painter)
 
         let image = gpu.readRenderTarget(&target, 0, 0, 3, 3)
-        for y in 3's32
+        for y in 3_s32
         {
-            for x in 3's32 do
+            for x in 3_s32
+            {
                 Swag.require(image.pixelColor(x, y).r >= 250)
+            }
         }
     }
 
@@ -109,18 +122,26 @@ using Swag, Core
     gpu.setCurrentContext(context)
     gpu.init()
 
-    for shift in [1's32, 0]
+    for shift in [1_s32, 0]
     {
         let chromaWidth = shift == 1 ? 2 : 3
         let chromaSize  = cast(u64, chromaWidth) * cast(u64, chromaWidth)
-        var pixels: Array'u8
+        var pixels: Array!{u8}
         pixels.resize(9 + chromaSize * 2)
-        for i in 9'u64 do
+        for i in 9_u64
+        {
             pixels[i] = cast(u8, 54 + i * 17)
-        for i in 9'u64 until 9 + chromaSize do
+        }
+
+        for i in 9_u64 until 9 + chromaSize
+        {
             pixels[i] = cast(u8, 72 + (i - 9) * 19)
-        for i in 9 + chromaSize until pixels.count do
+        }
+
+        for i in 9 + chromaSize until pixels.count
+        {
             pixels[i] = cast(u8, 184 - (i - 9 - chromaSize) * 13)
+        }
 
         let planes = YuvPlanarView{
             luma: pixels.storage(),

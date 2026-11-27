@@ -14,7 +14,10 @@ func signBoundary(a, b, c: s64)->s64 => (a & 0x80) > 0 ? b : c
 func shared(a: u64)->u64
 {
     let masked = a & 0x65
-    if masked != 0 do return masked ^ a
+    if masked != 0
+    {
+        return masked ^ a
+    }
     return a
 }
 #[Swag.NoInline]
@@ -24,7 +27,7 @@ func highMask(a, b, c: u64)->u64 => (a & 0x10000000001) != 0 ? b : c
 
 #test
 {
-    let values = [0'u64, 1, 2, 4, 0x40, 0x7F, 0x80, 0xFF, 0x100, 0x10000000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 4, 0x40, 0x7F, 0x80, 0xFF, 0x100, 0x10000000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         let low    = cast(u32, (a & 0xFFFFFFFF))
@@ -35,7 +38,7 @@ func highMask(a, b, c: u64)->u64 => (a & 0x10000000001) != 0 ? b : c
         Swag.require(positive(cast(s64, (a & 0x7FFFFFFFFFFFFFFF)), 17, 29) == ((a & 0x7F) != 0 ? 17 : 29))
         Swag.require(signBoundary(cast(s64, (a & 0x7FFFFFFFFFFFFFFF)), 17, 29) == ((a & 0x80) != 0 ? 17 : 29))
         Swag.require(shared(a) == (masked != 0 ? masked ^ a : a))
-        Swag.require(extendedRegisters(17, 29, 91, a) == (((a & 0x43) != 0 ? 17'u64 : 29) ^ 91))
+        Swag.require(extendedRegisters(17, 29, 91, a) == (((a & 0x43) != 0 ? 17_u64 : 29) ^ 91))
         Swag.require(highMask(a, 17, 29) == ((a & 0x10000000001) != 0 ? 17 : 29))
     }
     Swag.require(positive(-1, 17, 29) == 17)

@@ -12,8 +12,11 @@ using Core, Gui, Viewers
     {
         let fileName = Testing.tempFilePath("scope-live-", extension)
         var source: String
-        for 2_000 do
+        for 2_000
+        {
             source += extension == ".html" ? "<p>A paragraph in the document before the external edit.</p>\n" : "// A line in the document before the external edit.\n"
+        }
+
         writeReloadFile(fileName, source)
         defer discard catch File.delete(fileName)
 
@@ -23,19 +26,28 @@ using Core, Gui, Viewers
         window.openFile(fileName, remember: false)
         completeViewerWindowClassification(&host, window)
         Swag.drainWork()
-        if extension == ".txt" do
+        if extension == ".txt"
+        {
             assume cast(*PlainText.Panel, window.currentView).statisticsTask.wait()
+        }
+
         let key = String.from(window.choices[window.activeChoiceIndex].key)
 
         // Truncate while the progressive viewer still exists, then let the watcher reload it.
         source += extension == ".html" ? "<p>Replacement content.</p>\n" : "// Replacement content.\n"
         writeReloadFile(fileName, source)
-        for 8 where window.pendingFile.isEmpty() do
+        for 8 where window.pendingFile.isEmpty()
+        {
             pollFileWatch(&host, window)
+        }
+
         Swag.require(not window.pendingFile.isEmpty())
         completeQueuedViewerFile(&host, window)
-        for 64 where window.readingState.restoring do
+        for 64 where window.readingState.restoring
+        {
             host.fireTimer(window.fileWatchTimer)
+        }
+
         Swag.require(window.choices[window.activeChoiceIndex].key == key)
         Swag.require(not window.readingState.restoring and window.currentView != null)
         Swag.require(window.fileWatch.current.size == source.length)
@@ -45,8 +57,11 @@ using Core, Gui, Viewers
         writeReloadFile(replacement, "Short replacement.\n")
         defer discard catch File.delete(replacement)
         expect File.move(fileName, replacement)
-        for 8 where window.pendingFile.isEmpty() do
+        for 8 where window.pendingFile.isEmpty()
+        {
             pollFileWatch(&host, window)
+        }
+
         Swag.require(not window.pendingFile.isEmpty())
         completeQueuedViewerFile(&host, window)
         Swag.require(window.fileWatch.current.size == 19)
@@ -85,12 +100,18 @@ using Core, Gui, Viewers
     document.addPage(#move page)
     expect document.save(fileName)
     Swag.require(view.pageCount() == 2)
-    for 8 where window.pendingFile.isEmpty() do
+    for 8 where window.pendingFile.isEmpty()
+    {
         pollFileWatch(&host, window)
+    }
+
     Swag.require(not window.pendingFile.isEmpty())
     completeQueuedViewerFile(&host, window)
-    for 64 where window.readingState.restoring do
+    for 64 where window.readingState.restoring
+    {
         host.fireTimer(window.fileWatchTimer)
+    }
+
     let replacement = assume cast(*PdfDocument.Panel, window.currentView).pdfView
     Swag.require(replacement.pageCount() == 3 and replacement.pageIndex == 1)
     Swag.require(replacement.zoom == 1.5 and replacement.zoomMode == zoomMode)
@@ -102,8 +123,11 @@ using Core, Gui, Viewers
 {
     let fileName = Testing.tempFilePath("scope-shrinking-", ".md")
     var source: String
-    for index in 12_000 do
+    for index in 12_000
+    {
         source += Format.toString("## Section %\n\nA paragraph of the original manuscript.\n\n", index)
+    }
+
     writeReloadFile(fileName, source)
     defer discard catch File.delete(fileName)
     var host: Testing.HeadlessHost
@@ -116,16 +140,25 @@ using Core, Gui, Viewers
     let originalScroll = assume cast(*ScrollWnd, view.children[0])
     originalScroll.setScrollPos(0, originalScroll.scrollableClientRect().height * 0.75)
     discard host.render(view)
-    for 128 where view.isLoading() do
+    for 128 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     Swag.require(originalScroll.scrollPosition().y > 10_000)
 
     source.clear()
-    for index in 400 do
+    for index in 400
+    {
         source += Format.toString("## Short section %\n\nReplacement paragraph.\n\n", index)
+    }
+
     writeReloadFile(fileName, source)
-    for 8 where window.pendingFile.isEmpty() do
+    for 8 where window.pendingFile.isEmpty()
+    {
         pollFileWatch(&host, window)
+    }
+
     Swag.require(not window.pendingFile.isEmpty())
     completeViewerWindowClassification(&host, window)
     for 128
@@ -230,9 +263,12 @@ using Core, Gui, Viewers
     data.addTextStatistics(&counted)
     let alone = single.finish()
     data.addTextStatistics(&alone)
-    var lineEnds: Array'String
-    for row in data.rows where row.field == .LineEnds do
+    var lineEnds: Array!{String}
+    for row in data.rows where row.field == .LineEnds
+    {
         lineEnds.add(row.value)
+    }
+
     Swag.require(lineEnds.count == 1 and lineEnds[0] == "LF · no break after the last line", lineEnds.count ? lineEnds[0].toString() : "")
 
     // The longest line, the control characters and the characters the decoder could not read.

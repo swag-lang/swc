@@ -7,9 +7,12 @@ using Swag, Core
 {
     var text = RichString.fromMarkup("<a>First <b>action</b></a> then <a>Second action</a>.")
     text.compute()
-    var starts: Array'u64
-    for &chunk in text.chunks where chunk.isUrl and not starts.contains(chunk.urlStart) do
+    var starts: Array!{u64}
+    for &chunk in text.chunks where chunk.isUrl and not starts.contains(chunk.urlStart)
+    {
         starts.add(chunk.urlStart)
+    }
+
     Swag.require(starts.count == 2)
     Swag.require(text.urlText(starts[0]) == "First action")
     Swag.require(text.urlText(starts[1]) == "Second action")

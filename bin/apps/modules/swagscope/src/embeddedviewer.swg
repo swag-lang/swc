@@ -31,8 +31,8 @@ struct EmbeddedViewer
     late owner:        *ViewerWindow
     fileName:          String
     title:             String
-    choices:           Array'ViewerPluginChoice
-    instances:         Array'ViewerSession
+    choices:           Array!{ViewerPluginChoice}
+    instances:         Array!{ViewerSession}
     activeIndex:       u32 = Swag.U32.Max
     currentView:       *Wnd?
     currentActions:    *Wnd?
@@ -42,7 +42,7 @@ struct EmbeddedViewer
     currentSideButton: *IconButton?
 }
 
-private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer => unwrap view.ancestorByType'EmbeddedViewer()
+private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer => unwrap view.ancestorByType!{EmbeddedViewer}()
 
 private func reportEmbeddedFailure(view: *Wnd, reason: string)
 {
@@ -122,10 +122,15 @@ impl Viewer.Embedded for EmbeddedViewer
 {
     mtd impl open(fileName, title: string) fail
     {
-        if not .instances.isEmpty() do
+        if not .instances.isEmpty()
+        {
             fail Errors.BadParameterError{}
-        if not File.exists(fileName) do
+        }
+
+        if not File.exists(fileName)
+        {
             fail Errors.FileNotFoundError{fileName: Errors.mkString(fileName)}
+        }
 
         .fileName = fileName
         .title    = title
@@ -141,26 +146,35 @@ impl Viewer.Embedded for EmbeddedViewer
             .choices = #move choices
         }
 
-        if .choices.isEmpty() do
+        if .choices.isEmpty()
+        {
             fail Errors.UnsupportedFormatError{}
+        }
 
         .instances.resize(.choices.count)
         .titleLabel.toolTip = title
         .viewerMenu.show(.choices.count > 1)
-        if not .activate(0) do
+        if not .activate(0)
+        {
             fail Errors.InvalidFormatError{}
+        }
     }
 
     mtd impl retire()->bool
     {
-        for &instance in .instances where not instance.retireView() do
+        for &instance in .instances where not instance.retireView()
+        {
             return false
+        }
+
         .sideSplitter.items[0]!.view = .outlinePlaceholder
         .sideSplitter.items[2]!.view = .sidePlaceholder
         .sideSplitter.setPaneVisible(0, false)
         .sideSplitter.setPaneVisible(2, false)
-        for &instance in .instances do
+        for &instance in .instances
+        {
             instance.destroyWindows()
+        }
 
         .instances.clear()
         .choices.clear()
@@ -184,8 +198,11 @@ impl Viewer.Embedded for EmbeddedViewer
 
     mtd impl isLoading()->bool
     {
-        if .activeIndex >= .instances.count do
+        if .activeIndex >= .instances.count
+        {
             return false
+        }
+
         let instance = &.instances[.activeIndex]
         return instance.view and instance.isLoading and instance.isLoading()
     }
@@ -228,8 +245,11 @@ private impl EmbeddedViewer
         .viewerMenu.setQuietText(plugin.displayName())
 
         var infoWidth: f32
-        if instance.info do
+        if instance.info
+        {
             infoWidth = instance.info.preferredSize.x
+        }
+
         if instance.sidePanelButton
         {
             infoWidth += themeActionButtonSize(.themeMetrics()) + 8
@@ -269,8 +289,10 @@ private impl EmbeddedViewer
         }
 
         let chosen = menu.doModal(.viewerMenu, autoDestroy: true) orelse ""
-        for index in .choices.count where chosen == Format.toString("scope.embedded.viewer.%", index).toString() do
+        for index in .choices.count where chosen == Format.toString("scope.embedded.viewer.%", index).toString()
+        {
             discard .activate(cast(u32, index))
+        }
     }
 
     // Stands the viewer's commands on their mini-bar at the foot of the document, as wide as they
@@ -278,8 +300,11 @@ private impl EmbeddedViewer
     mtd layoutCommands()
     {
         let bar = .commandBar
-        if not bar do
+        if not bar
+        {
             return
+        }
+
         let commands = visibleViewerCommands(.currentCommands)
         bar.show(commands != null)
         let reserve = commands ? commands.position.height + bar.padding.y + bar.padding.w + 2 * .themeMetrics().miniBar_Distance : 0
@@ -289,8 +314,10 @@ private impl EmbeddedViewer
             .applyLayout()
         }
 
-        if not commands do
+        if not commands
+        {
             return
+        }
 
         let metrics = .themeMetrics()
         var area    = .clientRect()
@@ -312,8 +339,11 @@ private impl EmbeddedViewer
     // is out of range or no view could be made.
     internal mtd activate(index: u32)->bool
     {
-        if index >= .choices.count do
+        if index >= .choices.count
+        {
             return false
+        }
+
         if .instances[index].view
         {
             .showInstance(index)
@@ -344,17 +374,27 @@ private impl EmbeddedViewer
 
         let pluginHost: Viewer.Host = &host
         catch next.create(plugin, pluginHost) { next.failureReason = Viewer.failureText(Swag.err) }
-        if not next.failureReason.isEmpty() do
+        if not next.failureReason.isEmpty()
+        {
             next.replaceWithFailure(.document)
+        }
 
-        if not next.view do
+        if not next.view
+        {
             return false
+        }
 
         next.view.dockStyle = .Center
-        if next.actions do
+        if next.actions
+        {
             next.actions.dockStyle = .Left
-        if next.info do
+        }
+
+        if next.info
+        {
             next.info.dockStyle = .Center
+        }
+
         next.actions?.hide()
         next.info?.hide()
         next.commands?.hide()
@@ -371,15 +411,21 @@ private impl EmbeddedViewer
     {
         for &instance, index in .instances where instance.view == view
         {
-            if not instance.retireView() do
+            if not instance.retireView()
+            {
                 return
+            }
+
             instance.destroyWindows()
             instance[]              = {}
             instance.failureReason  = reason
             instance.view           = ViewerErrorView.create(.document, reason)
             instance.view.dockStyle = .Center
-            if index == .activeIndex do
+            if index == .activeIndex
+            {
                 .showInstance(cast(u32, index))
+            }
+
             return
         }
     }
@@ -388,7 +434,7 @@ private impl EmbeddedViewer
     // The enclosing archive owns the name and return action.
     internal func create(parent: *Wnd, owner: *ViewerWindow, readings: *Wnd? = null)->*EmbeddedViewer
     {
-        with let result = Wnd.create'EmbeddedViewer(parent, "scope.embedded")
+        with let result = Wnd.create!{EmbeddedViewer}(parent, "scope.embedded")
         {
             .backgroundStyle = .View
             .dockStyle       = .Center
@@ -407,12 +453,14 @@ private impl EmbeddedViewer
         result.commandBar = commandBar
 
         result.externalReadings = readings != null
-        with result.header = Wnd.create'ViewerInfoGroup(readings orelse cast(*Wnd, result), {0, 0, 0, EmbeddedHeaderHeight})
+        with result.header = Wnd.create!{ViewerInfoGroup}(readings orelse cast(*Wnd, result), {0, 0, 0, EmbeddedHeaderHeight})
         {
             .dockStyle       = readings ? .Center : .Bottom
             .backgroundStyle = .Transparent
-            if not readings do
+            if not readings
+            {
                 .margin = {result.themeMetrics().floating_Inset, 0, result.themeMetrics().floating_Inset, 4}
+            }
         }
 
         with result.viewerMenu = IconButton.createQuiet(result.header)
@@ -423,7 +471,7 @@ private impl EmbeddedViewer
             .sigPressed += func|embedded = result|(_) { embedded.showViewerMenu() }
         }
 
-        with result.infoLane = Wnd.create'Wnd(result.header, {0, 0, 0, 32})
+        with result.infoLane = Wnd.create!{Wnd}(result.header, {0, 0, 0, 32})
         {
             .dockStyle       = .Right
             .backgroundStyle = .Transparent
@@ -446,12 +494,12 @@ private impl EmbeddedViewer
             .backgroundStyle = .Transparent
         }
 
-        with result.document = Wnd.create'Wnd(result.sideSplitter)
+        with result.document = Wnd.create!{Wnd}(result.sideSplitter)
         {
             .backgroundStyle = .View
         }
 
-        with result.outlinePlaceholder = Wnd.create'Wnd(result.sideSplitter)
+        with result.outlinePlaceholder = Wnd.create!{Wnd}(result.sideSplitter)
         {
             .backgroundStyle = .Transparent
             .hide()
@@ -467,7 +515,7 @@ private impl EmbeddedViewer
         }
 
         result.sideSplitter.addPane(result.document).minimumSize = ViewerWindow.DocumentMinWidth
-        with result.sidePlaceholder = Wnd.create'Wnd(result.sideSplitter)
+        with result.sidePlaceholder = Wnd.create!{Wnd}(result.sideSplitter)
         {
             .backgroundStyle = .Transparent
             .hide()
@@ -493,8 +541,11 @@ private impl IWnd for EmbeddedViewer
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .sideSplitter != null do
+        if .sideSplitter != null
+        {
             ViewerWindow.fitDocumentPanes(.sideSplitter, .clientRect().width)
+        }
+
         .layoutCommands()
     }
 
@@ -506,31 +557,44 @@ private impl IWnd for EmbeddedViewer
             {
                 let width = .owner.leftPanelWidth + .themeMetrics().floating_Inset
                 if .sideSplitter.items[0]!.view.isLocallyVisible()
-                    do
+                {
                     .sideSplitter.setPaneSize(0, width)
-                else do
+                }
+                else
+                {
                     .sideSplitter.items[0]!.size = width
+                }
             }
 
             if .owner.rightPanelWidth > 0
             {
                 let width = .owner.rightPanelWidth + .themeMetrics().floating_Inset
                 if .sideSplitter.items[2]!.view.isLocallyVisible()
-                    do
+                {
                     .sideSplitter.setPaneSize(2, width)
-                else do
+                }
+                else
+                {
                     .sideSplitter.items[2]!.size = width
+                }
             }
 
-            if .owner.leftPanelWidth > 0 or .owner.rightPanelWidth > 0 do
+            if .owner.leftPanelWidth > 0 or .owner.rightPanelWidth > 0
+            {
                 .sideSplitter.sendResizeEvent()
+            }
 
             return
         }
 
-        if .sideSplitter.items[0]!.view != .outlinePlaceholder do
+        if .sideSplitter.items[0]!.view != .outlinePlaceholder
+        {
             .owner.leftPanelWidth = .sideSplitter.items[0]!.size - .themeMetrics().floating_Inset
-        if .sideSplitter.items[2]!.view != .sidePlaceholder do
+        }
+
+        if .sideSplitter.items[2]!.view != .sidePlaceholder
+        {
             .owner.rightPanelWidth = .sideSplitter.items[2]!.size - .themeMetrics().floating_Inset
+        }
     }
 }

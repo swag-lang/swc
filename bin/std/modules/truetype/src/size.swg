@@ -74,8 +74,11 @@ impl Size
     // Face.setCharSize first. Values outside the signed 32-bit pixel range fail.
     mtd const scaleHorizontal(designUnits: s32)->s32 fail
     {
-        if not .metrics.xScale do
+        if not .metrics.xScale
+        {
             try fault(0x17)
+        }
+
         return try checkedRoundDiv(cast(s64, designUnits) * .metrics.xScale, 65536)
     }
 
@@ -84,23 +87,37 @@ impl Size
     // Face.setCharSize first. Values outside the signed 32-bit pixel range fail.
     mtd const scaleVertical(designUnits: s32)->s32 fail
     {
-        if not .metrics.yScale do
+        if not .metrics.yScale
+        {
             try fault(0x17)
+        }
+
         return try checkedRoundDiv(cast(s64, designUnits) * .metrics.yScale, 65536)
     }
 }
 
 private func checkedRoundDiv(value, divisor: s64)->s32 fail
 {
-    if not divisor do
+    if not divisor
+    {
         try fault(0x17)
+    }
+
     var rounded: s64
-    if value >= 0 do
+    if value >= 0
+    {
         rounded = (value + divisor / 2) / divisor
-    else do
+    }
+    else
+    {
         rounded = -(((-value) + divisor / 2) / divisor)
-    if rounded < Swag.S32.Min or rounded > Swag.S32.Max do
+    }
+
+    if rounded < Swag.S32.Min or rounded > Swag.S32.Max
+    {
         try fault(0x17)
+    }
+
     return cast(s32, rounded)
 }
 

@@ -25,12 +25,17 @@ internal impl Properties
     public func itemDisplayName(value: Swag.TypeValue)->String
     {
         let attrName = Reflection.attributeValue(value, Properties.Name, "name")
-        if attrName != null do
+        if attrName != null
+        {
             return attributeText(attrName)
+        }
 
         let beautified = Utf8.beautifyName(value.name orelse "")
-        if value.pointedType == null do
+        if value.pointedType == null
+        {
             return beautified
+        }
+
         return resolveText(beautified.toString())
     }
 
@@ -45,7 +50,7 @@ internal impl Properties
 
         if .isGridLike()
         {
-            rowWnd = Wnd.create'Wnd(.edView, Math.Rectangle{0, 0, .position.width, height != 0 ? height : .gridLineHeight})
+            rowWnd = Wnd.create!{Wnd}(.edView, Math.Rectangle{0, 0, .position.width, height != 0 ? height : .gridLineHeight})
         }
         else
         {
@@ -101,8 +106,11 @@ internal impl Properties
             if not dispName.isEmpty()
             {
                 var labelWidth = cast(f32, .gridColumnSize)
-                if not .isGridLike() do
+                if not .isGridLike()
+                {
                     labelWidth = .listContentWidth()
+                }
+
                 with let label = Label.create(line, dispName, Math.Rectangle{0, 0, labelWidth, item.line.position.height})
                 {
                     if me.isGridLike()
@@ -144,8 +152,10 @@ internal impl Properties
             item.filter += " "
             item.filter += descText
             item.assignDescription(descText)
-            if .kind == .Panel and item.label != null do
+            if .kind == .Panel and item.label != null
+            {
                 item.label.toolTip = descText
+            }
 
             if flags.has(.Description)
             {
@@ -262,31 +272,37 @@ internal impl Properties
         var newParent = parentItem
 
         // If the struct has implemented the notify interface, store it
-        if parentItem and bindNotify do
+        if parentItem and bindNotify
+        {
             parentItem.ntfyItf = Swag.makeInterface(addr, typeStruct, IPropertyNotify)
+        }
 
         // Currently open category path (nested subgroups). Each entry pairs a "/"-split name segment
         // with the header row created for it, so consecutive fields sharing a common prefix reuse the
         // same headers instead of recreating them.
-        var categPath: Array'{ name: string?, item: *PropertiesItem? }
+        var categPath: Array!{{ name: string?, item: *PropertiesItem? }}
 
         // Walk order: declaration order, except when 'usingFieldsLast' pushes the 'using' base
         // structs after the struct's own fields — a derived type then edits its most specific
         // fields first even though the language forces the base to be declared first.
-        var walkOrder: Array'u64
+        var walkOrder: Array!{u64}
         let tsFields = unwrap typeStruct.fields
         for i in typeStruct.fields.count
         {
-            if not .usingFieldsLast or not tsFields[i].flags.has(.HasUsing) do
+            if not .usingFieldsLast or not tsFields[i].flags.has(.HasUsing)
+            {
                 walkOrder.add(i)
+            }
         }
 
         if .usingFieldsLast
         {
             for i in typeStruct.fields.count
             {
-                if tsFields[i].flags.has(.HasUsing) do
+                if tsFields[i].flags.has(.HasUsing)
+                {
                     walkOrder.add(i)
+                }
             }
         }
 
@@ -295,26 +311,38 @@ internal impl Properties
         for fieldIdx in typeStruct.fields.count
         {
             let after = Reflection.attributeValue(tsFields[fieldIdx], Properties.After, "field")
-            if after == null do
+            if after == null
+            {
                 continue
+            }
 
             let afterName = attributeString(after)
             var curPos    = Swag.U64.Max
             var afterPos  = Swag.U64.Max
             for value, pos in walkOrder
             {
-                if value == fieldIdx do
+                if value == fieldIdx
+                {
                     curPos = pos
-                if tsFields[value].name == afterName do
+                }
+
+                if tsFields[value].name == afterName
+                {
                     afterPos = pos
+                }
             }
 
-            if curPos == Swag.U64.Max or afterPos == Swag.U64.Max or curPos == afterPos do
+            if curPos == Swag.U64.Max or afterPos == Swag.U64.Max or curPos == afterPos
+            {
                 continue
+            }
 
             walkOrder.removeAtOrdered(curPos)
-            if curPos < afterPos do
+            if curPos < afterPos
+            {
                 afterPos -= 1
+            }
+
             walkOrder.insertAt(afterPos + 1, fieldIdx)
         }
 
@@ -322,8 +350,10 @@ internal impl Properties
         {
             let value = tsFields[idx]
 
-            if Reflection.hasAttribute(value, Properties.Hidden) do
+            if Reflection.hasAttribute(value, Properties.Hidden)
+            {
                 continue
+            }
 
             // Opt-in mode (see addStructMulti 'onlyNamed'): a field participates only when it
             // carries an explicit display name. 'using' struct fields always recurse — their own
@@ -343,11 +373,13 @@ internal impl Properties
 
                 // Keep the headers shared with the previously open path (longest common prefix),
                 // drop the diverging tail, then create only the new segments.
-                var common = 0'u64
+                var common = 0_u64
                 while common < categPath.count and
                       common < segs.count and
-                      categPath[common].name == segs[common] do
+                      categPath[common].name == segs[common]
+                {
                     common += 1
+                }
 
                 categPath.count = common
 
@@ -435,8 +467,10 @@ internal impl Properties
            .lastCategory and
            .lastCategory.typeValue.name == name and
            .items.count and
-           .lastCategoryIsOpen() do
+           .lastCategoryIsOpen()
+        {
             return .lastCategory
+        }
 
         let v    = Swag.TypeValue{name: name}
         let item = .addItem(v, null, parentForCateg)
@@ -445,13 +479,22 @@ internal impl Properties
         item.label.style.addStyleSheetColors("label_Text $faintText")
         item.label.setLetterSpacing(.themeMetrics().sectionLabel_LetterSpacing)
         item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
-        if .kind == .Condensed do
+        if .kind == .Condensed
+        {
             item.line.margin.y = .themeMetrics().property_ControlInset
-        if not parentForCateg!.flags.has(.Category) do
+        }
+
+        if not parentForCateg!.flags.has(.Category)
+        {
             item.level = 0
+        }
+
         .sections.add({item, lvl: 1})
-        if topLevel do
+        if topLevel
+        {
             .lastCategory = item
+        }
+
         return item
     }
 
@@ -462,10 +505,15 @@ internal impl Properties
         for i in reversed(.items.count)
         {
             let it = unwrap .items[i]
-            if it == .lastCategory do
+            if it == .lastCategory
+            {
                 return true
-            if it.flags.has(.Category) and it.level == 0 do
+            }
+
+            if it.flags.has(.Category) and it.level == 0
+            {
                 return false
+            }
         }
 
         return false
@@ -475,15 +523,25 @@ internal impl Properties
     // fixed visual order. Grid modes only — list mode already stacks its own per-row description.
     mtd addDecorators(value: Swag.TypeValue, parentItem: *PropertiesItem?)
     {
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             return
+        }
 
-        if let space = Reflection.attributeValue(value, .Gap, "size") do
-            .addSpacerRow(parentItem, assume cast (s32, space))
-        if let header = Reflection.attributeValue(value, .Heading, "text") do
-            .addHeaderRow(attributeText(header), parentItem)
-        if let help = Reflection.attributeValue(value, .HelpBox, "text") do
-            .addNoteRow(attributeText(help), parentItem)
+        if let space = Reflection.attributeValue(value, .Gap, "size")
+        {
+            discard .addSpacerRow(parentItem, assume cast (s32, space))
+        }
+
+        if let header = Reflection.attributeValue(value, .Heading, "text")
+        {
+            discard .addHeaderRow(attributeText(header), parentItem)
+        }
+
+        if let help = Reflection.attributeValue(value, .HelpBox, "text")
+        {
+            discard .addNoteRow(attributeText(help), parentItem)
+        }
     }
 
     // A blank vertical gap ('size' px). It paints nothing (paintBackItem short-circuits on .Spacer).
@@ -505,8 +563,11 @@ internal impl Properties
         let v         = Swag.TypeValue{name: text}
         with let item = .addItem(v, null, parentItem)
         {
-            if .label != null do
+            if .label != null
+            {
                 .label.style.setFont(&me.fontCategory)
+            }
+
             .level = parentItem!.level
             .flags.add(.Header | .NoSeparator | .NoFocus)
         }

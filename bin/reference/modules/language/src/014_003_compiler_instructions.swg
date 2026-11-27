@@ -23,7 +23,7 @@ var Global = 0     // Define a global variable 'Global'.
 # Static Control with '#static'
 '#static' applies compile-time semantics to the control statement that follows.
 The condition or selected value is evaluated at compile time, and only the
-selected branch is retained. The ordinary 'elif' and 'else' keywords complete a
+selected branch is retained. The ordinary `else if` and `else` keywords complete a
 static 'if'; they do not repeat the '#static' prefix.
 */
 
@@ -34,7 +34,7 @@ const RELEASE = 0
 {
     // Compiled because DEBUG == 1.
 }
-elif RELEASE
+else if RELEASE
 {
     // Would compile if RELEASE were true and DEBUG were false.
 }

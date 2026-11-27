@@ -7,7 +7,7 @@ var b: #decltype(a) = 5
 var c: #decltype(10) = 2
 #assert(#typeof(c) == s32)
 
-var d: #decltype(10'u8 + 20's32) = 7
+var d: #decltype(10_u8 + 20_s32) = 7
 #assert(#typeof(d) == s32)
 
 var e: #decltype(s32) = 9

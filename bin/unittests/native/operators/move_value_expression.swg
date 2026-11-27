@@ -154,7 +154,13 @@ var dropTrace: u64
 struct TraceOwner { value: u64 }
 impl TraceOwner
 {
-    mtd opDrop() { if .value != 0 do dropTrace = dropTrace * 10 + .value }
+    mtd opDrop()
+    {
+        if .value != 0
+        {
+            dropTrace = dropTrace * 10 + .value
+        }
+    }
 }
 struct TracePair { first, second: TraceOwner; code: s32 }
 
@@ -290,7 +296,10 @@ impl AddressOwner
     mtd opPostMove() { .address = &.value }
     mtd opDrop()
     {
-        if .address do Swag.assert(.address == &.value)
+        if .address
+        {
+            Swag.assert(.address == &.value)
+        }
         drops += cast(s32, .value)
     }
 }

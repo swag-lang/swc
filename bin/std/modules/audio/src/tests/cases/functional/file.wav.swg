@@ -5,7 +5,7 @@ using Swag, Core
 // RIFF numeric fields are little-endian independently of the host's native byte order.
 #test
 {
-    const Header: [8] u8 = ['R'u8, 'I', 'F', 'F', 36, 0, 0, 0]
+    const Header: [8] u8 = ['R'_u8, 'I', 'F', 'F', 36, 0, 0, 0]
     let parsed = expect Wav.decodeChunkHeader(Swag.makeSlice(&Header[0], Header.count))
     Swag.require(parsed.chunkSize == 36)
     Swag.require(Memory.compare(&parsed.chunkID, "RIFF".buffer, 4) == 0)
@@ -22,12 +22,12 @@ using Swag, Core
                                  Format.toString("audio-wav-bounds-%.wav", Guid128.random()))
     defer discard catch File.delete(temporary)
 
-    for fieldOffset in [4'u64, 40]
+    for fieldOffset in [4_u64, 40]
     {
         var bytes  = source
         var writer = ByteStream.openWrite(&bytes)
         writer.setPosition(fieldOffset)
-        writer.writeLittleEndian(fieldOffset == 4 ? 36'u32 : 100'u32)
+        writer.writeLittleEndian(fieldOffset == 4 ? 36_u32 : 100_u32)
         discard expect File.writeAllBytes(temporary, bytes.toSlice())
 
         var error: Swag.Error
@@ -41,7 +41,7 @@ using Swag, Core
 {
     var bytes = expect File.readAllBytes(audioGetTestDataPath("pcm16_stereo.wav"))
     bytes.add(cast(const [..] u8, "data"))
-    bytes.add([8'u8, 0, 0, 0, 0x01, 0, 0x02, 0, 0x03, 0, 0x04, 0])
+    bytes.add([8_u8, 0, 0, 0, 0x01, 0, 0x02, 0, 0x03, 0, 0x04, 0])
 
     var writer = ByteStream.openWrite(&bytes)
     writer.setPosition(4)
@@ -66,12 +66,12 @@ using Swag, Core
     defer discard catch File.delete(temporary)
 
     var bytes = source
-    bytes.add([0x7F'u8, 0])
+    bytes.add([0x7F_u8, 0])
     var writer = ByteStream.openWrite(&bytes)
     writer.setPosition(4)
-    writer.writeLittleEndian(46'u32)
+    writer.writeLittleEndian(46_u32)
     writer.setPosition(40)
-    writer.writeLittleEndian(9'u32)
+    writer.writeLittleEndian(9_u32)
     discard expect File.writeAllBytes(temporary, bytes.toSlice())
 
     var error: Swag.Error
@@ -91,15 +91,20 @@ using Swag, Core
         let path = index == 0 ? audioGetTestDataPath("pcm16_stereo.wav") :
                    audioGetTestDataPath("float32_extensible_mono.wav")
         let source = expect File.readAllBytes(path)
-        for fieldOffset in [28'u64, 32]
+        for fieldOffset in [28_u64, 32]
         {
             var bytes  = source
             var writer = ByteStream.openWrite(&bytes)
             writer.setPosition(fieldOffset)
-            if fieldOffset == 28 do
-                writer.writeLittleEndian(1'u32)
-            else do
-                writer.writeLittleEndian(1'u16)
+            if fieldOffset == 28
+            {
+                writer.writeLittleEndian(1_u32)
+            }
+            else
+            {
+                writer.writeLittleEndian(1_u16)
+            }
+
             discard expect File.writeAllBytes(temporary, bytes.toSlice())
 
             var error: Swag.Error
@@ -158,7 +163,7 @@ using Swag, Core
     Swag.require((file.preloadedData()).count == 0)
     Swag.require(file.frameCount == 2)
 
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect file.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
     {
         decoded.add(samples)
@@ -190,7 +195,7 @@ using Swag, Core
     Swag.require(file.dataSize == 3)
     Swag.require(file.dataOffset == 44)
     audioAssertFloat(file.durationSeconds, 3.0 / 8000.0, 0.000001)
-    Swag.require(Slice.equals(file.data.toSlice(), [0'u8, 128'u8, 255'u8]))
+    Swag.require(Slice.equals(file.data.toSlice(), [0_u8, 128_u8, 255_u8]))
 }
 
 #test
@@ -222,7 +227,7 @@ using Swag, Core
     var bytes  = source
     var writer = ByteStream.openWrite(&bytes)
     writer.setPosition(38)     // fmt payload offset 18: valid bits in WAVEFORMATEXTENSIBLE.
-    writer.writeLittleEndian(25'u16)
+    writer.writeLittleEndian(25_u16)
     discard expect File.writeAllBytes(temporary, bytes.toSlice())
 
     var error: Swag.Error
@@ -266,10 +271,10 @@ using Swag, Core
 #test
 {
     let source = expect File.readAllBytes(audioGetTestDataPath("pcm16_stereo.wav"))
-    var bytes  = Array'u8{}
+    var bytes  = Array!{u8}{}
     bytes.add(source.toSlice()[0 until 36])     // RIFF and fmt chunks.
     bytes.add(cast(const [..] u8, "JUNK"))
-    bytes.add([1'u8, 0, 0, 0, 0x7F, 0])     // One-byte payload and its pad byte.
+    bytes.add([1_u8, 0, 0, 0, 0x7F, 0])     // One-byte payload and its pad byte.
     bytes.add(source.toSlice()[36 until source.count])
 
     var writer = ByteStream.openWrite(&bytes)
@@ -283,7 +288,7 @@ using Swag, Core
     let file = expect SoundFile.load(temporary)
     Swag.require(file.encoding == .Pcm16 and file.frameCount == 2)
     Swag.require(file.dataOffset == 54)
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect file.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
     {
         decoded.add(samples)

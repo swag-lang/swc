@@ -24,9 +24,11 @@ func wholeTens(x: u32)->u64 => cast(u64, x) / 10
 #[Swag.Optimize(true), Swag.NoInline]
 func averageThird(a: const [*] u8, n: u64)->u32
 {
-    var sum = 0'u32
-    for i in n do
+    var sum = 0_u32
+    for i in n
+    {
         sum += cast(u32, a[i])
+    }
     return sum / 3
 }
 
@@ -60,10 +62,14 @@ func div64(x, d: u64)->u64 => x / d
     }
     Swag.require(largeDivisor(65535, 65535) == 4294)
 
-    for x in [0'u32, 1, 6, 7, 0xFFFFFF, 0xFFFFFE, 0xFFFFFA, 0x1000000, 0xFFFFFFFF, 0x7FFFFFFF, 0x12345678] do
+    for x in [0_u32, 1, 6, 7, 0xFFFFFF, 0xFFFFFE, 0xFFFFFA, 0x1000000, 0xFFFFFFFF, 0x7FFFFFFF, 0x12345678]
+    {
         Swag.require(sevenths(x) == div32(x & 0xFFFFFF, 7))
-    for x in [0'u32, 9, 10, 0xFFFFFFFF, 0xFFFFFFFA, 0x80000000, 4294967290] do
+    }
+    for x in [0_u32, 9, 10, 0xFFFFFFFF, 0xFFFFFFFA, 0x80000000, 4294967290]
+    {
         Swag.require(wholeTens(x) == div64(cast(u64, x), 10))
+    }
 
     var bytes: [5] u8 = [255, 255, 255, 255, 254]
     Swag.require(averageThird(&bytes[0], 5) == 1274 / 3)

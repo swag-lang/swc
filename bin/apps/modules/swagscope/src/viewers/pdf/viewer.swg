@@ -30,11 +30,14 @@ func viewerPlugin()->Viewer.Plugin
 private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 {
     var reader = try Pdf.Reader.open(fileName)
-    if not reader.pageCount() do
+    if not reader.pageCount()
+    {
         fail Errors.InvalidFormatError{texts().err_NoPage}
+    }
+
     var page    = try reader.loadPage(0)
     let largest = Math.max(page.width, page.height, 1)
-    let side    = Math.max(maxSide, 1'u32)
+    let side    = Math.max(maxSide, 1_u32)
     return try page.render({scale: cast(f32, side) / largest,
                             maxDimension: cast(s32, side),
                             maxPixels: cast(u64, side) * side})
@@ -56,8 +59,8 @@ struct ViewerContent
     reader:  Pdf.Reader
     page:    Pdf.Page
     facts:   DocumentFacts
-    outline: Array'Pdf.OutlineEntry
-    labels:  Array'String     // Page labels the document gives, or empty when it gives none.
+    outline: Array!{Pdf.OutlineEntry}
+    labels:  Array!{String}     // Page labels the document gives, or empty when it gives none.
 }
 
 // A small, independent render window used by the page rail. Images are capped by both
@@ -65,12 +68,12 @@ struct ViewerContent
 struct ThumbnailBatch
 {
     first:  u64
-    images: Array'Image
+    images: Array!{Image}
 }
 
-private const ThumbnailSide      = 192'u32
-private const PageExportDpi       = 300'u32
-private const MaxExportPages      = 50'u64
+private const ThumbnailSide  = 192_u32
+private const PageExportDpi  = 300_u32
+private const MaxExportPages = 50_u64
 
 struct PageRange
 {
@@ -83,9 +86,12 @@ struct PageRange
 func parsePageRange(source: string, pageCount: u64, result: *PageRange)->bool
 {
     let text = Latin1.trim(source)
-    let dash = Utf8.indexOf(text, '-'rune)
-    if dash == Swag.U64.Max or not dash or dash + 1 >= text.count do
+    let dash = Utf8.indexOf(text, '-'_rune)
+    if dash == Swag.U64.Max or not dash or dash + 1 >= text.count
+    {
         return false
+    }
+
     let firstText = Latin1.trim(text[0 until dash])
     let lastText  = Latin1.trim(text[dash + 1 to])
     var firstResult: #decltype(expect StrConv.parseU64(firstText))
@@ -103,8 +109,11 @@ func parsePageRange(source: string, pageCount: u64, result: *PageRange)->bool
        not firstResult.value or
        lastResult.value < firstResult.value or
        lastResult.value > pageCount or
-       lastResult.value - firstResult.value + 1 > MaxExportPages do
+       lastResult.value - firstResult.value + 1 > MaxExportPages
+    {
         return false
+    }
+
     result.first = firstResult.value - 1
     result.last  = lastResult.value - 1
     return true
@@ -114,11 +123,17 @@ func parsePageRange(source: string, pageCount: u64, result: *PageRange)->bool
 // scaled viewer widget. The raster budget bounds unusually large authored page boxes.
 func renderPageAtDpi(fileName: string, index: u64, dpi: u32)->Image fail
 {
-    if dpi < 36 or dpi > 1200 do
+    if dpi < 36 or dpi > 1200
+    {
         fail Errors.UnsupportedFormatError{"PDF export DPI is outside the supported range"}
+    }
+
     var reader = try Pdf.Reader.open(fileName)
-    if index >= reader.pageCount() do
+    if index >= reader.pageCount()
+    {
         fail Errors.InvalidFormatError{texts().err_NoPage}
+    }
+
     let page  = try reader.loadPage(index)
     let scale = cast(f32, dpi) / 72
     return try page.render({scale: scale, maxDimension: 16_384, maxPixels: 64 * 1024 * 1024})
@@ -126,8 +141,11 @@ func renderPageAtDpi(fileName: string, index: u64, dpi: u32)->Image fail
 
 private func writePageImage(image: const *Image, target: string, refuseExisting = false) fail
 {
-    if refuseExisting and File.exists(target) do
+    if refuseExisting and File.exists(target)
+    {
         fail Errors.InvalidFormatError{texts().ui_ExportExists}
+    }
+
     let folder    = Path.directoryName(target) orelse "."
     let temporary = Path.combine(folder, Format.toString(".swag-pdf-%.tmp.png", Guid128.random()))
     defer discard catch File.delete(temporary)
@@ -151,22 +169,33 @@ func pageRangeFileName(folder, stem: string, index: u64)->String
 // time. Existing outputs are rejected up front so a partial overwrite cannot destroy older work.
 func savePageRange(fileName, folder, stem: string, first, last: u64, dpi: u32)->String fail
 {
-    if dpi < 36 or dpi > 1200 or first > last or last - first + 1 > MaxExportPages do
-        fail Errors.InvalidFormatError{texts().ui_InvalidExportRange}
-    var reader = try Pdf.Reader.open(fileName)
-    if last >= reader.pageCount() do
-        fail Errors.InvalidFormatError{texts().ui_InvalidExportRange}
-    for index in first until last + 1
+    if dpi < 36 or dpi > 1200 or first > last or last - first + 1 > MaxExportPages
     {
-        let target = pageRangeFileName(folder, stem, index)
-        if File.exists(target) do
-            fail Errors.InvalidFormatError{texts().ui_ExportExists}
+        fail Errors.InvalidFormatError{texts().ui_InvalidExportRange}
+    }
+
+    var reader = try Pdf.Reader.open(fileName)
+    if last >= reader.pageCount()
+    {
+        fail Errors.InvalidFormatError{texts().ui_InvalidExportRange}
     }
 
     for index in first until last + 1
     {
-        if Swag.isCancelled() do
+        let target = pageRangeFileName(folder, stem, index)
+        if File.exists(target)
+        {
+            fail Errors.InvalidFormatError{texts().ui_ExportExists}
+        }
+    }
+
+    for index in first until last + 1
+    {
+        if Swag.isCancelled()
+        {
             return ""
+        }
+
         let page  = try reader.loadPage(index)
         let image = try page.render({scale: cast(f32, dpi) / 72, maxDimension: 16_384, maxPixels: 64 * 1024 * 1024})
         try writePageImage(&image, pageRangeFileName(folder, stem, index), refuseExisting: true)
@@ -183,19 +212,24 @@ private func loadThumbnailBatch(fileName: string, first, end: u64)->ThumbnailBat
     var reader = catch Pdf.Reader.open(fileName) orelse Pdf.Reader{}
     for index in first until Math.min(end, reader.pageCount())
     {
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             break
+        }
+
         let page = catch reader.loadPage(index) orelse Pdf.Page{}
 
-        if page.width <= 0 or page.height <= 0 do
+        if page.width <= 0 or page.height <= 0
+        {
             continue
+        }
 
         // The rasterizer rounds point dimensions upward.
         let side  = cast(f32, ThumbnailSide - 2)
         let scale = side / Math.max(page.width, page.height, 1)
         result.images[index - first] = catch page.render({scale: scale,
-                                                         maxDimension: cast(s32, ThumbnailSide),
-                                                         maxPixels: cast(u64, ThumbnailSide) * ThumbnailSide}) orelse Image{}
+                                                          maxDimension: cast(s32, ThumbnailSide),
+                                                          maxPixels: cast(u64, ThumbnailSide) * ThumbnailSide}) orelse Image{}
     }
 
     return result
@@ -207,8 +241,11 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     result.reader  = #move try Pdf.Reader.open(fileName)
     result.outline = result.reader.loadOutline()
     result.labels  = result.reader.loadPageLabels()
-    if not result.reader.pageCount() do
+    if not result.reader.pageCount()
+    {
         fail Errors.InvalidFormatError{texts().err_NoPage}
+    }
+
     result.page = #move try result.reader.loadPage(0)
 
     let metadata = result.reader.metadata()
@@ -237,10 +274,12 @@ func paperText(size: Math.Point)->String
 
     let shortSide = Math.min(size.x, size.y)
     let longSide  = Math.max(size.x, size.y)
-    for paper in papers where Math.abs(shortSide - paper.width) <= 3 and Math.abs(longSide - paper.height) <= 3 do
+    for paper in papers where Math.abs(shortSide - paper.width) <= 3 and Math.abs(longSide - paper.height) <= 3
+    {
         return String.from(paper.name)
+    }
 
-    const MillimetresPerPoint = 25.4'f32 / 72
+    const MillimetresPerPoint = 25.4_f32 / 72
     return Format.toString("% × % mm", cast(u32, Math.round(size.x * MillimetresPerPoint)), cast(u32, Math.round(size.y * MillimetresPerPoint)))
 }
 
@@ -276,15 +315,15 @@ struct Panel
     details:          String
     facts:            DocumentFacts
     services:         Viewer.HostServices
-    load:             Viewer.BackgroundLoad'ViewerContent
+    load:             Viewer.BackgroundLoad!{ViewerContent}
     failureReason:    String
     outline:          *DocumentOutline?
-    bookmarks:        Array'Pdf.OutlineEntry
-    pageLabels:       Array'String     // Labels the document gives its pages, one per page, or empty.
-    history:          Viewer.History'PdfReadingPosition
+    bookmarks:        Array!{Pdf.OutlineEntry}
+    pageLabels:       Array!{String}     // Labels the document gives its pages, one per page, or empty.
+    history:          Viewer.History!{PdfReadingPosition}
     fileName:         String
-    thumbnailTask:    Swag.Task'ThumbnailBatch
-    pageExportTask:   Swag.Task'String
+    thumbnailTask:    Swag.Task!{ThumbnailBatch}
+    pageExportTask:   Swag.Task!{String}
     pageExporting:    bool
     pageExportPath:   String
     pageExportFolder: String
@@ -294,7 +333,7 @@ struct Panel
     pageExportDpi:    u32 = PageExportDpi
     pageExportRange:  bool
     pageExportToast:  *Toast?
-    previewTextures:  Array'Texture
+    previewTextures:  Array!{Texture}
     thumbnailStart:   u64
     using navigation: DocumentPageNavigation
 
@@ -343,8 +382,11 @@ private impl IWnd for Panel
         if evt.task == &.pageExportTask
         {
             .pageExportTask.waitSubmission(evt.submission)
-            if evt.submission != .pageExportTask.currentSubmission() or not .pageExportTask.isDone() do
+            if evt.submission != .pageExportTask.currentSubmission() or not .pageExportTask.isDone()
+            {
                 return
+            }
+
             .finishPageExport()
             return
         }
@@ -352,14 +394,20 @@ private impl IWnd for Panel
         if evt.task == &.thumbnailTask
         {
             .thumbnailTask.waitSubmission(evt.submission)
-            if evt.submission != .thumbnailTask.currentSubmission() or not .thumbnailTask.isDone() do
+            if evt.submission != .thumbnailTask.currentSubmission() or not .thumbnailTask.isDone()
+            {
                 return
+            }
+
             var loadErrorOutcome: Swag.Error
             var batch: ThumbnailBatch
             catch { batch = try .thumbnailTask.take() } as loadErrorOutcome
             let loadError = loadErrorOutcome.value()
-            if loadError == null do
+            if loadError == null
+            {
                 .installThumbnails(&batch)
+            }
+
             return
         }
 
@@ -399,8 +447,10 @@ private impl IWnd for Panel
             return
         }
 
-        if .handleHistoryKey(evt) do
+        if .handleHistoryKey(evt)
+        {
             return
+        }
 
         switch evt.key
         {
@@ -421,16 +471,22 @@ private impl Panel
         if .pageExportTask.isPending()
         {
             .pageExportTask.cancel()
-            if not .pageExportTask.isDone() do
+            if not .pageExportTask.isDone()
+            {
                 return false
+            }
+
             discard catch .pageExportTask.take()
         }
 
         if .thumbnailTask.isPending()
         {
             .thumbnailTask.cancel()
-            if not .thumbnailTask.isDone() do
+            if not .thumbnailTask.isDone()
+            {
                 return false
+            }
+
             discard catch .thumbnailTask.take()
         }
 
@@ -439,7 +495,7 @@ private impl Panel
 
     // Appends the matches of the pages whose text the view has extracted so far, and reports
     // whether the whole document has been searched.
-    mtd collectMatches(text: string, options: Viewer.SearchOptions, progress: *u64, result: *Array'Viewer.SearchMatch)->bool
+    mtd collectMatches(text: string, options: Viewer.SearchOptions, progress: *u64, result: *Array!{Viewer.SearchMatch})->bool
     {
         with var pdfOptions: PdfTextSearchOptions
         {
@@ -448,10 +504,13 @@ private impl Panel
             .regularExpression = options.regularExpression
         }
 
-        var matches: Array'PdfTextMatch
+        var matches: Array!{PdfTextMatch}
         let complete = .pdfView.collectTextMatches(text, pdfOptions, progress, &matches)
-        for match in matches do
+        for match in matches
+        {
             result.add(Viewer.SearchMatch{match.pageIndex, 0, match.byteOffset, match.byteLength})
+        }
+
         return complete
     }
 
@@ -463,20 +522,34 @@ private impl Panel
     {
         let pages = .pdfView.pageCount()
         var result: String
-        if pictures == pages do
+        if pictures == pages
+        {
             result = String.from(texts().ui_TextLayerNone)
-        elif pictures do
+        }
+        else if pictures
+        {
             result = Format.toString(texts().ui_TextLayerSome, pictures, pages)
-        elif not unreadable do
+        }
+        else if not unreadable
+        {
             result = String.from(texts().ui_TextLayerAll)
+        }
+
         if unreadable
         {
-            if not result.isEmpty() do
+            if not result.isEmpty()
+            {
                 result += " · "
-            if unreadable == 1 do
+            }
+
+            if unreadable == 1
+            {
                 result += texts().ui_TextLayerOneUnreadable
-            else do
+            }
+            else
+            {
                 result += Format.toString(texts().ui_TextLayerUnreadable, unreadable)
+            }
         }
 
         return result
@@ -489,24 +562,40 @@ private impl Panel
     {
         var result: String
         let coverage = .pdfView.textCoverage()
-        if not coverage.complete do
+        if not coverage.complete
+        {
             return result
+        }
 
         let pages = .pdfView.pageCount()
-        if coverage.pictures == pages do
+        if coverage.pictures == pages
+        {
             result = texts().ui_NoTextLayer
-        elif coverage.pictures == 1 do
+        }
+        else if coverage.pictures == 1
+        {
             result = Format.toString(texts().ui_OneNoText, pages)
-        elif coverage.pictures do
+        }
+        else if coverage.pictures
+        {
             result = Format.toString(texts().ui_SomeNoText, coverage.pictures, pages)
+        }
+
         if coverage.unreadable
         {
-            if not result.isEmpty() do
+            if not result.isEmpty()
+            {
                 result += " · "
-            if coverage.unreadable == 1 do
+            }
+
+            if coverage.unreadable == 1
+            {
                 result += texts().ui_OneUnreadable
-            else do
+            }
+            else
+            {
                 result += Format.toString(texts().ui_Unreadable, coverage.unreadable)
+            }
         }
 
         return result
@@ -516,14 +605,19 @@ private impl Panel
 
     mtd refreshNavigation()
     {
-        if .steps.updateSteps(.pdfView.pageIndex, .pdfView.pageCount()) do
+        if .steps.updateSteps(.pdfView.pageIndex, .pdfView.pageCount())
+        {
             .services.chromeChanged(me)
+        }
+
         .exportPageButton.enable(.pdfView.pageCount() > 0 and not .pageExporting)
         .pageLabel.setText(.pageReadout())
         .navigation.pageCount   = .pdfView.pageCount()
         .navigation.currentPage = .pdfView.pageIndex
-        if .gallery != null and .thumbnailScroll.isVisible() do
+        if .gallery != null and .thumbnailScroll.isVisible()
+        {
             .gallery.revealCurrentPage()
+        }
     }
 
     // Returns the size the pages are shown at, in percent of the size they would print at, as the
@@ -545,8 +639,11 @@ private impl Panel
     // position: no labels, or a label that is the page number itself.
     internal mtd pageLabelOf(index: u64)->string
     {
-        if index >= .pageLabels.count do
+        if index >= .pageLabels.count
+        {
             return ""
+        }
+
         let label = .pageLabels[index].toString()
         return label == Format.toString("%", index + 1).toString() ? "" : label
     }
@@ -555,11 +652,14 @@ private impl Panel
     // document gives one and it fits the readout, as `iv (4/120)`.
     internal mtd pageReadout()->String
     {
-        const LabelledLimit = 13'u64
+        const LabelledLimit = 13_u64
         let position = Format.toString("%/%", Math.min(.pdfView.pageIndex + 1, .pdfView.pageCount()), .pdfView.pageCount())
         let label    = .pageLabelOf(.pdfView.pageIndex)
-        if label.count and label.count + position.length + 3 <= LabelledLimit do
+        if label.count and label.count + position.length + 3 <= LabelledLimit
+        {
             return Format.toString("% (%)", label, position)
+        }
+
         return Viewer.pageText(.pdfView.pageIndex, .pdfView.pageCount())
     }
 
@@ -567,11 +667,17 @@ private impl Panel
     // them and find them again.
     mtd publishBookmarks()
     {
-        if not .outline do
+        if not .outline
+        {
             return
-        var headings: Array'DocumentHeading
-        for entry, index in .bookmarks do
+        }
+
+        var headings: Array!{DocumentHeading}
+        for entry, index in .bookmarks
+        {
             headings.add(DocumentHeading{entry.title, entry.level, index})
+        }
+
         .outline.publish(headings.toSlice())
         .setNavigationMode(.bookmarks.isEmpty())
     }
@@ -581,20 +687,30 @@ private impl Panel
     // so one the reader chose there stays marked.
     internal mtd followReading()
     {
-        if not .outline do
+        if not .outline
+        {
             return
+        }
+
         let place = .pdfView.readingPosition()
-        if not place.isValid() do
+        if not place.isValid()
+        {
             return
+        }
 
         // A bookmark's point is brought to the top of the view within a rounding of the scroll.
         const Slack = 1.0
         var reading = Swag.U64.Max
         for entry, index in .bookmarks where entry.pageIndex < place.pageIndex or
-                                             (entry.pageIndex == place.pageIndex and entry.position.y <= place.point.y + Slack) do
+                                             (entry.pageIndex == place.pageIndex and entry.position.y <= place.point.y + Slack)
+        {
             reading = index
-        if reading == Swag.U64.Max do
+        }
+
+        if reading == Swag.U64.Max
+        {
             return
+        }
 
         .outline.markReading(reading, atEnd: .pdfView.readingProgress() >= 1)
     }
@@ -603,11 +719,17 @@ private impl Panel
     // only groups others, or whose destination the document does not resolve, moves nothing.
     internal mtd showBookmark(index: u64)
     {
-        if index >= .bookmarks.count do
+        if index >= .bookmarks.count
+        {
             return
+        }
+
         let entry = &.bookmarks[index]
-        if entry.pageIndex >= .pdfView.pageCount() do
+        if entry.pageIndex >= .pdfView.pageCount()
+        {
             return
+        }
+
         .history.visit(.pdfView.readingPosition())
         .pdfView.showPosition(entry.pageIndex, entry.position)
     }
@@ -615,24 +737,33 @@ private impl Panel
     // Returns to the place the last jump left, at the zoom it was read at.
     internal mtd goBack()
     {
-        if .history.canGoBack() do
+        if .history.canGoBack()
+        {
             discard .pdfView.restoreReadingPosition(.history.back(.pdfView.readingPosition()))
+        }
     }
 
     // Undoes the last return.
     internal mtd goForward()
     {
-        if .history.canGoForward() do
+        if .history.canGoForward()
+        {
             discard .pdfView.restoreReadingPosition(.history.forward(.pdfView.readingPosition()))
+        }
     }
 
     mtd handleHistoryKey(evt: const *KeyEvent)->bool
     {
         let direction = Viewer.historyKeyDirection(evt)
-        if direction < 0 do
+        if direction < 0
+        {
             .goBack()
-        elif direction > 0 do
+        }
+        else if direction > 0
+        {
             .goForward()
+        }
+
         return direction != 0
     }
 
@@ -643,8 +774,11 @@ private impl Panel
         if entries.results.prefix == .Line
         {
             let index = .typedPageIndex(entries.query.toString())
-            if index == Swag.U64.Max do
+            if index == Swag.U64.Max
+            {
                 return
+            }
+
             let label = .pageLabelOf(index)
             let named = label.count ? Format.toString("% (%)", label, index + 1) : Format.toString("%", index + 1)
             let entry = entries.add(Format.toString(appStrings().lens_GoToPage, named), .GoTo, func|view = me, index|()
@@ -655,8 +789,11 @@ private impl Panel
 
             // The row leads with the page's position, as the other numbered jump rows do: a label
             // with its position would not fit the narrow column before the title.
-            if entry do
+            if entry
+            {
                 entry.lead = Format.toString("%", index + 1)
+            }
+
             return
         }
 
@@ -690,13 +827,18 @@ private impl Panel
     mtd promptExportPage()
     {
         let surface = .surface
-        if not surface or not .pdfView.pageCount() or .pageExporting do
+        if not surface or not .pdfView.pageCount() or .pageExporting
+        {
             return
+        }
 
         let pageIndex = .pdfView.pageIndex
         let dpi       = .chooseExportDpi()
-        if not dpi do
+        if not dpi
+        {
             return
+        }
+
         let stem = Path.fileNameWithoutExtension(.fileName) orelse .fileName.toString()
         let suggestedName = Format.toString("%-page-%-%.png", stem, pageIndex + 1, dpi)
         var options: FileDlgOptions
@@ -716,16 +858,22 @@ private impl Panel
     mtd promptExportRange()
     {
         let surface = .surface
-        if not surface or not .pdfView.pageCount() or .pageExporting do
+        if not surface or not .pdfView.pageCount() or .pageExporting
+        {
             return
+        }
+
         let defaultRange = Format.toString("1-%", .pdfView.pageCount())
         var options: EditDlgOptions
         options.title   = texts().ui_ExportRangeTitle
         options.message = texts().ui_ExportRangePrompt
         options.text    = defaultRange.toString()
         let dialog = EditDlg.createSingleLine(surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
+
         var range: PageRange
         if not parsePageRange(dialog.text(), .pdfView.pageCount(), &range)
         {
@@ -734,15 +882,21 @@ private impl Panel
         }
 
         let dpi = .chooseExportDpi()
-        if not dpi do
+        if not dpi
+        {
             return
+        }
+
         var folderOptions: FileDlgOptions
         folderOptions.mode          = .SelectFolder
         folderOptions.title         = texts().ui_SelectExportFolder
         folderOptions.initialFolder = Path.directoryName(.fileName) orelse ""
         let folderDialog = FileDlg.create(surface, folderOptions)
-        if folderDialog.doModal() != Dialog.BtnOk do
+        if folderDialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
+
         let folder = String.from(folderDialog.selectedPath())
         let stem   = Path.fileNameWithoutExtension(.fileName) orelse .fileName.toString()
         .startPageRangeExport(range, folder.toString(), stem, dpi)
@@ -766,8 +920,11 @@ private impl Panel
 
     mtd showExportMenu()
     {
-        if .pageExporting do
+        if .pageExporting
+        {
             return
+        }
+
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem(texts().ui_ExportPage, "scope.pdf.exportCurrent", .theme().icon(.SaveAs, themeRowIconSize(.themeMetrics())))
         menu.addItem(texts().ui_ExportRange, "scope.pdf.exportRange", .theme().icon(.Export, themeRowIconSize(.themeMetrics())))
@@ -780,15 +937,21 @@ private impl Panel
 
     mtd showExportNotice(message: string, tone: ToastTone)
     {
-        if not .pageExportToast do
+        if not .pageExportToast
+        {
             .pageExportToast = Toast.create(me)
+        }
+
         .pageExportToast.show(message, "", tone)
     }
 
     internal mtd startPageExport(index: u64, target: string, dpi: u32 = PageExportDpi)
     {
-        if .pageExporting or index >= .pdfView.pageCount() do
+        if .pageExporting or index >= .pdfView.pageCount()
+        {
             return
+        }
+
         .pageExporting   = true
         .pageExportRange = false
         .pageExportPath  = String.from(target)
@@ -802,8 +965,11 @@ private impl Panel
         if .pageExporting or
            range.first > range.last or
            range.last >= .pdfView.pageCount() or
-           range.last - range.first + 1 > MaxExportPages do
+           range.last - range.first + 1 > MaxExportPages
+        {
             return
+        }
+
         .pageExporting    = true
         .pageExportRange  = true
         .pageExportFolder = String.from(folder)
@@ -817,8 +983,11 @@ private impl Panel
 
     internal mtd finishPageExport()
     {
-        if not .pageExporting or not .pageExportTask.isDone() do
+        if not .pageExporting or not .pageExportTask.isDone()
+        {
             return
+        }
+
         .pageExporting = false
         var saved:       String
         var exportError: Swag.Error
@@ -828,19 +997,29 @@ private impl Panel
         {
             if not Swag.isCancelled()
             {
-                if not .pageExportToast do
+                if not .pageExportToast
+                {
                     .pageExportToast = Toast.create(me)
+                }
+
                 .pageExportToast.show(texts().ui_ExportPageFailed, Viewer.failureText(failure), .Failure)
             }
         }
         else
         {
-            if not .pageExportToast do
+            if not .pageExportToast
+            {
                 .pageExportToast = Toast.create(me)
-            if .pageExportRange do
+            }
+
+            if .pageExportRange
+            {
                 .pageExportToast.show(texts().ui_ExportRangeSaved, saved, .Done)
-            else do
+            }
+            else
+            {
                 .pageExportToast.show(texts().ui_ExportPageSaved, Path.fileName(saved) orelse saved.toString(), .Done)
+            }
         }
 
         .pageExportRange = false
@@ -891,7 +1070,7 @@ private impl Panel
     // opening the document in the background.
     func create(contentParent, info, commands: *Wnd, fileName: string, services: Viewer.HostServices = {})->*Panel
     {
-        with let result = Wnd.create'Panel(contentParent, "scope.pdf")
+        with let result = Wnd.create!{Panel}(contentParent, "scope.pdf")
         {
             .backgroundStyle = .View
             .services        = services
@@ -907,13 +1086,21 @@ private impl Panel
         {
             if evt is KeyEvent as key
             {
-                if view.handleHistoryKey(key) do
+                if view.handleHistoryKey(key)
+                {
                     return true
+                }
+
                 let direction = Viewer.pageKeyDirection(key)
-                if direction < 0 do
+                if direction < 0
+                {
                     view.pdfView.previousPage()
-                elif direction > 0 do
+                }
+                else if direction > 0
+                {
                     view.pdfView.nextPage()
+                }
+
                 return direction != 0
             }
 
@@ -931,11 +1118,16 @@ private impl Panel
     {
         let turn = func|view = me|(dir: s32)
         {
-            if dir < 0 do
+            if dir < 0
+            {
                 view.pdfView.previousPage()
-            else do
+            }
+            else
+            {
                 view.pdfView.nextPage()
+            }
         }
+
         .pageLabel = .steps.create(.commands, "scope.pdf.page", .Page, turn, func|view = me|(index)
         {
             view.history.visit(view.pdfView.readingPosition())
@@ -948,8 +1140,11 @@ private impl Panel
 
         .steps.resolveLabel = func|view = me|(typed)->u64
         {
-            for label, index in view.pageLabels where not label.isEmpty() and Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0 do
+            for label, index in view.pageLabels where not label.isEmpty() and Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0
+            {
                 return index
+            }
+
             return Swag.U64.Max
         }
 
@@ -1017,27 +1212,44 @@ impl Panel
     // author and bookmarks when it records them.
     mtd describeInformation(sheet: *InfoSheet)
     {
-        if not .facts.pageCount do
+        if not .facts.pageCount
+        {
             return
+        }
+
         var data: MediaInfoData
         let pages = .facts.pageCount == 1 ? String.from(texts().ui_OnePage) : Format.toString(texts().ui_Pages, .facts.pageCount)
         data.addFigure(.Pages, pages)
-        if .facts.pageSize.x > 0 and .facts.pageSize.y > 0 do
+        if .facts.pageSize.x > 0 and .facts.pageSize.y > 0
+        {
             data.addFigure(.Dimensions, paperText(.facts.pageSize))
+        }
+
         data.add(.Document, group: true)
-        if not .facts.title.isEmpty() do
+        if not .facts.title.isEmpty()
+        {
             data.add(.Title, .facts.title)
-        if not .facts.author.isEmpty() do
+        }
+
+        if not .facts.author.isEmpty()
+        {
             data.add(.Author, .facts.author)
-        if .bookmarks.count do
+        }
+
+        if .bookmarks.count
+        {
             data.add(.Bookmarks, Format.toString("%", .bookmarks.count))
+        }
 
         // Whether the pages carry text is known once the text the search reads has been
         // extracted, which the sheet starts and then waits for.
         .pdfView.extractText()
         let coverage = .pdfView.textCoverage()
-        if coverage.complete do
+        if coverage.complete
+        {
             data.add(.TextLayer, .textLayerText(coverage.pictures, coverage.unreadable))
+        }
+
         data.describe(sheet)
     }
 }
@@ -1050,7 +1262,7 @@ func createViewer(host: Viewer.Host)
     let commands = host.createCommandGroup(Viewer.pageControlWidth(metrics))
     let view     = Panel.create(host.contentParent(), info, commands, host.fileName(), services)
     host.attachView(view)
-    view.outline             = DocumentOutline.create(host)
+    view.outline = DocumentOutline.create(host)
     view.createPdfNavigation()
     view.outline.sigSelected += func|view|(_, index) { view.showBookmark(index) }
     view.outline.follow      = func|view|() { view.followReading() }

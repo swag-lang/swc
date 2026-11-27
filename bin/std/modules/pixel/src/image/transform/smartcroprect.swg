@@ -21,13 +21,17 @@ public impl Image
         Swag.assert(.isValid() and Math.isFinite(aspect) and aspect > 0)
         let width  = cast(f32, .width)
         let height = cast(f32, .height)
-        if mode == .None do
+        if mode == .None
+        {
             return {0, 0, width, height}
+        }
 
         let cropWidth  = Math.min(width, height * aspect)
         let cropHeight = Math.min(height, width / aspect)
-        if cropWidth == width and cropHeight == height do
+        if cropWidth == width and cropHeight == height
+        {
             return {0, 0, width, height}
+        }
 
         var center = Math.Point{width * 0.5, height * 0.5}
         switch #complete mode
@@ -84,8 +88,10 @@ private impl Image
         let sigma  = Math.sqrt(widthFraction * widthFraction + heightFraction * heightFraction) * AttentionSide / 10
         let radius = cast(s32, Math.ceil(3 * sigma))
         var kernel: [AttentionSide] f32
-        for offset in 0 to radius do
+        for offset in 0 to radius
+        {
             kernel[offset] = Math.exp(-cast(f32, offset * offset) / (2 * sigma * sigma))
+        }
 
         var horizontal: [AttentionSide, AttentionSide] f32
 
@@ -95,8 +101,11 @@ private impl Image
             for x in AttentionSide
             {
                 var value: f32
-                for offset in Math.max(-radius, -x) to Math.min(radius, AttentionSide - 1 - x) do
+                for offset in Math.max(-radius, -x) to Math.min(radius, AttentionSide - 1 - x)
+                {
                     value += energy[y, x + offset] * kernel[Math.abs(offset)]
+                }
+
                 horizontal[y, x] = value
             }
         }
@@ -110,8 +119,11 @@ private impl Image
             for x in AttentionSide
             {
                 var value: f32
-                for offset in Math.max(-radius, -y) to Math.min(radius, AttentionSide - 1 - y) do
+                for offset in Math.max(-radius, -y) to Math.min(radius, AttentionSide - 1 - y)
+                {
                     value += horizontal[y + offset, x] * kernel[Math.abs(offset)]
+                }
+
                 let dx       = x - middle
                 let dy       = y - middle
                 let distance = dx * dx + dy * dy
@@ -125,8 +137,11 @@ private impl Image
             }
         }
 
-        if score <= Math.ConstF32.Epsilon do
+        if score <= Math.ConstF32.Epsilon
+        {
             best = {x: middle, y: middle}
+        }
+
         return {(best.x + 0.5) * .width / AttentionSide, (best.y + 0.5) * .height / AttentionSide}
     }
 
@@ -142,7 +157,7 @@ private impl Image
                 for at in breadth
                 {
                     let color = across ? sample.pixelColor(line, at) : sample.pixelColor(at, line)
-                    let luma  = (77'u32 * color.r + 150'u32 * color.g + 29'u32 * color.b) / 256
+                    let luma  = (77_u32 * color.r + 150_u32 * color.g + 29_u32 * color.b) / 256
                     let bin   = luma * color.a / 255
                     histogram[bin] += 1
                 }
@@ -160,7 +175,7 @@ private impl Image
         }
 
         const MaxSide = 160
-        let scale  = Math.min(1.0'f32, cast(f32, MaxSide) / Math.max(.width, .height))
+        let scale  = Math.min(1.0_f32, cast(f32, MaxSide) / Math.max(.width, .height))
         let sample = .resized(Math.max(1, Math.roundS32(.width * scale)),
                               Math.max(1, Math.roundS32(.height * scale)),
                               .Bilinear)
@@ -175,10 +190,14 @@ private impl Image
             let strip = Math.min(step, end - start - keep)
             let first = stripEntropy(&sample, start, strip, across)
             let last  = stripEntropy(&sample, end - strip, strip, across)
-            if first < last or (first == last and start < length - end) do
+            if first < last or (first == last and start < length - end)
+            {
                 start += strip
-            else do
+            }
+            else
+            {
                 end -= strip
+            }
         }
 
         let position = cast(f32, start + end) * 0.5 / length

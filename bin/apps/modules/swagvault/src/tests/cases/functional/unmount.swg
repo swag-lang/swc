@@ -6,7 +6,7 @@ using Core, Gui
 func releaseAfterNativeClose(thread: const *Threading.Thread)
 {
     let activity = cast(*MountActivity, unwrap thread.userParam)
-    Threading.Thread.sleep(1'ms)
+    Threading.Thread.sleep(1_ms)
     activity.release()
 }
 
@@ -46,13 +46,13 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
 {
     func addUnmountFixture(window: *MainWindow, path: string, busy: bool)->*WinFsp.MountedVolume
     {
-        let native = Memory.new'WinFsp.MountedVolume()
+        let native = Memory.new!{WinFsp.MountedVolume}()
         native.volume               = expect Volume.create(path, "", MinimumSize)
         native.volumeOpen           = true
-        native.mount.context        = Memory.new'WinFsp.NativeMountContext()
+        native.mount.context        = Memory.new!{WinFsp.NativeMountContext}()
         native.mount.context.volume = &native.volume
         native.mount.context.activity.handles = busy ? 1 : 0
-        let mount = Memory.new'MountedVault()
+        let mount = Memory.new!{MountedVault}()
         mount.handle = native
         var entry: MountedDrive
         entry.volume        = mount
@@ -71,7 +71,7 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
         var mounted: WinFsp.MountedVolume
         mounted.volume               = expect Volume.create(path, "", MinimumSize)
         mounted.volumeOpen           = true
-        mounted.mount.context        = Memory.new'WinFsp.NativeMountContext()
+        mounted.mount.context        = Memory.new!{WinFsp.NativeMountContext}()
         mounted.mount.context.volume = &mounted.volume
         var fileSystem: WinFsp.FspFileSystem
         fileSystem.userContext = mounted.mount.context
@@ -98,7 +98,7 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
         var mounted: WinFsp.MountedVolume
         mounted.volume               = expect Volume.create(path, "", MinimumSize)
         mounted.volumeOpen           = true
-        mounted.mount.context        = Memory.new'WinFsp.NativeMountContext()
+        mounted.mount.context        = Memory.new!{WinFsp.NativeMountContext}()
         mounted.mount.context.volume = &mounted.volume
         var fileSystem: WinFsp.FspFileSystem
         fileSystem.userContext = mounted.mount.context
@@ -125,7 +125,7 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
         var mounted: WinFsp.MountedVolume
         mounted.volume               = expect Volume.create(path, "", MinimumSize)
         mounted.volumeOpen           = true
-        mounted.mount.context        = Memory.new'WinFsp.NativeMountContext()
+        mounted.mount.context        = Memory.new!{WinFsp.NativeMountContext}()
         mounted.mount.context.volume = &mounted.volume
         var fileSystem: WinFsp.FspFileSystem
         fileSystem.userContext = mounted.mount.context
@@ -151,13 +151,13 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
         let window = testSetupMainWindow(&host)
         let path   = Testing.tempFilePath("vault-resident-busy-", ".bin")
         defer discard catch File.delete(path)
-        let native = Memory.new'WinFsp.MountedVolume()
+        let native = Memory.new!{WinFsp.MountedVolume}()
         native.volume               = expect Volume.create(path, "", MinimumSize)
         native.volumeOpen           = true
-        native.mount.context        = Memory.new'WinFsp.NativeMountContext()
+        native.mount.context        = Memory.new!{WinFsp.NativeMountContext}()
         native.mount.context.volume = &native.volume
         native.mount.context.activity.handles = 1
-        let mount = Memory.new'MountedVault()
+        let mount = Memory.new!{MountedVault}()
         mount.handle = native
         var entry: MountedDrive
         entry.volume        = mount

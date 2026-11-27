@@ -42,8 +42,8 @@ func runAggregateLambda()->bool
             }
     }
 
-    let res0 = invokeAggregate(cb, {base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
-    let res1 = invokeAggregate(cb, {base: 1, step: 2, marks: [8'u16, 9'u16, 10'u16]}, [5, 6, 7, 8], 4)
+    let res0 = invokeAggregate(cb, {base: 7, step: 9, marks: [3_u16, 4_u16, 5_u16]}, [10, 20, 30, 40], 6)
+    let res1 = invokeAggregate(cb, {base: 1, step: 2, marks: [8_u16, 9_u16, 10_u16]}, [5, 6, 7, 8], 4)
 
     return res0.total == 63 and
            res0.mirrored[0] == 40 and

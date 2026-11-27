@@ -8,8 +8,10 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     for it in prop.items
     {
         let item = unwrap it
-        if item.typeValue.name == name do
+        if item.typeValue.name == name
+        {
             return item
+        }
     }
 
     return null
@@ -93,15 +95,18 @@ struct PropCondensedEditorData
     tint:   Pixel.Color      = 0xFF38BDF8
     offset: Math.Point       = {12, 8}
     guides: PropGoldenGuides = .Centers
-    values: Array's32
+    values: Array!{s32}
 }
 
 impl Gui.IPropertyNotify for PropGoldenData
 {
     mtd impl validateItem(_: *Gui.Properties, item: *Gui.PropertiesItem)->Gui.PropValidationResult
     {
-        if item.typeValue.crc == Reflection.fieldCrc(PropGoldenData, #nameof(PropGoldenData.caption)) and .caption.length > 40 do
+        if item.typeValue.crc == Reflection.fieldCrc(PropGoldenData, #nameof(PropGoldenData.caption)) and .caption.length > 40
+        {
             return {.Warning, "Over 40 characters: the caption will be cut."}
+        }
+
         return {}
     }
 }

@@ -23,12 +23,18 @@ using Core, Pixel
 #test
 {
     var source: String = "# Repeated\n\n"
-    for 1200 do
+    for 1200
+    {
         source += "A paragraph before the destination, with enough text to fill the reading column.\n\n"
+    }
+
     let offset = source.length
     source += "## Repeated\n\n"
-    for 20 do
+    for 20
+    {
         source += "A paragraph after the destination.\n\n"
+    }
+
     let fileName = Testing.tempFilePath("outline-markdown-", ".md")
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     defer discard catch File.delete(fileName)
@@ -56,16 +62,22 @@ using Core, Pixel
     Swag.require(found, "the requested heading must remain in the resident window")
     Swag.require(view.readingOffset() == offset)
     let position = view.scroll.scrollPosition()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     Swag.require(view.scroll.scrollPosition() == position)
     var style = view.documentStyle
     style.bodyFontSize = 24
     view.setDocumentStyle(style)
     let first = view.revealHeading(0)
     Swag.require(first)
-    for 256 where view.isLoading() do
+    for 256 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     Swag.require(view.scroll.scrollPosition().y < 2)
 }
 
@@ -133,8 +145,10 @@ using Core, Pixel
     for section in 6
     {
         source += Format.toString("<h2>Section %</h2>", section)
-        for 12 do
+        for 12
+        {
             source += "<p>A paragraph that gives the section some height on the page.</p>"
+        }
     }
 
     source += "</body></html>"

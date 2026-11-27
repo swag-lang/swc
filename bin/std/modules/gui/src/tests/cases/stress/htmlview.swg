@@ -18,12 +18,18 @@ using Core, Pixel
     Swag.require(fixtureOffset != Swag.U64.Max)
 
     var source: String = "<html><body>"
-    for 24_000 do
+    for 24_000
+    {
         source += "<h2>Streamed section</h2><p>A paragraph stays outside the resident window.</p>"
+    }
+
     let offset = source.length + fixtureOffset
     source += fixture
-    for 5_000 do
+    for 5_000
+    {
         source += "<p>A trailing paragraph keeps the document large.</p>"
+    }
+
     source += "</body></html>"
     Swag.require(source.length >= 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
@@ -37,7 +43,7 @@ using Core, Pixel
     let revealed = view.revealFileOffset(offset, query)
     Swag.require(revealed)
 
-    var steps = 0'u32
+    var steps = 0_u32
     while view.isLoading() and steps < 4_000
     {
         view.streamStep()
@@ -68,8 +74,11 @@ using Core, Pixel
     defer discard catch File.delete(fileName)
 
     var source: String = "<style>pre { color: #102030 }</style><pre>"
-    for 2_400 do
+    for 2_400
+    {
         source += "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ repeated source line\n"
+    }
+
     source += "</pre>"
     Swag.require(source.length > 192 * 1024)
     discard expect File.writeAllText(fileName, source)
@@ -82,8 +91,10 @@ using Core, Pixel
     view.applyLayout()
     let firstParseCount = view.sheet.parseCount
     Swag.require(firstParseCount == 1)
-    while view.bytesRead < 192 * 1024 do
+    while view.bytesRead < 192 * 1024
+    {
         view.streamStep()
+    }
 
     Swag.require(view.nextRefresh == view.bytesRead * 4)
     Swag.require(view.sheet.parseCount == firstParseCount)
@@ -157,14 +168,22 @@ func writeHtmlAtDecodedSize(fileName: string, decodedSize: u64) fail
     // Windows-1252 byte 0x80 decodes to a three-byte UTF-8 euro sign. Closed comments keep
     // that expanded source out of the document tree while still exercising the real decoder,
     // stream chunking, parser and decoded-byte limit. Write bounded blocks, not a huge string.
-    const EuroBytes = 16 * 1024'u64
-    var comment: Array'u8
-    for character in "<!--" do
+    const EuroBytes = 16 * 1024_u64
+    var comment: Array!{u8}
+    for character in "<!--"
+    {
         comment.add(character)
-    for EuroBytes do
+    }
+
+    for EuroBytes
+    {
         comment.add(0x80)
-    for character in "-->" do
+    }
+
+    for character in "-->"
+    {
         comment.add(character)
+    }
 
     let blockDecodedSize = 7 + EuroBytes * 3
     let prefixSize       = cast(const [..] u8, prefix).count
@@ -178,22 +197,36 @@ func writeHtmlAtDecodedSize(fileName: string, decodedSize: u64) fail
         tailSize   += blockDecodedSize
     }
 
-    for fullBlocks do
+    for fullBlocks
+    {
         try stream.writeAll(comment.toSlice())
+    }
 
     comment.clear()
-    for character in "<!--" do
+    for character in "<!--"
+    {
         comment.add(character)
+    }
+
     let tailEuroCount = (tailSize - 7) / 3
-    for tailEuroCount do
+    for tailEuroCount
+    {
         comment.add(0x80)
-    for character in "-->" do
+    }
+
+    for character in "-->"
+    {
         comment.add(character)
+    }
+
     try stream.writeAll(comment.toSlice())
 
     let trailingSpaces = (tailSize - 7) % 3
-    for trailingSpaces do
+    for trailingSpaces
+    {
         try stream.writeAll(cast(const [..] u8, " "))
+    }
+
     try stream.writeAll(cast(const [..] u8, suffix))
     stream.close()
 }
@@ -201,7 +234,7 @@ func writeHtmlAtDecodedSize(fileName: string, decodedSize: u64) fail
 #[Swag.TestTag("stress")]
 #test
 {
-    const DocumentLimit = 48 * 1024 * 1024'u64
+    const DocumentLimit = 48 * 1024 * 1024_u64
 
     for decodedSize in [DocumentLimit, DocumentLimit + 3]
     {
@@ -220,7 +253,7 @@ func writeHtmlAtDecodedSize(fileName: string, decodedSize: u64) fail
         view.applyLayout()
         Swag.require(view.encoding == Text.Encoding.Windows1252 and not view.virtualSource)
 
-        var steps = 0'u32
+        var steps = 0_u32
         while view.isLoading() and steps < 3_000
         {
             view.streamStep()
@@ -246,8 +279,11 @@ func writeHtmlAtDecodedSize(fileName: string, decodedSize: u64) fail
     defer discard catch File.delete(fileName)
 
     var source: String = "<html><head><style>p { margin: 4px }</style></head><body>"
-    for index in 28_000 do
+    for index in 28_000
+    {
         source += Format.toString("<p id='row-%'>Paragraph % carries enough ordinary HTML to exercise a generic resident window.</p>\n", index, index)
+    }
+
     source += "</body></html>"
     Swag.require(source.length > 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
@@ -285,8 +321,11 @@ func writeHtmlAtDecodedSize(fileName: string, decodedSize: u64) fail
     defer discard catch File.delete(fileName)
 
     var source: String = "<html><body><style>p { margin: 4px } h2 { color: #2255aa }</style>"
-    for index in 32_000 do
+    for index in 32_000
+    {
         source += Format.toString("<h2>Scrub section %</h2><p>Unique paragraph % keeps a virtual seek visible and deterministic.</p>\n", index, index)
+    }
+
     source += "</body></html>"
     Swag.require(source.length > 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
@@ -314,7 +353,7 @@ func writeHtmlAtDecodedSize(fileName: string, decodedSize: u64) fail
     Swag.require(view.virtualWindowStart <= lowOffset and view.virtualWindowEnd >= lowOffset)
     Swag.require(not view.virtualPendingSeek)
 
-    let ratios = [0.15'f32, 0.75'f32, 0.35'f32, 0.9'f32]
+    let ratios = [0.15_f32, 0.75_f32, 0.35_f32, 0.9_f32]
     var firstPass: [4] u32
     for ratio, index in ratios
     {
@@ -341,17 +380,20 @@ func writeHtmlAtDecodedSize(fileName: string, decodedSize: u64) fail
 #test
 {
     var source: String
-    for 4000 do
+    for 4000
+    {
         source += "<div>"
+    }
+
     source += "deep text"
 
     let document = parseDocument(source.toString())
     Swag.require(Utf8.contains(document.textContent(0).toString(), "deep text"))
 
-    var deepest = 0'u64
+    var deepest = 0_u64
     for index in document.nodes.count
     {
-        var depth = 0'u64
+        var depth = 0_u64
         var walk  = document.constNode(cast(u32, index)).parent
         while walk != HtmlNoNode
         {

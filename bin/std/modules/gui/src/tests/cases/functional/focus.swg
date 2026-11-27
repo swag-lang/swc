@@ -23,13 +23,13 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var result: #returntype
 
-    result.panel = Wnd.create'Wnd(parent, rect)
+    result.panel = Wnd.create!{Wnd}(parent, rect)
 
     result.actions = StackLayoutCtrl.create(result.panel, .Right, {0, 0, 0, 30})
     result.actions.dockStyle = .Bottom
     result.submit  = PushButton.create(result.actions, "Go")
 
-    result.body           = Wnd.create'Wnd(result.panel)
+    result.body           = Wnd.create!{Wnd}(result.panel)
     result.body.dockStyle = .Center
     result.field          = EditBox.create(result.body, "", {0, 0, 100, 24})
     result.browse         = PushButton.create(result.body, "...", {110, 0, 40, 24})
@@ -143,7 +143,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.setup(320, 160)
 
     let field = EditBox.create(&host.root, "", {10, 10, 100, 24})
-    let panel = Wnd.create'Wnd(&host.root, {10, 50, 150, 50})
+    let panel = Wnd.create!{Wnd}(&host.root, {10, 50, 150, 50})
     let next  = PushButton.create(panel, "Next", {0, 0, 80, 24})
     field.setFocus()
 
@@ -164,7 +164,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var host: Testing.HeadlessHost
     host.setup(320, 160)
 
-    let panel = Wnd.create'Wnd(&host.root, {10, 10, 140, 24})
+    let panel = Wnd.create!{Wnd}(&host.root, {10, 10, 140, 24})
     let field = EditBox.create(panel, "", {0, 0, 100, 24})
     let next  = PushButton.create(&host.root, "Next", {10, 50, 80, 24})
     host.clickWnd(field)
@@ -185,14 +185,17 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var host: Testing.HeadlessHost
     host.setup(320, 160)
 
-    let panel = Wnd.create'Wnd(&host.root, {10, 10, 140, 24})
+    let panel = Wnd.create!{Wnd}(&host.root, {10, 10, 140, 24})
     let field = EditBox.create(panel, "", {0, 0, 100, 24})
     let veto  = PushButton.create(&host.root, "Veto", {10, 50, 80, 24})
     let next  = PushButton.create(&host.root, "Next", {10, 90, 80, 24})
     veto.hookOnEvent = func(_, evt)
     {
-        if evt is FocusEvent as focus where focus.kind == .CanGain do
+        if evt is FocusEvent as focus where focus.kind == .CanGain
+        {
             focus.canChangeFocus = false
+        }
+
         return false
     }
 
@@ -218,8 +221,11 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let next  = PushButton.create(&host.root, "Next", {10, 50, 80, 24})
     next.hookOnEvent = func|next|(_, evt)
     {
-        if evt is FocusEvent as focus where focus.kind == .CanGain do
+        if evt is FocusEvent as focus where focus.kind == .CanGain
+        {
             next.hide()
+        }
+
         return false
     }
 
@@ -240,8 +246,11 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let final = EditBox.create(&host.root, "", {10, 90, 100, 24})
     next.hookOnEvent = func|final|(_, evt)
     {
-        if evt is FocusEvent as focus where focus.kind == .CanGain do
+        if evt is FocusEvent as focus where focus.kind == .CanGain
+        {
             final.setFocus()
+        }
+
         return false
     }
 
@@ -416,7 +425,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var host: Testing.HeadlessHost
     host.setup(400, 200)
 
-    let panel = Wnd.create'Wnd(&host.root, {10, 10, 180, 60})
+    let panel = Wnd.create!{Wnd}(&host.root, {10, 10, 180, 60})
     let first = EditBox.create(panel, "", {0, 0, 160, 24})
     let next  = EditBox.create(&host.root, "", {220, 10, 160, 24})
 
@@ -607,7 +616,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.setup(400, 200)
 
     let field = EditBox.create(&host.root, "", {10, 10, 200, 24})
-    let bar   = Wnd.create'Wnd(&host.root, {10, 60, 300, 40})
+    let bar   = Wnd.create!{Wnd}(&host.root, {10, 60, 300, 40})
     bar.arrowNavigation = true
     let yes  = PushButton.create(bar, "Yes", {0, 0, 80, 24})
     let no   = PushButton.create(bar, "No", {90, 0, 80, 24})
@@ -683,7 +692,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.setup(320, 240)
 
     let field = EditBox.create(&host.root, "", {10, 10, 200, 24})
-    let bar   = Wnd.create'Wnd(&host.root, {10, 60, 300, 40})
+    let bar   = Wnd.create!{Wnd}(&host.root, {10, 60, 300, 40})
     bar.arrowNavigation = true
     let ok     = PushButton.create(bar, "Ok", {0, 0, 80, 24}, form: .Default)
     let cancel = PushButton.create(bar, "Cancel", {90, 0, 80, 24})
@@ -756,7 +765,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.setup(400, 200)
 
     let alone = PushButton.create(&host.root, "A", {10, 10, 80, 24})
-    let box   = Wnd.create'Wnd(&host.root, {10, 60, 200, 40})
+    let box   = Wnd.create!{Wnd}(&host.root, {10, 60, 200, 40})
     box.arrowNavigation = true
     let inner = PushButton.create(box, "B", {0, 0, 80, 24})
 
@@ -784,8 +793,11 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var checked: bool
     host.app.sigFrame += func|host = &host, yes, no, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         checked[] = true
 
         // Reading order would have opened on `Yes`, and a focused button answers Enter itself:
@@ -818,8 +830,11 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var checked: bool
     host.app.sigFrame += func|host = &host, caller, cancel, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         checked[] = true
 
         Swag.require(host.surface.isDisabled and cancel.hasFocus())
@@ -851,8 +866,11 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var checked: bool
     host.app.sigFrame += func|host = &host, field, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         checked[] = true
 
         Swag.require(field.hasFocus())
@@ -891,8 +909,11 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var checked: bool
     host.app.sigFrame += func|host = &host, again, toggle, no, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         checked[] = true
 
         Swag.require(no.hasFocus())

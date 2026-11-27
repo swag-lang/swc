@@ -29,8 +29,10 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 {
     let book  = try Book.loadPages(fileName)
     let entry = &book.archive.entries[book.pages[0]]
-    if entry.uncompressedSize > 32 * 1024 * 1024'u64 do
+    if entry.uncompressedSize > 32 * 1024 * 1024_u64
+    {
         fail Errors.UnsupportedFormatError{"comic page exceeds the thumbnail budget"}
+    }
 
     let bytes = try Archive.Zip.loadEntry(fileName, entry)
     if Path.lowercaseExtension(entry.path) == ".svg"
@@ -79,27 +81,38 @@ impl ComicInfo
         var result: #returntype
         var scanner = Package.Scanner.create(source)
         var token:  Package.Token
-        var depth   = 0'u32
+        var depth   = 0_u32
         var field:  String
         while scanner.next(&token)
         {
             switch token.kind
             {
             case .Start:
-                if token.empty do
+                if token.empty
+                {
                     break
+                }
+
                 depth += 1
-                if depth == 2 do
+                if depth == 2
+                {
                     field = #move token.name
+                }
 
             case .End:
-                if depth do
+                if depth
+                {
                     depth -= 1
+                }
+
                 field.clear()
 
             case .Text:
-                if depth != 2 or field.isEmpty() do
+                if depth != 2 or field.isEmpty()
+                {
                     break
+                }
+
                 let text = Latin1.trim(token.text.toString())
                 switch field.toString()
                 {
@@ -122,36 +135,53 @@ impl ComicInfo
     // Reports whether the book says nothing the sheet writes.
     mtd const isEmpty()->bool
     {
-        for value in [.title.toString(), .series.toString(), .number.toString(), .volume.toString(), .writer.toString(), .penciller.toString(), .publisher.toString(), .year.toString()] where value.count do
+        for value in [.title.toString(), .series.toString(), .number.toString(), .volume.toString(), .writer.toString(), .penciller.toString(), .publisher.toString(), .year.toString()] where value.count
+        {
             return false
+        }
+
         return true
     }
 
     // Appends what the book says of itself to the information sheet, under its own names.
     mtd const describe(data: *MediaInfoData)
     {
-        if not .title.isEmpty() do
+        if not .title.isEmpty()
+        {
             data.add(.Title, .title)
-        if not .writer.isEmpty() do
+        }
+
+        if not .writer.isEmpty()
+        {
             data.add(.Author, .writer)
+        }
+
         for row in [{name: "Series", value: .series.toString()}, {name: "Number", value: .number.toString()}, {name: "Volume", value: .volume.toString()},
-                    {name: "Penciller", value: .penciller.toString()}] where row.value.count do
+                    {name: "Penciller", value: .penciller.toString()}] where row.value.count
+        {
             data.addText(row.name, row.value)
-        if not .publisher.isEmpty() do
+        }
+
+        if not .publisher.isEmpty()
+        {
             data.add(.Publisher, .publisher)
-        if not .year.isEmpty() do
+        }
+
+        if not .year.isEmpty()
+        {
             data.add(.Published, .year)
+        }
     }
 }
 
 // The largest `ComicInfo.xml` read; the metadata of a book is a few kilobytes.
-const ComicInfoLimit = 256'u64 * 1024
+const ComicInfoLimit = 256_u64 * 1024
 
 // The archive and its image entries in natural reading order, with what the book says of itself.
 struct Book
 {
     archive: Archive.Zip
-    pages:   Array'u64
+    pages:   Array!{u64}
     info:    ComicInfo
 }
 
@@ -164,10 +194,15 @@ impl Book
         var result: #returntype
         result.archive = try Archive.Zip.load(fileName)
         for &entry, index in result.archive.entries where not entry.isDirectory and
-                                                          (Image.canLoad(entry.path) or Path.lowercaseExtension(entry.path) == ".svg") do
+                                                          (Image.canLoad(entry.path) or Path.lowercaseExtension(entry.path) == ".svg")
+        {
             result.pages.add(index)
-        if result.pages.isEmpty() do
+        }
+
+        if result.pages.isEmpty()
+        {
             fail Errors.InvalidFormatError{texts().err_NoPages}
+        }
 
         let archive = &result.archive
         result.pages.sort(func|archive|(a, b)->s32 => Text.compareNames(archive.entries[a].path, archive.entries[b].path))
@@ -198,7 +233,7 @@ struct Panel
     using wnd: Wnd
 
     book:               Book
-    load:               Viewer.BackgroundLoad'Book
+    load:               Viewer.BackgroundLoad!{Book}
     extract:            Archive.ZipEntryExtract
     late embedded:      Viewer.Embedded
     sourceFile:         String
@@ -215,8 +250,8 @@ struct Panel
 
     late
     {
-        status:         *Label
-        pageLabel:      *IconButton
+        status:    *Label
+        pageLabel: *IconButton
     }
 }
 
@@ -244,8 +279,11 @@ private impl IWnd for Panel
         }
 
         // A manga that says it reads from right to left turns its pages that way from the start.
-        if .book.info.rightToLeft do
+        if .book.info.rightToLeft
+        {
             .rightToLeft = true
+        }
+
         .refreshNavigation()
         .showPage(0)
         .services.loadingChanged(me)
@@ -305,21 +343,33 @@ private impl Panel
     {
         let page    = .pendingPage != Swag.U64.Max ? .pendingPage : .activePage
         let hasPage = page != Swag.U64.Max
-        if .steps.updateSteps(page, .book.pages.count) do
+        if .steps.updateSteps(page, .book.pages.count)
+        {
             .services.chromeChanged(me)
-        if hasPage do
+        }
+
+        if hasPage
+        {
             .services.showDetails(me, texts().ui_Name)
+        }
     }
 
     internal mtd turn(delta: s32)
     {
         let page = .pendingPage != Swag.U64.Max ? .pendingPage : .activePage
-        if page == Swag.U64.Max do
+        if page == Swag.U64.Max
+        {
             return
-        if delta < 0 and page > 0 do
+        }
+
+        if delta < 0 and page > 0
+        {
             .showPage(page - 1)
-        elif delta > 0 and page + 1 < .book.pages.count do
+        }
+        else if delta > 0 and page + 1 < .book.pages.count
+        {
             .showPage(page + 1)
+        }
     }
 
     mtd toggleReadingDirection()
@@ -329,8 +379,11 @@ private impl Panel
 
     mtd showPage(index: u64)
     {
-        if index >= .book.pages.count or index == .pendingPage or index == .activePage do
+        if index >= .book.pages.count or index == .pendingPage or index == .activePage
+        {
             return
+        }
+
         .pendingPage = index
         .status.setText(texts().ui_Preparing)
         .status.show()
@@ -341,8 +394,11 @@ private impl Panel
 
     mtd clearPreviewFile()
     {
-        if .previewFile.isEmpty() do
+        if .previewFile.isEmpty()
+        {
             return
+        }
+
         discard catch File.delete(.previewFile)
         .previewFile.clear()
         .activePage = Swag.U64.Max
@@ -351,13 +407,18 @@ private impl Panel
     // Retires an old embedded page before extracting a new one; task notifications drive each step.
     mtd continuePage()
     {
-        if .retiring do
+        if .retiring
+        {
             return
+        }
 
         if .extract.started
         {
-            if not .extract.isDone() do
+            if not .extract.isDone()
+            {
                 return
+            }
+
             let failure = .extract.finish()
             if not failure.isEmpty()
             {
@@ -382,8 +443,11 @@ private impl Panel
             }
         }
 
-        if .pendingPage == Swag.U64.Max do
+        if .pendingPage == Swag.U64.Max
+        {
             return
+        }
+
         if not .embedded.retire()
         {
             .awaitingRetirement = true
@@ -404,18 +468,26 @@ private impl Panel
 
     mtd retryPreview()
     {
-        if not .awaitingRetirement do
+        if not .awaitingRetirement
+        {
             return
+        }
+
         .awaitingRetirement = false
-        if not .retryTimer do
-            .retryTimer = .addTimer(1'ms)
+        if not .retryTimer
+        {
+            .retryTimer = .addTimer(1_ms)
+        }
     }
 
     mtd retire()->bool
     {
         .retiring = true
-        if not .load.retire() or not .extract.retire() or not .embedded.retire() do
+        if not .load.retire() or not .extract.retire() or not .embedded.retire()
+        {
             return false
+        }
+
         .stopTimer(&.retryTimer)
         .clearPreviewFile()
         return true
@@ -428,13 +500,22 @@ private impl Panel
         {
             let typed = Latin1.trim(entries.query.toString())
             let page  = catch StrConv.toU64(typed) { return; }
-            for c in typed where not Latin1.isDigit(c) do
+            for c in typed where not Latin1.isDigit(c)
+            {
                 return
-            if not page or page > .book.pages.count do
+            }
+
+            if not page or page > .book.pages.count
+            {
                 return
+            }
+
             let entry = entries.add(Format.toString(appStrings().lens_GoToPage, page), .GoTo, func|view = me, page|() { view.showPage(page - 1) })
-            if entry do
+            if entry
+            {
                 entry.lead = Format.toString("%", page)
+            }
+
             return
         }
 
@@ -450,8 +531,11 @@ private impl Panel
     // Describes the book in the information sheet: its pages, then what its `ComicInfo.xml` says.
     internal mtd describeInformation(sheet: *InfoSheet)
     {
-        if not .book.pages.count do
+        if not .book.pages.count
+        {
             return
+        }
+
         var data: MediaInfoData
         data.addFigure(.Pages, .book.pages.count == 1 ? String.from(texts().ui_OnePage) : Format.toString(texts().ui_Pages, .book.pages.count))
         if not .book.info.isEmpty()
@@ -466,7 +550,7 @@ private impl Panel
     func create(host: Viewer.Host)->*Panel
     {
         let services    = host.services()
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.comic")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.comic")
         {
             .backgroundStyle = .View
             .focusPolicy     = .Tab
@@ -475,11 +559,10 @@ private impl Panel
         }
 
         let info = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
-        result.pageLabel = result.steps.create(info, "scope.comic.page", .Page,
-            func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showPage(index) })
+        result.pageLabel = result.steps.create(info, "scope.comic.page", .Page, func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showPage(index) })
 
-        result.embedded = host.createEmbedded(result, host.createInfoGroup(256))
-        result.status = Viewer.createLoadingLabel(result, texts().ui_Preparing)
+        result.embedded        = host.createEmbedded(result, host.createInfoGroup(256))
+        result.status          = Viewer.createLoadingLabel(result, texts().ui_Preparing)
         result.status.wndFlags |= .TopMost
 
         result.hookOnChildEvent = func|result|(_, evt)
@@ -494,8 +577,11 @@ private impl Panel
                 }
             }
 
-            if evt is TaskEvent do
+            if evt is TaskEvent
+            {
                 result.retryPreview()
+            }
+
             return false
         }
 

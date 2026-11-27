@@ -46,8 +46,8 @@ func makeTrianglePath()->LinePath
 // Fractional coordinates retain enough digits to round back to their source f32 values.
 #test
 {
-    let x = 1.2345678'f32
-    let y = 4.567891'f32
+    let x = 1.2345678_f32
+    let y = 4.567891_f32
     var path: LinePath
     path.start(0, 0)
     path.lineTo(x, y)
@@ -68,7 +68,7 @@ func makeTrianglePath()->LinePath
 {
     var doc = Svg.Document.create(10, 10)
     doc.setTitle("Swag & <co>")
-    doc.setBackground(Color.fromArgb(128'u8, 0x0B'u8, 0x0B'u8, 0x0D'u8))
+    doc.setBackground(Color.fromArgb(128_u8, 0x0B_u8, 0x0B_u8, 0x0D_u8))
     doc.addPath(makeTrianglePath(), Color.fromRgb(255, 255, 255))
 
     let text = doc.toString()
@@ -88,7 +88,7 @@ func makeTrianglePath()->LinePath
 #test
 {
     var doc = Svg.Document.create(8, 8)
-    doc.addPath(makeTrianglePath(), Color.fromArgb(128'u8, 10'u8, 20'u8, 30'u8), .EvenOdd)
+    doc.addPath(makeTrianglePath(), Color.fromArgb(128_u8, 10_u8, 20_u8, 30_u8), .EvenOdd)
 
     let text = doc.toString()
     Swag.require(text.contains("fill-rule=\"evenodd\""))

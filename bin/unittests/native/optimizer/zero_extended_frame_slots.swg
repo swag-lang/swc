@@ -1,7 +1,7 @@
 #global private
 using Swag
 
-const M32 = 0xFFFFFFFF'u64
+const M32 = 0xFFFFFFFF_u64
 
 func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
 
@@ -11,11 +11,15 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
 func schedule(seed: u64)->u64
 {
     var head: [3] u64
-    for t in 3 do
+    for t in 3
+    {
         head[t] = seed + t
+    }
     var w: [64] u64
-    for t in 8 do
+    for t in 8
+    {
         w[t] = ((seed & 0xFFFFFF) * (t + 3)) & M32
+    }
     for t in 8 until 64
     {
         let x = w[t - 7]
@@ -24,8 +28,10 @@ func schedule(seed: u64)->u64
     }
 
     var sum = head[0] ^ head[1] ^ head[2]
-    for t in 64 do
+    for t in 64
+    {
         sum = ((sum << 5) | (sum >> 59)) ^ w[t]
+    }
     return sum
 }
 
@@ -33,11 +39,15 @@ func schedule(seed: u64)->u64
 func scheduleReference(seed: u64)->u64
 {
     var head: [3] u64
-    for t in 3 do
+    for t in 3
+    {
         head[t] = seed + t
+    }
     var w: [64] u64
-    for t in 8 do
+    for t in 8
+    {
         w[t] = ((seed & 0xFFFFFF) * (t + 3)) & M32
+    }
     for t in 8 until 64
     {
         let x = w[t - 7]
@@ -46,8 +56,10 @@ func scheduleReference(seed: u64)->u64
     }
 
     var sum = head[0] ^ head[1] ^ head[2]
-    for t in 64 do
+    for t in 64
+    {
         sum = ((sum << 5) | (sum >> 59)) ^ w[t]
+    }
     return sum
 }
 
@@ -57,11 +69,15 @@ func scheduleReference(seed: u64)->u64
 func scheduleUnmasked(seed: u64)->u64
 {
     var head: [3] u64
-    for t in 3 do
+    for t in 3
+    {
         head[t] = seed + t
+    }
     var w: [64] u64
-    for t in 8 do
+    for t in 8
+    {
         w[t] = ((seed & 0xFFFFFF) * (t + 3)) & M32
+    }
     for t in 8 until 64
     {
         let x = w[t - 7]
@@ -70,8 +86,10 @@ func scheduleUnmasked(seed: u64)->u64
     }
 
     var sum = head[0] ^ head[1] ^ head[2]
-    for t in 64 do
+    for t in 64
+    {
         sum = ((sum << 5) | (sum >> 59)) ^ w[t]
+    }
     return sum
 }
 
@@ -79,11 +97,15 @@ func scheduleUnmasked(seed: u64)->u64
 func scheduleUnmaskedReference(seed: u64)->u64
 {
     var head: [3] u64
-    for t in 3 do
+    for t in 3
+    {
         head[t] = seed + t
+    }
     var w: [64] u64
-    for t in 8 do
+    for t in 8
+    {
         w[t] = ((seed & 0xFFFFFF) * (t + 3)) & M32
+    }
     for t in 8 until 64
     {
         let x = w[t - 7]
@@ -92,8 +114,10 @@ func scheduleUnmaskedReference(seed: u64)->u64
     }
 
     var sum = head[0] ^ head[1] ^ head[2]
-    for t in 64 do
+    for t in 64
+    {
         sum = ((sum << 5) | (sum >> 59)) ^ w[t]
+    }
     return sum
 }
 
@@ -106,9 +130,11 @@ func rotateSlots(seed: u64)->u64
     w[0] = seed & M32
     w[1] = seed
     w[2] = seed >> 40
-    var sum = 0'u64
-    for t in 3 do
+    var sum = 0_u64
+    for t in 3
+    {
         sum = ((sum << 5) | (sum >> 59)) ^ rotr(w[t], 7)
+    }
     return sum
 }
 
@@ -119,15 +145,17 @@ func rotateSlotsReference(seed: u64)->u64
     w[0] = seed & M32
     w[1] = seed
     w[2] = seed >> 40
-    var sum = 0'u64
-    for t in 3 do
+    var sum = 0_u64
+    for t in 3
+    {
         sum = ((sum << 5) | (sum >> 59)) ^ rotr(w[t], 7)
+    }
     return sum
 }
 
 #test
 {
-    for seed in [0x12345678'u64, 0xFFFFFFFF, 0x0123456789ABCDEF, 0xFEDCBA9876543210]
+    for seed in [0x12345678_u64, 0xFFFFFFFF, 0x0123456789ABCDEF, 0xFEDCBA9876543210]
     {
         Swag.require(schedule(seed) == scheduleReference(seed))
         Swag.require(scheduleUnmasked(seed) == scheduleUnmaskedReference(seed))

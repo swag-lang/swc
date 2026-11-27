@@ -64,7 +64,7 @@ const GridMaxStr  = #stringof(MaxDim * MaxDim)
 // Warehouse grid
 // ---------------------------------------------------------------------------
 
-const MaxDim = 64'u32
+const MaxDim = 64_u32
 
 struct Warehouse
 {
@@ -90,8 +90,10 @@ func warehouseInit()->Warehouse
 
 func warehouseFree(wh: *Warehouse)
 {
-    if wh.cells do
+    if wh.cells
+    {
         testFree(wh.cells)
+    }
 }
 
 func warehouseAt(wh: *Warehouse, r, c: u32)->Tile => wh.cells![r * MaxDim + c]
@@ -116,8 +118,10 @@ struct Parsed
 func parsedFree(p: *Parsed)
 {
     warehouseFree(&p.wh)
-    if p.moves do
+    if p.moves
+    {
         testFree(p.moves)
+    }
 }
 
 func parseInput(text: string)->Parsed
@@ -136,8 +140,10 @@ func parseInput(text: string)->Parsed
 
     for
     {
-        if pos >= total or gridDone do
+        if pos >= total or gridDone
+        {
             break
+        }
 
         let ch = bytes[pos]
         pos += 1
@@ -146,13 +152,15 @@ func parseInput(text: string)->Parsed
         {
             if col > 0
             {
-                if result.wh.h == 0 do
+                if result.wh.h == 0
+                {
                     result.wh.w = col
+                }
                 result.wh.h += 1
                 row         += 1
                 col         = 0
             }
-            elif result.wh.h > 0
+            else if result.wh.h > 0
             {
                 // Blank line separates grid from moves
                 gridDone = true
@@ -161,9 +169,15 @@ func parseInput(text: string)->Parsed
         }
 
         var tile = Tile.Empty
-        if ch == '#' do tile = Tile.Wall
-        elif ch == 'O' do tile = Tile.Box
-        elif ch == '@'
+        if ch == '#'
+        {
+            tile = Tile.Wall
+        }
+        else if ch == 'O'
+        {
+            tile = Tile.Box
+        }
+        else if ch == '@'
         {
             tile = Tile.Robot
             result.wh.robotR = row
@@ -186,12 +200,16 @@ func parseInput(text: string)->Parsed
     var scanPos = pos
     for
     {
-        if scanPos >= total do
+        if scanPos >= total
+        {
             break
+        }
         let ch = bytes[scanPos]
         scanPos += 1
-        if ch == '^' or ch == 'v' or ch == '<' or ch == '>' do
+        if ch == '^' or ch == 'v' or ch == '<' or ch == '>'
+        {
             moveCount += 1
+        }
     }
 
     result.moves  = cast([*] u8?, testAlloc(cast(u64, moveCount)))
@@ -206,8 +224,10 @@ func parseInput(text: string)->Parsed
     var mi: u32
     for
     {
-        if pos >= total do
+        if pos >= total
+        {
             break
+        }
         let ch = bytes[pos]
         pos += 1
         if ch == '^' or ch == 'v' or ch == '<' or ch == '>'
@@ -229,10 +249,22 @@ func dirDelta(ch: u8, dr: *s32, dc: *s32)
 {
     dr[] = 0
     dc[] = 0
-    if ch == '^' do dr[] = -1
-    elif ch == 'v' do dr[] = 1
-    elif ch == '<' do dc[] = -1
-    elif ch == '>' do dc[] = 1
+    if ch == '^'
+    {
+        dr[] = -1
+    }
+    else if ch == 'v'
+    {
+        dr[] = 1
+    }
+    else if ch == '<'
+    {
+        dc[] = -1
+    }
+    else if ch == '>'
+    {
+        dc[] = 1
+    }
 }
 
 func simulate(p: *Parsed)
@@ -247,12 +279,16 @@ func simulate(p: *Parsed)
         let nr = cast(s32, p.wh.robotR) + dr
         let nc = cast(s32, p.wh.robotC) + dc
 
-        if nr < 0 or nc < 0 or cast(u32, nr) >= p.wh.h or cast(u32, nc) >= p.wh.w do
+        if nr < 0 or nc < 0 or cast(u32, nr) >= p.wh.h or cast(u32, nc) >= p.wh.w
+        {
             continue
+        }
 
         let target = warehouseAt(&p.wh, cast(u32, nr), cast(u32, nc))
-        if target == Tile.Wall do
+        if target == Tile.Wall
+        {
             continue
+        }
 
         if target == Tile.Empty
         {
@@ -271,18 +307,26 @@ func simulate(p: *Parsed)
         {
             endR += dr
             endC += dc
-            if endR < 0 or endC < 0 or cast(u32, endR) >= p.wh.h or cast(u32, endC) >= p.wh.w do
+            if endR < 0 or endC < 0 or cast(u32, endR) >= p.wh.h or cast(u32, endC) >= p.wh.w
+            {
                 break
+            }
             let t = warehouseAt(&p.wh, cast(u32, endR), cast(u32, endC))
-            if t != Tile.Box do
+            if t != Tile.Box
+            {
                 break
+            }
         }
 
         // Check if the space beyond the chain is empty
-        if endR < 0 or endC < 0 or cast(u32, endR) >= p.wh.h or cast(u32, endC) >= p.wh.w do
+        if endR < 0 or endC < 0 or cast(u32, endR) >= p.wh.h or cast(u32, endC) >= p.wh.w
+        {
             continue
-        if warehouseAt(&p.wh, cast(u32, endR), cast(u32, endC)) != Tile.Empty do
+        }
+        if warehouseAt(&p.wh, cast(u32, endR), cast(u32, endC)) != Tile.Empty
+        {
             continue
+        }
 
         // Push: move the far box, clear old robot, place robot
         warehouseSet(&p.wh, cast(u32, endR), cast(u32, endC), Tile.Box)
@@ -304,8 +348,10 @@ func gpsScore(wh: *Warehouse)->u64
     {
         for c in wh.w
         {
-            if warehouseAt(wh, r, c) == Tile.Box do
+            if warehouseAt(wh, r, c) == Tile.Box
+            {
                 total += cast(u64, r) * 100 + cast(u64, c)
+            }
         }
     }
     return total
@@ -346,8 +392,10 @@ func boxRmsFromCentre(wh: *Warehouse)->f64
         }
     }
 
-    if count == 0.0 do
+    if count == 0.0
+    {
         return 0.0
+    }
     return Swag.sqrt(sumSq / count)
 }
 
@@ -372,10 +420,10 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
     var p = parseInput(SmallInput)
     defer parsedFree(&p)
 
-    Swag.require(p.wh.w == 8'u32)
-    Swag.require(p.wh.h == 8'u32)
-    Swag.require(p.wh.robotR == 2'u32)
-    Swag.require(p.wh.robotC == 2'u32)
+    Swag.require(p.wh.w == 8_u32)
+    Swag.require(p.wh.h == 8_u32)
+    Swag.require(p.wh.robotR == 2_u32)
+    Swag.require(p.wh.robotC == 2_u32)
 
     // Top-left is wall
     Swag.require(warehouseAt(&p.wh, 0, 0) == Tile.Wall)
@@ -385,7 +433,7 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
     Swag.require(warehouseAt(&p.wh, 2, 2) == Tile.Robot)
 
     // Move count: "<^^>>>vv<v>>v<<" = 15 moves
-    Swag.require(p.nMoves == 15'u32)
+    Swag.require(p.nMoves == 15_u32)
 }
 
 // Swag.makeSlice and .buffer in parsed moves
@@ -415,13 +463,13 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
 
     simulate(&p)
     let score = gpsScore(&p.wh)
-    Swag.require(score == 2739'u64)
+    Swag.require(score == 2739_u64)
 }
 
 // Large sample
 #test
 {
-    Swag.require(solve(LargeInput) == 10195'u64)
+    Swag.require(solve(LargeInput) == 10195_u64)
 }
 
 // Single box push right
@@ -436,7 +484,7 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
 
     var p = parseInput(input)
     defer parsedFree(&p)
-    Swag.require(p.nMoves == 1'u32)
+    Swag.require(p.nMoves == 1_u32)
     simulate(&p)
     // Robot pushed box right: box at (1,3), robot at (1,2)
     Swag.require(warehouseAt(&p.wh, 1, 3) == Tile.Box)
@@ -455,10 +503,10 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
     Swag.require(bucket >= 0)
 
     // Swag.floor always <= Swag.sqrt value
-    let v = Swag.sqrt(16.0'f64)
-    Swag.require(v == 4.0'f64)
-    Swag.require(Swag.floor(3.9'f64) == 3.0'f64)
-    Swag.require(Swag.floor(4.0'f64) == 4.0'f64)
+    let v = Swag.sqrt(16.0_f64)
+    Swag.require(v == 4.0_f64)
+    Swag.require(Swag.floor(3.9_f64) == 3.0_f64)
+    Swag.require(Swag.floor(4.0_f64) == 4.0_f64)
 }
 
 // Edge case: no boxes
@@ -474,7 +522,7 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
     var p = parseInput(input)
     defer parsedFree(&p)
     simulate(&p)
-    Swag.require(gpsScore(&p.wh) == 0'u64)
+    Swag.require(gpsScore(&p.wh) == 0_u64)
 }
 
 // Compound assignment review: .count on fixed array

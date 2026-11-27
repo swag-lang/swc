@@ -28,8 +28,14 @@ func mul64(a, b, c, flag: u64)->u64 => flag != 0 ? a * b : a * c
 
 #test
 {
-    let values = [0'u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
-    for a in values do for b in values do for c in values do for flag in values
+    let values = [0_u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    for a in values
+    {
+        for b in values
+        {
+            for c in values
+            {
+                for flag in values
                 {
                     let selected = flag != 0 ? b : c
                     Swag.require(add64(a, b, c, flag) == a + selected)
@@ -51,4 +57,7 @@ func mul64(a, b, c, flag: u64)->u64 => flag != 0 ? a * b : a * c
                     Swag.require(or32(a32, b32, c32, flag32) == (a32 | selected32))
                     Swag.require(mul32(a32, b32, c32, flag32) == a32 * selected32)
                 }
+            }
+        }
+    }
 }

@@ -18,16 +18,18 @@ func stepInward(first, last: s64)->Cursors
             hi -= 2
         }
 
-        if lo > hi do
+        if lo > hi
+        {
             return Cursors{lo, hi}
+        }
     }
 }
 
 #test
 {
-    for first in -64's64 to 64
+    for first in -64_s64 to 64
     {
-        for last in -64's64 to 64
+        for last in -64_s64 to 64
         {
             let trips   = last >= first ? (last - first) / 5 + 1 : 0
             let cursors = stepInward(first, last)

@@ -6,15 +6,15 @@ using Core, Gui, Pixel
 // and only space separates its parts. The list rows and the unfolded vault reach a little past
 // the column on both sides, so their words line up with the title while their grounds keep air
 // around them.
-const PageColumnWidth = 584'f32     // Width of the column the words of a page stand in.
-const PageGutter      = 32'f32      // Least air kept between the column and a window edge.
-const PageTop         = 64'f32      // Distance from the top of the window to the head of a page.
-const PageFoot        = 48'f32      // The foot of the window the hint line stands in; a centred column is centred above it.
-const ListTop         = 64'f32      // Distance from the strip to the title of the list, which has no way back above it.
-const PageTitleSize   = 40'u32      // Size of a page title.
-const PageNavGap      = 16'f32      // Air between page navigation and the title below it.
-const PageHeadGap     = 32'f32      // Air between the head of a page and what it introduces.
-const RowOutset       = 28'f32      // How far a row's ground reaches past the column on each side.
+const PageColumnWidth = 584_f32     // Width of the column the words of a page stand in.
+const PageGutter      = 32_f32      // Least air kept between the column and a window edge.
+const PageTop         = 64_f32      // Distance from the top of the window to the head of a page.
+const PageFoot        = 48_f32      // The foot of the window the hint line stands in; a centred column is centred above it.
+const ListTop         = 64_f32      // Distance from the strip to the title of the list, which has no way back above it.
+const PageTitleSize   = 40_u32      // Size of a page title.
+const PageNavGap      = 16_f32      // Air between page navigation and the title below it.
+const PageHeadGap     = 32_f32      // Air between the head of a page and what it introduces.
+const RowOutset       = 28_f32      // How far a row's ground reaches past the column on each side.
 
 // The head of a page reached from the list: the way back, the title, and the sentence under it.
 struct PageHead
@@ -58,8 +58,10 @@ impl PageHead
     {
         .back.setText(appStrings().ui_BackToVaults)
         .title.setText(title)
-        if help do
+        if help
+        {
             .help?.setText(help)
+        }
     }
 }
 
@@ -120,8 +122,11 @@ func placePageColumn(page: *Wnd, column: *Wnd, centred = false)
     let room   = page.clientRect()
     var bounds = pageColumnBounds(room.width)
     bounds.height = Math.ceil(column.measure(Math.Point{bounds.width, 0}).preferred.y)
-    if centred do
+    if centred
+    {
         bounds.y = Math.max(bounds.y, Math.round((room.height - PageFoot - bounds.height) * 0.5))
+    }
+
     column.arrange(bounds)
 
     // A new wording can change what the column holds without changing its size.

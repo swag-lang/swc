@@ -19,7 +19,7 @@ using Core
     main.lens.open("delete")
 
     // Deleting the capture and deleting the selection never read alike.
-    var titles: Array'String
+    var titles: Array!{String}
     for section in main.lens.results.sections
     {
         for entry in section!.entries
@@ -61,8 +61,10 @@ using Core
     Swag.require(main.inspector.detail == "160 × 100")
     Swag.require(main.inspector.childById(ActionCopyPaste.Duplicate) == null)
     Swag.require(main.inspector.childById(ActionSelection.DeleteSelection) != null)
-    for hint in main.hintLine.hints do
+    for hint in main.hintLine.hints
+    {
         Swag.require(hint.text != appStrings().hint_Duplicate)
+    }
 
     var image = host.renderSettled(main)
     Pixel.Testing.assertImageGolden(&image, "commands.pixels.ink")

@@ -6,7 +6,7 @@
 
 func semaTest001()
 {
-    var value = 1's32
+    var value = 1_s32
     var p     = &value
     #assert(#typeof(p[]) == s32)
 }
@@ -44,7 +44,7 @@ func semaTest004()
 
 func semaTest005()
 {
-    var value = 0'u32
+    var value = 0_u32
     var p     = &value
     #assert(#typeof(cast(const *s32, p)[]) == s32)
     #assert(#typeof(cast(const *u8, p)[]) == u8)
@@ -52,6 +52,6 @@ func semaTest005()
 
 func semaTest006()
 {
-    var value = 1's32
+    var value = 1_s32
     #assert(#typeof((&value)[]) == s32)
 }

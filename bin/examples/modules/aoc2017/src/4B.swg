@@ -26,7 +26,7 @@ func day4B()
 
         // The set owns its keys: 'str' is rebuilt on every word and released with the
         // iteration, so a set of views would be left pointing at freed buffers.
-        var set: HashSet'String
+        var set: HashSet!{String}
 
         for w in s
         {
@@ -35,8 +35,10 @@ func day4B()
             set.add(str)
         }
 
-        if set.count == s.count do
+        if set.count == s.count
+        {
             total += 1
+        }
     }
 
     Swag.assert(total == 186)

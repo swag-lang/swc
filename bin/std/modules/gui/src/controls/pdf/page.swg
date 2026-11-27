@@ -12,14 +12,19 @@ private func isFiniteTransform(transform: Transform2)->bool => Math.isFinite(tra
 
 private func isValidStrokeStyle(style: const *PathStrokeStyle)->bool
 {
-    if style.miterLimit < 1 or not Math.isFinite(style.miterLimit) or not Math.isFinite(style.dashPhase) do
+    if style.miterLimit < 1 or not Math.isFinite(style.miterLimit) or not Math.isFinite(style.dashPhase)
+    {
         return false
+    }
 
     var hasPositiveLength = false
     for length in style.dashPattern
     {
-        if length < 0 or not Math.isFinite(length) do
+        if length < 0 or not Math.isFinite(length)
+        {
             return false
+        }
+
         hasPositiveLength = hasPositiveLength or length > 0
     }
 
@@ -33,8 +38,10 @@ private func normalizedStrokeStyle(style: PathStrokeStyle)->PathStrokeStyle
     if result.dashPattern.count & 1
     {
         let count = result.dashPattern.count
-        for i in count do
+        for i in count
+        {
             result.dashPattern.add(result.dashPattern[i])
+        }
     }
 
     return result
@@ -51,19 +58,19 @@ struct Page
         width:  f32     // Page width in PDF points.
         height: f32     // Page height in PDF points.
 
-        readonly items: Array'Item     // Page content in paint order.
+        readonly items: Array!{Item}     // Page content in paint order.
     }
 
     internal
     {
-        fonts: Array'FontResource
+        fonts: Array!{FontResource}
 
         // Clip shapes the content stream established beyond a rectangle, in page coordinates.
         //
         // An item names its shape by index, so consecutive items painted through one shape share
         // it, a `q`/`Q` pair copies a number rather than a path, and a frame writes each shape
         // into the painter's clipping region once.
-        clipPaths: ArrayPtr'ClipPath
+        clipPaths: ArrayPtr!{ClipPath}
     }
 }
 
@@ -72,7 +79,7 @@ internal struct ClipPath
 {
     path:    LinePathList     // The authored shape in page coordinates.
     evenOdd: bool             // Whether `W*` chose the alternating rule over the winding count.
-    parent:  u32 = InvalidClipPath   // Shaped clip already in force when this one was defined.
+    parent:  u32 = InvalidClipPath     // Shaped clip already in force when this one was defined.
 
     // The polygon fallback is built on demand for tessellation or textured image fills.
     intersection:    LinePathList
@@ -154,7 +161,8 @@ impl Page
                     "invalid image placement")
         with var item = Item.createImage()
         {
-            .image     = image
+            var copied = image
+            .image     = #move ImageReference.create(#move copied)
             .transform = Transform2{width, 0, 0, height, x, y}
         }
 
@@ -202,9 +210,13 @@ impl Page
         Swag.assert(index < .items.count, "item index out of range")
         Swag.assert(isFiniteTransform(transform), "invalid item transform")
         let item = &.items[index]
+
         // Capture a decoded image's clip in its original image coordinates before moving it.
-        if item.kind == .Image and item.clipPath != InvalidClipPath and not item.imageClipReady do
+        if item.kind == .Image and item.clipPath != InvalidClipPath and not item.imageClipReady
+        {
             discard .prepareImageClip(item)
+        }
+
         item.transform = transform
         item.refreshPaintBounds()
     }
@@ -283,14 +295,21 @@ impl Page
     // ```
     mtd prepare(scale: f32)
     {
-        if scale <= 0 or not Math.isFinite(scale) do
+        if scale <= 0 or not Math.isFinite(scale)
+        {
             return
+        }
 
         var preparer: Pixel.FillPreparer
-        for index in .clipPaths.count do
+        for index in .clipPaths.count
+        {
             .prepareClipPath(index, scale, &preparer)
-        for index in .items.count do
+        }
+
+        for index in .items.count
+        {
             .prepareItem(index, scale, &preparer)
+        }
     }
 }
 
@@ -304,13 +323,17 @@ internal impl Page
     mtd const memoryUsage()->u64
     {
         var result = cast(u64, #sizeof(Page))
-        for item in .items do
+        for item in .items
+        {
             result += item.memoryUsage()
+        }
+
         for value in .clipPaths
         {
             let clip = unwrap value
             result += clip.path.memoryUsage() + clip.intersection.memoryUsage()
         }
+
         return result
     }
 
@@ -323,8 +346,11 @@ internal impl Page
     mtd appendItem(item: #move Item)
     {
         item.refreshPaintBounds()
-        if item.hasClip and item.clip.contains(item.paintBounds()) do
+        if item.hasClip and item.clip.contains(item.paintBounds())
+        {
             item.hasClip = false
+        }
+
         .items.add(#move item)
     }
 
@@ -342,13 +368,18 @@ internal impl Page
     mtd resolveClipPath(index: u32)->{path: *LinePathList, rule: PathFillRule}
     {
         let leaf = unwrap .clipPaths[index]
-        if leaf.parent == InvalidClipPath do
+        if leaf.parent == InvalidClipPath
+        {
             return {&leaf.path, leaf.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero}
-        if leaf.hasIntersection do
+        }
+
+        if leaf.hasIntersection
+        {
             return {&leaf.intersection, PathFillRule.NonZero}
+        }
 
         // Walk to the nearest cached ancestor, then populate descendants in clip order.
-        var pending: Array'(*ClipPath)
+        var pending: Array!{*ClipPath}
         var ancestor = leaf
         while ancestor.parent != InvalidClipPath and not ancestor.hasIntersection
         {
@@ -360,7 +391,7 @@ internal impl Page
         var frameRule = ancestor.parent == InvalidClipPath and ancestor.evenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero
 
         // Preserve the page-space tolerance of the polygon fallback at deep zoom levels.
-        const IntersectionScale = 20.0'f32
+        const IntersectionScale = 20.0_f32
         for index in reversed(pending.count)
         {
             let child = pending[index]
@@ -371,8 +402,8 @@ internal impl Page
             shape.intersect(&frame, child.evenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero, frameRule)
             child.intersection    = #move shape
             child.hasIntersection = true
-            framePath = &child.intersection
-            frameRule = .NonZero
+            framePath             = &child.intersection
+            frameRule             = .NonZero
         }
 
         return {&leaf.intersection, PathFillRule.NonZero}
@@ -422,10 +453,14 @@ internal impl Page
             break
 
         case .Path:
-            if item.hasFill do
+            if item.hasFill
+            {
                 preparer.prepare(&item.path, scale, item.evenOddFill ? PathFillRule.EvenOdd : PathFillRule.NonZero)
-            elif item.hasStroke do
+            }
+            else if item.hasStroke
+            {
                 preparer.flatten(&item.path, scale)
+            }
 
         case .Image:
 

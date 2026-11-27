@@ -109,8 +109,10 @@ func resetEvents()
 func eventSum()->s32
 {
     var result: s32
-    for i in EventCount do
+    for i in EventCount
+    {
         result += Events[i]
+    }
     return result
 }
 
@@ -163,8 +165,10 @@ func runMove(type: typeinfo, value: *void)
 func nestedDropOrderWorks()->bool
 {
     let type = #typeof(OuterLifecycle)
-    if not hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type)
+    {
         return false
+    }
 
     resetEvents()
     var value = OuterLifecycle{head: EventProbe{value: 1}, middle: MiddleLifecycle{left: EventProbe{value: 2}, right: EventProbe{value: 3}}, stamp: 9}
@@ -180,8 +184,10 @@ func nestedDropOrderWorks()->bool
 func nestedInitRestoresDefaults()->bool
 {
     let type = #typeof(OuterLifecycle)
-    if not hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type)
+    {
         return false
+    }
 
     var value = OuterLifecycle{head: EventProbe{value: 91}, middle: MiddleLifecycle{left: EventProbe{value: 92}, right: EventProbe{value: 93}, marker: -7}, stamp: -9}
     resetEvents()
@@ -197,8 +203,10 @@ func nestedInitRestoresDefaults()->bool
 func nestedCopyOrderWorks()->bool
 {
     let type = #typeof(OuterLifecycle)
-    if not hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type)
+    {
         return false
+    }
 
     resetEvents()
     var value = OuterLifecycle{head: EventProbe{value: 1}, middle: MiddleLifecycle{left: EventProbe{value: 2}, right: EventProbe{value: 3}, marker: 7}, stamp: 9}
@@ -219,8 +227,10 @@ func nestedCopyOrderWorks()->bool
 func nestedMoveOrderWorks()->bool
 {
     let type = #typeof(OuterLifecycle)
-    if not hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type)
+    {
         return false
+    }
 
     resetEvents()
     var value = OuterLifecycle{head: EventProbe{value: 1}, middle: MiddleLifecycle{left: EventProbe{value: 2}, right: EventProbe{value: 3}, marker: 7}, stamp: 9}
@@ -241,8 +251,10 @@ func nestedMoveOrderWorks()->bool
 func arrayInitTouchesEveryElement()->bool
 {
     let type = #typeof(ArrayLifecycle)
-    if not hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type)
+    {
         return false
+    }
 
     var value: ArrayLifecycle
     value.values[0].value = 1
@@ -260,8 +272,10 @@ func arrayInitTouchesEveryElement()->bool
 func arrayLifecycleTouchesEveryElement()->bool
 {
     let type = #typeof(ArrayLifecycle)
-    if not hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type)
+    {
         return false
+    }
 
     var value: ArrayLifecycle
     value.values[0].value = 1
@@ -274,8 +288,10 @@ func arrayLifecycleTouchesEveryElement()->bool
        eventSum() != 606 or
        value.values[0].value != 11 or
        value.values[1].value != 12 or
-       value.values[2].value != 13 do
+       value.values[2].value != 13
+    {
         return false
+    }
 
     resetEvents()
     runMove(type, &value)
@@ -283,8 +299,10 @@ func arrayLifecycleTouchesEveryElement()->bool
        eventSum() != 936 or
        value.values[0].value != 111 or
        value.values[1].value != 112 or
-       value.values[2].value != 113 do
+       value.values[2].value != 113
+    {
         return false
+    }
 
     resetEvents()
     runDrop(type, &value)
@@ -294,8 +312,10 @@ func arrayLifecycleTouchesEveryElement()->bool
 func deepInitRestoresNestedArrays()->bool
 {
     let type = #typeof(DeepInitLifecycle)
-    if not hasAllLifecyclePointers(type) do
+    if not hasAllLifecyclePointers(type)
+    {
         return false
+    }
 
     var value: DeepInitLifecycle
     value.outer.head.value         = 41

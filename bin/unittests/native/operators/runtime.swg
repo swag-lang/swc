@@ -36,7 +36,7 @@ namespace compiler1647
     #test
     {
         var arr: [12] u8
-        let cpt   = 3'u32
+        let cpt   = 3_u32
         let slice = cast([..] u8, Swag.makeSlice(&arr[0], cast(u64, cpt)))
         Swag.require(slice.count == 3)
     }
@@ -104,7 +104,7 @@ namespace compiler168
     //
     #test
     {
-        Swag.require(((2's64 + 4) * 2) == 12)
+        Swag.require(((2_s64 + 4) * 2) == 12)
     }
 }
 

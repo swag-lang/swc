@@ -5,7 +5,7 @@ using Swag, Core
 func buildBinaryType1Fixture(firstCipher: const [4] u8,
                              hexEncoded: bool = false,
                              rdSeparator: string = " ",
-                             firstNotDefByte: u8 = 139)->Array'u8
+                             firstNotDefByte: u8 = 139)->Array!{u8}
 {
     const ClearHeader:        string = "%!PS-AdobeFont-1.0: Fixture 1.0\n/FontName /Fixture\n/FontMatrix [0.001 0 0 0.001 0 0]\n/FontBBox [0 0 1000 1000]\n/Encoding StandardEncoding\neexec\n"
     const ClearPrivatePrefix: string = "/lenIV -1 def\n/CharStrings 2 dict dup begin\n/.notdef 4 RD"
@@ -15,7 +15,7 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     const ACharstring: [4] u8 = [139, 189, 13, 14]
     notDefCharstring[0] = firstNotDefByte
 
-    var plain: Array'u8
+    var plain: Array!{u8}
     plain.add(cast(const [..] u8, ClearPrivatePrefix))
     plain.add(cast(const [..] u8, rdSeparator))
     plain.add(notDefCharstring)
@@ -24,8 +24,8 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     plain.add(ACharstring)
     plain.add(cast(const [..] u8, ClearPrivateSuffix))
 
-    var encrypted: Array'u8
-    var state = 55665'u32
+    var encrypted: Array!{u8}
+    var state = 55665_u32
     for cipher in firstCipher
     {
         encrypted.add(cipher)
@@ -39,7 +39,7 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
         state = ((cast(u32, cipher) + state) * 52845 + 22719) & 0xFFFF
     }
 
-    var program: Array'u8
+    var program: Array!{u8}
     program.add(cast(const [..] u8, ClearHeader))
     if hexEncoded
     {
@@ -73,11 +73,26 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
 
     let font = expect parseType1Font(buildBinaryType1Fixture(HexLookingPrefix).toSlice())
     Swag.require(font.glyphNames.count == 2)
-    Swag.require(font.glyphNames[0].toString() == ".notdef")
-    Swag.require(font.glyphNames[1].toString() == "A")
+    Swag.require(font.glyphNames[0] == ".notdef")
+    Swag.require(font.glyphNames[1] == "A")
 
     let pfa = expect parseType1Font(buildBinaryType1Fixture(BinaryPrefix, true).toSlice())
     Swag.require(pfa.glyphNames.count == 2)
+
+    var lowercase = buildBinaryType1Fixture(BinaryPrefix, true)
+    let start     = findBytes(lowercase.toSlice(), 0, "eexec") + 5
+    for index in start until lowercase.count
+    {
+        let c = lowercase[index]
+        if c >= 'A' and c <= 'F'
+        {
+            lowercase[index] = c + 32
+        }
+    }
+
+    let lower = expect parseType1Font(lowercase.toSlice())
+    Swag.require(lower.glyphNames[1] == "A")
+    Swag.require(expect type1CharstringWidth(&lower, 1) == 50)
 }
 
 // CRLF after RD is consumed as one separator without discarding binary bytes.
@@ -87,12 +102,14 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     let bytes = buildBinaryType1Fixture(BinaryPrefix, rdSeparator: "\r\n")
     let font  = expect parseType1Font(bytes.toSlice())
 
-    Swag.require(font.charstrings[0].count == 4)
-    Swag.require(font.charstrings[0][0] == 139 and font.charstrings[0][1] == 139)
-    Swag.require(font.charstrings[0][2] == 13 and font.charstrings[0][3] == 14)
-    Swag.require(font.charstrings[1].count == 4)
-    Swag.require(font.charstrings[1][0] == 139 and font.charstrings[1][1] == 189)
-    Swag.require(font.charstrings[1][2] == 13 and font.charstrings[1][3] == 14)
+    let notDef = font.codeOf(font.charstrings[0])
+    Swag.require(notDef.count == 4)
+    Swag.require(notDef[0] == 139 and notDef[1] == 139)
+    Swag.require(notDef[2] == 13 and notDef[3] == 14)
+    let glyph = font.codeOf(font.charstrings[1])
+    Swag.require(glyph.count == 4)
+    Swag.require(glyph[0] == 139 and glyph[1] == 189)
+    Swag.require(glyph[2] == 13 and glyph[3] == 14)
 }
 
 // A lone separator leaves a whitespace-valued first charstring byte untouched.
@@ -102,8 +119,9 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     let bytes = buildBinaryType1Fixture(BinaryPrefix, firstNotDefByte: '\n')
     let font  = expect parseType1Font(bytes.toSlice())
 
-    Swag.require(font.charstrings[0].count == 4)
-    Swag.require(font.charstrings[0][0] == '\n')
+    let notDef = font.codeOf(font.charstrings[0])
+    Swag.require(notDef.count == 4)
+    Swag.require(notDef[0] == '\n')
 }
 
 #test
@@ -129,4 +147,51 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     var rejected: Swag.Error
     discard catch unwrapPfb(MissingEndMarker) as rejected
     Swag.require(rejected.value() != null)
+}
+
+// A leading hsbw can be read directly. Computed widths and sbw use the interpreter.
+#test
+{
+    const Direct:   [5] u8 = [139, 248, 136, 13, 14]
+    const Division: [8] u8 = [139, 247, 92, 141, 12, 12, 13, 14]
+    const Vector:   [7] u8 = [139, 139, 246, 139, 12, 7, 14]
+    var font: Type1Font
+    for code in [cast(const [..] u8, Direct), cast(const [..] u8, Division), cast(const [..] u8, Vector)]
+    {
+        font.charstrings.add(font.storeCode(code, -1))
+    }
+
+    let expected = [500.0, 100.0, 107.0]
+    for width, gid in expected
+    {
+        let glyph = cast(u32, gid)
+        Swag.require(expect type1CharstringWidth(&font, glyph) == width)
+        Swag.require(expect runType1Charstring(&font, glyph, null) == width)
+    }
+}
+
+// Retained Type 1 faces can outlive the source and share one parsed program.
+#test
+{
+    const BinaryPrefix: [4] u8 = [0x80, 0x81, 0x82, 0x83]
+    let bytes = buildBinaryType1Fixture(BinaryPrefix)
+    var allocator: Swag.Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+    let allocationView: IAllocator = &allocator
+    let baseline = allocator.stats().countAlloc
+
+    var source  = FontSource.copy(bytes.toSlice(), allocationView)
+    let first   = expect source.loadFace()
+    let second  = expect source.loadFace()
+    let backing = cast(const *FaceImpl, cast(const *void, first))
+    let sibling = cast(const *FaceImpl, cast(const *void, second))
+    Swag.require(backing.sharedType1 != null and backing.sharedType1 == sibling.sharedType1)
+    Swag.require(backing.sharedProgramTables != null and backing.sharedProgramTables == sibling.sharedProgramTables)
+    source = {}
+    first.destroy()
+    Swag.require(second.glyphIndex('A') == 1 and second.glyphName(1) == "A")
+    Swag.require(expect second.getAdvanceWidth(1) == 50)
+    second.destroy()
+    Swag.require(allocator.stats().countAlloc == baseline)
 }

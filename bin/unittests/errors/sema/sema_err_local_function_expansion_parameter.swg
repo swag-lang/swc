@@ -8,7 +8,7 @@ func visitOnce(count: u32, stmt: #code(index: u32))
 {
     func visit()
     {
-        var index = 0'u32
+        var index = 0_u32
         for count     // swc-expected-error {{sema_err_local_function_expansion_parameter}}
         {
             #inject(stmt, index = index)

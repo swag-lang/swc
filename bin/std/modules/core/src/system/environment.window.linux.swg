@@ -3,8 +3,10 @@
 
 private func validateX11Size(width, height: s32) fail
 {
-    if width <= 0 or height <= 0 or width > 65535 or height > 65535 do
+    if width <= 0 or height <= 0 or width > 65535 or height > 65535
+    {
         fail Errors.BadParameterError{"X11 client dimensions must be between 1 and 65535 pixels"}
+    }
 }
 
 private func releaseX11Window(window: *LinuxDesktop.WindowState)
@@ -23,30 +25,51 @@ private func releaseX11Window(window: *LinuxDesktop.WindowState)
         link = &current.next
     }
 
-    if window.owner do
+    if window.owner
+    {
         window.owner.nativeHandle = null
-    if window.stopLoopOnClose do
+    }
+
+    if window.stopLoopOnClose
+    {
         context.stopRequested = true
+    }
+
     Linux.free(window)
 }
 
 internal func createWindowNative(result: *Window, options: WindowOptions) fail
 {
     try validateX11Size(options.width, options.height)
-    if not Utf8.isValid(cast(const [..]u8, options.identifier)) or not Utf8.isValid(cast(const [..]u8, options.title)) do
+    if not Utf8.isValid(cast(const [..]u8, options.identifier)) or not Utf8.isValid(cast(const [..]u8, options.title))
+    {
         fail Errors.BadParameterError{"window identifier and title must contain valid UTF-8"}
-    for value in options.identifier where value == 0 do
+    }
+
+    for value in options.identifier where value == 0
+    {
         fail Errors.BadParameterError{"window identifier contains a zero byte"}
-    for value in options.title where value == 0 do
+    }
+
+    for value in options.title where value == 0
+    {
         fail Errors.BadParameterError{"window title contains a zero byte"}
-    if options.title.count > 65535 or options.identifier.count > 65535 do
+    }
+
+    if options.title.count > 65535 or options.identifier.count > 65535
+    {
         fail Errors.BadParameterError{"X11 window title or identifier is too long"}
+    }
+
     let context = try LinuxDesktop.ensure()
     try LinuxDesktop.requireUiThread(context)
     let connection = unwrap context.connection
     let allocation = Linux.calloc(1, #sizeof(LinuxDesktop.WindowState))
-    if not allocation do
+    if not allocation
+    {
         try Errors.failLinuxError(Linux.ENOMEM)
+    }
+
     let window = cast(*LinuxDesktop.WindowState, unwrap allocation)
     defer #fail Linux.free(window)
     window.context         = context
@@ -77,8 +100,10 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
     defer #fail
     {
         let error = context.xcb_request_check(connection, context.xcb_destroy_window_checked(connection, window.id))
-        if error do
+        if error
+        {
             Linux.free(error)
+        }
     }
 
     try LinuxDesktop.check(context, context.xcb_change_property_checked(connection, 0, window.id, window.protocolsAtom, 4, 32, 1, &window.deleteAtom))
@@ -104,16 +129,28 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
 
     let motif = try LinuxDesktop.atom(context, "_MOTIF_WM_HINTS")
     var capabilities: u32 = 4 | 32
-    if options.flags & .Resizable do
+    if options.flags & .Resizable
+    {
         capabilities |= 2
-    if options.flags & .Minimizable do
+    }
+
+    if options.flags & .Minimizable
+    {
         capabilities |= 8
-    if options.flags & .Maximizable do
+    }
+
+    if options.flags & .Maximizable
+    {
         capabilities |= 16
+    }
+
     let motifHints: [5]u32 = [1, capabilities, 0, 0, 0]
     try LinuxDesktop.check(context, context.xcb_change_property_checked(connection, 0, window.id, motif, motif, 32, 5, motifHints))
-    if not context.windows do
+    if not context.windows
+    {
         context.stopRequested = false
+    }
+
     window.owner        = result
     window.next         = context.windows
     context.windows     = window
@@ -124,8 +161,11 @@ impl Window
 {
     private mtd x11State()->*LinuxDesktop.WindowState fail
     {
-        if not .nativeHandle do
+        if not .nativeHandle
+        {
             fail Errors.BadParameterError{"window is closed"}
+        }
+
         let window = cast #unconst (*LinuxDesktop.WindowState, .nativeHandle)
         try LinuxDesktop.requireUiThread(unwrap window.context)
         window.owner = me
@@ -134,8 +174,11 @@ impl Window
 
     internal mtd renderHandleNative()->const *void?
     {
-        if not .nativeHandle do
+        if not .nativeHandle
+        {
             return null
+        }
+
         let window = cast(const *LinuxDesktop.WindowState, .nativeHandle)
         return &window.drawable
     }
@@ -166,8 +209,10 @@ impl Window
             {
                 let code = error.error_code
                 Linux.free(error)
-                if code != 3 and context.xcb_connection_has_error(connection) == 0 do
+                if code != 3 and context.xcb_connection_has_error(connection) == 0
+                {
                     fail Swag.SystemError{"X11 window destruction failed", errorID: code}
+                }
             }
         }
 
@@ -176,8 +221,11 @@ impl Window
 
     internal mtd requestPaintNative()
     {
-        if not .isOpen() do
+        if not .isOpen()
+        {
             return
+        }
+
         let window = catch .x11State()
         {
             return
@@ -238,12 +286,21 @@ impl Window
         let reply   = context.xcb_get_geometry_reply(unwrap context.connection,
                                                      context.xcb_get_geometry(context.connection, window.id),
                                                      &error)
-        defer if error do
+        defer if error
+        {
             Linux.free(error)
-        defer if reply do
+        }
+
+        defer if reply
+        {
             Linux.free(reply)
-        if error or not reply do
+        }
+
+        if error or not reply
+        {
             fail Swag.SystemError{"cannot query X11 window geometry"}
+        }
+
         return {cast(s32, reply.width), cast(s32, reply.height)}
     }
 
@@ -253,8 +310,11 @@ impl Window
         let context = unwrap window.context
 
         // X11 top-level placement uses signed 16-bit physical coordinates.
-        if x < -32768 or x > 32767 or y < -32768 or y > 32767 do
+        if x < -32768 or x > 32767 or y < -32768 or y > 32767
+        {
             fail Errors.BadParameterError{"X11 window coordinates must be between -32768 and 32767 pixels"}
+        }
+
         let position: [2]u32 = [cast #bit(u32, x), cast #bit(u32, y)]
         try LinuxDesktop.check(context, context.xcb_configure_window_checked(unwrap context.connection, window.id, 1 | 2, position))
     }
@@ -286,8 +346,11 @@ impl Window
     internal mtd showOffScreenNative() fail
     {
         let {width, height} = try .clientSizeNative()
-        if width > 32768 and height > 32768 do
+        if width > 32768 and height > 32768
+        {
             fail Errors.BadParameterError{"X11 cannot place this client size entirely outside the root screen"}
+        }
+
         let window     = try .x11State()
         let context    = unwrap window.context
         let connection = unwrap context.connection
@@ -296,7 +359,7 @@ impl Window
         // Override-redirect prevents a window manager from moving or activating this drawable.
         let overrideRedirect: u32 = 1
         try LinuxDesktop.check(context, context.xcb_change_window_attributes_checked(connection, window.id, 1 << 9, &overrideRedirect))
-        let position: [2]u32 = [cast #bit(u32, -32768's32), cast #bit(u32, -32768's32)]
+        let position: [2]u32 = [cast #bit(u32, -32768_s32), cast #bit(u32, -32768_s32)]
         try LinuxDesktop.check(context, context.xcb_configure_window_checked(connection, window.id, 1 | 2, position))
         try .showNative()
     }
@@ -313,8 +376,11 @@ public func processWindowMessages()->bool
     func dispatchPointer(owner: *Window, kind: u8, packet: *Linux.xcb_button_press_event_t)
     {
         let callback = owner.callbacks.onPointer
-        if not callback do
+        if not callback
+        {
             return
+        }
+
         with var event: WindowPointerEvent
         {
             .x = packet.event_x
@@ -325,11 +391,14 @@ public func processWindowMessages()->bool
         {
             event.kind = .Move
         }
-        elif packet.detail >= 4 and packet.detail <= 7
+        else if packet.detail >= 4 and packet.detail <= 7
         {
             // X11 encodes each wheel notch as a button press followed by a release.
-            if kind == Linux.XCB_BUTTON_RELEASE do
+            if kind == Linux.XCB_BUTTON_RELEASE
+            {
                 return
+            }
+
             event.kind = .Wheel
             switch packet.detail
             {
@@ -357,14 +426,24 @@ public func processWindowMessages()->bool
     }
 
     let context = catch LinuxDesktop.ensure() { return false }
-    catch LinuxDesktop.requireUiThread(context) do return false
+    catch LinuxDesktop.requireUiThread(context)
+    {
+        return false
+    }
+
     for 4096
     {
-        if context.stopRequested do
+        if context.stopRequested
+        {
             return false
+        }
+
         let event = context.xcb_poll_for_event(unwrap context.connection)
-        if not event do
+        if not event
+        {
             return context.xcb_connection_has_error(context.connection) == 0
+        }
+
         defer Linux.free(event)
         let kind = event.response_type & 0x7F
         var id: u32
@@ -380,10 +459,16 @@ public func processWindowMessages()->bool
         }
 
         var window = context.windows
-        while window and window.id != id do
+        while window and window.id != id
+        {
             window = window.next
-        if not window or not window.owner do
+        }
+
+        if not window or not window.owner
+        {
             continue
+        }
+
         let owner = window.owner
         switch kind
         {
@@ -392,14 +477,18 @@ public func processWindowMessages()->bool
 
         case Linux.XCB_FOCUS_IN, Linux.XCB_FOCUS_OUT:
             let callback = owner.callbacks.onFocus
-            if callback do
+            if callback
+            {
                 callback(owner, kind == Linux.XCB_FOCUS_IN)
+            }
 
         case 12:
             let paint    = cast(*Linux.xcb_expose_event_t, cast(*void, event))
             let callback = owner.callbacks.onPaint
-            if paint.count == 0 and callback do
+            if paint.count == 0 and callback
+            {
                 callback(owner)
+            }
 
         case 17:
             releaseX11Window(window)
@@ -407,8 +496,10 @@ public func processWindowMessages()->bool
         case 22:
             let resize   = cast(*Linux.xcb_configure_notify_event_t, cast(*void, event))
             let callback = owner.callbacks.onResize
-            if callback do
+            if callback
+            {
                 callback(owner, resize.width, resize.height)
+            }
 
         case 33:
             let message = cast(*Linux.xcb_client_message_event_t, cast(*void, event))
@@ -418,10 +509,15 @@ public func processWindowMessages()->bool
             {
                 let stop     = window.stopLoopOnClose
                 let callback = owner.callbacks.onCloseRequest
-                if callback do
+                if callback
+                {
                     callback(owner)
-                if stop do
+                }
+
+                if stop
+                {
                     return false
+                }
             }
         }
 

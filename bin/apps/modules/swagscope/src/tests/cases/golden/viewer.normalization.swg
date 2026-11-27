@@ -15,8 +15,10 @@ using Core, Gui, Pixel
     let emoji  = expect TypeFace.create("scope-fixture-emoji", #include("../../datas/font-fixture-emoji.ttf"))
     let window = framedViewerWindow(&host, scopeTestDataPath("comprehensive.txt"), true, width: ViewerWindow.MinWidth, fallbackFaces: [cjk, arabic, emoji])
     let font   = host.theme.createDefaultFont(16)
-    for c in [cast(rune, 0xD55C), 0xAD6D, 0xC5B4, 0x0627, 0x0644, 0x0639, 0x1F642] do
+    for c in [cast(rune, 0xD55C), 0xAD6D, 0xC5B4, 0x0627, 0x0644, 0x0639, 0x1F642]
+    {
         Swag.require(font.resolveRune(c).glyphIndex(c) != 0, "the multilingual fixture needs its own glyphs")
+    }
 
     window.toggleInformation()
     completeInformation(&host, window)

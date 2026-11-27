@@ -9,7 +9,7 @@ public enum DrawPathListMode
 
 struct Context
 {
-    posBuffer: Array'Math.Vector2
+    posBuffer: Array!{Math.Vector2}
     penSize:   f32
 
     // Half width the quads and the joins are laid down at: half the pen, plus the border
@@ -63,8 +63,11 @@ impl Context
     {
         let sourceIndex = index % .patternSourceCount
         var result      = Math.max(.pattern[sourceIndex], 0.01) * .pen.size
-        if index & 1 do
+        if index & 1
+        {
             result *= Math.max(.pen.dashBlankScale, 0)
+        }
+
         return result
     }
 
@@ -74,8 +77,11 @@ impl Context
     // against the width the stroke has rather than the width this walk is laying down.
     mtd const capNormal()->Math.Vector2
     {
-        if .outline <= 0 or .penSize2 <= 0 do
+        if .outline <= 0 or .penSize2 <= 0
+        {
             return .normal
+        }
+
         return .normal * (.capSize2 / .penSize2)
     }
 }
@@ -99,12 +105,17 @@ const OutlineMiterLimit = 8.0
 private func expandConvexRing(points: [..] Math.Vector2, outline: f32)
 {
     let count = points.count
-    if count < 3 or count > MaxCapRingPoints do
+    if count < 3 or count > MaxCapRingPoints
+    {
         return
+    }
 
     var center: Math.Vector2
-    for pt in points do
+    for pt in points
+    {
         center += pt
+    }
+
     center /= cast(f32, count)
 
     // Outward side of each edge, taken as the one facing away from the centre. A convex outline
@@ -115,8 +126,11 @@ private func expandConvexRing(points: [..] Math.Vector2, outline: f32)
         let a = points[i]
         let b = points[(i + 1) % count]
         var n = (b - a).cross(1).normalizedOrZero()
-        if n.dot(((a + b) * 0.5) - center) < 0 do
+        if n.dot(((a + b) * 0.5) - center) < 0
+        {
             n.negate()
+        }
+
         normals[i] = n
     }
 
@@ -138,13 +152,18 @@ private func expandConvexRing(points: [..] Math.Vector2, outline: f32)
 
         var m   = (n0 + n1) * (outline / fold)
         let len = m.length()
-        if len > outline * OutlineMiterLimit do
+        if len > outline * OutlineMiterLimit
+        {
             m *= (outline * OutlineMiterLimit) / len
+        }
+
         moved[i] = points[i] + m
     }
 
-    for i in count do
+    for i in count
+    {
         points[i] = moved[i]
+    }
 }
 
 impl Painter
@@ -162,40 +181,57 @@ impl Painter
             signedArea += a.x * b.y - a.y * b.x
         }
 
-        if signedArea == 0 or not Math.isFinite(signedArea) do
+        if signedArea == 0 or not Math.isFinite(signedArea)
+        {
             return
+        }
+
         if signedArea > 0
         {
             .scanPoints.add(points)
         }
         else
         {
-            for index in reversed(points.count) do
+            for index in reversed(points.count)
+            {
                 .scanPoints.add(points[index])
+            }
         }
 
         .scanContourEnds.add(.scanPoints.count)
-        for point in points
+        var low  = .scanStrokeLow
+        var high = .scanStrokeHigh
+        for &point in points
         {
-            .scanStrokeLow  = Math.Vector2.min(.scanStrokeLow, point)
-            .scanStrokeHigh = Math.Vector2.max(.scanStrokeHigh, point)
+            low.x  = Math.min(low.x, point.x)
+            low.y  = Math.min(low.y, point.y)
+            high.x = Math.max(high.x, point.x)
+            high.y = Math.max(high.y, point.y)
         }
+
+        .scanStrokeLow  = low
+        .scanStrokeHigh = high
     }
 
     // Lays down one convex cap outline, expanded by the border width when this walk paints one.
     mtd fillCapRing(points: [..] Math.Vector2, outline: f32, pen: Pen)
     {
         let count = points.count
-        if count < 3 do
+        if count < 3
+        {
             return
+        }
+
         if .scanStroke
         {
             .recordStrokeContour(points)
             return
         }
 
-        if outline > 0 do
+        if outline > 0
+        {
             expandConvexRing(points, outline)
+        }
 
         let antialiased = .curState.paintParams & .Antialiased
         let v0 = points[0]
@@ -204,16 +240,23 @@ impl Painter
             let v1    = points[i]
             let v2    = points[i + 1]
             let prim1 = .pushTriangle(v0, v1, v2, pen.brush.color)
-            if not antialiased do
+            if not antialiased
+            {
                 continue
+            }
 
             // Only the edges of the outline itself carry a fringe; the fan's own spokes are
             // interior and a band on them would show as a seam through the cap.
             .addEdgeAA(prim1, v1, v2)
-            if i == 1 do
+            if i == 1
+            {
                 .addEdgeAA(prim1, v0, v1)
-            if i == count - 2 do
+            }
+
+            if i == count - 2
+            {
                 .addEdgeAA(prim1, v2, v0)
+            }
         }
     }
 
@@ -366,10 +409,16 @@ impl Painter
     // when the pattern asks for none.
     private func outlineOpensRun(cxt: *Context)->bool
     {
-        if cxt.pen.dashStyle == .None do
+        if cxt.pen.dashStyle == .None
+        {
             return not cxt.path.isClosed and cxt.pen.begCapStyle == .None
-        if cxt.firstLine and not cxt.path.isClosed do
+        }
+
+        if cxt.firstLine and not cxt.path.isClosed
+        {
             return cxt.pen.begCapStyle == .None
+        }
+
         return cxt.pen.dashBegCapStyle == .None
     }
 
@@ -400,8 +449,10 @@ impl Painter
         }
 
         let prim1 = .pushTriangle(v0, v1, v2, pen.brush.color)
-        if .curState.paintParams & .Antialiased do
+        if .curState.paintParams & .Antialiased
+        {
             .addEdgeAA(prim1, v1, v2)
+        }
     }
 
     mtd drawRound(center: Math.Vector2, radius: f32, angle0, angle1: f32, pen: Pen)
@@ -429,8 +480,10 @@ impl Painter
             point.x = center.x + (Math.cos(angle) * radius)
             point.y = center.y + (Math.sin(angle) * radius)
             let dist = Math.Geometry.distanceFromPointToLine(point, .sharedRoundTmp[i].pos, .sharedRoundTmp[i + 1].pos)
-            if dist < minDist do
+            if dist < minDist
+            {
                 continue
+            }
 
             .sharedRoundTmp.insertAt(cast(u64, i) + 1, {factor: angle, pos: point})
             i -= 1
@@ -440,8 +493,11 @@ impl Painter
         {
             .scanStrokeArc.clear()
             .scanStrokeArc.add(center)
-            for sample in .sharedRoundTmp do
+            for sample in .sharedRoundTmp
+            {
                 .scanStrokeArc.add(sample.pos)
+            }
+
             .recordStrokeContour(.scanStrokeArc.toSlice())
             return
         }
@@ -452,7 +508,7 @@ impl Painter
         // consecutive triangles overlap there instead of meeting on a point. What that adds is a
         // half-pixel disc around the centre, which is inside the stroke this arc turns around.
         let span     = Math.abs(radius) * 2
-        let apexPull = span > 0 ? Math.min(.aaHalfPathSpace() / span, 0.25'f32) : 0
+        let apexPull = span > 0 ? Math.min(.aaHalfPathSpace() / span, 0.25_f32) : 0
 
         var v1 = startPos
         for i in 1 until .sharedRoundTmp.count
@@ -460,8 +516,11 @@ impl Painter
             let v2    = .sharedRoundTmp[i].pos
             let apex  = center - ((v1 - center) + (v2 - center)) * apexPull
             let prim1 = .pushTriangle(apex, v1, v2, pen.brush.color)
-            if .curState.paintParams & .Antialiased do
+            if .curState.paintParams & .Antialiased
+            {
                 .addEdgeAA(prim1, v1, v2)
+            }
+
             v1 = v2
         }
     }
@@ -480,15 +539,21 @@ impl Painter
             angle1 = Math.atan2(d2.y, d2.x)
         }
 
-        if Math.isEqualEpsilon(angle0, angle1) do
+        if Math.isEqualEpsilon(angle0, angle1)
+        {
             return
+        }
 
         let radius = d1.length()
 
-        if angle1 > angle0 + Math.ConstF32.Pi do
+        if angle1 > angle0 + Math.ConstF32.Pi
+        {
             angle1 -= Math.ConstF32.TwoPi
-        elif angle1 < angle0 - Math.ConstF32.Pi do
+        }
+        else if angle1 < angle0 - Math.ConstF32.Pi
+        {
             angle1 += Math.ConstF32.TwoPi
+        }
 
         .drawRound(p, radius, angle0, angle1, pen)
     }
@@ -498,16 +563,22 @@ impl Painter
         var a = Math.Vector2{d1.x + d2.x, d1.y + d2.y}
         let w = d1.length()
         let l = a.length()
-        if Math.isZeroEpsilon(l) do
+        if Math.isZeroEpsilon(l)
+        {
             return
+        }
 
         var m2 = (2 * w) / l
         if m2 > pen.joinMiterLimit
         {
-            if justMiter do
+            if justMiter
+            {
                 m2 = pen.joinMiterLimit
-            else do
+            }
+            else
+            {
                 return .drawJoinBevel(p, d1, d2, pen)
+            }
         }
 
         a.x = a.x / l * m2 * w
@@ -553,8 +624,10 @@ impl Painter
         // `d1` and `d2` are the two corners the turn leaves apart, relative to the vertex, so
         // their distance bounds the sector this join fills. A minified pass sets a span below
         // which that sector cannot reach a pixel; see 'setMinifiedStrokeLimits'.
-        if (d1 - d2).lengthSquared() < cxt.joinSkipSpanSquared do
+        if (d1 - d2).lengthSquared() < cxt.joinSkipSpanSquared
+        {
             return
+        }
 
         switch #complete cxt.pen.joinStyle
         {
@@ -568,8 +641,10 @@ impl Painter
 
     mtd drawDashEndCap(cxt: *Context, posCap, normalCap: Math.Vector2)
     {
-        if cxt.beginLine or cxt.lastLineInvalid do
+        if cxt.beginLine or cxt.lastLineInvalid
+        {
             return
+        }
 
         // Cap is defined
         if cxt.pen.dashEndCapStyle != DashCapStyle.None
@@ -602,8 +677,10 @@ impl Painter
         if pos.distanceTo(cxt.path.endPoint) < 1
         {
             cxt.prev = cxt.path.endPoint
-            if cxt.path.isClosed do
+            if cxt.path.isClosed
+            {
                 cxt.beginLine = true
+            }
         }
         else
         {
@@ -630,8 +707,10 @@ impl Painter
 
         // If this is still invalid, there's nothing we can:
         cxt.lastLineInvalid = cxt.normal.isZeroEpsilon()
-        if cxt.lastLineInvalid do
+        if cxt.lastLineInvalid
+        {
             return
+        }
 
         // First line cap
         var flatBegin = not cxt.path.isClosed or cxt.pen.dashStyle != .None
@@ -644,14 +723,16 @@ impl Painter
             .drawDashCap(cxt, cxt.pen.dashBegCapStyle, cxt.prev, cxt.capNormal(), 1.0)
         }
         // The run starts flat here, so a border pass closes itself across that end.
-        elif cxt.outline > 0 and cxt.beginLine and outlineOpensRun(cxt)
+        else if cxt.outline > 0 and cxt.beginLine and outlineOpensRun(cxt)
         {
             .drawOutlineButt(cxt, cxt.prev, -n)
         }
 
         // Joints
-        if not cxt.beginLine do
+        if not cxt.beginLine
+        {
             .drawJoin(cxt, cxt.prev, cxt.normalPrev, cxt.normal)
+        }
 
         // Draw quad
         let v0 = cxt.prev - cxt.normal
@@ -664,7 +745,7 @@ impl Painter
         {
             .recordStrokeContour([v0, v1, v2, v3])
         }
-        elif antialiased and .curState.paintParams & .DistanceStrokes
+        else if antialiased and .curState.paintParams & .DistanceStrokes
         {
             // One quad reaching past the contour by the antialiasing margin, carrying the signed
             // distance to the centre line. Two triangles replace the quad and the two bands.
@@ -674,7 +755,7 @@ impl Painter
             let extent = cxt.normal + unit * margin
 
             // The contour sits at the half width, expressed against the span the quad covers.
-            let halfWidth = Math.max(cxt.penSize2, 0.000001'f32)
+            let halfWidth = Math.max(cxt.penSize2, 0.000001_f32)
             let edge      = 0.5 * (halfWidth + margin) / halfWidth
 
             cxt.prim1 = .pushStrokeSegment(cxt.prev, newPos, extent, edge, cxt.pen.brush.color.argb)
@@ -705,15 +786,20 @@ impl Painter
         // If we are starting a line, and the line does not have a cap before, then
         // we must AA the corresponding edge. The measured quad carries no distance along the
         // segment, so its butt end needs the band just as the banded one does.
-        if not .scanStroke and antialiased and
+        if not .scanStroke and
+           antialiased and
            flatBegin and
            cxt.beginLine and
-           (not cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed) do
+           (not cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed)
+        {
             .addEdgeAA(cxt.prim1, v0, v3)
+        }
 
         // To draw end joint
-        if cxt.firstLine do
+        if cxt.firstLine
+        {
             cxt.normalFirst = cxt.normal
+        }
 
         cxt.normalPrev = cxt.normal
         cxt.prev       = newPos
@@ -734,8 +820,11 @@ impl Painter
             if cxt.patternCount != 0
             {
                 cxt.patternSourceCount = cxt.patternCount
-                if cxt.patternCount & 1 do
+                if cxt.patternCount & 1
+                {
                     cxt.patternCount *= 2
+                }
+
                 break
             }
 
@@ -759,12 +848,16 @@ impl Painter
             cxt.patternCount = 4
         }
 
-        if cxt.patternSourceCount == 0 do
+        if cxt.patternSourceCount == 0
+        {
             cxt.patternSourceCount = cxt.patternCount
+        }
 
         cxt.patternTotalLen = 0
-        for i in cxt.patternCount do
+        for i in cxt.patternCount
+        {
             cxt.patternTotalLen += cxt.patternLength(i)
+        }
 
         let repeatCount = cast(s32, (cxt.path.polygon.perimeter / cxt.patternTotalLen))
         cxt.error = cxt.path.polygon.perimeter - (repeatCount * cxt.patternTotalLen)
@@ -778,18 +871,27 @@ impl Painter
         // finish on a blank, but with half the size of the first pattern also.
         cxt.patternIndex        = 0
         cxt.remainingPatternLen = cxt.patternLength(cxt.patternIndex)
-        if not cxt.path.isClosed and (cxt.pen.dashStyle != .Pattern or cxt.pen.dashStartHalf) do
+        if not cxt.path.isClosed and (cxt.pen.dashStyle != .Pattern or cxt.pen.dashStartHalf)
+        {
             cxt.remainingPatternLen *= 0.5
+        }
 
         if cxt.pen.dashOffset
         {
             var phase = cxt.pen.dashOffset
-            if phase < 0 do
+            if phase < 0
+            {
                 phase = cxt.patternTotalLen - (Math.abs(phase) - Math.floor(Math.abs(phase) / cxt.patternTotalLen) * cxt.patternTotalLen)
-            else do
+            }
+            else
+            {
                 phase -= Math.floor(phase / cxt.patternTotalLen) * cxt.patternTotalLen
-            if phase >= cxt.patternTotalLen do
+            }
+
+            if phase >= cxt.patternTotalLen
+            {
                 phase = 0
+            }
 
             while phase >= cxt.remainingPatternLen
             {
@@ -823,7 +925,7 @@ impl Painter
             var lengthInPattern = cxt.remainingPatternLen
 
             // If we are drawing a blank, take care of error adjustement
-            var addBlank = 0'f32
+            var addBlank = 0_f32
             if cxt.divError > 0 and blankPatternIdx
             {
                 addBlank        = Math.min(cxt.error, cxt.divError)
@@ -914,14 +1016,18 @@ impl Painter
         }
 
         // If no skip distance needed, return early
-        if info.distance <= 0 do
+        if info.distance <= 0
+        {
             return info
+        }
 
         let pointCount = cxt.path.polygon.points.count
-        if pointCount < 2 do
+        if pointCount < 2
+        {
             return info
+        }
 
-        var accumulatedDistance = 0'f32
+        var accumulatedDistance = 0_f32
 
         if start
         {
@@ -958,7 +1064,7 @@ impl Painter
             let endPoint  = cxt.path.polygon.offsetPointAt(pointCount - 1, cxt.offsetPath)
             var lastPoint = endPoint
 
-            for i in rangeTo(0'u64, pointCount - 2).reversed()
+            for i in rangeTo(0_u64, pointCount - 2).reversed()
             {
                 let currentPoint = cxt.path.polygon.offsetPointAt(i, cxt.offsetPath)
                 let segmentVec   = lastPoint - currentPoint
@@ -989,8 +1095,10 @@ impl Painter
     // Simplified drawPath method using the optimized approach
     mtd drawPath(cxt: *Context)
     {
-        if cxt.path.polygon.points.isEmpty() do
+        if cxt.path.polygon.points.isEmpty()
+        {
             return
+        }
 
         cxt.penSize    = cxt.pen.size
         cxt.offsetPath = cxt.pen.plotOffset
@@ -1005,7 +1113,7 @@ impl Painter
 
         var actualStartPoint = cxt.path.polygon.offsetPointAt(0, cxt.offsetPath)
         var actualEndPoint   = cxt.path.polygon.offsetPointAt(cxt.path.polygon.points.count - 1, cxt.offsetPath)
-        var startPointIndex  = 0'u64
+        var startPointIndex  = 0_u64
         var endPointIndex    = cxt.path.polygon.points.count - 1
 
         // Apply adjustments if needed
@@ -1063,8 +1171,10 @@ impl Painter
                 {
                     let nextPoint = cxt.path.polygon.offsetPointAt(startPointIndex, cxt.offsetPath)
                     let startTo   = actualStartPoint - nextPoint
-                    if startTo.length() > 0.01 do
+                    if startTo.length() > 0.01
+                    {
                         .drawLine(cxt, nextPoint)
+                    }
                 }
 
                 for i in (startPointIndex + 1) to endPointIndex
@@ -1078,8 +1188,11 @@ impl Painter
                         // a whole quad, its fringes and its join for it are geometry the
                         // device grid cannot show. The last point is always kept, so the
                         // stroke still ends where the contour does.
-                        if i != endPointIndex and p.distanceSquaredTo(cxt.prev) < cxt.minStepSquared do
+                        if i != endPointIndex and p.distanceSquaredTo(cxt.prev) < cxt.minStepSquared
+                        {
                             continue
+                        }
+
                         .drawLine(cxt, p)
                     }
                 }
@@ -1105,7 +1218,7 @@ impl Painter
             .drawOutlineButt(cxt, cxt.prev, cxt.dir)
         }
         // Handle AA and closing as before...
-        elif openEnd and not .scanStroke and (.curState.paintParams & .Antialiased)
+        else if openEnd and not .scanStroke and (.curState.paintParams & .Antialiased)
         {
             // Copy positions out before addEdgeAA: it appends geometry and may
             // reallocate the vertex buffer, invalidating pointers into it.
@@ -1114,7 +1227,7 @@ impl Painter
             let q      = (prim2p + 2).pos
             .addEdgeAA(cxt.prim1, p, q)
         }
-        elif cxt.path.isClosed and not cxt.firstLine and not cxt.beginLine
+        else if cxt.path.isClosed and not cxt.firstLine and not cxt.beginLine
         {
             .drawJoin(cxt, cxt.prev, cxt.normal, cxt.normalFirst)
         }
@@ -1168,8 +1281,10 @@ private func promoteHairline(pen: Pen, deviceScale: f32)->Pen
             }
             else
             {
-                for &value in result.pattern do
+                for &value in result.pattern
+                {
                     value[] *= ratio
+                }
             }
         }
         else
@@ -1218,37 +1333,58 @@ public impl Painter
     mtd drawPath(path: *LinePath, pen: Pen)
     {
         let deviceScale = .textTransformScale()
-        if pen.size <= 0 or deviceScale <= 0 do
+        if pen.size <= 0 or deviceScale <= 0
+        {
             return
+        }
+
         if pen.size * deviceScale >= 1
         {
-            if not .recordScanLine(path, &pen) do
+            if not .recordScanLine(path, &pen)
+            {
                 .strokePath(path, pen)
+            }
+
             return
         }
 
         let promoted = promoteHairline(pen, deviceScale)
-        if not .recordScanLine(path, &promoted) do
+        if not .recordScanLine(path, &promoted)
+        {
             .strokePath(path, promoted)
+        }
     }
 
     // A flat-ended line is one four-edge outline with no join or dash state.
     private mtd recordScanLine(path: const *LinePath, pen: const *Pen)->bool
     {
-        if not .canRecordScanPath() or path.isClosed or path.elements.count != 1 or
-           path.elements[0].type != .Line or pen.brush.type != .SolidColor or
-           pen.dashStyle != .None or pen.begCapStyle != .None or pen.endCapStyle != .None or
-           pen.plotOffset != 0 or strokeHasOutline(pen[]) do
+        if not .canRecordScanPath() or
+           path.isClosed or
+           path.elements.count != 1 or
+           path.elements[0].type != .Line or
+           pen.brush.type != .SolidColor or
+           pen.dashStyle != .None or
+           pen.begCapStyle != .None or
+           pen.endCapStyle != .None or
+           pen.plotOffset != 0 or
+           strokeHasOutline(pen[])
+        {
             return false
+        }
 
         let color = pen.brush.color
-        if not color.a or .isEmptyClippingRect() do
+        if not color.a or .isEmptyClippingRect()
+        {
             return true
-        let a = path.startPoint
-        let b = path.endPoint
+        }
+
+        let a         = path.startPoint
+        let b         = path.endPoint
         let direction = b - a
-        if direction.isZeroEpsilon() do
+        if direction.isZeroEpsilon()
+        {
             return false
+        }
 
         let normal = strokeUnitVector(direction).cross(1) * (pen.size * 0.5)
         let points = [a - normal, b - normal, b + normal, a + normal]
@@ -1273,8 +1409,10 @@ public impl Painter
     private mtd setMinifiedStrokeLimits(cxt: *Context, pen: Pen)
     {
         cxt.minStepSquared, cxt.joinSkipSpanSquared = 0
-        if .curFlattenScale >= 1 do
+        if .curFlattenScale >= 1
+        {
             return
+        }
 
         if pen.dashStyle == .None
         {
@@ -1302,14 +1440,21 @@ public impl Painter
         cxt.pen     = &pen
         cxt.outline = outline
         .setMinifiedStrokeLimits(&cxt, pen)
-        if pen.dashStyle != .None do
-            preparePattern(&cxt)
-
-        if outline == 0 and not strokeHasOutline(pen) and pen.plotOffset == 0 and
-           pen.brush.type == .SolidColor and .canRecordScanPath()
+        if pen.dashStyle != .None
         {
-            if not pen.brush.color.a or .isEmptyClippingRect() do
+            preparePattern(&cxt)
+        }
+
+        if outline == 0 and
+           not strokeHasOutline(pen) and
+           pen.plotOffset == 0 and
+           pen.brush.type == .SolidColor and
+           .canRecordScanPath()
+        {
+            if not pen.brush.color.a or .isEmptyClippingRect()
+            {
                 return
+            }
 
             let first = .scanContourEnds.count
             .scanStroke     = true
@@ -1333,16 +1478,53 @@ public impl Painter
         .stopOverlapMode()
     }
 
+    // A solid stroke needs endpoints and bounds. Dashes still need the full perimeter.
+    private mtd prepareStrokePath(path: *LinePath, pen: Pen)->bool
+    {
+        if pen.dashStyle == .None
+        {
+            path.flattenPoints(.curState.paintQuality, .curFlattenScale)
+            if path.hasPolygonMetrics
+            {
+                return not Math.isZeroEpsilon(path.polygon.perimeter)
+            }
+
+            let points = path.polygon.points.toSlice()
+            if points.count < 2
+            {
+                return false
+            }
+
+            // Measure short two-point contours the same way as Polygon.recompute.
+            if points.count == 2 and points[0].distanceSquaredTo(points[1]) < 0.5 * 0.5
+            {
+                return false
+            }
+
+            // One nonzero segment is enough when the caller only needs to reject empty ink.
+            if not Math.isZeroEpsilon(points[0].distanceTo(points[1]))
+            {
+                return true
+            }
+        }
+
+        path.flatten(.curState.paintQuality, .curFlattenScale)
+        return not Math.isZeroEpsilon(path.polygon.perimeter)
+    }
+
     // One stroking pass over a single path, with the hairline promotion its width may need.
     private mtd strokeOnePath(path: *LinePath, pen: Pen, outline: f32)
     {
         let deviceScale = .textTransformScale()
-        if pen.size <= 0 or deviceScale <= 0 do
+        if pen.size <= 0 or deviceScale <= 0
+        {
             return
+        }
 
-        path.flatten(.curState.paintQuality, .curFlattenScale)
-        if Math.isZeroEpsilon(path.polygon.perimeter) do
+        if not .prepareStrokePath(path, pen)
+        {
             return
+        }
 
         if pen.size * deviceScale >= 1
         {
@@ -1355,14 +1537,18 @@ public impl Painter
 
     private mtd strokePath(path: *LinePath, pen: Pen)
     {
-        path.flatten(.curState.paintQuality, .curFlattenScale)
-        if Math.isZeroEpsilon(path.polygon.perimeter) do
+        if not .prepareStrokePath(path, pen)
+        {
             return
+        }
 
         // The border is the same walk, one width wider and with every cap and dash end pushed
         // out rather than enlarged, so the stroke laid over it leaves exactly that width showing.
-        if strokeHasOutline(pen) do
+        if strokeHasOutline(pen)
+        {
             .strokePathPass(path, strokeOutlinePen(pen), pen.outlineSize)
+        }
+
         .strokePathPass(path, pen, 0)
     }
 
@@ -1373,8 +1559,11 @@ public impl Painter
     // stroked, so one path's border never covers another's stroke.
     mtd drawPath(pathList: *LinePathList, pen: Pen, mode: DrawPathListMode = .Separate)
     {
-        if pathList.paths.isEmpty() do
+        if pathList.paths.isEmpty()
+        {
             return
+        }
+
         if mode == .Separate
         {
             // One path's border must never cover another's stroke, so the whole list is
@@ -1382,24 +1571,35 @@ public impl Painter
             if strokeHasOutline(pen)
             {
                 let border = strokeOutlinePen(pen)
-                for p in pathList.paths do
+                for p in pathList.paths
+                {
                     .strokeOnePath(p, border, pen.outlineSize)
+                }
 
                 var plain = pen
                 plain.outlineSize = 0
-                for p in pathList.paths do
+                for p in pathList.paths
+                {
                     .strokeOnePath(p, plain, 0)
+                }
+
                 return
             }
 
-            for p in pathList.paths do
+            for p in pathList.paths
+            {
                 .drawPath(p, pen)
+            }
+
             return
         }
 
         let deviceScale = .textTransformScale()
-        if pen.size <= 0 or deviceScale <= 0 do
+        if pen.size <= 0 or deviceScale <= 0
+        {
             return
+        }
+
         if pen.size * deviceScale >= 1
         {
             .strokePathList(pathList, pen)
@@ -1415,8 +1615,11 @@ public impl Painter
 
         // One path's border must never cover another's stroke, so the whole list is bordered
         // before any of it is stroked.
-        if strokeHasOutline(pen) do
+        if strokeHasOutline(pen)
+        {
             .strokePathListPass(pathList, strokeOutlinePen(pen), pen.outlineSize)
+        }
+
         .strokePathListPass(pathList, pen, 0)
     }
 
@@ -1438,8 +1641,11 @@ public impl Painter
         {
             cxt.path = p
             cxt.pen  = &pen
-            if pen.dashStyle != .None do
+            if pen.dashStyle != .None
+            {
                 preparePattern(&cxt)
+            }
+
             .drawPath(&cxt)
         }
 
@@ -1448,8 +1654,10 @@ public impl Painter
 
     mtd drawPath(pathList: *LinePathList, color: Color, penSize: f32, mode: DrawPathListMode = .Separate)
     {
-        if pathList.paths.isEmpty() do
+        if pathList.paths.isEmpty()
+        {
             return
+        }
 
         let pen = Pen.createSolid(color, penSize)
         .drawPath(pathList, pen, mode)

@@ -21,10 +21,16 @@ impl Keyboard
     // Returns the key of the Windows virtual-key code `vkey`, or `Key.None` when it has none.
     public func virtualKeyToKey(vkey: VirtualKey)->Key
     {
-        if vkey > 255 do
+        if vkey > 255
+        {
             return Key.None
-        for key in Key where cast(u8, key) == mapVKeyToKey[vkey] do
+        }
+
+        for key in Key where cast(u8, key) == mapVKeyToKey[vkey]
+        {
             return key
+        }
+
         return Key.None
     }
 }
@@ -225,8 +231,11 @@ public impl Keyboard
     func isKeyPressed(key: Key)->bool
     {
         let vkey = Keyboard.mapKeyToVKey[key]
-        if vkey == 0 do
+        if vkey == 0
+        {
             return false
+        }
+
         return GetAsyncKeyState(cast(s32, vkey)) < 0
     }
 
@@ -236,8 +245,11 @@ public impl Keyboard
         let virt = keyToVirtualKey(key)
         var uc: [5] WCHAR
         let res  = ToUnicode(virt, MapVirtualKeyW(virt, MAPVK_VK_TO_VSC), .currentState.nativeState, uc, 4, 0)
-        if res == 1 do
+        if res == 1
+        {
             return cast(rune, uc[0])
-        return 0'rune
+        }
+
+        return 0_rune
     }
 }

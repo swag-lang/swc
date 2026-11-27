@@ -33,10 +33,14 @@ func writeMaskedPixel(dst: [*] u8, pixel: u32, masks: Masks, hasAlpha: bool)
     let b = maskToByte(pixel, masks.b)
     let g = maskToByte(pixel, masks.g)
     let r = maskToByte(pixel, masks.r)
-    if hasAlpha do
+    if hasAlpha
+    {
         writeBgraPixel(dst, b, g, r, masks.a.value ? maskToByte(pixel, masks.a) : 255)
-    else do
+    }
+    else
+    {
         writeBgrPixel(dst, b, g, r)
+    }
 }
 
 func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
@@ -59,7 +63,7 @@ func makePackedPalette(palette: const [*] u8, entrySize, count: u32)->[256] u32
 {
     var colors: [256] u32
     var entry = palette
-    for index in Math.min(count, 256'u32)
+    for index in Math.min(count, 256_u32)
     {
         colors[index] = cast(u32, entry[0]) | (cast(u32, entry[1]) << 8) | (cast(u32, entry[2]) << 16)
         entry         += entrySize
@@ -81,8 +85,11 @@ private func makeBinaryPatterns(colors: const [*] u32)->[16] Math.Simd.U8x16
     for pattern in 16
     {
         var bytes: [16] u8
-        for pixel in 4 do
+        for pixel in 4
+        {
             writePackedBgr(cast([*] u8, &bytes[pixel * 3]), colors[(pattern >> (3 - pixel)) & 1])
+        }
+
         result[pattern] = cast(Math.Simd.U8x16, bytes)
     }
 
@@ -92,8 +99,11 @@ private func makeBinaryPatterns(colors: const [*] u32)->[16] Math.Simd.U8x16
 func makePalettePairs(colors: const [*] u32)->[256] u64
 {
     var pairs: #returntype
-    for value in 256 do
+    for value in 256
+    {
         pairs[value] = cast(u64, colors[value >> 4]) | (cast(u64, colors[value & 15]) << 24)
+    }
+
     return pairs
 }
 
@@ -112,8 +122,10 @@ private func decodePalette1Row(source: const [*] u8, destination: [*] u8, count:
         left -= 8
     }
 
-    for pixel in left do
+    for pixel in left
+    {
         writePackedBgr(dst + pixel * 3, colors[(src[0] >> (7 - pixel)) & 1])
+    }
 }
 
 func decodePalette4Row(source: const [*] u8, destination: [*] u8, count: u64, colors: const [*] u32, pairs: const [*] u64)
@@ -121,6 +133,18 @@ func decodePalette4Row(source: const [*] u8, destination: [*] u8, count: u64, co
     var src  = source
     var dst  = destination
     var left = count
+    while left >= 9
+    {
+        // Each following pair or tail pixel overwrites the extra two bytes.
+        cast(*u64, dst)[]        = pairs[src[0]]
+        cast(*u64, (dst + 6))[]  = pairs[src[1]]
+        cast(*u64, (dst + 12))[] = pairs[src[2]]
+        cast(*u64, (dst + 18))[] = pairs[src[3]]
+        src                      += 4
+        dst                      += 24
+        left                     -= 8
+    }
+
     while left >= 3
     {
         // The next pixel overwrites the two high bytes covered by this store.
@@ -134,37 +158,99 @@ func decodePalette4Row(source: const [*] u8, destination: [*] u8, count: u64, co
     {
         let value = src[0]
         writePackedBgr(dst, colors[value >> 4])
-        if left == 2 do
+        if left == 2
+        {
             writePackedBgr(dst + 3, colors[value & 15])
+        }
     }
 }
 
 func decodePalette8Row(source: const [*] u8, destination: [*] u8, count: u64, colors: const [*] u32)
 {
-    for pixel in count - 1 do
-        cast(*u32, (destination + pixel * 3))[] = colors[source[pixel]]
-    writePackedBgr(destination + (count - 1) * 3, colors[source[count - 1]])
+    var src  = source
+    var dst  = destination
+    var left = count
+    while left >= 5
+    {
+        let first = cast(u64, colors[src[0]]) | (cast(u64, colors[src[1]]) << 24)
+        let last  = cast(u64, colors[src[2]]) | (cast(u64, colors[src[3]]) << 24)
+
+        // The next pixel overwrites the two bytes beyond this block.
+        cast(*u64, dst)[]       = first
+        cast(*u64, (dst + 6))[] = last
+        src                     += 4
+        dst                     += 12
+        left                    -= 4
+    }
+
+    for pixel in left - 1
+    {
+        cast(*u32, (dst + pixel * 3))[] = colors[src[pixel]]
+    }
+
+    writePackedBgr(dst + (left - 1) * 3, colors[src[left - 1]])
+}
+
+private func makePaletteChannels(colors: const [*] u32)->[3] Math.Simd.U8x16
+{
+    var bytes: [3][16] u8
+    for index in 16
+    {
+        let pixel = colors[index]
+        bytes[0][index] = cast #wrap(u8, pixel)
+        bytes[1][index] = cast #wrap(u8, (pixel >> 8))
+        bytes[2][index] = cast(u8, (pixel >> 16))
+    }
+
+    return [cast(Math.Simd.U8x16, bytes[0]), cast(Math.Simd.U8x16, bytes[1]), cast(Math.Simd.U8x16, bytes[2])]
+}
+
+private func decodePalette4Wide(source: const [*] u8, destination: [*] u8, width: u64, colors: const [*] u32, pairs: const [*] u64, channels: const [*] Math.Simd.U8x16)
+{
+    using Math.Simd
+    var x: u64
+    while width - x >= 16
+    {
+        var packed: u64
+        Memory.copy(&packed, source + x / 2, 8)
+        let bytes  = cast #bit(U8x16, splat(packed))
+        let high   = cast #bit(U8x16, (cast #bit(U16x8, bytes) >> 4)) & 15_u8
+        let low    = bytes & 15_u8
+        let lookup = interleaveLow(high, low)
+        PackedPixel.storeTriplets16(destination + x * 3,
+                                    shuffle(channels[0], lookup),
+                                    shuffle(channels[1], lookup),
+                                    shuffle(channels[2], lookup))
+        x += 16
+    }
+
+    decodePalette4Row(source + x / 2, destination + x * 3, width - x, colors, pairs)
 }
 
 func palette4RowFits(source: const [*] u8, count: u64, paletteCount: u32)->bool
 {
     let pairs = count / 2
     let limit = Math.Simd.splat(cast(u8, paletteCount))
-    var i     = 0'u64
+    var i     = 0_u64
     while pairs - i >= 16
     {
         let values = Math.Simd.load(source + i)
-        let high   = cast #bit(Math.Simd.U8x16, ((cast #bit(Math.Simd.U16x8, values) >> 4) & 0x0F0F'u16))
-        if Math.Simd.anyTrue((high >= limit) | ((values & 15'u8) >= limit)) do
+        let high   = cast #bit(Math.Simd.U8x16, ((cast #bit(Math.Simd.U16x8, values) >> 4) & 0x0F0F_u16))
+        if Math.Simd.anyTrue((high >= limit) | ((values & 15_u8) >= limit))
+        {
             return false
+        }
+
         i += 16
     }
 
     for index in i until pairs
     {
         let pair = source[index]
-        if pair >> 4 >= paletteCount or (pair & 15) >= paletteCount do
+        if pair >> 4 >= paletteCount or (pair & 15) >= paletteCount
+        {
             return false
+        }
     }
 
     return not (count & 1) or source[pairs] >> 4 < paletteCount
@@ -173,24 +259,33 @@ func palette4RowFits(source: const [*] u8, count: u64, paletteCount: u32)->bool
 func palette8RowFits(source: const [*] u8, count: u64, paletteCount: u32)->bool
 {
     let limit = Math.Simd.splat(cast(u8, paletteCount))
-    var i     = 0'u64
+    var i     = 0_u64
     while count - i >= 16
     {
-        if Math.Simd.anyTrue(Math.Simd.load(source + i) >= limit) do
+        if Math.Simd.anyTrue(Math.Simd.load(source + i) >= limit)
+        {
             return false
+        }
+
         i += 16
     }
 
-    for index in i until count where source[index] >= paletteCount do
+    for index in i until count where source[index] >= paletteCount
+    {
         return false
+    }
+
     return true
 }
 
 private func palette1RowFits(source: const [*] u8, count: u64)->bool
 {
     let bytes = count / 8
-    for index in bytes where source[index] do
+    for index in bytes where source[index]
+    {
         return false
+    }
+
     let remaining = count & 7
     return not remaining or source[bytes] >> (8 - remaining) == 0
 }
@@ -203,7 +298,7 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
     // A full palette covers every value representable by the packed pixel, so it
     // needs no validation pass. A shorter declared palette must contain every
     // referenced index before decoding starts.
-    if paletteCount < (1'u32 << cast(u32, bitCount))
+    if paletteCount < (1_u32 << cast(u32, bitCount))
     {
         for y in result.height
         {
@@ -217,8 +312,10 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
             default: valid = palette8RowFits(srcRow, width, paletteCount)
             }
 
-            if not valid do
+            if not valid
+            {
                 fail InvalidFormatError{"BMP pixel index exceeds its palette"}
+            }
         }
     }
 
@@ -228,10 +325,17 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
         let colors  = cast(const [*] u32, &entries[0])
         var patterns: [16] Math.Simd.U8x16
         var pairs:    [256] u64
-        if bitCount == 1 do
+        var channels: [3] Math.Simd.U8x16
+        if bitCount == 1
+        {
             patterns = makeBinaryPatterns(colors)
-        elif bitCount == 4 do
-            pairs = makePalettePairs(colors)
+        }
+        else if bitCount == 4
+        {
+            pairs    = makePalettePairs(colors)
+            channels = makePaletteChannels(colors)
+        }
+
         for y in result.height
         {
             let dstY   = topDown ? result.height - y - 1 : y
@@ -241,7 +345,7 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
             switch bitCount
             {
             case 1:  decodePalette1Row(srcRow, dst, width, colors, cast(const [*] Math.Simd.U8x16, &patterns[0]))
-            case 4:  decodePalette4Row(srcRow, dst, width, colors, cast(const [*] u64, &pairs[0]))
+            case 4:  decodePalette4Wide(srcRow, dst, width, colors, cast(const [*] u64, &pairs[0]), channels.buffer)
             default: decodePalette8Row(srcRow, dst, width, colors)
             }
         }
@@ -275,50 +379,101 @@ func decodeUncompressedDirect(result: *Image, src, last: const [*] u8, bitCount:
     }
 }
 
-func decode16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, masks: Masks)
+enum RowFormat16
 {
-    if masks.r.value == 0x7C00 and
-       masks.g.value == 0x03E0 and
+    Scalar
+    Bgr555
+    Bgr565
+    Masked
+}
+
+struct RowDecoder16
+{
+    format: RowFormat16
+    masks:  Masks
+    blue:   FieldScale16
+    green:  FieldScale16
+    red:    FieldScale16
+}
+
+func prepareRowDecoder16(masks: Masks)->RowDecoder16
+{
+    if masks.g.value == 0x03E0 and
        masks.b.value == 0x001F and
-       not masks.a.value
+       not masks.a.value and
+       masks.r.value == 0x7C00
     {
+        return {format: .Bgr555}
+    }
+
+    if masks.g.value == 0x07E0 and
+       masks.b.value == 0x001F and
+       not masks.a.value and
+       masks.r.value == 0xF800
+    {
+        return {format: .Bgr565}
+    }
+
+    if validMask(masks.b, 16) and
+       validMask(masks.g, 16) and
+       validMask(masks.r, 16) and
+       masks.b.bits < 16 and
+       masks.g.bits < 16 and
+       masks.r.bits < 16
+    {
+        return {format: .Masked, blue: prepareField16(masks.b), green: prepareField16(masks.g), red: prepareField16(masks.r)}
+    }
+
+    return {masks: masks}
+}
+
+func decode16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, decoder: const *RowDecoder16)
+{
+    switch decoder.format
+    {
+    case .Bgr555:
         PackedPixel.decodeBgr555Row(source, destination, pixelCount)
-        return
-    }
 
-    if masks.r.value == 0xF800 and
-       masks.g.value == 0x07E0 and
-       masks.b.value == 0x001F and
-       not masks.a.value
-    {
+    case .Bgr565:
         PackedPixel.decodeBgr565Row(source, destination, pixelCount)
-        return
-    }
 
-    let rExpected = masks.r.bits and masks.r.bits <= 8 ? ((1'u32 << masks.r.bits) - 1) << masks.r.shift : 0
-    let gExpected = masks.g.bits and masks.g.bits <= 8 ? ((1'u32 << masks.g.bits) - 1) << masks.g.shift : 0
-    let bExpected = masks.b.bits and masks.b.bits <= 8 ? ((1'u32 << masks.b.bits) - 1) << masks.b.shift : 0
-    if rExpected and
-       gExpected and
-       bExpected and
-       masks.r.value == rExpected and
-       masks.g.value == gExpected and
-       masks.b.value == bExpected and
-       masks.r.shift + masks.r.bits <= 16 and
-       masks.g.shift + masks.g.bits <= 16 and
-       masks.b.shift + masks.b.bits <= 16
-    {
-        PackedPixel.decodeBgrMasked16Row(source, destination, pixelCount, cast(u16, masks.b.value), masks.b.shift, masks.b.bits, cast(u16, masks.g.value), masks.g.shift, masks.g.bits, cast(u16, masks.r.value), masks.r.shift, masks.r.bits)
-        return
-    }
+    case .Masked:
+        var src   = source
+        var dst   = destination
+        var count = pixelCount
+        let blue  = decoder.blue
+        let green = decoder.green
+        let red   = decoder.red
+        while count >= 16
+        {
+            let first  = Math.Simd.load(cast(const [*] u16, src))
+            let second = Math.Simd.load(cast(const [*] u16, (src + 16)))
+            let b      = packField16(first, second, blue)
+            let g      = packField16(first, second, green)
+            let r      = packField16(first, second, red)
+            PackedPixel.storeTriplets16(dst, b, g, r)
+            src   += 32
+            dst   += 48
+            count -= 16
+        }
 
-    var src = source
-    var dst = destination
-    for pixelCount
-    {
-        writeMaskedPixel(dst, cast(const *u16, src)[], masks, false)
-        src += 2
-        dst += 3
+        for count
+        {
+            let pixel = cast(const *u16, src)[]
+            writeBgrPixel(dst, expandField16(pixel, blue), expandField16(pixel, green), expandField16(pixel, red))
+            src += 2
+            dst += 3
+        }
+
+    case .Scalar:
+        var src = source
+        var dst = destination
+        for pixelCount
+        {
+            writeMaskedPixel(dst, cast(const *u16, src)[], decoder.masks, false)
+            src += 2
+            dst += 3
+        }
     }
 }
 
@@ -327,46 +482,82 @@ func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
     let stride = rowStride(result.width, 16)
     try checkBuffer(src, last, stride * cast(u64, result.height))
 
+    let decoder = prepareRowDecoder16(masks)
     for y in result.height
     {
         let dstY   = topDown ? result.height - y - 1 : y
         let srcPix = src + stride * cast(u64, y)
         let dst    = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
-        decode16Row(srcPix, dst, result.width, masks)
+        decode16Row(srcPix, dst, result.width, &decoder)
     }
 }
 
-private struct FieldScale
+private func fieldMultiplier(bits, fractionBits: u8)->u64
 {
-    mask:        u32
-    sourceShift: u8
-    resultShift: u8
-    scale:       u32
-    bias:        u32
+    let range = 1_u64 << bits
+    let max   = range - 1
+    return ((255_u64 << fractionBits) * range + max / 2) / max
 }
 
-private func prepareField(mask: Mask)->FieldScale
+private struct FieldScale32
 {
-    if not mask.value do
+    mask:        Math.Simd.U32x4
+    scale:       Math.Simd.U32x4
+    sourceShift: u8
+}
+
+private func prepareField32(mask: Mask)->FieldScale32
+{
+    if not mask.value
+    {
         return {}
+    }
 
-    let bits = cast(u32, mask.bits)
-
-    // Repeating a field's bits keeps its normalized value while making its maximum at least 255.
-    let resultBits  = bits < 8 ? (7 / bits + 1) * bits : bits
-    let sourceMax   = (1'u32 << bits) - 1
-    let repeatedMax = (1'u32 << resultBits) - 1
-    return FieldScale{mask.value, mask.shift, cast(u8, resultBits), (repeatedMax / sourceMax) * 255, repeatedMax / 2}
+    // Left alignment preserves 23 fractional bits in the high product.
+    let scale = cast(u32, fieldMultiplier(mask.bits, 23))
+    return {Math.Simd.splat(mask.value), Math.Simd.splat(scale), cast(u8, (32 - mask.bits - mask.shift))}
 }
 
 #[Swag.Inline]
-private func expandField(pixels: Math.Simd.U32x4, field: FieldScale)->Math.Simd.U32x4
+private func expandField32(pixels: Math.Simd.U32x4, field: FieldScale32)->Math.Simd.U32x4
 {
-    let samples  = (pixels & field.mask) >> field.sourceShift
-    let weighted = samples * field.scale + field.bias
+    let aligned = (pixels & field.mask) << field.sourceShift
+    return (Math.Simd.mulHigh(aligned, field.scale) + (1_u32 << 22)) >> 23
+}
 
-    // Each quotient is at most 255. In this range the second shift divides exactly by 2^bits - 1.
-    return (weighted + 1 + (weighted >> field.resultShift)) >> field.resultShift
+struct FieldScale16
+{
+    mask:        Math.Simd.U16x8
+    scale:       Math.Simd.U16x8
+    sourceShift: u8
+}
+
+private func prepareField16(mask: Mask)->FieldScale16
+{
+    // Left-align the field so the high product keeps seven fractional bits.
+    // The rounded multiplier preserves exact 8-bit normalization for fields up to 15 bits.
+    let scale = cast(u16, fieldMultiplier(mask.bits, 7))
+    return {Math.Simd.splat(cast(u16, mask.value)), Math.Simd.splat(scale), cast(u8, (16 - mask.bits - mask.shift))}
+}
+
+#[Swag.Inline]
+private func expandField16(pixels: Math.Simd.U16x8, field: FieldScale16)->Math.Simd.U16x8
+{
+    let aligned = (pixels & field.mask) << field.sourceShift
+    return (Math.Simd.mulHigh(aligned, field.scale) + 64_u16) >> 7
+}
+
+#[Swag.Inline]
+private func expandField16(pixel: u16, field: FieldScale16)->u8
+{
+    let aligned = cast(u32, (pixel & field.mask[0])) << field.sourceShift
+    return cast(u8, ((aligned * field.scale[0] + (1_u32 << 22)) >> 23))
+}
+
+#[Swag.Inline]
+private func packField16(first, second: Math.Simd.U16x8, field: FieldScale16)->Math.Simd.U8x16
+{
+    return Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8, expandField16(first, field)), cast #bit(Math.Simd.S16x8, expandField16(second, field)))
 }
 
 private func byteFieldOrder(masks: Masks)->Math.Simd.U8x16
@@ -394,17 +585,12 @@ func decode32(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
                   masks.b.bits == 8 and
                   (not masks.a.value or masks.a.bits == 8) and
                   ((masks.r.shift | masks.g.shift | masks.b.shift | masks.a.shift) & 7) == 0
-    let packed = not aligned and
-                 masks.r.bits <= 24 and
-                 masks.g.bits <= 24 and
-                 masks.b.bits <= 24 and
-                 masks.a.bits <= 24
-    let order  = aligned ? byteFieldOrder(masks) : Math.Simd.splat(0'u8)
-    let opaque = Math.Simd.splat(masks.a.value ? 0'u32 : 0xFF00_0000'u32)
-    let blue   = packed ? prepareField(masks.b) : FieldScale{}
-    let green  = packed ? prepareField(masks.g) : FieldScale{}
-    let red    = packed ? prepareField(masks.r) : FieldScale{}
-    let alpha  = packed ? prepareField(masks.a) : FieldScale{}
+    let order  = aligned ? byteFieldOrder(masks) : Math.Simd.splat(0_u8)
+    let opaque = Math.Simd.splat(masks.a.value ? 0_u32 : 0xFF00_0000_u32)
+    let blue   = aligned ? FieldScale32{} : prepareField32(masks.b)
+    let green  = aligned ? FieldScale32{} : prepareField32(masks.g)
+    let red    = aligned ? FieldScale32{} : prepareField32(masks.r)
+    let alpha  = aligned ? FieldScale32{} : prepareField32(masks.a)
 
     let rows        = topDown ? result.height : 1
     let pixelCount  = cast(u64, result.width) * (topDown ? 1 : cast(u64, result.height))
@@ -426,15 +612,15 @@ func decode32(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
                 count  -= 4
             }
         }
-        elif packed
+        else
         {
             while count >= 4
             {
                 let pixels = Math.Simd.load(cast(const [*] u32, srcPix))
-                let b      = expandField(pixels, blue)
-                let g      = expandField(pixels, green) << 8
-                let r      = expandField(pixels, red) << 16
-                let a      = masks.a.value ? expandField(pixels, alpha) << 24 : opaque
+                let b      = expandField32(pixels, blue)
+                let g      = expandField32(pixels, green) << 8
+                let r      = expandField32(pixels, red) << 16
+                let a      = masks.a.value ? expandField32(pixels, alpha) << 24 : opaque
                 Math.Simd.store(cast([*] u32, dst), b | g | r | a)
                 srcPix += 16
                 dst    += 16

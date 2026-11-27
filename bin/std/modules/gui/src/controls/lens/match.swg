@@ -18,9 +18,9 @@ struct Match
 {
     public
     {
-        matched: bool           // Whether the query answers the text at all.
-        score:   s32            // How well it answers; higher is better, and only `matched` texts compare.
-        spans:   Array'Span     // Byte runs of the text the query matched, in order; empty for an empty query.
+        matched: bool             // Whether the query answers the text at all.
+        score:   s32              // How well it answers; higher is better, and only `matched` texts compare.
+        spans:   Array!{Span}     // Byte runs of the text the query matched, in order; empty for an empty query.
     }
 }
 
@@ -31,7 +31,7 @@ struct Match
 // leaves only the texts to read. A default query is empty and answers every text.
 struct Query
 {
-    runes:    Array'FoldedRune     // Characters of the query, folded as those of a text are.
+    runes:    Array!{FoldedRune}     // Characters of the query, folded as those of a text are.
     oneWord:  bool     // Whether the query holds no space between its characters.
     required: u64      // Positions of the characters other than spaces, among the first 64.
 }
@@ -52,8 +52,10 @@ impl Query
                 continue
             }
 
-            if i < 64 do
-                result.required |= 1'u64 << i
+            if i < 64
+            {
+                result.required |= 1_u64 << i
+            }
         }
 
         return result
@@ -69,13 +71,15 @@ impl Query
     private mtd const holding(text: string, tolerateTypos: bool)->Holding
     {
         let needle = .runes.toSlice()
-        if not .oneWord and needle.count > 64 do
+        if not .oneWord and needle.count > 64
+        {
             return .All
+        }
 
-        var held    = 0'u64     // Characters of a single word found in order.
-        var spare   = 0'u64     // Characters of a single word found in order, but for one left out.
+        var held    = 0_u64     // Characters of a single word found in order.
+        var spare   = 0_u64     // Characters of a single word found in order, but for one left out.
         var missing = .required
-        var offset  = 0'u64
+        var offset  = 0_u64
         while offset < text.count
         {
             var folded: rune
@@ -98,22 +102,35 @@ impl Query
                 if tolerateTypos
                 {
                     spare = Math.max(spare, held + 1)
-                    if spare < needle.count and needle[spare].folded == folded do
+                    if spare < needle.count and needle[spare].folded == folded
+                    {
                         spare += 1
+                    }
                 }
 
-                if folded != needle[held].folded do
+                if folded != needle[held].folded
+                {
                     continue
+                }
+
                 held += 1
-                if held == needle.count do
+                if held == needle.count
+                {
                     return .All
+                }
+
                 continue
             }
 
-            for i in needle.count where needle[i].folded == folded do
-                missing &= ~(1'u64 << i)
-            if missing == 0 do
+            for i in needle.count where needle[i].folded == folded
+            {
+                missing &= ~(1_u64 << i)
+            }
+
+            if missing == 0
+            {
                 return .All
+            }
         }
 
         // Words given in any order are not followed here, but a typo is corrected in one word of
@@ -122,16 +139,22 @@ impl Query
         func typoWordsHeld(needle: const [..] FoldedRune, missing: u64)->bool
         {
             var corrected = false
-            var begin     = 0'u64
+            var begin     = 0_u64
             for i in needle.count + 1
             {
-                if i < needle.count and needle[i].folded != ' ' do
+                if i < needle.count and needle[i].folded != ' '
+                {
                     continue
-                let lacking = missing & (((1'u64 << (i - begin)) - 1) << begin)
+                }
+
+                let lacking = missing & (((1_u64 << (i - begin)) - 1) << begin)
                 if lacking != 0
                 {
-                    if corrected or i - begin < 4 or (lacking & (lacking - 1)) != 0 do
+                    if corrected or i - begin < 4 or (lacking & (lacking - 1)) != 0
+                    {
                         return false
+                    }
+
                     corrected = true
                 }
 
@@ -142,12 +165,21 @@ impl Query
         }
 
         // Only a word of four letters or more is corrected.
-        if not tolerateTypos do
+        if not tolerateTypos
+        {
             return .Nothing
-        if not .oneWord do
+        }
+
+        if not .oneWord
+        {
             return typoWordsHeld(needle, missing) ? .AllButOne : .Nothing
-        if needle.count >= 4 and Math.max(spare, held + 1) >= needle.count do
+        }
+
+        if needle.count >= 4 and Math.max(spare, held + 1) >= needle.count
+        {
             return .AllButOne
+        }
+
         return .Nothing
     }
 }
@@ -204,12 +236,16 @@ func match(query: Query, text: string, tolerateTypos = false)->Match
     // Most texts lack the query's characters, so they are turned down before their characters are
     // folded, and one that holds enough for a typo alone is only tried for a typo.
     let held = query.holding(text, tolerateTypos)
-    if held == .Nothing do
+    if held == .Nothing
+    {
         return result
+    }
 
     let haystack = foldRunes(text)
-    if held != .All or needle.count > haystack.count do
+    if held != .All or needle.count > haystack.count
+    {
         return tolerateTypos ? typoMatch(needle, haystack.toSlice()) : result
+    }
 
     // A whole occurrence: the first one that starts a word, else the first one at all.
     var found = Swag.U64.Max
@@ -222,10 +258,16 @@ func match(query: Query, text: string, tolerateTypos = false)->Match
             break
         }
 
-        if not same do
+        if not same
+        {
             continue
-        if found == Swag.U64.Max do
+        }
+
+        if found == Swag.U64.Max
+        {
             found = start
+        }
+
         if haystack[start].wordStart
         {
             found = start
@@ -239,25 +281,36 @@ func match(query: Query, text: string, tolerateTypos = false)->Match
         let last  = haystack[found + needle.count - 1]
         result.matched = true
         result.score   = WholeScore - cast(s32, found) - cast(s32, haystack.count - needle.count)
-        if first.wordStart do
+        if first.wordStart
+        {
             result.score += WordStartBonus
+        }
+
         result.spans.add(Span{first.offset, last.offset + last.size - first.offset})
         return result
     }
 
     let words = wordMatch(needle, haystack.toSlice())
-    if words.matched do
+    if words.matched
+    {
         return words
+    }
 
     // The initials of the words, in order, each the next word start that carries it.
-    var initials: Array'Span
-    var at = 0'u64
+    var initials: Array!{Span}
+    var at = 0_u64
     for r in needle
     {
-        while at < haystack.count and not (haystack[at].wordStart and haystack[at].folded == r.folded) do
+        while at < haystack.count and not (haystack[at].wordStart and haystack[at].folded == r.folded)
+        {
             at += 1
-        if at == haystack.count do
+        }
+
+        if at == haystack.count
+        {
             break
+        }
+
         initials.add(Span{haystack[at].offset, haystack[at].size})
         at += 1
     }
@@ -271,14 +324,19 @@ func match(query: Query, text: string, tolerateTypos = false)->Match
     }
 
     // The characters in order, each taken as early as it comes.
-    var next      = 0'u64
-    var scattered = 0's32
+    var next      = 0_u64
+    var scattered = 0_s32
     for r in needle
     {
-        while next < haystack.count and haystack[next].folded != r.folded do
+        while next < haystack.count and haystack[next].folded != r.folded
+        {
             next += 1
-        if next == haystack.count do
+        }
+
+        if next == haystack.count
+        {
             return tolerateTypos ? typoMatch(needle, haystack.toSlice()) : Match{}
+        }
 
         let at = haystack[next]
         if not result.spans.isEmpty() and result.spans.back().start + result.spans.back().count == at.offset
@@ -287,8 +345,11 @@ func match(query: Query, text: string, tolerateTypos = false)->Match
         }
         else
         {
-            if not result.spans.isEmpty() do
+            if not result.spans.isEmpty()
+            {
                 scattered += 1
+            }
+
             result.spans.add(Span{at.offset, at.size})
         }
 
@@ -304,24 +365,32 @@ func match(query: Query, text: string, tolerateTypos = false)->Match
 private func wordMatch(needle, haystack: const [..] FoldedRune, tolerateTypos = false)->Match
 {
     var result: #returntype
-    var used:   Array'u64
+    var used:   Array!{u64}
     var corrected = false
-    var begin     = 0'u64
+    var begin     = 0_u64
     while begin < needle.count
     {
         var end = begin
-        while end < needle.count and Unicode.isLetter(needle[end].folded) do
+        while end < needle.count and Unicode.isLetter(needle[end].folded)
+        {
             end += 1
-        if end == begin or (end < needle.count and needle[end].folded != ' ') do
+        }
+
+        if end == begin or (end < needle.count and needle[end].folded != ' ')
+        {
             return Match{}
+        }
 
         var found = false
         for start in haystack.count
         {
             if not haystack[start].wordStart or
                used.contains(start) or
-               start + end - begin > haystack.count do
+               start + end - begin > haystack.count
+            {
                 continue
+            }
+
             var same = true
             for i in end - begin
             {
@@ -333,8 +402,11 @@ private func wordMatch(needle, haystack: const [..] FoldedRune, tolerateTypos = 
                 }
             }
 
-            if not same do
+            if not same
+            {
                 continue
+            }
+
             let first = haystack[start]
             let last  = haystack[start + end - begin - 1]
             result.spans.add({first.offset, last.offset + last.size - first.offset})
@@ -352,10 +424,16 @@ private func wordMatch(needle, haystack: const [..] FoldedRune, tolerateTypos = 
                 var wordEnd = start + 1
                 while wordEnd < haystack.count and
                       Unicode.isLetter(haystack[wordEnd].folded) and
-                      not haystack[wordEnd].wordStart do
+                      not haystack[wordEnd].wordStart
+                {
                     wordEnd += 1
-                if not oneEditApart(needle[begin until end], haystack[start until wordEnd]) do
+                }
+
+                if not oneEditApart(needle[begin until end], haystack[start until wordEnd])
+                {
                     continue
+                }
+
                 let first = haystack[start]
                 let last  = haystack[wordEnd - 1]
                 result.spans.add({first.offset, last.offset + last.size - first.offset})
@@ -366,8 +444,11 @@ private func wordMatch(needle, haystack: const [..] FoldedRune, tolerateTypos = 
             }
         }
 
-        if not found do
+        if not found
+        {
             return Match{}
+        }
+
         begin = end + 1
     }
 
@@ -380,9 +461,12 @@ private func wordMatch(needle, haystack: const [..] FoldedRune, tolerateTypos = 
 // Bounded edit distance, including adjacent transposition, without a matrix allocation.
 private func oneEditApart(a, b: const [..] FoldedRune)->bool
 {
-    if a.count > b.count + 1 or b.count > a.count + 1 do
+    if a.count > b.count + 1 or b.count > a.count + 1
+    {
         return false
-    var i, j  = 0'u64
+    }
+
+    var i, j  = 0_u64
     var edits = 0
     while i < a.count and j < b.count
     {
@@ -394,20 +478,23 @@ private func oneEditApart(a, b: const [..] FoldedRune)->bool
         }
 
         edits += 1
-        if edits > 1 do
+        if edits > 1
+        {
             return false
+        }
+
         if a.count > b.count
         {
             i += 1
         }
-        elif b.count > a.count
+        else if b.count > a.count
         {
             j += 1
         }
-        elif i + 1 < a.count and
-             j + 1 < b.count and
-             a[i].folded == b[j + 1].folded and
-             a[i + 1].folded == b[j].folded
+        else if i + 1 < a.count and
+                j + 1 < b.count and
+                a[i].folded == b[j + 1].folded and
+                a[i + 1].folded == b[j].folded
         {
             i += 2
             j += 2
@@ -429,15 +516,15 @@ private func typoMatch(needle, haystack: const [..] FoldedRune)->Match
 
 // Scores of the three ways a query answers. A whole occurrence always ranks above the initials of
 // the words, and they above characters found in order, whatever their positions.
-private const WholeScore     = 10000's32
-private const WordStartBonus = 1000's32
-private const InitialsScore  = 8000's32
-private const OrderScore     = 5000's32
-private const ScatterCost    = 100's32
+private const WholeScore     = 10000_s32
+private const WordStartBonus = 1000_s32
+private const InitialsScore  = 8000_s32
+private const OrderScore     = 5000_s32
+private const ScatterCost    = 100_s32
 
 // Lowest score of an answer better than scattered letters: a lens that holds one of those leaves
 // the scattered ones out.
-internal const ClearMatchScore = 6000's32
+internal const ClearMatchScore = 6000_s32
 
 // One character of a text, folded for comparison and placed in the bytes of its text.
 private struct FoldedRune
@@ -449,11 +536,11 @@ private struct FoldedRune
 }
 
 // Decodes `text` into folded characters, noting where each word starts.
-private func foldRunes(text: string)->Array'FoldedRune
+private func foldRunes(text: string)->Array!{FoldedRune}
 {
     var result:   #returntype
     var previous: rune
-    var offset = 0'u32
+    var offset = 0_u32
 
     // A text holds at most one character per byte, so one allocation holds them all.
     result.reserve(text.count)
@@ -474,8 +561,10 @@ private func foldRunes(text: string)->Array'FoldedRune
 
         if Unicode.isSpace(c)
         {
-            if not result.isEmpty() and result.back().folded != ' ' do
+            if not result.isEmpty() and result.back().folded != ' '
+            {
                 result.add(FoldedRune{' ', offset, size, false})
+            }
         }
         else
         {
@@ -486,8 +575,11 @@ private func foldRunes(text: string)->Array'FoldedRune
         offset   += size
     }
 
-    if not result.isEmpty() and result.back().folded == ' ' do
+    if not result.isEmpty() and result.back().folded == ' '
+    {
         discard result.popBack()
+    }
+
     return result
 }
 

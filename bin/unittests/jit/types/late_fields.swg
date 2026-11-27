@@ -18,19 +18,27 @@ func jitLateLifecycle()->bool
     var first = JitLateItem{value: 7}
     var box: JitLateBox
 
-    if (box.item != null) or (box.name != null) do
+    if (box.item != null) or (box.name != null)
+    {
         return false
+    }
 
     box.item = &first
     box.name = "hello"
-    if not (box.item != null) or not (box.name != null) do
+    if not (box.item != null) or not (box.name != null)
+    {
         return false
+    }
 
     let p: *JitLateItem = box.item
-    if p.value != 7 do
+    if p.value != 7
+    {
         return false
-    if box.name.count != 5 do
+    }
+    if box.name.count != 5
+    {
         return false
+    }
 
     box.item.value = 8
     return first.value == 8
@@ -62,12 +70,16 @@ func jitLateRelease()->bool
     var box: JitLateBox
 
     box.item = &first
-    if box.item == null do
+    if box.item == null
+    {
         return false
+    }
 
     box.item = null
-    if box.item != null do
+    if box.item != null
+    {
         return false
+    }
 
     // Refilling after a release works like the first fill.
     box.item = &first

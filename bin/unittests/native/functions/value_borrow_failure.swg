@@ -19,13 +19,15 @@ impl Owner
 #[Swag.NoInline]
 func consume(value: Owner, rejected: bool)->u64 fail
 {
-    if rejected do
-        fail 17's32
+    if rejected
+    {
+        fail 17_s32
+    }
     return value.values[0]
 }
 
 #[Swag.NoInline]
-func reject()->bool fail { fail 19's32 }
+func reject()->bool fail { fail 19_s32 }
 
 func forward(drops: *u64, rejected: bool)->u64 fail =>
     try consume(Owner{[23, 0, 0, 0], drops}, rejected)

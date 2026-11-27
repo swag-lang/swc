@@ -8,18 +8,22 @@ private func previewScale(width, height: s32)->f32 => Math.min(1.0, PreviewWidth
 func resizeLibraryPreview(image: *Image)
 {
     let scale = previewScale(image.width, image.height)
-    if scale < 1 do
+    if scale < 1
+    {
         image.resize(Math.max(1, cast(s32, image.width * scale)),
                      Math.max(1, cast(s32, image.height * scale)),
                      .CatmullRom)
+    }
 }
 
 impl Capture
 {
     mtd computePreview()
     {
-        if not .editView do
+        if not .editView
+        {
             return
+        }
 
         .previewBytes.clear()
         .preview = .toImage(previewScale(.width, .height))
@@ -30,8 +34,11 @@ impl Capture
     // pixels, while library-only SCC loads keep the much smaller PNG bytes between paints.
     mtd materializePreview() fail
     {
-        if .preview.isValid() or .previewBytes.isEmpty() do
+        if .preview.isValid() or .previewBytes.isEmpty()
+        {
             return
+        }
+
         .preview = try Image.decode("preview.png", .previewBytes.toSlice())
     }
 
@@ -65,8 +72,11 @@ impl Capture
             for sel in .selection
             {
                 let f = .forms[sel]
-                if f.subKind == .PixSel do
+                if f.subKind == .PixSel
+                {
                     continue
+                }
+
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)
             }
         }
@@ -75,8 +85,11 @@ impl Capture
             for f in .forms where .isFormShown(f)
             {
                 let b: *BaseForm = f
-                if b.subKind == .PixSel do
+                if b.subKind == .PixSel
+                {
                     continue
+                }
+
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)
             }
         }

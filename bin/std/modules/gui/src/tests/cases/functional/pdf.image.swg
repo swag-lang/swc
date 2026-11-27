@@ -5,7 +5,7 @@ using Core, Core.Math, Pixel, Pdf
 // Builds a page holding a single image XObject, drawn over the unit square.
 private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 {
-    var extra: Array'u8
+    var extra: Array!{u8}
     addStreamObject(&extra, 5, dictionary, samples)
 
     let content = "q 10 0 0 10 0 0 cm /Im0 Do Q"
@@ -22,13 +22,13 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width 9 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1 %", decode)
         let bilevel    = imageDocument(dictionary.toString(), oneBit)
         let image      = unwrap onlyItem(bilevel.pages[0], .Image).imageValue()
-        Swag.require(image.width == 9 and image.height == 2)
+        Swag.require(image.width == 9 and image.height == 2 and image.pixelFormat == .Gray8)
         for y in 2
         {
             for x in 9
             {
                 let isWhite = ((x + y) % 2 == 0) == (decode == "")
-                let wanted  = isWhite ? 255'u8 : 0'u8
+                let wanted  = isWhite ? 255_u8 : 0_u8
                 let pixel   = image.pixelColor(cast(s32, x), cast(s32, y))
                 Swag.require(pixel.r == wanted and pixel.g == wanted and pixel.b == wanted)
             }
@@ -68,8 +68,10 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     var graySource:   [80] u8
     var grayActual:   [240] u8
     var grayExpected: [240] u8
-    for index in graySource.count do
+    for index in graySource.count
+    {
         graySource[index] = cast(u8, ((cast(u64, index) * 37 + 11) & 0xFF))
+    }
 
     for idx in 65
     {
@@ -93,8 +95,10 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     var cmykSource:   [80] u8
     var cmykActual:   [64] u8
     var cmykExpected: [64] u8
-    for index in cmykSource.count do
+    for index in cmykSource.count
+    {
         cmykSource[index] = cast(u8, ((cast(u64, index) * 53 + 19) & 0xFF))
+    }
 
     for length in 21
     {
@@ -135,9 +139,55 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 
             expandCmyk8(actual.buffer, source.buffer, 4)
             cmykToRgb(cast(f32, component) / 255.0, cast(f32, component) / 255.0, cast(f32, component) / 255.0, cast(f32, black) / 255.0, scalar)
-            for index in actual.count do
+            for index in actual.count
+            {
                 Swag.require(actual[index] == scalar[index % 3])
+            }
         }
+    }
+}
+
+// Every sixteen-bit sample agrees with the floating-point color conversion.
+#test
+{
+    var source: [512] u8
+    var actual: [256] u8
+    for high in 256
+    {
+        for low in 256
+        {
+            source[low * 2]     = cast(u8, high)
+            source[low * 2 + 1] = cast(u8, low)
+        }
+
+        quantizeRgb16(actual.buffer, source.buffer, actual.count)
+        for low in 256
+        {
+            let value = cast(f32, high * 256 + low) / 65535.0
+            Swag.require(actual[low] == componentByte(value))
+        }
+    }
+}
+
+// Sixteen-bit RGB quantization consumes a full vector and the row's final samples.
+#test
+{
+    var samples: [42] u8
+    for pixel in 7
+    {
+        samples[pixel * 6 + 0] = 0x00
+        samples[pixel * 6 + 1] = 0x81
+        samples[pixel * 6 + 2] = 0xFF
+        samples[pixel * 6 + 3] = 0x7E
+        samples[pixel * 6 + 4] = 0x80
+        samples[pixel * 6 + 5] = 0x80
+    }
+
+    let document = imageDocument("/Type /XObject /Subtype /Image /Width 7 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 16", samples)
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+    for pixel in 7
+    {
+        Swag.require(image.pixelColor(cast(s32, pixel), 0) == Color.fromRgb(1, 254, 128))
     }
 }
 
@@ -172,12 +222,27 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.require(image.pixelColor(3, 0).g == 255)
 }
 
+// The palette mapping honors Decode, while the color key sees the packed sample.
+#test
+{
+    let samples: [4] u8 = [0x07, 0xFD, 0x38, 0xE5]
+    let dictionary      = "/Type /XObject /Subtype /Image /Width 3 /Height 2 /ColorSpace [/Indexed /DeviceRGB 2 <FF0000 00FF00 0000FF>] /BitsPerComponent 4 /Decode [2 0] /Mask [7 7]"
+    let document        = imageDocument(dictionary, samples)
+    let image           = unwrap onlyItem(document.pages[0], .Image).imageValue()
+    Swag.require(image.pixelColor(0, 0) == Color.fromRgb(0, 0, 255))
+    Swag.require(image.pixelColor(1, 0).a == 0)
+    Swag.require(image.pixelColor(2, 0) == Color.fromRgb(255, 0, 0))
+    Swag.require(image.pixelColor(0, 1) == Color.fromRgb(0, 0, 255))
+    Swag.require(image.pixelColor(1, 1) == Color.fromRgb(0, 255, 0))
+    Swag.require(image.pixelColor(2, 1) == Color.fromRgb(255, 0, 0))
+}
+
 // An ICCBased space is reduced to the family its component count names.
 #test
 {
-    var extra: Array'u8
+    var extra: Array!{u8}
     addStreamObject(&extra, 6, "/N 3", cast(const [..] u8, "profile bytes ignored"))
-    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace [/ICCBased 6 0 R] /BitsPerComponent 8", [10'u8, 20, 30])
+    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace [/ICCBased 6 0 R] /BitsPerComponent 8", [10_u8, 20, 30])
 
     let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
     let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
@@ -191,7 +256,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 #test
 {
     let samples: [1] u8 = [0b0100_0000]
-    var extra:   Array'u8
+    var extra:   Array!{u8}
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 2 /Height 1 /ImageMask true", samples)
 
     let content  = "q 1 0 0 rg 10 0 0 10 0 0 cm /Im0 Do Q"
@@ -207,7 +272,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 // Stencil colors and coverage survive row padding and SIMD block boundaries.
 #test
 {
-    for width in [1'u64, 3, 4, 5, 7, 8, 17]
+    for width in [1_u64, 3, 4, 5, 7, 8, 17]
     {
         let rowBytes = (width + 7) / 8
         var samples: [6] u8
@@ -215,12 +280,14 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         {
             for x in width
             {
-                if (x + y) % 3 == 1 do
+                if (x + y) % 3 == 1
+                {
                     samples[y * rowBytes + x / 8] |= cast(u8, 1 << (7 - x % 8))
+                }
             }
         }
 
-        var extra: Array'u8
+        var extra: Array!{u8}
         addStreamObject(&extra, 5, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 2 /ImageMask true", width).toString(), samples[0 until rowBytes * 2])
         let content  = "q 1 0.5 0 rg 10 0 0 10 0 0 cm /Im0 Do Q"
         let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
@@ -236,23 +303,27 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         }
     }
 
-    var extra: Array'u8
-    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 5 /Height 1 /ImageMask true /Decode [0.25 0.75]", [0x50'u8])
+    var extra: Array!{u8}
+    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 5 /Height 1 /ImageMask true /Decode [0.25 0.75]", [0x50_u8])
     let content  = "q 1 0.5 0 rg 10 0 0 10 0 0 cm /Im0 Do Q"
     let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
     let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
-    for x in 5 do
+    for x in 5
+    {
         Swag.require(image.pixelColor(cast(s32, x), 0).a == (x % 2 ? 64 : 191))
+    }
 }
 
 // Every packed stencil byte expands in most-significant-bit-first order.
 #test
 {
     var samples: [256] u8
-    for i in 256 do
+    for i in 256
+    {
         samples[i] = cast(u8, i)
+    }
 
-    var extra: Array'u8
+    var extra: Array!{u8}
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 2048 /Height 1 /ImageMask true", samples)
     let content  = "q 1 0 0 rg 10 0 0 10 0 0 cm /Im0 Do Q"
     let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
@@ -269,14 +340,19 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 {
     var bits:    [256] u8
     var samples: [2048] u8
-    for i in 256 do
+    for i in 256
+    {
         bits[i] = cast(u8, i)
-    for i in 2048 do
+    }
+
+    for i in 2048
+    {
         samples[i] = 100
+    }
 
     for decode in ["", "/Decode [1 0]"]
     {
-        var extra: Array'u8
+        var extra: Array!{u8}
         addStreamObject(&extra, 6, Format.toString("/Type /XObject /Subtype /Image /Width 2048 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 1 %", decode).toString(), bits)
         addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 2048 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", samples)
         let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
@@ -291,7 +367,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     }
 
     let rows:  [6] u8 = [0xAA, 0xF0, 0x80, 0x55, 0x0F, 0x00]
-    var extra: Array'u8
+    var extra: Array!{u8}
     addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 17 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1", rows)
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 17 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", samples[0 until 34])
     let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
@@ -310,9 +386,9 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 // A soft mask becomes the alpha channel, resampled to the size of the image it covers.
 #test
 {
-    var extra: Array'u8
-    addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 2 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", [0'u8, 255])
-    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 4 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", [10'u8, 20, 30, 40])
+    var extra: Array!{u8}
+    addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 2 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", [0_u8, 255])
+    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 4 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", [10_u8, 20, 30, 40])
 
     let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
     let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
@@ -326,7 +402,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 // RGB and coverage samples combine correctly across row and SIMD block boundaries.
 #test
 {
-    for width in [1'u64, 4, 5, 6, 7, 8, 9, 15, 16, 17, 19]
+    for width in [1_u64, 4, 5, 6, 7, 8, 9, 15, 16, 17, 19]
     {
         var samples:  [114] u8
         var coverage: [38] u8
@@ -338,7 +414,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
             coverage[i]        = cast(u8, (i * 53 + 71) % 256)
         }
 
-        var extra: Array'u8
+        var extra: Array!{u8}
         addStreamObject(&extra, 6, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", width).toString(), coverage[0 until width * 2])
         addStreamObject(&extra, 5, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Mask [0 255 0 255 0 255] /SMask 6 0 R", width).toString(), samples[0 until width * 6])
         let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
@@ -370,9 +446,9 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 
     for decode in ["", "/Decode [0 1]", "/Decode [1 0]"]
     {
-        for width in [15'u64, 16, 17, 256]
+        for width in [15_u64, 16, 17, 256]
         {
-            var extra: Array'u8
+            var extra: Array!{u8}
             addStreamObject(&extra, 6, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 %", width, decode).toString(), samples[0 until width])
             addStreamObject(&extra, 5, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", width).toString(), colors[0 until width])
             let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
@@ -391,14 +467,16 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 #test
 {
     var samples: [256] u8
-    for i in 256 do
+    for i in 256
+    {
         samples[i] = cast(u8, i)
+    }
 
     let lows:  [8] s64 = [-2, 254, 10, 300, 10, -500, 0, 128]
     let highs: [8] s64 = [3, 300, 20, 500, 9, -1, 255, 128]
     for range in 8
     {
-        for width in [15'u64, 16, 17, 256]
+        for width in [15_u64, 16, 17, 256]
         {
             let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Mask [% %]", width, lows[range], highs[range])
             let document   = imageDocument(dictionary.toString(), samples[0 until width])
@@ -416,15 +494,20 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 #test
 {
     var samples: [34] u8
-    for i in 34 do
+    for i in 34
+    {
         samples[i] = cast(u8, i % 3)
+    }
+
     let dictionary = "/Type /XObject /Subtype /Image /Width 17 /Height 2 /ColorSpace [/Indexed /DeviceRGB 2 <FF0000 00FF00 0000FF>] /BitsPerComponent 8 /Mask [1 1]"
     let document   = imageDocument(dictionary, samples)
     let image      = unwrap onlyItem(document.pages[0], .Image).imageValue()
     for y in 2
     {
-        for x in 17 do
+        for x in 17
+        {
             Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)).a == (samples[y * 17 + x] == 1 ? 0 : 255))
+        }
     }
 }
 
@@ -433,7 +516,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 {
     let coverage: [4] u8  = [0, 64, 128, 255]
     let samples:  [15] u8 = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100]
-    var extra:    Array'u8
+    var extra:    Array!{u8}
     addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", coverage)
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 5 /Height 3 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", samples)
     let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
@@ -441,20 +524,24 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
     for y in 3
     {
-        for x in 5 do
+        for x in 5
+        {
             Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)).a == coverage[(y * 2 / 3) * 2 + x * 2 / 5])
+        }
     }
 
     let larger:  [15] u8 = [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210]
-    var reduced: Array'u8
+    var reduced: Array!{u8}
     addStreamObject(&reduced, 6, "/Type /XObject /Subtype /Image /Width 5 /Height 3 /ColorSpace /DeviceGray /BitsPerComponent 8", larger)
     addStreamObject(&reduced, 5, "/Type /XObject /Subtype /Image /Width 3 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", samples[0 until 6])
     let reducedDocument = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), reduced.toSlice()).toSlice())
     let reducedImage    = unwrap onlyItem(reducedDocument.pages[0], .Image).imageValue()
     for y in 2
     {
-        for x in 3 do
+        for x in 3
+        {
             Swag.require(reducedImage.pixelColor(cast(s32, x), cast(s32, y)).a == larger[(y * 3 / 2) * 5 + x * 5 / 3])
+        }
     }
 }
 
@@ -469,12 +556,17 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         let targetWidth = targetWidths[caseIndex]
         var coverage: [34] u8
         var samples:  [34] u8
-        for i in sourceWidth * 2 do
+        for i in sourceWidth * 2
+        {
             coverage[i] = cast(u8, i * 7)
-        for i in targetWidth * 2 do
-            samples[i] = 100
+        }
 
-        var extra: Array'u8
+        for i in targetWidth * 2
+        {
+            samples[i] = 100
+        }
+
+        var extra: Array!{u8}
         addStreamObject(&extra, 6, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", sourceWidth).toString(), coverage[0 until sourceWidth * 2])
         addStreamObject(&extra, 5, Format.toString("/Type /XObject /Subtype /Image /Width % /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R", targetWidth).toString(), samples[0 until targetWidth * 2])
         let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
@@ -482,8 +574,10 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
         for y in 2
         {
-            for x in targetWidth do
+            for x in targetWidth
+            {
                 Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)).a == coverage[y * sourceWidth + x * sourceWidth / targetWidth])
+            }
         }
     }
 }
@@ -503,9 +597,9 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 // An inline image carries its dictionary in the content stream, with abbreviated keys.
 #test
 {
-    var content: Array'u8
+    var content: Array!{u8}
     content.add(cast(const [..] u8, "q 20 0 0 10 0 0 cm BI /W 2 /H 1 /CS /RGB /BPC 8 ID "))
-    content.add([255'u8, 0, 0, 0, 0, 255])
+    content.add([255_u8, 0, 0, 0, 0, 255])
     content.add(cast(const [..] u8, " EI Q"))
 
     let document = expect Document.decode(singlePagePdf("", content.toSlice(), "").toSlice())
@@ -536,10 +630,14 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     for item in page.items where item.kind == .Image
     {
         let image = unwrap item.imageValue()
-        if image.width == 64 do
+        if image.width == 64
+        {
             fax = image
-        elif image.width == 48 do
+        }
+        else if image.width == 48
+        {
             photo = image
+        }
     }
 
     Swag.require(fax != null and photo != null)
@@ -581,7 +679,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     let bytes   = encoded.toArray()
     let jpeg    = expect Image.decode("photo.jpg", bytes.toSlice())
 
-    var extra: Array'u8
+    var extra: Array!{u8}
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 7 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /SMask 6 0 R", bytes.toSlice())
     addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 7 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", mask)
     let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
@@ -603,8 +701,8 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 // An unsupported codec is reported instead of producing a wrong picture.
 #test
 {
-    var extra: Array'u8
-    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /JBIG2Decode", [0'u8, 0])
+    var extra: Array!{u8}
+    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /JBIG2Decode", [0_u8, 0])
 
     let content = "q 10 0 0 10 0 0 cm /Im0 Do Q"
     let bytes   = singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice())
@@ -657,4 +755,242 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     // A partly transparent picture also reaches the rasterizer.
     let rendered = expect decoded.editPage(0).render({scale: 1})
     Swag.require(rendered.isValid() and rendered.width == 200)
+}
+
+// A smooth gray image and its alpha mask can each use the PNG Sub predictor.
+#test
+{
+    const Width  = 513
+    const Height = 513
+    var source = Image.create(Width, Height, .GrayAlpha8)
+    for y in Height
+    {
+        for x in Width
+        {
+            let offset = (y * Width + x) * 2
+            source.pixels[offset]     = cast(u8, (x / 2 + y / 3) & 255)
+            source.pixels[offset + 1] = cast(u8, (128 + x / 6 + y / 7) & 255)
+        }
+    }
+
+    var page = Page.create(128, 128)
+    page.addImage(source, 0, 0, 128, 128)
+    var document = Document.create()
+    document.addPage(#move page)
+    let bytes = expect document.encode()
+    let text  = String.from(cast(string, bytes.toSlice()))
+    const Filter = "/DecodeParms << /Predictor 15 /Colors 1 /Columns 513 >>"
+    let first = text.indexOf(Filter)
+    Swag.require(first != Swag.U64.Max)
+    Swag.require(text.indexOf(Filter, first + Filter.count) != Swag.U64.Max)
+
+    let decoded = expect Document.decode(bytes.toSlice())
+    let output  = unwrap decoded.pages[0].items[0].imageValue()
+    for y in Height
+    {
+        for x in Width
+        {
+            Swag.require(output.pixelColor(x, y) == source.pixelColor(x, y))
+        }
+    }
+}
+
+// A cached bitmap stays alive in both pages after the reader releases its own reference.
+#test
+{
+    let file = Testing.tempFilePath("pdf-shared-image-", ".pdf")
+    defer discard catch File.delete(file)
+    let source = imageDocument("/Type /XObject /Subtype /Image /Width 2 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8",
+                               [19_u8, 28, 240, 107, 80, 17])
+    expect source.save(file)
+
+    func laterPage(path: string)->Page
+    {
+        var reader = expect Reader.open(path)
+        let first  = expect reader.loadPage(0)
+        var second = #move expect reader.loadPage(0)
+        Swag.require(first.items.count == 1 and second.items.count == 1)
+        Swag.require(first.items[0].imageValue() == second.items[0].imageValue())
+        return #move second
+    }
+
+    let page   = laterPage(file)
+    let pixels = unwrap page.items[0].imageValue()
+    Swag.require(pixels.pixelColor(0, 0) == Color.fromRgb(19, 28, 240))
+}
+
+// Editing coverage separates one page's image from any other owners.
+#test
+{
+    var image  = Image.create(1, 1, .RGBA8, [9_u8, 17, 92, 255])
+    var first  = #move ImageReference.create(#move image)
+    let other  = first
+    let target = first.edit()
+    target.pixels[3] = 64
+    Swag.require(first.value()!.pixelColor(0, 0).a == 64)
+    Swag.require(other.value()!.pixelColor(0, 0).a == 255)
+}
+
+// An unmasked DeviceRGB JPEG survives load and save with its compressed samples intact.
+#test
+{
+    let file    = guiTestDataPath("pdfbox-jpeg-rgb.pdf")
+    let loaded  = expect Document.load(file)
+    let encoded = expect loaded.encode()
+    let saved   = expect Document.decode(encoded.toSlice())
+    var found   = false
+    for item, index in loaded.pages[0].items where item.kind == .Image
+    {
+        let before = item.image.encoded().bytes.toSlice()
+        if not before.count
+        {
+            continue
+        }
+
+        found = true
+        let after = saved.pages[0].items[index].image.encoded().bytes.toSlice()
+        Swag.require(Slice.equals(before, after))
+
+        var changed  = item.image
+        let editable = changed.edit()
+        Swag.require(editable.isValid() and not changed.encoded().bytes.count)
+        Swag.require(item.image.encoded().bytes.toSlice().count == before.count)
+
+        let pixels     = unwrap item.imageValue()
+        let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Decode [1 0 1 0 1 0]", pixels.width, pixels.height)
+        let custom     = imageDocument(dictionary.toString(), before)
+        Swag.require(not custom.pages[0].items[0].image.encoded().bytes.toSlice().count)
+    }
+
+    Swag.require(found)
+}
+
+// A one-component progressive JPEG retains both its samples and its PDF color space.
+#test
+{
+    let bytes = expect File.readAllBytes(guiTestDataPath("pdf-device-gray.jpg"))
+    const Dictionary = "/Type /XObject /Subtype /Image /Width 48 /Height 32 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /DCTDecode"
+    let source  = imageDocument(Dictionary, bytes.toSlice())
+    let encoded = expect source.encode()
+    let saved   = expect Document.decode(encoded.toSlice())
+    let image   = saved.pages[0].items[0].image
+    Swag.require(image.encoded().channels == 1)
+    Swag.require(Slice.equals(bytes.toSlice(), image.encoded().bytes.toSlice()))
+}
+
+// A Flate predictor keeps its parameters, image samples and interpolation request.
+#test
+{
+    var rows: [17 * 16] u8
+    for y in 16
+    {
+        let row = cast(u64, y) * 17
+        rows[row]     = 1
+        rows[row + 1] = 64
+        for x in 2 until 17
+        {
+            rows[row + x] = 5
+        }
+    }
+
+    var zlib: Compress.ZLib
+    let bytes = expect zlib.compress(rows)
+    const Dictionary = "/Type /XObject /Subtype /Image /Width 16 /Height 16 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Columns 16 >> /Interpolate true"
+    let source  = imageDocument(Dictionary, bytes.toSlice())
+    let encoded = expect source.encode()
+    let saved   = expect Document.decode(encoded.toSlice())
+    let image   = saved.pages[0].items[0].image
+    let stream  = image.encoded()
+    Swag.require(stream.filter == .Flate and
+                 stream.channels == 1 and
+                 stream.predictor == 15 and
+                 stream.interpolate)
+    Swag.require(Slice.equals(bytes.toSlice(), stream.bytes.toSlice()))
+    Swag.require(image.value()!.pixelColor(15, 15) == Color.fromRgb(139, 139, 139))
+}
+
+// Identical compressed bytes under different image dimensions are distinct objects.
+#test
+{
+    var samples: [256] u8
+    for i in samples.count
+    {
+        samples[i] = 128
+    }
+
+    var zlib:  Compress.ZLib
+    let bytes = expect zlib.compress(samples)
+    var extra: Array!{u8}
+    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 16 /Height 16 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", bytes.toSlice())
+    addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 8 /Height 32 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", bytes.toSlice())
+    let commands = "q 5 0 0 5 0 0 cm /Im0 Do Q q 5 0 0 5 5 0 cm /Im1 Do Q"
+    let fixture  = singlePagePdf("/XObject << /Im0 5 0 R /Im1 6 0 R >>", cast(const [..] u8, commands), extra.toSlice())
+    let source   = expect Document.decode(fixture.toSlice())
+    let encoded  = expect source.encode()
+    let saved    = expect Document.decode(encoded.toSlice())
+    let first    = unwrap saved.pages[0].items[0].imageValue()
+    let second   = unwrap saved.pages[0].items[1].imageValue()
+    Swag.require(first.width == 16 and first.height == 16)
+    Swag.require(second.width == 8 and second.height == 32)
+}
+
+// A fax image retains its bit polarity, row parameter and end-of-block flag through save.
+#test
+{
+    let bytes = expect File.readAllBytes(guiTestDataPath("pdf.ccitt-g4.bin"))
+    for height in [48, 60]
+    {
+        let rows       = height == 48 ? " /Rows 48" : ""
+        let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width 64 /Height % /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /CCITTFaxDecode /DecodeParms << /K -1 /Columns 64% /BlackIs1 true /EndOfBlock false >>", height, rows)
+        let source     = imageDocument(dictionary.toString(), bytes.toSlice())
+        let encoded    = expect source.encode()
+        let saved      = expect Document.decode(encoded.toSlice())
+        let image      = saved.pages[0].items[0].image
+        let stream     = image.encoded()
+        Swag.require(image.value()!.height == height)
+        Swag.require(stream.filter == .Ccitt and stream.bits == 1 and stream.channels == 1)
+        Swag.require(stream.fax.k == -1 and stream.fax.rows == (height == 48 ? 48 : -1))
+        Swag.require(stream.fax.blackIs1 and not stream.fax.endOfBlock)
+        Swag.require(Slice.equals(stream.bytes.toSlice(), bytes.toSlice()))
+    }
+}
+
+// The same image can appear below two different page resource dictionaries.
+#test
+{
+    let source   = Image.create(1, 1, .RGB8, [12_u8, 36, 249])
+    var document = Document.create()
+    for pageIndex in 2
+    {
+        var page = Page.create(20, 20)
+        page.addImage(source, cast(f32, pageIndex), 0, 10, 10)
+        document.addPage(#move page)
+    }
+
+    let bytes   = expect document.encode()
+    let decoded = expect Document.decode(bytes.toSlice())
+    let first   = unwrap decoded.pages[0].items[0].imageValue()
+    let second  = unwrap decoded.pages[1].items[0].imageValue()
+    Swag.require(first == second)
+    Swag.require(second.pixelColor(0, 0) == Color.fromRgb(12, 36, 249))
+}
+
+// An image that names a color space can resolve to a different model on each page.
+#test
+{
+    var bytes: Array!{u8}
+    bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
+    addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
+    addObject(&bytes, 2, "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>")
+    addObject(&bytes, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 20 20] /Resources << /ColorSpace << /Shared /DeviceGray >> /XObject << /Im 6 0 R >> >> /Contents 5 0 R >>")
+    addObject(&bytes, 4, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 20 20] /Resources << /ColorSpace << /Shared /DeviceRGB >> /XObject << /Im 6 0 R >> >> /Contents 5 0 R >>")
+    addStreamObject(&bytes, 5, "", cast(const [..] u8, "q 10 0 0 10 0 0 cm /Im Do Q"))
+    addStreamObject(&bytes, 6, "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /Shared /BitsPerComponent 8", [52_u8, 69, 101])
+    bytes.add(cast(const [..] u8, "trailer\n<< /Root 1 0 R >>\n%%EOF\n"))
+
+    let document = expect Document.decode(bytes.toSlice())
+    let gray     = unwrap document.pages[0].items[0].imageValue()
+    let rgb      = unwrap document.pages[1].items[0].imageValue()
+    Swag.require(gray.pixelColor(0, 0) == Color.fromRgb(52, 52, 52))
+    Swag.require(rgb.pixelColor(0, 0) == Color.fromRgb(52, 69, 101))
 }

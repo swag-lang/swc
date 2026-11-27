@@ -10,9 +10,9 @@ using Swag, Core
 func orientSample()->Image
 {
     // The buffer is stored bottom row first.
-    let bytes = [5'u8, 0'u8, 0'u8, 255'u8, 6'u8, 0'u8, 0'u8, 255'u8,
-                 3'u8, 0'u8, 0'u8, 255'u8, 4'u8, 0'u8, 0'u8, 255'u8,
-                 1'u8, 0'u8, 0'u8, 255'u8, 2'u8, 0'u8, 0'u8, 255'u8]
+    let bytes = [5_u8, 0_u8, 0_u8, 255_u8, 6_u8, 0_u8, 0_u8, 255_u8,
+                 3_u8, 0_u8, 0_u8, 255_u8, 4_u8, 0_u8, 0_u8, 255_u8,
+                 1_u8, 0_u8, 0_u8, 255_u8, 2_u8, 0_u8, 0_u8, 255_u8]
     return Image.create(2, 3, .RGBA8, bytes)
 }
 
@@ -22,10 +22,15 @@ func orientRows(image: const *Image)->String
     var result: #returntype
     for y in image.height
     {
-        if y do
+        if y
+        {
             result += "/"
-        for x in image.width do
+        }
+
+        for x in image.width
+        {
             result += Format.toString("%", image.pixelColor(x, y).r)
+        }
     }
 
     return result
@@ -61,18 +66,21 @@ func orientRows(image: const *Image)->String
 #test
 {
     // A little-endian TIFF header with one directory holding Orientation = 6.
-    let tiff = [0x49'u8, 0x49'u8, 0x2A'u8, 0x00'u8, 0x08'u8, 0x00'u8, 0x00'u8, 0x00'u8,
-                0x01'u8, 0x00'u8,
-                0x12'u8, 0x01'u8, 0x03'u8, 0x00'u8, 0x01'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x06'u8, 0x00'u8, 0x00'u8, 0x00'u8,
-                0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8]
+    let tiff = [0x49_u8, 0x49_u8, 0x2A_u8, 0x00_u8, 0x08_u8, 0x00_u8, 0x00_u8, 0x00_u8,
+                0x01_u8, 0x00_u8,
+                0x12_u8, 0x01_u8, 0x03_u8, 0x00_u8, 0x01_u8, 0x00_u8, 0x00_u8, 0x00_u8, 0x06_u8, 0x00_u8, 0x00_u8, 0x00_u8,
+                0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8]
 
     var record: ImageMetadata
     record.signature = 1
     record.tag       = "Exif"
-    record.value.add(0'u8)
-    for byte in tiff do
+    record.value.add(0_u8)
+    for byte in tiff
+    {
         record.value.add(byte)
-    var records: Array'ImageMetadata
+    }
+
+    var records: Array!{ImageMetadata}
     records.add(#move record)
     Swag.require(Exif.orientationOf(records.toSlice()) == 6)
 
@@ -86,9 +94,9 @@ func orientRows(image: const *Image)->String
     Swag.require(Exif.orientationOf(taggedImage.metadata.toSlice()) == 1)
 
     records[0].value.clear()
-    records[0].value.add(0x49'u8)
+    records[0].value.add(0x49_u8)
     Swag.require(Exif.orientationOf(records.toSlice()) == 1)
-    var none: Array'ImageMetadata
+    var none: Array!{ImageMetadata}
     Swag.require(Exif.orientationOf(none.toSlice()) == 1)
 }
 
@@ -98,8 +106,8 @@ func orientRows(image: const *Image)->String
     var littleEndian: ImageMetadata
     littleEndian.signature = 1
     littleEndian.tag       = "Exif"
-    littleEndian.value.add(0'u8)
-    littleEndian.value.add([0x49'u8, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
+    littleEndian.value.add(0_u8)
+    littleEndian.value.add([0x49_u8, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
                             0x01, 0x00,
                             0x12, 0x01, 0x03, 0x00, 0x03, 0x00, 0x00, 0x00,
                             0x1A, 0x00, 0x00, 0x00,
@@ -117,16 +125,18 @@ func orientRows(image: const *Image)->String
 // Orientation normalization also handles a big-endian TIFF header without rewriting other fields.
 #test
 {
-    let tiff = [0x4D'u8, 0x4D'u8, 0x00'u8, 0x2A'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x08'u8,
-                0x00'u8, 0x01'u8,
-                0x01'u8, 0x12'u8, 0x00'u8, 0x03'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x01'u8,
-                0x00'u8, 0x06'u8, 0x00'u8, 0x00'u8,
-                0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8]
+    let tiff = [0x4D_u8, 0x4D_u8, 0x00_u8, 0x2A_u8, 0x00_u8, 0x00_u8, 0x00_u8, 0x08_u8,
+                0x00_u8, 0x01_u8,
+                0x01_u8, 0x12_u8, 0x00_u8, 0x03_u8, 0x00_u8, 0x00_u8, 0x00_u8, 0x01_u8,
+                0x00_u8, 0x06_u8, 0x00_u8, 0x00_u8,
+                0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8]
     var record: ImageMetadata
     record.signature = 1
     record.tag       = "Exif"
-    for byte in tiff do
+    for byte in tiff
+    {
         record.value.add(byte)
+    }
 
     var image = Image.create(2, 3, .RGBA8)
     image.metadata.add(#move record)

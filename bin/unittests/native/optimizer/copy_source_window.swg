@@ -27,10 +27,14 @@ func acrossBranch(a, b, mask: u64)->u64
 {
     var value = a ^ b
     var other = b
-    if mask == 0 do
+    if mask == 0
+    {
         other = ~other
-    else do
+    }
+    else
+    {
         value &= mask
+    }
     return value ^ other
 }
 
@@ -43,7 +47,7 @@ func narrowSnapshot(a: u32, b: u64)->u64
 
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA]
     for a in values
     {
         for b in values

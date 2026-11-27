@@ -52,8 +52,10 @@ using Swag, Core
     password.clear()
     Swag.require(password.isEmpty())
     Swag.require(password.edit.text() == "")
-    for byte in password.storage do
+    for byte in password.storage
+    {
         Swag.require(byte == 0)
+    }
 }
 
 // A password field refuses dropped text: it would show in clear and never reach the password.
@@ -85,7 +87,7 @@ using Swag, Core
 
     password.byteCount = PasswordEdit.MaximumByteLength
     password.runeCount = PasswordEdit.MaximumByteLength
-    var mask: Array'u8
+    var mask: Array!{u8}
     mask.resize(PasswordEdit.MaximumByteLength)
     Swag.memset(mask.storage(), '*', mask.count)
     password.edit.setText(Swag.makeString(mask.buffer, mask.count), false)
@@ -99,10 +101,16 @@ using Swag, Core
     Swag.require(password.byteCount == PasswordEdit.MaximumByteLength)
     Swag.require(password.runeCount == PasswordEdit.MaximumByteLength)
     Swag.require(password.edit.text().count == PasswordEdit.MaximumByteLength)
-    for byte in password.bytes() do
+    for byte in password.bytes()
+    {
         Swag.require(byte == 'a')
-    for mask in password.edit.text() do
+    }
+
+    for mask in password.edit.text()
+    {
         Swag.require(mask == '*')
+    }
+
     Swag.require(changes == 0)
     Swag.require(password.edit.selBeg == 500 and password.edit.selEnd == 501)
 }

@@ -49,12 +49,16 @@ the code after a join reads what the partitions wrote.
 {
     var squares: [8] u64
 
-    parallel for |&squares| index in 8 do
+    parallel for |&squares| index in 8
+    {
         squares[index] = index * index
+    }
 
     // The join is the edge: every partition's write happens before these reads.
-    for index in 8 do
+    for index in 8
+    {
         Swag.require(squares[index] == index * index)
+    }
 }
 
 /**
@@ -83,7 +87,7 @@ always sequentially consistent.
 #test
 {
     var data:  u64
-    var ready: Swag.AtomicValue'u32
+    var ready: Swag.AtomicValue!{u32}
     var task:  Swag.Task
 
     task.submit(func|&data, &ready|()
@@ -124,10 +128,12 @@ atomic operation.
 */
 #test
 {
-    var visited: Swag.AtomicValue'u32
+    var visited: Swag.AtomicValue!{u32}
 
-    parallel for |&visited| 16 do
+    parallel for |&visited| 16
+    {
         visited.add(1)
+    }
 
     Swag.require(visited.loadRelaxed() == 16)
 }

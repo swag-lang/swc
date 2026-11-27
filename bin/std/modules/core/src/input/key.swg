@@ -213,14 +213,20 @@ public enum Key
 // Reading a compiler-declared enum value avoids constructing an enum from a runtime integer.
 public func keyFromStorageIndex(index: u64)->Key
 {
-    if index >= Key.count do
+    if index >= Key.count
+    {
         Swag.panic("invalid keyboard storage index", #curlocation)
+    }
 
     let typeEnum = assume cast(const *TypeInfoEnum, #typeof(Key))
     let value    = cast(s32, index)
-    for &caseInfo in typeEnum.values where caseInfo.value do
-        if cast(const *s32, caseInfo.value)[] == value do
+    for &caseInfo in typeEnum.values where caseInfo.value
+    {
+        if cast(const *s32, caseInfo.value)[] == value
+        {
             return cast(const *Key, caseInfo.value)[]
+        }
+    }
 
     Swag.panic("keyboard enum values do not match storage indexes", #curlocation)
 }
@@ -233,25 +239,35 @@ public func formatKeyShortcut(modifiers: KeyModifiers, key: Key)->String
 {
     var result: #returntype
 
-    if modifiers & .Alt do
+    if modifiers & .Alt
+    {
         result += "Alt"
+    }
 
     if modifiers & .Control
     {
-        if not result.isEmpty() do
+        if not result.isEmpty()
+        {
             result += " "
+        }
+
         result += "Ctrl"
     }
 
     if modifiers & .Shift
     {
-        if not result.isEmpty() do
+        if not result.isEmpty()
+        {
             result += " "
+        }
+
         result += "Shift"
     }
 
-    if not result.isEmpty() do
+    if not result.isEmpty()
+    {
         result += " "
+    }
 
     var k = key
     switch key

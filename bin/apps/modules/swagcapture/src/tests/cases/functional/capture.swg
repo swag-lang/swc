@@ -26,8 +26,11 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     var inspected: bool
     host.app.sigFrame += func|host = &host, main, inspected = &inspected|(_)
     {
-        if inspected[] do
+        if inspected[]
+        {
             return
+        }
+
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items.count == 20)
         Swag.require(menu.items[0]!.id == ActionCapture.Area)
@@ -84,7 +87,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     g_Exit, g_GrabDone       = false
     g_StartGrabX, g_EndGrabX = 0
     g_StartGrabY, g_EndGrabY = 0
-    let wnd = Wnd.create'CaptureRectWnd(&f.gui.root, {0, 0, 320, 240})
+    let wnd = Wnd.create!{CaptureRectWnd}(&f.gui.root, {0, 0, 320, 240})
     wnd.main        = f.main
     wnd.focusPolicy = .Click
     wnd.setFocus()
@@ -185,31 +188,31 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     testAddMonitor(f.main, 3)
 
     var evt = Gui.Testing.commandState(ActionCapture.DoIt)
-    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.DoIt, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, ActionCapture.DoIt, &evt))
     Swag.require(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.Area)
-    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Area, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, ActionCapture.Area, &evt))
     Swag.require(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.LastArea)
-    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.LastArea, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, ActionCapture.LastArea, &evt))
     Swag.require(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.FullScreen)
-    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.FullScreen, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, ActionCapture.FullScreen, &evt))
     Swag.require(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.RecordScreen)
-    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.RecordScreen, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, ActionCapture.RecordScreen, &evt))
     Swag.require(evt.name == appStrings().act_RecordScreen and evt.icon.isValid())
 
     evt = Gui.Testing.commandState(ActionCapture.RecordActiveWindow)
-    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.RecordActiveWindow, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, ActionCapture.RecordActiveWindow, &evt))
     Swag.require(evt.name == appStrings().act_RecordActiveWindow and evt.icon.isValid())
 
     evt = Gui.Testing.commandState(ActionCapture.ActiveWnd)
-    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ActiveWnd, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, ActionCapture.ActiveWnd, &evt))
     Swag.require(not evt.name.isEmpty())
 
     // One command per connected monitor, minted on demand: the sixth is reachable
@@ -224,14 +227,14 @@ func testAddMonitor(main: *MainWnd, idx: u32)
         Swag.require(Utf8.startsWith(id, "ActionCapture."))
         Swag.require(ActionCapture.screenIndex(id) == idx)
         evt = Gui.Testing.commandState(id)
-        Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, id, &evt))
+        Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, id, &evt))
         Swag.require(not evt.name.isEmpty())
         Swag.require(not evt.disabled)
 
         Swag.require(Utf8.startsWith(recordId, "ActionCapture."))
         Swag.require(ActionCapture.recordScreenIndex(recordId) == idx)
         evt = Gui.Testing.commandState(recordId)
-        Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, recordId, &evt))
+        Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, recordId, &evt))
         Swag.require(not evt.name.isEmpty() and evt.icon.isValid())
         Swag.require(not evt.disabled)
     }
@@ -239,13 +242,13 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     // A command whose monitor is gone stays answerable and reports itself disabled.
     let goneId = ActionCapture.screenId(f.main.monitors.count)
     evt = Gui.Testing.commandState(goneId)
-    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, goneId, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, goneId, &evt))
     Swag.require(not evt.name.isEmpty())
     Swag.require(evt.disabled)
 
     let goneRecordId = ActionCapture.recordScreenId(f.main.monitors.count)
     evt = Gui.Testing.commandState(goneRecordId)
-    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, goneRecordId, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, goneRecordId, &evt))
     Swag.require(not evt.name.isEmpty() and evt.disabled)
 }
 
@@ -256,12 +259,12 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    f.main.registerAction'ActionCapture()
+    f.main.registerAction!{ActionCapture}()
 
     func repeatName(main: *MainWnd)->String
     {
         var evt = Gui.Testing.commandState(ActionCapture.Repeat)
-        Swag.require(Gui.Testing.actionUpdate'ActionCapture(main, ActionCapture.Repeat, &evt))
+        Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(main, ActionCapture.Repeat, &evt))
         return evt.name
     }
 

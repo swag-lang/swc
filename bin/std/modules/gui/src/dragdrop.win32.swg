@@ -39,8 +39,11 @@ private var g_FileContentsFormat:   UINT
 
 private func startOle()
 {
-    if g_OleStarted do
+    if g_OleStarted
+    {
         return
+    }
+
     g_OleStarted = true
     discard OleInitialize(null)
 }
@@ -57,8 +60,10 @@ private var g_DragHelperTried:  bool
 
 private func loadDragHelper()
 {
-    if g_DragHelperTried do
+    if g_DragHelperTried
+    {
         return
+    }
 
     g_DragHelperTried = true
     startOle()
@@ -66,16 +71,20 @@ private func loadDragHelper()
     var raw: LPVOID
     var clsid = CLSID_DragDropHelper
     var iid   = IID_IDropTargetHelper
-    if CoCreateInstance(&clsid, null, CLSCTX_INPROC_SERVER, &iid, &raw) != S_OK do
+    if CoCreateInstance(&clsid, null, CLSCTX_INPROC_SERVER, &iid, &raw) != S_OK
+    {
         return
+    }
 
     g_DropTargetHelper = cast(*IDropTargetHelper, unwrap raw)
 
     let target = unwrap g_DropTargetHelper
     var srcRaw: LPVOID
     var srcIid = IID_IDragSourceHelper
-    if target.lpVtbl.QueryInterface(target, &srcIid, &srcRaw) == S_OK do
+    if target.lpVtbl.QueryInterface(target, &srcIid, &srcRaw) == S_OK
+    {
         g_DragSourceHelper = cast(*IDragSourceHelper, unwrap srcRaw)
+    }
 }
 
 // Returns the half of the drag helper that draws the picture over a window being dragged over.
@@ -84,8 +93,10 @@ private func loadDragHelper()
 // helper paints on the desktop, and there is no desktop under it.
 private func dropTargetHelper(surface: *Surface)->*IDropTargetHelper?
 {
-    if not surface.hWnd do
+    if not surface.hWnd
+    {
         return null
+    }
 
     loadDragHelper()
     return g_DropTargetHelper
@@ -102,12 +113,21 @@ private func dragSourceHelper()->*IDragSourceHelper?
 private func toKeyModifiers(grfKeyState: DWORD)->Input.KeyModifiers
 {
     var result: #returntype
-    if grfKeyState & MK_SHIFT do
+    if grfKeyState & MK_SHIFT
+    {
         result |= .Shift
-    if grfKeyState & MK_CONTROL do
+    }
+
+    if grfKeyState & MK_CONTROL
+    {
         result |= .Control
-    if grfKeyState & MK_ALT do
+    }
+
+    if grfKeyState & MK_ALT
+    {
         result |= .Alt
+    }
+
     return result
 }
 
@@ -115,24 +135,42 @@ private func toKeyModifiers(grfKeyState: DWORD)->Input.KeyModifiers
 private func toDropEffect(value: DWORD)->DropEffect
 {
     var result: #returntype
-    if value & DROPEFFECT_COPY do
+    if value & DROPEFFECT_COPY
+    {
         result |= .Copy
-    if value & DROPEFFECT_MOVE do
+    }
+
+    if value & DROPEFFECT_MOVE
+    {
         result |= .Move
-    if value & DROPEFFECT_LINK do
+    }
+
+    if value & DROPEFFECT_LINK
+    {
         result |= .Link
+    }
+
     return result
 }
 
 private func fromDropEffect(value: DropEffect)->DWORD
 {
     var result = DROPEFFECT_NONE
-    if value.has(.Copy) do
+    if value.has(.Copy)
+    {
         result |= DROPEFFECT_COPY
-    if value.has(.Move) do
+    }
+
+    if value.has(.Move)
+    {
         result |= DROPEFFECT_MOVE
-    if value.has(.Link) do
+    }
+
+    if value.has(.Link)
+    {
         result |= DROPEFFECT_LINK
+    }
+
     return result
 }
 
@@ -156,7 +194,7 @@ private func requestMedium(dataObj: *IDataObject, format: u32, tymed: u32, index
 // The position a source hands the stream at is not part of the contract, so it is rewound first;
 // a stream that refuses to seek is read from wherever it stands, which is the best that can be
 // done with it.
-private func readStream(stream: *IStream, dest: *Array'u8)
+private func readStream(stream: *IStream, dest: *Array!{u8})
 {
     discard stream.lpVtbl.Seek(stream, 0, STREAM_SEEK_SET, null)
 
@@ -165,10 +203,15 @@ private func readStream(stream: *IStream, dest: *Array'u8)
     {
         var read: ULONG
         let hr = stream.lpVtbl.Read(stream, cast([*] void, &chunk[0]), chunk.count, &read)
-        if hr != S_OK and hr != S_FALSE do
+        if hr != S_OK and hr != S_FALSE
+        {
             return
-        if not read do
+        }
+
+        if not read
+        {
             return
+        }
 
         dest.add(Swag.makeSlice(cast(const [*] u8, &chunk[0]), cast(u64, read)))
     }
@@ -179,29 +222,40 @@ private func readStream(stream: *IStream, dest: *Array'u8)
 // Both mediums are asked for at once, because a format published solely as a stream — which is
 // how some browsers hand over a large image, and how every source of a file with no path hands
 // over its content — would otherwise read as nothing on offer.
-private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Array'u8
+private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Array!{u8}
 {
     var result: #returntype
 
     var med: STGMEDIUM
-    if not requestMedium(dataObj, format, TYMED_HGLOBAL | TYMED_ISTREAM, index, &med) do
+    if not requestMedium(dataObj, format, TYMED_HGLOBAL | TYMED_ISTREAM, index, &med)
+    {
         return result
+    }
+
     defer ReleaseStgMedium(&med)
 
     if med.tymed == TYMED_ISTREAM
     {
-        if med.pstm do
+        if med.pstm
+        {
             readStream(med.pstm, &result)
+        }
+
         return result
     }
 
     let size = GlobalSize(med.hGlobal)
-    if not size do
+    if not size
+    {
         return result
+    }
 
     let buf = cast([*] u8?, GlobalLock(med.hGlobal))
-    if not buf do
+    if not buf
+    {
         return result
+    }
+
     defer discard GlobalUnlock(med.hGlobal)
 
     result.add(Swag.makeSlice(buf, size))
@@ -215,25 +269,33 @@ private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Ar
 // move is exactly what deferred rendering exists to avoid, on both sides of the gesture.
 private func readFileContents(obj: *IDataObject, data: *DragData, withContents: bool)
 {
-    if not g_FileDescriptorFormat or not g_FileContentsFormat do
+    if not g_FileDescriptorFormat or not g_FileContentsFormat
+    {
         return
+    }
 
     let block = readFormat(obj, g_FileDescriptorFormat)
-    if block.count < #sizeof(UINT) do
+    if block.count < #sizeof(UINT)
+    {
         return
+    }
 
     let count = cast(u64, cast(const *UINT, block.storage())[])
-    if not count or #sizeof(UINT) + count * #sizeof(FILEDESCRIPTORW) > block.count do
+    if not count or #sizeof(UINT) + count * #sizeof(FILEDESCRIPTORW) > block.count
+    {
         return
+    }
 
     let descriptors = cast(const [*] FILEDESCRIPTORW, (block.storage() + #sizeof(UINT)))
     for i in count
     {
         let name = cast(const [*] u16, &descriptors[i].cFileName[0])
 
-        var bytes: Array'u8
-        if withContents do
+        var bytes: Array!{u8}
+        if withContents
+        {
             bytes = readFormat(obj, g_FileContentsFormat, cast(s32, i))
+        }
 
         data.addContent(Utf8.fromUtf16(Swag.makeSlice(name, Utf16.lengthUntilZero(descriptors[i].cFileName))), bytes.toSlice())
     }
@@ -246,26 +308,34 @@ private func readFileContents(obj: *IDataObject, data: *DragData, withContents: 
 private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents: bool)
 {
     data.clear()
-    if not dataObj do
+    if not dataObj
+    {
         return
+    }
 
     // Files. The medium is a DROPFILES block, which is exactly what the shell drag helpers read.
     scope(Files)
     {
         var med: STGMEDIUM
-        if not requestMedium(dataObj, CF_HDROP, TYMED_HGLOBAL, -1, &med) do
+        if not requestMedium(dataObj, CF_HDROP, TYMED_HGLOBAL, -1, &med)
+        {
             break to Files
+        }
+
         defer ReleaseStgMedium(&med)
 
         let hDrop = cast(HDROP, med.hGlobal)
         let count = DragQueryFileW(hDrop, Swag.U32.Max, null, 0)
 
-        var buf: Array'u16
+        var buf: Array!{u16}
         for i in count
         {
             let len = DragQueryFileW(hDrop, i, null, 0)
-            if not len do
+            if not len
+            {
                 continue
+            }
+
             buf.resize(len + 1)
             discard DragQueryFileW(hDrop, i, buf.buffer, len + 1)
             data.addFile(Utf8.fromUtf16(Swag.makeSlice(buf.storage(), cast(u64, len))))
@@ -277,8 +347,10 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
     // advertise this deferred representation for a file that already has a path. Prefer the path
     // in that case: asking for FILECONTENTS can otherwise copy a multi-gigabyte local file into
     // the drop payload before the target receives its event.
-    if not data.hasFiles() do
+    if not data.hasFiles()
+    {
         readFileContents(dataObj, data, withContents)
+    }
 
     // Text, preferring the Unicode form the way the clipboard does.
     scope(Text)
@@ -291,8 +363,10 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
         }
 
         let ansi = readFormat(dataObj, CF_TEXT)
-        if not ansi.isEmpty() do
+        if not ansi.isEmpty()
+        {
             data.setText(NativeText.decodeAnsi(ansi.toSlice()))
+        }
     }
 
     // Image. A browser drags PNG bytes and the desktop drags a DIB; both decode from the name.
@@ -309,8 +383,10 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
         }
 
         let dib = readFormat(dataObj, CF_DIB)
-        if not dib.isEmpty() do
+        if not dib.isEmpty()
+        {
             data.setImage("drag.bmp", dib.toSlice())
+        }
     }
 }
 
@@ -320,8 +396,10 @@ private func dropTargetOf(itf: *IDropTarget)->*SurfaceDropTarget => cast(*Surfac
 private func comQueryInterface(itf: *IDropTarget, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
-    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IDropTarget) do
+    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IDropTarget)
+    {
         return E_NOINTERFACE
+    }
 
     let target = dropTargetOf(itf)
     target.refCount += 1
@@ -342,8 +420,11 @@ private func comAddRef(itf: *IDropTarget)->ULONG
 private func comRelease(itf: *IDropTarget)->ULONG
 {
     let target = dropTargetOf(itf)
-    if target.refCount do
+    if target.refCount
+    {
         target.refCount -= 1
+    }
+
     return target.refCount
 }
 
@@ -397,8 +478,10 @@ private func comDragLeave(itf: *IDropTarget)->HRESULT
     target.data.clear()
 
     let helper = dropTargetHelper(surface)
-    if helper do
+    if helper
+    {
         discard helper.lpVtbl.DragLeave(helper)
+    }
 
     return S_OK
 }
@@ -445,25 +528,32 @@ private func offeredFormat(format: u32, tymed: u32, index: s32 = -1)->FORMATETC
 
 // Lists the formats the payload can produce, most specific first, because a target picks the
 // first one it understands out of the enumeration.
-private func offeredFormats(data: *DragData)->Array'FORMATETC
+private func offeredFormats(data: *DragData)->Array!{FORMATETC}
 {
     var result: #returntype
-    if data.hasFiles() do
+    if data.hasFiles()
+    {
         result.add(offeredFormat(CF_HDROP, TYMED_HGLOBAL))
+    }
 
     // A file the payload carries itself: one descriptor block naming them all, then one content
     // medium per index. The shell reads the content as a stream, so that is what is offered first.
     if data.hasContents() and g_FileDescriptorFormat and g_FileContentsFormat
     {
         result.add(offeredFormat(g_FileDescriptorFormat, TYMED_HGLOBAL))
-        for i in data.contents.count do
+        for i in data.contents.count
+        {
             result.add(offeredFormat(g_FileContentsFormat, TYMED_ISTREAM | TYMED_HGLOBAL, cast(s32, i)))
+        }
     }
 
     if data.hasImage()
     {
-        if g_PngDragFormat do
+        if g_PngDragFormat
+        {
             result.add(offeredFormat(g_PngDragFormat, TYMED_HGLOBAL))
+        }
+
         result.add(offeredFormat(CF_DIB, TYMED_HGLOBAL))
     }
 
@@ -483,8 +573,10 @@ private func offeredFormats(data: *DragData)->Array'FORMATETC
 private func toGlobalBlock(bytes: const [..] u8)->HGLOBAL
 {
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, bytes.count)
-    if not hglob do
+    if not hglob
+    {
         return null
+    }
 
     let buf = cast([*] u8?, GlobalLock(hglob))
     if not buf
@@ -502,14 +594,18 @@ private func toGlobalBlock(bytes: const [..] u8)->HGLOBAL
 // every path as zero-terminated UTF-16, then one more zero to end the list.
 internal func buildHDrop(files: const [..] String)->HGLOBAL
 {
-    var chars = 1'u64
-    for &f in files do
+    var chars = 1_u64
+    for &f in files
+    {
         chars += cast(u64, Utf16.fromUtf8(f.toString()).count) + 1
+    }
 
     let size  = cast(u64, #sizeof(DROPFILES)) + chars * 2
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-    if not hglob do
+    if not hglob
+    {
         return null
+    }
 
     let base = cast([*] u8?, GlobalLock(hglob))
     if not base
@@ -542,8 +638,10 @@ internal func buildHDrop(files: const [..] String)->HGLOBAL
 private func buildDib(data: *DragData)->HGLOBAL
 {
     let image = data.image()
-    if not image do
+    if not image
+    {
         return null
+    }
 
     let bytes = catch image.encodeToBytes("drag.bmp", Bmp.EncodeOptions{fileHeader: false}) { return null }
     return toGlobalBlock(bytes.toSlice())
@@ -560,8 +658,10 @@ private func buildFileGroupDescriptor(data: *DragData)->HGLOBAL
     let count = data.contents.count
     let size  = cast(u64, #sizeof(UINT)) + count * #sizeof(FILEDESCRIPTORW)
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-    if not hglob do
+    if not hglob
+    {
         return null
+    }
 
     let base = cast([*] u8?, GlobalLock(hglob))
     if not base
@@ -599,8 +699,10 @@ private func buildUnicodeText(data: *DragData)->HGLOBAL
 {
     let wide  = Utf16.fromUtf8(data.text.toString())
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, (wide.count + 1) * 2)
-    if not hglob do
+    if not hglob
+    {
         return null
+    }
 
     let buf = cast([*] u16?, GlobalLock(hglob))
     if not buf
@@ -630,11 +732,11 @@ internal struct DragStoredFormat
 #[Swag.NoCopy]
 internal struct DragDataObject
 {
-    lpVtbl:   *IDataObjectVtbl?          // Interface header OLE calls through; must stay first.
-    refCount: ULONG = 1                  // Reference count; the session owns the storage.
-    data:     *DragData?                 // Payload the formats below are produced from.
-    formats:  Array'FORMATETC            // What this object can produce, and through which medium.
-    stored:   Array'DragStoredFormat     // What was handed to it through `SetData`.
+    lpVtbl:   *IDataObjectVtbl?            // Interface header OLE calls through; must stay first.
+    refCount: ULONG = 1                    // Reference count; the session owns the storage.
+    data:     *DragData?                   // Payload the formats below are produced from.
+    formats:  Array!{FORMATETC}            // What this object can produce, and through which medium.
+    stored:   Array!{DragStoredFormat}     // What was handed to it through `SetData`.
 }
 
 internal impl DragDataObject
@@ -645,8 +747,10 @@ internal impl DragDataObject
     // to this object, and the gesture is over by the time this runs.
     mtd opDrop()
     {
-        for &s in .stored do
+        for &s in .stored
+        {
             ReleaseStgMedium(&s.medium)
+        }
     }
 }
 
@@ -659,7 +763,7 @@ internal struct DragFormatEnum
 {
     lpVtbl:   *IEnumFORMATETCVtbl?     // Interface header OLE calls through; must stay first.
     refCount: ULONG = 1                // Reference count; reaching zero releases the object.
-    formats:  Array'FORMATETC          // Snapshot of what the data object offers.
+    formats:  Array!{FORMATETC}        // Snapshot of what the data object offers.
     index:    u64                      // Next entry the enumeration returns.
 }
 
@@ -690,7 +794,7 @@ private var g_FormatEnumVtbl: IEnumFORMATETCVtbl
 private var g_DropSourceVtbl: IDropSourceVtbl
 
 // Selects the outgoing direction of a format enumeration.
-private const DATADIR_GET = 1'u32
+private const DATADIR_GET = 1_u32
 
 private func dataObjectOf(itf: *IDataObject)->*DragDataObject    => cast(*DragDataObject, cast(*void, itf))
 private func formatEnumOf(itf: *IEnumFORMATETC)->*DragFormatEnum => cast(*DragFormatEnum, cast(*void, itf))
@@ -700,8 +804,10 @@ private func dropSourceOf(itf: *IDropSource)->*DragDropSource    => cast(*DragDr
 private func srcQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
-    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IDataObject) do
+    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IDataObject)
+    {
         return E_NOINTERFACE
+    }
 
     dataObjectOf(itf).refCount += 1
     ppv[] = cast([*] void, itf)
@@ -721,8 +827,11 @@ private func srcAddRef(itf: *IDataObject)->ULONG
 private func srcRelease(itf: *IDataObject)->ULONG
 {
     let obj = dataObjectOf(itf)
-    if obj.refCount do
+    if obj.refCount
+    {
         obj.refCount -= 1
+    }
+
     return obj.refCount
 }
 
@@ -734,15 +843,23 @@ private func srcRelease(itf: *IDataObject)->ULONG
 // would answer the first.
 private func srcOfferedIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
 {
-    if fmt.dwAspect != DVASPECT_CONTENT do
+    if fmt.dwAspect != DVASPECT_CONTENT
+    {
         return -1
+    }
 
     for &f, i in obj.formats
     {
-        if f.cfFormat != fmt.cfFormat or not (fmt.tymed & f.tymed) do
+        if f.cfFormat != fmt.cfFormat or not (fmt.tymed & f.tymed)
+        {
             continue
-        if f.lindex != -1 and f.lindex != fmt.lindex do
+        }
+
+        if f.lindex != -1 and f.lindex != fmt.lindex
+        {
             continue
+        }
+
         return cast(s64, i)
     }
 
@@ -754,10 +871,16 @@ private func srcStoredIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
 {
     for &s, i in obj.stored
     {
-        if s.format.cfFormat != fmt.cfFormat or s.format.lindex != fmt.lindex do
+        if s.format.cfFormat != fmt.cfFormat or s.format.lindex != fmt.lindex
+        {
             continue
-        if s.format.dwAspect != fmt.dwAspect or not (fmt.tymed & s.medium.tymed) do
+        }
+
+        if s.format.dwAspect != fmt.dwAspect or not (fmt.tymed & s.medium.tymed)
+        {
             continue
+        }
+
         return cast(s64, i)
     }
 
@@ -768,8 +891,11 @@ private func srcStoredIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
 private func srcQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
 {
     let obj = dataObjectOf(itf)
-    if srcOfferedIndex(obj, fmt) < 0 and srcStoredIndex(obj, fmt) < 0 do
+    if srcOfferedIndex(obj, fmt) < 0 and srcStoredIndex(obj, fmt) < 0
+    {
         return DV_E_FORMATETC
+    }
+
     return S_OK
 }
 
@@ -780,18 +906,25 @@ private func srcQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
 private func srcGetStored(obj: *DragDataObject, entry: s64, med: *STGMEDIUM)->HRESULT
 {
     let source = &obj.stored[cast(u64, entry)].medium
-    if source.tymed != TYMED_HGLOBAL do
+    if source.tymed != TYMED_HGLOBAL
+    {
         return DV_E_TYMED
+    }
 
     let size = GlobalSize(source.hGlobal)
     let buf  = cast([*] u8?, GlobalLock(source.hGlobal))
-    if not buf do
+    if not buf
+    {
         return E_OUTOFMEMORY
+    }
+
     defer discard GlobalUnlock(source.hGlobal)
 
     let hglob = toGlobalBlock(Swag.makeSlice(cast(const [*] u8, buf), size))
-    if not hglob do
+    if not hglob
+    {
         return E_OUTOFMEMORY
+    }
 
     med.tymed          = TYMED_HGLOBAL
     med.hGlobal        = hglob
@@ -804,12 +937,16 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
 {
     let obj    = dataObjectOf(itf)
     let stored = srcStoredIndex(obj, fmt)
-    if stored >= 0 do
+    if stored >= 0
+    {
         return srcGetStored(obj, stored, med)
+    }
 
     let entry = srcOfferedIndex(obj, fmt)
-    if entry < 0 do
+    if entry < 0
+    {
         return DV_E_FORMATETC
+    }
 
     let data   = unwrap obj.data
     var hglob  = cast(HGLOBAL, null)
@@ -819,35 +956,39 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
     {
         hglob = buildHDrop(data.files.toSlice())
     }
-    elif format == CF_DIB
+    else if format == CF_DIB
     {
         hglob = buildDib(data)
     }
-    elif format == CF_UNICODETEXT
+    else if format == CF_UNICODETEXT
     {
         hglob = buildUnicodeText(data)
     }
-    elif format == CF_TEXT
+    else if format == CF_TEXT
     {
         let ansi = NativeText.encodeAnsi(data.text.toString())
-        if not ansi.isEmpty() do
+        if not ansi.isEmpty()
+        {
             hglob = toGlobalBlock(ansi.toSlice())
+        }
     }
-    elif g_PngDragFormat and format == g_PngDragFormat
+    else if g_PngDragFormat and format == g_PngDragFormat
     {
         hglob = toGlobalBlock(data.encodedImage())
     }
-    elif g_FileDescriptorFormat and format == g_FileDescriptorFormat
+    else if g_FileDescriptorFormat and format == g_FileDescriptorFormat
     {
         hglob = buildFileGroupDescriptor(data)
     }
-    elif g_FileContentsFormat and format == g_FileContentsFormat
+    else if g_FileContentsFormat and format == g_FileContentsFormat
     {
         hglob = toGlobalBlock(data.contentData(cast(u64, fmt.lindex)))
     }
 
-    if not hglob do
+    if not hglob
+    {
         return E_OUTOFMEMORY
+    }
 
     // A stream is what the shell reads a file with no path through, and the block becomes the
     // stream's: releasing the medium frees both.
@@ -893,8 +1034,10 @@ private func srcGetCanonicalFormatEtc(_: *IDataObject, _: const *FORMATETC, fmtO
 #[Swag.CallingConvention(.C)]
 private func srcSetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM, release: BOOL)->HRESULT
 {
-    if not release do
+    if not release
+    {
         return E_NOTIMPL
+    }
 
     let obj = dataObjectOf(itf)
 
@@ -916,17 +1059,21 @@ private func srcSetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
 private func srcEnumFormatEtc(itf: *IDataObject, direction: DWORD, ppenum: *LPVOID)->HRESULT
 {
     ppenum[] = null
-    if direction != DATADIR_GET do
+    if direction != DATADIR_GET
+    {
         return E_NOTIMPL
+    }
 
     // What was set on the object is part of what it offers: a target walking the enumeration has
     // to find the drag picture there too, not only through a request that names it.
     let obj = dataObjectOf(itf)
-    let res = Memory.new'DragFormatEnum()
+    let res = Memory.new!{DragFormatEnum}()
     res.lpVtbl  = &g_FormatEnumVtbl
     res.formats = obj.formats
-    for &s in obj.stored do
+    for &s in obj.stored
+    {
         res.formats.add(s.format)
+    }
 
     ppenum[] = cast([*] void, res)
     return S_OK
@@ -955,8 +1102,10 @@ private func srcEnumDAdvise(_: *IDataObject, ppenum: *LPVOID)->HRESULT
 private func enumQueryInterface(itf: *IEnumFORMATETC, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
-    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IEnumFORMATETC) do
+    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IEnumFORMATETC)
+    {
         return E_NOINTERFACE
+    }
 
     formatEnumOf(itf).refCount += 1
     ppv[] = cast([*] void, itf)
@@ -975,11 +1124,17 @@ private func enumAddRef(itf: *IEnumFORMATETC)->ULONG
 private func enumRelease(itf: *IEnumFORMATETC)->ULONG
 {
     let obj = formatEnumOf(itf)
-    if obj.refCount do
+    if obj.refCount
+    {
         obj.refCount -= 1
+    }
+
     let left = obj.refCount
-    if not left do
+    if not left
+    {
         Memory.delete(obj)
+    }
+
     return left
 }
 
@@ -988,7 +1143,7 @@ private func enumNext(itf: *IEnumFORMATETC, count: ULONG, entries: *FORMATETC, f
 {
     let obj  = formatEnumOf(itf)
     let dest = cast([*] FORMATETC, entries)
-    var done = 0'u64
+    var done = 0_u64
     while done < count and obj.index < obj.formats.count
     {
         dest[done]     = obj.formats[obj.index]
@@ -997,8 +1152,11 @@ private func enumNext(itf: *IEnumFORMATETC, count: ULONG, entries: *FORMATETC, f
         done           += 1
     }
 
-    if fetched do
+    if fetched
+    {
         fetched[] = cast(ULONG, done)
+    }
+
     return done == count ? S_OK : S_FALSE
 }
 
@@ -1022,7 +1180,7 @@ private func enumReset(itf: *IEnumFORMATETC)->HRESULT
 private func enumClone(itf: *IEnumFORMATETC, ppenum: *LPVOID)->HRESULT
 {
     let obj = formatEnumOf(itf)
-    let res = Memory.new'DragFormatEnum()
+    let res = Memory.new!{DragFormatEnum}()
     res.lpVtbl  = &g_FormatEnumVtbl
     res.formats = obj.formats
     res.index   = obj.index
@@ -1034,8 +1192,10 @@ private func enumClone(itf: *IEnumFORMATETC, ppenum: *LPVOID)->HRESULT
 private func dropSrcQueryInterface(itf: *IDropSource, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
-    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IDropSource) do
+    if not isEqualGuid(riid[], IID_IUnknown) and not isEqualGuid(riid[], IID_IDropSource)
+    {
         return E_NOINTERFACE
+    }
 
     dropSourceOf(itf).refCount += 1
     ppv[] = cast([*] void, itf)
@@ -1055,8 +1215,11 @@ private func dropSrcAddRef(itf: *IDropSource)->ULONG
 private func dropSrcRelease(itf: *IDropSource)->ULONG
 {
     let obj = dropSourceOf(itf)
-    if obj.refCount do
+    if obj.refCount
+    {
         obj.refCount -= 1
+    }
+
     return obj.refCount
 }
 
@@ -1064,10 +1227,16 @@ private func dropSrcRelease(itf: *IDropSource)->ULONG
 #[Swag.CallingConvention(.C)]
 private func dropSrcQueryContinueDrag(_: *IDropSource, escapePressed: BOOL, grfKeyState: DWORD)->HRESULT
 {
-    if escapePressed do
+    if escapePressed
+    {
         return DRAGDROP_S_CANCEL
-    if not (grfKeyState & (MK_LBUTTON | MK_RBUTTON)) do
+    }
+
+    if not (grfKeyState & (MK_LBUTTON | MK_RBUTTON))
+    {
         return DRAGDROP_S_DROP
+    }
+
     return S_OK
 }
 
@@ -1094,7 +1263,7 @@ private func dropSrcGiveFeedback(itf: *IDropSource, _: DWORD)->HRESULT
 //
 // The gesture carries a thumbnail whatever the payload is: a full-resolution capture next to the
 // cursor would hide what it is being dropped on, which is the one thing the user is looking at.
-private const DragImageMaxSide = 160's32
+private const DragImageMaxSide = 160_s32
 
 // Builds the picture the desktop drags under the pointer out of `image`.
 //
@@ -1106,13 +1275,19 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
     var result: #returntype
 
     var img = image[]
-    if not img.isValid() do
+    if not img.isValid()
+    {
         return result
+    }
 
-    if img.width >= img.height and img.width > DragImageMaxSide do
+    if img.width >= img.height and img.width > DragImageMaxSide
+    {
         img.resize(DragImageMaxSide, 0, .CatmullRom)
-    elif img.height > img.width and img.height > DragImageMaxSide do
+    }
+    else if img.height > img.width and img.height > DragImageMaxSide
+    {
         img.resize(0, DragImageMaxSide, .CatmullRom)
+    }
 
     with var info: BITMAPINFO
     {
@@ -1129,8 +1304,10 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
     var bmp:        #decltype(expect CreateDIBSection(null, &info, DIB_RGB_COLORS, &raw, null, 0))
     catch { bmp = try CreateDIBSection(null, &info, DIB_RGB_COLORS, &raw, null, 0) } as errOutcome
     let err = errOutcome.value()
-    if err != null or not bmp or not raw do
+    if err != null or not bmp or not raw
+    {
         return result
+    }
 
     let dest = cast([*] u8, raw)
     for y in img.height
@@ -1160,12 +1337,16 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
 private func attachDragImage(dataObj: *IDataObject, image: const *Image)
 {
     let helper = dragSourceHelper()
-    if not helper do
+    if not helper
+    {
         return
+    }
 
     let picture = buildDragBitmap(image)
-    if not picture.bmp do
+    if not picture.bmp
+    {
         return
+    }
 
     with var shape: SHDRAGIMAGE
     {
@@ -1176,8 +1357,10 @@ private func attachDragImage(dataObj: *IDataObject, image: const *Image)
     }
 
     // The bitmap is the helper's from here, and only on the path where it took it.
-    if helper.lpVtbl.InitializeFromBitmap(helper, &shape, dataObj) != S_OK do
+    if helper.lpVtbl.InitializeFromBitmap(helper, &shape, dataObj) != S_OK
+    {
         catch DeleteObject(cast(HGDIOBJ, picture.bmp))
+    }
 }
 
 internal impl DragSession
@@ -1221,15 +1404,22 @@ impl Wnd
     mtd startDrag(data: *DragData, allowed = DropEffect.Copy, picture: const *Pixel.Image? = null)->DropEffect
     {
         let surface = .surface
-        if not surface or not surface.app.renderer.needsNativeWindow() do
+        if not surface or not surface.app.renderer.needsNativeWindow()
+        {
             return .None
-        if not data.hasFiles() and not data.hasContents() and not data.hasText() and not data.hasImage() do
+        }
+
+        if not data.hasFiles() and not data.hasContents() and not data.hasText() and not data.hasImage()
+        {
             return .None
+        }
 
         // The desktop takes the pointer for the duration; a capture still held here would
         // fight it for the mouse messages.
-        if .app().mouseCapture() == me do
+        if .app().mouseCapture() == me
+        {
             .releaseMouse()
+        }
 
         startOle()
 
@@ -1238,13 +1428,17 @@ impl Wnd
 
         let dataObj = cast(*IDataObject, cast(*void, &session.dataObj))
         let shown: const *Pixel.Image? = picture orelse data.image()
-        if shown do
+        if shown
+        {
             attachDragImage(dataObj, shown)
+        }
 
         var effect = DROPEFFECT_NONE
         let result = DoDragDrop(dataObj, cast(*IDropSource, cast(*void, &session.dropSrc)), fromDropEffect(allowed), &effect)
-        if result != DRAGDROP_S_DROP do
+        if result != DRAGDROP_S_DROP
+        {
             return .None
+        }
 
         return toDropEffect(effect)
     }
@@ -1278,12 +1472,16 @@ internal impl Surface
         target.surface  = me
         target.refCount = 1
 
-        if not .app.renderer.needsNativeWindow() or not .hWnd or .dropTargetActive do
+        if not .app.renderer.needsNativeWindow() or not .hWnd or .dropTargetActive
+        {
             return
+        }
 
         startOle()
-        if RegisterDragDrop(.hWnd, cast(*IDropTarget, cast(*void, target))) != S_OK do
+        if RegisterDragDrop(.hWnd, cast(*IDropTarget, cast(*void, target))) != S_OK
+        {
             return
+        }
 
         .dropTargetActive = true
     }
@@ -1291,18 +1489,26 @@ internal impl Surface
     // Stops the surface from receiving drags and releases the reference OLE holds.
     mtd revokeDropTarget()
     {
-        if not .dropTargetActive do
+        if not .dropTargetActive
+        {
             return
+        }
+
         .dropTargetActive = false
 
         // A gesture in flight over a surface being destroyed would otherwise leave the
         // application pointing at a window that is going away. Nothing is told it was left:
         // the whole tree that would hear it is what is being taken down.
-        if .app.dragEnterWnd and .app.dragEnterWnd.surface == me do
+        if .app.dragEnterWnd and .app.dragEnterWnd.surface == me
+        {
             .app.dragEnterWnd = null
+        }
 
-        if .hWnd do
+        if .hWnd
+        {
             discard RevokeDragDrop(.hWnd)
+        }
+
         .dropTarget.data.clear()
     }
 }

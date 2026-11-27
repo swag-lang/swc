@@ -3,8 +3,8 @@
 // Advent of Code 2024 Day 8: find antinode positions created by same-frequency
 // antenna pairs, using heap-allocated storage and reference types for mutation.
 
-const MaxFrequencies     = 128'u32
-const MaxAntennasPerFreq = 32'u32
+const MaxFrequencies     = 128_u32
+const MaxAntennasPerFreq = 32_u32
 
 const SampleInput =
     """............
@@ -87,7 +87,7 @@ struct ResonanceReport
 
 func isLineBreak(ch: u8)->bool
 {
-    return ch == '\n'u8 or ch == '\r'u8
+    return ch == '\n'_u8 or ch == '\r'_u8
 }
 
 func isAntenna(ch: u8)->bool
@@ -112,26 +112,30 @@ func initAntinodeGrid(width, height: u32)->AntinodeGrid
     let cells = result.cells
     for index in width * height
     {
-        cells[cast(u32, index)] = 0'u8
+        cells[cast(u32, index)] = 0_u8
     }
     return result
 }
 
 func freeAntinodeGrid(grid: AntinodeGrid)
 {
-    if grid.cells do
+    if grid.cells
+    {
         testFree(grid.cells)
+    }
 }
 
 func markAntinode(grid: *AntinodeGrid, x, y: s32)->bool
 {
-    if x < 0 or y < 0 or cast(u32, x) >= grid.width or cast(u32, y) >= grid.height do
+    if x < 0 or y < 0 or cast(u32, x) >= grid.width or cast(u32, y) >= grid.height
+    {
         return false
+    }
 
     let idx   = cast(u32, y) * grid.width + cast(u32, x)
     let cells = unwrap grid.cells
-    let isNew = cells[idx] == 0'u8
-    cells[idx] = 1'u8
+    let isNew = cells[idx] == 0_u8
+    cells[idx] = 1_u8
     return isNew
 }
 
@@ -140,7 +144,7 @@ func clearGrid(grid: *AntinodeGrid)
     let cells = unwrap grid.cells
     for index in grid.width * grid.height
     {
-        cells[cast(u32, index)] = 0'u8
+        cells[cast(u32, index)] = 0_u8
     }
 }
 
@@ -150,8 +154,10 @@ func countMarked(grid: AntinodeGrid)->u32
     let cells = unwrap grid.cells
     for index in grid.width * grid.height
     {
-        if cells[cast(u32, index)] != 0'u8 do
+        if cells[cast(u32, index)] != 0_u8
+        {
             count += 1
+        }
     }
     return count
 }
@@ -202,8 +208,10 @@ func parseAntennaMap(result: *AntennaMap, text: string)
         x += 1
     }
 
-    if x > 0 do
+    if x > 0
+    {
         y += 1
+    }
 
     result.height = y
 }
@@ -223,8 +231,10 @@ func countFrequencies(map: AntennaMap)->u32
     var total: u32
     for index in MaxFrequencies
     {
-        if map.freqUsed[cast(u32, index)] do
+        if map.freqUsed[cast(u32, index)]
+        {
             total += 1
+        }
     }
     return total
 }
@@ -238,16 +248,20 @@ func computeSimpleAntinodes(grid: *AntinodeGrid, map: AntennaMap)
     for index in MaxFrequencies
     {
         let freq = cast(u32, index)
-        if not map.freqUsed[freq] do
+        if not map.freqUsed[freq]
+        {
             continue
+        }
 
         let group = &map.groups[freq]
         for a in group.count
         {
             for b in group.count
             {
-                if a == b do
+                if a == b
+                {
                     continue
+                }
 
                 let pa = group.positions[a]
                 let pb = group.positions[b]
@@ -265,16 +279,20 @@ func computeHarmonicAntinodes(grid: *AntinodeGrid, map: AntennaMap)
     for index in MaxFrequencies
     {
         let freq = cast(u32, index)
-        if not map.freqUsed[freq] do
+        if not map.freqUsed[freq]
+        {
             continue
+        }
 
         let group = &map.groups[freq]
         for a in group.count
         {
             for b in group.count
             {
-                if a == b do
+                if a == b
+                {
                     continue
+                }
 
                 let pa = group.positions[a]
                 let pb = group.positions[b]
@@ -331,33 +349,33 @@ func analyzeResonance(text: string)->ResonanceReport
 {
     let sample = analyzeResonance(SampleInput)
 
-    Swag.require(sample.width == 12'u32)
-    Swag.require(sample.height == 12'u32)
-    Swag.require(sample.antennaCount == 7'u32)
-    Swag.require(sample.frequencyCount == 2'u32)
-    Swag.require(sample.simpleAntinodes == 14'u32)
-    Swag.require(sample.harmonicAntinodes == 34'u32)
+    Swag.require(sample.width == 12_u32)
+    Swag.require(sample.height == 12_u32)
+    Swag.require(sample.antennaCount == 7_u32)
+    Swag.require(sample.frequencyCount == 2_u32)
+    Swag.require(sample.simpleAntinodes == 14_u32)
+    Swag.require(sample.harmonicAntinodes == 34_u32)
 }
 
 #test
 {
     let small = analyzeResonance(SmallInput)
 
-    Swag.require(small.width == 10'u32)
-    Swag.require(small.height == 10'u32)
-    Swag.require(small.antennaCount == 2'u32)
-    Swag.require(small.frequencyCount == 1'u32)
-    Swag.require(small.simpleAntinodes == 2'u32)
-    Swag.require(small.harmonicAntinodes == 5'u32)
+    Swag.require(small.width == 10_u32)
+    Swag.require(small.height == 10_u32)
+    Swag.require(small.antennaCount == 2_u32)
+    Swag.require(small.frequencyCount == 1_u32)
+    Swag.require(small.simpleAntinodes == 2_u32)
+    Swag.require(small.harmonicAntinodes == 5_u32)
 }
 
 #test
 {
     let twoFreq = analyzeResonance(TwoFreqInput)
 
-    Swag.require(twoFreq.width == 10'u32)
-    Swag.require(twoFreq.height == 10'u32)
-    Swag.require(twoFreq.antennaCount == 4'u32)
-    Swag.require(twoFreq.frequencyCount == 2'u32)
-    Swag.require(twoFreq.simpleAntinodes == 4'u32)
+    Swag.require(twoFreq.width == 10_u32)
+    Swag.require(twoFreq.height == 10_u32)
+    Swag.require(twoFreq.antennaCount == 4_u32)
+    Swag.require(twoFreq.frequencyCount == 2_u32)
+    Swag.require(twoFreq.simpleAntinodes == 4_u32)
 }

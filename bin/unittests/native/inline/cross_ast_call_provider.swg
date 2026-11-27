@@ -1,8 +1,8 @@
 #global namespace InlineCrossAstCall
 #global public
 
-func toDegrees(value: f32)->f32 => value * 57.295779513082320876798154814105'f32
-func toDegrees(value: f64)->f64 => value * 57.295779513082320876798154814105'f64
+func toDegrees(value: f32)->f32 => value * 57.295779513082320876798154814105_f32
+func toDegrees(value: f64)->f64 => value * 57.295779513082320876798154814105_f64
 #[Swag.Inline]
 func abs(value: f32)->f32 => Swag.abs(value)
 #[Swag.Inline]
@@ -48,8 +48,10 @@ func inlineF32Degrees(value: f32)->f32 => toDegrees(value)
 #[Swag.Inline]
 func nestedIfParam(num: u64)->u64
 {
-    if not num do
+    if not num
+    {
         return 7
+    }
     return num + 1
 }
 
@@ -59,8 +61,10 @@ func nestedIfParamCaller(num: u64)->u64 => nestedIfParam(num)
 #[Swag.Inline]
 func useSignedArg(value: s32)->s32
 {
-    if value < 0 do
+    if value < 0
+    {
         return -value
+    }
     return value + 1
 }
 
@@ -98,8 +102,10 @@ func(what: bool) genericSafetyLike(expr: #code->bool)->bool
 {
     if what
     {
-        if not #inject(expr) do
+        if not #inject(expr)
+        {
             return false
+        }
     }
 
     return true
@@ -108,7 +114,7 @@ func(what: bool) genericSafetyLike(expr: #code->bool)->bool
 #[Swag.Macro]
 func safetyLikeBoundCheck(expr50: #code->bool)->bool
 {
-    return genericSafetyLike'(true)(expr50)
+    return genericSafetyLike!{true}(expr50)
 }
 
 #[Swag.Macro]
@@ -120,7 +126,7 @@ func(what: bool) genericInjectValue(expr: #code->bool)->bool
 #[Swag.Macro]
 func forwardedInjectValue(expr50: #code->bool)->bool
 {
-    return genericInjectValue'(true)(expr50)
+    return genericInjectValue!{true}(expr50)
 }
 
 #[Swag.Macro]
@@ -132,7 +138,7 @@ func forwardStmt(stmt: #code)
 #[Swag.Macro]
 func forwardGenericExpr(expr: #code->bool)
 {
-    genericInjectExpr'(true)(expr)
+    genericInjectExpr!{true}(expr)
 }
 
 #[Swag.Macro]

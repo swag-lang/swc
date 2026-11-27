@@ -22,11 +22,13 @@ func isLeap(y: u32)->bool => (y % 4 == 0 and y % 100 != 0) or y % 400 == 0
 #[Swag.Optimize(true), Swag.NoInline]
 func countBy6(first, last: u32)->u32
 {
-    var count = 0'u32
+    var count = 0_u32
     for x in first until last
     {
-        if x % 6 == 0 do
+        if x % 6 == 0
+        {
             count += 1
+        }
     }
     return count
 }
@@ -50,10 +52,14 @@ func check(v: u64)
 
 #test
 {
-    for v in 0 until 1300 do
+    for v in 0 until 1300
+    {
         check(cast(u64, v))
-    for v in [0xFFFFFFFF'u64, 0xFFFFFFFE, 0xFFFFFFFD, 0xFFFFFF9C, 0x80000000, 4294967200, 4294967000, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFF9, 7000000000000000000, 18446744073709000000] do
+    }
+    for v in [0xFFFFFFFF_u64, 0xFFFFFFFE, 0xFFFFFFFD, 0xFFFFFF9C, 0x80000000, 4294967200, 4294967000, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFF9, 7000000000000000000, 18446744073709000000]
+    {
         check(v)
+    }
 
     Swag.require(countBy6(0, 100) == 17)
     Swag.require(countBy6(1, 7) == 1)

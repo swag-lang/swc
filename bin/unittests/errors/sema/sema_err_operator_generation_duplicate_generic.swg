@@ -14,4 +14,4 @@ impl DuplicateGeneratedGenericEquals
     }
 }
 
-var trigger: DuplicateGeneratedGenericEquals's32
+var trigger: DuplicateGeneratedGenericEquals!{s32}

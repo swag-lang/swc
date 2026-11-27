@@ -189,6 +189,8 @@ namespace
                 return "mul";
             case MicroOp::MultiplyWideSigned:
                 return "imulwide";
+            case MicroOp::MultiplyWideUnsigned:
+                return "mulwide";
             case MicroOp::Negate:
                 return "neg";
             case MicroOp::Or:
@@ -401,6 +403,16 @@ namespace
                 return "vec.maxf32";
             case MicroOp::VecMaxF64:
                 return "vec.maxf64";
+            case MicroOp::VecAesEncryptRound:
+                return "vec.aesenc";
+            case MicroOp::VecAesEncryptLastRound:
+                return "vec.aesenclast";
+            case MicroOp::VecAesDecryptRound:
+                return "vec.aesdec";
+            case MicroOp::VecAesDecryptLastRound:
+                return "vec.aesdeclast";
+            case MicroOp::VecAesInverseMixColumns:
+                return "vec.aesimc";
             case MicroOp::VecAbsS8:
                 return "vec.abss8";
             case MicroOp::VecAbsS16:
@@ -459,8 +471,32 @@ namespace
                 return "vec.shuff32";
             case MicroOp::VecAlignR:
                 return "vec.alignr";
+            case MicroOp::VecMultiplyAdd52Low:
+                return "vpmadd52luq";
+            case MicroOp::VecMultiplyAdd52High:
+                return "vpmadd52huq";
             case MicroOp::VecClmul:
                 return "vec.clmul";
+            case MicroOp::VecSha1NextE:
+                return "vec.sha1nexte";
+            case MicroOp::VecSha1Schedule1:
+                return "vec.sha1schedule1";
+            case MicroOp::VecSha1Schedule2:
+                return "vec.sha1schedule2";
+            case MicroOp::VecSha256Rounds2:
+                return "vec.sha256rounds2";
+            case MicroOp::VecSha256Schedule1:
+                return "vec.sha256schedule1";
+            case MicroOp::VecSha256Schedule2:
+                return "vec.sha256schedule2";
+            case MicroOp::VecSha1Rounds4Phase0:
+                return "vec.sha1rounds4phase0";
+            case MicroOp::VecSha1Rounds4Phase1:
+                return "vec.sha1rounds4phase1";
+            case MicroOp::VecSha1Rounds4Phase2:
+                return "vec.sha1rounds4phase2";
+            case MicroOp::VecSha1Rounds4Phase3:
+                return "vec.sha1rounds4phase3";
             case MicroOp::VecShiftLeftV16:
                 return "vec.shlv16";
             case MicroOp::VecShiftLeftV32:
@@ -1095,6 +1131,16 @@ namespace
                 return tagInstructionToken("trap");
             case MicroInstrOpcode::Breakpoint:
                 return tagInstructionToken("breakpoint");
+            case MicroInstrOpcode::CpuId:
+                return tagInstructionToken("cpuid");
+            case MicroInstrOpcode::XGetBv:
+                return tagInstructionToken("xgetbv");
+            case MicroInstrOpcode::VecClmulXorPair:
+            case MicroInstrOpcode::VecClmulXorQuad:
+                return std::format("{} [{}], [{}], [{}], {}, {}",
+                                   tagInstructionToken(inst.op == MicroInstrOpcode::VecClmulXorQuad ? "vclmulxor4x128" : "vclmulxor2x128"),
+                                   regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder),
+                                   regName(ops[2].reg, regPrintMode, encoder), ops[3].valueU64, ops[4].valueU64);
             case MicroInstrOpcode::Prefetch:
                 return std::format("{} [{}]", tagInstructionToken("prefetch"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::Push:
@@ -1845,6 +1891,8 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Ret:
             case MicroInstrOpcode::Trap:
+            case MicroInstrOpcode::CpuId:
+            case MicroInstrOpcode::XGetBv:
             case MicroInstrOpcode::Breakpoint:
                 break;
 
@@ -1852,6 +1900,16 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::Pop:
             case MicroInstrOpcode::Prefetch:
                 appendRegister(out, ops[0].reg, regPrintMode, encoder);
+                break;
+
+            case MicroInstrOpcode::VecClmulXorPair:
+            case MicroInstrOpcode::VecClmulXorQuad:
+                for (uint8_t operandIndex = 0; operandIndex < 3; ++operandIndex)
+                {
+                    appendRegister(out, ops[operandIndex].reg, regPrintMode, encoder);
+                    out += ", ";
+                }
+                out += std::format("{}, {}", ops[3].valueU64, ops[4].valueU64);
                 break;
 
             case MicroInstrOpcode::JumpReg:

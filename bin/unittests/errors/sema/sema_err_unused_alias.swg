@@ -39,12 +39,18 @@ func visits()->s32
 {
     let t: Triple
     var total = 0
-    for v in t do
+    for v in t
+    {
         total += v
-    for _, i in t do
+    }
+    for _, i in t
+    {
         total += cast(s32, i)
-    for v, i in t do     // swc-expected-error {{sema_err_unused_variable}}
+    }
+    for v, i in t     // swc-expected-error {{sema_err_unused_variable}}
+    {
         total += v
+    }
     return total
 }
 

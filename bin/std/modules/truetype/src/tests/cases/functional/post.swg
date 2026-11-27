@@ -93,8 +93,8 @@ using Swag, Core
     var type1Face: FaceImpl
     type1Face.face.setGlyphCount(2)
     type1Face.outlineSource = .Type1
-    type1Face.type1.glyphNames.add(String.from(".notdef"))
-    type1Face.type1.glyphNames.add(String.from("Aacute"))
+    type1Face.type1.glyphNames.add(".notdef")
+    type1Face.type1.glyphNames.add("Aacute")
     Swag.require(type1Face.face.glyphName(0) == ".notdef")
     Swag.require(type1Face.face.glyphName(1) == "Aacute")
     Swag.require(type1Face.face.glyphName(2) == null)
@@ -109,4 +109,70 @@ using Swag, Core
     var rejected: Swag.Error
     discard catch Face.load(font.toSlice()) as rejected
     Swag.require(rejected.value() != null)
+}
+
+// A full batch of Pascal strings leaves the final record subject to its declared length.
+#test
+{
+    var table: Array!{u8}
+    table.resize(44)
+    writeBigU16(&table, 32, 5)
+    for index in 5 {
+        writeBigU16(&table, 34 + index * 2, cast(u16, 258 + index))
+
+    }
+    for index in 4
+    {
+        let start = table.count
+        table.resize(start + 256)
+        table[start] = 255
+        Memory.set(table.storage() + start + 1, cast(u8, 'A' + index), 255)
+    }
+
+    table.add([4_u8, 'T'_u8, 'a'_u8, 'i'_u8, 'l'_u8])
+
+    var faceData: FaceImpl
+    faceData.face.setGlyphCount(5)
+    expect parsePostGlyphNames(&faceData.postNames, faceData.face.glyphCount, table.toSlice(), 0x00020000)
+    for index in 4
+    {
+        let name = unwrap faceData.face.glyphName(cast(u32, index))
+        Swag.require(name.count == 255 and name[0] == cast(u8, 'A' + index))
+    }
+
+    Swag.require(faceData.face.glyphName(4) == "Tail")
+
+    var truncated: FaceImpl
+    truncated.face.setGlyphCount(5)
+    table.removeBack()
+    var rejected: Swag.Error
+    catch parsePostGlyphNames(&truncated.postNames, truncated.face.glyphCount, table.toSlice(), 0x00020000) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+// A shared post table owns its names and lazily built reverse index until the last face closes.
+#test
+{
+    let bytes = loadFontBytes("arial.ttf")
+    let font  = expect buildPostFormat2Font(bytes.toSlice(), 36, 36, 200, 258, ["SharedName"])
+    var allocator: Swag.Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+    let allocationView: IAllocator = &allocator
+    let baseline = allocator.stats().countAlloc
+
+    var source  = FontSource.copy(font.toSlice(), allocationView)
+    let first   = expect source.loadFace()
+    let second  = expect source.loadFace()
+    let backing = cast(*FaceImpl, cast(*void, second))
+    Swag.require(backing.sharedPostNames != null)
+    Swag.require(first.glyphIndexByName("SharedName") == 200)
+    Swag.require(backing.sharedPostNames.ready.isRaised())
+    source = {}
+    first.destroy()
+
+    Swag.require(second.glyphName(200) == "SharedName")
+    Swag.require(second.glyphIndexByName("SharedName") == 200)
+    second.destroy()
+    Swag.require(allocator.stats().countAlloc == baseline)
 }

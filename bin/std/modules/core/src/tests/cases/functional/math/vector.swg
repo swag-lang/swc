@@ -157,7 +157,7 @@ func expectVec4(actual, expected: Math.Vector4)
 #test
 {
     var vec = Math.Vector2{1, 0}
-    vec.rotateBy(90.0'deg)
+    vec.rotateBy(90.0_deg)
     expectVec2(vec, {0, 1})
 
     Swag.require(Math.isZeroEpsilon(Math.Vector2.UnitX.angleCosineTo(Math.Vector2.UnitY), 0.001))
@@ -477,7 +477,7 @@ func expectVec4(actual, expected: Math.Vector4)
 {
     let spherical = Math.Vector3{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}.toSpherical()
     Swag.require(Math.isEqualEpsilon(spherical.theta, Math.ConstF32.Pi / 4, 0.001))
-    Swag.require(Math.isEqualEpsilon(spherical.phi, Math.acos(1'f32 / Math.sqrt(3'f32)), 0.001))
+    Swag.require(Math.isEqualEpsilon(spherical.phi, Math.acos(1_f32 / Math.sqrt(3_f32)), 0.001))
     Swag.require(spherical.radius == Swag.F32.Inf)
 }
 

@@ -9,8 +9,10 @@ func renderDashPattern(pattern: const [..] f32, blankScale: f32 = 1)->Image
     pen.endCapStyle    = .None
     pen.dashBlankScale = blankScale
     pen.pattern.resize(pattern.count)
-    for index in pattern.count do
+    for index in pattern.count
+    {
         pen.pattern[index] = pattern[index]
+    }
 
     var painter: Painter
     painter.begin()
@@ -30,13 +32,13 @@ func renderDashPattern(pattern: const [..] f32, blankScale: f32 = 1)->Image
 // Odd custom patterns repeat twice so each cycle keeps alternating visible and blank lengths.
 #test
 {
-    let singleOdd  = renderDashPattern([1.0'f32])
-    let singlePair = renderDashPattern([1.0'f32, 1.0'f32])
+    let singleOdd  = renderDashPattern([1.0_f32])
+    let singlePair = renderDashPattern([1.0_f32, 1.0_f32])
     Swag.require(Slice.equals(singleOdd.pixels.toSlice(), singlePair.pixels.toSlice()))
 
-    let tripleOdd  = renderDashPattern([1.0'f32, 1.0'f32, 1.0'f32], blankScale: 2)
-    let triplePair = renderDashPattern([1.0'f32, 1.0'f32, 1.0'f32,
-                                        1.0'f32, 1.0'f32, 1.0'f32],
+    let tripleOdd  = renderDashPattern([1.0_f32, 1.0_f32, 1.0_f32], blankScale: 2)
+    let triplePair = renderDashPattern([1.0_f32, 1.0_f32, 1.0_f32,
+                                        1.0_f32, 1.0_f32, 1.0_f32],
                                        blankScale: 2)
     Swag.require(Slice.equals(tripleOdd.pixels.toSlice(), triplePair.pixels.toSlice()))
 }

@@ -21,7 +21,7 @@ impl ThumbnailCandidate
         .analyze()
         let width        = cast(f32, .image.width) * pixelAspect
         let height       = cast(f32, .image.height)
-        let scale        = Math.min(1.0'f32, cast(f32, maxSide) / Math.max(width, height))
+        let scale        = Math.min(1.0_f32, cast(f32, maxSide) / Math.max(width, height))
         let targetWidth  = Math.max(1, cast(s32, Math.round(width * scale)))
         let targetHeight = Math.max(1, cast(s32, Math.round(height * scale)))
         if targetWidth != .image.width or targetHeight != .image.height
@@ -32,8 +32,11 @@ impl ThumbnailCandidate
 
     mtd analyze()
     {
-        for index in .histogram.count do
+        for index in .histogram.count
+        {
             .histogram[index] = 0
+        }
+
         var black, shadows, white, samples: u32
         var lumaSum, lumaSquares: f32
         for y in 24
@@ -42,12 +45,21 @@ impl ThumbnailCandidate
             {
                 let color = .image.pixelColor(x * .image.width / 32, y * .image.height / 24)
                 let luma  = (77 * cast(u32, color.r) + 150 * cast(u32, color.g) + 29 * cast(u32, color.b)) / 256
-                if luma < 12 do
+                if luma < 12
+                {
                     black += 1
-                if luma < 32 do
+                }
+
+                if luma < 32
+                {
                     shadows += 1
-                if luma > 240 do
+                }
+
+                if luma > 240
+                {
                     white += 1
+                }
+
                 lumaSum                       += cast(f32, luma)
                 lumaSquares                   += cast(f32, luma * luma)
                 .histogram[color.r / 16]      += 1
@@ -71,23 +83,34 @@ impl ThumbnailCandidate
 func representativeThumbnail(candidates: const [..] ThumbnailCandidate)->u64
 {
     var quality: f32
-    for &candidate in candidates do
+    for &candidate in candidates
+    {
         quality = Math.max(quality, candidate.quality)
+    }
+
     var average: [48] f32
     var count:   f32
     for &candidate in candidates where candidate.usable and candidate.quality >= quality * 0.5
     {
-        for bin in average.count do
+        for bin in average.count
+        {
             average[bin] += candidate.histogram[bin]
+        }
+
         count += 1
     }
 
-    if count == 0 do
+    if count == 0
+    {
         return 0
-    for bin in average.count do
-        average[bin] /= count
+    }
 
-    var best     = 0'u64
+    for bin in average.count
+    {
+        average[bin] /= count
+    }
+
+    var best     = 0_u64
     var distance = Swag.F32.Max
     for &candidate, index in candidates where candidate.usable and candidate.quality >= quality * 0.5
     {
@@ -124,28 +147,36 @@ func decodeShownFrame(fileName: string, index: u64, displayWidth, displayHeight:
     var image  = try reader.decodeFrame(index)
     if displayWidth > 0 and
        displayHeight > 0 and
-       (displayWidth != image.width or displayHeight != image.height) do
+       (displayWidth != image.width or displayHeight != image.height)
+    {
         image.resize(displayWidth, displayHeight, .Bilinear)
+    }
+
     return image
 }
 
 func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
 {
     var reader      = try Reader.open(fileName, pictureOnly: true)
-    var candidates: Array'ThumbnailCandidate
-    var previous    = -1.0'f64
+    var candidates: Array!{ThumbnailCandidate}
+    var previous    = -1.0_f64
     let duration    = reader.durationInSeconds()
     let pixelAspect = cast(f32, reader.displayWidth()) * cast(f32, reader.height()) /
                       (cast(f32, reader.displayHeight()) * cast(f32, reader.width()))
     for fraction in ThumbnailPositions
     {
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             break
+        }
 
         // Without a duration every position is the start of the stream.
         let seconds = duration * fraction
-        if seconds == previous do
+        if seconds == previous
+        {
             continue
+        }
+
         previous = seconds
 
         var candidate: ThumbnailCandidate
@@ -174,26 +205,34 @@ func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
     // pay for an exact decode inside the scene. Keep genuinely dim footage if nothing is clearer.
     if not usable or bestQuality < 0.1
     {
-        const FallbackPositions = [0.3'f64, 0.7, 0.95, 1.0]
-        const OpeningFrames     = [1'u64, 8, 24, 72]
+        const FallbackPositions = [0.3_f64, 0.7, 0.95, 1.0]
+        const OpeningFrames     = [1_u64, 8, 24, 72]
         for fraction, attempt in FallbackPositions
         {
-            if Swag.isCancelled() do
+            if Swag.isCancelled()
+            {
                 break
+            }
+
             let count = reader.frameCount()
             let frame = count ? Math.min(reader.frameAtTime(duration * fraction), count - 1) : OpeningFrames[attempt]
             var candidate: ThumbnailCandidate
             candidate.image = catch reader.decodeFrame(frame) { continue }
             candidate.prepare(maxSide, pixelAspect)
-            if not candidate.usable or candidate.quality < 0.1 do
+            if not candidate.usable or candidate.quality < 0.1
+            {
                 continue
+            }
+
             labelDuration(&candidate.image, duration)
             labelVideoInformation(&candidate.image, &reader)
             return #move candidate.image
         }
 
-        if not usable do
+        if not usable
+        {
             fail Errors.InvalidFormatError{}
+        }
     }
 
     let selected = representativeThumbnail(candidates.toSlice())
@@ -206,21 +245,35 @@ func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
 func labelVideoInformation(image: *Image, reader: *Reader)
 {
     addVideoInformation(image, VideoInfoFormatTag, reader.streamFormat().name)
-    if reader.streamInfo().codecName.count do
+    if reader.streamInfo().codecName.count
+    {
         addVideoInformation(image, VideoInfoCodecTag, reader.streamInfo().codecName)
+    }
+
     addVideoInformation(image, VideoInfoDimensionsTag, Format.toString("% × % px", reader.width(), reader.height()))
-    if reader.displayWidth() != reader.width() or reader.displayHeight() != reader.height() do
+    if reader.displayWidth() != reader.width() or reader.displayHeight() != reader.height()
+    {
         addVideoInformation(image, VideoInfoDisplaySizeTag, Format.toString("% × % px", reader.displayWidth(), reader.displayHeight()))
+    }
+
     addVideoInformation(image, VideoInfoAspectRatioTag, videoAspectRatio(reader.displayWidth(), reader.displayHeight()))
     let rate = reader.frameRate()
     addVideoInformation(image, VideoInfoFrameRateTag, Format.toString("%{f2} fps", rate.framesPerSecond()))
-    if rate.denominator() > 1 do
+    if rate.denominator() > 1
+    {
         addVideoInformation(image, VideoInfoExactRateTag, Format.toString("%/%", rate.numerator(), rate.denominator()))
-    if reader.frameCount() do
+    }
+
+    if reader.frameCount()
+    {
         addVideoInformation(image, VideoInfoFramesTag, Format.toString("%", reader.frameCount()))
+    }
+
     let bitrate = videoBitrate(reader.sourceSizeBytes(), reader.durationInSeconds())
-    if bitrate.count do
+    if bitrate.count
+    {
         addVideoInformation(image, VideoInfoBitrateTag, bitrate)
+    }
 }
 
 private func addVideoInformation(image: *Image, tag, value: string)
@@ -256,8 +309,11 @@ func trimLetterbox(image: *Image)
         right = 0
     }
 
-    if top + bottom + left + right == 0 do
+    if top + bottom + left + right == 0
+    {
         return
+    }
+
     image.crop(left, top, width - left - right, height - top - bottom)
 }
 
@@ -272,13 +328,18 @@ private func bandDepth(image: const *Image, limit: s32, sampleAt: func(const *Im
         {
             let color = sampleAt(image, depth, sample)
             let level = Math.max(color.r, Math.max(color.g, color.b))
-            if level <= 48 do
+            if level <= 48
+            {
                 dark += 1
+            }
+
             sum += level
         }
 
-        if dark < 31 or sum > 32 * 24 do
+        if dark < 31 or sum > 32 * 24
+        {
             return depth
+        }
 
         depth += 1
     }
@@ -289,8 +350,11 @@ private func bandDepth(image: const *Image, limit: s32, sampleAt: func(const *Im
 // Labels a thumbnail with the duration of its film, when the container states one.
 private func labelDuration(image: *Image, seconds: f64)
 {
-    if seconds < 1 do
+    if seconds < 1
+    {
         return
+    }
+
     var record: ImageMetadata
     record.tag   = Viewer.ThumbnailDurationTag
     record.value = Format.toString("%", cast(u64, seconds))

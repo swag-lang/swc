@@ -11,8 +11,11 @@ using Core, Pixel, Gui, Viewers
     let fileName = Testing.tempFilePath("scope-code-continuous-", ".swg")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 12_000 do
+    for index in 12_000
+    {
         source += Format.toString("// Line % keeps the viewport covered during a resident transition.\n", index)
+    }
+
     discard expect File.writeAllBytes(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -36,8 +39,11 @@ using Core, Pixel, Gui, Viewers
         view.editor.setScrollPosition(Math.Point{0, forward ? end - viewport.height * 8 : start + viewport.height * 8})
         view.pendingSeek = false
         let previousStart = view.residentStart
-        for 20 where not view.pendingSeek do
+        for 20 where not view.pendingSeek
+        {
             view.editor.setScrollPosition(Math.Point{0, view.editor.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25)})
+        }
+
         Swag.require(view.pendingSeek)
         Swag.require(view.editor.scrollPosition().y >= start + viewport.height * 3)
         Swag.require(view.editor.scrollPosition().y + viewport.height <= end - viewport.height * 3)
@@ -61,7 +67,7 @@ using Core, Pixel, Gui, Viewers
         Swag.require(view.bytesRead - view.residentStart <= 256 * 1024 + 16 * 1024)
     }
 
-    for ratio in [0.85'f32, 0.15'f32, 0.65'f32]
+    for ratio in [0.85_f32, 0.15_f32, 0.65_f32]
     {
         view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.45})
         view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * ratio})

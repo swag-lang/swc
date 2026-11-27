@@ -138,8 +138,11 @@ using Swag, Core, Pixel
 
     let metrics  = wide.themeMetrics()
     var expected = 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
-    for btn in wide.buttons do
+    for btn in wide.buttons
+    {
         expected += btn.position.width
+    }
+
     expected += cast(f32, (wide.buttons.count - 1)) * metrics.dialog_BtnPadding
     Swag.require(expected > MessageDlg.MinMessageWidth)
     Swag.require(Math.abs(wide.surface!.size().x - (expected + 2 * wide.surface.shadowMargin())) < 1)
@@ -195,8 +198,11 @@ using Swag, Core, Pixel
     host.setup(900, 900)
 
     var message: String
-    for index in 80 do
+    for index in 80
+    {
         message += Format.toString("Line % remains readable.\n", index)
+    }
+
     let dlg = MessageDlg.create(&host.surface, message.toString())
     dlg.addButton("Close", Dialog.BtnCancel, true)
     dlg.adaptSizeToMessage(400)
@@ -246,8 +252,11 @@ using Swag, Core, Pixel
 
     // A list long enough to have no end of its own.
     var long: String
-    for 400 do
+    for 400
+    {
         long += "extension, "
+    }
+
     dlg.addSection("Everything", long.toString())
 
     let scroll = dlg.sectionsScroll

@@ -134,8 +134,11 @@ func day10B()
         scope
         {
             let tt = cycle % 40
-            if x >= tt - 1 and x <= tt + 1 do
-                crt[cycle] = '#'u8
+            if x >= tt - 1 and x <= tt + 1
+            {
+                crt[cycle] = '#'_u8
+            }
+
             cycle += 1
         }
     }
@@ -143,8 +146,10 @@ func day10B()
     var cycle, x = 1
 
     var crt: String
-    for 40 * 6 do
+    for 40 * 6
+    {
         crt.append(" ")
+    }
 
     for l in lines
     {

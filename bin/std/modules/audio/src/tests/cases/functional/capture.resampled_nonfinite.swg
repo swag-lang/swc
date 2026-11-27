@@ -15,11 +15,13 @@ using Swag, Core
         input[frame * 2 + 1] = -value
     }
 
-    input[0]  = cast #bit (f32, 0x7FC0_0000'u32)
-    input[3]  = cast #bit (f32, 0x7F80_0000'u32)
-    input[62] = cast #bit (f32, 0xFF80_0000'u32)
-    for index in input.count do
+    input[0]  = cast #bit (f32, 0x7FC0_0000_u32)
+    input[3]  = cast #bit (f32, 0x7F80_0000_u32)
+    input[62] = cast #bit (f32, 0xFF80_0000_u32)
+    for index in input.count
+    {
         sanitized[index] = Math.isFinite(input[index]) ? input[index] : 0
+    }
 
     var actualQueue   = expect CaptureQueue.create(48_000, 2, 0, 10_000_000)
     var expectedQueue = expect CaptureQueue.create(48_000, 2, 0, 10_000_000)
@@ -30,13 +32,19 @@ using Swag, Core
     expect actual.finish()
     expect expected.finish()
 
-    var actualPcm:   Array's16
-    var expectedPcm: Array's16
-    var block:       Array's16
+    var actualPcm:   Array!{s16}
+    var expectedPcm: Array!{s16}
+    var block:       Array!{s16}
     var info:        CaptureBlock
-    while actualQueue.pop(&block, &info) do
+    while actualQueue.pop(&block, &info)
+    {
         actualPcm.add(block.toSlice())
-    while expectedQueue.pop(&block, &info) do
+    }
+
+    while expectedQueue.pop(&block, &info)
+    {
         expectedPcm.add(block.toSlice())
+    }
+
     Swag.require(Slice.equals(actualPcm.toSlice(), expectedPcm.toSlice()))
 }

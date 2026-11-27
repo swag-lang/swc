@@ -7,11 +7,11 @@ using Core, Pixel, Gui, Viewers
 #test
 {
     let source   = expect File.readAllText(scopeTestDataPath("viewer.trailing-quote.csv"))
-    let document = expect Table.parseDocument(source, ','u8)
+    let document = expect Table.parseDocument(source, ','_u8)
     Swag.require(document.rows.count == 1 and document.rows[0].cells[1] == "22")
 
     var truncated: Swag.Error
-    discard catch Table.parseDocument("city,value\nParis,\"22", ','u8) as truncated
+    discard catch Table.parseDocument("city,value\nParis,\"22", ','_u8) as truncated
     Swag.require(truncated.value() != null)
 }
 
@@ -48,8 +48,11 @@ using Core, Pixel, Gui, Viewers
     defer catch File.delete(fileName)
 
     var source: String = "city,value\nParis,22\n"
-    for 3000 do
+    for 3000
+    {
         source += "row,2\n"
+    }
+
     source += "\"unfinished"
     discard expect File.writeAllText(fileName, source)
 
@@ -63,7 +66,7 @@ using Core, Pixel, Gui, Viewers
 {
     let fileName = Gui.Testing.tempFilePath("scope-table-invalid-", ".csv")
     defer catch File.delete(fileName)
-    discard expect File.writeAllBytes(fileName, [0xFF'u8])
+    discard expect File.writeAllBytes(fileName, [0xFF_u8])
 
     var service: ThumbnailService
     let image = expect service.render(fileName)
@@ -84,8 +87,11 @@ using Core, Pixel, Gui, Viewers
 {
     Table.registerTexts(&g_App)
     var source: String = "measurement\n"
-    for index in 128 do
+    for index in 128
+    {
         source += Format.toString("%\n", index + 1)
+    }
+
     source += "unknown\n"
     var document = expect Table.parseDocument(source, ',')
 
@@ -178,7 +184,7 @@ using Core, Pixel, Gui, Viewers
     var line: ListLine
     view.fillLine(&line, 1)
     Swag.require(line.itemAt(0).name.text == "Reykjavik" and line.itemAt(2).name.text == "rain")
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     collectViewerMatches(result.collectMatches, "humid", &matches)
     let revealed = matches.count == 1 and result.revealMatch(matches[0], "humid")
     Swag.require(revealed)
@@ -224,7 +230,7 @@ using Core, Pixel, Gui, Viewers
     Swag.require(not view.descending and view.order[0] == 3 and view.order[1] == 2 and view.order[3] == 0)
     Swag.require(view.columnText(0) == "File1\nfile2\nfile9\nfile10" and view.columnText(1) == "-4.5\n35\n\n1 200", view.columnText(0))
 
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     collectViewerMatches(result.collectMatches, "file10", &matches)
     Swag.require(matches.count == 1 and result.revealMatch(matches[0], "file10"))
     Swag.require(view.list.focusIndex == view.lineOfRow(0) and view.lineOfRow(0) == 3)
@@ -282,8 +288,11 @@ using Core, Pixel, Gui, Viewers
 {
     Table.registerTexts(&g_App)
     var source: String = "day\n"
-    for 128 do
+    for 128
+    {
         source += "2026-01-02\n"
+    }
+
     source += "2025-02-29\n"
     var document = expect Table.parseDocument(source.toString(), ',')
     var host: Testing.HeadlessHost
@@ -301,11 +310,16 @@ using Core, Pixel, Gui, Viewers
 {
     var giant: String
     giant.reserve(16 * 1024)
-    for 8 * 1024 do
+    for 8 * 1024
+    {
         giant += "a"
+    }
+
     giant += "needle"
-    for 8 * 1024 do
+    for 8 * 1024
+    {
         giant += "z"
+    }
 
     let leading = Table.cellPreviewRange(giant)
     Swag.require(leading.start == 0 and leading.end <= Table.CellPreviewBytes)
@@ -315,8 +329,11 @@ using Core, Pixel, Gui, Viewers
     Swag.require(focused.start <= 8 * 1024 and focused.end >= 8 * 1024 + ("needle").count)
 
     var unicode = String.from("x")
-    for 400 do
+    for 400
+    {
         unicode += "\U0001F642"
+    }
+
     let unicodeRange = Table.cellPreviewRange(unicode)
     Swag.require(Utf8.isValid(unicode.toSlice()[unicodeRange.start until unicodeRange.end]))
 
@@ -372,8 +389,11 @@ using Core, Pixel, Gui, Viewers
     let fileName = Testing.tempFilePath("scope-table-rows-", ".csv")
     defer discard catch File.delete(fileName)
     var source: String = "name,value\n"
-    for i in 300 do
+    for i in 300
+    {
         source += Format.toString("item %,%\n", i + 1, (i * 7) % 300)
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
@@ -420,8 +440,11 @@ using Core, Pixel, Gui, Viewers
     var entries = Viewer.LensEntries.create(&results, "Table", host.theme)
     view.revealLine(0)
     view.describeLens(&entries)
-    for &entry in results.sections[0]!.entries where entry.title == Table.texts().ui_CopyRowsNames do
+    for &entry in results.sections[0]!.entries where entry.title == Table.texts().ui_CopyRowsNames
+    {
         entry.run!()
+    }
+
     Swag.require(Clipboard.getString() == "name\tnote\nplain\tété\n" and not Clipboard.hasImage())
 }
 
@@ -483,8 +506,8 @@ using Core, Pixel, Gui, Viewers
     var host: Testing.HeadlessHost
     host.setup(1200, 500)
     var document = expect Table.parseDocument("Name,Category,Measure,Sample\nNorth,Survey,120,May\n", ',')
-    let view = Table.Panel.createDocument(&host.root, #move document)
-    let columns = view.list.header.contentWidth()
+    let view     = Table.Panel.createDocument(&host.root, #move document)
+    let columns  = view.list.header.contentWidth()
     view.resize(columns + 2 * Table.PageMargin + 40, 420)
     Swag.require(view.padding.x == Table.PageMargin and view.padding.z == Table.PageMargin)
     view.resize(columns, 260)

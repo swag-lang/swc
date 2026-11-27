@@ -9,9 +9,11 @@
 #[Swag.Optimize(true)]
 func matchLength(data: const [*] u8, a, b, limit: s64)->s64
 {
-    var l = 0's64
-    while l < limit and data[a + l] == data[b + l] do
+    var l = 0_s64
+    while l < limit and data[a + l] == data[b + l]
+    {
         l += 1
+    }
     return l
 }
 
@@ -20,15 +22,19 @@ func matchLength(data: const [*] u8, a, b, limit: s64)->s64
 #[Swag.Optimize(true)]
 func bestMatch(data: const [*] u8, cands: const [*] s64, count: s64, at, limit: s64)->s64
 {
-    var best = 0's64
+    var best = 0_s64
     for k in count
     {
         let cand = cands[k]
-        var l    = 0's64
-        while l < limit and data[cand + l] == data[at + l] do
+        var l    = 0_s64
+        while l < limit and data[cand + l] == data[at + l]
+        {
             l += 1
-        if l > best do
+        }
+        if l > best
+        {
             best = l
+        }
     }
 
     return best
@@ -38,8 +44,10 @@ func bestMatch(data: const [*] u8, cands: const [*] s64, count: s64, at, limit: 
 {
     let text = "abcabcabxabcabcabcd--abcabcabcabcx"
     var bytes: [34] u8
-    for i in text.count do
+    for i in text.count
+    {
         bytes[i] = text[i]
+    }
     let data = cast(const [*] u8, &bytes[0])
     Swag.require(matchLength(data, 0, 3, 6) == 5)
     Swag.require(matchLength(data, 0, 9, 10) == 8)

@@ -18,18 +18,27 @@ impl IWnd for ResponsiveScrollView
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         let scroll = assume cast(*ScrollWnd, unwrap .parent)
-        if scroll.view == null do
+        if scroll.view == null
+        {
             return
+        }
+
         .resizing += 1
         defer .resizing -= 1
         .visits += 1
         Swag.require(.resizing == 1 and .visits < 8)
-        if .threshold > 0 do
+        if .threshold > 0
+        {
             scroll.setScrollSize(0, .position.width < .threshold ? 300 : 100)
-        elif .horizontal do
+        }
+        else if .horizontal
+        {
             scroll.setScrollSize(.position.height, 0)
-        else do
+        }
+        else
+        {
             scroll.setScrollSize(0, .position.width)
+        }
     }
 }
 
@@ -38,9 +47,9 @@ impl IWnd for ResponsiveScrollView
 {
     var host: Testing.HeadlessHost
     host.setup(300, 300)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 200})
     scroll.updateFlags(.DisableHorizontal)
-    let view = scroll.createView'ResponsiveScrollView()
+    let view = scroll.createView!{ResponsiveScrollView}()
     view.threshold = 190
     scroll.setScrollSize(0, 300)
     Swag.require(scroll.showBarV and view.position.width < 190)
@@ -55,9 +64,9 @@ impl IWnd for ResponsiveScrollView
 {
     var host: Testing.HeadlessHost
     host.setup(300, 300)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 196})
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 196})
     scroll.updateFlags(.DisableHorizontal)
-    let view = scroll.createView'ResponsiveScrollView()
+    let view = scroll.createView!{ResponsiveScrollView}()
     scroll.setScrollSize(0, 200)
     Swag.require(view.position.width == 200 - host.theme.metrics.scrollBar_HitSize - host.theme.metrics.scrollBar_EdgeInset)
     Swag.require(scroll.scrollSize.y == view.position.width and scroll.showBarV)
@@ -76,12 +85,12 @@ impl IWnd for ResponsiveScrollView
 {
     var host: Testing.HeadlessHost
     host.setup(320, 300)
-    let parent = Wnd.create'Wnd(&host.root, "", {0, 0, 240, 240})
+    let parent = Wnd.create!{Wnd}(&host.root, "", {0, 0, 240, 240})
     parent.padding = {24, 24, 24, 24}
-    let scroll = Wnd.create'ScrollWnd(parent)
+    let scroll = Wnd.create!{ScrollWnd}(parent)
     scroll.dockStyle = .Center
     scroll.updateFlags(.DisableHorizontal)
-    let view = scroll.createView'ResponsiveScrollView()
+    let view = scroll.createView!{ResponsiveScrollView}()
     view.threshold = 200
     parent.applyLayout()
     scroll.setScrollSize(0, 300)
@@ -98,8 +107,8 @@ impl IWnd for ResponsiveScrollView
 {
     var host: Testing.HeadlessHost
     host.setup(300, 300)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 196, 200})
-    let view   = scroll.createView'ResponsiveScrollView()
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 196, 200})
+    let view   = scroll.createView!{ResponsiveScrollView}()
     view.horizontal = true
     scroll.setScrollSize(200, 0)
     Swag.require(view.position.height == 200 - host.theme.metrics.scrollBar_HitSize - host.theme.metrics.scrollBar_EdgeInset)
@@ -118,8 +127,8 @@ impl IWnd for ResponsiveScrollView
 {
     var host: Testing.HeadlessHost
     host.setup(260, 260)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
-    let view   = scroll.createView'Wnd()
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 200})
+    let view   = scroll.createView!{Wnd}()
     let room   = view.position
 
     scroll.setScrollSize(100, 300)
@@ -141,11 +150,11 @@ impl IWnd for ResponsiveScrollView
 {
     var host: Testing.HeadlessHost
     host.setup(300, 300)
-    let parent = Wnd.create'Wnd(&host.root, "", {0, 0, 240, 240})
+    let parent = Wnd.create!{Wnd}(&host.root, "", {0, 0, 240, 240})
     parent.padding = {24, 24, 24, 24}
-    let scroll = Wnd.create'ScrollWnd(parent)
+    let scroll = Wnd.create!{ScrollWnd}(parent)
     scroll.dockStyle = .Center
-    let view = scroll.createView'Wnd()
+    let view = scroll.createView!{Wnd}()
     parent.applyLayout()
     let original = scroll.position
     let room     = view.position
@@ -171,8 +180,8 @@ impl IWnd for ResponsiveScrollView
     var host: Testing.HeadlessHost
     host.setup(260, 260)
     host.setReducedMotion(false)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
-    let view   = scroll.createView'Wnd()
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 200})
+    let view   = scroll.createView!{Wnd}()
     scroll.setScrollSize(200, 1000)
     let edge = Math.Point{180, 100}
     Swag.require(host.mouseTargetAt(edge) == scroll)
@@ -216,8 +225,8 @@ impl IWnd for ResponsiveScrollView
 {
     var host: Testing.HeadlessHost
     host.setup(260, 260)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
-    scroll.createView'Wnd()
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 200})
+    scroll.createView!{Wnd}()
     scroll.setScrollSize(100, 1000)
     let viewport = scroll.view.position
     let position = scroll.scrollPosition()
@@ -235,19 +244,22 @@ impl IWnd for ResponsiveScrollView
     var host: Testing.HeadlessHost
     host.setup(260, 260)
     host.setReducedMotion(false)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
-    let view   = scroll.createView'Wnd()
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 200})
+    let view   = scroll.createView!{Wnd}()
     scroll.setScrollSize(1000, 1000)
 
-    let content = view.localToSurface(view.clientRect().center())
-    let thumb   = scroll.localToSurface(scroll.verticalThumbRect().center())
+    let content    = view.localToSurface(view.clientRect().center())
+    let thumb      = scroll.localToSurface(scroll.verticalThumbRect().center())
     let horizontal = scroll.localToSurface(scroll.horizontalThumbRect().center())
     for point, index in [content, thumb, horizontal, content]
     {
         host.moveMouse(point)
         host.finishAnimations()
-        for 3 do
+        for 3
+        {
             host.moveMouse(point)
+        }
+
         Swag.require(scroll.restTimer == null and host.app.animator.activeCount() == 0)
         Swag.require(scroll.barPresence == 0)
         Swag.require(scroll.barExpansionV == (index == 1 ? 1 : 0))
@@ -261,8 +273,8 @@ impl IWnd for ResponsiveScrollView
     var host: Testing.HeadlessHost
     host.setup(260, 260)
     host.setReducedMotion(false)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
-    scroll.createView'Wnd()
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 200})
+    scroll.createView!{Wnd}()
     scroll.setScrollSize(100000, 100000)
     scroll.smoothScrollTo({10000, 10000})
     host.advanceAnimations(0.079)
@@ -329,8 +341,8 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
     ScrollHeadlessPosCount  = 0
     ScrollHeadlessSizeCount = 0
 
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
-    scroll.createView'Wnd()
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 200})
+    scroll.createView!{Wnd}()
     scroll.sigScrollPositionChanged += &scrollHeadlessPos
     scroll.sigScrollSizeChanged     += &scrollHeadlessSize
 
@@ -357,8 +369,8 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
 {
     var host: Testing.HeadlessHost
     host.setup(260, 260)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
-    scroll.createView'Wnd()
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 200})
+    scroll.createView!{Wnd}()
     scroll.setScrollSize(50, 50)
 
     scroll.setScrollPos(100, 100)
@@ -370,9 +382,9 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
 {
     var host: Testing.HeadlessHost
     host.setup(260, 260)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 200})
     scroll.updateFlags(.DisableHorizontal)
-    scroll.createView'Wnd()
+    scroll.createView!{Wnd}()
     scroll.setScrollSize(1000, 1000)
     Swag.require(not scroll.showBarH and scroll.showBarV)
 
@@ -386,8 +398,8 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
 {
     var host: Testing.HeadlessHost
     host.setup(260, 260)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
-    scroll.createView'Wnd()
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 200})
+    scroll.createView!{Wnd}()
     scroll.setScrollSize(1000, 1000)
     scroll.setScrollPos(1000, 1000)
     Swag.require(scroll.scrollPosition().x > 0 and scroll.scrollPosition().y > 0)
@@ -402,12 +414,12 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 260)
-    let outer = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 300, 200})
-    outer.createView'Wnd()
+    let outer = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 300, 200})
+    outer.createView!{Wnd}()
     outer.setScrollSize(900, 900)
     let first = PushButton.create(outer.view, "First", {0, 0, 80, 26})
-    let inner = Wnd.create'ScrollWnd(outer.view, "", {500, 500, 200, 140})
-    inner.createView'Wnd()
+    let inner = Wnd.create!{ScrollWnd}(outer.view, "", {500, 500, 200, 140})
+    inner.createView!{Wnd}()
     inner.setScrollSize(800, 800)
     let last = PushButton.create(inner.view, "Last", {600, 600, 80, 26})
     host.pump()
@@ -443,8 +455,8 @@ struct ScrollHeadlessViewport
 {
     var host: Testing.HeadlessHost
     host.setup(360, 260)
-    let outer = Wnd.create'ScrollHeadlessViewport(&host.root, "", {0, 0, 300, 200})
-    outer.createView'Wnd()
+    let outer = Wnd.create!{ScrollHeadlessViewport}(&host.root, "", {0, 0, 300, 200})
+    outer.createView!{Wnd}()
     outer.setScrollSize(900, 900)
     let last = PushButton.create(outer.view, "Last", {600, 600, 80, 26})
     host.pump()
@@ -461,8 +473,8 @@ struct ScrollHeadlessViewport
     var host: Testing.HeadlessHost
     host.setup(260, 260)
     host.setReducedMotion(false)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
-    scroll.createView'Wnd()
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 200, 200})
+    scroll.createView!{Wnd}()
     scroll.setScrollSize(1000, 1000)
     host.finishAnimations()
     Swag.require(scroll.barPresence == 0)

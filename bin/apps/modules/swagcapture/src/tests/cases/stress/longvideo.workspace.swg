@@ -47,9 +47,11 @@ using Core, Gui, Pixel, Video
     expect capture.exportVideo(target)
     var cut = expect Reader.open(target)
     Swag.require(cut.frameCount() == 215_938 and cut.audioTrackCount() == 1)
-    Swag.require(cut.audioTrack(0)!.sampleFrameCount() == 215_938'u64 * 1_600)
-    for index in [0'u64, 29, 60_000, 215_937] do
+    Swag.require(cut.audioTrack(0)!.sampleFrameCount() == 215_938_u64 * 1_600)
+    for index in [0_u64, 29, 60_000, 215_937]
+    {
         discard expect cut.decodeFrame(index)
+    }
 
     workspace.showFrame(900)
     workspace.drawForm(ActionToolMode.Arrow, .Arrow, {10, 20}, {120, 65})
@@ -58,8 +60,8 @@ using Core, Gui, Pixel, Video
     expect capture.exportVideo(annotated)
     var originalPackets = expect Mp4.FragmentedPacketReader.open(source)
     var cutPackets      = expect Mp4.FragmentedPacketReader.open(annotated)
-    var left, right: Array'u8
-    for index in [60'u64, 60_000, 215_968]
+    var left, right: Array!{u8}
+    for index in [60_u64, 60_000, 215_968]
     {
         let original = expect originalPackets.readPacket(index, &left)
         let copied   = expect cutPackets.readPacket(index - 31, &right)
@@ -97,8 +99,10 @@ using Core, Gui, Pixel, Video
     Swag.require(result.frameCount() == 89 and result.audioTrackCount() == 1)
     Swag.require(Math.abs(result.durationInSeconds() - 89.0 / 30) < 0.00001)
     Swag.require(Math.abs(cast(s64, result.audioTrack(0)!.sampleFrameCount()) - 89 * 1_600) <= 1)
-    for index in result.frameCount() do
+    for index in result.frameCount()
+    {
         discard expect result.decodeFrame(index)
+    }
 
     // A dimension change explicitly selects conversion and must also seek directly to tail audio.
     workspace.changeImageSize(ActionImage.ExpandCapture, 162, 96)

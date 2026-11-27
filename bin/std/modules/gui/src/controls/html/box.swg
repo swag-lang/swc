@@ -89,9 +89,9 @@ struct HtmlBox
     style:    u32
     kind:     HtmlBoxKind
     parent = HtmlNoNode
-    children: Array'u32
-    items:    Array'HtmlInlineItem
-    lines:    Array'HtmlLineBox
+    children: Array!{u32}
+    items:    Array!{HtmlInlineItem}
+    lines:    Array!{HtmlLineBox}
 
     // Whether any child carries a non-zero positioned stacking level. Almost no box does, and
     // the flag is what lets painting and hit testing walk the children once instead of scanning

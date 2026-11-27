@@ -10,9 +10,11 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
     let drawing = expect Svg.Drawing.parse(Swag.makeString(source.buffer, source.count))
     let width   = cast(s32, Math.round(drawing.width * cast(f32, size) / units))
     let height  = cast(s32, Math.round(drawing.height * cast(f32, size) / units))
-    var samples = 4'u8
-    while samples > 1 and width * cast(s32, samples) > limit do
+    var samples = 4_u8
+    while samples > 1 and width * cast(s32, samples) > limit
+    {
         samples /= 2
+    }
 
     let expected = drawing.rasterize(width, height, samples)
     let actual   = decodeThemeRaster(bytes)
@@ -20,8 +22,10 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
     Swag.require(actual.byteCount == expected.byteCount)
     Swag.require(actual.pixelFormat == expected.pixelFormat and actual.alphaMode == expected.alphaMode)
     const UsesFusedMath = #run Swag.compiler().getBuildCfg()!.backend.math.fma
-    #static if not UsesFusedMath do
+    #static if not UsesFusedMath
+    {
         Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+    }
     else
     {
         // DevMode generates the assets, matching the GUI goldens. Fused floating-point
@@ -37,16 +41,22 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
 #test
 {
     const Source = #include("../../../theme/icons.svg")
-    for size in [16, 20, 24, 28, 32, 40, 48] do
+    for size in [16, 20, 24, 28, 32, 40, 48]
+    {
         checkThemeRaster(Source, unwrap themeIconRaster(size), size, 24, 8192)
+    }
+
     Swag.require(themeIconRaster(37) == null)
 }
 
 #test
 {
     const Source = #include("../../../theme/widgets.svg")
-    for scale in [1, 2] do
+    for scale in [1, 2]
+    {
         checkThemeRaster(Source, unwrap themeWidgetRaster(scale), scale, 1, 4096)
+    }
+
     Swag.require(themeWidgetRaster(3) == null)
 }
 

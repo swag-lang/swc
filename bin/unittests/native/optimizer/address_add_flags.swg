@@ -10,14 +10,17 @@ func narrowChoice(a, b, c: u32)->u32 => a < b ? c + c : c + 1
 func chain(a, b, c: u64)->u64
 {
     var total = a + b
-    for i in 7 do total = (total + c) ^ i
+    for i in 7
+    {
+        total = (total + c) ^ i
+    }
     return total
 }
 
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values
@@ -25,16 +28,31 @@ func chain(a, b, c: u64)->u64
             for c in values
             {
                 let result = unsignedChoice(a, b, c)
-                if a < b do Swag.require(result == c + c)
-                else do Swag.require(result == c + 1)
+                if a < b
+                {
+                    Swag.require(result == c + c)
+                }
+                else
+                {
+                    Swag.require(result == c + 1)
+                }
                 let a32      = cast(u32, (a & 0xFFFFFFFF))
                 let b32      = cast(u32, (b & 0xFFFFFFFF))
                 let c32      = cast(u32, (c & 0xFFFFFFFF))
                 let result32 = narrowChoice(a32, b32, c32)
-                if a32 < b32 do Swag.require(result32 == c32 + c32)
-                else do Swag.require(result32 == c32 + 1)
+                if a32 < b32
+                {
+                    Swag.require(result32 == c32 + c32)
+                }
+                else
+                {
+                    Swag.require(result32 == c32 + 1)
+                }
                 var expected = a + b
-                for i in 7 do expected = (expected + c) ^ i
+                for i in 7
+                {
+                    expected = (expected + c) ^ i
+                }
                 Swag.require(chain(a, b, c) == expected)
             }
         }

@@ -74,8 +74,11 @@ using Core, Pixel, Gui, Viewers
         var image = host.renderSettled(&host.surfaceWnd)
         image.crop({0, 0, image.width, cast(s32, metrics.wnd_StripHeight)})
         var golden = Format.toString("viewer.return.%", Path.fileName(file.toString()) orelse "document")
-        if window.outlineCaptionButton.isLocallyVisible() do
+        if window.outlineCaptionButton.isLocallyVisible()
+        {
             golden += ".outline"
+        }
+
         golden += light ? ".paper" : ".ink"
         Pixel.Testing.assertImageGolden(&image, golden.toString())
     }

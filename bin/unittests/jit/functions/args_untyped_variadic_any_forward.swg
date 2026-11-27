@@ -31,8 +31,10 @@ func anyIsString(value: any)->bool
 
 func anyIsBox(value: any)->bool
 {
-    if Swag.kindOf(value) != VariadicAnyBox do
+    if Swag.kindOf(value) != VariadicAnyBox
+    {
         return false
+    }
 
     let box = assume cast(VariadicAnyBox, value)
     return box.value == 314
@@ -40,11 +42,13 @@ func anyIsBox(value: any)->bool
 
 func anyIsPair(value: any)->bool
 {
-    if Swag.kindOf(value) != VariadicAnyPair do
+    if Swag.kindOf(value) != VariadicAnyPair
+    {
         return false
+    }
 
     let pair = assume cast(VariadicAnyPair, value)
-    return pair.left == 0x1122334455667788'u64 and pair.right == 0x99AABBCCDDEEFF00'u64
+    return pair.left == 0x1122334455667788_u64 and pair.right == 0x99AABBCCDDEEFF00_u64
 }
 
 func anyDataS32(value: any)->s32
@@ -90,8 +94,8 @@ func variadicFirstAnyDataS32(values: ...)->s32
     }
 
     const box:  VariadicAnyBox  = VariadicAnyBox{value: 314}
-    const pair: VariadicAnyPair = VariadicAnyPair{left: 0x1122334455667788'u64, right: 0x99AABBCCDDEEFF00'u64}
-    const ok = #run variadicIndexedAnyToAny(42's32, true, "variadic-any", box, pair)
+    const pair: VariadicAnyPair = VariadicAnyPair{left: 0x1122334455667788_u64, right: 0x99AABBCCDDEEFF00_u64}
+    const ok = #run variadicIndexedAnyToAny(42_s32, true, "variadic-any", box, pair)
     #assert(ok)
 }
 
@@ -111,7 +115,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     }
 
     const box: VariadicAnyBox = VariadicAnyBox{value: 314}
-    const ok = #run variadicIndexedAnyRelay(42's32, "relay", box)
+    const ok = #run variadicIndexedAnyRelay(42_s32, "relay", box)
     #assert(ok)
 }
 
@@ -127,7 +131,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
         return variadicIndexedAnyData(values[0])
     }
 
-    const value = #run variadicIndexedAnyDataForward(1234's32)
+    const value = #run variadicIndexedAnyDataForward(1234_s32)
     #assert(value == 1234)
 }
 
@@ -136,22 +140,28 @@ func variadicFirstAnyDataS32(values: ...)->s32
     func variadicDynamicIndexedAnyToAny(values: ...)->bool
     {
         var index: u64 = 0
-        if not anyIsS32(values[index]) do
+        if not anyIsS32(values[index])
+        {
             return false
+        }
 
         index += 1
-        if not anyIsString(values[index]) do
+        if not anyIsString(values[index])
+        {
             return false
+        }
 
         index += 1
-        if not anyIsBox(values[index]) do
+        if not anyIsBox(values[index])
+        {
             return false
+        }
 
         return true
     }
 
     const box: VariadicAnyBox = VariadicAnyBox{value: 314}
-    const ok = #run variadicDynamicIndexedAnyToAny(42's32, "variadic-any", box)
+    const ok = #run variadicDynamicIndexedAnyToAny(42_s32, "variadic-any", box)
     #assert(ok)
 }
 
@@ -161,19 +171,25 @@ func variadicFirstAnyDataS32(values: ...)->s32
     {
         for value, index in values
         {
-            if index == 0 and not anyIsS32(value) do
+            if index == 0 and not anyIsS32(value)
+            {
                 return false
-            if index == 1 and not anyIsString(value) do
+            }
+            if index == 1 and not anyIsString(value)
+            {
                 return false
-            if index == 2 and not anyIsBox(value) do
+            }
+            if index == 2 and not anyIsBox(value)
+            {
                 return false
+            }
         }
 
         return values.count == 3
     }
 
     const box: VariadicAnyBox = VariadicAnyBox{value: 314}
-    const ok = #run variadicForeachAnyToAny(42's32, "variadic-any", box)
+    const ok = #run variadicForeachAnyToAny(42_s32, "variadic-any", box)
     #assert(ok)
 }
 
@@ -181,7 +197,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
 {
     func boxedAnyThroughVariadic()->bool
     {
-        var boxed: any = 42's32
+        var boxed: any = 42_s32
         return anyIsS32(boxed) and variadicFirstAnyIsS32(boxed)
     }
 
@@ -207,7 +223,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     func boxedAnyInSecondVariadicSlot()->bool
     {
         var boxed: any = "variadic-any"
-        return anyIsString(boxed) and variadicSecondAnyIsString(42's32, boxed)
+        return anyIsString(boxed) and variadicSecondAnyIsString(42_s32, boxed)
     }
 
     const ok = #run boxedAnyInSecondVariadicSlot()
@@ -218,7 +234,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
 {
     func boxedAnyRelayThroughVariadic()->bool
     {
-        var boxed: any = 42's32
+        var boxed: any = 42_s32
         let relayed    = relayAny(boxed)
         return anyIsS32(relayed) and variadicFirstAnyIsS32(relayed)
     }
@@ -246,8 +262,10 @@ func variadicFirstAnyDataS32(values: ...)->s32
     {
         for value, index in values
         {
-            if index == 0 do
+            if index == 0
+            {
                 return anyIsS32(value)
+            }
         }
 
         return false
@@ -255,7 +273,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
 
     func boxedAnyForeachThroughVariadic()->bool
     {
-        var boxed: any = 42's32
+        var boxed: any = 42_s32
         return variadicForeachSeesBoxedAny(boxed)
     }
 
@@ -267,7 +285,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
 {
     func strictAnyCastThroughVariadic()->bool
     {
-        let boxed = cast(VariadicStrictAny, 42's32)
+        let boxed = cast(VariadicStrictAny, 42_s32)
         return variadicFirstAnyIsS32(boxed)
     }
 
@@ -279,7 +297,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
 {
     func strictAnyViewThroughVariadic()->bool
     {
-        var raw: any = 42's32
+        var raw: any = 42_s32
         let boxed    = cast(const *VariadicStrictAny, (&raw))[]
         return variadicFirstAnyIsS32(boxed)
     }
@@ -293,7 +311,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     func strictAnySecondSlotThroughVariadic()->bool
     {
         let boxed = cast(VariadicStrictAny, "variadic-any")
-        return variadicSecondAnyIsString(42's32, boxed)
+        return variadicSecondAnyIsString(42_s32, boxed)
     }
 
     const ok = #run strictAnySecondSlotThroughVariadic()

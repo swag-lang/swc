@@ -2,8 +2,10 @@
 
 func repeatedCallRecursive(values: [*] s32, depth: u32)->s32
 {
-    if depth == 0 do
+    if depth == 0
+    {
         return 0
+    }
     return repeatedCallChecked(values) + repeatedCallRecursive(values, depth - 1)
 }
 
@@ -26,8 +28,10 @@ func repeatedCallReturnLoop(values: [*] s32)->s32
     for index in 4
     {
         let selected = repeatedCallOptional(values, cast(s32, index))
-        if selected do
+        if selected
+        {
             total += selected[0]
+        }
     }
     return total
 }
@@ -37,7 +41,7 @@ func repeatedCallSetup(values: [*] s32)->s32 => repeatedCallCold(values)
 
 #test
 {
-    var values = [7's32, 11]
+    var values = [7_s32, 11]
     Swag.require(repeatedCallRecursive(values.buffer, 4) == 28)
     Swag.require(repeatedCallRecursive(values.buffer, 0) == 0)
     Swag.require(repeatedCallLoop(values.buffer) == 20)

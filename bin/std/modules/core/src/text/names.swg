@@ -60,7 +60,7 @@ public struct NameOrderOptions
 // using Core
 //
 // let query = try Text.NameMatcher.create("file", {matchCase: false})
-// if query.isMatch("Readme_File.txt") do
+// if query.isMatch("Readme_File.txt") { }
 //     Swag.assert(query.findAll("Readme_File.txt").count == 1)
 // ```
 #[Swag.Opaque]
@@ -89,10 +89,14 @@ public impl NameMatcher
         result.options = options
         if options.regularExpression
         {
-            if expression do
+            if expression
+            {
                 result.borrowedExpression = expression
-            else do
+            }
+            else
+            {
                 try result.expression.compile(query, ignoreCase: not options.matchCase)
+            }
         }
 
         return result
@@ -101,41 +105,62 @@ public impl NameMatcher
     // Returns whether the query has at least one non-empty match in `candidate`.
     mtd isMatch(candidate: string)->bool
     {
-        if .query.isEmpty() do
+        if .query.isEmpty()
+        {
             return false
+        }
 
         if .options.regularExpression
         {
             let expression = .expressionForUse()
             for span in expression.findAll(candidate) where span.end > span.start
             {
-                if .options.mode == .StartsWith and span.start do
+                if .options.mode == .StartsWith and span.start
+                {
                     continue
+                }
+
                 if .options.mode == .Exact and
-                   (span.start != 0 or span.end != candidate.count) do
+                   (span.start != 0 or span.end != candidate.count)
+                {
                     continue
-                if not .options.wholeWord or isNameWordBoundary(candidate, span.start, span.end) do
+                }
+
+                if not .options.wholeWord or isNameWordBoundary(candidate, span.start, span.end)
+                {
                     return true
+                }
             }
 
             return false
         }
 
         let comparison = .options.matchCase ? Utf8.ComparisonType.Latin1 : .options.comparisonType
-        if .options.mode == .Exact do
+        if .options.mode == .Exact
+        {
             return Utf8.compare(candidate, .query.toString(), comparison) == 0
+        }
 
-        var start = 0'u64
+        var start = 0_u64
         while start < candidate.count
         {
             let match = Utf8.indexOfMatch(candidate, .query.toString(), start, comparison)
-            if not match.found do
+            if not match.found
+            {
                 return false
-            if .options.mode == .StartsWith and match.index do
+            }
+
+            if .options.mode == .StartsWith and match.index
+            {
                 return false
+            }
+
             let end = match.index + match.length
-            if not .options.wholeWord or isNameWordBoundary(candidate, match.index, end) do
+            if not .options.wholeWord or isNameWordBoundary(candidate, match.index, end)
+            {
                 return true
+            }
+
             let {eat: nextRuneBytes} = Utf8.decodeRune(candidate[match.index to])
             start = match.index + nextRuneBytes
         }
@@ -144,24 +169,34 @@ public impl NameMatcher
     }
 
     // Appends each non-overlapping, non-empty match as a byte range in `candidate`.
-    mtd findAll(candidate: string)->Array'NameSpan
+    mtd findAll(candidate: string)->Array!{NameSpan}
     {
         var result: #returntype
-        if .query.isEmpty() do
+        if .query.isEmpty()
+        {
             return result
+        }
 
         if .options.regularExpression
         {
             let expression = .expressionForUse()
             for span in expression.findAll(candidate) where span.end > span.start
             {
-                if .options.mode == .StartsWith and span.start do
+                if .options.mode == .StartsWith and span.start
+                {
                     continue
+                }
+
                 if .options.mode == .Exact and
-                   (span.start != 0 or span.end != candidate.count) do
+                   (span.start != 0 or span.end != candidate.count)
+                {
                     continue
-                if not .options.wholeWord or isNameWordBoundary(candidate, span.start, span.end) do
+                }
+
+                if not .options.wholeWord or isNameWordBoundary(candidate, span.start, span.end)
+                {
                     result.add(NameSpan{span.start, span.end - span.start})
+                }
             }
 
             return result
@@ -170,22 +205,34 @@ public impl NameMatcher
         let comparison = .options.matchCase ? Utf8.ComparisonType.Latin1 : .options.comparisonType
         if .options.mode == .Exact
         {
-            if Utf8.compare(candidate, .query.toString(), comparison) == 0 do
+            if Utf8.compare(candidate, .query.toString(), comparison) == 0
+            {
                 result.add(NameSpan{0, candidate.count})
+            }
+
             return result
         }
 
-        var start = 0'u64
+        var start = 0_u64
         while start < candidate.count
         {
             let match = Utf8.indexOfMatch(candidate, .query.toString(), start, comparison)
-            if not match.found do
+            if not match.found
+            {
                 break
-            if .options.mode == .StartsWith and match.index do
+            }
+
+            if .options.mode == .StartsWith and match.index
+            {
                 break
+            }
+
             let end = match.index + match.length
-            if not .options.wholeWord or isNameWordBoundary(candidate, match.index, end) do
+            if not .options.wholeWord or isNameWordBoundary(candidate, match.index, end)
+            {
                 result.add(NameSpan{match.index, match.length})
+            }
+
             start = end
         }
 
@@ -197,8 +244,11 @@ private impl NameMatcher
 {
     mtd expressionForUse()->*Parser.RegExp
     {
-        if .borrowedExpression do
+        if .borrowedExpression
+        {
             return .borrowedExpression
+        }
+
         return &.expression
     }
 }
@@ -209,18 +259,27 @@ private impl NameMatcher
 // a textual tie-breaker. This keeps dates, sizes and other typed values out of name heuristics.
 func compareNames(left, right: const [..] u8, options: NameOrderOptions = {})->s32
 {
-    if options.compare do
+    if options.compare
+    {
         return options.compare(left, right)
-    if options.natural do
+    }
+
+    if options.natural
+    {
         return Latin1.compareNatural(left, right, ignoreCase: not options.matchCase)
+    }
+
     return Utf8.compare(left, right, options.matchCase ? .Latin1 : .Latin1NoCase)
 }
 
 // Returns whether a byte range in `text` is separated from word characters on both sides.
 func isWholeWordMatch(text: string, start, length: u64)->bool
 {
-    if start > text.count or length > text.count - start do
+    if start > text.count or length > text.count - start
+    {
         return false
+    }
+
     return isNameWordBoundary(text, start, start + length)
 }
 
@@ -229,15 +288,19 @@ private func isNameWordBoundary(text: string, start, end: u64)->bool
     if start
     {
         let {c, eat: _} = Utf8.decodeLastRune(text[until start])
-        if Unicode.isWord(c) do
+        if Unicode.isWord(c)
+        {
             return false
+        }
     }
 
     if end < text.count
     {
         let {c, eat: _} = Utf8.decodeRune(text[end to])
-        if Unicode.isWord(c) do
+        if Unicode.isWord(c)
+        {
             return false
+        }
     }
 
     return true

@@ -14,13 +14,19 @@ impl Owner
     mtd opDrop()
     {
         Swag.assert(.data == null or .data == &target)
-        if .data do drops += 1
+        if .data
+        {
+            drops += 1
+        }
     }
 }
 #[Swag.NoInline]
 func load(ok: bool)->Owner fail
 {
-    if not ok do fail 7
+    if not ok
+    {
+        fail 7
+    }
     return {data: &target}
 }
 #[Swag.NoInline]

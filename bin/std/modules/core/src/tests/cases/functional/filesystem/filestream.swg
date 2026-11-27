@@ -17,7 +17,7 @@ using Swag, Core.Errors
     expect stream.writeAll(bytes)
     expect stream.flush()
     Swag.require(expect stream.position() == #sizeof(u32))
-    expect stream.seek(.Current, cast #bit (u64, -2's64))
+    expect stream.seek(.Current, cast #bit (u64, -2_s64))
     Swag.require(expect stream.position() == 2)
 
     expect stream.seek(.Begin, 0)
@@ -47,12 +47,12 @@ using Swag, Core.Errors
 
     let initial: [4] u8 = [0x10, 0x20, 0x30, 0x40]
     expect stream.writeAll(initial)
-    expect stream.writeAllAt(1, [0xAA'u8, 0xBB])
+    expect stream.writeAllAt(1, [0xAA_u8, 0xBB])
     Swag.require(expect stream.position() == 3)
 
     var pair: [2] u8
     Swag.require(expect stream.readExactAt(1, pair))
-    Swag.require(Slice.equals(pair, [0xAA'u8, 0xBB]))
+    Swag.require(Slice.equals(pair, [0xAA_u8, 0xBB]))
     Swag.require(expect stream.position() == 3)
 
     var tail: [3] u8
@@ -76,8 +76,11 @@ using Swag, Core.Errors
     // Swag rejects numeric casts to enums, so build an invalid value through its raw bytes.
     var invalidOrigin: File.SeekOrigin
     var invalidBytes:  [#sizeof(File.SeekOrigin)] u8
-    for index in invalidBytes.count do
+    for index in invalidBytes.count
+    {
         invalidBytes[index] = 0xFF
+    }
+
     Memory.copy(&invalidOrigin, invalidBytes.buffer, invalidBytes.count)
 
     var error: Swag.Error

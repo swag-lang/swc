@@ -18,12 +18,12 @@
 {
     func modEqU64()->u64
     {
-        var v: u64 = 1000'u64
-        v %= 479'u64
+        var v: u64 = 1000_u64
+        v %= 479_u64
         return v
     }
 
     const V = #run modEqU64()
     #assert(#typeof(V) == u64)
-    #assert(V == 42'u64)
+    #assert(V == 42_u64)
 }

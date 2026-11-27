@@ -47,12 +47,15 @@ func day6A()
     let dataPath = Path.combine(Path.directoryName(#file), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var map:   HashSet'u8
+    var map:   HashSet!{u8}
     var total: u64
     for l, index in lines
     {
-        for c in l.bytes() do
+        for c in l.bytes()
+        {
             map.add(c)
+        }
+
         if index == lines.count - 1 or lines[index + 1].isEmpty()
         {
             total += map.count

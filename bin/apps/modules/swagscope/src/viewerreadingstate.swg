@@ -5,7 +5,7 @@ using Core, Gui
 // One scrolled viewport of a view, found again through the child indices that lead to it.
 struct ViewerScrollState
 {
-    path:     Array'u32
+    path:     Array!{u32}
     position: Math.Point
 }
 
@@ -23,7 +23,7 @@ struct ViewerReadingState
     searchWholeWord:        bool
     searchRegex:            bool
     searchFilter:           bool
-    scrolls:                Array'ViewerScrollState
+    scrolls:                Array!{ViewerScrollState}
     zoom:                   u32  = 100
     wrapping:               bool = true
     panelOpen:              bool
@@ -47,23 +47,23 @@ struct ViewerReadingState
 
     // Navigation history belongs to the document session and survives tab switches.
     #[Serialization.NoSerialize]
-    soundBackHistory: Array'f32
+    soundBackHistory: Array!{f32}
     #[Serialization.NoSerialize]
-    soundForwardHistory: Array'f32
+    soundForwardHistory: Array!{f32}
     #[Serialization.NoSerialize]
-    hexHistory: Array'u64
+    hexHistory: Array!{u64}
     #[Serialization.NoSerialize]
     hexHistoryIndex: u64 = Swag.U64.Max
     #[Serialization.NoSerialize]
-    hexCaret: u64
-    textBookmarks: Array'Viewers.PlainText.Bookmark
-    textBookmarkIdentity: String
+    hexCaret:                 u64
+    textBookmarks:            Array!{Viewers.PlainText.Bookmark}
+    textBookmarkIdentity:     String
     textBookmarksPersistable: bool = true
 }
 
 impl ViewerReadingState
 {
-    private mtd captureScrolls(wnd: *Wnd, path: *Array'u32)
+    private mtd captureScrolls(wnd: *Wnd, path: *Array!{u32})
     {
         if wnd is ScrollWnd as scroll
         {
@@ -87,16 +87,19 @@ impl ViewerReadingState
         .scrolls.clear()
         .textBookmarks.clear()
         .textBookmarkIdentity = ""
-        var path: Array'u32
+        var path: Array!{u32}
         .captureScrolls(unwrap session.view, &path)
         switch session.view
         {
         case Viewers.PlainText.Panel as view:
             .zoom     = view.zoomPercent
             .wrapping = view.wrapping
-            for bookmark in view.bookmarks do
+            for bookmark in view.bookmarks
+            {
                 .textBookmarks.add(bookmark)
-            .textBookmarkIdentity = view.bookmarkIdentity
+            }
+
+            .textBookmarkIdentity     = view.bookmarkIdentity
             .textBookmarksPersistable = view.bookmarksPersistable
 
         case Viewers.Code.Panel as view:
@@ -141,8 +144,10 @@ impl ViewerReadingState
             .subtitleDelay = view.subtitleDelay
         }
 
-        if key == "markdown" and session.info do
+        if key == "markdown" and session.info
+        {
             .zoom = assume cast(*Viewers.MarkdownText.ZoomButton, session.info.children[0]).zoomPercent
+        }
     }
 
     mtd captureSearchSettings(window: const *ViewerWindow)
@@ -175,8 +180,10 @@ impl ViewerReadingState
         {
         case Viewers.PlainText.Panel as view:
             view.setZoom(.zoom, remember: false)
-            if view.wrapping != .wrapping do
+            if view.wrapping != .wrapping
+            {
                 view.toggleWrap()
+            }
 
         case Viewers.Code.Panel as view:
             view.setZoom(.zoom, remember: false)
@@ -185,8 +192,11 @@ impl ViewerReadingState
             view.setZoom(.zoom, remember: false)
         }
 
-        if .viewer == "markdown" and session.info do
+        if .viewer == "markdown" and session.info
+        {
             assume cast(*Viewers.MarkdownText.ZoomButton, session.info.children[0]).applyZoom(.zoom, remember: false)
+        }
+
         .restoring = true
         .contentSettingsApplied = false
     }
@@ -196,23 +206,30 @@ impl ViewerReadingState
     // It waits for the initial viewport, applies the saved position once, then lets streaming settle.
     mtd restore(session: *ViewerSession)->bool
     {
-        if not session.view do
+        if not session.view
+        {
             return true
+        }
+
         let sound = session.view is Viewers.Sound.Panel
 
         // Sound can seek once the file opens, while the waveform builds in the background.
         if session.view is Viewers.Sound.Panel as audio
         {
-            if not audio.openFinished do
+            if not audio.openFinished
+            {
                 return false
+            }
         }
-        elif session.isLoading and session.isLoading()
+        else if session.isLoading and session.isLoading()
         {
             return false
         }
 
-        if .contentSettingsApplied do
+        if .contentSettingsApplied
+        {
             return true
+        }
 
         // Reapplying an unreachable position interrupts the viewer's own seek and scroll
         // animation on every watch tick, so a shorter replacement can never finish loading.
@@ -230,14 +247,25 @@ impl ViewerReadingState
             view.bookmarksPersistable = .textBookmarksPersistable
 
         case Viewers.Picture.Panel as view:
-            if .imageMirrored do
+            if .imageMirrored
+            {
                 view.imageView.mirrorHorizontally()
-            for .imageRotation do
+            }
+
+            for .imageRotation
+            {
                 view.imageView.rotateClockwise()
-            if .imageFitted do
+            }
+
+            if .imageFitted
+            {
                 view.imageView.zoomToFit()
-            else do
+            }
+            else
+            {
                 view.imageView.setZoom(.imageZoom)
+            }
+
             view.imageView.setPanOffset(.imagePan)
 
         case Viewers.Hex.Panel as view:
@@ -252,8 +280,10 @@ impl ViewerReadingState
             view.setMuted(.muted)
             view.setPlaybackRate(.playbackRate)
             view.seekSeconds(cast(f32, .seconds), remember: false)
-            if view.playing != .playing do
+            if view.playing != .playing
+            {
                 view.togglePlayback()
+            }
 
         case Viewers.Film.Panel as view:
             view.setVolume(.volume)
@@ -261,8 +291,10 @@ impl ViewerReadingState
             view.setPlaybackRate(.playbackRate)
             view.subtitleDelay = .subtitleDelay
             view.seekSeconds(.seconds)
-            if view.playing != .playing do
+            if view.playing != .playing
+            {
                 view.togglePlayback()
+            }
         }
 
         session.sidePanelButton?.setChecked(.panelOpen)
@@ -283,8 +315,10 @@ impl ViewerReadingState
 
             if wnd
             {
-                if wnd is ScrollWnd as scroll do
+                if wnd is ScrollWnd as scroll
+                {
                     scroll.setScrollPos(saved.position)
+                }
             }
         }
 

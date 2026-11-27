@@ -18,24 +18,30 @@ using Swag, Core
     let features = ImageStatistics.extractHaarFeatures(image)
     Swag.require(features.size == 128)
     Swag.require(Math.abs(features.coefficients[0] - 64) < 0.01)
-    for index in 1 until features.coefficients.count do
+    for index in 1 until features.coefficients.count
+    {
         Swag.require(Math.abs(features.coefficients[index]) < 0.001)
+    }
 }
 
 // Border clamping preserves a constant image through both upsampling and downsampling.
 #test
 {
     var small = Image.create(3, 3, .Gray8)
-    for index in small.byteCount do
+    for index in small.byteCount
+    {
         small.pixels.storage()[index] = 100
+    }
 
     let smallFeatures = ImageStatistics.extractHaarFeatures(small)
     Swag.require(smallFeatures.size == 4)
     Swag.require(Math.abs(smallFeatures.coefficients[0] - 4 * (100.0 / 255.0)) < 0.001)
 
     var large = Image.create(256, 256, .Gray8)
-    for index in large.byteCount do
+    for index in large.byteCount
+    {
         large.pixels.storage()[index] = 64
+    }
 
     let largeFeatures = ImageStatistics.extractHaarFeatures(large)
     Swag.require(largeFeatures.size == 128)
@@ -70,12 +76,17 @@ using Swag, Core
     single.pixels.storage()[0] = 80
     let singleFeatures = ImageStatistics.quickExtractHaarFeatures(single)
     Swag.require(Math.abs(singleFeatures.coefficients[0] - 32 * (80.0 / 255.0)) < 0.001)
-    for index in 1 until singleFeatures.coefficients.count do
+    for index in 1 until singleFeatures.coefficients.count
+    {
         Swag.require(Math.abs(singleFeatures.coefficients[index]) < 0.001)
+    }
 
     var equalSize = Image.create(32, 32, .Gray8)
-    for index in equalSize.byteCount do
+    for index in equalSize.byteCount
+    {
         equalSize.pixels.storage()[index] = 64
+    }
+
     let equalFeatures = ImageStatistics.quickExtractHaarFeatures(equalSize)
     Swag.require(Math.abs(equalFeatures.coefficients[0] - 32 * (64.0 / 255.0)) < 0.001)
 }

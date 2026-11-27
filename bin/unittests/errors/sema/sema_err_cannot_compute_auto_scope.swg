@@ -12,8 +12,10 @@ impl AutoScopeOpBox
     mtd(op: Swag.Operator) const opBinary(other: AutoScopeOpBox)->AutoScopeOpBox
         where op == .Add
     {
-        #static if op == .Addd do     // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
+        #static if op == .Addd     // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
+        {
             return AutoScopeOpBox{.value + other.value}
+        }
         return AutoScopeOpBox{.value + other.value}
     }
 }

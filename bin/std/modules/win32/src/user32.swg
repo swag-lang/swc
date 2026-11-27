@@ -26,29 +26,29 @@ const MOD_SHIFT    = 0x0004
 const MOD_WIN      = 0x0008
 const MOD_NOREPEAT = 0x4000
 
-const SPI_GETCLIENTAREAANIMATION = 0x1042'u32
-const GA_ROOT        = 2'u32
-const PBT_APMSUSPEND = 0x0004'u32
+const SPI_GETCLIENTAREAANIMATION = 0x1042_u32
+const GA_ROOT        = 2_u32
+const PBT_APMSUSPEND = 0x0004_u32
 
-const QS_KEY            = 0x0001'u32
-const QS_MOUSEMOVE      = 0x0002'u32
-const QS_MOUSEBUTTON    = 0x0004'u32
-const QS_POSTMESSAGE    = 0x0008'u32
-const QS_TIMER          = 0x0010'u32
-const QS_PAINT          = 0x0020'u32
-const QS_SENDMESSAGE    = 0x0040'u32
-const QS_HOTKEY         = 0x0080'u32
-const QS_ALLPOSTMESSAGE = 0x0100'u32
-const QS_RAWINPUT       = 0x0400'u32
-const QS_TOUCH          = 0x0800'u32
-const QS_POINTER        = 0x1000'u32
+const QS_KEY            = 0x0001_u32
+const QS_MOUSEMOVE      = 0x0002_u32
+const QS_MOUSEBUTTON    = 0x0004_u32
+const QS_POSTMESSAGE    = 0x0008_u32
+const QS_TIMER          = 0x0010_u32
+const QS_PAINT          = 0x0020_u32
+const QS_SENDMESSAGE    = 0x0040_u32
+const QS_HOTKEY         = 0x0080_u32
+const QS_ALLPOSTMESSAGE = 0x0100_u32
+const QS_RAWINPUT       = 0x0400_u32
+const QS_TOUCH          = 0x0800_u32
+const QS_POINTER        = 0x1000_u32
 const QS_MOUSE          = QS_MOUSEMOVE | QS_MOUSEBUTTON
 const QS_INPUT          = QS_MOUSE | QS_KEY | QS_RAWINPUT | QS_TOUCH | QS_POINTER
 const QS_ALLINPUT       = QS_INPUT | QS_POSTMESSAGE | QS_TIMER | QS_PAINT | QS_HOTKEY | QS_SENDMESSAGE
 
-const MWMO_WAITALL        = 0x0001'u32
-const MWMO_ALERTABLE      = 0x0002'u32
-const MWMO_INPUTAVAILABLE = 0x0004'u32
+const MWMO_WAITALL        = 0x0001_u32
+const MWMO_ALERTABLE      = 0x0002_u32
+const MWMO_INPUTAVAILABLE = 0x0004_u32
 
 alias UINT_PTR  = u64
 alias HRGN      = const *void?
@@ -519,8 +519,11 @@ const WHEEL_DELTA = 120
 func GET_WHEEL_DELTA_WPARAM(wParam: u64)->s32
 {
     let value = HIWORD(wParam)
-    if value <= 0x7FFF do
+    if value <= 0x7FFF
+    {
         return cast(s32, value)
+    }
+
     return cast(s32, (cast(s64, value) - 0x1_0000))
 }
 
@@ -881,18 +884,18 @@ struct SIZE
     }
 }
 
-const AC_SRC_OVER     = 0'u8
-const AC_SRC_ALPHA    = 1'u8
-const ULW_ALPHA       = 2'u32
-const ULW_EX_NORESIZE = 8'u32
+const AC_SRC_OVER     = 0_u8
+const AC_SRC_ALPHA    = 1_u8
+const ULW_ALPHA       = 2_u32
+const ULW_EX_NORESIZE = 8_u32
 
-const HWND_BROADCAST   = cast(HWND, 0xFFFF'u64)
+const HWND_BROADCAST   = cast(HWND, 0xFFFF_u64)
 const SMTO_ABORTIFHUNG = 0x0002
 
-const HWND_TOP       = cast(HWND, 0'u64)
-const HWND_BOTTOM    = cast(HWND, 1'u64)
-const HWND_TOPMOST   = cast(HWND, cast #bit (u64, -1's64))
-const HWND_NOTOPMOST = cast(HWND, cast #bit (u64, -2's64))
+const HWND_TOP       = cast(HWND, 0_u64)
+const HWND_BOTTOM    = cast(HWND, 1_u64)
+const HWND_TOPMOST   = cast(HWND, cast #bit (u64, -1_s64))
+const HWND_NOTOPMOST = cast(HWND, cast #bit (u64, -2_s64))
 
 const SWP_NOSIZE         = 0x0001
 const SWP_NOMOVE         = 0x0002
@@ -931,29 +934,29 @@ const SC_MONITORPOWER = 0xF170
 const SC_CONTEXTHELP  = 0xF180
 const SC_SEPARATOR    = 0xF00F
 
-const MAPVK_VK_TO_VSC    = 0'u32
-const MAPVK_VSC_TO_VK    = 1'u32
-const MAPVK_VK_TO_CHAR   = 2'u32
-const MAPVK_VSC_TO_VK_EX = 3'u32
-const MAPVK_VK_TO_VSC_EX = 4'u32
+const MAPVK_VK_TO_VSC    = 0_u32
+const MAPVK_VSC_TO_VK    = 1_u32
+const MAPVK_VK_TO_CHAR   = 2_u32
+const MAPVK_VSC_TO_VK_EX = 3_u32
+const MAPVK_VK_TO_VSC_EX = 4_u32
 
-const CF_TEXT         = 1'u32
-const CF_BITMAP       = 2'u32
-const CF_METAFILEPICT = 3'u32
-const CF_SYLK         = 4'u32
-const CF_DIF          = 5'u32
-const CF_TIFF         = 6'u32
-const CF_OEMTEXT      = 7'u32
-const CF_DIB          = 8'u32
-const CF_PALETTE      = 9'u32
-const CF_PENDATA      = 10'u32
-const CF_RIFF         = 11'u32
-const CF_WAVE         = 12'u32
-const CF_UNICODETEXT  = 13'u32
-const CF_ENHMETAFILE  = 14'u32
-const CF_HDROP        = 15'u32
-const CF_LOCALE       = 16'u32
-const CF_DIBV5        = 17'u32
+const CF_TEXT         = 1_u32
+const CF_BITMAP       = 2_u32
+const CF_METAFILEPICT = 3_u32
+const CF_SYLK         = 4_u32
+const CF_DIF          = 5_u32
+const CF_TIFF         = 6_u32
+const CF_OEMTEXT      = 7_u32
+const CF_DIB          = 8_u32
+const CF_PALETTE      = 9_u32
+const CF_PENDATA      = 10_u32
+const CF_RIFF         = 11_u32
+const CF_WAVE         = 12_u32
+const CF_UNICODETEXT  = 13_u32
+const CF_ENHMETAFILE  = 14_u32
+const CF_HDROP        = 15_u32
+const CF_LOCALE       = 16_u32
+const CF_DIBV5        = 17_u32
 
 struct RECT
 {
@@ -1104,14 +1107,14 @@ const SM_SYSTEMDOCKED                = 0x2004
 const LWA_COLORKEY = 0x00000001
 const LWA_ALPHA    = 0x00000002
 
-const GW_HWNDFIRST    = 0'u32
-const GW_HWNDLAST     = 1'u32
-const GW_HWNDNEXT     = 2'u32
-const GW_HWNDPREV     = 3'u32
-const GW_OWNER        = 4'u32
-const GW_CHILD        = 5'u32
-const GW_ENABLEDPOPUP = 6'u32
-const GW_MAX          = 6'u32
+const GW_HWNDFIRST    = 0_u32
+const GW_HWNDLAST     = 1_u32
+const GW_HWNDNEXT     = 2_u32
+const GW_HWNDPREV     = 3_u32
+const GW_OWNER        = 4_u32
+const GW_CHILD        = 5_u32
+const GW_ENABLEDPOPUP = 6_u32
+const GW_MAX          = 6_u32
 
 const CWP_ALL = 0x0000
 const CWP_SKIPINVISIBLE   = 0x0001
@@ -1152,13 +1155,13 @@ const DI_DEFAULTSIZE = 0x0008
 const DI_NOMIRROR    = 0x0010
 
 alias DPI_AWARENESS_CONTEXT = *void?
-const DPI_AWARENESS_CONTEXT_UNAWARE              = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -1's64))
-const DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -2's64))
-const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -3's64))
-const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -4's64))
-const DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -5's64))
+const DPI_AWARENESS_CONTEXT_UNAWARE              = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -1_s64))
+const DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -2_s64))
+const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -3_s64))
+const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -4_s64))
+const DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    = cast(DPI_AWARENESS_CONTEXT, cast #bit (u64, -5_s64))
 
-const USER_DEFAULT_SCREEN_DPI = 96'u32
+const USER_DEFAULT_SCREEN_DPI = 96_u32
 
 // Coordinates packed in `lParam` are signed 16-bit values.
 //
@@ -1168,16 +1171,22 @@ const USER_DEFAULT_SCREEN_DPI = 96'u32
 func GET_X_LPARAM(lp: LPARAM)->s32
 {
     let value = LOWORD(lp)
-    if value <= 0x7FFF do
+    if value <= 0x7FFF
+    {
         return cast(s32, value)
+    }
+
     return cast(s32, (cast(s64, value) - 0x1_0000))
 }
 
 func GET_Y_LPARAM(lp: LPARAM)->s32
 {
     let value = HIWORD(lp)
-    if value <= 0x7FFF do
+    if value <= 0x7FFF
+    {
         return cast(s32, value)
+    }
+
     return cast(s32, (cast(s64, value) - 0x1_0000))
 }
 
@@ -1350,8 +1359,10 @@ internal namespace User32Priv
     // Reports a native failure as [[Swag.SystemError]] instead of returning FALSE.
     func SystemParametersInfoW(uiAction, uiParam: UINT, pvParam: LPVOID, fWinIni: UINT) fail
     {
-        if not User32Priv.SystemParametersInfoW(uiAction, uiParam, pvParam, fWinIni) do
+        if not User32Priv.SystemParametersInfoW(uiAction, uiParam, pvParam, fWinIni)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     // Returns the native wait status; reports WAIT_FAILED as [[Swag.SystemError]].
@@ -1359,41 +1370,55 @@ internal namespace User32Priv
     func MsgWaitForMultipleObjectsEx(nCount: DWORD, pHandles: const *HANDLE?, dwMilliseconds, dwWakeMask, dwFlags: DWORD)->DWORD fail
     {
         let result = User32Priv.MsgWaitForMultipleObjectsEx(nCount, pHandles, dwMilliseconds, dwWakeMask, dwFlags)
-        if result == WAIT_FAILED do
+        if result == WAIT_FAILED
+        {
             try failWinError(GetLastError())
+        }
+
         return result
     }
 
     func RegisterHotKey(hWnd: HWND, id: s32, fsModifiers: UINT, vk: UINT) fail
     {
-        if not User32Priv.RegisterHotKey(hWnd, id, fsModifiers, vk) do
+        if not User32Priv.RegisterHotKey(hWnd, id, fsModifiers, vk)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func UnregisterHotKey(hWnd: HWND, id: s32) fail
     {
-        if not User32Priv.UnregisterHotKey(hWnd, id) do
+        if not User32Priv.UnregisterHotKey(hWnd, id)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func PostMessageA(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM) fail
     {
-        if not User32Priv.PostMessageA(hWnd, msg, wParam, lParam) do
+        if not User32Priv.PostMessageA(hWnd, msg, wParam, lParam)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func PostMessageW(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM) fail
     {
-        if not User32Priv.PostMessageW(hWnd, msg, wParam, lParam) do
+        if not User32Priv.PostMessageW(hWnd, msg, wParam, lParam)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     #[Discardable]
     func RegisterClassA(lpWndClass: const *WNDCLASSA)->ATOM fail
     {
         let res = User32Priv.RegisterClassA(lpWndClass)
-        if not res do
+        if not res
+        {
             try failWinError(GetLastError())
+        }
+
         return res
     }
 
@@ -1401,96 +1426,128 @@ internal namespace User32Priv
     func RegisterClassW(lpWndClass: const *WNDCLASSW)->ATOM fail
     {
         let res = User32Priv.RegisterClassW(lpWndClass)
-        if not res do
+        if not res
+        {
             try failWinError(GetLastError())
+        }
+
         return res
     }
 
     func UpdateWindow(hWnd: HWND) fail
     {
-        if not User32Priv.UpdateWindow(hWnd) do
+        if not User32Priv.UpdateWindow(hWnd)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func DestroyWindow(hWnd: HWND) fail
     {
-        if not User32Priv.DestroyWindow(hWnd) do
+        if not User32Priv.DestroyWindow(hWnd)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func MoveWindow(hWnd: HWND, x, y, nWidth, nHeight: s32, bRepaint: BOOL) fail
     {
-        if not User32Priv.MoveWindow(hWnd, x, y, nWidth, nHeight, bRepaint) do
+        if not User32Priv.MoveWindow(hWnd, x, y, nWidth, nHeight, bRepaint)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func SetWindowPos(hWnd, hWndInsertAfter: HWND, x, y, cx, cy: s32, uFlags: UINT) fail
     {
-        if not User32Priv.SetWindowPos(hWnd, hWndInsertAfter, x, y, cx, cy, uFlags) do
+        if not User32Priv.SetWindowPos(hWnd, hWndInsertAfter, x, y, cx, cy, uFlags)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     // `lpwndpl.length` is filled here, so a caller only states the placement it wants.
     func SetWindowPlacement(hWnd: HWND, lpwndpl: *WINDOWPLACEMENT) fail
     {
         lpwndpl.length = #sizeof(WINDOWPLACEMENT)
-        if not User32Priv.SetWindowPlacement(hWnd, lpwndpl) do
+        if not User32Priv.SetWindowPlacement(hWnd, lpwndpl)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func SetLayeredWindowAttributes(hwnd: HWND, crKey: COLORREF, bAlpha: BYTE, dwFlags: DWORD) fail
     {
-        if not User32Priv.SetLayeredWindowAttributes(hwnd, crKey, bAlpha, dwFlags) do
+        if not User32Priv.SetLayeredWindowAttributes(hwnd, crKey, bAlpha, dwFlags)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func GetMonitorInfoA(hMonitor: HMONITOR, lpmi: *MONITORINFO) fail
     {
         lpmi.cbSize = #sizeof(MONITORINFO)
-        if not User32Priv.GetMonitorInfoA(hMonitor, lpmi) do
+        if not User32Priv.GetMonitorInfoA(hMonitor, lpmi)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func GetMonitorInfoW(hMonitor: HMONITOR, lpmi: *MONITORINFO) fail
     {
         lpmi.cbSize = #sizeof(MONITORINFO)
-        if not User32Priv.GetMonitorInfoW(hMonitor, lpmi) do
+        if not User32Priv.GetMonitorInfoW(hMonitor, lpmi)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func RegisterClipboardFormatA(name: LPCSTR)->UINT fail
     {
         let res = User32Priv.RegisterClipboardFormatA(name)
-        if not res do
+        if not res
+        {
             try failWinError(GetLastError())
+        }
+
         return res
     }
 
     func RegisterClipboardFormatW(name: LPCWSTR)->UINT fail
     {
         let res = User32Priv.RegisterClipboardFormatW(name)
-        if not res do
+        if not res
+        {
             try failWinError(GetLastError())
+        }
+
         return res
     }
 
     func DestroyIcon(hIcon: HICON) fail
     {
-        if not User32Priv.DestroyIcon(hIcon) do
+        if not User32Priv.DestroyIcon(hIcon)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func GetIconInfo(hIcon: HICON, piconinfo: *ICONINFO) fail
     {
-        if not User32Priv.GetIconInfo(hIcon, piconinfo) do
+        if not User32Priv.GetIconInfo(hIcon, piconinfo)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func CreateIconIndirect(piconinfo: *ICONINFO)->HICON fail
     {
         let h = User32Priv.CreateIconIndirect(piconinfo)
-        if not h do
+        if not h
+        {
             try failWinError(GetLastError())
+        }
+
         return h
     }
 }

@@ -74,17 +74,23 @@ declaration, and reading it is an error.
 */
 #test
 {
-    var total = 0'u64
-    for _, index in [10, 20, 30] do
+    var total = 0_u64
+    for _, index in [10, 20, 30]
+    {
         total += index
+    }
+
     Swag.require(total == 3)
 
     let (_, second) = (1, 2)
     Swag.require(second == 2)
 
     // A counting loop that does not read its index simply has no name.
-    for 3 do
+    for 3
+    {
         total += 1
+    }
+
     Swag.require(total == 6)
 }
 

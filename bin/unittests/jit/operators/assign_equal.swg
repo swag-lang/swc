@@ -24,14 +24,14 @@ enum AssignEqEnum: u16
 {
     func assignFloat()->f64
     {
-        var v: f64 = 1.5'f64
-        v = 42.0'f64
+        var v: f64 = 1.5_f64
+        v = 42.0_f64
         return v
     }
 
     const V = #run assignFloat()
     #assert(#typeof(V) == f64)
-    #assert(V == 42.0'f64)
+    #assert(V == 42.0_f64)
 }
 
 #test
@@ -53,7 +53,7 @@ enum AssignEqEnum: u16
     func assignPointer()->bool
     {
         var p: *void? = null
-        p = cast(*void, 0x1234'u64)
+        p = cast(*void, 0x1234_u64)
         return p != null
     }
 
@@ -72,5 +72,5 @@ enum AssignEqEnum: u16
 
     const V = #run assignEnum()
     #assert(#typeof(V) == AssignEqEnum)
-    #assert(cast(u16, V) == 2'u16)
+    #assert(cast(u16, V) == 2_u16)
 }

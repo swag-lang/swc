@@ -39,8 +39,11 @@ func advanceGeneration(nextGeneration: s32)
             {
                 for offsetY in -1 to 1
                 {
-                    if offsetX == 0 and offsetY == 0 do
+                    if offsetX == 0 and offsetY == 0
+                    {
                         continue
+                    }
+
                     aliveNeighbors += g_Grid[g_CurrentGeneration, column + offsetX, row + offsetY] ? 1 : 0
                 }
             }
@@ -69,8 +72,11 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             let pos = wnd.surfaceToLocal(mouseEvt.surfacePos)
             let x   = cast(s32, ((pos.x - board.x) / cellSize))
             let y   = cast(s32, ((pos.y - board.y) / cellSize))
-            if x < 1 or x >= GridSize - 1 or y < 1 or y >= GridSize - 1 do
+            if x < 1 or x >= GridSize - 1 or y < 1 or y >= GridSize - 1
+            {
                 break
+            }
+
             g_Grid[g_CurrentGeneration, x, y] = leftPressed
         }
 
@@ -123,7 +129,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         }
 
         wnd.invalidate()
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
     }
 
     return false

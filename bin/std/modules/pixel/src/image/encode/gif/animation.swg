@@ -7,6 +7,8 @@
 
 using Swag, Core, Core.Errors
 
+private const PackRGB = cast(Math.Simd.U8x16, [0_u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
+
 // Configures an animated GIF.
 public struct AnimationOptions
 {
@@ -32,12 +34,14 @@ public struct AnimationWriter
     width:           s32
     height:          s32
     previous:        Image     // Last frame added, compared with the next one.
-    pending:         Image     // Changed area of the last frame, waiting for its duration.
-    pendingX:        s32       // Position of `pending` in the frame, from the top left.
+    pendingX:        s32       // Position of the changed area in `previous`, from the top left.
     pendingY:        s32
-    pendingDuration: u64     // Time `pending` is shown so far, in microseconds.
+    pendingWidth:    s32     // Zero width means there is no pending frame.
+    pendingHeight:   s32
+    pendingDuration: u64     // Time the pending frame is shown so far, in microseconds.
     writtenTime:     u64     // Time covered by the frames written, in microseconds.
-    globalTable:     Array'u8
+    globalTable:     Array!{u8}
+    globalColorMap:  Array!{u64}
     globalBits:      u8
     loopCount:       u16
     dither:          bool
@@ -51,10 +55,15 @@ public impl AnimationWriter
     // The header is written when the first frame is flushed, after its global colour table is known.
     func create(fileName: string, width, height: s32, options: AnimationOptions = {})->AnimationWriter fail
     {
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
             fail InvalidFormatError{"invalid animation size"}
-        if width > Swag.U16.Max or height > Swag.U16.Max do
+        }
+
+        if width > Swag.U16.Max or height > Swag.U16.Max
+        {
             fail UnsupportedFormatError{"animation is too big"}
+        }
 
         return AnimationWriter{sink: try ByteSink.createFile(fileName),
                                width: width,
@@ -71,27 +80,44 @@ public impl AnimationWriter
     mtd addFrame(image: Image, duration: u64) fail
     {
         Swag.assert(not .isEnded)
-        if not image.isValid() or image.pixels.count != image.byteCount do
+        if not image.isValid() or image.pixels.count != image.byteCount
+        {
             fail InvalidFormatError{"invalid frame image"}
-        if image.width != .width or image.height != .height do
+        }
+
+        if image.width != .width or image.height != .height
+        {
             fail InvalidFormatError{"frame size differs from the animation size"}
+        }
+
         if image.pixelFormat != .BGRA8 and
            image.pixelFormat != .RGBA8 and
            image.pixelFormat != .BGR8 and
-           image.pixelFormat != .RGB8 do
+           image.pixelFormat != .RGB8
+        {
             fail UnsupportedFormatError{"unsupported frame pixel format"}
-        if .writtenTime > Swag.U64.Max - 5_000 do
+        }
+
+        if .writtenTime > Swag.U64.Max - 5_000
+        {
             fail OverflowError{"GIF animation duration exceeds the supported range"}
+        }
+
         let available = Swag.U64.Max - 5_000 - .writtenTime
-        if .pendingDuration > available do
+        if .pendingDuration > available
+        {
             fail OverflowError{"GIF animation duration exceeds the supported range"}
-        if duration > available - .pendingDuration do
+        }
+
+        if duration > available - .pendingDuration
+        {
             fail OverflowError{"GIF animation duration exceeds the supported range"}
+        }
 
         if not .previous.isValid()
         {
-            .previous = image
-            .setPending(image, 0, 0, .width, .height, duration)
+            .rememberFrame(image)
+            .setPending(0, 0, .width, .height, duration)
             return
         }
 
@@ -103,20 +129,26 @@ public impl AnimationWriter
         }
 
         try .flush()
-        .previous = image
-        .setPending(image, area.x, area.y, area.width, area.height, duration)
+        .rememberFrame(image)
+        .setPending(area.x, area.y, area.width, area.height, duration)
     }
 
     // Writes the last frame and the trailer, and closes the file.
     mtd end() fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             return
+        }
+
         .isEnded = true
 
         try .flush()
-        if .globalTable.isEmpty() do
+        if .globalTable.isEmpty()
+        {
             try .writeHeader()
+        }
+
         try .sink.writeByte(0x3B)
         try .sink.close()
     }
@@ -130,83 +162,99 @@ private impl AnimationWriter
         try .sink.write("GIF89a")
         try .sink.writeLittleEndian(cast(u16, .width))
         try .sink.writeLittleEndian(cast(u16, .height))
-        let packed = .globalTable.isEmpty() ? 0'u8 : 0x80'u8 | ((.globalBits - 1) << 4) | (.globalBits - 1)
+        let packed = .globalTable.isEmpty() ? 0_u8 : 0x80_u8 | ((.globalBits - 1) << 4) | (.globalBits - 1)
         try .sink.write([packed, 0, 0])
-        if not .globalTable.isEmpty() do
+        if not .globalTable.isEmpty()
+        {
             try .sink.write(.globalTable.toSlice())
+        }
 
         if .loopCount != 1
         {
-            try .sink.write([0x21'u8, 0xFF, 0x0B])
+            try .sink.write([0x21_u8, 0xFF, 0x0B])
             try .sink.write("NETSCAPE2.0")
-            try .sink.write([0x03'u8, 0x01])
-            let repeatCount = .loopCount ? .loopCount - 1 : 0'u16
+            try .sink.write([0x03_u8, 0x01])
+            let repeatCount = .loopCount ? .loopCount - 1 : 0_u16
             try .sink.writeLittleEndian(repeatCount)
             try .sink.writeByte(0)
         }
     }
 
-    // Keeps the area of `image` at `x, y` waiting for its duration, without its alpha channel.
-    mtd setPending(image: Image, x, y, w, h: s32, duration: u64)
+    // Owns a snapshot even if the caller changes the image before the frame is flushed.
+    mtd rememberFrame(image: Image)
     {
-        let opaque = image.pixelFormat == .BGRA8 ? PixelFormat.BGR8 : image.pixelFormat == .RGBA8 ? PixelFormat.RGB8 : image.pixelFormat
-        .pending = Image.create(w, h, opaque)
-
-        let sourcePixel = cast(u64, image.bytesPerPixel)
-        let targetPixel = cast(u64, .pending.bytesPerPixel)
-        for row in h
+        if not .previous.isValid() or .previous.pixelFormat != image.pixelFormat
         {
-            let source = image.pixels.storage() + cast(u64, (image.height - 1 - (y + row)) * image.rowStride + x * image.bytesPerPixel)
-            let target = .pending.pixels.storage() + cast(u64, (h - 1 - row) * .pending.rowStride)
-            for column in cast(u64, w) do
-                Memory.copy(target + column * targetPixel, source + column * sourcePixel, 3)
+            .previous = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice(), image.alphaMode)
         }
+        else
+        {
+            Memory.copy(.previous.pixels.storage(), image.pixels.storage(), image.byteCount)
+        }
+    }
 
+    mtd setPending(x, y, w, h: s32, duration: u64)
+    {
         .pendingX        = x
         .pendingY        = y
+        .pendingWidth    = w
+        .pendingHeight   = h
         .pendingDuration = duration
     }
 
     // Writes the pending area as one frame, its delay rounded so the total duration stays exact.
     mtd flush() fail
     {
-        if not .pending.isValid() do
-            return
-
-        let endTime = .writtenTime + .pendingDuration
-        let delay   = Math.max((endTime + 5_000) / 10_000 - (.writtenTime + 5_000) / 10_000, 2'u64)
-        .writtenTime = endTime
-
-        var palette = Encoder.buildPalette(.pending, .dither)
-        var block:      ConcatBuffer
-        var colorTable: ConcatBuffer
-        Encoder.writeColorTable(&colorTable, palette)
-        colorTable.makeLinear()
-        let colors = unwrap colorTable.toSlice()
-
-        var useGlobal = not .globalTable.isEmpty() and
-                        Encoder.remapToColorTable(&palette, .globalTable.toSlice())
-        if .globalTable.isEmpty()
+        if not .pendingWidth
         {
-            .globalTable.add(colors)
-            .globalBits = palette.tableBits
-            try .writeHeader()
-            useGlobal = true
+            return
         }
 
+        let endTime = .writtenTime + .pendingDuration
+        let delay   = Math.max((endTime + 5_000) / 10_000 - (.writtenTime + 5_000) / 10_000, 2_u64)
+        .writtenTime = endTime
+
+        var palette   = Encoder.buildPaletteRegion(.previous, .pendingX, .pendingY, .pendingWidth, .pendingHeight, false, .dither)
+        var block: ConcatBuffer
+        var useGlobal = true
+        if .globalTable.isEmpty()
+        {
+            var colorTable: ConcatBuffer
+            Encoder.writeColorTable(&colorTable, palette)
+            colorTable.makeLinear()
+            .globalTable.add(unwrap colorTable.toSlice())
+            .globalBits = palette.tableBits
+            try .writeHeader()
+        }
+        else
+        {
+            if .globalBits >= 6 and .globalColorMap.isEmpty()
+            {
+                .globalColorMap = Encoder.buildColorIndexMap(.globalTable.toSlice())
+            }
+
+            useGlobal = Encoder.remapToColorTable(&palette, .globalTable.toSlice(), .globalColorMap.toSlice())
+        }
+
+        // Keep the control extension and image payload in the same buffered write.
+        block.addBytes([0x21_u8, 0xF9, 0x04, 0x04, 0, 0, 0, 0])
+
         // Image descriptor, with a local colour table only when the global one lacks a colour.
-        block.addNative(0x2C'u8)
+        block.addNative(0x2C_u8)
         Encoder.writeU16(&block, cast(u16, .pendingX))
         Encoder.writeU16(&block, cast(u16, .pendingY))
-        Encoder.writeU16(&block, cast(u16, .pending.width))
-        Encoder.writeU16(&block, cast(u16, .pending.height))
-        block.addNative(useGlobal ? 0'u8 : 0x80'u8 | (palette.tableBits - 1))
-        if not useGlobal do
-            block.addBytes(colors)
-        let codeSize = useGlobal ? Math.max(.globalBits, 2'u8) : palette.lzwMinCodeSize
+        Encoder.writeU16(&block, cast(u16, .pendingWidth))
+        Encoder.writeU16(&block, cast(u16, .pendingHeight))
+        block.addNative(useGlobal ? 0_u8 : 0x80_u8 | (palette.tableBits - 1))
+        if not useGlobal
+        {
+            Encoder.writeColorTable(&block, palette)
+        }
+
+        let codeSize = useGlobal ? Math.max(.globalBits, 2_u8) : palette.lzwMinCodeSize
         block.addNative(codeSize)
 
-        let compressed = Encoder.lzwCompress(palette.indexes.toSlice(), codeSize)
+        let compressed = Encoder.lzwCompress(palette.indexes.toSlice(), codeSize, palette.count == 1)
         Encoder.writeSubBlocks(&block, compressed.toSlice())
 
         block.makeLinear()
@@ -215,29 +263,163 @@ private impl AnimationWriter
         while remaining
         {
             var chunk = Math.min(remaining, cast(u64, Swag.U16.Max))
-            if remaining - chunk == 1 do
+            if remaining - chunk == 1
+            {
                 chunk -= 1
+            }
 
             // Disposal mode 1 keeps the picture; another copy carries time beyond 655.35 seconds.
-            try .sink.write([0x21'u8, 0xF9, 0x04, 0x04])
-            try .sink.writeLittleEndian(cast(u16, chunk))
-            try .sink.write([0'u8, 0])
+            picture[4] = cast #wrap(u8, chunk)
+            picture[5] = cast(u8, chunk >> 8)
             try .sink.write(picture)
             remaining -= chunk
         }
 
-        .pending.release()
+        .pendingWidth = 0
     }
 
-    // Returns the smallest rectangle holding every pixel whose colour differs between two frames
-    // of the same size and format, alpha ignored; an empty rectangle when they look the same.
+    #[Inline]
+    func changedByteMask(first, second: const [*] u8, channels: u32)->u32
+    {
+        let equal = Math.Simd.load(first) == Math.Simd.load(second)
+        return ~Math.Simd.bitmask(equal) & channels
+    }
+
+    // Finds the first and last byte of a changed RGB channel in one packed row.
+    func changedPackedRow(first, second: const [*] u8, rowBytes: s32, alpha: bool)->{ left, right: s32 }
+    {
+        let channels  = alpha ? 0x7777_u32 : 0xFFFF_u32
+        let vectorEnd = rowBytes & ~15
+        var start     = 0
+        var mask: u32
+        while start < vectorEnd
+        {
+            mask = changedByteMask(first + start, second + start, channels)
+            if mask
+            {
+                break
+            }
+
+            start += 16
+        }
+
+        var left  = mask ? start + cast(s32, Math.trailingZeros(mask)) : rowBytes
+        var right = -1
+        for offset in vectorEnd until rowBytes
+        {
+            if (alpha and (offset & 3) == 3) or first[offset] == second[offset]
+            {
+                continue
+            }
+
+            if left == rowBytes
+            {
+                left = offset
+            }
+
+            right = offset
+        }
+
+        if right >= 0 or not mask
+        {
+            return {left, right}
+        }
+
+        // The earliest changed group already supplies both bounds when no later group differs.
+        var stop = vectorEnd - 16
+        while stop > start
+        {
+            let last = changedByteMask(first + stop, second + stop, channels)
+            if last
+            {
+                return {left, stop + 31 - cast(s32, Math.leadingZeros(last))}
+            }
+
+            stop -= 16
+        }
+
+        return {left, start + 31 - cast(s32, Math.leadingZeros(mask))}
+    }
+
+    #[Inline]
+    func channelsDiffer(first, second: const [*] u8, swap: bool)->bool
+    {
+        let red  = swap ? 2 : 0
+        let blue = 2 - red
+        return first[0] != second[red] or first[1] != second[1] or first[2] != second[blue]
+    }
+
+    // Compares packed RGB channels with different pixel strides or channel orders.
+    func changedMixedRow(first, second: const [*] u8, width: s32, firstStep, secondStep: u8, swap: bool)->{ left, right: s32 }
+    {
+        const CopyRGB = cast(Math.Simd.U8x16, [0_u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 128, 128, 128, 128])
+        const SwapRGB = cast(Math.Simd.U8x16, [2_u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128])
+        const PackBGR = cast(Math.Simd.U8x16, [2_u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128, 128, 128])
+        let firstOrder  = firstStep == 4 ? PackRGB : CopyRGB
+        let secondOrder = secondStep == 4 ? (swap ? PackBGR : PackRGB) : (swap ? SwapRGB : CopyRGB)
+        var left        = width
+        var right       = -1
+        var x           = 0
+        while width - x >= 6
+        {
+            let a       = Math.Simd.shuffle(Math.Simd.load(first + x * firstStep), firstOrder)
+            let b       = Math.Simd.shuffle(Math.Simd.load(second + x * secondStep), secondOrder)
+            let changes = ~Math.Simd.bitmask(a == b) & 0xFFF
+            if changes
+            {
+                if right < 0
+                {
+                    left = x + cast(s32, Math.trailingZeros(changes)) / 3
+                }
+
+                right = x + (31 - cast(s32, Math.leadingZeros(changes))) / 3
+            }
+
+            x += 4
+        }
+
+        for tail in x until width
+        {
+            let a = first + tail * firstStep
+            let b = second + tail * secondStep
+            if not channelsDiffer(a, b, swap)
+            {
+                continue
+            }
+
+            if right < 0
+            {
+                left = tail
+            }
+
+            right = tail
+        }
+
+        return {left, right}
+    }
+
+    // Returns the smallest rectangle holding every pixel whose colour differs, alpha ignored.
     func changedArea(before, after: Image)->{ x: s32, y: s32, width: s32, height: s32 }
     {
-        let pixelBytes = cast(u64, after.bytesPerPixel)
         let first      = before.pixels.storage()
         let second     = after.pixels.storage()
+        let sameFormat = before.pixelFormat == after.pixelFormat
+        let beforeBgr  = before.pixelFormat == .BGR8 or before.pixelFormat == .BGRA8
+        let afterBgr   = after.pixelFormat == .BGR8 or after.pixelFormat == .BGRA8
+        let swap       = beforeBgr != afterBgr
 
-        func sameColor(a, b: const [*] u8)->bool => a[0] == b[0] and a[1] == b[1] and a[2] == b[2]
+        // Opposite changed corners already establish every side of the bounding rectangle.
+        let topRow = cast(u64, after.height - 1)
+        if channelsDiffer(first + topRow * before.rowStride, second + topRow * after.rowStride, swap)
+        {
+            let rightColumn = cast(u64, after.width - 1)
+            if channelsDiffer(first + rightColumn * before.bytesPerPixel,
+                              second + rightColumn * after.bytesPerPixel,
+                              swap)
+            {
+                return {0, 0, after.width, after.height}
+            }
+        }
 
         var left   = after.width
         var right  = -1
@@ -245,30 +427,49 @@ private impl AnimationWriter
         var bottom = -1
         for y in after.height
         {
-            let offset   = cast(u64, (after.height - 1 - y) * after.rowStride)
-            var rowLeft  = -1
-            var rowRight = -1
-            for x in after.width
+            let row       = after.height - 1 - y
+            let firstRow  = first + cast(u64, row) * before.rowStride
+            let secondRow = second + cast(u64, row) * after.rowStride
+            var rowLeft   = after.width
+            var rowRight  = -1
+            if sameFormat
             {
-                let at = offset + cast(u64, x) * pixelBytes
-                if sameColor(first + at, second + at) do
+                let changed = changedPackedRow(firstRow, secondRow, after.rowStride, after.bytesPerPixel == 4)
+                if changed.right < 0
+                {
                     continue
-                if rowLeft < 0 do
-                    rowLeft = x
-                rowRight = x
+                }
+
+                rowLeft  = changed.left / after.bytesPerPixel
+                rowRight = changed.right / after.bytesPerPixel
+            }
+            else
+            {
+                let changed = changedMixedRow(firstRow, secondRow, after.width, before.bytesPerPixel, after.bytesPerPixel, swap)
+                if changed.right < 0
+                {
+                    continue
+                }
+
+                rowLeft  = changed.left
+                rowRight = changed.right
             }
 
-            if rowLeft < 0 do
-                continue
-            if top < 0 do
+            if top < 0
+            {
                 top = y
+            }
+
             bottom = y
             left   = Math.min(left, rowLeft)
             right  = Math.max(right, rowRight)
         }
 
-        if top < 0 do
+        if top < 0
+        {
             return {0, 0, 0, 0}
+        }
+
         return {left, top, right - left + 1, bottom - top + 1}
     }
 }

@@ -32,8 +32,8 @@ Of course, the actual engine schematic is much larger. What is the sum of all of
 // Restored after the anonymous-struct equality promotion fix.
 using Core
 
-private var symbols: Array'{ x, y: s32 }
-private var nums:    Array'{ num, x, lx, y: s32 }
+private var symbols: Array!{{ x, y: s32 }}
+private var nums:    Array!{{ num, x, lx, y: s32 }}
 
 private func hasSymbol(x, y: s32)->bool => symbols.contains({x, y})
 
@@ -54,8 +54,11 @@ func day3A()
                 while x < l.length
                 {
                     c = l[x]
-                    if c < '0' or c > '9' do
+                    if c < '0' or c > '9'
+                    {
                         break
+                    }
+
                     num *= 10
                     num += c - '0'
                     x   += 1
@@ -71,7 +74,7 @@ func day3A()
         }
     }
 
-    var total = 0'u64
+    var total = 0_u64
     for n in nums
     {
         for x in n.x to n.lx

@@ -9,8 +9,8 @@ struct NavigationHistory
 {
     public readonly
     {
-        entries: Array'String     // Locations in visit order.
-        index = Swag.U64.Max      // Current entry index, or `Swag.U64.Max` when empty.
+        entries: Array!{String}     // Locations in visit order.
+        index = Swag.U64.Max        // Current entry index, or `Swag.U64.Max` when empty.
     }
 }
 
@@ -26,10 +26,16 @@ impl NavigationHistory
     // Appends `path`, discarding any forward branch after the current position.
     mtd push(path: string)
     {
-        if .index != Swag.U64.Max and .entries[.index] == path do
+        if .index != Swag.U64.Max and .entries[.index] == path
+        {
             return
-        while .index != Swag.U64.Max and .entries.count > .index + 1 do
+        }
+
+        while .index != Swag.U64.Max and .entries.count > .index + 1
+        {
             .entries.removeBack()
+        }
+
         .entries.add(String.from(path))
         .index = .entries.count - 1
     }
@@ -82,12 +88,12 @@ struct FilePlacesBar
         using wnd: Wnd     // Embedded window behavior and presentation.
     }
 
-    late browser:         *FileBrowserCtrl          // Browser the places lead.
-    stops:                Array'FileBrowserStop     // Places in display order.
-    private primaryCount: u64                       // Preferred locations kept on the row before built-in folders.
-    hotIdx = Swag.U64.Max                           // Place under the pointer.
-    visibleCount:         u64                       // Places that fit before the overflow button.
-    moreButton:           *IconButton?              // Opens built-in folders, drives and preferred places that do not fit.
+    late browser:         *FileBrowserCtrl            // Browser the places lead.
+    stops:                Array!{FileBrowserStop}     // Places in display order.
+    private primaryCount: u64                         // Preferred locations kept on the row before built-in folders.
+    hotIdx = Swag.U64.Max                             // Place under the pointer.
+    visibleCount:         u64                         // Places that fit before the overflow button.
+    moreButton:           *IconButton?                // Opens built-in folders, drives and preferred places that do not fit.
 }
 
 // Browses folders with places as text tabs, a path field that filters, a quiet file list, and name and type editors.
@@ -117,14 +123,14 @@ struct FileBrowserCtrl
             }
         }
 
-        sigAccepted:           SigArray'func||(*Wnd)     // Emitted when the current selection is activated.
-        sigFolderChanged:      SigArray'func||(*Wnd)     // Emitted after [[Gui.FileBrowserCtrl.currentFolder]] changes.
-        sigNewFolderRequested: SigArray'func||(*Wnd)     // Emitted when the user requests a new folder.
-        sigChoiceChanged:      SigArray'func||(*Wnd)     // Emitted after what the browser would answer with changes.
+        sigAccepted:           SigArray!{func||(*Wnd)}     // Emitted when the current selection is activated.
+        sigFolderChanged:      SigArray!{func||(*Wnd)}     // Emitted after [[Gui.FileBrowserCtrl.currentFolder]] changes.
+        sigNewFolderRequested: SigArray!{func||(*Wnd)}     // Emitted when the user requests a new folder.
+        sigChoiceChanged:      SigArray!{func||(*Wnd)}     // Emitted after what the browser would answer with changes.
     }
 
     late typeRow:   *Wnd                  // Row holding the type filter when the browser keeps it.
-    currentEntries: Array'FileInfo        // Filesystem entries backing visible rows.
+    currentEntries: Array!{FileInfo}      // Filesystem entries backing visible rows.
     history:        NavigationHistory     // Folder-navigation history.
     dateScale:      f32                   // Device scale used to fit the date column.
     dateFont:       *Pixel.Font?          // Font used for its last measurement.
@@ -134,8 +140,10 @@ impl IWnd for FileBrowserCtrl
 {
     mtd impl onBeforePaint(_: *PaintEvent)
     {
-        if .listCtrl != null and (.dateScale != .deviceScale() or .dateFont != .listCtrl.font().regular) do
+        if .listCtrl != null and (.dateScale != .deviceScale() or .dateFont != .listCtrl.font().regular)
+        {
             .fitDateColumn()
+        }
     }
 }
 
@@ -161,8 +169,10 @@ impl IWnd for FilePlacesBar
             let chosen = idx == current
             let color  = chosen or idx == .hotIdx ? colors.text : colors.softText
             painter.drawString(stop.rect.x, font.opticalLineTop(stop.rect.vertCenter()), stop.name.toString(), font, color)
-            if chosen do
+            if chosen
+            {
                 painter.fillRect(Math.Rectangle{stop.rect.x, .clientRect().bottom() - 2, stop.rect.width, 2}, colors.arc)
+            }
         }
     }
 
@@ -183,8 +193,10 @@ impl IWnd for FilePlacesBar
             .invalidate()
 
         case .Pressed:
-            if evt.button == .Left and hit != Swag.U64.Max do
+            if evt.button == .Left and hit != Swag.U64.Max
+            {
                 .browser.setCurrentFolder(.stops[hit].path)
+            }
 
         default:
             break
@@ -212,15 +224,17 @@ impl FilePlacesBar
 
         let chosen = String.from(menu.doModal(unwrap .moreButton) orelse "")
         menu.destroy()
-        if chosen.count do
+        if chosen.count
+        {
             .browser.setCurrentFolder(chosen.toString())
+        }
     }
 
     // Returns the place the current folder lies in: the deepest one whose path starts it, or `Swag.U64.Max`.
     mtd currentIndex()->u64
     {
         var result = Swag.U64.Max
-        var length = 0'u64
+        var length = 0_u64
         for &stop, idx in .stops
         {
             if stop.path.length > length and isInside(.browser.currentFolder.toString(), stop.path.toString())
@@ -236,21 +250,25 @@ impl FilePlacesBar
     // Places the words of every place from the leading edge, a gap apart.
     mtd arrange()
     {
-        if not .moreButton do
+        if not .moreButton
+        {
             return
+        }
 
         let font        = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
         let height      = .clientRect().height
         let buttonWidth = .moreButton.position.width
-        var totalWidth  = 0'f32
+        var totalWidth  = 0_f32
         for idx in 0 until .primaryCount
         {
             let stop = .stops[idx]
             totalWidth += Painter.measureString(stop.name.toString(), font).width + .themeMetrics().fileBrowser_PlaceGap
         }
 
-        if totalWidth and .primaryCount do
+        if totalWidth and .primaryCount
+        {
             totalWidth -= .themeMetrics().fileBrowser_PlaceGap
+        }
 
         if .primaryCount == .stops.count and totalWidth <= .clientRect().width
         {
@@ -260,21 +278,24 @@ impl FilePlacesBar
         else
         {
             .moreButton.show()
-            let available = Math.max(0'f32, .clientRect().width - buttonWidth - .themeMetrics().fileBrowser_PlaceGap)
+            let available = Math.max(0_f32, .clientRect().width - buttonWidth - .themeMetrics().fileBrowser_PlaceGap)
             .visibleCount = 0
-            var used = 0'f32
+            var used = 0_f32
             for idx in 0 until .primaryCount
             {
                 let stop  = .stops[idx]
                 let width = Painter.measureString(stop.name.toString(), font).width
-                if used + width > available do
+                if used + width > available
+                {
                     break
+                }
+
                 used += width + .themeMetrics().fileBrowser_PlaceGap
                 .visibleCount += 1
             }
         }
 
-        var x = 0'f32
+        var x = 0_f32
         for idx in 0 until .visibleCount
         {
             let stop  = .stops[idx]
@@ -306,20 +327,32 @@ impl FilePlacesBar
 // Reports whether `folder` is `place` or lies under it; both are normalized.
 private func isInside(folder, place: string)->bool
 {
-    if not place.count or folder.count < place.count do
+    if not place.count or folder.count < place.count
+    {
         return false
-    if not Path.equals(folder[until place.count], place) do
+    }
+
+    if not Path.equals(folder[until place.count], place)
+    {
         return false
-    if folder.count == place.count or place[place.count - 1] == '/'u8 do
+    }
+
+    if folder.count == place.count or place[place.count - 1] == '/'_u8
+    {
         return true
-    return folder[place.count] == '/'u8
+    }
+
+    return folder[place.count] == '/'_u8
 }
 
 // Returns the stop whose words are under `pos`, or `Swag.U64.Max`.
 private func hitStop(stops: const [..] FileBrowserStop, pos: Math.Point)->u64
 {
-    for &stop, idx in stops where pos.x >= stop.rect.x and pos.x < stop.rect.right() do
+    for &stop, idx in stops where pos.x >= stop.rect.x and pos.x < stop.rect.right()
+    {
         return idx
+    }
+
     return Swag.U64.Max
 }
 
@@ -353,8 +386,10 @@ private impl FileBrowserCtrl
     mtd openRecentMenu()
     {
         let state = .options.state
-        if not state do
+        if not state
+        {
             return
+        }
 
         let menu = MenuCtrl.createPopup(me)
 
@@ -363,8 +398,11 @@ private impl FileBrowserCtrl
         for &recent in state.recentFolders
         {
             var name = Path.fileName(recent.toString()) orelse ""
-            if not name.count do
+            if not name.count
+            {
                 name = recent.toString()
+            }
+
             let icon = .theme().icon(.Folder, .themeMetrics().menuPopup_IconSize)
             discard menu.addItem(name, recent.toString(), icon)
         }
@@ -378,21 +416,30 @@ private impl FileBrowserCtrl
 
         let chosen = String.from(menu.doModal(.historyButton) orelse "")
         menu.destroy()
-        if chosen.count do
+        if chosen.count
+        {
             .setCurrentFolder(chosen.toString())
+        }
     }
 
     mtd showFolder(folder: string)->bool
     {
-        if not folder.count or not Directory.exists(folder) do
+        if not folder.count or not Directory.exists(folder)
+        {
             return false
+        }
 
         var normalized = String.from(folder)
         Path.normalize(&normalized)
-        if normalized.back() == '/' and normalized.length > Path.rootLength(normalized.toString()) do
+        if normalized.back() == '/' and normalized.length > Path.rootLength(normalized.toString())
+        {
             normalized.removeBack()
-        if .currentFolder == normalized do
+        }
+
+        if .currentFolder == normalized
+        {
             return true
+        }
 
         .currentFolder = #move normalized
         .pathField.setText(null, notify: false)
@@ -444,16 +491,22 @@ private impl FileBrowserCtrl
     {
         var typed = String.from(.pathField.text())
         typed.trim()
-        if typed.isEmpty() do
+        if typed.isEmpty()
+        {
             return
+        }
 
         if .typedIsPath()
         {
             var candidate: String
-            if Path.rootLength(typed.toString()) > 0 do
+            if Path.rootLength(typed.toString()) > 0
+            {
                 candidate = typed
-            else do
+            }
+            else
+            {
                 candidate = Path.combine(.currentFolder, typed.toString())
+            }
 
             if Directory.exists(candidate)
             {
@@ -471,14 +524,21 @@ private impl FileBrowserCtrl
             return
         }
 
-        if .listCtrl.lines.isEmpty() do
+        if .listCtrl.lines.isEmpty()
+        {
             return
+        }
+
         .listCtrl.selectLine(0)
         let fi = cast(const *FileInfo, unwrap .listCtrl.lines[0]!.userData0)
-        if fi.isDirectory() do
+        if fi.isDirectory()
+        {
             .setCurrentFolder(fi.fullName)
-        elif .options.mode != .SelectFolder do
+        }
+        else if .options.mode != .SelectFolder
+        {
             .sigAccepted.call(me)
+        }
     }
 
     // Answers the browsing keys wherever the keyboard is in the browser, and reports whether `key` was one.
@@ -520,14 +580,20 @@ private impl FileBrowserCtrl
     // Checks exactly the checkable rows that are selected.
     mtd syncChecks()
     {
-        if .options.mode != .SelectFiles do
+        if .options.mode != .SelectFiles
+        {
             return
+        }
+
         let selected = .listCtrl.selectedLines()
         for line, idx in .listCtrl.lines where line and line.canCheck
         {
             var chosen = false
-            for s in selected where s == line do
+            for s in selected where s == line
+            {
                 chosen = true
+            }
+
             .listCtrl.setLineChecked(cast(u32, idx), chosen, notify: false)
         }
     }
@@ -541,23 +607,30 @@ private impl FileBrowserCtrl
         switch .options.mode
         {
         case .SelectFolder:
-            if .editFile.text().count do
+            if .editFile.text().count
+            {
                 text = .selectedPath()
+            }
 
         case .SelectFiles:
             var count = 0
-            var bytes = 0'u64
+            var bytes = 0_u64
             for line in .listCtrl.selectedLines()
             {
                 let fi = cast(const *FileInfo, unwrap line!.userData0)
-                if fi.isDirectory() do
+                if fi.isDirectory()
+                {
                     continue
+                }
+
                 count += 1
                 bytes += fi.size
             }
 
-            if count do
+            if count
+            {
                 text = Format.toString(strings().browser_Chosen, count, Format.byteSize(bytes))
+            }
 
         case .CreateFile, .SelectFile:
             break
@@ -577,19 +650,26 @@ private impl FileBrowserCtrl
             .placeCrumbs()
 
         case FocusEvent as focus:
-            if focus.kind == .Gained or focus.kind == .Lost do
+            if focus.kind == .Gained or focus.kind == .Lost
+            {
                 .placeCrumbs()
+            }
 
         case KeyEvent as key:
-            if key.kind != .Pressed do
+            if key.kind != .Pressed
+            {
                 break
+            }
 
             // Down leaves the field for the rows it filtered; Backspace at its start climbs.
             if key.key == .Down and key.modifiers.equals(.None)
             {
                 .listCtrl.setFocus()
-                if not .listCtrl.lines.isEmpty() and not .listCtrl.selectedLine() do
+                if not .listCtrl.lines.isEmpty() and not .listCtrl.selectedLine()
+                {
                     .listCtrl.selectLine(0)
+                }
+
                 return true
             }
 
@@ -610,11 +690,13 @@ private impl FileBrowserCtrl
         let metrics = .themeMetrics()
         let side    = metrics.control_DialogHeight
 
-        with let row = Wnd.create'Wnd(parent, {0, 0, 0, side})
+        with let row = Wnd.create!{Wnd}(parent, {0, 0, 0, side})
         {
             .dockStyle = .Top
-            if me.placesBar do
+            if me.placesBar
+            {
                 .margin.y = metrics.fileBrowser_RowGap
+            }
         }
 
         // Quiet glyphs at the end of the field, each named by its tooltip.
@@ -633,8 +715,10 @@ private impl FileBrowserCtrl
             .sigPressed += func|fileBrowser = me|(_) { fileBrowser.openRecentMenu() }
 
             // Without reusable state there is never a history to show.
-            if not me.options.state do
+            if not me.options.state
+            {
                 .hide()
+            }
         }
 
         with .upButton = IconButton.create(row, .theme().icon(.ParentFolder, iconSize), {0, 0, side, side})
@@ -712,8 +796,11 @@ private impl FileBrowserCtrl
             .addColumn(strings().browser_ColName, me.options.state ? cast(f32, me.options.state.nameColumnWidth) : 220.0)
             .addColumn(strings().browser_ColModified, me.options.state ? cast(f32, me.options.state.modifiedColumnWidth) : 110.0, align: .Right)
             .addColumn(strings().browser_ColSize, me.options.state ? cast(f32, me.options.state.sizeColumnWidth) : 72.0, align: .Right)
-            if me.options.mode == .SelectFolder do
+            if me.options.mode == .SelectFolder
+            {
                 .setColumnWidth(2, 0)
+            }
+
             .header.form = .Transparent
 
             // The rows say what they are without a header: a name, a readable date and a size.
@@ -735,8 +822,11 @@ private impl FileBrowserCtrl
                 case .Back:
                     if evt.modifiers.equals(.None)
                     {
-                        if not fileBrowser.goBack() do
+                        if not fileBrowser.goBack()
+                        {
                             discard fileBrowser.goUp()
+                        }
+
                         evt.accepted = true
                     }
 
@@ -756,7 +846,7 @@ private impl FileBrowserCtrl
                         evt.accepted = true
                         fileBrowser.setCurrentFolder(fi.fullName)
                     }
-                    elif evt.key == .Enter
+                    else if evt.key == .Enter
                     {
                         fileBrowser.sigAccepted.call(fileBrowser)
                         list.setFocus()
@@ -771,14 +861,17 @@ private impl FileBrowserCtrl
             .sigLeftDoubleClicked += func|fileBrowser = me|(list, _)
             {
                 var l = list.selectedLine()
-                if not l do
+                if not l
+                {
                     return
+                }
+
                 var fi = cast(const *FileInfo, unwrap l.userData0)
                 if fi.isDirectory()
                 {
                     fileBrowser.setCurrentFolder(fi.fullName)
                 }
-                elif fileBrowser.options.mode != .SelectFolder
+                else if fileBrowser.options.mode != .SelectFolder
                 {
                     fileBrowser.sigAccepted.call(fileBrowser)
                     list.setFocus()
@@ -794,22 +887,32 @@ private impl FileBrowserCtrl
                     let fi = cast(const *FileInfo, unwrap l!.userData0)
                     if fi.isDirectory()
                     {
-                        if fileBrowser.options.mode != .SelectFolder do
+                        if fileBrowser.options.mode != .SelectFolder
+                        {
                             continue
+                        }
                     }
                     else
                     {
-                        if fileBrowser.options.mode == .SelectFolder do
+                        if fileBrowser.options.mode == .SelectFolder
+                        {
                             continue
+                        }
                     }
 
-                    if not txt.isEmpty() do
+                    if not txt.isEmpty()
+                    {
                         txt += ";"
+                    }
+
                     txt += Path.fileName(fi.fullName)
                 }
 
-                if not txt.isEmpty() or fileBrowser.options.mode == .SelectFolder do
+                if not txt.isEmpty() or fileBrowser.options.mode == .SelectFolder
+                {
                     fileBrowser.editFile.setText(txt)
+                }
+
                 fileBrowser.syncChecks()
                 fileBrowser.updateChoice()
             }
@@ -817,22 +920,32 @@ private impl FileBrowserCtrl
             // A checkbox is another way to hold the same choice.
             .sigCheckedChanged += func|fileBrowser = me|(list)
             {
-                for line, idx in list.lines where line and line.canCheck do
+                for line, idx in list.lines where line and line.canCheck
+                {
                     list.selectLine(cast(u32, idx), list.isLineChecked(cast(u32, idx)))
+                }
+
                 discard fileBrowser
             }
 
             .compareLines = func(l1, l2, col, down)
             {
-                if not l1 or not l2 do
+                if not l1 or not l2
+                {
                     return 0
+                }
 
                 var fi1 = cast(*FileInfo, unwrap l1.userData0)
                 var fi2 = cast(*FileInfo, unwrap l2.userData0)
-                if fi1.isDirectory() and not fi2.isDirectory() do
+                if fi1.isDirectory() and not fi2.isDirectory()
+                {
                     return -1
-                if not fi1.isDirectory() and fi2.isDirectory() do
+                }
+
+                if not fi1.isDirectory() and fi2.isDirectory()
+                {
                     return 1
+                }
 
                 let byName = Text.compareNames(fi1.fullName.toString(), fi2.fullName.toString())
                 switch col
@@ -846,8 +959,11 @@ private impl FileBrowserCtrl
                 case 2:
 
                     // Folders have no size: keep them in stable name order.
-                    if fi1.isDirectory() do
+                    if fi1.isDirectory()
+                    {
                         return byName
+                    }
+
                     let bySize = fi1.size <=> fi2.size
                     return (bySize ? bySize : byName) * (down ? -1 : 1)
                 }
@@ -863,15 +979,19 @@ impl FileBrowserCtrl
     // Copies the current browsing state into the optional borrowed state object.
     internal mtd saveState()
     {
-        if not .options.state do
+        if not .options.state
+        {
             return
+        }
 
         let state = .options.state
         state.currentFolder       = .currentFolder
         state.nameColumnWidth     = cast(s32, .listCtrl.header.itemWidthForColumn(0))
         state.modifiedColumnWidth = cast(s32, .listCtrl.header.itemWidthForColumn(1))
-        if .options.mode != .SelectFolder do
+        if .options.mode != .SelectFolder
+        {
             state.sizeColumnWidth = cast(s32, .listCtrl.header.itemWidthForColumn(2))
+        }
     }
 
     // Hands the foot — the type filter and the line of what is chosen — to a host that shows it elsewhere, such as the bottom-left slot of a dialog.
@@ -893,8 +1013,11 @@ impl FileBrowserCtrl
             {
                 let place  = &.placesBar.stops[index]
                 var result = String.from(place.name)
-                for part in Tokenize.split(.currentFolder.toString()[place.path.length to], '/'rune) where part.count do
+                for part in Tokenize.split(.currentFolder.toString()[place.path.length to], '/'_rune) where part.count
+                {
                     result += Format.toString(" / %", part)
+                }
+
                 return result
             }
         }
@@ -918,7 +1041,7 @@ impl FileBrowserCtrl
     func create(parent: *Wnd, opt: FileDlgOptions = {}, position: Math.Rectangle = {})->*FileBrowserCtrl
     {
         Swag.assert(parent != null)
-        let fileBrowser = Wnd.create'FileBrowserCtrl(parent, "", position)
+        let fileBrowser = Wnd.create!{FileBrowserCtrl}(parent, "", position)
         fileBrowser.options         = opt
         fileBrowser.backgroundStyle = .Transparent
         fileBrowser.wndFlags.add(.BeforeChildrenPaint)
@@ -928,8 +1051,11 @@ impl FileBrowserCtrl
 
         func addDefaultShortcut(browser: *FileBrowserCtrl, directory: Env.SpecialDirectory, name: string)
         {
-            for &shortcut in browser.options.shortcuts where shortcut.type == directory do
+            for &shortcut in browser.options.shortcuts where shortcut.type == directory
+            {
                 return
+            }
+
             browser.options.shortcuts.add({type: directory, name})
         }
 
@@ -940,13 +1066,15 @@ impl FileBrowserCtrl
         addDefaultShortcut(fileBrowser, .UserMusic, strings().browser_Music)
         addDefaultShortcut(fileBrowser, .UserVideos, strings().browser_Videos)
 
-        if fileBrowser.options.mode != .SelectFolder and fileBrowser.options.filters.isEmpty() do
+        if fileBrowser.options.mode != .SelectFolder and fileBrowser.options.filters.isEmpty()
+        {
             fileBrowser.options.filters.add({name: strings().browser_AllFiles, extensions: ""})
+        }
 
         // Places
         if fileBrowser.options.showLocationsPane
         {
-            with let places = Wnd.create'FilePlacesBar(fileBrowser, "", {0, 0, 0, metrics.fileBrowser_PlacesHeight})
+            with let places = Wnd.create!{FilePlacesBar}(fileBrowser, "", {0, 0, 0, metrics.fileBrowser_PlacesHeight})
             {
                 .dockStyle   = .Top
                 .focusPolicy = .Click
@@ -971,8 +1099,11 @@ impl FileBrowserCtrl
                     {
                         var name = String.from(volume.toString())
                         let path = String.from(volume.toString())
-                        if name.count > 1 do
+                        if name.count > 1
+                        {
                             name.removeBack()
+                        }
+
                         .addPlace(name.toString(), path.toString())
                     }
                 }
@@ -991,7 +1122,7 @@ impl FileBrowserCtrl
         fileBrowser.createPathRow(fileBrowser)
 
         // The type filter, at the bottom left, until a host takes it for a slot of its own.
-        with fileBrowser.typeRow = Wnd.create'Wnd(fileBrowser, {0, 0, metrics.fileBrowser_FootWidth, metrics.control_DialogHeight})
+        with fileBrowser.typeRow = Wnd.create!{Wnd}(fileBrowser, {0, 0, metrics.fileBrowser_FootWidth, metrics.control_DialogHeight})
         {
             .dockStyle = .Bottom
             .margin.y  = metrics.fileBrowser_RowGap
@@ -1000,20 +1131,33 @@ impl FileBrowserCtrl
         with fileBrowser.comboType = ComboBox.create(fileBrowser.typeRow, flags: .Flat)
         {
             .dockStyle = .Left
-            if fileBrowser.options.mode == .SelectFolder do
+            if fileBrowser.options.mode == .SelectFolder
+            {
                 .hide()
-            if fileBrowser.options.mode == .SelectFolder do
+            }
+
+            if fileBrowser.options.mode == .SelectFolder
+            {
                 .addItem(strings().browser_Folders)
-            else do
-                for f, idx in fileBrowser.options.filters do
+            }
+            else
+            {
+                for f, idx in fileBrowser.options.filters
+                {
                     .addItem(f.name, userData0: cast(*void?, idx))
+                }
+            }
+
             .setSelectedIndex(0)
 
             // As wide as its longest name, since it holds a slot of its own rather than a column.
             let font   = fileBrowser.theme().createDefaultFont(metrics.defaultFontSize)
-            var widest = 0'f32
-            for item in .items where item do
+            var widest = 0_f32
+            for item in .items where item
+            {
                 widest = Math.max(widest, Painter.measureString(item.name.text.toString(), font).width)
+            }
+
             .resize(widest + metrics.fileBrowser_TypeChrome, metrics.control_DialogHeight)
             .sigChanged += func|fileBrowser|(_, _)
             {
@@ -1025,8 +1169,11 @@ impl FileBrowserCtrl
         with fileBrowser.choiceLabel = Label.create(fileBrowser.typeRow, "")
         {
             .dockStyle = .Center
-            if fileBrowser.options.mode != .SelectFolder do
+            if fileBrowser.options.mode != .SelectFolder
+            {
                 .margin.x = metrics.fileBrowser_PlaceGap
+            }
+
             .style.setFont(fileBrowser.theme().createDefaultFontFs(metrics.defaultFontSize - 1), .Regular)
             .setTextColor(fileBrowser.themeColors().faintText)
             .setTextAlignment(.Left, .OpticalCenter)
@@ -1063,10 +1210,15 @@ impl FileBrowserCtrl
 
         with fileBrowser
         {
-            if fileBrowser.options.initialFolder.count do
+            if fileBrowser.options.initialFolder.count
+            {
                 .setCurrentFolder(fileBrowser.options.initialFolder)
-            elif fileBrowser.options.state and not fileBrowser.options.state.currentFolder.isEmpty() do
+            }
+            else if fileBrowser.options.state and not fileBrowser.options.state.currentFolder.isEmpty()
+            {
                 .setCurrentFolder(fileBrowser.options.state.currentFolder)
+            }
+
             .listCtrl.sort(0)
             .editFile.setText(fileBrowser.options.initialName)
             if fileBrowser.options.mode == .CreateFile
@@ -1075,10 +1227,16 @@ impl FileBrowserCtrl
                 // trails the name, faint, and follows the type chosen under it.
                 let name = fileBrowser.options.initialName
                 var stem = name.count
-                for i in name.count where name[i] == '.'u8 and i > 0 do
+                for i in name.count where name[i] == '.'_u8 and i > 0
+                {
                     stem = i
-                if stem < name.count and fileBrowser.typeAddsExtensionOf(name) do
+                }
+
+                if stem < name.count and fileBrowser.typeAddsExtensionOf(name)
+                {
                     .editFile.setText(name[0 until stem])
+                }
+
                 .updateSaveExtension()
                 .editFile.setSelection(0, stem)
                 .editFile.setFocus()
@@ -1093,8 +1251,10 @@ impl FileBrowserCtrl
         // Default to the first place when nothing else chose a folder.
         if fileBrowser.currentFolder.isEmpty() and
            fileBrowser.placesBar and
-           not fileBrowser.placesBar.stops.isEmpty() do
+           not fileBrowser.placesBar.stops.isEmpty()
+        {
             fileBrowser.setCurrentFolder(fileBrowser.placesBar.stops[0].path)
+        }
 
         fileBrowser.updateNavigationState()
         fileBrowser.updateChoice()
@@ -1105,8 +1265,11 @@ impl FileBrowserCtrl
     #[Swag.Discardable]
     mtd setCurrentFolder(folder: string)->bool
     {
-        if not .showFolder(folder) do
+        if not .showFolder(folder)
+        {
             return false
+        }
+
         .history.push(.currentFolder.toString())
         .updateNavigationState()
         return true
@@ -1122,8 +1285,11 @@ impl FileBrowserCtrl
     #[Swag.Discardable]
     mtd goBack()->bool
     {
-        if not .history.canGoBack() do
+        if not .history.canGoBack()
+        {
             return false
+        }
+
         let oldIndex = .history.index
         let folder   = .history.goBack()
         if not .showFolder(folder.toString())
@@ -1141,8 +1307,11 @@ impl FileBrowserCtrl
     #[Swag.Discardable]
     mtd goForward()->bool
     {
-        if not .history.canGoForward() do
+        if not .history.canGoForward()
+        {
             return false
+        }
+
         let oldIndex = .history.index
         let folder   = .history.goForward()
         if not .showFolder(folder.toString())
@@ -1161,8 +1330,11 @@ impl FileBrowserCtrl
     mtd goUp()->bool
     {
         let parent = Path.directoryName(.currentFolder.toString()) orelse ""
-        if not parent.count or parent == .currentFolder.toString() do
+        if not parent.count or parent == .currentFolder.toString()
+        {
             return false
+        }
+
         return .setCurrentFolder(parent)
     }
 
@@ -1177,8 +1349,10 @@ impl FileBrowserCtrl
     private mtd fillFileList()
     {
         .listCtrl.clear()
-        if .options.mode == .SelectFolder do
+        if .options.mode == .SelectFolder
+        {
             .editFile.setText(null, notify: false)
+        }
 
         with var options: EnumerationOptions
         {
@@ -1191,7 +1365,7 @@ impl FileBrowserCtrl
         .currentEntries = catch Directory.enumerate(.currentFolder, options) orelse {}
 
         let filterExtensions = .activeFilterExtensions()
-        let tokens = Tokenize.split(filterExtensions orelse "", ';'rune)
+        let tokens = Tokenize.split(filterExtensions orelse "", ';'_rune)
 
         var typed = String.from(.typedIsPath() ? "" : .pathField.text())
         typed.trim()
@@ -1217,17 +1391,25 @@ impl FileBrowserCtrl
                 }
             }
 
-            if not show do
+            if not show
+            {
                 continue
-            if typed.count and not nameMatcher.isMatch(fname) do
+            }
+
+            if typed.count and not nameMatcher.isMatch(fname)
+            {
                 continue
+            }
 
             // Content. The date and the size are read at a glance and never acted on, so they
             // stand in the faint ink beside the names.
             let faint = .themeColors().faintText
             var icon  = .theme().fileGlyph(fname, fi.isDirectory())
-            if not icon.color.a do
+            if not icon.color.a
+            {
                 icon.color = .themeColors().softText
+            }
+
             let line = .listCtrl.createLine(fname, icon)
             line.userData0 = fi
             line.canCheck  = .options.mode == .SelectFiles and not fi.isDirectory()
@@ -1242,8 +1424,11 @@ impl FileBrowserCtrl
             }
 
             // In a save the rows are context, not choices.
-            if .options.mode == .CreateFile do
+            if .options.mode == .CreateFile
+            {
                 line.colorFg = faint
+            }
+
             let dateItem = line.setItem(1, fileBrowserTime(fi.lastWriteTime.toLocal(), now))
             dateItem.sortKey   = fi.lastWriteTime.toString(.DateTimeIso)
             dateItem.colorFg   = faint
@@ -1271,7 +1456,7 @@ impl FileBrowserCtrl
         .dateFont  = .listCtrl.font().regular
         var format: Pixel.RichStringFormat
         format.font = .listCtrl.font()
-        var width = 0'f32
+        var width = 0_f32
         for line in .listCtrl.lines
         {
             let item = unwrap line!.items[1]
@@ -1289,11 +1474,17 @@ impl FileBrowserCtrl
     // Creates a folder inside [[Gui.FileBrowserCtrl.currentFolder]] and refreshes the list on success.
     mtd createFolder(name: string)->bool
     {
-        if .currentFolder.isEmpty() or not Path.isValidFileName(name) do
+        if .currentFolder.isEmpty() or not Path.isValidFileName(name)
+        {
             return false
+        }
+
         let path = Path.combine(.currentFolder, name)
-        catch Directory.create(path) do
+        catch Directory.create(path)
+        {
             return false
+        }
+
         .fillFileList()
         return true
     }
@@ -1317,16 +1508,26 @@ impl FileBrowserCtrl
     {
         var typed = String.from(.editFile.text())
         typed.trim()
-        if typed.isEmpty() or typed.contains(";") do
+        if typed.isEmpty() or typed.contains(";")
+        {
             return String.from("")
+        }
 
         var candidate: String
-        if Path.rootLength(typed.toString()) > 0 do
+        if Path.rootLength(typed.toString()) > 0
+        {
             candidate = typed
-        else do
+        }
+        else
+        {
             candidate = Path.combine(.currentFolder, typed.toString())
-        if not Directory.exists(candidate) do
+        }
+
+        if not Directory.exists(candidate)
+        {
             return String.from("")
+        }
+
         return candidate
     }
 
@@ -1336,13 +1537,18 @@ impl FileBrowserCtrl
     // [[Gui.FileDlgState.recentFolders]], served by the recent-folders drop-down.
     mtd noteAccepted()
     {
-        if not .options.state do
+        if not .options.state
+        {
             return
+        }
+
         if .options.mode == .SelectFolder
         {
             let sel = .selectedPath()
-            if not sel.isEmpty() do
+            if not sel.isEmpty()
+            {
                 .recordRecentFolder(sel.toString())
+            }
         }
 
         .recordRecentFolder(.currentFolder.toString())
@@ -1353,8 +1559,10 @@ impl FileBrowserCtrl
     mtd recordRecentFolder(folder: string)
     {
         let state = .options.state
-        if not state or not folder.count or not Directory.exists(folder) do
+        if not state or not folder.count or not Directory.exists(folder)
+        {
             return
+        }
 
         var normalized = String.from(folder)
         Path.normalize(&normalized)
@@ -1368,16 +1576,21 @@ impl FileBrowserCtrl
         }
 
         state.recentFolders.insertAt(0, normalized)
-        while state.recentFolders.count > 8 do
+        while state.recentFolders.count > 8
+        {
             state.recentFolders.removeBack()
+        }
     }
 
     // Returns the first selected full path, or an empty string when selection is invalid.
     mtd selectedPath()->String
     {
         let sel = .selectedPaths()
-        if sel.isEmpty() do
+        if sel.isEmpty()
+        {
             return String.from("")
+        }
+
         return sel.front()
     }
 
@@ -1386,19 +1599,24 @@ impl FileBrowserCtrl
     // Folder selection has no filters, so it lists and returns folders only.
     private mtd activeFilterExtensions()->string?
     {
-        if .options.mode == .SelectFolder or .options.filters.isEmpty() do
+        if .options.mode == .SelectFolder or .options.filters.isEmpty()
+        {
             return null
+        }
 
         let filterIndex = cast(u64, .comboType.selectedItem()!.userData0)
-        if filterIndex >= .options.filters.count do
+        if filterIndex >= .options.filters.count
+        {
             return null
+        }
+
         return .options.filters[filterIndex].extensions
     }
 
     // Returns all selected full paths in display order.
     //
     // Picking a folder with nothing chosen in the list picks the folder the browser shows.
-    mtd selectedPaths()->Array'String
+    mtd selectedPaths()->Array!{String}
     {
         var result: #returntype
         if .options.mode == .SelectFolder and
@@ -1410,18 +1628,26 @@ impl FileBrowserCtrl
         }
 
         let filterExtensions = .activeFilterExtensions()
-        let tokens = Tokenize.split(.editFile.text(), ';'rune)
+        let tokens = Tokenize.split(.editFile.text(), ';'_rune)
         for t in tokens
         {
             // Be sure this is a valid file/folder name
             var t1 = String.from(t)
             t1.trim()
-            if t1.isEmpty() do
+            if t1.isEmpty()
+            {
                 continue
-            if .options.mode == .SelectFolder and not Path.isValidPathName(t1.toString()) do
+            }
+
+            if .options.mode == .SelectFolder and not Path.isValidPathName(t1.toString())
+            {
                 continue
-            if .options.mode != .SelectFolder and not Path.isValidFileName(t1.toString()) do
+            }
+
+            if .options.mode != .SelectFolder and not Path.isValidFileName(t1.toString())
+            {
                 continue
+            }
 
             // Get the full name
             var val = Path.combine(.currentFolder, t1.toString())
@@ -1429,7 +1655,7 @@ impl FileBrowserCtrl
             // A filter can offer several extensions. Keep any one of them when it is already
             // present; otherwise append the first, preferred extension.
             var hasFilterExtension = false
-            let extensions         = Tokenize.split(filterExtensions orelse "", ';'rune)
+            let extensions         = Tokenize.split(filterExtensions orelse "", ';'_rune)
             for extension in extensions where extension.count
             {
                 if Path.hasExtension(val, extension)
@@ -1442,8 +1668,10 @@ impl FileBrowserCtrl
             if .options.mode != .SelectFolder and
                filterExtensions.count and
                not hasFilterExtension and
-               extensions.count do
+               extensions.count
+            {
                 val += extensions[0]
+            }
 
             result.add(val)
         }
@@ -1455,11 +1683,13 @@ impl FileBrowserCtrl
     // already ends with it.
     private mtd typeAddsExtensionOf(name: string)->bool
     {
-        let extensions = Tokenize.split(.activeFilterExtensions() orelse "", ';'rune)
+        let extensions = Tokenize.split(.activeFilterExtensions() orelse "", ';'_rune)
         for extension in extensions where extension.count
         {
-            if Path.hasExtension(name, extension) do
+            if Path.hasExtension(name, extension)
+            {
                 return true
+            }
         }
 
         return false
@@ -1469,9 +1699,12 @@ impl FileBrowserCtrl
     // name that already ends with one of the type's extensions gets nothing more.
     private mtd updateSaveExtension()
     {
-        if .options.mode != .CreateFile do
+        if .options.mode != .CreateFile
+        {
             return
-        let extensions = Tokenize.split(.activeFilterExtensions() orelse "", ';'rune)
+        }
+
+        let extensions = Tokenize.split(.activeFilterExtensions() orelse "", ';'_rune)
         if extensions.count == 0 or extensions[0].count == 0 or .typeAddsExtensionOf(.editFile.text())
         {
             .editFile.setUnit("")
@@ -1485,8 +1718,10 @@ impl FileBrowserCtrl
     mtd hasValidSelection()->bool
     {
         let paths = .selectedPaths()
-        if paths.isEmpty() do
+        if paths.isEmpty()
+        {
             return false
+        }
 
         switch #complete .options.mode
         {
@@ -1497,8 +1732,11 @@ impl FileBrowserCtrl
             return paths.count == 1 and File.exists(paths[0])
 
         case .SelectFiles:
-            for path in paths where not File.exists(path.toString()) do
+            for path in paths where not File.exists(path.toString())
+            {
                 return false
+            }
+
             return true
 
         case .SelectFolder:
@@ -1510,13 +1748,18 @@ impl FileBrowserCtrl
 // Uses localized month names in the browser's spacious date column.
 internal func fileBrowserTime(time, now: Time.DateTime)->String
 {
-    if time.year == now.year and time.month == now.month and time.day == now.day do
+    if time.year == now.year and time.month == now.month and time.day == now.day
+    {
         return Format.toString(strings().browser_DateToday, time.toString(.TimeIsoHm))
+    }
 
-    let months = Tokenize.split(strings().browser_DateMonths, ';'rune)
+    let months = Tokenize.split(strings().browser_DateMonths, ';'_rune)
     let month  = months[time.month - 1]
-    if time.year == now.year do
+    if time.year == now.year
+    {
         return Format.toString("% % · %", time.day, month, time.toString(.TimeIsoHm))
+    }
+
     return Format.toString("% % %", time.day, month, time.year)
 }
 
@@ -1531,9 +1774,15 @@ internal func fileBrowserTime(time, now: Time.DateTime)->String
 // ```
 func briefFileTime(time, now: Time.DateTime)->String
 {
-    if time.year == now.year and time.month == now.month and time.day == now.day do
+    if time.year == now.year and time.month == now.month and time.day == now.day
+    {
         return time.toString(.TimeIsoHm)
-    if time.year == now.year do
+    }
+
+    if time.year == now.year
+    {
         return Format.toString("%{02}-%{02} %", time.month, time.day, time.toString(.TimeIsoHm))
+    }
+
     return time.toString(.DateIso)
 }

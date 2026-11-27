@@ -9,7 +9,7 @@ struct SliderCtrl
     {
         using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
-        sigChanged: SigArray'func||(*Wnd)     // Emitted after the slider value changes.
+        sigChanged: SigArray!{func||(*Wnd)}     // Emitted after the slider value changes.
 
         readonly
         {
@@ -32,8 +32,11 @@ impl IWnd for SliderCtrl
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .label == null do
+        if .label == null
+        {
             return
+        }
+
         let rect    = .clientRect()
         let metrics = .themeMetrics()
 
@@ -50,8 +53,10 @@ impl IWnd for SliderCtrl
         if .autoValueWidth
         {
             let adaptive = .edit.numericPreferredWidth()
-            if adaptive > es do
+            if adaptive > es
+            {
                 es = Math.min(adaptive, Math.max(available * 0.6, .valueWidth))
+            }
         }
 
         es = Math.min(es, available)
@@ -78,12 +83,17 @@ impl SliderCtrl
         Swag.assert(parent != null)
         let metrics = parent.themeMetrics()
         var pos     = position
-        if pos.width == 0 do
+        if pos.width == 0
+        {
             pos.width = metrics.slider_Width + metrics.editBox_Width * 2
-        if pos.height == 0 do
-            pos.height = Math.max(metrics.slider_Height, metrics.editBox_Height)
+        }
 
-        with let ctrl = Wnd.create'SliderCtrl(parent, pos, id)
+        if pos.height == 0
+        {
+            pos.height = Math.max(metrics.slider_Height, metrics.editBox_Height)
+        }
+
+        with let ctrl = Wnd.create!{SliderCtrl}(parent, pos, id)
         {
             .label = Label.create(ctrl, name, {})
             .label.setTextAlignment(.Right, .Center)
@@ -111,8 +121,11 @@ impl SliderCtrl
             .edit.setTrailingMargin(metrics.editBox_UnitMargin)
             .edit.sigCommitted += func|ctrl|(edit)
             {
-                if edit.revalidate() != .Valid do
+                if edit.revalidate() != .Valid
+                {
                     return
+                }
+
                 switch edit.inputMode
                 {
                 case .UnsignedInteger:
@@ -142,8 +155,11 @@ impl SliderCtrl
     mtd setLayoutMetrics(labelWidth: f32 = 8, valueWidth: f32 = 8, spacing: f32 = 8)
     {
         Swag.assert(labelWidth >= 0 and valueWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
-        if .labelWidth == labelWidth and .valueWidth == valueWidth and .spacing == spacing do
+        if .labelWidth == labelWidth and .valueWidth == valueWidth and .spacing == spacing
+        {
             return
+        }
+
         .labelWidth = labelWidth
         .valueWidth = valueWidth
         .spacing    = spacing
@@ -153,8 +169,11 @@ impl SliderCtrl
     // Enables or disables automatic growth of the numeric editor to fit its configured range.
     mtd setAutomaticValueWidth(enabled: bool)
     {
-        if .autoValueWidth == enabled do
+        if .autoValueWidth == enabled
+        {
             return
+        }
+
         .autoValueWidth = enabled
         .sendResizeEvent()
     }

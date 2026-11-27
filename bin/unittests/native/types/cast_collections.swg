@@ -27,7 +27,7 @@ func stringToConstBytes()->bool
 {
     let text: string = "ABCD"
     let bytes        = cast(const [..] u8, text)
-    return bytes.count == 4 and bytes[0] == 65'u8 and bytes[3] == 68'u8
+    return bytes.count == 4 and bytes[0] == 65_u8 and bytes[3] == 68_u8
 }
 
 func sliceToStringRoundtrip()->bool
@@ -36,17 +36,19 @@ func sliceToStringRoundtrip()->bool
     let bytes        = cast([..] u8, data)
     let text         = cast(string, bytes)
     let back         = cast(const [..] u8, text)
-    return text == "Hello" and back.count == 5 and back[1] == 101'u8 and back[4] == 111'u8
+    return text == "Hello" and back.count == 5 and back[1] == 101_u8 and back[4] == 111_u8
 }
 
 func wordArrayToByteView()->bool
 {
-    var words: [2] u16 = [0x0102'u16, 0x0304'u16]
+    var words: [2] u16 = [0x0102_u16, 0x0304_u16]
     let bytes          = cast([..] u8, words)
     var sum:   u32     = 0
-    for value in bytes do
+    for value in bytes
+    {
         sum += cast(u32, value)
-    return bytes.count == 4 and sum == 10'u32
+    }
+    return bytes.count == 4 and sum == 10_u32
 }
 
 func constArrayToConstSliceView()->bool
@@ -54,16 +56,16 @@ func constArrayToConstSliceView()->bool
     const data: [3] u8 = [7, 8, 9]
     let bytes = cast(const [..] u8, data)
     #assert(#typeof(bytes) == const [..] u8)
-    return bytes.count == 3 and bytes[0] == 7'u8 and bytes[2] == 9'u8
+    return bytes.count == 3 and bytes[0] == 7_u8 and bytes[2] == 9_u8
 }
 
 func cstringToConstByteView()->bool
 {
-    var data: [5] u8  = ['v'u8, 'i'u8, 'e'u8, 'w'u8, 0]
+    var data: [5] u8  = ['v'_u8, 'i'_u8, 'e'_u8, 'w'_u8, 0]
     var text: cstring = cast(cstring, &data[0])
     let bytes         = cast(const [..] u8, text)
     #assert(#typeof(bytes) == const [..] u8)
-    return bytes.count == 4 and bytes[0] == 'v'u8 and bytes[3] == 'w'u8
+    return bytes.count == 4 and bytes[0] == 'v'_u8 and bytes[3] == 'w'_u8
 }
 
 func constCStringToByteView()->bool
@@ -71,7 +73,7 @@ func constCStringToByteView()->bool
     var text: const cstring = cast(const cstring, ("view").buffer)
     let bytes = cast(const [..] u8, text)
     #assert(#typeof(bytes) == const [..] u8)
-    return bytes.count == 4 and bytes[0] == 'v'u8 and bytes[3] == 'w'u8
+    return bytes.count == 4 and bytes[0] == 'v'_u8 and bytes[3] == 'w'_u8
 }
 
 func cstringToStringView()->bool
@@ -83,26 +85,26 @@ func cstringToStringView()->bool
 
 func constArrayToConstCStringView()->bool
 {
-    const data: [4] u8 = ['v'u8, 'i'u8, 'e'u8, 0]
+    const data: [4] u8 = ['v'_u8, 'i'_u8, 'e'_u8, 0]
     let text = cast(const cstring, data)
     #assert(#typeof(text) == const cstring)
-    return text.count == 3 and text[0] == 'v'u8 and text[2] == 'e'u8
+    return text.count == 3 and text[0] == 'v'_u8 and text[2] == 'e'_u8
 }
 
 func constPointerToConstCStringView()->bool
 {
-    var data: [4] u8       = ['p'u8, 't'u8, 'r'u8, 0]
+    var data: [4] u8       = ['p'_u8, 't'_u8, 'r'_u8, 0]
     let ptr:  const [*] u8 = cast(const [*] u8, &data[0])
     let text               = cast(const cstring, ptr)
     #assert(#typeof(text) == const cstring)
-    return text.count == 3 and text[0] == 'p'u8 and text[2] == 'r'u8
+    return text.count == 3 and text[0] == 'p'_u8 and text[2] == 'r'_u8
 }
 
 func constCStringExprToByteView()->bool
 {
     let bytes = cast(const [..] u8, cast(const cstring, ("expr").buffer))
     #assert(#typeof(bytes) == const [..] u8)
-    return bytes.count == 4 and bytes[0] == 'e'u8 and bytes[3] == 'r'u8
+    return bytes.count == 4 and bytes[0] == 'e'_u8 and bytes[3] == 'r'_u8
 }
 
 func constCStringExprToStringView()->bool

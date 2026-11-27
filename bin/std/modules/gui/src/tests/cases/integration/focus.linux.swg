@@ -59,7 +59,7 @@ using Core
     let marker  = expect LinuxDesktop.atom(context, "_NET_SUPPORTING_WM_CHECK")
     let prior   = expect LinuxDesktop.readProperty(context, root, marker)
     Swag.require(prior.isEmpty(), "this focus denial scenario needs an X11 server without a window manager")
-    let deleteProperty = expect LinuxDesktop.symbol'Linux.xcb_delete_property_checked_fn(unwrap context.library, "xcb_delete_property_checked")
+    let deleteProperty = expect LinuxDesktop.symbol!{Linux.xcb_delete_property_checked_fn}(unwrap context.library, "xcb_delete_property_checked")
     let owner = primary.windowId
     expect LinuxDesktop.property(context, root, marker, 33, 32, 1, &owner)
     defer expect LinuxDesktop.check(context, deleteProperty(unwrap context.connection, root, marker))

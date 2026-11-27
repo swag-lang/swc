@@ -145,7 +145,7 @@ using Core, Gui, Gui.Testing, Viewers
 // reading mode alone until a thumbnail is chosen, in either palette and layout.
 #test
 {
-    func addPart(entries: *Array'ZipFixtureEntry, name, source: string)
+    func addPart(entries: *Array!{ZipFixtureEntry}, name, source: string)
     {
         var entry: ZipFixtureEntry
         entry.name = name
@@ -156,10 +156,13 @@ using Core, Gui, Gui.Testing, Viewers
 
     let file = Testing.tempFilePath("scope-slide-gallery-", ".pptx")
     defer discard catch File.delete(file)
-    var entries: Array'ZipFixtureEntry
-    var source: String = "<p:presentation><p:sldIdLst>"
-    for i in 36 do
+    var entries: Array!{ZipFixtureEntry}
+    var source:  String = "<p:presentation><p:sldIdLst>"
+    for i in 36
+    {
         source += Format.toString("<p:sldId id=\"%\" r:id=\"rId1\"/>", 256 + i)
+    }
+
     source += "</p:sldIdLst></p:presentation>"
     addPart(&entries, "ppt/presentation.xml", source)
     addPart(&entries, "ppt/_rels/presentation.xml.rels", """<Relationships><Relationship Id="rId1" Type="relationships/slide" Target="slides/blank.xml"/></Relationships>""")
@@ -181,7 +184,7 @@ using Core, Gui, Gui.Testing, Viewers
                 openViews(&host, workspace)
                 let scene = unwrap workspace.scene()
                 window = unwrap scene.views[0].document
-                other = assume cast(*Pptx.Panel, scene.views[1].document!.currentView)
+                other  = assume cast(*Pptx.Panel, scene.views[1].document!.currentView)
             }
             else
             {
@@ -200,7 +203,10 @@ using Core, Gui, Gui.Testing, Viewers
             let reading = deck.view.position
             host.mouseWheel(deck.gallery.surfaceRect().center(), -6)
             host.settleAnimations(&host.surfaceWnd)
-            Swag.require(deck.gallery.scrollPos.y > 0 and deck.slide == 0 and deck.notesMode and deck.view.position == reading)
+            Swag.require(deck.gallery.scrollPos.y > 0 and
+                         deck.slide == 0 and
+                         deck.notesMode and
+                         deck.view.position == reading)
             let range = deck.gallery.visibleRange()
             let index = range.first + deck.gallery.columns
             host.click(deck.gallery.localToSurface(deck.gallery.cellRect(index).center() - deck.gallery.scrollPos))
@@ -211,8 +217,10 @@ using Core, Gui, Gui.Testing, Viewers
             Swag.require(deck.previews[35].contentTarget and not deck.previews[0].contentTarget)
             host.shortcut(.O, .Control | .Shift)
             Swag.require(not deck.gallery.isVisible() and deck.slide == 35)
-            if other do
+            if other
+            {
                 Swag.require(other.slide == 0 and not other.gallery.isVisible())
+            }
         }
     }
 }

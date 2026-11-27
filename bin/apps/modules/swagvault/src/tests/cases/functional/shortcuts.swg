@@ -90,8 +90,11 @@ func editVaultShortcuts(host: *Testing.HeadlessHost, window: *MainWindow, save: 
     Swag.require(window.page == .Options)
     host.app.sigFrame += func|host = &host, &reset|(app)
     {
-        if reset do
+        if reset
+        {
             return
+        }
+
         let root = app.surfaces.back().view()
         if root is Dialog as editor
         {
@@ -126,8 +129,11 @@ func editVaultShortcuts(host: *Testing.HeadlessHost, window: *MainWindow, save: 
         var edited: bool
         host.app.sigFrame += func|host = &host, &edited, remove|(app)
         {
-            if edited do
+            if edited
+            {
                 return
+            }
+
             let root    = app.surfaces.back().view()
             let filter  = assume cast(*EditBox, unwrap root.childById("gui.shortcuts.filter"))
             let change  = unwrap root.childById("gui.shortcuts.change")

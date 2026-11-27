@@ -4,7 +4,7 @@
 func source()->s32 => 20
 
 #[Swag.NoInline]
-func createValue(value: s32)->s32 => InlineCrossFile.Factory.create's32(value)
+func createValue(value: s32)->s32 => InlineCrossFile.Factory.create!{s32}(value)
 
 struct TextEvent { text: InlineCrossFile.Text }
 struct TextItem { text: InlineCrossFile.TextTarget }
@@ -26,8 +26,8 @@ func assignText(item: *TextItem, event: *TextEvent)
     assignText(&item, &event)
     Swag.require(item.text.count == 3)
 
-    let a          = InlineCrossFile.Vector's32{value, 3}
-    let b          = InlineCrossFile.Vector's32{2, 5}
+    let a          = InlineCrossFile.Vector!{s32}{value, 3}
+    let b          = InlineCrossFile.Vector!{s32}{2, 5}
     let sum        = a + b
     let difference = a - b
     Swag.require(sum.x == 22 and sum.y == 8)
@@ -37,7 +37,7 @@ func assignText(item: *TextItem, event: *TextEvent)
     let bias   = 2
     InlineCrossFile.forEachMutable(values, func|bias|(element: *s32) { element[] += bias })
     Swag.require(values[0] == 12 and values[1] == 22 and values[2] == 32)
-    var buffer = InlineCrossFile.Buffer's32{&values[0]}
+    var buffer = InlineCrossFile.Buffer!{s32}{&values[0]}
     buffer[1] += 7
     Swag.require(buffer[1] == 29 and values[1] == 29)
 }

@@ -3,9 +3,9 @@ using Core
 // Each version-1 key slot has 132 unused trailing bytes. Its last 128 bytes are reserved for
 // an independently authenticated hidden-volume locator. Ordinary password rotation preserves
 // this padding even when no hidden volume exists; no outer flag advertises its presence.
-const HiddenLocatorSize    = 128'u64
-const HiddenLocatorKind    = 9'u32
-const HiddenGeometrySize   = 16'u64
+const HiddenLocatorSize    = 128_u64
+const HiddenLocatorKind    = 9_u32
+const HiddenGeometrySize   = 16_u64
 const HiddenNonceOffset    = cast(u64, Crypto.SaltSize)
 const HiddenGeometryOffset = HiddenNonceOffset + Crypto.NonceSize
 const HiddenTagOffset      = HiddenGeometryOffset + HiddenGeometrySize
@@ -26,8 +26,11 @@ impl HiddenLocator
     func opensOuter(stream: *File.FileStream, password: const [..] u8)->bool fail
     {
         var area: [KeySlotAreaSize] u8
-        if not (try stream.readExactAt(0, area)) do
+        if not (try stream.readExactAt(0, area))
+        {
             fail volumeError(.Io)
+        }
+
         var key = try Crypto.deriveSlotKey(password, area[until Crypto.SaltSize])
         defer Core.Crypto.secureClear(key)
         var master: [Crypto.MasterKeySize] u8
@@ -36,8 +39,10 @@ impl HiddenLocator
         {
             var slot = KeySlot.decode(area[keySlotPayloadOffset(index) until (index + 1) * KeySlotSize])
             defer slot.clear()
-            if try slot.unwrapKey(key, index, master) do
+            if try slot.unwrapKey(key, index, master)
+            {
                 return true
+            }
         }
 
         return false
@@ -53,8 +58,11 @@ impl HiddenLocator
         for index in KeySlotCount
         {
             var record: [HiddenLocatorSize] u8
-            if not (try stream.readExactAt(offset(index), record)) do
+            if not (try stream.readExactAt(offset(index), record))
+            {
                 break
+            }
+
             let salt   = record[until Crypto.SaltSize]
             let nonce  = record[HiddenNonceOffset until HiddenGeometryOffset]
             let cipher = record[HiddenGeometryOffset until HiddenTagOffset]
@@ -63,16 +71,22 @@ impl HiddenLocator
             defer Core.Crypto.secureClear(key)
             var plain: [HiddenGeometrySize] u8
             defer Core.Crypto.secureClear(plain)
-            if not (try Core.Crypto.chacha20Poly1305Open(key, nonce, cipher, tag, Crypto.associatedData(HiddenLocatorKind, index), plain)) do
+            if not (try Core.Crypto.chacha20Poly1305Open(key, nonce, cipher, tag, Crypto.associatedData(HiddenLocatorKind, index), plain))
+            {
                 continue
+            }
+
             var reader = ByteStream.openRead(plain)
-            let first  = try reader.readLittleEndian'u64()
-            let count  = try reader.readLittleEndian'u64()
+            let first  = try reader.readLittleEndian!{u64}()
+            let count  = try reader.readLittleEndian!{u64}()
             if first < DataOffset or
                first > hostSize or
                count < MinimumSize or
-               count > hostSize - first do
+               count > hostSize - first
+            {
                 break
+            }
+
             return FreeExtent{first, count}
         }
 
@@ -86,7 +100,7 @@ impl HiddenLocator
     {
         var record: [HiddenLocatorSize] u8
         try Core.Crypto.randomBytes(record)
-        var plain: Array'u8
+        var plain: Array!{u8}
         defer Core.Crypto.secureClear(plain.toSlice())
         var writer = ByteStream.openWrite(&plain)
         writer.writeLittleEndian(region.first)

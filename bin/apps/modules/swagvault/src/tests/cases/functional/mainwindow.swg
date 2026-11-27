@@ -72,7 +72,7 @@ func useReferenceVaultStrings()
     let vaultPath = Testing.tempFilePath("vault-create-", ".bin")
     defer discard catch File.delete(vaultPath)
 
-    const KeyFileSize = 128'u64 * 1024 * 1024
+    const KeyFileSize = 128_u64 * 1024 * 1024
     scope
     {
         var file = expect File.open(keyPath, .CreateNew, .ReadWrite, .Read)
@@ -84,7 +84,7 @@ func useReferenceVaultStrings()
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
     window.showPage(.Create, animate: false)
-    const MiB = 1024'u64 * 1024
+    const MiB = 1024_u64 * 1024
     window.createPath.setText(vaultPath)
     window.createSize.setText(Format.toString("%", (MinimumSize + MiB - 1) / MiB))
     window.createKeyFiles.add(keyPath)
@@ -97,7 +97,7 @@ func useReferenceVaultStrings()
     var bytes = window.operation.progress.counts()
     while not bytes.done and not window.operation.task.isDone() and deadline.elapsedMilliseconds() < 5000
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         bytes = window.operation.progress.counts()
     }
 
@@ -130,7 +130,7 @@ func useReferenceVaultStrings()
 }
 
 // Builds the real main window, at its smallest size, inside the frame of the shipped surface.
-internal func testSetupMainWindow(host: *Testing.HeadlessHost, scale = 1.0'f32, width = cast(f32, MainWindow.MinWidth), height = cast(f32, MainWindow.MinHeight))->*MainWindow
+internal func testSetupMainWindow(host: *Testing.HeadlessHost, scale = 1.0_f32, width = cast(f32, MainWindow.MinWidth), height = cast(f32, MainWindow.MinHeight))->*MainWindow
 {
     host.setup(width, height, scale)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
@@ -185,7 +185,7 @@ internal func fillPictureList(window: *MainWindow)
 internal func saveMainWindowState(window: *MainWindow)->String
 {
     var result:     ConcatBuffer
-    var encoder:    Serialization.Encoder'Serialization.Write.TagBin
+    var encoder:    Serialization.Encoder!{Serialization.Write.TagBin}
     var serializer: Serialization.Serializer
     expect serializer.startWrite(&encoder, &result)
     expect serializer.beginSection(.Unordered)
@@ -197,7 +197,7 @@ internal func saveMainWindowState(window: *MainWindow)->String
 
 internal func loadMainWindowState(window: *MainWindow, bytes: const [..] u8)
 {
-    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:    Serialization.Decoder!{Serialization.Read.TagBin}
     var serializer: Serialization.Serializer
     expect serializer.startRead(&decoder, bytes)
     expect serializer.beginSection(.Unordered)
@@ -208,12 +208,17 @@ internal func loadMainWindowState(window: *MainWindow, bytes: const [..] u8)
 
 func containsStateBytes(bytes, needle: const [..] u8)->bool
 {
-    if not needle.count or needle.count > bytes.count do
+    if not needle.count or needle.count > bytes.count
+    {
         return false
+    }
+
     for offset in bytes.count - needle.count + 1
     {
-        if Swag.memcmp(bytes.buffer + offset, needle.buffer, needle.count) == 0 do
+        if Swag.memcmp(bytes.buffer + offset, needle.buffer, needle.count) == 0
+        {
             return true
+        }
     }
 
     return false
@@ -224,8 +229,10 @@ internal func lensHasEntry(window: *MainWindow, title: string)->bool
 {
     for section in window.lens.results.sections
     {
-        for &entry in section!.entries where entry.title == title do
+        for &entry in section!.entries where entry.title == title
+        {
             return true
+        }
     }
 
     return false
@@ -236,8 +243,11 @@ internal func lensHasEntry(window: *MainWindow, title: string)->bool
 func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 {
     var room = page.clientRect().height
-    if window.hintLine.isLocallyVisible() do
+    if window.hintLine.isLocallyVisible()
+    {
         room = Math.min(room, window.hintLine.position.y)
+    }
+
     Swag.require(column.position.bottom() <= room + 0.5, "page column does not fit")
 }
 
@@ -335,7 +345,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 #test
 {
     defer discard catch g_App.setLanguage(ReferenceLanguage)
-    for scale in [1.0'f32, 1.5'f32]
+    for scale in [1.0_f32, 1.5_f32]
     {
         var host: Testing.HeadlessHost
         let window = testSetupMainWindow(&host, scale)
@@ -347,8 +357,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
             expect g_App.setLanguage(one.tag)
             host.notify(.LanguageChanged)
             Swag.require(host.surfaceWnd.name.text == Format.toString("% — %", ProductName, appStrings().ui_PrivacyMode))
-            if one.tag == "fr" do
+            if one.tag == "fr"
+            {
                 Swag.require(host.surfaceWnd.name.text == "Swag Vault — Mode privé")
+            }
 
             window.showPage(.List, animate: false)
             Testing.assertContentFits(window)
@@ -360,8 +372,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
             Swag.require(modify.position.right() <= card.header.clientRect().right() - RowOutset + 0.5)
             Swag.require(card.form.position.bottom() <= card.options.position.y + 0.5)
             Swag.require(card.mount.position.bottom() <= card.panel.position.height + 0.5)
-            for child in card.options.children where child.isLocallyVisible() do
+            for child in card.options.children where child.isLocallyVisible()
+            {
                 Swag.require(card.options.position.x + child.position.right() <= card.mount.position.x + 0.5)
+            }
 
             window.showPage(.Create, animate: false)
             Testing.assertContentFits(window)
@@ -376,7 +390,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
             assertColumnFits(window, window.progressPage, window.progressPage.column)
 
             window.progressPage.setStage(.ReadingKeyFile)
-            window.progressPage.setProgress(0.25, 4 * 1024 * 1024 * 1024'u64, 16 * 1024 * 1024 * 1024'u64)
+            window.progressPage.setProgress(0.25, 4 * 1024 * 1024 * 1024_u64, 16 * 1024 * 1024 * 1024_u64)
             Testing.assertContentFits(window)
             assertColumnFits(window, window.progressPage, window.progressPage.column)
 
@@ -574,7 +588,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     let window = testSetupMainWindow(&host)
 
     var legacy:     ConcatBuffer
-    var encoder:    Serialization.Encoder'Serialization.Write.TagBin
+    var encoder:    Serialization.Encoder!{Serialization.Write.TagBin}
     var serializer: Serialization.Serializer
     var privacy  = false
     var settings = MountSettings{"C:\\vaults\\legacy", "mount-x", true}
@@ -723,12 +737,14 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     // the path field and then reaches the cancel action. A box that
     // does not answer it is closed by hand after a few frames, so this fails on its assertion
     // rather than pumping frames until the runner gives up on it.
-    var frames = 0's32
+    var frames = 0_s32
     var forced: bool
     host.app.sigFrame += func|host = &host, window, frames = &frames, forced = &forced|(app)
     {
-        if not host.openedSurfaceCount() do
+        if not host.openedSurfaceCount()
+        {
             return
+        }
 
         frames[] += 1
         if frames[] <= 2
@@ -737,7 +753,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
             Swag.require(focused.surface != window.surface, "dialog did not take keyboard focus")
             host.keyPress(Input.Key.Escape)
         }
-        elif frames[] > 30
+        else if frames[] > 30
         {
             forced[] = true
             app.exitModal(Gui.Dialog.BtnCancel)
@@ -896,8 +912,11 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     for title in [texts.ui_NewVault, texts.ui_OpenFile, texts.ui_VaultsTitle, texts.cmd_Options,
                   texts.ui_Mount, texts.ui_ReadOnly, texts.ui_ProtectHidden, texts.ui_ChangePassword,
                   texts.ui_ChangeKeyFiles, texts.ui_Resize, texts.ui_CreateHidden, texts.ui_Forget,
-                  texts.ui_PrivacyMode, texts.ui_UnmountOnLock, texts.ui_UnmountOnSuspend, texts.ui_UnmountOnIdle] do
+                  texts.ui_PrivacyMode, texts.ui_UnmountOnLock, texts.ui_UnmountOnSuspend, texts.ui_UnmountOnIdle]
+    {
         Swag.require(lensHasEntry(window, title))
+    }
+
     window.lens.close()
 
     // A mounted vault offers what applies to a drive instead.
@@ -975,6 +994,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
         host.clickPopupMenuItemWhenShown(id)
         host.thenClickModalButton(Dialog.BtnCancel)
         host.clickWnd(target, .Right)
+
         // Any duplicate command left in the queue would open an unexpected second dialog.
         host.pump()
         Swag.require(host.autoHandled)
@@ -1028,7 +1048,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(resizeFields.capacity.isEnabled())
     Swag.require(resizeFields.unit.isEnabled())
 
-    var currentFiles: Array'String
+    var currentFiles: Array!{String}
     currentFiles.add("C:\\keys\\first.key")
     let keyFiles      = FormDlg.create(&host.surface, options)
     let keyFileFields = buildKeyFileChangeForm(keyFiles, currentFiles.toSlice())
@@ -1073,10 +1093,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
         discard buildVaultResizeForm(resize)
         assertFormFits(&host, resize)
 
-        var currentFiles: Array'String
+        var currentFiles: Array!{String}
         currentFiles.add("C:\\keys\\first.key")
         let keyFiles = FormDlg.create(&host.surface, options)
-        let field = buildKeyFileChangeForm(keyFiles, currentFiles.toSlice())
+        let field    = buildKeyFileChangeForm(keyFiles, currentFiles.toSlice())
         assertFormFits(&host, keyFiles)
         Swag.require(field.remove.position.right() <= field.actions.clientRect().right() + 0.5)
 
@@ -1269,7 +1289,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     host.advanceAnimations(0.05)
     Swag.require(first.expansion > 0 and first.expansion < extra)
     Swag.require(second.expansion > 0 and second.expansion < extra)
-    let firstShown = first.expansion
+    let firstShown  = first.expansion
     let secondShown = second.expansion
     window.chooseVault(PictureLockedPath)
     Swag.require(first.expansion == firstShown and second.expansion == secondShown)
@@ -1550,7 +1570,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     let existing = Testing.tempFilePath("vault-key-existing-", ".key")
     defer discard catch File.delete(existing)
-    discard expect File.writeAllBytes(existing, [1'u8, 2, 3])
+    discard expect File.writeAllBytes(existing, [1_u8, 2, 3])
 
     host.acceptModalFileDialog(existing)
     field.add.sigPressed.call(cast(*Button, field.add))
@@ -1579,6 +1599,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
+
     // A Linux mount destination can be a long absolute path.
     let destination = "/home/user/.local/share/swag/vault/mounts/a-very-long-mounted-vault-destination"
     window.mountDestinations.clear()
@@ -1596,7 +1617,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     let path = Testing.tempFilePath("vault-mount-key-", ".key")
     defer discard catch File.delete(path)
-    discard expect File.writeAllBytes(path, [1'u8, 2, 3])
+    discard expect File.writeAllBytes(path, [1_u8, 2, 3])
     host.acceptModalFileDialog(path)
     card.keyFileList.add.sigPressed.call(cast(*Button, card.keyFileList.add))
 
@@ -1636,8 +1657,10 @@ func createProtectedVaultFixture(extension = ".bin")->String
 func finishAutomaticMountRequest(host: *Testing.HeadlessHost, window: *MainWindow)
 {
     host.fireTimer(unwrap window.automaticMountTimer)
-    if window.operation.kind != .None do
+    if window.operation.kind != .None
+    {
         window.finishOperation()
+    }
 }
 
 // A protected container dropped on the window unfolds and waits for its access.
@@ -1729,7 +1752,7 @@ func finishAutomaticMountRequest(host: *Testing.HeadlessHost, window: *MainWindo
     let window = testSetupMainWindow(&host)
     window.privacyMode = false
     window.startupVaults.add(StartupVault{PictureLockedPath, "mount-x", true, false, true})
-    var keyFiles: Array'String
+    var keyFiles: Array!{String}
     window.operation.hiddenAccess.setInputs("private hidden credentials", keyFiles.toSlice())
     window.protectHiddenOnMount = true
     let state = saveMainWindowState(window)

@@ -27,17 +27,17 @@ func chooseConditionalStrictS32(flag: bool)->ConditionalStrictS32
 // Ternary with type promotion and runtime eval
 #test
 {
-    const a = true ? 10's16 : 20's32
+    const a = true ? 10_s16 : 20_s32
     #assert(#typeof(a) == s32)
 
-    const b = false ? 10's16 : 20's32
+    const b = false ? 10_s16 : 20_s32
     #assert(#typeof(b) == s32)
     #assert(b == 20)
 
-    const c = true ? 1.0'f32 : 2.0'f64
+    const c = true ? 1.0_f32 : 2.0_f64
     #assert(#typeof(c) == f64)
 
-    const d = true ? 20's32 : 10's16
+    const d = true ? 20_s32 : 10_s16
     #assert(#typeof(d) == s32)
     Swag.require(a == 10)
     Swag.require(b == 20)
@@ -51,8 +51,8 @@ func chooseConditionalStrictS32(flag: bool)->ConditionalStrictS32
     var a = 0 ? 1 : 2
     Swag.require(a == 2)
 
-    var b = 0.0'f32 ? 1 : 2
-    var c = 1.5'f32 ? 1 : 2
+    var b = 0.0_f32 ? 1 : 2
+    var c = 1.5_f32 ? 1 : 2
     Swag.require(b == 2)
     Swag.require(c == 1)
 }

@@ -150,19 +150,19 @@ rounding to that width; an explicit 'f64' keeps that width even for an exact sma
 # Literal Suffix
 
 You can specify the type of a literal explicitly by adding a **suffix** to it. This
-is useful when a specific type is required, such as 'f64' or 'u8'.
+is useful when a specific type is required, such as 'f64' or '_u8'.
 */
 #test
 {
-    let a = 1.5'f64     // Explicitly declare 'a' as 'f64'
+    let a = 1.5_f64     // Explicitly declare 'a' as 'f64'
     Swag.require(a == 1.5)
-    Swag.require(a == 1.5'f64)
+    Swag.require(a == 1.5_f64)
     #assert(#typeof(a) == f64)
 
-    let b = 10'u8     // Declare 'b' as 'u8'
+    let b = 10_u8     // Declare 'b' as '_u8'
     Swag.require(b == 10)
     #assert(#typeof(b) == u8)
 
-    let c = 1'u32     // Explicitly typed as 'u32'
+    let c = 1_u32     // Explicitly typed as 'u32'
     #assert(#typeof(c) == u32)
 }

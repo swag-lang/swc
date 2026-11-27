@@ -23,7 +23,7 @@
     }
 
     const V = #run mkSliceRead()
-    #assert(V == 30'u8)
+    #assert(V == 30_u8)
 }
 
 #test
@@ -49,7 +49,7 @@
     }
 
     const V = #run mkStringRead()
-    #assert(V == 122'u8)
+    #assert(V == 122_u8)
 }
 
 #test
@@ -70,7 +70,7 @@
         var buf: [4] u8 = [1, 2, 3, 4]
         let sl = Swag.makeSlice(&buf[0], 4)
         sl[2] = 9
-        return sl.count == 4 and buf[2] == 9'u8 and sl[2] == 9'u8
+        return sl.count == 4 and buf[2] == 9_u8 and sl[2] == 9_u8
     }
 
     const V = #run mkSliceWriteThrough()
@@ -84,7 +84,7 @@
         var buf: [5] u8 = [72, 101, 108, 108, 111]
         let text        = Swag.makeString(&buf[0], 5)
         let bytes       = cast(const [..] u8, text)
-        return text == "Hello" and bytes.count == 5 and bytes[0] == 72'u8 and bytes[4] == 111'u8
+        return text == "Hello" and bytes.count == 5 and bytes[0] == 72_u8 and bytes[4] == 111_u8
     }
 
     const V = #run mkStringToByteView()

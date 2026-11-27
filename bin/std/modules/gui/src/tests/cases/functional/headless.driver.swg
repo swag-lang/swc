@@ -60,8 +60,11 @@ using Swag, Core
     dlg.addButton("Ok", Dialog.BtnOk, true)
     dlg.validateResult = func(bdlg, id)->bool
     {
-        if id != Dialog.BtnOk do
+        if id != Dialog.BtnOk
+        {
             return true
+        }
+
         return MessageDlg.confirm(unwrap bdlg.surface, "Continue?") == Dialog.BtnYes
     }
 
@@ -92,7 +95,7 @@ using Swag, Core
             parentSurface.wnd.destroyNow()
             Swag.require(child.doModal() == Dialog.BtnOk)
         }
-        elif stage == 1 and app.modalSurfaces.count == 2
+        else if stage == 1 and app.modalSurfaces.count == 2
         {
             stage = 2
             Swag.require(host.clickModalButton(Dialog.BtnOk))

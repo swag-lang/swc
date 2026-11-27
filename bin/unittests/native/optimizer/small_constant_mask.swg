@@ -19,7 +19,7 @@ func below(a, b: u64)->bool => a < b
 
 #test
 {
-    let values = [0'u64, 1, 7, 127, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 7, 127, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values
@@ -38,13 +38,13 @@ func below(a, b: u64)->bool => a < b
                 Swag.require(negative(a, b) == 0)
                 Swag.require(reverse(a, b) == 127)
             }
-            Swag.require(equal(a, b) == (a == b ? 11'u64 : 0))
+            Swag.require(equal(a, b) == (a == b ? 11_u64 : 0))
             let sa = cast #bit (s64, a)
             let sb = cast #bit (s64, b)
-            Swag.require(signed(sa, sb) == (sa < sb ? 15's64 : 0))
+            Swag.require(signed(sa, sb) == (sa < sb ? 15_s64 : 0))
             let na = cast(u32, (a & 0xFFFFFFFF))
             let nb = cast(u32, (b & 0xFFFFFFFF))
-            Swag.require(narrow(na, nb) == (below(na, nb) ? 7'u32 : 0))
+            Swag.require(narrow(na, nb) == (below(na, nb) ? 7_u32 : 0))
         }
     }
 }

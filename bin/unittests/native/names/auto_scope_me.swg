@@ -49,7 +49,7 @@ struct(T) AutoScopeUnaryBox
 
 impl AutoScopeUnaryBox
 {
-    func(op: Swag.Operator) opUnary(const me)->AutoScopeUnaryBox'T
+    func(op: Swag.Operator) opUnary(const me)->AutoScopeUnaryBox!{T}
         where op == .BitNot
     {
         return {value: ~.value}
@@ -58,7 +58,7 @@ impl AutoScopeUnaryBox
 
 #test
 {
-    var value: AutoScopeUnaryBox's32 = {value: 42}
+    var value: AutoScopeUnaryBox!{s32} = {value: 42}
     let inverted = ~value
     Swag.require(inverted.value == -43)
 }

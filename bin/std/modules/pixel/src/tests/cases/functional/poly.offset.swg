@@ -50,8 +50,10 @@ func addOffsetRect(list: *Pixel.LinePathList, serial: s32, x, y: f32)
     Swag.require(path.polygon.area == source.area)
     Swag.require(path.minBounds == source.minBounds and path.maxBounds == source.maxBounds)
     Swag.require(paths.minBounds == source.minBounds and paths.maxBounds == source.maxBounds)
-    for i in source.points.count do
+    for i in source.points.count
+    {
         Swag.require(path.polygon.points[i] == source.points[i])
+    }
 }
 
 // MiterBevel keeps a miter when its extension fits Clipper's miter limit.
@@ -121,14 +123,14 @@ func offsetArea(contour: ClipperPath, delta: f64, joinType: JoinType)->{area: f6
 // approximation of the arcs.
 #test
 {
-    const Sides  = 12'u32
-    const Radius = 400_000.0'f64
+    const Sides  = 12_u32
+    const Radius = 400_000.0_f64
 
     let contour   = regularPolygon(Sides, Radius)
     let area      = Math.abs(contourArea(contour))
     let perimeter = 2.0 * cast(f64, Sides) * Radius * Math.sin(ConstF64.Pi / cast(f64, Sides))
 
-    for delta in [20_000.0'f64, 60_000.0]
+    for delta in [20_000.0_f64, 60_000.0]
     {
         let cornerTerm = cast(f64, Sides) * delta * delta * Math.tan(ConstF64.Pi / cast(f64, Sides))
 

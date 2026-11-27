@@ -121,18 +121,20 @@ func formatInfo(format: PixelFormat, vk: *u32, typeSize: *u32, channelIds: *[4] 
 func writeDfd(result: *ConcatBuffer, image: Image, typeSize: u32, channelIds: *[4] u8, floating: bool)
 {
     let channels  = cast(u32, image.pixelFormat.channels())
-    let blockSize = 24'u32 + channels * 16
+    let blockSize = 24_u32 + channels * 16
     writeU32(result, blockSize + 4)
     writeU32(result, 0)        // Khronos vendor, basic descriptor type.
     writeU32(result, (blockSize << 16) | 2)     // KDF version 2.
-    result.addNative(1'u8)     // KHR_DF_MODEL_RGBSDA.
-    result.addNative(1'u8)     // BT.709/sRGB primaries.
-    result.addNative(1'u8)     // Linear transfer for UNORM/SFLOAT Vulkan formats.
-    result.addNative(image.alphaMode == .Premultiplied ? 1'u8 : 0'u8)
+    result.addNative(1_u8)     // KHR_DF_MODEL_RGBSDA.
+    result.addNative(1_u8)     // BT.709/sRGB primaries.
+    result.addNative(1_u8)     // Linear transfer for UNORM/SFLOAT Vulkan formats.
+    result.addNative(image.alphaMode == .Premultiplied ? 1_u8 : 0_u8)
     writeU32(result, 0)     // 1x1x1x1 texel block, stored as dimensions minus one.
     result.addNative(image.bytesPerPixel)
-    for 7 do
-        result.addNative(0'u8)
+    for 7
+    {
+        result.addNative(0_u8)
+    }
 
     let bits = typeSize * 8
     for channel in channels
@@ -140,10 +142,10 @@ func writeDfd(result: *ConcatBuffer, image: Image, typeSize: u32, channelIds: *[
         let channelType = channelIds[][channel] | (floating ? 0x80 : 0)
         writeU32(result, channel * bits | ((bits - 1) << 16) | (cast(u32, channelType) << 24))
         writeU32(result, 0)     // Sample positions.
-        let floatLower = typeSize == 2 ? 0xBC00'u32 : 0xBF800000'u32
-        let floatUpper = typeSize == 2 ? 0x3C00'u32 : 0x3F800000'u32
+        let floatLower = typeSize == 2 ? 0xBC00_u32 : 0xBF800000_u32
+        let floatUpper = typeSize == 2 ? 0x3C00_u32 : 0x3F800000_u32
         writeU32(result, floating ? floatLower : 0)
-        writeU32(result, floating ? floatUpper : ((1'u32 << bits) - 1))
+        writeU32(result, floating ? floatUpper : ((1_u32 << bits) - 1))
     }
 }
 
@@ -153,19 +155,22 @@ internal impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {
-        if not image.isValid() or not image.pixelFormat.isPacked() do
+        if not image.isValid() or not image.pixelFormat.isPacked()
+        {
             fail InvalidFormatError{"invalid packed image"}
+        }
 
         var vk:         u32
-        var typeSize = 1'u32
+        var typeSize = 1_u32
         var channelIds: [4] u8 = [0, 1, 2, 3]
         var floating:   bool
         formatInfo(image.pixelFormat, &vk, &typeSize, &channelIds, &floating)
-        let dfdLength  = 28'u64 + cast(u64, image.pixelFormat.channels()) * 16
+        let dfdLength  = 28_u64 + cast(u64, image.pixelFormat.channels()) * 16
         let dfdOffset  = HeaderSize + 24
         let alignment  = cast(u64, try Math.lcm(4, image.bytesPerPixel))
         let dataOffset = (dfdOffset + dfdLength + alignment - 1) / alignment * alignment
 
+        result.grow(dataOffset + image.byteCount)
         result.addBytes(Identifier)
         writeU32(result, vk)
         writeU32(result, typeSize)
@@ -186,12 +191,18 @@ internal impl IImageEncoder for Encoder
         writeU64(result, image.byteCount)
         writeU64(result, image.byteCount)
         writeDfd(result, image, typeSize, &channelIds, floating)
-        while result.count() < dataOffset do
-            result.addNative(0'u8)
+        while result.count() < dataOffset
+        {
+            result.addNative(0_u8)
+        }
+
+        let target = result.reserveInPlace(image.byteCount)
+        let pixels = image.pixels.storage()
+        let stride = cast(u64, image.rowStride)
         for y in image.height
         {
             let storageY = image.height - y - 1
-            result.addBytes(Swag.makeSlice(image.pixels.storage() + cast(u64, storageY) * image.rowStride, cast(u64, image.rowStride)))
+            Memory.copy(target + cast(u64, y) * stride, pixels + cast(u64, storageY) * stride, stride)
         }
     }
 }

@@ -23,8 +23,10 @@ using Swag, Core
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
 
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.children.count == 1)

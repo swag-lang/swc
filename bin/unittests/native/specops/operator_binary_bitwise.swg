@@ -12,7 +12,7 @@ struct(T) GenBitwisePair
 
 impl GenBitwisePair
 {
-    func(op: Swag.Operator) opBinary(const me, other: GenBitwisePair'T)->GenBitwisePair'T
+    func(op: Swag.Operator) opBinary(const me, other: GenBitwisePair!{T})->GenBitwisePair!{T}
         where op == .BitAnd or op == .BitOr or op == .BitXor or op == .Shl or op == .Shr
     {
         #static switch op
@@ -39,8 +39,8 @@ impl GenBitwisePair
 // Test: bitwise AND with u32
 #test
 {
-    var a: GenBitwisePair'u32 = {x: 0xFF, y: 0x0F}
-    var b: GenBitwisePair'u32 = {x: 0x0F, y: 0xFF}
+    var a: GenBitwisePair!{u32} = {x: 0xFF, y: 0x0F}
+    var b: GenBitwisePair!{u32} = {x: 0x0F, y: 0xFF}
     let result = a & b
 
     Swag.require(result.x == 0x0F)
@@ -50,8 +50,8 @@ impl GenBitwisePair
 // Test: bitwise OR with u32
 #test
 {
-    var a: GenBitwisePair'u32 = {x: 0xF0, y: 0x0F}
-    var b: GenBitwisePair'u32 = {x: 0x0F, y: 0xF0}
+    var a: GenBitwisePair!{u32} = {x: 0xF0, y: 0x0F}
+    var b: GenBitwisePair!{u32} = {x: 0x0F, y: 0xF0}
     let result = a | b
 
     Swag.require(result.x == 0xFF)
@@ -61,19 +61,19 @@ impl GenBitwisePair
 // Test: bitwise XOR with u64
 #test
 {
-    var a: GenBitwisePair'u64 = {x: 0xFF00, y: 0x00FF}
-    var b: GenBitwisePair'u64 = {x: 0xFFFF, y: 0xFFFF}
+    var a: GenBitwisePair!{u64} = {x: 0xFF00, y: 0x00FF}
+    var b: GenBitwisePair!{u64} = {x: 0xFFFF, y: 0xFFFF}
     let result = a ^ b
 
-    Swag.require(result.x == 0x00FF'u64)
-    Swag.require(result.y == 0xFF00'u64)
+    Swag.require(result.x == 0x00FF_u64)
+    Swag.require(result.y == 0xFF00_u64)
 }
 
 // Test: bitwise shift left with u32
 #test
 {
-    var a: GenBitwisePair'u32 = {x: 1, y: 3}
-    var b: GenBitwisePair'u32 = {x: 4, y: 2}
+    var a: GenBitwisePair!{u32} = {x: 1, y: 3}
+    var b: GenBitwisePair!{u32} = {x: 4, y: 2}
     let result = a << b
 
     Swag.require(result.x == 16)
@@ -83,8 +83,8 @@ impl GenBitwisePair
 // Test: bitwise shift right with u32
 #test
 {
-    var a: GenBitwisePair'u32 = {x: 256, y: 64}
-    var b: GenBitwisePair'u32 = {x: 4, y: 3}
+    var a: GenBitwisePair!{u32} = {x: 256, y: 64}
+    var b: GenBitwisePair!{u32} = {x: 4, y: 3}
     let result = a >> b
 
     Swag.require(result.x == 16)
@@ -94,8 +94,8 @@ impl GenBitwisePair
 // Test: bitwise AND with u8
 #test
 {
-    var a: GenBitwisePair'u8 = {x: 0b1010_1010, y: 0b1100_1100}
-    var b: GenBitwisePair'u8 = {x: 0b1111_0000, y: 0b0000_1111}
+    var a: GenBitwisePair!{u8} = {x: 0b1010_1010, y: 0b1100_1100}
+    var b: GenBitwisePair!{u8} = {x: 0b1111_0000, y: 0b0000_1111}
     let result = a & b
 
     Swag.require(result.x == 0b1010_0000)
@@ -105,7 +105,7 @@ impl GenBitwisePair
 // Test: bitwise XOR self gives zero
 #test
 {
-    var a: GenBitwisePair'u32 = {x: 12345, y: 67890}
+    var a: GenBitwisePair!{u32} = {x: 12345, y: 67890}
     let result = a ^ a
 
     Swag.require(result.x == 0)
@@ -115,10 +115,10 @@ impl GenBitwisePair
 // Test: bitwise OR with zero (identity)
 #test
 {
-    var a:    GenBitwisePair'u64 = {x: 0xDEAD_BEEF, y: 0xCAFE_BABE}
-    var zero: GenBitwisePair'u64 = {x: 0, y: 0}
+    var a:    GenBitwisePair!{u64} = {x: 0xDEAD_BEEF, y: 0xCAFE_BABE}
+    var zero: GenBitwisePair!{u64} = {x: 0, y: 0}
     let result = a | zero
 
-    Swag.require(result.x == 0xDEAD_BEEF'u64)
-    Swag.require(result.y == 0xCAFE_BABE'u64)
+    Swag.require(result.x == 0xDEAD_BEEF_u64)
+    Swag.require(result.y == 0xCAFE_BABE_u64)
 }

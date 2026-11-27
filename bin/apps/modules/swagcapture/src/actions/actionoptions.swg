@@ -86,8 +86,11 @@ impl IActionUI for ActionOptions
         opt.properties.sigValueChanged += func|main, dlg, opt|(_, item)
         {
             var fieldName: string = ""
-            if item do
+            if item
+            {
                 fieldName = item.typeValue.name orelse ""
+            }
+
             let rebuildLocalizedRows = main.applyOptionChange(fieldName)
 
             // Every row here is generated from an attribute literal resolved at build time,

@@ -29,43 +29,82 @@ impl RunFormat
 {
     mtd overlay(other: const *RunFormat)
     {
-        if other.bold != .Inherit do
+        if other.bold != .Inherit
+        {
             .bold = other.bold
-        if other.italic != .Inherit do
+        }
+
+        if other.italic != .Inherit
+        {
             .italic = other.italic
-        if other.strike != .Inherit do
+        }
+
+        if other.strike != .Inherit
+        {
             .strike = other.strike
-        if other.hidden != .Inherit do
+        }
+
+        if other.hidden != .Inherit
+        {
             .hidden = other.hidden
+        }
+
         .copyDisplay(other)
     }
 
     // Character toggles compose in styles; direct formatting sets their state.
     mtd applyStyle(other: const *RunFormat)
     {
-        if other.bold == .On do
+        if other.bold == .On
+        {
             .bold = .bold == .On ? .Off : .On
-        if other.italic == .On do
+        }
+
+        if other.italic == .On
+        {
             .italic = .italic == .On ? .Off : .On
-        if other.strike == .On do
+        }
+
+        if other.strike == .On
+        {
             .strike = .strike == .On ? .Off : .On
-        if other.hidden == .On do
+        }
+
+        if other.hidden == .On
+        {
             .hidden = .hidden == .On ? .Off : .On
+        }
+
         .copyDisplay(other)
     }
 
     private mtd copyDisplay(other: const *RunFormat)
     {
-        if other.underline != .Inherit do
+        if other.underline != .Inherit
+        {
             .underline = other.underline
-        if other.size do
+        }
+
+        if other.size
+        {
             .size = other.size
-        if not other.family.isEmpty() do
+        }
+
+        if not other.family.isEmpty()
+        {
             .family = other.family
-        if not other.color.isEmpty() do
+        }
+
+        if not other.color.isEmpty()
+        {
             .color = other.color
-        if not other.highlight.isEmpty() do
+        }
+
+        if not other.highlight.isEmpty()
+        {
             .highlight = other.highlight
+        }
+
         .limited = .limited or other.limited
     }
 
@@ -77,33 +116,39 @@ impl RunFormat
         {
             .bold = enabled ? .On : .Off
         }
-        elif token.isElement("i")
+        else if token.isElement("i")
         {
             .italic = enabled ? .On : .Off
         }
-        elif token.isElement("strike")
+        else if token.isElement("strike")
         {
             .strike = enabled ? .On : .Off
         }
-        elif token.isElement("vanish")
+        else if token.isElement("vanish")
         {
             .hidden = enabled ? .On : .Off
         }
-        elif token.isElement("u")
+        else if token.isElement("u")
         {
             .underline = enabled and value != "none" ? .On : .Off
-            if enabled and value.count and value != "single" and value != "none" do
+            if enabled and value.count and value != "single" and value != "none"
+            {
                 .limited = true
+            }
         }
-        elif token.isElement("sz")
+        else if token.isElement("sz")
         {
             let size = catch StrConv.toU32(value) orelse 0
-            if size >= 1 and size <= 800 do
+            if size >= 1 and size <= 800
+            {
                 .size = size
-            else do
+            }
+            else
+            {
                 .limited = true
+            }
         }
-        elif token.isElement("rFonts")
+        else if token.isElement("rFonts")
         {
             let named  = token.attribute("ascii") orelse token.attribute("hAnsi")
             let themed = token.attribute("asciiTheme") orelse token.attribute("hAnsiTheme") orelse ""
@@ -111,35 +156,58 @@ impl RunFormat
             var safe   = name.count <= 256
             for byte in name where byte < 128 and
                                    not Latin1.isLetterOrDigit(byte) and
-                                   byte != ' 'u8 and
-                                   byte != '-'u8 and
-                                   byte != '.'u8 do
+                                   byte != ' '_u8 and
+                                   byte != '-'_u8 and
+                                   byte != '.'_u8
+            {
                 safe = false
-            if safe do
+            }
+
+            if safe
+            {
                 .family = name
-            else do
+            }
+            else
+            {
                 .limited = true
+            }
         }
-        elif token.isElement("color")
+        else if token.isElement("color")
         {
             let name   = token.attribute("themeColor") orelse ""
             var scheme = name
-            if name == "text1" or name == "dark1" do
+            if name == "text1" or name == "dark1"
+            {
                 scheme = "dk1"
-            elif name == "text2" or name == "dark2" do
+            }
+            else if name == "text2" or name == "dark2"
+            {
                 scheme = "dk2"
-            elif name == "background1" or name == "light1" do
+            }
+            else if name == "background1" or name == "light1"
+            {
                 scheme = "lt1"
-            elif name == "background2" or name == "light2" do
+            }
+            else if name == "background2" or name == "light2"
+            {
                 scheme = "lt2"
-            elif name == "hyperlink" do
+            }
+            else if name == "hyperlink"
+            {
                 scheme = "hlink"
-            elif name == "followedHyperlink" do
+            }
+            else if name == "followedHyperlink"
+            {
                 scheme = "folHlink"
+            }
+
             var color  = theme.defined ? theme.color(scheme) : String{}
             let themed = not color.isEmpty()
-            if color.isEmpty() do
+            if color.isEmpty()
+            {
                 color = value
+            }
+
             if color == "auto"
             {
                 .color = "auto"
@@ -159,8 +227,11 @@ impl RunFormat
                 func modifier(value: string?)->{valid: bool, value: u32}
                 {
                     var result: #returntype = {valid: true, value: 255}
-                    if not value do
+                    if not value
+                    {
                         return result
+                    }
+
                     if value.count != 2 or
                        not Latin1.isHexDigit(value[0]) or
                        not Latin1.isHexDigit(value[1])
@@ -204,7 +275,7 @@ impl RunFormat
 
             .color = color
         }
-        elif token.isElement("highlight")
+        else if token.isElement("highlight")
         {
             switch value
             {
@@ -234,26 +305,47 @@ impl RunFormat
     {
         var result:  #returntype
         let numbers: Globalization.NumberFormatInfo
-        if .size do
+        if .size
+        {
             result += Format.toString("font-size:%pt;", numbers.format(cast(f64, .size) / 2, 1))
-        if not .family.isEmpty() do
+        }
+
+        if not .family.isEmpty()
+        {
             result += Format.toString("font-family:'%';", .family)
-        if not .color.isEmpty() do
+        }
+
+        if not .color.isEmpty()
+        {
             result += .color == "auto" ? String.from("color:inherit;") : Format.toString("color:#%;", .color)
-        if not .highlight.isEmpty() do
+        }
+
+        if not .highlight.isEmpty()
+        {
             result += .highlight == "none" ? String.from("background-color:transparent;") : Format.toString("background-color:#%;", .highlight)
-        if .bold == .Off do
+        }
+
+        if .bold == .Off
+        {
             result += "font-weight:normal;"
-        if .italic == .Off do
+        }
+
+        if .italic == .Off
+        {
             result += "font-style:normal;"
+        }
+
         return result
     }
 
     // Content has already been escaped, or is trusted embedded-image markup.
     mtd const appendHtml(output: *String, content: string)
     {
-        if .hidden == .On do
+        if .hidden == .On
+        {
             return
+        }
+
         let css = .css()
         if not css.isEmpty()
         {
@@ -262,24 +354,50 @@ impl RunFormat
             output[] += "\">"
         }
 
-        if .bold == .On do
+        if .bold == .On
+        {
             output[] += "<b>"
-        if .italic == .On do
+        }
+
+        if .italic == .On
+        {
             output[] += "<i>"
-        if .underline == .On do
+        }
+
+        if .underline == .On
+        {
             output[] += "<u>"
-        if .strike == .On do
+        }
+
+        if .strike == .On
+        {
             output[] += "<s>"
+        }
+
         output[] += content
-        if .strike == .On do
+        if .strike == .On
+        {
             output[] += "</s>"
-        if .underline == .On do
+        }
+
+        if .underline == .On
+        {
             output[] += "</u>"
-        if .italic == .On do
+        }
+
+        if .italic == .On
+        {
             output[] += "</i>"
-        if .bold == .On do
+        }
+
+        if .bold == .On
+        {
             output[] += "</b>"
-        if not css.isEmpty() do
+        }
+
+        if not css.isEmpty()
+        {
             output[] += "</span>"
+        }
     }
 }

@@ -49,7 +49,7 @@ alias IndexStrictU8 = u8
 {
     var A = "titi"
     var B = A[1]
-    Swag.require(B == cast(u8, 'i'rune))
+    Swag.require(B == cast(u8, 'i'_rune))
 }
 
 // Multi-index on C-style nested arrays.
@@ -79,7 +79,7 @@ alias IndexStrictU8 = u8
 {
     var text = "hello"
     var textRef: *string = &text
-    Swag.require(textRef[][1] == cast(u8, 'e'rune))
+    Swag.require(textRef[][1] == cast(u8, 'e'_rune))
 
     var grid: [2, 3] s32
     grid[1, 2] = 42

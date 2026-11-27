@@ -13,18 +13,6 @@ struct HmacSha224
     initialized: bool
 }
 
-private func sha224Bytes(digest: Hash.Sha224.Digest)->HmacSha224Digest
-{
-    var result: #returntype
-    for index in digest.count
-    {
-        for byte in 4 do
-            result[index * 4 + byte] = Math.byteAt(digest[index], 3 - byte)
-    }
-
-    return result
-}
-
 impl HmacSha224
 {
     // Creates an initialized HMAC-SHA-224 sequence for `key`.
@@ -38,36 +26,34 @@ impl HmacSha224
     // Replaces any previous keyed state and starts a new sequence for `key`.
     mtd reset(key: const [..] u8)
     {
-        .clear()
-
-        var normalized: [64] u8
-        if key.count > normalized.count
+        if .initialized
         {
-            var hashed = sha224Bytes(Hash.Sha224.compute(key))
-            Swag.memcpy(&normalized[0], &hashed[0], #sizeof(hashed))
+            .clear()
+        }
+
+        var pad: [64] u8
+        if key.count > pad.count
+        {
+            var hashed = sha2HmacDigestBytes!{7}(Hash.Sha224.compute(key))
+            Swag.memcpy(&pad[0], &hashed[0], #sizeof(hashed))
             secureClear(hashed)
         }
-        elif key.count
+        else if key.count
         {
-            Swag.memcpy(&normalized[0], key.buffer, key.count)
-        }
-
-        var innerPad: [64] u8
-        var outerPad: [64] u8
-        for index in 64
-        {
-            innerPad[index] = normalized[index] ^ 0x36
-            outerPad[index] = normalized[index] ^ 0x5C
+            Swag.memcpy(&pad[0], key.buffer, key.count)
         }
 
         .inner.reset()
+        xorSha2HmacPad!{0x36}(pad.buffer)
+        .inner.update(pad)
+
         .outer.reset()
-        .inner.update(innerPad)
-        .outer.update(outerPad)
+
+        // Convert the inner pad into the outer pad in the same buffer.
+        xorSha2HmacPad!{0x36 ^ 0x5C}(pad.buffer)
+        .outer.update(pad)
         .initialized = true
-        secureClear(normalized)
-        secureClear(innerPad)
-        secureClear(outerPad)
+        secureClear(pad)
     }
 
     // Includes `data` in the running authentication code.
@@ -83,10 +69,10 @@ impl HmacSha224
     mtd finalize()->HmacSha224Digest
     {
         Swag.assert(.initialized, "HMAC-SHA-224 needs an initialized sequence")
-        var innerHash = sha224Bytes(.inner.finalize())
-        .outer.update(innerHash)
-        let result = sha224Bytes(.outer.finalize())
-        secureClear(innerHash)
+        let innerDigest = .inner.finishHmacInner()
+        let outerDigest = .outer.finishHmacOuter(innerDigest)
+        var result: #returntype
+        writeSha2HmacDigest!{7}(outerDigest, result.buffer)
         .clear()
         return result
     }
@@ -94,13 +80,17 @@ impl HmacSha224
     // Clears all keyed state held by this value.
     mtd clear()
     {
-        .inner.clear()
-        .outer.clear()
-        .initialized = false
+        secureClear(Swag.makeSlice(cast([*] u8, me), #sizeof(HmacSha224)))
     }
 
     // Clears keyed state when this value leaves scope.
-    mtd opDrop() => .clear()
+    mtd opDrop()
+    {
+        if .initialized
+        {
+            .clear()
+        }
+    }
 
     // Computes HMAC-SHA-224 for `data` in one operation.
     func compute(key, data: const [..] u8)->HmacSha224Digest

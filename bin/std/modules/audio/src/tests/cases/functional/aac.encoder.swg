@@ -11,16 +11,19 @@ using Swag, Core, Core.Errors
     defer discard catch File.delete(path)
     var encoder = expect Aac.Encoder.create(48_000, 1)
     Swag.require(encoder.upperFrequencyHz() == 24_000)
-    var file:    Array'u8
-    var packets: Array'SoundPacket
+    var file:    Array!{u8}
+    var packets: Array!{SoundPacket}
     var input:   [10_240] s16
-    for index in input.count do
+    for index in input.count
+    {
         input[index] = cast(s16,
                             Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                            1_000.0 * index / 48_000.0)))
+    }
+
     for block in 10
     {
-        var encoded: Array'u8
+        var encoded: Array!{u8}
         expect encoder.encode(Swag.makeSlice(&input[block * 1_024], 1_024), &encoded)
         Swag.require(encoded.count > 10 and encoded.count < 2_048)
         packets.add({file.count, cast(u32, encoded.count), encoder.packetFrames()})
@@ -29,17 +32,17 @@ using Swag, Core, Core.Errors
 
     discard expect File.writeAllBytes(path.toString(), file.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 1, input.count, packets.toSlice(), encoder.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
     Swag.require(decoded.count == input.count)
-    var error        = 0.0'f64
-    var power        = 0.0'f64
-    var cross        = 0.0'f64
-    var decodedPower = 0.0'f64
+    var error        = 0.0_f64
+    var power        = 0.0_f64
+    var cross        = 0.0_f64
+    var decodedPower = 0.0_f64
     for index in 3_072 until 8_192
     {
         let original = cast(f64, input[index - 1_024])
@@ -63,8 +66,8 @@ using Swag, Core, Core.Errors
     defer discard catch File.delete(path)
     var encoder = expect Aac.Encoder.create(44_100, 2)
     Swag.require(encoder.upperFrequencyHz() == 22_050)
-    var file:    Array'u8
-    var packets: Array'SoundPacket
+    var file:    Array!{u8}
+    var packets: Array!{SoundPacket}
     var input:   [12 * 1_024 * 2] s16
     for frame in 12 * 1_024
     {
@@ -78,7 +81,7 @@ using Swag, Core, Core.Errors
 
     for block in 12
     {
-        var encoded: Array'u8
+        var encoded: Array!{u8}
         expect encoder.encode(Swag.makeSlice(&input[block * 1_024 * 2], 1_024 * 2), &encoded)
         Swag.require(encoded.count > 10 and encoded.count < 2_048)
         packets.add({file.count, cast(u32, encoded.count), encoder.packetFrames()})
@@ -87,7 +90,7 @@ using Swag, Core, Core.Errors
 
     discard expect File.writeAllBytes(path.toString(), file.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 44_100, 2, 12 * 1_024, packets.toSlice(), encoder.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
@@ -96,10 +99,10 @@ using Swag, Core, Core.Errors
     Swag.require(decoded.count == input.count)
     for channel in 2
     {
-        var error        = 0.0'f64
-        var power        = 0.0'f64
-        var cross        = 0.0'f64
-        var decodedPower = 0.0'f64
+        var error        = 0.0_f64
+        var power        = 0.0_f64
+        var cross        = 0.0_f64
+        var decodedPower = 0.0_f64
         for frame in 3_072 until 10_240
         {
             let original = cast(f64, input[(frame - 1_024) * 2 + channel])
@@ -118,22 +121,25 @@ using Swag, Core, Core.Errors
 // The full profile reconstructs system audio tones well above the speech band.
 #test
 {
-    for frequency in [8_000.0'f64, 12_000.0, 16_000.0]
+    for frequency in [8_000.0_f64, 12_000.0, 16_000.0]
     {
         let path = Path.combine(Env.getSpecialDirectory(.Temp),
                                 Format.toString("aac-software-high-%.aac", Guid128.random()))
         defer discard catch File.delete(path)
         var encoder = expect Aac.Encoder.create(48_000, 1)
         var source:  [8 * 1_024] s16
-        var file:    Array'u8
-        var packets: Array'SoundPacket
-        for frame in source.count do
+        var file:    Array!{u8}
+        var packets: Array!{SoundPacket}
+        for frame in source.count
+        {
             source[frame] = cast(s16,
                                  Math.round(9_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                                frequency * frame / 48_000.0)))
+        }
+
         for block in 8
         {
-            var packet: Array'u8
+            var packet: Array!{u8}
             expect encoder.encode(Swag.makeSlice(&source[block * 1_024], 1_024), &packet)
             packets.add({file.count, cast(u32, packet.count), 1_024})
             file.add(packet.toSlice())
@@ -141,16 +147,16 @@ using Swag, Core, Core.Errors
 
         discard expect File.writeAllBytes(path.toString(), file.toSlice())
         let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 1, source.count, packets.toSlice(), encoder.decoderConfig())
-        var decoded: Array's16
+        var decoded: Array!{s16}
         expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
         {
             decoded.add(part)
             return true
         })
-        var error        = 0.0'f64
-        var power        = 0.0'f64
-        var cross        = 0.0'f64
-        var decodedPower = 0.0'f64
+        var error        = 0.0_f64
+        var power        = 0.0_f64
+        var cross        = 0.0_f64
+        var decodedPower = 0.0_f64
         for frame in 3_072 until 7_168
         {
             let original = cast(f64, source[frame - 1_024])
@@ -169,7 +175,7 @@ using Swag, Core, Core.Errors
 // The bounded voice profile retains 3.5 kHz detail and rejects 6 kHz audio.
 #test
 {
-    for frequency in [3_500.0'f64, 6_000.0]
+    for frequency in [3_500.0_f64, 6_000.0]
     {
         let path = Path.combine(Env.getSpecialDirectory(.Temp),
                                 Format.toString("aac-software-band-%.aac", Guid128.random()))
@@ -177,15 +183,18 @@ using Swag, Core, Core.Errors
         var encoder = expect Aac.Encoder.create(48_000, 1, .Voice)
         Swag.require(encoder.upperFrequencyHz() == 4_125)
         var source:  [8 * 1_024] s16
-        var file:    Array'u8
-        var packets: Array'SoundPacket
-        for frame in source.count do
+        var file:    Array!{u8}
+        var packets: Array!{SoundPacket}
+        for frame in source.count
+        {
             source[frame] = cast(s16,
                                  Math.round(9_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                                frequency * frame / 48_000.0)))
+        }
+
         for block in 8
         {
-            var packet: Array'u8
+            var packet: Array!{u8}
             expect encoder.encode(Swag.makeSlice(&source[block * 1_024], 1_024), &packet)
             packets.add({file.count, cast(u32, packet.count), 1_024})
             file.add(packet.toSlice())
@@ -193,14 +202,14 @@ using Swag, Core, Core.Errors
 
         discard expect File.writeAllBytes(path.toString(), file.toSlice())
         let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 1, source.count, packets.toSlice(), encoder.decoderConfig())
-        var decoded: Array's16
+        var decoded: Array!{s16}
         expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
         {
             decoded.add(part)
             return true
         })
-        var inputPower  = 0.0'f64
-        var outputPower = 0.0'f64
+        var inputPower  = 0.0_f64
+        var outputPower = 0.0_f64
         for frame in 3_072 until 7_168
         {
             inputPower  += cast(f64, source[frame - 1_024]) * source[frame - 1_024]
@@ -208,10 +217,14 @@ using Swag, Core, Core.Errors
         }
 
         let ratio = Math.sqrt(outputPower / inputPower)
-        if frequency == 3_500.0 do
+        if frequency == 3_500.0
+        {
             Swag.require(ratio > 0.7 and ratio < 1.1)
-        else do
+        }
+        else
+        {
             Swag.require(ratio < 0.1)
+        }
     }
 }
 
@@ -223,8 +236,8 @@ using Swag, Core, Core.Errors
     defer discard catch File.delete(path)
     var encoder = expect Aac.Encoder.create(48_000, 2)
     var source:  [8 * 1_024 * 2] s16
-    var file:    Array'u8
-    var packets: Array'SoundPacket
+    var file:    Array!{u8}
+    var packets: Array!{SoundPacket}
     for frame in 8 * 1_024
     {
         let time  = frame / 48_000.0
@@ -241,7 +254,7 @@ using Swag, Core, Core.Errors
 
     for block in 8
     {
-        var packet: Array'u8
+        var packet: Array!{u8}
         expect encoder.encode(Swag.makeSlice(&source[block * 1_024 * 2], 1_024 * 2), &packet)
         Swag.require(packet.count < 8_191)
         packets.add({file.count, cast(u32, packet.count), 1_024})
@@ -250,7 +263,7 @@ using Swag, Core, Core.Errors
 
     discard expect File.writeAllBytes(path.toString(), file.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 2, 8 * 1_024, packets.toSlice(), encoder.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
@@ -259,10 +272,10 @@ using Swag, Core, Core.Errors
     Swag.require(decoded.count == source.count)
     for channel in 2
     {
-        var error        = 0.0'f64
-        var power        = 0.0'f64
-        var cross        = 0.0'f64
-        var decodedPower = 0.0'f64
+        var error        = 0.0_f64
+        var power        = 0.0_f64
+        var cross        = 0.0_f64
+        var decodedPower = 0.0_f64
         for frame in 3_072 until 7_168
         {
             let original = cast(f64, source[(frame - 1_024) * 2 + channel])
@@ -285,13 +298,13 @@ using Swag, Core, Core.Errors
                             Format.toString("aac-software-impulse-%.aac", Guid128.random()))
     defer discard catch File.delete(path)
     var encoder = expect Aac.Encoder.create(48_000, 1)
-    var file:    Array'u8
-    var packets: Array'SoundPacket
+    var file:    Array!{u8}
+    var packets: Array!{SoundPacket}
     var source:  [6 * 1_024] s16
     source[2 * 1_024 + 512] = 15_000
     for block in 6
     {
-        var packet: Array'u8
+        var packet: Array!{u8}
         expect encoder.encode(Swag.makeSlice(&source[block * 1_024], 1_024), &packet)
         packets.add({file.count, cast(u32, packet.count), 1_024})
         file.add(packet.toSlice())
@@ -299,14 +312,14 @@ using Swag, Core, Core.Errors
 
     discard expect File.writeAllBytes(path.toString(), file.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 1, source.count, packets.toSlice(), encoder.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
-    var peak   = 0's32
-    var peakAt = 0'u64
+    var peak   = 0_s32
+    var peakAt = 0_u64
     for frame in decoded.count
     {
         let magnitude = Math.abs(cast(s32, decoded[frame]))
@@ -318,8 +331,10 @@ using Swag, Core, Core.Errors
     }
 
     Swag.require(peak > 1_000 and peakAt >= 3 * 1_024 + 480 and peakAt < 3 * 1_024 + 544)
-    for frame in 5 * 1_024 until decoded.count do
+    for frame in 5 * 1_024 until decoded.count
+    {
         Swag.require(decoded[frame] == 0)
+    }
 }
 
 // Dense stereo spectra exercise every scalefactor band, sign bit, and packet-size bound.
@@ -330,7 +345,7 @@ using Swag, Core, Core.Errors
     defer discard catch File.delete(path)
     var encoder = expect Aac.Encoder.create(48_000, 2)
     var source: [8 * 1_024 * 2] s16
-    var state   = 0x12345678'u32
+    var state   = 0x12345678_u32
     for index in source.count
     {
         state         ^= state << 13
@@ -339,11 +354,11 @@ using Swag, Core, Core.Errors
         source[index] = cast(s16, cast(s32, state % 24_001) - 12_000)
     }
 
-    var file:    Array'u8
-    var packets: Array'SoundPacket
+    var file:    Array!{u8}
+    var packets: Array!{SoundPacket}
     for block in 8
     {
-        var packet: Array'u8
+        var packet: Array!{u8}
         expect encoder.encode(Swag.makeSlice(&source[block * 1_024 * 2], 1_024 * 2), &packet)
         Swag.require(packet.count > 100 and packet.count < 8_191)
         packets.add({file.count, cast(u32, packet.count), 1_024})
@@ -352,17 +367,17 @@ using Swag, Core, Core.Errors
 
     discard expect File.writeAllBytes(path.toString(), file.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 2, 8 * 1_024, packets.toSlice(), encoder.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
     Swag.require(decoded.count == source.count)
-    var error        = 0.0'f64
-    var power        = 0.0'f64
-    var cross        = 0.0'f64
-    var decodedPower = 0.0'f64
+    var error        = 0.0_f64
+    var power        = 0.0_f64
+    var cross        = 0.0_f64
+    var decodedPower = 0.0_f64
     for frame in 3_072 until 7_168
     {
         let original = cast(f64, source[(frame - 1_024) * 2])
@@ -389,7 +404,7 @@ using Swag, Core, Core.Errors
 
     var encoder = expect Aac.Encoder.create(48_000, 1)
     var short:  [1_023] s16
-    var packet: Array'u8
+    var packet: Array!{u8}
     discard catch encoder.encode(Swag.makeSlice(&short[0], short.count), &packet) as rejected
     Swag.require(rejected.value() is BadParameterError and packet.isEmpty())
     var complete: [1_024] s16
@@ -402,12 +417,12 @@ using Swag, Core, Core.Errors
 {
     for bandwidth in [Aac.Bandwidth.Full, .Voice]
     {
-        for channels in [1'u16, 2]
+        for channels in [1_u16, 2]
         {
             var encoder = expect Aac.Encoder.create(48_000, channels, bandwidth)
             let silent  = expect Aac.SilenceEncoder.create(48_000, channels)
             var input:  [2 * 1_024] s16
-            var packet: Array'u8
+            var packet: Array!{u8}
             expect encoder.encode(Swag.makeSlice(&input[0], 1_024 * channels), &packet)
             Swag.require(packet.count == silent.packet().count)
             Swag.require(Memory.compare(packet.toSlice().buffer, silent.packet().buffer, packet.count) == 0)

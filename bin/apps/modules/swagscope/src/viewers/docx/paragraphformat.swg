@@ -24,27 +24,57 @@ impl ParagraphFormat
 {
     mtd overlay(other: const *ParagraphFormat)
     {
-        if not other.alignment.isEmpty() do
+        if not other.alignment.isEmpty()
+        {
             .alignment = other.alignment
-        if other.outline >= 0 do
+        }
+
+        if other.outline >= 0
+        {
             .outline = other.outline
-        if other.before >= 0 do
+        }
+
+        if other.before >= 0
+        {
             .before = other.before
-        if other.after >= 0 do
+        }
+
+        if other.after >= 0
+        {
             .after = other.after
-        if other.indentMask & 1 do
+        }
+
+        if other.indentMask & 1
+        {
             .left = other.left
-        if other.indentMask & 2 do
+        }
+
+        if other.indentMask & 2
+        {
             .right = other.right
-        if other.indentMask & 4 do
+        }
+
+        if other.indentMask & 4
+        {
             .first = other.first
+        }
+
         .indentMask |= other.indentMask
-        if other.line >= 0 do
+        if other.line >= 0
+        {
             .line = other.line
-        if not other.lineRule.isEmpty() do
+        }
+
+        if not other.lineRule.isEmpty()
+        {
             .lineRule = other.lineRule
-        if other.pageBefore != .Inherit do
+        }
+
+        if other.pageBefore != .Inherit
+        {
             .pageBefore = other.pageBefore
+        }
+
         .limited = .limited or other.limited
     }
 
@@ -53,8 +83,11 @@ impl ParagraphFormat
         func distance(value: string?)->{valid: bool, value: s32}
         {
             var result: #returntype
-            if not value do
+            if not value
+            {
                 return result
+            }
+
             result.value = catch StrConv.toS32(value) { return result; }
             result.valid = result.value >= -31680 and result.value <= 31680
             return result
@@ -72,55 +105,77 @@ impl ParagraphFormat
             default:                   .limited = true
             }
         }
-        elif token.isElement("outlineLvl")
+        else if token.isElement("outlineLvl")
         {
             let level = catch StrConv.toS32(value) orelse -1
-            if level >= 0 and level <= 9 do
+            if level >= 0 and level <= 9
+            {
                 .outline = level
-            else do
+            }
+            else
+            {
                 .limited = true
+            }
         }
-        elif token.isElement("spacing")
+        else if token.isElement("spacing")
         {
             if let before = token.attribute("before")
             {
                 let parsed = distance(before)
-                if parsed.valid and parsed.value >= 0 do
+                if parsed.valid and parsed.value >= 0
+                {
                     .before = parsed.value
-                else do
+                }
+                else
+                {
                     .limited = true
+                }
             }
 
             if let after = token.attribute("after")
             {
                 let parsed = distance(after)
-                if parsed.valid and parsed.value >= 0 do
+                if parsed.valid and parsed.value >= 0
+                {
                     .after = parsed.value
-                else do
+                }
+                else
+                {
                     .limited = true
+                }
             }
 
             if let line = token.attribute("line")
             {
                 let parsed = distance(line)
-                if parsed.valid and parsed.value > 0 do
+                if parsed.valid and parsed.value > 0
+                {
                     .line = parsed.value
-                else do
+                }
+                else
+                {
                     .limited = true
+                }
             }
 
             if let rule = token.attribute("lineRule")
             {
-                if rule == "auto" or rule == "exact" or rule == "atLeast" do
+                if rule == "auto" or rule == "exact" or rule == "atLeast"
+                {
                     .lineRule = rule
-                else do
+                }
+                else
+                {
                     .limited = true
+                }
             }
 
-            if token.attribute("beforeAutospacing") == "1" or token.attribute("afterAutospacing") == "1" do
+            if token.attribute("beforeAutospacing") == "1" or token.attribute("afterAutospacing") == "1"
+            {
                 .limited = true
+            }
         }
-        elif token.isElement("ind")
+        else if token.isElement("ind")
         {
             if let left = token.attribute("start") orelse token.attribute("left")
             {
@@ -166,7 +221,7 @@ impl ParagraphFormat
                 }
             }
         }
-        elif token.isElement("pageBreakBefore")
+        else if token.isElement("pageBreakBefore")
         {
             .pageBefore = value == "0" or value == "false" or value == "off" ? .Off : .On
         }
@@ -178,26 +233,50 @@ impl ParagraphFormat
     {
         var result:  #returntype
         let numbers: Globalization.NumberFormatInfo
-        if not .alignment.isEmpty() do
+        if not .alignment.isEmpty()
+        {
             result += Format.toString("text-align:%;", .alignment)
-        if .before >= 0 do
+        }
+
+        if .before >= 0
+        {
             result += Format.toString("margin-top:%pt;", numbers.format(cast(f64, .before) / 20, 2))
-        if .after >= 0 do
+        }
+
+        if .after >= 0
+        {
             result += Format.toString("margin-bottom:%pt;", numbers.format(cast(f64, .after) / 20, 2))
-        if .indentMask & 1 do
+        }
+
+        if .indentMask & 1
+        {
             result += Format.toString("margin-left:%pt;", numbers.format(cast(f64, .left) / 20, 2))
-        if .indentMask & 2 do
+        }
+
+        if .indentMask & 2
+        {
             result += Format.toString("margin-right:%pt;", numbers.format(cast(f64, .right) / 20, 2))
-        if .indentMask & 4 do
+        }
+
+        if .indentMask & 4
+        {
             result += Format.toString("text-indent:%pt;", numbers.format(cast(f64, .first) / 20, 2))
+        }
+
         if .line > 0
         {
-            if .lineRule == "exact" do
+            if .lineRule == "exact"
+            {
                 result += Format.toString("line-height:%pt;", numbers.format(cast(f64, .line) / 20, 2))
-            elif .lineRule == "atLeast" do
+            }
+            else if .lineRule == "atLeast"
+            {
                 result += Format.toString("line-height:max(1.2em,%pt);", numbers.format(cast(f64, .line) / 20, 2))
-            else do
+            }
+            else
+            {
                 result += Format.toString("line-height:%;", numbers.format(cast(f64, .line) / 240, 3))
+            }
         }
 
         return result

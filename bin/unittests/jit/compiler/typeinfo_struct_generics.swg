@@ -6,7 +6,7 @@ struct(T, N: s32) GenericBuffer
     values: [N] T
 }
 
-const STRUCT_INFO = cast(const *Swag.TypeInfoStruct, #typeof(GenericBuffer'(u16, 7)))
+const STRUCT_INFO = cast(const *Swag.TypeInfoStruct, #typeof(GenericBuffer!{u16, 7}))
 const COUNT_VALUE = cast(const *s32?, STRUCT_INFO.generics[1].value)
 
 #assert(STRUCT_INFO.fromGeneric != null)

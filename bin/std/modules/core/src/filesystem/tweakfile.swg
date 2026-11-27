@@ -24,7 +24,7 @@ struct Folder
 // The registered instances are borrowed and must outlive the parsing calls.
 struct TweakFile
 {
-    public folders: Array'Folder     // Registered struct instances, in registration order
+    public folders: Array!{Folder}     // Registered struct instances, in registration order
 }
 
 // One value of a folder, located by name.
@@ -43,7 +43,7 @@ impl TweakFile
     private func parseName(str: string)->string fail
     {
         var count = (try StrConv.parseIdentifier(str)).count
-        while count + 1 < str.count and str[count] == '.'u8
+        while count + 1 < str.count and str[count] == '.'_u8
         {
             let part = try StrConv.parseIdentifier(str[count + 1 to])
             count += 1 + part.count
@@ -61,16 +61,20 @@ impl TweakFile
 
         for
         {
-            let dot     = Slice.findLinear(rest, '.'u8)
+            let dot     = Slice.findLinear(rest, '.'_u8)
             let segment = dot == Swag.U64.Max ? rest.count : dot
             let field   = Reflection.findField(current, rest[until segment])
-            if not field do
+            if not field
+            {
                 return {}
+            }
 
             result.offset += field.offset
             current       = unwrap field.pointedType
-            if dot == Swag.U64.Max do
+            if dot == Swag.U64.Max
+            {
                 break
+            }
 
             rest = rest[segment + 1 to]
         }
@@ -84,8 +88,11 @@ impl TweakFile
     // `folder` is borrowed and must outlive every later parsing call.
     mtd(T) registerFolder(folder: *T)
     {
-        #static if not Reflection.isStruct(T) do
+        #static if not Reflection.isStruct(T)
+        {
             #error("type should be a struct")
+        }
+
         .folders.add(Folder{#typeof(T), folder})
     }
 
@@ -107,7 +114,7 @@ impl TweakFile
     // At least one folder must be registered. A malformed line fails with a
     // [[Core.Errors.SyntaxError]] whose `line` is one-based; the fields assigned before it keep
     // their new values.
-    mtd parse(lines: Array'(string)) fail
+    mtd parse(lines: Array!{string}) fail
     {
         Swag.assert(not .folders.isEmpty())
 
@@ -121,18 +128,26 @@ impl TweakFile
             }
         }
 
-        var pendingReferences: Array'PendingReference
+        var pendingReferences: Array!{PendingReference}
         var currentFolder:     *Folder?
 
         for rawLine, lineIndex in lines
         {
-            if not Utf8.isValid(cast(const [..] u8, rawLine)) do
+            if not Utf8.isValid(cast(const [..] u8, rawLine))
+            {
                 fail SyntaxError{"tweak file is not valid UTF-8", line: lineIndex + 1}
+            }
+
             var remaining = Tokenize.eatSpaces(rawLine)
-            if remaining.count == 0 do
+            if remaining.count == 0
+            {
                 continue
-            if remaining[0] == '#' do
+            }
+
+            if remaining[0] == '#'
+            {
                 continue
+            }
 
             // Folder declaration line (starts with '/')
             if remaining[0] == '/'
@@ -185,8 +200,10 @@ impl TweakFile
 
             remaining = Tokenize.eatCount(remaining, fieldName.count)
             remaining = Tokenize.eatSpaces(remaining)
-            if not remaining.count do
+            if not remaining.count
+            {
                 fail SyntaxError{"missing value", line: lineIndex + 1}
+            }
 
             // Reference to another value using '$' syntax
             if remaining[0] == '$'
@@ -213,8 +230,11 @@ impl TweakFile
                 let folder = currentFolder
                 pendingReferences.add(PendingReference{folder, sourcePath, path})
                 remaining = Tokenize.eatSpaces(Tokenize.eatCount(remaining, sourceName.count))
-                if remaining.count and remaining[0] != '#' do
+                if remaining.count and remaining[0] != '#'
+                {
                     fail SyntaxError{"invalid characters after value", line: lineIndex + 1}
+                }
+
                 continue
             }
 
@@ -229,22 +249,27 @@ impl TweakFile
             }
 
             // Ensure nothing invalid follows the value
-            if remaining.count and not Latin1.isSpace(remaining[0]) and remaining[0] != '#' do
+            if remaining.count and not Latin1.isSpace(remaining[0]) and remaining[0] != '#'
+            {
                 fail SyntaxError{"syntax error in value", line: lineIndex + 1}
+            }
+
             remaining = Tokenize.eatSpaces(remaining)
-            if remaining.count and remaining[0] != '#' do
+            if remaining.count and remaining[0] != '#'
+            {
                 fail SyntaxError{"invalid characters after value", line: lineIndex + 1}
+            }
         }
 
         // Resolve references in a second pass
         while not pendingReferences.isEmpty()
         {
-            var readyIndex = 0'u64
+            var readyIndex = 0_u64
             var reference  = pendingReferences[readyIndex]
 
             // Follow what each reference reads until one reads a settled value. A chain without
             // a cycle visits every reference at most once, so a longer one has closed a loop.
-            var hops = 0'u64
+            var hops = 0_u64
             for
             {
                 var foundDependency = false
@@ -256,8 +281,11 @@ impl TweakFile
                        reference.source.type == candidate.destination.type
                     {
                         hops += 1
-                        if hops >= pendingReferences.count do
+                        if hops >= pendingReferences.count
+                        {
                             fail SyntaxError{"tweak references form a cycle through '$'"}
+                        }
+
                         readyIndex      = index
                         reference       = pendingReferences[readyIndex]
                         foundDependency = true
@@ -265,8 +293,10 @@ impl TweakFile
                     }
                 }
 
-                if not foundDependency do
+                if not foundDependency
+                {
                     break
+                }
             }
 
             let destination = cast([*] u8, reference.folder.data) + reference.destination.offset

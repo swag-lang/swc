@@ -442,12 +442,12 @@ func day9B()
         x, y: s32
     }
 
-    var set:  HashSet'W
+    var set:  HashSet!{W}
     var rope: [10] W
 
     for l in lines
     {
-        let cmd = Tokenize.split(l[], ' 'u8)
+        let cmd = Tokenize.split(l[], ' '_u8)
         let cpt = expect StrConv.toS32(cmd[1])
 
         var incx, incy = 0

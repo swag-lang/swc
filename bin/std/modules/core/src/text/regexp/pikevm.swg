@@ -14,7 +14,7 @@ struct ClosureStep
 }
 
 // Marks a closure step as a slot to restore rather than a program counter to visit.
-const RestoreStep = 0x8000_0000'u32
+const RestoreStep = 0x8000_0000_u32
 
 // The working set of one run, as plain pointers into the buffers the simulation owns.
 //
@@ -50,17 +50,17 @@ struct Frame
 // backreferences use Backtracker, which records its captures while matching.
 struct PikeVm
 {
-    pcsCurrent:   Array'u32     // Program counters of the two lists.
-    pcsNext:      Array'u32
-    slotsCurrent: Array'u64     // Their capture slots, 'slotCount' per branch.
-    slotsNext:    Array'u64
-    visited:      Array'u32     // Generation marks, never cleared between runs.
-    stack:        Array'ClosureStep
-    work:         Array'u64
-    matchSlots:   Array'u64     // Capture slots of the match, once one is found.
-    lastGen:      u32           // Last generation handed out, kept across runs.
-    sizedInsts:   u64           // Program size the buffers were sized for.
-    sizedSlots:   u64           // Slot count they were sized for.
+    pcsCurrent:   Array!{u32}     // Program counters of the two lists.
+    pcsNext:      Array!{u32}
+    slotsCurrent: Array!{u64}     // Their capture slots, 'slotCount' per branch.
+    slotsNext:    Array!{u64}
+    visited:      Array!{u32}     // Generation marks, never cleared between runs.
+    stack:        Array!{ClosureStep}
+    work:         Array!{u64}
+    matchSlots:   Array!{u64}     // Capture slots of the match, once one is found.
+    lastGen:      u32             // Last generation handed out, kept across runs.
+    sizedInsts:   u64             // Program size the buffers were sized for.
+    sizedSlots:   u64             // Slot count they were sized for.
 }
 
 impl PikeVm
@@ -88,8 +88,8 @@ impl PikeVm
             .slotCount = program.slotCount
             .pcs       = [me.pcsCurrent.storage(), me.pcsNext.storage()]
             .slots     = [me.slotsCurrent.storage(), me.slotsNext.storage()]
-            .counts    = [0'u64, 0]
-            .gens      = [0'u32, 0]
+            .counts    = [0_u64, 0]
+            .gens      = [0_u32, 0]
             .work      = me.work.storage()
             .visited   = me.visited.storage()
             .stack     = me.stack.storage()
@@ -108,8 +108,10 @@ impl PikeVm
     {
         let instructionCount = program.insts.count
         let slotsPerBranch   = program.slotCount
-        if .sizedInsts == instructionCount and .sizedSlots == slotsPerBranch do
+        if .sizedInsts == instructionCount and .sizedSlots == slotsPerBranch
+        {
             return
+        }
 
         .pcsCurrent.resize(instructionCount)
         .pcsNext.resize(instructionCount)
@@ -135,12 +137,15 @@ impl Frame
         // already stale and nothing has to be cleared here.
         if .lastGen >= 0xFFFF_0000
         {
-            for var i = 0'u64; i < program.insts.count; i += 1 do
+            for var i = 0_u64; i < program.insts.count; i += 1
+            {
                 .visited[i] = 0
+            }
+
             .lastGen = 0
         }
 
-        var current = 0'u32
+        var current = 0_u32
         .counts[0] = 0
         .counts[1] = 0
         .lastGen   += 1
@@ -159,16 +164,21 @@ impl Frame
             // already running started earlier and so outranks it.
             if not matched and (not anchored or pos == start)
             {
-                for var s = 0'u64; s < .slotCount; s += 1 do
+                for var s = 0_u64; s < .slotCount; s += 1
+                {
                     .work[s] = NoSlot
+                }
+
                 .addBranch(program.start, pos, currentList)
             }
 
-            if .counts[currentList] == 0 and (matched or anchored) do
+            if .counts[currentList] == 0 and (matched or anchored)
+            {
                 break
+            }
 
             let readable = pos < .limit
-            let byte     = readable ? .hay[pos] : 0'u8
+            let byte     = readable ? .hay[pos] : 0_u8
 
             .counts[nextList] = 0
             .lastGen          += 1
@@ -178,35 +188,46 @@ impl Frame
             let livePcs   = .pcs[currentList]
             let liveSlots = .slots[currentList]
 
-            for var i = 0'u64; i < liveCount; i += 1
+            for var i = 0_u64; i < liveCount; i += 1
             {
                 // Only the fields the step needs are read: a branch that does not match the
                 // byte costs two loads and a comparison.
                 let pc = livePcs[i]
                 if .insts[pc].kind == InstKind.Match
                 {
-                    if wholeSubject and pos != .limit do
+                    if wholeSubject and pos != .limit
+                    {
                         continue
+                    }
 
                     matched = true
-                    for var s = 0'u64; s < .slotCount; s += 1 do
+                    for var s = 0_u64; s < .slotCount; s += 1
+                    {
                         matchSlots[s] = liveSlots[i * .slotCount + s]
+                    }
 
                     // Every branch after this one has lower priority, so it can no longer take
                     // part in the match that was just found.
                     break
                 }
 
-                if not readable or not .accepts(pc, byte) do
+                if not readable or not .accepts(pc, byte)
+                {
                     continue
+                }
 
-                for var s = 0'u64; s < .slotCount; s += 1 do
+                for var s = 0_u64; s < .slotCount; s += 1
+                {
                     .work[s] = liveSlots[i * .slotCount + s]
+                }
+
                 .addBranch(.insts[pc].next, pos + 1, nextList)
             }
 
-            if pos >= .limit do
+            if pos >= .limit
+            {
                 break
+            }
 
             pos     += 1
             current = nextList
@@ -220,8 +241,11 @@ impl Frame
     mtd const accepts(pc: u32, value: u8)->bool
     {
         let instruction = .insts + pc
-        if instruction.kind == InstKind.ByteSet do
+        if instruction.kind == InstKind.ByteSet
+        {
             return .byteSets![instruction.slot].contains(value)
+        }
+
         return value >= instruction.lo and value <= instruction.hi
     }
 
@@ -248,8 +272,11 @@ impl Frame
                 continue
             }
 
-            if .visited[stepCode] == generation do
+            if .visited[stepCode] == generation
+            {
                 continue
+            }
+
             .visited[stepCode] = generation
 
             let instruction = .insts + stepCode
@@ -288,8 +315,11 @@ impl Frame
                 let index = .counts[list]
                 .pcs[list][index] = stepCode
                 let slotOffset = index * .slotCount
-                for var s = 0'u64; s < .slotCount; s += 1 do
+                for var s = 0_u64; s < .slotCount; s += 1
+                {
                     .slots[list][slotOffset + s] = .work[s]
+                }
+
                 .counts[list] = index + 1
             }
         }
@@ -297,4 +327,4 @@ impl Frame
 }
 
 // The value of a capture slot that was never set.
-const NoSlot = 0xFFFF_FFFF_FFFF_FFFF'u64
+const NoSlot = 0xFFFF_FFFF_FFFF_FFFF_u64

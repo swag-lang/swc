@@ -17,23 +17,34 @@ func musicChoiceId(choices: const [..] MusicChoice, entry: const *ExplorerEntry)
     for &choice in choices where choice.path == entry.path and
                                  choice.size == entry.size and
                                  choice.creationStamp == entry.creationStamp and
-                                 choice.modifiedStamp == entry.modifiedStamp do
+                                 choice.modifiedStamp == entry.modifiedStamp
+    {
         return choice.id.toString()
+    }
+
     return ""
 }
 
-func setMusicChoice(choices: *Array'MusicChoice, entry: const *ExplorerEntry, id: string)
+func setMusicChoice(choices: *Array!{MusicChoice}, entry: const *ExplorerEntry, id: string)
 {
     for index in reversed(choices.count)
     {
-        if choices[index].path == entry.path do
+        if choices[index].path == entry.path
+        {
             choices.removeAtOrdered(index)
+        }
     }
 
-    if id.count == 0 do
+    if id.count == 0
+    {
         return
-    if choices.count >= 1000 do
+    }
+
+    if choices.count >= 1000
+    {
         choices.removeAtOrdered(0)
+    }
+
     choices.add({path: entry.path, size: entry.size, creationStamp: entry.creationStamp,
                  modifiedStamp: entry.modifiedStamp, id: id})
 }

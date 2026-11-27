@@ -20,8 +20,10 @@ using Corpus
 func validatedWithWrongComparison(index: u64)->s32
 {
     var values = [10, 20, 30]
-    if index > values.count do
+    if index > values.count
+    {
         return -1
+    }
     return values[index]     // swc-expected-error {{safety_err_runtime}}
 }
 
@@ -36,8 +38,10 @@ func validatedAgainstWrongContainer(index: u64)->s32
 {
     var large = [1, 2, 3, 4, 5]
     var small = [1, 2]
-    if index >= large.count do
+    if index >= large.count
+    {
         return -1
+    }
     return small[index]     // swc-expected-error {{safety_err_runtime}}
 }
 
@@ -51,8 +55,10 @@ func validatedAgainstWrongContainer(index: u64)->s32
 func validatedCorrectly(index: u64)->s32
 {
     var values = [10, 20, 30]
-    if index >= values.count do
+    if index >= values.count
+    {
         return -1
+    }
     return values[index]
 }
 

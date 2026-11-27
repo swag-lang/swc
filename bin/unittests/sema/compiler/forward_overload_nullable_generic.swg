@@ -4,8 +4,10 @@ using Swag
 func getValue(type: typeinfo, attribute: typeinfo, value: string)->any?
 {
     let attrib = getAttr(type, attribute)
-    if not attrib do
+    if not attrib
+    {
         return null
+    }
     return getValue(attrib, value)
 }
 

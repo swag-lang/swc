@@ -30,8 +30,14 @@ func nestedAttributedReturn(flag: bool)->s32
     {
         #[Swag.Safety(.BoundCheck, false)]
         {
-            if flag do return 14
-            else do return 15
+            if flag
+            {
+                return 14
+            }
+            else
+            {
+                return 15
+            }
         }
     }
 }

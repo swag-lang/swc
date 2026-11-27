@@ -13,15 +13,15 @@ using Core, Core.Errors
 // The format lets a vector point up to sixteen samples outside the picture, and half-sample
 // interpolation reads one sample further, so the edge is replicated far enough that motion
 // compensation never has to test a coordinate.
-const FramePadding = 32'u32
+const FramePadding = 32_u32
 
 // One decoded picture: 4:2:0 planes with replicated edges.
 #[Swag.NoCopy]
 struct Frame
 {
-    luma:          Array'u8
-    chromaB:       Array'u8
-    chromaR:       Array'u8
+    luma:          Array!{u8}
+    chromaB:       Array!{u8}
+    chromaR:       Array!{u8}
     strideLuma:    u64
     strideChroma:  u64
     width:         u32     // Coded luma width, a multiple of sixteen.
@@ -112,8 +112,10 @@ impl Frame
         target.matrix      = .Bt601
 
         let lumaAt = .lumaOrigin()
-        for y in cast(u64, height) do
+        for y in cast(u64, height)
+        {
             Memory.copy(target.luma.storage() + y * cast(u64, width), .luma.storage() + lumaAt + y * .strideLuma, cast(u64, width))
+        }
 
         let chromaAt = .chromaOrigin()
         for y in chromaHeight

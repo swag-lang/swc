@@ -20,7 +20,7 @@ func exrAddU64(result: *ConcatBuffer, value: u64)
 func exrAddText(result: *ConcatBuffer, value: string)
 {
     result.addBytes(value)
-    result.addNative(0'u8)
+    result.addNative(0_u8)
 }
 
 func exrAddAttribute(result: *ConcatBuffer, name, type: string, payload: const [..] u8)
@@ -31,7 +31,7 @@ func exrAddAttribute(result: *ConcatBuffer, name, type: string, payload: const [
     result.addBytes(payload)
 }
 
-func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlock = 1'u32, blocks = 1'u32)->ConcatBuffer
+func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlock = 1_u32, blocks = 1_u32, alternate: const [..] u8? = null)->ConcatBuffer
 {
     var channels: ConcatBuffer
     exrAddText(&channels, "Y")
@@ -39,7 +39,7 @@ func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlo
     exrAddU32(&channels, 0)
     exrAddU32(&channels, 1)
     exrAddU32(&channels, 1)
-    channels.addNative(0'u8)
+    channels.addNative(0_u8)
 
     var compression: [1] u8 = [rowsPerBlock == 16 ? 3 : 2]
     var dataWindow:  ConcatBuffer
@@ -52,23 +52,31 @@ func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlo
     exrAddAttribute(&header, "channels", "chlist", unwrap channels.toSlice())
     exrAddAttribute(&header, "compression", "compression", compression)
     exrAddAttribute(&header, "dataWindow", "box2i", unwrap dataWindow.toSlice())
-    if extraName.count do
+    if extraName.count
+    {
         exrAddAttribute(&header, extraName, "string", "ignored")
-    header.addNative(0'u8)
+    }
+
+    header.addNative(0_u8)
 
     var result: ConcatBuffer
     exrAddU32(&result, Exr.Magic)
     exrAddU32(&result, 2)
     result.addBytes(unwrap header.toSlice())
-    let firstChunk = result.count() + cast(u64, blocks) * 8
-    let chunkBytes = packed.count + 8
-    for block in blocks do
-        exrAddU64(&result, firstChunk + cast(u64, block) * chunkBytes)
+    var chunkOffset = result.count() + cast(u64, blocks) * 8
     for block in blocks
     {
+        let stream = (block & 1) and alternate ? alternate : packed
+        exrAddU64(&result, chunkOffset)
+        chunkOffset += stream.count + 8
+    }
+
+    for block in blocks
+    {
+        let stream = (block & 1) and alternate ? alternate : packed
         exrAddU32(&result, block * rowsPerBlock)
-        exrAddU32(&result, cast(u32, packed.count))
-        result.addBytes(packed)
+        exrAddU32(&result, cast(u32, stream.count))
+        result.addBytes(stream)
     }
 
     return result
@@ -86,7 +94,7 @@ func exrMixedRgbYFixture()->ConcatBuffer
         exrAddU32(&channels, 1)
     }
 
-    channels.addNative(0'u8)
+    channels.addNative(0_u8)
 
     var compression: [1] u8 = [0]     // No compression.
     var dataWindow:  ConcatBuffer
@@ -99,7 +107,7 @@ func exrMixedRgbYFixture()->ConcatBuffer
     exrAddAttribute(&header, "channels", "chlist", unwrap channels.toSlice())
     exrAddAttribute(&header, "compression", "compression", compression)
     exrAddAttribute(&header, "dataWindow", "box2i", unwrap dataWindow.toSlice())
-    header.addNative(0'u8)
+    header.addNative(0_u8)
 
     var result: ConcatBuffer
     exrAddU32(&result, Exr.Magic)
@@ -108,7 +116,7 @@ func exrMixedRgbYFixture()->ConcatBuffer
     return result
 }
 
-func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBuffer
+func exrUnalignedFloatFixture(names: const [..] string, width = 1_u32)->ConcatBuffer
 {
     var channels: ConcatBuffer
     var samples:  ConcatBuffer
@@ -125,10 +133,10 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
             switch name
             {
             case "A":
-                samples.addNative(0x3800'u16)     // Half 0.5.
+                samples.addNative(0x3800_u16)     // Half 0.5.
 
             case "B":
-                samples.addNative(0x0001'u16)     // Smallest half subnormal.
+                samples.addNative(0x0001_u16)     // Smallest half subnormal.
 
             case "G":
                 exrAddU32(&samples, 0x80000000)     // Float -0.0.
@@ -139,7 +147,7 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         }
     }
 
-    channels.addNative(0'u8)
+    channels.addNative(0_u8)
 
     var compression: [1] u8 = [0]     // No compression.
     var dataWindow:  ConcatBuffer
@@ -152,7 +160,7 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     exrAddAttribute(&header, "channels", "chlist", unwrap channels.toSlice())
     exrAddAttribute(&header, "compression", "compression", compression)
     exrAddAttribute(&header, "dataWindow", "box2i", unwrap dataWindow.toSlice())
-    header.addNative(0'u8)
+    header.addNative(0_u8)
 
     var result: ConcatBuffer
     exrAddU32(&result, Exr.Magic)
@@ -161,8 +169,11 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     let tableEnd    = result.count() + 8
     let chunkOffset = tableEnd + (tableEnd & 1 ? 0 : 1)
     exrAddU64(&result, chunkOffset)
-    while result.count() < chunkOffset do
-        result.addNative(0'u8)
+    while result.count() < chunkOffset
+    {
+        result.addNative(0_u8)
+    }
+
     exrAddU32(&result, 0)     // First scanline.
     exrAddU32(&result, cast(u32, samples.count()))
     result.addBytes(unwrap samples.toSlice())
@@ -187,7 +198,7 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     var encoded = expect source.encode("duplicate-channel.exr")
     encoded.makeLinear()
     var bytes  = unwrap encoded.toSlice()
-    var offset = 8'u64 + 9 + 7 + 4
+    var offset = 8_u64 + 9 + 7 + 4
     var found  = false
     while bytes[offset]
     {
@@ -198,8 +209,11 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
             break
         }
 
-        while bytes[offset] do
+        while bytes[offset]
+        {
             offset += 1
+        }
+
         offset += 1 + 16
     }
 
@@ -223,8 +237,10 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         {
             var source  = Image.create(width, 2, format)
             let samples = cast([*] u16, source.pixels.storage())
-            for i in source.byteCount / 2 do
+            for i in source.byteCount / 2
+            {
                 samples[i] = Values[i % Values.count]
+            }
 
             let encoded = expect source.encode("memory.exr")
             let decoded = expect Image.decode("memory.exr", nnBytes(encoded.toSlice()))
@@ -232,8 +248,10 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 
             // Preserve finite samples, signed zero, infinity, and each NaN's sign.
             let decodedSamples = cast(const [*] u16, decoded.pixels.storage())
-            for i in source.byteCount / 2 do
+            for i in source.byteCount / 2
+            {
                 Swag.require(decodedSamples[i] == Expected[i % Expected.count])
+            }
         }
     }
 }
@@ -247,15 +265,19 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         {
             let samples = cast([*] u16, source.pixels.storage())
             const Values: [6] u16 = [0x0000, 0x3400, 0x3800, 0x3C00, 0x4000, 0xC000]
-            for i in source.byteCount / 2 do
+            for i in source.byteCount / 2
+            {
                 samples[i] = Values[i % Values.count]
+            }
         }
         else
         {
             let samples = cast([*] f32, source.pixels.storage())
             const Values: [6] f32 = [-2.0, -0.25, 0.0, 0.5, 1.0, 8.0]
-            for i in source.byteCount / 4 do
+            for i in source.byteCount / 4
+            {
                 samples[i] = Values[i % Values.count]
+            }
         }
 
         let encoded = expect source.encode("gray.exr")
@@ -274,15 +296,19 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     {
         var source  = Image.create(9, 3, format)
         let samples = cast([*] u16, source.pixels.storage())
-        for index in source.byteCount / 2 do
+        for index in source.byteCount / 2
+        {
             samples[index] = Values[index % Values.count]
+        }
 
         let encoded = expect source.encode("gray-half.exr")
         let decoded = expect Image.decode("gray-half.exr", nnBytes(encoded.toSlice()))
         assertImage(decoded, 9, 3, format)
         let restored = cast(const [*] u16, decoded.pixels.storage())
-        for index in decoded.byteCount / 2 do
+        for index in decoded.byteCount / 2
+        {
             Swag.require(restored[index] == Expected[index % Expected.count])
+        }
     }
 }
 
@@ -290,14 +316,16 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 {
     const Values: [10] u32 = [0x0000_0001, 0x3F00_0000, 0x8000_0000, 0x4000_0000, 0xC000_0000,
                               0x7F7F_FFFF, 0x7F80_0000, 0x7FA0_0130, 0xFFC0_2203, 0xFF80_0000]
-    for format in [PixelFormat.RGBF32, PixelFormat.RGBAF32]
+    for format in [PixelFormat.GrayF32, PixelFormat.GrayAlphaF32, PixelFormat.RGBF32, PixelFormat.RGBAF32]
     {
         for width in [3, 4, 5, 9]
         {
             var source  = Image.create(width, 2, format)
             let samples = cast([*] u32, source.pixels.storage())
-            for i in source.byteCount / 4 do
+            for i in source.byteCount / 4
+            {
                 samples[i] = Values[i % Values.count]
+            }
 
             let encoded = expect source.encode("float.exr")
             let decoded = expect Image.decode("float.exr", nnBytes(encoded.toSlice()))
@@ -338,10 +366,13 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 #test
 {
     var original: [257] u8
-    for i in original.count do
+    for i in original.count
+    {
         original[i] = cast(u8, ((i * 73 + 19) & 0xFF))
+    }
+
     var packed: [257] u8
-    var even = 0'u64
+    var even = 0_u64
     var odd  = (original.count + 1) / 2
     for i in original.count
     {
@@ -358,14 +389,14 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     }
 
     var previous = packed[0]
-    for i in rangeTo(1'u64, packed.count - 1)
+    for i in rangeTo(1_u64, packed.count - 1)
     {
         let current = packed[i]
         packed[i] = cast(u8, ((cast(s32, current) - previous + 128) & 0xFF))
         previous  = current
     }
 
-    var restored: Array'u8
+    var restored: Array!{u8}
     Exr.undoZipPredictor(packed, &restored)
     Swag.require(restored.count == original.count)
     Swag.require(Memory.compare(original.buffer, restored.storage(), original.count) == 0)
@@ -432,8 +463,11 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 #test
 {
     var name: [256] u8
-    for index in name.count do
+    for index in name.count
+    {
         name[index] = 'x'
+    }
+
     const RawHalf: [2] u8 = [0, 0x3C]
     let largestName = cast(string, name[0 until 255])
     let accepted    = exrZipFixture(1, RawHalf, extraName: largestName)
@@ -447,60 +481,83 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
 }
 
-// A ZIP image large enough to use the worker pool preserves its scanlines and error order.
+// A ZIP or ZIPS image large enough to use the worker pool preserves its scanlines and error order.
 #test
 {
-    const Width      = 1024'u32
-    const Rows       = 16'u32
-    const Blocks     = 32'u32
-    const PlaneBytes = cast(u64, Width * Rows)
-    var deltas: Array'u8
-    deltas.resize(PlaneBytes * 2)
-    var state = 0x436C_A9D5'u32
-    for index in PlaneBytes
+    const Width  = 1024_u32
+    const Height = 512_u32
+    for rowsPerBlock in [0_u32, 1_u32, 16_u32]
     {
-        state = state * #wrap 1664525 + #wrap 1013904223
-        let value = cast(u16, state >> 18)
-        deltas[index] = cast(u8, value & 255)
-        deltas[PlaneBytes + index] = cast(u8, value >> 8)
-    }
+        let smallZips  = not rowsPerBlock
+        let rows       = smallZips ? 1_u32 : rowsPerBlock
+        let blocks     = Height / rows
+        let planeBytes = cast(u64, Width * rows)
+        var deltas: Array!{u8}
+        deltas.resize(planeBytes * 2)
+        var state    = 0x436C_A9D5_u32
+        let distinct = planeBytes * (smallZips ? 1 : 3) / 4
+        for index in distinct
+        {
+            state = state * #wrap 1664525 + #wrap 1013904223
+            let value = cast(u16, state >> 18)
+            deltas[index] = cast(u8, value & 255)
+            deltas[planeBytes + index] = cast(u8, value >> 8)
+        }
 
-    var previous = deltas[0]
-    for index in rangeTo(1'u64, deltas.count - 1)
-    {
-        let current = deltas[index]
-        deltas[index] = cast(u8, (cast(s32, current) - previous + 128) & 255)
-        previous      = current
-    }
+        // An exact repeated suffix keeps the shortest row below its stored size.
+        for index in distinct until planeBytes
+        {
+            deltas[index] = deltas[index - distinct]
+            deltas[planeBytes + index] = deltas[planeBytes + index - distinct]
+        }
 
-    var zlib: Compress.ZLib
-    let packed = expect zlib.compress(deltas.toSlice())
-    Swag.require(packed.count < deltas.count and packed.count * Blocks >= 512 * 1024)
-    var single = exrZipFixture(Width, packed.toSlice(), rowsPerBlock: Rows)
-    single.makeLinear()
-    let reference = expect Image.decode("single-zip-block.exr", nnBytes(single.toSlice()))
-    var many      = exrZipFixture(Width, packed.toSlice(), rowsPerBlock: Rows, blocks: Blocks)
-    many.makeLinear()
-    var bytes   = unwrap many.toSlice()
-    let decoded = expect Image.decode("parallel-zip-blocks.exr", bytes)
-    assertImage(decoded, cast(s32, Width), cast(s32, Rows * Blocks), .GrayF16)
-    for block in Blocks
-    {
-        let target = decoded.pixels.storage() + cast(u64, block) * reference.byteCount
-        Swag.require(Memory.compare(target, reference.pixels.storage(), reference.byteCount) == 0)
-    }
+        var previous = deltas[0]
+        for index in rangeTo(1_u64, deltas.count - 1)
+        {
+            let current = deltas[index]
+            deltas[index] = cast(u8, (cast(s32, current) - previous + 128) & 255)
+            previous      = current
+        }
 
-    // A bad first payload precedes a duplicate last chunk in the offset table.
-    let firstChunk = bytes.count - cast(u64, Blocks) * (packed.count + 8)
-    let table      = firstChunk - cast(u64, Blocks) * 8
-    Memory.copy(bytes.buffer + firstChunk - 8, bytes.buffer + table, 8)
-    bytes[firstChunk + 8] = 0xFF
-    var errorOutcome: Swag.Error
-    discard catch Image.decode("invalid-parallel-zip-blocks.exr", bytes) as errorOutcome
-    let error = errorOutcome.value()
-    Swag.require(error is Errors.InvalidFormatError)
-    let detail = assume cast(const *Errors.InvalidFormatError, error)
-    Swag.require(detail.message == "invalid compression method")
+        var zlib: Compress.ZLib
+        let packed = expect zlib.compress(deltas.toSlice())
+        Swag.require(packed.count < deltas.count)
+        let compressedSize = packed.count * blocks
+        if smallZips
+        {
+            Swag.require(compressedSize >= 192 * 1024 and compressedSize < 512 * 1024)
+        }
+        else
+        {
+            Swag.require(compressedSize >= 512 * 1024)
+        }
+
+        var single = exrZipFixture(Width, packed.toSlice(), rowsPerBlock: rows)
+        single.makeLinear()
+        let reference = expect Image.decode("single-zip-block.exr", nnBytes(single.toSlice()))
+        var many      = exrZipFixture(Width, packed.toSlice(), rowsPerBlock: rows, blocks: blocks)
+        many.makeLinear()
+        var bytes   = unwrap many.toSlice()
+        let decoded = expect Image.decode("parallel-zip-blocks.exr", bytes)
+        assertImage(decoded, cast(s32, Width), cast(s32, rows * blocks), .GrayF16)
+        for block in blocks
+        {
+            let target = decoded.pixels.storage() + cast(u64, block) * reference.byteCount
+            Swag.require(Memory.compare(target, reference.pixels.storage(), reference.byteCount) == 0)
+        }
+
+        // A bad first payload precedes a duplicate last chunk in the offset table.
+        let firstChunk = bytes.count - cast(u64, blocks) * (packed.count + 8)
+        let table      = firstChunk - cast(u64, blocks) * 8
+        Memory.copy(bytes.buffer + firstChunk - 8, bytes.buffer + table, 8)
+        bytes[firstChunk + 8] = 0xFF
+        var errorOutcome: Swag.Error
+        discard catch Image.decode("invalid-parallel-zip-blocks.exr", bytes) as errorOutcome
+        let error = errorOutcome.value()
+        Swag.require(error is Errors.InvalidFormatError)
+        let detail = assume cast(const *Errors.InvalidFormatError, error)
+        Swag.require(detail.message == "invalid compression method")
+    }
 }
 
 // Error: RGB and Y channels cannot be mapped to one output image without ambiguity.
@@ -524,7 +581,7 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 
 #test
 {
-    for width in [1'u32, 4, 5, 9]
+    for width in [1_u32, 4, 5, 9]
     {
         let bytes   = exrUnalignedFloatFixture(["A", "B", "G", "R"], width)
         let decoded = expect Image.decode("unaligned-mixed.exr", nnBytes(bytes.toSlice()))
@@ -543,12 +600,245 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 #test
 {
     var source: [4] u16
-    for block in 16384'u64
+    for block in 16384_u64
     {
-        for lane in 4'u64 do
+        for lane in 4_u64
+        {
             source[lane] = cast(u16, block * 4 + lane)
+        }
+
         let wide = cast #bit(Math.Simd.U32x4, Exr.widenHalfSamples(cast(const [*] u8, source.buffer)))
-        for lane in 4'u64 do
+        for lane in 4_u64
+        {
             Swag.require(wide[lane] == cast #bit(u32, halfToFloat(source[lane])))
+        }
+    }
+}
+
+// The EXR decoder checks both geometry limits when reading its data window.
+#test
+{
+    const Packed: [4] u8 = [0, 0x3C, 0, 0x40]
+    let input = exrZipFixture(2, Packed)
+    let bytes = nnBytes(input.toSlice())
+    var options: DecodeOptions
+    options.maxPixels       = 2
+    options.maxDecodedBytes = 4
+    let image = expect Image.decode("bounded.exr", bytes, options)
+    assertImage(image, 2, 1, .GrayF16)
+
+    var outcome: Swag.Error
+    options.maxPixels = 1
+    discard catch Image.decode("pixel-limit.exr", bytes, options) as outcome
+    Swag.require(outcome.value() is Errors.UnsupportedFormatError)
+
+    options.maxPixels       = 2
+    options.maxDecodedBytes = 3
+    discard catch Image.decode("byte-limit.exr", bytes, options) as outcome
+    Swag.require(outcome.value() is Errors.UnsupportedFormatError)
+}
+
+// Identical compressed scanlines still populate each output row independently.
+#test
+{
+    const Width = 64_u32
+    var predicted: [Width * 2] u8
+    for index in rangeTo(1_u64, predicted.count - 1)
+    {
+        predicted[index] = 128
+    }
+
+    predicted[Width] = 128 + 0x3C
+    var codec: Compress.ZLib
+    let packed = expect codec.compress(predicted)
+    Swag.require(packed.count < predicted.count / 4)
+    let input = exrZipFixture(Width, packed.toSlice(), blocks: 3)
+    let image = expect Image.decode("repeated-zips.exr", nnBytes(input.toSlice()))
+    assertImage(image, cast(s32, Width), 3, .GrayF16)
+    let pixels = cast(const [*] u16, image.pixels.storage())
+    for sample in 3 * Width
+    {
+        Swag.require(pixels[sample] == 0x3C00)
+    }
+}
+
+// Direct byte input has the same HALF samples and scanline layout as image conversion.
+#test
+{
+    for format in [PixelFormat.Gray8, PixelFormat.GrayAlpha8, PixelFormat.RGB8, PixelFormat.BGR8, PixelFormat.RGBA8, PixelFormat.BGRA8]
+    {
+        var input    = Image.create(257, 3, format)
+        let samples  = input.pixels.storage()
+        let channels = cast(u64, format.channels())
+        for pixel in 257_u64 * 3
+        {
+            for channel in channels
+            {
+                samples[pixel * channels + channel] = cast(u8, (pixel + channel * 59) & 255)
+            }
+        }
+
+        var halfFormat: PixelFormat
+        if format.isGrayscale()
+        {
+            halfFormat = format.hasAlpha() ? .GrayAlphaF16 : .GrayF16
+        }
+        else
+        {
+            halfFormat = format.hasAlpha() ? .RGBAF16 : .RGBF16
+        }
+
+        let converted = input.convertedTo(halfFormat)
+        let expected  = expect converted.encodeToBytes("half.exr")
+        let output    = expect input.encodeToBytes("byte.exr")
+        Swag.require(output.count == expected.count)
+        Swag.require(Memory.compare(output.storage(), expected.storage(), output.count) == 0)
+    }
+}
+
+// Direct 16-bit integer input preserves image conversion rounding for every sample value.
+#test
+{
+    for format in [PixelFormat.Gray16, PixelFormat.GrayAlpha16, PixelFormat.RGB16, PixelFormat.RGBA16]
+    {
+        for width in [257_u64, 7] where width == 257 or format.isGrayscale()
+        {
+            let samplesPerRow = Math.min(width, 256_u64)
+            let height        = (65536 + samplesPerRow - 1) / samplesPerRow
+            var input         = Image.create(cast(s32, width), cast(s32, height), format)
+            let samples       = cast([*] u16, input.pixels.storage())
+            let channels      = cast(u64, format.channels())
+            for row in height
+            {
+                for column in width
+                {
+                    // Cover all words, including all-scalar rows and midpoint values in vector tails.
+                    let value = column < samplesPerRow ? row * samplesPerRow + column : (row & 1 ? 65199 : 65487)
+                    let pixel = row * width + column
+                    for channel in channels
+                    {
+                        samples[pixel * channels + channel] = cast(u16, (value + channel * 3179) & 65535)
+                    }
+                }
+            }
+
+            var halfFormat: PixelFormat
+            if format.isGrayscale()
+            {
+                halfFormat = format.hasAlpha() ? .GrayAlphaF16 : .GrayF16
+            }
+            else
+            {
+                halfFormat = format.hasAlpha() ? .RGBAF16 : .RGBF16
+            }
+
+            let converted = input.convertedTo(halfFormat)
+            let expected  = expect converted.encodeToBytes("half.exr")
+            let output    = expect input.encodeToBytes("integer.exr")
+            Swag.require(output.count == expected.count)
+            Swag.require(Memory.compare(output.storage(), expected.storage(), output.count) == 0)
+        }
+    }
+}
+
+// Wide images write the same scanline offsets and pixels across parallel row ranges.
+#test
+{
+    const Width  = 4097
+    const Height = 2049
+    var source = Image.create(Width, Height, .RGBAF16)
+    let pixels = cast([*] u64, source.pixels.storage())
+    for row in Height
+    {
+        let scanline = pixels + cast(u64, row) * Width
+        let red      = 0x3000_u64 + cast(u64, row)
+        let blue     = 0x3800_u64 - cast(u64, row)
+        let value    = 0x3C00_0000_3400_0000_u64 | (blue << 32) | red
+        for column in Width
+        {
+            scanline[column] = value
+        }
+    }
+
+    let encoded = expect source.encodeToBytes("wide.exr")
+    let decoded = expect Image.decode("wide.exr", encoded.toSlice())
+    assertImage(decoded, Width, Height, .RGBAF16)
+    Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+}
+
+// ZIP chunk reuse handles two alternating packed blocks without mixing their scanlines.
+#test
+{
+    const Width = 129_u32
+    const Rows  = 6_u32
+    var predictor: [2 * Width] u8
+    for i in 1 until predictor.count
+    {
+        predictor[i] = 128
+    }
+
+    var zlib: Compress.ZLib
+    predictor[Width] = 128 + 0x3C
+    let first = expect zlib.compress(predictor)
+    predictor[Width] = 128 + 0x40
+    let second = expect zlib.compress(predictor)
+    Swag.require(first.count < predictor.count / 4)
+    Swag.require(second.count < predictor.count / 4)
+    let input  = exrZipFixture(Width, first.toSlice(), blocks: Rows, alternate: second.toSlice())
+    let output = expect Image.decode("alternating.exr", nnBytes(input.toSlice()))
+    assertImage(output, cast(s32, Width), cast(s32, Rows), .GrayF16)
+    let pixels = cast(const [*] u16, output.pixels.storage())
+    for row in Rows
+    {
+        let expected = (Rows - row - 1) & 1 ? 0x4000_u16 : 0x3C00_u16
+        for x in Width
+        {
+            Swag.require(pixels[cast(u64, row) * Width + x] == expected)
+        }
+    }
+}
+
+// Equal-size ZIPS streams may share a checksum and still describe different scanlines.
+#test
+{
+    const Width = 4096_u32
+
+    // Zlib header and a nonfinal stored block header for 4096 literal bytes.
+    const ZlibStored: [7] u8 = [0x78, 0x9C, 0, 0, 0x10, 0xFF, 0xEF]
+
+    // A final Deflate block of 4096 repetitions of 128, followed by the Adler-32.
+    const Deflate: [20] u8 = [
+        0xED, 0xC1, 0x01, 0x0D, 0x00, 0x00, 0x00, 0xC2, 0xA0, 0xEA,
+        0x8F, 0x6E, 0x0F, 0x07, 0x14, 0x00, 0x00, 0x00, 0xF0, 0x6E]
+    const Checksum: [4] u8 = [0x20, 0x69, 0x00, 0x71]
+
+    var packed: [2] Array!{u8}
+    for &block, index in packed
+    {
+        var prefix: [Width] u8
+        for i in 1 until prefix.count
+        {
+            prefix[i] = 128
+        }
+
+        let changed = 45 + index
+        prefix[changed]     = 129
+        prefix[changed + 1] = 126
+        prefix[changed + 2] = 129
+        block.add(ZlibStored)
+        block.add(prefix)
+        block.add(Deflate)
+        block.add(Checksum)
+        Swag.require(block.count > Width and block.count < 2 * Width)
+    }
+
+    let input  = exrZipFixture(Width, packed[0].toSlice(), blocks: 4, alternate: packed[1].toSlice())
+    let bytes  = input.toArray()
+    let output = expect Image.decode("zip-trailer.exr", bytes.toSlice())
+    assertImage(output, cast(s32, Width), 4, .GrayF16)
+    let samples = cast(const [*] u16, output.pixels.storage())
+    for row in 4_u64
+    {
+        Swag.require(samples[row * Width + 45] == (row & 1))
     }
 }

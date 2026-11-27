@@ -16,8 +16,10 @@ var g_Angle: f32
 func display() fail
 {
     g_Angle += 75 * g_Frame.deltaSeconds
-    if g_Angle >= 360 do
+    if g_Angle >= 360
+    {
         g_Angle -= 360
+    }
 
     glClearColor(0.06, 0.07, 0.10, 1)
     glClear(GL_COLOR_BUFFER_BIT)
@@ -33,10 +35,14 @@ func display() fail
     glVertex2f(0.658, -0.38)
     glEnd()
     glFlush()
-    #static if #os == Swag.TargetOs.Linux do
+    #static if #os == Swag.TargetOs.Linux
+    {
         try g_Context.swapBuffers()
-    else do
+    }
+    else
+    {
         g_Context.swapBuffers()
+    }
 }
 
 func onResize(_: *Env.Window, width, height: s32)
@@ -50,10 +56,15 @@ func onResize(_: *Env.Window, width, height: s32)
 {
     g_Window = try Env.createWindow({identifier: "opengl1", title: "OpenGL legacy triangle", width: 512, height: 512})
     defer catch g_Window.close()
-    #static if #os == Swag.TargetOs.Linux do
+    #static if #os == Swag.TargetOs.Linux
+    {
         g_Context = try Ogl.Platform.Xcb.createContext(&g_Window)
-    else do
+    }
+    else
+    {
         g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
+    }
+
     defer g_Context.destroy()
 
     g_Window.callbacks.onResize = &onResize
@@ -65,7 +76,9 @@ func onResize(_: *Env.Window, width, height: s32)
     {
         g_Frame.update()
         try display()
-        if Env.isSmokeRun() do
+        if Env.isSmokeRun()
+        {
             break
+        }
     }
 }

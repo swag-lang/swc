@@ -23,7 +23,7 @@ func variable(a, count, mask: u64)->u64 => (a >> count) & mask
 
 #test
 {
-    let values = [0'u64, 1, 0xFF00, 0xFF000000, 0x100000000, 0xABCDEF0123456789, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 0xFF00, 0xFF000000, 0x100000000, 0xABCDEF0123456789, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         Swag.require(byte8(a) == variable(a, 8, 0xFF))

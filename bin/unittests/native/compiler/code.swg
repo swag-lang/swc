@@ -247,8 +247,10 @@ func remapLoopFlow(stmt: #code)
         {
             count += 1
             remapLoopFlow(#code {
-                if count == 1 do
+                if count == 1
+                {
                     break
+                }
 
                 continue
             })

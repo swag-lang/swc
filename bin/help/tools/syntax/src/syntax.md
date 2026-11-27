@@ -8,8 +8,10 @@ struct(T) IsSet
     #ast
     {
         var code = StrConv.StringBuilder{}
-        for field in #typeof(T).fields do
+        for field in #typeof(T).fields
+        {
             code.appendFormat("%: bool\n", field.name)
+        }
         return code.toString()
     }
 }
@@ -19,8 +21,10 @@ struct(T) IsSet
     const Powers: [4] s32 = #run
     {
         var table: [4] s32
-        for i in table.count do
+        for i in table.count
+        {
             table[i] = 1 << cast(u32, i)
+        }
         return table
     }
 

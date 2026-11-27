@@ -130,8 +130,11 @@ func returnedDesktopWindow()->Env.Window fail
         Swag.require(position.x == 0 and position.y == 0)
         var keyboard: Input.Keyboard
         keyboard.update()
-        for key in Input.Key do
+        for key in Input.Key
+        {
             Swag.require(not keyboard.isKeyPressed(key))
+        }
+
         var outcome: Swag.Error
         discard catch returnedDesktopWindow() as outcome
         Swag.require(outcome.value() is Swag.SystemError)
@@ -150,12 +153,18 @@ func returnedDesktopWindow()->Env.Window fail
         context.screen.root = root
         for 2
         {
-            if context.cursorBalance < 0 do
+            if context.cursorBalance < 0
+            {
                 Input.showMouseCursor(true)
-            elif context.cursorBalance > 0 do
+            }
+            else if context.cursorBalance > 0
+            {
                 Input.showMouseCursor(false)
-            else do
+            }
+            else
+            {
                 break
+            }
         }
     }
 

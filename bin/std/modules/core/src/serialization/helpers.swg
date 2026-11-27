@@ -1,5 +1,40 @@
 #global namespace Serialization
 
+// Returns the run of JSON string bytes that can be copied verbatim.
+internal func jsonPlainByteCount(bytes: const [..] u8)->u64
+{
+    const VectorSize = #sizeof(Simd.U8x16)
+    var length = 0_u64
+    if bytes.count >= VectorSize
+    {
+        let control   = Simd.splat(0x20_u8)
+        let quote     = Simd.splat('"'_u8)
+        let backslash = Simd.splat('\\'_u8)
+        while bytes.count - length >= VectorSize
+        {
+            let block   = Simd.load(bytes.buffer + length)
+            let special = Simd.bitmask((block < control) | (block == quote) | (block == backslash))
+            if special
+            {
+                return length + Math.trailingZeros(special)
+            }
+            length += VectorSize
+        }
+    }
+
+    while length < bytes.count
+    {
+        let byte = bytes[length]
+        if byte < 0x20 or byte == '"' or byte == '\\'
+        {
+            break
+        }
+        length += 1
+    }
+
+    return length
+}
+
 // Returns the canonical wire key of a field. Explicit keys survive source renames;
 // unannotated fields retain the source name as their wire key.
 internal func wireFieldKey(val: Swag.TypeValue)->string
@@ -10,13 +45,21 @@ internal func wireFieldKey(val: Swag.TypeValue)->string
     let keyType = #typeof(Serialization.Key)
     for &attribute in val.attributes
     {
-        if not attribute.type do
+        if not attribute.type
+        {
             continue
-        if attribute.type.fullname != keyType.fullname do
+        }
+
+        if attribute.type.fullname != keyType.fullname
+        {
             continue
+        }
+
         let key = Reflection.attributeValue(attribute, "name")
-        if key != null do
+        if key != null
+        {
             return assume cast (string, key)
+        }
     }
 
     return val.name orelse ""
@@ -26,35 +69,59 @@ internal func wireFieldKey(val: Swag.TypeValue)->string
 // not opt into document identity checks.
 internal func wireSchema(type: typeinfo?)->string
 {
-    if not type do
+    if not type
+    {
         return ""
+    }
+
     let schema = Reflection.attributeValue(type, Serialization.Schema, "name")
-    if schema == null do
+    if schema == null
+    {
         return ""
+    }
+
     return assume cast (string, schema)
 }
 
 // Returns the explicit stable key of a struct type.
 internal func wireTypeKey(type: typeinfo?)->string
 {
-    if not type do
+    if not type
+    {
         return ""
+    }
+
     let key = Reflection.attributeValue(type, Serialization.TypeKey, "name")
-    if key == null do
+    if key == null
+    {
         return ""
+    }
+
     return assume cast (string, key)
 }
 
 internal func getTypeInfoCrc(type: typeinfo?)->u32
 {
-    if not type do
+    if not type
+    {
         return 0
-    if type.crc do
+    }
+
+    if type.crc
+    {
         return type.crc
-    if type.fullname != null and type.fullname != "" do
+    }
+
+    if type.fullname != null and type.fullname != ""
+    {
         return Hash.Crc32.compute(type.fullname)
-    if type.name == null do
+    }
+
+    if type.name == null
+    {
         return 0
+    }
+
     return Hash.Crc32.compute(type.name)
 }
 
@@ -71,19 +138,28 @@ internal func getTypeInfoCrc(type: typeinfo?)->u32
 // - Everything else keeps the canonical runtime crc of the type.
 internal func wireTypeCrc(type: typeinfo?)->u32
 {
-    if not type do
+    if not type
+    {
         return 0
+    }
 
     let resolved = Reflection.resolveAliases(type)
-    if Reflection.isEnum(resolved) do
+    if Reflection.isEnum(resolved)
+    {
         return wireTypeCrc(Reflection.enumUnderlyingType(resolved))
+    }
 
     if Reflection.isStruct(resolved) and not Reflection.isTuple(resolved)
     {
-        if resolved.fullname != null and resolved.fullname != "" do
+        if resolved.fullname != null and resolved.fullname != ""
+        {
             return Hash.Crc32.compute(resolved.fullname)
-        if resolved.name != null and resolved.name != "" do
+        }
+
+        if resolved.name != null and resolved.name != ""
+        {
             return Hash.Crc32.compute(resolved.name)
+        }
     }
 
     return getTypeInfoCrc(resolved)
@@ -112,15 +188,21 @@ public func isPodFinal(type: typeinfo?)->{ raw: bool, sizeof: u64 }
             if Reflection.isInteger(rawType) or
                Reflection.isFloat(rawType) or
                Reflection.isBool(rawType) or
-               Reflection.isRune(rawType) do
+               Reflection.isRune(rawType)
+            {
                 return {raw: true, sizeof: type.sizeof}
+            }
         }
 
-        if not Reflection.isPod(type) do
+        if not Reflection.isPod(type)
+        {
             return {raw: false, sizeof: 0}
+        }
 
-        if Reflection.hasAttribute(type, Serialization.Final) do
+        if Reflection.hasAttribute(type, Serialization.Final)
+        {
             return {raw: true, sizeof: type.sizeof}
+        }
     }
 
     return {raw: false, sizeof: 0}

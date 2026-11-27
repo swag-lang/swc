@@ -93,8 +93,10 @@ public impl Outline
     // Translates every point by a 26.6 fixed-point offset.
     mtd translate(xOffset, yOffset: s32)
     {
-        if .pointCount <= 0 do
+        if .pointCount <= 0
+        {
             return
+        }
 
         let points = unwrap .points
         for index in cast(u32, .pointCount)
@@ -110,8 +112,10 @@ public impl Outline
     // [[TrueType.Outline.translate]] separately when required.
     mtd transform(matrix: Matrix)
     {
-        if .pointCount <= 0 do
+        if .pointCount <= 0
+        {
             return
+        }
 
         let points = unwrap .points
         for index in cast(u32, .pointCount)
@@ -128,14 +132,17 @@ public impl Outline
     // counters; load the glyph again to recover its original shape.
     mtd embolden(strength: s32) fail
     {
-        if .pointCount <= 0 or .contourCount <= 0 or not strength do
+        if .pointCount <= 0 or .contourCount <= 0 or not strength
+        {
             return
 
-        // Orientation must be computed once for the whole glyph, not per contour.
-        // Outer contours and their holes (counters) are wound in opposite
-        // directions, so a single shift sign expands the outer ring and shrinks
-        // the holes - both adding ink. Re-deriving the winding per contour would
-        // instead grow the holes, making letters bigger but not actually bolder.
+            // Orientation must be computed once for the whole glyph, not per contour.
+            // Outer contours and their holes (counters) are wound in opposite
+            // directions, so a single shift sign expands the outer ring and shrinks
+            // the holes - both adding ink. Re-deriving the winding per contour would
+            // instead grow the holes, making letters bigger but not actually bolder.
+        }
+
         let ccw = totalOutlineSignedArea(me) >= 0
 
         // Match FreeType's FT_Outline_EmboldenXY, which halves the strength before
@@ -144,7 +151,7 @@ public impl Outline
         // double the visual weight for the same nominal value.
         let perSide = cast(f64, strength) * 0.5
 
-        var start    = 0'u32
+        var start    = 0_u32
         let points   = unwrap .points
         let contours = unwrap .contours
         for index in cast(u32, .contourCount)
@@ -160,7 +167,7 @@ public impl Outline
     //
     // Quadratic TrueType segments become `ConicTo` commands. The returned array
     // remains valid independently of the face's reusable glyph slot.
-    mtd const decompose()->Array'OutlineCommand => buildOutlineCommands(me)
+    mtd const decompose()->Array!{OutlineCommand} => buildOutlineCommands(me)
 }
 
 func midpoint(a, b: Vector)->Vector
@@ -177,13 +184,15 @@ func isOnCurve(tag: u8)->bool => (tag & CURVE_TAG_ON) != 0
 
 func isCubicControl(tag: u8)->bool => (tag & (CURVE_TAG_ON | CURVE_TAG_CUBIC)) == CURVE_TAG_CUBIC
 
-func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
+func buildOutlineCommands(outline: const *Outline)->Array!{OutlineCommand}
 {
-    var commands: Array'OutlineCommand
-    if outline.contourCount <= 0 or outline.pointCount <= 0 do
+    var commands: Array!{OutlineCommand}
+    if outline.contourCount <= 0 or outline.pointCount <= 0
+    {
         return commands
+    }
 
-    var contourStart = 0'u32
+    var contourStart = 0_u32
     let points       = cast(const [*] Vector, unwrap outline.points)
     let tags         = cast(const [*] u8, unwrap outline.tags)
     let contours     = cast(const [*] s16, unwrap outline.contours)
@@ -255,8 +264,10 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
             }
         }
 
-        if not pointsEqual(current, startPoint) do
+        if not pointsEqual(current, startPoint)
+        {
             commands.add(OutlineCommand{op: .LineTo{startPoint}})
+        }
 
         contourStart = contourEnd + 1
     }
@@ -266,8 +277,10 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
 
 func contourSignedArea(points: const [..] Vector)->f64
 {
-    if points.count < 3 do
+    if points.count < 3
+    {
         return 0
+    }
 
     var area: f64 = 0.0
     for index in points.count
@@ -285,11 +298,13 @@ func contourSignedArea(points: const [..] Vector)->f64
 // the net filled area (outer minus holes).
 func totalOutlineSignedArea(outline: const *Outline)->f64
 {
-    if outline.pointCount <= 0 or outline.contourCount <= 0 do
+    if outline.pointCount <= 0 or outline.contourCount <= 0
+    {
         return 0
+    }
 
-    var total    = 0.0'f64
-    var start    = 0'u32
+    var total    = 0.0_f64
+    var start    = 0_u32
     let points   = cast(const [*] Vector, unwrap outline.points)
     let contours = cast(const [*] s16, unwrap outline.contours)
     for index in cast(u32, outline.contourCount)
@@ -305,10 +320,12 @@ func totalOutlineSignedArea(outline: const *Outline)->f64
 
 func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
 {
-    if points.count < 2 or Math.isZeroEpsilon(cast(f32, strength)) do
+    if points.count < 2 or Math.isZeroEpsilon(cast(f32, strength))
+    {
         return
+    }
 
-    var source: Array'Vector
+    var source: Array!{Vector}
     source.add(points)
 
     for index in points.count

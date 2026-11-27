@@ -24,16 +24,22 @@ impl IAction for RedoAction
 func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoStruct, expectNullObject: bool)->bool
 {
     let runtimeItf = cast(*Swag.Interface, &itf)
-    if runtimeItf == null or runtimeItf.itable == null do
+    if runtimeItf == null or runtimeItf.itable == null
+    {
         return false
+    }
 
     let kind      = assume cast(const *Swag.TypeInfoStruct, Swag.kindOf(itf))
     let tableType = cast(const *Swag.TypeInfoStruct?, runtimeItf.itable[])
-    if kind != expectedType or tableType != expectedType do
+    if kind != expectedType or tableType != expectedType
+    {
         return false
+    }
 
-    if expectNullObject do
+    if expectNullObject
+    {
         return runtimeItf.obj == null
+    }
 
     return runtimeItf.obj != null and runtimeItf.obj != cast(*void, runtimeItf)
 }

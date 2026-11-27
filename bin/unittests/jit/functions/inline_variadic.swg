@@ -4,7 +4,10 @@
 func inlineTypedVariadicConstForeach(values: s32...)->s32
 {
     var sum: s32 = 0
-    for value in values do sum += value
+    for value in values
+    {
+        sum += value
+    }
     return sum
 }
 

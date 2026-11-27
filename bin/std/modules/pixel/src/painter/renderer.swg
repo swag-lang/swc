@@ -149,7 +149,7 @@ interface IRenderer
     // Reads a texture into the requested tightly packed pixel format.
     //
     // Returns an empty byte array if the backend cannot complete the transfer.
-    mtd readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8
+    mtd readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array!{u8}
 
     // Releases a texture and invalidates its descriptor.
     mtd removeTexture(texture: *Texture)

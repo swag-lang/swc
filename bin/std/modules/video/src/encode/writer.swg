@@ -79,7 +79,7 @@ struct Writer
 
 impl Writer
 {
-    internal var encoders: Array'EncoderDesc
+    internal var encoders: Array!{EncoderDesc}
 
     // Registers an encoder type unless it is already present.
     //
@@ -97,8 +97,11 @@ impl Writer
     #[Swag.NoDoc]
     func registerEncoderImplementation(type: const *Swag.TypeInfoStruct, itf: IEncoder)
     {
-        for encoder in encoders where encoder.type == type do
+        for encoder in encoders where encoder.type == type
+        {
             return
+        }
+
         encoders.add(EncoderDesc{itf.format(), type})
     }
 
@@ -106,12 +109,15 @@ impl Writer
     //
     // The result is owned by the caller and is a snapshot: registering another encoder
     // afterwards does not change it. Use it to build the format list of a save dialog.
-    func encodableFormats()->Array'StreamFormat
+    func encodableFormats()->Array!{StreamFormat}
     {
         var result: #returntype
         result.reserve(encoders.count)
-        for encoder in encoders do
+        for encoder in encoders
+        {
             result.add(encoder.format)
+        }
+
         return result
     }
 
@@ -121,8 +127,11 @@ impl Writer
     // Returns the registered encoder claiming `fileName`, or `null` when none does.
     internal func findEncoder(fileName: string)->const *EncoderDesc?
     {
-        for encoder in encoders where encoder.format.matches(fileName) do
+        for encoder in encoders where encoder.format.matches(fileName)
+        {
             return encoder
+        }
+
         return null
     }
 
@@ -142,7 +151,7 @@ impl Writer
     // let rate   = try Video.FrameRate.create(30, 1)
     // var writer = try Video.Writer.create("capture.avi", 640, 480, rate, Video.Avi.EncodeOptions{quality: 80})
     // var frame  = Pixel.Image.create(640, 480, .RGB8)
-    // for index in 90'u64
+    // for index in 90_u64
     // {
     //     frame.fill(Pixel.Color.fromRgb(cast(u8, index), 64, 128))
     //     try writer.addFrame(frame)
@@ -184,12 +193,20 @@ impl Writer
     // Rejects a geometry or a rate no stream can carry, before anything is created.
     private mtd validate(fileName: string, width, height: s32, frameRate: FrameRate) fail
     {
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
             fail BadParameterError{"video width and height need positive values"}
-        if not frameRate.isValid() do
+        }
+
+        if not frameRate.isValid()
+        {
             fail BadParameterError{"video frame rate needs positive numerator and denominator values"}
-        if not canCreate(fileName) do
+        }
+
+        if not canCreate(fileName)
+        {
             fail UnsupportedFormatError{"no video encoder accepts this file extension"}
+        }
 
         .info.width     = width
         .info.height    = height
@@ -225,14 +242,25 @@ impl Writer
     // re-raises that failure rather than finalizing a possibly partial frame.
     mtd addFrame(image: Image) fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             fail BadParameterError{"video frames cannot be added to an ended stream"}
-        if not .encoder do
+        }
+
+        if not .encoder
+        {
             fail BadParameterError{"video writer has no open stream"}
-        if not image.isValid() do
+        }
+
+        if not image.isValid()
+        {
             fail BadParameterError{"video frame needs allocated pixels"}
-        if image.width != .info.width or image.height != .info.height do
+        }
+
+        if image.width != .info.width or image.height != .info.height
+        {
             fail BadParameterError{"video frame dimensions do not match the stream"}
+        }
 
         var failure: Swag.Error
         catch .encoder.addFrame(&.sink, image) as failure
@@ -254,14 +282,19 @@ impl Writer
     {
         if .isEnded
         {
-            if .isFinalized do
+            if .isFinalized
+            {
                 return
+            }
+
             try .finalizationError.raise()
             fail BadParameterError{"video writer finalization previously failed"}
         }
 
-        if not .encoder do
+        if not .encoder
+        {
             fail BadParameterError{"video writer has no open stream"}
+        }
 
         .isEnded = true
         var failure: Swag.Error
@@ -295,13 +328,18 @@ impl Writer
     // Releases the encoder instance. The sink closes itself with the writer.
     private mtd release()
     {
-        if not .encoder do
+        if not .encoder
+        {
             return
+        }
 
         let type     = unwrap .encoderType
         let instance = (.encoder).buffer
-        if type.opDrop do
+        if type.opDrop
+        {
             type.opDrop(instance)
+        }
+
         Memory.free(instance, cast(u64, type.sizeof))
         .encoder     = null
         .encoderType = null
@@ -311,7 +349,7 @@ impl Writer
 // Registers the built-in encoders.
 #init
 {
-    Writer.registerEncoder'(Y4m.Encoder)()
-    Writer.registerEncoder'(Avi.Encoder)()
-    Writer.registerEncoder'(Mp4.Encoder)()
+    Writer.registerEncoder!{Y4m.Encoder}()
+    Writer.registerEncoder!{Avi.Encoder}()
+    Writer.registerEncoder!{Mp4.Encoder}()
 }

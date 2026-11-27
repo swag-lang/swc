@@ -20,7 +20,7 @@ struct SchedulerProbe
     grow:         Swag.AtomicFlag
     scheduler:    u64
     initialCount: u32
-    completed:    Swag.AtomicValue'u32
+    completed:    Swag.AtomicValue!{u32}
     invalid:      bool
 }
 
@@ -28,8 +28,10 @@ impl SchedulerProbe
 {
     mtd join()
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
         let waited = WaitForSingleObject(.handle, 0xFFFF_FFFF)
         let closed = CloseHandle(.handle)
         .handle  = null
@@ -39,8 +41,10 @@ impl SchedulerProbe
 
 func accumulateParallelProbe(values: *[4] u32)
 {
-    parallel for |values| index in 4 do
+    parallel for |values| index in 4
+    {
         values[][index] += cast(u32, index) + 1
+    }
 }
 
 func probeScheduler(param: *void?)->u32
@@ -54,8 +58,10 @@ func probeScheduler(param: *void?)->u32
         Swag.releaseAllocatorThreadCache()
     }
 
-    while not probe.start.isRaised() do
+    while not probe.start.isRaised()
+    {
         discard SwitchToThread()
+    }
 
     probe.scheduler = cast(u64, Swag.schedulerInstance())
     Swag.setWorkerCount(1)
@@ -63,18 +69,22 @@ func probeScheduler(param: *void?)->u32
     var values: [4] u32
     accumulateParallelProbe(&values)
     probe.ready.raise()
-    while not probe.grow.isRaised() do
+    while not probe.grow.isRaised()
+    {
         discard SwitchToThread()
+    }
 
-    let requestedMaximum = probe.initialCount > 6 ? probe.initialCount : 6'u32
+    let requestedMaximum = probe.initialCount > 6 ? probe.initialCount : 6_u32
     let capacity         = Swag.schedulerInstance().capacity
     let maximum          = requestedMaximum > capacity ? capacity : requestedMaximum
     var previous         = probe.initialCount
     var tasks: [4] Swag.Task
     for round in 96
     {
-        if round % 8 == 0 do
+        if round % 8 == 0
+        {
             Swag.setWorkerCount(1 + cast(u32, (round / 8)) % 6)
+        }
         let count = Swag.workerCount()
         probe.invalid = probe.invalid or count < previous or count > maximum
         previous      = count
@@ -82,13 +92,19 @@ func probeScheduler(param: *void?)->u32
         // Reuse a body first called with one worker while other callers grow the pool.
         accumulateParallelProbe(&values)
 
-        for index in 4 do
+        for index in 4
+        {
             tasks[index].submit(func|probe|() { probe.completed.add(1) })
-        for index in 4 do
+        }
+        for index in 4
+        {
             tasks[3 - index].wait()
+        }
     }
-    for index in 4 do
+    for index in 4
+    {
         probe.invalid = probe.invalid or values[index] != 97 * (index + 1)
+    }
     return 0
 }
 
@@ -97,8 +113,10 @@ func probeScheduler(param: *void?)->u32
 // A focused run starts cold; a full suite may already have started a larger pool.
 func checkSchedulerPublication()
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
 
     var probes: [4] SchedulerProbe
     defer
@@ -108,8 +126,10 @@ func checkSchedulerPublication()
             probe.start.raise()
             probe.grow.raise()
         }
-        for &probe in probes do
+        for &probe in probes
+        {
             probe.join()
+        }
     }
 
     let allocator = Swag.getContext().allocator
@@ -125,30 +145,42 @@ func checkSchedulerPublication()
             break
         }
     }
-    for &probe in probes do
+    for &probe in probes
+    {
         probe.start.raise()
+    }
 
     var ready = false
     for 5000
     {
-        if not created do
+        if not created
+        {
             break
+        }
         ready = true
-        for probe in probes do
+        for probe in probes
+        {
             ready = ready and probe.ready.isRaised()
-        if ready do
+        }
+        if ready
+        {
             break
+        }
         Sleep(1)
     }
 
-    for &probe in probes do
+    for &probe in probes
+    {
         probe.grow.raise()
-    for &probe in probes do
+    }
+    for &probe in probes
+    {
         probe.join()
+    }
 
     Swag.assert(created and ready)
     let initialCount     = probes[0].initialCount
-    let requestedMaximum = initialCount > 6 ? initialCount : 6'u32
+    let requestedMaximum = initialCount > 6 ? initialCount : 6_u32
     let capacity         = Swag.schedulerInstance().capacity
     let maximum          = requestedMaximum > capacity ? capacity : requestedMaximum
     Swag.assert(Swag.workerCount() == maximum)

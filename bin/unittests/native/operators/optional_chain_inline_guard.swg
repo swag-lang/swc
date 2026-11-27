@@ -29,8 +29,10 @@ var g_optGuardNode: OptGuardNode
 
 func optGuardGet(use: bool)->*OptGuardNode?
 {
-    if use do
+    if use
+    {
         return &g_optGuardNode
+    }
     return null
 }
 

@@ -15,7 +15,7 @@ func runLocal(count: u32)->u32
 // compile-time engine, where the automatic candidates that meet the forward call are not picked.
 func runMacro(count: u32)->u32
 {
-    var sum = 0'u32
+    var sum = 0_u32
     InlineLocalForwardCall.visitTwice(count, &sum) #code(index, data)
     {
         let total = cast(*u32, unwrap data)

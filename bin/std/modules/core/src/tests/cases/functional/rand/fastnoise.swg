@@ -5,8 +5,8 @@ using Swag
 
 func assertFastNoise(value, expected: f32)
 {
-    Swag.require(Math.isEqualEpsilon(value, expected, 0.00001'f32))
-    Swag.require(value >= -1'f32 and value <= 1'f32)
+    Swag.require(Math.isEqualEpsilon(value, expected, 0.00001_f32))
+    Swag.require(value >= -1_f32 and value <= 1_f32)
 }
 
 func initFastNoise()->Noise.FastNoise => {seed: 42, frequency: 0.125, octaves: 3, lacunarity: 2.25, gain: 0.4}
@@ -19,13 +19,13 @@ func initFastNoise()->Noise.FastNoise => {seed: 42, frequency: 0.125, octaves: 3
     Swag.require(noise.kind == .Perlin)
     Swag.require(noise.seed == 1337)
     Swag.require(noise.octaves == 3)
-    Swag.require(Math.isEqualEpsilon(noise.frequency, 0.01'f32, 0.00001'f32))
-    Swag.require(Math.isEqualEpsilon(noise.lacunarity, 2'f32, 0.00001'f32))
-    Swag.require(Math.isEqualEpsilon(noise.gain, 0.5'f32, 0.00001'f32))
+    Swag.require(Math.isEqualEpsilon(noise.frequency, 0.01_f32, 0.00001_f32))
+    Swag.require(Math.isEqualEpsilon(noise.lacunarity, 2_f32, 0.00001_f32))
+    Swag.require(Math.isEqualEpsilon(noise.gain, 0.5_f32, 0.00001_f32))
     noise = initFastNoise()
 
     noise.kind = .Perlin
-    assertFastNoise(noise.sample(3.5, -2.25), -0.55220836'f32)
+    assertFastNoise(noise.sample(3.5, -2.25), -0.55220836_f32)
 
     noise.kind = .PerlinFractalFbm
     let perlinFbm = noise.sample(3.5, -2.25)
@@ -40,7 +40,7 @@ func initFastNoise()->Noise.FastNoise => {seed: 42, frequency: 0.125, octaves: 3
     Swag.require(perlinRigid >= -1 and perlinRigid <= 1)
 
     noise.kind = .Value
-    assertFastNoise(noise.sample(3.5, -2.25), 0.10376967'f32)
+    assertFastNoise(noise.sample(3.5, -2.25), 0.10376967_f32)
 
     noise.kind = .ValueFractalFbm
     let valueFbm = noise.sample(3.5, -2.25)
@@ -58,7 +58,7 @@ func initFastNoise()->Noise.FastNoise => {seed: 42, frequency: 0.125, octaves: 3
     let withGain = noise.sample(3.5, -2.25)
     noise.gain = 0
     let noGain = noise.sample(3.5, -2.25)
-    Swag.require(not Math.isEqualEpsilon(withGain, noGain, 0.00001'f32))
+    Swag.require(not Math.isEqualEpsilon(withGain, noGain, 0.00001_f32))
 
     noise.octaves = 1
     Swag.require(noise.sample(3.5, -2.25) >= -1)

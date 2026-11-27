@@ -29,10 +29,15 @@ func day5A()
     {
         let str    = Format.toString("reyedfim%", idx)
         let result = Hash.Md5.toString(Hash.Md5.compute(str))
-        if result.startsWith("00000") do
+        if result.startsWith("00000")
+        {
             pwd += result[5]
-        if pwd.length == 8 do
+        }
+
+        if pwd.length == 8
+        {
             break
+        }
     }
 
     Swag.assert(pwd == "F97C354D")

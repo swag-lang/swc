@@ -35,7 +35,7 @@ struct PathStrokeStyle
         cap:         StrokeCap  = .Butt      // Shape at open path ends and dash ends.
         join:        StrokeJoin = .Miter     // Shape between consecutive segments.
         miterLimit:  f32        = 10         // Maximum miter length relative to the stroke width; at least one.
-        dashPattern: Array'f32               // Alternating painted and blank lengths in PDF points; empty means solid.
+        dashPattern: Array!{f32}             // Alternating painted and blank lengths in PDF points; empty means solid.
         dashPhase:   f32                     // Signed distance into the repeated dash pattern in PDF points.
     }
 }
@@ -53,11 +53,11 @@ struct Item
     internal
     {
         text:          String
-        textCodes:     Array'u32
-        textAdvances:  Array'f32
+        textCodes:     Array!{u32}
+        textAdvances:  Array!{f32}
         invisibleText: bool
         path:          LinePathList
-        image:         Image
+        image:         ImageReference
         transform:     Transform2 = Transform2.Identity
 
         fillColor:    Color        = Color.fromArgb(Argb.Black)
@@ -127,9 +127,16 @@ internal impl Item
         result += .textAdvances.capacity * #sizeof(f32)
         result += .path.memoryUsage()
         result += .imageClip.memoryUsage()
-        result += .image.byteCount
-        if .hasMask do
+        if let pixels = .image.value()
+        {
+            result += pixels.byteCount + .image.encoded().bytes.count
+        }
+
+        if .hasMask
+        {
             result += .maskImage.byteCount
+        }
+
         return result
     }
 
@@ -139,8 +146,11 @@ internal impl Item
     // page does not hold, so it reports the whole plane and is treated as unbounded.
     mtd const paintBounds()->Math.Rectangle
     {
-        if not .paintBoxKnown do
+        if not .paintBoxKnown
+        {
             return {-Swag.F32.Max * 0.5, -Swag.F32.Max * 0.5, Swag.F32.Max, Swag.F32.Max}
+        }
+
         return .paintBox
     }
 
@@ -160,11 +170,13 @@ internal impl Item
             return result
         }
 
-        var width = 0.0'f32
-        for advance in .textAdvances do
+        var width = 0.0_f32
+        for advance in .textAdvances
+        {
             width += advance
+        }
 
-        const EmMargin = 0.35'f32
+        const EmMargin = 0.35_f32
         var local = Math.Rectangle{0, 0, width, .fontSize}
         local.applyPadding(Math.Vector4{-.fontSize * EmMargin, -.fontSize * EmMargin, -.fontSize * EmMargin, -.fontSize * EmMargin})
 
@@ -204,8 +216,10 @@ internal impl Item
             return
         }
 
-        if .maskImage.width != coverage.width or .maskImage.height != coverage.height do
+        if .maskImage.width != coverage.width or .maskImage.height != coverage.height
+        {
             return
+        }
 
         for y in cast(u64, .maskImage.height)
         {
@@ -306,7 +320,7 @@ impl Item
     // Returns a borrowed image for an image item, or null for another kind.
     //
     // The pointer remains valid until the owning page or its item array is mutated.
-    mtd const imageValue()->const *Image? => .kind == .Image ? &.image : null
+    mtd const imageValue()->const *Image? => .kind == .Image ? .image.value() : null
 }
 
 internal impl Item

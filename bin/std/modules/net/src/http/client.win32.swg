@@ -10,19 +10,30 @@ private func queryResponseHeaders(request: HINTERNET, response: *Response) fail
     if not WinHttpQueryHeaders(request, WINHTTP_QUERY_RAW_HEADERS_CRLF, null, null, &length, null)
     {
         let code = GetLastError()
-        if code != ERROR_INSUFFICIENT_BUFFER do
+        if code != ERROR_INSUFFICIENT_BUFFER
+        {
             fail NetworkError{code: cast(s32, code)}
+        }
     }
 
-    if length > 131074 or length % 2 != 0 do
+    if length > 131074 or length % 2 != 0
+    {
         fail Errors.OverflowError{}
-    var buffer: Array'u16
+    }
+
+    var buffer: Array!{u16}
     buffer.resize(length / 2)
-    if not WinHttpQueryHeaders(request, WINHTTP_QUERY_RAW_HEADERS_CRLF, null, buffer.storage(), &length, null) do
+    if not WinHttpQueryHeaders(request, WINHTTP_QUERY_RAW_HEADERS_CRLF, null, buffer.storage(), &length, null)
+    {
         fail NetworkError{code: cast(s32, GetLastError())}
+    }
+
     var characterCount = length / 2
-    while characterCount > 0 and buffer[characterCount - 1] == 0 do
+    while characterCount > 0 and buffer[characterCount - 1] == 0
+    {
         characterCount -= 1
+    }
+
     try parseResponseHeaders(Utf8.fromUtf16(buffer.toSlice()[0 until characterCount]), response)
 }
 
@@ -45,18 +56,26 @@ private func writeRequestBody(request: HINTERNET, options: PostOptions) fail
         let requested = Math.min(remaining, chunk.count)
         let reader    = unwrap options.bodyReader
         let read      = reader(options.requestContext, chunk[until requested])
-        if read == 0 or read > requested do
+        if read == 0 or read > requested
+        {
             fail NetworkError{"HTTP request body reader did not provide its declared length", code: 0}
+        }
 
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < read
         {
             var written: u32
             let count = cast(u32, read - offset)
-            if not WinHttpWriteData(request, &chunk[offset], count, &written) do
+            if not WinHttpWriteData(request, &chunk[offset], count, &written)
+            {
                 fail NetworkError{code: cast(s32, GetLastError())}
-            if written == 0 do
+            }
+
+            if written == 0
+            {
                 fail NetworkError{"HTTP transport stopped accepting request bytes", code: 0}
+            }
+
             offset += written
         }
 
@@ -77,79 +96,131 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
 
     let agent = Utf16.toZeroTerminated(options.userAgent)
     var serverName: String
-    if Utf8.indexOf(host, ':') != Swag.U64.Max do
+    if Utf8.indexOf(host, ':') != Swag.U64.Max
+    {
         serverName = Format.toString("[%]", host)
-    else do
+    }
+    else
+    {
         serverName = String.from(host)
+    }
+
     let server        = Utf16.toZeroTerminated(serverName)
     let objectName    = Utf16.toZeroTerminated(path)
     let nativeHeaders = Utf16.toZeroTerminated(headers)
     let verb          = Utf16.toZeroTerminated(post ? "POST" : "GET")
     let session       = WinHttpOpen(agent.buffer, WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, null, null, 0)
-    if not session do
+    if not session
+    {
         fail NetworkError{code: cast(s32, GetLastError())}
+    }
+
     defer discard WinHttpCloseHandle(session)
 
     let timeout = cast(s32, options.timeoutMs)
-    if not WinHttpSetTimeouts(session, timeout, timeout, timeout, timeout) do
+    if not WinHttpSetTimeouts(session, timeout, timeout, timeout, timeout)
+    {
         fail NetworkError{code: cast(s32, GetLastError())}
+    }
+
     let connection = WinHttpConnect(session, server.buffer, port, 0)
-    if not connection do
+    if not connection
+    {
         fail NetworkError{code: cast(s32, GetLastError())}
+    }
+
     defer discard WinHttpCloseHandle(connection)
     let request = WinHttpOpenRequest(connection, verb.buffer, objectName.buffer, null, null, null, secure ? WINHTTP_FLAG_SECURE : 0)
-    if not request do
+    if not request
+    {
         fail NetworkError{code: cast(s32, GetLastError())}
+    }
+
     defer discard WinHttpCloseHandle(request)
 
-    if not WinHttpSetTimeouts(request, timeout, timeout, timeout, timeout) do
+    if not WinHttpSetTimeouts(request, timeout, timeout, timeout, timeout)
+    {
         fail NetworkError{code: cast(s32, GetLastError())}
+    }
+
     var responseTimeout = options.timeoutMs
-    if not WinHttpSetOption(request, WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT, &responseTimeout, #sizeof(u32)) do
+    if not WinHttpSetOption(request, WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT, &responseTimeout, #sizeof(u32))
+    {
         fail NetworkError{code: cast(s32, GetLastError())}
+    }
 
     var redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_NEVER
-    if options.maxRedirects > 0 do
+    if options.maxRedirects > 0
+    {
         redirectPolicy = secure ? WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP : WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS
-    if not WinHttpSetOption(request, WINHTTP_OPTION_REDIRECT_POLICY, &redirectPolicy, #sizeof(u32)) do
+    }
+
+    if not WinHttpSetOption(request, WINHTTP_OPTION_REDIRECT_POLICY, &redirectPolicy, #sizeof(u32))
+    {
         fail NetworkError{code: cast(s32, GetLastError())}
+    }
+
     if options.maxRedirects > 0
     {
         var maximumRedirects = cast(u32, options.maxRedirects)
-        if not WinHttpSetOption(request, WINHTTP_OPTION_MAX_HTTP_AUTOMATIC_REDIRECTS, &maximumRedirects, #sizeof(u32)) do
+        if not WinHttpSetOption(request, WINHTTP_OPTION_MAX_HTTP_AUTOMATIC_REDIRECTS, &maximumRedirects, #sizeof(u32))
+        {
             fail NetworkError{code: cast(s32, GetLastError())}
+        }
     }
 
-    let bodyLength = post ? cast(u32, options.requestBodyLength) : 0'u32
-    if not WinHttpSendRequest(request, nativeHeaders.buffer, Swag.U32.Max, null, 0, bodyLength, 0) do
+    let bodyLength = post ? cast(u32, options.requestBodyLength) : 0_u32
+    if not WinHttpSendRequest(request, nativeHeaders.buffer, Swag.U32.Max, null, 0, bodyLength, 0)
+    {
         fail NetworkError{code: cast(s32, GetLastError())}
-    if post and options.requestBodyLength > 0 do
+    }
+
+    if post and options.requestBodyLength > 0
+    {
         try writeRequestBody(request, options)
-    if not WinHttpReceiveResponse(request, null) do
+    }
+
+    if not WinHttpReceiveResponse(request, null)
+    {
         fail NetworkError{code: cast(s32, GetLastError())}
+    }
 
     var result: Response
     var statusSize = cast(u32, #sizeof(u32))
-    if not WinHttpQueryHeaders(request, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, null, &result.status, &statusSize, null) do
+    if not WinHttpQueryHeaders(request, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, null, &result.status, &statusSize, null)
+    {
         fail NetworkError{code: cast(s32, GetLastError())}
+    }
+
     try queryResponseHeaders(request, &result)
 
     var chunk: [8192] u8
-    var bodyBytes = 0'u64
+    var bodyBytes = 0_u64
     while true
     {
         var received: u32
-        if not WinHttpReadData(request, &chunk[0], chunk.count, &received) do
+        if not WinHttpReadData(request, &chunk[0], chunk.count, &received)
+        {
             fail NetworkError{code: cast(s32, GetLastError())}
-        if received == 0 do
+        }
+
+        if received == 0
+        {
             break
-        if received > options.maxBodyBytes - Math.min(options.maxBodyBytes, bodyBytes) do
+        }
+
+        if received > options.maxBodyBytes - Math.min(options.maxBodyBytes, bodyBytes)
+        {
             fail Errors.OverflowError{}
+        }
+
         bodyBytes += received
         if options.bodyHandler
         {
-            if not options.bodyHandler(options.bodyContext, chunk[0 until received]) do
+            if not options.bodyHandler(options.bodyContext, chunk[0 until received])
+            {
                 fail NetworkError{"HTTP response body handler stopped the transfer", code: 995}
+            }
         }
         else
         {

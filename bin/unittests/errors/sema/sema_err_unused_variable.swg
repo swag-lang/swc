@@ -18,8 +18,10 @@ func unusedIndex()->s32
         total += 1
     }
 
-    for 3 do
+    for 3
+    {
         total += 1
+    }
     return total
 }
 

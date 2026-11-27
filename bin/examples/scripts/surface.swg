@@ -5,15 +5,20 @@ func runExample(width, height: s32, title: string, hook: HookEvent, canSize = tr
 {
     var app: Application
     var flags = SurfaceFlags.SmallCaption | .MinimizeButton | .CloseButton | .Border
-    if canSize do
+    if canSize
+    {
         flags |= .Resizable | .MaximizeButton
+    }
 
     let metrics       = ThemeMetrics{}
     let captionHeight = cast(s32, metrics.wnd_SmallCaptionCY)
     let surface       = try app.createSurface(100, 100, width, height + captionHeight, flags, hook: hook)
     surface.setTitle(title)
-    if init do
+    if init
+    {
         init(&app)
+    }
+
     surface.show()
     app.run()
 }

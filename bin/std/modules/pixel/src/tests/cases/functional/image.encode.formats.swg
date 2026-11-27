@@ -7,10 +7,10 @@ using Swag, Core
 struct MalformedImage
 {
     #[Serialization.Key("pixels")]
-    pixels: Array'u8
+    pixels: Array!{u8}
 
     #[Serialization.Key("metadata")]
-    metadata: Array'ImageMetadata
+    metadata: Array!{ImageMetadata}
 
     #[Serialization.Key("byteCount")]
     byteCount: u64
@@ -50,11 +50,11 @@ func makeMalformedImage()->Image
     malformed.bytesPerPixel = 4
 
     var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
     expect encoder.writeAll(&buffer, malformed)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    return expect decoder.readAll'Image(buffer.toString().toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    return expect decoder.readAll!{Image}(buffer.toString().toSlice())
 }
 
 // Invalid image geometry is rejected before a format encoder reads the pixel buffer.

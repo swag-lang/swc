@@ -6,12 +6,16 @@ func first(values: const [..] s32)->s32 => values[0]
 #[Swag.Inline]
 func matches(values: *[3] s32, expected: const [..] s32)->bool
 {
-    if expected.count != 3 do
+    if expected.count != 3
+    {
         return false
+    }
     for value, index in values[]
     {
-        if value != expected[index] do
+        if value != expected[index]
+        {
             return false
+        }
     }
     return true
 }
@@ -33,7 +37,7 @@ func matches(values: *[3] s32, expected: const [..] s32)->bool
 // Element conversion must also survive the detached inline initializer.
 #test
 {
-    let observed = first([1'u8, 2'u8, 3'u8])
+    let observed = first([1_u8, 2_u8, 3_u8])
     Swag.require(observed == 1)
 }
 

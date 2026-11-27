@@ -36,7 +36,7 @@ private struct Card
     copies:     s32
 }
 
-private var cards: Array'Card
+private var cards: Array!{Card}
 
 func day4B()
 {
@@ -45,28 +45,35 @@ func day4B()
 
     for l in lines
     {
-        let cardRecord          = Tokenize.split(l[], ':'u8)
-        let numberLists         = Tokenize.split(cardRecord[1], '|'u8)
-        let winningNumberTokens = Tokenize.split(numberLists[0], ' 'u8)
-        let drawnNumberTokens   = Tokenize.split(numberLists[1], ' 'u8)
+        let cardRecord          = Tokenize.split(l[], ':'_u8)
+        let numberLists         = Tokenize.split(cardRecord[1], '|'_u8)
+        let winningNumberTokens = Tokenize.split(numberLists[0], ' '_u8)
+        let drawnNumberTokens   = Tokenize.split(numberLists[1], ' '_u8)
 
-        var winningNumbers, drawnNumbers: Array's32
-        for number in winningNumberTokens do
+        var winningNumbers, drawnNumbers: Array!{s32}
+        for number in winningNumberTokens
+        {
             winningNumbers.add(expect StrConv.toS32(number))
-        for number in drawnNumberTokens do
+        }
+
+        for number in drawnNumberTokens
+        {
             drawnNumbers.add(expect StrConv.toS32(number))
+        }
 
         var matchCount = 0
         for number in drawnNumbers
         {
-            if winningNumbers.contains(number) do
+            if winningNumbers.contains(number)
+            {
                 matchCount += 1
+            }
         }
 
         cards.add({matchCount, copies: 1})
     }
 
-    var total = 0'u64
+    var total = 0_u64
     for card, cardIndex in cards
     {
         for offset in card.matchCount

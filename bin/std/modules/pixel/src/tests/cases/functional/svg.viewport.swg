@@ -33,8 +33,7 @@ private const ViewportSource = #raw """
 """
 
 // Renders `width` by `height` pixels of a drawing, optionally under a clipping rectangle.
-private func renderViewport(drawing: const *Svg.Drawing, width, height: s32, x, y, scale: f32,
-                            clip: Math.Rectangle, useClip: bool, transform = Math.Transform2.Identity)->Image
+private func renderViewport(drawing: const *Svg.Drawing, width, height: s32, x, y, scale: f32, clip: Math.Rectangle, useClip: bool, transform = Math.Transform2.Identity)->Image
 {
     var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
@@ -47,11 +46,17 @@ private func renderViewport(drawing: const *Svg.Drawing, width, height: s32, x, 
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
     painter.setTransform(transform)
-    if useClip do
+    if useClip
+    {
         painter.pushClippingSurfaceRect(clip)
+    }
+
     drawing.paint(&painter, x, y, scale)
-    if useClip do
+    if useClip
+    {
         painter.popClippingRect()
+    }
+
     painter.unbindRenderTarget()
     painter.end()
     expect renderer.draw(&painter)
@@ -70,11 +75,13 @@ private func renderViewport(drawing: const *Svg.Drawing, width, height: s32, x, 
 // paints its own opaque ground, so a missing element shows in the colors.
 private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
 {
-    var result = 0'u64
+    var result = 0_u64
     for y in cast(s32, rect.y) until cast(s32, rect.bottom())
     {
-        for x in cast(s32, rect.x) until cast(s32, rect.right()) where (a.pixelColor(x, y).argb & 0xFFFFFF) != (b.pixelColor(x, y).argb & 0xFFFFFF) do
+        for x in cast(s32, rect.x) until cast(s32, rect.right()) where (a.pixelColor(x, y).argb & 0xFFFFFF) != (b.pixelColor(x, y).argb & 0xFFFFFF)
+        {
             result += 1
+        }
     }
 
     return result
@@ -96,12 +103,12 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     options.monoFontFileName  = ""
     var drawing = expect Svg.Drawing.parse(ViewportSource, options)
 
-    const Width  = 200's32
-    const Height = 260's32
+    const Width  = 200_s32
+    const Height = 260_s32
 
-    for scale in [0.28'f32, 1.0]
+    for scale in [0.28_f32, 1.0]
     {
-        for offset in [0.0'f32, -180, -420, -700]
+        for offset in [0.0_f32, -180, -420, -700]
         {
             let clip    = Math.Rectangle{20, 30, 150, 190}
             let clipped = renderViewport(&drawing, Width, Height, 0, offset, scale, clip, true)
@@ -117,8 +124,10 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     var source = String.from("""\
         <svg viewBox='0 0 96 4000'><defs><clipPath id='window'>\
         <rect x='16' y='1990' width='16' height='24'/></clipPath></defs>""")
-    for i in 640 do
+    for i in 640
+    {
         source += Format.toString("<rect x='1' y='%' width='4' height='1' fill='red'/>", i * 2).toString()
+    }
 
     source += """\
         <rect x='8' y='1984' width='56' height='40' fill='red' clip-path='url(#window)'/>\
@@ -155,20 +164,26 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     for band in 12
     {
         source.appendFormat("<path fill='none' stroke='#%{X02}3050' stroke-width='%' d='M20 %", 40 + band * 16, 2 + band, 60 + band * 128)
-        for step in 700 do
+        for step in 700
+        {
             source.appendFormat("L% %", 20 + cast(f32, step) * 2.24, 60 + band * 128 + Math.sin(cast(f32, step) * 0.09) * 44)
+        }
+
         source += "'/>"
     }
 
-    for ring in 40 do
+    for ring in 40
+    {
         source.appendFormat("<circle cx='%' cy='%' r='%' fill='none' stroke='#205030' stroke-width='3'/>", 60 + (ring % 10) * 160, 1560 - (ring / 10) * 26, 6 + ring % 7)
+    }
+
     source += "</svg>"
 
     var drawing = expect Svg.Drawing.parse(source.toString())
 
-    const Scale  = 0.0625'f32
-    const Width  = 100's32     // 1600 * Scale
-    const Height = 100's32
+    const Scale  = 0.0625_f32
+    const Width  = 100_s32     // 1600 * Scale
+    const Height = 100_s32
 
     let clip     = Math.Rectangle{0, 0, cast(f32, Width), cast(f32, Height)}
     let minified = renderViewport(&drawing, Width, Height, 0, 0, Scale, clip, true)
@@ -176,7 +191,7 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
 
     // Rasterizing reads its target back bottom-up, and so does the viewport render, so the
     // two carry their rows the same way round.
-    var total = 0'u64
+    var total = 0_u64
     for y in Height
     {
         for x in Width
@@ -208,8 +223,8 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     options.monoFontFileName  = ""
     var drawing = expect Svg.Drawing.parse(ViewportSource, options)
 
-    const Width  = 200's32
-    const Height = 260's32
+    const Width  = 200_s32
+    const Height = 260_s32
 
     let clip  = Math.Rectangle{0, 0, cast(f32, Width), cast(f32, Height)}
     let first = renderViewport(&drawing, Width, Height, 0, -300, 1, clip, true)
@@ -225,8 +240,11 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     let fontPath = getTestDataPath("segoeui.ttf")
     let options  = Svg.ParseOptions{fontFileName: fontPath.toString()}
     var source   = String.from("<svg viewBox='0 0 120 12000' fill='white' font-size='16'>")
-    for i in 520 do
+    for i in 520
+    {
         source.appendFormat("<text x='20' y='%'>Row %</text>", 20 + i * 22, i)
+    }
+
     source += "</svg>"
 
     let drawing = expect Svg.Drawing.parse(source.toString(), options)
@@ -237,10 +255,15 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     let whole   = renderViewport(&drawing, 120, 56, 0, -10560, 1, clip, false)
     Swag.require(differingPixels(&clipped, &whole, clip) == 0)
 
-    var covered = 0'u64
-    for y in 4 until 52 do
-        for x in 8 until 112 where clipped.pixelColor(x, y).r > 32 do
+    var covered = 0_u64
+    for y in 4 until 52
+    {
+        for x in 8 until 112 where clipped.pixelColor(x, y).r > 32
+        {
             covered += 1
+        }
+    }
+
     Swag.require(covered > 100)
 }
 
@@ -292,9 +315,13 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     let clip    = Math.Rectangle{8, 7, 184, 86}
     let mirror  = Math.Transform2.createScale(-1, 1, 100, 50)
     let image   = renderViewport(&drawing, 200, 100, 0, 0, 1, clip, true, mirror)
-    for y in image.height do
-        for x in image.width do
+    for y in image.height
+    {
+        for x in image.width
+        {
             Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)).r == 0)
+        }
+    }
 }
 
 // Contours outside a narrow column have no effect on the winding inside it.
@@ -312,11 +339,13 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     let wide    = renderViewport(&drawing, 520, 96, 0, 0, 1, {0, 0, 520, 96}, true)
     let narrow  = renderViewport(&drawing, 96, 96, -192, 0, 1, {0, 0, 96, 96}, true)
     Swag.require(narrow.pixelColor(40, 15).r > 0)
-    for y in 96 do
+    for y in 96
+    {
         for x in 96
         {
             let pixel     = narrow.pixelColor(cast(s32, x), cast(s32, y))
             let reference = wide.pixelColor(cast(s32, x + 192), cast(s32, y))
             Swag.require(pixel == reference)
         }
+    }
 }

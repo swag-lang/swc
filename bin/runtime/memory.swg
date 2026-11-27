@@ -8,7 +8,7 @@ const MemoryVectorSize = #sizeof(MemoryVector)
 
 func __memoryCopyForward(target: [*] u8, source: const [*] u8, size: u64)
 {
-    var offset = 0'u64
+    var offset = 0_u64
     while size - offset >= 4 * MemoryVectorSize
     {
         let targetVectors = cast([*] MemoryVector, (target + offset))
@@ -84,11 +84,13 @@ func __memoryCopyBackward(target: [*] u8, source: const [*] u8, size: u64)
 
 func memset(dst: [*] void, value: u8, size: u64)
 {
-    if not size do
+    if not size
+    {
         return
+    }
 
     let target = cast([*] u8, dst)
-    var offset = 0'u64
+    var offset = 0_u64
 
     let word   = cast(u64, value) * 0x0101_0101_0101_0101
     let vector = Swag.vecSplat(word)
@@ -123,44 +125,58 @@ func memset(dst: [*] void, value: u8, size: u64)
 
 func memcpy(dst: [*] void, src: const [*] void, size: u64)
 {
-    if size do
+    if size
+    {
         __memoryCopyForward(cast([*] u8, dst), cast(const [*] u8, src), size)
+    }
 }
 
 func memmove(dst: [*] void, src: const [*] void, size: u64)
 {
-    if not size or dst == src do
+    if not size or dst == src
+    {
         return
+    }
 
     let target        = cast([*] u8, dst)
     let source        = cast(const [*] u8, src)
     let targetAddress = cast(u64, target)
     let sourceAddress = cast(u64, source)
-    if targetAddress < sourceAddress or targetAddress - sourceAddress >= size do
+    if targetAddress < sourceAddress or targetAddress - sourceAddress >= size
+    {
         __memoryCopyForward(target, source, size)
-    else do
+    }
+    else
+    {
         __memoryCopyBackward(target, source, size)
+    }
 }
 
 #[Swag.Inline]
 private func memcmpDifferenceIndex(difference: u64, width: u32)->u64
 {
     discard width
-    #static if #gettag("Swag.Endian", string, "little") == "big" do
+    #static if #gettag("Swag.Endian", string, "little") == "big"
+    {
         return cast(u64, Swag.leadingZeros(difference)) / 8 - (8 - cast(u64, width))
-    else do
+    }
+    else
+    {
         return cast(u64, Swag.trailingZeros(difference)) / 8
+    }
 }
 
 #[Swag.ReadOnly]
 func memcmp(left, right: const [*] void, size: u64)->s32
 {
-    if not size do
+    if not size
+    {
         return 0
+    }
 
     let leftBytes  = cast(const [*] u8, left)
     let rightBytes = cast(const [*] u8, right)
-    var offset     = 0'u64
+    var offset     = 0_u64
     while size - offset >= MemoryVectorSize
     {
         let leftVector  = cast(const *MemoryVector, (leftBytes + offset))[]
@@ -191,8 +207,10 @@ func memcmp(left, right: const [*] void, size: u64)->s32
         }
 
         offset += MemoryWordSize
-        if offset == size do
+        if offset == size
+        {
             return 0
+        }
 
         offset = size - MemoryWordSize
         let leftTail       = cast(const *u64, (leftBytes + offset))[]
@@ -219,8 +237,10 @@ func memcmp(left, right: const [*] void, size: u64)->s32
         }
 
         offset += 4
-        if offset == size do
+        if offset == size
+        {
             return 0
+        }
 
         offset = size - 4
         let leftTail       = cast(const *u32, (leftBytes + offset))[]
@@ -247,13 +267,18 @@ func memcmp(left, right: const [*] void, size: u64)->s32
         }
 
         offset += 2
-        if offset == size do
+        if offset == size
+        {
             return 0
+        }
 
         return cast(s32, leftBytes[size - 1]) - cast(s32, rightBytes[size - 1])
     }
 
-    if remaining do
+    if remaining
+    {
         return cast(s32, leftBytes[offset]) - cast(s32, rightBytes[offset])
+    }
+
     return 0
 }

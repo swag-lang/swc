@@ -3,14 +3,18 @@
 #[Swag.NoInline]
 func scanSwap(values: [*] u64, last: s64, pivot: u64, mutate: bool)->s64
 {
-    var left  = 0's64
+    var left  = 0_s64
     var right = last
-    while values[left] < pivot do
+    while values[left] < pivot
+    {
         left += 1
+    }
     while values[right] > pivot
     {
-        if mutate do
+        if mutate
+        {
             values[left] += 1
+        }
         right -= 1
     }
 

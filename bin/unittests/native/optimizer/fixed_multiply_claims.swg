@@ -18,7 +18,7 @@ func signedReference(value, divisor: s64)->s64 => value / divisor
 
 #test
 {
-    for value in [0'u64, 1, 6, 7, 8, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF,
+    for value in [0_u64, 1, 6, 7, 8, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF,
                   0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     {
         let narrow = cast #wrap (u32, value)
@@ -28,6 +28,8 @@ func signedReference(value, divisor: s64)->s64 => value / divisor
         let expected = unsignedReference(value, 7) ^ unsignedReference(second, 11) ^ value ^ second
         Swag.require(carriedInputs(value, second) == expected)
     }
-    for value in [-9223372036854775807's64, -2147483648, -12, -11, -10, -1, 0, 1, 10, 11, 12, 2147483647, 9223372036854775807] do
+    for value in [-9223372036854775807_s64, -2147483648, -12, -11, -10, -1, 0, 1, 10, 11, 12, 2147483647, 9223372036854775807]
+    {
         Swag.require(signedQuotient(value) == signedReference(value, 11))
+    }
 }

@@ -23,8 +23,10 @@ struct LateBox
     {
         var item = LateItem{value: 1}
         var b: LateBox
-        if doSet do
+        if doSet
+        {
             b.item = &item
+        }
         let p = b.item     // swc-expected-error {{safety_err_runtime}}
         return p.value
     }
@@ -62,8 +64,10 @@ struct LateBox
     {
         var item = LateItem{value: 1}
         var b: LateBox
-        if (b.item != null) do
+        if (b.item != null)
+        {
             return false
+        }
         b.item = &item
         return (b.item != null)
     }

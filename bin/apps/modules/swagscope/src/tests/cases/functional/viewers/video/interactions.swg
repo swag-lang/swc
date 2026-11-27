@@ -23,8 +23,10 @@ func finishManualSubtitle(view: *Film.Panel)
     Swag.require(Viewer.parseTimeAddress(" +30 ", 100, 200) == 130)
     Swag.require(Viewer.parseTimeAddress("-10", 100, 200) == 90)
     Swag.require(Viewer.parseTimeAddress("0:00.25", 0, 1) == 0.25)
-    for input in ["", "+", "1:60", "1:60:00", "1::2", "1:2:3:4", "nan", "inf", "1e3", "-101", "+101", "9999999999999999999999999999999999999999"] do
+    for input in ["", "+", "1:60", "1:60:00", "1::2", "1:2:3:4", "nan", "inf", "1e3", "-101", "+101", "9999999999999999999999999999999999999999"]
+    {
         Swag.require(Viewer.parseTimeAddress(input, 100, 200) < 0, input)
+    }
 }
 
 // The time control opens a validated dialog; jumping and undo keep a paused or playing transport.
@@ -39,8 +41,11 @@ func finishManualSubtitle(view: *Film.Panel)
     let window = framedViewerWindow(&host, file, false)
     let view   = assume cast(*Film.Panel, window.currentView)
     waitForVideoFrame(view)
-    if view.playing do
+    if view.playing
+    {
         view.togglePlayback()
+    }
+
     view.seekSeconds(0.5)
     waitForVideoFrame(view)
 

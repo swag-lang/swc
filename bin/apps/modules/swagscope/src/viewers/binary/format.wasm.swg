@@ -64,10 +64,10 @@ func reportWasmModule(image: *BinaryImage, report: *Report)
     report.numField(4, 4, "version", cast(u64, version))
     report.endGroup()
 
-    var scan     = 8'u64
-    var sections = 0'u64
-    var imports  = 0'u64
-    var exports  = 0'u64
+    var scan     = 8_u64
+    var sections = 0_u64
+    var imports  = 0_u64
+    var exports  = 0_u64
     var complete = true
 
     report.beginGroup(texts.shr_Sections, "", "", offset: 8, length: image.bytes.count - 8, open: true)
@@ -107,8 +107,11 @@ func reportWasmModule(image: *BinaryImage, report: *Report)
         scan     = bodyAt + size
     }
 
-    if not complete do
+    if not complete
+    {
         report.note(texts.wasm_Malformed)
+    }
+
     report.listCut(sections, sections)
     report.endGroup()
 
@@ -124,8 +127,10 @@ private func reportWasmImports(image: *BinaryImage, report: *Report, at: u64)->u
 {
     let texts  = texts()
     let header = wasmLeb(image, at)
-    if not header.valid do
+    if not header.valid
+    {
         return 0
+    }
 
     let count = header.value
     let shown = Math.min(count, ListLimit)
@@ -137,8 +142,11 @@ private func reportWasmImports(image: *BinaryImage, report: *Report, at: u64)->u
     for shown
     {
         let module = wasmName(image, scan)
-        if not module.length do
+        if not module.length
+        {
             break
+        }
+
         let field = wasmName(image, module.at + module.length)
         let kind  = image.u8At(field.at + field.length)
         let label = Format.toString("%.%", module.text, field.text)
@@ -157,8 +165,10 @@ private func reportWasmExports(image: *BinaryImage, report: *Report, at: u64)->u
 {
     let texts  = texts()
     let header = wasmLeb(image, at)
-    if not header.valid do
+    if not header.valid
+    {
         return 0
+    }
 
     let count = header.value
     let shown = Math.min(count, ListLimit)
@@ -170,8 +180,11 @@ private func reportWasmExports(image: *BinaryImage, report: *Report, at: u64)->u
     for shown
     {
         let name = wasmName(image, scan)
-        if not name.length do
+        if not name.length
+        {
             break
+        }
+
         let kind  = image.u8At(name.at + name.length)
         let index = wasmLeb(image, name.at + name.length + 1)
         let value = Format.toString("%", index.value)
@@ -203,8 +216,11 @@ private func wasmSkipLimits(image: *BinaryImage, at: u64)->u64
 {
     let flags   = image.u8At(at)
     let minimum = wasmLeb(image, at + 1)
-    if not (flags & 1) do
+    if not (flags & 1)
+    {
         return minimum.next
+    }
+
     return wasmLeb(image, minimum.next).next
 }
 
@@ -247,11 +263,13 @@ private func wasmLeb(image: *BinaryImage, at: u64)->WasmNumber
     var result: #returntype
     result.next = at
 
-    var shift = 0'u64
+    var shift = 0_u64
     for 10
     {
-        if not image.has(result.next, 1) do
+        if not image.has(result.next, 1)
+        {
             return result
+        }
 
         let value = image.u8At(result.next)
         result.next  += 1

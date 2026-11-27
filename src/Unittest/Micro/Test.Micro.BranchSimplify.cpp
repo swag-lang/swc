@@ -1440,7 +1440,7 @@ SWC_TEST_END()
 
 namespace
 {
-    // `if v < lo do return lo` followed by `return v`, the way the lowering
+    // `if v < lo { return lo }` followed by `return v`, the way the lowering
     // writes it: a compare, a jump over the early return, each return
     // materializing its value in the ABI's return register.
     void emitEarlyReturn(MicroBuilder& builder, const MicroReg v, const MicroReg lo, const MicroReg returnReg)
@@ -1810,7 +1810,7 @@ SWC_TEST_END()
 
 namespace
 {
-    // `c = 0; if a > b do <arm on c>` - the arm updates c and falls into the join.
+    // `c = 0; if a > b { <arm on c> }` - the arm updates c and falls into the join.
     struct TriangleShape
     {
         MicroReg      result = MicroReg::virtualIntReg(12);
@@ -1835,7 +1835,7 @@ namespace
     }
 }
 
-// `if a > b do c += 1` written as an address step and a copy: the arm runs on
+// `if a > b { c += 1 }` written as an address step and a copy: the arm runs on
 // a renamed register and one move picks it when the skipped branch would not
 // have been taken.
 SWC_TEST_BEGIN(BranchSimplify_ConvertsConditionalUpdateToCmov)

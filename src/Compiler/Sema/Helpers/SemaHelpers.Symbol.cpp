@@ -161,9 +161,9 @@ AstNodeRef SemaHelpers::unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
             continue;
         }
 
-        if (node.is(AstNodeId::QuotedListExpr))
+        if (node.is(AstNodeId::GenericArgListExpr))
         {
-            nodeRef = node.cast<AstQuotedListExpr>().nodeExprRef;
+            nodeRef = node.cast<AstGenericArgListExpr>().nodeExprRef;
             continue;
         }
 
@@ -987,7 +987,7 @@ namespace
             }
         }
 
-        // `Type'Arg.member()` is parsed as `Type'(Arg.member)()`. When `member`
+        // `Type!{Arg}.member()` is parsed as `Type!{Arg.member}()`. When `member`
         // resolves to a generic static function of the generic root, reinterpret
         // that syntax as an explicit specialization of the function itself.
         if (!specializedFunctions.empty())
@@ -1229,7 +1229,7 @@ namespace
         if (matchedSymbols.empty())
             return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef, &symMap);
 
-        if (sema.node(node.nodeRightRef).is(AstNodeId::QuotedExpr) || sema.node(node.nodeRightRef).is(AstNodeId::QuotedListExpr))
+        if (sema.node(node.nodeRightRef).is(AstNodeId::QuotedExpr) || sema.node(node.nodeRightRef).is(AstNodeId::GenericArgListExpr))
         {
             const AstNodeRef calleeRef = SemaHelpers::unwrapCallCalleeRef(sema, node.nodeRightRef);
             SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, targetNodeRef, allowOverloadSet, matchedSymbols.span()));

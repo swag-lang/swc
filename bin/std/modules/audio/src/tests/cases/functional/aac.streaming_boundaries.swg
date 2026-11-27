@@ -4,13 +4,13 @@
 using Swag, Core
 
 // Encodes one stereo stream with an arbitrary maximum caller chunk and records packet boundaries.
-func encodeStereoChunks(samples: const [..] s16, chunkFrames: u64)->Array'u8 fail
+func encodeStereoChunks(samples: const [..] s16, chunkFrames: u64)->Array!{u8} fail
 {
     var encoder     = try Aac.StreamEncoder.create(48_000, 2)
-    var output: Array'u8
-    var packet: Array'u8
-    var cursor      = 0'u64
-    var packetIndex = 0'u64
+    var output: Array!{u8}
+    var packet: Array!{u8}
+    var cursor      = 0_u64
+    var packetIndex = 0_u64
     let frames      = samples.count / 2
     while cursor < frames
     {
@@ -32,7 +32,7 @@ func encodeStereoChunks(samples: const [..] s16, chunkFrames: u64)->Array'u8 fai
     while try encoder.finish(&packet)
     {
         let expectedValid = packetIndex * 1_024 < frames ?
-                            cast(u32, frames - packetIndex * 1_024) : 0'u32
+                            cast(u32, frames - packetIndex * 1_024) : 0_u32
         Swag.require(encoder.lastPacketStartSample() == packetIndex * 1_024 and
                      encoder.lastPacketValidFrames() == expectedValid)
         output.add(cast(u8, packet.count & 255))
@@ -52,9 +52,12 @@ func encodeStereoChunks(samples: const [..] s16, chunkFrames: u64)->Array'u8 fai
 #test
 {
     var source: [4_097 * 2] s16
-    for index in source.count do
+    for index in source.count
+    {
         source[index] = cast(s16, cast(s32, index * 37 % 30_000) - 15_000)
-    for frames in [1'u64, 1_023, 1_024, 1_025, 2_048, 2_049, 4_097]
+    }
+
+    for frames in [1_u64, 1_023, 1_024, 1_025, 2_048, 2_049, 4_097]
     {
         let samples = Swag.makeSlice(&source[0], frames * 2)
         let whole   = expect encodeStereoChunks(samples, frames)
@@ -74,13 +77,13 @@ func encodeStereoChunks(samples: const [..] s16, chunkFrames: u64)->Array'u8 fai
     var source: [1_025 * 2] s16
     source[1_024 * 2] = 20_000
     var encoder = expect Aac.StreamEncoder.create(48_000, 2)
-    var encoded: Array'u8
-    var packets: Array'SoundPacket
-    var packet:  Array'u8
-    var cursor  = 0'u64
+    var encoded: Array!{u8}
+    var packets: Array!{SoundPacket}
+    var packet:  Array!{u8}
+    var cursor  = 0_u64
     while cursor < 1_025
     {
-        let offered = Math.min(37'u64, 1_025'u64 - cursor)
+        let offered = Math.min(37_u64, 1_025_u64 - cursor)
         cursor += expect encoder.push(Swag.makeSlice(&source[cursor * 2], offered * 2), &packet)
         if packet.count
         {
@@ -98,16 +101,16 @@ func encodeStereoChunks(samples: const [..] s16, chunkFrames: u64)->Array'u8 fai
     Swag.require(packets.count == 3 and encoder.inputFrameCount() == 1_025)
     discard expect File.writeAllBytes(path.toString(), encoded.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 2, packets.count * 1_024, packets.toSlice(), encoder.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
     Swag.require(decoded.count == 3 * 1_024 * 2)
-    var leftPeak  = 0's32
-    var rightPeak = 0's32
-    var peakAt    = 0'u64
+    var leftPeak  = 0_s32
+    var rightPeak = 0_s32
+    var peakAt    = 0_u64
     for frame in 1_900 until 2_200
     {
         let left  = Math.abs(cast(s32, decoded[frame * 2]))

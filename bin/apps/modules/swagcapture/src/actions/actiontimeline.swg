@@ -100,8 +100,10 @@ impl IActionUI for ActionTimeline
     {
         let main    = mainWndOf(cxt)
         let capture = main.getCapture()
-        if not capture or not capture.isTimed() do
+        if not capture or not capture.isTimed()
+        {
             return true
+        }
 
         switch cxt.id
         {

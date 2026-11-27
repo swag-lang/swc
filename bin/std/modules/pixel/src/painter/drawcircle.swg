@@ -10,10 +10,16 @@ impl Painter
     // `startAngle`. The center and radius are snapped to the pixel grid.
     mtd drawArc(centerX, centerY: f32, radius: f32, startAngle, endAngle: Math.Angle, color: Color, penSize: f32 = 1)
     {
-        if radius == 0 or .isInvisible(color) do
+        if radius == 0 or .isInvisible(color)
+        {
             return
-        if Math.isZeroEpsilon(endAngle.radians - startAngle.radians) do
+        }
+
+        if Math.isZeroEpsilon(endAngle.radians - startAngle.radians)
+        {
             return
+        }
+
         Swag.assert(endAngle.radians > startAngle.radians)
 
         let pen = Pen.createSolid(color, penSize)
@@ -23,10 +29,16 @@ impl Painter
 
     mtd drawArc(centerX, centerY: f32, radius: f32, startAngle, endAngle: Math.Angle, pen: Pen)
     {
-        if radius == 0 or .isInvisible(pen.brush) do
+        if radius == 0 or .isInvisible(pen.brush)
+        {
             return
-        if Math.isZeroEpsilon(endAngle.radians - startAngle.radians) do
+        }
+
+        if Math.isZeroEpsilon(endAngle.radians - startAngle.radians)
+        {
             return
+        }
+
         Swag.assert(endAngle.radians > startAngle.radians)
         .sharedLinePath.setArc(centerX, centerY, radius, startAngle, endAngle)
         .drawPath(&.sharedLinePath, pen)
@@ -35,8 +47,10 @@ impl Painter
     // Strokes the outline of a circle.
     mtd drawCircle(centerX, centerY: f32, radius: f32, color: Color, penSize: f32 = 1)
     {
-        if radius == 0 or .isInvisible(color) do
+        if radius == 0 or .isInvisible(color)
+        {
             return
+        }
 
         let pen = Pen.createSolid(color, penSize)
         .drawCircle(centerX, centerY, radius, pen)
@@ -52,16 +66,22 @@ impl Painter
     // The center is snapped to whole pixels and the radius to half pixels.
     mtd fillCircle(centerX, centerY: f32, radius: f32, brush: Brush)
     {
-        if radius == 0 or .isInvisible(brush) do
+        if radius == 0 or .isInvisible(brush)
+        {
             return
+        }
+
         .sharedLinePath.setCircle(centerX, centerY, radius)
         .fillPath(&.sharedLinePath, brush)
     }
 
     mtd fillCircle(centerX, centerY: f32, radius: f32, color: Color)
     {
-        if radius == 0 or .isInvisible(color) do
+        if radius == 0 or .isInvisible(color)
+        {
             return
+        }
+
         .fillCircle(centerX, centerY, radius, Brush.createSolid(color))
     }
 
@@ -70,8 +90,10 @@ impl Painter
     // With [[Pixel.BorderPos.Inside]], the stroke stays inside the radii.
     mtd drawEllipse(centerX, centerY: f32, radiusX, radiusY: f32, color: Color, penSize: f32 = 1)
     {
-        if radiusX == 0 or radiusY == 0 or .isInvisible(color) or penSize == 0 do
+        if radiusX == 0 or radiusY == 0 or .isInvisible(color) or penSize == 0
+        {
             return
+        }
 
         let pen = Pen.createSolid(color, penSize)
         .drawEllipse(centerX, centerY, radiusX, radiusY, pen)
@@ -79,8 +101,10 @@ impl Painter
 
     mtd drawEllipse(centerX, centerY: f32, radiusX, radiusY: f32, pen: Pen)
     {
-        if radiusX == 0 or radiusY == 0 or .isInvisible(pen.brush) do
+        if radiusX == 0 or radiusY == 0 or .isInvisible(pen.brush)
+        {
             return
+        }
 
         var rX = radiusX
         var rY = radiusY
@@ -115,16 +139,22 @@ impl Painter
     // [[Pixel.Painter.drawEllipse]] strokes with the same center and radii.
     mtd fillEllipse(centerX, centerY: f32, radiusX, radiusY: f32, brush: Brush)
     {
-        if radiusX == 0 or radiusY == 0 or .isInvisible(brush) do
+        if radiusX == 0 or radiusY == 0 or .isInvisible(brush)
+        {
             return
+        }
+
         .sharedLinePath.setEllipseRaw(centerX, centerY, radiusX, radiusY)
         .fillPath(&.sharedLinePath, brush)
     }
 
     mtd fillEllipse(centerX, centerY: f32, radiusX, radiusY: f32, color: Color)
     {
-        if radiusX == 0 or radiusY == 0 or .isInvisible(color) do
+        if radiusX == 0 or radiusY == 0 or .isInvisible(color)
+        {
             return
+        }
+
         .fillEllipse(centerX, centerY, radiusX, radiusY, Brush.createSolid(color))
     }
 

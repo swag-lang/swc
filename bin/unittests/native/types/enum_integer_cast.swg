@@ -27,9 +27,9 @@ enum OpenCode: u32
 
 #test
 {
-    const green: Color = cast(Color, 4's32)
+    const green: Color = cast(Color, 4_s32)
     Swag.require(green == .Green)
-    const fast: Ratio = cast(Ratio, 2.0'f32)
+    const fast: Ratio = cast(Ratio, 2.0_f32)
     Swag.require(fast == .Fast)
 
     var raw:  u32    = 3

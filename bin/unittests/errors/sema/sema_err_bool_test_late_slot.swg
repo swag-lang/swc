@@ -17,22 +17,28 @@ late var g_boolTestLateSlot: *BoolTestLateLabel
 
 func boolTestLateField(item: *BoolTestLateItem)->s32
 {
-    if item.label do     // swc-expected-error {{sema_err_bool_test_late_slot}}
+    if item.label     // swc-expected-error {{sema_err_bool_test_late_slot}}
+    {
         return item.label.width
+    }
     return 0
 }
 
 func boolTestLateGlobal()->s32
 {
-    if g_boolTestLateSlot do     // swc-expected-error {{sema_err_bool_test_late_slot}}
+    if g_boolTestLateSlot     // swc-expected-error {{sema_err_bool_test_late_slot}}
+    {
         return g_boolTestLateSlot.width
+    }
     return 0
 }
 
 // A null comparison asks the question without reading the field.
 func boolTestLatePresence(item: *BoolTestLateItem)->s32
 {
-    if (item.label != null) do
+    if (item.label != null)
+    {
         return item.label.width
+    }
     return 0
 }

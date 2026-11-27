@@ -60,8 +60,10 @@ impl AstAfterInvalidCastSignal
                 sb.append("fn(")
                 for i in tsParameters.count
                 {
-                    if i do
+                    if i
+                    {
                         sb.append(",")
+                    }
                     sb.append("assume cast(")
                     let paramType = unwrap tsParameters[i].pointedType
                     sb.append(unwrap paramType.fullname)
@@ -79,7 +81,7 @@ impl AstAfterInvalidCastSignal
 struct AstAfterInvalidCastOwner
 {
     callback: (func||(*AstAfterInvalidCastDialog, string)->bool)?
-    signal:   AstAfterInvalidCastSignal'func||(*AstAfterInvalidCastOwner)
+    signal:   AstAfterInvalidCastSignal!{func||(*AstAfterInvalidCastOwner)}
 }
 
     impl AstAfterInvalidCastOwner

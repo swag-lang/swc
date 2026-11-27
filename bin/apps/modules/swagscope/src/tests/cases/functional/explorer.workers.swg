@@ -106,9 +106,12 @@ using Core, Gui, Pixel
     for 100 where explorer.clearingCaches
     {
         host.pump()
-        if explorer.cacheClear.started do
+        if explorer.cacheClear.started
+        {
             explorer.cacheClear.task.wait()
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(not explorer.clearingCaches and not File.exists(cached))
@@ -146,14 +149,20 @@ using Core, Gui, Pixel
     window.applyLayout()
     explorer.list.setFocusedIndex(0, ensureVisible: false)
     explorer.list.selectLine(0)
-    for preview in explorer.previews where preview.started do
+    for preview in explorer.previews where preview.started
+    {
         preview.task.wait()
+    }
+
     for 100
     {
         host.pump()
-        if explorer.entries[0].music.title == "Discovery" do
+        if explorer.entries[0].music.title == "Discovery"
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(explorer.entries[0].music.title == "Discovery")
@@ -171,18 +180,23 @@ using Core, Gui, Pixel
     window.explorer       = explorer
     window.explorerActive = true
     explorer.setMode(.Names)
-    var files, keys: Array'String
+    var files, keys: Array!{String}
     defer
     {
-        for file in files do
+        for file in files
+        {
             catch File.delete(file[])
-        for key in keys do
+        }
+
+        for key in keys
+        {
             catch File.delete(key[])
+        }
     }
 
     var image = Image.create(24, 18, .RGB8)
     image.fill(Color.fromRgb(56, 189, 248))
-    let count = 3'u64
+    let count = 3_u64
     for index in count
     {
         let file = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("parallel-thumbnail-%.txt", index))
@@ -198,45 +212,71 @@ using Core, Gui, Pixel
     window.applyLayout()
     explorer.requestPreview()
     Swag.require(explorer.previews.count >= count)
-    for preview, index in explorer.previews do
+    for preview, index in explorer.previews
+    {
         Swag.require(preview.started == (index < count) and (not preview.started or preview.index == index))
-    for preview in explorer.previews where preview.started do
+    }
+
+    for preview in explorer.previews where preview.started
+    {
         Swag.require(preview.task.priority == .Background)
+    }
+
     explorer.hide()
     explorer.leave()
-    for preview in explorer.previews do
+    for preview in explorer.previews
+    {
         preview.task.wait()
+    }
+
     for 100
     {
         host.pump()
         var busy = false
-        for preview in explorer.previews do
+        for preview in explorer.previews
+        {
             busy = busy or preview.started
-        if not busy do
+        }
+
+        if not busy
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(explorer.cached.isEmpty())
 
     explorer.show()
     explorer.requestPreview()
-    for preview in explorer.previews do
+    for preview in explorer.previews
+    {
         preview.task.wait()
+    }
+
     for 100
     {
         host.pump()
         var busy = false
-        for preview in explorer.previews do
+        for preview in explorer.previews
+        {
             busy = busy or preview.started
-        if not busy do
+        }
+
+        if not busy
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(explorer.cached.count == count)
-    for &entry in explorer.entries do
+    for &entry in explorer.entries
+    {
         Swag.require(entry.texture.isValid())
+    }
 }
 
 // A pending tile keeps its generic picture under the spinner, including between local and online work.
@@ -263,8 +303,10 @@ using Core, Gui, Pixel
     explorer.grid.invalidate()
     discard host.render(window)
     Swag.require(explorer.grid.spinners[0].isLocallyVisible())
-    for worker in explorer.previews do
+    for worker in explorer.previews
+    {
         worker.wait()
+    }
 
     explorer.entries[0].attempted = true
     let preview = explorer.previews[0]
@@ -284,8 +326,10 @@ using Core, Gui, Pixel
         {
             let px = cast(s32, rect.x) + x
             let py = cast(s32, rect.y) + y
-            if first.pixelColor(px, py) != second.pixelColor(px, py) do
+            if first.pixelColor(px, py) != second.pixelColor(px, py)
+            {
                 changed += 1
+            }
         }
     }
 
@@ -298,8 +342,10 @@ using Core, Gui, Pixel
         {
             let px = cast(s32, origin.x) + x
             let py = cast(s32, origin.y) + y
-            if not rect.contains(Math.Point{cast(f32, px), cast(f32, py)}) do
+            if not rect.contains(Math.Point{cast(f32, px), cast(f32, py)})
+            {
                 Swag.require(first.pixelColor(px, py) == second.pixelColor(px, py))
+            }
         }
     }
 
@@ -315,8 +361,10 @@ using Core, Gui, Pixel
     explorer.grid.invalidate()
     discard host.render(window)
     Swag.require(explorer.grid.spinners[0].isLocallyVisible())
-    for worker in explorer.previews do
+    for worker in explorer.previews
+    {
         worker.wait()
+    }
 
     var image = Image.create(24, 18, .RGB8)
     image.fill(Color.fromRgb(56, 189, 248))
@@ -338,8 +386,11 @@ using Core, Gui, Pixel
     window.explorerActive = true
     defer
     {
-        for worker in explorer.previews do
+        for worker in explorer.previews
+        {
             worker.wait()
+        }
+
         host.shutdown()
     }
 
@@ -351,8 +402,11 @@ using Core, Gui, Pixel
 
     // Hold a publication for every entry, without relying on real decoding or network delays.
     explorer.refreshPreviewSettings()
-    while explorer.previews.count < explorer.entries.count do
-        explorer.previews.add(Memory.new'ExplorerPreview())
+    while explorer.previews.count < explorer.entries.count
+    {
+        explorer.previews.add(Memory.new!{ExplorerPreview}())
+    }
+
     for worker, index in explorer.previews
     {
         worker.index      = index
@@ -366,8 +420,10 @@ using Core, Gui, Pixel
     let range = explorer.grid.visibleRange()
     let count = range.end - range.first
     Swag.require(explorer.grid.spinners.count >= count)
-    for index in count do
+    for index in count
+    {
         Swag.require(explorer.grid.spinners[index].isLocallyVisible())
+    }
 
     var image = Image.create(24, 18, .RGB8)
     image.fill(Color.fromRgb(56, 189, 248))
@@ -375,7 +431,10 @@ using Core, Gui, Pixel
     explorer.grid.invalidate()
     discard host.render(window)
     var busy: u64
-    for spinner in explorer.grid.spinners where spinner.isLocallyVisible() do
+    for spinner in explorer.grid.spinners where spinner.isLocallyVisible()
+    {
         busy += 1
+    }
+
     Swag.require(busy == count - 1)
 }

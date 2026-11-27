@@ -3,18 +3,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    bool isCharacterLiteralTypeSuffix(const TokenId id)
-    {
-        return id == TokenId::TypeU8 ||
-               id == TokenId::TypeU16 ||
-               id == TokenId::TypeU32 ||
-               id == TokenId::TypeU64 ||
-               id == TokenId::TypeRune;
-    }
-}
-
 // The lexer already applied #raw, so the modifier needs no AST node.
 AstNodeRef Parser::parseRawStringLiteral()
 {
@@ -118,28 +106,11 @@ AstNodeRef Parser::parseLiteralExpression()
     if (literal.isInvalid())
         return AstNodeRef::invalid();
 
-    TokenRef suffixTknRef = TokenRef::invalid();
-    TokenRef quoteTknRef  = TokenRef::invalid();
-
-    // Blanks and comments do not split a literal suffix; a line ending does.
-    if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
-    {
-        quoteTknRef  = ref();
-        suffixTknRef = consume();
-    }
-    else if (ast_->node(literal).is(AstNodeId::CharacterLiteral) && isCharacterLiteralTypeSuffix(id()))
-    {
-        // The closing delimiter doubles as the suffix separator, but trivia must break adjacency.
-        const auto literalRange = ast_->srcView().tokenCodeRange(*ctx_, ast_->node(literal).tokRef());
-        const auto suffixRange  = ast_->srcView().tokenCodeRange(*ctx_, ref());
-        if (literalRange.offset + literalRange.len == suffixRange.offset)
-            suffixTknRef = ref();
-    }
-
-    if (suffixTknRef.isInvalid())
+    const TokenRef suffixMarkerRef = consumeIf(TokenId::SymLiteralSuffixStart);
+    if (suffixMarkerRef.isInvalid())
         return literal;
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>(suffixTknRef);
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>(suffixMarkerRef);
 
     nodePtr->nodeLiteralRef = literal;
     nodePtr->nodeSuffixRef.setInvalid();
@@ -147,7 +118,7 @@ AstNodeRef Parser::parseLiteralExpression()
     switch (id())
     {
         case TokenId::Identifier:
-            nodePtr->nodeSuffixRef = parseQuotedIdentifier();
+            nodePtr->nodeSuffixRef = parseIdentifier();
             return nodeRef;
 
         case TokenId::TypeF32:
@@ -175,8 +146,7 @@ AstNodeRef Parser::parseLiteralExpression()
             return nodeRef;
 
         default:
-            SWC_ASSERT(quoteTknRef.isValid());
-            raiseError(DiagnosticId::parser_err_empty_literal_suffix, quoteTknRef);
+            raiseError(DiagnosticId::parser_err_empty_literal_suffix, suffixMarkerRef);
             return nodeRef;
     }
 }

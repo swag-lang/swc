@@ -14,7 +14,13 @@ struct Handle
 impl Handle
 {
     mtd opPostMove() { g_moves += 1 }
-    mtd opDrop() { if .x != 0 do g_drops += 1 }
+    mtd opDrop()
+    {
+        if .x != 0
+        {
+            g_drops += 1
+        }
+    }
 }
 
 func makeHandle(v: s32)->Handle

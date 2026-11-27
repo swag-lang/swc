@@ -23,8 +23,11 @@ impl HeaderFooterReader
 {
     mtd finishParagraph()
     {
-        if not .inParagraph do
+        if not .inParagraph
+        {
             return
+        }
+
         .html += "<p>"
         .html += .paragraph
         .html += "</p>"
@@ -45,55 +48,67 @@ impl HeaderFooterReader
             {
                 if roots == 0
                 {
-                    if not token.isElement("hdr") and not token.isElement("ftr") do
+                    if not token.isElement("hdr") and not token.isElement("ftr")
+                    {
                         fail Errors.InvalidFormatError{texts().err_Invalid}
+                    }
+
                     roots += 1
                 }
 
                 if token.isElement("p")
                 {
                     reader.inParagraph = true
-                    if token.empty do
+                    if token.empty
+                    {
                         reader.finishParagraph()
+                    }
                 }
-                elif token.isElement("t")
+                else if token.isElement("t")
                 {
                     reader.inText = not token.empty
                 }
-                elif token.isElement("tab") and reader.inParagraph
+                else if token.isElement("tab") and reader.inParagraph
                 {
                     reader.paragraph += "&emsp;"
                 }
-                elif token.isElement("br") and reader.inParagraph
+                else if token.isElement("br") and reader.inParagraph
                 {
                     reader.paragraph += "<br>"
                 }
-                elif token.isElement("tbl") or
-                     token.isElement("drawing") or
-                     token.isElement("pict") or
-                     token.isElement("fldChar") or
-                     token.isElement("instrText") or
-                     token.isElement("pPr") or
-                     token.isElement("rPr")
+                else if token.isElement("tbl") or
+                        token.isElement("drawing") or
+                        token.isElement("pict") or
+                        token.isElement("fldChar") or
+                        token.isElement("instrText") or
+                        token.isElement("pPr") or
+                        token.isElement("rPr")
                 {
                     reader.limited = true
                 }
             }
-            elif token.kind == .Text and reader.inParagraph and reader.inText
+            else if token.kind == .Text and reader.inParagraph and reader.inText
             {
                 Package.appendHtmlEscaped(&reader.paragraph, token.text)
             }
-            elif token.kind == .End
+            else if token.kind == .End
             {
-                if token.isElement("t") do
+                if token.isElement("t")
+                {
                     reader.inText = false
-                elif token.isElement("p") do
+                }
+                else if token.isElement("p")
+                {
                     reader.finishParagraph()
+                }
             }
         }
 
-        if scan.damaged or reader.inParagraph or roots != 1 do
+        if scan.damaged or reader.inParagraph or roots != 1
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         return HeaderFooterContent{#move reader.html, reader.limited}
     }
 }

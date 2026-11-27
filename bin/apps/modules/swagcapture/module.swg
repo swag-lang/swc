@@ -1,6 +1,9 @@
 #import("gui", location: "swag@std")
-#static if #os == Swag.TargetOs.Windows do
+#static if #os == Swag.TargetOs.Windows
+{
     #import("win32", location: "swag@std")
+}
+
 #import("video", location: "swag@std")
 #import("audio", location: "swag@std")
 #import("screen", location: "swag@std")

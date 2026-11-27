@@ -8,11 +8,16 @@ internal func nativeMetadataAt(directory: s32, name: string)->Linux.Structs.stat
     var result: #returntype
     for
     {
-        if Linux.statx(directory, native.storage(), Linux.AT_SYMLINK_NOFOLLOW, Linux.STATX_BASIC_STATS | Linux.STATX_BTIME, &result) == 0 do
+        if Linux.statx(directory, native.storage(), Linux.AT_SYMLINK_NOFOLLOW, Linux.STATX_BASIC_STATS | Linux.STATX_BTIME, &result) == 0
+        {
             return result
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, name)
+        }
     }
 }
 
@@ -23,12 +28,21 @@ internal func nativeInfoAt(directory: s32, name, fullName: string)->FileInfo fai
     result.fullName   = fullName
     result.attributes = nativeAttributes(directory, name, metadata)
     result.size       = result.isDirectory() ? 0 : metadata.stx_size
-    if metadata.stx_mask & Linux.STATX_BTIME do
+    if metadata.stx_mask & Linux.STATX_BTIME
+    {
         result.creationTime = Time.dateTimeFromUnix(metadata.stx_btime.tv_sec, metadata.stx_btime.tv_nsec)
-    if metadata.stx_mask & Linux.STATX_ATIME do
+    }
+
+    if metadata.stx_mask & Linux.STATX_ATIME
+    {
         result.lastAccessTime = Time.dateTimeFromUnix(metadata.stx_atime.tv_sec, metadata.stx_atime.tv_nsec)
-    if metadata.stx_mask & Linux.STATX_MTIME do
+    }
+
+    if metadata.stx_mask & Linux.STATX_MTIME
+    {
         result.lastWriteTime = Time.dateTimeFromUnix(metadata.stx_mtime.tv_sec, metadata.stx_mtime.tv_nsec)
+    }
+
     return result
 }
 

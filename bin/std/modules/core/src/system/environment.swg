@@ -12,8 +12,11 @@ func arguments()->const [..] string => Swag.args()
 func argument(index: u32)->string?
 {
     let args = Swag.args()
-    if index >= args.count do
+    if index >= args.count
+    {
         return null
+    }
+
     return args[index]
 }
 
@@ -26,8 +29,11 @@ func hasArgument(argument: string)->bool => Slice.contains(Swag.args(), argument
 func executablePath()->string
 {
     let args = Swag.args()
-    if args.count == 0 do
+    if args.count == 0
+    {
         return ""
+    }
+
     return args[0]
 }
 
@@ -46,15 +52,20 @@ func isWebUrl(url: string)->bool
     }
 
     let bytes = cast(const [..] u8, url)
-    if not Utf8.isValid(bytes) do
+    if not Utf8.isValid(bytes)
+    {
         return false
+    }
 
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < bytes.count
     {
         let {c, eat} = Utf8.decodeRune(bytes[offset to])
-        if Unicode.isSpace(c) or Unicode.isControl(c) do
+        if Unicode.isSpace(c) or Unicode.isControl(c)
+        {
             return false
+        }
+
         offset += eat
     }
 
@@ -94,14 +105,16 @@ struct Monitor
 }
 
 // Uses half-open physical monitor bounds to choose the containing monitor or nearest one.
-internal func monitorForPointIn(monitors: Array'Monitor, point: Math.Point)->Env.Monitor
+internal func monitorForPointIn(monitors: Array!{Monitor}, point: Math.Point)->Env.Monitor
 {
     // First pass: a monitor that contains the point.
     for m in monitors
     {
         let r = m.physicalBounds
-        if point.x >= r.x and point.x < r.right() and point.y >= r.y and point.y < r.bottom() do
+        if point.x >= r.x and point.x < r.right() and point.y >= r.y and point.y < r.bottom()
+        {
             return m
+        }
     }
 
     // Second pass: the monitor whose rectangle is the closest to the point.
@@ -138,7 +151,7 @@ func monitorForPoint(point: Math.Point)->Env.Monitor => monitorForPointIn(Env.ge
 func monitorForRectangle(rectangle: Math.Rectangle)->Env.Monitor
 {
     var result: #returntype
-    var bestSurf = 0'f32
+    var bestSurf = 0_f32
     let monitors = Env.getMonitors()
     for m in monitors
     {
@@ -152,8 +165,11 @@ func monitorForRectangle(rectangle: Math.Rectangle)->Env.Monitor
         }
     }
 
-    if bestSurf == 0 and not monitors.isEmpty() do
+    if bestSurf == 0 and not monitors.isEmpty()
+    {
         result = monitors[0]
+    }
+
     return result
 }
 

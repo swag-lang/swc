@@ -33,8 +33,11 @@ func paintLibraryFacts(host: *Wnd, painter: *Painter, rect: Math.Rectangle, date
     let separator = " · "
     for kind in [ThemeIcons.Star, .StarFilled]
     {
-        if kind == .Star and not favorite or kind == .StarFilled and not rating do
+        if kind == .Star and not favorite or kind == .StarFilled and not rating
+        {
             continue
+        }
+
         painter.drawString(x, y, separator, font, ink)
         x += Painter.measureString(separator, font).width
         let icon = host.theme().icon(kind, RatingGlyphSize)
@@ -80,7 +83,7 @@ enum LibraryItemKind
 // files are hashed: a whole selected library must not cost a scan of itself per cell.
 struct LibrarySelection
 {
-    files:   HashSet'String
+    files:   HashSet!{String}
     focused: String
 }
 
@@ -106,8 +109,11 @@ impl LibraryItem
 {
     mtd opDrop()
     {
-        if .texture.isValid() do
+        if .texture.isValid()
+        {
             g_App.renderer.removeTexture(&.texture)
+        }
+
         Memory.delete(.capture)
     }
 
@@ -119,10 +125,16 @@ impl LibraryItem
     func nameOf(fullName: string, capture: const *Capture?)->String
     {
         var result: #returntype
-        if capture do
+        if capture
+        {
             result = capture.displayName()
-        if result.isEmpty() do
+        }
+
+        if result.isEmpty()
+        {
             result = Path.fileNameWithoutExtension(fullName) orelse ""
+        }
+
         return result
     }
 }
@@ -139,8 +151,8 @@ struct LibraryView
         mainWnd:   *MainWnd
     }
 
-    allItems:     ArrayPtr'LibraryItem
-    items:        Array'*LibraryItem
+    allItems:     ArrayPtr!{LibraryItem}
+    items:        Array!{*LibraryItem}
     mutexLoaded:  Swag.Mutex
     thread:       Thread
     hotItem:      u32 = Swag.U32.Max
@@ -159,8 +171,10 @@ impl IWnd for LibraryView
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .scrollWnd != null do
+        if .scrollWnd != null
+        {
             .publishScrollExtent()
+        }
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -188,8 +202,10 @@ impl IWnd for LibraryView
             return
         }
 
-        if evt.kind == .Wheel do
+        if evt.kind == .Wheel
+        {
             evt.accepted = false
+        }
 
         var pos = .surfaceToLocal(evt.surfacePos)
         pos += .scrollWnd.scrollPosition()
@@ -222,15 +238,17 @@ impl IWnd for LibraryView
                 .selectAt(.hotItem, shiftPressed, ctrlPressed)
                 .setFocus()
             }
-            elif evt.kind == .DoubleClick and .hotItem < .items.count and not .libWnd.trashMode
+            else if evt.kind == .DoubleClick and .hotItem < .items.count and not .libWnd.trashMode
             {
                 .setFocusItem(.hotItem)
                 .libWnd.sendCommandEvent(ActionLibSel.Open)
             }
         }
 
-        if evt.kind == .Pressed and evt.button == .Right and .hotItem < .items.count do
+        if evt.kind == .Pressed and evt.button == .Right and .hotItem < .items.count
+        {
             .showItemMenu(evt.surfacePos)
+        }
     }
 
     // Opens the context menu for the cell under the pointer, preserving a multiple selection
@@ -258,7 +276,7 @@ impl IWnd for LibraryView
                 .addSeparator()
                 .addItem(ActionLibTrash.DeleteForever)
             }
-            elif focused.kind == .Image
+            else if focused.kind == .Image
             {
                 .addItem(ActionLibSel.Open)
                 .addSeparator()
@@ -310,8 +328,10 @@ impl IWnd for LibraryView
                         let selected = assume cast(*IconButton, wnd)
                         for child in toolbar.children
                         {
-                            if child is IconButton as other do
+                            if child is IconButton as other
+                            {
                                 other.setChecked(other == selected)
+                            }
                         }
 
                         selected.postCommandEvent(RatingCommandIds[rating])
@@ -343,10 +363,14 @@ impl IWnd for LibraryView
         let favorite       = capture and capture.favorite
         let rating: u8     = capture and .libWnd.showRatingOverlay ? capture.rating : 0
         var size:   String = ""
-        if capture do
+        if capture
+        {
             size = Format.toString("% × %", capture.width, capture.height)
-        elif it.image.isValid() do
+        }
+        else if it.image.isValid()
+        {
             size = Format.toString("% × %", it.image.width, it.image.height)
+        }
 
         var content: FileTile.Content
         content.texture     = it.texture
@@ -356,10 +380,15 @@ impl IWnd for LibraryView
         content.badge       = it.kind == .Image ? appStrings().ui_ImageBadge : ""
         content.placeholder = ""
         content.icon        = .theme().icon(.HourGlass, 32)
-        if itemLoaded and it.kind == .Image do
+        if itemLoaded and it.kind == .Image
+        {
             content.icon = .theme().icon(.Warning, 32)
-        elif itemLoaded and (not capture or capture.previewBytes.isEmpty()) do
+        }
+        else if itemLoaded and (not capture or capture.previewBytes.isEmpty())
+        {
             content.icon = .mainWnd.icon(.Archive, 32)
+        }
+
         var options: FileTile.Options
         options.fit          = .Contain
         options.hovered      = index == .hotItem
@@ -370,8 +399,8 @@ impl IWnd for LibraryView
             paintLibraryFacts(host, painter, rect, dateText, favorite, rating)
         }
 
-        let {w, h}  = .getPreviewSize()
-        let rect    = Math.Rectangle{it.rect.x, it.rect.y, w, h}
+        let {w, h}   = .getPreviewSize()
+        let rect     = Math.Rectangle{it.rect.x, it.rect.y, w, h}
         let sampling = painter.interpolationMode()
         painter.setInterpolationMode(.Linear)
         let animate = FileTile.paint(me, painter, rect, &content, options)
@@ -393,8 +422,10 @@ impl IWnd for LibraryView
         .mutexLoaded.lock()
         let capture = it.capture
         .mutexLoaded.unlock()
-        if capture and not capture.previewBytes.isEmpty() do
+        if capture and not capture.previewBytes.isEmpty()
+        {
             renderer.removeTexture(&it.texture)
+        }
     }
 
     // Uploads the thumbnail of a visible capture, then releases the transient pixels. A preview
@@ -417,16 +448,20 @@ impl IWnd for LibraryView
                 // Bytes this build cannot turn into a picture. Drop them, so the cell settles on
                 // the preview-less icon instead of paying the decoder again on every frame the
                 // capture stays on screen.
-                if not capture.preview.isValid() do
+                if not capture.preview.isValid()
+                {
                     capture.previewBytes.clear()
+                }
             }
         }
 
         if capture.preview.isValid()
         {
             it.texture = renderer.addImage(capture.preview)
-            if not capture.previewBytes.isEmpty() do
+            if not capture.previewBytes.isEmpty()
+            {
                 capture.preview = {}
+            }
         }
 
         return decoded
@@ -434,8 +469,10 @@ impl IWnd for LibraryView
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if not g_UpdatingLib do
+        if not g_UpdatingLib
+        {
             .imgSpin.hide()
+        }
 
         let painter = evt.paintContext.painter
         if g_DirtyList and .takeListRefresh()
@@ -452,8 +489,10 @@ impl IWnd for LibraryView
             discard attempt
             let oldWidth = .position.width
             .publishScrollExtent()
-            if .position.width == oldWidth do
+            if .position.width == oldWidth
+            {
                 break
+            }
         }
 
         let clientRect = .paddedClientRect()
@@ -461,7 +500,7 @@ impl IWnd for LibraryView
         var y          = clientRect.y
         let {w, h}     = .getPreviewSize()
         let columns    = .numImagesPerLine()
-        var column     = 0'u32
+        var column     = 0_u32
 
         // The viewport, and the band a thumbnail is kept decoded in. A library holds thousands
         // of captures where a viewport shows a dozen, so the loop below places every cell — the
@@ -500,8 +539,11 @@ impl IWnd for LibraryView
                 // A thumbnail is released a band later than it leaves the view, because a scroll
                 // that crosses the edge and comes back would otherwise decode the same PNG again
                 // on the very next frame.
-                if it.texture.isValid() and (it.rect.bottom() < keepTop or it.rect.y > keepBottom) do
+                if it.texture.isValid() and (it.rect.bottom() < keepTop or it.rect.y > keepBottom)
+                {
                     .releaseThumbnail(it, evt.paintContext.renderer)
+                }
+
                 continue
             }
 
@@ -516,22 +558,28 @@ impl IWnd for LibraryView
             // every frame the cell is shown.
             if capture and not it.texture.isValid()
             {
-                if not .uploadThumbnail(it, capture, evt.paintContext.renderer, &decodeBudget) do
+                if not .uploadThumbnail(it, capture, evt.paintContext.renderer, &decodeBudget)
+                {
                     decodesRemain = true
+                }
             }
-            elif it.kind == .Image and itemLoaded and not it.texture.isValid() and it.image.isValid()
+            else if it.kind == .Image and itemLoaded and not it.texture.isValid() and it.image.isValid()
             {
                 it.texture = evt.paintContext.renderer.addImage(it.image)
             }
 
-            if .paintItem(painter, it, i, capture, itemLoaded) do
+            if .paintItem(painter, it, i, capture, itemLoaded)
+            {
                 animateNames = true
+            }
         }
 
         if animateNames
         {
-            if not .nameTimer do
-                .nameTimer = .addTimer(50'ms)
+            if not .nameTimer
+            {
+                .nameTimer = .addTimer(50_ms)
+            }
         }
         else
         {
@@ -549,8 +597,10 @@ impl IWnd for LibraryView
 
         // Cells this frame could not afford to decode. Ask for another one; the hourglass they
         // carry meanwhile is the same one they carry while their capture is still loading.
-        if decodesRemain do
+        if decodesRemain
+        {
             .invalidate()
+        }
     }
 }
 
@@ -558,8 +608,11 @@ impl LibraryView
 {
     mtd publishScrollExtent()
     {
-        if .position.width <= 0 do
+        if .position.width <= 0
+        {
             return
+        }
+
         let columns = .numImagesPerLine()
         let {h}     = .getPreviewSize()
         let rows    = (.items.count + cast(u64, columns) - 1) / cast(u64, columns)
@@ -579,8 +632,10 @@ impl LibraryView
     {
         if g_UpdatingLib and
            .listRefresh.isRunning() and
-           .listRefresh.elapsedMilliseconds() < ListRefreshDelay do
+           .listRefresh.elapsedMilliseconds() < ListRefreshDelay
+        {
             return false
+        }
 
         g_DirtyList = false
         .listRefresh.restart()
@@ -589,8 +644,11 @@ impl LibraryView
 
     mtd stopLoading()
     {
-        if not .thread.isValid() do
+        if not .thread.isValid()
+        {
             return
+        }
+
         .thread.safeForceEnd()
         .thread.wait()
     }
@@ -600,8 +658,10 @@ impl LibraryView
     mtd startLoading() fail
     {
         var hasPending: bool
-        for it in .allItems where not it!.loaded do
+        for it in .allItems where not it!.loaded
+        {
             hasPending = true
+        }
 
         if not hasPending
         {
@@ -636,14 +696,19 @@ impl LibraryView
         .mutexLoaded.lock()
         let capture = item.capture
         .mutexLoaded.unlock()
-        if not capture do
+        if not capture
+        {
             return
+        }
 
         catch capture.materializePreview()
         catch File.touch(item.fi.fullName)
         .mainWnd.recentWnd.addRecent(item.fi.fullName, capture.preview, front: true, linked: capture.linkedImage, duration: capture.keptDuration())
-        if not capture.previewBytes.isEmpty() do
+        if not capture.previewBytes.isEmpty()
+        {
             capture.preview = {}
+        }
+
         .mainWnd.recentWnd.setScrollPos(0, 0)
         let active = .mainWnd.editWnd.getCapture()
         if active and active.file == item.fi.fullName
@@ -717,17 +782,28 @@ impl LibraryView
     // find a capture by any of the names it is known under.
     mtd const matchSearch(it: *LibraryItem, capture: *Capture?, search: string, matcher: *Text.NameMatcher)->bool
     {
-        if not search.count or matcher.isMatch(it.fi.fullName.toString()) do
+        if not search.count or matcher.isMatch(it.fi.fullName.toString())
+        {
             return true
-        if not capture do
+        }
+
+        if not capture
+        {
             return false
+        }
 
         let names = [capture.title.toSlice(), capture.linkedImage.toSlice(), capture.sourceApplication.toSlice(),
                      capture.sourceExecutable.toSlice(), capture.sourceWindowTitle.toSlice(), capture.sourceWindowClass.toSlice()]
-        for name in names where matcher.isMatch(cast(string, name)) do
+        for name in names where matcher.isMatch(cast(string, name))
+        {
             return true
-        for tag in capture.tags where matcher.isMatch(tag.toString()) do
+        }
+
+        for tag in capture.tags where matcher.isMatch(tag.toString())
+        {
             return true
+        }
+
         return false
     }
 
@@ -737,10 +813,15 @@ impl LibraryView
         var result: #returntype
         for item, i in .items
         {
-            if .selModel.isSelected(cast(u32, i)) do
+            if .selModel.isSelected(cast(u32, i))
+            {
                 result.files.add(item.fi.fullName)
-            if i == .focusItem do
+            }
+
+            if i == .focusItem
+            {
                 result.focused = item.fi.fullName
+            }
         }
 
         return result
@@ -754,14 +835,21 @@ impl LibraryView
         .focusItem = Swag.U32.Max
         for item, i in .items
         {
-            if selection.files.contains(item.fi.fullName) do
+            if selection.files.contains(item.fi.fullName)
+            {
                 .selModel.select(cast(u32, i))
-            if item.fi.fullName == selection.focused do
+            }
+
+            if item.fi.fullName == selection.focused
+            {
                 .focusItem = cast(u32, i)
+            }
         }
 
-        if .focusItem == Swag.U32.Max do
+        if .focusItem == Swag.U32.Max
+        {
             .focusItem = .firstSelected()
+        }
     }
 
     // Drops the cell of `file`, which left the library. The selection and the focus stay on the
@@ -790,8 +878,10 @@ impl LibraryView
 
         .hotItem = Swag.U32.Max
         .restoreSelection(selection)
-        if selection.focused == file and .focusItem == Swag.U32.Max and not .items.isEmpty() do
+        if selection.focused == file and .focusItem == Swag.U32.Max and not .items.isEmpty()
+        {
             .focusItem = cast(u32, Math.min(removedAt, .items.count - 1))
+        }
     }
 
     // Whether the date of `it` falls on the year, month, and day the sidebar picked; a zero picks
@@ -809,8 +899,10 @@ impl LibraryView
     mtd accepts(it: *LibraryItem, capture: *Capture?, loaded: bool, search: string, matcher: *Text.NameMatcher, byDate: bool)->bool
     {
         let lib = .libWnd
-        if byDate and not .matchesDate(it) do
+        if byDate and not .matchesDate(it)
+        {
             return false
+        }
 
         switch lib.contentFilter
         {
@@ -822,12 +914,14 @@ impl LibraryView
         // Nothing is known about an item until its preview loads. While a search or a filter on
         // what it holds is active, hide it (it re-appears once loaded if it matches) so results
         // are not padded with unloaded, possibly non-matching, captures.
-        if not loaded do
+        if not loaded
+        {
             return search.count == 0 and
                    lib.contentFilter != .ScreenCaptures and
                    lib.contentFilter != .ImportedCaptures and
                    lib.contentFilter != .Animations and
                    not lib.filtersMetadata()
+        }
 
         switch lib.contentFilter
         {
@@ -837,28 +931,57 @@ impl LibraryView
         default: break
         }
 
-        if it.kind == .Image do
+        if it.kind == .Image
+        {
             return not lib.filtersMetadata() and .matchSearch(it, null, search, matcher)
+        }
 
-        if not capture do
+        if not capture
+        {
             return false
+        }
+
         let linked = not capture.linkedImage.isEmpty()
-        if linked and not lib.showLinkedImage do
+        if linked and not lib.showLinkedImage
+        {
             return false
-        if not linked and not lib.showUnLinkedImage do
+        }
+
+        if not linked and not lib.showUnLinkedImage
+        {
             return false
-        if linked and capture.linkedUpToDate and not lib.showUpToDateLinkedImage do
+        }
+
+        if linked and capture.linkedUpToDate and not lib.showUpToDateLinkedImage
+        {
             return false
-        if linked and not capture.linkedUpToDate and not lib.showUnSavedLinkedImage do
+        }
+
+        if linked and not capture.linkedUpToDate and not lib.showUnSavedLinkedImage
+        {
             return false
-        if lib.favoritesOnly and not capture.favorite do
+        }
+
+        if lib.favoritesOnly and not capture.favorite
+        {
             return false
-        if capture.rating < lib.minimumRating do
+        }
+
+        if capture.rating < lib.minimumRating
+        {
             return false
-        if not lib.applicationFilter.isEmpty() and Utf8.compare(capture.sourceApplication.toSlice(), lib.applicationFilter, .Latin1NoCase) != 0 do
+        }
+
+        if not lib.applicationFilter.isEmpty() and Utf8.compare(capture.sourceApplication.toSlice(), lib.applicationFilter, .Latin1NoCase) != 0
+        {
             return false
-        if not lib.tagFilter.isEmpty() and not capture.hasTag(lib.tagFilter) do
+        }
+
+        if not lib.tagFilter.isEmpty() and not capture.hasTag(lib.tagFilter)
+        {
             return false
+        }
+
         return .matchSearch(it, capture, search, matcher)
     }
 
@@ -884,8 +1007,10 @@ impl LibraryView
             .mutexLoaded.unlock()
 
             itn.filtered = not .accepts(itn, capture, itemLoaded, search, &matcher, dateFilterApplies)
-            if not itn.filtered do
+            if not itn.filtered
+            {
                 .items.add(itn)
+            }
         }
 
         .restoreSelection(selection)
@@ -910,8 +1035,10 @@ impl LibraryView
                 if capture.preview.isValid()
                 {
                     haar = ImageStatistics.quickExtractHaarFeatures(capture.preview, 32)
-                    if not capture.previewBytes.isEmpty() do
+                    if not capture.previewBytes.isEmpty()
+                    {
                         capture.preview = {}
+                    }
                 }
 
                 width  = capture.width
@@ -956,16 +1083,23 @@ impl LibraryView
     mtd loadFiles(th: const *Thread)
     {
         // Work on a copy, as `items` can be changed by sorting during loading
-        var copy: Array'*LibraryItem
-        for it in .allItems do
+        var copy: Array!{*LibraryItem}
+        for it in .allItems
+        {
             copy.add(unwrap it)
+        }
 
         for it in copy
         {
-            if th.requestEnd.isRaised() do
+            if th.requestEnd.isRaised()
+            {
                 break
-            if it.loaded or not it.visible do
+            }
+
+            if it.loaded or not it.visible
+            {
                 continue
+            }
 
             .loadOne(it)
             .postInvalidateEvent()
@@ -973,14 +1107,21 @@ impl LibraryView
 
         for it, index in copy
         {
-            if th.requestEnd.isRaised() do
+            if th.requestEnd.isRaised()
+            {
                 break
-            if it.loaded do
+            }
+
+            if it.loaded
+            {
                 continue
+            }
 
             .loadOne(it)
-            if (index & 15) == 0 do
+            if (index & 15) == 0
+            {
                 .postInvalidateEvent()
+            }
         }
 
         // The last refresh rebuilds the list even when a refresh during the load already took
@@ -994,13 +1135,15 @@ impl LibraryView
     // preview features.
     mtd sortSimilar()
     {
-        if .items.isEmpty() do
+        if .items.isEmpty()
+        {
             return
+        }
 
         // The items keep their order in `remaining`, so a capture with nothing to compare
         // stays where the previous order put it.
         var remaining = .items
-        var nitems: Array'*LibraryItem
+        var nitems: Array!{*LibraryItem}
 
         var toCompare: *LibraryItem?
         while not remaining.isEmpty()
@@ -1043,8 +1186,10 @@ impl LibraryView
             }
         }
 
-        for it, i in nitems do
+        for it, i in nitems
+        {
             .items[i] = it
+        }
     }
 
     // Sorts the items by the criterion the library window selected.
@@ -1057,8 +1202,10 @@ impl LibraryView
         // capture, so it is built once per item rather than twice per comparison.
         if .libWnd.sortMethod == .Name
         {
-            for it in .items do
+            for it in .items
+            {
                 it.sortName = it.name()
+            }
         }
 
         .items.sort(func|libWnd = me.libWnd|(a, b)
@@ -1101,11 +1248,16 @@ impl LibraryView
                 break
             }
 
-            if not value do
+            if not value
+            {
                 value = Text.compareNames(a.fi.fullName.toSlice(), b.fi.fullName.toSlice())
+            }
 
-            if libWnd.invertSort do
+            if libWnd.invertSort
+            {
                 return -value
+            }
+
             return value
         })
     }
@@ -1118,20 +1270,29 @@ impl LibraryView
     // changes. The refresh that follows the last preview sorts once.
     mtd sort()
     {
-        if .items.isEmpty() do
+        if .items.isEmpty()
+        {
             return
-        if .libWnd.sortMethod == .Similar and g_UpdatingLib do
+        }
+
+        if .libWnd.sortMethod == .Similar and g_UpdatingLib
+        {
             return
+        }
 
         let selection = .rememberSelection()
 
         .mutexLoaded.lock()
         defer .mutexLoaded.unlock()
 
-        if .libWnd.sortMethod == .Similar do
+        if .libWnd.sortMethod == .Similar
+        {
             .sortSimilar()
-        else do
+        }
+        else
+        {
             .sortFiles()
+        }
 
         .restoreSelection(selection)
         .invalidate()
@@ -1147,12 +1308,16 @@ impl LibraryView
         // folder uses the in-memory index (so the date sidebar and delete handlers stay in
         // sync, honouring the date filter); any other folder (the recycle bin included) is
         // listed straight from disk.
-        var result: Array'File.FileInfo
+        var result: Array!{File.FileInfo}
         let cf = .libWnd.currentFolder()
-        if Library.getFolder() == cf do
+        if Library.getFolder() == cf
+        {
             result = g_Library.files
-        else do
+        }
+        else
+        {
             result = catch Library.enumerateSupportedFiles(cf) orelse {}
+        }
 
         // `items` only borrows pointers owned by `allItems`. Drop those borrows before their
         // owners so filter() never snapshots selection state through destroyed LibraryItems.
@@ -1184,8 +1349,11 @@ impl LibraryView
     {
         if index >= .items.count
         {
-            if not extend and not toggle do
+            if not extend and not toggle
+            {
                 .clearSelection()
+            }
+
             return
         }
 
@@ -1193,18 +1361,24 @@ impl LibraryView
         {
             .selModel.selectRange(index, .focusItem)
         }
-        elif toggle and .selModel.isSelected(index)
+        else if toggle and .selModel.isSelected(index)
         {
             .selModel.unselect(index)
-            if .focusItem == index do
+            if .focusItem == index
+            {
                 .focusItem = .firstSelected()
+            }
+
             .invalidate()
             return
         }
         else
         {
-            if not toggle do
+            if not toggle
+            {
                 .selModel.clear()
+            }
+
             .selModel.select(index)
         }
 
@@ -1214,8 +1388,11 @@ impl LibraryView
 
     private mtd const firstSelected()->u32
     {
-        for index in .items.count where .selModel.isSelected(cast(u32, index)) do
+        for index in .items.count where .selModel.isSelected(cast(u32, index))
+        {
             return cast(u32, index)
+        }
+
         return Swag.U32.Max
     }
 
@@ -1238,15 +1415,22 @@ impl LibraryView
     // of the view moves the grid by the row it entered, and a cell the edge cuts comes into view.
     mtd scrollToFocus()
     {
-        if .focusItem >= .items.count do
+        if .focusItem >= .items.count
+        {
             return
+        }
+
         let rect   = .items[.focusItem].rect
         let pos    = .scrollWnd.scrollPosition()
         let top    = rect.y - LibraryCellRing
         let bottom = rect.bottom() + LibraryCellRing
-        if top < pos.y do
+        if top < pos.y
+        {
             .scrollWnd.setScrollPos(pos.x, top)
-        elif bottom > pos.y + .position.height do
+        }
+        else if bottom > pos.y + .position.height
+        {
             .scrollWnd.setScrollPos(pos.x, bottom - .position.height)
+        }
     }
 }

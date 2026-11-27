@@ -12,17 +12,21 @@ using Globalization
 func exact(neg: bool, mantissa: u64, exponent: s64)->{ f: f64, ok: bool }
 {
     const Pow10: [?] f64 = [
-        1e0'f64, 1e1'f64, 1e2'f64, 1e3'f64, 1e4'f64, 1e5'f64, 1e6'f64, 1e7'f64, 1e8'f64, 1e9'f64, 1e10'f64, 1e11'f64, 1e12'f64, 1e13'f64, 1e14'f64, 1e15'f64, 1e16'f64, 1e17'f64, 1e18'f64, 1e19'f64, 1e20'f64, 1e21'f64, 1e22'f64]
+        1e0_f64, 1e1_f64, 1e2_f64, 1e3_f64, 1e4_f64, 1e5_f64, 1e6_f64, 1e7_f64, 1e8_f64, 1e9_f64, 1e10_f64, 1e11_f64, 1e12_f64, 1e13_f64, 1e14_f64, 1e15_f64, 1e16_f64, 1e17_f64, 1e18_f64, 1e19_f64, 1e20_f64, 1e21_f64, 1e22_f64]
 
     var result: #returntype
 
-    if mantissa >> Swag.F64.MantBits != 0 do
+    if mantissa >> Swag.F64.MantBits != 0
+    {
         return result
+    }
 
     var exp = exponent
     var f   = cast(f64, mantissa)
-    if neg do
+    if neg
+    {
         f = -f
+    }
 
     switch
     {
@@ -42,8 +46,10 @@ func exact(neg: bool, mantissa: u64, exponent: s64)->{ f: f64, ok: bool }
         }
 
         // The exponent was really too large.
-        if f > 1e15 or f < -1e15 do
+        if f > 1e15 or f < -1e15
+        {
             return result
+        }
 
         result.f  = f * Pow10[exp]
         result.ok = true
@@ -770,20 +776,24 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
     var man = mantissa
     if man == 0
     {
-        if neg do
-            result.f = cast #bit (f64, 0x8000000000000000)     // Negative zero.
+        if neg
+        {
+            result.f = cast #bit (f64, 0x8000000000000000)
+        }     // Negative zero.
         return result
     }
 
-    if exp10 < PowersOfTenMinExp10 or PowersOfTenMaxExp10 < exp10 do
+    if exp10 < PowersOfTenMinExp10 or PowersOfTenMaxExp10 < exp10
+    {
         return result
+    }
 
     // Normalization.
     let clz = Swag.leadingZeros(man)
     man <<= cast(u32, clz)
 
     const ExponentBias = 1023
-    var retExp2 = cast(u64, (((217706's64 * exp10) >> 16) + 64 + ExponentBias)) - clz
+    var retExp2 = cast(u64, (((217706_s64 * exp10) >> 16) + 64 + ExponentBias)) - clz
 
     // Multiplication.
     var v = PowersOfTen[exp10 - PowersOfTenMinExp10, 1]
@@ -798,11 +808,15 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
         var mergedHi = xHi
         let mergedLo = xLo + yHi
 
-        if mergedLo < xLo do
+        if mergedLo < xLo
+        {
             mergedHi += 1
+        }
 
-        if mergedHi & 0x1FF == 0x1FF and mergedLo + 1 == 0 and yLo + man < man do
+        if mergedHi & 0x1FF == 0x1FF and mergedLo + 1 == 0 and yLo + man < man
+        {
             return result
+        }
 
         xHi = mergedHi
         xLo = mergedLo
@@ -811,11 +825,13 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
     // Shifting to 54 Bits.
     let msb         = (xHi >> 63)
     var retMantissa = xHi >> cast(u32, (msb + 9))
-    retExp2 -= 1'u64 ^ msb
+    retExp2 -= 1_u64 ^ msb
 
     // Half-way Ambiguity.
-    if xLo == 0 and xHi & 0x1FF == 0 and retMantissa & 3 == 1 do
+    if xLo == 0 and xHi & 0x1FF == 0 and retMantissa & 3 == 1
+    {
         return result
+    }
 
     // From 54 to 53 Bits.
     retMantissa += retMantissa & 1
@@ -830,12 +846,17 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
     // f64 space. 0x7FF or above means that we're in Inf/NaN f64 space.
     // The if block is equivalent to (but has fewer branches than):
     //   if retExp2 <= 0 or retExp2 >= 0x7FF { etc }
-    if retExp2 - 1 >= 0x7FF - 1 do
+    if retExp2 - 1 >= 0x7FF - 1
+    {
         return result
+    }
 
     var retBits = (retExp2 << 52) | (retMantissa & 0x000FFFFFFFFFFFFF)
-    if neg do
+    if neg
+    {
         retBits |= 0x8000000000000000
+    }
+
     result.f  = cast #bit (f64, retBits)
     result.ok = true
     return result
@@ -883,50 +904,69 @@ private func shortDecimal(s: const [..] u8, numberFormat: NumberFormatInfo)->{ v
     let unmatched: #returntype = {0, false}
 
     // Fifteen digits and the corresponding power of ten fit exactly in f64.
-    if s.count > 15 do
+    if s.count > 15
+    {
         return unmatched
+    }
 
     let leading   = s[0]
     let negative  = leading == numberFormat.negativeSign
-    let first     = negative or leading == numberFormat.positiveSign ? 1'u64 : 0'u64
+    let first     = negative or leading == numberFormat.positiveSign ? 1_u64 : 0_u64
     let separator = numberFormat.decimalSeparator
     var position  = first
-    var mantissa  = 0'u64
+    var mantissa  = 0_u64
     while position < s.count
     {
         let c = s[position]
-        if c == separator or not Latin1.isDigit(c) do
+        if c == separator or not Latin1.isDigit(c)
+        {
             break
+        }
+
         mantissa = mantissa * 10 + cast(u64, c - '0')
         position += 1
     }
 
     let integerEnd = position
-    var divisor    = 1'u64
+    var divisor    = 1_u64
     if position < s.count
     {
-        if s[position] != separator do
+        if s[position] != separator
+        {
             return unmatched
+        }
+
         position += 1
         while position < s.count
         {
             let c = s[position]
-            if c == separator or not Latin1.isDigit(c) do
+            if c == separator or not Latin1.isDigit(c)
+            {
                 return unmatched
+            }
+
             mantissa = mantissa * 10 + cast(u64, c - '0')
             divisor  *= 10
             position += 1
         }
     }
 
-    if integerEnd == first and divisor == 1 do
+    if integerEnd == first and divisor == 1
+    {
         return unmatched
+    }
 
     var value = cast(f64, mantissa)
-    if negative do
+    if negative
+    {
         value = -value
-    if divisor != 1 do
+    }
+
+    if divisor != 1
+    {
         value /= cast(f64, divisor)
+    }
+
     return {value, true}
 }
 
@@ -934,18 +974,24 @@ private func shortDecimal(s: const [..] u8, numberFormat: NumberFormatInfo)->{ v
 public func parse(s: const [..] u8, numberFormat: NumberFormatInfo)->{ value: f64, eat: u32, ovf: bool } fail
 {
     var result: #returntype
-    if s.count == 0 do
+    if s.count == 0
+    {
         fail Errors.SyntaxError{}
+    }
 
     let decimal = shortDecimal(s, numberFormat)
-    if decimal.ok do
+    if decimal.ok
+    {
         return {value: decimal.value, eat: cast(u32, s.count), ovf: false}
+    }
 
     // Special values, infinity, nan
     #[Swag.Safety(.NaN, false)]
     {value: result.value, eat: result.eat} = special(s)
-    if result.eat do
+    if result.eat
+    {
         return result
+    }
 
     var read: Decimal
     result.eat = try read.readF64(s, numberFormat)

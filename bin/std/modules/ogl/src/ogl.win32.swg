@@ -11,8 +11,11 @@ alias WglSwapIntervalProc = func(s32)->BOOL
 // Rejects the non-null sentinel values used by wglGetProcAddress for unsupported entry points.
 internal func isValidWglProcAddress(address: const *void?)->bool
 {
-    if not address do
+    if not address
+    {
         return false
+    }
+
     let value = cast(u64, address)
     return value != 1 and value != 2 and value != 3 and value != 0xFFFFFFFFFFFFFFFF
 }
@@ -33,8 +36,11 @@ internal func getExtensionAddress(name: LPCSTR)->const *void?
 public func wglSwapIntervalEXT(interval: s32)->bool
 {
     let entry = cast(WglSwapIntervalProc?, getExtensionAddress(("wglSwapIntervalEXT").buffer))
-    if not entry do
+    if not entry
+    {
         return false
+    }
+
     return entry(interval) != 0
 }
 
@@ -56,11 +62,17 @@ const WGL_LOSE_CONTEXT_ON_RESET_ARB     = 0x8252
 public func wglGetExtensionsStringARB(hDc: HDC)->string?
 {
     let entry = cast(WglGetExtensionsStringProc?, getExtensionAddress(("wglGetExtensionsStringARB").buffer))
-    if not entry do
+    if not entry
+    {
         return null
+    }
+
     let names = entry(hDc)
-    if not names do
+    if not names
+    {
         return null
+    }
+
     return cast(string, cast(const cstring, names))
 }
 
@@ -73,8 +85,11 @@ public func wglCreateContextAttribsARB(hDc: HDC, shareContext: HGLRC, attribs: c
 {
     Swag.assert(attribs.count != 0 and attribs[attribs.count - 1] == 0, "the attribute list must end with zero")
     let entry = cast(WglCreateContextAttribsProc?, getExtensionAddress(("wglCreateContextAttribsARB").buffer))
-    if not entry do
+    if not entry
+    {
         return null
+    }
+
     return entry(hDc, shareContext, &attribs[0])
 }
 
@@ -101,15 +116,20 @@ internal namespace PrivOgl
     func wglCreateContext(hDc: HDC)->HGLRC fail
     {
         let res = PrivOgl.wglCreateContext(hDc)
-        if not res do
+        if not res
+        {
             try failWinError(GetLastError())
+        }
+
         return res
     }
 
     func wglDeleteContext(hRc: HGLRC) fail
     {
-        if not PrivOgl.wglDeleteContext(hRc) do
+        if not PrivOgl.wglDeleteContext(hRc)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func wglGetCurrentContext()->HGLRC => PrivOgl.wglGetCurrentContext()
@@ -117,14 +137,18 @@ internal namespace PrivOgl
 
     func wglMakeCurrent(hDc: HDC, hRc: HGLRC) fail
     {
-        if not PrivOgl.wglMakeCurrent(hDc, hRc) do
+        if not PrivOgl.wglMakeCurrent(hDc, hRc)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func wglShareLists(hRc0, hRc1: HGLRC) fail
     {
-        if not PrivOgl.wglShareLists(hRc0, hRc1) do
+        if not PrivOgl.wglShareLists(hRc0, hRc1)
+        {
             try failWinError(GetLastError())
+        }
     }
 }
 
@@ -174,8 +198,10 @@ namespace Platform.Win32
         try DescribePixelFormat(result.hDC, pf, cast(u32, #sizeof(PIXELFORMATDESCRIPTOR)), &pfd)
 
         result.hRC = try wglCreateContext(result.hDC)
-        if makeCurrent do
+        if makeCurrent
+        {
             try result.makeCurrent()
+        }
 
         return result
     }
@@ -217,13 +243,18 @@ namespace Platform.Win32
         {
             if .hRC
             {
-                if wglGetCurrentContext() == .hRC do
+                if wglGetCurrentContext() == .hRC
+                {
                     catch .clearCurrent()
+                }
+
                 catch wglDeleteContext(.hRC)
             }
 
-            if .window and .hDC do
+            if .window and .hDC
+            {
                 .window.releaseWin32DeviceContext(.hDC)
+            }
 
             Swag.init(me, 1)
         }

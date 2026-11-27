@@ -2,8 +2,10 @@ using Swag, Core
 
 func assertRange(buffer: const [..] u8, offset, length: u64) fail
 {
-    if offset > buffer.count or length > buffer.count - offset do
+    if offset > buffer.count or length > buffer.count - offset
+    {
         try fault(0x03)
+    }
 }
 
 func getSlice(buffer: const [..] u8, offset, length: u64)->const [..] u8 fail
@@ -22,18 +24,27 @@ func getSlice(buffer: const [..] u8, offset, length: u64)->const [..] u8 fail
 // what FreeType and stb_truetype also do, instead of failing mid-outline.
 func peekU8(buffer: const [..] u8, offset: u64)->u8
 {
-    if offset >= buffer.count do
+    if offset >= buffer.count
+    {
         return 0
+    }
+
     let buf = buffer
     return buf[offset]
 }
 
 func peekU16(buffer: const [..] u8, offset: u64)->u16
 {
-    if offset > buffer.count do
+    if offset > buffer.count
+    {
         return 0
-    if buffer.count - offset < 2 do
+    }
+
+    if buffer.count - offset < 2
+    {
         return 0
+    }
+
     let buf = buffer
     return cast(u16, buf[offset]) << 8 | buf[offset + 1]
 }
@@ -41,27 +52,42 @@ func peekU16(buffer: const [..] u8, offset: u64)->u16
 func peekS16(buffer: const [..] u8, offset: u64)->s16
 {
     let value = peekU16(buffer, offset)
-    if value <= 0x7FFF do
+    if value <= 0x7FFF
+    {
         return cast(s16, value)
+    }
+
     return cast(s16, (cast(s32, value) - 0x1_0000))
 }
 
 func peekU24(buffer: const [..] u8, offset: u64)->u32
 {
-    if offset > buffer.count do
+    if offset > buffer.count
+    {
         return 0
-    if buffer.count - offset < 3 do
+    }
+
+    if buffer.count - offset < 3
+    {
         return 0
+    }
+
     let buf = buffer
     return cast(u32, buf[offset]) << 16 | cast(u32, buf[offset + 1]) << 8 | buf[offset + 2]
 }
 
 func peekU32(buffer: const [..] u8, offset: u64)->u32
 {
-    if offset > buffer.count do
+    if offset > buffer.count
+    {
         return 0
-    if buffer.count - offset < 4 do
+    }
+
+    if buffer.count - offset < 4
+    {
         return 0
+    }
+
     let buf = buffer
     return cast(u32, buf[offset]) << 24 |
            cast(u32, buf[offset + 1]) << 16 |
@@ -88,8 +114,11 @@ func readU16(buffer: const [..] u8, offset: u64)->u16 fail
 func readS16(buffer: const [..] u8, offset: u64)->s16 fail
 {
     let value = try readU16(buffer, offset)
-    if value <= 0x7FFF do
+    if value <= 0x7FFF
+    {
         return cast(s16, value)
+    }
+
     return cast(s16, (cast(s32, value) - 0x1_0000))
 }
 
@@ -114,8 +143,11 @@ func readU32(buffer: const [..] u8, offset: u64)->u32 fail
 func readS32(buffer: const [..] u8, offset: u64)->s32 fail
 {
     let value = try readU32(buffer, offset)
-    if value <= 0x7FFF_FFFF do
+    if value <= 0x7FFF_FFFF
+    {
         return cast(s32, value)
+    }
+
     return cast(s32, (cast(s64, value) - 0x1_0000_0000))
 }
 
@@ -123,28 +155,102 @@ func readF2Dot14(buffer: const [..] u8, offset: u64)->f64 fail => try readS16(bu
 
 func roundDiv(value, divisor: s64)->s32
 {
-    if not divisor do
+    if not divisor
+    {
         return 0
-    if value >= 0 do
+    }
+
+    if value >= 0
+    {
         return cast(s32, ((value + divisor / 2) / divisor))
+    }
+
     return cast(s32, -(((-value) + divisor / 2) / divisor))
 }
 
 func scale26_6(value: s32, ppem, unitsPerEm: u32)->s32 fail
 {
-    if not unitsPerEm do
+    if not unitsPerEm
+    {
         try fault(0x17)
+    }
 
     let scaled  = cast(s64, value) * cast(s64, ppem) * 64
     let divisor = cast(s64, unitsPerEm)
     var rounded: s64
-    if scaled >= 0 do
+    if scaled >= 0
+    {
         rounded = (scaled + divisor / 2) / divisor
-    else do
+    }
+    else
+    {
         rounded = -((-scaled + divisor / 2) / divisor)
-    if rounded < Swag.S32.Min or rounded > Swag.S32.Max do
+    }
+
+    if rounded < Swag.S32.Min or rounded > Swag.S32.Max
+    {
         try fault(0x17)
+    }
+
     return cast(s32, rounded)
+}
+
+// Reuses the divisor for all points in a simple glyph. The upper bound keeps
+// the 40-bit reciprocal product in 64 bits for every u16 units-per-em value.
+struct PointScale
+{
+    divisor:       u64
+    reciprocal:    u64
+    fastNumerator: u64
+}
+
+impl PointScale
+{
+    const ReciprocalBits = 40
+    const ReciprocalUnit = 1_u64 << ReciprocalBits
+
+    func create(unitsPerEm: u16)->PointScale fail
+    {
+        if not unitsPerEm
+        {
+            try fault(0x17)
+        }
+
+        let divisor       = cast(u64, unitsPerEm)
+        let reciprocal    = (ReciprocalUnit + divisor - 1) / divisor
+        let fastNumerator = ((1_u64 << (64 - ReciprocalBits)) - 1) * divisor
+        return {divisor, reciprocal, fastNumerator}
+    }
+
+    #[Swag.Inline]
+    mtd const apply(value: s32, pixelScale: s64)->s32 fail
+    {
+        let scaled    = cast(s64, value) * pixelScale
+        let numerator = cast(u64, Math.abs(scaled)) + .divisor / 2
+        var quotient: u64
+        if numerator <= .fastNumerator
+        {
+            quotient = (numerator * .reciprocal) >> ReciprocalBits
+
+            // The rounded-up reciprocal can overshoot by one in this range.
+            if quotient * .divisor > numerator
+            {
+                quotient -= 1
+            }
+        }
+        else
+        {
+            quotient = numerator / .divisor
+        }
+
+        let rounded = scaled < 0 ? -cast(s64, quotient) : cast(s64, quotient)
+        if rounded < Swag.S32.Min or rounded > Swag.S32.Max
+        {
+            try fault(0x17)
+        }
+
+        return cast(s32, rounded)
+    }
 }
 
 #[Swag.Inline]
@@ -163,49 +269,60 @@ func readPackedOffset(entry: const [*] u8, width: u8)->u32
 // The last offset bounds all earlier values once the sequence is known to be monotonic.
 func(width: u8) validatePackedOffsets(offsets: const [*] u8, count: u32)->u32 fail
 {
-    var checked = 0'u32
-    #static if Math.nativeToBigEndian(1'u16) != 1
+    var checked = 0_u32
+
+    // After unpacking, carry the last offset forward and align it into the next comparison.
+    #static if Math.nativeToBigEndian(1_u16) != 1
     {
         #static if width == 2
         {
-            const SwapWords = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+            const SwapWords = cast(Math.Simd.U8x16, [1_u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+            var previousValues = Math.Simd.splat(cast(u16, readPackedOffset(offsets, width)))
+            var entry = offsets + width
             while count - checked >= 8
             {
-                let entry     = offsets + cast(u64, checked) * 2
-                let previous  = cast #bit(Math.Simd.U16x8, Math.Simd.permute(Math.Simd.load(entry), SwapWords))
-                let following = cast #bit(Math.Simd.U16x8, Math.Simd.permute(Math.Simd.load(entry + 2), SwapWords))
-                if Swag.vecMask(previous > following) do
+                let following = cast #bit(Math.Simd.U16x8, Math.Simd.permute(Math.Simd.load(entry), SwapWords))
+                let previous  = Math.Simd.align(previousValues, following, 14)
+                if Swag.vecMask(previous > following)
+                {
                     try fault(0x08)
-                checked += 8
-            }
-        }
-        elif width == 3
-        {
-            const Previous  = cast(Math.Simd.U8x16, [2'u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128])
-            const Following = cast(Math.Simd.U8x16, [5'u8, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128, 14, 13, 12, 128])
+                }
 
-            // Five packed values occupy 15 bytes. Leave enough room for the full load.
-            while count - checked >= 5
-            {
-                let packed    = Math.Simd.load(offsets + cast(u64, checked) * 3)
-                let previous  = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(packed, Previous))
-                let following = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(packed, Following))
-                if Swag.vecMask(previous > following) do
-                    try fault(0x08)
-                checked += 4
+                previousValues = following
+                entry          += 16
+                checked        += 8
             }
         }
-        elif width == 4
+        else if width == 3 or width == 4
         {
-            const SwapOffsets = cast(Math.Simd.U8x16, [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
-            while count - checked >= 4
+            const ExpandOffsets = cast(Math.Simd.U8x16, [2_u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128])
+            const SwapOffsets   = cast(Math.Simd.U8x16, [3_u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
+
+            // Three-byte offsets need six entries for a full 16-byte load.
+            const LoadEntries = width == 3 ? 6 : 4
+            var previousValues = Math.Simd.splat(readPackedOffset(offsets, width))
+            var entry = offsets + width
+            while count - checked >= LoadEntries
             {
-                let entry     = offsets + cast(u64, checked) * 4
-                let previous  = cast #bit(Math.Simd.U32x4, Math.Simd.permute(Math.Simd.load(entry), SwapOffsets))
-                let following = cast #bit(Math.Simd.U32x4, Math.Simd.permute(Math.Simd.load(entry + 4), SwapOffsets))
-                if Swag.vecMask(previous > following) do
+                let packed = Math.Simd.load(entry)
+                #static if width == 3
+                {
+                    let following = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(packed, ExpandOffsets))
+                }
+                else
+                {
+                    let following = cast #bit(Math.Simd.U32x4, Math.Simd.permute(packed, SwapOffsets))
+                }
+
+                let previous = Math.Simd.align(previousValues, following, 12)
+                if Swag.vecMask(previous > following)
+                {
                     try fault(0x08)
-                checked += 4
+                }
+
+                previousValues = following
+                entry          += width * 4
+                checked        += 4
             }
         }
     }
@@ -216,8 +333,11 @@ func(width: u8) validatePackedOffsets(offsets: const [*] u8, count: u32)->u32 fa
     for checked until count
     {
         let offset = readPackedOffset(scalarEntry, width)
-        if offset < lastOffset do
+        if offset < lastOffset
+        {
             try fault(0x08)
+        }
+
         lastOffset  = offset
         scalarEntry += width
     }

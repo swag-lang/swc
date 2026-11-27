@@ -24,8 +24,11 @@ impl VolumeStorage
     // Resizes the host; hidden and protected views cannot.
     mtd resize(size: u64) fail
     {
-        if .base or .protectedEnd do
+        if .base or .protectedEnd
+        {
             fail volumeError(.HiddenProtected)
+        }
+
         try .stream.resize(size)
     }
 
@@ -33,8 +36,11 @@ impl VolumeStorage
     mtd readExactAt(offset: u64, bytes: [..] u8)->bool fail
     {
         let size = try .size()
-        if offset > size or bytes.count > size - offset do
+        if offset > size or bytes.count > size - offset
+        {
             return false
+        }
+
         return try .stream.readExactAt(.base + offset, bytes)
     }
 
@@ -43,10 +49,16 @@ impl VolumeStorage
     mtd writeAllAt(offset: u64, bytes: const [..] u8) fail
     {
         let size = try .size()
-        if offset > size or bytes.count > size - offset do
+        if offset > size or bytes.count > size - offset
+        {
             fail volumeError(.Io)
-        if .protectionTriggered do
+        }
+
+        if .protectionTriggered
+        {
             fail volumeError(.HiddenProtected)
+        }
+
         if .protectedEnd and
            bytes.count and
            offset < .protectedEnd and

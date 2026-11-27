@@ -69,7 +69,7 @@ impl GenericDirectAndField
 
 struct(T) NestedGenericLifecycle
 {
-    pair:  PairBox'T
+    pair:  PairBox!{T}
     tail:  T
     stamp: s32 = 36
 }
@@ -81,8 +81,8 @@ struct(T, N: s32) GenericArrayLifecycle
 
 struct(T, N: s32) GenericInitCascade
 {
-    direct: GenericDirectAndField'T
-    nested: NestedGenericLifecycle'T
+    direct: GenericDirectAndField!{T}
+    nested: NestedGenericLifecycle!{T}
     values: [N] T
     stamp:  s32 = 91
 }
@@ -101,8 +101,10 @@ func resetEvents()
 func eventSum()->s32
 {
     var result: s32
-    for i in EventCount do
+    for i in EventCount
+    {
         result += Events[i]
+    }
     return result
 }
 
@@ -154,24 +156,26 @@ func runMove(type: typeinfo, value: *void)
 
 func genericPodInstancesStayPod()->bool
 {
-    return hasLifecycleShape(#typeof(PairBox's32), false, false, false) and
-           hasLifecycleShape(#typeof(GenericArrayLifecycle'(u8, 4)), false, false, false) and
-           hasLifecycleShape(#typeof(NestedGenericLifecycle's32), false, false, false)
+    return hasLifecycleShape(#typeof(PairBox!{s32}), false, false, false) and
+           hasLifecycleShape(#typeof(GenericArrayLifecycle!{u8, 4}), false, false, false) and
+           hasLifecycleShape(#typeof(NestedGenericLifecycle!{s32}), false, false, false)
 }
 
 func genericDirectAndFieldShapeWorks()->bool
 {
-    let type = #typeof(GenericDirectAndField'GenericProbe)
+    let type = #typeof(GenericDirectAndField!{GenericProbe})
     return hasLifecycleShape(type, true, true, true)
 }
 
 func genericDirectAndFieldInitWorks()->bool
 {
-    let type = #typeof(GenericDirectAndField'GenericInitProbe)
-    if not hasLifecycleShape(type, true, true, true) do
+    let type = #typeof(GenericDirectAndField!{GenericInitProbe})
+    if not hasLifecycleShape(type, true, true, true)
+    {
         return false
+    }
 
-    var value = GenericDirectAndField'GenericInitProbe{child: GenericInitProbe{value: 3, ready: false}, stamp: -1}
+    var value = GenericDirectAndField!{GenericInitProbe}{child: GenericInitProbe{value: 3, ready: false}, stamp: -1}
     resetEvents()
     runInit(type, &value)
     return EventCount == 0 and
@@ -182,18 +186,18 @@ func genericDirectAndFieldInitWorks()->bool
 
 func genericDirectAndFieldDropWorks()->bool
 {
-    let type = #typeof(GenericDirectAndField'GenericProbe)
+    let type = #typeof(GenericDirectAndField!{GenericProbe})
     resetEvents()
-    var value = GenericDirectAndField'GenericProbe{child: GenericProbe{value: 5}, stamp: 7}
+    var value = GenericDirectAndField!{GenericProbe}{child: GenericProbe{value: 5}, stamp: 7}
     runDrop(type, &value)
     return EventCount == 2 and Events[0] == 1 and Events[1] == 105
 }
 
 func genericDirectAndFieldCopyWorks()->bool
 {
-    let type = #typeof(GenericDirectAndField'GenericProbe)
+    let type = #typeof(GenericDirectAndField!{GenericProbe})
     resetEvents()
-    var value = GenericDirectAndField'GenericProbe{child: GenericProbe{value: 5}, stamp: 7}
+    var value = GenericDirectAndField!{GenericProbe}{child: GenericProbe{value: 5}, stamp: 7}
     runCopy(type, &value)
     Swag.assert(EventCount == 2)
     Swag.assert(Events[0] == 205)
@@ -205,9 +209,9 @@ func genericDirectAndFieldCopyWorks()->bool
 
 func genericDirectAndFieldMoveWorks()->bool
 {
-    let type = #typeof(GenericDirectAndField'GenericProbe)
+    let type = #typeof(GenericDirectAndField!{GenericProbe})
     resetEvents()
-    var value = GenericDirectAndField'GenericProbe{child: GenericProbe{value: 6}, stamp: 107}
+    var value = GenericDirectAndField!{GenericProbe}{child: GenericProbe{value: 6}, stamp: 107}
     runMove(type, &value)
     Swag.assert(EventCount == 2)
     Swag.assert(Events[0] == 306)
@@ -219,11 +223,13 @@ func genericDirectAndFieldMoveWorks()->bool
 
 func nestedGenericCompositionWorks()->bool
 {
-    let type = #typeof(NestedGenericLifecycle'GenericProbe)
-    if not hasLifecycleShape(type, true, true, true) do
+    let type = #typeof(NestedGenericLifecycle!{GenericProbe})
+    if not hasLifecycleShape(type, true, true, true)
+    {
         return false
+    }
 
-    var value = NestedGenericLifecycle'GenericProbe{pair: PairBox'GenericProbe{left: GenericProbe{value: 1}, right: GenericProbe{value: 2}}, tail: GenericProbe{value: 3}}
+    var value = NestedGenericLifecycle!{GenericProbe}{pair: PairBox!{GenericProbe}{left: GenericProbe{value: 1}, right: GenericProbe{value: 2}}, tail: GenericProbe{value: 3}}
 
     resetEvents()
     runCopy(type, &value)
@@ -231,8 +237,10 @@ func nestedGenericCompositionWorks()->bool
        eventSum() != 606 or
        value.pair.left.value != 2 or
        value.pair.right.value != 3 or
-       value.tail.value != 4 do
+       value.tail.value != 4
+    {
         return false
+    }
 
     resetEvents()
     runMove(type, &value)
@@ -240,8 +248,10 @@ func nestedGenericCompositionWorks()->bool
        eventSum() != 909 or
        value.pair.left.value != 12 or
        value.pair.right.value != 13 or
-       value.tail.value != 14 do
+       value.tail.value != 14
+    {
         return false
+    }
 
     resetEvents()
     runDrop(type, &value)
@@ -250,11 +260,13 @@ func nestedGenericCompositionWorks()->bool
 
 func nestedGenericInitWorks()->bool
 {
-    let type = #typeof(NestedGenericLifecycle'GenericInitProbe)
-    if not hasLifecycleShape(type, false, false, false) do
+    let type = #typeof(NestedGenericLifecycle!{GenericInitProbe})
+    if not hasLifecycleShape(type, false, false, false)
+    {
         return false
+    }
 
-    var value = NestedGenericLifecycle'GenericInitProbe{pair: PairBox'GenericInitProbe{left: GenericInitProbe{value: 1, ready: false}, right: GenericInitProbe{value: 2, ready: false}}, tail: GenericInitProbe{value: 3, ready: false}, stamp: -7}
+    var value = NestedGenericLifecycle!{GenericInitProbe}{pair: PairBox!{GenericInitProbe}{left: GenericInitProbe{value: 1, ready: false}, right: GenericInitProbe{value: 2, ready: false}}, tail: GenericInitProbe{value: 3, ready: false}, stamp: -7}
 
     resetEvents()
     runInit(type, &value)
@@ -270,10 +282,10 @@ func nestedGenericInitWorks()->bool
 
 func genericConstArrayInitWorks()->bool
 {
-    let type = #typeof(GenericArrayLifecycle'(GenericInitProbe, 3))
+    let type = #typeof(GenericArrayLifecycle!{GenericInitProbe, 3})
     Swag.assert(hasLifecycleShape(type, false, false, false))
 
-    var value: GenericArrayLifecycle'(GenericInitProbe, 3)
+    var value: GenericArrayLifecycle!{GenericInitProbe, 3}
     value.values[0].value = 4
     value.values[0].ready = false
     value.values[1].value = 5
@@ -295,11 +307,13 @@ func genericConstArrayInitWorks()->bool
 
 func genericConstArrayLifecycleWorks()->bool
 {
-    let type = #typeof(GenericArrayLifecycle'(GenericProbe, 3))
-    if not hasLifecycleShape(type, true, true, true) do
+    let type = #typeof(GenericArrayLifecycle!{GenericProbe, 3})
+    if not hasLifecycleShape(type, true, true, true)
+    {
         return false
+    }
 
-    var value: GenericArrayLifecycle'(GenericProbe, 3)
+    var value: GenericArrayLifecycle!{GenericProbe, 3}
     value.values[0].value = 4
     value.values[1].value = 5
     value.values[2].value = 6
@@ -310,8 +324,10 @@ func genericConstArrayLifecycleWorks()->bool
        eventSum() != 615 or
        value.values[0].value != 5 or
        value.values[1].value != 6 or
-       value.values[2].value != 7 do
+       value.values[2].value != 7
+    {
         return false
+    }
 
     resetEvents()
     runMove(type, &value)
@@ -319,8 +335,10 @@ func genericConstArrayLifecycleWorks()->bool
        eventSum() != 918 or
        value.values[0].value != 15 or
        value.values[1].value != 16 or
-       value.values[2].value != 17 do
+       value.values[2].value != 17
+    {
         return false
+    }
 
     resetEvents()
     runDrop(type, &value)
@@ -329,11 +347,13 @@ func genericConstArrayLifecycleWorks()->bool
 
 func genericCascadeInitRestoresArraysAndNestedFields()->bool
 {
-    let type = #typeof(GenericInitCascade'(GenericInitProbe, 3))
-    if not hasLifecycleShape(type, true, true, true) do
+    let type = #typeof(GenericInitCascade!{GenericInitProbe, 3})
+    if not hasLifecycleShape(type, true, true, true)
+    {
         return false
+    }
 
-    var value: GenericInitCascade'(GenericInitProbe, 3)
+    var value: GenericInitCascade!{GenericInitProbe, 3}
     value.direct.child.value      = 31
     value.direct.child.ready      = false
     value.direct.stamp            = 32

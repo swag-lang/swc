@@ -2,7 +2,7 @@
 
 using Swag, Core
 
-func writePairPosition(table: *Array'u8, offset: u64, xAdvance: s16)
+func writePairPosition(table: *Array!{u8}, offset: u64, xAdvance: s16)
 {
     writeBigU16(table, offset + 0, 1)          // PairPos format 1.
     writeBigU16(table, offset + 2, 18)         // Coverage follows the pair set.
@@ -18,7 +18,7 @@ func writePairPosition(table: *Array'u8, offset: u64, xAdvance: s16)
     writeBigU16(table, offset + 22, 1)     // First glyph.
 }
 
-func writeZeroClassPairPosition(table: *Array'u8, offset: u64)
+func writeZeroClassPairPosition(table: *Array!{u8}, offset: u64)
 {
     writeBigU16(table, offset + 0, 2)
     writeBigU16(table, offset + 2, 34)
@@ -44,7 +44,7 @@ func writeZeroClassPairPosition(table: *Array'u8, offset: u64)
     writeBigU16(table, offset + 38, 1)
 }
 
-func makeGposKernFixture()->Array'u8
+func makeGposKernFixture()->Array!{u8}
 {
     var table: #returntype
     table.resize(96)
@@ -104,7 +104,7 @@ func makeGposKernFixture()->Array'u8
 // GPOS lookup selection covers every possible u16 index without linear searches.
 #test
 {
-    var table: Array'u8
+    var table: Array!{u8}
     table.resize(26)
     writeBigU16(&table, 10, 1)     // One feature record.
     writeBigU32(&table, 12, TAG_KERN)
@@ -124,7 +124,7 @@ func makeGposKernFixture()->Array'u8
 // A matching zero adjustment ends subtable selection for its lookup.
 #test
 {
-    var table: Array'u8
+    var table: Array!{u8}
     table.resize(48)
     writePairPosition(&table, 0, 0)
     writePairPosition(&table, 24, -40)
@@ -141,7 +141,7 @@ func makeGposKernFixture()->Array'u8
 // A zero class-matrix adjustment also matches and ends subtable selection.
 #test
 {
-    var table: Array'u8
+    var table: Array!{u8}
     table.resize(64)
     writeZeroClassPairPosition(&table, 0)
     writePairPosition(&table, 40, -40)
@@ -159,7 +159,7 @@ func makeGposKernFixture()->Array'u8
 // even when the overall table contains enough trailing bytes for that record.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add([
         0x00, 0x00, 0x00, 0x01,     // version, subtable count
         0x00, 0x00, 0x00, 0x0E, 0x00, 0x01,      // format, length, horizontal coverage
@@ -322,4 +322,48 @@ func makeGposKernFixture()->Array'u8
     Swag.require(faceData.face.hasKerning())
     Swag.require(lookupLegacyKerning(&faceData, 0x0001_0001) == 4)
     Swag.require(lookupLegacyKerning(&faceData, 0x0001_0002) == -2)
+}
+
+// Packed validation keeps key zero, tests group boundaries, and sees nonzero values in the group.
+#test
+{
+    const Pairs     = 9_u32
+    const PairStart = 18_u64
+    var bytes: Array!{u8}
+    bytes.resize(PairStart + Pairs * 6)
+    writeBigU16(&bytes, 2, 1)
+    writeBigU16(&bytes, 6, 14 + Pairs * 6)
+    writeBigU16(&bytes, 8, 1)
+    writeBigU16(&bytes, 10, Pairs)
+    for index in Pairs
+    {
+        writeBigU32(&bytes, PairStart + index * 6, cast(u32, index))
+    }
+
+    writeBigU16(&bytes, PairStart + 4, 0xFFF0)
+
+    for duplicate in 2
+    {
+        if duplicate
+        {
+            writeBigU32(&bytes, PairStart + 4 * 6, 3)
+            writeBigU16(&bytes, PairStart + 4 * 6 + 4, 9)
+        }
+
+        var faceData: FaceImpl
+        faceData.fontData.add(bytes.toSlice())
+        faceData.tables.add({tag: TAG_KERN, length: cast(u32, bytes.count)})
+        expect parseKern(&faceData)
+        if duplicate
+        {
+            Swag.require(faceData.kernData == null)
+            Swag.require(faceData.kernPairs.getOrDefault(3, 0) == 9)
+        }
+        else
+        {
+            let packed = unwrap faceData.kernData
+            Swag.require((expect readS16(packed, 4)) == -16)
+            Swag.require(faceData.kernPairs.isEmpty())
+        }
+    }
 }

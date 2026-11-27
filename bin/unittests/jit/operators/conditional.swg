@@ -30,28 +30,28 @@ struct CondPair
 {
     func ternaryMixedNumeric(cond: bool)->f64
     {
-        return cond ? 42 : 1.5'f64
+        return cond ? 42 : 1.5_f64
     }
 
     const V0 = #run ternaryMixedNumeric(true)
     const V1 = #run ternaryMixedNumeric(false)
     #assert(#typeof(V0) == f64)
-    #assert(V0 == 42.0'f64)
-    #assert(V1 == 1.5'f64)
+    #assert(V0 == 42.0_f64)
+    #assert(V1 == 1.5_f64)
 }
 
 #test
 {
     func ternaryFloat(cond: bool)->f64
     {
-        return cond ? 42.5'f64 : 1.25'f64
+        return cond ? 42.5_f64 : 1.25_f64
     }
 
     const V0 = #run ternaryFloat(true)
     const V1 = #run ternaryFloat(false)
     #assert(#typeof(V0) == f64)
-    #assert(V0 == 42.5'f64)
-    #assert(V1 == 1.25'f64)
+    #assert(V0 == 42.5_f64)
+    #assert(V1 == 1.25_f64)
 }
 
 #test
@@ -89,8 +89,8 @@ struct CondPair
         return cond ? p0 : p1
     }
 
-    const A  = cast(*void, 0x1234'u64)
-    const B  = cast(*void, 0x5678'u64)
+    const A  = cast(*void, 0x1234_u64)
+    const B  = cast(*void, 0x5678_u64)
     const V0 = #run ternaryPointer(true, A, B)
     const V1 = #run ternaryPointer(false, A, B)
     #assert(V0 == A)
@@ -117,8 +117,8 @@ struct CondPair
         return cond ? 7 : 9
     }
 
-    const V0 = #run ternaryCondF32(1.5'f32)
-    const V1 = #run ternaryCondF32(0.0'f32)
+    const V0 = #run ternaryCondF32(1.5_f32)
+    const V1 = #run ternaryCondF32(0.0_f32)
     #assert(V0 == 7)
     #assert(V1 == 9)
 }
@@ -130,8 +130,8 @@ struct CondPair
         return cond ? 7 : 9
     }
 
-    const V0 = #run ternaryCondPointer(cast(*void, 0x1'u64))
-    const V1 = #run ternaryCondPointer(cast(*void?, 0'u64))
+    const V0 = #run ternaryCondPointer(cast(*void, 0x1_u64))
+    const V1 = #run ternaryCondPointer(cast(*void?, 0_u64))
     #assert(V0 == 7)
     #assert(V1 == 9)
 }
@@ -215,8 +215,8 @@ var g_Int42:   s32 = 42
 {
     func ternarySimd(cond: bool)->#simd [16] u8
     {
-        let bits     = Swag.vecSplat(1'u8)
-        let selected = cond ? bits > Swag.vecSplat(0'u8) : Swag.vecSplat(17'u8)
+        let bits     = Swag.vecSplat(1_u8)
+        let selected = cond ? bits > Swag.vecSplat(0_u8) : Swag.vecSplat(17_u8)
         return selected
     }
 
@@ -258,7 +258,7 @@ var g_CondSt: CondSt
     func pick(flag: bool, values: const [*] s32, index: u32, other: s32, delta: s32)->u32
     {
         var chosen = flag ? values[index] : other
-        chosen = Swag.max(0's32, chosen + delta)
+        chosen = Swag.max(0_s32, chosen + delta)
         return cast(u32, chosen)
     }
 

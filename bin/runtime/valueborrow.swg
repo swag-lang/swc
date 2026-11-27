@@ -56,8 +56,8 @@ private struct ValueBorrowExtent
     high: u64     // Zero until the first borrow is published.
 }
 
-private const ValueBorrowRegistryKey = 5'u32
-private const ValueBorrowExtentKey   = 6'u32
+private const ValueBorrowRegistryKey = 5_u32
+private const ValueBorrowExtentKey   = 6_u32
 
 private var g_ValueBorrowRegistryAddress: u64
 private var g_ValueBorrowExtentAddress:   u64
@@ -66,13 +66,18 @@ private var g_ValueBorrowExtentAddress:   u64
 private func valueBorrowRegistry()->*ValueBorrowRegistry
 {
     let known = Swag.atomicLoad(&g_ValueBorrowRegistryAddress)
-    if known != 0 do
+    if known != 0
+    {
         return cast(*ValueBorrowRegistry, known)
+    }
 
     // Mapped storage survives a JIT compiler instance and a native artifact unloading.
     let shared = __hostProcessStorage(ValueBorrowRegistryKey, #sizeof(ValueBorrowRegistry))
-    if not shared do
+    if not shared
+    {
         __exitError()
+    }
+
     discard Swag.atomicExchange(&g_ValueBorrowRegistryAddress, cast(u64, shared))
     return cast(*ValueBorrowRegistry, shared)
 }
@@ -81,12 +86,17 @@ private func valueBorrowRegistry()->*ValueBorrowRegistry
 private func valueBorrowExtent()->*ValueBorrowExtent
 {
     let known = Swag.atomicLoad(&g_ValueBorrowExtentAddress)
-    if known != 0 do
+    if known != 0
+    {
         return cast(*ValueBorrowExtent, known)
+    }
 
     let shared = __hostProcessStorage(ValueBorrowExtentKey, #sizeof(ValueBorrowExtent))
-    if not shared do
+    if not shared
+    {
         __exitError()
+    }
+
     discard Swag.atomicExchange(&g_ValueBorrowExtentAddress, cast(u64, shared))
     return cast(*ValueBorrowExtent, shared)
 }
@@ -96,8 +106,10 @@ private func valueBorrowLock(lock: *u64)
 {
     for
     {
-        if Swag.atomicCompareExchange(lock, 0, 1) == 0 do
+        if Swag.atomicCompareExchange(lock, 0, 1) == 0
+        {
             return
+        }
 
         // Mapped registries can have different virtual addresses in different artifacts.
         // Poll shared bytes, and yield if the holder cannot finish within a short spin.
@@ -140,17 +152,25 @@ private func valueBorrowPublish(registry: *ValueBorrowRegistry, index, start, en
     defer Swag.atomicStore(&registry.extentLock, 0)
     let extent    = valueBorrowExtent()
     let published = Swag.atomicLoad(&registry.published)
-    let bit       = index == ValueBorrowWideShard ? 0'u64 : 1'u64 << index
+    let bit       = index == ValueBorrowWideShard ? 0_u64 : 1_u64 << index
     let oldLow    = Swag.atomicLoad(&extent.low)
     let oldHigh   = Swag.atomicLoad(&extent.high)
     let low       = oldHigh == 0 ? start : Swag.min(oldLow, start)
     let high      = Swag.max(oldHigh, end)
-    if low != oldLow do
+    if low != oldLow
+    {
         Swag.atomicStore(&extent.low, low)
-    if high != oldHigh do
+    }
+
+    if high != oldHigh
+    {
         Swag.atomicStore(&extent.high, high)
-    if published & bit == 0 do
+    }
+
+    if published & bit == 0
+    {
         Swag.atomicStore(&registry.published, published | bit)
+    }
 }
 
 // A counting filter lets unrelated writes avoid the shard lock. Hash collisions
@@ -161,8 +181,10 @@ private func valueBorrowCell(block: u64)->u64 => (block ^ (block >> 12) ^ (block
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false)]
 private func valueBorrowFilterChange(shard: *ValueBorrowShard, address: *void, size, delta: u64)
 {
-    if size == 0 do
+    if size == 0
+    {
         return
+    }
 
     // The shard lock serializes writers. Atomic publication is needed for the
     // lock-free readers, but locked read-modify-write instructions are redundant.
@@ -191,16 +213,24 @@ private func valueBorrowFilterMiss(shard: *ValueBorrowShard, start, size: u64)->
 {
     // A stable even epoch makes the lock-free reads one consistent filter snapshot.
     let epoch = Swag.atomicLoad(&shard.epoch)
-    if epoch & 1 != 0 or Swag.atomicLoad(&shard.wide) != 0 or size - 1 > ~start do
+    if epoch & 1 != 0 or Swag.atomicLoad(&shard.wide) != 0 or size - 1 > ~start
+    {
         return false
+    }
+
     let first = start >> 6
     let last  = (start + size - 1) >> 6
-    if last - first >= 8 do
+    if last - first >= 8
+    {
         return false
+    }
+
     for var block = first; block <= last; block += 1
     {
-        if Swag.atomicLoad(&shard.cells[valueBorrowCell(block)]) != 0 do
+        if Swag.atomicLoad(&shard.cells[valueBorrowCell(block)]) != 0
+        {
             return false
+        }
     }
 
     return epoch == Swag.atomicLoad(&shard.epoch)
@@ -209,13 +239,21 @@ private func valueBorrowFilterMiss(shard: *ValueBorrowShard, start, size: u64)->
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.NoInline]
 private func valueBorrowRemove(shard: *ValueBorrowShard, record: *ValueBorrowRecord)
 {
-    if record.previous do
+    if record.previous
+    {
         record.previous.next = record.next
-    else do
+    }
+    else
+    {
         Swag.atomicStore(cast(*u64, &shard.head), cast(u64, record.next))
-    if record.next do
+    }
+
+    if record.next
+    {
         record.next.previous = record.previous
-    valueBorrowFilterChange(shard, record.address, record.size, ~0'u64)
+    }
+
+    valueBorrowFilterChange(shard, record.address, record.size, ~0_u64)
     record.size = 0
 }
 
@@ -233,7 +271,7 @@ func __valueBorrowEnter(storage: *void, address: *void, size: u64, _: const *Sou
 
     // An extent that wraps the address space ends at its top.
     let start = cast(u64, address)
-    let last  = size - 1 > ~start ? ~0'u64 : start + (size - 1)
+    let last  = size - 1 > ~start ? ~0_u64 : start + (size - 1)
     let index = valueBorrowShardIndex(start, last)
     let shard = &registry.shards[index]
     valueBorrowLock(&shard.lock)
@@ -244,7 +282,7 @@ func __valueBorrowEnter(storage: *void, address: *void, size: u64, _: const *Sou
     if high == 0 or start < low or last > high
     {
         let newLow = high == 0 ? start : Swag.min(low, start)
-        let end    = last == ~0'u64 ? last : last + 1
+        let end    = last == ~0_u64 ? last : last + 1
         valueBorrowPublish(registry, index, start, end)
         Swag.atomicStore(&shard.low, newLow)
         Swag.atomicStore(&shard.high, Swag.max(high, last))
@@ -252,8 +290,11 @@ func __valueBorrowEnter(storage: *void, address: *void, size: u64, _: const *Sou
 
     record.previous = null
     record.next     = shard.head
-    if shard.head do
+    if shard.head
+    {
         shard.head.previous = record
+    }
+
     Swag.atomicStore(cast(*u64, &shard.head), cast(u64, record))
     Swag.atomicStore(&shard.lock, 0)
 }
@@ -264,12 +305,14 @@ func __valueBorrowLeave(storage: *void)
     let record = cast(*ValueBorrowRecord, storage)
 
     // A resume boundary can return normally after panic cleanup removed its record.
-    if record.size == 0 do
+    if record.size == 0
+    {
         return
+    }
 
     let registry = valueBorrowRegistry()
     let start    = cast(u64, record.address)
-    let last     = record.size - 1 > ~start ? ~0'u64 : start + (record.size - 1)
+    let last     = record.size - 1 > ~start ? ~0_u64 : start + (record.size - 1)
     let shard    = &registry.shards[valueBorrowShardIndex(start, last)]
     valueBorrowLock(&shard.lock)
     valueBorrowRemove(shard, record)
@@ -279,8 +322,10 @@ func __valueBorrowLeave(storage: *void)
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.NoInline]
 private func valueBorrowResetShard(shard: *ValueBorrowShard, thread, checkpoint: u64)
 {
-    if Swag.atomicLoad(cast(*u64, &shard.head)) == 0 do
+    if Swag.atomicLoad(cast(*u64, &shard.head)) == 0
+    {
         return
+    }
 
     valueBorrowLock(&shard.lock)
     defer Swag.atomicStore(&shard.lock, 0)
@@ -288,8 +333,11 @@ private func valueBorrowResetShard(shard: *ValueBorrowShard, thread, checkpoint:
     while current
     {
         let next = current.next
-        if current.threadId == thread and current.sequence > checkpoint do
+        if current.threadId == thread and current.sequence > checkpoint
+        {
             valueBorrowRemove(shard, current)
+        }
+
         current = next
     }
 }
@@ -316,12 +364,20 @@ private func valueBorrowOverlaps(shard: *ValueBorrowShard, start, size: u64)->bo
 {
     // Disjoint ranges miss without observing the filter or touching the lock's cache line.
     let low = Swag.atomicLoad(&shard.low)
-    if start > Swag.atomicLoad(&shard.high) or (start < low and low - start >= size) do
+    if start > Swag.atomicLoad(&shard.high) or (start < low and low - start >= size)
+    {
         return false
-    if Swag.atomicLoad(cast(*u64, &shard.head)) == 0 do
+    }
+
+    if Swag.atomicLoad(cast(*u64, &shard.head)) == 0
+    {
         return false
-    if valueBorrowFilterMiss(shard, start, size) do
+    }
+
+    if valueBorrowFilterMiss(shard, start, size)
+    {
         return false
+    }
 
     valueBorrowLock(&shard.lock)
     defer Swag.atomicStore(&shard.lock, 0)
@@ -331,8 +387,11 @@ private func valueBorrowOverlaps(shard: *ValueBorrowShard, start, size: u64)->bo
         let borrowed = cast(u64, current.address)
 
         // Subtractions avoid an overflowing end address, including erased byte views.
-        if start >= borrowed ? start - borrowed < current.size : borrowed - start < size do
+        if start >= borrowed ? start - borrowed < current.size : borrowed - start < size
+        {
             return true
+        }
+
         current = current.next
     }
 
@@ -342,18 +401,29 @@ private func valueBorrowOverlaps(shard: *ValueBorrowShard, start, size: u64)->bo
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false)]
 private func valueBorrowCandidates(start, size, published: u64)->u64
 {
-    if size - 1 > ~start do
+    if size - 1 > ~start
+    {
         return published
+    }
+
     let first = start >> ValueBorrowPageShift
     let last  = (start + size - 1) >> ValueBorrowPageShift
-    if last - first >= ValueBorrowShardCount do
+    if last - first >= ValueBorrowShardCount
+    {
         return published
-    if first == last do
-        return published & (1'u64 << valueBorrowPageIndex(first))
+    }
+
+    if first == last
+    {
+        return published & (1_u64 << valueBorrowPageIndex(first))
+    }
 
     var mask: u64
-    for page in first until last + 1 do
-        mask |= 1'u64 << valueBorrowPageIndex(page)
+    for page in first until last + 1
+    {
+        mask |= 1_u64 << valueBorrowPageIndex(page)
+    }
+
     return published & mask
 }
 
@@ -362,22 +432,33 @@ private func valueBorrowCandidates(start, size, published: u64)->u64
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.NoInline]
 func __valueBorrowWrite(address: *void, size: u64, location: const *SourceCodeLocation, cache: *u64? = null)
 {
-    if cache and Swag.atomicLoad(cache) == 0 do
+    if cache and Swag.atomicLoad(cache) == 0
+    {
         Swag.atomicStore(cache, cast(u64, valueBorrowExtent()))
-    if size == 0 do
+    }
+
+    if size == 0
+    {
         return
+    }
+
     let registry = valueBorrowRegistry()
     let start    = cast(u64, address)
     let wide     = &registry.shards[ValueBorrowWideShard]
-    if valueBorrowOverlaps(wide, start, size) do
+    if valueBorrowOverlaps(wide, start, size)
+    {
         Swag.safetyPanic("write overlaps storage borrowed by a value argument", location[])
+    }
 
     var candidates = valueBorrowCandidates(start, size, Swag.atomicLoad(&registry.published))
     while candidates != 0
     {
         let index = Swag.trailingZeros(candidates)
-        if valueBorrowOverlaps(&registry.shards[index], start, size) do
+        if valueBorrowOverlaps(&registry.shards[index], start, size)
+        {
             Swag.safetyPanic("write overlaps storage borrowed by a value argument", location[])
+        }
+
         candidates &= candidates - 1
     }
 }

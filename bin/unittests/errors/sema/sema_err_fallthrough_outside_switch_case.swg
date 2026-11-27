@@ -13,5 +13,8 @@ func bad()
 
 #test
 {
-    if true do fallthrough     // swc-expected-error {{sema_err_fallthrough_outside_switch_case}}
+    if true
+    {
+        fallthrough     // swc-expected-error {{sema_err_fallthrough_outside_switch_case}}
+    }
 }

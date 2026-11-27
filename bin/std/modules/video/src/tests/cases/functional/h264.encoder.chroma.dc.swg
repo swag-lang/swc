@@ -7,15 +7,18 @@ using Core
 // samples. Check the actual inverse kernel, including negative rounding and all chroma QPs.
 #test
 {
-    var reduced = 0'u32
-    for qp in 40'u64
+    var reduced = 0_u32
+    for qp in 40_u64
     {
         let scale = cast(s64, H264.Dequant4Scale[(qp % 6) * 3]) * 16 << cast(u32, qp / 6)
-        for seed in 256'u64
+        for seed in 256_u64
         {
             var levels: [4] s16
-            for index in 4'u64 do
+            for index in 4_u64
+            {
                 levels[index] = cast(s16, cast(s32, (seed * (index * 13 + 7) + index * 19) % 33) - 16)
+            }
+
             let original = levels
             H264.lossyOptimizeChromaDc(levels.buffer, scale)
 
@@ -23,7 +26,7 @@ using Core
             var after  = levels
             H264.hadamard2x2(before.buffer)
             H264.hadamard2x2(after.buffer)
-            for block in 4'u64
+            for block in 4_u64
             {
                 var expected: [64] u8
                 var actual:   [64] u8
@@ -43,11 +46,13 @@ using Core
                              "chroma DC optimization changes decoded samples")
             }
 
-            for index in 4'u64
+            for index in 4_u64
             {
                 Swag.require(Math.abs(cast(s32, levels[index])) <= Math.abs(cast(s32, original[index])))
-                if levels[index] != original[index] do
+                if levels[index] != original[index]
+                {
                     reduced += 1
+                }
             }
         }
     }

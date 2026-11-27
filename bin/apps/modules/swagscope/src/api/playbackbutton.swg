@@ -27,8 +27,11 @@ private impl IWnd for PlaybackButton
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .toolTip = appStrings().ui_PlayMode
+        }
+
         .button.IWnd.onNotifyEvent(evt)
     }
 }
@@ -43,7 +46,7 @@ impl PlaybackButton
     {
         let metrics = parent.themeMetrics()
 
-        with let result = Wnd.create'PlaybackButton(parent, null, Math.Rectangle{0, 0, themeDropDownButtonWidth(metrics), themeActionButtonSize(metrics)})
+        with let result = Wnd.create!{PlaybackButton}(parent, null, Math.Rectangle{0, 0, themeDropDownButtonWidth(metrics), themeActionButtonSize(metrics)})
         {
             .view              = view
             .playback          = playback
@@ -66,12 +69,12 @@ impl PlaybackButton
     mtd showOptions(anchor: *IconButton? = null)
     {
         let opener = anchor orelse &.button
-        let sheet = OptionSheet.View.create(opener,
-                                            func|button = me|(page)
+        let sheet  = OptionSheet.View.create(opener,
+                                             func|button = me|(page)
                                             {
                                                 button.playback.addOptionRows(page, button.view, button.showSlideDuration)
                                             },
-                                            owner: .view)
+                                             owner: .view)
         sheet.doModal(opener, autoDestroy: true)
         .refreshIcon()
     }

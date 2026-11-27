@@ -28,8 +28,10 @@ func noReturnAtAll(flag: bool)->s32     // swc-expected-error {{sema_err_missing
 
 func returnOnOneBranchOnly(flag: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
 {
-    if flag do
+    if flag
+    {
         return 1
+    }
 }
 
 // An open enum can carry a value outside the listed cases and reach the end of the function.
@@ -66,8 +68,10 @@ func lambdaWithoutReturn()->s32
 
 func everyBranchReturns(flag: bool)->s32
 {
-    if flag do
+    if flag
+    {
         return 1
+    }
     return 2
 }
 
@@ -107,8 +111,10 @@ func loopWithoutBreak()->s32
 {
     for
     {
-        if true do
+        if true
+        {
             return 1
+        }
     }
 }
 
@@ -130,16 +136,20 @@ func nestedBreakDoesNotEscape()->s32
 // costs nothing once its guard is off.
 func endsInUnreachable(flag: bool)->s32
 {
-    if flag do
+    if flag
+    {
         return 1
+    }
     unreachable
 }
 
 // A fallible function can end by failing instead of returning.
 func endsInFail(flag: bool)->s32 fail
 {
-    if flag do
+    if flag
+    {
         return 1
+    }
     fail Swag.BaseError{"no value here"}
 }
 

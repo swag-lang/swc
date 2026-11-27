@@ -40,8 +40,10 @@ internal func copyValueStorage(dst: *void, src: const *void, type: typeinfo)
     }
 
     let info = assume cast(const *TypeInfoStruct, concreteType)
-    for field in info.fields do
+    for field in info.fields
+    {
         copyValueStorage(target + field.offset, source + field.offset, unwrap field.pointedType)
+    }
 }
 
 private func resetDynamicSlots(dst: *void, type: const *TypeInfoStruct, index: u64)
@@ -98,31 +100,52 @@ internal func canDefaultInit(type: typeinfo)->bool
     if concreteType.kind == TypeInfoKind.Array
     {
         let typeArray = assume cast(const *TypeInfoArray, concreteType)
-        if not typeArray.count do
+        if not typeArray.count
+        {
             return true
-        if type.flags & TypeInfoFlags.RequiresExplicitInit do
+        }
+
+        if type.flags & TypeInfoFlags.RequiresExplicitInit
+        {
             return false
+        }
+
         return canDefaultInit(typeArray.pointedType)
     }
 
-    if type.flags & TypeInfoFlags.RequiresExplicitInit do
+    if type.flags & TypeInfoFlags.RequiresExplicitInit
+    {
         return false
-    if concreteType.kind != TypeInfoKind.Struct do
+    }
+
+    if concreteType.kind != TypeInfoKind.Struct
+    {
         return true
+    }
 
     let typeStruct = assume cast(const *TypeInfoStruct, concreteType)
-    if typeStruct.opInit do
+    if typeStruct.opInit
+    {
         return true
-    if not (concreteType.flags & (TypeInfoFlags.Tuple | TypeInfoFlags.Record)) do
+    }
+
+    if not (concreteType.flags & (TypeInfoFlags.Tuple | TypeInfoFlags.Record))
+    {
         return false
+    }
 
     for field in typeStruct.fields
     {
         let pointedType = field.pointedType
-        if not pointedType do
+        if not pointedType
+        {
             return false
-        if not canDefaultInit(pointedType) do
+        }
+
+        if not canDefaultInit(pointedType)
+        {
             return false
+        }
     }
 
     return true
@@ -130,8 +153,11 @@ internal func canDefaultInit(type: typeinfo)->bool
 
 internal func defaultInit(dst: *void?, type: typeinfo)
 {
-    if not dst do
+    if not dst
+    {
         return
+    }
+
     let data = dst
 
     let concreteType = concreteRuntimeType(type)
@@ -169,8 +195,11 @@ internal func defaultInit(dst: *void?, type: typeinfo)
         for field in typeStruct.fields
         {
             let pointedType = field.pointedType
-            if not pointedType do
+            if not pointedType
+            {
                 return
+            }
+
             defaultInit(cast([*] u8, data) + field.offset, pointedType)
         }
 
@@ -182,12 +211,17 @@ internal func defaultInit(dst: *void?, type: typeinfo)
 
 internal func dropType(dst: *void?, type: typeinfo)
 {
-    if not dst do
+    if not dst
+    {
         return
+    }
+
     let data = dst
 
-    if not (type.flags & TypeInfoFlags.HasDrop) do
+    if not (type.flags & TypeInfoFlags.HasDrop)
+    {
         return
+    }
 
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
@@ -218,8 +252,11 @@ internal func dropType(dst: *void?, type: typeinfo)
             for field in typeStruct.fields!.reversed()
             {
                 let pointedType = field.pointedType
-                if not pointedType do
+                if not pointedType
+                {
                     return
+                }
+
                 dropType(cast([*] u8, data) + field.offset, pointedType)
             }
         }
@@ -228,12 +265,17 @@ internal func dropType(dst: *void?, type: typeinfo)
 
 internal func postCopyType(dst: *void?, type: typeinfo)
 {
-    if not dst do
+    if not dst
+    {
         return
+    }
+
     let data = dst
 
-    if not (type.flags & TypeInfoFlags.HasPostCopy) do
+    if not (type.flags & TypeInfoFlags.HasPostCopy)
+    {
         return
+    }
 
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
@@ -264,8 +306,11 @@ internal func postCopyType(dst: *void?, type: typeinfo)
             for field in typeStruct.fields
             {
                 let pointedType = field.pointedType
-                if not pointedType do
+                if not pointedType
+                {
                     return
+                }
+
                 postCopyType(cast([*] u8, data) + field.offset, pointedType)
             }
         }
@@ -274,12 +319,17 @@ internal func postCopyType(dst: *void?, type: typeinfo)
 
 internal func postMoveType(dst: *void?, type: typeinfo)
 {
-    if not dst do
+    if not dst
+    {
         return
+    }
+
     let data = dst
 
-    if not (type.flags & TypeInfoFlags.HasPostMove) do
+    if not (type.flags & TypeInfoFlags.HasPostMove)
+    {
         return
+    }
 
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
@@ -310,8 +360,11 @@ internal func postMoveType(dst: *void?, type: typeinfo)
             for field in typeStruct.fields
             {
                 let pointedType = field.pointedType
-                if not pointedType do
+                if not pointedType
+                {
                     return
+                }
+
                 postMoveType(cast([*] u8, data) + field.offset, pointedType)
             }
         }

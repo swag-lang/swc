@@ -13,8 +13,10 @@ func sumInvariantArith(n: s32, k: s32)->s32
 {
     var acc  = 0
     let base = k * 1000 + 7     // invariant in the loop
-    for i in 0 until n do
+    for i in 0 until n
+    {
         acc += base + i
+    }
     return acc
 }
 
@@ -22,8 +24,10 @@ func sumInvariantArith(n: s32, k: s32)->s32
 func sumGlobalLoad(n: s32, idx: s32)->s32
 {
     var acc = 0
-    for 0 until n do
-        acc += GTab[idx]     // invariant load (no store in loop): hoistable
+    for 0 until n
+    {
+        acc += GTab[idx]
+    }     // invariant load (no store in loop): hoistable
     return acc
 }
 
@@ -34,8 +38,10 @@ func nestedInvariant(h: s32, w: s32)->s32
     for y in 0 until h
     {
         let rowv = y * 10     // invariant in the inner loop
-        for x in 0 until w do
+        for x in 0 until w
+        {
             acc += rowv + x
+        }
     }
     return acc
 }
@@ -64,8 +70,10 @@ func guardedLoad(n: s32, idx: s32)->s32
     var acc = 0
     for i in 0 until n
     {
-        if (i & 1) == 0 do
+        if (i & 1) == 0
+        {
             acc += GTab[idx]
+        }
     }
     return acc
 }
@@ -80,15 +88,19 @@ struct FieldParams { a, b, c: s64 }
 func reduceFields(n: s32, p: *FieldParams)->s64
 {
     var acc: s64 = 0
-    for i in 0 until n do
+    for i in 0 until n
+    {
         acc += cast(s64, i) * p.a + p.b - p.c
+    }
     return acc
 }
 
 #test
 {
-    for i in 0 until 256 do
+    for i in 0 until 256
+    {
         GTab[i] = i * 3
+    }
 
     // n*base + n*(n-1)/2 with base = 5*1000+7 = 5007
     Swag.require(sumInvariantArith(100, 5) == 100 * 5007 + (100 * 99) / 2)
@@ -99,9 +111,13 @@ func reduceFields(n: s32, p: *FieldParams)->s64
 
     // sum over y<h, x<w of (y*10 + x)
     var expectNested = 0
-    for y in 0 until 8 do
-        for x in 0 until 5 do
+    for y in 0 until 8
+    {
+        for x in 0 until 5
+        {
             expectNested += y * 10 + x
+        }
+    }
     Swag.require(nestedInvariant(8, 5) == expectNested)
 
     // 1+2+...+n
@@ -114,7 +130,9 @@ func reduceFields(n: s32, p: *FieldParams)->s64
     var fp: FieldParams
     fp.a = 4; fp.b = 100; fp.c = 10
     var expectReduce: s64 = 0
-    for i in 0 until 20 do
+    for i in 0 until 20
+    {
         expectReduce += cast(s64, i) * 4 + 100 - 10
+    }
     Swag.require(reduceFields(20, &fp) == expectReduce)
 }

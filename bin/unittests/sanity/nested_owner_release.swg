@@ -30,15 +30,19 @@ struct Context { composition: *Composition? }
 #[Swag.NoInline]
 func dropContext(rc: Context)
 {
-    if rc.composition do
+    if rc.composition
+    {
         release(rc.composition, #sizeof(Composition))
+    }
 }
 
 #[Swag.NoInline]
 func dropContextByPointer(rc: *Context)
 {
-    if rc.composition do
+    if rc.composition
+    {
         release(rc.composition, #sizeof(Composition))
+    }
 }
 
 #test

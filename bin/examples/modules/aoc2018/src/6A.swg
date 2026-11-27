@@ -61,10 +61,10 @@ func day6A()
     let dataPath = Path.combine(Path.directoryName(#file), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var coords: Array'{ x, y: s32 }
+    var coords: Array!{{ x, y: s32 }}
     for l in lines
     {
-        let split = Tokenize.split(l[], ','u8)
+        let split = Tokenize.split(l[], ','_u8)
         let vx    = expect StrConv.toS32(Latin1.trim(split[0]))
         let vy    = expect StrConv.toS32(Latin1.trim(split[1]))
         coords.add({x: vx, y: vy})
@@ -72,9 +72,9 @@ func day6A()
 
     const W = 300
 
-    var arr:     Array'Claim
-    var count:   Array's32
-    var borders: Array's32
+    var arr:     Array!{Claim}
+    var count:   Array!{s32}
+    var borders: Array!{s32}
 
     arr.resize(W * W)
     count.resize(coords.count)
@@ -108,9 +108,13 @@ func day6A()
     }
 
     var total = 0
-    for v, index in count do
-        if not borders[index] do
+    for v, index in count
+    {
+        if not borders[index]
+        {
             total = Math.max(v, total)
+        }
+    }
 
     Swag.assert(total == 3882)
 }

@@ -4,16 +4,21 @@
 #[Swag.CallingConvention(.C)]
 private func __releaseTlsVar(value: *void?)
 {
-    if value do
+    if value
+    {
         __bootstrapFree(cast([*] void?, value))
+    }
 }
 
 // Allocates one host thread-storage slot for a runtime thread-local global.
 func __tlsAlloc()->u64
 {
     let slot = __hostTlsAlloc()
-    if slot == Swag.U64.Max do
+    if slot == Swag.U64.Max
+    {
         Swag.panic("too many thread-local globals for the platform", #curlocation)
+    }
+
     return slot
 }
 
@@ -27,8 +32,11 @@ func __tlsSetValue(id: u64, value: *void?)->bool => __hostTlsSet(id, value)
 func __tlsGetPtr(id: u64)->*void?
 {
     let ptr = __tlsGetValue(id)
-    if ptr do
+    if ptr
+    {
         return ptr
+    }
+
     return __tlsCreatePtr(id)
 }
 
@@ -36,8 +44,11 @@ private func __tlsCreatePtr(id: u64)->*void?
 {
     let size = #sizeof(Swag.Context)
     let ptr  = __bootstrapAlloc(size)
-    if not ptr do
+    if not ptr
+    {
         return null
+    }
+
     Swag.memset(ptr, 0, size)
     cast(*Swag.Context, ptr).runtimeTlsIdPlusOne = id + 1
     if not __tlsSetValue(id, ptr)
@@ -63,8 +74,10 @@ func __tlsVarPtr(idSlot: *u64, size: u64, alignment: u32, init: const *void)->*v
     if id == 0
     {
         let slot = __hostThreadStorageAlloc(&__releaseTlsVar)
-        if not slot do
+        if not slot
+        {
             Swag.panic("too many thread-local globals for the platform", #curlocation)
+        }
 
         let previous = Swag.atomicCompareExchange(idSlot, 0, slot)
         if previous == 0
@@ -79,12 +92,16 @@ func __tlsVarPtr(idSlot: *u64, size: u64, alignment: u32, init: const *void)->*v
     }
 
     let known = __hostThreadStorageGet(id)
-    if known do
+    if known
+    {
         return known
+    }
 
     let created = __bootstrapAllocAligned(size, alignment)
-    if not created do
+    if not created
+    {
         return null
+    }
 
     Swag.memcpy(created, init, size)
     if not __hostThreadStorageSet(id, created)

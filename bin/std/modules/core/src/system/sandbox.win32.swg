@@ -15,20 +15,29 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
     // Runtime arguments are already present in a JIT run. Windows native startup still
     // needs the command-line fallback below before its argument vector is populated.
     result = findRunArgumentIn(Swag.args(), name)
-    if result.found do
+    if result.found
+    {
         return result
+    }
 
     var scan = GetCommandLineA()
-    if not scan do
+    if not scan
+    {
         return result
+    }
 
     var cursor = scan
     while cursor[]
     {
-        while cursor[] == ' ' do
+        while cursor[] == ' '
+        {
             cursor += 1
-        if cursor[] == 0 do
+        }
+
+        if cursor[] == 0
+        {
             break
+        }
 
         // Tokens are separated by spaces, and a quoted token may contain them.
         var quoted = false
@@ -39,17 +48,26 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
         }
 
         let start = cursor
-        while cursor[] and (quoted ? cursor[] != '"' : cursor[] != ' ') do
+        while cursor[] and (quoted ? cursor[] != '"' : cursor[] != ' ')
+        {
             cursor += 1
+        }
 
         let token = cast(string, Swag.makeSlice(start, cast(u64, (cursor - start))))
-        if cursor[] do
+        if cursor[]
+        {
             cursor += 1
+        }
 
-        if token.count < name.count do
+        if token.count < name.count
+        {
             continue
-        if token[until name.count] != name do
+        }
+
+        if token[until name.count] != name
+        {
             continue
+        }
 
         // An exact match, or the name followed by '=' and its value. A longer token that
         // merely starts with the name is a different argument.
@@ -78,14 +96,16 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
 internal func absolutePath(path: string)->String
 {
     var result: #returntype
-    if not Path.isValidPathName(path) do
+    if not Path.isValidPathName(path)
+    {
         return ""
+    }
 
-    const MaxLength = 32768'u32
+    const MaxLength = 32768_u32
 
     let winPath = Utf16.toZeroTerminated(path)
 
-    var arr16: Array'u16
+    var arr16: Array!{u16}
     arr16.reserve(cast(u64, MaxLength) + 1)
 
     // Only the returned length decides: the call does not clear the thread's last error, so a
@@ -93,8 +113,10 @@ internal func absolutePath(path: string)->String
     let written = catch GetFullPathNameW(winPath.buffer, MaxLength, arr16.buffer, null) { return "" }
 
     // A failed canonicalization must never become a literal prefix accepted by containment.
-    if written == 0 or written >= MaxLength do
+    if written == 0 or written >= MaxLength
+    {
         return ""
+    }
 
     arr16.count = written
     result      = Utf8.fromUtf16(arr16.toSlice())

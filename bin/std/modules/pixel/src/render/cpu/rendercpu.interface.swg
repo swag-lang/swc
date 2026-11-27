@@ -91,7 +91,7 @@ impl IRenderer for RenderCpu
 
     mtd impl updateTexture(texture: Texture, pixels: const *u8)->bool => .updateTextureImpl(texture, pixels)
 
-    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8 => .readTexturePixelsImpl(texture, pixelFormat)
+    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array!{u8} => .readTexturePixelsImpl(texture, pixelFormat)
 
     mtd impl removeTexture(texture: *Texture)
     {
@@ -133,5 +133,33 @@ impl IRenderer for RenderCpu
     mtd impl releaseRenderTarget(target: *RenderTarget?)
     {
         .releaseRenderTargetImpl(target)
+    }
+}
+
+impl RenderCpu
+{
+    // Registers a read-only image for CPU sampling without a pixel copy.
+    //
+    // Keep the image and its pixels stable until the texture is removed. The
+    // renderer never edits or frees a borrowed image and refuses texture
+    // updates to it. Premultiplied inputs use an owned conversion to straight alpha.
+    mtd addBorrowedImage(image: const *Image)->Texture
+    {
+        if image.alphaMode == .Premultiplied
+        {
+            return .addImageImpl(image)
+        }
+
+        if not image.isValid() or not .ensureGeneration()
+        {
+            return {}
+        }
+
+        var result: #returntype
+        result.attach(cast(TextureHandle, .nextHandle), image.pixelFormat, image.width, image.height, .generation)
+        .nextHandle += 1
+        var storage = CpuTexture{handle: result.handle, borrowed: image}
+        .textures.add(#move storage)
+        return result
     }
 }

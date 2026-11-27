@@ -12,7 +12,7 @@ impl Complex
 {
     // Unary +  : identity
     // Unary -  : negate both parts
-    func(op: Swag.Operator) opUnary(const me)->Complex'T
+    func(op: Swag.Operator) opUnary(const me)->Complex!{T}
         where op == .Pos or op == .Neg
     {
         #static switch op
@@ -30,7 +30,7 @@ impl Complex
     //   (a+bi) + (c+di) = (a+c) + (b+d)i
     //   (a+bi) - (c+di) = (a-c) + (b-d)i
     //   (a+bi) * (c+di) = (ac-bd) + (ad+bc)i
-    func(op: Swag.Operator) opBinary(const me, other: Complex'T)->Complex'T
+    func(op: Swag.Operator) opBinary(const me, other: Complex!{T})->Complex!{T}
         where op == .Add or op == .Sub or op == .Mul
     {
         #static switch op
@@ -52,7 +52,7 @@ impl Complex
     //   (a+bi) + s = (a+s) + bi
     //   (a+bi) - s = (a-s) + bi
     //   (a+bi) * s = (a*s) + (b*s)i
-    func(op: Swag.Operator) opBinary(const me, scalar: T)->Complex'T
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->Complex!{T}
         where op == .Add or op == .Sub or op == .Mul
     {
         #static switch op
@@ -70,7 +70,7 @@ impl Complex
     }
 
     // Conjugate: (a+bi) -> (a-bi)
-    func conjugate(const me)->Complex'T
+    func conjugate(const me)->Complex!{T}
     {
         return {re: me.re, im: -me.im}
     }
@@ -89,10 +89,10 @@ impl Complex
 // Test: unary + preserves both parts
 #test
 {
-    var z: Complex's32 = {re: 3, im: -4}
+    var z: Complex!{s32} = {re: 3, im: -4}
     let pos = +z
 
-    #assert(#typeof(pos) == Complex's32)
+    #assert(#typeof(pos) == Complex!{s32})
     Swag.require(pos.re == 3)
     Swag.require(pos.im == -4)
 }
@@ -100,7 +100,7 @@ impl Complex
 // Test: unary - negates both parts
 #test
 {
-    var z: Complex's32 = {re: 5, im: -7}
+    var z: Complex!{s32} = {re: 5, im: -7}
     let neg = -z
 
     Swag.require(neg.re == -5)
@@ -110,7 +110,7 @@ impl Complex
 // Test: double negation is identity
 #test
 {
-    var z: Complex's64 = {re: 42, im: -99}
+    var z: Complex!{s64} = {re: 42, im: -99}
     let dn = -(-z)
 
     Swag.require(dn.re == 42)
@@ -120,7 +120,7 @@ impl Complex
 // Test: negation of zero
 #test
 {
-    var z: Complex's32 = {re: 0, im: 0}
+    var z: Complex!{s32} = {re: 0, im: 0}
     let neg = -z
 
     Swag.require(neg.re == 0)
@@ -134,11 +134,11 @@ impl Complex
 // Test: addition
 #test
 {
-    var a: Complex's32 = {re: 1, im: 2}
-    var b: Complex's32 = {re: 3, im: 4}
+    var a: Complex!{s32} = {re: 1, im: 2}
+    var b: Complex!{s32} = {re: 3, im: 4}
     let sum = a + b
 
-    #assert(#typeof(sum) == Complex's32)
+    #assert(#typeof(sum) == Complex!{s32})
     Swag.require(sum.re == 4)
     Swag.require(sum.im == 6)
 }
@@ -146,8 +146,8 @@ impl Complex
 // Test: subtraction
 #test
 {
-    var a: Complex's32 = {re: 10, im: 20}
-    var b: Complex's32 = {re: 3, im: 25}
+    var a: Complex!{s32} = {re: 10, im: 20}
+    var b: Complex!{s32} = {re: 3, im: 25}
     let diff = a - b
 
     Swag.require(diff.re == 7)
@@ -157,8 +157,8 @@ impl Complex
 // Test: multiplication  (1+2i)*(3+4i) = (3-8)+(4+6)i = -5+10i
 #test
 {
-    var a: Complex's32 = {re: 1, im: 2}
-    var b: Complex's32 = {re: 3, im: 4}
+    var a: Complex!{s32} = {re: 1, im: 2}
+    var b: Complex!{s32} = {re: 3, im: 4}
     let prod = a * b
 
     Swag.require(prod.re == -5)
@@ -169,7 +169,7 @@ impl Complex
 //   (3+4i)*(3-4i) = 9+16 = 25, im=0
 #test
 {
-    var z: Complex's32 = {re: 3, im: 4}
+    var z: Complex!{s32} = {re: 3, im: 4}
     let conj = z.conjugate()
     let prod = z * conj
 
@@ -181,8 +181,8 @@ impl Complex
 //   (a+bi)*(0+1i) = -b + ai
 #test
 {
-    var z:      Complex's32 = {re: 5, im: 3}
-    var i_unit: Complex's32 = {re: 0, im: 1}
+    var z:      Complex!{s32} = {re: 5, im: 3}
+    var i_unit: Complex!{s32} = {re: 0, im: 1}
     let rot = z * i_unit
 
     Swag.require(rot.re == -3)
@@ -196,8 +196,8 @@ impl Complex
 // Test: add scalar shifts real part only
 #test
 {
-    var z: Complex's32 = {re: 2, im: 7}
-    let result         = z + 10's32
+    var z: Complex!{s32} = {re: 2, im: 7}
+    let result = z + 10_s32
 
     Swag.require(result.re == 12)
     Swag.require(result.im == 7)
@@ -206,8 +206,8 @@ impl Complex
 // Test: subtract scalar
 #test
 {
-    var z: Complex's32 = {re: 5, im: 3}
-    let result         = z - 8's32
+    var z: Complex!{s32} = {re: 5, im: 3}
+    let result = z - 8_s32
 
     Swag.require(result.re == -3)
     Swag.require(result.im == 3)
@@ -216,8 +216,8 @@ impl Complex
 // Test: multiply by scalar scales both parts
 #test
 {
-    var z: Complex's32 = {re: 2, im: -3}
-    let result         = z * 4's32
+    var z: Complex!{s32} = {re: 2, im: -3}
+    let result = z * 4_s32
 
     Swag.require(result.re == 8)
     Swag.require(result.im == -12)
@@ -226,8 +226,8 @@ impl Complex
 // Test: multiply by zero scalar
 #test
 {
-    var z: Complex's32 = {re: 99, im: -42}
-    let result         = z * 0's32
+    var z: Complex!{s32} = {re: 99, im: -42}
+    let result = z * 0_s32
 
     Swag.require(result.re == 0)
     Swag.require(result.im == 0)
@@ -240,10 +240,10 @@ impl Complex
 // Test: chaining additions
 #test
 {
-    var a: Complex's32 = {re: 1, im: 1}
-    var b: Complex's32 = {re: 2, im: 2}
-    var c: Complex's32 = {re: 3, im: 3}
-    let result         = a + b + c
+    var a: Complex!{s32} = {re: 1, im: 1}
+    var b: Complex!{s32} = {re: 2, im: 2}
+    var c: Complex!{s32} = {re: 3, im: 3}
+    let result = a + b + c
 
     Swag.require(result.re == 6)
     Swag.require(result.im == 6)
@@ -252,9 +252,9 @@ impl Complex
 // Test: add then negate
 #test
 {
-    var a: Complex's32 = {re: 10, im: 20}
-    var b: Complex's32 = {re: 5, im: 5}
-    let result         = -(a + b)
+    var a: Complex!{s32} = {re: 10, im: 20}
+    var b: Complex!{s32} = {re: 5, im: 5}
+    let result = -(a + b)
 
     Swag.require(result.re == -15)
     Swag.require(result.im == -25)
@@ -263,8 +263,8 @@ impl Complex
 // Test: z + (-z) == 0
 #test
 {
-    var z: Complex's64 = {re: 123, im: -456}
-    let result         = z + (-z)
+    var z: Complex!{s64} = {re: 123, im: -456}
+    let result = z + (-z)
 
     Swag.require(result.re == 0)
     Swag.require(result.im == 0)
@@ -273,9 +273,9 @@ impl Complex
 // Test: scale then subtract
 #test
 {
-    var a: Complex's32 = {re: 6, im: 9}
-    var b: Complex's32 = {re: 2, im: 3}
-    let result         = a - b * 2's32
+    var a: Complex!{s32} = {re: 6, im: 9}
+    var b: Complex!{s32} = {re: 2, im: 3}
+    let result = a - b * 2_s32
 
     Swag.require(result.re == 2)
     Swag.require(result.im == 3)
@@ -288,7 +288,7 @@ impl Complex
 // Test: conjugate flips sign of imaginary part
 #test
 {
-    var z: Complex's32 = {re: 3, im: 4}
+    var z: Complex!{s32} = {re: 3, im: 4}
     let conj = z.conjugate()
 
     Swag.require(conj.re == 3)
@@ -298,7 +298,7 @@ impl Complex
 // Test: conjugate of pure real is itself
 #test
 {
-    var z: Complex's32 = {re: 7, im: 0}
+    var z: Complex!{s32} = {re: 7, im: 0}
     let conj = z.conjugate()
 
     Swag.require(conj.re == 7)
@@ -308,7 +308,7 @@ impl Complex
 // Test: double conjugate is identity
 #test
 {
-    var z: Complex's32 = {re: -2, im: 5}
+    var z: Complex!{s32} = {re: -2, im: 5}
     let cc = z.conjugate().conjugate()
 
     Swag.require(cc.re == -2)
@@ -318,7 +318,7 @@ impl Complex
 // Test: normSq of 3+4i == 25
 #test
 {
-    var z: Complex's32 = {re: 3, im: 4}
+    var z: Complex!{s32} = {re: 3, im: 4}
     let n = z.normSq()
 
     Swag.require(n == 25)
@@ -327,7 +327,7 @@ impl Complex
 // Test: normSq of pure imaginary
 #test
 {
-    var z: Complex's32 = {re: 0, im: 6}
+    var z: Complex!{s32} = {re: 0, im: 6}
     let n = z.normSq()
 
     Swag.require(n == 36)
@@ -336,7 +336,7 @@ impl Complex
 // Test: normSq of zero
 #test
 {
-    var z: Complex's32 = {re: 0, im: 0}
+    var z: Complex!{s32} = {re: 0, im: 0}
     let n = z.normSq()
 
     Swag.require(n == 0)
@@ -349,11 +349,11 @@ impl Complex
 // Test: Complex with s64
 #test
 {
-    var a: Complex's64 = {re: 100000, im: -200000}
-    var b: Complex's64 = {re: 300000, im: 400000}
+    var a: Complex!{s64} = {re: 100000, im: -200000}
+    var b: Complex!{s64} = {re: 300000, im: 400000}
     let sum = a + b
 
-    #assert(#typeof(sum) == Complex's64)
+    #assert(#typeof(sum) == Complex!{s64})
     Swag.require(sum.re == 400000)
     Swag.require(sum.im == 200000)
 }
@@ -361,23 +361,23 @@ impl Complex
 // Test: Complex with s16
 #test
 {
-    var a: Complex's16 = {re: 10, im: 20}
-    var b: Complex's16 = {re: 5, im: -10}
+    var a: Complex!{s16} = {re: 10, im: 20}
+    var b: Complex!{s16} = {re: 5, im: -10}
     let prod = a * b
 
     // (10+20i)*(5-10i) = (50+200)+(−100+100)i = 250+0i
-    #assert(#typeof(prod) == Complex's16)
+    #assert(#typeof(prod) == Complex!{s16})
     Swag.require(prod.re == 250)
     Swag.require(prod.im == 0)
 }
 
-// Test: Complex's64 multiplication associativity spot check
+// Test: Complex!{s64} multiplication associativity spot check
 //   a*(b*c) vs (a*b)*c
 #test
 {
-    var a: Complex's64 = {re: 1, im: 2}
-    var b: Complex's64 = {re: 3, im: -1}
-    var c: Complex's64 = {re: 0, im: 4}
+    var a: Complex!{s64} = {re: 1, im: 2}
+    var b: Complex!{s64} = {re: 3, im: -1}
+    var c: Complex!{s64} = {re: 0, im: 4}
 
     let lhs = a * (b * c)
     let rhs = (a * b) * c

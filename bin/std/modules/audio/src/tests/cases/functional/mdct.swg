@@ -9,7 +9,7 @@ private func mdctDirect(spectrum: const [..] f32, output: [*] f64)
     let half = spectrum.count
     for index in n
     {
-        var sum = 0.0'f64
+        var sum = 0.0_f64
         for bin in half
         {
             let angle = 2.0 * Math.ConstF64.Pi / cast(f64, n) *
@@ -27,30 +27,35 @@ private func mdctAssertMatchesDefinition(n: u32)
 {
     var random: Random.Generator
     random.seedU32(1234 + n)
-    var spectrum: Array'f32
+    var spectrum: Array!{f32}
     spectrum.resize(n / 2)
-    for index in n / 2 do
+    for index in n / 2
+    {
         spectrum[index] = cast(f32, (cast(f64, random.nextU32()) / 4294967296.0 * 2.0 - 1.0))
+    }
 
-    var direct: Array'f64
+    var direct: Array!{f64}
     direct.resize(n)
     mdctDirect(spectrum.toSlice(), direct.storage())
 
-    var fast: Array'f32
+    var fast: Array!{f32}
     fast.resize(n)
     var transform = Mdct.create(n)
     transform.inverse(spectrum.storage(), fast.storage())
 
-    var worst = 0.0'f64
-    var scale = 0.0'f64
+    var worst = 0.0_f64
+    var scale = 0.0_f64
     for index in n
     {
         worst = Math.max(worst, Math.abs(cast(f64, fast[index]) - direct[index]))
         scale = Math.max(scale, Math.abs(direct[index]))
     }
 
-    if worst > scale * 1e-4 do
+    if worst > scale * 1e-4
+    {
         Swag.print("mdct ", n, ": worst ", worst, " against a scale of ", scale, "\r\n")
+    }
+
     Swag.require(worst <= scale * 1e-4)
 }
 
@@ -66,21 +71,24 @@ private func mdctAssertMatchesDefinition(n: u32)
 // The forward transform agrees with its defining cosine sum, including broadband input.
 #test
 {
-    for n in [64'u32, 256, 2_048]
+    for n in [64_u32, 256, 2_048]
     {
         var random: Random.Generator
         random.seedU32(985 + n)
-        var input, actual: Array'f32
+        var input, actual: Array!{f32}
         input.resize(n)
         actual.resize(n / 2)
-        for index in n do
+        for index in n
+        {
             input[index] = cast(f32, cast(f64, random.nextU32()) / 4_294_967_296.0 * 2 - 1)
+        }
+
         var transform = Mdct.create(n)
         transform.forward(input.storage(), actual.storage())
         var worst, scale: f64
         for bin in n / 2
         {
-            var expected = 0.0'f64
+            var expected = 0.0_f64
             for sample in n
             {
                 let angle = Math.ConstF64.TwoPi / n * (sample + 0.5 + n / 4.0) * (bin + 0.5)

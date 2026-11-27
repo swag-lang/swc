@@ -27,8 +27,11 @@ internal impl Properties
     // Field address in instance 'k'. Falls back to the single 'data' pointer.
     mtd instanceAddr(item: *PropertiesItem, k: u64)->*u8?
     {
-        if k < item.dataInstances.count do
+        if k < item.dataInstances.count
+        {
             return item.dataInstances[k]
+        }
+
         return item.data
     }
 
@@ -41,8 +44,11 @@ internal impl Properties
         var scan = cast(*PropertiesItem?, item)
         while scan
         {
-            if isDynamicArrayType(scan.type) do
+            if isDynamicArrayType(scan.type)
+            {
                 return true
+            }
+
             scan = scan.parent
         }
 
@@ -53,8 +59,10 @@ internal impl Properties
     mtd fieldIsMixed(item: *PropertiesItem)->bool
     {
         let n = item.dataInstances.count
-        if n <= 1 do
+        if n <= 1
+        {
             return false
+        }
 
         // Dynamic strings own a heap buffer, so compare by content not by bytes.
         if item.type == Core.String
@@ -62,22 +70,28 @@ internal impl Properties
             let s0 = cast(*String, item.dataInstances[0])
             for i in 1 until n
             {
-                if cast(const *String, item.dataInstances[i])[] != s0[] do
+                if cast(const *String, item.dataInstances[i])[] != s0[]
+                {
                     return true
+                }
             }
 
             return false
         }
 
         let sz = .fieldSize(item)
-        if sz == 0 do
+        if sz == 0
+        {
             return false
+        }
 
         let a0 = item.dataInstances[0]
         for i in 1 until n
         {
-            if Memory.compare(a0, item.dataInstances[i], sz) != 0 do
+            if Memory.compare(a0, item.dataInstances[i], sz) != 0
+            {
                 return true
+            }
         }
 
         return false
@@ -87,22 +101,31 @@ internal impl Properties
     mtd propagateField(item: *PropertiesItem)
     {
         let n = item.dataInstances.count
-        if n <= 1 do
+        if n <= 1
+        {
             return
+        }
 
         if item.type == Core.String
         {
-            for i in 1 until n do
+            for i in 1 until n
+            {
                 cast(*String, item.dataInstances[i])[] = cast(const *String, item.dataInstances[0])[]
+            }
+
             return
         }
 
         let sz = .fieldSize(item)
-        if sz == 0 do
+        if sz == 0
+        {
             return
+        }
 
-        for i in 1 until n do
+        for i in 1 until n
+        {
             Memory.copy(item.dataInstances[i], item.dataInstances[0], sz)
+        }
     }
 
     // Show the value box as "mixed" when the instances disagree (blank text and the faint
@@ -128,15 +151,19 @@ internal impl Properties
     mtd subFieldIsMixed(item: *PropertiesItem, byteOffset, sz: u64)->bool
     {
         let n = item.dataInstances.count
-        if n <= 1 or sz == 0 do
+        if n <= 1 or sz == 0
+        {
             return false
+        }
 
         let a0 = cast([*] u8, item.dataInstances[0]) + byteOffset
         for i in 1 until n
         {
             let ai = cast([*] u8, item.dataInstances[i]) + byteOffset
-            if Memory.compare(a0, ai, sz) != 0 do
+            if Memory.compare(a0, ai, sz) != 0
+            {
                 return true
+            }
         }
 
         return false
@@ -162,8 +189,10 @@ internal impl Properties
     mtd writeFloatComponent(item: *PropertiesItem, byteOffset: u64, val: f32)
     {
         let n = .instanceCount(item)
-        for k in n do
+        for k in n
+        {
             cast(*f32, unwrap (cast([*] u8?, .instanceAddr(item, k)) + byteOffset))[] = val
+        }
     }
 
     // Set or clear the masked bits of the enum-flags field in every instance, leaving the
@@ -177,10 +206,15 @@ internal impl Properties
             // Only a value row reaches here, and a value row has storage.
             let addr = unwrap .instanceAddr(item, k)
             var v    = readEnumBits(addr, sz)
-            if set do
+            if set
+            {
                 v |= mask
-            else do
+            }
+            else
+            {
                 v &= ~mask
+            }
+
             writeEnumBits(addr, sz, v)
         }
     }
@@ -191,15 +225,19 @@ internal impl Properties
     mtd flagBitIsMixed(item: *PropertiesItem, mask: u64)->bool
     {
         let n = item.dataInstances.count
-        if n <= 1 do
+        if n <= 1
+        {
             return false
+        }
 
         let sz   = .fieldSize(item)
         let bit0 = readEnumBits(item.dataInstances[0], sz) & mask
         for i in 1 until n
         {
-            if (readEnumBits(item.dataInstances[i], sz) & mask) != bit0 do
+            if (readEnumBits(item.dataInstances[i], sz) & mask) != bit0
+            {
                 return true
+            }
         }
 
         return false
@@ -238,15 +276,21 @@ private impl Properties
     // The field's byte size (the pointed type of the value).
     mtd fieldSize(item: *PropertiesItem)->u64
     {
-        if not item.type do
+        if not item.type
+        {
             return 0
+        }
+
         return item.type.sizeof
     }
 
     func isDynamicArrayType(t: typeinfo?)->bool
     {
-        if t is Swag.TypeInfoStruct as info do
+        if t is Swag.TypeInfoStruct as info
+        {
             return info.fromGeneric == Array
+        }
+
         return false
     }
 }

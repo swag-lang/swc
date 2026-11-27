@@ -63,22 +63,26 @@ private struct Card
     handType:            s32
 }
 
-private var strengthByLabel: HashTable'(u8, u8)
-private var hands: Array'Card
+private var strengthByLabel: HashTable!{u8, u8}
+private var hands: Array!{Card}
 
 private func sort()
 {
     hands.sort(func(leftHand, rightHand)
     {
-        if leftHand.handType != rightHand.handType do
+        if leftHand.handType != rightHand.handType
+        {
             return leftHand.handType <=> rightHand.handType
+        }
 
         for i in leftHand.labels.count
         {
             let leftStrength  = strengthByLabel.find(leftHand.labels[i])
             let rightStrength = strengthByLabel.find(rightHand.labels[i])
-            if leftStrength.value != rightStrength.value do
+            if leftStrength.value != rightStrength.value
+            {
                 return leftStrength.value <=> rightStrength.value
+            }
         }
 
         return 0
@@ -106,7 +110,7 @@ func day7A()
 
     for line in lines
     {
-        let handAndBid = Tokenize.split(line[], ' 'u8)
+        let handAndBid = Tokenize.split(line[], ' '_u8)
 
         var hand: Card
         for label in handAndBid[0]
@@ -138,8 +142,10 @@ func day7A()
     sort()
 
     var total: u64
-    for hand, rank in hands do
+    for hand, rank in hands
+    {
         total += (rank + 1) * hand.bid
+    }
 
     Swag.assert(total == 249748283)
 }

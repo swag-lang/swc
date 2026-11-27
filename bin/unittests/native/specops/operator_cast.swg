@@ -48,8 +48,10 @@ impl RuntimePointerCastBox
 
 func consumeNullableStrictPtr(value: OpCastStrictPtr?)->s32
 {
-    if value == null do
+    if value == null
+    {
         return 0
+    }
     return value[]
 }
 

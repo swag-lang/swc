@@ -29,7 +29,7 @@ struct ColorPickerCtrl
     {
         using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
-        sigColorChanged: SigArray'func||(*Wnd)     // Emitted once after the selected color changes.
+        sigColorChanged: SigArray!{func||(*Wnd)}     // Emitted once after the selected color changes.
 
         readonly
         {
@@ -73,13 +73,19 @@ impl IWnd for ColorPickerCtrl
 
         let brush = Brush.createHatch(.CheckBoardLarge, .themeColors().colorPicker_BackAlpha)
 
-        if .originalColor.a != 255 do
+        if .originalColor.a != 255
+        {
             painter.fillRect(rect, brush)
+        }
+
         painter.fillRect(rect, .originalColor)
 
         rect.x += rect.width
-        if .selectedColor.a != 255 do
+        if .selectedColor.a != 255
+        {
             painter.fillRect(rect, brush)
+        }
+
         painter.fillRect(rect, .selectedColor)
     }
 }
@@ -114,15 +120,22 @@ private impl ColorPickerCtrl
         t = Format.toString("%", .selectedColor.a)
         .editA.setText(t, false)
 
-        if .flags.has(.AllowAlpha) do
+        if .flags.has(.AllowAlpha)
+        {
             t = Format.toString("%{X08}", .selectedColor.argb)
-        else do
+        }
+        else
+        {
             t = Format.toString("%{X02}%{X02}%{X02}", .selectedColor.r, .selectedColor.g, .selectedColor.b)
+        }
+
         .editHex.setText(t, false)
 
         .preview.invalidate()
-        if notify do
+        if notify
+        {
             .sigColorChanged.call(me)
+        }
     }
 
     mtd updateAll()
@@ -135,8 +148,10 @@ private impl ColorPickerCtrl
     mtd publishEditedColor(previous: Color)
     {
         .updateAll()
-        if .selectedColor != previous do
+        if .selectedColor != previous
+        {
             .sigColorChanged.call(me)
+        }
     }
 }
 
@@ -148,12 +163,17 @@ impl ColorPickerCtrl
     {
         Swag.assert(parent != null)
         var pos = position
-        if pos.width == 0 do
+        if pos.width == 0
+        {
             pos.width = 340
-        if pos.height == 0 do
-            pos.height = 330
+        }
 
-        with let v = Wnd.create'ColorPickerCtrl(parent, "", pos, id)
+        if pos.height == 0
+        {
+            pos.height = 330
+        }
+
+        with let v = Wnd.create!{ColorPickerCtrl}(parent, "", pos, id)
         {
             .flags = flags
 
@@ -161,7 +181,7 @@ impl ColorPickerCtrl
             .pickBar   = ColorPicker.create(v, {10, 215, 220, 16})
             .pickAlpha = ColorPicker.create(v, {10, 240, 220, 16})
 
-            .preview = Wnd.create'Wnd(v, "", {245, 215, 40, 40})
+            .preview = Wnd.create!{Wnd}(v, "", {245, 215, 40, 40})
             var icon = v.theme().icon(.Picker)
             icon.color = Argb.White
             let picker = IconButton.create(v, icon, {245, 215, 40, 40})
@@ -211,8 +231,10 @@ impl ColorPickerCtrl
                     var col = Application.pickColorAtMouse()
                     v.setColor(col)
 
-                    if app.mouse.isButtonPressed(.Left) do
+                    if app.mouse.isButtonPressed(.Left)
+                    {
                         app.exitModal()
+                    }
                 })
 
                 app.fadeDisabledSurface = sfade
@@ -220,8 +242,11 @@ impl ColorPickerCtrl
 
             .pickBox.sigColorChanged += func|v|(cb)
             {
-                if not v.flags.has(.AllowAlpha) do
+                if not v.flags.has(.AllowAlpha)
+                {
                     v.selectedColor.a = 255
+                }
+
                 switch v.mode
                 {
                 case .SaturationLightness:
@@ -351,8 +376,11 @@ impl ColorPickerCtrl
             {
                 var argb     = catch StrConv.parseX64(ed.text()).value orelse 0
                 let previous = v.selectedColor
-                if not v.flags.has(.AllowAlpha) do
+                if not v.flags.has(.AllowAlpha)
+                {
                     argb |= 0xFF000000
+                }
+
                 v.selectedColor.argb = cast(u32, argb)
                 v.publishEditedColor(previous)
             }
@@ -407,7 +435,7 @@ impl ColorPickerCtrl
     // built-in default colors. Picking a palette color keeps the current alpha unless one of the
     // two colors is fully transparent.
     #[Swag.Discardable]
-    func createWithPalette(parent: *Wnd, position: Math.Rectangle, pal: Array'Color, flags = ColorPickerFlags.All, id: WndId? = null)->*ColorPickerCtrl
+    func createWithPalette(parent: *Wnd, position: Math.Rectangle, pal: Array!{Color}, flags = ColorPickerFlags.All, id: WndId? = null)->*ColorPickerCtrl
     {
         let picker = ColorPickerCtrl.create(parent, position, flags, id)
 
@@ -449,20 +477,28 @@ impl ColorPickerCtrl
                     .addColor(Argb.Purple)
 
                 case 8:
-                    if flags.has(.AllowAlpha) do
+                    if flags.has(.AllowAlpha)
+                    {
                         .addColor(Color.fromArgb(0))
-                    else do
+                    }
+                    else
+                    {
                         .addColor(Argb.Gold)
+                    }
                 }
             }
 
             .setItemMetrics(32, 3)
             .sigSelectionChanged += func|picker|(pal)
             {
-                if not pal.selectedColor.a or not picker.selectedColor.a do
+                if not pal.selectedColor.a or not picker.selectedColor.a
+                {
                     picker.setColor(pal.selectedColor)
-                else do
+                }
+                else
+                {
                     picker.setColorPreservingAlpha(pal.selectedColor)
+                }
             }
         }
 
@@ -508,10 +544,16 @@ impl ColorPickerCtrl
     mtd setOriginalColor(color: Color)
     {
         var col = color
-        if not .flags.has(.AllowAlpha) do
+        if not .flags.has(.AllowAlpha)
+        {
             col.a = 255
-        if .hasOriginalColor and .originalColor == col do
+        }
+
+        if .hasOriginalColor and .originalColor == col
+        {
             return
+        }
+
         .originalColor    = col
         .hasOriginalColor = true
         .preview.invalidate()
@@ -535,22 +577,26 @@ impl ColorPickerCtrl
     mtd setColor(color: Color, notify = true)
     {
         var col = color
-        if not .flags.has(.AllowAlpha) do
+        if not .flags.has(.AllowAlpha)
+        {
             col.a = 255
+        }
 
         if not .hasOriginalColor
         {
             .originalColor    = col
             .hasOriginalColor = true
         }
-        elif .selectedColor == col
+        else if .selectedColor == col
         {
             return
         }
 
         .selectedColor = col
         .updateAll()
-        if notify do
+        if notify
+        {
             .sigColorChanged.call(me)
+        }
     }
 }

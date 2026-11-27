@@ -23,10 +23,10 @@ private struct AnnexNal
 // requires a new MP4 writer. A configuration-only access unit has no coded picture.
 struct AnnexBAccessUnit
 {
-    public bytes:         Array'u8     // Owned length-prefixed NAL units, including in-band parameter sets.
-    public decoderConfig: Array'u8     // Owned `avcC` record, or empty when no parameter sets occur.
-    public isKeyFrame:    bool         // At least one IDR picture NAL occurs in this access unit.
-    public hasPicture:    bool         // At least one coded picture NAL occurs in this access unit.
+    public bytes:         Array!{u8}     // Owned length-prefixed NAL units, including in-band parameter sets.
+    public decoderConfig: Array!{u8}     // Owned `avcC` record, or empty when no parameter sets occur.
+    public isKeyFrame:    bool           // At least one IDR picture NAL occurs in this access unit.
+    public hasPicture:    bool           // At least one coded picture NAL occurs in this access unit.
 }
 
 impl AnnexBAccessUnit
@@ -38,49 +38,72 @@ impl AnnexBAccessUnit
     // for MP4's 32-bit NAL lengths are rejected.
     func parse(bytes: const [..] u8)->AnnexBAccessUnit fail
     {
-        if bytes.count < 4 or bytes.count > Swag.U32.Max - 8 do
+        if bytes.count < 4 or bytes.count > Swag.U32.Max - 8
+        {
             fail InvalidFormatError{"H.264 Annex B access unit size is invalid"}
+        }
 
         var marker = findStart(bytes, 0)
-        if marker == Swag.U64.Max do
+        if marker == Swag.U64.Max
+        {
             fail InvalidFormatError{"H.264 Annex B access unit has no start code"}
-        for index in marker where bytes[index] != 0 do
-            fail InvalidFormatError{"H.264 Annex B access unit has data before its first start code"}
+        }
 
-        var nals:   Array'AnnexNal
-        var sequenceCount = 0'u32
-        var pictureCount  = 0'u32
+        for index in marker where bytes[index] != 0
+        {
+            fail InvalidFormatError{"H.264 Annex B access unit has data before its first start code"}
+        }
+
+        var nals:   Array!{AnnexNal}
+        var sequenceCount = 0_u32
+        var pictureCount  = 0_u32
         var result: #returntype
         while marker != Swag.U64.Max
         {
             let start = marker + 3
             marker = findStart(bytes, start)
             var end = marker == Swag.U64.Max ? bytes.count : marker
-            while end > start and bytes[end - 1] == 0 do
+            while end > start and bytes[end - 1] == 0
+            {
                 end -= 1
-            if end == start or bytes[start] & 0x80 != 0 do
+            }
+
+            if end == start or bytes[start] & 0x80 != 0
+            {
                 fail InvalidFormatError{"H.264 Annex B access unit has an empty NAL or invalid header"}
+            }
 
             let size = end - start
             if size > Swag.U32.Max - 12 or
-               result.bytes.count > Swag.U32.Max - 12 - size do
+               result.bytes.count > Swag.U32.Max - 12 - size
+            {
                 fail UnsupportedFormatError{"H.264 NAL unit exceeds the MP4 length range"}
+            }
+
             let kind = bytes[start] & 31
-            if not kind or kind > 23 do
+            if not kind or kind > 23
+            {
                 fail InvalidFormatError{"H.264 Annex B access unit has an unsupported NAL type"}
+            }
+
             if kind == 7
             {
                 sequenceCount += 1
             }
-            elif kind == 8
+            else if kind == 8
             {
                 pictureCount += 1
             }
 
-            if kind <= 5 do
+            if kind <= 5
+            {
                 result.hasPicture = true
-            if kind == 5 do
+            }
+
+            if kind == 5
+            {
                 result.isKeyFrame = true
+            }
 
             nals.add({start, cast(u32, size), kind})
 
@@ -91,8 +114,11 @@ impl AnnexBAccessUnit
             result.bytes.add(bytes[start until end])
         }
 
-        if sequenceCount or pictureCount do
+        if sequenceCount or pictureCount
+        {
             try buildConfig(&result.decoderConfig, bytes, nals.toSlice(), sequenceCount, pictureCount)
+        }
+
         return result
     }
 }
@@ -104,18 +130,23 @@ private impl AnnexBAccessUnit
         var offset = from
         while offset + 3 <= bytes.count
         {
-            if bytes[offset] == 0 and bytes[offset + 1] == 0 and bytes[offset + 2] == 1 do
+            if bytes[offset] == 0 and bytes[offset + 1] == 0 and bytes[offset + 2] == 1
+            {
                 return offset
+            }
+
             offset += 1
         }
 
         return Swag.U64.Max
     }
 
-    func buildConfig(config: *Array'u8, bytes: const [..] u8, nals: const [..] AnnexNal, sequenceCount, pictureCount: u32) fail
+    func buildConfig(config: *Array!{u8}, bytes: const [..] u8, nals: const [..] AnnexNal, sequenceCount, pictureCount: u32) fail
     {
-        if not sequenceCount or not pictureCount or sequenceCount > 31 or pictureCount > 255 do
+        if not sequenceCount or not pictureCount or sequenceCount > 31 or pictureCount > 255
+        {
             fail InvalidFormatError{"H.264 Annex B access unit has incomplete or too many parameter sets"}
+        }
 
         var firstSequence: AnnexNal
         for nal in nals where nal.kind == 7
@@ -124,19 +155,24 @@ private impl AnnexBAccessUnit
             break
         }
 
-        if firstSequence.size < 4 do
+        if firstSequence.size < 4
+        {
             fail InvalidFormatError{"H.264 sequence parameter set is too short for AVC configuration"}
+        }
 
-        config.add(1'u8)
+        config.add(1_u8)
         config.add(bytes[firstSequence.offset + 1])
         config.add(bytes[firstSequence.offset + 2])
         config.add(bytes[firstSequence.offset + 3])
-        config.add(0xFF'u8)
+        config.add(0xFF_u8)
         config.add(cast(u8, 0xE0 | sequenceCount))
         for nal in nals where nal.kind == 7
         {
-            if nal.size > Swag.U16.Max do
+            if nal.size > Swag.U16.Max
+            {
                 fail UnsupportedFormatError{"H.264 parameter set exceeds the AVC configuration length range"}
+            }
+
             config.add(cast(u8, nal.size >> 8))
             config.add(cast(u8, nal.size & 0xFF))
             config.add(bytes[nal.offset until nal.offset + nal.size])
@@ -145,8 +181,11 @@ private impl AnnexBAccessUnit
         config.add(cast(u8, pictureCount))
         for nal in nals where nal.kind == 8
         {
-            if nal.size > Swag.U16.Max do
+            if nal.size > Swag.U16.Max
+            {
                 fail UnsupportedFormatError{"H.264 parameter set exceeds the AVC configuration length range"}
+            }
+
             config.add(cast(u8, nal.size >> 8))
             config.add(cast(u8, nal.size & 0xFF))
             config.add(bytes[nal.offset until nal.offset + nal.size])

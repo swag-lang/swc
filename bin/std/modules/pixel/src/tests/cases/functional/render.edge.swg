@@ -8,10 +8,10 @@ using Swag, Core
 #test
 {
     const A        = Math.Vector2{198, 138}
-    const B        = Math.Vector2{cast #bit (f32, 1128887668'u32), 138}
-    const C        = Math.Vector2{cast #bit (f32, 1128821276'u32), cast #bit (f32, 1124889116'u32)}
-    const D        = Math.Vector2{198, cast #bit (f32, 1124955508'u32)}
-    const Source   = Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8)
+    const B        = Math.Vector2{cast #bit (f32, 1128887668_u32), 138}
+    const C        = Math.Vector2{cast #bit (f32, 1128821276_u32), cast #bit (f32, 1124889116_u32)}
+    const D        = Math.Vector2{198, cast #bit (f32, 1124955508_u32)}
+    const Source   = Color.fromArgb(128_u8, 255_u8, 0_u8, 0_u8)
     const Expected = Color.fromRgb(128, 0, 0)
     let brush          = Brush.createSolid(Source)
     let firstTriangle  = [A, B, C]
@@ -24,8 +24,11 @@ using Swag, Core
             .begin()
             .setColorMaskFull()
             .clear(Color.fromRgb(0, 0, 0))
-            if not fullMask do
+            if not fullMask
+            {
                 .setColorMaskColor()
+            }
+
             .setBlendingMode(.Alpha)
             .setAntialiased(false)
             .fillPolygon(firstTriangle, brush)

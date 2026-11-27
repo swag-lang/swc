@@ -77,8 +77,11 @@ impl PdfTextPosition
     // Reports whether this position comes before `other` in reading order.
     mtd const isBefore(other: PdfTextPosition)->bool
     {
-        if .pageIndex != other.pageIndex do
+        if .pageIndex != other.pageIndex
+        {
             return .pageIndex < other.pageIndex
+        }
+
         return .offset < other.offset
     }
 
@@ -132,11 +135,11 @@ struct PdfView
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigPageChanged:   SigArray'func||(*Wnd)             // Emitted after the page the viewport shows changes.
-        sigZoomChanged:   SigArray'func||(*Wnd)             // Emitted after the effective zoom changes.
-        sigRenderError:   SigArray'func||(*Wnd, string)     // Emitted when a page cannot be decoded or painted.
-        sigScrolled:      SigArray'func||(*Wnd)             // Emitted after the document moved under the view.
-        sigTextExtracted: SigArray'func||(*Wnd)             // Emitted once the document's text has been extracted, when [[Gui.PdfView.textCoverage]] can answer.
+        sigPageChanged:   SigArray!{func||(*Wnd)}             // Emitted after the page the viewport shows changes.
+        sigZoomChanged:   SigArray!{func||(*Wnd)}             // Emitted after the effective zoom changes.
+        sigRenderError:   SigArray!{func||(*Wnd, string)}     // Emitted when a page cannot be decoded or painted.
+        sigScrolled:      SigArray!{func||(*Wnd)}             // Emitted after the document moved under the view.
+        sigTextExtracted: SigArray!{func||(*Wnd)}             // Emitted once the document's text has been extracted, when [[Gui.PdfView.textCoverage]] can answer.
 
         readonly
         {
@@ -158,8 +161,8 @@ struct PdfView
     // scale, so laying the document out costs no decode.
     reader:      Pdf.Reader
     hasDocument: bool
-    pageSizes:   Array'Math.Point
-    pageStarts:  Array'f32
+    pageSizes:   Array!{Math.Point}
+    pageStarts:  Array!{f32}
     widestPage:  f32
     tallestPage: f32
 
@@ -219,8 +222,8 @@ internal impl PdfView
     // The size a page whose own boxes cannot be read is laid out at, in PDF points, when no page
     // before it gave a usable one: US Letter, which is what a reader expects of a page it is
     // shown nothing about.
-    const DefaultPageWidth  = 612.0'f32
-    const DefaultPageHeight = 792.0'f32
+    const DefaultPageWidth  = 612.0_f32
+    const DefaultPageHeight = 792.0_f32
 
     // Returns the viewport the document is scrolled inside, in logical units.
     mtd const viewportSize()->Math.Point
@@ -232,8 +235,10 @@ internal impl PdfView
     // Returns the size of the laid-out document, in logical units.
     mtd const contentSize()->Math.Point
     {
-        if not .hasDocument do
+        if not .hasDocument
+        {
             return {}
+        }
 
         let scale = .effectiveZoom()
         var result: #returntype
@@ -254,8 +259,11 @@ internal impl PdfView
     // Returns where the top of one page sits in the laid-out document, in logical units.
     mtd const pageTop(index: u64)->f32
     {
-        if .pageLayout == .Single do
+        if .pageLayout == .Single
+        {
             return PageMargin
+        }
+
         return PageMargin + .pageStarts[index] * .effectiveZoom() + cast(f32, index) * PageGap
     }
 
@@ -299,25 +307,33 @@ internal impl PdfView
     // Returns the page the document holds at vertical offset `y`, clamped to the document.
     mtd const pageAt(y: f32)->u64
     {
-        if .pageLayout == .Single do
+        if .pageLayout == .Single
+        {
             return .pageIndex
+        }
 
         let count = .pageSizes.count
-        if count <= 1 do
+        if count <= 1
+        {
             return 0
+        }
 
         // The tops are increasing, so the page shown at an offset is the last one starting at or
         // before it. A document of a few thousand pages is scrolled every frame, and walking it
         // is the kind of cost that only shows up on the documents that need it most.
-        var low  = 0'u64
+        var low  = 0_u64
         var high = count - 1
         while low < high
         {
             let mid = (low + high + 1) / 2
-            if .pageTop(mid) <= y do
+            if .pageTop(mid) <= y
+            {
                 low = mid
-            else do
+            }
+            else
+            {
                 high = mid - 1
+            }
         }
 
         return low
@@ -372,7 +388,7 @@ internal impl PdfView
         // The document point under the pointer is what the reader is zooming around, and the
         // laid-out column is not a uniform scaling of itself — its gaps and margins do not grow —
         // so the anchor is kept as a place on a page rather than as a content coordinate.
-        var anchorPage  = 0'u64
+        var anchorPage  = 0_u64
         var anchorPoint = Math.Point{}
         if anchor
         {
@@ -402,22 +418,28 @@ internal impl PdfView
     // beyond one would otherwise move the other way: a zoom in that shrinks it.
     mtd stepZoom(target: f32, anchor: const *Math.Point? = null)
     {
-        if target > .effectiveZoom() ? .canZoomIn() : .canZoomOut() do
+        if target > .effectiveZoom() ? .canZoomIn() : .canZoomOut()
+        {
             .applyZoom(target, anchor)
+        }
     }
 
     // Recomputes the page the viewport shows, and reports it when it changed.
     mtd updateCurrentPage()
     {
-        if not .hasDocument or .pageLayout == .Single do
+        if not .hasDocument or .pageLayout == .Single
+        {
             return
+        }
 
         // The page a reader is on is the one under the middle of the viewport: the page at the
         // top would change on the first pixel of the next one, before the reader is reading it.
         let band  = .visibleBand()
         let index = .pageAt((band.top + band.bottom) * 0.5)
-        if index == .pageIndex do
+        if index == .pageIndex
+        {
             return
+        }
 
         .pageIndex = index
         .sigPageChanged.call(me)
@@ -435,7 +457,7 @@ internal impl PdfView
         .tallestPage = 0
         .pageStarts.add(0)
 
-        var total = 0.0'f32
+        var total = 0.0_f32
         var last  = Math.Point{DefaultPageWidth, DefaultPageHeight}
         for index in .reader.pageCount()
         {
@@ -450,8 +472,10 @@ internal impl PdfView
                size.x <= 0 or
                size.y <= 0 or
                not Math.isFinite(size.x) or
-               not Math.isFinite(size.y) do
+               not Math.isFinite(size.y)
+            {
                 size = last
+            }
 
             last = size
             .pageSizes.add(size)
@@ -494,23 +518,27 @@ internal impl PdfView
         if offset
         {
             let {c, eat: _} = Utf8.decodeLastRune(source[0 until offset])
-            if Unicode.isWord(c) do
+            if Unicode.isWord(c)
+            {
                 return false
+            }
         }
 
         let end = offset + length
         if end < source.count
         {
             let {c, eat: _} = Utf8.decodeRune(source[end to])
-            if Unicode.isWord(c) do
+            if Unicode.isWord(c)
+            {
                 return false
+            }
         }
 
         return true
     }
 
     // Appends every non-overlapping match in one page's text, in text order.
-    func appendPageMatches(result: *Array'PdfTextMatch, source: string, pageIndex: u64, text: string, options: PdfTextSearchOptions, expression: *Parser.RegExp?)
+    func appendPageMatches(result: *Array!{PdfTextMatch}, source: string, pageIndex: u64, text: string, options: PdfTextSearchOptions, expression: *Parser.RegExp?)
     {
         if expression
         {
@@ -519,24 +547,35 @@ internal impl PdfView
             {
                 // A zero-width occurrence is meaningful to a parser, but there is no span on the
                 // page to select or outline.
-                if not value.count do
+                if not value.count
+                {
                     continue
+                }
+
                 let found = cast(u64, cast(s64, (value.buffer - sourceData)))
-                if not options.wholeWord or isWholeWord(source, found, value.count) do
+                if not options.wholeWord or isWholeWord(source, found, value.count)
+                {
                     result.add(PdfTextMatch{pageIndex, found, value.count})
+                }
             }
 
             return
         }
 
-        var from = 0'u64
+        var from = 0_u64
         while from < source.count
         {
             let found = Utf8.indexOf(source, text, from, options.comparison)
-            if found == Swag.U64.Max do
+            if found == Swag.U64.Max
+            {
                 break
-            if not options.wholeWord or isWholeWord(source, found, text.count) do
+            }
+
+            if not options.wholeWord or isWholeWord(source, found, text.count)
+            {
                 result.add(PdfTextMatch{pageIndex, found, text.count})
+            }
+
             from = found + Math.max(text.count, 1)
         }
     }
@@ -564,19 +603,19 @@ internal impl PdfView
 internal impl PdfView
 {
     // How often the view asks whether a worker has finished the page it owes it.
-    const PollInterval: Time.Duration = 16'ms
+    const PollInterval: Time.Duration = 16_ms
 
     // Logical units between two pages of the column, and between the column and the viewport.
-    const PageGap    = 12.0'f32
-    const PageMargin = 12.0'f32
+    const PageGap    = 12.0_f32
+    const PageMargin = 12.0_f32
 
     // How many decoded pages are kept, and how much memory they may hold between them. A page of
     // text costs a hundredth of a page of scans, so neither bound alone describes a document:
     // the count keeps a light document from being walked page by page, and the budget keeps a
     // heavy one from filling memory. The pages the viewport reaches are exempt from both, because
     // the frame about to run needs them.
-    const ResidentPageLimit  = 8'u64
-    const ResidentPageBudget = 32 * 1024 * 1024'u64
+    const ResidentPageLimit  = 8_u64
+    const ResidentPageBudget = 32 * 1024 * 1024_u64
 
     // Lays the document out for the current viewport and scale, and publishes what can be
     // scrolled.
@@ -588,8 +627,10 @@ internal impl PdfView
     {
         // The view is resized before the canvas it holds exists, and there is nothing to lay out
         // until it does.
-        if .canvas == null do
+        if .canvas == null
+        {
             return
+        }
 
         let viewport = .viewportSize()
         .canvas.setPosition(Math.Rectangle{0, 0, viewport.x, viewport.y})
@@ -609,8 +650,11 @@ internal impl PdfView
     mtd publishZoom()
     {
         let scale = .effectiveZoom()
-        if scale == .reportedZoom do
+        if scale == .reportedZoom
+        {
             return
+        }
+
         .reportedZoom = scale
         .sigZoomChanged.call(me)
     }
@@ -623,8 +667,10 @@ internal impl PdfView
     // rather than leaving the frame without the page it was asked to show.
     mtd updateResidency()
     {
-        if not .hasDocument do
+        if not .hasDocument
+        {
             return
+        }
 
         let range    = .visibleRange()
         let count    = .pageSizes.count
@@ -634,34 +680,51 @@ internal impl PdfView
         // The page about to be evicted must not be the one the flattening worker is on.
         if .preparing and
            .preparingPage and
-           (.preparingPage.index < keepFrom or .preparingPage.index > keepTo) do
+           (.preparingPage.index < keepFrom or .preparingPage.index > keepTo)
+        {
             .stopPrepare()
+        }
 
         while true
         {
             .adoptPage()
             .cache.trim(.app().renderer, keepFrom, keepTo, ResidentPageLimit, ResidentPageBudget)
-            if .cache.isLoading() do
+            if .cache.isLoading()
+            {
                 break
+            }
 
             let wanted = .wantedPage(range.first, range.last, keepFrom, keepTo)
-            if wanted == Swag.U64.Max do
+            if wanted == Swag.U64.Max
+            {
                 break
-            if not .cache.request(wanted, .flattenScale()) do
+            }
+
+            if not .cache.request(wanted, .flattenScale())
+            {
                 break
+            }
         }
 
-        if .cache.isLoading() do
+        if .cache.isLoading()
+        {
             .ensurePollTimer()
+        }
     }
 
     // Returns the next page worth decoding, or `Swag.U64.Max` when the viewport has what it needs.
     mtd const wantedPage(first, last, keepFrom, keepTo: u64)->u64
     {
-        for index in first to last where not .cache.isResident(index) do
+        for index in first to last where not .cache.isResident(index)
+        {
             return index
-        for index in keepFrom to keepTo where not .cache.isResident(index) do
+        }
+
+        for index in keepFrom to keepTo where not .cache.isResident(index)
+        {
             return index
+        }
+
         return Swag.U64.Max
     }
 
@@ -675,18 +738,24 @@ internal impl PdfView
     {
         let target = .scroll.scrollTarget()
         let step   = notches * WheelScrollStep
-        if modifiers.has(.Shift) or .contentSize().y <= .viewportSize().y do
+        if modifiers.has(.Shift) or .contentSize().y <= .viewportSize().y
+        {
             .scroll.smoothScrollTo(Math.Point{target.x - step, target.y})
-        else do
+        }
+        else
+        {
             .scroll.smoothScrollTo(Math.Point{target.x, target.y - step})
+        }
     }
 
     // Publishes a page a worker finished decoding.
     mtd adoptPage()
     {
         let entry = .cache.adopt()
-        if not entry do
+        if not entry
+        {
             return
+        }
 
         if not entry.failure.isEmpty() and not .reportedPaintError
         {
@@ -695,16 +764,21 @@ internal impl PdfView
         }
 
         // A search that revealed a hit on this page could not place it until the page arrived.
-        if .pendingReveal do
+        if .pendingReveal
+        {
             .scrollSelectionIntoView()
+        }
+
         .invalidate()
     }
 
     // Has a worker raise one page's flattening to `wanted` when the page does not hold it.
     mtd requestPrepare(entry: *PdfResidentPage, wanted: f32)
     {
-        if .preparing or wanted <= entry.preparedScale do
+        if .preparing or wanted <= entry.preparedScale
+        {
             return
+        }
 
         .preparingPage  = entry
         .preparingScale = wanted
@@ -727,24 +801,32 @@ internal impl PdfView
     mtd runPrepare()
     {
         let entry = .preparingPage
-        if not entry do
+        if not entry
+        {
             return
+        }
 
         var preparer: Pixel.FillPreparer
         let scale = .preparingScale
 
         for index in entry.page.clipPaths.count
         {
-            if Atomic.get(&.prepareCancel) != 0 do
+            if Atomic.get(&.prepareCancel) != 0
+            {
                 return
+            }
+
             Sync.scopedLock(&.pageLock)
             entry.page.prepareClipPath(index, scale, &preparer)
         }
 
         for index in entry.page.items.count
         {
-            if Atomic.get(&.prepareCancel) != 0 do
+            if Atomic.get(&.prepareCancel) != 0
+            {
                 return
+            }
+
             Sync.scopedLock(&.pageLock)
             entry.page.prepareItem(index, scale, &preparer)
         }
@@ -755,8 +837,10 @@ internal impl PdfView
     // Adopts a finished preparation, and reports whether a page moved to a finer flattening.
     mtd adoptPrepare()->bool
     {
-        if not .preparing or Atomic.get(&.prepareReady) == 0 do
+        if not .preparing or Atomic.get(&.prepareReady) == 0
+        {
             return false
+        }
 
         .prepareTask.wait()
         if .preparingPage
@@ -790,8 +874,10 @@ internal impl PdfView
 
     mtd ensurePollTimer()
     {
-        if not .pollTimer do
+        if not .pollTimer
+        {
             .pollTimer = .addTimer(PollInterval)
+        }
     }
 
     mtd stopPollTimer()
@@ -810,8 +896,10 @@ internal impl PdfView
         let range  = .visibleRange()
         let origin = .documentOrigin()
         let scale  = .effectiveZoom()
-        if scale <= 0 do
+        if scale <= 0
+        {
             return
+        }
 
         let devicePerPoint = scale * .deviceScale()
         let wantedFlatten  = Painter.quantizeFlattenScale(devicePerPoint)
@@ -821,8 +909,10 @@ internal impl PdfView
         {
             let rect = .pageRect(index)
             let box  = Math.Rectangle{origin.x + rect.x, origin.y + rect.y, rect.width, rect.height}
-            if box.width <= 0 or box.height <= 0 do
+            if box.width <= 0 or box.height <= 0
+            {
                 continue
+            }
 
             // The paper is drawn whether or not the page arrived, so a document scrolled faster
             // than it decodes shows where its pages are instead of a hole that fills in behind
@@ -833,8 +923,10 @@ internal impl PdfView
             painter.drawRect(box, colors.line, 1)
 
             let entry = .cache.resident(index)
-            if not entry or not entry.isDrawable() do
+            if not entry or not entry.isDrawable()
+            {
                 continue
+            }
 
             entry.ensureTextures(.app().renderer)
 
@@ -846,7 +938,7 @@ internal impl PdfView
             {
                 entry.preparedScale = wantedFlatten
             }
-            elif entry.preparedScale < wantedFlatten
+            else if entry.preparedScale < wantedFlatten
             {
                 .requestPrepare(entry, wantedFlatten)
                 flatten = entry.preparedScale
@@ -878,28 +970,36 @@ internal impl PdfView
     mtd paintSelection(painter: *Painter, index: u64, entry: *PdfResidentPage, box: Math.Rectangle, scale: f32)
     {
         let range = .selectionOnPage(index, entry)
-        if range.end <= range.start do
+        if range.end <= range.start
+        {
             return
+        }
 
-        var rects: Array'Math.Rectangle
+        var rects: Array!{Math.Rectangle}
         entry.textIndex.rangeRects(range.start, range.end, &rects)
         var wash = .themeColors().edit_SelectedBk
         wash.a = cast(u8, (cast(u32, wash.a) * 140 / 255))
-        for rect in rects do
+        for rect in rects
+        {
             painter.fillRect(Math.Rectangle{box.x + rect.x * scale, box.y + rect.y * scale, rect.width * scale, rect.height * scale}, wash)
+        }
     }
 
     // Returns the byte range of one page the selection covers, which is empty when it covers none.
     mtd selectionOnPage(index: u64, entry: *PdfResidentPage)->{ start: u64, end: u64 }
     {
         var result: #returntype
-        if not .hasSelection() do
+        if not .hasSelection()
+        {
             return result
+        }
 
         let first = .selectionStart()
         let last  = .selectionEnd()
-        if index < first.pageIndex or index > last.pageIndex do
+        if index < first.pageIndex or index > last.pageIndex
+        {
             return result
+        }
 
         entry.ensureTextIndex()
         let length = entry.textIndex.text.length
@@ -919,8 +1019,11 @@ internal impl PdfView
             return entry.text()
         }
 
-        if .documentText.started and index < .documentText.readyCount() do
+        if .documentText.started and index < .documentText.readyCount()
+        {
             return .documentText.pageText(index)
+        }
+
         return ""
     }
 
@@ -928,18 +1031,24 @@ internal impl PdfView
     mtd textPositionAt(local: Math.Point)->{ position: PdfTextPosition, distance: f32 }
     {
         var result: #returntype
-        if not .hasDocument do
+        if not .hasDocument
+        {
             return result
+        }
 
         let hit   = .documentPointAt(local)
         let entry = .cache.resident(hit.pageIndex)
-        if not entry or not entry.isDrawable() do
+        if not entry or not entry.isDrawable()
+        {
             return result
+        }
 
         entry.ensureTextIndex()
         let found = entry.textIndex.positionAt(hit.point)
-        if found.offset == Swag.U64.Max do
+        if found.offset == Swag.U64.Max
+        {
             return result
+        }
 
         result.position = PdfTextPosition{hit.pageIndex, found.offset}
         result.distance = found.distance
@@ -952,23 +1061,31 @@ internal impl PdfView
     // scrolls to the page and finishes the reveal when the page arrives.
     mtd scrollSelectionIntoView()
     {
-        if not .hasSelection() do
+        if not .hasSelection()
+        {
             return
+        }
 
         let start = .selectionStart()
         let entry = .cache.resident(start.pageIndex)
-        if not entry or not entry.isDrawable() do
+        if not entry or not entry.isDrawable()
+        {
             return
+        }
 
         let range = .selectionOnPage(start.pageIndex, entry)
-        var rects: Array'Math.Rectangle
+        var rects: Array!{Math.Rectangle}
         entry.textIndex.rangeRects(range.start, range.end, &rects)
-        if rects.isEmpty() do
+        if rects.isEmpty()
+        {
             return
+        }
 
         var bounds = rects[0]
-        for index in 1 until rects.count do
+        for index in 1 until rects.count
+        {
             bounds.combine(rects[index])
+        }
 
         .pendingReveal = false
 
@@ -986,19 +1103,32 @@ internal impl PdfView
         let left     = -origin.x
         let top      = -origin.y
 
-        var dx = 0.0'f32
-        var dy = 0.0'f32
-        if target.right() + PageMargin > left + viewport.x do
+        var dx = 0.0_f32
+        var dy = 0.0_f32
+        if target.right() + PageMargin > left + viewport.x
+        {
             dx = target.right() + PageMargin - left - viewport.x
-        if target.x - PageMargin < left + dx do
-            dx = target.x - PageMargin - left
-        if target.bottom() + PageMargin > top + viewport.y do
-            dy = target.bottom() + PageMargin - top - viewport.y
-        if target.y - PageMargin < top + dy do
-            dy = target.y - PageMargin - top
+        }
 
-        if dx == 0 and dy == 0 do
+        if target.x - PageMargin < left + dx
+        {
+            dx = target.x - PageMargin - left
+        }
+
+        if target.bottom() + PageMargin > top + viewport.y
+        {
+            dy = target.bottom() + PageMargin - top - viewport.y
+        }
+
+        if target.y - PageMargin < top + dy
+        {
+            dy = target.y - PageMargin - top
+        }
+
+        if dx == 0 and dy == 0
+        {
             return
+        }
 
         let position = .scroll.scrollPosition()
         .scroll.setScrollPos(position.x + dx, position.y + dy)
@@ -1039,12 +1169,17 @@ impl IWnd for PdfView
 
         // A page now holds the finer flattening, or a worker finished decoding one; the frame
         // that shows either is free.
-        if .adoptPrepare() do
+        if .adoptPrepare()
+        {
             .invalidate()
+        }
+
         .adoptPage()
 
-        if not .preparing and not .cache.isLoading() do
+        if not .preparing and not .cache.isLoading()
+        {
             .stopPollTimer()
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -1069,38 +1204,56 @@ impl IWnd for PdfView
             .scroll.smoothScrollTo(Math.Point{target.x, target.y + WheelScrollStep})
 
         case .PageUp, .Space where evt.modifiers == .Shift:
-            if .pageLayout == .Single do
+            if .pageLayout == .Single
+            {
                 .previousPage()
-            else do
+            }
+            else
+            {
                 .scroll.smoothScrollTo(Math.Point{target.x, target.y - step})
+            }
 
         case .PageDown, .Space where evt.modifiers == .None:
-            if .pageLayout == .Single do
+            if .pageLayout == .Single
+            {
                 .nextPage()
-            else do
+            }
+            else
+            {
                 .scroll.smoothScrollTo(Math.Point{target.x, target.y + step})
+            }
 
         case .Left:
 
             // A page wider than the viewport is scrolled sideways; one that fits has nothing to
             // move, so the same key turns to the page before it.
-            if .contentSize().x > viewport.x do
+            if .contentSize().x > viewport.x
+            {
                 .scroll.smoothScrollTo(Math.Point{target.x - WheelScrollStep, target.y})
-            else do
+            }
+            else
+            {
                 .previousPage()
+            }
 
         case .Right:
-            if .contentSize().x > viewport.x do
+            if .contentSize().x > viewport.x
+            {
                 .scroll.smoothScrollTo(Math.Point{target.x + WheelScrollStep, target.y})
-            else do
+            }
+            else
+            {
                 .nextPage()
+            }
 
         case .Home:
             .showPage(0)
 
         case .End:
-            if .pageSizes.count do
+            if .pageSizes.count
+            {
                 .showPage(.pageSizes.count - 1)
+            }
 
         case .D0 where evt.modifiers == .Control:
             .actualSize()
@@ -1112,21 +1265,29 @@ impl IWnd for PdfView
             .zoomToFitWidth()
 
         case .C where evt.modifiers == .Control:
-            if not .copySelection() do
+            if not .copySelection()
+            {
                 evt.accepted = false
+            }
 
         case .Insert where evt.modifiers == .Control:
-            if not .copySelection() do
+            if not .copySelection()
+            {
                 evt.accepted = false
+            }
 
         case .A where evt.modifiers == .Control:
             .selectAll()
 
         case .Escape where evt.modifiers == .None:
-            if .hasSelection() do
+            if .hasSelection()
+            {
                 .clearSelection()
-            else do
+            }
+            else
+            {
                 evt.accepted = false
+            }
 
         default:
             evt.accepted = false
@@ -1144,8 +1305,10 @@ internal impl IWnd for PdfCanvas
         // paper of a page is its own, and a white page on a white ground has no edge.
         let painter = evt.paintContext.painter
         painter.fillRect(.clientRect(), .themeColors().wnd_Bk)
-        if not owner.hasDocument do
+        if not owner.hasDocument
+        {
             return
+        }
 
         // What the viewport reaches decides what is decoded, so the residency step runs before
         // the pages are drawn rather than a frame behind them.
@@ -1177,7 +1340,7 @@ internal impl IWnd for PdfCanvas
             // take; any other wheel moves the document, sideways under `Shift`.
             if evt.modifiers == .Control
             {
-                let factor = evt.delta.y > 0 ? 1.12'f32 : 1.0'f32 / 1.12
+                let factor = evt.delta.y > 0 ? 1.12_f32 : 1.0_f32 / 1.12
                 owner.stepZoom(owner.effectiveZoom() * factor, &local)
                 return
             }
@@ -1194,10 +1357,14 @@ internal impl IWnd for PdfCanvas
                 return
             }
 
-            if owner.zoomMode == .Free do
+            if owner.zoomMode == .Free
+            {
                 owner.zoomToFit()
-            else do
+            }
+            else
+            {
                 owner.actualSize()
+            }
 
         case .Pressed where evt.button == .Left:
             owner.setFocus()
@@ -1215,8 +1382,11 @@ internal impl IWnd for PdfCanvas
                 return
             }
 
-            if owner.hasSelection() do
+            if owner.hasSelection()
+            {
                 owner.clearSelection()
+            }
+
             owner.isPanning   = true
             owner.lastPointer = evt.surfacePos
             .captureMouse()
@@ -1257,7 +1427,7 @@ internal impl IWnd for PdfCanvas
                 owner.selecting = false
                 .releaseMouse()
             }
-            elif owner.isPanning
+            else if owner.isPanning
             {
                 owner.isPanning = false
                 .releaseMouse()
@@ -1271,23 +1441,23 @@ internal impl IWnd for PdfCanvas
 
 impl PdfView
 {
-    const MinZoom         = 0.05'f32     // Smallest supported scale, in logical units per PDF point.
-    const MaxZoom         = 64.0'f32     // Largest supported scale, in logical units per PDF point.
-    const WheelScrollStep = 60.0'f32     // Logical units scrolled per wheel notch and per arrow key.
+    const MinZoom         = 0.05_f32     // Smallest supported scale, in logical units per PDF point.
+    const MaxZoom         = 64.0_f32     // Largest supported scale, in logical units per PDF point.
+    const WheelScrollStep = 60.0_f32     // Logical units scrolled per wheel notch and per arrow key.
 
     // Scale of [[Gui.PdfView.actualSize]], in logical units per PDF point.
     //
     // A point is 1/72 inch and a logical unit 1/96 inch, so one point covers 96/72 units. A host
     // that reads the zoom out as a percentage divides [[Gui.PdfView.effectiveZoom]] by this
     // scale, so that 100 % is the size the page would have printed.
-    const ActualSizeZoom = 96.0'f32 / 72.0
+    const ActualSizeZoom = 96.0_f32 / 72.0
 
     // Creates an empty PDF viewer.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*PdfView
     {
         Swag.assert(parent != null)
-        let result = Wnd.create'PdfView(parent, null, position, id)
+        let result = Wnd.create!{PdfView}(parent, null, position, id)
 
         // A document view is a traversal stop: opening a file must leave the keyboard on the
         // document, or the arrows land on whatever container happens to hold the focus. The ring
@@ -1295,23 +1465,26 @@ impl PdfView
         result.focusPolicy = .Tab
         result.wndFlags    |= .NoFocusRing
 
-        result.scroll = Wnd.create'ScrollWnd(result, "", {})
+        result.scroll = Wnd.create!{ScrollWnd}(result, "", {})
         result.scroll.dockStyle = .Center
 
         // The document is laid out from the viewport the scroll frame gives its view, so the
         // resize that has to trigger it is the view's own: the frame reserves the room its bars
         // take before it places the view, and hooking the frame instead would lay the document
         // out against the rectangle it had before that.
-        let view = result.scroll.createView'Wnd(func|target = result|(_, evt)
+        let view = result.scroll.createView!{Wnd}(func|target = result|(_, evt)
         {
-            if evt is ResizeEvent do
+            if evt is ResizeEvent
+            {
                 target.placeDocument()
+            }
+
             return false
         })
 
         view.backgroundStyle = .Window
 
-        result.canvas          = Wnd.create'PdfCanvas(view, "gui.pdf.canvas")
+        result.canvas          = Wnd.create!{PdfCanvas}(view, "gui.pdf.canvas")
         result.canvas.owner    = result
         result.canvas.wndFlags |= .NoScroll
 
@@ -1334,8 +1507,11 @@ impl PdfView
     mtd open(fileName: string) fail
     {
         var reader = #move try Pdf.Reader.open(fileName)
-        if not reader.pageCount() do
+        if not reader.pageCount()
+        {
             fail Errors.InvalidFormatError{"PDF document contains no page"}
+        }
+
         .adoptDocument(&reader)
     }
 
@@ -1408,16 +1584,22 @@ impl PdfView
     mtd textCoverage()->{ complete: bool, pictures: u64, unreadable: u64 }
     {
         var result: #returntype
-        if not .hasDocument or not .documentText.isComplete() do
+        if not .hasDocument or not .documentText.isComplete()
+        {
             return result
+        }
 
         result.complete = true
         for index in .documentText.pages.count
         {
-            if .documentText.pageFailed(index) do
+            if .documentText.pageFailed(index)
+            {
                 result.unreadable += 1
-            elif not Latin1.trim(.documentText.pageText(index)).count do
+            }
+            else if not Latin1.trim(.documentText.pageText(index)).count
+            {
                 result.pictures += 1
+            }
         }
 
         return result
@@ -1429,8 +1611,11 @@ impl PdfView
     // Selects how the document's pages are laid out, keeping the page the viewport shows.
     mtd setPageLayout(value: PdfPageLayout)
     {
-        if .pageLayout == value do
+        if .pageLayout == value
+        {
             return
+        }
+
         .pageLayout = value
         .placeDocument()
         .showPage(.pageIndex)
@@ -1445,8 +1630,11 @@ impl PdfView
     mtd pageColumn()->{ x: f32, width: f32 }
     {
         var result: #returntype
-        if not .hasDocument or .pageIndex >= .pageSizes.count do
+        if not .hasDocument or .pageIndex >= .pageSizes.count
+        {
             return result
+        }
+
         let rect     = .pageRect(.pageIndex)
         let viewport = .scroll.view.surfaceRect()
         result.x     = viewport.x - .surfaceRect().x + .documentOrigin().x + rect.x
@@ -1460,8 +1648,10 @@ impl PdfView
     // worker. An out-of-range index is ignored.
     mtd showPage(index: u64)
     {
-        if not .hasDocument or index >= .pageSizes.count do
+        if not .hasDocument or index >= .pageSizes.count
+        {
             return
+        }
 
         if .pageLayout == .Single
         {
@@ -1493,8 +1683,11 @@ impl PdfView
         if not .hasDocument or
            index >= .pageSizes.count or
            not Math.isFinite(position.x) or
-           not Math.isFinite(position.y) do
+           not Math.isFinite(position.y)
+        {
             return
+        }
+
         .showPage(index)
         let page  = .pageRect(index)
         let scale = .effectiveZoom()
@@ -1512,8 +1705,10 @@ impl PdfView
     mtd const readingPosition()->PdfReadingPosition
     {
         var result: #returntype
-        if not .hasDocument do
+        if not .hasDocument
+        {
             return result
+        }
 
         // The corner [[Gui.PdfView.showPosition]] brings a point to, so a restore lands where
         // the capture was taken.
@@ -1532,8 +1727,11 @@ impl PdfView
     // With one page shown at a time the laid-out document is that page.
     mtd const readingProgress()->f32
     {
-        if not .hasDocument do
+        if not .hasDocument
+        {
             return 0
+        }
+
         let extent = .contentSize().y - .viewportSize().y
         return extent > 0 ? Math.clamp(.scroll.scrollPosition().y / extent, 0, 1) : 1
     }
@@ -1555,12 +1753,20 @@ impl PdfView
            not Math.isFinite(position.point.x) or
            not Math.isFinite(position.point.y) or
            position.zoomMode == .Free and
-           not Math.isFinite(position.zoom) do
+           not Math.isFinite(position.zoom)
+        {
             return false
-        if position.zoomMode != .Free do
+        }
+
+        if position.zoomMode != .Free
+        {
             .setZoomMode(position.zoomMode)
-        elif .zoomMode != .Free or .zoom != position.zoom do
+        }
+        else if .zoomMode != .Free or .zoom != position.zoom
+        {
             .applyZoom(position.zoom)
+        }
+
         .showPosition(position.pageIndex, position.point)
         return true
     }
@@ -1568,39 +1774,56 @@ impl PdfView
     // Shows the next page when one exists.
     mtd nextPage()
     {
-        if .hasDocument and .pageIndex + 1 < .pageSizes.count do
+        if .hasDocument and .pageIndex + 1 < .pageSizes.count
+        {
             .showPage(.pageIndex + 1)
+        }
     }
 
     // Shows the previous page when one exists.
     mtd previousPage()
     {
-        if .hasDocument and .pageIndex do
+        if .hasDocument and .pageIndex
+        {
             .showPage(.pageIndex - 1)
+        }
     }
 
     // Returns the scale pages are currently shown at, in logical units per PDF point.
     mtd const effectiveZoom()->f32
     {
-        if not .hasDocument do
+        if not .hasDocument
+        {
             return 1
-        if .zoomMode == .Free do
+        }
+
+        if .zoomMode == .Free
+        {
             return .zoom
+        }
 
         let viewport = .viewportSize()
         let width    = viewport.x - 2 * PageMargin
         let height   = viewport.y - 2 * PageMargin
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
             return 1
+        }
 
         // A continuous document is fitted to the page it would need the most room for, so the
         // scale is the document's and does not change under the reader on the page that happens
         // to be the largest.
         let page = .pageLayout == .Single ? .pageSizes[.pageIndex] : Math.Point{.widestPage, .tallestPage}
-        if page.x <= 0 or page.y <= 0 do
+        if page.x <= 0 or page.y <= 0
+        {
             return 1
-        if .zoomMode == .FitWidth do
+        }
+
+        if .zoomMode == .FitWidth
+        {
             return width / page.x
+        }
+
         return Math.min(width / page.x, height / page.y)
     }
 
@@ -1664,8 +1887,10 @@ impl PdfView
     // Selects what a page is scaled to, keeping the page the viewport shows.
     mtd setZoomMode(value: PdfZoomMode)
     {
-        if .zoomMode == value do
+        if .zoomMode == value
+        {
             return
+        }
 
         let current = .pageIndex
         .zoomMode = value
@@ -1687,8 +1912,11 @@ impl PdfView
     // Empties the selection.
     mtd clearSelection()
     {
-        if not .selAnchor.isValid() and not .selCaret.isValid() do
+        if not .selAnchor.isValid() and not .selCaret.isValid()
+        {
             return
+        }
+
         .clearTextState()
         .invalidate()
     }
@@ -1701,15 +1929,17 @@ impl PdfView
     // is the same search without the wait. The returned value owns stable page and UTF-8 text
     // coordinates; pass one of its entries to [[Gui.PdfView.revealTextMatch]] while this document
     // remains open. An invalid regular expression returns an empty array.
-    mtd findTextMatches(text: string, options: PdfTextSearchOptions = {})->Array'PdfTextMatch
+    mtd findTextMatches(text: string, options: PdfTextSearchOptions = {})->Array!{PdfTextMatch}
     {
         var result: #returntype
-        if not .hasDocument or not text.count do
+        if not .hasDocument or not text.count
+        {
             return result
+        }
 
         .ensureDocumentText()
         .documentText.wait()
-        var page = 0'u64
+        var page = 0_u64
         discard .collectTextMatches(text, options, &page, &result)
         return result
     }
@@ -1722,10 +1952,12 @@ impl PdfView
     // it with the same query, options, page and array until it answers true. A new search starts
     // with `page[]` at zero. Matches arrive in page order, then in text order within a page; an
     // invalid regular expression ends the search with nothing appended.
-    mtd collectTextMatches(text: string, options: PdfTextSearchOptions, page: *u64, result: *Array'PdfTextMatch)->bool
+    mtd collectTextMatches(text: string, options: PdfTextSearchOptions, page: *u64, result: *Array!{PdfTextMatch})->bool
     {
-        if not .hasDocument or not text.count do
+        if not .hasDocument or not text.count
+        {
             return true
+        }
 
         var expression: Parser.RegExp
         if options.regularExpression
@@ -1751,8 +1983,11 @@ impl PdfView
     // document.
     mtd revealTextMatch(match: PdfTextMatch)->bool
     {
-        if not .hasDocument or match.pageIndex >= .pageSizes.count do
+        if not .hasDocument or match.pageIndex >= .pageSizes.count
+        {
             return false
+        }
+
         .revealMatch(match.pageIndex, match.byteOffset, match.byteLength)
         return true
     }
@@ -1765,25 +2000,35 @@ impl PdfView
     // presented.
     mtd textMatchRect(match: PdfTextMatch, result: *Math.Rectangle)->bool
     {
-        if not .hasDocument or match.pageIndex >= .pageSizes.count do
+        if not .hasDocument or match.pageIndex >= .pageSizes.count
+        {
             return false
+        }
 
         let entry = .cache.resident(match.pageIndex)
-        if not entry or not entry.isDrawable() do
+        if not entry or not entry.isDrawable()
+        {
             return false
+        }
 
         entry.ensureTextIndex()
-        if match.byteOffset + match.byteLength > entry.textIndex.text.length do
+        if match.byteOffset + match.byteLength > entry.textIndex.text.length
+        {
             return false
+        }
 
-        var rects: Array'Math.Rectangle
+        var rects: Array!{Math.Rectangle}
         entry.textIndex.rangeRects(match.byteOffset, match.byteOffset + match.byteLength, &rects)
-        if rects.isEmpty() do
+        if rects.isEmpty()
+        {
             return false
+        }
 
         var bounds = rects[0]
-        for index in 1 until rects.count do
+        for index in 1 until rects.count
+        {
             bounds.combine(rects[index])
+        }
 
         let page   = .pageRect(match.pageIndex)
         let origin = .documentOrigin()
@@ -1796,16 +2041,22 @@ impl PdfView
     // Selects the whole text of the page the viewport shows.
     mtd selectAll()
     {
-        if not .hasDocument do
+        if not .hasDocument
+        {
             return
+        }
 
         let entry = .cache.resident(.pageIndex)
-        if not entry or not entry.isDrawable() do
+        if not entry or not entry.isDrawable()
+        {
             return
+        }
 
         entry.ensureTextIndex()
-        if entry.textIndex.text.isEmpty() do
+        if entry.textIndex.text.isEmpty()
+        {
             return
+        }
 
         .selAnchor = PdfTextPosition{.pageIndex, 0}
         .selCaret  = PdfTextPosition{.pageIndex, entry.textIndex.text.length}
@@ -1819,21 +2070,28 @@ impl PdfView
     mtd selectedText()->String
     {
         var result: #returntype
-        if not .hasSelection() do
+        if not .hasSelection()
+        {
             return result
+        }
 
         let first = .selectionStart()
         let last  = .selectionEnd()
         for index in first.pageIndex to last.pageIndex
         {
-            if index != first.pageIndex do
+            if index != first.pageIndex
+            {
                 result.append("\n")
+            }
 
             let text  = .pageText(index)
             let start = index == first.pageIndex ? Math.min(first.offset, text.count) : 0
             let end   = index == last.pageIndex ? Math.min(last.offset, text.count) : text.count
-            if end <= start do
+            if end <= start
+            {
                 continue
+            }
+
             result.append(text[start until end])
         }
 
@@ -1843,11 +2101,17 @@ impl PdfView
     // Puts the selected text on the clipboard, and reports whether there was one.
     mtd copySelection()->bool
     {
-        if not .hasSelection() do
+        if not .hasSelection()
+        {
             return false
+        }
+
         let text = .selectedText()
-        if text.isEmpty() do
+        if text.isEmpty()
+        {
             return false
+        }
+
         Clipboard.setString(text.toString())
         return true
     }
@@ -1861,8 +2125,10 @@ impl PdfView
     // for it; the page carrying the match is scrolled to without waiting for it to decode.
     mtd findText(text: string)->bool
     {
-        if not .hasDocument or not text.count do
+        if not .hasDocument or not text.count
+        {
             return false
+        }
 
         if .searchQuery != text
         {
@@ -1877,7 +2143,7 @@ impl PdfView
         // The resume page is visited twice — its tail first, its head after the wrap — so one
         // pass covers the whole document from wherever the previous hit stopped.
         let count = .pageSizes.count
-        var visit = 0'u64
+        var visit = 0_u64
         while visit <= count
         {
             let pageIdx = (.searchPage + visit) % count
@@ -1885,11 +2151,16 @@ impl PdfView
             visit += 1
 
             let source = .documentText.pageText(pageIdx)
-            if from >= source.count do
+            if from >= source.count
+            {
                 continue
+            }
+
             let found = Utf8.indexOf(source, text, from, .Latin1NoCase)
-            if found == Swag.U64.Max do
+            if found == Swag.U64.Max
+            {
                 continue
+            }
 
             .revealMatch(pageIdx, found, text.count)
             return true
@@ -1904,8 +2175,11 @@ impl PdfView
     // Starts extracting the document's text for search, once per document.
     internal mtd ensureDocumentText()
     {
-        if .documentText.started or not .hasDocument do
+        if .documentText.started or not .hasDocument
+        {
             return
+        }
+
         .documentText.start(.reader.fileName(), .reader.pageCount(), me)
     }
 
@@ -1913,13 +2187,17 @@ impl PdfView
     internal mtd selectWordAt(position: PdfTextPosition)
     {
         let entry = .cache.resident(position.pageIndex)
-        if not entry or not entry.isDrawable() do
+        if not entry or not entry.isDrawable()
+        {
             return
+        }
 
         entry.ensureTextIndex()
         let range = entry.textIndex.wordRangeAt(position.offset)
-        if range.end <= range.start do
+        if range.end <= range.start
+        {
             return
+        }
 
         .selAnchor = PdfTextPosition{position.pageIndex, range.start}
         .selCaret  = PdfTextPosition{position.pageIndex, range.end}

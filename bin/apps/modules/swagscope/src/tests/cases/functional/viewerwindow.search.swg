@@ -5,12 +5,15 @@ using Core, Gui, Gui.Testing, Viewers
 
 func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
-    var steps = 0'u32
+    var steps = 0_u32
     while window.searchTimer and steps < 4_096
     {
         host.fireTimer(window.searchTimer)
-        if window.searchTimer and not window.searchStream.isOpen() do
-            Threading.Thread.sleep(1'ms)
+        if window.searchTimer and not window.searchStream.isOpen()
+        {
+            Threading.Thread.sleep(1_ms)
+        }
+
         steps += 1
     }
 
@@ -24,10 +27,12 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     defer discard catch File.delete(file)
     let prefix = "\r\n[.ShellClassInfo]\r\nInfoTip=Musique 🎵\r\n"
     let source = Format.toString("%IconResource=shell32.dll\r\n[LocalizedFileNames]\r\nItem=shell32.dll\r\n", prefix)
-    let bytes = expect Text.encode(source, .Utf16Le, includeBom: true)
+    let bytes  = expect Text.encode(source, .Utf16Le, includeBom: true)
     expect File.writeAllBytes(file, bytes.toSlice())
     var entry = ExplorerEntry{name: "desktop.ini", path: file, size: bytes.count}
-    Swag.require(probeEntry(&entry) and entry.excerpt.contains("[.ShellClassInfo]") and entry.excerpt.contains("Musique 🎵"))
+    Swag.require(probeEntry(&entry) and
+                 entry.excerpt.contains("[.ShellClassInfo]") and
+                 entry.excerpt.contains("Musique 🎵"))
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, file, true)
     Swag.require(window.currentView is Code.Panel)
@@ -95,8 +100,11 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     for maybeItem in menu.items
     {
         let item = unwrap maybeItem
-        if item.id != ViewerCommands.MatchCase do
+        if item.id != ViewerCommands.MatchCase
+        {
             continue
+        }
+
         Swag.require(item.checked)
         matchCaseChecked = true
     }
@@ -113,8 +121,11 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
         let fileName = Testing.tempFilePath("scope-lens-line-", extension)
         defer discard catch File.delete(fileName)
         var source: String
-        for i in 600 do
+        for i in 600
+        {
             source += Format.toString("// Line % of a file longer than the view.\n", i + 1)
+        }
+
         discard expect File.writeAllText(fileName, source)
 
         var host: HeadlessHost
@@ -156,15 +167,20 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
             window.lens.open(typed)
             host.finishAnimations()
             let columns = unwrap window.lens.results.sections[0]
-            let column  = index == 0 ? 4'u64 : 44
+            let column  = index == 0 ? 4_u64 : 44
             Swag.require(columns.entries[0].title == Format.toString(appStrings().lens_GoToLineColumn, 451 + index, column), columns.entries[0].title)
             columns.entries[0].run!()
             window.lens.close()
             host.finishAnimations()
-            if extension == ".txt" do
+            if extension == ".txt"
+            {
                 completeTextReads(&host, assume cast(*PlainText.Panel, view))
-            else do
+            }
+            else
+            {
                 discard host.render(unwrap view)
+            }
+
             Swag.require(editor.cursorLogicalLineIndex() == 450 + index or extension == ".txt")
             Swag.require(editor.cursorLogicalCharPos() == column - 1, Format.toString("column %", editor.cursorLogicalCharPos() + 1))
         }
@@ -176,15 +192,15 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     let fileName = Testing.tempFilePath("scope-lens-text-position-", ".txt")
     defer discard catch File.delete(fileName)
-    let bytes = [0xFF'u8, 0xFE'u8,
-                 'o'u8, 0, 'n'u8, 0, 'e'u8, 0, 10, 0,
-                 0xE9, 0, '!'u8, 0, 10, 0,
-                 'l'u8, 0, 'a'u8, 0, 's'u8, 0, 't'u8, 0]
+    let bytes = [0xFF_u8, 0xFE_u8,
+                 'o'_u8, 0, 'n'_u8, 0, 'e'_u8, 0, 10, 0,
+                 0xE9, 0, '!'_u8, 0, 10, 0,
+                 'l'_u8, 0, 'a'_u8, 0, 's'_u8, 0, 't'_u8, 0]
     discard expect File.writeAllBytes(fileName, bytes)
 
     var host: HeadlessHost
     let window = framedViewerWindow(&host, fileName, true)
-    let view = assume cast(*PlainText.Panel, window.instances[window.activeChoiceIndex].view)
+    let view   = assume cast(*PlainText.Panel, window.instances[window.activeChoiceIndex].view)
     Swag.require(view.encoding == .Utf16Le)
 
     window.lens.open(":3:2")
@@ -207,9 +223,9 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     window.lens.close()
     completeTextReads(&host, view)
     let offsetPosition = Format.toString("start %, line %, column %",
-                                        view.residentStart,
-                                        view.currentLine(),
-                                        view.editor.cursorLogicalCharPos())
+                                         view.residentStart,
+                                         view.currentLine(),
+                                         view.editor.cursorLogicalCharPos())
     Swag.require(view.residentStart == 10 and view.currentLine() == 2 and view.editor.cursorLogicalCharPos() == 1,
                  offsetPosition)
 
@@ -237,14 +253,20 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     window.lens.open()
     let workbook = Xlsx.texts().ui_Name
     var listed   = false
-    for section in window.lens.results.sections where section and section.label == workbook do
+    for section in window.lens.results.sections where section and section.label == workbook
+    {
         listed = true
+    }
+
     Swag.require(listed)
 
     completeQueuedViewerFile(&host, window)
     Swag.require(window.lens.isOpen() and not window.instances[window.activeChoiceIndex].failureReason.isEmpty())
-    for section in window.lens.results.sections where section do
+    for section in window.lens.results.sections where section
+    {
         Swag.require(section.label != workbook)
+    }
+
     window.lens.close()
 }
 
@@ -254,8 +276,11 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     func inFile(window: *ViewerWindow)->*Lens.Section?
     {
-        for section in window.lens.results.sections where section!.label == appStrings().lens_InFile do
+        for section in window.lens.results.sections where section!.label == appStrings().lens_InFile
+        {
             return section
+        }
+
         return null
     }
 
@@ -322,10 +347,14 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
         completeFind(&host, window)
         Swag.require(window.searchComplete and window.searchMatches.isEmpty())
         let toolTip = window.searchCountLabel.toolTip.toString()
-        if index == 0 do
+        if index == 0
+        {
             Swag.require(Utf8.contains(toolTip, PdfDocument.texts().ui_NoTextLayer), toolTip)
-        else do
+        }
+        else
+        {
             Swag.require(toolTip == appStrings().ui_NoMatch, toolTip)
+        }
     }
 }
 
@@ -377,7 +406,7 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     var attempts = 0
     while not view.pdfView.textCoverage().complete and attempts < 5_000
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         host.pump()
         attempts += 1
     }

@@ -103,7 +103,7 @@ func makeNested(base: s32)->func||()->s32
 {
     let boundary: Boundary64    = Boundary64{a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8}
     let sum:      func||()->u64 = func|boundary|()->u64 { return boundary.a + boundary.h }
-    Swag.require(sum() == 9'u64)
+    Swag.require(sum() == 9_u64)
 }
 
 #test
@@ -130,8 +130,10 @@ func makeNested(base: s32)->func||()->s32
     fct = func|arr|(extra: s32)->s32
     {
         var sum = 0
-        for v in arr do
+        for v in arr
+        {
             sum += v
+        }
         return sum + extra
     }
     Swag.require(fct(4) == 64)
@@ -143,8 +145,10 @@ func makeNested(base: s32)->func||()->s32
     fct = func(n: s32)->s32
     {
         var total = 0
-        for i in cast(u32, n) do
+        for i in cast(u32, n)
+        {
             total += cast(s32, i)
+        }
         return total
     }
     Swag.require(fct(5) == 0 + 1 + 2 + 3 + 4)

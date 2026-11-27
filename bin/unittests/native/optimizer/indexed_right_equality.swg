@@ -6,11 +6,13 @@
 #[Swag.Optimize(true)]
 func countMatches(bytes: const [*] u8, count: u64, needle: u8)->u64
 {
-    var matches = 0'u64
+    var matches = 0_u64
     for index in count
     {
-        if needle == bytes[index] do
+        if needle == bytes[index]
+        {
             matches += 1
+        }
     }
     return matches
 }

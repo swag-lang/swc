@@ -9,6 +9,8 @@
     info.arguments = Swag.makeSlice(&values[0], values.count)
     let actual = Swag.args()
     Swag.assert(actual.count == values.count)
-    for expected, index in values do
+    for expected, index in values
+    {
         Swag.assert(actual[index] == expected)
+    }
 }

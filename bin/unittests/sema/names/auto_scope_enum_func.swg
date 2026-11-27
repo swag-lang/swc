@@ -31,7 +31,7 @@ struct Vec2
 
 func semaTest002()
 {
-    let r2 = overload(1's32, OverA.A)
+    let r2 = overload(1_s32, OverA.A)
     #assert(#typeof(r2) == s32)
 }
 

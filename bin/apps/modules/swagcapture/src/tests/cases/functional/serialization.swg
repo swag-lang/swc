@@ -35,7 +35,7 @@ using Swag, Core
     let arrow = testAddArrow(f.capture, 5, 6, 30, 31)
     arrow.endSize = 9
 
-    var points: Array'Math.Vector2
+    var points: Array!{Math.Vector2}
     points.add({7, 8})
     points.add({22, 8})
     points.add({18, 25})

@@ -13,9 +13,9 @@ struct OwnConstantWindow
 
 impl OwnConstantWindow
 {
-    const DefaultWidth  = 640's32
-    const DefaultHeight = 400's32
-    const Margin        = 8.0'f32
+    const DefaultWidth  = 640_s32
+    const DefaultHeight = 400_s32
+    const Margin        = 8.0_f32
 
     func area(window: OwnConstantWindow)->s32 => window.width * window.height
 }

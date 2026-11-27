@@ -37,9 +37,9 @@ func reverse16(x: u16)->u16
 #[Swag.Safety(.Overflow, false)]
 func reverse32(x: u32)->u32
 {
-    const m0 = 0x55555555'u32
-    const m1 = 0x33333333'u32
-    const m2 = 0x0F0F0F0F'u32
+    const m0 = 0x55555555_u32
+    const m1 = 0x33333333_u32
+    const m2 = 0x0F0F0F0F_u32
     var v = ((x >> 1) & m0) | ((x & m0) << 1)
     v = ((v >> 2) & m1) | ((v & m1) << 2)
     v = ((v >> 4) & m2) | ((v & m2) << 4)
@@ -57,12 +57,12 @@ func reverse32(x: u32)->u32
 #[Swag.Safety(.Overflow, false)]
 func hasZeroByte(v: u32)->bool
 {
-    return cast(bool, ((v - 0x01010101'u32) & ~v & 0x80808080'u32))
+    return cast(bool, ((v - 0x01010101_u32) & ~v & 0x80808080_u32))
 }
 
 func makeRepeat32(v: u8)->u32
 {
-    return (~0'u32 / 255 * cast(u32, v))
+    return (~0_u32 / 255 * cast(u32, v))
 }
 
 func hasByte(value: u32, byte: u8)->bool
@@ -86,10 +86,14 @@ func gcd(a0, b0: s64)->s64
 
 func lcm(a, b: s64)->s64
 {
-    if a > b do
+    if a > b
+    {
         return a / gcd(a, b) * b
-    else do
+    }
+    else
+    {
         return b / gcd(a, b) * a
+    }
 }
 
 {
@@ -106,8 +110,8 @@ struct Adler32
 
 impl Adler32
 {
-    const Base = 65521'u32
-    const NMax = 5552'u64
+    const Base = 65521_u32
+    const NMax = 5552_u64
 
     mtd init()
     {
@@ -120,20 +124,26 @@ impl Adler32
         var s2 = (.adler >> 16) & 0xFFFF
 
         let count = buffer.count
-        if not count do
+        if not count
+        {
             return
+        }
 
         let input = buffer.buffer
         if count == 1
         {
             s1 += cast(u32, input[0])
-            if s1 >= Base do
+            if s1 >= Base
+            {
                 s1 -= Base
+            }
             s2 += s1
-            if s2 >= Base do
+            if s2 >= Base
+            {
                 s2 -= Base
+            }
         }
-        elif count < 16
+        else if count < 16
         {
             for b in buffer
             {
@@ -141,20 +151,22 @@ impl Adler32
                 s2 += s1
             }
 
-            if s1 >= Base do
+            if s1 >= Base
+            {
                 s1 -= Base
+            }
             s2 %= Base
         }
         else
         {
             const n = NMax / 16
-            var i = 0'u64
+            var i = 0_u64
 
             while i + NMax <= count
             {
                 for n
                 {
-                    for j in 16'u64
+                    for j in 16_u64
                     {
                         s1 += cast(u32, input[i + j])
                         s2 += s1
@@ -171,7 +183,7 @@ impl Adler32
             {
                 while i + 16 <= count
                 {
-                    for j in 16'u64
+                    for j in 16_u64
                     {
                         s1 += cast(u32, input[i + j])
                         s2 += s1
@@ -221,8 +233,10 @@ func analyze(data: const [..] u8)->IntegrityReport
     var report: IntegrityReport
     report.byteCount = data.count
 
-    if report.byteCount == 0 do
+    if report.byteCount == 0
+    {
         return report
+    }
 
     report.checksum = Adler32.compute(data)
 
@@ -230,20 +244,24 @@ func analyze(data: const [..] u8)->IntegrityReport
     report.reversedFirst = reverse8(ptr[0])
     report.reversedLast  = reverse8(ptr[report.byteCount - 1])
 
-    var i = 0'u64
+    var i = 0_u64
     while i + 4 <= report.byteCount
     {
         let word = cast(u32, ptr[i]) |
                    cast(u32, ptr[i + 1]) << 8 |
                    cast(u32, ptr[i + 2]) << 16 |
                    cast(u32, ptr[i + 3]) << 24
-        if hasZeroByte(word) do
+        if hasZeroByte(word)
+        {
             report.zeroBytesFound += 1
+        }
         i += 4
     }
 
-    for b in data do
+    for b in data
+    {
         report.bitEntropy += cast(u32, Swag.countOnes(b))
+    }
 
     return report
 }
@@ -318,20 +336,20 @@ func analyze(data: const [..] u8)->IntegrityReport
 #test
 {
     // isPowerOf2
-    Swag.require(isPowerOf2(1'u32))
-    Swag.require(isPowerOf2(2'u32))
-    Swag.require(isPowerOf2(4'u32))
-    Swag.require(isPowerOf2(1024'u32))
-    Swag.require(isPowerOf2(0x80000000'u32))
-    Swag.require(not isPowerOf2(0'u32))
-    Swag.require(not isPowerOf2(3'u32))
-    Swag.require(not isPowerOf2(6'u32))
-    Swag.require(not isPowerOf2(0xFFFFFFFF'u32))
+    Swag.require(isPowerOf2(1_u32))
+    Swag.require(isPowerOf2(2_u32))
+    Swag.require(isPowerOf2(4_u32))
+    Swag.require(isPowerOf2(1024_u32))
+    Swag.require(isPowerOf2(0x80000000_u32))
+    Swag.require(not isPowerOf2(0_u32))
+    Swag.require(not isPowerOf2(3_u32))
+    Swag.require(not isPowerOf2(6_u32))
+    Swag.require(not isPowerOf2(0xFFFFFFFF_u32))
 
     // All u32 powers of 2
-    for i in 32'u32
+    for i in 32_u32
     {
-        Swag.require(isPowerOf2(1'u32 << i))
+        Swag.require(isPowerOf2(1_u32 << i))
     }
 
     // hasZeroByte
@@ -359,44 +377,44 @@ func analyze(data: const [..] u8)->IntegrityReport
     Swag.require(lcm(12, 18) == 36)
 
     // sign
-    Swag.require(sign(42's32) == 1)
-    Swag.require(sign(-7's32) == -1)
-    Swag.require(sign(0's32) == 0)
+    Swag.require(sign(42_s32) == 1)
+    Swag.require(sign(-7_s32) == -1)
+    Swag.require(sign(0_s32) == 0)
 }
 
 // Test bit intrinsics
 #test
 {
     // Population count (standard semantics)
-    Swag.require(Swag.countOnes(0'u32) == 0)
-    Swag.require(Swag.countOnes(1'u32) == 1)
-    Swag.require(Swag.countOnes(0xFFFFFFFF'u32) == 32)
-    Swag.require(Swag.countOnes(0xAAAAAAAA'u32) == 16)
-    Swag.require(Swag.countOnes(0x55555555'u32) == 16)
-    Swag.require(Swag.countOnes(0xDEADBEEF'u32) == 24)
+    Swag.require(Swag.countOnes(0_u32) == 0)
+    Swag.require(Swag.countOnes(1_u32) == 1)
+    Swag.require(Swag.countOnes(0xFFFFFFFF_u32) == 32)
+    Swag.require(Swag.countOnes(0xAAAAAAAA_u32) == 16)
+    Swag.require(Swag.countOnes(0x55555555_u32) == 16)
+    Swag.require(Swag.countOnes(0xDEADBEEF_u32) == 24)
 
     // Leading zeros (counts consecutive zero bits from the most significant bit)
-    Swag.require(Swag.leadingZeros(0'u32) == 32)
-    Swag.require(Swag.leadingZeros(0x80000000'u32) == 0)
-    Swag.require(Swag.leadingZeros(1'u32) == 31)
-    Swag.require(Swag.leadingZeros(0x00010000'u32) == 15)
+    Swag.require(Swag.leadingZeros(0_u32) == 32)
+    Swag.require(Swag.leadingZeros(0x80000000_u32) == 0)
+    Swag.require(Swag.leadingZeros(1_u32) == 31)
+    Swag.require(Swag.leadingZeros(0x00010000_u32) == 15)
 
     // Trailing zeros (counts consecutive zero bits from the least significant bit)
-    Swag.require(Swag.trailingZeros(0'u32) == 32)
-    Swag.require(Swag.trailingZeros(1'u32) == 0)
-    Swag.require(Swag.trailingZeros(2'u32) == 1)
-    Swag.require(Swag.trailingZeros(0x80000000'u32) == 31)
-    Swag.require(Swag.trailingZeros(0x00010000'u32) == 16)
+    Swag.require(Swag.trailingZeros(0_u32) == 32)
+    Swag.require(Swag.trailingZeros(1_u32) == 0)
+    Swag.require(Swag.trailingZeros(2_u32) == 1)
+    Swag.require(Swag.trailingZeros(0x80000000_u32) == 31)
+    Swag.require(Swag.trailingZeros(0x00010000_u32) == 16)
 
     // Rotate left/right
-    Swag.require(Swag.rol(0x80000001'u32, 1) == 0x00000003'u32)
-    Swag.require(Swag.ror(0x80000001'u32, 1) == 0xC0000000'u32)
-    Swag.require(Swag.rol(Swag.ror(0xDEADBEEF'u32, 13), 13) == 0xDEADBEEF'u32)
+    Swag.require(Swag.rol(0x80000001_u32, 1) == 0x00000003_u32)
+    Swag.require(Swag.ror(0x80000001_u32, 1) == 0xC0000000_u32)
+    Swag.require(Swag.rol(Swag.ror(0xDEADBEEF_u32, 13), 13) == 0xDEADBEEF_u32)
 
     // Byteswap
-    Swag.require(Swag.byteSwap(0x01020304'u32) == 0x04030201'u32)
-    Swag.require(Swag.byteSwap(0xAABBCCDD'u32) == 0xDDCCBBAA'u32)
-    Swag.require(Swag.byteSwap(Swag.byteSwap(0xDEADBEEF'u32)) == 0xDEADBEEF'u32)
+    Swag.require(Swag.byteSwap(0x01020304_u32) == 0x04030201_u32)
+    Swag.require(Swag.byteSwap(0xAABBCCDD_u32) == 0xDDCCBBAA_u32)
+    Swag.require(Swag.byteSwap(Swag.byteSwap(0xDEADBEEF_u32)) == 0xDEADBEEF_u32)
 }
 
 // Integration: full integrity analysis pipeline

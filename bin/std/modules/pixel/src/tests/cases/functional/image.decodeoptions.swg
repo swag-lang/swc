@@ -91,6 +91,31 @@ using Swag, Core.Errors
     Swag.require((errorOutcome.value() is InvalidFormatError))
 }
 
+// JPEG checks the SOF dimensions before it needs the start of the scan.
+#test
+{
+    let bytes = expect File.readAllBytes(getTestDataPath("sampling-thirds.jpg"))
+    var scan  = bytes.count
+    for i in bytes.count - 1
+    {
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA
+        {
+            scan = i
+            break
+        }
+    }
+
+    Swag.require(scan < bytes.count)
+    let prefix = bytes.toSlice()[until scan]
+    let limits = [DecodeOptions{maxPixels: 1}, DecodeOptions{maxPixels: 0, maxDecodedBytes: 1}]
+    for options in limits
+    {
+        var errorOutcome: Swag.Error
+        catch { discard try Image.decode("limited.jpg", prefix, options) } as errorOutcome
+        Swag.require(errorOutcome.value() is UnsupportedFormatError)
+    }
+}
+
 // PNG enforces limits itself, using the output format after palette transparency expansion.
 #test
 {
@@ -106,4 +131,46 @@ using Swag, Core.Errors
     var byteError: Swag.Error
     discard catch Image.load(path, {maxDecodedBytes: bytes - 1}) as byteError
     Swag.require((byteError.value() is UnsupportedFormatError))
+}
+
+// These decoders enforce both limits in their full decode paths.
+#test
+{
+    var source = Image.create(2, 3, .RGBA8)
+    for i in source.byteCount
+    {
+        source.pixels[i] = cast(u8, i * 7)
+    }
+
+    for name in ["limits.dds", "limits.ktx2", "limits.qoi", "limits.tga"]
+    {
+        let encoded = expect source.encodeToBytes(name)
+        let bytes   = encoded.toSlice()
+        let image   = expect Image.decode(name, bytes, {maxPixels: 6, maxDecodedBytes: 24})
+        Swag.require(image.width == 2 and image.height == 3 and image.byteCount == 24)
+
+        for limits in [DecodeOptions{maxPixels: 5}, DecodeOptions{maxPixels: 0, maxDecodedBytes: 23}]
+        {
+            var outcome: Swag.Error
+            discard catch Image.decode(name, bytes, limits) as outcome
+            Swag.require(outcome.value() is UnsupportedFormatError)
+        }
+    }
+}
+
+// Built-in image codecs check limits before allocating their pixel buffers.
+#test
+{
+    for name in ["rgb.bmp", "test.gif", "imageset-pages-raw.tiff", "imageset-layers-0.psd", "blue-purple-pink.lossy.webp"]
+    {
+        let path = getTestDataPath(name)
+        let full = expect Image.load(path)
+        Swag.require(full.isValid())
+        for limits in [DecodeOptions{maxPixels: 1}, DecodeOptions{maxPixels: 0, maxDecodedBytes: 1}]
+        {
+            var outcome: Swag.Error
+            discard catch Image.load(path, limits) as outcome
+            Swag.require(outcome.value() is UnsupportedFormatError)
+        }
+    }
 }

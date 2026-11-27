@@ -27,10 +27,15 @@ using Core, Gui, Pixel
     var foundFirst, foundLast: bool
     for item in main.libWnd.view.items
     {
-        if item.fi.fullName == firstPath do
+        if item.fi.fullName == firstPath
+        {
             foundFirst = true
-        if item.fi.fullName == lastPath do
+        }
+
+        if item.fi.fullName == lastPath
+        {
             foundLast = true
+        }
     }
 
     Swag.require(foundFirst and foundLast)

@@ -12,14 +12,14 @@ using Swag, Core
     defer host.shutdown()
 
     let surface   = unwrap PopupMenuSurface.create(&host.app, {100, 100})
-    with let root = Wnd.create'Wnd(surface.wnd)
+    with let root = Wnd.create!{Wnd}(surface.wnd)
     {
         .backgroundStyle = .Window
         .focusPolicy     = .Click
         .dockStyle       = .Center
     }
 
-    let menu = Wnd.create'MenuCtrl(root)
+    let menu = Wnd.create!{MenuCtrl}(root)
     menu.addItem("First", "popup.first")
     menu.addItem("Second", "popup.second")
     menu.owner     = &host.root

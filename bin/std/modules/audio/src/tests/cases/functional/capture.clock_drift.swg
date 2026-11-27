@@ -36,8 +36,8 @@ using Swag, Core, Core.Errors
 {
     for direction in 2
     {
-        let acceptedFrames = direction == 0 ? 48_048_000'u64 : 47_952_000'u64
-        let rejectedFrames = direction == 0 ? 48_048_048'u64 : 47_951_952'u64
+        let acceptedFrames = direction == 0 ? 48_048_000_u64 : 47_952_000_u64
+        let rejectedFrames = direction == 0 ? 48_048_048_u64 : 47_951_952_u64
         var clock = expect CaptureClockDrift.create(48_000, 1_000_000)
         Swag.require(not expect clock.observe(0, 0))
 
@@ -81,7 +81,7 @@ using Swag, Core, Core.Errors
     for index in 30
     {
         let second = cast(u64, index) + 1
-        let tick   = second * 1_000_000_000 + (second % 2 == 0 ? 100_000'u64 : 0)
+        let tick   = second * 1_000_000_000 + (second % 2 == 0 ? 100_000_u64 : 0)
         let frame  = cast(u64, Math.round(cast(f64, second) * 44_100.0 * 1.0001))
         if expect clock.observe(tick, frame)
         {
@@ -104,9 +104,12 @@ using Swag, Core, Core.Errors
     Swag.require(clock.inputClockDriftPpm() == 104)
     Swag.require(expect clock.applyTo(&resampler))
     var input: [48_000] f32
-    for index in input.count do
+    for index in input.count
+    {
         input[index] = 0.25
-    var output: Array'f32
+    }
+
+    var output: Array!{f32}
     expect resampler.addFrames(Swag.makeSlice(&input[0], input.count), &output)
     expect resampler.end(&output)
     Swag.require(output.count >= 47_994 and output.count <= 47_996)

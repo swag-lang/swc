@@ -66,9 +66,9 @@ struct IconButton
     {
         using button: Button     // Embedded button behavior and presentation.
 
-        sigPopupClosed:    SigArray'func||(*Wnd)     // Emitted before the owned popup is destroyed.
-        sigPopupRequested: SigArray'func||(*Wnd)     // Emitted when activation requests popup creation.
-        sigCheckedChanged: SigArray'func||(*Wnd)     // Emitted after user activation changes checked state.
+        sigPopupClosed:    SigArray!{func||(*Wnd)}     // Emitted before the owned popup is destroyed.
+        sigPopupRequested: SigArray!{func||(*Wnd)}     // Emitted when activation requests popup creation.
+        sigCheckedChanged: SigArray!{func||(*Wnd)}     // Emitted after user activation changes checked state.
         iconPainter:       (func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags))?     // Custom icon painter, or null for `icon`.
 
         readonly
@@ -112,8 +112,11 @@ impl IWnd for IconButton
 {
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
-        if .parent is SurfaceWnd as frame do
+        if .parent is SurfaceWnd as frame
+        {
             frame.applyChromeTheme(me, evt)
+        }
+
         .invalidate()
         .sendResizeEvent()
     }
@@ -184,22 +187,32 @@ impl IWnd for IconButton
 
     mtd impl onHookEvent(evt: IEvent)
     {
-        if not .popup do
+        if not .popup
+        {
             return
+        }
 
         if evt is MouseEvent as ptr where ptr.kind == .Pressed
         {
-            if ptr.target == me or ptr.target == .popup do
+            if ptr.target == me or ptr.target == .popup
+            {
                 return
-            if ptr.target and .popup.isAncestorOf(ptr.target) do
+            }
+
+            if ptr.target and .popup.isAncestorOf(ptr.target)
+            {
                 return
+            }
+
             .hidePopup()
         }
 
         // A press no window hears, in another application or on the ground that moves the window,
         // is a click outside the popup too.
-        if evt is NotifyEvent as ptr where ptr.kind == .PressedElsewhere do
+        if evt is NotifyEvent as ptr where ptr.kind == .PressedElsewhere
+        {
             .hidePopup()
+        }
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -210,14 +223,18 @@ impl IWnd for IconButton
     mtd impl onStateEvent(evt: *StateEvent)
     {
         .button.IWnd.onStateEvent(evt)
-        if evt.kind == .Hide or evt.kind == .Disable do
+        if evt.kind == .Hide or evt.kind == .Disable
+        {
             .aniBk.reset()
+        }
     }
 
     mtd impl onApplyStateEvent(evt: *CommandStateEvent)
     {
-        if evt.id != .id do
+        if evt.id != .id
+        {
             return
+        }
 
         if evt.updatedFields.has(.ToolTip)
         {
@@ -302,19 +319,35 @@ impl IWnd for IconButton
             colorChecked = framed ? colors.btnIcon_CheckedFrameBorder : colors.btnIcon_CheckedMark
         }
 
-        if bc.isDisabled do
+        if bc.isDisabled
+        {
             paintFlags.add(.Disabled)
-        if .isChecked do
-            paintFlags.add(.Checked)
-        if .isHot do
-            paintFlags.add(.Hot)
-        if .isPressed do
-            paintFlags.add(.Pressed)
+        }
 
-        if .iconColor.a do
+        if .isChecked
+        {
+            paintFlags.add(.Checked)
+        }
+
+        if .isHot
+        {
+            paintFlags.add(.Hot)
+        }
+
+        if .isPressed
+        {
+            paintFlags.add(.Pressed)
+        }
+
+        if .iconColor.a
+        {
             colorIcon = .iconColor
-        if .textColor.a do
+        }
+
+        if .textColor.a
+        {
             colorText = .textColor
+        }
 
         if .critical and not bc.isDisabled
         {
@@ -347,12 +380,16 @@ impl IWnd for IconButton
                      .checkIndicator != .Ink
         if marked and framed
         {
-            if .form == .RoundedRectangle do
+            if .form == .RoundedRectangle
+            {
                 theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedRing, colorChecked)
-            else do
+            }
+            else
+            {
                 bc.painter.drawRoundRect(clientRect, subRectBk.radius, subRectBk.radius, colorChecked, 1)
+            }
         }
-        elif marked
+        else if marked
         {
             // A rule on one edge is the two-pixel Arc underline of a tab; a full mark is the
             // selection ground inside a faint Arc ring, which keeps the cell an object on any ground.
@@ -379,8 +416,11 @@ impl IWnd for IconButton
                 }
 
                 theme.drawSubRect(bc.painter, clientRect, subRectBk, colorChecked)
-                if .form != .Circle and not bc.isDisabled do
+                if .form != .Circle and not bc.isDisabled
+                {
                     theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedRing, colors.btnIcon_CheckedRing)
+                }
+
                 .focusRingRadius = subRectBk.radius
 
             case .None, .Ink, .Frame:
@@ -391,10 +431,15 @@ impl IWnd for IconButton
         var pos     = .paddedClientRect()
         let hasIcon = icon.isValid() or .iconPainter
 
-        if .iconWidth do
+        if .iconWidth
+        {
             icon.sizeX = .iconWidth
-        if .iconHeight do
+        }
+
+        if .iconHeight
+        {
             icon.sizeY = .iconHeight
+        }
 
         // Center the exact group that will be painted. A label-less button is an icon and an
         // optional disclosure marker on one line; counting the absent label's font height used to
@@ -507,13 +552,19 @@ impl IWnd for IconButton
             {
             case .Left:
                 sf.horzAlignment = .Left
-                if not hasIcon and (.arrowPosition == .Top or .arrowPosition == .Bottom) do
+                if not hasIcon and (.arrowPosition == .Top or .arrowPosition == .Bottom)
+                {
                     sf.horzAlignment = .Center
+                }
+
                 drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey, .surface?.accessKeysVisible orelse false)
                 pos.moveLeft(.name.boundRect.width + metrics.btnIcon_SpacingTextH)
 
-                if not icon.isValid() do
+                if not icon.isValid()
+                {
                     icon.sizeX = pos.width
+                }
+
                 if pos.width < icon.sizeX
                 {
                     let ratio = icon.sizeX / icon.sizeY
@@ -532,8 +583,10 @@ impl IWnd for IconButton
                 // pushed to the other end of a wide row it reads as a second column rather
                 // than as the name of the glyph it belongs to.
                 sf.horzAlignment = .Left
-                if not hasIcon and (.arrowPosition == .Top or .arrowPosition == .Bottom) do
+                if not hasIcon and (.arrowPosition == .Top or .arrowPosition == .Bottom)
+                {
                     sf.horzAlignment = .Center
+                }
 
                 // A painter that declares no size keeps taking what the label leaves it.
                 if not icon.isValid() and not .iconWidth
@@ -552,8 +605,11 @@ impl IWnd for IconButton
                 // The spacing separates the label from a glyph; a centered label with no glyph
                 // starts where its group does, so its words stand on the edge they are aligned to.
                 var posText = pos
-                if icon.sizeX > 0 do
+                if icon.sizeX > 0
+                {
                     posText.moveLeft(icon.sizeX + metrics.btnIcon_SpacingTextH)
+                }
+
                 drawAccessKeyText(bc.painter, posText, &.name, sf, me.accessKey, .surface?.accessKeysVisible orelse false)
                 pos.width = icon.sizeX
 
@@ -562,8 +618,11 @@ impl IWnd for IconButton
                 drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey, .surface?.accessKeysVisible orelse false)
                 pos.moveTop(sf.font.regular!.height + metrics.btnIcon_SpacingTextV)
 
-                if not icon.isValid() do
+                if not icon.isValid()
+                {
                     icon.sizeY = pos.height
+                }
+
                 if pos.height < icon.sizeY
                 {
                     let ratio = icon.sizeX / icon.sizeY
@@ -581,8 +640,11 @@ impl IWnd for IconButton
                 drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey, .surface?.accessKeysVisible orelse false)
 
                 pos.height -= sf.font.regular!.height + metrics.btnIcon_SpacingTextV
-                if not icon.isValid() do
+                if not icon.isValid()
+                {
                     icon.sizeY = pos.height
+                }
+
                 if pos.height < icon.sizeY
                 {
                     let ratio = icon.sizeX / icon.sizeY
@@ -601,7 +663,7 @@ impl IWnd for IconButton
         {
             .iconPainter(me, bc, pos, paintFlags)
         }
-        elif .name.isEmpty() or .flags.has(.IconOnly)
+        else if .name.isEmpty() or .flags.has(.IconOnly)
         {
             pos.x = pos.horzCenter() - icon.sizeX * 0.5
             pos.y = pos.vertCenter() - icon.sizeY * 0.5
@@ -639,7 +701,7 @@ impl IWnd for IconButton
         // tints a color swatch with a hard fill.
         if overlay and not bc.isDisabled
         {
-            var a = 0'f32
+            var a = 0_f32
             switch
             {
             case .isPressed: a = 0.14
@@ -661,8 +723,10 @@ impl IWnd for IconButton
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if .processMouseEvent(evt) do
+        if .processMouseEvent(evt)
+        {
             .activateFromUser()
+        }
     }
 
     // Space or Enter activates the focused button.
@@ -672,8 +736,10 @@ impl IWnd for IconButton
         if evt.kind != .Pressed or
            evt.modifiers != .None or
            (evt.key == .Space and not .hasVisibleFocus()) or
-           (evt.key != .Space and evt.key != .Return) do
+           (evt.key != .Space and evt.key != .Return)
+        {
             return
+        }
 
         .sigPressed.call(cast(*Button, me))
         .activateFromUser()
@@ -691,8 +757,11 @@ private impl IconButton
     // has nothing to be level with and keeps the middle.
     mtd lineTop(centerY, size: f32)->f32
     {
-        if .name.isEmpty() or .flags.has(.IconOnly) do
+        if .name.isEmpty() or .flags.has(.IconOnly)
+        {
             return centerY - size * 0.5
+        }
+
         return opticalTop(.font(), centerY, size)
     }
 
@@ -704,7 +773,7 @@ private impl IconButton
             .isChecked   = not .isChecked
             stateChanged = true
         }
-        elif .flags.has(.Radio) and not .isChecked
+        else if .flags.has(.Radio) and not .isChecked
         {
             .isChecked   = true
             stateChanged = true
@@ -716,7 +785,7 @@ private impl IconButton
             .postCommandEvent(.id)
             .sigCheckedChanged.call(me)
         }
-        elif not .flags.has(.Radio) and not .flags.has(.Toggle)
+        else if not .flags.has(.Radio) and not .flags.has(.Toggle)
         {
             .postCommandEvent(.id)
         }
@@ -724,8 +793,10 @@ private impl IconButton
         if .flags.has(.Popup) and not .popup
         {
             .sigPopupRequested.call(me)
-            if .popup do
+            if .popup
+            {
                 .app().registerHookEvents(me)
+            }
         }
     }
 }
@@ -737,12 +808,15 @@ impl IconButton
     internal mtd menuAnchorGap(opensUp: bool)->f32
     {
         let gap   = .themeMetrics().menuPopup_AnchorGap
-        let panel = .ancestorByType'FloatingPanel()
-        if not panel or panel.paddedClientRect().height > .position.height + 2 * .themeMetrics().wnd_BorderSize do
+        let panel = .ancestorByType!{FloatingPanel}()
+        if not panel or panel.paddedClientRect().height > .position.height + 2 * .themeMetrics().wnd_BorderSize
+        {
             return gap
+        }
+
         let anchor = .surfaceRect()
         let frame  = panel.surfaceRect()
-        return gap + Math.max(0'f32, opensUp ? anchor.y - frame.y : frame.bottom() - anchor.bottom())
+        return gap + Math.max(0_f32, opensUp ? anchor.y - frame.y : frame.bottom() - anchor.bottom())
     }
 
     // Horizontal start of the same glyph/word/disclosure run used by the open button.
@@ -750,29 +824,42 @@ impl IconButton
     {
         let metrics = .themeMetrics()
         var icon    = .icon
-        if .iconWidth do
+        if .iconWidth
+        {
             icon.sizeX = .iconWidth
-        if .iconHeight do
+        }
+
+        if .iconHeight
+        {
             icon.sizeY = .iconHeight
+        }
 
         let hasIcon   = icon.isValid()
         let showsText = not .name.isEmpty() and not .flags.has(.IconOnly)
-        var textWidth = 0'f32
-        if showsText do
+        var textWidth = 0_f32
+        if showsText
+        {
             textWidth = Painter.measureString(.name.text.toString(), nnFont(.font().regular)).width
+        }
 
         var width = hasIcon ? icon.sizeX : 0
         if showsText
         {
-            if hasIcon do
+            if hasIcon
+            {
                 width += metrics.btnIcon_SpacingTextH
+            }
+
             width += textWidth
         }
 
         if .arrowPosition != .None
         {
-            if width do
+            if width
+            {
                 width += .arrowGap()
+            }
+
             width += metrics.btnIcon_ArrowSize
         }
 
@@ -791,24 +878,33 @@ impl IconButton
         let metrics = .themeMetrics()
         let theme   = .theme()
         var icon    = .icon
-        if .iconWidth do
+        if .iconWidth
+        {
             icon.sizeX = .iconWidth
-        if .iconHeight do
+        }
+
+        if .iconHeight
+        {
             icon.sizeY = .iconHeight
+        }
 
         let hasIcon   = icon.isValid()
         let showsText = not .name.isEmpty() and not .flags.has(.IconOnly)
-        var textWidth = 0'f32
-        if showsText do
+        var textWidth = 0_f32
+        if showsText
+        {
             textWidth = Painter.measureString(.name.text.toString(), nnFont(.font().regular)).width
+        }
 
         var x = .menuAnchorContentLeft(rect)
         if hasIcon
         {
             icon.paint(painter, x, .lineTop(rect.vertCenter(), icon.sizeY), color)
             x += icon.sizeX
-            if showsText do
+            if showsText
+            {
                 x += metrics.btnIcon_SpacingTextH
+            }
         }
 
         if showsText
@@ -830,8 +926,11 @@ impl IconButton
 
         if .arrowPosition != .None
         {
-            if hasIcon or showsText do
+            if hasIcon or showsText
+            {
                 x += .arrowGap()
+            }
+
             let side  = metrics.btnIcon_ArrowSize
             let arrow = theme.icon(arrowGlyph(.arrowPosition), side)
             arrow.paint(painter, x, .lineTop(rect.vertCenter(), side), color)
@@ -854,8 +953,11 @@ impl IconButton
     // Changes the icon tint; a transparent color restores the current theme color.
     mtd setIconColor(color: Color)
     {
-        if .iconColor == color do
+        if .iconColor == color
+        {
             return
+        }
+
         .iconColor = color
         .invalidate()
     }
@@ -863,8 +965,11 @@ impl IconButton
     // Changes the label color; a transparent color restores the current theme color.
     mtd setTextColor(color: Color)
     {
-        if .textColor == color do
+        if .textColor == color
+        {
             return
+        }
+
         .textColor = color
         .invalidate()
     }
@@ -879,8 +984,10 @@ impl IconButton
     // Closes and destroys the owned popup, if any.
     mtd hidePopup()
     {
-        if not .popup do
+        if not .popup
+        {
             return
+        }
 
         .app().unregisterHookEvents(me)
         .sigPopupClosed.call(me)
@@ -896,18 +1003,27 @@ impl IconButton
     {
         Swag.assert(parent != null)
         var pos = position
-        if pos.height == 0 do
+        if pos.height == 0
+        {
             pos.height = parent.themeMetrics().btnPush_Height
-        if pos.width == 0 do
+        }
+
+        if pos.width == 0
+        {
             pos.width = parent.themeMetrics().btnPush_Width
-        let res = Wnd.create'IconButton(parent, null, pos, id)
+        }
+
+        let res = Wnd.create!{IconButton}(parent, null, pos, id)
         res.focusPolicy = .Tab
         res.wndFlags    |= .ActivatesOnKey | .FocusRing
         res.setIcon(icon)
         res.padding = res.themeMetrics().btnIcon_Padding
         res.updateFlags(flags)
-        if id != null do
+        if id != null
+        {
             res.updateCommandState()
+        }
+
         return res
     }
 
@@ -927,8 +1043,11 @@ impl IconButton
             .quiet = true
             .setForm(.RoundedRectangle)
             .setTextPosition(.Right)
-            if menu do
+            if menu
+            {
                 .setArrowPosition(.RightDownward)
+            }
+
             if heading
             {
                 .style.setFont(parent.theme().createDefaultFont(metrics.defaultFontSize, .Bold), .Regular)
@@ -953,8 +1072,11 @@ impl IconButton
     mtd setChecked(checked: bool)
     {
         Swag.assert(.flags.has(.Radio) or .flags.has(.Toggle))
-        if .isChecked == checked do
+        if .isChecked == checked
+        {
             return
+        }
+
         .isChecked = checked
         .invalidate()
     }
@@ -967,8 +1089,11 @@ impl IconButton
         newFlags.remove(remove)
         Swag.assert(not (newFlags.has(.Radio) and newFlags.has(.Toggle)), "radio and toggle modes are mutually exclusive")
         .flags = newFlags
-        if not .flags.has(.Radio) and not .flags.has(.Toggle) do
+        if not .flags.has(.Radio) and not .flags.has(.Toggle)
+        {
             .isChecked = false
+        }
+
         .invalidate()
         .invalidateLayout()
     }
@@ -976,8 +1101,11 @@ impl IconButton
     // Changes background geometry and repaints the button.
     mtd setForm(form: IconButtonForm)
     {
-        if .form == form do
+        if .form == form
+        {
             return
+        }
+
         .form = form
         .invalidate()
     }
@@ -985,8 +1113,11 @@ impl IconButton
     // Changes checked-state indicator placement and repaints the button.
     mtd setCheckIndicator(indicator: IconButtonCheckIndicator)
     {
-        if .checkIndicator == indicator do
+        if .checkIndicator == indicator
+        {
             return
+        }
+
         .checkIndicator = indicator
         .invalidate()
     }
@@ -994,8 +1125,11 @@ impl IconButton
     // Changes arrow placement and direction and repaints the button.
     mtd setArrowPosition(position: IconButtonArrowPosition)
     {
-        if .arrowPosition == position do
+        if .arrowPosition == position
+        {
             return
+        }
+
         .arrowPosition = position
         .invalidate()
         .invalidateLayout()
@@ -1004,8 +1138,11 @@ impl IconButton
     // Changes label placement relative to the icon and repaints the button.
     mtd setTextPosition(position: IconButtonTextPosition)
     {
-        if .textPosition == position do
+        if .textPosition == position
+        {
             return
+        }
+
         .textPosition = position
         .invalidate()
         .invalidateLayout()
@@ -1019,8 +1156,11 @@ impl IconButton
     mtd createAnchorPopup(width, height: f32)->*FrameWnd
     {
         Swag.assert(width >= 0 and height >= 0)
-        if .popup do
+        if .popup
+        {
             .hidePopup()
+        }
+
         let pos          = .surfaceRect()
         let topView      = .topView()
         let metrics      = .themeMetrics()
@@ -1036,18 +1176,26 @@ impl IconButton
 
         let availableBelow = topView.position.height - sdw.w - y
         let availableAbove = ptTop.y - anchorHeight - sdw.y
-        if availableBelow < height and availableAbove > availableBelow do
+        if availableBelow < height and availableAbove > availableBelow
+        {
             y = ptTop.y - anchorHeight - height
+        }
 
-        if x + width > topView.position.width - sdw.z do
+        if x + width > topView.position.width - sdw.z
+        {
             x = topView.position.width - width - sdw.z
+        }
+
         x = Math.max(x, sdw.x)
 
-        if y + height > topView.position.height - sdw.w do
+        if y + height > topView.position.height - sdw.w
+        {
             y = topView.position.height - height - sdw.w
+        }
+
         y = Math.max(y, sdw.y)
 
-        with let frame = Wnd.create'FrameWnd(topView, Math.Rectangle{x, y, width, height})
+        with let frame = Wnd.create!{FrameWnd}(topView, Math.Rectangle{x, y, width, height})
         {
             .owner = me
             .setFrameForm(.Round)

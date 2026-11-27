@@ -83,11 +83,11 @@ func(T) preferFloatLiteral(x, y: T)->T  => y
 
 #test
 {
-    let f32Value = preferFloatLiteral(0.0001, 1.0'f32)
-    let f64Value = preferFloatLiteral(0.0001, 1.0'f64)
+    let f32Value = preferFloatLiteral(0.0001, 1.0_f32)
+    let f64Value = preferFloatLiteral(0.0001, 1.0_f64)
 
     #assert(#typeof(f32Value) == f32)
     #assert(#typeof(f64Value) == f64)
-    Swag.require(f32Value > 1.0'f32)
-    Swag.require(f64Value > 1.0'f64)
+    Swag.require(f32Value > 1.0_f32)
+    Swag.require(f64Value > 1.0_f64)
 }

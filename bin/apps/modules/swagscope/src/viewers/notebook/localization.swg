@@ -17,7 +17,7 @@ private var g_Texts: Texts
 
 #run
 {
-    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
+    expect Gui.validateStrings!{Texts}(cast(string, FrenchStrings))
 }
 
 func texts()->const *Texts => &g_Texts
@@ -25,5 +25,5 @@ func texts()->const *Texts => &g_Texts
 func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'Texts(&g_Texts, "scope.notebook")
+    Gui.registerStrings!{Texts}(&g_Texts, "scope.notebook")
 }

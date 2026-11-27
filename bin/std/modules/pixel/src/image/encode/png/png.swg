@@ -72,7 +72,7 @@ private
     const TypeIDat:     [4] u8 = ['I', 'D', 'A', 'T']
     const TypeIEnd:     [4] u8 = ['I', 'E', 'N', 'D']
     const TypeTEXt:     [4] u8 = ['t', 'E', 'X', 't']
-    const MaxPngChunkLength    = 0x7FFF_FFFF'u64
+    const MaxPngChunkLength    = 0x7FFF_FFFF_u64
 
     struct SubImage
     {
@@ -126,18 +126,25 @@ private
 // PNG tEXt keywords use the Latin-1 keyword alphabet and have at most 79 bytes.
 private func isValidTextKeyword(keyword: const [..] u8)->bool
 {
-    if keyword.count == 0 or keyword.count > 79 do
+    if keyword.count == 0 or keyword.count > 79
+    {
         return false
+    }
 
     var previousSpace = false
     for byte, index in keyword
     {
-        if byte < 32 or (byte > 126 and byte < 161) do
+        if byte < 32 or (byte > 126 and byte < 161)
+        {
             return false
+        }
 
-        let isSpace = byte == ' 'u8
-        if isSpace and (index == 0 or index + 1 == keyword.count or previousSpace) do
+        let isSpace = byte == ' '_u8
+        if isSpace and (index == 0 or index + 1 == keyword.count or previousSpace)
+        {
             return false
+        }
+
         previousSpace = isSpace
     }
 
@@ -146,8 +153,10 @@ private func isValidTextKeyword(keyword: const [..] u8)->bool
 
 internal func validateChunkLength(chunkLength: u64) fail
 {
-    if chunkLength > MaxPngChunkLength do
+    if chunkLength > MaxPngChunkLength
+    {
         fail UnsupportedFormatError{"PNG chunk exceeds the maximum supported size"}
+    }
 }
 
 // Encodes PNG images with configurable filtering, compression, and interlacing.
@@ -161,30 +170,28 @@ internal struct Encoder
 
     private
     {
-        stream:              *ConcatBuffer?     // Output buffer chunks are appended to.
-        stored:              ChunkBitfield      // Chunks already written, to keep their order legal.
-        ihdr:                Ihdr               // Image header being written.
-        currentChunk:        Chunk              // Chunk currently open.
-        tmpBuf:              [256] u8           // Scratch for small chunk payloads.
-        writePtr:            [*] u8?            // Write cursor inside 'tmpBuf'.
-        crc:                 Hash.Crc32         // Running CRC of the chunk being written.
-        subimage:            [7] SubImage       // Geometry of the seven Adam7 passes.
-        widestPass:          s32                // Widest pass, sizing the scanline buffers.
-        lastPass:            s32                // Index of the last pass to write.
-        bytesPerPixel:       u32                // Bytes per pixel of the output format.
-        scanlineBuf:         [*] u8?            // Storage for the current scanline.
-        prevScanlineBuf:     [*] u8?            // Storage for the previous scanline.
-        row_buf:             [*] u8?            // Source row converted to the output format.
-        filteredScanlineBuf: [*] u8?            // Storage for the filtered scanline.
-        filteredScanline:    [*] u8?            // Filtered scanline being emitted.
-        scanline:            [*] u8?            // Current scanline, aliasing 'scanlineBuf'.
-        prevScanline:        [*] u8?            // Previous scanline, for the filter predictors.
-        encodeFlags:         EncodeFlags        // Flags derived from the requested options.
-        rowInfo:             RowInfo            // Geometry of the row being filtered.
-        pixelSize:           u32                // Size of one source pixel, in bytes.
-        bufferToCompress:    Array'u8           // Filtered image data handed to Deflate.
-        swapRB:              bool               // Whether the source needs its red and blue swapped.
-        userOptions:         EncodeOptions      // Options the caller asked for.
+        stream:           *ConcatBuffer?     // Output buffer chunks are appended to.
+        stored:           ChunkBitfield      // Chunks already written, to keep their order legal.
+        ihdr:             Ihdr               // Image header being written.
+        currentChunk:     Chunk              // Chunk currently open.
+        tmpBuf:           [256] u8           // Scratch for small chunk payloads.
+        writePtr:         [*] u8?            // Write cursor inside 'tmpBuf'.
+        crc:              Hash.Crc32         // Running CRC of the chunk being written.
+        subimage:         [7] SubImage       // Geometry of the seven Adam7 passes.
+        widestPass:       s32                // Widest pass, sizing the scanline buffers.
+        lastPass:         s32                // Index of the last pass to write.
+        bytesPerPixel:    u32                // Bytes per pixel of the output format.
+        scanlineBuf:      [*] u8?            // Storage for the current scanline.
+        prevScanlineBuf:  [*] u8?            // Storage for the previous scanline.
+        row_buf:          [*] u8?            // Source row converted to the output format.
+        scanline:         [*] u8?            // Current scanline, borrowed from the image or held in scratch.
+        prevScanline:     [*] u8?            // Previous scanline, for the filter predictors.
+        encodeFlags:      EncodeFlags        // Flags derived from the requested options.
+        rowInfo:          RowInfo            // Geometry of the row being filtered.
+        pixelSize:        u32                // Size of one source pixel, in bytes.
+        bufferToCompress: Array!{u8}         // Filtered image data handed to Deflate.
+        swapRB:           bool               // Whether the source needs its red and blue swapped.
+        userOptions:      EncodeOptions      // Options the caller asked for.
     }
 }
 
@@ -239,8 +246,11 @@ impl Encoder
     mtd writeChunk(chunkType: const [4] u8, buf: const *u8, length: u64) fail
     {
         .writePtr = try .writeHeader(chunkType, length)
-        if length do
+        if length
+        {
             Memory.copy(.writePtr, buf, length)
+        }
+
         .finishChunk()
     }
 
@@ -263,12 +273,18 @@ impl Encoder
     {
         for md in image.metadata
         {
-            if not md.tag.count do
+            if not md.tag.count
+            {
                 continue
+            }
+
             if md.signature == 1 and md.isTag("Exif")
             {
-                if not md.value.count do
+                if not md.value.count
+                {
                     continue
+                }
+
                 const TypeEXIf: [4] u8 = ['e', 'X', 'I', 'f']
                 .writePtr = try .writeHeader(TypeEXIf, md.value.count)
                 Memory.copy(.writePtr, md.value.storage(), md.value.count)
@@ -276,18 +292,25 @@ impl Encoder
                 continue
             }
 
-            if not isValidTextKeyword(md.tag.toSlice()) do
+            if not isValidTextKeyword(md.tag.toSlice())
+            {
                 fail UnsupportedFormatError{"PNG text metadata tag is not a valid tEXt keyword"}
+            }
 
-            if md.tag.count >= MaxPngChunkLength or md.value.count > MaxPngChunkLength - md.tag.count - 1 do
+            if md.tag.count >= MaxPngChunkLength or md.value.count > MaxPngChunkLength - md.tag.count - 1
+            {
                 fail UnsupportedFormatError{"PNG text metadata exceeds the maximum chunk size"}
+            }
 
             let chunkLength = md.tag.count + 1 + md.value.count
             .writePtr = try .writeHeader(TypeTEXt, chunkLength)
             Memory.copy(.writePtr, md.tag.storage(), md.tag.count)
             .writePtr[md.tag.count] = 0
-            if md.value.count do
+            if md.value.count
+            {
                 Memory.copy(.writePtr + md.tag.count + 1, md.value.storage(), md.value.count)
+            }
+
             .finishChunk()
         }
     }
@@ -314,8 +337,11 @@ internal impl IImageEncoder for Encoder
         .userOptions = defaultOptions
         if options.buffer != null
         {
-            if Swag.kindOf(options) != EncodeOptions do
+            if Swag.kindOf(options) != EncodeOptions
+            {
                 fail BadParameterError{"PNG encoder options must be Png.EncodeOptions"}
+            }
+
             .userOptions = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
@@ -329,12 +355,20 @@ internal impl IImageEncoder for Encoder
                         image.pixelFormat == .RGBA8 or
                         image.pixelFormat == .RGB16 or
                         image.pixelFormat == .RGBA16
-        if not supported do
+        if not supported
+        {
             fail UnsupportedFormatError{"unsupported pixel format"}
-        if not image.isValid() or image.pixels.count != image.byteCount do
+        }
+
+        if not image.isValid() or image.pixels.count != image.byteCount
+        {
             fail InvalidFormatError{"invalid image"}
-        if image.width <= 0 or image.height <= 0 do
+        }
+
+        if image.width <= 0 or image.height <= 0
+        {
             fail UnsupportedFormatError{"unsupported size"}
+        }
 
         .swapRB = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
 
@@ -346,42 +380,68 @@ internal impl IImageEncoder for Encoder
         .ihdr.bitDepth        = image.pixelFormat.bitDepth()
         .ihdr.colorType       = image.pixelFormat.isGrayscale() ? cast(ColorType, 0) : .Color
         .ihdr.interlaceMethod = .userOptions.interlace ? 1 : 0
-        if image.pixelFormat.hasAlpha() do
+        if image.pixelFormat.hasAlpha()
+        {
             .ihdr.colorType |= .Alpha
+        }
 
-        try .writeChunksBeforeIDat()
-        try .writeMetadata(image)
+        let deferHeader = image.metadata.isEmpty() and not result.count()
+        if not deferHeader
+        {
+            try .writeChunksBeforeIDat()
+            try .writeMetadata(image)
+        }
+
         try .calculateSubImages()
+
+        var filteredBytes = 0_u64
+        for pass in .subimage
+        {
+            filteredBytes += cast(u64, pass.scanlineWidth) * pass.height
+        }
+
+        .bufferToCompress.reserve(filteredBytes)
 
         .bytesPerPixel = .numChannels() * (.ihdr.bitDepth / 8)
         var scanlineBufSize = .subimage[.widestPass].scanlineWidth
         scanlineBufSize += 32
 
-        .scanlineBuf         = Memory.alloc(cast(u64, scanlineBufSize))
-        .prevScanlineBuf     = Memory.alloc(cast(u64, scanlineBufSize))
-        .filteredScanlineBuf = Memory.alloc(cast(u64, scanlineBufSize))
+        .scanlineBuf     = Memory.alloc(cast(u64, scanlineBufSize))
+        .prevScanlineBuf = Memory.alloc(cast(u64, scanlineBufSize))
         defer Memory.free(.scanlineBuf, cast(u64, scanlineBufSize))
         defer Memory.free(.prevScanlineBuf, cast(u64, scanlineBufSize))
-        defer Memory.free(.filteredScanlineBuf, cast(u64, scanlineBufSize))
 
-        .scanline         = .scanlineBuf + 16
-        .prevScanline     = .prevScanlineBuf + 16
-        .filteredScanline = .filteredScanlineBuf + 16
+        .scanline     = .scanlineBuf + 16
+        .prevScanline = .prevScanlineBuf + 16
 
         .pixelSize = image.bytesPerPixel
         .encodeFlags.toBigEndian  = image.pixelFormat.bitDepth() == 16
         .encodeFlags.filterChoice = .Disabled
-        if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
+        if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression
+        {
             .encodeFlags.filterChoice = .All
+        }
 
-        let srcPixels = cast([*] u8, image.pixels.storage())
+        let srcPixels  = cast([*] u8, image.pixels.storage())
+        let directRows = not .ihdr.interlaceMethod and not .swapRB and not .encodeFlags.toBigEndian
         for
         {
             let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bytesPerPixel
-            if try .encodeRow(srcPixels + ioffset) do
+            let row     = srcPixels + ioffset
+
+            // Reuse input rows in encoded channel and byte order.
+            if directRows
+            {
+                .scanline = row
+            }
+
+            if try .encodeRow(row)
+            {
                 break
+            }
         }
 
+        try .finishIDat(deferHeader)
         discard try .writeHeader(TypeIEnd, 0)
         .finishChunk()
     }

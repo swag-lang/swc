@@ -90,29 +90,45 @@ func flagOf(code: u16)->bool
     for v in 0 until 256
     {
         let c        = cast(u8, v)
-        var expected = -1's32
-        if c == '0' do
+        var expected = -1_s32
+        if c == '0'
+        {
             expected = 0
-        elif c == '1' do
+        }
+        else if c == '1'
+        {
             expected = 1
-        elif c == '5' do
+        }
+        else if c == '5'
+        {
             expected = 5
-        elif c == '7' do
+        }
+        else if c == '7'
+        {
             expected = 70
+        }
         Swag.require(digitValue(c) == expected)
     }
 
-    for code in [0'u64, 99, 100, 101, 102, 103, 104, 105, 163, 164, 0xFFFFFFFF, 0x100000064, 0xFFFFFFFFFFFFFFFF]
+    for code in [0_u64, 99, 100, 101, 102, 103, 104, 105, 163, 164, 0xFFFFFFFF, 0x100000064, 0xFFFFFFFFFFFFFFFF]
     {
-        var expected = -2's64
-        if code == 100 do
+        var expected = -2_s64
+        if code == 100
+        {
             expected = -3
-        elif code == 101 do
+        }
+        else if code == 101
+        {
             expected = 2
-        elif code == 103 do
+        }
+        else if code == 103
+        {
             expected = -1
-        elif code == 104 do
+        }
+        else if code == 104
+        {
             expected = 0
+        }
         Swag.require(offsetOf(code) == expected)
     }
 

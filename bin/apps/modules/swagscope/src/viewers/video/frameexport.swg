@@ -22,8 +22,10 @@ impl Panel
     mtd promptSaveFrame()
     {
         let surface = .surface
-        if not surface or not .hasPausedFrame() or .frameExporting do
+        if not surface or not .hasPausedFrame() or .frameExporting
+        {
             return
+        }
 
         // Keep the chosen frame even if the panel advances while the file dialog is open.
         let index = .frameIndex
@@ -39,16 +41,20 @@ impl Panel
         }
 
         let dialog = FileDlg.create(surface, options)
-        if dialog.doModal() == Dialog.BtnOk do
+        if dialog.doModal() == Dialog.BtnOk
+        {
             .startFrameExport(index, dialog.selectedPath())
+        }
     }
 
     // Reopens the video to extract the chosen frame at its display dimensions. The worker also
     // encodes and writes a saved frame, while a clipboard image is handed back to the GUI thread.
     private mtd startFrameExport(index: u64, path: string = "")
     {
-        if not .hasFrame or .retireRequested or .frameExporting do
+        if not .hasFrame or .retireRequested or .frameExporting
+        {
             return
+        }
 
         .frameExporting  = true
         .frameExportPath = path
@@ -58,27 +64,37 @@ impl Panel
         {
             let image = try decodeShownFrame(view.openFileName, index, width, height)
             let path  = view.frameExportPath.toString()
-            if not path.count do
+            if not path.count
+            {
                 return image
+            }
+
             let encoded = try image.encode(path)
-            if Swag.isCancelled() do
+            if Swag.isCancelled()
+            {
                 return {}
+            }
 
             // Leave the previous file intact until the replacement is complete.
             let folder    = Path.directoryName(path) orelse "."
             let temporary = Path.combine(folder, Format.toString(".swag-frame-%.tmp", Guid128.random()))
             defer discard catch File.delete(temporary)
             try File.writeAllBytes(temporary, encoded)
-            if not Swag.isCancelled() do
+            if not Swag.isCancelled()
+            {
                 try File.move(path, temporary)
+            }
+
             return {}
         })
     }
 
     mtd finishFrameExport()
     {
-        if not .frameExporting or not .frameExport.isDone() do
+        if not .frameExporting or not .frameExport.isDone()
+        {
             return
+        }
 
         .frameExporting = false
         let path   = #move .frameExportPath
@@ -90,16 +106,23 @@ impl Panel
             return
         }
 
-        if saving do
+        if saving
+        {
             .showFrameNotice(texts().ui_FrameSaved, Path.fileName(path) orelse path.toString(), .Done)
-        else do
+        }
+        else
+        {
             Clipboard.addImage(image)
+        }
     }
 
     private mtd showFrameNotice(message, detail: string, tone: ToastTone)
     {
-        if not .frameToast do
+        if not .frameToast
+        {
             .frameToast = Toast.create(me)
+        }
+
         .frameToast.show(message, detail, tone)
     }
 }

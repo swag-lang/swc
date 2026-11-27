@@ -1,12 +1,15 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-func filledBytes(count: u64, value: u8)->Array'u8
+func filledBytes(count: u64, value: u8)->Array!{u8}
 {
     var result: #returntype
     result.resize(count)
-    for i in count do
+    for i in count
+    {
         result[i] = value
+    }
+
     return result
 }
 
@@ -20,11 +23,11 @@ func expectLengthRejected(password, salt, associatedData: const [..] u8, destina
 
 #test
 {
-    var source      = [0'u8]
+    var source      = [0_u8]
     let oversized   = Swag.makeSlice(source.buffer, cast(u64, Swag.U32.Max) + 1)
     let password    = cast(const [..] u8, "password")
     let salt        = cast(const [..] u8, "12345678")
-    var destination = [0'u8, 0, 0, 0]
+    var destination = [0_u8, 0, 0, 0]
 
     expectLengthRejected(oversized, salt, "", destination)
     expectLengthRejected(password, oversized, "", destination)
@@ -168,8 +171,13 @@ func expectLengthRejected(password, salt, associatedData: const [..] u8, destina
     // Derivations may themselves be children of CPU tasks. Each call owns its
     // matrix and must finish its nested partitions before publishing its result.
     var tags: [3][32] u8
-    parallel for |&tags| index in 3 do
+    parallel for |&tags| index in 3
+    {
         expect Crypto.argon2id("parallel passphrase", "parallel salt!!!", {memoryKib: 1549, iterations: 3, parallelism: 3}, tags[index])
-    for tag in tags do
+    }
+
+    for tag in tags
+    {
         Swag.require(Crypto.constantTimeEqual(tag, expected[5]))
+    }
 }

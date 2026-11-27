@@ -31,7 +31,7 @@ func reused(a, b: u64)->u64
 
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values
@@ -45,11 +45,11 @@ func reused(a, b: u64)->u64
             Swag.require(eight(a, b) == (low ? 9 : 1))
             Swag.require(nine(a, b) == (low ? 16 : 7))
             Swag.require(reversed(a, b) == (low ? 3 : 5))
-            Swag.require(wrapped(a, b) == (a == b ? 1'u64 : 0xFFFFFFFFFFFFFFFF))
+            Swag.require(wrapped(a, b) == (a == b ? 1_u64 : 0xFFFFFFFFFFFFFFFF))
             let a32 = cast(u32, (a & 0xFFFFFFFF))
             let b32 = cast(u32, (b & 0xFFFFFFFF))
-            Swag.require(narrow(a32, b32) == (a32 == b32 ? 1'u32 : 0xFFFFFFFF))
-            Swag.require(reused(a, b) == (low ? 5'u64 : 3) + (a == b ? 7'u64 : 11))
+            Swag.require(narrow(a32, b32) == (a32 == b32 ? 1_u32 : 0xFFFFFFFF))
+            Swag.require(reused(a, b) == (low ? 5_u64 : 3) + (a == b ? 7_u64 : 11))
         }
     }
     Swag.require(signedValues(-1, 0) == -3)

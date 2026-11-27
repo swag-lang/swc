@@ -52,8 +52,8 @@ struct DockHost
     private
     {
         root:  *DockNode?
-        nodes: ArrayPtr'DockNode
-        panes: ArrayPtr'DockPane
+        nodes: ArrayPtr!{DockNode}
+        panes: ArrayPtr!{DockPane}
     }
 }
 
@@ -71,8 +71,11 @@ impl IWnd for DockHost
 
     mtd impl measureContent(_: Math.Point)->Math.Point
     {
-        if not .root do
+        if not .root
+        {
             return {}
+        }
+
         let root = .root
         return root.minimumSize()
     }
@@ -82,8 +85,11 @@ private impl DockNode
 {
     mtd control()->*Wnd
     {
-        if .tab do
+        if .tab
+        {
             return .tab
+        }
+
         Swag.assert(.splitter != null)
         return .splitter
     }
@@ -110,16 +116,24 @@ private impl DockNode
         let splitter      = unwrap .splitter
         let firstVisible  = first.hasVisiblePane()
         let secondVisible = second.hasVisiblePane()
-        if not firstVisible do
+        if not firstVisible
+        {
             return secondVisible ? second.minimumSize() : Math.Point{}
-        if not secondVisible do
+        }
+
+        if not secondVisible
+        {
             return first.minimumSize()
+        }
 
         let firstSize  = first.minimumSize()
         let secondSize = second.minimumSize()
         let barSize    = splitter.themeMetrics().splitView_BarSize
-        if .orientation == .Horizontal do
+        if .orientation == .Horizontal
+        {
             return {firstSize.x + secondSize.x + barSize, Math.max(firstSize.y, secondSize.y)}
+        }
+
         return {Math.max(firstSize.x, secondSize.x), firstSize.y + secondSize.y + barSize}
     }
 
@@ -127,8 +141,11 @@ private impl DockNode
     {
         if .tab
         {
-            for pane in .host.panes where pane!.node == me and not pane.hidden do
+            for pane in .host.panes where pane!.node == me and not pane.hidden
+            {
                 return true
+            }
+
             return false
         }
 
@@ -146,8 +163,11 @@ private impl DockNode
         }
 
         let first = unwrap .first
-        if not first.hasVisiblePane() do
+        if not first.hasVisiblePane()
+        {
             return first.firstEmptyLeaf()
+        }
+
         let second = unwrap .second
         return second.firstEmptyLeaf()
     }
@@ -181,7 +201,7 @@ impl DockHost
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*DockHost
     {
         Swag.assert(parent != null)
-        return Wnd.create'DockHost(parent, null, position, id)
+        return Wnd.create!{DockHost}(parent, null, position, id)
     }
 
     // Adds a pane to the root stack when the host has no open panes.
@@ -259,8 +279,11 @@ impl DockHost
         }
 
         let split = SplitterCtrl.create(parent, oldPosition, orientation == .Vertical)
-        if priorItem do
+        if priorItem
+        {
             priorItem.view = split
+        }
+
         oldTab.setParent(null)
 
         let newLeaf = .createLeaf(split)
@@ -313,10 +336,14 @@ impl DockHost
 
         if oldParent
         {
-            if oldParent.first == leaf do
+            if oldParent.first == leaf
+            {
                 oldParent.first = splitNode
-            else do
+            }
+            else
+            {
                 oldParent.second = splitNode
+            }
         }
         else
         {
@@ -334,8 +361,10 @@ impl DockHost
     {
         let pane = .findPane(id)
         Swag.assert(pane != null, "dock pane identifier was not found")
-        if pane.hidden do
+        if pane.hidden
+        {
             return
+        }
 
         let hiddenPane = pane
         hiddenPane.hidden = true
@@ -351,8 +380,10 @@ impl DockHost
     {
         let pane = .findPane(id)
         Swag.assert(pane != null, "dock pane identifier was not found")
-        if not pane.hidden do
+        if not pane.hidden
+        {
             return
+        }
 
         let visiblePane = pane
         visiblePane.hidden = false
@@ -374,8 +405,10 @@ impl DockHost
         for other in .panes
         {
             let openPane = unwrap other
-            if openPane != closingPane and openPane.node == node and openPane.tabIndex > tabIndex do
+            if openPane != closingPane and openPane.node == node and openPane.tabIndex > tabIndex
+            {
                 openPane.tabIndex -= 1
+            }
         }
 
         let tab = unwrap node.tab
@@ -388,15 +421,21 @@ impl DockHost
     // Reports whether an open pane with `id` is registered in the host.
     mtd const hasPane(id: WndId)->bool
     {
-        for pane in .panes where pane!.id == id do
+        for pane in .panes where pane!.id == id
+        {
             return true
+        }
+
         return false
     }
 
     private mtd findPane(id: WndId)->*DockPane?
     {
-        for pane in .panes where pane!.id == id do
+        for pane in .panes where pane!.id == id
+        {
             return pane
+        }
+
         return null
     }
 
@@ -452,8 +491,11 @@ impl DockHost
 
     private mtd paneIndex(target: *DockPane)->u64
     {
-        for pane, index in .panes where pane == target do
+        for pane, index in .panes where pane == target
+        {
             return index
+        }
+
         Swag.assert(false, "dock pane is not registered")
         return 0
     }
@@ -474,15 +516,21 @@ impl DockHost
 
     private mtd hasVisibleSelection(tab: *Tab)->bool
     {
-        for pane in .panes where pane!.node.tab == tab and not pane.hidden and pane.tabIndex == tab.selectedIndex do
+        for pane in .panes where pane!.node.tab == tab and not pane.hidden and pane.tabIndex == tab.selectedIndex
+        {
             return true
+        }
+
         return false
     }
 
     private mtd onTabSelectionChanged(tab: *Tab)
     {
-        if .hasVisibleSelection(tab) do
+        if .hasVisibleSelection(tab)
+        {
             return
+        }
+
         tab.selectNearestVisible(tab.selectedIndex)
     }
 
@@ -503,8 +551,10 @@ impl DockHost
 
     private mtd refreshNode(node: *DockNode)
     {
-        if node.tab do
+        if node.tab
+        {
             return
+        }
 
         let first  = unwrap node.first
         let second = unwrap node.second
@@ -529,8 +579,11 @@ private impl Tab
         var parent = .parent
         while parent
         {
-            if parent is DockHost as dockHost do
+            if parent is DockHost as dockHost
+            {
                 return dockHost
+            }
+
             parent = parent.parent
         }
 

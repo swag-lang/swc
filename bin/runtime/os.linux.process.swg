@@ -49,8 +49,11 @@ private func __linuxThreadStart(parameter: *void?)->*void?
 func __hostThreadCreate(entry: __LinuxRT.ThreadEntry, param: *void?)->*void?
 {
     let memory = __bootstrapAlloc(#sizeof(LinuxThreadStart))
-    if not memory do
+    if not memory
+    {
         return null
+    }
+
     let start = cast(*LinuxThreadStart, memory)
     start.entry     = entry
     start.parameter = param
@@ -66,8 +69,10 @@ func __hostThreadCreate(entry: __LinuxRT.ThreadEntry, param: *void?)->*void?
 
 func __hostThreadJoin(handle: *void?)
 {
-    if handle do
+    if handle
+    {
         discard __LinuxRT.pthread_join(cast(u64, handle), null)
+    }
 }
 
 // BATCH is reversible without privilege; nice increments cannot safely implement restoration.
@@ -76,17 +81,26 @@ func __hostThreadEnterBackground()->s32
     var policy:    s32
     var parameter: __LinuxRT.ScheduleParameter
     let thread = __LinuxRT.pthread_self()
-    if __LinuxRT.pthread_getschedparam(thread, &policy, &parameter) != 0 or (policy != 0 and policy != 3) do
+    if __LinuxRT.pthread_getschedparam(thread, &policy, &parameter) != 0 or (policy != 0 and policy != 3)
+    {
         return -1
-    if __LinuxRT.pthread_setschedparam(thread, 3, &parameter) != 0 do
+    }
+
+    if __LinuxRT.pthread_setschedparam(thread, 3, &parameter) != 0
+    {
         return -1
+    }
+
     return policy
 }
 
 func __hostThreadLeaveBackground(previous: s32)
 {
-    if previous < 0 do
+    if previous < 0
+    {
         return
+    }
+
     let parameter = __LinuxRT.ScheduleParameter{}
     discard __LinuxRT.pthread_setschedparam(__LinuxRT.pthread_self(), previous, &parameter)
 }
@@ -94,9 +108,12 @@ func __hostThreadLeaveBackground(previous: s32)
 func __hostProcessorCount()->u32
 {
     var mask: [1024] u8
-    if __LinuxRT.sched_getaffinity(0, #sizeof(mask), &mask[0]) != 0 do
+    if __LinuxRT.sched_getaffinity(0, #sizeof(mask), &mask[0]) != 0
+    {
         return 1
-    var count = 0'u32
+    }
+
+    var count = 0_u32
     for byte in mask
     {
         var remaining = byte
@@ -115,23 +132,33 @@ func __hostRuntimeThreadLimit()->u32
     let text  = __LinuxRT.getenv("SWAG_RUNTIME_THREADS".buffer)
     let value = text ? Swag.makeString(text, cast(const cstring, text).count) : ""
     let (limit, valid) = Swag.parseRuntimeThreadLimit(value)
-    if valid do
+    if valid
+    {
         return limit
+    }
+
     Swag.panic("SWAG_RUNTIME_THREADS accepts 1 to 10 decimal digits with a value from 0 through 4294967295", #curlocation)
 }
 
 func __printString(message: string?)
 {
-    if not message do
+    if not message
+    {
         return
-    var offset = 0'u64
+    }
+
+    var offset = 0_u64
     while offset < message.count
     {
         let written = __LinuxRT.write(1, &message.buffer[offset], message.count - offset)
-        if written > 0 do
+        if written > 0
+        {
             offset += cast(u64, written)
-        elif written == 0 or __LinuxRT.__errno_location()[] != __LinuxRT.Interrupted do
+        }
+        else if written == 0 or __LinuxRT.__errno_location()[] != __LinuxRT.Interrupted
+        {
             return
+        }
     }
 }
 
@@ -148,8 +175,11 @@ func __captureStack(skip: u32, wh: [..] (*void?))->u32
 {
     var frames: [128] (*void?)
     let captured = __LinuxRT.backtrace(&frames[0], cast(s32, frames.count))
-    if captured <= 0 or cast(u64, skip) + 1 >= cast(u64, captured) do
+    if captured <= 0 or cast(u64, skip) + 1 >= cast(u64, captured)
+    {
         return 0
+    }
+
     let count = Swag.min(wh.count, cast(u64, captured) - cast(u64, skip) - 1)
     Swag.memcpy(wh.buffer, &frames[skip + 1], count * #sizeof(*void?))
     return cast(u32, count)
@@ -159,12 +189,17 @@ func __captureStack(skip: u32, wh: [..] (*void?))->u32
 func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: Swag.ExceptionKind)
 {
     let context = Swag.getContext()
-    if kind == .Assert and context.panicCatch do
+    if kind == .Assert and context.panicCatch
+    {
         Swag.panic(message, loc)
+    }
 
     // A check records failure without unwinding the native test's active frame.
-    if kind == .Check and not Swag.jit() and Swag.__testCheckFailed(message, loc) do
+    if kind == .Check and not Swag.jit() and Swag.__testCheckFailed(message, loc)
+    {
         return
+    }
+
     let hostedPanic = context.compilerRaise and (kind == .Panic or kind == .Safety)
     if not Swag.jit() and not hostedPanic
     {
@@ -190,8 +225,11 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     context.exceptionParams[3] = cast(const *void, cast(u64, kind))
 
     // Resumable checks keep every borrow alive for the following statements.
-    if kind != .Check do
+    if kind != .Check
+    {
         Swag.__valueBorrowReset()
+    }
+
     if context.compilerRaise
     {
         context.compilerRaise(context)
@@ -207,11 +245,17 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
 #[Swag.Safety(.ValueBorrow, false)]
 func __setUnixArguments(count: u32, values: const [*] (const [*] u8))->bool
 {
-    if count == 0 do
+    if count == 0
+    {
         return true
+    }
+
     let memory = __bootstrapAlloc(cast(u64, count) * #sizeof(string))
-    if not memory do
+    if not memory
+    {
         return false
+    }
+
     let arguments = cast([*] string, memory)
     for index in count
     {

@@ -31,13 +31,23 @@ public interface IImageEncoder
 
 public impl Image
 {
-    private var encoders: Array'ImageEncoder
+    private var encoders: Array!{ImageEncoder}
 
     // Returns the registered encoder claiming `fileName`, or `null` when none does.
     private func getEncoder(fileName: string)->const *ImageEncoder?
     {
-        for &encoder in encoders where encoder.format.matches(fileName) do
+        var storage: String
+        let ext = normalizedImageExtension(fileName, &storage)
+        if not ext.count
+        {
+            return null
+        }
+
+        for &encoder in encoders where encoder.format.matchesLowercaseExtension(ext)
+        {
             return encoder
+        }
+
         return null
     }
 
@@ -55,8 +65,10 @@ public impl Image
     // an encoding already in progress keeps using its selected type.
     func registerEncoder(type: const *TypeInfoStruct)
     {
-        for &encoder in encoders where encoder.type == type do
+        for &encoder in encoders where encoder.type == type
+        {
             return
+        }
 
         let itf = unwrap Swag.makeInterface(null, type, IImageEncoder)
         encoders.add(ImageEncoder{itf.format(), type})
@@ -66,12 +78,15 @@ public impl Image
     //
     // The result is owned by the caller and is a snapshot: registering another encoder
     // afterwards does not change it. Use it to build the format list of a save dialog.
-    func encodableFormats()->Array'ImageFormat
+    func encodableFormats()->Array!{ImageFormat}
     {
         var result: #returntype
         result.reserve(encoders.count)
-        for &encoder in encoders do
+        for &encoder in encoders
+        {
             result.add(encoder.format)
+        }
+
         return result
     }
 
@@ -87,12 +102,16 @@ public impl Image
     // the image.
     mtd const encode(fileName: string, options: any? = null)->ConcatBuffer fail
     {
-        if not .isValid() do
+        if not .isValid()
+        {
             fail InvalidFormatError{"invalid image"}
+        }
 
         let found = getEncoder(fileName)
-        if not found do
+        if not found
+        {
             fail UnsupportedFormatError{"no matching image encoder"}
+        }
 
         // Codec code may register more encoders and relocate the registry.
         let encoderType = found.type
@@ -101,8 +120,11 @@ public impl Image
         let ptrEncoder = Memory.new(encoderType)
         defer
         {
-            if encoderType.opDrop do
+            if encoderType.opDrop
+            {
                 encoderType.opDrop(ptrEncoder)
+            }
+
             Memory.free(ptrEncoder, cast(u64, encoderType.sizeof))
         }
 
@@ -128,10 +150,10 @@ public impl Image
     // Selection works exactly as in [[Pixel.Image.encode]]. This is what a caller handing the
     // bytes to something that wants a single slice asks for — a clipboard medium, a drag payload,
     // a request body — rather than flattening the segmented buffer itself every time.
-    mtd const encodeToBytes(fileName: string, options: any? = null)->Array'u8 fail
+    mtd const encodeToBytes(fileName: string, options: any? = null)->Array!{u8} fail
     {
-        let buffer = try .encode(fileName, options)
-        return buffer.toArray()
+        var buffer = try .encode(fileName, options)
+        return buffer.moveToArray()
     }
 
     // Encodes the image and writes it to `fileName`.
@@ -148,16 +170,16 @@ public impl Image
 // Initialize predefined encoders
 #init
 {
-    Image.registerEncoder'(Bmp.Encoder)()
-    Image.registerEncoder'(Tga.Encoder)()
-    Image.registerEncoder'(Jpg.Encoder)()
-    Image.registerEncoder'(Png.Encoder)()
-    Image.registerEncoder'(Gif.Encoder)()
-    Image.registerEncoder'(Tiff.Encoder)()
-    Image.registerEncoder'(Ico.Encoder)()
-    Image.registerEncoder'(Webp.Encoder)()
-    Image.registerEncoder'(Qoi.Encoder)()
-    Image.registerEncoder'(Dds.Encoder)()
-    Image.registerEncoder'(Ktx2.Encoder)()
-    Image.registerEncoder'(Exr.Encoder)()
+    Image.registerEncoder!{Bmp.Encoder}()
+    Image.registerEncoder!{Tga.Encoder}()
+    Image.registerEncoder!{Jpg.Encoder}()
+    Image.registerEncoder!{Png.Encoder}()
+    Image.registerEncoder!{Gif.Encoder}()
+    Image.registerEncoder!{Tiff.Encoder}()
+    Image.registerEncoder!{Ico.Encoder}()
+    Image.registerEncoder!{Webp.Encoder}()
+    Image.registerEncoder!{Qoi.Encoder}()
+    Image.registerEncoder!{Dds.Encoder}()
+    Image.registerEncoder!{Ktx2.Encoder}()
+    Image.registerEncoder!{Exr.Encoder}()
 }

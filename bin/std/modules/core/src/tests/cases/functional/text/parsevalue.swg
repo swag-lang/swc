@@ -89,7 +89,7 @@ enum ParseValueFlags: u32
 
     var rects: TweakRects
     var tweak: File.TweakFile
-    tweak.registerFolder'TweakRects(&rects)
+    tweak.registerFolder!{TweakRects}(&rects)
 
     discard expect tweak.parse("/TweakRects\nfirst {{1 29 27 27} 0}\nsecond $first\n")
     Swag.require(rects.first.rect.y == 29)
@@ -116,8 +116,8 @@ func(T) expectParsedNumber(text: string, expected: T)
     expectParsedNumber("65535 tail", Swag.U16.Max)
     expectParsedNumber("4294967295 tail", Swag.U32.Max)
     expectParsedNumber("18446744073709551615 tail", Swag.U64.Max)
-    expectParsedNumber("1.25 tail", 1.25'f32)
-    expectParsedNumber("-2.5 tail", -2.5'f64)
+    expectParsedNumber("1.25 tail", 1.25_f32)
+    expectParsedNumber("-2.5 tail", -2.5_f64)
 }
 
 func(T) expectNumericOverflow(text: string, initial: T)
@@ -133,22 +133,22 @@ func(T) expectNumericOverflow(text: string, initial: T)
 // Failed numeric conversion preserves an already initialized destination.
 #test
 {
-    expectNumericOverflow("128", 7's8)
-    expectNumericOverflow("32768", 7's16)
-    expectNumericOverflow("2147483648", 7's32)
-    expectNumericOverflow("9223372036854775808", 7's64)
-    expectNumericOverflow("256", 7'u8)
-    expectNumericOverflow("65536", 7'u16)
-    expectNumericOverflow("4294967296", 7'u32)
-    expectNumericOverflow("18446744073709551616", 7'u64)
-    expectNumericOverflow("1e39", 7'f32)
-    expectNumericOverflow("1e309", 7'f64)
+    expectNumericOverflow("128", 7_s8)
+    expectNumericOverflow("32768", 7_s16)
+    expectNumericOverflow("2147483648", 7_s32)
+    expectNumericOverflow("9223372036854775808", 7_s64)
+    expectNumericOverflow("256", 7_u8)
+    expectNumericOverflow("65536", 7_u16)
+    expectNumericOverflow("4294967296", 7_u32)
+    expectNumericOverflow("18446744073709551616", 7_u64)
+    expectNumericOverflow("1e39", 7_f32)
+    expectNumericOverflow("1e309", 7_f64)
 }
 
 // Array parsing appends dynamic elements, fills static slots, and stops before a '#'.
 #test
 {
-    var dynamic: Array's32
+    var dynamic: Array!{s32}
     dynamic.add(9)
     let dynamicRest = expect StrConv.parseValue(&dynamic, #typeof(dynamic), "1 2 3 # palette")
     Swag.require(Slice.equals(dynamic.toSlice(), [9, 1, 2, 3]))
@@ -178,6 +178,6 @@ func(T) expectNumericOverflow(text: string, initial: T)
 
     var character: rune
     let runeRest = expect StrConv.parseValue(&character, #typeof(rune), "😀tail")
-    Swag.require(character == '\U0001F600'rune)
+    Swag.require(character == '\U0001F600'_rune)
     Swag.require(runeRest == "tail")
 }

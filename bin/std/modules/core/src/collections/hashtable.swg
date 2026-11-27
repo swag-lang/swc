@@ -23,9 +23,9 @@ struct(K, V) HashTableEntry
 struct(K, V) HashTable
 {
     // Special hash values to indicate the state of a slot in the table.
-    const HASH_FREE    = 0'u32
-    const HASH_DELETED = 1'u32
-    const HASH_FIRST   = 2'u32
+    const HASH_FREE    = 0_u32
+    const HASH_DELETED = 1_u32
+    const HASH_FIRST   = 2_u32
 
     internal allocator: IAllocator?
 
@@ -52,7 +52,7 @@ struct(K, V) HashTable
 #[Swag.Opaque]
 struct(K, V) ReversedHashTable
 {
-    source: *HashTable'(K, V)
+    source: *HashTable!{K, V}
 }
 
 impl ReversedHashTable
@@ -67,46 +67,60 @@ impl ReversedHashTable
         for offset in .source.capacity
         {
             let tableIndex = .source.capacity - offset - 1
-            if table[tableIndex].hash < 2'u32 do
+            if table[tableIndex].hash < 2_u32
+            {
                 continue
+            }
 
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = cast(*V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(K) and Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = cast(const *V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) do
+                }
+                else if Reflection.isStruct(K)
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = table[tableIndex].value,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = table[tableIndex].key,
                             value = cast(const *V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             key = table[tableIndex].key,
                             value = table[tableIndex].value,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
 
             remain -= 1
-            if not remain do
+            if not remain
+            {
                 break
+            }
         }
     }
 }
@@ -115,7 +129,7 @@ impl ReversedHashTable
 #[Swag.Opaque]
 struct(K, V) ConstReversedHashTable
 {
-    source: const *HashTable'(K, V)
+    source: const *HashTable!{K, V}
 }
 
 impl ConstReversedHashTable
@@ -130,46 +144,60 @@ impl ConstReversedHashTable
         for offset in .source.capacity
         {
             let tableIndex = .source.capacity - offset - 1
-            if table[tableIndex].hash < 2'u32 do
+            if table[tableIndex].hash < 2_u32
+            {
                 continue
+            }
 
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = cast(const *V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(K) and Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = cast(const *V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) do
+                }
+                else if Reflection.isStruct(K)
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = table[tableIndex].value,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = table[tableIndex].key,
                             value = cast(const *V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             key = table[tableIndex].key,
                             value = table[tableIndex].value,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
 
             remain -= 1
-            if not remain do
+            if not remain
+            {
                 break
+            }
         }
     }
 }
@@ -178,28 +206,33 @@ impl HashTable
 {
     private func normalizeCapacity(newCapacity: u64)->u64
     {
-        let target      = Math.max(newCapacity, 32'u64)
-        let maxCapacity = Swag.U64.Max / #sizeof(HashTableEntry'(K, V))
-        if target > maxCapacity do
+        let target      = Math.max(newCapacity, 32_u64)
+        let maxCapacity = Swag.U64.Max / #sizeof(HashTableEntry!{K, V})
+        if target > maxCapacity
+        {
             Swag.panic("HashTable capacity exceeds addressable memory", #curlocation)
+        }
 
-        var result = 32'u64
+        var result = 32_u64
         while result < target
         {
-            if result > maxCapacity / 2 do
+            if result > maxCapacity / 2
+            {
                 Swag.panic("HashTable capacity exceeds addressable memory", #curlocation)
+            }
+
             result *= 2
         }
 
         return result
     }
 
-    private mtd const tablePtr()->[*] HashTableEntry => .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
+    private mtd const tablePtr()->[*] HashTableEntry => .table orelse cast([*] HashTableEntry!{K, V}, 1_u64)
 
     private mtd const constTablePtr()->const [*] HashTableEntry
     {
-        let table = .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
-        return cast(const [*] HashTableEntry'(K, V), table)
+        let table = .table orelse cast([*] HashTableEntry!{K, V}, 1_u64)
+        return cast(const [*] HashTableEntry!{K, V}, table)
     }
 
     // Returns the number of key-value pairs in the table.
@@ -229,10 +262,12 @@ impl HashTable
             return
         }
 
-        var replacement: HashTable'(K, V)
+        var replacement: HashTable!{K, V}
         replacement.allocator = .allocator
-        for v in slice do
+        for v in slice
+        {
             replacement.add(v.k, v.v)
+        }
 
         Core.swap(me, &replacement)
     }
@@ -245,28 +280,38 @@ impl HashTable
         // duplicate what it owns: the table then states none either, and is handed over with '#move'.
         mtd opPostCopy()
         {
-            if not .table do
+            if not .table
+            {
                 return
+            }
 
-            if not .allocator do
+            if not .allocator
+            {
                 .allocator = Swag.getContext().allocator
+            }
 
-            let storageBytes = .capacity * #sizeof(HashTableEntry'(K, V))
+            let storageBytes = .capacity * #sizeof(HashTableEntry!{K, V})
             let oldTable     = .tablePtr()
-            let newTable     = cast([*] HashTableEntry'(K, V),
-                                    Memory.alloc(storageBytes, .allocator, #alignof(HashTableEntry'(K, V))))
-            #static if Reflection.hasDynamicStorage(HashTableEntry'(K, V)) do
+            let newTable     = cast([*] HashTableEntry!{K, V},
+                                    Memory.alloc(storageBytes, .allocator, #alignof(HashTableEntry!{K, V})))
+            #static if Reflection.hasDynamicStorage(HashTableEntry!{K, V})
+            {
                 Swag.init(newTable, .capacity)
-            else do
+            }
+            else
+            {
                 Memory.clear(newTable, storageBytes)
+            }
 
             #static if Reflection.hasPostCopy(K) or Reflection.hasPostCopy(V)
             {
                 for i in .capacity
                 {
                     let hashVal = oldTable[i].hash
-                    if hashVal < HashTable.HASH_DELETED do
+                    if hashVal < HashTable.HASH_DELETED
+                    {
                         continue
+                    }
 
                     newTable[i].hash  = hashVal
                     newTable[i].key   = #nodrop oldTable[i].key
@@ -306,54 +351,70 @@ impl HashTable
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(key, value))
     {
-        if not .count do
+        if not .count
+        {
             return
+        }
 
         let table  = .tablePtr()
         var remain = .count
         scope(Up)
         for tableIndex in .capacity
         {
-            if table[tableIndex].hash < HashTable.HASH_FIRST do
+            if table[tableIndex].hash < HashTable.HASH_FIRST
+            {
                 continue
+            }
 
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = cast(*V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(K) and Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = cast(const *V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) do
+                }
+                else if Reflection.isStruct(K)
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = table[tableIndex].value,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = table[tableIndex].key,
                             value = cast(const *V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             key = table[tableIndex].key,
                             value = table[tableIndex].value,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
 
             remain -= 1
-            if not remain do
+            if not remain
+            {
                 break
+            }
         }
     }
 
@@ -361,62 +422,78 @@ impl HashTable
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key, value))
     {
-        if not .count do
+        if not .count
+        {
             return
+        }
 
         let table  = .constTablePtr()
         var remain = .count
         scope(Up)
         for tableIndex in .capacity
         {
-            if table[tableIndex].hash < HashTable.HASH_FIRST do
+            if table[tableIndex].hash < HashTable.HASH_FIRST
+            {
                 continue
+            }
 
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = cast(const *V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(K) and Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = cast(const *V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) do
+                }
+                else if Reflection.isStruct(K)
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = table[tableIndex].value,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(V) do
+                }
+                else if Reflection.isStruct(V)
+                {
                     #inject(stmt,
                             key = table[tableIndex].key,
                             value = cast(const *V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             key = table[tableIndex].key,
                             value = table[tableIndex].value,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
 
             remain -= 1
-            if not remain do
+            if not remain
+            {
                 break
+            }
         }
     }
 
     // Returns a zero-allocation view that scans occupied slots in reverse order.
     //
     // The view preserves whether this table is mutable or const.
-    mtd reversed()->ReversedHashTable'(K, V) => {source: me}
-    mtd const reversed()->ConstReversedHashTable'(K, V) => {source: me}
+    mtd reversed()->ReversedHashTable!{K, V} => {source: me}
+    mtd const reversed()->ConstReversedHashTable!{K, V} => {source: me}
 
     // Returns the hash of `key`, lifted above the reserved free and deleted slot markers.
     //
@@ -433,8 +510,11 @@ impl HashTable
     // Drops every entry, releases the slots, and leaves the table empty.
     mtd free()
     {
-        if not .table do
+        if not .table
+        {
             return
+        }
+
         let table = .tablePtr()
 
         // Deleted slots still hold their key and value until they are reused.
@@ -447,7 +527,7 @@ impl HashTable
             }
         }
 
-        Memory.free(table, .capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
+        Memory.free(table, .capacity * #sizeof(HashTableEntry!{K, V}), .allocator)
         .table = null
         .count, .capacity, .deleted, .growThreshold = 0
     }
@@ -463,8 +543,10 @@ impl HashTable
     #[Inline]
     private mtd grow()
     {
-        if .growsOnInsert() do
+        if .growsOnInsert()
+        {
             .reserve(.capacity * 2)
+        }
     }
 
     // Grows the table to at least `newCapacity` slots, rehashing every entry.
@@ -474,30 +556,39 @@ impl HashTable
     mtd reserve(newCapacity: u64)
     {
         let reqCapacity = normalizeCapacity(newCapacity)
-        if reqCapacity <= .capacity do
+        if reqCapacity <= .capacity
+        {
             return
+        }
 
         let oldTable         = .table
-        let newCapacityBytes = reqCapacity * #sizeof(HashTableEntry'(K, V))
+        let newCapacityBytes = reqCapacity * #sizeof(HashTableEntry!{K, V})
 
-        if not .allocator do
+        if not .allocator
+        {
             .allocator = Swag.getContext().allocator
-        .table = cast([*] HashTableEntry'(K, V),
-                      Memory.alloc(newCapacityBytes, .allocator, #alignof(HashTableEntry'(K, V))))
+        }
+
+        .table = cast([*] HashTableEntry!{K, V},
+                      Memory.alloc(newCapacityBytes, .allocator, #alignof(HashTableEntry!{K, V})))
         .count, .deleted = 0
         let table = .tablePtr()
 
         // Every slot starts free, which is a zero hash.
-        #static if Reflection.hasDynamicStorage(HashTableEntry'(K, V)) do
+        #static if Reflection.hasDynamicStorage(HashTableEntry!{K, V})
+        {
             Swag.init(table, reqCapacity)
-        else do
+        }
+        else
+        {
             Memory.clear(table, newCapacityBytes)
+        }
 
         // Relocate the live entries into the new slots and drop the deleted ones.
         let oldCapacity = .capacity
         .capacity      = reqCapacity
         .growThreshold = reqCapacity / 2
-        let oldTablePtr = oldTable orelse cast([*] HashTableEntry'(K, V), 1'u64)
+        let oldTablePtr = oldTable orelse cast([*] HashTableEntry!{K, V}, 1_u64)
         for i in oldCapacity
         {
             let h = oldTablePtr[i].hash
@@ -505,14 +596,14 @@ impl HashTable
             {
                 .emplaceInternal(h, &oldTablePtr[i].key, &oldTablePtr[i].value)
             }
-            elif h == HashTable.HASH_DELETED
+            else if h == HashTable.HASH_DELETED
             {
                 Swag.drop(&oldTablePtr[i].key)
                 Swag.drop(&oldTablePtr[i].value)
             }
         }
 
-        Memory.free(oldTable, oldCapacity * #sizeof(HashTableEntry'(K, V)), .allocator)
+        Memory.free(oldTable, oldCapacity * #sizeof(HashTableEntry!{K, V}), .allocator)
     }
 
     // Returns the slot of `key`, or the slot where it would be inserted, probing linearly from `idx`.
@@ -535,10 +626,12 @@ impl HashTable
                 let entryHash = table[index].hash
                 if entryHash == hashVal
                 {
-                    if table[index].key == key do
+                    if table[index].key == key
+                    {
                         return index
+                    }
                 }
-                elif entryHash == HashTable.HASH_FREE
+                else if entryHash == HashTable.HASH_FREE
                 {
                     return index
                 }
@@ -553,15 +646,22 @@ impl HashTable
             let entryHash = table[index].hash
             if entryHash == hashVal
             {
-                if table[index].key == key do
+                if table[index].key == key
+                {
                     return index
+                }
             }
-            elif entryHash < HashTable.HASH_FIRST
+            else if entryHash < HashTable.HASH_FIRST
             {
-                if entryHash == HashTable.HASH_FREE do
+                if entryHash == HashTable.HASH_FREE
+                {
                     return firstDeleted != Swag.U64.Max ? firstDeleted : index
-                if firstDeleted == Swag.U64.Max do
+                }
+
+                if firstDeleted == Swag.U64.Max
+                {
                     firstDeleted = index
+                }
             }
 
             index = (index + 1) & mask
@@ -592,8 +692,11 @@ impl HashTable
             let table = .tablePtr()
             if table[index].hash >= HashTable.HASH_FIRST
             {
-                if updateValue do
+                if updateValue
+                {
                     table[index].value = #fwd value
+                }
+
                 return table + index
             }
         }
@@ -632,8 +735,11 @@ impl HashTable
         }
         else
         {
-            if table[index].hash == HashTable.HASH_DELETED do
+            if table[index].hash == HashTable.HASH_DELETED
+            {
                 .deleted -= 1
+            }
+
             table[index].key   = key
             table[index].value = #fwd value
         }
@@ -656,8 +762,11 @@ impl HashTable
             let existing = .tryFind(key[])
             if existing
             {
-                if updateValue and &existing.value != value do
+                if updateValue and &existing.value != value
+                {
                     existing.value = value[]
+                }
+
                 return existing
             }
         }
@@ -667,10 +776,14 @@ impl HashTable
             let stagedKey   = key[]
             var stagedValue = value[]
             .grow()
-            #static if Reflection.isStruct(V) do
+            #static if Reflection.isStruct(V)
+            {
                 return .add(stagedKey, #move stagedValue, updateValue)
-            else do
+            }
+            else
+            {
                 return .add(stagedKey, stagedValue, updateValue)
+            }
         }
 
         return .add(key[], value[], updateValue)
@@ -704,8 +817,11 @@ impl HashTable
         }
         else
         {
-            if table[index].hash == HashTable.HASH_DELETED do
+            if table[index].hash == HashTable.HASH_DELETED
+            {
                 .deleted -= 1
+            }
+
             Swag.drop(&table[index].key)
             Swag.drop(&table[index].value)
             table[index].key   = #relocate key[]
@@ -723,8 +839,10 @@ impl HashTable
     // when the table grows, or when it is cleared or freed.
     mtd remove(key: K)
     {
-        if not .table do
+        if not .table
+        {
             return
+        }
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
@@ -748,8 +866,10 @@ impl HashTable
     // Returns whether the table contains `key`.
     mtd const contains(key: K)->bool
     {
-        if not .table do
+        if not .table
+        {
             return false
+        }
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
@@ -758,8 +878,11 @@ impl HashTable
 
         while table[index].hash
         {
-            if table[index].hash == hashVal and table[index].key == key do
+            if table[index].hash == hashVal and table[index].key == key
+            {
                 return true
+            }
+
             index = (index + 1) & mask
         }
 
@@ -769,8 +892,10 @@ impl HashTable
     // Returns the entry for `key`, or null when the key is absent.
     mtd tryFind(key: K)->*HashTableEntry?
     {
-        if not .table do
+        if not .table
+        {
             return null
+        }
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
@@ -784,10 +909,12 @@ impl HashTable
             let entryHash = table[index].hash
             if entryHash == hashVal
             {
-                if table[index].key == key do
+                if table[index].key == key
+                {
                     return table + index
+                }
             }
-            elif entryHash == HashTable.HASH_FREE
+            else if entryHash == HashTable.HASH_FREE
             {
                 return null
             }
@@ -799,8 +926,10 @@ impl HashTable
     // Returns the entry for `key`, or null when the key is absent.
     mtd const tryFind(key: K)->const *HashTableEntry?
     {
-        if not .table do
+        if not .table
+        {
             return null
+        }
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
@@ -809,8 +938,11 @@ impl HashTable
 
         while table[index].hash
         {
-            if table[index].hash == hashVal and table[index].key == key do
+            if table[index].hash == hashVal and table[index].key == key
+            {
                 return table + index
+            }
+
             index = (index + 1) & mask
         }
 
@@ -841,8 +973,11 @@ impl HashTable
     mtd const getOrDefault(key: K, defaultValue: V)->V
     {
         let it = .tryFind(key)
-        if not it do
+        if not it
+        {
             return defaultValue
+        }
+
         return it.value
     }
 
@@ -854,8 +989,10 @@ impl HashTable
     mtd findOrAdd(key: K)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
-        if not .table do
+        if not .table
+        {
             .grow()
+        }
 
         let hashVal = hashKey(key)
         var index   = cast(u64, hashVal) & (.capacity - 1)
@@ -864,8 +1001,10 @@ impl HashTable
         scope
         {
             let table = .tablePtr()
-            if table[index].hash >= HashTable.HASH_FIRST do
+            if table[index].hash >= HashTable.HASH_FIRST
+            {
                 return table + index
+            }
         }
 
         // Growing rehashes the table a struct `key` may live in, so take it out first.
@@ -929,15 +1068,22 @@ impl HashTable
                     Swag.drop(&table[i].value)
                 }
 
-                if hashVal == HashTable.HASH_DELETED do
+                if hashVal == HashTable.HASH_DELETED
+                {
                     .deleted -= 1
-                elif hashVal >= HashTable.HASH_FIRST do
+                }
+                else if hashVal >= HashTable.HASH_FIRST
+                {
                     .count -= 1
+                }
+
                 table[i].hash = HashTable.HASH_FREE
 
                 // The remaining slots are already free once no live or deleted slot is left.
-                if not .count and not .deleted do
+                if not .count and not .deleted
+                {
                     break
+                }
             }
         }
     }
@@ -951,14 +1097,17 @@ impl StrConv.IConvert for HashTable
         var first = true
         for k, v in me
         {
-            if not first do
+            if not first
+            {
                 buf.addBytes(", ")
+            }
+
             first = false
 
             buf.addBytes("key = ")
-            StrConv.convert'K(buf, k, convFmt, strFormat)
+            StrConv.convert!{K}(buf, k, convFmt, strFormat)
             buf.addBytes(" value = ")
-            StrConv.convert'V(buf, v, convFmt, strFormat)
+            StrConv.convert!{V}(buf, v, convFmt, strFormat)
         }
 
         buf.addBytes("]")

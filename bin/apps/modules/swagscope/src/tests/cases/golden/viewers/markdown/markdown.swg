@@ -16,8 +16,11 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     MarkdownText.applyViewerStyle(view, themeIndex, 1)
     view.resize(960, 680)
     view.applyLayout()
-    for 64 where view.hasUnloadedSource() do
+    for 64 where view.hasUnloadedSource()
+    {
         host.fireTimers()
+    }
+
     Swag.require(not view.hasUnloadedSource())
     Swag.require(view.findText("Before after."))
     Swag.require(view.findText("FIG. 5 — The center."))
@@ -71,8 +74,11 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     // Keep the virtual monitor fixed; the desktop monitor belongs to the machine running the test.
     host.surface.showNormalAt(viewport)
     window.applyLayout()
-    for 64 where assume cast(*Markdown.View, window.currentView).isLoading() do
+    for 64 where assume cast(*Markdown.View, window.currentView).isLoading()
+    {
         host.fireTimers()
+    }
+
     Swag.require(window.documentHost.padding == Math.Vector4{})
     Swag.require(window.documentPanel.backgroundStyle == .View)
     Swag.require(window.currentView!.surfaceRect().width == window.clientRect().width)
@@ -105,8 +111,11 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     let zoom   = assume cast(*MarkdownText.ZoomButton, result.info!.children[0])
     view.resize(960, 680)
     view.applyLayout()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     host.focus(view)
     host.keyPress(.OemPlus, .Control)
     Swag.require(zoom.zoomPercent == 125 and view.documentStyle.bodyFontSize == 20)
@@ -161,8 +170,11 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     let button = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
-    if button.statisticsLoad.isPending() do
+    if button.statisticsLoad.isPending()
+    {
         completeViewerBackgroundLoad(&host, &button.statisticsLoad)
+    }
+
     Swag.require(Utf8.startsWith(window.readingLine.details.text(), "Markdown · UTF-8 · 2 lines · 4 words · 23 characters · "))
     window.applyLayout()
     var image = host.renderSettled(window)

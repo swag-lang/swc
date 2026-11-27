@@ -24,28 +24,38 @@ var g_nullableUsageStorage: s32
 func nullableUsageLocalDeref(use: bool)->s32
 {
     var p: *s32?
-    if use do
+    if use
+    {
         p = &g_nullableUsageStorage
-    if p == null do
+    }
+    if p == null
+    {
         return 0
+    }
     return p[]
 }
 
 func nullableUsageLocalIndex(count: u64)->s32
 {
     var block: [*] s32?
-    if count do
+    if count
+    {
         block = cast([*] s32?, &g_nullableUsageStorage)
-    if block == null do
+    }
+    if block == null
+    {
         return 0
+    }
     return block[0]
 }
 
 // Crossing the type boundary requires the same control-flow proof...
 func nullableUsageRefined(value: *NullableUsageItem?, block: [*] s32?, callback: (func()->s32)?)->s32
 {
-    if value == null or block == null or callback == null do
+    if value == null or block == null or callback == null
+    {
         return 0
+    }
 
     return value.value + block[0] + callback()
 }

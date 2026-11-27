@@ -30,8 +30,10 @@ impl Bag
 {
     mtd opDrop()
     {
-        if .buffer != null do
+        if .buffer != null
+        {
             heapFree(cast(*void, .buffer), .capacity * 4)
+        }
         .buffer = null
     }
 
@@ -41,18 +43,24 @@ impl Bag
     {
         let capacity = .capacity == 0 ? 4 : .capacity * 2
         let block    = cast([*] s32, heapAlloc(capacity * 4))
-        for index in .count do
+        for index in .count
+        {
             block[index] = .buffer![index]
-        if .buffer != null do
+        }
+        if .buffer != null
+        {
             heapFree(cast(*void, .buffer), .capacity * 4)
+        }
         .buffer   = block
         .capacity = capacity
     }
 
     mtd add(value: s32)
     {
-        if .count == .capacity do
+        if .count == .capacity
+        {
             .grow()
+        }
         .buffer![.count] = value
         .count += 1
     }
@@ -82,7 +90,7 @@ func mutateWhileIterating()->s32
     bag.add(1)
     bag.add(2)
 
-    var total = 0's32
+    var total = 0_s32
     let view  = bag.view()     // swc-expected-note {{sema_note_borrow_taken_here}}
     for value in view          // swc-expected-note {{sema_note_borrow_read_here}}
     {

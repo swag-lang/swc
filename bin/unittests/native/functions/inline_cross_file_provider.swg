@@ -3,8 +3,10 @@ namespace InlineCrossFile
     #[Swag.Inline]
     func(T) forEachMutable(values: [..] T, action: func||(*T))
     {
-        for i in values.count do
+        for i in values.count
+        {
             action(&values[i])
+        }
     }
 
     struct Text
@@ -38,13 +40,13 @@ namespace InlineCrossFile
         #[Swag.Inline]
         func(T) create(value: s32 = 0, id: s32 = 0, hook: s32 = 0)->s32
         {
-            return create'T(value, "", {}, id, hook)
+            return create!{T}(value, "", {}, id, hook)
         }
 
         #[Swag.Inline]
         func(T) create(value: s32, position: Position, id: s32 = 0, hook: s32 = 0)->s32
         {
-            return create'T(value, "", position, id, hook)
+            return create!{T}(value, "", position, id, hook)
         }
 
         func(T) create(value: s32, name: string?, position: Position, id: s32 = 0, hook: s32 = 0)->s32
@@ -113,16 +115,16 @@ namespace InlineCrossFile
     impl Vector
     {
         #[Swag.Inline]
-        mtd(op: Swag.Operator) const opBinary(other: Vector'T)->Vector'T
+        mtd(op: Swag.Operator) const opBinary(other: Vector!{T})->Vector!{T}
             where op == .Add or op == .Sub
         {
             #static if op == .Add
             {
-                return InlineCrossFile.Vector'T{.x + other.x, .y + other.y}
+                return InlineCrossFile.Vector!{T}{.x + other.x, .y + other.y}
             }
             else
             {
-                return InlineCrossFile.Vector'T{.x - other.x, .y - other.y}
+                return InlineCrossFile.Vector!{T}{.x - other.x, .y - other.y}
             }
         }
     }

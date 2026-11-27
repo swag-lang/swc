@@ -31,23 +31,23 @@ func makeAggregateCastFields(small: u64, fraction: f64)->AggregateCastFields
 
 #test
 {
-    const fields = AggregateCastFields{small: cast #wrap (u16, 65537'u64), whole: cast(s32, 3.75)}
+    const fields = AggregateCastFields{small: cast #wrap (u16, 65537_u64), whole: cast(s32, 3.75)}
     Swag.require(fields.small == 1)
     Swag.require(fields.whole == 3)
-    const bits = AggregateCastBits{number: cast #bit (f32, 0x3F800000'u32)}
+    const bits = AggregateCastBits{number: cast #bit (f32, 0x3F800000_u32)}
     Swag.require(bits.number == 1.0)
 
     var first:  u64     = 12
     var second: u64     = 34
     let values: [2] u16 = [cast(u16, first), cast(u16, second)]
-    Swag.require(values == [12'u16, 34'u16])
-    const wrapped: [2] u16 = [cast #wrap (u16, 65537'u64), cast(u16, 2'u64)]
-    Swag.require(wrapped == [1'u16, 2'u16])
+    Swag.require(values == [12_u16, 34_u16])
+    const wrapped: [2] u16 = [cast #wrap (u16, 65537_u64), cast(u16, 2_u64)]
+    Swag.require(wrapped == [1_u16, 2_u16])
 }
 
 func aggregateCastArgument(value: u16)->u16 => value
 
 #test
 {
-    Swag.require(aggregateCastArgument(cast #wrap (u16, 65537'u64)) == 1)
+    Swag.require(aggregateCastArgument(cast #wrap (u16, 65537_u64)) == 1)
 }

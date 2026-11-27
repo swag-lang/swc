@@ -29,12 +29,16 @@ impl GenericLazyMethodBox
 
 func genericLazyMethodReflectionSkipsFailedWhere()->bool
 {
-    if typeCanCompare(#type func||()->s32) do
+    if typeCanCompare(#type func||()->s32)
+    {
         return false
+    }
 
-    let info = cast(const *Swag.TypeInfoStruct, #typeof(GenericLazyMethodBox'func||()->s32))
-    if info.methods.count < 1 do
+    let info = cast(const *Swag.TypeInfoStruct, #typeof(GenericLazyMethodBox!{func||()->s32}))
+    if info.methods.count < 1
+    {
         return false
+    }
 
     var hasCount = false
     var defaultCompareCallable = false
@@ -46,19 +50,25 @@ func genericLazyMethodReflectionSkipsFailedWhere()->bool
             continue
         }
 
-        if methodInfo.name != "count" do
+        if methodInfo.name != "count"
+        {
             continue
+        }
 
         let methodType = assume cast(const *Swag.TypeInfoFunc?, methodInfo.pointedType)
-        if methodType == null do
+        if methodType == null
+        {
             return false
+        }
         let params = methodType.parameters
         if methodType.kind != .Func or
            params == null or
            params.count != 1 or
-           params[0].pointedType != #type *GenericLazyMethodBox'func||()->s32 or
-           methodType.returnType != s32 do
+           params[0].pointedType != #type *GenericLazyMethodBox!{func||()->s32} or
+           methodType.returnType != s32
+        {
             return false
+        }
 
         hasCount = true
     }

@@ -20,8 +20,9 @@
 
   func classify(box: Box)->s32
   {
-      if box.count do
+      if box.count {
           return 1
+      }
       return 0
   }
   ```

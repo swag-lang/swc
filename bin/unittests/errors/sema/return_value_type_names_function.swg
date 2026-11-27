@@ -7,7 +7,9 @@ func returnValueText()->s32 => "text"     // swc-expected-error {{return value h
 
 func returnValueStatement(flag: bool)->bool
 {
-    if flag do
+    if flag
+    {
         return true
+    }
     return 3.5     // swc-expected-error {{sema_err_cannot_cast}}
 }

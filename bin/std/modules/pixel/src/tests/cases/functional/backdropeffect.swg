@@ -13,8 +13,11 @@ using Core
     BackdropEffect{algorithm: .Gaussian, radius: 6}.draw(&painter, {0, 0, 96, 64})
     painter.end()
     var targets = 0
-    for command in painter.commandBuffer where Swag.kindOf(command.op) == .ReleaseRenderTarget do
+    for command in painter.commandBuffer where Swag.kindOf(command.op) == .ReleaseRenderTarget
+    {
         targets += 1
+    }
+
     Swag.require(targets == 2)
     expect renderer.draw(&painter)
     renderer.end()
@@ -34,8 +37,11 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
     painter.setColorMaskFull()
     painter.clear(Argb.White)
     painter.setAntialiased(false)
-    for x in 12 do
+    for x in 12
+    {
         painter.fillRect(Math.Rectangle{x * 8, 0, 4, 64}, Argb.Black)
+    }
+
     painter.translateTransform(8, 4)
     painter.pushClippingRect({8, 4, 64, 48})
     let effect = BackdropEffect{algorithm: algorithm, radius: 6}
@@ -54,7 +60,7 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
 {
     for algorithm in [BackdropBlur.Gaussian, .DualKawase]
     {
-        for scale in [1.0'f32, 1.5]
+        for scale in [1.0_f32, 1.5]
         {
             var cpu: RenderCpu
             let image = renderBackdropScene(&cpu, algorithm, scale)
@@ -133,7 +139,7 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
     var painter = Painter.create(renderer)
     painter.begin()
     painter.setColorMaskFull()
-    painter.clear(Color.fromArgb(71'u8, 200'u8, 40'u8, 20'u8))
+    painter.clear(Color.fromArgb(71_u8, 200_u8, 40_u8, 20_u8))
     painter.setAntialiased(false)
     painter.startClippingRegion()
     painter.fillRect(Math.Rectangle{4, 4, 12, 8}, Argb.White)
@@ -150,6 +156,6 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
     let inside = image.pixelColor(8, 8)
     Swag.require(inside.a == 71 and inside.r >= 99 and inside.r <= 101)
     Swag.require(inside.b >= 136 and inside.b <= 138)
-    assertPixel(image, 1, 1, Color.fromArgb(71'u8, 200'u8, 40'u8, 20'u8))
+    assertPixel(image, 1, 1, Color.fromArgb(71_u8, 200_u8, 40_u8, 20_u8))
     assertPixel(image, 22, 14, Argb.Green)
 }

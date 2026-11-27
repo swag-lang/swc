@@ -113,12 +113,17 @@ impl IActionUI for ActionLibSel
         case .Rate0, .Rate1, .Rate2, .Rate3, .Rate4, .Rate5:
             evt.updatedFields |= .Name | .Disabled
             evt.disabled      = libWnd.trashMode or not item or item.kind == .Image or not libWnd.hasSelected()
-            for id, rating in RatingCommandIds where id == cxt.id do
+            for id, rating in RatingCommandIds where id == cxt.id
+            {
                 evt.name = ratingLabel(cast(u8, rating))
+            }
         }
 
-        if evt.icon.isValid() do
+        if evt.icon.isValid()
+        {
             evt.updatedFields |= .Name | .Icon | .Disabled
+        }
+
         return true
     }
 
@@ -172,8 +177,10 @@ impl IActionUI for ActionLibSel
             libWnd.searchEdit.setFocus()
 
         case .Rate0, .Rate1, .Rate2, .Rate3, .Rate4, .Rate5:
-            for id, rating in RatingCommandIds where id == cxt.id do
+            for id, rating in RatingCommandIds where id == cxt.id
+            {
                 libWnd.rateSelected(cast(u8, rating))
+            }
         }
 
         return true

@@ -15,6 +15,24 @@ bounded sound windows.
 Motion JPEG decoding in AVI uses Pixel's JPEG decoder. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
 
+### std.video.041 — Reduce the remaining Y4M subsampled RGB conversion cost
+
+- Evidence: the sixteen-bit matrix comparison puts 1080p 4:2:0 at 1.71 ms per picture and 720p 4:2:2 at 0.91 ms, against 1.20 and
+  0.58 ms for libswscale. The odd full-range 4:2:0 fixture exposes a chroma placement difference.
+- Next: profile packed RGB stores and file input separately. Use a fixture with isolated chroma
+  transitions to compare siting conventions separately from matrix rounding.
+- Done when: the 4:2:0 and 4:2:2 conversion narrows the measured gap and existing RGB pictures
+  match byte for byte or an explicit chroma-siting decision explains every changed fixture.
+
+### std.video.042 — Narrow the Motion JPEG decoding gap on textured 4:2:2
+
+- Evidence: the RGB comparison measures the retained reader at 2.58 ms per textured 720p picture, against 2.80 ms
+  for FFmpeg 9.1 and 2.60 ms for libjpeg-turbo 3.2.1. Swag leads both on 4:2:0 and 4:4:4.
+- Next: profile the AC coefficient loop and inverse transform on the same 4:2:2
+  packets, using the same chroma sampling mode with libjpeg-turbo.
+- Done when: the measured gap shrinks with identical RGB relative to the current Swag decoder
+  across 4:2:0, 4:2:2 and 4:4:4 in the video readers.
+
 ### std.video.004 — An AVI larger than four gigabytes is refused
 
 - Evidence: AVI sizes are 32-bit, so `encode/avi/avi.swg` refuses a stream past four
@@ -28,13 +46,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
-- Evidence: a one-slice 1080p comparison measured Baseline at
-  2.27× native single-threaded FFmpeg and High at 1.47×. The Baseline profile attributes about a
-  fifth of samples to CAVLC residuals and VLC lookup. High's CABAC residual loop remains the
-  largest sampled kernel.
-- Next: profile Baseline coefficient and motion decoding after the prefix lookups and isolate
-  the High CABAC residual cost. Keep decoded planes byte-exact across the Baseline, Main, High
-  and 4:4:4 corpus.
+- Evidence: one-slice 1080p Baseline takes 2.50× the time of native single-threaded FFmpeg
+  9.1. High takes 1.67×. The Baseline profile attributes about a fifth of samples to CAVLC
+  residuals and VLC lookup. A coefficient mask cuts paired time by 19.0% on the textured Baseline fixture, which still takes 2.28× the
+  FFmpeg time. High's CABAC residual loop remains the largest sampled kernel.
+- Next: profile Baseline motion compensation and isolate the High CABAC residual cost. Keep
+  decoded planes byte-exact across the Baseline, Main, High and 4:4:4 corpus.
 - Measurement: use one VCL slice per picture, one AVC lane, warm references, decode forward, and
   interleave identical input against single-threaded FFmpeg. Measure the decoding thread and caller;
   whole-process cycles include unrelated workers. Multi-slice scheduling belongs to std.video.013.
@@ -47,20 +64,46 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
-- Evidence: a serial Main10 comparison put Swag at
-  1.46× native single-threaded FFmpeg at 3840×2076. In a separate run,
-  32-bit CABAC look-ahead
-  lowered 4K time by 3.1%. Alternating runs found 5.7% lower wall time on Main10 texture
+- Evidence: Main10 decoding at 3840×2076 takes 1.72× the time of FFmpeg 9.1 with one lane
+  and 3.09× with four. In a separate run, 32-bit CABAC look-ahead lowered 4K time by 3.1%. Alternating runs found 5.7% lower wall time on Main10 texture
   and 6.6% on Main WPP. The residual coding routine accounted for about a quarter of samples
   before the CABAC change. The Main and Main10 conformance digests and container reference
   planes remain the correctness boundary.
 - Next: measure significance context selection on motion, all-intra and WPP streams.
+  Waiting for references on first use increased paired time by 6.9% at four lanes on the 3840×2076 fixture.
 - Measurement: warm and decode forward without seeking back inside a measured window; prove
   which threads carry decoding; compare small stage changes by alternating implementations in
   one process on the same blocks, not by disabling stages.
 - Done when: serial decode costs at most four-thirds of FFmpeg on the same Main10 fixture and
   machine, with exact conformance and reference planes.
 - Related: std.video.001, std.video.009, compiler.codegen.005, compiler.codegen.019
+
+### std.video.039 — Reduce the measured serial cost of MPEG-4 Part 2 decoding
+
+- Evidence: the sparse transform comparison
+  measures Simple Profile at 2.44× native single-threaded FFmpeg, textured intra at 3.14×,
+  and MPEG matrix B pictures at 2.30×. Skipping zero coefficients retained the exact
+  Swag planes on all four fixtures.
+- Next: profile the updated coefficient loop on the textured intra and predicted streams.
+  Measure any more compact coefficient representation against the same sample-error bounds.
+- Done when: the same fixtures approach the single-threaded FFmpeg time while preserving
+  the measured sample-error bounds and the MPEG-4 conformance tests.
+
+### std.video.040 — Reduce the remaining RealVideo filter cost
+
+- Evidence: the packed-filter comparison
+  measures the longer RealVideo I/P/B stream at 3.34× single-threaded FFmpeg. The
+  post-change profile assigns 23% of samples to deblocking and 9% to bilinear
+  motion interpolation. Reference-buffer reuse and the exact DC-only path lower
+  the long-stream median to 0.118 ms, 3.21 times FFmpeg. The remaining filter cost
+  needs a new profile after this change.
+- Evidence: VLC look-ahead
+  reduces the long sequence by 6.7% in paired runs. The median remains 0.135 ms for
+  Swag and 0.038 ms for FFmpeg 9.1 on the same 720 pictures.
+- Next: measure packed deblocking across the independent samples of each edge.
+  Use both the extended I/P/B stream and the original short clips.
+- Done when: the same benchmarks show a repeatable reduction and all reference planes
+  remain exact, including motion vectors outside the visible picture.
 
 ### std.video.009 — H.265 range-extension chroma formats are not decoded
 
@@ -93,8 +136,17 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: split from std.video.001. The recorded six-slice 4K run used a banded parse/reconstruct
   path with both threads spending roughly half their samples waiting. A one-slice serial result
   cannot establish that this stream shape schedules efficiently.
-- Next: preserve an openly reproducible multi-slice fixture, measure parse, reconstruction and
-  wait costs separately, then choose a scheduling change that preserves reference dependencies.
+  On the six-slice 4K stream, Swag scales from 31.42 to 22.98 ms per picture as the thread
+  budget rises from one to four.
+  FFmpeg scales from 19.15 to 5.68 ms and the decoded pictures match.
+  Deferred entropy parsing now publishes headers from the owner and retains unescaped slices
+  on the frame lane. The 4K fixture takes 13.92 ms per picture versus 18.48 ms immediately
+  before that change and 5.22 ms in FFmpeg at four threads. Single-thread medians on the
+  three tested streams stayed within 5.2% and all picture planes matched.
+  The FFmpeg 9.1 comparison
+  puts the first 48 4K pictures at 12.34 ms for Swag and 4.96 ms for FFmpeg at four lanes.
+- Next: measure waiting time and cache misses across frame lanes. Publishing rows from a
+  serial raster reconstruction reproduced all output but left the 4K median unchanged.
 - Done when: multi-slice pictures decode exactly with bounded queues and forward progress,
   measured scheduling overhead improves on the same fixture, and the one-slice path does not regress.
 - Related: std.video.001, language.parallelism.001
@@ -390,10 +442,23 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   and pruning the slanted Intra_4x4 modes. A region estimate sampled every fourth row and
   column misses fine periodic detail. One slice takes about 50 ms on a 2664×1078 picture:
   the region estimate, the motion search and intra coding are the three largest shares.
+  A native x264 comparison now times encoding and drain from the same NV12 input before muxing.
+  At equal measured luma PSNR, Swag Baseline uses 20.5% fewer bytes on a scrolling desktop and
+  6.7% fewer on changing tiles than x264 Baseline/veryfast, and 13.4% more on an animated test
+  pattern and 4.9% more on a camera clip. The camera gap rises to 24.2% against x264 High/veryfast.
+  Against the shared Baseline profile, x264 veryfast is 2.21-2.61 times as fast at QP 25
+  across seven repeats per clip. The remaining opportunity is primarily encode throughput,
+  especially the region estimator and candidate motion costs. At 1080p the camera clip takes
+  35.60 ms per picture versus 17.77 ms in x264 Baseline veryfast at QP 25. On the 4K animated
+  pattern the corresponding times are 53.04 and 20.26 ms with the current x264 reference.
+  Packed column profiles and
+  Hadamard scores cut median paired encode wall time by 11-20% across the four 640x360
+  clips, with bitstreams unchanged. The High profile also exposes
+  compression headroom from coding tools unavailable in Baseline.
 - Next: remeasure the complete 1080p60 and 4K60 capture paths with the new coder, which spends
   about 26 ms on a 2664×1078 film picture with eight slices. Slices cost 5% of the stream:
   code one slice in parallel waves, decisions first and bits after, to drop them. Vectorize the
-  region estimate, the 4x4 transforms and the Intra_4x4 predictions. Then 8×8 and 16×8
+  remaining region estimator, the forward 4x4 transforms and the Intra_4x4 predictions. Then 8×8 and 16×8
   partitions, which x264 uses on 2–5% of these macroblocks, and a trellis or adaptive dead
   zone; CABAC needs the Main profile. Give the exact QP 0 path the same motion search.
   The app allows eight slices up to 4096 pixels and four above that, where downscaled desktop
@@ -410,8 +475,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   slots, and a finalized fragmented MP4. This controls average rate; it cannot bound one packet or
   guarantee a file size when even QP 51 falls back to PCM, and the recorder has no scene-cut
   detection. Treat a failed MP4 packet submission as terminal or make submission transactional.
-  Remaining work is measuring changing screens and scene cuts through Reader and FFmpeg, exposing
-  per-frame encode latency and dropped-frame counters, and meeting the 1080p60/4K60 capture target.
+  The scene-transition comparison measures 43.34 dB luma PSNR at 1.502 Mbit/s for Swag
+  and 44.52 dB at 1.421 Mbit/s for x264
+  on the same input. Preserve the measured rate accuracy while improving bit allocation.
+  Remaining work includes exposing per-frame encode latency and dropped-frame counters and
+  meeting the 1080p60/4K60 capture target.
   Use a platform encoder only if the software path cannot meet the required profile; do not add an
   external codec library for a capability that can be implemented in Swag.
 - Done when: captured 1080p60 and 4K60 sequences produce playable H.264 files at useful

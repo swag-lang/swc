@@ -4,9 +4,9 @@
 using Core, Core.Errors
 
 // The NAL unit types and SEI payload type that carry decoded picture digests.
-const PrefixSeiNal = 39'u32
-const SuffixSeiNal = 40'u32
-const DecodedPictureHashPayload = 132'u32
+const PrefixSeiNal = 39_u32
+const SuffixSeiNal = 40_u32
+const DecodedPictureHashPayload = 132_u32
 
 // Decodes an elementary H.265 byte stream and checks every picture against the digest the stream
 // carries for it.
@@ -18,8 +18,8 @@ const DecodedPictureHashPayload = 132'u32
 struct ConformanceRun
 {
     decoder:      Hevc.Decoder
-    expected:     Array'String
-    produced:     Array'String
+    expected:     Array!{String}
+    produced:     Array!{String}
     pictureCount: u32
     hashCount:    u32
 }
@@ -37,8 +37,8 @@ impl ConformanceRun
         let data  = bytes.toSlice()
 
         // Annex B frames every unit with a three or four byte start code.
-        var starts: Array'u64
-        var index = 0'u64
+        var starts: Array!{u64}
+        var index = 0_u64
         while index + 3 <= data.count
         {
             if data[index] == 0 and data[index + 1] == 0 and data[index + 2] == 1
@@ -57,10 +57,15 @@ impl ConformanceRun
             var last  = entry + 1 < starts.count ? starts[entry + 1] - 3 : data.count
 
             // A start code may carry a leading zero byte that belongs to neither unit.
-            while last > first and data[last - 1] == 0 do
+            while last > first and data[last - 1] == 0
+            {
                 last -= 1
-            if last <= first do
+            }
+
+            if last <= first
+            {
                 continue
+            }
 
             let unit    = data[first until last]
             let nalType = cast(u32, (unit[0] >> 1)) & 0x3F
@@ -79,48 +84,62 @@ impl ConformanceRun
         }
 
         let last = try .decoder.finishPicture()
-        if last do
+        if last
+        {
             .recordPicture(last)
+        }
     }
 
     // Reads the decoded picture digests out of one supplemental enhancement information unit.
     private mtd readHashMessages(unit: const [..] u8)
     {
-        var payload: Array'u8
+        var payload: Array!{u8}
         unescapeRbsp(&payload, unit[2 until unit.count])
         let bytes = payload.toSlice()
 
-        var offset = 0'u64
+        var offset = 0_u64
         while offset + 2 < bytes.count
         {
-            var payloadType = 0'u32
+            var payloadType = 0_u32
             while offset < bytes.count and bytes[offset] == 0xFF
             {
                 payloadType += 255
                 offset      += 1
             }
 
-            if offset >= bytes.count do
+            if offset >= bytes.count
+            {
                 return
+            }
+
             payloadType += cast(u32, bytes[offset])
             offset      += 1
 
-            var payloadSize = 0'u64
+            var payloadSize = 0_u64
             while offset < bytes.count and bytes[offset] == 0xFF
             {
                 payloadSize += 255
                 offset      += 1
             }
 
-            if offset >= bytes.count do
+            if offset >= bytes.count
+            {
                 return
+            }
+
             payloadSize += cast(u64, bytes[offset])
             offset      += 1
 
-            if offset + payloadSize > bytes.count do
+            if offset + payloadSize > bytes.count
+            {
                 return
-            if payloadType == DecodedPictureHashPayload and payloadSize > 0 do
+            }
+
+            if payloadType == DecodedPictureHashPayload and payloadSize > 0
+            {
                 .readPictureHash(bytes[offset until offset + payloadSize])
+            }
+
             offset += payloadSize
         }
     }
@@ -130,12 +149,17 @@ impl ConformanceRun
     {
         // Only the message digest form is read; the two checksum forms would need their own
         // implementations and no stream this suite carries uses them.
-        if payload[0] != 0 do
+        if payload[0] != 0
+        {
             return
+        }
 
         var text: String
-        for index in 1 until payload.count do
+        for index in 1 until payload.count
+        {
             appendHexByte(&text, payload[index])
+        }
+
         .expected.add(#move text)
         .hashCount += 1
     }
@@ -148,11 +172,13 @@ impl ConformanceRun
         .pictureCount      += 1
 
         let sps = .decoder.activeSps
-        if not sps do
+        if not sps
+        {
             return
+        }
 
         var text: String
-        for component in 3'u32
+        for component in 3_u32
         {
             let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
             let width    = component == 0 ? sps.width : sps.width / sps.subWidthC
@@ -165,7 +191,7 @@ impl ConformanceRun
             digest.reset()
 
             // A sample wider than eight bits contributes two bytes, least significant first.
-            var row: Array'u8
+            var row: Array!{u8}
             row.resize(cast(u64, width) * (bitDepth > 8 ? 2 : 1))
             let output = row.storage()
 
@@ -183,8 +209,10 @@ impl ConformanceRun
                 }
                 else
                 {
-                    for x in width do
+                    for x in width
+                    {
                         output[x] = cast(u8, plane[line + cast(u64, x)])
+                    }
                 }
 
                 digest.update(row.toSlice())
@@ -202,8 +230,10 @@ impl ConformanceRun
         let count = Math.min(.expected.count, .produced.count)
         for index in count
         {
-            if .expected[index] != .produced[index] do
+            if .expected[index] != .produced[index]
+            {
                 return cast(s32, index)
+            }
         }
 
         return -1

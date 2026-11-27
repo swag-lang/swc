@@ -66,14 +66,20 @@ func createInfoOptionsButton(info: *Wnd)->*IconButton
 // playback rate that is not the normal one. The button widens to hold it.
 func setOptionsBadge(button: *IconButton, badge: string)
 {
-    if button.name.text == badge do
+    if button.name.text == badge
+    {
         return
+    }
+
     button.setText(badge)
 
     let metrics = button.themeMetrics()
     var width   = themeDropDownButtonWidth(metrics)
-    if badge.count do
+    if badge.count
+    {
         width += Painter.measureString(badge, unwrap button.font().regular).width + metrics.btnIcon_SpacingTextH + 2
+    }
+
     button.resize(Math.ceil(width), button.position.height)
     button.parent?.applyLayout()
 }

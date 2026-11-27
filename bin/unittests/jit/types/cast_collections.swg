@@ -48,7 +48,7 @@ func makeConstArrayString()->string
     {
         let text: string = "ABCD"
         let bytes        = cast(const [..] u8, text)
-        return bytes.count == 4 and bytes[0] == 65'u8 and bytes[3] == 68'u8
+        return bytes.count == 4 and bytes[0] == 65_u8 and bytes[3] == 68_u8
     }
 
     const V = #run stringToConstBytes()
@@ -63,7 +63,7 @@ func makeConstArrayString()->string
         let bytes        = cast([..] u8, data)
         let text         = cast(string, bytes)
         let back         = cast(const [..] u8, text)
-        return text == "Hello" and back.count == 5 and back[1] == 101'u8 and back[4] == 111'u8
+        return text == "Hello" and back.count == 5 and back[1] == 101_u8 and back[4] == 111_u8
     }
 
     const V = #run sliceToStringRoundtrip()
@@ -74,12 +74,14 @@ func makeConstArrayString()->string
 {
     func wordArrayToByteView()->bool
     {
-        var words: [2] u16 = [0x0102'u16, 0x0304'u16]
+        var words: [2] u16 = [0x0102_u16, 0x0304_u16]
         let bytes          = cast([..] u8, words)
         var sum:   u32     = 0
-        for value in bytes do
+        for value in bytes
+        {
             sum += cast(u32, value)
-        return bytes.count == 4 and sum == 10'u32
+        }
+        return bytes.count == 4 and sum == 10_u32
     }
 
     const V = #run wordArrayToByteView()

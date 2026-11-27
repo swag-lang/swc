@@ -6,8 +6,10 @@ using Swag
 #[ConstExpr, Safety(.All, false)]
 private func containsContentString(type: typeinfo)->bool
 {
-    if Reflection.isString(type) or type == Core.String do
+    if Reflection.isString(type) or type == Core.String
+    {
         return true
+    }
 
     switch type.kind
     {
@@ -23,8 +25,10 @@ private func containsContentString(type: typeinfo)->bool
         let info = assume cast(const *TypeInfoStruct, type)
         for field in info.fields
         {
-            if field.pointedType and containsContentString(field.pointedType) do
+            if field.pointedType and containsContentString(field.pointedType)
+            {
                 return true
+            }
         }
 
     default:
@@ -64,8 +68,11 @@ private func hashDynamicStorage(type: typeinfo, data: const [*] u8)->u64
     {
         var value: NativeStringView = {buffer: null, count: 0}
         Memory.copy(cast([*] void, &value), cast(const [*] void, data), #sizeof(value))
-        if not value.count do
+        if not value.count
+        {
             return murmur3(data, 0, 0)
+        }
+
         return murmur3(unwrap value.buffer, value.count, 0)
     }
 
@@ -73,27 +80,39 @@ private func hashDynamicStorage(type: typeinfo, data: const [*] u8)->u64
     {
         var value: OwnedStringView = {buffer: null, length: 0}
         Memory.copy(cast([*] void, &value), cast(const [*] void, data), #sizeof(value))
-        if not value.length do
+        if not value.length
+        {
             return murmur3(data, 0, 0)
+        }
+
         return murmur3(unwrap value.buffer, value.length, 0)
     }
 
-    if not Reflection.hasDynamicStorage(type) and not containsContentString(type) do
+    if not Reflection.hasDynamicStorage(type) and not containsContentString(type)
+    {
         return murmur3(data, type.sizeof, 0)
+    }
+
     switch type.kind
     {
     case .Array, .TypeListArray:
         let info   = assume cast(const *TypeInfoArray, type)
-        var result = 0'u64
-        for i in info.count do
+        var result = 0_u64
+        for i in info.count
+        {
             result = murmur3(result, hashDynamicStorage(info.pointedType, data + i * info.pointedType.sizeof))
+        }
+
         return result
 
     case .Struct, .TypeListTuple:
         let info   = assume cast(const *TypeInfoStruct, type)
-        var result = 0'u64
-        for field in info.fields do
+        var result = 0_u64
+        for field in info.fields
+        {
             result = murmur3(result, hashDynamicStorage(unwrap field.pointedType, data + field.offset))
+        }
+
         return result
 
     default:
@@ -116,32 +135,57 @@ public interface IHash64
 #[ConstExpr, Safety(.All, false)]
 public func(T) hash64(value: T)->u64
 {
-    #static if Reflection.isString(T) do
+    #static if Reflection.isString(T)
+    {
         return Hash.murmur3(value.buffer, value.count, 0)
-    elif Reflection.isStruct(T) and #defined(T.IHash64) do
+    }
+    else if Reflection.isStruct(T) and #defined(T.IHash64)
+    {
         #ast("return ", #typeof(T).fullname, ".IHash64.compute(value)")
-    elif Reflection.isStruct(T) and #defined(T.IHash32) do
+    }
+    else if Reflection.isStruct(T) and #defined(T.IHash32)
+    {
         #ast("return ", #typeof(T).fullname, ".IHash32.compute(value)")
-    elif Reflection.hasDynamicStorage(T) or containsContentString(T) do
+    }
+    else if Reflection.hasDynamicStorage(T) or containsContentString(T)
+    {
         return hashDynamicStorage(T, cast(const [*] u8, &value))
-    elif Reflection.isStruct(T) do
+    }
+    else if Reflection.isStruct(T)
+    {
         return Hash.murmur3(cast(const [*] u8, &value), #sizeof(T), 0)
-    elif Reflection.isFloat(T)
+    }
+    else if Reflection.isFloat(T)
     {
         // IEEE-754 positive and negative zero compare equal, so they must share a hash.
-        if value == 0 do
-            return murmur3(0'u64)
-        #static if #sizeof(T) == 8 do
+        if value == 0
+        {
+            return murmur3(0_u64)
+        }
+
+        #static if #sizeof(T) == 8
+        {
             return murmur3(cast #bit (u64, value))
-        else do
+        }
+        else
+        {
             return murmur3(cast #bit (u32, value))
+        }
     }
-    elif #sizeof(T) == 8 do
+    else if #sizeof(T) == 8
+    {
         return murmur3(cast #bit (u64, value))
-    elif #sizeof(T) == 4 do
+    }
+    else if #sizeof(T) == 4
+    {
         return murmur3(cast #bit (u32, value))
-    elif Reflection.isInteger(T) do
+    }
+    else if Reflection.isInteger(T)
+    {
         return murmur3(cast(u64, value))
-    else do
+    }
+    else
+    {
         return murmur3(cast(const [*] u8, &value), #sizeof(T), 0)
+    }
 }

@@ -275,7 +275,7 @@
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(total == <span class="SNum">10</span>)
 }</span></div>
 <h3 id="_001_002_language_tour_swg_Branching">Branching</h3>
-<p><span class="code-inline">if</span> handles boolean conditions. <span class="code-inline">switch</span> is the natural choice when one value selects among several cases. Blocks may use braces, or <span class="code-inline">do</span> for a single statement.</p>
+<p><span class="code-inline">if</span> handles boolean conditions. <span class="code-inline">switch</span> is the natural choice when one value selects among several cases. Control-flow bodies use braces.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">TourState</span>
 {
     <span class="SCst">Idle</span>
@@ -297,19 +297,29 @@
 {
     <span class="SKwd">let</span> state = <span class="SCst">TourState</span>.<span class="SCst">Running</span>
 
-    <span class="SLgc">if</span> state == .<span class="SCst">Running</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> state == .<span class="SCst">Running</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SFct">tourStateLabel</span>(state) == <span class="SStr">"running"</span>)
-    <span class="SLgc">else</span> <span class="SLgc">do</span>
+    }
+    <span class="SLgc">else</span>
+    {
         <span class="SLgc">unreachable</span>
+    }
 }</span></div>
 <h3 id="_001_002_language_tour_swg_Functions_and_Generic_Code">Functions and Generic Code</h3>
 <p>Functions declare parameter and result types around <span class="code-inline">-&gt;</span>. A generic parameter appears after <span class="code-inline">func</span>; call-site inference normally supplies it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">tourClamp</span>(value, lower, upper: <span class="SCst">T</span>)-&gt;<span class="SCst">T</span>
 {
-    <span class="SLgc">if</span> value &lt; lower <span class="SLgc">do</span>
+    <span class="SLgc">if</span> value &lt; lower
+    {
         <span class="SLgc">return</span> lower
-    <span class="SLgc">if</span> value &gt; upper <span class="SLgc">do</span>
+    }
+
+    <span class="SLgc">if</span> value &gt; upper
+    {
         <span class="SLgc">return</span> upper
+    }
+
     <span class="SLgc">return</span> value
 }
 
@@ -322,8 +332,11 @@
 <p>A function marked <span class="code-inline">fail</span> may return an error instead of its normal result. <span class="code-inline">try</span> propagates that error, while <span class="code-inline">catch</span> handles it locally: a failure yields the default value of the result type, or the value named with <span class="code-inline">orelse</span>. Inside a handler, <span class="code-inline">Swag.err</span> is the error; a declared <span class="code-inline">Swag.Error</span> retains it for later with 'as saved'.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tourDivide</span>(numerator, denominator: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span> <span class="SKwd">fail</span>
 {
-    <span class="SLgc">if</span> denominator == <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> denominator == <span class="SNum">0</span>
+    {
         <span class="SKwd">fail</span> <span class="SNsp">Swag</span>.<span class="SCst">BaseError</span>{<span class="SStr">"division by zero"</span>}
+    }
+
     <span class="SLgc">return</span> numerator / denominator
 }
 
@@ -358,8 +371,10 @@
 
 <span class="SFct">#test</span>
 {
-    <span class="SLgc">if</span> <span class="SCst">ShowHelloOutput</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SCst">ShowHelloOutput</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">print</span>(<span class="SStr">"Hello, world!\n"</span>)
+    }
 }</span></div>
 <h3 id="_001_003_hello_world_and_beyond_swg_Compute_Part_of_the_Message_at_Compile_Time">Compute Part of the Message at Compile Time</h3>
 <p>A function does not need a special compile-time implementation. <span class="code-inline">#run</span> asks the compiler to execute an ordinary function and embed its result.</p>
@@ -373,8 +388,10 @@
 
 <span class="SFct">#test</span>
 {
-    <span class="SLgc">if</span> <span class="SCst">ShowHelloOutput</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SCst">ShowHelloOutput</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">print</span>(<span class="SStr">"Hello, "</span>, <span class="SCst">HelloAudience</span>, <span class="SStr">"!\n"</span>)
+    }
 }</span></div>
 <h3 id="_001_003_hello_world_and_beyond_swg_Reusable_Compile-Time_Functions">Reusable Compile-Time Functions</h3>
 <p><span class="code-inline">#[Swag.ConstExpr]</span> allows calls with constant arguments to participate in constant expressions without writing <span class="code-inline">#run</span> at every call site.</p>
@@ -779,7 +796,7 @@ indent-style = spaces</span></div>
 <p><span class="code-inline">me</span> names the receiver inside methods.</p>
 <p><span class="code-inline">_</span> is the unnamed binding: it holds the position of a parameter, a loop value, a destructured field, or a <span class="code-inline">#code</span> binder that the code does not use, and nothing can refer to it.</p>
 <h3 id="_002_007_keywords_swg_Control_Flow_and_Expressions">Control Flow and Expressions</h3>
-<div class="code-block"><span class="SCde"><span class="SLgc">and</span>  <span class="SLgc">as</span>  <span class="SLgc">break</span>  <span class="SLgc">case</span>  <span class="SLgc">continue</span>  <span class="SLgc">default</span>  <span class="SLgc">defer</span>  <span class="SLgc">do</span>  <span class="SLgc">elif</span>  <span class="SLgc">else</span>
+<div class="code-block"><span class="SCde"><span class="SLgc">and</span>  <span class="SLgc">as</span>  <span class="SLgc">break</span>  <span class="SLgc">case</span>  <span class="SLgc">continue</span>  <span class="SLgc">default</span>  <span class="SLgc">defer</span>  <span class="SLgc">else</span>
 <span class="SLgc">fallthrough</span>  <span class="SLgc">for</span>  <span class="SLgc">if</span>  <span class="SLgc">in</span>  <span class="SLgc">is</span>  <span class="STpe">me</span>  <span class="SLgc">not</span>  <span class="SLgc">or</span>  <span class="SLgc">orelse</span>  <span class="SLgc">parallel</span>  <span class="SLgc">return</span>
 <span class="SLgc">scope</span>  <span class="SLgc">switch</span>  <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span>  <span class="SKwd">_</span></span></div>
 <h3 id="_002_007_keywords_swg_Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
@@ -2321,21 +2338,26 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> button: <span class="SCst">CastButton</span>
     <span class="SKwd">let</span> node:   *<span class="SCst">CastNode</span> = &amp;button
     <span class="SKwd">let</span> found = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>?, node) <span class="SLgc">orelse</span> <span class="SKwd">null</span>
-    <span class="SLgc">if</span> found != <span class="SKwd">null</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> found != <span class="SKwd">null</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(found.label == <span class="SStr">"Apply"</span>)
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(found != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>, node) == &amp;button)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">expect</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>, node) == &amp;button)
 }</span></div>
 <h4 id="_003_007_cast_swg_Testing_and_Using_the_Same_Result">Testing and Using the Same Result</h4>
-<p>A type pattern tests compatibility and gives the branch a non-null borrowed view. <span class="code-inline">if value is T as name</span> borrows a <span class="code-inline">*T</span>, or an interface view when <span class="code-inline">T</span> is an interface. Constness follows the source. The source is evaluated once; the name belongs only to the successful branch and its optional <span class="code-inline">where</span> guard. A false guard continues to <span class="code-inline">elif</span> or <span class="code-inline">else</span>. No pattern copies the object or extends its lifetime.</p>
+<p>A type pattern tests compatibility and gives the branch a non-null borrowed view. <span class="code-inline">if value is T as name</span> borrows a <span class="code-inline">*T</span>, or an interface view when <span class="code-inline">T</span> is an interface. Constness follows the source. The source is evaluated once; the name belongs only to the successful branch and its optional <span class="code-inline">where</span> guard. A false guard continues to <span class="code-inline">else if</span> or <span class="code-inline">else</span>. No pattern copies the object or extends its lifetime.</p>
 <p>Prefer <span class="code-inline">is</span> when the purpose is selecting a branch by type. Use a checked cast when failure belongs to the operation's error contract, and <span class="code-inline">assume cast</span> when the caller already guarantees compatibility.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> counter = <span class="SCst">Counter</span>{<span class="SNum">42</span>}
     <span class="SKwd">let</span> view    = <span class="SKwd">cast</span>(<span class="SCst">ICount</span>, &amp;counter)
-    <span class="SLgc">if</span> view <span class="SLgc">is</span> <span class="SCst">Counter</span> <span class="SLgc">as</span> found <span class="SLgc">do</span>
+    <span class="SLgc">if</span> view <span class="SLgc">is</span> <span class="SCst">Counter</span> <span class="SLgc">as</span> found
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(found.value == <span class="SNum">42</span>)
+    }
 
     <span class="SLgc">switch</span> view
     {
@@ -2348,8 +2370,11 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">countOf</span>(view: <span class="SCst">ICount</span>)-&gt;<span class="STpe">s32</span>
 {
     <span class="SKwd">let</span> counter = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">Counter</span>?, view) <span class="SLgc">orelse</span> <span class="SKwd">null</span>
-    <span class="SLgc">if</span> <span class="SLgc">not</span> counter <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SLgc">not</span> counter
+    {
         <span class="SLgc">return</span> -<span class="SNum">1</span>
+    }
+
     <span class="SLgc">return</span> counter.value
 }
 
@@ -2364,8 +2389,11 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> boxed: <span class="STpe">any</span> = <span class="SNum">42</span>'<span class="STpe">s32</span>
-    <span class="SLgc">if</span> boxed <span class="SLgc">is</span> <span class="STpe">s32</span> <span class="SLgc">as</span> value <span class="SLgc">do</span>
+    <span class="SLgc">if</span> boxed <span class="SLgc">is</span> <span class="STpe">s32</span> <span class="SLgc">as</span> value
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value[] == <span class="SNum">42</span>)
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SLgc">not</span> (boxed <span class="SLgc">is</span> <span class="STpe">s64</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span> (<span class="STpe">s32</span>, boxed) == <span class="SNum">42</span>)
 }</span></div>
@@ -2398,8 +2426,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> value = <span class="SNum">42</span>'<span class="STpe">s32</span>
     <span class="SKwd">let</span> target: <span class="STpe">typeinfo</span> = <span class="STpe">s32</span>
     <span class="SKwd">let</span> view  = <span class="SKwd">expect</span> <span class="SKwd">cast</span>(target, &amp;value)
-    <span class="SLgc">if</span> view <span class="SLgc">is</span> <span class="STpe">s32</span> <span class="SLgc">as</span> number <span class="SLgc">do</span>
+    <span class="SLgc">if</span> view <span class="SLgc">is</span> <span class="STpe">s32</span> <span class="SLgc">as</span> number
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(number[] == <span class="SNum">42</span>)
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(view != <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_003_007_cast_swg_Explicit_Casts_in_Typed_Contexts">Explicit Casts in Typed Contexts</h3>
@@ -2642,8 +2673,10 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> array: [<span class="SNum">100</span>] <span class="STpe">s32</span>
-    <span class="SLgc">for</span> i <span class="SLgc">in</span> array.count <span class="SLgc">do</span>
+    <span class="SLgc">for</span> i <span class="SLgc">in</span> array.count
+    {
         array[i] = i
+    }
 }</span></div>
 <h3 id="_004_001_array_swg_Constant_Arrays">Constant Arrays</h3>
 <p>Arrays initialized with compile-time values can be declared as <span class="code-inline">const</span>, making them immutable after declaration.</p>
@@ -3239,8 +3272,11 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">enum</span> <span class="SCst">RGB</span> { <span class="SCst">R</span>, <span class="SCst">G</span>, <span class="SCst">B</span> }
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
-    <span class="SLgc">for</span> <span class="SCst">RGB</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SCst">RGB</span>
+    {
         cpt += <span class="SNum">1</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(cpt == <span class="SNum">3</span>)
 }</span></div>
 <p>Binding a name offers a structured way to iterate and handle specific values.</p>
@@ -3436,8 +3472,11 @@ swc test -w path/to/workspace -m messages</span></div>
     shape.geometry = .<span class="SCst">Rect</span>{w: <span class="SNum">2</span>, h: <span class="SNum">5</span>}
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SFct">area</span>(shape) == <span class="SNum">10</span>)
 
-    <span class="SLgc">if</span> shape.geometry <span class="SLgc">is</span> .<span class="SCst">Rect</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> shape.geometry <span class="SLgc">is</span> .<span class="SCst">Rect</span>
+    {
         shape.rect.w = <span class="SNum">4</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SFct">area</span>(shape) == <span class="SNum">20</span>)
 }</span></div>
 <h3 id="_004_006_union_swg_Asserting_a_Case_with____">Asserting a Case with <span class="code-inline">!</span></h3>
@@ -3503,7 +3542,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <h3 id="_004_007_pointers_swg_Non-Null_by_Default">Non-Null by Default</h3>
 <p>Nullable-capable types — single-value and block pointers, slices, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">any</span>, and <span class="code-inline">typeinfo</span> — are non-null by default: a bare <span class="code-inline">*u8</span> or <span class="code-inline">string</span> cannot be initialized with <span class="code-inline">null</span> and has no implicit default. A struct field of such a type must therefore be supplied by an aggregate initializer unless it declares an explicit non-null default. Add the <span class="code-inline">?</span> suffix — <span class="code-inline">*u8?</span>, <span class="code-inline">string?</span>, <span class="code-inline">[..] u8?</span> — when null is part of the intended contract.</p>
 <p>Because these types answer a condition by testing their first pointer-sized word against null, only a nullable value (for example <span class="code-inline">*u8?</span>) asks a real question there. A bare <span class="code-inline">*u8</span>, <span class="code-inline">[*] u8</span>, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">func</span> value, <span class="code-inline">interface</span> or <span class="code-inline">typeinfo</span> in a condition is a constant that can only be true, and every boolean context rejects it. A slice and a string test their data pointer, never their count, so an empty one is still present: emptiness is <span class="code-inline">x.count == 0</span>.</p>
-<p>A <span class="code-inline">T?</span> value cannot flow into a bare (non-null) slot directly, and it cannot be dereferenced, indexed, member-accessed or called while it is still nullable: every use site needs a proof. Flow narrowing provides it implicitly (a dominating null test such as <span class="code-inline">if p == null do return</span>, <span class="code-inline">if p do ...</span>, <span class="code-inline">Swag.assert(p != null)</span>, or the left side of <span class="code-inline">and</span>/<span class="code-inline">or</span>), <span class="code-inline">unwrap</span> and asserted accesses with <span class="code-inline">!</span> assert it explicitly (a safety check panics at runtime if the value is still null), and <span class="code-inline">?.</span> skips the access when it is null. Comparisons between <span class="code-inline">T?</span> and bare values of the same type are always allowed. Every declared value begins with its type's safe default; the compiler may elide that initialization only after proving that it cannot be observed.</p>
+<p>A <span class="code-inline">T?</span> value cannot flow into a bare (non-null) slot directly, and it cannot be dereferenced, indexed, member-accessed or called while it is still nullable: every use site needs a proof. Flow narrowing provides it implicitly (a dominating null test such as <span class="code-inline">if p == null { return }</span>, <span class="code-inline">if p { ... }</span>, <span class="code-inline">Swag.assert(p != null)</span>, or the left side of <span class="code-inline">and</span>/<span class="code-inline">or</span>), <span class="code-inline">unwrap</span> and asserted accesses with <span class="code-inline">!</span> assert it explicitly (a safety check panics at runtime if the value is still null), and <span class="code-inline">?.</span> skips the access when it is null. Comparisons between <span class="code-inline">T?</span> and bare values of the same type are always allowed. Every declared value begins with its type's safe default; the compiler may elide that initialization only after proving that it cannot be observed.</p>
 <p>A value with <span class="code-inline">opDrop</span> can be consumed with <span class="code-inline">#move</span> only when resetting its moved-from source does not require explicit initialization. Give required fields a default; otherwise the value cannot be moved from safely.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -3571,8 +3610,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> p: *<span class="SCst">OptChainRefDoc</span>? = &amp;first
 
     <span class="SCmt">// Narrowing: the null test dominates the dereference.</span>
-    <span class="SLgc">if</span> p != <span class="SKwd">null</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> p != <span class="SKwd">null</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(p.count == <span class="SNum">2</span>)
+    }
 
     <span class="SCmt">// 'unwrap' asserts the proof explicitly (panics at runtime if wrong), and that</span>
     <span class="SCmt">// assertion covers the rest of the block: 'p' needs no second '!' below.</span>
@@ -3598,10 +3639,15 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(p?.next == <span class="SKwd">null</span>)
 
     <span class="SCmt">// Every path assigns a present value, so the value is proven after the 'if'.</span>
-    <span class="SLgc">if</span> second.count &gt; <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> second.count &gt; <span class="SNum">0</span>
+    {
         p = &amp;first
-    <span class="SLgc">else</span> <span class="SLgc">do</span>
+    }
+    <span class="SLgc">else</span>
+    {
         p = &amp;second
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(p.count == <span class="SNum">2</span>)
 }</span></div>
 <h3 id="_004_007_pointers_swg_Reaching_Through_a_Pointer">Reaching Through a Pointer</h3>
@@ -3781,8 +3827,10 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> bytes: [<span class="SNum">16</span>] <span class="STpe">u8</span>
-    <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">16</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">16</span>
+    {
         bytes[i] = <span class="SKwd">cast</span>(<span class="STpe">u8</span>, i)
+    }
 
     <span class="SCmt">// Walk the same storage as four words.</span>
     <span class="SKwd">let</span> words = <span class="SKwd">cast</span>([*] <span class="STpe">u32</span>, bytes.buffer)
@@ -4229,17 +4277,21 @@ swc test -w path/to/workspace -m messages</span></div>
 <h3 id="_005_001_if_swg">If</h3>
 <h3 id="_005_001_if_swg_Basic_Usage_of__if_">Basic Usage of <span class="code-inline">if</span></h3>
 <p>A basic test with an <span class="code-inline">if</span> statement.</p>
-<p>In Swag, curly braces <span class="code-inline">{}</span> are optional for control structures like <span class="code-inline">if</span>. However, if you omit them, you must use <span class="code-inline">do</span>. This rule also applies to <span class="code-inline">while</span> and <span class="code-inline">for</span> loops.</p>
+<p>Control-flow bodies use curly braces <span class="code-inline">{}</span>. The braces also define the scope of the body.</p>
 <p>Unlike in C/C++, the condition in an <span class="code-inline">if</span> statement does not need parentheses. They can be used for clarity or grouping, but they are not required.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> a = <span class="SNum">0</span>
 
-    <span class="SLgc">if</span> a == <span class="SNum">1</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> a == <span class="SNum">1</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
 
-    <span class="SLgc">if</span> a == <span class="SNum">1</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> a == <span class="SNum">1</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
 
     <span class="SLgc">if</span> a == <span class="SNum">0</span>
     {
@@ -4247,40 +4299,62 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 
     <span class="SCmt">// The 'else' keyword works as in most languages.</span>
-    <span class="SCmt">// When omitting braces, 'do' is mandatory after the condition.</span>
-    <span class="SLgc">if</span> a == <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> a == <span class="SNum">0</span>
+    {
         a += <span class="SNum">1</span>
-    <span class="SLgc">else</span> <span class="SLgc">do</span>
+    }
+    <span class="SLgc">else</span>
+    {
         a += <span class="SNum">2</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(a == <span class="SNum">1</span>)
 
-    <span class="SCmt">// 'elif' functions like 'else if' in other languages.</span>
-    <span class="SLgc">if</span> a == <span class="SNum">1</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> a == <span class="SNum">1</span>
+    {
         a += <span class="SNum">1</span>
-    <span class="SLgc">else</span> <span class="SLgc">do</span>
-        <span class="SLgc">if</span> a == <span class="SNum">2</span> <span class="SLgc">do</span>
-            <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
-        <span class="SLgc">elif</span> a == <span class="SNum">3</span> <span class="SLgc">do</span>
-            <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
-        <span class="SLgc">elif</span> a == <span class="SNum">4</span> <span class="SLgc">do</span>
-            <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
+    <span class="SLgc">else</span> <span class="SLgc">if</span> a == <span class="SNum">2</span>
+    {
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
+    <span class="SLgc">else</span> <span class="SLgc">if</span> a == <span class="SNum">3</span>
+    {
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
+    <span class="SLgc">else</span> <span class="SLgc">if</span> a == <span class="SNum">4</span>
+    {
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
 
     <span class="SCmt">// Logical expressions work as expected with 'and' and 'or'.</span>
-    <span class="SLgc">if</span> a == <span class="SNum">0</span> <span class="SLgc">and</span> a == <span class="SNum">1</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> a == <span class="SNum">0</span> <span class="SLgc">and</span> a == <span class="SNum">1</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
-    <span class="SLgc">if</span> a == <span class="SNum">0</span> <span class="SLgc">or</span> a == <span class="SNum">1</span> <span class="SLgc">do</span>
+    }
+
+    <span class="SLgc">if</span> a == <span class="SNum">0</span> <span class="SLgc">or</span> a == <span class="SNum">1</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
-    <span class="SLgc">if</span> a == <span class="SNum">1</span> <span class="SLgc">or</span> a == <span class="SNum">2</span> <span class="SLgc">do</span>
+    }
+
+    <span class="SLgc">if</span> a == <span class="SNum">1</span> <span class="SLgc">or</span> a == <span class="SNum">2</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">true</span>)
+    }
 }</span></div>
 <h3 id="_005_001_if_swg_Variable_Declaration_in__if_">Variable Declaration in <span class="code-inline">if</span></h3>
-<p>An <span class="code-inline">if</span> or <span class="code-inline">elif</span> can declare a value with <span class="code-inline">let</span>, <span class="code-inline">var</span>, or <span class="code-inline">const</span>. A runtime initializer is evaluated once when that clause is reached. A nullable declaration tests whether the value is present. A non-nullable declaration needs <span class="code-inline">where</span>, which supplies the condition and follows the rules for an ordinary <span class="code-inline">if</span>. The name is in scope in the <span class="code-inline">where</span> condition and both branches of its clause. The binding's lifetime ends as control leaves the conditional.</p>
+<p>An <span class="code-inline">if</span> or <span class="code-inline">else if</span> can declare a value with <span class="code-inline">let</span>, <span class="code-inline">var</span>, or <span class="code-inline">const</span>. A runtime initializer is evaluated once when that clause is reached. A nullable declaration tests whether the value is present. A non-nullable declaration needs <span class="code-inline">where</span>, which supplies the condition and follows the rules for an ordinary <span class="code-inline">if</span>. The name is in scope in the <span class="code-inline">where</span> condition and both branches of its clause. The binding's lifetime ends as control leaves the conditional.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SLgc">if</span> <span class="SKwd">let</span> count = <span class="SNum">0</span> <span class="SLgc">where</span> count == <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SKwd">let</span> count = <span class="SNum">0</span> <span class="SLgc">where</span> count == <span class="SNum">0</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(count == <span class="SNum">0</span>)
-    <span class="SLgc">else</span> <span class="SLgc">do</span>
+    }
+    <span class="SLgc">else</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
 
     <span class="SLgc">if</span> <span class="SKwd">var</span> available = <span class="SNum">3</span> <span class="SLgc">where</span> available &gt;= <span class="SNum">10</span>
     {
@@ -4292,12 +4366,18 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(available == <span class="SNum">4</span>)
     }
 
-    <span class="SLgc">if</span> <span class="SKwd">const</span> preferred = <span class="SNum">0</span> <span class="SLgc">where</span> preferred &gt; <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SKwd">const</span> preferred = <span class="SNum">0</span> <span class="SLgc">where</span> preferred &gt; <span class="SNum">0</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
-    <span class="SLgc">elif</span> <span class="SKwd">let</span> fallback = <span class="SNum">1</span> <span class="SLgc">where</span> fallback &gt; <span class="SNum">0</span> <span class="SLgc">do</span>
+    }
+    <span class="SLgc">else</span> <span class="SLgc">if</span> <span class="SKwd">let</span> fallback = <span class="SNum">1</span> <span class="SLgc">where</span> fallback &gt; <span class="SNum">0</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(fallback == <span class="SNum">1</span>)
-    <span class="SLgc">else</span> <span class="SLgc">do</span>
+    }
+    <span class="SLgc">else</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
 }</span></div>
 <h3 id="_005_001_if_swg_Adding_Conditions_with__where_">Adding Conditions with <span class="code-inline">where</span></h3>
 <p>For a nullable declaration, a present value proceeds to the optional <span class="code-inline">where</span> condition. An absent value skips it and takes the false branch. An empty string or slice is present. A pointer to a zero-valued object is present.</p>
@@ -4307,15 +4387,22 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">func</span> <span class="SFct">readAbsent</span>()-&gt;<span class="STpe">string</span>? =&gt; <span class="SKwd">null</span>
 
     <span class="SKwd">var</span> matched = <span class="SKwd">false</span>
-    <span class="SLgc">if</span> <span class="SKwd">let</span> text = <span class="SFct">readText</span>() <span class="SLgc">where</span> text[<span class="SNum">0</span>] == '<span class="SFct">s</span>' <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SKwd">let</span> text = <span class="SFct">readText</span>() <span class="SLgc">where</span> text[<span class="SNum">0</span>] == '<span class="SFct">s</span>'
+    {
         matched = <span class="SKwd">true</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(matched)
 
     <span class="SKwd">let</span> empty: <span class="STpe">string</span>? = <span class="SStr">""</span>
-    <span class="SLgc">if</span> <span class="SKwd">let</span> text = empty <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SKwd">let</span> text = empty
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(text.count == <span class="SNum">0</span>)
-    <span class="SLgc">else</span> <span class="SLgc">do</span>
+    }
+    <span class="SLgc">else</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
 
     <span class="SLgc">if</span> <span class="SKwd">var</span> text = <span class="SFct">readAbsent</span>() <span class="SLgc">where</span> text == <span class="SKwd">null</span>
     {
@@ -4330,16 +4417,22 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_005_001_if_swg_Binding_a_Dynamic_Type">Binding a Dynamic Type</h3>
 <p><span class="code-inline">if value is T as name</span> tests dynamic compatibility and binds the successful view. For a concrete <span class="code-inline">T</span>, <span class="code-inline">name</span> is a non-null pointer; for an interface, it is an interface view. Source constness is preserved. The source is evaluated once, and no binding copies the object or extends its lifetime. An <span class="code-inline">any</span> boxed from a literal or constant binds a read-only view. Declare the source <span class="code-inline">const any</span> to request that view in a binding pattern.</p>
-<p>An optional <span class="code-inline">where</span> guard runs only after a match. The binding is visible in that guard and the successful body, but not in <span class="code-inline">elif</span>, <span class="code-inline">else</span>, or after the statement. A false guard continues to the next branch. <span class="code-inline">elif</span> accepts the same binding form.</p>
+<p>An optional <span class="code-inline">where</span> guard runs only after a match. The binding is visible in that guard and the successful body, but not in <span class="code-inline">else if</span>, <span class="code-inline">else</span>, or after the statement. A false guard continues to the next branch. <span class="code-inline">else if</span> accepts the same binding form.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> value: <span class="SKwd">const</span> <span class="STpe">any</span> = <span class="SNum">42</span>'<span class="STpe">s32</span>
-    <span class="SLgc">if</span> value <span class="SLgc">is</span> <span class="STpe">s32</span> <span class="SLgc">as</span> number <span class="SLgc">where</span> number[] &gt; <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> value <span class="SLgc">is</span> <span class="STpe">s32</span> <span class="SLgc">as</span> number <span class="SLgc">where</span> number[] &gt; <span class="SNum">0</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(number[] == <span class="SNum">42</span>)
-    <span class="SLgc">elif</span> value <span class="SLgc">is</span> <span class="STpe">string</span> <span class="SLgc">as</span> text <span class="SLgc">do</span>
+    }
+    <span class="SLgc">else</span> <span class="SLgc">if</span> value <span class="SLgc">is</span> <span class="STpe">string</span> <span class="SLgc">as</span> text
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(text[].count != <span class="SNum">0</span>)
-    <span class="SLgc">else</span> <span class="SLgc">do</span>
+    }
+    <span class="SLgc">else</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
 }</span></div>
 <h3 id="_005_002_for_swg">For</h3>
 <h3 id="_005_002_for_swg_The__for__Loop">The <span class="code-inline">for</span> Loop</h3>
@@ -4349,8 +4442,11 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
-    <span class="SLgc">for</span> <span class="SNum">10</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SNum">10</span>
+    {
         cpt += <span class="SNum">1</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(cpt == <span class="SNum">10</span>)
 }</span></div>
 <h3 id="_005_002_for_swg_Naming_the_Loop_Index">Naming the Loop Index</h3>
@@ -4373,8 +4469,10 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SLgc">for</span> row <span class="SLgc">in</span> <span class="SNum">3</span>
     {
-        <span class="SLgc">for</span> column <span class="SLgc">in</span> <span class="SNum">2</span> <span class="SLgc">do</span>
+        <span class="SLgc">for</span> column <span class="SLgc">in</span> <span class="SNum">2</span>
+        {
             pairs += row * <span class="SNum">10</span> + column
+        }
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(pairs == <span class="SNum">63</span>)
@@ -4413,13 +4511,19 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmp">#assert</span>(arr.count == <span class="SNum">4</span>)
 
     <span class="SKwd">var</span> turns = <span class="SNum">0</span>
-    <span class="SLgc">for</span> arr <span class="SLgc">do</span>
+    <span class="SLgc">for</span> arr
+    {
         turns += <span class="SNum">1</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(turns == <span class="SNum">4</span>)
 
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
-    <span class="SLgc">for</span> index <span class="SLgc">in</span> arr.count <span class="SLgc">do</span>
+    <span class="SLgc">for</span> index <span class="SLgc">in</span> arr.count
+    {
         cpt += arr[index]
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(cpt == <span class="SNum">10</span> + <span class="SNum">20</span> + <span class="SNum">30</span> + <span class="SNum">40</span>)
 }</span></div>
 <div class="blockquote blockquote-warning">
@@ -4429,8 +4533,11 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
-    <span class="SLgc">for</span> <span class="SStr">"â»"</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SStr">"â»"</span>
+    {
         cpt += <span class="SNum">1</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(cpt == <span class="SNum">3</span>)
 }</span></div>
 <h3 id="_005_002_for_swg_Reverse_Looping">Reverse Looping</h3>
@@ -4441,12 +4548,19 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SFct">reversed</span>(<span class="SNum">3</span>)
     {
-        <span class="SLgc">if</span> cpt == <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> cpt == <span class="SNum">0</span>
+        {
             <span class="SNsp">Swag</span>.<span class="SFct">require</span>(index == <span class="SNum">2</span>)
-        <span class="SLgc">elif</span> cpt == <span class="SNum">1</span> <span class="SLgc">do</span>
+        }
+        <span class="SLgc">else</span> <span class="SLgc">if</span> cpt == <span class="SNum">1</span>
+        {
             <span class="SNsp">Swag</span>.<span class="SFct">require</span>(index == <span class="SNum">1</span>)
-        <span class="SLgc">elif</span> cpt == <span class="SNum">2</span> <span class="SLgc">do</span>
+        }
+        <span class="SLgc">else</span> <span class="SLgc">if</span> cpt == <span class="SNum">2</span>
+        {
             <span class="SNsp">Swag</span>.<span class="SFct">require</span>(index == <span class="SNum">0</span>)
+        }
+
         cpt += <span class="SNum">1</span>
     }
 }</span></div>
@@ -4459,8 +4573,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
     <span class="SLgc">for</span> x <span class="SLgc">in</span> <span class="SNum">10</span>
     {
-        <span class="SLgc">if</span> x == <span class="SNum">5</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> x == <span class="SNum">5</span>
+        {
             <span class="SLgc">break</span>
+        }
+
         cpt += <span class="SNum">1</span>
     }
 
@@ -4473,8 +4590,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
     <span class="SLgc">for</span> x <span class="SLgc">in</span> <span class="SNum">10</span>
     {
-        <span class="SLgc">if</span> x == <span class="SNum">5</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> x == <span class="SNum">5</span>
+        {
             <span class="SLgc">continue</span>
+        }
+
         cpt += <span class="SNum">1</span>
     }
 
@@ -4525,8 +4645,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">func</span> <span class="SFct">sumUpTo</span>(count: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
     {
         <span class="SKwd">var</span> sum = <span class="SNum">0</span>
-        <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">0</span> <span class="SLgc">until</span> count <span class="SLgc">do</span>
+        <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">0</span> <span class="SLgc">until</span> count
+        {
             sum += i
+        }
+
         <span class="SLgc">return</span> sum
     }
 
@@ -4535,8 +4658,11 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SCmt">// The same holds for a constant empty range, and away from zero.</span>
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
-    <span class="SLgc">for</span> <span class="SNum">7</span> <span class="SLgc">until</span> <span class="SNum">7</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SNum">7</span> <span class="SLgc">until</span> <span class="SNum">7</span>
+    {
         cpt += <span class="SNum">1</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(cpt == <span class="SNum">0</span>)
 }</span></div>
 <h3 id="_005_002_for_swg_Reverse_Range_Looping">Reverse Range Looping</h3>
@@ -4557,8 +4683,11 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SLgc">for</span>
     {
-        <span class="SLgc">if</span> turns == <span class="SNum">4</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> turns == <span class="SNum">4</span>
+        {
             <span class="SLgc">break</span>
+        }
+
         turns += <span class="SNum">1</span>
     }
 
@@ -4654,8 +4783,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
 
     <span class="SCmt">// Standard syntax</span>
-    <span class="SLgc">for</span> <span class="SKwd">var</span> i = <span class="SNum">0</span>; i &lt; <span class="SNum">10</span>; i += <span class="SNum">1</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SKwd">var</span> i = <span class="SNum">0</span>; i &lt; <span class="SNum">10</span>; i += <span class="SNum">1</span>
+    {
         cpt += <span class="SNum">1</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(cpt == <span class="SNum">10</span>)
 
     <span class="SCmt">// Alternative syntax with newlines</span>
@@ -4672,8 +4804,11 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>'<span class="STpe">u32</span>
 
-    <span class="SLgc">for</span> <span class="SKwd">var</span> i: <span class="STpe">u32</span> = <span class="SNum">10</span>; i &lt; <span class="SNum">15</span>; i += <span class="SNum">1</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SKwd">var</span> i: <span class="STpe">u32</span> = <span class="SNum">10</span>; i &lt; <span class="SNum">15</span>; i += <span class="SNum">1</span>
+    {
         cpt += i
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(cpt == <span class="SNum">10</span> + <span class="SNum">11</span> + <span class="SNum">12</span> + <span class="SNum">13</span> + <span class="SNum">14</span>)
 }</span></div>
 <h3 id="_005_002_for_swg_Using__break__and__continue__in__for__Loops">Using <span class="code-inline">break</span> and <span class="code-inline">continue</span> in <span class="code-inline">for</span> Loops</h3>
@@ -4684,8 +4819,11 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SLgc">for</span> <span class="SKwd">var</span> i = <span class="SNum">0</span>; i &lt; <span class="SNum">10</span>; i += <span class="SNum">1</span>
     {
-        <span class="SLgc">if</span> i == <span class="SNum">5</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> i == <span class="SNum">5</span>
+        {
             <span class="SLgc">break</span>
+        }
+
         sum += i
     }
 
@@ -4694,8 +4832,11 @@ swc test -w path/to/workspace -m messages</span></div>
     sum = <span class="SNum">0</span>
     <span class="SLgc">for</span> <span class="SKwd">var</span> i = <span class="SNum">0</span>; i &lt; <span class="SNum">10</span>; i += <span class="SNum">1</span>
     {
-        <span class="SLgc">if</span> i % <span class="SNum">2</span> == <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> i % <span class="SNum">2</span> == <span class="SNum">0</span>
+        {
             <span class="SLgc">continue</span>
+        }
+
         sum += i
     }
 
@@ -4834,8 +4975,11 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> array  = [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>]
     <span class="SKwd">var</span> result = <span class="SNum">0</span>
-    <span class="SLgc">for</span> it <span class="SLgc">in</span> array <span class="SLgc">do</span>
+    <span class="SLgc">for</span> it <span class="SLgc">in</span> array
+    {
         result += it
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(result == <span class="SNum">10</span> + <span class="SNum">20</span> + <span class="SNum">30</span>)
 }</span></div>
 <h3 id="_005_003_for_elements_swg_Multi-dimensional_Arrays">Multi-dimensional Arrays</h3>
@@ -4844,8 +4988,11 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> array: [<span class="SNum">2</span>, <span class="SNum">2</span>] <span class="STpe">s32</span> = [[<span class="SNum">10</span>, <span class="SNum">20</span>], [<span class="SNum">30</span>, <span class="SNum">40</span>]]
     <span class="SKwd">var</span> result = <span class="SNum">0</span>
-    <span class="SLgc">for</span> it <span class="SLgc">in</span> array <span class="SLgc">do</span>
+    <span class="SLgc">for</span> it <span class="SLgc">in</span> array
+    {
         result += it
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(result == <span class="SNum">10</span> + <span class="SNum">20</span> + <span class="SNum">30</span> + <span class="SNum">40</span>)
 }</span></div>
 <h3 id="_005_003_for_elements_swg_Struct_Elements_Bind_by_Address">Struct Elements Bind by Address</h3>
@@ -4898,8 +5045,10 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [{<span class="SNum">1</span>, <span class="SNum">2</span>}, {<span class="SNum">3</span>, <span class="SNum">4</span>}]
 
-    <span class="SLgc">for</span> &amp;p, index <span class="SLgc">in</span> points <span class="SLgc">do</span>
+    <span class="SLgc">for</span> &amp;p, index <span class="SLgc">in</span> points
+    {
         p[] = <span class="SCst">Point</span>{<span class="SKwd">cast</span>(<span class="STpe">s32</span>, index), <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)}
+    }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(points[<span class="SNum">0</span>].x == <span class="SNum">0</span> <span class="SLgc">and</span> points[<span class="SNum">0</span>].y == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(points[<span class="SNum">1</span>].x == <span class="SNum">1</span> <span class="SLgc">and</span> points[<span class="SNum">1</span>].y == <span class="SNum">1</span>)
@@ -4911,23 +5060,34 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> array: [?] <span class="STpe">s32</span> = [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
     <span class="SKwd">var</span> result         = <span class="SNum">0</span>
 
-    <span class="SLgc">for</span> value <span class="SLgc">in</span> array <span class="SLgc">where</span> value &amp; <span class="SNum">1</span> == <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> value <span class="SLgc">in</span> array <span class="SLgc">where</span> value &amp; <span class="SNum">1</span> == <span class="SNum">0</span>
+    {
         result += value
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(result == <span class="SNum">6</span>)
 
     <span class="SCmt">// Equivalent with an 'if' guard:</span>
     result = <span class="SNum">0</span>
-    <span class="SLgc">for</span> value <span class="SLgc">in</span> array <span class="SLgc">do</span>
-        <span class="SLgc">if</span> value &amp; <span class="SNum">1</span> == <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> value <span class="SLgc">in</span> array
+    {
+        <span class="SLgc">if</span> value &amp; <span class="SNum">1</span> == <span class="SNum">0</span>
+        {
             result += value
+        }
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(result == <span class="SNum">6</span>)
 
     <span class="SCmt">// Equivalent using 'continue' to skip odd values:</span>
     result = <span class="SNum">0</span>
     <span class="SLgc">for</span> value <span class="SLgc">in</span> array
     {
-        <span class="SLgc">if</span> (value &amp; <span class="SNum">1</span>) != <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> (value &amp; <span class="SNum">1</span>) != <span class="SNum">0</span>
+        {
             <span class="SLgc">continue</span>
+        }
+
         result += value
     }
 
@@ -4939,8 +5099,11 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> i = <span class="SNum">0</span>
-    <span class="SLgc">while</span> i &lt; <span class="SNum">10</span> <span class="SLgc">do</span>
+    <span class="SLgc">while</span> i &lt; <span class="SNum">10</span>
+    {
         i += <span class="SNum">1</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(i == <span class="SNum">10</span>)
 }</span></div>
 <h3 id="_005_004_while_swg_Breaking_Out_of_a__while__Loop">Breaking Out of a <span class="code-inline">while</span> Loop</h3>
@@ -4950,8 +5113,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> i = <span class="SNum">0</span>
     <span class="SLgc">while</span> i &lt; <span class="SNum">10</span>
     {
-        <span class="SLgc">if</span> i == <span class="SNum">5</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> i == <span class="SNum">5</span>
+        {
             <span class="SLgc">break</span>
+        }
+
         i += <span class="SNum">1</span>
     }
 
@@ -4967,8 +5133,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">while</span> i &lt; <span class="SNum">10</span>
     {
         i += <span class="SNum">1</span>
-        <span class="SLgc">if</span> i % <span class="SNum">2</span> == <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> i % <span class="SNum">2</span> == <span class="SNum">0</span>
+        {
             <span class="SLgc">continue</span>
+        }
+
         sum += i
     }
 
@@ -4987,8 +5156,11 @@ swc test -w path/to/workspace -m messages</span></div>
         j = <span class="SNum">0</span>
         <span class="SLgc">while</span> j &lt; <span class="SNum">3</span>
         {
-            <span class="SLgc">if</span> j == <span class="SNum">2</span> <span class="SLgc">do</span>
+            <span class="SLgc">if</span> j == <span class="SNum">2</span>
+            {
                 <span class="SLgc">break</span>
+            }
+
             count += <span class="SNum">1</span>
             j     += <span class="SNum">1</span>
         }
@@ -5098,8 +5270,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">switch</span> value
     {
     <span class="SLgc">case</span> <span class="SNum">6</span>:
-        <span class="SLgc">if</span> value == <span class="SNum">6</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> value == <span class="SNum">6</span>
+        {
             <span class="SLgc">break</span>
+        }
+
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
 
     <span class="SLgc">default</span>:
@@ -5239,7 +5414,7 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 }</span></div>
 <h3 id="_005_005_switch_swg_Switch_Without_an_Expression">Switch Without an Expression</h3>
-<p>A <span class="code-inline">switch</span> without an expression behaves like an <span class="code-inline">if</span>/<span class="code-inline">elif</span> chain. Each <span class="code-inline">case</span> is evaluated in order, executing the first one that evaluates to <span class="code-inline">true</span>.</p>
+<p>A <span class="code-inline">switch</span> without an expression behaves like an <span class="code-inline">if</span>/<span class="code-inline">else if</span> chain. Each <span class="code-inline">case</span> is evaluated in order, executing the first one that evaluates to <span class="code-inline">true</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> value  = <span class="SNum">6</span>
@@ -5293,16 +5468,22 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SCmt">// Immediately exits the loop body</span>
-    <span class="SLgc">for</span> <span class="SNum">10</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SNum">10</span>
+    {
         <span class="SLgc">break</span>
+    }
 
     <span class="SCmt">// Exits after the first iteration</span>
-    <span class="SLgc">for</span> <span class="SKwd">var</span> i = <span class="SNum">0</span>; i &lt; <span class="SNum">10</span>; i += <span class="SNum">1</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SKwd">var</span> i = <span class="SNum">0</span>; i &lt; <span class="SNum">10</span>; i += <span class="SNum">1</span>
+    {
         <span class="SLgc">break</span>
+    }
 
     <span class="SCmt">// Not reached because the condition is false</span>
-    <span class="SLgc">while</span> <span class="SKwd">false</span> <span class="SLgc">do</span>
+    <span class="SLgc">while</span> <span class="SKwd">false</span>
+    {
         <span class="SLgc">break</span>
+    }
 }</span></div>
 <h3 id="_005_006_break_swg_Default_Behavior">Default Behavior</h3>
 <p>By default, <span class="code-inline">break</span> exits only the innermost loop or switch case. Outer structures continue to run.</p>
@@ -5400,8 +5581,10 @@ swc test -w path/to/workspace -m messages</span></div>
     {
         <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">10</span>
         {
-            <span class="SLgc">if</span> index == <span class="SNum">5</span> <span class="SLgc">do</span>
-                <span class="SLgc">break</span> <span class="SLgc">to</span> <span class="SCst">Up</span>     <span class="SCmt">// Exit to after the labeled 'for'</span>
+            <span class="SLgc">if</span> index == <span class="SNum">5</span>
+            {
+                <span class="SLgc">break</span> <span class="SLgc">to</span> <span class="SCst">Up</span>
+            }     <span class="SCmt">// Exit to after the labeled 'for'</span>
         }
 
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)     <span class="SCmt">// Unreachable</span>
@@ -5417,8 +5600,10 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> squares: [<span class="SNum">16</span>] <span class="STpe">u64</span>
 
-    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;squares| index <span class="SLgc">in</span> <span class="SNum">16</span> <span class="SLgc">do</span>
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;squares| index <span class="SLgc">in</span> <span class="SNum">16</span>
+    {
         squares[index] = index * index
+    }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(squares[<span class="SNum">0</span>] == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(squares[<span class="SNum">15</span>] == <span class="SNum">225</span>)
@@ -5430,8 +5615,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> factor = <span class="SNum">3</span>'<span class="STpe">u64</span>
     <span class="SKwd">var</span> values: [<span class="SNum">8</span>] <span class="STpe">u64</span>
 
-    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;values, factor| index <span class="SLgc">in</span> <span class="SNum">8</span> <span class="SLgc">do</span>
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;values, factor| index <span class="SLgc">in</span> <span class="SNum">8</span>
+    {
         values[index] = index * factor
+    }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(values[<span class="SNum">7</span>] == <span class="SNum">21</span>)
 }</span></div>
@@ -5441,8 +5628,10 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> started = <span class="SNum">0</span>'<span class="STpe">u64</span>
 
-    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;started| <span class="SNum">8</span> <span class="SLgc">do</span>
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;started| <span class="SNum">8</span>
+    {
         <span class="SKwd">discard</span> <span class="SNsp">Swag</span>.<span class="SFct">atomicAdd</span>(&amp;started, <span class="SNum">1</span>)
+    }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(started == <span class="SNum">8</span>)
 }</span></div>
@@ -5452,11 +5641,15 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> visited: [<span class="SNum">10</span>] <span class="STpe">bool</span>
 
-    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;visited| index <span class="SLgc">in</span> <span class="SNum">2</span> <span class="SLgc">until</span> <span class="SNum">5</span> <span class="SLgc">do</span>
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;visited| index <span class="SLgc">in</span> <span class="SNum">2</span> <span class="SLgc">until</span> <span class="SNum">5</span>
+    {
         visited[index] = <span class="SKwd">true</span>
+    }
 
-    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;visited| index <span class="SLgc">in</span> <span class="SNum">7</span> <span class="SLgc">to</span> <span class="SNum">8</span> <span class="SLgc">do</span>
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;visited| index <span class="SLgc">in</span> <span class="SNum">7</span> <span class="SLgc">to</span> <span class="SNum">8</span>
+    {
         visited[index] = <span class="SKwd">true</span>
+    }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SLgc">not</span> visited[<span class="SNum">1</span>] <span class="SLgc">and</span> visited[<span class="SNum">2</span>] <span class="SLgc">and</span> visited[<span class="SNum">4</span>] <span class="SLgc">and</span> <span class="SLgc">not</span> visited[<span class="SNum">5</span>])
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(visited[<span class="SNum">7</span>] <span class="SLgc">and</span> visited[<span class="SNum">8</span>] <span class="SLgc">and</span> <span class="SLgc">not</span> visited[<span class="SNum">9</span>])
@@ -5470,14 +5663,20 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;found| index <span class="SLgc">in</span> <span class="SNum">32</span>
     {
-        <span class="SLgc">if</span> index &amp; <span class="SNum">1</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> index &amp; <span class="SNum">1</span>
+        {
             <span class="SLgc">continue</span>
+        }
+
         found[index] = <span class="SKwd">true</span>
     }
 
     <span class="SKwd">var</span> count = <span class="SNum">0</span>
-    <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">32</span> <span class="SLgc">where</span> found[index] <span class="SLgc">do</span>
+    <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">32</span> <span class="SLgc">where</span> found[index]
+    {
         count += <span class="SNum">1</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(count == <span class="SNum">16</span>)
 }</span></div>
 <h3 id="_005_007_parallel_for_swg_Failures">Failures</h3>
@@ -5495,8 +5694,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> errorOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
     <span class="SKwd">catch</span> <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;values| index <span class="SLgc">in</span> <span class="SNum">8</span>
     {
-        <span class="SLgc">if</span> index == <span class="SNum">3</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> index == <span class="SNum">3</span>
+        {
             <span class="SKwd">fail</span> <span class="SCst">ParallelInputError</span>{index}
+        }
+
         values[index] = index + <span class="SNum">1</span>
     } <span class="SLgc">as</span> errorOutcome
 
@@ -5504,8 +5706,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(error != <span class="SKwd">null</span> <span class="SLgc">and</span> (error <span class="SLgc">is</span> <span class="SCst">ParallelInputError</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(values[<span class="SNum">3</span>] == <span class="SNum">0</span>)
 
-    <span class="SKwd">expect</span> <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;values| index <span class="SLgc">in</span> <span class="SNum">8</span> <span class="SLgc">do</span>
+    <span class="SKwd">expect</span> <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;values| index <span class="SLgc">in</span> <span class="SNum">8</span>
+    {
         values[index] = index + <span class="SNum">1</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(values[<span class="SNum">7</span>] == <span class="SNum">8</span>)
 }</span></div>
 <h3 id="_005_007_parallel_for_swg_Cancellation">Cancellation</h3>
@@ -5520,8 +5725,10 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SKwd">var</span> skipped: <span class="SNsp">Swag</span>.<span class="SFct">AtomicValue</span>'<span class="STpe">u64</span>
         <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;skipped| <span class="SNum">8</span>
         {
-            <span class="SLgc">if</span> <span class="SNsp">Swag</span>.<span class="SFct">isCancelled</span>() <span class="SLgc">do</span>
+            <span class="SLgc">if</span> <span class="SNsp">Swag</span>.<span class="SFct">isCancelled</span>()
+            {
                 skipped.<span class="SFct">add</span>(<span class="SNum">1</span>)
+            }
         }
 
         <span class="SLgc">return</span> skipped.<span class="SFct">load</span>()
@@ -5536,8 +5743,10 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> total: <span class="SNsp">Swag</span>.<span class="SFct">AtomicValue</span>'<span class="STpe">u64</span>
 
-    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;total| index <span class="SLgc">in</span> <span class="SNum">100</span> <span class="SLgc">do</span>
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;total| index <span class="SLgc">in</span> <span class="SNum">100</span>
+    {
         total.<span class="SFct">add</span>(index)
+    }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(total.<span class="SFct">load</span>() == <span class="SNum">4950</span>)
 }</span></div>
@@ -5762,7 +5971,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SCst">MyStruct</span>.<span class="SFct">returnTrue</span>())
 }</span></div>
 <h3 id="_006_002_impl_swg_Multiple__impl__Blocks">Multiple <span class="code-inline">impl</span> Blocks</h3>
-<p>Swag allows multiple <span class="code-inline">impl</span> blocks for the same struct. Inside methods, <span class="code-inline">me</span> refers to the current instance. You can also name the receiver explicitly.</p>
+<p>Swag allows multiple <span class="code-inline">impl</span> blocks for the same struct. Inside a method, <span class="code-inline">me</span> refers to the current instance. A regular function in an <span class="code-inline">impl</span> can take an explicit receiver and be called with UFCS, but it remains a function rather than a method.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">impl</span> <span class="SCst">MyStruct</span>
 {
     <span class="SCmt">// 'me' is the receiver's address: an implicit non-null '*MyStruct'</span>
@@ -5772,13 +5981,12 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// Explicit receiver name and type</span>
     <span class="SKwd">func</span> <span class="SFct">returnZ</span>(self: <span class="SCst">MyStruct</span>) =&gt; self.z
 }</span></div>
-<h3 id="_006_002_impl_swg_Method_Syntax_Sugar">Method Syntax Sugar</h3>
-<p>Using <span class="code-inline">mtd</span> makes the first parameter implicitly <span class="code-inline">me</span>. Using 'mtd const' makes it 'const me'. This simplifies common patterns.</p>
+<h3 id="_006_002_impl_swg_Method_Declarations">Method Declarations</h3>
+<p>Declare instance methods with <span class="code-inline">mtd</span>; the compiler supplies the <span class="code-inline">me</span> receiver. Use <span class="code-inline">mtd const</span> for a read-only receiver. A <span class="code-inline">func</span> that takes <span class="code-inline">me</span> remains an ordinary UFCS function.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">impl</span> <span class="SCst">MyStruct</span>
 {
-    <span class="SKwd">mtd</span> <span class="SFct">methodReturnX</span>()  =&gt; <span class="STpe">me</span>.x     <span class="SCmt">// Equivalent to 'func methodReturnX(me) =&gt; me.x'</span>
-    <span class="SKwd">func</span> <span class="SFct">funcReturnX</span>(<span class="STpe">me</span>) =&gt; <span class="STpe">me</span>.x
-    <span class="SKwd">func</span> <span class="SFct">funcReturnY</span>(<span class="STpe">me</span>) =&gt; .x     <span class="SCmt">// 'me' can be omitted</span>
+    <span class="SKwd">mtd</span> <span class="SFct">methodReturnX</span>() =&gt; <span class="STpe">me</span>.x
+    <span class="SKwd">mtd</span> <span class="SFct">methodReturnY</span>() =&gt; .x
 }
 
 <span class="SFct">#test</span>
@@ -5786,9 +5994,9 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> c: <span class="SCst">MyStruct</span>
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(c.<span class="SFct">returnX</span>() == <span class="SNum">5</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(c.<span class="SFct">methodReturnX</span>() == <span class="SNum">5</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(c.<span class="SFct">funcReturnX</span>() == <span class="SNum">5</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(c.<span class="SFct">returnY</span>() == <span class="SNum">10</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(c.<span class="SFct">methodReturnX</span>() == <span class="SNum">5</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(c.<span class="SFct">methodReturnY</span>() == <span class="SNum">5</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(c.<span class="SFct">returnZ</span>() == <span class="SNum">20</span>)
 }</span></div>
 <h3 id="_006_002_impl_swg_Method_Reflection">Method Reflection</h3>
@@ -6011,10 +6219,16 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opCompare</span>(other: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
     {
-        <span class="SLgc">if</span> .value &lt; other <span class="SLgc">do</span>
+        <span class="SLgc">if</span> .value &lt; other
+        {
             <span class="SLgc">return</span> -<span class="SNum">1</span>
-        <span class="SLgc">if</span> .value &gt; other <span class="SLgc">do</span>
+        }
+
+        <span class="SLgc">if</span> .value &gt; other
+        {
             <span class="SLgc">return</span> <span class="SNum">1</span>
+        }
+
         <span class="SLgc">return</span> <span class="SNum">0</span>
     }
 }
@@ -6372,8 +6586,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> v = <span class="SCst">MyStruct</span>{}
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(v.count == <span class="SNum">4</span>)
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
-    <span class="SLgc">for</span> v <span class="SLgc">do</span>
+    <span class="SLgc">for</span> v
+    {
         cpt += <span class="SNum">1</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(cpt == <span class="SNum">4</span>)
 }</span></div>
 <h3 id="_006_008_custom_iteration_swg">Custom Iteration</h3>
@@ -6415,14 +6632,20 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> values = <span class="SCst">MyStruct</span>{}
     <span class="SKwd">var</span> total: <span class="STpe">s32</span>
 
-    <span class="SLgc">for</span> value, doubled, index <span class="SLgc">in</span> values <span class="SLgc">do</span>
+    <span class="SLgc">for</span> value, doubled, index <span class="SLgc">in</span> values
+    {
         total += value + doubled + <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)
+    }
 
-    <span class="SLgc">for</span> <span class="SKwd">_</span>, doubled <span class="SLgc">in</span> values <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SKwd">_</span>, doubled <span class="SLgc">in</span> values
+    {
         total += doubled
+    }
 
-    <span class="SLgc">for</span> <span class="SKwd">_</span>, <span class="SKwd">_</span>, index <span class="SLgc">in</span> values <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SKwd">_</span>, <span class="SKwd">_</span>, index <span class="SLgc">in</span> values
+    {
         total += <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)
+    }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(total == <span class="SNum">306</span>)
 }
@@ -6460,8 +6683,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> values = <span class="SCst">MyStruct</span>{}
     <span class="SKwd">var</span> code: <span class="STpe">s32</span>
 
-    <span class="SLgc">for</span> value <span class="SLgc">in</span> values.<span class="SFct">reversed</span>() <span class="SLgc">do</span>
+    <span class="SLgc">for</span> value <span class="SLgc">in</span> values.<span class="SFct">reversed</span>()
+    {
         code = code * <span class="SNum">100</span> + value
+    }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(code == <span class="SNum">302010</span>)
 }
@@ -6478,10 +6703,14 @@ swc test -w path/to/workspace -m messages</span></div>
     {
         <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="STpe">me</span>.buffer.count
         {
-            <span class="SCmp">#static</span> <span class="SLgc">if</span> ptr <span class="SLgc">do</span>
+            <span class="SCmp">#static</span> <span class="SLgc">if</span> ptr
+            {
                 <span class="SCmp">#inject</span>(stmt, item = <span class="SKwd">cast</span>(*<span class="STpe">s32</span>, &amp;<span class="STpe">me</span>.buffer[index]), index = index)
-            <span class="SLgc">else</span> <span class="SLgc">do</span>
+            }
+            <span class="SLgc">else</span>
+            {
                 <span class="SCmp">#inject</span>(stmt, item = <span class="STpe">me</span>.buffer[index], index = index)
+            }
         }
     }
 }</span></div>
@@ -6491,8 +6720,10 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> values = <span class="SCst">SliceStruct</span>{}
 
-    <span class="SLgc">for</span> &amp;value, index <span class="SLgc">in</span> values <span class="SLgc">do</span>
+    <span class="SLgc">for</span> &amp;value, index <span class="SLgc">in</span> values
+    {
         value[] += <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)
+    }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(values.buffer[<span class="SNum">0</span>] == <span class="SNum">1</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(values.buffer[<span class="SNum">4</span>] == <span class="SNum">9</span>)
@@ -6976,10 +7207,16 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SKwd">func</span> <span class="SFct">seasonAt</span>(index: <span class="STpe">s32</span>)-&gt;<span class="SCst">Season</span>
 {
-    <span class="SLgc">if</span> index == <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> index == <span class="SNum">0</span>
+    {
         <span class="SLgc">return</span> .<span class="SCst">Summer</span>
-    <span class="SLgc">if</span> index == <span class="SNum">1</span> <span class="SLgc">do</span>
+    }
+
+    <span class="SLgc">if</span> index == <span class="SNum">1</span>
+    {
         <span class="SLgc">return</span> .<span class="SCst">Winter</span>
+    }
+
     <span class="SFct">invalidSeason</span>()
 }
 
@@ -7261,8 +7498,11 @@ swc test -w path/to/workspace -m messages</span></div>
     fct = <span class="SKwd">func</span>|x|(toAdd)
     {
         <span class="SKwd">var</span> res = <span class="SNum">0</span>
-        <span class="SLgc">for</span> v <span class="SLgc">in</span> x <span class="SLgc">do</span>
+        <span class="SLgc">for</span> v <span class="SLgc">in</span> x
+        {
             res += v
+        }
+
         res += toAdd
         <span class="SLgc">return</span> res
     }
@@ -7573,16 +7813,22 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> total = <span class="SNum">0</span>'<span class="STpe">u64</span>
-    <span class="SLgc">for</span> <span class="SKwd">_</span>, index <span class="SLgc">in</span> [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>] <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SKwd">_</span>, index <span class="SLgc">in</span> [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>]
+    {
         total += index
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(total == <span class="SNum">3</span>)
 
     <span class="SKwd">let</span> (<span class="SKwd">_</span>, second) = (<span class="SNum">1</span>, <span class="SNum">2</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(second == <span class="SNum">2</span>)
 
     <span class="SCmt">// A counting loop that does not read its index simply has no name.</span>
-    <span class="SLgc">for</span> <span class="SNum">3</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> <span class="SNum">3</span>
+    {
         total += <span class="SNum">1</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(total == <span class="SNum">6</span>)
 }</span></div>
 <h3 id="_007_007_discard_swg_Keeping_a_Name">Keeping a Name</h3>
@@ -7642,8 +7888,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">func</span> <span class="SFct">toto</span>()-&gt;[<span class="SNum">255</span>] <span class="STpe">s32</span>
     {
         <span class="SKwd">var</span> result: <span class="SCmp">#returntype</span>
-        <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">255</span> <span class="SLgc">do</span>
+        <span class="SLgc">for</span> i <span class="SLgc">in</span> <span class="SNum">255</span>
+        {
             result[i] = i
+        }
+
         <span class="SLgc">return</span> result
     }
 
@@ -7659,8 +7908,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">func</span> <span class="SFct">clampedDouble</span>(value: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
     {
         <span class="SKwd">var</span> result: <span class="SCmp">#returntype</span> = value * <span class="SNum">2</span>
-        <span class="SLgc">if</span> result &lt; <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> result &lt; <span class="SNum">0</span>
+        {
             <span class="SLgc">return</span> <span class="SNum">0</span>
+        }
+
         <span class="SLgc">return</span> <span class="SNsp">Swag</span>.<span class="SFct">min</span>(result, <span class="SNum">100</span>)
     }
 
@@ -8014,8 +8266,10 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SCmt">// Ask for the next row while this one is summed. The last hint points one past</span>
         <span class="SCmt">// the end of 'pixels', which is harmless.</span>
         <span class="SNsp">Swag</span>.<span class="SFct">prefetch</span>(pixels.buffer + (row + <span class="SNum">1</span>) * <span class="SCst">Width</span>)
-        <span class="SLgc">for</span> col <span class="SLgc">in</span> <span class="SNum">0</span> <span class="SLgc">until</span> <span class="SCst">Width</span> <span class="SLgc">do</span>
+        <span class="SLgc">for</span> col <span class="SLgc">in</span> <span class="SNum">0</span> <span class="SLgc">until</span> <span class="SCst">Width</span>
+        {
             sum += pixels[row * <span class="SCst">Width</span> + col]
+        }
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(sum == <span class="SNum">0</span>)
@@ -8049,12 +8303,16 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> squares: [<span class="SNum">8</span>] <span class="STpe">u64</span>
 
-    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;squares| index <span class="SLgc">in</span> <span class="SNum">8</span> <span class="SLgc">do</span>
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;squares| index <span class="SLgc">in</span> <span class="SNum">8</span>
+    {
         squares[index] = index * index
+    }
 
     <span class="SCmt">// The join is the edge: every partition's write happens before these reads.</span>
-    <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">8</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">8</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(squares[index] == index * index)
+    }
 }</span></div>
 <h3 id="_008_006_memory_model_swg_Atomic_Operations">Atomic Operations</h3>
 <p>An operation of <span class="code-inline">Swag.AtomicValue</span>, and each atomic intrinsic, is atomic: no thread sees it half done, and two of them on one location never race. By default they are also <b>sequentially consistent</b>. All of them, on every location, happen in one order that every thread observes and that agrees with each thread's program order. It is the strongest order, and the one to reason with.</p>
@@ -8095,8 +8353,10 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> visited: <span class="SNsp">Swag</span>.<span class="SFct">AtomicValue</span>'<span class="STpe">u32</span>
 
-    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;visited| <span class="SNum">16</span> <span class="SLgc">do</span>
+    <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;visited| <span class="SNum">16</span>
+    {
         visited.<span class="SFct">add</span>(<span class="SNum">1</span>)
+    }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(visited.<span class="SFct">loadRelaxed</span>() == <span class="SNum">16</span>)
 }</span></div>
@@ -8151,8 +8411,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">where</span> <span class="SCst">Count</span> &gt;= <span class="SNum">0</span>
 {
     <span class="SKwd">var</span> result: [<span class="SCst">Count</span>] <span class="SCst">T</span>
-    <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SCst">Count</span> <span class="SLgc">do</span>
+    <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SCst">Count</span>
+    {
         result[index] = value
+    }
+
     <span class="SLgc">return</span> result
 }
 
@@ -8308,8 +8571,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">func</span>(<span class="SCst">T</span>, <span class="SCst">U</span> = <span class="SCst">T</span>) <span class="SFct">sameTypePair</span>(left: <span class="SCst">T</span>, right: <span class="SCst">U</span>)-&gt;<span class="SCst">U</span>
         <span class="SLgc">where</span>
         {
-            <span class="SLgc">if</span> <span class="SCst">T</span> == <span class="SCst">U</span> <span class="SLgc">do</span>
+            <span class="SLgc">if</span> <span class="SCst">T</span> == <span class="SCst">U</span>
+            {
                 <span class="SLgc">return</span> <span class="SKwd">true</span>
+            }
+
             <span class="SLgc">return</span> <span class="SKwd">false</span>
         }
     {
@@ -8665,8 +8931,10 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">mtd</span> <span class="SFct">press</span>()
     {
-        <span class="SLgc">if</span> .sigPressed.callback <span class="SLgc">do</span>
+        <span class="SLgc">if</span> .sigPressed.callback
+        {
             .sigPressed.<span class="SFct">callback</span>(<span class="STpe">me</span>)
+        }
     }
 }
 
@@ -8814,8 +9082,10 @@ swc test -w path/to/workspace -m messages</span></div>
     {
         <span class="SLgc">defer</span> <span class="SCst">G</span> += <span class="SNum">1</span>     <span class="SCmt">// Increment G at end of each iteration, even if broken.</span>
 
-        <span class="SLgc">if</span> <span class="SCst">G</span> == <span class="SNum">2</span> <span class="SLgc">do</span>
-            <span class="SLgc">break</span>     <span class="SCmt">// Exiting early still triggers the defer expression.</span>
+        <span class="SLgc">if</span> <span class="SCst">G</span> == <span class="SNum">2</span>
+        {
+            <span class="SLgc">break</span>
+        }     <span class="SCmt">// Exiting early still triggers the defer expression.</span>
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SCst">G</span> == <span class="SNum">3</span>)
@@ -8830,8 +9100,10 @@ swc test -w path/to/workspace -m messages</span></div>
         {
             <span class="SLgc">for</span> <span class="SNum">10</span>
             {
-                <span class="SLgc">if</span> drained == <span class="SNum">4</span> <span class="SLgc">do</span>
-                    <span class="SLgc">break</span>     <span class="SCmt">// Leaves the loop inside the defer, not the defer.</span>
+                <span class="SLgc">if</span> drained == <span class="SNum">4</span>
+                {
+                    <span class="SLgc">break</span>
+                }     <span class="SCmt">// Leaves the loop inside the defer, not the defer.</span>
                 drained += <span class="SNum">1</span>
             }
         }
@@ -8869,8 +9141,10 @@ swc test -w path/to/workspace -m messages</span></div>
             <span class="SFct">releaseResource</span>(&amp;resource)
         }
 
-        <span class="SLgc">if</span> index == <span class="SNum">2</span> <span class="SLgc">do</span>
-            <span class="SLgc">break</span>     <span class="SCmt">// Defer ensures cleanup even on early exit.</span>
+        <span class="SLgc">if</span> index == <span class="SNum">2</span>
+        {
+            <span class="SLgc">break</span>
+        }     <span class="SCmt">// Defer ensures cleanup even on early exit.</span>
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SLgc">not</span> resource.<span class="SFct">isResourceCreated</span>())
@@ -9282,10 +9556,14 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
     <span class="SKwd">func</span> <span class="SFct">getType</span>(needAString: <span class="STpe">bool</span>)-&gt;<span class="STpe">typeinfo</span>
     {
-        <span class="SLgc">if</span> needAString <span class="SLgc">do</span>
+        <span class="SLgc">if</span> needAString
+        {
             <span class="SLgc">return</span> <span class="STpe">string</span>?
-        <span class="SLgc">else</span> <span class="SLgc">do</span>
+        }
+        <span class="SLgc">else</span>
+        {
             <span class="SLgc">return</span> <span class="STpe">s32</span>
+        }
     }
 
     <span class="SCmt">// Materialize the chosen type via '#decltype'</span>
@@ -9360,8 +9638,11 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Reflection describes declarations; it does not bypass visibility, constness, or ownership. When writing a generic serializer or editor, check the descriptor with an <span class="code-inline">is</span> pattern, check nullable descriptor slices, and derive field addresses from a live instance plus <span class="code-inline">TypeValue.offset</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">reflectedFieldCount</span>(type: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">u64</span>
 {
-    <span class="SLgc">if</span> type <span class="SLgc">is</span> <span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span> <span class="SLgc">as</span> info <span class="SLgc">do</span>
+    <span class="SLgc">if</span> type <span class="SLgc">is</span> <span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span> <span class="SLgc">as</span> info
+    {
         <span class="SLgc">return</span> info.fields.count
+    }
+
     <span class="SLgc">return</span> <span class="SNum">0</span>
 }
 
@@ -9438,8 +9719,11 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SKwd">func</span> <span class="SFct">count</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
-    <span class="SLgc">if</span> name == <span class="SKwd">null</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> name == <span class="SKwd">null</span>
+    {
         <span class="SKwd">fail</span> <span class="SCst">MyError</span>{base: <span class="SNsp">Swag</span>.<span class="SCst">BaseError</span>{<span class="SStr">"name cannot be null"</span>}, code: <span class="SNum">7</span>}
+    }
+
     <span class="SLgc">return</span> name.count
 }</span></div>
 <h3 id="_013_001_error_management_swg_Catching_Errors">Catching Errors</h3>
@@ -9489,7 +9773,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(other == <span class="SNum">5</span> <span class="SLgc">and</span> saved.<span class="SFct">isEmpty</span>())
 }</span></div>
 <h3 id="_013_001_error_management_swg_Handling_on_Failure">Handling on Failure</h3>
-<p>'catch e { H }' runs the handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails; 'catch e do S' runs a single statement. <span class="code-inline">Swag.err</span> reads the error inside <span class="code-inline">H</span>. A handler may finish normally when its result is unused. When the result is read, the handler must leave the surrounding flow.</p>
+<p>'catch e { H }' runs the handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails. <span class="code-inline">Swag.err</span> reads the error inside <span class="code-inline">H</span>. A handler may finish normally when its result is unused. When the result is read, the handler must leave the surrounding flow.</p>
 <p>The block that follows a <span class="code-inline">catch</span> operand is always its handler. To pass trailing code to a macro under <span class="code-inline">catch</span>, write it as an explicit <span class="code-inline">#code</span> literal. In the header of <span class="code-inline">if</span>, <span class="code-inline">while</span>, <span class="code-inline">for</span>, <span class="code-inline">switch</span> or <span class="code-inline">with</span>, the <span class="code-inline">{</span> that follows a <span class="code-inline">catch</span> operand opens the statement body: give the handler parentheses there.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">recordTrace</span>(name: <span class="STpe">string</span>?, out: *<span class="STpe">s32</span>) <span class="SKwd">fail</span>
 {
@@ -9500,8 +9784,11 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> seen: <span class="STpe">s32</span> = -<span class="SNum">1</span>
 
-    <span class="SKwd">catch</span> <span class="SFct">recordTrace</span>(<span class="SStr">"swag"</span>, &amp;seen) <span class="SLgc">do</span>
+    <span class="SKwd">catch</span> <span class="SFct">recordTrace</span>(<span class="SStr">"swag"</span>, &amp;seen)
+    {
         seen = -<span class="SNum">2</span>
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(seen == <span class="SNum">4</span>)     <span class="SCmt">// success: the handler does not run</span>
 
     <span class="SKwd">catch</span> <span class="SFct">recordTrace</span>(<span class="SKwd">null</span>, &amp;seen)
@@ -9545,17 +9832,26 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SKwd">func</span> <span class="SFct">loadSettings</span>(fileName: <span class="STpe">string</span>?)-&gt;<span class="SCst">Settings</span> <span class="SKwd">fail</span>
 {
-    <span class="SLgc">if</span> fileName == <span class="SKwd">null</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> fileName == <span class="SKwd">null</span>
+    {
         <span class="SKwd">fail</span> <span class="SCst">MyError</span>{base: <span class="SNsp">Swag</span>.<span class="SCst">BaseError</span>{<span class="SStr">"no settings file"</span>}}
+    }
+
     <span class="SLgc">return</span> <span class="SCst">Settings</span>{width: <span class="SNum">1024</span>, title: fileName}
 }
 
 <span class="SKwd">func</span> <span class="SFct">findName</span>(id: <span class="STpe">s32</span>)-&gt;<span class="STpe">string</span>? <span class="SKwd">fail</span>
 {
-    <span class="SLgc">if</span> id == <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> id == <span class="SNum">0</span>
+    {
         <span class="SKwd">fail</span> <span class="SCst">MyError</span>{base: <span class="SNsp">Swag</span>.<span class="SCst">BaseError</span>{<span class="SStr">"unknown id"</span>}}
-    <span class="SLgc">if</span> id == <span class="SNum">1</span> <span class="SLgc">do</span>
+    }
+
+    <span class="SLgc">if</span> id == <span class="SNum">1</span>
+    {
         <span class="SLgc">return</span> <span class="SKwd">null</span>
+    }
+
     <span class="SLgc">return</span> <span class="SStr">"first"</span>
 }
 
@@ -9638,8 +9934,10 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SKwd">let</span> err = errOutcome.<span class="SFct">value</span>()
 
-    <span class="SLgc">if</span> err == <span class="SKwd">null</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> err == <span class="SKwd">null</span>
+    {
         <span class="SLgc">return</span> -<span class="SNum">1</span>
+    }
 
     <span class="SLgc">return</span> <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code
 }
@@ -9935,8 +10233,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">func</span> <span class="SFct">sumRange</span>(low, high: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
     {
         <span class="SKwd">var</span> sum = <span class="SNum">0</span>
-        <span class="SLgc">for</span> i <span class="SLgc">in</span> low <span class="SLgc">until</span> high <span class="SLgc">do</span>
+        <span class="SLgc">for</span> i <span class="SLgc">in</span> low <span class="SLgc">until</span> high
+        {
             sum += i
+        }
+
         <span class="SLgc">return</span> sum
     }
 
@@ -10236,8 +10537,11 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 {
     <span class="SKwd">var</span> values: [<span class="SNum">4</span>] <span class="STpe">s32</span>
     <span class="SKwd">var</span> total:  <span class="STpe">s32</span>
-    <span class="SLgc">for</span> v <span class="SLgc">in</span> values <span class="SLgc">do</span>
+    <span class="SLgc">for</span> v <span class="SLgc">in</span> values
+    {
         total += v
+    }
+
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(total == <span class="SNum">0</span>)
 }</span></div>
 <h3 id="_013_004_borrowing_swg_What_the_Rule_Does_Not_Do">What the Rule Does Not Do</h3>
@@ -10334,8 +10638,11 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">constexprFactorial</span>(value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span>
 {
-    <span class="SLgc">if</span> value &lt;= <span class="SNum">1</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> value &lt;= <span class="SNum">1</span>
+    {
         <span class="SLgc">return</span> <span class="SNum">1</span>
+    }
+
     <span class="SLgc">return</span> value * <span class="SFct">constexprFactorial</span>(value - <span class="SNum">1</span>)
 }
 
@@ -10343,8 +10650,11 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <span class="SKwd">func</span> <span class="SFct">constexprSum</span>(values: <span class="SKwd">const</span> [..] <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
 {
     <span class="SKwd">var</span> result = <span class="SNum">0</span>
-    <span class="SLgc">for</span> value <span class="SLgc">in</span> values <span class="SLgc">do</span>
+    <span class="SLgc">for</span> value <span class="SLgc">in</span> values
+    {
         result += value
+    }
+
     <span class="SLgc">return</span> result
 }
 
@@ -10402,8 +10712,11 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <span class="SKwd">func</span> <span class="SFct">sum</span>(values: <span class="STpe">s32</span>...)-&gt;<span class="STpe">s32</span>
 {
     <span class="SKwd">var</span> result = <span class="SNum">0</span>'<span class="STpe">s32</span>
-    <span class="SLgc">for</span> v <span class="SLgc">in</span> values <span class="SLgc">do</span>
+    <span class="SLgc">for</span> v <span class="SLgc">in</span> values
+    {
         result += v
+    }
+
     <span class="SLgc">return</span> result
 }
 
@@ -10444,8 +10757,11 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     <span class="SKwd">const</span> <span class="SCst">Value</span> = <span class="SFct">#run</span>
     {
         <span class="SKwd">var</span> result: <span class="STpe">f32</span>
-        <span class="SLgc">for</span> <span class="SNum">10</span> <span class="SLgc">do</span>
+        <span class="SLgc">for</span> <span class="SNum">10</span>
+        {
             result += <span class="SNum">1</span>
+        }
+
         <span class="SLgc">return</span> result
     }
 
@@ -10458,8 +10774,11 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     <span class="SKwd">const</span> <span class="SCst">PowerOfTwo</span>: [<span class="SCst">N</span>] <span class="STpe">s32</span> = <span class="SFct">#run</span>
     {
         <span class="SKwd">var</span> arr: [<span class="SCst">N</span>] <span class="STpe">s32</span>
-        <span class="SLgc">for</span> i <span class="SLgc">in</span> arr.count <span class="SLgc">do</span>
+        <span class="SLgc">for</span> i <span class="SLgc">in</span> arr.count
+        {
             arr[i] = <span class="SNum">1</span> &lt;&lt; <span class="SKwd">cast</span>(<span class="STpe">u32</span>, i)
+        }
+
         <span class="SLgc">return</span> arr
     }
 
@@ -10516,7 +10835,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <span class="SCmp">#assert</span>(<span class="SItr">#defined</span>(<span class="SCst">Global</span>))     <span class="SCmt">// Confirms 'Global' is defined.</span>
 <span class="SKwd">var</span> <span class="SCst">Global</span> = <span class="SNum">0</span>     <span class="SCmt">// Define a global variable 'Global'.</span></span></div>
 <h3 id="_014_003_compiler_instructions_swg_Static_Control_with___static_">Static Control with <span class="code-inline">#static</span></h3>
-<p><span class="code-inline">#static</span> applies compile-time semantics to the control statement that follows. The condition or selected value is evaluated at compile time, and only the selected branch is retained. The ordinary <span class="code-inline">elif</span> and <span class="code-inline">else</span> keywords complete a static <span class="code-inline">if</span>; they do not repeat the <span class="code-inline">#static</span> prefix.</p>
+<p><span class="code-inline">#static</span> applies compile-time semantics to the control statement that follows. The condition or selected value is evaluated at compile time, and only the selected branch is retained. The ordinary <span class="code-inline">else if</span> and <span class="code-inline">else</span> keywords complete a static <span class="code-inline">if</span>; they do not repeat the <span class="code-inline">#static</span> prefix.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">DEBUG</span>   = <span class="SNum">1</span>
 <span class="SKwd">const</span> <span class="SCst">RELEASE</span> = <span class="SNum">0</span>
 
@@ -10524,7 +10843,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 {
     <span class="SCmt">// Compiled because DEBUG == 1.</span>
 }
-<span class="SLgc">elif</span> <span class="SCst">RELEASE</span>
+<span class="SLgc">else</span> <span class="SLgc">if</span> <span class="SCst">RELEASE</span>
 {
     <span class="SCmt">// Would compile if RELEASE were true and DEBUG were false.</span>
 }
@@ -10641,8 +10960,11 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
     <span class="SKwd">let</span> itf = <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>()
     <span class="SKwd">let</span> msg = <span class="SKwd">unwrap</span> itf.<span class="SFct">getMessage</span>()
 
-    <span class="SLgc">if</span> msg.kind != <span class="SNsp">Swag</span>.<span class="SCst">CompilerMsgKind</span>.<span class="SCst">PassAfterSemantic</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> msg.kind != <span class="SNsp">Swag</span>.<span class="SCst">CompilerMsgKind</span>.<span class="SCst">PassAfterSemantic</span>
+    {
         <span class="SLgc">return</span>
+    }
+
     itf.<span class="SFct">compileString</span>(<span class="SStr">"#init { CodeInspectionHookRan = true }\n"</span>)
 }
 
@@ -11007,8 +11329,10 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
     <span class="SFct">repeatSquare</span>(<span class="SNum">5</span>)
     {
         a += <span class="SNum">1</span>
-        <span class="SLgc">if</span> a == <span class="SNum">10</span> <span class="SLgc">do</span>
-            <span class="SLgc">break</span>     <span class="SCmt">// remapped to 'break to ScopeTarget'</span>
+        <span class="SLgc">if</span> a == <span class="SNum">10</span>
+        {
+            <span class="SLgc">break</span>
+        }     <span class="SCmt">// remapped to 'break to ScopeTarget'</span>
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(a == <span class="SNum">10</span>)
@@ -11041,14 +11365,18 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
         a += <span class="SNum">1</span>
 
         <span class="SCmt">// If 'a' divisible by 3, skip to next inner iteration (acts like 'continue')</span>
-        <span class="SLgc">if</span> a % <span class="SNum">3</span> == <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> a % <span class="SNum">3</span> == <span class="SNum">0</span>
+        {
             <span class="SLgc">continue</span>
+        }
 
         b += <span class="SNum">1</span>
 
         <span class="SCmt">// Exit both loops when 'a' reaches 8</span>
-        <span class="SLgc">if</span> a == <span class="SNum">8</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> a == <span class="SNum">8</span>
+        {
             <span class="SLgc">break</span>
+        }
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(a == <span class="SNum">8</span>)
@@ -11204,8 +11532,10 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 <div class="code-block"><span class="SCde"><span class="SFct">#message</span>(<span class="SNsp">Swag</span>.<span class="SCst">CompilerMsgMask</span>.<span class="SCst">SemFunctions</span>)
 {
     <span class="SKwd">let</span> message = <span class="SKwd">unwrap</span> <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>().<span class="SFct">getMessage</span>()
-    <span class="SLgc">if</span> message.type == <span class="SKwd">null</span> <span class="SLgc">or</span> message.name == <span class="SKwd">null</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> message.type == <span class="SKwd">null</span> <span class="SLgc">or</span> message.name == <span class="SKwd">null</span>
+    {
         <span class="SLgc">return</span>
+    }
 
     <span class="SKwd">let</span> functionType = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>, message.type)
     <span class="SCmt">// Inspect functionType.parameters, functionType.returnType, and attributes.</span>
@@ -11961,7 +12291,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Impl|_006_002_impl_swg|",
 "h|Struct Methods and Constants|_006_002_impl_swg_Struct_Methods_and_Constants|",
 "h|Multiple impl Blocks|_006_002_impl_swg_Multiple__impl__Blocks|",
-"h|Method Syntax Sugar|_006_002_impl_swg_Method_Syntax_Sugar|",
+"h|Method Declarations|_006_002_impl_swg_Method_Declarations|",
 "h|Method Reflection|_006_002_impl_swg_Method_Reflection|",
 "h|Offset|_006_003_offset_swg|",
 "h|Custom Field Layout with Swag.Offset|_006_003_offset_swg_Custom_Field_Layout_with__Swag_Offset_|",

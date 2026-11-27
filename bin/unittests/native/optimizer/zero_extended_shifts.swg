@@ -20,7 +20,7 @@ func byteShift0(a: u64)->u64 => (a & 255) << 0
 
 #test
 {
-    let values = [0'u64, 1, 127, 128, 255, 256, 32768, 65535, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 127, 128, 255, 256, 32768, 65535, 0xFFFFFFFFFFFFFFFF]
     for value in values
     {
         let lowByte = value & 255

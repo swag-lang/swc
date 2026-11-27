@@ -81,17 +81,23 @@ impl RetainedHeap
 {
     mtd const liveCount()->u64
     {
-        var result = 0'u64
+        var result = 0_u64
         for index in .count
         {
-            if not .released[index] do result += 1
+            if not .released[index]
+            {
+                result += 1
+            }
         }
         return result
     }
 
     mtd opDrop()
     {
-        for index in .count do .base.free(&.requests[index])
+        for index in .count
+        {
+            .base.free(&.requests[index])
+        }
     }
 }
 
@@ -109,9 +115,15 @@ impl IAllocator for RetainedHeap
     {
         for index in .count
         {
-            if .requests[index].address != request.address do continue
+            if .requests[index].address != request.address
+            {
+                continue
+            }
             .frees += 1
-            if .released[index] do .duplicates += 1
+            if .released[index]
+            {
+                .duplicates += 1
+            }
             .released[index] = true
             return
         }

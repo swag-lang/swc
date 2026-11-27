@@ -5,140 +5,293 @@
 // Size in bytes of an X25519 private or public key and shared secret.
 public const X25519KeySize = 32
 
+// Five radix-2^51 limbs represent any value below 2^255 before canonical reduction.
+private const FieldLimbBits         = 51
+private const FieldLimbMask         = (1_u64 << FieldLimbBits) - 1
+private const FieldModulus: [5] u64 = [FieldLimbMask - 18, FieldLimbMask, FieldLimbMask, FieldLimbMask, FieldLimbMask]
+
+// Reduced values keep each limb below 2^51, with limb 1 allowed another 1023.
 internal struct X25519Field
 {
-    limbs: [16] u64
+    limbs: [5] u64
 }
 
-internal func x25519Normalize(value: X25519Field)->X25519Field
+private struct X25519Product
+{
+    low, high: u64
+}
+
+private impl X25519Product
+{
+    #[Swag.Inline]
+    mtd add(value: u64)
+    {
+        let low = .low + value
+        .high += cast(u64, low < .low)
+        .low  = low
+    }
+
+    #[Swag.Inline]
+    mtd addProduct(left, right: u64)
+    {
+        let product = Math.mulU64(left, right)
+        .add(product.lo)
+        .high += product.hi
+    }
+
+    // Finish one convolution column and pass its carry as the next low word.
+    // The largest wrapped sum stays below 2^112.
+    #[Swag.Inline]
+    mtd reduceLimb()->u64
+    {
+        let limb = .low & FieldLimbMask
+        .low  = (.low >> FieldLimbBits) | (.high << (64 - FieldLimbBits))
+        .high = 0
+        return limb
+    }
+}
+
+#[Swag.Inline]
+private func x25519FoldCarry(value: *X25519Field, carry: u64)
+{
+    // The low limb can keep its full carry by advancing only to limb 1.
+    // Even the product fold adds less than 1024 radix-2^51 units there.
+    value.limbs[0] += carry * 19
+    value.limbs[1] += value.limbs[0] >> FieldLimbBits
+    value.limbs[0] &= FieldLimbMask
+}
+
+private func x25519Normalize(value: X25519Field)->X25519Field
 {
     var result = value
-    for pass in 5
+    for index in 4
     {
-        discard pass
-        for index in 15
-        {
-            let carry = result.limbs[index] >> 16
-            result.limbs[index]     &= 0xFFFF
-            result.limbs[index + 1] += carry
-        }
+        let carry = result.limbs[index] >> FieldLimbBits
+        result.limbs[index]     &= FieldLimbMask
+        result.limbs[index + 1] += carry
+    }
 
-        let carry = result.limbs[15] >> 15
-        result.limbs[15] &= 0x7FFF
-        result.limbs[0]  += carry * 19
+    let carry = result.limbs[4] >> FieldLimbBits
+    result.limbs[4] &= FieldLimbMask
+    x25519FoldCarry(&result, carry)
+    return result
+}
+
+// The loose sums and differences stay below 3*2^51 + 1024 per limb.
+// Use them directly only as product operands.
+#[Swag.Inline]
+internal func x25519AddLoose(left, right: X25519Field)->X25519Field
+{
+    var result: #returntype
+    for index in result.limbs.count
+    {
+        result.limbs[index] = left.limbs[index] + right.limbs[index]
     }
 
     return result
 }
 
-internal func x25519Add(left, right: X25519Field)->X25519Field
+#[Swag.Inline]
+internal func x25519SubtractLoose(left, right: X25519Field)->X25519Field
 {
     var result: #returntype
-    for index in 16 do
-        result.limbs[index] = left.limbs[index] + right.limbs[index]
-    return x25519Normalize(result)
-}
-
-internal func x25519Subtract(left, right: X25519Field)->X25519Field
-{
-    var result: #returntype
-    for index in 16
+    for index in result.limbs.count
     {
-        let modulusLimb = index == 0 ? 65517'u64 : index == 15 ? 32767'u64 : 65535'u64
-        result.limbs[index] = left.limbs[index] + 2 * modulusLimb - right.limbs[index]
+        result.limbs[index] = left.limbs[index] + 2 * FieldModulus[index] - right.limbs[index]
     }
 
-    return x25519Normalize(result)
+    return result
 }
+
+internal func x25519Add(left, right: X25519Field)->X25519Field      => x25519Normalize(x25519AddLoose(left, right))
+internal func x25519Subtract(left, right: X25519Field)->X25519Field => x25519Normalize(x25519SubtractLoose(left, right))
 
 internal func x25519Multiply(left, right: X25519Field)->X25519Field
 {
-    var products: [32] u64
-    for i in 16
-    {
-        for j in 16 do
-            products[i + j] += left.limbs[i] * right.limbs[j]
-    }
-
-    for index in 16 until 32 do
-        products[index - 16] += products[index] * 38
-
+    // A product past limb four wraps around with a factor of 19.
+    let a       = left.limbs
+    let b       = right.limbs
+    let scaled1 = 19 * b[1]
+    let scaled2 = 19 * b[2]
+    let scaled3 = 19 * b[3]
+    let scaled4 = 19 * b[4]
     var result: #returntype
-    for index in 16 do
-        result.limbs[index] = products[index]
-    return x25519Normalize(result)
+    var column: X25519Product
+    column.addProduct(a[0], b[0])
+    column.addProduct(a[1], scaled4)
+    column.addProduct(a[2], scaled3)
+    column.addProduct(a[3], scaled2)
+    column.addProduct(a[4], scaled1)
+    result.limbs[0] = column.reduceLimb()
+
+    column.addProduct(a[0], b[1])
+    column.addProduct(a[1], b[0])
+    column.addProduct(a[2], scaled4)
+    column.addProduct(a[3], scaled3)
+    column.addProduct(a[4], scaled2)
+    result.limbs[1] = column.reduceLimb()
+
+    column.addProduct(a[0], b[2])
+    column.addProduct(a[1], b[1])
+    column.addProduct(a[2], b[0])
+    column.addProduct(a[3], scaled4)
+    column.addProduct(a[4], scaled3)
+    result.limbs[2] = column.reduceLimb()
+
+    column.addProduct(a[0], b[3])
+    column.addProduct(a[1], b[2])
+    column.addProduct(a[2], b[1])
+    column.addProduct(a[3], b[0])
+    column.addProduct(a[4], scaled4)
+    result.limbs[3] = column.reduceLimb()
+
+    column.addProduct(a[0], b[4])
+    column.addProduct(a[1], b[3])
+    column.addProduct(a[2], b[2])
+    column.addProduct(a[3], b[1])
+    column.addProduct(a[4], b[0])
+    result.limbs[4] = column.reduceLimb()
+    x25519FoldCarry(&result, column.low)
+    return result
 }
 
 internal func x25519Square(value: X25519Field)->X25519Field
 {
-    return x25519Multiply(value, value)
+    // Count each off-diagonal pair twice and apply the same modular wrap as multiplication.
+    let a = value.limbs
+    var result: #returntype
+    var column: X25519Product
+    column.addProduct(a[0], a[0])
+    column.addProduct(a[1], 38 * a[4])
+    column.addProduct(a[2], 38 * a[3])
+    result.limbs[0] = column.reduceLimb()
+
+    column.addProduct(a[0], 2 * a[1])
+    column.addProduct(a[2], 38 * a[4])
+    column.addProduct(a[3], 19 * a[3])
+    result.limbs[1] = column.reduceLimb()
+
+    column.addProduct(a[0], 2 * a[2])
+    column.addProduct(a[1], a[1])
+    column.addProduct(a[3], 38 * a[4])
+    result.limbs[2] = column.reduceLimb()
+
+    column.addProduct(a[0], 2 * a[3])
+    column.addProduct(a[1], 2 * a[2])
+    column.addProduct(a[4], 19 * a[4])
+    result.limbs[3] = column.reduceLimb()
+
+    column.addProduct(a[0], 2 * a[4])
+    column.addProduct(a[1], 2 * a[3])
+    column.addProduct(a[2], a[2])
+    result.limbs[4] = column.reduceLimb()
+    x25519FoldCarry(&result, column.low)
+    return result
 }
 
-internal func x25519Invert(value: X25519Field)->X25519Field
+private func x25519SquareRepeated(value: X25519Field, count: u32)->X25519Field
 {
-    // p - 2 = 2^255 - 21; this fixed exponent has no secret-dependent control flow.
-    var result: X25519Field
-    result.limbs[0] = 1
-    var bit = 255'u32
-    while bit
+    var result = value
+    for count
     {
-        bit    -= 1
         result = x25519Square(result)
-        if bit >= 8 or ((0xEB'u32 >> bit) & 1) do
-            result = x25519Multiply(result, value)
     }
 
     return result
 }
+
+private func(Secret: bool) x25519Power(value: X25519Field, inverse: bool)->X25519Field
+{
+    // Build powers 2^n - 1 through 2^250 - 1. The suffix selects one of the
+    // fixed exponents used for inversion and for recovering Edwards coordinates.
+    var powers: struct
+    {
+        z2, z9, z11: X25519Field
+        p5, p10, p20, p40, p50, p100, p200, p250: X25519Field
+    }
+
+    with powers
+    {
+        .z2   = x25519Square(value)
+        .z9   = x25519Multiply(x25519SquareRepeated(.z2, 2), value)
+        .z11  = x25519Multiply(.z9, .z2)
+        .p5   = x25519Multiply(x25519Square(.z11), .z9)
+        .p10  = x25519Multiply(x25519SquareRepeated(.p5, 5), .p5)
+        .p20  = x25519Multiply(x25519SquareRepeated(.p10, 10), .p10)
+        .p40  = x25519Multiply(x25519SquareRepeated(.p20, 20), .p20)
+        .p50  = x25519Multiply(x25519SquareRepeated(.p40, 10), .p10)
+        .p100 = x25519Multiply(x25519SquareRepeated(.p50, 50), .p50)
+        .p200 = x25519Multiply(x25519SquareRepeated(.p100, 100), .p100)
+        .p250 = x25519Multiply(x25519SquareRepeated(.p200, 50), .p50)
+    }
+
+    defer
+    {
+        #static if Secret
+        {
+            Crypto.secureClear(Swag.makeSlice(&powers, 1))
+        }
+    }
+
+    if inverse
+    {
+        return x25519Multiply(x25519SquareRepeated(powers.p250, 5), powers.z11)
+    }
+
+    return x25519Multiply(x25519SquareRepeated(powers.p250, 2), value)
+}
+
+internal func x25519Invert(value: X25519Field)->X25519Field => x25519Power!{true}(value, inverse: true)
+
+internal func x25519InvertPublic(value: X25519Field)->X25519Field => x25519Power!{false}(value, inverse: true)
+internal func x25519Pow252Minus3(value: X25519Field)->X25519Field => x25519Power!{true}(value, inverse: false)
 
 internal func x25519Decode(data: const [..] u8)->X25519Field
 {
-    var result: #returntype
-    for index in 16
-    {
-        let offset = index * 2
-        result.limbs[index] = cast(u64, data[offset]) | (cast(u64, data[offset + 1]) << 8)
-    }
+    #[Swag.Inline]
+    func loadWord(bytes: const [*] u8)->u64 => Math.littleEndianToNative(cast(const [*] u64, bytes)[0])
 
-    result.limbs[15] &= 0x7FFF
-    return result
+    let bytes = data.buffer
+    return {limbs: [
+        loadWord(bytes) & FieldLimbMask,
+        (loadWord(bytes + 6) >> 3) & FieldLimbMask,
+        (loadWord(bytes + 12) >> 6) & FieldLimbMask,
+        (loadWord(bytes + 19) >> 1) & FieldLimbMask,
+        (loadWord(bytes + 24) >> 12) & FieldLimbMask]}
 }
 
 internal func x25519Encode(value: X25519Field, destination: [..] u8)
 {
-    var canonical         = x25519Normalize(value)
-    let modulus: [16] u64 = [65517, 65535, 65535, 65535, 65535, 65535, 65535, 65535,
-                             65535, 65535, 65535, 65535, 65535, 65535, 65535, 32767]
-    for reduction in 2
+    // The extra 19 produces a carry out of bit 255 exactly when the
+    // value is at least 2^255 - 19. Use that carry to subtract the modulus.
+    var canonical = value.limbs
+    var carry     = (canonical[0] + 19) >> FieldLimbBits
+    for index in 1 until canonical.count
     {
-        discard reduction
-        var difference: [16] u64
-        var borrow = 0'u64
-        for index in 16
-        {
-            let sub       = modulus[index] + borrow
-            let underflow = canonical.limbs[index] < sub
-            difference[index] = (canonical.limbs[index] - sub) & (index == 15 ? 0x7FFF'u64 : 0xFFFF'u64)
-            borrow = cast(u64, underflow)
-        }
-
-        let selectDifference = 0'u64 - (1 - borrow)
-        for index in 16 do
-            canonical.limbs[index] = (difference[index] & selectDifference) |
-                                     (canonical.limbs[index] & ~selectDifference)
+        carry = (canonical[index] + carry) >> FieldLimbBits
     }
 
-    for index in X25519KeySize
+    canonical[0] += 19 * carry
+    for index in 4
     {
-        let limb = canonical.limbs[index / 2]
-        destination[index] = cast(u8, (limb >> cast(u32, (index & 1) * 8)) & 0xFF)
+        carry = canonical[index] >> FieldLimbBits
+        canonical[index]     &= FieldLimbMask
+        canonical[index + 1] += carry
     }
+
+    canonical[4] &= FieldLimbMask
+
+    let words = cast([*] u64, destination.buffer)
+    words[0] = Math.nativeToLittleEndian(canonical[0] | (canonical[1] << 51))
+    words[1] = Math.nativeToLittleEndian((canonical[1] >> 13) | (canonical[2] << 38))
+    words[2] = Math.nativeToLittleEndian((canonical[2] >> 26) | (canonical[3] << 25))
+    words[3] = Math.nativeToLittleEndian((canonical[3] >> 39) | (canonical[4] << 12))
 }
 
 private func x25519ConditionalSwap(left, right: *X25519Field, swap: u64)
 {
-    let mask = 0'u64 - swap
-    for index in 16
+    let mask = 0_u64 - swap
+    for index in left.limbs.count
     {
         let difference = (left[].limbs[index] ^ right[].limbs[index]) & mask
         left[].limbs[index]  ^= difference
@@ -146,15 +299,20 @@ private func x25519ConditionalSwap(left, right: *X25519Field, swap: u64)
     }
 }
 
+private func x25519ClampScalar(privateKey: const [..] u8)->[X25519KeySize] u8
+{
+    var result: #returntype
+    Swag.memcpy(result.buffer, privateKey.buffer, X25519KeySize)
+    result[0]  &= 248
+    result[31] = (result[31] & 63) | 64
+    return result
+}
+
 private func x25519ScalarMult(privateKey, publicCoordinate: const [..] u8)->[X25519KeySize] u8
 {
-    var scalar:     [X25519KeySize] u8
+    var scalar = x25519ClampScalar(privateKey)
     var coordinate: [X25519KeySize] u8
-    Swag.memcpy(&scalar[0], privateKey.buffer, X25519KeySize)
-    Swag.memcpy(&coordinate[0], publicCoordinate.buffer, X25519KeySize)
-    scalar[0]      &= 248
-    scalar[31]     &= 127
-    scalar[31]     |= 64
+    Swag.memcpy(coordinate.buffer, publicCoordinate.buffer, X25519KeySize)
     coordinate[31] &= 127
 
     var x1 = x25519Decode(coordinate)
@@ -164,8 +322,8 @@ private func x25519ScalarMult(privateKey, publicCoordinate: const [..] u8)->[X25
     var x3 = x1
     var z3: X25519Field
     z3.limbs[0] = 1
-    var swap     = 0'u64
-    var position = 255'u32
+    var swap     = 0_u64
+    var position = 255_u32
     while position
     {
         position -= 1
@@ -175,19 +333,19 @@ private func x25519ScalarMult(privateKey, publicCoordinate: const [..] u8)->[X25
         x25519ConditionalSwap(&z2, &z3, swap)
         swap = bit
 
-        let a  = x25519Add(x2, z2)
+        let a  = x25519AddLoose(x2, z2)
         let aa = x25519Square(a)
-        let b  = x25519Subtract(x2, z2)
+        let b  = x25519SubtractLoose(x2, z2)
         let bb = x25519Square(b)
-        let e  = x25519Subtract(aa, bb)
-        let c  = x25519Add(x3, z3)
-        let d  = x25519Subtract(x3, z3)
+        let e  = x25519SubtractLoose(aa, bb)
+        let c  = x25519AddLoose(x3, z3)
+        let d  = x25519SubtractLoose(x3, z3)
         let da = x25519Multiply(d, a)
         let cb = x25519Multiply(c, b)
-        x3 = x25519Square(x25519Add(da, cb))
-        z3 = x25519Multiply(x1, x25519Square(x25519Subtract(da, cb)))
+        x3 = x25519Square(x25519AddLoose(da, cb))
+        z3 = x25519Multiply(x1, x25519Square(x25519SubtractLoose(da, cb)))
         x2 = x25519Multiply(aa, bb)
-        z2 = x25519Multiply(e, x25519Add(aa, x25519Multiply(x25519Field121665(), e)))
+        z2 = x25519Multiply(e, x25519AddLoose(aa, x25519MultiplyBy121665(e)))
     }
 
     x25519ConditionalSwap(&x2, &x3, swap)
@@ -206,10 +364,17 @@ private func x25519ScalarMult(privateKey, publicCoordinate: const [..] u8)->[X25
     return result
 }
 
-private func x25519Field121665()->X25519Field
+private func x25519MultiplyBy121665(value: X25519Field)->X25519Field
 {
     var result: #returntype
-    result.limbs[0] = 121665
+    var column: X25519Product
+    for index in result.limbs.count
+    {
+        column.addProduct(value.limbs[index], 121665)
+        result.limbs[index] = column.reduceLimb()
+    }
+
+    x25519FoldCarry(&result, column.low)
     return result
 }
 
@@ -219,14 +384,14 @@ private func x25519Field121665()->X25519Field
 // Fails with [[Core.Errors.BadParameterError]] when either length is invalid.
 func x25519PublicKey(privateKey: const [..] u8, destination: [..] u8) fail
 {
-    if privateKey.count != X25519KeySize or destination.count != X25519KeySize do
+    if privateKey.count != X25519KeySize or destination.count != X25519KeySize
+    {
         fail Errors.BadParameterError{"X25519 keys and outputs must be exactly 32 bytes"}
+    }
 
-    var baseCoordinate: [X25519KeySize] u8
-    baseCoordinate[0] = 9
-    let result = x25519ScalarMult(privateKey, baseCoordinate)
-    Swag.memcpy(destination.buffer, &result[0], X25519KeySize)
-    Crypto.secureClear(result)
+    var scalar = x25519ClampScalar(privateKey)
+    defer Crypto.secureClear(scalar)
+    x25519MultiplyGenerator(scalar, destination)
 }
 
 // Computes a 32-byte shared secret and rejects low-order peer keys that produce the all-zero result.
@@ -237,13 +402,18 @@ func x25519SharedSecret(privateKey, peerPublicKey: const [..] u8, destination: [
 {
     if privateKey.count != X25519KeySize or
        peerPublicKey.count != X25519KeySize or
-       destination.count != X25519KeySize do
+       destination.count != X25519KeySize
+    {
         fail Errors.BadParameterError{"X25519 keys and outputs must be exactly 32 bytes"}
+    }
 
     let result  = x25519ScalarMult(privateKey, peerPublicKey)
-    var nonzero = 0'u8
-    for byte in result do
+    var nonzero = 0_u8
+    for byte in result
+    {
         nonzero |= byte
+    }
+
     if not nonzero
     {
         Crypto.secureClear(result)

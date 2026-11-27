@@ -22,7 +22,7 @@ enum R { A, B }
 #test
 {
     var a: f32
-    a += 1's16
+    a += 1_s16
     Swag.require(a == 1.0)
 }
 

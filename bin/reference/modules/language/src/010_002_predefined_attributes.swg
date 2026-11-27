@@ -163,15 +163,17 @@ impl AttrSignal
 
 struct AttrWidget
 {
-    sigPressed: AttrSignal'func||(*AttrWidget)
+    sigPressed: AttrSignal!{func||(*AttrWidget)}
 }
 
 impl AttrWidget
 {
     mtd press()
     {
-        if .sigPressed.callback do
+        if .sigPressed.callback
+        {
             .sigPressed.callback(me)
+        }
     }
 }
 

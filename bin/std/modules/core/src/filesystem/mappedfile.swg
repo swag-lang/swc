@@ -69,8 +69,10 @@ impl MappedFile
         var ownsTemporary = false
         defer
         {
-            if ownsTemporary do
+            if ownsTemporary
+            {
                 discard catch File.delete(temporary)
+            }
         }
 
         result.stream = try File.open(temporary, .CreateNew, .ReadWrite, .ReadWrite | .Delete)
@@ -81,8 +83,11 @@ impl MappedFile
         while remaining
         {
             let count = try source.read(buffer[until Math.min(remaining, buffer.count)])
-            if not count do
+            if not count
+            {
                 fail Errors.InvalidFormatError{}
+            }
+
             try result.stream.writeAll(buffer[until count])
             remaining -= count
         }
@@ -148,16 +153,21 @@ impl MappedFile
         Swag.assert(.isOpen())
 
         let fileSize = try .size()
-        if offset > fileSize or length > fileSize - offset do
+        if offset > fileSize or length > fileSize - offset
+        {
             fail Errors.BadParameterError{}
+        }
 
         with var result: #returntype
         {
             .offset = offset
             .length = length
             .access = me.access
-            if length do
+            if length
+            {
                 try .mapNative(me.stream.handle, offset, length, me.access)
+            }
+
             .valid = true
         }
 
@@ -235,8 +245,11 @@ impl MappedRegion
     mtd flush() fail
     {
         Swag.assert(.isOpen())
-        if .access != .ReadWrite or not .length do
+        if .access != .ReadWrite or not .length
+        {
             return
+        }
+
         try .flushNative()
     }
 
@@ -254,8 +267,11 @@ impl MappedRegion
     // that page resident only until its next access.
     func releasePages(bytes: const [..] u8)
     {
-        if not bytes.count do
+        if not bytes.count
+        {
             return
+        }
+
         releasePagesNative(bytes)
     }
 }

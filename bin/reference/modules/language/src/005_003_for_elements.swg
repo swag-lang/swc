@@ -30,7 +30,7 @@ whichever value sits there, and every position after it keeps its place.
 
 #test
 {
-    var sum = 0'u64
+    var sum = 0_u64
 
     for _, index in "ABC"
     {
@@ -134,8 +134,11 @@ A scalar element is copied into its binding.
 {
     var array  = [10, 20, 30]
     var result = 0
-    for it in array do
+    for it in array
+    {
         result += it
+    }
+
     Swag.require(result == 10 + 20 + 30)
 }
 
@@ -148,8 +151,11 @@ Element iteration works with multi-dimensional arrays and visits each element in
 {
     var array: [2, 2] s32 = [[10, 20], [30, 40]]
     var result = 0
-    for it in array do
+    for it in array
+    {
         result += it
+    }
+
     Swag.require(result == 10 + 20 + 30 + 40)
 }
 
@@ -220,8 +226,10 @@ The same '&' binding replaces a struct element in one write.
 
     var points: [2] Point = [{1, 2}, {3, 4}]
 
-    for &p, index in points do
+    for &p, index in points
+    {
         p[] = Point{cast(s32, index), cast(s32, index)}
+    }
 
     Swag.require(points[0].x == 0 and points[0].y == 0)
     Swag.require(points[1].x == 1 and points[1].y == 1)
@@ -238,23 +246,34 @@ This avoids explicit branching inside the loop.
     var array: [?] s32 = [1, 2, 3, 4]
     var result         = 0
 
-    for value in array where value & 1 == 0 do
+    for value in array where value & 1 == 0
+    {
         result += value
+    }
+
     Swag.require(result == 6)
 
     // Equivalent with an 'if' guard:
     result = 0
-    for value in array do
-        if value & 1 == 0 do
+    for value in array
+    {
+        if value & 1 == 0
+        {
             result += value
+        }
+    }
+
     Swag.require(result == 6)
 
     // Equivalent using 'continue' to skip odd values:
     result = 0
     for value in array
     {
-        if (value & 1) != 0 do
+        if (value & 1) != 0
+        {
             continue
+        }
+
         result += value
     }
 

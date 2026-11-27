@@ -8,8 +8,10 @@ func resolveOwnedPath(currentName, legacyName: string)->String
     let current = Path.combine(currentName)
     let legacy  = Path.combine(legacyName)
 
-    if File.exists(current) do
+    if File.exists(current)
+    {
         return current
+    }
 
     return File.exists(legacy) ? legacy : current
 }

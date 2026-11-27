@@ -17,21 +17,29 @@ late var g_lateGlobalName: string
 // Full life: unset, assigned, read (guarded), written through.
 func lateGlobalLifecycle()->bool
 {
-    if (g_lateGlobalItem != null) or (g_lateGlobalName != null) do
+    if (g_lateGlobalItem != null) or (g_lateGlobalName != null)
+    {
         return false
+    }
 
     g_lateGlobalStorage.value = 7
     g_lateGlobalItem = &g_lateGlobalStorage
     g_lateGlobalName = "hello"
 
-    if not (g_lateGlobalItem != null) or not (g_lateGlobalName != null) do
+    if not (g_lateGlobalItem != null) or not (g_lateGlobalName != null)
+    {
         return false
+    }
 
     let p: *LateGlobalItem = g_lateGlobalItem
-    if p.value != 7 do
+    if p.value != 7
+    {
         return false
-    if g_lateGlobalName.count != 5 do
+    }
+    if g_lateGlobalName.count != 5
+    {
         return false
+    }
 
     g_lateGlobalItem.value = 8
     return g_lateGlobalStorage.value == 8

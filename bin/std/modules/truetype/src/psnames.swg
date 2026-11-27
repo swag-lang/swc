@@ -89,18 +89,27 @@ private const StandardEncodingRunes: [56] { code: u8, value: u16 } = [
 // belongs to the font's own string INDEX.
 func standardString(sid: u32)->string
 {
-    if sid < StandardStrings.count do
+    if sid < StandardStrings.count
+    {
         return StandardStrings[sid]
+    }
+
     return ""
 }
 
 private const StandardEncodingSids: [256] u16 = #run
 {
     var sids: [256] u16
-    for code in 32 until 127 do
+    for code in 32 until 127
+    {
         sids[code] = cast(u16, code - 31)
-    for entry in StandardEncodingHigh do
+    }
+
+    for entry in StandardEncodingHigh
+    {
         sids[entry.code] = entry.sid
+    }
+
     return sids
 }
 
@@ -114,10 +123,16 @@ func standardEncodingName(code: u8)->string
 // Returns the character StandardEncoding places at `code`, or zero for an unused slot.
 func standardEncodingRune(code: u8)->rune
 {
-    for entry in StandardEncodingRunes where entry.code == code do
+    for entry in StandardEncodingRunes where entry.code == code
+    {
         return cast(rune, entry.value)
-    if code >= 0x20 and code < 0x7F do
+    }
+
+    if code >= 0x20 and code < 0x7F
+    {
         return cast(rune, code)
+    }
+
     return 0
 }
 
@@ -128,31 +143,49 @@ func standardEncodingRune(code: u8)->rune
 // selects it, which is the path a font with no character map is addressed by.
 func glyphNameRune(name: string)->rune
 {
-    if name.count == 7 and name[0 to 2] == "uni" do
+    if name.count == 7 and name[0 to 2] == "uni"
+    {
         return parseNameHex(name[3 until])
-    if name.count >= 5 and name.count <= 7 and name[0] == 'u' do
+    }
+
+    if name.count >= 5 and name.count <= 7 and name[0] == 'u'
+    {
         return parseNameHex(name[1 until])
+    }
+
     return 0
 }
 
 private func parseNameHex(digits: string)->rune
 {
-    var result = 0'u32
+    var result = 0_u32
     for c in cast(const [..] u8, digits)
     {
-        var value = 0'u32
-        if c >= '0' and c <= '9' do
+        var value = 0_u32
+        if c >= '0' and c <= '9'
+        {
             value = c - '0'
-        elif c >= 'A' and c <= 'F' do
+        }
+        else if c >= 'A' and c <= 'F'
+        {
             value = cast(u32, (c - 'A')) + 10
-        elif c >= 'a' and c <= 'f' do
+        }
+        else if c >= 'a' and c <= 'f'
+        {
             value = cast(u32, (c - 'a')) + 10
-        else do
+        }
+        else
+        {
             return 0
+        }
+
         result = result * 16 + value
     }
 
-    if result > 0x10FFFF or (result >= 0xD800 and result <= 0xDFFF) do
+    if result > 0x10FFFF or (result >= 0xD800 and result <= 0xDFFF)
+    {
         return 0
+    }
+
     return cast(rune, result)
 }

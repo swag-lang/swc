@@ -8,23 +8,23 @@
 
 using Core, Core.Errors
 
-private const MovieExtendsId                    = fourCc('m'u32, 'v'u32, 'e'u32, 'x'u32)
-private const TrackExtendsId                    = fourCc('t'u32, 'r'u32, 'e'u32, 'x'u32)
-private const MovieFragmentId                   = fourCc('m'u32, 'o'u32, 'o'u32, 'f'u32)
-private const MovieFragmentHeaderId             = fourCc('m'u32, 'f'u32, 'h'u32, 'd'u32)
-private const TrackFragmentId                   = fourCc('t'u32, 'r'u32, 'a'u32, 'f'u32)
-private const TrackFragmentHeaderId             = fourCc('t'u32, 'f'u32, 'h'u32, 'd'u32)
-private const DecodeTimeId                      = fourCc('t'u32, 'f'u32, 'd'u32, 't'u32)
-private const TrackRunId                        = fourCc('t'u32, 'r'u32, 'u'u32, 'n'u32)
-private const AvcSampleEntryId                  = fourCc('a'u32, 'v'u32, 'c'u32, '1'u32)
-private const Iso6BrandId                       = fourCc('i'u32, 's'u32, 'o'u32, '6'u32)
-private const SoundMediaHeaderId                = fourCc('s'u32, 'm'u32, 'h'u32, 'd'u32)
-private const MovieFragmentRandomAccessId       = fourCc('m'u32, 'f'u32, 'r'u32, 'a'u32)
-private const TrackFragmentRandomAccessId       = fourCc('t'u32, 'f'u32, 'r'u32, 'a'u32)
-private const MovieFragmentRandomAccessOffsetId = fourCc('m'u32, 'f'u32, 'r'u32, 'o'u32)
-private const EditContainerId                   = fourCc('e'u32, 'd'u32, 't'u32, 's'u32)
-private const EditListId                        = fourCc('e'u32, 'l'u32, 's'u32, 't'u32)
-private const FreeBoxId                         = fourCc('f'u32, 'r'u32, 'e'u32, 'e'u32)
+private const MovieExtendsId                    = fourCc('m'_u32, 'v'_u32, 'e'_u32, 'x'_u32)
+private const TrackExtendsId                    = fourCc('t'_u32, 'r'_u32, 'e'_u32, 'x'_u32)
+private const MovieFragmentId                   = fourCc('m'_u32, 'o'_u32, 'o'_u32, 'f'_u32)
+private const MovieFragmentHeaderId             = fourCc('m'_u32, 'f'_u32, 'h'_u32, 'd'_u32)
+private const TrackFragmentId                   = fourCc('t'_u32, 'r'_u32, 'a'_u32, 'f'_u32)
+private const TrackFragmentHeaderId             = fourCc('t'_u32, 'f'_u32, 'h'_u32, 'd'_u32)
+private const DecodeTimeId                      = fourCc('t'_u32, 'f'_u32, 'd'_u32, 't'_u32)
+private const TrackRunId                        = fourCc('t'_u32, 'r'_u32, 'u'_u32, 'n'_u32)
+private const AvcSampleEntryId                  = fourCc('a'_u32, 'v'_u32, 'c'_u32, '1'_u32)
+private const Iso6BrandId                       = fourCc('i'_u32, 's'_u32, 'o'_u32, '6'_u32)
+private const SoundMediaHeaderId                = fourCc('s'_u32, 'm'_u32, 'h'_u32, 'd'_u32)
+private const MovieFragmentRandomAccessId       = fourCc('m'_u32, 'f'_u32, 'r'_u32, 'a'_u32)
+private const TrackFragmentRandomAccessId       = fourCc('t'_u32, 'f'_u32, 'r'_u32, 'a'_u32)
+private const MovieFragmentRandomAccessOffsetId = fourCc('m'_u32, 'f'_u32, 'r'_u32, 'o'_u32)
+private const EditContainerId                   = fourCc('e'_u32, 'd'_u32, 't'_u32, 's'_u32)
+private const EditListId                        = fourCc('e'_u32, 'l'_u32, 's'_u32, 't'_u32)
+private const FreeBoxId                         = fourCc('f'_u32, 'r'_u32, 'e'_u32, 'e'_u32)
 
 private struct BufferedPacket
 {
@@ -75,9 +75,9 @@ struct AudioPresentationRange
 
 private struct FragmentedAudioTrack
 {
-    config:         Array'u8
-    pendingPackets: Array'BufferedPacket
-    pendingData:    Array'u8
+    config:         Array!{u8}
+    pendingPackets: Array!{BufferedPacket}
+    pendingData:    Array!{u8}
     packetCount:    u64
     sampleRate:     u32
     channels:       u16
@@ -111,10 +111,10 @@ struct FragmentedWriter
         indexStream:     File.FileStream
         indexPath:       String
         indexCount:      u32
-        config:          Array'u8
-        audioTracks:     Array'FragmentedAudioTrack
-        pendingPackets:  Array'BufferedPacket
-        pendingData:     Array'u8
+        config:          Array!{u8}
+        audioTracks:     Array!{FragmentedAudioTrack}
+        pendingPackets:  Array!{BufferedPacket}
+        pendingData:     Array!{u8}
         options:         FragmentedOptions
         width:           u16
         height:          u16
@@ -153,8 +153,11 @@ impl FragmentedWriter
     // Returns the number of packets submitted to an AAC track, including pending packets.
     mtd const audioPacketCount(trackIndex: u32)->u64 fail
     {
-        if trackIndex >= .audioTracks.count do
+        if trackIndex >= .audioTracks.count
+        {
             fail BadParameterError{"fragmented MP4 has no audio track at this index"}
+        }
+
         return .audioTracks[trackIndex].packetCount
     }
 
@@ -163,8 +166,11 @@ impl FragmentedWriter
     // An empty track returns zero. This includes submitted packets still in a pending group.
     mtd const audioEndTime(trackIndex: u32)->u64 fail
     {
-        if trackIndex >= .audioTracks.count do
+        if trackIndex >= .audioTracks.count
+        {
             fail BadParameterError{"fragmented MP4 has no audio track at this index"}
+        }
+
         return .audioTracks[trackIndex].nextTime
     }
 
@@ -186,8 +192,11 @@ impl FragmentedWriter
     // [[Video.Mp4.FragmentedWriter.addAudioPacket]] after creation.
     func createWithAudio(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8, audio: FragmentedAudioConfig, options: FragmentedOptions = {})->FragmentedWriter fail
     {
-        if not audio.decoderConfig.count do
+        if not audio.decoderConfig.count
+        {
             fail BadParameterError{"fragmented MP4 AAC configuration is empty"}
+        }
+
         let tracks: [1] FragmentedAudioConfig = [audio]
         return try createWithAudioTracks(fileName, width, height, timescale, avcConfig, Swag.makeSlice(&tracks[0], 1), options)
     }
@@ -199,8 +208,11 @@ impl FragmentedWriter
     // [[Video.Mp4.FragmentedWriter.addAudioPacket]] to select the destination track.
     func createWithAudioTracks(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8, audioTracks: const [..] FragmentedAudioConfig, options: FragmentedOptions = {})->FragmentedWriter fail
     {
-        if not audioTracks.count or audioTracks.count > 4 do
+        if not audioTracks.count or audioTracks.count > 4
+        {
             fail BadParameterError{"fragmented MP4 needs one to four AAC tracks"}
+        }
+
         return try createConfigured(fileName, width, height, timescale, avcConfig, audioTracks, options)
     }
 
@@ -257,8 +269,11 @@ impl FragmentedWriter
         {
             if packet.fragmentOffset != lastFragment
             {
-                if result.sequence == Swag.U32.Max do
+                if result.sequence == Swag.U32.Max
+                {
                     fail OverflowError{"fragmented MP4 sequence number is exhausted"}
+                }
+
                 result.sequence += 1
                 lastFragment    = packet.fragmentOffset
             }
@@ -270,8 +285,11 @@ impl FragmentedWriter
                 result.nextDecodeTime = packet.info.decodeTime + packet.info.duration
                 if options.writeRandomAccessIndex and packet.info.isKeyFrame
                 {
-                    if result.indexCount >= (Swag.U32.Max - 48) / 20 do
+                    if result.indexCount >= (Swag.U32.Max - 48) / 20
+                    {
                         fail OverflowError{"fragmented MP4 random-access index exceeds a compact box"}
+                    }
+
                     let entry = RandomAccessEntry{packet.info.decodeTime, packet.fragmentOffset,
                                                   packet.sampleNumber}
                     try result.indexStream.writeAll(Swag.makeSlice(cast(const [*] u8, &entry), #sizeof(RandomAccessEntry)))
@@ -289,22 +307,34 @@ impl FragmentedWriter
 
         let mediaEnd = cursor.completeMediaByteCount()
         cursor.close()
-        if not result.hasPackets or not mediaEnd do
+        if not result.hasPackets or not mediaEnd
+        {
             fail InvalidFormatError{"fragmented MP4 resume found no complete video fragment"}
+        }
+
         scope
         {
             var file = try File.open(fileName, .Open, .ReadWrite, .Zero)
-            if try file.size() != originalSize or mediaEnd > originalSize do
+            if try file.size() != originalSize or mediaEnd > originalSize
+            {
                 fail InvalidFormatError{"fragmented MP4 changed during resume"}
+            }
+
             try file.resize(mediaEnd)
             file.close()
         }
 
         result.sink = try ByteSink.openAppendFile(fileName, .Read)
-        if result.videoEditOffset do
+        if result.videoEditOffset
+        {
             try patchU32(&result.sink, result.videoEditOffset + 4, FreeBoxId)
-        for &track in result.audioTracks where track.editOffset do
+        }
+
+        for &track in result.audioTracks where track.editOffset
+        {
             try patchU32(&result.sink, track.editOffset + 4, FreeBoxId)
+        }
+
         return result
     }
 
@@ -317,32 +347,59 @@ impl FragmentedWriter
     mtd addPacket(packet: EncodedPacket) fail
     {
         try .raiseOutputFailure()
-        if .isEnded do
+        if .isEnded
+        {
             fail BadParameterError{"cannot append to an ended fragmented MP4"}
-        if not packet.bytes.count or packet.bytes.count > Swag.U32.Max - 8 do
+        }
+
+        if not packet.bytes.count or packet.bytes.count > Swag.U32.Max - 8
+        {
             fail BadParameterError{"fragmented MP4 packet size is outside the supported range"}
-        if not packet.duration do
+        }
+
+        if not packet.duration
+        {
             fail BadParameterError{"fragmented MP4 packet duration must be positive"}
-        if .hasPackets and packet.decodeTime < .nextDecodeTime do
+        }
+
+        if .hasPackets and packet.decodeTime < .nextDecodeTime
+        {
             fail BadParameterError{"fragmented MP4 decode times overlap"}
-        if not .hasPackets and not packet.isKeyFrame do
+        }
+
+        if not .hasPackets and not packet.isKeyFrame
+        {
             fail BadParameterError{"fragmented MP4 must start with a key frame"}
-        if .sequence == Swag.U32.Max do
+        }
+
+        if .sequence == Swag.U32.Max
+        {
             fail OverflowError{"fragmented MP4 sequence number is exhausted"}
-        if packet.decodeTime > cast(u64, Swag.S64.Max) or packet.presentationTime > cast(u64, Swag.S64.Max) do
+        }
+
+        if packet.decodeTime > cast(u64, Swag.S64.Max) or packet.presentationTime > cast(u64, Swag.S64.Max)
+        {
             fail OverflowError{"fragmented MP4 timestamp exceeds the signed composition range"}
-        if packet.duration > Swag.U64.Max - packet.decodeTime do
+        }
+
+        if packet.duration > Swag.U64.Max - packet.decodeTime
+        {
             fail OverflowError{"fragmented MP4 decode time overflows"}
+        }
 
         let compositionOffset = cast(s64, packet.presentationTime) - cast(s64, packet.decodeTime)
-        if compositionOffset < Swag.S32.Min or compositionOffset > Swag.S32.Max do
+        if compositionOffset < Swag.S32.Min or compositionOffset > Swag.S32.Max
+        {
             fail UnsupportedFormatError{"fragmented MP4 composition offset exceeds 32 bits"}
+        }
 
         try validateAvcPacket(packet.bytes)
 
         if .pendingPackets.count and
-           (packet.isKeyFrame or packet.decodeTime != .nextDecodeTime or .pendingPackets.count >= .options.maxPacketsPerFragment or packet.bytes.count > .options.maxBufferedBytes - .pendingData.count) do
+           (packet.isKeyFrame or packet.decodeTime != .nextDecodeTime or .pendingPackets.count >= .options.maxPacketsPerFragment or packet.bytes.count > .options.maxBufferedBytes - .pendingData.count)
+        {
             try .flushVideo()
+        }
 
         let sample = BufferedPacket{cast(u32, packet.bytes.count), packet.decodeTime, packet.duration,
                                     cast(s32, compositionOffset), packet.isKeyFrame}
@@ -351,11 +408,17 @@ impl FragmentedWriter
             let one:     [1] BufferedPacket = [sample]
             var failure: Swag.Error
             catch .writeFragment(Swag.makeSlice(&one[0], 1), packet.bytes) as failure
-            if not failure.isEmpty() do
+            if not failure.isEmpty()
+            {
                 try .rememberOutputFailure(failure)
+            }
+
             catch .sink.flush() as failure
-            if not failure.isEmpty() do
+            if not failure.isEmpty()
+            {
                 try .rememberOutputFailure(failure)
+            }
+
             .sequence += 1
         }
         else
@@ -363,8 +426,10 @@ impl FragmentedWriter
             .pendingPackets.add(sample)
             .pendingData.add(packet.bytes)
             if .pendingPackets.count == .options.maxPacketsPerFragment or
-               .pendingData.count == .options.maxBufferedBytes do
+               .pendingData.count == .options.maxBufferedBytes
+            {
                 try .flushVideo()
+            }
         }
 
         .nextDecodeTime = packet.decodeTime + packet.duration
@@ -383,24 +448,37 @@ impl FragmentedWriter
     mtd addAudioPacket(packet: EncodedPacket, trackIndex: u32 = 0) fail
     {
         try .raiseOutputFailure()
-        if .isEnded or trackIndex >= .audioTracks.count do
+        if .isEnded or trackIndex >= .audioTracks.count
+        {
             fail BadParameterError{"fragmented MP4 has no open audio track at this index"}
+        }
+
         if not packet.bytes.count or
            packet.bytes.count > Swag.U32.Max - 8 or
            packet.duration != 1_024 or
            packet.presentationTime != packet.decodeTime or
-           (.audioTracks[trackIndex].hasPackets and packet.decodeTime != .audioTracks[trackIndex].nextTime) do
+           (.audioTracks[trackIndex].hasPackets and packet.decodeTime != .audioTracks[trackIndex].nextTime)
+        {
             fail BadParameterError{"fragmented MP4 AAC packet size or timing is invalid"}
-        if .sequence == Swag.U32.Max do
+        }
+
+        if .sequence == Swag.U32.Max
+        {
             fail OverflowError{"fragmented MP4 sequence number is exhausted"}
-        if packet.decodeTime > cast(u64, Swag.S64.Max) - 1_024 do
+        }
+
+        if packet.decodeTime > cast(u64, Swag.S64.Max) - 1_024
+        {
             fail OverflowError{"fragmented MP4 AAC timestamp exceeds the supported range"}
+        }
 
         let sample = BufferedPacket{cast(u32, packet.bytes.count), packet.decodeTime,
                                     packet.duration, 0, true}
         if .audioTracks[trackIndex].pendingPackets.count and
-           packet.bytes.count > .options.maxBufferedBytes - .audioTracks[trackIndex].pendingData.count do
+           packet.bytes.count > .options.maxBufferedBytes - .audioTracks[trackIndex].pendingData.count
+        {
             try .flushAudioTrack(trackIndex)
+        }
 
         if .options.maxAudioPacketsPerFragment == 1 or packet.bytes.count > .options.maxBufferedBytes
         {
@@ -408,11 +486,17 @@ impl FragmentedWriter
             let one:     [1] BufferedPacket = [sample]
             var failure: Swag.Error
             catch .writeFragment(Swag.makeSlice(&one[0], 1), packet.bytes, 2 + trackIndex) as failure
-            if not failure.isEmpty() do
+            if not failure.isEmpty()
+            {
                 try .rememberOutputFailure(failure)
+            }
+
             catch .sink.flush() as failure
-            if not failure.isEmpty() do
+            if not failure.isEmpty()
+            {
                 try .rememberOutputFailure(failure)
+            }
+
             .sequence += 1
         }
         else
@@ -435,17 +519,24 @@ impl FragmentedWriter
     mtd flush() fail
     {
         try .raiseOutputFailure()
-        if .isEnded do
+        if .isEnded
+        {
             fail BadParameterError{"cannot flush an ended fragmented MP4"}
+        }
+
         try .flushVideo()
 
-        for index in .audioTracks.count do
+        for index in .audioTracks.count
+        {
             try .flushAudioTrack(cast(u32, index))
+        }
 
         var failure: Swag.Error
         catch .sink.flush() as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberOutputFailure(failure)
+        }
     }
 
     // Publishes sample-accurate presentation ranges for the video and AAC tracks.
@@ -461,28 +552,42 @@ impl FragmentedWriter
            not .movieTimescale or
            not .videoEditOffset or
            audioFrameCounts.count != .audioTracks.count or
-           videoMediaStart >= .nextDecodeTime do
+           videoMediaStart >= .nextDecodeTime
+        {
             fail BadParameterError{"fragmented MP4 presentation edits do not match its tracks"}
+        }
+
         for index in audioFrameCounts.count
         {
             let track  = &.audioTracks[index]
             let frames = audioFrameCounts[index]
             if frames > Swag.U64.Max / .movieTimescale or
-               (not frames and track.hasPackets) do
+               (not frames and track.hasPackets)
+            {
                 fail BadParameterError{"fragmented MP4 audio edit exceeds its decoded packets"}
+            }
+
             if frames
             {
-                if not track.hasPackets or track.nextTime < 2_048 do
+                if not track.hasPackets or track.nextTime < 2_048
+                {
                     fail BadParameterError{"fragmented MP4 audio edit needs a priming and a drain packet"}
+                }
+
                 let audibleCapacity = track.nextTime - 1_024
-                if frames > audibleCapacity or audibleCapacity - frames >= 1_024 do
+                if frames > audibleCapacity or audibleCapacity - frames >= 1_024
+                {
                     fail BadParameterError{"fragmented MP4 audio edit needs one priming packet and less than one padding packet"}
+                }
             }
         }
 
-        var ranges: Array'AudioPresentationRange
-        for count in audioFrameCounts do
+        var ranges: Array!{AudioPresentationRange}
+        for count in audioFrameCounts
+        {
             ranges.add({1_024, count})
+        }
+
         try .setPresentationEdits(videoMediaStart, ranges.toSlice())
     }
 
@@ -499,66 +604,91 @@ impl FragmentedWriter
            not .movieTimescale or
            not .videoEditOffset or
            audioRanges.count != .audioTracks.count or
-           videoMediaStart >= .nextDecodeTime do
+           videoMediaStart >= .nextDecodeTime
+        {
             fail BadParameterError{"fragmented MP4 presentation edits do not match its tracks"}
+        }
+
         for range, index in audioRanges
         {
             let track = &.audioTracks[index]
             if range.firstSample > cast(u64, Swag.S64.Max) or
                range.sampleCount > Swag.U64.Max / .movieTimescale or
                (not range.sampleCount and track.hasPackets) or
-               (range.sampleCount and (not track.hasPackets or range.firstSample >= track.nextTime or range.sampleCount > track.nextTime - range.firstSample or track.nextTime - range.firstSample - range.sampleCount >= 1_024)) do
+               (range.sampleCount and (not track.hasPackets or range.firstSample >= track.nextTime or range.sampleCount > track.nextTime - range.firstSample or track.nextTime - range.firstSample - range.sampleCount >= 1_024))
+            {
                 fail BadParameterError{"fragmented MP4 audio presentation range exceeds its decoded packets"}
+            }
         }
 
-        if .nextDecodeTime - videoMediaStart > Swag.U64.Max / .movieTimescale do
+        if .nextDecodeTime - videoMediaStart > Swag.U64.Max / .movieTimescale
+        {
             fail OverflowError{"fragmented MP4 video presentation duration overflows"}
+        }
 
         try .flush()
         let videoDuration = (.nextDecodeTime - videoMediaStart) * .movieTimescale / .timescale
         var failure: Swag.Error
         catch .publishEdit(.videoEditOffset, videoDuration, videoMediaStart) as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberOutputFailure(failure)
+        }
+
         for range, index in audioRanges
         {
-            if not range.sampleCount do
+            if not range.sampleCount
+            {
                 continue
+            }
+
             let track = &.audioTracks[index]
 
             // The movie clock is at least as fine as this sample clock. Flooring here and
             // ceiling the inverse in Reader recovers `frames` exactly, including 44.1 kHz.
             let duration = range.sampleCount * .movieTimescale / track.sampleRate
             catch .publishEdit(track.editOffset, duration, range.firstSample) as failure
-            if not failure.isEmpty() do
+            if not failure.isEmpty()
+            {
                 try .rememberOutputFailure(failure)
+            }
         }
 
         catch .sink.flush() as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberOutputFailure(failure)
+        }
     }
 
     // Flushes, optionally appends the random-access index, and closes the stream; repeated calls do nothing.
     mtd end() fail
     {
         try .raiseOutputFailure()
-        if .isEnded do
+        if .isEnded
+        {
             return
+        }
+
         try .flush()
         if .options.writeRandomAccessIndex
         {
             var failure: Swag.Error
             catch .writeRandomAccessIndex() as failure
-            if not failure.isEmpty() do
+            if not failure.isEmpty()
+            {
                 try .rememberOutputFailure(failure)
+            }
         }
 
         .isEnded = true
         var failure: Swag.Error
         catch .sink.close() as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberOutputFailure(failure)
+        }
+
         .closeIndex()
     }
 
@@ -573,10 +703,16 @@ impl FragmentedWriter
 #[Swag.Propagate]
 internal func writeFragmentRandomAccessIndex(sink: *ByteSink, entries: *File.FileStream, count: u32) fail
 {
-    if not count do
+    if not count
+    {
         return
-    if count > (Swag.U32.Max - 48) / 20 do
+    }
+
+    if count > (Swag.U32.Max - 48) / 20
+    {
         fail OverflowError{"fragmented MP4 random-access index exceeds a compact box"}
+    }
+
     entries.seek(.Begin, 0)
     let randomAccess = beginBox(sink, MovieFragmentRandomAccessId)
     let trackAccess  = beginBox(sink, TrackFragmentRandomAccessId)
@@ -588,8 +724,11 @@ internal func writeFragmentRandomAccessIndex(sink: *ByteSink, entries: *File.Fil
     {
         var entry: RandomAccessEntry
         let bytes = Swag.makeSlice(cast([*] u8, &entry), #sizeof(RandomAccessEntry))
-        if not entries.readExact(bytes) do
+        if not entries.readExact(bytes)
+        {
             fail InvalidFormatError{"fragmented MP4 random-access entries are truncated"}
+        }
+
         writeU64(sink, entry.time)
         writeU64(sink, entry.moofOffset)
         writeU8(sink, 1)
@@ -609,8 +748,10 @@ private impl FragmentedWriter
 {
     mtd raiseOutputFailure() fail
     {
-        if .isFailed do
+        if .isFailed
+        {
             try .failureError.raise()
+        }
     }
 
     mtd rememberOutputFailure(failure: Swag.Error) fail
@@ -638,17 +779,29 @@ private impl FragmentedWriter
 
     mtd flushVideo() fail
     {
-        if not .pendingPackets.count do
+        if not .pendingPackets.count
+        {
             return
-        if .sequence == Swag.U32.Max do
+        }
+
+        if .sequence == Swag.U32.Max
+        {
             fail OverflowError{"fragmented MP4 sequence number is exhausted"}
+        }
+
         var failure: Swag.Error
         catch .writeFragment(.pendingPackets.toSlice(), .pendingData.toSlice()) as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberOutputFailure(failure)
+        }
+
         catch .sink.flush() as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberOutputFailure(failure)
+        }
+
         .pendingPackets.clear()
         .pendingData.clear()
         .sequence += 1
@@ -656,17 +809,26 @@ private impl FragmentedWriter
 
     mtd flushAudioTrack(index: u32) fail
     {
-        if not .audioTracks[index].pendingPackets.count do
+        if not .audioTracks[index].pendingPackets.count
+        {
             return
+        }
+
         var failure: Swag.Error
         catch .writeFragment(.audioTracks[index].pendingPackets.toSlice(),
                              .audioTracks[index].pendingData.toSlice(),
                              2 + index) as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberOutputFailure(failure)
+        }
+
         catch .sink.flush() as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberOutputFailure(failure)
+        }
+
         .audioTracks[index].pendingPackets.clear()
         .audioTracks[index].pendingData.clear()
         .sequence += 1
@@ -686,14 +848,22 @@ private impl FragmentedWriter
 
     func createConfigured(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8, audioTracks: const [..] FragmentedAudioConfig, options: FragmentedOptions)->FragmentedWriter fail
     {
-        if width <= 0 or width > Swag.U16.Max or height <= 0 or height > Swag.U16.Max do
+        if width <= 0 or width > Swag.U16.Max or height <= 0 or height > Swag.U16.Max
+        {
             fail BadParameterError{"fragmented MP4 needs dimensions in the range 1 to 65535"}
-        if not timescale do
+        }
+
+        if not timescale
+        {
             fail BadParameterError{"fragmented MP4 needs a positive timescale"}
+        }
+
         try validateOptions(options)
         try validateAvcConfig(avcConfig)
-        for audio in audioTracks do
+        for audio in audioTracks
+        {
             try validateAudioConfig(audio)
+        }
 
         with var result: #returntype
         {
@@ -735,8 +905,10 @@ private impl FragmentedWriter
            not options.maxAudioPacketsPerFragment or
            options.maxAudioPacketsPerFragment > 1_024 or
            not options.maxBufferedBytes or
-           options.maxBufferedBytes > Swag.U32.Max - 8 do
+           options.maxBufferedBytes > Swag.U32.Max - 8
+        {
             fail BadParameterError{"fragmented MP4 grouping limits are outside the supported range"}
+        }
     }
 
     func validateAudioConfig(audio: FragmentedAudioConfig) fail
@@ -744,8 +916,11 @@ private impl FragmentedWriter
         const Rates: [13] u32 = [96_000, 88_200, 64_000, 48_000, 44_100, 32_000, 24_000,
                                  22_050, 16_000, 12_000, 11_025, 8_000, 7_350]
         let config = audio.decoderConfig
-        if config.count != 2 or config[0] >> 3 != 2 do
+        if config.count != 2 or config[0] >> 3 != 2
+        {
             fail UnsupportedFormatError{"fragmented MP4 needs a two-byte AAC-LC AudioSpecificConfig"}
+        }
+
         let rateIndex = cast(u32, ((config[0] & 7) << 1) | (config[1] >> 7))
         let channels  = (config[1] >> 3) & 15
         if rateIndex >= Rates.count or
@@ -753,43 +928,65 @@ private impl FragmentedWriter
            audio.sampleRate > Swag.U16.Max or
            channels != audio.channelCount or
            (channels != 1 and channels != 2) or
-           (config[1] & 7) != 0 do
+           (config[1] & 7) != 0
+        {
             fail BadParameterError{"fragmented MP4 AAC configuration does not match its sample rate or channels"}
+        }
     }
 
     // Reject incomplete parameter sets before opening the destination file.
     func validateAvcConfig(bytes: const [..] u8) fail
     {
-        if bytes.count < 7 or bytes.count > Swag.U32.Max - 8 or bytes[0] != 1 or (bytes[4] & 3) != 3 do
+        if bytes.count < 7 or bytes.count > Swag.U32.Max - 8 or bytes[0] != 1 or (bytes[4] & 3) != 3
+        {
             fail InvalidFormatError{"fragmented MP4 needs AVC configuration with four-byte NAL lengths"}
+        }
 
         let sequenceCount = bytes[5] & 31
-        if not sequenceCount do
+        if not sequenceCount
+        {
             fail InvalidFormatError{"AVC configuration has no sequence parameter set"}
-        var offset = 6'u64
+        }
+
+        var offset = 6_u64
         for sequenceCount
         {
-            if bytes.count - offset < 2 do
+            if bytes.count - offset < 2
+            {
                 fail InvalidFormatError{"AVC sequence parameter set length is missing"}
+            }
+
             let size = Math.make16(bytes[offset], bytes[offset + 1])
             offset += 2
-            if not size or size > bytes.count - offset do
+            if not size or size > bytes.count - offset
+            {
                 fail InvalidFormatError{"AVC sequence parameter set is truncated"}
+            }
+
             offset += size
         }
 
-        if offset == bytes.count or not bytes[offset] do
+        if offset == bytes.count or not bytes[offset]
+        {
             fail InvalidFormatError{"AVC configuration has no picture parameter set"}
+        }
+
         let pictureCount = bytes[offset]
         offset += 1
         for pictureCount
         {
-            if bytes.count - offset < 2 do
+            if bytes.count - offset < 2
+            {
                 fail InvalidFormatError{"AVC picture parameter set length is missing"}
+            }
+
             let size = Math.make16(bytes[offset], bytes[offset + 1])
             offset += 2
-            if not size or size > bytes.count - offset do
+            if not size or size > bytes.count - offset
+            {
                 fail InvalidFormatError{"AVC picture parameter set is truncated"}
+            }
+
             offset += size
         }
     }
@@ -797,15 +994,21 @@ private impl FragmentedWriter
     // Checks the complete length-prefixed access unit before writing any part of its fragment.
     func validateAvcPacket(bytes: const [..] u8) fail
     {
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < bytes.count
         {
-            if bytes.count - offset < 5 do
+            if bytes.count - offset < 5
+            {
                 fail InvalidFormatError{"AVC packet ends before a complete NAL unit"}
+            }
+
             let size = Math.make32(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3])
             offset += 4
-            if not size or size > bytes.count - offset do
+            if not size or size > bytes.count - offset
+            {
                 fail InvalidFormatError{"AVC NAL unit length exceeds the packet"}
+            }
+
             offset += size
         }
     }
@@ -824,8 +1027,11 @@ private impl FragmentedWriter
         let movie = beginBox(&.sink, MovieId)
         .writeMovieHeader()
         .writeTrack()
-        for index in .audioTracks.count do
+        for index in .audioTracks.count
+        {
             .writeAudioTrack(cast(u32, index))
+        }
+
         .writeMovieExtends()
         endBox(&.sink, movie)
     }
@@ -870,8 +1076,11 @@ private impl FragmentedWriter
         writeU32(&.sink, 0)
         writeU32(&.sink, 0)
         writeIdentityMatrix(&.sink)
-        for 6 do
+        for 6
+        {
             writeU32(&.sink, 0)
+        }
+
         writeU32(&.sink, cast(u32, .audioTracks.count + 2))
         endBox(&.sink, box)
     }
@@ -889,8 +1098,11 @@ private impl FragmentedWriter
         writeU64(&.sink, 0)
         writeU32(&.sink, 0)
         writeU32(&.sink, 0)
-        for 4 do
+        for 4
+        {
             writeU16(&.sink, 0)
+        }
+
         writeIdentityMatrix(&.sink)
         writeU32(&.sink, cast(u32, .width) << 16)
         writeU32(&.sink, cast(u32, .height) << 16)
@@ -927,8 +1139,11 @@ private impl FragmentedWriter
         writeFullBox(&.sink, 0, 0)
         writeU32(&.sink, 0)
         writeU32(&.sink, VideoHandlerId)
-        for 3 do
+        for 3
+        {
             writeU32(&.sink, 0)
+        }
+
         .sink.writeText("Swag H.264\x00")
         endBox(&.sink, box)
     }
@@ -939,8 +1154,11 @@ private impl FragmentedWriter
         let mediaInfo   = beginBox(&.sink, MediaInfoId)
         let videoHeader = beginBox(&.sink, VideoMediaHeaderId)
         writeFullBox(&.sink, 0, 1)
-        for 4 do
+        for 4
+        {
             writeU16(&.sink, 0)
+        }
+
         endBox(&.sink, videoHeader)
 
         .writeDataInfo()
@@ -1001,16 +1219,22 @@ private impl FragmentedWriter
         writeU32(&.sink, 0)
         writeU16(&.sink, 0)
         writeU16(&.sink, 1)
-        for 4 do
+        for 4
+        {
             writeU32(&.sink, 0)
+        }
+
         writeU16(&.sink, .width)
         writeU16(&.sink, .height)
         writeU32(&.sink, 72 << 16)
         writeU32(&.sink, 72 << 16)
         writeU32(&.sink, 0)
         writeU16(&.sink, 1)
-        for 32 do
+        for 32
+        {
             writeU8(&.sink, 0)
+        }
+
         writeU16(&.sink, 24)
         writeU16(&.sink, 0xFFFF)
 
@@ -1059,8 +1283,11 @@ private impl FragmentedWriter
         writeFullBox(&.sink, 0, 0)
         writeU32(&.sink, 0)
         writeU32(&.sink, AudioHandlerId)
-        for 3 do
+        for 3
+        {
             writeU32(&.sink, 0)
+        }
+
         .sink.writeText("Swag AAC-LC\x00")
         endBox(&.sink, handler)
 
@@ -1094,8 +1321,11 @@ private impl FragmentedWriter
     mtd writeAudioSampleEntry(index: u32) fail
     {
         let entry = beginBox(&.sink, Mpeg4AudioId)
-        for 6 do
+        for 6
+        {
             writeU8(&.sink, 0)
+        }
+
         writeU16(&.sink, 1)
         writeU16(&.sink, 0)
         writeU16(&.sink, 0)
@@ -1131,8 +1361,11 @@ private impl FragmentedWriter
         writeFullBox(&.sink, 0, 0)
         writeU32(&.sink, 1)
         writeU32(&.sink, 1)
-        for 3 do
+        for 3
+        {
             writeU32(&.sink, 0)
+        }
+
         endBox(&.sink, track)
         for index in .audioTracks.count
         {
@@ -1140,8 +1373,11 @@ private impl FragmentedWriter
             writeFullBox(&.sink, 0, 0)
             writeU32(&.sink, cast(u32, 2 + index))
             writeU32(&.sink, 1)
-            for 3 do
+            for 3
+            {
                 writeU32(&.sink, 0)
+            }
+
             endBox(&.sink, audio)
         }
 
@@ -1151,8 +1387,11 @@ private impl FragmentedWriter
     #[Swag.Propagate]
     mtd writeFragment(samples: const [..] BufferedPacket, bytes: const [..] u8, trackId: u32 = 1) fail
     {
-        if .sequence == Swag.U32.Max do
+        if .sequence == Swag.U32.Max
+        {
             fail OverflowError{"fragmented MP4 sequence number is exhausted"}
+        }
+
         let fragment = beginBox(&.sink, MovieFragmentId)
         let header   = beginBox(&.sink, MovieFragmentHeaderId)
         writeFullBox(&.sink, 0, 0)
@@ -1175,7 +1414,7 @@ private impl FragmentedWriter
         writeU32(&.sink, cast(u32, samples.count))
         let dataOffset = .sink.position()
         writeU32(&.sink, 0)
-        var described = 0'u64
+        var described = 0_u64
         for sample in samples
         {
             writeU32(&.sink, sample.duration)
@@ -1198,8 +1437,11 @@ private impl FragmentedWriter
         {
             for index in samples.count where samples[index].isKeyFrame
             {
-                if .indexCount == Swag.U32.Max do
+                if .indexCount == Swag.U32.Max
+                {
                     fail OverflowError{"fragmented MP4 random-access index has too many entries"}
+                }
+
                 let entry = RandomAccessEntry{samples[index].decodeTime, fragment, index + 1}
                 .indexStream.writeAll(Swag.makeSlice(cast(const [*] u8, &entry), #sizeof(RandomAccessEntry)))
                 .indexCount += 1

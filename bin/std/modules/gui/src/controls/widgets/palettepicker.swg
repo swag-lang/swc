@@ -9,11 +9,11 @@ struct PalettePicker
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigSelectionChanged: SigArray'func||(*Wnd)     // Emitted after the selected color changes.
+        sigSelectionChanged: SigArray!{func||(*Wnd)}     // Emitted after the selected color changes.
 
         readonly
         {
-            colors:        Array'Color            // Colors displayed in insertion order.
+            colors:        Array!{Color}          // Colors displayed in insertion order.
             selectedColor: Color                  // Selected color, or transparent black when no item is selected.
             selectedIndex: s32 = Swag.S32.Max     // Selected color index, or `Swag.S32.Max` when absent.
             itemSize:      s32 = 24               // Width and height of each color item, in logical units.
@@ -21,8 +21,8 @@ struct PalettePicker
         }
     }
 
-    itemRects: Array'Math.Rectangle     // Current hit-test rectangle for every color.
-    hotIndex:  s32 = Swag.S32.Max       // Item under the pointer, or `Swag.S32.Max`.
+    itemRects: Array!{Math.Rectangle}     // Current hit-test rectangle for every color.
+    hotIndex:  s32 = Swag.S32.Max         // Item under the pointer, or `Swag.S32.Max`.
 }
 
 private impl PalettePicker
@@ -76,18 +76,28 @@ impl IWnd for PalettePicker
         {
             var swatch = .itemRects[i]
             swatch.inflate(-inset)
-            if color.a != 255 do
+            if color.a != 255
+            {
                 painter.fillRoundRect(swatch, corner, corner, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
+            }
+
             painter.fillRoundRect(swatch, corner, corner, color)
             painter.drawRoundRect(swatch, corner, corner, colors.palPicker_Border, metrics.separator_HairlineSize)
 
             var ringColor: Color
-            if i == .selectedIndex do
+            if i == .selectedIndex
+            {
                 ringColor = colors.palPicker_CheckedRing
-            elif i == .hotIndex do
+            }
+            else if i == .hotIndex
+            {
                 ringColor = colors.palPicker_HotBorder
-            if ringColor.a == 0 do
+            }
+
+            if ringColor.a == 0
+            {
                 continue
+            }
 
             var ring = swatch
             ring.inflate(ringOffset)
@@ -141,8 +151,10 @@ impl IWnd for PalettePicker
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed or .colors.isEmpty() do
+        if evt.kind != .Pressed or .colors.isEmpty()
+        {
             return
+        }
 
         var index = .selectedIndex == Swag.S32.Max ? 0 : .selectedIndex
         switch evt.key
@@ -169,7 +181,7 @@ impl PalettePicker
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*PalettePicker
     {
         Swag.assert(parent != null)
-        let result = Wnd.create'PalettePicker(parent, null, position, id)
+        let result = Wnd.create!{PalettePicker}(parent, null, position, id)
         result.focusPolicy = .Tab
         result.wndFlags    |= .FocusRing
         return result
@@ -180,8 +192,11 @@ impl PalettePicker
     {
         Swag.assert(size > 0, "palette item size must be positive")
         Swag.assert(spacing >= 0, "palette spacing cannot be negative")
-        if .itemSize == size and .spacing == spacing do
+        if .itemSize == size and .spacing == spacing
+        {
             return
+        }
+
         .itemSize = size
         .spacing  = spacing
         .updateItemRects()
@@ -192,25 +207,35 @@ impl PalettePicker
     mtd setSelectedIndex(index: s32, notify = true)
     {
         Swag.assert(index >= 0 and index < .colors.count, "palette color index is out of range")
-        if .selectedIndex == index do
+        if .selectedIndex == index
+        {
             return
+        }
+
         .selectedIndex = index
         .selectedColor = .colors[index]
         .invalidate()
-        if notify do
+        if notify
+        {
             .sigSelectionChanged.call(me)
+        }
     }
 
     // Clears the current selection and optionally emits [[Gui.PalettePicker.sigSelectionChanged]].
     mtd clearSelection(notify = true)
     {
-        if .selectedIndex == Swag.S32.Max do
+        if .selectedIndex == Swag.S32.Max
+        {
             return
+        }
+
         .selectedIndex = Swag.S32.Max
         Swag.init(&.selectedColor, 1)
         .invalidate()
-        if notify do
+        if notify
+        {
             .sigSelectionChanged.call(me)
+        }
     }
 
     // Removes every color and clears the selection without notification.
@@ -281,7 +306,7 @@ impl PalettePicker
     }
 
     // Appends all colors in insertion order.
-    mtd addColors(colors: Array'Color)
+    mtd addColors(colors: Array!{Color})
     {
         .colors.add(colors.toSlice())
         .invalidate()

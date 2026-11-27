@@ -6,8 +6,10 @@ const SandboxStartupOutsideArg = "--swag-sandbox-outside="
 
 #init
 {
-    if Env.hasArgument(SandboxStartupPeerArg) do
+    if Env.hasArgument(SandboxStartupPeerArg)
+    {
         Swag.require(Env.isSandboxed(), "Core must arm the sandbox before another init hook")
+    }
 }
 
 #premain
@@ -16,8 +18,11 @@ const SandboxStartupOutsideArg = "--swag-sandbox-outside="
     {
         var outside = ""
         for argument in Env.arguments() where argument.count > SandboxStartupOutsideArg.count and
-                                              argument[0 until SandboxStartupOutsideArg.count] == SandboxStartupOutsideArg do
+                                              argument[0 until SandboxStartupOutsideArg.count] == SandboxStartupOutsideArg
+        {
             outside = argument[SandboxStartupOutsideArg.count until argument.count]
+        }
+
         Swag.require(outside.count != 0)
         Swag.require(Env.isSandboxed())
         Swag.require(Env.sandboxRoot() == Path.combine(outside, "root").toString())
@@ -35,8 +40,11 @@ const SandboxStartupOutsideArg = "--swag-sandbox-outside="
     Swag.require(not Swag.jit(), "run sandbox startup with --no-test-jit")
     const Template = "/tmp/swag-sandbox-startup-outside-XXXXXX"
     var temporary: [128] u8
-    for byte, index in Template do
+    for byte, index in Template
+    {
         temporary[index] = byte
+    }
+
     let created = Linux.mkdtemp(temporary.buffer)
     Swag.require(created == temporary.buffer)
     let outside = cast(string, cast(cstring, temporary.buffer))
@@ -53,7 +61,10 @@ const SandboxStartupOutsideArg = "--swag-sandbox-outside="
                                                          standardOutput: .Pipe, standardError: .Pipe})
     Swag.require(process.exitCode() == 37, String.from(process.standardError()).toString())
     let escaped = Linux.openat(Linux.AT_FDCWD, marker.storage(), Linux.O_RDONLY, 0)
-    if escaped >= 0 do
+    if escaped >= 0
+    {
         discard Linux.close(escaped)
+    }
+
     Swag.require(escaped < 0 and Linux.errno() == Linux.ENOENT)
 }

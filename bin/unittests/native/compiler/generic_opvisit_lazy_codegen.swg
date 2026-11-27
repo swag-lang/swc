@@ -5,8 +5,10 @@ namespace GenericForeachLazyCodegen
 {
     func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
     {
-        if not buffer do
+        if not buffer
+        {
             return
+        }
 
         var req: AllocatorRequest
         req.size    = size
@@ -40,8 +42,10 @@ namespace GenericForeachLazyCodegen
     {
         mtd reserve(newCapacity: u64)
         {
-            if newCapacity <= .capacity do
+            if newCapacity <= .capacity
+            {
                 return
+            }
 
             .buffer   = cast([*] T?, helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
             .capacity = newCapacity
@@ -76,7 +80,7 @@ namespace GenericForeachLazyCodegen
 
     struct(T) LoopBox
     {
-        values: BufferBox'T
+        values: BufferBox!{T}
     }
 
     impl LoopBox
@@ -84,36 +88,44 @@ namespace GenericForeachLazyCodegen
         #[Swag.NoInline]
         mtd whereIndexSum(skip: T)->u64
         {
-            var total = 0'u64
-            for value, index in .values.toSlice() where value != skip do
+            var total = 0_u64
+            for value, index in .values.toSlice() where value != skip
+            {
                 total += index + 1
+            }
             return total
         }
 
         #[Swag.NoInline]
         mtd const constWhereCount(skip: T)->u64
         {
-            var total = 0'u64
-            for value in .values.toSlice() where value != skip do
+            var total = 0_u64
+            for value in .values.toSlice() where value != skip
+            {
                 total += 1
+            }
             return total
         }
 
         #[Swag.NoInline]
         mtd reverseIndexCode()->u64
         {
-            var code = 0'u64
-            for _, index in (.values.toSlice()).reversed() do
+            var code = 0_u64
+            for _, index in (.values.toSlice()).reversed()
+            {
                 code = code * 10 + index + 1
+            }
             return code
         }
 
         #[Swag.NoInline]
         mtd nonNullIndexSum()->u64
         {
-            var total = 0'u64
-            for &value, index in .values.toSlice() where value[] != null do
+            var total = 0_u64
+            for &value, index in .values.toSlice() where value[] != null
+            {
                 total += index + 1
+            }
             return total
         }
 
@@ -123,9 +135,9 @@ namespace GenericForeachLazyCodegen
         }
     }
 
-    func makeIntBox()->LoopBox's32
+    func makeIntBox()->LoopBox!{s32}
     {
-        var box: LoopBox's32
+        var box: LoopBox!{s32}
         box.values.reserve(4)
         box.values.add(3)
         box.values.add(5)
@@ -134,9 +146,9 @@ namespace GenericForeachLazyCodegen
         return box
     }
 
-    func makeBoolBox()->LoopBox'bool
+    func makeBoolBox()->LoopBox!{bool}
     {
-        var box: LoopBox'bool
+        var box: LoopBox!{bool}
         box.values.reserve(4)
         box.values.add(true)
         box.values.add(false)
@@ -152,9 +164,9 @@ namespace GenericForeachLazyCodegen
         return ptr
     }
 
-    func makePtrBox()->LoopBox'(*s32?)
+    func makePtrBox()->LoopBox!{*s32?}
     {
-        var box: LoopBox'(*s32?)
+        var box: LoopBox!{*s32?}
         box.values.reserve(3)
         box.values.add(allocS32(4))
         box.values.add(null)
@@ -198,8 +210,10 @@ namespace GenericForeachLazyCodegen
 
         var ptrs   = makePtrBox()
         let ptrsOk = ptrs.nonNullIndexSum() == 4
-        for ptr in ptrs.values.toSlice() where ptr != null do
+        for ptr in ptrs.values.toSlice() where ptr != null
+        {
             testFree(ptr)
+        }
         ptrs.free()
 
         return intsOk and boolsOk and ptrsOk

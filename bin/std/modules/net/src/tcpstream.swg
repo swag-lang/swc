@@ -34,12 +34,15 @@ impl TcpStream
     // [[Net.NetworkError]].
     mtd readExact(buffer: [..] u8)->u64 fail
     {
-        var total = 0'u64
+        var total = 0_u64
         while total < buffer.count
         {
             let count = try .read(buffer[total to])
-            if count == 0 do
+            if count == 0
+            {
                 fail NetworkError{"TCP stream ended before the requested bytes arrived", code: 0}
+            }
+
             total += count
         }
 
@@ -52,12 +55,15 @@ impl TcpStream
     // [[Net.NetworkError]].
     mtd writeAll(bytes: const [..] u8)->u64 fail
     {
-        var total = 0'u64
+        var total = 0_u64
         while total < bytes.count
         {
             let count = try .write(bytes[total to])
-            if count == 0 do
+            if count == 0
+            {
                 fail NetworkError{"TCP stream stopped before all bytes were written", code: 0}
+            }
+
             total += count
         }
 

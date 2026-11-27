@@ -17,12 +17,14 @@ struct ArrayBindingDerived
     value:        s32 = 42
 }
 
-func findArrayBinding(items: *Array'(*ArrayBindingBase))->*ArrayBindingDerived?
+func findArrayBinding(items: *Array!{*ArrayBindingBase})->*ArrayBindingDerived?
 {
     for child in items[]
     {
-        if child is ArrayBindingDerived as derived do
+        if child is ArrayBindingDerived as derived
+        {
             return derived
+        }
     }
 
     return null
@@ -32,7 +34,7 @@ func findArrayBinding(items: *Array'(*ArrayBindingBase))->*ArrayBindingDerived?
 {
     var middle:  ArrayBindingMiddle
     var derived: ArrayBindingDerived
-    var items:   Array'(*ArrayBindingBase)
+    var items:   Array!{*ArrayBindingBase}
     items.add(&middle)
     items.add(&derived)
     Swag.require(findArrayBinding(&items) == &derived)

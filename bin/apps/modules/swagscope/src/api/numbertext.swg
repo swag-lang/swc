@@ -10,15 +10,20 @@ using Core
 func groupThousands(text: string)->String
 {
     let digits = (text.count and text[0] == '-') ? text.count - 1 : text.count
-    for index in text.count - digits until text.count where not Latin1.isDigit(text[index]) do
+    for index in text.count - digits until text.count where not Latin1.isDigit(text[index])
+    {
         return text
+    }
 
     var result: #returntype
     for byte, at in text
     {
         let left = text.count - at
-        if at > text.count - digits and left % 3 == 0 do
+        if at > text.count - digits and left % 3 == 0
+        {
             result += " "
+        }
+
         result += cast(rune, byte)
     }
 

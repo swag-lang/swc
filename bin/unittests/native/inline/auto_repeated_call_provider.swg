@@ -12,15 +12,19 @@ func repeatedCallChecked(values: [*] s32)->s32
 
 func repeatedCallGuarded(values: [*] s32?)->s32
 {
-    if not values do
+    if not values
+    {
         return -1
+    }
     return repeatedCallObserved(values[0])
 }
 
 func repeatedCallOptional(values: [*] s32, enabled: s32)->[*] s32?
 {
-    if not repeatedCallObserved(enabled) do
+    if not repeatedCallObserved(enabled)
+    {
         return null
+    }
     return values
 }
 

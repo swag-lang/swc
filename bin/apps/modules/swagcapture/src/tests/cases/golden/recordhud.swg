@@ -12,16 +12,22 @@ func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0, sta
     var f: HeadlessFixture
     f.setup(400, 120)
     defer f.shutdown()
-    if dark do
+    if dark
+    {
         f.gui.theme.setDark()
-    else do
+    }
+    else
+    {
         f.gui.theme.setLight()
+    }
 
     defer discard catch f.gui.app.setLanguage(Gui.ReferenceLanguage)
-    if language do
+    if language
+    {
         expect f.gui.app.setLanguage(language)
+    }
 
-    let recorder = Memory.new'Recorder()
+    let recorder = Memory.new!{Recorder}()
     defer Memory.delete(recorder)
     recorder.main           = f.main
     recorder.state          = state
@@ -67,10 +73,12 @@ func testRenderScreenChoices()->Image
     f.gui.theme.setLight()
 
     f.main.monitors.clear()
-    for index in 8 do
+    for index in 8
+    {
         testAddMonitorAt(f.main, {cast(f32, index) * 800, 0, 800, 600})
+    }
 
-    let recorder = Memory.new'Recorder()
+    let recorder = Memory.new!{Recorder}()
     defer Memory.delete(recorder)
     recorder.main            = f.main
     recorder.state           = .Preparing

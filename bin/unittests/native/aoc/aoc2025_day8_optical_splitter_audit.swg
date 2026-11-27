@@ -17,8 +17,10 @@ func countActive(flags: const [..] bool)->u32
 
     for flag in flags
     {
-        if flag do
+        if flag
+        {
             result += 1
+        }
     }
 
     return result
@@ -30,8 +32,10 @@ func findStartColumn(plan: const [..] string)->u32
 
     for column in firstRow.count
     {
-        if firstRow[column] == 'S' do
+        if firstRow[column] == 'S'
+        {
             return cast(u32, column)
+        }
     }
 
     Swag.assert(false)
@@ -71,17 +75,23 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
 
         for column in width
         {
-            if current[column] == false do
+            if current[column] == false
+            {
                 continue
+            }
 
             if bytes[column] == '^'
             {
                 result.splitCount += 1
 
-                if column > 0 do
+                if column > 0
+                {
                     next[column - 1] = true
-                if column + 1 < width do
+                }
+                if column + 1 < width
+                {
                     next[column + 1] = true
+                }
             }
             else
             {
@@ -123,10 +133,10 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
 
     let sampleAudit = auditSplitterRack(samplePlan)
 
-    Swag.require(sampleAudit.rowCount == 16'u32)
-    Swag.require(sampleAudit.columnCount == 15'u32)
-    Swag.require(sampleAudit.splitCount == 21'u32)
-    Swag.require(sampleAudit.survivingBeamCount == 9'u32)
+    Swag.require(sampleAudit.rowCount == 16_u32)
+    Swag.require(sampleAudit.columnCount == 15_u32)
+    Swag.require(sampleAudit.splitCount == 21_u32)
+    Swag.require(sampleAudit.survivingBeamCount == 9_u32)
 
     const servicePlan: [9] string =
         [
@@ -143,8 +153,8 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
 
     let serviceAudit = auditSplitterRack(servicePlan)
 
-    Swag.require(serviceAudit.rowCount == 9'u32)
-    Swag.require(serviceAudit.columnCount == 9'u32)
-    Swag.require(serviceAudit.splitCount == 9'u32)
-    Swag.require(serviceAudit.survivingBeamCount == 5'u32)
+    Swag.require(serviceAudit.rowCount == 9_u32)
+    Swag.require(serviceAudit.columnCount == 9_u32)
+    Swag.require(serviceAudit.splitCount == 9_u32)
+    Swag.require(serviceAudit.survivingBeamCount == 5_u32)
 }

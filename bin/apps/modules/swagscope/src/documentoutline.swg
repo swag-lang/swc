@@ -5,7 +5,7 @@ using Core, Gui, Pixel
 // Visible strings of the document outline.
 struct DocumentOutlineStrings
 {
-    title:   string = "Outline"                          // Title of the panel and tooltip of its toggle.
+    title:   string = "Outline"     // Title of the panel and tooltip of its toggle.
     empty:   string = "No outline in this document."     // Status of a document without headings.
     loading: string = "Reading outline…"                 // Status while the headings are read.
     filter:  string = "Filter headings by name"          // Placeholder of the heading filter.
@@ -24,10 +24,10 @@ func outlineTitle()->string => g_DocumentOutlineStrings.title
 
 #run
 {
-    expect Gui.validateStrings'DocumentOutlineStrings(cast(string, FrenchOutlineStrings))
+    expect Gui.validateStrings!{DocumentOutlineStrings}(cast(string, FrenchOutlineStrings))
 }
 
-private func loadMarkdownHeadings(fileName: string)->Array'DocumentHeading fail
+private func loadMarkdownHeadings(fileName: string)->Array!{DocumentHeading} fail
 {
     let source = try File.readAllBytes(fileName)
     return Markdown.parseHeadings(cast(string, source.toSlice()))
@@ -37,8 +37,10 @@ private func applyOutlineThemeColors(wnd: *Wnd, colors: string)
 {
     wnd.style.setStyleSheetColors(colors)
     wnd.computeStyle()
-    for child in wnd.children do
+    for child in wnd.children
+    {
         applyOutlineThemeColors(child, colors)
+    }
 }
 
 // One heading hierarchy shared by every document viewer, hosted beside its document.
@@ -57,10 +59,10 @@ struct DocumentOutline
 
     canvasOwner:  *Wnd?
     canvasGround: Color
-    rows:         Array'(*ListLine)
-    rowTitles:    Array'String
-    levels:       Array'u32
-    load:         Viewer.BackgroundLoad'(Array'DocumentHeading)
+    rows:         Array!{*ListLine}
+    rowTitles:    Array!{String}
+    levels:       Array!{u32}
+    load:         Viewer.BackgroundLoad!{Array!{DocumentHeading}}
     failure:      String
     markdownFile: String
     filter:       String
@@ -68,9 +70,9 @@ struct DocumentOutline
     marking:      bool                   // Whether the selection is being moved to follow the reading, not by the reader.
     reading:      u64 = Swag.U64.Max     // Target last given to `markReading`, marked again when the rows change.
     follow:       (func||())?            // Marks the heading of what the document shows now; set by the reader of that document.
-    headings:     Array'DocumentHeading
-    sigSelected:  SigArray'func||(*Wnd, u64)
-    sigPublished: SigArray'func||(*DocumentOutline)     // Emitted after the headings listed changed.
+    headings:     Array!{DocumentHeading}
+    sigSelected:  SigArray!{func||(*Wnd, u64)}
+    sigPublished: SigArray!{func||(*DocumentOutline)}     // Emitted after the headings listed changed.
 }
 
 impl DocumentOutline
@@ -79,7 +81,7 @@ impl DocumentOutline
     func create(host: Viewer.Host)->*DocumentOutline
     {
         host.application().resources.addEmbedded(FrenchOutlineStringsName, FrenchOutlineStrings)
-        Gui.registerStrings'DocumentOutlineStrings(&g_DocumentOutlineStrings, "scope.outline")
+        Gui.registerStrings!{DocumentOutlineStrings}(&g_DocumentOutlineStrings, "scope.outline")
         let theme = host.contentParent().theme()
         let side  = host.createSidePanel(276,
                                          theme.icon(.Outline, themeActionIconSize(&theme.metrics)),
@@ -88,7 +90,7 @@ impl DocumentOutline
                                          placement: .Left)
         side.toggle.id = OutlineToggleId
 
-        with let result = Wnd.create'DocumentOutline(side.content, "scope.outline")
+        with let result = Wnd.create!{DocumentOutline}(side.content, "scope.outline")
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -100,8 +102,10 @@ impl DocumentOutline
         result.toggle.sigCheckedChanged += func|panel = result|(button)
         {
             panel.updateCanvasMargin()
-            if button.isChecked do
+            if button.isChecked
+            {
                 panel.followReading()
+            }
         }
 
         let size = themeCompactButtonSize(result.themeMetrics())
@@ -138,10 +142,15 @@ impl DocumentOutline
             .updateFlags(.HotTrack | .Ellipsis)
             .sigSelectionChanged += func|panel = result|(list)
             {
-                if panel.marking do
+                if panel.marking
+                {
                     return
-                if let line = list.selectedLine() do
+                }
+
+                if let line = list.selectedLine()
+                {
                     panel.sigSelected.call(panel, targetOf(line))
+                }
             }
         }
 
@@ -153,7 +162,7 @@ impl DocumentOutline
                 {
                     panel.updateHeadingTooltip(mouse.surfacePos)
                 }
-                elif mouse.kind == .Leave
+                else if mouse.kind == .Leave
                 {
                     panel.list.listView.toolTip = ""
                 }
@@ -178,7 +187,8 @@ impl DocumentOutline
     mtd setDocumentThemeColors(colors: string)
     {
         var sheet: String = colors
-        if colors.count do
+        if colors.count
+        {
             sheet += """
 
                        faintText                  $label_TextFaint
@@ -192,6 +202,8 @@ impl DocumentOutline
                        listItem_SelectedBk        $edit_SelectedBk
                        listItem_FocusSelectedBk   $edit_SelectedBk
                        listItem_HotBk             $edit_Bk"""
+        }
+
         applyOutlineThemeColors(me, sheet)
         if colors.count
         {
@@ -199,6 +211,7 @@ impl DocumentOutline
             sheet += Format.toString("\nlistItem_SelectedText 0x%{X08}\nlistItem_FocusSelectedText 0x%{X08}", ink.argb, ink.argb)
             applyOutlineThemeColors(.list, sheet)
         }
+
         .invalidate()
     }
 
@@ -210,8 +223,11 @@ impl DocumentOutline
         if local.x < 0 or
            local.x >= view.clientRect().width or
            local.y < 0 or
-           local.y >= view.clientRect().height do
+           local.y >= view.clientRect().height
+        {
             return Swag.U64.Max
+        }
+
         let row = cast(u64, (local.y + .list.scrollWnd.scrollPosition().y) / .list.lineHeight())
         return row < .rows.count ? row : Swag.U64.Max
     }
@@ -227,8 +243,10 @@ impl DocumentOutline
     // a lower `level`. `target` is stored plus one so that target zero is not a null user pointer.
     mtd add(title: string, level: u32, target: u64)
     {
-        while .levels.count and .levels.back() >= level do
+        while .levels.count and .levels.back() >= level
+        {
             discard .levels.popBack()
+        }
 
         var label: String
         var space: bool
@@ -242,8 +260,11 @@ impl DocumentOutline
             }
             else
             {
-                if space do
+                if space
+                {
                     label += ' '
+                }
+
                 label.append(c)
                 space = false
             }
@@ -251,8 +272,11 @@ impl DocumentOutline
 
         // The heading is document text, set literally; a first-level one is a bold run.
         let line = .list.createLine(label)
-        if level == 1 do
+        if level == 1
+        {
             line.items[0]!.name.set(label, {bold: true})
+        }
+
         line.level     = Math.min(level ? level - 1 : 0, 5)
         line.userData0 = cast(*void, target + 1)
         .rows.add(line)
@@ -299,8 +323,11 @@ impl DocumentOutline
     // Recreates only headings whose titles contain the local outline filter.
     mtd setFilter(filter: string)
     {
-        if .filter == filter do
+        if .filter == filter
+        {
             return
+        }
+
         .filter = filter
         .rebuildRows()
         .refresh()
@@ -311,8 +338,10 @@ impl DocumentOutline
         .clear()
         let filter  = .filter.toString()
         let matcher = assume Text.NameMatcher.create(filter)
-        for heading in .headings where .filter.isEmpty() or matcher.isMatch(heading.title.toString()) do
+        for heading in .headings where .filter.isEmpty() or matcher.isMatch(heading.title.toString())
+        {
             .add(heading.title, heading.level, heading.sourceOffset)
+        }
 
         // The rows are new: the heading being read is found among them again.
         .markReading(.reading)
@@ -325,14 +354,23 @@ impl DocumentOutline
         .filterBox.show(not .headings.isEmpty() or .load.isPending())
         .toggle.toolTip = g_DocumentOutlineStrings.title
         var statusText: String
-        if not .failure.isEmpty() do
+        if not .failure.isEmpty()
+        {
             statusText = .failure.toString()
-        elif .load.isPending() do
+        }
+        else if .load.isPending()
+        {
             statusText = g_DocumentOutlineStrings.loading
-        elif not .headings.isEmpty() and not .filter.isEmpty() and .rows.isEmpty() do
+        }
+        else if not .headings.isEmpty() and not .filter.isEmpty() and .rows.isEmpty()
+        {
             statusText = g_DocumentOutlineStrings.noMatch
-        else do
+        }
+        else
+        {
             statusText = g_DocumentOutlineStrings.empty
+        }
+
         .status.setText(statusText)
         .status.show(.levels.isEmpty() or (not .headings.isEmpty() and not .filter.isEmpty() and .rows.isEmpty()))
         .list.computeLayout()
@@ -356,12 +394,17 @@ impl DocumentOutline
     // the top, so a later heading the reader chose there stays marked.
     mtd markReading(target: u64, atEnd = false)
     {
-        if target == Swag.U64.Max do
+        if target == Swag.U64.Max
+        {
             return
+        }
+
         .reading = target
         let marked = .markedTarget()
-        if atEnd and marked != Swag.U64.Max and marked >= target do
+        if atEnd and marked != Swag.U64.Max and marked >= target
+        {
             return
+        }
 
         var row       = Swag.U64.Max
         var rowTarget = Swag.U64.Max
@@ -371,8 +414,10 @@ impl DocumentOutline
             rowTarget = targetOf(line)
         }
 
-        if rowTarget == marked do
+        if rowTarget == marked
+        {
             return
+        }
 
         .marking = true
         defer .marking = false
@@ -390,8 +435,10 @@ impl DocumentOutline
     // nothing before a document is bound or laid out.
     mtd followReading()
     {
-        if .follow do
+        if .follow
+        {
             .follow()
+        }
     }
 
     // Marks the heading of what the document shows now, as `followReading`, only while the
@@ -399,8 +446,10 @@ impl DocumentOutline
     // on every scroll for a closed outline, which marks the heading again as it opens.
     mtd followOpenReading()
     {
-        if .toggle.isChecked do
+        if .toggle.isChecked
+        {
             .followReading()
+        }
     }
 
     mtd bindHtml(view: *HtmlView)
@@ -435,9 +484,12 @@ impl DocumentOutline
     // Extend an authored page through its host margins while its outline is open.
     mtd setCanvasGround(owner: *Wnd, ground: Color)
     {
-        if .canvasGround == ground and (.canvasOwner == owner or ground.a == 0) do
+        if .canvasGround == ground and (.canvasOwner == owner or ground.a == 0)
+        {
             return
-        .canvasOwner = owner
+        }
+
+        .canvasOwner  = owner
         .canvasGround = ground
         .updateCanvasMargin()
         if ground.a != 255
@@ -445,12 +497,13 @@ impl DocumentOutline
             .setDocumentThemeColors("")
             return
         }
-        let palette = ground.relativeLuminance() > 0.18 ? ThemeColors.papierPalette() : ThemeColors.encrePalette()
-        let text = palette.text.ensuredContrast(ground)
-        let muted = palette.softText.ensuredContrast(ground)
-        let field = Color.lerpRgb(ground, text, 0.05)
+
+        let palette   = ground.relativeLuminance() > 0.18 ? ThemeColors.papierPalette() : ThemeColors.encrePalette()
+        let text      = palette.text.ensuredContrast(ground)
+        let muted     = palette.softText.ensuredContrast(ground)
+        let field     = Color.lerpRgb(ground, text, 0.05)
         let selection = Color.lerpRgb(ground, text, 0.15)
-        let sheet = Format.toString("""view_Bk         0x%{X08}
+        let sheet     = Format.toString("""view_Bk         0x%{X08}
                                        label_Text      0x%{X08}
                                        label_TextLight 0x%{X08}
                                        label_TextFaint $label_TextLight
@@ -458,18 +511,30 @@ impl DocumentOutline
                                        edit_SelectedBk 0x%{X08}
                                        edit_Border     $edit_SelectedBk
                                        url_Text        $label_Text""",
-                                    ground.argb, text.argb, muted.argb, field.argb, selection.argb)
+                                        ground.argb,
+                                        text.argb,
+                                        muted.argb,
+                                        field.argb,
+                                        selection.argb)
         .setDocumentThemeColors(sheet)
     }
 
     private mtd updateCanvasMargin()
     {
-        if not .canvasOwner do
+        if not .canvasOwner
+        {
             return
-        if .toggle.isChecked and .canvasGround.a == 255 do
+        }
+
+        if .toggle.isChecked and .canvasGround.a == 255
+        {
             .canvasOwner.style.setStyleSheetColors(Format.toString("view_Bk 0x%{X08}", .canvasGround.argb))
-        else do
+        }
+        else
+        {
             .canvasOwner.style.clearStyleSheetColors()
+        }
+
         .canvasOwner.computeStyle()
         .canvasOwner.invalidate()
     }
@@ -484,8 +549,10 @@ impl DocumentOutline
             if button.isChecked
             {
                 panel.startMarkdown()
-                if panel.filterBox.isLocallyVisible() do
+                if panel.filterBox.isLocallyVisible()
+                {
                     panel.filterBox.setFocus()
+                }
             }
             else
             {
@@ -497,23 +564,20 @@ impl DocumentOutline
     // Follows headings in a Markdown view, including notebooks rendered from an in-memory document.
     mtd trackMarkdown(view: *Markdown.View)
     {
-        .follow = func|panel = me, view|() { panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1) }
-        .sigSelected += func|view|(_, offset)
-        {
-            discard view.revealHeading(offset)
-        }
+        .follow      = func|panel = me, view|() { panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1) }
+        .sigSelected += func|view|(_, offset) { discard view.revealHeading(offset) }
 
         // The heading being read follows the document as it moves.
-        view.sigScrolled += func|panel = me|(_)
-        {
-            panel.followOpenReading()
-        }
+        view.sigScrolled += func|panel = me|(_) { panel.followOpenReading() }
     }
 
     mtd startMarkdown()
     {
-        if .loaded or .load.started do
+        if .loaded or .load.started
+        {
             return
+        }
+
         .load.start(.markdownFile, &loadMarkdownHeadings, me)
         .refresh()
     }
@@ -528,9 +592,12 @@ impl IWnd for DocumentOutline
 {
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if not .load.claim(evt) do
+        if not .load.claim(evt)
+        {
             return
-        var headings: Array'DocumentHeading
+        }
+
+        var headings: Array!{DocumentHeading}
         .failure = .load.finish(&headings)
         .loaded  = true
         .publish(headings.toSlice())
@@ -538,8 +605,11 @@ impl IWnd for DocumentOutline
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .refresh()
+        }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 }

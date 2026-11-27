@@ -26,10 +26,13 @@ impl IWnd for LibraryFactsProbe
     {
         var host: Testing.HeadlessHost
         host.setup(120, 30)
-        if light do
+        if light
+        {
             host.theme.setLight()
+        }
+
         host.notify(.ThemeChanged)
-        let probe = Wnd.create'LibraryFactsProbe(&host.root, {0, 0, 120, 30})
+        let probe = Wnd.create!{LibraryFactsProbe}(&host.root, {0, 0, 120, 30})
         let plain = host.renderSettled()
         let font  = host.theme.createDefaultFontFs(host.theme.metrics.fileTile_FactsFontSize)
         let left  = cast(s32, Math.ceil(Painter.measureString(" · ", font).width))
@@ -40,10 +43,17 @@ impl IWnd for LibraryFactsProbe
             probe.invalidate()
             let marked = host.renderSettled()
             var ink: u32
-            for y in 30 do
-                for x in cast(u32, RatingGlyphSize) do
-                    if marked.pixelColor(left + cast(s32, x), cast(s32, y)) != plain.pixelColor(left + cast(s32, x), cast(s32, y)) do
+            for y in 30
+            {
+                for x in cast(u32, RatingGlyphSize)
+                {
+                    if marked.pixelColor(left + cast(s32, x), cast(s32, y)) != plain.pixelColor(left + cast(s32, x), cast(s32, y))
+                    {
                         ink += 1
+                    }
+                }
+            }
+
             Swag.require(ink > 5, "a library metadata mark has no visible ink")
         }
     }

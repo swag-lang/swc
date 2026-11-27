@@ -24,7 +24,7 @@ func writeConstructed(value: SelfValue)->u64
 }
 #test
 {
-    mustReject(func() { discard writeConstructed(179'u64) })
+    mustReject(func() { discard writeConstructed(179_u64) })
 }
 
 var globalValue: Value
@@ -112,8 +112,8 @@ func replaceSlice(value: [..] u64, target: *[..] u64, replacement: [..] u64)->u6
     let length = replaceString(#copy text, &text)
     Swag.require(length == 8 and text == "replacement")
 
-    var first          = [1'u64, 2]
-    var second         = [3'u64, 4, 5]
+    var first          = [1_u64, 2]
+    var second         = [3_u64, 4, 5]
     var view: [..] u64 = first
     mustReject(func|&view, &second|() { discard replaceSlice(view, &view, second) })
     Swag.require(view.count == 2)
@@ -190,8 +190,10 @@ func probeEarlierArgument(target: *Value, borrowed: bool)->u64
 {
     let caught = Swag.catchPanic(func|target|() { target.first = 0 })
     Swag.assert(caught.raised == borrowed)
-    if borrowed do
+    if borrowed
+    {
         Swag.assert(caught.message() == "write overlaps storage borrowed by a value argument")
+    }
     return 1
 }
 #[Swag.NoInline]
@@ -234,12 +236,12 @@ func floatArgument(value: Value)->f64 => cast(f64, value.first) + 0.5
 #[Swag.Inline]
 func replaceAny(value: any, target: *any)->s32
 {
-    target[] = 0's32
+    target[] = 0_s32
     return assume cast(s32, value)
 }
 #test
 {
-    var value: any = 283's32
+    var value: any = 283_s32
     mustReject(func|&value|() { discard replaceAny(value, &value) })
     let observed = replaceAny(#copy value, &value)
     Swag.require(observed == 283 and assume cast(s32, value) == 0)
@@ -333,6 +335,6 @@ func makeInlinePublished()->PublishedValue
     published = 0
     mustReject(func() { discard readBesidePublished(makeInlinePublished(), writePublished()) })
     published = 0
-    mustReject(func() { discard readBesidePublished(347'u64, writePublished()) })
+    mustReject(func() { discard readBesidePublished(347_u64, writePublished()) })
     published = 0
 }

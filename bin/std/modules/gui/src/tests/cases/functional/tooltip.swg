@@ -168,7 +168,7 @@ var g_LinkText:  String
     Swag.require(host.app.toolTip.current == null)
 
     let pause = PushButton.create(&host.root, "Pause", {20, 20, 100, 30})
-    ToolTip.show(pause, pause.localToSurface(Math.Point{10, 10}), "Pause recording", 0's)
+    ToolTip.show(pause, pause.localToSurface(Math.Point{10, 10}), "Pause recording", 0_s)
     Swag.require(host.app.toolTip.current != null)
     pause.destroy()
     host.pump()

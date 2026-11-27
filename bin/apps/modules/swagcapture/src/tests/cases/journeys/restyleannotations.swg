@@ -15,7 +15,7 @@ using Core, Gui, Pixel
     let capture = unwrap main.editWnd.getCapture()
     journey.drawForm(ActionToolMode.Shape, .Shape, {25, 25}, {100, 90})
     let shape = assume cast(*FormShape, capture.forms[0])
-    main.propWnd.pushTypedValue(cast #bit (u32, 45'f32), BaseForm, #nameof(BaseForm.rotate), true, true)
+    main.propWnd.pushTypedValue(cast #bit (u32, 45_f32), BaseForm, #nameof(BaseForm.rotate), true, true)
     Swag.require(shape.rotate == 45)
     main.sendCommandEvent(ActionEdit.ResetRotation)
     Swag.require(shape.rotate == 0)
@@ -28,7 +28,7 @@ using Core, Gui, Pixel
     Swag.require(shape.backColor.argb == cast(u32, Argb.Blue))
     let styles       = &main.quickWnd.qsShape
     let defaultCount = styles.forms.count
-    let extra        = Memory.new'FormShape()
+    let extra        = Memory.new!{FormShape}()
     extra.IForm.setup(capture)
     styles.forms.add(extra)
     journey.confirmCommand(ActionQuickStyle.Reset, Dialog.BtnYes)
@@ -40,8 +40,11 @@ using Core, Gui, Pixel
     journey.waitFor("reopen styled mark", func|main, &path|()->bool
     {
         let opened = main.editWnd.getCapture()
-        if main.libraryMode or not opened or opened.file != path or opened.forms.count != 1 do
+        if main.libraryMode or not opened or opened.file != path or opened.forms.count != 1
+        {
             return false
+        }
+
         return opened.forms[0].rotate == 0 and opened.forms[0].backColor.argb == cast(u32, Argb.Blue)
     })
 }

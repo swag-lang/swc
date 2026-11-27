@@ -10,7 +10,7 @@ struct ViewerPluginChoice
 // Viewer plugins available to Swag Scope, in selection order.
 struct ViewerPluginRegistry
 {
-    plugins: Array'Viewer.Plugin
+    plugins: Array!{Viewer.Plugin}
 }
 
 // The parts of a file name that select a viewer, lowered once: selectors are written in lower case.
@@ -31,14 +31,23 @@ private impl NameKey
         for selector in plugin.selectors
         {
             var wanted: string
-            if wildcard do
+            if wildcard
+            {
                 wanted = "*"
-            elif selector[][0] == '.' do
+            }
+            else if selector[][0] == '.'
+            {
                 wanted = .extension
-            else do
+            }
+            else
+            {
                 wanted = .name
-            if selector[] == wanted do
+            }
+
+            if selector[] == wanted
+            {
                 return true
+            }
         }
 
         return false
@@ -49,7 +58,7 @@ private impl NameKey
 //
 // A file that cannot be opened or read yields no bytes rather than an error: not being able to
 // look inside says the same thing as looking and recognizing nothing.
-private func readProbeHead(fileName: string)->Array'u8
+private func readProbeHead(fileName: string)->Array!{u8}
 {
     var result: #returntype
     var stream = catch File.openReadLive(fileName) { return result }
@@ -59,10 +68,15 @@ private func readProbeHead(fileName: string)->Array'u8
     var count: #decltype(expect stream.read(result.toSlice()))
     catch { count = try stream.read(result.toSlice()) } as readErrorOutcome
     let readError = readErrorOutcome.value()
-    if readError != null do
+    if readError != null
+    {
         result.clear()
-    else do
+    }
+    else
+    {
         result.resize(count)
+    }
+
     return result
 }
 
@@ -109,26 +123,56 @@ impl ViewerPluginRegistry
     // Takes ownership of one plugin and registers it after validating the host-facing contract.
     mtd register(plugin: #move Viewer.Plugin) fail
     {
-        if plugin.apiVersion != Viewer.ApiVersion do
+        if plugin.apiVersion != Viewer.ApiVersion
+        {
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' uses API version %, host needs %", plugin.key, plugin.apiVersion, Viewer.ApiVersion))}
-        if plugin.key.isEmpty() do
+        }
+
+        if plugin.key.isEmpty()
+        {
             fail InvalidFormatError{"viewer plugin key is missing"}
-        if plugin.key != plugin.key.toLower() do
+        }
+
+        if plugin.key != plugin.key.toLower()
+        {
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin key '%' is not lowercase", plugin.key))}
-        if plugin.staticName.isEmpty() and not plugin.resolveName do
+        }
+
+        if plugin.staticName.isEmpty() and not plugin.resolveName
+        {
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no display name", plugin.key))}
-        if plugin.iconAtlas == null do
+        }
+
+        if plugin.iconAtlas == null
+        {
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no icon document", plugin.key))}
-        if plugin.create == null do
+        }
+
+        if plugin.create == null
+        {
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no creation callback", plugin.key))}
-        if plugin.smokeFixture.isEmpty() or (Path.fileName(plugin.smokeFixture) orelse "") != plugin.smokeFixture.toString() do
+        }
+
+        if plugin.smokeFixture.isEmpty() or (Path.fileName(plugin.smokeFixture) orelse "") != plugin.smokeFixture.toString()
+        {
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' needs one smoke-fixture basename", plugin.key))}
-        if plugin.selectors.isEmpty() and not plugin.probe do
+        }
+
+        if plugin.selectors.isEmpty() and not plugin.probe
+        {
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no selector or content probe", plugin.key))}
-        for selector in plugin.selectors where selector.isEmpty() do
+        }
+
+        for selector in plugin.selectors where selector.isEmpty()
+        {
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has an empty selector", plugin.key))}
-        for current in .plugins where current.key == plugin.key do
+        }
+
+        for current in .plugins where current.key == plugin.key
+        {
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin key '%' is already registered", plugin.key))}
+        }
+
         .plugins.add(#move plugin)
     }
 
@@ -138,8 +182,10 @@ impl ViewerPluginRegistry
     // the reader opens a file it can show.
     mtd attachTo(app: *Application)
     {
-        for plugin in .plugins where plugin.attach do
+        for plugin in .plugins where plugin.attach
+        {
             plugin.attach(app)
+        }
     }
 
     // Returns the plugin that stands for `fileName`, from its name alone.
@@ -173,10 +219,10 @@ impl ViewerPluginRegistry
     // The name is asked first, then the content, then the fallbacks. Reading the head is what
     // makes an extensionless note, a renamed archive or a Markdown page reach the viewer that can
     // show it, and it costs one open shared by every probe.
-    mtd const choices(fileName: string)->Array'ViewerPluginChoice
+    mtd const choices(fileName: string)->Array!{ViewerPluginChoice}
     {
         var result:  #returntype
-        var matched: Array'bool
+        var matched: Array!{bool}
         matched.resize(.plugins.count)
         let key = NameKey.from(fileName)
 
@@ -199,8 +245,11 @@ impl ViewerPluginRegistry
             content.claimedText = content.claimedText and plugin.textual
         }
 
-        for plugin, index in .plugins where not matched[index] and key.selectedBy(plugin, wildcard: true) do
+        for plugin, index in .plugins where not matched[index] and key.selectedBy(plugin, wildcard: true)
+        {
             result.add(ViewerPluginChoice{index, plugin.key})
+        }
+
         return result
     }
 
@@ -216,8 +265,11 @@ impl ViewerPluginRegistry
         {
             let matchA = keyA.selectedBy(plugin, wildcard: false)
             let matchB = keyB.selectedBy(plugin, wildcard: false)
-            if matchA and matchB do
+            if matchA and matchB
+            {
                 return true
+            }
+
             anyA = anyA or matchA
             anyB = anyB or matchB
         }
@@ -229,8 +281,11 @@ impl ViewerPluginRegistry
     mtd const explicitlySupports(fileName: string)->bool
     {
         let key = NameKey.from(fileName)
-        for plugin in .plugins where plugin.matchNames and key.selectedBy(plugin, wildcard: false) do
+        for plugin in .plugins where plugin.matchNames and key.selectedBy(plugin, wildcard: false)
+        {
             return true
+        }
+
         return false
     }
 }

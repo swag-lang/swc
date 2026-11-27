@@ -96,7 +96,7 @@ impl MarkPen
         }
         // Where a terminal cut and a notch meet, both ask for the same point: a free end
         // comes to a point, and the edge between them has no length to draw.
-        elif Math.abs(px - .lastX) > 0.0001 or Math.abs(py - .lastY) > 0.0001
+        else if Math.abs(px - .lastX) > 0.0001 or Math.abs(py - .lastY) > 0.0001
         {
             .path.lineTo(px, py)
         }
@@ -153,8 +153,10 @@ func buildMark(scale, originX, originY: f32)->LinePath
     var pen = MarkPen{&result, scale, originX, originY}
 
     let count = corners.count
-    for &corner, index in corners do
+    for &corner, index in corners
+    {
         pen.open(corner, corners[(index + count - 1) % count], corners[(index + 1) % count])
+    }
 
     result.close()
     return result
@@ -184,7 +186,7 @@ func buildTileMark(size, fill: f32)->LinePath
 // The mark alone, on nothing: the master every placement starts from.
 func writeMark(svgPath, pngPath: string, size: s32) fail
 {
-    const MARGIN = 8'f32
+    const MARGIN = 8_f32
     let boxWidth  = MARK_WIDTH + MARGIN * 2
     let boxHeight = GRID + MARGIN * 2
 
@@ -228,7 +230,7 @@ func writeIcon(path: string, size: s32) fail
 // counters of the mark stay open even at 16 pixels.
 func writeFavicon(svgPath, icoPath: string) fail
 {
-    const BOX = 100'f32
+    const BOX = 100_f32
 
     var doc = Svg.Document.create(BOX, BOX)
     doc.setTitle("Swag")

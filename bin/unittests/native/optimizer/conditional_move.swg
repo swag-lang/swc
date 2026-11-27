@@ -35,35 +35,47 @@ func clampLoop(dst: [*] u8, src: [*] s32, n: u64)
     }
 }
 
-// The same selects written as early returns: each `if … do return` is a
+// The same selects written as early returns: each `if … { return }` is a
 // triangle whose body ends the function, and the chain folds into one
 // return fed by conditional moves.
 #[Swag.Optimize(true)]
 func clampEarly(v, lo, hi: s32)->s32
 {
-    if v < lo do return lo
-    if v > hi do return hi
+    if v < lo
+    {
+        return lo
+    }
+    if v > hi
+    {
+        return hi
+    }
     return v
 }
 
 #[Swag.Optimize(true)]
 func absEarly(v: s32)->s32
 {
-    if v < 0 do return -v
+    if v < 0
+    {
+        return -v
+    }
     return v
 }
 
 #[Swag.Optimize(true)]
 func selectEarlyConstant(count: u64)->u64
 {
-    if count == 0 do return 1
+    if count == 0
+    {
+        return 1
+    }
     return count * 2
 }
 
 #[Swag.Optimize(true)]
 func absDiffSum(a, b: [*] s32, n: u64)->s64
 {
-    var sum = 0's64
+    var sum = 0_s64
     for i in 0 until n
     {
         let d = a[i] - b[i]

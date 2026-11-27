@@ -13,8 +13,10 @@ impl RuntimeValueIndexBox
     mtd opIndex(index: s32)->s32
     {
         .reads += 1
-        if index == 0 do
+        if index == 0
+        {
             return .first
+        }
         return .second
     }
 }
@@ -314,9 +316,11 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
 func runtimeValueIndexIsNotEmpty(first: s32)->s32
 {
     var box    = RuntimeValueIndexBox{first: first, second: 9}
-    var result = 0's32
-    if box[0] do
+    var result = 0_s32
+    if box[0]
+    {
         result = 1
+    }
     return result
 }
 

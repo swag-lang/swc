@@ -7,8 +7,11 @@ internal func setSessionStartupNative(id, displayName: string, enabled: bool, ar
     if root.isEmpty() or not Path.isRooted(root)
     {
         let homeDirectory = variable("HOME")
-        if not Path.isRooted(homeDirectory) do
+        if not Path.isRooted(homeDirectory)
+        {
             fail Errors.BadParameterError{}
+        }
+
         root = Path.combine(homeDirectory, ".config")
     }
 
@@ -16,8 +19,11 @@ internal func setSessionStartupNative(id, displayName: string, enabled: bool, ar
     let path      = Path.combine(directory, Format.toString("%.desktop", id))
     if not enabled
     {
-        if File.exists(path) do
+        if File.exists(path)
+        {
             try File.delete(path)
+        }
+
         return true
     }
 
@@ -31,7 +37,7 @@ internal func setSessionStartupNative(id, displayName: string, enabled: bool, ar
             {
                 result += "\\\\\\\\"
             }
-            elif byte == '"' or byte == '$' or byte == '`'
+            else if byte == '"' or byte == '$' or byte == '`'
             {
                 result += "\\\\"
                 result += byte
@@ -41,18 +47,20 @@ internal func setSessionStartupNative(id, displayName: string, enabled: bool, ar
                 result += byte
             }
 
-            if byte == '%' do
-                result += '%'u8
+            if byte == '%'
+            {
+                result += '%'_u8
+            }
         }
 
-        result += '"'u8
+        result += '"'_u8
         return result
     }
 
     var command = quote(try Process.currentExecutablePath())
     for argument in arguments
     {
-        command += ' 'u8
+        command += ' '_u8
         command += quote(argument)
     }
 

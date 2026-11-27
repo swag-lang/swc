@@ -230,8 +230,10 @@ func testAssertFormFitsItsMargin(itf: IForm)
         }
     }
 
-    if minimum.x > maximum.x do
+    if minimum.x > maximum.x
+    {
         return
+    }
 
     var room = itf.boundRect()
     room.inflate(BaseForm.paintOverdraw(itf, false))
@@ -309,7 +311,7 @@ func testAssertFormFitsItsMargin(itf: IForm)
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    var polyPoints: Array'Math.Vector2
+    var polyPoints: Array!{Math.Vector2}
     polyPoints.add({10, 10})
     polyPoints.add({60, 10})
     polyPoints.add({40, 50})
@@ -325,7 +327,7 @@ func testAssertFormFitsItsMargin(itf: IForm)
     polygon.IForm.scaleBaseForm(2)
     Gui.Testing.assertRect(polygon.IForm.boundRect(), 10, 26, 120, 80)
 
-    var drawPoints: Array'Math.Vector2
+    var drawPoints: Array!{Math.Vector2}
     drawPoints.add({100, 100})
     drawPoints.add({120, 110})
     drawPoints.add({130, 140})
@@ -384,7 +386,7 @@ func testAssertFormFitsItsMargin(itf: IForm)
     var releaseEvt = testMouse(.Released)
     var doubleEvt  = testMouse(.DoubleClick)
 
-    var emptyPoints: Array'Math.Vector2
+    var emptyPoints: Array!{Math.Vector2}
     let polygon = testAddPolygon(f.capture, emptyPoints.toSlice())
     var editing = polygon.IForm.edit(&moveEvt, {10, 10}, {20, 20}, 1)
     Swag.require(editing)
@@ -512,7 +514,7 @@ func testAssertFormFitsItsMargin(itf: IForm)
     lineCopy.subKind = .Highlight
     Swag.require(not line.IForm.isSame(&lineCopy))
 
-    var points: Array'Math.Vector2
+    var points: Array!{Math.Vector2}
     points.add({1, 1})
     points.add({20, 1})
     points.add({10, 20})

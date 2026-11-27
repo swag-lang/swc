@@ -2,14 +2,14 @@
 
 #foreignlib("dwmapi")
 
-const DWM_BB_ENABLE                   = 0x00000001'u32
-const DWM_BB_BLURREGION               = 0x00000002'u32
-const DWMWA_TRANSITIONS_FORCEDISABLED = 3'u32
-const DWMWA_WINDOW_CORNER_PREFERENCE  = 33'u32
-const DWMWA_BORDER_COLOR              = 34'u32
-const DWMWA_COLOR_NONE                = 0xFFFFFFFE'u32
-const DWMWCP_DONOTROUND               = 1'u32
-const DWMWCP_ROUND                    = 2'u32
+const DWM_BB_ENABLE                   = 0x00000001_u32
+const DWM_BB_BLURREGION               = 0x00000002_u32
+const DWMWA_TRANSITIONS_FORCEDISABLED = 3_u32
+const DWMWA_WINDOW_CORNER_PREFERENCE  = 33_u32
+const DWMWA_BORDER_COLOR              = 34_u32
+const DWMWA_COLOR_NONE                = 0xFFFFFFFE_u32
+const DWMWCP_DONOTROUND               = 1_u32
+const DWMWCP_ROUND                    = 2_u32
 
 struct DWM_BLURBEHIND
 {

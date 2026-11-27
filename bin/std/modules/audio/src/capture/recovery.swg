@@ -29,8 +29,11 @@ impl CaptureRecovery
     // Creates a retry controller with a strictly positive interval in queue-clock ticks.
     func create(queue: *CaptureQueue, retryDelayTicks: u64)->CaptureRecovery fail
     {
-        if not retryDelayTicks or queue.sourceIsLost() do
+        if not retryDelayTicks or queue.sourceIsLost()
+        {
             fail BadParameterError{"capture recovery needs a live queue and a positive retry interval"}
+        }
+
         with var result: #returntype
         {
             .queue      = queue
@@ -51,8 +54,11 @@ impl CaptureRecovery
     // Repeated loss notifications extend the queue's gap without delaying an already due retry.
     mtd deviceLost(tick: u64) fail
     {
-        if not .lost and tick > Swag.U64.Max - .retryDelay do
+        if not .lost and tick > Swag.U64.Max - .retryDelay
+        {
             fail OverflowError{"capture retry deadline overflows"}
+        }
+
         try .queue.markLost(tick)
         if not .lost
         {
@@ -69,10 +75,16 @@ impl CaptureRecovery
     // Calls before the deadline or after recovery are rejected without changing the queue.
     mtd retryFailed(tick: u64) fail
     {
-        if not .retryDue(tick) do
+        if not .retryDue(tick)
+        {
             fail BadParameterError{"capture retry is not due"}
-        if tick > Swag.U64.Max - .retryDelay do
+        }
+
+        if tick > Swag.U64.Max - .retryDelay
+        {
             fail OverflowError{"capture retry deadline overflows"}
+        }
+
         try .queue.markLost(tick)
         .nextRetry = tick + .retryDelay
     }
@@ -80,8 +92,11 @@ impl CaptureRecovery
     // Marks a reopened device ready and preserves the full outage as a sample gap.
     mtd deviceRestored(tick: u64) fail
     {
-        if not .lost do
+        if not .lost
+        {
             return
+        }
+
         try .queue.markRestored(tick)
         .lost      = false
         .nextRetry = 0

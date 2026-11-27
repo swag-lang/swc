@@ -48,7 +48,7 @@ func(T, V) functionLocalPartialBox()->bool
 {
     struct Local
     {
-        item: MiddleDefaultBox'T
+        item: MiddleDefaultBox!{T}
     }
 
     var data: Local
@@ -61,7 +61,7 @@ func(T) functionLocalExplicitPrefixValue()->bool
 {
     struct Local
     {
-        item: PrefixDefaultBuffer'3
+        item: PrefixDefaultBuffer!{3}
     }
 
     var data: Local
@@ -94,7 +94,7 @@ func(A, B) functionLocalRenamedPartialBox()->bool
 {
     struct Local
     {
-        item: MiddleDefaultBox'A
+        item: MiddleDefaultBox!{A}
     }
 
     var data: Local
@@ -107,7 +107,7 @@ func(U) functionLocalRenamedExplicitPrefixValue()->bool
 {
     struct Local
     {
-        item: PrefixDefaultBuffer'3
+        item: PrefixDefaultBuffer!{3}
     }
 
     var data: Local
@@ -159,18 +159,18 @@ impl MethodConstShadowHolder
 
 func semaTest001()
 {
-    let typeShadowHolder:  MethodTypeShadowHolder'u16
-    let constShadowHolder: MethodConstShadowHolder'(u16, 9)
+    let typeShadowHolder:  MethodTypeShadowHolder!{u16}
+    let constShadowHolder: MethodConstShadowHolder!{u16, 9}
 
-    #assert(functionLocalImplicitBox'u16())
-    #assert(functionLocalImplicitBuffer'(u8, 4)())
-    #assert(functionLocalPartialBox'(bool, f32)())
-    #assert(functionLocalExplicitPrefixValue's64())
-    #assert(functionLocalImplicitRenamedBox'u16())
-    #assert(functionLocalImplicitRenamedBuffer'(u8, 4)())
-    #assert(functionLocalRenamedPartialBox'(bool, f32)())
-    #assert(functionLocalRenamedExplicitPrefixValue's64())
-    #assert(functionReturnOnlyForward'u16(12))
-    #assert(typeShadowHolder.localUsesMethodType'bool(true))
-    #assert(constShadowHolder.localUsesMethodConst'4())
+    #assert(functionLocalImplicitBox!{u16}())
+    #assert(functionLocalImplicitBuffer!{u8, 4}())
+    #assert(functionLocalPartialBox!{bool, f32}())
+    #assert(functionLocalExplicitPrefixValue!{s64}())
+    #assert(functionLocalImplicitRenamedBox!{u16}())
+    #assert(functionLocalImplicitRenamedBuffer!{u8, 4}())
+    #assert(functionLocalRenamedPartialBox!{bool, f32}())
+    #assert(functionLocalRenamedExplicitPrefixValue!{s64}())
+    #assert(functionReturnOnlyForward!{u16}(12))
+    #assert(typeShadowHolder.localUsesMethodType!{bool}(true))
+    #assert(constShadowHolder.localUsesMethodConst!{4}())
 }

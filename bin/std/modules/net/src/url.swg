@@ -34,7 +34,7 @@ func parseHttp(text: string)->HttpTarget fail
         result.secure = true
         result.port   = 443
     }
-    elif text.count >= 7 and String.toLower(text[0 until 7]) == "http://"
+    else if text.count >= 7 and String.toLower(text[0 until 7]) == "http://"
     {
         start       = 7
         result.port = 80
@@ -45,25 +45,40 @@ func parseHttp(text: string)->HttpTarget fail
     }
 
     var end = start
-    while end < text.count and text[end] != '/' and text[end] != '?' and text[end] != '#' do
+    while end < text.count and text[end] != '/' and text[end] != '?' and text[end] != '#'
+    {
         end += 1
-    if end == start do
+    }
+
+    if end == start
+    {
         fail Errors.InvalidFormatError{}
+    }
+
     let authority = text[start until end]
     var host: string
     var portStart = Swag.U64.Max
     if authority[0] == '['
     {
         let closeBracket = Utf8.indexOf(authority, ']')
-        if closeBracket == Swag.U64.Max do
+        if closeBracket == Swag.U64.Max
+        {
             fail Errors.InvalidFormatError{}
+        }
+
         host = authority[1 until closeBracket]
-        if not isValidIpv6Literal(host) do
+        if not isValidIpv6Literal(host)
+        {
             fail Errors.InvalidFormatError{}
+        }
+
         if closeBracket + 1 < authority.count
         {
-            if authority[closeBracket + 1] != ':' do
+            if authority[closeBracket + 1] != ':'
+            {
                 fail Errors.InvalidFormatError{}
+            }
+
             portStart = closeBracket + 2
         }
     }
@@ -73,24 +88,36 @@ func parseHttp(text: string)->HttpTarget fail
         host = colon == Swag.U64.Max ? authority : authority[0 until colon]
         if colon != Swag.U64.Max
         {
-            if Utf8.indexOf(authority[colon + 1 to], ':') != Swag.U64.Max do
+            if Utf8.indexOf(authority[colon + 1 to], ':') != Swag.U64.Max
+            {
                 fail Errors.InvalidFormatError{}
+            }
+
             portStart = colon + 1
         }
 
-        if host.count == 0 do
+        if host.count == 0
+        {
             fail Errors.InvalidFormatError{}
-        var labelStart = 0'u64
-        var hostIndex  = 0'u64
+        }
+
+        var labelStart = 0_u64
+        var hostIndex  = 0_u64
         while hostIndex < host.count
         {
             let c = host[hostIndex]
             if c == '.'
             {
-                if hostIndex == labelStart do
+                if hostIndex == labelStart
+                {
                     fail Errors.InvalidFormatError{}
-                if host[hostIndex - 1] == '-' or hostIndex - labelStart > 63 do
+                }
+
+                if host[hostIndex - 1] == '-' or hostIndex - labelStart > 63
+                {
                     fail Errors.InvalidFormatError{}
+                }
+
                 labelStart = hostIndex + 1
             }
             else
@@ -98,20 +125,26 @@ func parseHttp(text: string)->HttpTarget fail
                 if not ((c >= 'a' and c <= 'z') or
                         (c >= 'A' and c <= 'Z') or
                         Latin1.isDigit(c) or
-                        (c == '-' and hostIndex != labelStart)) do
+                        (c == '-' and hostIndex != labelStart))
+                {
                     fail Errors.InvalidFormatError{}
+                }
             }
 
             hostIndex += 1
         }
 
         if labelStart < host.count and
-           (host.count - labelStart > 63 or host[host.count - 1] == '-') do
+           (host.count - labelStart > 63 or host[host.count - 1] == '-')
+        {
             fail Errors.InvalidFormatError{}
+        }
 
         let hostLength = host.count - (host[host.count - 1] == '.' ? 1 : 0)
-        if hostLength > 253 do
+        if hostLength > 253
+        {
             fail Errors.InvalidFormatError{}
+        }
     }
 
     result.host = String.toLower(host)
@@ -119,18 +152,29 @@ func parseHttp(text: string)->HttpTarget fail
     {
         result.hasPort = true
         let digits = authority[portStart to]
-        if digits.count == 0 do
+        if digits.count == 0
+        {
             fail Errors.InvalidFormatError{}
-        for c in digits where not Latin1.isDigit(c) do
+        }
+
+        for c in digits where not Latin1.isDigit(c)
+        {
             fail Errors.InvalidFormatError{}
+        }
+
         result.port = try StrConv.toU16(digits)
-        if result.port == 0 do
+        if result.port == 0
+        {
             fail Errors.InvalidFormatError{}
+        }
     }
 
     var finish = end
-    while finish < text.count and text[finish] != '#' do
+    while finish < text.count and text[finish] != '#'
+    {
         finish += 1
+    }
+
     var index = end
     while index < text.count
     {
@@ -139,35 +183,53 @@ func parseHttp(text: string)->HttpTarget fail
                 (c >= 'A' and c <= 'Z') or
                 Latin1.isDigit(c) or
                 Utf8.indexOf("-._~:/?@!$&'()*+,;=%", cast(rune, c)) != Swag.U64.Max or
-                (c == '#' and index == finish)) do
+                (c == '#' and index == finish))
+        {
             fail Errors.InvalidFormatError{}
+        }
+
         if c == '%'
         {
             if text.count - index < 3 or
                not Latin1.isHexDigit(text[index + 1]) or
-               not Latin1.isHexDigit(text[index + 2]) do
+               not Latin1.isHexDigit(text[index + 2])
+            {
                 fail Errors.InvalidFormatError{}
+            }
+
             index += 2
         }
 
         index += 1
     }
 
-    if end == finish or text[end] == '?' do
+    if end == finish or text[end] == '?'
+    {
         result.path = "/"
+    }
+
     result.path += text[end until finish]
     return result
 }
 
 private func isValidIpv6Literal(host: string)->bool
 {
-    if host.count == 0 do
+    if host.count == 0
+    {
         return false
+    }
+
     let compression = Utf8.indexOf(host, "::")
-    if compression == Swag.U64.Max do
+    if compression == Swag.U64.Max
+    {
         return countIpv6Groups(host, true) == 8
-    if Utf8.indexOf(host[compression + 2 to], "::") != Swag.U64.Max do
+    }
+
+    if Utf8.indexOf(host[compression + 2 to], "::") != Swag.U64.Max
+    {
         return false
+    }
+
     let left  = countIpv6Groups(host[0 until compression], false)
     let right = countIpv6Groups(host[compression + 2 to], true)
     return left != Swag.U64.Max and right != Swag.U64.Max and left + right < 8
@@ -175,76 +237,103 @@ private func isValidIpv6Literal(host: string)->bool
 
 private func countIpv6Groups(part: string, allowIpv4Tail: bool)->u64
 {
-    if part.count == 0 do
+    if part.count == 0
+    {
         return 0
+    }
+
     if Utf8.indexOf(part, '.') != Swag.U64.Max
     {
-        if not allowIpv4Tail do
+        if not allowIpv4Tail
+        {
             return Swag.U64.Max
-        var tailStart = 0'u64
-        var index     = 0'u64
+        }
+
+        var tailStart = 0_u64
+        var index     = 0_u64
         while index < part.count
         {
-            if part[index] == ':' do
+            if part[index] == ':'
+            {
                 tailStart = index + 1
+            }
+
             index += 1
         }
 
         let tail = part[tailStart to]
-        if Utf8.indexOf(tail, '.') == Swag.U64.Max or not isValidIpv4Tail(tail) do
+        if Utf8.indexOf(tail, '.') == Swag.U64.Max or not isValidIpv4Tail(tail)
+        {
             return Swag.U64.Max
+        }
+
         let prefix       = tailStart == 0 ? "" : part[0 until tailStart - 1]
         let prefixGroups = countIpv6Groups(prefix, false)
-        if prefixGroups == Swag.U64.Max do
+        if prefixGroups == Swag.U64.Max
+        {
             return Swag.U64.Max
+        }
+
         return prefixGroups + 2
     }
 
-    var groups     = 1'u64
-    var groupStart = 0'u64
+    var groups     = 1_u64
+    var groupStart = 0_u64
     for index in part.count
     {
         if part[index] == ':'
         {
             let length = index - groupStart
-            if length == 0 or length > 4 do
+            if length == 0 or length > 4
+            {
                 return Swag.U64.Max
+            }
+
             groups     += 1
             groupStart = index + 1
         }
-        elif not Latin1.isHexDigit(part[index])
+        else if not Latin1.isHexDigit(part[index])
         {
             return Swag.U64.Max
         }
     }
 
     let lastLength = part.count - groupStart
-    if lastLength == 0 or lastLength > 4 do
+    if lastLength == 0 or lastLength > 4
+    {
         return Swag.U64.Max
+    }
+
     return groups
 }
 
 private func isValidIpv4Tail(address: string)->bool
 {
-    var octets = 0'u64
-    var digits = 0'u64
-    var value  = 0'u64
-    var index  = 0'u64
+    var octets = 0_u64
+    var digits = 0_u64
+    var value  = 0_u64
+    var index  = 0_u64
     while index <= address.count
     {
         let c = index == address.count ? '.' : address[index]
         if c == '.'
         {
-            if digits == 0 or digits > 3 or value > 255 do
+            if digits == 0 or digits > 3 or value > 255
+            {
                 return false
+            }
+
             octets += 1
             digits = 0
             value  = 0
         }
         else
         {
-            if not Latin1.isDigit(cast(u8, c)) do
+            if not Latin1.isDigit(cast(u8, c))
+            {
                 return false
+            }
+
             digits += 1
             value  = value * 10 + cast(u64, c - '0')
         }
@@ -277,7 +366,7 @@ func encodeComponent(bytes: const [..] u8)->String
         }
         else
         {
-            result.append('%'u8)
+            result.append('%'_u8)
             result.append(Hex[byte >> 4])
             result.append(Hex[byte & 15])
         }
@@ -290,21 +379,30 @@ func encodeComponent(bytes: const [..] u8)->String
 //
 // `+` remains `+`. A truncated escape or a non-hexadecimal digit fails; unescaped bytes are
 // copied without interpreting or validating UTF-8.
-func decodeComponent(text: string)->Array'u8 fail
+func decodeComponent(text: string)->Array!{u8} fail
 {
     func hexValue(c: u8)->u8 fail
     {
-        if c >= '0' and c <= '9' do
-            return c - '0'u8
-        if c >= 'A' and c <= 'F' do
-            return c - 'A'u8 + 10
-        if c >= 'a' and c <= 'f' do
-            return c - 'a'u8 + 10
+        if c >= '0' and c <= '9'
+        {
+            return c - '0'_u8
+        }
+
+        if c >= 'A' and c <= 'F'
+        {
+            return c - 'A'_u8 + 10
+        }
+
+        if c >= 'a' and c <= 'f'
+        {
+            return c - 'a'_u8 + 10
+        }
+
         fail Errors.InvalidFormatError{}
     }
 
     var result: #returntype
-    var index = 0'u64
+    var index = 0_u64
     while index < text.count
     {
         let byte = text[index]
@@ -315,8 +413,11 @@ func decodeComponent(text: string)->Array'u8 fail
             continue
         }
 
-        if text.count - index < 3 do
+        if text.count - index < 3
+        {
             fail Errors.InvalidFormatError{}
+        }
+
         let high = try hexValue(text[index + 1])
         let low  = try hexValue(text[index + 2])
         result.add((high << 4) | low)

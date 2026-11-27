@@ -41,10 +41,14 @@ func display() fail
     glDrawArrays(GL_TRIANGLES, 0, 3)
 
     glFlush()
-    #static if #os == Swag.TargetOs.Linux do
+    #static if #os == Swag.TargetOs.Linux
+    {
         try g_Context.swapBuffers()
-    else do
+    }
+    else
+    {
         g_Context.swapBuffers()
+    }
 }
 
 func onResize(_: *Env.Window, width, height: s32)
@@ -57,10 +61,15 @@ func onResize(_: *Env.Window, width, height: s32)
 {
     g_Window = try Env.createWindow({identifier: "opengl2", title: "OpenGL shader triangle", width: 512, height: 512})
     defer catch g_Window.close()
-    #static if #os == Swag.TargetOs.Linux do
+    #static if #os == Swag.TargetOs.Linux
+    {
         g_Context = try Ogl.Platform.Xcb.createContext(&g_Window)
-    else do
+    }
+    else
+    {
         g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
+    }
+
     defer g_Context.destroy()
     glInitExtensions()
 
@@ -89,7 +98,9 @@ func onResize(_: *Env.Window, width, height: s32)
     while loop.next()
     {
         try display()
-        if Env.isSmokeRun() do
+        if Env.isSmokeRun()
+        {
             break
+        }
     }
 }

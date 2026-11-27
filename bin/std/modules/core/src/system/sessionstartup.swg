@@ -15,17 +15,28 @@ func setSessionStartup(id, displayName: string, enabled: bool, arguments: const 
     if denySystemMutation(.AutoStart) or
        not validSessionApplicationId(id) or
        displayName.count == 0 or
-       not Utf8.isValid(displayName) do
-        return false
-    for value in arguments
+       not Utf8.isValid(displayName)
     {
-        if not Utf8.isValid(value) do
-            return false
-        for byte in value where byte == 0 or byte == '\n' or byte == '\r' do
-            return false
+        return false
     }
 
-    for byte in displayName where byte < 32 do
+    for value in arguments
+    {
+        if not Utf8.isValid(value)
+        {
+            return false
+        }
+
+        for byte in value where byte == 0 or byte == '\n' or byte == '\r'
+        {
+            return false
+        }
+    }
+
+    for byte in displayName where byte < 32
+    {
         return false
+    }
+
     return catch setSessionStartupNative(id, displayName, enabled, arguments) { return false }
 }

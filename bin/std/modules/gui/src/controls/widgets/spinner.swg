@@ -55,8 +55,10 @@ impl Spinner
     internal func paintRing(painter: *Painter, rect: Math.Rectangle, phase: f32, mark: Color)
     {
         let side = Math.min(rect.width, rect.height)
-        if side <= 0 do
+        if side <= 0
+        {
             return
+        }
 
         // The bars at rest, in proportion to the box, leaning like the mark.
         let height = side * 0.46
@@ -74,7 +76,7 @@ impl Spinner
         {
             // Where the wave stands on this bar: a bell from nothing to its crest and back.
             let t     = (phase * 1.25 - cast(f32, i) * 0.17) / 0.62
-            var crest = 0'f32
+            var crest = 0_f32
             if t > 0 and t < 1
             {
                 let s = Math.sin(Math.ConstF32.Pi * t)
@@ -105,11 +107,16 @@ impl Spinner
         Swag.assert(parent != null)
 
         var pos = position
-        if pos.width == 0 do
+        if pos.width == 0
+        {
             pos.width = parent.themeMetrics().spinner_Size
-        if pos.height == 0 do
-            pos.height = pos.width
+        }
 
-        return Wnd.create'Spinner(parent, null, pos, id)
+        if pos.height == 0
+        {
+            pos.height = pos.width
+        }
+
+        return Wnd.create!{Spinner}(parent, null, pos, id)
     }
 }

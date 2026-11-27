@@ -27,21 +27,56 @@ func assertLoadedJpg(fileName: string, width, height: s32, b, g, r: u8)
     Swag.require(img.bitsPerPixel == 24)
     Swag.require(img.bytesPerPixel == 3)
     Swag.require(img.pixels.count == cast(u64, width) * height * 3)
-    assertJpgPixelNear(img, b, g, r, 8'u8)
+    assertJpgPixelNear(img, b, g, r, 8_u8)
+}
+
+// Direct RGB output keeps the existing JPEG colours and reuses matching pixel storage.
+#test
+{
+    for name in ["gray.jpg", "h1v1.jpg", "h2v1.jpg", "h2v2.jpg", "sampling-thirds.jpg", "progh1v1.jpg", "cmyk.jpg", "ycck-odd-grid.jpg"]
+    {
+        let input    = expect File.readAllBytes(getTestDataPath(name))
+        let expected = (expect Image.decode(name, input.toSlice())).convertedTo(.RGB8)
+        var actual: Image
+        expect Jpg.decodeRgbInto(&actual, input.toSlice(), expected.width, expected.height)
+        Swag.require(actual.isValid() and actual.pixelFormat == .RGB8)
+        Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+        let pixels = actual.pixels.buffer
+        expect Jpg.decodeRgbInto(&actual, input.toSlice())
+        Swag.require(actual.pixels.buffer == pixels)
+
+        var errorOutcome: Swag.Error
+        catch { try Jpg.decodeRgbInto(&actual, input.toSlice(), expected.width + 1, expected.height) } as errorOutcome
+        Swag.require(errorOutcome.value() is InvalidFormatError)
+        Swag.require(actual.pixels.buffer == pixels)
+        Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+
+        if name == "h1v1.jpg"
+        {
+            Swag.require(input.count <= actual.byteCount)
+            Memory.copy(actual.pixels.storage(), input.storage(), input.count)
+            let overlapping = actual.pixels.toSlice()[until input.count]
+            expect Jpg.decodeRgbInto(&actual, overlapping)
+            Swag.require(actual.pixels.buffer != pixels)
+            Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+        }
+    }
 }
 
 func assertJpgHasMarker(bytes: const [..] u8, marker: u8)
 {
     for i in bytes.count - 1
     {
-        if bytes[i] == 0xFF and bytes[i + 1] == marker do
+        if bytes[i] == 0xFF and bytes[i + 1] == marker
+        {
             return
+        }
     }
 
     Swag.require(false)
 }
 
-func addAdobeRgbMarker(encoded: const [..] u8)->Array'u8
+func addAdobeRgbMarker(encoded: const [..] u8)->Array!{u8}
 {
     Swag.require(encoded.count >= 2)
     Swag.require(encoded[0] == 0xFF and encoded[1] == 0xD8)
@@ -98,7 +133,7 @@ func fillSolidImage(img: *Image, b, g, r, a: u8)
     }
 }
 
-func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, tolerance: u8, quality: u8 = 100'u8)
+func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, tolerance: u8, quality: u8 = 100_u8)
 {
     var opt: Jpg.EncodeOptions
     opt.quality = quality
@@ -108,10 +143,10 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(bytes.count > 20)
     Swag.require(bytes[0] == 0xFF and bytes[1] == 0xD8)
     Swag.require(bytes[bytes.count - 2] == 0xFF and bytes[bytes.count - 1] == 0xD9)
-    assertJpgHasMarker(bytes, 0xDB'u8)
-    assertJpgHasMarker(bytes, 0xC0'u8)
-    assertJpgHasMarker(bytes, 0xC4'u8)
-    assertJpgHasMarker(bytes, 0xDA'u8)
+    assertJpgHasMarker(bytes, 0xDB_u8)
+    assertJpgHasMarker(bytes, 0xC0_u8)
+    assertJpgHasMarker(bytes, 0xC4_u8)
+    assertJpgHasMarker(bytes, 0xDA_u8)
 
     let img = expect Image.decode("encoded.jpg", bytes, {})
     Swag.require(img.width == src.width)
@@ -119,6 +154,21 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(img.pixelFormat == .BGR8)
     Swag.require(img.pixels.count == cast(u64, src.width) * src.height * 3)
     assertJpgPixelNear(img, expectedB, expectedG, expectedR, tolerance)
+}
+
+// Flat color blocks round to the nearest JPEG samples, including the chroma endpoints.
+#test
+{
+    const Colors: [4, 3] u8 = [[24, 96, 180], [19, 81, 167], [255, 0, 0], [0, 0, 255]]
+    var source = Image.create(9, 7, .RGB8)
+    for index in 4_u64
+    {
+        let blue  = Colors[index, 0]
+        let green = Colors[index, 1]
+        let red   = Colors[index, 2]
+        fillSolidImage(&source, blue, green, red, 255)
+        assertEncodedJpgRoundtrip(source, blue, green, red, 1)
+    }
 }
 
 // The decoder registry accepts JPEG aliases, including stereoscopic JPEG containers.
@@ -147,9 +197,9 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 // Load real baseline JPEG fixtures with different sampling layouts.
 #test
 {
-    assertLoadedJpg("h1v1.jpg", 660, 441, 201'u8, 205'u8, 194'u8)
-    assertLoadedJpg("h2v1.jpg", 660, 441, 112'u8, 122'u8, 109'u8)
-    assertLoadedJpg("h2v2.jpg", 1024, 768, 30'u8, 26'u8, 25'u8)
+    assertLoadedJpg("h1v1.jpg", 660, 441, 201_u8, 205_u8, 194_u8)
+    assertLoadedJpg("h2v1.jpg", 660, 441, 112_u8, 122_u8, 109_u8)
+    assertLoadedJpg("h2v2.jpg", 1024, 768, 30_u8, 26_u8, 25_u8)
 }
 
 // Cb has the widest sampling grid and Cr the tallest. Both axes use ratios of three.
@@ -157,7 +207,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 {
     let image = expect Image.load(getTestDataPath("sampling-thirds.jpg"))
     Swag.require(image.width == 43 and image.height == 35 and image.pixelFormat == .BGR8)
-    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 14265801161445841991'u64)
+    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 14265801161445841991_u64)
 }
 
 // Pillow 12.3.0 baseline JPEG of one gray sample at 128, saved at quality 77.
@@ -172,7 +222,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 // Load grayscale-like, progressive, and larger JPEG fixtures.
 #test
 {
-    assertLoadedJpg("gray.jpg", 660, 441, 202'u8, 202'u8, 202'u8)
+    assertLoadedJpg("gray.jpg", 660, 441, 202_u8, 202_u8, 202_u8)
     let gray = expect Image.load(getTestDataPath("gray.jpg"))
     for pixel in cast(u64, gray.width) * gray.height
     {
@@ -181,8 +231,8 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
         Swag.require(gray.pixels.storage()[offset] == gray.pixels.storage()[offset + 2])
     }
 
-    assertLoadedJpg("progh1v1.jpg", 660, 441, 202'u8, 206'u8, 195'u8)
-    assertLoadedJpg("testA.jpg", 1200, 704, 30'u8, 30'u8, 30'u8)
+    assertLoadedJpg("progh1v1.jpg", 660, 441, 202_u8, 206_u8, 195_u8)
+    assertLoadedJpg("testA.jpg", 1200, 704, 30_u8, 30_u8, 30_u8)
 }
 
 // Progressive scans may replace a Huffman table used by an earlier scan.
@@ -192,7 +242,27 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 {
     let image = expect Image.load(getTestDataPath("progressive-huffman-redefine.jpg"))
     Swag.require(image.width == 13 and image.height == 11 and image.pixelFormat == .BGR8)
-    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 15585297770857937225'u64)
+    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 15585297770857937225_u64)
+}
+
+// Compact rows match expanded output for baseline and progressive single-component JPEGs.
+#test
+{
+    let options = DecodeOptions{keepJpegGrayscale: true}
+    for name in ["gray.jpg", "pillow-gray-1x1.jpg", "progressive-huffman-redefine.jpg"]
+    {
+        let expected = expect Image.load(getTestDataPath(name))
+        let actual   = expect Image.load(getTestDataPath(name), options)
+        Swag.require(actual.isValid() and actual.pixelFormat == .Gray8)
+        Swag.require(actual.width == expected.width and actual.height == expected.height)
+        for index in actual.byteCount
+        {
+            Swag.require(actual.pixels.storage()[index] == expected.pixels.storage()[index * 3])
+        }
+    }
+
+    let rgb = expect Image.load(getTestDataPath("h1v1.jpg"), options)
+    Swag.require(rgb.isValid() and rgb.pixelFormat == .BGR8)
 }
 
 // A four-component frame is the ink layout a print-ready photograph is written in.
@@ -208,19 +278,19 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 
     let row = cast(u64, (img.height - 1 - 16)) * cast(u64, img.width) * 3
     let red = img.pixels.storage() + row + 8 * 3
-    assertNearByte(red[0], 0'u8, 8'u8)
-    assertNearByte(red[1], 0'u8, 8'u8)
-    assertNearByte(red[2], 255'u8, 8'u8)
+    assertNearByte(red[0], 0_u8, 8_u8)
+    assertNearByte(red[1], 0_u8, 8_u8)
+    assertNearByte(red[2], 255_u8, 8_u8)
 
     let green = img.pixels.storage() + row + 24 * 3
-    assertNearByte(green[0], 0'u8, 8'u8)
-    assertNearByte(green[1], 255'u8, 8'u8)
-    assertNearByte(green[2], 0'u8, 8'u8)
+    assertNearByte(green[0], 0_u8, 8_u8)
+    assertNearByte(green[1], 255_u8, 8_u8)
+    assertNearByte(green[2], 0_u8, 8_u8)
 
     let blue = img.pixels.storage() + row + 40 * 3
-    assertNearByte(blue[0], 255'u8, 8'u8)
-    assertNearByte(blue[1], 0'u8, 8'u8)
-    assertNearByte(blue[2], 0'u8, 8'u8)
+    assertNearByte(blue[0], 255_u8, 8_u8)
+    assertNearByte(blue[1], 0_u8, 8_u8)
+    assertNearByte(blue[2], 0_u8, 8_u8)
 }
 
 // ImageMagick encoded this 13×11 RGB pattern as unsubsampled Adobe YCCK at quality 87.
@@ -229,7 +299,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 {
     let image = expect Image.load(getTestDataPath("ycck-odd-grid.jpg"))
     Swag.require(image.width == 13 and image.height == 11 and image.pixelFormat == .BGR8)
-    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 12978266227832538400'u64)
+    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 12978266227832538400_u64)
 }
 
 // Decode from preloaded bytes and verify .jpeg extension routing.
@@ -240,7 +310,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(img.width == 660)
     Swag.require(img.height == 441)
     Swag.require(img.pixelFormat == .BGR8)
-    assertJpgPixelNear(img, 202'u8, 200'u8, 192'u8, 8'u8)
+    assertJpgPixelNear(img, 202_u8, 200_u8, 192_u8, 8_u8)
 }
 
 // A wide scan line can exceed 65,535 pixels after padding to whole MCUs.
@@ -303,26 +373,34 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     var record: ImageMetadata
     record.signature = 1
     record.tag       = "Source"
-    record.value     = "camera"
+    record.value.resize(8192)
+    for i in record.value.count
+    {
+        record.value[i] = cast(u8, i % 251)
+    }
+
     source.metadata.add(record)
     let encoded = expect source.encode("metadata.jpg")
+    let bytes   = encoded.toArray()
     for pixels in [true, false]
     {
         for metadata in [true, false]
         {
-            let decoded = expect Image.decode("metadata.jpg", encoded.toSlice(), {decodePixels: pixels, decodeMetadata: metadata})
+            let decoded = expect Image.decode("metadata.jpg", bytes.toSlice(), {decodePixels: pixels, decodeMetadata: metadata})
             Swag.require(decoded.isValid() == pixels)
             Swag.require(decoded.width == 8 and decoded.height == 8)
             var found = false
             for item in decoded.metadata where item.isTag("Source")
             {
-                Swag.require(cast(string, item.toSlice()) == "camera")
+                Swag.require(item.opCompare(record) == 0)
                 found = true
             }
 
             Swag.require(found == metadata)
-            if not metadata do
+            if not metadata
+            {
                 Swag.require(decoded.metadata.isEmpty())
+            }
         }
     }
 }
@@ -355,9 +433,9 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     var image = Image.create(1, 1, .BGR8)
     var record: ImageMetadata
     record.signature = 1
-    record.tag.add(0x41'u8)
-    record.tag.add(0'u8)
-    record.tag.add(0x42'u8)
+    record.tag.add(0x41_u8)
+    record.tag.add(0_u8)
+    record.tag.add(0x42_u8)
     record.value = "payload"
     image.metadata.add(record)
 
@@ -415,11 +493,11 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 // restart interval. An inserted JPEG comment moves a marker across the input-buffer boundary.
 #test
 {
-    const ExpectedPixels = 17371034535124610586'u64
+    const ExpectedPixels = 17371034535124610586_u64
     for name in ["restart-sequential.jpg", "restart-progressive.jpg"]
     {
         let bytes = expect File.readAllBytes(getTestDataPath(name))
-        for marker in [0'u8, 0xD0]
+        for marker in [0_u8, 0xD0]
         {
             var offset = U64.Max
             for i in bytes.count - 1
@@ -432,10 +510,10 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
             }
 
             Swag.require(offset < 4091)
-            var padding: Array'u8
+            var padding: Array!{u8}
             padding.resize(4091 - offset)
             let length  = padding.count + 2
-            let comment = [0xFF'u8, 0xFE, cast(u8, length >> 8), cast(u8, length & 0xFF)]
+            let comment = [0xFF_u8, 0xFE, cast(u8, length >> 8), cast(u8, length & 0xFF)]
             var padded: ConcatBuffer
             padded.addBytes(bytes.toSlice()[until 2])
             padded.addBytes(comment)
@@ -490,8 +568,10 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     // EXIF thumbnails can contain their own SOF marker before the main image.
     for i in bytes.count - 11
     {
-        if bytes[i] == 0xFF and bytes[i + 1] == 0xC0 do
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xC0
+        {
             sofOffset = i
+        }
     }
 
     Swag.require(sofOffset != Swag.U64.Max)
@@ -509,8 +589,10 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     var sosOffset = Swag.U64.Max
     for i in bytes.count - 7
     {
-        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA do
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA
+        {
             sosOffset = i
+        }
     }
 
     Swag.require(sosOffset != Swag.U64.Max)
@@ -529,8 +611,10 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     var sofOffset = Swag.U64.Max
     for i in bytes.count - 11
     {
-        if bytes[i] == 0xFF and bytes[i + 1] == 0xC0 do
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xC0
+        {
             sofOffset = i
+        }
     }
 
     Swag.require(sofOffset != Swag.U64.Max)
@@ -539,8 +623,10 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     var sosOffset = Swag.U64.Max
     for i in bytes.count - 7
     {
-        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA do
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA
+        {
             sosOffset = i
+        }
     }
 
     Swag.require(sosOffset != Swag.U64.Max)
@@ -561,8 +647,10 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     // EXIF thumbnails can define their own Huffman tables before the main image.
     for i in bytes.count - 5
     {
-        if bytes[i] == 0xFF and bytes[i + 1] == 0xC4 do
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xC4
+        {
             dhtOffset = i
+        }
     }
 
     Swag.require(dhtOffset != Swag.U64.Max)
@@ -582,8 +670,10 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     // EXIF thumbnails can contain their own scan markers before the main image.
     for i in bytes.count - 7
     {
-        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA do
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA
+        {
             sosOffset = i
+        }
     }
 
     Swag.require(sosOffset != Swag.U64.Max)
@@ -603,8 +693,10 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     // EXIF thumbnails can contain their own scan markers before the main image.
     for i in bytes.count - 7
     {
-        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA do
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA
+        {
             sosOffset = i
+        }
     }
 
     Swag.require(sosOffset != Swag.U64.Max)
@@ -634,40 +726,76 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 #test
 {
     var src = Image.create(8, 8, .BGR8)
-    fillSolidImage(&src, 40'u8, 90'u8, 210'u8, 255'u8)
-    assertEncodedJpgRoundtrip(src, 40'u8, 90'u8, 210'u8, 6'u8)
+    fillSolidImage(&src, 40_u8, 90_u8, 210_u8, 255_u8)
+    assertEncodedJpgRoundtrip(src, 40_u8, 90_u8, 210_u8, 6_u8)
 }
 
 // Encode BGRA8; alpha is ignored by JPEG, while B/G/R survive the round-trip.
 #test
 {
     var src = Image.create(8, 8, .BGRA8)
-    fillSolidImage(&src, 15'u8, 170'u8, 80'u8, 33'u8)
-    assertEncodedJpgRoundtrip(src, 15'u8, 170'u8, 80'u8, 6'u8)
+    fillSolidImage(&src, 15_u8, 170_u8, 80_u8, 33_u8)
+    assertEncodedJpgRoundtrip(src, 15_u8, 170_u8, 80_u8, 6_u8)
 }
 
 // Encode RGB8 by converting from RGB memory order to JPEG RGB components.
 #test
 {
     var src = Image.create(8, 8, .RGB8)
-    fillSolidImage(&src, 25'u8, 60'u8, 230'u8, 255'u8)
-    assertEncodedJpgRoundtrip(src, 25'u8, 60'u8, 230'u8, 6'u8)
+    fillSolidImage(&src, 25_u8, 60_u8, 230_u8, 255_u8)
+    assertEncodedJpgRoundtrip(src, 25_u8, 60_u8, 230_u8, 6_u8)
 }
 
 // Encode RGBA8 by converting from RGBA memory order and dropping alpha.
 #test
 {
     var src = Image.create(8, 8, .RGBA8)
-    fillSolidImage(&src, 190'u8, 40'u8, 70'u8, 11'u8)
-    assertEncodedJpgRoundtrip(src, 190'u8, 40'u8, 70'u8, 6'u8)
+    fillSolidImage(&src, 190_u8, 40_u8, 70_u8, 11_u8)
+    assertEncodedJpgRoundtrip(src, 190_u8, 40_u8, 70_u8, 6_u8)
 }
 
 // Encode dimensions that require MCU padding; the decoded image keeps original dimensions.
 #test
 {
     var src = Image.create(5, 7, .BGR8)
-    fillSolidImage(&src, 120'u8, 30'u8, 200'u8, 255'u8)
-    assertEncodedJpgRoundtrip(src, 120'u8, 30'u8, 200'u8, 8'u8, 95'u8)
+    fillSolidImage(&src, 120_u8, 30_u8, 200_u8, 255_u8)
+    assertEncodedJpgRoundtrip(src, 120_u8, 30_u8, 200_u8, 8_u8, 95_u8)
+}
+
+// Direct reads of full and partial blocks preserve channel order and ignore alpha.
+#test
+{
+    for width in [1_s32, 8, 17]
+    {
+        let height = width == 1 ? 37 : 9
+        var source = Image.create(width, height, .BGR8)
+        let count  = cast(u64, width) * height
+        for i in count
+        {
+            let pixel = source.pixels.storage() + i * 3
+            pixel[0] = cast(u8, ((i * 71 + 11) & 255))
+            pixel[1] = cast(u8, ((i * 31 + 19) & 255))
+            pixel[2] = cast(u8, ((i * 13 + 97) & 255))
+        }
+
+        let options  = Jpg.EncodeOptions{quality: 100}
+        let expected = expect source.encodeToBytes("memory.jpg", options)
+        for format in [PixelFormat.RGB8, PixelFormat.BGRA8, PixelFormat.RGBA8]
+        {
+            var converted = source.convertedTo(format)
+            if converted.bytesPerPixel == 4
+            {
+                for i in count
+                {
+                    converted.pixels[i * 4 + 3] = cast(u8, (i & 255))
+                }
+            }
+
+            let actual = expect converted.encodeToBytes("memory.jpg", options)
+            Swag.require(actual.count == expected.count)
+            Swag.require(Memory.compare(actual.storage(), expected.storage(), expected.count) == 0)
+        }
+    }
 }
 
 // Adobe APP14 transform 0 marks three equally sampled components as direct RGB.
@@ -685,4 +813,28 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 
     // The source encoder's Y, Cb and Cr component samples become direct R, G and B.
     assertJpgPixelNear(decoded, 255, 85, 76, 4)
+}
+
+// Low-frequency blocks use the same rounding and output clamp as the full IDCT.
+#test
+{
+    var rng = 0xADB361CB_u32
+    for 4096
+    {
+        var coefficients: [64] s16
+        for row in 4
+        {
+            for column in 4
+            {
+                rng *= #wrap 1664525
+                rng += #wrap 1013904223
+                coefficients[row * 8 + column] = cast #bit(s16, cast(u16, rng >> 16))
+            }
+        }
+
+        var full, sparse: [64] u8
+        Jpg.Decoder.idctFull!{false}(coefficients, full)
+        Jpg.Decoder.idctFull!{true}(coefficients, sparse)
+        Swag.require(Memory.compare(full, sparse, 64) == 0)
+    }
 }

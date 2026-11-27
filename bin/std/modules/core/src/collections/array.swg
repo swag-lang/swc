@@ -47,21 +47,27 @@ impl Array
         // what it owns: the array then states none either, and is handed over with '#move'.
         mtd opPostCopy()
         {
-            if not .buffer do
+            if not .buffer
+            {
                 return
+            }
 
             let oldBuffer = .buffer
             .buffer = null
             .realloc(.count)
-            if not .count do
+            if not .count
+            {
                 return
+            }
 
             #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
             {
                 .initNewSlots(0, .count)
                 let buffer = unwrap .buffer
-                for index in .count do
+                for index in .count
+                {
                     buffer[index] = #nodrop oldBuffer[index]
+                }
             }
             else
             {
@@ -135,7 +141,7 @@ impl Array
             let sourceData = arr.buffer
             if sourceData >= .buffer and sourceData < .buffer + .count
             {
-                var copy: Array'T
+                var copy: Array!{T}
                 copy.add(arr)
                 .opSet(copy.toSlice())
                 return
@@ -145,8 +151,11 @@ impl Array
         // Grow before clearing so an allocation failure leaves the old elements intact.
         .grow(sourceCount)
         .clear()
-        if not sourceCount do
+        if not sourceCount
+        {
             return
+        }
+
         let sourceData = arr.buffer
 
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
@@ -154,8 +163,10 @@ impl Array
             .initNewSlots(0, sourceCount)
             let buffer = unwrap .buffer
             let srcPtr = unwrap sourceData
-            for i in sourceCount do
+            for i in sourceCount
+            {
                 buffer[i] = #nodrop srcPtr[i]
+            }
         }
         else
         {
@@ -172,19 +183,28 @@ impl Array
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
-        if not .count do
+        if not .count
+        {
             return
+        }
+
         let buffer = unwrap .buffer
 
         for visitIdx in .count
         {
             let element = buffer + visitIdx
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = cast(*T, element), index = visitIdx)
-            elif Reflection.isStruct(T) do
+            }
+            else if Reflection.isStruct(T)
+            {
                 #inject(stmt, item = cast(const *T, element), index = visitIdx)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = element[0], index = visitIdx)
+            }
         }
     }
 
@@ -192,30 +212,39 @@ impl Array
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
     {
-        if not .count do
+        if not .count
+        {
             return
+        }
+
         let buffer = cast(const [*] T, unwrap .buffer)
 
         for visitIdx in .count
         {
             let element = buffer + visitIdx
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = cast(const *T, element), index = visitIdx)
-            elif Reflection.isStruct(T) do
+            }
+            else if Reflection.isStruct(T)
+            {
                 #inject(stmt, item = cast(const *T, element), index = visitIdx)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = element[0], index = visitIdx)
+            }
         }
     }
 
     // Returns a zero-allocation view that traverses the elements from last to first.
-    mtd reversed()->ReversedSlice'T => reverseSlice(.toSlice())
+    mtd reversed()->ReversedSlice!{T} => reverseSlice(.toSlice())
 
     // Returns an immutable zero-allocation view that traverses the elements from last to first.
-    mtd const reversed()->ConstReversedSlice'T => reverseSlice(.toSlice())
+    mtd const reversed()->ConstReversedSlice!{T} => reverseSlice(.toSlice())
 
     // Returns a zero-allocation view over adjacent elements.
-    mtd const pairs()->Pairs'T => pairsView(.toSlice())
+    mtd const pairs()->Pairs!{T} => pairsView(.toSlice())
 
     // Returns the mutable address of the element at `x`.
     #[Inline]
@@ -239,11 +268,15 @@ impl Array
     // Reallocates the buffer to `newCapacity` elements, relocating the existing ones.
     private mtd realloc(newCapacity: u64)
     {
-        if newCapacity > Swag.U64.Max / #sizeof(T) do
+        if newCapacity > Swag.U64.Max / #sizeof(T)
+        {
             Swag.panic("Array capacity exceeds addressable memory", #curlocation)
+        }
 
-        if not .allocator do
+        if not .allocator
+        {
             .allocator = Swag.getContext().allocator
+        }
 
         if newCapacity == 0
         {
@@ -276,8 +309,10 @@ impl Array
     // Drops every element, releases the buffer, and leaves the array empty.
     mtd free()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         // Drop every element before its storage goes away.
         #static if Reflection.hasDrop(T)
@@ -291,7 +326,7 @@ impl Array
     }
 
     // Creates a byte array holding `size` zero bytes.
-    func createBuffer(size: u64)->Array'u8
+    func createBuffer(size: u64)->Array!{u8}
     {
         var result: #returntype
         result.resize(size)
@@ -322,8 +357,10 @@ impl Array
     #[Inline]
     private mtd initNewSlots(index, num: u64)
     {
-        if not num do
+        if not num
+        {
             return
+        }
 
         #static if Reflection.hasDrop(T) or
                    Reflection.hasPostCopy(T) or
@@ -340,8 +377,11 @@ impl Array
     // fill an array they grow themselves.
     internal mtd grow(newCount: u64)
     {
-        if newCount <= .capacity do
+        if newCount <= .capacity
+        {
             return
+        }
+
         let newCapacity = Math.max(.capacity * 2, newCount)
         .reserve(newCapacity)
     }
@@ -360,8 +400,10 @@ impl Array
             return
         }
 
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
+        }
 
         .realloc(newCapacity)
     }
@@ -371,8 +413,11 @@ impl Array
     // An array that already holds `newCount` elements or more is unchanged.
     mtd growResize(newCount: u64)
     {
-        if newCount <= .count do
+        if newCount <= .count
+        {
             return
+        }
+
         .grow(newCount)
         .resize(newCount)
     }
@@ -382,8 +427,11 @@ impl Array
     // New elements are default-initialized, and elements past `newCount` are dropped.
     mtd resize(newCount: u64)
     {
-        if newCount == .count do
+        if newCount == .count
+        {
             return
+        }
+
         if newCount > .count
         {
             .grow(newCount)
@@ -402,8 +450,10 @@ impl Array
     {
         #static if Reflection.hasDrop(T)
         {
-            for index in .count do
+            for index in .count
+            {
                 Swag.drop(.buffer + index)
+            }
         }
 
         .count = 0
@@ -412,11 +462,16 @@ impl Array
     // Assigns a copy of `value` to every element.
     mtd fill(value: T)
     {
-        if not .count do
+        if not .count
+        {
             return
+        }
+
         let buffer = unwrap .buffer
-        for i in .count do
+        for i in .count
+        {
             buffer[i] = value
+        }
     }
 
     // Appends `value` unless the array already contains an equal element.
@@ -425,8 +480,11 @@ impl Array
     // it instead. Use [[Core.Array.addOnceBorrowed]] for an element of this array.
     mtd addOnce(value: #fwd T)
     {
-        if .contains(value) do
+        if .contains(value)
+        {
             return
+        }
+
         .add(#fwd value)
     }
 
@@ -434,8 +492,11 @@ impl Array
     mtd addOnceBorrowed(value: const *T)
         where Reflection.canCopy(T)
     {
-        if .contains(value[]) do
+        if .contains(value[])
+        {
             return
+        }
+
         .addBorrowed(value)
     }
 
@@ -491,8 +552,11 @@ impl Array
     // The caller must initialize every new element before the array reads, copies, or drops it.
     mtd emplaceAddress(num: u32 = 1)->[*] T
     {
-        if not num do
+        if not num
+        {
             return .storage()
+        }
+
         .grow(.count + num)
         .count += num
         return unwrap .buffer + .count - num
@@ -501,8 +565,11 @@ impl Array
     // Appends `num` default-initialized elements and returns the address of the first one.
     mtd emplaceInitAddress(num: u32 = 1)->[*] T
     {
-        if not num do
+        if not num
+        {
             return .storage()
+        }
+
         .grow(.count + num)
         .count += num
         let res = unwrap .buffer + .count - num
@@ -517,8 +584,10 @@ impl Array
     mtd insertAt(index: u64, value: #fwd T)
     {
         Debug.safetyBoundCheck(index <= .count, "index out of range")
-        if index == .count do
+        if index == .count
+        {
             return .add(#fwd value)
+        }
 
         // Growing and shifting both rewrite the storage `value` may live in, so take it out first.
         var staged: T = #fwd value
@@ -532,8 +601,11 @@ impl Array
         where Reflection.canCopy(T)
     {
         Debug.safetyBoundCheck(index <= .count, "index out of range")
-        if index == .count do
+        if index == .count
+        {
             return .addBorrowed(value)
+        }
+
         var staged = value[]
         .insertSlot(index)[] = #relocate staged
     }
@@ -547,8 +619,10 @@ impl Array
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = .count - 1; idx > index; idx -= 1 do
+            for var idx = .count - 1; idx > index; idx -= 1
+            {
                 buffer[idx] = #relocate buffer[idx - 1]
+            }
         }
         else
         {
@@ -565,14 +639,17 @@ impl Array
         where Reflection.canCopy(T)
     {
         let sourceCount = values.count
-        if not sourceCount do
+        if not sourceCount
+        {
             return
+        }
+
         if .buffer
         {
             let sourceData = values.buffer
             if sourceData >= .buffer and sourceData < .buffer + .count
             {
-                var copy: Array'T
+                var copy: Array!{T}
                 copy.add(values)
                 return .insertAt(index, copy.toSlice())
             }
@@ -586,8 +663,10 @@ impl Array
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = .count - 1; idx >= index + sourceCount; idx -= 1 do
+            for var idx = .count - 1; idx >= index + sourceCount; idx -= 1
+            {
                 buffer[idx] = #relocate buffer[idx - sourceCount]
+            }
         }
         else
         {
@@ -598,8 +677,10 @@ impl Array
 
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = 0; idx < sourceCount; idx += 1 do
+            for var idx = 0; idx < sourceCount; idx += 1
+            {
                 buffer[index + idx] = #nodrop values[idx]
+            }
         }
         else
         {
@@ -612,14 +693,17 @@ impl Array
         where Reflection.canCopy(T)
     {
         let sourceCount = values.count
-        if not sourceCount do
+        if not sourceCount
+        {
             return
+        }
+
         if .buffer
         {
             let sourceData = values.buffer
             if sourceData >= .buffer and sourceData < .buffer + .count
             {
-                var copy: Array'T
+                var copy: Array!{T}
                 copy.add(values)
                 return .emplaceAt(index, copy.toSlice())
             }
@@ -633,8 +717,10 @@ impl Array
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = .count - 1; idx >= index + sourceCount; idx -= 1 do
+            for var idx = .count - 1; idx >= index + sourceCount; idx -= 1
+            {
                 buffer[idx] = #relocate buffer[idx - sourceCount]
+            }
         }
         else
         {
@@ -645,8 +731,10 @@ impl Array
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = 0; idx < sourceCount; idx += 1 do
+            for var idx = 0; idx < sourceCount; idx += 1
+            {
                 buffer[index + idx] = #nodrop #move values[idx]
+            }
         }
         else
         {
@@ -654,8 +742,10 @@ impl Array
 
             // A bitwise move leaves the source holding the same resources: reset it so that its
             // own drop releases nothing.
-            #static if Reflection.hasDrop(T) do
+            #static if Reflection.hasDrop(T)
+            {
                 Swag.init(values.buffer, sourceCount)
+            }
         }
     }
 
@@ -666,14 +756,17 @@ impl Array
         where Reflection.canCopy(T)
     {
         let sourceCount = values.count
-        if not sourceCount do
+        if not sourceCount
+        {
             return
+        }
+
         if .buffer
         {
             let sourceData = values.buffer
             if sourceData >= .buffer and sourceData < .buffer + .count
             {
-                var copy: Array'T
+                var copy: Array!{T}
                 copy.add(values)
                 return .add(copy.toSlice())
             }
@@ -704,8 +797,11 @@ impl Array
     // Swaps the elements at `idx0` and `idx1`.
     mtd swap(idx0, idx1: u64)
     {
-        if idx0 == idx1 do
+        if idx0 == idx1
+        {
             return
+        }
+
         Debug.safetyBoundCheck(idx0 < .count, "index out of range")
         Debug.safetyBoundCheck(idx1 < .count, "index out of range")
         swap(unwrap (.buffer + idx0), unwrap (.buffer + idx1))
@@ -716,8 +812,11 @@ impl Array
     // The order of the remaining elements is preserved.
     mtd remove(index, num: u64)
     {
-        if not num do
+        if not num
+        {
             return
+        }
+
         Debug.safetyBoundCheck(isRangeInBounds(.count, index, num), "index out of range")
         let shiftCount = .count - (index + num)
 
@@ -749,8 +848,11 @@ impl Array
     mtd(V) remove(value: V)
     {
         let idx = Slice.findLinear(.toSlice(), value)
-        if idx == Swag.U64.Max do
+        if idx == Swag.U64.Max
+        {
             return
+        }
+
         .removeAt(idx)
     }
 
@@ -778,19 +880,26 @@ impl Array
     // This is slower than [[Core.Array.removeAt]], but preserves the order of the remaining elements.
     mtd removeAtOrdered(index: u64, numValues: u64 = 1)
     {
-        if not numValues do
+        if not numValues
+        {
             return
+        }
+
         Debug.safetyBoundCheck(isRangeInBounds(.count, index, numValues), "index out of range")
         .count -= numValues
 
         #static if Reflection.hasDrop(T)
         {
-            for idx in numValues do
+            for idx in numValues
+            {
                 Swag.drop(.buffer + index + idx)
+            }
         }
 
-        if index >= .count do
+        if index >= .count
+        {
             return
+        }
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
@@ -816,8 +925,11 @@ impl Array
     mtd(V) removeOrdered(value: V)
     {
         let idx = Slice.findLinear(.toSlice(), value)
-        if idx == Swag.U64.Max do
+        if idx == Swag.U64.Max
+        {
             return
+        }
+
         .removeAtOrdered(idx)
     }
 
@@ -941,9 +1053,12 @@ impl StrConv.IConvert for Array
             let buffer = unwrap .buffer
             for i in .count
             {
-                if i do
+                if i
+                {
                     buf.addBytes(", ")
-                StrConv.convert'T(buf, buffer[i], convFmt, strFormat)
+                }
+
+                StrConv.convert!{T}(buf, buffer[i], convFmt, strFormat)
             }
         }
 

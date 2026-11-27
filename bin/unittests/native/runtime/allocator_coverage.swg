@@ -31,7 +31,7 @@ func freeOne(itf: IAllocator, address: *void?)
 // ----------------------------------------------------------------------------
 #test
 {
-    var prev = 0'u64
+    var prev = 0_u64
     for i in AllocatorClassCount
     {
         let sz = Allocator.classSize(cast(u32, i))
@@ -57,8 +57,10 @@ func freeOne(itf: IAllocator, address: *void?)
 
     // Every class above the first is a multiple of 16, which is what lets the page path
     // satisfy a 16-byte alignment with no extra work.
-    for i in 1 until AllocatorClassCount do
+    for i in 1 until AllocatorClassCount
+    {
         Swag.require(Allocator.classSize(cast(u32, i)) % 16 == 0)
+    }
 
     // Splitting each power of two into four bounds the step at a fifth of the class it lands in,
     // which is the most of a block a request can leave unused.
@@ -93,8 +95,10 @@ func freeOne(itf: IAllocator, address: *void?)
     Swag.require(live.countPage < 64)
     Swag.require(live.countSegment <= 2)
 
-    for i in Count do
+    for i in Count
+    {
         freeOne(itf, addresses[i])
+    }
 
     Swag.require(alloc.stats().countAlloc == 0)
 
@@ -174,8 +178,10 @@ func freeOne(itf: IAllocator, address: *void?)
 
     let header = cast(*AllocatorHeader, (cast([*] u8, address) - #sizeof(AllocatorHeader)))
     Swag.require(header.blockSize >= big)
-    #static if #hastag("Swag.AllocatorSafety") or #hastag("Swag.AllocatorDiagnostics") do
+    #static if #hastag("Swag.AllocatorSafety") or #hastag("Swag.AllocatorDiagnostics")
+    {
         Swag.require(header.magic == Allocator.MagicAlloc)
+    }
     Swag.require(alloc.stats().countAlloc == 1)
 
     freeOne(itf, address)
@@ -302,8 +308,10 @@ func freeOne(itf: IAllocator, address: *void?)
     let live = alloc.stats()
     Swag.require(live.countPage >= 8)
 
-    for i in Count do
+    for i in Count
+    {
         freeOne(itf, addresses[i])
+    }
 
     alloc.trim()
     let trimmed = alloc.stats()
@@ -336,8 +344,10 @@ func freeOne(itf: IAllocator, address: *void?)
             Swag.require(addresses[i] != null)
         }
 
-        for i in Count do
+        for i in Count
+        {
             freeOne(itf, addresses[i])
+        }
 
         Swag.require(alloc.quarantineBytes <= alloc.maxQuarantineBytes)
         Swag.require(alloc.firstQuarantine != null)
@@ -384,8 +394,10 @@ func freeOne(itf: IAllocator, address: *void?)
     Swag.require(req.address != null)
 
     let p = cast([*] u8, req.address)
-    for i in 64 do
+    for i in 64
+    {
         p[i] = cast(u8, (i + 1))
+    }
 
     // 64 and 80 share no class, but 60 and 64 do, so only the second call moves.
     let stable = req.address
@@ -400,8 +412,10 @@ func freeOne(itf: IAllocator, address: *void?)
     Swag.require(cast(u64, req.address) % 128 == 0)
 
     let moved = cast([*] u8, req.address)
-    for i in 60 do
+    for i in 60
+    {
         Swag.require(moved[i] == cast(u8, (i + 1)))
+    }
 
     itf.free(&req)
     alloc.releaseAll()
@@ -421,10 +435,12 @@ func freeOne(itf: IAllocator, address: *void?)
     Swag.require(req.address != null)
 
     let seed = cast([*] u8, req.address)
-    for i in 24 do
+    for i in 24
+    {
         seed[i] = cast(u8, (i * 3 + 7))
+    }
 
-    var size = 24'u64
+    var size = 24_u64
     while size < 300_000
     {
         size     *= 3
@@ -433,8 +449,10 @@ func freeOne(itf: IAllocator, address: *void?)
         Swag.require(req.address != null)
 
         let grown = cast([*] u8, req.address)
-        for i in 24 do
+        for i in 24
+        {
             Swag.require(grown[i] == cast(u8, (i * 3 + 7)))
+        }
     }
 
     itf.free(&req)
@@ -473,8 +491,10 @@ func freeOne(itf: IAllocator, address: *void?)
         addresses[i] = allocOne(itf, 48)
         Swag.require(addresses[i] != null)
     }
-    for i in 16 do
+    for i in 16
+    {
         freeOne(itf, addresses[i])
+    }
 
     let cached = alloc.stats()
     Swag.require(cached.countFree > 0)
@@ -501,7 +521,7 @@ func freeOne(itf: IAllocator, address: *void?)
         #[Swag.CallingConvention(.C)]
         alias LPTHREAD_START_ROUTINE = func(*void)->DWORD
 
-        const INFINITE = 0xFFFF_FFFF'u32
+        const INFINITE = 0xFFFF_FFFF_u32
 
         #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
         {
@@ -550,8 +570,10 @@ func freeOne(itf: IAllocator, address: *void?)
     func fillPagesAndRetireThread(param: *void)->Th.DWORD
     {
         let p = cast(*FullPageRetirePayload, param)
-        for i in FullPageRetireCount do
+        for i in FullPageRetireCount
+        {
             p.out[][i] = allocOne(p.allocator, AllocatorMaxClassSize)
+        }
 
         releaseAllocatorThreadCache()
         return 0
@@ -650,8 +672,10 @@ func freeOne(itf: IAllocator, address: *void?)
         discard Th.WaitForSingleObject(h, Th.INFINITE)
         Th.CloseHandle(h)
 
-        for address in addresses do
+        for address in addresses
+        {
             Swag.require(address != null)
+        }
         Swag.require(alloc.stats().countAlloc == FullPageRetireCount)
         Swag.require(alloc.firstAbandoned != null)
 
@@ -659,8 +683,10 @@ func freeOne(itf: IAllocator, address: *void?)
         Swag.require(extra != null)
         Swag.require(alloc.stats().countAlloc == FullPageRetireCount + 1)
 
-        for address in addresses do
+        for address in addresses
+        {
             freeOne(itf, address)
+        }
         freeOne(itf, extra)
         alloc.releaseAll()
     }
@@ -691,8 +717,10 @@ func freeOne(itf: IAllocator, address: *void?)
             Swag.assert(addresses[i] != null)
         }
 
-        for i in PageThreadAllocCount do
+        for i in PageThreadAllocCount
+        {
             freeOne(itf, addresses[i])
+        }
 
         // Deliberately omit releaseAllocatorThreadCache(): the FLS destructor
         // must retire this heap when the foreign OS thread exits.
@@ -762,8 +790,10 @@ func freeOne(itf: IAllocator, address: *void?)
     func stressFreerThread(param: *void)->Th.DWORD
     {
         let s = cast(*StressShared, param)
-        for i in StressCount do
+        for i in StressCount
+        {
             freeOne(unwrap s.itf, s.slots[i])
+        }
         Swag.atomicAdd(&s.freerDone, 1)
         return 0
     }
@@ -772,8 +802,10 @@ func freeOne(itf: IAllocator, address: *void?)
     func stressTrimThread(param: *void)->Th.DWORD
     {
         let s = cast(*StressShared, param)
-        while Swag.atomicCompareExchange(&s.freerDone, 0, 0) == 0 do
+        while Swag.atomicCompareExchange(&s.freerDone, 0, 0) == 0
+        {
             s.alloc!.trim()
+        }
         return 0
     }
 
@@ -782,8 +814,10 @@ func freeOne(itf: IAllocator, address: *void?)
     // only ever touch page metadata, which no heap owns and nothing frees while blocks are live.
     #test
     {
-        if Swag.jit() do
+        if Swag.jit()
+        {
             return
+        }
 
         var alloc: Allocator
         let itf = makeAllocator(&alloc)
@@ -887,9 +921,9 @@ func freeAddress(itf: IAllocator, address: u64)
     var alloc: Allocator
     let itf = makeAllocator(&alloc, fillMemory: false)
 
-    for alignment in [0'u32, 1, 2, 4, 8, 16, 32]
+    for alignment in [0_u32, 1, 2, 4, 8, 16, 32]
     {
-        for size in [1'u64, 8, 9, 24, 100]
+        for size in [1_u64, 8, 9, 24, 100]
         {
             let address = allocOne(itf, size, alignment)
             Swag.require(address != null)
@@ -954,14 +988,20 @@ func freeAddress(itf: IAllocator, address: u64)
 
     const Count = AllocatorBlockCacheMaxCount + AllocatorBlockFrontCount + 6
     var addresses: [Count] u64
-    for i in Count do
+    for i in Count
+    {
         addresses[i] = cast(u64, allocOne(itf, 66_000))
-    for i in Count do
+    }
+    for i in Count
+    {
         freeOne(itf, cast(*void, addresses[i]))
+    }
 
     Swag.require(alloc.cachedBlockCount == AllocatorBlockCacheMaxCount)
-    for i in alloc.cachedBlockCount do
+    for i in alloc.cachedBlockCount
+    {
         Swag.require(alloc.cachedBlocks[i].stamp > 6)
+    }
 
     alloc.trim()
     Swag.require(alloc.cachedBlockCount == 0)
@@ -1022,9 +1062,9 @@ func writeAt(address: u64, value: u64)
     var alloc: Allocator
     let itf = makeAllocator(&alloc, fillMemory: false)
 
-    for alignment in [32'u32, 64]
+    for alignment in [32_u32, 64]
     {
-        for size in [1'u64, 24, 33, 100, 200, 1000, 5000, 40000]
+        for size in [1_u64, 24, 33, 100, 200, 1000, 5000, 40000]
         {
             let address = allocOne(itf, size, alignment)
             Swag.require(address != null)

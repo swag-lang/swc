@@ -35,8 +35,11 @@ namespace WinFsp
     // Converts a zero-terminated UTF-16 string from WinFsp; null gives an empty string.
     func stringFromWide(value: [*] u16?)->String
     {
-        if not value do
+        if not value
+        {
             return ""
+        }
+
         return Utf8.fromUtf16(Swag.makeSlice(value, Utf16.lengthZeroTerminated(value)))
     }
 
@@ -48,27 +51,41 @@ namespace WinFsp
         context.volume.accessLock.lockShared()
         defer context.volume.accessLock.unlockShared()
         let node = context.volume.nodeById(nodeId)
-        if not node do
+        if not node
+        {
             return StatusObjectNameNotFound
+        }
 
         let available = securitySize[]
         let stored    = node.security.toSlice()
         if stored.count
         {
             securitySize[] = stored.count
-            if security and available < stored.count do
+            if security and available < stored.count
+            {
                 return StatusBufferOverflow
-            if security do
+            }
+
+            if security
+            {
                 Swag.memcpy(security, stored.buffer, stored.count)
+            }
+
             return StatusSuccess
         }
 
         let required = cast(u64, GetSecurityDescriptorLength(context.defaultSecurity))
         securitySize[] = required
-        if security and available < required do
+        if security and available < required
+        {
             return StatusBufferOverflow
-        if security and required do
+        }
+
+        if security and required
+        {
             Swag.memcpy(security, unwrap context.defaultSecurity, required)
+        }
+
         return StatusSuccess
     }
 
@@ -80,13 +97,18 @@ namespace WinFsp
     {
         var label: [128] u8
         let status = callbackGetVolumeInfo(mountedVolume(fileSystem), &info.totalSize, &info.freeSize, label.buffer, cast(u32, label.count))
-        if status != StatusSuccess do
+        if status != StatusSuccess
+        {
             return status
+        }
 
         let label16 = Utf16.fromUtf8(cString(label.buffer))
         let count   = Math.min(label16.count, cast(u64, info.volumeLabel.count))
-        if count do
+        if count
+        {
             Swag.memcpy(info.volumeLabel.buffer, label16.storage(), count * #sizeof(u16))
+        }
+
         info.volumeLabelLength = cast(u16, (count * #sizeof(u16)))
         return StatusSuccess
     }
@@ -107,10 +129,16 @@ namespace WinFsp
         var nodeId: u64
         var info:   FileInfo
         let status = callbackLookup(mountedVolume(fileSystem), value.buffer, &nodeId, &info)
-        if status != StatusSuccess do
+        if status != StatusSuccess
+        {
             return status
-        if attributes do
+        }
+
+        if attributes
+        {
             attributes[] = info.fileAttributes
+        }
+
         return securitySize ? copySecurity(fileSystem, nodeId, security, securitySize) : StatusSuccess
     }
 
@@ -118,18 +146,24 @@ namespace WinFsp
     private func writeNormalizedPath(openInfo: *FspOpenFileInfo, requested: [*] u16?, stored: string)
     {
         let buffer = openInfo.normalizedName
-        if not buffer or not requested do
+        if not buffer or not requested
+        {
             return
+        }
 
         let name  = Utf16.fromUtf8(stored)
         let bytes = name.count * #sizeof(u16)
-        if bytes > openInfo.normalizedNameSize do
+        if bytes > openInfo.normalizedNameSize
+        {
             return
+        }
 
         // WinFsp only accepts case differences. Vault also resolves aliases such as paths
         // with forward slashes, which Windows cannot accept as a normalized name.
-        if CompareStringOrdinal(requested, -1, name.storage(), cast(s32, name.count), TRUE) != CSTR_EQUAL do
+        if CompareStringOrdinal(requested, -1, name.storage(), cast(s32, name.count), TRUE) != CSTR_EQUAL
+        {
             return
+        }
 
         Swag.memcpy(buffer, name.storage(), bytes)
         openInfo.normalizedNameSize = cast(u16, bytes)
@@ -142,8 +176,11 @@ namespace WinFsp
         let activity = &mountContext(fileSystem).activity
         activity.mutex.lock()
         defer activity.mutex.unlock()
-        if activity.stopping do
+        if activity.stopping
+        {
             return StatusAccessDenied
+        }
+
         let value        = stringFromWide(path)
         let mounted      = mountedVolume(fileSystem)
         let directory    = cast(u8, ((createOptions & 1) != 0 ? 1 : 0))
@@ -167,8 +204,11 @@ namespace WinFsp
         let activity = &mountContext(fileSystem).activity
         activity.mutex.lock()
         defer activity.mutex.unlock()
-        if activity.stopping do
+        if activity.stopping
+        {
             return StatusAccessDenied
+        }
+
         let value  = stringFromWide(path)
         var nodeId:         u64
         var normalizedPath: String
@@ -251,22 +291,27 @@ namespace WinFsp
     {
         let context = mountContext(fileSystem)
         let nodeId  = idFromContext(fileContext)
-        var stored: Array'u8
+        var stored: Array!{u8}
         scope
         {
             context.volume.accessLock.lockShared()
             defer context.volume.accessLock.unlockShared()
             let node = context.volume.nodeById(nodeId)
-            if not node do
+            if not node
+            {
                 return StatusObjectNameNotFound
+            }
+
             stored.add(node.security.toSlice())
         }
 
         let input  = stored.count ? cast(const *void?, stored.buffer) : context.defaultSecurity
         var updated: *void?
         let status = (g_WinFsp.setSecurityDescriptor)(input, information, modification, &updated)
-        if status != StatusSuccess do
+        if status != StatusSuccess
+        {
             return status
+        }
 
         let size   = GetSecurityDescriptorLength(updated)
         let result = callbackSetSecurity(context.volume, nodeId, updated, size)
@@ -281,17 +326,22 @@ namespace WinFsp
         let name16     = Utf16.toZeroTerminated(cString(name))
         let nameLength = name16.count - 1
         let bytes      = #offsetof(FspDirInfo.fileName) + nameLength * #sizeof(u16)
-        if bytes > Swag.U16.Max do
+        if bytes > Swag.U16.Max
+        {
             return 0
+        }
 
-        var storage: Array'u8
+        var storage: Array!{u8}
         storage.resize(bytes)
         Swag.memset(storage.storage(), 0, bytes)
         let dirInfo = cast(*FspDirInfo, storage.storage())
         dirInfo.size     = cast(u16, bytes)
         dirInfo.fileInfo = info[]
-        if nameLength do
+        if nameLength
+        {
             Swag.memcpy(&dirInfo.fileName[0], name16.storage(), nameLength * #sizeof(u16))
+        }
+
         return (g_WinFsp.addDirInfo)(dirInfo, context.buffer, context.length, context.transferred)
     }
 
@@ -303,8 +353,11 @@ namespace WinFsp
         var context     = FspEmitContext{buffer: buffer, length: length, transferred: transferred}
         var complete: u8
         let status      = callbackReadDirectory(mountedVolume(fileSystem), idFromContext(fileContext), markerValue.buffer, &emitFspDir, &context, &complete)
-        if status == StatusSuccess and complete do
+        if status == StatusSuccess and complete
+        {
             discard (g_WinFsp.addDirInfo)(null, buffer, length, transferred)
+        }
+
         return status
     }
 
@@ -316,12 +369,17 @@ namespace WinFsp
         var info:       FileInfo
         var storedName: String
         let status = callbackGetDirInfoByName(mountedVolume(fileSystem), idFromContext(fileContext), value.buffer, &info, &storedName)
-        if status != StatusSuccess do
+        if status != StatusSuccess
+        {
             return status
+        }
 
         let name16 = Utf16.fromUtf8(storedName)
-        if name16.count > FspDirInfoNameCapacity do
+        if name16.count > FspDirInfoNameCapacity
+        {
             return StatusInvalidParameter
+        }
+
         let nameBytes = name16.count * #sizeof(u16)
         let bytes     = #offsetof(FspDirInfo.fileName) + nameBytes
         dirInfo.size     = cast(u16, bytes)

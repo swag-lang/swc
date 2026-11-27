@@ -23,12 +23,15 @@ using Swag, Core, Pixel
 
     Swag.require(fixture.capture.forms.count == 320)
 
-    for index in fixture.capture.forms.count do
+    for index in fixture.capture.forms.count
+    {
         fixture.capture.selection.add(index)
+    }
+
     fixture.capture.selectionHasChanged()
     Swag.require(fixture.capture.selection.count == 320)
 
-    for zoom in [0.5'f32, 1.0, 2.0]
+    for zoom in [0.5_f32, 1.0, 2.0]
     {
         fixture.editView.setZoom(zoom)
         fixture.gui.fireTimer(fixture.editView.zoomTimer)

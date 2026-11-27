@@ -20,8 +20,10 @@ func releaseBorrowedAllocation(value: AllocatorBorrowValue, request: *Swag.Alloc
     Swag.require(request.address != null)
     defer
     {
-        if request.address do
+        if request.address
+        {
             allocator.free(&request)
+        }
     }
 
     let value = cast(*AllocatorBorrowValue, request.address)
@@ -32,6 +34,8 @@ func releaseBorrowedAllocation(value: AllocatorBorrowValue, request: *Swag.Alloc
         observed = releaseBorrowedAllocation(value[], &request)
     })
     Swag.require(caught.raised == #hastag("Swag.AllocatorSafety"))
-    if not caught.raised do
+    if not caught.raised
+    {
         Swag.require(observed == 143)
+    }
 }

@@ -5,8 +5,10 @@
 func sumBytes(values: const [*] u8, count: u64, total: u32)->u32
 {
     var result = total
-    for index in count do
+    for index in count
+    {
         result += values[index + 1]
+    }
     return result
 }
 
@@ -14,8 +16,10 @@ func sumBytes(values: const [*] u8, count: u64, total: u32)->u32
 func sumWords(values: const [*] u32, count: u64, total: u64)->u64
 {
     var result = total
-    for index in count do
+    for index in count
+    {
         result += values[index]
+    }
     return result
 }
 
@@ -23,8 +27,10 @@ func sumWords(values: const [*] u32, count: u64, total: u64)->u64
 func sumQwords(values: const [*] u64, count: u64, total: u64)->u64
 {
     var result = total
-    for index in count do
+    for index in count
+    {
         result += values[index]
+    }
     return result
 }
 
@@ -32,8 +38,10 @@ func sumQwords(values: const [*] u64, count: u64, total: u64)->u64
 func sumSignedBytes(values: const [*] u8, origin, count: s32, total: u32)->u32
 {
     var result = total
-    for index in count do
+    for index in count
+    {
         result += values[origin + index]
+    }
     return result
 }
 
@@ -45,12 +53,12 @@ func sumSignedBytes(values: const [*] u8, origin, count: s32, total: u32)->u32
     for index in words.count
     {
         bytes[index + 1] = cast(u8, index * 19 + 11)
-        words[index]     = 0xFFFF_FFFF'u32 - cast(u32, index * 97)
-        qwords[index]    = 0xFFFF_FFFF_FFFF_0000'u64 + index * 997
+        words[index]     = 0xFFFF_FFFF_u32 - cast(u32, index * 97)
+        qwords[index]    = 0xFFFF_FFFF_FFFF_0000_u64 + index * 997
     }
 
-    const ByteSeed = 0xFFFF_FFE0'u32
-    const WordSeed = 0xFFFF_FFFF_FFFF_FFE0'u64
+    const ByteSeed = 0xFFFF_FFE0_u32
+    const WordSeed = 0xFFFF_FFFF_FFFF_FFE0_u64
     var byteSum  = ByteSeed
     var wordSum  = WordSeed
     var qwordSum = WordSeed
@@ -71,16 +79,18 @@ func sumSignedBytes(values: const [*] u8, origin, count: s32, total: u32)->u32
 #test
 {
     var bytes: [129] u8
-    for &value, index in bytes do
+    for &value, index in bytes
+    {
         value[] = cast(u8, index * 29 + 17)
+    }
 
-    const Seed = 0xFFFF_FFF0'u32
+    const Seed = 0xFFFF_FFF0_u32
     let center = &bytes[48]
-    for origin in -16's32 until 17
+    for origin in -16_s32 until 17
     {
         Swag.require(sumSignedBytes(center, origin, -2, Seed) == Seed)
         var expected = Seed
-        for count in 65's32
+        for count in 65_s32
         {
             Swag.require(sumSignedBytes(center, origin, count, Seed) == expected)
             expected += bytes[48 + origin + count]

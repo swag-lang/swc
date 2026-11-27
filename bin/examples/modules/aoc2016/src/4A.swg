@@ -24,15 +24,18 @@ func day4A()
         let dataPath = Path.combine(Path.directoryName(#file), "4.txt")
         let lines    = try File.readAllLines(dataPath)
 
-        var total = 0's64
+        var total = 0_s64
         for l in lines
         {
             var idx = 0
             var count: [26] s32
             while Latin1.isLetter(l[idx]) or l[idx] == '-'
             {
-                if l[idx] != '-' do
+                if l[idx] != '-'
+                {
                     count[l[idx] - 'a'] += 1
+                }
+
                 idx += 1
             }
 
@@ -42,7 +45,7 @@ func day4A()
             var valid = true
             for c in l[idx + 1 to idx + 5]
             {
-                var max, maxi = 0'u64
+                var max, maxi = 0_u64
                 for i in count.count where count[i] > max
                 {
                     max  = count[i]
@@ -58,8 +61,10 @@ func day4A()
                 count[maxi] = 0
             }
 
-            if valid do
+            if valid
+            {
                 total += res.value
+            }
         }
 
         Swag.assert(total == 361724)

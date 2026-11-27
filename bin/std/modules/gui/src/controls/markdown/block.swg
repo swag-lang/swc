@@ -49,25 +49,43 @@ private func visualHeadingKind(level: u32)->BlockKind
     }
 }
 
-private func appendBlock(blocks: *Array'Block, kind: BlockKind, text: #move String)
+private func appendBlock(blocks: *Array!{Block}, kind: BlockKind, text: #move String)
 {
-    if text.isEmpty() and (kind < .AlertNote or kind > .AlertCaution) do
+    if text.isEmpty() and (kind < .AlertNote or kind > .AlertCaution)
+    {
         return
+    }
+
     blocks.add(Block{kind, #move text})
 }
 
 private func alertKind(name: string)->BlockKind
 {
-    if Utf8.compare(name, "NOTE", .Latin1NoCase) == 0 do
+    if Utf8.compare(name, "NOTE", .Latin1NoCase) == 0
+    {
         return .AlertNote
-    if Utf8.compare(name, "TIP", .Latin1NoCase) == 0 do
+    }
+
+    if Utf8.compare(name, "TIP", .Latin1NoCase) == 0
+    {
         return .AlertTip
-    if Utf8.compare(name, "IMPORTANT", .Latin1NoCase) == 0 do
+    }
+
+    if Utf8.compare(name, "IMPORTANT", .Latin1NoCase) == 0
+    {
         return .AlertImportant
-    if Utf8.compare(name, "WARNING", .Latin1NoCase) == 0 do
+    }
+
+    if Utf8.compare(name, "WARNING", .Latin1NoCase) == 0
+    {
         return .AlertWarning
-    if Utf8.compare(name, "CAUTION", .Latin1NoCase) == 0 do
+    }
+
+    if Utf8.compare(name, "CAUTION", .Latin1NoCase) == 0
+    {
         return .AlertCaution
+    }
+
     return .Quote
 }
 
@@ -88,8 +106,10 @@ private func alertTitle(kind: BlockKind)->string
 internal func blockDisplayText(kind: BlockKind, body: string)->String
 {
     let title = alertTitle(kind)
-    if not title.count do
+    if not title.count
+    {
         return body
+    }
 
     var result = Format.toString("<b><p1>%</p></b>", title)
     if body.count
@@ -114,16 +134,23 @@ private struct OrderedCounter
 internal func isHtmlBlockStart(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
-    if not trimmed.count or trimmed[0] != '<' do
+    if not trimmed.count or trimmed[0] != '<'
+    {
         return false
+    }
 
-    if Utf8.startsWith(trimmed, "<!--") do
+    if Utf8.startsWith(trimmed, "<!--")
+    {
         return true
+    }
+
     if Utf8.startsWith(trimmed, "</")
     {
-        let end = Utf8.indexOf(trimmed, '>'rune, 2)
-        if end != Swag.U64.Max do
+        let end = Utf8.indexOf(trimmed, '>'_rune, 2)
+        if end != Swag.U64.Max
+        {
             return HtmlParser.startsBlock(HtmlDocument.tagFromName(String.from(Latin1.trim(trimmed[2 until end])).toLower().toString()))
+        }
     }
 
     // A fragment: this asks the HTML parser what the line starts, not what document it makes.
@@ -136,10 +163,15 @@ internal func isHtmlBlockStart(line: string)->bool
     for child in document.children(0)
     {
         let node = document.constNode(child)
-        if node.kind != .Element or node.tag == .Unknown do
+        if node.kind != .Element or node.tag == .Unknown
+        {
             continue
-        if HtmlParser.startsBlock(node.tag) do
+        }
+
+        if HtmlParser.startsBlock(node.tag)
+        {
             return true
+        }
 
         switch node.tag
         {
@@ -151,12 +183,12 @@ internal func isHtmlBlockStart(line: string)->bool
     return false
 }
 
-internal func parseBlocks(source: string, headingsOnly = false, inheritedReferences: const [..] Reference? = null, frontmatter = true)->Array'Block
+internal func parseBlocks(source: string, headingsOnly = false, inheritedReferences: const [..] Reference? = null, frontmatter = true)->Array!{Block}
 {
     var result:     #returntype
     let lines = Tokenize.splitLines(Utf8.startsWith(source, "\uFEFF") ? source[3 to] : source)
-    var index = 0'u64
-    var references: Array'Reference
+    var index = 0_u64
+    var references: Array!{Reference}
     references.add(inheritedReferences)
 
     for line in lines
@@ -182,10 +214,15 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
             index    += 1
         }
 
-        if index < lines.count do
+        if index < lines.count
+        {
             index += 1
-        if not headingsOnly do
+        }
+
+        if not headingsOnly
+        {
             appendBlock(&result, .Metadata, #move metadata)
+        }
     }
 
     while index < lines.count
@@ -207,8 +244,11 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                 }
                 else
                 {
-                    if not result[blockIndex].sourceOffset do
+                    if not result[blockIndex].sourceOffset
+                    {
                         result[blockIndex].sourceOffset = cast(u64, (raw.buffer - source.buffer))
+                    }
+
                     blockIndex += 1
                 }
             }
@@ -241,10 +281,16 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
             for line in lines
             {
                 let entry = parseHeading(line)
-                if not entry.level do
+                if not entry.level
+                {
                     continue
-                for entry.level - 1 do
+                }
+
+                for entry.level - 1
+                {
                     contents += "  "
+                }
+
                 contents += renderInline(entry.text, references.toSlice())
                 contents += "\n"
             }
@@ -258,8 +304,11 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
         if fence.found
         {
             var code: String
-            if fence.info.count do
+            if fence.info.count
+            {
                 code += Format.toString("<p3>%</p>\n", richText(String.from(fence.info).toUpper().toString()))
+            }
+
             index += 1
             while index < lines.count
             {
@@ -295,19 +344,27 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
             }
             else
             {
-                if line.count do
+                if line.count
+                {
                     math += Latin1.trim(line)
+                }
+
                 index += 1
                 while index < lines.count and not Utf8.startsWith(Latin1.trim(lines[index]), "$$")
                 {
-                    if not math.isEmpty() do
+                    if not math.isEmpty()
+                    {
                         math += "\n"
+                    }
+
                     math  += Latin1.trim(lines[index])
                     index += 1
                 }
 
-                if index < lines.count do
+                if index < lines.count
+                {
                     index += 1
+                }
             }
 
             appendBlock(&result, .Math, #move math)
@@ -325,19 +382,27 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
             }
             else
             {
-                if line.count do
+                if line.count
+                {
                     math += line
+                }
+
                 index += 1
                 while index < lines.count and not Utf8.startsWith(Latin1.trim(lines[index]), "\\]")
                 {
-                    if not math.isEmpty() do
+                    if not math.isEmpty()
+                    {
                         math += "\n"
+                    }
+
                     math  += Latin1.trim(lines[index])
                     index += 1
                 }
 
-                if index < lines.count do
+                if index < lines.count
+                {
                     index += 1
+                }
             }
 
             appendBlock(&result, .Math, #move math)
@@ -363,12 +428,16 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                 for node in parser.stack where node.element != 0
                 {
                     let tag = document.constNode(node.element).tag
-                    if tag != .Div and tag != .Figure and tag != .Section do
+                    if tag != .Div and tag != .Figure and tag != .Section
+                    {
                         markdownContainer = false
+                    }
 
                     // Styled or hidden containers must retain their HTML cascade and visibility.
-                    for attribute in document.attributes(node.element) where document.text(attribute.name) != "align" do
+                    for attribute in document.attributes(node.element) where document.text(attribute.name) != "align"
+                    {
                         markdownContainer = false
+                    }
                 }
 
                 if markdownContainer and
@@ -382,9 +451,12 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     for node in parser.stack where node.element != 0
                     {
                         let element = document.constNode(node.element)
-                        let end     = Utf8.indexOf(document.source(), '>'rune, element.sourceOffset)
-                        if end != Swag.U64.Max do
+                        let end     = Utf8.indexOf(document.source(), '>'_rune, element.sourceOffset)
+                        if end != Swag.U64.Max
+                        {
                             reopen += document.source()[element.sourceOffset until end + 1]
+                        }
+
                         close = Format.toString("</%>%", HtmlDocument.tagName(element.tag), close)
                     }
 
@@ -415,26 +487,40 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
 
                     html = #move reopen
                     hasHtmlContent = false
-                    if index < lines.count do
+                    if index < lines.count
+                    {
                         htmlSourceOffset = cast(u64, (lines[index].buffer - source.buffer))
+                    }
+
                     continue
                 }
 
                 // A paired container owns its blank lines; comments may span them too.
                 if not (Latin1.trim(lines[index])).count and
                    parser.stack.count == 1 and
-                   not parser.hasPendingSource() do
+                   not parser.hasPendingSource()
+                {
                     break
-                if not html.isEmpty() do
+                }
+
+                if not html.isEmpty()
+                {
                     html += "\n"
+                }
+
                 html += lines[index]
-                if line.count and not Utf8.startsWith(line, "</") do
+                if line.count and not Utf8.startsWith(line, "</")
+                {
                     hasHtmlContent = true
+                }
+
                 parser.feed(lines[index])
                 parser.feed("\n")
                 index += 1
-                if not document.childCount(0) and not parser.hasPendingSource() do
+                if not document.childCount(0) and not parser.hasPendingSource()
+                {
                     break
+                }
             }
 
             parser.finish()
@@ -465,14 +551,14 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                 continue
             }
 
-            if Utf8.contains(raw, '|'rune) and isTableSeparator(lines[index + 1])
+            if Utf8.contains(raw, '|'_rune) and isTableSeparator(lines[index + 1])
             {
                 var table = String.from(raw)
                 table += "\n"
                 table += lines[index + 1]
                 index += 2
                 while index < lines.count and
-                      Utf8.contains(lines[index], '|'rune) and
+                      Utf8.contains(lines[index], '|'_rune) and
                       (Latin1.trim(lines[index])).count
                 {
                     table += "\n"
@@ -496,12 +582,14 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
         if item.found
         {
             var list:     String
-            var counters: Array'OrderedCounter
+            var counters: Array!{OrderedCounter}
             while index < lines.count
             {
                 let current = parseListItem(lines[index])
-                if not current.found do
+                if not current.found
+                {
                     break
+                }
 
                 var content  = String.from(current.content)
                 var previous = lines[index]
@@ -513,8 +601,10 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     if not next.count or
                        continuation.found or
                        continuation.indent < current.contentIndent or
-                       parseFence(lines[index]).found do
+                       parseFence(lines[index]).found
+                    {
                         break
+                    }
 
                     content  += hasHardBreak(previous) ? "\n" : " "
                     content  += next
@@ -522,8 +612,10 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     index    += 1
                 }
 
-                for current.indent do
+                for current.indent
+                {
                     list += " "
+                }
 
                 // Markers remain semantic atoms so wrapping can hang beneath the item text and
                 // geometric markers never depend on optional typeface glyphs.
@@ -532,17 +624,20 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     list += "<p1><lu>*</lu></p> "
                     content.remove(0, 4)
                 }
-                elif Utf8.startsWith(content, "[x] ") or Utf8.startsWith(content, "[X] ")
+                else if Utf8.startsWith(content, "[x] ") or Utf8.startsWith(content, "[X] ")
                 {
                     list += "<p1><lc>*</lc></p> "
                     content.remove(0, 4)
                 }
-                elif current.ordered
+                else if current.ordered
                 {
                     // Ordinals count from the first written marker and advance by position, so
                     // '1. 1. 1.' renders 1, 2, 3; a level popped by a shallower item restarts.
-                    while counters.count and counters.back().indent > current.indent do
+                    while counters.count and counters.back().indent > current.indent
+                    {
                         counters.removeBack()
+                    }
+
                     if counters.count and counters.back().indent == current.indent
                     {
                         counters.backPtr().value += 1
@@ -560,8 +655,11 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                 }
                 else
                 {
-                    while counters.count and counters.back().indent >= current.indent do
+                    while counters.count and counters.back().indent >= current.indent
+                    {
                         counters.removeBack()
+                    }
+
                     list += "<p1><lb>*</lb></p> "
                 }
 
@@ -584,7 +682,7 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                 var content = Latin1.trim(Latin1.trim(lines[index])[1 to])
                 if firstLine and Utf8.startsWith(content, "[!")
                 {
-                    let close = Utf8.indexOf(content, ']'rune, 2)
+                    let close = Utf8.indexOf(content, ']'_rune, 2)
                     if close != Swag.U64.Max
                     {
                         quoteKind = alertKind(content[2 until close])
@@ -595,10 +693,15 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     }
                 }
 
-                if hasQuoteLine do
+                if hasQuoteLine
+                {
                     quote += "\n"
-                if content.count do
+                }
+
+                if content.count
+                {
                     quote += renderInline(content, references.toSlice())
+                }
 
                 hasQuoteLine = true
                 firstLine    = false
@@ -615,8 +718,11 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
         {
             let next = Latin1.trim(lines[index])
             let nextDefinition = parseReferenceDefinition(lines[index])
-            if isHtmlBlockStart(lines[index]) do
+            if isHtmlBlockStart(lines[index])
+            {
                 break
+            }
+
             if not next.count or
                parseHeading(lines[index]).level or
                isRule(lines[index]) or
@@ -626,10 +732,16 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                Utf8.startsWith(next, "\\[") or
                Utf8.compare(next, "[TOC]", .Latin1NoCase) == 0 or
                nextDefinition.found or
-               parseFence(lines[index]).found do
+               parseFence(lines[index]).found
+            {
                 break
-            if index + 1 < lines.count and setextLevel(lines[index + 1]) do
+            }
+
+            if index + 1 < lines.count and setextLevel(lines[index + 1])
+            {
                 break
+            }
+
             paragraph += hasHardBreak(lines[index - 1]) ? "\n" : " "
             paragraph += next
             index     += 1

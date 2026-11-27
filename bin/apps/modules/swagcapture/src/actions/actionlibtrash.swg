@@ -73,8 +73,11 @@ impl IActionUI for ActionLibTrash
             if result == MessageDlg.BtnYes
             {
                 Library.emptyTrash()
-                if libWnd.trashMode do
+                if libWnd.trashMode
+                {
                     catch libWnd.view.fill()
+                }
+
                 libWnd.invalidate()
             }
 
@@ -83,8 +86,10 @@ impl IActionUI for ActionLibTrash
 
         case .DeleteForever:
             let result = MessageDlg.confirm(unwrap libWnd.main.surface, appStrings().msg_EraseSelected)
-            if result == MessageDlg.BtnYes do
+            if result == MessageDlg.BtnYes
+            {
                 libWnd.deleteForeverSelected()
+            }
         }
 
         return true

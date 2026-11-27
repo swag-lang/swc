@@ -11,12 +11,20 @@ impl IWnd for EditWnd
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .scrollWnd.IWnd.onResizeEvent(evt)
-        if .main == null do
+        if .main == null
+        {
             return
-        if .main.hintLine != null do
+        }
+
+        if .main.hintLine != null
+        {
             .main.placeReadings()
-        if .main.miniBar != null do
+        }
+
+        if .main.miniBar != null
+        {
             .main.placeMiniBar()
+        }
     }
 }
 
@@ -24,11 +32,11 @@ impl EditWnd
 {
     func create(main: *MainWnd, parent: *Wnd)->*EditWnd
     {
-        let scroll = Wnd.create'EditWnd(parent)
+        let scroll = Wnd.create!{EditWnd}(parent)
         scroll.main = main
         scroll.updateFlags(.HideBars)
 
-        with let view = Wnd.create'EditView(scroll)
+        with let view = Wnd.create!{EditView}(scroll)
         {
             .scroll      = scroll
             .main        = main

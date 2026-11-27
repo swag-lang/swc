@@ -44,10 +44,17 @@ using Core, Gui, Viewers
 {
     let workbook = expect Ods.load(scopeTestDataPath("viewer.monthly-budget.ods"))
     Swag.require(workbook.sheets.count >= 1 and workbook.cells > 50)
-    var formulas = 0'u64
-    for sheet in workbook.sheets do
-        for row in sheet.rows do
-            for cell in row.cells where not cell.formula.isEmpty() do
+    var formulas = 0_u64
+    for sheet in workbook.sheets
+    {
+        for row in sheet.rows
+        {
+            for cell in row.cells where not cell.formula.isEmpty()
+            {
                 formulas += 1
+            }
+        }
+    }
+
     Swag.require(formulas > 0)
 }

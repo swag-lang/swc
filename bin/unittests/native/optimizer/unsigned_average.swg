@@ -10,8 +10,10 @@ func average(values: const [*]u32, index: u64)->u32
 
 #test
 {
-    let values  = [0'u32, 0, 0, 1, 1, 2, 7, 12, 0xFFFFFFFF, 0xFFFFFFFF, 0, 0xFFFFFFFF]
-    let results = [0'u32, 0, 1, 9, 0xFFFFFFFF, 0x7FFFFFFF]
-    for result, index in results do
+    let values  = [0_u32, 0, 0, 1, 1, 2, 7, 12, 0xFFFFFFFF, 0xFFFFFFFF, 0, 0xFFFFFFFF]
+    let results = [0_u32, 0, 1, 9, 0xFFFFFFFF, 0x7FFFFFFF]
+    for result, index in results
+    {
         Swag.require(average(&values[0], index * 2) == result)
+    }
 }

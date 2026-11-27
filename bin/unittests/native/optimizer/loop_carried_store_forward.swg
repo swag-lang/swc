@@ -93,12 +93,16 @@ func aliasedStoreRef(row, other: [*] u64, n: u64)->u64
         a[0] = 4
         b[0] = 4
         Swag.require(prefixRow(&a[0], &costs[0], n) == prefixRowRef(&b[0], &costs[0], n))
-        for i in 13 do
+        for i in 13
+        {
             Swag.require(a[i] == b[i])
+        }
     }
 
-    for n in 15 do
+    for n in 15
+    {
         Swag.require(twoLocalRows(cast(u64, n) * 77 + 5, n) == twoLocalRowsRef(cast(u64, n) * 77 + 5, n))
+    }
 }
 
 #test
@@ -110,8 +114,10 @@ func aliasedStoreRef(row, other: [*] u64, n: u64)->u64
         b[0] = 1
         // `other` one element ahead of `row`: other[y] is row[y + 1].
         Swag.require(aliasedStore(&a[0], &a[1], n) == aliasedStoreRef(&b[0], &b[1], n))
-        for i in 12 do
+        for i in 12
+        {
             Swag.require(a[i] == b[i])
+        }
         // Disjoint buffers.
         var c, d, e, f: [12] u64
         c[0] = 3
@@ -125,23 +131,29 @@ func aliasedStoreRef(row, other: [*] u64, n: u64)->u64
 #[Swag.Optimize(true), Swag.NoInline]
 func window(row: const [*] u64, n: u64)->u64
 {
-    var sum = 0'u64
-    for i in n do sum += row[i] ^ row[i + 1]
+    var sum = 0_u64
+    for i in n
+    {
+        sum += row[i] ^ row[i + 1]
+    }
     return sum
 }
 
 #[Swag.Optimize(false), Swag.NoInline]
 func windowRef(row: const [*] u64, n: u64)->u64
 {
-    var sum = 0'u64
-    for i in n do sum += row[i] ^ row[i + 1]
+    var sum = 0_u64
+    for i in n
+    {
+        sum += row[i] ^ row[i + 1]
+    }
     return sum
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func reverseWindow(row: const [*] u64, n: u64)->u64
 {
-    var sum = 0'u64
+    var sum = 0_u64
     var i   = n
     while i > 0
     {
@@ -154,7 +166,7 @@ func reverseWindow(row: const [*] u64, n: u64)->u64
 #[Swag.Optimize(false), Swag.NoInline]
 func reverseWindowRef(row: const [*] u64, n: u64)->u64
 {
-    var sum = 0'u64
+    var sum = 0_u64
     var i   = n
     while i > 0
     {
@@ -167,7 +179,7 @@ func reverseWindowRef(row: const [*] u64, n: u64)->u64
 #[Swag.Optimize(true), Swag.NoInline]
 func modifiedWindow(row, other: [*] u64, n: u64)->u64
 {
-    var sum = 0'u64
+    var sum = 0_u64
     for i in n
     {
         sum      += row[i] ^ row[i + 1]
@@ -179,7 +191,7 @@ func modifiedWindow(row, other: [*] u64, n: u64)->u64
 #[Swag.Optimize(false), Swag.NoInline]
 func modifiedWindowRef(row, other: [*] u64, n: u64)->u64
 {
-    var sum = 0'u64
+    var sum = 0_u64
     for i in n
     {
         sum      += row[i] ^ row[i + 1]
@@ -191,24 +203,36 @@ func modifiedWindowRef(row, other: [*] u64, n: u64)->u64
 #[Swag.Optimize(true), Swag.NoInline]
 func multipleWindows(row: const [*] u64, n: u64)->u64
 {
-    var sum = 0'u64
-    for i in n do sum += row[i] + row[i + 1] * 2 + row[i + 2] * 3
-    for i in n do sum += row[i] ^ row[i + 1]
+    var sum = 0_u64
+    for i in n
+    {
+        sum += row[i] + row[i + 1] * 2 + row[i + 2] * 3
+    }
+    for i in n
+    {
+        sum += row[i] ^ row[i + 1]
+    }
     return sum
 }
 
 #[Swag.Optimize(false), Swag.NoInline]
 func multipleWindowsRef(row: const [*] u64, n: u64)->u64
 {
-    var sum = 0'u64
-    for i in n do sum += row[i] + row[i + 1] * 2 + row[i + 2] * 3
-    for i in n do sum += row[i] ^ row[i + 1]
+    var sum = 0_u64
+    for i in n
+    {
+        sum += row[i] + row[i + 1] * 2 + row[i + 2] * 3
+    }
+    for i in n
+    {
+        sum += row[i] ^ row[i + 1]
+    }
     return sum
 }
 
 #test
 {
-    for n in 12'u64
+    for n in 12_u64
     {
         var a, b: [14] u64
         for i in 14
@@ -220,6 +244,9 @@ func multipleWindowsRef(row: const [*] u64, n: u64)->u64
         Swag.require(window(&a[0], n) == windowRef(&b[0], n))
         Swag.require(reverseWindow(&a[0], n) == reverseWindowRef(&b[0], n))
         Swag.require(modifiedWindow(&a[0], &a[1], n) == modifiedWindowRef(&b[0], &b[1], n))
-        for i in 13 do Swag.require(a[i] == b[i])
+        for i in 13
+        {
+            Swag.require(a[i] == b[i])
+        }
     }
 }

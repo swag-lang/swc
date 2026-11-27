@@ -28,8 +28,11 @@ using Swag, Core
     host.finishAnimations()
     let view = main.libWnd.view
     Swag.require(view.allItems.count == g_Library.files.count)
-    for item in view.allItems do
+    for item in view.allItems
+    {
         Swag.require(item!.loaded)
+    }
+
     let count = view.allItems.count
     main.swapLibraryMode()
     main.swapLibraryMode()

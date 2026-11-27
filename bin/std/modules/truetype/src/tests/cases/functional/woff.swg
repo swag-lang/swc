@@ -89,16 +89,52 @@ using Swag, Core
     discard catch Face.loadAt(woff.toSlice(), 1) as indexOutcome
     Swag.require(indexOutcome.value() != null)
 
-    var compressedTables = 0'u32
+    var compressedTables = 0_u32
     for index in readBigU16(&woff, 12)
     {
-        let record = 44'u64 + cast(u64, index) * 20
-        if readBigU32(&woff, record + 8) < readBigU32(&woff, record + 12) do
+        let record = 44_u64 + cast(u64, index) * 20
+        if readBigU32(&woff, record + 8) < readBigU32(&woff, record + 12)
+        {
             compressedTables += 1
+        }
     }
 
     Swag.require(compressedTables > 0)
     Swag.require(compressedTables < readBigU16(&woff, 12))
+}
+
+// Source metadata and faces share the reconstructed WOFF1 bytes.
+#test
+{
+    let original = loadFontBytes("arial.ttf")
+    var woff     = expect buildWoffFont(original.toSlice())
+    var allocator: Swag.Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+    let allocatorView: IAllocator = &allocator
+    let baseline = allocator.stats().countAlloc
+
+    var source   = FontSource.copy(woff.toSlice(), allocatorView)
+    let metadata = expect source.metadataAt()
+    Swag.require(metadata.familyName == "Arial")
+    let first  = expect source.loadFace()
+    let second = expect source.loadFace()
+    Swag.require((expect readU32(source.bytes(), 0)) == TAG_WOFF)
+    let firstImpl  = expect getFaceImpl(first)
+    let secondImpl = expect getFaceImpl(second)
+    Swag.require(firstImpl.fontBytes().buffer == secondImpl.fontBytes().buffer)
+
+    var badIndex: Swag.Error
+    discard catch source.loadFace(1) as badIndex
+    Swag.require(badIndex.value() != null)
+    source = {}
+    woff.fill(0)
+    first.destroy()
+    expect second.setPixelSize(0, 20)
+    expect second.loadChar('A', .Render)
+    Swag.require(countBitmapCoverage(&second.glyph.bitmap) > 0)
+    second.destroy()
+    Swag.require(allocator.stats().countAlloc == baseline)
 }
 
 // WOFF1 declarations cannot extend beyond the file or disagree with its declared length.
@@ -148,17 +184,23 @@ using Swag, Core
 
     var zlib: Compress.ZLib
     let metadata = expect zlib.compress("font metadata")
-    while (woff.count & 3) != 0 do
+    while (woff.count & 3) != 0
+    {
         woff.add(0)
+    }
+
     let metadataOffset = cast(u32, woff.count)
     woff.add(metadata.toSlice())
 
-    while (woff.count & 3) != 0 do
+    while (woff.count & 3) != 0
+    {
         woff.add(0)
+    }
+
     let privateOffset = cast(u32, woff.count)
-    woff.add(1'u8)
-    woff.add(2'u8)
-    woff.add(3'u8)
+    woff.add(1_u8)
+    woff.add(2_u8)
+    woff.add(3_u8)
 
     writeBigU32(&woff, 8, cast(u32, woff.count))
     writeBigU32(&woff, 24, metadataOffset)
@@ -171,7 +213,7 @@ using Swag, Core
     defer face.destroy()
     Swag.require(face.familyName == "Arial")
 
-    var trailingBytes: Array'u8
+    var trailingBytes: Array!{u8}
     trailingBytes.add(woff.toSlice())
     trailingBytes.add(0)
     trailingBytes.add(0)
@@ -191,7 +233,7 @@ using Swag, Core
     var compressedRecord = Swag.U64.Max
     for index in readBigU16(&woff, 12)
     {
-        let record = 44'u64 + cast(u64, index) * 20
+        let record = 44_u64 + cast(u64, index) * 20
         if readBigU32(&woff, record + 8) < readBigU32(&woff, record + 12)
         {
             compressedRecord = record

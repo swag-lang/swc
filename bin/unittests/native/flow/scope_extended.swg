@@ -11,8 +11,10 @@
             for 5
             {
                 count += 1
-                if count == 3 do
+                if count == 3
+                {
                     break to Outer
+                }
             }
         }
         count = -1     // should not be reached
@@ -93,8 +95,10 @@
         {
             i     += 1
             count += 1
-            if i == 5 do
+            if i == 5
+            {
                 break to Outer
+            }
         }
         count = -1     // unreachable
     }
@@ -117,8 +121,10 @@
             {
                 i   += 1
                 sum += i
-                if i == 5 do
+                if i == 5
+                {
                     break to Done
+                }
             }
         }
 
@@ -161,8 +167,10 @@
             for 10
             {
                 total += 1
-                if total == 15 do
+                if total == 15
+                {
                     break to Done
+                }
             }
         }
     }

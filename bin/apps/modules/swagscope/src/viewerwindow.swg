@@ -15,19 +15,19 @@ struct ViewerFolderHistory
 }
 
 // The durable bookmark registry is a bounded least-recently-stored list.
-internal const ViewerTextBookmarkFileLimit = 64'u64
-internal const ViewerTextBookmarkLimit     = 64'u64
+internal const ViewerTextBookmarkFileLimit = 64_u64
+internal const ViewerTextBookmarkLimit     = 64_u64
 
 // The durable text bookmarks kept for one file identity.
 internal struct ViewerTextBookmarkFile
 {
     path:      String
     identity:  String
-    bookmarks: Array'Viewers.PlainText.Bookmark
+    bookmarks: Array!{Viewers.PlainText.Bookmark}
 }
 
 // Returns the application window that hosts `view`.
-func viewerWindowFor(view: *Wnd)->*ViewerWindow => unwrap view.ancestorByType'ViewerWindow()
+func viewerWindowFor(view: *Wnd)->*ViewerWindow => unwrap view.ancestorByType!{ViewerWindow}()
 
 // Replaces a viewer that failed after creation with the standard error surface.
 func reportViewerFailure(view: *Wnd, reason: string) { viewerWindowFor(view).replaceFailedViewer(view, reason) }
@@ -91,7 +91,7 @@ struct ViewerWindow
     explorer:           *Explorer?
 
     index:                   ViewerPluginRegistry
-    pluginIcons:             Array'ViewerPluginIcons
+    pluginIcons:             Array!{ViewerPluginIcons}
     currentView:             *Wnd?
     currentActions:          *Wnd?
     currentInfo:             *Wnd?
@@ -104,8 +104,8 @@ struct ViewerWindow
     outgoingCommands:        *Wnd?
     outgoingSidePanelHost:   *Wnd?
     outgoingSidePanelButton: *IconButton?
-    choices:                 Array'ViewerPluginChoice
-    instances:               Array'ViewerSession
+    choices:                 Array!{ViewerPluginChoice}
+    instances:               Array!{ViewerSession}
     activeChoiceIndex:       u32  = Swag.U32.Max
     startupTimer:            *Timer?
     awaitingRetirement:      bool     // A viewer is still retiring; the next task event below the window asks it again.
@@ -129,7 +129,7 @@ struct ViewerWindow
     searchProgress:          u64
     searchTotalBytes:        u64
     searchSpan:              u64
-    searchMatches:           Array'Viewer.SearchMatch
+    searchMatches:           Array!{Viewer.SearchMatch}
     searchIndex:             u64  = Swag.U64.Max
     searchMatch:             u64  = Swag.U64.Max
     searchComplete:          bool
@@ -154,8 +154,8 @@ struct ViewerWindow
     reloading:               bool
     currentFile:             String
     currentFileSize:         String
-    folderFiles:             Array'String
-    siblings:                Array'String
+    folderFiles:             Array!{String}
+    siblings:                Array!{String}
     siblingIndex:            u64
     siblingsDirty:           bool = true
 
@@ -175,27 +175,29 @@ struct ViewerWindow
     stillView:           *Wnd?
     folderReadingMode:   Viewer.PlayMode
     folderReadingFolder: String
-    folderReadingFiles:  Array'String
+    folderReadingFiles:  Array!{String}
 
     // Guards the one nested dispatch [[ViewerWindow.forwardKeyToViewer]] makes, so a key the viewer
     // declines falls back to file navigation instead of being offered again.
-    forwardingViewerKey:       bool
-    playPauseKeyDown:          bool
-    recent:                    Array'String
-    recentOpened:              Array'u64     // Local ticks each entry of `recent` was last opened at, in the same order; zero when unknown.
-    folderHistory:             Array'ViewerFolderHistory
+    forwardingViewerKey: bool
+    playPauseKeyDown:    bool
+    recent:              Array!{String}
+    recentOpened:        Array!{u64}     // Local ticks each entry of `recent` was last opened at, in the same order; zero when unknown.
+    folderHistory:       Array!{ViewerFolderHistory}
+
     internal
     {
-        textBookmarkFiles: Array'ViewerTextBookmarkFile
-        textTabWidth:       s32 = 4
-        codeTabWidth:       s32 = 4
+        textBookmarkFiles: Array!{ViewerTextBookmarkFile}
+        textTabWidth:      s32 = 4
+        codeTabWidth:      s32 = 4
     }
-    resumePoints:              Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
-    exploredFolders:           Array'String     // Directories explored lately, most recent first.
-    folderViews:               Array'ExplorerFolderState
-    systemPlaces:              Array'String     // The system's own folders a first launch offers to explore.
-    fileViewerChoices:         Array'ViewerFileChoice
-    musicChoices:              Array'MusicChoice
+
+    resumePoints:              Array!{ViewerResumePoint}     // Where the files of the history were left, most recent first.
+    exploredFolders:           Array!{String}     // Directories explored lately, most recent first.
+    folderViews:               Array!{ExplorerFolderState}
+    systemPlaces:              Array!{String}     // The system's own folders a first launch offers to explore.
+    fileViewerChoices:         Array!{ViewerFileChoice}
+    musicChoices:              Array!{MusicChoice}
     onlineMovies:              bool = true
     onlineMusic:               bool = true
     leftPanelWidth:            f32
@@ -214,22 +216,22 @@ struct ViewerWindow
 
     // The viewer's commands float over the foot of the document while the pointer moves, and
     // leave once it rests; the search floats at the top while it is asked for.
-    viewerBarShown:  bool
-    lensBytes:       Array'u8      // The open file as the lens searches it, read on its first question.
-    lensBytesFile:   String        // The file `lensBytes` holds.
-    lensEncoding:    Text.Encoding
-    lensContentStart: u64          // Source bytes skipped before the first decoded character.
-    lensLineStarts:  Array'u64     // Offset in `lensBytes` of the start of each line.
-    viewerBarTimer:  *Timer?
-    pointerPosition: Math.Point
+    viewerBarShown:   bool
+    lensBytes:        Array!{u8}     // The open file as the lens searches it, read on its first question.
+    lensBytesFile:    String         // The file `lensBytes` holds.
+    lensEncoding:     Text.Encoding
+    lensContentStart: u64             // Source bytes skipped before the first decoded character.
+    lensLineStarts:   Array!{u64}     // Offset in `lensBytes` of the start of each line.
+    viewerBarTimer:   *Timer?
+    pointerPosition:  Math.Point
     searchShown:      bool
     searchComparison: *SceneComparison?
-    smokeDirectory:  String
-    smokeSpecIndex:  u64
-    smokeWaitSteps:  u32
-    smokeOpened:     bool
-    smokeSelected:   bool
-    smokeRunning:    bool
+    smokeDirectory:   String
+    smokeSpecIndex:   u64
+    smokeWaitSteps:   u32
+    smokeOpened:      bool
+    smokeSelected:    bool
+    smokeRunning:     bool
 }
 
 // Records the format summary a viewer reported after creation, and shows it while that viewer is active.
@@ -240,11 +242,17 @@ func reportViewerDetails(view: *Wnd, details: string)
     {
         // Pointer probes and timers repeat a summary that has not moved. The line already shows
         // it, and laying the line out or describing an open sheet again would only cost a frame.
-        if instance.details == details do
+        if instance.details == details
+        {
             return
+        }
+
         instance.details = details
-        if index == window.activeChoiceIndex do
+        if index == window.activeChoiceIndex
+        {
             window.updateFileInfo(details)
+        }
+
         return
     }
 }
@@ -255,26 +263,42 @@ func reportViewerInformationChanged(view: *Wnd)
 {
     let window = viewerWindowFor(view)
     window.workspace?.comparisonSheet?.refresh()
-    if window.activeChoiceIndex >= window.instances.count or window.instances[window.activeChoiceIndex].view != view do
+    if window.activeChoiceIndex >= window.instances.count or window.instances[window.activeChoiceIndex].view != view
+    {
         return
-    if view is Markdown.View do
+    }
+
+    if view is Markdown.View
+    {
         window.layoutFileInfo()
-    else do
+    }
+    else
+    {
         window.refreshReadingAppearance()
-    if window.infoSheet.isLocallyVisible() do
+    }
+
+    if window.infoSheet.isLocallyVisible()
+    {
         window.refreshInformation()
+    }
 }
 
 // Re-measures viewer-owned chrome after a compact value or action group changes shape.
 func reportViewerChromeChanged(view: *Wnd)
 {
     let window = viewerWindowFor(view)
-    if window.currentView != view do
+    if window.currentView != view
+    {
         return
+    }
+
     if view is Viewers.Film.Panel as film
     {
-        if film.veilsShown do
+        if film.veilsShown
+        {
             window.revealViewerBar()
+        }
+
         return
     }
 
@@ -310,8 +334,10 @@ func writeViewerPlayback(view: *Wnd, settings: Viewer.PlaybackSettings)
 {
     let window = viewerWindowFor(view)
     window.setPlayMode(settings.mode)
-    if window.slideSeconds != settings.slideSeconds do
+    if window.slideSeconds != settings.slideSeconds
+    {
         window.setSlideSeconds(settings.slideSeconds)
+    }
 }
 
 // Lets a viewer wake the generic wait presentation when work starts again after being idle.
@@ -323,13 +349,19 @@ func reportViewerLoadingChanged(view: *Wnd)
         .updateLoadingIndicator()
         .workspace?.refreshComparison()
         let comparisonSheet = .workspace?.comparisonSheet
-        if comparisonSheet and comparisonSheet.panel.isLocallyVisible() do
+        if comparisonSheet and comparisonSheet.panel.isLocallyVisible()
+        {
             comparisonSheet.refresh()
+        }
+
         .workspace?.updateMediaViewport(window)
         if .currentView == view
         {
-            if .sceneSlidesPaused and view is Viewers.Picture.Panel do
+            if .sceneSlidesPaused and view is Viewers.Picture.Panel
+            {
                 .setPicturePlaying(false)
+            }
+
             .workspace?.updateMedia()
             .finishReadingRestore()
         }
@@ -360,8 +392,11 @@ impl IWnd for ViewerWindow
 {
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind == .Move or evt.kind == .Enter do
+        if evt.kind == .Move or evt.kind == .Enter
+        {
             .notePointer(evt.surfacePos)
+        }
+
         evt.accepted = false
     }
 
@@ -370,8 +405,11 @@ impl IWnd for ViewerWindow
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         // The window is resized while it is being built, before the parts below exist.
-        if .lens == null do
+        if .lens == null
+        {
             return
+        }
+
         ViewerWindow.fitDocumentPanes(.mainSplitter, .clientRect().width)
         .updateDocumentInsets()
         .layoutFloatingParts()
@@ -417,8 +455,11 @@ impl IWnd for ViewerWindow
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if .routePlaybackKey(evt) do
+        if .routePlaybackKey(evt)
+        {
             return
+        }
+
         if evt.kind != .Pressed
         {
             evt.accepted = false
@@ -434,7 +475,9 @@ impl IWnd for ViewerWindow
                  .N, .O, .P, .Q, .R, .S, .T, .U, .V, .W, .X, .Y, .Z:
                 evt.accepted = true
                 return
-            default: break
+
+            default:
+                break
             }
         }
 
@@ -465,16 +508,22 @@ impl IWnd for ViewerWindow
 
         if evt.timer == .fileWatchTimer
         {
-            if not .pendingFile.isEmpty() or .currentFile.isEmpty() do
+            if not .pendingFile.isEmpty() or .currentFile.isEmpty()
+            {
                 return
+            }
+
             if .readingState.restoring
             {
                 .finishReadingRestore()
                 return
             }
 
-            if .fileWatch.poll(.currentFile) do
+            if .fileWatch.poll(.currentFile)
+            {
                 .reloadCurrentFile()
+            }
+
             return
         }
 
@@ -555,10 +604,16 @@ impl IWnd for ViewerWindow
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .showPointer()
-        if .fullScreen and .isWorkspacePrimary() do
+        if .fullScreen and .isWorkspacePrimary()
+        {
             .setFullScreen(false)
-        if .isWorkspacePrimary() do
+        }
+
+        if .isWorkspacePrimary()
+        {
             catch .saveState()
+        }
+
         .stopSearch()
         .stopLoadingIndicator()
         .stopSlide()
@@ -570,8 +625,11 @@ impl IWnd for ViewerWindow
         .stopTimer(&.fileWatchTimer)
         .stopTimer(&.viewerBarTimer)
 
-        for &set in .pluginIcons do
+        for &set in .pluginIcons
+        {
             set.icons.free()
+        }
+
         .stopTimer(&.startupTimer)
     }
 
@@ -583,8 +641,11 @@ impl IWnd for ViewerWindow
             return
         }
 
-        if .thumbnailMode or not .isWorkspacePrimary() do
+        if .thumbnailMode or not .isWorkspacePrimary()
+        {
             return
+        }
+
         catch .app().loadState()
         .applyTheme(.themeIndex)
         .applyLanguage()
@@ -595,8 +656,11 @@ impl IWnd for ViewerWindow
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
     {
-        if not .isWorkspacePrimary() do
+        if not .isWorkspacePrimary()
+        {
             return
+        }
+
         .workspace?.serializeScenes(evt.serializer)
 
         if not evt.serializer.isReading() and .currentSidePanelHost
@@ -608,10 +672,14 @@ impl IWnd for ViewerWindow
                 if item.view == .currentSidePanelHost
                 {
                     let width = item.size - .themeMetrics().floating_Inset
-                    if .currentSidePanelButton?.id == OutlineToggleId do
+                    if .currentSidePanelButton?.id == OutlineToggleId
+                    {
                         .leftPanelWidth = width
-                    else do
+                    }
+                    else
+                    {
                         .rightPanelWidth = width
+                    }
                 }
             }
         }
@@ -621,8 +689,11 @@ impl IWnd for ViewerWindow
             .rememberTextBookmarkSessions()
             .textTabWidth = Viewers.PlainText.defaultTabWidth()
             .codeTabWidth = Viewers.Code.defaultTabWidth()
-            if .explorer and .explorer.isLocallyVisible() do
+            if .explorer and .explorer.isLocallyVisible()
+            {
                 .explorer.rememberView()
+            }
+
             .privacy.sanitize()
             .captureResume()
         }
@@ -650,54 +721,84 @@ impl IWnd for ViewerWindow
         if evt.serializer.isReading()
         {
             Viewers.Film.g_MovieDetectionSettings.sanitize()
-            if .textTabWidth != 2 and .textTabWidth != 4 and .textTabWidth != 8 do
+            if .textTabWidth != 2 and .textTabWidth != 4 and .textTabWidth != 8
+            {
                 .textTabWidth = 4
-            if .codeTabWidth != 2 and .codeTabWidth != 4 and .codeTabWidth != 8 do
+            }
+
+            if .codeTabWidth != 2 and .codeTabWidth != 4 and .codeTabWidth != 8
+            {
                 .codeTabWidth = 4
+            }
+
             Viewers.PlainText.setDefaultTabWidth(.textTabWidth)
             Viewers.Code.setDefaultTabWidth(.codeTabWidth)
             .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.Document))
-            if .rightPanelWidth > 0 do
+            if .rightPanelWidth > 0
+            {
                 .rightPanelWidth = Math.clamp(.rightPanelWidth, RightPanelMinWidth, RightPanelMaxWidth)
-            if .leftPanelWidth > 0 do
+            }
+
+            if .leftPanelWidth > 0
+            {
                 .leftPanelWidth = Math.clamp(.leftPanelWidth, RightPanelMinWidth, RightPanelMaxWidth)
+            }
+
             if .mainSplitter.items.count > 2
             {
                 if .rightPanelWidth > 0
                 {
                     let rightWidth = .rightPanelWidth + .themeMetrics().floating_Inset
                     if .mainSplitter.items[2]!.view.isLocallyVisible()
-                        do
+                    {
                         .mainSplitter.setPaneSize(2, rightWidth)
-                    else do
+                    }
+                    else
+                    {
                         .mainSplitter.items[2]!.size = rightWidth
+                    }
                 }
 
                 if .leftPanelWidth > 0
                 {
                     let leftWidth = .leftPanelWidth + .themeMetrics().floating_Inset
                     if .mainSplitter.items[0]!.view.isLocallyVisible()
-                        do
+                    {
                         .mainSplitter.setPaneSize(0, leftWidth)
-                    else do
+                    }
+                    else
+                    {
                         .mainSplitter.items[0]!.size = leftWidth
+                    }
                 }
 
                 .mainSplitter.sendResizeEvent()
             }
 
-            while .recent.count > RecentCount do
+            while .recent.count > RecentCount
+            {
                 .recent.removeAtOrdered(.recent.count - 1)
+            }
+
             .recentOpened.resize(.recent.count)
             .privacy.sanitize()
             .pruneResume()
-            while .exploredFolders.count > FolderHistoryCount do
+            while .exploredFolders.count > FolderHistoryCount
+            {
                 .exploredFolders.removeBack()
-            while .folderHistory.count > FolderHistoryCount do
+            }
+
+            while .folderHistory.count > FolderHistoryCount
+            {
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
+            }
+
             discard .searchBox.revalidate()
-            if cast(u32, .playMode) > cast(u32, Viewer.PlayMode.Shuffle) do
+            if cast(u32, .playMode) > cast(u32, Viewer.PlayMode.Shuffle)
+            {
                 .playMode = .Once
+            }
+
             .slideSeconds = Math.clamp(.slideSeconds, Viewer.SlideMinSeconds, Viewer.SlideMaxSeconds)
             Viewers.MarkdownText.g_ViewerSettings.sanitize()
             Viewers.Midi.g_ViewerSettings.sanitize()
@@ -713,8 +814,11 @@ impl IWnd for ViewerWindow
             .dropHighlight.setPrompt(appStrings().ui_DropTitle)
 
         case .ThemeChanged:
-            for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
+            for &instance in .instances where instance.view and not instance.failureReason.isEmpty()
+            {
                 assume cast(*ViewerErrorView, instance.view).refreshTheme()
+            }
+
             .refreshArtwork()
             .refreshHome()
             .dropHighlight.refreshTheme()
@@ -729,8 +833,10 @@ impl IWnd for ViewerWindow
 
     mtd impl onComputeStateEvent(evt: *CommandStateEvent)
     {
-        if not .computeCommandState(evt) do
+        if not .computeCommandState(evt)
+        {
             evt.accepted = false
+        }
     }
 
     mtd impl onCommandEvent(evt: *CommandEvent)
@@ -750,7 +856,7 @@ impl ViewerWindow
     const HintRoom = 72.0
 
     // How long the viewer's commands stay after the pointer last moved.
-    const ViewerBarLinger: Time.Duration = 2500'ms
+    const ViewerBarLinger: Time.Duration = 2500_ms
 
     // The document and its viewer-specific side panel.
     const DocumentMinWidth       = 320.0
@@ -763,8 +869,8 @@ impl ViewerWindow
 
     // Files the recent list keeps. Long enough to cross a working session, short enough that the
     // list stays something a reader scans rather than searches.
-    const RecentCount        = 12'u64
-    const FolderHistoryCount = 8'u64
+    const RecentCount        = 12_u64
+    const FolderHistoryCount = 8_u64
 
     // The search group of the floating find bar.
     const SearchFieldWidth          = 180.0
@@ -774,12 +880,12 @@ impl ViewerWindow
 
     // Search reads the file one chunk at a time. A match that may continue into the next chunk
     // waits for it, so each chunk keeps the query span plus this margin of the one before.
-    const SearchChunkSize   = 256 * 1024'u64
-    const SearchCarryMargin = 4'u64
-    const SearchMatchLimit  = 100_000'u64
+    const SearchChunkSize   = 256 * 1024_u64
+    const SearchCarryMargin = 4_u64
+    const SearchMatchLimit  = 100_000_u64
 
     // How often the current match follows a moving or progressively loaded view.
-    const SearchBoundsPoll: Time.Duration = 16'ms
+    const SearchBoundsPoll: Time.Duration = 16_ms
 
     // How long a viewer may keep the window waiting before the activity mark appears, how long the
     // mark then stays once it has, and how often the wait is looked at.
@@ -789,9 +895,9 @@ impl ViewerWindow
     // that appears and leaves within one frame is a flicker over the document, so once shown it
     // lingers past the end of the wait. Both thresholds are what keep a fast file change reading as
     // instantaneous.
-    const LoadingShowDelayMicroseconds       = 400_000'u64
-    const LoadingMinVisibleMicroseconds      = 500_000'u64
-    const LoadingPollInterval: Time.Duration = 50'ms
+    const LoadingShowDelayMicroseconds       = 400_000_u64
+    const LoadingMinVisibleMicroseconds      = 500_000_u64
+    const LoadingPollInterval: Time.Duration = 50_ms
 
     // In full screen the surface loses its frame and stays above other windows.
     const FullScreenRemovedFlags = SurfaceFlags.LargeCaption |
@@ -805,9 +911,9 @@ impl ViewerWindow
 
     // The smoke review gives a viewer at most `SmokeStepLimit` readiness checks, keeps every viewer
     // on screen for `SmokeMinimumSteps`, and one that is still loading for `SmokeExposureSteps`.
-    const SmokeStepLimit     = 300'u32
-    const SmokeExposureSteps = 25'u32
-    const SmokeMinimumSteps  = 2'u32
+    const SmokeStepLimit     = 300_u32
+    const SmokeExposureSteps = 25_u32
+    const SmokeMinimumSteps  = 2_u32
 
     // Rasterizes one glyph of a plugin-owned vector document through this window's renderer.
     //
@@ -815,8 +921,11 @@ impl ViewerWindow
     // the host, which keeps one set per document and releases them with the window.
     mtd pluginIcon(plugin: const *Viewer.Plugin, size = 0.0)->Icon
     {
-        if not plugin.iconAtlas do
+        if not plugin.iconAtlas
+        {
             return {}
+        }
+
         return .atlasIcon(plugin.iconAtlas, plugin.iconIndex, size ? size : themeRowIconSize(.themeMetrics()))
     }
 
@@ -824,8 +933,10 @@ impl ViewerWindow
 
     private mtd atlasIcon(atlas: *IconAtlas, index: s32, size: f32)->Icon
     {
-        for &set in .pluginIcons where set.atlas == atlas do
+        for &set in .pluginIcons where set.atlas == atlas
+        {
             return set.icons.icon(index, size, .theme().res.atlasScale)
+        }
 
         let added = .pluginIcons.emplaceInitAddress()
         added.atlas = atlas
@@ -836,11 +947,17 @@ impl ViewerWindow
     // Resolves one descriptor-owned glyph without leaking plugin metadata into the window.
     private mtd choiceIcon(index: u32, size = 0.0)->Icon
     {
-        if index >= .choices.count do
+        if index >= .choices.count
+        {
             return {}
+        }
+
         let choice = &.choices[index]
-        if choice.pluginIndex >= .index.plugins.count do
+        if choice.pluginIndex >= .index.plugins.count
+        {
             return {}
+        }
+
         return .pluginIcon(&.index.plugins[choice.pluginIndex], size)
     }
 
@@ -871,8 +988,11 @@ impl ViewerWindow
 
     mtd refreshOutlineCaption(animate = false)
     {
-        if not .canRefreshCaption() do
+        if not .canRefreshCaption()
+        {
             return
+        }
+
         let toggle = .currentSidePanelButton
         .showCaptionAction(.outlineCaptionButton, not .fullScreen and toggle and toggle.id == OutlineToggleId, animate)
         .outlineCaptionButton.toolTip = Format.toString("% (%)", .captionFileAction(outlineTitle()), Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O))
@@ -881,44 +1001,69 @@ impl ViewerWindow
 
     private mtd showCaptionAction(action: *CaptionButton, visible, animate: bool)
     {
-        if action.isLocallyVisible() == visible do
+        if action.isLocallyVisible() == visible
+        {
             return
-        if not animate do
+        }
+
+        if not animate
+        {
             action.show(visible)
-        elif visible do
+        }
+        else if visible
+        {
             action.button.wnd.show()
-        else do
+        }
+        else
+        {
             discard .app().animator.leave(action)
+        }
     }
 
     private mtd captionFileAction(action: string)->String
     {
-        if (.workspace?.documentCount() orelse 0) > 1 and not .currentFile.isEmpty() do
+        if (.workspace?.documentCount() orelse 0) > 1 and not .currentFile.isEmpty()
+        {
             return Format.toString("% · %", action, Path.fileName(.currentFile) orelse .currentFile)
+        }
+
         return action
     }
 
     mtd updateOutlineCaptionState()
     {
-        if not .canRefreshCaption() do
+        if not .canRefreshCaption()
+        {
             return
+        }
+
         let toggle = .currentSidePanelButton
         .outlineCaptionButton.setChecked(toggle and toggle.id == OutlineToggleId and toggle.isChecked)
     }
 
     mtd refreshExplorerCaption()
     {
-        if not .isWorkspaceActive() do
+        if not .isWorkspaceActive()
+        {
             return
-        .explorer?.address.show(.isExploring())
-        if not .canRefreshCaption() do
-            return
+        }
 
-        let animate = .workspace and .workspace.newTabButton != null and not .fullScreen and
-                      .fullScreenCaptionButton.isLocallyVisible() and not .app().isReducedMotion()
+        .explorer?.address.show(.isExploring())
+        if not .canRefreshCaption()
+        {
+            return
+        }
+
+        let animate = .workspace and
+                      .workspace.newTabButton != null and
+                      not .fullScreen and
+                      .fullScreenCaptionButton.isLocallyVisible() and
+                      not .app().isReducedMotion()
         var before: [CaptionActionCount] CaptionActionLayout
-        if animate do
+        if animate
+        {
             before = .workspace!.captureCaptionLayout()
+        }
 
         .privacy.refreshIndicator()
         .refreshOutlineCaption(animate)
@@ -944,8 +1089,10 @@ impl ViewerWindow
         let archiveFile = exploring and .explorer and .explorer.listing.isArchive
         let openFile    = not .isExploring() and not .currentFile.isEmpty()
         .showCaptionAction(.viewerCaptionButton, (openFile or archiveFile) and not .fullScreen, animate)
-        if animate do
+        if animate
+        {
             .workspace!.animateCaptionLayout(before)
+        }
 
         var alternateViewer = openFile and .activeChoiceIndex < .choices.count and .activeChoiceIndex != 0
         if archiveFile
@@ -962,8 +1109,8 @@ impl ViewerWindow
         .findCaptionButton.toolTip        = text.ui_FilterFiles
         .fullScreenCaptionButton.toolTip  = Format.toString("% (%)", text.cmd_FullScreen, Input.formatKeyShortcut(.None, .F11))
         .informationCaptionButton.toolTip = (.workspace?.wantsComparisonSheet() orelse false) ?
-                                             String.from(text.scene_ComparisonSheet) : .captionFileAction(text.cmd_Information)
-        .viewerCaptionButton.toolTip      = .captionFileAction(text.lens_ViewAs)
+                                            String.from(text.scene_ComparisonSheet) : .captionFileAction(text.cmd_Information)
+        .viewerCaptionButton.toolTip = .captionFileAction(text.lens_ViewAs)
         .fullScreenCaptionButton.setChecked(.fullScreen)
         .informationCaptionButton.setChecked(.informationOpen())
         if .workspace and .workspace.tabs != null
@@ -971,8 +1118,11 @@ impl ViewerWindow
             .layoutCellCaption()
             .workspace.tabs.layoutTabs()
         }
-        if not .explorer do
+
+        if not .explorer
+        {
             return
+        }
 
         .backCaptionButton.enable(selected and .explorer.history.canGoBack())
         .forwardCaptionButton.enable(selected and .explorer.history.canGoForward())
@@ -982,21 +1132,27 @@ impl ViewerWindow
     // Lays the home out again for the history, the theme or the language in force.
     private mtd refreshHome()
     {
-        if .home.isVisible() do
+        if .home.isVisible()
+        {
             .home.refresh()
+        }
     }
 
     // Saves the regular placement even during full screen. Privacy changes must reach disk
     // immediately without changing the presentation the reader currently sees.
     mtd saveState() fail
     {
-        if .thumbnailMode do
+        if .thumbnailMode
+        {
             return
+        }
+
         if not .isWorkspacePrimary()
         {
             try .workspace!.primary.saveState()
             return
         }
+
         let surface           = unwrap .surface
         let presentation      = surface.state
         let presentationFlags = surface.flags
@@ -1032,8 +1188,11 @@ impl ViewerWindow
             }
         }
 
-        if not .currentCommands do
+        if not .currentCommands
+        {
             .viewerBarShown = false
+        }
+
         .layoutViewerBar()
     }
 
@@ -1041,8 +1200,11 @@ impl ViewerWindow
 
     mtd usesTimedViewerBar()->bool
     {
-        if .currentView is Viewers.Film.Panel do
+        if .currentView is Viewers.Film.Panel
+        {
             return true
+        }
+
         return (.workspace?.usesCellCaptions() orelse false) and
                (.currentView is Viewers.Sound.Panel or .currentView is Viewers.Picture.Panel)
     }
@@ -1056,8 +1218,11 @@ impl ViewerWindow
     // Shows the viewer's commands for as long as the pointer keeps moving.
     mtd revealViewerBar()
     {
-        if not .currentCommands do
+        if not .currentCommands
+        {
             return
+        }
+
         .showPointer()
         .viewerBarShown = true
         .layoutViewerBar()
@@ -1069,17 +1234,21 @@ impl ViewerWindow
     mtd concealViewerBar()
     {
         .stopTimer(&.viewerBarTimer)
-        let focused = .focusedWindow()
+        let focused  = .focusedWindow()
         let timed    = .usesTimedViewerBar()
         let hovering = not timed and .viewerBar.surfaceRect().contains(.pointerPosition)
         let keyboard = (not timed or .app().focusVisible) and .viewerBar.isAncestorOf(focused)
         let captured = .mouseCapture()
+
         // A popup for the layout or another pane must not keep this viewer's controls awake.
         let popup = .app().isInModalLoop() and
                     (.viewerBar.isOwnerOf(captured) or (.currentView?.isOwnerOf(captured) orelse false))
-        let held    = hovering or keyboard or .viewerBar.isAncestorOf(captured) or
-                      .readingLine.close == captured or
-                      popup or .lens.isOpen()
+        let held = hovering or
+                   keyboard or
+                   .viewerBar.isAncestorOf(captured) or
+                   .readingLine.close == captured or
+                   popup or
+                   .lens.isOpen()
         if held and .viewerBarShown and .isVisible()
         {
             .viewerBarTimer = .addTimer(ViewerBarLinger)
@@ -1088,17 +1257,25 @@ impl ViewerWindow
 
         .viewerBarShown = false
         .layoutViewerBar()
-        if .currentView is Viewers.Film.Panel as film do
+        if .currentView is Viewers.Film.Panel as film
+        {
             film.hideVeils()
-        if .fullScreen and ((.workspace?.documentCount() orelse 0) <= 1 or .workspace!.isHoveredDocument(me)) do
+        }
+
+        if .fullScreen and ((.workspace?.documentCount() orelse 0) <= 1 or .workspace!.isHoveredDocument(me))
+        {
             .setPointerHidden(true)
+        }
     }
 
     // Remembers where the pointer is, and brings the viewer's commands back.
     mtd notePointer(position: Math.Point, moved = false)
     {
-        if not moved and position == .pointerPosition do
+        if not moved and position == .pointerPosition
+        {
             return
+        }
+
         .pointerPosition = position
         .showPointer()
         .revealViewerBar()
@@ -1121,17 +1298,24 @@ impl ViewerWindow
     {
         let commands = visibleViewerCommands(.currentCommands)
         let compact  = .compactVideoCell()
-        let media    = .currentView is Viewers.Film.Panel or .currentView is Viewers.Sound.Panel or .currentView is Viewers.Picture.Panel
-        let visible  = commands != null and (not .overlaysViewerBar() or .viewerBarShown)
+        let media    = .currentView is Viewers.Film.Panel or
+                       .currentView is Viewers.Sound.Panel or
+                       .currentView is Viewers.Picture.Panel
+        let visible = commands != null and (not .overlaysViewerBar() or .viewerBarShown)
         .showViewerOverlay(.viewerBar, visible, animate: media and commands != null)
         .layoutCellCaption()
         defer
         {
-            if .isWorkspaceActive() do
+            if .isWorkspaceActive()
+            {
                 .workspace?.layoutMaximizedHint()
+            }
         }
-        if not commands do
+
+        if not commands
+        {
             return
+        }
 
         let metrics = .themeMetrics()
         let area    = .documentArea()
@@ -1211,23 +1395,25 @@ impl ViewerWindow
         .searchGroup.setParent(.searchBar)
         .searchCloseButton.show()
 
-        let metrics = .themeMetrics()
-        let inset   = metrics.floating_Inset
-        let height  = themeActionButtonSize(metrics)
-        var area      = comparison ? comparison.captionArea(.workspace!.scene()!.active) : sheetArea
-        let pad       = .searchBar.padding
-        let fullWidth = Math.min(720'f32, Math.max(area.width - 2 * inset, 0))
-        let compact   = fullWidth - pad.x - pad.z < 400 and .searchNavigation.isLocallyVisible()
+        let metrics          = .themeMetrics()
+        let inset            = metrics.floating_Inset
+        let height           = themeActionButtonSize(metrics)
+        var area             = comparison ? comparison.captionArea(.workspace!.scene()!.active) : sheetArea
+        let pad              = .searchBar.padding
+        let fullWidth        = Math.min(720_f32, Math.max(area.width - 2 * inset, 0))
+        let compact          = fullWidth - pad.x - pad.z < 400 and .searchNavigation.isLocallyVisible()
         var sheetBelowSearch = false
         if not comparison and .infoSheet.isLocallyVisible()
         {
             let beside = Math.max(Math.min(area.right(), .infoSheet.position.x - inset) - area.x, 0)
             sheetBelowSearch = beside < 320
-            if not sheetBelowSearch do
+            if not sheetBelowSearch
+            {
                 area.width = beside
+            }
         }
 
-        let width         = Math.min(720'f32, Math.max(area.width - 2 * inset, 0))
+        let width         = Math.min(720_f32, Math.max(area.width - 2 * inset, 0))
         let innerWidth    = Math.max(width - pad.x - pad.z, 0)
         let top           = (comparison ? area.bottom() : strip) + inset * 0.5
         let rowY          = compact ? height + SearchGroupSpacing : 0
@@ -1298,8 +1484,10 @@ impl ViewerWindow
             return
         }
 
-        if .fullScreen == enabled do
+        if .fullScreen == enabled
+        {
             return
+        }
 
         let surface = unwrap .surface
         if enabled
@@ -1322,19 +1510,27 @@ impl ViewerWindow
         {
             if let scene = workspace.scene()
             {
-                for view in scene.views where view.document and view.document != me do
+                for view in scene.views where view.document and view.document != me
+                {
                     view.document.applyFullScreenPresentation(enabled)
+                }
             }
         }
 
         // Apply the chrome before changing the native size. Restore directly to the
         // desired state so the window never visits its normal bounds on the way to maximized.
-        if enabled do
+        if enabled
+        {
             surface.showNormalAt(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
-        elif .fullScreenWasMaximized do
+        }
+        else if .fullScreenWasMaximized
+        {
             surface.showMaximized(.fullScreenRestorePosition)
-        else do
+        }
+        else
+        {
             surface.showNormalAt(.fullScreenRestorePosition)
+        }
 
         if workspace and not workspace.isPendingDestroy
         {
@@ -1350,8 +1546,11 @@ impl ViewerWindow
     // Updates a document's chrome for the presentation of its shared window.
     mtd applyFullScreenPresentation(enabled: bool)
     {
-        if .fullScreen == enabled do
+        if .fullScreen == enabled
+        {
             return
+        }
+
         .fullScreen = enabled
         .documentPanel.backgroundStyle = .View
         if enabled
@@ -1387,8 +1586,11 @@ impl ViewerWindow
 
     mtd captionDocument()->*ViewerWindow
     {
-        if .workspace and .workspace.primary != null do
+        if .workspace and .workspace.primary != null
+        {
             return .workspace.activeDocument()
+        }
+
         return me
     }
 
@@ -1396,16 +1598,22 @@ impl ViewerWindow
     // and the parts floating over it, then the lens that reaches every command.
     func create(parent: *Wnd, index: #move ViewerPluginRegistry, workspace: *ViewerWorkspace? = null)->*ViewerWindow
     {
-        let result = Wnd.create'ViewerWindow(parent, "scope.main")
+        let result = Wnd.create!{ViewerWindow}(parent, "scope.main")
         result.workspace = workspace
-        if not workspace do
+        if not workspace
+        {
             result.surface!.setView(result)
+        }
+
         result.surface!.minSize = {MinWidth, 420}
-        result.backgroundStyle = .Application
-        result.index           = #move index
-        result.language        = Gui.ReferenceLanguage
-        if result.isWorkspacePrimary() do
+        result.backgroundStyle  = .Application
+        result.index            = #move index
+        result.language         = Gui.ReferenceLanguage
+        if result.isWorkspacePrimary()
+        {
             result.index.attachTo(result.app())
+        }
+
         if result.isWorkspacePrimary()
         {
             with result.returnExplorerCaptionButton = CaptionButton.createLeading(result.surface, .ChevronLeft, ViewerCommands.ReturnToExplorer)
@@ -1483,22 +1691,21 @@ impl ViewerWindow
                 .sigPressed += func|window = result|(_) { window.captionDocument().showViewerChoicesMenu() }
                 .hide()
             }
-
         }
         else
         {
             let primary = workspace!.primary
             result.returnExplorerCaptionButton = primary.returnExplorerCaptionButton
-            result.backCaptionButton = primary.backCaptionButton
-            result.forwardCaptionButton = primary.forwardCaptionButton
-            result.upCaptionButton = primary.upCaptionButton
-            result.refreshCaptionButton = primary.refreshCaptionButton
-            result.findCaptionButton = primary.findCaptionButton
-            result.outlineCaptionButton = primary.outlineCaptionButton
-            result.appearanceButton = primary.appearanceButton
-            result.fullScreenCaptionButton = primary.fullScreenCaptionButton
-            result.informationCaptionButton = primary.informationCaptionButton
-            result.viewerCaptionButton = primary.viewerCaptionButton
+            result.backCaptionButton           = primary.backCaptionButton
+            result.forwardCaptionButton        = primary.forwardCaptionButton
+            result.upCaptionButton             = primary.upCaptionButton
+            result.refreshCaptionButton        = primary.refreshCaptionButton
+            result.findCaptionButton           = primary.findCaptionButton
+            result.outlineCaptionButton        = primary.outlineCaptionButton
+            result.appearanceButton            = primary.appearanceButton
+            result.fullScreenCaptionButton     = primary.fullScreenCaptionButton
+            result.informationCaptionButton    = primary.informationCaptionButton
+            result.viewerCaptionButton         = primary.viewerCaptionButton
         }
 
         with result.mainSplitter = SplitterCtrl.create(result)
@@ -1506,22 +1713,26 @@ impl ViewerWindow
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
             .flags           = .HideDividers
-            .hookOnEvent = func|window = result|(_, evt)
+            .hookOnEvent     = func|window = result|(_, evt)
             {
                 if evt is PaintEvent as paint where window.currentSidePanelButton?.id == OutlineToggleId and
                                                     (window.currentSidePanelHost?.isVisible() orelse false)
                 {
                     // The grip still handles the cursor and dragging. Only the reading ground crosses it.
-                    if paint.kind == .After do
+                    if paint.kind == .After
+                    {
                         return true
+                    }
+
                     if paint.kind == .Content and window.currentView
                     {
-                        let host = window.documentHost.position
-                        let body = window.documentPanel.position
+                        let host   = window.documentHost.position
+                        let body   = window.documentPanel.position
                         let ground = window.currentView.themeColors().view_Bk
                         paint.paintContext.painter.fillRect({0, host.y + body.y, host.x, body.height}, ground)
                     }
                 }
+
                 return false
             }
         }
@@ -1543,13 +1754,19 @@ impl ViewerWindow
         }
 
         result.privacy.window = result
-        if result.isWorkspacePrimary() do
+        if result.isWorkspacePrimary()
+        {
             result.privacy.createIndicator()
-        result.privacyTimer = result.addTimer(250'ms)
+        }
+
+        result.privacyTimer = result.addTimer(250_ms)
         result.hookChildEvents()
 
-        if result.isWorkspacePrimary() do
+        if result.isWorkspacePrimary()
+        {
             result.applyLanguage()
+        }
+
         result.refreshArtwork()
         result.updateViewerBar()
         result.updateDocumentInsets()
@@ -1603,8 +1820,11 @@ impl ViewerWindow
         {
             // The no-break spaces keep each separator with the name before it, so a line never
             // opens on one.
-            if not result.isEmpty() do
+            if not result.isEmpty()
+            {
                 result += "\u00A0\u00A0·  "
+            }
+
             result += Format.toString("<b>%</b>", RichString.escape(plugin.displayName()))
         }
 
@@ -1617,8 +1837,11 @@ impl ViewerWindow
     mtd viewerFocusTarget()->*Wnd?
     {
         let view = .currentView
-        if not view do
+        if not view
+        {
             return null
+        }
+
         let order = FocusOrder.collect(view)
         let stop  = order.stops.isEmpty() ? view : order.stops[0]
         return stop.focusTarget()
@@ -1628,9 +1851,15 @@ impl ViewerWindow
     // once even when the operating system emits repeated pressed transitions while it is held.
     mtd routePlaybackKey(evt: *KeyEvent)->bool
     {
-        if .forwardingViewerKey do
+        if .forwardingViewerKey
+        {
             return false
-        if evt.kind == .Pressed and evt.key == .Tab and not evt.modifiers.has(.Control) and .usesTimedViewerBar()
+        }
+
+        if evt.kind == .Pressed and
+           evt.key == .Tab and
+           not evt.modifiers.has(.Control) and
+           .usesTimedViewerBar()
         {
             .revealViewerBar()
             return false
@@ -1640,8 +1869,10 @@ impl ViewerWindow
         let rateStep  = evt.modifiers == .Shift and arrowKey
         let frameStep = evt.modifiers == .Control and arrowKey
         let timeJump  = evt.modifiers == .Control and evt.key == .G
-        if evt.modifiers != .None and not rateStep and not frameStep and not timeJump do
+        if evt.modifiers != .None and not rateStep and not frameStep and not timeJump
+        {
             return false
+        }
 
         let toggle = evt.key == .Space or evt.key == .MediaPlayPause
         if toggle and evt.kind == .Released
@@ -1651,40 +1882,66 @@ impl ViewerWindow
             return handled
         }
 
-        if evt.kind != .Pressed or .lens.isOpen() do
+        if evt.kind != .Pressed or .lens.isOpen()
+        {
             return false
+        }
+
         let editing = evt.target is EditBox or .focusedWindow() is EditBox
-        if editing and evt.key != .MediaPlayPause and evt.key != .MediaStop and evt.key != .VolumeMute do
+        if editing and evt.key != .MediaPlayPause and evt.key != .MediaStop and evt.key != .VolumeMute
+        {
             return false
-        if .activeChoiceIndex >= .choices.count do
+        }
+
+        if .activeChoiceIndex >= .choices.count
+        {
             return false
+        }
+
         let key = .choices[.activeChoiceIndex].key.toString()
         let playbackViewer = key == "video" or key == "sound" or key == "image"
-        if not playbackViewer do
+        if not playbackViewer
+        {
             return false
+        }
 
-        if rateStep and key == "sound" do
+        if rateStep and key == "sound"
+        {
             return .forwardKeyToViewer(evt, skipFocused: false, takeFocus: false)
+        }
+
         if rateStep or frameStep or timeJump
         {
-            if key != "video" do
+            if key != "video"
+            {
                 return false
+            }
+
             return .forwardKeyToViewer(evt, skipFocused: false, takeFocus: false)
         }
 
         if toggle
         {
-            if .playPauseKeyDown do
+            if .playPauseKeyDown
+            {
                 return true
+            }
+
             let handled = .forwardKeyToViewer(evt, skipFocused: false, takeFocus: false)
             .playPauseKeyDown = handled
-            if handled and .usesTimedViewerBar() do
+            if handled and .usesTimedViewerBar()
+            {
                 .revealViewerBar()
+            }
+
             return handled
         }
 
-        if evt.key != .MediaStop and evt.key != .VolumeMute and evt.key != .M do
+        if evt.key != .MediaStop and evt.key != .VolumeMute and evt.key != .M
+        {
             return false
+        }
+
         return .forwardKeyToViewer(evt, skipFocused: false, takeFocus: false)
     }
 
@@ -1694,13 +1951,17 @@ impl ViewerWindow
     private mtd forwardKeyToViewer(evt: *KeyEvent, skipFocused = true, takeFocus = true)->bool
     {
         let target = .viewerFocusTarget()
-        if not target do
+        if not target
+        {
             return false
+        }
 
         // A key the viewer's key owner already saw and declined must not be offered twice.
         let focused = .focusedWindow()
-        if skipFocused and focused and (focused == target or target.isOwnerOf(focused)) do
+        if skipFocused and focused and (focused == target or target.isOwnerOf(focused))
+        {
             return false
+        }
 
         let view = .currentView
         var copy = KeyEvent{kind: evt.kind, key: evt.key, modifiers: evt.modifiers}
@@ -1713,8 +1974,11 @@ impl ViewerWindow
         if takeFocus and
            copy.accepted and
            .currentView == view and
-           target.focusPolicy != .None do
+           target.focusPolicy != .None
+        {
             target.setFocus()
+        }
+
         return copy.accepted
     }
 
@@ -1734,15 +1998,21 @@ impl ViewerWindow
         .refreshOutlineCaption()
         .refreshSearchPresentation()
         .refreshSearchReadout()
-        for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
+        for &instance in .instances where instance.view and not instance.failureReason.isEmpty()
+        {
             assume cast(*ViewerErrorView, instance.view).retranslate()
+        }
+
         if .currentFile.isEmpty()
         {
             .refreshHome()
         }
 
-        if .infoSheet.isLocallyVisible() do
+        if .infoSheet.isLocallyVisible()
+        {
             .refreshInformation()
+        }
+
         .invalidate()
     }
 
@@ -1754,14 +2024,16 @@ impl ViewerWindow
         let metrics = .themeMetrics()
         .hintLine.margin.w = .readingLine.isLocallyVisible() ?
                              .readingLine.position.height + metrics.floating_Inset : 0
-        let inset = metrics.floating_Inset
+        let inset      = metrics.floating_Inset
         let sheetWidth = Math.min(metrics.infoSheet_Width, Math.max(.clientRect().width - 2 * inset, 0))
         .hintLine.margin.z = exploring and .infoSheet.isLocallyVisible() ? sheetWidth + inset : 0
         .hintLine.clearHints()
 
         // The keys of an explored page are taught while what it shows leaves its foot free: an
         // archive's way in and out, a folder's filter.
-        let roomy = exploring and .acceptsViewCommands() and .isWorkspaceActive() and
+        let roomy = exploring and
+                    .acceptsViewCommands() and
+                    .isWorkspaceActive() and
                     .explorer and
                     .explorer.scroll.scrollSize.y + HintRoom < .explorer.scroll.clientRect().height
         let archive = roomy and .explorer!.listing.isArchive
@@ -1778,14 +2050,17 @@ impl ViewerWindow
             .hintLine.addHint(Gui.strings().key_Enter, texts.hint_Open)
             .hintLine.addHint("P", texts.hint_PlayAlbum)
         }
-        elif board == .Album
+        else if board == .Album
         {
             .hintLine.addHint(Gui.strings().key_Enter, texts.hint_Play)
         }
 
         .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintLens)
-        if roomy and not archive and (board == .Grid or board == .Posters) do
+        if roomy and not archive and (board == .Grid or board == .Posters)
+        {
             .hintLine.addHint("/", texts.hint_Filter)
+        }
+
         .hintLine.show(roomy or (not exploring and .home.isLocallyVisible()))
     }
 
@@ -1794,10 +2069,16 @@ impl ViewerWindow
     mtd refreshTitle()
     {
         let surface = .surface
-        if not surface do
+        if not surface
+        {
             return
-        if not .canRefreshCaption() do
+        }
+
+        if not .canRefreshCaption()
+        {
             return
+        }
+
         .refreshExplorerCaption()
 
         let scene = .workspace?.scene()
@@ -1851,18 +2132,24 @@ impl ViewerWindow
             let folder = Path.directoryName(.currentFile) orelse ""
             if folder.count
             {
-                if .explorerActive and .explorer and .explorer.listing.path == folder do
+                if .explorerActive and .explorer and .explorer.listing.path == folder
+                {
                     .closeFile()
-                else do
+                }
+                else
+                {
                     .openExplorer(folder)
+                }
             }
 
             return
         }
 
         let folder = .selectExplorerFolder()
-        if not folder.isEmpty() do
+        if not folder.isEmpty()
+        {
             .openExplorer(folder)
+        }
     }
 
     mtd selectExplorerFolder(initialFolder: string = "")->String
@@ -1875,25 +2162,38 @@ impl ViewerWindow
         }
 
         let dialog = FileDlg.create(unwrap .surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return {}
+        }
+
         return dialog.selectedPath()
     }
 
-    mtd openExplorer(path: string, restore: const *ExplorerFolderState? = null,
-                     history: const *NavigationHistory? = null)
+    mtd openExplorer(path: string, restore: const *ExplorerFolderState? = null, history: const *NavigationHistory? = null)
     {
         // Own the path before retiring the viewer whose currentFile may have supplied it.
         let source = String.from(path)
         .workspace?.fillVacancy(me, source)
-        if .isWorkspaceActive() do
+        if .isWorkspaceActive()
+        {
             .surface?.clearFocus()
-        if not .explorer do
+        }
+
+        if not .explorer
+        {
             .explorer = Explorer.create(.documentPanel, me)
-        if history do
+        }
+
+        if history
+        {
             .explorer.history = history[]
-        else do
+        }
+        else
+        {
             .explorer.history.push(Format.toString("%\n", source))
+        }
+
         .explorerActive = true
         .privacy.track(source)
         .rememberExplored(source)
@@ -1904,8 +2204,11 @@ impl ViewerWindow
         let folder = restore and Path.equals(restore.path, source) ? restore.folder.toString() : ""
         .explorer.navigate(source, folder, remember: not history, restore: restore)
         .workspace?.updateMedia()
-        if .isWorkspaceActive() do
+        if .isWorkspaceActive()
+        {
             .surface?.clearFocus()
+        }
+
         .refreshTitle()
         .applyLayout()
     }

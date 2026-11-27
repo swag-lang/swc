@@ -24,11 +24,14 @@ func sharedInput(a, b: u64)->u64
 
 #test
 {
-    let values = [0'u64, 1, 127, 128, 129, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 127, 128, 129, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
-        var expected = 0'u64
-        if a < 128 do expected = a
+        var expected = 0_u64
+        if a < 128
+        {
+            expected = a
+        }
         Swag.require(below128(a) == expected)
         Swag.require(atLeast128(a) == (a ^ expected))
         let narrow = cast(u32, (a & 0xFFFFFFFF))
@@ -37,8 +40,11 @@ func sharedInput(a, b: u64)->u64
         {
             let narrowB = cast(u32, (b & 0xFFFFFFFF))
             Swag.require(atLeast32(narrow, narrowB) == (narrow < narrowB ? 0 : narrow))
-            var selected = 0'u64
-            if a < b do selected = a
+            var selected = 0_u64
+            if a < b
+            {
+                selected = a
+            }
             Swag.require(sharedInput(a, b) == (selected ^ a ^ b))
         }
     }

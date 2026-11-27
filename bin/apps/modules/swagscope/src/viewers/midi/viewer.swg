@@ -11,12 +11,14 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool => content.startsWi
 private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 {
     let document = try loadDocument(fileName)
-    let width    = cast(s32, Math.max(Math.min(maxSide, 256'u32), 64'u32))
+    let width    = cast(s32, Math.max(Math.min(maxSide, 256_u32), 64_u32))
     let height   = width / 2
     var canvas   = try ImageCanvas.create(width, height)
     canvas.clear(Color.fromRgb(248, 249, 250))
-    if document.notes.isEmpty() or not document.durationTicks do
+    if document.notes.isEmpty() or not document.durationTicks
+    {
         return try canvas.toImage()
+    }
 
     const Margin = 8.0
     let painter = &canvas.painter
@@ -73,8 +75,11 @@ impl ViewerSettings
 {
     mtd sanitize()
     {
-        if cast(u32, .pitchLabelMode) > cast(u32, PitchLabelMode.MidiNumber) do
+        if cast(u32, .pitchLabelMode) > cast(u32, PitchLabelMode.MidiNumber)
+        {
             .pitchLabelMode = .Scientific
+        }
+
         .keyboardWidthMode = Math.min(.keyboardWidthMode, 2)
     }
 }
@@ -103,7 +108,7 @@ struct Panel
     pitchLabelMode:    PitchLabelMode = .Scientific
     keyboardWidthMode: u32  = 1
     scaleHighlight:    bool = false
-    load:              Viewer.BackgroundLoad'Document
+    load:              Viewer.BackgroundLoad!{Document}
     services:          Viewer.HostServices
     failureReason:     String
 }
@@ -125,8 +130,10 @@ private impl Panel
     {
         .optionsButton.toolTip = appStrings().ui_Options
         .zoomLabel.toolTip     = texts().ui_ZoomMenu
-        if .hasRoll() do
+        if .hasRoll()
+        {
             .roll.invalidate()
+        }
     }
 
     mtd publishDocument(document: *Document)
@@ -155,8 +162,11 @@ private impl Panel
     // a picture's do.
     mtd showZoomMenu()
     {
-        if not .hasRoll() do
+        if not .hasRoll()
+        {
             return
+        }
+
         let menu    = MenuCtrl.createPopup(me, owner: me)
         let percent = .zoomPercent()
         menu.addItem("25 %", "scope.midi.zoom25", checked: percent == 25)
@@ -217,10 +227,14 @@ private impl IWnd for Panel
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .retranslate()
-        else do
+        }
+        else
+        {
             evt.accepted = false
+        }
     }
 }
 
@@ -289,8 +303,10 @@ impl Panel
                      pitchLabelText(.pitchLabelMode),
                      func|view = me|(labels)
                      {
-                         for mode in [PitchLabelMode.Scientific, .MidiNumber] do
+                         for mode in [PitchLabelMode.Scientific, .MidiNumber]
+                         {
                              labels.addChoice(pitchLabelText(mode), mode == view.pitchLabelMode, func|view, mode|() { view.setPitchLabelMode(mode) }, detail: texts().ui_PitchReference)
+                         }
                      },
                      icon: .theme().icon(.LineNumbers, themeRowIconSize(.themeMetrics())))
 
@@ -298,8 +314,10 @@ impl Panel
                      keyboardWidthText(.keyboardWidthMode),
                      func|view = me|(widths)
                      {
-                         for index in 3'u32 do
+                         for index in 3_u32
+                         {
                              widths.addChoice(keyboardWidthText(index), index == view.keyboardWidthMode, func|view, index|() { view.setKeyboardWidthMode(index) })
+                         }
                      },
                      icon: .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())))
 
@@ -323,8 +341,10 @@ impl Panel
     {
         .pitchLabelMode = mode
         g_ViewerSettings.pitchLabelMode = mode
-        if .hasRoll() do
+        if .hasRoll()
+        {
             .roll.setPitchLabelMode(mode)
+        }
     }
 
     // Draws the piano keyboard compact, standard or wide; the choice is remembered.
@@ -333,8 +353,10 @@ impl Panel
         Swag.assert(index < 3)
         .keyboardWidthMode = index
         g_ViewerSettings.keyboardWidthMode = index
-        if .hasRoll() do
+        if .hasRoll()
+        {
             .roll.setKeyboardWidth(KeyboardWidths[index])
+        }
     }
 
     // Enables or disables key-signature pitch highlighting and remembers the choice.
@@ -342,8 +364,10 @@ impl Panel
     {
         .scaleHighlight = enabled
         g_ViewerSettings.scaleHighlight = enabled
-        if .hasRoll() do
+        if .hasRoll()
+        {
             .roll.setScaleHighlight(enabled)
+        }
     }
 
     // Builds the MIDI panel: the options button and the zoom button. Loads the file in the
@@ -352,7 +376,7 @@ impl Panel
     {
         let services    = host.services()
         let info        = host.createInfoGroup(Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.midi")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.midi")
         {
             .backgroundStyle   = .View
             .services          = services
@@ -385,8 +409,11 @@ impl Panel
     // A score still loading, or one that failed to load, has nothing to describe yet.
     mtd describeInformation(sheet: *InfoSheet)
     {
-        if not .hasRoll() do
+        if not .hasRoll()
+        {
             return
+        }
+
         var data: MediaInfoData
         data.addFigure(.Duration, Viewer.durationText(.roll.document.durationSeconds))
         data.addFigure(.Custom, trackCountText(.roll.lanes.count))
@@ -408,10 +435,15 @@ impl Panel
                 let track    = &.roll.document.tracks[lane.track]
                 let name     = track.name.isEmpty() ? Format.toString(texts().ui_TrackName, lane.track + 1) : String.from(track.name)
                 var measures = Format.toString(texts().ui_Channel, cast(u32, lane.channel) + 1)
-                if lane.channel == 9 do
+                if lane.channel == 9
+                {
                     measures += Format.toString(" · %", texts().ui_Percussion)
-                elif track.program >= 0 do
+                }
+                else if track.program >= 0
+                {
                     measures += Format.toString(" · %", instrumentName(cast(u8, track.program)))
+                }
+
                 measures += Format.toString(" · %", noteCountText(lane.noteCount))
                 data.addTrack(index + 1, name, measures)
             }

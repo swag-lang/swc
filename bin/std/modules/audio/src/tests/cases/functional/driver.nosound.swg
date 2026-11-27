@@ -255,8 +255,8 @@ func audioStartNoSoundEngine()
     defer destroyEngine()
 
     let monoCenter = expect voicePanMatrix(1, 0)
-    audioAssertFloat(monoCenter[0], Math.sqrt(0.5'f32))
-    audioAssertFloat(monoCenter[1], Math.sqrt(0.5'f32))
+    audioAssertFloat(monoCenter[0], Math.sqrt(0.5_f32))
+    audioAssertFloat(monoCenter[1], Math.sqrt(0.5_f32))
     let monoLeft = expect voicePanMatrix(1, -1)
     audioAssertFloat(monoLeft[0], 1)
     audioAssertFloat(monoLeft[1], 0)
@@ -265,7 +265,7 @@ func audioStartNoSoundEngine()
     audioAssertFloat(monoRight[1], 1)
     let monoHalfRight = expect voicePanMatrix(1, 0.5)
     audioAssertFloat(monoHalfRight[0], 0.5)
-    audioAssertFloat(monoHalfRight[1], Math.sqrt(0.75'f32))
+    audioAssertFloat(monoHalfRight[1], Math.sqrt(0.75_f32))
     let stereoCenter = expect voicePanMatrix(2, 0)
     audioAssertFloat(stereoCenter[0], 1)
     audioAssertFloat(stereoCenter[1], 0)
@@ -336,44 +336,60 @@ func audioStartNoSoundEngine()
     var file   = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     let voice  = expect Voice.create(&file)
     let handle = cast(*NoSoundVoice, unwrap voice.handle)
-    var buses: Array'*Bus
-    for 17 do
+    var buses: Array!{*Bus}
+    for 17
+    {
         buses.add(expect Bus.create(2))
+    }
+
     defer
     {
-        for index in buses.count do
+        for index in buses.count
+        {
             buses[buses.count - 1 - index].destroy()
+        }
     }
 
     expect voice.setRouting(buses.toSlice()[0 until 16])
     Swag.require(handle.busCount == 16)
-    for index in 16 do
+    for index in 16
+    {
         Swag.require(handle.buses[index] == buses[index])
+    }
 
     var tooManyOutcome: Swag.Error
     discard catch voice.setRouting(buses.toSlice()) as tooManyOutcome
     Swag.require(tooManyOutcome.value() is Errors.BadParameterError)
     Swag.require(handle.busCount == 16)
-    for index in 16 do
+    for index in 16
+    {
         Swag.require(handle.buses[index] == buses[index])
+    }
 
     var invalidBus: Bus
     var invalidRouteOutcome: Swag.Error
     discard catch voice.setRouting([buses[0], &invalidBus]) as invalidRouteOutcome
     Swag.require(invalidRouteOutcome.value() is Errors.BadParameterError)
     Swag.require(handle.busCount == 16)
-    for index in 16 do
+    for index in 16
+    {
         Swag.require(handle.buses[index] == buses[index])
+    }
 
     expect voice.setRouting([buses[0]])
     Swag.require(handle.busCount == 1 and handle.buses[0] == buses[0])
-    for index in 1 until 16 do
+    for index in 1 until 16
+    {
         Swag.require(handle.buses[index] == null)
+    }
 
     expect voice.setRouting([])
     Swag.require(handle.busCount == 0)
-    for index in 16 do
+    for index in 16
+    {
         Swag.require(handle.buses[index] == null)
+    }
+
     voice.destroy()
 }
 

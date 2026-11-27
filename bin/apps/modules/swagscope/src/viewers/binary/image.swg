@@ -8,7 +8,7 @@ using Core
 // A header-driven format puts everything a report reads within a few hundred kilobytes of one end
 // or the other, so this bound only ever cuts the tail of a very large archive. When it does, the
 // report says so instead of quietly reading short.
-const LoadLimit = 64 * 1024 * 1024'u64
+const LoadLimit = 64 * 1024 * 1024_u64
 
 // Loaded prefix of a file, read at absolute offsets in the byte order its format is written in.
 //
@@ -73,10 +73,16 @@ impl BinaryImage
     mtd const matches(offset: u64, magic: const [..] u8)->bool
     {
         let count = magic.count
-        if not .has(offset, count) do
+        if not .has(offset, count)
+        {
             return false
-        for index in count where .bytes[offset + index] != magic[index] do
+        }
+
+        for index in count where .bytes[offset + index] != magic[index]
+        {
             return false
+        }
+
         return true
     }
 
@@ -89,7 +95,7 @@ impl BinaryImage
             return 0
         }
 
-        var result = 0'u64
+        var result = 0_u64
         for index in size
         {
             let position = .bigEndian ? index : size - 1 - index
@@ -108,7 +114,7 @@ impl BinaryImage
     //
     // Names reached this way come from the file, so every byte that is not printable is replaced:
     // a corrupt import table must not be able to put control codes into the view.
-    mtd cstringAt(offset: u64, maxLength = 512'u64)->String
+    mtd cstringAt(offset: u64, maxLength = 512_u64)->String
     {
         if offset >= .bytes.count
         {
@@ -118,8 +124,11 @@ impl BinaryImage
 
         let limit = Math.min(.bytes.count, offset + Math.min(maxLength, .bytes.count))
         var end   = offset
-        while end < limit and .bytes[end] do
+        while end < limit and .bytes[end]
+        {
             end += 1
+        }
+
         return .printableAt(offset, end - offset)
     }
 
@@ -133,8 +142,11 @@ impl BinaryImage
         }
 
         var end = length
-        while end and (.bytes[offset + end - 1] == 0 or .bytes[offset + end - 1] == ' 'u8) do
+        while end and (.bytes[offset + end - 1] == 0 or .bytes[offset + end - 1] == ' '_u8)
+        {
             end -= 1
+        }
+
         return .printableAt(offset, end)
     }
 
@@ -150,8 +162,11 @@ impl BinaryImage
         while index < maxUnits
         {
             let unit = .u16At(offset + index * 2)
-            if not unit do
+            if not unit
+            {
                 break
+            }
+
             index += 1
 
             var value = cast(rune, unit)
@@ -186,20 +201,27 @@ impl BinaryImage
     // gives [[NoValue]].
     private mtd const identifierTextAt(offset: u64, mixedEndian: bool)->String
     {
-        if not .has(offset, 16) do
-            return NoValue
-
-        const MixedOrder = [3'u64, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15]
-
-        var text: Array'u8
-        for index in 16'u64
+        if not .has(offset, 16)
         {
-            if index == 4 or index == 6 or index == 8 or index == 10 do
-                text.add('-'u8)
+            return NoValue
+        }
+
+        const MixedOrder = [3_u64, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15]
+
+        var text: Array!{u8}
+        for index in 16_u64
+        {
+            if index == 4 or index == 6 or index == 8 or index == 10
+            {
+                text.add('-'_u8)
+            }
+
             let value  = .bytes[offset + (mixedEndian ? MixedOrder[index] : index)]
             let digits = [cast(u8, value >> 4), value & 0xF]
-            for nibble in digits do
-                text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
+            for nibble in digits
+            {
+                text.add(nibble < 10 ? '0'_u8 + nibble : 'A'_u8 + nibble - 10)
+            }
         }
 
         return cast(string, text.toSlice())
@@ -208,15 +230,17 @@ impl BinaryImage
     // Returns `length` bytes at `offset` with every unprintable byte shown as a dot.
     private mtd const printableAt(offset, length: u64)->String
     {
-        if not length or not .has(offset, length) do
+        if not length or not .has(offset, length)
+        {
             return {}
+        }
 
-        var text: Array'u8
+        var text: Array!{u8}
         text.reserve(length)
         for index in length
         {
             let value = .bytes[offset + index]
-            text.add(value >= 32 and value < 127 ? value : '.'u8)
+            text.add(value >= 32 and value < 127 ? value : '.'_u8)
         }
 
         return cast(string, text.toSlice())

@@ -25,8 +25,8 @@ struct AdvancedOptions
     name:      String
     enabled:   bool
     threshold: f32
-    values:    Array's32
-    labels:    Array'String
+    values:    Array!{s32}
+    labels:    Array!{String}
 }
 
 struct NameOptions
@@ -43,8 +43,8 @@ struct NumericOptions
 
 struct ArrayOptions
 {
-    values: Array's32
-    labels: Array'String
+    values: Array!{s32}
+    labels: Array!{String}
 }
 
 struct UnsupportedValue
@@ -75,15 +75,19 @@ func parseAdvancedFailed(args: const [..] string)->bool
     return err2 != null
 }
 
-func assertStringValues(values: Array'String, expected: const [..] string)->bool
+func assertStringValues(values: Array!{String}, expected: const [..] string)->bool
 {
-    if values.count != expected.count do
+    if values.count != expected.count
+    {
         return false
+    }
 
     for i in values.count
     {
-        if values[i] != expected[i] do
+        if values[i] != expected[i]
+        {
             return false
+        }
     }
 
     return true
@@ -209,7 +213,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 
 #test
 {
-    var value = 0'f32
+    var value = 0_f32
     let rest  = expect StrConv.parseValue(&value, f32, "-0.5")
     Swag.require(rest.count == 0)
     Swag.require(value == -0.5)

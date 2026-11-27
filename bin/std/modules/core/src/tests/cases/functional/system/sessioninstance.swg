@@ -28,8 +28,11 @@
 // Startup registration is an explicit system mutation and must not escape a sandbox.
 #test
 {
-    if not Env.isSandboxed() do
+    if not Env.isSandboxed()
+    {
         return
+    }
+
     let before = Env.deniedSystemMutations()
     Swag.require(not Env.setSessionStartup("swag-test", "Test", true, ["--hide"]))
     Swag.require(Env.deniedSystemMutations() == before + 1)

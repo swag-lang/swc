@@ -30,8 +30,11 @@ func day3B()
         for
         {
             row += downStep
-            if row >= lines.count do
+            if row >= lines.count
+            {
                 break
+            }
+
             column    = cast(u32, ((column + rightStep) % lines[0].length))
             treeCount += lines[row][column] == '#' ? 1 : 0
         }

@@ -17,8 +17,11 @@ An integer iteration count must be **non-negative**. A zero count runs no iterat
 #test
 {
     var cpt = 0
-    for 10 do
+    for 10
+    {
         cpt += 1
+    }
+
     Swag.require(cpt == 10)
 }
 
@@ -30,7 +33,7 @@ iteration, starting from 0. A loop that never reads its index does not have to n
 */
 #test
 {
-    var cpt = 0'u64
+    var cpt = 0_u64
 
     for index in 5
     {
@@ -46,12 +49,14 @@ nearest one.
 */
 #test
 {
-    var pairs = 0'u64
+    var pairs = 0_u64
 
     for row in 3
     {
-        for column in 2 do
+        for column in 2
+        {
             pairs += row * 10 + column
+        }
     }
 
     Swag.require(pairs == 63)
@@ -61,11 +66,11 @@ nearest one.
 # The Index Type
 
 A counted loop uses the count expression's integer type. An unsized integer constant is
-concretized with an unsigned preference, so 'for index in 3' gives 'u32'. A runtime 's32'
+concretized with an unsigned preference, so 'for index in 3' gives '_u32'. A runtime 's32'
 count keeps 's32'. A range loop uses the common integer type of its bounds, so
 'for index in 0 to 2' gives 's32'. An explicit suffix or annotation controls those types.
 
-An element loop's separate index binding normally has type 'u64'. An enum-indexed array
+An element loop's separate index binding normally has type '_u64'. An enum-indexed array
 instead supplies its enum index type, and an 'opVisit' implementation defines the bindings
 of its custom iterator.
 */
@@ -82,7 +87,7 @@ of its custom iterator.
         #assert(#typeof(index) == s32)
     }
 
-    for index in 3'u64
+    for index in 3_u64
     {
         #assert(#typeof(index) == u64)
     }
@@ -106,13 +111,19 @@ instead, so a loop that indexes back into the collection counts `.count`.
     #assert(arr.count == 4)
 
     var turns = 0
-    for arr do
+    for arr
+    {
         turns += 1
+    }
+
     Swag.require(turns == 4)
 
     var cpt = 0
-    for index in arr.count do
+    for index in arr.count
+    {
         cpt += arr[index]
+    }
+
     Swag.require(cpt == 10 + 20 + 30 + 40)
 }
 
@@ -124,8 +135,11 @@ instead, so a loop that indexes back into the collection counts `.count`.
 #test
 {
     var cpt = 0
-    for "⻘" do
+    for "⻘"
+    {
         cpt += 1
+    }
+
     Swag.require(cpt == 3)
 }
 
@@ -141,12 +155,19 @@ To iterate in reverse order, iterate the zero-allocation view returned by
 
     for index in reversed(3)
     {
-        if cpt == 0 do
+        if cpt == 0
+        {
             Swag.require(index == 2)
-        elif cpt == 1 do
+        }
+        else if cpt == 1
+        {
             Swag.require(index == 1)
-        elif cpt == 2 do
+        }
+        else if cpt == 2
+        {
             Swag.require(index == 0)
+        }
+
         cpt += 1
     }
 }
@@ -168,8 +189,11 @@ The `break` and `continue` keywords control loop flow.
     var cpt = 0
     for x in 10
     {
-        if x == 5 do
+        if x == 5
+        {
             break
+        }
+
         cpt += 1
     }
 
@@ -186,8 +210,11 @@ The `break` and `continue` keywords control loop flow.
     var cpt = 0
     for x in 10
     {
-        if x == 5 do
+        if x == 5
+        {
             continue
+        }
+
         cpt += 1
     }
 
@@ -265,8 +292,11 @@ zero times; this differs from slicing, which validates the requested length.
     func sumUpTo(count: s32)->s32
     {
         var sum = 0
-        for i in 0 until count do
+        for i in 0 until count
+        {
             sum += i
+        }
+
         return sum
     }
 
@@ -275,8 +305,11 @@ zero times; this differs from slicing, which validates the requested length.
 
     // The same holds for a constant empty range, and away from zero.
     var cpt = 0
-    for 7 until 7 do
+    for 7 until 7
+    {
         cpt += 1
+    }
+
     Swag.require(cpt == 0)
 }
 
@@ -307,8 +340,11 @@ turns keeps an ordinary variable.
 
     for
     {
-        if turns == 4 do
+        if turns == 4
+        {
             break
+        }
+
         turns += 1
     }
 
@@ -433,8 +469,11 @@ Swag also supports a C-style `for` loop with initialization, condition, and incr
     var cpt = 0
 
     // Standard syntax
-    for var i = 0; i < 10; i += 1 do
+    for var i = 0; i < 10; i += 1
+    {
         cpt += 1
+    }
+
     Swag.require(cpt == 10)
 
     // Alternative syntax with newlines
@@ -454,10 +493,13 @@ and the loop is free to start it anywhere and step it by anything.
 */
 #test
 {
-    var cpt = 0'u32
+    var cpt = 0_u32
 
-    for var i: u32 = 10; i < 15; i += 1 do
+    for var i: u32 = 10; i < 15; i += 1
+    {
         cpt += i
+    }
+
     Swag.require(cpt == 10 + 11 + 12 + 13 + 14)
 }
 
@@ -472,8 +514,11 @@ and the loop is free to start it anywhere and step it by anything.
 
     for var i = 0; i < 10; i += 1
     {
-        if i == 5 do
+        if i == 5
+        {
             break
+        }
+
         sum += i
     }
 
@@ -482,8 +527,11 @@ and the loop is free to start it anywhere and step it by anything.
     sum = 0
     for var i = 0; i < 10; i += 1
     {
-        if i % 2 == 0 do
+        if i % 2 == 0
+        {
             continue
+        }
+
         sum += i
     }
 

@@ -14,10 +14,6 @@ private const MaxSubbandSamples  = 128
 private const HistorySamples     = 512
 private const SamplesPerSubband  = 8
 
-// Dequantized subband samples and the synthesis output use the 24-bit PCM scale of ETSI TS
-// 102 114. The packet codec publishes 16-bit samples, so every output sample drops eight bits.
-private const OutputScale = 1.0 / 256.0
-
 private const ModeChannels:     [10] u32  = [1, 2, 2, 2, 2, 3, 3, 4, 4, 5]
 private const SampleRates:      [16] u32  = [0, 8_000, 16_000, 32_000, 0, 0, 11_025, 22_050, 44_100, 0, 0, 12_000, 24_000, 48_000, 0, 0]
 private const QuantLevels:      [8] u32   = [0, 3, 5, 7, 9, 13, 17, 25]
@@ -37,6 +33,41 @@ private const ScaleFactors:     [128] f64 = [
     239_883, 272_270, 309_030, 350_752, 398_107, 451_856, 512_861, 582_103, 660_693, 749_894, 851_138, 966_051, 1_096_478, 1_244_515, 1_412_538, 1_603_245,
     1_819_701, 2_065_380, 2_344_229, 2_660_725, 3_019_952, 3_427_678, 3_890_451, 4_415_704, 5_011_872, 5_688_529, 6_456_542, 7_328_245, 8_317_638, 0, 0, 0]
 
+// Allocation one with the first Huffman book uses at most two bits per symbol.
+private const TernaryPrefixBits = 8
+private const TernarySamples    = 4
+private const TernaryTable      = #run buildTernaryTable()
+
+private func buildTernaryTable()->[1 << TernaryPrefixBits] u64
+{
+    var result: #returntype
+    let root = cast(s32, QuantBookRoots[0, 0])
+    let bias = QuantBookBias[0]
+    for prefix in result.count
+    {
+        var consumed: u32
+        var entry:    u64
+        for sample in TernarySamples
+        {
+            var node = root
+            while node >= 0
+            {
+                Swag.require(consumed < TernaryPrefixBits)
+                let bit = (prefix >> (TernaryPrefixBits - 1 - consumed)) & 1
+                node     = HuffmanNodes[node, bit]
+                consumed += 1
+            }
+
+            let value = cast #bit(u8, cast(s8, (-1 - node - bias)))
+            entry |= cast(u64, value) << (8 * sample)
+        }
+
+        result[prefix] = (cast(u64, consumed) << 32) | entry
+    }
+
+    return result
+}
+
 private struct BitReader
 {
     data:              const [*] u8
@@ -53,8 +84,11 @@ private impl BitReader
 {
     func create(packet: const [..] u8)->BitReader fail
     {
-        if packet.count < 4 do
+        if packet.count < 4
+        {
             fail InvalidFormatError{"DTS packet header is truncated"}
+        }
+
         var word: u32
         Memory.copy(&word, packet.buffer, #sizeof(u32))
         var result: #returntype = {data: packet.buffer, byteSize: packet.count}
@@ -110,8 +144,8 @@ private impl BitReader
             return
         }
 
-        let wordBits = .packed14 ? 14'u32 : 16
-        let mask     = .packed14 ? 0x3FFF'u16 : 0xFFFF
+        let wordBits = .packed14 ? 14_u32 : 16
+        let mask     = .packed14 ? 0x3FFF_u16 : 0xFFFF
         while .bitsBuffered < count and .byteSize - .bytePosition >= 2
         {
             let first  = .data[.bytePosition]
@@ -145,23 +179,29 @@ private impl BitReader
                 .overrun = true
                 let remaining = .bitsBuffered
                 .bitsBuffered = 0
-                let bits = .buffer & ((1'u64 << remaining) - 1)
+                let bits = .buffer & ((1_u64 << remaining) - 1)
                 return cast(u32, (bits << (count - remaining)))
             }
         }
 
         .bitsBuffered -= count
-        return cast(u32, ((.buffer >> .bitsBuffered) & ((1'u64 << count) - 1)))
+        return cast(u32, ((.buffer >> .bitsBuffered) & ((1_u64 << count) - 1)))
     }
 
     mtd readSigned(count: u32)->s32
     {
         let raw = .read(count)
-        if not count do
+        if not count
+        {
             return 0
-        let sign = 1'u32 << (count - 1)
-        if raw & sign do
-            return cast #bit (s32, (raw | (~0'u32 << count)))
+        }
+
+        let sign = 1_u32 << (count - 1)
+        if raw & sign
+        {
+            return cast #bit (s32, (raw | (~0_u32 << count)))
+        }
+
         return cast(s32, raw)
     }
 
@@ -172,8 +212,11 @@ private impl BitReader
         let lastPairByte = (position + 6 * width) >> 3
         if .packed14 or .littleEndianWords or .overrun or lastPairByte + 8 > .byteSize
         {
-            for index in SamplesPerSubband do
+            for index in SamplesPerSubband
+            {
                 output[][index] = .readSigned(width)
+            }
+
             return
         }
 
@@ -199,8 +242,11 @@ private impl BitReader
 
     mtd readHuffman(root: u32)->s32 fail
     {
-        if .bitsBuffered < HuffmanPrefixBits do
+        if .bitsBuffered < HuffmanPrefixBits
+        {
             .refill(HuffmanPrefixBits)
+        }
+
         var node = cast(s32, root)
         if .bitsBuffered >= HuffmanPrefixBits and not .overrun
         {
@@ -219,26 +265,75 @@ private impl BitReader
         while node >= 0
         {
             let bit = .read(1)
-            if .overrun do
+            if .overrun
+            {
                 fail InvalidFormatError{"DTS Huffman code is truncated"}
+            }
+
             node = HuffmanNodes[node, bit]
         }
 
         return -1 - node
     }
 
+    // Two prefix lookups cover a band. Use the scalar reader when the padded lookahead
+    // would run past the packet, so short valid codes may still end close to its boundary.
+    mtd readTernaryBand(output: *[SamplesPerSubband] s32) fail
+    {
+        if .bitsBuffered < 2 * TernaryPrefixBits
+        {
+            .refill(2 * TernaryPrefixBits)
+        }
+
+        if .bitsBuffered < 2 * TernaryPrefixBits or .overrun
+        {
+            for index in SamplesPerSubband
+            {
+                output[][index] = (try .readHuffman(QuantBookRoots[0, 0])) - QuantBookBias[0]
+            }
+
+            return
+        }
+
+        for group in SamplesPerSubband / TernarySamples
+        {
+            let prefix = (.buffer >> (.bitsBuffered - TernaryPrefixBits)) & ((1 << TernaryPrefixBits) - 1)
+            let entry  = TernaryTable[prefix]
+            .bitsBuffered -= cast(u32, (entry >> 32))
+            for index in TernarySamples
+            {
+                let value = cast #bit(s8, cast(u8, ((entry >> (8 * index)) & 0xFF)))
+                output[][group * TernarySamples + index] = cast(s32, value)
+            }
+        }
+    }
+
     mtd readScale(selector: u32, index: *s32)->f64 fail
     {
-        if selector == 6 do
+        if selector == 6
+        {
             return ScaleFactors[.read(7)]
-        if selector < 5 do
+        }
+
+        if selector < 5
+        {
             index[] += (try .readHuffman(ScaleBookRoots[selector])) - 64
-        else do
+        }
+        else
+        {
             index[] = cast(s32, .read(6))
-        if index[] < 0 or index[] >= 64 do
+        }
+
+        if index[] < 0 or index[] >= 64
+        {
             fail InvalidFormatError{"DTS scale-factor index exceeds its table"}
-        if index[] == 63 do
+        }
+
+        if index[] == 63
+        {
             return 0
+        }
+
         return ScaleFactors[index[] * 2]
     }
 
@@ -283,54 +378,80 @@ private func speakerMask(mode, lfe: u32)->u32
 
 private func parseFrameHeader(reader: *BitReader)->FrameHeader fail
 {
-    if reader.read(32) != 0x7FFE8001 do
+    if reader.read(32) != 0x7FFE8001
+    {
         fail InvalidFormatError{"DTS packet has an invalid core sync word"}
+    }
 
     // Read the packed frame shape together so the same buffered bits serve all four fields.
     let shape = reader.read(28)
-    if ((shape >> 22) & 31) != 31 do
+    if ((shape >> 22) & 31) != 31
+    {
         fail UnsupportedFormatError{"DTS packet uses a partial first sample block"}
+    }
 
     var result: #returntype
-    result.crc = (shape & (1'u32 << 21)) != 0
+    result.crc = (shape & (1_u32 << 21)) != 0
     let blocks = ((shape >> 14) & 127) + 1
-    if blocks < 8 or blocks > MaxSubbandSamples or blocks & 7 do
+    if blocks < 8 or blocks > MaxSubbandSamples or blocks & 7
+    {
         fail InvalidFormatError{"DTS packet has an invalid sample-block count"}
+    }
+
     result.frames = blocks * 32
     let unpackedFrameBytes = (shape & 0x3FFF) + 1
     result.frameBytes = reader.packed14 ? unpackedFrameBytes * 8 / 14 * 2 : unpackedFrameBytes
 
     let format = reader.read(15)
     result.mode = format >> 9
-    if result.mode >= ModeChannels.count do
+    if result.mode >= ModeChannels.count
+    {
         fail UnsupportedFormatError{"DTS packet uses an unsupported channel arrangement"}
+    }
+
     result.primaryChannels = ModeChannels[result.mode]
     result.sampleRate      = SampleRates[(format >> 5) & 15]
-    if not result.sampleRate do
+    if not result.sampleRate
+    {
         fail InvalidFormatError{"DTS packet states a reserved sampling frequency"}
+    }
+
     result.bitRateIndex = format & 31
-    if result.bitRateIndex >= 25 and result.bitRateIndex != 29 and result.bitRateIndex != 31 do
+    if result.bitRateIndex >= 25 and result.bitRateIndex != 29 and result.bitRateIndex != 31
+    {
         fail InvalidFormatError{"DTS packet states a reserved transmission rate"}
+    }
 
     let flags = reader.read(13)
     result.syncSubsubframes = (flags & 8) != 0
     result.lfe = (flags >> 1) & 3
-    if result.lfe == 3 do
+    if result.lfe == 3
+    {
         fail InvalidFormatError{"DTS packet states a reserved LFE mode"}
+    }
+
     result.channels         = result.primaryChannels + (result.lfe ? 1 : 0)
     result.predictorHistory = (flags & 1) != 0
-    if result.crc do
+    if result.crc
+    {
         reader.skip(16)
+    }
 
     let trailer = reader.read(16)
     result.perfectFilter = (trailer & 0x8000) != 0
     let resolution = (trailer >> 6) & 7
-    if resolution == 4 or resolution == 7 do
+    if resolution == 4 or resolution == 7
+    {
         fail InvalidFormatError{"DTS packet states a reserved PCM resolution"}
+    }
+
     result.sumDifference   = (trailer & 0x20) != 0
     result.surroundSumDiff = (trailer & 0x10) != 0
-    if reader.overrun do
+    if reader.overrun
+    {
         fail InvalidFormatError{"DTS packet header is truncated"}
+    }
+
     return result
 }
 
@@ -343,14 +464,6 @@ internal func frameInfo(packet: const [..] u8)->FrameInfo fail
 
 internal func packetFrameCount(packet: const [..] u8)->u32 fail => (try frameInfo(packet)).frames
 
-// Bias the truncating conversion by half a sample to round ties away from zero.
-#[Swag.Inline]
-private func pcm16(sample: f64)->s16
-{
-    let scaled = sample * OutputScale
-    return cast(s16, Math.clamp(scaled + Math.copysign(0.5, scaled), -32_768.0, 32_767.0))
-}
-
 private struct Codec
 {
     using base: Audio.Codec
@@ -361,7 +474,7 @@ private struct Codec
     historyStart:      [MaxPrimaryChannels] u32
     predictionHistory: [MaxPrimaryChannels, MaxSubbands, 4] f64
     lfeHistory:        [8] f64
-    subbands:          Array'f64
+    subbands:          Array!{f64}
 }
 
 private impl Codec
@@ -376,13 +489,18 @@ private impl Codec
 
     mtd decodeTransition(reader: *BitReader, selector: u32)->u32
     {
-        if selector == 3 do
+        if selector == 3
+        {
             return reader.read(2)
+        }
 
         // The three variable-length books share the unary code order and rotate its symbols.
         var code: u32
-        while code < 3 and reader.read(1) do
+        while code < 3 and reader.read(1)
+        {
             code += 1
+        }
+
         return (4 + code - selector) & 3
     }
 
@@ -390,32 +508,59 @@ private impl Codec
     {
         if mode == 5 or mode == 7 or mode == 9
         {
-            if source == 0 do
+            if source == 0
+            {
                 return 2
-            if source == 1 do
+            }
+
+            if source == 1
+            {
                 return 0
-            if source == 2 do
+            }
+
+            if source == 2
+            {
                 return 1
+            }
+
             return source + (lfe ? 1 : 0)
         }
 
-        if (mode == 6 or mode == 8) and source >= 2 do
+        if (mode == 6 or mode == 8) and source >= 2
+        {
             return source + (lfe ? 1 : 0)
+        }
+
         return source
     }
 
     mtd lfeDestination(header: const *FrameHeader)->u32
     {
-        if header.mode <= 4 do
+        if header.mode <= 4
+        {
             return header.primaryChannels
-        if header.mode == 5 do
+        }
+
+        if header.mode == 5
+        {
             return 3
-        if header.mode == 6 do
+        }
+
+        if header.mode == 6
+        {
             return 2
-        if header.mode == 7 do
+        }
+
+        if header.mode == 7
+        {
             return 3
-        if header.mode == 8 do
+        }
+
+        if header.mode == 8
+        {
             return 2
+        }
+
         return 3
     }
 
@@ -486,44 +631,36 @@ private impl Codec
 
     mtd synthesizeLfe(destination: [*] s16, header: const *FrameHeader, samples: const [*] f64, sampleCount: u32)
     {
-        if not header.lfe do
+        if not header.lfe
+        {
             return
-        let factor           = header.lfe == 1 ? 128'u32 : 64
-        let coefficients     = header.lfe == 1 ? LfeFir128 : LfeFir64
-        let coefficientCount = header.lfe == 1 ? 4'u32 : 8
-        let outputChannel    = .lfeDestination(header)
-        for sample in sampleCount
-        {
-            for half in factor / 2
-            {
-                var first, second: f64
-                for tap in coefficientCount
-                {
-                    let source = cast(s32, sample) - cast(s32, tap)
-                    let value  = source < 0 ? .lfeHistory[8 + source] : samples[source]
-                    first  += coefficients[half * coefficientCount + tap] * value
-                    second += coefficients[255 - half * coefficientCount - tap] * value
-                }
-
-                let frame = sample * factor
-                destination[(frame + half) * header.channels + outputChannel] = pcm16(first)
-                destination[(frame + factor / 2 + half) * header.channels + outputChannel] = pcm16(second)
-            }
         }
 
-        for index in 8
+        // Append the current samples to the preceding taps to remove history tests from the FIR.
+        var history: [72] f64
+        Memory.copy(&history[0], &.lfeHistory[0], #sizeof(.lfeHistory))
+        Memory.copy(&history[8], samples, sampleCount * #sizeof(f64))
+        let output = destination + .lfeDestination(header)
+        if header.lfe == 1
         {
-            let source = cast(s32, sampleCount) - 8 + cast(s32, index)
-            .lfeHistory[index] = source < 0 ? .lfeHistory[8 + source] : samples[source]
+            synthesisLfe!{128, 4}(output, header.channels, &history[0], sampleCount)
         }
+        else
+        {
+            synthesisLfe!{64, 8}(output, header.channels, &history[0], sampleCount)
+        }
+
+        Memory.copy(&.lfeHistory[0], &history[sampleCount], #sizeof(.lfeHistory))
     }
 
     mtd decodeFrame(destination: [*] s16, reader: *BitReader, header: const *FrameHeader) fail
     {
         let subframes = reader.read(4) + 1
         let channels  = reader.read(3) + 1
-        if channels != header.primaryChannels do
+        if channels != header.primaryChannels
+        {
             fail InvalidFormatError{"DTS primary-channel count differs from its channel arrangement"}
+        }
 
         var subbandCount:       [MaxPrimaryChannels] u32
         var vqStart:            [MaxPrimaryChannels] u32
@@ -535,34 +672,51 @@ private impl Codec
         for channel in channels
         {
             subbandCount[channel] = reader.read(5) + 2
-            if subbandCount[channel] > MaxSubbands do
+            if subbandCount[channel] > MaxSubbands
+            {
                 fail InvalidFormatError{"DTS subband count exceeds the core limit"}
+            }
         }
 
-        for channel in channels do
+        for channel in channels
+        {
             vqStart[channel] = reader.read(5) + 1
-        for channel in channels do
+        }
+
+        for channel in channels
+        {
             joint[channel] = reader.read(3)
-        for channel in channels do
+        }
+
+        for channel in channels
+        {
             transitionSelector[channel] = reader.read(2)
+        }
+
         for channel in channels
         {
             scaleSelector[channel] = reader.read(3)
-            if scaleSelector[channel] == 7 do
+            if scaleSelector[channel] == 7
+            {
                 fail InvalidFormatError{"DTS packet states a reserved scale-factor codebook"}
+            }
         }
 
         for channel in channels
         {
             allocationSelector[channel] = reader.read(3)
-            if allocationSelector[channel] == 7 do
+            if allocationSelector[channel] == 7
+            {
                 fail InvalidFormatError{"DTS packet states a reserved bit-allocation codebook"}
+            }
         }
 
         for book in 10
         {
-            for channel in channels do
+            for channel in channels
+            {
                 quantSelector[channel, book] = reader.read(QuantSelectBits[book])
+            }
         }
 
         var quantAdjust: [MaxPrimaryChannels, 10] f64
@@ -570,13 +724,17 @@ private impl Codec
         {
             for channel in channels
             {
-                if quantSelector[channel, book] < QuantGroupSize[book] do
+                if quantSelector[channel, book] < QuantGroupSize[book]
+                {
                     quantAdjust[channel, book] = QuantAdjustments[reader.read(2)]
+                }
             }
         }
 
-        if header.crc do
+        if header.crc
+        {
             reader.skip(16)
+        }
 
         // Ignored and inactive bands start at zero. Clear only the samples this packet can use.
         let samplesPerBand    = header.frames / 32
@@ -593,21 +751,27 @@ private impl Codec
             let subsubframes = reader.read(2) + 1
             reader.skip(3)
             let subbandSamples = subsubframes * SamplesPerSubband
-            if subbandPosition + subbandSamples > header.frames / 32 do
+            if subbandPosition + subbandSamples > header.frames / 32
+            {
                 fail InvalidFormatError{"DTS subframe sample table exceeds the frame"}
+            }
 
             var prediction:      [MaxPrimaryChannels, MaxSubbands] bool
             var predictionIndex: [MaxPrimaryChannels, MaxSubbands] u32
             for channel in channels
             {
-                for band in subbandCount[channel] do
+                for band in subbandCount[channel]
+                {
                     prediction[channel, band] = reader.read(1) != 0
+                }
             }
 
             for channel in channels
             {
-                for band in subbandCount[channel] where prediction[channel, band] do
+                for band in subbandCount[channel] where prediction[channel, band]
+                {
                     predictionIndex[channel, band] = reader.read(12)
+                }
             }
 
             var allocation: [MaxPrimaryChannels, MaxSubbands] u32
@@ -616,12 +780,19 @@ private impl Codec
                 let selector = allocationSelector[channel]
                 for band in Math.min(vqStart[channel], subbandCount[channel])
                 {
-                    if selector < 5 do
+                    if selector < 5
+                    {
                         allocation[channel, band] = 1 + cast(u32, (try reader.readHuffman(AllocationBookRoots[selector])))
-                    else do
+                    }
+                    else
+                    {
                         allocation[channel, band] = reader.read(selector - 1)
-                    if allocation[channel, band] >= 27 do
+                    }
+
+                    if allocation[channel, band] >= 27
+                    {
                         fail InvalidFormatError{"DTS bit allocation exceeds the core limit"}
+                    }
                 }
             }
 
@@ -643,11 +814,16 @@ private impl Codec
                 var scaleIndex: s32
                 for band in subbandCount[channel]
                 {
-                    if band < vqStart[channel] and not allocation[channel, band] do
+                    if band < vqStart[channel] and not allocation[channel, band]
+                    {
                         continue
+                    }
+
                     scales[channel, band, 0] = try reader.readScale(scaleSelector[channel], &scaleIndex)
-                    if transition[channel, band] do
+                    if transition[channel, band]
+                    {
                         scales[channel, band, 1] = try reader.readScale(scaleSelector[channel], &scaleIndex)
+                    }
                 }
             }
 
@@ -656,31 +832,47 @@ private impl Codec
                 fail UnsupportedFormatError{"DTS joint-intensity coding is not supported"}
             }
 
-            if header.crc do
+            if header.crc
+            {
                 reader.skip(16)
+            }
 
             // One ten-bit address names the complete vector for each high-frequency subband.
             // ETSI TS 102 114 permits a constrained decoder to omit those highest bands; consume
             // the addresses so the scalar bands still reconstruct instead of rejecting the frame.
             for channel in channels
             {
-                for Math.min(vqStart[channel], subbandCount[channel]) until subbandCount[channel] do
+                for Math.min(vqStart[channel], subbandCount[channel]) until subbandCount[channel]
+                {
                     discard reader.read(10)
+                }
             }
 
             if header.lfe
             {
                 let count = 2 * header.lfe * subsubframes
-                if lfePosition + count > lfeSamples.count do
+                if lfePosition + count > lfeSamples.count
+                {
                     fail InvalidFormatError{"DTS LFE sample table exceeds the frame"}
-                for index in count do
+                }
+
+                for index in count
+                {
                     lfeSamples[lfePosition + index] = cast(f64, reader.readSigned(8))
+                }
+
                 let scaleIndex = reader.read(8)
-                if scaleIndex >= ScaleFactors.count do
+                if scaleIndex >= ScaleFactors.count
+                {
                     fail InvalidFormatError{"DTS LFE scale-factor index exceeds its table"}
+                }
+
                 let scale = ScaleFactors[scaleIndex] * 0.035
-                for index in count do
+                for index in count
+                {
                     lfeSamples[lfePosition + index] *= scale
+                }
+
                 lfePosition += count
             }
 
@@ -692,17 +884,27 @@ private impl Codec
                     {
                         let bits       = allocation[channel, band]
                         var audio: [SamplesPerSubband] s32
-                        var adjustment = 1.0'f64
+                        var adjustment = 1.0_f64
                         if not bits {}
-                        elif bits <= 10 and quantSelector[channel, bits - 1] < QuantGroupSize[bits - 1]
+                        else if bits <= 10 and quantSelector[channel, bits - 1] < QuantGroupSize[bits - 1]
                         {
-                            let root = QuantBookRoots[bits - 1, quantSelector[channel, bits - 1]]
-                            let bias = QuantBookBias[bits - 1]
-                            for index in SamplesPerSubband do
-                                audio[index] = (try reader.readHuffman(root)) - bias
+                            if bits == 1
+                            {
+                                try reader.readTernaryBand(&audio)
+                            }
+                            else
+                            {
+                                let root = QuantBookRoots[bits - 1, quantSelector[channel, bits - 1]]
+                                let bias = QuantBookBias[bits - 1]
+                                for index in SamplesPerSubband
+                                {
+                                    audio[index] = (try reader.readHuffman(root)) - bias
+                                }
+                            }
+
                             adjustment = quantAdjust[channel, bits - 1]
                         }
-                        elif bits <= 7
+                        else if bits <= 7
                         {
                             let levels = QuantLevels[bits]
                             let offset = cast(s32, ((levels - 1) / 2))
@@ -716,8 +918,10 @@ private impl Codec
                                 second           /= levels
                             }
 
-                            if first or second do
+                            if first or second
+                            {
                                 fail InvalidFormatError{"DTS block code exceeds its quantization levels"}
+                            }
                         }
                         else
                         {
@@ -729,13 +933,17 @@ private impl Codec
                         let adjustedScale = adjustment == 1.0 ? scale : Math.min(Math.floor(scale * adjustment), 8_388_607.0)
                         let factor        = step * adjustedScale / 4_194_304.0
                         let samples       = subbands + channel * samplesPerChannel + band * samplesPerBand + subbandPosition + subsubframe * SamplesPerSubband
-                        for index in SamplesPerSubband do
+                        for index in SamplesPerSubband
+                        {
                             samples[index] = cast(f64, audio[index]) * factor
+                        }
                     }
                 }
 
-                if (subsubframe == subsubframes - 1 or header.syncSubsubframes) and reader.read(16) != 0xFFFF do
+                if (subsubframe == subsubframes - 1 or header.syncSubsubframes) and reader.read(16) != 0xFFFF
+                {
                     fail InvalidFormatError{"DTS subsubframe sync word is invalid"}
+                }
             }
 
             // The four-tap predictor is applied after every scalar sample of this subframe has
@@ -754,11 +962,13 @@ private impl Codec
                         for tap in 4
                         {
                             let source = cast(s32, position) - 1 - cast(s32, tap)
-                            var value  = 0.0'f64
+                            var value  = 0.0_f64
                             if source < 0
                             {
-                                if header.predictorHistory do
+                                if header.predictorHistory
+                                {
                                     value = .predictionHistory[channel, band, 4 + source]
+                                }
                             }
                             else
                             {
@@ -776,10 +986,15 @@ private impl Codec
             subbandPosition += subbandSamples
         }
 
-        if subbandPosition != header.frames / 32 do
+        if subbandPosition != header.frames / 32
+        {
             fail InvalidFormatError{"DTS subframes do not fill the declared frame"}
-        if reader.overrun do
+        }
+
+        if reader.overrun
+        {
             fail InvalidFormatError{"DTS packet is truncated"}
+        }
 
         Memory.set(&.predictionHistory, 0, #sizeof(.predictionHistory))
         for channel in channels
@@ -787,8 +1002,10 @@ private impl Codec
             for band in subbandCount[channel]
             {
                 let samples = subbands + channel * samplesPerChannel + band * samplesPerBand + subbandPosition - 4
-                for sample in 4 do
+                for sample in 4
+                {
                     .predictionHistory[channel, band, sample] = samples[sample]
+                }
             }
         }
 
@@ -803,8 +1020,11 @@ impl IPacketCodec for Codec
 
     mtd impl initialize(_: const [..] u8, sampleRateHz, channels: u32) fail
     {
-        if not sampleRateHz or not channels or channels > MaxChannels do
+        if not sampleRateHz or not channels or channels > MaxChannels
+        {
             fail BadParameterError{"DTS audio needs one to six channels and a non-zero sample rate"}
+        }
+
         .sampleRate = sampleRateHz
         .channels   = channels
         .resetState()
@@ -817,10 +1037,15 @@ impl IPacketCodec for Codec
         var reader   = try BitReader.create(packet)
         let header   = try parseFrameHeader(&reader)
         let required = cast(u64, header.frames) * .channels * #sizeof(s16)
-        if header.frameBytes > packet.count do
+        if header.frameBytes > packet.count
+        {
             fail InvalidFormatError{"DTS packet size does not match its core-frame header"}
-        if destinationSize < required do
+        }
+
+        if destinationSize < required
+        {
             fail BadParameterError{"DTS destination buffer is too small"}
+        }
 
         // A DTS-HD access unit can include bytes after its core. If the header prefetched
         // those bytes, read it again with the declared core boundary before decoding.
@@ -831,8 +1056,11 @@ impl IPacketCodec for Codec
         }
 
         reader.byteSize = header.frameBytes
-        if header.sampleRate != .sampleRate or header.channels != .channels do
+        if header.sampleRate != .sampleRate or header.channels != .channels
+        {
             fail InvalidFormatError{"DTS packet shape differs from its container track"}
+        }
+
         try .decodeFrame(cast([*] s16, destination), &reader, &header)
         return required
     }
@@ -840,5 +1068,5 @@ impl IPacketCodec for Codec
 
 #init
 {
-    registerPacketCodec'Codec()
+    registerPacketCodec!{Codec}()
 }

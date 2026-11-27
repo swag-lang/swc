@@ -34,17 +34,26 @@ func rebuildFragmentedIndex(fileName: string)->u32 fail
     var entries = try File.open(entriesPath.toString(), .CreateNew, .ReadWrite, .Zero)
     defer entries.close()
     var point: FragmentedCursorPacket
-    var count    = 0'u32
+    var count    = 0_u32
     var hasVideo = false
     while try cursor.nextPacket(&point)
     {
-        if not point.isVideo do
+        if not point.isVideo
+        {
             continue
+        }
+
         hasVideo = true
-        if not point.info.isKeyFrame do
+        if not point.info.isKeyFrame
+        {
             continue
-        if count >= (Swag.U32.Max - 48) / 20 do
+        }
+
+        if count >= (Swag.U32.Max - 48) / 20
+        {
             fail OverflowError{"fragmented MP4 recovery has too many key frames for its final index"}
+        }
+
         let entry = RandomAccessEntry{point.info.decodeTime, point.fragmentOffset, point.sampleNumber}
         try entries.writeAll(Swag.makeSlice(cast(const [*] u8, &entry), #sizeof(RandomAccessEntry)))
         count += 1
@@ -52,8 +61,10 @@ func rebuildFragmentedIndex(fileName: string)->u32 fail
 
     let mediaEnd = cursor.completeMediaByteCount()
     cursor.close()
-    if not hasVideo or not count or not mediaEnd do
+    if not hasVideo or not count or not mediaEnd
+    {
         fail InvalidFormatError{"fragmented MP4 recovery found no complete video fragment"}
+    }
 
     scope
     {
@@ -68,17 +79,23 @@ func rebuildFragmentedIndex(fileName: string)->u32 fail
     defer trailer.close()
     var media = try File.open(fileName, .Open, .ReadWrite, .Zero)
     defer media.close()
-    if try media.size() != originalSize or mediaEnd > originalSize do
+    if try media.size() != originalSize or mediaEnd > originalSize
+    {
         fail InvalidFormatError{"fragmented MP4 changed during index recovery"}
+    }
+
     try media.resize(mediaEnd)
     try media.seek(.Begin, mediaEnd)
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(64 * 1024)
     while true
     {
         let read = try trailer.read(bytes.toSlice())
-        if not read do
+        if not read
+        {
             break
+        }
+
         try media.writeAll(bytes.toSlice()[until read])
     }
 

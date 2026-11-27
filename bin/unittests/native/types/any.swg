@@ -14,14 +14,14 @@ func sumAny(a: any, b: any)->s64
 
 #test
 {
-    const c: any = 1's64
+    const c: any = 1_s64
     let d = assume cast(s64, c)
     Swag.require(d == 1)
 }
 
 #test
 {
-    const c: any = -123's32
+    const c: any = -123_s32
     let d = assume cast(s32, c)
     let e = cast(s64, d)
     Swag.require(d == -123)
@@ -30,7 +30,7 @@ func sumAny(a: any, b: any)->s64
 
 #test
 {
-    const c: any = 987654321's64
+    const c: any = 987654321_s64
     let d: s64 = assume cast(s64, c)
     Swag.require(d == 987654321)
 }
@@ -44,9 +44,9 @@ func sumAny(a: any, b: any)->s64
 
 #test
 {
-    const c: any = 2.5'f64
+    const c: any = 2.5_f64
     let d = assume cast(f64, c)
-    Swag.require(d == 2.5'f64)
+    Swag.require(d == 2.5_f64)
 }
 
 #test
@@ -58,7 +58,7 @@ func sumAny(a: any, b: any)->s64
 
 #test
 {
-    const c: any = 333's64
+    const c: any = 333_s64
     let d = anyToS64(c)
     Swag.require(d == 333)
 }
@@ -90,7 +90,7 @@ enum A { B = 1 }
     var a: any = 1.0
     Swag.require(Swag.kindOf(a) == f32)
     var b = assume cast(f32, a)
-    Swag.require(b == 1.0'f32)
+    Swag.require(b == 1.0_f32)
 }
 
 #test

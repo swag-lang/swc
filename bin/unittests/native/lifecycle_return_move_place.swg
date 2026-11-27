@@ -26,8 +26,10 @@ impl WidePlace
 
     mtd opDrop()
     {
-        if .value != 0 do
+        if .value != 0
+        {
             PlaceDrops += 1
+        }
     }
 }
 
@@ -41,8 +43,10 @@ impl NarrowPlace
 {
     mtd opDrop()
     {
-        if .value != 0 do
+        if .value != 0
+        {
             PlaceDrops += 1
+        }
     }
 }
 

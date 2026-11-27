@@ -17,8 +17,11 @@ impl Timebase
     // Creates a media clock with a positive number of ticks per second.
     func create(ticksPerSecond: u32)->Timebase fail
     {
-        if not ticksPerSecond do
+        if not ticksPerSecond
+        {
             fail BadParameterError{"media timebase needs a positive tick rate"}
+        }
+
         return Timebase{ticksPerSecond}
     }
 
@@ -32,18 +35,27 @@ impl Timebase
     // before conversion to a video or audio clock.
     mtd const convertFrom(timestamp: u64, sourceTicksPerSecond: u32)->u64 fail
     {
-        if not .ticksPerSecondValue or not sourceTicksPerSecond do
+        if not .ticksPerSecondValue or not sourceTicksPerSecond
+        {
             fail BadParameterError{"media timebase conversion needs positive tick rates"}
+        }
+
         let wholeSeconds = timestamp / sourceTicksPerSecond
         let remainder    = timestamp % sourceTicksPerSecond
-        if wholeSeconds > Swag.U64.Max / .ticksPerSecondValue do
+        if wholeSeconds > Swag.U64.Max / .ticksPerSecondValue
+        {
             fail OverflowError{"media timestamp conversion overflows"}
+        }
+
         let wholeTicks = wholeSeconds * .ticksPerSecondValue
         let fraction   = remainder * .ticksPerSecondValue
         let rounded    = fraction / sourceTicksPerSecond +
                          cast(u64, fraction % sourceTicksPerSecond >= (cast(u64, sourceTicksPerSecond) + 1) / 2)
-        if rounded > Swag.U64.Max - wholeTicks do
+        if rounded > Swag.U64.Max - wholeTicks
+        {
             fail OverflowError{"media timestamp conversion overflows"}
+        }
+
         return wholeTicks + rounded
     }
 }

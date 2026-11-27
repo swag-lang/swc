@@ -166,8 +166,10 @@ func visitFailureTemporary() fail
 {
     for value in TemporaryVisits{}
     {
-        if value == -1 do
+        if value == -1
+        {
             fail TemporaryError{code: makeTemporaryOwner(7)}
+        }
     }
 }
 
@@ -253,9 +255,15 @@ func visitFailureTemporary() fail
     DropCount  = 0
     EventTrace = 0
     Seed       += 1
-    if Seed == -1 do consume(makeTemporaryOwner(Seed))
+    if Seed == -1
+    {
+        consume(makeTemporaryOwner(Seed))
+    }
     Swag.require(DropCount == 0)
-    if true do consume(makeTemporaryOwner(Seed))
+    if true
+    {
+        consume(makeTemporaryOwner(Seed))
+    }
     Swag.require(DropCount == 1)
 }
 
@@ -266,7 +274,10 @@ func visitFailureTemporary() fail
     EventTrace = 0
     for value in TemporaryVisits{}
     {
-        if value == 0 do discard makeTemporaryOwner(7)
+        if value == 0
+        {
+            discard makeTemporaryOwner(7)
+        }
         Swag.require(DropCount == 1)
     }
     Swag.require(DropCount == 1)
@@ -284,7 +295,10 @@ func visitFailureTemporary() fail
     DropCount  = 0
     EventTrace = 0
     Seed       = 0
-    while Seed < 2 do discard makeLoopTemporaryOwner(7)
+    while Seed < 2
+    {
+        discard makeLoopTemporaryOwner(7)
+    }
     Swag.require(DropCount == 2)
 }
 

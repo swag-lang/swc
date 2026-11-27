@@ -82,12 +82,16 @@ public impl GlyphSlot
     // the glyph again to recover the original geometry.
     mtd oblique()
     {
-        if .outline.pointCount <= 0 do
+        if .outline.pointCount <= 0
+        {
             return
+        }
 
         let points = unwrap .outline.points
-        for index in cast(u32, .outline.pointCount) do
+        for index in cast(u32, .outline.pointCount)
+        {
             points[index].x += cast(s32, Math.round(points[index].y * 0.21256))
+        }
 
         updateSlotMetrics(me)
     }
@@ -146,8 +150,10 @@ func clearBitmap(slot: *GlyphSlot)
 func computeOutlineBounds(outline: const *Outline)->{ minX: s32, minY: s32, maxX: s32, maxY: s32 }
 {
     var result: #returntype
-    if outline.pointCount <= 0 do
+    if outline.pointCount <= 0
+    {
         return result
+    }
 
     result.minX = Swag.S32.Max
     result.minY = Swag.S32.Max

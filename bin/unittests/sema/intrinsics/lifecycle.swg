@@ -278,7 +278,7 @@ func intrinsicInitInfo()->InitInfo
     var x = 666
     Swag.init(x)
 
-    var y = 666'f32
+    var y = 666_f32
     Swag.init(y)(3.14)
 
     var arr = [1, 2]
@@ -407,8 +407,10 @@ func intrinsicAutoDropErrorImpl() fail
         scope
         {
             var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
-            if pair.first.value == 1 and nested.tail.value == 8 do
+            if pair.first.value == 1 and nested.tail.value == 8
+            {
                 fail IntrinsicLifecycleErr{code: 77}
+            }
         }
     }
 }
@@ -487,8 +489,10 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
         {
             var pair = AutoDropPair{DropOnlyTracked{cast(s32, (i * 2 + 1))}, DropOnlyTracked{cast(s32, (i * 2 + 2))}}
             first += pair.first.value
-            if i == 0 do
+            if i == 0
+            {
                 continue
+            }
 
             var branch = AutoDropBranch{DropOnlyTracked{5}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}}
             second = branch.head.value
@@ -578,8 +582,10 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
 func intrinsicAutoDropCatchResumeImpl(code: s32) fail
 {
     var branch = AutoCompactBranch{CompactDropTracked{3}, AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}}
-    if branch.head.value == 3 do
+    if branch.head.value == 3
+    {
         fail IntrinsicLifecycleErr{code: code}
+    }
 }
 
 func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
@@ -607,8 +613,10 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
 func intrinsicAutoDropCatchLoopStep(base: s32)->s32 fail
 {
     var branch = AutoCompactBranch{CompactDropTracked{base}, AutoCompactPair{CompactDropTracked{base + 1}, CompactDropTracked{base + 2}}}
-    if base == 1 do
+    if base == 1
+    {
         fail IntrinsicLifecycleErr{code: 66}
+    }
     return branch.pair.first.value
 }
 

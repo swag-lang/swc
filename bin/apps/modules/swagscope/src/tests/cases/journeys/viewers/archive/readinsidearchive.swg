@@ -33,8 +33,11 @@ using Core, Gui, Pixel
     {
         if not window.isArchivePreview() or
            window.currentView == null or
-           window.activeChoiceIndex >= window.instances.count do
+           window.activeChoiceIndex >= window.instances.count
+        {
             return false
+        }
+
         let instance = &window.instances[window.activeChoiceIndex]
         Swag.require(instance.failureReason.isEmpty())
         return instance.isLoading == null or not instance.isLoading()

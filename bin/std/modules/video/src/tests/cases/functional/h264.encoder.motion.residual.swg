@@ -5,11 +5,11 @@ using Swag, Core, Pixel
 
 private func residualMotionFixture()->Nv12Frame fail
 {
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(128 * 128 * 3)
-    for y in 128'u64
+    for y in 128_u64
     {
-        for x in 128'u64
+        for x in 128_u64
         {
             let at = (y * 128 + x) * 3
             rgb[at]     = cast(u8, (x * 73 + y * 29 + x * y * 3) & 255)
@@ -49,18 +49,21 @@ private impl Nv12Frame
         let uvStart = width * height
         .bytes.resize(uvStart + uvStart / 2)
         Memory.clear(.bytes.storage(), uvStart)
-        for index in uvStart / 2 do
+        for index in uvStart / 2
+        {
             .bytes[uvStart + index] = 128
+        }
+
         let original = source.bytes.storage()
         let shifted  = .bytes.storage()
-        for row in 8'u64 until height
+        for row in 8_u64 until height
         {
             Memory.copy(shifted + row * width + 16,
                         original + (row - 8) * width,
                         width - 16)
         }
 
-        for row in 4'u64 until height / 2
+        for row in 4_u64 until height / 2
         {
             Memory.copy(shifted + uvStart + row * width + 16,
                         original + uvStart + (row - 4) * width,
@@ -100,11 +103,11 @@ private func requireSameResidualMotionPicture(a, b: const *PlanarFrame)
         var picture: PlanarFrame
         expect prefix.decodeFramePlanesInto(&picture, 1)
         reconstructed.setResidualMotionDecoded(&picture)
-        var squaredError = 0'u64
+        var squaredError = 0_u64
         let expected     = moved.luma()
-        for row in 16'u64 until 128
+        for row in 16_u64 until 128
         {
-            for column in 16'u64 until 128
+            for column in 16_u64 until 128
             {
                 let at    = row * 128 + column
                 let delta = cast(s32, picture.luma[at]) - cast(s32, expected[at])
@@ -128,11 +131,11 @@ private func requireSameResidualMotionPicture(a, b: const *PlanarFrame)
 
 private func residualMotionEdgeFixture()->Nv12Frame fail
 {
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(130 * 74 * 3)
-    for y in 74'u64
+    for y in 74_u64
     {
-        for x in 130'u64
+        for x in 130_u64
         {
             let at = (y * 130 + x) * 3
             rgb[at]     = cast(u8, (x * 73 + y * 29 + x * y * 3) & 255)

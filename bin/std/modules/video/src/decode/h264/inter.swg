@@ -38,7 +38,7 @@ private func tap6Raw16(inner, outer, edges: Simd.U16x8)->Simd.S16x8
 private func tap6Half16(inner, outer, edges: Simd.U16x8)->Simd.S16x8 => (tap6Raw16(inner, outer, edges) + 16) >> 5
 
 // The rounding term of the center half-sample, added once to the edge pair.
-const CenterBias = 512's16
+const CenterBias = 512_s16
 
 // One vertical six-tap over eight 16-bit horizontal sums, with the center
 // rounding shift, without leaving 16-bit lanes.
@@ -113,8 +113,11 @@ private func halfHorizontal(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride:
 {
     if width == 16
     {
-        for row in cast(u64, height) do
+        for row in cast(u64, height)
+        {
             Simd.store(dst + row * dstStride, tap6Row16(src + row * srcStride - 2, 1))
+        }
+
         return
     }
 
@@ -123,10 +126,14 @@ private func halfHorizontal(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride:
         for row in cast(u64, height)
         {
             let half = tap6Row8(src + row * srcStride - 2, 1)
-            if width == 8 do
+            if width == 8
+            {
                 Simd.storeLow8(dst + row * dstStride, half)
-            else do
+            }
+            else
+            {
                 Simd.storeLow4(dst + row * dstStride, half)
+            }
         }
 
         return
@@ -166,10 +173,14 @@ private func halfHorizontalAvg(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
             let half  = tap6Row8(src + row * srcStride - 2, 1)
             let other = Simd.load(anchor + row * anchorStride)
             let mixed = Simd.average(half, other)
-            if width == 8 do
+            if width == 8
+            {
                 Simd.storeLow8(dst + row * dstStride, mixed)
-            else do
+            }
+            else
+            {
                 Simd.storeLow4(dst + row * dstStride, mixed)
+            }
         }
 
         return
@@ -223,8 +234,11 @@ private func halfVerticalRows(dst: [*] u8, dstStride: u64, src: const [*] u8, sr
             let l5   = Simd.widenLow(b5)
             let h5   = Simd.widenHigh(b5)
             var half = Simd.packUnsigned(tap6Half16(l2 + l3, l1 + l4, l0 + l5), tap6Half16(h2 + h3, h1 + h4, h0 + h5))
-            if averaged do
+            if averaged
+            {
                 half = Simd.average(half, Simd.load(other))
+            }
+
             Simd.store(out, half)
             l0    = l1
             l1    = l2
@@ -255,12 +269,20 @@ private func halfVerticalRows(dst: [*] u8, dstStride: u64, src: const [*] u8, sr
         let r5   = Simd.widenLow(Simd.load(line))
         let sum  = tap6Half16(r2 + r3, r1 + r4, r0 + r5)
         var half = Simd.packUnsigned(sum, sum)
-        if averaged do
+        if averaged
+        {
             half = Simd.average(half, Simd.load(other))
-        if width == 8 do
+        }
+
+        if width == 8
+        {
             Simd.storeLow8(out, half)
-        else do
+        }
+        else
+        {
             Simd.storeLow4(out, half)
+        }
+
         r0    = r1
         r1    = r2
         r2    = r3
@@ -340,8 +362,10 @@ private func halfCenter(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64
     for row in cast(u64, (height + 5))
     {
         let line = src + row * srcStride - 2 * srcStride - 2
-        for column in cast(u64, width) do
+        for column in cast(u64, width)
+        {
             sums[row * sumStride + column] = tap6(cast(s32, line[column]), cast(s32, line[column + 1]), cast(s32, line[column + 2]), cast(s32, line[column + 3]), cast(s32, line[column + 4]), cast(s32, line[column + 5]))
+        }
     }
 
     for row in cast(u64, height)
@@ -390,10 +414,15 @@ private func halfCenterStrip(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
         let s5     = centerSums8(line)
         let half   = tap6Center16(s2 + s3, s1 + s4, s0 + s5 + bias)
         let packed = Simd.packUnsigned(half, half)
-        if width == 4 do
+        if width == 4
+        {
             Simd.storeLow4(out, packed)
-        else do
+        }
+        else
+        {
             Simd.storeLow8(out, packed)
+        }
+
         s0   = s1
         s1   = s2
         s2   = s3
@@ -455,8 +484,11 @@ func averagePlanes(dst: [*] u8, dstStride: u64, a: [*] u8, aStride: u64, b: [*] 
     default:
         for cast(u64, height)
         {
-            for column in cast(u64, width) do
+            for column in cast(u64, width)
+            {
                 pd[column] = cast(u8, ((cast(s32, pa[column]) + cast(s32, pb[column]) + 1) >> 1))
+            }
+
             pd += dstStride
             pa += aStride
             pb += bStride
@@ -476,10 +508,15 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, fr
     let planeWidth  = reference.mbWidth * 16
     let planeHeight = reference.mbHeight * 16
     var planeBase   = reference.cr.storage()
-    if plane == 0 do
+    if plane == 0
+    {
         planeBase = reference.luma.storage()
-    elif plane == 1 do
+    }
+    else if plane == 1
+    {
         planeBase = reference.cb.storage()
+    }
+
     let planePitch = reference.planeStride(plane)
 
     // A window outside the replicated padding goes through a clamped copy first. The
@@ -516,19 +553,29 @@ private func interpolateLuma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride
     // filter pass instead of a pass of its own.
     if fracY == 0
     {
-        if fracX == 2 do
+        if fracX == 2
+        {
             halfHorizontal(dst, dstStride, src, srcStride, width, height)
-        else do
+        }
+        else
+        {
             halfHorizontalAvg(dst, dstStride, src, srcStride, fracX == 1 ? src : src + 1, srcStride, width, height)
+        }
+
         return
     }
 
     if fracX == 0
     {
-        if fracY == 2 do
+        if fracY == 2
+        {
             halfVertical(dst, dstStride, src, srcStride, width, height)
-        else do
+        }
+        else
+        {
             halfVerticalAvg(dst, dstStride, src, srcStride, fracY == 1 ? src : src + srcStride, srcStride, width, height)
+        }
+
         return
     }
 
@@ -619,8 +666,11 @@ func copyPlane(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
     default:
         for cast(u64, height)
         {
-            for column in cast(u64, width) do
+            for column in cast(u64, width)
+            {
                 d[column] = s[column]
+            }
+
             d += dstStride
             s += srcStride
         }
@@ -780,8 +830,11 @@ private func interpolateChroma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
 
         for cast(u64, height)
         {
-            for column in cast(u64, width) do
+            for column in cast(u64, width)
+            {
                 out[column] = cast(u8, ((wl * cast(s32, line[column]) + wr * cast(s32, line[column + 1]) + 32) >> 6))
+            }
+
             out  += dstStride
             line += srcStride
         }
@@ -813,8 +866,11 @@ private func interpolateChroma(dst: [*] u8, dstStride: u64, src: [*] u8, srcStri
 
         for cast(u64, height)
         {
-            for column in cast(u64, width) do
+            for column in cast(u64, width)
+            {
                 out[column] = cast(u8, ((wt * cast(s32, line[column]) + wb * cast(s32, line[column + srcStride]) + 32) >> 6))
+            }
+
             out  += dstStride
             line += srcStride
         }
@@ -931,10 +987,14 @@ private func chromaPairs(low, high: Simd.U8x16, weights: Simd.S8x16)->Simd.S16x8
 private func storeChromaBlend(out: [*] u8, width: s32, value: Simd.S16x8)
 {
     let packed = Simd.packUnsigned((value + 32) >> 6, (value + 32) >> 6)
-    if width == 8 do
+    if width == 8
+    {
         Simd.storeLow8(out, packed)
-    else do
+    }
+    else
+    {
         Simd.storeLow4(out, packed)
+    }
 }
 
 // Two-pixel blocks write only their low two result bytes.
@@ -965,7 +1025,7 @@ func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
     func(const Width: s32) weightRows(dst: [*] u8, src: const [*] u8, dstStride, srcStride: u64, height, logDenom, weight, offset: s32)
     {
         let shift    = cast(u32, logDenom)
-        let rounding = logDenom > 0 ? 1's16 << (shift - 1) : 0's16
+        let rounding = logDenom > 0 ? 1_s16 << (shift - 1) : 0_s16
         let weights  = Simd.splat(cast(s16, weight))
         let bias     = Simd.splat(rounding)
         let offsets  = Simd.splat(cast(s16, offset))
@@ -976,8 +1036,11 @@ func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
             let pixels = Simd.load(line)
             let low    = ((cast #bit(Simd.S16x8, Simd.widenLow(pixels)) * weights + bias) >> shift) + offsets
             var high   = low
-            if Width == 16 do
+            if Width == 16
+            {
                 high = ((cast #bit(Simd.S16x8, Simd.widenHigh(pixels)) * weights + bias) >> shift) + offsets
+            }
+
             storeWeightedRow(out, Width, Simd.packUnsigned(low, high))
             out  += dstStride
             line += srcStride
@@ -988,10 +1051,10 @@ func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
     {
         switch width
         {
-        case 2:  weightRows'2(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
-        case 4:  weightRows'4(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
-        case 8:  weightRows'8(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
-        case 16: weightRows'16(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
+        case 2:  weightRows!{2}(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
+        case 4:  weightRows!{4}(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
+        case 8:  weightRows!{8}(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
+        case 16: weightRows!{16}(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
         }
 
         return
@@ -999,13 +1062,16 @@ func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
 
     // A zero denominator shifts by nothing with no rounding term, so one expression serves
     // both spellings of section 8.4.2.3.2.
-    let rounding = logDenom > 0 ? 1's32 << cast(u32, (logDenom - 1)) : 0's32
+    let rounding = logDenom > 0 ? 1_s32 << cast(u32, (logDenom - 1)) : 0_s32
     var out      = dst
     var line     = src
     for cast(u64, height)
     {
-        for column in cast(u64, width) do
+        for column in cast(u64, width)
+        {
             out[column] = clampPixel(((cast(s32, line[column]) * weight + rounding) >> cast(u32, logDenom)) + offset)
+        }
+
         out  += dstStride
         line += srcStride
     }
@@ -1018,7 +1084,7 @@ private func weightBiQuads(pixels: Simd.S16x8, weights: Simd.S16x8, rounding, sh
 #[Swag.Inline]
 private func weightBiRow(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weight1, offset0, offset1: s32)->Simd.U8x16
 {
-    let rounding = 1's32 << cast(u32, logDenom)
+    let rounding = 1_s32 << cast(u32, logDenom)
     let offset   = (offset0 + offset1 + 1) >> 1
     let shift    = logDenom + 1
 
@@ -1043,7 +1109,7 @@ private func weightBiRow(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weight
 #[Swag.Inline]
 private func weightBiRow8(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weight1, offset0, offset1: s32)->Simd.U8x16
 {
-    let rounding      = 1's32 << cast(u32, logDenom)
+    let rounding      = 1_s32 << cast(u32, logDenom)
     let offset        = (offset0 + offset1 + 1) >> 1
     let shift         = logDenom + 1
     let packedWeights = cast(u32, cast #wrap(u16, weight0)) | (cast(u32, cast #wrap(u16, weight1)) << 16)
@@ -1090,15 +1156,18 @@ func weightBi(dst: [*] u8, dstStride: u64, src0, src1: [*] u8, srcStride: u64, w
         return
     }
 
-    let rounding = 1's32 << cast(u32, logDenom)
+    let rounding = 1_s32 << cast(u32, logDenom)
     let offset   = (offset0 + offset1 + 1) >> 1
     var out      = dst
     var line0    = src0
     var line1    = src1
     for cast(u64, height)
     {
-        for column in cast(u64, width) do
+        for column in cast(u64, width)
+        {
             out[column] = clampPixel(((cast(s32, line0[column]) * weight0 + cast(s32, line1[column]) * weight1 + rounding) >> cast(u32, (logDenom + 1))) + offset)
+        }
+
         out   += dstStride
         line0 += srcStride
         line1 += srcStride

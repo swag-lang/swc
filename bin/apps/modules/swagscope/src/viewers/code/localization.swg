@@ -46,10 +46,10 @@ func registerTexts(app: *Application)
 {
     PlainText.registerTexts(app)
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'Texts(&g_Texts, "scope.code")
+    Gui.registerStrings!{Texts}(&g_Texts, "scope.code")
 }
 
 #run
 {
-    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
+    expect Gui.validateStrings!{Texts}(cast(string, FrenchStrings))
 }

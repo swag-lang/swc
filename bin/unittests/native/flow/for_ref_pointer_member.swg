@@ -17,8 +17,10 @@ struct RefPointerPreview
     var count   = 0
     for &entry in previews
     {
-        if entry[].started do
+        if entry[].started
+        {
             count += 1
+        }
     }
     Swag.require(count == 1)
 }

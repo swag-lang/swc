@@ -4,10 +4,10 @@ using Core
 
 namespace Integration
 {
-    const BenchmarkClipCount = 16'u64
-    const BenchmarkReadCount = 64'u64
-    const BenchmarkClipSize  = 512'u64 * 1024
-    const BenchmarkReadSize  = 4096'u64
+    const BenchmarkClipCount = 16_u64
+    const BenchmarkReadCount = 64_u64
+    const BenchmarkClipSize  = 512_u64 * 1024
+    const BenchmarkReadSize  = 4096_u64
 
     var g_ReadCallbackMicroseconds: u64
     var g_ReadWaitMicroseconds:     u64
@@ -30,8 +30,10 @@ namespace Integration
         for index in BenchmarkReadCount
         {
             let block = (index * 37 + seed * 13) % (BenchmarkClipSize / BenchmarkReadSize)
-            if not (try stream.readExactAt(block * BenchmarkReadSize, buffer)) do
+            if not (try stream.readExactAt(block * BenchmarkReadSize, buffer))
+            {
                 return false
+            }
         }
 
         return true
@@ -88,8 +90,10 @@ namespace Integration
         File.writeAllBytes(largePath, largePayload.toSlice())
 
         // Warm the mounted path before comparing the same request set in each mode.
-        for index in BenchmarkClipCount do
+        for index in BenchmarkClipCount
+        {
             verify(readClip(readWork.paths[index], index), "benchmark clips must be readable")
+        }
 
         var timer: Time.Stopwatch
         timer.start()
@@ -102,7 +106,7 @@ namespace Integration
         reportAccessTime("directory enumerate", timer.elapsedMicroseconds(), 100)
 
         timer.restart()
-        var openedBytes = 0'u64
+        var openedBytes = 0_u64
         for 100
         {
             var stream = File.openRead(largePath)
@@ -115,8 +119,11 @@ namespace Integration
 
         resetReadTimes()
         timer.restart()
-        for index in BenchmarkClipCount do
+        for index in BenchmarkClipCount
+        {
             verify(readClip(readWork.paths[index], index), "sequential request set must read every clip")
+        }
+
         reportAccessTime("random 4 KiB reads, serial", timer.elapsedMicroseconds(), BenchmarkClipCount * BenchmarkReadCount)
         reportReadTimes()
 
@@ -124,8 +131,10 @@ namespace Integration
         timer.restart()
         parallel for |&readWork| index in BenchmarkClipCount
         {
-            if not (expect readClip(readWork.paths[index], index)) do
+            if not (expect readClip(readWork.paths[index], index))
+            {
                 Atomic.add(&readWork.failures, 1)
+            }
         }
 
         verify(readWork.failures == 0, "parallel request set must read every clip")
@@ -137,8 +146,11 @@ namespace Integration
         var buffer: [64 * 1024] u8
         resetReadTimes()
         timer.restart()
-        for index in largePayload.count / buffer.count do
+        for index in largePayload.count / buffer.count
+        {
             verify(stream.readExactAt(index * buffer.count, buffer), "sequential read must complete")
+        }
+
         reportAccessTime("large file, 64 KiB reads", timer.elapsedMicroseconds(), largePayload.count / buffer.count)
         reportReadTimes()
 

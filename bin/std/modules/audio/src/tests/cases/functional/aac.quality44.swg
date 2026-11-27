@@ -33,9 +33,9 @@ using Swag, Core
     source[LeftImpulseFrame * 2]      = 20_000
     source[RightImpulseFrame * 2 + 1] = -18_000
 
-    var encoded: Array'u8
-    var packets: Array'SoundPacket
-    var packet:  Array'u8
+    var encoded: Array!{u8}
+    var packets: Array!{SoundPacket}
+    var packet:  Array!{u8}
     for block in 12
     {
         Swag.require(expect encoder.push(Swag.makeSlice(&source[block * 2 * 1_024], 2 * 1_024), &packet) == 1_024)
@@ -50,7 +50,7 @@ using Swag, Core
     Swag.require(not expect encoder.finish(&packet))
     discard expect File.writeAllBytes(path.toString(), encoded.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 44_100, 2, packets.count * 1_024, packets.toSlice(), encoder.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
@@ -60,10 +60,10 @@ using Swag, Core
 
     for channel in 2
     {
-        var sourcePower  = 0.0'f64
-        var decodedPower = 0.0'f64
-        var cross        = 0.0'f64
-        var error        = 0.0'f64
+        var sourcePower  = 0.0_f64
+        var decodedPower = 0.0_f64
+        var cross        = 0.0_f64
+        var error        = 0.0_f64
         for frame in 3 * 1_024 until 5 * 1_024
         {
             let original = cast(f64, source[(frame - 1_024) * 2 + channel])
@@ -81,8 +81,8 @@ using Swag, Core
     for channel in 2
     {
         let expected = (channel == 0 ? LeftImpulseFrame : RightImpulseFrame) + 1_024
-        var peak     = 0's32
-        var peakAt   = 0'u64
+        var peak     = 0_s32
+        var peakAt   = 0_u64
         for frame in expected - 256 until expected + 256
         {
             let magnitude = Math.abs(cast(s32, decoded[frame * 2 + channel]))

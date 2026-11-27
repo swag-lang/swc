@@ -54,39 +54,43 @@ struct BadgeScorer {}
 
 func isLineBreak(ch: u8)->bool
 {
-    return ch == '\n'u8 or ch == '\r'u8
+    return ch == '\n'_u8 or ch == '\r'_u8
 }
 
 func isItemType(ch: u8)->bool
 {
-    return (ch >= 'a'u8 and ch <= 'z'u8) or (ch >= 'A'u8 and ch <= 'Z'u8)
+    return (ch >= 'a'_u8 and ch <= 'z'_u8) or (ch >= 'A'_u8 and ch <= 'Z'_u8)
 }
 
 func priorityOf(ch: u8)->u32
 {
     Swag.assert(isItemType(ch))
 
-    if ch >= 'a'u8 do
-        return cast(u32, (ch - 'a'u8)) + 1'u32
-    return cast(u32, (ch - 'A'u8)) + 27'u32
+    if ch >= 'a'_u8
+    {
+        return cast(u32, (ch - 'a'_u8)) + 1_u32
+    }
+    return cast(u32, (ch - 'A'_u8)) + 27_u32
 }
 
 func maskForItem(ch: u8)->u64
 {
     let priority = priorityOf(ch)
-    return 1'u64 << cast(u64, (priority - 1'u32))
+    return 1_u64 << cast(u64, (priority - 1_u32))
 }
 
 func priorityFromMask(mask: u64)->u32
 {
-    Swag.assert(mask != 0'u64)
-    Swag.assert((mask & (mask - 1'u64)) == 0'u64)
+    Swag.assert(mask != 0_u64)
+    Swag.assert((mask & (mask - 1_u64)) == 0_u64)
 
     for index in 52
     {
-        let bit = 1'u64 << cast(u64, index)
-        if bit == mask do
-            return cast(u32, index) + 1'u32
+        let bit = 1_u64 << cast(u64, index)
+        if bit == mask
+        {
+            return cast(u32, index) + 1_u32
+        }
     }
 
     Swag.assert(false)
@@ -109,7 +113,7 @@ func buildMask(line: const [..] u8)->u64
 
 func duplicateMask(line: const [..] u8)->u64
 {
-    Swag.assert((line.count & 1'u64) == 0'u64)
+    Swag.assert((line.count & 1_u64) == 0_u64)
 
     let half      = line.count / 2
     let leftMask  = buildMask(line[until half])
@@ -134,8 +138,10 @@ func solveClean(bytes: const [..] u8)->RucksackReport
         if isLineBreak(bytes[index]) or index == bytes.count - 1
         {
             var lineEnd = index
-            if not isLineBreak(bytes[index]) do
+            if not isLineBreak(bytes[index])
+            {
                 lineEnd = index + 1
+            }
 
             if lineEnd > lineStart
             {
@@ -235,8 +241,10 @@ func forEachLine(bytes: const [..] u8, stmt: #code(line))
         if isLineBreak(bytes[index]) or index == bytes.count - 1
         {
             var lineEnd = index
-            if not isLineBreak(bytes[index]) do
+            if not isLineBreak(bytes[index])
+            {
                 lineEnd = index + 1
+            }
 
             if lineEnd > lineStart
             {
@@ -252,7 +260,7 @@ func forEachLine(bytes: const [..] u8, stmt: #code(line))
 func solveWithLanguageFeatures(bytes: const [..] u8)->RucksackReport
 {
     declareFeatureState()
-    fill'(u64)(featureMasks, 0'u64)
+    fill!{u64}(featureMasks, 0_u64)
 
     var duplicateScorer: DuplicateScorer
     var badgeScorer:     BadgeScorer
@@ -298,10 +306,10 @@ const EdgeFeatureReport:     RucksackReport = #run solveWithLanguageFeatures(cas
     let sampleClean    = solveClean(sampleBytes)
     let sampleFeatures = solveWithLanguageFeatures(sampleBytes)
 
-    Swag.require(sampleClean.rucksackCount == 6'u32)
-    Swag.require(sampleClean.groupCount == 2'u32)
-    Swag.require(sampleClean.misplacedPrioritySum == 157'u64)
-    Swag.require(sampleClean.badgePrioritySum == 70'u64)
+    Swag.require(sampleClean.rucksackCount == 6_u32)
+    Swag.require(sampleClean.groupCount == 2_u32)
+    Swag.require(sampleClean.misplacedPrioritySum == 157_u64)
+    Swag.require(sampleClean.badgePrioritySum == 70_u64)
     Swag.require(SampleFeatureReport.rucksackCount == sampleClean.rucksackCount)
     Swag.require(SampleFeatureReport.groupCount == sampleClean.groupCount)
     Swag.require(SampleFeatureReport.misplacedPrioritySum == sampleClean.misplacedPrioritySum)
@@ -316,10 +324,10 @@ const EdgeFeatureReport:     RucksackReport = #run solveWithLanguageFeatures(cas
     let coverageClean    = solveClean(coverageBytes)
     let coverageFeatures = solveWithLanguageFeatures(coverageBytes)
 
-    Swag.require(coverageClean.rucksackCount == 6'u32)
-    Swag.require(coverageClean.groupCount == 2'u32)
-    Swag.require(coverageClean.misplacedPrioritySum == 159'u64)
-    Swag.require(coverageClean.badgePrioritySum == 53'u64)
+    Swag.require(coverageClean.rucksackCount == 6_u32)
+    Swag.require(coverageClean.groupCount == 2_u32)
+    Swag.require(coverageClean.misplacedPrioritySum == 159_u64)
+    Swag.require(coverageClean.badgePrioritySum == 53_u64)
     Swag.require(CoverageFeatureReport.misplacedPrioritySum == coverageClean.misplacedPrioritySum)
     Swag.require(CoverageFeatureReport.badgePrioritySum == coverageClean.badgePrioritySum)
     Swag.require(coverageFeatures.misplacedPrioritySum == coverageClean.misplacedPrioritySum)
@@ -332,10 +340,10 @@ const EdgeFeatureReport:     RucksackReport = #run solveWithLanguageFeatures(cas
     let edgeClean    = solveClean(edgeBytes)
     let edgeFeatures = solveWithLanguageFeatures(edgeBytes)
 
-    Swag.require(edgeClean.rucksackCount == 3'u32)
-    Swag.require(edgeClean.groupCount == 1'u32)
-    Swag.require(edgeClean.misplacedPrioritySum == 39'u64)
-    Swag.require(edgeClean.badgePrioritySum == 13'u64)
+    Swag.require(edgeClean.rucksackCount == 3_u32)
+    Swag.require(edgeClean.groupCount == 1_u32)
+    Swag.require(edgeClean.misplacedPrioritySum == 39_u64)
+    Swag.require(edgeClean.badgePrioritySum == 13_u64)
     Swag.require(EdgeFeatureReport.misplacedPrioritySum == edgeClean.misplacedPrioritySum)
     Swag.require(EdgeFeatureReport.badgePrioritySum == edgeClean.badgePrioritySum)
     Swag.require(edgeFeatures.misplacedPrioritySum == edgeClean.misplacedPrioritySum)
@@ -349,13 +357,13 @@ const EdgeFeatureReport:     RucksackReport = #run solveWithLanguageFeatures(cas
     Swag.require(priorityOf('z') == 26)
     Swag.require(priorityOf('A') == 27)
     Swag.require(priorityOf('Z') == 52)
-    Swag.require(priorityFromMask(maskForItem('p'u8)) == 16'u32)
-    Swag.require(priorityFromMask(duplicateMask(first)) == 16'u32)
-    Swag.require(priorityFromMask(badgeMask(first, second, third)) == 18'u32)
+    Swag.require(priorityFromMask(maskForItem('p'_u8)) == 16_u32)
+    Swag.require(priorityFromMask(duplicateMask(first)) == 16_u32)
+    Swag.require(priorityFromMask(badgeMask(first, second, third)) == 18_u32)
 
     var scratch: [3] u64
-    fill(scratch, 7'u64)
-    Swag.require(scratch[0] == 7'u64)
-    Swag.require(scratch[1] == 7'u64)
-    Swag.require(scratch[2] == 7'u64)
+    fill(scratch, 7_u64)
+    Swag.require(scratch[0] == 7_u64)
+    Swag.require(scratch[1] == 7_u64)
+    Swag.require(scratch[2] == 7_u64)
 }

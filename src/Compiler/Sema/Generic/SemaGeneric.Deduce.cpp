@@ -447,12 +447,12 @@ namespace
         if (const auto* quotedExpr = identNode.safeCast<AstQuotedExpr>())
         {
             exprRef = quotedExpr->nodeExprRef;
-            SemaGeneric::appendQuotedGenericArgs(*quotedExpr, outGenericArgs);
+            SemaGeneric::appendExplicitGenericArgs(*quotedExpr, outGenericArgs);
         }
-        else if (const auto* quotedList = identNode.safeCast<AstQuotedListExpr>())
+        else if (const auto* genericArgList = identNode.safeCast<AstGenericArgListExpr>())
         {
-            exprRef = quotedList->nodeExprRef;
-            SemaGeneric::appendQuotedGenericArgs(sema.ast(), *quotedList, outGenericArgs);
+            exprRef = genericArgList->nodeExprRef;
+            SemaGeneric::appendExplicitGenericArgs(sema.ast(), *genericArgList, outGenericArgs);
         }
         else
         {
@@ -1751,7 +1751,7 @@ namespace SemaGeneric
 
         SmallVector<GenericResolvedArg> resolvedArgs(genericParams.size());
         SmallVector<AstNodeRef>         explicitGenericArgNodes;
-        SemaGeneric::appendQuotedGenericArgs(sema.node(calleeRef), sema.ast(), explicitGenericArgNodes);
+        SemaGeneric::appendExplicitGenericArgs(sema.node(calleeRef), sema.ast(), explicitGenericArgNodes);
         if (explicitGenericArgNodes.size() > genericParams.size())
             return Result::Continue;
 

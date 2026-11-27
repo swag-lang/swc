@@ -14,8 +14,11 @@ public impl FileStream
     // or a live-read stream has no persistent descriptor and fails with a bad-parameter error.
     mtd const nativeFileDescriptor()->s32 fail
     {
-        if not .handle or .liveRead do
+        if not .handle or .liveRead
+        {
             fail Errors.BadParameterError{"a persistent file descriptor requires an ordinary open stream"}
+        }
+
         return File.nativeFileDescriptor(.handle)
     }
 }
@@ -25,7 +28,7 @@ internal impl FileStream
     mtd readNative(buffer: *void, length: u32)->u32 fail
     {
         let bytes = cast([*] u8, buffer)
-        var total = 0'u32
+        var total = 0_u32
 
         // Linux caps each read below 2 GiB and may return a partial read on interruption.
         // The common stream layer treats a short chunk as EOF, so fill it here when possible.
@@ -36,15 +39,17 @@ internal impl FileStream
             {
                 total += cast(u32, count)
             }
-            elif count == 0
+            else if count == 0
             {
                 break
             }
             else
             {
                 let error = Linux.errno()
-                if error != Linux.EINTR do
+                if error != Linux.EINTR
+                {
                     try Errors.failLinuxError(error, .name)
+                }
             }
         }
 
@@ -56,11 +61,83 @@ internal impl FileStream
         for
         {
             let count = Linux.write(nativeFileDescriptor(.handle), buffer, length)
-            if count >= 0 do
+            if count >= 0
+            {
                 return cast(u32, count)
+            }
+
             let error = Linux.errno()
-            if error != Linux.EINTR do
+            if error != Linux.EINTR
+            {
                 try Errors.failLinuxError(error, .name)
+            }
+        }
+    }
+
+    // A native positional transfer uses signed offsets measured from the start of the file.
+    private func checkFileRange(offset, count: u64) fail
+    {
+        const MaxOffset = cast(u64, Swag.S64.Max)
+        if offset > MaxOffset or count > MaxOffset - offset
+        {
+            fail Errors.BadParameterError{"file transfer exceeds the supported offset range"}
+        }
+    }
+
+    // Reads a range on an ordinary open handle. The caller does not use the stream's cursor.
+    mtd readFileRange(offset: u64, buffer: [..] u8)->bool fail
+    {
+        try checkFileRange(offset, buffer.count)
+        let descriptor = nativeFileDescriptor(.handle)
+        var total      = 0_u64
+        while total < buffer.count
+        {
+            let count = Linux.pread(descriptor, buffer.buffer + total, buffer.count - total, cast(s64, offset + total))
+            if count == 0
+            {
+                return false
+            }
+            if count < 0
+            {
+                let error = Linux.errno()
+                if error != Linux.EINTR
+                {
+                    try Errors.failLinuxError(error, .name)
+                }
+                continue
+            }
+
+            total += cast(u64, count)
+        }
+
+        return true
+    }
+
+    // Rewrites a file range without disturbing the caller's known append position.
+    mtd writeAllAtKeepingPosition(offset: u64, buffer: const [..] u8, _: u64) fail
+    {
+        try checkFileRange(offset, buffer.count)
+
+        let descriptor = nativeFileDescriptor(.handle)
+        var total      = 0_u64
+        while total < buffer.count
+        {
+            let written = Linux.pwrite(descriptor, buffer.buffer + total, buffer.count - total, cast(s64, offset + total))
+            if written == 0
+            {
+                fail Swag.SystemError{"file write stopped before all bytes were written"}
+            }
+            if written < 0
+            {
+                let error = Linux.errno()
+                if error != Linux.EINTR
+                {
+                    try Errors.failLinuxError(error, .name)
+                }
+                continue
+            }
+
+            total += cast(u64, written)
         }
     }
 
@@ -76,11 +153,16 @@ internal impl FileStream
         var info: Linux.stat
         for
         {
-            if Linux.fstat(nativeFileDescriptor(.handle), &info) == 0 do
+            if Linux.fstat(nativeFileDescriptor(.handle), &info) == 0
+            {
                 return cast(u64, info.st_size)
+            }
+
             let error = Linux.errno()
-            if error != Linux.EINTR do
+            if error != Linux.EINTR
+            {
                 try Errors.failLinuxError(error, .name)
+            }
         }
     }
 
@@ -89,11 +171,16 @@ internal impl FileStream
         let position = try .positionNative()
         for
         {
-            if Linux.ftruncate(nativeFileDescriptor(.handle), cast(s64, position)) == 0 do
+            if Linux.ftruncate(nativeFileDescriptor(.handle), cast(s64, position)) == 0
+            {
                 return
+            }
+
             let error = Linux.errno()
-            if error != Linux.EINTR do
+            if error != Linux.EINTR
+            {
                 try Errors.failLinuxError(error, .name)
+            }
         }
     }
 
@@ -101,19 +188,27 @@ internal impl FileStream
     {
         for
         {
-            if Linux.fsync(nativeFileDescriptor(.handle)) == 0 do
+            if Linux.fsync(nativeFileDescriptor(.handle)) == 0
+            {
                 return
+            }
+
             let error = Linux.errno()
-            if error != Linux.EINTR do
+            if error != Linux.EINTR
+            {
                 try Errors.failLinuxError(error, .name)
+            }
         }
     }
 
     mtd positionNative()->u64 fail
     {
         let position = Linux.lseek(nativeFileDescriptor(.handle), 0, Linux.SEEK_CUR)
-        if position < 0 do
+        if position < 0
+        {
             try Errors.failLinuxError(Linux.errno(), .name)
+        }
+
         return cast(u64, position)
     }
 
@@ -129,7 +224,9 @@ internal impl FileStream
 
         // Relative seeks retain the existing API's signed interpretation of the u64 bits.
         let position = Linux.lseek(nativeFileDescriptor(.handle), cast #bit (s64, offset), whence)
-        if position < 0 do
+        if position < 0
+        {
             try Errors.failLinuxError(Linux.errno(), .name)
+        }
     }
 }

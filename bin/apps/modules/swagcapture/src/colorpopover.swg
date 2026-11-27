@@ -37,20 +37,20 @@ struct ColorPopover
 {
     using wnd: Wnd
 
-    sigColorChanged: SigArray'func||(*ColorPopover)     // Emitted after the reader changes the colour.
+    sigColorChanged: SigArray!{func||(*ColorPopover)}     // Emitted after the reader changes the colour.
 
     color: Color
     title: String
 
     late
     {
-        recent:       *Array'Color     // The colours used last, newest first; the popover adds its picks.
+        recent:       *Array!{Color}     // The colours used last, newest first; the popover adds its picks.
         hexEdit:      *EditBox
         opacity:      *Slider
         opacityValue: *Label
     }
 
-    swatches: Array'(*IconButton)
+    swatches: Array!{*IconButton}
 }
 
 impl IWnd for ColorPopover
@@ -83,8 +83,11 @@ impl ColorPopover
     func paintSwatch(painter: *Painter, rect: Math.Rectangle, color: Color, metrics: const *ThemeMetrics, colors: const *ThemeColors)
     {
         painter.setParams(.Antialiased)
-        if not color.isOpaque() do
+        if not color.isOpaque()
+        {
             painter.fillRoundRect(rect, metrics.corner_Chip, metrics.corner_Chip, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
+        }
+
         painter.fillRoundRect(rect, metrics.corner_Chip, metrics.corner_Chip, color)
         painter.drawRoundRect(rect, metrics.corner_Chip, metrics.corner_Chip, colors.line, metrics.separator_HairlineSize)
     }
@@ -100,11 +103,11 @@ impl ColorPopover
 
     // Opens the popover under `button`, titled `title`, set to `color`; `recent` is the list of the
     // colours used last, which the popover keeps.
-    func open(button: *IconButton, title: string, color: Color, recent: *Array'Color)->*ColorPopover
+    func open(button: *IconButton, title: string, color: Color, recent: *Array!{Color})->*ColorPopover
     {
         let size        = size()
         let frame       = button.createAnchorPopup(size.x, size.y)
-        with let result = Wnd.create'ColorPopover(frame, {})
+        with let result = Wnd.create!{ColorPopover}(frame, {})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -159,18 +162,25 @@ impl ColorPopover
         let aboveFits = above.y >= bounds.y
 
         var place = below
-        if aboveFits and not above.intersects(avoid) and (not belowFits or below.intersects(avoid)) do
+        if aboveFits and not above.intersects(avoid) and (not belowFits or below.intersects(avoid))
+        {
             place = above
-        elif aboveFits and not belowFits do
+        }
+        else if aboveFits and not belowFits
+        {
             place = above
+        }
 
         // With room neither under nor over the button, the popover stands beside it, from its
         // top: on its trailing side, or its leading side when the window ends there.
         if not belowFits and not aboveFits
         {
             place.x = anchor.right() + gap
-            if place.right() > bounds.right() do
+            if place.right() > bounds.right()
+            {
                 place.x = Math.max(anchor.x - gap - w, bounds.x)
+            }
+
             place.y = anchor.y
         }
 
@@ -196,8 +206,11 @@ impl ColorPopover
         y += PopoverLabelRow
         for color, i in .recent[]
         {
-            if i == PopoverColumns do
+            if i == PopoverColumns
+            {
                 break
+            }
+
             .addSwatch(color, PopoverPadding + cast(f32, i) * (PopoverSwatch + PopoverGap), y)
         }
 
@@ -206,8 +219,11 @@ impl ColorPopover
         y += PopoverLabelRow
         for row in 4
         {
-            for column in PopoverColumns do
+            for column in PopoverColumns
+            {
                 .addSwatch(paletteColor(row, column), PopoverPadding + cast(f32, column) * (PopoverSwatch + PopoverGap), y)
+            }
+
             y += PopoverSwatch + PopoverGap
         }
 
@@ -221,9 +237,12 @@ impl ColorPopover
             .sigCommitted += func|popover = me|(edit)
             {
                 let {value, eat, ovf} = catch StrConv.parseX64(edit.text()) { return; }
-                if eat != 6 or ovf do
+                if eat != 6 or ovf
+                {
                     return
-                var color = Color.fromArgb(0xFF000000'u32 | cast(u32, value))
+                }
+
+                var color = Color.fromArgb(0xFF000000_u32 | cast(u32, value))
                 color.a = popover.color.a
                 popover.choose(color)
             }
@@ -231,8 +250,8 @@ impl ColorPopover
 
         // The opacity: its word, the slider, the value in percent.
         y += PopoverValueRow + PopoverBlockGap
-        let valueWidth = 48.0'f32
-        let labelWidth = 64.0'f32
+        let valueWidth = 48.0_f32
+        let labelWidth = 64.0_f32
         with let label = Label.create(me, texts.prop_Opacity, Math.Rectangle{x: PopoverPadding, y: y, width: labelWidth, height: PopoverValueRow}, flags: .SecondaryText)
         {
             .setTextAlignment(.Left, .Center)
@@ -252,8 +271,10 @@ impl ColorPopover
             {
                 var color = popover.color
                 color.a = cast(u8, Math.round((assume cast(*Slider, wnd)).value() * 255 / 100))
-                if color.a != popover.color.a do
+                if color.a != popover.color.a
+                {
                     popover.apply(color)
+                }
             }
         }
 
@@ -305,8 +326,11 @@ impl ColorPopover
         }
 
         .recent.insertAt(0, color)
-        while .recent.count > MaxRecentColors do
+        while .recent.count > MaxRecentColors
+        {
             .recent.removeBack()
+        }
+
         .apply(color)
     }
 
@@ -321,8 +345,11 @@ impl ColorPopover
     // Shows the colour in force: the ring of its swatch, its hex, its opacity.
     mtd refresh()
     {
-        if not .hexEdit.hasFocus() do
+        if not .hexEdit.hasFocus()
+        {
             .hexEdit.setText(Format.toString("%{X02}%{X02}%{X02}", .color.r, .color.g, .color.b))
+        }
+
         .opacity.setValueWithoutGesture(Math.round(cast(f32, .color.a) * 100 / 255))
         var value = Format.toString("%", cast(s32, Math.round(cast(f32, .color.a) * 100 / 255)))
         value += " %"

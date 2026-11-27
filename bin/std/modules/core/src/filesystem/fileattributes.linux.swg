@@ -7,15 +7,27 @@ internal func nativeAttributes(directory: s32, name: string, metadata: Linux.Str
     var result = FileAttributes.None
     let mode   = cast(u32, metadata.stx_mode)
     let kind   = mode & Linux.S_IFMT
-    if metadata.stx_mask & Linux.STATX_MODE and (mode & (Linux.S_IWUSR | Linux.S_IWGRP | Linux.S_IWOTH)) == 0 do
+    if metadata.stx_mask & Linux.STATX_MODE and (mode & (Linux.S_IWUSR | Linux.S_IWGRP | Linux.S_IWOTH)) == 0
+    {
         result |= .ReadOnly
+    }
+
     let leaf = Path.fileName(name) orelse ""
-    if leaf.count != 0 and leaf[0] == '.' and leaf != "." and leaf != ".." do
+    if leaf.count != 0 and leaf[0] == '.' and leaf != "." and leaf != ".."
+    {
         result |= .Hidden
-    if kind == Linux.S_IFDIR do
+    }
+
+    if kind == Linux.S_IFDIR
+    {
         result |= .Directory
-    if kind == Linux.S_IFBLK or kind == Linux.S_IFCHR do
+    }
+
+    if kind == Linux.S_IFBLK or kind == Linux.S_IFCHR
+    {
         result |= .Device
+    }
+
     if kind == Linux.S_IFLNK
     {
         result |= .ReparsePoint
@@ -28,21 +40,32 @@ internal func nativeAttributes(directory: s32, name: string, metadata: Linux.Str
         {
             if Linux.fstatat(directory, native.storage(), &target, 0) == 0
             {
-                if (target.st_mode & Linux.S_IFMT) == Linux.S_IFDIR do
+                if (target.st_mode & Linux.S_IFMT) == Linux.S_IFDIR
+                {
                     result |= .Directory
+                }
+
                 break
             }
 
-            if Linux.errno() != Linux.EINTR do
+            if Linux.errno() != Linux.EINTR
+            {
                 break
+            }
         }
     }
 
     let attributes = metadata.stx_attributes & metadata.stx_attributes_mask
-    if attributes & Linux.STATX_ATTR_COMPRESSED do
+    if attributes & Linux.STATX_ATTR_COMPRESSED
+    {
         result |= .Compressed
-    if attributes & Linux.STATX_ATTR_ENCRYPTED do
+    }
+
+    if attributes & Linux.STATX_ATTR_ENCRYPTED
+    {
         result |= .Encrypted
+    }
+
     return result == .None ? .Normal : result
 }
 

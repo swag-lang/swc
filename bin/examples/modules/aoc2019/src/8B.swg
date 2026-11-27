@@ -40,7 +40,9 @@ func day8B()
     var pix: [S] rune
     for c, i in (expect File.readAllText(dataPath)).bytes()
     {
-        if pix[i % S] == 0 and c != '2' do
+        if pix[i % S] == 0 and c != '2'
+        {
             pix[i % S] = c == '1' ? 'X' : ' '
+        }
     }
 }

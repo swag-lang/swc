@@ -23,12 +23,18 @@ public impl CultureInfo
     internal mtd const isLanguage(language: string)->bool
     {
         let name = .name.toString()
-        if name.count < language.count do
+        if name.count < language.count
+        {
             return false
+        }
+
         let languagePrefix    = cast(const [..] u8, name[until language.count])
         let requestedLanguage = cast(const [..] u8, language)
-        if Utf8.compare(languagePrefix, requestedLanguage, .Latin1NoCase) != 0 do
+        if Utf8.compare(languagePrefix, requestedLanguage, .Latin1NoCase) != 0
+        {
             return false
+        }
+
         return name.count == language.count or name[language.count] == '-'
     }
 
@@ -60,7 +66,7 @@ public impl CultureInfo
                 .uses24Hour       = true
             }
         }
-        elif result.isNamed("en-AU") or result.isNamed("en-NZ")
+        else if result.isNamed("en-AU") or result.isNamed("en-NZ")
         {
             with result.dateTimeFormat
             {
@@ -72,7 +78,7 @@ public impl CultureInfo
                 .uses24Hour       = true
             }
         }
-        elif result.isLanguage("fr")
+        else if result.isLanguage("fr")
         {
             result.numberFormat.decimalSeparator  = ','
             result.numberFormat.groupSeparator    = 0x202F
@@ -97,7 +103,7 @@ public impl CultureInfo
                 .uses24Hour       = true
             }
         }
-        elif result.isLanguage("de")
+        else if result.isLanguage("de")
         {
             result.numberFormat.decimalSeparator  = ','
             result.numberFormat.groupSeparator    = '.'
@@ -123,7 +129,7 @@ public impl CultureInfo
                 .uses24Hour       = true
             }
         }
-        elif result.isLanguage("hi")
+        else if result.isLanguage("hi")
         {
             result.numberFormat.groupSizes         = [3, 2]
             result.numberFormat.groupSizeCount     = 2
@@ -131,7 +137,7 @@ public impl CultureInfo
             result.dateTimeFormat.shortDatePattern = "dd/MM/yyyy"
             result.dateTimeFormat.dateOrder        = .DayMonthYear
         }
-        elif result.isLanguage("tr")
+        else if result.isLanguage("tr")
         {
             result.numberFormat.decimalSeparator  = ','
             result.numberFormat.groupSeparator    = '.'
@@ -156,7 +162,7 @@ public impl CultureInfo
                 .uses24Hour       = true
             }
         }
-        elif result.isLanguage("ru") or result.isLanguage("pl") or result.isLanguage("cs")
+        else if result.isLanguage("ru") or result.isLanguage("pl") or result.isLanguage("cs")
         {
             result.numberFormat.decimalSeparator = ','
             result.numberFormat.groupSeparator   = 0x00A0
@@ -171,7 +177,7 @@ public impl CultureInfo
                 .uses24Hour       = true
             }
         }
-        elif result.isLanguage("ja")
+        else if result.isLanguage("ja")
         {
             result.currencyFormat.symbol        = "\u00A5"
             result.currencyFormat.decimalDigits = 0
@@ -186,7 +192,7 @@ public impl CultureInfo
                 .uses24Hour       = true
             }
         }
-        elif result.isLanguage("ar")
+        else if result.isLanguage("ar")
         {
             result.currencyFormat.symbol = "\u062C.\u0645."
             result.currencyFormat.positivePattern = .SymbolAfterWithSpace
@@ -208,8 +214,10 @@ public impl CultureInfo
     mtd const cardinalPlural(value: f64)->PluralCategory
     {
         let absolute = Math.abs(value)
-        if not Math.isFinite(absolute) or absolute >= cast(f64, Swag.U64.Max) do
+        if not Math.isFinite(absolute) or absolute >= cast(f64, Swag.U64.Max)
+        {
             return .Other
+        }
 
         let integer  = cast(u64, Math.trunc(absolute))
         let integral = absolute == cast(f64, integer)
@@ -218,22 +226,39 @@ public impl CultureInfo
            .isLanguage("zh") or
            .isLanguage("ko") or
            .isLanguage("th") or
-           .isLanguage("vi") do
+           .isLanguage("vi")
+        {
             return .Other
+        }
 
         if .isLanguage("ar") and integral
         {
-            if integer == 0 do
+            if integer == 0
+            {
                 return .Zero
-            if integer == 1 do
+            }
+
+            if integer == 1
+            {
                 return .One
-            if integer == 2 do
+            }
+
+            if integer == 2
+            {
                 return .Two
+            }
+
             let mod100 = integer % 100
-            if mod100 >= 3 and mod100 <= 10 do
+            if mod100 >= 3 and mod100 <= 10
+            {
                 return .Few
-            if mod100 >= 11 and mod100 <= 99 do
+            }
+
+            if mod100 >= 11 and mod100 <= 99
+            {
                 return .Many
+            }
+
             return .Other
         }
 
@@ -241,43 +266,76 @@ public impl CultureInfo
         {
             let mod10  = integer % 10
             let mod100 = integer % 100
-            if mod10 == 1 and mod100 != 11 do
+            if mod10 == 1 and mod100 != 11
+            {
                 return .One
-            if mod10 >= 2 and mod10 <= 4 and (mod100 < 12 or mod100 > 14) do
+            }
+
+            if mod10 >= 2 and mod10 <= 4 and (mod100 < 12 or mod100 > 14)
+            {
                 return .Few
-            if mod10 == 0 or mod10 >= 5 or (mod100 >= 11 and mod100 <= 14) do
+            }
+
+            if mod10 == 0 or mod10 >= 5 or (mod100 >= 11 and mod100 <= 14)
+            {
                 return .Many
+            }
+
             return .Other
         }
 
         if .isLanguage("pl")
         {
-            if not integral do
+            if not integral
+            {
                 return .Many
-            if integer == 1 do
+            }
+
+            if integer == 1
+            {
                 return .One
+            }
+
             let mod10  = integer % 10
             let mod100 = integer % 100
-            if mod10 >= 2 and mod10 <= 4 and (mod100 < 12 or mod100 > 14) do
+            if mod10 >= 2 and mod10 <= 4 and (mod100 < 12 or mod100 > 14)
+            {
                 return .Few
+            }
+
             return .Many
         }
 
         if .isLanguage("cs") or .isLanguage("sk")
         {
-            if not integral do
+            if not integral
+            {
                 return .Many
-            if integer == 1 do
+            }
+
+            if integer == 1
+            {
                 return .One
-            if integer >= 2 and integer <= 4 do
+            }
+
+            if integer >= 2 and integer <= 4
+            {
                 return .Few
+            }
+
             return .Other
         }
 
-        if .isLanguage("fr") and integer <= 1 do
+        if .isLanguage("fr") and integer <= 1
+        {
             return .One
-        if .isLanguage("hi") and (integer == 0 or absolute == 1) do
+        }
+
+        if .isLanguage("hi") and (integer == 0 or absolute == 1)
+        {
             return .One
+        }
+
         return integral and integer == 1 ? .One : .Other
     }
 
@@ -288,14 +346,22 @@ public impl CultureInfo
         {
             let mod10  = value % 10
             let mod100 = value % 100
-            if mod10 == 1 and mod100 != 11 do
+            if mod10 == 1 and mod100 != 11
+            {
                 return .One
-            if mod10 == 2 and mod100 != 12 do
+            }
+
+            if mod10 == 2 and mod100 != 12
+            {
                 return .Two
-            if mod10 == 3 and mod100 != 13 do
+            }
+
+            if mod10 == 3 and mod100 != 13
+            {
                 return .Few
+            }
         }
-        elif .isLanguage("fr") and value == 1
+        else if .isLanguage("fr") and value == 1
         {
             return .One
         }
@@ -310,14 +376,22 @@ public impl CultureInfo
         let turkic = .isLanguage("tr") or .isLanguage("az")
         Utf8.visitRunes(cast(const [..] u8, value))
         {
-            if turkic and c == 'i' do
+            if turkic and c == 'i'
+            {
                 result.append(0x0130)
-            elif turkic and c == 0x0131 do
+            }
+            else if turkic and c == 0x0131
+            {
                 result.append(cast(rune, 'I'))
-            elif c == 0x00DF do
+            }
+            else if c == 0x00DF
+            {
                 result.append("SS")
-            else do
+            }
+            else
+            {
                 result.append(Unicode.toUpper(c))
+            }
         }
 
         return result
@@ -330,12 +404,18 @@ public impl CultureInfo
         let turkic = .isLanguage("tr") or .isLanguage("az")
         Utf8.visitRunes(cast(const [..] u8, value))
         {
-            if turkic and c == 'I' do
+            if turkic and c == 'I'
+            {
                 result.append(0x0131)
-            elif turkic and c == 0x0130 do
+            }
+            else if turkic and c == 0x0130
+            {
                 result.append(cast(rune, 'i'))
-            else do
+            }
+            else
+            {
                 result.append(Unicode.toLower(c))
+            }
         }
 
         return result
@@ -416,14 +496,14 @@ public impl CultureInfo
                 {
                 case 0x00E0, 0x00E1, 0x00E2, 0x00E3, 0x00E4, 0x00E5,
                      0x00C0, 0x00C1, 0x00C2, 0x00C3, 0x00C4, 0x00C5:
-                    result.append('a'u8)
+                    result.append('a'_u8)
 
-                case 0x00E7, 0x00C7:                                                 result.append('c'u8)
-                case 0x00E8, 0x00E9, 0x00EA, 0x00EB, 0x00C8, 0x00C9, 0x00CA, 0x00CB: result.append('e'u8)
-                case 0x00EC, 0x00ED, 0x00EE, 0x00EF, 0x00CC, 0x00CD, 0x00CE, 0x00CF: result.append('i'u8)
-                case 0x00F1, 0x00D1:                                                 result.append('n'u8)
-                case 0x00F2, 0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00D2, 0x00D3, 0x00D4, 0x00D5, 0x00D6: result.append('o'u8)
-                case 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00D9, 0x00DA, 0x00DB, 0x00DC: result.append('u'u8)
+                case 0x00E7, 0x00C7:                                                 result.append('c'_u8)
+                case 0x00E8, 0x00E9, 0x00EA, 0x00EB, 0x00C8, 0x00C9, 0x00CA, 0x00CB: result.append('e'_u8)
+                case 0x00EC, 0x00ED, 0x00EE, 0x00EF, 0x00CC, 0x00CD, 0x00CE, 0x00CF: result.append('i'_u8)
+                case 0x00F1, 0x00D1:                                                 result.append('n'_u8)
+                case 0x00F2, 0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00D2, 0x00D3, 0x00D4, 0x00D5, 0x00D6: result.append('o'_u8)
+                case 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00D9, 0x00DA, 0x00DB, 0x00DC: result.append('u'_u8)
                 default: result.append(c)
                 }
             }
@@ -441,8 +521,11 @@ public impl CultureInfo
         let leftKey  = .sortKey(left, ignoreCase)
         let rightKey = .sortKey(right, ignoreCase)
         let primary  = Utf8.compare(leftKey.toSlice(), rightKey.toSlice(), .Unicode)
-        if primary do
+        if primary
+        {
             return primary
+        }
+
         return Utf8.compare(cast(const [..] u8, left), cast(const [..] u8, right), ignoreCase ? .UnicodeNoCase : .Unicode)
     }
 }

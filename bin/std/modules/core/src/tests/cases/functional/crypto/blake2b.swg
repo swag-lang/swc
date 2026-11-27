@@ -3,11 +3,11 @@
 
 // Parses a lowercase hexadecimal literal into bytes, so the RFC 7693 vectors can
 // be written exactly as the specification prints them.
-func hexBytes(text: string)->Array'u8
+func hexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, ((hexDigit(text[index]) << 4) | hexDigit(text[index + 1]))))
@@ -19,8 +19,11 @@ func hexBytes(text: string)->Array'u8
 
 func hexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
@@ -28,20 +31,20 @@ func assertBlake2b(data: const [..] u8, expected: string)
 {
     let reference = hexBytes(expected)
 
-    var oneShot: Array'u8
+    var oneShot: Array!{u8}
     oneShot.resize(reference.count)
     expect Hash.Blake2b.compute(data, oneShot.toSlice())
     Swag.require(Crypto.constantTimeEqual(oneShot.toSlice(), reference.toSlice()))
 
     // The incremental path must agree with the one-shot path, including when the
     // input is split across a block boundary.
-    var streamed: Array'u8
+    var streamed: Array!{u8}
     streamed.resize(reference.count)
     var hash   = expect Hash.Blake2b.create(reference.count)
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < data.count
     {
-        let chunk = Math.min(data.count - offset, 7'u64)
+        let chunk = Math.min(data.count - offset, 7_u64)
         hash.update(data[offset until offset + chunk])
         offset += chunk
     }
@@ -85,8 +88,11 @@ func assertBlake2b(data: const [..] u8, expected: string)
 
     // RFC 7693 appendix E keyed vector: key 00..3f, input 00, 64-byte digest.
     var fullKey: [64] u8
-    for i in 64 do
+    for i in 64
+    {
         fullKey[i] = cast(u8, i)
+    }
+
     let input:  [1] u8 = [0]
     var digest: [64] u8
     expect Hash.Blake2b.computeKeyed(fullKey, input, digest)
@@ -98,7 +104,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
 {
     // The digest length is validated at both ends of the sequence.
     var uninitialized:        Hash.Blake2b
-    var emptyOutput:          Array'u8
+    var emptyOutput:          Array!{u8}
     var uninitializedOutcome: Swag.Error
     discard catch uninitialized.finalize(emptyOutput.toSlice()) as uninitializedOutcome
     Swag.require(uninitializedOutcome.value() is Errors.BadParameterError)
@@ -132,10 +138,14 @@ func assertBlake2b(data: const [..] u8, expected: string)
 #test
 {
     var data: [256] u8
-    for index in data.count do
+    for index in data.count
+    {
         data[index] = cast(u8, index)
+    }
+
     assertBlake2b(data[0 until 128], "2319e3789c47e2daa5fe807f61bec2a1a6537fa03f19ff32e87eecbfd64b7e0e8ccff439ac333b040f19b0c4ddd11a61e24ac1fe0f10a039806c5dcc0da3d115")
     assertBlake2b(data[0 until 256], "1ecc896f34d3f9cac484c73f75f6a5fb58ee6784be41b35f46067b9c65c63a6794d3d744112c653f73dd7deb6666204c5a9bfa5b46081fc10fdbe7884fa5cbf8")
+    assertBlake2b(data[1 until 130], "86485b4d1f048b2ba9603cc5cdd5b4ae6fe3eae791450c987ec14629163b646151b53e33c659ff7f012f77ea865c5ee7fb04c66aecc95f435f2f7e98031df7ce")
 }
 
 // A failed finalize leaves the current sequence intact, and reset can reuse a
@@ -155,7 +165,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
 
     var digest: [32] u8
     expect hash.finalize(digest)
-    var emptyOutput:      Array'u8
+    var emptyOutput:      Array!{u8}
     var finalizedOutcome: Swag.Error
     discard catch hash.finalize(emptyOutput.toSlice()) as finalizedOutcome
     Swag.require(finalizedOutcome.value() is Errors.BadParameterError)

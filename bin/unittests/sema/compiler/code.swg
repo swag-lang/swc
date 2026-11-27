@@ -158,8 +158,10 @@ func semaTest006()
         {
             count += 1
             remapLoopFlow(#code {
-                if count == 1 do
+                if count == 1
+                {
                     break
+                }
 
                 continue
             })

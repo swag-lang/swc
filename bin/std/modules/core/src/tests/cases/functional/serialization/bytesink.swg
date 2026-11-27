@@ -18,7 +18,7 @@ using Swag, Core.Errors
     Swag.require(expect File.readAllText(path) == "HEADER payload tail")
 }
 
-// A patch spanning committed and pending bytes flushes safely and leaves appending at the end.
+// A patch spanning committed and pending bytes preserves the pending batch and append cursor.
 #test
 {
     let path = CoreTests.makeFilesystemTestPath("bytesink_straddling_patch.bin")
@@ -28,18 +28,23 @@ using Swag, Core.Errors
     expect sink.flush()
     expect sink.writeText("new tail")
     expect sink.patch(4, cast(const [..] u8, "HEADNEW"))
+    Swag.require(sink.pendingCount == 8 and expect sink.stream.size() == 8)
+    Swag.require(sink.position() == 16)
     expect sink.writeText(" end")
     expect sink.close()
     Swag.require(expect File.readAllText(path) == "old HEADNEW tail end")
 }
 
 // Returns a payload larger than the write window, filled with a pattern a misplaced write breaks.
-func sinkLargePayload()->Array'u8
+func sinkLargePayload()->Array!{u8}
 {
     var result: #returntype
     result.resize(ByteSink.WindowSize + 321)
-    for index in result.count do
+    for index in result.count
+    {
         result[index] = cast(u8, ((index * 13 + 5) & 0xFF))
+    }
+
     return result
 }
 
@@ -48,29 +53,32 @@ func sinkLargePayload()->Array'u8
 // Small pieces, typed values, a payload that bypasses the window, and two patches — one while
 // the header still sits in the window, one after a large write forced it to the file — cover
 // every path a container encoder takes.
-func writeSinkStream(sink: *ByteSink)->Array'u8
+func writeSinkStream(sink: *ByteSink)->Array!{u8}
 {
     var expected: #returntype
 
     expect sink.writeText("RIFF")
     expected.add(cast(const [..] u8, "RIFF"))
     let sizeField = sink.position()
-    expect sink.writeLittleEndian(0'u32)
-    expected.add([0'u8, 0, 0, 0])
-    expect sink.writeBigEndian(0x1234'u16)
-    expected.add([0x12'u8, 0x34])
-    expect sink.writeBigEndian(-800's16)
-    expected.add([0xFC'u8, 0xE0])
-    expect sink.writeLittleEndian(-100's8)
-    expected.add(0x9C'u8)
+    expect sink.writeLittleEndian(0_u32)
+    expected.add([0_u8, 0, 0, 0])
+    expect sink.writeBigEndian(0x1234_u16)
+    expected.add([0x12_u8, 0x34])
+    expect sink.writeBigEndian(-800_s16)
+    expected.add([0xFC_u8, 0xE0])
+    expect sink.writeLittleEndian(-100_s8)
+    expected.add(0x9C_u8)
     expect sink.writeByte(0xEE)
-    expected.add(0xEE'u8)
+    expected.add(0xEE_u8)
 
     // The patch lands while the header is still in the write window.
     const FirstPatch: [4] u8 = [9, 8, 7, 6]
     expect sink.patch(sizeField, FirstPatch)
-    for value, index in FirstPatch do
+    for value, index in FirstPatch
+    {
         expected[sizeField + index] = value
+    }
+
     Swag.require(sink.position() == 14)
 
     let payload = sinkLargePayload()
@@ -81,8 +89,11 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     // The patch now lands in what the file already holds, and appending resumes after it.
     const SecondPatch: [4] u8 = [1, 2, 3, 4]
     expect sink.patch(sizeField, SecondPatch)
-    for value, index in SecondPatch do
+    for value, index in SecondPatch
+    {
         expected[sizeField + index] = value
+    }
+
     expect sink.writeText("END")
     expected.add(cast(const [..] u8, "END"))
     Swag.require(sink.position() == expected.count)
@@ -93,7 +104,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     discard catch sink.patch(expected.count - 2, Overrun) as pastEndOutcome
     let pastEnd = pastEndOutcome.value()
     Swag.require(pastEnd is BadParameterError)
-    var none: Array'u8
+    var none: Array!{u8}
     expect sink.patch(expected.count, none.toSlice())
     return expected
 }
@@ -183,7 +194,7 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     sink.written = Swag.U64.Max - 1
 
     var overflowOutcome: Swag.Error
-    discard catch writeByteSinkAtOverflowingPosition(&sink, [0xAA'u8, 0xBB]) as overflowOutcome
+    discard catch writeByteSinkAtOverflowingPosition(&sink, [0xAA_u8, 0xBB]) as overflowOutcome
     Swag.require(overflowOutcome.value() is OverflowError)
     Swag.require(sink.position() == Swag.U64.Max - 1)
     Swag.require(buffer.toString() == "prefix")
@@ -210,7 +221,7 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     expect sink.close()
 
     let actual = expect File.readAllBytes(fileName)
-    Swag.require(Slice.equals(actual.toSlice(), [7'u8, 9, 3]))
+    Swag.require(Slice.equals(actual.toSlice(), [7_u8, 9, 3]))
 }
 
 // Native bytes must not serialize an owned String header whose pointer would outlive the call.
@@ -241,7 +252,7 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     var sink = ByteSink.createMemory(&buffer)
     expect sink.writeText("data")
     expect sink.patch(1, cast(const [..] u8, "XY"))
-    expect sink.writeByte('!'u8)
+    expect sink.writeByte('!'_u8)
     expect sink.close()
     expect sink.close()
     Swag.require(buffer.toString() == "prefix keptdXYa!")

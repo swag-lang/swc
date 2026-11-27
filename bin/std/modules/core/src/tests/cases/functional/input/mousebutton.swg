@@ -23,8 +23,10 @@ func assertMouseButton(button: Input.MouseButton, index: u32)
 
 #test
 {
-    for index in Input.MouseButton.count do
+    for index in Input.MouseButton.count
+    {
         Swag.require(cast(u64, Input.mouseButtonFromStorageIndex(index)) == index)
+    }
 
     let failure = Swag.catchPanic(func||()
     {

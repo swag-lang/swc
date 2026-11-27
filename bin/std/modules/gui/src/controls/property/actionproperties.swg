@@ -42,8 +42,10 @@ internal impl IActionUI for ActionProperties
     {
         let prop = assume cast (*Properties, cxt.wnd)
         let item = prop.menuItem
-        if not item do
+        if not item
+        {
             return false
+        }
 
         let theme = prop.theme()
         let arr   = prop.menuArrayContext()
@@ -106,7 +108,7 @@ internal impl IActionUI for ActionProperties
             var empty = true
             if arr.arrItem
             {
-                let arrData = cast(*Array'u8, unwrap arr.arrItem.data)
+                let arrData = cast(*Array!{u8}, unwrap arr.arrItem.data)
                 empty = arrData.isEmpty()
             }
 
@@ -120,8 +122,10 @@ internal impl IActionUI for ActionProperties
     {
         let prop = assume cast (*Properties, cxt.wnd)
         let item = prop.menuItem
-        if not item do
+        if not item
+        {
             return false
+        }
 
         let arr = prop.menuArrayContext()
 
@@ -141,25 +145,41 @@ internal impl IActionUI for ActionProperties
             prop.resetItemDefault(item)
 
         case ActionProperties.MoveUp:
-            if arr.arrElem do
+            if arr.arrElem
+            {
                 prop.moveArrayValue(arr.arrElem, -1)
+            }
 
         case ActionProperties.MoveDown:
-            if arr.arrElem do
+            if arr.arrElem
+            {
                 prop.moveArrayValue(arr.arrElem, 1)
+            }
 
         case ActionProperties.Remove:
-            if not arr.arrElem do
+            if not arr.arrElem
+            {
                 break
-            if MessageDlg.confirm(unwrap prop.wnd.surface, strings().prop_ConfirmRemove) != Dialog.BtnYes do
+            }
+
+            if MessageDlg.confirm(unwrap prop.wnd.surface, strings().prop_ConfirmRemove) != Dialog.BtnYes
+            {
                 break
+            }
+
             prop.removeArrayValue(arr.arrElem)
 
         case ActionProperties.RemoveAll:
-            if not arr.arrItem do
+            if not arr.arrItem
+            {
                 break
-            if MessageDlg.confirm(unwrap prop.wnd.surface, strings().prop_ConfirmRemoveAll) != Dialog.BtnYes do
+            }
+
+            if MessageDlg.confirm(unwrap prop.wnd.surface, strings().prop_ConfirmRemoveAll) != Dialog.BtnYes
+            {
                 break
+            }
+
             prop.clearArray(arr.arrItem)
         }
 

@@ -18,23 +18,32 @@ impl RecordingClock
 
     mtd const elapsedAt(now: u64)->u64
     {
-        if not .running do
+        if not .running
+        {
             return .recorded
+        }
+
         return .recorded + (now - .resumedAt)
     }
 
     mtd pauseAt(now: u64)
     {
-        if not .running do
+        if not .running
+        {
             return
+        }
+
         .recorded = .elapsedAt(now)
         .running  = false
     }
 
     mtd resumeAt(now: u64)
     {
-        if .running do
+        if .running
+        {
             return
+        }
+
         .resumedAt = now
         .running   = true
     }

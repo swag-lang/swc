@@ -84,15 +84,17 @@ func day8A()
     let h        = lines.count
     let w        = lines[0].length
 
-    var antennas:  Array'{ f: u8, x, y: s64 }
-    var antinodes: HashSet'{ x, y: u32 }
+    var antennas:  Array!{{ f: u8, x, y: s64 }}
+    var antinodes: HashSet!{{ x, y: u32 }}
 
     for l in lines.count
     {
         for f, c in lines[l]
         {
-            if f != '.' do
+            if f != '.'
+            {
                 antennas.add({f, x: c, y: l})
+            }
         }
     }
 
@@ -100,14 +102,20 @@ func day8A()
     {
         for &antenna1, b in antennas
         {
-            if a == b or antenna0.f != antenna1.f do
+            if a == b or antenna0.f != antenna1.f
+            {
                 continue
+            }
+
             let dx = antenna1.x - antenna0.x
             let dy = antenna1.y - antenna0.y
             let ax = antenna0.x - dx
             let ay = antenna0.y - dy
-            if ax < 0 or ay < 0 or ax >= w or ay >= h do
+            if ax < 0 or ay < 0 or ax >= w or ay >= h
+            {
                 continue
+            }
+
             antinodes.add({x: cast(u32, ax), y: cast(u32, ay)})
         }
     }

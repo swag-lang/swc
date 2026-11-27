@@ -439,7 +439,7 @@ struct IXAudio2SourceVoiceItf
     }
 }
 
-const FORMAT_EXTENSIBLE = 0xFFFE'u16
+const FORMAT_EXTENSIBLE = 0xFFFE_u16
 
 #[Swag.Pack(1)]
 struct WAVEFORMATEX

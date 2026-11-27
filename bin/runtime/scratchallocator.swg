@@ -18,8 +18,11 @@ impl ScratchAllocator
         let toAlign = alignment != 0 ? alignment : #sizeof(*void)
         let mask    = cast(u64, (toAlign - 1))
         var result  = value & ~mask
-        if result < value do
+        if result < value
+        {
             result += toAlign
+        }
+
         return result
     }
 
@@ -67,8 +70,10 @@ impl ScratchAllocator
     {
         .releaseAll()
 
-        if .block do
+        if .block
+        {
             .freeMem(.block, .capacity)
+        }
 
         Swag.init(me, 1)
     }
@@ -78,8 +83,10 @@ impl ScratchAllocator
     {
         // Error records can retain message bytes after their originating thread exits. The
         // hook transfers the current blocks to that owner and leaves this allocator empty.
-        if .releaseHook do
+        if .releaseHook
+        {
             .releaseHook(me)
+        }
 
         #static if #safety(Swag.SafetyWhat.ValueBorrow)
         {
@@ -125,12 +132,16 @@ impl IAllocator for ScratchAllocator
 {
     mtd impl free(request: *AllocatorRequest)
     {
-        if not request.address do
+        if not request.address
+        {
             return
+        }
 
         let reqAddr = request.address
-        #static if #safety(Swag.SafetyWhat.ValueBorrow) do
+        #static if #safety(Swag.SafetyWhat.ValueBorrow)
+        {
             __valueBorrowWrite(reqAddr, request.size, &request.callerLoc)
+        }
 
         if .block
         {
@@ -160,12 +171,20 @@ impl IAllocator for ScratchAllocator
         // the allocator
         var leak = cast([*] LeakHeader, reqAddr)
         leak -= 1
-        if not leak.prev do
+        if not leak.prev
+        {
             .firstLeak = leak.next
-        else do
+        }
+        else
+        {
             leak.prev.next = leak.next
-        if leak.next do
+        }
+
+        if leak.next
+        {
             leak.next.prev = leak.prev
+        }
+
         .totalLeak -= leak.userSize
         .freeMem(leak.allocation, leak.allocationSize)
         request.address = null
@@ -222,8 +241,11 @@ impl IAllocator for ScratchAllocator
         let leakAddress     = alignedUserAddr - #sizeof(LeakHeader)
         let ptr             = cast([*] LeakHeader, leakAddress)
         let leak            = cast([*] LeakHeader?, .firstLeak)
-        if leak do
+        if leak
+        {
             leak.prev = ptr
+        }
+
         ptr.prev           = null
         ptr.next           = .firstLeak
         ptr.allocation     = allocation
@@ -274,8 +296,10 @@ impl IAllocator for ScratchAllocator
         let oldSize    = request.oldSize
         #static if #safety(Swag.SafetyWhat.ValueBorrow)
         {
-            if oldAddress do
+            if oldAddress
+            {
                 __valueBorrowWrite(oldAddress, oldSize, &request.callerLoc)
+            }
         }
 
         request.address = null

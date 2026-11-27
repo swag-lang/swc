@@ -4,8 +4,8 @@
 using Swag, Core, Gui
 
 // The size of the charter's pictures, which the goldens are taken at to be judged whole against them.
-const PictureWidth  = 1280'f32
-const PictureHeight = 800'f32
+const PictureWidth  = 1280_f32
+const PictureHeight = 800_f32
 
 // Renders the window as it stands, in Encre or in Papier, and compares it with the golden `name`.
 //
@@ -14,10 +14,15 @@ const PictureHeight = 800'f32
 // Applying a palette puts the geometry of that palette back, so it is squared again here.
 func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark: bool, name: string)
 {
-    if dark do
+    if dark
+    {
         host.theme.setDark()
-    else do
+    }
+    else
+    {
         host.theme.setLight()
+    }
+
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -130,8 +135,11 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         for surface in host.app.surfaces
         {
             if surface.view() is MessageDlg as dialog
@@ -175,8 +183,11 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items.count == 3)
         let image = host.render(&host.surfaceWnd)
@@ -210,8 +221,11 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items.count == 11)
         Swag.require(menu.items[1]!.separator and menu.items[4]!.separator and menu.items[8]!.separator)
@@ -235,7 +249,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     window.createPath.setText("/home/vault/Documents/papiers.bin")
 
     // The room left on a volume belongs to the machine, so the picture states it.
-    window.createPage.showFreeSpace(212'u64 * 1024 * 1024 * 1024, "/")
+    window.createPage.showFreeSpace(212_u64 * 1024 * 1024 * 1024, "/")
     assertSurfaceGolden(&host, window, true, "create")
 }
 
@@ -296,8 +310,11 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         Swag.require(host.capturedPopupMenu() != null)
         var image = host.render(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&image, "options.timeout.menu")
@@ -320,9 +337,12 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     options.title = appStrings().dlg_TitleChangeKeyFiles
     options.confirmButtonText = appStrings().dlg_BtnApply
     let dialog = FormDlg.create(unwrap window.surface, options)
-    var paths: Array'String
-    for index in 10 do
+    var paths: Array!{String}
+    for index in 10
+    {
         paths.add(Format.toString("/home/alice/keys/key-%.key", index + 1))
+    }
+
     let field = buildKeyFileChangeForm(dialog, paths.toSlice())
     dialog.fitHeightToContent(dialog.form.measure(Math.Point{dialog.form.position.width, 0}).preferred.y)
     dialog.applyLayout()
@@ -387,8 +407,11 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     fillPictureList(window)
     window.chooseVault("/vault.bin")
     let titleX = window.list.title.position.x
-    for index in 3 do
+    for index in 3
+    {
         window.unlockKeyFiles.add(Format.toString("/home/alice/keys/mount-%.key", index + 1))
+    }
+
     window.list.refresh()
     window.list.card.toggleKeyFiles()
     assertSurfaceGolden(&host, window, true, "unlock.keys")

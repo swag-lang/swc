@@ -32,8 +32,10 @@ struct Node
     Swag.require(info.fields.count == 4)
 
     var offsetSum: u32 = 0
-    for i in info.fields.count do
+    for i in info.fields.count
+    {
         offsetSum += cast(u32, info.fields[i].offset)
+    }
 
     // offsets: 0, 1, 2, 3
     Swag.require(offsetSum == 6)

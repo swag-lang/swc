@@ -34,7 +34,7 @@ using Swag, Core, Audio, Pixel
     }
 
     var samples: [2 * 1_024] s16
-    for index in 1_024'u64
+    for index in 1_024_u64
     {
         samples[index * 2] = cast(s16,
                                   Math.round(8_000.0 *
@@ -54,20 +54,28 @@ using Swag, Core, Audio, Pixel
                                                              video.decoderConfig(),
                                                              Mp4.FragmentedAudioConfig{48_000, 2,
                                                                                        audio.decoderConfig()})
-    var audioBlocks = 0'u64
-    for frame in 60'u64
+    var audioBlocks = 0_u64
+    for frame in 60_u64
     {
-        if frame % 2 do
+        if frame % 2
+        {
             expect nv12.convertFrom(&moved)
-        else do
+        }
+        else
+        {
             expect nv12.convertFrom(&first)
+        }
+
         let packet = expect video.encode(&nv12, 1_920 + frame * 1_500, 1_500)
-        if frame > 0 do
+        if frame > 0
+        {
             Swag.require(packet.bytes.count < 1_000_000)
+        }
+
         expect writer.addPacket(packet)
         while audioBlocks < 47 and audioBlocks * 1_024 < (frame + 1) * 800
         {
-            var encoded: Array'u8
+            var encoded: Array!{u8}
             Swag.require(expect audio.push(Swag.makeSlice(&samples[0], samples.count), &encoded) == 1_024)
             expect writer.addAudioPacket(EncodedPacket{encoded.toSlice(), audio.lastPacketStartSample(),
                                                        audio.lastPacketStartSample(), 1_024, true})
@@ -76,7 +84,7 @@ using Swag, Core, Audio, Pixel
     }
 
     Swag.require(audioBlocks == 47)
-    var drain: Array'u8
+    var drain: Array!{u8}
     Swag.require(expect audio.finish(&drain))
     expect writer.addAudioPacket(EncodedPacket{drain.toSlice(), audio.lastPacketStartSample(),
                                                audio.lastPacketStartSample(), 1_024, true})

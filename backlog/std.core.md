@@ -129,7 +129,7 @@ outcomes owned by `core` together.
 
 - Evidence: `Core.Atomic` (`thread/atomic.swg`) is a namespace of `#[Swag.Inline]` wrappers
   over the `Swag.atom*` intrinsics, with about 220 uses in 26 files under `bin/`.
-  `Swag.AtomicValue'T` (`bin/runtime/atomic.swg`) owns atomic storage and exposes the same
+  `Swag.AtomicValue!{T}` (`bin/runtime/atomic.swg`) owns atomic storage and exposes the same
   operations as methods. The concurrency contract says one owner for each concurrency type
   family; there are two, and the runtime one is named `AtomicValue` because `Atomic` is already
   taken by the Core namespace in every file that writes `using Threading`.
@@ -305,16 +305,6 @@ outcomes owned by `core` together.
   remains the default portable operation.
 - Related: platform.portability.103, std.pixel.040, std.pixel.043.
 
-### std.core.046 — AES round and key instructions have no typed surface
-
-- Evidence: `Swag.vecCarrylessMul` and the four `Math.Simd.clmul...` wrappers already expose
-  carry-less multiplication; `Hash.Crc32.foldClmul` consumes them and the x64 encoder has a byte
-  test. AES round/key instructions have no equivalent typed API.
-- Next: expose AES round/key operations with explicit availability and known-answer tests.
-- Done when: feature gating prevents illegal instructions, known-answer tests cover operands
-  and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
-- Related: platform.portability.103.
-
 ### std.core.047 — Vector rounding and transcendental families remain incomplete
 
 - Evidence: vector sqrt, floor, ceil, trunc, abs, min/max, mul-add, sign, copysign, saturate and
@@ -351,20 +341,6 @@ outcomes owned by `core` together.
 - Done when: specialization is compile-time selected, unsupported shapes remain scalar, and
   generated-code tests prove no hidden conversion or temporary array.
 - Related: compiler.codegen.019, std.core.042.
-
-### std.core.051 — The Argon2 permutation remains scalar
-
-- Evidence: Argon2id compression is scalar; independent lanes already use `parallel for`.
-  Earlier packed attempts lost. These ran while the SIMD wrappers were still cross-module
-  calls:
-  - `U64x2` block XOR was 3.2% slower.
-  - Paired BlaMka with a `u32 x u32 -> u64` low-half product (`pmuludq`) was 72% or more
-    slower, because lane regrouping and state materialization erased the arithmetic gain.
-- Next: retry only with a lowering that keeps the eight-word state in registers across both
-  G halves and regroups 64-bit lanes from two sources without scalar extraction, or with a
-  wider layout that amortizes the regrouping. Measure lane scaling at fixed worker counts on identical inputs.
-- Done when: published vectors pass for all supported parameters and profile benchmarks
-  isolate the packed kernel gain from independent-lane parallelism.
 
 ### std.core.052 — Blake2b compression remains scalar
 

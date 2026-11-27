@@ -6,8 +6,10 @@ internal func localeNameFromEnvironment(lcAll, lcMessages, lang: string)->String
     let locale = lcAll.count ? lcAll : lcMessages.count ? lcMessages : lang
     let withoutEncoding = Tokenize.sliceToDelimiter(locale, '.', includeDelimiter: false)
     let name   = Tokenize.sliceToDelimiter(withoutEncoding, '@', includeDelimiter: false)
-    if not name.count or name == "C" or name == "POSIX" do
+    if not name.count or name == "C" or name == "POSIX"
+    {
         return ""
+    }
 
     var result: String
     var primary   = true
@@ -16,16 +18,22 @@ internal func localeNameFromEnvironment(lcAll, lcMessages, lang: string)->String
     {
         if byte == '_' or byte == '-'
         {
-            if separator do
+            if separator
+            {
                 return ""
+            }
+
             result    += '-'
             separator = true
             primary   = false
         }
         else
         {
-            if not ((byte >= 'a' and byte <= 'z') or (byte >= 'A' and byte <= 'Z') or Latin1.isDigit(byte)) do
+            if not ((byte >= 'a' and byte <= 'z') or (byte >= 'A' and byte <= 'Z') or Latin1.isDigit(byte))
+            {
                 return ""
+            }
+
             result    += primary ? Latin1.toLower(byte) : byte
             separator = false
         }

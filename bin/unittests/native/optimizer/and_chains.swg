@@ -33,8 +33,10 @@ func stored(slot: *bool, a, b, c: s64)->s64
 {
     let all = a > 0 and b > 0 and c > 0
     record(slot, all)
-    if all do
+    if all
+    {
         return a + b + c
+    }
     return -1
 }
 

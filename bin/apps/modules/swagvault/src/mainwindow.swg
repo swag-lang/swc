@@ -164,7 +164,7 @@ struct VaultOperation
     camouflageOnly: bool               // Whether resize only refreshes the random physical tail.
     access:         VaultAccess        // Current password and key files, owned and cleared by the operation.
     replacement:    VaultAccess        // Access installed by a password or key-file change.
-    resultKeyFiles: Array'String       // Key-file selection published after a verified change.
+    resultKeyFiles: Array!{String}     // Key-file selection published after a verified change.
     volume:         *MountedVault?     // Mount a mount operation produced, or the one an unmount closes.
     forceUnmount:   bool               // Explicitly confirmed invalidation of outstanding handles.
 
@@ -265,13 +265,13 @@ struct MainWindow
     layoutReady: bool
 
     // Recently opened vaults, mounted or locked, newest first. Privacy mode keeps this list in memory.
-    vaults:     Array'KnownVault
+    vaults:     Array!{KnownVault}
     chosenPath: String     // Container of the vault the list has chosen, or empty.
 
     // Key files stated on the unfolded vault and on the create page. Like the passwords, they are
     // never settings.
-    unlockKeyFiles: Array'String
-    createKeyFiles: Array'String
+    unlockKeyFiles: Array!{String}
+    createKeyFiles: Array!{String}
 
     // Whether the next mount of the chosen vault protects its hidden volume. It is asked again at
     // every mount, so it is never a setting either.
@@ -288,8 +288,8 @@ struct MainWindow
 
     // Containers to mount at the next start, and what is left of that list while the window
     // works through it. Only the first survives a run.
-    startupVaults:       Array'StartupVault
-    startupQueue:        Array'StartupVault
+    startupVaults:       Array!{StartupVault}
+    startupQueue:        Array!{StartupVault}
     startupWaiting:      String     // Protected startup vault unfolded in the list for its access, or empty.
     startupTimer:        *Timer?
     automaticMountTimer: *Timer?
@@ -298,7 +298,7 @@ struct MainWindow
     securityTimer:       *Timer?
     securityMonitor:     AutoUnmountMonitor
 
-    mountDestinations:    Array'MountDestination
+    mountDestinations:    Array!{MountDestination}
     autoUnmount:          AutoUnmountSettings
     securityEpoch:        u64
     resident:             VaultResident
@@ -341,8 +341,11 @@ impl VaultFailure
     mtd text()->String
     {
         let reason = .reason()
-        if .code do
+        if .code
+        {
             return Format.toString("%\n%", reason, .codeText())
+        }
+
         return reason
     }
 }
@@ -363,8 +366,11 @@ impl VaultNotice
     {
         if let key = .key
         {
-            if .number do
+            if .number
+            {
                 return Format.toString(key[], .number)
+            }
+
             return key[]
         }
 
@@ -375,8 +381,10 @@ impl VaultNotice
 // Keeps the user-facing identity of a caught error and logs its diagnostic once.
 func describeFailure(err: any?)->VaultFailure
 {
-    if err == null do
+    if err == null
+    {
         return {}
+    }
 
     switch err
     {
@@ -433,7 +441,7 @@ func kindMessage(kind: ErrorKind)->String
 func formatErrorCode(code: u64)->String => code ? Format.toString(appStrings().msg_ErrorCode, code) : String{}
 
 // Smallest capacity a container can have, rounded up to a whole mebibyte.
-private const Mebibyte = 1024'u64 * 1024
+private const Mebibyte = 1024_u64 * 1024
 const MinimumSizeMiB   = (MinimumSize + Mebibyte - 1) / Mebibyte
 
 // Sends where a failure was raised to the debugger output.
@@ -477,14 +485,20 @@ func setMachineFont(wnd: *Wnd)
 // can act on.
 func capacityText(bytes: u64)->String
 {
-    const Mebibyte = 1024'u64 * 1024
+    const Mebibyte = 1024_u64 * 1024
     const Gibibyte = Mebibyte * 1024
     let texts = appStrings()
-    if bytes >= Gibibyte and not (bytes % Gibibyte) do
+    if bytes >= Gibibyte and not (bytes % Gibibyte)
+    {
         return Format.toString("% %", bytes / Gibibyte, texts.ui_UnitGiB)
+    }
+
     var mebibytes = bytes / Mebibyte
-    if bytes % Mebibyte do
+    if bytes % Mebibyte
+    {
         mebibytes += 1
+    }
+
     return Format.toString("% %", mebibytes, texts.ui_UnitMiB)
 }
 
@@ -507,7 +521,7 @@ func parseCapacity(text: string, unitIndex: u32)->ContainerSize
         return result
     }
 
-    let multiplier = unitIndex == 0 ? 1024'u64 * 1024 : 1024'u64 * 1024 * 1024
+    let multiplier = unitIndex == 0 ? 1024_u64 * 1024 : 1024_u64 * 1024 * 1024
     if parsed.value > Swag.U64.Max / multiplier
     {
         result.error = &appStrings().msg_SizeTooLarge
@@ -522,22 +536,22 @@ impl MainWindow
 {
     // The size the window opens at, and the smallest it can be made: the pages are measured
     // columns, so below that width a column would no longer keep its margins.
-    const DefaultWidth  = 1040's32
-    const DefaultHeight = 720's32
-    const MinWidth      = 720's32
-    const MinHeight     = 660's32
+    const DefaultWidth  = 1040_s32
+    const DefaultHeight = 720_s32
+    const MinWidth      = 720_s32
+    const MinHeight     = 660_s32
 
     // Idle delays the automatic-unmount picker offers, in minutes, and the one it starts on.
-    const IdleChoices      = [5'u32, 15, 30, 60]
-    const IdleDefaultIndex = 1'u32
+    const IdleChoices      = [5_u32, 15, 30, 60]
+    const IdleDefaultIndex = 1_u32
 
     // How many locked vaults the list keeps. Mounted vaults are always on it.
-    const RememberedVaults = 16'u64
+    const RememberedVaults = 16_u64
 
     // Builds the window: the pages, the lens and its hint, and the texts of the active language.
     func create(parent: *Wnd)->*MainWindow
     {
-        let result  = Wnd.create'MainWindow(parent, "vault.mainWindow")
+        let result  = Wnd.create!{MainWindow}(parent, "vault.mainWindow")
         let surface = unwrap result.surface
         surface.setView(result)
         surface.minSize        = {MinWidth, MinHeight}
@@ -639,10 +653,15 @@ impl MainWindow
         let texts  = appStrings()
         let dialog = AboutDlg.createApplication(unwrap .surface, about)
         dialog.addSection(texts.ui_AboutProtection, texts.ui_AboutAlgorithms)
-        #static if #os == Swag.TargetOs.Linux do
+        #static if #os == Swag.TargetOs.Linux
+        {
             dialog.addSection("libfuse3", texts.ui_AboutLinuxRuntime)
-        else do
+        }
+        else
+        {
             dialog.addSection("WinFsp", texts.ui_AboutThirdParty)
+        }
+
         discard dialog.doModal()
     }
 
@@ -651,19 +670,27 @@ impl MainWindow
     {
         let outgoing = .pageWnd(.page)
         let incoming = .pageWnd(page)
-        if outgoing != incoming do
+        if outgoing != incoming
+        {
             .surface?.clearFocus()
+        }
+
         .page = page
-        if page == .Options do
+        if page == .Options
+        {
             .optionsPage.refreshDriverAction()
+        }
+
         if animate and outgoing != incoming
         {
-            discard .app().animator.transitionPage(outgoing, incoming, page == .List ? -1'f32 : 1)
+            discard .app().animator.transitionPage(outgoing, incoming, page == .List ? -1_f32 : 1)
         }
         else
         {
-            for one in [WindowPage.List, WindowPage.Create, WindowPage.Progress, WindowPage.Options] do
+            for one in [WindowPage.List, WindowPage.Create, WindowPage.Progress, WindowPage.Options]
+            {
                 .pageWnd(one).show(one == page)
+            }
         }
 
         .applyLayout()
@@ -693,8 +720,10 @@ impl MainWindow
             .hintLine.addHint(Input.formatKeyShortcut(.Control, .O), texts.ui_HintOpenFile)
         }
 
-        if .page == .List and .chosenPath.isEmpty() do
+        if .page == .List and .chosenPath.isEmpty()
+        {
             .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintList)
+        }
 
         .hintLine.show(not .hintLine.hints.isEmpty())
     }
@@ -715,16 +744,22 @@ impl MainWindow
     // Returns the vault the list knows at `path`, or null.
     mtd findVault(path: string)->*KnownVault?
     {
-        for &one in .vaults where one.path == path do
+        for &one in .vaults where one.path == path
+        {
             return one
+        }
+
         return null
     }
 
     // Adds the container at `path` to the list, newest first.
     mtd addVault(path: string)
     {
-        if .findVault(path) do
+        if .findVault(path)
+        {
             return
+        }
+
         .vaults.insertAt(0, KnownVault{path: path})
         .pruneVaults()
     }
@@ -732,8 +767,8 @@ impl MainWindow
     // Keeps the mounted and selected vaults, and the most recent locked vaults.
     mtd pruneVaults()
     {
-        var locked = 0'u64
-        var index  = 0'u64
+        var locked = 0_u64
+        var index  = 0_u64
         while index < .vaults.count
         {
             let path = .vaults[index].path.toString()
@@ -759,8 +794,11 @@ impl MainWindow
     // when the chosen vault is mounted or nothing is chosen.
     mtd chosenLockedPath()->string
     {
-        if .chosenPath.isEmpty() or .isMounted(.chosenPath) do
+        if .chosenPath.isEmpty() or .isMounted(.chosenPath)
+        {
             return ""
+        }
+
         return .chosenPath
     }
 
@@ -768,20 +806,29 @@ impl MainWindow
     // one the commands of the lens act on.
     mtd chooseVault(path: string)
     {
-        if .page != .List do
+        if .page != .List
+        {
             .showPage(.List)
+        }
+
         if .chosenPath == path
         {
-            if .chosenLockedPath().count != 0 do
+            if .chosenLockedPath().count != 0
+            {
                 .mountPassword.setFocus()
+            }
+
             return
         }
 
         // The access typed for one vault is never offered to another.
         .forgetAccess()
         .chosenPath = path
-        if .canOpenVaultFile() and .statusMessage == .MountStopped do
+        if .canOpenVaultFile() and .statusMessage == .MountStopped
+        {
             .setStatus(.Ready)
+        }
+
         if let vault = .findVault(path)
         {
             .readOnly.setState(vault.readOnly ? .Checked : .Unchecked)
@@ -790,16 +837,22 @@ impl MainWindow
 
         .pruneVaults()
         .refreshVaults()
-        if .chosenLockedPath().count != 0 do
+        if .chosenLockedPath().count != 0
+        {
             .mountPassword.setFocus()
+        }
+
         .skipStartupVault()
     }
 
     // Folds the unfolded vault, and forgets the access typed for it.
     mtd foldVault()
     {
-        if .chosenPath.isEmpty() do
+        if .chosenPath.isEmpty()
+        {
             return
+        }
+
         .forgetAccess()
         .chosenPath.clear()
         .pruneVaults()
@@ -816,8 +869,10 @@ impl MainWindow
         .unlockKeyFiles.clear()
         .list.card.clearKeyFiles()
         .protectHiddenOnMount = false
-        if .operation.kind == .InstallDriver do
+        if .operation.kind == .InstallDriver
+        {
             .operation.path.clear()
+        }
     }
 
     // Says the list again from the vaults and the drives, and puts the actions in step with it.
@@ -844,8 +899,11 @@ impl MainWindow
         else
         {
             result = Path.directoryName(path) orelse ""
-            if not result.isEmpty() do
+            if not result.isEmpty()
+            {
                 result += " · "
+            }
+
             result += texts.ui_StateLocked
         }
 
@@ -861,8 +919,11 @@ impl MainWindow
         var result: #returntype = Path.directoryName(path) orelse ""
         if containerSize and not .isMounted(path)
         {
-            if not result.isEmpty() do
+            if not result.isEmpty()
+            {
                 result += " · "
+            }
+
             result += capacityText(containerSize)
         }
 
@@ -878,25 +939,39 @@ impl MainWindow
 
         func add(text: *String, words: string)
         {
-            if not text.isEmpty() do
+            if not text.isEmpty()
+            {
                 text[] += " · "
+            }
+
             text[] += words
         }
 
         if let drive = .mountedDrives.find(path)
         {
             add(line, drive.readOnly ? texts.ui_StateReadOnly : texts.ui_StateReadWrite)
-            if drive.protectHidden do
+            if drive.protectHidden
+            {
                 add(line, texts.ui_StateProtected)
-            if drive.atStartup do
+            }
+
+            if drive.atStartup
+            {
                 add(line, texts.ui_StateAtStartup)
+            }
+
             return
         }
 
-        if .startupIndex(path) != Swag.U64.Max do
+        if .startupIndex(path) != Swag.U64.Max
+        {
             add(line, texts.ui_StateAtStartup)
-        if .chosenPath == path and .protectHiddenOnMount do
+        }
+
+        if .chosenPath == path and .protectHiddenOnMount
+        {
             add(line, texts.ui_StateProtected)
+        }
     }
 
     // File selection can continue while the worker checks an earlier file's access.
@@ -926,10 +1001,15 @@ impl MainWindow
     // capacity out of range — is still reported when the operation runs.
     mtd refreshActions()
     {
-        if .operation.kind == .None do
+        if .operation.kind == .None
+        {
             .createButton.enable(.canCreate())
-        if .canOpenVaultFile() do
+        }
+
+        if .canOpenVaultFile()
+        {
             .mountButton.enable(.canMount())
+        }
     }
 
     // Enables what the running operation leaves usable.
@@ -951,8 +1031,11 @@ impl MainWindow
         .mountButton.enable(selectionReady and .canMount())
         .list.newVault.enable(selectionReady)
         .list.openFile.enable(selectionReady)
-        for row in .list.rows do
+        for row in .list.rows
+        {
             row.refresh()
+        }
+
         .list.card.header.refresh()
 
         .progressPage.stop.setText(.operation.kind == .Resize ? appStrings().ui_StopResizing : appStrings().ui_StopCreating)
@@ -965,10 +1048,15 @@ impl MainWindow
     {
         let texts = appStrings()
         var title = String.from(texts.ui_WindowTitle)
-        if .privacyMode do
+        if .privacyMode
+        {
             title.appendFormat(" — %", texts.ui_PrivacyMode)
-        if let surface = .surface where surface.wnd.name.text != title do
+        }
+
+        if let surface = .surface where surface.wnd.name.text != title
+        {
             surface.setTitle(title)
+        }
     }
 
     // Says everything the window said at construction, in the language now active.
@@ -999,8 +1087,11 @@ impl MainWindow
     // Restores state and arms security monitoring even when startup leaves the surface hidden.
     mtd initialize()
     {
-        if .initialized do
+        if .initialized
+        {
             return
+        }
+
         .initialized = true
         catch g_App.loadState()
         if .privacyMode
@@ -1014,19 +1105,27 @@ impl MainWindow
         .resident.applySettings()
         .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
         .securityMonitor.start(me)
-        .securityTimer = .addTimer(1's)
-        if not .privacyMode do
+        .securityTimer = .addTimer(1_s)
+        if not .privacyMode
+        {
             .startupQueue.add(.startupVaults.toSlice())
-        if .startupQueue.count do
-            .startupTimer = .addTimer(200'ms)
+        }
+
+        if .startupQueue.count
+        {
+            .startupTimer = .addTimer(200_ms)
+        }
     }
 
     // Terminal teardown cannot leave native callbacks behind. Interactive close first goes
     // through the resident owner, which keeps busy mounts alive instead of reaching this fallback.
     mtd shutdown()
     {
-        if .shuttingDown do
+        if .shuttingDown
+        {
             return
+        }
+
         .shuttingDown = true
         .resident.stop()
 
@@ -1089,20 +1188,27 @@ impl IWnd for MainWindow
     {
         if evt.kind == .TrayIcon
         {
-            if evt.trayAction == .Activate do
+            if evt.trayAction == .Activate
+            {
                 .resident.showWindow()
-            elif evt.trayAction == .ContextMenu do
+            }
+            else if evt.trayAction == .ContextMenu
+            {
                 ResidentMenu.open(me)
+            }
         }
-        elif evt.kind == .CustomMessage and evt.messageId == ShowWindowMessage
+        else if evt.kind == .CustomMessage and evt.messageId == ShowWindowMessage
         {
             .resident.activate()
         }
-        elif evt.kind == .CustomMessage and evt.messageId == OpenVaultMessage and not .shuttingDown
+        else if evt.kind == .CustomMessage and evt.messageId == OpenVaultMessage and not .shuttingDown
         {
             let path = receiveVaultLaunch(evt.param)
-            if path.isEmpty() do
+            if path.isEmpty()
+            {
                 return
+            }
+
             .queueAutomaticMount(path)
             .resident.activate()
         }
@@ -1111,13 +1217,20 @@ impl IWnd for MainWindow
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
         evt.accepted = false
-        if evt.kind != .Close do
+        if evt.kind != .Close
+        {
             return
+        }
+
         evt.accepted = true
-        if .resident.settings.enabled do
+        if .resident.settings.enabled
+        {
             .resident.hideWindow()
-        else do
+        }
+        else
+        {
             .resident.unmountAll(quit: true)
+        }
     }
 
     // Takes a container dropped anywhere on the window that no field claimed first.
@@ -1147,8 +1260,10 @@ impl IWnd for MainWindow
         if evt.kind == .Drop
         {
             .dropHighlight.hide()
-            if evt.effect != .None do
+            if evt.effect != .None
+            {
                 .queueAutomaticMount(path)
+            }
         }
     }
 
@@ -1156,22 +1271,28 @@ impl IWnd for MainWindow
     {
         if evt.timer == .operation.timer
         {
-            if .operation.task.isDone() do
+            if .operation.task.isDone()
+            {
                 .finishOperation()
-            else do
+            }
+            else
+            {
                 .reportProgress()
+            }
         }
-        elif evt.timer == .startupTimer and .operation.kind == .None
+        else if evt.timer == .startupTimer and .operation.kind == .None
         {
             // One shot: the queue drains through the operations that finish, not through
             // this timer.
             .stopTimer(&.startupTimer)
             .pumpStartupQueue()
         }
-        elif evt.timer == .automaticMountTimer
+        else if evt.timer == .automaticMountTimer
         {
-            if .resident.batch or .surface!.isDisabled do
+            if .resident.batch or .surface!.isDisabled
+            {
                 return
+            }
 
             if .operation.kind == .None
             {
@@ -1179,21 +1300,26 @@ impl IWnd for MainWindow
                 let path = #move .pendingMountPath
                 .openForAutomaticMount(path)
             }
-            elif .operation.kind == .CheckEmptyAccess
+            else if .operation.kind == .CheckEmptyAccess
             {
                 .stopTimer(&.automaticMountTimer)
                 .openVault(.pendingMountPath)
             }
         }
-        elif evt.timer == .securityTimer
+        else if evt.timer == .securityTimer
         {
             .resident.refreshTray()
-            #static if #os == Swag.TargetOs.Linux do
+            #static if #os == Swag.TargetOs.Linux
+            {
                 .securityMonitor.poll()
+            }
+
             if .autoUnmount.onIdle and
                Time.monotonicMilliseconds() >= .autoRetryAfter and
-               autoUnmountIdleMilliseconds() >= cast(u64, .autoUnmount.idleMinutes) * 60 * 1000 do
+               autoUnmountIdleMilliseconds() >= cast(u64, .autoUnmount.idleMinutes) * 60 * 1000
+            {
                 .handleAutoUnmount(.Idle)
+            }
         }
 
         .wnd.IWnd.onTimerEvent(evt)
@@ -1229,8 +1355,10 @@ impl IWnd for MainWindow
             {
                 var legacy: MountSettings
                 catch evt.serializer.serialize("MainWindow.mountSettings", &legacy)
-                if not legacy.path.isEmpty() and not .findVault(legacy.path) do
+                if not legacy.path.isEmpty() and not .findVault(legacy.path)
+                {
                     .vaults.add(KnownVault{legacy.path, legacy.drive, legacy.readOnly})
+                }
             }
         }
 
@@ -1238,8 +1366,11 @@ impl IWnd for MainWindow
 
         if evt.serializer.isReading()
         {
-            if .privacyMode do
+            if .privacyMode
+            {
                 .clearStartupMounts()
+            }
+
             .applyPrivacyControl()
             .applyAutoUnmountControls()
             .resident.applySettings()
@@ -1267,8 +1398,10 @@ impl IWnd for MainWindow
 
     mtd impl onComputeStateEvent(evt: *CommandStateEvent)
     {
-        if not .computeCommandState(evt) do
+        if not .computeCommandState(evt)
+        {
             evt.accepted = false
+        }
     }
 
     mtd impl onCommandEvent(evt: *CommandEvent)

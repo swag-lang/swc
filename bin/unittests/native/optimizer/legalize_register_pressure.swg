@@ -58,27 +58,31 @@ func reference(values: [*] u64, rounds: u32)
 {
     for rounds
     {
-        for i in 14 do
+        for i in 14
+        {
             values[i] = ((values[i] << (values[(i + 1) % 14] & 63)) ^ values[(i + 2) % 14]) * (values[(i + 3) % 14] | 1)
+        }
     }
 }
 
 #test
 {
-    for seed in [0'u64, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    for seed in [0_u64, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     {
-        for rounds in 9'u32
+        for rounds in 9_u32
         {
             var actual, expected: [14] u64
             for i in 14
             {
-                actual[i]   = seed ^ (cast(u64, i) * 0x123456789ABCDEF'u64)
+                actual[i]   = seed ^ (cast(u64, i) * 0x123456789ABCDEF_u64)
                 expected[i] = actual[i]
             }
             transform(&actual[0], rounds)
             reference(&expected[0], rounds)
-            for i in 14 do
+            for i in 14
+            {
                 Swag.require(actual[i] == expected[i])
+            }
         }
     }
 }

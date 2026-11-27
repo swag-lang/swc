@@ -8,6 +8,9 @@
 
 using Core, Core.Errors
 
+// The row below sets this bit in the published column count before waiting.
+private const WppWaiting = 0x8000_0000_u32
+
 // One independently entropy-coded wavefront row.
 //
 // The row borrows all picture-wide storage from `owner`, while `worker` owns the arithmetic,
@@ -44,17 +47,27 @@ impl Decoder
 
     private mtd readNalUnitMode(payload: const [..] u8, deferPicture: bool)->bool fail
     {
-        if payload.count < 3 do
+        if payload.count < 3
+        {
             fail InvalidFormatError{"HEVC network abstraction layer unit is truncated"}
-        if (payload[0] & 0x80) != 0 do
+        }
+
+        if (payload[0] & 0x80) != 0
+        {
             fail InvalidFormatError{"HEVC network abstraction layer unit sets the forbidden bit"}
+        }
 
         let layerId         = (cast(u32, payload[0] & 1) << 5) | cast(u32, (payload[1] >> 3) & 0x1F)
         let temporalIdPlus1 = cast(u32, payload[1] & 7)
-        if layerId do
+        if layerId
+        {
             fail InvalidFormatError{"HEVC decoder does not support nonzero layer IDs"}
-        if not temporalIdPlus1 do
+        }
+
+        if not temporalIdPlus1
+        {
             fail InvalidFormatError{"HEVC NAL unit needs a positive temporal_id_plus1"}
+        }
 
         let nalType    = cast(u32, (payload[0] >> 1)) & 0x3F
         let temporalId = temporalIdPlus1 - 1
@@ -73,8 +86,11 @@ impl Decoder
             return false
         }
 
-        if not isVideoCodingNal(nalType) do
+        if not isVideoCodingNal(nalType)
+        {
             return false
+        }
+
         return try .decodeSliceSegment(body, nalType, temporalId, deferPicture)
     }
 
@@ -91,16 +107,23 @@ impl Decoder
         // The picture parameter set is needed to read the rest of the header, and its identifier
         // is the second field, so a first pass reads just enough to resolve it.
         let firstInPicture = reader.bit() != 0
-        if isIrapNal(nalType) do
+        if isIrapNal(nalType)
+        {
             discard reader.bit()
+        }
+
         let ppsId = reader.ue()
-        if ppsId >= 64 or not .pps[ppsId].valid do
+        if ppsId >= 64 or not .pps[ppsId].valid
+        {
             fail InvalidFormatError{"HEVC slice names a picture parameter set that was not received"}
+        }
 
         let pps = &.pps[ppsId]
         let sps = .sequenceOf(pps)
-        if not sps do
+        if not sps
+        {
             fail InvalidFormatError{"HEVC picture parameter set names a sequence that was not received"}
+        }
 
         reader.init(.rbsp.toSlice())
         var header: SliceHeader
@@ -114,7 +137,7 @@ impl Decoder
             try .startPicture(sps, pps, &header, nalType)
             started = true
         }
-        elif not .current
+        else if not .current
         {
             // A picture whose first segment was lost cannot be reconstructed.
             fail InvalidFormatError{"HEVC slice segment continues a picture that was never started"}
@@ -132,8 +155,10 @@ impl Decoder
         .header.sliceAddress = .sliceAddrRs
         .header.initType     = .initTypeOf(&header)
 
-        if not header.dependent do
+        if not header.dependent
+        {
             try .applyReferencePictureSet(&header, sps)
+        }
 
         if deferPicture
         {
@@ -152,8 +177,10 @@ impl Decoder
     // Completes the picture header published by [[prepareNalUnit]].
     mtd decodePreparedPicture()->*Frame? fail
     {
-        if not .preparedPicture do
+        if not .preparedPicture
+        {
             return null
+        }
 
         var reader: BitReader
         reader.bitPos    = .preparedHeaderBit
@@ -186,10 +213,15 @@ impl Decoder
             for index in .refList.count[list]
             {
                 let frame = .refList.frames[list, index]
-                if not frame do
+                if not frame
+                {
                     continue
-                if frame.waitProgress(frame.progressComplete()) == FrameProgressFailed do
+                }
+
+                if frame.waitProgress(frame.progressComplete()) == FrameProgressFailed
+                {
                     fail InvalidFormatError{"HEVC inter block has no decoded reference picture"}
+                }
             }
         }
     }
@@ -197,10 +229,16 @@ impl Decoder
     // Returns the context initialization type of one slice, equation 9-7.
     private mtd const initTypeOf(header: const *SliceHeader)->u32
     {
-        if header.sliceType == SliceTypeI do
+        if header.sliceType == SliceTypeI
+        {
             return 0
-        if header.sliceType == SliceTypeP do
+        }
+
+        if header.sliceType == SliceTypeP
+        {
             return header.cabacInitFlag ? 2 : 1
+        }
+
         return header.cabacInitFlag ? 1 : 2
     }
 
@@ -222,8 +260,10 @@ impl Decoder
         // clause 8.1.3. They precede the point in output order, so keeping them would put wrong
         // pictures before the first real one. A clean random access point met in the middle of a
         // stream is not in that position: what its leading pictures predict from is right there.
-        if isIrapNal(nalType) do
+        if isIrapNal(nalType)
+        {
             .raslSuppressed = isIdrNal(nalType) or isBlaNal(nalType) or .firstPicture
+        }
 
         .computePoc(nalType, header, sps)
         if isReferenceNal(nalType) and header.temporalId == 0
@@ -233,8 +273,10 @@ impl Decoder
         }
 
         let frame = .acquireFrame()
-        if not frame do
+        if not frame
+        {
             fail InvalidFormatError{"HEVC decoded picture buffer has no free picture"}
+        }
 
         frame.prepare(sps)
         frame.poc          = .pocValue
@@ -259,14 +301,18 @@ impl Decoder
         Memory.set(.cbfLuma.storage(), 0, blocks)
         Memory.set(.edgeFlags.storage(), 0, blocks)
         Memory.set(.qpY.storage(), 0, blocks)
-        for index in blocks do
+        for index in blocks
+        {
             .motion[index] = {}
+        }
 
         if sps.saoEnabled
         {
             .sao.resize(cast(u64, sps.sizeInCtbs))
-            for index in cast(u64, sps.sizeInCtbs) do
+            for index in cast(u64, sps.sizeInCtbs)
+            {
                 .sao[index] = {}
+            }
         }
 
         .ctbSliceIndex.resize(cast(u64, sps.sizeInCtbs))
@@ -280,8 +326,10 @@ impl Decoder
     mtd finishPicture()->*Frame? fail
     {
         let frame = .current
-        if not frame do
+        if not frame
+        {
             return null
+        }
 
         .deblockPicture()
         .applySampleAdaptiveOffset()
@@ -298,7 +346,7 @@ impl Decoder
     private mtd storeCollocatedMotion()
     {
         let frame = unwrap .current
-        let step  = 1'u32 << (ColMotionLog2 - MinBlockLog2)
+        let step  = 1_u32 << (ColMotionLog2 - MinBlockLog2)
 
         for row in frame.colHeight
         {
@@ -310,8 +358,11 @@ impl Decoder
                 record.predFlags = source.predFlags
                 for list in ListCount
                 {
-                    if (cast(u32, source.predFlags) & (1'u32 << list)) == 0 do
+                    if (cast(u32, source.predFlags) & (1_u32 << list)) == 0
+                    {
                         continue
+                    }
+
                     record.mv[list, 0] = source.mv[list, 0]
                     record.mv[list, 1] = source.mv[list, 1]
 
@@ -319,8 +370,10 @@ impl Decoder
                     if index < .refList.count[list]
                     {
                         record.refPoc[list] = .refList.poc[list, index]
-                        if .refList.longTerm[list, index] do
-                            record.longTermRef |= cast(u8, (1'u32 << list))
+                        if .refList.longTerm[list, index]
+                        {
+                            record.longTermRef |= cast(u8, (1_u32 << list))
+                        }
                     }
                 }
 
@@ -335,24 +388,29 @@ impl Decoder
         // The slice data starts on the byte boundary the header ended at.
         let headerBytes  = reader.bitPos >> 3
         let escapedStart = escapedOffsetOf(body, headerBytes)
-        if escapedStart >= body.count do
+        if escapedStart >= body.count
+        {
             fail InvalidFormatError{"HEVC slice segment carries no data"}
+        }
 
         let data = body[escapedStart until body.count]
 
         // Every entry point splits the data into a substream of its own.
-        var escapedBounds: Array'u64
+        var escapedBounds: Array!{u64}
         escapedBounds.add(0)
-        var running = 0'u64
+        var running = 0_u64
         for offset in .header.entryPointOffsets
         {
             running += cast(u64, offset)
-            if running >= data.count do
+            if running >= data.count
+            {
                 fail InvalidFormatError{"HEVC slice entry point runs past the end of its segment"}
+            }
+
             escapedBounds.add(running)
         }
 
-        var bounds: Array'u64
+        var bounds: Array!{u64}
         unescapeRbspWithBounds(&.rbsp, data, escapedBounds.toSlice(), &bounds)
         bounds.add(.rbsp.count)
 
@@ -371,7 +429,7 @@ impl Decoder
             return
         }
 
-        var substream = 0'u64
+        var substream = 0_u64
         .ctbAddrTs = .ctbRsToTs[.header.segmentAddress]
         .ctbAddrRs = .header.segmentAddress
 
@@ -395,46 +453,65 @@ impl Decoder
         if pps.entropyCodingSync and
            (.ctbAddrRs % sps.widthInCtbs) == 0 and
            .wppState.valid and
-           .aboveRightAvailable(.ctbAddrRs, sps) do
+           .aboveRightAvailable(.ctbAddrRs, sps)
+        {
             .cabac.restore(&.wppState)
-        elif .header.dependent and .dependentState.valid do
+        }
+        else if .header.dependent and .dependentState.valid
+        {
             .cabac.restore(&.dependentState)
-        else do
+        }
+        else
+        {
             .cabac.initContexts(.header.initType, .header.sliceQp)
+        }
 
         for
         {
-            if .ctbAddrTs >= sps.sizeInCtbs do
+            if .ctbAddrTs >= sps.sizeInCtbs
+            {
                 fail InvalidFormatError{"HEVC slice segment runs past the end of its picture"}
+            }
 
             try .codingTreeUnit()
 
             // Wavefront processing resumes the next row from the adaptation this one reached at
             // its second block, clause 9.3.2.4.
-            if pps.entropyCodingSync and (.ctbAddrRs % sps.widthInCtbs) == 1 do
+            if pps.entropyCodingSync and (.ctbAddrRs % sps.widthInCtbs) == 1
+            {
                 .cabac.save(&.wppState)
+            }
 
             let endOfSlice = .cabac.terminate() != 0
-            if .cabac.hasOverrun() do
+            if .cabac.hasOverrun()
+            {
                 fail InvalidFormatError{"HEVC slice segment data is truncated"}
+            }
 
             .ctbAddrTs += 1
-            if .ctbAddrTs < sps.sizeInCtbs do
+            if .ctbAddrTs < sps.sizeInCtbs
+            {
                 .claimCodingTreeBlock()
+            }
+
             if endOfSlice
             {
                 .cabac.save(&.dependentState)
                 break
             }
 
-            if .ctbAddrTs >= sps.sizeInCtbs do
+            if .ctbAddrTs >= sps.sizeInCtbs
+            {
                 fail InvalidFormatError{"HEVC slice segment does not end inside its picture"}
+            }
 
             let nextRs  = .ctbTsToRs[.ctbAddrTs]
             let newTile = pps.tilesEnabled and .tileId[.ctbAddrTs] != .tileId[.ctbAddrTs - 1]
             let newRow  = pps.entropyCodingSync and (nextRs % sps.widthInCtbs) == 0
-            if not newTile and not newRow do
+            if not newTile and not newRow
+            {
                 continue
+            }
 
             // A new substream restarts the arithmetic engine on its own bytes.
             .claimCodingTreeBlock()
@@ -443,7 +520,7 @@ impl Decoder
             {
                 .cabac.initContexts(.header.initType, .header.sliceQp)
             }
-            elif .wppState.valid and .aboveRightAvailable(nextRs, sps)
+            else if .wppState.valid and .aboveRightAvailable(nextRs, sps)
             {
                 .cabac.restore(&.wppState)
             }
@@ -474,8 +551,10 @@ impl Decoder
     {
         let ctbX = ctbAddrRs % sps.widthInCtbs
         let ctbY = ctbAddrRs / sps.widthInCtbs
-        if not ctbY or ctbX + 1 >= sps.widthInCtbs do
+        if not ctbY or ctbX + 1 >= sps.widthInCtbs
+        {
             return false
+        }
 
         let x = cast(s32, ((ctbX + 1) << sps.ctbLog2Size))
         let y = cast(s32, ((ctbY - 1) << sps.ctbLog2Size))
@@ -486,57 +565,64 @@ impl Decoder
     //
     // A segment states one entry point per substream it contains, so running out of them means
     // the segment and its entry points disagree about where its rows begin.
-    private mtd startSubstream(substream: *u64, bounds: *Array'u64) fail
+    private mtd startSubstream(substream: *u64, bounds: *Array!{u64}) fail
     {
         let index = substream[]
         substream[] = index + 1
-        if index + 1 >= bounds.count do
+        if index + 1 >= bounds.count
+        {
             fail InvalidFormatError{"HEVC slice segment has fewer entry points than substreams"}
+        }
 
         let first = bounds[index]
         let last  = bounds[index + 1]
-        if last <= first do
+        if last <= first
+        {
             fail InvalidFormatError{"HEVC slice segment substream is empty"}
+        }
+
         try .cabac.start(.rbsp.storage() + first, last - first)
     }
 
     // Decodes a full-picture wavefront slice using one private scratch decoder per row.
-    private mtd decodeWavefrontRows(bounds: *Array'u64, sps: const *Sps) fail
+    private mtd decodeWavefrontRows(bounds: *Array!{u64}, sps: const *Sps) fail
     {
         let rowCount = sps.heightInCtbs
         let width    = sps.widthInCtbs
 
-        var jobs:     Array'WppRowJob
-        var progress: Array'u32
-        var states:   Array'CabacState
+        var jobs:     Array!{WppRowJob}
+        var progress: Array!{u32}
+        var states:   Array!{CabacState}
         jobs.resize(rowCount)
         progress.resize(rowCount)
         states.resize(rowCount)
 
-        let workersSize = cast(u64, rowCount) * #sizeof(Decoder)
-        let workers     = cast([*] Decoder, Memory.alloc(workersSize))
-        Swag.init(workers, rowCount)
-        let eventsSize = cast(u64, rowCount) * #sizeof(Sync.Event)
-        let events     = cast([*] Sync.Event, Memory.alloc(eventsSize))
-        Swag.init(events, rowCount)
-        for row in rowCount do
-            events[row].init(manual: true)
+        .ensureWavefrontWorkers(rowCount)
+        let workers = unwrap .wavefrontWorkers
+        let events  = unwrap .wavefrontEvents
         defer
         {
-            for row in rowCount do
-                events[row].release()
-            Swag.drop(events, rowCount)
-            Memory.free(events, eventsSize)
-            for row in rowCount do
+            for row in rowCount
+            {
                 .detachWavefrontWorker(&workers[row])
-            Swag.drop(workers, rowCount)
-            Memory.free(workers, workersSize)
+            }
         }
 
-        for row in rowCount do
-            .prepareWavefrontWorker(&workers[row])
+        // The failure path broadcasts to every row, including those that never waited.
+        defer #fail
+        {
+            for row in rowCount
+            {
+                events[row].reset()
+            }
+        }
 
-        var failed = 0'u32
+        for row in rowCount
+        {
+            .prepareWavefrontWorker(&workers[row])
+        }
+
+        var failed = 0_u32
         for row in rowCount
         {
             let job = &jobs[row]
@@ -555,19 +641,64 @@ impl Decoder
 
         submitWppRow(&jobs[0])
 
-        for index in rowCount do
+        for index in rowCount
+        {
             jobs[index].wait()
+        }
 
         for index in rowCount
         {
-            if jobs[index].errorText.length do
+            if jobs[index].errorText.length
+            {
                 fail InvalidFormatError{Errors.mkString(jobs[index].errorText.toString())}
+            }
+
             .saoUsed = .saoUsed or workers[index].saoUsed
         }
 
         workers[rowCount - 1].cabac.save(&.dependentState)
         .ctbAddrTs = sps.sizeInCtbs
         .ctbAddrRs = sps.sizeInCtbs - 1
+    }
+
+    // Keep each row's decoder and event warm while the frame owner sees the same row count.
+    private mtd ensureWavefrontWorkers(rows: u32)
+    {
+        if rows == .wavefrontRowCount
+        {
+            return
+        }
+
+        .releaseWavefrontWorkers()
+        let workers = cast([*] Decoder, Memory.alloc(cast(u64, rows) * #sizeof(Decoder)))
+        let events  = cast([*] Sync.Event, Memory.alloc(cast(u64, rows) * #sizeof(Sync.Event)))
+        Swag.init(workers, rows)
+        Swag.init(events, rows)
+        for row in rows
+        {
+            events[row].init()
+        }
+
+        .wavefrontWorkers  = workers
+        .wavefrontEvents   = events
+        .wavefrontRowCount = rows
+    }
+
+    mtd releaseWavefrontWorkers()
+    {
+        let rows = .wavefrontRowCount
+        if not rows
+        {
+            return
+        }
+
+        Swag.drop(.wavefrontEvents, rows)
+        Memory.free(.wavefrontEvents, cast(u64, rows) * #sizeof(Sync.Event))
+        Swag.drop(.wavefrontWorkers, rows)
+        Memory.free(.wavefrontWorkers, cast(u64, rows) * #sizeof(Decoder))
+        .wavefrontWorkers  = null
+        .wavefrontEvents   = null
+        .wavefrontRowCount = 0
     }
 
     // Gives a row decoder borrowed views of the picture-wide arrays. Its own fixed scratch and
@@ -588,6 +719,7 @@ impl Decoder
         // decoded, clause 8.5.3.2.8. A row decoder that does not carry that count scales every
         // temporal and spatial candidate against zero, and predicts from the wrong place.
         worker.pocValue = .pocValue
+        worker.saoUsed  = false
 
         worker.zScan.buffer         = .zScan.buffer
         worker.zScan.count          = .zScan.count
@@ -622,8 +754,11 @@ impl Decoder
         worker.sao.buffer           = .sao.buffer
         worker.sao.count            = .sao.count
 
-        for index in 32'u32 * 32 do
+        for index in 32_u32 * 32
+        {
             worker.transformMatrix[index] = .transformMatrix[index]
+        }
+
         worker.transformMatrixReady = true
     }
 
@@ -666,8 +801,11 @@ impl Decoder
 
         if row
         {
-            if not .waitWavefrontProgress(job, row - 1, 2) do
+            if not .waitWavefrontProgress(job, row - 1, 2)
+            {
                 return
+            }
+
             .cabac.restore(unwrap job.states + row - 1)
         }
         else
@@ -680,8 +818,10 @@ impl Decoder
             if row
             {
                 let needed = Math.min(column + 2, job.width)
-                if not .waitWavefrontProgress(job, row - 1, needed) do
+                if not .waitWavefrontProgress(job, row - 1, needed)
+                {
                     return
+                }
             }
 
             .ctbAddrRs = row * job.width + column
@@ -696,29 +836,42 @@ impl Decoder
             }
 
             let endOfSlice = .cabac.terminate() != 0
-            if .cabac.hasOverrun() do
+            if .cabac.hasOverrun()
+            {
                 fail InvalidFormatError{"HEVC slice segment data is truncated"}
+            }
 
-            Atomic.exchange(unwrap job.progress + row, column + 1)
-            job.events![row].signal()
+            let previous = Atomic.exchange(unwrap job.progress + row, column + 1)
+            if previous & WppWaiting
+            {
+                job.events![row].signal()
+            }
             let finalBlock = row + 1 == job.rowCount and column + 1 == job.width
-            if endOfSlice != finalBlock do
+            if endOfSlice != finalBlock
+            {
                 fail InvalidFormatError{"HEVC wavefront slice ends outside its final coding tree block"}
+            }
         }
     }
 
-    // Sleeps until the row above has made enough progress. Resetting before the second check
-    // closes the signal race without burning a worker core while another row reconstructs.
+    // Arm the wakeup only if the observed progress is still current. Publishing more columns
+    // clears the bit and signals the auto-reset event, even if this row has yet to enter wait.
     private mtd waitWavefrontProgress(job: *WppRowJob, row, needed: u32)->bool
     {
-        while Atomic.get(unwrap job.progress + row) < needed and Atomic.get(unwrap job.failed) == 0
+        let progress = unwrap job.progress + row
+        let failed   = unwrap job.failed
+        var current  = Atomic.get(progress)
+        while (current & ~WppWaiting) < needed and Atomic.get(failed) == 0
         {
-            job.events![row].reset()
-            if Atomic.get(job.progress + row) < needed and Atomic.get(unwrap job.failed) == 0 do
-                job.events[row].wait()
+            if Atomic.compareExchange(progress, current, current | WppWaiting) == current and Atomic.get(failed) == 0
+            {
+                job.events![row].wait()
+            }
+
+            current = Atomic.get(progress)
         }
 
-        return Atomic.get(unwrap job.failed) == 0
+        return Atomic.get(failed) == 0
     }
 }
 
@@ -734,8 +887,10 @@ private func runWppRow(job: *WppRowJob)
     {
         job.errorText = Errors.message(Swag.err)
         Atomic.exchange(job.failed, 1)
-        for index in job.rowCount do
+        for index in job.rowCount
+        {
             job.events![index].signal()
+        }
     }
 
     scheduleNextWppRow(job)
@@ -745,11 +900,16 @@ private func runWppRow(job: *WppRowJob)
 // Submission at that exact point keeps every scheduler job useful instead of queueing waiters.
 private func scheduleNextWppRow(job: *WppRowJob)
 {
-    if job.nextScheduled do
+    if job.nextScheduled
+    {
         return
+    }
+
     job.nextScheduled = true
-    if job.row + 1 < job.rowCount do
+    if job.row + 1 < job.rowCount
+    {
         submitWppRow(unwrap job.jobs + job.row + 1)
+    }
 }
 
 // Hands one row to the runtime scheduler.

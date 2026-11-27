@@ -4,30 +4,41 @@ using Core, Pixel
 
 // Keep 4K figures sharp while bounding each cached RGBA bitmap to 32 MiB.
 private const HtmlSvgRasterLimit  = 4096.0
-private const HtmlSvgRasterPixels = 8 * 1024 * 1024'u64
+private const HtmlSvgRasterPixels = 8 * 1024 * 1024_u64
 
 // A photo embedded in one SVG must not hold every lighter gallery image behind its decoder.
 // Bound concurrent parsing because each drawing may own full-resolution decoded photographs.
-private const HtmlImageParseLimit = 4'u64
+private const HtmlImageParseLimit = 4_u64
 
 // Resolves an offline resource without accepting URL schemes, UNC paths, or device namespaces.
 internal func htmlLocalResourcePath(basePath, source: string)->String
 {
     if not Path.isValidPathName(source) or
        Utf8.contains(source, "://") or
-       Utf8.startsWith(source, "data:") do
+       Utf8.startsWith(source, "data:")
+    {
         return {}
-    let colon = Utf8.indexOf(source, ':'rune)
-    if colon != Swag.U64.Max and not (WINDOWS and colon == 1 and Latin1.isLetter(source[0])) do
+    }
+
+    let colon = Utf8.indexOf(source, ':'_rune)
+    if colon != Swag.U64.Max and not (WINDOWS and colon == 1 and Latin1.isLetter(source[0]))
+    {
         return {}
-    if basePath.count and not Path.isValidPathName(basePath) do
+    }
+
+    if basePath.count and not Path.isValidPathName(basePath)
+    {
         return {}
+    }
 
     let fileName = Path.isRooted(source) ? String.from(source) : Path.combine(basePath, source)
     if fileName.count >= 2 and
        Path.isDirectorySeparator(fileName[0]) and
-       Path.isDirectorySeparator(fileName[1]) do
+       Path.isDirectorySeparator(fileName[1])
+    {
         return {}
+    }
+
     return fileName
 }
 
@@ -64,11 +75,11 @@ struct HtmlImageParse
 struct HtmlImageCache
 {
     basePath:     String
-    entries:      Array'HtmlImageEntry
-    index:        HashTable'(String, u32)
+    entries:      Array!{HtmlImageEntry}
+    index:        HashTable!{String, u32}
     renderer:     IRenderer?
     asynchronous: bool
-    parsing:      Array'(*HtmlImageParse)
+    parsing:      Array!{*HtmlImageParse}
     loadingPhase: f32
 }
 
@@ -98,8 +109,11 @@ impl HtmlImageCache
         for index in reversed(.parsing.count)
         {
             let parsing = .parsing[index]
-            if not wait and parsing.task.isPending() do
+            if not wait and parsing.task.isPending()
+            {
                 continue
+            }
+
             var errorOutcome: Swag.Error
             catch parsing.task.take() as errorOutcome
             let error = errorOutcome.value()
@@ -145,12 +159,16 @@ impl HtmlImageCache
     // it is asked to display, which is what makes viewing an untrusted file safe.
     mtd fetch(source: string)->*HtmlImageEntry?
     {
-        if not source.count do
+        if not source.count
+        {
             return null
+        }
 
         let found = .index.tryFind(String.from(source))
-        if found do
+        if found
+        {
             return .entries[found.value].loaded ? &.entries[found.value] : null
+        }
 
         let slot = cast(u32, .entries.count)
         var entry: HtmlImageEntry
@@ -168,8 +186,10 @@ impl HtmlImageCache
         }
 
         let fileName = htmlLocalResourcePath(.basePath.toString(), source)
-        if fileName.isEmpty() do
+        if fileName.isEmpty()
+        {
             return null
+        }
 
         if Path.lowercaseExtension(fileName.toString()) == ".svg"
         {
@@ -188,8 +208,11 @@ impl HtmlImageCache
             var drawing: #decltype(expect Svg.Drawing.parse(text.toString()))
             catch { drawing = try Svg.Drawing.parse(text.toString()) } as parseErrorOutcome
             let parseError = parseErrorOutcome.value()
-            if parseError != null or drawing.width <= 0 or drawing.height <= 0 do
+            if parseError != null or drawing.width <= 0 or drawing.height <= 0
+            {
                 return null
+            }
+
             .entries[slot].naturalSize = drawing.naturalSize()
             .entries[slot].drawing     = #move drawing
             .entries[slot].isVector    = true
@@ -209,8 +232,11 @@ impl HtmlImageCache
     mtd requestSize(source: string, pixelWidth, pixelHeight: f32)
     {
         let entry = .fetch(source)
-        if not entry or not entry.isVector do
+        if not entry or not entry.isVector
+        {
             return
+        }
+
         entry.rasterSize.x = Math.max(entry.rasterSize.x, pixelWidth)
         entry.rasterSize.y = Math.max(entry.rasterSize.y, pixelHeight)
     }
@@ -221,8 +247,11 @@ impl HtmlImageCache
     {
         .finishParsing()
         let entry = .fetch(source)
-        if not entry do
+        if not entry
+        {
             return null
+        }
+
         if entry.isVector
         {
             // Keep the source aspect ratio: CSS may stretch the uploaded texture independently.
@@ -245,11 +274,14 @@ impl HtmlImageCache
                     // Parse visible drawings off-thread, then rasterize through the surface
                     // renderer. A software raster here bypasses the application's GPU entirely.
                     let slot = .index.find(String.from(source)).value
-                    for parsing in .parsing where parsing.slot == slot do
+                    for parsing in .parsing where parsing.slot == slot
+                    {
                         return null
+                    }
+
                     if .parsing.count < HtmlImageParseLimit
                     {
-                        let parsing = Memory.new'HtmlImageParse()
+                        let parsing = Memory.new!{HtmlImageParse}()
                         parsing.slot     = slot
                         parsing.fileName = htmlLocalResourcePath(.basePath.toString(), source)
                         .parsing.add(parsing)
@@ -269,8 +301,10 @@ impl HtmlImageCache
             }
         }
 
-        if entry.uploaded do
+        if entry.uploaded
+        {
             return &entry.texture
+        }
 
         .renderer      = renderer
         entry.texture  = renderer.addImage(entry.image)

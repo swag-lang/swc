@@ -27,7 +27,7 @@ interface IMetadataReceiver
 
 struct MetadataReceiver
 {
-    signal: MetadataSignal'func||(*MetadataReceiver)
+    signal: MetadataSignal!{func||(*MetadataReceiver)}
     count:  s32
 }
 
@@ -82,12 +82,12 @@ impl MetadataLazyReady
 func metadataLazyMethodWorks()
 {
     // This idle generic body is reached only through optional metadata, without a direct call.
-    var ready = MetadataLazyReady's32{value: 42}
-    let info  = cast(const *Swag.TypeInfoStruct, #typeof(MetadataLazyReady's32))
+    var ready = MetadataLazyReady!{s32}{value: 42}
+    let info  = cast(const *Swag.TypeInfoStruct, #typeof(MetadataLazyReady!{s32}))
     Swag.assert(info.methods.count == 1)
     let address = info.methods![0].value
     Swag.assert(address != null)
-    let read  = cast(func(*MetadataLazyReady's32)->s32, address)
+    let read  = cast(func(*MetadataLazyReady!{s32})->s32, address)
     let value = read(&ready)
     Swag.assert(value == 42)
 }

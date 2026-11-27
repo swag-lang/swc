@@ -23,8 +23,10 @@ internal func deleteEmptyNative(dirName: string) fail
 // A file, an empty name, or a path the process cannot query reports false.
 func exists(dirName: string)->bool
 {
-    if dirName.count == 0 do
+    if dirName.count == 0
+    {
         return false
+    }
 
     // Reject an absent drive before querying a path that may stall in a native filesystem call.
     if dirName.count >= 2 and dirName[1] == ':'
@@ -32,19 +34,24 @@ func exists(dirName: string)->bool
         var root = String.from(dirName[until 2])
         root += "\\"
         let winRoot = Utf16.toZeroTerminated(root)
-        if GetDriveTypeW(winRoot.buffer) == DRIVE_NO_ROOT_DIR do
+        if GetDriveTypeW(winRoot.buffer) == DRIVE_NO_ROOT_DIR
+        {
             return false
+        }
     }
 
     let winPath    = Utf16.toZeroTerminated(dirName)
     let attributes = catch GetFileAttributesW(winPath.buffer) { return false }
-    if attributes == 0xFFFFFFFF do
+    if attributes == 0xFFFFFFFF
+    {
         return false
+    }
+
     return (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0
 }
 
 // Enumerates exactly one directory and returns normalized metadata for every native entry.
-internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
+internal func enumerateOneNative(dirName: string)->Array!{File.FileInfo} fail
 {
     using File
     var result:   #returntype
@@ -52,8 +59,11 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
     var fileTime: SYSTEMTIME
     let fileNameBuffer = cast(const [*] u16, findData.cFileName.buffer)
     var scanPath       = String.from(dirName)
-    if scanPath.back() == Path.VolumeSeparator do
+    if scanPath.back() == Path.VolumeSeparator
+    {
         scanPath += Path.DirectorySeparator
+    }
+
     let searchPath = Path.combine(scanPath.toString(), "*")
 
     let winPath = Utf16.toZeroTerminated(searchPath)
@@ -66,8 +76,11 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
     if handle == INVALID_HANDLE_VALUE
     {
         let error = GetLastError()
-        if error == ERROR_FILE_NOT_FOUND do
+        if error == ERROR_FILE_NOT_FOUND
+        {
             return result
+        }
+
         try failWinError(error)
     }
 
@@ -95,8 +108,10 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
         result.add(#move info)
 
         let next = try FindNextFileW(handle, &findData)
-        if not next do
+        if not next
+        {
             break
+        }
     }
 
     return result
@@ -107,7 +122,7 @@ func currentPath()->String fail
 {
     let length = try GetCurrentDirectoryW(0, null)
 
-    var arr16: Array'u16
+    var arr16: Array!{u16}
     arr16.reserve(cast(u64, length) + 1)
     arr16.count = try GetCurrentDirectoryW(length + 1, arr16.buffer)
 
@@ -127,14 +142,16 @@ func setCurrentPath(dirName: string) fail
 //
 // The roots keep the native separator. Returns an empty array when the list does not fit the
 // platform path limit.
-func drives()->Array'String fail
+func drives()->Array!{String} fail
 {
     var result:     #returntype
     var volumeName: [MAX_PATH] u8
 
     let length = GetLogicalDriveStringsA(MAX_PATH, volumeName)
-    if length >= MAX_PATH do
+    if length >= MAX_PATH
+    {
         return result
+    }
 
     var ptr = cast([*] u8, &volumeName[0])
     while ptr[0]
@@ -158,8 +175,10 @@ func isRemote(path: string)->bool
     const DevicePrefix = #raw "\\.\"
 
     if path.count >= ExtendedUncPrefix.count and
-       Path.equals(path[until ExtendedUncPrefix.count], ExtendedUncPrefix) do
+       Path.equals(path[until ExtendedUncPrefix.count], ExtendedUncPrefix)
+    {
         return true
+    }
 
     var normalized = path
     if path.count >= ExtendedPrefix.count and
@@ -167,18 +186,23 @@ func isRemote(path: string)->bool
     {
         normalized = path[ExtendedPrefix.count to]
     }
-    elif path.count >= DevicePrefix.count and
-         Path.equals(path[until DevicePrefix.count], DevicePrefix)
+    else if path.count >= DevicePrefix.count and
+            Path.equals(path[until DevicePrefix.count], DevicePrefix)
     {
         normalized = path[DevicePrefix.count to]
     }
 
     if normalized.count >= 2 and
        (normalized[0] == '\\' or normalized[0] == '/') and
-       (normalized[1] == '\\' or normalized[1] == '/') do
+       (normalized[1] == '\\' or normalized[1] == '/')
+    {
         return true
-    if normalized.count < 2 or normalized[1] != ':' do
+    }
+
+    if normalized.count < 2 or normalized[1] != ':'
+    {
         return false
+    }
 
     var root = String.from(normalized[until 2])
     root += "\\"
@@ -193,13 +217,17 @@ func isRemote(path: string)->bool
 // answer reports an error.
 func freeSpace(dirName: string)->u64 fail
 {
-    if not dirName.count do
+    if not dirName.count
+    {
         fail Errors.BadParameterError{}
+    }
 
     // A share or a volume is queried through its root, which the system names with a separator.
     var directory = String.from(dirName)
-    if not Path.isDirectorySeparator(directory.back()) do
+    if not Path.isDirectorySeparator(directory.back())
+    {
         directory += Path.DirectorySeparator
+    }
 
     var available: ULARGE_INTEGER
     let winPath = Utf16.toZeroTerminated(directory)
@@ -210,18 +238,21 @@ func freeSpace(dirName: string)->u64 fail
 // Returns the first mount point of every mounted volume, with normalized separators.
 //
 // A volume without a mount point is skipped.
-func volumes()->Array'String fail
+func volumes()->Array!{String} fail
 {
     var result: #returntype
 
     var volumeName: [MAX_PATH] u8
 
     let handle = try FindFirstVolumeA(volumeName, MAX_PATH)
-    if handle == INVALID_HANDLE_VALUE do
+    if handle == INVALID_HANDLE_VALUE
+    {
         return result
+    }
+
     defer discard catch FindVolumeClose(handle)
 
-    var pathNames: Array'u8
+    var pathNames: Array!{u8}
     for
     {
         pathNames.resize(MAX_PATH)
@@ -258,8 +289,10 @@ func volumes()->Array'String fail
             }
         }
 
-        if not (try FindNextVolumeA(handle, volumeName, MAX_PATH)) do
+        if not (try FindNextVolumeA(handle, volumeName, MAX_PATH))
+        {
             break
+        }
     }
 
     return result

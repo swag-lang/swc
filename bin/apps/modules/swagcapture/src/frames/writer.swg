@@ -21,8 +21,8 @@ struct Writer
     lastTime:    u64
     lastKey:     u64     // Time of the last key record.
     deflate:     Compress.Deflate
-    rows:        Array'u8     // Pixels of the area being written, top row first.
-    payload:     Array'u8     // Compressed pixels of the area being written.
+    rows:        Array!{u8}     // Pixels of the area being written, top row first.
+    payload:     Array!{u8}     // Compressed pixels of the area being written.
     isClosed:    bool
 }
 
@@ -49,7 +49,7 @@ impl Writer
         try result.sink.writeLittleEndian(cast(u32, width))
         try result.sink.writeLittleEndian(cast(u32, height))
         try result.sink.writeLittleEndian(cast(u32, pixelFormat))
-        try result.sink.writeLittleEndian(0'u64)
+        try result.sink.writeLittleEndian(0_u64)
         return result
     }
 
@@ -86,21 +86,28 @@ impl Writer
         try .sink.writeLittleEndian(cast(u32, area.w))
         try .sink.writeLittleEndian(cast(u32, area.h))
         try .sink.writeLittleEndian(cast(u32, .payload.count))
-        try .sink.writeLittleEndian(0'u32)
+        try .sink.writeLittleEndian(0_u32)
         try .sink.write(.payload.toSlice())
 
         // The previous frame only needs the rows that changed, which is all of them for a key.
-        if not .previous.isValid() do
+        if not .previous.isValid()
+        {
             .previous = frame
-        elif not area.isEmpty() do
+        }
+        else if not area.isEmpty()
+        {
             writeArea(&.previous, area, .rows.toSlice())
+        }
 
-        if isKey do
+        if isKey
+        {
             .lastKey = time
+        }
+
         try .indexSink.writeLittleEndian(entry.offset)
         try .indexSink.writeLittleEndian(entry.time)
         try .indexSink.writeLittleEndian(cast(u32, entry.kind))
-        try .indexSink.writeLittleEndian(0'u32)
+        try .indexSink.writeLittleEndian(0_u32)
         .count    += 1
         .lastTime = time
     }
@@ -109,8 +116,11 @@ impl Writer
     // file.
     mtd close(endTime: u64) fail
     {
-        if .isClosed do
+        if .isClosed
+        {
             return
+        }
+
         .isClosed = true
         try .indexSink.close()
         defer discard catch File.delete(.indexPath)
@@ -119,14 +129,14 @@ impl Writer
 
         let indexOffset = .sink.position()
         try .sink.writeLittleEndian(IndexTag)
-        try .sink.writeLittleEndian(0'u32)
+        try .sink.writeLittleEndian(0_u32)
         try .sink.writeLittleEndian(.count)
         for .count
         {
-            try .sink.writeLittleEndian(try indexSource.readLittleEndian'u64())
-            try .sink.writeLittleEndian(try indexSource.readLittleEndian'u64())
-            try .sink.writeLittleEndian(try indexSource.readLittleEndian'u32())
-            try .sink.writeLittleEndian(try indexSource.readLittleEndian'u32())
+            try .sink.writeLittleEndian(try indexSource.readLittleEndian!{u64}())
+            try .sink.writeLittleEndian(try indexSource.readLittleEndian!{u64}())
+            try .sink.writeLittleEndian(try indexSource.readLittleEndian!{u32}())
+            try .sink.writeLittleEndian(try indexSource.readLittleEndian!{u32}())
         }
 
         try .sink.writeLittleEndian(indexOffset)
@@ -153,14 +163,19 @@ impl Writer
             let offset = cast(u64, (after.height - 1 - y) * after.rowStride)
             if differs(first + offset, second + offset, rowBytes)
             {
-                if top < 0 do
+                if top < 0
+                {
                     top = y
+                }
+
                 bottom = y
             }
         }
 
-        if top < 0 do
+        if top < 0
+        {
             return {}
+        }
 
         // Columns that changed, within those rows.
         let pixelBytes = cast(u64, after.bytesPerPixel)

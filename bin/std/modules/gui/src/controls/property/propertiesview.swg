@@ -19,17 +19,23 @@ internal impl IWnd for PropertiesView
     // to the owning Properties so it can move the selection and start edition.
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if .ed != null do
+        if .ed != null
+        {
             .ed.navKeyEvent(evt)
-        else do
+        }
+        else
+        {
             evt.accepted = false
+        }
     }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .stackWnd.IWnd.onResizeEvent(evt)
-        if .ed == null or not .ed.items.count do
+        if .ed == null or not .ed.items.count
+        {
             return
+        }
 
         .ed.refreshGridColumnLayout()
 
@@ -44,10 +50,15 @@ internal impl IWnd for PropertiesView
             {
                 let item = unwrap itemIt
                 item.line.maxSize.x = cw
-                if item.label != null do
+                if item.label != null
+                {
                     item.label.position.width = contentW
-                if item.labelDesc != null do
+                }
+
+                if item.labelDesc != null
+                {
                     item.labelDesc.position.width = contentW
+                }
             }
 
             .ed.resizePanelCaptions(contentW)
@@ -59,35 +70,51 @@ internal impl IWnd for PropertiesView
         for itemIt in .ed.items
         {
             let item = unwrap itemIt
-            if item.label != null do
+            if item.label != null
+            {
                 item.label.updateAutomaticHeight()
-            if item.labelDesc != null do
+            }
+
+            if item.labelDesc != null
+            {
                 item.labelDesc.updateAutomaticHeight()
+            }
+
             item.sigResize.call(item)
             item.line.applyLayout()
 
             // Line list-mode row action buttons up with the right edge of the value column
             // now that the row label has its final size (grid docks them, so this is a no-op).
-            if item.arrayAddButton != null do
+            if item.arrayAddButton != null
+            {
                 .ed.positionListActionButton(item, item.arrayAddButton)
+            }
 
             // The validation bar is sized to the editor column (and, in grid mode, grows the
             // row) only once the value widgets are positioned, so do it after the first pass
             // and lay the row out again when it changed the sizing.
-            if item.validationLabel != null and .ed.syncValidationBar(item) do
+            if item.validationLabel != null and .ed.syncValidationBar(item)
+            {
                 item.line.applyLayout()
+            }
 
             item.line.sendResizeEvent()
-            if item.line.isVisible() do
+            if item.line.isVisible()
+            {
                 lastItem = item
+            }
         }
 
         .computeLayout()
 
         // Vertical size is the bottom position of the last line
-        if lastItem do
+        if lastItem
+        {
             .ed.scrollWnd.setScrollSize(0, lastItem.line.position.bottom() + 10)
-        else do
+        }
+        else
+        {
             .ed.scrollWnd.setScrollSize(0, 0)
+        }
     }
 }

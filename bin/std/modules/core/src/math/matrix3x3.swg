@@ -73,8 +73,11 @@ impl Matrix3x3
             for column in 3
             {
                 var value: f32
-                for inner in 3 do
+                for inner in 3
+                {
                     value += .m[row, inner] * other.m[inner, column]
+                }
+
                 result.m[row, column] = value
             }
         }
@@ -125,8 +128,10 @@ impl Matrix3x3
         var result: #returntype
         for row in 3
         {
-            for column in 3 do
+            for column in 3
+            {
                 result.m[row, column] = .m[column, row]
+            }
         }
 
         return result

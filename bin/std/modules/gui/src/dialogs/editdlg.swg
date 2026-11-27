@@ -41,7 +41,7 @@ public impl EditDlg
     func createSingleLine(from: *Surface, options: EditDlgOptions = {})->*EditDlg
     {
         Swag.assert(from != null)
-        let dlg = Wnd.create'EditDlg()
+        let dlg = Wnd.create!{EditDlg}()
         discard dlg.createSurface(from, 0, 0, cast(s32, MessageDlg.MinMessageWidth), 210)
         dlg.setTitle(options.title)
 
@@ -64,7 +64,7 @@ public impl EditDlg
     {
         Swag.assert(from != null)
         Swag.assert(options.editorHeight > 0, "editor height must be positive")
-        let dlg = Wnd.create'EditDlg()
+        let dlg = Wnd.create!{EditDlg}()
         discard dlg.createSurface(from, 0, 0, 512, 180 + options.editorHeight, .Resizable)
         dlg.setTitle(options.title)
         dlg.setMinSize(MessageDlg.MinMessageWidth, 0)
@@ -84,8 +84,11 @@ public impl EditDlg
         dlg.sendResizeEvent()
 
         var appliedOptions = options
-        if not appliedOptions.message.count do
+        if not appliedOptions.message.count
+        {
             appliedOptions.message = strings().dlg_MultiLineHint
+        }
+
         dlg.applyOptions(appliedOptions)
         return dlg
     }
@@ -101,17 +104,23 @@ public impl EditDlg
     // surface: the message can grow the surface, so centering must come last.
     private mtd applyOptions(options: EditDlgOptions)
     {
-        if options.message.count do
+        if options.message.count
+        {
             .setMessage(options.message)
+        }
 
         .setText(options.text)
         if options.selectAll
         {
             let edit = .edit
-            if edit do
+            if edit
+            {
                 edit.selectAll()
-            else do
+            }
+            else
+            {
                 .richEdit!.selectAll()
+            }
         }
 
         .fitContent()
@@ -137,11 +146,16 @@ public impl EditDlg
 
         // The rich editor keeps its authored height while the surface is fitted around it.
         let richEdit = .richEdit
-        if richEdit do
+        if richEdit
+        {
             richEdit.anchorStyle = .None
+        }
+
         .fitHeightToContent(contentHeight)
-        if richEdit do
+        if richEdit
+        {
             richEdit.anchorStyle = .Height
+        }
 
         // A resizable editor may grow, but it must not shrink below its fitted content.
         if richEdit
@@ -155,18 +169,25 @@ public impl EditDlg
     mtd setText(text: string)
     {
         let edit = .edit
-        if edit do
+        if edit
+        {
             edit.setText(text)
-        else do
+        }
+        else
+        {
             .richEdit!.setText(text)
+        }
     }
 
     // Returns a copy of the editor contents.
     mtd text()->String
     {
         let edit = .edit
-        if edit do
+        if edit
+        {
             return edit.text()
+        }
+
         return .richEdit!.text()
     }
 

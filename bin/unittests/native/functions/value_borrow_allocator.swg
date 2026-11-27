@@ -42,7 +42,7 @@ func invalidateAllocation(value: Thing, address: *void, operation: u32)->u64
     Swag.require(cached.address != null)
     allocator.free(&cached)
 
-    for size in [3 * #sizeof(Thing), 131072'u64]
+    for size in [3 * #sizeof(Thing), 131072_u64]
     {
         var request: Swag.AllocatorRequest
         request.size = size
@@ -56,7 +56,7 @@ func invalidateAllocation(value: Thing, address: *void, operation: u32)->u64
         let elements = cast([*] Thing, address)
         Swag.init(elements, 3)
         elements[1].value = 113
-        for operation in 2'u32
+        for operation in 2_u32
         {
             mustReject(func|elements, address, operation|() {
                 discard invalidateAllocation(elements[1], address, operation)

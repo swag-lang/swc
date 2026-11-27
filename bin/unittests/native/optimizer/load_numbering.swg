@@ -8,7 +8,7 @@
 func parseDigits(text: [*] u8, start, eol: u64)->u64
 {
     var p   = start
-    var qty = 0'u64
+    var qty = 0_u64
     while p < eol and text[p] != ','
     {
         qty = qty * 10 + cast(u64, (text[p] - 48))

@@ -31,10 +31,10 @@ func day5B()
     let lines    = expect File.readAllLines(dataPath)
 
     var r: Parser.RegExp
-    var m: Array's32
-    var total = 0'u64
+    var m: Array!{s32}
+    var total = 0_u64
 
-    const W = 1000'u64
+    const W = 1000_u64
     m.resize(W * W)
 
     for l in lines

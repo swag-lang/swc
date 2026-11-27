@@ -51,16 +51,23 @@ func day6B0()
 
     for l, index in lines
     {
-        if l.length do
+        if l.length
+        {
             num += 1
+        }
 
-        for c in l.bytes() do
+        for c in l.bytes()
+        {
             count[c - 'a'] += 1
+        }
 
         if index == lines.count - 1 or lines[index + 1].isEmpty()
         {
-            for c in count where c == num do
+            for c in count where c == num
+            {
                 total += 1
+            }
+
             Swag.init(count)
             num = 0
         }
@@ -76,22 +83,25 @@ func day6B1()
 
     var total:    u64
     var lineVal:  u32
-    var interVal: u32 = ~0'u32
+    var interVal: u32 = ~0_u32
 
     for l, index in lines
     {
         if l.length
         {
             lineVal = 0
-            for c in l.bytes() do
+            for c in l.bytes()
+            {
                 lineVal |= 1 << cast(u32, (c - 'a'))
+            }
+
             interVal &= lineVal
         }
 
         if index == lines.count - 1 or lines[index + 1].isEmpty()
         {
             total    += Math.countOnes(interVal)
-            interVal = ~0'u32
+            interVal = ~0_u32
         }
     }
 

@@ -21,8 +21,10 @@ impl OpaqueSparseUnion
     #[Swag.NoInline]
     mtd const isDefault()->bool
     {
-        for byte in .value.zeros where byte != 0 do
+        for byte in .value.zeros where byte != 0
+        {
             return false
+        }
         return .value.marker == 0x0102030405060708
     }
 

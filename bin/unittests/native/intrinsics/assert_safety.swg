@@ -79,12 +79,27 @@ func narrowedAssertion(value: *s32?)->s32
     #assert(#safety(Swag.SafetyWhat.BoundCheck) == (#cfg != "release"))
 
     // Verification stays active in release without changing the functions' safety settings.
-    if defaultAssertions() != Default do Swag.panic("default assertion setting", #curlocation)
-    if disabledAssertions() != 0 do Swag.panic("disabled assertion evaluated an argument", #curlocation)
-    if enabledAssertions() != 1 do Swag.panic("enabled assertion evaluated its message or location", #curlocation)
-    if scopedAssertions() != 1 do Swag.panic("scoped assertion override", #curlocation)
+    if defaultAssertions() != Default
+    {
+        Swag.panic("default assertion setting", #curlocation)
+    }
+    if disabledAssertions() != 0
+    {
+        Swag.panic("disabled assertion evaluated an argument", #curlocation)
+    }
+    if enabledAssertions() != 1
+    {
+        Swag.panic("enabled assertion evaluated its message or location", #curlocation)
+    }
+    if scopedAssertions() != 1
+    {
+        Swag.panic("scoped assertion override", #curlocation)
+    }
     var value = 42
-    if narrowedAssertion(&value) != 42 do Swag.panic("assertion narrowing", #curlocation)
+    if narrowedAssertion(&value) != 42
+    {
+        Swag.panic("assertion narrowing", #curlocation)
+    }
 }
 
 var messageCreated = 0

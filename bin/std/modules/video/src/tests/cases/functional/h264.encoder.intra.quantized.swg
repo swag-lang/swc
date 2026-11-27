@@ -5,7 +5,7 @@ using Swag, Core, Pixel
 
 private func intraKeyFixture(width, height: s32)->Nv12Frame fail
 {
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(cast(u64, width) * cast(u64, height) * 3)
     for y in cast(u64, height)
     {
@@ -36,8 +36,10 @@ private impl Nv12Frame
 {
     mtd shiftIntraLuma()
     {
-        for index in cast(u64, .width) * cast(u64, .height) do
+        for index in cast(u64, .width) * cast(u64, .height)
+        {
             .bytes[index] = cast(u8, (cast(u32, .bytes[index]) + 31) & 255)
+        }
     }
 
     mtd setIntraDecoded(frame: const *PlanarFrame)
@@ -104,7 +106,7 @@ private impl Nv12Frame
     let key     = expect encoder.encode(&source, 0, 3_000)
     Swag.require(key.isKeyFrame and key.bytes.count < pcm.bytes.count / 2)
     expect writer.addPacket(key)
-    for index in 1'u64 until 4
+    for index in 1_u64 until 4
     {
         let held = expect encoder.encode(&source, index * 3_000, 3_000)
         Swag.require(held.bytes.count <= 20)
@@ -116,7 +118,7 @@ private impl Nv12Frame
     Swag.require(reader.frameCount() == 4)
     var keyFrame, heldFrame: PlanarFrame
     expect reader.decodeFramePlanesInto(&keyFrame, 0)
-    var squaredError = 0'u64
+    var squaredError = 0_u64
     for index in keyFrame.luma.count
     {
         let delta = cast(s32, keyFrame.luma[index]) - cast(s32, source.luma()[index])
@@ -124,7 +126,7 @@ private impl Nv12Frame
     }
 
     Swag.require(squaredError > 0 and squaredError < keyFrame.luma.count * 1_000)
-    for index in 1'u64 until 4
+    for index in 1_u64 until 4
     {
         expect reader.decodeFramePlanesInto(&heldFrame, index)
         requireSameIntraPicture(&keyFrame, &heldFrame)

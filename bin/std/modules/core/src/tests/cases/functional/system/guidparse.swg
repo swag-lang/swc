@@ -7,7 +7,7 @@ using Swag
 {
     var guid64: Guid64
     Swag.require(Guid64.tryParse("0Xabcdef0123456789", &guid64))
-    Swag.require(guid64.value == 0xABCDEF0123456789'u64)
+    Swag.require(guid64.value == 0xABCDEF0123456789_u64)
     Swag.require(guid64.toString() == "ABCDEF0123456789")
 
     let expected = guid64.value

@@ -32,16 +32,21 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 #test
 {
     let absent = MarkdownText.systemFaces(["Swag Scope unavailable font family 794501"])
-    for face in absent do
+    for face in absent
+    {
         Swag.require(face == null)
+    }
+
     let absentAgain = MarkdownText.systemFaces(["Swag Scope unavailable font family 794501"])
     Swag.require(absent == absentAgain)
 
     // A test run sees no installed family, so every appearance reads in the embedded faces
     // whatever the machine holds.
     Swag.require(FontFamily.enumerateSystemFonts().isEmpty())
-    for face in MarkdownText.systemFaces(["Segoe UI", "Arial", "Times New Roman", "Consolas", "DejaVu Sans"]) do
+    for face in MarkdownText.systemFaces(["Segoe UI", "Arial", "Times New Roman", "Consolas", "DejaVu Sans"])
+    {
         Swag.require(face == null)
+    }
 }
 
 // Markdown places its options on the line of readings, and floats no commands over the document.
@@ -71,8 +76,11 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     let path = Testing.tempFilePath("scope-markdown-first-page-", ".md")
     defer discard catch File.delete(path)
     var source = String.from("```text\n")
-    for 420 do
+    for 420
+    {
         source += "A long opening block must finish loading before it replaces the previous page.\n"
+    }
+
     source += "```\n\n# The next chapter\n"
     expect File.writeAllText(path, source)
 
@@ -91,8 +99,11 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     Swag.require(window.currentView == previous)
     completeQueuedViewerFile(&host, window)
     Swag.require(markdown.readingOffset() != Swag.U64.Max)
-    if window.loadingTimer do
+    if window.loadingTimer
+    {
         host.fireTimer(window.loadingTimer)
+    }
+
     Swag.require(window.currentView == markdown and window.outgoingView == null and markdown.isVisible())
 }
 
@@ -163,14 +174,17 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     defer discard catch File.delete(fileName)
 
     var source = expect File.readAllText(markdownFixturePath())
-    for 160 do
+    for 160
+    {
         source += "A README paragraph remains available for progressive wheel navigation.\n\n"
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
 
-    let infoBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 40})
+    let infoBar = Wnd.create!{Wnd}(&host.root, {0, 0, 0, 40})
     infoBar.dockStyle = .Bottom
 
     var result = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: infoBar)
@@ -193,8 +207,11 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     Swag.require(not optionsButton.hasFocus())
 
     // The application spinner follows scheduled work, not lazy source left on disk.
-    for 64 where result.isLoading() do
+    for 64 where result.isLoading()
+    {
         host.fireTimers()
+    }
+
     Swag.require(not result.isLoading())
     Swag.require(assume cast(*Markdown.View, wnd).hasUnloadedSource())
 }
@@ -211,12 +228,18 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     let fixtureOffset = Utf8.indexOf(fixture, query)
     Swag.require(fixtureOffset != Swag.U64.Max)
     var source: String
-    for 32_000 do
+    for 32_000
+    {
         source += "## Streamed section\n\nA paragraph remains outside the resident window.\n\n"
+    }
+
     let offset = source.length + fixtureOffset
     source += fixture
-    for 8_000 do
+    for 8_000
+    {
         source += "A trailing paragraph keeps the document large.\n\n"
+    }
+
     Swag.require(source.length >= 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
@@ -243,8 +266,11 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     Swag.require(view.hasUnloadedSource())
     Swag.require(view.loadedDocumentHeight() > view.documentStyle.topInset)
     let revealedBounds = bounds
-    for 64 do
+    for 64
+    {
         host.fireTimers()
+    }
+
     Swag.require(view.searchMatchRect(&bounds))
     Swag.require(Math.abs(bounds.y - revealedBounds.y) < 1)
     view.clearSearchHighlight()

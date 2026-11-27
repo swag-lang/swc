@@ -18,17 +18,20 @@ impl Panel
         if .sceneViewport.x > 0 and .sceneViewport.y > 0
         {
             // A smaller cell can keep more frames ready for the same amount of memory.
-            const CellQueueBytes = 2 * 1024 * 1024'u64
-            let width = cast(u64, Math.min(.sceneViewport.x, cast(f32, .video.width())))
+            const CellQueueBytes = 2 * 1024 * 1024_u64
+            let width  = cast(u64, Math.min(.sceneViewport.x, cast(f32, .video.width())))
             let height = cast(u64, Math.min(.sceneViewport.y, cast(f32, .video.height())))
-            let bytes = Math.max(1, width * height * (.planar ? 3 : 6) / 2)
+            let bytes  = Math.max(1, width * height * (.planar ? 3 : 6) / 2)
             let budget = cast(u32, Math.clamp(CellQueueBytes / bytes, PrefetchMin, PrefetchMax))
             .slotCount = Math.min(.slotCount, budget)
         }
+
         .slots.resize(.slotCount)
         .freeSlots.clear()
-        for index in .slotCount do
+        for index in .slotCount
+        {
             .freeSlots.add(cast(u32, index))
+        }
     }
 
     // Aims the producer at `index`, dropping everything it had already decoded past it.
@@ -45,12 +48,17 @@ impl Panel
         scope
         {
             Sync.scopedLock(&.queueLock)
-            if .anchorPending and .produceFrom == index and not .hasFailure do
+            if .anchorPending and .produceFrom == index and not .hasFailure
+            {
                 return
+            }
 
             notify = notifyLoading and .hasFrame and not .awaitingFrame
-            for slot in .ready do
+            for slot in .ready
+            {
                 .freeSlots.add(slot)
+            }
+
             .ready.clear()
             .nextDecode    = index
             .produceFrom   = index
@@ -60,8 +68,10 @@ impl Panel
             .anchorPending = true
         }
 
-        if notify do
+        if notify
+        {
             .services.loadingChanged(me)
+        }
     }
 
     // Gives up every picture between here and `index`, and moves playback there.
@@ -82,8 +92,10 @@ impl Panel
         .elapsed = .frameSeconds(index)
         .clock.reset()
         .audioClockLast = -1
-        if .voice and .audio do
+        if .voice and .audio
+        {
             .audioRangePending = not soundCovers(.audio, .elapsed)
+        }
 
         .repositionTo(index)
         .decodeWake.signal()
@@ -95,30 +107,40 @@ impl Panel
     // packed picture itself. Only the queue knows which of the two a slot holds.
     private mtd decodeIntoSlot(slot: u32, index: u64, viewport: Math.Point) fail
     {
-        let sourceWidth = .video.width()
+        let sourceWidth  = .video.width()
         let sourceHeight = .video.height()
-        let fit = viewport.x > 0 and viewport.y > 0 ?
-                  Math.min(viewport.x / cast(f32, sourceWidth), viewport.y / cast(f32, sourceHeight), 1) : 1
+        let fit          = viewport.x > 0 and viewport.y > 0 ?
+                           Math.min(viewport.x / cast(f32, sourceWidth), viewport.y / cast(f32, sourceHeight), 1) : 1
         if .planar and fit < 1
         {
             try .video.decodeFramePlanesInto(&.sceneScratch, index)
             let source = .sceneScratch.view()
-            let width = Math.max(1, cast(s32, Math.round(cast(f32, source.width) * fit)))
+            let width  = Math.max(1, cast(s32, Math.round(cast(f32, source.width) * fit)))
             let height = Math.max(1, cast(s32, Math.round(cast(f32, source.height) * fit)))
             let target = &.slots[cast(u64, slot)].planes
             target.resize(width, height, source.chromaShift)
-            target.matrix = source.matrix
+            target.matrix      = source.matrix
             target.studioRange = source.studioRange
-            scaleScenePlane(source.luma, source.lumaStride, source.width, source.height,
-                            target.luma.toSlice(), width, height)
-            let chromaWidth = cast(s32, target.strideChroma)
+            scaleScenePlane(source.luma, source.lumaStride, source.width, source.height, target.luma.toSlice(), width, height)
+            let chromaWidth  = cast(s32, target.strideChroma)
             let chromaHeight = target.chromaHeight()
-            scaleScenePlane(source.chromaB, source.chromaStride, source.chromaWidth(), source.chromaHeight(),
-                            target.chromaB.toSlice(), chromaWidth, chromaHeight)
-            scaleScenePlane(source.chromaR, source.chromaStride, source.chromaWidth(), source.chromaHeight(),
-                            target.chromaR.toSlice(), chromaWidth, chromaHeight)
+            scaleScenePlane(source.chromaB,
+                            source.chromaStride,
+                            source.chromaWidth(),
+                            source.chromaHeight(),
+                            target.chromaB.toSlice(),
+                            chromaWidth,
+                            chromaHeight)
+            scaleScenePlane(source.chromaR,
+                            source.chromaStride,
+                            source.chromaWidth(),
+                            source.chromaHeight(),
+                            target.chromaR.toSlice(),
+                            chromaWidth,
+                            chromaHeight)
             return
         }
+
         if .planar
         {
             try .video.decodeFramePlanesInto(&.slots[cast(u64, slot)].planes, index)
@@ -127,30 +149,40 @@ impl Panel
 
         let image = &.slots[cast(u64, slot)].image
         try .video.decodeFrameInto(image, index)
-        if fit < 1 do
+        if fit < 1
+        {
             image.resize(Math.max(1, cast(s32, Math.round(cast(f32, image.width) * fit))),
-                         Math.max(1, cast(s32, Math.round(cast(f32, image.height) * fit))), .Bilinear)
+                         Math.max(1, cast(s32, Math.round(cast(f32, image.height) * fit))),
+                         .Bilinear)
+        }
     }
 
     // Decodes one queued picture, and reports whether the producer can immediately do more.
     mtd produceOne()->bool
     {
-        var slot       = 0'u32
-        var index      = 0'u64
-        var generation = 0'u32
+        var slot       = 0_u32
+        var index      = 0_u64
+        var generation = 0_u32
         var viewport: Math.Point
         scope
         {
             Sync.scopedLock(&.queueLock)
-            if .hasFailure or .freeSlots.isEmpty() do
+            if .hasFailure or .freeSlots.isEmpty()
+            {
                 return false
+            }
+
             let count = .video.frameCount()
-            if count and .nextDecode >= count do
+            if count and .nextDecode >= count
+            {
                 return false
+            }
 
             // A paused viewer wants the picture it is parked on and nothing more.
-            if not .playing and (not .ready.isEmpty() or .inFlight != 0 or .nextDecode != .produceFrom) do
+            if not .playing and (not .ready.isEmpty() or .inFlight != 0 or .nextDecode != .produceFrom)
+            {
                 return false
+            }
 
             slot        = .freeSlots.popBack()
             index       = .nextDecode
@@ -216,7 +248,7 @@ impl Panel
                 chosen = .ready[0]
                 .ready.removeAtOrdered(0)
             }
-            elif .hasFailure
+            else if .hasFailure
             {
                 failure     = .failureText
                 .hasFailure = false
@@ -240,8 +272,10 @@ impl Panel
             return false
         }
 
-        if chosen == NoSlot do
+        if chosen == NoSlot
+        {
             return false
+        }
 
         let notifyLoading = .awaitingFrame
         .frameIndex    = .slots[cast(u64, chosen)].index
@@ -260,7 +294,7 @@ impl Panel
             .resumeAudioAfterSeek = .voice != null
             if .voice and not .sceneSilent and not .sceneManaged and .app().renderer.needsNativeWindow()
             {
-                .startupPaintTick = 0
+                .startupPaintTick   = 0
                 .startupSteadySince = 0
                 .startupPaintClock.restart()
             }
@@ -275,8 +309,10 @@ impl Panel
             if .playing
             {
                 .elapsed = .frameSeconds(.frameIndex)
-                if not .voice do
+                if not .voice
+                {
                     .clock.restart()
+                }
             }
         }
 
@@ -298,13 +334,18 @@ impl Panel
 
         .decodeWake.signal()
         .refreshTransport()
-        if notifyLoading do
+        if notifyLoading
+        {
             .services.loadingChanged(me)
+        }
 
         // A transport seek holds the audio clock until its target picture is on screen. This
         // avoids showing the previous picture while sound has already jumped to the new time.
-        if .resumeAudioAfterSeek do
+        if .resumeAudioAfterSeek
+        {
             .resumeAudio()
+        }
+
         return true
     }
 
@@ -312,10 +353,16 @@ impl Panel
     mtd showFrame(index: u64)->bool
     {
         let count = .video.frameCount()
-        if count and index >= count do
+        if count and index >= count
+        {
             return false
-        if .hasFrame and not .awaitingFrame and index == .frameIndex do
+        }
+
+        if .hasFrame and not .awaitingFrame and index == .frameIndex
+        {
             return true
+        }
+
         .repositionTo(index)
         .decodeWake.signal()
         discard .publishHead()
@@ -327,16 +374,25 @@ impl Panel
     mtd seekFrame(index: u64)
     {
         let count = .video.frameCount()
-        if not count and .video.durationInSeconds() <= 0 do
+        if not count and .video.durationInSeconds() <= 0
+        {
             return
+        }
+
         let target      = count ? Math.min(index, count - 1) : index
         let resumeAudio = .playing and .voice != null and not .sceneSilent
         .startupPaintClock.reset()
         .resumeAudioAfterSeek = resumeAudio
-        if resumeAudio do
+        if resumeAudio
+        {
             catch .voice!.pause()
-        if .playing do
+        }
+
+        if .playing
+        {
             .clock.reset()
+        }
+
         .elapsed = .frameSeconds(target)
 
         if .voice and .audio
@@ -360,11 +416,16 @@ impl Panel
             }
         }
 
-        if not .showFrame(target) do
+        if not .showFrame(target)
+        {
             return
+        }
+
         .refreshTransport()
-        if .resumeAudioAfterSeek and .frameIndex == target do
+        if .resumeAudioAfterSeek and .frameIndex == target
+        {
             .resumeAudio()
+        }
 
         .audioClockLast = -1
     }
@@ -372,21 +433,33 @@ impl Panel
     // Steps to an adjacent decoded frame and pauses so the selected picture remains inspectable.
     mtd stepFrame(forward: bool)->bool
     {
-        if not .hasFrame do
+        if not .hasFrame
+        {
             return false
-        if .playing do
+        }
+
+        if .playing
+        {
             .togglePlayback()
+        }
+
         let count = .video.frameCount()
         if forward
         {
-            if count and .frameIndex + 1 >= count do
+            if count and .frameIndex + 1 >= count
+            {
                 return true
+            }
+
             .seekFrame(.frameIndex + 1)
         }
         else
         {
-            if not .frameIndex do
+            if not .frameIndex
+            {
                 return true
+            }
+
             .seekFrame(.frameIndex - 1)
         }
 
@@ -429,28 +502,38 @@ impl Panel
 
     mtd requestPlaybackToggle()
     {
-        if not .sceneToggle or not .sceneToggle() do
+        if not .sceneToggle or not .sceneToggle()
+        {
             .togglePlayback()
+        }
     }
 
     mtd requestPlaybackStop()
     {
-        if not .sceneStop or not .sceneStop() do
+        if not .sceneStop or not .sceneStop()
+        {
             .stopPlayback()
+        }
     }
 
     // Pauses or resumes playback; resuming at the last frame restarts from the beginning.
     mtd togglePlayback()
     {
-        if not .hasFrame do
+        if not .hasFrame
+        {
             return
+        }
+
         if .playing
         {
             .startupPaintClock.reset()
             .resumeAudioAfterSeek = false
             .elapsed = .currentSeconds()
-            if .voice do
+            if .voice
+            {
                 catch .voice.pause()
+            }
+
             .clock.reset()
             .playing = false
         }
@@ -461,16 +544,21 @@ impl Panel
             {
                 .elapsed = 0
                 discard .showFrame(0)
-                if .voice do
+                if .voice
+                {
                     catch .voice.seekSampleFrame(0)
+                }
             }
 
             .audioClockLast = -1
             .clock.restart()
             .playing = true
             .resumeAudio()
-            if not .playing do
+            if not .playing
+            {
                 return
+            }
+
             .decodeWake.signal()
         }
 
@@ -479,16 +567,22 @@ impl Panel
 
     mtd stopPlayback()
     {
-        if not .hasFrame do
+        if not .hasFrame
+        {
             return
+        }
+
         .startupPaintClock.reset()
         .playing              = false
         .resumeAudioAfterSeek = false
         .audioRangePending    = false
         .elapsed              = 0
         .clock.reset()
-        if .voice do
+        if .voice
+        {
             catch .voice.stop()
+        }
+
         discard .showFrame(0)
         .refreshTransport()
     }
@@ -501,10 +595,14 @@ impl Panel
         scope
         {
             Sync.scopedLock(&.queueLock)
-            if .sceneViewport == viewport do
+            if .sceneViewport == viewport
+            {
                 return
+            }
+
             .sceneViewport = viewport
         }
+
         if .hasFrame and not .playing
         {
             .repositionTo(.frameIndex, notifyLoading: false)
@@ -517,9 +615,9 @@ impl Panel
     {
         let previous = .sceneSeconds
         .sceneSeconds = seconds
-        let count = .video.frameCount()
-        let wanted = .video.frameAtTime(seconds)
-        let target = count ? Math.min(count - 1, wanted) : wanted
+        let count         = .video.frameCount()
+        let wanted        = .video.frameAtTime(seconds)
+        let target        = count ? Math.min(count - 1, wanted) : wanted
         let discontinuity = previous < 0 or seconds < previous
         if not .awaitingFrame and target != .frameIndex and (not .playing or discontinuity)
         {
@@ -530,12 +628,17 @@ impl Panel
 
     mtd clearSceneClock()
     {
-        if .sceneSeconds < 0 do
+        if .sceneSeconds < 0
+        {
             return
-        .elapsed = .sceneSeconds
+        }
+
+        .elapsed      = .sceneSeconds
         .sceneSeconds = -1
-        if .playing do
+        if .playing
+        {
             .clock.restart()
+        }
     }
 
     // Warm the native surface with the first picture while sound is still parked. A slow
@@ -544,10 +647,13 @@ impl Panel
     {
         let interval = elapsedUs - .startupPaintTick
         .startupPaintTick = elapsedUs
-        let rate = .video.frameRate().framesPerSecond() * .playbackRate
+        let rate   = .video.frameRate().framesPerSecond() * .playbackRate
         let budget = rate > 0 ? Math.max(1_000_000.0 / rate, 20_000.0) : 40_000.0
-        if cast(f64, interval) > budget do
+        if cast(f64, interval) > budget
+        {
             .startupSteadySince = elapsedUs
+        }
+
         return elapsedUs - .startupSteadySince >= StartupSteadyPaintUs or elapsedUs >= StartupPaintTimeoutUs
     }
 
@@ -566,8 +672,10 @@ impl Panel
             return
         }
 
-        if not .video.isOpen() do
+        if not .video.isOpen()
+        {
             return
+        }
 
         catch .finishMetadata()
         {
@@ -586,8 +694,11 @@ impl Panel
         {
             // Only a requested seek or the first picture may publish while paused. Draining the
             // run-ahead queue here made pause and stop appear to advance several frames.
-            if .awaitingFrame do
+            if .awaitingFrame
+            {
                 discard .publishHead()
+            }
+
             return
         }
 
@@ -598,6 +709,7 @@ impl Panel
                 .imageView.invalidate()
                 return
             }
+
             .startupPaintClock.reset()
         }
 
@@ -606,7 +718,7 @@ impl Panel
         if .resumeAudioAfterSeek and .voice and .hasFrame and not .sceneSilent
         {
             let count = .video.frameCount()
-            var depth = 0'u64
+            var depth = 0_u64
             var more: bool
             scope
             {
@@ -616,19 +728,30 @@ impl Panel
             }
 
             // The end of the stream is the one place where the queue never reaches the mark.
-            if depth < rebufferPictureCount(.slotCount) and more do
+            if depth < rebufferPictureCount(.slotCount) and more
+            {
                 return
+            }
+
             .resumeAudio()
         }
 
-        if .sceneSeconds < 0 and not .sceneSilent do
+        if .sceneSeconds < 0 and not .sceneSilent
+        {
             .followAudioClock()
-        if .sceneSeconds < 0 and .followLoop() do
-            return
-        if .audioRangePending and .audio and soundCovers(.audio, .currentSeconds()) do
-            .resumeAudio()
+        }
 
-        var head  = 0'u64
+        if .sceneSeconds < 0 and .followLoop()
+        {
+            return
+        }
+
+        if .audioRangePending and .audio and soundCovers(.audio, .currentSeconds())
+        {
+            .resumeAudio()
+        }
+
+        var head  = 0_u64
         var empty = true
         var failed: bool
         scope
@@ -642,7 +765,7 @@ impl Panel
             }
         }
 
-        let clock = .clockFrame()
+        let clock        = .clockFrame()
         let synchronized = .voice != null or .sceneSeconds >= 0
         if not empty
         {
@@ -655,12 +778,14 @@ impl Panel
                     .elapsed = .frameSeconds(head)
                     .clock.restart()
                 }
+
                 // A brief audio lead can drain one picture at a time as the presentation
                 // loop recovers. A linked scene still presents the picture due on its clock.
                 let catchUp = .sceneSeconds >= 0 or
                               (.voice != null and .currentSeconds() - .frameSeconds(head) > AudioCatchUpSeconds * .playbackRate)
                 discard .publishHead(clock, catchUp and not .anchorPending)
             }
+
             return
         }
 
@@ -687,8 +812,11 @@ impl Panel
             .audioRangePending    = false
             .elapsed              = .video.durationInSeconds()
             .clock.reset()
-            if .voice do
+            if .voice
+            {
                 catch .voice.pause()
+            }
+
             .refreshTransport()
             return
         }
@@ -696,8 +824,10 @@ impl Panel
         // A jump already asked for has not produced its picture yet. Waiting for it is not
         // falling behind, and asking for another one would restart the whole decoder over and
         // over while its pipeline fills.
-        if .anchorPending or .sceneSeconds >= 0 do
+        if .anchorPending or .sceneSeconds >= 0
+        {
             return
+        }
 
         if not synchronized
         {
@@ -708,26 +838,30 @@ impl Panel
                 .elapsed = .frameSeconds(.frameIndex + 1)
                 .clock.reset()
             }
+
             return
         }
 
         // With a sound clock, resynchronize at a clean picture if the gap has grown too large.
         let rate      = .video.frameRate()
         let resyncLag = cast(u64, (rate.framesPerSecond() * ResyncSeconds))
-        if clock < .frameIndex + resyncLag do
+        if clock < .frameIndex + resyncLag
+        {
             return
+        }
 
         let sync = .video.syncFrameAt(clock)
         let cap  = cast(u64, (rate.framesPerSecond() * ResyncMaxJumpSeconds))
-        if (count and sync >= count) or sync - clock > cap do
+        if (count and sync >= count) or sync - clock > cap
+        {
             return
+        }
 
         .skipTo(sync)
     }
 }
 
-private func scaleScenePlane(source: const [*] u8, stride: u64, sourceWidth, sourceHeight: s32,
-                             destination: [..] u8, width, height: s32)
+private func scaleScenePlane(source: const [*] u8, stride: u64, sourceWidth, sourceHeight: s32, destination: [..] u8, width, height: s32)
 {
     let sw = cast(u64, sourceWidth)
     let sh = cast(u64, sourceHeight)
@@ -736,7 +870,9 @@ private func scaleScenePlane(source: const [*] u8, stride: u64, sourceWidth, sou
     for y in dh
     {
         let row = source + Math.min((2 * y + 1) * sh / (2 * dh), sh - 1) * stride
-        for x in dw do
+        for x in dw
+        {
             destination[y * dw + x] = row[Math.min((2 * x + 1) * sw / (2 * dw), sw - 1)]
+        }
     }
 }

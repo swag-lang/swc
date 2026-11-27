@@ -25,8 +25,10 @@ func pick(n: *Node?)->bool
 
 func select(n: *Node?)->bool
 {
-    if not n do
+    if not n
+    {
         return false
+    }
     return select(n)
 }
 
@@ -37,8 +39,10 @@ func select(n: *Node)->bool
 
 func guardedMethod(n: *GuardedNode?)->bool
 {
-    if n do
+    if n
+    {
         return n.check()
+    }
     return false
 }
 

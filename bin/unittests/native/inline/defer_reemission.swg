@@ -34,8 +34,10 @@ func localHandle(value: u64)->u64 => value
 #[Swag.NoInline]
 func mayFail(ok: bool) fail
 {
-    if not ok do
+    if not ok
+    {
         fail LocalCleanupError{base: Swag.BaseError{"body"}, code: 2}
+    }
 }
 
 // The same shapes as the provider's, written beside their caller: a cleanup body reaches both of
@@ -47,8 +49,10 @@ func localScaled(value: u64)->u64 => localHandle(value) * 3
 func localRelease(handle: u64)->u64 fail
 {
     let native = localHandle(handle)
-    if native == cast #bit (u64, -1) do
+    if native == cast #bit (u64, -1)
+    {
         fail LocalCleanupError{base: Swag.BaseError{"cleanup"}, code: 1}
+    }
     return native
 }
 

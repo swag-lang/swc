@@ -28,7 +28,7 @@ impl BackgroundBudget
     // Running bodies keep their slots. Contraction affects the next admission, never preempts work.
     mtd update(sample: WorkPressure, workers, running: u32)
     {
-        var target = workers == 0 ? 1'u32 : workers
+        var target = workers == 0 ? 1_u32 : workers
         if sample.cpuValid and
            .previous.cpuValid and
            sample.totalTicks > .previous.totalTicks and
@@ -44,8 +44,10 @@ impl BackgroundBudget
             // Exclude this process so productive background work does not throttle itself.
             // Leave one worker's worth of CPU for interactive work when there is room.
             target = cast(u32, (cast(f64, elapsed - external) / cast(f64, elapsed)) * cast(f64, target))
-            if target > 1 do
+            if target > 1
+            {
                 target -= 1
+            }
         }
         else
         {
@@ -56,31 +58,44 @@ impl BackgroundBudget
         {
             // Keep an eighth of physical/commit capacity free. One additional body needs
             // 256 MiB of headroom; this is admission guidance, not an allocation guarantee.
-            const PerBodyBytes = 256'u64 * 1024 * 1024
+            const PerBodyBytes = 256_u64 * 1024 * 1024
             let physicalReserve = sample.physicalBytes / 8
             let commitReserve   = sample.commitBytes / 8
             let physical        = sample.availableBytes > physicalReserve ? sample.availableBytes - physicalReserve : 0
             let commit          = sample.availableCommitBytes > commitReserve ? sample.availableCommitBytes - commitReserve : 0
             let headroom        = physical < commit ? physical : commit
             var memoryTarget    = cast(u64, running) + headroom / PerBodyBytes
-            if sample.availableBytes <= physicalReserve or sample.availableCommitBytes <= commitReserve do
+            if sample.availableBytes <= physicalReserve or sample.availableCommitBytes <= commitReserve
+            {
                 memoryTarget = 1
-            if memoryTarget < cast(u64, target) do
+            }
+
+            if memoryTarget < cast(u64, target)
+            {
                 target = cast(u32, memoryTarget)
+            }
         }
         else
         {
             target = target < .limit ? target : .limit
         }
 
-        if target == 0 do
+        if target == 0
+        {
             target = 1
+        }
 
         // Recover gradually; a single idle sample must not release the entire backlog at once.
-        if target > .limit + 2 do
+        if target > .limit + 2
+        {
             target = .limit + 2
-        if target > workers and workers != 0 do
+        }
+
+        if target > workers and workers != 0
+        {
             target = workers
+        }
+
         .limit    = target
         .previous = sample
     }

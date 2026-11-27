@@ -137,8 +137,10 @@ private func isExtensionOf(ext: string, list: const [..] string)->bool
 {
     for candidate in list
     {
-        if Utf8.compare(ext, candidate, .Latin1NoCase) == 0 do
+        if Utf8.compare(ext, candidate, .Latin1NoCase) == 0
+        {
             return true
+        }
     }
 
     return false
@@ -151,7 +153,7 @@ impl Theme
     // The frames behind a given size are rasterized once from the vector icon set, at
     // the current atlas scale, and shared by every icon of that size. Folder and file-kind
     // glyphs carry their theme color, honored by [[Gui.Icon.paint]] in every control.
-    mtd icon(idx: ThemeIcons, size = 24'f32)->Icon
+    mtd icon(idx: ThemeIcons, size = 24_f32)->Icon
     {
         var result = .res.icons.icon(cast(s32, idx), size, .res.atlasScale)
         switch idx
@@ -176,10 +178,12 @@ impl Theme
     // name first and the glyph only says what kind of thing it is. A file kind carries its quiet
     // hue (`fileKind_*`); a folder uses Arc, the mark of a place to go. A plain file takes the ink
     // its row gives it. Defined kind colors stay the same on hovered and selected rows.
-    mtd fileGlyph(name: string, isDirectory: bool, size = 16'f32)->Icon
+    mtd fileGlyph(name: string, isDirectory: bool, size = 16_f32)->Icon
     {
-        if isDirectory do
+        if isDirectory
+        {
             return .icon(.Folder, size)
+        }
 
         var result: #returntype
         let ext = Path.extension(name) orelse ""

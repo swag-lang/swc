@@ -5,9 +5,9 @@ using Core
 
 #test
 {
-    Swag.require(Memory.align(17'u64, 16) == 32)
-    Swag.require(Memory.align(32'u64, 16) == 32)
-    Swag.require(Memory.align(17'u64, 0) == 24)
+    Swag.require(Memory.align(17_u64, 16) == 32)
+    Swag.require(Memory.align(32_u64, 16) == 32)
+    Swag.require(Memory.align(17_u64, 0) == 24)
 }
 
 struct RequestRecorder

@@ -1,7 +1,7 @@
 #global private
 using Swag
 
-const IntrinsicS64Min = -9_223_372_036_854_775_807's64 - 1
+const IntrinsicS64Min = -9_223_372_036_854_775_807_s64 - 1
 
 // The packed intrinsic vocabulary, checked lane by lane: broadcast, saturation,
 // packs, interleaves, widens, average, multiply-add, horizontal sum, float-to-integer conversion,
@@ -17,8 +17,10 @@ func splatU8(value: u8)->#simd [16] u8 => Swag.vecSplat(value)
 {
     // Four independent unsigned indices gather signed dwords in lane order.
     var table: [257] s32
-    for i in 257 do
+    for i in 257
+    {
         table[i] = cast(s32, i) * 13 - 1000
+    }
 
     let base     = table.buffer
     let indices  = cast(#simd [4] u32, [256, 0, 127, 5])
@@ -30,36 +32,38 @@ func splatU8(value: u8)->#simd [16] u8 => Swag.vecSplat(value)
 {
     // The broadcast fills every lane, from a constant and from a runtime value
     // alike, and the lane type of the scalar names the shape.
-    let bytes = cast([16] u8, Swag.vecSplat(7'u8))
+    let bytes = cast([16] u8, Swag.vecSplat(7_u8))
     Swag.require(bytes[0] == 7 and bytes[15] == 7)
 
-    let words = cast([8] s16, Swag.vecSplat(-300's16))
+    let words = cast([8] s16, Swag.vecSplat(-300_s16))
     Swag.require(words[0] == -300 and words[7] == -300)
 
-    let quads = cast([4] u32, Swag.vecSplat(0xDEAD_BEEF'u32))
+    let quads = cast([4] u32, Swag.vecSplat(0xDEAD_BEEF_u32))
     Swag.require(quads[0] == 0xDEAD_BEEF and quads[3] == 0xDEAD_BEEF)
 
-    let pairs = cast([2] u64, Swag.vecSplat(0x0102_0304_0506_0708'u64))
+    let pairs = cast([2] u64, Swag.vecSplat(0x0102_0304_0506_0708_u64))
     Swag.require(pairs[0] == 0x0102_0304_0506_0708 and pairs[1] == 0x0102_0304_0506_0708)
 
-    let floats = cast([4] f32, Swag.vecSplat(-1.5'f32))
+    let floats = cast([4] f32, Swag.vecSplat(-1.5_f32))
     Swag.require(floats[0] == -1.5 and floats[3] == -1.5)
 
-    let doubles = cast([2] f64, Swag.vecSplat(2.25'f64))
+    let doubles = cast([2] f64, Swag.vecSplat(2.25_f64))
     Swag.require(doubles[0] == 2.25 and doubles[1] == 2.25)
 
     // A runtime scalar takes the same path; the value crosses through a register.
     var byteValue: u8 = 37
     let liveBytes     = cast([16] u8, splatU8(byteValue))
-    for byte in liveBytes do
+    for byte in liveBytes
+    {
         Swag.require(byte == byteValue)
+    }
 
     var n: s32 = -9
     let live   = cast([4] s32, splatS32(n))
     Swag.require(live[0] == -9 and live[3] == -9)
 
     // A broadcast of a constant is itself a constant.
-    const Filled      = Swag.vecSplat(3's32)
+    const Filled      = Swag.vecSplat(3_s32)
     const FilledLanes = cast([4] s32, Filled)
     #assert(FilledLanes[0] == 3 and FilledLanes[3] == 3)
 }
@@ -67,8 +71,8 @@ func splatU8(value: u8)->#simd [16] u8 => Swag.vecSplat(value)
 #test
 {
     // Saturating byte arithmetic clamps instead of wrapping.
-    let a = Swag.vecSplat(200'u8)
-    let b = Swag.vecSplat(100'u8)
+    let a = Swag.vecSplat(200_u8)
+    let b = Swag.vecSplat(100_u8)
     var r = cast([16] u8, Swag.vecSatAdd(a, b))
     Swag.require(r[0] == 255 and r[15] == 255)
     r = cast([16] u8, Swag.vecSatSub(b, a))
@@ -186,8 +190,10 @@ func sumHighHalves(dst: [*] u16, src: const [*] u8, stride: u64, rows: u64)
     // Widening in a loop: the zero is cleared once, outside it.
     var plane: [4 * 64] u8
     var out:   [4 * 8] u16
-    for i in 4 * 64 do
+    for i in 4 * 64
+    {
         plane[i] = cast(u8, (i & 0xFF))
+    }
     sumHighHalves(&out[0], &plane[0], 64, 4)
     Swag.require(out[0] == 0 + 8 and out[7] == 7 + 15)
     Swag.require(out[8] == 64 + 72 and out[31] == (3 * 64 + 7) + (3 * 64 + 15))
@@ -219,7 +225,7 @@ func sumHighHalves(dst: [*] u16, src: const [*] u8, stride: u64, rows: u64)
     let ints   = cast([4] s32, Swag.vecTruncToS32(finite))
     Swag.require(ints[0] == 1 and ints[1] == -1 and ints[2] == 32767 and ints[3] == -32768)
 
-    let invalid  = cast(#simd [4] f32, [3_000_000_000.0, -3_000_000_000.0, cast #bit(f32, 0x7FC0_0000'u32), 0.0])
+    let invalid  = cast(#simd [4] f32, [3_000_000_000.0, -3_000_000_000.0, cast #bit(f32, 0x7FC0_0000_u32), 0.0])
     let fallback = cast([4] s32, Swag.vecTruncToS32(invalid))
     Swag.require(fallback[0] == -2_147_483_648 and
                  fallback[1] == -2_147_483_648 and
@@ -262,22 +268,22 @@ func sumHighHalves(dst: [*] u16, src: const [*] u8, stride: u64, rows: u64)
     Swag.require(Swag.vecMask(none) == 0)
 
     // Byte and word masks route through the byte movemask.
-    let b8 = Swag.vecSplat(1'u8)
+    let b8 = Swag.vecSplat(1_u8)
     let m8 = b8 == b8
     Swag.require(Swag.vecMask(m8) == 0xFFFF)
     Swag.require(Swag.vecAll(m8))
 
-    let w16 = Swag.vecSplat(3'u16)
+    let w16 = Swag.vecSplat(3_u16)
     let m16 = w16 == w16
     Swag.require(Swag.vecMask(m16) == 0xFF)
     Swag.require(Swag.vecAll(m16) and Swag.vecAny(m16))
 
     // A word lane counts by its sign bit, whatever its low byte holds.
-    let lowOnly = opaqueWords(cast(#simd [8] u16, [0x0080'u16, 0x0080, 0x00FF, 0x0080, 0x0080, 0x0080, 0x0080, 0x0080]))
+    let lowOnly = opaqueWords(cast(#simd [8] u16, [0x0080_u16, 0x0080, 0x00FF, 0x0080, 0x0080, 0x0080, 0x0080, 0x0080]))
     Swag.require(not Swag.vecAny(lowOnly) and not Swag.vecAll(lowOnly))
-    let signs = opaqueWords(cast(#simd [8] u16, [0x8000'u16, 0x8001, 0xFFFF, 0x8080, 0x8000, 0x8000, 0x8000, 0x80FF]))
+    let signs = opaqueWords(cast(#simd [8] u16, [0x8000_u16, 0x8001, 0xFFFF, 0x8080, 0x8000, 0x8000, 0x8000, 0x80FF]))
     Swag.require(Swag.vecAll(signs) and Swag.vecAny(signs))
-    let oneLane = opaqueWords(cast(#simd [8] u16, [0x0080'u16, 0, 0, 0, 0, 0, 0x8000, 0x7FFF]))
+    let oneLane = opaqueWords(cast(#simd [8] u16, [0x0080_u16, 0, 0, 0, 0, 0, 0x8000, 0x7FFF]))
     Swag.require(Swag.vecAny(oneLane) and not Swag.vecAll(oneLane))
 }
 
@@ -314,7 +320,7 @@ func opaqueWords(value: #simd [8] u16)->#simd [8] u16 => value
     Swag.require(u64max[0] == 0xFFFF_FFFF_FFFF_FFFF and u64max[1] == 0xFFFF_FFFF_FFFF_FFFF)
 
     let ua = cast(#simd [16] u8, [1, 200, 3, 200, 1, 200, 1, 200, 1, 200, 1, 200, 1, 200, 1, 200])
-    let ub = Swag.vecSplat(100'u8)
+    let ub = Swag.vecSplat(100_u8)
     let ur = cast([16] u8, Swag.max(ua, ub))
     Swag.require(ur[0] == 100 and ur[1] == 200 and ur[2] == 100)
 
@@ -330,7 +336,7 @@ func opaqueWords(value: #simd [8] u16)->#simd [8] u16 => value
     gr = cast([4] f32, Swag.trunc(g))
     Swag.require(gr[0] == 1.0 and gr[1] == -1.0 and gr[2] == 2.0 and gr[3] == -2.0)
 
-    let h  = Swag.vecSplat(2.0'f32)
+    let h  = Swag.vecSplat(2.0_f32)
     let hr = cast([4] f32, Swag.mulAdd(g, h, f))
     Swag.require(hr[0] == 4.0 and hr[1] == 1.0 and hr[2] == 14.0 and hr[3] == 11.0)
 }

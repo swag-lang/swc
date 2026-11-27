@@ -19,10 +19,15 @@ the caller may reopen it after a display change.
 
 #import("core")
 #import("pixel")
-#static if #os == Swag.TargetOs.Windows do
+#static if #os == Swag.TargetOs.Windows
+{
     #import("win32")
-#static if #os == Swag.TargetOs.Linux do
+}
+
+#static if #os == Swag.TargetOs.Linux
+{
     #import("linux")
+}
 
 #run
 {

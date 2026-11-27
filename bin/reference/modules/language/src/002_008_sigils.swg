@@ -94,7 +94,7 @@ perform primitive operations ('Swag.sqrt', 'Swag.memcpy', 'Swag.atomicAdd').
     Swag.require(data[1] == 20)
 
     // The same intrinsic can be evaluated by the compiler in a constant context.
-    const Minimum = Swag.min(7's32, 3's32)
+    const Minimum = Swag.min(7_s32, 3_s32)
     #assert(Minimum == 3)
 }
 
@@ -171,13 +171,13 @@ These change one operation rather than producing a value:
 
 #test
 {
-    var byte = 255'u8
-    byte += #wrap 1'u8
+    var byte = 255_u8
+    byte += #wrap 1_u8
     Swag.require(byte == 0)
 
-    #assert(#typeof(255'u8 + #prom 1'u8) == u32)
+    #assert(#typeof(255_u8 + #prom 1_u8) == u32)
 
-    let bits = cast #bit (u32, 1.0'f32)
+    let bits = cast #bit (u32, 1.0_f32)
     Swag.require(bits == 0x3F800000)
 }
 
@@ -252,11 +252,11 @@ for value in values.reversed() {}
 
 #test
 {
-    var a = 250'u8
+    var a = 250_u8
 
     // Order between modifiers carries no meaning.
-    #assert(#typeof(a + #wrap #prom 1'u8) == u32)
-    #assert(#typeof(a + #prom #wrap 1'u8) == u32)
+    #assert(#typeof(a + #wrap #prom 1_u8) == u32)
+    #assert(#typeof(a + #prom #wrap 1_u8) == u32)
 }
 
 /**

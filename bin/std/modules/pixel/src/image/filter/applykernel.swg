@@ -56,8 +56,10 @@ impl Image
     #[Swag.Safety(.All, false)]
     mtd doKernel(dstImage: *Image, kernel: Kernel)
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         let kernelValues = cast(const [..] s32, kernel)
         var filterAlpha  = .pixelFormat.hasAlpha() and kernelValues[1] > 0
@@ -205,15 +207,19 @@ impl Image
             }
 
             let divisor = params.kernel[1]
-            if divisor > 1 do
+            if divisor > 1
+            {
                 channel0Sum, channel1Sum, channel2Sum /= divisor
+            }
 
             var destination = params.dstImage.pixels.storage() + (x * bytesPerPixel) + (y * rowStride)
             destination[0] = cast(u8, Math.clamp(channel0Sum, 0, 255))
             destination[1] = cast(u8, Math.clamp(channel1Sum, 0, 255))
             destination[2] = cast(u8, Math.clamp(channel2Sum, 0, 255))
-            if image.bitsPerPixel == 32 do
+            if image.bitsPerPixel == 32
+            {
                 destination[3] = pix[3]
+            }
         }
     }
 

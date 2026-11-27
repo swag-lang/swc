@@ -1,15 +1,15 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const IPPROTO_TCP        = 6's32
-const IPPROTO_UDP        = 17's32
-const TCP_NODELAY        = 1's32
-const IPPROTO_IP         = 0's32
-const IPPROTO_IPV6       = 41's32
-const IP_ADD_MEMBERSHIP  = 35's32
-const IP_DROP_MEMBERSHIP = 36's32
-const IPV6_JOIN_GROUP    = 20's32
-const IPV6_LEAVE_GROUP   = 21's32
+const IPPROTO_TCP        = 6_s32
+const IPPROTO_UDP        = 17_s32
+const TCP_NODELAY        = 1_s32
+const IPPROTO_IP         = 0_s32
+const IPPROTO_IPV6       = 41_s32
+const IP_ADD_MEMBERSHIP  = 35_s32
+const IP_DROP_MEMBERSHIP = 36_s32
+const IPV6_JOIN_GROUP    = 20_s32
+const IPV6_LEAVE_GROUP   = 21_s32
 
 struct in_addr
 {

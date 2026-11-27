@@ -4,7 +4,7 @@
 // parameter symbol leaking into this host would be remapped by position onto 'buffer' or 'delta'
 // and miscompile silently instead of failing.
 #[Swag.NoInline]
-func accumulate(delta: InlineCrossFile.Pair, buffer: InlineCrossFile.Buffer'InlineCrossFile.Pair, index: u64)
+func accumulate(delta: InlineCrossFile.Pair, buffer: InlineCrossFile.Buffer!{InlineCrossFile.Pair}, index: u64)
 {
     var target = buffer
     target[index] += delta
@@ -13,7 +13,7 @@ func accumulate(delta: InlineCrossFile.Pair, buffer: InlineCrossFile.Buffer'Inli
 #test
 {
     var pairs  = [InlineCrossFile.Pair{1, 2}, InlineCrossFile.Pair{3, 4}]
-    var buffer = InlineCrossFile.Buffer'InlineCrossFile.Pair{&pairs[0]}
+    var buffer = InlineCrossFile.Buffer!{InlineCrossFile.Pair}{&pairs[0]}
 
     // A host without parameters: a leaked callee parameter has no incoming argument to read.
     buffer[1] += InlineCrossFile.Pair{10, 20}

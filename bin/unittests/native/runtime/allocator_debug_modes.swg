@@ -67,8 +67,10 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     Swag.require(alloc.firstQuarantine == header)
 
     let freed = alloc.userAddress(header)
-    for i in 144 do
+    for i in 144
+    {
         Swag.require(freed[i] == Allocator.FreeByte)
+    }
 
     alloc.releaseAll()
     Swag.require(alloc.stats().countFree == 0)
@@ -140,8 +142,10 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     Swag.require(req.address != null)
 
     let ptr = cast([*] u8, req.address)
-    for i in 96 do
+    for i in 96
+    {
         Swag.require(ptr[i] == Allocator.AllocByte)
+    }
 
     itf.free(&req)
     Swag.require(req.address == null)

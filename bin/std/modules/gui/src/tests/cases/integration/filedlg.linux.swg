@@ -18,15 +18,20 @@ using Core
     app.setMotionPreference(.Reduced)
     let surface = expect app.createSurface(60, 50, 420, 300, surfaceId: "linux-native-filedlg")
     surface.show()
-    for 4 do
+    for 4
+    {
         app.runFrame()
+    }
 
     var pending: *FileDlg?
     var action:  u32
     app.sigFrame += func|&pending, &action|(_)
     {
-        if not pending do
+        if not pending
+        {
             return
+        }
+
         let dlg = unwrap pending
         pending = null
         switch action

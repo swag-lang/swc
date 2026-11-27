@@ -8,7 +8,7 @@
 
 #test
 {
-    var b = &42'u32     // swc-expected-error {{sema_err_take_address_constant}}
+    var b = &42_u32     // swc-expected-error {{sema_err_take_address_constant}}
 }
 
 #test

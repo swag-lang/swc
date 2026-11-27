@@ -11,7 +11,7 @@ func minLike(x, y: u32)->u32 { discard y; return x }
 
 #test
 {
-    minLike(10'u32, CompressionLevel.BestSpeed)     // swc-expected-error {{sema_err_generic_function_instantiation_failed}}
+    minLike(10_u32, CompressionLevel.BestSpeed)     // swc-expected-error {{sema_err_generic_function_instantiation_failed}}
 }
 
 func(const N: s32) zipLike(lhs: [N] s32, rhs: [N] s32) {}

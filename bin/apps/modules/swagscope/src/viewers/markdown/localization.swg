@@ -43,10 +43,10 @@ func texts()->const *Texts => &g_Texts
 func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'Texts(&g_Texts, "scope.markdown")
+    Gui.registerStrings!{Texts}(&g_Texts, "scope.markdown")
 }
 
 #run
 {
-    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
+    expect Gui.validateStrings!{Texts}(cast(string, FrenchStrings))
 }

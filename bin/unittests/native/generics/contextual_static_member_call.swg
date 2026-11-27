@@ -23,7 +23,7 @@ alias ContextStaticAlias = ContextStaticVec2
 
 struct(T) ContextStaticBox
 {
-    value: ContextStaticVec2'T
+    value: ContextStaticVec2!{T}
 }
 
 impl ContextStaticBox
@@ -41,22 +41,22 @@ impl ContextStaticBox
 
 #test
 {
-    var v: ContextStaticVec2's32 = {x: 3, y: 4}
+    var v: ContextStaticVec2!{s32} = {x: 3, y: 4}
     let doubled = v.doubled()
 
-    #assert(#typeof(doubled) == ContextStaticVec2's32)
+    #assert(#typeof(doubled) == ContextStaticVec2!{s32})
     Swag.require(doubled.x == 6)
     Swag.require(doubled.y == 8)
 }
 
 #test
 {
-    var box: ContextStaticBox's32 = {value: {x: 10, y: 20}}
+    var box: ContextStaticBox!{s32} = {value: {x: 10, y: 20}}
     let expanded = box.expanded()
     let aliased  = box.expandedViaAlias()
 
-    #assert(#typeof(expanded) == ContextStaticVec2's32)
-    #assert(#typeof(aliased) == ContextStaticVec2's32)
+    #assert(#typeof(expanded) == ContextStaticVec2!{s32})
+    #assert(#typeof(aliased) == ContextStaticVec2!{s32})
     Swag.require(expanded.x == 11)
     Swag.require(expanded.y == 21)
     Swag.require(aliased.x == 12)

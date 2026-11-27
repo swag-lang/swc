@@ -43,8 +43,11 @@ impl Flow
     // Closes the current line and starts the next one.
     mtd newLine()
     {
-        if .high == 0 do
+        if .high == 0
+        {
             return
+        }
+
         .y    += .high + WallLineGap
         .x    = WallPadding
         .high = 0
@@ -53,8 +56,10 @@ impl Flow
     // Reserves `width` by `height` for the next widget, wrapping when the line is full.
     mtd next(width: f32, height = StdHeight)->Math.Rectangle
     {
-        if .x > WallPadding and .x + width > WallPadding + .width do
+        if .x > WallPadding and .x + width > WallPadding + .width
+        {
             .newLine()
+        }
 
         let result = Math.Rectangle{.x, .y, width, height}
         .x    += width + WallGap
@@ -86,7 +91,7 @@ impl Flow
     }
 
     // A window sized by the flow, for the controls that place themselves by docking.
-    mtd host(width, height: f32)->*Wnd => Wnd.create'Wnd(.view, .next(width, height))
+    mtd host(width, height: f32)->*Wnd => Wnd.create!{Wnd}(.view, .next(width, height))
 
     // Height the content reached, which is the scroll size of the wall.
     mtd const contentHeight()->f32 => .y + .high + WallPadding
@@ -107,10 +112,10 @@ impl WidgetWall
 {
     func create(parent: *Wnd)->*WidgetWall
     {
-        let result = Wnd.create'WidgetWall(parent, {})
+        let result = Wnd.create!{WidgetWall}(parent, {})
         result.setFrameForm(.Square)
         result.setFrameFlags(.Borders)
-        result.view = result.createView'Wnd()
+        result.view = result.createView!{Wnd}()
         return result
     }
 
@@ -121,8 +126,11 @@ impl WidgetWall
     // the middle of inspecting.
     mtd build()
     {
-        if .built or .view == null or .view.clientRect().width < 240 do
+        if .built or .view == null or .view.clientRect().width < 240
+        {
             return
+        }
+
         .built = true
 
         .flow.reset(.view, .view.clientRect().width)
@@ -344,7 +352,7 @@ private func buildContainers(flow: *Flow)
         tab.setForm(form)
         for name in ["One", "Two", "Three"]
         {
-            let page = Wnd.create'Wnd(tab)
+            let page = Wnd.create!{Wnd}(tab)
             tab.addItem(name, {}, page)
         }
     }
@@ -356,8 +364,11 @@ private func buildContainers(flow: *Flow)
     list.setFrameForm(.Square)
     list.updateFlags(.HotTrack)
     list.setIconSize(16)
-    for name in ["Selected row", "Plain row", "Another row", "A longer row label"] do
+    for name in ["Selected row", "Plain row", "Another row", "A longer row label"]
+    {
         list.createLine(name, app.theme.icon(.OpenFile, 16))
+    }
+
     list.computeLayout()
     list.selectLine(0)
 
@@ -465,8 +476,10 @@ private func describeSheet(page: *OptionSheet.Page)
                  SheetSpeeds[g_SheetSettings.speed],
                  func(speeds)
                  {
-                     for name, index in SheetSpeeds do
+                     for name, index in SheetSpeeds
+                     {
                          speeds.addChoice(name, index == g_SheetSettings.speed, func|index|() { g_SheetSettings.speed = cast(u32, index) })
+                     }
                  },
                  app.theme.icon(.PlaybackSpeed, 16))
 
@@ -474,8 +487,10 @@ private func describeSheet(page: *OptionSheet.Page)
                  SheetQualities[g_SheetSettings.quality],
                  func(qualities)
                  {
-                     for name, index in SheetQualities do
+                     for name, index in SheetQualities
+                     {
                          qualities.addChoice(name, index == g_SheetSettings.quality, func|index|() { g_SheetSettings.quality = cast(u32, index) }, detail: index ? "Fixed resolution" : "Follows the connection")
+                     }
                  },
                  app.theme.icon(.FitView, 16))
 

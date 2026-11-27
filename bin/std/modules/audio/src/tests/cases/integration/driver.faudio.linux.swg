@@ -25,15 +25,15 @@ func audioMakeTestTone()->String
     bytes.resize(44)
     var writer = ByteStream.openWrite(&bytes)
     writer.setPosition(4)
-    writer.writeLittleEndian(36'u32 + 44100 * 4)
+    writer.writeLittleEndian(36_u32 + 44100 * 4)
     writer.setPosition(40)
-    writer.writeLittleEndian(44100'u32 * 4)
+    writer.writeLittleEndian(44100_u32 * 4)
 
     // Two unequal channels make downmixing observable. A square wave also gives an
     // unambiguous frequency measurement without depending on the resampler's edges.
     for index in 44100
     {
-        let sample = index % 100 < 50 ? 16384's16 : -16384's16
+        let sample = index % 100 < 50 ? 16384_s16 : -16384_s16
         writer.writeLittleEndian(sample)
         writer.writeLittleEndian(cast(s16, -sample / 2))
     }
@@ -46,9 +46,12 @@ func audioWaitForFrame(voice: *Voice, frame: u64)
 {
     for 3000
     {
-        if voice.playbackSampleFrame() >= frame do
+        if voice.playbackSampleFrame() >= frame
+        {
             return
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(false, "native audio cursor did not advance")
@@ -66,7 +69,7 @@ func audioMeasureDisk()->AudioDiskMeasurement
     Swag.require(data.count > 4096 and data.count % 8 == 0)
     let samples  = cast(const [*] f32, data.storage())
     var result: #returntype
-    var previous = 0'f32
+    var previous = 0_f32
     for index in data.count / 8
     {
         let left  = samples[index * 2]
@@ -77,8 +80,11 @@ func audioMeasureDisk()->AudioDiskMeasurement
         if Math.abs(left) > 0.0001
         {
             result.audibleFrames += 1
-            if previous * left < 0 do
+            if previous * left < 0
+            {
                 result.transitions += 1
+            }
+
             previous = left
         }
     }
@@ -102,10 +108,14 @@ func audioRenderDisk(path: string, routing: u32, pitch: f32)->AudioDiskMeasureme
         discard expect child.setVolume(0.5)
         discard expect voice.setVolume(0.8)
         discard expect setOutputVolume(0.5)
-        if routing == 1 do
+        if routing == 1
+        {
             discard expect voice.setRouting([child])
-        else do
+        }
+        else
+        {
             discard expect voice.setRouting([root, child])
+        }
     }
 
     discard expect voice.play()
@@ -152,7 +162,7 @@ func audioRenderDisk(path: string, routing: u32, pitch: f32)->AudioDiskMeasureme
         audioWaitForFrame(voice, 8000)
         discard expect voice.pause()
         let paused = voice.playbackSampleFrame()
-        Threading.Thread.sleep(30'ms)
+        Threading.Thread.sleep(30_ms)
         Swag.require(voice.playbackSampleFrame() == paused)
         discard expect voice.seekSampleFrame(22050)
         Swag.require(voice.playbackSampleFrame() == 22050)
@@ -162,7 +172,7 @@ func audioRenderDisk(path: string, routing: u32, pitch: f32)->AudioDiskMeasureme
         Swag.require(voice.playbackSampleFrame() == 0)
         discard expect voice.play(.Loop)
         audioWaitForFrame(voice, 44100)
-        Threading.Thread.sleep(30'ms)
+        Threading.Thread.sleep(30_ms)
         Swag.require(voice.isPlaying())
 
         // Teardown must join callbacks before releasing the streaming buffers/context.

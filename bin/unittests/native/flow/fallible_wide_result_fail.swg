@@ -20,8 +20,10 @@ struct Big
 
 func makeSmall(ok: bool)->Small fail
 {
-    if not ok do
+    if not ok
+    {
         fail WideError{base: Swag.BaseError{"nope"}}
+    }
     var result: #returntype
     result.a = 1
     return result
@@ -29,8 +31,10 @@ func makeSmall(ok: bool)->Small fail
 
 func makeBig(ok: bool)->Big fail
 {
-    if not ok do
+    if not ok
+    {
         fail WideError{base: Swag.BaseError{"nope"}}
+    }
     var result: #returntype
     result.data[0]  = 1
     result.data[63] = 2

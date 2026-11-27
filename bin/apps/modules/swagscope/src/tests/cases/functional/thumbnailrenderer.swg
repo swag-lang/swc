@@ -88,8 +88,11 @@ private func thumbnailFixture(name: string)->String => scopeTestDataPath(name, #
     Swag.require(sound.width == 256 and sound.height == 128)
     Swag.require(sound.pixelColor(0, 0).argb == Color.fromRgb(248, 249, 250).argb)
     var waveform = false
-    for x in 16 to 240 where sound.pixelColor(x, 64).argb != Color.fromRgb(248, 249, 250).argb do
+    for x in 16 to 240 where sound.pixelColor(x, 64).argb != Color.fromRgb(248, 249, 250).argb
+    {
         waveform = true
+    }
+
     Swag.require(waveform)
 }
 
@@ -111,7 +114,7 @@ private func thumbnailFixture(name: string)->String => scopeTestDataPath(name, #
     // Every shipped reader must yield a real image or a neutral file card, never a byte map.
     let registry = createViewerPluginRegistry()
     var service: ThumbnailService
-    var checked  = 0'u64
+    var checked  = 0_u64
     for &plugin in registry.plugins where plugin.smokeFixture.count
     {
         let file  = thumbnailFixture(plugin.smokeFixture)
@@ -130,8 +133,11 @@ private func thumbnailFixture(name: string)->String => scopeTestDataPath(name, #
     defer discard catch File.delete(fileName)
 
     var source: String
-    for 256 do
+    for 256
+    {
         source += "A repeated paragraph keeps the thumbnail input much larger than its preview budget.\n"
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     var renderer = expect ThumbnailRenderer.create()

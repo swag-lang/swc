@@ -23,8 +23,8 @@ const KeySlotPlainSize = Crypto.NonceSize + Crypto.MasterKeySize + Crypto.TagSiz
 // Slots use a fixed width so the headers and every data block stay
 // at the same physical offset. The first 32 bytes of each record are random;
 // in slot zero those bytes are the container-wide salt.
-const KeySlotSize        = 256'u64
-const KeySlotCount       = 4'u64
+const KeySlotSize        = 256_u64
+const KeySlotCount       = 4_u64
 const KeySlotAreaSize    = KeySlotCount * KeySlotSize
 const KeySlotPrefixSize  = cast(u64, Crypto.SaltSize)
 const KeySlotPayloadSize = KeySlotSize - KeySlotPrefixSize
@@ -32,11 +32,11 @@ const KeySlotPayloadSize = KeySlotSize - KeySlotPrefixSize
 #assert(KeySlotCount == 4)
 
 // Record kind mixed into the nonce and the associated data of a wrapped key.
-const KeySlotKind = 8'u32
+const KeySlotKind = 8_u32
 
 // Bit that marks the slot at `index` as holding a password, in the mask the
 // volume header carries.
-func keySlotBit(index: u64)->u32 => cast(u32, (1'u64 << index))
+func keySlotBit(index: u64)->u32 => cast(u32, (1_u64 << index))
 
 // The byte range one slot owns after its uniformly random prefix.
 func keySlotPayloadOffset(index: u64)->u64 => KeySlotAreaOffset + index * KeySlotSize + KeySlotPrefixSize
@@ -81,7 +81,7 @@ impl KeySlot
         var result: #returntype
         try Core.Crypto.randomBytes(result)
 
-        var offset = 0'u64
+        var offset = 0_u64
         Swag.memcpy(&result[offset], &.nonce[0], Crypto.NonceSize)
         offset += Crypto.NonceSize
         Swag.memcpy(&result[offset], &.wrapped[0], Crypto.MasterKeySize)
@@ -97,7 +97,7 @@ impl KeySlot
         Swag.assert(record.count == KeySlotPayloadSize)
 
         var result: #returntype
-        var offset = 0'u64
+        var offset = 0_u64
         Swag.memcpy(&result.nonce[0], record.buffer + offset, Crypto.NonceSize)
         offset += Crypto.NonceSize
         Swag.memcpy(&result.wrapped[0], record.buffer + offset, Crypto.MasterKeySize)

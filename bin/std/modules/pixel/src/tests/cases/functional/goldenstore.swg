@@ -8,8 +8,11 @@ func referenceDifference(expected, actual: const *Image, tolerance: u8)->Testing
 {
     var result: #returntype
     result.sameSize = expected.width == actual.width and expected.height == actual.height
-    if not result.sameSize do
+    if not result.sameSize
+    {
         return result
+    }
+
     for y in actual.height
     {
         for x in actual.width
@@ -22,8 +25,11 @@ func referenceDifference(expected, actual: const *Image, tolerance: u8)->Testing
                                       Math.abs(cast(s32, left.b) - right.b),
                                       Math.abs(cast(s32, left.a) - right.a)))
             result.maxChannelDelta = Math.max(result.maxChannelDelta, delta)
-            if delta <= tolerance do
+            if delta <= tolerance
+            {
                 continue
+            }
+
             result.differentPixels += 1
             if result.differentPixels == 1
             {
@@ -40,7 +46,7 @@ func referenceDifference(expected, actual: const *Image, tolerance: u8)->Testing
 
 func checkDifference(expected, actual: const *Image)
 {
-    for tolerance in [0'u8, 1'u8, 17'u8, 255'u8]
+    for tolerance in [0_u8, 1_u8, 17_u8, 255_u8]
     {
         let reference = referenceDifference(expected, actual, tolerance)
         let result    = Testing.compareImages(expected, actual, {maxChannelDelta: tolerance})
@@ -65,7 +71,7 @@ func checkDifference(expected, actual: const *Image)
             pixel[0] = cast(u8, x)
             pixel[1] = cast(u8, 255 - x)
             pixel[2] = cast(u8, (x * 71) % 256)
-            pixel[3] = y == 0 ? 255'u8 : cast(u8, x)
+            pixel[3] = y == 0 ? 255_u8 : cast(u8, x)
         }
     }
 
@@ -73,11 +79,17 @@ func checkDifference(expected, actual: const *Image)
     {
         for association in [AlphaMode.Straight, .Premultiplied]
         {
-            if association == .Premultiplied and not format.hasAlpha() do
+            if association == .Premultiplied and not format.hasAlpha()
+            {
                 continue
+            }
+
             var expected = source.convertedTo(format)
-            if format.hasAlpha() do
+            if format.hasAlpha()
+            {
                 expected.convertAlphaTo(association)
+            }
+
             checkDifference(&expected, &expected)
             checkDifference(&source, &expected)
             var changed = Image.create(expected.width, expected.height, format, Swag.makeSlice(expected.pixels.storage(), expected.pixels.count), association)
@@ -102,7 +114,7 @@ func checkDifference(expected, actual: const *Image)
     var blockerName = String.from("pixel-golden-write-blocker-")
     blockerName += Guid64.random().toString()
     let blocker = Path.combine(Env.getSpecialDirectory(.Temp).toString(), blockerName)
-    discard expect File.writeAllBytes(blocker.toString(), [0'u8])
+    discard expect File.writeAllBytes(blocker.toString(), [0_u8])
     defer discard catch File.delete(blocker.toString())
 
     let missing = Path.combine(blocker, "missing.txt")
@@ -132,11 +144,17 @@ func paintGpuScene(shift: s32 = 0, withRule = true)->Image
         for x in result.width
         {
             let sourceX = x - shift
-            var level   = 30'u8
-            if withRule and sourceX >= 4 and sourceX < 28 and y >= 18 and y < 20 do
+            var level   = 30_u8
+            if withRule and sourceX >= 4 and sourceX < 28 and y >= 18 and y < 20
+            {
                 level = 160
-            if sourceX >= 8 and sourceX < 20 and y >= 4 and y < 14 do
+            }
+
+            if sourceX >= 8 and sourceX < 20 and y >= 4 and y < 14
+            {
                 level = 200
+            }
+
             setGray(&result, x, y, level)
         }
     }
@@ -157,8 +175,10 @@ func gpuDifferences(reference, drawn: const *Image)->u64
     var rounded = paintGpuScene()
     for y in rounded.height
     {
-        for x in rounded.width do
+        for x in rounded.width
+        {
             setGray(&rounded, x, y, grayAt(&reference, x, y) + 3)
+        }
     }
 
     Swag.require(gpuDifferences(&reference, &rounded) == 0)
@@ -191,8 +211,10 @@ func gpuDifferences(reference, drawn: const *Image)->u64
     var tinted = paintGpuScene()
     for y in 2 until 10
     {
-        for x in 22 until 30 do
+        for x in 22 until 30
+        {
             setGray(&tinted, x, y, 36)
+        }
     }
 
     Swag.require(gpuDifferences(&reference, &tinted) != 0)
@@ -215,8 +237,11 @@ func gpuDifferences(reference, drawn: const *Image)->u64
 
     // The box reaches one row lower.
     var grown = paintGpuScene()
-    for x in 8 until 20 do
+    for x in 8 until 20
+    {
         setGray(&grown, x, 14, 200)
+    }
+
     Swag.require(differences(&reference, &grown, false) != 0)
     Swag.require(differences(&reference, &grown, true) == 0)
 
@@ -232,7 +257,10 @@ func gpuDifferences(reference, drawn: const *Image)->u64
 
     // A one-pixel rule is added to the reference, then lost by the drawn image.
     var ruled = paintGpuScene()
-    for x in 4 until 28 do
+    for x in 4 until 28
+    {
         setGray(&ruled, x, 22, 160)
+    }
+
     Swag.require(differences(&ruled, &reference, true) != 0)
 }

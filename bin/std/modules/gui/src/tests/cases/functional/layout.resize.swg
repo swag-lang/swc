@@ -21,7 +21,7 @@ impl IWnd for ResizeLayoutWnd
     var host: Testing.HeadlessHost
     host.setup(240, 120)
     defer host.shutdown()
-    let child = Wnd.create'ResizeLayoutWnd(&host.root, null, {0, 0, 80, 40})
+    let child = Wnd.create!{ResizeLayoutWnd}(&host.root, null, {0, 0, 80, 40})
     host.pump()
     let baseline = child.layouts
 

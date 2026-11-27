@@ -3,8 +3,11 @@
 func selectionInk()->Color
 {
     let main = g_Main
-    if main do
+    if main
+    {
         return main.themeColors().arc
+    }
+
     return EncreArc
 }
 
@@ -22,8 +25,8 @@ func paintSelectionHandle(painter: *Painter, x, y, radius: f32, ink: Color, hot:
 
 // A drawn handle is smaller than the area that grabs it: the reach stays generous while the mark
 // stays quiet over the capture.
-const HandleScale = 0.8'f32
-const HandleRing  = 1.5'f32
+const HandleScale = 0.8_f32
+const HandleRing  = 1.5_f32
 
 // The handles that move the points of a line, a polygon, or a stroke.
 struct GizmoPoints
@@ -31,7 +34,7 @@ struct GizmoPoints
     anchorSize: f32 = 12
 
     startRect:   Math.Rectangle
-    anchors:     Array'Math.Point
+    anchors:     Array!{Math.Point}
     hotAnchor:   u32 = Swag.U32.Max
     moving:      bool
     firstMoving: bool
@@ -51,10 +54,16 @@ impl GizmoPoints
         switch evt.kind
         {
         case .Pressed:
-            if .moving do
+            if .moving
+            {
                 return true
-            if evt.button != .Left or .hotAnchor == Swag.U32.Max do
+            }
+
+            if evt.button != .Left or .hotAnchor == Swag.U32.Max
+            {
                 break
+            }
+
             .moving, .firstMoving = true
             .movingStart = pos
             view.captureMouse()
@@ -77,11 +86,16 @@ impl GizmoPoints
             if .moving
             {
                 let diff = pos - .movingStart
-                if .firstMoving and .sigChanged do
+                if .firstMoving and .sigChanged
+                {
                     .sigChanged(diff, .hotAnchor, true)
+                }
+
                 .firstMoving = false
-                if .sigChanged do
+                if .sigChanged
+                {
                     .sigChanged(diff, .hotAnchor, false)
+                }
             }
             else
             {
@@ -101,10 +115,16 @@ impl GizmoPoints
             }
 
         case .Leave:
-            if .moving do
+            if .moving
+            {
                 return true
-            if .hotAnchor == Swag.U32.Max do
+            }
+
+            if .hotAnchor == Swag.U32.Max
+            {
                 return false
+            }
+
             .hotAnchor = Swag.U32.Max
             return true
 
@@ -117,8 +137,10 @@ impl GizmoPoints
 
     mtd paint(_: *Application?, painter: *Painter, hot: bool, col: Color)
     {
-        for c in .anchors do
+        for c in .anchors
+        {
             paintSelectionHandle(painter, c.x, c.y, .anchorSize * 0.5, col, hot)
+        }
     }
 
     // Moves point `pt` of `iform` by `diff`, snapped, as one undo step that replaces the previous
@@ -126,8 +148,11 @@ impl GizmoPoints
     func apply(iform: IForm, diff: Math.Point, pt: u32, first: bool)
     {
         let capture = unwrap iform.capture
-        if not first do
+        if not first
+        {
             capture.undo()
+        }
+
         let undo     = capture.newUndo(.MovePoint)
         let editView = unwrap capture.editView
         let zoom     = editView.zoom

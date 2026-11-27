@@ -5,12 +5,17 @@ using Swag
 func updateCopiedLanes(seed: u32, count, rounds: u64)->u64
 {
     var initial: [4] u32 = [seed, seed + 3, seed + 7, seed + 11]
-    var result = 0'u64
+    var result = 0_u64
     for count
     {
         var state = initial
-        for rounds do
-            for lane in 4 do state[lane] = (state[lane] + 17) ^ 0x10203
+        for rounds
+        {
+            for lane in 4
+            {
+                state[lane] = (state[lane] + 17) ^ 0x10203
+            }
+        }
         result  += cast(u64, state[1]) + state[3]
         initial = state
     }
@@ -21,12 +26,17 @@ func updateCopiedLanes(seed: u32, count, rounds: u64)->u64
 func updateCopiedWideLanes(seed: u64, count, rounds: u64)->u64
 {
     var initial: [2] u64 = [seed, seed + 0x100000003]
-    var result = 0'u64
+    var result = 0_u64
     for count
     {
         var state = initial
-        for rounds do
-            for lane in 2 do state[lane] = (state[lane] + 17) ^ 0x10203
+        for rounds
+        {
+            for lane in 2
+            {
+                state[lane] = (state[lane] + 17) ^ 0x10203
+            }
+        }
         result  += state[1]
         initial = state
     }
@@ -35,13 +45,13 @@ func updateCopiedWideLanes(seed: u64, count, rounds: u64)->u64
 
 #test
 {
-    for count in [0'u64, 1, 3, 16]
+    for count in [0_u64, 1, 3, 16]
     {
-        var a            = 42'u32 + 3
-        var b            = 42'u32 + 11
-        var wide         = 42'u64 + 0x100000003
-        var expected     = 0'u64
-        var expectedWide = 0'u64
+        var a            = 42_u32 + 3
+        var b            = 42_u32 + 11
+        var wide         = 42_u64 + 0x100000003
+        var expected     = 0_u64
+        var expectedWide = 0_u64
         for count
         {
             for 10

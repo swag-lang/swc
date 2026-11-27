@@ -42,12 +42,16 @@ func coreTupleLifecycleProbeAt(base: [*] u8, type: const *TypeInfoStruct, index:
 
 func testCoreTupleRuntimeLifecycle(tupleType: typeinfo, flag: TypeInfoFlags)->bool
 {
-    if tupleType.kind != TypeInfoKind.Struct or not (tupleType.flags & flag) do
+    if tupleType.kind != TypeInfoKind.Struct or not (tupleType.flags & flag)
+    {
         return false
+    }
 
     let tupleStruct = assume cast(const *TypeInfoStruct, tupleType)
-    if tupleStruct.opInit or tupleStruct.opDrop or tupleStruct.opPostCopy or tupleStruct.opPostMove do
+    if tupleStruct.opInit or tupleStruct.opDrop or tupleStruct.opPostCopy or tupleStruct.opPostMove
+    {
         return false
+    }
 
     let source = Memory.new(tupleType)
     let target = Memory.new(tupleType)
@@ -61,20 +65,26 @@ func testCoreTupleRuntimeLifecycle(tupleType: typeinfo, flag: TypeInfoFlags)->bo
     if sourceFirst.id != 7 or
        sourceSecond.id != 7 or
        sourceFirst.value != "tuple-default" or
-       sourceSecond.value != "tuple-default" do
+       sourceSecond.value != "tuple-default"
+    {
         return false
+    }
 
     sourceFirst.id  = 1
     sourceSecond.id = 2
     CoreTupleLifecyclePostCopyOrder = 0
     Reflection.assign(target, source, tupleType)
-    if CoreTupleLifecyclePostCopyOrder != 12 or targetFirst.id != 1 or targetSecond.id != 2 do
+    if CoreTupleLifecyclePostCopyOrder != 12 or targetFirst.id != 1 or targetSecond.id != 2
+    {
         return false
+    }
 
     CoreTupleLifecyclePostMoveOrder = 0
     Memory.postMoveType(target, tupleType)
-    if CoreTupleLifecyclePostMoveOrder != 12 do
+    if CoreTupleLifecyclePostMoveOrder != 12
+    {
         return false
+    }
 
     CoreTupleLifecycleDropOrder = 0
     Reflection.reset(target, tupleType)
@@ -82,13 +92,17 @@ func testCoreTupleRuntimeLifecycle(tupleType: typeinfo, flag: TypeInfoFlags)->bo
        targetFirst.id != 7 or
        targetSecond.id != 7 or
        targetFirst.value != "tuple-default" or
-       targetSecond.value != "tuple-default" do
+       targetSecond.value != "tuple-default"
+    {
         return false
+    }
 
     CoreTupleLifecycleDropOrder = 0
     Memory.dropType(source, tupleType)
-    if CoreTupleLifecycleDropOrder != 21 do
+    if CoreTupleLifecycleDropOrder != 21
+    {
         return false
+    }
 
     CoreTupleLifecycleDropOrder = 0
     Memory.dropType(target, tupleType)
@@ -100,12 +114,16 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
     let arrayType = #typeof([
         {first: CoreTupleLifecycleProbe{}, second: CoreTupleLifecycleProbe{}},
         {first: CoreTupleLifecycleProbe{}, second: CoreTupleLifecycleProbe{}}])
-    if arrayType.kind != TypeInfoKind.Array do
+    if arrayType.kind != TypeInfoKind.Array
+    {
         return false
+    }
 
     let arrayStruct = assume cast(const *TypeInfoArray, arrayType)
-    if not (arrayStruct.pointedType.flags & TypeInfoFlags.Record) do
+    if not (arrayStruct.pointedType.flags & TypeInfoFlags.Record)
+    {
         return false
+    }
 
     let tupleStruct = assume cast(const *TypeInfoStruct, arrayStruct.pointedType)
     let values      = Memory.new(arrayType)
@@ -120,8 +138,10 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
     if first0.value != "tuple-default" or
        second0.value != "tuple-default" or
        first1.value != "tuple-default" or
-       second1.value != "tuple-default" do
+       second1.value != "tuple-default"
+    {
         return false
+    }
 
     first0.id  = 1
     second0.id = 2
@@ -130,13 +150,17 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
 
     CoreTupleLifecyclePostCopyOrder = 0
     Memory.postCopyType(values, arrayType)
-    if CoreTupleLifecyclePostCopyOrder != 1234 do
+    if CoreTupleLifecyclePostCopyOrder != 1234
+    {
         return false
+    }
 
     CoreTupleLifecyclePostMoveOrder = 0
     Memory.postMoveType(values, arrayType)
-    if CoreTupleLifecyclePostMoveOrder != 1234 do
+    if CoreTupleLifecyclePostMoveOrder != 1234
+    {
         return false
+    }
 
     CoreTupleLifecycleDropOrder = 0
     Memory.dropType(values, arrayType)
@@ -149,12 +173,16 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
     if aliasType.kind != TypeInfoKind.Alias or
        not (aliasType.flags & TypeInfoFlags.HasDrop) or
        not (aliasType.flags & TypeInfoFlags.HasPostCopy) or
-       not (aliasType.flags & TypeInfoFlags.HasPostMove) do
+       not (aliasType.flags & TypeInfoFlags.HasPostMove)
+    {
         return false
+    }
 
     let rawType = assume cast(const *TypeInfoAlias, aliasType).rawType
-    if not (rawType.flags & TypeInfoFlags.Record) do
+    if not (rawType.flags & TypeInfoFlags.Record)
+    {
         return false
+    }
 
     let tupleStruct = assume cast(const *TypeInfoStruct, rawType)
     let value       = Memory.new(aliasType)
@@ -165,20 +193,26 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
     if first.id != 7 or
        second.id != 7 or
        first.value != "tuple-default" or
-       second.value != "tuple-default" do
+       second.value != "tuple-default"
+    {
         return false
+    }
 
     first.id  = 1
     second.id = 2
     CoreTupleLifecyclePostCopyOrder = 0
     Memory.postCopyType(value, aliasType)
-    if CoreTupleLifecyclePostCopyOrder != 12 do
+    if CoreTupleLifecyclePostCopyOrder != 12
+    {
         return false
+    }
 
     CoreTupleLifecyclePostMoveOrder = 0
     Memory.postMoveType(value, aliasType)
-    if CoreTupleLifecyclePostMoveOrder != 12 do
+    if CoreTupleLifecyclePostMoveOrder != 12
+    {
         return false
+    }
 
     CoreTupleLifecycleDropOrder = 0
     Memory.dropType(value, aliasType)

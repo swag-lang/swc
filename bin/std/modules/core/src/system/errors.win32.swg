@@ -10,8 +10,10 @@ using Win32
 // any other error is propagated unchanged.
 func transformWinErrors(err: any?, val0: string? = null) fail
 {
-    if err == null do
+    if err == null
+    {
         return
+    }
 
     let sysErr = assume cast (const *Swag.SystemError, err)
     switch sysErr.errorID

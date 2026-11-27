@@ -61,22 +61,27 @@ struct Obstacle
     dead: bool
 }
 
-var g_Aliens:    Array'Alien
-var g_Lasers:    Array'Laser
+var g_Aliens:    Array!{Alien}
+var g_Lasers:    Array!{Laser}
 var g_Player:    Player
 var g_Dt:        f32
 var g_Rect:      Math.Rectangle
-var g_Obstacles: Array'Obstacle
+var g_Obstacles: Array!{Obstacle}
 
 func updatePlayer()
 {
     let kb = g_Wnd.app().keyboardRef()
 
     // Move
-    if kb.isKeyPressed(.Left) do
+    if kb.isKeyPressed(.Left)
+    {
         g_Player.x -= PLAYER_SPEED * g_Dt
-    elif kb.isKeyPressed(.Right) do
+    }
+    else if kb.isKeyPressed(.Right)
+    {
         g_Player.x += PLAYER_SPEED * g_Dt
+    }
+
     g_Player.x = Math.clamp(g_Player.x, 40, g_Rect.width - 40.0 - g_PlayerImg.width)
 
     // Laser
@@ -95,8 +100,10 @@ func updateLasers()
         if laser.player
         {
             laser.y -= LASER_SPEED_PLAYER * g_Dt
-            if laser.y - LASER_LENGTH < 0 do
+            if laser.y - LASER_LENGTH < 0
+            {
                 laser.dead = true
+            }
         }
         // Laser shot by an alien
         else
@@ -153,8 +160,11 @@ func checkCollisions()
             {
                 laser.dead = true
                 obs.dead   = true
-                if not laser.player do
+                if not laser.player
+                {
                     g_NumAlienLasers -= 1
+                }
+
                 catch { try Audio.Voice.play(&g_SoundExplosion) }
                 continue
             }
@@ -216,10 +226,15 @@ func addAliens()
             let y = 140 + yc * DIST
 
             var type = &g_RedImg
-            if yc == 0 do
+            if yc == 0
+            {
                 type = &g_YellowImg
-            elif yc >= 1 and yc <= 2 do
+            }
+            else if yc >= 1 and yc <= 2
+            {
                 type = &g_GreenImg
+            }
+
             g_Aliens.add({x, y, type})
         }
     }
@@ -242,8 +257,11 @@ func addObstacle(xi, yi: f32)
         var x = xi
         for c in line
         {
-            if c == 'x' do
+            if c == 'x'
+            {
                 g_Obstacles.add({x, y})
+            }
+
             x += OBS_SIZE
         }
 
@@ -274,15 +292,19 @@ func display()
     let painter = g_Painter
 
     // Aliens
-    for alien in g_Aliens where not alien.dead do
+    for alien in g_Aliens where not alien.dead
+    {
         painter.drawTexture(alien.x, alien.y, alien.type[])
+    }
 
     // Player
     painter.drawTexture(g_Player.x, g_Player.y, g_PlayerImg)
 
     // Obstacles
-    for obs in g_Obstacles where not obs.dead do
+    for obs in g_Obstacles where not obs.dead
+    {
         painter.fillRect(obs.x, obs.y, OBS_SIZE, OBS_SIZE, Argb.White)
+    }
 
     // Lasers
     for laser in g_Lasers where not laser.dead
@@ -359,8 +381,10 @@ func loadBindTextures()
 
     func muteForTest(_: *Application)
     {
-        if Env.isSmokeRun() do
+        if Env.isSmokeRun()
+        {
             expect Audio.setOutputVolume(0)
+        }
     }
 
     try runExample(W - 46, H - 31, title: "Space Invaders", hook: &onEvent, init: &muteForTest)

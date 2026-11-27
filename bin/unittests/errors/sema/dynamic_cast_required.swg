@@ -9,7 +9,7 @@ impl RequiredCastView for RequiredCastValue
 
 #test
 {
-    var value: any = 42's32
+    var value: any = 42_s32
     let result     = cast(s32, value)     // swc-expected-error {{sema_err_fallible_cast_requires_handler}}
 }
 

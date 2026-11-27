@@ -26,45 +26,45 @@ else
 
 enum ChunkID: u32
 {
-    SND_WAV_FOURCC_RIFF = SND_WAV_FOURCC_MARKER('R'u32, 'I'u32, 'F'u32, 'F'u32)
-    SND_WAV_FOURCC_RIFX = SND_WAV_FOURCC_MARKER('R'u32, 'I'u32, 'F'u32, 'X'u32)
-    SND_WAV_FOURCC_WAVE = SND_WAV_FOURCC_MARKER('W'u32, 'A'u32, 'V'u32, 'E'u32)
-    SND_WAV_FOURCC_fmt  = SND_WAV_FOURCC_MARKER('f'u32, 'm'u32, 't'u32, ' 'u32)
-    SND_WAV_FOURCC_data = SND_WAV_FOURCC_MARKER('d'u32, 'a'u32, 't'u32, 'a'u32)
-    SND_WAV_FOURCC_fact = SND_WAV_FOURCC_MARKER('f'u32, 'a'u32, 'c'u32, 't'u32)
-    SND_WAV_FOURCC_PEAK = SND_WAV_FOURCC_MARKER('P'u32, 'E'u32, 'A'u32, 'K'u32)
-    SND_WAV_FOURCC_cue  = SND_WAV_FOURCC_MARKER('c'u32, 'u'u32, 'e'u32, ' 'u32)
-    SND_WAV_FOURCC_LIST = SND_WAV_FOURCC_MARKER('L'u32, 'I'u32, 'S'u32, 'T'u32)
-    SND_WAV_FOURCC_slnt = SND_WAV_FOURCC_MARKER('s'u32, 'l'u32, 'n'u32, 't'u32)
-    SND_WAV_FOURCC_wavl = SND_WAV_FOURCC_MARKER('w'u32, 'a'u32, 'v'u32, 'l'u32)
-    SND_WAV_FOURCC_INFO = SND_WAV_FOURCC_MARKER('I'u32, 'N'u32, 'F'u32, 'O'u32)
-    SND_WAV_FOURCC_plst = SND_WAV_FOURCC_MARKER('p'u32, 'l'u32, 's'u32, 't'u32)
-    SND_WAV_FOURCC_adtl = SND_WAV_FOURCC_MARKER('a'u32, 'd'u32, 't'u32, 'l'u32)
-    SND_WAV_FOURCC_labl = SND_WAV_FOURCC_MARKER('l'u32, 'a'u32, 'b'u32, 'l'u32)
-    SND_WAV_FOURCC_ltxt = SND_WAV_FOURCC_MARKER('l'u32, 't'u32, 'x'u32, 't'u32)
-    SND_WAV_FOURCC_note = SND_WAV_FOURCC_MARKER('n'u32, 'o'u32, 't'u32, 'e'u32)
-    SND_WAV_FOURCC_smpl = SND_WAV_FOURCC_MARKER('s'u32, 'm'u32, 'p'u32, 'l'u32)
-    SND_WAV_FOURCC_bext = SND_WAV_FOURCC_MARKER('b'u32, 'e'u32, 'x'u32, 't'u32)
-    SND_WAV_FOURCC_levl = SND_WAV_FOURCC_MARKER('l'u32, 'e'u32, 'v'u32, 'l'u32)
-    SND_WAV_FOURCC_MEXT = SND_WAV_FOURCC_MARKER('M'u32, 'E'u32, 'X'u32, 'T'u32)
-    SND_WAV_FOURCC_DISP = SND_WAV_FOURCC_MARKER('D'u32, 'I'u32, 'S'u32, 'P'u32)
-    SND_WAV_FOURCC_acid = SND_WAV_FOURCC_MARKER('a'u32, 'c'u32, 'i'u32, 'd'u32)
-    SND_WAV_FOURCC_strc = SND_WAV_FOURCC_MARKER('s'u32, 't'u32, 'r'u32, 'c'u32)
-    SND_WAV_FOURCC_PAD  = SND_WAV_FOURCC_MARKER('P'u32, 'A'u32, 'D'u32, ' 'u32)
-    SND_WAV_FOURCC_afsp = SND_WAV_FOURCC_MARKER('a'u32, 'f'u32, 's'u32, 'p'u32)
-    SND_WAV_FOURCC_clm  = SND_WAV_FOURCC_MARKER('c'u32, 'l'u32, 'm'u32, ' 'u32)
-    SND_WAV_FOURCC_elmo = SND_WAV_FOURCC_MARKER('e'u32, 'l'u32, 'm'u32, 'o'u32)
-    SND_WAV_FOURCC_ISFT = SND_WAV_FOURCC_MARKER('I'u32, 'S'u32, 'F'u32, 'T'u32)
-    SND_WAV_FOURCC_ICRD = SND_WAV_FOURCC_MARKER('I'u32, 'C'u32, 'R'u32, 'D'u32)
-    SND_WAV_FOURCC_ICOP = SND_WAV_FOURCC_MARKER('I'u32, 'C'u32, 'O'u32, 'P'u32)
-    SND_WAV_FOURCC_IARL = SND_WAV_FOURCC_MARKER('I'u32, 'A'u32, 'R'u32, 'L'u32)
-    SND_WAV_FOURCC_IART = SND_WAV_FOURCC_MARKER('I'u32, 'A'u32, 'R'u32, 'T'u32)
-    SND_WAV_FOURCC_INAM = SND_WAV_FOURCC_MARKER('I'u32, 'N'u32, 'A'u32, 'M'u32)
-    SND_WAV_FOURCC_IENG = SND_WAV_FOURCC_MARKER('I'u32, 'E'u32, 'N'u32, 'G'u32)
-    SND_WAV_FOURCC_IPRD = SND_WAV_FOURCC_MARKER('I'u32, 'P'u32, 'R'u32, 'D'u32)
-    SND_WAV_FOURCC_ISRC = SND_WAV_FOURCC_MARKER('I'u32, 'S'u32, 'R'u32, 'C'u32)
-    SND_WAV_FOURCC_ISBJ = SND_WAV_FOURCC_MARKER('I'u32, 'S'u32, 'B'u32, 'J'u32)
-    SND_WAV_FOURCC_ICMT = SND_WAV_FOURCC_MARKER('I'u32, 'C'u32, 'M'u32, 'T'u32)
+    SND_WAV_FOURCC_RIFF = SND_WAV_FOURCC_MARKER('R'_u32, 'I'_u32, 'F'_u32, 'F'_u32)
+    SND_WAV_FOURCC_RIFX = SND_WAV_FOURCC_MARKER('R'_u32, 'I'_u32, 'F'_u32, 'X'_u32)
+    SND_WAV_FOURCC_WAVE = SND_WAV_FOURCC_MARKER('W'_u32, 'A'_u32, 'V'_u32, 'E'_u32)
+    SND_WAV_FOURCC_fmt  = SND_WAV_FOURCC_MARKER('f'_u32, 'm'_u32, 't'_u32, ' '_u32)
+    SND_WAV_FOURCC_data = SND_WAV_FOURCC_MARKER('d'_u32, 'a'_u32, 't'_u32, 'a'_u32)
+    SND_WAV_FOURCC_fact = SND_WAV_FOURCC_MARKER('f'_u32, 'a'_u32, 'c'_u32, 't'_u32)
+    SND_WAV_FOURCC_PEAK = SND_WAV_FOURCC_MARKER('P'_u32, 'E'_u32, 'A'_u32, 'K'_u32)
+    SND_WAV_FOURCC_cue  = SND_WAV_FOURCC_MARKER('c'_u32, 'u'_u32, 'e'_u32, ' '_u32)
+    SND_WAV_FOURCC_LIST = SND_WAV_FOURCC_MARKER('L'_u32, 'I'_u32, 'S'_u32, 'T'_u32)
+    SND_WAV_FOURCC_slnt = SND_WAV_FOURCC_MARKER('s'_u32, 'l'_u32, 'n'_u32, 't'_u32)
+    SND_WAV_FOURCC_wavl = SND_WAV_FOURCC_MARKER('w'_u32, 'a'_u32, 'v'_u32, 'l'_u32)
+    SND_WAV_FOURCC_INFO = SND_WAV_FOURCC_MARKER('I'_u32, 'N'_u32, 'F'_u32, 'O'_u32)
+    SND_WAV_FOURCC_plst = SND_WAV_FOURCC_MARKER('p'_u32, 'l'_u32, 's'_u32, 't'_u32)
+    SND_WAV_FOURCC_adtl = SND_WAV_FOURCC_MARKER('a'_u32, 'd'_u32, 't'_u32, 'l'_u32)
+    SND_WAV_FOURCC_labl = SND_WAV_FOURCC_MARKER('l'_u32, 'a'_u32, 'b'_u32, 'l'_u32)
+    SND_WAV_FOURCC_ltxt = SND_WAV_FOURCC_MARKER('l'_u32, 't'_u32, 'x'_u32, 't'_u32)
+    SND_WAV_FOURCC_note = SND_WAV_FOURCC_MARKER('n'_u32, 'o'_u32, 't'_u32, 'e'_u32)
+    SND_WAV_FOURCC_smpl = SND_WAV_FOURCC_MARKER('s'_u32, 'm'_u32, 'p'_u32, 'l'_u32)
+    SND_WAV_FOURCC_bext = SND_WAV_FOURCC_MARKER('b'_u32, 'e'_u32, 'x'_u32, 't'_u32)
+    SND_WAV_FOURCC_levl = SND_WAV_FOURCC_MARKER('l'_u32, 'e'_u32, 'v'_u32, 'l'_u32)
+    SND_WAV_FOURCC_MEXT = SND_WAV_FOURCC_MARKER('M'_u32, 'E'_u32, 'X'_u32, 'T'_u32)
+    SND_WAV_FOURCC_DISP = SND_WAV_FOURCC_MARKER('D'_u32, 'I'_u32, 'S'_u32, 'P'_u32)
+    SND_WAV_FOURCC_acid = SND_WAV_FOURCC_MARKER('a'_u32, 'c'_u32, 'i'_u32, 'd'_u32)
+    SND_WAV_FOURCC_strc = SND_WAV_FOURCC_MARKER('s'_u32, 't'_u32, 'r'_u32, 'c'_u32)
+    SND_WAV_FOURCC_PAD  = SND_WAV_FOURCC_MARKER('P'_u32, 'A'_u32, 'D'_u32, ' '_u32)
+    SND_WAV_FOURCC_afsp = SND_WAV_FOURCC_MARKER('a'_u32, 'f'_u32, 's'_u32, 'p'_u32)
+    SND_WAV_FOURCC_clm  = SND_WAV_FOURCC_MARKER('c'_u32, 'l'_u32, 'm'_u32, ' '_u32)
+    SND_WAV_FOURCC_elmo = SND_WAV_FOURCC_MARKER('e'_u32, 'l'_u32, 'm'_u32, 'o'_u32)
+    SND_WAV_FOURCC_ISFT = SND_WAV_FOURCC_MARKER('I'_u32, 'S'_u32, 'F'_u32, 'T'_u32)
+    SND_WAV_FOURCC_ICRD = SND_WAV_FOURCC_MARKER('I'_u32, 'C'_u32, 'R'_u32, 'D'_u32)
+    SND_WAV_FOURCC_ICOP = SND_WAV_FOURCC_MARKER('I'_u32, 'C'_u32, 'O'_u32, 'P'_u32)
+    SND_WAV_FOURCC_IARL = SND_WAV_FOURCC_MARKER('I'_u32, 'A'_u32, 'R'_u32, 'L'_u32)
+    SND_WAV_FOURCC_IART = SND_WAV_FOURCC_MARKER('I'_u32, 'A'_u32, 'R'_u32, 'T'_u32)
+    SND_WAV_FOURCC_INAM = SND_WAV_FOURCC_MARKER('I'_u32, 'N'_u32, 'A'_u32, 'M'_u32)
+    SND_WAV_FOURCC_IENG = SND_WAV_FOURCC_MARKER('I'_u32, 'E'_u32, 'N'_u32, 'G'_u32)
+    SND_WAV_FOURCC_IPRD = SND_WAV_FOURCC_MARKER('I'_u32, 'P'_u32, 'R'_u32, 'D'_u32)
+    SND_WAV_FOURCC_ISRC = SND_WAV_FOURCC_MARKER('I'_u32, 'S'_u32, 'R'_u32, 'C'_u32)
+    SND_WAV_FOURCC_ISBJ = SND_WAV_FOURCC_MARKER('I'_u32, 'S'_u32, 'B'_u32, 'J'_u32)
+    SND_WAV_FOURCC_ICMT = SND_WAV_FOURCC_MARKER('I'_u32, 'C'_u32, 'M'_u32, 'T'_u32)
 }
 
 const WAVE_FORMAT_UNKNOWN    = 0x0000     /* Microsoft Corporation */
@@ -97,14 +97,14 @@ func copySubformat(destination: *void, source: SubformatUuid)
 }
 
 // Offsets of the fields inside a `fmt ` chunk, and the sizes at which each family of fields is present.
-private const FormatBaseSize       = 14'u64     // WAVEFORMAT: tag, channels, rate, average bytes, block alignment.
-private const FormatBitsSize       = 16'u64     // PCMWAVEFORMAT adds the bits per sample.
-private const FormatExtraSize      = 18'u64     // WAVEFORMATEX adds the size of what follows.
-private const FormatExtensibleSize = 40'u64     // WAVEFORMATEXTENSIBLE adds valid bits, the speaker mask, and the subformat.
+private const FormatBaseSize       = 14_u64     // WAVEFORMAT: tag, channels, rate, average bytes, block alignment.
+private const FormatBitsSize       = 16_u64     // PCMWAVEFORMAT adds the bits per sample.
+private const FormatExtraSize      = 18_u64     // WAVEFORMATEX adds the size of what follows.
+private const FormatExtensibleSize = 40_u64     // WAVEFORMATEXTENSIBLE adds valid bits, the speaker mask, and the subformat.
 
 // A `fmt ` chunk larger than this is not one; the extensible form is forty bytes and a Microsoft
 // ADPCM coefficient table adds a few dozen more.
-private const MaxFormatChunk = 4096'u64
+private const MaxFormatChunk = 4096_u64
 
 // What the `fmt ` chunk declares, kept apart from the sound so a compressed format can build its
 // packet index from it before any [[Audio.SoundFile]] exists.
@@ -117,9 +117,9 @@ private struct Format
     validBits:     u16
     speakerMask:   u32
     encoding:      SoundFileEncoding
-    hasBitsField:  bool         // The chunk states the bits per sample rather than implying them.
-    hasExtensible: bool         // The chunk carries the valid bits, the speaker mask, and a subformat.
-    extra:         Array'u8     // Format-specific bytes after the subformat, or after `cbSize` in a classic chunk.
+    hasBitsField:  bool           // The chunk states the bits per sample rather than implying them.
+    hasExtensible: bool           // The chunk carries the valid bits, the speaker mask, and a subformat.
+    extra:         Array!{u8}     // Format-specific bytes after the subformat, or after `cbSize` in a classic chunk.
 }
 
 private func readU16(bytes: const [..] u8, offset: u64)->u32
@@ -139,8 +139,11 @@ private func readU32(bytes: const [..] u8, offset: u64)->u32
 // Reads the FourCC in its native byte representation and the RIFF size as little-endian.
 internal func decodeChunkHeader(bytes: const [..] u8)->ChunkHeader fail
 {
-    if bytes.count < 8 do
+    if bytes.count < 8
+    {
         fail InvalidFormatError{"truncated RIFF chunk header"}
+    }
+
     var result: #returntype
     Memory.copy(&result.chunkID, bytes.buffer, 4)
     result.chunkSize = readU32(bytes, 4)
@@ -150,8 +153,11 @@ internal func decodeChunkHeader(bytes: const [..] u8)->ChunkHeader fail
 // RIFF's fact sample-frame count is little-endian on every host.
 internal func decodeFactFrameCount(bytes: const [..] u8)->u32 fail
 {
-    if bytes.count < 4 do
+    if bytes.count < 4
+    {
         fail InvalidFormatError{"truncated WAVE fact sample count"}
+    }
+
     return readU32(bytes, 0)
 }
 
@@ -170,18 +176,27 @@ private func encodingOf(tag, bitsPerSample: u32)->SoundFileEncoding fail
         }
 
     case WAVE_FORMAT_IEEE_FLOAT:
-        if bitsPerSample != 32 do
+        if bitsPerSample != 32
+        {
             fail UnsupportedFormatError{"unsupported float bitPerSample"}
+        }
+
         return .Float32
 
     case WAVE_FORMAT_ADPCM:
-        if bitsPerSample != 4 do
+        if bitsPerSample != 4
+        {
             fail UnsupportedFormatError{"WAV Microsoft ADPCM is only supported at four bits a sample"}
+        }
+
         return .AdpcmMs
 
     case WAVE_FORMAT_IMA_ADPCM:
-        if bitsPerSample != 4 do
+        if bitsPerSample != 4
+        {
             fail UnsupportedFormatError{"WAV IMA ADPCM is only supported at four bits a sample"}
+        }
+
         return .AdpcmIma
 
     default:
@@ -192,14 +207,26 @@ private func encodingOf(tag, bitsPerSample: u32)->SoundFileEncoding fail
 // Returns the classic format tag an extensible subformat stands for.
 private func subformatTag(subformat: const [..] u8)->u32 fail
 {
-    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatPcm) do
+    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatPcm)
+    {
         return WAVE_FORMAT_PCM
-    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatIeeeFloat) do
+    }
+
+    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatIeeeFloat)
+    {
         return WAVE_FORMAT_IEEE_FLOAT
-    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatAdpcm) do
+    }
+
+    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatAdpcm)
+    {
         return WAVE_FORMAT_ADPCM
-    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatImaAdpcm) do
+    }
+
+    if Memory.bytesEqual(cast(const *SubformatUuid, subformat.buffer), SubformatImaAdpcm)
+    {
         return WAVE_FORMAT_IMA_ADPCM
+    }
+
     fail UnsupportedFormatError{"unsupported wav format"}
 }
 
@@ -207,8 +234,10 @@ private func subformatTag(subformat: const [..] u8)->u32 fail
 private func parseFormat(bytes: const [..] u8)->Format fail
 {
     let size = bytes.count
-    if size < FormatBaseSize do
+    if size < FormatBaseSize
+    {
         fail InvalidFormatError{"invalid wav"}
+    }
 
     var result: #returntype
     let tag = readU16(bytes, 0)
@@ -216,16 +245,24 @@ private func parseFormat(bytes: const [..] u8)->Format fail
     result.sampleRate = readU32(bytes, 4)
     let averageBytes = readU32(bytes, 8)
     result.blockAlign = readU16(bytes, 12)
-    if not result.channels do
+    if not result.channels
+    {
         fail InvalidFormatError{"WAV channel count must be greater than zero"}
-    if not result.sampleRate do
+    }
+
+    if not result.sampleRate
+    {
         fail InvalidFormatError{"WAV sample rate must be greater than zero"}
+    }
 
     // The oldest chunks state no sample width; the byte rate implies it.
     let frameByteRate = cast(u64, result.channels) * cast(u64, result.sampleRate)
     let inferredBits  = cast(u64, averageBytes) * 8 / frameByteRate
-    if inferredBits > Swag.U32.Max do
+    if inferredBits > Swag.U32.Max
+    {
         fail InvalidFormatError{"WAV inferred sample width exceeds the supported range"}
+    }
+
     result.bitsPerSample = cast(u32, inferredBits)
     if size >= FormatBitsSize
     {
@@ -238,16 +275,21 @@ private func parseFormat(bytes: const [..] u8)->Format fail
     if size >= FormatExtraSize
     {
         let extraSize = readU16(bytes, 16)
-        if extraSize > size - FormatExtraSize do
+        if extraSize > size - FormatExtraSize
+        {
             fail InvalidFormatError{"invalid wav"}
+        }
+
         extraEnd = FormatExtraSize + extraSize
     }
 
     var classicTag = tag
     if tag == WAVE_FORMAT_EXTENSIBLE
     {
-        if size < FormatExtensibleSize or extraEnd < FormatExtensibleSize do
+        if size < FormatExtensibleSize or extraEnd < FormatExtensibleSize
+        {
             fail InvalidFormatError{"invalid wav"}
+        }
 
         result.validBits     = cast(u16, readU16(bytes, 18))
         result.speakerMask   = readU32(bytes, 20)
@@ -260,23 +302,30 @@ private func parseFormat(bytes: const [..] u8)->Format fail
     switch result.encoding
     {
     case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32:
-        if result.hasExtensible and result.validBits > result.bitsPerSample do
+        if result.hasExtensible and result.validBits > result.bitsPerSample
+        {
             fail InvalidFormatError{"WAV valid sample width exceeds its container width"}
+        }
 
         let bytesPerSample = result.bitsPerSample / 8
         let expectedAlign  = result.channels * bytesPerSample
         let expectedRate   = cast(u64, result.sampleRate) * expectedAlign
         if expectedAlign > Swag.U16.Max or
            result.blockAlign != expectedAlign or
-           expectedRate != averageBytes do
+           expectedRate != averageBytes
+        {
             fail InvalidFormatError{"WAV PCM/float frame alignment or byte rate is inconsistent"}
+        }
 
     default:
         break
     }
 
-    if extraEnd > extraStart do
+    if extraEnd > extraStart
+    {
         result.extra.add(bytes[extraStart until extraEnd])
+    }
+
     return result
 }
 
@@ -313,10 +362,15 @@ private func readLayout(stream: *File.FileStream)->Layout fail
     for
     {
         let chunkOffset = try stream.position()
-        if chunkOffset > riffEnd do
+        if chunkOffset > riffEnd
+        {
             fail InvalidFormatError{"invalid wav"}
-        if chunkOffset < riffEnd and (chunkOffset & 1) do
+        }
+
+        if chunkOffset < riffEnd and (chunkOffset & 1)
+        {
             try stream.skip(1)
+        }
 
         let headerOffset = try stream.position()
         if headerOffset >= riffEnd
@@ -330,11 +384,17 @@ private func readLayout(stream: *File.FileStream)->Layout fail
             fail InvalidFormatError{"invalid wav"}
         }
 
-        if riffEnd - headerOffset < #sizeof(ChunkHeader) do
+        if riffEnd - headerOffset < #sizeof(ChunkHeader)
+        {
             fail InvalidFormatError{"invalid wav"}
+        }
+
         var rawHeader: [8] u8
-        if try stream.read(Swag.makeSlice(&rawHeader[0], rawHeader.count)) != rawHeader.count do
+        if try stream.read(Swag.makeSlice(&rawHeader[0], rawHeader.count)) != rawHeader.count
+        {
             fail InvalidFormatError{"invalid wav"}
+        }
+
         header = try decodeChunkHeader(Swag.makeSlice(&rawHeader[0], rawHeader.count))
         let payloadOffset = try stream.position()
 
@@ -344,10 +404,15 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         {
             let chunkEnd   = stage == .FindRiff ? fileBytes : riffEnd
             let paddedSize = cast(u64, header.chunkSize) + (header.chunkSize & 1)
-            if payloadOffset > chunkEnd do
+            if payloadOffset > chunkEnd
+            {
                 fail InvalidFormatError{"invalid wav"}
-            if paddedSize > chunkEnd - payloadOffset do
+            }
+
+            if paddedSize > chunkEnd - payloadOffset
+            {
                 fail InvalidFormatError{"invalid wav"}
+            }
         }
 
         switch header.chunkID
@@ -355,17 +420,32 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         case .SND_WAV_FOURCC_RIFF:
             if stage == .FindRiff
             {
-                if payloadOffset > fileBytes do
+                if payloadOffset > fileBytes
+                {
                     fail InvalidFormatError{"invalid riff chunk"}
-                if header.chunkSize < 4 or cast(u64, header.chunkSize) > fileBytes - payloadOffset do
+                }
+
+                if header.chunkSize < 4 or cast(u64, header.chunkSize) > fileBytes - payloadOffset
+                {
                     fail InvalidFormatError{"invalid riff chunk"}
+                }
+
                 riffEnd = payloadOffset + cast(u64, header.chunkSize)
-                if not (try stream.readValue(&header.chunkID)) do
+                if not (try stream.readValue(&header.chunkID))
+                {
                     fail InvalidFormatError{"invalid riff chunk"}
-                if header.chunkID != SND_WAV_FOURCC_WAVE do
+                }
+
+                if header.chunkID != SND_WAV_FOURCC_WAVE
+                {
                     fail InvalidFormatError{"not a wav"}
-                if (try stream.position()) > riffEnd do
+                }
+
+                if (try stream.position()) > riffEnd
+                {
                     fail InvalidFormatError{"invalid riff chunk"}
+                }
+
                 stage = .FindFmt
             }
             else
@@ -376,12 +456,18 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         case .SND_WAV_FOURCC_fmt:
             if stage == .FindFmt
             {
-                if header.chunkSize > MaxFormatChunk do
+                if header.chunkSize > MaxFormatChunk
+                {
                     fail InvalidFormatError{"invalid wav"}
-                var bytes: Array'u8
+                }
+
+                var bytes: Array!{u8}
                 bytes.resize(header.chunkSize)
-                if try stream.read(bytes.toSlice()) != header.chunkSize do
+                if try stream.read(bytes.toSlice()) != header.chunkSize
+                {
                     fail InvalidFormatError{"invalid wav"}
+                }
+
                 result.format = try parseFormat(bytes.toSlice())
                 stage         = .FindData
             }
@@ -394,8 +480,11 @@ private func readLayout(stream: *File.FileStream)->Layout fail
             if header.chunkSize >= 4
             {
                 var rawFrameCount: [4] u8
-                if try stream.read(Swag.makeSlice(&rawFrameCount[0], rawFrameCount.count)) != rawFrameCount.count do
+                if try stream.read(Swag.makeSlice(&rawFrameCount[0], rawFrameCount.count)) != rawFrameCount.count
+                {
                     fail InvalidFormatError{"invalid wav"}
+                }
+
                 result.factFrames = try decodeFactFrameCount(Swag.makeSlice(&rawFrameCount[0], rawFrameCount.count))
                 try stream.skip(header.chunkSize - 4)
             }
@@ -407,14 +496,23 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         case .SND_WAV_FOURCC_data:
             if stage == .FindData
             {
-                if result.hasData do
+                if result.hasData
+                {
                     fail InvalidFormatError{"multiple WAVE data chunks are not supported"}
+                }
+
                 result.hasData    = true
                 result.dataOffset = try stream.position()
-                if result.dataOffset > fileBytes do
+                if result.dataOffset > fileBytes
+                {
                     fail InvalidFormatError{"WAV audio data is truncated"}
-                if cast(u64, header.chunkSize) > fileBytes - result.dataOffset do
+                }
+
+                if cast(u64, header.chunkSize) > fileBytes - result.dataOffset
+                {
                     fail InvalidFormatError{"WAV audio data is truncated"}
+                }
+
                 result.dataSize = header.chunkSize
                 try stream.skip(header.chunkSize)
             }
@@ -444,29 +542,42 @@ private func readLayout(stream: *File.FileStream)->Layout fail
 private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
 {
     let format = &layout.format
-    if not format.blockAlign do
+    if not format.blockAlign
+    {
         fail InvalidFormatError{"WAV ADPCM block alignment is zero"}
-    if format.channels > 2 do
-        fail UnsupportedFormatError{"WAV ADPCM is only supported with one or two channels"}
+    }
 
-    var packets: Array'SoundPacket
-    var totalFrames = 0'u64
-    var dataOffset  = 0'u64
+    if format.channels > 2
+    {
+        fail UnsupportedFormatError{"WAV ADPCM is only supported with one or two channels"}
+    }
+
+    var packets: Array!{SoundPacket}
+    var totalFrames = 0_u64
+    var dataOffset  = 0_u64
     while dataOffset < layout.dataSize
     {
         let blockBytes  = Math.min(cast(u64, format.blockAlign), layout.dataSize - dataOffset)
         let blockFrames = Adpcm.blockFrameCount(format.encoding, format.channels, blockBytes)
-        if not blockFrames do
+        if not blockFrames
+        {
             fail InvalidFormatError{"WAV ADPCM block is shorter than its header"}
+        }
+
         packets.add(SoundPacket{layout.dataOffset + dataOffset, cast(u32, blockBytes), cast(u32, blockFrames)})
         totalFrames += blockFrames
         dataOffset  += blockBytes
     }
 
-    if not packets.count do
+    if not packets.count
+    {
         fail InvalidFormatError{"WAV ADPCM data holds no complete block"}
-    if layout.factFrames > totalFrames do
+    }
+
+    if layout.factFrames > totalFrames
+    {
         fail InvalidFormatError{"WAV fact chunk declares more sample frames than the blocks decode to"}
+    }
 
     return try SoundFile.openPacketStream(path,
                                           format.encoding,
@@ -495,11 +606,16 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     }
 
     let bytesPerSample = format.bitsPerSample / 8
-    if not bytesPerSample do
+    if not bytesPerSample
+    {
         fail InvalidFormatError{"invalid wav"}
+    }
+
     let bytesPerFrame = cast(u64, format.blockAlign)
-    if not bytesPerFrame or layout.dataSize % bytesPerFrame do
+    if not bytesPerFrame or layout.dataSize % bytesPerFrame
+    {
         fail InvalidFormatError{"WAV audio data is not aligned to sample frames"}
+    }
 
     with var result: #returntype
     {
@@ -513,10 +629,15 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
         .availableFields    = .Format | .SampleRate | .ChannelCount
     }
 
-    if format.hasBitsField do
+    if format.hasBitsField
+    {
         result.availableFields |= .BitsPerSample
-    if format.hasExtensible do
+    }
+
+    if format.hasExtensible
+    {
         result.availableFields |= .SpeakerMask | .ValidBitsPerSample
+    }
 
     result.availableFields |= .Data | .FrameCount | .Duration
     result.dataOffset      = layout.dataOffset
@@ -526,8 +647,10 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     if preloadData
     {
         result.data.resize(layout.dataSize)
-        if try stream.read(result.data.toSlice()) != layout.dataSize do
+        if try stream.read(result.data.toSlice()) != layout.dataSize
+        {
             fail InvalidFormatError{"WAV audio data is truncated"}
+        }
     }
 
     return result

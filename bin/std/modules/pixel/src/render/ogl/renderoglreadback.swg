@@ -133,8 +133,11 @@ impl RenderOglReadback
     // `destination` must hold all rows. Bytes after each row's pixels are left unchanged.
     mtd tryCopyTo(destination: [..] u8, rowStride: u64 = 0)->bool
     {
-        if .failed or not .isPending() do
+        if .failed or not .isPending()
+        {
             return false
+        }
+
         let rowBytes = cast(u64, .width) * 4
         let stride   = rowStride ? rowStride : rowBytes
         let rowCount = cast(u64, .height - 1)
@@ -154,16 +157,22 @@ impl RenderOglReadback
 
         if .drawing
         {
-            if not .ready(.drawing) do
+            if not .ready(.drawing)
+            {
                 return false
+            }
+
             glDeleteSync(.drawing)
             .drawing = null
             .startTransfer()
             return false
         }
 
-        if not .ready(.transfer) do
+        if not .ready(.transfer)
+        {
             return false
+        }
+
         var previous: GLint
         glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &previous)
         glBindBuffer(GL_PIXEL_PACK_BUFFER, .buffer)
@@ -193,8 +202,10 @@ impl RenderOglReadback
             }
             else
             {
-                for row in cast(u64, .height) do
+                for row in cast(u64, .height)
+                {
                     Memory.copy(destination.buffer + row * stride, source + row * rowBytes, rowBytes)
+                }
             }
 
             if not .mapping and glUnmapBuffer(GL_PIXEL_PACK_BUFFER) == GL_FALSE
@@ -212,10 +223,16 @@ impl RenderOglReadback
     // Cancels a pending transfer without waiting, retaining buffer storage for later submissions.
     mtd cancel()
     {
-        if .drawing do
+        if .drawing
+        {
             glDeleteSync(.drawing)
-        if .transfer do
+        }
+
+        if .transfer
+        {
             glDeleteSync(.transfer)
+        }
+
         .drawing  = null
         .transfer = null
     }
@@ -256,8 +273,11 @@ private impl RenderOglReadback
             .mapping = null
         }
 
-        if .buffer do
+        if .buffer
+        {
             glDeleteBuffers(1, &.buffer)
+        }
+
         .buffer   = 0
         .capacity = 0
     }
@@ -265,8 +285,11 @@ private impl RenderOglReadback
     mtd ready(fence: GLsync)->bool
     {
         let state = glClientWaitSync(fence, 0, 0)
-        if state == GL_WAIT_FAILED do
+        if state == GL_WAIT_FAILED
+        {
             .failed = true
+        }
+
         return state == GL_ALREADY_SIGNALED or state == GL_CONDITION_SATISFIED
     }
 

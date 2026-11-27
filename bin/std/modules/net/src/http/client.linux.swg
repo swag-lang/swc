@@ -29,8 +29,10 @@ private var g_CurlMutex: Swag.Mutex
 
 private func checkCurl(code: s32) fail
 {
-    if code != Curl.CURLE_OK do
+    if code != Curl.CURLE_OK
+    {
         fail NetworkError{code: code}
+    }
 }
 
 private func ensureCurl()->*CurlLibrary fail
@@ -38,43 +40,52 @@ private func ensureCurl()->*CurlLibrary fail
     func(T) symbol(library: const *NativeLibrary, name: string)->T fail
     {
         let address = library.symbol(name)
-        if not address do
+        if not address
+        {
             fail NetworkError{"required libcurl symbol is unavailable", code: Curl.CURLE_NOT_BUILT_IN}
+        }
+
         return cast(T, address)
     }
 
     g_CurlMutex.lock()
     defer g_CurlMutex.unlock()
-    if g_CurlReady do
+    if g_CurlReady
+    {
         return &g_Curl
+    }
+
     var state: CurlLibrary
     state.library = catch NativeLibrary.load("libcurl.so.4")
     {
         fail NetworkError{"cannot load libcurl.so.4", code: Curl.CURLE_FAILED_INIT}
     }
 
-    state.globalInit    = try symbol'Curl.curl_global_init_fn(&state.library, "curl_global_init")
-    state.globalCleanup = try symbol'Curl.curl_global_cleanup_fn(&state.library, "curl_global_cleanup")
-    state.versionInfo   = try symbol'Curl.curl_version_info_fn(&state.library, "curl_version_info")
-    state.easyInit      = try symbol'Curl.curl_easy_init_fn(&state.library, "curl_easy_init")
-    state.easyCleanup   = try symbol'Curl.curl_easy_cleanup_fn(&state.library, "curl_easy_cleanup")
-    state.setOption     = try symbol'Curl.curl_easy_setopt_fn(&state.library, "curl_easy_setopt")
-    state.getInfo       = try symbol'Curl.curl_easy_getinfo_fn(&state.library, "curl_easy_getinfo")
-    state.perform       = try symbol'Curl.curl_easy_perform_fn(&state.library, "curl_easy_perform")
-    state.appendHeader  = try symbol'Curl.curl_slist_append_fn(&state.library, "curl_slist_append")
-    state.freeHeaders   = try symbol'Curl.curl_slist_free_all_fn(&state.library, "curl_slist_free_all")
-    state.createUrl     = try symbol'Curl.curl_url_fn(&state.library, "curl_url")
-    state.freeUrl       = try symbol'Curl.curl_url_cleanup_fn(&state.library, "curl_url_cleanup")
-    state.setUrlPart    = try symbol'Curl.curl_url_set_fn(&state.library, "curl_url_set")
-    state.getUrlPart    = try symbol'Curl.curl_url_get_fn(&state.library, "curl_url_get")
-    state.freeUrlText   = try symbol'Curl.curl_free_fn(&state.library, "curl_free")
+    state.globalInit    = try symbol!{Curl.curl_global_init_fn}(&state.library, "curl_global_init")
+    state.globalCleanup = try symbol!{Curl.curl_global_cleanup_fn}(&state.library, "curl_global_cleanup")
+    state.versionInfo   = try symbol!{Curl.curl_version_info_fn}(&state.library, "curl_version_info")
+    state.easyInit      = try symbol!{Curl.curl_easy_init_fn}(&state.library, "curl_easy_init")
+    state.easyCleanup   = try symbol!{Curl.curl_easy_cleanup_fn}(&state.library, "curl_easy_cleanup")
+    state.setOption     = try symbol!{Curl.curl_easy_setopt_fn}(&state.library, "curl_easy_setopt")
+    state.getInfo       = try symbol!{Curl.curl_easy_getinfo_fn}(&state.library, "curl_easy_getinfo")
+    state.perform       = try symbol!{Curl.curl_easy_perform_fn}(&state.library, "curl_easy_perform")
+    state.appendHeader  = try symbol!{Curl.curl_slist_append_fn}(&state.library, "curl_slist_append")
+    state.freeHeaders   = try symbol!{Curl.curl_slist_free_all_fn}(&state.library, "curl_slist_free_all")
+    state.createUrl     = try symbol!{Curl.curl_url_fn}(&state.library, "curl_url")
+    state.freeUrl       = try symbol!{Curl.curl_url_cleanup_fn}(&state.library, "curl_url_cleanup")
+    state.setUrlPart    = try symbol!{Curl.curl_url_set_fn}(&state.library, "curl_url_set")
+    state.getUrlPart    = try symbol!{Curl.curl_url_get_fn}(&state.library, "curl_url_get")
+    state.freeUrlText   = try symbol!{Curl.curl_free_fn}(&state.library, "curl_free")
 
     // Lazy initialization happens in an already threaded program. NOSIGNAL also needs an
     // asynchronous resolver for the request deadline to cover DNS lookup.
     let version  = state.versionInfo(Curl.CURLVERSION_FIRST)
     let required = Curl.CURL_VERSION_THREADSAFE | Curl.CURL_VERSION_ASYNCHDNS
-    if (version.features & required) != required do
+    if (version.features & required) != required
+    {
         fail NetworkError{"libcurl needs thread-safe initialization and asynchronous DNS", code: Curl.CURLE_NOT_BUILT_IN}
+    }
+
     try checkCurl(state.globalInit(Curl.CURL_GLOBAL_DEFAULT))
     g_Curl      = #move state
     g_CurlReady = true
@@ -124,11 +135,17 @@ private func sendBody(bytes: [*]u8, size, count: u64, user: *void?)->u64
     }
 
     let capacity = size * count
-    if state.requestBodyRemaining == 0 do
+    if state.requestBodyRemaining == 0
+    {
         return 0
+    }
+
     let requested = Math.min(capacity, state.requestBodyRemaining)
-    if requested == 0 do
+    if requested == 0
+    {
         return Curl.CURL_READFUNC_ABORT
+    }
+
     let reader   = unwrap state.bodyReader
     let received = reader(state.requestContext, bytes[until requested])
     if received == 0 or received > requested
@@ -203,18 +220,23 @@ private func receiveHeader(bytes: [*]u8, size, count: u64, user: *void?)->u64
         state.headerParser.locationHeaderIndex = Swag.U64.Max
         state.inHeaders = true
     }
-    elif line == "\r\n" or line == "\n"
+    else if line == "\r\n" or line == "\n"
     {
         state.inHeaders = false
     }
-    elif state.inHeaders and length > 0
+    else if state.inHeaders and length > 0
     {
         if not appendResponseHeader(&state.response, &state.headerParser, line)
         {
-            if state.headerParser.overflow do
+            if state.headerParser.overflow
+            {
                 state.overflow = true
-            else do
+            }
+            else
+            {
                 state.invalidHeaders = true
+            }
+
             return 0
         }
     }
@@ -236,8 +258,11 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
 {
     let api = try ensureCurl()
     let url = api.createUrl()
-    if not url do
+    if not url
+    {
         fail NetworkError{code: Curl.CURLE_OUT_OF_MEMORY}
+    }
+
     defer api.freeUrl(unwrap url)
     var headers: *Curl.curl_slist?
     defer api.freeHeaders(headers)
@@ -250,24 +275,36 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
     received.headerParser.lastHeaderIndex     = Swag.U64.Max
     received.headerParser.locationHeaderIndex = Swag.U64.Max
     let request = api.easyInit()
-    if not request do
+    if not request
+    {
         fail NetworkError{code: Curl.CURLE_OUT_OF_MEMORY}
+    }
+
     defer api.easyCleanup(unwrap request)
 
     // Set the authority as separate URL components: host text cannot inject a port,
     // user information or another destination through URL delimiters.
     var server = String.from(host)
-    if Utf8.indexOf(host, ':') != Swag.U64.Max do
+    if Utf8.indexOf(host, ':') != Swag.U64.Max
+    {
         server = Format.toString("[%]", host)
+    }
+
     let service = Format.toString("%", port)
     let scheme  = secure ? "https" : "http"
     if api.setUrlPart(url, Curl.CURLUPART_SCHEME, scheme.buffer, 0) != Curl.CURLUE_OK or
        api.setUrlPart(url, Curl.CURLUPART_HOST, server.storage(), 0) != Curl.CURLUE_OK or
-       api.setUrlPart(url, Curl.CURLUPART_PORT, service.storage(), 0) != Curl.CURLUE_OK do
+       api.setUrlPart(url, Curl.CURLUPART_PORT, service.storage(), 0) != Curl.CURLUE_OK
+    {
         fail Errors.BadParameterError{}
+    }
+
     var authorityText: [*]u8?
-    if api.getUrlPart(url, Curl.CURLUPART_URL, &authorityText, 0) != Curl.CURLUE_OK or not authorityText do
+    if api.getUrlPart(url, Curl.CURLUPART_URL, &authorityText, 0) != Curl.CURLUE_OK or not authorityText
+    {
         fail Errors.BadParameterError{}
+    }
+
     defer api.freeUrlText(unwrap authorityText)
     let authority = cast(string, cast(cstring, authorityText))
 
@@ -278,25 +315,25 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
     try checkCurl(api.setOption(request, Curl.CURLOPT_URL, target.storage()))
 
     let agent = String.from(options.userAgent)
-    try checkCurl(api.setOption(request, Curl.CURLOPT_PATH_AS_IS, 1's64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_PATH_AS_IS, 1_s64))
     try checkCurl(api.setOption(request, Curl.CURLOPT_USERAGENT, agent.storage()))
     try checkCurl(api.setOption(request, Curl.CURLOPT_HTTP_VERSION, Curl.CURL_HTTP_VERSION_1_1))
     try checkCurl(api.setOption(request, Curl.CURLOPT_PROTOCOLS, Curl.CURLPROTO_HTTP | Curl.CURLPROTO_HTTPS))
-    try checkCurl(api.setOption(request, Curl.CURLOPT_FOLLOWLOCATION, options.maxRedirects > 0 ? 1's64 : 0's64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_FOLLOWLOCATION, options.maxRedirects > 0 ? 1_s64 : 0_s64))
     try checkCurl(api.setOption(request, Curl.CURLOPT_MAXREDIRS, cast(s64, options.maxRedirects)))
     let redirectProtocols = secure ? Curl.CURLPROTO_HTTPS :
                             Curl.CURLPROTO_HTTP | Curl.CURLPROTO_HTTPS
     try checkCurl(api.setOption(request, Curl.CURLOPT_REDIR_PROTOCOLS, redirectProtocols))
-    try checkCurl(api.setOption(request, Curl.CURLOPT_NETRC, 0's64))
-    try checkCurl(api.setOption(request, Curl.CURLOPT_HTTP09_ALLOWED, 0's64))
-    try checkCurl(api.setOption(request, Curl.CURLOPT_NOSIGNAL, 1's64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_NETRC, 0_s64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_HTTP09_ALLOWED, 0_s64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_NOSIGNAL, 1_s64))
     try checkCurl(api.setOption(request, Curl.CURLOPT_TIMEOUT_MS, cast(s64, options.timeoutMs)))
     try checkCurl(api.setOption(request, Curl.CURLOPT_CONNECTTIMEOUT_MS, cast(s64, options.timeoutMs)))
-    try checkCurl(api.setOption(request, Curl.CURLOPT_SSL_VERIFYPEER, 1's64))
-    try checkCurl(api.setOption(request, Curl.CURLOPT_SSL_VERIFYHOST, 2's64))
-    try checkCurl(api.setOption(request, Curl.CURLOPT_PROXY_SSL_VERIFYPEER, 1's64))
-    try checkCurl(api.setOption(request, Curl.CURLOPT_PROXY_SSL_VERIFYHOST, 2's64))
-    try checkCurl(api.setOption(request, Curl.CURLOPT_SUPPRESS_CONNECT_HEADERS, 1's64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_SSL_VERIFYPEER, 1_s64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_SSL_VERIFYHOST, 2_s64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_PROXY_SSL_VERIFYPEER, 1_s64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_PROXY_SSL_VERIFYHOST, 2_s64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_SUPPRESS_CONNECT_HEADERS, 1_s64))
 
     // Origin headers, especially Authorization, do not belong on a proxy CONNECT request.
     try checkCurl(api.setOption(request, Curl.CURLOPT_HEADEROPT, cast(s64, Curl.CURLHEADER_SEPARATE)))
@@ -322,8 +359,11 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
         let text = header.value.count ? Format.toString("%: %", header.name, header.value) :
                    Format.toString("%;", header.name)
         let appended = api.appendHeader(headers, text.storage())
-        if not appended do
+        if not appended
+        {
             fail NetworkError{code: Curl.CURLE_OUT_OF_MEMORY}
+        }
+
         headers = appended
     }
 
@@ -335,7 +375,7 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
     try checkCurl(api.setOption(request, Curl.CURLOPT_HEADERFUNCTION, &receiveHeader))
     if post
     {
-        try checkCurl(api.setOption(request, Curl.CURLOPT_POST, 1's64))
+        try checkCurl(api.setOption(request, Curl.CURLOPT_POST, 1_s64))
         try checkCurl(api.setOption(request, Curl.CURLOPT_POSTFIELDSIZE_LARGE, cast(s64, options.requestBodyLength)))
         if options.bodyReader
         {
@@ -345,14 +385,26 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
     }
 
     let code = api.perform(request)
-    if received.overflow do
+    if received.overflow
+    {
         fail Errors.OverflowError{}
-    if received.invalidHeaders do
+    }
+
+    if received.invalidHeaders
+    {
         fail NetworkError{"malformed or oversized HTTP response header", code: 0}
-    if received.cancelled do
+    }
+
+    if received.cancelled
+    {
         fail NetworkError{"HTTP response body handler stopped the transfer", code: Curl.CURLE_ABORTED_BY_CALLBACK}
-    if received.bodyReadFailed do
+    }
+
+    if received.bodyReadFailed
+    {
         fail NetworkError{"HTTP request body reader did not provide its declared length", code: Curl.CURLE_READ_ERROR}
+    }
+
     try checkCurl(code)
     var status: s64
     try checkCurl(api.getInfo(request, Curl.CURLINFO_RESPONSE_CODE, &status))

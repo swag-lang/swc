@@ -19,7 +19,7 @@ impl Recorder
     testAddMonitorAt(f.main, {0, 0, 1000, 600})
     testAddMonitorAt(f.main, {1000, 0, 1000, 600})
 
-    let recorder = Memory.new'Recorder()
+    let recorder = Memory.new!{Recorder}()
     defer Memory.delete(recorder)
     recorder.main            = f.main
     recorder.state           = .Preparing

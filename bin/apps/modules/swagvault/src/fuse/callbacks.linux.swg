@@ -8,7 +8,7 @@ namespace Fuse
     // or mode bits. Linux projects them for the mounting user: directories 0700, files 0600,
     // with owner write removed for read-only files. Existing security records remain intact.
     // Unsupported chmod/chown requests fail instead of claiming to have persisted metadata.
-    const UnixEpoch = 116_444_736_000_000_000'u64
+    const UnixEpoch = 116_444_736_000_000_000_u64
 
     func statusFromError(err: any?)->s32
     {
@@ -35,30 +35,49 @@ namespace Fuse
 
     func pathString(path: const [*] u8?)->string fail
     {
-        if not path do
+        if not path
+        {
             fail volumeError(.InvalidInput)
-        var length = 0'u64
-        while path[length] do
+        }
+
+        var length = 0_u64
+        while path[length]
+        {
             length += 1
+        }
+
         let result = Swag.makeString(path, length)
-        if not Utf8.isValid(result) do
+        if not Utf8.isValid(result)
+        {
             fail volumeError(.InvalidInput)
+        }
 
         // Volume paths also recognize backslashes; they cannot represent this POSIX name.
-        for byte in result where byte == '\\' do
+        for byte in result where byte == '\\'
+        {
             fail volumeError(.InvalidInput)
+        }
+
         return result
     }
 
     func lookup(owner: *MountedVolume, path: const [*] u8?, info: *Linux.fuse_file_info?)->*Node fail
     {
         var node: *Node?
-        if info and info.fh do
+        if info and info.fh
+        {
             node = owner.volume.nodeById(info.fh)
-        else do
+        }
+        else
+        {
             node = owner.volume.resolve(try pathString(path))
-        if not node do
+        }
+
+        if not node
+        {
             fail volumeError(.NotFound)
+        }
+
         return node
     }
 
@@ -76,22 +95,34 @@ namespace Fuse
 
     func volumeTime(value: Linux.timespec, previous: u64)->u64 fail
     {
-        if value.tv_nsec == Linux.UTIME_OMIT do
+        if value.tv_nsec == Linux.UTIME_OMIT
+        {
             return previous
-        if value.tv_nsec == Linux.UTIME_NOW do
+        }
+
+        if value.tv_nsec == Linux.UTIME_NOW
+        {
             return volumeTimeNow()
+        }
+
         if value.tv_nsec < 0 or
            value.tv_nsec >= 1_000_000_000 or
            value.tv_sec < -11_644_473_600 or
-           value.tv_sec > cast(s64, (Swag.U64.Max - UnixEpoch - 9_999_999) / 10_000_000) do
+           value.tv_sec > cast(s64, (Swag.U64.Max - UnixEpoch - 9_999_999) / 10_000_000)
+        {
             fail volumeError(.InvalidInput)
+        }
+
         return cast(u64, value.tv_sec + 11_644_473_600) * 10_000_000 + cast(u64, value.tv_nsec / 100)
     }
 
     func fillStat(owner: *MountedVolume, node: *Node, output: *Linux.stat)->s32
     {
-        if node.size > cast(u64, Swag.S64.Max) do
+        if node.size > cast(u64, Swag.S64.Max)
+        {
             return -Linux.EOVERFLOW
+        }
+
         output[]        = {}
         output.st_ino   = node.id
         output.st_mode  = mode(node)
@@ -101,8 +132,11 @@ namespace Fuse
             var child = owner.volume.firstChild(node.id)
             while child
             {
-                if child.isDirectory() do
+                if child.isDirectory()
+                {
                     output.st_nlink += 1
+                }
+
                 child = owner.volume.nextSibling(child.id)
             }
         }
@@ -111,9 +145,12 @@ namespace Fuse
         output.st_gid     = owner.gid
         output.st_size    = cast(s64, node.size)
         output.st_blksize = cast(s64, BlockSize)
-        var allocated = 0'u64
-        for mapping in node.blocks do
+        var allocated = 0_u64
+        for mapping in node.blocks
+        {
             allocated += mapping.count
+        }
+
         output.st_blocks = cast(s64, allocated * (BlockSize / 512))
         output.st_atim   = unixTime(node.lastAccessTime)
         output.st_mtim   = unixTime(node.lastWriteTime)
@@ -130,24 +167,42 @@ namespace Fuse
     func writable(owner: *MountedVolume, node: *Node)->s32
     {
         let volumeStatus = writableVolume(owner)
-        if volumeStatus do
+        if volumeStatus
+        {
             return volumeStatus
-        if node.attributes & FileAttributeReadOnly do
+        }
+
+        if node.attributes & FileAttributeReadOnly
+        {
             return -Linux.EACCES
+        }
+
         return 0
     }
 
     func writableParent(owner: *MountedVolume, parent: *Node?)->s32
     {
-        if not parent do
+        if not parent
+        {
             return -Linux.ENOENT
-        if not parent.isDirectory() do
+        }
+
+        if not parent.isDirectory()
+        {
             return -Linux.ENOTDIR
+        }
+
         let volumeStatus = writableVolume(owner)
-        if volumeStatus do
+        if volumeStatus
+        {
             return volumeStatus
-        if parent.attributes & FileAttributeReadOnly do
+        }
+
+        if parent.attributes & FileAttributeReadOnly
+        {
             return -Linux.EACCES
+        }
+
         return 0
     }
 
@@ -184,11 +239,13 @@ namespace Fuse
         defer owner.volume.accessLock.unlock()
         let value        = catch pathString(path) { return statusFromError(Swag.err) }
         let parentStatus = writableParentPath(owner, value)
-        if parentStatus do
+        if parentStatus
+        {
             return parentStatus
+        }
 
         // Creation projects the requested mode into the documented private owner namespace.
-        let attributes = (permissions & Linux.S_IWUSR) == 0 ? FileAttributeReadOnly : 0'u32
+        let attributes = (permissions & Linux.S_IWUSR) == 0 ? FileAttributeReadOnly : 0_u32
         discard catch owner.volume.createNode(value, true, attributes, "") { return statusFromError(Swag.err) }
         return 0
     }
@@ -201,15 +258,21 @@ namespace Fuse
     {
         owner.activity.mutex.lock()
         defer owner.activity.mutex.unlock()
-        if owner.activity.stopping do
+        if owner.activity.stopping
+        {
             return -Linux.EBUSY
+        }
+
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
         let value        = catch pathString(path) { return statusFromError(Swag.err) }
         let parentStatus = writableParentPath(owner, value)
-        if parentStatus do
+        if parentStatus
+        {
             return parentStatus
-        let attributes = (permissions & Linux.S_IWUSR) == 0 ? FileAttributeReadOnly : 0'u32
+        }
+
+        let attributes = (permissions & Linux.S_IWUSR) == 0 ? FileAttributeReadOnly : 0_u32
         info.fh = catch owner.volume.createNode(value, false, attributes, "") { return statusFromError(Swag.err) }
         owner.activity.handles += 1
         return 0
@@ -223,18 +286,26 @@ namespace Fuse
     {
         owner.activity.mutex.lock()
         defer owner.activity.mutex.unlock()
-        if owner.activity.stopping do
+        if owner.activity.stopping
+        {
             return -Linux.EBUSY
+        }
+
         owner.volume.accessLock.lockShared()
         defer owner.volume.accessLock.unlockShared()
         let node = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
-        if node.isDirectory() do
+        if node.isDirectory()
+        {
             return -Linux.EISDIR
+        }
+
         if (info.flags & 3) != Linux.O_RDONLY
         {
             let status = writable(owner, node)
-            if status do
+            if status
+            {
                 return status
+            }
         }
 
         info.fh = node.id
@@ -250,18 +321,26 @@ namespace Fuse
     {
         owner.activity.mutex.lock()
         defer owner.activity.mutex.unlock()
-        if owner.activity.stopping do
+        if owner.activity.stopping
+        {
             return -Linux.EBUSY
+        }
+
         owner.volume.accessLock.lockShared()
         defer owner.volume.accessLock.unlockShared()
         let node = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
-        if not node.isDirectory() do
+        if not node.isDirectory()
+        {
             return -Linux.ENOTDIR
+        }
+
         if (info.flags & 3) != Linux.O_RDONLY
         {
             let status = writable(owner, node)
-            if status do
+            if status
+            {
                 return status
+            }
         }
 
         info.fh = node.id
@@ -289,10 +368,16 @@ namespace Fuse
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
         let node = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
-        if offset < 0 or size > cast(u64, Swag.S32.Max) do
+        if offset < 0 or size > cast(u64, Swag.S32.Max)
+        {
             return -Linux.EINVAL
-        if node.isDirectory() do
+        }
+
+        if node.isDirectory()
+        {
             return -Linux.EISDIR
+        }
+
         let count = catch owner.volume.readNode(node.id, cast(u64, offset), Swag.makeSlice(buffer, size)) { return statusFromError(Swag.err) }
         return cast(s32, count)
     }
@@ -306,28 +391,45 @@ namespace Fuse
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
         let node = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
-        if offset < 0 or size > cast(u64, Swag.S32.Max) do
+        if offset < 0 or size > cast(u64, Swag.S32.Max)
+        {
             return -Linux.EINVAL
-        if node.isDirectory() do
+        }
+
+        if node.isDirectory()
+        {
             return -Linux.EISDIR
+        }
+
         let writableStatus = writable(owner, node)
-        if writableStatus do
+        if writableStatus
+        {
             return writableStatus
+        }
+
         let writeToEnd  = (info.flags & 0x400) != 0
         let writeOffset = writeToEnd ? node.size : cast(u64, offset)
         if size
         {
-            if writeOffset > Swag.U64.Max - size do
+            if writeOffset > Swag.U64.Max - size
+            {
                 return -Linux.EINVAL
+            }
+
             let firstBlock = writeOffset / BlockSize
             let lastBlock  = (writeOffset + size - 1) / BlockSize
             var needed     = lastBlock - firstBlock + 1
             if writeOffset + size > node.size and
                node.size % BlockSize != 0 and
-               node.blockSearch(node.size / BlockSize).found do
+               node.blockSearch(node.size / BlockSize).found
+            {
                 needed += 1
-            if owner.volume.freeBlockCount() < needed do
+            }
+
+            if owner.volume.freeBlockCount() < needed
+            {
                 return -Linux.ENOSPC
+            }
         }
 
         let count = catch owner.volume.writeNode(node.id, cast(u64, offset), Swag.makeSlice(buffer, size), writeToEnd, false) { return statusFromError(Swag.err) }
@@ -343,13 +445,22 @@ namespace Fuse
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
         let node = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
-        if size < 0 do
+        if size < 0
+        {
             return -Linux.EINVAL
-        if node.isDirectory() do
+        }
+
+        if node.isDirectory()
+        {
             return -Linux.EISDIR
+        }
+
         let status = writable(owner, node)
-        if status do
+        if status
+        {
             return status
+        }
+
         catch owner.volume.resizeNode(node.id, cast(u64, size)) { return statusFromError(Swag.err) }
         return commit(owner)
     }
@@ -363,11 +474,17 @@ namespace Fuse
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
         let node = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
-        if node.isDirectory() do
+        if node.isDirectory()
+        {
             return -Linux.EISDIR
+        }
+
         let parentStatus = writableParent(owner, owner.volume.nodeById(node.parentId))
-        if parentStatus do
+        if parentStatus
+        {
             return parentStatus
+        }
+
         catch owner.volume.deleteNode(node.id) { return statusFromError(Swag.err) }
         return 0
     }
@@ -381,11 +498,17 @@ namespace Fuse
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
         let node = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
-        if not node.isDirectory() do
+        if not node.isDirectory()
+        {
             return -Linux.ENOTDIR
+        }
+
         let parentStatus = writableParent(owner, owner.volume.nodeById(node.parentId))
-        if parentStatus do
+        if parentStatus
+        {
             return parentStatus
+        }
+
         catch owner.volume.deleteNode(node.id) { return statusFromError(Swag.err) }
         return 0
     }
@@ -398,23 +521,37 @@ namespace Fuse
     {
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
-        if flags & ~1'u32 do
+        if flags & ~1_u32
+        {
             return -Linux.EINVAL
+        }
+
         let node  = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
         let value = catch pathString(destination) { return statusFromError(Swag.err) }
         let sourceParentStatus = writableParent(owner, owner.volume.nodeById(node.parentId))
-        if sourceParentStatus do
+        if sourceParentStatus
+        {
             return sourceParentStatus
+        }
+
         let destinationParentStatus = writableParentPath(owner, value)
-        if destinationParentStatus do
+        if destinationParentStatus
+        {
             return destinationParentStatus
+        }
+
         let existing = owner.volume.resolve(value)
         if existing
         {
-            if flags & 1 do
+            if flags & 1
+            {
                 return -Linux.EEXIST
-            if node.isDirectory() != existing.isDirectory() do
+            }
+
+            if node.isDirectory() != existing.isDirectory()
+            {
                 return node.isDirectory() ? -Linux.ENOTDIR : -Linux.EISDIR
+            }
         }
 
         catch owner.volume.renameNode(node.id, value, (flags & 1) == 0) { return statusFromError(Swag.err) }
@@ -457,7 +594,7 @@ namespace Fuse
         output.f_blocks  = owner.volume.totalBytes() / BlockSize
         output.f_bfree   = owner.volume.freeBytes() / BlockSize
         output.f_bavail  = output.f_bfree
-        output.f_namemax = Math.min(MaximumNameSize, 1024'u64)
+        output.f_namemax = Math.min(MaximumNameSize, 1024_u64)
         output.f_flag    = (owner.volume.readOnly or owner.volume.file.protectionTriggered) ? 1 : 0
         return 0
     }
@@ -474,12 +611,17 @@ namespace Fuse
         if (requested & 2) != 0
         {
             let status = writable(owner, node)
-            if status do
+            if status
+            {
                 return status
+            }
         }
 
-        if (requested & 1) != 0 and not node.isDirectory() do
+        if (requested & 1) != 0 and not node.isDirectory()
+        {
             return -Linux.EACCES
+        }
+
         return 0
     }
 
@@ -493,16 +635,26 @@ namespace Fuse
         defer owner.volume.accessLock.unlock()
         let node         = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
         let volumeStatus = writableVolume(owner)
-        if volumeStatus do
+        if volumeStatus
+        {
             return volumeStatus
+        }
 
         // Only the persisted Windows read-only bit can change. Other POSIX bits are unsupported.
-        if (permissions & 0xFFF & ~Linux.S_IWUSR) != (mode(node) & 0xFFF & ~Linux.S_IWUSR) do
+        if (permissions & 0xFFF & ~Linux.S_IWUSR) != (mode(node) & 0xFFF & ~Linux.S_IWUSR)
+        {
             return -Linux.ENOTSUP
-        if permissions & Linux.S_IWUSR do
+        }
+
+        if permissions & Linux.S_IWUSR
+        {
             node.attributes &= ~FileAttributeReadOnly
-        else do
+        }
+        else
+        {
             node.attributes |= FileAttributeReadOnly
+        }
+
         node.changeTime = volumeTimeNow()
         owner.volume.touchMetadata(node.id)
         return commit(owner)
@@ -518,10 +670,16 @@ namespace Fuse
         defer owner.volume.accessLock.unlockShared()
         discard catch lookup(owner, path, info) { return statusFromError(Swag.err) }
         let volumeStatus = writableVolume(owner)
-        if volumeStatus do
+        if volumeStatus
+        {
             return volumeStatus
-        if (uid != Swag.U32.Max and uid != owner.uid) or (gid != Swag.U32.Max and gid != owner.gid) do
+        }
+
+        if (uid != Swag.U32.Max and uid != owner.uid) or (gid != Swag.U32.Max and gid != owner.gid)
+        {
             return -Linux.EPERM
+        }
+
         return 0
     }
 
@@ -535,13 +693,19 @@ namespace Fuse
         defer owner.volume.accessLock.unlock()
         let node         = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
         let volumeStatus = writableVolume(owner)
-        if volumeStatus do
+        if volumeStatus
+        {
             return volumeStatus
+        }
+
         let now        = volumeTimeNow()
         let accessTime = times ? catch volumeTime(times[0], node.lastAccessTime) { return statusFromError(Swag.err) } : now
         let writeTime  = times ? catch volumeTime(times[1], node.lastWriteTime) { return statusFromError(Swag.err) } : now
-        if times and times[0].tv_nsec == Linux.UTIME_OMIT and times[1].tv_nsec == Linux.UTIME_OMIT do
+        if times and times[0].tv_nsec == Linux.UTIME_OMIT and times[1].tv_nsec == Linux.UTIME_OMIT
+        {
             return 0
+        }
+
         node.lastAccessTime = accessTime
         node.lastWriteTime  = writeTime
         node.changeTime     = now
@@ -558,42 +722,67 @@ namespace Fuse
         owner.volume.accessLock.lockShared()
         defer owner.volume.accessLock.unlockShared()
         let node = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
-        if not node.isDirectory() do
+        if not node.isDirectory()
+        {
             return -Linux.ENOTDIR
-        if offset < 0 do
+        }
+
+        if offset < 0
+        {
             return -Linux.EINVAL
+        }
+
         var attributes: Linux.stat
         discard fillStat(owner, node, &attributes)
-        if offset < 1 and fill(buffer, ".".buffer, &attributes, 1, 0) != 0 do
+        if offset < 1 and fill(buffer, ".".buffer, &attributes, 1, 0) != 0
+        {
             return 0
+        }
+
         let parent = owner.volume.nodeById(node.parentId)
-        if parent do
+        if parent
+        {
             discard fillStat(owner, parent, &attributes)
-        if offset < 2 and fill(buffer, "..".buffer, &attributes, 2, 0) != 0 do
+        }
+
+        if offset < 2 and fill(buffer, "..".buffer, &attributes, 2, 0) != 0
+        {
             return 0
+        }
 
         // Node ids are stable across sibling insertion/deletion; cookies are not array positions.
-        var cookie = cast(u64, Math.max(offset, 2's64))
+        var cookie = cast(u64, Math.max(offset, 2_s64))
         for
         {
             var next: *Node?
             var child = owner.volume.firstChild(node.id)
             while child
             {
-                if child.id > cast(u64, Swag.S64.Max) - 2 do
+                if child.id > cast(u64, Swag.S64.Max) - 2
+                {
                     return -Linux.EOVERFLOW
+                }
+
                 let childCookie = child.id + 2
-                if childCookie > cookie and (not next or child.id < next.id) do
+                if childCookie > cookie and (not next or child.id < next.id)
+                {
                     next = child
+                }
+
                 child = owner.volume.nextSibling(child.id)
             }
 
-            if not next do
+            if not next
+            {
                 break
+            }
+
             cookie = next.id + 2
             discard fillStat(owner, next, &attributes)
-            if fill(buffer, unwrap next.name.buffer, &attributes, cast(s64, cookie), 0) != 0 do
+            if fill(buffer, unwrap next.name.buffer, &attributes, cast(s64, cookie), 0) != 0
+            {
                 break
+            }
         }
 
         return 0
@@ -607,8 +796,11 @@ namespace Fuse
     private func initialize(_: *void, _: *void)->*void?
     {
         let context = (g_Runtime!.context)()
-        if not context.private_data do
+        if not context.private_data
+        {
             return null
+        }
+
         let owner = cast(*MountedVolume, context.private_data)
         Atomic.exchange(&owner.ready, 1)
         return owner

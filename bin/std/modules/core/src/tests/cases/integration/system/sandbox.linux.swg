@@ -5,8 +5,11 @@
 #[Swag.TestTag("integration.sandbox")]
 #test
 {
-    if not Env.isSandboxed() do
+    if not Env.isSandboxed()
+    {
         return
+    }
+
     let root = CoreTests.makeFilesystemTestPath("linux-sandbox-links")
     expect Directory.create(root)
     defer expect Directory.delete(root, recurse: true)
@@ -18,14 +21,17 @@
     // without risking unrelated files. Only the public operations below exercise the guard.
     const Template = "/tmp/swag-sandbox-outside-XXXXXX"
     var temporary: [128] u8
-    for byte, index in Template do
+    for byte, index in Template
+    {
         temporary[index] = byte
+    }
+
     let created = Linux.mkdtemp(temporary.buffer)
     Swag.require(created == temporary.buffer)
     defer discard Linux.unlinkat(Linux.AT_FDCWD, temporary.buffer, Linux.AT_REMOVEDIR)
     let outside    = cast(string, cast(cstring, temporary.buffer))
     let marker     = Path.combine(outside, "marker")
-    let descriptor = Linux.openat(Linux.AT_FDCWD, marker.storage(), Linux.O_RDWR | Linux.O_CREAT | Linux.O_EXCL | Linux.O_CLOEXEC, 0x180'u32)
+    let descriptor = Linux.openat(Linux.AT_FDCWD, marker.storage(), Linux.O_RDWR | Linux.O_CREAT | Linux.O_EXCL | Linux.O_CLOEXEC, 0x180_u32)
     Swag.require(descriptor >= 0)
     defer discard Linux.close(descriptor)
     defer discard Linux.unlinkat(Linux.AT_FDCWD, marker.storage(), 0)

@@ -43,11 +43,11 @@ private const CorpusArg = "swag.sandbox.corpus"
 private const SmokeArg = "swag.smoke"
 
 // Frames a smoke run renders when the argument carries no usable count.
-private const DefaultSmokeFrames = 50'u32
+private const DefaultSmokeFrames = 50_u32
 
 // Default-root names the arming hook tries before giving up: the plain process-id name first,
 // then the fallback siblings for when a leftover under a name refuses to clear.
-private const MaxDefaultRootNames = 4'u32
+private const MaxDefaultRootNames = 4_u32
 
 // Returns the operating-system identifier of the running process.
 internal func currentProcessId()->u32 => cast(u32, Process.currentProcessId())
@@ -57,8 +57,11 @@ internal func findRunArgumentIn(arguments: const [..] string, name: string)->{ f
     var result: #returntype
     for arg in arguments
     {
-        if not Utf8.startsWith(arg, name) do
+        if not Utf8.startsWith(arg, name)
+        {
             continue
+        }
+
         if arg.count == name.count
         {
             result.found = true
@@ -98,8 +101,10 @@ internal func defaultSandboxRoot(ordinal: u32 = 0)->String
 // Removes what a dead run left at `root`, so the run adopting that name starts on an empty one.
 internal func clearLeftoverDefaultRoot(root: string) fail
 {
-    if Directory.exists(root) do
+    if Directory.exists(root)
+    {
         try Directory.delete(root, recurse: true)
+    }
 }
 
 // Arms the sandbox before any application code runs, when the launcher asked for it.
@@ -144,8 +149,10 @@ internal func clearLeftoverDefaultRoot(root: string) fail
                         adopted = false
                     }
 
-                    if adopted do
+                    if adopted
+                    {
                         break
+                    }
                 }
 
                 if not adopted
@@ -163,8 +170,11 @@ internal func clearLeftoverDefaultRoot(root: string) fail
             // before the run dies, so it names both roots: that is what tells an unusable
             // request apart from a second arming that disagrees with the first.
             Swag.print("[swag.sandbox] cannot arm the sandbox at '", root.toString(), "'")
-            if g_Sandboxed do
+            if g_Sandboxed
+            {
                 Swag.print(", already armed at '", g_SandboxRoot.toString(), "'")
+            }
+
             Swag.print("\n")
             abortUnsandboxed()
         }
@@ -199,8 +209,11 @@ internal func clearLeftoverDefaultRoot(root: string) fail
 {
     // Closed child owners can still write into the private root until the reaper joins them.
     shutdownProcessesNative()
-    if not g_Sandboxed or not g_DefaultRoot or (Swag.runtimeFlags() & .FromCompiler) do
+    if not g_Sandboxed or not g_DefaultRoot or (Swag.runtimeFlags() & .FromCompiler)
+    {
         return
+    }
+
     discard catch Directory.delete(g_SandboxRoot.toString(), recurse: true)
 }
 
@@ -226,15 +239,20 @@ enum SystemMutation
 // armed root is not, because code may already hold paths derived from the previous one.
 func enterSandbox(root: string) fail
 {
-    if root.count == 0 do
+    if root.count == 0
+    {
         fail BadParameterError{"a sandbox needs a root directory"}
+    }
 
     let normalized = absolutePath(root)
 
     if g_Sandboxed
     {
-        if normalized == g_SandboxRoot do
+        if normalized == g_SandboxRoot
+        {
             return
+        }
+
         fail BadParameterError{"the sandbox root cannot change once armed"}
     }
 
@@ -257,22 +275,29 @@ func enterSandbox(root: string) fail
 // root is not, because code may already hold paths derived from the previous one.
 func grantCorpus(root: string) fail
 {
-    if root.count == 0 do
+    if root.count == 0
+    {
         fail BadParameterError{"a corpus needs a root directory"}
+    }
 
     let normalized = absolutePath(root)
 
     if not g_CorpusRoot.isEmpty()
     {
-        if normalized == g_CorpusRoot do
+        if normalized == g_CorpusRoot
+        {
             return
+        }
+
         fail BadParameterError{"the corpus root cannot change once granted"}
     }
 
     // Never created, unlike the sandbox root: a corpus is an existing source tree, and a missing
     // one means the launcher named the wrong place rather than a place still to make.
-    if not Directory.exists(normalized) do
+    if not Directory.exists(normalized)
+    {
         fail FileNotFoundError{"the corpus root does not exist", fileName: normalized.toString()}
+    }
 
     g_CorpusRoot = normalized
 }
@@ -294,8 +319,10 @@ func isSmokeRun()->bool => smokeFrames() != 0
 func smokeFrames()->u32
 {
     let request = findRunArgument(SmokeArg)
-    if not request.found do
+    if not request.found
+    {
         return 0
+    }
 
     // A marker with no usable count still means a bounded run, so fall back rather than
     // returning zero, which would read as "not a smoke run" and let the program run forever.
@@ -323,8 +350,11 @@ func deniedSystemMutations()->u64 => g_DeniedCount
 internal func denySystemMutation(mutation: SystemMutation)->bool
 {
     discard mutation
-    if not g_Sandboxed do
+    if not g_Sandboxed
+    {
         return false
+    }
+
     g_DeniedCount += 1
     return true
 }
@@ -336,15 +366,23 @@ internal func denySystemMutation(mutation: SystemMutation)->bool
 // contains nothing. Linux resolves existing symbolic links before comparing containment.
 func isInsideDirectory(root: string, path: string)->bool
 {
-    if root.count == 0 do
+    if root.count == 0
+    {
         return false
-    if not Path.isValidPathName(root) or not Path.isValidPathName(path) do
+    }
+
+    if not Path.isValidPathName(root) or not Path.isValidPathName(path)
+    {
         return false
+    }
 
     var full = absolutePath(path)
     var base = absolutePath(root)
-    if full.isEmpty() or base.isEmpty() do
+    if full.isEmpty() or base.isEmpty()
+    {
         return false
+    }
+
     #static if WINDOWS
     {
         full = full.toLower()
@@ -354,22 +392,33 @@ func isInsideDirectory(root: string, path: string)->bool
     let f = full.toString()
     let r = base.toString()
 
-    if f.count < r.count do
+    if f.count < r.count
+    {
         return false
-    if f[until r.count] != r do
+    }
+
+    if f[until r.count] != r
+    {
         return false
+    }
 
     // A prefix match is not containment: 'C:/tmp/sandboxed' starts with 'C:/tmp/sandbox'.
-    if f.count == r.count do
+    if f.count == r.count
+    {
         return true
+    }
+
     return Path.isDirectorySeparator(r[r.count - 1]) or Path.isDirectorySeparator(f[r.count])
 }
 
 // Reports whether `path` is inside the sandbox, which is always true when no sandbox is armed.
 func isInsideSandbox(path: string)->bool
 {
-    if not g_Sandboxed do
+    if not g_Sandboxed
+    {
         return true
+    }
+
     return isInsideDirectory(g_SandboxRoot.toString(), path)
 }
 
@@ -387,8 +436,11 @@ internal func sandboxSpecialDirectory(what: SpecialDirectory)->String
     var result = Path.combine(g_SandboxRoot.toString(), name.toString())
 
     Path.normalize(&result)
-    if not Directory.exists(result) do
+    if not Directory.exists(result)
+    {
         discard catch Directory.create(result)
+    }
+
     return result
 }
 
@@ -399,10 +451,16 @@ internal func sandboxSpecialDirectory(what: SpecialDirectory)->String
 // remove the final directory entry itself pass followFinalEntry=false; every parent is still checked.
 internal func guardWrite(path: string, followFinalEntry = true) fail
 {
-    if not g_Sandboxed do
+    if not g_Sandboxed
+    {
         return
-    if not Path.isValidPathName(path) do
+    }
+
+    if not Path.isValidPathName(path)
+    {
         fail InvalidFileNameError{fileName: mkString(path)}
+    }
+
     var checked = String.from(path)
     if not followFinalEntry
     {
@@ -411,15 +469,20 @@ internal func guardWrite(path: string, followFinalEntry = true) fail
         if name != null and name != "." and name != ".."
         {
             let parent = Path.directoryName(full)
-            if parent != null and (isInsideSandbox(parent) or isInsideCorpus(parent)) do
+            if parent != null and (isInsideSandbox(parent) or isInsideCorpus(parent))
+            {
                 checked = parent
+            }
         }
     }
 
     if isInsideSandbox(checked) or isInsideCorpus(checked)
     {
-        if try containsReparsePoint(checked) do
+        if try containsReparsePoint(checked)
+        {
             fail SandboxError{"refusing to write through a reparse point", path: absolutePath(path).toString()}
+        }
+
         return
     }
 
@@ -436,9 +499,11 @@ internal func containsReparsePoint(path: string)->bool fail
 
     for index in fullPath.count where index >= rootLength
     {
-        let c = index < fullPath.count ? fullPath[index] : 0'u8
-        if c != '/' and index != fullPath.count - 1 do
+        let c = index < fullPath.count ? fullPath[index] : 0_u8
+        if c != '/' and index != fullPath.count - 1
+        {
             continue
+        }
 
         let end = c == '/' ? index : index + 1
         if end > segmentBegin
@@ -450,13 +515,18 @@ internal func containsReparsePoint(path: string)->bool fail
             let error = outcome.value()
             if error != null
             {
-                if error is Errors.FileNotFoundError do
+                if error is Errors.FileNotFoundError
+                {
                     return false
+                }
+
                 try outcome.raise()
             }
 
-            if attributes.has(.ReparsePoint) do
+            if attributes.has(.ReparsePoint)
+            {
                 return true
+            }
         }
 
         segmentBegin = index + 1

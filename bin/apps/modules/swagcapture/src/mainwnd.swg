@@ -233,8 +233,11 @@ const RecentSizeIds = [ActionRecentSize.RecentSmall, ActionRecentSize.RecentMedi
 // Paints the preview of a recent capture into a picture of the lens, filling it.
 func paintLensRecent(painter: *Painter, rect: Math.Rectangle, preview: Texture)
 {
-    if not preview.isValid() do
+    if not preview.isValid()
+    {
         return
+    }
+
     let ratio = Math.max(rect.width / preview.width, rect.height / preview.height)
     let w     = preview.width * ratio
     let h     = preview.height * ratio
@@ -277,7 +280,7 @@ struct MainWnd
         appearanceButton:    *AppearanceButton
     }
 
-    takenHotKeys: Array'String     // Capture keys the desktop did not grant this process.
+    takenHotKeys: Array!{String}     // Capture keys the desktop did not grant this process.
 
     // The timeline floating under the canvas while a timed capture is edited.
     timeline: *TimelineBar?
@@ -301,15 +304,15 @@ struct MainWnd
     exportSource, exportDestination: String
     exportLinked:        bool
     imageWriteJob:       *CaptureImageWriteJob?
-    videoCopyJobs:       Array'(*CaptureVideoCopyJob)
+    videoCopyJobs:       Array!{*CaptureVideoCopyJob}
     videoRecoveryJob:    *CaptureVideoRecoveryJob?
     videoRecoveryFolder: String
     videoRecoveryCount:  u64
 
     icons:         IconSet
-    monitorGlyphs: ArrayPtr'CaptureMonitorGlyph
+    monitorGlyphs: ArrayPtr!{CaptureMonitorGlyph}
     appIcon:       ImageList
-    monitors:      Array'Env.Monitor
+    monitors:      Array!{Env.Monitor}
 
     // State
     editMode:      EditMode   = .Shape
@@ -319,11 +322,11 @@ struct MainWnd
     showRecent, inspectorFolded: bool
 
     // The files saved during the session, which the "Show" of a toast opens the folder of.
-    savedPaths: Array'String
+    savedPaths: Array!{String}
 
     // What the action of the toast on screen runs.
     toastAction:           (func||())?
-    recentColors:          Array'Color
+    recentColors:          Array!{Color}
     firstShow:             bool = true
     fileDlgState, fileDlgStateInPlace: FileDlgState
     libraryFolderDlgState: FileDlgState
@@ -348,15 +351,18 @@ struct MainWnd
     late mdlHighlight, mdlPixSel, mdlFavorite: IForm
 
     // One interface per model field above, in FormRegistry order (see wrapper.swg)
-    mdlByType: Array'IForm
+    mdlByType: Array!{IForm}
 }
 
 impl IWnd for MainWnd
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ShortcutsChanged do
+        if evt.kind == .ShortcutsChanged
+        {
             .refreshUnavailableShortcuts()
+        }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
@@ -436,13 +442,21 @@ impl IWnd for MainWnd
         }
 
         let failed = g_CaptureSaves.collect()
-        if not failed.isEmpty() do
+        if not failed.isEmpty()
+        {
             .reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, failed))
+        }
+
         let job = g_CaptureSaves.metadataPending
-        if job and job.task.isDone() do
+        if job and job.task.isDone()
+        {
             g_CaptureSaves.finishMetadata()
-        if not g_CaptureSaves.metadataPending and g_CaptureSaves.metadataWaiting.isEmpty() do
+        }
+
+        if not g_CaptureSaves.metadataPending and g_CaptureSaves.metadataWaiting.isEmpty()
+        {
             .stopTimer(&.metadataTimer)
+        }
     }
 
     mtd impl onSysUserEvent(evt: *SysUserEvent)
@@ -450,8 +464,10 @@ impl IWnd for MainWnd
         switch evt.kind
         {
         case .TrayIcon:
-            if .workspace == .Resident and (evt.trayAction == .ContextMenu or evt.trayAction == .Activate) do
+            if .workspace == .Resident and (evt.trayAction == .ContextMenu or evt.trayAction == .Activate)
+            {
                 ResidentPanel.open(me, .AtPointer)
+            }
 
         case .CustomMessage:
             if evt.messageId == OpenImageMessage and Clipboard.hasString()
@@ -476,8 +492,10 @@ impl IWnd for MainWnd
             return
         }
 
-        if evt.kind == .Drop do
+        if evt.kind == .Drop
+        {
             .openDroppedImages(evt.data)
+        }
 
         evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
     }
@@ -495,12 +513,20 @@ impl IWnd for MainWnd
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         // Without a strip to hold them, the task controls take a band of their own over the work.
-        if .editArea != null do
+        if .editArea != null
+        {
             .editArea.margin.y = TaskStrip.bandHeight(me)
-        if .miniBar != null do
+        }
+
+        if .miniBar != null
+        {
             .placeMiniBar()
-        if .sizeReading != null do
+        }
+
+        if .sizeReading != null
+        {
             .placeReadings()
+        }
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -539,8 +565,11 @@ impl IWnd for MainWnd
             .exportJob = null
             job.task.cancel()
             job.task.wait()
-            if job.capture do
+            if job.capture
+            {
                 Memory.delete(job.capture)
+            }
+
             Memory.delete(job)
         }
 
@@ -551,8 +580,11 @@ impl IWnd for MainWnd
             .duplicateJob = null
             job.task.cancel()
             job.task.wait()
-            if job.snapshot do
+            if job.snapshot
+            {
                 Memory.delete(job.snapshot)
+            }
+
             Memory.delete(job)
         }
 
@@ -563,8 +595,11 @@ impl IWnd for MainWnd
             .copyJob = null
             job.task.cancel()
             job.task.wait()
-            if job.capture do
+            if job.capture
+            {
                 Memory.delete(job.capture)
+            }
+
             Memory.delete(job)
         }
 
@@ -597,8 +632,10 @@ impl IWnd for MainWnd
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
     {
-        if .inPlaceEdit do
+        if .inPlaceEdit
+        {
             return
+        }
 
         let previousTheme    = .editorOptions.theme
         let previousLanguage = .editorOptions.language
@@ -653,15 +690,23 @@ impl IWnd for MainWnd
             // transparent came to mean "follow the active palette".
             .migrateStoredOptions()
 
-            if not .libraryFolder.isEmpty() do
+            if not .libraryFolder.isEmpty()
+            {
                 discard catch g_Library.setFolder(.libraryFolder)
+            }
 
             // Construction already applied these defaults. Reapplying an unchanged language
             // rebuilds localized controls throughout the tree during first-show restoration.
-            if .editorOptions.theme != previousTheme do
+            if .editorOptions.theme != previousTheme
+            {
                 .setTheme()
-            if .editorOptions.language != previousLanguage do
+            }
+
+            if .editorOptions.language != previousLanguage
+            {
                 .setLanguage()
+            }
+
             .setBottomSize(.bottomSize, animated: false)
             .showRecentBar(.showRecent)
             .inspector.setFolded(.inspectorFolded)
@@ -684,13 +729,19 @@ impl MainWnd
     // Recovers only this library's orphan video companions, one at a time on a worker.
     mtd startVideoRecovery()
     {
-        if .videoRecoveryJob do
+        if .videoRecoveryJob
+        {
             return
+        }
+
         let folder = Library.getFolder()
-        if .videoRecoveryFolder == folder or not Directory.exists(folder) do
+        if .videoRecoveryFolder == folder or not Directory.exists(folder)
+        {
             return
+        }
+
         .videoRecoveryFolder = folder
-        let job = Memory.new'CaptureVideoRecoveryJob()
+        let job = Memory.new!{CaptureVideoRecoveryJob}()
         job.folder        = folder
         .videoRecoveryJob = job
         job.task.submit(func|job|()
@@ -707,13 +758,19 @@ impl MainWnd
         let current = Path.equals(job.folder, Library.getFolder())
         let failed  = not job.error.isEmpty()
         Memory.delete(job)
-        if not current do
+        if not current
+        {
             .videoRecoveryCount = 0
+        }
+
         if current and count
         {
             g_Library.fill()
-            if .libraryMode do
+            if .libraryMode
+            {
                 .libWnd.fill()
+            }
+
             .videoRecoveryCount += count
         }
 
@@ -732,21 +789,29 @@ impl MainWnd
                           Format.toString(appStrings().msg_RecoveredVideos, total)
             .confirm(message, "", appStrings().act_Library, func|main = me|()
             {
-                if not main.libraryMode do
+                if not main.libraryMode
+                {
                     main.swapLibraryMode()
+                }
             })
         }
 
-        if failed do
+        if failed
+        {
             .reportFailure(appStrings().msg_FailedRecoverVideos)
+        }
+
         .startVideoRecovery()
     }
 
     // Loads a library document on a worker after the destination has been chosen.
     mtd requestLibraryExport(source: String, destination: String, linked: bool)
     {
-        if .exportJob or not .exportSource.isEmpty() or .imageWriteJob do
+        if .exportJob or not .exportSource.isEmpty() or .imageWriteJob
+        {
             return
+        }
+
         .exportSource      = source
         .exportDestination = destination
         .exportLinked      = linked
@@ -755,8 +820,11 @@ impl MainWnd
 
     private mtd startLibraryExport()
     {
-        if .exportJob or .exportSource.isEmpty() do
+        if .exportJob or .exportSource.isEmpty()
+        {
             return
+        }
+
         let failed = g_CaptureSaves.collect()
         if not failed.isEmpty()
         {
@@ -770,12 +838,15 @@ impl MainWnd
 
         if g_CaptureSaves.writing(.exportSource)
         {
-            if not .exportTimer do
-                .exportTimer = .addTimer(16'ms)
+            if not .exportTimer
+            {
+                .exportTimer = .addTimer(16_ms)
+            }
+
             return
         }
 
-        let job = Memory.new'CaptureLoadJob()
+        let job = Memory.new!{CaptureLoadJob}()
         job.file   = .exportSource
         .exportJob = job
         job.task.submit(func|job|()
@@ -822,7 +893,7 @@ impl MainWnd
             return
         }
 
-        let job = Memory.new'CaptureImageWriteJob()
+        let job = Memory.new!{CaptureImageWriteJob}()
         job.image      = #move image
         job.source     = capture.file
         job.target     = destination
@@ -840,15 +911,19 @@ impl MainWnd
         let destination = String.from(job.target)
         let failed      = not job.error.isEmpty()
         Memory.delete(job)
-        if failed do
+        if failed
+        {
             .reportFailure(appStrings().msg_FailedSaveFile, destination)
-        else do
+        }
+        else
+        {
             .confirmSaved(destination)
+        }
     }
 
     mtd startVideoCopy(source: String, destination: String)
     {
-        let job = Memory.new'CaptureVideoCopyJob()
+        let job = Memory.new!{CaptureVideoCopyJob}()
         job.source = source
         job.target = destination
         .videoCopyJobs.add(job)
@@ -870,10 +945,14 @@ impl MainWnd
         let destination = String.from(job.target)
         let failed      = not job.error.isEmpty()
         Memory.delete(job)
-        if failed do
+        if failed
+        {
             .reportFailure(appStrings().msg_FailedSaveFile, destination)
-        else do
+        }
+        else
+        {
             .confirmSaved(destination)
+        }
     }
 
     // Restores the saved state, once: the options, the placement of the window and the recent
@@ -882,8 +961,10 @@ impl MainWnd
     // The editor and the hub share the same settings, loaded before either window appears.
     mtd restoreState()
     {
-        if not .firstShow do
+        if not .firstShow
+        {
             return
+        }
 
         // Recent captures load on deferred event-loop turns, so a start is never held by them.
         .firstShow = false
@@ -895,8 +976,11 @@ impl MainWnd
     // Returns the current window for modal actions and their errors.
     mtd workspaceSurface()->*Surface
     {
-        if .workspace == .Hub and .residentPanel do
+        if .workspace == .Hub and .residentPanel
+        {
             return unwrap .residentPanel.surface
+        }
+
         return unwrap .surface
     }
 
@@ -904,8 +988,11 @@ impl MainWnd
     // cannot register an icon to bring it back.
     mtd enterResident()
     {
-        if .workspace == .Resident do
+        if .workspace == .Resident
+        {
             return
+        }
+
         let surface = unwrap .surface
         surface.setTrayIcon(.app().appIcon, ProductName)
         if not surface.hasTrayIcon()
@@ -926,13 +1013,18 @@ impl MainWnd
     {
         .closeResidentNotice()
         let notice = TrayNotice.open(unwrap .surface, title, message)
-        if not notice do
+        if not notice
+        {
             return
+        }
+
         .residentNotice     = notice
         notice.sigDismissed += func|main = me|(dismissed)
         {
-            if main.residentNotice == dismissed do
+            if main.residentNotice == dismissed
+            {
                 main.residentNotice = null
+            }
         }
     }
 
@@ -950,8 +1042,10 @@ impl MainWnd
     // Keeps a bounded preview of the last screen capture that reached the clipboard.
     mtd copyScreenshot(image: Image)->bool
     {
-        if not image.isValid() or not Clipboard.addImage(image) do
+        if not image.isValid() or not Clipboard.addImage(image)
+        {
             return false
+        }
 
         let width  = Math.min(image.width, ResidentPanel.ClipboardPreviewWidth)
         let height = Math.min(image.height, ResidentPanel.ClipboardPreviewHeight)
@@ -976,8 +1070,11 @@ impl MainWnd
         }
 
         let surface = unwrap .surface
-        if .workspace == .Resident do
+        if .workspace == .Resident
+        {
             surface.removeTrayIcon()
+        }
+
         .workspace = .Hub
         surface.hide()
     }
@@ -989,18 +1086,28 @@ impl MainWnd
         .residentPanel?.close()
         with let surface = unwrap .surface
         {
-            if me.workspace == .Resident do
+            if me.workspace == .Resident
+            {
                 .removeTrayIcon()
+            }
+
             me.workspace = .Editor
-            if .isMinimized do
+            if .isMinimized
+            {
                 .showNormal()
-            else do
+            }
+            else
+            {
                 .show()
+            }
+
             .bringToFront()
             #static if #os == Swag.TargetOs.Windows
             {
-                if .win32Handle() do
+                if .win32Handle()
+                {
                     discard Win32.SetForegroundWindow(.win32Handle())
+                }
             }
         }
     }
@@ -1009,24 +1116,33 @@ impl MainWnd
     // forever. User-picked colors are left untouched.
     mtd migrateStoredOptions()
     {
-        if cast(u32, .editorOptions.theme) > cast(u32, AppearanceTheme.System) do
+        if cast(u32, .editorOptions.theme) > cast(u32, AppearanceTheme.System)
+        {
             .editorOptions.theme = .Dark
-        if .editorOptions.editBackColor == 0xFF2E2E2E'u32 do
+        }
+
+        if .editorOptions.editBackColor == 0xFF2E2E2E_u32
+        {
             .editorOptions.editBackColor = 0
+        }
     }
 
     mtd saveAppState()
     {
-        if not .firstShow do
+        if not .firstShow
+        {
             catch g_App.saveState()
+        }
     }
 
     mtd saveCapture(capture: *Capture)
     {
         // A queued write to this capture must land before the explicit save.
         .flushCaptureSave(capture.file)
-        catch capture.save() do
+        catch capture.save()
+        {
             MessageDlg.error(unwrap .surface, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
+        }
     }
 
     // Waits for the background save targeting `file` (any when null) and reports its
@@ -1034,16 +1150,21 @@ impl MainWnd
     mtd flushCaptureSave(file: string? = null)
     {
         let failed = g_CaptureSaves.flush(file)
-        if not failed.isEmpty() do
+        if not failed.isEmpty()
+        {
             MessageDlg.error(unwrap .surface, Format.toString(appStrings().msg_FailedSaveCapture, failed))
+        }
     }
 
     // All library metadata writes share the automatic save's single file-writer lane.
-    mtd queueCaptureMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null, unlink = false)
+    mtd queueCaptureMetadata(file: String, title: string? = null, tags: const *Array!{String}? = null, favorite: const *bool? = null, rating: const *u8? = null, unlink = false)
     {
-        if title == null and not tags and not favorite and not rating and not unlink do
+        if title == null and not tags and not favorite and not rating and not unlink
+        {
             return
-        let job = Memory.new'CaptureMetadataJob()
+        }
+
+        let job = Memory.new!{CaptureMetadataJob}()
         job.owner = me
         job.file  = file
         if title != null
@@ -1072,18 +1193,20 @@ impl MainWnd
 
         job.unlink = unlink
         g_CaptureSaves.adoptMetadata(job)
-        if not .metadataTimer do
-            .metadataTimer = .addTimer(30'ms)
+        if not .metadataTimer
+        {
+            .metadataTimer = .addTimer(30_ms)
+        }
     }
 
     mtd startMetadataTask(job: *CaptureMetadataJob)
     {
         job.task.submit(func|job|()
         {
-            let title:    string?              = job.hasTitle ? job.title : null
-            let tags:     const *Array'String? = job.hasTags ? &job.tags : null
-            let favorite: const *bool?         = job.hasFavorite ? &job.favorite : null
-            let rating:   const *u8?           = job.hasRating ? &job.rating : null
+            let title:    string?      = job.hasTitle ? job.title : null
+            let tags:     const *Array!{String}? = job.hasTags ? &job.tags : null
+            let favorite: const *bool? = job.hasFavorite ? &job.favorite : null
+            let rating:   const *u8?   = job.hasRating ? &job.rating : null
             catch Capture.updateFileMetadata(job.file, title, tags, favorite, rating, job.unlink) as job.error
         })
     }
@@ -1107,8 +1230,11 @@ impl MainWnd
         // Reflect the new title on the library preview(s) that reference this file.
         if .libWnd != null and .libWnd.view != null
         {
-            for it in .libWnd.view.items where it.capture and it.fi.fullName == file do
+            for it in .libWnd.view.items where it.capture and it.fi.fullName == file
+            {
                 it.capture.title = title
+            }
+
             .libWnd.view.invalidate()
         }
     }
@@ -1123,19 +1249,28 @@ impl MainWnd
 
     private mtd startLibraryCopy()
     {
-        if .copyJob or .copyRequestedFile.isEmpty() do
-            return
-        let failed = g_CaptureSaves.collect()
-        if not failed.isEmpty() do
-            .reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, failed))
-        if g_CaptureSaves.writing(.copyRequestedFile)
+        if .copyJob or .copyRequestedFile.isEmpty()
         {
-            if not .copyTimer do
-                .copyTimer = .addTimer(16'ms)
             return
         }
 
-        let job = Memory.new'CaptureLoadJob()
+        let failed = g_CaptureSaves.collect()
+        if not failed.isEmpty()
+        {
+            .reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, failed))
+        }
+
+        if g_CaptureSaves.writing(.copyRequestedFile)
+        {
+            if not .copyTimer
+            {
+                .copyTimer = .addTimer(16_ms)
+            }
+
+            return
+        }
+
+        let job = Memory.new!{CaptureLoadJob}()
         job.file = .copyRequestedFile
         .copyJob = job
         job.task.submit(func|job|()
@@ -1153,8 +1288,11 @@ impl MainWnd
         Memory.delete(job)
         if .copyRequestedFile != file
         {
-            if loaded do
+            if loaded
+            {
                 Memory.delete(loaded)
+            }
+
             .startLibraryCopy()
             return
         }
@@ -1180,16 +1318,22 @@ impl MainWnd
     // Duplicates the stored document on a worker, preserving its encoded images.
     mtd requestDuplicateCapture(source: String)
     {
-        if .duplicateJob or not .duplicateSource.isEmpty() do
+        if .duplicateJob or not .duplicateSource.isEmpty()
+        {
             return
+        }
+
         .duplicateSource = source
         .startDuplicateCapture()
     }
 
     mtd requestDuplicateActiveCapture(capture: *Capture)
     {
-        if .duplicateJob or not .duplicateSource.isEmpty() do
+        if .duplicateJob or not .duplicateSource.isEmpty()
+        {
             return
+        }
+
         let target   = Library.newFileName()
         let snapshot = catch capture.snapshotDuplicate(target)
         {
@@ -1197,7 +1341,7 @@ impl MainWnd
             return
         }
 
-        let job = Memory.new'CaptureDuplicateJob()
+        let job = Memory.new!{CaptureDuplicateJob}()
         job.source    = capture.file
         job.target    = target
         job.snapshot  = snapshot
@@ -1211,8 +1355,11 @@ impl MainWnd
 
     private mtd startDuplicateCapture()
     {
-        if .duplicateJob or .duplicateSource.isEmpty() do
+        if .duplicateJob or .duplicateSource.isEmpty()
+        {
             return
+        }
+
         let failed = g_CaptureSaves.collect()
         if not failed.isEmpty()
         {
@@ -1226,12 +1373,15 @@ impl MainWnd
 
         if g_CaptureSaves.writing(.duplicateSource)
         {
-            if not .duplicateTimer do
-                .duplicateTimer = .addTimer(16'ms)
+            if not .duplicateTimer
+            {
+                .duplicateTimer = .addTimer(16_ms)
+            }
+
             return
         }
 
-        let job = Memory.new'CaptureDuplicateJob()
+        let job = Memory.new!{CaptureDuplicateJob}()
         job.source    = .duplicateSource
         job.target    = Library.newFileName()
         .duplicateJob = job
@@ -1249,8 +1399,11 @@ impl MainWnd
         let source = job.source
         let target = job.target
         let failed = not job.error.isEmpty()
-        if job.snapshot do
+        if job.snapshot
+        {
             Memory.delete(job.snapshot)
+        }
+
         Memory.delete(job)
         if failed
         {
@@ -1259,8 +1412,11 @@ impl MainWnd
         }
 
         g_Library.addFile(target)
-        if .libraryMode do
+        if .libraryMode
+        {
             .libWnd.fill()
+        }
+
         catch
         {
             Memory.delete(try .recentWnd.addRecent(target))
@@ -1307,7 +1463,7 @@ impl MainWnd
             {
                 .recentWnd.requestSelection(linkedFile, false, {}, returnToEditor: .libraryMode)
             }
-            elif .libraryMode
+            else if .libraryMode
             {
                 .swapLibraryMode()
                 .updateState()
@@ -1317,8 +1473,10 @@ impl MainWnd
             break
         }
 
-        if not done do
+        if not done
+        {
             .newCapture(imgToLoad, arg)
+        }
 
         if .libraryMode and not done
         {
@@ -1360,31 +1518,40 @@ impl MainWnd
     // or makes them reachable again. A small status beside the inspector stays visible until then.
     mtd freezeSelection(freeze: bool)
     {
-        if freeze == .freezeSel do
+        if freeze == .freezeSel
+        {
             return
+        }
 
         if freeze
         {
             // Nothing to freeze without a capture (the Freeze command is disabled in
             // that case, but guard here too so no code path can fault on getCapture()).
             let capture = .getCapture()
-            if not capture do
+            if not capture
+            {
                 return
+            }
 
             capture.selection.clear()
             capture.selectionHasChanged()
             .freezeSel = true
 
-            for it in capture.forms do
+            for it in capture.forms
+            {
                 it.freeze = true
+            }
         }
         else
         {
             .freezeSel = false
         }
 
-        if .taskStrip != null do
+        if .taskStrip != null
+        {
             .taskStrip.showFrozen(.freezeSel)
+        }
+
         .updateCommandState()
     }
 
@@ -1393,8 +1560,11 @@ impl MainWnd
         .updateWindowTitle()
 
         // The tool in use stands in the dock, in the cell of its group when it has one.
-        if .dock != null do
+        if .dock != null
+        {
             discard .dock.selectTool(.editMode.command())
+        }
+
         .updateCommandState()
         if .taskStrip != null
         {
@@ -1404,8 +1574,10 @@ impl MainWnd
 
         // The library owns its selection and controls. Rebuild the editor when it
         // becomes visible again, not while its whole subtree is hidden.
-        if .libraryMode do
+        if .libraryMode
+        {
             return
+        }
 
         // The selection tool has no model to edit until an object is chosen. Leave the canvas
         // clear instead of showing the Shape model as though it belonged to the selection.
@@ -1416,17 +1588,28 @@ impl MainWnd
             .inspector.show(showInspector)
             let view = .editWnd.editView
             view.setZoom(view.zoom)
-            if .taskStrip != null do
+            if .taskStrip != null
+            {
                 .taskStrip.itf.onLayout()
+            }
         }
 
-        if showInspector do
+        if showInspector
+        {
             .updateInspectorTitle()
+        }
+
         .fillHintLine()
-        if .propWnd != null and showInspector do
+        if .propWnd != null and showInspector
+        {
             .propWnd.selectionHasChanged()
-        if .quickWnd != null do
+        }
+
+        if .quickWnd != null
+        {
             .quickWnd.updateQuickStyles()
+        }
+
         .updateMiniBar()
     }
 
@@ -1435,26 +1618,35 @@ impl MainWnd
     mtd updateWindowTitle()
     {
         let surface = .surface
-        if not surface do
+        if not surface
+        {
             return
+        }
 
         var title: String = ProductName
         let capture       = .editWnd.getCapture()
         if capture and not .libraryMode
         {
             let name = capture.displayName()
-            if not name.isEmpty() do
+            if not name.isEmpty()
+            {
                 title = name
+            }
         }
 
-        if surface.wnd.name.text != title do
+        if surface.wnd.name.text != title
+        {
             surface.setTitle(title)
+        }
     }
 
     mtd captureHasChanged()
     {
-        if .propWnd != null do
+        if .propWnd != null
+        {
             .propWnd.refreshPosition()
+        }
+
         .updateReading()
         .placeTimeline()
         if .recentWnd != null
@@ -1470,13 +1662,18 @@ impl MainWnd
     {
         .timeline?.releaseCaptureMedia(file)
         let edited = .editWnd.getCapture()
-        if edited and edited.isStoredIn(file) do
+        if edited and edited.isStoredIn(file)
+        {
             edited.closeMedia()
+        }
+
         if .libraryMode
         {
             let focused = .libWnd.getCapture()
-            if focused and focused.isStoredIn(file) do
+            if focused and focused.isStoredIn(file)
+            {
                 focused.closeMedia()
+            }
         }
 
         .placeTimeline()
@@ -1484,22 +1681,29 @@ impl MainWnd
 
     mtd getCapture()->*Capture?
     {
-        if .libraryMode do
+        if .libraryMode
+        {
             return .libWnd.getCapture()
+        }
+
         return .editWnd.getCapture()
     }
 
     mtd updateRecent()
     {
-        if .recentWnd != null do
+        if .recentWnd != null
+        {
             .recentWnd.updateRecent()
+        }
     }
 
     // Writes the size and zoom as quiet menu controls at the head of the hint line.
     mtd updateReading()
     {
-        if .hintLine == null or .sizeReading == null do
+        if .hintLine == null or .sizeReading == null
+        {
             return
+        }
 
         let capture = .editWnd.getCapture()
         if not capture or .libraryMode
@@ -1538,15 +1742,20 @@ impl MainWnd
             .addItem(ActionCapture.ActiveWnd)
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.LastArea)
-            for index in 0 until main.monitors.count do
+            for index in 0 until main.monitors.count
+            {
                 .addItem(ActionCapture.screenId(index))
+            }
 
             .addSeparator()
             .addItem(ActionCapture.RecordVideo)
             .addItem(ActionCapture.RecordActiveWindow)
             .addItem(ActionCapture.RecordScreen)
-            for index in 0 until main.monitors.count do
+            for index in 0 until main.monitors.count
+            {
                 .addItem(ActionCapture.recordScreenId(index))
+            }
+
             .addSeparator()
             .addItem(ActionCapture.Record)
             .addSeparator()
@@ -1576,10 +1785,15 @@ impl MainWnd
         let main         = me
         let currentDelay = main.captureOptions.delay
         var isPreset     = false
-        for choice in CaptureDelays where choice.seconds == currentDelay do
+        for choice in CaptureDelays where choice.seconds == currentDelay
+        {
             isPreset = true
-        if not isPreset do
+        }
+
+        if not isPreset
+        {
             menu.addNote(Format.toString(appStrings().act_DelayDuration, captureDelayName(currentDelay)))
+        }
 
         let metrics = main.themeMetrics()
         with let delayChoices = StackLayoutCtrl.create(menu, .HorizontalCenter)
@@ -1639,8 +1853,10 @@ impl MainWnd
                 let selected = assume cast(*IconButton, wnd)
                 for child in toolbar.children
                 {
-                    if child is IconButton as other where other.flags.has(.Radio) do
+                    if child is IconButton as other where other.flags.has(.Radio)
+                    {
                         other.setChecked(other == selected)
+                    }
                 }
 
                 main.postCommandEvent(id)
@@ -1657,8 +1873,11 @@ impl MainWnd
         with let menu = MenuCtrl.createPopup(me)
         {
             .addLabel(appStrings().ui_CaptureShortcuts)
-            for key in main.takenHotKeys do
+            for key in main.takenHotKeys
+            {
                 .addNote(key.toString())
+            }
+
             .addSeparator()
             .addNote(appStrings().msg_ShortcutsUnavailableHelp)
         }
@@ -1710,7 +1929,7 @@ impl MainWnd
     // Returns the words counting one kind of object, from a table of "singular|plural" words.
     func countWords(table: string, count: u64)->String
     {
-        let parts = Tokenize.split(table, '|'u8, removeEmpty: false)
+        let parts = Tokenize.split(table, '|'_u8, removeEmpty: false)
         let words = (count == 1 or parts.count < 2) ? parts[0] : parts[1]
         return Format.toString(words, count)
     }
@@ -1719,8 +1938,8 @@ impl MainWnd
     // such as "2 rectangles · 1 text".
     func describeKinds(capture: *Capture)->String
     {
-        var tables: Array'string
-        var counts: Array'u64
+        var tables: Array!{string}
+        var counts: Array!{u64}
         for index in capture.selection
         {
             let table = kindCountTable(capture.forms[index])
@@ -1741,8 +1960,11 @@ impl MainWnd
         var result: String
         for t, i in tables
         {
-            if i do
+            if i
+            {
                 result += " · "
+            }
+
             result += countWords(t, counts[i])
         }
 
@@ -1754,10 +1976,15 @@ impl MainWnd
     {
         let texts = appStrings()
         let base: *BaseForm = form
-        if base.subKind == .Highlight do
+        if base.subKind == .Highlight
+        {
             return texts.count_Highlight
-        if base.subKind == .PixSel do
+        }
+
+        if base.subKind == .PixSel
+        {
             return texts.count_PixSel
+        }
 
         switch form
         {
@@ -1779,8 +2006,11 @@ impl MainWnd
     // a path in `detail`, and an `action` word that runs `onAction` when clicked.
     mtd confirm(message: string, detail: string = "", action: string = "", onAction: (func||())? = null)
     {
-        if .toast == null do
+        if .toast == null
+        {
             return
+        }
+
         .toastAction = onAction
         .toast.show(message, detail, .Done, action)
     }
@@ -1788,8 +2018,11 @@ impl MainWnd
     // Says in a toast with a critical dot that `message` could not be done.
     mtd reportFailure(message: string, detail: string = "", action: string = "", onAction: (func||())? = null)
     {
-        if .toast == null do
+        if .toast == null
+        {
             return
+        }
+
         .toastAction = onAction
         .toast.show(message, detail, .Failure, action)
     }
@@ -1808,8 +2041,11 @@ impl MainWnd
     // Briefly names an operation that continues after its initiating gesture returns.
     mtd reportProgress(message: string)
     {
-        if .toast == null do
+        if .toast == null
+        {
             return
+        }
+
         .toastAction = null
         .toast.show(message, tone: .None)
     }
@@ -1818,8 +2054,10 @@ impl MainWnd
     // next objects take these settings; and offers Duplicate and Delete for a selection.
     mtd updateInspectorTitle()
     {
-        if .inspector == null do
+        if .inspector == null
+        {
             return
+        }
 
         .inspector.clear()
         let capture = .getCapture()
@@ -1844,7 +2082,7 @@ impl MainWnd
                 .inspector.setTitle(EditMode.PixSel.name(), Format.toString("% × %", base.w, base.h))
                 duplicates = false
             }
-            elif form is FormImage as image where image.kind != .Image
+            else if form is FormImage as image where image.kind != .Image
             {
                 // An image that hides or magnifies what it covers is named by what it does: a
                 // blur, a pixelation, a magnifier, a snapshot.
@@ -1860,17 +2098,24 @@ impl MainWnd
             // Several objects are named by what they are, "2 rectangles · 1 text", when that fits
             // before the actions of the head; otherwise by how many they are.
             let kinds = describeKinds(unwrap capture)
-            if .titleFits(kinds) do
+            if .titleFits(kinds)
+            {
                 .inspector.setTitle(kinds)
-            else do
+            }
+            else
+            {
                 .inspector.setTitle(Format.toString(appStrings().ui_Objects, count))
+            }
         }
 
         // Bind the inspector to the same wording, glyph and destructive state as every command presenter.
         for id in [ActionCopyPaste.Duplicate, ActionSelection.DeleteSelection]
         {
-            if id == ActionCopyPaste.Duplicate and not duplicates do
+            if id == ActionCopyPaste.Duplicate and not duplicates
+            {
                 continue
+            }
+
             let state  = .sendComputeCommandStateEvent(id)
             let button = .inspector.addAction(state.name, id)
             let size   = .themeMetrics().menuPopup_IconSize
@@ -1884,28 +2129,28 @@ impl MainWnd
     // Registers every command family of the editor.
     mtd registerActions()
     {
-        .registerAction'ActionMoveSel()
-        .registerAction'ActionTimeline()
-        .registerAction'ActionUndo()
-        .registerAction'ActionCaptureDelay()
-        .registerAction'ActionPixSel()
-        .registerAction'ActionCapture()
-        .registerAction'ActionAlign()
-        .registerAction'ActionGroup()
-        .registerAction'ActionToolMode()
-        .registerAction'ActionCopyPaste()
-        .registerAction'ActionFile()
-        .registerAction'ActionZoom()
-        .registerAction'ActionImage()
-        .registerAction'ActionSelection()
-        .registerAction'ActionFlatten()
-        .registerAction'ActionRecentSize()
-        .registerAction'ActionQuickStyle()
-        .registerAction'ActionEdit()
-        .registerAction'ActionGlobal()
-        .registerAction'ActionAbout()
-        .registerAction'ActionOptions()
-        .registerAction'ActionView()
+        .registerAction!{ActionMoveSel}()
+        .registerAction!{ActionTimeline}()
+        .registerAction!{ActionUndo}()
+        .registerAction!{ActionCaptureDelay}()
+        .registerAction!{ActionPixSel}()
+        .registerAction!{ActionCapture}()
+        .registerAction!{ActionAlign}()
+        .registerAction!{ActionGroup}()
+        .registerAction!{ActionToolMode}()
+        .registerAction!{ActionCopyPaste}()
+        .registerAction!{ActionFile}()
+        .registerAction!{ActionZoom}()
+        .registerAction!{ActionImage}()
+        .registerAction!{ActionSelection}()
+        .registerAction!{ActionFlatten}()
+        .registerAction!{ActionRecentSize}()
+        .registerAction!{ActionQuickStyle}()
+        .registerAction!{ActionEdit}()
+        .registerAction!{ActionGlobal}()
+        .registerAction!{ActionAbout}()
+        .registerAction!{ActionOptions}()
+        .registerAction!{ActionView}()
     }
 
     // Binds the keyboard shortcuts of the editor to their commands.
@@ -2014,8 +2259,10 @@ impl MainWnd
     mtd refreshUnavailableShortcuts()
     {
         .takenHotKeys = .app().unavailableUserHotKeys()
-        if .taskStrip != null do
+        if .taskStrip != null
+        {
             .taskStrip.showUnavailableShortcuts(not .takenHotKeys.isEmpty())
+        }
     }
 
     mtd setTheme()
@@ -2024,8 +2271,10 @@ impl MainWnd
 
         // Pixel-selection forms borrow a theme color, so their retained renderings
         // follow the switch.
-        if .editWnd != null do
+        if .editWnd != null
+        {
             .editWnd.getCapture()?.invalidateAllFormCaches()
+        }
     }
 
     // Applies the language selected in the options to every string table.
@@ -2069,7 +2318,7 @@ impl MainWnd
     // mini-bar and the hint line float over it and take no room from it.
     mtd createEditArea()
     {
-        with .editArea = Wnd.create'Wnd(me)
+        with .editArea = Wnd.create!{Wnd}(me)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Window
@@ -2125,11 +2374,13 @@ impl MainWnd
             let view = main.editWnd.editView
             view.setZoom(view.zoom)
             main.placeMiniBar()
-            if main.taskStrip != null do
+            if main.taskStrip != null
+            {
                 main.taskStrip.itf.onLayout()
+            }
         }
 
-        with let body = Wnd.create'Wnd(.inspector)
+        with let body = Wnd.create!{Wnd}(.inspector)
         {
             .backgroundStyle = .Transparent
         }
@@ -2162,8 +2413,11 @@ impl MainWnd
     // Fills the mini-bar from the selection and places it beside it.
     mtd updateMiniBar()
     {
-        if .miniBar == null do
+        if .miniBar == null
+        {
             return
+        }
+
         .miniBar.refresh()
         .placeMiniBar()
     }
@@ -2173,10 +2427,16 @@ impl MainWnd
     mtd floatingInsets()->FloatingInsets
     {
         var result: FloatingInsets
-        if .dock != null and .dock.isLocallyVisible() do
+        if .dock != null and .dock.isLocallyVisible()
+        {
             result.left = .dock.position.right()
-        if .inspector != null and .inspector.isLocallyVisible() and not .inspector.folded do
+        }
+
+        if .inspector != null and .inspector.isLocallyVisible() and not .inspector.folded
+        {
             result.right = Math.max(.editArea.position.width - .inspector.position.x, 0)
+        }
+
         return result
     }
 
@@ -2198,8 +2458,10 @@ impl MainWnd
     {
         let capture = .getCapture()
         let style   = .selectedTextStyle()
-        if not capture or not style.found or face == style.face do
+        if not capture or not style.found or face == style.face
+        {
             return
+        }
 
         with let undo = capture.newUndo(.SetFont)
         {
@@ -2214,8 +2476,10 @@ impl MainWnd
     // Places the mini-bar beside the selection, or hides it when nothing is selected.
     mtd placeMiniBar()
     {
-        if .miniBar == null do
+        if .miniBar == null
+        {
             return
+        }
 
         let capture = .getCapture()
         if .miniBar.shownKind == .None or
@@ -2245,8 +2509,10 @@ impl MainWnd
         let stripInset = .editArea.stripInset()
         room.y      += stripInset
         room.height -= stripInset + .themeMetrics().hintLine_Bottom + .themeMetrics().hintLine_Height
-        if let timeline = .timeline where timeline.panel.isLocallyVisible() do
+        if let timeline = .timeline where timeline.panel.isLocallyVisible()
+        {
             room.height -= TimelineHeight + TimelineGap
+        }
 
         // Across, it stands within the picture when the picture is wide enough for it, so that it
         // never straddles a side edge of the capture: a gap of the bar's own distance is the most
@@ -2273,8 +2539,11 @@ impl MainWnd
     mtd selectionSurfaceRect()->Math.Rectangle
     {
         let capture = .getCapture()
-        if not capture or capture.selection.isEmpty() do
+        if not capture or capture.selection.isEmpty()
+        {
             return {}
+        }
+
         let view   = .editWnd.editView
         let bound  = capture.getSelectionBoundRect()
         let place  = view.getCaptureRect()
@@ -2301,8 +2570,11 @@ impl MainWnd
             result.y      = top
         }
 
-        if result.bottom() + reach > bottom and result.bottom() < bottom do
+        if result.bottom() + reach > bottom and result.bottom() < bottom
+        {
             result.height = bottom - result.y
+        }
+
         return result
     }
 
@@ -2338,17 +2610,25 @@ impl MainWnd
     mtd placeTimeline()
     {
         let timeline = .timeline
-        if not timeline do
+        if not timeline
+        {
             return
+        }
 
         let capture = .getCapture()
         if .libraryMode or not capture or not capture.isTimed() or not capture.frames
         {
-            if timeline.isPlaying() do
+            if timeline.isPlaying()
+            {
                 timeline.stop()
+            }
+
             timeline.panel.hide()
-            if .toast != null do
+            if .toast != null
+            {
                 .toast.keepAbove(0)
+            }
+
             return
         }
 
@@ -2364,16 +2644,20 @@ impl MainWnd
         timeline.invalidate()
 
         // A confirmation stands above the timeline rather than over its track.
-        if .toast != null do
+        if .toast != null
+        {
             .toast.keepAbove(timeline.panel.surfaceRect().y - .surfaceRect().y)
+        }
     }
 
     // Reserves the first part of the hint line for the two readings and puts each menu anchor
     // on the same baseline as the line's words.
     mtd placeReadings()
     {
-        if .hintLine == null or .sizeReading == null do
+        if .hintLine == null or .sizeReading == null
+        {
             return
+        }
 
         let metrics = .themeMetrics()
         let insets  = .floatingInsets()
@@ -2398,8 +2682,11 @@ impl MainWnd
     mtd isPixelSelection()->bool
     {
         let capture = .getCapture()
-        if not capture or capture.selection.count != 1 do
+        if not capture or capture.selection.count != 1
+        {
             return false
+        }
+
         let base: *BaseForm = capture.forms[capture.selection[0]]
         return base.subKind == .PixSel
     }
@@ -2408,8 +2695,10 @@ impl MainWnd
     // folded, and the searchable lens.
     mtd fillHintLine()
     {
-        if .hintLine == null do
+        if .hintLine == null
+        {
             return
+        }
 
         // The line stands in the room the dock and the inspector leave, never under them.
         .placeReadings()
@@ -2420,10 +2709,16 @@ impl MainWnd
             let view = .editWnd.editView
             .hintLine.addHint(view.textSpec.step ? strings().key_Enter : strings().key_CtrlEnter, appStrings().hint_KeepText)
             .hintLine.addHint(strings().key_Escape, appStrings().hint_Cancel)
-            if not view.textSpec.step do
+            if not view.textSpec.step
+            {
                 .hintLine.addHint(strings().key_Enter, appStrings().hint_NewLine)
-            if view.textEditForm() is FormCallout do
+            }
+
+            if view.textEditForm() is FormCallout
+            {
                 .hintLine.addHint("", appStrings().hint_CalloutTail)
+            }
+
             return
         }
 
@@ -2442,24 +2737,38 @@ impl MainWnd
         {
             // A pixel selection is a region, not an object: it is not duplicated.
             .hintLine.addHint(appStrings().key_Arrows, appStrings().hint_Nudge)
-            if not .isPixelSelection() do
+            if not .isPixelSelection()
+            {
                 .hintLine.addHint(Input.formatKeyShortcut(.Control, .D), appStrings().hint_Duplicate)
-            if capture!.selection.count == 1 and inlineTextOf(capture.forms[capture.selection[0]]).found do
+            }
+
+            if capture!.selection.count == 1 and inlineTextOf(capture.forms[capture.selection[0]]).found
+            {
                 .hintLine.addHint(strings().key_Enter, appStrings().hint_TypeWords)
-            else do
+            }
+            else
+            {
                 .hintLine.addHint(Input.formatKeyShortcut(.None, .Delete), appStrings().hint_Delete)
+            }
         }
         else
         {
             let tool = .toolHint()
-            if not tool.isEmpty() do
+            if not tool.isEmpty()
+            {
                 .hintLine.addHint("", tool)
+            }
         }
 
-        if .inspector != null and .inspector.folded do
+        if .inspector != null and .inspector.folded
+        {
             .hintLine.addHint(.inspector.foldKey, appStrings().hint_AllProperties)
-        if not selected do
+        }
+
+        if not selected
+        {
             .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().hint_Space)
+        }
     }
 
     // Returns what the tool in hand does, in a few words.
@@ -2535,13 +2844,19 @@ impl MainWnd
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Area, func()->string => appStrings().search_Capture)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.DoIt, inMenu: false)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureModeIds)
-            for idx in me.monitors.count do
+            for idx in me.monitors.count
+            {
                 .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.screenId(idx))
+            }
+
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordVideo, menuSection: 1)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordScreen, menuSection: 1)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordActiveWindow, menuSection: 1)
-            for idx in me.monitors.count do
+            for idx in me.monitors.count
+            {
                 .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.recordScreenId(idx), menuSection: 1)
+            }
+
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Record, menuSection: 2)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.CancelRecording, inMenu: false)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureDelayIds, menuGroup: func()->string => appStrings().act_DelayBefore)
@@ -2622,20 +2937,31 @@ impl MainWnd
     // pictures closing the results, then the way to the library.
     mtd describeRecentCaptures(results: *Lens.Results)
     {
-        if .recentWnd == null or .libraryMode do
+        if .recentWnd == null or .libraryMode
+        {
             return
+        }
 
         let view = .recentWnd.recentView
         var section: *Lens.Section?
         for item, index in view.items
         {
-            if section and section.pictures.count == MaxLensRecents do
+            if section and section.pictures.count == MaxLensRecents
+            {
                 break
+            }
+
             let name = Path.fileName(item!.file) orelse ""
-            if results.query.count and not Lens.match(results.query, name).matched do
+            if results.query.count and not Lens.match(results.query, name).matched
+            {
                 continue
-            if not section do
+            }
+
+            if not section
+            {
                 section = results.addSection(appStrings().lens_Recent)
+            }
+
             with let picture = section.addPicture(name)
             {
                 .run   = func|main = me, index|() { main.openRecent(index) }
@@ -2643,15 +2969,20 @@ impl MainWnd
             }
         }
 
-        if section do
+        if section
+        {
             section.setLink(appStrings().lens_LibraryLink, func|main = me|() { main.postCommandEvent(ActionGlobal.ShowLibrary) })
+        }
     }
 
     // Opens the recent capture `index` in the editor, leaving the library if it is on screen.
     mtd openRecent(index: u64)
     {
-        if .libraryMode do
+        if .libraryMode
+        {
             .swapLibraryMode()
+        }
+
         .recentWnd.recentView.requestSelect(index)
         .updateState()
     }
@@ -2662,7 +2993,7 @@ impl MainWnd
     {
         let gutter  = .themeMetrics().panel_GutterSize
         let barRoom = .themeMetrics().scrollBar_HitSize + .themeMetrics().scrollBar_EdgeInset
-        with .recentBar = Wnd.create'Wnd(me, {0, 0, 0, 136 + barRoom - 12})
+        with .recentBar = Wnd.create!{Wnd}(me, {0, 0, 0, 136 + barRoom - 12})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .Panel
@@ -2719,12 +3050,19 @@ impl MainWnd
 
             .sigLanguageChanged += func|main = me|(button)
             {
-                if button.language.isEmpty() do
+                if button.language.isEmpty()
+                {
                     main.editorOptions.language = .System
-                elif button.language == "fr" do
+                }
+                else if button.language == "fr"
+                {
                     main.editorOptions.language = .French
-                else do
+                }
+                else
+                {
                     main.editorOptions.language = .English
+                }
+
                 main.saveAppState()
 
                 // The inspector title, the hint line and the commands of the strip are written
@@ -2742,21 +3080,26 @@ impl MainWnd
     // Builds the main window: the work area with its dock, inspector, mini-bar and hint line,
     // the recent strip it shows on demand, the library hidden until it is asked for, and the
     // lens that reaches every command.
-    func create(parent: *Wnd, testMonitors: *Array'Env.Monitor? = null)->*MainWnd
+    func create(parent: *Wnd, testMonitors: *Array!{Env.Monitor}? = null)->*MainWnd
     {
         let srf = unwrap parent.surface
         srf.minSize = {1024, 512}
 
         let renderer = parent.app().renderer
 
-        with let result = Wnd.create'MainWnd(parent, "capture.mainwnd")
+        with let result = Wnd.create!{MainWnd}(parent, "capture.mainwnd")
         {
             result.surface!.setView(result)
             .icons.setup(renderer, captureIcons())
-            #static if #command == Swag.CompilerCommand.Test do
+            #static if #command == Swag.CompilerCommand.Test
+            {
                 .appIcon.set(renderer.addImage(Image.create(512, 512, .RGBA8)))
-            else do
+            }
+            else
+            {
                 .appIcon.set(renderer.addImage(parent.app().appIcon))
+            }
+
             .backgroundStyle = .Window
             .mdlFavorite     = &result.mdlFormShape
             .mdlHighlight    = &result.mdlFormShape
@@ -2768,8 +3111,10 @@ impl MainWnd
         if testMonitors
         {
             result.monitors.clear()
-            for monitor in testMonitors[] do
+            for monitor in testMonitors[]
+            {
                 result.monitors.add(monitor)
+            }
         }
 
         // Establish defaults before constructing localized controls, so they do not need
@@ -2786,8 +3131,10 @@ impl MainWnd
         result.toast = Toast.create(result)
         result.toast.sigAction += func|main = result|(_)
         {
-            if main.toastAction do
+            if main.toastAction
+            {
                 main.toastAction()
+            }
         }
 
         with result

@@ -758,8 +758,8 @@ namespace
         AstNodeRef baseRef = AstNodeRef::invalid();
         if (const auto* quotedExpr = calleeNode.safeCast<AstQuotedExpr>())
             baseRef = quotedExpr->nodeExprRef;
-        else if (const auto* quotedList = calleeNode.safeCast<AstQuotedListExpr>())
-            baseRef = quotedList->nodeExprRef;
+        else if (const auto* genericArgList = calleeNode.safeCast<AstGenericArgListExpr>())
+            baseRef = genericArgList->nodeExprRef;
         else
             return;
 

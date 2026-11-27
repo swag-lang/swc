@@ -12,48 +12,65 @@ private struct SlideReference
 // Bounded slide canvases and their reading text in declared presentation order.
 struct Presentation
 {
-    slides:        Array'SlidePage
+    slides:        Array!{SlidePage}
     omittedImages: u64
     width:         f32 = 960
     height:        f32 = 720
     properties:    Package.DocumentProperties     // What the package says of the presentation.
 }
 
-private func readSlides(source, relationships: string)->Array'SlideReference fail
+private func readSlides(source, relationships: string)->Array!{SlideReference} fail
 {
     var scan = Package.Scanner.create(relationships)
     var token:  Package.Token
-    var linked: Array'SlideReference
+    var linked: Array!{SlideReference}
     while scan.next(&token)
     {
-        if token.kind != .Start or not token.isElement("Relationship") do
+        if token.kind != .Start or not token.isElement("Relationship")
+        {
             continue
+        }
+
         let id     = token.attribute("Id")
         let target = token.attribute("Target")
         let kind   = token.attribute("Type")
-        if not id or not target or not kind do
+        if not id or not target or not kind
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         if Utf8.endsWith(kind, "/slide") and token.attribute("TargetMode") != "External"
         {
             let path = Package.resolveRelationshipTarget("ppt", target)
-            if path.isEmpty() do
+            if path.isEmpty()
+            {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
+            }
+
             linked.add(SlideReference{id, path})
         }
     }
 
-    if scan.damaged do
+    if scan.damaged
+    {
         fail Errors.InvalidFormatError{texts().err_Invalid}
+    }
 
     scan = Package.Scanner.create(source)
     var result: #returntype
     while scan.next(&token)
     {
-        if token.kind != .Start or not token.isElement("sldId") do
+        if token.kind != .Start or not token.isElement("sldId")
+        {
             continue
+        }
+
         let id = token.attribute("r:id")
-        if not id do
+        if not id
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         var found = false
         for &slide in linked where slide.id == id
         {
@@ -62,14 +79,22 @@ private func readSlides(source, relationships: string)->Array'SlideReference fai
             break
         }
 
-        if not found do
+        if not found
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        if result.count > 200 do
+        }
+
+        if result.count > 200
+        {
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
     }
 
-    if scan.damaged or result.isEmpty() do
+    if scan.damaged or result.isEmpty()
+    {
         fail Errors.InvalidFormatError{texts().err_Invalid}
+    }
+
     return result
 }
 
@@ -91,24 +116,32 @@ impl Presentation
             {
                 let cx = catch StrConv.toU64(token.attribute("cx") orelse "") orelse 0
                 let cy = catch StrConv.toU64(token.attribute("cy") orelse "") orelse 0
-                if cx < 9525 or cy < 9525 or cx > 100_000_000 or cy > 100_000_000 do
+                if cx < 9525 or cy < 9525 or cx > 100_000_000 or cy > 100_000_000
+                {
                     fail Errors.InvalidFormatError{texts().err_Invalid}
+                }
+
                 result.width  = cast(f32, cx) / 9525
                 result.height = cast(f32, cy) / 9525
             }
         }
 
-        var textBytes = 0'u64
+        var textBytes = 0_u64
         for slide in order
         {
             let page = try SlidePage.load(&parts, slide.path, result.width)
             textBytes += page.notesHtml.count
-            for shape in page.shapes do
+            for shape in page.shapes
+            {
                 textBytes += shape.html.count
+            }
+
             result.omittedImages += page.omittedImages
             result.slides.add(page)
-            if textBytes > 32 * 1024 * 1024 do
+            if textBytes > 32 * 1024 * 1024
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
         }
 
         result.properties = Package.DocumentProperties.read(fileName, &archive)

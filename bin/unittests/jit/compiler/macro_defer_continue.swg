@@ -21,8 +21,10 @@ func runMacroDeferContinue()->s64
     {
         macroWithDefer()
         {
-            if index != 3 do
+            if index != 3
+            {
                 continue
+            }
         }
 
         appendTrace(1)

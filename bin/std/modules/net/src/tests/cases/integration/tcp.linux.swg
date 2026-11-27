@@ -13,7 +13,7 @@ using Core
     Swag.require(Linux.fcntl(listening, Linux.F_GETFD) & Linux.FD_CLOEXEC != 0)
 
     var client   = expect TcpStream.connect(endpoint)
-    var accepted = -1's32
+    var accepted = -1_s32
     scope
     {
         var server = expect listener.accept()
@@ -83,21 +83,24 @@ using Core
     var error: Swag.Error
     discard catch client.write(cast(const [..] u8, "closed")) as error
     Swag.require(error.value() is NetworkError)
-    if error.value() is NetworkError as networkError do
+    if error.value() is NetworkError as networkError
+    {
         Swag.require(networkError.code == Linux.EPIPE)
+    }
+
     Swag.require(Linux.sigpending(&pending) == 0 and Linux.sigismember(&pending, Linux.SIGPIPE) == 0)
 }
 
 #[Swag.TestTag("integration.network")]
 #test
 {
-    func sockets()->Array'String
+    func sockets()->Array!{String}
     {
         let directory = unwrap Linux.opendir("/proc/self/fd".buffer)
         defer discard Linux.closedir(directory)
         let descriptor = Linux.dirfd(directory)
         Swag.require(descriptor >= 0)
-        var result: Array'String
+        var result: Array!{String}
         for
         {
             Linux.errno(0)
@@ -110,11 +113,16 @@ using Core
 
             var buffer: [256] u8
             let count = Linux.readlinkat(descriptor, &entry.d_name[0], &buffer[0], buffer.count)
-            if count < 8 do
+            if count < 8
+            {
                 continue
+            }
+
             let target = cast(string, buffer[until cast(u64, count)])
-            if target[until 8] == "socket:[" do
+            if target[until 8] == "socket:["
+            {
                 result.add(Format.toString("%:%", cast(string, cast(cstring, &entry.d_name[0])), target))
+            }
         }
 
         result.sort()
@@ -133,20 +141,30 @@ using Core
         discard catch TcpListener.listen(occupied) as bindError
         discard catch TcpStream.connect(refused) as connectError
         Swag.require(bindError.value() is NetworkError and connectError.value() is NetworkError)
-        if bindError.value() is NetworkError as error do
+        if bindError.value() is NetworkError as error
+        {
             Swag.require(error.code == Linux.EADDRINUSE)
-        if connectError.value() is NetworkError as error do
+        }
+
+        if connectError.value() is NetworkError as error
+        {
             Swag.require(error.code == Linux.ECONNREFUSED)
+        }
     }
 
     failAcquisition(occupied, refused)
     let before = sockets()
-    for 16 do
+    for 16
+    {
         failAcquisition(occupied, refused)
+    }
+
     let after = sockets()
     Swag.require(before.count == after.count)
-    for index in before.count do
+    for index in before.count
+    {
         Swag.require(before[index] == after[index])
+    }
 }
 
 #[Swag.TestTag("integration.network")]
@@ -164,8 +182,10 @@ using Core
     var duplicateInstalled = false
     defer
     {
-        if duplicateInstalled do
+        if duplicateInstalled
+        {
             discard Linux.close(retiredHandle)
+        }
     }
 
     if replacementHandle != retiredHandle

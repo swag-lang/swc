@@ -7,8 +7,11 @@ using Swag, Core
 #test
 {
     var source: String
-    for index in 100 do
+    for index in 100
+    {
         source += Format.toString("## Section %\n\nA long manuscript paragraph wraps on a small window and keeps its reading position when the window grows to cover a complete monitor. The same words should remain visible.\n\n", index)
+    }
+
     var host: Testing.HeadlessHost
     host.setup(1440, 900)
     let view = Markdown.View.createText(&host.root, source.toString())
@@ -34,8 +37,11 @@ using Swag, Core
 #test
 {
     var source: String
-    for index in 120 do
+    for index in 120
+    {
         source += Format.toString("## Section %\n\nA paragraph wraps across the reading column while its surrounding sections keep their identity.\n\n", index)
+    }
+
     var host: Testing.HeadlessHost
     host.setup(720, 480)
     let view = Markdown.View.createText(&host.root, source.toString())
@@ -69,8 +75,11 @@ using Swag, Core
 #test
 {
     var source: String
-    for 240 do
+    for 240
+    {
         source += "word "
+    }
+
     var host: Testing.HeadlessHost
     host.setup(720, 900, 1.5)
     let view = Markdown.View.createText(&host.root, source.toString())
@@ -80,8 +89,11 @@ using Swag, Core
     view.wndFlags.add(.AfterChildrenPaint)
     view.hookOnEvent = func|count = &commands|(_, evt)
     {
-        if evt is PaintEvent as paint where paint.kind == .After do
+        if evt is PaintEvent as paint where paint.kind == .After
+        {
             count[] = paint.paintContext.painter.commandBuffer.count
+        }
+
         return false
     }
 
@@ -121,8 +133,11 @@ using Swag, Core
     for 4
     {
         source += "<!--"
-        for 8_181 do
+        for 8_181
+        {
             source += "x"
+        }
+
         source += "-->\n\n"
     }
 
@@ -133,8 +148,11 @@ using Swag, Core
     source += "## Tendre l'oreille\n\nThe next section remains a Markdown paragraph."
     let parsed = Markdown.parseBlocks(source.toString())
     var hasCaption: bool
-    for &block in parsed where block.kind == .Quote do
+    for &block in parsed where block.kind == .Quote
+    {
         hasCaption = Utf8.contains(block.text.toString(), "FIG. 10 — <b>Bourges au centre.")
+    }
+
     Swag.require(hasCaption)
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
@@ -143,8 +161,10 @@ using Swag, Core
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(720, 480)
     view.applyLayout()
-    for 64 where view.hasUnloadedSource() do
+    for 64 where view.hasUnloadedSource()
+    {
         host.fireTimers()
+    }
 
     Swag.require(view.failureReason.isEmpty() and not view.hasUnloadedSource())
     Swag.require(view.findText("530 — Le premier chant"))
@@ -232,11 +252,17 @@ using Swag, Core
     let view = Markdown.View.createFile(&host.root, markdownPath)
     view.resize(640, 900)
     view.applyLayout()
-    for 64 where view.hasUnloadedSource() do
+    for 64 where view.hasUnloadedSource()
+    {
         host.fireTimers()
+    }
+
     Swag.require(not view.hasUnloadedSource() and view.blocks.count == 5)
-    for index in 3 do
+    for index in 3
+    {
         Swag.require(view.blocks[index].inline!.atoms[0].imageLoaded)
+    }
+
     Swag.require(view.blocks[2].inline!.images.entries.count == 1)
     Swag.require(view.blocks[3].inline!.images.entries.isEmpty())
     Swag.require(view.blocks[3].inline!.text() == "[Image: Remote]")
@@ -263,8 +289,10 @@ using Swag, Core
     memory.resize(640, 900)
     memory.applyLayout()
     Swag.require(memory.blocks[0].inline!.images.entries.count == 2)
-    for entry in memory.blocks[0].inline!.images.entries do
+    for entry in memory.blocks[0].inline!.images.entries
+    {
         Swag.require(entry.loaded)
+    }
 }
 
 // A streamed figure is decoded before publication. Removing its source after preparation must
@@ -335,8 +363,11 @@ using Swag, Core
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("markdown_html_stream_%.md", Guid64.random()).toString())
     defer discard catch File.delete(fileName)
     var source = String.from("<!--\n")
-    for 900 do
+    for 900
+    {
         source += "hidden note\n"
+    }
+
     source += "\n-->\n<div align=\"center\">\n\n<p>Visible spread</p>\n\n</div>\n\nAfter."
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     var host: Testing.HeadlessHost
@@ -344,8 +375,11 @@ using Swag, Core
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(640, 480)
     view.applyLayout()
-    for 64 where view.hasUnloadedSource() do
+    for 64 where view.hasUnloadedSource()
+    {
         host.fireTimers()
+    }
+
     Swag.require(not view.hasUnloadedSource() and view.blocks.count == 2)
     Swag.require(view.blocks[0].html != null)
     Swag.require(view.findText("Visible spread") and view.findText("After."))
@@ -384,8 +418,10 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
 
     let rules = Markdown.parseBlocks("***\n\n* * *\n\n___")
     Swag.require(rules.count == 3)
-    for &rule in rules do
+    for &rule in rules
+    {
         Swag.require(rule.kind == .Rule)
+    }
 }
 
 // Nested emphasis consumes the complete delimiter run, including inside block quotes.
@@ -423,7 +459,7 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
 // beneath the item that owns them.
 #test
 {
-    let source = "- Found while: a condition was evaluated over a\n  Core.String.\n- Evidence: the failure was observed at\n  src/Compiler/CodeGen/Ast/CodeGen.If.cpp:74.\n\n  ```swag\n  if box.count do\n      return 1\n  ```\n\n  A following paragraph still belongs beneath the evidence.\n- Next step: trace the condition."
+    let source = "- Found while: a condition was evaluated over a\n  Core.String.\n- Evidence: the failure was observed at\n  src/Compiler/CodeGen/Ast/CodeGen.If.cpp:74.\n\n  ```swag\n  if box.count {\n      return 1\n  }\n  ```\n\n  A following paragraph still belongs beneath the evidence.\n- Next step: trace the condition."
     let blocks = Markdown.parseBlocks(source)
 
     Swag.require(blocks.count == 4)
@@ -456,8 +492,11 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     view.layoutDocument()
 
     var rebuilt: String
-    for &atom in view.blocks[0].inline!.atoms where not atom.isSpace and not atom.isBreak do
+    for &atom in view.blocks[0].inline!.atoms where not atom.isSpace and not atom.isBreak
+    {
         rebuilt += atom.text
+    }
+
     Swag.require(rebuilt == "a<b")
     Swag.require(view.findText("a < b"))
 }
@@ -534,8 +573,11 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
         imageNode = cast(u32, index)
     }
 
-    for node, index in view.blocks[0].html!.document.nodes where node.tag == .P do
+    for node, index in view.blocks[0].html!.document.nodes where node.tag == .P
+    {
         paragraph = cast(u32, index)
+    }
+
     Swag.require(hasImage)
     Swag.require(paragraph != HtmlNoNode and view.blocks[0].html!.layout.styleOfNode(paragraph).textAlign == .Center)
     Swag.require(imageNode != HtmlNoNode and view.blocks[0].html!.layout.styleOfNode(imageNode).width == HtmlLength.pixels(120))
@@ -550,8 +592,10 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
 #test
 {
     var source = String.from("<p align=\"center\"><b>Embedded HTML block</b></p>\n\n")
-    for index in 64 do
+    for index in 64
+    {
         source += Format.toString("Paragraph % remains below the embedded block.\n\n", index)
+    }
 
     var host: Testing.HeadlessHost
     host.setup(640, 240)
@@ -570,8 +614,11 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
 #test
 {
     var source: String
-    for 80 do
+    for 80
+    {
         source += "A paragraph for smooth document navigation.\n\n"
+    }
+
     var host: Testing.HeadlessHost
     host.setup(640, 240)
     host.setReducedMotion(false)
@@ -622,14 +669,19 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     let view = Markdown.View.createFile(&host.root, markdownPath)
     view.resize(320, 240)
     view.applyLayout()
-    for 64 where view.hasUnloadedSource() do
+    for 64 where view.hasUnloadedSource()
+    {
         host.fireTimers()
+    }
 
     Swag.require(not view.hasUnloadedSource() and view.blocks.count == 1 and view.blocks[0].html != null)
     Swag.require(view.blocks[0].html!.images.entries.count == 1 and view.blocks[0].html!.images.entries[0].loaded)
     var imageNode = HtmlNoNode
-    for node, index in view.blocks[0].html!.document.nodes where node.tag == .Img do
+    for node, index in view.blocks[0].html!.document.nodes where node.tag == .Img
+    {
         imageNode = cast(u32, index)
+    }
+
     Swag.require(imageNode != HtmlNoNode)
     Swag.require(view.blocks[0].html!.layout.styleOfNode(imageNode).width.kind == .Percent and view.blocks[0].html!.layout.styleOfNode(imageNode).width.value == 0.8)
 }
@@ -678,24 +730,28 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     view.layoutDocument()
 
     Swag.require(view.blocks.count == 1)
-    var zeroX = -1'f32
-    var fourX = -1'f32
+    var zeroX = -1_f32
+    var fourX = -1_f32
     for &atom in view.blocks[0].inline!.atoms where atom.visible
     {
-        if atom.text == "zero" do
+        if atom.text == "zero"
+        {
             zeroX = atom.position.x
-        elif atom.text == "four" do
+        }
+        else if atom.text == "four"
+        {
             fourX = atom.position.x
+        }
     }
 
     Swag.require(zeroX >= 0 and fourX > zeroX)
 }
 
 // Returns the right edge of the last ink of every laid-out line of the first block.
-func paragraphLineEdges(view: *Markdown.View)->Array'f32
+func paragraphLineEdges(view: *Markdown.View)->Array!{f32}
 {
     var result: #returntype
-    var line = -1'f32
+    var line = -1_f32
     for &atom in view.blocks[0].inline!.atoms where atom.visible and not atom.isSpace
     {
         if atom.position.y != line
@@ -760,8 +816,11 @@ func paragraphLineEdges(view: *Markdown.View)->Array'f32
 // Returns the laid-out rectangle of one word of one block, in that block's own coordinates.
 func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rectangle
 {
-    for &atom in view.blocks[block].inline!.atoms where atom.visible and atom.text == word do
+    for &atom in view.blocks[block].inline!.atoms where atom.visible and atom.text == word
+    {
         return atom.position
+    }
+
     return {}
 }
 
@@ -898,8 +957,10 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     var inline = unwrap view.blocks[0].inline
     Swag.require(inline.lines.count >= 3)
-    for index in inline.lines.count - 1 do
+    for index in inline.lines.count - 1
+    {
         Swag.require(Math.abs(inline.lines[index].top + inline.lines[index].height - inline.lines[index + 1].top) < 0.01)
+    }
 
     var image = host.renderSettled(&host.root)
 
@@ -909,8 +970,10 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let above  = inline.localToSurface(Math.Point{0, inline.lines[0].top + inline.lines[0].height - 3})
     let below  = inline.localToSurface(Math.Point{0, inline.lines[1].top + 3})
     Swag.require(below.y > above.y)
-    for y in cast(s32, above.y) to cast(s32, below.y) do
+    for y in cast(s32, above.y) to cast(s32, below.y)
+    {
         Swag.require(image.pixelColor(cast(s32, column.x), y) != ground)
+    }
 }
 
 // The context menu and the keyboard reach the same two commands.
@@ -1004,8 +1067,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.require(revealed)
 
     var bounds: Math.Rectangle
-    for 128 where not view.searchMatchRect(&bounds) do
+    for 128 where not view.searchMatchRect(&bounds)
+    {
         host.fireTimers()
+    }
+
     Swag.require(view.searchMatchRect(&bounds))
     Swag.require(view.blocks[0].inline!.searchStart == 11 and view.blocks[0].inline!.searchEnd == 16)
 }
@@ -1019,14 +1085,16 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     const Query = "streamed-search-anchor"
     var source:  String
-    var offsets: Array'u64
+    var offsets: Array!{u64}
     for occurrence in 3
     {
         offsets.add(source.length)
         source += Query
         source += Format.toString(" occurrence %\n\n", occurrence + 1)
-        for 600 do
+        for 600
+        {
             source += "A long Markdown paragraph separates this result from the next page.\n\n"
+        }
     }
 
     expect File.writeAllBytes(fileName, source.toString())
@@ -1049,27 +1117,39 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
             Swag.require(Math.abs(view.scroll.scrollPosition().y - previousScroll.y) < 1)
         }
 
-        if target == offsets[2] do
+        if target == offsets[2]
+        {
             Swag.require(view.pendingSearchOccurrence == 0)
+        }
+
         var bounds: Math.Rectangle
-        for 2_048 where not view.searchMatchRect(&bounds) do
+        for 2_048 where not view.searchMatchRect(&bounds)
+        {
             host.fireTimers()
+        }
+
         Swag.require(view.pendingSearch.isEmpty())
         Swag.require(view.searchBlockIndex < view.blocks.count)
         Swag.require(view.searchMatchRect(&bounds))
         Swag.require(view.residentStart <= target and target < view.bytesRead)
         Swag.require(not view.pendingSeek and not view.hasPendingTarget and view.pendingSearch.isEmpty())
         let resident = view.residentStart
-        for 32 do
+        for 32
+        {
             host.fireTimers()
+        }
+
         Swag.require(view.residentStart == resident and view.searchMatchRect(&bounds))
     }
 
     let previousRevealed = view.revealFileOffset(offsets[1], Query)
     Swag.require(previousRevealed)
     var previousBounds: Math.Rectangle
-    for 2_048 where not view.searchMatchRect(&previousBounds) do
+    for 2_048 where not view.searchMatchRect(&previousBounds)
+    {
         host.fireTimers()
+    }
+
     Swag.require(view.searchMatchRect(&previousBounds) and
                  view.residentStart <= offsets[1] and
                  offsets[1] < view.bytesRead)
@@ -1106,9 +1186,12 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     Swag.require(view.blocks.count == 1)
     Swag.require(view.blocks[0].inline != null)
-    var mathAtoms = 0'u32
-    for &atom in view.blocks[0].inline!.atoms where atom.isMath do
+    var mathAtoms = 0_u32
+    for &atom in view.blocks[0].inline!.atoms where atom.isMath
+    {
         mathAtoms += 1
+    }
+
     Swag.require(mathAtoms == 1)
     Testing.assertContentFits(view)
 }
@@ -1125,9 +1208,12 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.layoutDocument()
 
     Swag.require(view.findText("split search"))
-    var hits = 0'u32
-    for &atom in view.blocks[0].inline!.atoms where atom.searchHit do
+    var hits = 0_u32
+    for &atom in view.blocks[0].inline!.atoms where atom.searchHit
+    {
         hits += 1
+    }
+
     Swag.require(hits >= 2)
 }
 
@@ -1139,8 +1225,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     defer discard catch File.delete(fileName)
 
     var source: String
-    for index in 256 do
+    for index in 256
+    {
         source += Format.toString("## README section %\n\nA paragraph remains available for progressive wheel navigation.\n\n", index)
+    }
+
     Swag.require(source.length > 8 * 1024)
     discard expect File.writeAllText(fileName, source)
 
@@ -1151,16 +1240,22 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.applyLayout()
     host.fireTimer(view.loadTimer)
 
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     Swag.require(not view.isLoading() and view.hasUnloadedSource())
 
-    for 16 do
+    for 16
+    {
         host.mouseWheel({360, 180}, -1)
+    }
+
     host.finishAnimations()
     Swag.require(view.isLoading())
 
-    var steps = 0'u32
+    var steps = 0_u32
     while view.isLoading() and steps < 4_000
     {
         host.fireTimers()
@@ -1181,8 +1276,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     var source: String
     for 16
     {
-        for 16 do
+        for 16
+        {
             source += "A paragraph keeps later HTML fragments on disk until navigation requests them.\n\n"
+        }
+
         source += "<div>\n\n<p>A streamed HTML fragment.</p>\n\n</div>\n\n"
     }
 
@@ -1195,27 +1293,40 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.resize(720, 360)
     view.applyLayout()
     view.setFocus()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     Swag.require(view.hasUnloadedSource())
     let initialBytes = view.bytesRead
-    var seenHtml: HashSet'u64
-    for block in view.blocks where block.html != null do
+    var seenHtml: HashSet!{u64}
+    for block in view.blocks where block.html != null
+    {
         seenHtml.add(block.sourceOffset)
+    }
 
     for 200
     {
         let before = view.scroll.scrollPosition().y
         host.keyPress(Input.Key.PageDown)
-        for 64 where view.isLoading() do
+        for 64 where view.isLoading()
+        {
             host.fireTimers()
-        for block in view.blocks where block.html != null do
+        }
+
+        for block in view.blocks where block.html != null
+        {
             seenHtml.add(block.sourceOffset)
+        }
+
         Swag.require(view.hasFocus())
         let after = view.scroll.scrollPosition().y
         Swag.require(after >= before)
-        if after == before and not view.hasUnloadedSource() do
+        if after == before and not view.hasUnloadedSource()
+        {
             break
+        }
     }
 
     Swag.require(not view.hasUnloadedSource() and view.bytesRead > initialBytes)
@@ -1228,8 +1339,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let fileName = Testing.tempFilePath("markdown-work-budget-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for 64 do
+    for 64
+    {
         source += "One paragraph per block.\n\n"
+    }
+
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -1251,8 +1365,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let fileName = Testing.tempFilePath("markdown-append-layout-", ".md")
     defer discard catch File.delete(fileName)
     var source = String.from("A paragraph before the embedded content.\n\n<div><p>Embedded prose stays at its measured height.</p></div>\n\n")
-    for 64 do
+    for 64
+    {
         source += "Another paragraph stays in reading order.\n\n"
+    }
+
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -1264,8 +1381,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     // Give the requested glide a fully loaded viewport; otherwise the loading boundary
     // legitimately pauses it and the next batch resumes its pending target.
-    for 64 where view.loadedDocumentHeight() < 1120 and view.isLoading() do
+    for 64 where view.loadedDocumentHeight() < 1120 and view.isLoading()
+    {
         host.fireTimer(view.loadTimer)
+    }
+
     let first         = view.blocks[0].wnd
     let html          = view.blocks[1].wnd
     let firstPosition = first.position
@@ -1273,15 +1393,21 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     var resizes, extents: u64
     first.hookOnEvent = func|count = &resizes|(_, evt)
     {
-        if evt is ResizeEvent do
+        if evt is ResizeEvent
+        {
             count[] += 1
+        }
+
         return false
     }
 
     html.hookOnEvent = func|count = &resizes|(_, evt)
     {
-        if evt is ResizeEvent do
+        if evt is ResizeEvent
+        {
             count[] += 1
+        }
+
         return false
     }
 
@@ -1325,8 +1451,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let fileName = Testing.tempFilePath("markdown-language-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for 32 do
+    for 32
+    {
         source += "> [!WARNING]\n> Retain this body.\n\n"
+    }
+
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     let file = Markdown.View.createFile(&host.root, fileName)
     file.resize(720, 1000)
@@ -1368,8 +1497,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_gui_markdown_%.md", Guid64.random()).toString())
     let view = Markdown.View.createFile(&host.root, path)
     Swag.require(not view.failureReason.isEmpty())
-    for 64 where view.hasUnloadedSource() do
+    for 64 where view.hasUnloadedSource()
+    {
         host.fireTimers()
+    }
+
     Swag.require(not view.hasUnloadedSource())
 }
 
@@ -1391,8 +1523,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         reported = reason
     }
 
-    for 64 where reported.isEmpty() do
+    for 64 where reported.isEmpty()
+    {
         host.fireTimers()
+    }
+
     Swag.require(not reported.isEmpty())
     Swag.require(reported == view.failureReason)
 }

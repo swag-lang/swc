@@ -18,8 +18,11 @@ func createListsPage(parent: *Wnd)
         .setIconSize(16)
     }
 
-    for i in 24 do
+    for i in 24
+    {
         discard simple.createLine(Format.toString("Inbox item %", i + 1), sampleIcon(i))
+    }
+
     simple.computeLayout()
 
     let right = createPanel(parent,
@@ -34,8 +37,11 @@ func createListsPage(parent: *Wnd)
     virtualList.setHorizontalExtent(620)
     virtualList.onFillVirtualLine = func(_, line, idx)
     {
-        if line == null do
+        if line == null
+        {
             return
+        }
+
         line.setItem(0,
                      Format.toString("virtual result %     cache line %", idx, idx % 64),
                      sampleIcon(cast(s32, idx)))
@@ -57,8 +63,10 @@ func createListsPage(parent: *Wnd)
     {
         let line = checks.createLine(Format.toString("pipeline step %", i + 1), sampleIcon(i + 2))
         line.canCheck = true
-        if i == 1 or i == 5 or i == 9 do
+        if i == 1 or i == 5 or i == 9
+        {
             checks.setLineChecked(line, notify: false)
+        }
     }
 
     checks.computeLayout()

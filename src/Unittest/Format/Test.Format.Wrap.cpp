@@ -708,20 +708,24 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatWrap_ForceSingleLineLogicalExpressions)
 {
     static constexpr std::string_view SOURCE =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and\n"
         "       b or\n"
         "       c and\n"
-        "       d do\n"
+        "       d {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
-        "    if a and b or c and d do\n"
+        "    if a and b or c and d {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     FormatOptions options;
@@ -739,18 +743,22 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatWrap_SourceSelectsSingleLineLogicalExpressions)
 {
     static constexpr std::string_view SOURCE =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and b or\n"
-        "       c and d do\n"
+        "       c and d {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
-        "    if a and b or c and d do\n"
+        "    if a and b or c and d {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     FormatOptions options;
@@ -767,20 +775,24 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatWrap_LogicalOperatorsAfter)
 {
     static constexpr std::string_view SOURCE =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and\n"
-        "       b or c and d do\n"
+        "       b or c and d {\n"
         "        return\n"
+        "       }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and\n"
         "       b or\n"
-        "       c and d do\n"
+        "       c and d {\n"
         "        return\n"
+        "       }\n"
         "}\n";
 
     FormatOptions options;
@@ -796,20 +808,24 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatWrap_LogicalOperatorsBefore)
 {
     static constexpr std::string_view SOURCE =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and\n"
-        "       b or c and d do\n"
+        "       b or c and d {\n"
         "        return\n"
+        "       }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a\n"
         "       and b\n"
-        "       or c and d do\n"
+        "       or c and d {\n"
         "        return\n"
+        "       }\n"
         "}\n";
 
     FormatOptions options;
@@ -825,21 +841,25 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatWrap_LogicalOperandsOnePerLine)
 {
     static constexpr std::string_view SOURCE =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and\n"
-        "       b or c and d do\n"
+        "       b or c and d {\n"
         "        return\n"
+        "       }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and\n"
         "       b or\n"
         "       c and\n"
-        "       d do\n"
+        "       d {\n"
         "        return\n"
+        "       }\n"
         "}\n";
 
     FormatOptions options;
@@ -854,20 +874,24 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatWrap_LogicalHangingIndent)
 {
     static constexpr std::string_view SOURCE =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and\n"
-        "       b or c and d do\n"
+        "       b or c and d {\n"
         "        return\n"
+        "       }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and\n"
         "        b or\n"
-        "        c and d do\n"
+        "        c and d {\n"
         "        return\n"
+        "       }\n"
         "}\n";
 
     FormatOptions options;
@@ -883,21 +907,25 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatWrap_LogicalOperandsPack)
 {
     static constexpr std::string_view SOURCE =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and\n"
         "       b or\n"
         "       c and\n"
-        "       d do\n"
+        "       d {\n"
         "        return\n"
+        "       }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and\n"
-        "       b or c and d do\n"
+        "       b or c and d {\n"
         "        return\n"
+        "       }\n"
         "}\n";
 
     FormatOptions options;
@@ -912,24 +940,30 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatWrap_FormatterSelectsLogicalExpressionLineMode)
 {
     static constexpr std::string_view SOURCE =
+        
         "func test()\n"
         "{\n"
         "    if true and\n"
-        "       false do\n"
+        "       false {\n"
         "        return\n"
+        "    }\n"
         "    if someVeryLongCondition() and\n"
-        "       anotherVeryLongCondition() do\n"
+        "       anotherVeryLongCondition() {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func test()\n"
         "{\n"
-        "    if true and false do\n"
+        "    if true and false {\n"
         "        return\n"
+        "    }\n"
         "    if someVeryLongCondition() and\n"
-        "       anotherVeryLongCondition() do\n"
+        "       anotherVeryLongCondition() {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     FormatOptions options;
@@ -945,18 +979,22 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatWrap_NestedLogicalExpressions)
 {
     static constexpr std::string_view SOURCE =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
         "    if a and (b or c or\n"
-        "              d) or e do\n"
+        "              d) or e {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func test(a, b, c, d: bool)\n"
         "{\n"
-        "    if a and (b or c or d) or e do\n"
+        "    if a and (b or c or d) or e {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     FormatOptions options;
@@ -1027,21 +1065,25 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatWrap_NormalizesAdversarialLogicalExpression)
 {
     static constexpr std::string_view SOURCE =
+        
         "func test(a,b,c:bool)\n"
         "{\n"
         " if a\n"
         "             and b or\n"
-        " c do\n"
+        " c {\n"
         "  return\n"
+        "    }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func test(a, b, c: bool)\n"
         "{\n"
         "    if a and\n"
         "       b or\n"
-        "       c do\n"
+        "       c {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     FormatOptions options;
@@ -1104,25 +1146,29 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatWrap_ClosureCapturesStayInsideArgument)
 {
     static constexpr std::string_view SOURCE =
+        
         "func run()\n"
         "{\n"
         " call(surface, func|host = &host, frames = select(&count, 1)|(app)\n"
         " {\n"
         "  use(host, frames)\n"
-        "  if ready do\n"
-        "  use(frames, app)\n"
+        "  if ready {\n"
+        "   use(frames, app)\n"
+        "  }\n"
         " })\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func run()\n"
         "{\n"
         "    call(surface,\n"
         "         func|host = &host, frames = select(&count, 1)|(app)\n"
         "         {\n"
         "             use(host, frames)\n"
-        "             if ready do\n"
+        "             if ready {\n"
         "                 use(frames, app)\n"
+        "             }\n"
         "         })\n"
         "}\n";
 

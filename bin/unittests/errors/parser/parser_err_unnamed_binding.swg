@@ -8,8 +8,10 @@ func ignoreBoth(_: s32, _: s32)->s32 => 0
 {
     Swag.require(ignoreBoth(1, 2) == 0)
     var total = 0
-    for _, value in [1, 2] do
+    for _, value in [1, 2]
+    {
         total += value
+    }
     let (_, second) = (1, 2)
     Swag.require(total == 3 and second == 2)
 }

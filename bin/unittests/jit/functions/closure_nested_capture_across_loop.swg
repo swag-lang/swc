@@ -47,16 +47,20 @@ impl Owner
             // Early capture use.
             prop.pop = item
             color.v  = blend(color.v, 1)
-            var flag = 0'u32
-            if opaque do
+            var flag = 0_u32
+            if opaque
+            {
                 flag |= 1
-            if keepAlpha do
+            }
+            if keepAlpha
+            {
                 flag |= 2
+            }
             item.a = cast(u8, flag)
 
             // Keep the captures live across a loop with calls.
             var acc: [9] u32
-            var a = 1'u32, b = 2'u32, c = 3'u32, d = 4'u32
+            var a = 1_u32, b = 2_u32, c = 3_u32, d = 4_u32
             for i in 9
             {
                 a      = blend(a, b)
@@ -65,19 +69,25 @@ impl Owner
                 d      = blend(d, cast(u32, i))
                 acc[i] = a ^ b ^ c ^ d ^ flag
             }
-            var s = 0'u32
-            for i in 9 do
+            var s = 0_u32
+            for i in 9
+            {
                 s ^= acc[i]
+            }
             g_sink ^= s
 
             // Late: nested closure re-capturing the same variables.
             g_inner = func|prop, color, item, opaque, keepAlpha|(val: u32)
             {
                 var result = val
-                if opaque do
+                if opaque
+                {
                     result |= 0x10
-                elif keepAlpha do
+                }
+                else if keepAlpha
+                {
                     result |= 0x20
+                }
                 color.v = result + prop.tag
                 item.v  = result
             }

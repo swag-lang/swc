@@ -42,36 +42,54 @@ func runRuntimeTargetCasts()->bool
     var number  = 45
     var derived = Derived{}
 
-    if not (derivedType is baseType) or not (derivedType is midType) or not (s32 is intType) do
+    if not (derivedType is baseType) or not (derivedType is midType) or not (s32 is intType)
+    {
         return false
-    if intType is stringType do
+    }
+    if intType is stringType
+    {
         return false
+    }
 
     let intView = catch cast(any?, cast(intType, &number)) orelse null
-    if intView == null do
+    if intView == null
+    {
         return false
+    }
 
     let baseView = catch cast(any?, cast(baseType, &derived)) orelse null
-    if baseView == null do
+    if baseView == null
+    {
         return false
+    }
 
     let strictDerivedPtr = cast(DynamicCastStrictDerivedPtr, &derived)
     let strictBaseView   = catch cast(any?, cast(baseType, cast(*Derived, strictDerivedPtr))) orelse null
-    if strictBaseView == null do
+    if strictBaseView == null
+    {
         return false
+    }
 
     let intPtr        = catch cast(*s32?, intView) orelse null
     let basePtr       = catch cast(*Base?, baseView) orelse null
     let strictBasePtr = catch cast(*Base?, strictBaseView) orelse null
-    if intPtr == null or intPtr != &number or intPtr[] != 45 do
+    if intPtr == null or intPtr != &number or intPtr[] != 45
+    {
         return false
+    }
     let boolType: typeinfo = bool
-    if &number is boolType do
+    if &number is boolType
+    {
         return false
-    if basePtr != &derived.mid.base do
+    }
+    if basePtr != &derived.mid.base
+    {
         return false
-    if strictBasePtr != &derived.mid.base do
+    }
+    if strictBasePtr != &derived.mid.base
+    {
         return false
+    }
 
     return true
 }

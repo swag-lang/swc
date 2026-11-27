@@ -8,7 +8,7 @@ func equalOrZero(values: const [*]u64, index: u64)->u64 => cast(u64, (values[ind
 
 #test
 {
-    let values = [0'u64, 0, 1, 2, 2, 0xFFFFFFFFFFFFFFFF, 7]
+    let values = [0_u64, 0, 1, 2, 2, 0xFFFFFFFFFFFFFFFF, 7]
     Swag.require(lessAndNonzero(&values[0], 0) == 0)
     Swag.require(lessAndNonzero(&values[0], 1) == 0)
     Swag.require(lessAndNonzero(&values[0], 2) == 1)

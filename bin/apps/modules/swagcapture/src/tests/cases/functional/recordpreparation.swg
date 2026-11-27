@@ -12,7 +12,7 @@ using Swag, Core, Gui
 
     g_CaptureWindow   = {}
     g_CaptureAnchored = false
-    let recorder = Memory.new'Recorder()
+    let recorder = Memory.new!{Recorder}()
     defer Memory.delete(recorder)
     recorder.main      = f.main
     recorder.state     = .Preparing
@@ -45,12 +45,17 @@ using Swag, Core, Gui
     // The pill says how large the video will be.
     Swag.require(Utf8.contains(hud.targetLabel.text(), recorder.pictureSizeText().toString()))
     Swag.require(hud.targetLabel.isLocallyVisible() and hud.targetLabel.position.right() <= record.position.x)
-    #static if #os == Swag.TargetOs.Windows do
+    #static if #os == Swag.TargetOs.Windows
+    {
         Swag.require(hud.prepOptions.count == 4)
-    else do
+    }
+    else
+    {
         Swag.require(hud.prepOptions.count == 3 and
                      not hud.prepOptions[2].isEnabled() and
                      hud.prepOptions[2].name == appStrings().ui_AimSoundUnavailable)
+    }
+
     let options = &f.main.captureOptions
     Swag.require(options.recordVideoQuality == .Balanced)
 
@@ -82,10 +87,15 @@ using Swag, Core, Gui
     }
 
     Swag.require(options.captureCursor != before[0] and options.recordCountdown != before[1])
-    #static if #os == Swag.TargetOs.Windows do
+    #static if #os == Swag.TargetOs.Windows
+    {
         Swag.require(options.recordMicrophone != before[2] and options.recordSystemSound != before[3])
-    else do
+    }
+    else
+    {
         Swag.require(options.recordMicrophone == before[2] and options.recordSystemSound == before[3])
+    }
+
     record.sigPressed.call(record)
     Swag.require(recorder.recordRequested)
 
@@ -106,7 +116,7 @@ using Swag, Core, Gui
         f.setup(480, 120)
         defer f.shutdown()
 
-        let recorder = Memory.new'Recorder()
+        let recorder = Memory.new!{Recorder}()
         defer Memory.delete(recorder)
         recorder.main  = f.main
         recorder.state = .Recording

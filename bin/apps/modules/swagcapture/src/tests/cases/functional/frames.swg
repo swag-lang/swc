@@ -30,11 +30,16 @@ using Swag, Core
     Swag.require(reader.frameAt(1_499_999) == 2)
     Swag.require(reader.frameAt(9_000_000) == 5)
 
-    for i in 6 do
+    for i in 6
+    {
         Swag.require(testSamePixels(expect reader.read(i), &pictures[i]))
-    let shuffled = [5'u64, 1, 3, 0, 4]
-    for i in shuffled do
+    }
+
+    let shuffled = [5_u64, 1, 3, 0, 4]
+    for i in shuffled
+    {
         Swag.require(testSamePixels(expect reader.read(i), &pictures[i]))
+    }
 }
 
 // A recording cut short, before its index was written, keeps every frame completely written.
@@ -50,8 +55,11 @@ using Swag, Core
 
     // Write the records, then cut the file in the middle of the last one, as a crash would.
     var writer = expect Frames.Writer.create(path, 64, 48, .BGRA8)
-    for picture, i in pictures do
+    for picture, i in pictures
+    {
         expect writer.add(picture, i * 100_000)
+    }
+
     let cut = writer.sink.position() - 5
     expect writer.close(300_000)
 
@@ -84,8 +92,11 @@ using Swag, Core
     defer catch File.delete(path)
     let picture = Image.create(1, 1, .BGRA8)
     var writer  = expect Frames.Writer.create(path, 1, 1, .BGRA8)
-    for i in 72_000 do
+    for i in 72_000
+    {
         expect writer.add(picture, cast(u64, i) * 50_000)
+    }
+
     Swag.require(writer.frameCount() == 72_000)
     expect writer.close(3_600_000_000)
     Swag.require(not File.exists(writer.indexPath))

@@ -43,30 +43,32 @@ internal impl MaxRandomSource
     // Generators with only a 32-bit seed consume the low word of a 64-bit seed.
     var first:  Random.Generator
     var second: Random.Generator
-    first.seedU64(0x0123_4567_89AB_CDEF'u64)
-    second.seedU32(0x89AB_CDEF'u32)
+    first.seedU64(0x0123_4567_89AB_CDEF_u64)
+    second.seedU32(0x89AB_CDEF_u32)
 
-    for 4 do
+    for 4
+    {
         Swag.require(first.nextU64() == second.nextU64())
+    }
 }
 
 #test
 {
     // A generator with native 64-bit seeding retains the full algorithm sequence.
-    var generator: Random.Generator'Random.MersenneTwister64
+    var generator: Random.Generator!{Random.MersenneTwister64}
     generator.seedU64(5489)
 
-    Swag.require(generator.nextU64() == 0xC96D191CF6F6AEA6'u64)
-    Swag.require(generator.nextU64() == 0x401F7AC78BC80F1C'u64)
+    Swag.require(generator.nextU64() == 0xC96D191CF6F6AEA6_u64)
+    Swag.require(generator.nextU64() == 0x401F7AC78BC80F1C_u64)
 }
 
 #test
 {
-    var generator: Random.Generator'MaxRandomSource
+    var generator: Random.Generator!{MaxRandomSource}
     generator.seedU32(1)
 
-    let value32 = generator.nextF32(1'f32, 2'f32)
-    let value64 = generator.nextF64(1'f64, 2'f64)
+    let value32 = generator.nextF32(1_f32, 2_f32)
+    let value64 = generator.nextF64(1_f64, 2_f64)
     Swag.require(value32 >= 1 and value32 < 2)
     Swag.require(value64 >= 1 and value64 < 2)
 
@@ -77,19 +79,19 @@ internal impl MaxRandomSource
 
     let invalid32 = Swag.catchPanic(func|&generator|()
     {
-        discard generator.nextF32(0'f32, Swag.F32.Inf)
+        discard generator.nextF32(0_f32, Swag.F32.Inf)
     })
     let nan32 = Swag.catchPanic(func|&generator|()
     {
-        discard generator.nextF32(0'f32, Swag.F32.NaN)
+        discard generator.nextF32(0_f32, Swag.F32.NaN)
     })
     let invalid64 = Swag.catchPanic(func|&generator|()
     {
-        discard generator.nextF64(0'f64, Swag.F64.Inf)
+        discard generator.nextF64(0_f64, Swag.F64.Inf)
     })
     let nan64 = Swag.catchPanic(func|&generator|()
     {
-        discard generator.nextF64(0'f64, Swag.F64.NaN)
+        discard generator.nextF64(0_f64, Swag.F64.NaN)
     })
     Swag.require(invalid32.raised and invalid32.message() == "bounds must be finite")
     Swag.require(nan32.raised and nan32.message() == "bounds must be finite")
@@ -99,7 +101,7 @@ internal impl MaxRandomSource
 
 #test
 {
-    var generator: Random.Generator'MaxRandomSource
+    var generator: Random.Generator!{MaxRandomSource}
     let invalidU32 = Swag.catchPanic(func|&generator|() { discard generator.nextU32(4, 4) })
     let invalidU64 = Swag.catchPanic(func|&generator|() { discard generator.nextU64(5, 4) })
     let invalidS32 = Swag.catchPanic(func|&generator|() { discard generator.nextS32(4, 3) })
@@ -117,11 +119,11 @@ internal impl MaxRandomSource
 
 #test
 {
-    var generator: Random.Generator'MaxRandomSource
-    let min32 = 1'f32
-    let max32 = cast #bit (f32, 0x3F800001'u32)
-    let min64 = 1'f64
-    let max64 = cast #bit (f64, 0x3FF0000000000001'u64)
+    var generator: Random.Generator!{MaxRandomSource}
+    let min32 = 1_f32
+    let max32 = cast #bit (f32, 0x3F800001_u32)
+    let min64 = 1_f64
+    let max64 = cast #bit (f64, 0x3FF0000000000001_u64)
 
     Swag.require(generator.nextF32(min32, max32) == min32)
     Swag.require(generator.nextF64(min64, max64) == min64)
@@ -129,7 +131,7 @@ internal impl MaxRandomSource
 
 #test
 {
-    var generator: Random.Generator'MaxRandomSource
+    var generator: Random.Generator!{MaxRandomSource}
     generator.seedU32(1)
 
     Swag.require(generator.nextU32(0, 8) == 7)
@@ -172,13 +174,15 @@ internal impl MaxRandomSource
         found[value] = true
     }
 
-    for present in found do
+    for present in found
+    {
         Swag.require(present)
+    }
 }
 
 #test
 {
-    const Seed = 0x1234_5678'u32
+    const Seed = 0x1234_5678_u32
     let shared = Random.shared()
     shared.seedU32(Seed)
     let first  = shared.nextU32()

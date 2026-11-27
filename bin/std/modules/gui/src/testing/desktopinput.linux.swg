@@ -45,16 +45,16 @@ impl DesktopInput
         Swag.require(.xtst != null, "desktop input needs libXtst.so.6")
         let x11  = .x11
         let xtst = .xtst
-        let open = expect LinuxDesktop.symbol'Linux.XOpenDisplay_fn(x11, "XOpenDisplay")
+        let open = expect LinuxDesktop.symbol!{Linux.XOpenDisplay_fn}(x11, "XOpenDisplay")
         .display = open(null)
         Swag.require(.display != null, "desktop input needs an X11 display")
-        .motion   = expect LinuxDesktop.symbol'XTestMotion(xtst, "XTestFakeMotionEvent")
-        .button   = expect LinuxDesktop.symbol'XTestButton(xtst, "XTestFakeButtonEvent")
-        .key      = expect LinuxDesktop.symbol'XTestKey(xtst, "XTestFakeKeyEvent")
-        .keycode  = expect LinuxDesktop.symbol'XKeysymToKeycode(x11, "XKeysymToKeycode")
-        .setFocus = expect LinuxDesktop.symbol'XSetInputFocus(x11, "XSetInputFocus")
-        .getFocus = expect LinuxDesktop.symbol'XGetInputFocus(x11, "XGetInputFocus")
-        .sync     = expect LinuxDesktop.symbol'XSync(x11, "XSync")
+        .motion   = expect LinuxDesktop.symbol!{XTestMotion}(xtst, "XTestFakeMotionEvent")
+        .button   = expect LinuxDesktop.symbol!{XTestButton}(xtst, "XTestFakeButtonEvent")
+        .key      = expect LinuxDesktop.symbol!{XTestKey}(xtst, "XTestFakeKeyEvent")
+        .keycode  = expect LinuxDesktop.symbol!{XKeysymToKeycode}(x11, "XKeysymToKeycode")
+        .setFocus = expect LinuxDesktop.symbol!{XSetInputFocus}(x11, "XSetInputFocus")
+        .getFocus = expect LinuxDesktop.symbol!{XGetInputFocus}(x11, "XGetInputFocus")
+        .sync     = expect LinuxDesktop.symbol!{XSync}(x11, "XSync")
         var revertTo: s32
         discard .getFocus(.display, &.priorFocus, &revertTo)
     }
@@ -64,19 +64,34 @@ impl DesktopInput
         let display = unwrap .display
         let x11     = unwrap .x11
         let xtst    = unwrap .xtst
-        if .pressedKeyCode != 0 do
+        if .pressedKeyCode != 0
+        {
             discard .key(display, .pressedKeyCode, 0, 0)
-        if .heldAlt do
+        }
+
+        if .heldAlt
+        {
             .releaseModifier(.Alt)
-        if .heldShift do
+        }
+
+        if .heldShift
+        {
             .releaseModifier(.Shift)
-        if .heldControl do
+        }
+
+        if .heldControl
+        {
             .releaseModifier(.Control)
-        if .mousePressed do
+        }
+
+        if .mousePressed
+        {
             discard .button(display, 1, 0, 0)
+        }
+
         discard .setFocus(display, .priorFocus, 2, 0)
         discard .sync(display, 0)
-        let close = expect LinuxDesktop.symbol'Linux.XCloseDisplay_fn(x11, "XCloseDisplay")
+        let close = expect LinuxDesktop.symbol!{Linux.XCloseDisplay_fn}(x11, "XCloseDisplay")
         discard close(display)
         discard Linux.dlclose(xtst)
         discard Linux.dlclose(x11)
@@ -159,8 +174,10 @@ impl DesktopInput
     private mtd releaseModifier(modifier: Input.KeyModifiers)
     {
         let code = .modifierCode(modifier)
-        if code != 0 do
+        if code != 0
+        {
             discard .key(unwrap .display, code, 0, 0)
+        }
     }
 
     private mtd sendRawKey(code: u32, pressed: bool)

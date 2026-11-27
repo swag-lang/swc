@@ -274,8 +274,11 @@ var ToolDockDynamicId:   String
     Swag.require(sheet.tabRects[0].x == host.theme.metrics.infoSheet_Padding and
                  sheet.tabRects[1].x > sheet.tabRects[0].right())
     let tabFont = host.theme.createDefaultFont(host.theme.metrics.defaultFontSize, .SemiBold)
-    for rect, index in sheet.tabRects do
+    for rect, index in sheet.tabRects
+    {
         Swag.require(rect.width >= Painter.measureStringSnapped(sheet.pages[index], tabFont, deviceScale: sheet.deviceScale()))
+    }
+
     Swag.require(sheet.closeButton.position.y < host.theme.metrics.infoSheet_Padding)
     Swag.require(Utf8.contains(sheet.text(), "8.1 IMDb") and not Utf8.contains(sheet.text(), "24 fps"))
 
@@ -357,8 +360,11 @@ var ToolDockDynamicId:   String
     floatingHost(&host, 640, 400, false)
     let sheet = InfoSheet.create(&host.root)
     sheet.setTitle("Film")
-    for index in 40 do
+    for index in 40
+    {
         sheet.addReading("Track", Format.toString("%", index))
+    }
+
     sheet.open()
     Swag.require(sheet.contentHeight > sheet.position.height)
     host.mouseWheel({400, 200}, -1)
@@ -454,7 +460,7 @@ var ToolDockDynamicId:   String
     inspector.setTitle("Text", "1 object")
     inspector.addSection("Color")
     let swatch  = inspector.addRow("Fill", Slider.create(&host.root, {}))
-    let content = inspector.setContent(Wnd.create'Wnd(&host.root, {}))
+    let content = inspector.setContent(Wnd.create!{Wnd}(&host.root, {}))
     host.root.applyLayout()
 
     let gutter = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
@@ -609,8 +615,11 @@ var ToolDockDynamicId:   String
     sheet.beginPage("Media")
     sheet.setTitle("Film")
     sheet.beginPage("Technical")
-    for 40 do
+    for 40
+    {
         sheet.addReading("Track", "A reading")
+    }
+
     sheet.open()
     let bounds = sheet.position
     let inset  = host.theme.metrics.floating_Inset

@@ -47,8 +47,10 @@ namespace WinFsp
                     .volumeOpen = false
                 }
 
-                if .volume.dirty and not .volume.readOnly do
+                if .volume.dirty and not .volume.readOnly
+                {
                     try .volume.commit()
+                }
             }
         }
 
@@ -59,7 +61,7 @@ namespace WinFsp
 // Creates the Windows mount behind the platform-neutral application handle.
 func mountVaultNative(path: string, password: const [..] u8, destination: string, readOnly: bool, protectionPassword: const [..] u8)->*void fail
 {
-    let mounted = Memory.new'WinFsp.MountedVolume()
+    let mounted = Memory.new!{WinFsp.MountedVolume}()
     discard catch mounted.open(path, password, destination, readOnly, protectionPassword)
     {
         Memory.delete(mounted)

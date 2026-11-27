@@ -1,13 +1,13 @@
 using Core
 
-private const GrayChannel0_32 = [0'u8, 4, 8, 12, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
-private const GrayChannel1_32 = [1'u8, 5, 9, 13, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
-private const GrayChannel2_32 = [2'u8, 6, 10, 14, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
-private const GrayOutput32    = [0'u8, 0, 0, 128, 1, 1, 1, 128, 2, 2, 2, 128, 3, 3, 3, 128]
-private const GrayChannel0_24 = [0'u8, 3, 6, 9, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
-private const GrayChannel1_24 = [1'u8, 4, 7, 10, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
-private const GrayChannel2_24 = [2'u8, 5, 8, 11, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
-private const GrayOutput24    = [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 128, 128, 128, 128]
+private const GrayChannel0_32 = [0_u8, 4, 8, 12, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
+private const GrayChannel1_32 = [1_u8, 5, 9, 13, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
+private const GrayChannel2_32 = [2_u8, 6, 10, 14, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
+private const GrayOutput32    = [0_u8, 0, 0, 128, 1, 1, 1, 128, 2, 2, 2, 128, 3, 3, 3, 128]
+private const GrayChannel0_24 = [0_u8, 3, 6, 9, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
+private const GrayChannel1_24 = [1_u8, 4, 7, 10, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
+private const GrayChannel2_24 = [2_u8, 5, 8, 11, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
+private const GrayOutput24    = [0_u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 128, 128, 128, 128]
 
 public impl Image
 {
@@ -16,12 +16,16 @@ public impl Image
     // `factor` is clamped to [0, 1], from the original image at zero to full grayscale at one.
     mtd grayscale(factor: f32 = 1)
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         let blendFactor = Math.saturate(factor)
-        if blendFactor == 0 do
+        if blendFactor == 0
+        {
             return
+        }
 
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
         {
@@ -47,12 +51,12 @@ public impl Image
                 let image     = cast(*Image, context.image)
                 let rowPixels = image.pixels.storage() + cast(u64, row) * image.rowStride
                 let blueFirst = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
-                let weight0   = blueFirst ? 19'u16 : 54'u16
-                let weight2   = blueFirst ? 54'u16 : 19'u16
+                let weight0   = blueFirst ? 19_u16 : 54_u16
+                let weight2   = blueFirst ? 54_u16 : 19_u16
                 let weights0  = Math.Simd.splat(weight0)
-                let weights1  = Math.Simd.splat(183'u16)
+                let weights1  = Math.Simd.splat(183_u16)
                 let weights2  = Math.Simd.splat(weight2)
-                let zeros     = Math.Simd.splat(0's16)
+                let zeros     = Math.Simd.splat(0_s16)
                 var x         = 0
 
                 if image.bytesPerPixel == 4
@@ -61,7 +65,7 @@ public impl Image
                     let shuffle1  = Math.Simd.load(GrayChannel1_32.buffer)
                     let shuffle2  = Math.Simd.load(GrayChannel2_32.buffer)
                     let output    = Math.Simd.load(GrayOutput32.buffer)
-                    let alphaMask = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
+                    let alphaMask = cast(Math.Simd.U8x16, [0_u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
                     while image.width - x >= 4
                     {
                         let block    = rowPixels + cast(u64, x) * 4
@@ -103,7 +107,7 @@ public impl Image
                 {
                     let pixel    = rowPixels + cast(u64, x) * image.bytesPerPixel
                     let weighted = pixel[0] * cast(s32, weight0) +
-                                   pixel[1] * 183's32 +
+                                   pixel[1] * 183_s32 +
                                    pixel[2] * cast(s32, weight2)
                     let gray = cast(u8, ((weighted >> 8) & 0xFF))
                     pixel[0] = gray
@@ -121,9 +125,9 @@ public impl Image
         {
             let blueFirst = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
             let blend     = cast(const *f32, unwrap userData)[]
-            let weight0   = blueFirst ? 19's32 : 54's32
-            let weight2   = blueFirst ? 54's32 : 19's32
-            let weighted  = (pix[0] * weight0) + (pix[1] * 183's32) + (pix[2] * weight2)
+            let weight0   = blueFirst ? 19_s32 : 54_s32
+            let weight2   = blueFirst ? 54_s32 : 19_s32
+            let weighted  = (pix[0] * weight0) + (pix[1] * 183_s32) + (pix[2] * weight2)
             let gray      = cast(f32, ((weighted >> 8) & 0xFF))
             pix[0] = cast(u8, Math.lerp(cast(f32, pix[0]), gray, blend))
             pix[1] = cast(u8, Math.lerp(cast(f32, pix[1]), gray, blend))

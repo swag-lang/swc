@@ -8,39 +8,39 @@ var GNullCoerc: s32 = 56
 {
     func zeroFallbackU32(x: u32)->u32
     {
-        return x != 0 ? x : 7'u32
+        return x != 0 ? x : 7_u32
     }
 
-    const V0 = #run zeroFallbackU32(0'u32)
-    const V1 = #run zeroFallbackU32(9'u32)
-    #assert(V0 == 7'u32)
-    #assert(V1 == 9'u32)
+    const V0 = #run zeroFallbackU32(0_u32)
+    const V1 = #run zeroFallbackU32(9_u32)
+    #assert(V0 == 7_u32)
+    #assert(V1 == 9_u32)
 }
 
 #test
 {
     func zeroFallbackRune(x: rune)->rune
     {
-        return x != cast(rune, 0'u32) ? x : 'A'rune
+        return x != cast(rune, 0_u32) ? x : 'A'_rune
     }
 
-    const V0 = #run zeroFallbackRune(cast(rune, 0'u32))
-    const V1 = #run zeroFallbackRune('B'rune)
-    #assert(V0 == 'A'rune)
-    #assert(V1 == 'B'rune)
+    const V0 = #run zeroFallbackRune(cast(rune, 0_u32))
+    const V1 = #run zeroFallbackRune('B'_rune)
+    #assert(V0 == 'A'_rune)
+    #assert(V1 == 'B'_rune)
 }
 
 #test
 {
     func zeroFallbackF32(x: f32)->f32
     {
-        return x != 0.0'f32 ? x : 3.5'f32
+        return x != 0.0_f32 ? x : 3.5_f32
     }
 
-    const V0 = #run zeroFallbackF32(0.0'f32)
-    const V1 = #run zeroFallbackF32(2.25'f32)
-    #assert(V0 == 3.5'f32)
-    #assert(V1 == 2.25'f32)
+    const V0 = #run zeroFallbackF32(0.0_f32)
+    const V1 = #run zeroFallbackF32(2.25_f32)
+    #assert(V0 == 3.5_f32)
+    #assert(V1 == 2.25_f32)
 }
 
 #test

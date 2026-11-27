@@ -20,7 +20,7 @@ func wide(a, b: u64)->u64 => a ^ b
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u32, 1, 7, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF]
+    let values = [0_u32, 1, 7, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF]
     for a in values
     {
         for b in values

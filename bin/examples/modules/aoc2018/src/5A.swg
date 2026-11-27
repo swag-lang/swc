@@ -37,10 +37,15 @@ func day5A()
               Latin1.toLower(line[idx]) == Latin1.toLower(line[idx + 1])
         {
             line.remove(idx, 2)
-            if idx >= line.length do
+            if idx >= line.length
+            {
                 break
-            if idx do
+            }
+
+            if idx
+            {
                 idx -= 1
+            }
         }
 
         idx += 1

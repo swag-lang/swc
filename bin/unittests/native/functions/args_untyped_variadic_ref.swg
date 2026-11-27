@@ -10,8 +10,10 @@ struct VariadicReferencedValue
 #[Swag.NoInline]
 func variadicReferencedValueIsIntact(values: ...)->bool
 {
-    if Swag.kindOf(values[0]) != VariadicReferencedValue do
+    if Swag.kindOf(values[0]) != VariadicReferencedValue
+    {
         return false
+    }
 
     let value = assume cast(VariadicReferencedValue, values[0])
     return value.first == 11 and value.second == 22 and value.third == 33

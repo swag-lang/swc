@@ -5,7 +5,7 @@ using Core
 
 // Tabs the structure strip names at most. A format with more top-level structures than a window
 // is wide keeps the first ones; the rest stay reachable from the caret.
-const TabLimit = 24'u64
+const TabLimit = 24_u64
 
 // Strings a structure is read in, copied from the active language when the read starts. A reader
 // names what it finds in that language, whatever the interface switches to while it runs.
@@ -27,7 +27,7 @@ struct Structure
     formatName: String
     bigEndian:  bool
     report:     Binary.Report
-    tabs:       Array'StructureTab
+    tabs:       Array!{StructureTab}
 }
 
 impl Structure
@@ -44,8 +44,10 @@ impl Structure
         defer Binary.setTextsOverride(null)
 
         var document: Binary.Document
-        if not document.open(fileName) or document.kind == .Unknown do
+        if not document.open(fileName) or document.kind == .Unknown
+        {
             return result
+        }
 
         result.formatName = #move document.report.formatName
         result.bigEndian  = document.image.bigEndian
@@ -64,8 +66,11 @@ impl Structure
         var span   = Swag.U64.Max
         for row, index in .report.rows where index and .isStructure(row)
         {
-            if offset < row.offset or offset - row.offset >= row.length or row.length >= span do
+            if offset < row.offset or offset - row.offset >= row.length or row.length >= span
+            {
                 continue
+            }
+
             result = index
             span   = row.length
         }
@@ -76,8 +81,11 @@ impl Structure
     // Returns the index of the tab that holds `offset`, or `Swag.U64.Max`.
     mtd tabAt(offset: u64)->u64
     {
-        for tab, index in .tabs where offset >= tab.offset and offset - tab.offset < tab.length do
+        for tab, index in .tabs where offset >= tab.offset and offset - tab.offset < tab.length
+        {
             return index
+        }
+
         return Swag.U64.Max
     }
 
@@ -87,27 +95,37 @@ impl Structure
     {
         for row, index in .report.rows where row.kind == .Field and row.offset != Swag.U64.Max
         {
-            if offset < row.offset or offset - row.offset >= row.length do
+            if offset < row.offset or offset - row.offset >= row.length
+            {
                 continue
-            if row.length == 1 or row.length == 2 or row.length == 4 or row.length == 8 do
+            }
+
+            if row.length == 1 or row.length == 2 or row.length == 4 or row.length == 8
+            {
                 return index
+            }
         }
 
         return Swag.U64.Max
     }
 
     // Returns the rows of the values decoded directly under the group at row `group`.
-    mtd fieldsOf(group: u64)->Array'u64
+    mtd fieldsOf(group: u64)->Array!{u64}
     {
         var result: #returntype
         let level = .report.rows[group].level
         for index in group + 1 until .report.rows.count
         {
             let row = &.report.rows[index]
-            if row.level <= level do
+            if row.level <= level
+            {
                 break
-            if row.kind == .Field and row.level == level + 1 do
+            }
+
+            if row.kind == .Field and row.level == level + 1
+            {
                 result.add(index)
+            }
         }
 
         return result
@@ -120,9 +138,11 @@ impl Structure
     // a name into one tab.
     private mtd collectTabs()
     {
-        var groups: Array'u64
-        for row, index in .report.rows where index and .isStructure(row) do
+        var groups: Array!{u64}
+        for row, index in .report.rows where index and .isStructure(row)
+        {
             groups.add(index)
+        }
 
         let rows = &.report.rows
         groups.sort(func|rows|(a, b: u64)->s32
@@ -132,7 +152,7 @@ impl Structure
             return left < right ? -1 : (left > right ? 1 : 0)
         })
 
-        var counts: Array'u64
+        var counts: Array!{u64}
         for group in groups
         {
             let row = &.report.rows[group]
@@ -144,13 +164,18 @@ impl Structure
                 continue
             }
 
-            if .tabs.count == TabLimit do
+            if .tabs.count == TabLimit
+            {
                 break
+            }
+
             .tabs.add({row.label, row.offset, row.length})
             counts.add(1)
         }
 
-        for index in .tabs.count where counts[index] > 1 do
+        for index in .tabs.count where counts[index] > 1
+        {
             .tabs[index].label = Format.toString("% × %", .tabs[index].label, counts[index])
+        }
     }
 }

@@ -67,12 +67,12 @@ struct PartTwoScorer {}
 
 func isOpponentToken(ch: u8)->bool
 {
-    return ch == 'A'u8 or ch == 'B'u8 or ch == 'C'u8
+    return ch == 'A'_u8 or ch == 'B'_u8 or ch == 'C'_u8
 }
 
 func isCodeToken(ch: u8)->bool
 {
-    return ch == 'X'u8 or ch == 'Y'u8 or ch == 'Z'u8
+    return ch == 'X'_u8 or ch == 'Y'_u8 or ch == 'Z'_u8
 }
 
 func decodeOpponent(token: u8)->Shape
@@ -115,13 +115,13 @@ func decodeDesiredOutcome(token: u8)->Outcome
 {
     switch token
     {
-    case 'X'u8:
+    case 'X'_u8:
         return Outcome.Lose
 
-    case 'Y'u8:
+    case 'Y'_u8:
         return Outcome.Draw
 
-    case 'Z'u8:
+    case 'Z'_u8:
         return Outcome.Win
     }
 
@@ -131,8 +131,10 @@ func decodeDesiredOutcome(token: u8)->Outcome
 
 func roundOutcome(mine: Shape, opponent: Shape)->Outcome
 {
-    if mine == opponent do
+    if mine == opponent
+    {
         return Outcome.Draw
+    }
 
     switch mine
     {
@@ -152,8 +154,10 @@ func roundOutcome(mine: Shape, opponent: Shape)->Outcome
 
 func chooseShape(opponent: Shape, desired: Outcome)->Shape
 {
-    if desired == Outcome.Draw do
+    if desired == Outcome.Draw
+    {
         return opponent
+    }
 
     switch opponent
     {
@@ -198,10 +202,12 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
     for index in bytes.count
     {
         let ch = bytes[index]
-        if ch == ' 'u8 or ch == '\r'u8 do
+        if ch == ' '_u8 or ch == '\r'_u8
+        {
             continue
+        }
 
-        if ch == '\n'u8
+        if ch == '\n'_u8
         {
             if haveOpponent or haveCode
             {
@@ -301,10 +307,12 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
     for index in bytes.count
     {
         let ch = bytes[index]
-        if ch == ' 'u8 or ch == '\r'u8 do
+        if ch == ' '_u8 or ch == '\r'_u8
+        {
             continue
+        }
 
-        if ch == '\n'u8
+        if ch == '\n'_u8
         {
             if haveOpponent or haveCode
             {
@@ -380,9 +388,9 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
     let clean    = solveClean(guide)
     let features = solveWithLanguageFeatures(bytes)
 
-    Swag.require(guide.count == 3'u32)
-    Swag.require(clean.partOne == 15'u32)
-    Swag.require(clean.partTwo == 12'u32)
+    Swag.require(guide.count == 3_u32)
+    Swag.require(clean.partOne == 15_u32)
+    Swag.require(clean.partTwo == 12_u32)
     Swag.require(SampleResult.partOne == clean.partOne)
     Swag.require(SampleResult.partTwo == clean.partTwo)
     Swag.require(features.partOne == clean.partOne)
@@ -396,9 +404,9 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
     let clean    = solveClean(guide)
     let features = solveWithLanguageFeatures(bytes)
 
-    Swag.require(guide.count == 9'u32)
-    Swag.require(clean.partOne == 45'u32)
-    Swag.require(clean.partTwo == 45'u32)
+    Swag.require(guide.count == 9_u32)
+    Swag.require(clean.partOne == 45_u32)
+    Swag.require(clean.partTwo == 45_u32)
     Swag.require(CoverageResult.partOne == clean.partOne)
     Swag.require(CoverageResult.partTwo == clean.partTwo)
     Swag.require(features.partOne == clean.partOne)
@@ -412,11 +420,11 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
     let edgeClean    = solveClean(edgeGuide)
     let edgeFeatures = solveWithLanguageFeatures(edgeBytes)
 
-    Swag.require(edgeGuide.count == 2'u32)
-    Swag.require(edgeGuide.rounds[0].opponentToken == 'A'u8)
-    Swag.require(edgeGuide.rounds[0].codeToken == 'Z'u8)
-    Swag.require(edgeClean.partOne == 10'u32)
-    Swag.require(edgeClean.partTwo == 10'u32)
+    Swag.require(edgeGuide.count == 2_u32)
+    Swag.require(edgeGuide.rounds[0].opponentToken == 'A'_u8)
+    Swag.require(edgeGuide.rounds[0].codeToken == 'Z'_u8)
+    Swag.require(edgeClean.partOne == 10_u32)
+    Swag.require(edgeClean.partTwo == 10_u32)
     Swag.require(edgeFeatures.partOne == edgeClean.partOne)
     Swag.require(edgeFeatures.partTwo == edgeClean.partTwo)
 

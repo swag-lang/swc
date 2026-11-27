@@ -99,14 +99,14 @@ internal struct TextureGeneration
     tag: u32     // Slot in the top byte, generation count of that slot below; zero is untracked.
 }
 
-internal const TextureGenerationSlots    = 256'u32
-private const TextureGenerationSlotShift = 24'u32
-private const TextureGenerationCountMask = 0x00FF_FFFF'u32
+internal const TextureGenerationSlots    = 256_u32
+private const TextureGenerationSlotShift = 24_u32
+private const TextureGenerationCountMask = 0x00FF_FFFF_u32
 
 // The current tag of every slot, and whether a renderer holds it. A tag keeps counting across
 // owners, so a slot handed to a new renderer does not revive the resources of the previous one.
-private var g_TextureGenerationTags:  [TextureGenerationSlots] Swag.AtomicValue'u32
-private var g_TextureGenerationOwned: [TextureGenerationSlots] Swag.AtomicValue'u32
+private var g_TextureGenerationTags:  [TextureGenerationSlots] Swag.AtomicValue!{u32}
+private var g_TextureGenerationOwned: [TextureGenerationSlots] Swag.AtomicValue!{u32}
 
 internal impl TextureGeneration
 {
@@ -115,8 +115,10 @@ internal impl TextureGeneration
     {
         for slot in 1 until TextureGenerationSlots
         {
-            if g_TextureGenerationOwned[slot].compareExchange(0, 1) == 0 do
+            if g_TextureGenerationOwned[slot].compareExchange(0, 1) == 0
+            {
                 return advanceSlot(slot)
+            }
         }
 
         fail RenderResourceError{"Renderer cannot track another resource generation: its slots are full"}
@@ -125,8 +127,11 @@ internal impl TextureGeneration
     // Retires this generation and gives its slot back when the renderer releases its resources.
     mtd release()
     {
-        if .tag == 0 do
+        if .tag == 0
+        {
             return
+        }
+
         let slot = .tag >> TextureGenerationSlotShift
         discard advanceSlot(slot)
         g_TextureGenerationOwned[slot].store(0)
@@ -144,8 +149,11 @@ internal impl TextureGeneration
     {
         let previous = g_TextureGenerationTags[slot].load()
         var count    = ((previous & TextureGenerationCountMask) + 1) & TextureGenerationCountMask
-        if count == 0 do
+        if count == 0
+        {
             count = 1
+        }
+
         let tag = (slot << TextureGenerationSlotShift) | count
         g_TextureGenerationTags[slot].store(tag)
         return {tag}

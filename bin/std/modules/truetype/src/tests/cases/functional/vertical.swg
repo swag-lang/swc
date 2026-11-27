@@ -17,30 +17,32 @@ const VerticalLongMetricsFixture: [8] u8 = [
     0x03, 0xE8, 0x00, 0x64,
     0x03, 0x84, 0x00, 0xC8]
 
-func writeTestU16(bytes: *Array'u8, offset: u64, value: u16)
+func writeTestU16(bytes: *Array!{u8}, offset: u64, value: u16)
 {
     bytes[offset]     = cast(u8, value >> 8)
     bytes[offset + 1] = cast(u8, value & 0xFF)
 }
 
-func findTestTableRecord(bytes: *Array'u8, tag: u32)->u64
+func findTestTableRecord(bytes: *Array!{u8}, tag: u32)->u64
 {
     for index in readBigU16(bytes, 4)
     {
-        let record = 12'u64 + cast(u64, index) * 16
-        if readBigU32(bytes, record) == tag do
+        let record = 12_u64 + cast(u64, index) * 16
+        if readBigU32(bytes, record) == tag
+        {
             return record
+        }
     }
 
     Swag.require(false, "font fixture must contain the requested table")
     return 0
 }
 
-func buildVerticalFont()->Array'u8
+func buildVerticalFont()->Array!{u8}
 {
     var source       = loadFontBytes("arial.ttf")
     let tableCount   = readBigU16(&source, 4)
-    let directoryEnd = 12'u64 + cast(u64, tableCount) * 16
+    let directoryEnd = 12_u64 + cast(u64, tableCount) * 16
 
     var result: #returntype
     result.add(Swag.makeSlice(source.buffer, directoryEnd))
@@ -50,25 +52,28 @@ func buildVerticalFont()->Array'u8
 
     for index in tableCount
     {
-        let record = 12'u64 + cast(u64, index) * 16
+        let record = 12_u64 + cast(u64, index) * 16
         writeBigU32(&result, record + 8, readBigU32(&result, record + 8) + 32)
     }
 
-    result.resize((result.count + 3) & ~3'u64)
+    result.resize((result.count + 3) & ~3_u64)
     let vheaOffset = cast(u32, result.count)
     result.add(VerticalHeaderFixture)
-    result.resize((result.count + 3) & ~3'u64)
+    result.resize((result.count + 3) & ~3_u64)
     let vmtxOffset = cast(u32, result.count)
 
-    var verticalMetrics: Array'u8
+    var verticalMetrics: Array!{u8}
     verticalMetrics.add(VerticalLongMetricsFixture)
     let maxpRecord = findTestTableRecord(&result, TAG_MAXP)
     let glyphCount = readBigU16(&result, readBigU32(&result, maxpRecord + 8) + 4)
     for glyphIndex in glyphCount
     {
-        if glyphIndex < 2 do
+        if glyphIndex < 2
+        {
             continue
-        let topSideBearing = glyphIndex == 3 ? 400'u16 : 300'u16
+        }
+
+        let topSideBearing = glyphIndex == 3 ? 400_u16 : 300_u16
         verticalMetrics.add(cast(u8, topSideBearing >> 8))
         verticalMetrics.add(cast(u8, topSideBearing & 0xFF))
     }
@@ -102,6 +107,18 @@ func hasNoVerticalMetrics(face: *Face)->bool fail => (try face.getVerticalMetric
     let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
+    let metrics = unwrap getFaceData(face).verticalMetrics
+    Swag.require(not metrics.ready.isRaised())
+    expect face.setPixelSize(32, 32)
+    expect face.loadGlyph(0)
+    Swag.require(face.glyph.metrics.horizontalAdvance == expect scale26_6(600, 32, face.unitsPerEm))
+    Swag.require(face.glyph.metrics.verticalAdvance == expect scale26_6(1000, 32, face.unitsPerEm))
+    Swag.require(face.glyph.metrics.verticalTopSideBearing == expect scale26_6(100, 32, face.unitsPerEm))
+    expect face.loadGlyph(3)
+    Swag.require(face.glyph.metrics.verticalAdvance == expect scale26_6(900, 32, face.unitsPerEm))
+    Swag.require(face.glyph.metrics.verticalTopSideBearing == expect scale26_6(400, 32, face.unitsPerEm))
+    Swag.require(not metrics.ready.isRaised())
+
     let first  = unwrap (expect face.getVerticalMetrics(0))
     let second = unwrap (expect face.getVerticalMetrics(1))
     let third  = unwrap (expect face.getVerticalMetrics(2))
@@ -111,11 +128,8 @@ func hasNoVerticalMetrics(face: *Face)->bool fail => (try face.getVerticalMetric
     Swag.require(third.advanceHeight == 900 and third.topSideBearing == 300)
     Swag.require(fourth.advanceHeight == 900 and fourth.topSideBearing == 400)
 
-    expect face.setPixelSize(32, 32)
-    expect face.loadGlyph(0)
-    Swag.require(face.glyph.metrics.horizontalAdvance == expect scale26_6(600, 32, face.unitsPerEm))
-    Swag.require(face.glyph.metrics.verticalAdvance == expect scale26_6(1000, 32, face.unitsPerEm))
-    Swag.require(face.glyph.metrics.verticalTopSideBearing == expect scale26_6(100, 32, face.unitsPerEm))
+    Swag.require(metrics.ready.isRaised())
+    Swag.require(first == expect face.getVerticalMetrics(0))
 }
 
 #test
@@ -141,29 +155,69 @@ func hasNoVerticalMetrics(face: *Face)->bool fail => (try face.getVerticalMetric
     Swag.require(outcome.value() != null)
 }
 
-// A full group of long records, a scalar tail, and a short record retain their signed bearings.
+// A full group of long records, both scalar tails, and a group of short records retain their signed bearings.
 #test
 {
-    const ExtraMetrics: [14] u8 = [
+    const ExtraMetrics: [12] u8 = [
         0x03, 0x20, 0xFF, 0x9C,
         0x02, 0xBC, 0x00, 0x21,
-        0x02, 0x58, 0xFF, 0x38,
-        0xFF, 0xE9]
+        0x02, 0x58, 0xFF, 0x38]
+    const ShortBearings: [9] s16 = [-23, 0, 8192, -8192, Swag.S16.Min, Swag.S16.Max, 17, -37, 53]
     var faceData: FaceImpl
-    faceData.face.setGlyphCount(6)
+    faceData.face.setGlyphCount(5 + ShortBearings.count)
     faceData.fontData.add(VerticalHeaderFixture)
     writeTestU16(&faceData.fontData, 34, 5)
     faceData.fontData.add(VerticalLongMetricsFixture)
     faceData.fontData.add(ExtraMetrics)
+    for bearing in ShortBearings
+    {
+        let offset = faceData.fontData.count
+        faceData.fontData.resize(offset + 2)
+        writeTestU16(&faceData.fontData, offset, cast #bit(u16, bearing))
+    }
+
     faceData.tables.add({tag: TAG_VHEA, offset: 0, length: VerticalHeaderFixture.count})
-    faceData.tables.add({tag: TAG_VMTX, offset: VerticalHeaderFixture.count, length: VerticalLongMetricsFixture.count + ExtraMetrics.count})
+    faceData.tables.add({tag: TAG_VMTX, offset: VerticalHeaderFixture.count, length: VerticalLongMetricsFixture.count + ExtraMetrics.count + ShortBearings.count * 2})
     expect buildVerticalGlyphMetrics(&faceData)
 
-    const Advances: [6] u16 = [1000, 900, 800, 700, 600, 600]
-    const Bearings: [6] s16 = [100, 200, -100, 33, -200, -23]
+    const Advances: [5] u16 = [1000, 900, 800, 700, 600]
+    const Bearings: [5] s16 = [100, 200, -100, 33, -200]
     for index in Advances.count
     {
         let metrics = unwrap (expect faceData.face.getVerticalMetrics(cast(u32, index)))
         Swag.require(metrics.advanceHeight == Advances[index] and metrics.topSideBearing == Bearings[index])
     }
+
+    for bearing, index in ShortBearings
+    {
+        let metrics = unwrap (expect faceData.face.getVerticalMetrics(cast(u32, Advances.count + index)))
+        Swag.require(metrics.advanceHeight == 600 and metrics.topSideBearing == bearing)
+    }
+}
+
+// Retained faces keep the shared metrics alive after the source handle is dropped.
+#test
+{
+    let bytes = buildVerticalFont()
+    var allocator: Swag.Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+    let allocationView: IAllocator = &allocator
+    let baseline = allocator.stats().countAlloc
+
+    var source = FontSource.copy(bytes.toSlice(), allocationView)
+    let first  = expect source.loadFace()
+    let second = expect source.loadFace()
+
+    let metrics = unwrap (expect first.getVerticalMetrics(3))
+    Swag.require(metrics == expect second.getVerticalMetrics(3))
+    source = {}
+    first.destroy()
+
+    Swag.require(metrics.advanceHeight == 900 and metrics.topSideBearing == 400)
+    expect second.setPixelSize(32, 32)
+    expect second.loadGlyph(0)
+    Swag.require(second.glyph.metrics.verticalAdvance == expect scale26_6(1000, 32, second.unitsPerEm))
+    second.destroy()
+    Swag.require(allocator.stats().countAlloc == baseline)
 }

@@ -7,7 +7,7 @@ using Core, Core.Math
 // Copies are deep: each path is duplicated and remains independently mutable.
 struct LinePathList
 {
-    internal paths: Array'(*LinePath)     // Owned path pointers.
+    internal paths: Array!{*LinePath}     // Owned path pointers.
 
     // Combined bounds of the paths, derived when the list is flattened.
 
@@ -36,13 +36,16 @@ struct LinePathList
 private func contourPointCount(polygon: const *Polygon)->u64
 {
     let count = polygon.points.count
-    if count > 1 and polygon.points[0].isEqualEpsilon(polygon.points[count - 1]) do
+    if count > 1 and polygon.points[0].isEqualEpsilon(polygon.points[count - 1])
+    {
         return count - 1
+    }
+
     return count
 }
 
-private const ContourEdgeBlockSize      = 16'u64
-private const FillIntersectionTolerance = 0.01'f32
+private const ContourEdgeBlockSize      = 16_u64
+private const FillIntersectionTolerance = 0.01_f32
 
 private struct ContourEdgeBounds
 {
@@ -60,14 +63,20 @@ private func contourEdgeBounds(points: const [..] Vector2, last: Vector2)->Conto
         return point.isFinite() and Math.abs(point.x) < 32768 and Math.abs(point.y) < 32768
     }
 
-    if not bounded(last) do
+    if not bounded(last)
+    {
         return {}
+    }
+
     var min = last
     var max = last
     for point in points
     {
-        if not bounded(point) do
+        if not bounded(point)
+        {
             return {}
+        }
+
         min = Vector2.min(min, point)
         max = Vector2.max(max, point)
     }
@@ -77,18 +86,22 @@ private func contourEdgeBounds(points: const [..] Vector2, last: Vector2)->Conto
     return {min - Vector2{padding, padding}, max + Vector2{padding, padding}, true}
 }
 
-private func contoursIntersect(a, b: const *Polygon, blocks: *Array'ContourEdgeBounds)->bool
+private func contoursIntersect(a, b: const *Polygon, blocks: *Array!{ContourEdgeBounds})->bool
 {
     if a.maxBounds.x < b.minBounds.x or
        b.maxBounds.x < a.minBounds.x or
        a.maxBounds.y < b.minBounds.y or
-       b.maxBounds.y < a.minBounds.y do
+       b.maxBounds.y < a.minBounds.y
+    {
         return false
+    }
 
     let countA = contourPointCount(a)
     let countB = contourPointCount(b)
-    if countA < 2 or countB < 2 do
+    if countA < 2 or countB < 2
+    {
         return false
+    }
 
     let pointsA = a.points.storage()
     let pointsB = b.points.storage()
@@ -105,19 +118,25 @@ private func contoursIntersect(a, b: const *Polygon, blocks: *Array'ContourEdgeB
     }
 
     var probe: ContourEdgeBounds
-    if blocks.count do
+    if blocks.count
+    {
         probe = contourEdgeBounds(Swag.makeSlice(pointsB, countB), pointsB[0])
+    }
+
     for block in Math.max(blocks.count, 1)
     {
-        var first = 0'u64
+        var first = 0_u64
         var end   = countA
         if blocks.count
         {
             let bounds = &blocks[block]
             if bounds.bounded and
                probe.bounded and
-               (bounds.max.x < probe.min.x or probe.max.x < bounds.min.x or bounds.max.y < probe.min.y or probe.max.y < bounds.min.y) do
+               (bounds.max.x < probe.min.x or probe.max.x < bounds.min.x or bounds.max.y < probe.min.y or probe.max.y < bounds.min.y)
+            {
                 continue
+            }
+
             first = block * ContourEdgeBlockSize
             end   = first + Math.min(ContourEdgeBlockSize, countA - first)
         }
@@ -130,8 +149,10 @@ private func contoursIntersect(a, b: const *Polygon, blocks: *Array'ContourEdgeB
             {
                 let b0 = pointsB[j]
                 let b1 = pointsB[j + 1 == countB ? 0 : j + 1]
-                if Geometry.intersectSegments(a0, a1, b0, b1, FillIntersectionTolerance).intersects do
+                if Geometry.intersectSegments(a0, a1, b0, b1, FillIntersectionTolerance).intersects
+                {
                     return true
+                }
             }
         }
     }
@@ -146,8 +167,11 @@ private func contourContainsContour(outer, inner: const *Polygon)->bool
        inner.minBounds.x < outer.minBounds.x or
        inner.maxBounds.x > outer.maxBounds.x or
        inner.minBounds.y < outer.minBounds.y or
-       inner.maxBounds.y > outer.maxBounds.y do
+       inner.maxBounds.y > outer.maxBounds.y
+    {
         return false
+    }
+
     return outer.contains(inner.pointAt(0)[])
 }
 
@@ -160,17 +184,21 @@ private func contourBoundsArea(polygon: const *Polygon)->f64
 
 private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
 {
-    for p in pathList.paths where not p.polygon.isSimple do
+    for p in pathList.paths where not p.polygon.isSimple
+    {
         return true
+    }
 
-    var blocks: Array'ContourEdgeBounds
+    var blocks: Array!{ContourEdgeBounds}
     for i in pathList.paths.count
     {
         blocks.clear()
         for j in i + 1 until pathList.paths.count
         {
-            if contoursIntersect(&pathList.paths[i].polygon, &pathList.paths[j].polygon, &blocks) do
+            if contoursIntersect(&pathList.paths[i].polygon, &pathList.paths[j].polygon, &blocks)
+            {
                 return true
+            }
         }
     }
 
@@ -187,12 +215,21 @@ impl LinePathList
     {
         var result = cast(u64, #sizeof(LinePathList))
         result += .paths.capacity * #sizeof(*LinePath)
-        for path in .paths do
+        for path in .paths
+        {
             result += path.memoryUsage()
-        if .fillCacheRevisions do
+        }
+
+        if .fillCacheRevisions
+        {
             result += .fillCacheRevision * #sizeof(u64)
-        if .fillCache do
+        }
+
+        if .fillCache
+        {
             result += .fillCache.memoryUsage()
+        }
+
         return result
     }
 
@@ -221,7 +258,7 @@ impl LinePathList
     {
         for p, i in .paths
         {
-            var ptr = Memory.new'LinePath()
+            var ptr = Memory.new!{LinePath}()
             ptr[]     = p[]
             .paths[i] = ptr
         }
@@ -245,8 +282,11 @@ impl LinePathList
 
     private mtd releaseFillCacheRevisions()
     {
-        if not .fillCacheRevisions do
+        if not .fillCacheRevisions
+        {
             return
+        }
+
         Memory.free(.fillCacheRevisions, .fillCacheRevision * #sizeof(u64))
         .fillCacheRevisions = null
     }
@@ -272,10 +312,14 @@ impl LinePathList
         for path, index in .paths
         {
             let bounds = path.controlBounds()
-            if not index do
+            if not index
+            {
                 result = bounds
-            else do
+            }
+            else
+            {
                 result.expandToInclude(bounds)
+            }
         }
 
         return result
@@ -285,8 +329,11 @@ impl LinePathList
     mtd clear()
     {
         .invalidateFillCache()
-        for p in .paths do
+        for p in .paths
+        {
             Memory.delete(p)
+        }
+
         .paths.clear()
         .setBounds({}, {})
     }
@@ -294,7 +341,7 @@ impl LinePathList
     // Allocates, owns, and returns a new empty path.
     mtd newPath()->*LinePath
     {
-        let ptr = Memory.new'LinePath()
+        let ptr = Memory.new!{LinePath}()
         .paths.add(ptr)
         return ptr
     }
@@ -303,7 +350,7 @@ impl LinePathList
     //
     // `scale` is the number of device pixels one path unit covers when the result is drawn;
     // see [[Pixel.LinePath.flatten]].
-    mtd flatten(quality: PaintQuality = .Normal, scale = 1.0'f32)
+    mtd flatten(quality: PaintQuality = .Normal, scale = 1.0_f32)
     {
         if .paths.isEmpty()
         {
@@ -327,16 +374,21 @@ impl LinePathList
     // derived again by the next flattening.
     mtd transform(transform: Math.Transform2)
     {
-        for p in .paths do
+        for p in .paths
+        {
             p.transform(transform)
+        }
+
         .setBounds({}, {})
     }
 
     // Offsets every already-flattened polygon using its winding direction.
     mtd offset(value: f32)
     {
-        if Math.isZeroEpsilon(value) do
+        if Math.isZeroEpsilon(value)
+        {
             return
+        }
 
         for p, i in .paths
         {
@@ -345,10 +397,14 @@ impl LinePathList
             p.touchContour()
             p.minBounds = p.polygon.minBounds
             p.maxBounds = p.polygon.maxBounds
-            if i == 0 do
+            if i == 0
+            {
                 .setBounds(p.minBounds, p.maxBounds)
-            else do
+            }
+            else
+            {
                 .setBounds(Vector2.min(.minBounds, p.minBounds), Vector2.max(.maxBounds, p.maxBounds))
+            }
         }
     }
 
@@ -357,8 +413,10 @@ impl LinePathList
     // `toler` controls round-join approximation in pixels.
     mtd offset(value: f32, joinStyle: JoinStyle, toler: f32 = 0.5)
     {
-        if Math.isZeroEpsilon(value) do
+        if Math.isZeroEpsilon(value)
+        {
             return
+        }
 
         var joinType: Clipper.JoinType
         switch joinStyle
@@ -373,7 +431,7 @@ impl LinePathList
         newList.maxBounds = Vector2.Min
 
         var serial = 0
-        var i      = 0'u64
+        var i      = 0_u64
         while i < .paths.count
         {
             serial = .paths[i].serial
@@ -412,12 +470,14 @@ impl LinePathList
     // this type deletes, so they are handed over rather than copied.
     private mtd appendGroupedByContainment(solved: *LinePathList)
     {
-        var claimed: Array'bool
+        var claimed: Array!{bool}
         claimed.resize(solved.paths.count)
-        var parentOuter: Array'u64
+        var parentOuter: Array!{u64}
         parentOuter.resize(solved.paths.count)
-        for i in parentOuter.count do
+        for i in parentOuter.count
+        {
             parentOuter[i] = Swag.U64.Max
+        }
 
         // The contours do not cross, so containing outers are nested. The smallest bounds area
         // therefore identifies the immediate parent for each hole.
@@ -426,8 +486,11 @@ impl LinePathList
             var smallestArea = Swag.F64.Max
             for outer, outerIndex in solved.paths where outer.polygon.isClockwise
             {
-                if not contourContainsContour(&outer.polygon, &hole.polygon) do
+                if not contourContainsContour(&outer.polygon, &hole.polygon)
+                {
                     continue
+                }
+
                 let area = contourBoundsArea(&outer.polygon)
                 if area < smallestArea
                 {
@@ -452,8 +515,10 @@ impl LinePathList
 
         // A hole no outer claims encloses nothing, and the fill would paint it as a shape
         // of its own. Dropping it is what keeps the result the region the rule defined.
-        for path, index in solved.paths where not path.polygon.isClockwise and not claimed[index] do
+        for path, index in solved.paths where not path.polygon.isClockwise and not claimed[index]
+        {
             Memory.delete(path)
+        }
 
         solved.paths.clear()
     }
@@ -472,7 +537,7 @@ impl LinePathList
         newList.maxBounds = Vector2.Min
 
         var serial = 0
-        var i      = 0'u64
+        var i      = 0_u64
         while i < .paths.count
         {
             serial = .paths[i].serial
@@ -589,21 +654,38 @@ impl LinePathList
     // Reports whether the fill cache still describes the current contours.
     private mtd const fillCacheMatches(rule: Clipper.PolyFillType, byDirection: bool)->bool
     {
-        if not .fillCacheValid or .fillCacheRule != rule or .fillCacheByDirection != byDirection do
+        if not .fillCacheValid or .fillCacheRule != rule or .fillCacheByDirection != byDirection
+        {
             return false
+        }
+
         let count = .paths.count
-        if not count do
+        if not count
+        {
             return .fillCacheEmpty
-        if .fillCacheEmpty do
+        }
+
+        if .fillCacheEmpty
+        {
             return false
+        }
 
         let revisions = .fillCacheRevisions
-        if count == 1 do
+        if count == 1
+        {
             return not revisions and .fillCacheRevision == .paths[0].revision
-        if not revisions or .fillCacheRevision != count do
+        }
+
+        if not revisions or .fillCacheRevision != count
+        {
             return false
-        for p, i in .paths where revisions[i] != p.revision do
+        }
+
+        for p, i in .paths where revisions[i] != p.revision
+        {
             return false
+        }
+
         return true
     }
 
@@ -626,8 +708,10 @@ impl LinePathList
         }
 
         let revisions = .fillCacheRevisions
-        for p, i in .paths do
+        for p, i in .paths
+        {
             revisions[i] = p.revision
+        }
     }
 
     // Returns the geometry a fill can triangulate directly under `rule`, normalizing at most
@@ -646,20 +730,26 @@ impl LinePathList
     // skips normalization. The list must be flattened first.
     internal mtd normalizedFill(rule: Clipper.PolyFillType, byDirection: bool)->*LinePathList
     {
-        if .fillCacheMatches(rule, byDirection) do
+        if .fillCacheMatches(rule, byDirection)
+        {
             return .fillCache orelse me
+        }
 
         .invalidateFillCache()
 
         var direct = false
-        if byDirection do
+        if byDirection
+        {
             direct = not pathListNeedsCleaning(me)
-        else do
+        }
+        else
+        {
             direct = .paths.count < 2 and (.paths.isEmpty() or .paths[0].polygon.isSimple)
+        }
 
         if not direct
         {
-            let cache = Memory.new'LinePathList()
+            let cache = Memory.new!{LinePathList}()
             cache[] = me[]
             cache.clean(rule)
             .fillCache = cache

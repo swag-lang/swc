@@ -17,14 +17,23 @@ using Core, Linux
     let originalInterop = Env.variable("WSL_INTEROP")
     defer
     {
-        if hadPath do
+        if hadPath
+        {
             discard Linux.setenv("PATH".buffer, originalPath.storage(), 1)
-        else do
+        }
+        else
+        {
             discard Linux.unsetenv("PATH".buffer)
-        if hadInterop do
+        }
+
+        if hadInterop
+        {
             discard Linux.setenv("WSL_INTEROP".buffer, originalInterop.storage(), 1)
-        else do
+        }
+        else
+        {
             discard Linux.unsetenv("WSL_INTEROP".buffer)
+        }
     }
 
     let pidFile = Path.combine(temporary, "powershell.pid")
@@ -56,7 +65,10 @@ using Core, Linux
     pidText.trim()
     let pid      = expect StrConv.toS32(pidText.toString())
     let deadline = Time.monotonicMilliseconds() + 2000
-    while Linux.kill(pid, 0) == 0 and Time.monotonicMilliseconds() < deadline do
+    while Linux.kill(pid, 0) == 0 and Time.monotonicMilliseconds() < deadline
+    {
         Threading.Thread.sleep(Time.Duration.fromMilliseconds(10))
+    }
+
     Swag.require(Linux.kill(pid, 0) != 0, "PowerShell child survived the DPI timeout")
 }

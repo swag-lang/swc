@@ -9,8 +9,11 @@ using Core, Viewers
     for fontTable in [false, true]
     {
         var source: String
-        for fontTable ? 1025 : 4097 do
+        for fontTable ? 1025 : 4097
+        {
             source += fontTable ? "{\\f0 Font;}" : ";"
+        }
+
         source += "}"
         var error: Swag.Error
         discard catch Rtf.Catalog.parse(source.toSlice(), 0, 2, fontTable) as error

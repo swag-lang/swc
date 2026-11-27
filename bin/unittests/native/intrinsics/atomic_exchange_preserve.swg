@@ -17,8 +17,10 @@ func finalBlockCount(progress: *u32, row, rows, width: u32)->u32
     {
         Swag.atomicExchange(progress, column + 1)
         let finalBlock = row + 1 == rows and column + 1 == width
-        if finalBlock do
+        if finalBlock
+        {
             count += 1
+        }
     }
     return count
 }

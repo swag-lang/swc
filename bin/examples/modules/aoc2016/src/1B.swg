@@ -14,10 +14,10 @@ func day1B()
     let dataPath = Path.combine(Path.directoryName(#file), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    let split = Tokenize.split(lines[0], ','u8)
+    let split = Tokenize.split(lines[0], ','_u8)
     var dx    = 0
     var dy    = 1
-    var done: HashSet'u64
+    var done: HashSet!{u64}
 
     struct Pos
     {

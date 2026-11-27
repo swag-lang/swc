@@ -1,5 +1,33 @@
 using Core
 
+private func allPackedAlphaOpaque(pixels: const [*] u32, count: u64)->bool
+{
+    using Math.Simd
+    if pixels[0] >> 24 != 255 or pixels[count - 1] >> 24 != 255
+    {
+        return false
+    }
+
+    const Alpha = splat(0xFF000000_u32)
+    var index: u64
+    while count - index >= 4
+    {
+        if not allTrue((load(pixels + index) & Alpha) == Alpha)
+        {
+            return false
+        }
+
+        index += 4
+    }
+
+    for i in index until count where pixels[i] >> 24 != 255
+    {
+        return false
+    }
+
+    return true
+}
+
 impl Image
 {
     // Converts alpha association in place without changing the pixel format.
@@ -11,8 +39,46 @@ impl Image
     {
         Swag.assert(.isValid(), "image is invalid")
         Swag.assert(.pixelFormat.hasAlpha(), "alpha association requires an alpha channel")
-        if newMode == .alphaMode do
+        if newMode == .alphaMode
+        {
             return
+        }
+
+        if .alphaMode == .Premultiplied and
+           newMode == .Straight and
+           (.pixelFormat == .RGBA8 or .pixelFormat == .BGRA8)
+        {
+            let pixels = .pixels.storage()
+            let count  = .byteCount / 4
+            if count >= 1024 and allPackedAlphaOpaque(cast(const [*] u32, pixels), count)
+            {
+                .alphaMode = newMode
+                return
+            }
+
+            const ParallelBytes = 64_u64 * 1024 * 1024
+            let workers = .byteCount >= ParallelBytes ? cast(u64, Swag.workerCount()) : 0
+            if workers > 1
+            {
+                // Every batch owns a separate range of pixels in the packed buffer.
+                let length  = (count + workers - 1) / workers
+                let batches = (count + length - 1) / length
+                parallel for |pixels, length, count| batch in batches
+                {
+                    let start  = batch * length
+                    let range  = Math.min(count - start, length)
+                    let target = pixels + start * 4
+                    PackedPixel.writeStraightAlpha8(target, target, range, false)
+                }
+            }
+            else
+            {
+                PackedPixel.writeStraightAlpha8(pixels, pixels, count, false)
+            }
+
+            .alphaMode = newMode
+            return
+        }
 
         var context = {image: me, oldMode: .alphaMode, newMode: newMode}
         parallel for |&context| parIndex in cast(u64, .height)

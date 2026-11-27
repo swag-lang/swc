@@ -9,7 +9,7 @@ struct(T) Vector3
 
 impl Vector3
 {
-    func dot(a: Vector3'T, b: Vector3'T)->T
+    func dot(a: Vector3!{T}, b: Vector3!{T})->T
     {
         return a.x * b.x + a.y * b.y + a.z * b.z
     }
@@ -20,9 +20,9 @@ alias VectorAlias2 = VectorAlias
 
 func semaTest001()
 {
-    var a: VectorAlias2's32 = {x: 1, y: 2, z: 3}
-    var b: VectorAlias2's32 = {x: 4, y: 5, z: 6}
-    let d = VectorAlias2's32.dot(&a, &b)
+    var a: VectorAlias2!{s32} = {x: 1, y: 2, z: 3}
+    var b: VectorAlias2!{s32} = {x: 4, y: 5, z: 6}
+    let d = VectorAlias2!{s32}.dot(&a, &b)
 
     #assert(#typeof(d) == s32)
 }

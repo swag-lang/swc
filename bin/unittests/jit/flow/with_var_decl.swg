@@ -126,8 +126,10 @@ func jitWithAutoUsingMemberReturnBindingConflictValue()->s32
 {
     let owner  = jitWithAutoUsingMemberReturnBindingConflict()
     let widget = unwrap owner.widgetPtr
-    if widget.dockStyle == .Center do
+    if widget.dockStyle == .Center
+    {
         return widget.value
+    }
     return 0
 }
 

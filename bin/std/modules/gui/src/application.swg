@@ -18,7 +18,7 @@ const MarkVoltage = Voltage
 // Contrast ratio the glyph of a mark owes a ground before that ground may show it without its tile.
 //
 // Three is where a shape stops being separated from what it is drawn over.
-const MarkGlyphContrast = 3.0'f32
+const MarkGlyphContrast = 3.0_f32
 
 // Returns whether `ground` can show a product mark in its own colors with its tile keyed out.
 //
@@ -49,7 +49,7 @@ struct Application
 
     public
     {
-        sigFrame: SigArray'FrameCallback     // Emitted after each processed frame.
+        sigFrame: SigArray!{FrameCallback}     // Emitted after each processed frame.
 
         options: ApplicationOptions     // Diagnostics and development options.
         appIcon: Pixel.Image            // Icon used for native windows created by the application.
@@ -95,7 +95,7 @@ struct Application
         //
         // The list is maintained by the application: create and destroy surfaces through its own
         // API so the modal stack and the render loop stay consistent.
-        readonly surfaces: Array'(*Surface)
+        readonly surfaces: Array!{*Surface}
 
         animator: Animator     // Shared finite-animation scheduler.
 
@@ -149,10 +149,10 @@ struct Application
     }
 
     // Run-loop state. It only means something to the loop that owns it.
-    postedEvents:             Array'(IEvent)                  // Events queued from any thread, drained each frame.
-    postDestroy:              Array'(*Wnd)                    // Windows to destroy once the frame is over.
-    pendingTaskNotifications: Swag.AtomicValue'u32            // Callbacks still able to post to this application.
-    hookOnEvent:              Array'(*Wnd)                    // Windows watching every event of the application.
+    postedEvents:             Array!{IEvent}                  // Events queued from any thread, drained each frame.
+    postDestroy:              Array!{*Wnd}                    // Windows to destroy once the frame is over.
+    pendingTaskNotifications: Swag.AtomicValue!{u32}          // Callbacks still able to post to this application.
+    hookOnEvent:              Array!{*Wnd}                    // Windows watching every event of the application.
     endModalExit:             WndId?                          // Result the innermost modal loop exits with.
     inModalLoop:              u32                             // Depth of the modal loop nesting.
     quitCode:                 s32                             // Exit code the run loop returns.
@@ -160,13 +160,13 @@ struct Application
     endModal:                 bool                            // Whether the innermost modal loop stops.
     mutexPostedEvents:        Swag.Mutex                      // Guards 'postedEvents' against other threads.
     duringTimerEvents:        bool                            // Whether timer callbacks are running, so lists defer.
-    timers:                   Array'(*Timer)                  // Active timers.
-    timersToAdd:              Array'(*Timer)                  // Timers added while callbacks were running.
-    timersToDelete:           Array'(*Timer)                  // Timers removed while callbacks were running.
-    frameEvents:              Array'(*Wnd)                    // Windows asking for a per-frame event.
-    modalSurfaces:            Array'(*Surface)                // Surface stack of the nested modal loops.
+    timers:                   Array!{*Timer}                  // Active timers.
+    timersToAdd:              Array!{*Timer}                  // Timers added while callbacks were running.
+    timersToDelete:           Array!{*Timer}                  // Timers removed while callbacks were running.
+    frameEvents:              Array!{*Wnd}                    // Windows asking for a per-frame event.
+    modalSurfaces:            Array!{*Surface}                // Surface stack of the nested modal loops.
     modalWatch:               (func||(*Surface)->String)?     // Set by a test host: why the modal `surface` must not wait any longer, or nothing.
-    toDelete:                 Array'{ ptr: *void?, type: const *Swag.TypeInfo }     // Deferred deletions.
+    toDelete:                 Array!{{ ptr: *void?, type: const *Swag.TypeInfo } }     // Deferred deletions.
     systemReducedMotion:      bool                            // Platform client-area-animation preference.
     systemPrefersLight:       bool                            // Whether the platform asks applications for a light theme.
     inClockFrame:             bool                            // Whether a clock frame runs inside a desktop loop.
@@ -184,9 +184,9 @@ struct Application
     frameTrace: FrameTrace     // Per-frame cost recorder, armed from the command line.
 
     statePath:          String     // File used by [[Gui.Application.saveState]] and [[Gui.Application.loadState]].
-    hotKeys:            Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
-    defaultUserHotKeys: Array'KeyShortcut
-    shortcutOverrides:  Array'ShortcutOverride
+    hotKeys:            Array!{KeyShortcut}     // Registered system-wide keyboard shortcuts.
+    defaultUserHotKeys: Array!{KeyShortcut}
+    shortcutOverrides:  Array!{ShortcutOverride}
 
     public
     {
@@ -205,11 +205,15 @@ private impl Application
         evt.kind   = kind
         evt.target = wnd
 
-        for hook in .hookOnEvent do
+        for hook in .hookOnEvent
+        {
             hook.itf.onHookEvent(&evt)
+        }
 
-        if not evt.target do
+        if not evt.target
+        {
             return
+        }
 
         evt.accepted = true
         evt.target.processEvent(&evt)
@@ -219,8 +223,10 @@ private impl Application
     mtd sendEventPrivate(evt: IEvent, stopAt: *Wnd?)
     {
         // Global hook events
-        for hook in .hookOnEvent do
+        for hook in .hookOnEvent
+        {
             hook.itf.onHookEvent(evt)
+        }
 
         if evt is QuitEvent as ptr
         {
@@ -232,8 +238,10 @@ private impl Application
         let event = assume cast (*Event, evt)
 
         // Be sure we have a target
-        if not event.target do
+        if not event.target
+        {
             return
+        }
 
         if evt is KeyEvent as key where key.kind == .Pressed and .modalSurfaces.isEmpty()
         {
@@ -269,8 +277,11 @@ private impl Application
         {
             let target = unwrap event.target
             event.target = target.owner orelse target.parent
-            if not event.target or event.target == stopAt do
+            if not event.target or event.target == stopAt
+            {
                 break
+            }
+
             event.accepted = true
             event.target.processEvent(evt)
         }
@@ -280,16 +291,20 @@ private impl Application
     {
         .mouse.update()
         let physicalMovement = .mouse.movement()
-        if Math.abs(physicalMovement.x) >= 0.5 or Math.abs(physicalMovement.y) >= 0.5 do
+        if Math.abs(physicalMovement.x) >= 0.5 or Math.abs(physicalMovement.y) >= 0.5
+        {
             .cursorHidden = false
+        }
 
         // A renderer without native windows has no native pointer either: what the system mouse
         // reports belongs to whoever is using the desktop while the test runs. Headless hosts
         // drive the pointer through synthesized events, so the polled state must not reach the
         // window tree — a real cursor parked over a popup's rectangle was enough to light one of
         // its rows in a golden image.
-        if not .renderer.needsNativeWindow() do
+        if not .renderer.needsNativeWindow()
+        {
             return
+        }
 
         // A drag in flight owns the pointer, and the gesture is already being delivered as its
         // own event to the window under it. The pointer state polled here would only tell a
@@ -307,10 +322,15 @@ private impl Application
 
         // Wnd that will receive the message
         var targetWnd: *Wnd?
-        if .mouseCaptureWnd do
+        if .mouseCaptureWnd
+        {
             targetWnd = .mouseCaptureWnd
-        else do
+        }
+        else
+        {
             targetWnd = .windowAtMouse()
+        }
+
         targetWnd = skipDisabled(targetWnd)
 
         // If no target window, but one target surface, then we will send
@@ -348,8 +368,10 @@ private impl Application
                 evt.target     = targetWnd
                 .sendEventPrivate(&evt, .mouseEnterWnd)
 
-                if not targetWnd.toolTip.isEmpty() do
+                if not targetWnd.toolTip.isEmpty()
+                {
                     .toolTip.show(targetWnd, evt.surfacePos, targetWnd.toolTip)
+                }
             }
 
             // Leave
@@ -381,18 +403,24 @@ private impl Application
             evt.kind       = .Move
             evt.delta      = move
             targetWnd.sendEvent(&evt)
-            if Math.abs(move.x) >= 0.5 or Math.abs(move.y) >= 0.5 do
+            if Math.abs(move.x) >= 0.5 or Math.abs(move.y) >= 0.5
+            {
                 .toolTip.resetTimer(evt.surfacePos)
+            }
         }
 
         Cursor.activate(.pointerCursor(targetWnd))
         .frameCursor.clear()
-        if not targetWnd do
+        if not targetWnd
+        {
             return
+        }
 
         // Queued native button packets have already delivered their transitions.
-        if .nativeMouseButtons do
+        if .nativeMouseButtons
+        {
             return
+        }
 
         // Detect changes
         for i in (.mouse.previousState.pressed).count
@@ -418,7 +446,7 @@ private impl Application
                 targetWnd.sendEvent(&evt)
                 .toolTip.hide()
             }
-            elif lastP and not curP
+            else if lastP and not curP
             {
                 let button = Input.mouseButtonFromStorageIndex(i)
                 evt.kind   = .Released
@@ -434,8 +462,10 @@ private impl Application
     // source because it has no window system to supply one.
     internal mtd keyboardTarget(source: *Surface? = null, seed = false)->*Wnd?
     {
-        if source and not .acceptsNativeKeyboard(source) do
+        if source and not .acceptsNativeKeyboard(source)
+        {
             return null
+        }
 
         let modal        = .modalSurfaces.isEmpty() ? null : .modalSurfaces.back()
         let scopeSurface = source orelse modal
@@ -443,14 +473,22 @@ private impl Application
         if target and
            target.surface and
            not target.surface.isDisabled and
-           (not scopeSurface or target.surface == scopeSurface) do
+           (not scopeSurface or target.surface == scopeSurface)
+        {
             return skipDisabled(target)
-        if not seed do
+        }
+
+        if not seed
+        {
             return null
+        }
 
         let surface = scopeSurface orelse .mainSurface
-        if surface do
+        if surface
+        {
             surface.wnd.view.setSurfaceFallbackFocus()
+        }
+
         target = .keyboardFocusWnd
         return target and target.surface == surface ? skipDisabled(target) : null
     }
@@ -467,13 +505,18 @@ private impl Application
     // native focus again, so only restore the requested surface if it still owns the keyboard.
     internal mtd updateNativeFocus(surface: *Surface?)
     {
-        if .nativeFocusSurface == surface do
+        if .nativeFocusSurface == surface
+        {
             return
+        }
+
         .nativeFocusSurface?.setAccessKeysVisible(false)
         .nativeFocusSurface = surface
         .keyboardFocusWnd?.surface?.loseKeyboardFocus()
-        if surface and surface == .nativeFocusSurface and not .keyboardFocusWnd do
+        if surface and surface == .nativeFocusSurface and not .keyboardFocusWnd
+        {
             discard surface.restoreFocus()
+        }
     }
 
     // An action pressed by the pointer does not become a keyboard selection.
@@ -484,16 +527,21 @@ private impl Application
     {
         .pointerFocusEpoch += 1
         .setFocusVisible(false)
-        if target.wndFlags.has(.NoPointerFocus) do
+        if target.wndFlags.has(.NoPointerFocus)
+        {
             return
+        }
+
         if target.wndFlags.has(.ActivatesOnKey)
         {
             target.surface?.clearFocus()
             return
         }
 
-        if target.focusPolicy != .None do
+        if target.focusPolicy != .None
+        {
             discard target.requestFocus(.Pointer)
+        }
     }
 
     internal mtd sendMouseWheelEvent(sourceSurface: *Surface, screenPos: Math.Point, z: s32)
@@ -501,11 +549,16 @@ private impl Application
         var targetWnd = .mouseEnterWnd
 
         // A progressive view can destroy the hovered child while the pointer stays still.
-        if not targetWnd do
+        if not targetWnd
+        {
             targetWnd = .windowAt(screenPos) orelse sourceSurface.windowAt(screenPos)
+        }
+
         targetWnd = skipDisabled(targetWnd)
-        if not targetWnd do
+        if not targetWnd
+        {
             return
+        }
 
         var evt = MouseEvent{kind: .Wheel}
         evt.surfacePos = targetWnd.screenToSurface(screenPos)
@@ -517,8 +570,10 @@ private impl Application
     mtd sendKeyboardEvents()
     {
         .keyboard.update()
-        if .nativeKeyboardEvents do
+        if .nativeKeyboardEvents
+        {
             return
+        }
 
         // Polling sees other applications' keys as well. Only the confirmed native surface may
         // receive physical transitions from this snapshot.
@@ -542,11 +597,16 @@ private impl Application
             let lastP = previous.pressed[i]
             let curP  = current.pressed[i]
 
-            if lastP == curP do
+            if lastP == curP
+            {
                 continue
+            }
+
             let targetWnd = .keyboardTarget(source, seed: curP)
-            if not targetWnd do
+            if not targetWnd
+            {
                 continue
+            }
 
             if not lastP and curP
             {
@@ -556,10 +616,12 @@ private impl Application
                 evt.key       = key
                 evt.modifiers = modifiers
                 targetWnd.sendEvent(&evt)
-                if not evt.accepted do
+                if not evt.accepted
+                {
                     .routeUnhandledKey(targetWnd, key, modifiers)
+                }
             }
-            elif lastP and not curP
+            else if lastP and not curP
             {
                 let key = Input.keyFromStorageIndex(i)
                 .updateAccessKeyVisibility(key, false)
@@ -574,8 +636,10 @@ private impl Application
     internal mtd sendRuneEvent(key: Input.Key, r: rune, modifiers: Input.KeyModifiers, source: *Surface? = null)
     {
         let targetWnd = .keyboardTarget(source, seed: source != null)
-        if not targetWnd do
+        if not targetWnd
+        {
             return
+        }
 
         var evt = KeyEvent{kind: .Character}
         evt.character = r
@@ -585,22 +649,28 @@ private impl Application
         if modifiers.has(.Alt) and not modifiers.has(.Control)
         {
             var menu: *Wnd? = targetWnd
-            while menu and not (menu is MenuCtrl) do
+            while menu and not (menu is MenuCtrl)
+            {
                 menu = menu.parent
+            }
 
             if menu
             {
                 targetWnd.sendEvent(&evt)
                 if not evt.accepted
                 {
-                    if let surface = targetWnd.surface do
+                    if let surface = targetWnd.surface
+                    {
                         discard surface.activateAccessKey(r)
+                    }
                 }
             }
             else
             {
-                if let surface = targetWnd.surface do
+                if let surface = targetWnd.surface
+                {
                     discard surface.activateAccessKey(r)
+                }
             }
 
             return
@@ -624,48 +694,69 @@ private impl Application
             let evt = assume cast (*Event, it)
 
             // A window destroyed after the event was posted left it without a target.
-            if it is InvalidateEvent do
+            if it is InvalidateEvent
+            {
                 evt.target?.invalidate()
-            else do
+            }
+            else
+            {
                 .sendEvent(it)
+            }
 
             // Special event post process
-            if it is CommandEvent do
+            if it is CommandEvent
+            {
                 needUpdateState = true
+            }
 
             .toDelete.add({ptr: it.buffer, type: Swag.kindOf(it)})
         }
 
-        if needUpdateState do
+        if needUpdateState
+        {
             .updateCommandState()
+        }
     }
 
     mtd sendDestroyEvents()
     {
-        if .inModalLoop do
+        if .inModalLoop
+        {
             return
-        for w in .postDestroy do
+        }
+
+        for w in .postDestroy
+        {
             .destroyWnd(w)
+        }
+
         .postDestroy.clear()
     }
 
     // Updates the command state of every surface.
     mtd updateCommandState()
     {
-        for s in .surfaces do
+        for s in .surfaces
+        {
             s.wnd.updateCommandState()
+        }
     }
 
     // Unregisters and releases `surface`. Callers close a surface with `Surface.destroy`, which
     // reaches this through the destroy event of its root window.
     internal mtd destroySurface(surface: *Surface)
     {
-        if surface == .mainSurface do
+        if surface == .mainSurface
+        {
             .postQuitEvent()
+        }
+
         .unregisterSurface(surface)
 
-        if not .modalSurfaces.isEmpty() and surface == .modalSurfaces.back() do
+        if not .modalSurfaces.isEmpty() and surface == .modalSurfaces.back()
+        {
             .endModal = true
+        }
 
         surface.destroyNative()
         .toDelete.add({ptr: surface, type: #typeof(surface[])})
@@ -677,8 +768,10 @@ private impl Application
         .toolTip.forget(wnd)
         .clearWndInputState(wnd)
 
-        if not keepActivities do
+        if not keepActivities
+        {
             .unregisterWndTimers(wnd)
+        }
 
         // Remove from various lists
         .frameEvents.remove(wnd)
@@ -690,22 +783,29 @@ private impl Application
             let shortcut = .hotKeys[hotKeyIndex]
             if shortcut.target == wnd
             {
-                if not .hotKeysDisabled do
+                if not .hotKeysDisabled
+                {
                     unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
+                }
+
                 .hotKeys.removeAtOrdered(hotKeyIndex)
             }
         }
 
-        if keepActivities do
+        if keepActivities
+        {
             return
+        }
 
         // Be sure there's no posted event for that window. Other threads can post meanwhile.
         Sync.scopedLock(&.mutexPostedEvents)
         for e in .postedEvents
         {
             let ptr = assume cast (*Event, e)
-            if ptr.target == wnd do
+            if ptr.target == wnd
+            {
                 ptr.target = null
+            }
         }
     }
 
@@ -738,11 +838,15 @@ private impl Application
         .duringTimerEvents = true
         for t in .timers
         {
-            if t.isPendingRemoval do
+            if t.isPendingRemoval
+            {
                 continue
+            }
 
-            if not t.stopwatch.isRunning() do
+            if not t.stopwatch.isRunning()
+            {
                 t.stopwatch.start()
+            }
 
             if t.stopwatch.elapsedMilliseconds() >= t.periodMilliseconds
             {
@@ -756,8 +860,11 @@ private impl Application
         .duringTimerEvents = false
 
         // Add new registered timers
-        for t in .timersToAdd do
+        for t in .timersToAdd
+        {
             .timers.add(t)
+        }
+
         .timersToAdd.clear()
 
         // Remove some timers
@@ -776,7 +883,7 @@ private impl Application
         // windows — `destroyWnd` then takes them out of this very list. So the walk re-reads the
         // count and the element at each step instead of holding an iterator over it, and only
         // advances when the element it just handed the event to is still where it was.
-        var index = 0'u64
+        var index = 0_u64
         while index < .frameEvents.count
         {
             let target = .frameEvents[index]
@@ -784,17 +891,25 @@ private impl Application
             var evt = FrameEvent{}
             target.sendEvent(&evt)
 
-            if index < .frameEvents.count and .frameEvents[index] == target do
+            if index < .frameEvents.count and .frameEvents[index] == target
+            {
                 index += 1
+            }
         }
     }
 
     mtd deletePointers()
     {
-        if .inModalLoop do
+        if .inModalLoop
+        {
             return
-        for p in .toDelete do
+        }
+
+        for p in .toDelete
+        {
             Memory.delete(p.ptr, p.type)
+        }
+
         .toDelete.clear()
     }
 
@@ -808,8 +923,10 @@ private impl Application
     internal mtd paintSurfaces()
     {
         .recoverLostRenderer()
-        if .renderingSuspended do
+        if .renderingSuspended
+        {
             return
+        }
 
         // A stress run measures what a complete repaint of a full-screen window costs, so it
         // maximizes what it is about to measure and asks for a complete repaint every frame
@@ -819,15 +936,21 @@ private impl Application
             for s in .surfaces
             {
                 s.showMaximized()
-                if .frameTrace.boxSide > 0 do
+                if .frameTrace.boxSide > 0
+                {
                     s.invalidateRect(.frameTrace.movingBox(s.size()))
-                else do
+                }
+                else
+                {
                     s.invalidate()
+                }
             }
         }
 
-        for surface in .surfaces do
+        for surface in .surfaces
+        {
             surface.paint()
+        }
     }
 
     // Rebuilds what a reset of the graphics device took with it, before any surface paints again.
@@ -838,8 +961,10 @@ private impl Application
     // presentations and the picture of every surface are rebuilt here.
     mtd recoverLostRenderer()
     {
-        if not .mainSurface do
+        if not .mainSurface
+        {
             return
+        }
 
         if .renderer is Pixel.RenderOgl as ogl
         {
@@ -850,13 +975,17 @@ private impl Application
             }
 
             defer .renderingSuspended = false
-            if not recovered do
+            if not recovered
+            {
                 return
+            }
 
             .renderingSuspended = true
             .theme.restoreLostTextures(.renderer)
-            for surface in .surfaces do
+            for surface in .surfaces
+            {
                 surface.recoverLostRendering()
+            }
 
             // A window with local style overrides draws from a private copy of the theme, lost
             // textures included: resolving every style again copies the restored ones.
@@ -868,8 +997,10 @@ private impl Application
     mtd advanceClock()
     {
         .timing.update()
-        for surface in .surfaces where surface.isDirty do
+        for surface in .surfaces where surface.isDirty
+        {
             surface.unpaintedSeconds += .timing.deltaSeconds
+        }
     }
 
     // Advances everything that runs on its own clock, repaints, and does nothing else.
@@ -882,8 +1013,11 @@ private impl Application
     // since the frame that entered the gesture is still on the stack.
     internal mtd runClockFrame()
     {
-        if .inClockFrame do
+        if .inClockFrame
+        {
             return
+        }
+
         .inClockFrame = true
         defer .inClockFrame = false
 
@@ -918,8 +1052,11 @@ private impl Application
         .deletePointers()
 
         .sigFrame.call(me)
-        if .renderer.needsNativeWindow() and not .mustQuit do
+        if .renderer.needsNativeWindow() and not .mustQuit
+        {
             .waitForNativeFrame(startedAt)
+        }
+
         .frameTrace.endFrame()
 
         if .maxRunFrame and .timing.frameCount >= .maxRunFrame
@@ -961,7 +1098,7 @@ private impl Application
         .endModalExit = null
         .inModalLoop  += 1
 
-        var disabledSurfaces: Array'(*Surface)
+        var disabledSurfaces: Array!{*Surface}
         for s in .surfaces
         {
             if s != surface and not s.isDisabled
@@ -980,8 +1117,10 @@ private impl Application
             if previous and previous != surface
             {
                 previous.loseKeyboardFocus()
-                if not .keyboardFocusWnd do
+                if not .keyboardFocusWnd
+                {
                     discard surface.restoreFocus()
+                }
             }
         }
 
@@ -991,11 +1130,16 @@ private impl Application
         var refused: String
         while not .mustQuit and not .endModal
         {
-            if surface and not .surfaces.contains(surface) do
+            if surface and not .surfaces.contains(surface)
+            {
                 break
+            }
+
             .runFrame()
-            if cb do
+            if cb
+            {
                 cb(me)
+            }
 
             // A frame that answered the box has asked the loop to end: the box is leaving, not
             // waiting, so it is not watched any more.
@@ -1003,21 +1147,27 @@ private impl Application
             if surface and watch and not cb and not .endModal and not .mustQuit
             {
                 refused = watch(surface)
-                if not refused.isEmpty() do
+                if not refused.isEmpty()
+                {
                     break
+                }
             }
         }
 
-        if surface do
+        if surface
+        {
             .modalSurfaces.removeBack()
+        }
 
         // A surface disabled on the way in can be destroyed while the loop runs: it has left
         // `surfaces`, but this list still holds the raw pointer, and enabling or focusing it
         // would touch freed windows. Keep only the survivors.
         for index in reversed(disabledSurfaces.count)
         {
-            if not .surfaces.contains(disabledSurfaces[index]) do
+            if not .surfaces.contains(disabledSurfaces[index])
+            {
                 disabledSurfaces.removeAtOrdered(index)
+            }
         }
 
         for s in disabledSurfaces
@@ -1031,8 +1181,10 @@ private impl Application
         // be the box choosing for a form that was never left.
         let focus       = .keyboardFocusWnd
         var mustRestore = not focus
-        if focus and surface and focus.surface == surface do
+        if focus and surface and focus.surface == surface
+        {
             mustRestore = true
+        }
 
         // A box opened over another box gives the keyboard back to that one; otherwise it goes to
         // the surface that raised it. The last surface re-enabled is only a last resort: it is the
@@ -1044,21 +1196,32 @@ private impl Application
             break
         }
 
-        if not restoreSurface and restoreTo and restoreTo != surface and .surfaces.contains(restoreTo) do
+        if not restoreSurface and restoreTo and restoreTo != surface and .surfaces.contains(restoreTo)
+        {
             restoreSurface = restoreTo
-        if not restoreSurface and not disabledSurfaces.isEmpty() do
+        }
+
+        if not restoreSurface and not disabledSurfaces.isEmpty()
+        {
             restoreSurface = disabledSurfaces.back()
+        }
 
         if mustRestore and restoreSurface and .surfaces.contains(restoreSurface)
         {
-            if .renderer.needsNativeWindow() and restoreSurface != .nativeFocusSurface do
+            if .renderer.needsNativeWindow() and restoreSurface != .nativeFocusSurface
+            {
                 restoreSurface.requestNativeFocus()
-            else do
+            }
+            else
+            {
                 discard restoreSurface.restoreFocus()
+            }
         }
 
-        if surface and .surfaces.contains(surface) do
+        if surface and .surfaces.contains(surface)
+        {
             surface.destroy()
+        }
 
         // The depth comes down by hand, not in a `defer`: a panic leaves the frame without
         // running it, and the refusal below must leave the application out of every loop.
@@ -1066,8 +1229,11 @@ private impl Application
         .endModal     = false
         .endModalExit = null
         .inModalLoop  -= 1
-        if not refused.isEmpty() do
+        if not refused.isEmpty()
+        {
             Swag.panic(refused.toString(), #curlocation)
+        }
+
         return result
     }
 }
@@ -1077,8 +1243,10 @@ internal impl Application
     // Reveals access keys while either Alt key is held and hides them after both are released.
     mtd updateAccessKeyVisibility(key: Input.Key, pressed: bool)
     {
-        if key != .LMenu and key != .RMenu and key != .MenuCtrl do
+        if key != .LMenu and key != .RMenu and key != .MenuCtrl
+        {
             return
+        }
 
         if pressed
         {
@@ -1092,11 +1260,15 @@ internal impl Application
 
         if .keyboard.isKeyPressed(.LMenu) or
            .keyboard.isKeyPressed(.RMenu) or
-           .keyboard.isKeyPressed(.MenuCtrl) do
+           .keyboard.isKeyPressed(.MenuCtrl)
+        {
             return
+        }
 
-        for surface in .surfaces do
+        for surface in .surfaces
+        {
             surface.setAccessKeysVisible(false)
+        }
     }
 
     // Registers a surface with initialized renderer state; its creator owns its lifetime.
@@ -1110,33 +1282,50 @@ internal impl Application
     mtd unregisterSurface(surface: *Surface)
     {
         .surfaces.remove(surface)
-        if .nativeFocusSurface == surface do
+        if .nativeFocusSurface == surface
+        {
             .updateNativeFocus(null)
-        if .mainSurface == surface do
+        }
+
+        if .mainSurface == surface
+        {
             .mainSurface = null
+        }
     }
 
     mtd dispatchHotKey(modifiers: Input.KeyModifiers, key: Input.Key)
     {
         let {id, wnd: target} = .hotKeyShortcut(modifiers, key)
-        if id and target do
+        if id and target
+        {
             target.sendCommandEvent(id)
+        }
     }
 
     // Finds the visible surface at a screen position.
     mtd surfaceAt(x, y: f32)->*Surface?
     {
-        if .renderer.needsNativeWindow() do
+        if .renderer.needsNativeWindow()
+        {
             return .surfaceAtNative(x, y)
+        }
 
         for surface in .surfaces
         {
-            if surface.isHidden do
+            if surface.isHidden
+            {
                 continue
-            if not .modalSurfaces.isEmpty() and surface != .modalSurfaces.back() do
+            }
+
+            if not .modalSurfaces.isEmpty() and surface != .modalSurfaces.back()
+            {
                 continue
-            if surface.position.contains(Math.Point{x, y}) do
+            }
+
+            if surface.position.contains(Math.Point{x, y})
+            {
                 return surface
+            }
         }
 
         return null
@@ -1152,14 +1341,19 @@ impl Application
         .animator.cancelAll()
         .setGlobalHotKeysEnabled(false)
 
-        for it in .surfaces do
+        for it in .surfaces
+        {
             it.destroy()
+        }
+
         .sendDestroyEvents()
 
         Swag.assert(.pendingTaskNotifications.load() == 0, "task notification outlived its application")
 
-        for it in .postedEvents do
+        for it in .postedEvents
+        {
             .toDelete.add({ptr: it.buffer, type: Swag.kindOf(it)})
+        }
 
         .deletePointers()
         .releaseRenderResources()
@@ -1170,22 +1364,33 @@ impl Application
     {
         if .appIconLoaded
         {
-            if .appIconList.isValid() do
+            if .appIconList.isValid()
+            {
                 .appIconList.release(.renderer)
-            if .appIconTileList.isValid() do
+            }
+
+            if .appIconTileList.isValid()
+            {
                 .appIconTileList.release(.renderer)
+            }
+
             .appIconLoaded = false
         }
 
-        if .theme != null do
+        if .theme != null
+        {
             .theme.freeDefault()
+        }
     }
 
     // Publishes the accepted recipient and presentation before sending focus events.
     internal mtd updateKeyboardFocus(wnd: *Wnd?, visible: bool)
     {
-        if .keyboardFocusWnd != wnd do
+        if .keyboardFocusWnd != wnd
+        {
             .focusRevision += 1
+        }
+
         .keyboardFocusWnd = wnd
         .focusVisible     = visible
     }
@@ -1193,8 +1398,10 @@ impl Application
     internal mtd forgetKeyboardFocus(wnd: *Wnd)
     {
         wnd.surface?.forgetFocus(wnd)
-        if wnd == .keyboardFocusWnd or wnd.isAncestorOf(.keyboardFocusWnd) do
+        if wnd == .keyboardFocusWnd or wnd.isAncestorOf(.keyboardFocusWnd)
+        {
             .updateKeyboardFocus(null, false)
+        }
     }
 
     // Turns the keyboard-focus ring on or off, and repaints what showed it.
@@ -1203,8 +1410,11 @@ impl Application
     // focus.
     internal mtd setFocusVisible(visible: bool)
     {
-        if .focusVisible == visible do
+        if .focusVisible == visible
+        {
             return
+        }
+
         .focusVisible = visible
         .keyboardFocusWnd?.invalidateFocusDecoration()
     }
@@ -1220,10 +1430,15 @@ impl Application
     {
         let surface = from.surface
         let current = .keyboardFocusWnd?.surface
-        if not surface or from.isPendingDestroy or (current and current != surface) do
+        if not surface or from.isPendingDestroy or (current and current != surface)
+        {
             return
-        if .renderer.needsNativeWindow() and not .acceptsNativeKeyboard(surface) do
+        }
+
+        if .renderer.needsNativeWindow() and not .acceptsNativeKeyboard(surface)
+        {
             return
+        }
 
         let id = from.keyShortcut(modifiers, key)
         if id != null
@@ -1272,13 +1487,21 @@ impl Application
 
     internal mtd clearWndInputState(wnd: *Wnd)
     {
-        if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd) do
+        if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd)
+        {
             .mouseEnterWnd = null
-        if wnd == .mouseCaptureWnd or wnd.isOwnerOf(.mouseCaptureWnd) do
+        }
+
+        if wnd == .mouseCaptureWnd or wnd.isOwnerOf(.mouseCaptureWnd)
+        {
             .releaseMouse()
+        }
+
         .forgetKeyboardFocus(wnd)
-        if wnd == .dragEnterWnd or wnd.isOwnerOf(.dragEnterWnd) do
+        if wnd == .dragEnterWnd or wnd.isOwnerOf(.dragEnterWnd)
+        {
             .dragEnterWnd = null
+        }
     }
 
     // Creates a main surface and runs its application until shutdown.
@@ -1294,14 +1517,23 @@ impl Application
         var app: Application
 
         var flags = SurfaceFlags.StandardWindow
-        if not canSize do
+        if not canSize
+        {
             flags &= ~.Resizable
-        if not borders do
+        }
+
+        if not borders
+        {
             flags &= ~.Border
+        }
+
         let surface = expect app.createSurface(x, y, width, height, flags, view, hook)
         surface.setTitle(title)
-        if init do
+        if init
+        {
             init(&app)
+        }
+
         surface.show()
         app.run()
     }
@@ -1320,7 +1552,7 @@ impl Application
     // owned by the application; the pointer remains valid until that surface is destroyed.
     mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.StandardWindow, view: *Wnd? = null, hook: HookEvent? = null, surfaceId: string? = null)->*Surface fail
     {
-        let surface = Memory.new'Surface()
+        let surface = Memory.new!{Surface}()
         var surfaceCreated: bool
         defer if not surfaceCreated
         {
@@ -1347,8 +1579,11 @@ impl Application
                 .setRenderer(&.rendererOgl)
             }
 
-            if .theme == null do
-                .theme = Memory.new'Theme()
+            if .theme == null
+            {
+                .theme = Memory.new!{Theme}()
+            }
+
             .style.set(.theme)
             registerDefaultThemeResources(&.resources)
             registerDefaultStrings(&.resources)
@@ -1425,13 +1660,17 @@ impl Application
     mtd appIconAt(size: f32, ground: Pixel.Color)->Icon
     {
         var result: #returntype
-        if not .appIcon.isValid() do
+        if not .appIcon.isValid()
+        {
             return result
+        }
 
         .loadAppIconCuts()
         let list = markReadsOn(ground) ? &.appIconList : &.appIconTileList
-        if not list.isValid() do
+        if not list.isValid()
+        {
             return result
+        }
 
         result = Icon.from(list, 0, size, size)
 
@@ -1449,12 +1688,17 @@ impl Application
     mtd appGlyph(size: f32)->Icon
     {
         var result: #returntype
-        if not .appIcon.isValid() do
+        if not .appIcon.isValid()
+        {
             return result
+        }
 
         .loadAppIconCuts()
-        if .appIconGlyphList.isValid() do
+        if .appIconGlyphList.isValid()
+        {
             result = Icon.from(&.appIconGlyphList, 0, size, size)
+        }
+
         return result
     }
 
@@ -1467,13 +1711,17 @@ impl Application
     {
         // Initial surface layout asks for the glyph before a rendering context exists. The
         // first surface repeats layout after renderer initialization; upload on that pass.
-        if not .mainSurface or .appIconLoaded do
+        if not .mainSurface or .appIconLoaded
+        {
             return
+        }
 
         var mark = .appIcon.convertedTo(.RGBA8)
         var tile = .renderer.addImage(mark)
-        if not tile.isValid() do
+        if not tile.isValid()
+        {
             return
+        }
 
         mark.keyOutGround(MarkInk, MarkVoltage)
         var icon = .renderer.addImage(mark)
@@ -1575,21 +1823,31 @@ impl Application
     // Applies the theme the current appearance resolves to.
     internal mtd applyAppearance()
     {
-        if .usesLightTheme() do
+        if .usesLightTheme()
+        {
             .theme.setLight()
-        else do
+        }
+        else
+        {
             .theme.setDark()
+        }
+
         .notifyThemeChanged()
     }
 
     // Records the platform light or dark setting, and follows it when the appearance says so.
     internal mtd setSystemPrefersLight(light: bool)
     {
-        if .systemPrefersLight == light do
+        if .systemPrefersLight == light
+        {
             return
+        }
+
         .systemPrefersLight = light
-        if .appearance == .System or .appearance == .Document do
+        if .appearance == .System or .appearance == .Document
+        {
             .applyAppearance()
+        }
     }
 
     // Overrides or restores the platform reduced-motion preference.
@@ -1597,8 +1855,10 @@ impl Application
     {
         let wasReduced = .isReducedMotion()
         .motionPreference = preference
-        if not wasReduced and .isReducedMotion() do
+        if not wasReduced and .isReducedMotion()
+        {
             .animator.finishDecorative()
+        }
     }
 
     // Reports whether decorative finite transitions complete immediately.
@@ -1622,18 +1882,24 @@ impl Application
     {
         func updateLanguage(app: *Application, wnd: *Wnd)
         {
-            if not wnd.surface do
+            if not wnd.surface
+            {
                 return
+            }
 
             wnd.invalidate()
 
-            var children: Array'(*Wnd)
+            var children: Array!{*Wnd}
             children.add(wnd.children.toSlice())
-            for c in children do
+            for c in children
+            {
                 updateLanguage(app, c)
+            }
 
-            if not wnd.surface do
+            if not wnd.surface
+            {
                 return
+            }
 
             app.sendBroadcastNotifyEvent(wnd, .LanguageChanged)
         }
@@ -1641,8 +1907,10 @@ impl Application
         for s in .surfaces
         {
             updateLanguage(me, s.wnd)
-            if not s.wnd.children.contains(s.wnd.view) do
+            if not s.wnd.children.contains(s.wnd.view)
+            {
                 updateLanguage(me, s.wnd.view)
+            }
         }
     }
 
@@ -1654,8 +1922,10 @@ impl Application
     {
         let previous = .theme.res.atlasScale
         .theme.ensureAtlasScale(.renderer, scale)
-        if .theme.res.atlasScale != previous do
+        if .theme.res.atlasScale != previous
+        {
             .notifyThemeChanged()
+        }
     }
 
     // A native input-layout update is distinct from changing Gui.strings. Only the affected
@@ -1665,17 +1935,23 @@ impl Application
     {
         func updateLayout(app: *Application, wnd: *Wnd)
         {
-            if not wnd.surface do
+            if not wnd.surface
+            {
                 return
+            }
 
             wnd.invalidate()
-            var children: Array'(*Wnd)
+            var children: Array!{*Wnd}
             children.add(wnd.children.toSlice())
-            for child in children do
+            for child in children
+            {
                 updateLayout(app, child)
+            }
 
-            if wnd.surface do
+            if wnd.surface
+            {
                 app.sendBroadcastNotifyEvent(wnd, .KeyboardLayoutChanged)
+            }
         }
 
         updateLayout(me, root)
@@ -1689,8 +1965,10 @@ impl Application
             wnd.style.dirty = true
             wnd.computeStyle()
             wnd.invalidate()
-            for c in wnd.children do
+            for c in wnd.children
+            {
                 updateTheme(app, c)
+            }
 
             app.sendBroadcastNotifyEvent(wnd, .ThemeChanged)
         }
@@ -1712,13 +1990,16 @@ impl Application
         }
         else
         {
-            var bindings: Array'ShortcutOverride
+            var bindings: Array!{ShortcutOverride}
             try ser.serialize("keyboardShortcuts", &bindings)
             .restoreShortcuts(#move bindings)
         }
 
-        for s in .surfaces do
+        for s in .surfaces
+        {
             try s.serializeState(ser)
+        }
+
         try ser.endSection()
     }
 
@@ -1737,11 +2018,13 @@ impl Application
     // Saves serializable surface placement to the configured state file.
     mtd saveState() fail
     {
-        if .statePath.isEmpty() do
+        if .statePath.isEmpty()
+        {
             return
+        }
 
         var buf:  ConcatBuffer
-        var save: Encoder'Write.TagBin
+        var save: Encoder!{Write.TagBin}
         save.serializer.schema = "gui.application-state"
         var ser: Serializer
         try ser.startWrite(&save, &buf)
@@ -1766,27 +2049,38 @@ impl Application
         entry.name         = "state"
         entry.primaryChunk = stateId
         writer.manifest().entries.add(#move entry)
-        if let folder = Path.directoryName(.statePath) do
+        if let folder = Path.directoryName(.statePath)
+        {
             try Directory.create(folder, recurse: true)
+        }
+
         try writer.saveAtomic(.statePath)
     }
 
     // Loads serializable surface placement from the configured state file.
     mtd loadState() fail
     {
-        if .statePath.isEmpty() do
+        if .statePath.isEmpty()
+        {
             return
+        }
 
-        var buf: Array'u8
+        var buf: Array!{u8}
         if try Scc.hasSignature(.statePath)
         {
             var reader: Scc.Reader
             try reader.initialize(.statePath)
-            if reader.kind() != stateContainerKind() do
+            if reader.kind() != stateContainerKind()
+            {
                 fail Errors.InvalidFormatError{"GUI state file has a different SCC profile"}
+            }
+
             let state = reader.findRole(stateChunkRole())
-            if not state do
+            if not state
+            {
                 fail Errors.InvalidFormatError{"GUI state file has no state chunk"}
+            }
+
             buf = try reader.readChunk(state.id)
         }
         else
@@ -1794,7 +2088,7 @@ impl Application
             buf = try File.readAllBytes(.statePath)
         }
 
-        var load: Decoder'Read.TagBin
+        var load: Decoder!{Read.TagBin}
         load.serializer.schema = "gui.application-state"
         var ser: Serializer
         try ser.startRead(&load, buf.toSlice())
@@ -1850,24 +2144,36 @@ impl Application
     internal mtd windowAt(screenPos: Math.Point)->*Wnd?
     {
         let targetSurface = .surfaceAt(screenPos.x, screenPos.y)
-        if not targetSurface do
+        if not targetSurface
+        {
             return null
+        }
+
         return targetSurface.windowAt(screenPos)
     }
 
     // Returns `wnd` or its closest enabled ancestor, or `null` when nothing there takes input.
     internal func skipDisabled(wnd: *Wnd?)->*Wnd?
     {
-        if not wnd do
+        if not wnd
+        {
             return null
-        if wnd.surface!.isDisabled do
+        }
+
+        if wnd.surface!.isDisabled
+        {
             return null
+        }
+
         var scan = wnd
         while scan
         {
             let cur = scan
-            if cur.isEnabled() do
+            if cur.isEnabled()
+            {
                 break
+            }
+
             scan = cur.parent
         }
 
@@ -1878,15 +2184,22 @@ impl Application
     // in front, and repaints every surface.
     internal mtd setActivated(activated: bool)
     {
-        if .isActivated == activated do
+        if .isActivated == activated
+        {
             return
+        }
+
         .isActivated = activated
-        for s in .modalSurfaces do
+        for s in .modalSurfaces
+        {
             s.bringToFront()
+        }
 
         // A click in another application reaches none of these windows.
-        if not activated do
+        if not activated
+        {
             .notifyPressedElsewhere()
+        }
 
         .invalidate()
     }
@@ -1898,21 +2211,25 @@ impl Application
     {
         var evt   = NotifyEvent{kind: .PressedElsewhere}
         let hooks = .hookOnEvent
-        for hook in hooks do
+        for hook in hooks
+        {
             hook.itf.onHookEvent(&evt)
+        }
     }
 
     // Schedules every surface for a complete repaint.
     mtd invalidate()
     {
-        for s in .surfaces do
+        for s in .surfaces
+        {
             s.invalidate()
+        }
     }
 
     // Posts a thread-safe request to leave the event loop with `quitCode`.
     mtd postQuitEvent(quitCode: s32 = 0)
     {
-        let evt = Event.create'QuitEvent()
+        let evt = Event.create!{QuitEvent}()
         evt.quitCode = quitCode
         .postEvent(evt)
     }
@@ -1923,8 +2240,10 @@ impl Application
     // dispatch. A [[Gui.CommandEvent]] retains a copy of its identifier when it is posted.
     mtd postEvent(event: IEvent)
     {
-        if event is CommandEvent as command do
+        if event is CommandEvent as command
+        {
             command.retainId()
+        }
 
         Sync.scopedLock(&.mutexPostedEvents)
         .postedEvents.add(event)
@@ -1942,14 +2261,19 @@ impl Application
     // with [[Gui.Application.removeTimer]], or let the destruction of `target` retire it.
     mtd addTimer(time: Time.Duration, target: *Wnd)->*Timer
     {
-        let timer = Memory.new'Timer()
+        let timer = Memory.new!{Timer}()
         Swag.assert(time.milliseconds() > 0, "timer period must be positive")
         timer.periodMilliseconds = time.milliseconds()
         timer.target = target
-        if .duringTimerEvents do
+        if .duringTimerEvents
+        {
             .timersToAdd.add(timer)
-        else do
+        }
+        else
+        {
             .timers.add(timer)
+        }
+
         return timer
     }
 
@@ -1961,12 +2285,16 @@ impl Application
     // its own fields to recognize the duplicate request would read freed memory.
     mtd removeTimer(timer: *Timer)
     {
-        if not .ownsTimer(timer) do
+        if not .ownsTimer(timer)
+        {
             return
+        }
 
         // Retirement is already queued for the end of the current dispatch.
-        if timer.isPendingRemoval do
+        if timer.isPendingRemoval
+        {
             return
+        }
 
         if .duringTimerEvents
         {
@@ -1983,10 +2311,16 @@ impl Application
     // Reports whether this application still owns `timer`, without reading through it.
     internal mtd const ownsTimer(timer: const *Timer)->bool
     {
-        for t in .timers where t == timer do
+        for t in .timers where t == timer
+        {
             return true
-        for t in .timersToAdd where t == timer do
+        }
+
+        for t in .timersToAdd where t == timer
+        {
             return true
+        }
+
         return false
     }
 
@@ -2032,12 +2366,21 @@ impl Application
 
     internal mtd pointerCursor(target: *Wnd?)->Cursor
     {
-        if .cursorHidden do
+        if .cursorHidden
+        {
             return Cursor.from(.Hidden)
-        if .frameCursor.isValid() do
+        }
+
+        if .frameCursor.isValid()
+        {
             return .frameCursor
-        if target and target.cursor.isValid() do
+        }
+
+        if target and target.cursor.isValid()
+        {
             return target.cursor
+        }
+
         return Cursor.from(.Arrow)
     }
 
@@ -2046,13 +2389,18 @@ impl Application
     // A movement restores automatic cursor selection from the window under the pointer.
     mtd setCursorHidden(hidden: bool)
     {
-        if .cursorHidden == hidden do
+        if .cursorHidden == hidden
+        {
             return
+        }
+
         .cursorHidden = hidden
 
         // Revealing the pointer must preserve the cursor of the captured or hovered control.
-        if .renderer != null and .renderer.needsNativeWindow() do
+        if .renderer != null and .renderer.needsNativeWindow()
+        {
             Cursor.activate(.pointerCursor(.mouseCaptureWnd orelse .mouseEnterWnd))
+        }
     }
 
     // Whether the native pointer is hidden until it moves.
@@ -2067,8 +2415,10 @@ impl Application
     {
         // A smoke run is bounded by whoever launched it. Applying it here means no
         // application, example or script has to recognize that it is being exercised.
-        if not .maxRunFrame do
+        if not .maxRunFrame
+        {
             .maxRunFrame = Env.smokeFrames()
+        }
 
         .frameTrace.setup()
 
@@ -2079,8 +2429,10 @@ impl Application
             s.wnd.view.sendEvent(&evt)
         }
 
-        while not .mustQuit do
+        while not .mustQuit
+        {
             .runFrame()
+        }
 
         .frameTrace.report()
         return .quitCode
@@ -2102,8 +2454,10 @@ impl Application
     // Enables or disables native delivery of the application's system-wide shortcuts.
     mtd setGlobalHotKeysEnabled(enabled = true)
     {
-        if .hotKeysDisabled == not enabled do
+        if .hotKeysDisabled == not enabled
+        {
             return
+        }
 
         .hotKeysDisabled = not enabled
         var lost: bool
@@ -2124,8 +2478,10 @@ impl Application
             }
         }
 
-        if lost do
+        if lost
+        {
             .notifyShortcutsChanged()
+        }
     }
 
     // Registers or replaces a system-wide keyboard shortcut routed to `target` as `wndId`.
@@ -2141,8 +2497,11 @@ impl Application
             }
         }
 
-        if not .hotKeysDisabled do
+        if not .hotKeysDisabled
+        {
             try registerNativeHotKey(modifiers, key)
+        }
+
         .hotKeys.add(KeyShortcut{modifiers, key, wndId, target})
     }
 
@@ -2153,8 +2512,11 @@ impl Application
         {
             if shortcut.modifiers == modifiers and shortcut.key == key
             {
-                if not .hotKeysDisabled do
+                if not .hotKeysDisabled
+                {
                     unregisterNativeHotKey(modifiers, key)
+                }
+
                 .hotKeys.removeAtOrdered(idx)
                 return true
             }
@@ -2168,8 +2530,10 @@ impl Application
     {
         if not .hotKeysDisabled
         {
-            for shortcut in .hotKeys do
+            for shortcut in .hotKeys
+            {
                 unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
+            }
         }
 
         .hotKeys.clear()
@@ -2179,8 +2543,10 @@ impl Application
     {
         for c in .hotKeys
         {
-            if c.modifiers == modifiers and c.key == key do
+            if c.modifiers == modifiers and c.key == key
+            {
                 return {id: c.id, wnd: c.target}
+            }
         }
 
         return {id: null, wnd: null}

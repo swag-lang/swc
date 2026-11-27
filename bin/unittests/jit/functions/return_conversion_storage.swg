@@ -37,8 +37,10 @@ func convertedReturn(name: string)->Text
 #[Swag.NoInline]
 func convertedEarlyReturn(kind: s32, name: string)->Text
 {
-    if kind == 0 do
+    if kind == 0
+    {
         return passText(name)
+    }
     var built: Text = "fallback"
     return built
 }

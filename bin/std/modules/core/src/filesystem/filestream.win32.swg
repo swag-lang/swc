@@ -10,8 +10,11 @@ internal impl FileStream
     mtd readNative(buffer: *void, length: u32)->u32 fail
     {
         var read: DWORD
-        if not ReadFile(.handle, buffer, length, &read, null) do
+        if not ReadFile(.handle, buffer, length, &read, null)
+        {
             try failWinError(GetLastError())
+        }
+
         return read
     }
 
@@ -21,6 +24,19 @@ internal impl FileStream
         var written: DWORD
         catch { discard try WriteFile(.handle, buffer, length, &written, null) } { try Errors.transformWinErrors(Swag.err) }
         return written
+    }
+
+    // Reads a range on an ordinary open handle. The caller does not use the stream's cursor.
+    mtd readFileRange(offset: u64, buffer: [..] u8)->bool fail => try .readExactAt(offset, buffer)
+
+    // Rewrites a file range and returns to the caller's known append position.
+    mtd writeAllAtKeepingPosition(offset: u64, buffer: const [..] u8, resume: u64) fail
+    {
+        try .writeAllAt(offset, buffer)
+        if offset + buffer.count != resume
+        {
+            try .seek(.Begin, resume)
+        }
     }
 
     // Closes the underlying Windows handle; the caller must not reuse that handle.

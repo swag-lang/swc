@@ -42,7 +42,7 @@ func checkSegments(allocator: *Allocator)
         Swag.assert((idleMask & ~segment.usableMask) == 0)
         for i in segment.pageCount
         {
-            let carrying = (pageMask & (1'u64 << i)) != 0
+            let carrying = (pageMask & (1_u64 << i)) != 0
             Swag.assert(carrying == (segment.pages[i].state != AllocatorPageState.Free))
         }
 
@@ -151,8 +151,10 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     let fill  = cast(u64, page.capacityBytes() / page.blockSize) - 1
     var held:      [1024] (*void?)
     Swag.require(fill <= held.count)
-    for i in fill do
+    for i in fill
+    {
         held[i] = allocOne(itf, 64)
+    }
     Swag.require(allocator.stats().countPage == 1)
     let segment = allocatorSegmentOf(page)
 
@@ -172,8 +174,10 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     checkSegments(&allocator)
 
     freeOne(itf, served)
-    for i in fill do
+    for i in fill
+    {
         freeOne(itf, held[i])
+    }
     freeOne(itf, first)
     checkRecovers(&allocator, itf)
 }
@@ -211,8 +215,10 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     allocatorClearOsFailures()
 
     allocatorReleaseSegment(fresh)
-    for i in pooled do
+    for i in pooled
+    {
         allocatorReleaseSegment(unwrap held[i])
+    }
 }
 
 // A header-path block whose reservation or commit is refused is not allocated, commits nothing,
@@ -221,8 +227,10 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
 {
     for electric in [false, true]
     {
-        if electric and not #hastag("Swag.AllocatorDiagnostics") do
+        if electric and not #hastag("Swag.AllocatorDiagnostics")
+        {
             continue
+        }
         var allocator: Allocator
         let itf    = failureAllocator(&allocator, electric)
         let before = allocator.stats()
@@ -239,8 +247,10 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
         Swag.require(after.sizeCommitted == before.sizeCommitted)
         Swag.require(after.countOsCommit == before.countOsCommit)
         Swag.require(allocator.firstAlloc == null)
-        for i in AllocatorHeaderShardCount do
+        for i in AllocatorHeaderShardCount
+        {
             Swag.require(allocator.shards[i].first == null)
+        }
         Swag.require(allocator.cachedBlockCount == 0)
 
         let block = allocOne(itf, 200_000)
@@ -262,8 +272,10 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     itf.alloc(&request)
     let original = unwrap request.address
     let bytes    = cast([*] u8, original)
-    for i in 66000 do
+    for i in 66000
+    {
         bytes[i] = cast #wrap (u8, i)
+    }
 
     allocatorFailOsCommit()
     request.oldSize = 66000
@@ -274,8 +286,10 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
 
     Swag.require(request.address != null and request.address != original)
     let moved = cast([*] u8, request.address)
-    for i in 66000 do
+    for i in 66000
+    {
         Swag.require(moved[i] == cast #wrap (u8, i))
+    }
     Swag.require(allocator.stats().countAlloc == 1)
     Swag.require(allocator.cachedBlockCount == 1)
 

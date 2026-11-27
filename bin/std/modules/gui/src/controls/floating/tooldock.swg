@@ -32,15 +32,15 @@ struct ToolDock
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigToolChanged: SigArray'func||(*ToolDock, *IconButton)     // Emitted after the reader makes another tool the active one.
+        sigToolChanged: SigArray!{func||(*ToolDock, *IconButton)}     // Emitted after the reader makes another tool the active one.
 
         readonly
         {
-            tools: Array'(*IconButton)     // Tools in display order, from the top.
+            tools: Array!{*IconButton}     // Tools in display order, from the top.
         }
     }
 
-    groups: Array'ToolDockGroup
+    groups: Array!{ToolDockGroup}
 }
 
 // One tool of a group of a [[Gui.ToolDock]] cell.
@@ -61,7 +61,7 @@ impl ToolDockMember
 struct ToolDockGroup
 {
     late cell: *IconButton
-    members:   Array'ToolDockMember
+    members:   Array!{ToolDockMember}
 }
 
 // The side of the corner of a group cell its mark is drawn in; a click there lists the group.
@@ -72,8 +72,10 @@ impl IWnd for ToolDock
     mtd impl onLayout()
     {
         let parent = .parent
-        if not parent do
+        if not parent
+        {
             return
+        }
 
         let metrics = .themeMetrics()
         let bounds  = parent.clientRect()
@@ -86,8 +88,11 @@ impl IWnd for ToolDock
         // first tools, the ones a hand reaches for most, rather than pushing them under the strip.
         let top    = bounds.y + parent.stripInset()
         let bottom = bounds.bottom()
-        if y < top + metrics.floating_Inset or y + body.y > bottom - metrics.floating_Inset do
+        if y < top + metrics.floating_Inset or y + body.y > bottom - metrics.floating_Inset
+        {
             y = Math.round(top + Math.max(bottom - top - body.y, 0) * 0.5)
+        }
+
         liftFloating(me)
         .setPosition(Math.Rectangle{x, y, body.x, body.y})
 
@@ -134,7 +139,7 @@ impl ToolDock
     #[Swag.Discardable]
     func create(parent: *Wnd, id: WndId? = null)->*ToolDock
     {
-        with let result = Wnd.create'ToolDock(parent, null, {}, id)
+        with let result = Wnd.create!{ToolDock}(parent, null, {}, id)
         {
             .dockStyle       = .Float
             .backgroundStyle = .Transparent
@@ -162,14 +167,19 @@ impl ToolDock
             .toolTip = toolTip orelse ""
             .sigCheckedChanged += func|dock = me|(button)
             {
-                if button.isChecked do
+                if button.isChecked
+                {
                     dock.activate(button, notify: true)
+                }
             }
         }
 
         .tools.add(tool)
-        if .tools.count == 1 do
+        if .tools.count == 1
+        {
             tool.setChecked(true)
+        }
+
         .itf.onLayout()
         return tool
     }
@@ -206,8 +216,11 @@ impl ToolDock
         member.icon    = glyph
         member.toolTip = String.from(toolTip orelse "")
         member.hasId   = id != null
-        if id do
+        if id
+        {
             member.idStorage = id
+        }
+
         .invalidate()
     }
 
@@ -242,8 +255,10 @@ impl ToolDock
     mtd openGroup(cell: *IconButton)
     {
         let group = .groupOf(cell)
-        if not group do
+        if not group
+        {
             return
+        }
 
         with let menu = MenuCtrl.createPopup(me)
         {
@@ -252,17 +267,24 @@ impl ToolDock
                 let memberId = member.idView()
 
                 // A tool with no words of its own is named by its command.
-                if member.toolTip.isEmpty() and memberId do
+                if member.toolTip.isEmpty() and memberId
+                {
                     discard .addItem(null, memberId, member.icon, checked: memberId == cell.id)
-                else do
+                }
+                else
+                {
                     discard .addItem(member.toolTip, memberId orelse "", member.icon, checked: memberId == cell.id)
+                }
             }
         }
 
         let at     = cell.surfaceRect()
         let result = menu.doModal(Math.Point{at.right() + .themeMetrics().toolDock_Padding, at.y}, autoDestroy: true)
-        if not result do
+        if not result
+        {
             return
+        }
+
         .chooseInGroup(cell, result)
     }
 
@@ -273,8 +295,11 @@ impl ToolDock
     mtd chooseInGroup(cell: *IconButton, id: WndId)
     {
         let group = .groupOf(cell)
-        if not group do
+        if not group
+        {
             return
+        }
+
         for &member in group.members where member.idView() == id
         {
             .showMember(group, member)
@@ -287,8 +312,11 @@ impl ToolDock
     // Returns the active tool, or `null` when the dock is empty.
     mtd activeTool()->*IconButton?
     {
-        for tool in .tools where tool.isChecked do
+        for tool in .tools where tool.isChecked
+        {
             return tool
+        }
+
         return null
     }
 
@@ -314,8 +342,11 @@ impl ToolDock
     // Returns the group the cell `cell` stands for, or null.
     private mtd groupOf(cell: *IconButton)->*ToolDockGroup?
     {
-        for &group in .groups where group.cell == cell do
+        for &group in .groups where group.cell == cell
+        {
             return group
+        }
+
         return null
     }
 
@@ -349,11 +380,19 @@ impl ToolDock
 
     private mtd activate(tool: *IconButton, notify: bool)
     {
-        for other in .tools where other != tool and other.isChecked do
+        for other in .tools where other != tool and other.isChecked
+        {
             other.setChecked(false)
-        if not tool.isChecked do
+        }
+
+        if not tool.isChecked
+        {
             tool.setChecked(true)
-        if notify do
+        }
+
+        if notify
+        {
             .sigToolChanged.call(me, tool)
+        }
     }
 }

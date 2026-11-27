@@ -24,7 +24,7 @@ func maskWithLiveSource(a: u64, b, c: u64)->u64 => ((a & 7) == 0 ? b : c) ^ a
 
 #test
 {
-    let values = [0'u32, 1, 7, 31, 32, 63, 0x80000000, 0x87654321, 0xFFFFFFFF]
+    let values = [0_u32, 1, 7, 31, 32, 63, 0x80000000, 0x87654321, 0xFFFFFFFF]
     for a in values
     {
         Swag.require(sameInput(a) == a << (a & 31))

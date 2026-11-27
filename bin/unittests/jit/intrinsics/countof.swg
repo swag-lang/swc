@@ -42,21 +42,21 @@ impl RefCountedRuntime
 {
     func countEnum()->u64 { return Color.count }
     const V0 = #run countEnum()
-    #assert(V0 == 4'u64)
+    #assert(V0 == 4_u64)
 }
 
 #test
 {
     func countString(value: string)->u64 { return value.count }
     const V0 = #run countString("runtime")
-    #assert(V0 == 7'u64)
+    #assert(V0 == 7_u64)
 }
 
 #test
 {
     func countCString(value: const cstring)->u64 { return value.count }
     const V0 = #run countCString(cast(const cstring, ("runtime").buffer))
-    #assert(V0 == 7'u64)
+    #assert(V0 == 7_u64)
 }
 
 #test
@@ -65,59 +65,59 @@ impl RefCountedRuntime
 
     const data: [6] u8 = [0, 0, 0, 0, 0, 0]
     const V0 = #run countSlice(cast(const [..] u8, data))
-    #assert(V0 == 6'u64)
+    #assert(V0 == 6_u64)
 }
 
 #test
 {
     func countTypedVariadic(values: s32...)->u64 { return values.count }
     const V0 = #run countTypedVariadic(1, 2, 3, 4, 5)
-    #assert(V0 == 5'u64)
+    #assert(V0 == 5_u64)
 }
 
 #test
 {
     func countTypedVariadicWithHead(_: s32, values: s32...)->u64 { return values.count }
     const V0 = #run countTypedVariadicWithHead(10, 20, 30, 40)
-    #assert(V0 == 3'u64)
+    #assert(V0 == 3_u64)
 }
 
 #test
 {
     func countUnsigned32(value: u32)->u32 { return value.count }
-    const V0 = #run countUnsigned32(42'u32)
+    const V0 = #run countUnsigned32(42_u32)
     #assert(#typeof(V0) == u32)
-    #assert(V0 == 42'u32)
+    #assert(V0 == 42_u32)
 }
 
 #test
 {
     func countSigned32(value: s32)->s32 { return value.count }
-    const V0 = #run countSigned32(42's32)
+    const V0 = #run countSigned32(42_s32)
     #assert(#typeof(V0) == s32)
-    #assert(V0 == 42's32)
+    #assert(V0 == 42_s32)
 }
 
 #test
 {
     func countUnsigned64(value: u64)->u64 { return value.count }
-    const V0 = #run countUnsigned64(1000'u64)
+    const V0 = #run countUnsigned64(1000_u64)
     #assert(#typeof(V0) == u64)
-    #assert(V0 == 1000'u64)
+    #assert(V0 == 1000_u64)
 }
 
 #test
 {
     func countArray(value: [5] u16)->u64 { return value.count }
-    const V0 = #run countArray([1'u16, 2'u16, 3'u16, 4'u16, 5'u16])
-    #assert(V0 == 5'u64)
+    const V0 = #run countArray([1_u16, 2_u16, 3_u16, 4_u16, 5_u16])
+    #assert(V0 == 5_u64)
 }
 
 #test
 {
     func countAny(values: ...)->u64 { return values.count }
-    const V0 = #run countAny(1, "ab", true, 4.0'f64)
-    #assert(V0 == 4'u64)
+    const V0 = #run countAny(1, "ab", true, 4.0_f64)
+    #assert(V0 == 4_u64)
 }
 
 #test
@@ -125,21 +125,21 @@ impl RefCountedRuntime
     func countStruct(value: CountedRuntime)->u64 { return value.count }
     const V0 = #run countStruct(CountedRuntime{7})
     const V1 = #run countStruct(CountedRuntime{0})
-    #assert(V0 == 7'u64)
-    #assert(V1 == 0'u64)
+    #assert(V0 == 7_u64)
+    #assert(V1 == 0_u64)
 }
 
 #test
 {
-    const V0 = #run (3's8).count
-    const V1 = #run (4's32).count
-    const V2 = #run (5's64).count
+    const V0 = #run (3_s8).count
+    const V1 = #run (4_s32).count
+    const V2 = #run (5_s64).count
     #assert(#typeof(V0) == s8)
     #assert(#typeof(V1) == s32)
     #assert(#typeof(V2) == s64)
-    #assert(V0 == 3's8)
-    #assert(V1 == 4's32)
-    #assert(V2 == 5's64)
+    #assert(V0 == 3_s8)
+    #assert(V1 == 4_s32)
+    #assert(V2 == 5_s64)
 }
 
 #test
@@ -152,7 +152,7 @@ impl RefCountedRuntime
     }
 
     const V0 = #run countZeroSizedSlice()
-    #assert(V0 == 3'u64)
+    #assert(V0 == 3_u64)
 }
 
 #test
@@ -169,22 +169,24 @@ impl RefCountedRuntime
         var text         = "hello"
         let textRef: const *string = &text
         var count:   u64 = 0
-        for textRef[] do
+        for textRef[]
+        {
             count += 1
+        }
         return count
     }
 
     const V0 = #run countStringRef()
     const V1 = #run loopStringRef()
-    #assert(V0 == 5'u64)
-    #assert(V1 == 5'u64)
+    #assert(V0 == 5_u64)
+    #assert(V1 == 5_u64)
 }
 
 #test
 {
     func countCStringRef()->u64
     {
-        var valueData: [5] u8   = ['a'u8, 'b'u8, 'c'u8, 'd'u8, 0]
+        var valueData: [5] u8   = ['a'_u8, 'b'_u8, 'c'_u8, 'd'_u8, 0]
         var value:     cstring  = cast(cstring, &valueData[0])
         var valueRef:  *cstring = &value
         return (valueRef[]).count
@@ -192,19 +194,21 @@ impl RefCountedRuntime
 
     func loopCStringRef()->u64
     {
-        var valueData: [5] u8   = ['a'u8, 'b'u8, 'c'u8, 'd'u8, 0]
+        var valueData: [5] u8   = ['a'_u8, 'b'_u8, 'c'_u8, 'd'_u8, 0]
         var value:     cstring  = cast(cstring, &valueData[0])
         let valueRef:  *cstring = &value
         var count:     u64      = 0
-        for valueRef[] do
+        for valueRef[]
+        {
             count += 1
+        }
         return count
     }
 
     const V0 = #run countCStringRef()
     const V1 = #run loopCStringRef()
-    #assert(V0 == 4'u64)
-    #assert(V1 == 4'u64)
+    #assert(V0 == 4_u64)
+    #assert(V1 == 4_u64)
 }
 
 #test
@@ -226,15 +230,17 @@ impl RefCountedRuntime
         let slice                    = cast([..] u8, flat)
         let sliceRef: const *[..] u8 = &slice
         var count:    u64            = 0
-        for sliceRef[] do
+        for sliceRef[]
+        {
             count += 1
+        }
         return count
     }
 
     const V0 = #run countArrayAndSliceRef()
     const V1 = #run loopSliceRef()
-    #assert(V0 == 12'u64)
-    #assert(V1 == 6'u64)
+    #assert(V0 == 12_u64)
+    #assert(V1 == 6_u64)
 }
 
 #test
@@ -251,16 +257,18 @@ impl RefCountedRuntime
         var value:    u32  = 7
         let valueRef: *u32 = &value
         var count:    u32  = 0
-        for valueRef[] do
+        for valueRef[]
+        {
             count += 1
+        }
         return count
     }
 
     const V0 = #run countUnsignedRef()
     const V1 = #run loopUnsignedRef()
     #assert(#typeof(V0) == u32)
-    #assert(V0 == 7'u32)
-    #assert(V1 == 7'u32)
+    #assert(V0 == 7_u32)
+    #assert(V1 == 7_u32)
 }
 
 #test
@@ -277,16 +285,18 @@ impl RefCountedRuntime
         var value:    s32  = 7
         let valueRef: *s32 = &value
         var count:    s32  = 0
-        for valueRef[] do
+        for valueRef[]
+        {
             count += 1
+        }
         return count
     }
 
     const V0 = #run countSignedRef()
     const V1 = #run loopSignedRef()
     #assert(#typeof(V0) == s32)
-    #assert(V0 == 7's32)
-    #assert(V1 == 7's32)
+    #assert(V0 == 7_s32)
+    #assert(V1 == 7_s32)
 }
 
 #test
@@ -307,6 +317,6 @@ impl RefCountedRuntime
 
     const V0 = #run countEnumRef()
     const V1 = #run countSpecRef()
-    #assert(V0 == 4'u64)
-    #assert(V1 == 11'u64)
+    #assert(V0 == 4_u64)
+    #assert(V1 == 11_u64)
 }

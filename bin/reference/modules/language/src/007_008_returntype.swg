@@ -61,8 +61,11 @@ it, without an intermediate copy.
     func toto()->[255] s32
     {
         var result: #returntype
-        for i in 255 do
+        for i in 255
+        {
             result[i] = i
+        }
+
         return result
     }
 
@@ -84,8 +87,11 @@ local change under it nor changes what was returned.
     func clampedDouble(value: s32)->s32
     {
         var result: #returntype = value * 2
-        if result < 0 do
+        if result < 0
+        {
             return 0
+        }
+
         return Swag.min(result, 100)
     }
 

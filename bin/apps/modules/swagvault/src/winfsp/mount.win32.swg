@@ -7,13 +7,13 @@ namespace WinFsp
     // Bits of `FSP_FSCTL_VOLUME_PARAMS.Flags`, which WinFsp declares as a bitfield and therefore
     // gives no names an importer can use. The positions are the declaration order of that
     // bitfield; they are part of the driver ABI and move only with a new WinFsp version.
-    const VolumeCasePreservedNames     = 1'u32 << 1
-    const VolumeUnicodeOnDisk          = 1'u32 << 2
-    const VolumePersistentAcls         = 1'u32 << 3
-    const VolumeReadOnly               = 1'u32 << 9
-    const VolumePostCleanupModified    = 1'u32 << 10
-    const VolumePassDirectoryName      = 1'u32 << 13
-    const VolumeFlushAndPurgeOnCleanup = 1'u32 << 14
+    const VolumeCasePreservedNames     = 1_u32 << 1
+    const VolumeUnicodeOnDisk          = 1_u32 << 2
+    const VolumePersistentAcls         = 1_u32 << 3
+    const VolumeReadOnly               = 1_u32 << 9
+    const VolumePostCleanupModified    = 1_u32 << 10
+    const VolumePassDirectoryName      = 1_u32 << 13
+    const VolumeFlushAndPurgeOnCleanup = 1_u32 << 14
 
     // One WinFsp file system serving a volume at a mount point.
     #[Swag.NoCopy]
@@ -53,7 +53,7 @@ namespace WinFsp
                 traceWinFspStage("FSP_FILE_SYSTEM_INTERFACE ready")
             }
 
-            .context        = Memory.new'NativeMountContext()
+            .context        = Memory.new!{NativeMountContext}()
             .context.volume = volume
             let sddl = Utf16.toZeroTerminated("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)")
             if not ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.buffer, SddlRevisionOne, &.context.defaultSecurity, null)
@@ -89,8 +89,11 @@ namespace WinFsp
             // it tries, treat the drive as read only. The volume refuses the write on its own
             // too — see [[Volume.open]] — but a refusal that arrives as a failed write is a
             // program reporting an error, where this one is a drive that never offered.
-            if volume.readOnly do
+            if volume.readOnly
+            {
                 params.flags |= VolumeReadOnly
+            }
+
             traceWinFspStage("volume flags initialized")
             let fileSystemName = Utf16.toZeroTerminated("swagvault")
             traceWinFspStage("copying filesystem name")
@@ -144,9 +147,11 @@ namespace WinFsp
         // already-closing descriptors while denying new opens; live handles still report busy.
         mtd prepareStop(force: bool) fail
         {
-            const CloseDrainMilliseconds = 100'u32
-            if .context do
+            const CloseDrainMilliseconds = 100_u32
+            if .context
+            {
                 try .context.activity.beginStop(force, CloseDrainMilliseconds)
+            }
         }
 
         // Stops serving, removes the mount point, and releases the runtime reference; safe to call on
@@ -164,8 +169,11 @@ namespace WinFsp
 
             if .context
             {
-                if .context.defaultSecurity do
+                if .context.defaultSecurity
+                {
                     discard LocalFree(.context.defaultSecurity)
+                }
+
                 Memory.delete(.context)
                 .context = null
             }
@@ -178,8 +186,10 @@ namespace WinFsp
                 .holdsRuntime = false
                 Swag.assert(g_WinFsp.mountCount != 0)
                 g_WinFsp.mountCount -= 1
-                if not g_WinFsp.mountCount do
+                if not g_WinFsp.mountCount
+                {
                     unloadWinFsp()
+                }
             }
         }
 

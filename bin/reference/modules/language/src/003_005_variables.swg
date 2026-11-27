@@ -98,7 +98,7 @@ annotations.
     Swag.require(b == "string")
     #assert(#typeof(b) == string)
 
-    let c = 1.5'f64
+    let c = 1.5_f64
     Swag.require(c == 1.5)
     #assert(#typeof(c) == f64)
 }

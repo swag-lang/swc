@@ -48,8 +48,11 @@ func createRecordOption(parent: *Wnd, icon: Icon, label: string, checked: bool, 
         .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
         .setTextPosition(.Right)
         .setText(label)
-        if toggle do
+        if toggle
+        {
             .setChecked(checked)
+        }
+
         .enable(enabled)
         .resize(Math.ceil(.itf.measureContent({}).x), metrics.miniBar_ButtonSize)
     }
@@ -60,9 +63,12 @@ func createRecordOption(parent: *Wnd, icon: Icon, label: string, checked: bool, 
 // Returns the width of the video quality choice, wide enough for each of its names.
 func qualityOptionWidth(theme: *Theme)->f32
 {
-    var widest = 0'f32
-    for quality in [VideoQuality.Maximum, .Balanced, .Compact] do
+    var widest = 0_f32
+    for quality in [VideoQuality.Maximum, .Balanced, .Compact]
+    {
         widest = Math.max(widest, recordOptionWidth(theme, Format.toString(appStrings().ui_AimQuality, quality.label())))
+    }
+
     return widest
 }
 

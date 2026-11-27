@@ -11,8 +11,10 @@ func itoaCopy(result: [*] u8, value: s64)->[*] u8
         orgValue /= 10
         ptr[]    = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
-        if not orgValue do
+        if not orgValue
+        {
             break
+        }
     }
 
     if value < 0
@@ -41,7 +43,7 @@ func itoaCopy(result: [*] u8, value: s64)->[*] u8
 func itoaTestZero()->bool
 {
     var buf: [32] u8
-    let End = itoaCopy(&buf[0], 0's64)
+    let End = itoaCopy(&buf[0], 0_s64)
     return End == &buf[1] and
            buf[0] == '0' and
            buf[1] == 0
@@ -50,7 +52,7 @@ func itoaTestZero()->bool
 func itoaTestPositive()->bool
 {
     var buf: [32] u8
-    let End = itoaCopy(&buf[0], 1234567890's64)
+    let End = itoaCopy(&buf[0], 1234567890_s64)
     return End == &buf[10] and
            buf[0] == '1' and
            buf[1] == '2' and
@@ -68,7 +70,7 @@ func itoaTestPositive()->bool
 func itoaTestNegative()->bool
 {
     var buf: [32] u8
-    let End = itoaCopy(&buf[0], -987654321's64)
+    let End = itoaCopy(&buf[0], -987654321_s64)
     return End == &buf[10] and
            buf[0] == '-' and
            buf[1] == '9' and

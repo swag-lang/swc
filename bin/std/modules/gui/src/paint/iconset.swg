@@ -16,7 +16,7 @@ struct IconAtlas
 {
     lock:          Swag.Mutex      // Guards the rasterizations against concurrent first use.
     drawing:       Svg.Drawing     // The vector document, parsed once.
-    rasters:       HashTable'(s64, *Image)     // Raster image addresses stay stable as the map grows.
+    rasters:       HashTable!{s64, *Image}     // Raster image addresses stay stable as the map grows.
     embedded:      bool            // Only the unmodified stock document can use the shipped rasters.
     pendingSource: string?         // Static stock source, parsed only when an uncached size needs it.
 }
@@ -62,13 +62,19 @@ impl IconAtlas
         if cell <= 0 or
            not image.isValid() or
            cast(f64, image.width) != cols * cell or
-           cast(f64, image.height) != rows * cell do
+           cast(f64, image.height) != rows * cell
+        {
             fail Core.Errors.BadParameterError{"icon raster dimensions do not match the SVG grid"}
+        }
+
         let key = cast(s64, cell)
         var previous: *Image?
-        if let found = .rasters.tryFind(key) do
+        if let found = .rasters.tryFind(key)
+        {
             previous = found.value
-        let cached = Memory.new'Image()
+        }
+
+        let cached = Memory.new!{Image}()
         cached[] = image
         .rasters.add(key, cached)
         Memory.delete(previous)
@@ -90,15 +96,17 @@ impl IconAtlas
 
         let key   = cast(s64, cell)
         let found = .rasters.tryFind(key)
-        if found do
+        if found
+        {
             return found.value
+        }
 
         if .embedded
         {
             let bytes = themeIconRaster(cell)
             if bytes
             {
-                let image = Memory.new'Image()
+                let image = Memory.new!{Image}()
                 image[] = decodeThemeRaster(bytes)
                 .rasters.add(key, image)
                 return image
@@ -111,11 +119,13 @@ impl IconAtlas
 
         // Strong supersampling for exact edge coverage, with the internal buffer
         // bounded so a dense display keeps the one-time cost in check.
-        var ss = 4'u8
-        while ss > 1 and cols * cell * cast(s32, ss) > 8192 do
+        var ss = 4_u8
+        while ss > 1 and cols * cell * cast(s32, ss) > 8192
+        {
             ss /= 2
+        }
 
-        let image = Memory.new'Image()
+        let image = Memory.new!{Image}()
         image[] = .drawing.rasterize(cols * cell, rows * cell, ss)
         .rasters.add(key, image)
         return image
@@ -124,8 +134,11 @@ impl IconAtlas
     // The caller holds the atlas lock. The map owns its images.
     private mtd clearRasters()
     {
-        for _, image in .rasters do
+        for _, image in .rasters
+        {
             Memory.delete(image)
+        }
+
         .rasters.clear()
     }
 
@@ -156,7 +169,7 @@ struct IconSet
     // The renderer frame textures are created through; borrowed, never owned.
     late renderer: Pixel.IRenderer
 
-    lists: HashTable'(s32, *ImageList)     // Frame lists by logical size.
+    lists: HashTable!{s32, *ImageList}     // Frame lists by logical size.
     scale: f32     // Device scale the lists were built at.
 }
 
@@ -178,8 +191,11 @@ impl IconSet
     {
         for _, value in .lists
         {
-            if .renderer != null do
+            if .renderer != null
+            {
                 value.release(.renderer)
+            }
+
             Memory.delete(value)
         }
 
@@ -196,8 +212,11 @@ impl IconSet
     {
         var result: #returntype
         let list = .list(size, scale)
-        if index < 0 or index >= list.frameCount do
+        if index < 0 or index >= list.frameCount
+        {
             return result
+        }
+
         result.imageList         = list
         result.index             = index
         result.sizeX             = size
@@ -213,8 +232,11 @@ impl IconSet
         {
             // Controls retain Icon values across monitor changes. Their borrowed list must
             // keep its address while its renderer texture is replaced at the new density.
-            for key, value in .lists do
+            for key, value in .lists
+            {
                 .updateList(value, key, wanted)
+            }
+
             .scale = wanted
         }
 
@@ -224,12 +246,15 @@ impl IconSet
         let found = .lists.tryFind(key)
         if found
         {
-            if not found.value.texture.isValid() do
+            if not found.value.texture.isValid()
+            {
                 .updateList(found.value, key, .scale)
+            }
+
             return found.value
         }
 
-        let list = Memory.new'ImageList()
+        let list = Memory.new!{ImageList}()
         .updateList(list, key, .scale)
         .lists.add(key, list)
         return list
@@ -240,8 +265,10 @@ impl IconSet
     // Lists keep their address, so icons created earlier come back without being requested again.
     mtd restoreLostTextures()
     {
-        for key, value in .lists where not value.texture.isValid() do
+        for key, value in .lists where not value.texture.isValid()
+        {
             .updateList(value, key, .scale)
+        }
     }
 
     private mtd updateList(list: *ImageList, size: s32, scale: f32)
@@ -249,8 +276,11 @@ impl IconSet
         let cell    = size * cast(s32, scale)
         let image   = .atlas!.image(cell)
         let texture = .renderer.addImage(image[])
-        if not texture.isValid() do
+        if not texture.isValid()
+        {
             return
+        }
+
         list.replace(.renderer, texture, cell, cell)
     }
 }

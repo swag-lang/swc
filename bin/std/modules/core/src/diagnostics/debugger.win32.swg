@@ -29,6 +29,8 @@ func attach() fail
     // Dropping the process value closes its launcher handles without waiting for attachment.
     discard try Env.startProcess("vsjitdebugger.exe", ["-p", processId.toString()])
 
-    while not IsDebuggerPresent() do
-        Threading.Thread.sleep(100'ms)
+    while not IsDebuggerPresent()
+    {
+        Threading.Thread.sleep(100_ms)
+    }
 }

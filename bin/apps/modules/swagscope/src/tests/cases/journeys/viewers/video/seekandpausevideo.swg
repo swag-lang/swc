@@ -17,8 +17,11 @@ using Core, Gui, Pixel, Viewers
 
     let video = assume cast(*Film.Panel, window.currentView)
     journey.waitFor("first film frame", func|video|()->bool => video.hasFrame)
-    if video.playing do
+    if video.playing
+    {
         video.togglePlayback()
+    }
+
     Swag.require(not video.playing)
 
     let picture = video.imageView.surfaceRect()

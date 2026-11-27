@@ -3,9 +3,9 @@
 
 using Core, Gui, Pixel
 
-private const HeaderWidth  = 64.0'f32
-const HeaderHeight = 28.0'f32
-private const ScrollSpan   = 4_194_304.0'f32
+private const HeaderWidth = 64.0_f32
+const HeaderHeight        = 28.0_f32
+private const ScrollSpan  = 4_194_304.0_f32
 
 // Paints only the visible portion of an authored worksheet, independently of its row address span.
 struct Grid
@@ -15,8 +15,8 @@ struct Grid
     late scroll:          *ScrollWnd
     late styles:          *CellStyles
     sheet:                *Sheet?
-    rowOffsets:           Array'f64
-    columnOffsets:        Array'f32
+    rowOffsets:           Array!{f64}
+    columnOffsets:        Array!{f32}
     originY:              f64
     originX:              f32
     selected:             Address
@@ -27,16 +27,16 @@ struct Grid
     hovering:             bool
     hovered:              Address     // Cell under the pointer while `hovering`, which the tooltip shows.
     scratch:              RichString
-    sigSelected:          SigArray'func||(*Wnd)
+    sigSelected:          SigArray!{func||(*Wnd)}
 }
 
 impl Grid
 {
     func create(parent: *Wnd, sheet: *Sheet, styles: *CellStyles, showHidden: bool)->*Grid
     {
-        let scroll = Wnd.create'ScrollWnd(parent, "", {})
+        let scroll = Wnd.create!{ScrollWnd}(parent, "", {})
         scroll.dockStyle = .Center
-        with let result = scroll.createView'Grid()
+        with let result = scroll.createView!{Grid}()
         {
             .scroll          = scroll
             .sheet           = sheet
@@ -55,15 +55,21 @@ impl Grid
     mtd buildGeometry()
     {
         let sheet = .sheet
-        if not sheet do
+        if not sheet
+        {
             return
+        }
+
         .columnOffsets.clear()
         .columnOffsets.add(0)
-        for column in sheet.columns do
+        for column in sheet.columns
+        {
             .columnOffsets.add(.columnOffsets.back() + ((.showHidden or not column.hidden) ? (.showHidden and column.width == 0 ? 64 : column.width) : 0))
+        }
+
         .rowOffsets.resize(cast(u64, sheet.rowCount) + 1)
         .rowOffsets[0] = 0
-        var actualRow = 0'u64
+        var actualRow = 0_u64
         for index in 0 until sheet.rowCount
         {
             var height = sheet.defaultRowHeight
@@ -75,8 +81,11 @@ impl Grid
                 actualRow += 1
             }
 
-            if .showHidden and height == 0 do
+            if .showHidden and height == 0
+            {
                 height = Math.max(sheet.defaultRowHeight, 20)
+            }
+
             .rowOffsets[index + 1] = .rowOffsets[index] + ((.showHidden or not hidden) ? cast(f64, height) : 0)
         }
 
@@ -92,22 +101,31 @@ impl Grid
 
     mtd frozenOffset()->f64
     {
-        if not .sheet or .rowOffsets.count <= .sheet.frozenRows do
+        if not .sheet or .rowOffsets.count <= .sheet.frozenRows
+        {
             return 0
+        }
+
         return .rowOffsets[.sheet.frozenRows]
     }
 
     mtd frozenWidth()->f32
     {
-        if not .sheet or .columnOffsets.count <= .sheet.frozenColumns do
+        if not .sheet or .columnOffsets.count <= .sheet.frozenColumns
+        {
             return 0
+        }
+
         return .columnOffsets[.sheet.frozenColumns]
     }
 
     mtd frozenColumn(index: u32)->bool
     {
-        if not .sheet do
+        if not .sheet
+        {
             return false
+        }
+
         return index < .sheet.frozenColumns
     }
 
@@ -115,8 +133,11 @@ impl Grid
 
     mtd syncScroll()
     {
-        if .syncing or .rowOffsets.isEmpty() do
+        if .syncing or .rowOffsets.isEmpty()
+        {
             return
+        }
+
         .syncing = true
         defer .syncing = false
         .originY = Math.clamp(.originY, .frozenOffset(), .maxOrigin())
@@ -132,8 +153,11 @@ impl Grid
 
     mtd adoptScroll(position: Math.Point)
     {
-        if .syncing do
+        if .syncing
+        {
             return
+        }
+
         let usable = Math.max(.scroll.scrollSize.y - .clientRect().height, 1)
         .keepSelectionVisible = false
         .originY = .frozenOffset() + Math.max(.maxOrigin() - .frozenOffset(), 0) * cast(f64, position.y / usable)
@@ -143,15 +167,19 @@ impl Grid
 
     mtd rowAt(y: f64)->u32
     {
-        var first = 0'u64
+        var first = 0_u64
         var last  = .rowOffsets.count - 1
         while first < last
         {
             let middle = first + (last - first) / 2
-            if .rowOffsets[middle + 1] <= y do
+            if .rowOffsets[middle + 1] <= y
+            {
                 first = middle + 1
-            else do
+            }
+            else
+            {
                 last = middle
+            }
         }
 
         return cast(u32, Math.min(first, .rowOffsets.count - 2))
@@ -171,35 +199,51 @@ impl Grid
         for range in .sheet!.merges where address.row >= range.first.row and
                                           address.row <= range.last.row and
                                           address.column >= range.first.column and
-                                          address.column <= range.last.column do
+                                          address.column <= range.last.column
+        {
             return range
+        }
+
         return MergedCells{address, address}
     }
 
     internal mtd selectAddress(address: Address, reveal = true)
     {
         let sheet = .sheet
-        if not sheet or .rowOffsets.isEmpty() do
+        if not sheet or .rowOffsets.isEmpty()
+        {
             return
+        }
+
         var target = address
         target.row    = Math.min(target.row, sheet.rowCount - 1)
         target.column = Math.min(target.column, cast(u32, sheet.columns.count - 1))
-        while target.row < sheet.rowCount and .rowOffsets[target.row + 1] == .rowOffsets[target.row] do
+        while target.row < sheet.rowCount and .rowOffsets[target.row + 1] == .rowOffsets[target.row]
+        {
             target.row += 1
-        while target.column < sheet.columns.count and .columnOffsets[target.column + 1] == .columnOffsets[target.column] do
+        }
+
+        while target.column < sheet.columns.count and .columnOffsets[target.column + 1] == .columnOffsets[target.column]
+        {
             target.column += 1
+        }
+
         if target.row >= sheet.rowCount
         {
             target.row = sheet.rowCount - 1
-            while target.row > 0 and .rowOffsets[target.row + 1] == .rowOffsets[target.row] do
+            while target.row > 0 and .rowOffsets[target.row + 1] == .rowOffsets[target.row]
+            {
                 target.row -= 1
+            }
         }
 
         if target.column >= sheet.columns.count
         {
             target.column = cast(u32, sheet.columns.count - 1)
-            while target.column > 0 and .columnOffsets[target.column + 1] == .columnOffsets[target.column] do
+            while target.column > 0 and .columnOffsets[target.column + 1] == .columnOffsets[target.column]
+            {
                 target.column -= 1
+            }
         }
 
         .hasSelection = .rowOffsets[target.row + 1] > .rowOffsets[target.row] and
@@ -219,18 +263,32 @@ impl Grid
         {
             let rect   = .cellRect(range.first, range.last)
             let client = .clientRect()
-            if rect.width > client.width - HeaderWidth do
+            if rect.width > client.width - HeaderWidth
+            {
                 .originX = .columnOffsets[range.first.column]
-            elif rect.x < HeaderWidth do
+            }
+            else if rect.x < HeaderWidth
+            {
                 .originX -= HeaderWidth - rect.x
-            elif rect.right() > client.width do
+            }
+            else if rect.right() > client.width
+            {
                 .originX += rect.right() - client.width
-            if rect.height > client.height - HeaderHeight do
+            }
+
+            if rect.height > client.height - HeaderHeight
+            {
                 .originY = .rowOffsets[range.first.row]
-            elif rect.y < HeaderHeight do
+            }
+            else if rect.y < HeaderHeight
+            {
                 .originY -= HeaderHeight - rect.y
-            elif rect.bottom() > client.height do
+            }
+            else if rect.bottom() > client.height
+            {
                 .originY += rect.bottom() - client.height
+            }
+
             .syncScroll()
         }
 
@@ -240,54 +298,83 @@ impl Grid
 
     mtd move(dx, dy: s32)
     {
-        if not .hasSelection do
+        if not .hasSelection
+        {
             return
+        }
+
         let range  = .mergedRange(.selected)
         var column = cast(s64, dx > 0 ? range.last.column : range.first.column) + dx
         var row    = cast(s64, dy > 0 ? range.last.row : range.first.row) + dy
         while row >= 0 and
               row < .sheet!.rowCount and
-              .rowOffsets[cast(u64, row) + 1] == .rowOffsets[cast(u64, row)] do
+              .rowOffsets[cast(u64, row) + 1] == .rowOffsets[cast(u64, row)]
+        {
             row += dy ? dy : 1
+        }
+
         while column >= 0 and
               column < .sheet!.columns.count and
-              .columnOffsets[cast(u64, column) + 1] == .columnOffsets[cast(u64, column)] do
+              .columnOffsets[cast(u64, column) + 1] == .columnOffsets[cast(u64, column)]
+        {
             column += dx ? dx : 1
-        if row < 0 or row >= .sheet!.rowCount or column < 0 or column >= .sheet!.columns.count do
+        }
+
+        if row < 0 or row >= .sheet!.rowCount or column < 0 or column >= .sheet!.columns.count
+        {
             return
+        }
+
         .selectAddress({cast(u32, row), cast(u32, column)})
     }
 
     internal mtd selectedText()->String
     {
-        if not .hasSelection do
+        if not .hasSelection
+        {
             return {}
-        if let cell = .sheet!.cellAt(.selected) do
+        }
+
+        if let cell = .sheet!.cellAt(.selected)
+        {
             return cell.text
+        }
+
         return {}
     }
 
     internal mtd copy()
     {
-        if .hasSelection do
+        if .hasSelection
+        {
             Clipboard.setString(.selectedText())
+        }
     }
 
     mtd addressAt(point: Math.Point)->{address: Address, found: bool}
     {
-        if point.x < HeaderWidth or point.y < HeaderHeight or .rowOffsets.isEmpty() do
+        if point.x < HeaderWidth or point.y < HeaderHeight or .rowOffsets.isEmpty()
+        {
             return {Address{}, false}
+        }
+
         let localX  = point.x - HeaderWidth
         let frozenX = .frozenWidth()
         let x       = localX < frozenX ? localX : localX + .originX - frozenX
         let localY  = cast(f64, point.y - HeaderHeight)
         let frozen  = .frozenOffset()
         let y       = localY < frozen ? localY : localY + .originY - frozen
-        if x >= .totalWidth() or y >= .totalHeight() do
+        if x >= .totalWidth() or y >= .totalHeight()
+        {
             return {Address{}, false}
-        var column = 0'u32
-        while column + 1 < .columnOffsets.count and .columnOffsets[column + 1] <= x do
+        }
+
+        var column = 0_u32
+        while column + 1 < .columnOffsets.count and .columnOffsets[column + 1] <= x
+        {
             column += 1
+        }
+
         return {Address{.rowAt(y), column}, true}
     }
 
@@ -295,33 +382,44 @@ impl Grid
     // inside one cell, so the tooltip is rebuilt only when it enters another cell or leaves them.
     mtd hover(found: bool, address: Address)
     {
-        if found == .hovering and address.row == .hovered.row and address.column == .hovered.column do
+        if found == .hovering and address.row == .hovered.row and address.column == .hovered.column
+        {
             return
+        }
+
         .hovering = found
         .hovered  = address
         .toolTip.clear()
-        if not found do
+        if not found
+        {
             return
+        }
 
         let range = .mergedRange(address)
         if let cell = .sheet!.cellAt(range.first)
         {
             let text  = cell.text.toString()
             var count = Math.min(text.count, 512)
-            while count < text.count and count > 0 and (text[count] & 0xC0) == 0x80 do
+            while count < text.count and count > 0 and (text[count] & 0xC0) == 0x80
+            {
                 count -= 1
+            }
+
             .toolTip = text[until count]
         }
     }
 
-    mtd drawCell(painter: *Painter, rect: Math.Rectangle, cell: const *Cell, textWidth = -1.0'f32)
+    mtd drawCell(painter: *Painter, rect: Math.Rectangle, cell: const *Cell, textWidth = -1.0_f32)
     {
-        if rect.width <= 0 or rect.height <= 0 or cell.covered do
+        if rect.width <= 0 or rect.height <= 0 or cell.covered
+        {
             return
+        }
+
         let look      = .styles.look(cell.style)
         let available = textWidth >= 0 ? textWidth : rect.width
         let font      = look.font.create(.theme())
-        var indent    = 0.0'f32
+        var indent    = 0.0_f32
         if look.alignment.indent
         {
             // Spreadsheet indentation is measured in the Normal style's spaces, not this cell's font.
@@ -330,18 +428,25 @@ impl Grid
         }
 
         let width = Math.max(available - 6 - indent, 0)
-        if width <= 0 do
+        if width <= 0
+        {
             return
+        }
 
         // The cell's text goes straight into the reused rich string, cut at a character boundary
         // far beyond any visible width, so a paint copies no cell into a string of its own.
         let raw   = cell.text.toString()
         var count = Math.min(raw.count, 4096)
-        while count < raw.count and count > 0 and (raw[count] & 0xC0) == 0x80 do
+        while count < raw.count and count > 0 and (raw[count] & 0xC0) == 0x80
+        {
             count -= 1
+        }
+
         .scratch.set(raw[until count])
-        if count < raw.count do
+        if count < raw.count
+        {
             .scratch.append("…")
+        }
 
         // A number too wide for its cell shows as a row of hashes, as a spreadsheet shows it.
         let deviceScale = .deviceScale()
@@ -352,19 +457,27 @@ impl Grid
             let hashWidth = Math.max(Painter.measureStringSnapped("#", font, deviceScale: deviceScale), 1)
             let hashes    = Math.max(cast(u32, Math.floor(width / hashWidth)), 1)
             .scratch.clear()
-            for hashes do
+            for hashes
+            {
                 .scratch.append("#")
+            }
         }
 
         .scratch.compute()
-        for &chunk in .scratch.chunks do
+        for &chunk in .scratch.chunks
+        {
             chunk.under = look.font.underline ? .Underline : look.font.strike ? .Strikeout : .None
+        }
+
         var format: RichStringFormat
         format.font.regular = font
         format.palette[0]   = Color.fromArgb(look.font.color)
         format.flags        = .Clip
-        if look.alignment.wrap do
+        if look.alignment.wrap
+        {
             format.flags |= .WordWrap
+        }
+
         format.vertAlignment = look.alignment.vertical == .Top ? .Top : look.alignment.vertical == .Bottom ? .Bottom : .Center
         format.horzAlignment = look.alignment.horizontal == .Center ? .Center :
                                look.alignment.horizontal == .Right or (look.alignment.horizontal == .General and cell.numeric) ? .Right : .Left
@@ -393,14 +506,19 @@ impl Grid
                                                           cell.merge == Swag.U32.Max
                 {
                     let look = .styles.look(cell.style)
-                    if look.fill do
+                    if look.fill
+                    {
                         painter.fillRect(.cellRect({row, cell.column}, {row, cell.column}), Color.fromArgb(look.fill))
+                    }
                 }
             }
 
             let next = .nextRow(row)
-            if next <= row do
+            if next <= row
+            {
                 break
+            }
+
             row = next
         }
 
@@ -410,17 +528,21 @@ impl Grid
                                         range.first.column <= lastColumn
         {
             let rect = .cellRect(range.first, range.last)
-            var fill = 0xFFFFFFFF'u32
+            var fill = 0xFFFFFFFF_u32
             if let cell = sheet.cellAt(range.first)
             {
                 let look = .styles.look(cell.style)
-                if look.fill do
+                if look.fill
+                {
                     fill = look.fill
+                }
             }
 
             painter.fillRect(rect, Color.fromArgb(fill))
-            if sheet.showGridLines do
+            if sheet.showGridLines
+            {
                 painter.drawRect(rect, Color.fromArgb(0xFFE1E5E8))
+            }
         }
     }
 
@@ -432,8 +554,10 @@ impl Grid
                                         range.last.column >= firstColumn and
                                         range.first.column <= lastColumn
         {
-            if let cell = sheet.cellAt(range.first) do
+            if let cell = sheet.cellAt(range.first)
+            {
                 .styles.look(cell.style).paintBorders(painter, .cellRect(range.first, range.last))
+            }
         }
 
         var row = firstRow
@@ -444,16 +568,19 @@ impl Grid
             {
                 for cell in sheet.rows[index].cells where cell.column >= firstColumn and cell.column <= lastColumn
                 {
-                    var mask = 15'u32
+                    var mask = 15_u32
                     if cell.merge != Swag.U32.Max
                     {
                         let range = sheet.merges[cell.merge]
-                        if not cell.covered do
+                        if not cell.covered
+                        {
                             continue
-                        mask = (cell.column == range.first.column ? 1'u32 : 0) |
-                               (cell.column == range.last.column ? 2'u32 : 0) |
-                               (row == range.first.row ? 4'u32 : 0) |
-                               (row == range.last.row ? 8'u32 : 0)
+                        }
+
+                        mask = (cell.column == range.first.column ? 1_u32 : 0) |
+                               (cell.column == range.last.column ? 2_u32 : 0) |
+                               (row == range.first.row ? 4_u32 : 0) |
+                               (row == range.last.row ? 8_u32 : 0)
                     }
 
                     .styles.look(cell.style).paintBorders(painter, .cellRect({row, cell.column}, {row, cell.column}), mask)
@@ -461,8 +588,11 @@ impl Grid
             }
 
             let next = .nextRow(row)
-            if next <= row do
+            if next <= row
+            {
                 break
+            }
+
             row = next
         }
     }
@@ -472,17 +602,25 @@ impl IWnd for Grid
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .syncing do
+        if .syncing
+        {
             return
+        }
+
         .syncScroll()
-        if .keepSelectionVisible and .hasSelection do
+        if .keepSelectionVisible and .hasSelection
+        {
             .selectAddress(.selected)
+        }
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged do
+        if evt.kind == .ThemeChanged
+        {
             .invalidate()
+        }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
@@ -493,8 +631,11 @@ impl IWnd for Grid
         switch evt.kind
         {
         case .Pressed where evt.button == .Left:
-            if hit.found do
+            if hit.found
+            {
                 .selectAddress(hit.address)
+            }
+
             .setFocus()
 
         case .Move:
@@ -502,10 +643,15 @@ impl IWnd for Grid
 
         case .Wheel:
             .keepSelectionVisible = false
-            if evt.modifiers.has(.Shift) do
+            if evt.modifiers.has(.Shift)
+            {
                 .originX = Math.max(.originX + (evt.delta.y > 0 ? -64 : 64), 0)
-            else do
+            }
+            else
+            {
                 .originY = Math.max(.originY + (evt.delta.y > 0 ? -60 : 60), 0)
+            }
+
             .syncScroll()
 
         default:
@@ -567,8 +713,11 @@ impl IWnd for Grid
     mtd impl onPaint(evt: *PaintEvent)
     {
         let sheet = .sheet
-        if not sheet or .rowOffsets.isEmpty() do
+        if not sheet or .rowOffsets.isEmpty()
+        {
             return
+        }
+
         let painter    = evt.paintContext.painter
         let client     = .clientRect()
         let colors     = .themeColors()
@@ -580,12 +729,18 @@ impl IWnd for Grid
         painter.pushClippingRect(data)
         let firstRow    = .rowAt(.originY)
         let lastRow     = .rowAt(.originY + Math.max(client.height - HeaderHeight, 0))
-        var firstColumn = 0'u32
-        while firstColumn + 1 < .columnOffsets.count and .columnOffsets[firstColumn + 1] <= .originX do
+        var firstColumn = 0_u32
+        while firstColumn + 1 < .columnOffsets.count and .columnOffsets[firstColumn + 1] <= .originX
+        {
             firstColumn += 1
+        }
+
         var lastColumn = firstColumn
-        while lastColumn + 1 < .columnOffsets.count and .columnOffsets[lastColumn] < .originX + client.width do
+        while lastColumn + 1 < .columnOffsets.count and .columnOffsets[lastColumn] < .originX + client.width
+        {
             lastColumn += 1
+        }
+
         lastColumn = Math.min(lastColumn, cast(u32, sheet.columns.count - 1))
         var row = firstRow
         if sheet.showGridLines
@@ -596,8 +751,11 @@ impl IWnd for Grid
                 let y = HeaderHeight + cast(f32, row < sheet.frozenRows ? .rowOffsets[row] : .rowOffsets[row] - .originY + .frozenOffset())
                 painter.drawLine(HeaderWidth, y, Math.min(HeaderWidth + .totalWidth() - .originX, client.width), y, rule)
                 let next = .nextRow(row)
-                if next <= row do
+                if next <= row
+                {
                     break
+                }
+
                 row = next
             }
 
@@ -659,8 +817,11 @@ impl IWnd for Grid
             }
 
             let next = .nextRow(row)
-            if next <= row do
+            if next <= row
+            {
                 break
+            }
+
             row = next
         }
 
@@ -670,8 +831,10 @@ impl IWnd for Grid
                                         range.first.column <= lastColumn
         {
             let rect = .cellRect(range.first, range.last)
-            if let cell = sheet.cellAt(range.first) do
+            if let cell = sheet.cellAt(range.first)
+            {
                 .drawCell(painter, rect, cell)
+            }
         }
 
         if .hasSelection
@@ -701,15 +864,20 @@ impl IWnd for Grid
                     {
                         let cellRect = .cellRect({row, cell.column}, {row, cell.column})
                         let look     = .styles.look(cell.style)
-                        if look.fill do
+                        if look.fill
+                        {
                             painter.fillRect(cellRect, Color.fromArgb(look.fill))
+                        }
+
                         look.paintBorders(painter, cellRect)
                         .drawCell(painter, cellRect, cell)
                     }
                 }
 
-                if sheet.showGridLines do
+                if sheet.showGridLines
+                {
                     painter.drawLine(HeaderWidth, rect.bottom(), client.width, rect.bottom(), rule)
+                }
             }
 
             if .hasSelection and .selected.row < sheet.frozenRows
@@ -737,16 +905,22 @@ impl IWnd for Grid
                     {
                         let cellRect = .cellRect({row, cell.column}, {row, cell.column})
                         let look     = .styles.look(cell.style)
-                        if look.fill do
+                        if look.fill
+                        {
                             painter.fillRect(cellRect, Color.fromArgb(look.fill))
+                        }
+
                         look.paintBorders(painter, cellRect)
                         .drawCell(painter, cellRect, cell)
                     }
                 }
 
                 let next = .nextRow(row)
-                if next <= row do
+                if next <= row
+                {
                     break
+                }
+
                 row = next
             }
 
@@ -776,10 +950,16 @@ impl IWnd for Grid
         for column in firstColumn until lastColumn + 1
         {
             let rect = .cellRect({0, column}, {0, column})
-            if rect.width <= 0 do
+            if rect.width <= 0
+            {
                 continue
-            if .hasSelection and column == .selected.column do
+            }
+
+            if .hasSelection and column == .selected.column
+            {
                 painter.fillRect(rect.x, 0, rect.width, HeaderHeight, colors.selection)
+            }
+
             painter.drawStringCenter(rect.x + rect.width / 2, HeaderHeight / 2, columnName(column), headerFont, colors.softText)
         }
 
@@ -790,8 +970,11 @@ impl IWnd for Grid
             for frozenColumn in 0 until Math.min(sheet.frozenColumns, cast(u32, sheet.columns.count))
             {
                 let rect = .cellRect({0, frozenColumn}, {0, frozenColumn})
-                if .hasSelection and frozenColumn == .selected.column do
+                if .hasSelection and frozenColumn == .selected.column
+                {
                     painter.fillRect(rect.x, 0, rect.width, HeaderHeight, colors.selection)
+                }
+
                 painter.drawStringCenter(rect.x + rect.width / 2, HeaderHeight / 2, columnName(frozenColumn), headerFont, colors.softText)
             }
 
@@ -805,16 +988,22 @@ impl IWnd for Grid
             let rect = .cellRect({row, 0}, {row, 0})
             if rect.height > 0
             {
-                if .hasSelection and row == .selected.row do
+                if .hasSelection and row == .selected.row
+                {
                     painter.fillRect(0, rect.y, HeaderWidth, rect.height, colors.selection)
+                }
+
                 let text  = Format.toString("%", row + 1)
                 let width = Painter.measureStringSnapped(text, headerFont, deviceScale: .deviceScale())
                 painter.drawString(HeaderWidth - width - 8, headerFont.opticalLineTop(rect.y + rect.height / 2), text, headerFont, colors.softText)
             }
 
             let next = .nextRow(row)
-            if next <= row do
+            if next <= row
+            {
                 break
+            }
+
             row = next
         }
 
@@ -826,8 +1015,11 @@ impl IWnd for Grid
             for frozenRow in 0 until visibleFrozenRows
             {
                 let rect = .cellRect({frozenRow, 0}, {frozenRow, 0})
-                if .hasSelection and frozenRow == .selected.row do
+                if .hasSelection and frozenRow == .selected.row
+                {
                     painter.fillRect(0, rect.y, HeaderWidth, rect.height, colors.selection)
+                }
+
                 let text  = Format.toString("%", frozenRow + 1)
                 let width = Painter.measureStringSnapped(text, headerFont, deviceScale: .deviceScale())
                 painter.drawString(HeaderWidth - width - 8, headerFont.opticalLineTop(rect.y + rect.height / 2), text, headerFont, colors.softText)

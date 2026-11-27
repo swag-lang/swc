@@ -40,7 +40,7 @@ func(T) getGenericPointerCastValue()->s32
 
 func runGenericPointerInterfaceCast()->bool
 {
-    return getGenericPointerCastValue'GenericPointerCastBox() == 119
+    return getGenericPointerCastValue!{GenericPointerCastBox}() == 119
 }
 
 #test

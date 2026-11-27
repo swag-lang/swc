@@ -40,20 +40,29 @@ public impl FontFileFace
 #[Swag.Opaque]
 public struct FontCatalog
 {
-    private entries: Array'FontFileFace
+    private entries: Array!{FontFileFace}
 }
 
 private func compareFontCatalogFaces(a, b: FontFileFace)->s32
 {
     let family = Utf8.compare(a.metadata.typographicFamilyName.toString(), b.metadata.typographicFamilyName.toString(), .UnicodeNoCase)
-    if family != 0 do
+    if family != 0
+    {
         return family
+    }
+
     let spelling = a.metadata.typographicFamilyName <=> b.metadata.typographicFamilyName
-    if spelling != 0 do
+    if spelling != 0
+    {
         return spelling
+    }
+
     let path = a.path <=> b.path
-    if path != 0 do
+    if path != 0
+    {
         return path
+    }
+
     return a.faceIndex <=> b.faceIndex
 }
 
@@ -62,8 +71,11 @@ internal func fontCatalogStyleScore(face: const *FontFileFace, style: FontFamily
     let italic     = (face.metadata.style & .Italic) != 0
     let wantItalic = style == .Italic or style == .BoldItalic
     var weight     = cast(s32, face.metadata.weight)
-    if (face.metadata.style & .Bold) != 0 do
+    if (face.metadata.style & .Bold) != 0
+    {
         weight = Math.max(weight, 700)
+    }
+
     var desired: s32
     switch style
     {
@@ -73,7 +85,7 @@ internal func fontCatalogStyleScore(face: const *FontFileFace, style: FontFamily
     case .SemiBold:          desired = 600
     }
 
-    let slant = italic == wantItalic ? 0'u32 : 1000000'u32
+    let slant = italic == wantItalic ? 0_u32 : 1000000_u32
     let width = cast(u32, Math.abs(cast(s32, face.metadata.widthClass) - 5))
     return slant + width * 10000 + cast(u32, Math.abs(weight - desired))
 }
@@ -89,12 +101,14 @@ public impl FontCatalog
     mtd addFile(path: string)->u32 fail
     {
         let absolute = try Path.absolute(path)
-        for &entry in .entries where Path.equals(entry.path.toString(), absolute.toString()) do
+        for &entry in .entries where Path.equals(entry.path.toString(), absolute.toString())
+        {
             return 0
+        }
 
         let bytes = try File.readAllBytes(absolute.toString())
         let count = try Face.countFaces(bytes.toSlice())
-        var pending: Array'FontFileFace
+        var pending: Array!{FontFileFace}
         for index in count
         {
             let metadata = try Face.metadataAt(bytes.toSlice(), index)
@@ -115,15 +129,18 @@ public impl FontCatalog
     mtd addDirectory(path: string)->u64 fail
     {
         let entries = try Directory.enumerate(path, {recurse: true, wantDirectories: false})
-        var added   = 0'u64
+        var added   = 0_u64
         for &entry in entries
         {
             let extension = Path.lowercaseExtension(entry.fullName)
             if extension != ".ttf" and
                extension != ".otf" and
                extension != ".ttc" and
-               extension != ".otc" do
+               extension != ".otc"
+            {
                 continue
+            }
+
             added += catch .addFile(entry.fullName) { continue }
         }
 
@@ -142,14 +159,17 @@ public impl FontCatalog
     //
     // Case variants form one family; its bytewise-smallest spelling is returned.
     // Names are not Unicode-normalized, and the returned array outlives the catalog.
-    mtd const familyNames()->Array'String
+    mtd const familyNames()->Array!{String}
     {
         var result: #returntype
         for &face in .entries
         {
             if not result.isEmpty() and
-               Utf8.compare(result.back().toString(), face.metadata.typographicFamilyName.toString(), .UnicodeNoCase) == 0 do
+               Utf8.compare(result.back().toString(), face.metadata.typographicFamilyName.toString(), .UnicodeNoCase) == 0
+            {
                 continue
+            }
+
             result.add(face.metadata.typographicFamilyName)
         }
 
@@ -176,12 +196,15 @@ public impl FontCatalog
         }
 
         var result: const *FontFileFace?
-        var score = 0xFFFFFFFF'u32
+        var score = 0xFFFFFFFF_u32
         for &face in .entries
         {
             let name = useTypographicName ? face.metadata.typographicFamilyName.toString() : face.metadata.familyName.toString()
-            if Utf8.compare(name, family, .UnicodeNoCase) != 0 do
+            if Utf8.compare(name, family, .UnicodeNoCase) != 0
+            {
                 continue
+            }
+
             let candidate = fontCatalogStyleScore(face, style)
             if candidate < score
             {

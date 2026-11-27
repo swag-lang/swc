@@ -54,9 +54,11 @@ func day5A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "5.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var op: Array's32
-    for v in Tokenize.split(lines[0], ','u8) do
+    var op: Array!{s32}
+    for v in Tokenize.split(lines[0], ','_u8)
+    {
         op.add(expect StrConv.toS32(v))
+    }
 
     var ip, output = 0
     while op[ip] != 99

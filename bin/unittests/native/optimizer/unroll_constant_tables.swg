@@ -11,7 +11,7 @@ const C: [5] u64 = [2, 3, 5, 7, 11]
 func weightedScore(seed: u64)->u64
 {
     var total = seed
-    for i in 5'u64
+    for i in 5_u64
     {
         let a     = A[i] + seed
         let b     = B[i] + 2

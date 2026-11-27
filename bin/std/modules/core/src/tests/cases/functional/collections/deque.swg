@@ -9,7 +9,7 @@ struct DequeBorrowedItem
     value: s32
 }
 
-func borrowedDequeEnds(values: Deque'DequeBorrowedItem)->s32
+func borrowedDequeEnds(values: Deque!{DequeBorrowedItem})->s32
 {
     let first = values.frontPtr()
     let last  = values.backPtr()
@@ -22,7 +22,7 @@ func borrowedDequeEnds(values: Deque'DequeBorrowedItem)->s32
 {
     for frontOnly in [false, true]
     {
-        var values: Deque'DequeBorrowedItem
+        var values: Deque!{DequeBorrowedItem}
         var first = DequeBorrowedItem{value: 1}
         var last  = DequeBorrowedItem{value: 2}
         if frontOnly
@@ -40,20 +40,25 @@ func borrowedDequeEnds(values: Deque'DequeBorrowedItem)->s32
     }
 }
 
-func assertDeque(values: Deque's32, expected: const [..] s32)->bool
+func assertDeque(values: Deque!{s32}, expected: const [..] s32)->bool
 {
-    if values.count != expected.count do
+    if values.count != expected.count
+    {
         return false
+    }
+
     for value, index in values
     {
-        if value != expected[index] do
+        if value != expected[index]
+        {
             return false
+        }
     }
 
     return true
 }
 
-func assertConstDequeBorrow(values: const *Deque's32)->s32
+func assertConstDequeBorrow(values: const *Deque!{s32})->s32
 {
     var total = 0
     for &item, index in values[]
@@ -65,7 +70,7 @@ func assertConstDequeBorrow(values: const *Deque's32)->s32
     return total
 }
 
-func assertMutableDequeBorrow(values: *Deque's32)
+func assertMutableDequeBorrow(values: *Deque!{s32})
 {
     for &item in values[]
     {
@@ -77,7 +82,7 @@ func assertMutableDequeBorrow(values: *Deque's32)
 
 #test
 {
-    var values: Deque's32
+    var values: Deque!{s32}
     values.pushBack(2)
     values.pushFront(1)
     values.pushBack(3)
@@ -101,23 +106,27 @@ func assertMutableDequeBorrow(values: *Deque's32)
 // Deque iteration continues within the logical sequence and breaks across both storage segments.
 #test
 {
-    var values: Deque's32
+    var values: Deque!{s32}
     values.pushFront(1)
     values.pushFront(0)
     values.pushBack(2)
     values.pushBack(3)
 
-    var visited  = 0'u64
+    var visited  = 0_u64
     var valueSum = 0
     for value, index in values
     {
-        if index == 0 do
+        if index == 0
+        {
             continue
+        }
 
         visited  += 1
         valueSum += value
-        if index == 2 do
+        if index == 2
+        {
             break
+        }
     }
 
     Swag.require(visited == 2 and valueSum == 3)
@@ -125,25 +134,39 @@ func assertMutableDequeBorrow(values: *Deque's32)
 
 #test
 {
-    var values: Deque's32
-    for value in 32 do
+    var values: Deque!{s32}
+    for value in 32
+    {
         values.pushBack(cast(s32, value))
-    for value in 16 do
+    }
+
+    for value in 16
+    {
         Swag.require(values.popFront() == cast(s32, value))
-    for value in 16 do
+    }
+
+    for value in 16
+    {
         values.pushFront(-cast(s32, value) - 1)
+    }
 
     Swag.require(values.count == 32)
-    for value in 16 do
+    for value in 16
+    {
         Swag.require(values.popBack() == 31 - cast(s32, value))
-    for value in 16 do
+    }
+
+    for value in 16
+    {
         Swag.require(values.popBack() == -cast(s32, value) - 1)
+    }
+
     Swag.require(values.isEmpty())
 }
 
 #test
 {
-    var values: Deque'String
+    var values: Deque!{String}
     values.pushBack("middle")
     values.pushFront("front")
     values.pushBack("back")
@@ -164,13 +187,17 @@ func assertMutableDequeBorrow(values: *Deque's32)
 {
     for frontOnly in [false, true]
     {
-        var values: Deque's32
+        var values: Deque!{s32}
         for value in 5
         {
-            if frontOnly do
+            if frontOnly
+            {
                 values.pushFront(cast(s32, value))
-            else do
+            }
+            else
+            {
                 values.pushBack(cast(s32, value))
+            }
         }
 
         let first    = &values[0]
@@ -191,13 +218,18 @@ func assertMutableDequeBorrow(values: *Deque's32)
 {
     for frontOnly in [false, true]
     {
-        var values: Deque's32
-        if frontOnly do
+        var values: Deque!{s32}
+        if frontOnly
+        {
             values.pushFront(42)
-        else do
+        }
+        else
+        {
             values.pushBack(42)
+        }
+
         let capacity = values.capacity()
-        for requested in [0'u64, 1'u64, capacity]
+        for requested in [0_u64, 1_u64, capacity]
         {
             values.reserve(requested)
             Swag.require(values.count == 1 and values.capacity() >= capacity)
@@ -209,7 +241,7 @@ func assertMutableDequeBorrow(values: *Deque's32)
 // Growing combined capacity preserves the queue's logical order across both segments.
 #test
 {
-    var values: Deque's32
+    var values: Deque!{s32}
     values.pushFront(1)
     values.pushBack(2)
     values.pushFront(0)

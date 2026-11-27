@@ -51,8 +51,11 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var worksheet = String.from("<worksheet><sheetViews><sheetView workbookViewId='0'><pane xSplit='1' ySplit='2' topLeftCell='B3' activePane='bottomRight' state='frozen'/></sheetView></sheetViews><sheetData><row r='1'><c r='A1' t='inlineStr'><is><t>Fiscal year</t></is></c><c r='T1' t='inlineStr'><is><t>Far cell</t></is></c></row>")
-    for row in 2 until 121 do
+    for row in 2 until 121
+    {
         worksheet += Format.toString("<row r='%'/>", row)
+    }
+
     worksheet += "</sheetData></worksheet>"
     let path = formattedWorkbookVariant("xl/worksheets/one.xml", "", worksheet, replacePart: true)
     defer discard catch File.delete(path)

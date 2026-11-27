@@ -30,13 +30,13 @@ func(T) localAliasUnionValue(value: T)->T
 
 #test
 {
-    var wrapped: WrapperAliasUnion's32
-    let local = localAliasUnionValue'u16(12)
+    var wrapped: WrapperAliasUnion!{s32}
+    let local = localAliasUnionValue!{u16}(12)
 
     wrapped.item.value = 42
 
     #assert(#typeof(wrapped.item.value) == s32)
     #assert(#typeof(local) == u16)
     Swag.require(wrapped.item.value == 42)
-    Swag.require(local == 12'u16)
+    Swag.require(local == 12_u16)
 }

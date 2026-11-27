@@ -19,7 +19,7 @@ func plainDouble(value: u64)->u64 => value * 2
 
 #test
 {
-    var hits = 0'u32
+    var hits = 0_u32
 
     // A closure literal, a closure variable and a plain function all widen.
     expect runFallible(func|&hits|() { hits += 1 })
@@ -47,7 +47,7 @@ func failAfterWidenedCall(counter: func||()) fail
 
 #test
 {
-    var hits = 0'u32
+    var hits = 0_u32
     var errorOutcome: Swag.Error
     catch failAfterWidenedCall(func|&hits|() { hits += 1 }) as errorOutcome
     let error = errorOutcome.value()

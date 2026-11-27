@@ -57,7 +57,7 @@ enum FixedKind: u8
 #test
 {
     func callFourMixed(_: s32, _: f32, _: s64, _: f64)->s32 { return 45 }
-    const V = #run callFourMixed(1, 2.0'f32, 3's64, 4.0'f64)
+    const V = #run callFourMixed(1, 2.0_f32, 3_s64, 4.0_f64)
     #assert(V == 45)
 }
 
@@ -105,7 +105,7 @@ enum FixedKind: u8
         return 43
     }
 
-    const V = #run callMixedNumeric(1, 2.0'f32, 3, 4.0'f32, 5's64, 6.0'f64, 7'u32, 8.0'f32, 9'u64, 10.0'f64)
+    const V = #run callMixedNumeric(1, 2.0_f32, 3, 4.0_f32, 5_s64, 6.0_f64, 7_u32, 8.0_f32, 9_u64, 10.0_f64)
     #assert(V == 43)
 }
 
@@ -116,7 +116,7 @@ enum FixedKind: u8
         return 44
     }
 
-    const V = #run callSmallInts(-1's8, -2's16, -3's32, -4's64, 5'u8, 6'u16, 7'u32, 8'u64)
+    const V = #run callSmallInts(-1_s8, -2_s16, -3_s32, -4_s64, 5_u8, 6_u16, 7_u32, 8_u64)
     #assert(V == 44)
 }
 
@@ -168,9 +168,9 @@ enum FixedKind: u8
     }
 
     const V0 = #run callPointerEnum(null, FixedKind.A, 3)
-    const V1 = #run callPointerEnum(cast(*void, 0x45'u64), FixedKind.B, 7)
-    #assert(V0 == 8'u64)
-    #assert(V1 == 17'u64)
+    const V1 = #run callPointerEnum(cast(*void, 0x45_u64), FixedKind.B, 7)
+    #assert(V0 == 8_u64)
+    #assert(V1 == 17_u64)
 }
 
 #test
@@ -184,6 +184,6 @@ enum FixedKind: u8
                #typeof(e) == FixedKind
     }
 
-    const V = #run callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void, 0x10'u64), FixedKind.B)
+    const V = #run callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void, 0x10_u64), FixedKind.B)
     #assert(V)
 }

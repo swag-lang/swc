@@ -3,7 +3,7 @@
 
 using Core, Gui, Gui.Testing, Viewers
 
-const SectionCount = 24'u64
+const SectionCount = 24_u64
 
 func requireMarkdownOutlinePalette(light: bool)
 {
@@ -17,8 +17,11 @@ func requireMarkdownOutlinePalette(light: bool)
 
     var host: HeadlessHost
     host.setup(880, 560)
-    if light do
+    if light
+    {
         host.theme.setLight()
+    }
+
     host.notify(.ThemeChanged)
     var session = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
     let view    = assume cast(*Markdown.View, session.view)
@@ -48,16 +51,18 @@ func requireMarkdownOutlinePalette(light: bool)
 }
 
 // Writes a document of numbered sections long enough to scroll, and returns where each begins.
-func writeSections(fileName: string)->Array'u64
+func writeSections(fileName: string)->Array!{u64}
 {
-    var offsets: Array'u64
+    var offsets: Array!{u64}
     var source:  String
     for index in SectionCount
     {
         offsets.add(source.length)
         source += Format.toString("# Section %\n\n", index)
-        for 6 do
+        for 6
+        {
             source += "A paragraph of ordinary prose that gives the section some height on the page.\n\n"
+        }
     }
 
     discard expect File.writeAllBytes(fileName, source.toString())
@@ -101,8 +106,11 @@ func openOutlined(host: *HeadlessHost, fileName: string, open = true)->OutlinedD
 
 func settle(host: *HeadlessHost, view: *Markdown.View)
 {
-    for 256 where view.isLoading() do
+    for 256 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     discard host.render()
 }
 
@@ -253,8 +261,11 @@ func settle(host: *HeadlessHost, view: *Markdown.View)
 func sectionAt(offsets: const [..] u64, reading: u64)->u64
 {
     var result = Swag.U64.Max
-    for offset in offsets where offset <= reading do
+    for offset in offsets where offset <= reading
+    {
         result = offset
+    }
+
     return result
 }
 

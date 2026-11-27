@@ -140,7 +140,6 @@ void FormatModel::build(const SourceView& srcView, const FormatOptions& options)
     gaps_.clear();
 
     blocks_.clear();
-    inlineBodies_.clear();
     logicalExpressions_.clear();
     bitwiseExpressions_.clear();
     caseValues_.clear();
@@ -738,19 +737,7 @@ void FormatModel::renderNumberPiece(Utf8& output, const FormatPiece& piece) cons
     Utf8&            out  = output;
     std::string_view text = piece.text;
 
-    // Split off the optional `'suffix` (e.g. `'u32`, `'f64`).
-    std::string_view body;
-    std::string_view suffix;
-    const size_t     sufPos = text.find('\'');
-    if (sufPos != std::string_view::npos)
-    {
-        body   = text.substr(0, sufPos);
-        suffix = text.substr(sufPos);
-    }
-    else
-    {
-        body = text;
-    }
+    std::string_view body = text;
 
     // Split off the `0x` / `0b` radix prefix for hex / binary literals.
     std::string_view prefix;
@@ -841,8 +828,6 @@ void FormatModel::renderNumberPiece(Utf8& output, const FormatPiece& piece) cons
         else
             out += body;
     }
-
-    out += suffix;
 }
 
 void FormatModel::appendIndent(Utf8& output, const std::string_view indentText) const

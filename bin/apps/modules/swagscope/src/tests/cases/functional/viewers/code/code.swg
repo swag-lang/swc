@@ -143,7 +143,7 @@ struct CodeLanguageSample
 {
     let fileName = Gui.Testing.tempFilePath("scope-code-", ".cpp")
     defer discard catch File.delete(fileName)
-    expect File.writeAllBytes(fileName, [0x66'u8, 0x6F'u8, 0x00'u8, 0x6F'u8])
+    expect File.writeAllBytes(fileName, [0x66_u8, 0x6F_u8, 0x00_u8, 0x6F_u8])
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
@@ -160,8 +160,11 @@ struct CodeLanguageSample
     let fileName = Gui.Testing.tempFilePath("scope-code-lines-", ".cpp")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 40_000 do
+    for index in 40_000
+    {
         source += Format.toString("int value% = %;\n", index, index)
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
@@ -283,10 +286,15 @@ struct CodeLanguageSample
     var restore: (func||())?
     for &entry in results.sections[0]!.entries where Utf8.startsWith(entry.title, strings.ui_Encoding)
     {
-        if entry.checked do
+        if entry.checked
+        {
             checked = entry.title
-        if entry.title == Format.toString("% · UTF-8", strings.ui_Encoding) do
+        }
+
+        if entry.title == Format.toString("% · UTF-8", strings.ui_Encoding)
+        {
             restore = entry.run
+        }
     }
 
     Swag.require(checked == Format.toString("% · Windows-1252", strings.ui_Encoding) and restore != null)
@@ -302,8 +310,10 @@ struct CodeLanguageSample
     {
         view.statisticsTask.wait()
         host.pump()
-        if view.hasStatistics do
+        if view.hasStatistics
+        {
             break
+        }
     }
 
     Swag.require(view.hasStatistics and view.statistics.crlf == 1)
@@ -317,8 +327,11 @@ struct CodeLanguageSample
     let fileName = Gui.Testing.tempFilePath("scope-code-stream-", ".swg")
     defer discard catch File.delete(fileName)
     var source: String
-    for 2_000 do
+    for 2_000
+    {
         source += "func streamedValue()->u32 => 42\n"
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
@@ -343,8 +356,11 @@ struct CodeLanguageSample
     let fileName = Gui.Testing.tempFilePath("scope-code-large-scroll-", ".swg")
     defer discard catch File.delete(fileName)
     var source: String
-    for 90_000 do
+    for 90_000
+    {
         source += "func streamedValue()->u32 => 42\n"
+    }
+
     Swag.require(source.length >= 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
@@ -610,17 +626,23 @@ struct CodeLanguageSample
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Code", host.theme)
     view.describeLens(&entries)
-    for &entry in results.sections[0]!.entries do
+    for &entry in results.sections[0]!.entries
+    {
         Swag.require(not Utf8.startsWith(entry.title, Code.texts().ui_TabWidth), "an empty lens lists no tab stops")
+    }
+
     var tabResults = Testing.lensResults("tab")
     var tabs       = Viewer.LensEntries.create(&tabResults, "Code", host.theme)
     view.describeLens(&tabs)
-    var checked: Array'String
+    var checked: Array!{String}
     var found = false
     for &entry in tabResults.sections[0]!.entries
     {
-        if entry.checked do
+        if entry.checked
+        {
             checked.add(entry.title)
+        }
+
         if entry.title == Viewer.tabWidthRowText(Code.texts().ui_TabWidth, 8)
         {
             entry.run!()
@@ -658,8 +680,10 @@ struct CodeLanguageSample
     var quiet: Lens.Results
     var quietRows = Viewer.LensEntries.create(&quiet, "Code", host.theme)
     view.describeLens(&quietRows)
-    for entry in quiet.sections[0]!.entries do
+    for entry in quiet.sections[0]!.entries
+    {
         Swag.require(not Utf8.startsWith(entry.title.toString(), "Highlight as"), entry.title.toString())
+    }
 
     var results = Testing.lensResults("python")
     var entries = Viewer.LensEntries.create(&results, "Code", host.theme)
@@ -700,8 +724,10 @@ struct CodeLanguageSample
     }
 
     Swag.require(chosen == 1 and view.languageName == Code.texts().ui_PlainText)
-    for style in view.editor.textAndStyles().styles do
+    for style in view.editor.textAndStyles().styles
+    {
         Swag.require(style == Code.GenericLexer.Style.Default)
+    }
 }
 
 // Ctrl+] moves the caret to the bracket pairing with the one at it, either way, and a brace inside
@@ -741,15 +767,18 @@ struct CodeLanguageSample
     Swag.require(view.goToMatchingDelimiter() and view.editor.cursorLogicalLineIndex() == 4)
 
     // The lens offers the pair only beside a bracket.
-    for line, index in [3'u64, 1'u64]
+    for line, index in [3_u64, 1_u64]
     {
-        view.editor.setCursorPos({line, index == 0 ? 2'u64 : 0'u64})
+        view.editor.setCursorPos({line, index == 0 ? 2_u64 : 0_u64})
         var results: Lens.Results
         var entries = Viewer.LensEntries.create(&results, "Code", host.theme)
         view.describeLens(&entries)
         var offered = false
-        for &entry in results.sections[0]!.entries where entry.title == Code.texts().ui_MatchingDelimiter do
+        for &entry in results.sections[0]!.entries where entry.title == Code.texts().ui_MatchingDelimiter
+        {
             offered = true
+        }
+
         Swag.require(offered == (index == 1))
     }
 }

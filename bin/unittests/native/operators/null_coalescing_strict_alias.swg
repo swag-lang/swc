@@ -56,11 +56,11 @@ func choosePointer(primary: RequiredPointer?, fallback: RequiredPointer)->Requir
     Swag.require(choosePointer(null, fallback) == fallback)
 }
 
-const PointerFallback = cast(RequiredPointer, 0x1234'u64)
+const PointerFallback = cast(RequiredPointer, 0x1234_u64)
 const PointerResolved = cast(RequiredPointer?, null) orelse PointerFallback
 #assert(#typeof(PointerResolved) == RequiredPointer)
 #assert(PointerResolved == PointerFallback)
 
-const PointerPresent = cast(RequiredPointer?, 0x5678'u64) orelse PointerFallback
+const PointerPresent = cast(RequiredPointer?, 0x5678_u64) orelse PointerFallback
 #assert(#typeof(PointerPresent) == RequiredPointer)
-#assert(PointerPresent == cast(RequiredPointer, 0x5678'u64))
+#assert(PointerPresent == cast(RequiredPointer, 0x5678_u64))

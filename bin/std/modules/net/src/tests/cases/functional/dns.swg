@@ -7,16 +7,20 @@ using Core
 {
     let addresses = expect Dns.resolve("localhost", 8080, {family: .IPv4})
     Swag.require(not addresses.isEmpty())
-    for endpoint in addresses do
+    for endpoint in addresses
+    {
         Swag.require(endpoint.address.isIPv4() and endpoint.port == 8080)
+    }
 }
 
 #test
 {
     let addresses = expect Dns.resolve("localhost", "http", {family: .IPv4})
     Swag.require(not addresses.isEmpty())
-    for endpoint in addresses do
+    for endpoint in addresses
+    {
         Swag.require(endpoint.address.isIPv4() and endpoint.port == 80)
+    }
 }
 
 #test
@@ -25,15 +29,19 @@ using Core
     let host       = hostSource.toString()[0 until 9]
     let addresses  = expect Dns.resolve(host, 8080, {family: .IPv4})
     Swag.require(not addresses.isEmpty())
-    for endpoint in addresses do
+    for endpoint in addresses
+    {
         Swag.require(endpoint.address.isIPv4() and endpoint.port == 8080)
+    }
 
     let serviceSource = String.from("80junk")
     let service       = serviceSource.toString()[0 until 2]
     let services      = expect Dns.resolve("127.0.0.1", service, {family: .IPv4})
     Swag.require(not services.isEmpty())
-    for endpoint in services do
+    for endpoint in services
+    {
         Swag.require(endpoint.address.isIPv4() and endpoint.port == 80)
+    }
 }
 
 #test

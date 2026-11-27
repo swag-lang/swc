@@ -85,7 +85,7 @@ impl Box
 #test
 {
     g_copies, g_moves = 0
-    var b: Box'Tracked
+    var b: Box!{Tracked}
     var t = Tracked{50}
     b.put(t)
     Swag.require(b.value.x == 50)

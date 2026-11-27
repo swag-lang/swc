@@ -16,15 +16,18 @@ func writeAfterShortRead(thread: const *Threading.Thread)
     while clock.elapsedMilliseconds() < 2000
     {
         var pending: s32
-        if Linux.ioctl(state.readDescriptor, Linux.FIONREAD, &pending) != 0 do
+        if Linux.ioctl(state.readDescriptor, Linux.FIONREAD, &pending) != 0
+        {
             break
+        }
+
         if pending == 0
         {
             state.sentSecond = Linux.write(state.writeDescriptor, "cd".buffer, 2) == 2
             break
         }
 
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
     }
 
     discard Linux.close(state.writeDescriptor)
@@ -56,7 +59,7 @@ struct InterruptedPipeWrite
     total:  u64
 }
 
-var g_pipeSignals: Swag.AtomicValue'u32
+var g_pipeSignals: Swag.AtomicValue!{u32}
 
 #[Swag.CallingConvention(.C)]
 func interruptPipeIo(_: s32)
@@ -72,9 +75,12 @@ func waitForBlockedPipeThread(id: u64, operation: string)->bool
     while Time.monotonicMilliseconds() < deadline
     {
         let channel = catch File.readAllText(path.toString()) { return false; }
-        if channel.contains(operation) do
+        if channel.contains(operation)
+        {
             return true
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     return false
@@ -84,8 +90,11 @@ func writeLargePipe(thread: const *Threading.Thread)
 {
     let state = cast(*InterruptedPipeWrite, unwrap thread.userParam)
     var bytes: [131072]u8
-    for i in bytes.count do
+    for i in bytes.count
+    {
         bytes[i] = 0x5A
+    }
+
     state.total = expect state.stream.write(bytes)
     state.stream.close()
 }
@@ -117,22 +126,28 @@ func writeLargePipe(thread: const *Threading.Thread)
     while pending == 0 and Time.monotonicMilliseconds() < deadline
     {
         Swag.require(Linux.ioctl(descriptors[0], Linux.FIONREAD, &pending) == 0)
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(pending > 0 and pending < 131072)
     Swag.require(waitForBlockedPipeThread(writer.id, "pipe_write"))
     Swag.require(Linux.tgkill(Linux.getpid(), cast(s32, writer.id), Linux.SIGUSR1) == 0)
-    var received = 0'u64
+    var received = 0_u64
     var chunk: [4096]u8
     for
     {
         let count = Linux.read(descriptors[0], &chunk[0], chunk.count)
         Swag.require(count >= 0)
-        if count == 0 do
+        if count == 0
+        {
             break
-        for i in cast(u64, count) do
+        }
+
+        for i in cast(u64, count)
+        {
             Swag.require(chunk[i] == 0x5A)
+        }
+
         received += cast(u64, count)
     }
 
@@ -178,8 +193,11 @@ func readInterruptedPipe(thread: const *Threading.Thread)
     expect reader.init(&readInterruptedPipe, &state)
     expect reader.start()
     let deadline = Time.monotonicMilliseconds() + 3000
-    while not state.started.isRaised() and Time.monotonicMilliseconds() < deadline do
-        Threading.Thread.sleep(1'ms)
+    while not state.started.isRaised() and Time.monotonicMilliseconds() < deadline
+    {
+        Threading.Thread.sleep(1_ms)
+    }
+
     Swag.require(state.started.isRaised())
     Swag.require(waitForBlockedPipeThread(reader.id, "pipe_read"))
     Swag.require(Linux.tgkill(Linux.getpid(), cast(s32, reader.id), Linux.SIGUSR1) == 0)

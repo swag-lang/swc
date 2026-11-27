@@ -3,8 +3,10 @@
 #[Swag.Inline]
 func inlineCopy(dest: [*] void, src: const [*] void, size: u64)
 {
-    if size do
+    if size
+    {
         Swag.memcpy(dest, src, size)
+    }
 }
 
 func copyWithRuntimeTypeSize(dest: [*] void, src: const [*] void, valueType: typeinfo)

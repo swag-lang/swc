@@ -82,8 +82,11 @@ plus 'TypeValue.offset'.
 
 func reflectedFieldCount(type: typeinfo)->u64
 {
-    if type is Swag.TypeInfoStruct as info do
+    if type is Swag.TypeInfoStruct as info
+    {
         return info.fields.count
+    }
+
     return 0
 }
 

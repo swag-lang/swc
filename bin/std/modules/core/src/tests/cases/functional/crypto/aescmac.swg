@@ -5,16 +5,19 @@ using Swag
 
 func aesCmacHexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func aesCmacHexBytes(text: string)->Array'u8
+func aesCmacHexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, (aesCmacHexDigit(text[index]) << 4) | aesCmacHexDigit(text[index + 1])))
@@ -33,7 +36,7 @@ func aesCmacHexBytes(text: string)->Array'u8
     let emptyTag    = aesCmacHexBytes("bb1d6929e95937287fa37d129b756746")
     let blockTag    = aesCmacHexBytes("070a16b46b4d4144f79bdd9dd04a287c")
     let partialTag  = aesCmacHexBytes("dfa66747de9ae63030ca32611497c827")
-    var empty: Array'u8
+    var empty: Array!{u8}
     var emptyOutput = expect Crypto.AesCmac.compute(key.toSlice(), empty.toSlice())
     Swag.require(Crypto.constantTimeEqual(emptyOutput, emptyTag.toSlice()))
     var blockOutput = expect Crypto.AesCmac.compute(key.toSlice(), message[until 16])
@@ -73,4 +76,27 @@ func aesCmacHexBytes(text: string)->Array'u8
     var error:      Swag.Error
     discard catch Crypto.AesCmac.compute(invalidKey, message) as error
     Swag.require(error.value() is Errors.BadParameterError)
+}
+
+#test
+{
+    // Cross-check every split around full and partial buffered blocks with OpenSSL's tag.
+    const Key = "0123456789abcdefghijklmnopqrstuv"
+    let expected = aesCmacHexBytes("de7925c2a730525997b1ce7d4eed0831")
+    var storage: [146] u8
+    let message  = storage[1 until]
+    for index in message.count
+    {
+        message[index] = cast(u8, (index * 13 + 7) & 0xFF)
+    }
+
+    for split in message.count + 1
+    {
+        var cmac = expect Crypto.AesCmac.create(Key)
+        expect cmac.update(message[until split])
+        expect cmac.update(message[until 0])
+        expect cmac.update(message[split until])
+        let tag = expect cmac.finalize()
+        Swag.require(Crypto.constantTimeEqual(tag, expected.toSlice()))
+    }
 }

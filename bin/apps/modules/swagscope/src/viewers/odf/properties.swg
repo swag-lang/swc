@@ -23,12 +23,16 @@ impl Properties
         {
             .scale = other.scale
         }
-        elif other.scale != 1
+        else if other.scale != 1
         {
-            if .run.size do
+            if .run.size
+            {
                 .run.size = cast(u32, Math.clamp(Math.round(cast(f64, .run.size) * other.scale), 1, 800))
-            else do
+            }
+            else
+            {
                 .scale *= other.scale
+            }
         }
 
         if .scale < 0.05 or .scale > 16
@@ -50,54 +54,84 @@ impl Properties
         .limited = .limited or other.limited or .run.limited or .paragraph.limited
     }
 
-    mtd readText(token: const *Package.Token, fonts: const *HashTable'(String, String))
+    mtd readText(token: const *Package.Token, fonts: const *HashTable!{String, String})
     {
         if let value = token.attribute("font-weight")
         {
             let weight = catch StrConv.toU32(value) orelse 0
-            if value == "bold" or weight >= 600 do
+            if value == "bold" or weight >= 600
+            {
                 .run.bold = .On
-            elif value == "normal" or (weight >= 100 and weight <= 500) do
+            }
+            else if value == "normal" or (weight >= 100 and weight <= 500)
+            {
                 .run.bold = .Off
-            else do
+            }
+            else
+            {
                 .limited = true
+            }
         }
 
-        if let value = token.attribute("font-style") do
+        if let value = token.attribute("font-style")
+        {
             .run.italic = value == "normal" ? .Off : .On
-        if let value = token.attribute("text-underline-style") do
+        }
+
+        if let value = token.attribute("text-underline-style")
+        {
             .run.underline = value == "none" ? .Off : .On
-        if let value = token.attribute("text-line-through-style") do
+        }
+
+        if let value = token.attribute("text-line-through-style")
+        {
             .run.strike = value == "none" ? .Off : .On
-        if let value = token.attribute("display") do
+        }
+
+        if let value = token.attribute("display")
+        {
             .run.hidden = value == "none" ? .On : .Off
+        }
+
         if let value = token.attribute("font-size")
         {
             if Utf8.endsWith(value, "%")
             {
                 let percent = catch StrConv.toF64(value[until value.count - 1]) orelse 0
-                if Math.isFinite(percent) and percent >= 5 and percent <= 400 do
+                if Math.isFinite(percent) and percent >= 5 and percent <= 400
+                {
                     .scale = percent / 100
-                else do
+                }
+                else
+                {
                     .limited = true
+                }
             }
             else
             {
                 let size = points(value)
-                if size.valid and size.value > 0 and size.value <= 400 do
+                if size.valid and size.value > 0 and size.value <= 400
+                {
                     .run.size = cast(u32, Math.max(Math.round(size.value * 2), 1))
-                else do
+                }
+                else
+                {
                     .limited = true
+                }
             }
         }
 
         if let value = token.attribute("color")
         {
             let color = rgb(value)
-            if not color.isEmpty() do
+            if not color.isEmpty()
+            {
                 .run.color = color
-            else do
+            }
+            else
+            {
                 .limited = true
+            }
         }
 
         if let value = token.attribute("background-color")
@@ -109,10 +143,14 @@ impl Properties
             else
             {
                 let color = rgb(value)
-                if not color.isEmpty() do
+                if not color.isEmpty()
+                {
                     .run.highlight = color
-                else do
+                }
+                else
+                {
                     .limited = true
+                }
             }
         }
 
@@ -120,15 +158,19 @@ impl Properties
         var family = token.attribute("font-family") orelse ""
         if named
         {
-            if let font = fonts.tryFind(String.from(named)) do
+            if let font = fonts.tryFind(String.from(named))
+            {
                 family = font.value
+            }
         }
 
         if family.count
         {
             .run.family = fontFamily(family)
-            if .run.family.isEmpty() do
+            if .run.family.isEmpty()
+            {
                 .limited = true
+            }
         }
     }
 
@@ -136,22 +178,33 @@ impl Properties
     {
         if let value = token.attribute("text-align")
         {
-            if value == "start" or value == "left" do
+            if value == "start" or value == "left"
+            {
                 .paragraph.alignment = "left"
-            elif value == "end" or value == "right" do
+            }
+            else if value == "end" or value == "right"
+            {
                 .paragraph.alignment = "right"
-            elif value == "center" or value == "justify" do
+            }
+            else if value == "center" or value == "justify"
+            {
                 .paragraph.alignment = value
-            else do
+            }
+            else
+            {
                 .limited = true
+            }
         }
 
         let names = ["margin-top", "margin-bottom", "margin-left", "margin-right", "text-indent"]
         for name, index in names
         {
             let value = token.attribute(name)
-            if not value do
+            if not value
+            {
                 continue
+            }
+
             let length = points(value)
             if not length.valid
             {
@@ -197,7 +250,7 @@ impl Properties
                     .limited = true
                 }
             }
-            elif value == "normal"
+            else if value == "normal"
             {
                 .paragraph.line     = 240
                 .paragraph.lineRule = "auto"
@@ -217,8 +270,10 @@ impl Properties
             }
         }
 
-        if let value = token.attribute("break-before") do
+        if let value = token.attribute("break-before")
+        {
             .paragraph.pageBefore = value == "page" ? .On : .Off
+        }
     }
 
     mtd readCell(token: const *Package.Token)
@@ -227,38 +282,54 @@ impl Properties
         if let value = token.attribute("background-color")
         {
             let color = rgb(value)
-            if value == "transparent" do
+            if value == "transparent"
+            {
                 .cellCss += "background-color:transparent;"
-            elif not color.isEmpty() do
+            }
+            else if not color.isEmpty()
+            {
                 .cellCss += Format.toString("background-color:#%;", color)
-            else do
+            }
+            else
+            {
                 .limited = true
+            }
         }
 
         for name in ["padding", "padding-left", "padding-right", "padding-top", "padding-bottom"]
         {
             let value = token.attribute(name)
-            if not value do
+            if not value
+            {
                 continue
+            }
+
             let length = points(value)
-            if length.valid and length.value >= 0 do
+            if length.valid and length.value >= 0
+            {
                 .cellCss += Format.toString("%:%pt;", name, numbers.format(length.value, 3))
-            else do
+            }
+            else
+            {
                 .limited = true
+            }
         }
 
         for name in ["border", "border-left", "border-right", "border-top", "border-bottom"]
         {
             let value = token.attribute(name)
-            if not value do
+            if not value
+            {
                 continue
+            }
+
             if value == "none"
             {
                 .cellCss += Format.toString("%:none;", name)
                 continue
             }
 
-            let words = Tokenize.split(value, ' 'rune)
+            let words = Tokenize.split(value, ' '_rune)
             if words.count != 3
             {
                 .limited = true
@@ -272,17 +343,23 @@ impl Properties
                width.value >= 0 and
                width.value <= 24 and
                not color.isEmpty() and
-               (kind == "solid" or kind == "dotted" or kind == "dashed" or kind == "double") do
+               (kind == "solid" or kind == "dotted" or kind == "dashed" or kind == "double")
+            {
                 .cellCss += Format.toString("%:%pt % #%;", name, numbers.format(width.value, 3), kind, color)
-            else do
+            }
+            else
+            {
                 .limited = true
+            }
         }
     }
 
     mtd const applyRun(run: *Docx.RunFormat)
     {
         run.overlay(&.run)
-        if .scale != 1 do
+        if .scale != 1
+        {
             run.size = cast(u32, Math.clamp(Math.round(cast(f64, run.size ? run.size : 24) * .scale), 1, 800))
+        }
     }
 }

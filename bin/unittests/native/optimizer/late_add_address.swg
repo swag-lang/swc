@@ -18,19 +18,23 @@ func addThenCall(a, b: u64)->u64 => observe(a + b)
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func sumPairs(values: const [..] u64)->u64
 {
-    var total = 0'u64
-    for i in 0 until values.count - 1 do
+    var total = 0_u64
+    for i in 0 until values.count - 1
+    {
         total += values[i] + values[i + 1]
+    }
     return total
 }
 
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values   = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
-    var expected = 0'u64
-    for i in 0 until values.count - 1 do
+    let values   = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    var expected = 0_u64
+    for i in 0 until values.count - 1
+    {
         expected += values[i] + values[i + 1]
+    }
     Swag.require(sumPairs(values) == expected)
     for a in values
     {

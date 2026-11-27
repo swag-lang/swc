@@ -42,7 +42,7 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
 // start of a word; the runs it matched are reported in bytes.
 #test
 {
-    let whole = Lens.match("center", "if not .centerGroup do")
+    let whole = Lens.match("center", "if not .centerGroup {")
     Swag.require(whole.matched and whole.spans.count == 1)
     Swag.require(whole.spans[0].start == 8 and whole.spans[0].count == 6)
 
@@ -116,9 +116,14 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
 
     lens.open(">")
     var foundExcluded: bool
-    for section in lens.results.sections where section do
-        for entry in section.entries where entry.id == LensTheme do
+    for section in lens.results.sections where section
+    {
+        for entry in section.entries where entry.id == LensTheme
+        {
             foundExcluded = true
+        }
+    }
+
     Swag.require(foundExcluded)
     lens.close()
 }
@@ -173,11 +178,11 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
     // A more precise command precedes a source registered first. A scope keeps navigation local.
     Swag.require(lens.chosenEntry()!.title == "Center Theme")
     lens.setQuery(":center")
-    Swag.require(lens.chosenEntry()!.title == "if not .centerGroup do")
+    Swag.require(lens.chosenEntry()!.title == "if not .centerGroup {")
     host.keyPress(.Down)
     Swag.require(lens.chosenEntry()!.title == "let group = .centerGroup")
     host.keyPress(.Down)
-    Swag.require(lens.chosenEntry()!.title == "elif .fillCenterGroup do")
+    Swag.require(lens.chosenEntry()!.title == "else if .fillCenterGroup {")
     host.keyPress(.Up)
     Swag.require(lens.chosenEntry()!.title == "let group = .centerGroup")
 
@@ -225,7 +230,7 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
 // Enter closes the lens and posts the chosen command; Escape closes it and gives the keyboard back.
 #test
 {
-    var posted: Array'String
+    var posted: Array!{String}
     var host:   Testing.HeadlessHost
     host.setup(800, 600)
     let lens       = lensSetup(&host)
@@ -236,8 +241,11 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
 
     host.root.hookOnEvent = func|posted = &posted|(wnd, evt)->bool
     {
-        if lensCommandState(wnd, evt) do
+        if lensCommandState(wnd, evt)
+        {
             return true
+        }
+
         if evt is CommandEvent as cmd
         {
             posted.add(cmd.id)
@@ -292,8 +300,11 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
     let decomposed = Lens.match("ete", "E\u0301te\u0301")
     Swag.require(decomposed.matched and decomposed.spans[0].count == 7)
     Swag.require(Lens.match("  \t ", "Save").matched)
-    for query in ["captuer", "capturre", "cature", "capxure"] do
+    for query in ["captuer", "capturre", "cature", "capxure"]
+    {
         Swag.require(Lens.match(query, "Capture Area", tolerateTypos: true).matched)
+    }
+
     Swag.require(not Lens.match("captuer", "Capture").matched)
     Swag.require(not Lens.match("caxtuer", "Capture Area", tolerateTypos: true).matched)
     Swag.require(not Lens.match("svae", "Save", tolerateTypos: false).matched)
@@ -358,8 +369,10 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
 
     lens.open("arr")
     Swag.require(lens.chosenEntry()!.title == "Arrow")
-    for row in lens.rows do
+    for row in lens.rows
+    {
         Swag.require(row.entry == Swag.U64.Max or row.section.entries[row.entry].title != "Capture Area")
+    }
 
     lens.setQuery("center")
     Swag.require(lens.rows[0].section.label == "View")
@@ -388,9 +401,12 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
     Swag.require(not lens.isOpen())
 
     lens.open()
-    var labels: Array'String
-    for row in lens.rows where row.entry == Swag.U64.Max do
+    var labels: Array!{String}
+    for row in lens.rows where row.entry == Swag.U64.Max
+    {
         labels.add(row.section.label)
+    }
+
     Swag.require(labels.count == 2 and labels[0] == "Selection" and labels[1] == strings().lens_Recent)
 
     lens.setQuery("x")
@@ -515,8 +531,10 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
     lens.addRestSource(func(results) { results.addSection("Selection").addEntry("Duplicate") })
     lens.addRestSource(func|showChoices = &showChoices, chosen = &chosen|(results)
     {
-        if showChoices[] do
+        if showChoices[]
+        {
             addViewAsSection(results, chosen)
+        }
     })
 
     lens.open()
@@ -530,7 +548,7 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
 // so several settings can be flipped in a row; Enter still runs and closes.
 #test
 {
-    var posted: Array'String
+    var posted: Array!{String}
     var on = true
     var host:   Testing.HeadlessHost
     host.setup(800, 600)
@@ -546,13 +564,19 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
             return true
         }
 
-        if lensCommandState(wnd, evt) do
+        if lensCommandState(wnd, evt)
+        {
             return true
+        }
+
         if evt is CommandEvent as cmd
         {
             posted.add(cmd.id)
-            if cmd.id == LensTheme do
+            if cmd.id == LensTheme
+            {
                 on[] = not on[]
+            }
+
             cmd.accepted = true
             return true
         }
@@ -630,8 +654,10 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
     lens.setQuery("Fil")
     for section in lens.results.sections
     {
-        for entry in section!.entries do
+        for entry in section!.entries
+        {
             Swag.require(entry.id != LensOpen and entry.id != LensSave)
+        }
     }
 }
 
@@ -650,8 +676,10 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
         {
             let section = results.addSection("Filter")
             section.inline = true
-            for title in ["All Items", "Captures", "Recordings", "Screen Captures", "Imported Captures", "External Images", "Favorites"] do
+            for title in ["All Items", "Captures", "Recordings", "Screen Captures", "Imported Captures", "External Images", "Favorites"]
+            {
                 discard section.addEntry(title)
+            }
         })
 
         lens.open()

@@ -42,11 +42,11 @@ struct AbiNested
 {
     func passString(text: string, idx: s32)->u8 { return text[idx] }
     const V = #run passString("abi-string", 1)
-    #assert(V == 98'u8)
+    #assert(V == 98_u8)
     const V1 = #run passString("abi-string", 2)
-    #assert(V1 == 'i'u8)
+    #assert(V1 == 'i'_u8)
     const V2 = #run passString("abi-string", 9)
-    #assert(V2 == 'g'u8)
+    #assert(V2 == 'g'_u8)
 }
 
 #test
@@ -91,15 +91,15 @@ struct AbiNested
 #test
 {
     func passPayload(value: AbiPayload)->AbiPayload { return value }
-    const V = #run passPayload({a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64})
-    #assert(V.a0 == 10'u64)
-    #assert(V.a3 == 40'u64)
-    const V1 = #run passPayload({a0: 100'u64, a1: 200'u64, a2: 300'u64, a3: 400'u64})
-    #assert(V1.a0 == 100'u64)
-    #assert(V1.a3 == 400'u64)
-    const V2 = #run passPayload({a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64})
-    #assert(V2.a0 == 1'u64)
-    #assert(V2.a3 == 4'u64)
+    const V = #run passPayload({a0: 10_u64, a1: 20_u64, a2: 30_u64, a3: 40_u64})
+    #assert(V.a0 == 10_u64)
+    #assert(V.a3 == 40_u64)
+    const V1 = #run passPayload({a0: 100_u64, a1: 200_u64, a2: 300_u64, a3: 400_u64})
+    #assert(V1.a0 == 100_u64)
+    #assert(V1.a3 == 400_u64)
+    const V2 = #run passPayload({a0: 1_u64, a1: 2_u64, a2: 3_u64, a3: 4_u64})
+    #assert(V2.a0 == 1_u64)
+    #assert(V2.a3 == 4_u64)
 }
 
 #test
@@ -107,10 +107,10 @@ struct AbiNested
     func passPointer(value: *void?)->*void? { return value }
     const V = #run passPointer(null)
     #assert(V == null)
-    const V1 = #run passPointer(cast(*void, 0x1234'u64))
-    #assert(V1 == cast(*void, 0x1234'u64))
-    const V2 = #run passPointer(cast(*void, 0xABCD'u64))
-    #assert(V2 == cast(*void, 0xABCD'u64))
+    const V1 = #run passPointer(cast(*void, 0x1234_u64))
+    #assert(V1 == cast(*void, 0x1234_u64))
+    const V2 = #run passPointer(cast(*void, 0xABCD_u64))
+    #assert(V2 == cast(*void, 0xABCD_u64))
 }
 
 #test
@@ -118,9 +118,9 @@ struct AbiNested
     func passMixed(a: s32, _: string, c: AbiPair, d: [2] s32, _: *void?)->s32 { return a + c.a + d[1] }
     const V = #run passMixed(3, "mix", {a: 10, b: 11}, [8, 9], null)
     #assert(V == 22)
-    const V1 = #run passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void, 0x4567'u64))
+    const V1 = #run passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void, 0x4567_u64))
     #assert(V1 == 220)
-    const V2 = #run passMixed(-30, "mix3", {a: 100, b: 110}, [80, 90], cast(*void, 0xFEDC'u64))
+    const V2 = #run passMixed(-30, "mix3", {a: 100, b: 110}, [80, 90], cast(*void, 0xFEDC_u64))
     #assert(V2 == 160)
 }
 
@@ -140,9 +140,9 @@ struct AbiNested
         a8: f32, a9: f64, a10: bool, a11: rune)->s32 { return cast(s32, a0) + cast(s32, a1) + a2 + cast(s32, a3) + cast(s32, a4) + cast(s32, a5) + cast(s32, a6) + cast(s32, a7) + cast(s32, a8) + cast(s32, a9) + cast(s32, a10) + cast(s32, a11) }
 
     const V = #run passScalars(
-        -5's8, -123's16, 77's32, 5000's64,
-        9'u8, 10'u16, 11'u32, 12'u64,
-        1.25'f32, 2.5'f64, true, 'R')
+        -5_s8, -123_s16, 77_s32, 5000_s64,
+        9_u8, 10_u16, 11_u32, 12_u64,
+        1.25_f32, 2.5_f64, true, 'R')
     #assert(V == 5077)
 }
 
@@ -190,10 +190,10 @@ struct AbiNested
         return cast(u64, b[1]) + cast(u64, d.a) + e.a3 + cast(u64, c[0]) + cast(u64, (a != null))
     }
 
-    const V = #run passAggregatePositions(cast(*void, 0x10'u64), [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64})
-    #assert(V == 115'u64)
-    const V1 = #run passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64})
-    #assert(V1 == 235'u64)
+    const V = #run passAggregatePositions(cast(*void, 0x10_u64), [5, 6], "abc", {a: 7, b: 8}, {a0: 1_u64, a1: 2_u64, a2: 3_u64, a3: 4_u64})
+    #assert(V == 115_u64)
+    const V1 = #run passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10_u64, a1: 20_u64, a2: 30_u64, a3: 40_u64})
+    #assert(V1 == 235_u64)
 }
 
 #test
@@ -203,8 +203,8 @@ struct AbiNested
         return cast(u64, value.p.a) + cast(u64, value.p.b) + value.q.a0 + value.q.a3 + cast(u64, extra)
     }
 
-    const V = #run passNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5)
-    #assert(V == 62'u64)
+    const V = #run passNested({p: {a: 3, b: 4}, q: {a0: 10_u64, a1: 20_u64, a2: 30_u64, a3: 40_u64}}, 5)
+    #assert(V == 62_u64)
 }
 
 #test
@@ -219,7 +219,7 @@ struct AbiNested
                #typeof(e) == AbiEnum
     }
 
-    const V = #run passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A)
+    const V = #run passKindof({a: 1, b: 2}, {a0: 3_u64, a1: 4_u64, a2: 5_u64, a3: 6_u64}, "ok", null, [7, 8], AbiEnum.A)
     #assert(V)
 }
 
@@ -230,6 +230,6 @@ struct AbiNested
         return value.p.a + array0[0].b + array0[1].a
     }
 
-    const V = #run passNestedArray({p: {a: 10, b: 11}, q: {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}}, [{a: 20, b: 21}, {a: 30, b: 31}])
+    const V = #run passNestedArray({p: {a: 10, b: 11}, q: {a0: 1_u64, a1: 2_u64, a2: 3_u64, a3: 4_u64}}, [{a: 20, b: 21}, {a: 30, b: 31}])
     #assert(V == 61)
 }

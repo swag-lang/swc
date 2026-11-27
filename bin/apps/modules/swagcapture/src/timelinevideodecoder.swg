@@ -17,8 +17,8 @@ struct TimelineVideoSlot
 struct TimelineVideoDecoder
 {
     slots:            [TimelineVideoSlots] TimelineVideoSlot
-    ready:            StaticArray'(u32, TimelineVideoSlots)     // Decoded slots, in frame order.
-    free:             StaticArray'(u32, TimelineVideoSlots)
+    ready:            StaticArray!{u32, TimelineVideoSlots}     // Decoded slots, in frame order.
+    free:             StaticArray!{u32, TimelineVideoSlots}
     lock:             Swag.Mutex
     wake:             Sync.Event
     released:         Sync.Event
@@ -50,8 +50,11 @@ impl TimelineVideoDecoder
     // Ends the worker and releases what it waited on.
     mtd close()
     {
-        if not .task.isPending() do
+        if not .task.isPending()
+        {
             return
+        }
+
         .task.cancel()
         .wake.signal()
         .task.wait()
@@ -74,16 +77,22 @@ impl TimelineVideoDecoder
         .failed     = false
         .ready.clear()
         .free.clear()
-        for slot in TimelineVideoSlots where not .busy or slot != .busySlot do
+        for slot in TimelineVideoSlots where not .busy or slot != .busySlot
+        {
             .free.add(cast(u32, slot))
+        }
+
         .wake.signal()
     }
 
     // Leaves an in-flight decode alone; its generation check discards its result.
     mtd stop()
     {
-        if Swag.jit() do
+        if Swag.jit()
+        {
             return
+        }
+
         Sync.scopedLock(&.lock)
         .generation += 1
         .active     = false
@@ -101,8 +110,11 @@ impl TimelineVideoDecoder
     // Has the worker close its reader, and waits until it has, so the file can be moved.
     mtd releaseReader()
     {
-        if Swag.jit() or not .task.isPending() do
+        if Swag.jit() or not .task.isPending()
+        {
             return
+        }
+
         scope
         {
             Sync.scopedLock(&.lock)
@@ -125,7 +137,7 @@ impl TimelineVideoDecoder
     {
         Sync.scopedLock(&.lock)
         let remaining = .frameCount - .firstFrame
-        return .ready.count >= Math.min(4'u64, remaining)
+        return .ready.count >= Math.min(4_u64, remaining)
     }
 
     // Shows on `capture` the newest decoded picture the clock has reached at frame `target`, and
@@ -152,8 +164,11 @@ impl TimelineVideoDecoder
             }
         }
 
-        if shown do
+        if shown
+        {
             .wake.signal()
+        }
+
         return shown
     }
 }
@@ -179,8 +194,11 @@ private impl TimelineVideoDecoder
 
             if releaseRequested
             {
-                if reader.isOpen() do
+                if reader.isOpen()
+                {
                     reader.close()
+                }
+
                 readerPath.clear()
                 Sync.scopedLock(&.lock)
                 .releaseRequested = false
@@ -188,8 +206,10 @@ private impl TimelineVideoDecoder
             }
         }
 
-        if reader.isOpen() do
+        if reader.isOpen()
+        {
             reader.close()
+        }
     }
 
     // Decodes the next picture into a free slot. Returns whether the worker can go on.
@@ -201,8 +221,11 @@ private impl TimelineVideoDecoder
         scope
         {
             Sync.scopedLock(&.lock)
-            if not .active or .failed or .free.isEmpty() or .nextFrame >= .frameCount do
+            if not .active or .failed or .free.isEmpty() or .nextFrame >= .frameCount
+            {
                 return false
+            }
+
             slot       = .free.popBack()
             index      = .nextFrame
             generation = .generation
@@ -212,8 +235,10 @@ private impl TimelineVideoDecoder
 
             // The path only changes with a request: it is copied then, not for every picture.
             reopen = not reader.isOpen() or not Path.equals(readerPath.toString(), .path)
-            if reopen do
+            if reopen
+            {
                 readerPath[] = String.from(.path)
+            }
         }
 
         var failed: bool
@@ -221,8 +246,11 @@ private impl TimelineVideoDecoder
         {
             if reopen
             {
-                if reader.isOpen() do
+                if reader.isOpen()
+                {
                     reader.close()
+                }
+
                 reader[] = try Video.Reader.open(readerPath.toString(), pictureOnly: true)
             }
 

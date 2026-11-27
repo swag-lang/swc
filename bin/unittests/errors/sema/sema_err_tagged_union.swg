@@ -32,8 +32,10 @@ func taggedErrRead(holder: TaggedErrHolder)->s32
 // A proof of another case does not cover it.
 func taggedErrOtherCase(holder: TaggedErrHolder)->s32
 {
-    if holder.value is .Text do
+    if holder.value is .Text
+    {
         return holder.number     // swc-expected-error {{sema_err_tagged_payload_unproven}}
+    }
     return 0
 }
 

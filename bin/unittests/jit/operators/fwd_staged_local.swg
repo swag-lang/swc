@@ -19,8 +19,10 @@ impl Owned
     mtd opPostMove() { g_moves += 1 }
     mtd opDrop()
     {
-        if .id do
+        if .id
+        {
             g_drops += 1
+        }
     }
 }
 

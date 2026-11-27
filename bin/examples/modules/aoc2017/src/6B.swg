@@ -15,8 +15,8 @@ func day6B()
     let slice  = Tokenize.split(line, " ")
     var blocks = Slice.map(slice[to], func(x) => expect StrConv.toS32(x))
 
-    var set: HashTable'(String, u64)
-    var total = 0'u64
+    var set: HashTable!{String, u64}
+    var total = 0_u64
     for
     {
         var best, besti: u64
@@ -38,8 +38,10 @@ func day6B()
         }
 
         var val: String
-        for i in blocks.count do
+        for i in blocks.count
+        {
             val += Format.toString("%.", blocks[i])
+        }
 
         total += 1
         if set.contains(val)

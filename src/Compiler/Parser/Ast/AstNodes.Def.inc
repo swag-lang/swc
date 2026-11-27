@@ -22,7 +22,7 @@ SWC_NODE_DEF(AliasDecl, AstNodeIdFlagsE::SemaJob)
 // ============================================================================
 SWC_NODE_DEF(Identifier, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(QuotedExpr, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(QuotedListExpr, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(GenericArgListExpr, AstNodeIdFlagsE::Zero)
 
 // ============================================================================
 //  Types

@@ -103,12 +103,12 @@ impl LoopRefIndexContainer
 
 #test
 {
-    func genericFirst(op: *GenericRefIndexContainer's32)->s32
+    func genericFirst(op: *GenericRefIndexContainer!{s32})->s32
     {
         return op[0]
     }
 
-    var values = GenericRefIndexContainer'(s32){values: [21, 34]}
+    var values = GenericRefIndexContainer!{s32}{values: [21, 34]}
     Swag.require(genericFirst(&values) == 21)
 }
 

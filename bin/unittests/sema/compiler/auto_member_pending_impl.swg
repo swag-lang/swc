@@ -9,7 +9,7 @@ impl OtherMember
 {
     mtd read()->s32
     {
-        var result = 0's32
+        var result = 0_s32
         with var target: LateMember
         {
             result = .Id

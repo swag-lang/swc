@@ -38,7 +38,7 @@ using Swag, Core
     reference.init()
     for algorithm in [BackdropBlur.Gaussian, .DualKawase]
     {
-        for scale in [1.0'f32, 1.5]
+        for scale in [1.0_f32, 1.5]
         {
             for 2
             {

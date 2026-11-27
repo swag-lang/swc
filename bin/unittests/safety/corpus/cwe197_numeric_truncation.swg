@@ -46,8 +46,10 @@ func negativeToUnsigned(value: s8)->u8
 #[Swag.Safety(.Overflow, true)]
 func validatedSignedUsedAsUnsigned(length: s32)->u32
 {
-    if length > 1024 do
+    if length > 1024
+    {
         return 0
+    }
     return cast(u32, length)     // swc-expected-error {{safety_err_runtime}}
 }
 

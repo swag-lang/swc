@@ -160,8 +160,11 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     var captured: bool
     host.app.sigFrame += func|host = &host, sheet, image = &image, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         captured[] = true
         image[]    = host.renderSettled(&host.surfaceWnd)
         sheet.close()
@@ -186,22 +189,26 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     let files = [picturePath, scopeTestDataPath("viewer.wav"), scopeTestDataPath("sample.cpp")]
     workspace.openScene(files, .Grid2)
     openViews(&host, workspace)
-    let scene = unwrap workspace.scene()
+    let scene   = unwrap workspace.scene()
     let picture = unwrap scene.views[0].document
     picture.revealViewerBar()
     Swag.require(picture.cellCaption.isVisible())
 
-    var image: Image
+    var image:    Image
     var captured: bool
     host.app.sigFrame += func|host = &host, image = &image, captured = &captured|(_)
     {
         let sheet = host.capturedOptionSheet()
-        if captured[] or not sheet do
+        if captured[] or not sheet
+        {
             return
+        }
+
         captured[] = true
         image[]    = host.renderSettled(&host.surfaceWnd)
         sheet.close()
     }
+
     host.clickWnd(workspace.mediaTransport)
     host.app.sigFrame.clear()
     Swag.require(captured)
@@ -286,8 +293,11 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     workspace.openScene(files, .Grid2)
     let scene = unwrap workspace.scene()
     openViews(&host, workspace)
-    for &view in scene.views do
+    for &view in scene.views
+    {
         pinVideoFrame(unwrap ScenePlayer.from(view.document).film, 0)
+    }
+
     workspace.playScene()
     Swag.require(workspace.anyMediaPlaying())
     var pointer = workspace.localToSurface(workspace.viewRect(scene, 1).center())
@@ -310,7 +320,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     workspace.openScene(files, .Stacked)
     openViews(&host, workspace)
     let document = workspace.activeDocument()
-    let film = unwrap ScenePlayer.from(document).film
+    let film     = unwrap ScenePlayer.from(document).film
     pinVideoFrame(film, 0)
     document.revealViewerBar()
     host.finishAnimations()
@@ -346,7 +356,8 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     let workspace = testWorkspace(&host, width: ViewerWindow.MinWidth, height: 480)
     defer host.shutdown()
     workspace.openScene([scopeTestDataPath("pacman_beginning.wav"), scopeTestDataPath("viewer.png"),
-                         scopeTestDataPath("sample.cpp"), scopeTestDataPath("viewer.mp4")], .Grid2)
+                         scopeTestDataPath("sample.cpp"), scopeTestDataPath("viewer.mp4")],
+                        .Grid2)
     openViews(&host, workspace)
     let scene = unwrap workspace.scene()
     let audio = unwrap scene.views[0].document
@@ -357,7 +368,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     assertScopeImageGolden(&image, "scene.mixed.compact.encre")
     audio.revealViewerBar()
     let controls = host.renderSettled(&host.surfaceWnd)
-    let sound = unwrap ScenePlayer.from(audio).sound
+    let sound    = unwrap ScenePlayer.from(audio).sound
     Swag.require(sound.waveform.surfaceRect().bottom() <= audio.viewerBar.surfaceRect().y)
     assertScopeImageGolden(&controls, "scene.sound.controls.encre")
 }
@@ -370,7 +381,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host, light: true, width: ViewerWindow.MinWidth, height: 480)
     defer host.shutdown()
-    let root = Testing.tempFilePath("scope-folder-pane-", "")
+    let root   = Testing.tempFilePath("scope-folder-pane-", "")
     let folder = Path.combine(root, "Notes")
     expect Directory.create(folder, recurse: true)
     defer discard catch Directory.delete(root, recurse: true)
@@ -411,7 +422,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host, width: 980, height: 500)
     defer host.shutdown()
-    let root = Testing.tempFilePath("scope-pane-focus-", "")
+    let root   = Testing.tempFilePath("scope-pane-focus-", "")
     let folder = Path.combine(root, "Design")
     expect Directory.create(folder, recurse: true)
     defer discard catch Directory.delete(root, recurse: true)

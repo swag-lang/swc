@@ -54,7 +54,7 @@
     // Overflow requests a rescan, but the newly installed subscription remains usable.
     Swag.require((expect watcher.next(1000)).status == .Overflow)
     let file = Path.combine(child, "observed")
-    discard expect File.writeAllBytes(file, ['x'u8])
+    discard expect File.writeAllBytes(file, ['x'_u8])
     Swag.require(expect waitForWatchChange(&watcher, .Added, file.toString()))
 }
 
@@ -79,7 +79,7 @@
     defer discard catch Directory.delete(root, recurse: true)
     defer discard catch File.delete(outside)
     let original = Path.combine(root, "original")
-    discard expect File.writeAllBytes(original, ['x'u8])
+    discard expect File.writeAllBytes(original, ['x'_u8])
     var watcher = expect Directory.watch(root, {filter: .FileName})
     expect File.move(outside, original)
 
@@ -104,7 +104,7 @@
     Swag.require(linked == 0)
     var watcher = expect Directory.watch(root, {recurse: true})
     let file    = Path.combine(outside, "unobserved")
-    discard expect File.writeAllBytes(file, ['x'u8])
+    discard expect File.writeAllBytes(file, ['x'_u8])
     Swag.require((expect watcher.next(20)).status == .TimedOut)
     var error: Swag.Error
     discard catch Directory.watch(link) as error
@@ -120,10 +120,10 @@
     defer discard catch Directory.delete(root, recurse: true)
     defer discard catch File.delete(outside)
     let original = Path.combine(root, "original")
-    discard expect File.writeAllBytes(original, ['x'u8])
+    discard expect File.writeAllBytes(original, ['x'_u8])
     var watcher = expect Directory.watch(root, {filter: .FileName})
     expect File.move(outside, original)
-    discard expect File.writeAllBytes(original, ['y'u8])
+    discard expect File.writeAllBytes(original, ['y'_u8])
 
     // Do not emit Added followed later by Removed for a name which still exists.
     Swag.require((expect watcher.next(1000)).status == .Overflow)
@@ -140,7 +140,7 @@
     defer discard catch Directory.delete(root, recurse: true)
     defer discard catch File.delete(outside)
     let original = Path.combine(child, "original")
-    discard expect File.writeAllBytes(original, ['x'u8])
+    discard expect File.writeAllBytes(original, ['x'_u8])
     var watcher = expect Directory.watch(root, {recurse: true})
     expect File.move(outside, original)
     expect Directory.delete(child)

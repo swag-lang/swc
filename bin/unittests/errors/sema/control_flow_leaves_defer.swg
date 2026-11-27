@@ -43,7 +43,10 @@ func deferInnerLoop()->s32
     {
         for 3
         {
-            if count > 1 do break
+            if count > 1
+            {
+                break
+            }
             count += 1
         }
     }

@@ -59,10 +59,14 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
         for x in image.width
         {
             let color = image.pixelColor(x, y)
-            if color.r > 250 and color.g > 250 and color.b > 250 do
+            if color.r > 250 and color.g > 250 and color.b > 250
+            {
                 result.paper += 1
-            elif color.r < 80 and color.g < 80 and color.b < 80 do
+            }
+            else if color.r < 80 and color.g < 80 and color.b < 80
+            {
                 result.ink += 1
+            }
         }
     }
 
@@ -181,7 +185,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     // Actual size is one PDF point per 1/96 logical inch, whatever the display resolution.
     view.actualSize()
     Swag.require(view.zoomMode == .Free)
-    Swag.require(Math.isEqualEpsilon(view.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+    Swag.require(Math.isEqualEpsilon(view.effectiveZoom(), 96.0_f32 / 72.0, 0.001))
 
     // Fitting the width uses the whole viewport, so it is never smaller than fitting the page.
     view.zoomToFitWidth()
@@ -327,15 +331,21 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     view.applyLayout()
     expect view.open(fileName.toString())
 
-    for 32 do
+    for 32
+    {
         host.mouseWheel({320, 210}, 1)
+    }
+
     host.finishAnimations()
     Swag.require(view.scroll.scrollPosition().y == 0)
 
     // The end of the document is the last page's bottom, not the first page's.
     let limit = Math.max(view.contentSize().y - view.viewportSize().y, 0)
-    for 128 do
+    for 128
+    {
         host.mouseWheel({320, 210}, -1)
+    }
+
     host.finishAnimations()
     Swag.require(Math.isEqualEpsilon(view.scroll.scrollPosition().y, limit, 1))
     Swag.require(view.pageIndex == 1)
@@ -346,8 +356,11 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     Swag.require(view.scroll.scrollPosition().y == edge - PdfView.WheelScrollStep)
 
     // Scrolling back through the whole document lands on the first page again.
-    for 256 do
+    for 256
+    {
         host.mouseWheel({320, 210}, 1)
+    }
+
     host.finishAnimations()
     Swag.require(view.scroll.scrollPosition().y == 0 and view.pageIndex == 0)
 }
@@ -535,7 +548,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     let word = index.wordRangeAt(7)
     Swag.require(index.text.toString()[word.start until word.end] == "beta")
 
-    var rects: Array'Math.Rectangle
+    var rects: Array!{Math.Rectangle}
     index.rangeRects(0, 5, &rects)
     Swag.require(rects.count == 1)
     Swag.require(rects[0].x >= 39 and rects[0].x <= 41)
@@ -704,10 +717,13 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     // The progressive form answers the same matches a page at a time and never waits for one;
     // an invalid expression ends it at once.
-    var collected: Array'PdfTextMatch
-    var page = 0'u64
-    while not view.collectTextMatches("second", {}, &page, &collected) do
-        Threading.Thread.sleep(1'ms)
+    var collected: Array!{PdfTextMatch}
+    var page = 0_u64
+    while not view.collectTextMatches("second", {}, &page, &collected)
+    {
+        Threading.Thread.sleep(1_ms)
+    }
+
     Swag.require(page == 2 and
                  collected.count == 1 and
                  collected[0].pageIndex == 1 and
@@ -732,8 +748,8 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     expect view.open(guiTestDataPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
     Swag.require(not view.documentText.started)
 
-    var matches: Array'PdfTextMatch
-    var page = 0'u64
+    var matches: Array!{PdfTextMatch}
+    var page = 0_u64
     discard view.collectTextMatches("polly", {}, &page, &matches)
     Swag.require(view.documentText.started)
     view.close()
@@ -825,9 +841,12 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     // The worker publishes through the view's own poll, so firing that timer is what adopts it.
     for 2000
     {
-        if not view.preparing do
+        if not view.preparing
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
         host.fireTimers()
     }
 

@@ -19,9 +19,9 @@ using Swag, Core
 // program draws a video as a black rectangle with nothing to say about it.
 #test
 {
-    const Marked = [0xEF'u8, 0xBB, 0xBF, 0x23, 0x76, 0x65, 0x72]
-    const Plain  = [0x23'u8, 0x76, 0x65, 0x72]
-    const Mark   = [0xEF'u8, 0xBB]
+    const Marked = [0xEF_u8, 0xBB, 0xBF, 0x23, 0x76, 0x65, 0x72]
+    const Plain  = [0x23_u8, 0x76, 0x65, 0x72]
+    const Mark   = [0xEF_u8, 0xBB]
 
     Swag.require(RenderOgl.shaderSource(Marked) == "#ver")
     Swag.require(RenderOgl.shaderSource(Plain) == "#ver")

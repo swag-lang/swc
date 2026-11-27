@@ -15,15 +15,20 @@ impl Decoder
         {
             .blockNumX = blkNumX
             .blockNumY = blkNumY
-            let blocks = cast(u64, blkNumX) * blkNumY
-            .values.resize(blocks * 64)
-            .nonzeroAc.resize(blocks)
+            let blocks     = cast(u64, blkNumX) * blkNumY
+            let valueCount = blocks * 64
+            .values.reserve(valueCount)
+            Memory.clear(.values.storage(), valueCount * #sizeof(s16))
+            .values.count = valueCount
+            .nonzeroAc.reserve(blocks)
+            Memory.clear(.nonzeroAc.storage(), blocks * #sizeof(u64))
+            .nonzeroAc.count = blocks
         }
 
         return result
     }
 
-    mtd decodeBlockDcFirst(cmpId: u32, blkX, blkY: s32) fail
+    mtd decodeBlockDcFirst(cmpId: u32, blkX, blkY: s32)
     {
         var p = coeffBufGetp(.coefficients[cmpId], blkX, blkY)
         var s = .huffDecode(&.h[.compDcTab[cmpId]])
@@ -37,43 +42,56 @@ impl Decoder
         p[0] = cast(s16, (s << .successiveLow))
     }
 
-    mtd decodeBlockDcRefine(cmpId: u32, blkX, blkY: s32) fail
+    mtd decodeBlockDcRefine(cmpId: u32, blkX, blkY: s32)
     {
         if .readEntropyBits(1)
         {
             var p = coeffBufGetp(.coefficients[cmpId], blkX, blkY)
-            p[0] |= (1's16 << .successiveLow)
+            p[0] |= (1_s16 << .successiveLow)
         }
     }
 
-    mtd decodeBlockAcFirst(p: [*] s16, present: *u64, table: *HuffTables) fail
+    // A short AC prefix can carry both its Huffman symbol and its signed amplitude.
+    #[Swag.Inline]
+    mtd decodeProgressiveAc(table: *HuffTables)->s32
     {
-        if .eobRun
+        let entry = table.lookUp[.entropyBits >> (64 - HuffLookupBits)]
+        if entry < 0
         {
-            .eobRun -= 1
-            return
+            return .decodeLongHuffCode(table, entry, HuffLookupBits)
         }
 
+        if entry >= 1 << 24
+        {
+            .skipEntropyBits(entry >> 24)
+            return entry
+        }
+
+        .skipEntropyBits(entry >> 8)
+        return entry & 255
+    }
+
+    mtd decodeBlockAcFirst(p: [*] s16, present: *u64, table: *HuffTables)->bool
+    {
         var mask = present[]
         for var k = .spectralStart; k <= .spectralEnd; k += 1
         {
-            var s = .huffDecode(table)
-            var r = s >> 4
-            s &= 0x0F
+            let symbol = .decodeProgressiveAc(table)
+            let r      = (symbol >> 4) & 15
+            let s      = symbol & 15
 
             if s
             {
                 k += r
-                if k > 63 do
-                    fail InvalidFormatError{"decode error"}
-                let rbits = .readEntropyBits(s)
-                if s > 15 do
-                    fail InvalidFormatError{"decode error"}
+                if k > 63
+                {
+                    return false
+                }
 
-                s = extendSign(rbits, s)
-                let coefficient = cast(s16, (s << .successiveLow))
-                p[Zag[k]] = coefficient
-                let bit = 1'u64 << k
+                let amplitude   = symbol >= 1 << 24 ? (symbol << 8) >> 24 : extendSign(.readEntropyBits(s), s)
+                let coefficient = cast(s16, (amplitude << .successiveLow))
+                p[ZigzagToTransposed[k]] = coefficient
+                let bit = 1_u64 << k
                 mask = (mask & ~bit) | (coefficient != 0 ? bit : 0)
             }
             else
@@ -81,14 +99,19 @@ impl Decoder
                 if r == 15
                 {
                     k += 15
-                    if k > 63 do
-                        fail InvalidFormatError{"decode error"}
+                    if k > 63
+                    {
+                        return false
+                    }
                 }
                 else
                 {
                     .eobRun = 1 << r
-                    if r do
+                    if r
+                    {
                         .eobRun += .readEntropyBits(r)
+                    }
+
                     .eobRun -= 1
                     break
                 }
@@ -96,38 +119,44 @@ impl Decoder
         }
 
         present[] = mask
+        return true
     }
 
     #[Swag.Inline]
     mtd refineCoefficient(coeff: *s16, bit: s16)
     {
         let value = coeff[]
-        if .readEntropyBits(1) and (value & bit) == 0 do
-            coeff[] = value + (value < 0 ? -bit : bit)
+        if .readEntropyBits(1) and (value & bit) == 0
+        {
+            let sign = value >> 15
+            coeff[] = value + ((bit ^ sign) - sign)
+        }
     }
 
-    mtd decodeBlockAcRefine(p: [*] s16, present: *u64, table: *HuffTables) fail
+    mtd decodeBlockAcRefine(p: [*] s16, present: *u64, table: *HuffTables, band: u64, bit: s16)->bool
     {
-        let bit       = cast(s16, 1 << .successiveLow)
         let first     = .spectralStart
         let last      = .spectralEnd
-        let band      = (Swag.U64.Max << first) & (Swag.U64.Max >> (63 - last))
         var remaining = present[] & band
         var k         = first
 
         while .eobRun == 0 and k <= last
         {
-            let symbol = .huffDecode(table)
-            var run    = symbol >> 4
+            let symbol = .decodeProgressiveAc(table)
+            var run    = (symbol >> 4) & 15
             let size   = symbol & 15
             var coefficient: s16
             if size
             {
-                if size != 1 do
-                    fail InvalidFormatError{"decode error"}
-                coefficient = .readEntropyBits(1) ? bit : -bit
+                if size != 1
+                {
+                    return false
+                }
+
+                let positive = symbol >= 1 << 24 ? (symbol & 0x00800000) == 0 : .readEntropyBits(1) != 0
+                coefficient = positive ? bit : -bit
             }
-            elif run != 15
+            else if run != 15
             {
                 .eobRun = (1 << run) + (run ? .readEntropyBits(run) : 0)
                 break
@@ -139,10 +168,13 @@ impl Decoder
             {
                 let occupied = cast(s32, Swag.trailingZeros(remaining))
                 let zeros    = occupied - k
-                if run < zeros do
+                if run < zeros
+                {
                     break
+                }
+
                 run -= zeros
-                .refineCoefficient(&p[Zag[occupied]], bit)
+                .refineCoefficient(&p[ZigzagToTransposed[occupied]], bit)
                 remaining &= remaining - 1
                 k         = occupied + 1
             }
@@ -150,8 +182,8 @@ impl Decoder
             k = Math.min(k + run, last + 1)
             if coefficient and k < 64
             {
-                p[Zag[k]] = coefficient
-                present[] |= 1'u64 << k
+                p[ZigzagToTransposed[k]] = coefficient
+                present[] |= 1_u64 << k
             }
 
             k += 1
@@ -162,38 +194,74 @@ impl Decoder
             while remaining
             {
                 let occupied = cast(s32, Swag.trailingZeros(remaining))
-                .refineCoefficient(&p[Zag[occupied]], bit)
+                .refineCoefficient(&p[ZigzagToTransposed[occupied]], bit)
                 remaining &= remaining - 1
             }
 
             .eobRun -= 1
         }
+
+        return true
     }
 
     // An AC scan always visits one component in coefficient-block order.
-    mtd decodeAcScan(refinementScan: bool) fail
+    mtd(REFINE: bool) decodeAcScan() fail
     {
         let component    = .compList[0]
         let table        = &.h[.compAcTab[component]]
         let coefficients = &.coefficients[component]
         let stride       = cast(u64, coefficients.blockNumX) * 64
+        let band         = (Swag.U64.Max << .spectralStart) & (Swag.U64.Max >> (63 - .spectralEnd))
+        let bit          = cast(s16, 1 << .successiveLow)
         var row          = coefficients.values.storage()
         var presenceRow  = coefficients.nonzeroAc.storage()
         for .mcusPerCol
         {
             var block    = row
             var presence = presenceRow
-            for .mcusPerRow
+            var columns  = .mcusPerRow
+            while columns
             {
-                if .restartInterval and .restartsLeft == 0 do
+                if .restartInterval and .restartsLeft == 0
+                {
                     try .restartProcess()
-                if refinementScan do
-                    try .decodeBlockAcRefine(block, &presence[0], table)
-                else do
-                    try .decodeBlockAcFirst(block, &presence[0], table)
-                .restartsLeft -= 1
-                block         += 64
-                presence      += 1
+                }
+
+                var count = 1
+                #static if REFINE
+                {
+                    if not .decodeBlockAcRefine(block, &presence[0], table, band, bit)
+                    {
+                        fail InvalidFormatError{"decode error"}
+                    }
+                }
+                else
+                {
+                    if .eobRun
+                    {
+                        // A run in the first pass touches no coefficients. Consume it up to
+                        // the next row or restart marker, whichever comes first.
+                        count = Math.min(.eobRun, columns)
+                        if .restartInterval
+                        {
+                            count = Math.min(count, .restartsLeft)
+                        }
+
+                        .eobRun -= count
+                    }
+                    else
+                    {
+                        if not .decodeBlockAcFirst(block, &presence[0], table)
+                        {
+                            fail InvalidFormatError{"decode error"}
+                        }
+                    }
+                }
+
+                .restartsLeft -= count
+                columns       -= count
+                block         += 64 * count
+                presence      += count
             }
 
             row         += stride
@@ -201,7 +269,7 @@ impl Decoder
         }
     }
 
-    mtd decodeDcScan(refinementScan: bool) fail
+    mtd(Refine: bool) decodeDcScan() fail
     {
         var blockMcutX: [MaxComponents] s32
         var blockMcutY: [MaxComponents] s32
@@ -214,18 +282,24 @@ impl Decoder
                 var blockMcuOfsX = 0
                 var blockMcuOfsY = 0
 
-                if .restartInterval and (.restartsLeft == 0) do
+                if .restartInterval and (.restartsLeft == 0)
+                {
                     try .restartProcess()
+                }
 
                 for mcuBlock in .blocksPerMcu
                 {
                     let componentId = .mcuOrg[mcuBlock]
                     let blkX        = blockMcutX[componentId] + blockMcuOfsX
                     let blkY        = blockMcutY[componentId] + blockMcuOfsY
-                    if refinementScan do
-                        try .decodeBlockDcRefine(componentId, blkX, blkY)
-                    else do
-                        try .decodeBlockDcFirst(componentId, blkX, blkY)
+                    #static if Refine
+                    {
+                        .decodeBlockDcRefine(componentId, blkX, blkY)
+                    }
+                    else
+                    {
+                        .decodeBlockDcFirst(componentId, blkX, blkY)
+                    }
 
                     if .compsInScan == 1
                     {
@@ -267,54 +341,91 @@ impl Decoder
 
     mtd validateProgressiveScan() fail
     {
-        if .spectralStart > .spectralEnd or .spectralEnd > 63 do
+        if .spectralStart > .spectralEnd or .spectralEnd > 63
+        {
             fail InvalidFormatError{"bad sos spectral"}
-        if .spectralStart == 0 ? .spectralEnd != 0 : .compsInScan != 1 do
+        }
+
+        if .spectralStart == 0 ? .spectralEnd != 0 : .compsInScan != 1
+        {
             fail InvalidFormatError{"bad sos spectral"}
-        if .successiveHigh != 0 and .successiveLow != .successiveHigh - 1 do
+        }
+
+        if .successiveHigh != 0 and .successiveLow != .successiveHigh - 1
+        {
             fail InvalidFormatError{"bad sos successive"}
+        }
     }
 
     mtd initProgressive() fail
     {
-        for i in .compsInFrame do
+        for i in .compsInFrame
+        {
             .coefficients[i] = coeffBufOpen(.maxMcusPerRow * .compSampH[i], .maxMcusPerCol * .compSampV[i])
+        }
 
         for
         {
             let res = try .initScan()
-            if not res do
+            if not res
+            {
                 break
+            }
 
             let refinementScan = .successiveHigh != 0
-            if .spectralStart == 0 do
-                try .decodeDcScan(refinementScan)
-            else do
-                try .decodeAcScan(refinementScan)
+            if .spectralStart == 0
+            {
+                if refinementScan
+                {
+                    try .decodeDcScan!{true}()
+                }
+                else
+                {
+                    try .decodeDcScan!{false}()
+                }
+            }
+            else if refinementScan
+            {
+                try .decodeAcScan!{true}()
+            }
+            else
+            {
+                try .decodeAcScan!{false}()
+            }
 
             .primeMarkerBits()
         }
 
-        if .lastMarkerSynthetic do
+        if .lastMarkerSynthetic
+        {
             fail InvalidFormatError{"JPEG data ends before the end-of-image marker"}
+        }
 
         // The masks have no further use once every scan has been decoded.
-        for &component in .coefficients do
+        for &component in .coefficients
+        {
             component.nonzeroAc.free()
+        }
 
-        // The entropy scan stores coefficients in natural order. Reorder each table once so
-        // dequantization can multiply an entire row of a block in one operation.
+        // Match the transposed coefficient layout so dequantization can multiply a vector of
+        // coefficients at a time.
         for &table in .quant where not table.isEmpty()
         {
-            var natural: [64] s16
-            for i in 64 do
-                natural[Zag[i]] = table[i]
-            Memory.copy(table.storage(), &natural[0], #sizeof(natural))
+            var weights: [64] s16
+            for i in 64
+            {
+                weights[ZigzagToTransposed[i]] = table[i]
+            }
+
+            Memory.copy(table.storage(), &weights[0], #sizeof(weights))
         }
 
         .compsInScan = .compsInFrame
-        for i in .compsInFrame do
+        for i in .compsInFrame
+        {
             .compList[i] = i
+        }
+
         .calcMcuBlockOrder()
     }
 }

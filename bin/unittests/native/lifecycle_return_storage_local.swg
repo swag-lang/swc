@@ -59,8 +59,10 @@ func storageBranches(value: s64)->StorageTracked
 {
     var result: #returntype
     result.value = value
-    if value > 100 do
+    if value > 100
+    {
         return result
+    }
     result.value += 1
     return result
 }
@@ -123,8 +125,10 @@ func storageDisjoint(first: bool)->StorageTracked
 func storageReplaced(other: bool)->StorageTracked
 {
     var result = storageBuilt(1)
-    if other do
+    if other
+    {
         return storageBuilt(2)
+    }
     return result
 }
 
@@ -146,8 +150,10 @@ func storageFailDefer(succeed: bool)->StorageTracked fail
     var result: StorageTracked
     result.value = StorageSeed
     defer #fail StorageSink = result.value
-    if not succeed do
+    if not succeed
+    {
         fail Swag.BaseError{"expected failure"}
+    }
     return result
 }
 
@@ -193,13 +199,17 @@ impl StorageBag
     {
         #static if ptr
         {
-            for idx in 3 do
+            for idx in 3
+            {
                 #inject(stmt, item = &me.values[idx], index = idx)
+            }
         }
         else
         {
-            for idx in 3 do
+            for idx in 3
+            {
                 #inject(stmt, item = me.values[idx], index = idx)
+            }
         }
     }
 }
@@ -229,8 +239,10 @@ func storageLoopLocal(stop: s64)->StorageTracked
     {
         var result: StorageTracked
         result.value = i
-        if i == stop do
+        if i == stop
+        {
             return result
+        }
     }
 
     return storageBuilt(-1)
@@ -250,8 +262,10 @@ impl StorageOwned
 {
     mtd opDrop()
     {
-        if id do
+        if id
+        {
             StorageReleases += 1
+        }
     }
 }
 
@@ -291,8 +305,10 @@ impl StorageText
 func storageText(src: const [..] u8)->StorageText
 {
     var r: #returntype
-    for i in src.count do
+    for i in src.count
+    {
         r.buf[i] = src[i]
+    }
     r.len = src.count
     return r
 }
@@ -302,8 +318,10 @@ func storageText(src: const [..] u8)->StorageText
 func storageTrimmedReplaced(trim: bool)->StorageText
 {
     var result: #returntype = storageText(" Satie ")
-    if trim do
+    if trim
+    {
         return storageText(result.view()[1 until 6])
+    }
     return result
 }
 
@@ -311,8 +329,10 @@ func storageTrimmedReplaced(trim: bool)->StorageText
 func storageLiteralReplaced(other: bool)->StorageTracked
 {
     var result = storageBuilt(1)
-    if other do
+    if other
+    {
         return StorageTracked{value: 9}
+    }
     return result
 }
 

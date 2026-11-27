@@ -4,9 +4,12 @@
 private func homeDirectory()->String
 {
     let home = variable("HOME")
-    if Path.isValidPathName(home) and Path.isRooted(home) do
+    if Path.isValidPathName(home) and Path.isRooted(home)
+    {
         return home
-    var buffer: Array'u8
+    }
+
+    var buffer: Array!{u8}
     buffer.resize(1024)
     for
     {
@@ -15,14 +18,20 @@ private func homeDirectory()->String
         let error = Linux.getpwuid_r(Linux.getuid(), &entry, buffer.storage(), buffer.count, &found)
         if error == Linux.ERANGE
         {
-            if buffer.count > Swag.U32.Max / 2 do
+            if buffer.count > Swag.U32.Max / 2
+            {
                 return ""
+            }
+
             buffer.resize(buffer.count * 2)
             continue
         }
 
-        if error != 0 or not found or not entry.pw_dir do
+        if error != 0 or not found or not entry.pw_dir
+        {
             return ""
+        }
+
         let result = String.from(cast(string, cast(cstring, entry.pw_dir)))
         return Path.isValidPathName(result) and Path.isRooted(result) ? result : String{}
     }
@@ -32,17 +41,23 @@ private func homeDirectory()->String
 private func xdgBaseDirectory(name, home, fallback: string)->String
 {
     let configured = variable(name)
-    if Path.isValidPathName(configured) and Path.isRooted(configured) do
+    if Path.isValidPathName(configured) and Path.isRooted(configured)
+    {
         return configured
+    }
+
     return Path.combine(home, fallback)
 }
 
 private func userDirectoryValue(value, home: string)->String
 {
-    if value.count < 2 or value[0] != '"' do
+    if value.count < 2 or value[0] != '"'
+    {
         return ""
+    }
+
     var result: String
-    var cursor = 1'u64
+    var cursor = 1_u64
     if Utf8.startsWith(value[1 to], "$HOME") and
        value.count > 6 and
        (value[6] == '/' or value[6] == '"')
@@ -50,14 +65,14 @@ private func userDirectoryValue(value, home: string)->String
         result = home
         cursor = 6
     }
-    elif Utf8.startsWith(value[1 to], "${HOME}") and
-         value.count > 8 and
-         (value[8] == '/' or value[8] == '"')
+    else if Utf8.startsWith(value[1 to], "${HOME}") and
+            value.count > 8 and
+            (value[8] == '/' or value[8] == '"')
     {
         result = home
         cursor = 8
     }
-    elif value[1] != '/'
+    else if value[1] != '/'
     {
         return ""
     }
@@ -68,24 +83,36 @@ private func userDirectoryValue(value, home: string)->String
         if byte == '"'
         {
             let trailing = Latin1.trim(value[cursor + 1 to])
-            if trailing.count != 0 and trailing[0] != '#' do
+            if trailing.count != 0 and trailing[0] != '#'
+            {
                 return ""
-            if not Path.isValidPathName(result) or not Path.isRooted(result) do
+            }
+
+            if not Path.isValidPathName(result) or not Path.isRooted(result)
+            {
                 return ""
+            }
+
             return result
         }
 
         if byte == '\\'
         {
             cursor += 1
-            if cursor == value.count do
+            if cursor == value.count
+            {
                 return ""
+            }
+
             let escaped = value[cursor]
-            if escaped != '\\' and escaped != '"' and escaped != '$' and escaped != '`' do
-                result += '\\'u8
+            if escaped != '\\' and escaped != '"' and escaped != '$' and escaped != '`'
+            {
+                result += '\\'_u8
+            }
+
             result += escaped
         }
-        elif byte == '$' or byte == '`'
+        else if byte == '$' or byte == '`'
         {
             return ""
         }
@@ -107,14 +134,22 @@ internal func userDirectoryFromConfig(contents, name, home: string)->String
     for raw in Tokenize.splitLines(contents)
     {
         let line = Latin1.trim(raw)
-        if not Utf8.startsWith(line, name) do
+        if not Utf8.startsWith(line, name)
+        {
             continue
+        }
+
         let suffix = Latin1.trim(line[name.count to])
-        if not suffix.count or suffix[0] != '=' do
+        if not suffix.count or suffix[0] != '='
+        {
             continue
+        }
+
         let decoded = userDirectoryValue(Latin1.trim(suffix[1 to]), home)
-        if not decoded.isEmpty() do
+        if not decoded.isEmpty()
+        {
             result = decoded
+        }
     }
 
     return result
@@ -135,8 +170,11 @@ private func userDirectory(name, home, fallback: string)->String
 // queries instead use a distinct scratch directory for every kind.
 public func getSpecialDirectory(what: SpecialDirectory)->String
 {
-    if isSandboxed() do
+    if isSandboxed()
+    {
         return sandboxSpecialDirectory(what)
+    }
+
     return realSpecialDirectory(what)
 }
 
@@ -154,8 +192,11 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
     {
     case .Temp:
         let configured = variable("TMPDIR")
-        if configured.isEmpty() do
+        if configured.isEmpty()
+        {
             return "/tmp"
+        }
+
         return catch Path.absolute(configured) { return "" }
 
     case .Font:
@@ -172,8 +213,11 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
     }
 
     let home = homeDirectory()
-    if home.isEmpty() do
+    if home.isEmpty()
+    {
         return ""
+    }
+
     switch #complete what
     {
     case .UserAppData:   return xdgBaseDirectory("XDG_DATA_HOME", home, ".local/share")

@@ -24,14 +24,19 @@ using Core, Gui, Gui.Testing, Viewers
 {
     let book = expect Epub.Book.load(scopeTestDataPath("viewer.christmas-carol.epub"))
     Swag.require(book.navigation.failure.isEmpty())
-    var linked = 0'u64
-    var nested = 0'u64
+    var linked = 0_u64
+    var nested = 0_u64
     for entry in book.navigation.entries
     {
-        if entry.chapter != Swag.U64.Max do
+        if entry.chapter != Swag.U64.Max
+        {
             linked += 1
-        if entry.level > 1 do
+        }
+
+        if entry.level > 1
+        {
             nested += 1
+        }
     }
 
     Swag.require(linked > 10 and nested > 0)
@@ -75,8 +80,11 @@ using Core, Gui, Gui.Testing, Viewers
     }
 
     var nested: String
-    for 65 do
+    for 65
+    {
         nested += "<div>"
+    }
+
     var error: Swag.Error
     discard catch Epub.Navigation.parse(nested, "OPS/nav.xhtml", false) as error
     Swag.require(error.value() is Errors.UnsupportedFormatError)
@@ -206,10 +214,14 @@ using Core, Gui, Gui.Testing, Viewers
         {
             for &entry in section!.entries
             {
-                if entry.title == Epub.texts().ui_Previous do
+                if entry.title == Epub.texts().ui_Previous
+                {
                     result.previous = not entry.disabled
-                elif entry.title == Epub.texts().ui_Next do
+                }
+                else if entry.title == Epub.texts().ui_Next
+                {
                     result.next = not entry.disabled
+                }
             }
         }
 

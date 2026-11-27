@@ -23,7 +23,7 @@ struct FileDlgState
     {
         surfacePosition:     Math.Rectangle     // Last dialog surface rectangle.
         currentFolder:       String             // Last browsed folder.
-        recentFolders:       Array'String       // Recently accepted folders, most recent first.
+        recentFolders:       Array!{String}     // Recently accepted folders, most recent first.
         nameColumnWidth:     s32 = 220          // Last width of the name column.
         modifiedColumnWidth: s32 = 130          // Last width of the modified-time column.
         sizeColumnWidth:     s32 = 90           // Last width of the size column.
@@ -42,8 +42,8 @@ struct FileDlgOptions
         showLocationsPane              = true           // Whether to show the places row above the path field.
         showDrives                     = true           // Whether the places include mounted drives under More Places.
         mode:              FileDlgMode = SelectFile     // Accepted selection kind.
-        filters:           Array'{ name: string, extensions: string }     // Named extension filters; empty means all files.
-        shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string }     // Locations prioritized on the row; built-in user folders not listed here stay under More Places.
+        filters:           Array!{{ name: string, extensions: string } }     // Named extension filters; empty means all files.
+        shortcuts:         Array!{{ type: Core.Env.SpecialDirectory, name: string } }     // Locations prioritized on the row; built-in user folders not listed here stay under More Places.
         state:             *FileDlgState?               // Optional borrowed state captured when the modal closes and on destruction.
     }
 }
@@ -65,8 +65,10 @@ impl IWnd for FileDlg
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .dialog.wnd.IWnd.onResizeEvent(evt)
-        if .browser != null do
+        if .browser != null
+        {
             .nameChoice(.options.confirmButtonText)
+        }
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -74,8 +76,10 @@ impl IWnd for FileDlg
         // The browser saves the folder and column widths in its own destruction event. At this
         // point its child tree may already be gone, so only the dialog-owned rectangle is read.
         let state = .options.state
-        if state do
+        if state
+        {
             state.surfacePosition = .surface!.position
+        }
     }
 }
 
@@ -87,26 +91,35 @@ private impl FileDlg
 
         // The browser saves the folder and column widths; the dialog owns the position.
         let state = .options.state
-        if state do
+        if state
+        {
             state.surfacePosition = .surface!.position
+        }
     }
 
     // Counts a multiple-file choice while keeping single-file and folder actions stable.
     mtd nameChoice(confirmText: string)
     {
         var button: *PushButton?
-        for btn in .buttons where btn.id == Dialog.BtnOk do
+        for btn in .buttons where btn.id == Dialog.BtnOk
+        {
             button = btn
-        if not button do
+        }
+
+        if not button
+        {
             return
+        }
 
         var text = String.from(confirmText)
         switch .options.mode
         {
         case .SelectFiles:
             let count = .browser.selectedPaths().count
-            if count > 1 do
+            if count > 1
+            {
                 text = Format.toString(strings().fileDlg_BtnOpenCount, count)
+            }
 
         case .CreateFile, .SelectFile, .SelectFolder:
             break
@@ -115,11 +128,16 @@ private impl FileDlg
         // Keep a translated count from displacing the other actions.
         let font = .theme().createDefaultFont(.themeMetrics().defaultFontSize, .Bold)
         let room = Math.max(.position.width - .padding.x - .padding.z, 0) * 0.5
-        if Pixel.Painter.measureString(text, font).width + .themeMetrics().btnPush_Padding * 2 > room do
+        if Pixel.Painter.measureString(text, font).width + .themeMetrics().btnPush_Padding * 2 > room
+        {
             text = confirmText
+        }
 
-        if text == button.text() do
+        if text == button.text()
+        {
             return
+        }
+
         button.setText(text.toString())
         button.fitWidthToLabel(.themeMetrics().btnPush_Width)
         .buttonBar.computeLayout()
@@ -130,8 +148,10 @@ private impl FileDlg
     mtd onNewFolder()
     {
         let name = FileDlg.askNewFolderName(unwrap .surface, .browser.currentFolder, .browser.displayPath())
-        if name.isEmpty() do
+        if name.isEmpty()
+        {
             return
+        }
 
         if not .browser.createFolder(name)
         {
@@ -159,10 +179,12 @@ impl FileDlg
         var info: File.FileInfo
         var infoErrorOutcome: Swag.Error
         catch { info = try File.info(path) } as infoErrorOutcome
-        if infoErrorOutcome.value() == null and not info.isDirectory() do
+        if infoErrorOutcome.value() == null and not info.isDirectory()
+        {
             detail = Format.toString(strings().fileDlg_ReplaceDetail,
                                      Format.byteSize(info.size),
                                      info.lastWriteTime.toString(.DateTimeIsoHm))
+        }
 
         let box = createReplaceBox(from, Path.fileName(path) orelse path, detail)
         return box.doModal() == Dialog.BtnYes
@@ -202,8 +224,10 @@ impl FileDlg
         // The box answers before this call returns, so the closure may borrow `folder`.
         dlg.validateResult = func|dlg, folder, edit|(_, btnid)
         {
-            if btnid != Dialog.BtnOk do
+            if btnid != Dialog.BtnOk
+            {
                 return true
+            }
 
             var folderName: String = edit.text()
             folderName.trim()
@@ -234,8 +258,10 @@ impl FileDlg
             return true
         }
 
-        if dlg.doModal() != Dialog.BtnOk do
+        if dlg.doModal() != Dialog.BtnOk
+        {
             return {}
+        }
 
         var result = String.from(edit.text())
         result.trim()
@@ -275,7 +301,7 @@ impl FileDlg
     func create(from: *Surface, opt: FileDlgOptions = {})->*FileDlg
     {
         Swag.assert(from != null)
-        let dlg = Wnd.create'FileDlg()
+        let dlg = Wnd.create!{FileDlg}()
         dlg.options = opt
 
         let srf = dlg.createSurface(from, 100, 100, 720, 560, .Resizable)
@@ -350,8 +376,10 @@ impl FileDlg
                 let selName = dlg.browser.selectedPath()
                 if dlg.options.mode == .CreateFile and
                    File.exists(selName) and
-                   not FileDlg.askReplace(unwrap dlg.surface, selName.toString()) do
+                   not FileDlg.askReplace(unwrap dlg.surface, selName.toString())
+                {
                     return false
+                }
 
                 dlg.browser.noteAccepted()
             }
@@ -386,5 +414,5 @@ impl FileDlg
     mtd selectedPath()->String => .browser.selectedPath()
 
     // Returns all selected full paths in display order.
-    mtd selectedPaths()->Array'String => .browser.selectedPaths()
+    mtd selectedPaths()->Array!{String} => .browser.selectedPaths()
 }

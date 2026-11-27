@@ -13,49 +13,68 @@ public const RsaSha256Size = 32
 
 private struct RsaMontgomery
 {
-    modulus:   [128] u32
-    r2:        [128] u32
+    modulus:   [64] u64
+    one:       [64] u64
+    r2:        [64] u64
     limbCount: u32
     byteCount: u32
-    n0Inverse: u32
+    n0Inverse: u64
 }
 
 private func rsaMontgomeryClear(context: *RsaMontgomery)
 {
     Crypto.secureClear(context[].modulus)
+    Crypto.secureClear(context[].one)
     Crypto.secureClear(context[].r2)
     context[].limbCount = 0
     context[].byteCount = 0
     context[].n0Inverse = 0
 }
 
-private func rsaDoubleModulo(value: *[128] u32, context: *RsaMontgomery)
+private func rsaReadWords(bytes: const [..] u8)->[64] u64
 {
-    var doubled: [128] u32
-    var carry = 0'u64
-    for index in context[].limbCount
+    var result: #returntype
+    let fullWords = bytes.count / 8
+    for index in fullWords
     {
-        let word = (cast(u64, value[][index]) << 1) | carry
-        doubled[index] = cast(u32, word)
-        carry = word >> 32
+        let offset = bytes.count - (index + 1) * 8
+        var word: u64
+        Swag.memcpy(&word, bytes.buffer + offset, 8)
+        result[index] = Swag.byteSwap(word)
     }
 
-    var difference: [128] u32
-    var borrow = 0'u64
-    for index in context[].limbCount
+    if bytes.count % 8
     {
-        let subtrahend = cast(u64, context[].modulus[index]) + borrow
-        let word       = cast(u64, doubled[index]) - subtrahend
-        difference[index] = cast(u32, word)
-        borrow = word >> 63
+        result[fullWords] = (cast(u64, bytes[0]) << 24) | (cast(u64, bytes[1]) << 16) |
+                            (cast(u64, bytes[2]) << 8) | cast(u64, bytes[3])
     }
 
-    let useDifference = cast(u32, (carry != 0) or (borrow == 0))
-    let mask = 0'u32 - useDifference
-    for index in context[].limbCount do
-        value[][index] = (difference[index] & mask) | (doubled[index] & ~mask)
-    Crypto.secureClear(doubled)
-    Crypto.secureClear(difference)
+    return result
+}
+
+// Initialization derives this value only from the public modulus.
+private func rsaDoubleModulo(value: *[64] u64, context: *RsaMontgomery)
+{
+    var difference: [64] u64
+    var carry  = 0_u64
+    var borrow = 0_u64
+    for index in context[].limbCount
+    {
+        let word    = value[][index]
+        let doubled = (word << 1) | carry
+        value[][index] = doubled
+        carry = word >> 63
+
+        let modulus    = context[].modulus[index]
+        let subtracted = doubled - modulus
+        difference[index] = subtracted - borrow
+        borrow = cast(u64, doubled < modulus) | cast(u64, subtracted < borrow)
+    }
+
+    if carry != 0 or borrow == 0
+    {
+        Swag.memcpy(&value[][0], &difference[0], cast(u64, context[].limbCount) * 8)
+    }
 }
 
 private func rsaMontgomeryCreate(modulus: const [..] u8)->RsaMontgomery fail
@@ -64,53 +83,75 @@ private func rsaMontgomeryCreate(modulus: const [..] u8)->RsaMontgomery fail
        modulus.count > RsaMaxModulusSize or
        modulus.count % 4 or
        modulus[0] < 0x80 or
-       not (modulus[modulus.count - 1] & 1) do
+       not (modulus[modulus.count - 1] & 1)
+    {
         fail Errors.BadParameterError{"RSA modulus must be an odd, full-width value between 2048 and 4096 bits"}
+    }
 
     var result: RsaMontgomery
     result.byteCount = cast(u32, modulus.count)
-    result.limbCount = cast(u32, modulus.count / 4)
-    for index in result.limbCount
+    result.limbCount = cast(u32, (modulus.count + 7) / 8)
+    result.modulus   = rsaReadWords(modulus)
+
+    var inverse = 1_u64
+    for 6
     {
-        let offset = modulus.count - (cast(u64, index + 1) * 4)
-        result.modulus[index] = (cast(u32, modulus[offset]) << 24) |
-                                (cast(u32, modulus[offset + 1]) << 16) |
-                                (cast(u32, modulus[offset + 2]) << 8) |
-                                cast(u32, modulus[offset + 3])
+        inverse *= 2 - result.modulus[0] * inverse
     }
 
-    var inverse = 1'u32
-    for 5 do
-        inverse *= 2 - result.modulus[0] * inverse
-    result.n0Inverse = 0'u32 - inverse
+    result.n0Inverse = 0_u64 - inverse
 
-    var r2: [128] u32
-    r2[0] = 1
-    for result.limbCount * 64 do
-        rsaDoubleModulo(&r2, &result)
-    result.r2 = r2
-    Crypto.secureClear(r2)
+    // The modulus has its highest encoded bit set, so 2^bits mod n is 2^bits minus n.
+    var borrow = 0_u64
+    for index in result.limbCount
+    {
+        let word = 0_u64 - result.modulus[index]
+        result.one[index] = word - borrow
+        borrow = cast(u64, result.modulus[index] != 0) | cast(u64, word < borrow)
+    }
+
+    if result.byteCount % 8
+    {
+        result.one[result.limbCount - 1] &= 0xFFFFFFFF
+        for 32
+        {
+            rsaDoubleModulo(&result.one, &result)
+        }
+    }
+
+    // Raise 2^64 to the public limb count in the Montgomery domain.
+    var seed = result.one
+    for 64
+    {
+        rsaDoubleModulo(&seed, &result)
+    }
+
+    result.r2 = seed
+    let highest = 31_u32 - Swag.leadingZeros(result.limbCount)
+    for step in highest
+    {
+        result.r2 = rsaMontgomerySquare(result.r2, &result)
+        let bit = highest - 1 - step
+        if (result.limbCount >> bit) & 1
+        {
+            result.r2 = rsaMontgomeryMultiply(result.r2, seed, &result)
+        }
+    }
+
     return result
 }
 
-private func rsaDecodeNumber(bytes: const [..] u8, context: *RsaMontgomery)->[128] u32 fail
+private func rsaDecodeNumber(bytes: const [..] u8, context: *RsaMontgomery)->[64] u64 fail
 {
-    if bytes.count != context[].byteCount do
-        fail Errors.BadParameterError{"RSA integer must match the modulus width"}
-
-    var result: #returntype
-    for index in context[].limbCount
+    if bytes.count != context[].byteCount
     {
-        let offset = bytes.count - (cast(u64, index + 1) * 4)
-        result[index] = (cast(u32, bytes[offset]) << 24) |
-                        (cast(u32, bytes[offset + 1]) << 16) |
-                        (cast(u32, bytes[offset + 2]) << 8) |
-                        cast(u32, bytes[offset + 3])
+        fail Errors.BadParameterError{"RSA integer must match the modulus width"}
     }
 
+    let result          = rsaReadWords(bytes)
     var lessThanModulus = false
     var equalToModulus  = true
-    var index = context[].limbCount
+    var index           = context[].limbCount
     while index
     {
         index -= 1
@@ -128,59 +169,144 @@ private func rsaDecodeNumber(bytes: const [..] u8, context: *RsaMontgomery)->[12
         }
     }
 
-    if not lessThanModulus and not equalToModulus do
+    if not lessThanModulus and not equalToModulus
+    {
         fail Errors.BadParameterError{"RSA integer must be smaller than the modulus"}
+    }
+
     return result
 }
 
-private func rsaMontgomeryMultiply(left, right: [128] u32, context: *RsaMontgomery)->[128] u32
+#[Swag.Inline]
+private func rsaMultiplyAdd(left, right, addend, carry: u64)->{word: u64, carry: u64}
 {
-    var temporary: [129] u32
-    for index in context[].limbCount
+    var high: u64
+    let word = Swag.mulWide(left, right, addend, carry, &high)
+    return {word, high}
+}
+
+private func rsaMontgomeryMultiply(left, right: [64] u64, context: *RsaMontgomery)->[64] u64
+{
+    let words = context[].limbCount
+    var temporary: [65] u64
+    for index in words
     {
-        var carry = 0'u64
-        for word in context[].limbCount
+        let multiplier = right[index]
+        var carry      = 0_u64
+        for word in words
         {
-            let product = cast(u64, left[word]) * right[index] + temporary[word] + carry
-            temporary[word] = cast(u32, product)
-            carry = product >> 32
+            let product = rsaMultiplyAdd(left[word], multiplier, temporary[word], carry)
+            temporary[word] = product.word
+            carry = product.carry
         }
 
-        let productTop = cast(u64, temporary[context[].limbCount]) + carry
-        temporary[context[].limbCount] = cast(u32, productTop)
-
-        let reduction = temporary[0] * context[].n0Inverse
-        carry = 0
-        for word in context[].limbCount
+        let productTop   = temporary[words] + carry
+        let productCarry = cast(u64, productTop < carry)
+        let reduction    = temporary[0] * context[].n0Inverse
+        carry = rsaMultiplyAdd(reduction, context[].modulus[0], temporary[0], 0).carry
+        for word in 1 until words
         {
-            let product = cast(u64, reduction) * context[].modulus[word] + temporary[word] + carry
-            if word do
-                temporary[word - 1] = cast(u32, product)
-            carry = product >> 32
+            let product = rsaMultiplyAdd(reduction, context[].modulus[word], temporary[word], carry)
+            temporary[word - 1] = product.word
+            carry = product.carry
         }
 
-        let top = cast(u64, temporary[context[].limbCount]) + carry
-        temporary[context[].limbCount - 1] = cast(u32, top)
-        temporary[context[].limbCount]     = cast(u32, top >> 32)
+        let top = productTop + carry
+        temporary[words - 1] = top
+        temporary[words]     = productCarry + cast(u64, top < carry)
     }
 
-    var difference: [128] u32
-    var borrow = 0'u64
-    for index in context[].limbCount
+    let result = rsaReduceWords(temporary[until words], temporary[words], context)
+    Crypto.secureClear(temporary)
+    return result
+}
+
+private func rsaReduceWords(value: const [..] u64, high: u64, context: *RsaMontgomery)->[64] u64
+{
+    var difference: [64] u64
+    var borrow = 0_u64
+    for index in value.count
     {
-        let subtrahend = cast(u64, context[].modulus[index]) + borrow
-        let word       = cast(u64, temporary[index]) - subtrahend
-        difference[index] = cast(u32, word)
-        borrow = word >> 63
+        let modulus = context[].modulus[index]
+        let word    = value[index] - modulus
+        difference[index] = word - borrow
+        borrow = cast(u64, value[index] < modulus) | cast(u64, word < borrow)
     }
 
     var result: #returntype
-    let useDifference = cast(u32, (temporary[context[].limbCount] != 0) or (borrow == 0))
-    let mask = 0'u32 - useDifference
-    for index in context[].limbCount do
-        result[index] = (difference[index] & mask) | (temporary[index] & ~mask)
-    Crypto.secureClear(temporary)
+    let useDifference = cast(u64, high != 0) | cast(u64, borrow == 0)
+    let mask = 0_u64 - useDifference
+    for index in value.count
+    {
+        result[index] = (difference[index] & mask) | (value[index] & ~mask)
+    }
+
     Crypto.secureClear(difference)
+    return result
+}
+
+private func rsaMontgomerySquare(value: [64] u64, context: *RsaMontgomery)->[64] u64
+{
+    let words = cast(u64, context[].limbCount)
+    var temporary: [128] u64
+
+    // Accumulate one triangle of cross products before doubling it.
+    for row in words
+    {
+        var carry = 0_u64
+        for column in row + 1 until words
+        {
+            let position = row + column
+            let product  = rsaMultiplyAdd(value[row], value[column], temporary[position], carry)
+            temporary[position] = product.word
+            carry = product.carry
+        }
+
+        temporary[row + words] = carry
+    }
+
+    var carry = 0_u64
+    for word in words * 2
+    {
+        let lower = temporary[word]
+        temporary[word] = (lower << 1) | carry
+        carry = lower >> 63
+    }
+
+    // Add one diagonal product to each adjacent pair of words.
+    carry = 0
+    for row in words
+    {
+        let word    = row * 2
+        let product = rsaMultiplyAdd(value[row], value[row], temporary[word], carry)
+        temporary[word] = product.word
+        let high = temporary[word + 1] + product.carry
+        temporary[word + 1] = high
+        carry = cast(u64, high < product.carry)
+    }
+
+    // A top carry belongs to the next row's top word, above its product loop.
+    var extra = 0_u64
+    for row in words
+    {
+        let reduction = temporary[row] * context[].n0Inverse
+        carry = 0
+        for column in words
+        {
+            let position = row + column
+            let product  = rsaMultiplyAdd(reduction, context[].modulus[column], temporary[position], carry)
+            temporary[position] = product.word
+            carry = product.carry
+        }
+
+        let top   = temporary[row + words] + carry
+        let added = top + extra
+        temporary[row + words] = added
+        extra = cast(u64, top < carry) | cast(u64, added < extra)
+    }
+
+    let result = rsaReduceWords(temporary[words until words * 2], extra, context)
+    Crypto.secureClear(temporary)
     return result
 }
 
@@ -190,59 +316,157 @@ private func rsaExponentBit(exponent: const [..] u8, bit: u64)->u32
     return (cast(u32, exponent[byte]) >> cast(u32, bit % 8)) & 1
 }
 
-private func rsaModularPower(base: [128] u32, exponent: const [..] u8, fixedTime: bool, context: *RsaMontgomery)->[128] u32 fail
+private func rsaPrivatePower(base: [64] u64, exponent: const [..] u8, context: *RsaMontgomery)->[64] u64
 {
-    var one: [128] u32
-    one[0] = 1
-    let baseMontgomery = rsaMontgomeryMultiply(base, context[].r2, context)
-    var result         = rsaMontgomeryMultiply(one, context[].r2, context)
-    var bitCount       = exponent.count * 8
-    if fixedTime do
-        bitCount = context[].byteCount * 8
-    for step in bitCount
+    var powers: [16][64] u64
+    powers[0] = context[].one
+    powers[1] = base
+    for digit in 2 until powers.count
     {
-        let bit     = rsaExponentBit(exponent, bitCount - 1 - step)
-        var squared = rsaMontgomeryMultiply(result, result, context)
-        var product: [128] u32
-        if fixedTime or bit do
-            product = rsaMontgomeryMultiply(squared, baseMontgomery, context)
+        powers[digit] = rsaMontgomeryMultiply(powers[digit - 1], base, context)
+    }
 
-        if fixedTime
+    defer Crypto.secureClear(Swag.makeSlice(&powers, 1))
+
+    var result = context[].one
+    for step in context[].byteCount * 2
+    {
+        for 4
         {
-            let mask = 0'u32 - bit
-            for index in context[].limbCount do
-                squared[index] = (product[index] & mask) | (squared[index] & ~mask)
-        }
-        elif bit
-        {
-            squared = product
+            var squared = rsaMontgomerySquare(result, context)
+            Crypto.secureClear(result)
+            result = squared
+            Crypto.secureClear(squared)
         }
 
+        let shift = (1 - (step & 1)) * 4
+        let digit = (exponent[step / 2] >> shift) & 15
+        var selected: [64] u64
+        for index in powers.count
+        {
+            let mask = 0_u64 - cast(u64, index == digit)
+            for limb in context[].limbCount
+            {
+                selected[limb] |= powers[index][limb] & mask
+            }
+        }
+
+        var product = rsaMontgomeryMultiply(result, selected, context)
         Crypto.secureClear(result)
-        result = squared
-        Crypto.secureClear(squared)
+        result = product
+        Crypto.secureClear(selected)
         Crypto.secureClear(product)
     }
 
-    let ordinary = rsaMontgomeryMultiply(result, one, context)
-    Crypto.secureClear(one)
-    Crypto.secureClear(result)
-    Crypto.secureClear(baseMontgomery)
-    return ordinary
+    return result
 }
 
-private func rsaEncodeNumber(value: [128] u32, context: *RsaMontgomery)->[512] u8
+private func rsaPublicPower(base: [64] u64, exponent: const [..] u8, context: *RsaMontgomery)->[64] u64
 {
-    var result: #returntype
-    for index in context[].limbCount
+    var bits = exponent.count * 8
+    while bits and not rsaExponentBit(exponent, bits - 1)
     {
-        let offset = context[].byteCount - (cast(u64, index + 1) * 4)
-        result[offset]     = Math.byteAt(value[index], 3)
-        result[offset + 1] = Math.byteAt(value[index], 2)
-        result[offset + 2] = Math.byteAt(value[index], 1)
-        result[offset + 3] = Math.byteAt(value[index], 0)
+        bits -= 1
     }
 
+    if not bits
+    {
+        return context[].one
+    }
+
+    var result = base
+    while bits > 1
+    {
+        bits   -= 1
+        result = rsaMontgomerySquare(result, context)
+        if rsaExponentBit(exponent, bits - 1)
+        {
+            result = rsaMontgomeryMultiply(result, base, context)
+        }
+    }
+
+    return result
+}
+
+private func rsaModularPower(base: [64] u64, exponent: const [..] u8, fixedTime: bool, context: *RsaMontgomery)->[64] u64
+{
+    var one: [64] u64
+    one[0] = 1
+    var baseMontgomery = rsaMontgomeryMultiply(base, context[].r2, context)
+    defer Crypto.secureClear(baseMontgomery)
+    var result = fixedTime ? rsaPrivatePower(baseMontgomery, exponent, context) : rsaPublicPower(baseMontgomery, exponent, context)
+    defer Crypto.secureClear(result)
+    return rsaMontgomeryMultiply(result, one, context)
+}
+
+private func rsaEncodeNumber(value: [64] u64, context: *RsaMontgomery)->[512] u8
+{
+    var result: #returntype
+    let fullWords = context[].byteCount / 8
+    for index in fullWords
+    {
+        let offset = context[].byteCount - (cast(u32, index + 1) * 8)
+        let word   = Swag.byteSwap(value[index])
+        Swag.memcpy(&result[offset], &word, 8)
+    }
+
+    if context[].byteCount % 8
+    {
+        let word = cast(u32, value[fullWords])
+        result[0] = Math.byteAt(word, 3)
+        result[1] = Math.byteAt(word, 2)
+        result[2] = Math.byteAt(word, 1)
+        result[3] = Math.byteAt(word, 0)
+    }
+
+    return result
+}
+
+private func rsaApplyWithContext(modulus, exponent, input: const [..] u8, privateOperation: bool, context: *RsaMontgomery)->[512] u8 fail
+{
+    if exponent.count == 0 or exponent.count > modulus.count
+    {
+        fail Errors.BadParameterError{"RSA exponent must be a nonempty value no wider than the modulus"}
+    }
+
+    if privateOperation and exponent.count != modulus.count
+    {
+        fail Errors.BadParameterError{"RSA private exponent must match the modulus width"}
+    }
+
+    if privateOperation
+    {
+        var nonzero = 0_u8
+        var less    = 0_u8
+        var greater = 0_u8
+        for index in modulus.count
+        {
+            nonzero |= exponent[index]
+            let undecided = 1_u8 ^ (less | greater)
+            let smaller   = cast(u8, exponent[index] < modulus[index])
+            let larger    = cast(u8, exponent[index] > modulus[index])
+            less    |= undecided & smaller
+            greater |= undecided & larger
+        }
+
+        if nonzero == 0 or less == 0
+        {
+            fail Errors.BadParameterError{"RSA private exponent must be a nonzero value smaller than the modulus"}
+        }
+    }
+
+    if not privateOperation and
+       ((exponent[exponent.count - 1] & 1) == 0 or
+        (exponent.count == 1 and exponent[0] < 3))
+    {
+        fail Errors.BadParameterError{"RSA public exponent must be an odd integer greater than one"}
+    }
+
+    let decoded = try rsaDecodeNumber(input, context)
+    let powered = rsaModularPower(decoded, exponent, privateOperation, context)
+    let result  = rsaEncodeNumber(powered, context)
+    Crypto.secureClear(decoded)
+    Crypto.secureClear(powered)
     return result
 }
 
@@ -250,40 +474,7 @@ private func rsaApply(modulus, exponent, input: const [..] u8, privateOperation:
 {
     var context = try rsaMontgomeryCreate(modulus)
     defer rsaMontgomeryClear(&context)
-    if exponent.count == 0 or exponent.count > modulus.count do
-        fail Errors.BadParameterError{"RSA exponent must be a nonempty value no wider than the modulus"}
-    if privateOperation and exponent.count != modulus.count do
-        fail Errors.BadParameterError{"RSA private exponent must match the modulus width"}
-    if privateOperation
-    {
-        var nonzero = 0'u8
-        var less    = 0'u8
-        var greater = 0'u8
-        for index in modulus.count
-        {
-            nonzero |= exponent[index]
-            let undecided = 1'u8 ^ (less | greater)
-            let smaller   = cast(u8, exponent[index] < modulus[index])
-            let larger    = cast(u8, exponent[index] > modulus[index])
-            less    |= undecided & smaller
-            greater |= undecided & larger
-        }
-
-        if nonzero == 0 or less == 0 do
-            fail Errors.BadParameterError{"RSA private exponent must be a nonzero value smaller than the modulus"}
-    }
-
-    if not privateOperation and
-       ((exponent[exponent.count - 1] & 1) == 0 or
-        (exponent.count == 1 and exponent[0] < 3)) do
-        fail Errors.BadParameterError{"RSA public exponent must be an odd integer greater than one"}
-
-    let decoded = try rsaDecodeNumber(input, &context)
-    let powered = try rsaModularPower(decoded, exponent, privateOperation, &context)
-    let result  = rsaEncodeNumber(powered, &context)
-    Crypto.secureClear(decoded)
-    Crypto.secureClear(powered)
-    return result
+    return try rsaApplyWithContext(modulus, exponent, input, privateOperation, &context)
 }
 
 private func rsaSha256(data: const [..] u8)->[32] u8
@@ -303,8 +494,8 @@ private func rsaSha256(data: const [..] u8)->[32] u8
 
 private func rsaMgf1Sha256(seed: const [..] u8, destination: [..] u8)
 {
-    var counter = 0'u32
-    var offset  = 0'u64
+    var counter = 0_u32
+    var offset  = 0_u64
     while offset < destination.count
     {
         var hash: Hash.Sha256
@@ -342,15 +533,20 @@ private func rsaSha256Bytes(digest: Hash.Sha256.Digest)->[32] u8
 
 private func rsaValidPublicExponent(exponent: const [..] u8)->bool
 {
-    if exponent.count == 0 do
+    if exponent.count == 0
+    {
         return false
+    }
+
     var nonzero       = false
     var higherNonzero = false
     for byte in exponent.count
     {
         nonzero = nonzero or exponent[byte] != 0
-        if byte + 1 < exponent.count do
+        if byte + 1 < exponent.count
+        {
             higherNonzero = higherNonzero or exponent[byte] != 0
+        }
     }
 
     return nonzero and
@@ -360,14 +556,22 @@ private func rsaValidPublicExponent(exponent: const [..] u8)->bool
 
 private func rsaLessThan(left, right: const [..] u8)->bool
 {
-    if left.count != right.count do
+    if left.count != right.count
+    {
         return left.count < right.count
+    }
+
     for index in left.count
     {
-        if left[index] < right[index] do
+        if left[index] < right[index]
+        {
             return true
-        if left[index] > right[index] do
+        }
+
+        if left[index] > right[index]
+        {
             return false
+        }
     }
 
     return false
@@ -379,8 +583,10 @@ private func rsaValidatePublicKey(modulus, exponent: const [..] u8) fail
     defer rsaMontgomeryClear(&context)
     if not rsaValidPublicExponent(exponent) or
        exponent.count > modulus.count or
-       not rsaLessThan(exponent, modulus) do
+       not rsaLessThan(exponent, modulus)
+    {
         fail Errors.BadParameterError{"RSA public exponent must be an odd integer greater than one and smaller than the modulus"}
+    }
 }
 
 // Encrypts a message with RSAES-OAEP using SHA-256 and MGF1-SHA-256 (RFC 8017).
@@ -395,8 +601,10 @@ public func rsaOaepSha256Encrypt(modulus, publicExponent, plaintext, label: cons
     let width = modulus.count
     if ciphertext.count != width or
        width < 2 * RsaSha256Size + 2 or
-       plaintext.count > width - 2 * RsaSha256Size - 2 do
+       plaintext.count > width - 2 * RsaSha256Size - 2
+    {
         fail Errors.BadParameterError{"RSA-OAEP needs a modulus-width output and a message at most modulus-width minus 66 bytes"}
+    }
 
     var encoded: [512] u8
     defer Crypto.secureClear(encoded)
@@ -406,8 +614,10 @@ public func rsaOaepSha256Encrypt(modulus, publicExponent, plaintext, label: cons
     Swag.memcpy(&encoded[33], &labelHash[0], RsaSha256Size)
     let delimiter = dataLength - plaintext.count - 1
     encoded[33 + delimiter] = 1
-    if plaintext.count do
+    if plaintext.count
+    {
         Swag.memcpy(&encoded[34 + delimiter], plaintext.buffer, plaintext.count)
+    }
 
     var seed: [RsaSha256Size] u8
     defer Crypto.secureClear(seed)
@@ -415,14 +625,18 @@ public func rsaOaepSha256Encrypt(modulus, publicExponent, plaintext, label: cons
     var dataMask: [512] u8
     defer Crypto.secureClear(dataMask)
     rsaMgf1Sha256(seed, dataMask[0 until dataLength])
-    for index in dataLength do
+    for index in dataLength
+    {
         encoded[33 + index] ^= dataMask[index]
+    }
 
     var seedMask: [RsaSha256Size] u8
     defer Crypto.secureClear(seedMask)
     rsaMgf1Sha256(encoded[33 until width], seedMask)
-    for index in RsaSha256Size do
+    for index in RsaSha256Size
+    {
         encoded[1 + index] = seed[index] ^ seedMask[index]
+    }
 
     var result = try rsaApply(modulus, publicExponent, encoded[0 until width], false)
     defer Crypto.secureClear(result)
@@ -441,12 +655,17 @@ public func rsaOaepSha256Decrypt(modulus, privateExponent, ciphertext, label: co
     defer rsaMontgomeryClear(&context)
     if ciphertext.count != context.byteCount or
        privateExponent.count != context.byteCount or
-       plaintext.count < context.byteCount - (2 * RsaSha256Size + 2) do
+       plaintext.count < context.byteCount - (2 * RsaSha256Size + 2)
+    {
         fail Errors.BadParameterError{"RSA-OAEP needs modulus-width key and ciphertext values and a maximum-size plaintext destination"}
-    if not rsaLessThan(ciphertext, modulus) do
-        fail Errors.BadParameterError{"RSA-OAEP decoding failed"}
+    }
 
-    var encoded = try rsaApply(modulus, privateExponent, ciphertext, true)
+    if not rsaLessThan(ciphertext, modulus)
+    {
+        fail Errors.BadParameterError{"RSA-OAEP decoding failed"}
+    }
+
+    var encoded = try rsaApplyWithContext(modulus, privateExponent, ciphertext, true, &context)
     defer Crypto.secureClear(encoded)
     let width      = context.byteCount
     let dataLength = width - RsaSha256Size - 1
@@ -459,18 +678,23 @@ public func rsaOaepSha256Decrypt(modulus, privateExponent, ciphertext, label: co
     var dataBlock: [512] u8
     defer Crypto.secureClear(dataBlock)
     rsaMgf1Sha256(encoded[33 until width], seedMask)
-    for index in RsaSha256Size do
+    for index in RsaSha256Size
+    {
         seed[index] = encoded[1 + index] ^ seedMask[index]
+    }
+
     rsaMgf1Sha256(seed, dataMask[0 until dataLength])
-    for index in dataLength do
+    for index in dataLength
+    {
         dataBlock[index] = encoded[33 + index] ^ dataMask[index]
+    }
 
     let labelHash = rsaSha256(label)
     defer Crypto.secureClear(labelHash)
     var invalid = cast(u8, encoded[0] != 0)
     invalid |= cast(u8, not Crypto.constantTimeEqual(dataBlock[0 until RsaSha256Size], labelHash))
-    var lookingForDelimiter = 1'u8
-    var messageOffset       = 0'u64
+    var lookingForDelimiter = 1_u8
+    var messageOffset       = 0_u64
     for index in RsaSha256Size until dataLength
     {
         let byte   = dataBlock[index]
@@ -478,18 +702,23 @@ public func rsaOaepSha256Decrypt(modulus, privateExponent, ciphertext, label: co
         let isOne  = cast(u8, byte == 1)
         invalid |= lookingForDelimiter & (1 ^ (isZero | isOne))
         let foundDelimiter = lookingForDelimiter & isOne
-        let mask = 0'u64 - foundDelimiter
+        let mask = 0_u64 - foundDelimiter
         messageOffset       = (messageOffset & ~mask) | ((index + 1) & mask)
         lookingForDelimiter &= isZero
     }
 
     invalid |= lookingForDelimiter
-    if invalid do
+    if invalid
+    {
         fail Errors.BadParameterError{"RSA-OAEP decoding failed"}
+    }
 
     let messageLength = dataLength - messageOffset
-    if messageLength do
+    if messageLength
+    {
         Swag.memcpy(plaintext.buffer, &dataBlock[messageOffset], messageLength)
+    }
+
     return messageLength
 }
 
@@ -503,8 +732,10 @@ public func rsaPssSha256Sign(modulus, privateExponent, message: const [..] u8, s
 {
     var context = try rsaMontgomeryCreate(modulus)
     defer rsaMontgomeryClear(&context)
-    if privateExponent.count != context.byteCount or signature.count != context.byteCount do
+    if privateExponent.count != context.byteCount or signature.count != context.byteCount
+    {
         fail Errors.BadParameterError{"RSA-PSS needs modulus-width private exponent and signature values"}
+    }
 
     let width         = context.byteCount
     let dataLength    = width - RsaSha256Size - 1
@@ -531,13 +762,16 @@ public func rsaPssSha256Sign(modulus, privateExponent, message: const [..] u8, s
     rsaMgf1Sha256(encodedHash, mask[0 until dataLength])
     var encoded: [512] u8
     defer Crypto.secureClear(encoded)
-    for index in dataLength do
+    for index in dataLength
+    {
         encoded[index] = dataBlock[index] ^ mask[index]
+    }
+
     encoded[0] &= 0x7F
     Swag.memcpy(&encoded[dataLength], &encodedHash[0], RsaSha256Size)
     encoded[width - 1] = 0xBC
 
-    var result = try rsaApply(modulus, privateExponent, encoded[0 until width], true)
+    var result = try rsaApplyWithContext(modulus, privateExponent, encoded[0 until width], true, &context)
     defer Crypto.secureClear(result)
     Swag.memcpy(signature.buffer, &result[0], width)
 }
@@ -550,8 +784,10 @@ public func rsaPssSha256Sign(modulus, privateExponent, message: const [..] u8, s
 public func rsaPssSha256Verify(modulus, publicExponent, message, signature: const [..] u8)->bool fail
 {
     try rsaValidatePublicKey(modulus, publicExponent)
-    if signature.count != modulus.count or not rsaLessThan(signature, modulus) do
+    if signature.count != modulus.count or not rsaLessThan(signature, modulus)
+    {
         return false
+    }
 
     var encoded = try rsaApply(modulus, publicExponent, signature, false)
     defer Crypto.secureClear(encoded)
@@ -562,11 +798,17 @@ public func rsaPssSha256Verify(modulus, publicExponent, message, signature: cons
     var mask: [512] u8
     rsaMgf1Sha256(encoded[dataLength until dataLength + RsaSha256Size], mask[0 until dataLength])
     var dataBlock: [512] u8
-    for index in dataLength do
+    for index in dataLength
+    {
         dataBlock[index] = encoded[index] ^ mask[index]
+    }
+
     dataBlock[0] &= 0x7F
-    for index in paddingLength do
+    for index in paddingLength
+    {
         invalid |= cast(u8, dataBlock[index] != 0)
+    }
+
     invalid |= cast(u8, dataBlock[paddingLength] != 1)
 
     let messageHash = rsaSha256(message)

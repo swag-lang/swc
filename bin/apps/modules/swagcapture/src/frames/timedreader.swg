@@ -44,8 +44,10 @@ impl TimedReader
 
     mtd const frameAt(time: u64)->u64
     {
-        if .media != .Video do
+        if .media != .Video
+        {
             return .frames.frameAt(time)
+        }
 
         // The editor stores microseconds; include the rounded microsecond when converting back
         // to the source timescale so a frame's displayed time selects that frame again.
@@ -55,8 +57,11 @@ impl TimedReader
 
     mtd read(frame: u64)->const *Image fail
     {
-        if .media != .Video do
+        if .media != .Video
+        {
             return try .frames.read(frame)
+        }
+
         try .video.decodeFrameInto(&.picture, frame)
         return &.picture
     }

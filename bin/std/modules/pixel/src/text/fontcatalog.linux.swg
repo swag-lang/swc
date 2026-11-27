@@ -2,7 +2,7 @@
 
 using Core
 
-internal func linuxFontDirectories(userHome, dataHome: string)->Array'String
+internal func linuxFontDirectories(userHome, dataHome: string)->Array!{String}
 {
     var result: #returntype
     result.add("/usr/local/share/fonts")
@@ -10,15 +10,19 @@ internal func linuxFontDirectories(userHome, dataHome: string)->Array'String
     if Path.isValidPathName(dataHome) and Path.isRooted(dataHome)
     {
         let path = Path.combine(dataHome, "fonts")
-        if not result.contains(path) do
+        if not result.contains(path)
+        {
             result.add(path)
+        }
     }
 
     if Path.isValidPathName(userHome) and Path.isRooted(userHome)
     {
         let path = Path.combine(userHome, ".fonts")
-        if not result.contains(path) do
+        if not result.contains(path)
+        {
             result.add(path)
+        }
     }
 
     return result
@@ -43,8 +47,11 @@ public impl FontCatalog
     {
         var result: #returntype
         let directories = linuxFontDirectories(Env.variable("HOME"), Env.realSpecialDirectory(.UserAppData))
-        for directory in directories do
+        for directory in directories
+        {
             discard catch result.addDirectory(directory.toString())
+        }
+
         return result
     }
 }

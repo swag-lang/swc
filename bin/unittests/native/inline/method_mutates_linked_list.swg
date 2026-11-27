@@ -20,13 +20,19 @@ impl InlineBug11List
         let next = node.next
         let prev = node.prev
 
-        if prev do
+        if prev
+        {
             prev.next = next
-        else do
+        }
+        else
+        {
             .head = next
+        }
 
-        if next do
+        if next
+        {
             next.prev = prev
+        }
 
         node.next, node.prev = null
     }
@@ -34,8 +40,10 @@ impl InlineBug11List
     mtd pop(outNode: **InlineBug11Node)->bool
     {
         let head = .head
-        if not head do
+        if not head
+        {
             return false
+        }
 
         let node = head
         outNode[] = node

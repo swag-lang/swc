@@ -21,7 +21,7 @@ using Core
 internal struct Pile
 {
     val:      s32
-    children: Array'(string)
+    children: Array!{string}
 }
 
 internal struct ChildTotal
@@ -34,7 +34,7 @@ func day7B()
 {
     let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
-    var set:    HashTable'(string, Pile)
+    var set:    HashTable!{string, Pile}
     var result: s64
 
     var r0 = expect Parser.RegExp.create(#raw "(\l+) \((\d+)\)")
@@ -48,20 +48,27 @@ func day7B()
     for l in lines
     {
         let n = r1.grepAll(l[])
-        if n.count == 1 do
+        if n.count == 1
+        {
             continue
+        }
+
         let self = set.find(n[0])
-        for v in n[1 to] do
+        for v in n[1 to]
+        {
             self.value.children.add(v)
+        }
     }
 
-    func sum(set: *HashTable'(string, Pile), result: *s64, w: Pile)->u64
+    func sum(set: *HashTable!{string, Pile}, result: *s64, w: Pile)->u64
     {
-        if result[] do
+        if result[]
+        {
             return 0
+        }
 
         var total: u64
-        var sums:  Array'ChildTotal
+        var sums:  Array!{ChildTotal}
 
         for v, i in w.children
         {

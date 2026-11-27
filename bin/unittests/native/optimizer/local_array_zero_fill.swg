@@ -27,9 +27,9 @@ func mixArray(seed: u32)->u32
 func mixScalars(seed: u32)->u32
 {
     var a0 = seed
-    var a1 = 0'u32
-    var a2 = 0'u32
-    var a3 = 0'u32
+    var a1 = 0_u32
+    var a2 = 0_u32
+    var a3 = 0_u32
 
     for 8
     {
@@ -55,16 +55,20 @@ func oneWriteThenSum(index: u64, value: u32)->u32
 {
     var acc: [8] u32
     acc[index] = value
-    var total = 0'u32
-    for i in 8 do
+    var total = 0_u32
+    for i in 8
+    {
         total += acc[i]
+    }
     return total
 }
 
 #test
 {
-    for i in 16'u32 do
+    for i in 16_u32
+    {
         Swag.require(mixArray(i) == mixScalars(i))
+    }
 
     Swag.require(untouchedTail(0) == 0)
     Swag.require(untouchedTail(12_345) == 12_345)

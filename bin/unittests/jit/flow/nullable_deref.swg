@@ -21,15 +21,19 @@ impl NullableDerefNode
 
 func nullableDerefNarrowed(n: *NullableDerefNode?, skip: bool)->s32
 {
-    if skip or n == null do
+    if skip or n == null
+    {
         return 0
+    }
     return n.bump()
 }
 
 func nullableDerefAsserted(n: *NullableDerefNode?, skip: bool)->s32
 {
-    if skip do
+    if skip
+    {
         return 0
+    }
     return n!.bump()
 }
 

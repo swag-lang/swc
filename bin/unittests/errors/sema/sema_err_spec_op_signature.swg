@@ -17,7 +17,7 @@ struct(T) GenericMissingConstUnaryMe
 
 impl GenericMissingConstUnaryMe
 {
-    mtd(op: Swag.Operator) opUnary()->GenericMissingConstUnaryMe'T { return {}; }     // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd(op: Swag.Operator) opUnary()->GenericMissingConstUnaryMe!{T} { return {}; }     // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 struct BadMultiIndexGet {}
@@ -61,9 +61,9 @@ impl BadIndexPtrNullableReturn
 
 #test
 {
-    var value: GenericMissingConstUnaryMe's32 = {value: 1}
+    var value: GenericMissingConstUnaryMe!{s32} = {value: 1}
     let result = -value
-    #assert(#typeof(result) == GenericMissingConstUnaryMe's32)
+    #assert(#typeof(result) == GenericMissingConstUnaryMe!{s32})
 }
 
 #test

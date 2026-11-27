@@ -39,7 +39,7 @@ error model, and metaprogramming tools.
 ```swag
 func buildMask(bitCount: u32)->u32
 {
-    return (1'u32 << bitCount) - 1
+    return (1_u32 << bitCount) - 1
 }
 
 const LowByteMask = #run buildMask(8)

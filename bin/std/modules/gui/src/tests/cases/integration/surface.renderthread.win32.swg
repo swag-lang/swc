@@ -17,8 +17,11 @@ using Core, Win32, Ogl
     {
         let normal = Math.Rectangle{60, 50, 400, 240}
         surface.setPosition(normal)
-        if maximize do
+        if maximize
+        {
             surface.showMaximized()
+        }
+
         let bounds = surface.position
         surface.showMinimized()
 
@@ -79,26 +82,33 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
         if outerResize and
            observation.surface.presentedFrame and
            observation.surface.rc.width == width and
-           observation.surface.rc.height == height do
+           observation.surface.rc.height == height
+        {
             observation.preparedFrames += 1
+        }
+
         return result
     }
 
     if msg == WM_WINDOWPOSCHANGING
     {
         let next = cast(*WINDOWPOS, cast #bit (u64, lParam))
-        if next.flags & SWP_HIDEWINDOW do
+        if next.flags & SWP_HIDEWINDOW
+        {
             observation.hides += 1
+        }
     }
-    elif msg == WM_WINDOWPOSCHANGED and observation.watchBounds
+    else if msg == WM_WINDOWPOSCHANGED and observation.watchBounds
     {
         var rect: RECT
         Swag.require(GetWindowRect(hWnd, &rect))
         if rect.left != cast(s32, observation.expected.x) or
            rect.top != cast(s32, observation.expected.y) or
            rect.right != cast(s32, observation.expected.right()) or
-           rect.bottom != cast(s32, observation.expected.bottom()) do
+           rect.bottom != cast(s32, observation.expected.bottom())
+        {
             observation.intermediateBounds += 1
+        }
     }
 
     return DefSubclassProc(hWnd, msg, wParam, lParam)
@@ -183,8 +193,11 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     var paints = 0
     surface.wnd.view.hookOnEvent = func|&paints|(_, evt)->bool
     {
-        if evt is PaintEvent do
+        if evt is PaintEvent
+        {
             paints += 1
+        }
+
         return false
     }
 
@@ -261,8 +274,11 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
 
     for fromMaximized in [false, true]
     {
-        if fromMaximized do
+        if fromMaximized
+        {
             surface.showMaximized()
+        }
+
         let target = Math.Rectangle{60, 50, 700, 460}
         surface.showNormalAt(target)
 

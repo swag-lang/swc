@@ -47,7 +47,10 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
     Swag.require(false or value)
     Swag.require((value ? 7 : 9) == 7)
     var seen = false
-    if value do seen = true
+    if value
+    {
+        seen = true
+    }
     Swag.require(seen)
     Swag.require(value.answer() == 42)
     Swag.require((value?.answer() orelse 0) == 42)
@@ -70,7 +73,10 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
     Swag.require(not (false or value))
     Swag.require((value ? 7 : 9) == 9)
     var seen = false
-    if value do seen = true
+    if value
+    {
+        seen = true
+    }
     Swag.require(not seen)
     Swag.require((value?.answer() orelse 0) == 0)
     let fallback = Swag.makeInterface(null, Fallback, IMetadata)
@@ -102,10 +108,14 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
     Swag.require(value != null)
     Swag.require((value ? 1 : 2) == 1)
 
-    if let present = value do
+    if let present = value
+    {
         Swag.require(cast(IMetadata, present).answer() == 42)
-    else do
+    }
+    else
+    {
         Swag.require(false)
+    }
 
     let boxed     = Swag.makeAny(&value, #typeof(value))
     let extracted = assume cast (MetadataAlias, boxed)

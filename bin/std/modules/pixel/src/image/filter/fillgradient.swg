@@ -10,8 +10,10 @@ public impl Image
     // Fills the image with a horizontal gradient from `color0` on the left to `color1` on the right.
     mtd fillGradient(color0, color1: Color)
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         if not .hasStraightByteColors()
         {
@@ -42,20 +44,23 @@ public impl Image
                 let b       = cast(u8, Math.lerp(cast(f32, color0.b), cast(f32, color1.b), factor0))
                 let g       = cast(u8, Math.lerp(cast(f32, color0.g), cast(f32, color1.g), factor0))
                 let r       = cast(u8, Math.lerp(cast(f32, color0.r), cast(f32, color1.r), factor0))
-                var a       = 255'u8
-                if PF.bitsPerPixel() == 32 do
+                var a       = 255_u8
+                if PF.bitsPerPixel() == 32
+                {
                     a = cast(u8, Math.lerp(cast(f32, color0.a), cast(f32, color1.a), factor0))
-                convertToRGBA8'PF(cast([*] u8, unwrap pix), r, g, b, a)
+                }
+
+                convertToRGBA8!{PF}(cast([*] u8, unwrap pix), r, g, b, a)
                 pix += .bytesPerPixel
             }
         }
 
         switch .pixelFormat
         {
-        case .BGR8:  .doIt'BGR8()
-        case .BGRA8: .doIt'BGRA8()
-        case .RGB8:  .doIt'RGB8()
-        case .RGBA8: .doIt'RGBA8()
+        case .BGR8:  .doIt!{BGR8}()
+        case .BGRA8: .doIt!{BGRA8}()
+        case .RGB8:  .doIt!{RGB8}()
+        case .RGBA8: .doIt!{RGBA8}()
         default:     unreachable
         }
 
@@ -68,8 +73,10 @@ public impl Image
     // Fills the image with a bilinear gradient between four corner colors.
     mtd fillGradient(topLeft, topRight, bottomLeft, bottomRight: Color)
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         var ctx = FillGradient4Context{topLeft, topRight, bottomLeft, bottomRight}
         if not .hasStraightByteColors()
@@ -108,16 +115,16 @@ public impl Image
                 let colH1   = Color.lerp(colors.topLeft, colors.topRight, factor0)
                 let colH0   = Color.lerp(colors.bottomLeft, colors.bottomRight, factor0)
                 let col     = Color.lerp(colH0, colH1, factor1)
-                convertToRGBA8'PF(pix, col.r, col.g, col.b, col.a)
+                convertToRGBA8!{PF}(pix, col.r, col.g, col.b, col.a)
             }
         }
 
         switch .pixelFormat
         {
-        case .BGR8:  .doIt'BGR8()
-        case .BGRA8: .doIt'BGRA8()
-        case .RGB8:  .doIt'RGB8()
-        case .RGBA8: .doIt'RGBA8()
+        case .BGR8:  .doIt!{BGR8}()
+        case .BGRA8: .doIt!{BGRA8}()
+        case .RGB8:  .doIt!{RGB8}()
+        case .RGBA8: .doIt!{RGBA8}()
         default:     unreachable
         }
     }

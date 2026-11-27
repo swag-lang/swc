@@ -32,7 +32,7 @@ struct(T) List
 #[Swag.Opaque]
 struct(T) ReversedList
 {
-    source: *List'T
+    source: *List!{T}
 }
 
 impl ReversedList
@@ -46,30 +46,36 @@ impl ReversedList
         scope(Up)
         while node
         {
-            let current = node orelse cast(*ListEntry'T, 1'u64)
+            let current = node orelse cast(*ListEntry!{T}, 1_u64)
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             item = cast(*T, &current.value),
                             node = current,
                             index = index,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(T) do
+                }
+                else if Reflection.isStruct(T)
+                {
                     #inject(stmt,
                             item = cast(const *T, &current.value),
                             node = current,
                             index = index,
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             item = current.value,
                             node = current,
                             index = index,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
 
             node  = current.prev
@@ -82,7 +88,7 @@ impl ReversedList
 #[Swag.Opaque]
 struct(T) ConstReversedList
 {
-    source: const *List'T
+    source: const *List!{T}
 }
 
 impl ConstReversedList
@@ -91,35 +97,41 @@ impl ConstReversedList
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item, node, index: u64))
     {
-        var node:  const *ListEntry'T? = .source.tail
+        var node:  const *ListEntry!{T}? = .source.tail
         var index: u64
         scope(Up)
         while node
         {
-            let current = node orelse cast(const *ListEntry'T, 1'u64)
+            let current = node orelse cast(const *ListEntry!{T}, 1_u64)
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             item = cast(const *T, &current.value),
                             node = current,
                             index = index,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(T) do
+                }
+                else if Reflection.isStruct(T)
+                {
                     #inject(stmt,
                             item = cast(const *T, &current.value),
                             node = current,
                             index = index,
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             item = current.value,
                             node = current,
                             index = index,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
 
             node  = current.prev
@@ -132,8 +144,8 @@ impl List
 {
     private mtd createNode(value: #fwd T)->*ListEntry
     {
-        var entry = ListEntry'T{prev: null, next: null, value: #fwd value}
-        let node  = cast(*ListEntry'T, Memory.alloc(#sizeof(ListEntry'T), alignment: #alignof(ListEntry'T)))
+        var entry = ListEntry!{T}{prev: null, next: null, value: #fwd value}
+        let node  = cast(*ListEntry!{T}, Memory.alloc(#sizeof(ListEntry!{T}), alignment: #alignof(ListEntry!{T})))
         node[] = #relocate entry
         Swag.postMove(node, 1)
         return node
@@ -150,8 +162,10 @@ impl List
     // Copies the nodes into independently owned storage while preserving their order.
     mtd opPostCopy()
     {
-        if not .head do
+        if not .head
+        {
             return
+        }
 
         let oldHead = .head
         .head, .tail = null
@@ -185,30 +199,36 @@ impl List
         scope(Up)
         while n
         {
-            let node = n orelse cast(*ListEntry'(T), 1'u64)
+            let node = n orelse cast(*ListEntry!{T}, 1_u64)
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             item = cast(*T, &node.value),
                             node = node,
                             index = ordinal,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(T) do
+                }
+                else if Reflection.isStruct(T)
+                {
                     #inject(stmt,
                             item = cast(const *T, &node.value),
                             node = node,
                             index = ordinal,
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             item = node.value,
                             node = node,
                             index = ordinal,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
 
             n       = node.next
@@ -217,8 +237,8 @@ impl List
     }
 
     // Returns a reverse view with mutable or const element borrows matching this list.
-    mtd reversed()->ReversedList'T => {source: me}
-    mtd const reversed()->ConstReversedList'T => {source: me}
+    mtd reversed()->ReversedList!{T} => {source: me}
+    mtd const reversed()->ConstReversedList!{T} => {source: me}
 
     // Deletes every node and leaves the list empty.
     mtd clear()
@@ -238,15 +258,23 @@ impl List
     // Unlinks and deletes `node`, which must belong to this list.
     mtd remove(node: *ListEntry)
     {
-        if node.prev do
+        if node.prev
+        {
             node.prev.next = node.next
-        else do
+        }
+        else
+        {
             .head = node.next
+        }
 
-        if node.next do
+        if node.next
+        {
             node.next.prev = node.prev
-        else do
+        }
+        else
+        {
             .tail = node.prev
+        }
 
         .count -= 1
         Memory.delete(node)
@@ -307,10 +335,15 @@ impl List
 
         n.next = node
         n.prev = node.prev
-        if not n.prev do
+        if not n.prev
+        {
             .head = n
-        else do
+        }
+        else
+        {
             n.prev.next = n
+        }
+
         node.prev = n
         return n
     }
@@ -326,10 +359,15 @@ impl List
 
         n.prev = node
         n.next = node.next
-        if not n.next do
+        if not n.next
+        {
             .tail = n
-        else do
+        }
+        else
+        {
             n.next.prev = n
+        }
+
         node.next = n
         return n
     }

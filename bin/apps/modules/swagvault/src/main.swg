@@ -6,22 +6,33 @@ var g_App: Application
 
 const ProductName       = "Swag Vault"
 const SurfaceId         = "swag.vault"
-const ShowWindowMessage = 1'u32
+const ShowWindowMessage = 1_u32
 const ApplicationId     = "swagvault"
 
 #main
 {
-    if isMountHostInvocation() do
+    if isMountHostInvocation()
+    {
         Env.exit(runMountHost())
+    }
 
     #static if #hastag("vault.integration")
     {
-        if Integration.isVisibilityProbeInvocation() do
+        if Integration.isVisibilityProbeInvocation()
+        {
             Env.exit(Integration.runVisibilityProbe())
-        if Integration.isAccessBenchmarkInvocation() do
+        }
+
+        if Integration.isAccessBenchmarkInvocation()
+        {
             Integration.runAccessBenchmarkAndExit()
-        if Integration.isPreviewMountInvocation() do
+        }
+
+        if Integration.isPreviewMountInvocation()
+        {
             Integration.runPreviewMountAndExit()
+        }
+
         Integration.runAndExit()
     }
 
@@ -45,12 +56,15 @@ const ApplicationId     = "swagvault"
         {
             for 250
             {
-                if Surface.sendCustomMessage(surfaceId, ShowWindowMessage, 0) do
+                if Surface.sendCustomMessage(surfaceId, ShowWindowMessage, 0)
+                {
                     return
-                Threading.Thread.sleep(20'ms)
+                }
+
+                Threading.Thread.sleep(20_ms)
             }
         }
-        elif try forwardVaultLaunch(surfaceId, launchFile)
+        else if try forwardVaultLaunch(surfaceId, launchFile)
         {
             return
         }

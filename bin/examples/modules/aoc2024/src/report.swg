@@ -7,17 +7,24 @@ func isReportSafe(levels: const [..] s32, skipIndex: u64 = Swag.U64.Max)->bool
 
     for level, index in levels
     {
-        if index == skipIndex do
+        if index == skipIndex
+        {
             continue
+        }
 
         if hasPrevious
         {
             let diff = level - previous
-            if Swag.abs(diff) < 1 or Swag.abs(diff) > 3 do
+            if Swag.abs(diff) < 1 or Swag.abs(diff) > 3
+            {
                 return false
+            }
 
-            if direction and Math.sign(diff) != direction do
+            if direction and Math.sign(diff) != direction
+            {
                 return false
+            }
+
             direction = Math.sign(diff)
         }
         else

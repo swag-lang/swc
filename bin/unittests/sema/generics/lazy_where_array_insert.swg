@@ -20,8 +20,10 @@ impl Array
     mtd insertAt(index: u64, value: T)
         where LazyWhereArrayInsert.Reflection.canCopy(T)
     {
-        if index == 0 do
+        if index == 0
+        {
             return .add(value)
+        }
         .add(value)
     }
 }
@@ -44,12 +46,12 @@ impl Signal
 
 struct Receiver
 {
-    signal: Signal'func||(*Receiver)
+    signal: Signal!{func||(*Receiver)}
 }
 
 struct(T) ReceiverList
 {
-    values: Array'T
+    values: Array!{T}
 }
 
 impl ReceiverList
@@ -63,7 +65,7 @@ impl ReceiverList
 
 func semaTest001()
 {
-    var list:     ReceiverList'Receiver
+    var list:     ReceiverList!{Receiver}
     var receiver: Receiver
     list.insert(receiver)
 }

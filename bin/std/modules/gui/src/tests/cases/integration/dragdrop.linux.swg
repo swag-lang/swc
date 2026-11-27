@@ -9,7 +9,7 @@ struct XdndCatcher
     using wnd: Wnd
     drops:     u32
     text:      String
-    files:     Array'String
+    files:     Array!{String}
 }
 
 impl IWnd for XdndCatcher
@@ -40,7 +40,7 @@ func stopXdndPeer(peer: *Env.Process)
     Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1", "XDND integration requires an isolated X11 server")
     var app: Application
     let surface = expect app.createSurface(40, 40, 220, 180, surfaceId: "xdnd-target")
-    let catcher = Wnd.create'XdndCatcher(surface.wnd)
+    let catcher = Wnd.create!{XdndCatcher}(surface.wnd)
     surface.setView(catcher)
     surface.show()
     let script = xdndPeerPath()
@@ -85,19 +85,22 @@ func stopXdndPeer(peer: *Env.Process)
         for
         {
             peer.readAvailable()
-            if peer.standardOutput() == "ready\n" do
+            if peer.standardOutput() == "ready\n"
+            {
                 break
+            }
+
             Swag.require(peer.isRunning() and Time.monotonicMilliseconds() < deadline, peer.standardError())
-            discard expect peer.tryWaitForExit(5'ms)
+            discard expect peer.tryWaitForExit(5_ms)
         }
 
         var data: DragData
         data.setText("source-é")
         var produced: u32
-        let producer = func|&produced|()->Array'u8
+        let producer = func|&produced|()->Array!{u8}
         {
             produced += 1
-            var result: Array'u8
+            var result: Array!{u8}
             result.add(cast(const [..]u8, "deferred-content"))
             return result
         }
@@ -106,12 +109,14 @@ func stopXdndPeer(peer: *Env.Process)
         Swag.require(produced == 0)
         let effect = surface.wnd.view.startDrag(&data, .Copy, &thumbnail)
         Swag.require(effect == (mode == "reject" ? DropEffect.None : DropEffect.Copy))
-        Swag.require(produced == (mode == "reject" ? 0'u32 : 1'u32))
-        let exited = expect peer.tryWaitForExit(3000'ms)
+        Swag.require(produced == (mode == "reject" ? 0_u32 : 1_u32))
+        let exited = expect peer.tryWaitForExit(3000_ms)
         Swag.require(exited)
         Swag.require(peer.exitCode() == 0, peer.standardError())
         Swag.require(peer.standardOutput() == "ready\nok\n")
-        if mode == "save" do
+        if mode == "save"
+        {
             Swag.require(expect File.readAllText(destination.toString()) == "deferred-content")
+        }
     }
 }

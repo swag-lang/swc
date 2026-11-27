@@ -25,25 +25,40 @@ func isHex(c: u8)->bool   => isDigit(c) or (c >= 'A' and c <= 'F') or (c >= 'a' 
 
 func hexValue(c: u8)->u8
 {
-    if isDigit(c) do
+    if isDigit(c)
+    {
         return c - '0'
-    if c >= 'A' and c <= 'F' do
+    }
+
+    if c >= 'A' and c <= 'F'
+    {
         return c - 'A' + 10
+    }
+
     return c - 'a' + 10
 }
 
-internal func decodeAsciiHex(data: const [..] u8)->Array'u8 fail
+internal func decodeAsciiHex(data: const [..] u8)->Array!{u8} fail
 {
     var result: #returntype
     var high = Swag.U8.Max
     for c in data
     {
-        if isWhite(c) do
+        if isWhite(c)
+        {
             continue
-        if c == '>' do
+        }
+
+        if c == '>'
+        {
             break
-        if not isHex(c) do
+        }
+
+        if not isHex(c)
+        {
             fail InvalidFormatError{"ASCIIHexDecode stream contains a non-hexadecimal byte"}
+        }
+
         let value = hexValue(c)
         if high == Swag.U8.Max
         {
@@ -57,23 +72,29 @@ internal func decodeAsciiHex(data: const [..] u8)->Array'u8 fail
     }
 
     // A trailing odd digit is completed with a zero, as the format prescribes.
-    if high != Swag.U8.Max do
+    if high != Swag.U8.Max
+    {
         result.add(high * 16)
+    }
+
     return result
 }
 
-internal func decodeAscii85(data: const [..] u8)->Array'u8 fail
+internal func decodeAscii85(data: const [..] u8)->Array!{u8} fail
 {
     var result: #returntype
     var group:  [5] u8
-    var groupCount = 0'u32
-    var pos        = 0'u64
+    var groupCount = 0_u32
+    var pos        = 0_u64
     while pos < data.count
     {
         let c = data[pos]
         pos += 1
-        if isWhite(c) do
+        if isWhite(c)
+        {
             continue
+        }
+
         if c == '<' and pos < data.count and data[pos] == '~'
         {
             pos += 1
@@ -82,91 +103,133 @@ internal func decodeAscii85(data: const [..] u8)->Array'u8 fail
 
         if c == '~'
         {
-            if pos >= data.count or data[pos] != '>' do
+            if pos >= data.count or data[pos] != '>'
+            {
                 fail InvalidFormatError{"ASCII85Decode stream has an invalid terminator"}
+            }
+
             break
         }
 
         if c == 'z'
         {
-            if groupCount do
+            if groupCount
+            {
                 fail InvalidFormatError{"ASCII85Decode stream has a misplaced zero group"}
-            result.add([0'u8, 0, 0, 0])
+            }
+
+            result.add([0_u8, 0, 0, 0])
             continue
         }
 
-        if c < '!' or c > 'u' do
+        if c < '!' or c > 'u'
+        {
             fail InvalidFormatError{"ASCII85Decode stream contains an invalid byte"}
+        }
+
         group[groupCount] = c - '!'
         groupCount        += 1
-        if groupCount != 5 do
+        if groupCount != 5
+        {
             continue
+        }
 
-        var value = 0'u64
-        for digit in group do
+        var value = 0_u64
+        for digit in group
+        {
             value = value * 85 + digit
-        if value > Swag.U32.Max do
+        }
+
+        if value > Swag.U32.Max
+        {
             fail InvalidFormatError{"ASCII85Decode group exceeds 32 bits"}
+        }
+
         result.add([cast(u8, ((value >> 24) & 0xFF)), cast(u8, ((value >> 16) & 0xFF)), cast(u8, ((value >> 8) & 0xFF)), cast(u8, (value & 0xFF))])
         groupCount = 0
     }
 
-    if groupCount == 1 do
+    if groupCount == 1
+    {
         fail InvalidFormatError{"ASCII85Decode stream has an incomplete group"}
+    }
+
     if groupCount
     {
         let outputCount = groupCount - 1
-        for i in groupCount until 5 do
+        for i in groupCount until 5
+        {
             group[i] = 84
-        var value = 0'u64
-        for digit in group do
+        }
+
+        var value = 0_u64
+        for digit in group
+        {
             value = value * 85 + digit
-        if value > Swag.U32.Max do
+        }
+
+        if value > Swag.U32.Max
+        {
             fail InvalidFormatError{"ASCII85Decode group exceeds 32 bits"}
+        }
+
         let decoded: [4] u8 = [cast(u8, ((value >> 24) & 0xFF)), cast(u8, ((value >> 16) & 0xFF)), cast(u8, ((value >> 8) & 0xFF)), cast(u8, (value & 0xFF))]
-        for i in outputCount do
+        for i in outputCount
+        {
             result.add(decoded[i])
+        }
     }
 
     return result
 }
 
-internal func decodeRunLength(data: const [..] u8)->Array'u8 fail
+internal func decodeRunLength(data: const [..] u8)->Array!{u8} fail
 {
     var result: #returntype
-    var pos = 0'u64
+    var pos = 0_u64
     while pos < data.count
     {
         let length = data[pos]
         pos += 1
-        if length == 128 do
+        if length == 128
+        {
             break
+        }
+
         if length <= 127
         {
             let count = cast(u64, length) + 1
-            if pos + count > data.count do
+            if pos + count > data.count
+            {
                 fail InvalidFormatError{"RunLengthDecode literal run is truncated"}
+            }
+
             result.add(data[pos until pos + count])
             pos += count
             continue
         }
 
-        if pos >= data.count do
+        if pos >= data.count
+        {
             fail InvalidFormatError{"RunLengthDecode repeated run is truncated"}
+        }
+
         let value = data[pos]
         pos += 1
-        for cast(u64, (257 - cast(u32, length))) do
+        for cast(u64, (257 - cast(u32, length)))
+        {
             result.add(value)
+        }
     }
 
     return result
 }
 
 // Codes the LZW variable-width code stream reserves for itself.
-private const LzwClearCode = 256'u32
-private const LzwEndCode   = 257'u32
-private const LzwFirstCode = 258'u32
-private const LzwMaxCode   = 4096'u32
+private const LzwClearCode = 256_u32
+private const LzwEndCode   = 257_u32
+private const LzwFirstCode = 258_u32
+private const LzwMaxCode   = 4096_u32
 
 // Dictionary entries chain to their prefix instead of storing whole sequences, so the
 // table stays a fixed 4096 entries whatever the stream expands to.
@@ -189,7 +252,7 @@ private impl LzwDictionary
     }
 
     // Appends the byte sequence of `code`, written back to front through the prefix chain.
-    mtd const expand(code: u32, result: *Array'u8)
+    mtd const expand(code: u32, result: *Array!{u8})
     {
         let start = result.count
         result.resize(start + .length[code])
@@ -199,8 +262,11 @@ private impl LzwDictionary
         {
             write         -= 1
             result[write] = .suffix[walk]
-            if walk < LzwClearCode do
+            if walk < LzwClearCode
+            {
                 break
+            }
+
             walk = .prefix[walk]
         }
     }
@@ -208,8 +274,11 @@ private impl LzwDictionary
     mtd const firstByte(code: u32)->u8
     {
         var walk = code
-        while walk >= LzwClearCode do
+        while walk >= LzwClearCode
+        {
             walk = .prefix[walk]
+        }
+
         return cast(u8, walk)
     }
 }
@@ -219,18 +288,18 @@ private impl LzwDictionary
 // `earlyChange` matches the filter parameter of the same name: when set, the code width
 // grows one code before the dictionary is actually full, which is what almost every
 // producer emits.
-internal func decodeLzw(data: const [..] u8, earlyChange = true)->Array'u8 fail
+internal func decodeLzw(data: const [..] u8, earlyChange = true)->Array!{u8} fail
 {
     var result:     #returntype
     var dictionary: LzwDictionary
     dictionary.reset()
 
     var next      = LzwFirstCode
-    var codeBits  = 9'u32
+    var codeBits  = 9_u32
     var previous  = Swag.U32.Max
-    var bitBuffer = 0'u32
-    var bitCount  = 0'u32
-    var pos       = 0'u64
+    var bitBuffer = 0_u32
+    var bitCount  = 0_u32
+    var pos       = 0_u64
 
     for
     {
@@ -242,12 +311,18 @@ internal func decodeLzw(data: const [..] u8, earlyChange = true)->Array'u8 fail
         }
 
         // A stream that stops mid-code is padding, not a failure.
-        if bitCount < codeBits do
+        if bitCount < codeBits
+        {
             break
+        }
+
         bitCount -= codeBits
-        let code = (bitBuffer >> bitCount) & ((1'u32 << codeBits) - 1)
-        if code == LzwEndCode do
+        let code = (bitBuffer >> bitCount) & ((1_u32 << codeBits) - 1)
+        if code == LzwEndCode
+        {
             break
+        }
+
         if code == LzwClearCode
         {
             next     = LzwFirstCode
@@ -258,8 +333,11 @@ internal func decodeLzw(data: const [..] u8, earlyChange = true)->Array'u8 fail
 
         if previous == Swag.U32.Max
         {
-            if code >= LzwClearCode do
+            if code >= LzwClearCode
+            {
                 fail InvalidFormatError{"LZWDecode stream starts with an undefined code"}
+            }
+
             dictionary.expand(code, &result)
             previous = code
             continue
@@ -269,7 +347,7 @@ internal func decodeLzw(data: const [..] u8, earlyChange = true)->Array'u8 fail
         {
             dictionary.expand(code, &result)
         }
-        elif code == next
+        else if code == next
         {
             dictionary.expand(previous, &result)
             result.add(dictionary.firstByte(previous))
@@ -290,14 +368,22 @@ internal func decodeLzw(data: const [..] u8, earlyChange = true)->Array'u8 fail
         previous = code
 
         let limit = earlyChange ? next + 1 : next
-        if limit >= 2048 do
+        if limit >= 2048
+        {
             codeBits = 12
-        elif limit >= 1024 do
+        }
+        else if limit >= 1024
+        {
             codeBits = 11
-        elif limit >= 512 do
+        }
+        else if limit >= 512
+        {
             codeBits = 10
-        else do
+        }
+        else
+        {
             codeBits = 9
+        }
     }
 
     return result

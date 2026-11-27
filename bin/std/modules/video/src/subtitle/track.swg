@@ -64,10 +64,10 @@ struct Track
 {
     public readonly
     {
-        name:     String        // Display name supplied by the file or container.
-        language: String        // BCP 47 or container language tag, or empty when unspecified.
-        format:   Format        // Syntax from which the cues were decoded.
-        cues:     Array'Cue     // Cues ordered by start time, then end time.
+        name:     String          // Display name supplied by the file or container.
+        language: String          // BCP 47 or container language tag, or empty when unspecified.
+        format:   Format          // Syntax from which the cues were decoded.
+        cues:     Array!{Cue}     // Cues ordered by start time, then end time.
     }
 
     internal
@@ -81,8 +81,11 @@ struct Track
 private func timestampNumber(text: string)->f64 fail
 {
     let trimmed = Latin1.trim(text)
-    if not trimmed.count do
+    if not trimmed.count
+    {
         fail InvalidFormatError{"subtitle timestamp has an empty component"}
+    }
+
     return try StrConv.toF64(trimmed)
 }
 
@@ -90,10 +93,12 @@ private func timestampNumber(text: string)->f64 fail
 private func parseTimestamp(text: string)->f64 fail
 {
     var normalized = String.from(Latin1.trim(text))
-    normalized.replace(','rune, ".")
-    let parts = Tokenize.split(normalized.toString(), ':'u8)
-    if parts.count < 2 or parts.count > 3 do
+    normalized.replace(','_rune, ".")
+    let parts = Tokenize.split(normalized.toString(), ':'_u8)
+    if parts.count < 2 or parts.count > 3
+    {
         fail InvalidFormatError{"subtitle timestamp needs minutes, seconds, and an optional hour"}
+    }
 
     let seconds = try timestampNumber(parts[parts.count - 1])
     let minutes = try timestampNumber(parts[parts.count - 2])
@@ -105,8 +110,11 @@ private func parseTimestamp(text: string)->f64 fail
        minutes < 0 or
        minutes >= 60 or
        seconds < 0 or
-       seconds >= 60 do
+       seconds >= 60
+    {
         fail InvalidFormatError{"subtitle timestamp component is outside its accepted range"}
+    }
+
     return hours * 3_600 + minutes * 60 + seconds
 }
 
@@ -114,7 +122,7 @@ private func stripSubtitleMarkup(result: *String, text: string)
 {
     result.clear()
     var insideTag, insideOverride: bool
-    var index = 0'u64
+    var index = 0_u64
     while index < text.count
     {
         if text[index] == '<'
@@ -126,8 +134,11 @@ private func stripSubtitleMarkup(result: *String, text: string)
 
         if insideTag
         {
-            if text[index] == '>' do
+            if text[index] == '>'
+            {
                 insideTag = false
+            }
+
             index += 1
             continue
         }
@@ -141,8 +152,11 @@ private func stripSubtitleMarkup(result: *String, text: string)
 
         if insideOverride
         {
-            if text[index] == '}' do
+            if text[index] == '}'
+            {
                 insideOverride = false
+            }
+
             index += 1
             continue
         }
@@ -152,22 +166,25 @@ private func stripSubtitleMarkup(result: *String, text: string)
             let escaped = text[index + 1]
             if escaped == 'N' or escaped == 'n'
             {
-                result.append('\n'rune)
+                result.append('\n'_rune)
                 index += 2
                 continue
             }
 
             if escaped == 'h'
             {
-                result.append(' 'rune)
+                result.append(' '_rune)
                 index += 2
                 continue
             }
         }
 
         let {c, eat} = Utf8.decodeRune(text[index to])
-        if not eat do
+        if not eat
+        {
             break
+        }
+
         result.append(c)
         index += eat
     }
@@ -198,32 +215,56 @@ private func inferFormat(fileName, source: string)->Format fail
     }
 
     let head = Latin1.trim(source)
-    if Utf8.startsWith(head, "WEBVTT") do
+    if Utf8.startsWith(head, "WEBVTT")
+    {
         return .WebVtt
-    if Utf8.startsWith(head, "[Script Info]") or Utf8.indexOf(head, "[Events]", 0, .Latin1NoCase) != Swag.U64.Max do
+    }
+
+    if Utf8.startsWith(head, "[Script Info]") or Utf8.indexOf(head, "[Events]", 0, .Latin1NoCase) != Swag.U64.Max
+    {
         return .SubStationAlpha
-    if head.count and head[0] == '[' do
+    }
+
+    if head.count and head[0] == '['
+    {
         return .Lyric
-    if head.count and head[0] == '{' do
+    }
+
+    if head.count and head[0] == '{'
+    {
         return .MicroDvd
-    if Utf8.indexOf(head, "-->") != Swag.U64.Max do
+    }
+
+    if Utf8.indexOf(head, "-->") != Swag.U64.Max
+    {
         return .SubRip
+    }
+
     fail UnsupportedFormatError{"subtitle decoder does not recognize this text format"}
 }
 
 private func cueTimeLine(line: string)->{startSeconds, endSeconds: f64} fail
 {
     let arrow = Utf8.indexOf(line, "-->")
-    if arrow == Swag.U64.Max do
+    if arrow == Swag.U64.Max
+    {
         fail InvalidFormatError{"subtitle cue has no timestamp arrow"}
+    }
+
     let start = try parseTimestamp(line[0 until arrow])
     let rest  = Latin1.trim(line[arrow + 3 to])
-    var endAt = 0'u64
-    while endAt < rest.count and not Latin1.isSpace(rest[endAt]) do
+    var endAt = 0_u64
+    while endAt < rest.count and not Latin1.isSpace(rest[endAt])
+    {
         endAt += 1
+    }
+
     let end = try parseTimestamp(rest[0 until endAt])
-    if end <= start do
+    if end <= start
+    {
         fail InvalidFormatError{"subtitle cue end does not follow its start"}
+    }
+
     return {startSeconds: start, endSeconds: end}
 }
 
@@ -233,8 +274,11 @@ private func joinCueLines(result: *String, lines: const [..] string, first, last
     var joined: String
     for index in first until last
     {
-        if not joined.isEmpty() do
-            joined.append('\n'rune)
+        if not joined.isEmpty()
+        {
+            joined.append('\n'_rune)
+        }
+
         joined += lines[index]
     }
 
@@ -244,21 +288,31 @@ private func joinCueLines(result: *String, lines: const [..] string, first, last
 private func decodeSubRip(track: *Track, source: string) fail
 {
     let lines = Tokenize.splitLines(source)
-    var index = 0'u64
+    var index = 0_u64
     while index < lines.count
     {
-        while index < lines.count and not (Latin1.trim(lines[index])).count do
+        while index < lines.count and not (Latin1.trim(lines[index])).count
+        {
             index += 1
-        if index >= lines.count do
+        }
+
+        if index >= lines.count
+        {
             break
+        }
 
         let blockFirst = index
         var blockEnd   = index
-        while blockEnd < lines.count and (Latin1.trim(lines[blockEnd])).count do
+        while blockEnd < lines.count and (Latin1.trim(lines[blockEnd])).count
+        {
             blockEnd += 1
+        }
+
         var timeAt = blockFirst
-        if Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max do
-            timeAt += 1     // Optional cue identifier or sequence number.
+        if Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max
+        {
+            timeAt += 1
+        }     // Optional cue identifier or sequence number.
         if timeAt >= blockEnd or Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max
         {
             track.noteDiscardedCue()
@@ -275,10 +329,15 @@ private func decodeSubRip(track: *Track, source: string) fail
 
         var text: String
         joinCueLines(&text, lines.toSlice(), timeAt + 1, blockEnd)
-        if text.length do
+        if text.length
+        {
             track.addCue(times.startSeconds, times.endSeconds, text.toString())
-        else do
+        }
+        else
+        {
             track.noteDiscardedCue()
+        }
+
         index = blockEnd
     }
 }
@@ -286,15 +345,24 @@ private func decodeSubRip(track: *Track, source: string) fail
 private func decodeWebVtt(track: *Track, source: string) fail
 {
     let lines = Tokenize.splitLines(source)
-    var index = 0'u64
-    if lines.count and Utf8.startsWith(Latin1.trim(lines[0]), "WEBVTT") do
+    var index = 0_u64
+    if lines.count and Utf8.startsWith(Latin1.trim(lines[0]), "WEBVTT")
+    {
         index = 1
+    }
+
     while index < lines.count
     {
-        while index < lines.count and not (Latin1.trim(lines[index])).count do
+        while index < lines.count and not (Latin1.trim(lines[index])).count
+        {
             index += 1
-        if index >= lines.count do
+        }
+
+        if index >= lines.count
+        {
             break
+        }
+
         let block = Latin1.trim(lines[index])
         if block == "STYLE" or
            block == "REGION" or
@@ -302,18 +370,26 @@ private func decodeWebVtt(track: *Track, source: string) fail
            Utf8.startsWith(block, "NOTE ") or
            Utf8.startsWith(block, "NOTE\t")
         {
-            while index < lines.count and (Latin1.trim(lines[index])).count do
+            while index < lines.count and (Latin1.trim(lines[index])).count
+            {
                 index += 1
+            }
+
             continue
         }
 
         let blockFirst = index
         var blockEnd   = index
-        while blockEnd < lines.count and (Latin1.trim(lines[blockEnd])).count do
+        while blockEnd < lines.count and (Latin1.trim(lines[blockEnd])).count
+        {
             blockEnd += 1
+        }
+
         var timeAt = blockFirst
-        if Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max do
-            timeAt += 1     // Optional WebVTT cue identifier.
+        if Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max
+        {
+            timeAt += 1
+        }     // Optional WebVTT cue identifier.
         if timeAt >= blockEnd or Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max
         {
             track.noteDiscardedCue()
@@ -330,24 +406,35 @@ private func decodeWebVtt(track: *Track, source: string) fail
 
         var text: String
         joinCueLines(&text, lines.toSlice(), timeAt + 1, blockEnd)
-        if text.length do
+        if text.length
+        {
             track.addCue(times.startSeconds, times.endSeconds, text.toString())
-        else do
+        }
+        else
+        {
             track.noteDiscardedCue()
+        }
+
         index = blockEnd
     }
 }
 
 private func commaField(line: string, field: u32)->string
 {
-    var start   = 0'u64
-    var current = 0'u32
+    var start   = 0_u64
+    var current = 0_u32
     for index in line.count
     {
-        if line[index] != ',' do
+        if line[index] != ','
+        {
             continue
-        if current == field do
+        }
+
+        if current == field
+        {
             return line[start until index]
+        }
+
         current += 1
         start   = index + 1
     }
@@ -357,11 +444,14 @@ private func commaField(line: string, field: u32)->string
 
 private func commaTail(line: string, field: u32)->string
 {
-    var current = 0'u32
+    var current = 0_u32
     for index in line.count where line[index] == ','
     {
-        if current == field do
+        if current == field
+        {
             return line[index + 1 to]
+        }
+
         current += 1
     }
 
@@ -372,9 +462,9 @@ private func decodeSubStationAlpha(track: *Track, source: string) fail
 {
     let lines      = Tokenize.splitLines(source)
     var inEvents: bool
-    var startField = 1'u32
-    var endField   = 2'u32
-    var textField  = 9'u32
+    var startField = 1_u32
+    var endField   = 2_u32
+    var textField  = 9_u32
     for raw in lines
     {
         let line = Latin1.trim(raw)
@@ -384,27 +474,38 @@ private func decodeSubStationAlpha(track: *Track, source: string) fail
             continue
         }
 
-        if not inEvents do
+        if not inEvents
+        {
             continue
+        }
+
         if Utf8.startsWith(line, "Format:", .Latin1NoCase)
         {
-            let fields = Tokenize.split(line[7 to], ','u8)
+            let fields = Tokenize.split(line[7 to], ','_u8)
             for field, index in fields
             {
                 let name = Latin1.trim(field)
-                if Latin1.compare(name, "Start", ignoreCase: true) == 0 do
+                if Latin1.compare(name, "Start", ignoreCase: true) == 0
+                {
                     startField = cast(u32, index)
-                elif Latin1.compare(name, "End", ignoreCase: true) == 0 do
+                }
+                else if Latin1.compare(name, "End", ignoreCase: true) == 0
+                {
                     endField = cast(u32, index)
-                elif Latin1.compare(name, "Text", ignoreCase: true) == 0 do
+                }
+                else if Latin1.compare(name, "Text", ignoreCase: true) == 0
+                {
                     textField = cast(u32, index)
+                }
             }
 
             continue
         }
 
-        if not Utf8.startsWith(line, "Dialogue:", .Latin1NoCase) do
+        if not Utf8.startsWith(line, "Dialogue:", .Latin1NoCase)
+        {
             continue
+        }
 
         let event = Latin1.trim(line[9 to])
         let start = catch parseTimestamp(commaField(event, startField))
@@ -427,10 +528,14 @@ private func decodeSubStationAlpha(track: *Track, source: string) fail
 
         var text: String
         stripSubtitleMarkup(&text, textField ? commaTail(event, textField - 1) : commaField(event, 0))
-        if text.length do
+        if text.length
+        {
             track.addCue(start, end, text.toString())
-        else do
+        }
+        else
+        {
             track.noteDiscardedCue()
+        }
     }
 }
 
@@ -442,20 +547,26 @@ private func decodeLyric(track: *Track, source: string) fail
     for raw in lines
     {
         var line = Latin1.trim(raw)
-        var times: Array'f64
+        var times: Array!{f64}
         while line.count and line[0] == '['
         {
             let close = Utf8.indexOf(line, "]")
             if close == Swag.U64.Max
             {
-                if Utf8.indexOf(line, ":") != Swag.U64.Max do
+                if Utf8.indexOf(line, ":") != Swag.U64.Max
+                {
                     track.noteDiscardedCue()
+                }
+
                 break
             }
 
             let stamp = line[1 until close]
-            if Utf8.indexOf(stamp, ":") == Swag.U64.Max do
+            if Utf8.indexOf(stamp, ":") == Swag.U64.Max
+            {
                 break
+            }
+
             let seconds = catch parseLrcTimestamp(stamp)
             {
                 track.noteDiscardedCue()
@@ -471,8 +582,10 @@ private func decodeLyric(track: *Track, source: string) fail
         stripSubtitleMarkup(&text, Latin1.trim(line))
         if text.length
         {
-            for start in times do
+            for start in times
+            {
                 track.addCue(start, start + 5, text.toString())
+            }
         }
         else
         {
@@ -491,13 +604,16 @@ private func decodeLyric(track: *Track, source: string) fail
 
 private func decodeMicroDvd(track: *Track, source: string) fail
 {
-    var framesPerSecond = 25.0'f64
+    var framesPerSecond = 25.0_f64
     let lines = Tokenize.splitLines(source)
     for raw in lines
     {
         let line = Latin1.trim(raw)
-        if not line.count or line[0] != '{' do
+        if not line.count or line[0] != '{'
+        {
             continue
+        }
+
         if line.count < 6
         {
             track.noteDiscardedCue()
@@ -533,8 +649,11 @@ private func decodeMicroDvd(track: *Track, source: string) fail
         if firstClose == 2 and first == 1 and last == 1
         {
             let declared = catch StrConv.toF64(Latin1.trim(line[secondClose + 1 to])) orelse 0
-            if declared > 0 do
+            if declared > 0
+            {
                 framesPerSecond = declared
+            }
+
             continue
         }
 
@@ -545,13 +664,17 @@ private func decodeMicroDvd(track: *Track, source: string) fail
         }
 
         var text = String.from(line[secondClose + 1 to])
-        text.replace('|'rune, "\n")
+        text.replace('|'_rune, "\n")
         var clean: String
         stripSubtitleMarkup(&clean, text.toString())
-        if clean.length do
+        if clean.length
+        {
             track.addCue(cast(f64, first) / framesPerSecond, cast(f64, last) / framesPerSecond, clean.toString())
-        else do
+        }
+        else
+        {
             track.noteDiscardedCue()
+        }
     }
 }
 
@@ -606,8 +729,11 @@ impl Track
     #[Swag.NoInline]
     mtd const cueContent(index: u64)->string
     {
-        if index >= .cues.count do
+        if index >= .cues.count
+        {
             return ""
+        }
+
         let cue = .cues[index]
         return .textStorage.toString()[cue.textOffset until cue.textOffset + cue.textLength]
     }
@@ -617,8 +743,10 @@ impl Track
     mtd const copyCueContent(index: u64, result: *String)
     {
         result.clear()
-        if index < .cues.count do
+        if index < .cues.count
+        {
             result[] += .cueContent(index)
+        }
     }
 
     // Returns the inclusive start of one cue, or zero outside the track.
@@ -633,8 +761,11 @@ impl Track
     #[Swag.NoInline]
     mtd const cueTextData(index: u64)->const [*] u8?
     {
-        if index >= .cues.count do
+        if index >= .cues.count
+        {
             return null
+        }
+
         return cast(const [*] u8, .textStorage.storage()) + .cues[index].textOffset
     }
 
@@ -661,16 +792,22 @@ impl Track
     // Returns the greatest cue end, or zero for an empty track.
     mtd const durationInSeconds()->f64
     {
-        var result = 0.0'f64
-        for cue in .cues do
+        var result = 0.0_f64
+        for cue in .cues
+        {
             result = Math.max(result, cue.endSeconds)
+        }
+
         return result
     }
 
     private mtd closeLyricCues()
     {
-        if .cues.count < 2 do
+        if .cues.count < 2
+        {
             return
+        }
+
         for index in .cues.count - 1 where .cues[index].endSeconds > .cues[index + 1].startSeconds
         {
             .cues[index].endSeconds = .cues[index + 1].startSeconds
@@ -735,8 +872,10 @@ impl Track
         }
 
         result.sortCues()
-        if result.cues.isEmpty() do
+        if result.cues.isEmpty()
+        {
             fail InvalidFormatError{"subtitle document has no timed cues"}
+        }
     }
 
     // Loads and decodes a subtitle file.
@@ -756,8 +895,11 @@ impl Track
         let bytes    = try File.readAllBytes(fileName)
         let encoding = Text.detectEncoding(bytes.toSlice())
         let start    = Text.hasBom(bytes.toSlice(), encoding) ? Text.bomLength(encoding) : 0
-        if not Text.looksLikeText(bytes.toSlice()[start to], encoding) do
+        if not Text.looksLikeText(bytes.toSlice()[start to], encoding)
+        {
             fail InvalidFormatError{"subtitle file does not contain readable text"}
+        }
+
         let source = Text.decode(bytes.toSlice()[start to], encoding)
         try Track.decodeInto(result, fileName, source.toString())
         result.name.clear()
@@ -773,7 +915,7 @@ impl Track
     func loadOwned(fileName: string)->*Track fail
     {
         let allocator   = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
-        with let result = Memory.new'Track(allocator)
+        with let result = Memory.new!{Track}(allocator)
         {
             .allocationAllocator   = allocator
             .name.allocator        = allocator
@@ -792,10 +934,14 @@ impl Track
     func destroy(track: *Track)
     {
         let allocator = track.allocationAllocator
-        if allocator do
+        if allocator
+        {
             Memory.delete(track, allocator)
-        else do
+        }
+        else
+        {
             Memory.delete(track)
+        }
     }
 
     // Appends one decoded cue.
@@ -831,10 +977,14 @@ impl Track
         let content = .format == .SubStationAlpha ? commaTail(text, 7) : text
         var clean: String
         stripSubtitleMarkup(&clean, content)
-        if not clean.isEmpty() do
+        if not clean.isEmpty()
+        {
             .addCue(startSeconds, endSeconds, clean.toString())
-        else do
+        }
+        else
+        {
             .noteDiscardedCue()
+        }
     }
 
     // Orders cues by start time and then by end time.
@@ -842,8 +992,11 @@ impl Track
     {
         .cues.sort(func(a, b)
         {
-            if a.startSeconds != b.startSeconds do
+            if a.startSeconds != b.startSeconds
+            {
                 return a.startSeconds <=> b.startSeconds
+            }
+
             return a.endSeconds <=> b.endSeconds
         })
     }
@@ -871,10 +1024,16 @@ impl Track
                 break
             }
 
-            if cue.endSeconds <= seconds do
+            if cue.endSeconds <= seconds
+            {
                 continue
-            if not result.isEmpty() do
-                result.append('\n'rune)
+            }
+
+            if not result.isEmpty()
+            {
+                result.append('\n'_rune)
+            }
+
             result[]   += .cueContent(index)
             nextChange = Math.min(nextChange, cue.endSeconds)
         }

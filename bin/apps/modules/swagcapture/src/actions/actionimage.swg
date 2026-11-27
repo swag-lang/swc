@@ -26,8 +26,11 @@ private func acceptsNewSize(width, height, currentWidth, currentHeight: s32)->bo
     if width < Capture.MinSize or
        width > Capture.MaxSize or
        height < Capture.MinSize or
-       height > Capture.MaxSize do
+       height > Capture.MaxSize
+    {
         return false
+    }
+
     return width != currentWidth or height != currentHeight
 }
 
@@ -135,8 +138,10 @@ impl MainWnd
         let capture = unwrap .getCapture()
 
         // A real backImg mutation is about to be committed: snapshot the first original now.
-        if not capture.backImgOriginal.isValid() do
+        if not capture.backImgOriginal.isValid()
+        {
             capture.backImgOriginal = capture.backImg
+        }
 
         let serial = capture.undoMgr.newSerial()
 
@@ -226,13 +231,17 @@ impl MainWnd
 
         let result = dialog.doModal()
         g_KeepRatio = btnRatio.isChecked()
-        if result != Dialog.BtnOk do
+        if result != Dialog.BtnOk
+        {
             return
+        }
 
         let w = catch StrConv.toS32(edit0.text()) { return; }
         let h = catch StrConv.toS32(edit1.text()) { return; }
-        if acceptsNewSize(w, h, capture.width, capture.height) do
+        if acceptsNewSize(w, h, capture.width, capture.height)
+        {
             .doProcessImage(ActionImage.ResizeImage, w: w, h: h)
+        }
     }
 
     // Returns the 3 × 3 grid of anchor buttons of an expand dialog; exactly one is checked, the
@@ -242,8 +251,8 @@ impl MainWnd
         const S = 20
         const O = 4
 
-        let grid = Wnd.create'Wnd(parent, {0, 0, 3 * S + 2 * O, 3 * S + 2 * O})
-        for cell in 9'u64
+        let grid = Wnd.create!{Wnd}(parent, {0, 0, 3 * S + 2 * O, 3 * S + 2 * O})
+        for cell in 9_u64
         {
             let x = cast(f32, cell % 3) * (S + O)
             let y = cast(f32, cell / 3) * (S + O)
@@ -338,12 +347,16 @@ impl MainWnd
     {
         let capture = unwrap .getCapture()
         let result  = .createExpandDialog(appStrings().dlg_TitleExpandImage, capture.backImg.width, capture.backImg.height)
-        if result != Dialog.BtnOk do
+        if result != Dialog.BtnOk
+        {
             return
+        }
 
         let image = &capture.backImg
-        if not acceptsNewSize(g_Width, g_Height, image.width, image.height) do
+        if not acceptsNewSize(g_Width, g_Height, image.width, image.height)
+        {
             return
+        }
 
         let horz = anchorSplit(g_Width - image.width, (g_ResizeMode - 1) % 3)
         let vert = anchorSplit(g_Height - image.height, (g_ResizeMode - 1) / 3)
@@ -355,11 +368,15 @@ impl MainWnd
     {
         let capture = unwrap .getCapture()
         let result  = .createExpandDialog(appStrings().dlg_TitleExpandCapture, capture.width, capture.height)
-        if result != Dialog.BtnOk do
+        if result != Dialog.BtnOk
+        {
             return
+        }
 
-        if not acceptsNewSize(g_Width, g_Height, capture.width, capture.height) do
+        if not acceptsNewSize(g_Width, g_Height, capture.width, capture.height)
+        {
             return
+        }
 
         let nw = g_Width - capture.width
         let nh = g_Height - capture.height
@@ -378,15 +395,21 @@ impl MainWnd
     // Whether column `x`, or row `y`, of `img` holds a pixel that is not fully transparent.
     func columnOpaque(img: const *Image, x: s32)->bool
     {
-        for y in img.height where img.pixelColor(x, y).a do
+        for y in img.height where img.pixelColor(x, y).a
+        {
             return true
+        }
+
         return false
     }
 
     func rowOpaque(img: const *Image, y: s32)->bool
     {
-        for x in img.width where img.pixelColor(x, y).a do
+        for x in img.width where img.pixelColor(x, y).a
+        {
             return true
+        }
+
         return false
     }
 
@@ -399,8 +422,8 @@ impl MainWnd
 
         var minX = Swag.F32.Max
         var minY = Swag.F32.Max
-        var maxX = 0'f32
-        var maxY = 0'f32
+        var maxX = 0_f32
+        var maxY = 0_f32
 
         let width  = cast(f32, capture.width)
         let height = cast(f32, capture.height)
@@ -476,8 +499,10 @@ impl MainWnd
         }
 
         // Remove forms outside the canvas
-        if capture.selection.count do
+        if capture.selection.count
+        {
             capture.pushUndo(capture.newUndo(.DeleteSelection), serial)
+        }
 
         // Crop image
         if capture.backImagePos.x < 0 or
@@ -497,8 +522,10 @@ impl MainWnd
             cropRect.height -= dh
 
             // Cropping is a real backImg mutation: snapshot the first original before it.
-            if not capture.backImgOriginal.isValid() do
+            if not capture.backImgOriginal.isValid()
+            {
                 capture.backImgOriginal = capture.backImg
+            }
 
             let undo = capture.newUndo(.SetImage)
             undo.newImg = capture.backImg.cropped(cropRect)

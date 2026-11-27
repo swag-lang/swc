@@ -95,8 +95,10 @@ func signalEventAfterDelay(thread: const *Threading.Thread)
     var worker: Threading.Thread
     discard expect worker.init(&signalEventAfterDelay, &event)
     discard expect worker.start()
-    defer if worker.isValid() do
+    defer if worker.isValid()
+    {
         worker.wait()
+    }
 
     let signaled = expect event.waitFor(Time.Duration.fromSeconds(1))
     worker.wait()
@@ -158,10 +160,14 @@ func signalEventAfterDelay(thread: const *Threading.Thread)
         var errorOutcome: Swag.Error
         catch signal.raise() as errorOutcome
         let error = errorOutcome.value()
-        if error is SystemError as value do
+        if error is SystemError as value
+        {
             validCodes = validCodes and value.errorID == InvalidEventError
-        else do
+        }
+        else
+        {
             validCodes = false
+        }
     }
 
     let afterSignalCatch = allocator.stats().countAlloc
@@ -171,10 +177,14 @@ func signalEventAfterDelay(thread: const *Threading.Thread)
         var errorOutcome: Swag.Error
         catch reset.raise() as errorOutcome
         let error = errorOutcome.value()
-        if error is SystemError as value do
+        if error is SystemError as value
+        {
             validCodes = validCodes and value.errorID == InvalidEventError
-        else do
+        }
+        else
+        {
             validCodes = false
+        }
     }
 
     let afterResetCatch = allocator.stats().countAlloc
@@ -184,10 +194,14 @@ func signalEventAfterDelay(thread: const *Threading.Thread)
         var errorOutcome: Swag.Error
         catch wait.raise() as errorOutcome
         let error = errorOutcome.value()
-        if error is SystemError as value do
+        if error is SystemError as value
+        {
             validCodes = validCodes and value.errorID == InvalidEventError
-        else do
+        }
+        else
+        {
             validCodes = false
+        }
     }
 
     let afterWaitCatch = allocator.stats().countAlloc
@@ -198,10 +212,14 @@ func signalEventAfterDelay(thread: const *Threading.Thread)
         var errorOutcome: Swag.Error
         catch noDetail.raise() as errorOutcome
         let error = errorOutcome.value()
-        if error is SystemError as value do
+        if error is SystemError as value
+        {
             validCodes = validCodes and value.errorID == 0 and value.message != null
-        else do
+        }
+        else
+        {
             validCodes = false
+        }
     }
 
     let afterNoDetailCatch = allocator.stats().countAlloc

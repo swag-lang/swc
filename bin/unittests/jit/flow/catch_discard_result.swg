@@ -21,8 +21,10 @@ impl CatchDiscardOwner
 #[Swag.NoInline]
 func catchDiscardOwner(succeeds: bool)->CatchDiscardOwner fail
 {
-    if not succeeds do
+    if not succeeds
+    {
         fail 7
+    }
     return {target: &CatchDiscardTarget}
 }
 
@@ -65,7 +67,10 @@ impl CatchDiscardSmallOwner
 #[Swag.NoInline]
 func catchDiscardSmallOwner(succeeds: bool)->CatchDiscardSmallOwner fail
 {
-    if not succeeds do fail 7
+    if not succeeds
+    {
+        fail 7
+    }
     return {target: &CatchDiscardTarget}
 }
 

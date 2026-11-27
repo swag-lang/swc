@@ -145,38 +145,38 @@ func inlineSafetyWrapAdd(value, delta: u8)->u8
 
 #test
 {
-    const Value = #run inlineSafetyAddOverflow(127's8, 1's8)
+    const Value = #run inlineSafetyAddOverflow(127_s8, 1_s8)
     Swag.require(Value == 0)
 }
 
 #test
 {
-    const Value = #run inlineSafetyMulOverflowS8(127's8, 2's8)
+    const Value = #run inlineSafetyMulOverflowS8(127_s8, 2_s8)
     Swag.require(Value == 0)
 }
 
 #test
 {
-    const Value = #run inlineSafetyDivOverflowS8(opaqueS8(-128's8), opaqueS8(-1))
+    const Value = #run inlineSafetyDivOverflowS8(opaqueS8(-128_s8), opaqueS8(-1))
     Swag.require(Value == 0)
 }
 
 #test
 {
-    const Value = #run inlineSafetyModOverflowS16(opaqueS16(-32768's16), opaqueS16(-1))
+    const Value = #run inlineSafetyModOverflowS16(opaqueS16(-32768_s16), opaqueS16(-1))
     Swag.require(Value == 0)
 }
 
 #test
 {
-    const Value = #run inlineSafetyWrapAdd(255'u8, 1'u8)
-    #assert(Value == 0'u8)
+    const Value = #run inlineSafetyWrapAdd(255_u8, 1_u8)
+    #assert(Value == 0_u8)
 }
 
 #[Swag.Inline, Swag.Safety(.Math, false), Swag.Sanity(.Math, false)]
 func inlineSanityMathDisabled()->f64
 {
-    var Value = -1.0'f64
+    var Value = -1.0_f64
     return Swag.sqrt(Value)
 }
 
@@ -190,7 +190,7 @@ func inlineSanityMathDisabled()->f64
 #[Swag.Inline, Swag.Safety(.Math, false), Swag.Sanity(.Math, true)]
 func inlineSanityMathEnabled()->f64
 {
-    var Value = -1.0'f64
+    var Value = -1.0_f64
     return Swag.sqrt(Value)     // swc-expected-error {{sanity_err_invalid_argument}}
 }
 

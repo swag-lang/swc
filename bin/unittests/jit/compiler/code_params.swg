@@ -82,10 +82,14 @@ func runBare()->bool
 
 func runArrowCond()->bool
 {
-    if not arrowCond(#code => true) do
+    if not arrowCond(#code => true)
+    {
         return false
-    if not arrowCond(1 == 1) do
+    }
+    if not arrowCond(1 == 1)
+    {
         return false
+    }
     return true
 }
 
@@ -192,8 +196,10 @@ func runRepeatBindings()->bool
     repeatUpTo(10)
     {
         total += index
-        if index == 4 do
+        if index == 4
+        {
             break
+        }
     }
 
     return total == 0 + 1 + 2 + 3 + 4

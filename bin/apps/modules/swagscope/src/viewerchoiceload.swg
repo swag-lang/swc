@@ -5,8 +5,8 @@ struct ViewerClassifiedFile
 {
     absoluteFileName: String
     fileSize:         String
-    choices:          Array'ViewerPluginChoice
-    folderFiles:      Array'String
+    choices:          Array!{ViewerPluginChoice}
+    folderFiles:      Array!{String}
     isDirectory:      bool
     exists:           bool
     metadata:         File.FileInfo
@@ -46,8 +46,11 @@ impl ViewerChoiceLoad
             var absolute:         #decltype(expect Path.absolute(operation.fileName))
             catch { absolute = try Path.absolute(operation.fileName) } as pathErrorOutcome
             let pathError = pathErrorOutcome.value()
-            if pathError != null do
+            if pathError != null
+            {
                 absolute = operation.fileName
+            }
+
             operation.result.absoluteFileName = #move absolute
             operation.result.privacy          = File.MountPrivacy.query(operation.result.absoluteFileName)
             operation.result.isDirectory      = Directory.exists(operation.result.absoluteFileName)
@@ -67,19 +70,26 @@ impl ViewerChoiceLoad
             }
 
             // A thumbnail needs only its document; rescanning the folder for every tile is quadratic.
-            if not operation.includeNeighbors do
+            if not operation.includeNeighbors
+            {
                 return
+            }
 
             let folder = Path.directoryName(operation.result.absoluteFileName)
-            if not folder do
+            if not folder
+            {
                 return
+            }
+
             let files = catch Directory.enumerateFiles(folder)
             {
                 return
             }
 
-            for file in files where not file.isDirectory() do
+            for file in files where not file.isDirectory()
+            {
                 operation.result.folderFiles.add(file.fullName)
+            }
 
             operation.result.folderFiles.sort(func(a, b) => Text.compareNames(a.toSlice(), b.toSlice()))
         },

@@ -41,8 +41,10 @@ Subscribe with a mask from 'Swag.CompilerMsgMask':
 #message(Swag.CompilerMsgMask.SemFunctions)
 {
     let message = unwrap Swag.compiler().getMessage()
-    if message.type == null or message.name == null do
+    if message.type == null or message.name == null
+    {
         return
+    }
 
     let functionType = assume cast(const *Swag.TypeInfoFunc, message.type)
     // Inspect functionType.parameters, functionType.returnType, and attributes.

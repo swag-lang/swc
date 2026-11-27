@@ -5,24 +5,33 @@ struct ViewerPrivacyScan
 {
     using operation: Viewer.BackgroundOperation
     executor:        Swag.Executor
-    sources:         Array'ViewerPrivacySource
+    sources:         Array!{ViewerPrivacySource}
 }
 
 impl ViewerPrivacyScan
 {
     mtd start(owner: *Wnd)
     {
-        if .sources.isEmpty() do
+        if .sources.isEmpty()
+        {
             return
-        if not .executor.isStarted() do
+        }
+
+        if not .executor.isStarted()
+        {
             .executor.start(.Background)
+        }
+
         let scan = me
         .submit(func|scan|()
         {
             for &source in scan.sources
             {
-                if Swag.isCancelled() do
+                if Swag.isCancelled()
+                {
                     return
+                }
+
                 source.policy = File.MountPrivacy.query(source.path)
             }
         },

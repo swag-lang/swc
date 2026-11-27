@@ -16,17 +16,26 @@ private func findClosing(text: string, marker: string, start: u64, wordBoundaryC
         }
 
         var runEnd = index + 1
-        while runEnd < text.count and text[runEnd] == marker[0] do
+        while runEnd < text.count and text[runEnd] == marker[0]
+        {
             runEnd += 1
+        }
+
         let runLength = runEnd - index
 
         // Underscore emphasis never closes inside a word, so 'foo_bar' in '_foo_bar_' stays plain
         // and the emphasis closes on the word-final run instead.
         let boundary = not wordBoundaryClose or runEnd >= text.count or not Latin1.isWord(text[runEnd])
-        if markerLength == 1 and runLength & 1 and boundary do
+        if markerLength == 1 and runLength & 1 and boundary
+        {
             return runEnd - 1
-        if markerLength > 1 and runLength >= markerLength and boundary do
+        }
+
+        if markerLength > 1 and runLength >= markerLength and boundary
+        {
             return runEnd - markerLength
+        }
+
         index = runEnd
     }
 
@@ -43,8 +52,10 @@ private func isMarkdownEscapable(value: u8)->bool =>
 
 private func findInlineMathEnd(text: string, start: u64)->u64
 {
-    if start >= text.count or Latin1.isSpace(text[start]) do
+    if start >= text.count or Latin1.isSpace(text[start])
+    {
         return Swag.U64.Max
+    }
 
     var index = start
     while index < text.count
@@ -58,8 +69,11 @@ private func findInlineMathEnd(text: string, start: u64)->u64
         let escaped     = index > start and text[index - 1] == '\\'
         let spaceBefore = index == start or Latin1.isSpace(text[index - 1])
         let digitAfter  = index + 1 < text.count and Latin1.isDigit(text[index + 1])
-        if not escaped and not spaceBefore and not digitAfter do
+        if not escaped and not spaceBefore and not digitAfter
+        {
             return index
+        }
+
         index += 1
     }
 
@@ -69,16 +83,22 @@ private func findInlineMathEnd(text: string, start: u64)->u64
 private func findBareUrlEnd(text: string, start: u64)->u64
 {
     var end = start
-    while end < text.count and not Latin1.isSpace(text[end]) and text[end] != '<' and text[end] != '>' do
+    while end < text.count and not Latin1.isSpace(text[end]) and text[end] != '<' and text[end] != '>'
+    {
         end += 1
+    }
+
     while end > start and
           (text[end - 1] == '.' or
            text[end - 1] == ',' or
            text[end - 1] == ';' or
            text[end - 1] == ':' or
            text[end - 1] == '!' or
-           text[end - 1] == '?') do
+           text[end - 1] == '?')
+    {
         end -= 1
+    }
+
     return end
 }
 
@@ -102,17 +122,22 @@ func parseLinkTarget(text: string, start: u64)->LinkTargetInfo
 {
     var result: #returntype
     var index = start
-    while index < text.count and text[index] == ' ' do
+    while index < text.count and text[index] == ' '
+    {
         index += 1
+    }
 
     var targetStart = index
     var targetEnd   = index
     if index < text.count and text[index] == '<'
     {
         targetStart = index + 1
-        let close = Utf8.indexOf(text, '>'rune, targetStart)
-        if close == Swag.U64.Max do
+        let close = Utf8.indexOf(text, '>'_rune, targetStart)
+        if close == Swag.U64.Max
+        {
             return result
+        }
+
         targetEnd = close
         index     = close + 1
     }
@@ -132,13 +157,16 @@ func parseLinkTarget(text: string, start: u64)->LinkTargetInfo
             {
                 depth += 1
             }
-            elif value == ')'
+            else if value == ')'
             {
-                if not depth do
+                if not depth
+                {
                     break
+                }
+
                 depth -= 1
             }
-            elif value == ' ' or value == '\t'
+            else if value == ' ' or value == '\t'
             {
                 break
             }
@@ -149,24 +177,37 @@ func parseLinkTarget(text: string, start: u64)->LinkTargetInfo
         targetEnd = index
     }
 
-    while index < text.count and (text[index] == ' ' or text[index] == '\t') do
+    while index < text.count and (text[index] == ' ' or text[index] == '\t')
+    {
         index += 1
+    }
 
     if index < text.count and (text[index] == '"' or text[index] == '\'')
     {
         let quote = text[index]
         var close = index + 1
-        while close < text.count and text[close] != quote do
+        while close < text.count and text[close] != quote
+        {
             close += 1
-        if close >= text.count do
+        }
+
+        if close >= text.count
+        {
             return result
+        }
+
         index = close + 1
-        while index < text.count and (text[index] == ' ' or text[index] == '\t') do
+        while index < text.count and (text[index] == ' ' or text[index] == '\t')
+        {
             index += 1
+        }
     }
 
-    if index >= text.count or text[index] != ')' do
+    if index >= text.count or text[index] != ')'
+    {
         return result
+    }
+
     result.found  = true
     result.target = text[targetStart until targetEnd]
     result.end    = index
@@ -179,14 +220,19 @@ func referenceTarget(value: string)->string
 {
     if value.count and value[0] == '<'
     {
-        let close = Utf8.indexOf(value, '>'rune, 1)
-        if close != Swag.U64.Max do
+        let close = Utf8.indexOf(value, '>'_rune, 1)
+        if close != Swag.U64.Max
+        {
             return value[1 until close]
+        }
     }
 
-    var end = 0'u64
-    while end < value.count and value[end] != ' ' and value[end] != '\t' do
+    var end = 0_u64
+    while end < value.count and value[end] != ' ' and value[end] != '\t'
+    {
         end += 1
+    }
+
     return value[0 until end]
 }
 
@@ -202,12 +248,18 @@ func parseReferenceDefinition(line: string)->ReferenceInfo
 {
     var result: #returntype
     let trimmed = Latin1.trim(line)
-    if trimmed.count < 4 or trimmed[0] != '[' do
+    if trimmed.count < 4 or trimmed[0] != '['
+    {
         return result
+    }
+
     let close = Utf8.indexOf(trimmed, "]: ")
     let tight = close == Swag.U64.Max ? Utf8.indexOf(trimmed, "]:") : close
-    if tight == Swag.U64.Max or tight <= 1 do
+    if tight == Swag.U64.Max or tight <= 1
+    {
         return result
+    }
+
     result.found    = true
     result.footnote = trimmed[1] == '^'
     result.name     = result.footnote ? trimmed[2 until tight] : trimmed[1 until tight]
@@ -217,8 +269,11 @@ func parseReferenceDefinition(line: string)->ReferenceInfo
 
 private func resolveReferenceTarget(references: const [..] Reference?, name: string)->string
 {
-    for &reference in references where Utf8.compare(reference.name.toString(), name, .Latin1NoCase) == 0 do
+    for &reference in references where Utf8.compare(reference.name.toString(), name, .Latin1NoCase) == 0
+    {
         return reference.target.toString()
+    }
+
     return ""
 }
 
@@ -233,15 +288,20 @@ private struct HtmlInlineInfo
 // resolves them only when it lays out a resident block, through the shared offline cache.
 private func renderImage(alt, source: string)->String
 {
-    if not Utf8.startsWith(source, "data:") and htmlLocalResourcePath("", source).isEmpty() do
+    if not Utf8.startsWith(source, "data:") and htmlLocalResourcePath("", source).isEmpty()
+    {
         return Format.toString("<a><p3>[Image: %]</p></a><t>%</t>", richText(alt, true), richText(source))
+    }
+
     return Format.toString("<img>%</img><src>%</src>", richText(alt, true), richText(source))
 }
 
 private func appendHtmlInlineChildren(output: *String, document: const *HtmlDocument, node: u32, references: const [..] Reference?)
 {
-    for child in document.children(node) do
+    for child in document.children(node)
+    {
         appendHtmlInlineNode(output, document, child, references)
+    }
 }
 
 // Translates the HTML parser's semantic tree into the smaller rich-text protocol understood by
@@ -341,13 +401,17 @@ private func parseHtmlInline(text: string, start: u64, references: const [..] Re
         let decoded = Utf8.decodeRune(text[end to])
         parser.feed(text[end until end + decoded.eat])
         end += decoded.eat
-        if parser.hasPendingSource() or parser.stack.count != 1 or document.childCount(0) != 1 do
+        if parser.hasPendingSource() or parser.stack.count != 1 or document.childCount(0) != 1
+        {
             continue
+        }
 
         let node = document.constNode(0).firstChild
         let root = document.constNode(node)
-        if root.kind != .Element or root.tag == .Unknown or HtmlParser.startsBlock(root.tag) do
+        if root.kind != .Element or root.tag == .Unknown or HtmlParser.startsBlock(root.tag)
+        {
             return result
+        }
 
         result.found = true
         result.eat   = end - start
@@ -361,7 +425,7 @@ private func parseHtmlInline(text: string, start: u64, references: const [..] Re
 func renderInline(text: string, references: const [..] Reference? = null, parsedHtmlText = false)->String
 {
     var result: #returntype
-    var index = 0'u64
+    var index = 0_u64
     while index < text.count
     {
         if text[index] == '\\' and index + 1 < text.count and text[index + 1] == '('
@@ -388,7 +452,7 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
 
         if text[index] == '!' and index + 1 < text.count and text[index + 1] == '['
         {
-            let labelEnd = Utf8.indexOf(text, ']'rune, index + 2)
+            let labelEnd = Utf8.indexOf(text, ']'_rune, index + 2)
             if labelEnd != Swag.U64.Max and labelEnd + 1 < text.count and text[labelEnd + 1] == '('
             {
                 let target = parseLinkTarget(text, labelEnd + 2)
@@ -402,7 +466,7 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
 
             if labelEnd != Swag.U64.Max and labelEnd + 1 < text.count and text[labelEnd + 1] == '['
             {
-                let referenceEnd = Utf8.indexOf(text, ']'rune, labelEnd + 2)
+                let referenceEnd = Utf8.indexOf(text, ']'_rune, labelEnd + 2)
                 if referenceEnd != Swag.U64.Max
                 {
                     let referenceName = referenceEnd == labelEnd + 2 ? text[index + 2 until labelEnd] : text[labelEnd + 2 until referenceEnd]
@@ -419,7 +483,7 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
 
         if text[index] == '['
         {
-            let labelEnd = Utf8.indexOf(text, ']'rune, index + 1)
+            let labelEnd = Utf8.indexOf(text, ']'_rune, index + 1)
             if labelEnd != Swag.U64.Max and index + 2 < labelEnd and text[index + 1] == '^'
             {
                 result += "<sup><p1>"
@@ -450,9 +514,11 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
                 var referenceName = text[index + 1 until labelEnd]
                 if labelEnd + 1 < text.count and text[labelEnd + 1] == '['
                 {
-                    referenceEnd = Utf8.indexOf(text, ']'rune, labelEnd + 2)
-                    if referenceEnd != Swag.U64.Max and referenceEnd > labelEnd + 2 do
+                    referenceEnd = Utf8.indexOf(text, ']'_rune, labelEnd + 2)
+                    if referenceEnd != Swag.U64.Max and referenceEnd > labelEnd + 2
+                    {
                         referenceName = text[labelEnd + 2 until referenceEnd]
+                    }
                 }
 
                 if referenceEnd != Swag.U64.Max
@@ -489,7 +555,7 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
                 continue
             }
 
-            let end = Utf8.indexOf(text, '>'rune, index + 1)
+            let end = Utf8.indexOf(text, '>'_rune, index + 1)
             if end != Swag.U64.Max
             {
                 let target = text[index + 1 until end]
@@ -613,8 +679,11 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
         if text[index] == '`'
         {
             var open = index + 1
-            while open < text.count and text[open] == '`' do
+            while open < text.count and text[open] == '`'
+            {
                 open += 1
+            }
+
             let runLength = open - index
 
             // A code span closes on a backtick run of the same length, so a longer opener can
@@ -630,8 +699,11 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
                 }
 
                 var runEnd = search + 1
-                while runEnd < text.count and text[runEnd] == '`' do
+                while runEnd < text.count and text[runEnd] == '`'
+                {
                     runEnd += 1
+                }
+
                 if runEnd - search == runLength
                 {
                     end = search
@@ -647,8 +719,11 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
                 if content.count >= 2 and
                    content[0] == ' ' and
                    content[content.count - 1] == ' ' and
-                   (Latin1.trim(content)).count do
+                   (Latin1.trim(content)).count
+                {
                     content = content[1 until content.count - 1]
+                }
+
                 result += "<c>"
                 result += richText(content)
                 result += "</c>"
@@ -663,7 +738,7 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
 
         if text[index] == '^'
         {
-            let end = Utf8.indexOf(text, '^'rune, index + 1)
+            let end = Utf8.indexOf(text, '^'_rune, index + 1)
             if end != Swag.U64.Max and end > index + 1
             {
                 result += "<sup>"
@@ -676,7 +751,7 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
 
         if text[index] == '~' and (index + 1 >= text.count or text[index + 1] != '~')
         {
-            let end = Utf8.indexOf(text, '~'rune, index + 1)
+            let end = Utf8.indexOf(text, '~'_rune, index + 1)
             if end != Swag.U64.Max and end > index + 1
             {
                 result += "<sub>"
@@ -737,8 +812,11 @@ func parseHeading(line: string)->HeadingInfo
 {
     var result: #returntype
     let trimmed = Latin1.trim(line)
-    while result.level < trimmed.count and result.level < 6 and trimmed[result.level] == '#' do
+    while result.level < trimmed.count and result.level < 6 and trimmed[result.level] == '#'
+    {
         result.level += 1
+    }
+
     if not result.level or result.level >= trimmed.count or trimmed[result.level] != ' '
     {
         result.level = 0
@@ -746,8 +824,11 @@ func parseHeading(line: string)->HeadingInfo
     }
 
     var end = trimmed.count
-    while end and (trimmed[end - 1] == ' ' or trimmed[end - 1] == '#') do
+    while end and (trimmed[end - 1] == ' ' or trimmed[end - 1] == '#')
+    {
         end -= 1
+    }
+
     result.text = trimmed[result.level + 1 until end]
     return result
 }
@@ -755,31 +836,51 @@ func parseHeading(line: string)->HeadingInfo
 func setextLevel(line: string)->u32
 {
     let trimmed = Latin1.trim(line)
-    if trimmed.count < 3 do
+    if trimmed.count < 3
+    {
         return 0
+    }
+
     let marker = trimmed[0]
-    if marker != '=' and marker != '-' do
+    if marker != '=' and marker != '-'
+    {
         return 0
-    for value in trimmed where value != marker do
+    }
+
+    for value in trimmed where value != marker
+    {
         return 0
+    }
+
     return marker == '=' ? 1 : 2
 }
 
 func isRule(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
-    var marker  = 0'u8
-    var count   = 0'u32
+    var marker  = 0_u8
+    var count   = 0_u32
     for value in trimmed
     {
-        if value == ' ' do
+        if value == ' '
+        {
             continue
-        if value != '-' and value != '*' and value != '_' do
+        }
+
+        if value != '-' and value != '*' and value != '_'
+        {
             return false
-        if not marker do
+        }
+
+        if not marker
+        {
             marker = value
-        elif marker != value do
+        }
+        else if marker != value
+        {
             return false
+        }
+
         count += 1
     }
 
@@ -789,8 +890,10 @@ func isRule(line: string)->bool
 func hasHardBreak(line: string)->bool
 {
     let count = line.count
-    if count >= 2 and line[count - 1] == ' ' and line[count - 2] == ' ' do
+    if count >= 2 and line[count - 1] == ' ' and line[count - 2] == ' '
+    {
         return true
+    }
 
     // A backslash ending the line is a hard break too, unless it is itself escaped.
     return count >= 1 and line[count - 1] == '\\' and (count == 1 or line[count - 2] != '\\')
@@ -799,15 +902,17 @@ func hasHardBreak(line: string)->bool
 func parseListItem(line: string)->ListInfo
 {
     var result: #returntype
-    var index = 0'u64
+    var index = 0_u64
     while index < line.count and (line[index] == ' ' or line[index] == '\t')
     {
         result.indent += line[index] == '\t' ? 4 : 1
         index         += 1
     }
 
-    if index >= line.count do
+    if index >= line.count
+    {
         return result
+    }
 
     if (line[index] == '-' or line[index] == '*' or line[index] == '+') and
        index + 1 < line.count and
@@ -820,8 +925,11 @@ func parseListItem(line: string)->ListInfo
     }
 
     let digitStart = index
-    while index < line.count and Latin1.isDigit(line[index]) do
+    while index < line.count and Latin1.isDigit(line[index])
+    {
         index += 1
+    }
+
     if index > digitStart and
        index + 1 < line.count and
        (line[index] == '.' or line[index] == ')') and
@@ -840,15 +948,22 @@ func parseListItem(line: string)->ListInfo
 func isTableSeparator(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
-    if not Utf8.contains(trimmed, '|'rune) do
+    if not Utf8.contains(trimmed, '|'_rune)
+    {
         return false
-    var dashCount = 0'u32
+    }
+
+    var dashCount = 0_u32
     for value in trimmed
     {
-        if value == '-' do
+        if value == '-'
+        {
             dashCount += 1
-        elif value != '|' and value != ':' and value != ' ' do
+        }
+        else if value != '|' and value != ':' and value != ' '
+        {
             return false
+        }
     }
 
     return dashCount >= 3
@@ -858,14 +973,22 @@ func parseFence(line: string)->FenceInfo
 {
     var result: #returntype
     let trimmed = Latin1.trim(line)
-    if trimmed.count < 3 or (trimmed[0] != '`' and trimmed[0] != '~') do
+    if trimmed.count < 3 or (trimmed[0] != '`' and trimmed[0] != '~')
+    {
         return result
+    }
 
-    var run = 1'u64
-    while run < trimmed.count and trimmed[run] == trimmed[0] do
+    var run = 1_u64
+    while run < trimmed.count and trimmed[run] == trimmed[0]
+    {
         run += 1
-    if run < 3 do
+    }
+
+    if run < 3
+    {
         return result
+    }
+
     result.found  = true
     result.marker = trimmed[0]
     result.length = cast(u32, run)

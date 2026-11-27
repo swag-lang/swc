@@ -15,7 +15,7 @@ impl IWnd for PresentationPatternWnd
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
-        for row in 96'u32
+        for row in 96_u32
         {
             let color = Color.fromRgb(cast(u8, (row * 17 + .generation * 31) % 256),
                                       cast(u8, (row * 43 + .generation * 7) % 256),
@@ -43,12 +43,12 @@ impl IWnd for PresentationPatternWnd
                                                1891,
                                                surfaceId: "gui-large-presentation-test")
         defer surface.destroy()
-        let view = Wnd.create'PresentationPatternWnd(surface.wnd)
+        let view = Wnd.create!{PresentationPatternWnd}(surface.wnd)
         surface.setView(view)
         surface.setPosition({bounds.x + 20, bounds.y + 20, 2751, 1891})
         surface.show()
 
-        for frame in 12'u32
+        for frame in 12_u32
         {
             view.generation = frame
             if frame % 3 == 0

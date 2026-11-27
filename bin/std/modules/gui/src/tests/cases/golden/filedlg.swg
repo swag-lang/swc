@@ -11,8 +11,11 @@ func pinFolderBreadcrumb(bar: *PathBar, folders: const [..] string)
     bar.breadcrumb.addItem("C:/", tag: "C:/")
     for folder, index in folders
     {
-        if index != 0 do
+        if index != 0
+        {
             path.append("/")
+        }
+
         path.append(folder)
         bar.breadcrumb.addItem(folder, tag: path.toString())
     }
@@ -26,8 +29,11 @@ func pinFolderBreadcrumb(bar: *PathBar, folders: const [..] string)
 #test
 {
     let root = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("folder-date-golden-%", Guid64.random()))
-    for name in ["chouette", "swag-lang"] do
+    for name in ["chouette", "swag-lang"]
+    {
         expect Directory.create(Path.combine(root, name), recurse: true)
+    }
+
     defer discard catch Directory.delete(root, recurse: true)
     var host: Testing.HeadlessHost
     host.setup(720, 200, dpiScale: 1.5)
@@ -50,8 +56,10 @@ func pinFolderBreadcrumb(bar: *PathBar, folders: const [..] string)
         for &chunk in item.name.chunks
         {
             Swag.require(chunk.visible)
-            for glyph in chunk.shaped.glyphs do
+            for glyph in chunk.shaped.glyphs
+            {
                 Swag.require(glyph.glyphIndex != chunk.font.glyphIndex('…'))
+            }
         }
     }
 
@@ -112,8 +120,11 @@ func pinFolderBreadcrumb(bar: *PathBar, folders: const [..] string)
     expect Directory.create(root)
     defer discard catch Directory.delete(root, recurse: true)
     let longName = "Archives et documents pour la préparation du prochain atelier"
-    for name in [longName, "Images", "Maquettes"] do
+    for name in [longName, "Images", "Maquettes"]
+    {
         expect Directory.create(Path.combine(root, name))
+    }
+
     var host: Testing.HeadlessHost
     host.setup(900, 700)
     defer discard catch host.app.setLanguage(ReferenceLanguage)

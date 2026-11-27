@@ -21,14 +21,14 @@ internal struct Day2Present
 }
 
 internal var day2PresentsLoaded = false
-internal var day2Presents: Array'Day2Present
+internal var day2Presents: Array!{Day2Present}
 
 internal func day2ParseNumber(line: string, cursorPtr: *u64)->u32
 {
     var cursor = cursorPtr[]
     defer cursorPtr[] = cursor
 
-    var result = 0'u32
+    var result = 0_u32
     while cursor < line.count and line[cursor] >= '0' and line[cursor] <= '9'
     {
         result *= 10
@@ -36,16 +36,20 @@ internal func day2ParseNumber(line: string, cursorPtr: *u64)->u32
         cursor += 1
     }
 
-    if cursor < line.count and line[cursor] == 'x' do
+    if cursor < line.count and line[cursor] == 'x'
+    {
         cursor += 1
+    }
 
     return result
 }
 
 internal func day2EnsurePresents()
 {
-    if day2PresentsLoaded do
+    if day2PresentsLoaded
+    {
         return
+    }
 
     let dataPath = Path.combine(Path.directoryName(#file), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
@@ -53,7 +57,7 @@ internal func day2EnsurePresents()
     day2Presents.reserve(lines.count)
     for line in lines
     {
-        var cursor = 0'u64
+        var cursor = 0_u64
         var x      = day2ParseNumber(line[], &cursor)
         var y      = day2ParseNumber(line[], &cursor)
         var z      = day2ParseNumber(line[], &cursor)
@@ -71,8 +75,10 @@ func day2A()
     day2EnsurePresents()
 
     var total: u64
-    for gift in day2Presents do
+    for gift in day2Presents
+    {
         total += 3 * gift.x * gift.y + 2 * gift.y * gift.z + 2 * gift.z * gift.x
+    }
 
     Swag.assert(total == 1588178)
 }

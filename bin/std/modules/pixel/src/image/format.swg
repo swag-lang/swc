@@ -32,6 +32,27 @@ struct ImageFormat
     }
 }
 
+internal func normalizedImageExtension(fileName: string, storage: *String)->string
+{
+    let extension = Path.extension(fileName)
+    if not extension
+    {
+        return ""
+    }
+
+    for i in extension.count
+    {
+        let character = extension[i]
+        if character >= 128 or (character >= 'A' and character <= 'Z')
+        {
+            storage[] = #move String.toLower(extension, .Unicode)
+            return storage.toString()
+        }
+    }
+
+    return extension
+}
+
 impl ImageFormat
 {
     // Reports whether this format claims `fileName`, by its extension alone.
@@ -41,17 +62,34 @@ impl ImageFormat
     // an error: a file dialog asks this question while its name editor is still empty.
     mtd const matches(fileName: string)->bool
     {
-        if fileName.count == 0 do
+        if fileName.count == 0
+        {
             return false
+        }
 
-        let ext = Path.lowercaseExtension(fileName)
-        return not ext.isEmpty() and .matchesLowercaseExtension(ext)
+        var storage: String
+        let ext = normalizedImageExtension(fileName, &storage)
+        return .matchesLowercaseExtension(ext)
     }
 
     internal mtd const matchesLowercaseExtension(ext: string)->bool
     {
-        for candidate in Tokenize.split(.extensions, ';'rune) where ext == candidate do
-            return true
-        return false
+        if ext.count == 0 or ext.count > .extensions.count
+        {
+            return false
+        }
+
+        var start = 0_u64
+        for end in .extensions.count where .extensions[end] == ';'
+        {
+            if ext == .extensions[start until end]
+            {
+                return true
+            }
+
+            start = end + 1
+        }
+
+        return ext == .extensions[start to]
     }
 }

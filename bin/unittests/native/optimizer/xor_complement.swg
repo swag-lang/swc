@@ -19,14 +19,16 @@ func sharedComplement(a, b: u64)->u64
 #[Swag.NoInline]
 func complementBranch(a, b: u64)->s32
 {
-    if (a ^ ~b) == 0 do
+    if (a ^ ~b) == 0
+    {
         return 11
+    }
     return 27
 }
 
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA]
     for a in values
     {
         for b in values

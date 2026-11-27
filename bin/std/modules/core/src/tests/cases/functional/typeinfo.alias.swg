@@ -51,12 +51,20 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
 {
     let aliasType = #typeof(CoreAliasLifecycleStrict)
     let arrayType = #typeof([2] CoreAliasLifecycleStrict)
-    if aliasType.kind != TypeInfoKind.Alias or arrayType.kind != TypeInfoKind.Array do
+    if aliasType.kind != TypeInfoKind.Alias or arrayType.kind != TypeInfoKind.Array
+    {
         return false
-    if not Reflection.isTypeAlias(aliasType) do
+    }
+
+    if not Reflection.isTypeAlias(aliasType)
+    {
         return false
-    if not hasCoreAliasLifecycleFlags(aliasType) or not hasCoreAliasLifecycleFlags(arrayType) do
+    }
+
+    if not hasCoreAliasLifecycleFlags(aliasType) or not hasCoreAliasLifecycleFlags(arrayType)
+    {
         return false
+    }
 
     let directRaw = Memory.alloc(#sizeof(CoreAliasLifecycleProbe))
     defer Memory.free(directRaw, #sizeof(CoreAliasLifecycleProbe))
@@ -69,8 +77,10 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
     Memory.dropType(directRaw, aliasType)
     if CoreAliasLifecyclePostCopyCount != 1 or
        CoreAliasLifecyclePostMoveCount != 1 or
-       CoreAliasLifecycleDropCount != 1 do
+       CoreAliasLifecycleDropCount != 1
+    {
         return false
+    }
 
     let arrayRaw = Memory.alloc(#sizeof([2] CoreAliasLifecycleProbe))
     defer Memory.free(arrayRaw, #sizeof([2] CoreAliasLifecycleProbe))
@@ -84,12 +94,16 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
     Memory.dropType(arrayRaw, arrayType)
     if CoreAliasLifecyclePostCopyCount != 2 or
        CoreAliasLifecyclePostMoveCount != 2 or
-       CoreAliasLifecycleDropCount != 2 do
+       CoreAliasLifecycleDropCount != 2
+    {
         return false
+    }
 
     let nestedArrayType = #typeof([3][2] CoreAliasLifecycleStrict)
-    if nestedArrayType.kind != TypeInfoKind.Array or not hasCoreAliasLifecycleFlags(nestedArrayType) do
+    if nestedArrayType.kind != TypeInfoKind.Array or not hasCoreAliasLifecycleFlags(nestedArrayType)
+    {
         return false
+    }
 
     let nestedArrayRaw = Memory.alloc(#sizeof([3][2] CoreAliasLifecycleProbe))
     defer Memory.free(nestedArrayRaw, #sizeof([3][2] CoreAliasLifecycleProbe))

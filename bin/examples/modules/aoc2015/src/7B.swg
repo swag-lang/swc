@@ -11,7 +11,7 @@ using Core
 
     var result: String
 
-    var map: HashTable'(string, string)
+    var map: HashTable!{string, string}
     map = [{k: "AND", v: "&"}, {k: "OR", v: "|"}, {k: "LSHIFT", v: "<<"}, {k: "RSHIFT", v: ">>"}]
 
     expect
@@ -26,13 +26,13 @@ using Core
             {
                 result += "B = 46065"
             }
-            elif try r.match(#raw "(\w+) -> (\w+)", l[])
+            else if try r.match(#raw "(\w+) -> (\w+)", l[])
             {
                 result += r[2]
                 result += " = "
                 result += r[1]
             }
-            elif try r.match(#raw "(\w+) (\w+) (\w+) -> (\w+)", l[])
+            else if try r.match(#raw "(\w+) (\w+) (\w+) -> (\w+)", l[])
             {
                 result += r[4]
                 result += " = "
@@ -42,7 +42,7 @@ using Core
                 result += " "
                 result += r[3]
             }
-            elif try r.match(#raw "NOT (\w+) -> (\w+)", l[])
+            else if try r.match(#raw "NOT (\w+) -> (\w+)", l[])
             {
                 result += r[2]
                 result += " = ~"

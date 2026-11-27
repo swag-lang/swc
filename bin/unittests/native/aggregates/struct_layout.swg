@@ -82,8 +82,10 @@ func makeOverlayPadded(first, second: u64, low, last: u32)->OverlayPadded
     Swag.require(value.second == 0xAABB_CCDD_1122_3344)
     Swag.require(value.last == 9)
     let bytes = cast(const [*] u8, &value)
-    for index in LastEnd until #sizeof(OverlayPadded) do
+    for index in LastEnd until #sizeof(OverlayPadded)
+    {
         Swag.require(bytes[index] == 0)
+    }
 }
 
 #test

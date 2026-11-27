@@ -101,13 +101,19 @@ impl Decimal
     // If we chop a at nd digits, should we round up?
     mtd shouldRoundUp(nd1: s64)->bool
     {
-        if nd1 < 0 or nd1 >= .nd do
+        if nd1 < 0 or nd1 >= .nd
+        {
             return false
+        }
+
         if .d[nd1] == '5' and nd1 + 1 == .nd     // exactly halfway - round to even
         {
             // if we truncated, a little higher than what's recorded - always round up
-            if .trunc do
+            if .trunc
+            {
                 return true
+            }
+
             return nd1 > 0 and (.d[nd1 - 1] - '0') % 2 != 0
         }
 
@@ -121,19 +127,29 @@ impl Decimal
     // 0.09 -> 0.1.
     mtd round(nd1: s64)
     {
-        if nd1 < 0 or nd1 >= .nd do
+        if nd1 < 0 or nd1 >= .nd
+        {
             return
-        if .shouldRoundUp(nd1) do
+        }
+
+        if .shouldRoundUp(nd1)
+        {
             .roundUp(nd1)
-        else do
+        }
+        else
+        {
             .roundDown(nd1)
+        }
     }
 
     // Round a down to nd digits (or fewer).
     mtd roundDown(nd1: s64)
     {
-        if nd1 < 0 or nd1 >= .nd do
+        if nd1 < 0 or nd1 >= .nd
+        {
             return
+        }
+
         .nd = nd1
         .trim()
     }
@@ -141,8 +157,10 @@ impl Decimal
     // Round a up to nd digits (or fewer).
     mtd roundUp(nd1: s64)
     {
-        if nd1 < 0 or nd1 >= .nd do
+        if nd1 < 0 or nd1 >= .nd
+        {
             return
+        }
 
         // round up
         for var i = nd1 - 1; i >= 0; i -= 1
@@ -195,10 +213,15 @@ impl Decimal
 
     mtd trim()
     {
-        while .nd > 0 and .d[.nd - 1] == '0' do
+        while .nd > 0 and .d[.nd - 1] == '0'
+        {
             .nd -= 1
-        if .nd == 0 do
+        }
+
+        if .nd == 0
+        {
             .dp = 0
+        }
     }
 
     const MaxShift: u32 = 64 - 4
@@ -236,7 +259,7 @@ impl Decimal
 
         .dp -= r - 1
 
-        let mask: u64 = (1'u64 << k) - 1
+        let mask: u64 = (1_u64 << k) - 1
 
         // Pick up a digit, put down a digit.
         while r < .nd
@@ -260,7 +283,7 @@ impl Decimal
                 .d[w] = cast(u8, (dig + '0'))
                 w     += 1
             }
-            elif dig > 0
+            else if dig > 0
             {
                 .trunc = true
             }
@@ -276,10 +299,15 @@ impl Decimal
     {
         for i in s.count
         {
-            if i >= b.count do
+            if i >= b.count
+            {
                 return true
-            if b[i] != s[i] do
+            }
+
+            if b[i] != s[i]
+            {
                 return b[i] < s[i]
+            }
         }
 
         return false
@@ -288,8 +316,10 @@ impl Decimal
     mtd leftShift(k: u32)
     {
         var delta = LeftCheats[k].delta
-        if prefixIsLessThan(Swag.makeSlice(&.d[0], .nd), LeftCheats[k].cutoff) do
+        if prefixIsLessThan(Swag.makeSlice(&.d[0], .nd), LeftCheats[k].cutoff)
+        {
             delta -= 1
+        }
 
         var r = .nd             // read index
         var w = .nd + delta     // write index
@@ -303,10 +333,15 @@ impl Decimal
             let quo = n / 10
             let rem = n - (10 * quo)
             w -= 1
-            if w < (.d).count do
+            if w < (.d).count
+            {
                 .d[w] = cast(u8, (rem + '0'))
-            elif rem != 0 do
+            }
+            else if rem != 0
+            {
                 .trunc = true
+            }
+
             n = quo
             r -= 1
         }
@@ -317,16 +352,24 @@ impl Decimal
             let quo = n / 10
             let rem = n - (10 * quo)
             w -= 1
-            if w < (.d).count do
+            if w < (.d).count
+            {
                 .d[w] = cast(u8, (rem + '0'))
-            elif rem != 0 do
+            }
+            else if rem != 0
+            {
                 .trunc = true
+            }
+
             n = quo
         }
 
         .nd += delta
-        if .nd >= (.d).count do
+        if .nd >= (.d).count
+        {
             .nd = cast(s32, (.d).count)
+        }
+
         .dp += delta
         .trim()
     }
@@ -363,7 +406,7 @@ impl Decimal
 
     mtd readF64(str: const [..] u8, numberFormat: NumberFormatInfo)->u32 fail
     {
-        var cpt     = 0'u32
+        var cpt     = 0_u32
         let countof = str.count
         var buffer  = str.buffer
 
@@ -376,14 +419,18 @@ impl Decimal
         {
             buffer, cpt += 1
             .neg        = true
-            if cpt == countof do
+            if cpt == countof
+            {
                 fail ParseIncompleteError{}
+            }
         }
-        elif c == plusSign
+        else if c == plusSign
         {
             buffer, cpt += 1
-            if cpt == countof do
+            if cpt == countof
+            {
                 fail ParseIncompleteError{}
+            }
         }
 
         // digits
@@ -391,7 +438,7 @@ impl Decimal
         var sawdot        = false
         var sawDigits     = false
         var ndMant        = 0
-        var integerDigits = 0's64
+        var integerDigits = 0_s64
 
         .nd = 0
         .dp = 0
@@ -401,12 +448,15 @@ impl Decimal
             c = buffer[]
             if c == dotSign
             {
-                if sawdot do
+                if sawdot
+                {
                     break
+                }
+
                 sawdot = true
                 .dp    = integerDigits
             }
-            elif '0' <= c and c <= '9'
+            else if '0' <= c and c <= '9'
             {
                 sawDigits = true
                 if c == '0' and .nd == 0
@@ -415,8 +465,11 @@ impl Decimal
                 }
                 else
                 {
-                    if not sawdot do
+                    if not sawdot
+                    {
                         integerDigits += 1
+                    }
+
                     if .nd < (.d).count
                     {
                         .d[.nd] = c
@@ -428,12 +481,12 @@ impl Decimal
                             .mantissa += cast(u64, (c - '0'))
                             ndMant    += 1
                         }
-                        elif c != '0'
+                        else if c != '0'
                         {
                             .trunc = true
                         }
                     }
-                    elif c != '0'
+                    else if c != '0'
                     {
                         .bigtrunc = true
                     }
@@ -444,70 +497,111 @@ impl Decimal
                 break
             }
 
-            if cpt == Swag.U32.Max do
+            if cpt == Swag.U32.Max
+            {
                 fail Errors.OverflowError{"floating-point token exceeds the supported length"}
+            }
+
             cpt, buffer += 1
         }
 
-        if not sawDigits do
+        if not sawDigits
+        {
             fail SyntaxError{}
-        if not sawdot do
+        }
+
+        if not sawdot
+        {
             .dp = integerDigits
+        }
 
         // Exponent
-        if cpt < countof do
+        if cpt < countof
+        {
             c = buffer[]
+        }
+
         if cpt < countof and (c | 32) == 'e'
         {
-            if cpt == Swag.U32.Max do
+            if cpt == Swag.U32.Max
+            {
                 fail Errors.OverflowError{"floating-point token exceeds the supported length"}
+            }
+
             cpt, buffer += 1
-            if cpt >= countof do
+            if cpt >= countof
+            {
                 fail ParseIncompleteError{}
+            }
 
             var esign = 1
             c = buffer[]
             if c == negSign
             {
-                if cpt == Swag.U32.Max do
+                if cpt == Swag.U32.Max
+                {
                     fail Errors.OverflowError{"floating-point token exceeds the supported length"}
+                }
+
                 buffer, cpt += 1
-                if cpt >= countof do
+                if cpt >= countof
+                {
                     fail ParseIncompleteError{}
+                }
+
                 esign = -1
                 c     = buffer[]
             }
-            elif c == plusSign
+            else if c == plusSign
             {
-                if cpt == Swag.U32.Max do
+                if cpt == Swag.U32.Max
+                {
                     fail Errors.OverflowError{"floating-point token exceeds the supported length"}
+                }
+
                 buffer, cpt += 1
-                if cpt >= countof do
+                if cpt >= countof
+                {
                     fail ParseIncompleteError{}
+                }
+
                 c = buffer[]
             }
 
-            if cpt >= countof or c < '0' or c > '9' do
+            if cpt >= countof or c < '0' or c > '9'
+            {
                 fail SyntaxError{}
+            }
 
             var e = 0
             while cpt < countof
             {
                 c = buffer[]
-                if c < '0' or c > '9' do
+                if c < '0' or c > '9'
+                {
                     break
-                if e < 10000 do
+                }
+
+                if e < 10000
+                {
                     e = e * 10 + (c - '0')
-                if cpt == Swag.U32.Max do
+                }
+
+                if cpt == Swag.U32.Max
+                {
                     fail Errors.OverflowError{"floating-point token exceeds the supported length"}
+                }
+
                 buffer, cpt += 1
             }
 
             .dp += e * esign
         }
 
-        if .mantissa != 0 do
+        if .mantissa != 0
+        {
             .exp = .dp - ndMant
+        }
 
         return cpt
     }
@@ -550,10 +644,15 @@ impl Decimal
             while .dp > 0
             {
                 var n: s64
-                if .dp >= PowTab.count do
+                if .dp >= PowTab.count
+                {
                     n = 27
-                else do
+                }
+                else
+                {
                     n = PowTab[.dp]
+                }
+
                 .shift(-cast(s32, n))
                 .exp += n
             }
@@ -561,10 +660,15 @@ impl Decimal
             while .dp < 0 or .dp == 0 and .d[0] < '5'
             {
                 var n: s64
-                if -.dp >= PowTab.count do
+                if -.dp >= PowTab.count
+                {
                     n = 27
-                else do
+                }
+                else
+                {
                     n = PowTab[-.dp]
+                }
+
                 .shift(cast(s32, n))
                 .exp -= n
             }
@@ -582,7 +686,7 @@ impl Decimal
                 .exp += n
             }
 
-            if .exp - Swag.F64.Bias >= (1'u64 << Swag.F64.ExpBits) - 1
+            if .exp - Swag.F64.Bias >= (1_u64 << Swag.F64.ExpBits) - 1
             {
                 overflow = true
                 break
@@ -593,7 +697,7 @@ impl Decimal
             mant = .roundedInteger()
 
             // Rounding might have added a bit; shift down.
-            if mant == 2'u64 << Swag.F64.MantBits
+            if mant == 2_u64 << Swag.F64.MantBits
             {
                 mant >>= 1
                 .exp += 1
@@ -605,23 +709,29 @@ impl Decimal
             }
 
             // Denormalized?
-            if mant & (1'u64 << Swag.F64.MantBits) == 0 do
+            if mant & (1_u64 << Swag.F64.MantBits) == 0
+            {
                 .exp = Swag.F64.Bias
+            }
+
             break
         }
 
         if overflow
         {
             mant = 0
-            .exp = ((1's64 << Swag.F64.MantBits) - 1) + cast(s64, Swag.F64.Bias)
+            .exp = ((1_s64 << Swag.F64.MantBits) - 1) + cast(s64, Swag.F64.Bias)
         }
 
         // Assemble bits.
         var result: #returntype
-        var bits = mant & ((1'u64 << Swag.F64.MantBits) - 1)
-        bits |= cast(u64, ((.exp - Swag.F64.Bias) & ((1's64 << Swag.F64.MantBits) - 1))) << Swag.F64.MantBits
-        if .neg do
-            bits |= (1'u64 << 63)
+        var bits = mant & ((1_u64 << Swag.F64.MantBits) - 1)
+        bits |= cast(u64, ((.exp - Swag.F64.Bias) & ((1_s64 << Swag.F64.MantBits) - 1))) << Swag.F64.MantBits
+        if .neg
+        {
+            bits |= (1_u64 << 63)
+        }
+
         result.b        = bits
         result.overflow = overflow
         return result
@@ -629,11 +739,13 @@ impl Decimal
 
     mtd roundedInteger()->u64
     {
-        if .dp > 20 do
+        if .dp > 20
+        {
             return 0xFFFFFFFFFFFFFFFF
+        }
 
-        var i = 0's64
-        var n = 0'u64
+        var i = 0_s64
+        var n = 0_u64
         while i < .dp and i < .nd
         {
             n = (n * 10) + cast(u64, (.d[i] - '0'))
@@ -646,8 +758,11 @@ impl Decimal
             i += 1
         }
 
-        if .shouldRoundUp(.dp) do
+        if .shouldRoundUp(.dp)
+        {
             n += 1
+        }
+
         return n
     }
 }

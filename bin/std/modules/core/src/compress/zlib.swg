@@ -29,7 +29,7 @@ impl ZLib
     // Compresses `buffer` into a new zlib stream.
     //
     // The header always announces the default level, whatever `level` is; decoders ignore it.
-    mtd compress(buffer: const [..] u8, level = Deflate.CompressionLevel.Default)->Array'u8 fail
+    mtd compress(buffer: const [..] u8, level = Deflate.CompressionLevel.Default)->Array!{u8} fail
     {
         var result: #returntype
 
@@ -55,11 +55,35 @@ impl ZLib
     // the hint must not exceed that limit. Fails with [[Core.Errors.InvalidFormatError]] for a
     // malformed stream or a checksum mismatch, and with [[Core.Errors.UnsupportedFormatError]]
     // for a preset dictionary, a window larger than 32 KiB, or output beyond the limit.
-    mtd decompress(buffer: const [..] u8, hintSize: u64 = 0, maxOutputSize: u64 = Swag.U64.Max)->Array'u8 fail
+    mtd decompress(buffer: const [..] u8, hintSize: u64 = 0, maxOutputSize: u64 = Swag.U64.Max)->Array!{u8} fail
     {
         var result: #returntype
         try .decompress(&result, buffer, hintSize, maxOutputSize)
         return result
+    }
+
+    // Writes the decompressed zlib stream into a caller's fixed-size `output` slice.
+    //
+    // Returns the number of bytes written. The input and output storage must be disjoint.
+    // The call can modify `output` before failing. An undersized slice fails with
+    // [[Core.Errors.UnsupportedFormatError]]. Invalid streams have the same errors
+    // as [[Core.Compress.ZLib.decompress]].
+    mtd decompressInto(output: [..] u8, buffer: const [..] u8)->u64 fail
+    {
+        if buffer.count and
+           output.count and
+           buffer.buffer < output.buffer + output.count and
+           output.buffer < buffer.buffer + buffer.count
+        {
+            fail BadParameterError{}
+
+            // The output limit prevents this temporary header from reallocating the slice.
+        }
+
+        var result = Array!{u8}{buffer: output.buffer, capacity: output.count}
+        defer result.buffer = null
+        try .decompress(&result, buffer, maxOutputSize: output.count)
+        return result.count
     }
 
     // Appends the decompressed zlib stream in `buffer` to `result`.
@@ -67,43 +91,63 @@ impl ZLib
     // `buffer` must come from separate storage. `hintSize` and `maxOutputSize` count only
     // appended bytes. On failure, `result` retains its original bytes and count. The call
     // can reallocate the destination, invalidating borrowed views even on failure.
-    mtd decompress(result: *Array'u8, buffer: const [..] u8, hintSize: u64 = 0, maxOutputSize: u64 = Swag.U64.Max) fail
+    mtd decompress(result: *Array!{u8}, buffer: const [..] u8, hintSize: u64 = 0, maxOutputSize: u64 = Swag.U64.Max) fail
     {
         if buffer.count and
            result.buffer and
            buffer.buffer >= result.buffer and
-           buffer.buffer < result.buffer + result.capacity do
+           buffer.buffer < result.buffer + result.capacity
+        {
             fail BadParameterError{}
+        }
 
         let start = result.count
         defer #fail result.resize(start)
         var bs = ByteStream.openRead(buffer)
-        if bs.length() < 6 do
+        if bs.length() < 6
+        {
             fail InvalidFormatError{"invalid format"}
 
-        // CMF: the compression method (8 is Deflate) and the base-2 logarithm of the window size.
+            // CMF: the compression method (8 is Deflate) and the base-2 logarithm of the window size.
+        }
+
         let cmf = bs.readU8()
-        if cmf & 0xF != 8 do
+        if cmf & 0xF != 8
+        {
             fail InvalidFormatError{"invalid compression method"}
+        }
 
         let cinfo = (cmf >> 4) & 0xF
-        if cinfo > 7 do
+        if cinfo > 7
+        {
             fail UnsupportedFormatError{"unsupported window size"}
-        let winSize = 1'u32 << (cinfo + 8)
+        }
+
+        let winSize = 1_u32 << (cinfo + 8)
 
         // FLG: the header check bits, the preset dictionary flag, and the informative level.
         let flg = bs.readU8()
-        if ((cast(u32, cmf) << 8) | cast(u32, flg)) % 31 do
+        if ((cast(u32, cmf) << 8) | cast(u32, flg)) % 31
+        {
             fail InvalidFormatError{"invalid header"}
+        }
 
         let fdict = (flg >> 5) & 1
-        if fdict do
+        if fdict
+        {
             fail UnsupportedFormatError{"unsupported dictionary"}
+        }
 
-        if hintSize > maxOutputSize or hintSize > Swag.U64.Max - start do
+        if hintSize > maxOutputSize or hintSize > Swag.U64.Max - start
+        {
             fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
-        if hintSize do
+        }
+
+        if hintSize
+        {
             result.grow(start + hintSize)
+        }
+
         try .decoder.decompress(result, bs.remainingBytes(), winSize, maxOutputSize)
 
         // The Adler-32 trailer follows the Deflate data at the next byte boundary.
@@ -112,13 +156,17 @@ impl ZLib
         if bufferedTrailerBytes < 4
         {
             let unreadBytes = .decoder.stream.size() - .decoder.stream.bytePosition()
-            if unreadBytes < 4 - bufferedTrailerBytes do
+            if unreadBytes < 4 - bufferedTrailerBytes
+            {
                 fail InvalidFormatError{"truncated checksum"}
+            }
         }
 
         var adler32: u32
         .decoder.stream.read32Be(cast([*] u8, &adler32))
-        if adler32 != .decoder.adler.value() do
+        if adler32 != .decoder.adler.value()
+        {
             fail InvalidFormatError{"invalid checksum"}
+        }
     }
 }

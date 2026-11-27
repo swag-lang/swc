@@ -52,8 +52,11 @@ public impl Stopwatch
     // Returns the elapsed time in ticks of [[Core.Time.monotonicFrequency]], including the current running period.
     mtd const elapsedTicks()->u64
     {
-        if not .running do
+        if not .running
+        {
             return .accumulated
+        }
+
         return .accumulated + monotonicTicks() - .startTimestamp
     }
 

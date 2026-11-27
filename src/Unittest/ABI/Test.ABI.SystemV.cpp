@@ -2123,8 +2123,9 @@ func checkStackOrder()
     var counts:   [3] u32
 
     // All captures share one call site; skip advances through the same ordered frames.
-    for i in 3 do
+    for i in 3 {
         counts[i] = captureLeaf(cast(u32, i), captures[i])
+    }
     Swag.assert(counts[0] >= 3 and counts[0] < 128)
     Swag.assert(counts[1] + 1 == counts[0] and counts[2] + 2 == counts[0])
     for i in counts[2]
@@ -2166,8 +2167,8 @@ SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxProcessStorageSharesCompilerAndNativeAnch
 #run
 {
     let shared = cast([*] u64, unwrap __hostProcessStorage(0x43504353, 64))
-    Swag.assert(shared[0] == 0x123456789abcdef0'u64)
-    shared[7] = 0xfedcba9876543210'u64
+    Swag.assert(shared[0] == 0x123456789abcdef0_u64)
+    shared[7] = 0xfedcba9876543210_u64
 }
 )";
     SWC_RESULT(runLinuxRuntimeProbe(ctx, "LinuxProcessStorageInterop", SOURCE));
@@ -2183,9 +2184,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxHostedPrimitives)
 
 #run
 {
-    Swag.assert(__LinuxRT.sinf(0'f32) == 0'f32)
-    Swag.assert(__LinuxRT.cos(0'f64) == 1'f64)
-    Swag.assert(__LinuxRT.pow(2'f64, 5'f64) == 32'f64)
+    Swag.assert(__LinuxRT.sinf(0_f32) == 0_f32)
+    Swag.assert(__LinuxRT.cos(0_f64) == 1_f64)
+    Swag.assert(__LinuxRT.pow(2_f64, 5_f64) == 32_f64)
     Swag.assert(__hostMonotonicFrequency() == 1_000_000_000)
     let before = __hostMonotonicTicks()
     __hostThreadSleep(1)
@@ -2265,12 +2266,14 @@ SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxPageRegistryIsolatedAfterFork)
     if child == 0
     {
         let childReservation = __hostPageReserve(size)
-        if not childReservation do
+        if not childReservation {
             __LinuxRT._exit(1)
+        }
         let childAddress = cast(u64, childReservation)
-        if not __hostPageCommit(childReservation, size) or __hostPageAllocationBase(childAddress) != childAddress do
+        if not __hostPageCommit(childReservation, size) or __hostPageAllocationBase(childAddress) != childAddress {
             __LinuxRT._exit(2)
         // Leave the child reservation live: its pointer must never enter the parent's registry.
+        }
         __LinuxRT._exit(0)
     }
 
@@ -2297,8 +2300,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxCompilerRetiresOwnedThreadStorage)
 #[Swag.CallingConvention(.C)]
 func compilerOwnedTlsCleanup(value: *void?)
 {
-    if value do
+    if value {
         cast(*u64, value)[] += 1
+    }
 }
 
 #run
@@ -2328,15 +2332,16 @@ SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxThreadStorageAndExitCleanup)
 struct LinuxTlsState
 {
     slot: u64
-    cleanupCount: Swag.AtomicValue'u32
+    cleanupCount: Swag.AtomicValue!{u32}
     correct: bool
 }
 
 #[Swag.CallingConvention(.C)]
 func linuxTlsCleanup(value: *void?)
 {
-    if value do
+    if value {
         cast(*LinuxTlsState, value).cleanupCount.add(1)
+    }
 }
 
 #[Swag.CallingConvention(.C)]
@@ -2354,7 +2359,7 @@ func linuxTlsWorker(value: *void?)->u32
     let key = __hostTlsAlloc()
     Swag.assert(key != Swag.U64.Max)
     defer __hostTlsFree(key)
-    var value = 42'u64
+    var value = 42_u64
     Swag.assert(__hostTlsGet(key) == null)
     Swag.assert(__hostTlsSet(key, &value))
     Swag.assert(__hostTlsGet(key) == &value)
@@ -2416,8 +2421,9 @@ func priorSignalHandler(signal: s32)
 {
     var mask: [16] u64
     discard __LinuxRT.sigprocmask(0, null, &mask)
-    if signal == 7 do
-        signalMaskCorrect = (mask[0] & (1'u64 << 9)) != 0
+    if signal == 7 {
+        signalMaskCorrect = (mask[0] & (1_u64 << 9)) != 0
+    }
     discard Swag.atomicAdd(&forwardedSignals, 1)
 }
 
@@ -2441,8 +2447,9 @@ func exhaustStack(depth: *u32)->u64
     var frame: [1024] u64
     frame[0] = depth[]
     depth[] += 1
-    if depth[] < 100000 do
+    if depth[] < 100000 {
         return exhaustStack(depth) + frame[0]
+    }
     return 0
 }
 
@@ -2460,14 +2467,14 @@ func testFaultBody()
         Swag.assert(caught.message() == "memory access violation")
         caughtFaults += 1
     }
-    var depth = 0'u32
+    var depth = 0_u32
     let overflow = Swag.catchPanic(func|&depth|() { discard exhaustStack(&depth) })
     Swag.assert(overflow.raised and depth > 0 and depth < 100000)
     let panic = Swag.catchPanic(func() { Swag.panic("ordinary panic", #curlocation) })
     Swag.assert(panic.raised and panic.message() == "ordinary panic")
 }
 
-var faultDrops: [16] Swag.AtomicValue'u32
+var faultDrops: [16] Swag.AtomicValue!{u32}
 var faultGeneration: u32
 var switchFaultContext: bool
 var faultContext: *Swag.Context?
@@ -2498,8 +2505,9 @@ func uncaughtFaultBody()
     }
     catch failWithOwnedError()
     {
-        if Swag.err is FaultError as value do
+        if Swag.err is FaultError as value {
             faultGeneration = value.generation
+        }
         writeProtectedPage()
     }
 }
@@ -2527,7 +2535,7 @@ func verifyFaultCleanup()
     var busBefore, illegalBefore: __LinuxRT.SignalAction
     var observer: __LinuxRT.SignalAction
     observer.handler = cast(*void, &priorSignalHandler)
-    observer.mask[0] = 1'u64 << 9 // SIGUSR1 is blocked while the previous handler runs.
+    observer.mask[0] = 1_u64 << 9 // SIGUSR1 is blocked while the previous handler runs.
     Swag.assert(__LinuxRT.sigaction(7, &observer, &busBefore) == 0)
     observer.flags = 0x80000000 // SA_RESETHAND must stay consumed after restoration.
     Swag.assert(__LinuxRT.sigaction(4, &observer, &illegalBefore) == 0)
@@ -2558,7 +2566,7 @@ func verifyFaultCleanup()
     let recoveryFilter = __hostTestInstallHardwareFilter()
     for useLocal in [false, true]
     {
-        for &count in faultDrops do count.store(0)
+        for &count in faultDrops { count.store(0) }
         switchFaultContext = useLocal
         let context = Swag.getContext()
         let previousPanic = context.panic

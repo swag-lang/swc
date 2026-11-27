@@ -19,6 +19,8 @@
     Swag.require(Env.localeNameFromEnvironment("sr_RS@latin", "", "") == "sr-RS")
     Swag.require(Env.localeNameFromEnvironment("zh-Hant-TW", "", "") == "zh-Hant-TW")
     Swag.require(Env.localeNameFromEnvironment("en", "", "") == "en")
-    for invalid in ["_FR", "fr_", "fr__FR", "fr--FR", "fr FR", "fr/FR", "fr:de", "fr\0FR", ".UTF-8"] do
+    for invalid in ["_FR", "fr_", "fr__FR", "fr--FR", "fr FR", "fr/FR", "fr:de", "fr\0FR", ".UTF-8"]
+    {
         Swag.require(Env.localeNameFromEnvironment(invalid, "en_US", "en_US").isEmpty())
+    }
 }

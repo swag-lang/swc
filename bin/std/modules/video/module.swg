@@ -32,8 +32,10 @@ try clip.save("preview.y4m")
 
 var reader = try Reader.open("preview.y4m")
 var picture: Pixel.Image
-for index in reader.frameCount() do
+for index in reader.frameCount()
+{
     try reader.decodeFrameInto(&picture, index)
+}
 ```
 
 A format is a codec registered against [[Video.IDecoder]] and [[Video.IEncoder]],

@@ -22,7 +22,7 @@ func mutateLarge(value: Large, target: *Large, index: u64)->u8
 #test
 {
     var value: Small
-    for index in [0'u64, 63, 64, 95]
+    for index in [0_u64, 63, 64, 95]
     {
         let caught = Swag.catchPanic(func|&value, index|() { discard mutateSmall(value, &value, index) })
         Swag.require(caught.raised and value.bytes[index] == 0)
@@ -37,7 +37,7 @@ func mutateLarge(value: Large, target: *Large, index: u64)->u8
 #test
 {
     var value: Large
-    for index in [0'u64, 511, 512, 2047]
+    for index in [0_u64, 511, 512, 2047]
     {
         let caught = Swag.catchPanic(func|&value, index|() { discard mutateLarge(value, &value, index) })
         Swag.require(caught.raised and value.bytes[index] == 0)
@@ -70,12 +70,12 @@ func removeInner(value: Small, target: *Small)->u8
 // A 64 KiB boundary can fall inside either operand of the overlap check.
 #test
 {
-    const RegionSize = 64 * 1024'u64
+    const RegionSize = 64 * 1024_u64
     var storage: [3 * RegionSize] u8
     let boundary = (cast(u64, &storage[0]) + 2 * RegionSize) & ~(RegionSize - 1)
     let crossing = cast(*Small, boundary - 48)
 
-    for index in [0'u64, 95]
+    for index in [0_u64, 95]
     {
         let caught = Swag.catchPanic(func|crossing, index|() { discard mutateSmall(crossing[], crossing, index) })
         Swag.require(caught.raised and crossing.bytes[index] == 0)

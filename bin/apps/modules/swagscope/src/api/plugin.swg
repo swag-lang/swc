@@ -7,7 +7,7 @@ using Core, Gui
 //
 // A descriptor whose version the host does not support is rejected before any of its callbacks
 // runs. Increasing this value denotes an incompatible contract change.
-const ApiVersion = 13'u32
+const ApiVersion = 13_u32
 
 // Prepares one plugin for the application it joined, before any other callback runs.
 //
@@ -27,7 +27,7 @@ alias PluginCreate = func(Host)
 //
 // A few kilobytes carry every signature a format announces itself with and every encoding a text
 // file uses. Reading more answers no better and delays the first screen.
-const ProbeHeadSize = 4 * 1024'u64
+const ProbeHeadSize = 4 * 1024_u64
 
 // What a content probe is shown about the file being classified.
 //
@@ -60,15 +60,27 @@ impl ProbeContent
     // itself. `marker` is ASCII, because a format keyword always is.
     mtd const opensWith(marker: string)->bool
     {
-        var start = 0'u64
-        if .head.count >= 3 and .head[0] == 0xEF and .head[1] == 0xBB and .head[2] == 0xBF do
+        var start = 0_u64
+        if .head.count >= 3 and .head[0] == 0xEF and .head[1] == 0xBB and .head[2] == 0xBF
+        {
             start = 3
-        while start < .head.count and Latin1.isSpace(.head[start]) do
+        }
+
+        while start < .head.count and Latin1.isSpace(.head[start])
+        {
             start += 1
-        if .head.count - start < marker.count do
+        }
+
+        if .head.count - start < marker.count
+        {
             return false
-        for index in marker.count where Latin1.toLower(.head[start + index]) != Latin1.toLower(marker[index]) do
+        }
+
+        for index in marker.count where Latin1.toLower(.head[start + index]) != Latin1.toLower(marker[index])
+        {
             return false
+        }
+
         return true
     }
 }
@@ -135,7 +147,7 @@ struct Plugin
         edgeToEdge:      bool                  // Whether the document takes the whole window, beneath the lens strip.
         showReadingLine: bool = true           // Whether the host keeps a line of file and viewer readings at the document's foot.
         smokeFixture:    String                // Immutable basename used by application smoke review.
-        selectors:       Array'String          // Lowercase extensions, exact basenames, or `*` for fallback.
+        selectors:       Array!{String}        // Lowercase extensions, exact basenames, or `*` for fallback.
     }
 }
 
@@ -144,22 +156,29 @@ impl Plugin
     // Returns the name the host currently shows for this plugin.
     mtd const displayName()->string
     {
-        if .resolveName do
+        if .resolveName
+        {
             return .resolveName()
+        }
+
         return .staticName
     }
 
     // Adds every `;` separated selector of `list`.
     mtd addSelectors(list: string)
     {
-        for selector in Tokenize.split(list, ';'u8) do
+        for selector in Tokenize.split(list, ';'_u8)
+        {
             .selectors.add(selector)
+        }
     }
 
     // Adds one selector per element of `list`.
     mtd addSelectors(list: const [..] String)
     {
-        for selector in list do
+        for selector in list
+        {
             .selectors.add(selector)
+        }
     }
 }

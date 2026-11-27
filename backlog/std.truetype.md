@@ -177,6 +177,12 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
 - Evidence: ordinary SDF already evaluates two F64 sample positions through
   `closestEdgeDistances` and `insideMask`; MSDF and analytic raster coverage remain separate scalar
   implementations.
+- Evidence: grayscale scanline bands cull unrelated edges while preserving
+  contour order, and the 64 px raster workload takes 12–50% less time across
+  TrueType and CFF fixtures. The measured bitmap bytes are unchanged.
+- Evidence: SDF rows discard edges beyond the encoded distance range.
+  At 64 px and spread 8, the measured fields render 64–74% faster with
+  identical bytes.
 - Next: vectorize analytic coverage conversion and process multiple sample points in MSDF
   distance evaluation, using vector math and gathers only where edge traversal remains profitable.
 - Done when: glyph goldens stay within a declared coverage/distance tolerance and raster and
@@ -189,9 +195,23 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
   file-backed FreeType mapping, which reads glyph programs from the file on demand. With
   the same whole-file snapshot for the standalone OTF cases, Swag takes 1.81–2.93 ms and
   FreeType takes 2.61–3.66 ms.
-- Next: isolate acquisition of the CFF charstring payload on the first standalone file
-  open. Measure the effect of large read sizes and destination allocation without
-  changing the independence of the face from later file changes.
+- Evidence: the expanded single-worker pathname comparison still has a gap on eleven
+  CJK CFF faces and the static TrueType fixture Gowun Batang. Retained-source opens
+  can share CFF dictionaries and validated character maps.
+- Evidence: the 71-case pathname comparison adds 12 TrueType CJK scenarios and records
+  60 wins. The remaining 11 losses all use large Noto CJK CFF outlines.
+- Evidence: four regional CFF subsets add eight cases with nonconsecutive CIDs.
+  Compact CID lookup takes 60–75% off fresh-source opening. FreeType still leads
+  the pathname comparisons.
+- Evidence: the verified build leads Pillow on 81 of 103 paths. The remaining 22 cover 11 full
+  CJK CFF faces, eight regional CFF cases, and three static CJK TrueType cases. When native
+  FreeType and Swag copy the same complete file, Swag wins 11 of 13 cases. The two Gothic A1
+  cases still trail. The 11 full Noto CJK cases take 12–37 µs from a retained source.
+  Four requested workers reduce opening and rendering by 19–43% across the 16 tested cases
+  eligible for parallel reads. Three of those cases move ahead of Pillow.
+- Next: isolate the remaining cost of a single-worker CFF outline copy and check whether
+  a host can provide independent snapshot storage. Preserve the face's guarantee after
+  in-place file edits.
 - Done when: Swag opens and renders the six CJK fixture scenarios faster than the
   FreeType pathname probe while preserving independent face bytes and matching Swag
   glyph indices, advances, bitmap dimensions, and checksums.

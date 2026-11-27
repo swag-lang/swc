@@ -30,7 +30,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     let png = expect File.readAllBytes(scopeTestDataPath("viewer.png"))
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(Format.toString("{\\rtf1\\ansi {\\pict\\pngblip\\picwgoal2400\\pichgoal2400\\bin% ", png.count))
     bytes.add(png.toSlice())
     bytes.add("}\\par After the binary picture.\\par}")
@@ -47,8 +47,11 @@ using Core, Gui, Gui.Testing, Viewers
 {
     let png = expect File.readAllBytes(scopeTestDataPath("viewer.png"))
     var payload: String = "\\pngblip{\\*\\picprop{\\sp{\\sn hex}{\\sv ABCDEF}}} "
-    for byte in png do
+    for byte in png
+    {
         payload += Format.toString("%{X02}", byte)
+    }
+
     payload += "}"
     let picture = expect Rtf.Picture.parse(payload.toSlice(), 0, 2)
     Swag.require(picture.end == payload.count - 1 and picture.encodedBytes == png.count)
@@ -74,9 +77,9 @@ using Core, Gui, Gui.Testing, Viewers
 // A picture beyond the byte budget is omitted without consuming the following paragraph.
 #test
 {
-    var payload: Array'u8
+    var payload: Array!{u8}
     payload.resize(2 * 1024 * 1024 + 1)
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(Format.toString("{\\rtf1\\ansi {\\pict\\pngblip\\bin% ", payload.count))
     bytes.add(payload.toSlice())
     bytes.add("}\\par After the large picture.\\par}")

@@ -10,8 +10,8 @@ using Core
 #[Swag.Signal]
 struct(T) SigArray
 {
-    callbacks:    Array'T     // Registered callbacks in invocation order.
-    suspendDepth: u32         // Number of unmatched `disable` calls.
+    callbacks:    Array!{T}     // Registered callbacks in invocation order.
+    suspendDepth: u32           // Number of unmatched `disable` calls.
 }
 
 impl SigArray
@@ -61,8 +61,10 @@ impl SigArray
     // Invokes all registered callbacks in registration order unless disabled.
     mtd call(params: ...)
     {
-        if .suspendDepth do
+        if .suspendDepth
+        {
             return
+        }
 
         // The arguments are forwarded by position, so their count must match the signature.
         Swag.assert(params.count == (#typeof(T).parameters).count)
@@ -79,8 +81,11 @@ impl SigArray
                 {
                     for i in tsParams.count
                     {
-                        if i do
+                        if i
+                        {
                             sb.appendString(",")
+                        }
+
                         sb.appendFormat("assume cast (%, params[%])", tsParams[i].pointedType!.fullname, i)
                     }
                 }

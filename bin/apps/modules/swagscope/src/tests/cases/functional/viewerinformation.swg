@@ -20,13 +20,13 @@ internal func completeInformation(host: *Testing.HeadlessHost, window: *ViewerWi
         }
 
         host.fireTimers()
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(false, "information did not settle")
 }
 
-private func informationPages(window: *ViewerWindow)->Array'String
+private func informationPages(window: *ViewerWindow)->Array!{String}
 {
     var result: #returntype
     window.infoSheet.selectPage(0)
@@ -46,7 +46,7 @@ func assertInformationParity(name: string)
     Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
     let file = scopeTestDataPath(name)
-    var explored: Array'String
+    var explored: Array!{String}
     scope
     {
         var host: Testing.HeadlessHost
@@ -94,8 +94,10 @@ func assertInformationParity(name: string)
         completeInformation(&host, window)
         let opened = informationPages(window)
         Swag.require(opened.count == explored.count, name)
-        for page in opened.count do
+        for page in opened.count
+        {
             Swag.require(opened[page] == explored[page], Format.toString("%\nExplorer:\n%\nViewer:\n%", name, explored[page], opened[page]))
+        }
     }
 }
 
@@ -121,10 +123,14 @@ func assertInformationParity(name: string)
     let previous = ThumbnailCache.read(key)
     defer
     {
-        if previous.isValid() do
+        if previous.isValid()
+        {
             expect ThumbnailCache.write(key, &previous)
-        else do
+        }
+        else
+        {
             discard catch File.delete(key)
+        }
     }
 
     var artwork = Image.create(32, 48, .RGB8)
@@ -178,8 +184,11 @@ func assertInformationParity(name: string)
         Swag.require(sheet.position == bounds)
         sheet.selectPage(1)
         Swag.require(sheet.position == bounds)
-        for 40 do
+        for 40
+        {
             sheet.addText("A paragraph that makes the information scroll.")
+        }
+
         Swag.require(sheet.position == bounds)
         host.theme.setLight()
         host.notify(.ThemeChanged)
@@ -230,9 +239,12 @@ func assertInformationParity(name: string)
     {
         Swag.drainWork()
         host.pump()
-        if not window.currentFile.isEmpty() or not window.pendingFile.isEmpty() do
+        if not window.currentFile.isEmpty() or not window.pendingFile.isEmpty()
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(not window.currentFile.isEmpty() or not window.pendingFile.isEmpty())
@@ -240,8 +252,10 @@ func assertInformationParity(name: string)
     completeInformation(&host, window)
     let opened = informationPages(window)
     Swag.require(selected.count == opened.count)
-    for page in selected.count do
+    for page in selected.count
+    {
         Swag.require(selected[page] == opened[page], Format.toString("Explorer:\n%\nViewer:\n%", selected[page], opened[page]))
+    }
 }
 
 // Music opened directly retains the online album and the recording's own tag identity.
@@ -259,10 +273,14 @@ func assertInformationParity(name: string)
     let previous = ThumbnailCache.read(key)
     defer
     {
-        if previous.isValid() do
+        if previous.isValid()
+        {
             expect ThumbnailCache.write(key, &previous)
-        else do
+        }
+        else
+        {
             discard catch File.delete(key)
+        }
     }
 
     var artwork = Image.create(32, 32, .RGB8)
@@ -314,7 +332,7 @@ private var g_ProbeServices:     Viewer.HostServices
 // A viewer that only counts how often the host has it describe the information sheet.
 private func createProbeViewer(host: Viewer.Host)
 {
-    host.attachView(Wnd.create'Wnd(host.contentParent()))
+    host.attachView(Wnd.create!{Wnd}(host.contentParent()))
     host.setDetails("Probe")
     host.setInformation(func||(_) { g_ProbeDescriptions += 1 })
     g_ProbeServices = host.services()

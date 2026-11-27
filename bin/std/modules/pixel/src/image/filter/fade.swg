@@ -8,8 +8,10 @@ public impl Image
     // Alpha is unchanged.
     mtd fade(color: Color, factor: f32 = 0.5)
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
         {
@@ -41,7 +43,7 @@ public impl Image
                 channel2Lut[i] = cast(u8, Math.lerp(cast(f32, i), cast(f32, color.r), factor))
             }
         }
-        elif .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
+        else if .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
         {
             for i in 256
             {

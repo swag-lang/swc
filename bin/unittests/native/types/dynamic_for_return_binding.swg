@@ -18,8 +18,10 @@ func findForBinding(items: [..] *ForBindingBase)->*ForBindingDerived?
 {
     for child in items
     {
-        if child is ForBindingDerived as derived do
+        if child is ForBindingDerived as derived
+        {
             return derived
+        }
     }
 
     return null

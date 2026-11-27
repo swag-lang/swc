@@ -9,24 +9,33 @@ using Core, Pixel
 #test
 {
     let monitors = Env.getMonitors()
-    if not monitors.count do
+    if not monitors.count
+    {
         return
+    }
+
     let bounds = monitors[0].physicalBounds
-    if bounds.width < 64 or bounds.height < 64 do
+    if bounds.width < 64 or bounds.height < 64
+    {
         return
+    }
+
     let monitorX      = cast(s32, bounds.x)
     let monitorY      = cast(s32, bounds.y)
     let monitorWidth  = cast(s32, bounds.width)
     let monitorHeight = cast(s32, bounds.height)
-    let captureWidth  = Math.min(256's32, monitorWidth)
-    let captureHeight = Math.min(256's32, monitorHeight)
+    let captureWidth  = Math.min(256_s32, monitorWidth)
+    let captureHeight = Math.min(256_s32, monitorHeight)
     let captureX      = monitorX + (monitorWidth - captureWidth) / 2
     let captureY      = monitorY + (monitorHeight - captureHeight) / 2
 
     var cursor: CURSORINFO
     cursor.cbSize = #sizeof(CURSORINFO)
-    if not GetCursorInfo(&cursor) or not (cursor.flags & CURSOR_SHOWING) do
+    if not GetCursorInfo(&cursor) or not (cursor.flags & CURSOR_SHOWING)
+    {
         return
+    }
+
     let originalX = cursor.ptScreenPos.x
     let originalY = cursor.ptScreenPos.y
     defer SetCursorPos(originalX, originalY)
@@ -58,14 +67,19 @@ using Core, Pixel
 #test
 {
     let monitors = Env.getMonitors()
-    if not monitors.count do
+    if not monitors.count
+    {
         return
-    let bounds = monitors[0].physicalBounds
-    if bounds.width < 64 or bounds.height < 64 do
-        return
+    }
 
-    let width    = Math.min(256's32, cast(s32, bounds.width))
-    let height   = Math.min(256's32, cast(s32, bounds.height))
+    let bounds = monitors[0].physicalBounds
+    if bounds.width < 64 or bounds.height < 64
+    {
+        return
+    }
+
+    let width    = Math.min(256_s32, cast(s32, bounds.width))
+    let height   = Math.min(256_s32, cast(s32, bounds.height))
     var source   = expect Source.open({cast(s32, bounds.x), cast(s32, bounds.y), width, height, false})
     var image: Image
     var captured = false
@@ -78,15 +92,20 @@ using Core, Pixel
         }
     }
 
-    if not captured do
+    if not captured
+    {
         return
+    }
 
     for 32
     {
         image = Image.create(1, 1, .BGRA8)
         let fresh = expect source.grabInto(&image, copyUnchanged: false)
-        if fresh do
+        if fresh
+        {
             continue
+        }
+
         Swag.require(image.width == width and image.height == height)
         Swag.require(Memory.compare(image.pixels.storage(), source.composed.pixels.storage(), image.byteCount) == 0,
                      "an unchanged frame should initialize a replacement target")
@@ -100,11 +119,11 @@ using Core, Pixel
 {
     var native: NativeSource
     native.options = {0, 0, 8, 8, false}
-    var pixels: Array'u8
+    var pixels: Array!{u8}
     pixels.resize(8 * 40)
-    for y in 8'u64
+    for y in 8_u64
     {
-        for x in 8'u64
+        for x in 8_u64
         {
             let at = y * 40 + x * 4
             pixels[at]     = cast(u8, y * 8 + x)
@@ -120,14 +139,14 @@ using Core, Pixel
     native.copyMappedRect(&image, &mapped, 0, 0, RECT{0, 0, 2, 2})
     native.copyMappedRect(&image, &mapped, 0, 0, RECT{6, 6, 8, 8})
     Swag.require(native.metrics.copiedPixels == 8)
-    for y in 8'u64
+    for y in 8_u64
     {
-        for x in 8'u64
+        for x in 8_u64
         {
             let at       = (7 - y) * 32 + x * 4
             let selected = (x < 2 and y < 2) or (x >= 6 and y >= 6)
-            Swag.require(image.pixels[at] == (selected ? cast(u8, y * 8 + x) : 0xAA'u8) and
-                         image.pixels[at + 1] == (selected ? 0x31'u8 : 0xAA'u8))
+            Swag.require(image.pixels[at] == (selected ? cast(u8, y * 8 + x) : 0xAA_u8) and
+                         image.pixels[at + 1] == (selected ? 0x31_u8 : 0xAA_u8))
         }
     }
 }
@@ -137,8 +156,10 @@ using Core, Pixel
 #test
 {
     let monitors = Env.getMonitors()
-    if not monitors.count do
+    if not monitors.count
+    {
         return
+    }
 
     let monitorBounds = monitors[0].physicalBounds
     let center        = Math.Point{monitorBounds.x + monitorBounds.width / 2, monitorBounds.y + monitorBounds.height / 2}
@@ -197,8 +218,11 @@ using Core, Pixel
 #test
 {
     let monitors = Env.getMonitors()
-    if not monitors.count do
+    if not monitors.count
+    {
         return
+    }
+
     let bounds = monitors[0].physicalBounds
     var source = expect Source.open({cast(s32, bounds.x), cast(s32, bounds.y),
                                      cast(s32, bounds.width), cast(s32, bounds.height), false})
@@ -241,16 +265,21 @@ using Core, Pixel
 #test
 {
     let monitors = Env.getMonitors()
-    if monitors.count < 2 do
+    if monitors.count < 2
+    {
         return
+    }
+
     let first  = monitors[0].physicalBounds
     let second = monitors[1].physicalBounds
     let left   = cast(s32, Math.min(first.x, second.x))
     let right  = cast(s32, Math.max(first.right(), second.right()))
     let top    = cast(s32, Math.max(first.y, second.y))
     let bottom = cast(s32, Math.min(first.bottom(), second.bottom()))
-    if bottom <= top do
+    if bottom <= top
+    {
         return
+    }
 
     var source = expect Source.open({left, top, right - left, Math.min(bottom - top, 128), false})
     Swag.require(source.sources.count >= 2 and
@@ -262,8 +291,11 @@ using Core, Pixel
     Swag.require(source.sources[0].device == source.sources[1].device and
                  source.sources[0].context == source.sources[1].context)
     discard expect source.grabInto(&image)
-    for native in source.sources do
+    for native in source.sources
+    {
         Swag.require(not native.pending)
+    }
+
     Swag.require(image.width == right - left and image.height == Math.min(bottom - top, 128))
     Swag.require(image.pixelFormat == .BGRA8 and image.byteCount > 0)
     var replacement = Image.create(image.width, image.height, .BGRA8)
@@ -277,8 +309,11 @@ using Core, Pixel
 #test
 {
     let monitors = Env.getMonitors()
-    if not monitors.count do
+    if not monitors.count
+    {
         return
+    }
+
     let first  = monitors[0].physicalBounds
     var left   = first.x
     var top    = first.y
@@ -303,8 +338,11 @@ using Core, Pixel
                  selection.height == height)
     var image: Image
     Swag.require(expect source.grabInto(&image, copyUnchanged: false, updateChangedOnly: true))
-    for native in source.sources do
+    for native in source.sources
+    {
         Swag.require(not native.pending)
+    }
+
     Swag.require(image.width == width and image.height == height)
     Swag.require(image.pixelFormat == .BGRA8)
     if source.sources.count > 1
@@ -318,8 +356,10 @@ using Core, Pixel
 
         // A nonblocking grab may defer GPU readbacks. A blocking grab drains them.
         discard expect source.grabInto(&image)
-        for native in source.sources do
+        for native in source.sources
+        {
             Swag.require(not native.pending)
+        }
     }
 }
 
@@ -330,8 +370,11 @@ using Core, Pixel
 #test
 {
     let monitors = Env.getMonitors()
-    if not monitors.count do
+    if not monitors.count
+    {
         return
+    }
+
     let bounds = monitors[0].physicalBounds
     let width  = Math.min(cast(s32, bounds.width), 320)
     let height = Math.min(cast(s32, bounds.height), 181)
@@ -343,9 +386,12 @@ using Core, Pixel
         Swag.require(image.width == width and image.height == height)
 
         // A presented desktop pixel is opaque; the empty surface is zero throughout.
-        var opaque = 0'u64
-        for pixel in cast(u64, width) * cast(u64, height) where image.pixels[pixel * 4 + 3] != 0 do
+        var opaque = 0_u64
+        for pixel in cast(u64, width) * cast(u64, height) where image.pixels[pixel * 4 + 3] != 0
+        {
             opaque += 1
+        }
+
         Swag.require(opaque != 0, "the first frame of a screen source is empty")
     }
 }

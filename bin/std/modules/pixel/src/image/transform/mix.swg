@@ -21,8 +21,10 @@ impl Image
         let top64    = Math.max(y64, 0)
         let right64  = Math.min(x64 + cast(s64, srcImage.width), cast(s64, .width))
         let bottom64 = Math.min(y64 + cast(s64, srcImage.height), cast(s64, .height))
-        if left64 >= right64 or top64 >= bottom64 do
+        if left64 >= right64 or top64 >= bottom64
+        {
             return
+        }
 
         let left   = cast(s32, left64)
         let top    = cast(s32, top64)

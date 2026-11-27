@@ -15,7 +15,7 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     }
 
     host.root.backgroundStyle = .Window
-    with let work = Wnd.create'Wnd(&host.root, {width * 0.25, height * 0.2, width * 0.5, height * 0.5})
+    with let work = Wnd.create!{Wnd}(&host.root, {width * 0.25, height * 0.2, width * 0.5, height * 0.5})
     {
         .backgroundStyle = .Dialog
     }

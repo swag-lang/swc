@@ -75,11 +75,15 @@ func rorLive(value: #simd [2] u64, count: u8)->#simd [2] u64 => Swag.ror(value, 
     r8 = cast([16] u8, Swag.ror(bytes, 3))
     Swag.require(r8[1] == 0x20 and r8[8] == 0x10 and r8[14] == 0xFF)
     r8 = cast([16] u8, Swag.rol(bytes, 0))
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(r8[i] == Bytes[i])
+    }
     r8 = cast([16] u8, Swag.rol(bytes, 8))
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(r8[i] == Bytes[i])
+    }
 
     var r32 = cast([4] u32, Swag.rol(quads, 8))
     Swag.require(r32[1] == 0x100 and r32[2] == 0x3456_7812 and r32[3] == 0xFFFF_FFFF)
@@ -92,10 +96,14 @@ func rorLive(value: #simd [2] u64, count: u8)->#simd [2] u64 => Swag.ror(value, 
     let rotatedQuads = cast([4] u32, Swag.rol(quads, 16))
     let rotatedPairs = cast([2] u64, Swag.ror(pairs, 16))
     let halfPairs    = cast([2] u64, Swag.rol(pairs, 32))
-    for i in 8 do
+    for i in 8
+    {
         Swag.require(rotatedWords[i] == Swag.rol(Words[i], 8))
-    for i in 4 do
+    }
+    for i in 4
+    {
         Swag.require(rotatedQuads[i] == Swag.rol(Quads[i], 16))
+    }
     for i in 2
     {
         Swag.require(rotatedPairs[i] == Swag.ror(Pairs[i], 16))
@@ -105,13 +113,17 @@ func rorLive(value: #simd [2] u64, count: u8)->#simd [2] u64 => Swag.ror(value, 
     // A live count reaches the register lowering instead.
     var live: u8 = 3
     let liveRol  = cast([16] u8, rolLive(bytes, live))
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(liveRol[i] == Swag.rol(Bytes[i], live))
+    }
 
     live = 40
     let liveRor = cast([2] u64, rorLive(cast(#simd [2] u64, Pairs), live))
-    for i in 2 do
+    for i in 2
+    {
         Swag.require(liveRor[i] == Swag.ror(Pairs[i], live))
+    }
 }
 
 // The counts repeat the scalar intrinsics per lane, an empty lane answering
@@ -167,8 +179,10 @@ func rorLive(value: #simd [2] u64, count: u8)->#simd [2] u64 => Swag.ror(value, 
     var probe: [16] u8
     for bit in 8
     {
-        for i in 16 do
+        for i in 16
+        {
             probe[i] = i == 0 ? 0 : cast(u8, (1 << bit))
+        }
         let packed = cast(#simd [16] u8, probe)
         let tz     = cast([16] u8, Swag.trailingZeros(packed))
         let lz     = cast([16] u8, Swag.leadingZeros(packed))
@@ -189,16 +203,22 @@ func rorLive(value: #simd [2] u64, count: u8)->#simd [2] u64 => Swag.ror(value, 
     let pairs = cast(#simd [2] u64, Pairs)
 
     let swappedWords = cast([8] u16, Swag.byteSwap(words))
-    for i in 8 do
+    for i in 8
+    {
         Swag.require(swappedWords[i] == Swag.byteSwap(Words[i]))
+    }
 
     let swappedQuads = cast([4] u32, Swag.byteSwap(quads))
-    for i in 4 do
+    for i in 4
+    {
         Swag.require(swappedQuads[i] == Swag.byteSwap(Quads[i]))
+    }
 
     let swappedPairs = cast([2] u64, Swag.byteSwap(pairs))
-    for i in 2 do
+    for i in 2
+    {
         Swag.require(swappedPairs[i] == Swag.byteSwap(Pairs[i]))
+    }
 }
 
 // A float lane loses its sign bit and nothing else.
@@ -218,7 +238,7 @@ func rorLive(value: #simd [2] u64, count: u8)->#simd [2] u64 => Swag.ror(value, 
 
     // A NaN keeps its payload, so it stays a NaN instead of turning into one
     // of the boundary values.
-    let nan     = cast #bit (#simd [4] f32, Swag.vecSplat(0xFFC0_1234'u32))
+    let nan     = cast #bit (#simd [4] f32, Swag.vecSplat(0xFFC0_1234_u32))
     let cleared = cast #bit ([4] u32, Swag.abs(nan))
     Swag.require(cleared[0] == 0x7FC0_1234)
 }

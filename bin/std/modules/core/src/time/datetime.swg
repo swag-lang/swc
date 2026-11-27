@@ -121,27 +121,51 @@ impl DateTime
     // Returns whether every component is in range and the day exists in its month.
     mtd const isValid()->bool
     {
-        if not .isDateValid() do
+        if not .isDateValid()
+        {
             return false
-        if .hour >= 24 do
+        }
+
+        if .hour >= 24
+        {
             return false
-        if .minute >= 60 do
+        }
+
+        if .minute >= 60
+        {
             return false
-        if .second >= 60 do
+        }
+
+        if .second >= 60
+        {
             return false
-        if .millisecond >= 1000 do
+        }
+
+        if .millisecond >= 1000
+        {
             return false
+        }
+
         return true
     }
 
     private mtd const isDateValid()->bool
     {
-        if .year == 0 or .year > 9999 do
+        if .year == 0 or .year > 9999
+        {
             return false
-        if .month == 0 or .month > 12 do
+        }
+
+        if .month == 0 or .month > 12
+        {
             return false
-        if .day == 0 or .day > daysInMonth(.year, .month) do
+        }
+
+        if .day == 0 or .day > daysInMonth(.year, .month)
+        {
             return false
+        }
+
         return true
     }
 
@@ -181,8 +205,11 @@ impl DateTime
     internal func parseU8(buf: *string, eat: *u32)->u16 fail
     {
         let {value, eat: consumedBytes, ovf} = try StrConv.parseU8(buf[])
-        if ovf do
+        if ovf
+        {
             fail SyntaxError{}
+        }
+
         eat[] += consumedBytes
         buf[] = Tokenize.eatCount(buf[], cast(u64, consumedBytes))
         return value
@@ -192,8 +219,11 @@ impl DateTime
     internal func parseU16(buf: *string, eat: *u32)->u16 fail
     {
         let {value, eat: consumedBytes, ovf} = try StrConv.parseU16(buf[])
-        if ovf do
+        if ovf
+        {
             fail SyntaxError{}
+        }
+
         eat[] += consumedBytes
         buf[] = Tokenize.eatCount(buf[], cast(u64, consumedBytes))
         return value
@@ -203,8 +233,11 @@ impl DateTime
     internal func parseSep(buf: *string, sep: u8, eat: *u32) fail
     {
         let view = buf[]
-        if not view.count or view[0] != sep do
+        if not view.count or view[0] != sep
+        {
             fail SyntaxError{}
+        }
+
         buf[] = Tokenize.eatCount(view, 1)
         eat[] += 1
     }
@@ -215,8 +248,10 @@ impl DateTime
         for name, index in names
         {
             let length = name.count
-            if buf[][until Math.min(buf[].count, length)] != name do
+            if buf[][until Math.min(buf[].count, length)] != name
+            {
                 continue
+            }
 
             buf[] = Tokenize.eatCount(buf[], length)
             eat[] += cast(u32, length)
@@ -241,8 +276,10 @@ impl DateTime
         var result: #returntype
         var buf = str
 
-        if not buf.count do
+        if not buf.count
+        {
             fail SyntaxError{}
+        }
 
         if buf.count >= 1 and
            Latin1.isLetter(buf[0])
@@ -258,20 +295,22 @@ impl DateTime
 
             // Validate the date before using it to check the written weekday.
             if checkDate and
-               (not result.value.isValid() or dayOfWeek != result.value.dayOfWeek()) do
+               (not result.value.isValid() or dayOfWeek != result.value.dayOfWeek())
+            {
                 fail SyntaxError{}
+            }
         }
-        elif buf.count >= 10 and
-             Latin1.isDigit(buf[0]) and
-             Latin1.isDigit(buf[1]) and
-             Latin1.isDigit(buf[2]) and
-             Latin1.isDigit(buf[3]) and
-             buf[4] == '-' and
-             Latin1.isDigit(buf[5]) and
-             Latin1.isDigit(buf[6]) and
-             buf[7] == '-' and
-             Latin1.isDigit(buf[8]) and
-             Latin1.isDigit(buf[9])
+        else if buf.count >= 10 and
+                Latin1.isDigit(buf[0]) and
+                Latin1.isDigit(buf[1]) and
+                Latin1.isDigit(buf[2]) and
+                Latin1.isDigit(buf[3]) and
+                buf[4] == '-' and
+                Latin1.isDigit(buf[5]) and
+                Latin1.isDigit(buf[6]) and
+                buf[7] == '-' and
+                Latin1.isDigit(buf[8]) and
+                Latin1.isDigit(buf[9])
         {
             result.value.year = try parseU16(&buf, &result.eat)
             try parseSep(&buf, '-', &result.eat)
@@ -323,8 +362,8 @@ impl DateTime
                Latin1.isDigit(buf[1])
             {
                 try parseSep(&buf, '.', &result.eat)
-                var fraction       = 0'u16
-                var fractionDigits = 0'u8
+                var fraction       = 0_u16
+                var fractionDigits = 0_u8
                 while buf.count and Latin1.isDigit(buf[0])
                 {
                     if fractionDigits < 3
@@ -348,8 +387,10 @@ impl DateTime
             }
         }
 
-        if checkDate and not result.value.isValid() do
+        if checkDate and not result.value.isValid()
+        {
             fail SyntaxError{}
+        }
 
         return result
     }
@@ -432,8 +473,11 @@ impl Serialization.ISerialize for DateTime
     // Writes the value as [[Core.Time.DateTimeFormat.DateTimeIsoMs]] text; a binary encoder writes the fields instead.
     mtd impl write(encoder: Serialization.IEncoder)->bool fail
     {
-        if not encoder.isTextual() do
+        if not encoder.isTextual()
+        {
             return false
+        }
+
         encoder.writeString(.toString(.DateTimeIsoMs))
         return true
     }

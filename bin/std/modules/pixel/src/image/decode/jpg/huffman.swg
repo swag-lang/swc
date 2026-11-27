@@ -12,12 +12,12 @@ using Core
 // A stream may leave them out and rely on these instead — an abbreviated stream, which is what
 // the Motion JPEG frames of a camera are. The counts carry a leading zero so that they are
 // indexed by code length, from one to sixteen, the way both codecs read them.
-const StdDcLuminanceNrCodes   = [0'u8, 0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]
-const StdDcLuminanceValues    = [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-const StdDcChrominanceNrCodes = [0'u8, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
-const StdDcChrominanceValues  = [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-const StdAcLuminanceNrCodes   = [0'u8, 0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 0x7D]
-const StdAcChrominanceNrCodes = [0'u8, 0, 2, 1, 2, 4, 4, 3, 4, 7, 5, 4, 4, 0, 1, 2, 0x77]
+const StdDcLuminanceNrCodes   = [0_u8, 0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]
+const StdDcLuminanceValues    = [0_u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+const StdDcChrominanceNrCodes = [0_u8, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
+const StdDcChrominanceValues  = [0_u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+const StdAcLuminanceNrCodes   = [0_u8, 0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 0x7D]
+const StdAcChrominanceNrCodes = [0_u8, 0, 2, 1, 2, 4, 4, 3, 4, 7, 5, 4, 4, 0, 1, 2, 0x77]
 
 const StdAcLuminanceValues: [?] u8 = [
     0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12, 0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07,
@@ -47,6 +47,56 @@ const StdAcChrominanceValues: [?] u8 = [
 
 internal impl Decoder
 {
+    func(BITS: s32, PACK_AMPLITUDE: bool) compileHuffMap(counts, symbols: const [..] u8)->{ lookup: [1 << BITS] s32, tree: [512] s32 }
+    {
+        var result: #returntype
+        buildHuffMap(counts.buffer, symbols.buffer, result.lookup, result.tree, BITS, PACK_AMPLITUDE)
+        return result
+    }
+
+    const DcLuminanceMap   = #run compileHuffMap!{HuffLookupBits, false}(StdDcLuminanceNrCodes, StdDcLuminanceValues)
+    const DcChrominanceMap = #run compileHuffMap!{HuffLookupBits, false}(StdDcChrominanceNrCodes, StdDcChrominanceValues)
+    const AcLuminanceMap   = #run compileHuffMap!{BaselineAcLookupBits, true}(StdAcLuminanceNrCodes, StdAcLuminanceValues)
+    const AcChrominanceMap = #run compileHuffMap!{BaselineAcLookupBits, true}(StdAcChrominanceNrCodes, StdAcChrominanceValues)
+
+    func isStandardHuffMap(counts, symbols: const [*] u8, standardCounts, standardSymbols: const [..] u8)->bool
+    {
+        return Memory.compare(counts, standardCounts.buffer, standardCounts.count) == 0 and
+               Memory.compare(symbols, standardSymbols.buffer, standardSymbols.count) == 0
+    }
+
+    func standardHuffMap(index: s32, counts, symbols: const [*] u8)->{ lookup: const [..] s32?, tree: const [..] s32? }
+    {
+        switch index
+        {
+        case 0:
+            if isStandardHuffMap(counts, symbols, StdDcLuminanceNrCodes, StdDcLuminanceValues)
+            {
+                return {DcLuminanceMap.lookup, DcLuminanceMap.tree}
+            }
+
+        case 1:
+            if isStandardHuffMap(counts, symbols, StdDcChrominanceNrCodes, StdDcChrominanceValues)
+            {
+                return {DcChrominanceMap.lookup, DcChrominanceMap.tree}
+            }
+
+        case MaxHuffTables / 2:
+            if isStandardHuffMap(counts, symbols, StdAcLuminanceNrCodes, StdAcLuminanceValues)
+            {
+                return {AcLuminanceMap.lookup, AcLuminanceMap.tree}
+            }
+
+        case (MaxHuffTables / 2) + 1:
+            if isStandardHuffMap(counts, symbols, StdAcChrominanceNrCodes, StdAcChrominanceValues)
+            {
+                return {AcChrominanceMap.lookup, AcChrominanceMap.tree}
+            }
+        }
+
+        return {null, null}
+    }
+
     // Reports whether the stream defined no Huffman table at all.
     //
     // That is the one case the standard tables may be substituted in. A stream defining some
@@ -54,8 +104,11 @@ internal impl Decoder
     // to noise instead of reporting it.
     mtd const hasNoHuffTable()->bool
     {
-        for i in MaxHuffTables where .huffNum[i].count do
+        for i in MaxHuffTables where .huffNum[i].count
+        {
             return false
+        }
+
         return true
     }
 

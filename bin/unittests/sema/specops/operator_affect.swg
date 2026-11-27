@@ -204,15 +204,15 @@ const ConstPaletteCards   = [
 const ConstPaletteColors: [2] ConstPaletteColor = [ConstPaletteSource.Gray, ConstPaletteSource.Blue]
 #assert(ConstSetOne.x == 1.0)
 #assert(ConstSetOne.y == 1.0)
-#assert(ConstPaletteCardOne.color.raw == 0xFF808080'u32)
-#assert(ConstPaletteCards[1].color.raw == 0xFF3366CC'u32)
-#assert(ConstPaletteColors[0].raw == 0xFF808080'u32)
+#assert(ConstPaletteCardOne.color.raw == 0xFF808080_u32)
+#assert(ConstPaletteCards[1].color.raw == 0xFF3366CC_u32)
+#assert(ConstPaletteColors[0].raw == 0xFF808080_u32)
 
 func semaTest001()
 {
     var target = SetTarget{}
-    target = 42's32
-    target = 3.5'f32
+    target = 42_s32
+    target = 3.5_f32
     let source = SetSource{value: 8}
     target = source
 
@@ -221,8 +221,8 @@ func semaTest001()
 
 func semaTest002()
 {
-    let fromInt:   SetTarget = 42's32
-    var fromFloat: SetTarget = 3.5'f32
+    let fromInt:   SetTarget = 42_s32
+    var fromFloat: SetTarget = 3.5_f32
 
     #assert(#typeof(fromInt) == SetTarget)
     #assert(#typeof(fromFloat) == SetTarget)
@@ -240,14 +240,14 @@ func semaTest003()
 func semaTest004()
 {
     var holder = SetHolder{}
-    holder.target = 77's32
+    holder.target = 77_s32
 }
 
 func semaTest005()
 {
     var target = SetTarget{}
     let ptr    = &target
-    ptr[] = 99's32
+    ptr[] = 99_s32
 }
 
 func semaTest006()
@@ -255,23 +255,23 @@ func semaTest006()
     func takesExplicit(_: ParamSetTarget) {}
     func takesImplicit(_: ParamSetTarget) {}
 
-    takesExplicit(cast(ParamSetTarget, 5's32))
-    takesImplicit(7'u16)
+    takesExplicit(cast(ParamSetTarget, 5_s32))
+    takesImplicit(7_u16)
 
-    let complete: ParamSetTarget = 2'u64
+    let complete: ParamSetTarget = 2_u64
     #assert(#typeof(complete) == ParamSetTarget)
 }
 
 func semaTest007()
 {
-    let delay1: LiteralSetTarget = 5's
-    let delay2: LiteralSetTarget = 500'ms
-    let delay3                   = cast(LiteralSetTarget, 2'min)
+    let delay1: LiteralSetTarget = 5_s
+    let delay2: LiteralSetTarget = 500_ms
+    let delay3                   = cast(LiteralSetTarget, 2_min)
     var delay4                   = LiteralSetTarget{}
-    delay4 = 1'h
+    delay4 = 1_h
 
     func takesImplicit(_: LiteralSetTarget) {}
-    takesImplicit(5'ms)
+    takesImplicit(5_ms)
 
     #assert(#typeof(delay1) == LiteralSetTarget)
     #assert(#typeof(delay2) == LiteralSetTarget)
@@ -281,15 +281,15 @@ func semaTest007()
 
 func semaTest008()
 {
-    let fromInt:   LiteralOverloadTarget = 5's
-    let fromFloat: LiteralOverloadTarget = 1.5's
+    let fromInt:   LiteralOverloadTarget = 5_s
+    let fromFloat: LiteralOverloadTarget = 1.5_s
 
-    let castInt   = cast(LiteralOverloadTarget, 250'ms)
-    let castFloat = cast(LiteralOverloadTarget, 0.5'h)
+    let castInt   = cast(LiteralOverloadTarget, 250_ms)
+    let castFloat = cast(LiteralOverloadTarget, 0.5_h)
 
     func takesImplicit(_: LiteralOverloadTarget) {}
-    takesImplicit(2'min)
-    takesImplicit(250.0'ms)
+    takesImplicit(2_min)
+    takesImplicit(250.0_ms)
 
     #assert(#typeof(fromInt) == LiteralOverloadTarget)
     #assert(#typeof(fromFloat) == LiteralOverloadTarget)
@@ -302,7 +302,7 @@ func semaTest009()
     #assert(#typeof(ConstPaletteCardOne) == ConstPaletteCard)
     #assert(#typeof(ConstPaletteCards) == [2] ConstPaletteCard)
     #assert(#typeof(ConstPaletteColors) == [2] ConstPaletteColor)
-    #assert(ConstPaletteCardOne.color.raw == 0xFF808080'u32)
-    #assert(ConstPaletteCards[1].color.raw == 0xFF3366CC'u32)
-    #assert(ConstPaletteColors[0].raw == 0xFF808080'u32)
+    #assert(ConstPaletteCardOne.color.raw == 0xFF808080_u32)
+    #assert(ConstPaletteCards[1].color.raw == 0xFF3366CC_u32)
+    #assert(ConstPaletteColors[0].raw == 0xFF808080_u32)
 }

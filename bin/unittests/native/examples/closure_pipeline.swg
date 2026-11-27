@@ -12,8 +12,10 @@ const N = 8
     var dst: [N] s32
 
     let doubler: func||(s32)->s32 = func(x: s32)->s32 { return x * 2 }
-    for i in src.count do
+    for i in src.count
+    {
         dst[i] = doubler(src[i])
+    }
 
     Swag.require(dst[0] == 2)
     Swag.require(dst[3] == 8)
@@ -51,8 +53,10 @@ const N = 8
 
     let add:   func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
     var total: s32 = 0
-    for i in src.count do
+    for i in src.count
+    {
         total = add(total, src[i])
+    }
 
     Swag.require(total == 36)
 }
@@ -63,8 +67,10 @@ const N = 8
     var src:     [4] s32 = [2, 3, 4, 5]
     let mul:     func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a * b }
     var product: s32     = 1
-    for i in src.count do
+    for i in src.count
+    {
         product = mul(product, src[i])
+    }
 
     Swag.require(product == 120)
 }
@@ -77,8 +83,10 @@ const N = 8
 
     var offset = 5
     let addOffset: func||(s32)->s32 = func|offset|(x: s32)->s32 { return x + offset }
-    for i in src.count do
+    for i in src.count
+    {
         dst[i] = addOffset(src[i])
+    }
 
     Swag.require(dst[0] == 15)
     Swag.require(dst[1] == 25)
@@ -129,8 +137,10 @@ const N = 8
     let gtTen:  func||(s32)->bool     = func(x: s32)->bool { return x > 10 }
     let add:    func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
 
-    for i in src.count do
+    for i in src.count
+    {
         mapped[i] = square(src[i])
+    }
 
     for i in mapped.count
     {
@@ -142,8 +152,10 @@ const N = 8
     }
 
     var result: s32 = 0
-    for i in filteredCount do
+    for i in filteredCount
+    {
         result = add(result, filtered[i])
+    }
 
     // squares: 1, 4, 9, 16, 25, 36 -> >10: 16, 25, 36 -> sum: 77
     Swag.require(filteredCount == 3)
@@ -204,8 +216,10 @@ func makeCounter(start: s32)->func||()->s32
     ops[2] = func(x: s32)->s32 { return x * x }
 
     var value: s32 = 3
-    for i in ops.count do
+    for i in ops.count
+    {
         value = ops[i]!(value)
+    }
 
     // 3 -> +1=4 -> *2=8 -> ^2=64
     Swag.require(value == 64)

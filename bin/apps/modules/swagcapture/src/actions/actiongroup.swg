@@ -47,12 +47,16 @@ impl IActionUI for ActionGroup
         switch cxt.id
         {
         case .Group:
-            if capture.canGroup() do
+            if capture.canGroup()
+            {
                 capture.pushUndo(capture.newUndo(.Group))
+            }
 
         case .Ungroup:
-            if capture.canUngroup() do
+            if capture.canUngroup()
+            {
                 capture.pushUndo(capture.newUndo(.Ungroup))
+            }
         }
 
         return true

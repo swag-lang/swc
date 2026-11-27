@@ -9,8 +9,10 @@ using Swag, Core
     var source = String.from("""\
         <svg viewBox='0 0 96 8192'><defs><clipPath id='left'>\
         <rect x='16' y='4070' width='16' height='48'/></clipPath></defs>""")
-    for i in 8192 do
+    for i in 8192
+    {
         source.appendFormat("<rect x='1' y='%' width='2' height='1'/>", (i * 2053) % 8192)
+    }
 
     source += """\
         <rect x='10' y='4078' width='60' height='24' fill='red'/>\
@@ -32,8 +34,11 @@ using Swag, Core
     var source = String.from("""\
         <svg viewBox='0 0 8192 8192'><defs><clipPath id='small'>\
         <rect x='4092' y='4090' width='9' height='16'/></clipPath></defs>""")
-    for i in 8192 do
+    for i in 8192
+    {
         source.appendFormat("<rect x='%' y='%' width='2' height='1'/>", i * 4201 % 8192, i * 3343 % 8192)
+    }
+
     source += """\
         <rect x='4072' y='4072' width='62' height='48' fill='red'/>\
         <rect x='4068' y='4082' width='48' height='48' fill='blue'/>\

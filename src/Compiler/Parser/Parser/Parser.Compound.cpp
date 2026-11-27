@@ -57,7 +57,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::FunctionParamList:
             return parseFunctionParam();
 
-        case AstNodeId::QuotedListExpr:
+        case AstNodeId::GenericArgListExpr:
             return parseIdentifierSuffixValue();
 
         default:
@@ -132,7 +132,7 @@ Result Parser::parseCompoundSeparatorUntil(AstNodeId blockNodeId, std::span<cons
         case AstNodeId::ClosureExpr:
         case AstNodeId::FunctionExpr:
         case AstNodeId::LambdaType:
-        case AstNodeId::QuotedListExpr:
+        case AstNodeId::GenericArgListExpr:
             if (consumeIf(TokenId::SymComma).isInvalid() && !containsTokenId(tokenEndIds, id()))
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);

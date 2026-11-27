@@ -26,7 +26,7 @@ using Core, Pixel, Video, Audio
         stereo[index * 2], stereo[index * 2 + 1] = mono[index]
     }
 
-    for index in 12'u64
+    for index in 12_u64
     {
         discard expect audio.microphoneQueue.push(mono, index * 960)
         discard expect audio.systemQueue.push(stereo, index * 960)
@@ -39,8 +39,11 @@ using Core, Pixel, Video, Audio
     expect session.end()
     var reader = expect Video.Reader.open(path)
     Swag.require(reader.audioTrackCount() == 2)
-    for index in 2'u32 do
+    for index in 2_u32
+    {
         Swag.require(reader.audioTrack(index)!.sampleFrameCount() == 11_520)
+    }
+
     var index = expect Mp4.FragmentedIndex.open(path)
     Swag.require(index.entryCount() == 1)
 }
@@ -52,8 +55,11 @@ using Core, Pixel, Video, Audio
     let path = Gui.Testing.tempFilePath("capture-video-index-", ".mp4")
     defer discard catch File.delete(path)
     var session = expect VideoCaptureSession.create(path, {0, 0, 16, 16}, expect FrameRate.create(30, 1), false)
-    for frame in 181'u64 do
+    for frame in 181_u64
+    {
         discard expect session.captureAt(frame * 33_334)
+    }
+
     expect session.end()
 
     var cursor = expect Mp4.FragmentedPacketCursor.open(path)
@@ -77,8 +83,11 @@ using Core, Pixel, Video, Audio
 
     var index = expect Mp4.FragmentedIndex.open(path)
     Swag.require(index.entryCount() == 3)
-    for point in 3'u32 do
+    for point in 3_u32
+    {
         Swag.require((expect index.point(point)).decodeTime == cast(u64, point) * 270_000)
+    }
+
     var reader = expect Video.Reader.open(path)
     Swag.require(reader.frameCount() == 181)
 }

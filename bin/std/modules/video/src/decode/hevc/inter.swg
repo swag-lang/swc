@@ -19,7 +19,7 @@ const CombinedCandL0: [12] u8 = [0, 1, 0, 2, 1, 2, 0, 3, 1, 3, 2, 3]
 const CombinedCandL1: [12] u8 = [1, 0, 2, 0, 2, 1, 3, 0, 3, 1, 3, 2]
 
 // The largest prediction block, plus the samples the eight-tap filter reads around it.
-const MaxPredSide = 64'u32
+const MaxPredSide = 64_u32
 const MaxRefSide  = MaxPredSide + 8
 
 // One temporal motion vector candidate, clause 8.5.3.2.8.
@@ -43,8 +43,10 @@ impl Decoder
     {
         for list in ListCount
         {
-            for index in .refList.count[list] where .refList.poc[list, index] > .pocValue do
+            for index in .refList.count[list] where .refList.poc[list, index] > .pocValue
+            {
                 return false
+            }
         }
 
         return true
@@ -55,13 +57,15 @@ impl Decoder
     {
         let td = Math.clamp(referenceDiff, -128, 127)
         let tb = Math.clamp(currentDiff, -128, 127)
-        if not td do
+        if not td
+        {
             return value
+        }
 
         let tx     = (16384 + (Math.abs(td) >> 1)) / td
         let factor = Math.clamp((tb * tx + 32) >> 6, -4096, 4095)
         let scaled = factor * value
-        let sign   = scaled < 0 ? -1's32 : 1's32
+        let sign   = scaled < 0 ? -1_s32 : 1_s32
         return Math.clamp(sign * ((Math.abs(scaled) + 127) >> 8), -32768, 32767)
     }
 
@@ -73,7 +77,7 @@ impl Decoder
 
         // Every prediction block of a small coding unit shares one candidate list, so a decoder
         // can build the four of them in parallel, clause 8-110.
-        var xP, yP, wP, hP    = 0's32
+        var xP, yP, wP, hP    = 0_s32
         var effectivePartIdx  = partIdx
         var effectivePartMode = partMode
         if pps.log2ParallelMergeLevel > 2 and nCbS == 8
@@ -94,7 +98,7 @@ impl Decoder
         }
 
         var candidates: [5 + 1 + 12 + 16] PuMotion
-        var count = 0'u32
+        var count = 0_u32
         .gatherSpatialMergeCandidates(&candidates[0], &count, xCb, yCb, nCbS, xP, yP, wP, hP, effectivePartIdx, effectivePartMode)
 
         if header.temporalMvpEnabled
@@ -132,8 +136,11 @@ impl Decoder
         }
 
         let originalCount = count
-        if header.sliceType == SliceTypeB and originalCount > 1 do
+        if header.sliceType == SliceTypeB and originalCount > 1
+        {
             .addCombinedMergeCandidates(&candidates[0], &count, originalCount)
+        }
+
         .addZeroMergeCandidates(&candidates[0], &count)
 
         var result = candidates[Math.min(mergeIdx, header.maxNumMergeCand - 1)]
@@ -161,10 +168,16 @@ impl Decoder
         let xA1         = xPb - 1
         let yA1         = yPb + nPbH - 1
         var availableA1 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xA1, yA1)
-        if .sameMergeRegion(xPb, yPb, xA1, yA1, level) do
+        if .sameMergeRegion(xPb, yPb, xA1, yA1, level)
+        {
             availableA1 = false
-        if partIdx == 1 and (partMode == PartNx2N or partMode == PartnLx2N or partMode == PartnRx2N) do
+        }
+
+        if partIdx == 1 and (partMode == PartNx2N or partMode == PartnLx2N or partMode == PartnRx2N)
+        {
             availableA1 = false
+        }
+
         if availableA1
         {
             found[0]  = true
@@ -175,10 +188,16 @@ impl Decoder
         let xB1         = xPb + nPbW - 1
         let yB1         = yPb - 1
         var availableB1 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xB1, yB1)
-        if .sameMergeRegion(xPb, yPb, xB1, yB1, level) do
+        if .sameMergeRegion(xPb, yPb, xB1, yB1, level)
+        {
             availableB1 = false
-        if partIdx == 1 and (partMode == Part2NxN or partMode == Part2NxnU or partMode == Part2NxnD) do
+        }
+
+        if partIdx == 1 and (partMode == Part2NxN or partMode == Part2NxnU or partMode == Part2NxnD)
+        {
             availableB1 = false
+        }
+
         if availableB1 and not (found[0] and .sameMotion(&motion[0], .motionAt(xB1, yB1)))
         {
             found[1]  = true
@@ -189,8 +208,11 @@ impl Decoder
         let xB0         = xPb + nPbW
         let yB0         = yPb - 1
         var availableB0 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xB0, yB0)
-        if .sameMergeRegion(xPb, yPb, xB0, yB0, level) do
+        if .sameMergeRegion(xPb, yPb, xB0, yB0, level)
+        {
             availableB0 = false
+        }
+
         if availableB0 and not (availableB1 and .sameMotion(.motionAt(xB1, yB1), .motionAt(xB0, yB0)))
         {
             found[2]  = true
@@ -201,8 +223,11 @@ impl Decoder
         let xA0         = xPb - 1
         let yA0         = yPb + nPbH
         var availableA0 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xA0, yA0)
-        if .sameMergeRegion(xPb, yPb, xA0, yA0, level) do
+        if .sameMergeRegion(xPb, yPb, xA0, yA0, level)
+        {
             availableA0 = false
+        }
+
         if availableA0 and not (availableA1 and .sameMotion(.motionAt(xA1, yA1), .motionAt(xA0, yA0)))
         {
             found[3]  = true
@@ -213,14 +238,26 @@ impl Decoder
         let xB2         = xPb - 1
         let yB2         = yPb - 1
         var availableB2 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xB2, yB2)
-        if .sameMergeRegion(xPb, yPb, xB2, yB2, level) do
+        if .sameMergeRegion(xPb, yPb, xB2, yB2, level)
+        {
             availableB2 = false
-        if found[0] and found[1] and found[2] and found[3] do
+        }
+
+        if found[0] and found[1] and found[2] and found[3]
+        {
             availableB2 = false
-        if availableB2 and availableA1 and .sameMotion(.motionAt(xA1, yA1), .motionAt(xB2, yB2)) do
+        }
+
+        if availableB2 and availableA1 and .sameMotion(.motionAt(xA1, yA1), .motionAt(xB2, yB2))
+        {
             availableB2 = false
-        if availableB2 and availableB1 and .sameMotion(.motionAt(xB1, yB1), .motionAt(xB2, yB2)) do
+        }
+
+        if availableB2 and availableB1 and .sameMotion(.motionAt(xB1, yB1), .motionAt(xB2, yB2))
+        {
             availableB2 = false
+        }
+
         if availableB2
         {
             found[4]  = true
@@ -228,10 +265,13 @@ impl Decoder
         }
 
         // The list order of equation 8-119.
-        for slot in 5'u32
+        for slot in 5_u32
         {
-            if not found[slot] or count[] >= header.maxNumMergeCand do
+            if not found[slot] or count[] >= header.maxNumMergeCand
+            {
                 continue
+            }
+
             candidates[count[]] = motion[slot]
             count[] += 1
         }
@@ -243,16 +283,27 @@ impl Decoder
     // Reports whether two prediction blocks carry identical motion.
     private mtd const sameMotion(left, right: const *PuMotion)->bool
     {
-        if left.predFlags != right.predFlags do
+        if left.predFlags != right.predFlags
+        {
             return false
+        }
+
         for list in ListCount
         {
-            if (cast(u32, left.predFlags) & (1'u32 << list)) == 0 do
+            if (cast(u32, left.predFlags) & (1_u32 << list)) == 0
+            {
                 continue
-            if left.refIdx[list] != right.refIdx[list] do
+            }
+
+            if left.refIdx[list] != right.refIdx[list]
+            {
                 return false
-            if left.mv[list, 0] != right.mv[list, 0] or left.mv[list, 1] != right.mv[list, 1] do
+            }
+
+            if left.mv[list, 0] != right.mv[list, 0] or left.mv[list, 1] != right.mv[list, 1]
+            {
                 return false
+            }
         }
 
         return true
@@ -262,26 +313,32 @@ impl Decoder
     private mtd addCombinedMergeCandidates(candidates: [*] PuMotion, count: *u32, originalCount: u32)
     {
         let header = &.header
-        if originalCount >= header.maxNumMergeCand do
+        if originalCount >= header.maxNumMergeCand
+        {
             return
+        }
 
         let limit   = originalCount * (originalCount - 1)
-        var combIdx = 0'u32
+        var combIdx = 0_u32
         while combIdx < limit and count[] < header.maxNumMergeCand and combIdx < 12
         {
             let first  = &candidates[CombinedCandL0[combIdx]]
             let second = &candidates[CombinedCandL1[combIdx]]
             combIdx += 1
 
-            if (first.predFlags & 1) == 0 or (second.predFlags & 2) == 0 do
+            if (first.predFlags & 1) == 0 or (second.predFlags & 2) == 0
+            {
                 continue
+            }
 
             let firstPoc  = .refList.poc[0, cast(u32, first.refIdx[0])]
             let secondPoc = .refList.poc[1, cast(u32, second.refIdx[1])]
             if firstPoc == secondPoc and
                first.mv[0, 0] == second.mv[1, 0] and
-               first.mv[0, 1] == second.mv[1, 1] do
+               first.mv[0, 1] == second.mv[1, 1]
+            {
                 continue
+            }
 
             with var combined: PuMotion
             {
@@ -306,11 +363,11 @@ impl Decoder
         let bi     = header.sliceType == SliceTypeB
         let usable = bi ? Math.min(.refList.count[0], .refList.count[1]) : .refList.count[0]
 
-        var zeroIdx = 0'u32
+        var zeroIdx = 0_u32
         while count[] < header.maxNumMergeCand
         {
             var candidate: PuMotion
-            let index = zeroIdx < usable ? cast(s8, zeroIdx) : 0's8
+            let index = zeroIdx < usable ? cast(s8, zeroIdx) : 0_s8
             candidate.refIdx[0] = index
             candidate.predFlags = 1
             if bi
@@ -330,16 +387,23 @@ impl Decoder
     {
         var result: #returntype
         let header = &.header
-        if not header.temporalMvpEnabled do
+        if not header.temporalMvpEnabled
+        {
             return result
+        }
 
         let sps     = unwrap .activeSps
-        let colList = header.collocatedFromL0 ? 0'u32 : 1'u32
-        if header.collocatedRefIdx >= .refList.count[colList] do
+        let colList = header.collocatedFromL0 ? 0_u32 : 1_u32
+        if header.collocatedRefIdx >= .refList.count[colList]
+        {
             return result
+        }
+
         let collocated = .refList.frames[colList, header.collocatedRefIdx]
-        if not collocated do
+        if not collocated
+        {
             return result
+        }
 
         // The block below and to the right of the prediction block, when it exists and stays in
         // the same coding tree block row.
@@ -350,8 +414,10 @@ impl Decoder
            xColBr < cast(s32, sps.width)
         {
             result = .collocatedMotion(collocated, (xColBr >> 4) << 4, (yColBr >> 4) << 4, list, refIdx)
-            if result.available do
+            if result.available
+            {
                 return result
+            }
         }
 
         // Otherwise the centre of the prediction block.
@@ -363,31 +429,44 @@ impl Decoder
     {
         var result: #returntype
         let column = collocated.colMotionAt(x, y)
-        if not column.predFlags do
+        if not column.predFlags
+        {
             return result
+        }
 
         // Which of the collocated block's two vectors is used, clause 8.5.3.2.9.
-        var source = 0'u32
+        var source = 0_u32
         if (column.predFlags & 1) == 0
         {
             source = 1
         }
-        elif (column.predFlags & 2) != 0
+        else if (column.predFlags & 2) != 0
         {
-            if .noBackwardPrediction() do
+            if .noBackwardPrediction()
+            {
                 source = list
-            elif .header.collocatedFromL0 do
+            }
+            else if .header.collocatedFromL0
+            {
                 source = 1
-            else do
+            }
+            else
+            {
                 source = 0
-            if (cast(u32, column.predFlags) & (1'u32 << source)) == 0 do
+            }
+
+            if (cast(u32, column.predFlags) & (1_u32 << source)) == 0
+            {
                 source = source ^ 1
+            }
         }
 
         let currentLongTerm = .refList.longTerm[list, cast(u32, refIdx)]
-        let sourceLongTerm  = (cast(u32, column.longTermRef) & (1'u32 << source)) != 0
-        if currentLongTerm != sourceLongTerm do
+        let sourceLongTerm  = (cast(u32, column.longTermRef) & (1_u32 << source)) != 0
+        if currentLongTerm != sourceLongTerm
+        {
             return result
+        }
 
         let colPocDiff  = collocated.poc - column.refPoc[source]
         let currPocDiff = .pocValue - .refList.poc[list, cast(u32, refIdx)]
@@ -409,7 +488,7 @@ impl Decoder
     mtd derivePredictor(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH: s32, partIdx, list: u32, refIdx: s32, mvpFlag: u32)->[2] s16
     {
         var candidates: [3, 2] s16
-        var count = 0'u32
+        var count = 0_u32
 
         let xA0         = xPb - 1
         let yA0         = yPb + nPbH
@@ -421,8 +500,10 @@ impl Decoder
 
         var mvA: [2] s16
         var foundA = .neighbourPredictor(&mvA[0], xA0, yA0, availableA0, xA1, yA1, availableA1, list, refIdx, allowScaling: false)
-        if not foundA do
+        if not foundA
+        {
             foundA = .neighbourPredictor(&mvA[0], xA0, yA0, availableA0, xA1, yA1, availableA1, list, refIdx, allowScaling: true)
+        }
 
         let xB0         = xPb + nPbW
         let yB0         = yPb - 1
@@ -482,29 +563,44 @@ impl Decoder
             count += 1
         }
 
-        let selected = Math.min(mvpFlag, 1'u32)
+        let selected = Math.min(mvpFlag, 1_u32)
         return [candidates[selected, 0], candidates[selected, 1]]
     }
 
     // Takes the first usable predictor among the two left neighbours, clause 8.5.3.2.7.
     private mtd neighbourPredictor(target: [*] s16, x0, y0: s32, available0: bool, x1, y1: s32, available1: bool, list: u32, refIdx: s32, allowScaling: bool)->bool
     {
-        if available0 and .takePredictor(target, x0, y0, list, refIdx, allowScaling) do
+        if available0 and .takePredictor(target, x0, y0, list, refIdx, allowScaling)
+        {
             return true
-        if available1 and .takePredictor(target, x1, y1, list, refIdx, allowScaling) do
+        }
+
+        if available1 and .takePredictor(target, x1, y1, list, refIdx, allowScaling)
+        {
             return true
+        }
+
         return false
     }
 
     // Takes the first usable predictor among the three above neighbours, clause 8.5.3.2.7.
     private mtd neighbourPredictorB(target: [*] s16, x0, y0: s32, available0: bool, x1, y1: s32, available1: bool, x2, y2: s32, available2: bool, list: u32, refIdx: s32, allowScaling: bool)->bool
     {
-        if available0 and .takePredictor(target, x0, y0, list, refIdx, allowScaling) do
+        if available0 and .takePredictor(target, x0, y0, list, refIdx, allowScaling)
+        {
             return true
-        if available1 and .takePredictor(target, x1, y1, list, refIdx, allowScaling) do
+        }
+
+        if available1 and .takePredictor(target, x1, y1, list, refIdx, allowScaling)
+        {
             return true
-        if available2 and .takePredictor(target, x2, y2, list, refIdx, allowScaling) do
+        }
+
+        if available2 and .takePredictor(target, x2, y2, list, refIdx, allowScaling)
+        {
             return true
+        }
+
         return false
     }
 
@@ -523,29 +619,41 @@ impl Decoder
         {
             // The neighbour's own list is preferred, and the other one is the fallback.
             let candidateList = (list + offset) & 1
-            if (cast(u32, neighbour.predFlags) & (1'u32 << candidateList)) == 0 do
+            if (cast(u32, neighbour.predFlags) & (1_u32 << candidateList)) == 0
+            {
                 continue
-            if neighbour.refIdx[candidateList] < 0 do
+            }
+
+            if neighbour.refIdx[candidateList] < 0
+            {
                 continue
+            }
 
             let index = cast(u32, neighbour.refIdx[candidateList])
-            if index >= .refList.count[candidateList] do
+            if index >= .refList.count[candidateList]
+            {
                 continue
+            }
 
             let neighbourPoc  = .refList.poc[candidateList, index]
             let neighbourLong = .refList.longTerm[candidateList, index]
 
             if not allowScaling
             {
-                if neighbourPoc != wantedPoc do
+                if neighbourPoc != wantedPoc
+                {
                     continue
+                }
+
                 target[0] = neighbour.mv[candidateList, 0]
                 target[1] = neighbour.mv[candidateList, 1]
                 return true
             }
 
-            if neighbourLong != wantedLong do
+            if neighbourLong != wantedLong
+            {
                 continue
+            }
 
             if neighbourLong or neighbourPoc == wantedPoc
             {
@@ -573,8 +681,10 @@ impl Decoder
         for row in blocksY
         {
             let line = origin + cast(u64, row) * cast(u64, .gridWidth)
-            for column in blocksX do
+            for column in blocksX
+            {
                 .motion[line + cast(u64, column)] = motion[]
+            }
         }
     }
 }

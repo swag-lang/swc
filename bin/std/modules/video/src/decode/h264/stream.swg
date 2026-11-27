@@ -8,7 +8,7 @@
 using Core, Core.Errors, Pixel
 
 // FFmpeg uses the same automatic ceiling for frame-threaded video decoders.
-private const AvcMaxFrameThreads = 16'u32
+private const AvcMaxFrameThreads = 16_u32
 private const AvcNoLane = Swag.U32.Max
 
 // What one picture in flight costs, and how much the stream may spend on them together.
@@ -18,8 +18,8 @@ private const AvcNoLane = Swag.U32.Max
 // per pixel, so sixteen threads on a 3840x2160 stream would reserve close to a gigabyte before
 // decoding anything. Past a handful of threads the stream already decodes several times faster
 // than any clock asks for, so the budget buys back the memory rather than the speed.
-private const AvcBytesPerLanePixel = 7'u64
-private const AvcLaneMemoryBudget  = 640 * 1024 * 1024'u64
+private const AvcBytesPerLanePixel = 7_u64
+private const AvcLaneMemoryBudget  = 640 * 1024 * 1024_u64
 
 // How many pixels of picture one frame thread is worth.
 //
@@ -28,8 +28,8 @@ private const AvcLaneMemoryBudget  = 640 * 1024 * 1024'u64
 // times faster than any clock asks for on four of them, and sixteen would only hold three times
 // the memory to race further ahead of a queue that is already full. One lane per half megapixel
 // gives four at 1080p and the full set at 4K.
-private const AvcPixelsPerLane   = 480_000'u64
-private const AvcMinFrameThreads = 2'u32
+private const AvcPixelsPerLane   = 480_000_u64
+private const AvcMinFrameThreads = 2_u32
 
 // One decoded H.264 frame waiting for its display turn.
 private struct PendingFrame
@@ -50,7 +50,7 @@ private enum AvcLaneState
 #[Swag.NoCopy]
 struct AvcFrameThread
 {
-    decode:   Swag.Task'(*H264.Frame?)     // The picture this lane decodes, or its error.
+    decode:   Swag.Task!{*H264.Frame?}     // The picture this lane decodes, or its error.
     executor: Swag.Executor     // The lane's own thread, so its decoder stays on it.
 }
 
@@ -79,16 +79,16 @@ struct AvcStream
 {
     decoders:     [AvcMaxFrameThreads] H264.Decoder
     frameThreads: [AvcMaxFrameThreads] AvcFrameThread
-    payloads:     [AvcMaxFrameThreads] Array'u8
+    payloads:     [AvcMaxFrameThreads] Array!{u8}
     laneStates:   [AvcMaxFrameThreads] AvcLaneState
     threaded:     [AvcMaxFrameThreads] ThreadedAvcSample
-    frames:       Array'SampleEntry     // Samples in decode order.
-    rankOfSample: Array'u32             // Display rank of each decode-order sample.
-    sampleAtRank: Array'u32             // Decode-order sample of each display rank.
-    syncFlags:    Array'u8              // Whether each sample starts a clean decode.
-    assumedSync:  bool                  // The first sample was taken to start one for want of any mark.
-    positioned:   bool                  // A position was chosen rather than merely assumed.
-    pending:      Array'PendingFrame
+    frames:       Array!{SampleEntry}     // Samples in decode order.
+    rankOfSample: Array!{u32}             // Display rank of each decode-order sample.
+    sampleAtRank: Array!{u32}             // Decode-order sample of each display rank.
+    syncFlags:    Array!{u8}              // Whether each sample starts a clean decode.
+    assumedSync:  bool                    // The first sample was taken to start one for want of any mark.
+    positioned:   bool                    // A position was chosen rather than merely assumed.
+    pending:      Array!{PendingFrame}
 
     threadedHead:       u32
     threadedTail:       u32
@@ -99,10 +99,10 @@ struct AvcStream
     threadsStarted:     bool
     reachedEnd:         bool
     skipBefore:         u64
-    prefix:             Array'u8     // Bytes the container took off the front of every stored frame.
+    prefix:             Array!{u8}             // Bytes the container took off the front of every stored frame.
     decodeLimit:        u64 = Swag.U64.Max     // Exclusive decode-order ceiling during seek preroll.
-    nextDecode:         u64          // Next sample to hand a frame context.
-    nextRank:           u64          // Display rank the next decode call returns.
+    nextDecode:         u64                    // Next sample to hand a frame context.
+    nextRank:           u64                    // Display rank the next decode call returns.
     width:              s32
     height:             s32
     sampleAspectWidth:  u32 = 1
@@ -114,17 +114,25 @@ struct AvcStream
 impl AvcStream
 {
     // Configures every decoder context and builds the display-order tables.
-    mtd open(config: const [..] u8, frames: #move Array'SampleEntry) fail
+    mtd open(config: const [..] u8, frames: #move Array!{SampleEntry}) fail
     {
-        if not config.count do
+        if not config.count
+        {
             fail InvalidFormatError{"H.264 track has no decoder configuration"}
-        for &decoder in .decoders do
-            try decoder.configure(config)
+        }
 
-        .laneCount = Math.max(1'u32, Math.min(Swag.workerCount(), AvcMaxFrameThreads))
+        for &decoder in .decoders
+        {
+            try decoder.configure(config)
+        }
+
+        .laneCount = Math.max(1_u32, Math.min(Swag.workerCount(), AvcMaxFrameThreads))
         let sps = .decoders[0].firstSps()
-        if not sps do
+        if not sps
+        {
             fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}
+        }
+
         .width              = sps.width()
         .height             = sps.height()
         .sampleAspectWidth  = sps.sampleAspectWidth
@@ -137,21 +145,25 @@ impl AvcStream
         .laneCount = Math.min(.laneCount, Math.max(wanted, AvcMinFrameThreads))
 
         let laneBytes = pixels * AvcBytesPerLanePixel
-        if laneBytes do
-            .laneCount = Math.max(1'u32, Math.min(.laneCount, cast(u32, Math.max(AvcLaneMemoryBudget / laneBytes, 1'u64))))
+        if laneBytes
+        {
+            .laneCount = Math.max(1_u32, Math.min(.laneCount, cast(u32, Math.max(AvcLaneMemoryBudget / laneBytes, 1_u64))))
+        }
 
         try .installFrames(#move frames)
     }
 
     // Replaces the container window while retaining the configured decoder contexts.
     // The first sample must start a clean decode, as it does after a Matroska cue seek.
-    mtd replaceFrames(frames: #move Array'SampleEntry) fail
+    mtd replaceFrames(frames: #move Array!{SampleEntry}) fail
     {
         .stopFrameThreads()
         .releasePending()
         .clearFrameThreads()
-        for &decoder in .decoders do
+        for &decoder in .decoders
+        {
             decoder.restart()
+        }
 
         .nextDecode  = 0
         .nextRank    = 0
@@ -162,14 +174,14 @@ impl AvcStream
         try .installFrames(#move frames)
     }
 
-    private mtd installFrames(frames: #move Array'SampleEntry) fail
+    private mtd installFrames(frames: #move Array!{SampleEntry}) fail
     {
         .frames = #move frames
         let count = .frames.count
 
         // Display ranks: stable order of the composition times. Real streams are already
         // nearly sorted, off by at most the reorder depth, so an insertion pass is linear.
-        var order: Array'u32
+        var order: Array!{u32}
         order.reserve(count)
         for index in count
         {
@@ -206,8 +218,10 @@ impl AvcStream
         // in the middle of a group has no clean start before its first marked sample, and assuming
         // one there decodes slices whose references were cut away with the file they came from.
         .assumedSync = count != 0 and not marked
-        if .assumedSync do
+        if .assumedSync
+        {
             .syncFlags[0] = 1
+        }
     }
 
     // Extends a running stream and merges presentation order beyond the consumed prefix.
@@ -218,13 +232,18 @@ impl AvcStream
     // handed to it; only an overlap with in-flight work requires a restart from the preceding sync.
     mtd appendFrames(frames: const [..] SampleEntry) fail
     {
-        if not frames.count do
+        if not frames.count
+        {
             return
-        if frames.count > Swag.U32.Max - .frames.count do
+        }
+
+        if frames.count > Swag.U32.Max - .frames.count
+        {
             fail OverflowError{"H.264 video sample table is too large"}
+        }
 
         let first = .frames.count
-        var order: Array'u32
+        var order: Array!{u32}
         order.reserve(frames.count)
         for index in frames.count
         {
@@ -238,26 +257,35 @@ impl AvcStream
         }
 
         let mutableRank = Math.min(.nextRank, .sampleAtRank.count)
-        if mutableRank and frames[cast(u64, order[0])].presentationTime < .presentationTimeAtRank(mutableRank - 1) do
+        if mutableRank and frames[cast(u64, order[0])].presentationTime < .presentationTimeAtRank(mutableRank - 1)
+        {
             fail InvalidFormatError{"H.264 container chunk overlaps pictures already presented"}
+        }
 
         let firstNewTimestamp = frames[cast(u64, order[0])].presentationTime
         var insertionRank     = mutableRank
-        while insertionRank < first and .presentationTimeAtRank(insertionRank) <= firstNewTimestamp do
+        while insertionRank < first and .presentationTimeAtRank(insertionRank) <= firstNewTimestamp
+        {
             insertionRank += 1
+        }
 
         var stableRank = mutableRank
-        for sample in Math.min(.nextDecode, first) do
+        for sample in Math.min(.nextDecode, first)
+        {
             stableRank = Math.max(stableRank, cast(u64, .rankOfSample[sample]) + 1)
+        }
+
         let restart = insertionRank < stableRank
 
-        var merged: Array'u32
+        var merged: Array!{u32}
         merged.reserve(first + frames.count)
-        if mutableRank do
+        if mutableRank
+        {
             merged.add(.sampleAtRank.toSlice()[0 until mutableRank])
+        }
 
         var oldRank = mutableRank
-        var newRank = 0'u64
+        var newRank = 0_u64
         while oldRank < first or newRank < order.count
         {
             let useOld = newRank >= order.count or (oldRank < first and .presentationTimeAtRank(oldRank) <= frames[cast(u64, order[newRank])].presentationTime)
@@ -278,8 +306,10 @@ impl AvcStream
             .stopFrameThreads()
             .releasePending()
             .clearFrameThreads()
-            for &decoder in .decoders do
+            for &decoder in .decoders
+            {
                 decoder.restart()
+            }
         }
 
         .frames.add(frames)
@@ -287,8 +317,10 @@ impl AvcStream
         for localSample in frames.count
         {
             let sample = first + localSample
-            if .frames[sample].isSync do
+            if .frames[sample].isSync
+            {
                 .syncFlags[sample] = 1
+            }
         }
 
         // A first sample taken to start a clean decode only because nothing said otherwise gives
@@ -305,17 +337,24 @@ impl AvcStream
 
         .sampleAtRank = #move merged
         .rankOfSample.resize(.frames.count)
-        for rank in mutableRank until .sampleAtRank.count do
+        for rank in mutableRank until .sampleAtRank.count
+        {
             .rankOfSample[cast(u64, .sampleAtRank[rank])] = cast(u32, rank)
+        }
 
         .reachedEnd = false
-        if not restart do
+        if not restart
+        {
             return
+        }
 
         let nextSample = cast(u64, .sampleAtRank[.nextRank])
         var sync       = nextSample
-        while sync > 0 and .syncFlags[sync] == 0 do
+        while sync > 0 and .syncFlags[sync] == 0
+        {
             sync -= 1
+        }
+
         .nextDecode = sync
         .skipBefore = .nextRank
     }
@@ -335,8 +374,11 @@ impl AvcStream
         var scan = rank
         while scan < .frames.count
         {
-            if .syncFlags[cast(u64, .sampleAtRank[scan])] != 0 do
+            if .syncFlags[cast(u64, .sampleAtRank[scan])] != 0
+            {
                 return scan
+            }
+
             scan += 1
         }
 
@@ -355,15 +397,19 @@ impl AvcStream
     {
         // The position a stream starts at is an assumption until it is worked out here, and a
         // stream clipped in the middle of a group does not start where it says it does.
-        if rank == .nextRank and .positioned do
+        if rank == .nextRank and .positioned
+        {
             return
+        }
 
         .stopFrameThreads()
         var wanted = rank
         var sample = cast(u64, .sampleAtRank[wanted])
         var sync   = sample
-        while sync > 0 and .syncFlags[sync] == 0 do
+        while sync > 0 and .syncFlags[sync] == 0
+        {
             sync -= 1
+        }
 
         // A stream that begins in the middle of a group holds no picture standing on its own
         // before its first sync point: the pictures ahead of it were cut away with the file they
@@ -390,8 +436,11 @@ impl AvcStream
         {
             .releasePending()
             .clearFrameThreads()
-            for &decoder in .decoders do
+            for &decoder in .decoders
+            {
                 decoder.restart()
+            }
+
             .nextDecode = sync
             .reachedEnd = false
         }
@@ -409,7 +458,7 @@ impl AvcStream
     // Releases every pending frame whose display rank precedes `rank`.
     mtd releasePendingBelow(rank: u64)
     {
-        var index = 0'u64
+        var index = 0_u64
         while index < .pending.count
         {
             if .pending[index].rank < rank
@@ -445,21 +494,31 @@ impl AvcStream
     // picture on screen stutters has won nothing.
     private mtd ensureFrameThreads()
     {
-        if .threadsStarted do
+        if .threadsStarted
+        {
             return
+        }
 
-        for lane in .laneCount do
+        for lane in .laneCount
+        {
             .frameThreads[lane].executor.start(.Background)
+        }
+
         .threadsStarted = true
     }
 
     // Stops the persistent frame owners. A picture still waiting for its lane is skipped.
     private mtd shutdownFrameThreads()
     {
-        for lane in .laneCount do
+        for lane in .laneCount
+        {
             .frameThreads[lane].decode.cancel()
-        for lane in .laneCount do
+        }
+
+        for lane in .laneCount
+        {
             .frameThreads[lane].executor.close()
+        }
 
         .threadsStarted = false
     }
@@ -475,8 +534,10 @@ impl AvcStream
             if frameThread.decode.isDone()
             {
                 let frame = catch frameThread.decode.take() orelse null
-                if frame do
+                if frame
+                {
                     .decoders[lane].releaseFrame(frame)
+                }
             }
 
             .decoders[lane].discardAccessUnit()
@@ -495,8 +556,11 @@ impl AvcStream
     {
         for lane in .laneCount
         {
-            if .laneCount > 1 and lane == .lastSetupLane do
+            if .laneCount > 1 and lane == .lastSetupLane
+            {
                 continue
+            }
+
             if .laneStates[lane] == .Free
             {
                 .laneStates[lane] = .Decoding
@@ -511,13 +575,18 @@ impl AvcStream
     private mtd startFrame(source: *ByteSource)->bool fail
     {
         let lane = .reserveLane()
-        if lane == AvcNoLane do
+        if lane == AvcNoLane
+        {
             return false
+        }
+
         defer #fail .laneStates[lane] = .Free
 
         let decoder = &.decoders[lane]
-        if .lastSetupLane != AvcNoLane and lane != .lastSetupLane do
+        if .lastSetupLane != AvcNoLane and lane != .lastSetupLane
+        {
             decoder.inheritPredictionState(&.decoders[.lastSetupLane])
+        }
 
         let payload = &.payloads[lane]
         while .nextDecode < .frames.count and .nextDecode < .decodeLimit
@@ -527,17 +596,25 @@ impl AvcStream
 
             let rank = cast(u64, .rankOfSample[.nextDecode])
             .nextDecode += 1
-            if rank < .skipBefore and decoder.canSkipWhileSeeking(payload.toSlice()) do
+            if rank < .skipBefore and decoder.canSkipWhileSeeking(payload.toSlice())
+            {
                 continue
-            if not try decoder.prepareAccessUnit(payload.toSlice()) do
+            }
+
+            if not try decoder.prepareAccessUnit(payload.toSlice())
+            {
                 fail InvalidFormatError{"H.264 access unit carries no picture"}
+            }
 
             let frameThread = &.frameThreads[lane]
             frameThread.decode.submit(func|decoder|()->*H264.Frame? fail
             {
                 // A lane that shuts down before reaching this picture leaves it undecoded.
-                if Swag.isCancelled() do
+                if Swag.isCancelled()
+                {
                     return null
+                }
+
                 defer #fail decoder.failPreparedAccessUnit()
                 return try decoder.decodePreparedAccessUnit()
             }, executor: &frameThread.executor)
@@ -545,15 +622,20 @@ impl AvcStream
             .threaded[.threadedTail] = {lane, rank}
             .threadedTail  = (.threadedTail + 1) % AvcMaxFrameThreads
             .threadedCount += 1
-            if .threadedCount > .threadedHighWater do
+            if .threadedCount > .threadedHighWater
+            {
                 .threadedHighWater = .threadedCount
+            }
+
             .lastSetupLane = lane
             return true
         }
 
         .laneStates[lane] = .Free
-        if .nextDecode >= .decodeLimit do
+        if .nextDecode >= .decodeLimit
+        {
             return false
+        }
 
         .reachedEnd = true
         return false
@@ -565,8 +647,10 @@ impl AvcStream
         .ensureFrameThreads()
         while .threadedCount < .laneCount and not .reachedEnd
         {
-            if not try .startFrame(source) do
+            if not try .startFrame(source)
+            {
                 break
+            }
         }
     }
 
@@ -574,16 +658,21 @@ impl AvcStream
     mtd decodeStoredSample(source: *ByteSource)->DecodedAvcSample fail
     {
         try .fillFrameThreads(source)
-        if .threadedCount == 0 do
+        if .threadedCount == 0
+        {
             fail InvalidFormatError{"H.264 stream ends before the requested frame"}
+        }
 
         let threaded = .threaded[.threadedHead]
         .threadedHead  = (.threadedHead + 1) % AvcMaxFrameThreads
         .threadedCount -= 1
 
         let frame = try .frameThreads[threaded.lane].decode.take()
-        if not frame do
+        if not frame
+        {
             fail InvalidFormatError{"H.264 access unit carries no picture"}
+        }
+
         .laneStates[threaded.lane] = .Free
         try .fillFrameThreads(source)
         return DecodedAvcSample{frame, threaded.rank}
@@ -606,8 +695,10 @@ impl AvcStream
                 return frame
             }
 
-            if .threadedCount == 0 and .reachedEnd do
+            if .threadedCount == 0 and .reachedEnd
+            {
                 fail InvalidFormatError{"H.264 stream ends before the requested frame"}
+            }
 
             let decoded = try .decodeStoredSample(source)
             if decoded.rank < wanted
@@ -617,8 +708,10 @@ impl AvcStream
             }
 
             .pending.add(PendingFrame{decoded.frame, decoded.rank})
-            if .pending.count > 34 do
+            if .pending.count > 34
+            {
                 fail InvalidFormatError{"H.264 stream reorders more than 34 frames"}
+            }
         }
     }
 
@@ -641,8 +734,11 @@ impl AvcStream
     // Releases every frame waiting for display.
     mtd releasePending()
     {
-        for entry in .pending do
+        for entry in .pending
+        {
             .decoders[0].releaseFrame(unwrap entry.frame)
+        }
+
         .pending.clear()
     }
 }

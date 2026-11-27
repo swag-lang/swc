@@ -4,16 +4,22 @@
 private func floatBefore(value: f32)->f32
 {
     let bits = cast #bit (u32, value)
-    if value == 0 do
-        return cast #bit (f32, 0x8000_0001'u32)
+    if value == 0
+    {
+        return cast #bit (f32, 0x8000_0001_u32)
+    }
+
     return cast #bit (f32, value > 0 ? bits - 1 : bits + 1)
 }
 
 private func floatBefore(value: f64)->f64
 {
     let bits = cast #bit (u64, value)
-    if value == 0 do
-        return cast #bit (f64, 0x8000_0000_0000_0001'u64)
+    if value == 0
+    {
+        return cast #bit (f64, 0x8000_0000_0000_0001_u64)
+    }
+
     return cast #bit (f64, value > 0 ? bits - 1 : bits + 1)
 }
 
@@ -41,10 +47,14 @@ impl Generator
     mtd seedU32(seed: u32)
     {
         .seedDone = true
-        #static if #defined(T.seedU32) do
+        #static if #defined(T.seedU32)
+        {
             return .rng.seedU32(seed)
-        else do
+        }
+        else
+        {
             return .rng.seedU64(cast(u64, seed))
+        }
     }
 
     // Seeds the generator with a 64-bit value.
@@ -52,36 +62,52 @@ impl Generator
     mtd seedU64(seed: u64)
     {
         .seedDone = true
-        #static if #defined(T.seedU64) do
+        #static if #defined(T.seedU64)
+        {
             return .rng.seedU64(seed)
-        else do
+        }
+        else
+        {
             return .rng.seedU32(cast #wrap (u32, seed))
+        }
     }
 
     // Returns the next 32-bit unsigned value.
     #[Swag.Inline]
     mtd nextU32()->u32
     {
-        if not .seedDone do
+        if not .seedDone
+        {
             .seedAutomatically()
+        }
 
-        #static if #defined(T.nextU32) do
+        #static if #defined(T.nextU32)
+        {
             return .rng.nextU32()
-        else do
+        }
+        else
+        {
             return cast #wrap (u32, .rng.nextU64())
+        }
     }
 
     // Returns the next 64-bit unsigned value.
     #[Swag.Inline]
     mtd nextU64()->u64
     {
-        if not .seedDone do
+        if not .seedDone
+        {
             .seedAutomatically()
+        }
 
-        #static if #defined(T.nextU64) do
+        #static if #defined(T.nextU64)
+        {
             return .rng.nextU64()
-        else do
+        }
+        else
+        {
             return (cast(u64, .rng.nextU32()) << 32) | .rng.nextU32()
+        }
     }
 
     // Seeds the generator from the current clock and thread.
@@ -100,11 +126,11 @@ impl Generator
 
     // Returns a value in the half-open interval `[0, 1)`, with 24 bits of precision.
     #[Swag.Inline]
-    mtd nextF32()->f32 => cast(f32, (.nextU32() >> 8)) * (1'f32 / 16777216'f32)
+    mtd nextF32()->f32 => cast(f32, (.nextU32() >> 8)) * (1_f32 / 16777216_f32)
 
     // Returns a value in the half-open interval `[0, 1)`, with 53 bits of precision.
     #[Swag.Inline]
-    mtd nextF64()->f64 => cast(f64, (.nextU64() >> 11)) * (1'f64 / 9007199254740992'f64)
+    mtd nextF64()->f64 => cast(f64, (.nextU64() >> 11)) * (1_f64 / 9007199254740992_f64)
 
     // Returns a uniformly distributed value in the half-open interval `[min, max)`.
     //
@@ -113,10 +139,13 @@ impl Generator
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
         let range     = max - min
-        let threshold = (0'u32 - #wrap range) % range
+        let threshold = (0_u32 - #wrap range) % range
         var value     = .nextU32()
-        while value < threshold do
+        while value < threshold
+        {
             value = .nextU32()
+        }
+
         value %= range
         return min + value
     }
@@ -128,10 +157,13 @@ impl Generator
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
         let range     = max - min
-        let threshold = (0'u64 - #wrap range) % range
+        let threshold = (0_u64 - #wrap range) % range
         var value     = .nextU64()
-        while value < threshold do
+        while value < threshold
+        {
             value = .nextU64()
+        }
+
         value %= range
         return min + value
     }
@@ -145,10 +177,13 @@ impl Generator
         let minBits   = cast #bit (u32, min)
         let maxBits   = cast #bit (u32, max)
         let range     = (maxBits - #wrap minBits)
-        let threshold = (0'u32 - #wrap range) % range
+        let threshold = (0_u32 - #wrap range) % range
         var value     = .nextU32()
-        while value < threshold do
+        while value < threshold
+        {
             value = .nextU32()
+        }
+
         value %= range
         return cast #bit (s32, (minBits + #wrap value))
     }
@@ -162,10 +197,13 @@ impl Generator
         let minBits   = cast #bit (u64, min)
         let maxBits   = cast #bit (u64, max)
         let range     = (maxBits - #wrap minBits)
-        let threshold = (0'u64 - #wrap range) % range
+        let threshold = (0_u64 - #wrap range) % range
         var value     = .nextU64()
-        while value < threshold do
+        while value < threshold
+        {
             value = .nextU64()
+        }
+
         value %= range
         return cast #bit (s64, (minBits + #wrap value))
     }
@@ -182,7 +220,7 @@ impl Generator
         var result: f32
         if min < 0 and max > 0
         {
-            result = min * (1'f32 - value) + max * value
+            result = min * (1_f32 - value) + max * value
         }
         else
         {
@@ -204,7 +242,7 @@ impl Generator
         var result: f64
         if min < 0 and max > 0
         {
-            result = min * (1'f64 - value) + max * value
+            result = min * (1_f64 - value) + max * value
         }
         else
         {
@@ -221,8 +259,10 @@ impl Generator
     mtd(V) shuffle(slice: [..] V)
     {
         let count = slice.count
-        if count < 2 do
+        if count < 2
+        {
             return
+        }
 
         let data = slice.buffer
         for var index = count - 1; index > 0; index -= 1

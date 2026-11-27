@@ -3,7 +3,7 @@
 
 using Swag
 
-func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
+func assertOrderedSetKeysAreReadOnly(values: *OrderedSet!{s32})
 {
     for &key in values[]
     {
@@ -18,7 +18,7 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
 
 #test
 {
-    var set: OrderedSet's32
+    var set: OrderedSet!{s32}
     set.initialize(func(left, right: const *s32)->s32 => left[] <=> right[])
     Swag.require(set.add(4))
     Swag.require(set.add(1))
@@ -29,13 +29,19 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
     assertOrderedSetKeysAreReadOnly(&set)
 
     var code = 0
-    for key in set do
+    for key in set
+    {
         code = code * 10 + key
+    }
+
     Swag.require(code == 1234)
 
     var reverse = 0
-    for key in set.reversed() do
+    for key in set.reversed()
+    {
         reverse = reverse * 10 + key
+    }
+
     Swag.require(reverse == 4321)
 
     Swag.require(set.lowerBound(2) == 1)
@@ -48,15 +54,18 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
 
 #test
 {
-    var set: OrderedSet'String
+    var set: OrderedSet!{String}
     set.initialize(func(left, right: const *String)->s32 => Utf8.compare(right[], left[]))
     set.add("alpha")
     set.add("gamma")
     set.add("beta")
 
     var result: String
-    for key in set do
+    for key in set
+    {
         result += key[]
+    }
+
     Swag.require(result == "gammabetaalpha")
 
     var copy = set
@@ -67,7 +76,7 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
 // Reserving less storage preserves the elements and their existing capacity.
 #test
 {
-    var set = OrderedSet's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var set = OrderedSet!{s32}.create(func(left, right: const *s32)->s32 => left[] <=> right[])
     set.add(42)
     let capacity = set.capacity()
     set.reserve(0)
@@ -77,7 +86,7 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
 
 #test
 {
-    var set = OrderedSet's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var set = OrderedSet!{s32}.create(func(left, right: const *s32)->s32 => left[] <=> right[])
     set.reserve(8)
     set.add(4)
     set.add(1)
@@ -95,14 +104,17 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
     Swag.require(set.lowerBound(3) == 1)
 
     var ordered = 0
-    for key in set do
+    for key in set
+    {
         ordered = ordered * 10 + key
+    }
+
     Swag.require(ordered == 134)
 }
 
 #test
 {
-    var set = OrderedSet's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var set = OrderedSet!{s32}.create(func(left, right: const *s32)->s32 => left[] <=> right[])
     Swag.require(set.lowerBound(3) == 0 and set.upperBound(3) == 0)
     Swag.require(set.range(3, 3).count == 0)
 
@@ -121,11 +133,17 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
 // Empty forward and reversed views visit no keys.
 #test
 {
-    var set    = OrderedSet's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var set    = OrderedSet!{s32}.create(func(left, right: const *s32)->s32 => left[] <=> right[])
     var visits = 0
-    for _ in set do
+    for _ in set
+    {
         visits += 1
-    for _ in set.reversed() do
+    }
+
+    for _ in set.reversed()
+    {
         visits += 1
+    }
+
     Swag.require(visits == 0)
 }

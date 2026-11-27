@@ -3,8 +3,8 @@
 
 using Swag
 
-#assert(Slice.contains([1'u8, 2, 3], 2'u8))
-#assert(not Slice.contains([1'u8, 2, 3], 4'u8))
+#assert(Slice.contains([1_u8, 2, 3], 2_u8))
+#assert(not Slice.contains([1_u8, 2, 3], 4_u8))
 
 #test
 {
@@ -28,8 +28,8 @@ using Swag
 
     Swag.require(Slice.findLinear(emptyNumbers, 1) == Swag.U64.Max)
     Swag.require(not Slice.contains(emptyNumbers, 1))
-    Swag.require(Slice.findLinear(emptyBytes, 1'u8) == Swag.U64.Max)
-    Swag.require(not Slice.contains(emptyBytes, 1'u8))
+    Swag.require(Slice.findLinear(emptyBytes, 1_u8) == Swag.U64.Max)
+    Swag.require(not Slice.contains(emptyBytes, 1_u8))
 
     let found = Slice.findSorted(duplicates, 3)
     Swag.require(found >= 1 and found <= 3 and duplicates[found] == 3)
@@ -84,11 +84,16 @@ using Swag
     Swag.require(Slice.findSubslice(empty, tooLong) == Swag.U64.Max)
 
     var values: [24] u8
-    for &value in values do
+    for &value in values
+    {
         value[] = 0x11
+    }
+
     let needle: [5] u8 = [1, 2, 3, 4, 5]
-    for i in needle.count do
+    for i in needle.count
+    {
         values[19 + i] = needle[i]
+    }
 
     Swag.require(Slice.findSubslice(values, needle) == 19)
 }
@@ -114,47 +119,68 @@ using Swag
     var values: [96] u8
     for position in 96
     {
-        for &value in values do
+        for &value in values
+        {
             value[] = 0x11
+        }
+
         values[position] = 0xE7
-        Swag.require(Slice.findLinear(values, 0xE7'u8) == position)
+        Swag.require(Slice.findLinear(values, 0xE7_u8) == position)
     }
 
-    Swag.require(Slice.findLinear(values, 0xFF'u8) == Swag.U64.Max)
+    Swag.require(Slice.findLinear(values, 0xFF_u8) == Swag.U64.Max)
 
     for position in 96
     {
-        for &value in values do
+        for &value in values
+        {
             value[] = 0x11
+        }
+
         values[position] = 0xE7
-        Swag.require(Slice.contains(values, 0xE7'u8))
-        Swag.require(not Slice.contains(values, 0xFF'u8))
+        Swag.require(Slice.contains(values, 0xE7_u8))
+        Swag.require(not Slice.contains(values, 0xFF_u8))
     }
 
     let needle: [5] u8 = [1, 2, 3, 4, 5]
     for position in 80
     {
-        for &value in values do
+        for &value in values
+        {
             value[] = 0
-        for i in needle.count do
+        }
+
+        for i in needle.count
+        {
             values[position + i] = needle[i]
+        }
+
         Swag.require(Slice.findSubslice(values, needle) == position)
     }
 
     // Several candidate starts in one vector must be checked until the full needle matches.
-    for &value in values do
+    for &value in values
+    {
         value[] = 0
+    }
+
     values[0]  = 1
     values[1]  = 2
     values[16] = 1
     values[17] = 2
-    for i in needle.count do
+    for i in needle.count
+    {
         values[31 + i] = needle[i]
+    }
+
     Swag.require(Slice.findSubslice(values, needle) == 31)
 
-    for &value in values do
+    for &value in values
+    {
         value[] = 0x11
-    Swag.require(Slice.findSubslice(values, [0x11'u8, 0x12]) == Swag.U64.Max)
+    }
+
+    Swag.require(Slice.findSubslice(values, [0x11_u8, 0x12]) == Swag.U64.Max)
 
     var same = values
     Swag.require(Slice.equals(values, same))

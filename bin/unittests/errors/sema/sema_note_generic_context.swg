@@ -30,6 +30,6 @@ impl GenericCompareBox
 
 #test
 {
-    let box: GenericCompareBox'NoGenericCompare = {value: NoGenericCompare{}}
+    let box: GenericCompareBox!{NoGenericCompare} = {value: NoGenericCompare{}}
     box.compareValue()
 }

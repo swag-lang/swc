@@ -4,8 +4,11 @@ using Core
 
 private func mathIsSingleLetter(text: string)->bool
 {
-    if text.count == 0 do
+    if text.count == 0
+    {
         return false
+    }
+
     let {c, eat} = Utf8.decodeRune(cast(const [..] u8, text))
     return eat == text.count and Unicode.isLetter(c)
 }
@@ -34,12 +37,17 @@ private func mathResolveFont(baseFont: *Font, variant: MathFontVariant, text: st
 
         // TeX sets single-letter variables in math italic, while numbers,
         // punctuation, operators and multi-letter text stay upright.
-        if mathIsSingleLetter(text) do
+        if mathIsSingleLetter(text)
+        {
             italic = true
+        }
     }
 
-    if bold == baseFont.forceBold and italic == baseFont.forceItalic do
+    if bold == baseFont.forceBold and italic == baseFont.forceItalic
+    {
         return baseFont
+    }
+
     return baseFont.owner.createFont(baseFont.cache.typeFace, baseFont.size, baseFont.renderMode(), bold, italic)
 }
 
@@ -49,8 +57,10 @@ private func mathNormalizedClass(row: *MathNode, index: u64)->MathAtomClass
 {
     let node = row.children[index]
     var cls  = node.atomClass
-    if cls != .Bin do
+    if cls != .Bin
+    {
         return cls
+    }
 
     // A binary operator at a boundary, after another operator/relation/opening,
     // or before a relation/closing/punctuation is unary/ordinary in TeX spacing.
@@ -86,10 +96,16 @@ private func mathNormalizedClass(row: *MathNode, index: u64)->MathAtomClass
         n += 1
     }
 
-    if not hasPrev or prev == .Bin or prev == .Op or prev == .Rel or prev == .Open or prev == .Punct do
+    if not hasPrev or prev == .Bin or prev == .Op or prev == .Rel or prev == .Open or prev == .Punct
+    {
         return .Ord
-    if not hasNext or next == .Rel or next == .Close or next == .Punct do
+    }
+
+    if not hasNext or next == .Rel or next == .Close or next == .Punct
+    {
         return .Ord
+    }
+
     return cls
 }
 
@@ -98,21 +114,41 @@ private func mathNormalizedClass(row: *MathNode, index: u64)->MathAtomClass
 // formulae. Open/close punctuation intentionally suppresses most spacing.
 private func mathSpacingMu(left, right: MathAtomClass)->f32
 {
-    if left == .Punct do
+    if left == .Punct
+    {
         return 3
-    if right == .Punct or right == .Close do
-        return 0
-    if left == .Open do
-        return 0
+    }
 
-    if left == .Rel or right == .Rel do
+    if right == .Punct or right == .Close
+    {
+        return 0
+    }
+
+    if left == .Open
+    {
+        return 0
+    }
+
+    if left == .Rel or right == .Rel
+    {
         return 5
-    if left == .Bin or right == .Bin do
+    }
+
+    if left == .Bin or right == .Bin
+    {
         return 4
-    if left == .Op or right == .Op do
+    }
+
+    if left == .Op or right == .Op
+    {
         return 3
-    if left == .Inner or right == .Inner do
+    }
+
+    if left == .Inner or right == .Inner
+    {
         return 3
+    }
+
     return 0
 }
 
@@ -137,25 +173,29 @@ private func mathLayoutSymbol(node: *MathNode, font: *Font, style: MathStyle, va
     var scale = mathStyleScale(style, options)
     if node.flag
     {
-        if style == .Display do
+        if style == .Display
+        {
             scale *= 1.35
-        elif style == .Text do
+        }
+        else if style == .Text
+        {
             scale *= 1.15
+        }
     }
 
     let drawFont = mathResolveFont(font, variant, node.text.toString())
     let measured = Painter.measureString(node.text.toString(), drawFont)
 
     node.metrics.width   = measured.width * scale
-    node.metrics.ascent  = Math.max(0.0'f32, measured.ascent * scale)
-    node.metrics.descent = Math.max(0.0'f32, measured.descent * scale)
+    node.metrics.ascent  = Math.max(0.0_f32, measured.ascent * scale)
+    node.metrics.descent = Math.max(0.0_f32, measured.descent * scale)
     mathAddText(node, node.text.toString(), drawFont, scale, 0, 0)
 }
 
 private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     let em            = cast(f32, font.size) * mathStyleScale(style, options)
-    var x             = 0.0'f32
+    var x             = 0.0_f32
     var previousClass = MathAtomClass.Ord
     var hasPrevious   = false
 
@@ -166,8 +206,11 @@ private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, varia
         if child.kind != .Space
         {
             let cls = mathNormalizedClass(node, idx)
-            if hasPrevious do
+            if hasPrevious
+            {
                 x += mathSpacingMu(previousClass, cls) / 18.0 * em
+            }
+
             previousClass = cls
             hasPrevious   = true
         }
@@ -182,8 +225,10 @@ private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, varia
     if node.children.count
     {
         node.atomClass = node.children[0].atomClass
-        if node.children.count > 1 do
+        if node.children.count > 1
+        {
             node.atomClass = .Inner
+        }
     }
 }
 
@@ -192,10 +237,10 @@ private func mathLayoutFraction(node: *MathNode, font: *Font, style: MathStyle, 
     let childStyle = mathCrampedStyle(style)
     let scale      = mathStyleScale(style, options)
     let em         = cast(f32, font.size) * scale
-    let rule       = node.flag ? mathRuleThickness(font, options, scale) : 0.0'f32
-    let gap        = (node.flag ? 0.19'f32 : 0.13'f32) * em
-    let pad        = 0.12'f32 * em
-    let axisY      = -0.25'f32 * em
+    let rule       = node.flag ? mathRuleThickness(font, options, scale) : 0.0_f32
+    let gap        = (node.flag ? 0.19_f32 : 0.13_f32) * em
+    let pad        = 0.12_f32 * em
+    let axisY      = -0.25_f32 * em
 
     let numerator   = node.children[0]
     let denominator = node.children[1]
@@ -222,12 +267,12 @@ private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, v
     let scale = mathStyleScale(style, options)
     let em    = cast(f32, font.size) * scale
     let rule  = mathRuleThickness(font, options, scale)
-    let gap   = 0.10'f32 * em
+    let gap   = 0.10_f32 * em
 
     let radicand = node.children[0]
     mathLayoutNode(radicand, font, style, variant, options)
 
-    var contentX = 0.46'f32 * em
+    var contentX = 0.46_f32 * em
     var index: *MathNode?
     if node.flag
     {
@@ -265,7 +310,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
     mathLayoutNode(base, font, style, variant, options)
 
     let scriptStyle = mathNextStyle(style)
-    var childIndex  = 1'u64
+    var childIndex  = 1_u64
     var sub, sup: *MathNode?
     var subIndex, supIndex: u64
     if node.flag
@@ -286,20 +331,28 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
     let scale      = mathStyleScale(style, options)
     let em         = cast(f32, font.size) * scale
     var limitsMode = node.limitsMode
-    if limitsMode == .Automatic do
+    if limitsMode == .Automatic
+    {
         limitsMode = base.limitsMode
+    }
+
     let useLimits = base.atomClass == .Op and
                     limitsMode != .NoLimits and
                     (limitsMode == .Limits or style == .Display)
 
     if useLimits
     {
-        let gap = 0.14'f32 * em
+        let gap = 0.14_f32 * em
         node.metrics.width = base.metrics.width
-        if sub do
+        if sub
+        {
             node.metrics.width = Math.max(node.metrics.width, sub.metrics.width)
-        if sup do
+        }
+
+        if sup
+        {
             node.metrics.width = Math.max(node.metrics.width, sup.metrics.width)
+        }
 
         node.offsets[0]      = Vector2{(node.metrics.width - base.metrics.width) * 0.5, 0}
         node.metrics.ascent  = base.metrics.ascent
@@ -324,8 +377,8 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
     else
     {
         let scriptX = base.metrics.width + 0.05 * em
-        var supY    = 0.0'f32
-        var subY    = 0.0'f32
+        var supY    = 0.0_f32
+        var subY    = 0.0_f32
 
         if sup
         {
@@ -387,42 +440,86 @@ private struct MathDelimiterMeasure
 
 private func mathDelimiterPathKind(text: string)->{ kind: MathPathKind, found: bool }
 {
-    if text == "(" do
+    if text == "("
+    {
         return {kind: .LeftParenthesis, found: true}
-    if text == ")" do
+    }
+
+    if text == ")"
+    {
         return {kind: .RightParenthesis, found: true}
-    if text == "[" do
+    }
+
+    if text == "["
+    {
         return {kind: .LeftBracket, found: true}
-    if text == "]" do
+    }
+
+    if text == "]"
+    {
         return {kind: .RightBracket, found: true}
-    if text == "{" do
+    }
+
+    if text == "{"
+    {
         return {kind: .LeftBrace, found: true}
-    if text == "}" do
+    }
+
+    if text == "}"
+    {
         return {kind: .RightBrace, found: true}
-    if text == "\u27E8" do
+    }
+
+    if text == "\u27E8"
+    {
         return {kind: .LeftAngle, found: true}
-    if text == "\u27E9" do
+    }
+
+    if text == "\u27E9"
+    {
         return {kind: .RightAngle, found: true}
-    if text == "\u230A" do
+    }
+
+    if text == "\u230A"
+    {
         return {kind: .LeftFloor, found: true}
-    if text == "\u230B" do
+    }
+
+    if text == "\u230B"
+    {
         return {kind: .RightFloor, found: true}
-    if text == "\u2308" do
+    }
+
+    if text == "\u2308"
+    {
         return {kind: .LeftCeiling, found: true}
-    if text == "\u2309" do
+    }
+
+    if text == "\u2309"
+    {
         return {kind: .RightCeiling, found: true}
-    if text == "|" do
+    }
+
+    if text == "|"
+    {
         return {kind: .Bar, found: true}
-    if text == "\u2016" do
+    }
+
+    if text == "\u2016"
+    {
         return {kind: .DoubleBar, found: true}
+    }
+
     return {kind: .Radical, found: false}
 }
 
 private func mathMeasureDelimiter(text: string, font: *Font, minScale, targetHeight, em: f32)->MathDelimiterMeasure
 {
     var result: #returntype
-    if text == "." do
+    if text == "."
+    {
         return result
+    }
 
     let path = mathDelimiterPathKind(text)
     if path.found
@@ -445,8 +542,11 @@ private func mathMeasureDelimiter(text: string, font: *Font, minScale, targetHei
 
     let measured = Painter.measureString(text, font)
     result.scale = minScale
-    if measured.height > 0 do
+    if measured.height > 0
+    {
         result.scale = Math.max(result.scale, targetHeight / measured.height)
+    }
+
     result.width  = measured.width * result.scale
     result.height = measured.height * result.scale
     return result
@@ -463,11 +563,11 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
     let delimiterFont = mathResolveFont(font, .Roman, "")
     let left          = mathMeasureDelimiter(node.text.toString(), delimiterFont, scale, targetHeight, em)
     let right         = mathMeasureDelimiter(node.text2.toString(), delimiterFont, scale, targetHeight, em)
-    let pad           = 0.08'f32 * em
-    let axisY         = -0.25'f32 * em
+    let pad           = 0.08_f32 * em
+    let axisY         = -0.25_f32 * em
     let rule          = mathRuleThickness(font, options, scale)
 
-    var x = 0.0'f32
+    var x = 0.0_f32
     if node.text.toString() != "."
     {
         let top = axisY - left.height * 0.5
@@ -529,15 +629,19 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
 
     let scale = mathStyleScale(style, options)
     let em    = cast(f32, font.size) * scale
-    let gap   = 0.06'f32 * em
+    let gap   = 0.06_f32 * em
     let rule  = mathRuleThickness(font, options, scale)
 
     var accentWidth = base.metrics.width
     let accentText  = node.text.toString()
-    if accentText == "^" or accentText == "~" do
+    if accentText == "^" or accentText == "~"
+    {
         accentWidth = Math.max(accentWidth, 0.55 * em)
-    elif accentText == "\u2192" do
+    }
+    else if accentText == "\u2192"
+    {
         accentWidth = Math.max(accentWidth, 0.72 * em)
+    }
 
     node.offsets[0]    = Vector2{(accentWidth - base.metrics.width) * 0.5, 0}
     node.metrics       = base.metrics
@@ -547,10 +651,15 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
     {
         let y = node.flag ? base.metrics.descent + gap : -base.metrics.ascent - gap
         node.rules.add(MathRule{start: Vector2{0, y}, end: Vector2{accentWidth, y}, width: rule})
-        if node.flag do
+        if node.flag
+        {
             node.metrics.descent = Math.max(node.metrics.descent, y + rule * 0.5)
-        else do
+        }
+        else
+        {
             node.metrics.ascent = Math.max(node.metrics.ascent, -y + rule * 0.5)
+        }
+
         return
     }
 
@@ -563,7 +672,7 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
     }
 
     var pathKind   = MathPathKind.Hat
-    var pathHeight = 0.0'f32
+    var pathHeight = 0.0_f32
     var usesPath: bool
     if accentText == "^"
     {
@@ -571,13 +680,13 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
         pathHeight = 0.18 * em
         usesPath   = true
     }
-    elif accentText == "~"
+    else if accentText == "~"
     {
         pathKind   = .Tilde
         pathHeight = 0.13 * em
         usesPath   = true
     }
-    elif accentText == "\u2192"
+    else if accentText == "\u2192"
     {
         pathKind   = .Vector
         pathHeight = 0.18 * em
@@ -620,21 +729,25 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
 private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
 {
     var cellStyle = style
-    if style == .Display do
+    if style == .Display
+    {
         cellStyle = .Text
+    }
 
-    var columnCount = 0'u32
-    for count in node.rowLengths do
+    var columnCount = 0_u32
+    for count in node.rowLengths
+    {
         columnCount = Math.max(columnCount, count)
+    }
 
-    var columnWidths: Array'f32
-    var rowAscents:   Array'f32
-    var rowDescents:  Array'f32
+    var columnWidths: Array!{f32}
+    var rowAscents:   Array!{f32}
+    var rowDescents:  Array!{f32}
     columnWidths.resize(columnCount)
     rowAscents.resize(node.rowLengths.count)
     rowDescents.resize(node.rowLengths.count)
 
-    var childIndex = 0'u64
+    var childIndex = 0_u64
     for count, row in node.rowLengths
     {
         for column in count
@@ -656,24 +769,28 @@ private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, va
     for width, idx in columnWidths
     {
         totalWidth += width
-        if idx + 1 < columnWidths.count do
+        if idx + 1 < columnWidths.count
+        {
             totalWidth += columnGap
+        }
     }
 
     for ascent, idx in rowAscents
     {
         totalHeight += ascent + rowDescents[idx]
-        if idx + 1 < rowAscents.count do
+        if idx + 1 < rowAscents.count
+        {
             totalHeight += rowGap
+        }
     }
 
-    let axisY = -0.25'f32 * em
+    let axisY = -0.25_f32 * em
     var y     = axisY - totalHeight * 0.5
     childIndex = 0
     for count, row in node.rowLengths
     {
         let baseline = y + rowAscents[row]
-        var x        = 0.0'f32
+        var x        = 0.0_f32
         for column in count
         {
             let child = node.children[childIndex]
@@ -882,8 +999,10 @@ private func mathDrawPath(painter: *Painter, draw: MathDrawPath, x, baseline: f3
 
 private func mathDrawNode(painter: *Painter, node: *MathNode, x, baseline: f32, color: Color)
 {
-    for path in node.paths do
+    for path in node.paths
+    {
         mathDrawPath(painter, path, x, baseline, color)
+    }
 
     for rule in node.rules
     {
@@ -930,8 +1049,11 @@ impl Painter
     mtd drawMath(left, top: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics
     {
         let metrics = expression.measure(font, options)
-        if color.a != 0 do
+        if color.a != 0
+        {
             mathDrawNode(me, expression.root, left, top + metrics.ascent, color)
+        }
+
         return metrics
     }
 
@@ -940,8 +1062,11 @@ impl Painter
     mtd drawMathCenter(centerX, centerY: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics
     {
         let metrics = expression.measure(font, options)
-        if color.a != 0 do
+        if color.a != 0
+        {
             mathDrawNode(me, expression.root, centerX - metrics.width * 0.5, centerY - metrics.height() * 0.5 + metrics.ascent, color)
+        }
+
         return metrics
     }
 

@@ -129,5 +129,5 @@ being compiled by it.
   repair attempts, time to verified success and use of unchecked assertions or escape
   hatches. Use the results to rank migrations with compatibility costs, including generic
   delimiters, multidimensional array forms, conditional chains and control-body delimiters.
-- Related: language.design.065, language.design.066, compiler.query.002, compiler.command.test.001,
-  language.design.067, language.design.068, compiler.build.004.
+- Related: language.design.066, compiler.query.002, compiler.command.test.001,
+  compiler.build.004.

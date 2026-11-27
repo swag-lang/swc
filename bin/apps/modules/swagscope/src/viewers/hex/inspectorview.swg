@@ -20,8 +20,8 @@ struct InspectorView
 
     headline: String
     caption:  String
-    readings: Array'InspectorLine
-    fields:   Array'InspectorLine
+    readings: Array!{InspectorLine}
+    fields:   Array!{InspectorLine}
 }
 
 private
@@ -30,10 +30,10 @@ private
     // hairline that separates the readings from the fields.
     const CardInset    = 24.0
     const LinePitch    = 25.0
-    const HeadlineSize = 28'u32
-    const LabelSize    = 13'u32
-    const ValueSize    = 12'u32
-    const CaptionSize  = 11'u32
+    const HeadlineSize = 28_u32
+    const LabelSize    = 13_u32
+    const ValueSize    = 12_u32
+    const CaptionSize  = 11_u32
     const HeadlineGap  = 22.0
     const SeparatorAir = 16.0
 }
@@ -42,7 +42,7 @@ impl InspectorView
 {
     func create(parent: *Wnd)->*InspectorView
     {
-        with let result = Wnd.create'InspectorView(parent, "scope.hex.inspector.view", {})
+        with let result = Wnd.create!{InspectorView}(parent, "scope.hex.inspector.view", {})
         {
             .backgroundStyle = .Transparent
             .dockStyle       = .Center
@@ -58,15 +58,17 @@ impl InspectorView
         let caption  = .theme().createDefaultFontFs(CaptionSize)
         var result   = CardInset + headline.height + caption.height + HeadlineGap - LinePitch * 0.25
         result += cast(f32, .readings.count) * LinePitch
-        if not .fields.isEmpty() do
+        if not .fields.isEmpty()
+        {
             result += 2 * SeparatorAir + cast(f32, .fields.count) * LinePitch
+        }
 
         // A line keeps air under its words, so the last one already gives part of the inset.
         return result + CardInset - LinePitch * 0.25
     }
 
     // Draws `lines` from `top`, one per pitch, labels at the left and values at the right.
-    private mtd paintLines(painter: *Painter, lines: const *Array'InspectorLine, top: f32)
+    private mtd paintLines(painter: *Painter, lines: const *Array!{InspectorLine}, top: f32)
     {
         let colors = .themeColors()
         let client = .clientRect()
@@ -108,8 +110,10 @@ impl IWnd for InspectorView
 
         .paintLines(painter, &.readings, y)
         y += cast(f32, .readings.count) * LinePitch
-        if .fields.isEmpty() do
+        if .fields.isEmpty()
+        {
             return
+        }
 
         y += SeparatorAir
         painter.drawLine(left, y, client.right() - CardInset, y, colors.line, 1)

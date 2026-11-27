@@ -6,8 +6,10 @@ impl Capture
         for c in .formCaches
         {
             let entry = unwrap c
-            if entry.form.buffer == f.buffer do
+            if entry.form.buffer == f.buffer
+            {
                 return entry
+            }
         }
 
         return null
@@ -17,8 +19,10 @@ impl Capture
     mtd invalidateFormCache(f: IForm)
     {
         let c = .findFormCache(f)
-        if c do
+        if c
+        {
             c.dirty = true
+        }
     }
 
     // The pixels an image form shows can come from the capture background under it,
@@ -28,16 +32,20 @@ impl Capture
         for c in .formCaches
         {
             let entry = unwrap c
-            if Swag.kindOf(unwrap entry.form) == FormImage do
+            if Swag.kindOf(unwrap entry.form) == FormImage
+            {
                 entry.dirty = true
+            }
         }
     }
 
     // Marks every retained form rendering for a re-render (theme switch).
     mtd invalidateAllFormCaches()
     {
-        for c in .formCaches do
+        for c in .formCaches
+        {
             c!.dirty = true
+        }
     }
 
     // Drops the cache entries whose form left the capture, before that form's memory
@@ -45,7 +53,7 @@ impl Capture
     // non-interactive hasChanged(), which follows every form addition and removal.
     mtd pruneFormCaches()
     {
-        var i = 0'u64
+        var i = 0_u64
         while i < .formCaches.count
         {
             let c    = unwrap .formCaches[i]
@@ -76,8 +84,10 @@ impl Capture
     func formContentFresh(f: IForm)->bool
     {
         let fi = catch cast(*FormImage?, f) orelse null
-        if not fi do
+        if not fi
+        {
             return true
+        }
 
         switch fi.kind
         {
@@ -128,7 +138,7 @@ impl Capture
     {
         let extent     = Math.max(bounds.width, bounds.height)
         let maxLogical = cast(f32, MaxFormShadowDim) / painter.contentScale()
-        let scale      = Math.min(1.0'f32,
+        let scale      = Math.min(1.0_f32,
                                   (maxLogical - 2 * FormShadowMargin - 1) / extent)
         let width  = cast(s32, Math.ceil(bounds.width * scale)) + 2 * FormShadowMargin
         let height = cast(s32, Math.ceil(bounds.height * scale)) + 2 * FormShadowMargin
@@ -147,7 +157,7 @@ impl Capture
         }
 
         layer.end()
-        layer.blur(Math.max((quickMode ? 4.0'f32 : FormShadowRadius) * scale * painter.contentScale(), 0.5))
+        layer.blur(Math.max((quickMode ? 4.0_f32 : FormShadowRadius) * scale * painter.contentScale(), 0.5))
         return scale
     }
 
@@ -160,7 +170,7 @@ impl Capture
         let x      = formRect.x + (base.shadowOffsetX * zoom) - (FormShadowMargin * factor)
         let y      = formRect.y + (base.shadowOffsetY * zoom) - (FormShadowMargin * factor)
         layer.draw({dstRect: {x, y, layer.width * factor, layer.height * factor},
-                    color: Color.fromArgb(cast(u8, 150'u32 * color.a / 255), Argb.Black),
+                    color: Color.fromArgb(cast(u8, 150_u32 * color.a / 255), Argb.Black),
                     interpolationMode: .Linear,
                     releaseAfterDraw: releaseAfterDraw,
                     writeAlpha: writeAlpha})
@@ -210,19 +220,28 @@ impl Capture
         let clipped  = not base.isRotated() and
                        (not layerFits(cast(s32, pos.width), cast(s32, pos.height), scale, 1) or
                         pos.width * pos.height > clip.width * clip.height * 2)
-        if clipped do
+        if clipped
+        {
             cachePos.intersect(clip)
+        }
 
         let wt2 = cast(s32, cachePos.width)
         let ht2 = cast(s32, cachePos.height)
-        if wt2 <= 0 or ht2 <= 0 do
+        if wt2 <= 0 or ht2 <= 0
+        {
             return false
+        }
 
         var textSuperSample = Swag.kindOf(f) == FormText ? TextFormSuperSample : 1
-        while textSuperSample > 1 and not layerFits(wt2, ht2, scale, textSuperSample) do
+        while textSuperSample > 1 and not layerFits(wt2, ht2, scale, textSuperSample)
+        {
             textSuperSample -= 1
-        if not layerFits(wt2, ht2, scale, textSuperSample) do
+        }
+
+        if not layerFits(wt2, ht2, scale, textSuperSample)
+        {
             return false
+        }
 
         let origin = Math.Vector2{cachePos.x - rect.x, cachePos.y - rect.y}
 
@@ -297,7 +316,7 @@ impl Capture
             {
                 // The refinement timer will request the final sharp frame.
             }
-            elif .cacheRefreshLeft > 0
+            else if .cacheRefreshLeft > 0
             {
                 .cacheRefreshLeft -= 1
                 renderNow         = true
@@ -315,10 +334,15 @@ impl Capture
             with painter
             {
                 .pushTransform()
-                if clipped do
+                if clipped
+                {
                     .translateTransform(-origin.x * textSuperSample, -origin.y * textSuperSample)
-                else do
+                }
+                else
+                {
                     .translateTransform(-boundRect.x * zoom * textSuperSample, -boundRect.y * zoom * textSuperSample)
+                }
+
                 var cxt: FormPaintContext
                 cxt.z = zoom
                 cxt.renderScale = cast(f32, textSuperSample)
@@ -336,10 +360,14 @@ impl Capture
             sharp         = true
         }
 
-        if base.paintShadow and shadowDirty do
+        if base.paintShadow and shadowDirty
+        {
             entry.shadowScale = bakeFormShadow(&entry.shadow, painter, f, boundRect)
-        elif not base.paintShadow and entry.shadow.contentTarget != null do
+        }
+        else if not base.paintShadow and entry.shadow.contentTarget != null
+        {
             entry.shadow.releaseImmediate()
+        }
 
         let colForm = Color.fromArgb(base.opacityAlpha(), Argb.White)
         painter.pushTransform()
@@ -350,8 +378,10 @@ impl Capture
             shadowRect.offset(-noClipPos.horzCenter(), -noClipPos.vertCenter())
         }
 
-        if base.paintShadow do
+        if base.paintShadow
+        {
             drawFormShadow(&entry.shadow, shadowRect, zoom, entry.shadowScale, base, colForm, releaseAfterDraw: false, writeAlpha: false)
+        }
 
         with var drawInfo: LayerDrawInfo
         {
@@ -397,18 +427,35 @@ impl Capture
 
             if not quickMode and not clip.isEmpty()
             {
-                if .paintPos.x >= clip.right() do
+                if .paintPos.x >= clip.right()
+                {
                     return
-                if .paintPos.y >= clip.bottom() do
+                }
+
+                if .paintPos.y >= clip.bottom()
+                {
                     return
-                if .paintPos.x < clip.x do
+                }
+
+                if .paintPos.x < clip.x
+                {
                     clipOffset.x = clip.x - .paintPos.x
-                if .paintPos.y < clip.y do
+                }
+
+                if .paintPos.y < clip.y
+                {
                     clipOffset.y = clip.y - .paintPos.y
-                if .paintPos.right() > clip.right() do
+                }
+
+                if .paintPos.right() > clip.right()
+                {
                     .paintPos.setRight(clip.right())
-                if .paintPos.bottom() > clip.bottom() do
+                }
+
+                if .paintPos.bottom() > clip.bottom()
+                {
                     .paintPos.setBottom(clip.bottom())
+                }
             }
 
             .paintPos.width  += .paintPos.x - Math.round(.paintPos.x)
@@ -439,14 +486,20 @@ impl Capture
 
         var shadow:      Layer
         var shadowScale: f32
-        if base.paintShadow do
+        if base.paintShadow
+        {
             shadowScale = bakeFormShadow(&shadow, painter, f, boundRect, quickMode)
+        }
 
         var colForm: Color
-        if quickMode and (base.subKind == .Highlight or base.subKind == .PixSel) do
+        if quickMode and (base.subKind == .Highlight or base.subKind == .PixSel)
+        {
             colForm = Argb.White
-        else do
+        }
+        else
+        {
             colForm = Color.fromArgb(base.opacityAlpha(), Argb.White)
+        }
 
         var paintRect: Math.Rectangle
         paintRect.x      = base.paintPos.x + clipOffset.x
@@ -465,8 +518,10 @@ impl Capture
 
         defer painter.popTransform()
 
-        if base.paintShadow do
+        if base.paintShadow
+        {
             drawFormShadow(&shadow, shadowRect, zoom, shadowScale, base, colForm, releaseAfterDraw: true, writeAlpha: writeAlpha)
+        }
 
         with var drawInfo: LayerDrawInfo
         {
@@ -479,8 +534,10 @@ impl Capture
         layer.draw(drawInfo)
         restorePaintState(painter)
 
-        if snapMode do
+        if snapMode
+        {
             base.paintPos = savePaintPos
+        }
     }
 
     // Paints the background image at `x, y` and zoom `z`, uploading it again first when it changed
@@ -499,8 +556,11 @@ impl Capture
                    not .backTexture.isValid() or
                    not renderer.updateTexture(.backTexture, &planes)
                 {
-                    if .backTexture.isValid() do
+                    if .backTexture.isValid()
+                    {
                         renderer.removeTexture(&.backTexture)
+                    }
+
                     .backTexture = renderer.addImage(&planes)
                 }
 
@@ -511,8 +571,11 @@ impl Capture
         }
         else
         {
-            if .backTexturePlanar and .backTexture.isValid() do
+            if .backTexturePlanar and .backTexture.isValid()
+            {
                 renderer.removeTexture(&.backTexture)
+            }
+
             .backTexturePlanar = false
             if not .backTexture.isValid() and .backImg.width > 0
             {
@@ -580,8 +643,10 @@ impl Capture
     mtd invalidateMovedRegion(oldRect, newRect: Math.Rectangle)
     {
         let view = .editView
-        if not view do
+        if not view
+        {
             return
+        }
 
         let snapNow = .snapX != -1 or .snapY != -1
         defer me.prevSnapActive = snapNow
@@ -661,8 +726,10 @@ impl Capture
             let extent = BaseForm.paintExtent(f, false)
             var cull   = extent * zoom
             cull.offset(rect.x, rect.y)
-            if not cull.intersects(cullClip) do
+            if not cull.intersects(cullClip)
+            {
                 continue
+            }
 
             let clipped = f.mustClipToBound()
             if clipped
@@ -672,10 +739,15 @@ impl Capture
                 painter.pushClippingRect(pp)
             }
 
-            if not .paintFormCached(painter, clip, rect, f, extent, zoom) do
+            if not .paintFormCached(painter, clip, rect, f, extent, zoom)
+            {
                 paintForm(painter, clip, rect, f, zoom, writeAlpha: false)
-            if clipped do
+            }
+
+            if clipped
+            {
                 painter.popClippingRect()
+            }
         }
 
         // Only the hot form and the selected ones show a gizmo.
@@ -684,12 +756,20 @@ impl Capture
         for f, i in .forms where .isFormShown(f)
         {
             var flags = FormFlags.Zero
-            if i == .hotForm do
+            if i == .hotForm
+            {
                 flags.add(.Hot)
-            if .selection.contains(i) do
+            }
+
+            if .selection.contains(i)
+            {
                 flags.add(.Selected)
-            if flags != .Zero do
+            }
+
+            if flags != .Zero
+            {
                 f.paintGizmo(painter, zoom, flags)
+            }
         }
 
         painter.popTransform()
@@ -706,14 +786,21 @@ impl Capture
             painter.drawRect(r, Argb.Cyan, 2)
         }
 
-        if .snapX != -1 do
+        if .snapX != -1
+        {
             painter.drawLine(rect.x + .snapX * zoom, rect.y, rect.x + .snapX * zoom, rect.bottom(), Argb.Purple, 2)
-        if .snapY != -1 do
+        }
+
+        if .snapY != -1
+        {
             painter.drawLine(rect.x, rect.y + .snapY * zoom, rect.right(), rect.y + .snapY * zoom, Argb.Purple, 2)
+        }
 
         // Forms drawn scaled while the zoom-refresh budget was spent sharpen over the
         // following frames: keep repainting until none is left stale.
-        if .cacheNeedsRefine do
+        if .cacheNeedsRefine
+        {
             .editView?.invalidate()
+        }
     }
 }

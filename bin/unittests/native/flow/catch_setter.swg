@@ -31,8 +31,10 @@ impl SetterValue
 #[Swag.NoInline]
 func produceSetterValue(failing: bool)->SetterValue fail
 {
-    if failing do
-        fail 73's32
+    if failing
+    {
+        fail 73_s32
+    }
     var result: SetterValue
     result.text        = "setter value"
     result.padding[39] = 91

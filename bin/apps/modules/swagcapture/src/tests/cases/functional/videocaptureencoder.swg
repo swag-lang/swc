@@ -12,10 +12,13 @@ using Core, Core.Errors, Pixel, Video
     var encoder: VideoCaptureEncoder
     expect encoder.start(&recording)
     var picture: Image
-    for index in 32'u64
+    for index in 32_u64
     {
-        if not picture.isValid() do
+        if not picture.isValid()
+        {
             picture = Image.create(32, 64, .BGRA8)
+        }
+
         Memory.set(picture.pixels.storage(), cast(u8, index * 7), picture.byteCount)
         expect encoder.add(&picture, FrameSlot{index, index * 3_000, 3_000, 0}, false)
     }
@@ -33,7 +36,7 @@ using Core, Core.Errors, Pixel, Video
     for index in reader.frameCount()
     {
         let decoded = expect reader.decodeFrame(index)
-        let wanted  = cast(s32, Math.min(index, 31'u64) * 7)
+        let wanted  = cast(s32, Math.min(index, 31_u64) * 7)
         Swag.require(Math.abs(cast(s32, decoded.pixels[0]) - wanted) <= 2,
                      "queued pictures must keep their own pixels and order")
     }

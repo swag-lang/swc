@@ -14,28 +14,42 @@ impl PdfParser
                 continue
             }
 
-            if .bytes[.pos] != '%' do
+            if .bytes[.pos] != '%'
+            {
                 break
-            while .pos < .bytes.count and .bytes[.pos] != '\n' and .bytes[.pos] != '\r' do
+            }
+
+            while .pos < .bytes.count and .bytes[.pos] != '\n' and .bytes[.pos] != '\r'
+            {
                 .pos += 1
+            }
         }
     }
 
     mtd startsWith(text: string)->bool
     {
-        if .pos + text.count > .bytes.count do
+        if .pos + text.count > .bytes.count
+        {
             return false
+        }
+
         return not Memory.compare(.bytes.buffer + .pos, text.buffer, text.count)
     }
 
     mtd consumeWord(text: string)->bool
     {
         .skip()
-        if not .startsWith(text) do
+        if not .startsWith(text)
+        {
             return false
+        }
+
         let end = .pos + text.count
-        if end < .bytes.count and not isDelimiter(.bytes[end]) do
+        if end < .bytes.count and not isDelimiter(.bytes[end])
+        {
             return false
+        }
+
         .pos = end
         return true
     }
@@ -50,14 +64,20 @@ impl PdfParser
     mtd parseUnsigned(value: *u64)->bool
     {
         .skip()
-        if .pos >= .bytes.count or not isDigit(.bytes[.pos]) do
+        if .pos >= .bytes.count or not isDigit(.bytes[.pos])
+        {
             return false
-        var result = 0'u64
+        }
+
+        var result = 0_u64
         while .pos < .bytes.count and isDigit(.bytes[.pos])
         {
             let digit = cast(u64, (.bytes[.pos] - '0'))
-            if result > (Swag.U64.Max - digit) / 10 do
+            if result > (Swag.U64.Max - digit) / 10
+            {
                 return false
+            }
+
             result = result * 10 + digit
             .pos   += 1
         }
@@ -70,8 +90,11 @@ impl PdfParser
     {
         .skip()
         let start = .pos
-        if .pos < .bytes.count and (.bytes[.pos] == '+' or .bytes[.pos] == '-') do
+        if .pos < .bytes.count and (.bytes[.pos] == '+' or .bytes[.pos] == '-')
+        {
             .pos += 1
+        }
+
         var hasDigit = false
         var hasDot   = false
         while .pos < .bytes.count
@@ -94,19 +117,24 @@ impl PdfParser
             break
         }
 
-        if not hasDigit do
+        if not hasDigit
+        {
             fail InvalidFormatError{"PDF number has no digits"}
+        }
 
         let spelling = cast(string, Swag.makeSlice(.bytes.buffer + start, .pos - start))
         if not hasDot
         {
             let first      = try StrConv.toS64(spelling)
             let afterFirst = .pos
-            var generation = 0'u64
+            var generation = 0_u64
             if first >= 0 and .parseUnsigned(&generation) and .consumeWord("R")
             {
-                if cast(u64, first) > Swag.U32.Max do
+                if cast(u64, first) > Swag.U32.Max
+                {
                     fail UnsupportedFormatError{"PDF object number exceeds 32 bits"}
+                }
+
                 with var reference: Node
                 {
                     .kind      = .Reference
@@ -161,7 +189,7 @@ impl PdfParser
     {
         Swag.assert(.bytes[.pos] == '(')
         .pos += 1
-        var depth = 1'u32
+        var depth = 1_u32
         var node: Node
         node.kind = .String
         while .pos < .bytes.count and depth
@@ -170,8 +198,11 @@ impl PdfParser
             .pos += 1
             if c == '\\'
             {
-                if .pos >= .bytes.count do
+                if .pos >= .bytes.count
+                {
                     break
+                }
+
                 c    = .bytes[.pos]
                 .pos += 1
                 switch c
@@ -186,17 +217,20 @@ impl PdfParser
                     node.text += '\t'
 
                 case 'b':
-                    node.text += 8'u8
+                    node.text += 8_u8
 
                 case 'f':
-                    node.text += 12'u8
+                    node.text += 12_u8
 
                 case '\n':
                     continue
 
                 case '\r':
-                    if .pos < .bytes.count and .bytes[.pos] == '\n' do
+                    if .pos < .bytes.count and .bytes[.pos] == '\n'
+                    {
                         .pos += 1
+                    }
+
                     continue
 
                 default:
@@ -230,16 +264,22 @@ impl PdfParser
             if c == ')'
             {
                 depth -= 1
-                if depth do
+                if depth
+                {
                     node.text += c
+                }
+
                 continue
             }
 
             node.text += c
         }
 
-        if depth do
+        if depth
+        {
             fail InvalidFormatError{"PDF literal string is not closed"}
+        }
+
         return .addNode(#move node)
     }
 
@@ -254,10 +294,16 @@ impl PdfParser
         {
             let c = .bytes[.pos]
             .pos += 1
-            if isWhite(c) do
+            if isWhite(c)
+            {
                 continue
-            if not isHex(c) do
+            }
+
+            if not isHex(c)
+            {
                 fail InvalidFormatError{"PDF hexadecimal string contains a non-hexadecimal byte"}
+            }
+
             let value = hexValue(c)
             if high == Swag.U8.Max
             {
@@ -270,11 +316,17 @@ impl PdfParser
             }
         }
 
-        if .pos >= .bytes.count do
+        if .pos >= .bytes.count
+        {
             fail InvalidFormatError{"PDF hexadecimal string is not closed"}
+        }
+
         .pos += 1
-        if high != Swag.U8.Max do
+        if high != Swag.U8.Max
+        {
             node.text += high * 16
+        }
+
         return .addNode(#move node)
     }
 
@@ -287,8 +339,11 @@ impl PdfParser
         for
         {
             .skip()
-            if .pos >= .bytes.count do
+            if .pos >= .bytes.count
+            {
                 fail InvalidFormatError{"PDF array is not closed"}
+            }
+
             if .bytes[.pos] == ']'
             {
                 .pos += 1
@@ -316,8 +371,11 @@ impl PdfParser
                 break
             }
 
-            if .pos >= .bytes.count or .bytes[.pos] != '/' do
+            if .pos >= .bytes.count or .bytes[.pos] != '/'
+            {
                 fail InvalidFormatError{"PDF dictionary needs a name key"}
+            }
+
             let keyNode = try .parseName()
             let key     = .nodes[keyNode].text
             node.entries[key] = try .parseValue()
@@ -329,24 +387,41 @@ impl PdfParser
     mtd parseValue()->u32 fail
     {
         .skip()
-        if .pos >= .bytes.count do
+        if .pos >= .bytes.count
+        {
             fail InvalidFormatError{"PDF value is missing"}
+        }
+
         let c = .bytes[.pos]
-        if c == '/' do
+        if c == '/'
+        {
             return try .parseName()
-        if c == '(' do
+        }
+
+        if c == '('
+        {
             return try .parseLiteralString()
-        if c == '[' do
+        }
+
+        if c == '['
+        {
             return try .parseArray()
+        }
+
         if c == '<'
         {
-            if .startsWith("<<") do
+            if .startsWith("<<")
+            {
                 return try .parseDictionary()
+            }
+
             return try .parseHexString()
         }
 
-        if isDigit(c) or c == '+' or c == '-' or c == '.' do
+        if isDigit(c) or c == '+' or c == '-' or c == '.'
+        {
             return try .parseNumber()
+        }
 
         var node: Node
         if .consumeWord("true")
@@ -354,11 +429,11 @@ impl PdfParser
             node.kind    = .Boolean
             node.boolean = true
         }
-        elif .consumeWord("false")
+        else if .consumeWord("false")
         {
             node.kind = .Boolean
         }
-        elif not .consumeWord("null")
+        else if not .consumeWord("null")
         {
             fail InvalidFormatError{"PDF value uses an unknown token"}
         }
@@ -368,15 +443,23 @@ impl PdfParser
 
     mtd findFrom(start: u64, text: string)->u64
     {
-        if not text.count or start >= .bytes.count do
+        if not text.count or start >= .bytes.count
+        {
             return Swag.U64.Max
+        }
+
         let last = .bytes.count - text.count
-        if start > last do
+        if start > last
+        {
             return Swag.U64.Max
+        }
+
         for i in start to last
         {
-            if not Memory.compare(.bytes.buffer + i, text.buffer, text.count) do
+            if not Memory.compare(.bytes.buffer + i, text.buffer, text.count)
+            {
                 return i
+            }
         }
 
         return Swag.U64.Max
@@ -401,8 +484,10 @@ impl PdfParser
                 var valueId: #decltype(expect probe.parseValue())
                 catch { valueId = try probe.parseValue() } as parseErrorOutcome
                 let parseError = parseErrorOutcome.value()
-                if parseError == null and probe.nodes[valueId].kind == .Integer do
+                if parseError == null and probe.nodes[valueId].kind == .Integer
+                {
                     return probe.nodes[valueId].integer
+                }
             }
 
             probe.pos = start + 1
@@ -415,10 +500,16 @@ impl PdfParser
     {
         let raw = .dictRaw(nodeId, "Length")
         let id  = .resolve(raw)
-        if id != InvalidNode and .nodes[id].kind == .Integer do
+        if id != InvalidNode and .nodes[id].kind == .Integer
+        {
             return .nodes[id].integer
-        if raw != InvalidNode and .nodes[raw].kind == .Reference do
+        }
+
+        if raw != InvalidNode and .nodes[raw].kind == .Reference
+        {
             return .findForwardIntegerObject(.nodes[raw].reference)
+        }
+
         return -1
     }
 
@@ -431,30 +522,48 @@ impl PdfParser
             return
         }
 
-        if .pos < .bytes.count and .bytes[.pos] == '\r' do
+        if .pos < .bytes.count and .bytes[.pos] == '\r'
+        {
             .pos += 1
-        if .pos < .bytes.count and .bytes[.pos] == '\n' do
+        }
+
+        if .pos < .bytes.count and .bytes[.pos] == '\n'
+        {
             .pos += 1
+        }
+
         let start = .pos
         let declaredLength = .declaredStreamLength(nodeId)
         if declaredLength >= 0
         {
             let length = cast(u64, declaredLength)
-            if length > .bytes.count - start do
+            if length > .bytes.count - start
+            {
                 fail InvalidFormatError{"PDF stream exceeds its declared length"}
+            }
+
             .nodes[nodeId].stream = Swag.makeSlice(.bytes.buffer + start, length)
             .pos = start + length
-            if not .consumeWord("endstream") do
+            if not .consumeWord("endstream")
+            {
                 fail InvalidFormatError{"PDF stream length does not end at endstream"}
+            }
+
             return
         }
 
         let end = .findFrom(start, "endstream")
-        if end == Swag.U64.Max do
+        if end == Swag.U64.Max
+        {
             fail InvalidFormatError{"PDF stream has no endstream marker"}
+        }
+
         var length = end - start
-        while length and (.bytes[start + length - 1] == '\n' or .bytes[start + length - 1] == '\r') do
+        while length and (.bytes[start + length - 1] == '\n' or .bytes[start + length - 1] == '\r')
+        {
             length -= 1
+        }
+
         .nodes[nodeId].stream = Swag.makeSlice(.bytes.buffer + start, length)
         .pos = end + ("endstream").count
     }
@@ -466,7 +575,7 @@ impl PdfParser
     // in the file is relative to the header, not to the container around it.
     mtd locateHeader() fail
     {
-        const HeaderSearchLimit = 1024'u64
+        const HeaderSearchLimit = 1024_u64
         var headerPos = Swag.U64.Max
         if .bytes.count >= 8
         {
@@ -481,10 +590,15 @@ impl PdfParser
             }
         }
 
-        if headerPos == Swag.U64.Max do
+        if headerPos == Swag.U64.Max
+        {
             fail InvalidFormatError{"input has no PDF header"}
-        if headerPos do
+        }
+
+        if headerPos
+        {
             .bytes = Swag.makeSlice(.bytes.buffer + headerPos, .bytes.count - headerPos)
+        }
     }
 
     // Parses every object in the file, keeping the last definition of each number.
@@ -497,7 +611,7 @@ impl PdfParser
         // An object the index already produced is the one the file's own trailer chose. Every
         // other number keeps the last definition the scan meets, which is the only ordering a
         // file with no usable index offers.
-        var indexed: HashTable'(u32, bool)
+        var indexed: HashTable!{u32, bool}
         for number in .objects
         {
             indexed[number] = true
@@ -508,8 +622,8 @@ impl PdfParser
         while .pos < .bytes.count
         {
             let start        = .pos
-            var objectNumber = 0'u64
-            var generation   = 0'u64
+            var objectNumber = 0_u64
+            var generation   = 0_u64
             if not .parseUnsigned(&objectNumber) or
                not .parseUnsigned(&generation) or
                not .consumeWord("obj")
@@ -518,14 +632,22 @@ impl PdfParser
                 continue
             }
 
-            if objectNumber > Swag.U32.Max do
+            if objectNumber > Swag.U32.Max
+            {
                 fail UnsupportedFormatError{"PDF object number exceeds 32 bits"}
-            let nodeId = try .parseValue()
-            if .nodes[nodeId].kind == .Dictionary do
-                try .attachStream(nodeId)
+            }
 
-            if not indexed.tryFind(cast(u32, objectNumber)) do
+            let nodeId = try .parseValue()
+            if .nodes[nodeId].kind == .Dictionary
+            {
+                try .attachStream(nodeId)
+            }
+
+            if not indexed.tryFind(cast(u32, objectNumber))
+            {
                 .objects[cast(u32, objectNumber)] = nodeId
+            }
+
             discard .consumeWord("endobj")
         }
 
@@ -536,8 +658,11 @@ impl PdfParser
     // Runs the repair scan once, and only once.
     mtd ensureScanned()
     {
-        if .hasScanned do
+        if .hasScanned
+        {
             return
+        }
+
         catch .scanObjects()
         .hasScanned = true
     }
@@ -551,14 +676,18 @@ impl PdfParser
     mtd readXrefChain()->bool
     {
         var next = .findStartXref()
-        if next == Swag.U64.Max do
+        if next == Swag.U64.Max
+        {
             return false
+        }
 
-        var visited: Array'u64
+        var visited: Array!{u64}
         for 64
         {
-            if next >= .bytes.count do
+            if next >= .bytes.count
+            {
                 break
+            }
 
             var seen = false
             for offset in visited where offset == next
@@ -567,13 +696,19 @@ impl PdfParser
                 break
             }
 
-            if seen do
+            if seen
+            {
                 break
+            }
+
             visited.add(next)
 
             let section = .readXrefSection(next)
-            if not section.ok or not section.hasPrev do
+            if not section.ok or not section.hasPrev
+            {
                 break
+            }
+
             next = section.prev
         }
 
@@ -583,28 +718,39 @@ impl PdfParser
     // Returns the offset the last `startxref` of the file names.
     mtd findStartXref()->u64
     {
-        const TailSearchLimit = 2048'u64
+        const TailSearchLimit = 2048_u64
         let size = .bytes.count
-        if size < 9 do
+        if size < 9
+        {
             return Swag.U64.Max
+        }
 
         var probe = size > TailSearchLimit ? size - TailSearchLimit : 0
         var found = Swag.U64.Max
         for
         {
             let at = .findFrom(probe, "startxref")
-            if at == Swag.U64.Max do
+            if at == Swag.U64.Max
+            {
                 break
+            }
+
             found = at
             probe = at + 1
         }
 
-        if found == Swag.U64.Max do
+        if found == Swag.U64.Max
+        {
             return Swag.U64.Max
+        }
+
         .pos = found + ("startxref").count
-        var offset = 0'u64
-        if not .parseUnsigned(&offset) do
+        var offset = 0_u64
+        if not .parseUnsigned(&offset)
+        {
             return Swag.U64.Max
+        }
+
         return offset
     }
 
@@ -612,11 +758,17 @@ impl PdfParser
     mtd readXrefSection(offset: u64)->{ ok, hasPrev: bool, prev: u64 }
     {
         var result: #returntype
-        if offset >= .bytes.count do
+        if offset >= .bytes.count
+        {
             return result
+        }
+
         .pos = offset
-        if .consumeWord("xref") do
+        if .consumeWord("xref")
+        {
             return .readClassicXref()
+        }
+
         return .readXrefStreamSection(offset)
     }
 
@@ -627,31 +779,46 @@ impl PdfParser
         for
         {
             .skip()
-            if .startsWith("trailer") do
+            if .startsWith("trailer")
+            {
                 break
+            }
 
-            var first = 0'u64
-            var count = 0'u64
-            if not .parseUnsigned(&first) or not .parseUnsigned(&count) do
+            var first = 0_u64
+            var count = 0_u64
+            if not .parseUnsigned(&first) or not .parseUnsigned(&count)
+            {
                 return result
-            if first > Swag.U32.Max or count > Swag.U32.Max do
+            }
+
+            if first > Swag.U32.Max or count > Swag.U32.Max
+            {
                 return result
+            }
 
             for i in count
             {
-                var position   = 0'u64
-                var generation = 0'u64
-                if not .parseUnsigned(&position) or not .parseUnsigned(&generation) do
+                var position   = 0_u64
+                var generation = 0_u64
+                if not .parseUnsigned(&position) or not .parseUnsigned(&generation)
+                {
                     return result
+                }
+
                 .skip()
-                if .pos >= .bytes.count do
+                if .pos >= .bytes.count
+                {
                     return result
+                }
+
                 let kind = .bytes[.pos]
                 .pos += 1
 
                 let number = first + i
-                if number > Swag.U32.Max do
+                if number > Swag.U32.Max
+                {
                     continue
+                }
 
                 var entry: XrefEntry
                 entry.generation = generation <= Swag.U16.Max ? cast(u16, generation) : 0
@@ -665,11 +832,17 @@ impl PdfParser
             }
         }
 
-        if not .consumeWord("trailer") do
+        if not .consumeWord("trailer")
+        {
             return result
+        }
+
         .skip()
-        if not .startsWith("<<") do
+        if not .startsWith("<<")
+        {
             return result
+        }
+
         let dictId = catch .parseDictionary() { return result }
 
         result.ok = true
@@ -695,57 +868,74 @@ impl PdfParser
         var result: #returntype
         .pos = offset
         var number, generation: u64
-        if not .parseUnsigned(&number) or not .parseUnsigned(&generation) or not .consumeWord("obj") do
+        if not .parseUnsigned(&number) or not .parseUnsigned(&generation) or not .consumeWord("obj")
+        {
             return result
+        }
 
         var parseErrorOutcome: Swag.Error
         var nodeId: #decltype(expect .parseValue())
         catch { nodeId = try .parseValue() } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
-        if parseError != null or .nodes[nodeId].kind != .Dictionary do
+        if parseError != null or .nodes[nodeId].kind != .Dictionary
+        {
             return result
+        }
+
         catch .attachStream(nodeId) { return result }
-        if .name(.dict(nodeId, "Type")) != "XRef" do
+        if .name(.dict(nodeId, "Type")) != "XRef"
+        {
             return result
+        }
 
         // The three field widths are what the entries are written in; a zero width means the
         // field is not stored and takes its default.
         let widthsId = .resolve(.dictRaw(nodeId, "W"))
         if widthsId == InvalidNode or
            .nodes[widthsId].kind != .Array or
-           .nodes[widthsId].values.count < 3 do
+           .nodes[widthsId].values.count < 3
+        {
             return result
+        }
+
         var widths: [3] u64
         for i in 3
         {
             let width = .integer(.nodes[widthsId].values[i], -1)
-            if width < 0 or width > 8 do
+            if width < 0 or width > 8
+            {
                 return result
+            }
+
             widths[i] = cast(u64, width)
         }
 
         let entryBytes = widths[0] + widths[1] + widths[2]
-        if not entryBytes do
+        if not entryBytes
+        {
             return result
+        }
 
         let data = catch .decodeStream(nodeId) { return result }
 
         // The index defaults to every object the file declares.
-        var ranges: Array'u64
+        var ranges: Array!{u64}
         let indexId = .resolve(.dictRaw(nodeId, "Index"))
         if indexId != InvalidNode and .nodes[indexId].kind == .Array
         {
-            for value in .nodes[indexId].values do
-                ranges.add(cast(u64, Math.max(0's64, .integer(value))))
+            for value in .nodes[indexId].values
+            {
+                ranges.add(cast(u64, Math.max(0_s64, .integer(value))))
+            }
         }
         else
         {
             ranges.add(0)
-            ranges.add(cast(u64, Math.max(0's64, .integer(.dict(nodeId, "Size")))))
+            ranges.add(cast(u64, Math.max(0_s64, .integer(.dict(nodeId, "Size")))))
         }
 
-        var cursor = 0'u64
-        var range  = 0'u64
+        var cursor = 0_u64
+        var range  = 0_u64
         while range + 1 < ranges.count
         {
             let firstNumber = ranges[range]
@@ -753,13 +943,15 @@ impl PdfParser
             range += 2
             for i in entryCount
             {
-                if cursor + entryBytes > data.count do
+                if cursor + entryBytes > data.count
+                {
                     break
+                }
 
                 var fields: [3] u64
                 for k in 3
                 {
-                    var value = 0'u64
+                    var value = 0_u64
                     for widths[k]
                     {
                         value  = (value << 8) | cast(u64, data[cursor])
@@ -773,8 +965,10 @@ impl PdfParser
                 // ordinary uncompressed form.
                 let kind   = widths[0] ? fields[0] : 1
                 let number = firstNumber + i
-                if number > Swag.U32.Max do
+                if number > Swag.U32.Max
+                {
                     continue
+                }
 
                 var entry: XrefEntry
                 if kind == 1
@@ -783,10 +977,13 @@ impl PdfParser
                     entry.offset     = fields[1]
                     entry.generation = fields[2] <= Swag.U16.Max ? cast(u16, fields[2]) : 0
                 }
-                elif kind == 2
+                else if kind == 2
                 {
-                    if fields[1] > Swag.U32.Max or fields[2] > Swag.U32.Max do
+                    if fields[1] > Swag.U32.Max or fields[2] > Swag.U32.Max
+                    {
                         continue
+                    }
+
                     entry.kind          = .InStream
                     entry.container     = cast(u32, fields[1])
                     entry.indexInStream = cast(u32, fields[2])
@@ -821,16 +1018,21 @@ impl PdfParser
     // Files an entry unless a newer section of the chain already named that object.
     mtd recordXrefEntry(number: u32, entry: XrefEntry)
     {
-        if .xref.tryFind(number) do
+        if .xref.tryFind(number)
+        {
             return
+        }
+
         .xref[number] = entry
     }
 
-    mtd importNode(source: const *PdfParser, sourceId: u32, imported: *HashTable'(u32, u32))->u32
+    mtd importNode(source: const *PdfParser, sourceId: u32, imported: *HashTable!{u32, u32})->u32
     {
         let existing = imported.tryFind(sourceId)
-        if existing do
+        if existing
+        {
             return existing.value
+        }
 
         let sourceNode = &source.nodes[sourceId]
         var node: Node
@@ -865,41 +1067,51 @@ impl PdfParser
     {
         // Resolving reaches back into the object table, which may parse an object and insert
         // it, so the walk works from a snapshot rather than from the table itself.
-        var scanned: Array'u32
+        var scanned: Array!{u32}
         for _, nodeId in .objects
         {
             scanned.add(nodeId)
         }
 
-        var streams: Array'u32
+        var streams: Array!{u32}
         for nodeId in scanned
         {
             let id = .resolve(nodeId)
-            if id != InvalidNode and .name(.dict(id, "Type")) == "ObjStm" do
+            if id != InvalidNode and .name(.dict(id, "Type")) == "ObjStm"
+            {
                 streams.add(id)
+            }
         }
 
         for streamId in streams
         {
             let count = .integer(.dict(streamId, "N"))
             let first = .integer(.dict(streamId, "First"))
-            if count < 0 or first < 0 do
+            if count < 0 or first < 0
+            {
                 fail InvalidFormatError{"PDF object stream has invalid bounds"}
+            }
+
             let decoded = #move try .decodeStream(streamId)
-            if cast(u64, first) > decoded.count do
+            if cast(u64, first) > decoded.count
+            {
                 fail InvalidFormatError{"PDF object stream header exceeds its data"}
+            }
 
             var embedded = PdfParser{bytes: decoded.toSlice()}
-            var numbers: Array'u32
-            var offsets: Array'u64
+            var numbers: Array!{u32}
+            var offsets: Array!{u64}
             for cast(u64, count)
             {
-                var number = 0'u64
-                var offset = 0'u64
+                var number = 0_u64
+                var offset = 0_u64
                 if not embedded.parseUnsigned(&number) or
                    not embedded.parseUnsigned(&offset) or
-                   number > Swag.U32.Max do
+                   number > Swag.U32.Max
+                {
                     fail InvalidFormatError{"PDF object stream header is malformed"}
+                }
+
                 numbers.add(cast(u32, number))
                 offsets.add(offset)
             }
@@ -907,11 +1119,14 @@ impl PdfParser
             for number, index in numbers
             {
                 let position = cast(u64, first) + offsets[index]
-                if position >= decoded.count do
+                if position >= decoded.count
+                {
                     fail InvalidFormatError{"PDF object stream entry exceeds its data"}
+                }
+
                 embedded.pos = position
                 let sourceId = try embedded.parseValue()
-                var imported: HashTable'(u32, u32)
+                var imported: HashTable!{u32, u32}
                 .objects[number] = .importNode(&embedded, sourceId, &imported)
             }
         }
@@ -925,7 +1140,7 @@ impl PdfParser
     // still decodes through the catalog search in `decodeDocument`.
     mtd scanTrailers()
     {
-        var scanned: Array'u32
+        var scanned: Array!{u32}
         for _, nodeId in .objects
         {
             scanned.add(nodeId)
@@ -934,27 +1149,37 @@ impl PdfParser
         for nodeId in scanned
         {
             let id = .resolve(nodeId)
-            if id != InvalidNode and .name(.dict(id, "Type")) == "XRef" do
+            if id != InvalidNode and .name(.dict(id, "Type")) == "XRef"
+            {
                 .recordTrailer(id, false)
+            }
         }
 
-        var search = 0'u64
+        var search = 0_u64
         for
         {
             let found = .findFrom(search, "trailer")
-            if found == Swag.U64.Max do
+            if found == Swag.U64.Max
+            {
                 break
+            }
+
             search = found + ("trailer").count
             .pos   = search
             .skip()
-            if not .startsWith("<<") do
+            if not .startsWith("<<")
+            {
                 continue
+            }
+
             var parseErrorOutcome: Swag.Error
             var dictId: #decltype(expect .parseDictionary())
             catch { dictId = try .parseDictionary() } as parseErrorOutcome
             let parseError = parseErrorOutcome.value()
-            if parseError == null do
+            if parseError == null
+            {
                 .recordTrailer(dictId, false)
+            }
         }
     }
 
@@ -969,15 +1194,21 @@ impl PdfParser
     mtd recordTrailer(dictId: u32, preferExisting = true)
     {
         let root = .dictRaw(dictId, "Root")
-        if root != InvalidNode and (not preferExisting or .trailerRoot == InvalidNode) do
+        if root != InvalidNode and (not preferExisting or .trailerRoot == InvalidNode)
+        {
             .trailerRoot = root
+        }
 
         let info = .dictRaw(dictId, "Info")
-        if info != InvalidNode and (not preferExisting or .trailerInfo == InvalidNode) do
+        if info != InvalidNode and (not preferExisting or .trailerInfo == InvalidNode)
+        {
             .trailerInfo = info
+        }
 
-        if .dictRaw(dictId, "Encrypt") != InvalidNode do
+        if .dictRaw(dictId, "Encrypt") != InvalidNode
+        {
             .isEncrypted = true
+        }
     }
 
     // Returns the node an indirect reference names, following a chain of them.
@@ -986,11 +1217,17 @@ impl PdfParser
         var result = nodeId
         for 32
         {
-            if result >= .nodes.count or .nodes[result].kind != .Reference do
+            if result >= .nodes.count or .nodes[result].kind != .Reference
+            {
                 return result
+            }
+
             let target = .objectNode(.nodes[result].reference, .nodes[result].referenceGeneration)
-            if target == InvalidNode do
+            if target == InvalidNode
+            {
                 return InvalidNode
+            }
+
             result = target
         }
 
@@ -1004,8 +1241,10 @@ impl PdfParser
     mtd objectNode(number: u32, _: u16)->u32
     {
         let known = .objects.tryFind(number)
-        if known do
+        if known
+        {
             return known.value
+        }
 
         let indexed = .xref.tryFind(number)
         if indexed
@@ -1029,10 +1268,16 @@ impl PdfParser
 
     mtd parseIndexedObject(number: u32, entry: XrefEntry)->u32
     {
-        if entry.kind == .Offset do
+        if entry.kind == .Offset
+        {
             return .parseObjectAt(number, entry.offset)
-        if entry.kind == .InStream do
+        }
+
+        if entry.kind == .InStream
+        {
             return .parseObjectInStream(entry.container, entry.indexInStream)
+        }
+
         return InvalidNode
     }
 
@@ -1042,8 +1287,10 @@ impl PdfParser
     // saved and the nesting is bounded rather than trusted.
     mtd parseObjectAt(number: u32, offset: u64)->u32
     {
-        if offset >= .bytes.count or .objectDepth >= 32 do
+        if offset >= .bytes.count or .objectDepth >= 32
+        {
             return InvalidNode
+        }
 
         let savedPos = .pos
         .objectDepth += 1
@@ -1055,10 +1302,15 @@ impl PdfParser
 
         .pos = offset
         var found, generation: u64
-        if not .parseUnsigned(&found) or not .parseUnsigned(&generation) or not .consumeWord("obj") do
+        if not .parseUnsigned(&found) or not .parseUnsigned(&generation) or not .consumeWord("obj")
+        {
             return InvalidNode
-        if found != cast(u64, number) do
+        }
+
+        if found != cast(u64, number)
+        {
             return InvalidNode
+        }
 
         let nodeId = catch .parseValue() { return InvalidNode }
         if .nodes[nodeId].kind == .Dictionary
@@ -1072,15 +1324,22 @@ impl PdfParser
     // Parses one object out of a compressed object stream.
     mtd parseObjectInStream(container: u32, index: u32)->u32
     {
-        if .objectDepth >= 32 do
+        if .objectDepth >= 32
+        {
             return InvalidNode
+        }
+
         let stream = .objectStream(container)
-        if not stream or index >= stream.offsets.count do
+        if not stream or index >= stream.offsets.count
+        {
             return InvalidNode
+        }
 
         let position = stream.first + stream.offsets[index]
-        if position >= stream.data.count do
+        if position >= stream.data.count
+        {
             return InvalidNode
+        }
 
         let savedBytes = .bytes
         let savedPos   = .pos
@@ -1105,23 +1364,32 @@ impl PdfParser
     mtd objectStream(container: u32)->*ObjectStream?
     {
         let existing = .objectStreamIndex.tryFind(container)
-        if existing do
+        if existing
+        {
             return .objectStreams[existing.value]
+        }
 
         let streamId = .objectNode(container, 0)
-        if streamId == InvalidNode or .name(.dict(streamId, "Type")) != "ObjStm" do
+        if streamId == InvalidNode or .name(.dict(streamId, "Type")) != "ObjStm"
+        {
             return null
+        }
+
         let count = .integer(.dict(streamId, "N"))
         let first = .integer(.dict(streamId, "First"))
-        if count < 0 or first < 0 do
+        if count < 0 or first < 0
+        {
             return null
+        }
 
         var decodeErrorOutcome: Swag.Error
         var decoded: #decltype(expect .decodeStream(streamId))
         catch { decoded = try .decodeStream(streamId) } as decodeErrorOutcome
         let decodeError = decodeErrorOutcome.value()
-        if decodeError != null or cast(u64, first) > decoded.count do
+        if decodeError != null or cast(u64, first) > decoded.count
+        {
             return null
+        }
 
         let result = .objectStreams.addNew()
         .objectStreamIndex[container] = cast(u32, (.objectStreams.count - 1))
@@ -1131,12 +1399,15 @@ impl PdfParser
         var header = PdfParser{bytes: result.data.toSlice()}
         for cast(u64, count)
         {
-            var objectNumber = 0'u64
-            var objectOffset = 0'u64
+            var objectNumber = 0_u64
+            var objectOffset = 0_u64
             if not header.parseUnsigned(&objectNumber) or
                not header.parseUnsigned(&objectOffset) or
-               objectNumber > Swag.U32.Max do
+               objectNumber > Swag.U32.Max
+            {
                 break
+            }
+
             result.numbers.add(cast(u32, objectNumber))
             result.offsets.add(objectOffset)
         }
@@ -1147,8 +1418,11 @@ impl PdfParser
     mtd dictRaw(nodeId: u32, key: string)->u32
     {
         let id = .resolve(nodeId)
-        if id == InvalidNode or .nodes[id].kind != .Dictionary do
+        if id == InvalidNode or .nodes[id].kind != .Dictionary
+        {
             return InvalidNode
+        }
+
         let entry = .nodes[id].entries.tryFind(key)
         return entry ? entry.value : InvalidNode
     }
@@ -1161,33 +1435,51 @@ impl PdfParser
         return id != InvalidNode and .nodes[id].kind == .Name ? .nodes[id].text.toString() : ""
     }
 
-    mtd integer(nodeId: u32, fallback = 0's64)->s64
+    mtd integer(nodeId: u32, fallback = 0_s64)->s64
     {
         let id = .resolve(nodeId)
-        if id == InvalidNode do
+        if id == InvalidNode
+        {
             return fallback
-        if .nodes[id].kind == .Integer do
+        }
+
+        if .nodes[id].kind == .Integer
+        {
             return .nodes[id].integer
+        }
+
         return fallback
     }
 
     mtd number(nodeId: u32, fallback = 0.0)->f64
     {
         let id = .resolve(nodeId)
-        if id == InvalidNode do
+        if id == InvalidNode
+        {
             return fallback
-        if .nodes[id].kind == .Integer do
+        }
+
+        if .nodes[id].kind == .Integer
+        {
             return .nodes[id].real
-        if .nodes[id].kind == .Real do
+        }
+
+        if .nodes[id].kind == .Real
+        {
             return .nodes[id].real
+        }
+
         return fallback
     }
 
     mtd boolean(nodeId: u32, fallback = false)->bool
     {
         let id = .resolve(nodeId)
-        if id == InvalidNode or .nodes[id].kind != .Boolean do
+        if id == InvalidNode or .nodes[id].kind != .Boolean
+        {
             return fallback
+        }
+
         return .nodes[id].boolean
     }
 
@@ -1198,25 +1490,33 @@ impl PdfParser
     }
 
     // Returns the names of the filters applied to a stream, outermost first.
-    mtd streamFilters(nodeId: u32)->Array'String
+    mtd streamFilters(nodeId: u32)->Array!{String}
     {
         var result: #returntype
         let filterId = .dict(nodeId, "Filter")
-        if filterId == InvalidNode do
+        if filterId == InvalidNode
+        {
             return result
+        }
+
         if .nodes[filterId].kind == .Name
         {
             result.add(.nodes[filterId].text)
             return result
         }
 
-        if .nodes[filterId].kind != .Array do
+        if .nodes[filterId].kind != .Array
+        {
             return result
+        }
+
         for value in .nodes[filterId].values
         {
             let name = .name(value)
-            if name.count do
+            if name.count
+            {
                 result.add(name)
+            }
         }
 
         return result
@@ -1226,12 +1526,21 @@ impl PdfParser
     mtd filterParameters(nodeId: u32, index: u64)->u32
     {
         let parametersId = .dict(nodeId, "DecodeParms")
-        if parametersId == InvalidNode do
+        if parametersId == InvalidNode
+        {
             return InvalidNode
-        if .nodes[parametersId].kind != .Array do
+        }
+
+        if .nodes[parametersId].kind != .Array
+        {
             return parametersId
-        if index >= .nodes[parametersId].values.count do
+        }
+
+        if index >= .nodes[parametersId].values.count
+        {
             return InvalidNode
+        }
+
         return .resolve(.nodes[parametersId].values[index])
     }
 
@@ -1243,8 +1552,11 @@ impl PdfParser
     {
         var result: #returntype
         let filters = #move .streamFilters(nodeId)
-        if not filters.count do
+        if not filters.count
+        {
             return result
+        }
+
         switch filters.back().toString()
         {
         case "DCTDecode", "DCT", "JPXDecode", "JBIG2Decode": result = filters.back()
@@ -1257,16 +1569,21 @@ impl PdfParser
     //
     // With `stopAtImageCodec`, a trailing image codec is left untouched and its input
     // bytes are returned, which is what imageCodec names.
-    mtd decodeStream(nodeId: u32, stopAtImageCodec = false)->Array'u8 fail
+    mtd decodeStream(nodeId: u32, stopAtImageCodec = false)->Array!{u8} fail
     {
         let id = .resolve(nodeId)
-        if id == InvalidNode or .nodes[id].kind != .Dictionary do
+        if id == InvalidNode or .nodes[id].kind != .Dictionary
+        {
             fail InvalidFormatError{"PDF stream dictionary is missing"}
-        var result: Array'u8 = .nodes[id].stream
+        }
+
+        var result: Array!{u8} = .nodes[id].stream
         let filters = #move .streamFilters(id)
         var count   = filters.count
-        if stopAtImageCodec and count and .imageCodec(id).count do
+        if stopAtImageCodec and count and .imageCodec(id).count
+        {
             count -= 1
+        }
 
         for index in count
         {
@@ -1334,7 +1651,7 @@ impl PdfParser
         return result
     }
 
-    mtd applyPredictor(data: const [..] u8, parametersId: u32)->Array'u8 fail
+    mtd applyPredictor(data: const [..] u8, parametersId: u32)->Array!{u8} fail
     {
         let predictor = .integer(.dict(parametersId, "Predictor"), 1)
         if predictor <= 1
@@ -1346,78 +1663,64 @@ impl PdfParser
         let colors  = .integer(.dict(parametersId, "Colors"), 1)
         let bits    = .integer(.dict(parametersId, "BitsPerComponent"), 8)
         let columns = .integer(.dict(parametersId, "Columns"), 1)
-        if colors <= 0 or bits <= 0 or columns <= 0 do
+        if colors <= 0 or bits <= 0 or columns <= 0
+        {
             fail InvalidFormatError{"PDF predictor has invalid dimensions"}
-        if bits != 1 and bits != 2 and bits != 4 and bits != 8 and bits != 16 do
+        }
+
+        if bits != 1 and bits != 2 and bits != 4 and bits != 8 and bits != 16
+        {
             fail UnsupportedFormatError{"PDF predictor bit depth is not supported"}
+        }
+
         let sampleBits    = cast(u64, colors) * cast(u64, bits)
-        let bytesPerPixel = Math.max(1'u64, (sampleBits + 7) / 8)
+        let bytesPerPixel = Math.max(1_u64, (sampleBits + 7) / 8)
         let rowBytes      = (sampleBits * cast(u64, columns) + 7) / 8
 
         if predictor == 2
         {
             // The TIFF predictor accumulates per component, so a sample must be a whole
             // number of bytes for the sum to stay inside one component.
-            if bits != 8 and bits != 16 do
+            if bits != 8 and bits != 16
+            {
                 fail UnsupportedFormatError{"PDF TIFF predictor bit depth is not supported"}
-            if data.count % rowBytes do
+            }
+
+            if data.count % rowBytes
+            {
                 fail InvalidFormatError{"PDF TIFF predictor rows are truncated"}
+            }
+
             var result: #returntype = data
             let stride = cast(u64, colors) * cast(u64, (bits / 8))
             for row in data.count / rowBytes
             {
                 let base = row * rowBytes
-                for x in stride until rowBytes do
+                for x in stride until rowBytes
+                {
                     result[base + x] += #wrap result[base + x - stride]
+                }
             }
 
             return result
         }
 
-        if predictor < 10 or predictor > 15 do
+        if predictor < 10 or predictor > 15
+        {
             fail UnsupportedFormatError{"PDF stream predictor is not supported"}
+        }
 
         let encodedRow = rowBytes + 1
-        if data.count % encodedRow do
+        if data.count % encodedRow
+        {
             fail InvalidFormatError{"PDF PNG predictor rows are truncated"}
+        }
+
         var result: #returntype
         result.resize(data.count / encodedRow * rowBytes)
-        for row in data.count / encodedRow
+        if not Pixel.Png.restorePredictorRows(data, result.toSlice(), rowBytes, bytesPerPixel)
         {
-            let source = row * encodedRow
-            let target = row * rowBytes
-            let filter = data[source]
-            if filter > 4 do
-                fail InvalidFormatError{"PDF PNG predictor has an invalid filter"}
-            for x in rowBytes
-            {
-                let raw  = data[source + 1 + x]
-                let left = x >= bytesPerPixel ? result[target + x - bytesPerPixel] : 0'u8
-                let up   = row ? result[target - rowBytes + x] : 0'u8
-                let ul   = row and x >= bytesPerPixel ? result[target - rowBytes + x - bytesPerPixel] : 0'u8
-                switch filter
-                {
-                case 0:
-                    result[target + x] = raw
-
-                case 1:
-                    result[target + x] = cast #bit (u8, (raw + #wrap left))
-
-                case 2:
-                    result[target + x] = cast #bit (u8, (raw + #wrap up))
-
-                case 3:
-                    result[target + x] = cast #bit (u8, (raw + #wrap cast(u8, ((cast(u32, left) + up) / 2))))
-
-                case 4:
-                    let p       = cast(s32, left) + cast(s32, up) - cast(s32, ul)
-                    let pa      = Math.abs(p - cast(s32, left))
-                    let pb      = Math.abs(p - cast(s32, up))
-                    let pc      = Math.abs(p - cast(s32, ul))
-                    let predict = pa <= pb and pa <= pc ? left : (pb <= pc ? up : ul)
-                    result[target + x] = cast #bit (u8, (raw + #wrap predict))
-                }
-            }
+            fail InvalidFormatError{"PDF PNG predictor has an invalid filter"}
         }
 
         return result

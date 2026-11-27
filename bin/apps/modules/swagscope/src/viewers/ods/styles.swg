@@ -16,19 +16,33 @@ private impl Delta
 {
     mtd overlay(other: const *Delta)
     {
-        if other.mask & 1 do
+        if other.mask & 1
+        {
             .look.fill = other.look.fill
-        for index in 4 where other.mask & (2'u32 << index) do
+        }
+
+        for index in 4 where other.mask & (2_u32 << index)
+        {
             .look.edges[index] = other.look.edges[index]
+        }
+
         .mask |= other.mask
         .look.alignment.apply(&other.look.alignment)
         .look.limited = .look.limited or other.look.limited
-        if other.width >= 0 do
+        if other.width >= 0
+        {
             .width = other.width
-        if other.height >= 0 do
+        }
+
+        if other.height >= 0
+        {
             .height = other.height
-        if other.display != .Inherit do
+        }
+
+        if other.display != .Inherit
+        {
             .display = other.display
+        }
     }
 }
 
@@ -44,10 +58,10 @@ private struct Named
 struct Styles
 {
     typography: Odf.StyleCatalog
-    names:      Array'Named
-    index:      HashTable'(String, u64)
-    cellIds:    HashTable'(String, u32)
-    defaults:   HashTable'(String, Delta)
+    names:      Array!{Named}
+    index:      HashTable!{String, u64}
+    cellIds:    HashTable!{String, u32}
+    defaults:   HashTable!{String, Delta}
     cells:      Xlsx.CellStyles
 }
 
@@ -56,25 +70,40 @@ private func key(name, family: string)->String => Format.toString("%:%", family,
 private func color(value: string)->u32
 {
     let rgb = Odf.rgb(value)
-    if rgb.isEmpty() do
+    if rgb.isEmpty()
+    {
         return 0
+    }
+
     return (catch StrConv.toU32(Format.toString("0x%", rgb)) orelse 0) | 0xFF000000
 }
 
 private func edge(value: string)->Xlsx.CellEdge
 {
     var result: #returntype
-    if value == "none" do
+    if value == "none"
+    {
         return result
-    let words = Tokenize.split(value, ' 'rune)
-    if words.count != 3 do
+    }
+
+    let words = Tokenize.split(value, ' '_rune)
+    if words.count != 3
+    {
         return result
+    }
+
     let width = Odf.points(words[0])
-    if not width.valid or width.value < 0 or width.value > 24 do
+    if not width.valid or width.value < 0 or width.value > 24
+    {
         return result
+    }
+
     result.color = color(words[2])
-    if not result.color do
+    if not result.color
+    {
         return {}
+    }
+
     result.width = cast(f32, width.value * 4 / 3)
     switch words[1]
     {
@@ -94,19 +123,26 @@ private func readDelta(result: *Delta, token: const *Package.Token)
     {
         result.mask      |= 1
         result.look.fill = color(value)
-        if value != "transparent" and not result.look.fill do
+        if value != "transparent" and not result.look.fill
+        {
             result.look.limited = true
+        }
     }
 
     for name, index in ["border-left", "border-right", "border-top", "border-bottom"]
     {
         let value = token.attribute(name) orelse token.attribute("border")
-        if not value do
+        if not value
+        {
             continue
-        result.mask |= 2'u32 << index
+        }
+
+        result.mask |= 2_u32 << index
         result.look.edges[index] = edge(value)
-        if value != "none" and not result.look.edges[index].width do
+        if value != "none" and not result.look.edges[index].width
+        {
             result.look.limited = true
+        }
     }
 
     if let value = token.attribute("vertical-align")
@@ -148,27 +184,40 @@ private func readDelta(result: *Delta, token: const *Package.Token)
     if let value = token.attribute("column-width")
     {
         let size = Odf.points(value)
-        if size.valid and size.value >= 0 do
+        if size.valid and size.value >= 0
+        {
             result.width = cast(f32, size.value * 4 / 3)
-        else do
+        }
+        else
+        {
             result.look.limited = true
+        }
     }
 
     if let value = token.attribute("row-height")
     {
         let size = Odf.points(value)
-        if size.valid and size.value >= 0 do
+        if size.valid and size.value >= 0
+        {
             result.height = cast(f32, size.value * 4 / 3)
-        else do
+        }
+        else
+        {
             result.look.limited = true
+        }
     }
 
-    if let value = token.attribute("display") do
+    if let value = token.attribute("display")
+    {
         result.display = value == "false" ? .Off : .On
+    }
+
     if (token.attribute("rotation-angle") orelse "0") != "0" or
        token.attribute("shrink-to-fit") == "true" or
-       token.attribute("repeat-content") == "true" do
+       token.attribute("repeat-content") == "true"
+    {
         result.look.limited = true
+    }
 }
 
 impl Styles
@@ -196,10 +245,12 @@ impl Styles
                                      current.family == "table-row" or
                                      current.family == "table"
                     isDefault = token.isElement("default-style")
-                    if current.name.count > 256 or current.parent.count > 256 do
+                    if current.name.count > 256 or current.parent.count > 256
+                    {
                         fail Errors.UnsupportedFormatError{Odt.texts().err_TooLarge}
+                    }
                 }
-                elif inStyle
+                else if inStyle
                 {
                     readDelta(&current.delta, &token)
                 }
@@ -211,12 +262,16 @@ impl Styles
                 {
                     if isDefault
                     {
-                        if let entry = .defaults.tryFind(current.family) do
+                        if let entry = .defaults.tryFind(current.family)
+                        {
                             entry.value.overlay(&current.delta)
-                        else do
+                        }
+                        else
+                        {
                             .defaults.add(current.family, current.delta)
+                        }
                     }
-                    elif not current.name.isEmpty()
+                    else if not current.name.isEmpty()
                     {
                         let name = key(current.name, current.family)
                         if let entry = .index.tryFind(name)
@@ -234,25 +289,36 @@ impl Styles
                 }
             }
 
-            if .names.count > 4096 do
+            if .names.count > 4096
+            {
                 fail Errors.UnsupportedFormatError{Odt.texts().err_TooLarge}
+            }
         }
     }
 
     mtd const geometry(name, family: string)->Delta
     {
         var result: Delta
-        if let entry = .defaults.tryFind(String.from(family)) do
+        if let entry = .defaults.tryFind(String.from(family))
+        {
             result = entry.value
-        if not name.count do
+        }
+
+        if not name.count
+        {
             return result
-        var chain: Array'u64
+        }
+
+        var chain: Array!{u64}
         var next = .index.tryFind(key(name, family))
         while next
         {
             var repeated = false
-            for previous in chain where previous == next.value do
+            for previous in chain where previous == next.value
+            {
                 repeated = true
+            }
+
             if repeated or chain.count >= 64
             {
                 result.look.limited = true
@@ -261,17 +327,28 @@ impl Styles
 
             chain.add(next.value)
             let parent = .names[next.value].parent
-            if parent.isEmpty() do
+            if parent.isEmpty()
+            {
                 break
+            }
+
             next = .index.tryFind(key(parent, family))
-            if not next do
+            if not next
+            {
                 result.look.limited = true
+            }
         }
 
-        if chain.isEmpty() do
+        if chain.isEmpty()
+        {
             result.look.limited = true
-        for offset in chain.count do
+        }
+
+        for offset in chain.count
+        {
             result.overlay(&.names[chain[chain.count - offset - 1]].delta)
+        }
+
         return result
     }
 
@@ -300,8 +377,11 @@ impl Styles
         result.font.italic    = run.italic == .On
         result.font.underline = run.underline == .On
         result.font.strike    = run.strike == .On
-        if not run.color.isEmpty() do
+        if not run.color.isEmpty()
+        {
             result.font.color = color(Format.toString("#%", run.color))
+        }
+
         var family = run.family.toLower()
         result.font.mono = Utf8.contains(family, "mono") or
                            Utf8.contains(family, "courier") or
@@ -318,10 +398,16 @@ impl Styles
 
     mtd const cellId(name: string)->u32
     {
-        if not name.count do
+        if not name.count
+        {
             return 0
-        if let entry = .cellIds.tryFind(String.from(name)) do
+        }
+
+        if let entry = .cellIds.tryFind(String.from(name))
+        {
             return entry.value
+        }
+
         return Swag.U32.Max
     }
 }

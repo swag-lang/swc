@@ -23,9 +23,11 @@ func lerp(a, b, t: s32)->s32 => a + (b - a) * #wrap t / 256
 #[Swag.Optimize(true), Swag.NoInline]
 func averageQuarters(p: const [*] s32, n: u64)->s32
 {
-    var sum = 0's32
-    for i in n do
+    var sum = 0_s32
+    for i in n
+    {
         sum += p[i] / 8
+    }
     return sum
 }
 
@@ -56,10 +58,14 @@ func check64(x: s64)
         check64(i)
         Swag.require(lerp(i, 3 * i, 77) == i + div32((3 * i - i) * 77, 256))
     }
-    for x in [0x7FFFFFFF's32, -0x7FFFFFFF, -0x7FFFFFFF - 1, 0x40000000, -0x40000000, -0x3FFFFFFF, -0x40000001, 255, -255, -256, -257] do
+    for x in [0x7FFFFFFF_s32, -0x7FFFFFFF, -0x7FFFFFFF - 1, 0x40000000, -0x40000000, -0x3FFFFFFF, -0x40000001, 255, -255, -256, -257]
+    {
         check32(x)
-    for x in [0x7FFFFFFFFFFFFFFF's64, -0x7FFFFFFFFFFFFFFF, -0x7FFFFFFFFFFFFFFF - 1, 0x80000000, -0x80000000, -0x7FFFFFFF, -0x80000001, 0x100000000, -0x100000000, -0xFFFFFFFF, -0x100000001] do
+    }
+    for x in [0x7FFFFFFFFFFFFFFF_s64, -0x7FFFFFFFFFFFFFFF, -0x7FFFFFFFFFFFFFFF - 1, 0x80000000, -0x80000000, -0x7FFFFFFF, -0x80000001, 0x100000000, -0x100000000, -0xFFFFFFFF, -0x100000001]
+    {
         check64(x)
+    }
 
     var values: [4] s32 = [-9, -8, -7, 17]
     Swag.require(averageQuarters(&values[0], 4) == -1 + -1 + 0 + 2)

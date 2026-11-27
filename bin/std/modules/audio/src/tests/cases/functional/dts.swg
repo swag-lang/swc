@@ -4,7 +4,7 @@ using Core
 
 private struct DtsTestBits
 {
-    bytes:    Array'u8
+    bytes:    Array!{u8}
     bitCount: u64
 }
 
@@ -14,8 +14,11 @@ private impl DtsTestBits
     {
         for index in count
         {
-            if not (.bitCount & 7) do
+            if not (.bitCount & 7)
+            {
                 .bytes.add(0)
+            }
+
             let source = count - 1 - index
             let target = cast(u32, (7 - (.bitCount & 7)))
             .bytes[.bitCount >> 3] |= cast(u8, (((value >> source) & 1) << target))
@@ -26,7 +29,7 @@ private impl DtsTestBits
 
 // Builds one mono, 256-frame Core packet whose first active high-frequency subband uses vector
 // address 1. The payload is synthetic and contains no recording.
-private func dtsVqPacket()->Array'u8
+private func dtsVqPacket()->Array!{u8}
 {
     var bits: DtsTestBits
     bits.add(0x7FFE8001, 32)
@@ -60,12 +63,12 @@ private func dtsVqPacket()->Array'u8
     bits.add(6, 3)     // Direct seven-bit scale factors.
     bits.add(6, 3)     // Direct five-bit allocation indices.
     bits.add(1, 1)
-    for 1'u32 until 5
+    for 1_u32 until 5
     {
         bits.add(3, 2)
     }
 
-    for 5'u32 until 10
+    for 5_u32 until 10
     {
         bits.add(7, 3)
     }
@@ -84,7 +87,7 @@ private func dtsVqPacket()->Array'u8
 
 // Builds one mono Core packet whose first scalar subband uses predictor vector zero. The first
 // residual is an impulse, so the following reconstructed samples exercise the four-tap feedback.
-private func dtsPredictionPacket(huffman = false, frameBytes = 32'u32)->Array'u8
+private func dtsPredictionPacket(huffman = false, frameBytes = 32_u32)->Array!{u8}
 {
     var bits: DtsTestBits
     bits.add(0x7FFE8001, 32)
@@ -118,18 +121,20 @@ private func dtsPredictionPacket(huffman = false, frameBytes = 32'u32)->Array'u8
     bits.add(6, 3)     // Direct seven-bit scale factors.
     bits.add(6, 3)     // Direct five-bit allocation indices.
     bits.add(huffman ? 0 : 1, 1)
-    for 1'u32 until 5
+    for 1_u32 until 5
     {
         bits.add(3, 2)
     }
 
-    for 5'u32 until 10
+    for 5_u32 until 10
     {
         bits.add(7, 3)
     }
 
-    if huffman do
-        bits.add(0, 2)    // Use the Huffman codebook without a scale adjustment.
+    if huffman
+    {
+        bits.add(0, 2)
+    }     // Use the Huffman codebook without a scale adjustment.
 
     bits.add(0, 2)     // One subsubframe.
     bits.add(0, 3)
@@ -141,15 +146,19 @@ private func dtsPredictionPacket(huffman = false, frameBytes = 32'u32)->Array'u8
     bits.add(huffman ? 104 : 64, 7)
     if huffman
     {
-        bits.add(0b10, 2)    // Symbol +1 in the three-level codebook.
-        for 7 do
-            bits.add(0, 1)    // Symbol 0.
+        bits.add(0b10, 2)     // Symbol +1 in the three-level codebook.
+        for 7
+        {
+            bits.add(0, 1)
+        }     // Symbol 0.
     }
     else
     {
-        bits.add(1, 5)        // A directly coded impulse and seven zero residuals.
-        for 7 do
+        bits.add(1, 5)     // A directly coded impulse and seven zero residuals.
+        for 7
+        {
             bits.add(0, 5)
+        }
     }
 
     bits.add(0xFFFF, 16)
@@ -219,10 +228,14 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     for channel in 6
     {
         let rms = dtsToneRms(samples, 2048, 2048, 6, channel)
-        if channel == 3 do
+        if channel == 3
+        {
             Swag.require(rms > 5_800.0 and rms < 6_400.0)
-        else do
+        }
+        else
+        {
             Swag.require(rms > 8_100.0 and rms < 8_900.0)
+        }
     }
 }
 
@@ -237,7 +250,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     for band in 32
     {
         bands[band * Stride]       = 1.0
-        pairedBands[band * Stride] = cast(Math.Simd.F64x2, [1.0'f64, -2.0])
+        pairedBands[band * Stride] = cast(Math.Simd.F64x2, [1.0_f64, -2.0])
         Dts.synthesisDct(cast(const [*] f64, &bands[0]), Stride, &transformed)
         Dts.synthesisDct(cast(const [*] Math.Simd.F64x2, &pairedBands[0]), Stride, &pairedOutput)
         for output in 32
@@ -250,7 +263,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
         }
 
         bands[band * Stride]       = 0.0
-        pairedBands[band * Stride] = Math.Simd.splat(0.0'f64)
+        pairedBands[band * Stride] = Math.Simd.splat(0.0_f64)
     }
 }
 
@@ -275,7 +288,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let source = expect File.readAllBytes(audioGetTestDataPath("dts-5.1-48000.dts").toString())
     let info   = expect Dts.frameInfo(source.toSlice())
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(source.toSlice()[0 until info.frameBytes])
     let extendedOffset = bytes.count
     bytes.add(source.toSlice()[0 until info.frameBytes])
@@ -288,7 +301,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
 
     let corePackets:     [1] SoundPacket = [SoundPacket{0, cast(u32, info.frameBytes), info.frames}]
     let extendedPackets: [1] SoundPacket = [SoundPacket{extendedOffset, cast(u32, info.frameBytes) + 60, info.frames}]
-    var config:          Array'u8
+    var config:          Array!{u8}
     let options                          = PacketStreamOptions{speakerMask: info.speakerMask}
     var core                             = expect SoundFile.openPacketStream(path, .Dts, info.sampleRate, info.channels, info.frames, corePackets, config.toSlice(), options)
     var extended                         = expect SoundFile.openPacketStream(path, .Dts, info.sampleRate, info.channels, info.frames, extendedPackets, config.toSlice(), options)
@@ -339,7 +352,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     discard expect File.writeAllBytes(path, bytes.toSlice())
 
     let packets: [1] SoundPacket = [SoundPacket{0, cast(u32, bytes.count), info.frames}]
-    var config:  Array'u8
+    var config:  Array!{u8}
     var sound = expect SoundFile.openPacketStream(path, .Dts, info.sampleRate, info.channels, info.frames, packets, config.toSlice(), {speakerMask: info.speakerMask})
     discard expect createNoSoundEngine()
     defer destroyEngine()
@@ -369,8 +382,11 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
         let decoded = expect voice.readBuffer()
         let samples = Swag.makeSlice(cast(const [*] s16, unwrap decoded.buffer), decoded.size / #sizeof(s16))
         var nonZero: u64
-        for sample in samples where sample do
+        for sample in samples where sample
+        {
             nonZero += 1
+        }
+
         Swag.require(decoded.size == cast(u64, info.frames) * #sizeof(s16) and nonZero > 8)
     }
 }
@@ -383,9 +399,9 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let info  = expect Dts.frameInfo(bytes.toSlice())
     Swag.require(info.frameBytes == 2012 and info.frames == 512)
 
-    var bigEndian: Array'u8
+    var bigEndian: Array!{u8}
     bigEndian.add(bytes.toSlice()[0 until info.frameBytes])
-    var index = 0'u64
+    var index = 0_u64
     while index < bigEndian.count
     {
         let first = bigEndian[index]
@@ -400,7 +416,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let packedBytes = expect File.readAllBytes(audioGetTestDataPath("dts-5.1-48000-14be.dts").toString())
     let packedInfo  = expect Dts.frameInfo(packedBytes.toSlice())
     Swag.require(packedInfo.frameBytes == 2300 and packedInfo.frames == info.frames)
-    var littleEndian14: Array'u8
+    var littleEndian14: Array!{u8}
     littleEndian14.add(packedBytes.toSlice()[0 until packedInfo.frameBytes])
     index = 0
     while index < littleEndian14.count
@@ -427,7 +443,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let info   = expect Dts.frameInfo(source.toSlice())
     Swag.require(info.frameBytes > 1 and info.frameBytes <= source.count)
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(source.toSlice()[until info.frameBytes - 1])
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
                             Format.toString("audio-dts-truncated-frame-%.dts", Guid64.random()).toString())
@@ -437,4 +453,42 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     var error: Swag.Error
     discard catch SoundFile.load(path.toString()) as error
     Swag.require(error.value() is InvalidFormatError)
+}
+
+// The packed LFE filter preserves the scalar tap sum, clipping, and interleaved channel gaps.
+#test
+{
+    func(Factor: u32, Taps: u32) compareLfe(coefficients: const [..] f64)
+    {
+        const SampleCount = 3
+        const Stride      = 2
+        let history: [8 + SampleCount] f64 = [
+            1_900_000.0, -7_040_000.0, 131_000.0, 4_700_000.0,
+            -13_000_000.0, 25_700_000.0, 2_100_000.0, -37_000_000.0,
+            -36_000_000.0, 30_000_000.0, 21_000_000.0]
+        var result: [Factor * SampleCount * Stride] s16
+        Dts.synthesisLfe!{Factor, Taps}(&result[1], Stride, &history[0], SampleCount)
+        for sample in SampleCount
+        {
+            for phase in Factor / 2
+            {
+                var first, second: f64
+                for tap in Taps
+                {
+                    let value = history[8 + sample - tap]
+                    first  += coefficients[phase * Taps + tap] * value
+                    second += coefficients[255 - phase * Taps - tap] * value
+                }
+
+                let firstSample  = cast(s16, Math.clamp(Math.round(first / 256.0), -32_768.0, 32_767.0))
+                let secondSample = cast(s16, Math.clamp(Math.round(second / 256.0), -32_768.0, 32_767.0))
+                let start        = (sample * Factor + phase) * Stride
+                Swag.require(result[start] == 0 and result[start + 1] == firstSample)
+                Swag.require(result[start + Factor] == 0 and result[start + Factor + 1] == secondSample)
+            }
+        }
+    }
+
+    compareLfe!{64, 8}(Dts.LfeFir64)
+    compareLfe!{128, 4}(Dts.LfeFir128)
 }

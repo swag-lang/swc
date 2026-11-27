@@ -34,8 +34,10 @@ using Core, Gui, Pixel
             let before = resting.pixelColor(left + cast(s32, x), top + cast(s32, y)).argb != restingGround
             let after  = selected.pixelColor(left + cast(s32, x), top + cast(s32, y)).argb != selectedGround
             Swag.require(before == after)
-            if before do
+            if before
+            {
                 ink += 1
+            }
         }
     }
 
@@ -43,8 +45,11 @@ using Core, Gui, Pixel
     Swag.require(explorer.grid.nameTimer != null)
 
     // The name gets one bounded reveal even if the selection stays put.
-    for ExplorerGrid.NameScrollMaxTicks do
+    for ExplorerGrid.NameScrollMaxTicks
+    {
         host.fireTimer(explorer.grid.nameTimer)
+    }
+
     Swag.require(explorer.grid.nameTimer == null)
 
     explorer.grid.select(0)

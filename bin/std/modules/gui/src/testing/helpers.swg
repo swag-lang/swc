@@ -25,8 +25,11 @@ func assertPoint(pt: Math.Vector2, x, y: f32, eps: f32 = 0.001)
 // line with an ellipsis is asking to be given less than its text.
 private func settlesForLess(wnd: *Wnd)->bool
 {
-    if wnd.itf is Label as label do
+    if wnd.itf is Label as label
+    {
         return label.flags.has(.Ellipsis)
+    }
+
     return false
 }
 
@@ -42,10 +45,12 @@ private func settlesForLess(wnd: *Wnd)->bool
 // [[Gui.IWnd.measureContent]] answers the width the text would like, and
 // [[Gui.LabelFlags.Ellipsis]] is the author answering that this one settles for less. Without
 // that, a file name deliberately longer than the panel showing it reads as a layout fault.
-func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
+func assertContentFits(root: *Wnd, tolerance = 0.5_f32)
 {
-    if not root.isLocallyVisible() do
+    if not root.isLocallyVisible()
+    {
         return
+    }
 
     let content = root.itf.measureContent(Math.Point{root.position.width, root.position.height})
     if content.x > root.position.width + tolerance or content.y > root.position.height + tolerance
@@ -78,8 +83,10 @@ func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
         }
     }
 
-    for child in root.children do
+    for child in root.children
+    {
         assertContentFits(child, tolerance)
+    }
 }
 
 // Returns a unique file path in the `swag-tests` folder of the system temp folder.
@@ -92,8 +99,10 @@ func tempFilePath(prefix, extension: string)->String
 {
     let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     let folder  = Path.combine(tempDir.toString(), "swag-tests")
-    if not Directory.exists(folder) do
+    if not Directory.exists(folder)
+    {
         catch Directory.create(folder)
+    }
 
     var fileName = String.from(prefix)
     fileName += Guid64.random().toString()
@@ -102,7 +111,7 @@ func tempFilePath(prefix, extension: string)->String
 }
 
 // Returns a copy of the bytes of `text`, with no terminator, which is what a payload carries.
-func textBytes(text: string)->Array'u8
+func textBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.add(cast(const [..] u8, text))
@@ -119,11 +128,14 @@ func bytesAre(bytes: const [..] u8, text: string)->bool => bytes == cast(const [
 //
 // Each source appears once, in first-use order. Failed loads are excluded. The snapshot does
 // not load or paint anything; it lets a test check lazy resource loading without a wall clock.
-func htmlImageSources(view: const *HtmlView)->Array'String
+func htmlImageSources(view: const *HtmlView)->Array!{String}
 {
     var result: #returntype
-    for entry in view.images.entries where entry.loaded do
+    for entry in view.images.entries where entry.loaded
+    {
         result.add(entry.source)
+    }
+
     return result
 }
 
@@ -139,7 +151,7 @@ func indexedImage(w, h: s32)->Image
         let value = cast(u8, ((1 + x + y * 17) % 251))
         let green = cast(u8, ((cast(u32, value) + 3) % 251))
         let blue  = cast(u8, ((cast(u32, value) + 7) % 251))
-        cast(*u32, pix)[] = Color.fromArgb(255'u8, value, green, blue).argb
+        cast(*u32, pix)[] = Color.fromArgb(255_u8, value, green, blue).argb
     }
 
     return result
@@ -149,8 +161,11 @@ func indexedImage(w, h: s32)->Image
 func countNonZeroBytes(img: Image)->u64
 {
     var count: u64
-    for b in img.pixels.toSlice() where b != 0 do
+    for b in img.pixels.toSlice() where b != 0
+    {
         count += 1
+    }
+
     return count
 }
 

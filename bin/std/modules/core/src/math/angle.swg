@@ -6,7 +6,7 @@ using Swag
 // Stores an angle in radians.
 //
 // An `f32` converts to an angle as radians, and a literal can name its unit instead, as in
-// `90'deg` or `1.57'rad`.
+// `90_deg` or `1.57_rad`.
 struct Angle
 {
     public readonly radians: f32     // The angle value in radians.
@@ -25,7 +25,7 @@ impl Angle
 
     // Sets the angle from a literal whose suffix, `rad` or `deg`, names its unit.
     //
-    // This is what lets `90'deg` and `1.57'rad` initialize an angle. Any other suffix is rejected
+    // This is what lets `90_deg` and `1.57_rad` initialize an angle. Any other suffix is rejected
     // at compile time.
     #[ConstExpr, Implicit, Inline]
     mtd(suffix: string) opSetLiteral(value: f32)
@@ -107,11 +107,11 @@ impl Angle
 
     // Returns the same direction normalized to [0, 2π).
     #[Inline]
-    mtd const normalized()->Angle => Angle.fromRadians(Math.wrap(.radians, 0'f32, Math.ConstF32.TwoPi))
+    mtd const normalized()->Angle => Angle.fromRadians(Math.wrap(.radians, 0_f32, Math.ConstF32.TwoPi))
 
     // Returns the same direction normalized to [-π, π).
     #[Inline]
-    mtd const normalizedSigned()->Angle => Angle.fromRadians(Math.wrap(.radians + Math.ConstF32.Pi, 0'f32, Math.ConstF32.TwoPi) - Math.ConstF32.Pi)
+    mtd const normalizedSigned()->Angle => Angle.fromRadians(Math.wrap(.radians + Math.ConstF32.Pi, 0_f32, Math.ConstF32.TwoPi) - Math.ConstF32.Pi)
 
     // Returns the signed shortest turn from this angle to `other`, in [-π, π).
     #[Inline]

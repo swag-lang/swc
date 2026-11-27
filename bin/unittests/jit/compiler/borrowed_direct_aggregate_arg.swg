@@ -5,7 +5,7 @@ struct(T) BorrowedArgBox
     value: T
 }
 
-func(T) makeBorrowedArgBox(value: T)->BorrowedArgBox'T
+func(T) makeBorrowedArgBox(value: T)->BorrowedArgBox!{T}
 {
     return {value: value}
 }

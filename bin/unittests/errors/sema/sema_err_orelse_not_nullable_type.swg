@@ -12,8 +12,8 @@ func orelseOnInteger()
 
 func orelseOnFloat()
 {
-    let ratio = 0.0'f32
-    let r     = ratio orelse 1.5'f32     // swc-expected-error {{sema_err_orelse_not_nullable_type}}
+    let ratio = 0.0_f32
+    let r     = ratio orelse 1.5_f32     // swc-expected-error {{sema_err_orelse_not_nullable_type}}
     discard r
 }
 

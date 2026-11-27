@@ -90,16 +90,22 @@ func readPolicies(thread: const *Threading.Thread)
     var reader: Threading.Thread
     discard expect reader.init(&readPolicies, &state)
     discard expect reader.start()
-    while not Atomic.get(&state.ready) do
-        Threading.Thread.sleep(1'ms)
+    while not Atomic.get(&state.ready)
+    {
+        Threading.Thread.sleep(1_ms)
+    }
+
     for 1000
     {
         publisher.setPrivateMode(true)
         publisher.setPrivateMode(false)
     }
 
-    while not Atomic.get(&state.reads) do
-        Threading.Thread.sleep(1'ms)
+    while not Atomic.get(&state.reads)
+    {
+        Threading.Thread.sleep(1_ms)
+    }
+
     Atomic.exchange(&state.stop, 1)
     reader.wait()
     discard state.policy.refresh()

@@ -1490,8 +1490,10 @@ using Swag
 #test
 {
     var subject: String
-    for 1000 do
-        subject.append('a'u8)
+    for 1000
+    {
+        subject.append('a'_u8)
+    }
 
     var many = expect Parser.RegExp.create(#raw "a{1000}")
     var wide = expect Parser.RegExp.create(#raw "(?:ab){0,500}c")
@@ -1624,7 +1626,7 @@ func buildPattern(rng: *Rng, depth: u32)->String
     var result: #returntype
 
     let pieces = rng.below(3) + 1
-    for var i = 0'u64; i < pieces; i += 1
+    for var i = 0_u64; i < pieces; i += 1
     {
         var piece: String
         switch rng.below(depth == 0 ? 10 : 13)
@@ -1700,8 +1702,11 @@ func buildSubject(rng: *Rng)->String
 
     var result: #returntype
     let length = rng.below(18)
-    for var i = 0'u64; i < length; i += 1 do
+    for var i = 0_u64; i < length; i += 1
+    {
         result.append(Alphabet[rng.below(Alphabet.count)])
+    }
+
     return result
 }
 
@@ -1716,18 +1721,23 @@ func buildSubject(rng: *Rng)->String
     // The subject outlives the expression on purpose: an expression keeps a borrow of the
     // subject it last searched, since that is where its capture groups point.
     var subject: String
-    var compared = 0'u32
+    var compared = 0_u32
 
     for 400
     {
         var body = buildPattern(&rng, 2)
 
         var pattern: String
-        if rng.below(4) == 0 do
+        if rng.below(4) == 0
+        {
             pattern.append("^")
+        }
+
         pattern.append(body.toString())
-        if rng.below(4) == 0 do
+        if rng.below(4) == 0
+        {
             pattern.append("$")
+        }
 
         let text = pattern.toString()
 
@@ -1750,14 +1760,16 @@ func buildSubject(rng: *Rng)->String
             compared += 1
 
             Swag.require(found.found == reference)
-            if not reference do
+            if not reference
+            {
                 continue
+            }
 
             Swag.require(found.span.start == vm.matchSlots[0])
             Swag.require(found.span.end == vm.matchSlots[1])
 
             // Every capture engine has to report what the simulation reports, group by group.
-            for var group = 1'u32; group <= expression.captureCount(); group += 1
+            for var group = 1_u32; group <= expression.captureCount(); group += 1
             {
                 let span     = expression.captureSpan(group)
                 let opening  = vm.matchSlots[2 * group]
@@ -1765,8 +1777,11 @@ func buildSubject(rng: *Rng)->String
                 let expected = opening != Parser.Regex.NoSlot and closing != Parser.Regex.NoSlot
 
                 Swag.require(span.found == expected)
-                if not expected do
+                if not expected
+                {
                     continue
+                }
+
                 Swag.require(span.span.start == opening)
                 Swag.require(span.span.end == closing)
             }
@@ -1776,13 +1791,15 @@ func buildSubject(rng: *Rng)->String
             // strategies of its own -- it tries the pattern in place where no scan can skip
             // ahead -- and they have to report exactly what one search at a time reports.
             let every = expression.findAll(subject.toString())
-            var at    = 0'u64
-            var seen  = 0'u64
+            var at    = 0_u64
+            var seen  = 0_u64
 
             while at <= subject.length
             {
-                if not vm.run(&program, hay, at, subject.length, false, false) do
+                if not vm.run(&program, hay, at, subject.length, false, false)
+                {
                     break
+                }
 
                 Swag.require(every[seen].start == vm.matchSlots[0])
                 Swag.require(every[seen].end == vm.matchSlots[1])
@@ -1795,8 +1812,10 @@ func buildSubject(rng: *Rng)->String
                 }
 
                 at = vm.matchSlots[1] + 1
-                while at < subject.length and (subject.toString()[at] & 0xC0) == 0x80 do
+                while at < subject.length and (subject.toString()[at] & 0xC0) == 0x80
+                {
                     at += 1
+                }
             }
 
             Swag.require(seen == every.count)
@@ -1866,8 +1885,11 @@ func buildSubject(rng: *Rng)->String
 #test
 {
     var subject: String
-    for 5000 do
+    for 5000
+    {
         subject += 'a'
+    }
+
     var re = expect Parser.RegExp.create("(a*)*b")
     Swag.require(not re.match(subject.toString()))
     Swag.require(re.grep(subject.toString()) == null)

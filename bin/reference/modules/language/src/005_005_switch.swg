@@ -20,7 +20,7 @@ Unintentional fallthroughs are prevented by default, ensuring each `case` is iso
     default: Swag.require(false)
     }
 
-    let ch = 'A'rune
+    let ch = 'A'_rune
 
     switch ch
     {
@@ -106,8 +106,11 @@ Use `break` to exit a `case` early when a certain condition is met.
     switch value
     {
     case 6:
-        if value == 6 do
+        if value == 6
+        {
             break
+        }
+
         Swag.require(false)
 
     default:
@@ -329,7 +332,7 @@ asserts that some case matches, with a panic on a miss when `.Switch` safety is 
 /**
 # Switch Without an Expression
 
-A `switch` without an expression behaves like an `if`/`elif` chain.
+A `switch` without an expression behaves like an `if`/`else if` chain.
 Each `case` is evaluated in order, executing the first one that evaluates to `true`.
 */
 

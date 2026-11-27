@@ -20,7 +20,13 @@ impl IAllocator for RetainedAllocation
 
 impl RetainedAllocation
 {
-    mtd opDrop() { if .request.address do .base.free(&.request) }
+    mtd opDrop()
+    {
+        if .request.address
+        {
+            .base.free(&.request)
+        }
+    }
 }
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
@@ -49,7 +55,10 @@ func identityForJitSummary(pointer: *void)->*void => pointer
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
 func recursiveIdentityForJitSummary(pointer: *void, depth: u32)->*void
 {
-    if depth == 0 do return pointer
+    if depth == 0
+    {
+        return pointer
+    }
     return recursiveForwardForJitSummary(pointer, depth - 1)
 }
 
@@ -135,7 +144,13 @@ struct JitOwner
 
 impl JitOwner
 {
-    mtd opDrop() { if .data do releaseForJitSummary(.data) }
+    mtd opDrop()
+    {
+        if .data
+        {
+            releaseForJitSummary(.data)
+        }
+    }
 
     #[Swag.NoInline]
     mtd const view()->*void => unwrap .data

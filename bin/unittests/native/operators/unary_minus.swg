@@ -40,8 +40,8 @@ func unaryMinusStrictF32(a: UnaryMinusStrictF32)->UnaryMinusStrictF32
 #test
 {
     let v0 = unaryMinusS32(42)
-    let v1 = unaryMinusF64(42.5'f64)
-    let v2 = unaryMinusS64(42's64)
+    let v1 = unaryMinusF64(42.5_f64)
+    let v2 = unaryMinusS64(42_s64)
     let v3 = unaryMinusChain(42)
 
     #assert(#typeof(v0) == s32)
@@ -50,8 +50,8 @@ func unaryMinusStrictF32(a: UnaryMinusStrictF32)->UnaryMinusStrictF32
     #assert(#typeof(v3) == s32)
 
     Swag.require(v0 == -42)
-    Swag.require(v1 == -42.5'f64)
-    Swag.require(v2 == -42's64)
+    Swag.require(v1 == -42.5_f64)
+    Swag.require(v2 == -42_s64)
     Swag.require(v3 == 42)
 }
 
@@ -69,12 +69,12 @@ func unaryMinusStrictF32(a: UnaryMinusStrictF32)->UnaryMinusStrictF32
 
 #test
 {
-    let runtimeValue = unaryMinusStrictF32(cast(UnaryMinusStrictF32, 1.5'f32))
-    const constantValue = -cast(UnaryMinusStrictF32, 1.5'f32)
+    let runtimeValue = unaryMinusStrictF32(cast(UnaryMinusStrictF32, 1.5_f32))
+    const constantValue = -cast(UnaryMinusStrictF32, 1.5_f32)
 
     #assert(#typeof(runtimeValue) == UnaryMinusStrictF32)
     #assert(#typeof(constantValue) == UnaryMinusStrictF32)
 
-    Swag.require(runtimeValue == cast(UnaryMinusStrictF32, -1.5'f32))
-    Swag.require(constantValue == cast(UnaryMinusStrictF32, -1.5'f32))
+    Swag.require(runtimeValue == cast(UnaryMinusStrictF32, -1.5_f32))
+    Swag.require(constantValue == cast(UnaryMinusStrictF32, -1.5_f32))
 }

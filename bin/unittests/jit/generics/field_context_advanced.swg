@@ -16,7 +16,7 @@ struct(M: s32, U) ReorderedRenamedDoubleBufferImplicit
     second: Buffer
 }
 
-struct(T, U = Box'T) ComposedTypeDefaultBox
+struct(T, U = Box!{T}) ComposedTypeDefaultBox
 {
     value: U
 }
@@ -55,35 +55,35 @@ struct(T) AnonymousUnionFieldHolder
 
 #test
 {
-    var reordered: ReorderedRenamedDoubleBufferImplicit'(5, u32)
+    var reordered: ReorderedRenamedDoubleBufferImplicit!{5, u32}
     reordered.first.values[0]  = 11
     reordered.second.values[4] = 29
 
     #assert(#typeof(reordered.first.values) == #type [5] u32)
-    Swag.require(reordered.first.values[0] == 11'u32)
-    Swag.require(reordered.second.values[4] == 29'u32)
+    Swag.require(reordered.first.values[0] == 11_u32)
+    Swag.require(reordered.second.values[4] == 29_u32)
 }
 
 #test
 {
-    var composed: ComposedTypeDefaultHolder's16
-    var sized:    SizeofDefaultHolder'u64
+    var composed: ComposedTypeDefaultHolder!{s16}
+    var sized:    SizeofDefaultHolder!{u64}
 
     composed.item.value.value = 7
     sized.item.values[0]      = 1
     sized.item.values[7]      = 9
 
-    #assert(#typeof(composed.item.value) == Box's16)
+    #assert(#typeof(composed.item.value) == Box!{s16})
     #assert(#typeof(sized.item.values) == #type [8] u8)
-    Swag.require(composed.item.value.value == 7's16)
-    Swag.require(sized.item.values[0] == 1'u8)
-    Swag.require(sized.item.values[7] == 9'u8)
+    Swag.require(composed.item.value.value == 7_s16)
+    Swag.require(sized.item.values[0] == 1_u8)
+    Swag.require(sized.item.values[7] == 9_u8)
 }
 
 #test
 {
-    var anonymousStruct: AnonymousStructBufferHolder'(u8, 4)
-    var anonymousUnion:  AnonymousUnionFieldHolder's32
+    var anonymousStruct: AnonymousStructBufferHolder!{u8, 4}
+    var anonymousUnion:  AnonymousUnionFieldHolder!{s32}
 
     anonymousStruct.inner.item.values[0] = 3
     anonymousStruct.inner.item.values[3] = 5
@@ -91,7 +91,7 @@ struct(T) AnonymousUnionFieldHolder
 
     #assert(#typeof(anonymousStruct.inner.item.values) == #type [4] u8)
     #assert(#typeof(anonymousUnion.inner.item.value) == s32)
-    Swag.require(anonymousStruct.inner.item.values[0] == 3'u8)
-    Swag.require(anonymousStruct.inner.item.values[3] == 5'u8)
+    Swag.require(anonymousStruct.inner.item.values[0] == 3_u8)
+    Swag.require(anonymousStruct.inner.item.values[3] == 5_u8)
     Swag.require(anonymousUnion.inner.item.value == 42)
 }

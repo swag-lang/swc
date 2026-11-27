@@ -9,9 +9,11 @@ using Swag
 #[Swag.NoInline]
 func sum(values: const [*] u64, count: u64)->u64
 {
-    var total = 0'u64
-    for i in count do
+    var total = 0_u64
+    for i in count
+    {
         total += values[i]
+    }
     return total
 }
 
@@ -64,8 +66,10 @@ func readThroughCopiedAddress(a, b, c, d: u64)->u64
 #[Swag.Optimize(true), Swag.NoInline]
 func overwrittenAfterGuard(enabled: bool, input: const *[4] u64)->u64
 {
-    if not enabled do
+    if not enabled
+    {
         return 0
+    }
 
     var tile: [4] u64
     tile[0] = input[][0]
@@ -77,7 +81,7 @@ func overwrittenAfterGuard(enabled: bool, input: const *[4] u64)->u64
 
 #test
 {
-    let input = [11'u64, 17, 23, 31]
+    let input = [11_u64, 17, 23, 31]
     Swag.require(overwrittenAfterGuard(true, &input) == 82)
     Swag.require(overwrittenAfterGuard(false, &input) == 0)
     Swag.require(overwritten(1, 2, 3, 4) == 10)

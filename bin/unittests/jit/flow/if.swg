@@ -62,7 +62,7 @@
         {
             return 51
         }
-        elif flag1
+        else if flag1
         {
             return 52
         }
@@ -111,15 +111,19 @@
 {
     func earlyReturnAndElif(enabled: bool, text: string?, hasClear: bool)->s32
     {
-        if not enabled do
+        if not enabled
+        {
             return 1
+        }
 
         if text != null and text.count
         {
-            if not hasClear do
+            if not hasClear
+            {
                 return 2
+            }
         }
-        elif hasClear
+        else if hasClear
         {
             return 3
         }
@@ -191,8 +195,10 @@ impl EarlyReturnAndElifBox
 
     mtd showHide()
     {
-        if not .enabled do
+        if not .enabled
+        {
             return
+        }
 
         if .text != null and (.text).count
         {
@@ -204,7 +210,7 @@ impl EarlyReturnAndElifBox
                 .applyLayout()
             }
         }
-        elif .button
+        else if .button
         {
             .button.destroy()
             .button = null

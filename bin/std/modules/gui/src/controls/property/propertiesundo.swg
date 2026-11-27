@@ -24,13 +24,13 @@ internal struct PropFieldValue
 {
     public
     {
-        valid:    bool             // Whether a value was captured.
-        isString: bool             // Whether the value is a String copied by content.
-        n:        u64              // Number of captured instances.
-        sz:       u64              // Per-instance byte size, for raw bytes only.
-        addrs:    Array'(*u8?)     // Field address in each captured instance.
-        bytes:    Array'u8         // `n * sz` contiguous raw bytes, for raw bytes only.
-        strings:  Array'String     // `n` strings, for a String only.
+        valid:    bool               // Whether a value was captured.
+        isString: bool               // Whether the value is a String copied by content.
+        n:        u64                // Number of captured instances.
+        sz:       u64                // Per-instance byte size, for raw bytes only.
+        addrs:    Array!{*u8?}       // Field address in each captured instance.
+        bytes:    Array!{u8}         // `n * sz` contiguous raw bytes, for raw bytes only.
+        strings:  Array!{String}     // `n` strings, for a String only.
     }
 }
 
@@ -40,10 +40,16 @@ internal impl PropFieldValue
     // any POD value (native/enum/bool/color/vector/POD struct/static array of POD).
     func canSnapshot(type: typeinfo?)->bool
     {
-        if not type do
+        if not type
+        {
             return false
-        if type == Core.String do
+        }
+
+        if type == Core.String
+        {
             return true
+        }
+
         return Reflection.isPod(type)
     }
 
@@ -59,37 +65,53 @@ internal impl PropFieldValue
         .bytes.clear()
         .strings.clear()
 
-        if not item.data or not item.type do
+        if not item.data or not item.type
+        {
             return
-        if not canSnapshot(item.type) do
+        }
+
+        if not canSnapshot(item.type)
+        {
             return
+        }
 
         // Rows inside a dynamic array live in a heap buffer that array add/remove/resize can
         // move or free (taking the row with it). Recording their raw address would dangle, so —
         // like the reset-to-default feature — they are left out of the undo history.
-        if prop.isUnderDynamicArray(item) do
+        if prop.isUnderDynamicArray(item)
+        {
             return
+        }
 
         .n = prop.instanceCount(item)
         .addrs.reserve(.n)
-        for k in .n do
+        for k in .n
+        {
             .addrs.add(prop.instanceAddr(item, k))
+        }
 
         if item.type == Core.String
         {
             .isString = true
             .strings.reserve(.n)
-            for k in .n do
+            for k in .n
+            {
                 .strings.add(cast(const *String, unwrap .addrs[k])[])
+            }
         }
         else
         {
             .sz = item.type.sizeof
-            if .sz == 0 do
+            if .sz == 0
+            {
                 return
+            }
+
             .bytes.resize(.n * .sz)
-            for k in .n do
+            for k in .n
+            {
                 Memory.copy(.bytes.storage() + k * .sz, unwrap .addrs[k], .sz)
+            }
         }
 
         .valid = true
@@ -100,48 +122,69 @@ internal impl PropFieldValue
     // edited instances need to be alive.
     mtd restore()
     {
-        if not .valid do
+        if not .valid
+        {
             return
+        }
 
         if .isString
         {
-            for k in .n do
+            for k in .n
+            {
                 cast(*String, unwrap .addrs[k])[] = .strings[k]
+            }
         }
         else
         {
-            for k in .n do
+            for k in .n
+            {
                 Memory.copy(unwrap .addrs[k], .bytes.storage() + k * .sz, .sz)
+            }
         }
     }
 
     // Value equality (used to skip recording a no-op change).
     mtd isEqual(o: *PropFieldValue)->bool
     {
-        if .isString != o.isString do
+        if .isString != o.isString
+        {
             return false
-        if .n != o.n do
+        }
+
+        if .n != o.n
+        {
             return false
+        }
 
         if .isString
         {
             for k in .n
             {
-                if .strings[k] != o.strings[k] do
+                if .strings[k] != o.strings[k]
+                {
                     return false
+                }
             }
 
             return true
         }
 
-        if .sz != o.sz do
+        if .sz != o.sz
+        {
             return false
-        if .bytes.count != o.bytes.count do
+        }
+
+        if .bytes.count != o.bytes.count
+        {
             return false
+        }
+
         for i in .bytes.count
         {
-            if .bytes[i] != o.bytes[i] do
+            if .bytes[i] != o.bytes[i]
+            {
                 return false
+            }
         }
 
         return true
@@ -199,13 +242,17 @@ internal impl Properties
     // folded into the command recorded at the first move, so the whole drag is one undo step.
     mtd recordUndo(item: *PropertiesItem)
     {
-        if not .undoEnabled do
+        if not .undoEnabled
+        {
             return
+        }
 
         var cur: PropFieldValue
         cur.capture(me, item)
-        if not cur.valid do
+        if not cur.valid
+        {
             return
+        }
 
         if item.undoValue.valid and not item.undoValue.isEqual(&cur)
         {
@@ -215,14 +262,16 @@ internal impl Properties
             }
             else
             {
-                let cmd = Memory.new'PropUndoCommand()
+                let cmd = Memory.new!{PropUndoCommand}()
                 cmd.prop       = me
                 cmd.generation = .generation
                 cmd.oldVal     = item.undoValue
                 cmd.newVal     = cur
                 .activeUndoMgr().pushCmd(cmd, 0, false)
-                if .dragItem == item do
+                if .dragItem == item
+                {
                     .dragCmd = cmd
+                }
             }
         }
 
@@ -255,8 +304,11 @@ internal impl Properties
         }
 
         var relayout = .updateValidation()
-        if .updateDefaults() do
+        if .updateDefaults()
+        {
             relayout = true
+        }
+
         if relayout
         {
             .applyLayout()

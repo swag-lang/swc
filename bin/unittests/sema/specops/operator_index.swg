@@ -10,8 +10,10 @@ impl ValueIndexBox
 {
     mtd opIndex(index: s32)->s32
     {
-        if index == 0 do
+        if index == 0
+        {
             return .first
+        }
         return .second
     }
 }

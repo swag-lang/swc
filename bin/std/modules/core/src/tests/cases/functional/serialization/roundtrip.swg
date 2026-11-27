@@ -19,8 +19,8 @@ struct RoundTripOuter
     tiny:  f32
     huge:  f64
     flag:  bool
-    items: Array'RoundTripInner
-    none:  Array's32
+    items: Array!{RoundTripInner}
+    none:  Array!{s32}
     fixed: [2] RoundTripInner
     runes: rune
 }
@@ -69,14 +69,14 @@ func sameRoundTrip(a, b: RoundTripOuter)->bool
     let source = makeRoundTrip()
     for blanks in [false, true]
     {
-        var encoder: Serialization.Encoder'Serialization.Write.Json
+        var encoder: Serialization.Encoder!{Serialization.Write.Json}
         encoder.serializer.options.saveBlanks = blanks
         var buffer: ConcatBuffer
         expect encoder.writeAll(&buffer, source)
         let json = buffer.toString()
 
-        var decoder: Serialization.Decoder'Serialization.Read.Json
-        let decoded = expect decoder.readAll'RoundTripOuter(json.toSlice())
+        var decoder: Serialization.Decoder!{Serialization.Read.Json}
+        let decoded = expect decoder.readAll!{RoundTripOuter}(json.toSlice())
         defer Memory.delete(decoded)
         Swag.require(sameRoundTrip(source, decoded[]))
     }
@@ -87,12 +87,12 @@ func sameRoundTrip(a, b: RoundTripOuter)->bool
 {
     let source = makeRoundTrip()
     var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
     expect encoder.writeAll(&buffer, source)
     let bytes = buffer.toString()
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'RoundTripOuter(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{RoundTripOuter}(bytes.toSlice())
     defer Memory.delete(decoded)
     Swag.require(sameRoundTrip(source, decoded[]))
 }

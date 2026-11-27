@@ -100,8 +100,11 @@ func audioTrackName(index: u32, sound: const *Audio.SoundFile)->String
 // Returns the name of a sound track without its language: the one it carries, or its number.
 func audioTrackTitle(index: u32, sound: const *Audio.SoundFile)->String
 {
-    if sound.displayName().count do
+    if sound.displayName().count
+    {
         return String.from(sound.displayName())
+    }
+
     return Format.toString(texts().ui_AudioTrackNumber, index + 1)
 }
 
@@ -146,8 +149,11 @@ func subtitleTrackName(index: u32, track: const *Video.Subtitle.Track)->String
 // Returns the name of a subtitle track without its language: the one it carries, or its number.
 func subtitleTrackTitle(index: u32, track: const *Video.Subtitle.Track)->String
 {
-    if track.displayName().count do
+    if track.displayName().count
+    {
         return String.from(track.displayName())
+    }
+
     return Format.toString(texts().ui_SubtitleTrackNumber, index + 1)
 }
 
@@ -220,10 +226,10 @@ func subtitleColorText(color: SubtitleColor)->string
 func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'Texts(&g_Texts, "scope.video")
+    Gui.registerStrings!{Texts}(&g_Texts, "scope.video")
 }
 
 #run
 {
-    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
+    expect Gui.validateStrings!{Texts}(cast(string, FrenchStrings))
 }

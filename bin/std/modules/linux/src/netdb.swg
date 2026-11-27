@@ -16,7 +16,7 @@ struct addrinfo
     }
 }
 
-const AF_UNSPEC = 0's32
+const AF_UNSPEC = 0_s32
 
 #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
 {

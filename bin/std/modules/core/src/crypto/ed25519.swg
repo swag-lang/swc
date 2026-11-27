@@ -8,9 +8,13 @@ public const Ed25519KeySize = 32
 // Ed25519 signature size in bytes.
 public const Ed25519SignatureSize = 64
 
-private const Ed25519Order: [16] u32 = [
-    0xD3ED, 0x5CF5, 0x631A, 0x5812, 0x9CD6, 0xA2F7, 0xF9DE, 0x14DE,
-    0, 0, 0, 0, 0, 0, 0, 0x1000]
+private const Ed25519Order: [5] u64 = [
+    0x5812_631A_5CF5_D3ED, 0x14DE_F9DE_A2F7_9CD6, 0, 0x1000_0000_0000_0000, 0]
+
+// Floor(2^512 / Ed25519Order), in radix 2^64.
+private const Ed25519Reciprocal: [5] u64 = [
+    0xED9C_E5A3_0A2C_131B, 0x2106_215D_0863_29A7, 0xFFFF_FFFF_FFFF_FFEB,
+    0xFFFF_FFFF_FFFF_FFFF, 0x0000_0000_0000_000F]
 
 private struct Ed25519Point
 {
@@ -20,7 +24,26 @@ private struct Ed25519Point
     t: X25519Field
 }
 
-private func ed25519FieldConstant(limbs: [16] u64)->X25519Field
+private struct Ed25519Affine
+{
+    yMinusX, yPlusX, twiceDT: X25519Field
+}
+
+private const Ed25519AffineWordCount = #sizeof(Ed25519Affine) / #sizeof(u64)
+
+// All eight candidates for a limb in one contiguous row.
+private struct Ed25519AffineTable
+{
+    words: [Ed25519AffineWordCount][8] u64
+}
+
+private struct Ed25519Cached
+{
+    affine: Ed25519Affine
+    twiceZ: X25519Field
+}
+
+private func ed25519FieldConstant(limbs: [5] u64)->X25519Field
 {
     var result: #returntype
     result.limbs = limbs
@@ -29,14 +52,14 @@ private func ed25519FieldConstant(limbs: [16] u64)->X25519Field
 
 private func ed25519D()->X25519Field
 {
-    return ed25519FieldConstant([0x78A3, 0x1359, 0x4DCA, 0x75EB, 0xD8AB, 0x4141, 0x0A4D, 0x0070,
-                                 0xE898, 0x7779, 0x4079, 0x8CC7, 0xFE73, 0x2B6F, 0x6CEE, 0x5203])
+    return ed25519FieldConstant([0x3_4DCA_1359_78A3, 0x1_A828_3B15_6EBD, 0x5_E7A2_6001_C029,
+                                 0x7_39C6_63A0_3CBB, 0x5_2036_CEE2_B6FF])
 }
 
 private func ed25519SqrtMinusOne()->X25519Field
 {
-    return ed25519FieldConstant([0xA0B0, 0x4A0E, 0x1B27, 0xC4EE, 0xE478, 0xAD2F, 0x1806, 0x2F43,
-                                 0xD7A7, 0x3DFB, 0x0099, 0x2B4D, 0xDF0B, 0x4FC1, 0x2480, 0x2B83])
+    return ed25519FieldConstant([0x6_1B27_4A0E_A0B0, 0x0_D5A5_FC8F_189D, 0x7_EF5E_9CBD_0C60,
+                                 0x7_8595_A680_4C9E, 0x2_B832_4804_FC1D])
 }
 
 private func ed25519Identity()->Ed25519Point
@@ -58,15 +81,52 @@ private func ed25519FieldEqual(left, right: X25519Field)->bool
 
 private func ed25519Add(left, right: Ed25519Point)->Ed25519Point
 {
-    let a  = x25519Multiply(x25519Subtract(left.y, left.x), x25519Subtract(right.y, right.x))
-    let b  = x25519Multiply(x25519Add(left.y, left.x), x25519Add(right.y, right.x))
+    let a  = x25519Multiply(x25519SubtractLoose(left.y, left.x), x25519SubtractLoose(right.y, right.x))
+    let b  = x25519Multiply(x25519AddLoose(left.y, left.x), x25519AddLoose(right.y, right.x))
     let c  = x25519Multiply(ed25519D(), x25519Multiply(left.t, right.t))
     let c2 = x25519Add(c, c)
-    let d  = x25519Add(x25519Multiply(left.z, right.z), x25519Multiply(left.z, right.z))
-    let e  = x25519Subtract(b, a)
-    let f  = x25519Subtract(d, c2)
-    let g  = x25519Add(d, c2)
-    let h  = x25519Add(b, a)
+    let z  = x25519Multiply(left.z, right.z)
+    let d  = x25519Add(z, z)
+    return ed25519CompleteAddition(a, b, c2, d)
+}
+
+private func ed25519Cache(point: Ed25519Point)->Ed25519Cached
+{
+    var result: #returntype
+    result.affine.yMinusX = x25519Subtract(point.y, point.x)
+    result.affine.yPlusX  = x25519Add(point.y, point.x)
+    let dt = x25519Multiply(ed25519D(), point.t)
+    result.affine.twiceDT = x25519Add(dt, dt)
+    result.twiceZ         = x25519Add(point.z, point.z)
+    return result
+}
+
+#[Swag.Inline]
+private func ed25519AddPrepared(left: Ed25519Point, right: Ed25519Affine, twiceZ: X25519Field)->Ed25519Point
+{
+    let a  = x25519Multiply(x25519SubtractLoose(left.y, left.x), right.yMinusX)
+    let b  = x25519Multiply(x25519AddLoose(left.y, left.x), right.yPlusX)
+    let c2 = x25519Multiply(left.t, right.twiceDT)
+    return ed25519CompleteAddition(a, b, c2, twiceZ)
+}
+
+private func ed25519AddAffine(left: Ed25519Point, right: Ed25519Affine)->Ed25519Point
+{
+    return ed25519AddPrepared(left, right, x25519Add(left.z, left.z))
+}
+
+private func ed25519AddCached(left: Ed25519Point, right: Ed25519Cached)->Ed25519Point
+{
+    return ed25519AddPrepared(left, right.affine, x25519Multiply(left.z, right.twiceZ))
+}
+
+#[Swag.Inline]
+private func ed25519CompleteAddition(a, b, c2, d: X25519Field)->Ed25519Point
+{
+    let e = x25519SubtractLoose(b, a)
+    let f = x25519SubtractLoose(d, c2)
+    let g = x25519AddLoose(d, c2)
+    let h = x25519AddLoose(b, a)
     var result: #returntype
     result.x = x25519Multiply(e, f)
     result.y = x25519Multiply(g, h)
@@ -75,7 +135,7 @@ private func ed25519Add(left, right: Ed25519Point)->Ed25519Point
     return result
 }
 
-private func ed25519Double(point: Ed25519Point)->Ed25519Point
+private func(UpdateT: bool) ed25519Double(point: Ed25519Point)->Ed25519Point
 {
     let a  = x25519Square(point.x)
     let b  = x25519Square(point.y)
@@ -83,44 +143,79 @@ private func ed25519Double(point: Ed25519Point)->Ed25519Point
     let c2 = x25519Add(c, c)
     var zero:   X25519Field
     let d  = x25519Subtract(zero, a)
-    let e  = x25519Subtract(x25519Subtract(x25519Square(x25519Add(point.x, point.y)), a), b)
+    let e  = x25519SubtractLoose(x25519Subtract(x25519Square(x25519AddLoose(point.x, point.y)), a), b)
     let g  = x25519Add(d, b)
-    let f  = x25519Subtract(g, c2)
-    let h  = x25519Subtract(d, b)
+    let f  = x25519SubtractLoose(g, c2)
+    let h  = x25519SubtractLoose(d, b)
     var result: #returntype
     result.x = x25519Multiply(e, f)
     result.y = x25519Multiply(g, h)
-    result.t = x25519Multiply(e, h)
+    #static if UpdateT
+    {
+        result.t = x25519Multiply(e, h)
+    }
+
     result.z = x25519Multiply(f, g)
     return result
 }
 
-private func ed25519Select(left, right: Ed25519Point, chooseRight: u64)->Ed25519Point
+// A subsequent doubling consumes X, Y and Z. A point addition also needs T.
+private func ed25519DoubleRepeated(point: Ed25519Point, count: u32)->Ed25519Point
 {
-    let mask = 0'u64 - chooseRight
-    var result: #returntype
-    for index in 16
+    var result = point
+    for count - 1
     {
-        result.x.limbs[index] = (left.x.limbs[index] & ~mask) | (right.x.limbs[index] & mask)
-        result.y.limbs[index] = (left.y.limbs[index] & ~mask) | (right.y.limbs[index] & mask)
-        result.z.limbs[index] = (left.z.limbs[index] & ~mask) | (right.z.limbs[index] & mask)
-        result.t.limbs[index] = (left.t.limbs[index] & ~mask) | (right.t.limbs[index] & mask)
+        result = ed25519Double!{false}(result)
+    }
+
+    return ed25519Double!{true}(result)
+}
+
+private func ed25519BuildMultiples(point: Ed25519Point)->[16] Ed25519Cached
+{
+    var result: #returntype
+    result[0] = ed25519Cache(ed25519Identity())
+    result[1] = ed25519Cache(point)
+    var multiple = point
+    for index in 2 until result.count
+    {
+        multiple      = ed25519AddCached(multiple, result[1])
+        result[index] = ed25519Cache(multiple)
     }
 
     return result
 }
 
-private func ed25519ScalarMultiply(point: Ed25519Point, scalar: const [..] u8)->Ed25519Point
+private func ed25519SelectMultiple(multiples: const [..] Ed25519Cached, digit: u8)->Ed25519Cached
+{
+    var result: #returntype
+    for index in 16
+    {
+        let mask = 0_u64 - cast(u64, index == digit)
+        for limb in result.twiceZ.limbs.count
+        {
+            result.affine.yMinusX.limbs[limb] |= multiples[index].affine.yMinusX.limbs[limb] & mask
+            result.affine.yPlusX.limbs[limb]  |= multiples[index].affine.yPlusX.limbs[limb] & mask
+            result.affine.twiceDT.limbs[limb] |= multiples[index].affine.twiceDT.limbs[limb] & mask
+            result.twiceZ.limbs[limb]         |= multiples[index].twiceZ.limbs[limb] & mask
+        }
+    }
+
+    return result
+}
+
+private func ed25519ScalarMultiply(multiples: const [..] Ed25519Cached, scalar: const [..] u8)->Ed25519Point
 {
     var result = ed25519Identity()
-    var addend = point
-    var bit    = 0'u32
-    while bit < 256
+    var selected: Ed25519Cached
+    defer Crypto.secureClear(Swag.makeSlice(&selected, 1))
+    for window in 2 * Ed25519KeySize
     {
-        let selected = cast(u64, (scalar[bit / 8] >> (bit & 7)) & 1)
-        result = ed25519Select(result, ed25519Add(result, addend), selected)
-        addend = ed25519Double(addend)
-        bit    += 1
+        result = ed25519DoubleRepeated(result, 4)
+        let nibbleIndex = 2 * Ed25519KeySize - 1 - window
+        let digit       = (scalar[nibbleIndex / 2] >> (4 * (nibbleIndex & 1))) & 15
+        selected = ed25519SelectMultiple(multiples, digit)
+        result   = ed25519AddCached(result, selected)
     }
 
     return result
@@ -129,13 +224,164 @@ private func ed25519ScalarMultiply(point: Ed25519Point, scalar: const [..] u8)->
 private func ed25519BasePoint()->Ed25519Point
 {
     var result: #returntype
-    result.x = ed25519FieldConstant([0xD51A, 0x8F25, 0x2D60, 0xC956, 0xA7B2, 0x9525, 0xC760, 0x692C,
-                                     0xDC5C, 0xFDD6, 0xE231, 0xC0A4, 0x53FE, 0xCD6E, 0x36D3, 0x2169])
-    result.y = ed25519FieldConstant([0x6658, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666,
-                                     0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666])
+    result.x = ed25519FieldConstant([0x6_2D60_8F25_D51A, 0x4_12A4_B4F6_592A, 0x7_5B71_71A4_B31D,
+                                     0x1_FF60_5271_18FE, 0x2_1693_6D3C_D6E5])
+    result.y = ed25519FieldConstant([0x6_6666_6666_6658, 0x4_CCCC_CCCC_CCCC, 0x1_9999_9999_9999,
+                                     0x3_3333_3333_3333, 0x6_6666_6666_6666])
     result.z.limbs[0] = 1
     result.t = x25519Multiply(result.x, result.y)
     return result
+}
+
+// Row i stores the first eight multiples of 256^i times the base point.
+private const Ed25519GeneratorRadix16 = #run ed25519BuildGeneratorRadix16()
+
+private func ed25519BuildGeneratorRadix16()->[32] Ed25519AffineTable
+{
+    var points: [256] Ed25519Point
+    var base = ed25519BasePoint()
+    for row in 32
+    {
+        let start = row * 8
+        points[start] = base
+        for column in 1 until 8
+        {
+            points[start + column] = ed25519Add(points[start + column - 1], base)
+        }
+
+        if row < 31
+        {
+            base = ed25519DoubleRepeated(base, 8)
+        }
+    }
+
+    // Normalize the public points with one inversion.
+    var prefixes: [256] X25519Field
+    var product:  X25519Field
+    product.limbs[0] = 1
+    for point, index in points
+    {
+        prefixes[index] = product
+        product         = x25519Multiply(product, point.z)
+    }
+
+    var inverse = x25519InvertPublic(product)
+    let twiceD  = x25519Add(ed25519D(), ed25519D())
+    var result: #returntype
+    for row in points.count
+    {
+        let index    = points.count - 1 - row
+        let inverseZ = x25519Multiply(inverse, prefixes[index])
+        inverse = x25519Multiply(inverse, points[index].z)
+        let x     = x25519Multiply(points[index].x, inverseZ)
+        let y     = x25519Multiply(points[index].y, inverseZ)
+        let point = Ed25519Affine{yMinusX: x25519Subtract(y, x), yPlusX: x25519Add(y, x),
+                                  twiceDT: x25519Multiply(twiceD, x25519Multiply(x, y))}
+        let words = cast(const [*] u64, &point)
+        for limb in Ed25519AffineWordCount
+        {
+            result[index / 8].words[limb][index & 7] = words[limb]
+        }
+    }
+
+    return result
+}
+
+private func ed25519SelectAffine(table: const [..] [8] u64, digit: s8)->Ed25519Affine
+{
+    let sign      = digit >> 7
+    let magnitude = cast(u8, ((digit ^ sign) - sign))
+    let desired   = Math.Simd.splat(cast(u64, magnitude))
+    let first     = desired == cast(Math.Simd.U64x2, [1_u64, 2])
+    let second    = desired == cast(Math.Simd.U64x2, [3_u64, 4])
+    let third     = desired == cast(Math.Simd.U64x2, [5_u64, 6])
+    let fourth    = desired == cast(Math.Simd.U64x2, [7_u64, 8])
+
+    var result: #returntype
+    let words = cast([*] u64, &result)
+    for index in Ed25519AffineWordCount
+    {
+        let pairs = cast(const [*] Math.Simd.U64x2, table[index].buffer)
+        words[index] = Math.Simd.sum((pairs[0] & first) | (pairs[1] & second) |
+                                     (pairs[2] & third) | (pairs[3] & fourth))
+    }
+
+    let identity = cast(u64, magnitude == 0)
+    result.yMinusX.limbs[0] |= identity
+    result.yPlusX.limbs[0]  |= identity
+
+    // Negating an Edwards point swaps Y-X and Y+X, and negates 2dXY.
+    let negativeMask = 0_u64 - cast(u64, sign != 0)
+    var zero: X25519Field
+    let negatedT     = x25519Subtract(zero, result.twiceDT)
+    for limb in result.yMinusX.limbs.count
+    {
+        let swap = (result.yMinusX.limbs[limb] ^ result.yPlusX.limbs[limb]) & negativeMask
+        result.yMinusX.limbs[limb] ^= swap
+        result.yPlusX.limbs[limb]  ^= swap
+        result.twiceDT.limbs[limb] ^= (result.twiceDT.limbs[limb] ^ negatedT.limbs[limb]) & negativeMask
+    }
+
+    return result
+}
+
+private func ed25519MultiplyGenerator(scalar: const [..] u8)->Ed25519Point
+{
+    // The caller supplies a clamped or reduced scalar below 2^255. Carrying
+    // across its radix-16 digits gives signed digits in [-8, 8].
+    var digits: [64] s8
+    defer Crypto.secureClear(digits)
+    for byte, index in scalar
+    {
+        digits[index * 2]     = cast(s8, byte & 15)
+        digits[index * 2 + 1] = cast(s8, byte >> 4)
+    }
+
+    var carry = 0_s8
+    for index in 63
+    {
+        let digit = digits[index] + carry
+        carry         = (digit + 8) >> 4
+        digits[index] = digit - (carry << 4)
+    }
+
+    digits[63] += carry
+
+    // Odd-position digits share the same rows as even digits after four doublings.
+    var result = ed25519Identity()
+    var selected: Ed25519Affine
+    defer Crypto.secureClear(Swag.makeSlice(&selected, 1))
+    for pass in 2
+    {
+        for row in 32
+        {
+            const tables: const [..] Ed25519AffineTable = Ed25519GeneratorRadix16
+            selected = ed25519SelectAffine(tables[row].words, digits[row * 2 + 1 - pass])
+            result   = ed25519AddAffine(result, selected)
+        }
+
+        if pass == 0
+        {
+            result = ed25519DoubleRepeated(result, 4)
+        }
+    }
+
+    return result
+}
+
+// Edwards y = 4/5 maps to the X25519 generator u = 9. In projective
+// coordinates the Montgomery map is u = (Z + Y) / (Z - Y).
+internal func x25519MultiplyGenerator(scalar: const [..] u8, destination: [..] u8)
+{
+    var point = ed25519MultiplyGenerator(scalar)
+    defer Crypto.secureClear(Swag.makeSlice(&point, 1))
+    var numerator = x25519Add(point.z, point.y)
+    defer Crypto.secureClear(numerator.limbs)
+    var denominator = x25519Subtract(point.z, point.y)
+    defer Crypto.secureClear(denominator.limbs)
+    var coordinate = x25519Multiply(numerator, x25519Invert(denominator))
+    defer Crypto.secureClear(coordinate.limbs)
+    x25519Encode(coordinate, destination)
 }
 
 private func ed25519HashSeed(seed: const [..] u8)->[64] u8
@@ -155,42 +401,51 @@ private func ed25519DecodePoint(encoded: const [..] u8)->(Ed25519Point, bool)
     let y = x25519Decode(yBytes)
     var canonicalY: [32] u8
     x25519Encode(y, canonicalY)
-    if not Crypto.constantTimeEqual(yBytes, canonicalY) do
+    if not Crypto.constantTimeEqual(yBytes, canonicalY)
+    {
         return (ed25519Identity(), false)
+    }
 
     var one: X25519Field
     one.limbs[0] = 1
     let ySquared    = x25519Square(y)
     let numerator   = x25519Subtract(ySquared, one)
     let denominator = x25519Add(x25519Multiply(ed25519D(), ySquared), one)
-    let xSquared    = x25519Multiply(numerator, x25519Invert(denominator))
 
-    // sqrt(u) = u^((p+3)/8), with the standard sqrt(-1) correction.
-    var x: X25519Field
-    x.limbs[0] = 1
-    var bit = 252'u32
-    while bit
-    {
-        bit -= 1
-        x   = x25519Square(x)
-        if bit do
-            x = x25519Multiply(x, xSquared)
-    }
+    // For u = y^2 - 1 and v = d*y^2 + 1, this recovers sqrt(u/v) as
+    // u*v^3 * (u*v^7)^((p-5)/8). Checking x^2*v avoids an inversion.
+    let v2  = x25519Square(denominator)
+    let v3  = x25519Multiply(v2, denominator)
+    let v7  = x25519Multiply(x25519Square(v3), denominator)
+    let uv3 = x25519Multiply(numerator, v3)
+    let uv7 = x25519Multiply(numerator, v7)
+    var x   = x25519Multiply(uv3, x25519Pow252Minus3(uv7))
 
-    if not ed25519FieldEqual(x25519Square(x), xSquared)
+    let check = x25519Multiply(x25519Square(x), denominator)
+    if not ed25519FieldEqual(check, numerator)
     {
-        x = x25519Multiply(x, ed25519SqrtMinusOne())
-        if not ed25519FieldEqual(x25519Square(x), xSquared) do
+        var zero: X25519Field
+        if not ed25519FieldEqual(check, x25519Subtract(zero, numerator))
+        {
             return (ed25519Identity(), false)
+        }
+
+        x = x25519Multiply(x, ed25519SqrtMinusOne())
     }
 
     var xBytes: [32] u8
     x25519Encode(x, xBytes)
-    var xNonzero = 0'u8
-    for byte in xBytes do
+    var xNonzero = 0_u8
+    for byte in xBytes
+    {
         xNonzero |= byte
-    if not xNonzero and sign do
+    }
+
+    if not xNonzero and sign
+    {
         return (ed25519Identity(), false)
+    }
+
     if (xBytes[0] & 1) != sign
     {
         var zero: X25519Field
@@ -239,41 +494,81 @@ private func ed25519HashFinalize(hash: *Hash.Sha512)->[64] u8
     return result
 }
 
+// Multiplies little-endian words into a zeroed result of the requested width.
+private func ed25519MultiplyWords(left, right: const [..] u64, result: [..] u64)
+{
+    for row in Math.min(left.count, result.count)
+    {
+        let word  = left[row]
+        let count = Math.min(right.count, result.count - row)
+        var carry = 0_u64
+        for column in count
+        {
+            let product = Math.mulU64(word, right[column])
+            let partial = result[row + column] + product.lo
+            let sum     = partial + carry
+            carry = product.hi + cast(u64, partial < product.lo) + cast(u64, sum < partial)
+            result[row + column] = sum
+        }
+
+        if row + count < result.count
+        {
+            result[row + count] = carry
+        }
+    }
+}
+
+private func ed25519SubtractWords(left, right: [5] u64, result: *[5] u64)->u64
+{
+    var borrow = 0_u64
+    for index in 5
+    {
+        let difference = left[index] - right[index]
+        result[][index] = difference - borrow
+        borrow = cast(u64, left[index] < right[index]) | cast(u64, difference < borrow)
+    }
+
+    return borrow
+}
+
 private func ed25519Reduce(digest: const [..] u8)->[32] u8
 {
-    var remainder: [16] u32
-    var bit = digest.count * 8
-    while bit
+    var scratch: struct
     {
-        bit -= 1
-        var carry = cast(u32, (digest[bit / 8] >> (bit & 7)) & 1)
-        for index in 16
-        {
-            let value = (remainder[index] << 1) | carry
-            remainder[index] = value & 0xFFFF
-            carry = value >> 16
-        }
+        input: [8] u64
+        reciprocalProduct: [10] u64
+        product, remainder, difference: [5] u64
+    }
+    defer Crypto.secureClear(Swag.makeSlice(&scratch, 1))
 
-        var difference: [16] u32
-        var borrow = 0'u32
-        for index in 16
-        {
-            let sub       = Ed25519Order[index] + borrow
-            let underflow = remainder[index] < sub
-            difference[index] = (remainder[index] - sub) & 0xFFFF
-            borrow = cast(u32, underflow)
-        }
+    let words = cast(const [*] u64, digest.buffer)
+    for index in 8
+    {
+        scratch.input[index] = Math.littleEndianToNative(words[index])
 
-        let mask = 0'u32 - (1 - borrow)
-        for index in 16 do
-            remainder[index] = (difference[index] & mask) | (remainder[index] & ~mask)
+        // Barrett's quotient estimate uses the high five input words and the
+        // reciprocal. The resulting remainder is in [0, 3*Ed25519Order).
+    }
+
+    ed25519MultiplyWords(scratch.input[3 until 8], Ed25519Reciprocal, scratch.reciprocalProduct)
+    ed25519MultiplyWords(scratch.reciprocalProduct[5 until 10], Ed25519Order[until 4], scratch.product)
+    discard ed25519SubtractWords(cast(*[5] u64, scratch.input.buffer)[], scratch.product, &scratch.remainder)
+
+    for 2
+    {
+        let borrow = ed25519SubtractWords(scratch.remainder, Ed25519Order, &scratch.difference)
+        let keep   = 0_u64 - borrow
+        for index in 5
+        {
+            scratch.remainder[index] = (scratch.remainder[index] & keep) | (scratch.difference[index] & ~keep)
+        }
     }
 
     var result: #returntype
-    for index in 16
+    let destination = cast([*] u64, result.buffer)
+    for index in 4
     {
-        result[index * 2]     = cast(u8, remainder[index] & 0xFF)
-        result[index * 2 + 1] = cast(u8, remainder[index] >> 8)
+        destination[index] = Math.nativeToLittleEndian(scratch.remainder[index])
     }
 
     return result
@@ -295,12 +590,17 @@ private func ed25519ScalarMultiplyAdd(left, right, addend: const [..] u8)->[32] 
     var wide: [32] u64
     for i in 16
     {
-        for j in 16 do
+        for j in 16
+        {
             wide[i + j] += leftDigits[i] * rightDigits[j]
+        }
     }
 
-    for index in 16 do
+    for index in 16
+    {
         wide[index] += addendDigits[index]
+    }
+
     for index in 31
     {
         let carry = wide[index] >> 16
@@ -326,31 +626,49 @@ private func ed25519ScalarMultiplyAdd(left, right, addend: const [..] u8)->[32] 
 
 private func ed25519IsCanonicalScalar(value: const [..] u8)->bool
 {
-    var wide: [64] u8
-    Swag.memcpy(&wide[0], value.buffer, 32)
-    let reduced = ed25519Reduce(wide)
-    return Crypto.constantTimeEqual(value, reduced)
+    var words, difference: [5] u64
+    let source = cast(const [*] u64, value.buffer)
+    for index in 4
+    {
+        words[index] = Math.littleEndianToNative(source[index])
+    }
+
+    return ed25519SubtractWords(words, Ed25519Order, &difference) != 0
 }
 
 private func ed25519IsIdentity(point: Ed25519Point)->bool
 {
-    let encoded = ed25519EncodePoint(point)
-    var identity: [32] u8
-    identity[0] = 1
-    return Crypto.constantTimeEqual(encoded, identity)
+    var zero: X25519Field
+    return not ed25519FieldEqual(point.z, zero) and
+           ed25519FieldEqual(point.x, zero) and
+           ed25519FieldEqual(point.y, point.z)
 }
 
-private func ed25519IsPrimeSubgroup(point: Ed25519Point)->bool
+private func ed25519IsPrimeSubgroup(point: Ed25519Point, multiples: const [..] Ed25519Cached)->bool
 {
-    var order: [32] u8
-    for index in 16
+    // The public group order starts with digit one. Its remaining digits can
+    // index the table directly, with only doublings for a zero digit.
+    var result = point
+    for window in 1 until 2 * Ed25519KeySize
     {
-        order[index * 2]     = cast(u8, Ed25519Order[index] & 0xFF)
-        order[index * 2 + 1] = cast(u8, Ed25519Order[index] >> 8)
+        for 3
+        {
+            result = ed25519Double!{false}(result)
+        }
+
+        let nibbleIndex = 2 * Ed25519KeySize - 1 - window
+        let digit       = (Ed25519Order[nibbleIndex / 16] >> (4 * (nibbleIndex & 15))) & 15
+        if digit
+        {
+            result = ed25519AddCached(ed25519Double!{true}(result), multiples[digit])
+        }
+        else
+        {
+            result = ed25519Double!{false}(result)
+        }
     }
 
-    let multiple = ed25519ScalarMultiply(point, order)
-    return ed25519IsIdentity(multiple) and not ed25519IsIdentity(ed25519Double(ed25519Double(ed25519Double(point))))
+    return ed25519IsIdentity(result)
 }
 
 private func ed25519PublicKeyFromExpanded(expanded: [64] u8)->[32] u8
@@ -361,7 +679,7 @@ private func ed25519PublicKeyFromExpanded(expanded: [64] u8)->[32] u8
     scalar[0]  &= 248
     scalar[31] &= 63
     scalar[31] |= 64
-    var point   = ed25519ScalarMultiply(ed25519BasePoint(), scalar)
+    var point   = ed25519MultiplyGenerator(scalar)
     let encoded = ed25519EncodePoint(point)
     Crypto.secureClear(point.x.limbs)
     Crypto.secureClear(point.y.limbs)
@@ -376,8 +694,10 @@ private func ed25519PublicKeyFromExpanded(expanded: [64] u8)->[32] u8
 // Fails with [[Core.Errors.BadParameterError]] unless the seed and destination are exactly 32 bytes.
 func ed25519PublicKey(privateSeed: const [..] u8, destination: [..] u8) fail
 {
-    if privateSeed.count != Ed25519KeySize or destination.count != Ed25519KeySize do
+    if privateSeed.count != Ed25519KeySize or destination.count != Ed25519KeySize
+    {
         fail Errors.BadParameterError{"Ed25519 seeds and public keys must be exactly 32 bytes"}
+    }
 
     var expanded = ed25519HashSeed(privateSeed)
     let encoded  = ed25519PublicKeyFromExpanded(expanded)
@@ -390,8 +710,10 @@ func ed25519PublicKey(privateSeed: const [..] u8, destination: [..] u8) fail
 // Fails with [[Core.Errors.BadParameterError]] unless the seed is 32 bytes and the output is 64 bytes.
 func ed25519Sign(privateSeed, message: const [..] u8, signature: [..] u8) fail
 {
-    if privateSeed.count != Ed25519KeySize or signature.count != Ed25519SignatureSize do
+    if privateSeed.count != Ed25519KeySize or signature.count != Ed25519SignatureSize
+    {
         fail Errors.BadParameterError{"Ed25519 needs a 32-byte seed and a 64-byte signature output"}
+    }
 
     var expanded = ed25519HashSeed(privateSeed)
     var scalar: [32] u8
@@ -412,7 +734,7 @@ func ed25519Sign(privateSeed, message: const [..] u8, signature: [..] u8) fail
     nonceHash.update(message)
     let nonceDigest = ed25519HashFinalize(&nonceHash)
     let nonce       = ed25519Reduce(nonceDigest)
-    var noncePoint  = ed25519ScalarMultiply(ed25519BasePoint(), nonce)
+    var noncePoint  = ed25519MultiplyGenerator(nonce)
     let encodedR    = ed25519EncodePoint(noncePoint)
     Crypto.secureClear(noncePoint.x.limbs)
     Crypto.secureClear(noncePoint.y.limbs)
@@ -446,21 +768,33 @@ func ed25519Sign(privateSeed, message: const [..] u8, signature: [..] u8) fail
 // [[Core.Errors.BadParameterError]]; invalid signatures return `false`.
 func ed25519Verify(publicKey, message, signature: const [..] u8)->bool fail
 {
-    if publicKey.count != Ed25519KeySize or signature.count != Ed25519SignatureSize do
+    if publicKey.count != Ed25519KeySize or signature.count != Ed25519SignatureSize
+    {
         fail Errors.BadParameterError{"Ed25519 needs a 32-byte public key and a 64-byte signature"}
+    }
 
     let encodedR = signature[until 32]
     let encodedS = signature[32 to]
-    if not ed25519IsCanonicalScalar(encodedS) do
+    if not ed25519IsCanonicalScalar(encodedS)
+    {
         return false
+    }
 
     let (publicPoint, validPublic) = ed25519DecodePoint(publicKey)
     let (rPoint, validR) = ed25519DecodePoint(encodedR)
     if not validPublic or
        not validR or
-       not ed25519IsPrimeSubgroup(publicPoint) or
-       not ed25519IsPrimeSubgroup(rPoint) do
+       ed25519IsIdentity(publicPoint) or
+       ed25519IsIdentity(rPoint)
+    {
         return false
+    }
+
+    let multiples = ed25519BuildMultiples(publicPoint)
+    if not ed25519IsPrimeSubgroup(publicPoint, multiples)
+    {
+        return false
+    }
 
     var challengeHash: Hash.Sha512
     challengeHash.reset()
@@ -469,9 +803,14 @@ func ed25519Verify(publicKey, message, signature: const [..] u8)->bool fail
     challengeHash.update(message)
     let challengeDigest = ed25519HashFinalize(&challengeHash)
     let challenge       = ed25519Reduce(challengeDigest)
-    let left            = ed25519ScalarMultiply(ed25519BasePoint(), encodedS)
-    let right           = ed25519Add(rPoint, ed25519ScalarMultiply(publicPoint, challenge))
-    let verified        = Crypto.constantTimeEqual(ed25519EncodePoint(left), ed25519EncodePoint(right))
+    let left            = ed25519MultiplyGenerator(encodedS)
+    let right           = ed25519Add(rPoint, ed25519ScalarMultiply(multiples, challenge))
+
+    // The exact group equation forces R into the same subgroup as both scalar
+    // multiples. Cross-products compare projective coordinates without inversions.
+    let sameX    = ed25519FieldEqual(x25519Multiply(left.x, right.z), x25519Multiply(right.x, left.z))
+    let sameY    = ed25519FieldEqual(x25519Multiply(left.y, right.z), x25519Multiply(right.y, left.z))
+    let verified = (cast(u8, sameX) & cast(u8, sameY)) != 0
     Crypto.secureClear(challengeDigest)
     Crypto.secureClear(challenge)
     return verified

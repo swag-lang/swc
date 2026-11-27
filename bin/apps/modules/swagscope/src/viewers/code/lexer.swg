@@ -78,23 +78,44 @@ struct Shebang
 // read from the bytes rather than from the file: the classifier has already read them.
 func shebang(source: string)->Shebang
 {
-    if not Utf8.startsWith(source, "#!") do
+    if not Utf8.startsWith(source, "#!")
+    {
         return {}
-    let lines = Tokenize.split(source, '\n'u8, maxSplit: 1)
+    }
+
+    let lines = Tokenize.split(source, '\n'_u8, maxSplit: 1)
     let line  = String.from(lines[0])
     let lower = line.toLower()
-    if Utf8.contains(lower, "python") do
+    if Utf8.contains(lower, "python")
+    {
         return {true, .Python}
-    if Utf8.contains(lower, "ruby") do
+    }
+
+    if Utf8.contains(lower, "ruby")
+    {
         return {true, .Ruby}
-    if Utf8.contains(lower, "perl") do
+    }
+
+    if Utf8.contains(lower, "perl")
+    {
         return {true, .Perl}
-    if Utf8.contains(lower, "pwsh") or Utf8.contains(lower, "powershell") do
+    }
+
+    if Utf8.contains(lower, "pwsh") or Utf8.contains(lower, "powershell")
+    {
         return {true, .PowerShell}
-    if Utf8.contains(lower, "deno") do
+    }
+
+    if Utf8.contains(lower, "deno")
+    {
         return {true, .TypeScript}
-    if Utf8.contains(lower, "node") or Utf8.contains(lower, "bun") do
+    }
+
+    if Utf8.contains(lower, "node") or Utf8.contains(lower, "bun")
+    {
         return {true, .JavaScript}
+    }
+
     return {true, .Shell}
 }
 
@@ -114,8 +135,11 @@ private func looksLikeObjectiveC(fileName: string)->bool
 
     let head = catch stream.readUtf8Chunk(4 * 1024) { return false }
     const Markers: [5] string = ["#import", "@interface", "@implementation", "@protocol", "@property"]
-    for marker in Markers where Utf8.contains(head, marker) do
+    for marker in Markers where Utf8.contains(head, marker)
+    {
         return true
+    }
+
     return false
 }
 
@@ -237,8 +261,11 @@ func detectionEvidence(fileName: string)->String
     }
 
     let interpreter = fileShebang(fileName)
-    if interpreter.found do
+    if interpreter.found
+    {
         return texts().ui_ShebangEvidence
+    }
+
     return texts().ui_DefaultEvidence
 }
 
@@ -333,24 +360,32 @@ struct GenericLexer
     }
 
     language: SourceLanguage
-    keywords: HashTable'(string, bool)
+    keywords: HashTable!{string, bool}
 }
 
 private impl GenericLexer
 {
     mtd stateFromStorage(value: s32)->State
     {
-        if value == cast(s32, State.BlockComment) do
+        if value == cast(s32, State.BlockComment)
+        {
             return .BlockComment
-        if value == cast(s32, State.MarkupComment) do
+        }
+
+        if value == cast(s32, State.MarkupComment)
+        {
             return .MarkupComment
+        }
+
         return .Default
     }
 
     mtd addWords(words: const [..] string)
     {
-        for word in words do
+        for word in words
+        {
             .keywords.add(word, true)
+        }
     }
 
     // Selects the `language` to highlight and registers its keywords. XML and HTML register none.
@@ -409,7 +444,7 @@ private impl GenericLexer
 
         case .Python: .addWords([
             "and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del",
-            "elif", "else", "except", "False", "finally", "for", "from", "global", "if",
+            "else if", "else", "except", "False", "finally", "for", "from", "global", "if",
             "import", "in", "is", "lambda", "None", "nonlocal", "not", "or", "pass", "raise",
             "return", "True", "try", "while", "with", "yield"])
 
@@ -420,7 +455,7 @@ private impl GenericLexer
             "undef", "unless", "until", "when", "while", "yield"])
 
         case .Shell, .PowerShell, .Batch: .addWords([
-            "begin", "break", "case", "catch", "continue", "do", "done", "elif", "else", "end",
+            "begin", "break", "case", "catch", "continue", "do", "done", "else if", "else", "end",
             "esac", "exit", "fi", "finally", "for", "foreach", "function", "if", "in", "param",
             "return", "select", "switch", "then", "throw", "trap", "try", "until", "while"])
 
@@ -515,7 +550,7 @@ private impl GenericLexer
         case .Nim: .addWords([
             "addr", "and", "as", "asm", "bind", "block", "break", "case", "cast", "concept",
             "const", "continue", "converter", "defer", "discard", "distinct", "div", "do",
-            "elif", "else", "end", "enum", "except", "export", "finally", "for", "from", "func",
+            "else if", "else", "end", "enum", "except", "export", "finally", "for", "from", "func",
             "if", "import", "in", "include", "interface", "is", "isnot", "iterator", "let",
             "macro", "method", "mixin", "mod", "nil", "not", "notin", "object", "of", "or",
             "out", "proc", "ptr", "raise", "ref", "return", "shl", "shr", "static", "template",
@@ -734,18 +769,25 @@ private impl GenericLexer
 
 private func paintRange(line: *RichEditLine, first, last: u64, style: GenericLexer.Style)
 {
-    for index in first until Math.min(last, line.length()) do
+    for index in first until Math.min(last, line.length())
+    {
         line.setStyleAt(index, cast(RichEditStyleRef, style))
+    }
 }
 
 private func matchesAt(line: *RichEditLine, at: u64, text: string)->bool
 {
-    if at + text.count > line.length() do
+    if at + text.count > line.length()
+    {
         return false
+    }
+
     for value, offset in text
     {
-        if line.runeAt(at + offset) != value do
+        if line.runeAt(at + offset) != value
+        {
             return false
+        }
     }
 
     return true
@@ -777,10 +819,16 @@ private impl GenericLexer
         let length = line.length()
         let value  = line.runeAt(first)
         var word: String
-        for index in first until seek do
+        for index in first until seek
+        {
             word += line.runeAt(index)
-        if .isCaseInsensitive() do
+        }
+
+        if .isCaseInsensitive()
+        {
             word = word.toLower()
+        }
+
         if .keywords.tryFind(word)
         {
             paintRange(line, first, seek, .Keyword)
@@ -788,14 +836,23 @@ private impl GenericLexer
         }
 
         var next = seek
-        while next < length and Unicode.isSpace(line.runeAt(next)) do
+        while next < length and Unicode.isSpace(line.runeAt(next))
+        {
             next += 1
-        if next < length and line.runeAt(next) == '(' do
+        }
+
+        if next < length and line.runeAt(next) == '('
+        {
             paintRange(line, first, seek, .Function)
-        elif Latin1.isUpper(cast(u8, value)) do
+        }
+        else if Latin1.isUpper(cast(u8, value))
+        {
             paintRange(line, first, seek, .Type)
-        elif next < length and (line.runeAt(next) == ':' or line.runeAt(next) == '=') and .hasDataKeys() do
+        }
+        else if next < length and (line.runeAt(next) == ':' or line.runeAt(next) == '=') and .hasDataKeys()
+        {
             paintRange(line, first, seek, .Type)
+        }
     }
 
     // Colors one line of XML or HTML from the state the previous line left, and returns its own.
@@ -803,14 +860,17 @@ private impl GenericLexer
     {
         let length = line.length()
         var state  = entry
-        var seek   = 0'u64
+        var seek   = 0_u64
         while seek < length
         {
             if state == .MarkupComment
             {
                 let first = seek
-                while seek < length and not matchesAt(line, seek, "-->") do
+                while seek < length and not matchesAt(line, seek, "-->")
+                {
                     seek += 1
+                }
+
                 if seek < length
                 {
                     seek  += 3
@@ -831,10 +891,16 @@ private impl GenericLexer
             {
                 let first = seek
                 seek += 1
-                while seek < length and line.runeAt(seek) != '>' do
+                while seek < length and line.runeAt(seek) != '>'
+                {
                     seek += 1
-                if seek < length do
+                }
+
+                if seek < length
+                {
                     seek += 1
+                }
+
                 paintRange(line, first, seek, .Keyword)
 
                 var scan = first
@@ -849,10 +915,16 @@ private impl GenericLexer
                     let quote       = line.runeAt(scan)
                     let stringFirst = scan
                     scan += 1
-                    while scan < seek and line.runeAt(scan) != quote do
+                    while scan < seek and line.runeAt(scan) != quote
+                    {
                         scan += 1
-                    if scan < seek do
+                    }
+
+                    if scan < seek
+                    {
                         scan += 1
+                    }
+
                     paintRange(line, stringFirst, scan, .String)
                 }
 
@@ -870,14 +942,17 @@ private impl GenericLexer
     {
         let length = line.length()
         var state  = entry
-        var seek   = 0'u64
+        var seek   = 0_u64
         while seek < length
         {
             if state == .BlockComment
             {
                 let first = seek
-                while seek < length and not matchesAt(line, seek, "*/") do
+                while seek < length and not matchesAt(line, seek, "*/")
+                {
                     seek += 1
+                }
+
                 if seek < length
                 {
                     seek  += 2
@@ -928,10 +1003,15 @@ private impl GenericLexer
                 if .language == .Json and quote == '"'
                 {
                     var next = seek
-                    while next < length and Unicode.isSpace(line.runeAt(next)) do
+                    while next < length and Unicode.isSpace(line.runeAt(next))
+                    {
                         next += 1
-                    if next < length and line.runeAt(next) == ':' do
+                    }
+
+                    if next < length and line.runeAt(next) == ':'
+                    {
                         style = .Type
+                    }
                 }
 
                 paintRange(line, first, seek, style)
@@ -945,8 +1025,11 @@ private impl GenericLexer
                 while seek < length and
                       (Unicode.isLetterOrDigit(line.runeAt(seek)) or
                        line.runeAt(seek) == '.' or
-                       line.runeAt(seek) == '_') do
+                       line.runeAt(seek) == '_')
+                {
                     seek += 1
+                }
+
                 paintRange(line, first, seek, .Number)
                 continue
             }
@@ -962,8 +1045,11 @@ private impl GenericLexer
             {
                 let first = seek
                 seek += 1
-                while seek < length and isIdentifierRune(line.runeAt(seek)) do
+                while seek < length and isIdentifierRune(line.runeAt(seek))
+                {
                     seek += 1
+                }
+
                 .paintWord(line, first, seek)
                 continue
             }
@@ -1013,7 +1099,9 @@ impl IRichEditLexer for GenericLexer
         let previous = linePrev ? .stateFromStorage(linePrev.lexerState()) : State.Default
         let state    = .language == .PlainText ? State.Default :
                        .language == .Xml or .language == .Html ? .computeMarkup(line, previous) : .computeCode(line, previous)
-        if line.setLexerState(cast(s32, state)) and lineNext do
+        if line.setLexerState(cast(s32, state)) and lineNext
+        {
             lineNext.markStyleDirty()
+        }
     }
 }

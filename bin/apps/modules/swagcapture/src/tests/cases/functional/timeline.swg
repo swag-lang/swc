@@ -11,7 +11,7 @@ func testRecordedCapture()->*Capture
     pictures[1] = testFramePicture(40, 8)
     pictures[2] = testFramePicture(70, 16)
 
-    with let result = Memory.new'Capture()
+    with let result = Memory.new!{Capture}()
     {
         .file = testTempCapturePath()
         expect testWriteFrames(Capture.mediaPathOf(.file), pictures, 100_000)
@@ -81,8 +81,10 @@ func testProfileVersion(file: string)->u32
     var inspected: bool
     host.app.sigFrame += func|host = &host, capture = capture, shape = shape, inspected = &inspected|(_)
     {
-        if inspected[] do
+        if inspected[]
+        {
             return
+        }
 
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items.count == 11)
@@ -101,8 +103,10 @@ func testProfileVersion(file: string)->u32
         for left, index in iconItems
         {
             Swag.require(menu.items[left]!.icon.isValid())
-            for right in index + 1 until iconItems.count do
+            for right in index + 1 until iconItems.count
+            {
                 Swag.require(menu.items[left]!.icon != menu.items[iconItems[right]]!.icon)
+            }
         }
 
         expect capture.showFrame(0)
@@ -174,7 +178,7 @@ func testProfileVersion(file: string)->u32
     fixture.setup()
     defer fixture.shutdown()
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.file = testTempCapturePath()
     let file = String.from(capture.file)
     defer catch Capture.deleteFiles(file)
@@ -337,7 +341,7 @@ func testProfileVersion(file: string)->u32
 // A picture keeps the profile every earlier version reads.
 #test
 {
-    with let capture = Memory.new'Capture()
+    with let capture = Memory.new!{Capture}()
     {
         .file    = testTempCapturePath()
         .width   = 32
@@ -426,8 +430,10 @@ func testProfileVersion(file: string)->u32
     var reader = expect ImageReader.decode("animation.gif", bytes.toSlice())
     Swag.require(reader.info.frames.count == 3)
     Swag.require(reader.info.canvasWidth == 64 and reader.info.canvasHeight == 48)
-    for frame in reader.info.frames do
+    for frame in reader.info.frames
+    {
         Swag.require(Math.abs(frame.durationSeconds - 0.1) < 0.001)
+    }
 }
 
 // Deleting the animation being edited moves it to the trash with its frame file, although the
@@ -442,7 +448,7 @@ func testProfileVersion(file: string)->u32
     pictures[0] = testFramePicture(10, 0)
     pictures[1] = testFramePicture(40, 8)
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.file = Library.newFileName()
     expect testWriteFrames(Capture.mediaPathOf(capture.file), pictures, 100_000)
     expect capture.adoptRecording()

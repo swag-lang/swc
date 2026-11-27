@@ -1,15 +1,20 @@
 using Swag, Core
 
 // Encryption constants Type 1 uses for both its private section and its charstrings.
-private const EexecC1 = 52845'u32
-private const EexecC2 = 22719'u32
+private const EexecC1 = 52845_u32
+private const EexecC2 = 22719_u32
 
 // Key the private section is encrypted with, and the one every charstring uses.
-private const EexecPrivateKey    = 55665'u16
-private const EexecCharstringKey = 4330'u16
+private const EexecPrivateKey    = 55665_u16
+private const EexecCharstringKey = 4330_u16
 
 // Bytes of random padding the private section prefixes its plaintext with.
-private const EexecPrivateSkip = 4'u64
+private const EexecPrivateSkip = 4_u64
+
+struct Type1Code
+{
+    offset, length: u64
+}
 
 // A parsed Type 1 font program.
 //
@@ -18,12 +23,16 @@ private const EexecPrivateSkip = 4'u64
 // the order the dictionary was read in.
 struct Type1Font
 {
-    charstrings: Array'(Array'u8)
-    subrs:       Array'(Array'u8)
-    glyphNames:  Array'String
-    nameToGid:   HashTable'(String, u32)
-    codeToGid:   HashTable'(u32, u32)
-    unitsPerEm:  u16 = 1000
+    charstrings: Array!{Type1Code}
+    subrs:       Array!{Type1Code}
+    codeBytes:   Array!{u8}
+
+    // Names point into this immutable decrypted dictionary.
+    privateSection: Array!{u8}
+    glyphNames:     Array!{string}
+    nameToGid:      HashTable!{string, u32}
+    codeToGid:      HashTable!{u32, u32}
+    unitsPerEm:     u16 = 1000
 
     // Identity and metrics the cleartext header declares, standing in for the sfnt tables
     // a Type 1 program has none of.
@@ -36,56 +45,93 @@ struct Type1Font
     bold:     bool
 }
 
-// Reverses the stream cipher that protects a Type 1 private section or charstring.
-func eexecDecrypt(data: const [..] u8, key: u16, skip: u64)->Array'u8
+impl Type1Font
 {
-    var result: #returntype
-    if data.count <= skip do
-        return result
-
-    var state = cast(u32, key)
-    result.reserve(data.count - skip)
-    for cipher, index in data
+    #[Swag.Inline]
+    mtd const codeOf(code: Type1Code)->const [..] u8
     {
-        let plain = cipher ^ cast(u8, (state >> 8))
-        state = ((cast(u32, cipher) + state) * EexecC1 + EexecC2) & 0xFFFF
-        if index >= skip do
-            result.add(plain)
+        if not code.length
+        {
+            return ""
+        }
+
+        return Swag.makeSlice(.codeBytes.storage() + code.offset, code.length)
     }
 
+    mtd storeCode(data: const [..] u8, lenIV: s32)->Type1Code
+    {
+        let skip = lenIV >= 0 ? cast(u64, lenIV) : 0
+        if data.count <= skip
+        {
+            return {}
+        }
+
+        let length = data.count - skip
+        let offset = .codeBytes.count
+        .codeBytes.reserve(offset + length)
+        let target = unwrap .codeBytes.buffer + offset
+        if lenIV < 0
+        {
+            Memory.copy(target, data.buffer, length)
+        }
+        else
+        {
+            eexecDecryptInto(target, data, EexecCharstringKey, skip)
+        }
+
+        .codeBytes.count = offset + length
+        return {offset, length}
+    }
+}
+
+// Reverses the stream cipher that protects a Type 1 private section or charstring.
+func eexecDecrypt(data: const [..] u8, key: u16, skip: u64)->Array!{u8}
+{
+    var result: #returntype
+    if data.count <= skip
+    {
+        return result
+    }
+
+    let size = data.count - skip
+    result.reserve(size)
+    eexecDecryptInto(unwrap result.buffer, data, key, skip)
+    result.count = size
     return result
+}
+
+private func eexecDecryptInto(output: [*] u8, data: const [..] u8, key: u16, skip: u64)
+{
+    // Only bits 8–15 feed the output. Higher bits never feed back into them.
+    var state = cast(u32, key)
+    var input = data.buffer
+    for skip
+    {
+        state = (cast(u32, input[]) + #wrap state) * #wrap EexecC1 + #wrap EexecC2
+        input += 1
+    }
+
+    for index in data.count - skip
+    {
+        let cipher = input[index]
+        output[index] = cipher ^ cast #wrap(u8, state >> 8)
+        state         = (cast(u32, cipher) + #wrap state) * #wrap EexecC1 + #wrap EexecC2
+    }
 }
 
 func findBytes(data: const [..] u8, from: u64, needle: string)->u64
 {
-    let size  = needle.count
-    let total = data.count
-    if not size or size > total do
-        return total
-
-    let bytes = data
-    var start = from
-    while start + size <= total
+    if from >= data.count or not needle.count
     {
-        var found = true
-        for k in size where bytes[start + k] != needle[k]
-        {
-            found = false
-            break
-        }
-
-        if found do
-            return start
-        start += 1
+        return data.count
     }
 
-    return total
+    let relative = Slice.findSubslice(data[from to], needle)
+    return relative == Swag.U64.Max ? data.count : from + relative
 }
 
-#[Swag.Inline]
 private func isPostScriptSpace(c: u8)->bool => c == ' ' or c == '\t' or c == '\r' or c == '\n' or c == '\f' or c == 0
 
-#[Swag.Inline]
 private func isPostScriptDelimiter(c: u8)->bool => isPostScriptSpace(c) or
                                                    c == '/' or
                                                    c == '[' or
@@ -98,8 +144,11 @@ private func isPostScriptDelimiter(c: u8)->bool => isPostScriptSpace(c) or
 private func skipPostScriptSpaces(data: const [..] u8, from: u64)->u64
 {
     var pos = from
-    while pos < data.count and isPostScriptSpace(data[pos]) do
+    while pos < data.count and isPostScriptSpace(data[pos])
+    {
         pos += 1
+    }
+
     return pos
 }
 
@@ -108,8 +157,10 @@ private func readPostScriptToken(data: const [..] u8, from: u64)->{ text: string
 {
     var pos   = skipPostScriptSpaces(data, from)
     let start = pos
-    while pos < data.count and not isPostScriptDelimiter(data[pos]) do
+    while pos < data.count and not isPostScriptDelimiter(data[pos])
+    {
         pos += 1
+    }
 
     return {text: cast(string, data[start until pos]), next: pos}
 }
@@ -125,7 +176,7 @@ private func readPostScriptNumber(data: const [..] u8, from: u64)->{ value: f64,
         pos      += 1
     }
 
-    var value = 0.0'f64
+    var value = 0.0_f64
     while pos < data.count and data[pos] >= '0' and data[pos] <= '9'
     {
         value = value * 10.0 + cast(f64, (data[pos] - '0'))
@@ -135,7 +186,7 @@ private func readPostScriptNumber(data: const [..] u8, from: u64)->{ value: f64,
     if pos < data.count and data[pos] == '.'
     {
         pos += 1
-        var scale = 0.1'f64
+        var scale = 0.1_f64
         while pos < data.count and data[pos] >= '0' and data[pos] <= '9'
         {
             value += cast(f64, (data[pos] - '0')) * scale
@@ -151,7 +202,7 @@ private func readPostScriptNumber(data: const [..] u8, from: u64)->{ value: f64,
 //
 // A PFB file interleaves ASCII and binary segments behind six-byte headers; the font
 // program itself is their concatenation.
-func unwrapPfb(bytes: const [..] u8)->Array'u8 fail
+func unwrapPfb(bytes: const [..] u8)->Array!{u8} fail
 {
     var result: #returntype
     if not bytes.count or bytes[0] != 0x80
@@ -160,36 +211,55 @@ func unwrapPfb(bytes: const [..] u8)->Array'u8 fail
         return result
     }
 
-    if bytes.count < 2 do
+    if bytes.count < 2
+    {
         try fault(0x03)
+    }
 
+    result.reserve(bytes.count)
     let data = bytes
-    var pos  = 0'u64
+    var pos  = 0_u64
     while pos < bytes.count
     {
-        if pos + 2 > bytes.count or data[pos] != 0x80 do
+        if pos + 2 > bytes.count or data[pos] != 0x80
+        {
             try fault(0x03)
+        }
 
         let kind = data[pos + 1]
         pos += 2
         if kind == 3
         {
-            if pos != bytes.count do
+            if pos != bytes.count
+            {
                 try fault(0x03)
+            }
+
             return result
         }
 
-        if kind != 1 and kind != 2 do
+        if kind != 1 and kind != 2
+        {
             try fault(0x03)
+        }
 
-        if pos + 4 > bytes.count do
+        if pos + 4 > bytes.count
+        {
             try fault(0x03)
-        var size = 0'u64
-        for k in 4'u64 do
+        }
+
+        var size = 0_u64
+        for k in 4_u64
+        {
             size |= cast(u64, data[pos + k]) << (k * 8)
+        }
+
         pos += 4
-        if pos + size > bytes.count do
+        if pos + size > bytes.count
+        {
             try fault(0x03)
+        }
+
         result.add(try getSlice(bytes, pos, size))
         pos += size
     }
@@ -198,122 +268,212 @@ func unwrapPfb(bytes: const [..] u8)->Array'u8 fail
     return result
 }
 
-// Decodes the hexadecimal spelling a PFA file gives the private section.
-private func decodeEexecHex(data: const [..] u8)->Array'u8
+private const HexDigits: [256] u8 = #run
 {
-    var result: #returntype
-    var high = 0'u8
-    var have = false
-    for c in data
+    var digits: [256] u8
+    for index in digits.count
     {
-        var value = 0'u8
-        if c >= '0' and c <= '9' do
-            value = c - '0'
-        elif c >= 'A' and c <= 'F' do
-            value = c - 'A' + 10
-        elif c >= 'a' and c <= 'f' do
-            value = c - 'a' + 10
-        else do
-            continue
+        digits[index] = 0xFF
+    }
+    for value in 10
+    {
+        digits[cast(u32, '0') + value] = cast(u8, value)
+    }
+    for value in 6
+    {
+        digits[cast(u32, 'A') + value] = cast(u8, value + 10)
+        digits[cast(u32, 'a') + value] = cast(u8, value + 10)
+    }
 
-        if have
+    return digits
+}
+
+// The common PFA line contains adjacent hexadecimal digits. Whitespace and
+// unusual tails fall through to the scalar decoder.
+#[Swag.Inline]
+private func scanHexPairs(input: const [*] u8, output: [*] u8)->bool
+{
+    let ascii = Math.Simd.load(input)
+    let lower = ascii | 0x20_u8
+    let digit = (ascii >= Math.Simd.splat(0x30_u8)) & (ascii <= Math.Simd.splat(0x39_u8))
+    let alpha = (lower >= Math.Simd.splat(0x61_u8)) & (lower <= Math.Simd.splat(0x66_u8))
+    if Swag.vecMask(digit | alpha) != 0xFFFF
+    {
+        return false
+    }
+    const Weights = cast(Math.Simd.S8x16, [16_s8, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1])
+    let nibbles = (ascii & 0x0F_u8) + (alpha & 9_u8)
+    let pairs   = Math.Simd.mulAddPairs(nibbles, Weights)
+    Math.Simd.storeLow8(output, Math.Simd.packUnsigned(pairs, pairs))
+    return true
+}
+
+// Recognizes and decrypts the hexadecimal form in one pass over its digits.
+private func decryptHexPrivateSection(data: const [..] u8)->{hex: bool, bytes: Array!{u8}}
+{
+    var prefixEnd = 0_u64
+    var digits    = 0_u32
+    while prefixEnd < data.count and digits < 4
+    {
+        let c = data[prefixEnd]
+        prefixEnd += 1
+        if isPostScriptSpace(c)
         {
-            result.add(high << 4 | value)
-            have = false
+            continue
         }
-        else
+        if HexDigits[c] == 0xFF
+        {
+            return {false, Array!{u8}{}}
+        }
+        digits += 1
+    }
+
+    if digits < 4
+    {
+        return {false, Array!{u8}{}}
+    }
+
+    let trailer = findBytes(data, 0, "cleartomark")
+    if trailer < prefixEnd
+    {
+        return {false, Array!{u8}{}}
+    }
+
+    var result: #returntype
+    result.bytes.reserve(data.count / 2)
+    let output = unwrap result.bytes.buffer
+    var high   = 0_u8
+    var have   = false
+    var state  = cast(u32, EexecPrivateKey)
+    var skip   = EexecPrivateSkip
+    var count  = 0_u64
+    var source = 0_u64
+    var block: [8] u8
+    let input  = data.buffer
+    while source < data.count
+    {
+        if not have and
+           not skip and
+           data.count - source >= 16 and
+           scanHexPairs(input + source, &block[0])
+        {
+            for cipher, lane in block
+            {
+                output[count + lane] = cipher ^ cast #wrap(u8, state >> 8)
+                state = (cast(u32, cipher) + #wrap state) * #wrap EexecC1 + #wrap EexecC2
+            }
+
+            source += 16
+            count  += 8
+            continue
+        }
+
+        let index = source
+        let c     = input[source]
+        source += 1
+        let value = HexDigits[c]
+        if value == 0xFF
+        {
+            if index < trailer and not isPostScriptSpace(c)
+            {
+                return {false, Array!{u8}{}}
+            }
+            continue
+        }
+
+        if not have
         {
             high = value
             have = true
+            continue
         }
+
+        let cipher = high << 4 | value
+        have = false
+        if skip
+        {
+            skip -= 1
+        }
+        else
+        {
+            output[count] = cipher ^ cast #wrap(u8, state >> 8)
+            count         += 1
+        }
+
+        state = (cast(u32, cipher) + #wrap state) * #wrap EexecC1 + #wrap EexecC2
     }
 
+    result.hex         = true
+    result.bytes.count = count
     return result
 }
 
-// Answers whether the bytes right after `eexec` spell the private section in hexadecimal.
-//
-// The binary form starts with four random bytes, so the test is whether the first four
-// non-space bytes are all hexadecimal digits — the check the format itself prescribes.
-private func isHexPrivateSection(data: const [..] u8)->bool
-{
-    var seen    = 0'u32
-    let trailer = findBytes(data, 0, "cleartomark")
-    let limit   = trailer < data.count ? trailer : data.count
-    let bytes   = data
-    for index in limit
-    {
-        let c = bytes[index]
-        if isPostScriptSpace(c) do
-            continue
-        let isHexDigit = (c >= '0' and c <= '9') or (c >= 'A' and c <= 'F') or (c >= 'a' and c <= 'f')
-        if not isHexDigit do
-            return false
-        seen += 1
-    }
-
-    return seen >= 4
-}
-
 // Reads one `<length> RD <bytes>` block, whatever spelling the font gives the operator.
-func readCharstringData(data: const [..] u8, from: u64, lenIV: s32)->{ bytes: Array'u8, next: u64 } fail
+func readCharstringData(data: const [..] u8, from: u64)->{ bytes: const [..] u8, next: u64 } fail
 {
-    var result: #returntype
+    var result: #returntype = {bytes: "", next: data.count}
     let length = readPostScriptNumber(data, from)
     let size   = cast(u64, length.value)
     let token  = readPostScriptToken(data, length.next)
     if not token.text.count
     {
-        result.next = data.count
         return result
+
+        // CRLF is one PostScript line separator; preserve any following binary whitespace.
     }
 
-    // CRLF is one PostScript line separator; preserve any following binary whitespace.
     var start = token.next + 1
     if token.next < data.count and
        data[token.next] == '\r' and
        token.next + 1 < data.count and
-       data[token.next + 1] == '\n' do
-        start += 1
-    if start + size > data.count
+       data[token.next + 1] == '\n'
     {
-        result.next = data.count
+        start += 1
+    }
+
+    if start > data.count or size > data.count - start
+    {
         return result
     }
 
-    let encrypted = try getSlice(data, start, size)
-    if lenIV < 0 do
-        result.bytes.add(encrypted)
-    else do
-        result.bytes = eexecDecrypt(encrypted, EexecCharstringKey, cast(u64, lenIV))
-    result.next = start + size
+    result.bytes = try getSlice(data, start, size)
+    result.next  = start + size
     return result
 }
 
 private func parseType1Subrs(font: *Type1Font, data: const [..] u8, lenIV: s32) fail
 {
     let marker = findBytes(data, 0, "/Subrs")
-    if marker >= data.count do
+    if marker >= data.count
+    {
         return
+    }
 
     let count = readPostScriptNumber(data, marker + 6)
     let total = cast(u64, count.value)
-    if not total or total > 65_536 do
+    if not total or total > 65_536
+    {
         return
+    }
 
     font.subrs.resize(total)
     var pos = count.next
     for total
     {
         let dup = findBytes(data, pos, "dup ")
-        if dup >= data.count do
+        if dup >= data.count
+        {
             return
+        }
 
         let index = readPostScriptNumber(data, dup + 3)
-        let entry = try readCharstringData(data, index.next, lenIV)
+        let entry = try readCharstringData(data, index.next)
         let slot  = cast(u64, index.value)
-        if slot < font.subrs.count do
-            font.subrs[slot] = entry.bytes
+        if slot < font.subrs.count
+        {
+            font.subrs[slot] = font.storeCode(entry.bytes, lenIV)
+        }
+
         pos = entry.next
     }
 }
@@ -324,24 +484,29 @@ private const NotDefName = ".notdef"
 private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV: s32) fail
 {
     var pos = findBytes(data, 0, "/CharStrings")
-    if pos >= data.count do
+    if pos >= data.count
+    {
         try fault(0xBA)
+    }
+
     pos += 12
 
     // A Type 1 dictionary is unordered, so the first glyph it happens to spell out would
     // otherwise take index zero — the index every caller reads as "no such glyph". Holding
     // that index for `.notdef` is what makes an index answer mean what it says.
-    font.glyphNames.add(String.from(NotDefName))
-    font.charstrings.add(Array'u8{})
-    font.nameToGid.add(String.from(NotDefName), 0)
+    font.glyphNames.add(NotDefName)
+    font.charstrings.add(Type1Code{})
+    font.nameToGid.add(NotDefName, 0)
 
     // The dictionary body is a run of `/name <length> RD <bytes> ND` entries; `end` closes
     // it. Names are read in file order, which is the order glyph indices follow.
     while pos < data.count
     {
         pos = skipPostScriptSpaces(data, pos)
-        if pos >= data.count do
+        if pos >= data.count
+        {
             break
+        }
 
         if data[pos] != '/'
         {
@@ -352,8 +517,11 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV:
                 continue
             }
 
-            if token.text == "end" do
+            if token.text == "end"
+            {
                 break
+            }
+
             pos = token.next
             continue
         }
@@ -365,46 +533,56 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV:
             continue
         }
 
-        let entry = try readCharstringData(data, name.next, lenIV)
-        if entry.bytes.isEmpty() and entry.next >= data.count do
-            break
-
-        let owned = String.from(name.text)
-        if owned == NotDefName
+        let entry = try readCharstringData(data, name.next)
+        let code  = font.storeCode(entry.bytes, lenIV)
+        if not code.length and entry.next >= data.count
         {
-            font.charstrings[0] = entry.bytes
+            break
+        }
+
+        if name.text == NotDefName
+        {
+            font.charstrings[0] = code
             pos = entry.next
             continue
         }
 
-        if not font.nameToGid.contains(owned) do
-            font.nameToGid.add(owned, cast(u32, font.charstrings.count))
-        font.glyphNames.add(owned)
-        font.charstrings.add(entry.bytes)
+        font.nameToGid.add(name.text, cast(u32, font.charstrings.count), updateValue: false)
+        font.glyphNames.add(name.text)
+        font.charstrings.add(code)
         pos = entry.next
     }
 
-    if font.charstrings.count < 2 do
+    if font.charstrings.count < 2
+    {
         try fault(0xBA)
+    }
 }
 
 private func parseType1Encoding(font: *Type1Font, clear: const [..] u8) fail
 {
     let marker = findBytes(clear, 0, "/Encoding")
-    if marker >= clear.count do
+    if marker >= clear.count
+    {
         return
+    }
 
     let token = readPostScriptToken(clear, marker + 9)
     if token.text == "StandardEncoding"
     {
-        for code in 256'u32
+        for code in 256_u32
         {
             let name = standardEncodingName(cast(u8, code))
-            if not name.count do
+            if not name.count
+            {
                 continue
-            let found = font.nameToGid.tryFind(String.from(name))
-            if found do
+            }
+
+            let found = font.nameToGid.tryFind(name)
+            if found
+            {
                 font.codeToGid[code] = found.value
+            }
         }
 
         return
@@ -416,12 +594,16 @@ private func parseType1Encoding(font: *Type1Font, clear: const [..] u8) fail
     while pos < clear.count
     {
         let dup = findBytes(clear, pos, "dup ")
-        if dup >= clear.count do
+        if dup >= clear.count
+        {
             return
+        }
 
         let stop = findBytes(clear, pos, " def")
-        if stop < dup do
+        if stop < dup
+        {
             return
+        }
 
         let code    = readPostScriptNumber(clear, dup + 3)
         var namePos = skipPostScriptSpaces(clear, code.next)
@@ -432,9 +614,12 @@ private func parseType1Encoding(font: *Type1Font, clear: const [..] u8) fail
         }
 
         let name  = readPostScriptToken(clear, namePos + 1)
-        let found = font.nameToGid.tryFind(String.from(name.text))
-        if found do
+        let found = font.nameToGid.tryFind(name.text)
+        if found
+        {
             font.codeToGid[cast(u32, code.value)] = found.value
+        }
+
         pos = name.next
     }
 }
@@ -451,8 +636,10 @@ private func parseType1Header(font: *Type1Font, clear: const [..] u8)
             if scale.value > 0
             {
                 let upem = Math.round(1.0 / scale.value)
-                if upem >= 16 and upem <= 16_384 do
+                if upem >= 16 and upem <= 16_384
+                {
                     font.unitsPerEm = cast(u16, upem)
+                }
             }
         }
     }
@@ -482,20 +669,26 @@ private func parseType1Header(font: *Type1Font, clear: const [..] u8)
     if name < clear.count
     {
         let slash = skipPostScriptSpaces(clear, name + 9)
-        if slash < clear.count and clear[slash] == '/' do
+        if slash < clear.count and clear[slash] == '/'
+        {
             font.fontName = String.from(readPostScriptToken(clear, slash + 1).text)
+        }
     }
 
     let italic = findBytes(clear, 0, "/ItalicAngle")
-    if italic < clear.count do
+    if italic < clear.count
+    {
         font.italic = readPostScriptNumber(clear, italic + 12).value != 0
+    }
 
     let weight = findBytes(clear, 0, "/Weight")
     if weight < clear.count
     {
         let slash = skipPostScriptSpaces(clear, weight + 7)
-        if slash < clear.count and (clear[slash] == '(' or clear[slash] == '/') do
+        if slash < clear.count and (clear[slash] == '(' or clear[slash] == '/')
+        {
             font.bold = isBoldWeightName(readPostScriptToken(clear, slash + 1).text)
+        }
     }
 }
 
@@ -504,33 +697,47 @@ func parseType1Font(bytes: const [..] u8)->Type1Font fail
 {
     var result: #returntype
 
-    let program = try unwrapPfb(bytes)
-    let flat    = program.toSlice()
-    let marker  = findBytes(flat, 0, "eexec")
-    if marker >= flat.count do
+    var program: Array!{u8}
+    var flat = bytes
+    if bytes.count and bytes[0] == 0x80
+    {
+        program = try unwrapPfb(bytes)
+        flat    = program.toSlice()
+    }
+
+    let marker = findBytes(flat, 0, "eexec")
+    if marker >= flat.count
+    {
         try fault(0x02)
+    }
 
     let clear   = try getSlice(flat, 0, marker)
     let start   = skipPostScriptSpaces(flat, marker + 5)
     let encoded = try getSlice(flat, start, flat.count - start)
-    let binary  = isHexPrivateSection(encoded) ? decodeEexecHex(encoded) : Array'u8{}
+    var hex     = decryptHexPrivateSection(encoded)
 
-    var privateSection: Array'u8
-    if binary.count do
-        privateSection = eexecDecrypt(binary.toSlice(), EexecPrivateKey, EexecPrivateSkip)
-    else do
-        privateSection = eexecDecrypt(encoded, EexecPrivateKey, EexecPrivateSkip)
+    if hex.hex
+    {
+        result.privateSection = #move hex.bytes
+    }
+    else
+    {
+        result.privateSection = eexecDecrypt(encoded, EexecPrivateKey, EexecPrivateSkip)
+    }
 
-    let decrypted = privateSection.toSlice()
+    let decrypted = result.privateSection.toSlice()
+    result.codeBytes.reserve(decrypted.count)
 
     // Charstrings carry random padding of their own; the private section states how much.
-    var lenIV  = 4's32
+    var lenIV  = 4_s32
     let lenPos = findBytes(decrypted, 0, "/lenIV")
     if lenPos < decrypted.count
     {
         let value = readPostScriptNumber(decrypted, lenPos + 6)
-        if value.value == -1 or (value.value >= 0 and value.value <= 255) do
+        if value.value == -1 or (value.value >= 0 and value.value <= 255)
+        {
             lenIV = cast(s32, value.value)
+        }
     }
 
     try parseType1Subrs(&result, decrypted, lenIV)

@@ -52,8 +52,11 @@ func registrationPeer() fail
     let launched      = try Env.runProcess(Env.StartInfo{fileName: "gio", arguments: arguments, environment: &environment,
                                                          standardOutput: .Pipe, standardError: .Pipe})
     Swag.require(launched.exitCode() == 0, String.from(launched.standardError()).toString())
-    for 200 where not File.exists(marker) do
+    for 200 where not File.exists(marker)
+    {
         Threading.Thread.sleep(Time.Duration.fromMilliseconds(10))
+    }
+
     let opened = try File.readAllText(marker)
     Swag.require(opened == document)
 
@@ -127,7 +130,7 @@ func registrationPeer() fail
             discard expect File.writeAllText(Path.combine(libraries, "libgio-2.0.so.0"), "not an ELF library")
             environment.set("LD_LIBRARY_PATH", Format.toString("%:%", libraries, Env.variable("LD_LIBRARY_PATH")))
         }
-        elif mode == "config-file"
+        else if mode == "config-file"
         {
             discard expect File.writeAllText(Path.combine(root, "config"), "keep")
         }
@@ -143,8 +146,10 @@ func registrationPeer() fail
         var process = expect Env.startProcess(info)
         defer
         {
-            if process.isRunning() do
+            if process.isRunning()
+            {
                 discard catch process.kill()
+            }
         }
 
         let completed = expect process.tryWaitForExit(Time.Duration.fromSeconds(15))

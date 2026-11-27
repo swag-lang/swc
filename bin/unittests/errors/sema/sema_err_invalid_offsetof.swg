@@ -24,7 +24,7 @@ struct OffPair
     }
 
     const V = #run scalarLayout()
-    #assert(V == 14'u64)
+    #assert(V == 14_u64)
 }
 
 #test
@@ -45,7 +45,7 @@ struct OffPair
     }
 
     const V = #run stringAndNested()
-    #assert(V == 24'u64)
+    #assert(V == 24_u64)
 }
 
 #test
@@ -59,7 +59,7 @@ struct OffPair
     }
 
     const V = #run multiDecl()
-    #assert(V == 4'u64)
+    #assert(V == 4_u64)
 }
 
 #test
@@ -78,7 +78,7 @@ struct OffPair
     }
 
     const V = #run aggregateLayout()
-    #assert(V == 24'u64)
+    #assert(V == 24_u64)
 }
 
 #test

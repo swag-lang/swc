@@ -8,8 +8,10 @@ public impl Image
     // gray, and positive values increase contrast. Alpha is unchanged.
     mtd contrast(factor: f32 = 0.5)
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         let level = Math.clamp(factor, -1.0, 1.0) + 1.0
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
@@ -27,8 +29,10 @@ public impl Image
         }
 
         var channelLut: [256] u8
-        for i in 256 do
+        for i in 256
+        {
             channelLut[i] = cast(u8, Math.clamp(((cast(f32, i) - 128.0) * level) + 128.0, 0.0, 255.0))
+        }
 
         let table = cast(const [*] u8, &channelLut[0])
         .applyColorLuts(table, table, table)

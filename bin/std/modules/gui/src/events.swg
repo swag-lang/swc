@@ -21,7 +21,7 @@ impl Event
     // Allocates an event of type `T` for [[Gui.Wnd.postEvent]] or [[Gui.Application.postEvent]].
     //
     // Posting transfers the event to the queue, which releases it after dispatch.
-    func(T) create()->*T => Memory.new'T()
+    func(T) create()->*T => Memory.new!{T}()
 }
 
 impl IEvent for Event {}
@@ -70,15 +70,19 @@ impl CommandEvent
 
     private mtd rebindOwnedId()
     {
-        if .ownedId.isNull() do
+        if .ownedId.isNull()
+        {
             return
+        }
 
         // A caller can replace the public identifier after copying an event. Preserve that
         // borrowed value; only repair the view that still names this event's owned bytes.
         let usesOwnedId = .id.buffer == .ownedIdView.buffer and .id.count == .ownedIdView.count
         .ownedIdView = .ownedId.toString()
-        if usesOwnedId do
+        if usesOwnedId
+        {
             .id = .ownedIdView
+        }
     }
 }
 

@@ -74,137 +74,194 @@ private struct Ac3Block
 }
 
 // `chbwcod` is defined from 0 through 60; larger six-bit values are reserved.
-private const MaxChannelBandwidthCode = 60'u32
+private const MaxChannelBandwidthCode = 60_u32
 
-private const DitherMultiplier = 1_664_525'u32
-private const DitherIncrement  = 1_013_904_223'u32
+// The lowest sample rate has up to six bytes per kbps in a sync frame.
+private const MaxAc3FrameBytes = 6 * BitRates[BitRates.count - 1]
 
-private struct DitherSteps
-{
-    multipliers: [4] u32
-    increments:  [4] u32
-}
-
-private const DitherQuads: DitherSteps = #run
-{
-    var result: DitherSteps
-    var multiplier = 1'u32
-    var increment  = 0'u32
-    for lane in 4
-    {
-        multiplier               *= #wrap DitherMultiplier
-        increment                *= #wrap DitherMultiplier
-        increment                += #wrap DitherIncrement
-        result.multipliers[lane] = multiplier
-        result.increments[lane]  = increment
-    }
-
-    return result
-}
-
-// A block reusing its bit allocation also reuses the matching dequantization gains.
-private struct Ac3MantissaGains
-{
-    channel:  [MaxFullBandwidthChannels, SamplesPerBlock] f64
-    coupling: [SamplesPerBlock] f64
-    lfe:      [7] f64
-}
+// At the start of mantissas, the cursor is still within the packet. A block
+// can read up to 256 16-bit mantissas per channel plus shared coupling.
+// Leave four more bytes for the last unaligned word.
+private const MantissaReadPadding = (MaxChannels + 1) * SamplesPerBlock * 2 + 4
 
 private struct Ac3Codec
 {
     using base: Codec
 
-    sampleRate:    u32
-    channels:      u32
-    block:         Ac3Block
-    imdct:         [MaxChannels] Imdct
-    stereoImdct:   StereoImdct
-    mantissaGains: Ac3MantissaGains
-    coefficients:  [MaxChannels, SamplesPerBlock] f64
-    ditherState:   u32 = 0x1234ABCD
+    sampleRate:      u32
+    channels:        u32
+    block:           Ac3Block
+    imdct:           [MaxChannels] Imdct
+    stereoImdct:     StereoImdct
+    surroundImdct:   SurroundImdct
+    mantissaGains:   PreparedMantissaGains
+    coefficients:    [MaxChannels, SamplesPerBlock] f64
+    dither:          DitherGenerator
+    packetCopy:      [MaxAc3FrameBytes + MantissaReadPadding] u8
+    packetCopyBytes: u64
 }
 
 private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
 {
-    if reader.read(16) != 0x0B77 do
+    if reader.read(16) != 0x0B77
+    {
         fail InvalidFormatError{"AC-3 packet has an invalid sync word"}
+    }
+
     discard reader.read(16)
     var result: #returntype
     result.fscod = reader.read(2)
     let frameSizeCode = reader.read(6)
-    if result.fscod >= 3 or frameSizeCode >= 38 do
+    if result.fscod >= 3 or frameSizeCode >= 38
+    {
         fail InvalidFormatError{"AC-3 packet has a reserved sample-rate or frame-size code"}
+    }
+
     let bitRate = BitRates[frameSizeCode >> 1]
-    if not result.fscod do
+    if not result.fscod
+    {
         result.frameSize = 4 * bitRate
-    elif result.fscod == 1 do
+    }
+    else if result.fscod == 1
+    {
         result.frameSize = 2 * ((320 * bitRate) / 147 + (frameSizeCode & 1))
-    else do
+    }
+    else
+    {
         result.frameSize = 6 * bitRate
+    }
+
     result.bsid = reader.read(5)
     discard reader.read(3)
-    if result.bsid > 10 do
+    if result.bsid > 10
+    {
         fail InvalidFormatError{"E-AC-3 packet was sent to the AC-3 decoder"}
+    }
+
     result.acmod   = reader.read(3)
     result.nfchans = FullBandwidthChannels[result.acmod]
-    if result.acmod & 1 and result.acmod != 1 do
+    if result.acmod & 1 and result.acmod != 1
+    {
         discard reader.read(2)
-    if result.acmod & 4 do
+    }
+
+    if result.acmod & 4
+    {
         discard reader.read(2)
-    if result.acmod == 2 do
+    }
+
+    if result.acmod == 2
+    {
         discard reader.read(2)
-    result.lfeon = reader.read(1) != 0
+    }
+
+    result.lfeon = reader.readBit() != 0
     discard reader.read(5)
-    if reader.read(1) do
+    if reader.readBit()
+    {
         discard reader.read(8)
-    if reader.read(1) do
+    }
+
+    if reader.readBit()
+    {
         discard reader.read(8)
-    if reader.read(1) do
+    }
+
+    if reader.readBit()
+    {
         reader.skip(7)
+    }
+
     if not result.acmod
     {
         reader.skip(5)
-        if reader.read(1) do
+        if reader.readBit()
+        {
             reader.skip(8)
-        if reader.read(1) do
+        }
+
+        if reader.readBit()
+        {
             reader.skip(8)
-        if reader.read(1) do
+        }
+
+        if reader.readBit()
+        {
             reader.skip(7)
+        }
     }
 
     reader.skip(2)
-    if reader.read(1)
+    if reader.readBit()
     {
-        if result.bsid == 6 do
+        if result.bsid == 6
+        {
             reader.skip(14)
-        else do
+        }
+        else
+        {
             reader.skip(14)
+        }
     }
 
-    if reader.read(1)
+    if reader.readBit()
     {
-        if result.bsid == 6 do
+        if result.bsid == 6
+        {
             reader.skip(14)
-        else do
+        }
+        else
+        {
             reader.skip(14)
+        }
     }
 
-    if reader.read(1)
+    if reader.readBit()
     {
         let additional = reader.read(6) + 1
         reader.skip(cast(u64, additional) * 8)
     }
 
-    if reader.overrun do
+    if reader.overrun
+    {
         fail InvalidFormatError{"AC-3 bit-stream information is truncated"}
+    }
+
     return result
 }
 
-private func decodeExponents(reader: *BitReader, strategy, groups, absolute, skip: u32, destination: [*] s32) fail
+// The group code contains three cumulative offsets, each in [-2, 2].
+// Coupling can supply a five-bit starting value. Bit 15 distinguishes a valid
+// zero tuple from reserved codes and tuples with an out-of-range exponent.
+private const Ac3ExponentGroups: [32, 128] u16 = #run
 {
-    let groupSize = ExponentGroupSize[strategy]
-    var previous  = cast(s32, absolute)
-    var written   = 0'u32
+    var result: [32, 128] u16
+    for base in 32
+    {
+        for code in 125
+        {
+            let first  = cast(s32, base) + cast(s32, code / 25) - 2
+            let second = first + cast(s32, (code / 5) % 5) - 2
+            let third  = second + cast(s32, code % 5) - 2
+            if first >= 0 and
+               first <= 24 and
+               second >= 0 and
+               second <= 24 and
+               third >= 0 and
+               third <= 24
+            {
+                result[base, code] = cast(u16, first | (second << 5) | (third << 10) | 0x8000)
+            }
+        }
+    }
+
+    return result
+}
+
+private func(GroupSize: u32) decodeExponentGroups(reader: *BitReader, groups, absolute, skip: u32, destination: [*] s32) fail
+{
+    var previous = cast(s32, absolute)
+    var written  = 0_u32
     if skip
     {
         destination[0] = previous
@@ -213,29 +270,65 @@ private func decodeExponents(reader: *BitReader, strategy, groups, absolute, ski
 
     for groups
     {
-        let code = reader.read(7)
-        if code >= 125 do
-            fail InvalidFormatError{"AC-3 exponent group has a reserved code"}
-        const Divisors: [3] u32 = [25, 5, 1]
-        for part in 3
+        let code    = reader.read(7)
+        let decoded = cast(u32, Ac3ExponentGroups[previous, code])
+        if not decoded
         {
-            previous += cast(s32, ((code / Divisors[part]) % 5)) - 2
-            if previous < 0 or previous > 24 do
-                fail InvalidFormatError{"AC-3 exponent is outside its valid range"}
-            for groupSize
+            if code >= 125
             {
-                destination[written] = previous
-                written += 1
+                fail InvalidFormatError{"AC-3 exponent group has a reserved code"}
             }
+
+            fail InvalidFormatError{"AC-3 exponent is outside its valid range"}
         }
+
+        let first  = cast(s32, decoded & 31)
+        let second = cast(s32, (decoded >> 5) & 31)
+        previous = cast(s32, (decoded >> 10) & 31)
+        if GroupSize == 1
+        {
+            destination[written]     = first
+            destination[written + 1] = second
+            destination[written + 2] = previous
+        }
+        else if GroupSize == 2
+        {
+            destination[written]     = first
+            destination[written + 1] = first
+            destination[written + 2] = second
+            destination[written + 3] = second
+            destination[written + 4] = previous
+            destination[written + 5] = previous
+        }
+        else
+        {
+            Simd.store(destination + written, Simd.splat(first))
+            Simd.store(destination + written + 4, Simd.splat(second))
+            Simd.store(destination + written + 8, Simd.splat(previous))
+        }
+
+        written += 3 * GroupSize
+    }
+}
+
+private func decodeExponents(reader: *BitReader, strategy, groups, absolute, skip: u32, destination: [*] s32) fail
+{
+    switch strategy
+    {
+    case 1: try decodeExponentGroups!{1}(reader, groups, absolute, skip, destination)
+    case 2: try decodeExponentGroups!{2}(reader, groups, absolute, skip, destination)
+    case 3: try decodeExponentGroups!{4}(reader, groups, absolute, skip, destination)
     }
 }
 
 private func readDelta(reader: *BitReader, delta: *DeltaAllocation) fail
 {
     delta.count = reader.read(2) + 1
-    if delta.count > 8 do
+    if delta.count > 8
+    {
         fail InvalidFormatError{"AC-3 delta allocation has too many segments"}
+    }
+
     for segment in delta.count
     {
         delta.offset[segment] = reader.read(5)
@@ -251,88 +344,72 @@ private impl Ac3Codec
         Memory.set(&.block, 0, #sizeof(.block))
         Memory.set(&.coefficients, 0, #sizeof(.coefficients))
         .stereoImdct.active = false
-        for channel in MaxChannels do
-            .imdct[channel].reset()
-        .ditherState = 0x1234ABCD
-    }
-
-    #[Swag.Inline]
-    mtd ditherWithGain(gain: f64)->f64
-    {
-        .ditherState *= #wrap DitherMultiplier
-        .ditherState += #wrap DitherIncrement
-        return cast(f64, cast(s32, (.ditherState >> 8)) - 8_388_608) * gain
-    }
-
-    // Four consecutive BAP-zero bins consume four dither states in order.
-    #[Swag.Inline]
-    mtd(Scaled: bool) writeDitherQuad(destination: [*] f64, gains: const [*] f64, couplingScale: f64)
-    {
-        const Advance   = cast(Simd.U32x4, DitherQuads.multipliers)
-        const Increment = cast(Simd.U32x4, DitherQuads.increments)
-        const Bias      = cast(Simd.U32x4, [0x4330_0000'u32, 0x4330_0000, 0x4330_0000, 0x4330_0000])
-        const Center    = cast(Simd.F64x2, [4_503_599_635_759_104.0'f64, 4_503_599_635_759_104.0])
-        let states = Simd.splat(.ditherState) * Advance + Increment
-        .ditherState = states[3]
-
-        // Put the 24-bit integer beside the exponent for 2^52, then subtract
-        // 2^52 + 2^23 to recover the exact centered dither integers.
-        let fractions = states >> 8
-        let low       = cast #bit(Simd.F64x2, Simd.interleaveLow(fractions, Bias))
-        let high      = cast #bit(Simd.F64x2, Simd.interleaveHigh(fractions, Bias))
-        var first     = (low - Center) * Simd.load(gains)
-        var second    = (high - Center) * Simd.load(gains + 2)
-        if Scaled
+        .surroundImdct.reset()
+        for channel in MaxChannels
         {
-            let scale = Simd.splat(couplingScale)
-            first  *= scale
-            second *= scale
+            .imdct[channel].reset()
         }
 
-        Simd.store(destination, first)
-        Simd.store(destination + 2, second)
+        .dither.state = 0x1234ABCD
     }
 
     mtd readCoupling(reader: *BitReader, bsi: const *Ac3Bsi) fail
     {
         let block = &.block
-        if reader.read(1)
+        if reader.readBit()
         {
-            block.coupling = reader.read(1) != 0
+            block.coupling = reader.readBit() != 0
             if block.coupling
             {
-                for channel in bsi.nfchans do
-                    block.channelCoupled[channel] = reader.read(1) != 0
-                if bsi.acmod == 2 do
-                    block.phaseFlagsInUse = reader.read(1) != 0
+                for channel in bsi.nfchans
+                {
+                    block.channelCoupled[channel] = reader.readBit() != 0
+                }
+
+                if bsi.acmod == 2
+                {
+                    block.phaseFlagsInUse = reader.readBit() != 0
+                }
+
                 block.couplingBegin    = reader.read(4)
                 block.couplingEnd      = reader.read(4)
                 block.couplingSubbands = 3 + block.couplingEnd - block.couplingBegin
-                if block.couplingSubbands > 18 do
+                if block.couplingSubbands > 18
+                {
                     fail InvalidFormatError{"AC-3 coupling range is invalid"}
+                }
+
                 block.couplingBands       = block.couplingSubbands
                 block.couplingBandJoin[0] = false
-                var band = 1'u32
+                var band = 1_u32
                 while band < block.couplingSubbands
                 {
-                    block.couplingBandJoin[band] = reader.read(1) != 0
-                    if block.couplingBandJoin[band] do
+                    block.couplingBandJoin[band] = reader.readBit() != 0
+                    if block.couplingBandJoin[band]
+                    {
                         block.couplingBands -= 1
+                    }
+
                     band += 1
                 }
             }
             else
             {
-                for channel in bsi.nfchans do
+                for channel in bsi.nfchans
+                {
                     block.channelCoupled[channel] = false
+                }
             }
         }
 
-        if not block.coupling do
+        if not block.coupling
+        {
             return
+        }
+
         for channel in bsi.nfchans where block.channelCoupled[channel]
         {
-            block.couplingCoordNew[channel] = reader.read(1) != 0
+            block.couplingCoordNew[channel] = reader.readBit() != 0
             if block.couplingCoordNew[channel]
             {
                 block.couplingMaster[channel] = reader.read(2)
@@ -344,7 +421,7 @@ private impl Ac3Codec
             }
 
             var coordinate: f64
-            var coordBand = 0'u32
+            var coordBand = 0_u32
             for subband in block.couplingSubbands
             {
                 if not block.couplingBandJoin[subband]
@@ -353,8 +430,11 @@ private impl Ac3Codec
                     let mantissa = block.couplingCoordMant[channel, coordBand]
                     coordinate = exponent == 15 ? cast(f64, mantissa) / 16.0 : cast(f64, (mantissa + 16)) / 32.0
                     coordinate *= mantissaScale(cast(s32, (exponent + 3 * block.couplingMaster[channel])))
-                    if channel == 1 and block.phaseFlagsInUse and block.couplingPhase[coordBand] do
+                    if channel == 1 and block.phaseFlagsInUse and block.couplingPhase[coordBand]
+                    {
                         coordinate = -coordinate
+                    }
+
                     coordBand += 1
                 }
 
@@ -366,26 +446,39 @@ private impl Ac3Codec
            block.phaseFlagsInUse and
            (block.couplingCoordNew[0] or block.couplingCoordNew[1])
         {
-            for band in block.couplingBands do
-                block.couplingPhase[band] = reader.read(1) != 0
+            for band in block.couplingBands
+            {
+                block.couplingPhase[band] = reader.readBit() != 0
+            }
         }
     }
 
     mtd readExponents(reader: *BitReader, bsi: const *Ac3Bsi) fail
     {
         let block = &.block
-        if block.coupling do
+        if block.coupling
+        {
             block.couplingExpStrategy = reader.read(2)
-        for channel in bsi.nfchans do
+        }
+
+        for channel in bsi.nfchans
+        {
             block.channelExpStrategy[channel] = reader.read(2)
-        if bsi.lfeon do
-            block.lfeExpStrategy = reader.read(1)
+        }
+
+        if bsi.lfeon
+        {
+            block.lfeExpStrategy = reader.readBit()
+        }
 
         for channel in bsi.nfchans where block.channelExpStrategy[channel] != 0 and not block.channelCoupled[channel]
         {
             let bandwidth = reader.read(6)
-            if bandwidth > MaxChannelBandwidthCode do
+            if bandwidth > MaxChannelBandwidthCode
+            {
                 fail InvalidFormatError{"AC-3 channel bandwidth code is reserved"}
+            }
+
             block.channelBandwidth[channel] = bandwidth
         }
 
@@ -426,7 +519,7 @@ private impl Ac3Codec
         // An unchanged allocation is valid only within the current sync frame.
         var refreshAll      = not blockIndex
         var refreshCoupling = couplingChanged
-        if reader.read(1)
+        if reader.readBit()
         {
             refreshAll          = true
             block.slowDecayCode = reader.read(2)
@@ -435,12 +528,12 @@ private impl Ac3Codec
             block.dbPerBitCode  = reader.read(2)
             block.floorCode     = reader.read(3)
         }
-        elif not blockIndex
+        else if not blockIndex
         {
             fail InvalidFormatError{"first AC-3 block omits bit-allocation parameters"}
         }
 
-        if reader.read(1)
+        if reader.readBit()
         {
             refreshAll      = true
             block.coarseSnr = reader.read(6)
@@ -462,35 +555,48 @@ private impl Ac3Codec
                 block.lfeFastGain = reader.read(3)
             }
         }
-        elif not blockIndex
+        else if not blockIndex
         {
             fail InvalidFormatError{"first AC-3 block omits signal-to-noise offsets"}
         }
 
-        if block.coupling and reader.read(1)
+        if block.coupling and reader.readBit()
         {
             refreshCoupling        = true
             block.couplingFastLeak = reader.read(3)
             block.couplingSlowLeak = reader.read(3)
         }
 
-        if reader.read(1)
+        if reader.readBit()
         {
             refreshAll = true
-            if block.coupling do
+            if block.coupling
+            {
                 block.couplingDelta.mode = reader.read(2)
-            for channel in bsi.nfchans do
+            }
+
+            for channel in bsi.nfchans
+            {
                 block.channelDelta[channel].mode = reader.read(2)
-            if block.coupling and block.couplingDelta.mode == 1 do
+            }
+
+            if block.coupling and block.couplingDelta.mode == 1
+            {
                 try readDelta(reader, &block.couplingDelta)
-            for channel in bsi.nfchans where block.channelDelta[channel].mode == 1 do
+            }
+
+            for channel in bsi.nfchans where block.channelDelta[channel].mode == 1
+            {
                 try readDelta(reader, &block.channelDelta[channel])
+            }
         }
-        elif not blockIndex
+        else if not blockIndex
         {
             block.couplingDelta.mode = 2
-            for channel in bsi.nfchans do
+            for channel in bsi.nfchans
+            {
                 block.channelDelta[channel].mode = 2
+            }
         }
 
         let slowDecay = SLOW_DECAY[block.slowDecayCode]
@@ -501,154 +607,128 @@ private impl Ac3Codec
         for channel in bsi.nfchans where refreshAll or block.channelExpStrategy[channel]
         {
             let delta = &block.channelDelta[channel]
-            try bitAllocation'true(bsi.fscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, delta, &block.channelBap[channel, 0], &.mantissaGains.channel[channel, 0])
+            try bitAllocation(bsi.fscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, delta, &block.channelBap[channel, 0], &.mantissaGains.channel[channel, 0])
         }
 
-        if block.coupling and (refreshAll or refreshCoupling or block.couplingExpStrategy) do
-            try bitAllocation'true(bsi.fscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap, &.mantissaGains.coupling)
-        if bsi.lfeon and (refreshAll or block.lfeExpStrategy) do
-            try bitAllocation'true(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap, &.mantissaGains.lfe)
+        if block.coupling and (refreshAll or refreshCoupling or block.couplingExpStrategy)
+        {
+            try bitAllocation(bsi.fscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap, &.mantissaGains.coupling)
+        }
+
+        if bsi.lfeon and (refreshAll or block.lfeExpStrategy)
+        {
+            try bitAllocation(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap, &.mantissaGains.lfe)
+        }
     }
 
-    mtd readMantissas(reader: *BitReader, bsi: const *Ac3Bsi)
+    mtd preparePacketBits(packet: const [..] u8)->BitReader
     {
-        let block        = &.block
-        var mantissas    = MantissaReader.create(reader)
-        var couplingRead = false
-        var couplingMantissas: [216] f64
-        for channel in bsi.nfchans
+        if not packet.count or packet.count > MaxAc3FrameBytes
         {
-            let output = cast([*] f64, &.coefficients[channel, 0])
-            let codes  = cast(const [*] s32, &block.channelBap[channel, 0])
-            let gains  = cast(const [*] f64, &.mantissaGains.channel[channel, 0])
-            let end    = cast(u64, block.channelEnd[channel])
-            let dither = block.dither[channel]
-            let zero   = Simd.splat(0's32)
-            Memory.set(output, 0, SamplesPerBlock * #sizeof(f64))
-            var bin = 0'u64
-            while bin < end
-            {
-                let code = codes[bin]
-                if code
-                {
-                    output[bin] = mantissas.getPrepared(code, gains[bin])
-                }
-                elif dither
-                {
-                    if bin + 4 <= end and Simd.allTrue(Simd.load(codes + bin) == zero)
-                    {
-                        .writeDitherQuad'false(output + bin, gains + bin, 1.0)
-                        bin += 4
-                        continue
-                    }
-
-                    output[bin] = .ditherWithGain(gains[bin])
-                }
-
-                bin += 1
-            }
-
-            if block.coupling and block.channelCoupled[channel] and not couplingRead
-            {
-                for bin in block.couplingSubbands * 12 where block.couplingBap[bin] do
-                    couplingMantissas[bin] = mantissas.getPrepared(block.couplingBap[bin], .mantissaGains.coupling[bin])
-                couplingRead = true
-            }
+            return BitReader.create(packet.buffer, packet.count)
         }
 
-        if bsi.lfeon
+        // Bytes after the logical packet remain zero even when sync sizes change.
+        let buffer = cast([*] u8, &.packetCopy[0])
+        Memory.copy(buffer, packet.buffer, packet.count)
+        if .packetCopyBytes > packet.count
         {
-            let channel = bsi.nfchans
-            Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
-            for bin in 7 do
-                .coefficients[channel, bin] = mantissas.getPrepared(block.lfeBap[bin], .mantissaGains.lfe[bin])
+            Memory.set(buffer + packet.count, 0, .packetCopyBytes - packet.count)
         }
 
-        if block.coupling
+        .packetCopyBytes = packet.count
+        return BitReader.create(buffer, packet.count)
+    }
+
+    mtd readMantissas(reader: *BitReader, bsi: const *Ac3Bsi, coefficients: [*] f64)
+    {
+        let block  = &.block
+        let copied = reader.data == cast(const [*] u8, &.packetCopy[0])
+        if copied and not reader.overrun
         {
-            let couplingCodes = cast(const [*] s32, &block.couplingBap)
-            let zero = Simd.splat(0's32)
-            for channel in bsi.nfchans where block.channelCoupled[channel]
-            {
-                let dither      = block.dither[channel]
-                let destination = cast([*] f64, &.coefficients[channel, block.couplingStart])
-                for subband in block.couplingSubbands
-                {
-                    let scale = block.couplingCoord[channel, subband] * 8.0
-                    let first = subband * 12
-                    for quad in 3
-                    {
-                        let source = first + quad * 4
-                        if dither and Simd.allTrue(Simd.load(couplingCodes + source) == zero)
-                        {
-                            .writeDitherQuad'true(destination + source, &.mantissaGains.coupling[source], scale)
-                        }
-                        else
-                        {
-                            for offset in 4
-                            {
-                                let index = source + offset
-                                var value = couplingMantissas[index]
-                                if not value and dither do
-                                    value = .ditherWithGain(PreparedMantissaGain[0, block.couplingExponents[index]])
-                                destination[index] = value * scale
-                            }
-                        }
-                    }
-                }
-            }
+            // Reads stay within the padded allocation. The logical limit is
+            // checked once at the end of the block, before any PCM is emitted.
+            readPreparedMantissas!{false, true}(reader, block, bsi.nfchans, bsi.lfeon, coefficients, &.mantissaGains, &.dither)
+            reader.overrun = reader.bitPos > reader.size * 8
+        }
+        else
+        {
+            readPreparedMantissas!{true, true}(reader, block, bsi.nfchans, bsi.lfeon, coefficients, &.mantissaGains, &.dither)
         }
 
         for band in block.rematrixCount where block.rematrix[band]
         {
             let begin = REMATRIX_BANDS[band]
             var end   = REMATRIX_BANDS[band + 1]
-            if block.coupling do
+            if block.coupling
+            {
                 end = Math.min(end, 36 + cast(s32, block.couplingBegin) * 12)
+            }
+
             var bin = begin
             while bin < end
             {
-                let left  = .coefficients[0, bin]
-                let right = .coefficients[1, bin]
-                .coefficients[0, bin] = left + right
-                .coefficients[1, bin] = left - right
+                let left  = coefficients[bin]
+                let right = coefficients[SamplesPerBlock + bin]
+                coefficients[bin] = left + right
+                coefficients[SamplesPerBlock + bin] = left - right
                 bin += 1
             }
         }
     }
 
-    mtd decodeBlock(reader: *BitReader, bsi: const *Ac3Bsi, blockIndex: u32, destination: [*] s16) fail
+    #[Swag.Inline]
+    mtd parseBlock(reader: *BitReader, bsi: const *Ac3Bsi, blockIndex: u32, coefficients: [*] f64) fail
     {
         let block = &.block
-        for channel in bsi.nfchans do
-            block.blockSwitch[channel] = reader.read(1) != 0
-        for channel in bsi.nfchans do
-            block.dither[channel] = reader.read(1) != 0
-        if reader.read(1) do
+        for channel in bsi.nfchans
+        {
+            block.blockSwitch[channel] = reader.readBit() != 0
+        }
+
+        for channel in bsi.nfchans
+        {
+            block.dither[channel] = reader.readBit() != 0
+        }
+
+        if reader.readBit()
+        {
             reader.skip(8)
-        if not bsi.acmod and reader.read(1) do
+        }
+
+        if not bsi.acmod and reader.readBit()
+        {
             reader.skip(8)
+        }
 
         let hadCoupling   = block.coupling
         let previousStart = block.couplingStart
         let previousEnd   = block.couplingEndMantissa
         try .readCoupling(reader, bsi)
-        if bsi.acmod == 2 and reader.read(1)
+        if bsi.acmod == 2 and reader.readBit()
         {
-            var rematrixCount = 4'u32
+            var rematrixCount = 4_u32
             if block.coupling
             {
-                if block.couplingBegin > 2 do
+                if block.couplingBegin > 2
+                {
                     rematrixCount = 4
-                elif block.couplingBegin > 0 do
+                }
+                else if block.couplingBegin > 0
+                {
                     rematrixCount = 3
-                else do
+                }
+                else
+                {
                     rematrixCount = 2
+                }
             }
 
             block.rematrixCount = rematrixCount
-            for band in block.rematrixCount do
-                block.rematrix[band] = reader.read(1) != 0
+            for band in block.rematrixCount
+            {
+                block.rematrix[band] = reader.readBit() != 0
+            }
         }
 
         try .readExponents(reader, bsi)
@@ -656,48 +736,96 @@ private impl Ac3Codec
                               previousStart != block.couplingStart or
                               previousEnd != block.couplingEndMantissa
         try .readAllocation(reader, bsi, blockIndex, couplingChanged)
-        if reader.read(1)
+        if reader.readBit()
         {
             let skipBytes = reader.read(9)
             reader.skip(cast(u64, skipBytes) * 8)
         }
 
-        .readMantissas(reader, bsi)
-        if reader.overrun do
-            fail InvalidFormatError{"AC-3 audio block is truncated"}
-
-        if .channels == 2 and not block.blockSwitch[0] and (bsi.nfchans < 2 or not block.blockSwitch[1])
+        .readMantissas(reader, bsi, coefficients)
+        if reader.overrun
         {
-            .stereoImdct.process(&.imdct, &.coefficients, destination)
+            fail InvalidFormatError{"AC-3 audio block is truncated"}
+        }
+    }
+
+    #[Swag.Inline]
+    mtd synthesizeBlock(bsi: const *Ac3Bsi, blockSwitch: const *[MaxFullBandwidthChannels] bool, coefficients: const [*] f64, destination: [*] s16, channels: u32)
+    {
+        if channels == 2 and not blockSwitch[][0] and (bsi.nfchans < 2 or not blockSwitch[][1])
+        {
+            if bsi.acmod == 2
+            {
+                .stereoImdct.processFused(&.imdct, coefficients, destination)
+            }
+            else
+            {
+                .stereoImdct.process(&.imdct, coefficients, destination)
+            }
+
+            return
+        }
+
+        if channels == MaxChannels
+        {
+            .surroundImdct.process(&.imdct, cast(const *[MaxChannels, SamplesPerBlock] f64, coefficients), blockSwitch, destination)
+            return
+        }
+
+        switch channels
+        {
+        case 3: .surroundImdct.processMapped!{3}(&.imdct, coefficients, blockSwitch, bsi.acmod, bsi.nfchans, bsi.lfeon, destination)
+            return
+
+        case 4: .surroundImdct.processMapped!{4}(&.imdct, coefficients, blockSwitch, bsi.acmod, bsi.nfchans, bsi.lfeon, destination)
+            return
+
+        case 5: .surroundImdct.processMapped!{5}(&.imdct, coefficients, blockSwitch, bsi.acmod, bsi.nfchans, bsi.lfeon, destination)
             return
         }
 
         .stereoImdct.restore(&.imdct)
-        for channel in .channels
+        for channel in channels
         {
             let source     = .sourceChannel(channel, bsi)
-            let shortBlock = source < bsi.nfchans and block.blockSwitch[source]
-            .imdct[source].process(&.coefficients[source, 0], shortBlock, destination + channel, .channels)
+            let shortBlock = source < bsi.nfchans and blockSwitch[][source]
+            .imdct[source].process(coefficients + source * SamplesPerBlock, shortBlock, destination + channel, channels)
         }
     }
 
     mtd sourceChannel(destination: u32, bsi: const *Ac3Bsi)->u32 => dolbySourceChannel(destination, bsi.acmod, bsi.nfchans, bsi.lfeon)
 
+    mtd readFrameHeader(reader: *BitReader, packetSize: u64)->Ac3Bsi fail
+    {
+        let bsi = try parseAc3Bsi(reader)
+        if bsi.frameSize != packetSize
+        {
+            fail InvalidFormatError{"AC-3 packet size does not match its sync-frame header"}
+        }
+
+        if SampleRates[bsi.fscod] != .sampleRate
+        {
+            fail InvalidFormatError{"AC-3 packet sample rate differs from its container track"}
+        }
+
+        let decodedChannels = bsi.nfchans + (bsi.lfeon ? 1 : 0)
+        if decodedChannels != .channels
+        {
+            fail InvalidFormatError{"AC-3 packet channel layout differs from its container track"}
+        }
+
+        return bsi
+    }
+
     mtd decodeFrame(packet: const [..] u8, destination: [*] s16) fail
     {
-        var reader = BitReader.create(packet.buffer, packet.count)
-        let bsi    = try parseAc3Bsi(&reader)
-        if bsi.frameSize != packet.count do
-            fail InvalidFormatError{"AC-3 packet size does not match its sync-frame header"}
-        if SampleRates[bsi.fscod] != .sampleRate do
-            fail InvalidFormatError{"AC-3 packet sample rate differs from its container track"}
-        let decodedChannels = bsi.nfchans + (bsi.lfeon ? 1 : 0)
-        if decodedChannels != .channels do
-            fail InvalidFormatError{"AC-3 packet channel layout differs from its container track"}
-
+        var reader = .preparePacketBits(packet)
+        let bsi    = try .readFrameHeader(&reader, packet.count)
         for blockIndex in BlocksPerAc3Frame
-            do
-            try .decodeBlock(&reader, &bsi, blockIndex, destination + blockIndex * SamplesPerBlock * .channels)
+        {
+            try .parseBlock(&reader, &bsi, blockIndex, &.coefficients[0, 0])
+            .synthesizeBlock(&bsi, &.block.blockSwitch, &.coefficients[0, 0], destination + blockIndex * SamplesPerBlock * .channels, .channels)
+        }
     }
 }
 
@@ -707,8 +835,11 @@ impl IPacketCodec for Ac3Codec
 
     mtd impl initialize(_: const [..] u8, sampleRateHz, channels: u32) fail
     {
-        if not sampleRateHz or not channels or channels > MaxChannels do
+        if not sampleRateHz or not channels or channels > MaxChannels
+        {
             fail BadParameterError{"AC-3 audio needs one to six channels and a non-zero sample rate"}
+        }
+
         .sampleRate = sampleRateHz
         .channels   = channels
         .resetState()
@@ -719,10 +850,131 @@ impl IPacketCodec for Ac3Codec
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
         let required = cast(u64, BlocksPerAc3Frame) * SamplesPerBlock * .channels * #sizeof(s16)
-        if destinationSize < required do
+        if destinationSize < required
+        {
             fail BadParameterError{"AC-3 destination buffer is too small"}
+        }
+
         try .decodeFrame(packet, cast([*] s16, destination))
         return required
+    }
+}
+
+// The packet parser owns dither and bit allocation. The synthesis worker owns
+// overlap state and consumes completed batches in input order.
+private struct Ac3PreparedFrame
+{
+    bsi:         Ac3Bsi
+    blockSwitch: [BlocksPerAc3Frame, MaxFullBandwidthChannels] bool
+}
+
+internal const Ac3PipelineFrames  = BlocksPerAc3Frame * SamplesPerBlock
+private const Ac3PipelineCapacity = 16_u64
+
+internal struct Ac3DecodeBatch
+{
+    private headers:     [Ac3PipelineCapacity] Ac3PreparedFrame
+    private spectra:     Array!{f64}
+    private packetLimit: u64
+    pcm:                 Array!{s16}
+    count:               u64
+}
+
+internal impl Ac3DecodeBatch
+{
+    mtd initialize(channels: u32)
+    {
+        // Keep the maximum batch footprint independent of channel count.
+        .packetLimit = Math.min(Ac3PipelineCapacity, 32_u64 / channels)
+        let capacity = .packetLimit * Ac3PipelineFrames * channels
+        .spectra.reserve(capacity)
+        .pcm.reserve(capacity)
+    }
+
+    mtd const capacity()->u64 => .packetLimit
+}
+
+internal struct Ac3DecodePipeline
+{
+    private codec: Ac3Codec
+}
+
+internal func isNativeAc3Codec(type: const *Swag.TypeInfoStruct)->bool => type == #typeof(Ac3Codec)
+
+internal impl Ac3DecodePipeline
+{
+    mtd initialize(sampleRate, channels: u32)
+    {
+        .codec.sampleRate = sampleRate
+        .codec.channels   = channels
+        .codec.resetState()
+    }
+
+    mtd decode(packet: const [..] u8, output: [*] s16) fail
+    {
+        try .codec.decodeFrame(packet, output)
+    }
+
+    mtd(FixedChannels: u32) prepareFrame(batch: *Ac3DecodeBatch, packet: const [..] u8) fail
+    {
+        var reader = .codec.preparePacketBits(packet)
+        let header = &batch.headers[batch.count]
+        header.bsi = try .codec.readFrameHeader(&reader, packet.count)
+        let channels = FixedChannels ? FixedChannels : .codec.channels
+        let spectra  = batch.spectra.storage() + batch.count * Ac3PipelineFrames * channels
+        for blockIndex in BlocksPerAc3Frame
+        {
+            let destination = spectra + blockIndex * channels * SamplesPerBlock
+            try .codec.parseBlock(&reader, &header.bsi, blockIndex, destination)
+            for channel in header.bsi.nfchans
+            {
+                header.blockSwitch[blockIndex, channel] = .codec.block.blockSwitch[channel]
+            }
+        }
+
+        batch.count += 1
+    }
+
+    mtd prepare(batch: *Ac3DecodeBatch, packet: const [..] u8) fail
+    {
+        if .codec.channels == 2
+        {
+            try .prepareFrame!{2}(batch, packet)
+        }
+        else
+        {
+            try .prepareFrame!{0}(batch, packet)
+        }
+    }
+
+    mtd(FixedChannels: u32) synthesizeFrames(batch: *Ac3DecodeBatch)
+    {
+        let channels = FixedChannels ? FixedChannels : .codec.channels
+        let spectra  = batch.spectra.storage()
+        let pcm      = batch.pcm.storage()
+        for packet in batch.count
+        {
+            let header = &batch.headers[packet]
+            for blockIndex in BlocksPerAc3Frame
+            {
+                let offset       = (packet * Ac3PipelineFrames + blockIndex * SamplesPerBlock) * channels
+                let coefficients = spectra + offset
+                let switches     = cast(const *[MaxFullBandwidthChannels] bool, &header.blockSwitch[blockIndex, 0])
+                .codec.synthesizeBlock(&header.bsi, switches, coefficients, pcm + offset, channels)
+            }
+        }
+    }
+
+    mtd synthesize(batch: *Ac3DecodeBatch)
+    {
+        if .codec.channels == 2
+        {
+            .synthesizeFrames!{2}(batch)
+        }
+        else
+        {
+            .synthesizeFrames!{0}(batch)
+        }
     }
 }
 
@@ -745,37 +997,59 @@ internal func ac3FrameInfo(packet: const [..] u8)->FrameInfo fail
     const BitRates: [19] u32 = [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 448, 512, 576, 640]
     const Rates:    [3] u32  = [48_000, 44_100, 32_000]
 
-    if packet.count < 7 do
+    if packet.count < 7
+    {
         fail InvalidFormatError{"AC-3 packet header is truncated"}
-    if packet[0] != 0x0B or packet[1] != 0x77 do
+    }
+
+    if packet[0] != 0x0B or packet[1] != 0x77
+    {
         fail InvalidFormatError{"AC-3 packet has no sync word"}
+    }
 
     let fscod    = cast(u32, (packet[4] >> 6)) & 3
     let sizeCode = cast(u32, packet[4]) & 0x3F
-    if fscod >= 3 or sizeCode >= 38 do
+    if fscod >= 3 or sizeCode >= 38
+    {
         fail InvalidFormatError{"AC-3 frame states a reserved sampling frequency or size"}
+    }
 
     var result: #returntype
     result.sampleRate = Rates[cast(u64, fscod)]
     result.frames     = 1536
 
     let bitRate = cast(u64, BitRates[cast(u64, sizeCode) >> 1])
-    if not fscod do
+    if not fscod
+    {
         result.frameBytes = 4 * bitRate
-    elif fscod == 1 do
+    }
+    else if fscod == 1
+    {
         result.frameBytes = 2 * ((320 * bitRate) / 147 + cast(u64, (sizeCode & 1)))
-    else do
+    }
+    else
+    {
         result.frameBytes = 6 * bitRate
+    }
 
     // The channel mode and the low frequency effects flag follow the bit stream identification.
     let acmod = cast(u32, (packet[6] >> 5)) & 7
-    var skip  = 3'u32
-    if (acmod & 1) != 0 and acmod != 1 do
+    var skip  = 3_u32
+    if (acmod & 1) != 0 and acmod != 1
+    {
         skip += 2
-    if (acmod & 4) != 0 do
+    }
+
+    if (acmod & 4) != 0
+    {
         skip += 2
-    if acmod == 2 do
+    }
+
+    if acmod == 2
+    {
         skip += 2
+    }
+
     let lfe = (cast(u32, packet[6]) >> (7 - skip)) & 1
     result.channels    = AcmodChannels[cast(u64, acmod)] + lfe
     result.speakerMask = dolbySpeakerMask(acmod, lfe != 0)
@@ -787,15 +1061,21 @@ internal func ac3FrameInfo(packet: const [..] u8)->FrameInfo fail
 // Every AC-3 frame carries six blocks of 256 samples, so only the sync word needs checking.
 internal func ac3PacketFrameCount(packet: const [..] u8)->u32 fail
 {
-    if packet.count < 7 do
+    if packet.count < 7
+    {
         fail InvalidFormatError{"AC-3 packet header is truncated"}
-    if packet[0] != 0x0B or packet[1] != 0x77 do
+    }
+
+    if packet[0] != 0x0B or packet[1] != 0x77
+    {
         fail InvalidFormatError{"AC-3 packet has no sync word"}
+    }
+
     return 1536
 }
 
 #init
 {
     initializeDolbyCore()
-    registerPacketCodec'Ac3Codec()
+    registerPacketCodec!{Ac3Codec}()
 }

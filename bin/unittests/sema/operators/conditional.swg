@@ -7,22 +7,22 @@
 
 func semaTest001()
 {
-    const a = true ? 10's16 : 20's32
+    const a = true ? 10_s16 : 20_s32
     #assert(#typeof(a) == s32)
 
-    const b = false ? 10's16 : 20's32
+    const b = false ? 10_s16 : 20_s32
     #assert(#typeof(b) == s32)
     #assert(b == 20)
 
-    const c = true ? 1.0'f32 : 2.0'f64
+    const c = true ? 1.0_f32 : 2.0_f64
     #assert(#typeof(c) == f64)
 
-    const d = true ? 20's32 : 10's16
+    const d = true ? 20_s32 : 10_s16
     #assert(#typeof(d) == s32)
 }
 
 func semaTest002() { var a = 0 ? 1 : 2; discard a }
-func semaTest005() { var a = 0.0'f32 ? 1 : 2; discard a }
+func semaTest005() { var a = 0.0_f32 ? 1 : 2; discard a }
 
 namespace NC{}
 
@@ -62,7 +62,7 @@ func semaTest006()
         var fromIndex = flag ? values[index] : other
         var fromBoth  = flag ? values[index] : values[index + 1]
         let sum       = fromIndex + other
-        var narrower  = flag ? 10's16 : other
+        var narrower  = flag ? 10_s16 : other
         #assert(#typeof(fromIndex) == s32)
         #assert(#typeof(fromBoth) == s32)
         #assert(#typeof(narrower) == s32)

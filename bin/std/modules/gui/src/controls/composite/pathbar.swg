@@ -23,9 +23,9 @@ struct PathBar
             late edit:       *EditBox            // Full path while editing.
         }
 
-        sigNavigate:     SigArray'func||(*Wnd, string)     // Requests navigation to a breadcrumb tag.
-        sigSubmitted:    SigArray'func||(*Wnd, string)     // Requests navigation to the submitted full path.
-        sigEditFinished: SigArray'func||(*Wnd)             // Enter or Escape finished editing; the host may restore focus.
+        sigNavigate:     SigArray!{func||(*Wnd, string)}     // Requests navigation to a breadcrumb tag.
+        sigSubmitted:    SigArray!{func||(*Wnd, string)}     // Requests navigation to the submitted full path.
+        sigEditFinished: SigArray!{func||(*Wnd)}             // Enter or Escape finished editing; the host may restore focus.
     }
 
     location:    String
@@ -40,12 +40,12 @@ impl PathBar
     #[Swag.Discardable]
     func create(parent: *Wnd, id: WndId? = null)->*PathBar
     {
-        with let result = Wnd.create'PathBar(parent, id)
+        with let result = Wnd.create!{PathBar}(parent, id)
         {
             .backgroundStyle = .Transparent
         }
 
-        with result.pathScroll = Wnd.create'ScrollWnd(result)
+        with result.pathScroll = Wnd.create!{ScrollWnd}(result)
         {
             .dockStyle = .Center
             .updateFlags(.TransparentBars | .DisableHorizontal)
@@ -60,10 +60,14 @@ impl PathBar
             .style.setFont(result.theme().createDefaultFontFs(result.themeMetrics().defaultFontSize), .Regular)
             .sigItemPressed += func|result|(path, index)
             {
-                if index + 1 == path.items.count do
+                if index + 1 == path.items.count
+                {
                     result.beginEdit()
-                else do
+                }
+                else
+                {
                     result.sigNavigate.call(result, path.items[index].tag.toString())
+                }
             }
 
             .sigMenuSelected += func|result|(_, _, path)
@@ -118,14 +122,17 @@ impl PathBar
         .breadcrumb.clear()
         var normalized = String.from(path)
         Path.normalize(&normalized)
-        var ancestors: Array'String
+        var ancestors: Array!{String}
         var current = normalized.toString()
         while current.count
         {
             ancestors.add(current)
             let parent = Path.directoryName(current) orelse ""
-            if not parent.count or parent == current do
+            if not parent.count or parent == current
+            {
                 break
+            }
+
             current = parent
         }
 
@@ -142,8 +149,11 @@ impl PathBar
     // Recomputes level bounds after the host changes them, keeping the current folder in view.
     mtd refreshPath()
     {
-        if .breadcrumb == null do
+        if .breadcrumb == null
+        {
             return
+        }
+
         .breadcrumb.layout()
         .pathScroll.setScrollSize(0, 0)
         .pathScroll.setScrollPos(0, 0)
@@ -161,8 +171,11 @@ impl PathBar
             return
         }
 
-        if .editing do
+        if .editing
+        {
             return
+        }
+
         .editing     = true
         .returnFocus = false
         .app().registerHookEvents(me)
@@ -177,16 +190,21 @@ impl PathBar
     // Cancels editing and restores the breadcrumb view.
     mtd endEdit()
     {
-        if not .editing do
+        if not .editing
+        {
             return
+        }
 
         // Clearing focus calls back through the editor's focus-loss signal.
         .editing = false
         .app().unregisterHookEvents(me)
 
         // Hiding a focused control advances Tab traversal. Leave focus to the click instead.
-        if .edit.hasFocus() do
+        if .edit.hasFocus()
+        {
             .surface!.clearFocus()
+        }
+
         .edit.hide()
         .pathScroll.show()
         .applyLayout()
@@ -204,15 +222,19 @@ impl IWnd for PathBar
 {
     mtd impl onHookEvent(evt: IEvent)
     {
-        if not .editing do
+        if not .editing
+        {
             return
+        }
 
         if evt is MouseEvent as mouse where mouse.kind == .Pressed
         {
-            if mouse.target != .edit and not .edit.isOwnerOf(mouse.target) do
+            if mouse.target != .edit and not .edit.isOwnerOf(mouse.target)
+            {
                 .endEdit()
+            }
         }
-        elif evt is NotifyEvent as notify where notify.kind == .PressedElsewhere
+        else if evt is NotifyEvent as notify where notify.kind == .PressedElsewhere
         {
             .endEdit()
         }
@@ -226,9 +248,13 @@ impl IWnd for PathBar
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind == .Pressed and evt.button == .Left do
+        if evt.kind == .Pressed and evt.button == .Left
+        {
             .beginEdit()
-        else do
+        }
+        else
+        {
             evt.accepted = false
+        }
     }
 }

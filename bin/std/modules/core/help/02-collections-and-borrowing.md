@@ -10,16 +10,17 @@ queries. [[Core.Deque]] serves both ends of a sequence, while
 ```swag
 using Core
 
-var names: Array'String
+var names: Array!{String}
 names.add("Ada")
 names.add("Grace")
 
-var scores: HashTable'(String, u32)
+var scores: HashTable!{String, u32}
 scores.add("Ada", 10)
 scores.add("Grace", 12)
 
-if let entry = scores.tryFind("Ada") do
-    Console.println(entry.value)
+if let entry = scores.tryFind("Ada") {
+    Console.println(entry.value)}
+
 ```
 
 ## Ordering and ranges
@@ -30,15 +31,16 @@ before the right argument, zero when their ordering keys are equal, and a
 positive value otherwise.
 
 ```swag
-var ranking: OrderedMap'(u32, String)
+var ranking: OrderedMap!{u32, String}
 ranking.initialize(func(left, right: const *u32)->s32 => left[] <=> right[])
 ranking.add(20, "silver")
 ranking.add(10, "gold")
 
-for entry in ranking.range(10, 30) do
+for entry in ranking.range(10, 30) {
     Console.println(entry.key, ": ", entry.value)
 
-var work: PriorityQueue'u32
+}
+var work: PriorityQueue!{u32}
 work.initialize(func(left, right: const *u32)->s32 => left[] <=> right[])
 work.push(30)
 work.push(10)

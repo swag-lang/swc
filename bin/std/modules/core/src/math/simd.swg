@@ -264,9 +264,9 @@ namespace Simd
         func mulAddPairs(x: U8x16, y: S8x16)->S16x8 => Swag.vecMulAddPairsSat(x, y)
 
         // Sums every lane into a wider accumulator, which no lane width can overflow.
-        func sumWide(value: U8x16)->u32 => cast(u32, Swag.vecReduceAdd(Swag.vecSumAbsDiff(value, Swag.vecSplat(0'u8))))
+        func sumWide(value: U8x16)->u32 => cast(u32, Swag.vecReduceAdd(Swag.vecSumAbsDiff(value, Swag.vecSplat(0_u8))))
         func sumWide(value: S8x16)->s32 => sumWide(Swag.vecWidenLo(value) + Swag.vecWidenHi(value))
-        func sumWide(value: S16x8)->s32 => Swag.vecReduceAdd(Swag.vecMulAddPairs(value, Swag.vecSplat(1's16)))
+        func sumWide(value: S16x8)->s32 => Swag.vecReduceAdd(Swag.vecMulAddPairs(value, Swag.vecSplat(1_s16)))
         func sumWide(value: U16x8)->u32 => Swag.vecReduceAdd(Swag.vecWidenLo(value) + Swag.vecWidenHi(value))
         func sumWide(value: U32x4)->u64 => Swag.vecReduceAdd(Swag.vecWidenLo(value) + Swag.vecWidenHi(value))
         func sumWide(value: S32x4)->s64 => Swag.vecReduceAdd(Swag.vecWidenLo(value) + Swag.vecWidenHi(value))
@@ -383,14 +383,14 @@ namespace Simd
         func align(low, high: F32x4, count: u8)->F32x4 => Swag.vecAlign(low, high, count)
 
         // Collects the even lanes of `x` then those of `y`, undoing one interleave.
-        func deinterleaveEven(x, y: U8x16)->U8x16 => Swag.vecShuffle2(x, y, cast(U8x16, [0'u8, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]))
-        func deinterleaveEven(x, y: U16x8)->U16x8 => Swag.vecShuffle2(x, y, cast(U16x8, [0'u16, 2, 4, 6, 8, 10, 12, 14]))
-        func deinterleaveEven(x, y: U32x4)->U32x4 => Swag.vecShuffle2(x, y, cast(U32x4, [0'u32, 2, 4, 6]))
+        func deinterleaveEven(x, y: U8x16)->U8x16 => Swag.vecShuffle2(x, y, cast(U8x16, [0_u8, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]))
+        func deinterleaveEven(x, y: U16x8)->U16x8 => Swag.vecShuffle2(x, y, cast(U16x8, [0_u16, 2, 4, 6, 8, 10, 12, 14]))
+        func deinterleaveEven(x, y: U32x4)->U32x4 => Swag.vecShuffle2(x, y, cast(U32x4, [0_u32, 2, 4, 6]))
 
         // Collects the odd lanes of `x` then those of `y`.
-        func deinterleaveOdd(x, y: U8x16)->U8x16 => Swag.vecShuffle2(x, y, cast(U8x16, [1'u8, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31]))
-        func deinterleaveOdd(x, y: U16x8)->U16x8 => Swag.vecShuffle2(x, y, cast(U16x8, [1'u16, 3, 5, 7, 9, 11, 13, 15]))
-        func deinterleaveOdd(x, y: U32x4)->U32x4 => Swag.vecShuffle2(x, y, cast(U32x4, [1'u32, 3, 5, 7]))
+        func deinterleaveOdd(x, y: U8x16)->U8x16 => Swag.vecShuffle2(x, y, cast(U8x16, [1_u8, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31]))
+        func deinterleaveOdd(x, y: U16x8)->U16x8 => Swag.vecShuffle2(x, y, cast(U16x8, [1_u16, 3, 5, 7, 9, 11, 13, 15]))
+        func deinterleaveOdd(x, y: U32x4)->U32x4 => Swag.vecShuffle2(x, y, cast(U32x4, [1_u32, 3, 5, 7]))
 
         // Blends two vectors through a mask: lanes of `ifTrue` where the mask lane is
         // all-ones, lanes of `ifFalse` where it is all-zeros.
@@ -553,8 +553,8 @@ namespace Simd
     func trunc(x: Simd.F64x2)->Simd.F64x2 => Swag.trunc(x)
 
     // Rounds each lane to the nearest integer, with halfway cases away from zero.
-    func round(x: Simd.F32x4)->Simd.F32x4 => copysign(floor(abs(x) + Swag.vecSplat(0.5'f32)), x)
-    func round(x: Simd.F64x2)->Simd.F64x2 => copysign(floor(abs(x) + Swag.vecSplat(0.5'f64)), x)
+    func round(x: Simd.F32x4)->Simd.F32x4 => copysign(floor(abs(x) + Swag.vecSplat(0.5_f32)), x)
+    func round(x: Simd.F64x2)->Simd.F64x2 => copysign(floor(abs(x) + Swag.vecSplat(0.5_f64)), x)
 
     // Rotates the bits of every lane left by `y`, taken modulo the lane width.
     func rol(x: Simd.U8x16, y: u8)->Simd.U8x16 => Swag.rol(x, y)
@@ -601,15 +601,15 @@ namespace Simd
     // sign it is given.
     func copysign(x, y: Simd.F32x4)->Simd.F32x4
     {
-        const Magnitude = Swag.vecSplat(0x7FFF_FFFF'u32)
-        const Sign      = Swag.vecSplat(0x8000_0000'u32)
+        const Magnitude = Swag.vecSplat(0x7FFF_FFFF_u32)
+        const Sign      = Swag.vecSplat(0x8000_0000_u32)
         return cast #bit (Simd.F32x4, ((cast #bit (Simd.U32x4, x) & Magnitude) | (cast #bit (Simd.U32x4, y) & Sign)))
     }
 
     func copysign(x, y: Simd.F64x2)->Simd.F64x2
     {
-        const Magnitude = Swag.vecSplat(0x7FFF_FFFF_FFFF_FFFF'u64)
-        const Sign      = Swag.vecSplat(0x8000_0000_0000_0000'u64)
+        const Magnitude = Swag.vecSplat(0x7FFF_FFFF_FFFF_FFFF_u64)
+        const Sign      = Swag.vecSplat(0x8000_0000_0000_0000_u64)
         return cast #bit (Simd.F64x2, ((cast #bit (Simd.U64x2, x) & Magnitude) | (cast #bit (Simd.U64x2, y) & Sign)))
     }
 
@@ -619,8 +619,8 @@ namespace Simd
     // answer 0.
     func sign(x: Simd.F32x4)->Simd.F32x4
     {
-        let zero     = Swag.vecSplat(0'f32)
-        let one      = Swag.vecSplat(1'f32)
+        let zero     = Swag.vecSplat(0_f32)
+        let one      = Swag.vecSplat(1_f32)
         let positive = Simd.select(x > zero, one, zero)
         let negative = Simd.select(x < zero, one, zero)
         return positive - negative
@@ -628,16 +628,16 @@ namespace Simd
 
     func sign(x: Simd.F64x2)->Simd.F64x2
     {
-        let zero     = Swag.vecSplat(0'f64)
-        let one      = Swag.vecSplat(1'f64)
+        let zero     = Swag.vecSplat(0_f64)
+        let one      = Swag.vecSplat(1_f64)
         let positive = Simd.select(x > zero, one, zero)
         let negative = Simd.select(x < zero, one, zero)
         return positive - negative
     }
 
     // Clamps every lane between zero and one.
-    func saturate(x: Simd.F32x4)->Simd.F32x4 => clamp(x, Swag.vecSplat(0'f32), Swag.vecSplat(1'f32))
-    func saturate(x: Simd.F64x2)->Simd.F64x2 => clamp(x, Swag.vecSplat(0'f64), Swag.vecSplat(1'f64))
+    func saturate(x: Simd.F32x4)->Simd.F32x4 => clamp(x, Swag.vecSplat(0_f32), Swag.vecSplat(1_f32))
+    func saturate(x: Simd.F64x2)->Simd.F64x2 => clamp(x, Swag.vecSplat(0_f64), Swag.vecSplat(1_f64))
 
     // Interpolates linearly between `x` and `y`, per lane.
     func lerp(x, y, factor: Simd.F32x4)->Simd.F32x4 => x + factor * (y - x)
@@ -695,14 +695,14 @@ namespace Simd
     {
         let pi    = Swag.vecSplat(ConstF32.Pi)
         let twoPi = Swag.vecSplat(ConstF32.TwoPi)
-        return wrap(end - start + pi, Swag.vecSplat(0'f32), twoPi) - pi
+        return wrap(end - start + pi, Swag.vecSplat(0_f32), twoPi) - pi
     }
 
     func deltaAngle(start, end: Simd.F64x2)->Simd.F64x2
     {
         let pi    = Swag.vecSplat(ConstF64.Pi)
         let twoPi = Swag.vecSplat(ConstF64.TwoPi)
-        return wrap(end - start + pi, Swag.vecSplat(0'f64), twoPi) - pi
+        return wrap(end - start + pi, Swag.vecSplat(0_f64), twoPi) - pi
     }
 
     // Interpolates angles along their shortest path, per lane, in radians.
@@ -712,13 +712,13 @@ namespace Simd
     // Repeats each lane as a triangle wave between zero and its matching positive length.
     func pingPong(value, length: Simd.F32x4)->Simd.F32x4
     {
-        let phase = wrap(value, Swag.vecSplat(0'f32), length * 2)
+        let phase = wrap(value, Swag.vecSplat(0_f32), length * 2)
         return length - abs(phase - length)
     }
 
     func pingPong(value, length: Simd.F64x2)->Simd.F64x2
     {
-        let phase = wrap(value, Swag.vecSplat(0'f64), length * 2)
+        let phase = wrap(value, Swag.vecSplat(0_f64), length * 2)
         return length - abs(phase - length)
     }
 

@@ -7,14 +7,14 @@ func useInferredMixedArray()->bool
 {
     let arr = inferredMixedArray()
     let idx = 1
-    return arr[0] == 1.0'f32 and arr[idx] == 2.5'f32
+    return arr[0] == 1.0_f32 and arr[idx] == 2.5_f32
 }
 
 func useInferredWideArray()->bool
 {
     let arr = inferredWideArray()
     let idx = 1
-    return arr[0] == 1's64 and arr[idx] == 5_000_000_000's64
+    return arr[0] == 1_s64 and arr[idx] == 5_000_000_000_s64
 }
 
 #test

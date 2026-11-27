@@ -12,10 +12,10 @@ using Audio, Core, Gui
     var journey: ScopeJourney
     journey.setup(withWorkspace: true)
     let workspace = unwrap journey.window.workspace
-    let first = journey.copyData("comprehensive.txt", "first.txt")
-    let other = journey.copyData("sample.cpp", "other.cpp")
-    let film  = journey.copyData("viewer.avi", "film.avi")
-    let image = journey.copyData("viewer.png", "image.png")
+    let first     = journey.copyData("comprehensive.txt", "first.txt")
+    let other     = journey.copyData("sample.cpp", "other.cpp")
+    let film      = journey.copyData("viewer.avi", "film.avi")
+    let image     = journey.copyData("viewer.png", "image.png")
 
     workspace.openScene([first, other], .SideBySide)
     let scene = unwrap workspace.scene()
@@ -29,7 +29,9 @@ using Audio, Core, Gui
     journey.chooseFile(left, film)
     Swag.require(workspace.scene() == scene and workspace.scenes.count == 1 and scene.views.count == 2)
     journey.waitForFile(film, left)
-    Swag.require(left.currentView is Viewers.Film.Panel and scene.views[1].document == right and right.currentFile == other)
+    Swag.require(left.currentView is Viewers.Film.Panel and
+                 scene.views[1].document == right and
+                 right.currentFile == other)
 
     workspace.setLayout(.Stacked)
     workspace.selectView(1)

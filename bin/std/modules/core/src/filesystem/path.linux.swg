@@ -4,8 +4,11 @@
 
 internal func nativePath(path: string)->String fail
 {
-    if not isValidPathName(path) do
+    if not isValidPathName(path)
+    {
         fail Errors.InvalidFileNameError{fileName: Errors.mkString(path)}
+    }
+
     return String.from(path)
 }
 
@@ -16,8 +19,11 @@ internal func nativePath(path: string)->String fail
 func absolute(path: string)->String fail
 {
     let native = try nativePath(path)
-    if isRooted(path) do
+    if isRooted(path)
+    {
         return native
+    }
+
     let current = try Directory.currentPath()
     return combine(current, path)
 }

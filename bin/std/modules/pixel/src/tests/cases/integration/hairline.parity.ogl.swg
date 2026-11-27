@@ -19,18 +19,18 @@ func renderHairlines(renderer: IRenderer, antialiased: bool)->Image
     painter.bindRenderTarget(&target)
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
-    painter.clear(Color.fromArgb(255'u8, 240'u8, 242'u8, 243'u8))
+    painter.clear(Color.fromArgb(255_u8, 240_u8, 242_u8, 243_u8))
     painter.setBlendingMode(.Alpha)
     painter.setAntialiased(antialiased)
 
-    let rule = Color.fromArgb(255'u8, 40'u8, 60'u8, 80'u8)
+    let rule = Color.fromArgb(255_u8, 40_u8, 60_u8, 80_u8)
     for i in 11
     {
         let offset = cast(f32, i) * 0.1
-        let y      = 6.0'f32 + cast(f32, i) * 9 + offset
+        let y      = 6.0_f32 + cast(f32, i) * 9 + offset
         painter.drawLine(6, y, 80, y, rule)
 
-        let x = 92.0'f32 + cast(f32, i) * 7 + offset
+        let x = 92.0_f32 + cast(f32, i) * 7 + offset
         painter.drawLine(x, 6, x, 104, rule)
     }
 

@@ -52,7 +52,7 @@ func animationCompleted(result: AnimationResult)
 func linearSecond()->AnimationOptions
 {
     var result: #returntype
-    result.duration = 1000'ms
+    result.duration = 1000_ms
     result.easing   = .Linear
     return result
 }
@@ -65,10 +65,10 @@ func linearSecond()->AnimationOptions
     defer host.shutdown()
     host.setReducedMotion(false)
 
-    let document = Wnd.create'Wnd(&host.root, {0, 0, 320, 200})
+    let document = Wnd.create!{Wnd}(&host.root, {0, 0, 320, 200})
     document.backgroundStyle = .View
     let overlay = FloatingPanel.create(&host.root, {80, 40, 160, 120})
-    let shown = host.render().pixelColor(160, 100)
+    let shown   = host.render().pixelColor(160, 100)
     discard host.app.animator.leave(overlay)
     Swag.require(not overlay.isLocallyVisible())
     Swag.require(host.root.windowAt(160, 100) == document)
@@ -93,7 +93,7 @@ func linearSecond()->AnimationOptions
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     host.setReducedMotion(false)
-    let target  = Wnd.create'Wnd(&host.root)
+    let target  = Wnd.create!{Wnd}(&host.root)
     let channel = AnimationChannel.from("test.cancel.endpoint")
     AnimationTestCompleted = 0
     let handle = host.app.animator.animateF32(target,
@@ -102,8 +102,10 @@ func linearSecond()->AnimationOptions
                                               1,
                                               func(wnd, value)
                                               {
-                                                  if value == 1 do
+                                                  if value == 1
+                                                  {
                                                       wnd.app().animator.cancel(wnd, AnimationChannel.from("test.cancel.endpoint"))
+                                                  }
                                               },
                                               linearSecond(),
                                               &animationCompleted)
@@ -119,7 +121,7 @@ func linearSecond()->AnimationOptions
     host.setup(320, 200, 1.5)
     host.setReducedMotion(false)
 
-    let target  = Wnd.create'Wnd(&host.root)
+    let target  = Wnd.create!{Wnd}(&host.root)
     let options = linearSecond()
     AnimationTestCompleted = 0
     var group = AnimationGroup.concurrent()
@@ -156,10 +158,10 @@ func linearSecond()->AnimationOptions
     host.setup(200, 120)
     host.setReducedMotion(false)
 
-    let target = Wnd.create'Wnd(&host.root)
+    let target = Wnd.create!{Wnd}(&host.root)
     var options: AnimationOptions
-    options.delay    = 250'ms
-    options.duration = 1000'ms
+    options.delay    = 250_ms
+    options.duration = 1000_ms
     options.easing   = .EaseIn
     discard host.app.animator.animateF32(target, AnimationChannel.from("test.easing"), 0, 8, &animationSetF32, options)
     host.advanceAnimations(0.25)
@@ -184,7 +186,7 @@ func linearSecond()->AnimationOptions
     host.setup(200, 120)
     host.setReducedMotion(false)
 
-    let target  = Wnd.create'Wnd(&host.root)
+    let target  = Wnd.create!{Wnd}(&host.root)
     let channel = AnimationChannel.from("test.retarget")
     let options = linearSecond()
     discard host.app.animator.animateF32(target, channel, 0, 100, &animationSetF32, options)
@@ -204,8 +206,8 @@ func linearSecond()->AnimationOptions
     host.setup(200, 120)
     host.setReducedMotion(false)
 
-    let first   = Wnd.create'Wnd(&host.root)
-    let second  = Wnd.create'Wnd(&host.root)
+    let first   = Wnd.create!{Wnd}(&host.root)
+    let second  = Wnd.create!{Wnd}(&host.root)
     let options = linearSecond()
     AnimationTestF32B = -1
 
@@ -237,7 +239,7 @@ func linearSecond()->AnimationOptions
     host.setReducedMotion(false)
     AnimationTestCompleted = 0
 
-    let target = Wnd.create'Wnd(&host.root)
+    let target = Wnd.create!{Wnd}(&host.root)
     let handle = host.app.animator.animateF32(target, AnimationChannel.from("test.lifetime"), 0, 10, &animationSetF32, linearSecond(), &animationCompleted)
     target.hide()
     Swag.require(not host.app.animator.isActive(handle))
@@ -255,7 +257,7 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    let target = Wnd.create'Wnd(&host.root)
+    let target = Wnd.create!{Wnd}(&host.root)
 
     discard host.app.animator.animateF32(target, AnimationChannel.from("test.reduced"), 0, 10, &animationSetF32, linearSecond())
     Swag.require(AnimationTestF32 == 10 and host.app.animator.activeCount() == 0)
@@ -273,7 +275,7 @@ func linearSecond()->AnimationOptions
     var host: Testing.HeadlessHost
     host.setup(200, 120)
     host.setReducedMotion(false)
-    let target = Wnd.create'Wnd(&host.root)
+    let target = Wnd.create!{Wnd}(&host.root)
 
     var blend: BlendColor
     blend.apply(target, Argb.Black)
@@ -297,7 +299,7 @@ func linearSecond()->AnimationOptions
     var host: Testing.HeadlessHost
     host.setup(200, 120)
     host.setReducedMotion(false)
-    let target  = Wnd.create'Wnd(&host.root)
+    let target  = Wnd.create!{Wnd}(&host.root)
     let channel = AnimationChannel.from("test.environment")
 
     discard host.app.animator.animatePoint(target, channel, {}, {100, 50}, &animationSetPoint, linearSecond())
@@ -359,9 +361,9 @@ func linearSecond()->AnimationOptions
     host.setup(200, 120)
     host.setReducedMotion(false)
 
-    let target = Wnd.create'Wnd(&host.root)
+    let target = Wnd.create!{Wnd}(&host.root)
     var options: AnimationOptions
-    options.duration = 1000'ms
+    options.duration = 1000_ms
     options.easing   = .EaseOutBounce
     options.curve    = &curve
 
@@ -382,7 +384,7 @@ func linearSecond()->AnimationOptions
     host.setup(200, 120)
     host.setReducedMotion(false)
 
-    let target  = Wnd.create'Wnd(&host.root)
+    let target  = Wnd.create!{Wnd}(&host.root)
     var options = linearSecond()
     options.repeatCount    = 3
     AnimationTestCompleted = 0
@@ -410,7 +412,7 @@ func linearSecond()->AnimationOptions
     host.setup(200, 120)
     host.setReducedMotion(false)
 
-    let target  = Wnd.create'Wnd(&host.root)
+    let target  = Wnd.create!{Wnd}(&host.root)
     var options = linearSecond()
     options.repeatCount = 2
     options.autoReverse = true
@@ -434,7 +436,7 @@ func linearSecond()->AnimationOptions
     host.setup(200, 120)
     host.setReducedMotion(false)
 
-    let target  = Wnd.create'Wnd(&host.root)
+    let target  = Wnd.create!{Wnd}(&host.root)
     var options = linearSecond()
     options.repeatCount = 0
     let forward = host.app.animator.animateF32(target, AnimationChannel.from("test.endless"), 0, 10, &animationSetF32, options)
@@ -459,7 +461,7 @@ func linearSecond()->AnimationOptions
     var host: Testing.HeadlessHost
     host.setup(200, 120)
 
-    let target  = Wnd.create'Wnd(&host.root)
+    let target  = Wnd.create!{Wnd}(&host.root)
     var options = linearSecond()
     options.repeatCount = 0
     options.autoReverse = true
@@ -481,7 +483,7 @@ func linearSecond()->AnimationOptions
     host.setup(320, 200)
     host.setReducedMotion(false)
 
-    let target = Wnd.create'Wnd(&host.root, {40, 20, 100, 50})
+    let target = Wnd.create!{Wnd}(&host.root, {40, 20, 100, 50})
     Swag.require(target.presentationRect() == {40, 20, 100, 50})
 
     target.setPresentationScale({0.5, 0.5})
@@ -516,7 +518,7 @@ func linearSecond()->AnimationOptions
     var host: Testing.HeadlessHost
     host.setup(200, 120)
     host.setReducedMotion(false)
-    let target  = Wnd.create'Wnd(&host.root)
+    let target  = Wnd.create!{Wnd}(&host.root)
     let options = linearSecond()
 
     var point    = Math.Point{1, 2}

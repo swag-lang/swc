@@ -33,8 +33,10 @@ func writeSlice(index: u64)
 func fillPastEnd(count: u64)
 {
     var storage: [4] s32
-    for index in count do
+    for index in count
+    {
         storage[index] = 1     // swc-expected-error {{safety_err_runtime}}
+    }
 }
 
 #test
@@ -46,8 +48,10 @@ func fillPastEnd(count: u64)
 func fillRangePastEnd()
 {
     var storage: [4] s32
-    for index in 0 to 4 do
+    for index in 0 to 4
+    {
         storage[index] = 1     // swc-expected-error {{safety_err_runtime}}
+    }
 }
 
 #test
@@ -59,8 +63,10 @@ func fillRangePastEnd()
 func fillRangeBeforeStart()
 {
     var storage: [4] s32
-    for index in -1 until 3 do
+    for index in -1 until 3
+    {
         storage[index] = 1     // swc-expected-error {{safety_err_runtime}}
+    }
 }
 
 #test
@@ -100,24 +106,30 @@ func fillRangeWithChangedIndex()
 func fillExactly()->s32
 {
     var storage: [4] s32
-    for index in storage.count do
+    for index in storage.count
+    {
         storage[index] = cast(s32, index)
+    }
     return storage[3]
 }
 
 func fillRangeExactly()->s32
 {
     var storage: [4] s32
-    for index in 0 until 4 do
+    for index in 0 until 4
+    {
         storage[index] = index
+    }
     return storage[3]
 }
 
 func fillRangeInclusive()->s32
 {
     var storage: [4] s32
-    for index in 1 to 3 do
+    for index in 1 to 3
+    {
         storage[index] = index
+    }
     return storage[3]
 }
 
@@ -126,8 +138,10 @@ func fillRangeWithSafeChangedIndex()->s32
     var storage: [4] s32
     for index in 0 until 4
     {
-        if index == 0 do
+        if index == 0
+        {
             index = 2
+        }
         storage[index] = index
     }
     return storage[2] + storage[3]
@@ -151,16 +165,20 @@ func sumRangeWithChangedNegativeIndex()->s32
 
 func firstWideRangeIndex()->s64
 {
-    for index in -1 to 2147483648 do
+    for index in -1 to 2147483648
+    {
         return index
+    }
     return 0
 }
 
 func sumWideRangeIndices()->s64
 {
     var sum: s64
-    for index in 2147483647 until 2147483649 do
+    for index in 2147483647 until 2147483649
+    {
         sum += index
+    }
     return sum
 }
 

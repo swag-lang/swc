@@ -11,7 +11,7 @@ using Core, Gui, Pixel
     let stateFile  = Gui.Testing.tempFilePath("scope-state-", ".scc")
     defer discard catch File.delete(brokenFile)
     defer discard catch File.delete(stateFile)
-    expect File.writeAllBytes(brokenFile, [0x89'u8, 0x50'u8, 0x4E'u8, 0x47'u8, 0'u8, 0xFF'u8])
+    expect File.writeAllBytes(brokenFile, [0x89_u8, 0x50_u8, 0x4E_u8, 0x47_u8, 0_u8, 0xFF_u8])
 
     var app: Application
     app.setAppIcon(expect Image.decode(".png", AppIcon))
@@ -27,8 +27,11 @@ using Core, Gui, Pixel
         if window.currentFile != brokenFile or
            window.currentView == null or
            window.activeChoiceIndex >= window.instances.count or
-           not (window.currentView is ViewerErrorView) do
+           not (window.currentView is ViewerErrorView)
+        {
             return false
+        }
+
         return not window.instances[window.activeChoiceIndex].failureReason.isEmpty()
     }
 
@@ -54,10 +57,16 @@ using Core, Gui, Pixel
     {
         if window.currentFile != document or
            window.currentView == null or
-           window.activeChoiceIndex >= window.instances.count do
+           window.activeChoiceIndex >= window.instances.count
+        {
             return false
-        if window.currentView is Markdown.View as view do
+        }
+
+        if window.currentView is Markdown.View as view
+        {
             return not view.isLoading() and window.instances[window.activeChoiceIndex].failureReason.isEmpty()
+        }
+
         return false
     }
 
@@ -76,13 +85,15 @@ using Core, Gui, Pixel
     if not documentPresented
     {
         Console.println("current=", window.currentFile, " pending=", window.pendingFile, " choices=", window.activeChoiceIndex, "/", window.instances.count)
-        for &instance, index in window.instances do
+        for &instance, index in window.instances
+        {
             Console.println("viewer=",
                             window.choices[index].key,
                             " failure=",
                             instance.failureReason,
                             " loading=",
                             instance.isLoading != null and instance.isLoading())
+        }
     }
 
     Swag.require(documentPresented, "the valid document did not recover in the native window")

@@ -18,8 +18,10 @@ func afterLend(lend: bool)->s32
 {
     var node:  BranchKillNode  = {value: 7}
     var owner: BranchKillOwner = {node: &node}
-    if not owner.node do
+    if not owner.node
+    {
         return 0
+    }
 
     if lend
     {

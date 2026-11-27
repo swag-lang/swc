@@ -14,6 +14,8 @@ using Core
     renderer.setCurrentContext(context)
     renderer.init()
     assertFractionalSourceScene(renderFractionalSourceScene(renderer))
-    for factor in [2, 3] do
+    for factor in [2, 3]
+    {
         assertResolvePaddingScene(renderResolvePaddingScene(renderer, factor))
+    }
 }

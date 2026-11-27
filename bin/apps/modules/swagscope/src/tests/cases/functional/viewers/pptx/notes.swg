@@ -65,12 +65,14 @@ using Core, Gui, Viewers
         let window = framedViewerWindow(&host, scopeTestDataPath(file), false)
         window.lens.open(">")
         var found: bool
-        for section in window.lens.results.sections where section and not section.inline do
+        for section in window.lens.results.sections where section and not section.inline
+        {
             for entry in section.entries where entry.title == Pptx.texts().ui_ReadNotes
             {
                 Swag.require(entry.run != null and entry.glyph.isValid())
                 found = true
             }
+        }
 
         Swag.require(found, file)
         window.lens.close()

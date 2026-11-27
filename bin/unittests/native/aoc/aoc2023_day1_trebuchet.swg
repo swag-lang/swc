@@ -68,18 +68,22 @@ func digitValue(ch: u8)->s32
 
 func isNewline(ch: u8)->bool
 {
-    return ch == '\n'u8 or ch == '\r'u8
+    return ch == '\n'_u8 or ch == '\r'_u8
 }
 
 func matchLiteral(bytes: const [..] u8, pos: u64, lit: string)->bool
 {
     let litBytes = cast(const [..] u8, lit)
-    if pos + litBytes.count > bytes.count do
+    if pos + litBytes.count > bytes.count
+    {
         return false
+    }
     for index in litBytes.count
     {
-        if bytes[pos + index] != litBytes[index] do
+        if bytes[pos + index] != litBytes[index]
+        {
             return false
+        }
     }
     return true
 }
@@ -88,8 +92,10 @@ func spelledDigitAt(bytes: const [..] u8, pos: u64)->s32
 {
     for index in DigitCount
     {
-        if matchLiteral(bytes, pos, SpelledDigits[index]) do
+        if matchLiteral(bytes, pos, SpelledDigits[index])
+        {
             return cast(s32, index) + 1
+        }
     }
     return -1
 }
@@ -100,8 +106,8 @@ func spelledDigitAt(bytes: const [..] u8, pos: u64)->s32
 
 func calibrationValueDigitOnly(line: const [..] u8)->u32
 {
-    var first = -1's32
-    var last  = -1's32
+    var first = -1_s32
+    var last  = -1_s32
 
     for index in line.count
     {
@@ -109,42 +115,54 @@ func calibrationValueDigitOnly(line: const [..] u8)->u32
         if isDigit(ch)
         {
             let d = digitValue(ch)
-            if first < 0 do
+            if first < 0
+            {
                 first = d
+            }
             last = d
         }
     }
 
-    if first < 0 do
+    if first < 0
+    {
         return 0
+    }
     return cast(u32, (first * 10 + last))
 }
 
 func calibrationValueWithWords(line: const [..] u8)->u32
 {
-    var first = -1's32
-    var last  = -1's32
+    var first = -1_s32
+    var last  = -1_s32
 
     for index in line.count
     {
-        var d  = -1's32
+        var d  = -1_s32
         let ch = line[index]
 
-        if isDigit(ch) do
+        if isDigit(ch)
+        {
             d = digitValue(ch)
-        else do
+        }
+        else
+        {
             d = spelledDigitAt(line, index)
+        }
 
         if d >= 0
         {
-            if first < 0 do
+            if first < 0
+            {
                 first = d
+            }
             last = d
         }
     }
 
-    if first < 0 do
+    if first < 0
+    {
         return 0
+    }
     return cast(u32, (first * 10 + last))
 }
 
@@ -158,8 +176,10 @@ func solveClean(bytes: const [..] u8)->CalibrationResult
         if isNewline(bytes[index]) or index == bytes.count - 1
         {
             var lineEnd = index
-            if not isNewline(bytes[index]) do
+            if not isNewline(bytes[index])
+            {
                 lineEnd = index + 1
+            }
 
             if lineEnd > lineStart
             {
@@ -186,8 +206,10 @@ impl IDigitFinder for DigitOnlyFinder
     {
         for index in line.count
         {
-            if isDigit(line[index]) do
+            if isDigit(line[index])
+            {
                 return digitValue(line[index])
+            }
         }
         return -1
     }
@@ -196,8 +218,10 @@ impl IDigitFinder for DigitOnlyFinder
     {
         for index in (line.count).reversed()
         {
-            if isDigit(line[index]) do
+            if isDigit(line[index])
+            {
                 return digitValue(line[index])
+            }
         }
         return -1
     }
@@ -209,11 +233,15 @@ impl IDigitFinder for WordAwareFinder
     {
         for index in line.count
         {
-            if isDigit(line[index]) do
+            if isDigit(line[index])
+            {
                 return digitValue(line[index])
+            }
             let w = spelledDigitAt(line, index)
-            if w >= 0 do
+            if w >= 0
+            {
                 return w
+            }
         }
         return -1
     }
@@ -222,11 +250,15 @@ impl IDigitFinder for WordAwareFinder
     {
         for index in (line.count).reversed()
         {
-            if isDigit(line[index]) do
+            if isDigit(line[index])
+            {
                 return digitValue(line[index])
+            }
             let w = spelledDigitAt(line, index)
-            if w >= 0 do
+            if w >= 0
+            {
                 return w
+            }
         }
         return -1
     }
@@ -244,8 +276,10 @@ func accumulateLine(line: const [..] u8, finder: IDigitFinder, target: *u64)
 {
     let first = finder.findFirst(line)
     let last  = finder.findLast(line)
-    if first >= 0 do
+    if first >= 0
+    {
         target[] += cast(u64, (first * 10 + last))
+    }
 }
 
 #[Swag.Macro]
@@ -257,8 +291,10 @@ func forEachLine(bytes: const [..] u8, stmt: #code(line))
         if isNewline(bytes[index]) or index == bytes.count - 1
         {
             var lineEnd = index
-            if not isNewline(bytes[index]) do
+            if not isNewline(bytes[index])
+            {
                 lineEnd = index + 1
+            }
             if lineEnd > lineStart
             {
                 let lineLen = lineEnd - lineStart
@@ -309,10 +345,10 @@ const CoverageResult: CalibrationResult = #run solveWithLanguageFeatures(cast(co
     let cleanA = solveClean(cast(const [..] u8, SampleInputA))
     let featA  = solveWithLanguageFeatures(cast(const [..] u8, SampleInputA))
 
-    Swag.require(cleanA.digitOnly == 142'u64)
-    Swag.require(cleanA.withWords == 142'u64)
-    Swag.require(SampleAResult.digitOnly == 142'u64)
-    Swag.require(SampleAResult.withWords == 142'u64)
+    Swag.require(cleanA.digitOnly == 142_u64)
+    Swag.require(cleanA.withWords == 142_u64)
+    Swag.require(SampleAResult.digitOnly == 142_u64)
+    Swag.require(SampleAResult.withWords == 142_u64)
     Swag.require(featA.digitOnly == cleanA.digitOnly)
     Swag.require(featA.withWords == cleanA.withWords)
 }
@@ -322,8 +358,8 @@ const CoverageResult: CalibrationResult = #run solveWithLanguageFeatures(cast(co
     let cleanB = solveClean(cast(const [..] u8, SampleInputB))
     let featB  = solveWithLanguageFeatures(cast(const [..] u8, SampleInputB))
 
-    Swag.require(cleanB.withWords == 281'u64)
-    Swag.require(SampleBResult.withWords == 281'u64)
+    Swag.require(cleanB.withWords == 281_u64)
+    Swag.require(SampleBResult.withWords == 281_u64)
     Swag.require(featB.digitOnly == cleanB.digitOnly)
     Swag.require(featB.withWords == cleanB.withWords)
 }
@@ -332,23 +368,23 @@ const CoverageResult: CalibrationResult = #run solveWithLanguageFeatures(cast(co
 {
     // Overlapping spelled digits: "eightwo" -> first=8, last=2 -> 82
     let overlapLine = cast(const [..] u8, EdgeOverlap)
-    Swag.require(calibrationValueWithWords(overlapLine) == 82'u32)
-    Swag.require(calibrationValueDigitOnly(overlapLine) == 0'u32)
+    Swag.require(calibrationValueWithWords(overlapLine) == 82_u32)
+    Swag.require(calibrationValueDigitOnly(overlapLine) == 0_u32)
 
     // All spelled: "onetwothreefourfivesixseveneightnine" -> first=1, last=9 -> 19
     let allWordsLine = cast(const [..] u8, EdgeAllWords)
-    Swag.require(calibrationValueWithWords(allWordsLine) == 19'u32)
-    Swag.require(calibrationValueDigitOnly(allWordsLine) == 0'u32)
+    Swag.require(calibrationValueWithWords(allWordsLine) == 19_u32)
+    Swag.require(calibrationValueDigitOnly(allWordsLine) == 0_u32)
 
     // No digits at all
     let emptyLine = cast(const [..] u8, EdgeEmpty)
-    Swag.require(calibrationValueWithWords(emptyLine) == 0'u32)
-    Swag.require(calibrationValueDigitOnly(emptyLine) == 0'u32)
+    Swag.require(calibrationValueWithWords(emptyLine) == 0_u32)
+    Swag.require(calibrationValueDigitOnly(emptyLine) == 0_u32)
 
     // Single digit
     let singleLine = cast(const [..] u8, EdgeSingle)
-    Swag.require(calibrationValueWithWords(singleLine) == 77'u32)
-    Swag.require(calibrationValueDigitOnly(singleLine) == 77'u32)
+    Swag.require(calibrationValueWithWords(singleLine) == 77_u32)
+    Swag.require(calibrationValueDigitOnly(singleLine) == 77_u32)
 }
 
 #test

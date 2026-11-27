@@ -15,9 +15,9 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     let library = dlopen("libxcb.so.1".buffer, RTLD_NOW | RTLD_LOCAL)
     Swag.require(library != null)
     defer discard dlclose(unwrap library)
-    let connect    = xcbTestSymbol'xcb_connect_fn(library, "xcb_connect")
-    let disconnect = xcbTestSymbol'xcb_disconnect_fn(library, "xcb_disconnect")
-    let hasError   = xcbTestSymbol'xcb_connection_has_error_fn(library, "xcb_connection_has_error")
+    let connect    = xcbTestSymbol!{xcb_connect_fn}(library, "xcb_connect")
+    let disconnect = xcbTestSymbol!{xcb_disconnect_fn}(library, "xcb_disconnect")
+    let hasError   = xcbTestSymbol!{xcb_connection_has_error_fn}(library, "xcb_connection_has_error")
     let connection = connect("invalid-display-syntax".buffer, null)
     Swag.require(connection != null)
     defer disconnect(unwrap connection)
@@ -31,21 +31,21 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     let library = dlopen("libxcb.so.1".buffer, RTLD_NOW | RTLD_LOCAL)
     Swag.require(library != null)
     defer discard dlclose(unwrap library)
-    let connect       = xcbTestSymbol'xcb_connect_fn(library, "xcb_connect")
-    let disconnect    = xcbTestSymbol'xcb_disconnect_fn(library, "xcb_disconnect")
-    let hasError      = xcbTestSymbol'xcb_connection_has_error_fn(library, "xcb_connection_has_error")
-    let getSetup      = xcbTestSymbol'xcb_get_setup_fn(library, "xcb_get_setup")
-    let roots         = xcbTestSymbol'xcb_setup_roots_iterator_fn(library, "xcb_setup_roots_iterator")
-    let nextScreen    = xcbTestSymbol'xcb_screen_next_fn(library, "xcb_screen_next")
-    let generateId    = xcbTestSymbol'xcb_generate_id_fn(library, "xcb_generate_id")
-    let check         = xcbTestSymbol'xcb_request_check_fn(library, "xcb_request_check")
-    let create        = xcbTestSymbol'xcb_create_window_checked_fn(library, "xcb_create_window_checked")
-    let map           = xcbTestSymbol'xcb_map_window_checked_fn(library, "xcb_map_window_checked")
-    let configure     = xcbTestSymbol'xcb_configure_window_checked_fn(library, "xcb_configure_window_checked")
-    let destroy       = xcbTestSymbol'xcb_destroy_window_checked_fn(library, "xcb_destroy_window_checked")
-    let pollEvent     = xcbTestSymbol'xcb_poll_for_event_fn(library, "xcb_poll_for_event")
-    let geometry      = xcbTestSymbol'xcb_get_geometry_fn(library, "xcb_get_geometry")
-    let geometryReply = xcbTestSymbol'xcb_get_geometry_reply_fn(library, "xcb_get_geometry_reply")
+    let connect       = xcbTestSymbol!{xcb_connect_fn}(library, "xcb_connect")
+    let disconnect    = xcbTestSymbol!{xcb_disconnect_fn}(library, "xcb_disconnect")
+    let hasError      = xcbTestSymbol!{xcb_connection_has_error_fn}(library, "xcb_connection_has_error")
+    let getSetup      = xcbTestSymbol!{xcb_get_setup_fn}(library, "xcb_get_setup")
+    let roots         = xcbTestSymbol!{xcb_setup_roots_iterator_fn}(library, "xcb_setup_roots_iterator")
+    let nextScreen    = xcbTestSymbol!{xcb_screen_next_fn}(library, "xcb_screen_next")
+    let generateId    = xcbTestSymbol!{xcb_generate_id_fn}(library, "xcb_generate_id")
+    let check         = xcbTestSymbol!{xcb_request_check_fn}(library, "xcb_request_check")
+    let create        = xcbTestSymbol!{xcb_create_window_checked_fn}(library, "xcb_create_window_checked")
+    let map           = xcbTestSymbol!{xcb_map_window_checked_fn}(library, "xcb_map_window_checked")
+    let configure     = xcbTestSymbol!{xcb_configure_window_checked_fn}(library, "xcb_configure_window_checked")
+    let destroy       = xcbTestSymbol!{xcb_destroy_window_checked_fn}(library, "xcb_destroy_window_checked")
+    let pollEvent     = xcbTestSymbol!{xcb_poll_for_event_fn}(library, "xcb_poll_for_event")
+    let geometry      = xcbTestSymbol!{xcb_get_geometry_fn}(library, "xcb_get_geometry")
+    let geometryReply = xcbTestSymbol!{xcb_get_geometry_reply_fn}(library, "xcb_get_geometry_reply")
     var screenIndex: s32
     let connection    = connect(null, &screenIndex)
     Swag.require(connection != null)
@@ -54,8 +54,11 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     let setup = getSetup(connection)
     Swag.require(setup.status == 1 and setup.roots_len != 0 and setup.min_keycode <= setup.max_keycode)
     var screens = roots(setup)
-    for cast(u32, screenIndex) do
+    for cast(u32, screenIndex)
+    {
         nextScreen(&screens)
+    }
+
     Swag.require(screens.rem > 0 and screens.data != null)
     let screen = screens.data
     Swag.require(screen.width_in_pixels != 0 and screen.height_in_pixels != 0)
@@ -66,15 +69,18 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     defer free(createError)
     Swag.require(createError == null)
     var destroyed = false
-    defer if not destroyed do
+    defer if not destroyed
+    {
         free(check(unwrap connection, destroy(connection, window)))
-    let internAtom     = xcbTestSymbol'xcb_intern_atom_fn(library, "xcb_intern_atom")
-    let atomReply      = xcbTestSymbol'xcb_intern_atom_reply_fn(library, "xcb_intern_atom_reply")
-    let changeProperty = xcbTestSymbol'xcb_change_property_checked_fn(library, "xcb_change_property_checked")
-    let getProperty    = xcbTestSymbol'xcb_get_property_fn(library, "xcb_get_property")
-    let propertyReply  = xcbTestSymbol'xcb_get_property_reply_fn(library, "xcb_get_property_reply")
-    let propertyValue  = xcbTestSymbol'xcb_get_property_value_fn(library, "xcb_get_property_value")
-    let propertyLength = xcbTestSymbol'xcb_get_property_value_length_fn(library, "xcb_get_property_value_length")
+    }
+
+    let internAtom     = xcbTestSymbol!{xcb_intern_atom_fn}(library, "xcb_intern_atom")
+    let atomReply      = xcbTestSymbol!{xcb_intern_atom_reply_fn}(library, "xcb_intern_atom_reply")
+    let changeProperty = xcbTestSymbol!{xcb_change_property_checked_fn}(library, "xcb_change_property_checked")
+    let getProperty    = xcbTestSymbol!{xcb_get_property_fn}(library, "xcb_get_property")
+    let propertyReply  = xcbTestSymbol!{xcb_get_property_reply_fn}(library, "xcb_get_property_reply")
+    let propertyValue  = xcbTestSymbol!{xcb_get_property_value_fn}(library, "xcb_get_property_value")
+    let propertyLength = xcbTestSymbol!{xcb_get_property_value_length_fn}(library, "xcb_get_property_value_length")
     var atomError: *xcb_generic_error_t?
     let atomName       = "_SWAG_XCB_TEST"
     let atom           = atomReply(connection, internAtom(connection, 0, cast(u16, atomName.count), atomName.buffer), &atomError)
@@ -115,8 +121,11 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     for
     {
         let event = pollEvent(connection)
-        if not event do
+        if not event
+        {
             break
+        }
+
         defer free(event)
         let kind = event.response_type & 0x7F
         if kind == 12
@@ -124,7 +133,7 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
             let expose = cast(*xcb_expose_event_t, cast(*void, event))
             exposed = exposed or expose.window == window
         }
-        elif kind == 22
+        else if kind == 22
         {
             let resize = cast(*xcb_configure_notify_event_t, cast(*void, event))
             resized = resized or (resize.window == window and resize.width == 120 and resize.height == 90)
@@ -137,7 +146,7 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
 
     // SendEvent marks the response bit but preserves signed coordinates and input state.
     // Focus packets have a smaller C view; the request still reads a full 32-byte wire event.
-    let send = xcbTestSymbol'xcb_send_event_checked_fn(library, "xcb_send_event_checked")
+    let send = xcbTestSymbol!{xcb_send_event_checked_fn}(library, "xcb_send_event_checked")
     for kind in [XCB_KEY_PRESS, XCB_KEY_RELEASE, XCB_BUTTON_PRESS, XCB_BUTTON_RELEASE,
                  XCB_MOTION_NOTIFY, XCB_ENTER_NOTIFY, XCB_LEAVE_NOTIFY, XCB_FOCUS_IN, XCB_FOCUS_OUT]
     {
@@ -184,8 +193,10 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
 
         // X11 replaces the sequence field, but none of the input payload.
         Swag.require(received[1] == bytes[1])
-        for index in 4 until 32 do
+        for index in 4 until 32
+        {
             Swag.require(received[index] == bytes[index])
+        }
     }
 
     let destroyError = check(connection, destroy(connection, window))
@@ -205,19 +216,19 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     let library = dlopen("libxcb.so.1".buffer, RTLD_NOW | RTLD_LOCAL)
     Swag.require(library != null)
     defer discard dlclose(unwrap library)
-    let connect      = xcbTestSymbol'xcb_connect_fn(library, "xcb_connect")
-    let disconnect   = xcbTestSymbol'xcb_disconnect_fn(library, "xcb_disconnect")
-    let hasError     = xcbTestSymbol'xcb_connection_has_error_fn(library, "xcb_connection_has_error")
-    let getSetup     = xcbTestSymbol'xcb_get_setup_fn(library, "xcb_get_setup")
-    let roots        = xcbTestSymbol'xcb_setup_roots_iterator_fn(library, "xcb_setup_roots_iterator")
-    let keymap       = xcbTestSymbol'xcb_query_keymap_fn(library, "xcb_query_keymap")
-    let keymapReply  = xcbTestSymbol'xcb_query_keymap_reply_fn(library, "xcb_query_keymap_reply")
-    let mapping      = xcbTestSymbol'xcb_get_keyboard_mapping_fn(library, "xcb_get_keyboard_mapping")
-    let mappingReply = xcbTestSymbol'xcb_get_keyboard_mapping_reply_fn(library, "xcb_get_keyboard_mapping_reply")
-    let keysyms      = xcbTestSymbol'xcb_get_keyboard_mapping_keysyms_fn(library, "xcb_get_keyboard_mapping_keysyms")
-    let keysymsCount = xcbTestSymbol'xcb_get_keyboard_mapping_keysyms_length_fn(library, "xcb_get_keyboard_mapping_keysyms_length")
-    let queryPointer = xcbTestSymbol'xcb_query_pointer_fn(library, "xcb_query_pointer")
-    let pointerReply = xcbTestSymbol'xcb_query_pointer_reply_fn(library, "xcb_query_pointer_reply")
+    let connect      = xcbTestSymbol!{xcb_connect_fn}(library, "xcb_connect")
+    let disconnect   = xcbTestSymbol!{xcb_disconnect_fn}(library, "xcb_disconnect")
+    let hasError     = xcbTestSymbol!{xcb_connection_has_error_fn}(library, "xcb_connection_has_error")
+    let getSetup     = xcbTestSymbol!{xcb_get_setup_fn}(library, "xcb_get_setup")
+    let roots        = xcbTestSymbol!{xcb_setup_roots_iterator_fn}(library, "xcb_setup_roots_iterator")
+    let keymap       = xcbTestSymbol!{xcb_query_keymap_fn}(library, "xcb_query_keymap")
+    let keymapReply  = xcbTestSymbol!{xcb_query_keymap_reply_fn}(library, "xcb_query_keymap_reply")
+    let mapping      = xcbTestSymbol!{xcb_get_keyboard_mapping_fn}(library, "xcb_get_keyboard_mapping")
+    let mappingReply = xcbTestSymbol!{xcb_get_keyboard_mapping_reply_fn}(library, "xcb_get_keyboard_mapping_reply")
+    let keysyms      = xcbTestSymbol!{xcb_get_keyboard_mapping_keysyms_fn}(library, "xcb_get_keyboard_mapping_keysyms")
+    let keysymsCount = xcbTestSymbol!{xcb_get_keyboard_mapping_keysyms_length_fn}(library, "xcb_get_keyboard_mapping_keysyms_length")
+    let queryPointer = xcbTestSymbol!{xcb_query_pointer_fn}(library, "xcb_query_pointer")
+    let pointerReply = xcbTestSymbol!{xcb_query_pointer_reply_fn}(library, "xcb_query_pointer_reply")
     let connection   = connect(null, null)
     Swag.require(connection != null)
     defer disconnect(unwrap connection)
@@ -240,8 +251,11 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     Swag.require(keysymsCount(symbols) == cast(s32, count) * symbols.keysyms_per_keycode)
     var foundLetter = false
     let values      = keysyms(symbols)
-    for index in cast(u32, keysymsCount(symbols)) where values[index] == 'a' do
+    for index in cast(u32, keysymsCount(symbols)) where values[index] == 'a'
+    {
         foundLetter = true
+    }
+
     Swag.require(foundLetter)
     var pointerError: *xcb_generic_error_t?
     let pointer = pointerReply(connection, queryPointer(connection, screen.root), &pointerError)
@@ -255,12 +269,12 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     let randrLibrary = dlopen("libxcb-randr.so.0".buffer, RTLD_NOW | RTLD_LOCAL)
     Swag.require(randrLibrary != null)
     defer discard dlclose(unwrap randrLibrary)
-    let version       = xcbTestSymbol'xcb_randr_query_version_fn(randrLibrary, "xcb_randr_query_version")
-    let versionReply  = xcbTestSymbol'xcb_randr_query_version_reply_fn(randrLibrary, "xcb_randr_query_version_reply")
-    let monitors      = xcbTestSymbol'xcb_randr_get_monitors_fn(randrLibrary, "xcb_randr_get_monitors")
-    let monitorsReply = xcbTestSymbol'xcb_randr_get_monitors_reply_fn(randrLibrary, "xcb_randr_get_monitors_reply")
-    let iterate       = xcbTestSymbol'xcb_randr_get_monitors_monitors_iterator_fn(randrLibrary, "xcb_randr_get_monitors_monitors_iterator")
-    let next          = xcbTestSymbol'xcb_randr_monitor_info_next_fn(randrLibrary, "xcb_randr_monitor_info_next")
+    let version       = xcbTestSymbol!{xcb_randr_query_version_fn}(randrLibrary, "xcb_randr_query_version")
+    let versionReply  = xcbTestSymbol!{xcb_randr_query_version_reply_fn}(randrLibrary, "xcb_randr_query_version_reply")
+    let monitors      = xcbTestSymbol!{xcb_randr_get_monitors_fn}(randrLibrary, "xcb_randr_get_monitors")
+    let monitorsReply = xcbTestSymbol!{xcb_randr_get_monitors_reply_fn}(randrLibrary, "xcb_randr_get_monitors_reply")
+    let iterate       = xcbTestSymbol!{xcb_randr_get_monitors_monitors_iterator_fn}(randrLibrary, "xcb_randr_get_monitors_monitors_iterator")
+    let next          = xcbTestSymbol!{xcb_randr_monitor_info_next_fn}(randrLibrary, "xcb_randr_monitor_info_next")
     var versionError: *xcb_generic_error_t?
     let negotiated    = versionReply(connection, version(connection, 1, 5), &versionError)
     defer free(negotiated)
@@ -273,7 +287,7 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     defer free(monitorError)
     Swag.require(reply != null and monitorError == null and reply.nMonitors != 0)
     var iterator = iterate(reply)
-    var seen     = 0'u32
+    var seen     = 0_u32
     while iterator.rem > 0
     {
         let info = unwrap iterator.data

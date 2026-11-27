@@ -8,15 +8,19 @@ func pick(values: const [..] s32, idx: s32)->s32
 func byteChecksum(values: const [..] u8)->u32
 {
     var result: u32
-    for value in values do
+    for value in values
+    {
         result += cast(u32, value)
+    }
     return result
 }
 
 func containsRune(values: const [..] rune, what: rune)->bool
 {
-    for value in values where value == what do
+    for value in values where value == what
+    {
         return true
+    }
     return false
 }
 
@@ -34,8 +38,10 @@ struct ProductLine
 func totalQty(lines: const [..] ProductLine)->s32
 {
     var result: s32
-    for line in lines do
+    for line in lines
+    {
         result += line.qty
+    }
     return result
 }
 
@@ -75,11 +81,11 @@ func totalQty(lines: const [..] ProductLine)->s32
     let tail         = bytes[2 to]
 
     Swag.require(head.count == 3)
-    Swag.require(head[0] == 'c'u8)
-    Swag.require(head[2] == 'n'u8)
+    Swag.require(head[0] == 'c'_u8)
+    Swag.require(head[2] == 'n'_u8)
     Swag.require(tail.count == 3)
-    Swag.require(tail[0] == 'n'u8)
-    Swag.require(tail[2] == 't'u8)
+    Swag.require(tail[0] == 'n'_u8)
+    Swag.require(tail[2] == 't'_u8)
 }
 
 #test
@@ -88,12 +94,12 @@ func totalQty(lines: const [..] ProductLine)->s32
     const emptyBytes = cast(const [..] u8, emptyText)
 
     Swag.require(emptyBytes.count == 0)
-    Swag.require(byteChecksum(emptyBytes) == 0'u32)
+    Swag.require(byteChecksum(emptyBytes) == 0_u32)
 }
 
 #test
 {
-    Swag.require(aggregateLiteralRuneSlice('\u00E9'rune))
+    Swag.require(aggregateLiteralRuneSlice('\u00E9'_rune))
 }
 
 #test

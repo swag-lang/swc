@@ -3263,7 +3263,7 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
 
     CandidateAttempts       candidates;
     SmallVector<AstNodeRef> explicitGenericArgNodes;
-    SemaGeneric::appendQuotedGenericArgs(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
+    SemaGeneric::appendExplicitGenericArgs(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
     SWC_RESULT(collectCandidateAttempts(sema, candidates, runtimeSymbols, args, ufcsArg, explicitGenericArgNodes.span(), mode));
     SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 
@@ -3297,7 +3297,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     // Collect all function candidates and evaluate their match quality
     CandidateAttempts       candidates;
     SmallVector<AstNodeRef> explicitGenericArgNodes;
-    SemaGeneric::appendQuotedGenericArgs(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
+    SemaGeneric::appendExplicitGenericArgs(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
     SWC_RESULT(collectCandidateAttempts(sema, candidates, runtimeSymbols, args, ufcsArg, explicitGenericArgNodes.span(), mode));
     SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 

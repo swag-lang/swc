@@ -15,7 +15,7 @@ using Core
     let ignored = Path.combine(root, "font.bin")
     discard expect File.writeAllBytes(ignored, bytes.toSlice())
     let bad = Path.combine(root, "broken.ttf")
-    discard expect File.writeAllBytes(bad, [0'u8, 1, 2, 3])
+    discard expect File.writeAllBytes(bad, [0_u8, 1, 2, 3])
     var catalog: FontCatalog
     Swag.require((expect catalog.addDirectory(root)) == 2)
     Swag.require((expect catalog.addDirectory(child)) == 0)

@@ -14,8 +14,10 @@
 
             for value, idx in arr
             {
-                if idx == 0 do
+                if idx == 0
+                {
                     continue
+                }
                 inner += value + cast(s32, idx)
             }
         }
@@ -36,10 +38,14 @@
 
         for index in arr.count
         {
-            if index == 0 do
+            if index == 0
+            {
                 continue
-            if index == 4 do
+            }
+            if index == 4
+            {
                 break
+            }
             acc += arr[index] + cast(s32, index)
         }
 

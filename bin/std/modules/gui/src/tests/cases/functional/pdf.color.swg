@@ -3,12 +3,15 @@
 using Core, Pixel, Pdf
 
 // Paints one filled rectangle per content fragment and returns the color each one carries.
-private func filledColors(resources: string, content: string, extra: const [..] u8)->Array'Color
+private func filledColors(resources: string, content: string, extra: const [..] u8)->Array!{Color}
 {
     var result: #returntype
     let document = expect Document.decode(singlePagePdf(resources, cast(const [..] u8, content), extra).toSlice())
-    for item in document.pages[0].items where item.kind == .Path do
+    for item in document.pages[0].items where item.kind == .Path
+    {
         result.add(item.itemFillColor())
+    }
+
     return result
 }
 
@@ -26,7 +29,7 @@ private func filledColors(resources: string, content: string, extra: const [..] 
 // `cs` and `scn` name a space from the page resources, then give it its components.
 #test
 {
-    var extra: Array'u8
+    var extra: Array!{u8}
     addObject(&extra, 5, "<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [0 1 1 0] /N 1 >>")
 
     let resources = "/ColorSpace << /CsGray /DeviceGray /CsCmyk /DeviceCMYK /CsSpot [/Separation /Spot /DeviceCMYK 5 0 R] >>"
@@ -95,7 +98,7 @@ private func filledColors(resources: string, content: string, extra: const [..] 
 // `gs` carries the line width an ExtGState sets.
 #test
 {
-    var extra: Array'u8
+    var extra: Array!{u8}
     addObject(&extra, 5, "<< /Type /ExtGState /LW 7 >>")
 
     let content  = "/GS0 gs 0 0 5 5 re S"

@@ -30,19 +30,19 @@ impl Gated
 
 struct(T) Holder
 {
-    field: Gated'T
+    field: Gated!{T}
 }
 
 struct MixedHolder
 {
-    absent:  [2] Gated'u32
-    present: Gated's32
+    absent:  [2] Gated!{u32}
+    present: Gated!{s32}
 }
 
 #test
 {
     DropCount = 0
-    var source: Holder'u32 = Holder'u32{Gated'u32{3}}
+    var source: Holder!{u32} = Holder!{u32}{Gated!{u32}{3}}
     #assert(not #defined(source.field.opPostCopy))
     let copied = source
     Swag.require(copied.field.value == 3)
@@ -57,7 +57,7 @@ struct MixedHolder
 #test
 {
     DropCount = 0
-    var source: Holder's32 = Holder's32{Gated's32{3}}
+    var source: Holder!{s32} = Holder!{s32}{Gated!{s32}{3}}
     #assert(#defined(source.field.opPostCopy))
     let copied = source
     Swag.require(copied.field.value == 13)
@@ -71,8 +71,8 @@ struct MixedHolder
 
 #test
 {
-    let absent:  typeinfo = #typeof(Gated'u32)
-    let present: typeinfo = #typeof(Gated's32)
+    let absent:  typeinfo = #typeof(Gated!{u32})
+    let present: typeinfo = #typeof(Gated!{s32})
     let flags = Swag.TypeInfoFlags.HasDrop | Swag.TypeInfoFlags.HasPostCopy | Swag.TypeInfoFlags.HasPostMove
     Swag.require((absent.flags & flags) == .Zero)
     Swag.require((present.flags & flags) == flags)
@@ -80,7 +80,7 @@ struct MixedHolder
 
 #test
 {
-    var source: MixedHolder = MixedHolder{[Gated'u32{1}, Gated'u32{2}], Gated's32{3}}
+    var source: MixedHolder = MixedHolder{[Gated!{u32}{1}, Gated!{u32}{2}], Gated!{s32}{3}}
     let copied = source
     Swag.require(copied.absent[0].value == 1)
     Swag.require(copied.absent[1].value == 2)

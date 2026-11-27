@@ -6,9 +6,9 @@ using Core
 // A safe reading projection of one slide or shape, including bounded raster pictures.
 struct SlideText
 {
-    html:          String
-    plainText:     String
-    omittedImages: u64
+    html:               String
+    plainText:          String
+    omittedImages:      u64
     requiresSimplified: bool
 }
 
@@ -31,34 +31,64 @@ private impl RunStyle
             paragraph[] += "<span style=\""
             if .size
             {
-                let pixels = cast(f32, Math.clamp(.size, 100'u32, 40000)) / 100 * 96 / 72
+                let pixels = cast(f32, Math.clamp(.size, 100_u32, 40000)) / 100 * 96 / 72
                 paragraph[] += Format.toString("font-size:%{f4}vw;", pixels / pageWidth * 100)
             }
 
-            if not .color.isEmpty() do
+            if not .color.isEmpty()
+            {
                 paragraph[] += Format.toString("color:#%;", .color)
+            }
+
             paragraph[] += "\">"
         }
 
-        if .bold do
+        if .bold
+        {
             paragraph[] += "<b>"
-        if .italic do
+        }
+
+        if .italic
+        {
             paragraph[] += "<i>"
-        if .underline do
+        }
+
+        if .underline
+        {
             paragraph[] += "<u>"
-        if .strike do
+        }
+
+        if .strike
+        {
             paragraph[] += "<s>"
+        }
+
         paragraph[] += run[]
-        if .strike do
+        if .strike
+        {
             paragraph[] += "</s>"
-        if .underline do
+        }
+
+        if .underline
+        {
             paragraph[] += "</u>"
-        if .italic do
+        }
+
+        if .italic
+        {
             paragraph[] += "</i>"
-        if .bold do
+        }
+
+        if .bold
+        {
             paragraph[] += "</b>"
-        if not readerStyle and (.size or not .color.isEmpty()) do
+        }
+
+        if not readerStyle and (.size or not .color.isEmpty())
+        {
             paragraph[] += "</span>"
+        }
+
         run[].clear()
     }
 }
@@ -78,31 +108,31 @@ impl SlideText
             }
         }
 
-        var result:             #returntype
-        var scan            = Package.Scanner.create(source)
-        var token:              Package.Token
-        var inText          = false
-        var inParagraph     = false
-        var inParagraphProperties = false
-        var currentAutoNum = false
-        var currentAutoNumType: String
-        var currentAutoNumValue = 0'u32
-        var previousAutoNum = false
+        var result:              #returntype
+        var scan                        = Package.Scanner.create(source)
+        var token:               Package.Token
+        var inText                      = false
+        var inParagraph                 = false
+        var inParagraphProperties       = false
+        var currentAutoNum              = false
+        var currentAutoNumType:  String
+        var currentAutoNumValue         = 0_u32
+        var previousAutoNum             = false
         var previousAutoNumType: String
-        var nextAutoNumValue = 1'u32
-        var inRun           = false
-        var runStyle:           RunStyle
-        var inRunProperties = false
-        var inRunFill       = false
-        var inRunColor      = false
-        var alignment:          string = ""
-        var paragraph:          String
-        var run:                String
-        var inPicture       = false
-        var pictureId:          String
-        var pictureDescription: String
-        var pictureWidth:       u32
-        var pictureHeight:      u32
+        var nextAutoNumValue            = 1_u32
+        var inRun                       = false
+        var runStyle:            RunStyle
+        var inRunProperties             = false
+        var inRunFill                   = false
+        var inRunColor                  = false
+        var alignment:           string = ""
+        var paragraph:           String
+        var run:                 String
+        var inPicture                   = false
+        var pictureId:           String
+        var pictureDescription:  String
+        var pictureWidth:        u32
+        var pictureHeight:       u32
         while scan.next(&token)
         {
             if token.kind == .Start
@@ -111,23 +141,29 @@ impl SlideText
                 {
                     inParagraph = true
                     paragraph.clear()
-                    alignment = ""
+                    alignment      = ""
                     currentAutoNum = false
                     currentAutoNumType.clear()
                     currentAutoNumValue = 0
                 }
-                elif inParagraph and token.isElement("pPr")
+                else if inParagraph and token.isElement("pPr")
                 {
                     inParagraphProperties = not token.empty
                     let value = token.attribute("algn") orelse ""
-                    if value == "ctr" do
+                    if value == "ctr"
+                    {
                         alignment = "center"
-                    elif value == "r" do
+                    }
+                    else if value == "r"
+                    {
                         alignment = "right"
-                    elif value == "just" or value == "dist" do
+                    }
+                    else if value == "just" or value == "dist"
+                    {
                         alignment = "justify"
+                    }
                 }
-                elif inParagraphProperties and token.isElement("buChar")
+                else if inParagraphProperties and token.isElement("buChar")
                 {
                     let value = token.attribute("char") orelse "•"
                     if value.count > 0 and value.count <= 8
@@ -138,18 +174,21 @@ impl SlideText
                         paragraph += " "
                     }
                 }
-                elif inParagraphProperties and token.isElement("buAutoNum")
+                else if inParagraphProperties and token.isElement("buAutoNum")
                 {
                     let type = token.attribute("type") orelse "arabicPeriod"
-                    if type == "arabicPeriod" or type == "arabicParen" or type == "arabicParenR" or type == "arabicPlain"
+                    if type == "arabicPeriod" or
+                       type == "arabicParen" or
+                       type == "arabicParenR" or
+                       type == "arabicPlain"
                     {
-                        currentAutoNum = true
+                        currentAutoNum     = true
                         currentAutoNumType = String.from(type)
                         if let startAt = token.attribute("startAt")
                         {
                             currentAutoNumValue = catch StrConv.toU32(startAt) orelse 1
                         }
-                        elif previousAutoNum and previousAutoNumType == type
+                        else if previousAutoNum and previousAutoNumType == type
                         {
                             currentAutoNumValue = nextAutoNumValue
                         }
@@ -158,18 +197,29 @@ impl SlideText
                             currentAutoNumValue = 1
                         }
 
-                        if currentAutoNumValue == 0 or currentAutoNumValue > 1_000_000 do
+                        if currentAutoNumValue == 0 or currentAutoNumValue > 1_000_000
+                        {
                             currentAutoNumValue = 1
+                        }
+
                         nextAutoNumValue = currentAutoNumValue + 1
                         let number = Format.toString("%", currentAutoNumValue)
                         var label: String
-                        if type == "arabicParen" do
+                        if type == "arabicParen"
+                        {
                             label += "("
+                        }
+
                         label += number
-                        if type == "arabicPeriod" do
+                        if type == "arabicPeriod"
+                        {
                             label += "."
-                        elif type == "arabicParen" or type == "arabicParenR" do
+                        }
+                        else if type == "arabicParen" or type == "arabicParenR"
+                        {
                             label += ")"
+                        }
+
                         label += " "
                         result.plainText += label
                         Package.appendHtmlEscaped(&paragraph, label)
@@ -178,16 +228,16 @@ impl SlideText
                     {
                         result.requiresSimplified = true
                         result.plainText += "• "
-                        paragraph += "• "
+                        paragraph        += "• "
                     }
                 }
-                elif inParagraph and token.isElement("r")
+                else if inParagraph and token.isElement("r")
                 {
                     inRun = true
                     run.clear()
                     runStyle = {}
                 }
-                elif inRun and token.isElement("rPr")
+                else if inRun and token.isElement("rPr")
                 {
                     let b = token.attribute("b") orelse "0"
                     let i = token.attribute("i") orelse "0"
@@ -198,37 +248,46 @@ impl SlideText
                     runStyle.size      = catch StrConv.toU32(token.attribute("sz") orelse "") orelse 0
                     inRunProperties    = not token.empty
                 }
-                elif inRunProperties and token.isElement("solidFill")
+                else if inRunProperties and token.isElement("solidFill")
                 {
                     inRunFill = not token.empty
                 }
-                elif inRunFill and (token.isElement("srgbClr") or token.isElement("schemeClr"))
+                else if inRunFill and (token.isElement("srgbClr") or token.isElement("schemeClr"))
                 {
                     let value = token.attribute("val") orelse ""
                     let color = token.isElement("schemeClr") ? theme.color(value) : String.from(value)
-                    if Package.isRgbHex(color) do
+                    if Package.isRgbHex(color)
+                    {
                         runStyle.color = color
+                    }
+
                     inRunColor = not token.empty
                 }
-                elif inRunColor and (token.isElement("tint") or token.isElement("shade"))
+                else if inRunColor and (token.isElement("tint") or token.isElement("shade"))
                 {
                     let amount = catch StrConv.toU32(token.attribute("val") orelse "") orelse Swag.U32.Max
-                    if amount <= 100_000 do
+                    if amount <= 100_000
+                    {
                         runStyle.color = theme.transformColor(runStyle.color, amount, token.isElement("tint"))
+                    }
                 }
-                elif token.isElement("t")
+                else if token.isElement("t")
                 {
                     inText = true
                 }
-                elif token.isElement("br")
+                else if token.isElement("br")
                 {
-                    result.plainText += '\n'u8
-                    if inRun do
+                    result.plainText += '\n'_u8
+                    if inRun
+                    {
                         run += "<br>"
-                    else do
+                    }
+                    else
+                    {
                         paragraph += "<br>"
+                    }
                 }
-                elif token.isElement("pic")
+                else if token.isElement("pic")
                 {
                     inPicture = true
                     pictureId.clear()
@@ -236,15 +295,15 @@ impl SlideText
                     pictureWidth  = 0
                     pictureHeight = 0
                 }
-                elif inPicture and token.isElement("blip")
+                else if inPicture and token.isElement("blip")
                 {
                     pictureId = token.attribute("r:embed") orelse ""
                 }
-                elif inPicture and token.isElement("cNvPr")
+                else if inPicture and token.isElement("cNvPr")
                 {
                     pictureDescription = token.attribute("descr") orelse token.attribute("title") orelse ""
                 }
-                elif inPicture and token.isElement("ext") and not pictureWidth
+                else if inPicture and token.isElement("ext") and not pictureWidth
                 {
                     readPictureExtent(&token, &pictureWidth, &pictureHeight)
                 }
@@ -258,8 +317,11 @@ impl SlideText
                     result.html += "</p>"
                 }
 
-                if token.empty and token.isElement("t") do
+                if token.empty and token.isElement("t")
+                {
                     inText = false
+                }
+
                 if token.empty and token.isElement("p")
                 {
                     result.html += "<p></p>"
@@ -272,13 +334,16 @@ impl SlideText
                     inRun = false
                 }
             }
-            elif token.kind == .End
+            else if token.kind == .End
             {
                 if token.isElement("p")
                 {
-                    result.plainText += '\n'u8
-                    if inRun do
+                    result.plainText += '\n'_u8
+                    if inRun
+                    {
                         runStyle.append(&paragraph, &run, pageWidth, readerStyle)
+                    }
+
                     result.html += "<p"
                     if alignment.count
                     {
@@ -287,40 +352,40 @@ impl SlideText
                         result.html += "\""
                     }
 
-                    result.html += ">"
-                    result.html += paragraph
-                    result.html += "</p>"
-                    previousAutoNum = currentAutoNum
+                    result.html         += ">"
+                    result.html         += paragraph
+                    result.html         += "</p>"
+                    previousAutoNum     = currentAutoNum
                     previousAutoNumType = currentAutoNum ? currentAutoNumType : ""
-                    inParagraph = false
-                    inRun       = false
+                    inParagraph         = false
+                    inRun               = false
                 }
-                elif token.isElement("pPr")
+                else if token.isElement("pPr")
                 {
                     inParagraphProperties = false
                 }
-                elif token.isElement("r")
+                else if token.isElement("r")
                 {
                     runStyle.append(&paragraph, &run, pageWidth, readerStyle)
                     inRun = false
                 }
-                elif token.isElement("rPr")
+                else if token.isElement("rPr")
                 {
                     inRunProperties = false
                 }
-                elif token.isElement("solidFill")
+                else if token.isElement("solidFill")
                 {
                     inRunFill = false
                 }
-                elif token.isElement("srgbClr") or token.isElement("schemeClr")
+                else if token.isElement("srgbClr") or token.isElement("schemeClr")
                 {
                     inRunColor = false
                 }
-                elif token.isElement("t")
+                else if token.isElement("t")
                 {
                     inText = false
                 }
-                elif token.isElement("pic")
+                else if token.isElement("pic")
                 {
                     inPicture   = false
                     result.html += "<p>"
@@ -343,21 +408,30 @@ impl SlideText
                     result.html += "</p>"
                 }
             }
-            elif inText
+            else if inText
             {
                 result.plainText += token.text
-                if inRun do
+                if inRun
+                {
                     Package.appendHtmlEscaped(&run, token.text)
-                else do
+                }
+                else
+                {
                     Package.appendHtmlEscaped(&paragraph, token.text)
+                }
             }
 
-            if result.html.count + paragraph.count + run.count > 32 * 1024 * 1024 do
+            if result.html.count + paragraph.count + run.count > 32 * 1024 * 1024
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
         }
 
-        if scan.damaged do
+        if scan.damaged
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         return result
     }
 }

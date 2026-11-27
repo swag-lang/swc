@@ -12,7 +12,7 @@ using Swag, RuntimeCtxDll
     Swag.require(ctxPoolFirstValue() == 0x00000000)
     Swag.require(ctxPoolFourthValue() == 0x0000FF00)
 
-    for i in 4'u64
+    for i in 4_u64
     {
         let name  = ctxPoolNameAt(i)
         let value = ctxPoolValueAt(i)

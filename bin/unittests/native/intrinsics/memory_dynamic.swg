@@ -28,12 +28,16 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
 {
     var source: [17] u8
     var target: [17] u8
-    for &value, index in source do
+    for &value, index in source
+    {
         value[] = cast(u8, (index + 1))
+    }
 
     fillDynamic(target, 0xA5, #sizeof(target))
-    for value in target do
+    for value in target
+    {
         Swag.require(value == 0xA5)
+    }
 
     copyDynamic(target, source, #sizeof(target))
     Swag.require(compareDynamic(target, source, #sizeof(target)) == 0)
@@ -64,18 +68,26 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
 #test
 {
     var data: [96] u8
-    for &value, index in data do
+    for &value, index in data
+    {
         value[] = cast(u8, index)
+    }
 
     moveDynamic(&data[8], &data[0], 80)
-    for index in 80 do
+    for index in 80
+    {
         Swag.require(data[8 + index] == cast(u8, index))
+    }
 
-    for &value, index in data do
+    for &value, index in data
+    {
         value[] = cast(u8, index)
+    }
     moveDynamic(&data[0], &data[8], 80)
-    for index in 80 do
+    for index in 80
+    {
         Swag.require(data[index] == cast(u8, (index + 8)))
+    }
 }
 
 // A mismatch at any position returns the difference of the first unsigned bytes,
@@ -84,8 +96,10 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
 {
     var source: [96] u8
     var target: [96] u8
-    for &value, index in source do
+    for &value, index in source
+    {
         value[] = cast(u8, ((index * 37 + 11) & 0xFF))
+    }
 
     for size in 1 to 65
     {
@@ -112,8 +126,10 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
     var target:   [Capacity] u8
     var expected: [Capacity] u8
 
-    for i in Capacity do
+    for i in Capacity
+    {
         source[i] = cast(u8, ((i * 37 + 11) & 0xFF))
+    }
 
     for size in 65
     {
@@ -147,8 +163,10 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
                 expected[i] = cast(u8, i)
             }
 
-            for i in size do
+            for i in size
+            {
                 expected[32 + distance + i] = cast(u8, (32 + i))
+            }
             moveDynamic(&target[32 + distance], &target[32], size)
             Swag.require(compareDynamic(target, expected, Capacity) == 0)
 
@@ -157,8 +175,10 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
                 target[i]   = cast(u8, i)
                 expected[i] = cast(u8, i)
             }
-            for i in size do
+            for i in size
+            {
                 expected[32 + i] = cast(u8, (32 + distance + i))
+            }
             moveDynamic(&target[32], &target[32 + distance], size)
             Swag.require(compareDynamic(target, expected, Capacity) == 0)
         }

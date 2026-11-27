@@ -21,8 +21,10 @@ func lensEntryOnFirstPage(window: *ViewerWindow, title: string)->bool
     for row in window.lens.rows where row.entry < row.section.entries.count
     {
         let entry = &row.section.entries[row.entry]
-        if entry.title == title do
+        if entry.title == title
+        {
             return row.top + row.height <= listHeight
+        }
     }
 
     return false
@@ -32,8 +34,11 @@ func completeLensExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 {
     for 16
     {
-        if not explorer.load.started do
+        if not explorer.load.started
+        {
             return
+        }
+
         explorer.load.task.wait()
         host.pump()
     }
@@ -53,8 +58,10 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     let top     = cast(s32, rect.y)
 
     // A theme that grounds the panel and the bar around it alike leaves no corner to see.
-    if outside == inside do
+    if outside == inside
+    {
         return
+    }
 
     Swag.require(image.pixelColor(left, top).argb == outside)
     Swag.require(image.pixelColor(left + radius, top + radius).argb == inside)
@@ -65,8 +72,10 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
         for x in 0 until radius
         {
             let pixel = image.pixelColor(left + x, top + y).argb
-            if pixel != outside and pixel != inside do
+            if pixel != outside and pixel != inside
+            {
                 antialiasedCorner = true
+            }
         }
     }
 
@@ -111,8 +120,10 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     window.currentFile = "broken.png"
     for key in ["image", "hex", "binary"]
     {
-        for &plugin, index in window.index.plugins where plugin.key == key do
+        for &plugin, index in window.index.plugins where plugin.key == key
+        {
             window.choices.add(ViewerPluginChoice{pluginIndex: cast(u32, index), key: key})
+        }
     }
 
     window.instances.resize(window.choices.count)
@@ -160,7 +171,7 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
         .home.refresh()
     }
 
-    let loading = Wnd.create'RetiringTestView(window.documentPanel)
+    let loading = Wnd.create!{RetiringTestView}(window.documentPanel)
     window.instances[0].view      = loading
     window.instances[0].details   = "streamed"
     window.instances[0].isLoading = func()->bool
@@ -204,7 +215,7 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
 
     // A newly selected progressive viewer loads behind the preceding document. The activity
     // mark belongs over that preserved document until the replacement can publish its first frame.
-    let outgoing = Wnd.create'Wnd(window)
+    let outgoing = Wnd.create!{Wnd}(window)
     outgoing.setPosition({23, 71, 577, 363})
     window.outgoingView = outgoing
     window.currentView  = outgoing
@@ -349,10 +360,14 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     {
         if section
         {
-            if section.label == appStrings().lens_File do
+            if section.label == appStrings().lens_File
+            {
                 fileSection = section
-            elif section.label == appStrings().lens_View do
+            }
+            else if section.label == appStrings().lens_View
+            {
                 viewSection = section
+            }
         }
     }
 
@@ -415,8 +430,11 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     completeLensExplorer(&host, explorer)
     Swag.require(explorer.entries.count == 1)
     var selected = Swag.U64.Max
-    for &entry, index in explorer.entries where entry.name == Path.fileName(fileName) do
+    for &entry, index in explorer.entries where entry.name == Path.fileName(fileName)
+    {
         selected = index
+    }
+
     Swag.require(selected != Swag.U64.Max)
     explorer.selected = selected
     window.lens.open()
@@ -424,10 +442,16 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
 
     var folderSection: *Lens.Section?
     var fileSection:   *Lens.Section?
-    for section in window.lens.results.sections where section and section.label == appStrings().lens_Folder do
+    for section in window.lens.results.sections where section and section.label == appStrings().lens_Folder
+    {
         folderSection = section
-    for section in window.lens.results.sections where section and section.label == appStrings().lens_File do
+    }
+
+    for section in window.lens.results.sections where section and section.label == appStrings().lens_File
+    {
         fileSection = section
+    }
+
     let folder = unwrap folderSection
     let file   = unwrap fileSection
     Swag.require(window.lens.query() == "")

@@ -18,8 +18,10 @@ internal impl Properties
     mtd paintBackItem(painter: *Painter, item: *PropertiesItem, wndItem: *Wnd)
     {
         // Spacer decorator: a pure vertical gap — no background, border or content.
-        if item.flags.has(.Spacer) do
+        if item.flags.has(.Spacer)
+        {
             return
+        }
 
         var colBkBk, colBk: Color
 
@@ -30,7 +32,7 @@ internal impl Properties
         {
             colBk = colors.prop_FocusBk
         }
-        elif .rowGrounds and .hotItem == item and .hotItem!.line.isEnabled()
+        else if .rowGrounds and .hotItem == item and .hotItem!.line.isEnabled()
         {
             colBk = colors.prop_HotBk
         }
@@ -54,16 +56,23 @@ internal impl Properties
         // box) wraps the whole thing so the bar reads as part of the row. The column separator
         // is the exception: it must stop at the value cell, since the bar spans full width.
         var valueCellBottom = r.bottom()
-        if .isGridLike() and item.validationLabel != null and item.validationLabel.isVisible() do
+        if .isGridLike() and item.validationLabel != null and item.validationLabel.isVisible()
+        {
             valueCellBottom = item.validationLabel.position.y - .valBarGap
+        }
 
         // Background. Group headers (section/category) get a band; data rows stay transparent —
         // nesting depth is carried by the label indent, not a per-level tint (which turns muddy
         // past a couple of levels). The hovered branch is marked by the guide bar drawn below.
-        if .isGridLike() and item.flags.has(.Section) do
+        if .isGridLike() and item.flags.has(.Section)
+        {
             colBkBk = colors.prop_SectionBk
-        elif .isGridLike() and item.flags.has(.Category | .Header) do
+        }
+        else if .isGridLike() and item.flags.has(.Category | .Header)
+        {
             colBkBk = colors.prop_CategBk
+        }
+
         painter.fillRect(r, colBkBk)
 
         // Inset the hot and focus ground so it leaves space around the row's content and edges.
@@ -72,8 +81,10 @@ internal impl Properties
         theme.drawSubRect(painter, stateRect, &theme.rects.selectionBox_Bk, item.aniFocusBk.cur())
 
         // A search marks what it found in the name, on the highlight ground, under the words.
-        if not .stringFilter.isEmpty() do
+        if not .stringFilter.isEmpty()
+        {
             .paintNameMatch(painter, item)
+        }
 
         // The column boundary is visible only while it is being targeted. Extend that live rule
         // through the layout margins so adjacent row segments meet without clipped ends.
@@ -87,10 +98,14 @@ internal impl Properties
         }
 
         // Read-only fields show a lock; editable fields changed from their default show a dot.
-        if item.data and .isItemReadOnly(item) do
+        if item.data and .isItemReadOnly(item)
+        {
             .paintNameMark(painter, item, modified: false)
-        elif item.isModified and .revertButtonsVisible do
+        }
+        else if item.isModified and .revertButtonsVisible
+        {
             .paintNameMark(painter, item, modified: true)
+        }
 
         // A section label in a panel is followed by one hairline to the end of the row: the
         // label and the line already say where a group starts, so no band stands behind it.
@@ -104,8 +119,10 @@ internal impl Properties
             let left     = label.position.x + width + metrics.dialog_BtnPadding
             let y        = Math.round(label.position.vertCenter())
             let right    = wndItem.paddedClientRect().right()
-            if left < right do
+            if left < right
+            {
                 painter.fillRect(Math.Rectangle{left, y, right - left, metrics.separator_HairlineSize}, colors.line)
+            }
         }
 
         // Validation feedback: a dot in the tone and the message in the tone under the value
@@ -126,8 +143,11 @@ internal impl Properties
     // Returns the byte offset of the text filter in the name of `item`, or `Swag.U64.Max`.
     mtd nameMatch(item: *PropertiesItem)->u64
     {
-        if item.label == null do
+        if item.label == null
+        {
             return Swag.U64.Max
+        }
+
         let spans = .stringFilterMatcher.findAll(item.label.text())
         return spans.isEmpty() ? Swag.U64.Max : spans[0].start
     }
@@ -136,12 +156,17 @@ internal impl Properties
     mtd paintNameMatch(painter: *Painter, item: *PropertiesItem)
     {
         let start = .nameMatch(item)
-        if start == Swag.U64.Max do
+        if start == Swag.U64.Max
+        {
             return
+        }
+
         let label = item.label
         let font  = label.font().regular
-        if not font or not label.isLocallyVisible() do
+        if not font or not label.isLocallyVisible()
+        {
             return
+        }
 
         // The first line of the name, as the marks after it: a list name wraps from the top, a
         // grid name is centred.
@@ -159,8 +184,11 @@ internal impl Properties
         }
 
         let textRight = label.position.right() - label.textPadding.z
-        if left + before >= textRight do
+        if left + before >= textRight
+        {
             return
+        }
+
         let right = Math.min(left + after, textRight)
         painter.fillRect(Math.Rectangle{Math.round(left + before), Math.round(top), Math.round(right - left - before), font.height}, .themeColors().highlight)
     }
@@ -170,21 +198,31 @@ internal impl Properties
     mtd paintNameMark(painter: *Painter, item: *PropertiesItem, modified: bool)
     {
         // A self-labelled control of a panel carries its own words: the mark follows them.
-        if .kind == .Panel and .paintSelfLabelMark(painter, item, modified) do
+        if .kind == .Panel and .paintSelfLabelMark(painter, item, modified)
+        {
             return
+        }
 
         // A row with no name at all, such as one flag of an enumeration, never assigned the label:
         // it is compared before it is read.
-        if item.label == null do
+        if item.label == null
+        {
             return
+        }
+
         let label = item.label
         if label.text().count == 0 or
            not label.isLocallyVisible() or
-           label.position.width <= 0 do
+           label.position.width <= 0
+        {
             return
+        }
+
         let font = label.font().regular
-        if not font do
+        if not font
+        {
             return
+        }
 
         // The first line of the name: a list name wraps from the top, a grid name is centred.
         let metrics = .themeMetrics()
@@ -192,12 +230,17 @@ internal impl Properties
         let width   = Painter.measureString(label.text(), font).width
         let right   = label.position.right() - label.textPadding.z
         let left    = label.position.x + label.textPadding.x
-        if right <= left do
+        if right <= left
+        {
             return
+        }
+
         let x       = Math.min(left + width, right) + size
         var centerY = label.position.vertCenter()
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             centerY = label.position.y + label.textPadding.y + font.height * 0.5 + font.opticalOffset()
+        }
 
         .paintPropertyMark(painter, x, centerY, modified)
     }
@@ -211,28 +254,39 @@ internal impl Properties
         if words
         {
             let font = words.font().regular
-            if not font or not words.isLocallyVisible() do
+            if not font or not words.isLocallyVisible()
+            {
                 return false
+            }
+
             let rect  = words.rectRelativeTo(item.line)
             let width = Painter.measureString(words.text(), font).width
             let room  = rect.width - words.textPadding.x - words.textPadding.z
-            if room <= 0 do
+            if room <= 0
+            {
                 return true
+            }
+
             right   = rect.x + words.textPadding.x + Math.min(width, room)
             centerY = rect.vertCenter()
         }
-        elif item.checkBox != null
+        else if item.checkBox != null
         {
             let check = item.checkBox
             let font  = check.font().regular
-            if not font do
+            if not font
+            {
                 return false
+            }
+
             let rect  = check.rectRelativeTo(item.line)
             let width = Painter.measureString(check.name.text, font).width
             right   = rect.x + check.captionInset() + width
             centerY = rect.vertCenter() + font.opticalOffset()
-            if right + .nameMarkSpace() > rect.right() do
+            if right + .nameMarkSpace() > rect.right()
+            {
                 return true
+            }
         }
         else
         {

@@ -25,8 +25,10 @@ impl BlendColor
         if previousWnd and previousWnd != wnd
         {
             .targetWnd = null
-            if previousWnd.surface do
+            if previousWnd.surface
+            {
                 previousWnd.app().animator.cancel(previousWnd, AnimationChannel.fromPointer(me))
+            }
         }
 
         if wnd.app().dirtyTheme != .themeCrc
@@ -38,15 +40,21 @@ impl BlendColor
             // control never drifts through colors that belong to neither theme.
             let activeWnd = .targetWnd
             .targetWnd = null
-            if activeWnd and activeWnd.surface do
+            if activeWnd and activeWnd.surface
+            {
                 activeWnd.app().animator.cancel(activeWnd, AnimationChannel.fromPointer(me))
+            }
+
             .curVec4, .destVec4 = target.toVector4()
             return
         }
 
         let vec4 = target.toVector4()
-        if .destVec4 == vec4 do
+        if .destVec4 == vec4
+        {
             return
+        }
+
         .destVec4 = vec4
 
         var source      = .curVec4
@@ -66,10 +74,15 @@ impl BlendColor
         }
 
         var options: AnimationOptions
-        if .speed > 0 do
+        if .speed > 0
+        {
             options.duration = Time.Duration.fromSeconds(1.0 / .speed)
-        else do
+        }
+        else
+        {
             options.duration = {}
+        }
+
         options.easing = .Linear
         options.preserveProgress = true
         .targetWnd     = null
@@ -84,12 +97,20 @@ impl BlendColor
                                                        options,
                                                        func|blend=me, vec4, wnd|(result)
                                                        {
-                                                           if blend.targetWnd != wnd do
+                                                           if blend.targetWnd != wnd
+                                                           {
                                                                return
-                                                           if result == .Completed do
+                                                           }
+
+                                                           if result == .Completed
+                                                           {
                                                                blend.curVec4 = vec4
-                                                           else do
+                                                           }
+                                                           else
+                                                           {
                                                                blend.destVec4 = blend.curVec4
+                                                           }
+
                                                            blend.targetWnd = null
                                                        })
         if wnd.app().animator.isActive(handle)
@@ -109,8 +130,11 @@ impl BlendColor
         let wnd = .targetWnd
         .targetWnd = null
         .destVec4  = .curVec4
-        if wnd and wnd.surface do
+        if wnd and wnd.surface
+        {
             wnd.app().animator.cancel(wnd, AnimationChannel.fromPointer(me))
+        }
+
         .themeCrc = Swag.U32.Max
     }
 

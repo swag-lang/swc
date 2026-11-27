@@ -15,7 +15,7 @@ struct SelRange
 // Maintains a set of selected indices as sorted, disjoint ranges.
 struct SelModel
 {
-    rangesStorage: Array'SelRange     // Selected ranges, sorted and disjoint.
+    rangesStorage: Array!{SelRange}     // Selected ranges, sorted and disjoint.
 }
 
 impl SelModel
@@ -31,10 +31,15 @@ impl SelModel
     {
         for &range, rangeIndex in .rangesStorage
         {
-            if index < range.start do
+            if index < range.start
+            {
                 break
-            if index <= range.end do
+            }
+
+            if index <= range.end
+            {
                 return cast(u32, rangeIndex)
+            }
         }
 
         return Swag.U32.Max
@@ -53,8 +58,11 @@ impl SelModel
     mtd const selectedCount()->u64
     {
         var result: u64
-        for &range in .rangesStorage do
+        for &range in .rangesStorage
+        {
             result += cast(u64, range.end) - range.start + 1
+        }
+
         return result
     }
 
@@ -79,10 +87,14 @@ impl SelModel
     // Sets the selected state of one index.
     mtd setSelected(index: u32, selected: bool)
     {
-        if selected do
+        if selected
+        {
             .select(index)
-        else do
+        }
+        else
+        {
             .unselect(index)
+        }
     }
 
     // Selects the inclusive range between `first` and `last`.
@@ -95,8 +107,11 @@ impl SelModel
         while insertAt < .rangesStorage.count
         {
             let range = .rangesStorage[insertAt]
-            if cast(u64, range.end) + 1 >= rangeStart do
+            if cast(u64, range.end) + 1 >= rangeStart
+            {
                 break
+            }
+
             insertAt += 1
         }
 
@@ -104,8 +119,11 @@ impl SelModel
         while mergeEnd < .rangesStorage.count
         {
             let range = .rangesStorage[mergeEnd]
-            if cast(u64, range.start) > cast(u64, rangeEnd) + 1 do
+            if cast(u64, range.start) > cast(u64, rangeEnd) + 1
+            {
                 break
+            }
+
             rangeStart = Math.min(rangeStart, range.start)
             rangeEnd   = Math.max(rangeEnd, range.end)
             mergeEnd   += 1
@@ -118,8 +136,10 @@ impl SelModel
         }
 
         .rangesStorage[insertAt] = SelRange{rangeStart, rangeEnd}
-        if mergeEnd > insertAt + 1 do
+        if mergeEnd > insertAt + 1
+        {
             .rangesStorage.removeAtOrdered(insertAt + 1, mergeEnd - insertAt - 1)
+        }
     }
 
     // Unselects the inclusive range between `first` and `last`.
@@ -138,8 +158,10 @@ impl SelModel
                 continue
             }
 
-            if range.start > rangeEnd do
+            if range.start > rangeEnd
+            {
                 break
+            }
 
             if rangeStart <= range.start and rangeEnd >= range.end
             {
@@ -174,7 +196,7 @@ impl SelModel
     {
         // The ordinal runs across every range, and moves before the body so that a
         // `continue` in it cannot skip the step.
-        var ordinal = 0'u64
+        var ordinal = 0_u64
 
         scope(Up)
         for &range in .rangesStorage

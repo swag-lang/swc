@@ -19,7 +19,7 @@ using Swag, Core
     {
         for x in source.width
         {
-            let level = (x + y) & 1 ? 235'u8 : 20'u8
+            let level = (x + y) & 1 ? 235_u8 : 20_u8
             let pixel = source.pixels.storage() + cast(u64, (y * source.rowStride + x * 4))
             pixel[0] = level
             pixel[1] = level
@@ -58,8 +58,10 @@ using Swag, Core
         var coherent = true
         for x in 3 until 133
         {
-            if (image.pixelColor(x, y).r == image.pixelColor(x, y - 1).r) != same do
+            if (image.pixelColor(x, y).r == image.pixelColor(x, y - 1).r) != same
+            {
                 coherent = false
+            }
         }
 
         Swag.require(coherent, "a destination row mixes two texel rows")
@@ -71,8 +73,10 @@ using Swag, Core
         var coherent = true
         for y in 2 until 88
         {
-            if (image.pixelColor(x, y).r == image.pixelColor(x - 1, y).r) != same do
+            if (image.pixelColor(x, y).r == image.pixelColor(x - 1, y).r) != same
+            {
                 coherent = false
+            }
         }
 
         Swag.require(coherent, "a destination column mixes two texel columns")

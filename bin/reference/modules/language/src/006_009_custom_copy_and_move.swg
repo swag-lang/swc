@@ -190,12 +190,12 @@ var c = #move a     // the transfer is accepted
 
 Declaring 'opPostCopy' beside it opts the copy back in, because it is where the type says
 what a duplicate owns. The rule reaches through members: a struct holding a value that owns
-a release owns one too, and states no copy either, unless the member's type declares its
-own 'opPostCopy'. '#[Swag.NoCopy]' remains the way to refuse a copy for any other reason.
+a release owns one too, and states no copy either, unless the member!{s} type declares its
+own 'opPostCopy'.. '#[Swag.NoCopy]' remains the way to refuse a copy for any other reason.
 
 A generic type decides per instantiation, by declaring the operation inside a '#static if'. That
-is how the standard containers hold elements they cannot duplicate: `Array'T`, `ArrayPtr'T` and
-`HashTable'(K, V)` offer a copy only when their elements can be copied, and are otherwise handed
+is how the standard containers hold elements they cannot duplicate: `Array!{T}`, `ArrayPtr!{T}` and
+`HashTable!{K, V}` offer a copy only when their elements can be copied, and are otherwise handed
 over with '#move'.
 
 ```swag

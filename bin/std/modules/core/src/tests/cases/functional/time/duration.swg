@@ -9,11 +9,11 @@ using Swag
     Swag.require(zero.seconds == 0)
     Swag.require(zero.milliseconds() == 0)
 
-    let zeroSeconds: Time.Duration = 0's
+    let zeroSeconds: Time.Duration = 0_s
     Swag.require(zeroSeconds.seconds == 0)
     Swag.require(zeroSeconds.milliseconds() == 0)
 
-    let zeroMilliseconds: Time.Duration = 0'ms
+    let zeroMilliseconds: Time.Duration = 0_ms
     Swag.require(zeroMilliseconds.seconds == 0)
     Swag.require(zeroMilliseconds.milliseconds() == 0)
 
@@ -21,31 +21,31 @@ using Swag
     Swag.require(from250Milliseconds.seconds == 0.25)
     Swag.require(from250Milliseconds.milliseconds() == 250)
 
-    let oneMs: Time.Duration = 1'ms
+    let oneMs: Time.Duration = 1_ms
     Swag.require(Math.isEqualEpsilon(oneMs.seconds, 0.001, 0.00001))
     Swag.require(oneMs.milliseconds() == 1)
 
-    let seconds: Time.Duration = 5's
+    let seconds: Time.Duration = 5_s
     Swag.require(seconds.seconds == 5)
     Swag.require(seconds.milliseconds() == 5000)
 
-    let milliseconds: Time.Duration = 250'ms
+    let milliseconds: Time.Duration = 250_ms
     Swag.require(milliseconds.seconds == 0.25)
     Swag.require(milliseconds.milliseconds() == 250)
 
-    let minutes: Time.Duration = 2'min
+    let minutes: Time.Duration = 2_min
     Swag.require(minutes.seconds == 120)
     Swag.require(minutes.milliseconds() == 120000)
 
-    let zeroMinutes: Time.Duration = 0'min
+    let zeroMinutes: Time.Duration = 0_min
     Swag.require(zeroMinutes.seconds == 0)
     Swag.require(zeroMinutes.milliseconds() == 0)
 
-    let hours: Time.Duration = 1'h
+    let hours: Time.Duration = 1_h
     Swag.require(hours.seconds == 3600)
     Swag.require(hours.milliseconds() == 3600000)
 
-    let zeroHours: Time.Duration = 0'h
+    let zeroHours: Time.Duration = 0_h
     Swag.require(zeroHours.seconds == 0)
     Swag.require(zeroHours.milliseconds() == 0)
 

@@ -456,6 +456,27 @@ void MicroBuilder::emitBreakpoint()
     addInstruction(MicroInstrOpcode::Breakpoint, 0);
 }
 
+void MicroBuilder::emitCpuId()
+{
+    addInstruction(MicroInstrOpcode::CpuId, 0);
+}
+
+void MicroBuilder::emitXGetBv()
+{
+    addInstruction(MicroInstrOpcode::XGetBv, 0);
+}
+
+void MicroBuilder::emitVecClmulXor(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second, bool quad)
+{
+    const auto& inst = addInstruction(quad ? MicroInstrOpcode::VecClmulXorQuad : MicroInstrOpcode::VecClmulXorPair, 5);
+    auto* ops        = inst.ops(operands_);
+    ops[0].reg       = value;
+    ops[1].reg       = factor;
+    ops[2].reg       = addend;
+    ops[3].valueU64  = first;
+    ops[4].valueU64  = second;
+}
+
 void MicroBuilder::emitPrefetch(MicroReg addrReg)
 {
     const auto& inst           = addInstruction(MicroInstrOpcode::Prefetch, 1);
@@ -1161,6 +1182,15 @@ void MicroBuilder::emitOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
     ops[2].opBits           = opBits;
     ops[3].microOp          = op;
     ops[4].valueU64         = memOffset;
+}
+
+void MicroBuilder::emitAddCarryRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::AddCarryRegImm, 3);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = reg;
+    ops[1].opBits           = opBits;
+    ops[2].valueU64         = value;
 }
 
 void MicroBuilder::emitOpBinaryRegImm(MicroReg reg, const ApInt& value, MicroOp op, MicroOpBits opBits)

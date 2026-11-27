@@ -15,29 +15,37 @@ impl Four
     #[Swag.Optimize(true), Swag.NoInline]
     mtd add(value: s32)
     {
-        for i in 4 do
+        for i in 4
+        {
             .values[i] += value
+        }
     }
 
     #[Swag.Optimize(true), Swag.NoInline]
     mtd subtract(value: s32)
     {
-        for i in 4 do
+        for i in 4
+        {
             .values[i] -= value
+        }
     }
 
     #[Swag.Optimize(true), Swag.NoInline]
     mtd multiply(value: s32)
     {
-        for i in 4 do
+        for i in 4
+        {
             .values[i] *= value
+        }
     }
 
     #[Swag.Optimize(true), Swag.NoInline]
     mtd divide(value: s32)
     {
-        for i in 4 do
+        for i in 4
+        {
             .values[i] /= value
+        }
     }
 
     // The factor is read again after the last element.
@@ -45,8 +53,10 @@ impl Four
     mtd multiplyAndReturn(value: s64)->s64
     {
         var wide: [3] s64 = [2, 3, 5]
-        for i in 3 do
+        for i in 3
+        {
             wide[i] *= value
+        }
         return wide[0] + wide[1] + wide[2] + value
     }
 }

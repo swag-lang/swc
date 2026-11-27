@@ -53,13 +53,13 @@ struct InfoSheet
             pageIndex: u32              // Zero-based page currently shown when the sheet has pages.
         }
 
-        sigCloseRequested: SigArray'func||(*InfoSheet)     // Emitted when the reader presses the sheet's close button.
+        sigCloseRequested: SigArray!{func||(*InfoSheet)}     // Emitted when the reader presses the sheet's close button.
     }
 
-    blocks:           Array'InfoSheetBlock
-    pages:            Array'String
-    tabRects:         Array'Math.Rectangle     // Hit area of each page name, from the latest layout.
-    titleLines:       Array'String             // The title as it is set, from the latest layout.
+    blocks:           Array!{InfoSheetBlock}
+    pages:            Array!{String}
+    tabRects:         Array!{Math.Rectangle}     // Hit area of each page name, from the latest layout.
+    titleLines:       Array!{String}             // The title as it is set, from the latest layout.
     subjectFile:      String
     subjectDirectory: bool
     writingPage:      u32
@@ -111,8 +111,10 @@ impl IWnd for InfoSheet
     mtd impl onLayout()
     {
         let parent = .parent
-        if not parent do
+        if not parent
+        {
             return
+        }
 
         let metrics = .themeMetrics()
         let bounds  = parent.clientRect()
@@ -187,8 +189,10 @@ impl IWnd for InfoSheet
             let color = shown or index == .hotTab ? colors.text : colors.softText
             let top   = rect.y + shift
             discard paintTextLine(painter, body.x + rect.x, top + rect.height * 0.5, .pages[index], tabFont, color, rect.width + 1, scale)
-            if shown do
+            if shown
+            {
                 painter.fillRect(body.x + rect.x, top + rect.height - 2, rect.width, 2, colors.arc)
+            }
         }
 
         // The picture keeps its proportions, on the corner of a control, at the head of the sheet
@@ -200,10 +204,14 @@ impl IWnd for InfoSheet
             let size = .besidePicture() ? .besideSize() : .pictureSize(width)
             painter.setParams(.Antialiased)
             painter.fillRoundRect(Math.Rectangle{x, y, size.x, size.y}, metrics.corner_Control, metrics.corner_Control, Brush.createTexture(.picture))
-            if .besidePicture() do
+            if .besidePicture()
+            {
                 headX = x + size.x + pad * 0.5
-            else do
+            }
+            else
+            {
                 y += size.y + metrics.infoSheet_BlockGap
+            }
         }
 
         let titleFont = .titleFont()
@@ -347,8 +355,11 @@ impl IWnd for InfoSheet
             .invalidate()
 
         case .Pressed:
-            if evt.button != .Left do
+            if evt.button != .Left
+            {
                 break
+            }
+
             let tab = .tabAt(pos)
             if tab != Swag.U64.Max
             {
@@ -357,8 +368,10 @@ impl IWnd for InfoSheet
             }
 
             let link = .linkAt(pos)
-            if link != Swag.U64.Max do
+            if link != Swag.U64.Max
+            {
                 .postCommandEvent(.blocks[link].id)
+            }
 
         case .Wheel:
             let next = Math.clamp(.scrollOffset - evt.delta.y * .themeMetrics().infoSheet_LineHeight * 3,
@@ -378,8 +391,11 @@ impl IWnd for InfoSheet
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged do
+        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged
+        {
             .relayout()
+        }
+
         evt.accepted = false
     }
 }
@@ -392,7 +408,7 @@ impl InfoSheet
     #[Swag.Discardable]
     func create(parent: *Wnd, id: WndId? = null, closeButton = true)->*InfoSheet
     {
-        with let result = Wnd.create'InfoSheet(parent, null, {}, id)
+        with let result = Wnd.create!{InfoSheet}(parent, null, {}, id)
         {
             .dockStyle       = .Float
             .backgroundStyle = .Transparent
@@ -413,8 +429,10 @@ impl InfoSheet
             }
         }
 
-        if not closeButton do
+        if not closeButton
+        {
             result.closeButton.hide()
+        }
 
         return result
     }
@@ -448,10 +466,14 @@ impl InfoSheet
     // Shows the sheet when it is hidden and hides it when it is shown, as its key does.
     mtd toggle()
     {
-        if .isLocallyVisible() do
+        if .isLocallyVisible()
+        {
             .close()
-        else do
+        }
+        else
+        {
             .open()
+        }
     }
 
     // Sets the title of the sheet.
@@ -506,8 +528,11 @@ impl InfoSheet
     // Shows a page already added to the sheet, keeping its title and identity in place.
     mtd selectPage(index: u32)
     {
-        if index >= .pages.count or index == .pageIndex do
+        if index >= .pages.count or index == .pageIndex
+        {
             return
+        }
+
         .pageIndex    = index
         .scrollOffset = 0
         .relayout()
@@ -603,8 +628,11 @@ impl InfoSheet
     #[Swag.Discardable]
     mtd setAction(caption: string, id: WndId, quiet = false)->*PushButton
     {
-        if .action do
+        if .action
+        {
             .action.destroy()
+        }
+
         .action     = PushButton.create(me, caption, {}, id, quiet ? .Normal : .Strong)
         .actionPage = .writingPage
         .relayout()
@@ -617,8 +645,11 @@ impl InfoSheet
     #[Swag.Discardable]
     mtd setSecondaryAction(caption: string, id: WndId)->*PushButton
     {
-        if .secondary do
+        if .secondary
+        {
             .secondary.destroy()
+        }
+
         .secondary = PushButton.create(me, caption, {}, id)
         .relayout()
         return .secondary
@@ -761,11 +792,16 @@ impl InfoSheet
 
         // A picture across the sheet starts under the close button, as the page names do.
         let beside = .besidePicture()
-        if .picture.isValid() and .picturePage == .pageIndex and not beside do
+        if .picture.isValid() and .picturePage == .pageIndex and not beside
+        {
             y = Math.max(y, .controlTop() + metrics.embInfo_CloseSize + metrics.infoSheet_BlockGap * 0.5)
+        }
+
         .headTop = y
-        if .picture.isValid() and .picturePage == .pageIndex and not beside do
+        if .picture.isValid() and .picturePage == .pageIndex and not beside
+        {
             y += .pictureSize(inner).y + metrics.infoSheet_BlockGap
+        }
 
         // The title, the identity and the figures, beside the picture when it stands beside them.
         let headLeft  = beside ? .besideSize().x + pad * 0.5 : 0
@@ -774,21 +810,26 @@ impl InfoSheet
         let controls  = .pages.count > 1 or not .closeButton.isLocallyVisible() ? 0 : metrics.embInfo_CloseSize + .controlInset() - pad
         .titleLines = .splitTitle(.title, titleFont, headWidth - controls, scale)
         var headY = y + cast(f32, .titleLines.count) * titleFont.height
-        if not .identity.isEmpty() do
+        if not .identity.isEmpty()
+        {
             headY += metrics.infoSheet_LineGap + theme.createDefaultFontFs(metrics.defaultFontSize - 1).height
+        }
 
         let factFont   = .factFont()
         let unitFont   = theme.createDefaultFontFs(metrics.defaultFontSize - 1)
         let factHeight = factFont.height
         let factGap    = metrics.infoSheet_BlockGap + metrics.infoSheet_LineGap
-        var factX      = 0'f32
+        var factX      = 0_f32
         var factTop    = headY + metrics.infoSheet_LineGap * 2
         var hasFacts   = false
         for &block in .blocks where block.page == .pageIndex and block.kind == .Fact
         {
             var factWidth = Painter.measureString(block.value, factFont).width
-            if not block.label.isEmpty() do
+            if not block.label.isEmpty()
+            {
                 factWidth += metrics.iconText_Margin * 0.5 + Painter.measureString(block.label, unitFont).width
+            }
+
             factWidth = Math.ceil(factWidth)
             if factX > 0 and factX + factWidth > headWidth
             {
@@ -804,12 +845,15 @@ impl InfoSheet
             hasFacts     = true
         }
 
-        if hasFacts do
+        if hasFacts
+        {
             headY = factTop + factHeight
+        }
+
         y = beside ? Math.max(headY, .headTop + .besideSize().y) : headY
 
         // What follows the head is separated from it by a block of air, and nothing ends on one.
-        var trailingGap = 0'f32
+        var trailingGap = 0_f32
         if .titleLines.count or not .identity.isEmpty() or hasFacts or beside
         {
             y += metrics.infoSheet_BlockGap
@@ -832,15 +876,20 @@ impl InfoSheet
         // The values of a page share one column, wide enough for its longest label, so a long
         // label moves every value with it rather than its own alone.
         var valueLeft = metrics.infoSheet_LabelWidth
-        for &block in .blocks where block.page == .pageIndex and block.kind == .Reading do
+        for &block in .blocks where block.page == .pageIndex and block.kind == .Reading
+        {
             valueLeft = Math.max(valueLeft, Math.ceil(Painter.measureString(block.label, bodyFont).width + metrics.iconText_Margin * 2))
+        }
 
         for &block in .blocks where block.page == .pageIndex and block.kind != .Fact
         {
             // Readings that follow a paragraph or a note keep the air a paragraph is given.
             block.left = 0
-            if afterText and (block.kind == .Reading or block.kind == .Link or block.kind == .Track) do
+            if afterText and (block.kind == .Reading or block.kind == .Link or block.kind == .Track)
+            {
                 y += metrics.infoSheet_BlockGap * 0.5
+            }
+
             afterText = block.kind == .Text or block.kind == .Note
             switch block.kind
             {
@@ -869,8 +918,10 @@ impl InfoSheet
             case .Track:
                 block.valueLeft = Math.ceil(Painter.measureString("00", valueMono).width + metrics.iconText_Margin)
                 block.height    = metrics.infoSheet_LineHeight
-                if not block.value.isEmpty() do
+                if not block.value.isEmpty()
+                {
                     block.height += theme.createDefaultFontFs(metrics.defaultFontSize - 1).height
+                }
 
             case .Text, .Note:
                 y += first ? 0 : metrics.infoSheet_BlockGap * 0.5
@@ -898,7 +949,7 @@ impl InfoSheet
                     {
                         block.valueLeft = 0
                     }
-                    elif textWidth + spaceWidth + block.width <= inner
+                    else if textWidth + spaceWidth + block.width <= inner
                     {
                         block.valueLeft = Math.ceil(textWidth + spaceWidth)
                     }
@@ -947,7 +998,7 @@ impl InfoSheet
     // its proportions kept and its height bounded.
     private mtd besideSize()->Math.Point
     {
-        const Width = 96.0'f32
+        const Width = 96.0_f32
         let ratio  = cast(f32, .picture.height) / cast(f32, Math.max(.picture.width, 1))
         let height = Math.min(Math.round(Width * ratio), .themeMetrics().infoSheet_PictureHeight)
         return {Math.round(height / Math.max(ratio, 0.01)), height}
@@ -964,11 +1015,14 @@ impl InfoSheet
     // Splits `title` into the lines it is set on within `room`: one when it fits, else a first line
     // cut at the last separator that fits and a second line that keeps its end when it is still
     // too long, so a file name keeps its extension.
-    private mtd splitTitle(title: string, font: *Font, room: f32, scale: f32)->Array'String
+    private mtd splitTitle(title: string, font: *Font, room: f32, scale: f32)->Array!{String}
     {
         var result: #returntype
-        if title.count == 0 do
+        if title.count == 0
+        {
             return result
+        }
+
         if Painter.measureString(title, font).width <= room
         {
             result.add(title)
@@ -977,18 +1031,27 @@ impl InfoSheet
 
         // The longest prefix that fits, ending at a character boundary, then at a separator when
         // one stands in its second half.
-        var cut = 0'u64
+        var cut = 0_u64
         for index in 1 to title.count
         {
-            if index < title.count and (title[index] & 0xC0) == 0x80 do
+            if index < title.count and (title[index] & 0xC0) == 0x80
+            {
                 continue
-            if Painter.measureString(title[until index], font).width > room do
+            }
+
+            if Painter.measureString(title[until index], font).width > room
+            {
                 break
+            }
+
             cut = index
         }
 
-        if cut == 0 do
+        if cut == 0
+        {
             cut = 1
+        }
+
         let half = cut / 2
         var at   = cut
         while at > half
@@ -1014,8 +1077,11 @@ impl InfoSheet
         // The end of the name stays: the extension and the characters before it.
         let extension = Path.extension(rest) orelse ""
         var keep      = Math.min(rest.count, extension.count + 6)
-        while keep < rest.count and (rest[rest.count - keep] & 0xC0) == 0x80 do
+        while keep < rest.count and (rest[rest.count - keep] & 0xC0) == 0x80
+        {
             keep += 1
+        }
+
         let tail = rest[rest.count - keep to]
         var line = Painter.elideString(rest[until rest.count - keep], font, Math.max(room - Painter.measureString(tail, font).width, 0), scale)
         line += tail
@@ -1078,8 +1144,11 @@ impl InfoSheet
                 rect = Math.Rectangle{body.x, body.y + block.top - .scrollOffset, body.width, block.height}
 
             case .Footnote:
-                if block.value.isEmpty() or not block.id do
+                if block.value.isEmpty() or not block.id
+                {
                     continue
+                }
+
                 let lineHeight = block.height - .themeMetrics().infoSheet_LineGap - block.valueTop
                 rect = Math.Rectangle{body.x + pad + block.valueLeft, body.y + block.top + block.valueTop - .scrollOffset,
                                       block.width, lineHeight}
@@ -1088,8 +1157,10 @@ impl InfoSheet
                 continue
             }
 
-            if rect.contains(pos) do
+            if rect.contains(pos)
+            {
                 return index
+            }
         }
 
         return Swag.U64.Max
@@ -1102,8 +1173,10 @@ impl InfoSheet
         for rect, index in .tabRects
         {
             let hit = Math.Rectangle{body.x + rect.x, body.y + rect.y - .scrollOffset, rect.width, rect.height}
-            if hit.contains(pos) do
+            if hit.contains(pos)
+            {
                 return index
+            }
         }
 
         return Swag.U64.Max
@@ -1111,8 +1184,11 @@ impl InfoSheet
 
     private mtd relayout()
     {
-        if .isLocallyVisible() do
+        if .isLocallyVisible()
+        {
             .itf.onLayout()
+        }
+
         .invalidate()
     }
 }

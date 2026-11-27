@@ -71,8 +71,10 @@ b"""
     var acc = 0
     for c in pattern
     {
-        if c == '\\'u8 do
+        if c == '\\'_u8
+        {
             acc += 1
+        }
     }
 
     Swag.require(acc == 2)

@@ -8,16 +8,25 @@ func anchoredContextGolden(golden: string, withIcon: bool, withText: bool, light
 {
     var host: Testing.HeadlessHost
     host.setup(540, 290, scale)
-    if light do
+    if light
+    {
         host.theme.setLight()
+    }
+
     host.notify(.ThemeChanged)
     host.root.backgroundStyle = .Dialog
     discard EditBox.create(&host.root, "", {28, 28, 484, 34})
     let button = IconButton.createQuiet(&host.root)
-    if withText do
+    if withText
+    {
         button.setQuietText("Projects")
-    if withIcon do
+    }
+
+    if withIcon
+    {
         button.setIcon(host.theme.icon(.Folder, 16))
+    }
+
     button.setArrowPosition(.RightDownward)
     button.setPosition({190, 28, withText ? 120 : 44, 34})
     discard Label.create(&host.root, "Project folders", {28, 88, 240, 24})
@@ -32,8 +41,11 @@ func anchoredContextGolden(golden: string, withIcon: bool, withText: bool, light
     var captured: bool
     host.app.sigFrame += func|host = &host, popup, button, golden, withText, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         let body   = popup.localToSurface(popup.getPopupBodyRect())
         let anchor = button.surfaceRect()
         Swag.require(Math.abs(body.y - anchor.bottom() - popup.themeMetrics().menuPopup_AnchorGap) < 0.01)

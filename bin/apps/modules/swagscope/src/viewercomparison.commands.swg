@@ -115,8 +115,11 @@ impl ViewerWindow
             }
         }
 
-        if not name.count do
+        if not name.count
+        {
             return false
+        }
+
         evt.name          = name
         evt.hidden        = hidden
         evt.updatedFields |= .Name | .Hidden
@@ -134,8 +137,11 @@ impl ViewerWindow
     {
         let workspace  = .workspace
         let comparison = workspace?.comparison
-        if not workspace or not comparison or not comparison.isLocallyVisible() do
+        if not workspace or not comparison or not comparison.isLocallyVisible()
+        {
             return false
+        }
+
         let scene  = unwrap workspace.scene()
         var reread = false
         switch id
@@ -186,8 +192,11 @@ impl ViewerWindow
             return false
         }
 
-        if reread do
+        if reread
+        {
             comparison.requestDiff()
+        }
+
         comparison.refresh()
         return true
     }
@@ -200,8 +209,10 @@ impl ViewerWorkspace
         let comparison = .comparison
         if not comparison or
            not comparison.isLocallyVisible() or
-           .activeDocument().lens.isOpen() do
+           .activeDocument().lens.isOpen()
+        {
             return false
+        }
 
         let document = .activeDocument()
         if comparison.hasLineNumbers() and document.acceptsViewCommands()
@@ -209,40 +220,36 @@ impl ViewerWorkspace
             let command = document.keyShortcut(evt.modifiers, evt.key) orelse ""
             switch command
             {
-            case ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.GoToLine:
+            case ViewerCommands.Find, ViewerCommands.FindNext,
+                 ViewerCommands.FindPrevious, ViewerCommands.GoToLine:
                 return document.runCommand(command)
             }
         }
 
-        if source is EditBox do
+        if source is EditBox
+        {
             return false
+        }
+
         if evt.key == .F7 and (evt.modifiers == .None or evt.modifiers == .Shift)
         {
             comparison.step(evt.modifiers == .Shift ? -1 : 1)
             return true
         }
 
-        if not comparison.isPicture() or evt.modifiers != .None do
+        if not comparison.isPicture() or evt.modifiers != .None
+        {
             return false
+        }
+
         switch evt.key
         {
-        case .D1:
-            comparison.setPictureMode(.Curtain)
-
-        case .D2:
-            comparison.setPictureMode(.OnionSkin)
-
-        case .D3:
-            comparison.setPictureMode(.Difference)
-
-        case .D4:
-            comparison.setPictureMode(.Flip)
-
-        case .Space where comparison.mode == .Flip and comparison.kind == .Picture:
-            .selectView(comparison.shownRight ? 0 : 1)
-
-        default:
-            return false
+        case .D1: comparison.setPictureMode(.Curtain)
+        case .D2: comparison.setPictureMode(.OnionSkin)
+        case .D3: comparison.setPictureMode(.Difference)
+        case .D4: comparison.setPictureMode(.Flip)
+        case .Space where comparison.mode == .Flip and comparison.kind == .Picture: .selectView(comparison.shownRight ? 0 : 1)
+        default:  return false
         }
 
         return true

@@ -118,8 +118,10 @@ func writeVecRef(target: *Vec2, value: Vec2)
 {
     func choose(flag: bool, a: *Vec2, b: *Vec2)->*Vec2
     {
-        if flag do
+        if flag
+        {
             return a
+        }
         return b
     }
     var left:  Vec2 = Vec2{x: 100, y: 200}
@@ -143,21 +145,21 @@ func writeVecRef(target: *Vec2, value: Vec2)
             return value
         }
 
-        return 0'u8
+        return 0_u8
     }
 
     let bytes = cast(const [..] u8, "42")
     var index: u64
-    Swag.require(nextDigit(bytes, &index) == '4'u8)
-    Swag.require(nextDigit(bytes, &index) == '2'u8)
-    Swag.require(index == 2'u64)
+    Swag.require(nextDigit(bytes, &index) == '4'_u8)
+    Swag.require(nextDigit(bytes, &index) == '2'_u8)
+    Swag.require(index == 2_u64)
 }
 
 #test
 {
     var values: RefIndexBuffer = RefIndexBuffer{values: [12]}
-    var total = 1's32
-    var index = 0's64
+    var total = 1_s32
+    var index = 0_s64
 
     let valueRef: *s32 = values.ref1(index)
     total      += valueRef[]
@@ -269,52 +271,52 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
     var value:    f32        = 1.5
     let valueRef: const *f32 = &value
     let copied               = cast(f32, valueRef[])
-    let sum                  = valueRef[] + 2.5'f32
+    let sum                  = valueRef[] + 2.5_f32
 
     #assert(#typeof(copied) == f32)
     #assert(#typeof(sum) == f32)
 
-    Swag.require(copied == 1.5'f32)
-    Swag.require(sum == 4.0'f32)
+    Swag.require(copied == 1.5_f32)
+    Swag.require(sum == 4.0_f32)
 }
 
 #test
 {
     var value: f32 = 1.5
-    let sum        = addRefValue(&value, 2.5'f32)
+    let sum        = addRefValue(&value, 2.5_f32)
 
     #assert(#typeof(sum) == f32)
-    Swag.require(sum == 4.0'f32)
+    Swag.require(sum == 4.0_f32)
 }
 
 #test
 {
     var value: f32 = 1.5
-    let temp       = dampRefValue(&value, 2.0'f32, 3.0'f32, 0.5'f32)
+    let temp       = dampRefValue(&value, 2.0_f32, 3.0_f32, 0.5_f32)
 
     #assert(#typeof(temp) == f32)
-    Swag.require(temp == 3.75'f32)
+    Swag.require(temp == 3.75_f32)
 }
 
 #test
 {
     var box: RefFloatBox = RefFloatBox{value: 1.5}
-    let sum  = addRefValue(&box.value, 2.5'f32)
-    let temp = dampRefValue(&box.value, 2.0'f32, 3.0'f32, 0.5'f32)
+    let sum  = addRefValue(&box.value, 2.5_f32)
+    let temp = dampRefValue(&box.value, 2.0_f32, 3.0_f32, 0.5_f32)
 
     #assert(#typeof(sum) == f32)
     #assert(#typeof(temp) == f32)
-    Swag.require(sum == 4.0'f32)
-    Swag.require(temp == 3.75'f32)
+    Swag.require(sum == 4.0_f32)
+    Swag.require(temp == 3.75_f32)
 }
 
 #test
 {
     var value: f32 = 1.5
-    let temp       = dampRefValueWithLiterals(4.0'f32, 1.0'f32, &value, 0.5'f32, 0.25'f32)
+    let temp       = dampRefValueWithLiterals(4.0_f32, 1.0_f32, &value, 0.5_f32, 0.25_f32)
 
     #assert(#typeof(temp) == f32)
-    Swag.require(temp == 3.375'f32)
+    Swag.require(temp == 3.375_f32)
 }
 
 #test
@@ -322,9 +324,9 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
     var grid:     [2, 3] u32
     var valueRef: *u32 = &grid[1, 2]
 
-    valueRef[] += 1'u32
-    Swag.require(grid[1, 2] == 1'u32)
+    valueRef[] += 1_u32
+    Swag.require(grid[1, 2] == 1_u32)
 
-    valueRef[] = 7'u32
-    Swag.require(grid[1, 2] == 7'u32)
+    valueRef[] = 7_u32
+    Swag.require(grid[1, 2] == 7_u32)
 }

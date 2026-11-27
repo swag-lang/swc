@@ -78,7 +78,7 @@ struct Cell
     remove:   bool
 }
 
-var g_Cells:          Array'Cell
+var g_Cells:          Array!{Cell}
 late var g_Font:      *Font
 late var g_LabelFont: *Font
 var g_MoveDirX:       s32
@@ -129,8 +129,10 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
 
         let off = (1 - c.z) * layout.cell * PopRatio
         painter.fillRoundRect(xi + off, yi + off, cellW - 2 * off, cellW - 2 * off, layout.corner, layout.corner, color)
-        if not c.val do
+        if not c.val
+        {
             continue
+        }
 
         // Paint cell value
         let str  = Format.toString("%", c.val)
@@ -146,8 +148,10 @@ func randValue()
     {
         let x = Random.shared().nextS32(0, CellCount)
         let y = Random.shared().nextS32(0, CellCount)
-        if cellAt(x, y) do
+        if cellAt(x, y)
+        {
             continue
+        }
 
         var cell: Cell
         cell.x, cell.xd, cell.nxd = x
@@ -167,11 +171,16 @@ func animate(wnd: *Wnd)
     for &c in g_Cells
     {
         // End of scale
-        if Math.isEqualEpsilon(c.z, c.zd, 0.01) do
+        if Math.isEqualEpsilon(c.z, c.zd, 0.01)
+        {
             c.zd = 1
+        }
+
         c.z = Math.lerp(c.z, c.zd, 20 * dt)
-        if Math.isEqualEpsilon(c.z, 1, 0.01) do
+        if Math.isEqualEpsilon(c.z, 1, 0.01)
+        {
             c.z = 1
+        }
 
         // End of move
         if c.moving
@@ -201,21 +210,30 @@ func animate(wnd: *Wnd)
         }
     }
 
-    if wasMoving and not g_IsMoving do
+    if wasMoving and not g_IsMoving
+    {
         randValue()
+    }
 
-    for i in g_Cells.count.reversed() where g_Cells[i].remove do
+    for i in g_Cells.count.reversed() where g_Cells[i].remove
+    {
         g_Cells.removeAt(i)
+    }
 }
 
 func cellAt(x, y: s32, self: *Cell? = null)->*Cell?
 {
     for &c in g_Cells
     {
-        if c == self do
+        if c == self
+        {
             continue
-        if c.x == x and c.y == y do
+        }
+
+        if c.x == x and c.y == y
+        {
             return c
+        }
     }
 
     return null
@@ -229,11 +247,16 @@ func canMoveTo(val, x, y: s32)->bool
         if (c.val and c.moving and c.xd == x and c.yd == y) or
            (c.val and not c.moving and c.x == x and c.y == y)
         {
-            if c.val != val do
+            if c.val != val
+            {
                 return false
+            }
+
             cpt += 1
-            if cpt > 1 do
+            if cpt > 1
+            {
                 return false
+            }
         }
     }
 
@@ -242,8 +265,10 @@ func canMoveTo(val, x, y: s32)->bool
 
 func keyboard(wnd: *Wnd)
 {
-    if g_IsMoving or g_GameOver do
+    if g_IsMoving or g_GameOver
+    {
         return
+    }
 
     let kb = wnd.app().keyboardRef()
 
@@ -262,16 +287,21 @@ func keyboard(wnd: *Wnd)
         recom = false
         for &c in g_Cells
         {
-            if c.val == 0 do
+            if c.val == 0
+            {
                 continue
+            }
 
             for i in 1 to CellCount
             {
                 if g_MoveDirX != 0
                 {
                     let nx = cast(s32, (c.xd + i * g_MoveDirX))
-                    if nx < 0 or nx >= CellCount do
+                    if nx < 0 or nx >= CellCount
+                    {
                         break
+                    }
+
                     if c.xd == nx or canMoveTo(c.val, nx, cast(s32, c.y))
                     {
                         c.moving = true
@@ -280,11 +310,14 @@ func keyboard(wnd: *Wnd)
 
                     break
                 }
-                elif g_MoveDirY != 0
+                else if g_MoveDirY != 0
                 {
                     let ny = cast(s32, (c.yd + i * g_MoveDirY))
-                    if ny < 0 or ny >= CellCount do
+                    if ny < 0 or ny >= CellCount
+                    {
                         break
+                    }
+
                     if c.yd == ny or canMoveTo(c.val, cast(s32, c.x), ny)
                     {
                         c.moving = true
@@ -298,10 +331,16 @@ func keyboard(wnd: *Wnd)
 
         for &c in g_Cells
         {
-            if not c.val do
+            if not c.val
+            {
                 continue
-            if Math.isEqualEpsilon(c.xd, c.nxd) and Math.isEqualEpsilon(c.yd, c.nyd) do
+            }
+
+            if Math.isEqualEpsilon(c.xd, c.nxd) and Math.isEqualEpsilon(c.yd, c.nyd)
+            {
                 continue
+            }
+
             recom = true
             c.xd  = c.nxd
             c.yd  = c.nyd

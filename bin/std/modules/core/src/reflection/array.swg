@@ -8,30 +8,40 @@ using Swag
 // allocation alignment upper bound for runtime-only array operations.
 private func runtimeTypeAlignment(size: u32)->u32
 {
-    var result = 1'u32
-    while result < size and result <= Swag.U32.Max / 2 do
+    var result = 1_u32
+    while result < size and result <= Swag.U32.Max / 2
+    {
         result *= 2
+    }
+
     return result
 }
 
 // Returns whether `t` is an instance of [[Core.Array]].
 func isDynamicArray(t: typeinfo?)->bool
 {
-    if not t or not isStruct(t) do
+    if not t or not isStruct(t)
+    {
         return false
+    }
 
     let typeStruct   = assume cast(const *TypeInfoStruct, t)
-    let arrayGeneric = assume cast(const *TypeInfoStruct, #typeof(Array'u8)).fromGeneric
-    if not typeStruct.fromGeneric do
+    let arrayGeneric = assume cast(const *TypeInfoStruct, #typeof(Array!{u8})).fromGeneric
+    if not typeStruct.fromGeneric
+    {
         return false
+    }
+
     return typeStruct.fromGeneric.fullname == arrayGeneric.fullname
 }
 
 // Returns the element type of a [[Core.Array]] type, or null when `t` is not one.
 func dynamicArrayElementType(t: typeinfo?)->typeinfo?
 {
-    if not isDynamicArray(t) do
+    if not isDynamicArray(t)
+    {
         return null
+    }
 
     let typeStruct = assume cast(const *TypeInfoStruct, t)
     let generics   = unwrap typeStruct.generics
@@ -42,12 +52,16 @@ func dynamicArrayElementType(t: typeinfo?)->typeinfo?
 // `newCapacity` is measured in elements of `elementType`.
 internal func reserveDynamicArray(arrayPointer: *void?, elementType: typeinfo?, newCapacity: u64)
 {
-    if not arrayPointer or not elementType do
+    if not arrayPointer or not elementType
+    {
         Swag.panic("Reflection.reserveDynamicArray cannot reserve a null array or null type", #curlocation)
+    }
 
-    let arrayView = cast(*Array'u8, arrayPointer)
-    if newCapacity <= arrayView.capacity do
+    let arrayView = cast(*Array!{u8}, arrayPointer)
+    if newCapacity <= arrayView.capacity
+    {
         return
+    }
 
     let elementBytes = elementType.sizeof
     if not elementBytes
@@ -56,14 +70,18 @@ internal func reserveDynamicArray(arrayPointer: *void?, elementType: typeinfo?, 
         return
     }
 
-    if elementBytes != 0 and newCapacity > Swag.U64.Max / elementBytes do
+    if elementBytes != 0 and newCapacity > Swag.U64.Max / elementBytes
+    {
         Swag.panic("Array capacity exceeds addressable memory", #curlocation)
+    }
 
     let oldSize         = arrayView.capacity * elementBytes
     let doubledCapacity = arrayView.capacity <= Swag.U64.Max / 2 ? arrayView.capacity * 2 : newCapacity
     let grownCapacity   = Math.max(doubledCapacity, newCapacity)
-    if grownCapacity > Swag.U64.Max / elementBytes do
+    if grownCapacity > Swag.U64.Max / elementBytes
+    {
         Swag.panic("Array capacity exceeds addressable memory", #curlocation)
+    }
 
     let allocator = arrayView.allocator orelse Swag.getContext().allocator
     let buffer    = Memory.realloc(arrayView.buffer,
@@ -81,10 +99,12 @@ internal func reserveDynamicArray(arrayPointer: *void?, elementType: typeinfo?, 
 // The array keeps its capacity. Nothing happens when a pointer or `elementType` is null.
 func clearDynamicArray(arrayPointer: *void?, elementType: typeinfo?)
 {
-    if not arrayPointer or not elementType do
+    if not arrayPointer or not elementType
+    {
         return
+    }
 
-    let arrayView = cast(*Array'u8, arrayPointer)
+    let arrayView = cast(*Array!{u8}, arrayPointer)
     if hasDrop(elementType)
     {
         var scan = arrayView.buffer
@@ -104,10 +124,12 @@ func clearDynamicArray(arrayPointer: *void?, elementType: typeinfo?)
 // post-move hook, so the order is preserved. `index` must be in range.
 func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, index: u64)
 {
-    if not arrayPointer or not elementType do
+    if not arrayPointer or not elementType
+    {
         return
+    }
 
-    let arrayView    = cast(*Array'u8, arrayPointer)
+    let arrayView    = cast(*Array!{u8}, arrayPointer)
     let elementBytes = elementType.sizeof
 
     if index >= arrayView.count
@@ -148,8 +170,10 @@ func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ind
 // has a post-move hook are fixed up after their bytes are relocated.
 func swapRuntimeValues(basePointer: *void?, valueType: typeinfo?, indexA, indexB: u64)
 {
-    if not basePointer or not valueType or indexA == indexB do
+    if not basePointer or not valueType or indexA == indexB
+    {
         return
+    }
 
     let valueBytes = valueType.sizeof
     let base       = cast([*] u8, basePointer)
@@ -181,20 +205,27 @@ func swapRuntimeValues(basePointer: *void?, valueType: typeinfo?, indexA, indexB
 // for a type that has none.
 func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, initialize: bool = true)->*void
 {
-    if not arrayPointer or not elementType do
+    if not arrayPointer or not elementType
+    {
         Swag.panic("Reflection.appendDynamicArrayElement cannot append to a null array or null type", #curlocation)
-    if initialize and not Memory.canDefaultInit(elementType) do
+    }
+
+    if initialize and not Memory.canDefaultInit(elementType)
+    {
         Swag.panic("Reflection.appendDynamicArrayElement cannot default-initialize this type", #curlocation)
+    }
 
     // Views the array as a buffer of bytes to reach its fields without the element type.
-    let arrayView    = cast(*Array'u8, arrayPointer)
+    let arrayView    = cast(*Array!{u8}, arrayPointer)
     let elementBytes = elementType.sizeof
 
     // Growing relocates every value, so values with a post-move hook are fixed up afterwards.
     if arrayView.count >= arrayView.capacity
     {
-        if arrayView.allocator == null do
+        if arrayView.allocator == null
+        {
             arrayView.allocator = Swag.getContext().allocator
+        }
 
         let oldBuffer   = arrayView.buffer
         let oldCapacity = arrayView.capacity
@@ -205,8 +236,11 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
                                             runtimeTypeAlignment(elementBytes)))
         Memory.clear(newBuffer, newCapacity * elementBytes)
 
-        if arrayView.count do
+        if arrayView.count
+        {
             Memory.copy(newBuffer, unwrap oldBuffer, arrayView.count * elementBytes)
+        }
+
         if hasPostMove(elementType)
         {
             var movedElement = newBuffer
@@ -225,10 +259,14 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
     // The buffer holds at least one free slot here.
     let result = unwrap arrayView.buffer + (arrayView.count * elementBytes)
     arrayView.count += 1
-    if initialize do
+    if initialize
+    {
         Memory.defaultInit(result, elementType)
-    else do
+    }
+    else
+    {
         Memory.clear(result, elementBytes)
+    }
 
     return result
 }

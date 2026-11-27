@@ -42,19 +42,23 @@ func day7A()
 {
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
-    let str      = Tokenize.split(lines[0], ','u8)
+    let str      = Tokenize.split(lines[0], ','_u8)
 
-    var crabs: Array's32
-    for v in str do
+    var crabs: Array!{s32}
+    for v in str
+    {
         crabs.add(expect StrConv.toS32(v))
+    }
 
     crabs.sort()
 
     // https://en.wikipedia.org/wiki/Geometric_median#Properties
     var total  = 0
     let median = crabs[crabs.count / 2]
-    for v in crabs do
+    for v in crabs
+    {
         total += Math.abs(v - median)
+    }
 
     Swag.assert(total == 342730)
 }

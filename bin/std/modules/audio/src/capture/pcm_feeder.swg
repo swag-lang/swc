@@ -19,7 +19,7 @@ struct CapturePcmFeeder
     private
     {
         late queue: *CaptureQueue
-        scratch:    Array's16
+        scratch:    Array!{s16}
         channels:   u16
         sampleRate: u32
         maximum:    u32
@@ -48,13 +48,16 @@ impl CapturePcmFeeder
     // Submits one interleaved signed 16-bit source packet.
     mtd pushPcm16(samples: const [..] s16, firstTick: u64, discontinuity: bool = false) fail
     {
-        if not samples.count or samples.count % .channels do
+        if not samples.count or samples.count % .channels
+        {
             fail BadParameterError{"capture PCM16 packet needs complete nonempty frames"}
+        }
+
         let frames = samples.count / .channels
         try .preflightTicks(firstTick, frames)
         try .queue.preflightPacket(firstTick, frames)
         try .beginPacket(firstTick, discontinuity)
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < frames
         {
             let count = Math.min(frames - offset, .maximum)
@@ -67,13 +70,16 @@ impl CapturePcmFeeder
     // Submits one interleaved 32-bit floating-point source packet.
     mtd pushFloat32(samples: const [..] f32, firstTick: u64, discontinuity: bool = false) fail
     {
-        if not samples.count or samples.count % .channels do
+        if not samples.count or samples.count % .channels
+        {
             fail BadParameterError{"capture float packet needs complete nonempty frames"}
+        }
+
         let frames = samples.count / .channels
         try .preflightTicks(firstTick, frames)
         try .queue.preflightPacket(firstTick, frames)
         try .beginPacket(firstTick, discontinuity)
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < frames
         {
             let count = Math.min(frames - offset, .maximum)
@@ -96,17 +102,23 @@ impl CapturePcmFeeder
     // Submits a silent native packet without allocating a packet-sized PCM buffer.
     mtd pushSilence(frames: u64, firstTick: u64, discontinuity: bool = false) fail
     {
-        if not frames do
+        if not frames
+        {
             fail BadParameterError{"capture silence packet needs frames"}
+        }
+
         try .preflightTicks(firstTick, frames)
         try .queue.preflightPacket(firstTick, frames)
         try .beginPacket(firstTick, discontinuity)
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < frames
         {
             let count = Math.min(frames - offset, .maximum)
-            for index in count * .channels do
+            for index in count * .channels
+            {
                 .scratch[index] = 0
+            }
+
             let tick = try .tickAt(firstTick, offset)
             discard try .queue.push(.scratch.toSlice()[0 until count * .channels], tick)
             offset += count
@@ -124,10 +136,15 @@ private impl CapturePcmFeeder
 
     mtd beginPacket(firstTick: u64, discontinuity: bool) fail
     {
-        if discontinuity do
+        if discontinuity
+        {
             try .queue.markLost(firstTick)
-        if .queue.sourceIsLost() do
+        }
+
+        if .queue.sourceIsLost()
+        {
             try .queue.markRestored(firstTick)
+        }
     }
 
     mtd tickAt(firstTick: u64, offset: u64)->u64 fail

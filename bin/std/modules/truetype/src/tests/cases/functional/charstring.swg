@@ -110,7 +110,7 @@ using Swag, Core
 #test
 {
     const PlainCharstring: [8] u8 = ['3', ' ', 'R', 'D', ' ', 10, 20, 30]
-    let entry = expect readCharstringData(PlainCharstring, 0, -1)
+    let entry = expect readCharstringData(PlainCharstring, 0)
     Swag.require(entry.bytes.count == 3)
     Swag.require(entry.bytes[0] == 10 and entry.bytes[1] == 20 and entry.bytes[2] == 30)
     Swag.require(entry.next == PlainCharstring.count)
@@ -119,11 +119,13 @@ using Swag, Core
 // Type 2 and Type 1 reject operands beyond their bounded charstring stacks.
 #test
 {
-    var code: Array'u8
-    for MaxCharstringStack + 1 do
+    var code: Array!{u8}
+    for MaxCharstringStack + 1
+    {
         code.add(32)
+    }
 
-    var indexBytes: Array'u8
+    var indexBytes: Array!{u8}
     indexBytes.add([0, 1, 1, 1, cast(u8, code.count + 1)])
     indexBytes.add(code.toSlice())
     var type2: CffFont
@@ -134,7 +136,7 @@ using Swag, Core
     Swag.require(type2Outcome.value() != null)
 
     var type1: Type1Font
-    type1.charstrings.add(code)
+    type1.charstrings.add(type1.storeCode(code.toSlice(), -1))
     var type1Outcome: Swag.Error
     discard catch runType1Charstring(&type1, 0, null) as type1Outcome
     Swag.require(type1Outcome.value() != null)
@@ -159,12 +161,15 @@ using Swag, Core
 // Type 1 OtherSubr retains the full set of values it returns to the charstring stack.
 #test
 {
-    var charstring: Array'u8
+    var charstring: Array!{u8}
     charstring.add(139)     // zero side bearing
     charstring.add(139)     // zero advance
     charstring.add(13)      // hsbw
-    for index in 33 do
+    for index in 33
+    {
         charstring.add(cast(u8, index + 140))
+    }
+
     charstring.add(172)     // OtherSubr argument count 33
     charstring.add(142)     // OtherSubr 3, which returns its arguments unchanged
     charstring.add(12)
@@ -184,7 +189,7 @@ using Swag, Core
     charstring.add(14)     // endchar
 
     var font: Type1Font
-    font.charstrings.add(charstring)
+    font.charstrings.add(font.storeCode(charstring.toSlice(), -1))
 
     var face: FaceImpl
     var builder = OutlineBuilder.create(&face, 1000, 1000, 1000)
@@ -192,4 +197,53 @@ using Swag, Core
 
     Swag.require(face.outlinePoints.count == 2)
     Swag.require(face.outlinePoints[0].x == 64 and face.outlinePoints[0].y == 128)
+}
+
+// A width set in a nested subroutine ends width-only execution in its callers.
+#test
+{
+    const Glyphs: [11] u8 = [
+        0, 1, 1, 1, 7,
+        189, 32, 10, 255, 0, 0]     // width 50, local subr 0, truncated fixed operand
+    const Local: [8] u8 = [
+        0, 1, 1, 1, 4,
+        32, 29, 11]     // global subr 0, return
+    const Global: [9] u8 = [
+        0, 1, 1, 1, 5,
+        139, 139, 21, 11]     // rmoveto (0, 0), return
+
+    var font: CffFont
+    font.block       = Glyphs
+    font.charStrings = expect readCffIndex(Glyphs, 0)
+    font.defaultPrivate.subrs = expect readCffIndex(Local, 0)
+    font.globalSubrs = expect readCffIndex(Global, 0)
+    Swag.require(expect runType2Charstring(&font, 0, null) == 50)
+    Swag.require(expect type2CharstringWidth(&font, 0) == 50)
+
+    var face:  FaceImpl
+    var builder = OutlineBuilder.create(&face, 1000, 1000, 1000)
+    var error: Swag.Error
+    discard catch runType2Charstring(&font, 0, &builder) as error
+    Swag.require(error.value() != null)
+}
+
+// Literal widths and fallback arithmetic agree with the full interpreter.
+#test
+{
+    const Glyphs: [27] u8 = [
+        0, 4, 1, 1, 2, 6, 12, 20,
+        14,     // default width
+        28, 0xFF, 0xCE, 14,         // short -50, endchar
+        255, 0, 50, 128, 0, 14,     // fixed 50.5, endchar
+        239, 141, 12, 12, 139, 139, 21, 14]     // 100 2 div, rmoveto, endchar
+
+    var font: CffFont
+    font.block                       = Glyphs
+    font.charStrings                 = expect readCffIndex(Glyphs, 0)
+    font.defaultPrivate.nominalWidth = 10
+    font.defaultPrivate.defaultWidth = 500
+    Swag.require(expect type2CharstringWidth(&font, 0) == 500)
+    Swag.require(expect type2CharstringWidth(&font, 1) == -40)
+    Swag.require(expect type2CharstringWidth(&font, 2) == 60.5)
+    Swag.require(expect type2CharstringWidth(&font, 3) == 60)
 }

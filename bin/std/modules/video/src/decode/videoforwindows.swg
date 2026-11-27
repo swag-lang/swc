@@ -13,10 +13,10 @@ var noStoredPrefix: [1] u8
 func storedNothing()->const [..] u8 => noStoredPrefix[0 until 0]
 
 // Size of the bitmap header a track of that era carries before anything else it states.
-const BitmapInfoHeaderSize = 40'u64
+const BitmapInfoHeaderSize = 40_u64
 
 // Where in that header the four characters naming the codec sit.
-const BitmapCompressionOffset = 16'u64
+const BitmapCompressionOffset = 16_u64
 
 // Packs four characters the way a bitmap header stores them, least significant first.
 #[Swag.ConstExpr]
@@ -29,44 +29,53 @@ func fourCharacterCode(a, b, c, d: u32) => a | (b << 8) | (c << 16) | (d << 24)
 // of the same years share the lineage but not the bitstream, so their codes are absent and a track
 // naming one is refused rather than guessed at.
 const Mpeg4FourCcs: [19] u32 = [
-    fourCharacterCode('X'u32, 'V'u32, 'I'u32, 'D'u32),
-    fourCharacterCode('D'u32, 'I'u32, 'V'u32, 'X'u32),
-    fourCharacterCode('D'u32, 'X'u32, '5'u32, '0'u32),
-    fourCharacterCode('F'u32, 'M'u32, 'P'u32, '4'u32),
-    fourCharacterCode('M'u32, 'P'u32, '4'u32, 'V'u32),
-    fourCharacterCode('M'u32, 'P'u32, '4'u32, 'S'u32),
-    fourCharacterCode('M'u32, '4'u32, 'S'u32, '2'u32),
-    fourCharacterCode('B'u32, 'L'u32, 'Z'u32, '0'u32),
-    fourCharacterCode('R'u32, 'M'u32, 'P'u32, '4'u32),
-    fourCharacterCode('S'u32, 'E'u32, 'D'u32, 'G'u32),
-    fourCharacterCode('W'u32, 'V'u32, '1'u32, 'F'u32),
-    fourCharacterCode('F'u32, 'F'u32, 'D'u32, 'S'u32),
-    fourCharacterCode('F'u32, 'V'u32, 'F'u32, 'W'u32),
-    fourCharacterCode('3'u32, 'I'u32, 'V'u32, '2'u32),
-    fourCharacterCode('U'u32, 'M'u32, 'P'u32, '4'u32),
-    fourCharacterCode('H'u32, 'D'u32, 'X'u32, '4'u32),
-    fourCharacterCode('D'u32, 'X'u32, 'G'u32, 'M'u32),
-    fourCharacterCode('S'u32, 'M'u32, 'P'u32, '4'u32),
-    fourCharacterCode('P'u32, 'M'u32, '4'u32, 'V'u32)]
+    fourCharacterCode('X'_u32, 'V'_u32, 'I'_u32, 'D'_u32),
+    fourCharacterCode('D'_u32, 'I'_u32, 'V'_u32, 'X'_u32),
+    fourCharacterCode('D'_u32, 'X'_u32, '5'_u32, '0'_u32),
+    fourCharacterCode('F'_u32, 'M'_u32, 'P'_u32, '4'_u32),
+    fourCharacterCode('M'_u32, 'P'_u32, '4'_u32, 'V'_u32),
+    fourCharacterCode('M'_u32, 'P'_u32, '4'_u32, 'S'_u32),
+    fourCharacterCode('M'_u32, '4'_u32, 'S'_u32, '2'_u32),
+    fourCharacterCode('B'_u32, 'L'_u32, 'Z'_u32, '0'_u32),
+    fourCharacterCode('R'_u32, 'M'_u32, 'P'_u32, '4'_u32),
+    fourCharacterCode('S'_u32, 'E'_u32, 'D'_u32, 'G'_u32),
+    fourCharacterCode('W'_u32, 'V'_u32, '1'_u32, 'F'_u32),
+    fourCharacterCode('F'_u32, 'F'_u32, 'D'_u32, 'S'_u32),
+    fourCharacterCode('F'_u32, 'V'_u32, 'F'_u32, 'W'_u32),
+    fourCharacterCode('3'_u32, 'I'_u32, 'V'_u32, '2'_u32),
+    fourCharacterCode('U'_u32, 'M'_u32, 'P'_u32, '4'_u32),
+    fourCharacterCode('H'_u32, 'D'_u32, 'X'_u32, '4'_u32),
+    fourCharacterCode('D'_u32, 'X'_u32, 'G'_u32, 'M'_u32),
+    fourCharacterCode('S'_u32, 'M'_u32, 'P'_u32, '4'_u32),
+    fourCharacterCode('P'_u32, 'M'_u32, '4'_u32, 'V'_u32)]
 
 // Whether four characters name a picture codec this module reads as MPEG-4 Part 2.
 func isMpeg4FourCc(code: u32)->bool
 {
     // The case an encoder chose says who wrote the file, not what its frames hold.
-    var upper = 0'u32
-    for shift in 4'u32 do
+    var upper = 0_u32
+    for shift in 4_u32
+    {
         upper |= cast(u32, Latin1.toUpper(cast(u8, ((code >> (shift * 8)) & 0xFF)))) << (shift * 8)
+    }
+
     return Slice.contains(Mpeg4FourCcs, upper)
 }
 
 // The four characters a bitmap header names its codec with.
 func bitmapCompression(header: const [..] u8)->u32
 {
-    if header.count < BitmapCompressionOffset + 4 do
+    if header.count < BitmapCompressionOffset + 4
+    {
         return 0
-    var code = 0'u32
-    for shift in 4'u64 do
+    }
+
+    var code = 0_u32
+    for shift in 4_u64
+    {
         code |= cast(u32, header[BitmapCompressionOffset + shift]) << cast(u32, (shift * 8))
+    }
+
     return code
 }
 
@@ -80,8 +89,11 @@ func inlineSetupHeaders(sample: const [..] u8)->const [..] u8
     while at < sample.count
     {
         let code = cast(u32, sample[at + 3])
-        if code == Mpeg4.CodeVop do
+        if code == Mpeg4.CodeVop
+        {
             return sample[until at]
+        }
+
         at = Mpeg4.nextStartCode(sample, at + 1)
     }
 

@@ -80,10 +80,10 @@ func keyboardWidthText(index: u32)->string
 func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'Texts(&g_Texts, "scope.midi")
+    Gui.registerStrings!{Texts}(&g_Texts, "scope.midi")
 }
 
 #run
 {
-    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
+    expect Gui.validateStrings!{Texts}(cast(string, FrenchStrings))
 }

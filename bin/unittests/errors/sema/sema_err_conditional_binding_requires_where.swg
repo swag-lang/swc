@@ -26,9 +26,11 @@ func implicitConstant()
 
 func implicitElseIf(first: bool, value: s32)
 {
-    if first do
+    if first
+    {
         return
-    elif let count = value     // swc-expected-error {{sema_err_conditional_binding_requires_where}}
+    }
+    else if let count = value     // swc-expected-error {{sema_err_conditional_binding_requires_where}}
     {
         discard count
     }

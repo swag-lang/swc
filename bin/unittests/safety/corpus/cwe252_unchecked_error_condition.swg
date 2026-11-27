@@ -24,8 +24,10 @@ struct LoadError
 
 func load(present: bool)->s32 fail
 {
-    if not present do
+    if not present
+    {
         fail LoadError{base: Swag.BaseError{"nothing to load"}, code: 7}
+    }
     return 1
 }
 
@@ -87,9 +89,11 @@ func loadInto(out: *s32, present: bool) fail
 
 func handlesOnFailure(present: bool)->s32
 {
-    var result = -1's32
-    catch loadInto(&result, present) do
+    var result = -1_s32
+    catch loadInto(&result, present)
+    {
         result = -2
+    }
     return result
 }
 

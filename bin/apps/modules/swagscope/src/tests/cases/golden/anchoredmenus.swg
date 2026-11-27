@@ -9,8 +9,11 @@ func captureScopeContextMenu(host: *Testing.HeadlessHost, golden: string)
     host.app.sigFrame += func|host, golden|(_)
     {
         let menu = unwrap host.capturedPopupMenu()
-        for item in menu.items where item and not item.separator and not item.label do
+        for item in menu.items where item and not item.separator and not item.label
+        {
             Swag.require(item.icon.isValid(), item.id)
+        }
+
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
         assertScopeImageGolden(&image, golden)
@@ -28,7 +31,7 @@ func captureScopeContextMenu(host: *Testing.HeadlessHost, golden: string)
     openViews(&host, workspace)
     workspace.openDocument(scopeTestDataPath("comprehensive.txt"), newTab: true)
     openViews(&host, workspace)
-    let tabs = workspace.tabs
+    let tabs  = workspace.tabs
     var point = tabs.localToSurface(tabs.items[0].center())
     host.surface.surfaceToScreen(&point)
     captureScopeContextMenu(&host, "menus.tab.file.encre")
@@ -51,7 +54,7 @@ func captureScopeContextMenu(host: *Testing.HeadlessHost, golden: string)
     completeExplorer(&host, unwrap workspace.activeDocument().explorer)
     workspace.openDocument(scopeTestDataPath("viewer.txt"), newTab: true)
     openViews(&host, workspace)
-    let tabs = workspace.tabs
+    let tabs  = workspace.tabs
     var point = tabs.localToSurface(tabs.items[0].center())
     host.surface.surfaceToScreen(&point)
     captureScopeContextMenu(&host, "menus.tab.folder.paper")
@@ -99,8 +102,11 @@ internal func assertScopeAnchoredMenuWith(host: *Testing.HeadlessHost, window: *
     var captured: bool
     host.app.sigFrame += func|host, golden, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         let menu  = host.capturedPopupMenu()
         let sheet = host.capturedOptionSheet()
         Swag.require(menu != null or sheet != null)
@@ -114,17 +120,26 @@ internal func assertScopeAnchoredMenuWith(host: *Testing.HeadlessHost, window: *
             }
         }
 
-        if sheet do
-            for &row in sheet.page.rows where row.kind == .Action or row.kind == .Link or row.kind == .Toggle do
+        if sheet
+        {
+            for &row in sheet.page.rows where row.kind == .Action or row.kind == .Link or row.kind == .Toggle
+            {
                 Swag.require(row.icon.isValid(), row.label.text)
+            }
+        }
+
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
         assertScopeImageGolden(&image, golden)
         captured[] = true
-        if menu do
+        if menu
+        {
             Swag.require(host.dismissPopupMenu())
-        else do
+        }
+        else
+        {
             sheet!.close()
+        }
     }
 
     open()
@@ -163,8 +178,11 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
         let sheet = host.capturedOptionSheet()
-        if captured[] or not sheet do
+        if captured[] or not sheet
+        {
             return
+        }
+
         Swag.require(sheet.activateRow(Gui.strings().appearance_Theme))
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
@@ -211,9 +229,9 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
 #[Swag.TestTag("golden")]
 #test
 {
-    var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.arabic.ttf"), true)
-    let view   = assume cast(*Typeface.Panel, window.currentView)
+    var host:    Testing.HeadlessHost
+    let window  = framedViewerWindow(&host, scopeTestDataPath("viewer.arabic.ttf"), true)
+    let view    = assume cast(*Typeface.Panel, window.currentView)
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Font", host.theme)
     view.describeLens(&entries)
@@ -222,6 +240,7 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
         assertScopeAnchoredMenuWith(&host, window, "menus.font.range.paper", unwrap entry.run)
         return
     }
+
     Swag.require(false, "Character range missing from font commands")
 }
 
@@ -319,8 +338,11 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, true, films: true)
     let explorer = unwrap window.explorer
-    for name in ["Alien.mkv", "Arrival.mkv", "Heat.mkv"] do
+    for name in ["Alien.mkv", "Arrival.mkv", "Heat.mkv"]
+    {
         explorer.entries.add({name: name, path: name, attempted: true})
+    }
+
     showBoard(&host, window, "Projects", "Films")
     explorer.forceBoard(true, .Posters)
     Swag.require(explorer.showsMedia())

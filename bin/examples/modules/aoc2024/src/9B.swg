@@ -39,7 +39,7 @@ func day9BA()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "9.txt")
     let line     = expect File.readAllText(dataPath)
 
-    var map: Array'{ what, num: s64 }
+    var map: Array!{{ what, num: s64 }}
 
     var toCheck: s64
     for t, index in line
@@ -60,18 +60,24 @@ func day9BA()
     while toCheck
     {
         toCheck -= 1
-        while map[last].what != toCheck do
+        while map[last].what != toCheck
+        {
             last -= 1
+        }
 
-        var i = 0'u64
+        var i = 0_u64
 
         // Move left-to-right until a free span can hold this file.
         while i < last and
-              (map[i].what != -1 or map[i].num < map[last].num) do
+              (map[i].what != -1 or map[i].num < map[last].num)
+        {
             i += 1
+        }
 
-        if i >= last do
+        if i >= last
+        {
             continue
+        }
 
         map[i].what    = map[last].what
         map[last].what = -1
@@ -118,13 +124,15 @@ func day9BB()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "9.txt")
     var line     = expect File.readAllText(dataPath)
 
-    var filesBySize: [10] Array's32
-    var moved:       HashTable'(s32, u8)
+    var filesBySize: [10] Array!{s32}
+    var moved:       HashTable!{s32, u8}
 
-    for i in line.length where i % 2 == 0 do
+    for i in line.length where i % 2 == 0
+    {
         filesBySize[line[i] - '0'].add(cast(s32, i))
+    }
 
-    var total         = 0'u64
+    var total         = 0_u64
     var idx, blockIdx = 0
     while idx < line.length
     {
@@ -152,8 +160,11 @@ func day9BB()
                 for j in 1 to numSpaces
                 {
                     let temp = &filesBySize[j]
-                    if temp.isEmpty() do
+                    if temp.isEmpty()
+                    {
                         continue
+                    }
+
                     if maxIdx < temp.back() and temp.back() > idx
                     {
                         maxIdx = temp.back()
@@ -178,8 +189,10 @@ func day9BB()
             line[maxIdx]  = '0'
             line[idx]     -= numSpaces
 
-            if line[idx] == '0' do
+            if line[idx] == '0'
+            {
                 idx += 1
+            }
         }
     }
 

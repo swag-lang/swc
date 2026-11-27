@@ -14,8 +14,10 @@ func createStateMenuModel(parent: *Wnd)
 func showStateMenuFrom(btn: *Button)
 {
     let stateMenu = g_StateMenu
-    if not stateMenu do
+    if not stateMenu
+    {
         return
+    }
 
     let pos = btn.surfaceRect()
     discard stateMenu.doModal(Math.Point{pos.horzCenter(), pos.bottom() + 8}, .AnchorTopCenter)

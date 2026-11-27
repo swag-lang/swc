@@ -20,7 +20,7 @@ enum EnumArrayNoImplicitCast: u8
 var enumArrayRawValue: u8 = EnumArrayNoImplicitCast.Second     // swc-expected-error {{sema_err_cannot_cast}}
 
 const CannotCastSwitchPointerValues = [11, 22]
-const CannotCastSwitchPointerBytes  = ['x'u8, 'y'u8]
+const CannotCastSwitchPointerBytes  = ['x'_u8, 'y'_u8]
 
 #test
 {
@@ -41,7 +41,7 @@ const CannotCastSwitchPointerBytes  = ['x'u8, 'y'u8]
 #test
 {
     const bad: [2] u16 = [
-        0'u16,
+        0_u16,
         true     // swc-expected-error {{sema_err_cannot_cast}}
         ]
 }
@@ -50,7 +50,7 @@ const CannotCastSwitchPointerBytes  = ['x'u8, 'y'u8]
 {
     const bad: [1, 2] u16 = [
         [
-            0'u16,
+            0_u16,
             true     // swc-expected-error {{sema_err_cannot_cast}}
         ]
         ]
@@ -148,8 +148,10 @@ func narrowLimitTakes(p: *NarrowLimitNode) { discard p }
     // The else branch of a truthiness guard is exactly where the value IS null.
     var p: *NarrowLimitNode?
     if p {}
-    else do
+    else
+    {
         narrowLimitTakes(p)     // swc-expected-error {{sema_err_cannot_cast}}
+    }
 }
 
 #test
@@ -218,6 +220,8 @@ func narrowLimitTakes(p: *NarrowLimitNode) { discard p }
 {
     // `a or b` proves nothing about either operand when taken.
     var p, q: *NarrowLimitNode?
-    if p or q do
+    if p or q
+    {
         narrowLimitTakes(p)     // swc-expected-error {{sema_err_cannot_cast}}
+    }
 }

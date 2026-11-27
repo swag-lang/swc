@@ -9,11 +9,11 @@
 using Core, Core.Errors
 
 // The largest coding tree block the format allows, and the smallest coding block, in luma samples.
-const MaxCtbLog2SizeY      = 6'u32
-const MinCbLog2SizeAllowed = 3'u32
+const MaxCtbLog2SizeY      = 6_u32
+const MinCbLog2SizeAllowed = 3_u32
 
 // A short-term reference picture set holds at most sixteen pictures, clause 7.4.8.
-const MaxRefPics = 16'u32
+const MaxRefPics = 16_u32
 
 // One short-term reference picture set, after the inter-set prediction of clause 7.4.8 is resolved.
 //
@@ -36,11 +36,17 @@ impl ShortTermRps
     // Counts the pictures of this set the current picture is allowed to predict from.
     mtd const usedCount()->u32
     {
-        var count = 0'u32
-        for index in .negativeCount where .negativeUsed[index] do
+        var count = 0_u32
+        for index in .negativeCount where .negativeUsed[index]
+        {
             count += 1
-        for index in .positiveCount where .positiveUsed[index] do
+        }
+
+        for index in .positiveCount where .positiveUsed[index]
+        {
             count += 1
+        }
+
         return count
     }
 }
@@ -64,21 +70,28 @@ impl ScalingLists
     // Fills every matrix with the default of Tables 7-5 and 7-6.
     mtd setDefaults()
     {
-        for matrixId in 6'u32
+        for matrixId in 6_u32
         {
-            for index in 16'u32 do
-                .lists[0, matrixId, index] = DefaultScalingList4x4[index]
-            for sizeId in 1 until 4'u32
+            for index in 16_u32
             {
-                for index in 64'u32 do
+                .lists[0, matrixId, index] = DefaultScalingList4x4[index]
+            }
+
+            for sizeId in 1 until 4_u32
+            {
+                for index in 64_u32
+                {
                     .lists[sizeId, matrixId, index] = matrixId < 3 ? DefaultScalingListIntra[index] : DefaultScalingListInter[index]
+                }
             }
         }
 
-        for sizeId in 2'u32
+        for sizeId in 2_u32
         {
-            for matrixId in 6'u32 do
+            for matrixId in 6_u32
+            {
                 .dc[sizeId, matrixId] = 16
+            }
         }
     }
 
@@ -92,21 +105,24 @@ impl ScalingLists
     // Reads one `scaling_list_data` structure, clause 7.3.4.
     mtd read(reader: *BitReader) fail
     {
-        for sizeId in 4'u32
+        for sizeId in 4_u32
         {
-            var matrixId = 0'u32
+            var matrixId = 0_u32
             while matrixId < 6
             {
                 // The 32x32 size carries the two luma matrices only, in every chroma format this
                 // decoder reads.
-                let step = sizeId == 3 ? 3'u32 : 1'u32
+                let step = sizeId == 3 ? 3_u32 : 1_u32
                 if reader.bit() == 0
                 {
                     // A matrix that predicts from an earlier one, or from the default when the
                     // delta selects itself.
                     let delta = reader.ue()
-                    if delta > matrixId / step do
+                    if delta > matrixId / step
+                    {
                         fail InvalidFormatError{"HEVC scaling list refers to a matrix that does not precede it"}
+                    }
+
                     if delta == 0
                     {
                         .setDefaultMatrix(sizeId, matrixId)
@@ -114,21 +130,29 @@ impl ScalingLists
                     else
                     {
                         let source = matrixId - delta * step
-                        for index in 64'u32 do
+                        for index in 64_u32
+                        {
                             .lists[sizeId, matrixId, index] = .lists[sizeId, source, index]
-                        if sizeId > 1 do
+                        }
+
+                        if sizeId > 1
+                        {
                             .dc[sizeId - 2, matrixId] = .dc[sizeId - 2, source]
+                        }
                     }
                 }
                 else
                 {
-                    let count    = sizeId == 0 ? 16'u32 : 64'u32
-                    var nextCoef = 8's32
+                    let count    = sizeId == 0 ? 16_u32 : 64_u32
+                    var nextCoef = 8_s32
                     if sizeId > 1
                     {
                         let dcMinus8 = reader.se()
-                        if dcMinus8 < -7 or dcMinus8 > 247 do
+                        if dcMinus8 < -7 or dcMinus8 > 247
+                        {
                             fail InvalidFormatError{"HEVC scaling list direct-current coefficient is out of range"}
+                        }
+
                         .dc[sizeId - 2, matrixId] = cast(u8, (dcMinus8 + 8))
                         nextCoef = dcMinus8 + 8
                     }
@@ -144,8 +168,10 @@ impl ScalingLists
             }
         }
 
-        if reader.overran do
+        if reader.overran
+        {
             fail InvalidFormatError{"HEVC scaling list data is truncated"}
+        }
     }
 
     // Restores one matrix to the default of Tables 7-5 and 7-6.
@@ -153,15 +179,23 @@ impl ScalingLists
     {
         if not sizeId
         {
-            for index in 16'u32 do
+            for index in 16_u32
+            {
                 .lists[0, matrixId, index] = DefaultScalingList4x4[index]
+            }
+
             return
         }
 
-        for index in 64'u32 do
+        for index in 64_u32
+        {
             .lists[sizeId, matrixId, index] = matrixId < 3 ? DefaultScalingListIntra[index] : DefaultScalingListInter[index]
-        if sizeId > 1 do
+        }
+
+        if sizeId > 1
+        {
             .dc[sizeId - 2, matrixId] = 16
+        }
     }
 }
 
@@ -264,10 +298,15 @@ impl Sps
 
         discard reader.ue()
         .chromaFormatIdc = reader.ue()
-        if .chromaFormatIdc == 3 do
+        if .chromaFormatIdc == 3
+        {
             .separateColour = reader.bit() != 0
-        if .chromaFormatIdc != 1 do
+        }
+
+        if .chromaFormatIdc != 1
+        {
             fail UnsupportedFormatError{"HEVC decoder reads 4:2:0 chroma only"}
+        }
 
         .subWidthC       = 2
         .subHeightC      = 2
@@ -285,16 +324,21 @@ impl Sps
 
         .bitDepthLuma   = reader.ue() + 8
         .bitDepthChroma = reader.ue() + 8
-        if .bitDepthLuma > 10 or .bitDepthChroma > 10 or .bitDepthLuma != .bitDepthChroma do
+        if .bitDepthLuma > 10 or .bitDepthChroma > 10 or .bitDepthLuma != .bitDepthChroma
+        {
             fail UnsupportedFormatError{"HEVC decoder requires matching luma and chroma bit depths from 8 to 10"}
+        }
 
         let log2MaxPocLsbMinus4 = reader.ue()
-        if log2MaxPocLsbMinus4 > 12 do
+        if log2MaxPocLsbMinus4 > 12
+        {
             fail InvalidFormatError{"HEVC picture order count range is out of bounds"}
+        }
+
         .log2MaxPocLsb = log2MaxPocLsbMinus4 + 4
 
         let subLayerOrdering = reader.bit() != 0
-        for (subLayerOrdering ? 0'u32 : maxSubLayersMinus1) to maxSubLayersMinus1
+        for (subLayerOrdering ? 0_u32 : maxSubLayersMinus1) to maxSubLayersMinus1
         {
             .maxDecPicBuffering = reader.ue() + 1
             .maxNumReorder      = reader.ue()
@@ -309,18 +353,25 @@ impl Sps
         .maxTrafoDepthIntra = reader.ue()
         if .ctbLog2Size > MaxCtbLog2SizeY or
            .minCbLog2Size < MinCbLog2SizeAllowed or
-           .minCbLog2Size > .ctbLog2Size do
+           .minCbLog2Size > .ctbLog2Size
+        {
             fail InvalidFormatError{"HEVC coding block sizes are out of range"}
-        if .maxTbLog2Size > 5 or .minTbLog2Size < 2 or .minTbLog2Size > .maxTbLog2Size do
+        }
+
+        if .maxTbLog2Size > 5 or .minTbLog2Size < 2 or .minTbLog2Size > .maxTbLog2Size
+        {
             fail InvalidFormatError{"HEVC transform block sizes are out of range"}
+        }
 
         .scalingListEnabled = reader.bit() != 0
         .scalingLists.setFlat()
         if .scalingListEnabled
         {
             .scalingLists.setDefaults()
-            if reader.bit() do
+            if reader.bit()
+            {
                 try .scalingLists.read(reader)
+            }
         }
 
         .ampEnabled = reader.bit() != 0
@@ -337,17 +388,25 @@ impl Sps
         }
 
         .numShortTermRps = reader.ue()
-        if .numShortTermRps > 64 do
+        if .numShortTermRps > 64
+        {
             fail InvalidFormatError{"HEVC sequence declares too many short-term reference picture sets"}
-        for index in .numShortTermRps do
+        }
+
+        for index in .numShortTermRps
+        {
             try readShortTermRps(reader, &.shortTermRps[0], index, .numShortTermRps)
+        }
 
         .longTermRefPics = reader.bit() != 0
         if .longTermRefPics
         {
             .numLongTermRefPicsSps = reader.ue()
-            if .numLongTermRefPicsSps > 32 do
+            if .numLongTermRefPicsSps > 32
+            {
                 fail InvalidFormatError{"HEVC sequence declares too many long-term reference pictures"}
+            }
+
             for index in .numLongTermRefPicsSps
             {
                 .ltPocLsbSps[index]     = reader.read(.log2MaxPocLsb)
@@ -360,8 +419,10 @@ impl Sps
 
         // Video usability information carries the range and colour matrix used when the decoded
         // planes are presented. The rest is walked far enough to reach the following syntax.
-        if reader.bit() do
+        if reader.bit()
+        {
             try readVuiParameters(reader, maxSubLayersMinus1, me)
+        }
 
         if reader.bit()
         {
@@ -383,17 +444,24 @@ impl Sps
                 .cabacBypassAlignment     = reader.bit() != 0
             }
 
-            if multilayer or extension3d or screenContent do
+            if multilayer or extension3d or screenContent
+            {
                 fail UnsupportedFormatError{"HEVC multilayer, 3D and screen content extensions are not supported"}
+            }
+
             if .extendedPrecision or
                .explicitRdpcm or
                .persistentRiceAdaptation or
-               .cabacBypassAlignment do
+               .cabacBypassAlignment
+            {
                 fail UnsupportedFormatError{"HEVC range extension tools are not supported"}
+            }
         }
 
-        if reader.overran do
+        if reader.overran
+        {
             fail InvalidFormatError{"HEVC sequence parameter set is truncated"}
+        }
 
         .derive()
         try .validate()
@@ -403,8 +471,8 @@ impl Sps
     // Computes the geometry clause 7.4.3.2.1 derives from the coded sizes.
     private mtd derive()
     {
-        .ctbSize        = 1'u32 << .ctbLog2Size
-        .minCbSize      = 1'u32 << .minCbLog2Size
+        .ctbSize        = 1_u32 << .ctbLog2Size
+        .minCbSize      = 1_u32 << .minCbLog2Size
         .widthInCtbs    = (.width + .ctbSize - 1) / .ctbSize
         .heightInCtbs   = (.height + .ctbSize - 1) / .ctbSize
         .sizeInCtbs     = .widthInCtbs * .heightInCtbs
@@ -419,19 +487,32 @@ impl Sps
     // Rejects a sequence this decoder cannot reconstruct.
     private mtd const validate() fail
     {
-        if not .width or not .height do
+        if not .width or not .height
+        {
             fail InvalidFormatError{"HEVC sequence declares an empty picture"}
-        if .width % .minCbSize or .height % .minCbSize do
+        }
+
+        if .width % .minCbSize or .height % .minCbSize
+        {
             fail InvalidFormatError{"HEVC picture size is not a multiple of the minimum coding block"}
-        if .width > 16384 or .height > 16384 do
+        }
+
+        if .width > 16384 or .height > 16384
+        {
             fail UnsupportedFormatError{"HEVC picture exceeds the supported size"}
-        if .maxDecPicBuffering > 16 do
+        }
+
+        if .maxDecPicBuffering > 16
+        {
             fail InvalidFormatError{"HEVC decoded picture buffer exceeds sixteen pictures"}
+        }
 
         let cropWidth  = (cast(u64, .cropLeft) + cast(u64, .cropRight)) * cast(u64, .subWidthC)
         let cropHeight = (cast(u64, .cropTop) + cast(u64, .cropBottom)) * cast(u64, .subHeightC)
-        if cropWidth >= cast(u64, .width) or cropHeight >= cast(u64, .height) do
+        if cropWidth >= cast(u64, .width) or cropHeight >= cast(u64, .height)
+        {
             fail InvalidFormatError{"HEVC conformance window leaves no visible picture"}
+        }
     }
 }
 
@@ -511,20 +592,29 @@ impl Pps
         .signDataHiding          = reader.bit() != 0
         .cabacInitPresent        = reader.bit() != 0
         let numRefIdxL0DefaultMinus1 = reader.ue()
-        if numRefIdxL0DefaultMinus1 >= MaxRefPics do
+        if numRefIdxL0DefaultMinus1 >= MaxRefPics
+        {
             fail InvalidFormatError{"HEVC picture parameter set declares too many default reference pictures"}
+        }
+
         .numRefIdxL0Default = numRefIdxL0DefaultMinus1 + 1
 
         let numRefIdxL1DefaultMinus1 = reader.ue()
-        if numRefIdxL1DefaultMinus1 >= MaxRefPics do
+        if numRefIdxL1DefaultMinus1 >= MaxRefPics
+        {
             fail InvalidFormatError{"HEVC picture parameter set declares too many default reference pictures"}
+        }
+
         .numRefIdxL1Default   = numRefIdxL1DefaultMinus1 + 1
         .initQp = reader.se() + 26
         .constrainedIntraPred = reader.bit() != 0
         .transformSkipEnabled = reader.bit() != 0
         .cuQpDeltaEnabled     = reader.bit() != 0
-        if .cuQpDeltaEnabled do
+        if .cuQpDeltaEnabled
+        {
             .diffCuQpDeltaDepth = reader.ue()
+        }
+
         .cbQpOffset                  = reader.se()
         .crQpOffset                  = reader.se()
         .sliceChromaQpOffsetsPresent = reader.bit() != 0
@@ -537,28 +627,40 @@ impl Pps
         {
             let numTileColumnsMinus1 = reader.ue()
             let numTileRowsMinus1    = reader.ue()
-            if numTileColumnsMinus1 >= Swag.U32.Max or numTileRowsMinus1 >= Swag.U32.Max do
+            if numTileColumnsMinus1 >= Swag.U32.Max or numTileRowsMinus1 >= Swag.U32.Max
+            {
                 fail InvalidFormatError{"HEVC tile count overflows its syntax bias"}
+            }
+
             .numTileColumns = numTileColumnsMinus1 + 1
             .numTileRows    = numTileRowsMinus1 + 1
-            if .numTileColumns > 32 or .numTileRows > 32 do
+            if .numTileColumns > 32 or .numTileRows > 32
+            {
                 fail UnsupportedFormatError{"HEVC picture declares more than thirty-two tile rows or columns"}
+            }
+
             .uniformSpacing = reader.bit() != 0
             if not .uniformSpacing
             {
                 for index in .numTileColumns - 1
                 {
                     let columnWidthMinus1 = reader.ue()
-                    if columnWidthMinus1 >= Swag.U32.Max do
+                    if columnWidthMinus1 >= Swag.U32.Max
+                    {
                         fail InvalidFormatError{"HEVC tile column width overflows its syntax bias"}
+                    }
+
                     .columnWidth[index] = columnWidthMinus1 + 1
                 }
 
                 for index in .numTileRows - 1
                 {
                     let rowHeightMinus1 = reader.ue()
-                    if rowHeightMinus1 >= Swag.U32.Max do
+                    if rowHeightMinus1 >= Swag.U32.Max
+                    {
                         fail InvalidFormatError{"HEVC tile row height overflows its syntax bias"}
+                    }
+
                     .rowHeight[index] = rowHeightMinus1 + 1
                 }
             }
@@ -581,8 +683,10 @@ impl Pps
 
         .scalingListDataPresent = reader.bit() != 0
         .scalingLists = sps.scalingLists
-        if .scalingListDataPresent do
+        if .scalingListDataPresent
+        {
             try .scalingLists.read(reader)
+        }
 
         .listsModificationPresent = reader.bit() != 0
         .log2ParallelMergeLevel   = reader.ue() + 2
@@ -597,16 +701,22 @@ impl Pps
             discard reader.read(4)
             if rangeExtension
             {
-                if .transformSkipEnabled do
+                if .transformSkipEnabled
+                {
                     .log2MaxTransformSkipSize = reader.ue() + 2
+                }
+
                 .crossComponentPrediction  = reader.bit() != 0
                 .chromaQpOffsetListEnabled = reader.bit() != 0
                 if .chromaQpOffsetListEnabled
                 {
                     .diffCuChromaQpOffsetDepth = reader.ue()
                     .chromaQpOffsetListLen     = reader.ue() + 1
-                    if .chromaQpOffsetListLen > 6 do
+                    if .chromaQpOffsetListLen > 6
+                    {
                         fail InvalidFormatError{"HEVC chroma quantization offset list is too long"}
+                    }
+
                     for index in .chromaQpOffsetListLen
                     {
                         .cbQpOffsetList[index] = reader.se()
@@ -618,16 +728,26 @@ impl Pps
                 .log2SaoOffsetScaleChroma = reader.ue()
             }
 
-            if multilayer or extension3d or screenContent do
+            if multilayer or extension3d or screenContent
+            {
                 fail UnsupportedFormatError{"HEVC multilayer, 3D and screen content extensions are not supported"}
-            if .crossComponentPrediction or .chromaQpOffsetListEnabled do
+            }
+
+            if .crossComponentPrediction or .chromaQpOffsetListEnabled
+            {
                 fail UnsupportedFormatError{"HEVC cross-component prediction and per-unit chroma offsets are not supported"}
+            }
         }
 
-        if reader.overran do
+        if reader.overran
+        {
             fail InvalidFormatError{"HEVC picture parameter set is truncated"}
-        if .initQp < -sps.qpBdOffsetY or .initQp > 51 do
+        }
+
+        if .initQp < -sps.qpBdOffsetY or .initQp > 51
+        {
             fail InvalidFormatError{"HEVC initial quantization parameter is out of range"}
+        }
 
         try .deriveTiles(sps)
         .valid = true
@@ -636,37 +756,51 @@ impl Pps
     // Computes the tile column and row boundaries of clause 6.5.1, in coding tree blocks.
     private mtd deriveTiles(sps: const *Sps) fail
     {
-        if .numTileColumns > sps.widthInCtbs or .numTileRows > sps.heightInCtbs do
+        if .numTileColumns > sps.widthInCtbs or .numTileRows > sps.heightInCtbs
+        {
             fail InvalidFormatError{"HEVC tile count exceeds the picture's coding tree block dimensions"}
+        }
 
         if .uniformSpacing
         {
-            for index in .numTileColumns + 1 do
+            for index in .numTileColumns + 1
+            {
                 .colBoundary[index] = index * sps.widthInCtbs / .numTileColumns
-            for index in .numTileRows + 1 do
+            }
+
+            for index in .numTileRows + 1
+            {
                 .rowBoundary[index] = index * sps.heightInCtbs / .numTileRows
+            }
+
             return
         }
 
         .colBoundary[0] = 0
-        var columnWidth = 0'u64
+        var columnWidth = 0_u64
         for index in .numTileColumns - 1
         {
             columnWidth += cast(u64, .columnWidth[index])
-            if columnWidth >= cast(u64, sps.widthInCtbs) do
+            if columnWidth >= cast(u64, sps.widthInCtbs)
+            {
                 fail InvalidFormatError{"HEVC tile columns exceed the picture width"}
+            }
+
             .colBoundary[index + 1] = cast(u32, columnWidth)
         }
 
         .colBoundary[.numTileColumns] = sps.widthInCtbs
 
         .rowBoundary[0] = 0
-        var rowHeight = 0'u64
+        var rowHeight = 0_u64
         for index in .numTileRows - 1
         {
             rowHeight += cast(u64, .rowHeight[index])
-            if rowHeight >= cast(u64, sps.heightInCtbs) do
+            if rowHeight >= cast(u64, sps.heightInCtbs)
+            {
                 fail InvalidFormatError{"HEVC tile rows exceed the picture height"}
+            }
+
             .rowBoundary[index + 1] = cast(u32, rowHeight)
         }
 
@@ -676,14 +810,23 @@ impl Pps
     // Returns the tile a coding tree block belongs to, or zero when the picture is one tile.
     mtd const tileOf(ctbX, ctbY: u32)->u32
     {
-        if not .tilesEnabled do
+        if not .tilesEnabled
+        {
             return 0
-        var column = 0'u32
-        while column + 1 < .numTileColumns and ctbX >= .colBoundary[column + 1] do
+        }
+
+        var column = 0_u32
+        while column + 1 < .numTileColumns and ctbX >= .colBoundary[column + 1]
+        {
             column += 1
-        var row = 0'u32
-        while row + 1 < .numTileRows and ctbY >= .rowBoundary[row + 1] do
+        }
+
+        var row = 0_u32
+        while row + 1 < .numTileRows and ctbY >= .rowBoundary[row + 1]
+        {
             row += 1
+        }
+
         return row * .numTileColumns + column
     }
 }
@@ -710,8 +853,10 @@ func readProfileTierLevel(reader: *BitReader, maxSubLayersMinus1: u32) fail
 
     if maxSubLayersMinus1 > 0
     {
-        for maxSubLayersMinus1 until 8'u32 do
+        for maxSubLayersMinus1 until 8_u32
+        {
             discard reader.read(2)
+        }
     }
 
     for index in maxSubLayersMinus1
@@ -723,12 +868,16 @@ func readProfileTierLevel(reader: *BitReader, maxSubLayersMinus1: u32) fail
             discard reader.read(24)
         }
 
-        if levelPresent[index] do
+        if levelPresent[index]
+        {
             discard reader.read(8)
+        }
     }
 
-    if reader.overran do
+    if reader.overran
+    {
         fail InvalidFormatError{"HEVC profile, tier and level structure is truncated"}
+    }
 }
 
 // Reads one short-term reference picture set into `sets[index]`, clause 7.3.7.
@@ -741,20 +890,24 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
     var target: ShortTermRps
 
     var interPrediction = false
-    if index != 0 do
+    if index != 0
+    {
         interPrediction = reader.bit() != 0
+    }
 
     if not interPrediction
     {
         let negative = reader.ue()
         let positive = reader.ue()
-        if negative > MaxRefPics or positive > MaxRefPics or negative + positive > MaxRefPics do
+        if negative > MaxRefPics or positive > MaxRefPics or negative + positive > MaxRefPics
+        {
             fail InvalidFormatError{"HEVC reference picture set holds too many pictures"}
+        }
 
         target.negativeCount = negative
         target.positiveCount = positive
 
-        var previous = 0's32
+        var previous = 0_s32
         for entry in negative
         {
             previous -= cast(s32, (reader.ue() + 1))
@@ -771,16 +924,24 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
         }
 
         sets[index] = target
-        if reader.overran do
+        if reader.overran
+        {
             fail InvalidFormatError{"HEVC reference picture set is truncated"}
+        }
+
         return
     }
 
-    var deltaIdx = 1'u32
-    if index == count do
+    var deltaIdx = 1_u32
+    if index == count
+    {
         deltaIdx = reader.ue() + 1
-    if deltaIdx > index do
+    }
+
+    if deltaIdx > index
+    {
         fail InvalidFormatError{"HEVC reference picture set predicts from a set that does not precede it"}
+    }
 
     let sign        = reader.bit()
     let absDelta    = cast(s32, (reader.ue() + 1))
@@ -793,21 +954,26 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
     {
         used[entry]     = reader.bit() != 0
         useDelta[entry] = true
-        if not used[entry] do
+        if not used[entry]
+        {
             useDelta[entry] = reader.bit() != 0
+        }
     }
 
     // Clause 7.4.8, equation 7-61: the pictures of the source set, shifted by `deltaRps`, keep
     // their order once split back into the two halves by sign.
-    var negativeCount = 0'u32
+    var negativeCount = 0_u32
     for entry in source.positiveCount
     {
         let index2 = source.positiveCount - 1 - entry
         let delta  = source.positiveDelta[index2] + deltaRps
         if delta < 0 and useDelta[source.negativeCount + index2]
         {
-            if negativeCount >= MaxRefPics do
+            if negativeCount >= MaxRefPics
+            {
                 fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
+            }
+
             target.negativeDelta[negativeCount] = delta
             target.negativeUsed[negativeCount]  = used[source.negativeCount + index2]
             negativeCount += 1
@@ -816,8 +982,11 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
 
     if deltaRps < 0 and useDelta[sourceTotal]
     {
-        if negativeCount >= MaxRefPics do
+        if negativeCount >= MaxRefPics
+        {
             fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
+        }
+
         target.negativeDelta[negativeCount] = deltaRps
         target.negativeUsed[negativeCount]  = used[sourceTotal]
         negativeCount += 1
@@ -828,23 +997,29 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
         let delta = source.negativeDelta[entry] + deltaRps
         if delta < 0 and useDelta[entry]
         {
-            if negativeCount >= MaxRefPics do
+            if negativeCount >= MaxRefPics
+            {
                 fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
+            }
+
             target.negativeDelta[negativeCount] = delta
             target.negativeUsed[negativeCount]  = used[entry]
             negativeCount += 1
         }
     }
 
-    var positiveCount = 0'u32
+    var positiveCount = 0_u32
     for entry in source.negativeCount
     {
         let index2 = source.negativeCount - 1 - entry
         let delta  = source.negativeDelta[index2] + deltaRps
         if delta > 0 and useDelta[index2]
         {
-            if positiveCount >= MaxRefPics do
+            if positiveCount >= MaxRefPics
+            {
                 fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
+            }
+
             target.positiveDelta[positiveCount] = delta
             target.positiveUsed[positiveCount]  = used[index2]
             positiveCount += 1
@@ -853,8 +1028,11 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
 
     if deltaRps > 0 and useDelta[sourceTotal]
     {
-        if positiveCount >= MaxRefPics do
+        if positiveCount >= MaxRefPics
+        {
             fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
+        }
+
         target.positiveDelta[positiveCount] = deltaRps
         target.positiveUsed[positiveCount]  = used[sourceTotal]
         positiveCount += 1
@@ -865,23 +1043,30 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
         let delta = source.positiveDelta[entry] + deltaRps
         if delta > 0 and useDelta[source.negativeCount + entry]
         {
-            if positiveCount >= MaxRefPics do
+            if positiveCount >= MaxRefPics
+            {
                 fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
+            }
+
             target.positiveDelta[positiveCount] = delta
             target.positiveUsed[positiveCount]  = used[source.negativeCount + entry]
             positiveCount += 1
         }
     }
 
-    if negativeCount > MaxRefPics or positiveCount > MaxRefPics do
+    if negativeCount > MaxRefPics or positiveCount > MaxRefPics
+    {
         fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
+    }
 
     target.negativeCount = negativeCount
     target.positiveCount = positiveCount
     sets[index] = target
 
-    if reader.overran do
+    if reader.overran
+    {
         fail InvalidFormatError{"HEVC reference picture set is truncated"}
+    }
 }
 
 // Reads the presentation fields of one `vui_parameters` structure and skips the rest, clause E.2.1.
@@ -892,8 +1077,11 @@ func readVuiParameters(reader: *BitReader, maxSubLayersMinus1: u32, sps: *Sps) f
         readSampleAspectRatio(reader, sps)
     }
 
-    if reader.bit() do
+    if reader.bit()
+    {
         discard reader.bit()
+    }
+
     if reader.bit()
     {
         discard reader.read(3)
@@ -927,10 +1115,15 @@ func readVuiParameters(reader: *BitReader, maxSubLayersMinus1: u32, sps: *Sps) f
     {
         discard reader.read(32)
         discard reader.read(32)
-        if reader.bit() do
+        if reader.bit()
+        {
             discard reader.ue()
-        if reader.bit() do
+        }
+
+        if reader.bit()
+        {
             try skipHrdParameters(reader, maxSubLayersMinus1)
+        }
     }
 
     if reader.bit()
@@ -945,8 +1138,10 @@ func readVuiParameters(reader: *BitReader, maxSubLayersMinus1: u32, sps: *Sps) f
         discard reader.ue()
     }
 
-    if reader.overran do
+    if reader.overran
+    {
         fail InvalidFormatError{"HEVC video usability information is truncated"}
+    }
 }
 
 // Reads the H.264/HEVC Table E-1 sample aspect ratio from a VUI.
@@ -1049,8 +1244,11 @@ func skipHrdParameters(reader: *BitReader, maxSubLayersMinus1: u32) fail
 
         discard reader.read(4)
         discard reader.read(4)
-        if subPicParams do
+        if subPicParams
+        {
             discard reader.read(4)
+        }
+
         discard reader.read(5)
         discard reader.read(5)
         discard reader.read(5)
@@ -1060,24 +1258,39 @@ func skipHrdParameters(reader: *BitReader, maxSubLayersMinus1: u32) fail
     {
         let fixedRateGeneral = reader.bit() != 0
         var fixedRateWithin  = fixedRateGeneral
-        if not fixedRateGeneral do
+        if not fixedRateGeneral
+        {
             fixedRateWithin = reader.bit() != 0
+        }
 
         var lowDelay = false
-        var cpbCount = 1'u32
-        if fixedRateWithin do
-            discard reader.ue()
-        else do
-            lowDelay = reader.bit() != 0
-        if not lowDelay do
-            cpbCount = reader.ue() + 1
-        if cpbCount > 32 do
-            fail InvalidFormatError{"HEVC hypothetical reference decoder declares too many buffers"}
-
-        for pass in 2'u32
+        var cpbCount = 1_u32
+        if fixedRateWithin
         {
-            if (pass == 0 and not nalHrd) or (pass == 1 and not vclHrd) do
+            discard reader.ue()
+        }
+        else
+        {
+            lowDelay = reader.bit() != 0
+        }
+
+        if not lowDelay
+        {
+            cpbCount = reader.ue() + 1
+        }
+
+        if cpbCount > 32
+        {
+            fail InvalidFormatError{"HEVC hypothetical reference decoder declares too many buffers"}
+        }
+
+        for pass in 2_u32
+        {
+            if (pass == 0 and not nalHrd) or (pass == 1 and not vclHrd)
+            {
                 continue
+            }
+
             for cpbCount
             {
                 discard reader.ue()
@@ -1093,6 +1306,8 @@ func skipHrdParameters(reader: *BitReader, maxSubLayersMinus1: u32) fail
         }
     }
 
-    if reader.overran do
+    if reader.overran
+    {
         fail InvalidFormatError{"HEVC hypothetical reference decoder parameters are truncated"}
+    }
 }

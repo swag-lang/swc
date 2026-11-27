@@ -15,7 +15,7 @@ struct(T) Vec2
     y: T
 }
 
-// Field types also benefit from deduction: Vec2 deduced as Vec2'T
+// Field types also benefit from deduction: Vec2 deduced as Vec2!{T}
 struct(T) Rect
 {
     min: Vec2
@@ -39,7 +39,7 @@ struct(A, B) Duo
 
 impl Rect
 {
-    // Return type 'Rect' is deduced as Rect'T
+    // Return type 'Rect' is deduced as Rect!{T}
     func center(const me)->Vec2
     {
         return {x: (me.min.x + me.max.x) / 2, y: (me.min.y + me.max.y) / 2}
@@ -70,7 +70,7 @@ impl Vec2
         return {x: x, y: y}
     }
 
-    // Return type 'Vec2' is deduced as Vec2'T (self-type)
+    // Return type 'Vec2' is deduced as Vec2!{T} (self-type)
     func add(const me, other: Vec2)->Vec2
     {
         return {x: me.x + other.x, y: me.y + other.y}
@@ -100,18 +100,18 @@ impl Wrapper
 }
 
 // ---------------------------------------------------------------------------
-// Multi-param struct: Duo'(A,B) cannot be deduced from single-param context
+// Multi-param struct: Duo!{A,B} cannot be deduced from single-param context
 // (Pair with matching params CAN be deduced)
 // ---------------------------------------------------------------------------
 
 struct(T) Container
 {
-    val: Vec2'T
+    val: Vec2!{T}
 }
 
 impl Container
 {
-    // Vec2 is deduced as Vec2'T (T matches)
+    // Vec2 is deduced as Vec2!{T} (T matches)
     func getVec(const me)->Vec2
     {
         return me.val
@@ -125,10 +125,10 @@ impl Container
 // Test: self-type deduction in Rect
 #test
 {
-    let r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 20, y: 10}}
+    let r: Rect!{s32} = {min: {x: 0, y: 0}, max: {x: 20, y: 10}}
     let c = r.center()
 
-    #assert(#typeof(c) == Vec2's32)
+    #assert(#typeof(c) == Vec2!{s32})
     Swag.require(c.x == 10)
     Swag.require(c.y == 5)
 }
@@ -136,11 +136,11 @@ impl Container
 // Test: cross-struct param deduction (Vec2 in Rect's impl)
 #test
 {
-    let r:      Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
-    var offset: Vec2's32 = {x: 5, y: -3}
+    let r:      Rect!{s32} = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
+    var offset: Vec2!{s32} = {x: 5, y: -3}
     let moved = r.translate(&offset)
 
-    #assert(#typeof(moved) == Rect's32)
+    #assert(#typeof(moved) == Rect!{s32})
     Swag.require(moved.min.x == 5)
     Swag.require(moved.min.y == -3)
     Swag.require(moved.max.x == 15)
@@ -150,10 +150,10 @@ impl Container
 // Test: scale with deduced return type
 #test
 {
-    let r: Rect's32 = {min: {x: 1, y: 2}, max: {x: 3, y: 4}}
-    let scaled      = r.scale(10)
+    let r: Rect!{s32} = {min: {x: 1, y: 2}, max: {x: 3, y: 4}}
+    let scaled        = r.scale(10)
 
-    #assert(#typeof(scaled) == Rect's32)
+    #assert(#typeof(scaled) == Rect!{s32})
     Swag.require(scaled.min.x == 10)
     Swag.require(scaled.min.y == 20)
     Swag.require(scaled.max.x == 30)
@@ -163,11 +163,11 @@ impl Container
 // Test: self-type deduction in Vec2
 #test
 {
-    var a: Vec2's32 = {x: 1, y: 2}
-    var b: Vec2's32 = {x: 10, y: 20}
-    let sum         = a.add(&b)
+    var a: Vec2!{s32} = {x: 1, y: 2}
+    var b: Vec2!{s32} = {x: 10, y: 20}
+    let sum = a.add(&b)
 
-    #assert(#typeof(sum) == Vec2's32)
+    #assert(#typeof(sum) == Vec2!{s32})
     Swag.require(sum.x == 11)
     Swag.require(sum.y == 22)
 }
@@ -175,10 +175,10 @@ impl Container
 // Test: deduction with Vec2 negate
 #test
 {
-    var v: Vec2's32 = {x: 3, y: -7}
-    let neg         = v.negate()
+    var v: Vec2!{s32} = {x: 3, y: -7}
+    let neg = v.negate()
 
-    #assert(#typeof(neg) == Vec2's32)
+    #assert(#typeof(neg) == Vec2!{s32})
     Swag.require(neg.x == -3)
     Swag.require(neg.y == 7)
 }
@@ -186,10 +186,10 @@ impl Container
 // Test: member lookup on a bare generic root still uses the current specialization
 #test
 {
-    var v: Vec2's32 = {x: 3, y: 4}
-    let doubled     = v.doubled()
+    var v: Vec2!{s32} = {x: 3, y: 4}
+    let doubled       = v.doubled()
 
-    #assert(#typeof(doubled) == Vec2's32)
+    #assert(#typeof(doubled) == Vec2!{s32})
     Swag.require(doubled.x == 6)
     Swag.require(doubled.y == 8)
 }
@@ -197,10 +197,10 @@ impl Container
 // Test: deduction in Container (cross-struct matching T)
 #test
 {
-    let c: Container's32 = {val: {x: 42, y: 99}}
+    let c: Container!{s32} = {val: {x: 42, y: 99}}
     let v = c.getVec()
 
-    #assert(#typeof(v) == Vec2's32)
+    #assert(#typeof(v) == Vec2!{s32})
     Swag.require(v.x == 42)
     Swag.require(v.y == 99)
 }
@@ -208,10 +208,10 @@ impl Container
 // Test: deduction with s64 type
 #test
 {
-    let r: Rect's64 = {min: {x: 0, y: 0}, max: {x: 100000, y: 50000}}
+    let r: Rect!{s64} = {min: {x: 0, y: 0}, max: {x: 100000, y: 50000}}
     let c = r.center()
 
-    #assert(#typeof(c) == Vec2's64)
+    #assert(#typeof(c) == Vec2!{s64})
     Swag.require(c.x == 50000)
     Swag.require(c.y == 25000)
 }
@@ -219,7 +219,7 @@ impl Container
 // Test: deduction with Wrapper
 #test
 {
-    let w: Wrapper's32 = {inner: 42}
+    let w: Wrapper!{s32} = {inner: 42}
     let val = w.get()
 
     #assert(#typeof(val) == s32)

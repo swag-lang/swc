@@ -18,11 +18,11 @@ impl InlineDefaultSelfCells
 
         #static if ptr
         {
-            #inject(stmt, item = cast(*InlineDefaultSelfCell, &(me.values[0])), index = 0'u64)
+            #inject(stmt, item = cast(*InlineDefaultSelfCell, &(me.values[0])), index = 0_u64)
         }
         else
         {
-            #inject(stmt, item = me.values[0], index = 0'u64)
+            #inject(stmt, item = me.values[0], index = 0_u64)
         }
     }
 }
@@ -34,10 +34,14 @@ func inlineDefaultSelfPtr(x, y: s32, self: *InlineDefaultSelfCell? = null)->bool
 {
     for &c in InlineDefaultSelfItems
     {
-        if c == self do
+        if c == self
+        {
             return false
-        if c.value == x + y do
+        }
+        if c.value == x + y
+        {
             return true
+        }
     }
 
     return false

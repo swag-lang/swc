@@ -22,7 +22,7 @@ func reused(a: u64)->u64
 
 #test
 {
-    let values = [0'u64, 1, 7, 8, 9, 10, 15, 16, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 7, 8, 9, 10, 15, 16, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         let isZero: u64 = a == 0 ? 1 : 0

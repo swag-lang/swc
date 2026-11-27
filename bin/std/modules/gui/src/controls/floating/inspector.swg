@@ -35,7 +35,7 @@ struct Inspector
 
         foldKey: string = "I"     // Key the application binds to fold and unfold the inspector, written on the edge tab.
 
-        sigFoldChanged: SigArray'func||(*Inspector)     // Emitted after the inspector folds or unfolds.
+        sigFoldChanged: SigArray!{func||(*Inspector)}     // Emitted after the inspector folds or unfolds.
         topOffset:      f32 = 0     // Moves the inspector from its strip-aware top edge, in logical pixels.
 
         readonly
@@ -46,8 +46,8 @@ struct Inspector
         }
     }
 
-    rows:    Array'InspectorRow
-    actions: Array'(*IconButton)
+    rows:    Array!{InspectorRow}
+    actions: Array!{*IconButton}
     content: *Wnd?
 }
 
@@ -68,8 +68,10 @@ impl IWnd for Inspector
     mtd impl onLayout()
     {
         let parent = .parent
-        if not parent do
+        if not parent
+        {
             return
+        }
 
         let metrics = .themeMetrics()
         let bounds  = parent.clientRect()
@@ -137,8 +139,11 @@ impl IWnd for Inspector
 
             // The detail stops short of the actions, which keep their words whole.
             var right = body.right() - pad
-            for action in .actions where action.isLocallyVisible() do
+            for action in .actions where action.isLocallyVisible()
+            {
                 right = Math.min(right, action.position.x - metrics.iconText_Margin)
+            }
+
             let left = body.x + pad + used + metrics.iconText_Margin
             painter.pushClippingRect(Math.Rectangle{left, body.y, Math.max(right - left, 0), pad + metrics.control_InspectorHeight})
             discard paintTextLine(painter, left, headY, .detail, theme.createDefaultFontFs(metrics.defaultFontSize - 2), colors.faintText)
@@ -151,10 +156,16 @@ impl IWnd for Inspector
         for i in 1 until .actions.count
         {
             let action = .actions[i]
-            if not action.isLocallyVisible() do
+            if not action.isLocallyVisible()
+            {
                 continue
-            if action.flags.has(.IconOnly) or .actions[i - 1].flags.has(.IconOnly) do
+            }
+
+            if action.flags.has(.IconOnly) or .actions[i - 1].flags.has(.IconOnly)
+            {
                 continue
+            }
+
             let width = Painter.measureString(ActionDot, dotFont).width
             let x     = action.position.x - .actionDotWidth() * 0.5 - width * 0.5
             discard paintTextLine(painter, Math.round(x), headY, ActionDot, dotFont, colors.faintText)
@@ -172,8 +183,10 @@ impl IWnd for Inspector
                 continue
             }
 
-            if not row.label.isEmpty() do
+            if not row.label.isEmpty()
+            {
                 discard paintTextLine(painter, body.x + pad, top + rowSize * 0.5, row.label, labelFont, colors.softText)
+            }
         }
     }
 
@@ -190,8 +203,11 @@ impl IWnd for Inspector
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged do
+        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged
+        {
             .itf.onLayout()
+        }
+
         evt.accepted = false
     }
 }
@@ -202,7 +218,7 @@ impl Inspector
     #[Swag.Discardable]
     func create(parent: *Wnd, id: WndId? = null)->*Inspector
     {
-        with let result = Wnd.create'Inspector(parent, null, {}, id)
+        with let result = Wnd.create!{Inspector}(parent, null, {}, id)
         {
             .dockStyle       = .Float
             .backgroundStyle = .Transparent
@@ -255,8 +271,11 @@ impl Inspector
     #[Swag.Discardable]
     mtd addRow(label: string, editor: *Wnd, fill = true)->*Wnd
     {
-        if editor.parent != me do
+        if editor.parent != me
+        {
             editor.setParent(&.wnd)
+        }
+
         .rows.add(InspectorRow{label: label, editor: editor, fill: fill})
         .relayout()
         return editor
@@ -275,8 +294,11 @@ impl Inspector
     #[Swag.Discardable]
     mtd setContent(content: *Wnd)->*Wnd
     {
-        if content.parent != me do
+        if content.parent != me
+        {
             content.setParent(&.wnd)
+        }
+
         .content = content
         .relayout()
         return content
@@ -287,10 +309,16 @@ impl Inspector
     // The content set by [[Gui.Inspector.setContent]] stays.
     mtd clear()
     {
-        for row in .rows where row.editor do
+        for row in .rows where row.editor
+        {
             row.editor.destroy()
-        for action in .actions do
+        }
+
+        for action in .actions
+        {
             action.destroy()
+        }
+
         .rows.clear()
         .actions.clear()
         .title.clear()
@@ -301,17 +329,26 @@ impl Inspector
     // Folds the inspector to its edge tab, or unfolds it.
     mtd setFolded(folded: bool)
     {
-        if .folded == folded do
+        if .folded == folded
+        {
             return
+        }
+
         .folded = folded
-        for child in .children do
+        for child in .children
+        {
             child.show(not folded)
+        }
+
         .relayout()
 
         // Unfolded, the inspector arrives from its edge like any floating surface; folded, its
         // edge tab is there at once, since the hand is already on it.
-        if not folded do
+        if not folded
+        {
             discard .app().animator.arrive(me, {.themeMetrics().motion_EdgeTravel, 0})
+        }
+
         .sigFoldChanged.call(me)
     }
 
@@ -385,8 +422,11 @@ impl Inspector
     private mtd layoutPadding()->f32
     {
         let metrics = .themeMetrics()
-        if .content do
+        if .content
+        {
             return Math.max(metrics.inspector_Padding, metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset)
+        }
+
         return metrics.inspector_Padding
     }
 

@@ -45,7 +45,7 @@ func forwardedPointerInteger()->u64 => literalPointerInteger()
 // Absolute numeric pointers remain foldable constants.
 #test
 {
-    const pointer = cast([*] u8, 0x1234'u64)
+    const pointer = cast([*] u8, 0x1234_u64)
     const integer = cast(u64, pointer)
     Swag.require(integer == 0x1234)
 }

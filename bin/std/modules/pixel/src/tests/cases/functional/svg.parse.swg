@@ -7,10 +7,15 @@ using Swag, Core
 {
     const Rings = "M2 2h12v12H2z M5 5h6v6H5z "
     var path = String.from(Rings)
-    for 64 do
+    for 64
+    {
         path += "M-4 3h24v8H-4z M-4 3v8h24V3z "
-    for 384 do
+    }
+
+    for 384
+    {
         path += "M18 18h1v1h-1z "
+    }
 
     for rule in ["nonzero", "evenodd"]
     {
@@ -456,13 +461,15 @@ private const ManyStopSvg = """\
     // makes it read that last bit of the difference. Losing a sample to the tiling would be worth
     // thousands of them, so the count and the magnitude are both held down rather than demanding
     // equality.
-    var apart = 0'u64
+    var apart = 0_u64
     for value, index in tiled.pixels
     {
         let delta = Math.abs(cast(s32, value) - cast(s32, untiled.pixels[index]))
         Swag.require(delta <= 1)
-        if delta != 0 do
+        if delta != 0
+        {
             apart += 1
+        }
     }
 
     Swag.require(apart < tiled.pixels.count / 1000)
@@ -475,8 +482,10 @@ private func gradientBand(source: string)->[5] Color
     let drawing = expect Svg.Drawing.parse(source)
     let image   = drawing.rasterize(40, 8, 1)
     let columns = [2, 12, 20, 28, 37]
-    for column, index in columns do
+    for column, index in columns
+    {
         result[index] = image.pixelColor(cast(s32, column), 4)
+    }
 
     return result
 }
@@ -544,4 +553,23 @@ private func gradientBand(source: string)->[5] Color
                              <linearGradient id='i' href='#h'/>\
                              <rect width='40' height='8' fill='url(#h)'/></svg>""")
     Swag.require(cycle[0].r > 200 and cycle[4].r < 60)
+}
+
+// An implicit cubic run accepts signed adjacent coordinates and closes the same contour.
+#test
+{
+    let options  = Svg.ParseOptions{preferScanFills: true}
+    let repeated = expect Svg.Drawing.parse("""
+        <svg width='64' height='48'>
+          <path d='M10 20c8-16 16-16 24 0 0 8-4 16-12 16-8 0-12-8-12-16z'/>
+        </svg>""", options)
+    let explicit = expect Svg.Drawing.parse("""
+        <svg width='64' height='48'>
+          <path d='M10 20c8 -16 16 -16 24 0c0 8 -4 16 -12 16c-8 0 -12 -8 -12 -16z'/>
+        </svg>""", options)
+    let actual   = repeated.rasterize(64, 48, 1)
+    let expected = explicit.rasterize(64, 48, 1)
+    Swag.require(actual.isValid() and expected.isValid())
+    Swag.require(actual.pixelColor(22, 20).a == 255)
+    Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.pixels.count) == 0)
 }

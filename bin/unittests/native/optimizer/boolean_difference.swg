@@ -17,16 +17,20 @@ func compareU8(a, b: u8)->s64 => a <=> b
 
 func expected(less, greater: bool)->s32
 {
-    if less do
+    if less
+    {
         return -1
-    if greater do
+    }
+    if greater
+    {
         return 1
+    }
     return 0
 }
 
 #test
 {
-    let signed = [0's64, 1, -1, 2, -2, 0x7FFFFFFF, -0x80000000, 0x7FFFFFFFFFFFFFFF, -0x7FFFFFFFFFFFFFFF - 1]
+    let signed = [0_s64, 1, -1, 2, -2, 0x7FFFFFFF, -0x80000000, 0x7FFFFFFFFFFFFFFF, -0x7FFFFFFFFFFFFFFF - 1]
     for a in signed
     {
         for b in signed

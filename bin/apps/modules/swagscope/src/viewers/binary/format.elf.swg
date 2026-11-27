@@ -187,8 +187,8 @@ func reportElfImage(image: *BinaryImage, report: *Report)
     let order = image.u8At(5)
     image.bigEndian = order == 2
 
-    let wide     = is64 ? 8'u64 : 4
-    let headerAt = 16'u64
+    let wide     = is64 ? 8_u64 : 4
+    let headerAt = 16_u64
     let kind     = image.u16At(headerAt)
     let machine  = image.u16At(headerAt + 2)
     let entry    = image.scalarAt(headerAt + 8, wide)
@@ -241,8 +241,10 @@ func reportElfImage(image: *BinaryImage, report: *Report)
 // file. Reports nothing when the header gives no table.
 private func reportElfSegments(image: *BinaryImage, report: *Report, at, entrySize, count: u64, is64: bool)
 {
-    if not at or not count do
+    if not at or not count
+    {
         return
+    }
 
     let texts = texts()
     let shown = Math.min(count, ListLimit)
@@ -256,7 +258,7 @@ private func reportElfSegments(image: *BinaryImage, report: *Report, at, entrySi
         let kind     = image.u32At(entryAt)
         let flags    = is64 ? image.u32At(entryAt + 4) : image.u32At(entryAt + 24)
         let valuesAt = is64 ? entryAt + 8 : entryAt + 4
-        let wide     = is64 ? 8'u64 : 4
+        let wide     = is64 ? 8_u64 : 4
         let fileSize = image.scalarAt(valuesAt + wide * 3, wide)
         let address  = hexText(image.scalarAt(valuesAt + wide, wide), is64 ? 16 : 8)
         let mapped   = elfSegmentFlagsText(flags)
@@ -299,13 +301,15 @@ private func elfSectionFlagsText(value: u64)->String
 }
 
 // Reads the section table, resolving each name through the section that holds them.
-private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIndex: u64, is64: bool)->Array'ElfSection
+private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIndex: u64, is64: bool)->Array!{ElfSection}
 {
     var result: #returntype
-    if not at or not count do
+    if not at or not count
+    {
         return result
+    }
 
-    let wide      = is64 ? 8'u64 : 4
+    let wide      = is64 ? 8_u64 : 4
     let namesAt   = at + stringIndex * entrySize
     let stringsAt = stringIndex < count ? image.scalarAt(namesAt + 8 + wide * 2, wide) : 0
 
@@ -324,8 +328,11 @@ private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIn
             .entrySize = image.scalarAt(entryAt + 16 + wide * 5, wide)
         }
 
-        if stringsAt do
+        if stringsAt
+        {
             section.name = image.cstringAt(stringsAt + cast(u64, image.u32At(entryAt)), 128)
+        }
+
         result.add(#move section)
     }
 
@@ -343,7 +350,7 @@ private func reportElfSections(image: *BinaryImage, report: *Report, sections: c
         return
     }
 
-    let wide  = is64 ? 8'u64 : 4
+    let wide  = is64 ? 8_u64 : 4
     let total = countText(sections.count, texts.word_Section, texts.word_Sections)
     report.beginGroup(texts.shr_Sections, total, texts.elf_SectionsDesc, offset: at, length: sections.count * entrySize, open: true)
 
@@ -353,8 +360,10 @@ private func reportElfSections(image: *BinaryImage, report: *Report, sections: c
         let names   = elfSectionFlagsText(section.flags)
         let stored  = StrConv.toDisplaySize(section.size)
         var label   = section.name
-        if label.isEmpty() do
+        if label.isEmpty()
+        {
             label = Format.toString("[%]", index)
+        }
 
         // A `SHT_NOBITS` section is reserved in memory and stored nowhere, so it is given no range:
         // a search hit can never be inside bytes the file does not carry.
@@ -386,27 +395,36 @@ private func reportElfDynamic(image: *BinaryImage, report: *Report, sections: co
         break
     }
 
-    if not dynamic do
+    if not dynamic
+    {
         return
+    }
 
     // The strings a dynamic entry names live in the section it links to, which is `.dynstr`.
     let texts     = texts()
-    let wide      = is64 ? 8'u64 : 4
+    let wide      = is64 ? 8_u64 : 4
     let at        = dynamic.offset
-    var stringsAt = 0'u64
-    if cast(u64, dynamic.link) < sections.count do
+    var stringsAt = 0_u64
+    if cast(u64, dynamic.link) < sections.count
+    {
         stringsAt = sections[dynamic.link].offset
+    }
 
-    var entries: Array'u64
-    var needed:  Array'String
+    var entries: Array!{u64}
+    var needed:  Array!{String}
     while entries.count < ListLimit
     {
         let entryAt = at + entries.count * wide * 2
-        if not image.has(entryAt, wide * 2) do
+        if not image.has(entryAt, wide * 2)
+        {
             break
+        }
+
         entries.add(entryAt)
-        if not image.scalarAt(entryAt, wide) do
+        if not image.scalarAt(entryAt, wide)
+        {
             break
+        }
     }
 
     let total = countText(entries.count, texts.word_Entry, texts.word_Entries)
@@ -423,8 +441,11 @@ private func reportElfDynamic(image: *BinaryImage, report: *Report, sections: co
         {
             let text = image.cstringAt(stringsAt + value, 512)
             report.field(entryAt, wide * 2, elfDynamicTagName(tag), text)
-            if tag == 1 do
+            if tag == 1
+            {
                 needed.add(text)
+            }
+
             continue
         }
 
@@ -437,8 +458,11 @@ private func reportElfDynamic(image: *BinaryImage, report: *Report, sections: co
     {
         let count = countText(needed.count, texts.word_Library, texts.word_Libraries)
         report.beginGroup(texts.shr_Libraries, count, "", open: true)
-        for one in needed do
+        for one in needed
+        {
             report.derived(one.toString(), "")
+        }
+
         report.endGroup()
     }
 }
@@ -456,25 +480,32 @@ private func reportElfNotes(image: *BinaryImage, report: *Report, sections: cons
             continue
         }
 
-        if section.name != ".note.gnu.build-id" do
+        if section.name != ".note.gnu.build-id"
+        {
             continue
+        }
 
         // A note is a name length, a payload length, a kind, the padded name, then the payload.
         let nameSize    = cast(u64, image.u32At(section.offset))
         let payloadSize = cast(u64, image.u32At(section.offset + 4))
-        let payloadAt   = section.offset + 12 + ((nameSize + 3) & ~3'u64)
+        let payloadAt   = section.offset + 12 + ((nameSize + 3) & ~3_u64)
 
-        var text: Array'u8
-        for index in Math.min(payloadSize, 64'u64)
+        var text: Array!{u8}
+        for index in Math.min(payloadSize, 64_u64)
         {
             let value  = image.u8At(payloadAt + index)
             let digits = [cast(u8, value >> 4), value & 0xF]
-            for nibble in digits do
-                text.add(nibble < 10 ? '0'u8 + nibble : 'a'u8 + nibble - 10)
+            for nibble in digits
+            {
+                text.add(nibble < 10 ? '0'_u8 + nibble : 'a'_u8 + nibble - 10)
+            }
         }
 
-        if text.isEmpty() do
+        if text.isEmpty()
+        {
             continue
+        }
+
         report.field(payloadAt, payloadSize, texts.shr_BuildId, cast(string, text.toSlice()))
     }
 }

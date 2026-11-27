@@ -5,16 +5,19 @@ using Swag
 
 func p256HexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func p256HexBytes(text: string)->Array'u8
+func p256HexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, ((p256HexDigit(text[index]) << 4) | p256HexDigit(text[index + 1]))))
@@ -134,4 +137,38 @@ func p256HexBytes(text: string)->Array'u8
     Swag.memcpy(&generator[1], &fieldModulus[0], fieldModulus.count)
     discard catch Crypto.p256Ecdh(one, generator, shared) as error
     Swag.require(error.value() is Errors.BadParameterError)
+}
+
+// RFC 6979 applies bits2octets before seeding HMAC. Digests on either side
+// of the order encode the same value as their corresponding short residues.
+#test
+{
+    let key          = p256HexBytes("0000000000000000000000000000000000000000000000000000000000000001")
+    let zeroExpected = p256HexBytes("010497d369b3d525ca15ec29c104a694210bb59ff6cabfc10afe6df0283896df")
+    let oneExpected  = p256HexBytes("9a409dab05968059da3efb323dc67c96f234571b965fd39810ca0643fbb795ac")
+    let order        = p256HexBytes("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551")
+
+    var digest: [32] u8
+    let zero = Crypto.p256Rfc6979Nonce(key.toSlice(), digest)
+    Swag.require(Crypto.constantTimeEqual(zero, zeroExpected.toSlice()))
+
+    Memory.copy(digest.buffer, order.toSlice().buffer, digest.count)
+    let atOrder = Crypto.p256Rfc6979Nonce(key.toSlice(), digest)
+    Swag.require(Crypto.constantTimeEqual(atOrder, zeroExpected.toSlice()))
+
+    digest[31] += 1
+    let aboveOrder = Crypto.p256Rfc6979Nonce(key.toSlice(), digest)
+    Swag.require(Crypto.constantTimeEqual(aboveOrder, oneExpected.toSlice()))
+}
+
+#test
+{
+    // The valid signature's recovered affine X is above the curve order.
+    const Message = "P-256 projective verification"
+    let key       = p256HexBytes("04a40c6978f9333669757a07bc52b5fe5a3b56d2f5bf8c4791a991d400474d31507abc01104d65cff3d8514f8eefe2cf2305fcf3c1c7c7bafe9da8a633bebcf0aa")
+    var signature = p256HexBytes("00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000001")
+    Swag.require(expect Crypto.p256EcdsaVerify(key.toSlice(), Message, signature.toSlice()))
+
+    signature[63] = 2
+    Swag.require(not expect Crypto.p256EcdsaVerify(key.toSlice(), Message, signature.toSlice()))
 }

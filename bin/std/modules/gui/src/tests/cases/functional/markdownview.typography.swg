@@ -52,8 +52,10 @@ using Core, Pixel
     let batch = &inline.textBatches[0]
     let expectedBaseline = inline.atoms[0].position.y + inline.atoms[0].ascent
     Swag.require(Math.isEqualEpsilon(batch.origin.y + font.ascent, expectedBaseline, 0.001))
-    for glyph in batch.shaped.glyphs do
+    for glyph in batch.shaped.glyphs
+    {
         Swag.require(glyph.glyphIndex != 0)
+    }
 }
 
 // Typeface overrides affect measured text and survive a zoom; empty slots resume the GUI font.
@@ -149,12 +151,17 @@ using Core, Pixel
     discard expect File.writeAllText(fileName, "<div>Readable HTML</div>")
     let view = Markdown.View.createFile(&host.root, fileName)
     view.setDocumentThemeColors("view_Bk 0xFFFFFFFF\nlabel_Text 0xFF333333")
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     view.resize(640, 400)
     view.applyLayout()
     view.layoutDocument()
     let html = unwrap view.blocks[0].html
-    for style in html.layout.styles do
+    for style in html.layout.styles
+    {
         Swag.require(style.color.argb == 0xFF333333)
+    }
 }

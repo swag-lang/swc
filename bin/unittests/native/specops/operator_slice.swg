@@ -133,7 +133,7 @@ struct RuntimeSliceHolder
 
 #test
 {
-    const box = RuntimeStringSliceBox{bytes: [115'u8, 116'u8, 114'u8, 105'u8, 110'u8, 103'u8]}
+    const box = RuntimeStringSliceBox{bytes: [115_u8, 116_u8, 114_u8, 105_u8, 110_u8, 103_u8]}
     let middle = box[1 until 5]
     let tail   = box[2 to]
     let head   = box[to 2]

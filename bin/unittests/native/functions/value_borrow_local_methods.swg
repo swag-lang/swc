@@ -5,7 +5,7 @@ struct Bits { words: [4] u64 }
 impl Bits
 {
     #[Swag.NoInline]
-    mtd set(index: u32) { .words[index >> 6] |= 1'u64 << (index & 63) }
+    mtd set(index: u32) { .words[index >> 6] |= 1_u64 << (index & 63) }
 }
 
 var observations: u64

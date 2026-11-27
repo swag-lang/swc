@@ -9,7 +9,7 @@ using Core, Pixel, Gui, Viewers
 {
     let file = Testing.tempFilePath("scope-hex-sparse-", ".bin")
     defer discard catch File.delete(file)
-    const FarOffset = 0x1_0000_0100'u64
+    const FarOffset = 0x1_0000_0100_u64
     scope
     {
         #static if #os == Swag.TargetOs.Windows
@@ -28,9 +28,9 @@ using Core, Pixel, Gui, Viewers
 
         let mode: File.FileMode = #os == Swag.TargetOs.Windows ? .Open : .CreateNew
         var stream = expect File.open(file, mode, .ReadWrite, .Zero)
-        expect stream.writeAll([0x41'u8, 0x42'u8])
+        expect stream.writeAll([0x41_u8, 0x42_u8])
         expect stream.seek(.Begin, FarOffset)
-        expect stream.writeAll([0xDE'u8, 0xAD'u8, 0xBE'u8, 0xEF'u8])
+        expect stream.writeAll([0xDE_u8, 0xAD_u8, 0xBE_u8, 0xEF_u8])
     }
 
     var host: Testing.HeadlessHost

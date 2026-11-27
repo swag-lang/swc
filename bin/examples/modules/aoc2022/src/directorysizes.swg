@@ -1,28 +1,36 @@
 using Core
 
-func readDirectorySizes(dataPath: string)->HashTable'(String, s32)
+func readDirectorySizes(dataPath: string)->HashTable!{String, s32}
 {
     let lines = expect File.readAllLines(dataPath)
 
     var folder:  String
-    var folders: HashTable'(String, s32)
+    var folders: HashTable!{String, s32}
 
     for i in lines.count
     {
         let line = &lines[i]
-        if line[0] == '$' do
+        if line[0] == '$'
+        {
             line.remove(0, 1)
+        }
 
-        let command = Tokenize.split(line[], ' 'u8)
+        let command = Tokenize.split(line[], ' '_u8)
         switch command[0]
         {
         case "cd":
-            if command[1] == "/" do
+            if command[1] == "/"
+            {
                 folder = ""
-            elif command[1] == ".." do
+            }
+            else if command[1] == ".."
+            {
                 folder = Path.directoryName(folder)
-            else do
+            }
+            else
+            {
                 folder = Path.combine(folder, command[1])
+            }
 
         case "ls", "dir":
             break
@@ -33,8 +41,11 @@ func readDirectorySizes(dataPath: string)->HashTable'(String, s32)
             for
             {
                 folders.findOrAdd(currentFolder).value += size
-                if not currentFolder.length do
+                if not currentFolder.length
+                {
                     break
+                }
+
                 currentFolder = Path.directoryName(currentFolder)
             }
         }

@@ -4,11 +4,14 @@
 using Core, Core.Math
 
 // Returns the radius of every arc the path holds, in the order the path builds them.
-func arcRadii(path: const *LinePath)->Array'f32
+func arcRadii(path: const *LinePath)->Array!{f32}
 {
     var result: #returntype
-    for element in path.elements where element.type == .Arc do
+    for element in path.elements where element.type == .Arc
+    {
         result.add(element.p2.x)
+    }
+
     return result
 }
 
@@ -49,8 +52,10 @@ func arcRadii(path: const *LinePath)->Array'f32
     // lands on 20.
     let radii = arcRadii(&path)
     Swag.require(radii.count == 4)
-    for radius in radii do
+    for radius in radii
+    {
         Swag.require(Math.abs(radius - 20) <= 0.001)
+    }
 }
 
 // One oversized corner scales its neighbours down with it rather than being clamped alone.
@@ -106,7 +111,7 @@ func arcRadii(path: const *LinePath)->Array'f32
 #test
 {
     var path: LinePath
-    path.setArc(50, 50, 10, 270.0'deg, 450.0'deg)
+    path.setArc(50, 50, 10, 270.0_deg, 450.0_deg)
 
     Swag.require(path.startPoint.isEqualEpsilon({40, 50}, 0.001))
     Swag.require(path.endPoint.isEqualEpsilon({60, 50}, 0.001))

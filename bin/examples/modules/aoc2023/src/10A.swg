@@ -111,7 +111,7 @@ func day10A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "10.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var maze: Array'Dir
+    var maze: Array!{Dir}
     let width  = lines[0].length + 2
     let height = lines.count + 2
     maze.resize(width * height)
@@ -154,14 +154,26 @@ func day10A()
 
     // Determine the shape of the start 'S'.
     let startConnections = pipeAt(startX, startY)
-    if pipeAt(startX - 1, startY)[] & .East do
+    if pipeAt(startX - 1, startY)[] & .East
+    {
         startConnections[] |= .West
-    if pipeAt(startX + 1, startY)[] & .West do
+    }
+
+    if pipeAt(startX + 1, startY)[] & .West
+    {
         startConnections[] |= .East
-    if pipeAt(startX, startY - 1)[] & .South do
+    }
+
+    if pipeAt(startX, startY - 1)[] & .South
+    {
         startConnections[] |= .North
-    if pipeAt(startX, startY + 1)[] & .North do
+    }
+
+    if pipeAt(startX, startY + 1)[] & .North
+    {
         startConnections[] |= .South
+    }
+
     var currentX = startX
 
     // Visit the maze
@@ -190,8 +202,10 @@ func day10A()
         }
 
         loopSteps += 1
-        if currentX == startX and currentY == startY do
+        if currentX == startX and currentY == startY
+        {
             break
+        }
     }
 
     loopSteps /= 2

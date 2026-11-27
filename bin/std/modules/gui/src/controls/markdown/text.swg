@@ -7,14 +7,23 @@ using Core
 // producer; both the view and resource preparation skip those escapes before calling this.
 func parseImageTag(text: string)->{ alt: string, source: string, eat: u64 }
 {
-    if not Utf8.startsWith(text, "<img>") do
+    if not Utf8.startsWith(text, "<img>")
+    {
         return {alt: "", source: "", eat: 0}
+    }
+
     let altEnd = Utf8.indexOf(text, "</img><src>", 5)
-    if altEnd == Swag.U64.Max do
+    if altEnd == Swag.U64.Max
+    {
         return {alt: "", source: "", eat: 0}
+    }
+
     let sourceEnd = Utf8.indexOf(text, "</src>", altEnd + 11)
-    if sourceEnd == Swag.U64.Max do
+    if sourceEnd == Swag.U64.Max
+    {
         return {alt: "", source: "", eat: 0}
+    }
+
     return {alt: text[5 until altEnd], source: text[altEnd + 11 until sourceEnd], eat: sourceEnd + 6}
 }
 
@@ -23,12 +32,16 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
     var result: #returntype
     result.value = "&"
     result.eat   = 1
-    if start >= source.count or source[start] != '&' do
+    if start >= source.count or source[start] != '&'
+    {
         return result
+    }
 
-    let close = Utf8.indexOf(source, ';'rune, start + 1)
-    if close == Swag.U64.Max or close - start > 12 do
+    let close = Utf8.indexOf(source, ';'_rune, start + 1)
+    if close == Swag.U64.Max or close - start > 12
+    {
         return result
+    }
 
     let entity = source[start + 1 until close]
     switch entity
@@ -73,8 +86,10 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
         result.value = "™"
 
     default:
-        if entity.count < 2 or entity[0] != '#' do
+        if entity.count < 2 or entity[0] != '#'
+        {
             return result
+        }
 
         let hexadecimal = entity.count > 2 and (entity[1] == 'x' or entity[1] == 'X')
         let digits      = hexadecimal ? entity[2 to] : entity[1 to]
@@ -85,8 +100,11 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
             var parsed: #decltype(expect StrConv.parseX64(digits))
             catch { parsed = try StrConv.parseX64(digits) } as parseErrorOutcome
             let parseError = parseErrorOutcome.value()
-            if parseError != null or parsed.ovf or parsed.eat != digits.count do
+            if parseError != null or parsed.ovf or parsed.eat != digits.count
+            {
                 return result
+            }
+
             number = parsed.value
         }
         else
@@ -95,14 +113,20 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
             var parsed: #decltype(expect StrConv.parseU64(digits))
             catch { parsed = try StrConv.parseU64(digits) } as parseErrorOutcome
             let parseError = parseErrorOutcome.value()
-            if parseError != null or parsed.ovf or parsed.eat != digits.count do
+            if parseError != null or parsed.ovf or parsed.eat != digits.count
+            {
                 return result
+            }
+
             number = parsed.value
         }
 
         let character = cast(rune, number)
-        if not Utf8.isValidRune(character) do
+        if not Utf8.isValidRune(character)
+        {
             return result
+        }
+
         if character == '<'
         {
             result.value = "<<"
@@ -123,7 +147,7 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
 func richText(text: string, decodeEntities = false)->String
 {
     var result: #returntype
-    var index = 0'u64
+    var index = 0_u64
     while index < text.count
     {
         if decodeEntities and text[index] == '&'
@@ -134,10 +158,15 @@ func richText(text: string, decodeEntities = false)->String
             continue
         }
 
-        if text[index] == '<' do
+        if text[index] == '<'
+        {
             result += "<<"
-        else do
+        }
+        else
+        {
             result += text[index]
+        }
+
         index += 1
     }
 

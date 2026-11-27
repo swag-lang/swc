@@ -4,7 +4,7 @@
 // of the return register before the join. Values live across the call keep caller-saved
 // registers on the fast path and are parked in the slow block, which must restore them.
 
-var g_SlowCalls = 0'u64
+var g_SlowCalls = 0_u64
 
 #[Swag.NoInline]
 func slowLookup(key: u64)->u64
@@ -17,8 +17,10 @@ func slowLookup(key: u64)->u64
 func lookup(table: [*] u64, key, bias, scale: u64)->u64
 {
     var value = table[key & 7]
-    if key >= 8 do
+    if key >= 8
+    {
         value = slowLookup(key)
+    }
     return value * scale + bias + key
 }
 
@@ -28,20 +30,24 @@ func lookup(table: [*] u64, key, bias, scale: u64)->u64
 func lookupAlternative(table: [*] u64, key, bias, scale: u64)->u64
 {
     var value = key
-    if key >= 8 or table[key] == 0 do
+    if key >= 8 or table[key] == 0
+    {
         value = slowLookup(key)
+    }
     return value * scale + bias + key
 }
 
 #test
 {
     var table: [8] u64 = [10, 11, 12, 13, 14, 15, 16, 17]
-    var sum = 0'u64
-    for key in 16'u64 do
+    var sum = 0_u64
+    for key in 16_u64
+    {
         sum += lookup(&table[0], key, 5, 2)
+    }
 
-    var expected = 0'u64
-    for key in 16'u64
+    var expected = 0_u64
+    for key in 16_u64
     {
         let value = key < 8 ? table[key] : key * 3 + 1
         expected += value * 2 + 5 + key
@@ -54,7 +60,7 @@ func lookupAlternative(table: [*] u64, key, bias, scale: u64)->u64
     g_SlowCalls = 0
     sum         = 0
     expected    = 0
-    for key in 16'u64
+    for key in 16_u64
     {
         sum += lookupAlternative(&table[0], key, 5, 2)
         let value = key < 8 and key != 2 ? key : key * 3 + 1

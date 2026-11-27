@@ -30,8 +30,10 @@ struct DepPropagateError
 
 func depPropagateStep(ok: bool)->s32 fail
 {
-    if not ok do
+    if not ok
+    {
         fail DepPropagateError{base: Swag.BaseError{"step"}}
+    }
     return 20
 }
 

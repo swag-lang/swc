@@ -6,18 +6,21 @@ using Core, Pixel
 
 private func warpPointer(capture: *X11Capture, x, y: s16)
 {
-    let warp = expect X11Capture.symbol'Linux.xcb_warp_pointer_checked_fn(unwrap capture.nativeLibrary(), "xcb_warp_pointer")
+    let warp = expect X11Capture.symbol!{Linux.xcb_warp_pointer_checked_fn}(unwrap capture.nativeLibrary(), "xcb_warp_pointer")
     discard warp(unwrap capture.nativeConnection(), 0, capture.rootWindow(), 0, 0, 0, 0, x, y)
 }
 
 private func pointerPosition(capture: *X11Capture)->{x: s16, y: s16} fail
 {
-    let query      = expect X11Capture.symbol'Linux.xcb_query_pointer_fn(unwrap capture.nativeLibrary(), "xcb_query_pointer")
-    let replyQuery = expect X11Capture.symbol'Linux.xcb_query_pointer_reply_fn(unwrap capture.nativeLibrary(), "xcb_query_pointer_reply")
+    let query      = expect X11Capture.symbol!{Linux.xcb_query_pointer_fn}(unwrap capture.nativeLibrary(), "xcb_query_pointer")
+    let replyQuery = expect X11Capture.symbol!{Linux.xcb_query_pointer_reply_fn}(unwrap capture.nativeLibrary(), "xcb_query_pointer_reply")
     let connection = unwrap capture.nativeConnection()
     let reply      = replyQuery(connection, query(connection, capture.rootWindow()), null)
-    if not reply do
+    if not reply
+    {
         fail Swag.SystemError{"cannot read the X11 pointer position"}
+    }
+
     defer Linux.free(reply)
     return {reply.root_x, reply.root_y}
 }
@@ -26,18 +29,24 @@ private func openDescriptorCount()->u64
 {
     let directory = unwrap Linux.opendir("/proc/self/fd".buffer)
     defer discard Linux.closedir(directory)
-    var count = 0'u64
-    while Linux.readdir(directory) do
+    var count = 0_u64
+    while Linux.readdir(directory)
+    {
         count += 1
+    }
+
     return count
 }
 
 private func sharedMappingCount()->u64 fail
 {
     let maps  = try File.readAllLines("/proc/self/maps")
-    var count = 0'u64
-    for line in maps where line.contains("/SYSV") do
+    var count = 0_u64
+    for line in maps where line.contains("/SYSV")
+    {
         count += 1
+    }
+
     return count
 }
 
@@ -52,8 +61,11 @@ private func sharedSegmentCount()->u64 fail
 #test
 {
     let monitors = Env.getMonitors()
-    if not monitors.count do
+    if not monitors.count
+    {
         return
+    }
+
     let bounds      = monitors[0].physicalBounds
     var source      = expect Source.openMonitor(monitors[0])
     let pointSource = expect Source.openMonitorAt({bounds.x + bounds.width / 2,
@@ -77,8 +89,11 @@ private func sharedSegmentCount()->u64 fail
 {
     let width  = Env.getSystemMetric(.DesktopWidth)
     let height = Env.getSystemMetric(.DesktopHeight)
-    if width <= 0 or height <= 0 do
+    if width <= 0 or height <= 0
+    {
         return
+    }
+
     var source  = expect Source.openDesktop()
     let options = source.captureOptions()
     Swag.require(options.width == width and options.height == height)
@@ -131,8 +146,11 @@ private func sharedSegmentCount()->u64 fail
     Memory.set(image.pixels.storage(), 0x5A, image.byteCount)
     let repeatedFresh = expect source.grabInto(&image, copyUnchanged: false)
     Swag.require(not repeatedFresh, "identical X11 pixels should not be a fresh frame")
-    for byte in image.pixels do
+    for byte in image.pixels
+    {
         Swag.require(byte == 0x5A, "an unchanged grab should leave a reusable target untouched")
+    }
+
     Swag.require(source.lastFrameCaptureMicroseconds() == firstCaptureTime)
     let repeatedMetrics = source.metrics()
     Swag.require(repeatedMetrics.acquiredFrames == 2 and
@@ -252,7 +270,7 @@ private func sharedSegmentCount()->u64 fail
                 Swag.require((expect sharedMappingCount()) == mappings + 1)
             }
 
-            let fileDescriptor = expect X11Capture.symbol'Linux.xcb_get_file_descriptor_fn(unwrap capture.library, "xcb_get_file_descriptor")
+            let fileDescriptor = expect X11Capture.symbol!{Linux.xcb_get_file_descriptor_fn}(unwrap capture.library, "xcb_get_file_descriptor")
             let socket         = fileDescriptor(unwrap capture.connection)
             Swag.require(socket >= 0 and Linux.shutdown(socket, 0) == 0)
             var failure: Swag.Error
@@ -269,9 +287,12 @@ private func sharedSegmentCount()->u64 fail
 
     for 100
     {
-        if (expect sharedSegmentCount()) == segments do
+        if (expect sharedSegmentCount()) == segments
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require((expect sharedSegmentCount()) == segments)

@@ -4,7 +4,7 @@ struct Rect { x, y, width, height: f32 }
 struct Window { position: Rect }
 
 #[Swag.Inline]
-func(T) create(out: *T, position: Rect, id: string? = null, hook: func||()? = null)->*T => create'T(out, "", position, id, hook)
+func(T) create(out: *T, position: Rect, id: string? = null, hook: func||()? = null)->*T => create!{T}(out, "", position, id, hook)
 
 #[Swag.NoInline]
 func(T) create(out: *T, name: string?, position: Rect, id: string? = null, hook: func||()? = null)->*T
@@ -18,7 +18,7 @@ func(T) create(out: *T, name: string?, position: Rect, id: string? = null, hook:
 #test
 {
     var window: Window
-    let target = create'Window(&window, Rect{40, 20, 100, 50})
+    let target = create!{Window}(&window, Rect{40, 20, 100, 50})
     Swag.require(target.position.x == 40 and target.position.y == 20)
     Swag.require(target.position.width == 100 and target.position.height == 50)
 }
@@ -28,7 +28,7 @@ func(T) create(out: *T, name: string?, position: Rect, id: string? = null, hook:
 {
     var window: Window
     var width  = 100
-    let target = create'Window(&window, {height: 50, width: width, y: 20, x: 40})
+    let target = create!{Window}(&window, {height: 50, width: width, y: 20, x: 40})
     Swag.require(target.position.x == 40 and target.position.y == 20)
     Swag.require(target.position.width == 100 and target.position.height == 50)
 }

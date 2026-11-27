@@ -13,8 +13,14 @@ func absDiff(a, b: u32)->u32 => a > b ? a - b : b - a
 #[Swag.Optimize(true), Swag.NoInline]
 func clamp(x, lo, hi: s32)->s32
 {
-    if x < lo do return lo
-    if x > hi do return hi
+    if x < lo
+    {
+        return lo
+    }
+    if x > hi
+    {
+        return hi
+    }
     return x
 }
 

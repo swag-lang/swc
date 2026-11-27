@@ -30,10 +30,14 @@ func day5B0()
         var row1 = 127
         for c in 7
         {
-            if l[c] == 'F' do
+            if l[c] == 'F'
+            {
                 row1 = (row1 + row0) / 2
-            else do
+            }
+            else
+            {
                 row0 = 1 + (row1 + row0) / 2
+            }
         }
 
         var col0 = 0
@@ -41,10 +45,14 @@ func day5B0()
         var col1 = 7
         for c in 3
         {
-            if l[7 + c] == 'L' do
+            if l[7 + c] == 'L'
+            {
                 col1 = (col1 + col0) / 2
-            else do
+            }
+            else
+            {
                 col0 = 1 + (col1 + col0) / 2
+            }
         }
 
         here[row0, col0] = true
@@ -53,8 +61,10 @@ func day5B0()
     for r in 128
     {
         var cpt = 0
-        for c in 8 do
+        for c in 8
+        {
             cpt += cast(s32, here[r, c])
+        }
 
         if cpt == 7     // Search for one missing seat in the row
         {
@@ -75,7 +85,7 @@ func day5B1()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "5.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var seats: Array's32
+    var seats: Array!{s32}
     for l in lines
     {
         var row0 = 0

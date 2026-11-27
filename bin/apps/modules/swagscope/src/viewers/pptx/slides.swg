@@ -16,15 +16,19 @@ impl Panel
 
     mtd clearPreviews()
     {
-        for &layer in .previews where layer.contentTarget do
+        for &layer in .previews where layer.contentTarget
+        {
             layer.release()
+        }
     }
 
     mtd trimPreviews()
     {
         let range = .gallery.visibleRange()
-        for &layer, index in .previews where layer.contentTarget and (index < range.first or index >= range.end) do
+        for &layer, index in .previews where layer.contentTarget and (index < range.first or index >= range.end)
+        {
             layer.release()
+        }
     }
 
     // Record the same slide renderer as the reading view at a legible layout size. The gallery
@@ -38,7 +42,7 @@ impl Panel
             let scale  = 384.0 / Math.max(.presentation.width, .presentation.height)
             let width  = Math.max(1, cast(s32, Math.round(.presentation.width * scale)))
             let height = Math.max(1, cast(s32, Math.round(.presentation.height * scale)))
-            var style = HtmlStyle.theme()
+            var style  = HtmlStyle.theme()
             style.followTheme = page.simplified
             let preview = HtmlView.createText(me, page.canvasHtml(.presentation.width, .presentation.height), style)
             preview.hide()

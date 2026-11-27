@@ -7,7 +7,7 @@ private func(T) insertionSort(values: [..] T, compare: func||(T, T)->s32)
     var buffer = values.buffer
     let count  = values.count
 
-    for var i = 1'u64; i < count; i += 1
+    for var i = 1_u64; i < count; i += 1
     {
         for var j = i; j > 0 and compare(buffer[j], buffer[j - 1]) < 0; j -= 1
         {
@@ -20,10 +20,12 @@ private func(T) insertionSort(values: [..] T, compare: func||(T, T)->s32)
 private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
 {
     let count = cast(s64, values.count)
-    if count == 0 do
+    if count == 0
+    {
         return
+    }
 
-    var begin  = 0's64
+    var begin  = 0_s64
     var end    = count - 1
     var buffer = values.buffer
 
@@ -39,12 +41,21 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
         // Order the endpoints and midpoint, then place their median at 'begin'.
         // This avoids quadratic partitioning of sorted or reversed input.
         let mid = begin + (end - begin) / 2
-        if compare(buffer[mid], buffer[begin]) < 0 do
+        if compare(buffer[mid], buffer[begin]) < 0
+        {
             swap(&buffer[mid], &buffer[begin])
-        if compare(buffer[end], buffer[begin]) < 0 do
+        }
+
+        if compare(buffer[end], buffer[begin]) < 0
+        {
             swap(&buffer[end], &buffer[begin])
-        if compare(buffer[end], buffer[mid]) < 0 do
+        }
+
+        if compare(buffer[end], buffer[mid]) < 0
+        {
             swap(&buffer[end], &buffer[mid])
+        }
+
         swap(&buffer[begin], &buffer[mid])
 
         // Stop both scans on equal values so duplicates split across the two partitions.
@@ -54,13 +65,22 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
         for
         {
             low += 1
-            while low <= end and compare(buffer[low], buffer[pivot]) < 0 do
+            while low <= end and compare(buffer[low], buffer[pivot]) < 0
+            {
                 low += 1
+            }
+
             high -= 1
-            while compare(buffer[high], buffer[pivot]) > 0 do
+            while compare(buffer[high], buffer[pivot]) > 0
+            {
                 high -= 1
-            if low >= high do
+            }
+
+            if low >= high
+            {
                 break
+            }
+
             swap(&buffer[low], &buffer[high])
         }
 
@@ -88,11 +108,11 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
 
             quickSort(Swag.makeSlice(buffer + first, (last - first) + 1), compare)
         }
-        elif leftSpan > 0
+        else if leftSpan > 0
         {
             end = high - 1
         }
-        elif rightSpan > 0
+        else if rightSpan > 0
         {
             begin = high + 1
         }
@@ -110,10 +130,14 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
 func(T) sort(values: [..] T, descending = false)
     where Reflection.canCompare(T)
 {
-    if descending do
+    if descending
+    {
         sort(values, func(x, y: T)->s32 => y <=> x)
-    else do
+    }
+    else
+    {
         sort(values, func(x, y: T)->s32 => x <=> y)
+    }
 }
 
 // Sorts the slice in place in the order defined by `compare`.
@@ -123,10 +147,14 @@ func(T) sort(values: [..] T, descending = false)
 func(T) sort(values: [..] T, compare: func||(T, T)->s32)
 {
     Swag.assert(compare != null)
-    if values.count <= 10 do
+    if values.count <= 10
+    {
         insertionSort(values, compare)
-    else do
+    }
+    else
+    {
         quickSort(values, compare)
+    }
 }
 
 // Returns whether the slice is in ascending order.
@@ -142,10 +170,15 @@ func(T) isSorted(values: const [..] T)->bool
 func(T) isSorted(values: const [..] T, compare: func||(T, T)->s32)->bool
 {
     Swag.assert(compare != null)
-    if values.count <= 1 do
+    if values.count <= 1
+    {
         return true
+    }
 
-    for i in values.count - 1 where compare(values[i], values[i + 1]) > 0 do
+    for i in values.count - 1 where compare(values[i], values[i + 1]) > 0
+    {
         return false
+    }
+
     return true
 }

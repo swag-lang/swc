@@ -50,8 +50,11 @@ impl CaptureMicrophone
     // Opens either Windows source through the same queue conversion and packet lifecycle.
     internal func openDefaultSource(queue: *CaptureQueue, source: WasapiCaptureSource)->CaptureMicrophone fail
     {
-        if queue.clockFrequencyHz() != 10_000_000 do
+        if queue.clockFrequencyHz() != 10_000_000
+        {
             fail BadParameterError{"WASAPI capture queue must use 100-nanosecond timestamps"}
+        }
+
         var result: #returntype
         result.native = try WasapiCapture.openDefault(source)
         defer #fail result.native.close()
@@ -83,7 +86,7 @@ impl CaptureMicrophone
             return 0
         }
 
-        var count = 0'u32
+        var count = 0_u32
         var packet: WasapiCapturePacket
         while try .native.nextPacket(&packet)
         {
@@ -125,8 +128,11 @@ impl CaptureMicrophone
             .pendingDiscontinuity = false
             let packetTicks = (cast(u64, packet.frames) * 10_000_000 + .format.sampleRate / 2) /
                               .format.sampleRate
-            if packetTicks > Swag.U64.Max - packet.timestamp100ns do
+            if packetTicks > Swag.U64.Max - packet.timestamp100ns
+            {
                 fail OverflowError{"WASAPI capture packet end timestamp overflows"}
+            }
+
             .lastSourceEndTick = packet.timestamp100ns + packetTicks
             try .native.releasePacket()
         }
@@ -147,15 +153,20 @@ private impl CaptureMicrophone
 {
     mtd advanceIdleLoopback() fail
     {
-        if .source != .OutputLoopback do
+        if .source != .OutputLoopback
+        {
             return
+        }
 
         // Leave 250 ms for packets already mixed by the render endpoint to arrive before
         // committing the otherwise silent interval to a live AAC track.
-        const SafeLag100ns = 2_500_000'u64
+        const SafeLag100ns = 2_500_000_u64
         let now = try wasapiCaptureNow100ns()
-        if now <= SafeLag100ns or now - SafeLag100ns <= .lastSourceEndTick do
+        if now <= SafeLag100ns or now - SafeLag100ns <= .lastSourceEndTick
+        {
             return
+        }
+
         try .feeder.suspendForIdle()
         discard try .queue.markSilentUntil(now - SafeLag100ns)
     }

@@ -12,11 +12,14 @@ using Core
     app.setMotionPreference(.Reduced)
     let surface = expect app.createSurface(60, 50, 320, 240, surfaceId: "linux-native-keypad")
     surface.show()
-    for 4 do
+    for 4
+    {
         app.runFrame()
+    }
+
     surface.wnd.view.focusPolicy = .Click
     surface.wnd.view.setFocus()
-    var presses, releases: Array'Input.Key
+    var presses, releases: Array!{Input.Key}
     var characters:        String
     surface.wnd.view.hookOnEvent = func|&presses, &releases, &characters|(_, event)->bool
     {
@@ -26,12 +29,16 @@ using Core
             {
                 characters.append(key.character)
             }
-            elif key.key != .NumLock and key.key != .LShift
+            else if key.key != .NumLock and key.key != .LShift
             {
-                if key.kind == .Pressed do
+                if key.kind == .Pressed
+                {
                     presses.add(key.key)
-                elif key.kind == .Released do
+                }
+                else if key.kind == .Released
+                {
                     releases.add(key.key)
+                }
             }
 
             return true
@@ -50,11 +57,14 @@ using Core
     while peer.isRunning() and Time.monotonicMilliseconds() < deadline
     {
         app.runFrame()
-        discard expect peer.tryWaitForExit(5'ms)
+        discard expect peer.tryWaitForExit(5_ms)
     }
 
-    for 8 do
+    for 8
+    {
         app.runFrame()
+    }
+
     Swag.require(not peer.isRunning() and peer.exitCode() == 0, peer.standardError())
     let expected: const [..]Input.Key = [.Return, .Insert, .End, .Down, .PageDown, .Left, .Clear,
                                          .Right, .Home, .Up, .PageUp, .Delete, .End,

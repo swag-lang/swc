@@ -47,7 +47,7 @@ impl BorrowLazyBuffer
 
 struct BorrowLazyLog
 {
-    writers: BorrowLazyBuffer'BorrowLazyWriter
+    writers: BorrowLazyBuffer!{BorrowLazyWriter}
 }
 
 impl BorrowLazyLog

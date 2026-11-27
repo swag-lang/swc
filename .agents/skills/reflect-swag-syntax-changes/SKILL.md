@@ -37,23 +37,9 @@ The grammar lives in `vscode/syntaxes/swag.tmLanguage.json`.
 - `#` modifier changes: edit the `compiler-modifiers` match.
 - Keep the reference keyword catalog (`002_007_keywords.swg`) and the grammar in agreement.
 
-## 3. Rebuild And Install The Extension (only when keywords/modifiers change)
-
-When a keyword or modifier is added or removed (not for a pure behavior change), a new
-extension build must be produced and installed, or highlighting stays stale:
-
-```bash
-cd vscode
-# bump "version" in package.json (e.g. 0.0.136 -> 0.0.137)
-vsce package --allow-missing-repository --no-dependencies
-code --install-extension swag-<new-version>.vsix --force
-```
-
-`vsce` and the `code` CLI are expected on the machine. Confirm the install line reports
-success.
+Keep this rule focused on updating the extension source grammar.
 
 ## Finish Cleanly
 
-A syntax change is done only when: the compiler accepts the new form, `tools/reference.bat dm test`
-is green with updated docs, the grammar matches, and (for keyword/modifier changes) the
-bumped extension is packaged and installed. Report which of these you completed.
+A syntax change is done only when the compiler accepts the new form, `tools/reference.bat dm test`
+is green with updated docs, and the VSCode grammar matches. Report which of these you completed.

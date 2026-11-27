@@ -285,8 +285,8 @@ impl Spring
 
 #test
 {
-    var a: Vec2's32 = {x: 3, y: 4}
-    var b: Vec2's32 = {x: 1, y: -2}
+    var a: Vec2!{s32} = {x: 3, y: 4}
+    var b: Vec2!{s32} = {x: 1, y: -2}
 
     let sum = a + b
     Swag.require(sum.x == 4 and sum.y == 2)
@@ -294,10 +294,10 @@ impl Spring
     let diff = a - b
     Swag.require(diff.x == 2 and diff.y == 6)
 
-    let scaled = a * 3's32
+    let scaled = a * 3_s32
     Swag.require(scaled.x == 9 and scaled.y == 12)
 
-    let d = Vec2's32.dot(&a, &b)
+    let d = Vec2!{s32}.dot(&a, &b)
     Swag.require(d == -5)     // 3*1 + 4*(-2)
 
     Swag.require(a.lengthSq() == 25)     // 9 + 16
@@ -305,31 +305,31 @@ impl Spring
 
 #test
 {
-    var lo: Vec2's32 = {x: 1, y: 2}
-    var hi: Vec2's32 = {x: 10, y: 20}
-    let mid = Vec2's32.lerp(&lo, &hi, 0's32)
+    var lo: Vec2!{s32} = {x: 1, y: 2}
+    var hi: Vec2!{s32} = {x: 10, y: 20}
+    let mid = Vec2!{s32}.lerp(&lo, &hi, 0_s32)
     Swag.require(mid.x == 1 and mid.y == 2)
 
-    let end = Vec2's32.lerp(&lo, &hi, 1's32)
+    let end = Vec2!{s32}.lerp(&lo, &hi, 1_s32)
     Swag.require(end.x == 10 and end.y == 20)
 }
 
 #test
 {
-    var a: Vec2's32 = {x: 3, y: 10}
-    var b: Vec2's32 = {x: 7, y: 2}
-    let mn          = Vec2's32.min(&a, &b)
-    let mx          = Vec2's32.max(&a, &b)
+    var a: Vec2!{s32} = {x: 3, y: 10}
+    var b: Vec2!{s32} = {x: 7, y: 2}
+    let mn            = Vec2!{s32}.min(&a, &b)
+    let mx            = Vec2!{s32}.max(&a, &b)
     Swag.require(mn.x == 3 and mn.y == 2)
     Swag.require(mx.x == 7 and mx.y == 10)
 }
 
 #test
 {
-    var v:  Vec2's32 = {x: 15, y: -5}
-    var lo: Vec2's32 = {x: 0, y: 0}
-    var hi: Vec2's32 = {x: 10, y: 10}
-    let c = Vec2's32.clamp(&v, &lo, &hi)
+    var v:  Vec2!{s32} = {x: 15, y: -5}
+    var lo: Vec2!{s32} = {x: 0, y: 0}
+    var hi: Vec2!{s32} = {x: 10, y: 10}
+    let c = Vec2!{s32}.clamp(&v, &lo, &hi)
     Swag.require(c.x == 10 and c.y == 0)
 }
 
@@ -339,14 +339,14 @@ impl Spring
 
 #test
 {
-    let box: AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 6}}
+    let box: AABB!{s32} = {lo: {x: 0, y: 0}, hi: {x: 10, y: 6}}
 
     Swag.require(box.width() == 10)
     Swag.require(box.height() == 6)
     Swag.require(box.area() == 60)
 
     let c = box.center()
-    #assert(#typeof(c) == Vec2's32)
+    #assert(#typeof(c) == Vec2!{s32})
     Swag.require(c.x == 5 and c.y == 3)
 
     let h = box.halfExtent()
@@ -355,9 +355,9 @@ impl Spring
 
 #test
 {
-    let box:     AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
-    var inside:  Vec2's32 = {x: 5, y: 5}
-    var outside: Vec2's32 = {x: 11, y: 5}
+    let box:     AABB!{s32} = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
+    var inside:  Vec2!{s32} = {x: 5, y: 5}
+    var outside: Vec2!{s32} = {x: 11, y: 5}
 
     Swag.require(box.contains(&inside))
     Swag.require(not box.contains(&outside))
@@ -365,9 +365,9 @@ impl Spring
 
 #test
 {
-    let a: AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
-    let b: AABB's32 = {lo: {x: 5, y: 5}, hi: {x: 15, y: 15}}
-    let c: AABB's32 = {lo: {x: 20, y: 20}, hi: {x: 30, y: 30}}
+    let a: AABB!{s32} = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
+    let b: AABB!{s32} = {lo: {x: 5, y: 5}, hi: {x: 15, y: 15}}
+    let c: AABB!{s32} = {lo: {x: 20, y: 20}, hi: {x: 30, y: 30}}
 
     Swag.require(a.overlaps(&b))
     Swag.require(not a.overlaps(&c))
@@ -375,27 +375,27 @@ impl Spring
 
 #test
 {
-    let box: AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
-    let expanded      = box.expand(2's32)
+    let box: AABB!{s32} = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
+    let expanded        = box.expand(2_s32)
     Swag.require(expanded.lo.x == -2 and expanded.lo.y == -2)
     Swag.require(expanded.hi.x == 12 and expanded.hi.y == 12)
 }
 
 #test
 {
-    let a: AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 5, y: 5}}
-    let b: AABB's32 = {lo: {x: 3, y: 3}, hi: {x: 10, y: 10}}
-    let m = AABB's32.merge(&a, &b)
+    let a: AABB!{s32} = {lo: {x: 0, y: 0}, hi: {x: 5, y: 5}}
+    let b: AABB!{s32} = {lo: {x: 3, y: 3}, hi: {x: 10, y: 10}}
+    let m = AABB!{s32}.merge(&a, &b)
     Swag.require(m.lo.x == 0 and m.lo.y == 0)
     Swag.require(m.hi.x == 10 and m.hi.y == 10)
 }
 
 #test
 {
-    let box:    AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
-    var offset: Vec2's32 = {x: 5, y: -3}
+    let box:    AABB!{s32} = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
+    var offset: Vec2!{s32} = {x: 5, y: -3}
     let moved = box + offset
-    #assert(#typeof(moved) == AABB's32)
+    #assert(#typeof(moved) == AABB!{s32})
     Swag.require(moved.lo.x == 5 and moved.lo.y == -3)
     Swag.require(moved.hi.x == 15 and moved.hi.y == 7)
     Swag.require(moved.area() == box.area())
@@ -403,8 +403,8 @@ impl Spring
 
 #test
 {
-    let box: AABB's32 = {lo: {x: 1, y: 2}, hi: {x: 3, y: 4}}
-    let scaled        = box * 10's32
+    let box: AABB!{s32} = {lo: {x: 1, y: 2}, hi: {x: 3, y: 4}}
+    let scaled = box * 10_s32
     Swag.require(scaled.lo.x == 10 and scaled.lo.y == 20)
     Swag.require(scaled.hi.x == 30 and scaled.hi.y == 40)
 }
@@ -415,8 +415,8 @@ impl Spring
 
 #test
 {
-    let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 10, y: 0}, acc: {x: 0, y: 0}, mass: 1}
-    let p1 = p.step(1's32)
+    let p: Particle!{s32} = {pos: {x: 0, y: 0}, vel: {x: 10, y: 0}, acc: {x: 0, y: 0}, mass: 1}
+    let p1 = p.step(1_s32)
 
     Swag.require(p1.pos.x == 10 and p1.pos.y == 0)
     Swag.require(p1.vel.x == 10 and p1.vel.y == 0)
@@ -424,8 +424,8 @@ impl Spring
 
 #test
 {
-    let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: -10}, mass: 1}
-    let p1 = p.step(1's32)
+    let p: Particle!{s32} = {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: -10}, mass: 1}
+    let p1 = p.step(1_s32)
 
     // v += a*dt = (0,-10), p += v*dt = (0,-10)
     Swag.require(p1.vel.x == 0 and p1.vel.y == -10)
@@ -434,8 +434,8 @@ impl Spring
 
 #test
 {
-    let p:     Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1}
-    var force: Vec2's32     = {x: 10, y: 5}
+    let p:     Particle!{s32} = {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1}
+    var force: Vec2!{s32}     = {x: 10, y: 5}
     let p1 = p.applyForce(&force)
 
     // acc += force/mass = (10, 5) since mass=1
@@ -444,26 +444,26 @@ impl Spring
 
 #test
 {
-    let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 3, y: 4}, acc: {x: 0, y: 0}, mass: 2}
+    let p: Particle!{s32} = {pos: {x: 0, y: 0}, vel: {x: 3, y: 4}, acc: {x: 0, y: 0}, mass: 2}
     Swag.require(p.kineticEnergy() == 25)     // (9+16)*2/2
 
     let mom = p.momentum()
-    #assert(#typeof(mom) == Vec2's32)
+    #assert(#typeof(mom) == Vec2!{s32})
     Swag.require(mom.x == 6 and mom.y == 8)     // vel*mass
 }
 
 #test
 {
-    let p: Particle's32 = {pos: {x: 5, y: 5}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1}
-    let b = p.bounds(2's32)
-    #assert(#typeof(b) == AABB's32)
+    let p: Particle!{s32} = {pos: {x: 5, y: 5}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1}
+    let b = p.bounds(2_s32)
+    #assert(#typeof(b) == AABB!{s32})
     Swag.require(b.lo.x == 3 and b.lo.y == 3)
     Swag.require(b.hi.x == 7 and b.hi.y == 7)
 }
 
 #test
 {
-    let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 1, y: 1}, acc: {x: 5, y: -5}, mass: 1}
+    let p: Particle!{s32} = {pos: {x: 0, y: 0}, vel: {x: 1, y: 1}, acc: {x: 5, y: -5}, mass: 1}
     let p1 = p.resetAcceleration()
     Swag.require(p1.acc.x == 0 and p1.acc.y == 0)
     Swag.require(p1.vel.x == 1 and p1.vel.y == 1)
@@ -475,21 +475,21 @@ impl Spring
 
 #test
 {
-    let s: Spring's32 = {
+    let s: Spring!{s32} = {
         a: {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
         b: {pos: {x: 10, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
         stiffness: 1,
         restLen: 5}
 
     let sep = s.separation()
-    #assert(#typeof(sep) == Vec2's32)
+    #assert(#typeof(sep) == Vec2!{s32})
     Swag.require(sep.x == 10 and sep.y == 0)
     Swag.require(s.distanceSq() == 100)
 }
 
 #test
 {
-    let s: Spring's32 = {
+    let s: Spring!{s32} = {
         a: {pos: {x: 0, y: 0}, vel: {x: 3, y: 0}, acc: {x: 0, y: 0}, mass: 2},
         b: {pos: {x: 10, y: 0}, vel: {x: -3, y: 0}, acc: {x: 0, y: 0}, mass: 2},
         stiffness: 1,
@@ -503,14 +503,14 @@ impl Spring
 
 #test
 {
-    let s: Spring's32 = {
+    let s: Spring!{s32} = {
         a: {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
         b: {pos: {x: 10, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
         stiffness: 1,
         restLen: 5}
 
-    let bounds = s.systemBounds(1's32)
-    #assert(#typeof(bounds) == AABB's32)
+    let bounds = s.systemBounds(1_s32)
+    #assert(#typeof(bounds) == AABB!{s32})
     Swag.require(bounds.lo.x == -1 and bounds.lo.y == -1)
     Swag.require(bounds.hi.x == 11 and bounds.hi.y == 1)
 }
@@ -521,26 +521,26 @@ impl Spring
 
 #test
 {
-    var a: Vec2's64 = {x: 100000's64, y: -200000's64}
-    var b: Vec2's64 = {x: 300000's64, y: 400000's64}
-    let sum         = a + b
-    #assert(#typeof(sum) == Vec2's64)
+    var a: Vec2!{s64} = {x: 100000_s64, y: -200000_s64}
+    var b: Vec2!{s64} = {x: 300000_s64, y: 400000_s64}
+    let sum = a + b
+    #assert(#typeof(sum) == Vec2!{s64})
     Swag.require(sum.x == 400000 and sum.y == 200000)
 }
 
 #test
 {
-    let box: AABB's64 = {lo: {x: 0's64, y: 0's64}, hi: {x: 1000000's64, y: 500000's64}}
-    Swag.require(box.area() == 500000000000's64)
+    let box: AABB!{s64} = {lo: {x: 0_s64, y: 0_s64}, hi: {x: 1000000_s64, y: 500000_s64}}
+    Swag.require(box.area() == 500000000000_s64)
     let c = box.center()
-    #assert(#typeof(c) == Vec2's64)
+    #assert(#typeof(c) == Vec2!{s64})
     Swag.require(c.x == 500000 and c.y == 250000)
 }
 
 #test
 {
-    let p: Particle's64 = {pos: {x: 0's64, y: 0's64}, vel: {x: 100's64, y: 0's64}, acc: {x: 0's64, y: -10's64}, mass: 5's64}
-    let p1 = p.step(2's64)
+    let p: Particle!{s64} = {pos: {x: 0_s64, y: 0_s64}, vel: {x: 100_s64, y: 0_s64}, acc: {x: 0_s64, y: -10_s64}, mass: 5_s64}
+    let p1 = p.step(2_s64)
     // v = (100, -20), p = (200, -40)
     Swag.require(p1.vel.x == 100 and p1.vel.y == -20)
     Swag.require(p1.pos.x == 200 and p1.pos.y == -40)

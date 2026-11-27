@@ -80,70 +80,93 @@ impl Timestamp
         // Clamp the day to the destination month and preserve the time within the day.
         calendarYear = cast(u16, year)
         let lastDay = daysInMonth(calendarYear, month)
-        if day > lastDay do
+        if day > lastDay
+        {
             day = lastDay
+        }
+
         .ticks = dateToTicks(calendarYear, month, day) + (.ticks % TicksPerDay)
     }
 
     // Shifts the timestamp by whole 24-hour days.
     mtd addDays(days: s32)
     {
-        if days > 0 do
+        if days > 0
+        {
             .add(cast(u32, days), MillisecondsPerDay)
-        else do
+        }
+        else
+        {
             .remove(cast(u32, -cast(s64, days)), MillisecondsPerDay)
+        }
     }
 
     // Shifts the timestamp by whole hours.
     mtd addHours(hours: s32)
     {
-        if hours > 0 do
+        if hours > 0
+        {
             .add(cast(u32, hours), MillisecondsPerHour)
-        else do
+        }
+        else
+        {
             .remove(cast(u32, -cast(s64, hours)), MillisecondsPerHour)
+        }
     }
 
     // Shifts the timestamp by whole minutes.
     mtd addMinutes(minutes: s32)
     {
-        if minutes > 0 do
+        if minutes > 0
+        {
             .add(cast(u32, minutes), MillisecondsPerMinute)
-        else do
+        }
+        else
+        {
             .remove(cast(u32, -cast(s64, minutes)), MillisecondsPerMinute)
+        }
     }
 
     // Shifts the timestamp by whole seconds.
     mtd addSeconds(seconds: s32)
     {
-        if seconds > 0 do
+        if seconds > 0
+        {
             .add(cast(u32, seconds), MillisecondsPerSecond)
-        else do
+        }
+        else
+        {
             .remove(cast(u32, -cast(s64, seconds)), MillisecondsPerSecond)
+        }
     }
 
     // Shifts the timestamp by whole milliseconds.
     mtd addMilliseconds(milliseconds: s32)
     {
-        if milliseconds > 0 do
+        if milliseconds > 0
+        {
             .add(cast(u32, milliseconds), 1)
-        else do
+        }
+        else
+        {
             .remove(cast(u32, -cast(s64, milliseconds)), 1)
+        }
     }
 
     // Returns days elapsed since the timestamp epoch.
-    mtd const totalDays()->f64 => .ticks * (1.0'f64 / TicksPerDay)
+    mtd const totalDays()->f64 => .ticks * (1.0_f64 / TicksPerDay)
 
     // Returns hours elapsed since the timestamp epoch.
-    mtd const totalHours()->f64 => .ticks * (1.0'f64 / TicksPerHour)
+    mtd const totalHours()->f64 => .ticks * (1.0_f64 / TicksPerHour)
 
     // Returns minutes elapsed since the timestamp epoch.
-    mtd const totalMinutes()->f64 => .ticks * (1.0'f64 / TicksPerMinute)
+    mtd const totalMinutes()->f64 => .ticks * (1.0_f64 / TicksPerMinute)
 
     // Returns seconds elapsed since the timestamp epoch.
-    mtd const totalSeconds()->f64 => .ticks * (1.0'f64 / TicksPerSecond)
+    mtd const totalSeconds()->f64 => .ticks * (1.0_f64 / TicksPerSecond)
 
     // Returns milliseconds elapsed since the timestamp epoch.
-    mtd const totalMilliseconds()->f64 => .ticks * (1.0'f64 / TicksPerMillisecond)
+    mtd const totalMilliseconds()->f64 => .ticks * (1.0_f64 / TicksPerMillisecond)
 
     // Adds a scaled millisecond interval.
     private mtd add(value: u32, scale: u64)

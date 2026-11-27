@@ -2,12 +2,17 @@ using Core, Pixel
 
 func addPolygonPath(path: *LinePath, points: [..] Math.Vector2)
 {
-    if points.count < 2 do
+    if points.count < 2
+    {
         return
+    }
 
     path.start(points[0].x, points[0].y)
-    for pt, index in points where index do
+    for pt, index in points where index
+    {
         path.lineTo(pt.x, pt.y)
+    }
+
     path.close()
 }
 

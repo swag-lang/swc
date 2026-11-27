@@ -38,8 +38,11 @@ public impl Image
         let nw = newWidth != 0 ? newWidth : resizeAspectDimension(.width, .height, newHeight)
         let nh = newHeight != 0 ? newHeight : resizeAspectDimension(.height, .width, newWidth)
         Swag.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
-        if nw == .width and nh == .height do
+        if nw == .width and nh == .height
+        {
             return
+        }
+
         .allocWorkingBuffer(nw, nh, .pixelFormat)
         ResizeTools.doResize(.safeWorkingBuffer(), me, mode)
         .applyWorkingBuffer()
@@ -107,13 +110,13 @@ namespace ResizeTools
 {
     struct Contribution
     {
-        weights:     Array'f64
+        weights:     Array!{f64}
         left, right: s64
     }
 
     struct LineContrib
     {
-        row:        Array'Contribution
+        row:        Array!{Contribution}
         windowSize: s64
         lineLength: s64
     }
@@ -124,8 +127,11 @@ namespace ResizeTools
         res.windowSize = windowSize
         res.lineLength = lineLength
         res.row.resize(cast(u64, lineLength))
-        for i in lineLength do
+        for i in lineLength
+        {
             res.row[i].weights.resize(cast(u64, windowSize))
+        }
+
         return res
     }
 
@@ -156,63 +162,126 @@ namespace ResizeTools
             return res < 1 ? 1 - res : 0
 
         case .Bicubic:
-            if resf < -2.0 do
+            if resf < -2.0
+            {
                 return 0
-            if resf < -1.0 do
+            }
+
+            if resf < -1.0
+            {
                 return ((2.0 + resf) * (2.0 + resf) * (2.0 + resf) / 6.0)
-            if resf < 0.0 do
+            }
+
+            if resf < 0.0
+            {
                 return ((4.0 + resf * resf * (-6.0 - 3.0 * resf)) / 6.0)
-            if resf < 1.0 do
+            }
+
+            if resf < 1.0
+            {
                 return ((4.0 + resf * resf * (-6.0 + 3.0 * resf)) / 6.0)
-            if resf < 2.0 do
+            }
+
+            if resf < 2.0
+            {
                 return ((2.0 - resf) * (2.0 - resf) * (2.0 - resf) / 6.0)
+            }
+
             return 0
 
         case .Gaussian:
-            if Math.abs(resf) > 3.0 do
+            if Math.abs(resf) > 3.0
+            {
                 return 0
+            }
+
             return Math.exp(-resf * resf * 0.5) / 0.79788456080287
 
         case .Hermite:
-            if resf < -1.0 do
+            if resf < -1.0
+            {
                 return 0
-            if resf < 0.0 do
+            }
+
+            if resf < 0.0
+            {
                 return (-2.0 * resf - 3.0) * resf * resf + 1.0
-            if resf < 1.0 do
+            }
+
+            if resf < 1.0
+            {
                 return (2.0 * resf - 3.0) * resf * resf + 1.0
+            }
+
             return 0
 
         case .Hamming:
-            if resf < -1.0 do
+            if resf < -1.0
+            {
                 return 0.0
-            if resf < 0.0 do
+            }
+
+            if resf < 0.0
+            {
                 return 0.92 * (-2.0 * resf - 3.0) * resf * resf + 1.0
-            if resf < 1.0 do
+            }
+
+            if resf < 1.0
+            {
                 return 0.92 * (2.0 * resf - 3.0) * resf * resf + 1.0
+            }
+
             return 0
 
         case .CatmullRom:
-            if resf < -2.0 do
+            if resf < -2.0
+            {
                 return 0
-            if resf < -1.0 do
+            }
+
+            if resf < -1.0
+            {
                 return (0.5 * (4.0 + resf * (8.0 + resf * (5.0 + resf))))
-            if resf < 0.0 do
+            }
+
+            if resf < 0.0
+            {
                 return (0.5 * (2.0 + resf * resf * (-5.0 - 3.0 * resf)))
-            if resf < 1.0 do
+            }
+
+            if resf < 1.0
+            {
                 return (0.5 * (2.0 + resf * resf * (-5.0 + 3.0 * resf)))
-            if resf < 2.0 do
+            }
+
+            if resf < 2.0
+            {
                 return (0.5 * (4.0 + resf * (-8.0 + resf * (5.0 - resf))))
+            }
+
             return 0
 
         case .Quadratic:
-            if resf < -1.5 do
+            if resf < -1.5
+            {
                 return 0.0
-            if resf < -0.5 do
+            }
+
+            if resf < -0.5
+            {
                 return (0.5 * (resf + 1.5) * (resf + 1.5))
-            if resf < 0.5 do
+            }
+
+            if resf < 0.5
+            {
                 return (0.75 - resf * resf)
-            if resf < 1.5 do
+            }
+
+            if resf < 1.5
+            {
                 return (0.5 * (resf - 1.5) * (resf - 1.5))
+            }
+
             return 0
         }
     }
@@ -248,15 +317,19 @@ namespace ResizeTools
             // Cut edge points to fit in filter window in case of spill-off
             if right - left + 1 > windowSize
             {
-                if left < (srcSize - 1) / 2 do
+                if left < (srcSize - 1) / 2
+                {
                     left += 1
-                else do
+                }
+                else
+                {
                     right -= 1
+                }
             }
 
             // Compute weights
             var nonZeroFound = false
-            var totalWeight  = 0'f64
+            var totalWeight  = 0_f64
             for var src = left; src <= right; src += 1
             {
                 var resf = getFilter(cscale * (src - center), rmode)
@@ -288,8 +361,10 @@ namespace ResizeTools
             // Normalize weight of neighboring points
             if totalWeight != 0
             {
-                for src in (right - left) + 1 do
+                for src in (right - left) + 1
+                {
                     res.row[u].weights[src] /= totalWeight
+                }
             }
 
             res.row[u].left  = left
@@ -316,8 +391,11 @@ namespace ResizeTools
                 let left  = crow.left
                 let right = crow.right
 
-                #static if BPP == 32 do
+                #static if BPP == 32
+                {
                     var da: f64
+                }
+
                 var dr, dg, db: f64
                 var pw  = crow.weights.storage()
                 var ptr = srcRow + left * bpp8
@@ -327,8 +405,11 @@ namespace ResizeTools
                     db += f * ptr[0]
                     dg += f * ptr[1]
                     dr += f * ptr[2]
-                    #static if BPP == 32 do
+                    #static if BPP == 32
+                    {
                         da += f * ptr[3]
+                    }
+
                     pw  += 1
                     ptr += bpp8
                 }
@@ -336,16 +417,19 @@ namespace ResizeTools
                 dstRow[0] = cast(u8, Math.round(db))
                 dstRow[1] = cast(u8, Math.round(dg))
                 dstRow[2] = cast(u8, Math.round(dr))
-                #static if BPP == 32 do
+                #static if BPP == 32
+                {
                     dstRow[3] = cast(u8, Math.round(da))
+                }
+
                 dstRow += bpp8
             }
         }
 
         switch imgSrc.bitsPerPixel
         {
-        case 24: doIt'24()
-        case 32: doIt'32()
+        case 24: doIt!{24}()
+        case 32: doIt!{32}()
         default: unreachable
         }
     }
@@ -369,8 +453,11 @@ namespace ResizeTools
                 let left  = crow.left
                 let right = crow.right
 
-                #static if BPP == 32 do
+                #static if BPP == 32
+                {
                     var da: f64
+                }
+
                 var dr, dg, db: f64
                 var pw  = crow.weights.storage()
                 var ptr = srcCol + left * w8Src
@@ -380,8 +467,11 @@ namespace ResizeTools
                     db += f * ptr[0]
                     dg += f * ptr[1]
                     dr += f * ptr[2]
-                    #static if BPP == 32 do
+                    #static if BPP == 32
+                    {
                         da += f * ptr[3]
+                    }
+
                     pw  += 1
                     ptr += cast(u64, w8Src)
                 }
@@ -389,16 +479,19 @@ namespace ResizeTools
                 dstCol[0] = cast(u8, Math.round(db))
                 dstCol[1] = cast(u8, Math.round(dg))
                 dstCol[2] = cast(u8, Math.round(dr))
-                #static if BPP == 32 do
+                #static if BPP == 32
+                {
                     dstCol[3] = cast(u8, Math.round(da))
+                }
+
                 dstCol += cast(u64, w8Dst)
             }
         }
 
         switch imgSrc.bitsPerPixel
         {
-        case 24: doIt'24()
-        case 32: doIt'32()
+        case 24: doIt!{24}()
+        case 32: doIt!{32}()
         default: unreachable
         }
     }
@@ -465,10 +558,14 @@ namespace ResizeTools
         let weights = &contrib
         parallel for |imgDst, imgSrc, weights, legacy| index in imgDst.width
         {
-            if legacy do
+            if legacy
+            {
                 scaleCol(imgDst, imgSrc, cast(s64, index), weights)
-            else do
+            }
+            else
+            {
                 scaleColGeneric(imgDst, imgSrc, cast(s64, index), weights)
+            }
         }
     }
 
@@ -484,10 +581,14 @@ namespace ResizeTools
         let weights = &contrib
         parallel for |imgDst, imgSrc, weights, legacy| index in imgDst.height
         {
-            if legacy do
+            if legacy
+            {
                 scaleRow(imgDst, imgSrc, cast(s64, index), weights)
-            else do
+            }
+            else
+            {
                 scaleRowGeneric(imgDst, imgSrc, cast(s64, index), weights)
+            }
         }
     }
 
@@ -533,17 +634,17 @@ namespace ResizeTools
                 let fx     = nearestSourceCoordinate(x, params.srcImage.width, image.width)
                 let fy     = nearestSourceCoordinate(y, params.srcImage.height, image.height)
                 let pixSrc = params.srcImage.pixels.buffer + cast(u64, fx) * image.bytesPerPixel + cast(u64, fy) * params.srcImage.rowStride
-                Image.copyPixelDirect'BPP(cast([*] u8, pix), cast([*] u8, unwrap pixSrc))
+                Image.copyPixelDirect!{BPP}(cast([*] u8, pix), cast([*] u8, unwrap pixSrc))
             }
         }
 
         switch srcImage.bitsPerPixel
         {
         case 24:
-            doIt'24()
+            doIt!{24}()
 
         case 32:
-            doIt'32()
+            doIt!{32}()
 
         default:
             dstImage.visitPixels(&f)

@@ -37,6 +37,8 @@ using Core, Gui
     input.clickDesktopPoint(point)
 
     journey.waitForFile(selected, content)
-    Swag.require(workspace.scenes.count == 1 and workspace.scene() == scene and scene.views[1].document == content)
+    Swag.require(workspace.scenes.count == 1 and
+                 workspace.scene() == scene and
+                 scene.views[1].document == content)
     Swag.require(workspace.activeDocument() == window and window.isExploring())
 }

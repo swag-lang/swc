@@ -246,8 +246,10 @@ func assertKey(key: Input.Key, index: u32)
 
 #test
 {
-    for index in Input.Key.count do
+    for index in Input.Key.count
+    {
         Swag.require(cast(u64, Input.keyFromStorageIndex(index)) == index)
+    }
 
     let failure = Swag.catchPanic(func||()
     {

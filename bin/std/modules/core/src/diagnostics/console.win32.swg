@@ -78,7 +78,7 @@ public func resetColor()
 
 internal func writeNative(message: string)
 {
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < message.count
     {
         let length    = writeChunkLength(message.count - offset)
@@ -92,8 +92,10 @@ internal func writeNative(message: string)
             return
         }
 
-        if not succeeded or not written do
+        if not succeeded or not written
+        {
             return
+        }
 
         offset += cast(u64, written)
     }
@@ -105,7 +107,7 @@ internal func writeChunkLength(remaining: u64)->u32
 // Waits for the user to enter a line on standard input and returns it, line ending included.
 public func prompt()->String
 {
-    const BufSize = 1024'u32
+    const BufSize = 1024_u32
 
     var result: #returntype
     var buffer: [BufSize] u8
@@ -114,13 +116,21 @@ public func prompt()->String
     let h = GetStdHandle(STD_INPUT_HANDLE)
     for
     {
-        if not ReadFile(h, &buffer[0], BufSize, &dwRead, null) do
+        if not ReadFile(h, &buffer[0], BufSize, &dwRead, null)
+        {
             break
+        }
+
         result.append(cast(string, buffer[until dwRead]))
-        if dwRead < BufSize do
+        if dwRead < BufSize
+        {
             break
-        if buffer[BufSize - 1] == '\n' do
+        }
+
+        if buffer[BufSize - 1] == '\n'
+        {
             break
+        }
     }
 
     return result

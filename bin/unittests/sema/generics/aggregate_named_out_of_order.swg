@@ -6,21 +6,21 @@ struct(T) Pair
     second: T
 }
 
-func(T) pairFirst(value: Pair'T)->T
+func(T) pairFirst(value: Pair!{T})->T
 {
     return value.first
 }
 
 func semaTest001()
 {
-    let value = pairFirst({second: 2'u16, first: 1'u16})
+    let value = pairFirst({second: 2_u16, first: 1_u16})
     #assert(#typeof(value) == u16)
-    Swag.assert(value == 1'u16)
+    Swag.assert(value == 1_u16)
 }
 
 func semaTest002()
 {
-    let unnamedFirst = pairFirst({first: 1'u16, second: 2'u16})
+    let unnamedFirst = pairFirst({first: 1_u16, second: 2_u16})
     #assert(#typeof(unnamedFirst) == u16)
-    Swag.assert(unnamedFirst == 1'u16)
+    Swag.assert(unnamedFirst == 1_u16)
 }

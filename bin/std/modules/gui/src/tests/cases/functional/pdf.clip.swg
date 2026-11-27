@@ -8,7 +8,7 @@ private const RedSamples: [12] u8 = [255, 0, 0, 255, 0, 0, 255, 0, 0, 255, 0, 0]
 // Builds a one-page document over a 200 by 100 page whose only XObject is the red image.
 private func clipDocument(content: string)->Document
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addStreamObject(&objects, 5, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8", RedSamples)
     return expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
 }
@@ -29,8 +29,10 @@ private func hasSoftBlueEdge(image: const *Image, x, y: s32)->bool
         for dx in -1 to 1
         {
             let color = image.pixelColor(x + dx, y + dy)
-            if color.b > 200 and color.r > 20 and color.r < 235 do
+            if color.b > 200 and color.r > 20 and color.r < 235
+            {
                 return true
+            }
         }
     }
 
@@ -40,7 +42,7 @@ private func hasSoftBlueEdge(image: const *Image, x, y: s32)->bool
 // A circle about `(cx, cy)` of radius `r`, as the four Béziers a content stream writes it with.
 private func circlePath(cx, cy, r: f32)->String
 {
-    const K = 0.5523'f32
+    const K = 0.5523_f32
     let k = r * K
     var result: #returntype
     result += Format.toString("% % m ", cx + r, cy)
@@ -162,6 +164,8 @@ private func circlePath(cx, cy, r: f32)->String
     let before = renderClipped(&cold)
     let after  = renderClipped(&warm)
     Swag.require(before.pixels.count == after.pixels.count)
-    for byte, index in before.pixels do
+    for byte, index in before.pixels
+    {
         Swag.require(byte == after.pixels[index])
+    }
 }

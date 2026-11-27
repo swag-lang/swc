@@ -18,24 +18,30 @@ var CatchDefaultReplacements: s32 = 0
 #[Swag.NoInline]
 func catchDefaultItem(succeed: bool)->CatchDefaultItem fail
 {
-    if not succeed do
+    if not succeed
+    {
         fail Swag.BaseError{"no item"}
+    }
     return CatchDefaultItem{width: 3, ratio: 2.0, name: "item"}
 }
 
 #[Swag.NoInline]
 func catchDefaultFloat(succeed: bool)->f64 fail
 {
-    if not succeed do
+    if not succeed
+    {
         fail Swag.BaseError{"no float"}
+    }
     return 2.5
 }
 
 #[Swag.NoInline]
 func catchDefaultName(succeed: bool)->string? fail
 {
-    if not succeed do
+    if not succeed
+    {
         fail Swag.BaseError{"no name"}
+    }
     return "name"
 }
 
@@ -48,16 +54,20 @@ func catchDefaultNoName()->string? fail
 #[Swag.NoInline]
 func catchDefaultMode(succeed: bool)->CatchDefaultMode fail
 {
-    if not succeed do
+    if not succeed
+    {
         fail Swag.BaseError{"no mode"}
+    }
     return .Second
 }
 
 #[Swag.NoInline]
 func catchDefaultCount(succeed: bool)->s32 fail
 {
-    if not succeed do
+    if not succeed
+    {
         fail Swag.BaseError{"no count"}
+    }
     return 7
 }
 
@@ -70,16 +80,20 @@ func catchDefaultDiscardable(succeed: bool)->s32 fail
 #[Swag.NoInline]
 func catchDefaultFlag(succeed: bool)->bool fail
 {
-    if not succeed do
+    if not succeed
+    {
         fail Swag.BaseError{"no flag"}
+    }
     return true
 }
 
 #[Swag.NoInline]
 func catchDefaultCheck(succeed: bool) fail
 {
-    if not succeed do
+    if not succeed
+    {
         fail Swag.BaseError{"check failed"}
+    }
 }
 
 func catchDefaultReplacement()->s32
@@ -200,7 +214,10 @@ func catchDefaultLeave(succeed: bool)->s32
 
     var handled = 0
     catch catchDefaultCheck(false) { handled += 1 }
-    catch catchDefaultCheck(true) do handled += 10
+    catch catchDefaultCheck(true)
+    {
+        handled += 10
+    }
     catch catchDefaultCheck(false)
     {
         Swag.require(Swag.err != null)
@@ -216,7 +233,10 @@ func catchDefaultLeave(succeed: bool)->s32
     var taken = 0
     if catch catchDefaultFlag(true) orelse false { taken += 1 }
     if catch catchDefaultFlag(false) orelse false { taken += 1000 }
-    if catch catchDefaultFlag(true) orelse false do taken += 10
+    if catch catchDefaultFlag(true) orelse false
+    {
+        taken += 10
+    }
     while catch catchDefaultFlag(false) orelse false { taken += 1000 }
     switch catch catchDefaultCount(false) orelse 0
     {

@@ -39,8 +39,11 @@ using Swag, Core, Pixel
 
     Swag.require(capture.canUndo() and not capture.canRedo())
 
-    for 64 do
+    for 64
+    {
         capture.undo()
+    }
+
     fixture.main.editMode = .Shape
     fixture.dragImage({12, 210}, {28, 224})
     Swag.require(capture.forms.count == 65 and capture.undoMgr.count() == 65)

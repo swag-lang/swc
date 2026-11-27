@@ -58,14 +58,14 @@ impl IConstrainedDynamicValue for GenericConstrainedDynamicValue
 
 #test
 {
-    var accepted  = GenericConstrainedDynamicValue's32{42}
+    var accepted  = GenericConstrainedDynamicValue!{s32}{42}
     let boxedAccepted: any = &accepted
     let converted = catch cast(IConstrainedDynamicValue?, boxedAccepted) orelse null
     Swag.require(converted != null)
     Swag.require(converted.value() == 42)
 
-    var rejected = GenericConstrainedDynamicValue's64{42}
-    #assert(not (GenericConstrainedDynamicValue's64 is IConstrainedDynamicValue))
+    var rejected = GenericConstrainedDynamicValue!{s64}{42}
+    #assert(not (GenericConstrainedDynamicValue!{s64} is IConstrainedDynamicValue))
     let boxedRejected: any = &rejected
     Swag.require(not (boxedRejected is IConstrainedDynamicValue))
 }

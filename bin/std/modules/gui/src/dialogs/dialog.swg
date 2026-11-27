@@ -23,7 +23,7 @@ struct Dialog
         readonly
         {
             late buttonBar: *StackLayoutCtrl        // Row of actions at the foot of the body, the primary one rightmost.
-            buttons:        Array'(*PushButton)     // Buttons in insertion order.
+            buttons:        Array!{*PushButton}     // Buttons in insertion order.
             parentSurface:  *Surface?               // Surface that owns the modal dialog.
             title:          RichString              // Title set as the first line of the body, or empty for none.
             failure:        bool                    // Whether the title reports a failure.
@@ -40,8 +40,11 @@ impl IWnd for Dialog
 {
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
-        if evt.kind == .Close do
+        if evt.kind == .Close
+        {
             .closeWithResult(BtnCancel)
+        }
+
         evt.accepted = true
     }
 
@@ -93,8 +96,11 @@ impl IWnd for Dialog
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged do
+        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged
+        {
             .updateInset()
+        }
+
         evt.accepted = false
     }
 }
@@ -113,7 +119,7 @@ impl Dialog
     #[Swag.Discardable]
     func create(from: *Surface, width = 512, height = 300, title: string? = null, flags = SurfaceFlags.None)->*Dialog
     {
-        let dlg = Wnd.create'Dialog()
+        let dlg = Wnd.create!{Dialog}()
         let srf = dlg.createSurface(from, 0, 0, width, height, flags)
         dlg.setTitle(title orelse "")
         srf.center(from)
@@ -135,8 +141,11 @@ impl Dialog
     // keyboard starts.
     mtd keyboardEntry()->*Wnd?
     {
-        for stop in FocusOrder.collect(.surface!.wnd).stops where not stop.wndFlags.has(.ActivatesOnKey) do
+        for stop in FocusOrder.collect(.surface!.wnd).stops where not stop.wndFlags.has(.ActivatesOnKey)
+        {
             return stop
+        }
+
         return .surface.defaultButton
     }
 
@@ -145,10 +154,16 @@ impl Dialog
     // A Cancel is the way out whenever the box has one; a No stands for it only in a box without one.
     mtd const cancelButton()->*PushButton?
     {
-        for btn in .buttons where btn.id == BtnCancel do
+        for btn in .buttons where btn.id == BtnCancel
+        {
             return btn
-        for btn in .buttons where btn.id == BtnNo do
+        }
+
+        for btn in .buttons where btn.id == BtnNo
+        {
             return btn
+        }
+
         return null
     }
 
@@ -175,9 +190,9 @@ impl Dialog
 
         // The actions end the body on its own ground: no band and no rule, one gap above them.
         let metrics = .themeMetrics()
-        with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view,
-                                                       "",
-                                                       Math.Rectangle{0, 0, 0, metrics.control_DialogHeight})
+        with me.buttonBar = Wnd.create!{StackLayoutCtrl}(srf.wnd.view,
+                                                         "",
+                                                         Math.Rectangle{0, 0, 0, metrics.control_DialogHeight})
         {
             .spacing         = metrics.dialog_BtnPadding
             .mode            = .HorizontalEnd
@@ -223,8 +238,11 @@ impl Dialog
     {
         .failure      = failure
         .hasTitleMark = false
-        if failure do
+        if failure
+        {
             .setTitleMark(.Critical)
+        }
+
         .surface?.setTitle(.title.text)
         .updateInset()
         .invalidate()
@@ -249,7 +267,7 @@ impl Dialog
 
         // The control stands in a floating slot, which the layout places once the actions have
         // their row: the box can be fitted or resized after, and the control follows the row.
-        with let slot = Wnd.create'DialogLeadingSlot(me, "", {})
+        with let slot = Wnd.create!{DialogLeadingSlot}(me, "", {})
         {
             .dialog         = me
             .dockStyle      = .Float
@@ -271,7 +289,7 @@ impl Dialog
     {
         Swag.assert(.contentView == null, "a dialog can only have one content view")
 
-        let content = Wnd.create'Wnd(me)
+        let content = Wnd.create!{Wnd}(me)
         content.dockStyle       = .Center
         content.backgroundStyle = .Transparent
         .contentView            = content
@@ -345,8 +363,11 @@ impl Dialog
         surface.wnd.setInitialFocus(.keyboardEntry())
         surface.bringToFront()
         surface.show()
-        if .parentSurface and .parentSurface.isTopMost() do
+        if .parentSurface and .parentSurface.isTopMost()
+        {
             surface.setTopMost()
+        }
+
         return surface.app.doModalLoop(surface, cb, restoreTo: .parentSurface)
     }
 
@@ -363,8 +384,10 @@ impl Dialog
         Swag.assert(str.count != 0, "dialog button text cannot be empty")
         if isDefault
         {
-            for button in .buttons where button.form == .Default do
+            for button in .buttons where button.form == .Default
+            {
                 button.setForm(.Normal)
+            }
         }
 
         with let btn = PushButton.create(me.buttonBar, str, {}, id)
@@ -383,14 +406,21 @@ impl Dialog
         }
 
         // The eye finishes a box at its bottom right, which is where the answer belongs.
-        for button in .buttons where button.form == .Default do
+        for button in .buttons where button.form == .Default
+        {
             button.bringToFront()
+        }
 
         let srf = unwrap .surface
-        if isDefault do
+        if isDefault
+        {
             srf.defaultButton = btn
-        if id == BtnCancel or id == BtnNo do
+        }
+
+        if id == BtnCancel or id == BtnNo
+        {
             srf.cancelButton = .cancelButton()
+        }
 
         .buttonBar.computeLayout()
         .invalidate()
@@ -403,8 +433,11 @@ impl Dialog
     {
         let safeResult = result orelse ""
         let validator  = .validateResult
-        if validator and not validator(me, safeResult) do
+        if validator and not validator(me, safeResult)
+        {
             return false
+        }
+
         .app().exitModal(safeResult)
         return true
     }
@@ -424,8 +457,11 @@ private impl Dialog
         let metrics = .themeMetrics()
         let pad     = metrics.dialog_Padding
         var top     = pad
-        if not .title.text.isEmpty() do
+        if not .title.text.isEmpty()
+        {
             top += Math.ceil(.titleFont().height) + .bodyGap()
+        }
+
         .padding = Math.Vector4{pad, top, pad, pad}
 
         .buttonBar.margin.y        = .bodyGap()
@@ -436,13 +472,19 @@ private impl Dialog
     mtd placeLeadingControl()
     {
         let control = .leadingControl
-        if not control do
+        if not control
+        {
             return
+        }
+
         let bar  = .buttonBar.position
         let slot = assume cast(*DialogLeadingSlot, unwrap control.parent)
         var end  = bar.right()
-        for button in .buttons where button.isLocallyVisible() do
+        for button in .buttons where button.isLocallyVisible()
+        {
             end = Math.min(end, bar.x + button.position.x - .themeMetrics().dialog_BtnPadding)
+        }
+
         let width = Math.min(slot.preferredWidth, Math.max(end - .padding.x, 0))
         slot.setPosition(Math.Rectangle{.padding.x, bar.y, width, bar.height}, false)
         control.setPosition(Math.Rectangle{0, 0, width, bar.height})

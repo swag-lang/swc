@@ -15,7 +15,7 @@ func shifted32(a, b: u32)->u32 => a << (b & 31)
 
 #test
 {
-    let values = [0'u64, 1, 31, 63, 64, 0xFFFFFFFF, 0x100000001, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 31, 63, 64, 0xFFFFFFFF, 0x100000001, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         Swag.require(selfShift(a) == dynamicShift(a, a & 63))

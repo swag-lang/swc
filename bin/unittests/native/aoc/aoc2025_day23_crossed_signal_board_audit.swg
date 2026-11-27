@@ -44,10 +44,14 @@ func stringLess(left, right: string)->bool
     for idx in commonLength
     {
         let index = cast(u32, idx)
-        if leftBytes[index] < rightBytes[index] do
+        if leftBytes[index] < rightBytes[index]
+        {
             return true
-        if leftBytes[index] > rightBytes[index] do
+        }
+        if leftBytes[index] > rightBytes[index]
+        {
             return false
+        }
     }
 
     return leftBytes.count < rightBytes.count
@@ -59,7 +63,7 @@ func parseWireIndex(name: string)->u32
     Swag.assert(bytes.count == 3)
     Swag.assert(bytes[1] >= '0' and bytes[1] <= '9')
     Swag.assert(bytes[2] >= '0' and bytes[2] <= '9')
-    return cast(u32, (bytes[1] - '0')) * 10'u32 + cast(u32, (bytes[2] - '0'))
+    return cast(u32, (bytes[1] - '0')) * 10_u32 + cast(u32, (bytes[2] - '0'))
 }
 
 func startsWith(name: string, prefix: u8)->bool
@@ -70,12 +74,12 @@ func startsWith(name: string, prefix: u8)->bool
 
 func isInputWire(name: string)->bool
 {
-    return startsWith(name, 'x'u8) or startsWith(name, 'y'u8)
+    return startsWith(name, 'x'_u8) or startsWith(name, 'y'_u8)
 }
 
 func isOutputWire(name: string)->bool
 {
-    return startsWith(name, 'z'u8)
+    return startsWith(name, 'z'_u8)
 }
 
 func isLeastSignificantInputPair(left, right: string)->bool
@@ -85,10 +89,14 @@ func isLeastSignificantInputPair(left, right: string)->bool
 
 func evaluateGate(leftValue, rightValue: u8, op: GateOp)->u8
 {
-    if op == GateOp.And do
+    if op == GateOp.And
+    {
         return leftValue & rightValue
-    if op == GateOp.Or do
+    }
+    if op == GateOp.Or
+    {
         return leftValue | rightValue
+    }
     return leftValue ^ rightValue
 }
 
@@ -97,8 +105,10 @@ func findWireIndex(wireNames: const [..] string, wireCount: u32, name: string)->
     for idx in wireCount
     {
         let index = cast(u32, idx)
-        if wireNames[index] == name do
+        if wireNames[index] == name
+        {
             return index
+        }
     }
 
     return Swag.U32.Max
@@ -109,8 +119,10 @@ func registerSuspect(suspects: [..] string, suspectCount: *u32, name: string)
     for idx in suspectCount[]
     {
         let index = cast(u32, idx)
-        if suspects[index] == name do
+        if suspects[index] == name
+        {
             return
+        }
     }
 
     Swag.assert(suspectCount[] < MaxSuspects)
@@ -122,8 +134,10 @@ func hasConsumerOp(gates: const [..] LogicGate, wireName: string, op: GateOp)->b
 {
     for gate in gates
     {
-        if gate.op == op and (gate.left == wireName or gate.right == wireName) do
+        if gate.op == op and (gate.left == wireName or gate.right == wireName)
+        {
             return true
+        }
     }
 
     return false
@@ -138,8 +152,10 @@ func highestOutputBit(gates: const [..] LogicGate)->u32
         if isOutputWire(gate.output)
         {
             let index = parseWireIndex(gate.output)
-            if index > result do
+            if index > result
+            {
                 result = index
+            }
         }
     }
 
@@ -154,8 +170,10 @@ func sortSuspects(suspects: [..] string, suspectCount: u32)
         for idx in suspectCount
         {
             let right = cast(u32, idx)
-            if right <= left do
+            if right <= left
+            {
                 continue
+            }
 
             if stringLess(suspects[right], suspects[left])
             {
@@ -169,14 +187,18 @@ func sortSuspects(suspects: [..] string, suspectCount: u32)
 
 func suspectsMatch(audit: BoardAudit, expected: const [..] string)->bool
 {
-    if audit.suspectCount != cast(u32, expected.count) do
+    if audit.suspectCount != cast(u32, expected.count)
+    {
         return false
+    }
 
     for idx in audit.suspectCount
     {
         let index = cast(u32, idx)
-        if audit.suspects[index] != expected[index] do
+        if audit.suspects[index] != expected[index]
+        {
             return false
+        }
     }
 
     return true
@@ -211,15 +233,21 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
 
         for gate, gateIndex in gates
         {
-            if gateResolved[gateIndex] do
+            if gateResolved[gateIndex]
+            {
                 continue
+            }
 
             let leftIndex  = findWireIndex(wireNameSlice, wireCount, gate.left)
             let rightIndex = findWireIndex(wireNameSlice, wireCount, gate.right)
-            if leftIndex == Swag.U32.Max or rightIndex == Swag.U32.Max do
+            if leftIndex == Swag.U32.Max or rightIndex == Swag.U32.Max
+            {
                 continue
-            if not wireKnown[leftIndex] or not wireKnown[rightIndex] do
+            }
+            if not wireKnown[leftIndex] or not wireKnown[rightIndex]
+            {
                 continue
+            }
 
             var outputIndex = findWireIndex(wireNameSlice, wireCount, gate.output)
             if outputIndex == Swag.U32.Max
@@ -246,7 +274,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
         if wireKnown[wireIndex] and isOutputWire(wireNames[wireIndex]) and wireValues[wireIndex] != 0
         {
             let bitIndex = parseWireIndex(wireNames[wireIndex])
-            result.outputValue |= 1'u64 << bitIndex
+            result.outputValue |= 1_u64 << bitIndex
         }
     }
 
@@ -255,26 +283,34 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     {
         if isOutputWire(gate.output) and
            parseWireIndex(gate.output) != highestZ and
-           gate.op != GateOp.Xor do
+           gate.op != GateOp.Xor
+        {
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
+        }
 
         if not isOutputWire(gate.output) and
            gate.op == GateOp.Xor and
            not isInputWire(gate.left) and
-           not isInputWire(gate.right) do
+           not isInputWire(gate.right)
+        {
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
+        }
 
         if gate.op == GateOp.And and
            not isLeastSignificantInputPair(gate.left, gate.right) and
-           not hasConsumerOp(gates, gate.output, GateOp.Or) do
+           not hasConsumerOp(gates, gate.output, GateOp.Or)
+        {
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
+        }
 
         if gate.op == GateOp.Xor and
            isInputWire(gate.left) and
            isInputWire(gate.right) and
            not isLeastSignificantInputPair(gate.left, gate.right) and
-           not hasConsumerOp(gates, gate.output, GateOp.Xor) do
+           not hasConsumerOp(gates, gate.output, GateOp.Xor)
+        {
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
+        }
     }
 
     sortSuspects(suspectSlice, result.suspectCount)
@@ -339,7 +375,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
 
     let sampleAudit = auditBoard(sampleInputs, sampleGates)
 
-    Swag.require(sampleAudit.outputValue == 2024'u64)
+    Swag.require(sampleAudit.outputValue == 2024_u64)
 
     const swappedInputs: [6] WireValue =
         [
@@ -370,6 +406,6 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     let swappedAudit = auditBoard(swappedInputs, swappedAdder)
     const expectedSuspects: [2] string = ["a01", "z01"]
 
-    Swag.require(swappedAudit.outputValue == 8'u64)
+    Swag.require(swappedAudit.outputValue == 8_u64)
     Swag.require(suspectsMatch(swappedAudit, expectedSuspects))
 }

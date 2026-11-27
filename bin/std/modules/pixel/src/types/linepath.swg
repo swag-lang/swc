@@ -41,10 +41,10 @@ public struct LinePath
 {
     public readonly
     {
-        elements:   Array'Element     // Ordered segments after the starting point.
-        startPoint: Vector2           // First point in path-space pixels.
-        endPoint:   Vector2           // Current last point in path-space pixels.
-        isClosed:   bool              // Whether the path forms a closed contour.
+        elements:   Array!{Element}     // Ordered segments after the starting point.
+        startPoint: Vector2             // First point in path-space pixels.
+        endPoint:   Vector2             // Current last point in path-space pixels.
+        isClosed:   bool                // Whether the path forms a closed contour.
     }
 
     // Flattening cache, rebuilt from the segments whenever the path or the quality changes.
@@ -52,28 +52,28 @@ public struct LinePath
 
     internal
     {
-        isDirty:          bool                // Whether cached flattened geometry is stale.
-        serial:           s32                 // Group identifier used by path-list boolean operations.
-        flattenTolerance: f32                 // Tolerance used to build the current flattened cache, in path units.
-        isPolyOnly:       bool                // Whether every segment is already polygonal.
-        isFlatten:        bool                // Whether flattened geometry is available.
-        hasPolygonMetrics: bool               // Whether the cached points have polygon metrics.
-        revision:         u64                 // Advances whenever the flattened contour changes; keys derived caches.
-        minBounds:        Vector2             // Minimum cached path bound.
-        maxBounds:        Vector2             // Maximum cached path bound.
-        endPosBuffer:     Vector2             // Reusable endpoint workspace for flattening.
-        polygon:          Polygon             // Cached flattened contour.
-        triangles:        Poly2Tri.Result     // Cached fill tessellation.
+        isDirty:           bool                // Whether cached flattened geometry is stale.
+        serial:            s32                 // Group identifier used by path-list boolean operations.
+        flattenTolerance:  f32                 // Tolerance used to build the current flattened cache, in path units.
+        isPolyOnly:        bool                // Whether every segment is already polygonal.
+        isFlatten:         bool                // Whether flattened geometry is available.
+        hasPolygonMetrics: bool                // Whether the cached points have polygon metrics.
+        revision:          u64                 // Advances whenever the flattened contour changes; keys derived caches.
+        minBounds:         Vector2             // Minimum cached path bound.
+        maxBounds:         Vector2             // Maximum cached path bound.
+        endPosBuffer:      Vector2             // Reusable endpoint workspace for flattening.
+        polygon:           Polygon             // Cached flattened contour.
+        triangles:         Poly2Tri.Result     // Cached fill tessellation.
 
         // Outward direction of every tessellation vertex that came from a contour, and zero for
         // one the tessellator introduced. A fill insets its solid along these so its edge can be
         // placed by the antialiasing band rather than by the triangulation, and they are cached
         // beside the triangulation because they describe exactly its vertices.
-        triangleOffsets: Array'Vector2
+        triangleOffsets: Array!{Vector2}
 
         // Outward direction of every point of the flattened contour, and the revision it was
         // derived from. See [[Pixel.LinePath.offsetDirections]].
-        offsetDirs:         Array'Vector2
+        offsetDirs:         Array!{Vector2}
         offsetDirsRevision: u64
     }
 }
@@ -91,8 +91,11 @@ private func nextContourRevision()->u64 => Swag.atomicAdd(&g_ContourRevision, 1)
 private func sideScale(side, first, second: f32)->f32
 {
     let total = first + second
-    if total <= 0 or side >= total do
+    if total <= 0 or side >= total
+    {
         return 1
+    }
+
     return Math.max(side, 0) / total
 }
 
@@ -136,9 +139,9 @@ public impl LinePath
         .triangleOffsets.clear()
         .polygon.clear()
         .hasPolygonMetrics = false
-        .isFlatten = false
-        .isDirty   = true
-        .revision  = nextContourRevision()
+        .isFlatten         = false
+        .isDirty           = true
+        .revision          = nextContourRevision()
     }
 
     // Releases all path geometry and restores an empty value.
@@ -176,11 +179,16 @@ public impl LinePath
     #[Swag.Inline]
     internal mtd appendLinear(point: Vector2)->bool
     {
-        if point.isEqualEpsilon(.endPoint) do
+        if point.isEqualEpsilon(.endPoint)
+        {
             return false
+        }
 
-        if .polygon.points.isEmpty() do
+        if .polygon.points.isEmpty()
+        {
             .polygon.points.add(.startPoint)
+        }
+
         .flattenLine(point)
         .endPoint = point
         return true
@@ -188,8 +196,11 @@ public impl LinePath
 
     internal mtd closeLinear()->bool
     {
-        if .isClosed or .polygon.points.isEmpty() do
+        if .isClosed or .polygon.points.isEmpty()
+        {
             return false
+        }
+
         let added = (.endPoint - .startPoint).lengthSquared() >= 0.5 * 0.5 and .appendLinear(.startPoint)
         .isClosed = true
         return added
@@ -201,8 +212,10 @@ public impl LinePath
     mtd lineTo(x, y: f32)
     {
         let newEndPoint = Vector2{x, y}
-        if newEndPoint.isEqualEpsilon(.endPoint) do
+        if newEndPoint.isEqualEpsilon(.endPoint)
+        {
             return
+        }
 
         var elem: Element
         elem.type = .Line
@@ -216,8 +229,10 @@ public impl LinePath
     mtd curveTo(x, y: f32)
     {
         let newEndPoint = Vector2{x, y}
-        if newEndPoint.isEqualEpsilon(.endPoint) do
+        if newEndPoint.isEqualEpsilon(.endPoint)
+        {
             return
+        }
 
         var elem: Element
         elem.type = .Curve
@@ -231,8 +246,10 @@ public impl LinePath
     mtd bezierTo(x, y: f32, ctx, cty: f32)
     {
         let newEndPoint = Vector2{x, y}
-        if newEndPoint.isEqualEpsilon(.endPoint) do
+        if newEndPoint.isEqualEpsilon(.endPoint)
+        {
             return
+        }
 
         var elem: Element
         elem.type = .Bezier1
@@ -243,12 +260,19 @@ public impl LinePath
         .isDirty  = true
     }
 
+    internal mtd reserveSegments(count: u64)
+    {
+        .elements.reserve(count)
+    }
+
     // Adds a cubic Bézier ending at `(x, y)` with two control points.
     mtd bezierTo(x, y: f32, ct1x, ct1y: f32, ct2x, ct2y: f32)
     {
         let newEndPoint = Vector2{x, y}
-        if newEndPoint.isEqualEpsilon(.endPoint) do
+        if newEndPoint.isEqualEpsilon(.endPoint)
+        {
             return
+        }
 
         var elem: Element
         elem.type = .Bezier2
@@ -268,17 +292,27 @@ public impl LinePath
     mtd arcTo(centerX, centerY: f32, radiusX, radiusY: f32, initAngle, maxAngle: Math.Angle)
     {
         var ia = initAngle.radians
-        while ia < 0 do
+        while ia < 0
+        {
             ia += Math.ConstF32.TwoPi
+        }
+
         var ma = maxAngle.radians
-        while ma < 0 do
+        while ma < 0
+        {
             ma += Math.ConstF32.TwoPi
-        while ma < ia do
+        }
+
+        while ma < ia
+        {
             ma += Math.ConstF32.TwoPi
+        }
 
         let newEndPoint = Vector2{centerX + (Math.sin(ma) * radiusX), centerY + (-Math.cos(ma) * radiusY)}
-        if newEndPoint.isEqualEpsilon(.endPoint) do
+        if newEndPoint.isEqualEpsilon(.endPoint)
+        {
             return
+        }
 
         var elem: Element
         elem.type = .Arc
@@ -311,8 +345,11 @@ public impl LinePath
         {
             .startPoint = transform.transformPoint(.startPoint)
             .endPoint   = transform.transformPoint(.endPoint)
-            for &point in .polygon.points do
+            for &point in .polygon.points
+            {
                 point[] = transform.transformPoint(point[])
+            }
+
             .polygon.recompute()
             .triangles.clear()
             .triangleOffsets.clear()
@@ -356,43 +393,50 @@ public impl LinePath
     // work against, and unsuitable for measuring a drawing.
     //
     // ```swag
-    // if not path.controlBounds().intersects(dirtyRect) do
+    // if not path.controlBounds().intersects(dirtyRect) { }
     //     return
     // ```
     mtd const controlBounds()->Math.Rectangle
     {
         // Boolean operations adopt a polygon without rebuilding authored segments. Its
         // cached bounds enclose the geometry; the start point alone does not.
-        if .isPolyOnly do
+        if .isPolyOnly
+        {
             return Math.Rectangle{.minBounds.x, .minBounds.y, .maxBounds.x - .minBounds.x, .maxBounds.y - .minBounds.y}
+        }
+
+        #[Swag.Inline]
+        func extend(low, high: *Vector2, first, last: Vector2)
+        {
+            low.x  = Math.min(low.x, first.x)
+            low.y  = Math.min(low.y, first.y)
+            high.x = Math.max(high.x, last.x)
+            high.y = Math.max(high.y, last.y)
+        }
 
         var min = .startPoint
         var max = .startPoint
 
-        for element in .elements
+        for &element in .elements
         {
             if element.type == .Arc
             {
                 // An arc stores its centre, its angle interval, and its radii, so the
                 // circle around the centre is the bound that holds for every interval.
                 let radius = Vector2{Math.abs(element.p2.x), Math.abs(element.p2.y)}
-                min = Vector2.min(min, element.position - radius)
-                max = Vector2.max(max, element.position + radius)
+                extend(&min, &max, element.position - radius, element.position + radius)
                 continue
             }
 
-            min = Vector2.min(min, element.position)
-            max = Vector2.max(max, element.position)
+            extend(&min, &max, element.position, element.position)
             if element.type == .Bezier1 or element.type == .Bezier2
             {
-                min = Vector2.min(min, element.p1)
-                max = Vector2.max(max, element.p1)
+                extend(&min, &max, element.p1, element.p1)
             }
 
             if element.type == .Bezier2
             {
-                min = Vector2.min(min, element.p2)
-                max = Vector2.max(max, element.p2)
+                extend(&min, &max, element.p2, element.p2)
             }
         }
 
@@ -405,16 +449,22 @@ public impl LinePath
     // or already closed path is left unchanged.
     mtd close()
     {
-        if .isClosed or .elements.isEmpty() do
+        if .isClosed or .elements.isEmpty()
+        {
             return
+        }
 
         let v = .endPoint - .startPoint
         if v.lengthSquared() >= 0.5 * 0.5
         {
-            if .elements.backPtr().type == .Curve do
+            if .elements.backPtr().type == .Curve
+            {
                 .curveTo(.startPoint.x, .startPoint.y)
-            else do
+            }
+            else
+            {
                 .lineTo(.startPoint.x, .startPoint.y)
+            }
         }
 
         .isClosed = true
@@ -485,8 +535,11 @@ public impl LinePath
     internal mtd setRectCornersRaw(l, t, r, b: f32)
     {
         .start(l, t)
-        if not .elements.capacity and not Math.isEqualEpsilon(l, r) and not Math.isEqualEpsilon(t, b) do
+        if not .elements.capacity and not Math.isEqualEpsilon(l, r) and not Math.isEqualEpsilon(t, b)
+        {
             .elements.reserve(4)
+        }
+
         .lineTo(r, t)
         .lineTo(r, b)
         .lineTo(l, b)
@@ -519,15 +572,18 @@ public impl LinePath
         .start(l, t + rY)
         if not .elements.capacity and
            not Math.isEqualEpsilon(l + rX, l) and
-           not Math.isEqualEpsilon(t + rY, t) do
+           not Math.isEqualEpsilon(t + rY, t)
+        {
             .elements.reserve(4)
-        .arcTo(l + rX, t + rY, rX, rY, 270'deg, 360'deg)
+        }
+
+        .arcTo(l + rX, t + rY, rX, rY, 270_deg, 360_deg)
         .lineTo(r - rX, t)
-        .arcTo(r - rX, t + rY, rX, rY, 0'deg, 90'deg)
+        .arcTo(r - rX, t + rY, rX, rY, 0_deg, 90_deg)
         .lineTo(r, b - rY)
-        .arcTo(r - rX, b - rY, rX, rY, 90'deg, 180'deg)
+        .arcTo(r - rX, b - rY, rX, rY, 90_deg, 180_deg)
         .lineTo(l + rX, b)
-        .arcTo(l + rX, b - rY, rX, rY, 180'deg, 270'deg)
+        .arcTo(l + rX, b - rY, rX, rY, 180_deg, 270_deg)
         .close()
     }
 
@@ -549,7 +605,7 @@ public impl LinePath
         var br = Math.max(bottomRight, 0.0)
         var bl = Math.max(bottomLeft, 0.0)
 
-        var scale = 1.0'f32
+        var scale = 1.0_f32
         scale = Math.min(scale, sideScale(w, tl, tr))
         scale = Math.min(scale, sideScale(h, tr, br))
         scale = Math.min(scale, sideScale(w, bl, br))
@@ -563,13 +619,13 @@ public impl LinePath
         }
 
         .start(l, t + tl)
-        .arcTo(l + tl, t + tl, tl, tl, 270'deg, 360'deg)
+        .arcTo(l + tl, t + tl, tl, tl, 270_deg, 360_deg)
         .lineTo(r - tr, t)
-        .arcTo(r - tr, t + tr, tr, tr, 0'deg, 90'deg)
+        .arcTo(r - tr, t + tr, tr, tr, 0_deg, 90_deg)
         .lineTo(r, b - br)
-        .arcTo(r - br, b - br, br, br, 90'deg, 180'deg)
+        .arcTo(r - br, b - br, br, br, 90_deg, 180_deg)
         .lineTo(l + bl, b)
-        .arcTo(l + bl, b - bl, bl, bl, 180'deg, 270'deg)
+        .arcTo(l + bl, b - bl, bl, bl, 180_deg, 270_deg)
         .close()
     }
 
@@ -594,12 +650,15 @@ public impl LinePath
         .start(cX, cY - rY)
         if not .elements.capacity and
            not Math.isEqualEpsilon(cX + rX, cX) and
-           not Math.isEqualEpsilon(cY + rY, cY) do
+           not Math.isEqualEpsilon(cY + rY, cY)
+        {
             .elements.reserve(4)
-        .arcTo(cX, cY, rX, rY, 0'deg, 90'deg)
-        .arcTo(cX, cY, rX, rY, 90'deg, 180'deg)
-        .arcTo(cX, cY, rX, rY, 180'deg, 270'deg)
-        .arcTo(cX, cY, rX, rY, 270'deg, 360'deg)
+        }
+
+        .arcTo(cX, cY, rX, rY, 0_deg, 90_deg)
+        .arcTo(cX, cY, rX, rY, 90_deg, 180_deg)
+        .arcTo(cX, cY, rX, rY, 180_deg, 270_deg)
+        .arcTo(cX, cY, rX, rY, 270_deg, 360_deg)
         .close()
     }
 
@@ -636,8 +695,11 @@ public impl LinePath
     // pixels. The path is left unchanged when the two angles are equal.
     mtd setArc(centerX, centerY: f32, radius: f32, startAngle, endAngle: Math.Angle)
     {
-        if isZeroEpsilon(endAngle.radians - startAngle.radians) do
+        if isZeroEpsilon(endAngle.radians - startAngle.radians)
+        {
             return
+        }
+
         let angleSpan = endAngle.radians - startAngle.radians
         Swag.assert(angleSpan > 0 and angleSpan <= Math.ConstF32.TwoPi)
 
@@ -676,8 +738,8 @@ public impl LinePath
     {
         .polygon.recompute()
         .hasPolygonMetrics = true
-        .minBounds = .polygon.minBounds
-        .maxBounds = .polygon.maxBounds
+        .minBounds         = .polygon.minBounds
+        .maxBounds         = .polygon.maxBounds
         .triangles.clear()
         .triangleOffsets.clear()
         .revision = nextContourRevision()
@@ -690,7 +752,7 @@ public impl LinePath
     // needs proportionally more segments to look as smooth on screen as it does at scale one.
     // The cache keeps the finest flattening produced so far, whichever combination of quality
     // and scale asked for it.
-    mtd flatten(quality = PaintQuality.Normal, scale = 1.0'f32)
+    mtd flatten(quality = PaintQuality.Normal, scale = 1.0_f32)
     {
         .flattenPoints(quality, scale)
         if not .hasPolygonMetrics and .polygon.points.count
@@ -703,8 +765,11 @@ public impl LinePath
     // Reports whether the authored segments need a flattening tolerance.
     internal mtd const hasCurves()->bool
     {
-        for element in .elements where element.type != .Line do
+        for element in .elements where element.type != .Line
+        {
             return true
+        }
+
         return false
     }
 
@@ -712,11 +777,16 @@ public impl LinePath
     internal mtd flattenPoints(quality: PaintQuality, scale: f32)
     {
         // A path adopted from a polygon has no segments to flatten.
-        if .isPolyOnly do
+        if .isPolyOnly
+        {
             return
+        }
+
         let tolerance = getFlattenDistance(quality) / Math.max(scale, 1.0)
-        if not .isDirty and .isFlatten and .flattenTolerance <= tolerance do
+        if not .isDirty and .isFlatten and .flattenTolerance <= tolerance
+        {
             return
+        }
 
         // A path of straight segments answers every tolerance with the same points, so it
         // records one no later request can beat. Rebuilding it would produce that same contour
@@ -732,8 +802,10 @@ public impl LinePath
         .flattenTolerance      = curved ? tolerance : 0
         .minBounds, .maxBounds = .startPoint
 
-        if .elements.isEmpty() do
+        if .elements.isEmpty()
+        {
             return
+        }
 
         .endPosBuffer = .startPoint
         .polygon.points.add(.endPosBuffer)
@@ -758,7 +830,7 @@ impl LinePath
 {
     func getFlattenDistance(quality: PaintQuality)->f32
     {
-        var minDist = 0'f32
+        var minDist = 0_f32
         switch quality
         {
         case .Draft:  minDist = 1
@@ -781,7 +853,7 @@ impl LinePath
     // way flattening joins them. Each quarter turn or less then becomes one cubic whose control
     // points follow the tangents at its ends, which keeps the curve within a fraction of a
     // percent of the true arc.
-    private func appendArcBeziers(target: *Array'Element, current: Vector2, arc: Element)
+    private func appendArcBeziers(target: *Array!{Element}, current: Vector2, arc: Element)
     {
         let center = arc.position
         let radii  = arc.p2
@@ -795,7 +867,7 @@ impl LinePath
         }
 
         let span  = arc.p1.y - arc.p1.x
-        let count = Math.max(1'u32, cast(u32, Math.ceil(Math.abs(span) / Math.ConstF32.PiBy2)))
+        let count = Math.max(1_u32, cast(u32, Math.ceil(Math.abs(span) / Math.ConstF32.PiBy2)))
         let step  = span / cast(f32, count)
         let k     = 4.0 / 3.0 * Math.tan(step / 4)
         for i in count
@@ -827,18 +899,25 @@ impl LinePath
             break
         }
 
-        if not hasArc do
+        if not hasArc
+        {
             return
+        }
 
-        var rewritten: Array'Element
+        var rewritten: Array!{Element}
         rewritten.reserve(.elements.count + 8)
         var current = .startPoint
         for elem in .elements
         {
-            if elem.type == .Arc do
+            if elem.type == .Arc
+            {
                 appendArcBeziers(&rewritten, current, elem[])
-            else do
+            }
+            else
+            {
                 rewritten.add(elem[])
+            }
+
             current = rewritten.back().position
         }
 
@@ -852,11 +931,15 @@ impl LinePath
         // degenerates fill triangulation, so it is never emitted.
         if .polygon.points.count and
            Math.abs(pos.x - .endPosBuffer.x) < 0.0001 and
-           Math.abs(pos.y - .endPosBuffer.y) < 0.0001 do
+           Math.abs(pos.y - .endPosBuffer.y) < 0.0001
+        {
             return
+        }
 
-        .minBounds = Vector2.min(.minBounds, pos)
-        .maxBounds = Vector2.max(.maxBounds, pos)
+        .minBounds.x = Math.min(.minBounds.x, pos.x)
+        .minBounds.y = Math.min(.minBounds.y, pos.y)
+        .maxBounds.x = Math.max(.maxBounds.x, pos.x)
+        .maxBounds.y = Math.max(.maxBounds.y, pos.y)
         .polygon.add(pos)
         .endPosBuffer = pos
     }
@@ -879,7 +962,7 @@ impl LinePath
             p2 = pos
             p3 = .elements[i + 1].position
         }
-        elif i < lastElem
+        else if i < lastElem
         {
             p0 = i == 1 ? .startPoint : .elements[i - 2].position
             p1 = .elements[i - 1].position
@@ -1000,8 +1083,10 @@ impl LinePath
         // Calculate distance from control point to chord line
         let deviation = Geometry.distanceFromPointToLine(p1, p0, p2)
 
-        if deviation < tolerance do
-            return 1     // Curve is already flat enough
+        if deviation < tolerance
+        {
+            return 1
+        }     // Curve is already flat enough
 
         // For quadratic curves, the relationship is more direct
         // Maximum error ≈ deviation / 8 per segment
@@ -1101,8 +1186,10 @@ impl LinePath
     // Calculate optimal number of segments based on arc properties
     func calculateFlattenArcSegments(angleSpan: f32, radius: f32, tolerance: f32)->u32
     {
-        if radius < 0.1 do
+        if radius < 0.1
+        {
             return 1
+        }
 
         // Use the sagitta formula: segments = ceil(angle / (2 * acos(1 - tolerance/radius)))
         // This gives us the minimum segments needed to stay within tolerance

@@ -3,15 +3,17 @@
 using Core.Errors
 
 private const SwagRuntimeHookSymbol        = "__swc_rt_stage"
-private const SwagRuntimeHookSync          = 0'u64
-private const SwagRuntimeHookDynamicLoad   = 4'u64
-private const SwagRuntimeHookDynamicUnload = 5'u64
+private const SwagRuntimeHookSync          = 0_u64
+private const SwagRuntimeHookDynamicLoad   = 4_u64
+private const SwagRuntimeHookDynamicUnload = 5_u64
 
 private func callSwagRuntimeHook(handle: const *void, stage: u64)
 {
     let runtimeHook = nativeLibrarySymbol(handle, SwagRuntimeHookSymbol)
-    if not runtimeHook do
+    if not runtimeHook
+    {
         return
+    }
 
     let hook = cast(func(u64, u64, u64, const *(string?)), runtimeHook)
     hook(stage, Swag.getContext().runtimeTlsIdPlusOne, cast(u64, Swag.getContext().runtimeFlags), &Swag.processInfo().args)
@@ -44,10 +46,16 @@ impl NativeLibrary
     // The returned address is borrowed from this library and remains valid only until [[Core.NativeLibrary.close]].
     mtd const symbol(name: string)->const *void?
     {
-        if not .handle do
+        if not .handle
+        {
             return null
-        for byte in name where byte == 0 do
+        }
+
+        for byte in name where byte == 0
+        {
             return null
+        }
+
         return nativeLibrarySymbol(.handle, name)
     }
 
@@ -58,8 +66,11 @@ impl NativeLibrary
     // [[Core.NativeLibrary.symbol]] becomes invalid.
     mtd close()
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         callSwagRuntimeHook(.handle, SwagRuntimeHookDynamicUnload)
         closeNativeLibrary(.handle)
         .handle = null
@@ -73,8 +84,10 @@ impl NativeLibrary
     // loading also fails when the platform loader cannot resolve the file or one of its dependencies.
     func load(path: string)->NativeLibrary fail
     {
-        for byte in path where byte == 0 do
+        for byte in path where byte == 0
+        {
             fail BadParameterError{"native library paths must not contain zero bytes"}
+        }
 
         var result: #returntype
         result.handle = try loadNativeLibrary(path)

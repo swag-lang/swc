@@ -10,11 +10,11 @@ loads `libFAudio.so.0` before resolving its entry points.
 alias FAudio      = void
 alias FAudioVoice = void
 
-const FAUDIO_DEFAULT_PROCESSOR  = 0xFFFFFFFF'u32
-const FAUDIO_DEFAULT_FREQ_RATIO = 2'f32
-const FAUDIO_VOICE_NOPITCH      = 0x0002'u32
-const FAUDIO_VOICE_USEFILTER    = 0x0008'u32
-const FAUDIO_FORMAT_EXTENSIBLE  = 0xFFFE'u16
+const FAUDIO_DEFAULT_PROCESSOR  = 0xFFFFFFFF_u32
+const FAUDIO_DEFAULT_FREQ_RATIO = 2_f32
+const FAUDIO_VOICE_NOPITCH      = 0x0002_u32
+const FAUDIO_VOICE_USEFILTER    = 0x0008_u32
+const FAUDIO_FORMAT_EXTENSIBLE  = 0xFFFE_u16
 
 #[Swag.Pack(1)]
 struct FAudioGUID { public { Data1: u32; Data2: u16; Data3: u16; Data4: [8] u8 } }

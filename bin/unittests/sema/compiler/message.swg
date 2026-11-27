@@ -89,8 +89,10 @@ var MessageUnknownCountArrayCount = 0
     let msg = unwrap Swag.compiler().getMessage()
     Swag.assert(msg.kind == CompilerMsgKind.SemFunctions)
 
-    if msg.name == "messageCompilerOnlyFn" do
+    if msg.name == "messageCompilerOnlyFn"
+    {
         MessageSawCompilerOnlyFunction = true
+    }
 
     if msg.name == "MessageBatchEarly"
     {
@@ -130,8 +132,10 @@ var MessageUnknownCountArrayCount = 0
         Swag.assert(typeFunc.parameters.count == 0)
         Swag.assert(typeFunc.returnType!.name == "u32")
         var foundMarker = false
-        for attribute in typeFunc.attributes where attribute.type == #typeof(MessageMarker) do
+        for attribute in typeFunc.attributes where attribute.type == #typeof(MessageMarker)
+        {
             foundMarker = true
+        }
         Swag.assert(foundMarker)
     }
 
@@ -142,8 +146,10 @@ var MessageUnknownCountArrayCount = 0
         let typeFunc = assume cast(const *TypeInfoFunc, msg.type)
         Swag.assert(typeFunc.parameters.count == 0)
         Swag.assert(typeFunc.returnType!.name == "u32")
-        for attribute in typeFunc.attributes do
+        for attribute in typeFunc.attributes
+        {
             Swag.assert(attribute.type != #typeof(MessageMarker))
+        }
     }
 }
 

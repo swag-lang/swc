@@ -3,17 +3,25 @@ using Swag
 
 func slicesEqual(lhs, rhs: const [..] s32?)->bool
 {
-    if lhs.count != rhs.count do
+    if lhs.count != rhs.count
+    {
         return false
-    if not lhs.count or not rhs.count do
+    }
+    if not lhs.count or not rhs.count
+    {
         return true
+    }
 
     // A null slice has a zero count, so both slices are non-null past this point.
-    if lhs == null or rhs == null do
+    if lhs == null or rhs == null
+    {
         return true
+    }
 
-    for i in lhs.count where lhs[i] != rhs[i] do
+    for i in lhs.count where lhs[i] != rhs[i]
+    {
         return false
+    }
     return true
 }
 

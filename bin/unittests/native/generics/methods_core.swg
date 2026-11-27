@@ -53,7 +53,7 @@ impl Grid
 
 #test
 {
-    var c: Container's32 = {value: 10, count: 1}
+    var c: Container!{s32} = {value: 10, count: 1}
     Swag.require(c.getValue() == 10)
     Swag.require(c.getCount() == 1)
     Swag.require(c.isCountEqual(1) == true)
@@ -64,7 +64,7 @@ impl Grid
 
 #test
 {
-    var c: Container'string = {value: "hello", count: 5}
+    var c: Container!{string} = {value: "hello", count: 5}
     Swag.require(c.getValue() == "hello")
     Swag.require(c.getCount() == 5)
 
@@ -74,7 +74,7 @@ impl Grid
 
 #test
 {
-    var c: Container'bool = {value: true, count: 2}
+    var c: Container!{bool} = {value: true, count: 2}
     Swag.require(c.getValue() == true)
     c.setValue(false)
     Swag.require(c.getValue() == false)
@@ -83,7 +83,7 @@ impl Grid
 
 #test
 {
-    var stack: FixedStack'(s32, 4) = {top: 0}
+    var stack: FixedStack!{s32, 4} = {top: 0}
     Swag.require(stack.capacity() == 4)
     Swag.require(stack.size() == 0)
     stack.push(10)
@@ -95,7 +95,7 @@ impl Grid
 
 #test
 {
-    var stack: FixedStack'(f64, 2) = {top: 0}
+    var stack: FixedStack!{f64, 2} = {top: 0}
     stack.push(1.5)
     stack.push(2.5)
     Swag.require(stack.peek() == 2.5)
@@ -104,7 +104,7 @@ impl Grid
 
 #test
 {
-    var g: Grid'(s32, 3) = {cells: [1, 2, 3, 4, 5, 6, 7, 8, 9]}
+    var g: Grid!{s32, 3} = {cells: [1, 2, 3, 4, 5, 6, 7, 8, 9]}
     Swag.require(g.dimension() == 3)
     Swag.require(g.totalCells() == 9)
     Swag.require(g.at(0, 0) == 1)
@@ -116,9 +116,9 @@ impl Grid
 
 #test
 {
-    var g: Grid'(u8, 2) = {cells: [10'u8, 20, 30, 40]}
+    var g: Grid!{u8, 2} = {cells: [10_u8, 20, 30, 40]}
     Swag.require(g.dimension() == 2)
     Swag.require(g.totalCells() == 4)
-    Swag.require(g.at(0, 0) == 10'u8)
-    Swag.require(g.at(1, 1) == 40'u8)
+    Swag.require(g.at(0, 0) == 10_u8)
+    Swag.require(g.at(1, 1) == 40_u8)
 }

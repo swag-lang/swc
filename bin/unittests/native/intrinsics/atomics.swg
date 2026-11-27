@@ -19,22 +19,22 @@ func publishIfZero(ptr: *u32, value: u32)
 // Swag.atomicLoad reads the value last stored, at every width
 #test
 {
-    var word = 0x1234'u32
+    var word = 0x1234_u32
     Swag.require(atomGetU32(&word) == 0x1234)
     word = 7
     Swag.require(atomGetU32(&word) == 7)
 
-    var byte = 200'u8
+    var byte = 200_u8
     Swag.require(atomGetU8(&byte) == 200)
 
-    var wide = -5's64
+    var wide = -5_s64
     Swag.require(atomGetS64(&wide) == -5)
 }
 
 // A compare-exchange whose result is discarded still writes
 #test
 {
-    var flag = 0'u32
+    var flag = 0_u32
     publishIfZero(&flag, 5)
     Swag.require(flag == 5)
     publishIfZero(&flag, 9)
@@ -44,13 +44,15 @@ func publishIfZero(ptr: *u32, value: u32)
 // A polled flag reads its current value on every turn of the loop
 #test
 {
-    var flag  = 0'u32
+    var flag  = 0_u32
     var turns = 0
     while Swag.atomicLoad(&flag) == 0
     {
         turns += 1
-        if turns == 3 do
+        if turns == 3
+        {
             flag = 3
+        }
     }
 
     Swag.require(turns == 3 and flag == 3)
@@ -59,7 +61,7 @@ func publishIfZero(ptr: *u32, value: u32)
 // A Boolean context tests the full atomic integer, including bits above the low byte.
 #test
 {
-    var flag    = 0x100'u32
+    var flag    = 0x100_u32
     let isClear = func|flag = &flag|()->bool => not Swag.atomicLoad(flag)
 
     Swag.require(not isClear())
@@ -70,12 +72,15 @@ func publishIfZero(ptr: *u32, value: u32)
 
     let waitForFlag = func|flag = &flag|()->u32
     {
-        var turns = 0'u32
+        var turns = 0_u32
         while not Swag.atomicLoad(flag)
         {
             turns += 1
-            if turns == 3 do break
-            Swag.atomicStore(flag, 0x100'u32)
+            if turns == 3
+            {
+                break
+            }
+            Swag.atomicStore(flag, 0x100_u32)
         }
         return turns
     }

@@ -15,7 +15,7 @@ using Core, Pixel
     for id, index in ["title", "accent"]
     {
         let box       = view.layout.constBox(view.boxOfNode(view.elementById(id)))
-        var textItems = 0'u32
+        var textItems = 0_u32
         for item in box.items where item.kind == .Text
         {
             let text = view.layout.inlineText(item)

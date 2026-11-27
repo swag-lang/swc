@@ -11,7 +11,7 @@ private struct Picture
 }
 
 // One reference waits while the following B pictures are emitted.
-private const HeldPictures = 2'u64
+private const HeldPictures = 2_u64
 
 // Drives an indexed RealVideo 4 track independently of its container.
 //
@@ -21,11 +21,11 @@ private const HeldPictures = 2'u64
 struct Stream
 {
     decoder:        Decoder
-    config:         Array'u8
-    frames:         Array'SampleEntry     // Samples in decoding order.
-    sampleAtRank:   Array'u32             // Sample of each display rank, by container time.
-    payload:        Array'u8
-    prefix:         Array'u8     // Bytes the container took off the front of every stored frame.
+    config:         Array!{u8}
+    frames:         Array!{SampleEntry}     // Samples in decoding order.
+    sampleAtRank:   Array!{u32}             // Sample of each display rank, by container time.
+    payload:        Array!{u8}
+    prefix:         Array!{u8}     // Bytes the container took off the front of every stored frame.
     queue:          [HeldPictures] Picture
     queued:         u64
     emitRank:       u64      // Display rank of the next picture the queue gives up.
@@ -42,10 +42,12 @@ struct Stream
 impl Stream
 {
     // Configures the decoder from a container's setup headers and installs the samples.
-    mtd open(config: const [..] u8, frames: #move Array'SampleEntry) fail
+    mtd open(config: const [..] u8, frames: #move Array!{SampleEntry}) fail
     {
-        if not config.count do
+        if not config.count
+        {
             fail InvalidFormatError{"RealVideo track has no decoder configuration"}
+        }
 
         .config.clear()
         .config.add(config)
@@ -71,14 +73,17 @@ impl Stream
         for index in .frames.count
         {
             var at = .sampleAtRank.count
-            while at > 0 and .frames[cast(u64, .sampleAtRank[at - 1])].presentationTime > .frames[index].presentationTime do
+            while at > 0 and .frames[cast(u64, .sampleAtRank[at - 1])].presentationTime > .frames[index].presentationTime
+            {
                 at -= 1
+            }
+
             .sampleAtRank.insertAt(at, cast(u32, index))
         }
     }
 
     // Installs a window and starts over from its first picture.
-    mtd installFrames(frames: #move Array'SampleEntry)
+    mtd installFrames(frames: #move Array!{SampleEntry})
     {
         .frames = #move frames
         .rebuildOrder()
@@ -92,7 +97,7 @@ impl Stream
     }
 
     // Replaces the container window while keeping the configured decoder.
-    mtd replaceFrames(frames: #move Array'SampleEntry) fail
+    mtd replaceFrames(frames: #move Array!{SampleEntry}) fail
     {
         .installFrames(#move frames)
     }
@@ -103,16 +108,20 @@ impl Stream
     // decoder has read, so the anchors it holds stay the anchors they were.
     mtd appendFrames(frames: const [..] SampleEntry) fail
     {
-        if not frames.count do
+        if not frames.count
+        {
             return
+        }
 
         // Rebuilding display order is safe only while every new picture sorts after all ranks
         // already returned. A late legacy-clock timestamp would renumber a picture the caller
         // has already consumed, while nextRank still points past that old rank.
         if .hasEmittedTime
         {
-            for entry in frames where entry.presentationTime < .maxEmittedTime do
+            for entry in frames where entry.presentationTime < .maxEmittedTime
+            {
                 fail InvalidFormatError{"RealVideo append would reorder an already emitted picture"}
+            }
         }
 
         .frames.add(frames)
@@ -121,8 +130,11 @@ impl Stream
 
     mtd const presentationTimeAtRank(rank: u64)->s64
     {
-        if rank >= .sampleAtRank.count do
+        if rank >= .sampleAtRank.count
+        {
             return 0
+        }
+
         return .frames[cast(u64, .sampleAtRank[rank])].presentationTime
     }
 
@@ -137,8 +149,11 @@ impl Stream
     mtd const syncRankAt(rank: u64)->u64
     {
         var scan = rank
-        while scan < .sampleAtRank.count and not .isSyncRank(scan) do
+        while scan < .sampleAtRank.count and not .isSyncRank(scan)
+        {
             scan += 1
+        }
+
         return Math.min(scan, .sampleAtRank.count)
     }
 
@@ -146,19 +161,28 @@ impl Stream
     // which is where decoding the picture of `rank` has to begin.
     mtd const decodeStartRank(rank: u64)->u64
     {
-        if not .sampleAtRank.count do
+        if not .sampleAtRank.count
+        {
             return 0
+        }
+
         var scan = Math.min(rank, .sampleAtRank.count - 1)
-        while scan > 0 and not .isSyncRank(scan) do
+        while scan > 0 and not .isSyncRank(scan)
+        {
             scan -= 1
+        }
+
         return scan
     }
 
     // Positions the stream so the next decoded picture has display rank `rank`.
     mtd seekTo(rank: u64)
     {
-        if rank == .nextRank do
+        if rank == .nextRank
+        {
             return
+        }
+
         .nextRank = rank
         .started  = false
     }
@@ -167,8 +191,10 @@ impl Stream
     {
         .queued  = 0
         .started = false
-        for &picture in .queue do
+        for &picture in .queue
+        {
             picture.planes = {}
+        }
     }
 
     // Reads samples until enough pictures are held to know which of them comes first.
@@ -181,8 +207,11 @@ impl Stream
 
             // An open group can store earlier B pictures immediately after its I picture.
             // Seeking starts at that I picture; those B pictures belong to the previous group.
-            if entry.presentationTime < .startTime do
+            if entry.presentationTime < .startTime
+            {
                 continue
+            }
+
             try readStoredFrame(source, entry, .prefix.toSlice(), &.payload)
 
             try .decoder.decode(.payload.toSlice(), &.queue[.queued].planes)
@@ -194,28 +223,39 @@ impl Stream
     // Which held picture is shown first.
     mtd const earliest()->u64
     {
-        var at = 0'u64
-        for index in .queued where .queue[index].time < .queue[at].time do
+        var at = 0_u64
+        for index in .queued where .queue[index].time < .queue[at].time
+        {
             at = index
+        }
+
         return at
     }
 
     // Gives up one held picture, either to the caller or to the floor.
     mtd release(at: u64, target: *PlanarFrame?)
     {
-        if let output = target do
-            output[] = #move .queue[at].planes
+        if let output = target
+        {
+            Core.swap(output, &.queue[at].planes)
+        }
+
         .queued -= 1
-        if at != .queued do
-            .queue[at] = #move .queue[.queued]
+        if at != .queued
+        {
+            Core.swap(&.queue[at], &.queue[.queued])
+        }
+
         .emitRank += 1
     }
 
     // Decodes forward until the picture of the current rank is reconstructed.
     mtd decodeNextPlanes(source: *ByteSource, target: *PlanarFrame) fail
     {
-        if .nextRank >= .sampleAtRank.count do
+        if .nextRank >= .sampleAtRank.count
+        {
             fail InvalidFormatError{"RealVideo stream has no picture at the requested position"}
+        }
 
         // A picture that is not a clean decode point needs everything back to the last one.
         if not .started or .emitRank > .nextRank
@@ -231,18 +271,25 @@ impl Stream
         while true
         {
             try .fill(source)
-            if not .queued do
+            if not .queued
+            {
                 fail InvalidFormatError{"RealVideo stream ends before the picture asked for"}
+            }
 
             let at = .earliest()
             if .emitRank == .nextRank
             {
                 let emittedTime = .queue[at].time
                 .release(at, target)
-                if .hasEmittedTime do
+                if .hasEmittedTime
+                {
                     .maxEmittedTime = Math.max(.maxEmittedTime, emittedTime)
-                else do
+                }
+                else
+                {
                     .maxEmittedTime = emittedTime
+                }
+
                 .hasEmittedTime = true
                 .nextRank       += 1
                 return

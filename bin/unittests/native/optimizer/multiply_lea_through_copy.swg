@@ -10,8 +10,8 @@ using Swag
 #[Swag.Optimize(true)]
 func pixelOffset(i: u64)->u64
 {
-    const Width  = 17'u64
-    const Height = 2'u64
+    const Width  = 17_u64
+    const Height = 2_u64
     let sourceY = i / Width
     let x       = i % Width
     let targetY = Height - sourceY - 1

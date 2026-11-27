@@ -22,17 +22,17 @@
     #[Swag.NoInline]
     func rorU64(v: u64, n: u8)->u64 => Swag.ror(v, n)
 
-    const A0 = #run rolU8(1'u8, 2)
-    const A1 = #run rorU8(1'u8, 2)
+    const A0 = #run rolU8(1_u8, 2)
+    const A1 = #run rorU8(1_u8, 2)
 
-    const B0 = #run rolU16(0x8000'u16, 2)
-    const B1 = #run rorU16(1'u16, 2)
+    const B0 = #run rolU16(0x8000_u16, 2)
+    const B1 = #run rorU16(1_u16, 2)
 
-    const C0 = #run rolU32(0x80000000'u32, 2)
-    const C1 = #run rorU32(1'u32, 2)
+    const C0 = #run rolU32(0x80000000_u32, 2)
+    const C1 = #run rorU32(1_u32, 2)
 
-    const D0 = #run rolU64(0x80000000_00000000'u64, 2)
-    const D1 = #run rorU64(1'u64, 2)
+    const D0 = #run rolU64(0x80000000_00000000_u64, 2)
+    const D1 = #run rorU64(1_u64, 2)
 
     #assert(A0 == 4)
     #assert(A1 == 64)

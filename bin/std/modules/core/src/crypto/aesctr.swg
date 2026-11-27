@@ -2,37 +2,226 @@
 #global namespace Crypto
 #global #[Swag.Safety(.Overflow, false)]
 
+using Math.Simd
+
 // AES-CTR counter block size in bytes.
 public const AesCtrCounterSize = 16
 
+#[Swag.Inline]
+private func aesCtrNetworkWord(value: u64)->u64
+{
+    #static if BIG_ENDIAN
+    {
+        return value
+    }
+    else
+    {
+        return Swag.byteSwap(value)
+    }
+}
+
 private func aesCtrAddCounter(counter: *[AesCtrCounterSize] u8, amount: u64)->bool
 {
-    var carry = amount
-    for index in AesCtrCounterSize
+    var words = cast #bit (U64x2, load(&counter[][0]))
+    let low   = aesCtrNetworkWord(words[1])
+    let high  = aesCtrNetworkWord(words[0])
+    let next  = low + amount
+    let above = high + cast(u64, next < low)
+    words[0] = aesCtrNetworkWord(above)
+    words[1] = aesCtrNetworkWord(next)
+    store(&counter[][0], cast #bit (U8x16, words))
+    return above >= high
+}
+
+#[Swag.Inline]
+internal func aesGcmCounterBlock(initial: U64x2, index: u64)->U8x16
+{
+    var words = cast #bit (U32x4, initial)
+
+    // GCM reserves counter one for its tag mask.
+    #static if BIG_ENDIAN
     {
-        let byteIndex = AesCtrCounterSize - 1 - index
-        let sum       = cast(u64, counter[][byteIndex]) + (carry & 0xFF)
-        counter[][byteIndex] = cast(u8, sum)
-        carry = (carry >> 8) + (sum >> 8)
+        words[3] = cast(u32, index + 2)
+    }
+    else
+    {
+        words[3] = Swag.byteSwap(cast(u32, index + 2))
+    }
+    return cast #bit (U8x16, words)
+}
+
+#[Swag.Inline]
+private func(CounterBits: u32) aesCounterBlock(initial: U64x2, low: u64, index: u64)->U8x16
+{
+    #static if CounterBits == 32
+    {
+        discard low
+        return aesGcmCounterBlock(initial, index)
+    }
+    else
+    {
+        let next  = low + index
+        var words = initial
+        words[1] = aesCtrNetworkWord(next)
+        #static if CounterBits == 128
+        {
+            let high = aesCtrNetworkWord(initial[0])
+            words[0] = aesCtrNetworkWord(high + cast(u64, next < low))
+        }
+
+        return cast #bit (U8x16, words)
+    }
+}
+
+// The mode validates its full counter range before selecting the counter width.
+internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U64x2, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64)
+{
+    let low              = aesCtrNetworkWord(prefix[1])
+    let sourceBytes      = source.buffer
+    let destinationBytes = destination.buffer
+    let endBlock         = firstBlock + blockCount
+    let fullBlockEnd     = Math.min(endBlock, source.count / AesBlockSize)
+    var block            = firstBlock
+    #static if CounterBits == 64
+    {
+        while block + 8 <= fullBlockEnd
+        {
+            let offset = block * AesBlockSize
+            aes[].xorEightCountersHardware(aesCounterBlock!{CounterBits}(prefix, low, block),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 1),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 2),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 3),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 4),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 5),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 6),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 7),
+                                           sourceBytes + offset,
+                                           destinationBytes + offset)
+            block += 8
+        }
     }
 
-    return carry == 0
+    while block + 4 <= fullBlockEnd
+    {
+        let offset = block * AesBlockSize
+        aes[].xorFourHardware!{false, false}(aesCounterBlock!{CounterBits}(prefix, low, block),
+                                             aesCounterBlock!{CounterBits}(prefix, low, block + 1),
+                                             aesCounterBlock!{CounterBits}(prefix, low, block + 2),
+                                             aesCounterBlock!{CounterBits}(prefix, low, block + 3),
+                                             sourceBytes + offset,
+                                             destinationBytes + offset)
+        block += 4
+    }
+
+    while block < fullBlockEnd
+    {
+        let offset = block * AesBlockSize
+        let stream = aes[].encryptBlockHardware(aesCounterBlock!{CounterBits}(prefix, low, block))
+        store(destinationBytes + offset, stream ^ load(sourceBytes + offset))
+        block += 1
+    }
+
+    if block < endBlock
+    {
+        var tail: [16] u8
+        store(&tail[0], aes[].encryptBlockHardware(aesCounterBlock!{CounterBits}(prefix, low, block)))
+        let offset = block * AesBlockSize
+        for i in source.count - offset
+        {
+            destinationBytes[offset + i] = sourceBytes[offset + i] ^ tail[i]
+        }
+
+        Crypto.secureClear(tail)
+    }
+}
+
+// Processes complete two-block batches and returns the index of the next block.
+internal func(CounterBits: u32) aesXorCounterPairsSoftware(aes: *Aes, prefix: U64x2, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64)->u64
+{
+    let low          = aesCtrNetworkWord(prefix[1])
+    let fullBlockEnd = Math.min(firstBlock + blockCount, source.count / AesBlockSize)
+    var block        = firstBlock
+    while block + 2 <= fullBlockEnd
+    {
+        let offset = block * AesBlockSize
+        aes[].xorTwoCountersSoftware(aesCounterBlock!{CounterBits}(prefix, low, block),
+                                     aesCounterBlock!{CounterBits}(prefix, low, block + 1),
+                                     source.buffer + offset,
+                                     destination.buffer + offset)
+        block += 2
+    }
+
+    return block
 }
 
 private func aesCtrCryptBlocks(aes: *Aes, initialCounter: [AesCtrCounterSize] u8, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64) fail
 {
-    var block = 0'u64
-    while block < blockCount
+    if aes[].usesHardwareRounds()
+    {
+        if blockCount == 0
+        {
+            return
+        }
+
+        let prefix = cast #bit (U64x2, load(&initialCounter[0]))
+        let low    = Swag.byteSwap(prefix[1])
+        if firstBlock + blockCount - 1 > Swag.U64.Max - low
+        {
+            aesXorCounterBlocksHardware!{128}(aes, prefix, source, destination, firstBlock, blockCount)
+        }
+        else
+        {
+            aesXorCounterBlocksHardware!{64}(aes, prefix, source, destination, firstBlock, blockCount)
+        }
+
+        return
+    }
+
+    // The public operation has already checked the final 128-bit counter.
+    let prefix       = cast #bit (U64x2, load(&initialCounter[0]))
+    let initialLow   = aesCtrNetworkWord(prefix[1])
+    let initialHigh  = aesCtrNetworkWord(prefix[0])
+    let fullBlockEnd = Math.min(firstBlock + blockCount, source.count / AesBlockSize)
+    var block        = firstBlock
+    while block + 2 <= fullBlockEnd
+    {
+        let firstLow  = initialLow + block
+        let secondLow = firstLow + 1
+        var first     = prefix
+        var second    = prefix
+        first[0]  = aesCtrNetworkWord(initialHigh + cast(u64, firstLow < initialLow))
+        second[0] = aesCtrNetworkWord(initialHigh + cast(u64, secondLow < initialLow))
+        first[1]  = aesCtrNetworkWord(firstLow)
+        second[1] = aesCtrNetworkWord(secondLow)
+        let offset = block * AesBlockSize
+        aes[].xorTwoCountersSoftware(cast #bit (U8x16, first), cast #bit (U8x16, second), source.buffer + offset, destination.buffer + offset)
+        block += 2
+    }
+
+    while block < firstBlock + blockCount
     {
         var counter = initialCounter
-        if not aesCtrAddCounter(&counter, firstBlock + block) do
+        if not aesCtrAddCounter(&counter, block)
+        {
             fail Errors.BadParameterError{"AES-CTR counter range overflows 128 bits"}
+        }
+
         var keyStream: [AesCtrCounterSize] u8
         try aes[].encryptBlock(counter, keyStream)
-        let offset = (firstBlock + block) * AesCtrCounterSize
+        let offset = block * AesCtrCounterSize
         let count  = Math.min(source.count - offset, AesCtrCounterSize)
-        for index in count do
-            destination[offset + index] = source[offset + index] ^ keyStream[index]
+        if count == AesBlockSize
+        {
+            store(destination.buffer + offset, load(source.buffer + offset) ^ load(&keyStream[0]))
+        }
+        else
+        {
+            for index in count
+            {
+                destination[offset + index] = source[offset + index] ^ keyStream[index]
+            }
+        }
+
         Crypto.secureClear(counter)
         Crypto.secureClear(keyStream)
         block += 1
@@ -63,20 +252,25 @@ private func aesCtrCryptBlocksParallel(aes: *Aes, initialCounter: [AesCtrCounter
 // with a separate construction before trusting decrypted plaintext.
 func aesCtrCrypt(key, initialCounter, input: const [..] u8, output: [..] u8) fail
 {
-    if initialCounter.count != AesCtrCounterSize or output.count != input.count do
+    if initialCounter.count != AesCtrCounterSize or output.count != input.count
+    {
         fail Errors.BadParameterError{"AES-CTR needs a 16-byte counter and matching output length"}
+    }
 
     const BlockSize = cast(u64, AesCtrCounterSize)
     let blockCount = input.count / BlockSize + cast(u64, (input.count % BlockSize) != 0)
     var counter: [AesCtrCounterSize] u8
     Swag.memcpy(&counter[0], initialCounter.buffer, AesCtrCounterSize)
-    if blockCount and not aesCtrAddCounter(&counter, blockCount - 1) do
+    if blockCount and not aesCtrAddCounter(&counter, blockCount - 1)
+    {
         fail Errors.BadParameterError{"AES-CTR counter range overflows 128 bits"}
+    }
+
     Swag.memcpy(&counter[0], initialCounter.buffer, AesCtrCounterSize)
 
     var aes = try Aes.create(key)
     defer aes.clear()
-    if input.count < 64 * 1024
+    if input.count < 64 * 1024 or Swag.workerCount() <= 1
     {
         try aesCtrCryptBlocks(&aes, counter, input, output, 0, blockCount)
         Crypto.secureClear(counter)

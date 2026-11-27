@@ -19,7 +19,7 @@ using Swag, Core, Audio, Pixel
     let pacer    = expect FramePacer.create(expect FrameRate.create(60, 1), 48_000, 90_000)
     var mono:   [1_024] s16
     var stereo: [2 * 1_024] s16
-    for frame in 1_024'u64
+    for frame in 1_024_u64
     {
         mono[frame] = cast(s16,
                            Math.round(8_000.0 * Math.sin(Math.ConstF64.TwoPi *
@@ -30,8 +30,8 @@ using Swag, Core, Audio, Pixel
                                                                    1_600.0 * frame / 48_000.0)))
     }
 
-    var audioBlocks = 0'u64
-    for frame in 60'u64
+    var audioBlocks = 0_u64
+    for frame in 60_u64
     {
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
         while audioBlocks < 47 and audioBlocks * 1_024 < (frame + 1) * 800
@@ -46,7 +46,7 @@ using Swag, Core, Audio, Pixel
 
     expect recorder.end()
     Swag.require(recorder.videoFrameCount() == 60 and recorder.audioTrackCount() == 4)
-    for index in 4'u32
+    for index in 4_u32
     {
         Swag.require(expect recorder.audioInputFrameCountOf(index) == 47 * 1_024)
         Swag.require(expect recorder.audioPacketCountOf(index) == 48)
@@ -55,11 +55,14 @@ using Swag, Core, Audio, Pixel
     let summary = expect Mp4.summarizeFragmentedRecording(path)
     Swag.require(summary.video.packetCount == 60 and summary.audioTracks.count == 4)
     Swag.require(not summary.hasIncompleteTail)
-    for track in summary.audioTracks do
+    for track in summary.audioTracks
+    {
         Swag.require(track.packetCount == 48)
+    }
+
     var reader = expect Reader.open(path)
     Swag.require(reader.frameCount() == 60 and reader.audioTrackCount() == 4)
-    for index in 4'u32
+    for index in 4_u32
     {
         let sound = unwrap reader.audioTrack(index)
         Swag.require(sound.sampleFrameCount() == 47 * 1_024)

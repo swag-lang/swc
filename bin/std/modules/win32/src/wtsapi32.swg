@@ -2,8 +2,8 @@
 
 #foreignlib("wtsapi32")
 
-const WTS_SESSION_LOCK        = 0x7'u32
-const NOTIFY_FOR_THIS_SESSION = 0'u32
+const WTS_SESSION_LOCK        = 0x7_u32
+const NOTIFY_FOR_THIS_SESSION = 0_u32
 
 #[Swag.Foreign("wtsapi32", callconv: Swag.CallConv.C)]
 {

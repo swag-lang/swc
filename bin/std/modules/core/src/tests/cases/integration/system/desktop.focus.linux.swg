@@ -8,7 +8,7 @@ struct WindowFocusNotice
     focused: bool
 }
 
-var g_WindowFocusNotices: Array'WindowFocusNotice
+var g_WindowFocusNotices: Array!{WindowFocusNotice}
 
 func recordWindowFocus(owner: *Env.Window, focused: bool)
 {
@@ -18,7 +18,7 @@ func recordWindowFocus(owner: *Env.Window, focused: bool)
 func setWindowFocusForTest(window: u32)
 {
     let context  = expect LinuxDesktop.ensure()
-    let setFocus = expect LinuxDesktop.symbol'Linux.xcb_set_input_focus_checked_fn(unwrap context.library, "xcb_set_input_focus_checked")
+    let setFocus = expect LinuxDesktop.symbol!{Linux.xcb_set_input_focus_checked_fn}(unwrap context.library, "xcb_set_input_focus_checked")
     expect LinuxDesktop.check(context, setFocus(unwrap context.connection, 0, window, 0))
 }
 
@@ -58,8 +58,10 @@ func setWindowFocusForTest(window: u32)
 
 func closeWindowOnFocus(owner: *Env.Window, focused: bool)
 {
-    if focused do
+    if focused
+    {
         expect owner.close()
+    }
 }
 
 #[Swag.TestTag("integration.desktop")]

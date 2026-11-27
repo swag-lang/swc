@@ -42,8 +42,10 @@ func bareStatementsReachTheLoop()->s32
         scope(Grouped)
         {
             count += 1
-            if count < 4 do
+            if count < 4
+            {
                 continue
+            }
             break
         }
     }

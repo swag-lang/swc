@@ -33,8 +33,11 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.require(not outline.load.started and not outline.loaded)
     outline.toggle.setChecked(true)
     outline.toggle.sigCheckedChanged.call(outline.toggle)
-    if outline.load.isPending() do
+    if outline.load.isPending()
+    {
         completeViewerBackgroundLoad(&host, &outline.load)
+    }
+
     Swag.require(outline.rows.count == 7 and outline.list.lineCount() == 7)
     window.applyLayout()
     let firstText = outline.list.cellTextRect(0, 0)

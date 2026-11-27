@@ -27,8 +27,10 @@ impl StepCounter
     mtd getCurrent()->T => .current
     mtd advanceN(n: s32)
     {
-        for var i = 0; i < n; i += 1 do
+        for var i = 0; i < n; i += 1
+        {
             .current += .step
+        }
     }
 }
 
@@ -74,7 +76,7 @@ impl Box
 {
     mtd const get()->T => .value
 
-    func(var U) zipWith(const me, other: Box'U)->Pair'(T, U)
+    func(var U) zipWith(const me, other: Box!{U})->Pair!{T, U}
     {
         return {first: me.value, second: other.value}
     }
@@ -169,7 +171,7 @@ impl CopyGate
 // Basic mutation
 #test
 {
-    var mb: MutBox's32 = {value: 0}
+    var mb: MutBox!{s32} = {value: 0}
     Swag.require(mb.get() == 0)
     mb.set(42)
     Swag.require(mb.get() == 42)
@@ -179,7 +181,7 @@ impl CopyGate
 
 #test
 {
-    var mb: MutBox'f64 = {value: 1.5}
+    var mb: MutBox!{f64} = {value: 1.5}
     Swag.require(mb.get() == 1.5)
     mb.set(2.5)
     Swag.require(mb.get() == 2.5)
@@ -188,7 +190,7 @@ impl CopyGate
 // Step counter
 #test
 {
-    var sc: StepCounter's32 = {current: 0, step: 5}
+    var sc: StepCounter!{s32} = {current: 0, step: 5}
     sc.advance()
     Swag.require(sc.getCurrent() == 5)
     sc.advance()
@@ -199,7 +201,7 @@ impl CopyGate
 
 #test
 {
-    var sc: StepCounter'f64 = {current: 0.0, step: 0.5}
+    var sc: StepCounter!{f64} = {current: 0.0, step: 0.5}
     sc.advanceN(4)
     Swag.require(sc.getCurrent() == 2.0)
     sc.retreat()
@@ -209,7 +211,7 @@ impl CopyGate
 // Accumulator: method calling method
 #test
 {
-    var acc: Accum's32 = {total: 0, count: 0}
+    var acc: Accum!{s32} = {total: 0, count: 0}
     acc.add(10)
     acc.add(20)
     Swag.require(acc.getTotal() == 30)
@@ -218,7 +220,7 @@ impl CopyGate
 
 #test
 {
-    var acc: Accum's32 = {total: 0, count: 0}
+    var acc: Accum!{s32} = {total: 0, count: 0}
     acc.addTwice(5)
     Swag.require(acc.getTotal() == 10)
     Swag.require(acc.getCount() == 2)
@@ -229,7 +231,7 @@ impl CopyGate
 
 #test
 {
-    var acc: Accum'f64 = {total: 0.0, count: 0}
+    var acc: Accum!{f64} = {total: 0.0, count: 0}
     acc.add(3.0)
     acc.add(6.0)
     acc.add(9.0)
@@ -242,7 +244,7 @@ impl CopyGate
 {
     var moved: string = "beta"
 
-    var gate: CopyGate'string = {values: ["", ""], count: 0}
+    var gate: CopyGate!{string} = {values: ["", ""], count: 0}
     gate.add("alpha")
     gate.add(#move moved)
 
@@ -254,18 +256,18 @@ impl CopyGate
 // Zip two boxes
 #test
 {
-    let b1: Box's32    = {value: 10}
-    let b2: Box'string = {value: "ten"}
-    let pair           = b1.zipWith'(string)(b2)
+    let b1: Box!{s32}    = {value: 10}
+    let b2: Box!{string} = {value: "ten"}
+    let pair = b1.zipWith!{string}(b2)
     Swag.require(pair.first == 10)
     Swag.require(pair.second == "ten")
 }
 
 #test
 {
-    let b1: Box'f64  = {value: 3.14}
-    let b2: Box'bool = {value: true}
-    let pair         = b1.zipWith'(bool)(b2)
+    let b1: Box!{f64}  = {value: 3.14}
+    let b2: Box!{bool} = {value: true}
+    let pair = b1.zipWith!{bool}(b2)
     Swag.require(pair.first == 3.14)
     Swag.require(pair.second == true)
 }
@@ -273,7 +275,7 @@ impl CopyGate
 // Range methods
 #test
 {
-    let r: Range's32 = {lo: 10, hi: 20}
+    let r: Range!{s32} = {lo: 10, hi: 20}
     Swag.require(r.contains(15) == true)
     Swag.require(r.contains(10) == true)
     Swag.require(r.contains(20) == true)
@@ -284,7 +286,7 @@ impl CopyGate
 
 #test
 {
-    var r: Range'f64 = {lo: 1.0, hi: 5.0}
+    var r: Range!{f64} = {lo: 1.0, hi: 5.0}
     Swag.require(r.width() == 4.0)
     r.expand(1.0)
     Swag.require(r.lo == 0.0)
@@ -298,7 +300,7 @@ impl CopyGate
 // FixedVec stack-like operations
 #test
 {
-    var v: FixedVec'(s32, 5) = {len: 0}
+    var v: FixedVec!{s32, 5} = {len: 0}
     Swag.require(v.isEmpty() == true)
     Swag.require(v.capacity() == 5)
     v.push(10)
@@ -323,7 +325,7 @@ impl CopyGate
 
 #test
 {
-    var v: FixedVec'(f64, 3) = {len: 0}
+    var v: FixedVec!{f64, 3} = {len: 0}
     v.push(1.1)
     v.push(2.2)
     v.push(3.3)
@@ -336,13 +338,13 @@ impl CopyGate
 
 #test
 {
-    var v: FixedVec'(u8, 4) = {len: 0}
-    v.push(10'u8)
-    v.push(20'u8)
-    v.push(30'u8)
-    v.push(40'u8)
+    var v: FixedVec!{u8, 4} = {len: 0}
+    v.push(10_u8)
+    v.push(20_u8)
+    v.push(30_u8)
+    v.push(40_u8)
     Swag.require(v.isFull() == true)
-    Swag.require(v.pop() == 40'u8)
-    Swag.require(v.pop() == 30'u8)
+    Swag.require(v.pop() == 40_u8)
+    Swag.require(v.pop() == 30_u8)
     Swag.require(v.size() == 2)
 }

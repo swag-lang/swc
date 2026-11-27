@@ -28,7 +28,9 @@ using Core, Gui, Pixel, Viewers
 
     window.sendCommandEvent(ViewerCommands.Outline)
     journey.waitFor("PDF page previews", func|panel|()->bool =>
-                    panel.gallery.isVisible() and panel.previewTextures.count == 2 and panel.previewTextures[1].isValid())
+                    panel.gallery.isVisible() and
+                    panel.previewTextures.count == 2 and
+                    panel.previewTextures[1].isValid())
     panel.gallery.choose(1)
     window.sendCommandEvent(ViewerCommands.Outline)
     Swag.require(not panel.gallery.isVisible())
@@ -39,8 +41,11 @@ using Core, Gui, Pixel, Viewers
     window.sendCommandEvent(ViewerCommands.Reload)
     journey.waitFor("PDF reading place restored", func|window|()->bool
     {
-        if window.reloading or window.choiceLoad.started or window.currentView == null do
+        if window.reloading or window.choiceLoad.started or window.currentView == null
+        {
             return false
+        }
+
         let restored = assume cast(*PdfDocument.Panel, window.currentView)
         return restored.pdfView.pageIndex == 1 and restored.pdfView.zoomMode == .FitWidth
     })

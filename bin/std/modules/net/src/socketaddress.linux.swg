@@ -15,8 +15,11 @@ internal func nativeSocketAddress(endpoint: SocketEndpoint)->NativeSocketAddress
     if endpoint.address.family == .IPv4
     {
         var octets: [4] u8
-        for i in octets.count do
+        for i in octets.count
+        {
             octets[i] = endpoint.address.bytes[i]
+        }
+
         result.address4 = sockaddr_in{
             sin_family: cast(u16, AF_INET),
             sin_port: htons(endpoint.port),
@@ -29,8 +32,10 @@ internal func nativeSocketAddress(endpoint: SocketEndpoint)->NativeSocketAddress
         result.address6.sin6_port     = htons(endpoint.port)
         result.address6.sin6_flowinfo = 0
         result.address6.sin6_scope_id = endpoint.address.scopeId
-        for i in 16 do
+        for i in 16
+        {
             result.address6.sin6_addr.s6_addr[i] = endpoint.address.bytes[i]
+        }
     }
 
     return result
@@ -51,8 +56,11 @@ internal func portableSocketEndpoint(address: const *sockaddr)->SocketEndpoint f
     {
         let ipv6 = cast(const *sockaddr_in6, cast(const *void, address))
         var octets: [16] u8
-        for i in octets.count do
+        for i in octets.count
+        {
             octets[i] = ipv6.sin6_addr.s6_addr[i]
+        }
+
         return {address: IpAddress.ipv6(octets, ipv6.sin6_scope_id), port: ntohs(ipv6.sin6_port)}
     }
 

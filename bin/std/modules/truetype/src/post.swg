@@ -42,42 +42,54 @@ func packedPostGlyphName(names: const *GlyphNames, indices: const [..] u8, glyph
 {
     let entry     = indices.buffer + cast(u64, glyphIndex) * 2
     let nameIndex = Math.make16(entry[0], entry[1])
-    if nameIndex < MacStandardGlyphNames.count do
+    if nameIndex < MacStandardGlyphNames.count
+    {
         return MacStandardGlyphNames[nameIndex]
+    }
 
     let offset = names.postOffsets[nameIndex - MacStandardGlyphNames.count]
     let length = names.postStrings.buffer[offset]
-    if not length do
+    if not length
+    {
         return null
+    }
+
     return cast(string?, Swag.makeSlice(names.postStrings.buffer + offset + 1, length))
 }
 
-func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: u32) fail
+func parsePostGlyphNames(names: *GlyphNames, glyphCount: u32, postTable: const [..] u8, format: u32) fail
 {
-    let glyphCount = faceData.face.glyphCount
     if format == 0x00010000
     {
-        if glyphCount > MacStandardGlyphNames.count do
+        if glyphCount > MacStandardGlyphNames.count
+        {
             try fault(0x9B)
-        faceData.postNames.entries.add(Swag.makeSlice(&MacStandardGlyphNames[0], glyphCount))
+        }
+
+        names.entries.add(Swag.makeSlice(&MacStandardGlyphNames[0], glyphCount))
         return
     }
 
     if format == 0x00020000
     {
         let count = try readU16(postTable, 32)
-        if count != glyphCount do
-            try fault(0x9B)
-        let indices = try getSlice(postTable, 34, cast(u64, count) * 2)
-        if not count do
-            return
-
-        var maxCustomIndex = 257'u16
-        var entry          = indices.buffer
-        var checked        = 0'u32
-        #static if Math.nativeToBigEndian(1'u16) != 1
+        if count != glyphCount
         {
-            const SwapWords = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+            try fault(0x9B)
+        }
+
+        let indices = try getSlice(postTable, 34, cast(u64, count) * 2)
+        if not count
+        {
+            return
+        }
+
+        var maxCustomIndex = 257_u16
+        var entry          = indices.buffer
+        var checked        = 0_u32
+        #static if Math.nativeToBigEndian(1_u16) != 1
+        {
+            const SwapWords = cast(Math.Simd.U8x16, [1_u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
             let blocks  = count / 8
             var largest = Math.Simd.splat(maxCustomIndex)
             for blocks
@@ -97,25 +109,46 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
             entry += 2
         }
 
-        let names        = &faceData.postNames
         let customCount  = cast(u64, maxCustomIndex) - 257
         let customOffset = 34 + cast(u64, count) * 2
-        if customCount > postTable.count - customOffset do
+        if customCount > postTable.count - customOffset
+        {
             try fault(0x9B)
+        }
 
         names.postOffsets.allocator = Swag.getContext().allocator
         if customCount
         {
             names.postOffsets.reserve(customCount)
             let offsets = unwrap names.postOffsets.buffer
+            let bytes   = postTable.buffer
             var offset  = customOffset
-            for index in customCount
+            var checked = 0_u64
+
+            // Four Pascal strings fit within 1024 bytes, including their length bytes.
+            while customCount - checked >= 4 and postTable.count - offset >= 1024
             {
-                if offset >= postTable.count do
+                for lane in 4
+                {
+                    offsets[checked + lane] = cast(u32, offset)
+                    offset += cast(u64, bytes[offset]) + 1
+                }
+
+                checked += 4
+            }
+
+            for index in checked until customCount
+            {
+                if offset >= postTable.count
+                {
                     try fault(0x03)
+                }
+
                 let length = postTable.buffer[offset]
-                if length >= postTable.count - offset do
+                if length >= postTable.count - offset
+                {
                     try fault(0x03)
+                }
 
                 offsets[index] = cast(u32, offset)
                 offset         += cast(u32, length) + 1
@@ -132,17 +165,23 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
     if format == 0x00025000
     {
         let count = try readU16(postTable, 32)
-        if count != glyphCount do
+        if count != glyphCount
+        {
             try fault(0x9B)
+        }
+
         try assertRange(postTable, 34, count)
-        faceData.postNames.entries.reserve(glyphCount)
+        names.entries.reserve(glyphCount)
         for glyphIndex in glyphCount
         {
             let offset    = cast(s8, try readU8(postTable, 34 + glyphIndex))
             let nameIndex = cast(s32, glyphIndex) + cast(s32, offset)
-            if nameIndex < 0 or nameIndex >= MacStandardGlyphNames.count do
+            if nameIndex < 0 or nameIndex >= MacStandardGlyphNames.count
+            {
                 try fault(0x9B)
-            faceData.postNames.entries.add(MacStandardGlyphNames[cast(u32, nameIndex)])
+            }
+
+            names.entries.add(MacStandardGlyphNames[cast(u32, nameIndex)])
         }
     }
 }

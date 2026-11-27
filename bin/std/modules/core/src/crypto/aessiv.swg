@@ -7,7 +7,7 @@ public const AesSivTagSize = 16
 
 private func aesSivDouble(value: *[AesSivTagSize] u8)
 {
-    var carry = 0'u8
+    var carry = 0_u8
     for index in AesSivTagSize
     {
         let byteIndex = AesSivTagSize - 1 - index
@@ -16,34 +16,44 @@ private func aesSivDouble(value: *[AesSivTagSize] u8)
         carry = next
     }
 
-    value[][AesSivTagSize - 1] ^= 0x87'u8 & cast(u8, 0'u8 - carry)
+    value[][AesSivTagSize - 1] ^= 0x87_u8 & cast(u8, 0_u8 - carry)
 }
 
 private func aesSivComputeTag(macKey: const [..] u8, hasAssociatedData: bool, associatedData, plaintext: const [..] u8)->[AesSivTagSize] u8 fail
 {
+    var cmac = try AesCmac.create(macKey)
     var zero: [AesSivTagSize] u8
-    var value = try AesCmac.compute(macKey, zero)
+    try cmac.update(zero)
+    var value = try cmac.finalizeKeepingKey()
     defer Crypto.secureClear(value)
     if hasAssociatedData
     {
         aesSivDouble(&value)
-        var associatedTag = try AesCmac.compute(macKey, associatedData)
+        try cmac.update(associatedData)
+        var associatedTag = try cmac.finalizeKeepingKey()
         defer Crypto.secureClear(associatedTag)
-        for index in AesSivTagSize do
+        for index in AesSivTagSize
+        {
             value[index] ^= associatedTag[index]
+        }
     }
 
     if plaintext.count >= AesSivTagSize
     {
-        var cmac         = try AesCmac.create(macKey)
         let prefixLength = plaintext.count - AesSivTagSize
-        if prefixLength do
+        if prefixLength
+        {
             try cmac.update(plaintext[until prefixLength])
+        }
+
         var finalBlock: [AesSivTagSize] u8
         defer Crypto.secureClear(finalBlock)
         Swag.memcpy(&finalBlock[0], plaintext.buffer + prefixLength, AesSivTagSize)
-        for index in AesSivTagSize do
+        for index in AesSivTagSize
+        {
             finalBlock[index] ^= value[index]
+        }
+
         try cmac.update(finalBlock)
         var result = try cmac.finalize()
         return result
@@ -51,14 +61,20 @@ private func aesSivComputeTag(macKey: const [..] u8, hasAssociatedData: bool, as
 
     var finalBlock: [AesSivTagSize] u8
     defer Crypto.secureClear(finalBlock)
-    if plaintext.count do
+    if plaintext.count
+    {
         Swag.memcpy(&finalBlock[0], plaintext.buffer, plaintext.count)
+    }
+
     finalBlock[plaintext.count] = 0x80
     aesSivDouble(&value)
-    for index in AesSivTagSize do
+    for index in AesSivTagSize
+    {
         finalBlock[index] ^= value[index]
-    var result = try AesCmac.compute(macKey, finalBlock)
-    return result
+    }
+
+    try cmac.update(finalBlock)
+    return try cmac.finalize()
 }
 
 private func aesSivCrypt(key, associatedData: const [..] u8, hasAssociatedData: bool, input: const [..] u8, output: [..] u8, inputTag: const [..] u8, outputTag: [..] u8, decrypt: bool) fail
@@ -66,8 +82,10 @@ private func aesSivCrypt(key, associatedData: const [..] u8, hasAssociatedData: 
     if (key.count != 32 and key.count != 48 and key.count != 64) or
        input.count != output.count or
        (decrypt and inputTag.count != AesSivTagSize) or
-       (not decrypt and outputTag.count != AesSivTagSize) do
+       (not decrypt and outputTag.count != AesSivTagSize)
+    {
         fail Errors.BadParameterError{"AES-SIV needs a 32, 48, or 64-byte key, matching data lengths, and a 16-byte tag"}
+    }
 
     let keySize = key.count / 2
     let macKey  = key[0 until keySize]
@@ -79,17 +97,23 @@ private func aesSivCrypt(key, associatedData: const [..] u8, hasAssociatedData: 
         Swag.memcpy(&counter[0], inputTag.buffer, AesSivTagSize)
         counter[8]  &= 0x7F
         counter[12] &= 0x7F
-        var plaintext: Array'u8
+        var plaintext: Array!{u8}
         plaintext.resize(input.count)
         defer Crypto.secureClear(plaintext.toSlice())
         try aesCtrCrypt(ctrKey, counter, input, plaintext.toSlice())
         var expectedTag = try aesSivComputeTag(macKey, hasAssociatedData, associatedData, plaintext.toSlice())
         defer Crypto.secureClear(expectedTag)
         let valid = Crypto.constantTimeEqual(expectedTag, inputTag)
-        if not valid do
+        if not valid
+        {
             fail Errors.BadParameterError{"AES-SIV authentication failed"}
-        if input.count do
+        }
+
+        if input.count
+        {
             Swag.memcpy(output.buffer, plaintext.toSlice().buffer, input.count)
+        }
+
         return
     }
 
@@ -109,7 +133,7 @@ private func aesSivCrypt(key, associatedData: const [..] u8, hasAssociatedData: 
 // must not overlap ciphertext. AES-SIV is nonce-misuse resistant and requires no nonce.
 func aesSivEncrypt(key, plaintext: const [..] u8, ciphertext, tag: [..] u8) fail
 {
-    var empty: Array'u8
+    var empty: Array!{u8}
     try aesSivCrypt(key, empty.toSlice(), false, plaintext, ciphertext, empty.toSlice(), tag, false)
 }
 
@@ -119,7 +143,7 @@ func aesSivEncrypt(key, plaintext: const [..] u8, ciphertext, tag: [..] u8) fail
 // slice is still an authenticated associated-data item; use [[aesSivEncrypt]] for no item.
 func aesSivEncryptWithAssociatedData(key, associatedData, plaintext: const [..] u8, ciphertext, tag: [..] u8) fail
 {
-    var empty: Array'u8
+    var empty: Array!{u8}
     try aesSivCrypt(key, associatedData, true, plaintext, ciphertext, empty.toSlice(), tag, false)
 }
 
@@ -129,8 +153,8 @@ func aesSivEncryptWithAssociatedData(key, associatedData, plaintext: const [..] 
 // ciphertext length; exact in-place operation and disjoint slices are supported.
 func aesSivDecrypt(key, ciphertext, tag: const [..] u8, plaintext: [..] u8) fail
 {
-    var empty:    Array'u8
-    var emptyTag: Array'u8
+    var empty:    Array!{u8}
+    var emptyTag: Array!{u8}
     try aesSivCrypt(key, empty.toSlice(), false, ciphertext, plaintext, tag, emptyTag.toSlice(), true)
 }
 
@@ -140,6 +164,6 @@ func aesSivDecrypt(key, ciphertext, tag: const [..] u8, plaintext: [..] u8) fail
 // is written; output length must match ciphertext length.
 func aesSivDecryptWithAssociatedData(key, associatedData, ciphertext, tag: const [..] u8, plaintext: [..] u8) fail
 {
-    var emptyTag: Array'u8
+    var emptyTag: Array!{u8}
     try aesSivCrypt(key, associatedData, true, ciphertext, plaintext, tag, emptyTag.toSlice(), true)
 }

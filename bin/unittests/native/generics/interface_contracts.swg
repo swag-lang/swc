@@ -74,7 +74,7 @@ struct(T) Holder where (T is IValue)
 
     var value = Counter{42}
     Swag.require(readValue(&value) == 42)
-    Swag.require(readValue'Counter(&value) == 42)
+    Swag.require(readValue!{Counter}(&value) == 42)
     Swag.require(classify(value) == 1)
     Swag.require(classify(Missing{}) == 2)
 
@@ -92,7 +92,7 @@ struct(T) Holder where (T is IValue)
     Swag.require(readAndReset(&wrapper) == 21)
     Swag.require(wrapper.count == 0)
 
-    var holder: Holder'Counter = {value: Counter{12}}
+    var holder: Holder!{Counter} = {value: Counter{12}}
     Swag.require(readValue(&holder.value) == 12)
 
     let same = cast(IValue, pointer)

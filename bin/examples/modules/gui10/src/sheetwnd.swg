@@ -47,7 +47,7 @@ struct SheetView
 
     kind:   SheetKind
     filter: String
-    rows:   Array'SheetRow
+    rows:   Array!{SheetRow}
 
     // Ground each palette column is drawn over, so a swatch is judged against the surface
     // its own theme would put it on. Cached with the rows: building a palette is cheap,
@@ -74,8 +74,11 @@ impl SheetView
         }
 
         var height = 2 * SheetPadding
-        for &row in .rows do
+        for &row in .rows
+        {
             height += row.group ? GroupHeight : RowHeight
+        }
+
         .host.setScrollSize(0, height)
         .invalidate()
     }
@@ -97,8 +100,11 @@ impl SheetView
     // Whether `name` survives the filter, which matches anywhere in the name and ignores case.
     mtd const keeps(name: string)->bool
     {
-        if .filter.isEmpty() do
+        if .filter.isEmpty()
+        {
             return true
+        }
+
         return String.toLower(name).contains(.filter.toString())
     }
 
@@ -106,22 +112,32 @@ impl SheetView
     // shared roots that carry no prefix at all.
     func familyOf(name: string)->string
     {
-        var length = 0'u64
-        while length < name.count and name[length] != '_' do
+        var length = 0_u64
+        while length < name.count and name[length] != '_'
+        {
             length += 1
+        }
 
-        if length == name.count do
+        if length == name.count
+        {
             return "shared"
+        }
+
         return Swag.makeString(name.buffer, length)
     }
 
     // Adds the head of a family when the previous row belonged to another one.
     mtd openFamily(family: string)
     {
-        if .rows.count and .rows.back().group and .rows.back().name == family do
+        if .rows.count and .rows.back().group and .rows.back().name == family
+        {
             return
-        if .rows.count and not .rows.back().group and familyOf(.rows.back().name.toString()) == family do
+        }
+
+        if .rows.count and not .rows.back().group and familyOf(.rows.back().name.toString()) == family
+        {
             return
+        }
 
         with var row: SheetRow
         {
@@ -140,8 +156,11 @@ impl SheetView
         for field in type.fields
         {
             let name = unwrap field.name
-            if not .keeps(name) do
+            if not .keeps(name)
+            {
                 continue
+            }
+
             .openFamily(familyOf(name))
 
             let value = cast(const *Color, (cast([*] u8, colors) + field.offset))[]
@@ -170,13 +189,17 @@ impl SheetView
         for field in type.fields
         {
             let name = unwrap field.name
-            if not .keeps(name) do
+            if not .keeps(name)
+            {
                 continue
+            }
 
             var row: SheetRow
             row.name = name
-            for i in ThemeVariantCount do
+            for i in ThemeVariantCount
+            {
                 row.colors[i] = cast(const *Color, (cast([*] u8, &palettes[i]) + field.offset))[]
+            }
 
             .openFamily(familyOf(name))
             .rows.add(row)
@@ -191,8 +214,11 @@ impl SheetView
         for field in type.fields
         {
             let name = unwrap field.name
-            if not .keeps(name) do
+            if not .keeps(name)
+            {
                 continue
+            }
+
             .openFamily(familyOf(name))
 
             let raw = cast([*] u8, metrics) + field.offset
@@ -200,10 +226,14 @@ impl SheetView
             with var row: SheetRow
             {
                 .name = name
-                if field.pointedType == #typeof(f32) do
+                if field.pointedType == #typeof(f32)
+                {
                     .text = Format.toString("%", cast(const *f32, raw)[])
-                elif field.pointedType == #typeof(u32) do
+                }
+                else if field.pointedType == #typeof(u32)
+                {
                     .text = Format.toString("%", cast(const *u32, raw)[])
+                }
                 else
                 {
                     let vec = cast(const *Math.Vector4, raw)[]
@@ -266,14 +296,18 @@ impl IWnd for SheetView
         var y = client.y + SheetPadding
         for &row in .rows
         {
-            if y >= bottom do
+            if y >= bottom
+            {
                 break
+            }
 
             let height = row.group ? GroupHeight : RowHeight
             let rect   = Math.Rectangle{client.x + SheetPadding, y, width, height}
             y += height
-            if y <= top do
+            if y <= top
+            {
                 continue
+            }
 
             if row.group
             {
@@ -340,11 +374,11 @@ impl SheetWnd
 {
     func create(parent: *Wnd)->*SheetWnd
     {
-        with let result = Wnd.create'SheetWnd(parent, {})
+        with let result = Wnd.create!{SheetWnd}(parent, {})
         {
             .setFrameForm(.Square)
             .setFrameFlags(.Borders)
-            .view      = .createView'SheetView()
+            .view      = .createView!{SheetView}()
             .view.host = result
             .view.rebuild()
         }
@@ -358,7 +392,9 @@ impl IWnd for SheetWnd
     // A palette switch changes every swatch and every hexadecimal string on the sheet.
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged and (.view != null) do
+        if evt.kind == .ThemeChanged and (.view != null)
+        {
             .view.rebuild()
+        }
     }
 }

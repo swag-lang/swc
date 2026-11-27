@@ -8,7 +8,7 @@ const SurfaceId     = "swag.capture"
 
 // The message a second instance sends to the running one: open the image path it left on the
 // clipboard.
-const OpenImageMessage = 1'u32
+const OpenImageMessage = 1_u32
 
 #premain
 {
@@ -37,8 +37,10 @@ const OpenImageMessage = 1'u32
     if imageToOpen.count
     {
         Clipboard.addString(imageToOpen)
-        if Surface.sendCustomMessage(SurfaceId, OpenImageMessage, 0) do
+        if Surface.sendCustomMessage(SurfaceId, OpenImageMessage, 0)
+        {
             return
+        }
     }
 
     try Library.init()

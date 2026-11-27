@@ -83,10 +83,15 @@ private func renderConvexPolygon(clockwise: bool, usePolygonApi: bool)->Image
     painter.setAntialiased(true)
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
-    if usePolygonApi do
+    if usePolygonApi
+    {
         painter.fillPolygon(&path, Argb.Red)
-    else do
+    }
+    else
+    {
         painter.fillPath(&path, Argb.Red)
+    }
+
     painter.end()
     return renderCpu(36, 38, &painter)
 }
@@ -138,10 +143,15 @@ private func renderConcavePolygon(clockwise: bool, usePolygonApi: bool)->Image
     painter.setAntialiased(true)
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
-    if usePolygonApi do
+    if usePolygonApi
+    {
         painter.fillPolygon(&path, Argb.Red)
-    else do
+    }
+    else
+    {
         painter.fillPath(&path, Argb.Red)
+    }
+
     painter.end()
     return renderCpu(36, 36, &painter)
 }
@@ -242,9 +252,12 @@ private func renderConcavePolygon(clockwise: bool, usePolygonApi: bool)->Image
         var paths = ringPathList(true, true)
         preparer.prepare(&paths, 1, .EvenOdd)
         let normalized = paths.normalizedFill(.EvenOdd, byDirection: false)
-        var triangles  = 0'u64
-        for path in normalized.paths do
+        var triangles  = 0_u64
+        for path in normalized.paths
+        {
             triangles += path.triangles.vertices.count
+        }
+
         Swag.require(triangles != 0)
         let last   = normalized.paths[normalized.paths.count - 1]
         let cached = last.triangles.vertices.buffer

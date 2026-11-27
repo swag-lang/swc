@@ -4,8 +4,10 @@ using Swag, Core, Core.Errors
 
 private func checkFAudio(code: u32, operation: string) fail
 {
-    if code != 0 do
+    if code != 0
+    {
         fail SystemError{operation, errorID: code}
+    }
 }
 
 struct FAudioDriverNative
@@ -43,8 +45,11 @@ impl FAudioDriverNative
     private mtd(T) symbol(name: string)->T fail
     {
         let address = .library.symbol(name)
-        if not address do
+        if not address
+        {
             fail SystemError{"required FAudio entry point is unavailable"}
+        }
+
         return cast(T, address)
     }
 
@@ -52,26 +57,26 @@ impl FAudioDriverNative
     {
         .library = try NativeLibrary.load("libFAudio.so.0")
         defer #fail .destroyFAudio()
-        .FAudio_SetEngineProcedureEXT         = try .symbol'FAudio.FAudio_SetEngineProcedureEXT_fn("FAudio_SetEngineProcedureEXT")
-        .FAudioCreate                         = try .symbol'FAudio.FAudioCreate_fn("FAudioCreate")
-        .FAudio_Release                       = try .symbol'FAudio.FAudio_Release_fn("FAudio_Release")
-        .FAudio_StopEngine                    = try .symbol'FAudio.FAudio_StopEngine_fn("FAudio_StopEngine")
-        .FAudio_CreateMasteringVoice          = try .symbol'FAudio.FAudio_CreateMasteringVoice_fn("FAudio_CreateMasteringVoice")
-        .FAudio_CreateSourceVoice             = try .symbol'FAudio.FAudio_CreateSourceVoice_fn("FAudio_CreateSourceVoice")
-        .FAudio_CreateSubmixVoice             = try .symbol'FAudio.FAudio_CreateSubmixVoice_fn("FAudio_CreateSubmixVoice")
-        .FAudioVoice_DestroyVoice             = try .symbol'FAudio.FAudioVoice_DestroyVoice_fn("FAudioVoice_DestroyVoice")
-        .FAudioVoice_SetVolume                = try .symbol'FAudio.FAudioVoice_SetVolume_fn("FAudioVoice_SetVolume")
-        .FAudioVoice_GetVolume                = try .symbol'FAudio.FAudioVoice_GetVolume_fn("FAudioVoice_GetVolume")
-        .FAudioVoice_SetOutputMatrix          = try .symbol'FAudio.FAudioVoice_SetOutputMatrix_fn("FAudioVoice_SetOutputMatrix")
-        .FAudioVoice_GetVoiceDetails          = try .symbol'FAudio.FAudioVoice_GetVoiceDetails_fn("FAudioVoice_GetVoiceDetails")
-        .FAudioVoice_SetOutputVoices          = try .symbol'FAudio.FAudioVoice_SetOutputVoices_fn("FAudioVoice_SetOutputVoices")
-        .FAudioSourceVoice_Start              = try .symbol'FAudio.FAudioSourceVoice_Start_fn("FAudioSourceVoice_Start")
-        .FAudioSourceVoice_Stop               = try .symbol'FAudio.FAudioSourceVoice_Stop_fn("FAudioSourceVoice_Stop")
-        .FAudioSourceVoice_FlushSourceBuffers = try .symbol'FAudio.FAudioSourceVoice_FlushSourceBuffers_fn("FAudioSourceVoice_FlushSourceBuffers")
-        .FAudioSourceVoice_SubmitSourceBuffer = try .symbol'FAudio.FAudioSourceVoice_SubmitSourceBuffer_fn("FAudioSourceVoice_SubmitSourceBuffer")
-        .FAudioSourceVoice_GetState           = try .symbol'FAudio.FAudioSourceVoice_GetState_fn("FAudioSourceVoice_GetState")
-        .FAudioSourceVoice_SetFrequencyRatio  = try .symbol'FAudio.FAudioSourceVoice_SetFrequencyRatio_fn("FAudioSourceVoice_SetFrequencyRatio")
-        .FAudioSourceVoice_GetFrequencyRatio  = try .symbol'FAudio.FAudioSourceVoice_GetFrequencyRatio_fn("FAudioSourceVoice_GetFrequencyRatio")
+        .FAudio_SetEngineProcedureEXT         = try .symbol!{FAudio.FAudio_SetEngineProcedureEXT_fn}("FAudio_SetEngineProcedureEXT")
+        .FAudioCreate                         = try .symbol!{FAudio.FAudioCreate_fn}("FAudioCreate")
+        .FAudio_Release                       = try .symbol!{FAudio.FAudio_Release_fn}("FAudio_Release")
+        .FAudio_StopEngine                    = try .symbol!{FAudio.FAudio_StopEngine_fn}("FAudio_StopEngine")
+        .FAudio_CreateMasteringVoice          = try .symbol!{FAudio.FAudio_CreateMasteringVoice_fn}("FAudio_CreateMasteringVoice")
+        .FAudio_CreateSourceVoice             = try .symbol!{FAudio.FAudio_CreateSourceVoice_fn}("FAudio_CreateSourceVoice")
+        .FAudio_CreateSubmixVoice             = try .symbol!{FAudio.FAudio_CreateSubmixVoice_fn}("FAudio_CreateSubmixVoice")
+        .FAudioVoice_DestroyVoice             = try .symbol!{FAudio.FAudioVoice_DestroyVoice_fn}("FAudioVoice_DestroyVoice")
+        .FAudioVoice_SetVolume                = try .symbol!{FAudio.FAudioVoice_SetVolume_fn}("FAudioVoice_SetVolume")
+        .FAudioVoice_GetVolume                = try .symbol!{FAudio.FAudioVoice_GetVolume_fn}("FAudioVoice_GetVolume")
+        .FAudioVoice_SetOutputMatrix          = try .symbol!{FAudio.FAudioVoice_SetOutputMatrix_fn}("FAudioVoice_SetOutputMatrix")
+        .FAudioVoice_GetVoiceDetails          = try .symbol!{FAudio.FAudioVoice_GetVoiceDetails_fn}("FAudioVoice_GetVoiceDetails")
+        .FAudioVoice_SetOutputVoices          = try .symbol!{FAudio.FAudioVoice_SetOutputVoices_fn}("FAudioVoice_SetOutputVoices")
+        .FAudioSourceVoice_Start              = try .symbol!{FAudio.FAudioSourceVoice_Start_fn}("FAudioSourceVoice_Start")
+        .FAudioSourceVoice_Stop               = try .symbol!{FAudio.FAudioSourceVoice_Stop_fn}("FAudioSourceVoice_Stop")
+        .FAudioSourceVoice_FlushSourceBuffers = try .symbol!{FAudio.FAudioSourceVoice_FlushSourceBuffers_fn}("FAudioSourceVoice_FlushSourceBuffers")
+        .FAudioSourceVoice_SubmitSourceBuffer = try .symbol!{FAudio.FAudioSourceVoice_SubmitSourceBuffer_fn}("FAudioSourceVoice_SubmitSourceBuffer")
+        .FAudioSourceVoice_GetState           = try .symbol!{FAudio.FAudioSourceVoice_GetState_fn}("FAudioSourceVoice_GetState")
+        .FAudioSourceVoice_SetFrequencyRatio  = try .symbol!{FAudio.FAudioSourceVoice_SetFrequencyRatio_fn}("FAudioSourceVoice_SetFrequencyRatio")
+        .FAudioSourceVoice_GetFrequencyRatio  = try .symbol!{FAudio.FAudioSourceVoice_GetFrequencyRatio_fn}("FAudioSourceVoice_GetFrequencyRatio")
 
         // FAudio calls back on its native mixer thread. Give it separate scratch/error storage.
         .callbackContext = Swag.getContext()[]
@@ -109,11 +114,17 @@ impl FAudioDriverNative
     mtd destroyFAudio()
     {
         .stopEngineFAudio()
-        if .master do
+        if .master
+        {
             .FAudioVoice_DestroyVoice(.master)
+        }
+
         .master = null
-        if .engine do
+        if .engine
+        {
             discard .FAudio_Release(.engine)
+        }
+
         .engine = null
         .callbackContext.tempAllocator.release()
         .callbackContext.releaseErrorStorage()
@@ -138,8 +149,11 @@ private func runFAudioMixer(procedure: FAudio.FAudioEngineCallEXT, engine: *FAud
 {
     let native  = cast(*FAudioDriverNative, user)
     let context = Swag.getContext()
-    if context == null or context.allocator.buffer == null do
+    if context == null or context.allocator.buffer == null
+    {
         Swag.setContext(&native.callbackContext)
+    }
+
     native.mixerMutex.lock()
     procedure(engine, output)
     native.mixerMutex.unlock()
@@ -158,11 +172,17 @@ private func ignoreFAudioStart(_: *FAudio.FAudioVoiceCallback, _: u32) {}
 private func onFAudioBufferEnd(_: *FAudio.FAudioVoiceCallback, context: *void?)
 {
     let voice = cast(*Voice?, context)
-    if not voice or voice.hasState(.PendingDestroy) do
+    if not voice or voice.hasState(.PendingDestroy)
+    {
         return
+    }
+
     let current = Swag.getContext()
-    if current == null or current.allocator.buffer == null do
+    if current == null or current.allocator.buffer == null
+    {
         Swag.setContext(&g_Driver.fAudio.callbackContext)
+    }
+
     g_Driver.updateVoice(voice, .UpdateBuffers)
 }
 
@@ -171,10 +191,16 @@ impl Voice
     func createFAudio(voice: *Voice, createFlags = VoiceCreateFlags.Default) fail
     {
         let file = unwrap voice.file
-        if not file.channelCount or file.channelCount > 8 do
+        if not file.channelCount or file.channelCount > 8
+        {
             fail BadParameterError{"FAudio supports one through eight source channels"}
-        if file.sampleRate < 1000 or file.sampleRate > 200000 do
+        }
+
+        if file.sampleRate < 1000 or file.sampleRate > 200000
+        {
             fail BadParameterError{"FAudio source sample rate must be between 1000 and 200000 Hz"}
+        }
+
         var format: FAudio.FAudioWaveFormatExtensible
         format.Format.wFormatTag     = FAudio.FAUDIO_FORMAT_EXTENSIBLE
         format.Format.nChannels      = cast(u16, file.channelCount)
@@ -200,32 +226,44 @@ impl Voice
         format.Samples.wValidBitsPerSample = format.Format.wBitsPerSample
         format.Format.nBlockAlign          = cast(u16, file.channelCount * (format.Format.wBitsPerSample / 8))
         format.Format.nAvgBytesPerSec      = file.sampleRate * format.Format.nBlockAlign
-        let flags  = createFlags.has(.PitchControl) ? 0'u32 : FAudio.FAUDIO_VOICE_NOPITCH
+        let flags  = createFlags.has(.PitchControl) ? 0_u32 : FAudio.FAUDIO_VOICE_NOPITCH
         let native = &g_Driver.fAudio
         try checkFAudio(native.FAudio_CreateSourceVoice(unwrap native.engine, &voice.handle, &format.Format, flags, FAudio.FAUDIO_DEFAULT_FREQ_RATIO, &native.callbacks, null, null), "cannot create FAudio source voice")
     }
 
     mtd destroyFAudio()
     {
-        if .handle do
+        if .handle
+        {
             g_Driver.fAudio.FAudioVoice_DestroyVoice(.handle)
+        }
+
         .handle = null
     }
 
     mtd updateFAudio()->bool fail
     {
-        if not .handle do
+        if not .handle
+        {
             return false
+        }
+
         let native = &g_Driver.fAudio
         var state: FAudio.FAudioVoiceState
         native.FAudioSourceVoice_GetState(.handle, &state, 0)
         while state.BuffersQueued < NumDecodedBuffers - 1
         {
             let {buffer, size} = try .readBuffer()
-            if not size do
+            if not size
+            {
                 break
-            if size > Swag.U32.Max do
+            }
+
+            if size > Swag.U32.Max
+            {
                 fail OverflowError{"audio buffer exceeds the native size limit"}
+            }
+
             let submitted = FAudio.FAudioBuffer{AudioBytes: cast(u32, size),
                                                 pAudioData: cast(const [*]u8?, buffer), pContext: me}
             try checkFAudio(native.FAudioSourceVoice_SubmitSourceBuffer(.handle, &submitted, null),
@@ -245,21 +283,28 @@ impl Voice
     mtd stopFAudio(batchId: u32 = 0) fail
     {
         Sync.scopedLock(&g_Driver.fAudio.mixerMutex)
-        if .handle do
+        if .handle
+        {
             try checkFAudio(g_Driver.fAudio.FAudioSourceVoice_Stop(.handle, 0, batchId), "cannot pause FAudio voice")
+        }
     }
 
     mtd resetFAudio() fail
     {
         Sync.scopedLock(&g_Driver.fAudio.mixerMutex)
-        if .handle do
+        if .handle
+        {
             try checkFAudio(g_Driver.fAudio.FAudioSourceVoice_FlushSourceBuffers(.handle), "cannot flush FAudio voice")
+        }
     }
 
     mtd playedFramesFAudio()->u64
     {
-        if not .handle do
+        if not .handle
+        {
             return 0
+        }
+
         var state: FAudio.FAudioVoiceState
         g_Driver.fAudio.FAudioSourceVoice_GetState(.handle, &state, 0)
         return state.SamplesPlayed
@@ -281,8 +326,11 @@ impl Voice
     mtd setFrequencyRatioFAudio(ratio: f32, batchId: u32 = 0) fail
     {
         Sync.scopedLock(&g_Driver.fAudio.mixerMutex)
-        if not Math.isFinite(ratio) or ratio < 1.0 / 1024.0 or ratio > FAudio.FAUDIO_DEFAULT_FREQ_RATIO do
+        if not Math.isFinite(ratio) or ratio < 1.0 / 1024.0 or ratio > FAudio.FAUDIO_DEFAULT_FREQ_RATIO
+        {
             fail BadParameterError{"FAudio frequency ratio must be between 1/1024 and 2"}
+        }
+
         try checkFAudio(g_Driver.fAudio.FAudioSourceVoice_SetFrequencyRatio(unwrap .handle, ratio, batchId),
                         "cannot set FAudio voice frequency ratio")
     }
@@ -299,20 +347,30 @@ impl Voice
         let native = &g_Driver.fAudio
         var details: FAudio.FAudioVoiceDetails
         native.FAudioVoice_GetVoiceDetails(cast(*FAudio.FAudioVoice, unwrap native.master), &details)
-        if details.InputChannels != 2 do
+        if details.InputChannels != 2
+        {
             fail BadParameterError{"stereo pan requires a stereo output route"}
+        }
     }
 
     mtd setPanFAudio(pan: f32, batchId: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
-        if pan == 0 and .panValue == 0 do
+        }
+
+        if pan == 0 and .panValue == 0
+        {
             return
+        }
+
         let file = unwrap .file
         let sourceChannels = file.numChannels()
-        if sourceChannels == 0 or sourceChannels > 2 do
+        if sourceChannels == 0 or sourceChannels > 2
+        {
             fail BadParameterError{"stereo pan supports mono and stereo sources"}
+        }
 
         let matrix = try voicePanMatrix(sourceChannels, pan)
 
@@ -339,11 +397,17 @@ impl Voice
 
     mtd setRoutingFAudio(buses: const [..] *Bus) fail
     {
-        if buses.count > 16 do
+        if buses.count > 16
+        {
             fail BadParameterError{"too many output buses"}
+        }
+
         var descriptors: [16] FAudio.FAudioSendDescriptor
-        for i in buses.count do
+        for i in buses.count
+        {
             descriptors[i].pOutputVoice = buses[i].handle
+        }
+
         var sends = FAudio.FAudioVoiceSends{SendCount: cast(u32, buses.count), pSends: &descriptors[0]}
         try checkFAudio(g_Driver.fAudio.FAudioVoice_SetOutputVoices(unwrap .handle,
                                                                     buses.count ? &sends : null),
@@ -355,14 +419,20 @@ impl Bus
 {
     func createFAudio(bus: *Bus, numChannels: u32, parent: *Bus? = null) fail
     {
-        if numChannels > 8 do
+        if numChannels > 8
+        {
             fail BadParameterError{"audio bus supports at most 8 channels"}
+        }
+
         var descriptor: FAudio.FAudioSendDescriptor
         var sends = FAudio.FAudioVoiceSends{SendCount: 1, pSends: &descriptor}
         let stage = audioBusProcessingStage(parent)
 
-        if parent do
+        if parent
+        {
             descriptor.pOutputVoice = parent.handle
+        }
+
         let native = &g_Driver.fAudio
         try checkFAudio(native.FAudio_CreateSubmixVoice(unwrap native.engine,
                                                         &bus.handle,
@@ -377,8 +447,11 @@ impl Bus
 
     mtd destroyFAudio()
     {
-        if .handle do
+        if .handle
+        {
             g_Driver.fAudio.FAudioVoice_DestroyVoice(.handle)
+        }
+
         .handle = null
     }
 

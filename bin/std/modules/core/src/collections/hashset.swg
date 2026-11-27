@@ -22,9 +22,9 @@ struct(K) HashSetEntry
 struct(K) HashSet
 {
     // Special hash values to indicate the state of a slot in the table.
-    const HASH_FREE    = 0'u32
-    const HASH_DELETED = 1'u32
-    const HASH_FIRST   = 2'u32
+    const HASH_FREE    = 0_u32
+    const HASH_DELETED = 1_u32
+    const HASH_FIRST   = 2_u32
 
     internal allocator: IAllocator?
 
@@ -50,7 +50,7 @@ struct(K) HashSet
 #[Swag.Opaque]
 struct(K) ReversedHashSet
 {
-    source: const *HashSet'K
+    source: const *HashSet!{K}
 }
 
 impl ReversedHashSet
@@ -65,31 +65,41 @@ impl ReversedHashSet
         for offset in .source.capacity
         {
             let tableIndex = .source.capacity - offset - 1
-            if table[tableIndex].hash < 2'u32 do
+            if table[tableIndex].hash < 2_u32
+            {
                 continue
+            }
 
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) do
+                }
+                else if Reflection.isStruct(K)
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             key = table[tableIndex].key,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
 
             remain -= 1
-            if not remain do
+            if not remain
+            {
                 break
+            }
         }
     }
 }
@@ -98,28 +108,33 @@ impl HashSet
 {
     private func normalizeCapacity(newCapacity: u64)->u64
     {
-        let target      = Math.max(newCapacity, 32'u64)
-        let maxCapacity = Swag.U64.Max / #sizeof(HashSetEntry'(K))
-        if target > maxCapacity do
+        let target      = Math.max(newCapacity, 32_u64)
+        let maxCapacity = Swag.U64.Max / #sizeof(HashSetEntry!{K})
+        if target > maxCapacity
+        {
             Swag.panic("HashSet capacity exceeds addressable memory", #curlocation)
+        }
 
-        var result = 32'u64
+        var result = 32_u64
         while result < target
         {
-            if result > maxCapacity / 2 do
+            if result > maxCapacity / 2
+            {
                 Swag.panic("HashSet capacity exceeds addressable memory", #curlocation)
+            }
+
             result *= 2
         }
 
         return result
     }
 
-    private mtd tablePtr()->[*] HashSetEntry => .table orelse cast([*] HashSetEntry'(K), 1'u64)
+    private mtd tablePtr()->[*] HashSetEntry => .table orelse cast([*] HashSetEntry!{K}, 1_u64)
 
     private mtd const constTablePtr()->const [*] HashSetEntry
     {
-        let table = .table orelse cast([*] HashSetEntry'(K), 1'u64)
-        return cast(const [*] HashSetEntry'(K), table)
+        let table = .table orelse cast([*] HashSetEntry!{K}, 1_u64)
+        return cast(const [*] HashSetEntry!{K}, table)
     }
 
     // Returns the number of elements in the set.
@@ -146,10 +161,12 @@ impl HashSet
             return
         }
 
-        var replacement: HashSet'K
+        var replacement: HashSet!{K}
         replacement.allocator = .allocator
-        for v in slice do
+        for v in slice
+        {
             replacement.add(v)
+        }
 
         Core.swap(me, &replacement)
     }
@@ -159,28 +176,38 @@ impl HashSet
         // Gives a copied set its own slots holding copies of the keys.
         mtd opPostCopy()
         {
-            if not .table do
+            if not .table
+            {
                 return
+            }
 
-            if not .allocator do
+            if not .allocator
+            {
                 .allocator = Swag.getContext().allocator
+            }
 
-            let storageBytes = .capacity * #sizeof(HashSetEntry'(K))
+            let storageBytes = .capacity * #sizeof(HashSetEntry!{K})
             let oldTable     = .tablePtr()
-            let newTable     = cast([*] HashSetEntry'(K),
-                                    Memory.alloc(storageBytes, .allocator, #alignof(HashSetEntry'(K))))
-            #static if Reflection.hasDynamicStorage(HashSetEntry'(K)) do
+            let newTable     = cast([*] HashSetEntry!{K},
+                                    Memory.alloc(storageBytes, .allocator, #alignof(HashSetEntry!{K})))
+            #static if Reflection.hasDynamicStorage(HashSetEntry!{K})
+            {
                 Swag.init(newTable, .capacity)
-            else do
+            }
+            else
+            {
                 Memory.clear(newTable, storageBytes)
+            }
 
             #static if Reflection.hasPostCopy(K)
             {
                 for i in .capacity
                 {
                     let hashVal = oldTable[i].hash
-                    if hashVal < HashSet.HASH_DELETED do
+                    if hashVal < HashSet.HASH_DELETED
+                    {
                         continue
+                    }
 
                     newTable[i].hash = hashVal
                     newTable[i].key  = #nodrop oldTable[i].key
@@ -202,44 +229,56 @@ impl HashSet
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key))
     {
-        if not .count do
+        if not .count
+        {
             return
+        }
 
         let table  = .constTablePtr()
         var remain = .count
         scope(Up)
         for tableIndex in .capacity
         {
-            if table[tableIndex].hash < HashSet.HASH_FIRST do
+            if table[tableIndex].hash < HashSet.HASH_FIRST
+            {
                 continue
+            }
 
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) do
+                }
+                else if Reflection.isStruct(K)
+                {
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             key = table[tableIndex].key,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
 
             remain -= 1
-            if not remain do
+            if not remain
+            {
                 break
+            }
         }
     }
 
     // Returns an immutable zero-allocation view that scans occupied slots in reverse order.
-    mtd const reversed()->ReversedHashSet'K => {source: me}
+    mtd const reversed()->ReversedHashSet!{K} => {source: me}
 
     // Returns the hash of `key`, lifted above the reserved free and deleted slot markers.
     //
@@ -256,8 +295,11 @@ impl HashSet
     // Drops every key, releases the slots, and leaves the set empty.
     mtd free()
     {
-        if not .table do
+        if not .table
+        {
             return
+        }
+
         let table = .tablePtr()
 
         // Deleted slots still hold their key until they are reused.
@@ -265,12 +307,14 @@ impl HashSet
         {
             for i in .capacity
             {
-                if table[i].hash >= HashSet.HASH_DELETED do
+                if table[i].hash >= HashSet.HASH_DELETED
+                {
                     Swag.drop(&table[i].key)
+                }
             }
         }
 
-        Memory.free(table, .capacity * #sizeof(HashSetEntry'(K)), .allocator)
+        Memory.free(table, .capacity * #sizeof(HashSetEntry!{K}), .allocator)
         .table = null
         .count, .capacity, .deleted = 0
     }
@@ -278,8 +322,10 @@ impl HashSet
     // Doubles the capacity when the used slots, deleted ones included, reach half of it.
     private mtd grow()
     {
-        if .growsOnInsert() do
-            .reserve(.capacity == 0 ? 32'u64 : .capacity * 2)
+        if .growsOnInsert()
+        {
+            .reserve(.capacity == 0 ? 32_u64 : .capacity * 2)
+        }
     }
 
     // Returns whether the next insertion grows, and so rehashes, the set.
@@ -295,33 +341,44 @@ impl HashSet
     // current capacity do nothing. A request that cannot fit in an addressable allocation panics.
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
+        }
 
         let reqCapacity = normalizeCapacity(newCapacity)
-        if reqCapacity <= .capacity do
+        if reqCapacity <= .capacity
+        {
             return
+        }
 
         let oldTable         = .table
-        let newCapacityBytes = reqCapacity * #sizeof(HashSetEntry'(K))
+        let newCapacityBytes = reqCapacity * #sizeof(HashSetEntry!{K})
 
-        if not .allocator do
+        if not .allocator
+        {
             .allocator = Swag.getContext().allocator
-        .table = cast([*] HashSetEntry'(K),
-                      Memory.alloc(newCapacityBytes, .allocator, #alignof(HashSetEntry'(K))))
+        }
+
+        .table = cast([*] HashSetEntry!{K},
+                      Memory.alloc(newCapacityBytes, .allocator, #alignof(HashSetEntry!{K})))
         .count, .deleted = 0
         let table = .tablePtr()
 
         // Every slot starts free, which is a zero hash.
-        #static if Reflection.hasDynamicStorage(HashSetEntry'(K)) do
+        #static if Reflection.hasDynamicStorage(HashSetEntry!{K})
+        {
             Swag.init(table, reqCapacity)
-        else do
+        }
+        else
+        {
             Memory.clear(table, newCapacityBytes)
+        }
 
         // Relocate the live keys into the new slots and drop the deleted ones.
         let oldCapacity = .capacity
         .capacity = reqCapacity
-        let oldTablePtr = oldTable orelse cast([*] HashSetEntry'(K), 1'u64)
+        let oldTablePtr = oldTable orelse cast([*] HashSetEntry!{K}, 1_u64)
         for i in oldCapacity
         {
             let h = oldTablePtr[i].hash
@@ -329,13 +386,13 @@ impl HashSet
             {
                 .emplaceInternal(h, &oldTablePtr[i].key)
             }
-            elif h == HashSet.HASH_DELETED
+            else if h == HashSet.HASH_DELETED
             {
                 Swag.drop(&oldTablePtr[i].key)
             }
         }
 
-        Memory.free(oldTable, oldCapacity * #sizeof(HashSetEntry'(K)), .allocator)
+        Memory.free(oldTable, oldCapacity * #sizeof(HashSetEntry!{K}), .allocator)
     }
 
     // Returns the slot of `key`, or the slot where it would be inserted, probing linearly from `idx`.
@@ -358,10 +415,12 @@ impl HashSet
                 let entryHash = table[index].hash
                 if entryHash == hashVal
                 {
-                    if table[index].key == key[] do
+                    if table[index].key == key[]
+                    {
                         return index
+                    }
                 }
-                elif entryHash == HashSet.HASH_FREE
+                else if entryHash == HashSet.HASH_FREE
                 {
                     return index
                 }
@@ -376,15 +435,22 @@ impl HashSet
             let entryHash = table[index].hash
             if entryHash == hashVal
             {
-                if table[index].key == key[] do
+                if table[index].key == key[]
+                {
                     return index
+                }
             }
-            elif entryHash < HashSet.HASH_FIRST
+            else if entryHash < HashSet.HASH_FIRST
             {
-                if entryHash == HashSet.HASH_FREE do
+                if entryHash == HashSet.HASH_FREE
+                {
                     return firstDeleted != Swag.U64.Max ? firstDeleted : index
-                if firstDeleted == Swag.U64.Max do
+                }
+
+                if firstDeleted == Swag.U64.Max
+                {
                     firstDeleted = index
+                }
             }
 
             index = (index + 1) & mask
@@ -410,8 +476,10 @@ impl HashSet
         scope
         {
             let table = .tablePtr()
-            if table[index].hash >= HashSet.HASH_FIRST do
+            if table[index].hash >= HashSet.HASH_FIRST
+            {
                 return table + index
+            }
         }
 
         // Growing rehashes the set a struct `key` may live in, so take it out first.
@@ -437,8 +505,11 @@ impl HashSet
         }
         else
         {
-            if table[index].hash == HashSet.HASH_DELETED do
+            if table[index].hash == HashSet.HASH_DELETED
+            {
                 .deleted -= 1
+            }
+
             table[index].key = #fwd key
         }
 
@@ -457,8 +528,10 @@ impl HashSet
         let table = .tablePtr()
 
         index = .getNewIndex(key, index, hashVal)
-        if table[index].hash >= HashSet.HASH_FIRST do
+        if table[index].hash >= HashSet.HASH_FIRST
+        {
             return table + index
+        }
 
         if table[index].hash == HashSet.HASH_FREE
         {
@@ -466,8 +539,11 @@ impl HashSet
         }
         else
         {
-            if table[index].hash == HashSet.HASH_DELETED do
+            if table[index].hash == HashSet.HASH_DELETED
+            {
                 .deleted -= 1
+            }
+
             Swag.drop(&table[index].key)
             table[index].key = #relocate key[]
         }
@@ -499,13 +575,16 @@ impl HashSet
             for
             {
                 let entryHash = table[index].hash
-                if entryHash == HashSet.HASH_FREE do
+                if entryHash == HashSet.HASH_FREE
+                {
                     break
+                }
+
                 if entryHash == HashSet.HASH_DELETED and firstDeleted == Swag.U64.Max
                 {
                     firstDeleted = index
                 }
-                elif entryHash == hashVal and table[index].key == key
+                else if entryHash == hashVal and table[index].key == key
                 {
                     table[index].hash = HashSet.HASH_DELETED
                     .count   -= 1
@@ -556,8 +635,10 @@ impl HashSet
     // grows, or when it is cleared or freed.
     mtd remove(key: K)
     {
-        if not .table do
+        if not .table
+        {
             return
+        }
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
@@ -581,8 +662,10 @@ impl HashSet
     // Returns whether the set contains `key`.
     mtd const contains(key: K)->bool
     {
-        if not .table do
+        if not .table
+        {
             return false
+        }
 
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
@@ -591,8 +674,11 @@ impl HashSet
 
         while table[index].hash
         {
-            if table[index].hash == hashVal and table[index].key == key do
+            if table[index].hash == hashVal and table[index].key == key
+            {
                 return true
+            }
+
             index = (index + 1) & mask
         }
 
@@ -609,18 +695,27 @@ impl HashSet
             for i in .capacity
             {
                 let hashVal = table[i].hash
-                if hashVal >= HashSet.HASH_DELETED do
+                if hashVal >= HashSet.HASH_DELETED
+                {
                     Swag.drop(&table[i].key)
+                }
 
-                if hashVal == HashSet.HASH_DELETED do
+                if hashVal == HashSet.HASH_DELETED
+                {
                     .deleted -= 1
-                elif hashVal >= HashSet.HASH_FIRST do
+                }
+                else if hashVal >= HashSet.HASH_FIRST
+                {
                     .count -= 1
+                }
+
                 table[i].hash = HashSet.HASH_FREE
 
                 // The remaining slots are already free once no live or deleted slot is left.
-                if not .count and not .deleted do
+                if not .count and not .deleted
+                {
                     break
+                }
             }
         }
     }
@@ -634,10 +729,13 @@ impl StrConv.IConvert for HashSet
         var first = true
         for k in me
         {
-            if not first do
+            if not first
+            {
                 buf.addBytes(", ")
+            }
+
             first = false
-            StrConv.convert'K(buf, k, convFormat, strFormat)
+            StrConv.convert!{K}(buf, k, convFormat, strFormat)
         }
 
         buf.addBytes("]")

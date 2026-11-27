@@ -55,16 +55,20 @@ impl DriverNative
             {
                 try .xAudio2.createXAudio2()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .fAudio.createFAudio()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         default:
             fail UnsupportedFormatError{"audio driver is not available"}
@@ -138,16 +142,20 @@ impl DriverNative
             {
                 try .xAudio2.setOutputVolumeXAudio2(volume)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .fAudio.setOutputVolumeFAudio(volume)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -182,14 +190,16 @@ impl DriverNative
 
     func resolveKind(kind: DriverKind)->DriverKind
     {
-        if kind != .Default do
+        if kind != .Default
+        {
             return kind
+        }
 
         #static if #os == Swag.TargetOs.Windows
         {
             return .XAudio2
         }
-        elif #os == Swag.TargetOs.Linux
+        else if #os == Swag.TargetOs.Linux
         {
             return .FAudio
         }
@@ -214,16 +224,20 @@ impl Voice
             {
                 try voice.createXAudio2(createFlags)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try voice.createFAudio(createFlags)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         default:
             fail UnsupportedFormatError{"audio driver is not available"}
@@ -268,16 +282,20 @@ impl Voice
             {
                 return try .updateXAudio2()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 return try .updateFAudio()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -298,16 +316,20 @@ impl Voice
             {
                 try .playXAudio2(batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .playFAudio(batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -326,16 +348,20 @@ impl Voice
             {
                 try .stopXAudio2(batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .stopFAudio(batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -355,16 +381,20 @@ impl Voice
             {
                 try .resetXAudio2()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .resetFAudio()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -379,12 +409,16 @@ impl Voice
             return .playedFramesNoSound()
 
         case .XAudio2:
-            #static if #os == Swag.TargetOs.Windows do
+            #static if #os == Swag.TargetOs.Windows
+            {
                 return .playedFramesXAudio2()
+            }
 
         case .FAudio:
-            #static if #os == Swag.TargetOs.Linux do
+            #static if #os == Swag.TargetOs.Linux
+            {
                 return .playedFramesFAudio()
+            }
 
         case .Default:
             break
@@ -395,8 +429,11 @@ impl Voice
 
     mtd setPanNative(pan: f32, batchId: u32 = 0) fail
     {
-        if pan == 0 and .panValue == 0 do
+        if pan == 0 and .panValue == 0
+        {
             return
+        }
+
         switch g_Driver.kind
         {
         case .NoSound:
@@ -407,16 +444,20 @@ impl Voice
             {
                 try .setPanXAudio2(pan, batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .setPanFAudio(pan, batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -425,18 +466,26 @@ impl Voice
 
     mtd validatePanRouteNative(buses: const [..] *Bus) fail
     {
-        if .panValue == 0 do
+        if .panValue == 0
+        {
             return
+        }
+
         let file = unwrap .file
         let sourceChannels = file.numChannels()
-        if sourceChannels == 0 or sourceChannels > 2 do
+        if sourceChannels == 0 or sourceChannels > 2
+        {
             fail BadParameterError{"stereo pan supports mono and stereo sources"}
+        }
+
         if buses.count
         {
             for bus in buses
             {
-                if bus.channelCount != 2 do
+                if bus.channelCount != 2
+                {
                     fail BadParameterError{"stereo pan requires a stereo output route"}
+                }
             }
 
             return
@@ -452,16 +501,20 @@ impl Voice
             {
                 try .validatePanMasterXAudio2()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .validatePanMasterFAudio()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -470,19 +523,27 @@ impl Voice
 
     mtd validatePanCurrentRouteNative(pan: f32) fail
     {
-        if pan == 0 do
+        if pan == 0
+        {
             return
+        }
+
         let file = unwrap .file
         let sourceChannels = file.numChannels()
-        if sourceChannels == 0 or sourceChannels > 2 do
+        if sourceChannels == 0 or sourceChannels > 2
+        {
             fail BadParameterError{"stereo pan supports mono and stereo sources"}
+        }
+
         if .routingBusCount
         {
             for i in .routingBusCount
             {
                 let bus = unwrap .routingBuses[i]
-                if bus.channelCount != 2 do
+                if bus.channelCount != 2
+                {
                     fail BadParameterError{"stereo pan requires a stereo output route"}
+                }
             }
 
             return
@@ -498,16 +559,20 @@ impl Voice
             {
                 try .validatePanMasterXAudio2()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .validatePanMasterFAudio()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -524,10 +589,16 @@ public impl Voice
     // deferred operation sets.
     mtd setVolume(volume: f32, batchId: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             fail BadParameterError{"voice is not valid"}
-        if not Math.isFinite(volume) do
+        }
+
+        if not Math.isFinite(volume)
+        {
             fail BadParameterError{"voice volume must be finite"}
+        }
+
         switch g_Driver.kind
         {
         case .NoSound:
@@ -538,16 +609,20 @@ public impl Voice
             {
                 try .setVolumeXAudio2(volume, batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .setVolumeFAudio(volume, batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -557,8 +632,11 @@ public impl Voice
     // Returns this voice's current linear gain.
     mtd volume()->f32 fail
     {
-        if not .handle do
+        if not .handle
+        {
             fail BadParameterError{"voice is not valid"}
+        }
+
         switch g_Driver.kind
         {
         case .NoSound:
@@ -569,16 +647,20 @@ public impl Voice
             {
                 return try .volumeXAudio2()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 return try .volumeFAudio()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -595,12 +677,21 @@ public impl Voice
     // The ratio must be finite and greater than zero.
     mtd setFrequencyRatio(ratio: f32, batchId: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             fail BadParameterError{"voice is not valid"}
-        if not Math.isFinite(ratio) or ratio <= 0 do
+        }
+
+        if not Math.isFinite(ratio) or ratio <= 0
+        {
             fail BadParameterError{"frequency ratio must be finite and greater than zero"}
-        if not .createFlags.has(.PitchControl) do
+        }
+
+        if not .createFlags.has(.PitchControl)
+        {
             fail BadParameterError{"voice was created without pitch control"}
+        }
+
         switch g_Driver.kind
         {
         case .NoSound:
@@ -611,16 +702,20 @@ public impl Voice
             {
                 try .setFrequencyRatioXAudio2(ratio, batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .setFrequencyRatioFAudio(ratio, batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -630,8 +725,11 @@ public impl Voice
     // Returns the current playback frequency ratio.
     mtd frequencyRatio()->f32 fail
     {
-        if not .handle do
+        if not .handle
+        {
             fail BadParameterError{"voice is not valid"}
+        }
+
         switch g_Driver.kind
         {
         case .NoSound:
@@ -642,16 +740,20 @@ public impl Voice
             {
                 return try .frequencyRatioXAudio2()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 return try .frequencyRatioFAudio()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -669,16 +771,24 @@ public impl Voice
     // [[Audio.Voice.setPan]] after handling the error to apply the current pan to every route.
     mtd setRouting(buses: const [..] *Bus) fail
     {
-        if not .handle do
-            fail BadParameterError{"voice is not valid"}
-        for bus in buses
+        if not .handle
         {
-            if not bus.handle do
-                fail BadParameterError{"routing contains an invalid bus"}
+            fail BadParameterError{"voice is not valid"}
         }
 
-        if buses.count > .routingBuses.count do
+        for bus in buses
+        {
+            if not bus.handle
+            {
+                fail BadParameterError{"routing contains an invalid bus"}
+            }
+        }
+
+        if buses.count > .routingBuses.count
+        {
             fail BadParameterError{"too many output buses"}
+        }
+
         try .validatePanRouteNative(buses)
 
         switch g_Driver.kind
@@ -691,16 +801,20 @@ public impl Voice
             {
                 try .setRoutingXAudio2(buses)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .setRoutingFAudio(buses)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -708,13 +822,18 @@ public impl Voice
 
         for i in .routingBusCount
         {
-            if i >= buses.count do
+            if i >= buses.count
+            {
                 .routingBuses[i] = null
+            }
         }
 
         .routingBusCount = cast(u32, buses.count)
-        for i in buses.count do
+        for i in buses.count
+        {
             .routingBuses[i] = buses[i]
+        }
+
         try .setPanNative(.panValue)
     }
 }
@@ -733,16 +852,20 @@ impl Bus
             {
                 try bus.createXAudio2(numChannels, parent)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try bus.createFAudio(numChannels, parent)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         default:
             fail UnsupportedFormatError{"audio driver is not available"}
@@ -783,10 +906,16 @@ public impl Bus
     // deferred operation sets.
     mtd setVolume(volume: f32, batchId: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             fail BadParameterError{"bus is not valid"}
-        if not Math.isFinite(volume) do
+        }
+
+        if not Math.isFinite(volume)
+        {
             fail BadParameterError{"bus volume must be finite"}
+        }
+
         switch g_Driver.kind
         {
         case .NoSound:
@@ -797,16 +926,20 @@ public impl Bus
             {
                 try .setVolumeXAudio2(volume, batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 try .setVolumeFAudio(volume, batchId)
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break
@@ -816,8 +949,11 @@ public impl Bus
     // Returns this bus's current linear gain.
     mtd volume()->f32 fail
     {
-        if not .handle do
+        if not .handle
+        {
             fail BadParameterError{"bus is not valid"}
+        }
+
         switch g_Driver.kind
         {
         case .NoSound:
@@ -828,16 +964,20 @@ public impl Bus
             {
                 return try .volumeXAudio2()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+            }
 
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux
             {
                 return try .volumeFAudio()
             }
-            else do
+            else
+            {
                 fail UnsupportedFormatError{"FAudio is not available"}
+            }
 
         case .Default:
             break

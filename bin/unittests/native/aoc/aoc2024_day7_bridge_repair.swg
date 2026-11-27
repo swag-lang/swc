@@ -4,8 +4,8 @@
 // satisfied by inserting operators, using heap-allocated equation storage
 // and explicit cleanup through defer.
 
-const InitialEquationCapacity = 4'u32
-const MaxOperands = 16'u32
+const InitialEquationCapacity = 4_u32
+const MaxOperands = 16_u32
 
 const SampleInput =
     """190: 10 19
@@ -62,19 +62,21 @@ func isDigit(ch: u8)->bool
 
 func isLineBreak(ch: u8)->bool
 {
-    return ch == '\n'u8 or ch == '\r'u8
+    return ch == '\n'_u8 or ch == '\r'_u8
 }
 
 func concatNumbers(a, b: u64)->u64
 {
-    var magnitude = 1'u64
+    var magnitude = 1_u64
     var tmp       = b
     for
     {
         magnitude *= 10
         tmp       /= 10
-        if tmp == 0 do
+        if tmp == 0
+        {
             break
+        }
     }
 
     return a * magnitude + b
@@ -95,8 +97,10 @@ func initEquationList(initialCapacity: u32)->EquationList
 
 func freeEquationList(list: EquationList)
 {
-    if list.data do
+    if list.data
+    {
         testFree(list.data)
+    }
 }
 
 func appendEquation(list: EquationList, eq: Equation)->EquationList
@@ -105,16 +109,16 @@ func appendEquation(list: EquationList, eq: Equation)->EquationList
 
     if result.count == result.capacity
     {
-        let newCapacity = result.capacity * 2'u32
+        let newCapacity = result.capacity * 2_u32
         result.data = cast([*] Equation?, testRealloc(result.data, cast(u64, newCapacity) * cast(u64, #sizeof(Equation))))
         Swag.assert(result.data != null)
         result.capacity  = newCapacity
-        result.growCount += 1'u32
+        result.growCount += 1_u32
     }
 
     let data = unwrap result.data
     data[result.count] = eq
-    result.count       += 1'u32
+    result.count       += 1_u32
     return result
 }
 
@@ -136,7 +140,7 @@ func parseU64(bytes: const [..] u8, pos: *u32)->u64
 
 func skipSpaces(bytes: const [..] u8, pos: *u32)
 {
-    while pos[] < bytes.count and bytes[pos[]] == ' 'u8
+    while pos[] < bytes.count and bytes[pos[]] == ' '_u8
     {
         pos[] += 1
     }
@@ -159,7 +163,7 @@ func parseEquations(text: string)->EquationList
         var eq: Equation
         eq.target = parseU64(bytes, &pos)
 
-        Swag.assert(pos < bytes.count and bytes[pos] == ':'u8)
+        Swag.assert(pos < bytes.count and bytes[pos] == ':'_u8)
         pos += 1
         skipSpaces(bytes, &pos)
 
@@ -183,28 +187,40 @@ func parseEquations(text: string)->EquationList
 
 func canSolve(eq: Equation, accumulator: u64, index: u32, allowConcat: bool)->bool
 {
-    if index == eq.operandCount do
+    if index == eq.operandCount
+    {
         return accumulator == eq.target
-    if accumulator > eq.target do
+    }
+    if accumulator > eq.target
+    {
         return false
+    }
 
     let next      = eq.operands[index]
     let nextIndex = index + 1
 
-    if canSolve(eq, accumulator + next, nextIndex, allowConcat) do
+    if canSolve(eq, accumulator + next, nextIndex, allowConcat)
+    {
         return true
-    if canSolve(eq, accumulator * next, nextIndex, allowConcat) do
+    }
+    if canSolve(eq, accumulator * next, nextIndex, allowConcat)
+    {
         return true
-    if allowConcat and canSolve(eq, concatNumbers(accumulator, next), nextIndex, allowConcat) do
+    }
+    if allowConcat and canSolve(eq, concatNumbers(accumulator, next), nextIndex, allowConcat)
+    {
         return true
+    }
 
     return false
 }
 
 func isEquationSolvable(eq: Equation, allowConcat: bool)->bool
 {
-    if eq.operandCount == 0 do
+    if eq.operandCount == 0
+    {
         return eq.target == 0
+    }
     return canSolve(eq, eq.operands[0], 1, allowConcat)
 }
 
@@ -226,10 +242,14 @@ func calibrate(text: string)->CalibrationReport
     {
         let eq = data[cast(u32, index)]
 
-        if isEquationSolvable(eq, false) do
+        if isEquationSolvable(eq, false)
+        {
             result.twoOpTotal += eq.target
-        if isEquationSolvable(eq, true) do
+        }
+        if isEquationSolvable(eq, true)
+        {
             result.threeOpTotal += eq.target
+        }
     }
 
     return result
@@ -252,27 +272,27 @@ func calibrate(text: string)->CalibrationReport
 {
     let sample = calibrate(SampleInput)
 
-    Swag.require(sample.equationCount == 9'u32)
-    Swag.require(sample.twoOpTotal == 3749'u64)
-    Swag.require(sample.threeOpTotal == 11387'u64)
-    Swag.require(sample.allocGrowCount == 2'u32)
+    Swag.require(sample.equationCount == 9_u32)
+    Swag.require(sample.twoOpTotal == 3749_u64)
+    Swag.require(sample.threeOpTotal == 11387_u64)
+    Swag.require(sample.allocGrowCount == 2_u32)
 }
 
 #test
 {
     let single = calibrate(SingleInput)
 
-    Swag.require(single.equationCount == 1'u32)
-    Swag.require(single.twoOpTotal == 6'u64)
-    Swag.require(single.threeOpTotal == 6'u64)
-    Swag.require(single.allocGrowCount == 0'u32)
+    Swag.require(single.equationCount == 1_u32)
+    Swag.require(single.twoOpTotal == 6_u64)
+    Swag.require(single.threeOpTotal == 6_u64)
+    Swag.require(single.allocGrowCount == 0_u32)
 }
 
 #test
 {
     let concat = calibrate(ConcatInput)
 
-    Swag.require(concat.equationCount == 2'u32)
-    Swag.require(concat.twoOpTotal == 0'u64)
-    Swag.require(concat.threeOpTotal == 348'u64)
+    Swag.require(concat.equationCount == 2_u32)
+    Swag.require(concat.twoOpTotal == 0_u64)
+    Swag.require(concat.threeOpTotal == 348_u64)
 }

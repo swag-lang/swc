@@ -88,7 +88,7 @@ func directionVector(dir: Direction)->Vec2
     }
 }
 
-func isNewline(ch: u8)->bool => ch == '\n'u8 or ch == '\r'u8
+func isNewline(ch: u8)->bool => ch == '\n'_u8 or ch == '\r'_u8
 
 func parseGrid(bytes: const [..] u8)->Grid
 {
@@ -102,8 +102,10 @@ func parseGrid(bytes: const [..] u8)->Grid
         {
             if col > 0
             {
-                if result.rowCount == 0 do
+                if result.rowCount == 0
+                {
                     result.colCount = col
+                }
                 Swag.assert(col == result.colCount)
                 result.rowCount += 1
                 col = 0
@@ -136,7 +138,7 @@ func inBounds(row, col: s32, rowCount, colCount: u32)->bool
 // Clean approach: explicit direction vectors
 // ---------------------------------------------------------------------------
 
-const XmasWord: [4] u8 = ['X'u8, 'M'u8, 'A'u8, 'S'u8]
+const XmasWord: [4] u8 = ['X'_u8, 'M'_u8, 'A'_u8, 'S'_u8]
 
 func matchWord(grid: Grid, startRow, startCol: s32, dir: Vec2)->bool
 {
@@ -144,10 +146,14 @@ func matchWord(grid: Grid, startRow, startCol: s32, dir: Vec2)->bool
     {
         let r = startRow + cast(s32, index) * dir.dy
         let c = startCol + cast(s32, index) * dir.dx
-        if not inBounds(r, c, grid.rowCount, grid.colCount) do
+        if not inBounds(r, c, grid.rowCount, grid.colCount)
+        {
             return false
-        if gridAt(grid, cast(u32, r), cast(u32, c)) != XmasWord[index] do
+        }
+        if gridAt(grid, cast(u32, r), cast(u32, c)) != XmasWord[index]
+        {
             return false
+        }
     }
 
     return true
@@ -164,8 +170,10 @@ func countXmasClean(grid: Grid)->u32
             for index in Directions.count
             {
                 let dir = directionVector(Directions[index])
-                if matchWord(grid, cast(s32, row), cast(s32, col), dir) do
+                if matchWord(grid, cast(s32, row), cast(s32, col), dir)
+                {
                     count += 1
+                }
             }
         }
     }
@@ -175,30 +183,36 @@ func countXmasClean(grid: Grid)->u32
 
 func isMasArm(a, b: u8)->bool
 {
-    return (a == 'M'u8 and b == 'S'u8) or (a == 'S'u8 and b == 'M'u8)
+    return (a == 'M'_u8 and b == 'S'_u8) or (a == 'S'_u8 and b == 'M'_u8)
 }
 
 func countCrossClean(grid: Grid)->u32
 {
     var count: u32
 
-    if grid.rowCount < 3 or grid.colCount < 3 do
+    if grid.rowCount < 3 or grid.colCount < 3
+    {
         return 0
+    }
 
     for row in 1 until grid.rowCount - 1
     {
         for col in 1 until grid.colCount - 1
         {
-            if gridAt(grid, row, col) != 'A'u8 do
+            if gridAt(grid, row, col) != 'A'_u8
+            {
                 continue
+            }
 
             let tl = gridAt(grid, row - 1, col - 1)
             let tr = gridAt(grid, row - 1, col + 1)
             let bl = gridAt(grid, row + 1, col - 1)
             let br = gridAt(grid, row + 1, col + 1)
 
-            if isMasArm(tl, br) and isMasArm(tr, bl) do
+            if isMasArm(tl, br) and isMasArm(tr, bl)
+            {
                 count += 1
+            }
         }
     }
 
@@ -251,13 +265,13 @@ func solveWithLanguageFeatures(grid: Grid)->SearchResult
     let sampleClean = solveClean(sampleGrid)
     let sampleFeat  = solveWithLanguageFeatures(sampleGrid)
 
-    Swag.require(sampleGrid.rowCount == 10'u32)
-    Swag.require(sampleGrid.colCount == 10'u32)
-    Swag.require(gridAt(sampleGrid, 0, 0) == 'M'u8)
-    Swag.require(sampleGrid.at(0, 0) == 'M'u8)
+    Swag.require(sampleGrid.rowCount == 10_u32)
+    Swag.require(sampleGrid.colCount == 10_u32)
+    Swag.require(gridAt(sampleGrid, 0, 0) == 'M'_u8)
+    Swag.require(sampleGrid.at(0, 0) == 'M'_u8)
 
-    Swag.require(sampleClean.xmasCount == 18'u32)
-    Swag.require(sampleClean.crossCount == 9'u32)
+    Swag.require(sampleClean.xmasCount == 18_u32)
+    Swag.require(sampleClean.crossCount == 9_u32)
     Swag.require(sampleFeat.xmasCount == sampleClean.xmasCount)
     Swag.require(sampleFeat.crossCount == sampleClean.crossCount)
 }
@@ -268,10 +282,10 @@ func solveWithLanguageFeatures(grid: Grid)->SearchResult
     let tinyClean = solveClean(tinyGrid)
     let tinyFeat  = solveWithLanguageFeatures(tinyGrid)
 
-    Swag.require(tinyGrid.rowCount == 2'u32)
-    Swag.require(tinyGrid.colCount == 4'u32)
-    Swag.require(tinyClean.xmasCount == 2'u32)
-    Swag.require(tinyClean.crossCount == 0'u32)
+    Swag.require(tinyGrid.rowCount == 2_u32)
+    Swag.require(tinyGrid.colCount == 4_u32)
+    Swag.require(tinyClean.xmasCount == 2_u32)
+    Swag.require(tinyClean.crossCount == 0_u32)
     Swag.require(tinyFeat.xmasCount == tinyClean.xmasCount)
     Swag.require(tinyFeat.crossCount == tinyClean.crossCount)
 }
@@ -282,10 +296,10 @@ func solveWithLanguageFeatures(grid: Grid)->SearchResult
     let coverageClean = solveClean(coverageGrid)
     let coverageFeat  = solveWithLanguageFeatures(coverageGrid)
 
-    Swag.require(coverageGrid.rowCount == 5'u32)
-    Swag.require(coverageGrid.colCount == 5'u32)
-    Swag.require(coverageClean.xmasCount == 4'u32)
-    Swag.require(coverageClean.crossCount == 1'u32)
+    Swag.require(coverageGrid.rowCount == 5_u32)
+    Swag.require(coverageGrid.colCount == 5_u32)
+    Swag.require(coverageClean.xmasCount == 4_u32)
+    Swag.require(coverageClean.crossCount == 1_u32)
     Swag.require(coverageFeat.xmasCount == coverageClean.xmasCount)
     Swag.require(coverageFeat.crossCount == coverageClean.crossCount)
 }

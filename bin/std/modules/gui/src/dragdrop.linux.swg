@@ -11,7 +11,7 @@ namespace LinuxDrag
         source:       u32
         version:      u32
         selection:    u32
-        formats:      Array'u32
+        formats:      Array!{u32}
         data:         DragData
         position:     Math.Point
         modifiers:    Input.KeyModifiers
@@ -43,17 +43,26 @@ namespace LinuxDrag
         let reply = context.xcb_get_property_reply(unwrap context.connection,
                                                    context.xcb_get_property(context.connection, 0, window, atom, 0, 0, 16384),
                                                    null)
-        if not reply do
+        if not reply
+        {
             return result
+        }
+
         defer Linux.free(reply)
         let count = context.xcb_get_property_value_length(reply)
-        if reply.type == 0 or reply.bytes_after != 0 or count < 0 or count > 65536 do
+        if reply.type == 0 or reply.bytes_after != 0 or count < 0 or count > 65536
+        {
             return result
+        }
+
         result.type   = reply.type
         result.format = reply.format
         result.valid  = true
-        if count do
+        if count
+        {
             result.bytes.add(Swag.makeSlice(cast(const [*]u8, context.xcb_get_property_value(reply)), cast(u64, count)))
+        }
+
         return result
     }
 
@@ -96,50 +105,84 @@ namespace LinuxDrag
 
     func atomEffect(context: *LinuxDesktop.Context, atom: u32)->DropEffect
     {
-        if atom == effectAtom(context, .Copy) do
+        if atom == effectAtom(context, .Copy)
+        {
             return .Copy
-        if atom == effectAtom(context, .Move) do
+        }
+
+        if atom == effectAtom(context, .Move)
+        {
             return .Move
-        if atom == effectAtom(context, .Link) do
+        }
+
+        if atom == effectAtom(context, .Link)
+        {
             return .Link
+        }
+
         return .None
     }
 
     func modifiers(mask: u16)->Input.KeyModifiers
     {
         var result: #returntype
-        if mask & 1 do
+        if mask & 1
+        {
             result |= .Shift
-        if mask & 4 do
+        }
+
+        if mask & 4
+        {
             result |= .Control
-        if mask & 8 do
+        }
+
+        if mask & 8
+        {
             result |= .Alt
+        }
+
         return result
     }
 
     func hexadecimal(byte: u8)->s32
     {
-        if byte >= '0' and byte <= '9' do
+        if byte >= '0' and byte <= '9'
+        {
             return byte - '0'
-        if byte >= 'a' and byte <= 'f' do
+        }
+
+        if byte >= 'a' and byte <= 'f'
+        {
             return byte - 'a' + 10
-        if byte >= 'A' and byte <= 'F' do
+        }
+
+        if byte >= 'A' and byte <= 'F'
+        {
             return byte - 'A' + 10
+        }
+
         return -1
     }
 
     func decodeFiles(data: *DragData, bytes: const [..]u8)
     {
-        for line in Tokenize.split(cast(string, bytes), '\n'u8)
+        for line in Tokenize.split(cast(string, bytes), '\n'_u8)
         {
             let uri = Latin1.trim(line)
             var offset: u64
-            if Utf8.startsWith(uri, "file://localhost/") do
+            if Utf8.startsWith(uri, "file://localhost/")
+            {
                 offset = 16
-            elif Utf8.startsWith(uri, "file:///") do
+            }
+            else if Utf8.startsWith(uri, "file:///")
+            {
                 offset = 7
-            else do
+            }
+            else
+            {
                 continue
+            }
+
             var path: String
             var valid = true
             while offset < uri.count
@@ -175,8 +218,10 @@ namespace LinuxDrag
                 offset += 1
             }
 
-            if valid and not path.isEmpty() and Utf8.isValid(path.toString()) do
+            if valid and not path.isEmpty() and Utf8.isValid(path.toString())
+            {
                 data.addFile(#move path)
+            }
         }
     }
 
@@ -186,8 +231,11 @@ namespace LinuxDrag
         const Digits = "0123456789ABCDEF"
         for path in data.files
         {
-            if not Path.isRooted(path.toString()) do
+            if not Path.isRooted(path.toString())
+            {
                 continue
+            }
+
             result += "file://"
             for byte in path.toString()
             {
@@ -218,15 +266,21 @@ namespace LinuxDrag
 
     func hasFormat(target: *Target, format: u32)->bool
     {
-        for offered in target.formats where offered == format do
+        for offered in target.formats where offered == format
+        {
             return true
+        }
+
         return false
     }
 
     func load(target: *Target)
     {
-        if target.loaded do
+        if target.loaded
+        {
             return
+        }
+
         target.loaded = true
         let source = activeSource
         if source and source.window == target.source and source.data
@@ -240,8 +294,11 @@ namespace LinuxDrag
         catch
         {
             try LinuxSelection.ensure()
-            if LinuxSelection.owner(target.selection) != target.source do
+            if LinuxSelection.owner(target.selection) != target.source
+            {
                 return
+            }
+
             let utf8     = try LinuxSelection.atom("UTF8_STRING")
             let plain    = try LinuxSelection.atom("text/plain;charset=utf-8")
             let uri      = try LinuxSelection.atom("text/uri-list")
@@ -254,7 +311,7 @@ namespace LinuxDrag
                 if metadata.valid and metadata.type == contents and metadata.format == 8
                 {
                     var stream = ByteStream.openRead(metadata.bytes.toSlice())
-                    let count  = try stream.readLittleEndian'u32()
+                    let count  = try stream.readLittleEndian!{u32}()
                     if count <= 1024
                     {
                         for index in count
@@ -263,15 +320,21 @@ namespace LinuxDrag
                             let selection    = target.selection
                             let owner        = target.source
                             let nativeTarget = try LinuxSelection.atom(Format.toString("application/x-swag-drag-content-%", index).toString())
-                            target.data.addContent(name, func|selection, nativeTarget, owner|()->Array'u8
+                            target.data.addContent(name, func|selection, nativeTarget, owner|()->Array!{u8}
                             {
                                 LinuxSelection.mutex.lock()
                                 defer LinuxSelection.mutex.unlock()
-                                if LinuxSelection.owner(selection) != owner do
+                                if LinuxSelection.owner(selection) != owner
+                                {
                                     return {}
+                                }
+
                                 let value = LinuxSelection.read(selection, nativeTarget)
-                                if value.valid and value.type == nativeTarget and value.format == 8 do
+                                if value.valid and value.type == nativeTarget and value.format == 8
+                                {
                                     return value.bytes
+                                }
+
                                 return {}
                             })
                         }
@@ -281,19 +344,34 @@ namespace LinuxDrag
 
             for format in [utf8, plain, uri, png]
             {
-                if not hasFormat(target, format) do
+                if not hasFormat(target, format)
+                {
                     continue
-                if format == plain and target.data.hasText() do
+                }
+
+                if format == plain and target.data.hasText()
+                {
                     continue
+                }
+
                 let value = LinuxSelection.read(target.selection, format, deadline)
-                if not value.valid or value.format != 8 or value.type != format do
+                if not value.valid or value.format != 8 or value.type != format
+                {
                     continue
-                if format == uri do
+                }
+
+                if format == uri
+                {
                     decodeFiles(&target.data, value.bytes.toSlice())
-                elif format == png do
+                }
+                else if format == png
+                {
                     target.data.setImage("drag.png", value.bytes.toSlice())
-                elif Utf8.isValid(value.bytes.toSlice()) do
+                }
+                else if Utf8.isValid(value.bytes.toSlice())
+                {
                     target.data.setText(String.from(cast(string, value.bytes.toSlice())))
+                }
             }
         }
     }
@@ -301,11 +379,17 @@ namespace LinuxDrag
 
 internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_generic_event_t)->bool
 {
-    if event.response_type & 0x7F != Linux.XCB_CLIENT_MESSAGE do
+    if event.response_type & 0x7F != Linux.XCB_CLIENT_MESSAGE
+    {
         return false
+    }
+
     let packet = cast(*Linux.xcb_client_message_event_t, cast(*void, event))
-    if packet.format != 32 do
+    if packet.format != 32
+    {
         return false
+    }
+
     let context = catch LinuxDesktop.ensure() { return false; }
     if packet.type == (catch LinuxDesktop.atom(context, "XdndStatus") orelse 0)
     {
@@ -314,8 +398,10 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
         {
             source.status = true
             source.effect = packet.data[1] & 1 ? LinuxDrag.atomEffect(context, packet.data[4]) : DropEffect.None
-            if not source.allowed.has(source.effect) do
+            if not source.allowed.has(source.effect)
+            {
                 source.effect = .None
+            }
         }
 
         return true
@@ -328,27 +414,41 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
         {
             source.finished = true
             source.success  = source.version < 5 or (packet.data[1] & 1) != 0
-            if source.version >= 5 do
+            if source.version >= 5
+            {
                 source.effect = LinuxDrag.atomEffect(context, packet.data[2])
-            if not source.allowed.has(source.effect) do
+            }
+
+            if not source.allowed.has(source.effect)
+            {
                 source.success = false
+            }
         }
 
         return true
     }
 
-    if packet.window != surface.windowId do
+    if packet.window != surface.windowId
+    {
         return false
+    }
+
     let target = &surface.dropTarget
     if packet.type == (catch LinuxDesktop.atom(context, "XdndEnter") orelse 0)
     {
-        if target.source do
+        if target.source
+        {
             surface.app.dragLeave(&target.data)
+        }
+
         Swag.drop(target, 1)
         Swag.init(target, 1)
         target.version = packet.data[1] >> 24
-        if target.version < 3 or target.version > 5 do
+        if target.version < 3 or target.version > 5
+        {
             return true
+        }
+
         target.source    = packet.data[0]
         target.selection = catch LinuxDesktop.atom(context, "XdndSelection") orelse 0
         if packet.data[1] & 1
@@ -357,13 +457,17 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
             if formats.valid and
                formats.type == 4 and
                formats.format == 32 and
-               formats.bytes.count % 4 == 0 do
+               formats.bytes.count % 4 == 0
+            {
                 target.formats.add(Swag.makeSlice(cast(const [*]u32, formats.bytes.storage()), formats.bytes.count / 4))
+            }
         }
         else
         {
-            for index in 2 until 5 where packet.data[index] != 0 do
+            for index in 2 until 5 where packet.data[index] != 0
+            {
                 target.formats.add(packet.data[index])
+            }
         }
 
         let actions = LinuxDrag.property(context, target.source, catch LinuxDesktop.atom(context, "XdndActionList") orelse 0)
@@ -374,15 +478,20 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
         {
             target.actionsKnown = true
             let atoms = cast(const [*]u32, actions.bytes.storage())
-            for index in actions.bytes.count / 4 do
+            for index in actions.bytes.count / 4
+            {
                 target.allowed |= LinuxDrag.atomEffect(context, atoms[index])
+            }
         }
 
         return true
     }
 
-    if packet.data[0] != target.source or target.source == 0 do
+    if packet.data[0] != target.source or target.source == 0
+    {
         return false
+    }
+
     if packet.type == (catch LinuxDesktop.atom(context, "XdndLeave") orelse 0)
     {
         surface.app.dragLeave(&target.data)
@@ -404,15 +513,20 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
         }
 
         let action = LinuxDrag.atomEffect(context, packet.data[4])
-        if not target.actionsKnown do
+        if not target.actionsKnown
+        {
             target.allowed = action
+        }
+
         LinuxDrag.load(target)
         target.effect = surface.app.dragUpdate(surface, target.position, &target.data, target.allowed, target.modifiers)
-        if not target.allowed.has(target.effect) or LinuxDrag.effectAtom(context, target.effect) == 0 do
+        if not target.allowed.has(target.effect) or LinuxDrag.effectAtom(context, target.effect) == 0
+        {
             target.effect = .None
+        }
 
         // Request every position; the target's hit testing can change within the surface.
-        discard LinuxDrag.send(context, target.source, target.source, "XdndStatus", [surface.windowId, target.effect == .None ? 2'u32 : 3'u32, 0, 0, LinuxDrag.effectAtom(context, target.effect)])
+        discard LinuxDrag.send(context, target.source, target.source, "XdndStatus", [surface.windowId, target.effect == .None ? 2_u32 : 3_u32, 0, 0, LinuxDrag.effectAtom(context, target.effect)])
         return true
     }
 
@@ -421,7 +535,7 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
         LinuxDrag.load(target)
         let effect   = surface.app.dragDrop(surface, target.position, &target.data, target.allowed, target.modifiers)
         let accepted = LinuxDrag.effectAtom(context, effect) != 0 and target.allowed.has(effect)
-        discard LinuxDrag.send(context, target.source, target.source, "XdndFinished", [surface.windowId, accepted ? 1'u32 : 0'u32, accepted ? LinuxDrag.effectAtom(context, effect) : 0'u32, 0, 0])
+        discard LinuxDrag.send(context, target.source, target.source, "XdndFinished", [surface.windowId, accepted ? 1_u32 : 0_u32, accepted ? LinuxDrag.effectAtom(context, effect) : 0_u32, 0, 0])
         target.source = 0
         target.data.clear()
         return true
@@ -434,12 +548,15 @@ internal impl Surface
 {
     mtd registerDropTarget()
     {
-        if .windowId == 0 or .dropTargetActive do
+        if .windowId == 0 or .dropTargetActive
+        {
             return
+        }
+
         catch
         {
             let context = try LinuxDesktop.ensure()
-            let version = 5'u32
+            let version = 5_u32
             try LinuxDesktop.check(context,
                                    context.xcb_change_property_checked(unwrap context.connection,
                                                                        0,
@@ -455,8 +572,11 @@ internal impl Surface
 
     mtd revokeDropTarget()
     {
-        if .app.dragEnterWnd and .app.dragEnterWnd.surface == me do
+        if .app.dragEnterWnd and .app.dragEnterWnd.surface == me
+        {
             .app.dragEnterWnd = null
+        }
+
         .dropTarget.data.clear()
         .dropTarget.source = 0
         .dropTargetActive  = false
@@ -482,15 +602,24 @@ namespace LinuxDrag
             let display = .display
             if display
             {
-                if .cursor do
+                if .cursor
+                {
                     discard .freeCursor(display, .cursor)
+                }
+
                 discard .closeDisplay(display)
             }
 
-            if .cursorLibrary do
+            if .cursorLibrary
+            {
                 discard Linux.dlclose(.cursorLibrary)
-            if .library do
+            }
+
+            if .library
+            {
                 discard Linux.dlclose(.library)
+            }
+
             .cursor        = 0
             .display       = null
             .cursorLibrary = null
@@ -500,8 +629,11 @@ namespace LinuxDrag
         func create(picture: const *Image?)->Preview
         {
             var result: #returntype
-            if not picture or not picture.isValid() do
+            if not picture or not picture.isValid()
+            {
                 return result
+            }
+
             catch
             {
                 result.library       = Linux.dlopen("libX11.so.6".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
@@ -514,13 +646,13 @@ namespace LinuxDrag
 
                 let library:       *void = result.library
                 let cursorLibrary: *void = result.cursorLibrary
-                let open = try LinuxDesktop.symbol'Linux.XOpenDisplay_fn(library, "XOpenDisplay")
-                result.closeDisplay = try LinuxDesktop.symbol'Linux.XCloseDisplay_fn(library, "XCloseDisplay")
-                result.freeCursor   = try LinuxDesktop.symbol'Linux.XFreeCursor_fn(library, "XFreeCursor")
-                let sync         = try LinuxDesktop.symbol'Linux.XSync_fn(library, "XSync")
-                let createImage  = try LinuxDesktop.symbol'Linux.XcursorImageCreate_fn(cursorLibrary, "XcursorImageCreate")
-                let destroyImage = try LinuxDesktop.symbol'Linux.XcursorImageDestroy_fn(cursorLibrary, "XcursorImageDestroy")
-                let load         = try LinuxDesktop.symbol'Linux.XcursorImageLoadCursor_fn(cursorLibrary, "XcursorImageLoadCursor")
+                let open = try LinuxDesktop.symbol!{Linux.XOpenDisplay_fn}(library, "XOpenDisplay")
+                result.closeDisplay = try LinuxDesktop.symbol!{Linux.XCloseDisplay_fn}(library, "XCloseDisplay")
+                result.freeCursor   = try LinuxDesktop.symbol!{Linux.XFreeCursor_fn}(library, "XFreeCursor")
+                let sync         = try LinuxDesktop.symbol!{Linux.XSync_fn}(library, "XSync")
+                let createImage  = try LinuxDesktop.symbol!{Linux.XcursorImageCreate_fn}(cursorLibrary, "XcursorImageCreate")
+                let destroyImage = try LinuxDesktop.symbol!{Linux.XcursorImageDestroy_fn}(cursorLibrary, "XcursorImageDestroy")
+                let load         = try LinuxDesktop.symbol!{Linux.XcursorImageLoadCursor_fn}(cursorLibrary, "XcursorImageLoadCursor")
                 result.display = open(null)
                 if not result.display
                 {
@@ -529,7 +661,7 @@ namespace LinuxDrag
                 }
 
                 let display: *void = result.display
-                let scale          = Math.min(1.0'f32, 64.0 / cast(f32, Math.max(picture.width, picture.height)))
+                let scale          = Math.min(1.0_f32, 64.0 / cast(f32, Math.max(picture.width, picture.height)))
                 let width          = Math.max(1, cast(s32, picture.width * scale))
                 let height         = Math.max(1, cast(s32, picture.height * scale))
                 let nativeImage    = createImage(width, height)
@@ -543,7 +675,8 @@ namespace LinuxDrag
                 defer destroyImage(native)
                 native.xhot = cast(u32, width / 2)
                 native.yhot = cast(u32, height / 2)
-                for y in height do
+                for y in height
+                {
                     for x in width
                     {
                         let color = picture.pixelColor(cast(s32, cast(s64, x) * picture.width / width),
@@ -553,6 +686,7 @@ namespace LinuxDrag
                                                        ((cast(u32, color.r) * alpha / 255) << 16) |
                                                        ((cast(u32, color.g) * alpha / 255) << 8) | (cast(u32, color.b) * alpha / 255)
                     }
+                }
 
                 result.cursor = cast(u32, load(display, native))
                 discard sync(display, 0)
@@ -572,17 +706,26 @@ namespace LinuxDrag
         // QueryPointer gives one child at a time, including window-manager frames.
         for 64
         {
-            if window == 0 do
+            if window == 0
+            {
                 return result
+            }
+
             let pointer = context.xcb_query_pointer_reply(unwrap context.connection,
                                                           context.xcb_query_pointer(context.connection, window),
                                                           null)
-            if not pointer do
+            if not pointer
+            {
                 return result
+            }
+
             let next = pointer.child
             Linux.free(pointer)
-            if next == 0 do
+            if next == 0
+            {
                 break
+            }
+
             window = next
         }
 
@@ -598,7 +741,7 @@ namespace LinuxDrag
                 {
                     result.target  = window
                     result.proxy   = window
-                    result.version = Math.min(version, 5'u32)
+                    result.version = Math.min(version, 5_u32)
                     let proxy = property(context, window, proxyAtom)
                     if proxy.valid and
                        proxy.type == 33 and
@@ -611,8 +754,10 @@ namespace LinuxDrag
                            verify.type == 33 and
                            verify.format == 32 and
                            verify.bytes.count == 4 and
-                           cast(const [*]u32, verify.bytes.storage())[0] == id do
+                           cast(const [*]u32, verify.bytes.storage())[0] == id
+                        {
                             result.proxy = id
+                        }
                     }
 
                     return result
@@ -622,12 +767,18 @@ namespace LinuxDrag
             let tree = context.xcb_query_tree_reply(unwrap context.connection,
                                                     context.xcb_query_tree(context.connection, window),
                                                     null)
-            if not tree do
+            if not tree
+            {
                 return result
+            }
+
             let parent = tree.parent
             Linux.free(tree)
-            if parent == 0 or parent == window do
+            if parent == 0 or parent == window
+            {
                 return result
+            }
+
             window = parent
         }
 
@@ -639,9 +790,12 @@ namespace LinuxDrag
         LinuxSelection.mutex.lock()
         let requested = LinuxSelection.requested(selection)
         LinuxSelection.mutex.unlock()
-        if requested == 0 or (requested == directSave and not dropped) do
+        if requested == 0 or (requested == directSave and not dropped)
+        {
             return
-        var bytes: Array'u8
+        }
+
+        var bytes: Array!{u8}
         if requested == directSave
         {
             var saved       = false
@@ -654,7 +808,7 @@ namespace LinuxDrag
                 {
                     catch
                     {
-                        var content: Array'u8
+                        var content: Array!{u8}
                         if data.contents.count == 1
                         {
                             content.add(data.contentData(0))
@@ -662,8 +816,10 @@ namespace LinuxDrag
                         else
                         {
                             let image = data.image()
-                            if image do
+                            if image
+                            {
                                 content = try image.encodeToBytes("drag.png", Png.EncodeOptions{compressionLevel: .BestSpeed})
+                            }
                         }
 
                         let count = try File.writeAllBytes(paths.files[0].toString(), content.toSlice())
@@ -672,13 +828,15 @@ namespace LinuxDrag
                 }
             }
 
-            bytes.add(saved ? 'S'u8 : 'E'u8)
+            bytes.add(saved ? 'S'_u8 : 'E'_u8)
         }
-        elif requested == png
+        else if requested == png
         {
             let image = data.image()
-            if image do
+            if image
+            {
                 bytes = catch image.encodeToBytes("drag.png", Png.EncodeOptions{compressionLevel: .BestSpeed}) orelse {}
+            }
         }
         else
         {
@@ -711,35 +869,50 @@ impl Wnd
            not surface.app.renderer.needsNativeWindow() or
            surface.windowId == 0 or
            allowed == .None or
-           LinuxDrag.activeSource do
+           LinuxDrag.activeSource
+        {
             return .None
-        if not data.hasFiles() and not data.hasContents() and not data.hasText() and not data.hasImage() do
+        }
+
+        if not data.hasFiles() and not data.hasContents() and not data.hasText() and not data.hasImage()
+        {
             return .None
+        }
+
         let context = catch LinuxDesktop.ensure() { return .None; }
-        if .app().mouseCapture() == me do
+        if .app().mouseCapture() == me
+        {
             .releaseMouse()
+        }
+
         let connection     = unwrap context.connection
         let originalCursor = context.currentCursor
         defer Cursor.activate(Cursor.from(originalCursor))
-        let changeCursor = catch LinuxDesktop.symbol'Linux.xcb_change_active_pointer_grab_checked_fn(unwrap context.library, "xcb_change_active_pointer_grab_checked") { return .None; }
+        let changeCursor = catch LinuxDesktop.symbol!{Linux.xcb_change_active_pointer_grab_checked_fn}(unwrap context.library, "xcb_change_active_pointer_grab_checked") { return .None; }
         var preview      = LinuxDrag.Preview.create(picture orelse data.image())
         defer preview.clear()
         let grabbed = context.xcb_grab_pointer_reply(connection,
                                                      context.xcb_grab_pointer(connection, 0, surface.windowId, 0, 1, 1, 0, preview.cursor, 0),
                                                      null)
-        if not grabbed do
+        if not grabbed
+        {
             return .None
+        }
+
         let status = grabbed.status
         Linux.free(grabbed)
-        if status != 0 do
+        if status != 0
+        {
             return .None
+        }
+
         defer discard catch LinuxDesktop.check(context, context.xcb_ungrab_pointer_checked(connection, 0))
 
         var selection:       u32
         var sourceWindow:    u32
         var png, directSave: u32
-        var formats:         Array'u32
-        var contents:        Array'u32
+        var formats:         Array!{u32}
+        var contents:        Array!{u32}
         LinuxSelection.mutex.lock()
         catch
         {
@@ -751,44 +924,57 @@ impl Wnd
             if data.hasText()
             {
                 let utf8 = try LinuxSelection.atom("UTF8_STRING")
-                if LinuxSelection.publish(selection, utf8, data.text.toString()) do
+                if LinuxSelection.publish(selection, utf8, data.text.toString())
+                {
                     formats.add(utf8)
+                }
+
                 let plain = try LinuxSelection.atom("text/plain;charset=utf-8")
-                if LinuxSelection.publish(selection, plain, data.text.toString()) do
+                if LinuxSelection.publish(selection, plain, data.text.toString())
+                {
                     formats.add(plain)
+                }
             }
 
             if data.hasFiles()
             {
                 let uri     = try LinuxSelection.atom("text/uri-list")
                 let encoded = LinuxDrag.encodeFiles(data)
-                if LinuxSelection.publish(selection, uri, encoded.toString()) do
+                if LinuxSelection.publish(selection, uri, encoded.toString())
+                {
                     formats.add(uri)
+                }
             }
 
             if data.hasImage()
             {
                 png = try LinuxSelection.atom("image/png")
-                if LinuxSelection.announce(selection, png) do
+                if LinuxSelection.announce(selection, png)
+                {
                     formats.add(png)
+                }
             }
 
             if data.hasContents() and data.contents.count <= 1024
             {
-                var metadata: Array'u8
+                var metadata: Array!{u8}
                 var stream = ByteStream.openWrite(&metadata)
                 stream.writeLittleEndian(cast(u32, data.contents.count))
                 for content, index in data.contents
                 {
                     stream.writeSizedString(content.name.toString())
                     let target = try LinuxSelection.atom(Format.toString("application/x-swag-drag-content-%", index).toString())
-                    if LinuxSelection.announce(selection, target) do
+                    if LinuxSelection.announce(selection, target)
+                    {
                         contents.add(target)
+                    }
                 }
 
                 let target = try LinuxSelection.atom("application/x-swag-drag-contents")
-                if LinuxSelection.publish(selection, target, metadata.toSlice()) do
+                if LinuxSelection.publish(selection, target, metadata.toSlice())
+                {
                     formats.add(target)
+                }
             }
 
             // XDS lets file managers choose the final path for one virtual file. The producer
@@ -821,13 +1007,19 @@ impl Wnd
         defer
         {
             LinuxSelection.mutex.lock()
-            if selection do
+            if selection
+            {
                 LinuxSelection.release(selection)
+            }
+
             LinuxSelection.mutex.unlock()
         }
 
-        if formats.isEmpty() do
+        if formats.isEmpty()
+        {
             return .None
+        }
+
         catch
         {
             try LinuxDesktop.check(context,
@@ -839,9 +1031,12 @@ impl Wnd
                                                                        32,
                                                                        cast(u32, formats.count),
                                                                        formats.storage()))
-            var actions: Array'u32
-            for effect in [DropEffect.Copy, DropEffect.Move, DropEffect.Link] where allowed.has(effect) do
+            var actions: Array!{u32}
+            for effect in [DropEffect.Copy, DropEffect.Move, DropEffect.Link] where allowed.has(effect)
+            {
                 actions.add(LinuxDrag.effectAtom(context, effect))
+            }
+
             try LinuxDesktop.check(context,
                                    context.xcb_change_property_checked(connection,
                                                                        0,
@@ -853,7 +1048,7 @@ impl Wnd
                                                                        actions.storage()))
         }
 
-        let source = Memory.new'LinuxDrag.Source()
+        let source = Memory.new!{LinuxDrag.Source}()
         defer Memory.delete(source)
         source.window          = sourceWindow
         source.data            = data
@@ -868,24 +1063,33 @@ impl Wnd
         var releaseChild, releasePosition: u32
         var releaseMask:  u16
         var deadline:     u64
-        defer if source.target and not dropped do
+        defer if source.target and not dropped
+        {
             discard LinuxDrag.send(context, source.proxy, source.target, "XdndLeave", [source.window, 0, 0, 0, 0])
+        }
+
         for
         {
             LinuxDrag.fulfill(context, data, sourceWindow, selection, png, directSave, dropped, contents.toSlice())
-            var messages: Array'Linux.xcb_client_message_event_t
+            var messages: Array!{Linux.xcb_client_message_event_t}
             LinuxSelection.mutex.lock()
             messages.add(LinuxSelection.service.clientMessages.toSlice())
             LinuxSelection.service.clientMessages.clear()
             LinuxSelection.mutex.unlock()
-            for &message in messages do
+            for &message in messages
+            {
                 discard dispatchDragNativeEvent(surface, cast(*Linux.xcb_generic_event_t, cast(*void, message)))
+            }
+
             surface.app.sendSystemEvents()
             surface.app.runClockFrame()
             if surface.app.mustQuit or
                surface.wnd.isPendingDestroy or
-               Input.Keyboard.isKeyPressed(.Escape) do
+               Input.Keyboard.isKeyPressed(.Escape)
+            {
                 return .None
+            }
+
             let shape = source.effect == .None ? CursorShape.No : source.effect == .Move ? CursorShape.Move : CursorShape.Hand
             Cursor.activate(Cursor.from(shape))
             let cursor = preview.cursor != 0 and source.effect != .None ? preview.cursor : context.cursors[shape]
@@ -893,17 +1097,26 @@ impl Wnd
             let now = Time.monotonicMilliseconds()
             if dropped
             {
-                if source.finished do
+                if source.finished
+                {
                     return source.success ? source.effect : DropEffect.None
-                if now >= deadline do
+                }
+
+                if now >= deadline
+                {
                     return .None
+                }
+
                 Threading.Thread.sleep(Time.Duration.fromMilliseconds(5))
                 continue
             }
 
             let pointer = context.xcb_query_pointer_reply(connection, context.xcb_query_pointer(connection, context.screen.root), null)
-            if not pointer do
+            if not pointer
+            {
                 return .None
+            }
+
             let child    = released ? releaseChild : pointer.child
             let position = released ? releasePosition : (cast(u32, cast(u16, pointer.root_x)) << 16) | cast(u16, pointer.root_y)
             let mask     = released ? releaseMask : pointer.mask
@@ -911,8 +1124,11 @@ impl Wnd
             let destination = LinuxDrag.destination(context, child)
             if destination.target != source.target
             {
-                if source.target do
+                if source.target
+                {
                     discard LinuxDrag.send(context, source.proxy, source.target, "XdndLeave", [source.window, 0, 0, 0, 0])
+                }
+
                 source.target  = destination.target
                 source.proxy   = destination.proxy
                 source.version = destination.version
@@ -925,11 +1141,18 @@ impl Wnd
                     var message: [5]u32
                     message[0] = source.window
                     message[1] = source.version << 24
-                    if formats.count > 3 do
+                    if formats.count > 3
+                    {
                         message[1] |= 1
-                    else do
-                        for format, index in formats do
+                    }
+                    else
+                    {
+                        for format, index in formats
+                        {
                             message[index + 2] = format
+                        }
+                    }
+
                     discard LinuxDrag.send(context, source.proxy, source.target, "XdndEnter", message)
                 }
             }
@@ -944,8 +1167,11 @@ impl Wnd
             if source.target and not awaiting and (position != sentPosition or action != sentAction)
             {
                 source.effect = .None
-                if not LinuxDrag.send(context, source.proxy, source.target, "XdndPosition", [source.window, 0, position, 0, action]) do
+                if not LinuxDrag.send(context, source.proxy, source.target, "XdndPosition", [source.window, 0, position, 0, action])
+                {
                     return .None
+                }
+
                 sentPosition = position
                 sentAction   = action
                 awaiting     = true
@@ -958,8 +1184,10 @@ impl Wnd
                 releaseChild    = child
                 releasePosition = position
                 releaseMask     = mask
-                if not awaiting do
+                if not awaiting
+                {
                     deadline = now + 1000
+                }
             }
 
             if released
@@ -970,14 +1198,20 @@ impl Wnd
                     continue
                 }
 
-                if awaiting or source.effect == .None or source.target == 0 do
+                if awaiting or source.effect == .None or source.target == 0
+                {
                     return .None
-                if not LinuxDrag.send(context, source.proxy, source.target, "XdndDrop", [source.window, 0, 0, 0, 0]) do
+                }
+
+                if not LinuxDrag.send(context, source.proxy, source.target, "XdndDrop", [source.window, 0, 0, 0, 0])
+                {
                     return .None
+                }
+
                 dropped  = true
                 deadline = now + LinuxSelection.TimeoutMs
             }
-            elif awaiting and now >= deadline
+            else if awaiting and now >= deadline
             {
                 awaiting      = false
                 source.effect = .None

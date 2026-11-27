@@ -1,7 +1,7 @@
 using Core
 
-const HalfRgbLeft  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 6, 7, 8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
-const HalfRgbRight = cast(Math.Simd.U8x16, [3'u8, 4, 5, 9, 10, 11, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
+const HalfRgbLeft  = cast(Math.Simd.U8x16, [0_u8, 1, 2, 6, 7, 8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
+const HalfRgbRight = cast(Math.Simd.U8x16, [3_u8, 4, 5, 9, 10, 11, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
 
 // The wide reads stay inside the row by leaving the final one or two output
 // pixels to the scalar tail. Only six bytes are written per vector step.
@@ -21,7 +21,7 @@ private func halfByteRow3(source0, source1: const [*] u8, destination: [*] u8, w
         let b0     = Math.Simd.widenLow(Math.Simd.shuffle(b, HalfRgbLeft))
         let b1     = Math.Simd.widenLow(Math.Simd.shuffle(b, HalfRgbRight))
         let sums   = (a0 + a1 + b0 + b1) >> 2
-        let packed = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8, sums), Math.Simd.splat(0's16))
+        let packed = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8, sums), Math.Simd.splat(0_s16))
         cast([*] u32, dst)[0]       = cast #bit(Math.Simd.U32x4, packed)[0]
         cast([*] u16, (dst + 4))[0] = cast #bit(Math.Simd.U16x8, packed)[2]
         top                         += 12
@@ -32,8 +32,11 @@ private func halfByteRow3(source0, source1: const [*] u8, destination: [*] u8, w
 
     while remaining
     {
-        for channel in 3'u64 do
+        for channel in 3_u64
+        {
             dst[channel] = cast(u8, ((top[channel] + #prom top[channel + 3] + #prom bottom[channel] + #prom bottom[channel + 3]) >> 2))
+        }
+
         top       += 6
         bottom    += 6
         dst       += 3
@@ -70,8 +73,10 @@ private func halfByteRow4(source0, source1: const [*] u8, destination: [*] u8, w
 
     if remaining
     {
-        for channel in 4'u64 do
+        for channel in 4_u64
+        {
             dst[channel] = cast(u8, ((top[channel] + #prom top[channel + 4] + #prom bottom[channel] + #prom bottom[channel + 4]) >> 2))
+        }
     }
 }
 
@@ -136,10 +141,14 @@ impl Image
             let row0   = src.pixels.storage() + 2 * parIndex * src.rowStride
             let row1   = row0 + src.rowStride
             let target = dst.pixels.storage() + parIndex * dst.rowStride
-            if bytes == 4 do
+            if bytes == 4
+            {
                 halfByteRow4(row0, row1, target, cast(u64, dst.width))
-            else do
+            }
+            else
+            {
                 halfByteRow3(row0, row1, target, cast(u64, dst.width))
+            }
         }
     }
 

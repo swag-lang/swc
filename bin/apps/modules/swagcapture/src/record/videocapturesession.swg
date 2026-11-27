@@ -13,8 +13,10 @@ internal func reduceBgraNearest(source: const *Image, destination: *Image, sourc
     {
         let inputRow  = input + (row * inputHeight / outputHeight) * inputWidth
         let outputRow = output + row * outputWidth
-        for column in outputWidth do
+        for column in outputWidth
+        {
             outputRow[column] = inputRow[sourceColumns[column]]
+        }
     }
 }
 
@@ -40,11 +42,11 @@ struct VideoCaptureSession
     pacer:                       FramePacer
     picture:                     Image
     sourcePicture:               Image
-    sourceColumns:               Array'u32
+    sourceColumns:               Array!{u32}
     scaled:                      bool
     outputWidth:                 s32
     outputHeight:                s32
-    audioConfigs:                Array'Mp4.SoftwareAudioConfig
+    audioConfigs:                Array!{Mp4.SoftwareAudioConfig}
     outputDirectory:             String
     originTick:                  u64
     nextVideoTime:               u64
@@ -89,8 +91,11 @@ impl VideoCaptureSession
         let outputHeight    = picture.height
         let absolutePath    = try Path.absolute(path)
         let outputDirectory = unwrap Path.directoryName(absolutePath.toString())
-        if (try Directory.freeSpace(outputDirectory)) < minimumFreeSpace do
+        if (try Directory.freeSpace(outputDirectory)) < minimumFreeSpace
+        {
             fail Swag.SystemError{"video capture destination has insufficient free space"}
+        }
+
         var result: #returntype
         result.outputDirectory  = outputDirectory
         result.minimumFreeSpace = minimumFreeSpace
@@ -112,8 +117,10 @@ impl VideoCaptureSession
         {
             result.sourcePicture = Image.create(width, height, .BGRA8)
             result.sourceColumns.resize(cast(u64, outputWidth))
-            for column in cast(u64, outputWidth) do
+            for column in cast(u64, outputWidth)
+            {
                 result.sourceColumns[column] = cast(u32, column * cast(u64, width) / cast(u64, outputWidth))
+            }
         }
 
         Memory.set(result.picture.pixels.storage(), 0, result.picture.pixels.count)
@@ -127,8 +134,11 @@ impl VideoCaptureSession
         let width   = cast(s32, area.width)
         let height  = cast(s32, area.height)
         let maxSide = Math.max(width, height)
-        if maxSide <= 4096 do
+        if maxSide <= 4096
+        {
             return {width, height}
+        }
+
         return {Math.max(2, cast(s32, Math.floor(cast(f64, width) * 4096 / maxSide / 2)) * 2),
                 Math.max(2, cast(s32, Math.floor(cast(f64, height) * 4096 / maxSide / 2)) * 2)}
     }
@@ -137,8 +147,11 @@ impl VideoCaptureSession
     {
         if .picture.width != .outputWidth or
            .picture.height != .outputHeight or
-           .picture.pixelFormat != .BGRA8 do
+           .picture.pixelFormat != .BGRA8
+        {
             .picture = Image.create(.outputWidth, .outputHeight, .BGRA8)
+        }
+
         reduceBgraNearest(&.sourcePicture, &.picture, .sourceColumns.storage())
     }
 
@@ -164,11 +177,17 @@ impl VideoCaptureSession
     {
         // Once stopped for storage, every later slot fails the same way.
         const LowStorageStop = "video capture stopped because the destination has little free space"
-        if .lowStorageStop do
+        if .lowStorageStop
+        {
             fail Swag.SystemError{LowStorageStop}
+        }
+
         var slot: FrameSlot
-        if not try .pacer.tryAccept(tick, &slot) do
+        if not try .pacer.tryAccept(tick, &slot)
+        {
             return false
+        }
+
         if tick >= .nextSpaceCheckTick
         {
             if (try Directory.freeSpace(.outputDirectory.toString())) < .minimumFreeSpace
@@ -186,14 +205,23 @@ impl VideoCaptureSession
             .hasOrigin  = true
         }
 
-        if slot.decodeTime < .nextVideoTime do
+        if slot.decodeTime < .nextVideoTime
+        {
             fail BadParameterError{"video capture pacer moved behind the encoded timeline"}
-        if slot.skippedFrames > Swag.U64.Max - .missedSlots do
+        }
+
+        if slot.skippedFrames > Swag.U64.Max - .missedSlots
+        {
             fail OverflowError{"video capture missed-slot counter overflows"}
+        }
+
         if slot.skippedFrames
         {
-            if not .missedSlots do
+            if not .missedSlots
+            {
                 .firstMissedSlot = slot.index - slot.skippedFrames
+            }
+
             .lastMissedSlot = slot.index - 1
         }
 
@@ -219,8 +247,11 @@ impl VideoCaptureSession
             }
         }
 
-        if slot.decodeTime != .nextVideoTime do
+        if slot.decodeTime != .nextVideoTime
+        {
             fail BadParameterError{"video capture gap did not align with the next frame"}
+        }
+
         let outputSlot = FrameSlot{.submittedFrames, .nextVideoTime,
                                    slot.duration, 0}
         let grabStart  = Time.monotonicMicroseconds()
@@ -282,10 +313,16 @@ impl VideoCaptureSession
     // counter. Call this after `hasCaptureOrigin`; conversion loses at most one microsecond.
     mtd const captureOrigin100ns()->u64 fail
     {
-        if not .hasOrigin do
+        if not .hasOrigin
+        {
             fail BadParameterError{"video capture has no first frame origin yet"}
-        if .originTick > Swag.U64.Max / 10 do
+        }
+
+        if .originTick > Swag.U64.Max / 10
+        {
             fail OverflowError{"video capture origin exceeds the WASAPI timestamp range"}
+        }
+
         return .originTick * 10
     }
 
@@ -324,22 +361,34 @@ impl VideoCaptureSession
 
     mtd startEncoder() fail
     {
-        if .submittedFrames or .encoder.enabled do
+        if .submittedFrames or .encoder.enabled
+        {
             fail BadParameterError{"start the video capture encoder before submitting pictures"}
+        }
+
         try .encoder.start(&.recording)
     }
 
     private mtd writeFrame(slot: FrameSlot, repeated: bool) fail
     {
-        if .encoder.enabled do
+        if .encoder.enabled
+        {
             try .encoder.add(&.picture, slot, repeated)
-        elif repeated do
+        }
+        else if repeated
+        {
             try .recording.repeatLastFrame(slot)
-        else do
+        }
+        else
+        {
             try .recording.addFrame(&.picture, slot)
+        }
+
         .submittedFrames += 1
-        if repeated do
+        if repeated
+        {
             .submittedRepeats += 1
+        }
     }
 
     mtd opDrop() => .encoder.close()

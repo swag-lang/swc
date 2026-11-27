@@ -37,7 +37,7 @@ func within(c, lo, hi: u32)->bool => c >= lo and c <= hi
         Swag.require(twoBitPair(c) == (within(c, 0x01, 0x1A) or within(c, 0x61, 0x7A)))
     }
 
-    for c in [0x10000061'u32, 0xFFFFFF41, 0x80000041, 0x100041, 0xFFFFFFFF]
+    for c in [0x10000061_u32, 0xFFFFFF41, 0x80000041, 0x100041, 0xFFFFFFFF]
     {
         Swag.require(not isLetter(c))
         Swag.require(not highPair(c))

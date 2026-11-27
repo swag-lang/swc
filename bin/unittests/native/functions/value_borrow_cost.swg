@@ -33,8 +33,10 @@ func smallCall(value: Small, output: *u64)->u64
 func blockCall(value: Block, output: *u64)->u64
 {
     var total: u64
-    for index in 128 do
+    for index in 128
+    {
         total += value.values[index]
+    }
     output[] = total
     return total
 }
@@ -47,8 +49,10 @@ func blockCall(value: Block, output: *u64)->u64
         var output:   u64
         var checksum: u64
         let start = monotonicTicks()
-        for 2_000_000 do
+        for 2_000_000
+        {
             checksum += smallCall(value, &output)
+        }
         let elapsed = monotonicTicks() - start
         Swag.print("small ticks=", elapsed, " frequency=", monotonicFrequency(), "\n")
         if checksum != 72_000_000 or output != 18
@@ -63,12 +67,17 @@ func blockCall(value: Block, output: *u64)->u64
     for 5
     {
         var value: Block
-        for index in 128 do value.values[index] = index
+        for index in 128
+        {
+            value.values[index] = index
+        }
         var output:   u64
         var checksum: u64
         let start = monotonicTicks()
-        for 50_000 do
+        for 50_000
+        {
             checksum += blockCall(value, &output)
+        }
         let elapsed = monotonicTicks() - start
         Swag.print("block ticks=", elapsed, " frequency=", monotonicFrequency(), "\n")
         if checksum != 406_400_000 or output != 8128
@@ -84,7 +93,10 @@ func scalarStore(output: *u64, value: u64) { output[] = value }
 #[Swag.NoInline]
 func activeStores(value: Small, output: *u64)->u64
 {
-    for index in 2_000_000 do scalarStore(output, index)
+    for index in 2_000_000
+    {
+        scalarStore(output, index)
+    }
     return value.first + value.second + output[]
 }
 
@@ -94,10 +106,16 @@ func activeStores(value: Small, output: *u64)->u64
     {
         var output: u64
         let start = monotonicTicks()
-        for index in 2_000_000 do scalarStore(&output, index)
+        for index in 2_000_000
+        {
+            scalarStore(&output, index)
+        }
         let elapsed = monotonicTicks() - start
         Swag.print("empty-write ticks=", elapsed, " frequency=", monotonicFrequency(), "\n")
-        if output != 1_999_999 do Swag.panic("empty-write checksum", #curlocation)
+        if output != 1_999_999
+        {
+            Swag.panic("empty-write checksum", #curlocation)
+        }
     }
 }
 
@@ -111,6 +129,9 @@ func activeStores(value: Small, output: *u64)->u64
         let checksum      = activeStores(value, &output)
         let elapsed       = monotonicTicks() - start
         Swag.print("active-write ticks=", elapsed, " frequency=", monotonicFrequency(), "\n")
-        if checksum != 2_000_035 or output != 1_999_999 do Swag.panic("active-write checksum", #curlocation)
+        if checksum != 2_000_035 or output != 1_999_999
+        {
+            Swag.panic("active-write checksum", #curlocation)
+        }
     }
 }

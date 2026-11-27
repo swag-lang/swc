@@ -91,10 +91,10 @@ enum PropertiesKind
 internal const PropertiesKindValues: [4] PropertiesKind = [.List, .Grid, .Condensed, .Panel]
 
 // Height of the inner value editors in condensed mode, so they fit the thin rows.
-internal const PropCondensedControlHeight = 20'f32
+internal const PropCondensedControlHeight = 20_f32
 
 // Air between a condensed enum-flag marker and the wording in the adjacent cell.
-internal const PropCondensedCheckTextGap = 6'f32
+internal const PropCondensedCheckTextGap = 6_f32
 
 // Builds and edits reflected structure fields with validation, filtering, defaults, and undo support.
 struct Properties
@@ -155,15 +155,15 @@ struct Properties
 
     public
     {
-        sigValueChanged: SigArray'func||(*Wnd, *PropertiesItem?)     // Emitted after an edited value changes; item is null for detached undo/redo.
+        sigValueChanged: SigArray!{func||(*Wnd, *PropertiesItem?)}     // Emitted after an edited value changes; item is null for detached undo/redo.
 
         // What the grid currently shows. Rows are produced by 'addStruct' and friends and the
         // selection moves with the keyboard and the mouse; a host reads both to follow the grid.
 
         readonly
         {
-            items:   ArrayPtr'PropertiesItem     // Rows of the grid, in display order.
-            selItem: *PropertiesItem?            // Selected row, or 'null'.
+            items:   ArrayPtr!{PropertiesItem}     // Rows of the grid, in display order.
+            selItem: *PropertiesItem?     // Selected row, or 'null'.
         }
 
         late readonly scrollWnd: *ScrollWnd     // Borrowed scrolling viewport, available after the grid is created.
@@ -174,14 +174,14 @@ struct Properties
 
     // Grid state rebuilt from the rows: section index, hover and selection, and the transient
     // state of one gesture. The grid maintains all of it.
-    sections:     Array'{ item: *PropertiesItem?, lvl: s32 }     // Section rows and their depth.
+    sections:     Array!{{ item: *PropertiesItem?, lvl: s32 } }     // Section rows and their depth.
     lastCategory: *PropertiesItem?     // The top-level category opened last, which a category of the same name goes on.
     sectionRules: bool = true          // Whether a section label of a panel is followed by a hairline.
     rowGrounds:   bool = true          // Whether the focused and the hovered rows stand on a ground.
 
     // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
     // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
-    gridLevelHasMark:    Array'bool             // Whether any row at that depth shows a triangle.
+    gridLevelHasMark:    Array!{bool}           // Whether any row at that depth shows a triangle.
     hotItem:             *PropertiesItem?       // Row under the mouse.
     currentSectionIndex: u32 = Swag.U32.Max     // Section the viewport is scrolled to.
     stringFilter:        String                 // Active row filter.
@@ -193,7 +193,7 @@ struct Properties
 
     // "Reset to default" feature (defaultstate.swg). defaultRoots owns one default-constructed
     // instance per added struct, freed on destroy; every row's defaultData points into it.
-    defaultRoots: Array'PropDefaultRoot     // One default-constructed instance per added struct.
+    defaultRoots: Array!{PropDefaultRoot}     // One default-constructed instance per added struct.
 
     // Row the context menu currently operates on. Read by the ActionProperties commands (and
     // any keyboard/toolbar trigger of the same commands); kept set across the async command
@@ -229,14 +229,14 @@ struct Properties
 
     // What 'addStructMulti' was given, in order, so a change of presentation builds the same
     // rows again.
-    added: Array'PropAddedStruct
+    added: Array!{PropAddedStruct}
 }
 
 // One structure a [[Gui.Properties]] shows, as it was added.
 internal struct PropAddedStruct
 {
     typeof:     typeinfo?
-    bases:      Array'(*u8)
+    bases:      Array!{*u8}
     section:    String
     hasSection: bool
     onlyNamed:  bool
@@ -271,10 +271,15 @@ impl IWnd for Properties
         for itIt in .items
         {
             let it = unwrap itIt
-            if it.validationLabel != null and it.validation != .None do
+            if it.validationLabel != null and it.validation != .None
+            {
                 .applyValidationVisual(it)
-            if it.flags.has(.Note) do
+            }
+
+            if it.flags.has(.Note)
+            {
                 .applyNoteVisual(it)
+            }
         }
     }
 
@@ -287,8 +292,10 @@ impl IWnd for Properties
         evt.accepted = false
 
         let item = .menuItem
-        if not item do
+        if not item
+        {
             return
+        }
 
         var scan = cast(*PropertiesItem?, item)
         while scan
@@ -361,10 +368,15 @@ internal impl Properties
 
         if .hostNtfy
         {
-            if not .hostNtfy.isItemVisible(me, item) do
+            if not .hostNtfy.isItemVisible(me, item)
+            {
                 result.visible = false
-            if not .hostNtfy.isItemEnabled(me, item) do
+            }
+
+            if not .hostNtfy.isItemEnabled(me, item)
+            {
                 result.enable = false
+            }
         }
 
         var scan = cast(*PropertiesItem?, item)
@@ -372,14 +384,21 @@ internal impl Properties
         {
             if scan.ntfyItf
             {
-                if not scan.ntfyItf.isItemVisible(me, item) do
+                if not scan.ntfyItf.isItemVisible(me, item)
+                {
                     result.visible = false
-                if not scan.ntfyItf.isItemEnabled(me, item) do
+                }
+
+                if not scan.ntfyItf.isItemEnabled(me, item)
+                {
                     result.enable = false
+                }
             }
 
-            if not result.visible and not result.enable do
+            if not result.visible and not result.enable
+            {
                 return result
+            }
 
             scan = scan.parent
 
@@ -390,8 +409,10 @@ internal impl Properties
                .isGridLike() and
                not .hasActiveFilter() and
                scan.numChilds and
-               not scan.flags.has(.Expanded) do
+               not scan.flags.has(.Expanded)
+            {
                 result.visible = false
+            }
         }
 
         return result
@@ -412,36 +433,38 @@ internal impl Properties
             {
                 .refreshEnumFlags(item)
             }
-            elif Reflection.isEnum(pointed)
+            else if Reflection.isEnum(pointed)
             {
                 .refreshEnum(item)
             }
-            elif Reflection.isBool(pointed)
+            else if Reflection.isBool(pointed)
             {
                 .refreshBool(item)
             }
-            elif Reflection.isInteger(pointed) or Reflection.isFloat(pointed)
+            else if Reflection.isInteger(pointed) or Reflection.isFloat(pointed)
             {
                 .refreshNative(item)
             }
-            elif Reflection.isString(pointed) and (item.editBox != null)
+            else if Reflection.isString(pointed) and (item.editBox != null)
             {
                 item.editBox.setText(cast(const *string, unwrap item.data)[])
                 .setEditMixed(item, item.editBox)
             }
-            elif pointed == Core.String and (item.editBox != null)
+            else if pointed == Core.String and (item.editBox != null)
             {
                 item.editBox.setText(cast(const *String, unwrap item.data)[])
                 .setEditMixed(item, item.editBox)
             }
-            elif pointed == Core.String and (item.comboBox != null)
+            else if pointed == Core.String and (item.comboBox != null)
             {
                 .refreshFontName(item)
             }
-            elif pointed is Swag.TypeInfoStruct as typeStruct
+            else if pointed is Swag.TypeInfoStruct as typeStruct
             {
-                if typeStruct.fromGeneric == Array do
+                if typeStruct.fromGeneric == Array
+                {
                     .refreshArray(item)
+                }
             }
         }
     }
@@ -453,7 +476,7 @@ impl Properties
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, id: WndId? = null)->*Properties
     {
-        with let ed = Wnd.create'Properties(parent, "", position, id)
+        with let ed = Wnd.create!{Properties}(parent, "", position, id)
         {
             .kind = kind
 
@@ -462,14 +485,14 @@ impl Properties
             // the navigation and edition modes of properties.keyboard.swg.
             .focusPolicy         = .Tab
             .wndFlags            |= .NoFocusRing
-            .scrollWnd           = .createView'ScrollWnd()
+            .scrollWnd           = .createView!{ScrollWnd}()
             .scrollWnd.dockStyle = .Center
 
             // Property editors keep a fixed trailing safe edge beside the
             // overlaid bar, so their width never follows scroll visibility.
             .scrollWnd.updateFlags(.TransparentBars)
 
-            .edView             = .scrollWnd.createView'PropertiesView()
+            .edView             = .scrollWnd.createView!{PropertiesView}()
             .edView.ed          = ed
             .edView.mode        = .Top
             .edView.spacing     = 0
@@ -482,7 +505,7 @@ impl Properties
 
             // Built-in context-menu commands (Copy/Paste/array ops) go through the shared gui
             // action system instead of a hardcoded id switch. See actionproperties.swg.
-            .registerAction'ActionProperties()
+            .registerAction!{ActionProperties}()
         }
 
         return ed
@@ -496,15 +519,20 @@ impl Properties
     // generated ones adds them again.
     mtd setKind(kind: PropertiesKind)
     {
-        if .kind == kind do
+        if .kind == kind
+        {
             return
+        }
 
         let added = #move .added
         .clearRows()
         .kind = kind
         .applyKindMetrics(.theme())
-        for one in added do
+        for one in added
+        {
             .addStructMulti(unwrap one.typeof, one.bases.toSlice(), one.hasSection ? one.section.toString() : null, one.onlyNamed)
+        }
+
         .updateStates()
     }
 
@@ -521,8 +549,11 @@ impl Properties
     mtd setEditorWidth(width: s32)
     {
         Swag.assert(width > 0)
-        if .editorWidth == width do
+        if .editorWidth == width
+        {
             return
+        }
+
         .editorWidth = width
         .updateStates()
     }
@@ -534,8 +565,11 @@ impl Properties
     mtd setRowInsets(left, right: s32)
     {
         Swag.assert(left >= 0 and right >= 0)
-        if .leftMargin == left and .rightMargin == right do
+        if .leftMargin == left and .rightMargin == right
+        {
             return
+        }
+
         .leftMargin  = left
         .rightMargin = right
         .updateStates()
@@ -576,67 +610,95 @@ impl Properties
     mtd orderCategories(names: const [..] string)
     {
         // The rows in blocks: those before any category, then one block per top-level category.
-        var head:   Array'(*PropertiesItem)
-        var starts: Array'u64
+        var head:   Array!{*PropertiesItem}
+        var starts: Array!{u64}
         for item, i in .items
         {
             let it = unwrap item
-            if it.flags.has(.Category) and it.level == 0 do
+            if it.flags.has(.Category) and it.level == 0
+            {
                 starts.add(i)
-            elif starts.isEmpty() do
+            }
+            else if starts.isEmpty()
+            {
                 head.add(it)
+            }
         }
 
-        if starts.count < 2 do
+        if starts.count < 2
+        {
             return
+        }
 
-        var order: Array'(*PropertiesItem)
-        for it in head do
+        var order: Array!{*PropertiesItem}
+        for it in head
+        {
             order.add(it)
-        var taken: Array'bool
+        }
+
+        var taken: Array!{bool}
         taken.resize(starts.count)
 
         // Each top-level category with the rows after it, up to the next one.
-        var blocks: Array'{first: u64, last: u64}
-        for start, b in starts do
+        var blocks: Array!{{first: u64, last: u64}}
+        for start, b in starts
+        {
             blocks.add({start, b + 1 < starts.count ? starts[b + 1] : .items.count})
+        }
 
         for name in names
         {
             for block, b in blocks where not taken[b] and .items[block.first]!.typeValue.name == name
             {
-                for i in block.first until block.last do
+                for i in block.first until block.last
+                {
                     order.add(unwrap .items[i])
+                }
+
                 taken[b] = true
             }
         }
 
         for block, b in blocks where not taken[b]
         {
-            for i in block.first until block.last do
+            for i in block.first until block.last
+            {
                 order.add(unwrap .items[i])
+            }
         }
 
         // The rows and their lines follow the new order; a header the host set stays first.
         Swag.assert(order.count == .items.count)
-        for it, i in order do
+        for it, i in order
+        {
             .items[i] = it
+        }
 
-        var lines: Array'(*Wnd)
+        var lines: Array!{*Wnd}
         for c in .edView.children
         {
             var isLine = false
-            for it in order where it.line == c do
+            for it in order where it.line == c
+            {
                 isLine = true
-            if not isLine do
+            }
+
+            if not isLine
+            {
                 lines.add(c)
+            }
         }
 
-        for it in order do
+        for it in order
+        {
             lines.add(it.line)
+        }
+
         Swag.assert(lines.count == .edView.children.count)
-        for c, i in lines do
+        for c, i in lines
+        {
             .edView.children.buffer![i] = c
+        }
 
         .edView.sendResizeEvent()
     }
@@ -672,8 +734,11 @@ impl Properties
     // Shows or hides reset-to-default affordances for modified values.
     mtd setRevertButtonsVisible(visible: bool)
     {
-        if .revertButtonsVisible == visible do
+        if .revertButtonsVisible == visible
+        {
             return
+        }
+
         .revertButtonsVisible = visible
         discard .updateDefaults()
         .invalidate()
@@ -687,8 +752,11 @@ impl Properties
     // with the content it refers to.
     mtd clear()
     {
-        if not .externUndoMgr do
+        if not .externUndoMgr
+        {
             .undoMgr.clear()
+        }
+
         .added.clear()
         .clearRows()
     }
@@ -704,8 +772,10 @@ impl Properties
 
         .freeDefaultRoots()
 
-        for it in .items do
+        for it in .items
+        {
             it!.line.destroyNow()
+        }
 
         .items.clear()
         .sections.clear()
@@ -722,7 +792,7 @@ impl Properties
         let typeof = Swag.kindOf(val)
         Swag.assert(typeof.kind == .Struct)
 
-        var bases: Array'(*u8)
+        var bases: Array!{*u8}
         bases.add(cast(*u8, val.buffer))
         .addStructMulti(typeof, bases.toSlice(), section)
     }
@@ -747,10 +817,15 @@ impl Properties
             .typeof     = typeof
             .hasSection = section != null
             .onlyNamed  = onlyNamed
-            if section do
+            if section
+            {
                 .section = section
-            for b in bases do
+            }
+
+            for b in bases
+            {
                 .bases.add(b)
+            }
         }
 
         let firstItemIdx   = .items.count
@@ -792,8 +867,10 @@ impl Properties
 
         // Editors were first filled from instance 0 before the instance addresses existed;
         // refresh so any field that differs across instances now shows as "mixed".
-        if bases.count > 1 do
+        if bases.count > 1
+        {
             .refresh()
+        }
 
         .updateStates()
         .edView.sendResizeEvent()
@@ -805,16 +882,20 @@ impl Properties
     // address (their element storage is not at a fixed struct offset).
     internal mtd assignInstances(fromIdx: u64, bases: const [..] *u8)
     {
-        if bases.count <= 1 do
+        if bases.count <= 1
+        {
             return
+        }
 
         let base0 = cast([*] u8, bases[0])
         for i in fromIdx until .items.count
         {
             let it = unwrap .items[i]
             it.dataInstances.clear()
-            if not it.data do
+            if not it.data
+            {
                 continue
+            }
 
             if .isUnderDynamicArray(it)
             {
@@ -823,16 +904,20 @@ impl Properties
             }
 
             let off = cast([*] u8?, it.data) - base0
-            for b in bases do
+            for b in bases
+            {
                 it.dataInstances.add(cast(*u8, (cast([*] u8, b) + off)))
+            }
         }
     }
 
     // Reloads every editor from the data it is bound to.
     mtd refresh()
     {
-        for it in .items do
+        for it in .items
+        {
             .refreshItem(unwrap it)
+        }
     }
 
     // Commits a value an editor wrote, with propagation, undo, refresh, validation, layout, and notifications.
@@ -845,13 +930,17 @@ impl Properties
         // the other edited instances so they all change together. Composite editors that
         // touch only part of the field (vector component, enum-flags bit) write every
         // instance themselves and opt out, so we don't overwrite the untouched parts.
-        if not item.selfPropagate do
+        if not item.selfPropagate
+        {
             .propagateField(item)
+        }
 
         // Record the edit for undo/redo (diff against the row's snapshot). Skipped while a
         // command is itself restoring a value (applyingUndo), so undo/redo don't re-record.
-        if not .applyingUndo do
+        if not .applyingUndo
+        {
             .recordUndo(item)
+        }
 
         .finishItemChange(item)
     }
@@ -867,15 +956,18 @@ impl Properties
         // correct.
         var relayout        = .updateValidation()
         let defaultsChanged = .updateDefaults()
-        if defaultsChanged do
+        if defaultsChanged
+        {
             relayout = true
+        }
+
         if .modifiedOnly
         {
             // The edited row may have entered or left the modified-only result set.
             .updateStates()
             relayout = false
         }
-        elif relayout
+        else if relayout
         {
             .applyLayout()
             .scrollWnd.view.sendResizeEvent()
@@ -893,15 +985,20 @@ impl Properties
             scan = scan.parent
         }
 
-        if Reflection.hasAttribute(item.typeValue, .RecalcLayout) do
+        if Reflection.hasAttribute(item.typeValue, .RecalcLayout)
+        {
             .updateStates()
+        }
     }
 
     // Shows only the rows whose text contains `filter`, ignoring Latin-1 case; an empty filter shows every row.
     mtd setFilter(filter: string)
     {
-        if .stringFilter == filter do
+        if .stringFilter == filter
+        {
             return
+        }
+
         .stringFilter        = filter
         .stringFilterMatcher = assume Text.NameMatcher.create(filter)
         .updateStates()
@@ -912,14 +1009,19 @@ impl Properties
     // Returns zero when no text filter is set.
     mtd matchCount()->u32
     {
-        if .stringFilter.isEmpty() do
+        if .stringFilter.isEmpty()
+        {
             return 0
-        var result = 0'u32
+        }
+
+        var result = 0_u32
         for it in .items
         {
             let item = unwrap it
-            if item.data != null and item.line.isLocallyVisible() and .nameMatch(item) != Swag.U64.Max do
+            if item.data != null and item.line.isLocallyVisible() and .nameMatch(item) != Swag.U64.Max
+            {
                 result += 1
+            }
         }
 
         return result
@@ -931,22 +1033,36 @@ impl Properties
     internal mtd sectionFieldCount(index: u64)->u32
     {
         let section = .sections[index].item
-        var result  = 0'u32
+        var result  = 0_u32
         for it in .items
         {
             let item = unwrap it
-            if item.data == null or (item.parent != null and item.parent.data != null) do
+            if item.data == null or (item.parent != null and item.parent.data != null)
+            {
                 continue
+            }
 
             var scan = item.parent
-            while scan and scan != section do
+            while scan and scan != section
+            {
                 scan = scan.parent
-            if not scan do
+            }
+
+            if not scan
+            {
                 continue
-            if not .stringFilter.isEmpty() and .nameMatch(item) == Swag.U64.Max do
+            }
+
+            if not .stringFilter.isEmpty() and .nameMatch(item) == Swag.U64.Max
+            {
                 continue
-            if .modifiedOnly and not item.isModified do
+            }
+
+            if .modifiedOnly and not item.isModified
+            {
                 continue
+            }
+
             result += 1
         }
 
@@ -959,8 +1075,11 @@ impl Properties
     // visible through collapsed categories while either filter is active.
     mtd setModifiedOnly(enabled: bool)
     {
-        if .modifiedOnly == enabled do
+        if .modifiedOnly == enabled
+        {
             return
+        }
+
         .modifiedOnly = enabled
         .updateStates()
     }
@@ -968,11 +1087,16 @@ impl Properties
     // Expands every collapsible section and category in grid presentations.
     mtd expandAll()
     {
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             return
+        }
 
-        for item in .items where item!.numChilds do
+        for item in .items where item!.numChilds
+        {
             item.flags.add(.Expanded)
+        }
+
         .updateStates()
     }
 
@@ -983,11 +1107,16 @@ impl Properties
     // cannot reopen.
     mtd collapseAll()
     {
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             return
+        }
 
-        for item in .items where item!.numChilds and item.line.position.height > 0 do
+        for item in .items where item!.numChilds and item.line.position.height > 0
+        {
             item.flags.remove(.Expanded)
+        }
+
         .updateStates()
     }
 
@@ -997,19 +1126,26 @@ impl Properties
     // unchanged.
     mtd expandModified()
     {
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             return
+        }
 
-        for item in .items where item!.numChilds and item.line.position.height > 0 do
+        for item in .items where item!.numChilds and item.line.position.height > 0
+        {
             item.flags.remove(.Expanded)
+        }
 
         for item in .items where item!.isModified
         {
             var parent = item.parent
             while parent
             {
-                if parent.numChilds do
+                if parent.numChilds
+                {
                     parent.flags.add(.Expanded)
+                }
+
                 parent = parent.parent
             }
         }
@@ -1030,24 +1166,35 @@ impl Properties
     // along the parent chain declares read-only are all read-only.
     mtd isItemReadOnly(item: *PropertiesItem)->bool
     {
-        if not item.type do
+        if not item.type
+        {
             return false
+        }
 
         // Static strings are inherently read-only (shown with a read-only editor).
-        if item.type == string? do
+        if item.type == string?
+        {
             return true
+        }
 
-        if Reflection.hasAttribute(item.typeValue, .ReadOnly) do
+        if Reflection.hasAttribute(item.typeValue, .ReadOnly)
+        {
             return true
+        }
 
-        if .hostNtfy and .hostNtfy.isItemReadOnly(me, item) do
+        if .hostNtfy and .hostNtfy.isItemReadOnly(me, item)
+        {
             return true
+        }
 
         var scan = cast(*PropertiesItem?, item)
         while scan
         {
-            if scan.ntfyItf and scan.ntfyItf.isItemReadOnly(me, item) do
+            if scan.ntfyItf and scan.ntfyItf.isItemReadOnly(me, item)
+            {
                 return true
+            }
+
             scan = scan.parent
         }
 
@@ -1057,17 +1204,24 @@ impl Properties
     // Returns true if the given item can be changed (edited / pasted into)
     internal mtd canChangeItem(item: *PropertiesItem)->bool
     {
-        if not item.data or not item.type do
+        if not item.data or not item.type
+        {
             return false
+        }
 
-        if .isItemReadOnly(item) do
+        if .isItemReadOnly(item)
+        {
             return false
+        }
 
         var scan = cast(*PropertiesItem?, item)
         while scan
         {
-            if scan.line != null and scan.line.isDisabled() do
+            if scan.line != null and scan.line.isDisabled()
+            {
                 return false
+            }
+
             scan = scan.parent
         }
 
@@ -1088,10 +1242,12 @@ impl Properties
                 mustShow = .stringFilterMatcher.isMatch(item.filter.toString())
             }
 
-            if mustShow do
+            if mustShow
+            {
                 {
                     visible: mustShow, enable: mustEnable
                 } = .itemState(item)
+            }
         }
 
         item.line.show(mustShow)
@@ -1104,27 +1260,45 @@ impl Properties
         let readOnly = .isItemReadOnly(item)
         if item.editBox != null
         {
-            if readOnly do
+            if readOnly
+            {
                 item.editBox.updateFlags(.ReadOnly)
-            else do
+            }
+            else
+            {
                 item.editBox.updateFlags(remove: .ReadOnly)
+            }
         }
 
         for c in item.line.children
         {
-            if item.label != null and c == item.label do
+            if item.label != null and c == item.label
+            {
                 continue
-            if item.labelDesc != null and c == item.labelDesc do
+            }
+
+            if item.labelDesc != null and c == item.labelDesc
+            {
                 continue
-            if item.validationLabel != null and c == item.validationLabel do
+            }
+
+            if item.validationLabel != null and c == item.validationLabel
+            {
                 continue
-            if item.editBox != null and c == cast(*Wnd?, item.editBox) do
+            }
+
+            if item.editBox != null and c == cast(*Wnd?, item.editBox)
+            {
                 continue
+            }
 
             // The revert arrow manages its own enabled state (enabled only while modified), so it
             // must not be swept along with the row's read-only state here.
-            if item.revertButton != null and c == cast(*Wnd?, item.revertButton) do
+            if item.revertButton != null and c == cast(*Wnd?, item.revertButton)
+            {
                 continue
+            }
+
             c.enable(not readOnly)
         }
 
@@ -1154,8 +1328,11 @@ impl Properties
 
         .updateValidation()
         .updateDefaults()
-        for it in .items do
+        for it in .items
+        {
             .updateItemState(unwrap it)
+        }
+
         .applyLayout()
         .scrollWnd.view.sendResizeEvent()
     }

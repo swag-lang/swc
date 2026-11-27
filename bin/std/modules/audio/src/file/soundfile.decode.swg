@@ -7,7 +7,7 @@
 
 using Core, Core.Errors
 
-private const SoundDecodeReadSize = 256 * 1024'u64
+private const SoundDecodeReadSize = 256 * 1024_u64
 
 // Receives one borrowed chunk of interleaved PCM16 samples.
 //
@@ -45,16 +45,30 @@ impl SoundFile
     // ```
     mtd const decodePcm16(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer) fail
     {
-        if not .availableFields.has(.Data) or not .channelCount do
+        if not .availableFields.has(.Data) or not .channelCount
+        {
             fail BadParameterError{"sound file has no audio data"}
-        if firstFrame > .frameCount or frameCount > .frameCount - firstFrame do
+        }
+
+        if firstFrame > .frameCount or frameCount > .frameCount - firstFrame
+        {
             fail BadParameterError{"sound decode range is outside its audible sample frames"}
-        if not frameCount do
+        }
+
+        if not frameCount
+        {
             return
+        }
 
         if .usesPacketCodec()
         {
             try .decodePacketPcm16(firstFrame, frameCount, consumer)
+            return
+        }
+
+        if .encoding == .Pcm16 and .packets.isEmpty() and not .isDataPreloaded()
+        {
+            try .decodeFilePcm16(firstFrame, frameCount, consumer)
             return
         }
 
@@ -78,32 +92,125 @@ impl SoundFile
         let bytesPerFrame = bytesPerSample * .channelCount
         var byteOffset    = firstFrame * bytesPerFrame
         let byteEnd       = byteOffset + frameCount * bytesPerFrame
-        var decoded: Array's16
+
+        // A contiguous PCM payload can reuse one read window for the whole range.
+        let contiguous = .packets.isEmpty()
+        let direct     = contiguous and .encoding == .Pcm16
+        var source: ByteSource
+        if contiguous
+        {
+            if .isDataPreloaded()
+            {
+                source = ByteSource.openMemory(.data.toSlice())
+                try source.seek(byteOffset)
+            }
+            else
+            {
+                source = try ByteSource.openFile(.path.toString(), .ReadWrite)
+                try source.seek(.dataOffset + byteOffset)
+            }
+        }
+
+        var decoded: Array!{s16}
         while byteOffset < byteEnd
         {
             // Keep reads bounded, except when one complete interleaved frame is larger than
             // the window. A non-empty range always has at least one full frame remaining.
             var wantedBytes = Math.min(Math.max(SoundDecodeReadSize, bytesPerFrame), byteEnd - byteOffset)
             wantedBytes -= wantedBytes % bytesPerFrame
-            if not wantedBytes do
+            if not wantedBytes
+            {
                 break
+            }
 
-            let source = try .readPayload(byteOffset, wantedBytes)
-            if source.count != wantedBytes do
+            var payload: Array!{u8}
+            var input:   const [..] u8
+            if contiguous
+            {
+                if byteOffset >= .dataSize or wantedBytes > .dataSize - byteOffset
+                {
+                    fail InvalidFormatError{"sound payload is truncated"}
+                }
+
+                let window = try source.peek(wantedBytes)
+                input = window[until wantedBytes]
+            }
+            else
+            {
+                payload = try .readPayload(byteOffset, wantedBytes)
+                input   = payload.toSlice()
+                if input.count != wantedBytes
+                {
+                    fail InvalidFormatError{"sound payload is truncated"}
+                }
+            }
+
+            if direct
+            {
+                let samples = Swag.makeSlice(cast(const [*] s16, input.buffer), input.count / #sizeof(s16))
+                if not consumer(samples)
+                {
+                    return
+                }
+            }
+            else
+            {
+                decoded.resize(input.count / bytesPerSample)
+                let outputBytes = decoded.count * #sizeof(s16)
+                let progress    = try decoder.decode(decoded.storage(), outputBytes, input.buffer, input.count)
+                if progress.bytesRead != input.count or progress.bytesWritten != outputBytes
+                {
+                    fail InvalidFormatError{"sound payload decoded to an unexpected size"}
+                }
+
+                if not consumer(decoded.toSlice())
+                {
+                    return
+                }
+            }
+
+            if contiguous
+            {
+                try source.skip(wantedBytes)
+            }
+
+            byteOffset += wantedBytes
+        }
+    }
+
+    #[Swag.NoInline]
+    private mtd const decodeFilePcm16(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer) fail
+    {
+        let bytesPerFrame = .channelCount * #sizeof(s16)
+        let chunkFrames   = Math.max(1_u64, SoundDecodeReadSize / bytesPerFrame)
+        var remaining     = frameCount
+        var offset        = firstFrame * bytesPerFrame
+        var stream        = try File.open(.path.toString(), .Open, .Read, .ReadWrite)
+        try stream.seek(.Begin, .dataOffset + offset)
+
+        var pcm: Array!{s16}
+        pcm.reserve(Math.min(frameCount, chunkFrames) * .channelCount)
+        while remaining
+        {
+            let frames = Math.min(remaining, chunkFrames)
+            let bytes  = frames * bytesPerFrame
+            if offset >= .dataSize or bytes > .dataSize - offset or
+               not (try stream.readExact(Swag.makeSlice(cast([*] u8, pcm.storage()), bytes)))
+            {
                 fail InvalidFormatError{"sound payload is truncated"}
-            decoded.resize(source.count / bytesPerSample)
-            let outputBytes = decoded.count * #sizeof(s16)
-            let progress    = try decoder.decode(decoded.storage(), outputBytes, source.storage(), source.count)
-            if progress.bytesRead != source.count or progress.bytesWritten != outputBytes do
-                fail InvalidFormatError{"sound payload decoded to an unexpected size"}
-            if not consumer(decoded.toSlice()) do
+            }
+            if not consumer(Swag.makeSlice(pcm.storage(), frames * .channelCount))
+            {
                 return
-            byteOffset += source.count
+            }
+
+            remaining -= frames
+            offset    += bytes
         }
     }
 }
 
-private const SoundDecodeBatchBytes = 2 * 1024 * 1024'u64
+private const SoundDecodeBatchBytes = 2 * 1024 * 1024_u64
 
 private struct Pcm16Range
 {
@@ -120,8 +227,10 @@ private impl Pcm16Range
         let skipped      = Math.min(.skipFrames, packetFrames)
         .skipFrames -= skipped
         let delivered = Math.min(.framesLeft, packetFrames - skipped)
-        if not delivered do
+        if not delivered
+        {
             return true
+        }
 
         .framesLeft -= delivered
         let accepted = consumer(samples[skipped * channels until (skipped + delivered) * channels])
@@ -130,8 +239,8 @@ private impl Pcm16Range
 }
 
 private alias AacPacketBytes = const [..] u8
-private const AacPcm16PacketFrames    = 1024'u64
-private const SoundAacMinBatchPackets = 32'u64
+private const AacPcm16PacketFrames    = 1024_u64
+private const SoundAacMinBatchPackets = 32_u64
 
 private struct FlacDecodeJob
 {
@@ -142,7 +251,7 @@ private struct FlacDecodeJob
 
 private func readPcm16Packet(codec: IPacketCodec,
                              source: *ByteSource,
-                             scratch: *Array'u8,
+                             scratch: *Array!{u8},
                              packet: SoundPacket,
                              destination: [*] u8,
                              destinationBytes: u64) fail
@@ -163,15 +272,37 @@ private func readPcm16Packet(codec: IPacketCodec,
     }
     else
     {
-        if scratch.count != packet.byteSize do
+        if scratch.count != packet.byteSize
+        {
             scratch.resize(packet.byteSize)
+        }
+
         try source.readExact(scratch.toSlice())
         payload = scratch.toSlice()
     }
 
     let produced = try codec.decodePacket(destination, destinationBytes, payload)
-    if produced != destinationBytes do
+    if produced != destinationBytes
+    {
         fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
+    }
+}
+
+private func publishAc3Batch(batch: *Dolby.Ac3DecodeBatch, range: *Pcm16Range, channels: u32, consumer: SoundPcm16Consumer)->bool
+{
+    let samples = channels * Dolby.Ac3PipelineFrames
+    let pcm     = batch.pcm.storage()
+    for packet in batch.count
+    {
+        let output = pcm + packet * samples
+        if not range.publish(output[until samples], channels, consumer)
+        {
+            return false
+        }
+    }
+
+    batch.count = 0
+    return true
 }
 
 private impl SoundFile
@@ -179,13 +310,31 @@ private impl SoundFile
     mtd const decodePacketPcm16(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer) fail
     {
         let descriptor = findPacketCodec(.encoding)
-        if not descriptor do
+        if not descriptor
+        {
             fail UnsupportedFormatError{"unsupported packetized encoding"}
+        }
 
         if descriptor.type == #typeof(Mp3.Codec) and
            not Swag.jit() and
-           (try Mp3.decodeParallel(me, firstFrame, frameCount, consumer)) do
+           (try Mp3.decodeParallel(me, firstFrame, frameCount, consumer))
+        {
             return
+        }
+
+        if .encoding == .Ac3 and
+           frameCount >= 6 * Dolby.Ac3PipelineFrames and
+           not Swag.jit() and
+           Swag.workerCount() > 1 and
+           Dolby.isNativeAc3Codec(descriptor.type)
+        {
+            let decoded = .channelCount == 2 ? try .decodeAc3Pipeline!{2}(firstFrame, frameCount, consumer) :
+                          try .decodeAc3Pipeline!{0}(firstFrame, frameCount, consumer)
+            if decoded
+            {
+                return
+            }
+        }
 
         // The registered FLAC codec has no state that carries over between native frames
         // or completed Ogg page runs. An alternate registered codec keeps the serial path.
@@ -208,16 +357,24 @@ private impl SoundFile
         let packetCodec = Swag.makeInterface(decoder, descriptor.type, IPacketCodec)
         defer
         {
-            if decoder.type.opDrop do
+            if decoder.type.opDrop
+            {
                 decoder.type.opDrop(decoder)
+            }
+
             Memory.free(decoder, cast(u64, decoder.type.sizeof), allocator)
         }
 
         try packetCodec!.initialize(.decoderConfig.toSlice(), .sampleRate, .channelCount)
+        if .encoding == .Vorbis and .channelCount >= 6 and not Swag.jit() and Swag.workerCount() > 1
+        {
+            try Vorbis.enablePageBatches(unwrap packetCodec, .decoderConfig.toSlice())
+        }
+
         var source        = try ByteSource.openFile(.path.toString(), .ReadWrite)
-        var packetBytes:  Array'u8
-        var decodedBytes: Array'u8
-        var firstPacket   = 0'u64
+        var packetBytes:  Array!{u8}
+        var decodedBytes: Array!{u8}
+        var firstPacket   = 0_u64
         let decodedTarget = .leadingTrim + firstFrame
         if .encoding == .AacLc
         {
@@ -227,9 +384,9 @@ private impl SoundFile
 
         var range         = Pcm16Range{decodedTarget - .packetStarts[firstPacket], frameCount}
         let packetDecoder = unwrap packetCodec
-        var aacLanes      = 0'u64
-        var aacEnd        = 0'u64
-        var batchSamples: Array's16
+        var aacLanes      = 0_u64
+        var aacEnd        = 0_u64
+        var batchSamples: Array!{s16}
         if .encoding == .AacLc and
            frameCount >= SoundAacMinBatchPackets * AacPcm16PacketFrames and
            not Swag.jit() and
@@ -256,15 +413,17 @@ private impl SoundFile
                     // Revisit the same packets normally so callbacks can cancel first.
                     aacLanes = 0
                 }
-                elif count
+                else if count
                 {
                     let samplesPerPacket = AacPcm16PacketFrames * .channelCount
                     let samples = batchSamples.storage()
                     for packetIndex in count
                     {
                         let offset = packetIndex * samplesPerPacket
-                        if not range.publish(samples[offset until offset + samplesPerPacket], .channelCount, consumer) do
+                        if not range.publish(samples[offset until offset + samplesPerPacket], .channelCount, consumer)
+                        {
                             return
+                        }
                     }
 
                     index += count
@@ -275,15 +434,111 @@ private impl SoundFile
             let packet            = .packets[index]
             let sampleCount       = cast(u64, packet.sampleFrameCount) * .channelCount
             let decodedBytesCount = sampleCount * #sizeof(s16)
-            if decodedBytes.count != decodedBytesCount do
+            if decodedBytes.count != decodedBytesCount
+            {
                 decodedBytes.resize(decodedBytesCount)
+            }
 
             try readPcm16Packet(packetDecoder, &source, &packetBytes, packet, decodedBytes.storage(), decodedBytesCount)
             let samples = cast(const [*] s16, decodedBytes.storage())
-            if not range.publish(samples[until sampleCount], .channelCount, consumer) do
+            if not range.publish(samples[until sampleCount], .channelCount, consumer)
+            {
                 return
+            }
+
             index += 1
         }
+    }
+
+    #[Swag.NoInline]
+    mtd(FixedChannels: u32) const decodeAc3Pipeline(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer)->bool fail
+    {
+        const PacketFrames        = Dolby.Ac3PipelineFrames
+        const FirstPacketChannels = FixedChannels ? FixedChannels : 6
+        let channels      = FixedChannels ? FixedChannels : .channelCount
+        let packetSamples = PacketFrames * channels
+        let target        = .leadingTrim + firstFrame
+        let end           = .packetAtDecodedFrame(target + frameCount - 1) + 1
+        for packet in .packets.toSlice()[until end]
+        {
+            // Caller-supplied packet maps may contain silence or different packet durations.
+            if not packet.byteSize or
+               packet.byteSize > ByteSource.WindowSize or
+               packet.sampleFrameCount != PacketFrames
+            {
+                return false
+            }
+        }
+
+        var pipeline: Dolby.Ac3DecodePipeline
+        pipeline.initialize(.sampleRate, channels)
+        var source  = try ByteSource.openFile(.path.toString(), .ReadWrite)
+        var range   = Pcm16Range{target, frameCount}
+        var first: [FirstPacketChannels * PacketFrames] s16
+        let packet0 = .packets[0]
+        try source.seek(packet0.sourceOffset)
+        let window = try source.peek(packet0.byteSize)
+        try pipeline.decode(window[until packet0.byteSize], &first[0])
+        if not range.publish(first[until packetSamples], channels, consumer)
+        {
+            return true
+        }
+
+        var batches: [2] Dolby.Ac3DecodeBatch
+        batches[0].initialize(channels)
+        batches[1].initialize(channels)
+        var next:  u64
+        var index   = 1_u64
+        var tasks: Swag.TaskGroup
+        let decoder = &pipeline
+        while index < end
+        {
+            let loading = &batches[next]
+            let pending = &batches[next ^ 1]
+            let stop    = Math.min(end, index + loading.capacity())
+            var error: Swag.Error
+            catch {
+                while index < stop
+                {
+                    let packet = .packets[index]
+                    try source.seek(packet.sourceOffset)
+                    let compressed = try source.peek(packet.byteSize)
+                    try pipeline.prepare(loading, compressed[until packet.byteSize])
+                    index += 1
+                }
+            }
+            {
+                error.capture(Swag.err)
+            }
+
+            try tasks.join()
+            if not publishAc3Batch(pending, &range, channels, consumer)
+            {
+                return true
+            }
+
+            if not error.isEmpty()
+            {
+                decoder.synthesize(loading)
+                if not publishAc3Batch(loading, &range, channels, consumer)
+                {
+                    return true
+                }
+
+                try error.raise()
+            }
+
+            if loading.count
+            {
+                tasks.spawn(func|decoder, loading|() { decoder.synthesize(loading) })
+            }
+
+            next ^= 1
+        }
+
+        try tasks.join()
+        discard publishAc3Batch(&batches[next ^ 1], &range, channels, consumer)
+        return true
     }
 
     #[Swag.NoInline]
@@ -292,36 +547,45 @@ private impl SoundFile
                                    begin,
                                    end,
                                    lanes: u64,
-                                   samples: *Array's16)->u64 fail
+                                   samples: *Array!{s16})->u64 fail
     {
         let start            = .packets[begin].sourceOffset
         let samplesPerPacket = AacPcm16PacketFrames * .channelCount
         let pcmLimit         = SoundDecodeBatchBytes / (samplesPerPacket * #sizeof(s16))
         let maxCount         = Math.min(end - begin, Aac.MaxPacketBatchSize, pcmLimit)
-        var count            = 0'u64
-        var length           = 0'u64
+        var count            = 0_u64
+        var length           = 0_u64
         while count < maxCount
         {
             let entry = .packets[begin + count]
             if not entry.byteSize or
                entry.sampleFrameCount != AacPcm16PacketFrames or
-               entry.sourceOffset < start do
+               entry.sourceOffset < start
+            {
                 break
+            }
+
             let endByte = entry.sourceOffset - start + entry.byteSize
-            if endByte > SoundDecodeBatchBytes do
+            if endByte > SoundDecodeBatchBytes
+            {
                 break
+            }
+
             length = Math.max(length, endByte)
             count  += 1
         }
 
-        if count < SoundAacMinBatchPackets do
+        if count < SoundAacMinBatchPackets
+        {
             return 0
 
-        // Borrow one bounded compressed span. Each access unit may leave gaps between
-        // payloads, but all slices remain valid until the batch joins.
+            // Borrow one bounded compressed span. Each access unit may leave gaps between
+            // payloads, but all slices remain valid until the batch joins.
+        }
+
         try source.seek(start)
         let bytes = try source.peek(length)
-        var packetSlices: Array'AacPacketBytes
+        var packetSlices: Array!{AacPacketBytes}
         packetSlices.reserve(count)
         let packets = packetSlices.storage()
         for index in count
@@ -343,11 +607,14 @@ private impl SoundFile
         let decodedTarget = .leadingTrim + firstFrame
         let packetEnd     = .packetAtDecodedFrame(decodedTarget + frameCount - 1) + 1
         let bytesPerFrame = .channelCount * #sizeof(s16)
+        let config        = .decoderConfig.toSlice()
+        let nativeFrames  = config.count >= 4 and config[until 4] == cast(const [..] u8, "fLaC")
+        let lanes         = cast(u64, workers) + (nativeFrames ? 1_u64 : 0)
         var range         = Pcm16Range{decodedTarget, frameCount}
-        var pcm:  Array's16
-        var jobs: Array'FlacDecodeJob
+        var pcm:  Array!{s16}
+        var jobs: Array!{FlacDecodeJob}
 
-        var batchFirst = 0'u64
+        var batchFirst = 0_u64
         while batchFirst < packetEnd
         {
             // Bound both the output and the amount of compressed data read ahead. A packet
@@ -356,22 +623,25 @@ private impl SoundFile
             // needs only one decode.
             let batchLimit      = batchFirst == 0 ? 1 : packetEnd
             var batchEnd        = batchFirst
-            var batchFrames     = 0'u64
-            var compressedBytes = 0'u64
+            var batchFrames     = 0_u64
+            var compressedBytes = 0_u64
             while batchEnd < batchLimit
             {
                 let packet = .packets[batchEnd]
                 if batchEnd != batchFirst and
                    ((batchFrames + packet.sampleFrameCount) * bytesPerFrame > SoundDecodeBatchBytes or
-                    compressedBytes + packet.byteSize > SoundDecodeBatchBytes) do
+                    compressedBytes + packet.byteSize > SoundDecodeBatchBytes)
+                {
                     break
+                }
+
                 batchFrames     += packet.sampleFrameCount
                 compressedBytes += packet.byteSize
                 batchEnd        += 1
             }
 
             let batchFrame = .packetStarts[batchFirst]
-            let jobCount   = Math.min(cast(u64, workers), batchEnd - batchFirst, Math.max(1'u64, batchFrames * bytesPerFrame / SoundDecodeReadSize))
+            let jobCount   = Math.min(lanes, batchEnd - batchFirst, Math.max(1_u64, batchFrames * bytesPerFrame / SoundDecodeReadSize))
             jobs.clear()
             jobs.resize(jobCount)
             var first = batchFirst
@@ -389,15 +659,32 @@ private impl SoundFile
                 first = end
             }
 
-            pcm.resize(Math.max(1'u64, batchFrames * .channelCount))
-            let dst   = pcm.storage()
-            let work  = jobs.storage()
-            let sound = me
-            parallel for |sound, work, dst, batchFrame| index in jobCount
+            // Successful jobs write every sample before its packet is published.
+            pcm.reserve(Math.max(1_u64, batchFrames * .channelCount))
+            let dst  = pcm.storage()
+            let work = jobs.storage()
+            if jobCount == 1
             {
-                let job = work + index
-                catch sound.decodeFlacJob(job, dst, batchFrame) do
-                    job.error.capture(Swag.err)
+                catch .decodeFlacJob(work, dst, batchFrame)
+                {
+                    work.error.capture(Swag.err)
+                }
+            }
+            else if nativeFrames
+            {
+                .decodeNativeFlacBatch(work, jobCount, dst, batchFrame)
+            }
+            else
+            {
+                let sound = me
+                parallel for |sound, work, dst, batchFrame| index in jobCount
+                {
+                    let job = work + index
+                    catch sound.decodeFlacJob(job, dst, batchFrame)
+                    {
+                        job.error.capture(Swag.err)
+                    }
+                }
             }
 
             // Publish on the caller in packet order. A cancelled range never exposes an
@@ -410,8 +697,11 @@ private impl SoundFile
                     let packet = .packets[packetIndex]
                     let offset = (.packetStarts[packetIndex] - batchFrame) * .channelCount
                     let length = cast(u64, packet.sampleFrameCount) * .channelCount
-                    if not range.publish(dst[offset until offset + length], .channelCount, consumer) do
+                    if not range.publish(dst[offset until offset + length], .channelCount, consumer)
+                    {
                         return
+                    }
+
                     packetIndex += 1
                 }
 
@@ -422,6 +712,31 @@ private impl SoundFile
         }
     }
 
+    #[Swag.NoInline]
+    mtd const decodeNativeFlacBatch(work: [*] FlacDecodeJob, jobCount: u64, dst: [*] s16, batchFrame: u64)
+    {
+        // Keep one job on the caller and give the remaining jobs to the workers.
+        var group: Swag.TaskGroup
+        let sound = me
+        for index in 1 until jobCount
+        {
+            let job = work + index
+            group.spawn(func|sound, job, dst, batchFrame|()
+            {
+                catch sound.decodeFlacJob(job, dst, batchFrame)
+                {
+                    job.error.capture(Swag.err)
+                }
+            })
+        }
+
+        catch .decodeFlacJob(work, dst, batchFrame)
+        {
+            work.error.capture(Swag.err)
+        }
+        group.wait()
+    }
+
     mtd const decodeFlacJob(job: *FlacDecodeJob, destination: [*] s16, batchFrame: u64) fail
     {
         var codec:       Flac.Codec
@@ -429,7 +744,7 @@ private impl SoundFile
         try packetCodec.initialize(.decoderConfig.toSlice(), .sampleRate, .channelCount)
 
         var source = try ByteSource.openFile(.path.toString(), .ReadWrite)
-        var scratch: Array'u8
+        var scratch: Array!{u8}
         while job.nextPacket < job.endPacket
         {
             let packet = .packets[job.nextPacket]

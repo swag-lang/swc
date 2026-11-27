@@ -5,8 +5,14 @@ using Swag
 func update(values: *[8] f64, chooseFirst: bool)
 {
     var value: f64
-    if chooseFirst do value = values[][0]
-    else do value = values[][1]
+    if chooseFirst
+    {
+        value = values[][0]
+    }
+    else
+    {
+        value = values[][1]
+    }
     value       *= value
     values[][4] = value
     value       = values[][2] * values[][3]

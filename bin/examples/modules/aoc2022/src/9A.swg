@@ -247,7 +247,7 @@ func day9A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "9.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var set: HashSet'{ x, y: s32 }
+    var set: HashSet!{{ x, y: s32 }}
 
     struct W
     {
@@ -258,7 +258,7 @@ func day9A()
 
     for l in lines
     {
-        let cmd = Tokenize.split(l[], ' 'u8)
+        let cmd = Tokenize.split(l[], ' '_u8)
         let cpt = expect StrConv.toS32(cmd[1])
 
         var incx, incy = 0

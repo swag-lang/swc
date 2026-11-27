@@ -3,8 +3,8 @@
 
 using Core, Core.Errors
 
-private const FileLimit = 32 * 1024 * 1024'u64
-private const NoteLimit = 1_000_000'u64
+private const FileLimit = 32 * 1024 * 1024_u64
+private const NoteLimit = 1_000_000_u64
 
 // One sounding note, from its note-on tick to its note-off tick.
 struct Note
@@ -65,11 +65,11 @@ struct Document
     format:          u16
     division:        u16
     declaredTracks:  u16
-    tracks:          Array'Track
-    notes:           Array'Note
-    tempos:          Array'Tempo
-    timeSignatures:  Array'TimeSignature
-    keySignatures:   Array'KeySignature
+    tracks:          Array!{Track}
+    notes:           Array!{Note}
+    tempos:          Array!{Tempo}
+    timeSignatures:  Array!{TimeSignature}
+    keySignatures:   Array!{KeySignature}
     durationTicks:   u64
     durationSeconds: f64
     longestNote:     u64     // Length in ticks of the longest note.
@@ -107,8 +107,11 @@ impl Document
     // Returns the first time signature as numerator/denominator, or 4/4 when the file declares none.
     mtd const meterText()->String
     {
-        if .timeSignatures.isEmpty() do
+        if .timeSignatures.isEmpty()
+        {
             return "4/4"
+        }
+
         let meter = &.timeSignatures[0]
         return Format.toString("%/%", meter.numerator, meter.denominator)
     }
@@ -116,8 +119,11 @@ impl Document
     // Returns the first key signature in words, or C major when the file declares none.
     mtd const keyText()->String
     {
-        if .keySignatures.isEmpty() do
+        if .keySignatures.isEmpty()
+        {
             return Format.toString("C %", texts().ui_Major)
+        }
+
         let key = &.keySignatures[0]
         return Format.toString("% %",
                                keySignatureName(key.sharps),
@@ -129,36 +135,47 @@ impl Document
     mtd const tempoText()->String
     {
         var low     = Swag.U32.Max
-        var high    = 0'u32
-        var changes = 0'u64
-        var last    = 0'u32
+        var high    = 0_u32
+        var changes = 0_u64
+        var last    = 0_u32
         for tempo in .tempos where tempo.microsPerQuarter
         {
-            let bpm = 60_000_000'u32 / tempo.microsPerQuarter
-            if high and bpm != last do
+            let bpm = 60_000_000_u32 / tempo.microsPerQuarter
+            if high and bpm != last
+            {
                 changes += 1
+            }
+
             low  = Math.min(low, bpm)
             high = Math.max(high, bpm)
             last = bpm
         }
 
-        if not high do
+        if not high
+        {
             return Format.toString("% BPM", .bpm())
-        if low == high do
+        }
+
+        if low == high
+        {
             return Format.toString("% BPM", low)
+        }
+
         return Format.toString("%–% BPM · %", low, high, changeCountText(changes))
     }
 
     // Returns the first time signature, followed by how many times the meter changes.
     mtd const meterChangesText()->String
     {
-        var changes = 0'u64
+        var changes = 0_u64
         for index in 1 until .timeSignatures.count
         {
             let previous = &.timeSignatures[index - 1]
             let meter    = &.timeSignatures[index]
-            if meter.numerator != previous.numerator or meter.denominator != previous.denominator do
+            if meter.numerator != previous.numerator or meter.denominator != previous.denominator
+            {
                 changes += 1
+            }
         }
 
         return changes ? Format.toString("% · %", .meterText(), changeCountText(changes)) : .meterText()
@@ -167,13 +184,15 @@ impl Document
     // Returns the first key signature, followed by how many times the key changes.
     mtd const keyChangesText()->String
     {
-        var changes = 0'u64
+        var changes = 0_u64
         for index in 1 until .keySignatures.count
         {
             let previous = &.keySignatures[index - 1]
             let key      = &.keySignatures[index]
-            if key.sharps != previous.sharps or key.minor != previous.minor do
+            if key.sharps != previous.sharps or key.minor != previous.minor
+            {
                 changes += 1
+            }
         }
 
         return changes ? Format.toString("% · %", .keyText(), changeCountText(changes)) : .keyText()
@@ -182,9 +201,12 @@ impl Document
     // Returns the first tempo in beats per minute, or 120 when the file declares none.
     mtd const bpm()->u32
     {
-        if .tempos.isEmpty() or not .tempos[0].microsPerQuarter do
+        if .tempos.isEmpty() or not .tempos[0].microsPerQuarter
+        {
             return 120
-        return 60_000_000'u32 / .tempos[0].microsPerQuarter
+        }
+
+        return 60_000_000_u32 / .tempos[0].microsPerQuarter
     }
 }
 
@@ -202,8 +224,11 @@ private func hasBytes(bytes: const [..] u8, offset, count: u64)->bool => offset 
 
 private func matchesAt(bytes: const [..] u8, offset: u64, tag: string)->bool
 {
-    if not hasBytes(bytes, offset, tag.count) do
+    if not hasBytes(bytes, offset, tag.count)
+    {
         return false
+    }
+
     return Slice.equals(bytes[offset until offset + tag.count], cast(const [..] u8, tag))
 }
 
@@ -218,8 +243,10 @@ private func readU32(bytes: const [..] u8, offset: u64)->u32
 // in its low byte. Only the four rates named by SMF are valid.
 private func validDivision(division: u16)->bool
 {
-    if not (division & 0x8000) do
+    if not (division & 0x8000)
+    {
         return division != 0
+    }
 
     let frameCode     = cast(u8, division >> 8)
     let ticksPerFrame = cast(u8, division & 0xFF)
@@ -235,8 +262,11 @@ private func readVlq(bytes: const [..] u8, at, end: u64)->Vlq
     result.next = at
     for 4
     {
-        if result.next >= end do
+        if result.next >= end
+        {
             return result
+        }
+
         let value = bytes[result.next]
         result.next  += 1
         result.value = (result.value << 7) | cast(u64, value & 0x7F)
@@ -254,28 +284,40 @@ private func readVlq(bytes: const [..] u8, at, end: u64)->Vlq
 // the text is not valid UTF-8.
 private func readText(bytes: const [..] u8, at, length: u64)->String
 {
-    if not length do
+    if not length
+    {
         return {}
-    var text: Array'u8
+    }
+
+    var text: Array!{u8}
     text.reserve(length)
     for index in length
     {
         let value = bytes[at + index]
-        text.add(value < 32 or value == 127 ? '.'u8 : value)
+        text.add(value < 32 or value == 127 ? '.'_u8 : value)
     }
 
-    if Utf8.isValid(text.toSlice()) do
+    if Utf8.isValid(text.toSlice())
+    {
         return cast(string, text.toSlice())
-    for &value in text where value[] >= 128 do
-        value[] = '.'u8
+    }
+
+    for &value in text where value[] >= 128
+    {
+        value[] = '.'_u8
+    }
+
     return cast(string, text.toSlice())
 }
 
 // Ends the note an `active` slot holds, as a one-based index into the notes, and frees the slot.
 private func closeNote(document: *Document, active: *u64, tick: u64)
 {
-    if not active[] do
+    if not active[]
+    {
         return
+    }
+
     let note = &document.notes[active[] - 1]
     note.endTick = Math.max(tick, note.startTick + 1)
     active[]     = 0
@@ -295,12 +337,17 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
     while scan < end
     {
         let delta = readVlq(bytes, scan, end)
-        if not delta.valid do
+        if not delta.valid
+        {
             fail InvalidFormatError{Errors.mkString(texts().err_Event)}
+        }
+
         tick += delta.value
         scan = delta.next
-        if scan >= end do
+        if scan >= end
+        {
             fail InvalidFormatError{Errors.mkString(texts().err_Event)}
+        }
 
         // An event may reuse the last channel status instead of spelling it again.
         let first = bytes[scan]
@@ -315,26 +362,36 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
             status = running
         }
 
-        if status < 0x80 do
+        if status < 0x80
+        {
             fail InvalidFormatError{Errors.mkString(texts().err_Event)}
+        }
 
         if status < 0xF0
         {
             // Channel messages carry one or two data bytes.
             running = status
             let kind  = status >> 4
-            let count = kind == 0xC or kind == 0xD ? 1'u64 : 2'u64
-            if not hasBytes(bytes, scan, count) or scan + count > end do
+            let count = kind == 0xC or kind == 0xD ? 1_u64 : 2_u64
+            if not hasBytes(bytes, scan, count) or scan + count > end
+            {
                 fail InvalidFormatError{Errors.mkString(texts().err_Event)}
+            }
+
             let data1 = bytes[scan]
             let data2 = count == 2 ? bytes[scan + 1] : 0
-            if data1 & 0x80 or data2 & 0x80 do
+            if data1 & 0x80 or data2 & 0x80
+            {
                 fail InvalidFormatError{Errors.mkString(texts().err_Event)}
+            }
+
             scan += count
 
             // The first program a track selects names the instrument it plays.
-            if kind == 0xC and track.program < 0 do
+            if kind == 0xC and track.program < 0
+            {
                 track.program = cast(s32, data1)
+            }
 
             if kind == 0x8 or kind == 0x9
             {
@@ -348,8 +405,11 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
                 else
                 {
                     closeNote(document, &active[index], tick)
-                    if document.notes.count >= NoteLimit do
+                    if document.notes.count >= NoteLimit
+                    {
                         fail UnsupportedFormatError{Errors.mkString(texts().err_TooManyNotes)}
+                    }
+
                     document.notes.add(Note{tick, Swag.U64.Max, trackIndex, channel, key, data2})
                     active[index]   = document.notes.count
                     track.noteCount += 1
@@ -358,16 +418,22 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
                 }
             }
         }
-        elif status == 0xFF
+        else if status == 0xFF
         {
             // Meta events carry a kind and a variable-length payload.
             running = 0
-            if scan >= end do
+            if scan >= end
+            {
                 fail InvalidFormatError{Errors.mkString(texts().err_Event)}
+            }
+
             let kind   = bytes[scan]
             let length = readVlq(bytes, scan + 1, end)
-            if not length.valid or length.value > end - length.next do
+            if not length.valid or length.value > end - length.next
+            {
                 fail InvalidFormatError{Errors.mkString(texts().err_Event)}
+            }
+
             let body = length.next
 
             switch kind
@@ -377,11 +443,13 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
 
             case 0x51 where length.value == 3:
                 let micros = Math.make32(0, bytes[body], bytes[body + 1], bytes[body + 2])
-                if micros do
+                if micros
+                {
                     document.tempos.add(Tempo{tick, micros})
+                }
 
             case 0x58 where length.value == 4 and bytes[body + 1] < 16:
-                document.timeSignatures.add(TimeSignature{tick, bytes[body], 1'u32 << bytes[body + 1]})
+                document.timeSignatures.add(TimeSignature{tick, bytes[body], 1_u32 << bytes[body + 1]})
 
             case 0x59 where length.value == 2:
                 let encoded = cast(s32, bytes[body])
@@ -391,13 +459,16 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
 
             scan = body + length.value
         }
-        elif status == 0xF0 or status == 0xF7
+        else if status == 0xF0 or status == 0xF7
         {
             // Skip system-exclusive data and clear the running status.
             running = 0
             let length = readVlq(bytes, scan, end)
-            if not length.valid or length.value > end - length.next do
+            if not length.valid or length.value > end - length.next
+            {
                 fail InvalidFormatError{Errors.mkString(texts().err_Event)}
+            }
+
             scan = length.next + length.value
         }
         else
@@ -409,13 +480,21 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
     }
 
     track.lastTick = tick
-    for &slot in active do
+    for &slot in active
+    {
         closeNote(document, slot, tick)
+    }
 
-    if trackIndex == 0 and not track.name.isEmpty() do
+    if trackIndex == 0 and not track.name.isEmpty()
+    {
         document.title = track.name
-    if track.name.isEmpty() do
+    }
+
+    if track.name.isEmpty()
+    {
         track.name = Format.toString(texts().ui_TrackName, trackIndex + 1)
+    }
+
     document.durationTicks = Math.max(document.durationTicks, tick)
     document.tracks.add(#move track)
 }
@@ -424,25 +503,33 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
 // the default of 120 beats per minute.
 private func computeDuration(document: *Document)
 {
-    if not document.durationTicks do
+    if not document.durationTicks
+    {
         return
+    }
 
     if document.division & 0x8000
     {
         let encoded = cast(u8, document.division >> 8)
-        let frames  = encoded == 0xE3 ? 29.97 : cast(f64, 256'u32 - encoded)
+        let frames  = encoded == 0xE3 ? 29.97 : cast(f64, 256_u32 - encoded)
         let ticks   = cast(f64, document.division & 0xFF)
-        if frames > 0 and ticks > 0 do
+        if frames > 0 and ticks > 0
+        {
             document.durationSeconds = cast(f64, document.durationTicks) / (frames * ticks)
+        }
+
         return
     }
 
     let quarter = cast(u64, document.division)
-    if not quarter do
+    if not quarter
+    {
         return
+    }
+
     document.tempos.sort(func(a, b) => a.tick <=> b.tick)
     var previous: u64
-    var micros = 500_000'u64
+    var micros = 500_000_u64
     for tempo in document.tempos where tempo.tick <= document.durationTicks
     {
         document.durationSeconds += cast(f64, tempo.tick - previous) * cast(f64, micros)
@@ -462,16 +549,23 @@ private func computeDuration(document: *Document)
 func loadDocument(fileName: string)->Document fail
 {
     let info = try File.info(fileName)
-    if info.size > FileLimit do
+    if info.size > FileLimit
+    {
         fail UnsupportedFormatError{Errors.mkString(texts().err_TooLarge)}
+    }
+
     let content = try File.readAllBytes(fileName)
     let bytes   = content.toSlice()
-    if not hasBytes(bytes, 0, 14) or not matchesAt(bytes, 0, "MThd") do
+    if not hasBytes(bytes, 0, 14) or not matchesAt(bytes, 0, "MThd")
+    {
         fail InvalidFormatError{Errors.mkString(texts().err_Header)}
+    }
 
     let headerLength = cast(u64, readU32(bytes, 4))
-    if headerLength < 6 or not hasBytes(bytes, 8, headerLength) do
+    if headerLength < 6 or not hasBytes(bytes, 8, headerLength)
+    {
         fail InvalidFormatError{Errors.mkString(texts().err_Header)}
+    }
 
     with var result: #returntype
     {
@@ -483,18 +577,26 @@ func loadDocument(fileName: string)->Document fail
     if result.format > 2 or
        not result.declaredTracks or
        not validDivision(result.division) or
-       (result.format == 0 and result.declaredTracks != 1) do
+       (result.format == 0 and result.declaredTracks != 1)
+    {
         fail InvalidFormatError{Errors.mkString(texts().err_Header)}
+    }
 
     var scan = 8 + headerLength
     for trackIndex in result.declaredTracks
     {
-        if not hasBytes(bytes, scan, 8) or not matchesAt(bytes, scan, "MTrk") do
+        if not hasBytes(bytes, scan, 8) or not matchesAt(bytes, scan, "MTrk")
+        {
             fail InvalidFormatError{Errors.mkString(texts().err_Track)}
+        }
+
         let length = cast(u64, readU32(bytes, scan + 4))
         let body   = scan + 8
-        if length > bytes.count - body do
+        if length > bytes.count - body
+        {
             fail InvalidFormatError{Errors.mkString(texts().err_Track)}
+        }
+
         try parseTrack(&result, bytes, trackIndex, body, body + length)
         scan = body + length
     }
@@ -505,11 +607,16 @@ func loadDocument(fileName: string)->Document fail
         result.maxKey = 72
     }
 
-    if result.title.isEmpty() do
+    if result.title.isEmpty()
+    {
         result.title = Path.fileNameWithoutExtension(fileName) orelse ""
+    }
+
     result.notes.sort(func(a, b) => a.startTick <=> b.startTick)
-    for note in result.notes do
+    for note in result.notes
+    {
         result.longestNote = Math.max(result.longestNote, note.endTick - note.startTick)
+    }
 
     // Each track of a type 1 file may carry its own changes; the timeline orders them all.
     result.tempos.sort(func(a, b) => a.tick <=> b.tick)

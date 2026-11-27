@@ -54,7 +54,7 @@ private struct SoftwareTrimPlan
     sourceEnd:        u64
     firstVideoTime:   u64
     firstCopiedFrame: u64
-    audio:            Array'SoftwareTrimAudio
+    audio:            Array!{SoftwareTrimAudio}
 }
 
 // Trims a software H.264 recording precisely, copying its unchanged compressed interior.
@@ -80,46 +80,70 @@ private struct SoftwareTrimPlan
 // ```
 func trimSoftwareRecording(sourceFileName, targetFileName: string, firstFrame, afterLastFrame: u64, options: FragmentedOptions = {60, 4 * 1024 * 1024, 100, true}, edits: SoftwareTrimEdits = {})->SoftwareTrimResult fail
 {
-    if firstFrame >= afterLastFrame do
+    if firstFrame >= afterLastFrame
+    {
         fail BadParameterError{"software video trim needs a nonempty frame range"}
+    }
+
     var source = try FragmentedPacketCursor.open(sourceFileName)
     defer source.close()
     var encoder = try H264.Encoder.create(source.width(), source.height())
-    if not Slice.equals(encoder.decoderConfig(), source.avcConfig()) do
+    if not Slice.equals(encoder.decoderConfig(), source.avcConfig())
+    {
         fail UnsupportedFormatError{"software video trim needs a compatible AVC configuration"}
+    }
+
     var plan   = try SoftwareTrimPlan.create(sourceFileName, firstFrame, afterLastFrame)
     var reader = try Reader.open(sourceFileName)
     defer reader.close()
-    if edits.ranges.count and not edits.render do
+    if edits.ranges.count and not edits.render
+    {
         fail BadParameterError{"software video edits need a frame renderer"}
+    }
+
     for range in edits.ranges where range.firstFrame >= range.afterLastFrame or
-                                    range.afterLastFrame > reader.frameCount() do
+                                    range.afterLastFrame > reader.frameCount()
+    {
         fail BadParameterError{"software video edit range is outside the source"}
+    }
+
     var audioPlan = #move plan.audio
-    var configs: Array'FragmentedAudioConfig
+    var configs: Array!{FragmentedAudioConfig}
     for index in source.audioTrackCount()
     {
         let config = try source.audioTrack(index)
         configs.add({config.sampleRate, config.channelCount, config.decoderConfig})
         let track = &audioPlan[index]
-        if not track.endTime do
+        if not track.endTime
+        {
             continue
+        }
+
         let clock = try Timebase.create(config.sampleRate)
         var start = try clock.convertFrom(plan.sourceStart, source.timescale())
         var end   = try clock.convertFrom(plan.sourceEnd, source.timescale())
-        if start < track.firstTime do
+        if start < track.firstTime
+        {
             fail UnsupportedFormatError{"software video trim cannot rebase a late-starting audio track"}
+        }
+
         let sound = reader.audioTrack(cast(u32, index))
-        if not sound do
+        if not sound
+        {
             continue
+        }
+
         var available = track.endTime
         var edit: AudioPresentationRange
         if try source.tryAudioPresentationRange(index, &edit)
         {
             let relativeStart = try clock.convertFrom(plan.sourceStart - plan.firstVideoTime, source.timescale())
             let relativeEnd   = try clock.convertFrom(plan.sourceEnd - plan.firstVideoTime, source.timescale())
-            if edit.firstSample > Swag.U64.Max - Math.max(relativeEnd, edit.sampleCount) do
+            if edit.firstSample > Swag.U64.Max - Math.max(relativeEnd, edit.sampleCount)
+            {
                 fail OverflowError{"software video trim audio range overflows"}
+            }
+
             start     = edit.firstSample + relativeStart
             end       = edit.firstSample + relativeEnd
             available = edit.firstSample + edit.sampleCount
@@ -128,14 +152,20 @@ func trimSoftwareRecording(sourceFileName, targetFileName: string, firstFrame, a
         {
             let origin = try clock.convertFrom(plan.firstVideoTime, source.timescale())
             let delay  = cast(u64, Math.round(sound.timelineStartSeconds() * config.sampleRate))
-            if origin > Swag.U64.Max - delay or origin + delay > Swag.U64.Max - sound.sampleFrameCount() do
+            if origin > Swag.U64.Max - delay or origin + delay > Swag.U64.Max - sound.sampleFrameCount()
+            {
                 fail OverflowError{"software video trim audio range overflows"}
+            }
+
             available = origin + delay + sound.sampleFrameCount()
         }
 
         let finish = Math.min(Math.min(end, available), track.endTime)
-        if start >= finish do
+        if start >= finish
+        {
             continue
+        }
+
         let packet = (start - track.firstTime) / 1_024
         track.firstCopy = track.firstTime + (packet ? packet - 1 : 0) * 1_024
         let remaining = finish - track.firstTime
@@ -148,15 +178,18 @@ func trimSoftwareRecording(sourceFileName, targetFileName: string, firstFrame, a
     var ownsTemporary = true
     defer
     {
-        if ownsTemporary do
+        if ownsTemporary
+        {
             discard catch File.delete(temporary)
+        }
     }
 
     var result: #returntype
     scope
     {
         var writer: FragmentedWriter
-        if configs.count do
+        if configs.count
+        {
             writer = try FragmentedWriter.createWithAudioTracks(temporary,
                                                                 source.width(),
                                                                 source.height(),
@@ -164,13 +197,17 @@ func trimSoftwareRecording(sourceFileName, targetFileName: string, firstFrame, a
                                                                 source.avcConfig(),
                                                                 configs.toSlice(),
                                                                 options)
-        else do
+        }
+        else
+        {
             writer = try FragmentedWriter.create(temporary, source.width(), source.height(), source.timescale(), source.avcConfig(), options)
+        }
+
         var packet:  FragmentedCursorPacket
-        var bytes:   Array'u8
+        var bytes:   Array!{u8}
         var picture: Image
         var nv12:    Nv12Frame
-        var videoIndex = 0'u64
+        var videoIndex = 0_u64
         var encoding   = firstFrame < plan.firstCopiedFrame
         while try source.nextPacket(&packet)
         {
@@ -178,8 +215,11 @@ func trimSoftwareRecording(sourceFileName, targetFileName: string, firstFrame, a
             {
                 let index = videoIndex
                 videoIndex += 1
-                if index < firstFrame or index >= afterLastFrame do
+                if index < firstFrame or index >= afterLastFrame
+                {
                     continue
+                }
+
                 let time   = packet.info.decodeTime - plan.sourceStart
                 var edited = false
                 for range in edits.ranges where index >= range.firstFrame and index < range.afterLastFrame
@@ -188,8 +228,11 @@ func trimSoftwareRecording(sourceFileName, targetFileName: string, firstFrame, a
                     break
                 }
 
-                if packet.info.isKeyFrame and not edited do
+                if packet.info.isKeyFrame and not edited
+                {
                     encoding = false
+                }
+
                 if edited and not encoding
                 {
                     encoder  = try H264.Encoder.create(source.width(), source.height())
@@ -222,8 +265,11 @@ func trimSoftwareRecording(sourceFileName, targetFileName: string, firstFrame, a
                 let time  = packet.info.decodeTime
                 if not track.presentation.sampleCount or
                    time < track.firstCopy or
-                   time >= track.afterCopy do
+                   time >= track.afterCopy
+                {
                     continue
+                }
+
                 try source.readPayload(packet, &bytes)
                 try writer.addAudioPacket({bytes.toSlice(), time - track.firstCopy, time - track.firstCopy,
                                            packet.info.duration, true},
@@ -232,9 +278,12 @@ func trimSoftwareRecording(sourceFileName, targetFileName: string, firstFrame, a
             }
         }
 
-        var ranges: Array'AudioPresentationRange
-        for track in audioPlan do
+        var ranges: Array!{AudioPresentationRange}
+        for track in audioPlan
+        {
             ranges.add(track.presentation)
+        }
+
         try writer.setPresentationEdits(0, ranges.toSlice())
         try writer.end()
     }
@@ -255,35 +304,56 @@ private impl SoftwareTrimPlan
         result.audio.resize(source.audioTrackCount())
         result.firstCopiedFrame = afterLastFrame
         var packet: FragmentedCursorPacket
-        var index = 0'u64
+        var index = 0_u64
         while try source.nextPacket(&packet)
         {
             if packet.isVideo
             {
                 if packet.info.presentationTime < 0 or
-                   cast(u64, packet.info.presentationTime) != packet.info.decodeTime do
+                   cast(u64, packet.info.presentationTime) != packet.info.decodeTime
+                {
                     fail UnsupportedFormatError{"software video trim does not support reordered pictures"}
-                if index == 0 do
+                }
+
+                if index == 0
+                {
                     result.firstVideoTime = packet.info.decodeTime
-                if index == firstFrame do
+                }
+
+                if index == firstFrame
+                {
                     result.sourceStart = packet.info.decodeTime
-                if index >= firstFrame and index < result.firstCopiedFrame and packet.info.isKeyFrame do
+                }
+
+                if index >= firstFrame and index < result.firstCopiedFrame and packet.info.isKeyFrame
+                {
                     result.firstCopiedFrame = index
-                if index + 1 == afterLastFrame do
+                }
+
+                if index + 1 == afterLastFrame
+                {
                     result.sourceEnd = packet.info.decodeTime + packet.info.duration
+                }
+
                 index += 1
             }
             else
             {
                 let track = &result.audio[packet.trackIndex]
-                if not track.endTime do
+                if not track.endTime
+                {
                     track.firstTime = packet.info.decodeTime
+                }
+
                 track.endTime = packet.info.decodeTime + packet.info.duration
             }
         }
 
-        if afterLastFrame > index or not result.sourceEnd do
+        if afterLastFrame > index or not result.sourceEnd
+        {
             fail BadParameterError{"software video trim frame range is outside the source"}
+        }
+
         return result
     }
 }

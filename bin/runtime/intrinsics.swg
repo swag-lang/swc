@@ -225,6 +225,12 @@ func atomicStore(addr: *u64, value: u64)
     func byteSwap(value: u32)->u32
     func byteSwap(value: u64)->u64
 
+    // Returns the low 64 bits of the unsigned product and writes the high 64 bits to `high`.
+    func mulWide(left, right: u64, high: *u64)->u64
+
+    // Returns the low half of the product plus both addends and writes the high half to `high`.
+    func mulWide(left, right, first, second: u64, high: *u64)->u64
+
     // Returns the number of bits set to 1.
     func countOnes(value: u8)->u8
     func countOnes(value: u16)->u16
@@ -422,6 +428,88 @@ func atomicStore(addr: *u64, value: u64)
     // Bit 0 of the constant 'selector' picks the half of 'value1' and bit 4 the half of 'value2'. This is what
     // CRC folding is made of.
     func vecCarrylessMul(value1, value2: #simd [2] u64, selector: u8)->#simd [2] u64
+
+    // Updates each 128-bit lane of `value` with two carry-less products XORed with `addend`.
+    //
+    // The two constant selectors choose halves of `value` and `factor` as in [[vecCarrylessMul]].
+    // Each pointer names 32 bytes and may be unaligned. The other ranges may overlap `value`.
+    // Call only when [[hasCpuFeature]] reports `.WideCarrylessMultiply`.
+    func vecCarrylessMul2XorPair(value: *[4] u64, factor, addend: const *[4] u64, first, second: u8)
+
+    // Updates each of four 128-bit lanes with two carry-less products XORed with the addend.
+    //
+    // The constant selectors and overlapping pointer rules match [[vecCarrylessMul2XorPair]].
+    // Each pointer names 64 bytes. Call only when [[hasCpuFeature]] reports `.CarrylessMultiply512`.
+    func vecCarrylessMul2XorQuad(value: *[8] u64, factor, addend: const *[8] u64, first, second: u8)
+
+    // Adds the low 52 bits of each product to its 64-bit accumulator lane.
+    // Multiplies the low 52 bits of each factor. Requires [[Swag.CpuFeature.MultiplyAdd52]].
+    func vecMultiplyAdd52Low(accumulator, left, right: #simd [2] u64)->#simd [2] u64
+
+    // Adds bits 52 through 103 of each product to its 64-bit accumulator lane.
+    // Multiplies the low 52 bits of each factor. Requires [[Swag.CpuFeature.MultiplyAdd52]].
+    func vecMultiplyAdd52High(accumulator, left, right: #simd [2] u64)->#simd [2] u64
+
+    // Starts extending four SHA-1 message words from the first two message vectors.
+    //
+    // Each vector holds its earlier words in higher-numbered lanes. Call only when
+    // [[hasCpuFeature]] reports `.Sha`.
+    func vecSha1Schedule1(older, newer: #simd [4] u32)->#simd [4] u32
+
+    // Finishes extending four SHA-1 message words after they are combined with the third vector.
+    // Call only when [[hasCpuFeature]] reports `.Sha`.
+    func vecSha1Schedule2(partial, newest: #simd [4] u32)->#simd [4] u32
+
+    // Adds the next SHA-1 E state derived from the previous ABCD vector to the first message word.
+    // Call only when [[hasCpuFeature]] reports `.Sha`.
+    func vecSha1NextE(previous, words: #simd [4] u32)->#simd [4] u32
+
+    // Applies four SHA-1 rounds to the ABCD vector.
+    //
+    // The input message includes E in its highest lane. The low two bits of the constant `phase`
+    // select the SHA-1 round function and constant. Call only when [[hasCpuFeature]] reports `.Sha`.
+    func vecSha1Rounds4(state, words: #simd [4] u32, phase: u8)->#simd [4] u32
+
+    // Starts extending four SHA-256 message words from the first two message vectors.
+    //
+    // Each vector holds its earlier words in lower-numbered lanes. Call only when
+    // [[hasCpuFeature]] reports `.Sha`.
+    func vecSha256Schedule1(older, newer: #simd [4] u32)->#simd [4] u32
+
+    // Finishes extending four SHA-256 message words after they are combined with the third vector.
+    // Call only when [[hasCpuFeature]] reports `.Sha`.
+    func vecSha256Schedule2(partial, newest: #simd [4] u32)->#simd [4] u32
+
+    // Applies two SHA-256 rounds and returns the new ABEF vector.
+    //
+    // State words are in reverse lane order within each vector. The two low message words include
+    // their round constants. Call only when [[hasCpuFeature]] reports `.Sha`.
+    func vecSha256Rounds2(cdgh, abef, words: #simd [4] u32)->#simd [4] u32
+
+    // Applies SubBytes, ShiftRows, MixColumns and AddRoundKey to an AES state.
+    //
+    // Bytes follow AES column order. Call only when [[Swag.hasCpuFeature]] reports `.Aes`.
+    func vecAesEncryptRound(state, roundKey: #simd [16] u8)->#simd [16] u8
+
+    // Applies SubBytes, ShiftRows and AddRoundKey to the final AES encryption round.
+    //
+    // Call only when [[Swag.hasCpuFeature]] reports `.Aes`.
+    func vecAesEncryptLastRound(state, roundKey: #simd [16] u8)->#simd [16] u8
+
+    // Applies the equivalent inverse cipher round to an AES state.
+    //
+    // Pass the round key after [[Swag.vecAesInverseMixColumns]]. Call only when [[Swag.hasCpuFeature]] reports `.Aes`.
+    func vecAesDecryptRound(state, roundKey: #simd [16] u8)->#simd [16] u8
+
+    // Applies InvShiftRows, InvSubBytes and AddRoundKey to the final AES decryption round.
+    //
+    // Call only when [[Swag.hasCpuFeature]] reports `.Aes`.
+    func vecAesDecryptLastRound(state, roundKey: #simd [16] u8)->#simd [16] u8
+
+    // Applies InvMixColumns to an AES round key for [[Swag.vecAesDecryptRound]].
+    //
+    // Call only when [[Swag.hasCpuFeature]] reports `.Aes`.
+    func vecAesInverseMixColumns(roundKey: #simd [16] u8)->#simd [16] u8
 
     // The high half of each lane product, using the lane type's signedness.
     //

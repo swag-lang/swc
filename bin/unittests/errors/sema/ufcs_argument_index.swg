@@ -26,28 +26,28 @@ func scale(counter: *Counter, factor: u32) { discard counter, factor }
 #test
 {
     var counter: Counter
-    var wide = 1'u64
+    var wide = 1_u64
     counter.add(wide)     // swc-expected-error {{argument 1 for call to 'add' has type 'u64', but parameter 'amount' needs 'u32'}}
 }
 
 #test
 {
     var counter: Counter
-    var wide = 1'u64
+    var wide = 1_u64
     counter.addPair(1, wide)     // swc-expected-error {{argument 2 for call to 'addPair' has type 'u64', but parameter 'second' needs 'u32'}}
 }
 
 #test
 {
     var counter: Counter
-    var wide = 1'u64
+    var wide = 1_u64
     counter.scale(wide)     // swc-expected-error {{argument 1 for call to 'scale' has type 'u64', but parameter 'factor' needs 'u32'}}
 }
 
 #test
 {
     var counter: Counter
-    var wide = 1'u64
+    var wide = 1_u64
     scale(&counter, wide)     // swc-expected-error {{argument 2 for call to 'scale' has type 'u64', but parameter 'factor' needs 'u32'}}
 }
 
@@ -81,14 +81,14 @@ impl CandidateArgumentCounter
     var counter: CandidateArgumentCounter
     // swc-expected-note@+2 {{parameter 'values' cannot accept argument 1: cannot cast}}
     // swc-expected-note@+1 {{but argument 1 has type 'array literal'}}
-    counter.take([1'u32, 2])     // swc-expected-error {{sema_err_no_overload_match}}
+    counter.take([1_u32, 2])     // swc-expected-error {{sema_err_no_overload_match}}
 }
 
 #test
 {
     var counter: CandidateArgumentCounter
     // swc-expected-note@+1 {{parameter 'values' cannot accept argument 2: cannot cast}}
-    counter.takeAfter(7, [1'u32, 2])     // swc-expected-error {{sema_err_no_overload_match}}
+    counter.takeAfter(7, [1_u32, 2])     // swc-expected-error {{sema_err_no_overload_match}}
 }
 
 #test
@@ -96,7 +96,7 @@ impl CandidateArgumentCounter
     var counter: CandidateArgumentCounter
     // Named arguments are numbered by their written order, not their parameter position.
     // swc-expected-note@+1 {{parameter 'values' cannot accept argument 1: cannot cast}}
-    counter.takeAfter(values: [1'u32, 2], first: 7)     // swc-expected-error {{sema_err_no_overload_match}}
+    counter.takeAfter(values: [1_u32, 2], first: 7)     // swc-expected-error {{sema_err_no_overload_match}}
 }
 
 #test
@@ -104,7 +104,7 @@ impl CandidateArgumentCounter
     var counter: CandidateArgumentCounter
     // The explicit receiver in a qualified call is an ordinary written argument.
     // swc-expected-note@+1 {{parameter 'values' cannot accept argument 2: cannot cast}}
-    CandidateArgumentCounter.take(&counter, [1'u32, 2])     // swc-expected-error {{sema_err_no_overload_match}}
+    CandidateArgumentCounter.take(&counter, [1_u32, 2])     // swc-expected-error {{sema_err_no_overload_match}}
 }
 
 #test

@@ -15,14 +15,19 @@ namespace Win32Priv
 func AvSetMmThreadCharacteristicsW(TaskName: LPCWSTR, TaskIndex: *DWORD)->HANDLE fail
 {
     let result = Win32Priv.AvSetMmThreadCharacteristicsW(TaskName, TaskIndex)
-    if not result do
+    if not result
+    {
         try failWinError(GetLastError())
+    }
+
     return result
 }
 
 // Reports a native scheduling-restoration failure as a Swag error.
 func AvRevertMmThreadCharacteristics(AvrtHandle: HANDLE) fail
 {
-    if not Win32Priv.AvRevertMmThreadCharacteristics(AvrtHandle) do
+    if not Win32Priv.AvRevertMmThreadCharacteristics(AvrtHandle)
+    {
         try failWinError(GetLastError())
+    }
 }

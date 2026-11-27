@@ -3,7 +3,7 @@
 struct FormPolygon
 {
     using base: BaseForm
-    points:     Array'Math.Vector2
+    points:     Array!{Math.Vector2}
 
     #[Serialization.NoSerialize]
     {
@@ -31,8 +31,11 @@ impl IForm for FormPolygon
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = catch cast(*FormPolygon?, ptr) orelse null
-        if not other do
+        if not other
+        {
             return false
+        }
+
         return .isSameBase(ptr) and .bezier == other.bezier
     }
 
@@ -48,8 +51,11 @@ impl IForm for FormPolygon
     {
         if evt.kind == .DoubleClick and evt.button == .Left
         {
-            if .points.count > 3 do
+            if .points.count > 3
+            {
                 .points.removeBack()
+            }
+
             return false
         }
 
@@ -63,7 +69,7 @@ impl IForm for FormPolygon
             .points.add(Math.Vector2{xs, ys})
             .points.add(Math.Vector2{x0, y0})
         }
-        elif evt.kind == .Released and evt.button == .Left
+        else if evt.kind == .Released and evt.button == .Left
         {
             .points.add(Math.Vector2{x0, y0})
         }
@@ -104,8 +110,11 @@ impl IForm for FormPolygon
 
     mtd impl boundRect()->Math.Rectangle
     {
-        if not .points.count do
+        if not .points.count
+        {
             .setDefaultShape()
+        }
+
         return boundOfPoints(&.points)
     }
 
@@ -116,8 +125,11 @@ impl IForm for FormPolygon
         if flags.has(.Hot | .Selected)
         {
             .gizmo.anchors.clear()
-            for pt in .points do
+            for pt in .points
+            {
                 .gizmo.anchors.add(Math.Point{pt.x * z, pt.y * z})
+            }
+
             let col = selectionInk()
             .gizmo.paint(null, painter, not flags.has(.Selected), col)
         }
@@ -134,8 +146,10 @@ impl IForm for FormPolygon
 
         let backBrush = Brush.createHatch(.CheckBoardLarge, Argb.DarkGray)
         var bk        = .backColor
-        if cxt.quickMode and .alpha != 100 and .subKind == .Highlight do
+        if cxt.quickMode and .alpha != 100 and .subKind == .Highlight
+        {
             bk.a = .opacityAlpha()
+        }
 
         if .subKind == .PixSel
         {
@@ -149,18 +163,25 @@ impl IForm for FormPolygon
         .linePath.start(.points[0].x * z, .points[0].y * z)
         for i in 1 until .points.count
         {
-            if .bezier do
+            if .bezier
+            {
                 .linePath.curveTo(.points[i].x * z, .points[i].y * z)
-            else do
+            }
+            else
+            {
                 .linePath.lineTo(.points[i].x * z, .points[i].y * z)
+            }
         }
 
         .linePath.close()
 
         if cxt.quickMode
         {
-            if .alpha != 100 and .subKind == .Highlight do
+            if .alpha != 100 and .subKind == .Highlight
+            {
                 painter.fillPath(&.linePath, backBrush)
+            }
+
             painter.fillPath(&.linePath, bk)
         }
         else

@@ -22,19 +22,28 @@ func serveWebSocketCustomStatus(thread: const *Threading.Thread)
     while Utf8.indexOf(request.toString(), "\r\n\r\n") == Swag.U64.Max
     {
         let count = expect stream.read(buffer)
-        if count == 0 do
+        if count == 0
+        {
             return
+        }
+
         request += cast(string, buffer[0 until count])
     }
 
     let requestText = request.toString()
     let keyOffset   = Utf8.indexOf(requestText, "Sec-WebSocket-Key: ")
-    if keyOffset == Swag.U64.Max do
+    if keyOffset == Swag.U64.Max
+    {
         return
+    }
+
     let keyStart = keyOffset + "Sec-WebSocket-Key: ".count
     let keyEnd   = Utf8.indexOf(requestText, "\r\n", keyStart)
-    if keyEnd == Swag.U64.Max do
+    if keyEnd == Swag.U64.Max
+    {
         return
+    }
+
     let accept   = expect webSocketAccept(requestText[keyStart until keyEnd])
     let response = Format.toString("HTTP/1.1 101 Web Socket Ready\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept:\t%\t\r\n\r\n", accept)
     discard expect stream.writeAll(cast(const [..] u8, response))
@@ -134,15 +143,21 @@ func serveWebSocket(thread: const *Threading.Thread)
     let utf8Last:  [1] u8 = [0xA9]
     expect client.sendFrame(.Text, utf8First, false)
     expect client.sendFrame(.Continuation, utf8Last)
-    var extended: Array'u8
+    var extended: Array!{u8}
     extended.resize(126)
-    for i in extended.count do
+    for i in extended.count
+    {
         extended[i] = 0x5A
+    }
+
     expect client.sendFrame(.Binary, extended.toSlice())
-    var extended64: Array'u8
+    var extended64: Array!{u8}
     extended64.resize(65536)
-    for i in extended64.count do
+    for i in extended64.count
+    {
         extended64[i] = 0xA5
+    }
+
     expect client.sendFrame(.Binary, extended64.toSlice())
     let response = expect client.receiveFrame()
     Swag.require(response.opcode == .Binary and cast(string, response.payload.toSlice()) == "OK")

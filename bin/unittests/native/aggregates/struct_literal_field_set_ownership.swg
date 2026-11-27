@@ -40,8 +40,10 @@ impl Owned
     mtd opDrop()
     {
         DropCount += 1
-        if .addr and .addr != me do
+        if .addr and .addr != me
+        {
             StaleDropCount += 1
+        }
     }
 }
 

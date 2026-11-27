@@ -17,7 +17,7 @@ func linuxThreadBody(thread: const *Threading.Thread)
 
 func linuxCountedThreadBody(thread: const *Threading.Thread)
 {
-    let completed = cast(*Swag.AtomicValue'u32, unwrap thread.userParam)
+    let completed = cast(*Swag.AtomicValue!{u32}, unwrap thread.userParam)
     discard completed.add(1)
 }
 
@@ -25,9 +25,9 @@ func linuxCountedThreadBody(thread: const *Threading.Thread)
 #[Swag.TestTag("integration.thread")]
 #test
 {
-    var completed: Swag.AtomicValue'u32
+    var completed: Swag.AtomicValue!{u32}
     var thread:    Threading.Thread
-    for cycle in 64'u32
+    for cycle in 64_u32
     {
         expect thread.init(&linuxCountedThreadBody, &completed)
         Swag.require(thread.isValid())
@@ -35,10 +35,14 @@ func linuxCountedThreadBody(thread: const *Threading.Thread)
         var rejected = false
         catch thread.start()
         {
-            if Swag.err is Errors.BadParameterError do
+            if Swag.err is Errors.BadParameterError
+            {
                 rejected = true
-            else do
+            }
+            else
+            {
                 Swag.require(false, "second start returned a different error type")
+            }
         }
 
         Swag.require(rejected and thread.isValid())
@@ -75,8 +79,11 @@ func linuxCountedThreadBody(thread: const *Threading.Thread)
     expect thread.start()
 
     // isDone may reap the pthread, but wait must still release the owner exactly once.
-    while not thread.isDone() do
+    while not thread.isDone()
+    {
         Threading.Thread.yield()
+    }
+
     let stillDone = thread.isDone()
     Swag.require(stillDone and probe.ran.isRaised())
     thread.wait()

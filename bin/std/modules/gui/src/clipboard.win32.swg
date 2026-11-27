@@ -13,18 +13,26 @@ private var g_PngFormat: UINT
 private func addNativeData(fmt: UINT, bytes: const [..] u8)->bool
 {
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, bytes.count)
-    if not hglob do
+    if not hglob
+    {
         return false
+    }
+
     var transferred = false
     defer
     {
-        if not transferred do
+        if not transferred
+        {
             discard GlobalFree(hglob)
+        }
     }
 
     let buffer = cast([*] u8?, GlobalLock(hglob))
-    if not buffer do
+    if not buffer
+    {
         return false
+    }
+
     Memory.copy(buffer, bytes.buffer, bytes.count)
     discard GlobalUnlock(hglob)
     transferred = SetClipboardData(fmt, hglob) != null
@@ -40,11 +48,16 @@ func registerFormat(name: string)->ValueFormat fail => try RegisterClipboardForm
 // Reports whether the clipboard holds data in format `fmt`.
 func hasFormat(fmt: ValueFormat)->bool
 {
-    if g_Fake.enabled do
+    if g_Fake.enabled
+    {
         return fakeFind(fmt) != null
+    }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return false
+    }
+
     defer discard CloseClipboard()
 
     return IsClipboardFormatAvailable(cast(UINT, fmt)) != 0
@@ -59,24 +72,38 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo?)->bool
     if g_Fake.enabled
     {
         let entry = fakeFind(fmt)
-        if not entry do
+        if not entry
+        {
             return false
+        }
+
         return not type or entry.crc == type.crc
     }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return false
+    }
+
     defer discard CloseClipboard()
 
-    if not IsClipboardFormatAvailable(cast(UINT, fmt)) do
+    if not IsClipboardFormatAvailable(cast(UINT, fmt))
+    {
         return false
-    if not type do
+    }
+
+    if not type
+    {
         return true
+    }
 
     let hglob = GetClipboardData(cast(UINT, fmt))
     let data  = cast([*] u8?, GlobalLock(hglob))
-    if not data do
+    if not data
+    {
         return false
+    }
+
     defer discard GlobalUnlock(hglob)
     catch
     {
@@ -93,11 +120,16 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo?)->bool
 // only a query with a `null` type finds the payload.
 func addTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
 {
-    if g_Fake.enabled do
+    if g_Fake.enabled
+    {
         return fakeAddTypedData(fmt, type, data)
+    }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return
+    }
+
     defer discard CloseClipboard()
     let payload = TypedPayload{crc: type ? type.crc : 0, data: data}
     let bytes   = payload.encode()
@@ -108,29 +140,42 @@ func addTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
 //
 // Matching follows [[Gui.Clipboard.hasTypedData]], except that the payload must also have been
 // published by [[Gui.Clipboard.addTypedData]] when `type` is `null`.
-func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
+func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array!{u8}
 {
-    if g_Fake.enabled do
+    if g_Fake.enabled
+    {
         return fakeGetTypedData(fmt, type)
+    }
 
     var result: #returntype
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return result
+    }
+
     defer discard CloseClipboard()
 
-    if not IsClipboardFormatAvailable(cast(UINT, fmt)) do
+    if not IsClipboardFormatAvailable(cast(UINT, fmt))
+    {
         return result
+    }
+
     let hglob = GetClipboardData(cast(UINT, fmt))
     let data  = cast([*] u8?, GlobalLock(hglob))
-    if not data do
+    if not data
+    {
         return result
+    }
+
     defer discard GlobalUnlock(hglob)
     catch
     {
         let payload = try TypedPayload.decode(Swag.makeSlice(data, GlobalSize(hglob)))
-        if payload.matches(type) and payload.data do
+        if payload.matches(type) and payload.data
+        {
             result.add(payload.data)
+        }
     }
 
     return result
@@ -141,11 +186,16 @@ func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
 // Nothing is decoded, so [[Gui.Clipboard.getImage]] can still answer an invalid image.
 func hasImage()->bool
 {
-    if g_Fake.enabled do
+    if g_Fake.enabled
+    {
         return g_Fake.hasImg
+    }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return false
+    }
+
     defer discard CloseClipboard()
 
     return IsClipboardFormatAvailable(CF_DIB) != 0 or IsClipboardFormatAvailable(g_PngFormat) != 0
@@ -161,18 +211,26 @@ func addImage(image: Image)->bool
     if g_Fake.enabled
     {
         fakeClear()
-        if not image.isValid() do
+        if not image.isValid()
+        {
             return false
+        }
+
         g_Fake.hasImg = true
         g_Fake.img    = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice(), image.alphaMode)
         return true
     }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return false
+    }
+
     defer discard CloseClipboard()
-    if not EmptyClipboard() or not image.isValid() do
+    if not EmptyClipboard() or not image.isValid()
+    {
         return false
+    }
 
     // Pixel owns DIB channel ordering, row padding, and straight-alpha conversion.
     var dibErrorOutcome: Swag.Error
@@ -199,13 +257,19 @@ func getImage()->Image
 
     if g_Fake.enabled
     {
-        if g_Fake.hasImg do
+        if g_Fake.hasImg
+        {
             result = g_Fake.img
+        }
+
         return result
     }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return result
+    }
+
     defer discard CloseClipboard()
 
     // PNG
@@ -216,8 +280,11 @@ func getImage()->Image
         {
             let size = GlobalSize(hglob)
             let pz   = cast([*] u8?, GlobalLock(hglob))
-            if not pz do
+            if not pz
+            {
                 return result
+            }
+
             defer discard GlobalUnlock(hglob)
             return catch Image.decode("clipboard.png", Swag.makeSlice(pz, size), {}) orelse Image{}
         }
@@ -231,8 +298,11 @@ func getImage()->Image
         {
             let size = GlobalSize(hglob)
             let pz   = cast([*] u8?, GlobalLock(hglob))
-            if not pz do
+            if not pz
+            {
                 return result
+            }
+
             defer discard GlobalUnlock(hglob)
             return catch Image.decode("clipboard.bmp", Swag.makeSlice(pz, size), {}) orelse Image{}
         }
@@ -244,11 +314,16 @@ func getImage()->Image
 // Reports whether the clipboard contains text.
 func hasString()->bool
 {
-    if g_Fake.enabled do
+    if g_Fake.enabled
+    {
         return g_Fake.hasStr
+    }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return false
+    }
+
     defer discard CloseClipboard()
 
     return IsClipboardFormatAvailable(CF_UNICODETEXT) != 0 or IsClipboardFormatAvailable(CF_TEXT) != 0
@@ -264,24 +339,34 @@ func setFiles(paths: const [..] String)
     if g_Fake.enabled
     {
         fakeClear()
-        for path in paths do
+        for path in paths
+        {
             g_Fake.files.add(path[])
+        }
+
         return
     }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return
+    }
+
     defer discard CloseClipboard()
-    if not EmptyClipboard() do
+    if not EmptyClipboard()
+    {
         return
+    }
 
     let hglob = buildHDrop(paths)
-    if hglob and SetClipboardData(CF_HDROP, hglob) == null do
+    if hglob and SetClipboardData(CF_HDROP, hglob) == null
+    {
         discard GlobalFree(hglob)
+    }
 }
 
 // Returns the paths of the files the clipboard holds, empty when it holds none.
-func getFiles()->Array'String
+func getFiles()->Array!{String}
 {
     var result: #returntype
     if g_Fake.enabled
@@ -290,21 +375,29 @@ func getFiles()->Array'String
         return result
     }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return result
+    }
+
     defer discard CloseClipboard()
 
     let hDrop = cast(HDROP, GetClipboardData(CF_HDROP))
-    if not hDrop do
+    if not hDrop
+    {
         return result
+    }
 
-    var buffer: Array'u16
+    var buffer: Array!{u16}
     let count = DragQueryFileW(hDrop, Swag.U32.Max, null, 0)
     for i in count
     {
         let length = DragQueryFileW(hDrop, i, null, 0)
-        if not length do
+        if not length
+        {
             continue
+        }
+
         buffer.resize(length + 1)
         discard DragQueryFileW(hDrop, i, buffer.buffer, length + 1)
         result.add(Utf8.fromUtf16(Swag.makeSlice(buffer.storage(), cast(u64, length))))
@@ -335,24 +428,35 @@ private func writeString(str: string, replace: bool)
 {
     if g_Fake.enabled
     {
-        if replace do
+        if replace
+        {
             fakeClear()
+        }
+
         g_Fake.hasStr = true
         g_Fake.str    = str
         return
     }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return
+    }
+
     defer discard CloseClipboard()
 
     // Claim ownership before publishing a new copy, so older rich formats cannot win on paste.
-    if replace and not EmptyClipboard() do
+    if replace and not EmptyClipboard()
+    {
         return
+    }
 
     let ansi = NativeText.encodeAnsi(str)
-    if not ansi.isEmpty() do
+    if not ansi.isEmpty()
+    {
         discard addNativeData(CF_TEXT, ansi.toSlice())
+    }
+
     let wide = Utf16.toZeroTerminated(str)
     discard addNativeData(CF_UNICODETEXT, Swag.makeSlice(cast(const [*] u8, wide.storage()), wide.count * 2))
 }
@@ -366,23 +470,35 @@ func getString()->String
 
     if g_Fake.enabled
     {
-        if g_Fake.hasStr do
+        if g_Fake.hasStr
+        {
             result = g_Fake.str
+        }
+
         return result
     }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return result
+    }
+
     defer discard CloseClipboard()
 
     for format in [CF_UNICODETEXT, CF_TEXT]
     {
-        if not IsClipboardFormatAvailable(format) do
+        if not IsClipboardFormatAvailable(format)
+        {
             continue
+        }
+
         let hglob = GetClipboardData(format)
         let data  = cast([*] u8?, GlobalLock(hglob))
-        if not data do
+        if not data
+        {
             continue
+        }
+
         defer discard GlobalUnlock(hglob)
         let bytes = Swag.makeSlice(data, GlobalSize(hglob))
         return format == CF_UNICODETEXT ? NativeText.decodeUnicode(bytes) : NativeText.decodeAnsi(bytes)
@@ -400,8 +516,11 @@ func clear()
         return
     }
 
-    if not OpenClipboard(GetDesktopWindow()) do
+    if not OpenClipboard(GetDesktopWindow())
+    {
         return
+    }
+
     defer discard CloseClipboard()
     discard EmptyClipboard()
 }

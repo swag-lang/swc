@@ -23,8 +23,14 @@ func checkFour(value: const *FourChunks)
     Swag.assert(value.middle == 0x0102030405060708)
     Swag.assert(value.tail == 0x8877665544332211)
     Swag.assert(value.last == 0x123456789ABCDEF0)
-    for element in value.zerosA do Swag.assert(element == 0)
-    for element in value.zerosB do Swag.assert(element == 0)
+    for element in value.zerosA
+    {
+        Swag.assert(element == 0)
+    }
+    for element in value.zerosB
+    {
+        Swag.assert(element == 0)
+    }
 }
 
 // Four nonzero chunks use sparse stores; the fifth selects the fallback.

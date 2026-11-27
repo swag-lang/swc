@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-private const FileDropHighlightWash = 0.12'f32
+private const FileDropHighlightWash = 0.12_f32
 
 // Marks a window as the target of a desktop file drag with an outline and an optional invitation.
 //
@@ -20,8 +20,10 @@ impl IWnd for FileDropHighlight
     mtd impl onLayout()
     {
         .setPosition(.parent!.clientRect(), computeLayout: false)
-        if not .prompt.isLocallyVisible() do
+        if not .prompt.isLocallyVisible()
+        {
             return
+        }
 
         let bounds = .clientRect()
         let inset  = .themeMetrics().floating_Inset
@@ -39,8 +41,10 @@ impl IWnd for FileDropHighlight
         let inset   = painter.hairline(metrics.wnd_BorderSize)
         var rect    = .clientRect()
         rect.inflate(-inset)
-        if rect.width <= 0 or rect.height <= 0 do
+        if rect.width <= 0 or rect.height <= 0
+        {
             return
+        }
 
         let corner = Math.max(0, (.surface?.cornerRadius() orelse metrics.surfaceWnd_CornerRadius) - inset)
         let wash   = colors.signature.withAlpha(cast(u8, (cast(f32, colors.signature.a) * FileDropHighlightWash)))
@@ -51,8 +55,10 @@ impl IWnd for FileDropHighlight
         painter.drawRoundRect(rect, corner, corner, pen)
 
         // The prompt needs its own ground over pictures and other variable content.
-        if .prompt.isLocallyVisible() and not .prompt.position.isEmpty() do
+        if .prompt.isLocallyVisible() and not .prompt.position.isEmpty()
+        {
             painter.fillRoundRect(.prompt.position, metrics.corner_Control, metrics.corner_Control, colors.surface)
+        }
     }
 }
 
@@ -61,7 +67,7 @@ impl FileDropHighlight
     // Creates a hidden overlay that fills `parent` and displays `prompt` while a file is dragged.
     func create(parent: *Wnd, prompt: string, id: WndId? = null)->*FileDropHighlight
     {
-        with let result = Wnd.create'FileDropHighlight(parent, null, {}, id)
+        with let result = Wnd.create!{FileDropHighlight}(parent, null, {}, id)
         {
             .dockStyle       = .Float
             .backgroundStyle = .Transparent
@@ -87,8 +93,11 @@ impl FileDropHighlight
         .prompt.show(showPrompt)
 
         // Hidden children are skipped by layout. Size the layer before the first drag-enter paint.
-        if needsLayout do
+        if needsLayout
+        {
             .itf.onLayout()
+        }
+
         .show()
         .bringToFront()
     }
@@ -97,8 +106,10 @@ impl FileDropHighlight
     mtd setPrompt(text: string)
     {
         .prompt.setText(text)
-        if .isLocallyVisible() do
+        if .isLocallyVisible()
+        {
             .itf.onLayout()
+        }
     }
 
     // Applies the current theme's primary text color to the invitation.

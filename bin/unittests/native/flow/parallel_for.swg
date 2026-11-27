@@ -5,11 +5,15 @@
 {
     let scheduler = Swag.schedulerInstance()
     let started   = scheduler.started.load()
-    var total     = 0'u64
-    parallel for |&total| index in 0 do
+    var total     = 0_u64
+    parallel for |&total| index in 0
+    {
         total += index + 1
-    parallel for |&total| index in 41 until 42 do
+    }
+    parallel for |&total| index in 41 until 42
+    {
         total += index + 1
+    }
     Swag.require(total == 42)
     Swag.require(scheduler.started.load() == started)
 }
@@ -21,8 +25,10 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
     parallel for |values, begin, rounds| index in begin until begin + count
     {
         var value = index & 0xFFFF
-        for round in rounds do
+        for round in rounds
+        {
             value = (value * 33 + round) & 0xFFFF
+        }
         values[index - begin] += value + 1
     }
 }
@@ -36,18 +42,24 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
         for count in counts
         {
             var values: [2048] u64
-            let begin = 0xFFFF_FFFF_FFFF_0000'u64
-            for 3 do
+            let begin = 0xFFFF_FFFF_FFFF_0000_u64
+            for 3
+            {
                 fillProfiledRange(values, begin, count, cost)
+            }
             for index in count
             {
                 var expected = (begin + index) & 0xFFFF
-                for round in cost do
+                for round in cost
+                {
                     expected = (expected * 33 + round) & 0xFFFF
+                }
                 Swag.require(values[index] == (expected + 1) * 3)
             }
-            for index in count until 2048 do
+            for index in count until 2048
+            {
                 Swag.require(values[index] == 0)
+            }
         }
     }
 }
@@ -63,8 +75,10 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
         {
             group.spawn(func|&grid, row|()
             {
-                for 64 do
+                for 64
+                {
                     fillProfiledRange(grid[row], 100, 257, row % 3)
+                }
             })
         }
     }
@@ -72,9 +86,11 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
     {
         for index in 257
         {
-            var expected = 100'u64 + index
-            for round in row % 3 do
+            var expected = 100_u64 + index
+            for round in row % 3
+            {
                 expected = (expected * 33 + round) & 0xFFFF
+            }
             Swag.require(grid[row][index] == (expected + 1) * 64)
         }
     }
@@ -84,21 +100,27 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
 // index is still visited exactly once when several threads share the range.
 #test
 {
-    var seen: [256] Swag.AtomicValue'u32
+    var seen: [256] Swag.AtomicValue!{u32}
 
-    parallel for |&seen| index in 256 do
+    parallel for |&seen| index in 256
+    {
         seen[index].add(1)
+    }
 
-    for index in 256 do
+    for index in 256
+    {
         Swag.require(seen[index].load() == 1)
+    }
 }
 
 #test
 {
-    var total: Swag.AtomicValue'u64
+    var total: Swag.AtomicValue!{u64}
 
-    parallel for |&total| index in 1000 do
+    parallel for |&total| index in 1000
+    {
         total.add(index)
+    }
 
     Swag.require(total.load() == 499_500)
 }
@@ -106,19 +128,23 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
 // Partition bounds are absolute indices of the written range.
 #test
 {
-    var lowest:  Swag.AtomicValue'u64
-    var highest: Swag.AtomicValue'u64
+    var lowest:  Swag.AtomicValue!{u64}
+    var highest: Swag.AtomicValue!{u64}
     lowest.store(Swag.U64.Max)
 
     parallel for |&lowest, &highest| index in 100 until 200
     {
         var seen = lowest.load()
-        while index < seen and lowest.compareExchange(seen, index) != seen do
+        while index < seen and lowest.compareExchange(seen, index) != seen
+        {
             seen = lowest.load()
+        }
 
         var top = highest.load()
-        while index > top and highest.compareExchange(top, index) != top do
+        while index > top and highest.compareExchange(top, index) != top
+        {
             top = highest.load()
+        }
     }
 
     Swag.require(lowest.load() == 100)
@@ -128,27 +154,33 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
 // A nested statement runs its own partitioning inside a partition already running.
 #test
 {
-    var grid: [64] Swag.AtomicValue'u32
+    var grid: [64] Swag.AtomicValue!{u32}
 
     parallel for |&grid| row in 64
     {
-        parallel for |&grid, row| 16 do
+        parallel for |&grid, row| 16
+        {
             grid[row].add(1)
+        }
     }
 
-    for row in 64 do
+    for row in 64
+    {
         Swag.require(grid[row].load() == 16)
+    }
 }
 
 // Repeated statements reuse the pool without losing an index.
 #test
 {
-    var total: Swag.AtomicValue'u64
+    var total: Swag.AtomicValue!{u64}
 
     for 20
     {
-        parallel for |&total| 50 do
+        parallel for |&total| 50
+        {
             total.add(1)
+        }
     }
 
     Swag.require(total.load() == 1000)

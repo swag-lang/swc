@@ -70,7 +70,9 @@ internal func settlePdfGallery(host: *HeadlessHost, view: *PdfDocument.Panel)
     let zoom = view.pdfView.effectiveZoom()
     host.mouseWheel(view.gallery.surfaceRect().center(), -5)
     host.settleAnimations(window)
-    Swag.require(view.gallery.scrollPos.y > 0 and view.pdfView.pageIndex == 0 and view.pdfView.effectiveZoom() == zoom)
+    Swag.require(view.gallery.scrollPos.y > 0 and
+                 view.pdfView.pageIndex == 0 and
+                 view.pdfView.effectiveZoom() == zoom)
     view.thumbnailScroll.setScrollPos(0, 2300)
     let anchor = view.gallery.visibleRange().first
     window.mainSplitter.setPaneSize(0, 420)
@@ -80,8 +82,11 @@ internal func settlePdfGallery(host: *HeadlessHost, view: *PdfDocument.Panel)
     settlePdfGallery(&host, view)
     let range = view.gallery.visibleRange()
     Swag.require(range.end == 1000 and view.thumbnailStart > 960 and view.previewTextures.count < 40)
-    for texture in view.previewTextures do
+    for texture in view.previewTextures
+    {
         Swag.require(texture.isValid() and texture.width <= 192 and texture.height <= 192)
+    }
+
     let point = view.gallery.cellRect(998).center() - view.gallery.scrollPos
     host.click(view.gallery.localToSurface(point))
     Swag.require(view.pdfView.pageIndex == 998)
@@ -256,7 +261,7 @@ internal func settlePdfGallery(host: *HeadlessHost, view: *PdfDocument.Panel)
     // as a picture's own pixels are; an explicit zoom multiplies the shown size exactly, with the
     // rasterization following the widget internally.
     pdf.actualSize()
-    Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+    Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0_f32 / 72.0, 0.001))
     Swag.require(view.zoomPercent() == 100 and view.zoomLabel.text() == Viewer.zoomText(100))
     let shown = pdf.effectiveZoom()
     pdf.setZoom(shown * 4)
@@ -274,7 +279,7 @@ internal func settlePdfGallery(host: *HeadlessHost, view: *PdfDocument.Panel)
     Swag.require(pdf.effectiveZoom() == zoomedOut)
     var actual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
     view.sendEvent(&actual)
-    Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+    Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0_f32 / 72.0, 0.001))
 
     pdf.zoomToFit()
     Swag.require(pdf.zoomMode == .FitPage)
@@ -399,7 +404,7 @@ internal func settlePdfGallery(host: *HeadlessHost, view: *PdfDocument.Panel)
     view.resize(640, 420)
     view.applyLayout()
 
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     collectViewerMatches(result.collectMatches, "second", &matches)
     let revealed = matches.count == 1 and result.revealMatch(matches[0], "second")
     Swag.require(revealed)
@@ -413,9 +418,12 @@ internal func settlePdfGallery(host: *HeadlessHost, view: *PdfDocument.Panel)
     {
         discard host.render()
         host.fireTimers()
-        if result.searchBounds(matches[0], &bounds) do
+        if result.searchBounds(matches[0], &bounds)
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(not bounds.isEmpty())
@@ -487,8 +495,11 @@ internal func settlePdfGallery(host: *HeadlessHost, view: *PdfDocument.Panel)
     {
         var entries = Viewer.LensEntries.create(results, "PDF", host.theme)
         view.describeLens(&entries)
-        for &entry in results.sections[0]!.entries where entry.title == title do
+        for &entry in results.sections[0]!.entries where entry.title == title
+        {
             return entry
+        }
+
         Swag.require(false, title)
         return null
     }
@@ -555,7 +566,7 @@ internal func settlePdfGallery(host: *HeadlessHost, view: *PdfDocument.Panel)
         var attempts = 0
         while not view.pdfView.textCoverage().complete and attempts < 5_000
         {
-            Threading.Thread.sleep(1'ms)
+            Threading.Thread.sleep(1_ms)
             host.pump()
             attempts += 1
         }

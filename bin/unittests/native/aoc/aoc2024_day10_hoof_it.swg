@@ -7,8 +7,8 @@
 // Exercises: nested functions, #static if/else, const from func, Swag.min/Swag.max,
 // 0 until N range, #[Swag.Discardable], tuple-like struct returns.
 
-const MaxDim     = 64'u32
-const NumHeights = 10'u32
+const MaxDim     = 64_u32
+const NumHeights = 10_u32
 
 const SampleInput =
     """89010123
@@ -41,7 +41,7 @@ const TrailEnd:   u8 = 9
 }
 else
 {
-    const TrailLength = 0'u8
+    const TrailLength = 0_u8
 }
 
 #assert(TrailLength == 9)
@@ -80,8 +80,10 @@ func parseGrid(text: string)->Grid
         {
             if col > 0
             {
-                if result.height == 0 do
+                if result.height == 0
+                {
                     result.width = col
+                }
                 result.height += 1
                 col = 0
             }
@@ -149,10 +151,14 @@ func dfs(g: Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
         let nr = cast(s32, row) + dr
         let nc = cast(s32, col) + dc
 
-        if nr < 0 or nc < 0 or cast(u32, nr) >= g.height or cast(u32, nc) >= g.width do
+        if nr < 0 or nc < 0 or cast(u32, nr) >= g.height or cast(u32, nc) >= g.width
+        {
             continue
-        if cellAt(g, cast(u32, nr), cast(u32, nc)) != nextH do
+        }
+        if cellAt(g, cast(u32, nr), cast(u32, nc)) != nextH
+        {
             continue
+        }
 
         paths += dfs(g, cast(u32, nr), cast(u32, nc), vis, scoreOut)
     }
@@ -170,8 +176,10 @@ func findTrails(grid: Grid)->TrailResult
     {
         for col in grid.width
         {
-            if cellAt(grid, row, col) != TrailStart do
+            if cellAt(grid, row, col) != TrailStart
+            {
                 continue
+            }
 
             // Clear visited for this trailhead
             for index in grid.height
@@ -217,8 +225,10 @@ func analyzeTrails(text: string)->HikingReport
     {
         for col in grid.width
         {
-            if cellAt(&grid, row, col) == 0 do
+            if cellAt(&grid, row, col) == 0
+            {
                 result.trailheads += 1
+            }
         }
     }
 
@@ -237,41 +247,41 @@ func analyzeTrails(text: string)->HikingReport
 {
     let sample = analyzeTrails(SampleInput)
 
-    Swag.require(sample.width == 8'u32)
-    Swag.require(sample.height == 8'u32)
-    Swag.require(sample.trailheads == 9'u32)
-    Swag.require(sample.totalScore == 36'u32)
-    Swag.require(sample.totalRating == 81'u32)
+    Swag.require(sample.width == 8_u32)
+    Swag.require(sample.height == 8_u32)
+    Swag.require(sample.trailheads == 9_u32)
+    Swag.require(sample.totalScore == 36_u32)
+    Swag.require(sample.totalRating == 81_u32)
 }
 
 #test
 {
     let tiny = analyzeTrails(TinyInput)
 
-    Swag.require(tiny.width == 4'u32)
-    Swag.require(tiny.height == 4'u32)
-    Swag.require(tiny.trailheads == 1'u32)
-    Swag.require(tiny.totalScore == 1'u32)
-    Swag.require(tiny.totalRating == 16'u32)
+    Swag.require(tiny.width == 4_u32)
+    Swag.require(tiny.height == 4_u32)
+    Swag.require(tiny.trailheads == 1_u32)
+    Swag.require(tiny.totalScore == 1_u32)
+    Swag.require(tiny.totalRating == 16_u32)
 }
 
 #test
 {
     let single = analyzeTrails(SingleInput)
 
-    Swag.require(single.width == 1'u32)
-    Swag.require(single.height == 1'u32)
-    Swag.require(single.trailheads == 0'u32)
-    Swag.require(single.totalScore == 0'u32)
-    Swag.require(single.totalRating == 0'u32)
+    Swag.require(single.width == 1_u32)
+    Swag.require(single.height == 1_u32)
+    Swag.require(single.trailheads == 0_u32)
+    Swag.require(single.totalScore == 0_u32)
+    Swag.require(single.totalRating == 0_u32)
 }
 
 #test
 {
-    Swag.require(NumDirections == 4'u32)
+    Swag.require(NumDirections == 4_u32)
     let a: TrailResult = TrailResult{score: 10, rating: 20}
     let b: TrailResult = TrailResult{score: 5, rating: 15}
     let c = addTrailResult(a, b)
-    Swag.require(c.score == 15'u32)
-    Swag.require(c.rating == 35'u32)
+    Swag.require(c.score == 15_u32)
+    Swag.require(c.rating == 35_u32)
 }

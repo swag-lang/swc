@@ -12,8 +12,11 @@ namespace Swag
 
 func __concreteAlias(type1: typeinfo)->typeinfo
 {
-    if type1.kind != TypeInfoKind.Alias or type1.flags & TypeInfoFlags.Strict do
+    if type1.kind != TypeInfoKind.Alias or type1.flags & TypeInfoFlags.Strict
+    {
         return type1
+    }
+
     let typeAlias = cast(const *TypeInfoAlias, cast(const *void, type1))
     return __concreteAlias(typeAlias.rawType)
 }
@@ -22,21 +25,36 @@ func __typeCompatible(toType, fromType: typeinfo?)->bool => __runtimeTypeCast(to
 
 func __borrowAnyValue(toType, fromType: typeinfo?, ptr: *void?)->*void?
 {
-    if toType == null or fromType == null or ptr == null do
+    if toType == null or fromType == null or ptr == null
+    {
         return null
-    if fromType.flags & .ReadOnlyStorage and not __isCompilerType(fromType) do
+    }
+
+    if fromType.flags & .ReadOnlyStorage and not __isCompilerType(fromType)
+    {
         return null
+    }
+
     let target         = toType
     let targetConst    = (target.flags & .Const) != 0
     let sourceReadOnly = (fromType.flags & .Const) != 0 or (fromType.flags & .ReadOnlyStorage) != 0
-    if sourceReadOnly and not targetConst do
+    if sourceReadOnly and not targetConst
+    {
         return null
+    }
+
     var matchSourceType: typeinfo = fromType
     var matchTargetType: typeinfo = target
-    if sourceReadOnly and fromType.unqualified != null do
+    if sourceReadOnly and fromType.unqualified != null
+    {
         matchSourceType = fromType.unqualified
-    if targetConst and target.unqualified != null do
+    }
+
+    if targetConst and target.unqualified != null
+    {
         matchTargetType = target.unqualified
+    }
+
     return __findDynamicView(matchTargetType, matchSourceType, ptr, null, targetConst)
 }
 
@@ -52,10 +70,15 @@ func __findDynamicView(toType, fromType: typeinfo, ptr: *void?, view: *Interface
 
 func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Interface?, readOnly: bool, previous: const *DynamicViewVisit?)->*void?
 {
-    if Swag.typeCmp(toType, fromType, .Strict) do
+    if Swag.typeCmp(toType, fromType, .Strict)
+    {
         return ptr
-    if fromType.kind != .Struct do
+    }
+
+    if fromType.kind != .Struct
+    {
         return null
+    }
 
     let fromStruct = cast(const *TypeInfoStruct, cast(const *void, fromType))
     if toType.kind == .Interface
@@ -66,20 +89,29 @@ func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Inter
         {
             if let table = entry.value
             {
-                if view != null do
+                if view != null
+                {
                     view.itable = cast(const [*] ([*] void?), table)
+                }
+
                 return ptr
             }
         }
     }
 
-    if ptr == null do
+    if ptr == null
+    {
         return null
+    }
+
     var visit = previous
     while visit
     {
-        if visit.address == ptr and cast(const *void, visit.type) == cast(const *void, fromType) do
+        if visit.address == ptr and cast(const *void, visit.type) == cast(const *void, fromType)
+        {
             return null
+        }
+
         visit = visit.previous
     }
 
@@ -87,8 +119,11 @@ func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Inter
     for field in fromStruct.usingFields
     {
         var fieldType = __concreteAlias(unwrap field.pointedType)
-        if fieldType.flags & .Const and not readOnly do
+        if fieldType.flags & .Const and not readOnly
+        {
             continue
+        }
+
         var fieldPtr = cast(*void?, (cast([*] u8, ptr) + field.offset))
         if fieldType.kind == .Pointer
         {
@@ -97,10 +132,15 @@ func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Inter
             fieldPtr  = cast(*(*void?), unwrap fieldPtr)[]
         }
 
-        if fieldPtr == null do
+        if fieldPtr == null
+        {
             continue
-        if let found = __findDynamicViewImpl(toType, fieldType, fieldPtr, view, readOnly, &current) do
+        }
+
+        if let found = __findDynamicViewImpl(toType, fieldType, fieldPtr, view, readOnly, &current)
+        {
             return found
+        }
     }
 
     return null
@@ -108,16 +148,24 @@ func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Inter
 
 func __hasDynamicBase(toType, fromType: typeinfo)->bool
 {
-    if Swag.typeCmp(toType, fromType, .Strict) do
+    if Swag.typeCmp(toType, fromType, .Strict)
+    {
         return true
-    if fromType.kind != .Struct do
+    }
+
+    if fromType.kind != .Struct
+    {
         return false
+    }
+
     let info = cast(const *TypeInfoStruct, cast(const *void, fromType))
     for field in info.usingFields
     {
         let fieldType = __concreteAlias(unwrap field.pointedType)
-        if fieldType.kind == .Struct and __hasDynamicBase(toType, fieldType) do
+        if fieldType.kind == .Struct and __hasDynamicBase(toType, fieldType)
+        {
             return true
+        }
     }
 
     return false
@@ -125,19 +173,30 @@ func __hasDynamicBase(toType, fromType: typeinfo)->bool
 
 func __containsDynamicSubobject(toType, fromType: typeinfo, ptr, expected: *void)->bool
 {
-    if ptr == expected and Swag.typeCmp(toType, fromType, .Strict) do
+    if ptr == expected and Swag.typeCmp(toType, fromType, .Strict)
+    {
         return true
-    if fromType.kind != .Struct do
+    }
+
+    if fromType.kind != .Struct
+    {
         return false
+    }
+
     let info = cast(const *TypeInfoStruct, cast(const *void, fromType))
     for field in info.usingFields
     {
         let fieldType = __concreteAlias(unwrap field.pointedType)
-        if fieldType.kind != .Struct do
+        if fieldType.kind != .Struct
+        {
             continue
+        }
+
         let fieldPtr = cast(*void, (cast([*] u8, ptr) + field.offset))
-        if __containsDynamicSubobject(toType, fieldType, fieldPtr, expected) do
+        if __containsDynamicSubobject(toType, fieldType, fieldPtr, expected)
+        {
             return true
+        }
     }
 
     return false
@@ -145,19 +204,30 @@ func __containsDynamicSubobject(toType, fromType: typeinfo, ptr, expected: *void
 
 func __findDynamicOwner(toType, fromType: typeinfo, ptr: *void, sourceType: typeinfo, sourcePtr: *void)->*void?
 {
-    if Swag.typeCmp(toType, fromType, .Strict) and __containsDynamicSubobject(sourceType, fromType, ptr, sourcePtr) do
+    if Swag.typeCmp(toType, fromType, .Strict) and __containsDynamicSubobject(sourceType, fromType, ptr, sourcePtr)
+    {
         return ptr
-    if fromType.kind != .Struct do
+    }
+
+    if fromType.kind != .Struct
+    {
         return null
+    }
+
     let info = cast(const *TypeInfoStruct, cast(const *void, fromType))
     for field in info.usingFields
     {
         let fieldType = __concreteAlias(unwrap field.pointedType)
-        if fieldType.kind != .Struct do
+        if fieldType.kind != .Struct
+        {
             continue
+        }
+
         let fieldPtr = cast(*void, (cast([*] u8, ptr) + field.offset))
-        if let found = __findDynamicOwner(toType, fieldType, fieldPtr, sourceType, sourcePtr) do
+        if let found = __findDynamicOwner(toType, fieldType, fieldPtr, sourceType, sourcePtr)
+        {
             return found
+        }
     }
 
     return null
@@ -168,30 +238,50 @@ func __dynamicCast(toType, fromType: typeinfo?, ptr: *void?, view: *Interface?, 
 
 func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interface?, allowNullObject: bool, matchedNull: *bool?, borrowValue, readOnly: bool)->*void?
 {
-    if matchedNull != null do
+    if matchedNull != null
+    {
         matchedNull[] = false
-    if view != null do
+    }
+
+    if view != null
+    {
         view.itable = null
-    if toType == null or fromType == null do
+    }
+
+    if toType == null or fromType == null
+    {
         return null
+    }
+
     let requestedType = __concreteAlias(toType)
     let targetIsConst = readOnly or (requestedType.flags & .Const) != 0
     if fromType.flags & .ReadOnlyStorage
     {
-        if not __isCompilerType(fromType) or (not targetIsConst and not borrowValue) do
+        if not __isCompilerType(fromType) or (not targetIsConst and not borrowValue)
+        {
             return null
+        }
     }
 
     var targetType = requestedType
-    if not borrowValue and requestedType.kind == .Pointer do
+    if not borrowValue and requestedType.kind == .Pointer
+    {
         targetType = __concreteAlias(cast(const *TypeInfoPointer, cast(const *void, requestedType)).pointedType)
-    if borrowValue do
+    }
+
+    if borrowValue
+    {
         targetType = unwrap targetType.unqualified
+    }
+
     var sourceType = __concreteAlias(fromType)
     if sourceType.kind != .Pointer and sourceType.kind != .Interface and sourceType.flags & .Const
     {
-        if not targetIsConst do
+        if not targetIsConst
+        {
             return null
+        }
+
         sourceType = unwrap sourceType.unqualified
     }
 
@@ -207,41 +297,63 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
         return null
     }
 
-    if ptr == null and not allowNullObject do
+    if ptr == null and not allowNullObject
+    {
         return null
+    }
 
     // 'any' can hold either an object or a pointer to it. An exact pointer-type
     // request still borrows the stored pointer value instead of dereferencing it.
     if sourceType.kind == .Pointer and not Swag.typeCmp(targetType, sourceType, .Strict)
     {
-        if sourceType.flags & .Const and not targetIsConst do
+        if sourceType.flags & .Const and not targetIsConst
+        {
             return null
-        if sourcePtr == null do
+        }
+
+        if sourcePtr == null
+        {
             return null
+        }
+
         let pointerType = cast(const *TypeInfoPointer, cast(const *void, sourceType))
         sourceType = __concreteAlias(pointerType.pointedType)
         sourcePtr  = cast(*(*void?), sourcePtr)[]
-        if sourcePtr == null and matchedNull != null do
+        if sourcePtr == null and matchedNull != null
+        {
             matchedNull[] = Swag.typeCmp(targetType, sourceType, .Strict) or
                             __hasDynamicBase(targetType, sourceType) or
                             __hasDynamicBase(sourceType, targetType)
+        }
+
         acceptsNullObject = false
     }
 
-    if sourcePtr == null and not acceptsNullObject do
+    if sourcePtr == null and not acceptsNullObject
+    {
         return null
+    }
 
     // Boxing an interface retains its interface representation in 'any'. Open
     // that representation before inspecting the concrete object's metadata.
     if sourceType.kind == .Interface and (view != null or not Swag.typeCmp(targetType, sourceType, .Strict))
     {
-        if sourceType.flags & .Const and not targetIsConst do
+        if sourceType.flags & .Const and not targetIsConst
+        {
             return null
-        if sourcePtr == null do
+        }
+
+        if sourcePtr == null
+        {
             return null
+        }
+
         let sourceView = cast(*Interface, sourcePtr)
-        if sourceView.itable == null do
+        if sourceView.itable == null
+        {
             return null
+        }
+
         sourceType        = cast(const *TypeInfo, unwrap sourceView.itable[0])
         sourcePtr         = sourceView.obj
         acceptsNullObject = true
@@ -249,8 +361,11 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
 
     if sourcePtr == null
     {
-        if acceptsNullObject and view != null do
+        if acceptsNullObject and view != null
+        {
             return __findDynamicView(targetType, sourceType, null, view, targetIsConst)
+        }
+
         return null
     }
 
@@ -259,8 +374,10 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
     let needsOwner = targetType.kind == .Struct and __hasDynamicBase(originType, targetType)
     if not needsOwner and targetType.kind != .Interface
     {
-        if let found = __findDynamicView(targetType, sourceType, sourcePtr, view, targetIsConst) do
+        if let found = __findDynamicView(targetType, sourceType, sourcePtr, view, targetIsConst)
+        {
             return found
+        }
     }
 
     if sourceType.kind == .Struct
@@ -277,8 +394,11 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
 
     // Match the actual source subobject, not the first base with the same type.
     // This also makes a checked inverse cast agree with its fixed-offset form.
-    if needsOwner do
+    if needsOwner
+    {
         return __findDynamicOwner(targetType, sourceType, sourcePtr, originType, originPtr)
+    }
+
     return __findDynamicView(targetType, sourceType, sourcePtr, view, targetIsConst)
 }
 
@@ -286,8 +406,11 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
 // that this descriptor was issued by the compiler. Copying the fields cannot forge it.
 func __isCompilerType(type: typeinfo?)->bool
 {
-    if type == null do
+    if type == null
+    {
         return false
+    }
+
     const identityOffset = #sizeof(TypeInfo) - #sizeof(*void)
     let address  = cast(const [*] u8, cast(const *void, type)) + identityOffset
     let identity = cast(const *const *DynamicStructInfo, address)[]
@@ -305,21 +428,33 @@ func __runtimeTypeCompatible(toType, fromType: typeinfo, previous: const *Runtim
 {
     let target = __concreteAlias(toType)
     let source = __concreteAlias(fromType)
-    if source.flags & .Nullable and not (target.flags & .Nullable) do
+    if source.flags & .Nullable and not (target.flags & .Nullable)
+    {
         return false
+    }
+
     if (source.kind == .Pointer or source.kind == .Interface) and
        source.flags & .Const and
-       not (target.flags & .Const) do
+       not (target.flags & .Const)
+    {
         return false
+    }
+
     let plainTarget = unwrap target.unqualified
     let plainSource = unwrap source.unqualified
-    if Swag.typeCmp(plainTarget, plainSource, .Strict) do
+    if Swag.typeCmp(plainTarget, plainSource, .Strict)
+    {
         return true
+    }
+
     var visit = previous
     while visit
     {
-        if cast(const *void, visit.type) == cast(const *void, source) and cast(const *void, visit.target) == cast(const *void, target) do
+        if cast(const *void, visit.type) == cast(const *void, source) and cast(const *void, visit.target) == cast(const *void, target)
+        {
             return false
+        }
+
         visit = visit.previous
     }
 
@@ -327,37 +462,59 @@ func __runtimeTypeCompatible(toType, fromType: typeinfo, previous: const *Runtim
     if source.kind == .Pointer
     {
         let pointer = cast(const *TypeInfoPointer, cast(const *void, source))
-        if target.kind == .Interface do
+        if target.kind == .Interface
+        {
             return __runtimeTypeCompatible(target, pointer.pointedType, &current, (target.flags & .Const) != 0)
-        if target.kind != .Pointer do
+        }
+
+        if target.kind != .Pointer
+        {
             return false
+        }
+
         let targetPointer = cast(const *TypeInfoPointer, cast(const *void, target))
-        if Swag.typeCmp(targetPointer.pointedType, pointer.pointedType, .Strict) do
+        if Swag.typeCmp(targetPointer.pointedType, pointer.pointedType, .Strict)
+        {
             return true
+        }
+
         return __runtimeTypeCompatible(targetPointer.pointedType, pointer.pointedType, &current, (target.flags & .Const) != 0)
     }
 
-    if source.kind != .Struct do
+    if source.kind != .Struct
+    {
         return false
+    }
+
     let info = cast(const *TypeInfoStruct, cast(const *void, source))
     if target.kind == .Interface
     {
         for entry in info.interfaces where entry.value != null
         {
-            if Swag.typeCmp(entry.pointedType, plainTarget, .Strict) do
+            if Swag.typeCmp(entry.pointedType, plainTarget, .Strict)
+            {
                 return true
+            }
         }
     }
 
     for field in info.usingFields
     {
         var fieldType = __concreteAlias(unwrap field.pointedType)
-        if fieldType.flags & .Const and not readOnly and not (target.flags & .Const) do
+        if fieldType.flags & .Const and not readOnly and not (target.flags & .Const)
+        {
             continue
-        if fieldType.kind == .Pointer do
+        }
+
+        if fieldType.kind == .Pointer
+        {
             fieldType = cast(const *TypeInfoPointer, cast(const *void, fieldType)).pointedType
-        if __runtimeTypeCompatible(target, fieldType, &current, readOnly or (target.flags & .Const) != 0) do
+        }
+
+        if __runtimeTypeCompatible(target, fieldType, &current, readOnly or (target.flags & .Const) != 0)
+        {
             return true
+        }
     }
 
     return false
@@ -372,8 +529,11 @@ func __runtimeCopyIgnoresConst(target: typeinfo)->bool
         valueType = aliasInfo.rawType
     }
 
-    if valueType.kind == .Enum do
+    if valueType.kind == .Enum
+    {
         return true
+    }
+
     if valueType.kind == .Native
     {
         let native = cast(const *TypeInfoNative, cast(const *void, valueType))
@@ -426,20 +586,35 @@ func __runtimeCopiesValue(type: typeinfo)->bool
 
 func __runtimeTypeCast(toType, fromType: typeinfo?)->typeinfo?
 {
-    if not __isCompilerType(toType) or not __isCompilerType(fromType) do
+    if not __isCompilerType(toType) or not __isCompilerType(fromType)
+    {
         return null
+    }
+
     var target         = unwrap toType
     var source         = unwrap fromType
     let sourceReadOnly = (source.flags & .Const) != 0
     let copyValue      = __runtimeCopiesValue(target)
-    if sourceReadOnly and not copyValue and (target.flags & .Const) == 0 do
+    if sourceReadOnly and not copyValue and (target.flags & .Const) == 0
+    {
         return null
-    if sourceReadOnly and source.unqualified != null do
+    }
+
+    if sourceReadOnly and source.unqualified != null
+    {
         source = source.unqualified
-    if copyValue and (target.flags & .Const) != 0 and target.unqualified != null do
+    }
+
+    if copyValue and (target.flags & .Const) != 0 and target.unqualified != null
+    {
         target = target.unqualified
-    if __runtimeTypeCompatible(target, source, null) do
+    }
+
+    if __runtimeTypeCompatible(target, source, null)
+    {
         return fromType
+    }
+
     return null
 }
 
@@ -465,11 +640,17 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
     result.value       = null
     result.view.obj    = null
     result.view.itable = null
-    if not __isCompilerType(toType) or source[] == null do
+    if not __isCompilerType(toType) or source[] == null
+    {
         return false
+    }
+
     let sourceHeader = cast(const *RuntimeAnyHeader, cast(const *void, source))
-    if not __isCompilerType(sourceHeader.type) do
+    if not __isCompilerType(sourceHeader.type)
+    {
         return false
+    }
+
     var sourceType             = unwrap sourceHeader.type
     var target                 = unwrap toType
     let sourceStorageOnlyConst = (sourceType.flags & .ReadOnlyStorage) != 0
@@ -477,16 +658,26 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
     let copyReadOnly           = sourceReadOnly and
                                  (__runtimeCopiesValue(target) or
                                   (sourceStorageOnlyConst and __runtimeTypeIsPointer(sourceType)))
-    if sourceReadOnly and not copyReadOnly and not readOnly do
+    if sourceReadOnly and not copyReadOnly and not readOnly
+    {
         return false
+    }
 
     // A value copy can read a read-only source without exposing its storage.
-    if sourceStorageOnlyConst and sourceType.unqualified == null and not copyReadOnly do
+    if sourceStorageOnlyConst and sourceType.unqualified == null and not copyReadOnly
+    {
         return false
-    if (copyReadOnly or sourceStorageOnlyConst) and sourceType.unqualified != null do
+    }
+
+    if (copyReadOnly or sourceStorageOnlyConst) and sourceType.unqualified != null
+    {
         sourceType = sourceType.unqualified
-    if copyReadOnly and (target.flags & .Const) != 0 and target.unqualified != null do
+    }
+
+    if copyReadOnly and (target.flags & .Const) != 0 and target.unqualified != null
+    {
         target = target.unqualified
+    }
 
     if Swag.typeCmp(target, sourceType, .Strict)
     {
@@ -495,8 +686,11 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
     }
 
     // Borrowing a pointer value cannot change its pointee type or constness in place.
-    if target.kind == .Pointer do
+    if target.kind == .Pointer
+    {
         return false
+    }
+
     let view: *Interface? = target.kind == .Interface ? &result.view : null
 
     // The result's constness is carried by the cast expression; lookup only reads this address.
@@ -504,25 +698,37 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
     let found      = __dynamicCastImpl(target, sourceType, sourceData, view, false, null, true, readOnly or copyReadOnly)
     if target.kind == .Interface
     {
-        if result.view.itable == null do
+        if result.view.itable == null
+        {
             return false
+        }
+
         result.view.obj = found
         result.value    = Swag.makeAny(&result.view, target)
         return true
     }
 
-    if found == null do
+    if found == null
+    {
         return false
+    }
+
     result.value = Swag.makeAny(found, target)
     return true
 }
 
 func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
 {
-    if not typeA and not typeB do
+    if not typeA and not typeB
+    {
         return true
-    if not typeA or not typeB do
+    }
+
+    if not typeA or not typeB
+    {
         return false
+    }
+
     let type1 = __concreteAlias(typeA)
     let type2 = __concreteAlias(typeB)
 
@@ -536,26 +742,35 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
         return Swag.typeCmp(typePointer.pointedType, type2, cmpFlags)
     }
 
-    if (type1.kind != type2.kind) or (type1.sizeof != type2.sizeof) do
+    if (type1.kind != type2.kind) or (type1.sizeof != type2.sizeof)
+    {
         return false
+    }
 
     // These qualifiers do not change the identity of the represented value type.
     let identityIgnoredFlags = TypeInfoFlags.Nullable | TypeInfoFlags.RequiresExplicitInit | TypeInfoFlags.ReadOnlyStorage
     let flags1 = type1.flags & ~identityIgnoredFlags
     let flags2 = type2.flags & ~identityIgnoredFlags
-    if flags1 != flags2 do
+    if flags1 != flags2
+    {
         return false
+    }
 
     if type1.kind == TypeInfoKind.Native
     {
         let native1 = cast(const *TypeInfoNative, cast(const *void, type1))
         let native2 = cast(const *TypeInfoNative, cast(const *void, type2))
-        if native1.nativeKind != native2.nativeKind do
+        if native1.nativeKind != native2.nativeKind
+        {
             return false
+        }
+
         if native1.nativeKind == TypeInfoNativeKind.String or
            native1.nativeKind == TypeInfoNativeKind.CString or
-           native1.nativeKind == TypeInfoNativeKind.Any do
+           native1.nativeKind == TypeInfoNativeKind.Any
+        {
             return true
+        }
     }
 
     // Tuples and records compare their reflected layouts field by field.
@@ -565,10 +780,15 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
         let type2S  = cast(const *TypeInfoStruct, cast(const *void, type2))
         let fields1 = type1S.fields
         let fields2 = type2S.fields
-        if fields1.count != fields2.count do
+        if fields1.count != fields2.count
+        {
             return false
-        if fields1 == null or fields2 == null do
+        }
+
+        if fields1 == null or fields2 == null
+        {
             return true
+        }
 
         for i in fields1.count
         {
@@ -576,23 +796,35 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
             let field2 = fields2[i]
 
             var namesAreEqual = false
-            if field1.flags & .AutoName do
+            if field1.flags & .AutoName
+            {
                 namesAreEqual = true
-            if field2.flags & .AutoName do
+            }
+
+            if field2.flags & .AutoName
+            {
                 namesAreEqual = true
+            }
 
-            if not namesAreEqual and field1.name != field2.name do
+            if not namesAreEqual and field1.name != field2.name
+            {
                 return false
+            }
 
-            if not Swag.typeCmp(unwrap field1.pointedType, unwrap field2.pointedType, cmpFlags) do
+            if not Swag.typeCmp(unwrap field1.pointedType, unwrap field2.pointedType, cmpFlags)
+            {
                 return false
+            }
         }
 
         return true
     }
 
-    if cmpFlags & .Unscoped do
+    if cmpFlags & .Unscoped
+    {
         return Swag.stringCmp(type1.name, type2.name)
+    }
+
     return Swag.stringCmp(type1.fullname, type2.fullname)
 }
 
@@ -600,18 +832,25 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
 
 func tableOf(structType, itfType: typeinfo?)->const *void?
 {
-    if not structType or not itfType or itfType.kind != .Interface do
+    if not structType or not itfType or itfType.kind != .Interface
+    {
         return null
+    }
+
     if structType is TypeInfoStruct as info
     {
         let itfs = info.interfaces
-        if itfs == null do
+        if itfs == null
+        {
             return null
+        }
 
         for i in itfs.count
         {
-            if Swag.stringCmp(itfs[i].name, itfType.fullname) do
+            if Swag.stringCmp(itfs[i].name, itfType.fullname)
+            {
                 return itfs[i].value
+            }
         }
     }
 
@@ -625,54 +864,80 @@ const __MAX_ARGUMENTS = 512
 // Keep the public `args` slice non-null. The unused capacity holds valid empty strings rather
 // than raw string storage; command-line conversion overwrites the prefix it exposes.
 var __argv: [__MAX_ARGUMENTS] string = ""
-var __argc = 0'u32
+var __argc = 0_u32
 
 func __convertArgcArgv(args: const [*] u8?)
 {
-    if args == null do
+    if args == null
+    {
         return
+    }
 
     var cmdLine = args
     __argc = 0
     while cmdLine[]
     {
-        while cmdLine[] == ' ' do
+        while cmdLine[] == ' '
+        {
             cmdLine += 1
-        if cmdLine[] == 0 do
+        }
+
+        if cmdLine[] == 0
+        {
             break
+        }
 
         if cmdLine[] == '"'
         {
             cmdLine += 1
             let start = cmdLine
-            while cmdLine[] and cmdLine[] != '"' do
+            while cmdLine[] and cmdLine[] != '"'
+            {
                 cmdLine += 1
+            }
+
             __argv[__argc] = cast(string, Swag.makeSlice(start, cast(u64, (cmdLine - start))))
-            if cmdLine[] do
+            if cmdLine[]
+            {
                 cmdLine += 1
+            }
         }
         else
         {
             let start = cmdLine
-            while cmdLine[] and cmdLine[] != ' ' do
+            while cmdLine[] and cmdLine[] != ' '
+            {
                 cmdLine += 1
+            }
+
             __argv[__argc] = cast(string, Swag.makeSlice(start, cast(u64, (cmdLine - start))))
         }
 
         __argc += 1
-        if __argc == __MAX_ARGUMENTS do
+        if __argc == __MAX_ARGUMENTS
+        {
             return
-        while cmdLine[] and cmdLine[] == ' ' do
+        }
+
+        while cmdLine[] and cmdLine[] == ' '
+        {
             cmdLine += 1
+        }
     }
 }
 
 func args()->const [..] string
 {
-    if Swag.processInfo().arguments do
+    if Swag.processInfo().arguments
+    {
         return unwrap Swag.processInfo().arguments
-    if __argc == 0 do
+    }
+
+    if __argc == 0
+    {
         __convertArgcArgv((Swag.processInfo().args).buffer)
+    }
+
     return Swag.makeSlice(&__argv[0], cast(u64, __argc))
 }
 
@@ -697,8 +962,11 @@ func __runtimeAllocator()->IAllocator
         if not Swag.jit()
         {
             let allocator = defaultAllocator()
-            if not allocator.installed() do
+            if not allocator.installed()
+            {
                 allocator.setup()
+            }
+
             cxt.allocator        = Swag.makeInterface(allocator, #typeof(allocator[]), IAllocator)
             cxt.defaultAllocator = cxt.allocator
         }
@@ -743,10 +1011,15 @@ func __resetRuntimeContext()
 #[Swag.Optimize(false)]
 func __checkCpuBaseline(flags: RuntimeFlags)
 {
-    if Swag.jit() or (flags & .FromCompiler) do
+    if Swag.jit() or (flags & .FromCompiler)
+    {
         return
-    if __hostHasAvx2() do
+    }
+
+    if __hostHasAvx2()
+    {
         return
+    }
 
     __printString("fatal error: this program needs a CPU with AVX2 (x86-64-v3)\n")
     __exitError()
@@ -770,15 +1043,19 @@ func __setupRuntime(flags: RuntimeFlags)
         __exitError()
     }
 
-    #static if #hastag("Swag.AllocatorDiagnostics") do
+    #static if #hastag("Swag.AllocatorDiagnostics")
+    {
         discard installAllocator(electricMode: __buildCfg.allocatorElectricMode,
                                  detectLeaks: __buildCfg.allocatorLeaks,
                                  captureStack: __buildCfg.allocatorCaptureStack,
                                  trackAllocations: __buildCfg.allocatorTrackAllocations,
                                  fillMemory: __buildCfg.allocatorFillMemory,
                                  installInContext: not (flags & .FromCompiler))
-    else do
+    }
+    else
+    {
         discard installAllocator(installInContext: not (flags & .FromCompiler))
+    }
 
     let allocator = __runtimeAllocator()
 

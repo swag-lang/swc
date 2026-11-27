@@ -20,8 +20,8 @@ func indexed32(values: const [*]u32, index: u64)->u32
 
 #test
 {
-    let values   = [0'u64, 0, 1, 2, 0xFFFFFFFFFFFFFFFE, 1, 0xFFFFFFFFFFFFFFFF, 1, 0x8000000000000000, 0x8000000000000000]
-    let expected = [0'u64, 3, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF]
+    let values   = [0_u64, 0, 1, 2, 0xFFFFFFFFFFFFFFFE, 1, 0xFFFFFFFFFFFFFFFF, 1, 0x8000000000000000, 0x8000000000000000]
+    let expected = [0_u64, 3, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF]
     for value, index in expected
     {
         let source = index * 2
@@ -29,8 +29,8 @@ func indexed32(values: const [*]u32, index: u64)->u32
         Swag.require(indexed64(&values[0], source) == value)
     }
 
-    let values32   = [0'u32, 0, 1, 2, 0xFFFFFFFE, 1, 0xFFFFFFFF, 1, 0x80000000, 0x80000000]
-    let expected32 = [0'u32, 3, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF]
+    let values32   = [0_u32, 0, 1, 2, 0xFFFFFFFE, 1, 0xFFFFFFFF, 1, 0x80000000, 0x80000000]
+    let expected32 = [0_u32, 3, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF]
     for value, index in expected32
     {
         let source = index * 2

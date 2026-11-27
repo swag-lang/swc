@@ -22,7 +22,7 @@ struct MotionField
     trailNext: u32
 
     easing:           AnimationEasing = .EaseOut     // Curve the page asked for.
-    travelTime:       Time.Duration   = 900'ms       // Duration the page asked for.
+    travelTime:       Time.Duration   = 900_ms       // Duration the page asked for.
     preserveProgress: bool     // Whether a replacement keeps the progress of the run it replaces.
 }
 
@@ -30,7 +30,7 @@ impl MotionField
 {
     func create(parent: *Wnd)->*MotionField
     {
-        let result = Wnd.create'MotionField(parent, {})
+        let result = Wnd.create!{MotionField}(parent, {})
         result.backgroundStyle = .Transparent
         result.cursor = Cursor.from(CursorShape.Hand)
         return result
@@ -68,8 +68,10 @@ impl MotionField
     {
         .trail[.trailNext] = point
         .trailNext         = (.trailNext + 1) % TrailLength
-        if .trailUsed < TrailLength do
+        if .trailUsed < TrailLength
+        {
             .trailUsed += 1
+        }
     }
 
     mtd clearTrail()
@@ -86,8 +88,11 @@ impl IWnd for MotionField
 {
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return
+        }
+
         .setFocus()
         .moveTo(.surfaceToLocal(evt.surfacePos))
     }
@@ -96,8 +101,11 @@ impl IWnd for MotionField
     {
         // The first size is what decides where the puck starts; a later resize leaves it alone so
         // a run in flight is not teleported under the reader.
-        if .hasGoal do
+        if .hasGoal
+        {
             return
+        }
+
         let rect = .clientRect()
         .puck = Math.Point{rect.horzCenter(), rect.vertCenter()}
     }

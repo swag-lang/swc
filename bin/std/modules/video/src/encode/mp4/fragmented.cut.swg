@@ -39,15 +39,21 @@ struct VideoTimeRange
 // The returned ranges can be passed to [[Video.Mp4.copyRanges]] or
 // [[Video.Mp4.copyVideoRanges]]. The scan reads fragment headers only and uses memory proportional
 // to the number of requested intervals, independent of recording duration.
-func planVideoTimeRanges(fileName: string, ranges: const [..] VideoTimeRange)->Array'VideoPacketRange fail
+func planVideoTimeRanges(fileName: string, ranges: const [..] VideoTimeRange)->Array!{VideoPacketRange} fail
 {
-    if not ranges.count do
+    if not ranges.count
+    {
         fail BadParameterError{"fragmented MP4 time cut needs at least one video range"}
-    var previousEnd = 0'u64
+    }
+
+    var previousEnd = 0_u64
     for range in ranges
     {
-        if range.startDecodeTime < previousEnd or range.startDecodeTime >= range.endDecodeTime do
+        if range.startDecodeTime < previousEnd or range.startDecodeTime >= range.endDecodeTime
+        {
             fail BadParameterError{"fragmented MP4 time ranges are empty or overlapping"}
+        }
+
         previousEnd = range.endDecodeTime
     }
 
@@ -55,15 +61,18 @@ func planVideoTimeRanges(fileName: string, ranges: const [..] VideoTimeRange)->A
     var result: #returntype
     result.resize(ranges.count)
     var packet: FragmentedCursorPacket
-    var packetIndex = 0'u64
-    var keyIndex    = 0'u64
-    var startIndex  = 0'u64
-    var endIndex    = 0'u64
-    var videoEnd    = 0'u64
+    var packetIndex = 0_u64
+    var keyIndex    = 0_u64
+    var startIndex  = 0_u64
+    var endIndex    = 0_u64
+    var videoEnd    = 0_u64
     while try cursor.nextPacket(&packet)
     {
-        if not packet.isVideo do
+        if not packet.isVideo
+        {
             continue
+        }
+
         while startIndex < ranges.count and packet.info.decodeTime >= ranges[startIndex].startDecodeTime
         {
             let start = ranges[startIndex].startDecodeTime
@@ -81,8 +90,11 @@ func planVideoTimeRanges(fileName: string, ranges: const [..] VideoTimeRange)->A
             }
         }
 
-        if packet.info.decodeTime > Swag.U64.Max - packet.info.duration do
+        if packet.info.decodeTime > Swag.U64.Max - packet.info.duration
+        {
             fail OverflowError{"fragmented MP4 video packet end overflows"}
+        }
+
         videoEnd    = packet.info.decodeTime + packet.info.duration
         packetIndex += 1
     }
@@ -93,8 +105,11 @@ func planVideoTimeRanges(fileName: string, ranges: const [..] VideoTimeRange)->A
         startIndex += 1
     }
 
-    if startIndex != ranges.count or ranges[ranges.count - 1].endDecodeTime > videoEnd do
+    if startIndex != ranges.count or ranges[ranges.count - 1].endDecodeTime > videoEnd
+    {
         fail BadParameterError{"fragmented MP4 time range is outside the source"}
+    }
+
     while endIndex < ranges.count
     {
         result[endIndex].afterLastPacket = packetIndex
@@ -104,8 +119,11 @@ func planVideoTimeRanges(fileName: string, ranges: const [..] VideoTimeRange)->A
     previousEnd = 0
     for range in result
     {
-        if range.firstPacket < previousEnd or range.firstPacket >= range.afterLastPacket do
+        if range.firstPacket < previousEnd or range.firstPacket >= range.afterLastPacket
+        {
             fail BadParameterError{"fragmented MP4 key-frame expansion makes time ranges empty or overlapping"}
+        }
+
         previousEnd = range.afterLastPacket
     }
 
@@ -143,8 +161,8 @@ private struct AudioTrackSummary
 
 private struct ProgressiveCopyPlan
 {
-    ranges: Array'ValidatedVideoRange
-    audio:  Array'AudioTrackSummary
+    ranges: Array!{ValidatedVideoRange}
+    audio:  Array!{AudioTrackSummary}
 }
 
 // Copies retained video ranges from a fragmented H.264 MP4 into a new video-only MP4.
@@ -166,21 +184,26 @@ func copyVideoRanges(sourceFileName, targetFileName: string, ranges: const [..] 
     var ownsTemporary = true
     defer
     {
-        if ownsTemporary do
+        if ownsTemporary
+        {
             discard catch File.delete(temporary)
+        }
     }
 
     scope
     {
         var writer     = try FragmentedWriter.create(temporary, source.width(), source.height(), source.timescale(), source.avcConfig(), options)
-        var bytes:  Array'u8
+        var bytes:  Array!{u8}
         var packet: FragmentedCursorPacket
-        var videoIndex = 0'u64
-        var rangeIndex = 0'u64
+        var videoIndex = 0_u64
+        var rangeIndex = 0_u64
         while rangeIndex < plan.ranges.count and try source.nextPacket(&packet)
         {
-            if not packet.isVideo do
+            if not packet.isVideo
+            {
                 continue
+            }
+
             let range = plan.ranges[rangeIndex]
             if videoIndex >= range.firstPacket and videoIndex < range.afterLastPacket
             {
@@ -191,8 +214,10 @@ func copyVideoRanges(sourceFileName, targetFileName: string, ranges: const [..] 
             }
 
             videoIndex += 1
-            if videoIndex == range.afterLastPacket do
+            if videoIndex == range.afterLastPacket
+            {
                 rangeIndex += 1
+            }
         }
 
         try writer.end()
@@ -205,13 +230,19 @@ func copyVideoRanges(sourceFileName, targetFileName: string, ranges: const [..] 
 
 private func planProgressiveVideoRanges(fileName: string, ranges: const [..] VideoPacketRange)->ProgressiveCopyPlan fail
 {
-    if not ranges.count do
+    if not ranges.count
+    {
         fail BadParameterError{"fragmented MP4 copy needs at least one video range"}
-    var previousEnd = 0'u64
+    }
+
+    var previousEnd = 0_u64
     for range in ranges
     {
-        if range.firstPacket < previousEnd or range.firstPacket >= range.afterLastPacket do
+        if range.firstPacket < previousEnd or range.firstPacket >= range.afterLastPacket
+        {
             fail BadParameterError{"fragmented MP4 video ranges are empty or overlapping"}
+        }
+
         previousEnd = range.afterLastPacket
     }
 
@@ -220,34 +251,43 @@ private func planProgressiveVideoRanges(fileName: string, ranges: const [..] Vid
     result.ranges.reserve(ranges.count)
     result.audio.resize(source.audioTrackCount())
     var packet: FragmentedCursorPacket
-    var videoIndex    = 0'u64
-    var rangeIndex    = 0'u64
-    var outputBase    = 0'u64
-    var sourceStart   = 0'u64
-    var maxPresentEnd = 0'u64
-    var completedEnd  = 0'u64
+    var videoIndex    = 0_u64
+    var rangeIndex    = 0_u64
+    var outputBase    = 0_u64
+    var sourceStart   = 0_u64
+    var maxPresentEnd = 0_u64
+    var completedEnd  = 0_u64
     var hasCompleted  = false
     while try source.nextPacket(&packet)
     {
         if not packet.isVideo
         {
             let track = &result.audio[packet.trackIndex]
-            if not track.packetCount do
+            if not track.packetCount
+            {
                 track.firstTime = packet.info.decodeTime
+            }
+
             track.packetCount += 1
             continue
         }
 
         let info = packet.info
-        if hasCompleted and videoIndex == completedEnd and not info.isKeyFrame do
+        if hasCompleted and videoIndex == completedEnd and not info.isKeyFrame
+        {
             fail BadParameterError{"fragmented MP4 video range must end before a key frame"}
+        }
+
         if rangeIndex < ranges.count
         {
             let range = ranges[rangeIndex]
             if videoIndex == range.firstPacket
             {
-                if not info.isKeyFrame do
+                if not info.isKeyFrame
+                {
                     fail BadParameterError{"fragmented MP4 video range must start at a key frame"}
+                }
+
                 sourceStart   = info.decodeTime
                 maxPresentEnd = 0
             }
@@ -257,19 +297,31 @@ private func planProgressiveVideoRanges(fileName: string, ranges: const [..] Vid
                 if info.decodeTime < sourceStart or
                    info.presentationTime < 0 or
                    cast(u64, info.presentationTime) < sourceStart or
-                   info.duration > Swag.U64.Max - cast(u64, info.presentationTime) do
+                   info.duration > Swag.U64.Max - cast(u64, info.presentationTime)
+                {
                     fail UnsupportedFormatError{"fragmented MP4 range crosses a presentation dependency"}
+                }
+
                 maxPresentEnd = Math.max(maxPresentEnd, cast(u64, info.presentationTime) + info.duration)
                 discard try rebasedVideoTime(info, sourceStart, outputBase)
                 if videoIndex + 1 == range.afterLastPacket
                 {
-                    if info.decodeTime > Swag.U64.Max - info.duration do
+                    if info.decodeTime > Swag.U64.Max - info.duration
+                    {
                         fail OverflowError{"fragmented MP4 video range end overflows"}
+                    }
+
                     let sourceEnd = info.decodeTime + info.duration
-                    if maxPresentEnd > sourceEnd do
+                    if maxPresentEnd > sourceEnd
+                    {
                         fail UnsupportedFormatError{"fragmented MP4 range crosses a presentation dependency"}
-                    if sourceEnd < sourceStart or sourceEnd - sourceStart > Swag.U64.Max - outputBase do
+                    }
+
+                    if sourceEnd < sourceStart or sourceEnd - sourceStart > Swag.U64.Max - outputBase
+                    {
                         fail OverflowError{"fragmented MP4 rebased video duration overflows"}
+                    }
+
                     result.ranges.add({range.firstPacket, range.afterLastPacket, sourceStart, sourceEnd, outputBase})
                     outputBase   += sourceEnd - sourceStart
                     completedEnd = range.afterLastPacket
@@ -282,8 +334,11 @@ private func planProgressiveVideoRanges(fileName: string, ranges: const [..] Vid
         videoIndex += 1
     }
 
-    if rangeIndex != ranges.count do
+    if rangeIndex != ranges.count
+    {
         fail BadParameterError{"fragmented MP4 video ranges are outside the source"}
+    }
+
     return result
 }
 
@@ -304,7 +359,7 @@ func copyRanges(sourceFileName, targetFileName: string, ranges: const [..] Video
     var source = try FragmentedPacketCursor.open(sourceFileName)
     let plan   = try planProgressiveVideoRanges(sourceFileName, ranges)
     let audio  = try planAudioRanges(&source, plan.ranges.toSlice(), plan.audio.toSlice())
-    var configs: Array'FragmentedAudioConfig
+    var configs: Array!{FragmentedAudioConfig}
     for trackIndex in source.audioTrackCount()
     {
         let track = try source.audioTrack(trackIndex)
@@ -315,19 +370,21 @@ func copyRanges(sourceFileName, targetFileName: string, ranges: const [..] Video
     var ownsTemporary = true
     defer
     {
-        if ownsTemporary do
+        if ownsTemporary
+        {
             discard catch File.delete(temporary)
+        }
     }
 
     scope
     {
         var writer     = try createCopyWriter(temporary, &source, configs.toSlice(), options)
-        var bytes:        Array'u8
+        var bytes:        Array!{u8}
         var packet:       FragmentedCursorPacket
-        var videoIndex = 0'u64
-        var rangeIndex = 0'u64
-        var audioIndices: Array'u64
-        var audioRanges:  Array'u64
+        var videoIndex = 0_u64
+        var rangeIndex = 0_u64
+        var audioIndices: Array!{u64}
+        var audioRanges:  Array!{u64}
         audioIndices.resize(source.audioTrackCount())
         audioRanges.resize(source.audioTrackCount())
         while try source.nextPacket(&packet)
@@ -345,8 +402,10 @@ func copyRanges(sourceFileName, targetFileName: string, ranges: const [..] Video
                                                            packet.info.duration, packet.info.isKeyFrame})
                     }
 
-                    if videoIndex + 1 == range.afterLastPacket do
+                    if videoIndex + 1 == range.afterLastPacket
+                    {
                         rangeIndex += 1
+                    }
                 }
 
                 videoIndex += 1
@@ -358,8 +417,11 @@ func copyRanges(sourceFileName, targetFileName: string, ranges: const [..] Video
             while audioRanges[trackIndex] < plan.ranges.count
             {
                 let span = audio[audioRanges[trackIndex] * source.audioTrackCount() + trackIndex]
-                if index < span.firstPacket + span.packetCount do
+                if index < span.firstPacket + span.packetCount
+                {
                     break
+                }
+
                 audioRanges[trackIndex] += 1
             }
 
@@ -387,17 +449,20 @@ func copyRanges(sourceFileName, targetFileName: string, ranges: const [..] Video
 
 private func createCopyWriter(path: string, source: *FragmentedPacketCursor, audioTracks: const [..] FragmentedAudioConfig, options: FragmentedOptions)->FragmentedWriter fail
 {
-    if audioTracks.count do
+    if audioTracks.count
+    {
         return try FragmentedWriter.createWithAudioTracks(path, source.width(), source.height(), source.timescale(), source.avcConfig(), audioTracks, options)
+    }
+
     return try FragmentedWriter.create(path, source.width(), source.height(), source.timescale(), source.avcConfig(), options)
 }
 
-private func planAudioRanges(source: *FragmentedPacketCursor, ranges: const [..] ValidatedVideoRange, summaries: const [..] AudioTrackSummary)->Array'AudioCopySpan fail
+private func planAudioRanges(source: *FragmentedPacketCursor, ranges: const [..] ValidatedVideoRange, summaries: const [..] AudioTrackSummary)->Array!{AudioCopySpan} fail
 {
     var result: #returntype
     let trackCount = source.audioTrackCount()
     result.reserve(ranges.count * trackCount)
-    var states: Array'AudioCopyState
+    var states: Array!{AudioCopyState}
     states.resize(trackCount)
     for range in ranges
     {
@@ -419,15 +484,18 @@ private func planAudioRanges(source: *FragmentedPacketCursor, ranges: const [..]
             let outputStart   = try audioTimebase.convertFrom(range.outputStart, source.timescale())
             let outputEnd     = try audioTimebase.convertFrom(videoEnd, source.timescale())
             let firstTime     = summary.firstTime
-            var firstIndex    = 0'u64
+            var firstIndex    = 0_u64
             if inputStart > firstTime
             {
                 let delta = inputStart - firstTime
                 firstIndex = delta / 1024 + cast(u64, delta % 1024 >= 512)
             }
 
-            if states[trackIndex].hasOutput and firstIndex <= states[trackIndex].lastSourcePacket do
+            if states[trackIndex].hasOutput and firstIndex <= states[trackIndex].lastSourcePacket
+            {
                 firstIndex = states[trackIndex].lastSourcePacket + 1
+            }
+
             if firstIndex >= summary.packetCount
             {
                 result.add(span)
@@ -445,8 +513,11 @@ private func planAudioRanges(source: *FragmentedPacketCursor, ranges: const [..]
             if not states[trackIndex].hasOutput
             {
                 let delay = selectedTime > inputStart ? selectedTime - inputStart : 0
-                if delay > Swag.U64.Max - outputStart do
+                if delay > Swag.U64.Max - outputStart
+                {
                     fail OverflowError{"fragmented MP4 audio start overflows"}
+                }
+
                 nextOutput = outputStart + delay
             }
 
@@ -476,8 +547,11 @@ private func planAudioRanges(source: *FragmentedPacketCursor, ranges: const [..]
             }
 
             if nextOutput > cast(u64, Swag.S64.Max) or
-               count > (cast(u64, Swag.S64.Max) - nextOutput) / 1024 do
+               count > (cast(u64, Swag.S64.Max) - nextOutput) / 1024
+            {
                 fail OverflowError{"fragmented MP4 rebased AAC time exceeds its supported range"}
+            }
+
             span = {firstIndex, count, nextOutput}
             states[trackIndex].nextOutput       = nextOutput + count * 1024
             states[trackIndex].lastSourcePacket = firstIndex + count - 1
@@ -493,11 +567,17 @@ private func rebasedVideoTime(packet: FragmentedPacketInfo, sourceStart, outputB
 {
     let decodeDelta       = packet.decodeTime - sourceStart
     let presentationDelta = cast(u64, packet.presentationTime) - sourceStart
-    if decodeDelta > Swag.U64.Max - outputBase or presentationDelta > Swag.U64.Max - outputBase do
+    if decodeDelta > Swag.U64.Max - outputBase or presentationDelta > Swag.U64.Max - outputBase
+    {
         fail OverflowError{"fragmented MP4 rebased video timestamp overflows"}
+    }
+
     let decodeTime       = outputBase + decodeDelta
     let presentationTime = outputBase + presentationDelta
-    if decodeTime > cast(u64, Swag.S64.Max) or presentationTime > cast(u64, Swag.S64.Max) do
+    if decodeTime > cast(u64, Swag.S64.Max) or presentationTime > cast(u64, Swag.S64.Max)
+    {
         fail UnsupportedFormatError{"fragmented MP4 rebased video time exceeds its composition range"}
+    }
+
     return {decodeTime, presentationTime}
 }

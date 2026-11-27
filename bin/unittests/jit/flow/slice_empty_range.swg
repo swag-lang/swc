@@ -103,10 +103,14 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
         let again                   = empty[0 until 0]
 
         var acc: s32 = 0
-        for v in again do
+        for v in again
+        {
             acc += v
-        for v in empty do
+        }
+        for v in empty
+        {
             acc += v
+        }
         return acc + cast(s32, (empty.count + again.count))
     }
 

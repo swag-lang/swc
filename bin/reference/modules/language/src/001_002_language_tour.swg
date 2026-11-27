@@ -78,8 +78,7 @@ the logical index is needed: 'for value, index in collection'.
 # Branching
 
 'if' handles boolean conditions. 'switch' is the natural choice when one value
-selects among several cases. Blocks may use braces, or 'do' for a single
-statement.
+selects among several cases. Control-flow bodies use braces.
 */
 enum TourState
 {
@@ -102,10 +101,14 @@ func tourStateLabel(state: TourState)->string
 {
     let state = TourState.Running
 
-    if state == .Running do
+    if state == .Running
+    {
         Swag.require(tourStateLabel(state) == "running")
-    else do
+    }
+    else
+    {
         unreachable
+    }
 }
 
 /**
@@ -116,17 +119,23 @@ appears after 'func'; call-site inference normally supplies it.
 */
 func(T) tourClamp(value, lower, upper: T)->T
 {
-    if value < lower do
+    if value < lower
+    {
         return lower
-    if value > upper do
+    }
+
+    if value > upper
+    {
         return upper
+    }
+
     return value
 }
 
 #test
 {
     Swag.require(tourClamp(12, 0, 10) == 10)
-    Swag.require(tourClamp(0.25'f32, 0.0, 1.0) == 0.25)
+    Swag.require(tourClamp(0.25_f32, 0.0, 1.0) == 0.25)
 }
 
 /**
@@ -139,8 +148,11 @@ default value of the result type, or the value named with 'orelse'. Inside a han
 */
 func tourDivide(numerator, denominator: s32)->s32 fail
 {
-    if denominator == 0 do
+    if denominator == 0
+    {
         fail Swag.BaseError{"division by zero"}
+    }
+
     return numerator / denominator
 }
 
@@ -163,7 +175,7 @@ generation starts.
 */
 func tourBuildMask(bits: u32)->u32
 {
-    return (1'u32 << bits) - 1
+    return (1_u32 << bits) - 1
 }
 
 const TourLowByteMask = #run tourBuildMask(8)

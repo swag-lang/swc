@@ -108,7 +108,7 @@ func semaTest001()
     }
 
     var holder: LambdaHolder = LambdaHolder{cb: cb}
-    let result = invokeAggregate(holder.cb, {base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
+    let result = invokeAggregate(holder.cb, {base: 7, step: 9, marks: [3_u16, 4_u16, 5_u16]}, [10, 20, 30, 40], 6)
     #assert(#typeof(result) == LambdaResult)
     #assert(#typeof(result.mirrored) == [4] s32)
 }
@@ -145,9 +145,9 @@ func semaTest003()
 
     let result = cb(
         {a: 3, b: 4},
-        [8'u16, 9'u16],
-        {base: 10, step: 1, marks: [1'u16, 2'u16, 3'u16]},
-        {base: 20, step: 2, marks: [4'u16, 5'u16, 6'u16]})
+        [8_u16, 9_u16],
+        {base: 10, step: 1, marks: [1_u16, 2_u16, 3_u16]},
+        {base: 20, step: 2, marks: [4_u16, 5_u16, 6_u16]})
     #assert(#typeof(result) == u64)
 }
 

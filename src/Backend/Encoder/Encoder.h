@@ -122,6 +122,10 @@ protected:
     virtual void encodeNopPadding(uint32_t numBytes)                                                     = 0;
     virtual void encodeTrap()                                                                            = 0;
     virtual void encodeBreakpoint()                                                                      = 0;
+    virtual void encodeCpuId()                                                                           = 0;
+    virtual void encodeXGetBv() = 0;
+    virtual void encodeVecClmulXorPair(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second) = 0;
+    virtual void encodeVecClmulXorQuad(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second) = 0;
     virtual void encodePrefetch(MicroReg memReg)                                                         = 0;
     virtual void encodeRet()                                                                             = 0;
     virtual void encodeCallRelative(Symbol* targetSymbol, CallConvKind callConv)                         = 0;

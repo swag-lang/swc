@@ -7,12 +7,15 @@ var limit: u64
 #[Swag.Optimize(true), Swag.NoInline]
 func visitTreeIndices()->u64
 {
-    var index = 0'u64
-    var total = 0'u64
+    var index = 0_u64
+    var total = 0_u64
     while true
     {
         let next = 2 * index + 1
-        if next >= limit do break
+        if next >= limit
+        {
+            break
+        }
         limit += 1
         total += next
         index = next
@@ -23,7 +26,10 @@ func visitTreeIndices()->u64
 func checkRotatedHeader()->bool
 {
     limit = 8
-    if visitTreeIndices() != 11 or limit != 11 do return false
+    if visitTreeIndices() != 11 or limit != 11
+    {
+        return false
+    }
     limit = 40
     return visitTreeIndices() == 57 and limit == 45
 }

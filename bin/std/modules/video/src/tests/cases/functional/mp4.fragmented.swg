@@ -5,33 +5,37 @@ using Swag, Core, Core.Errors, Audio
 
 func fragmentedTagCount(bytes: const [..] u8, tag: string)->u64
 {
-    if bytes.count < 4 or tag.count != 4 do
+    if bytes.count < 4 or tag.count != 4
+    {
         return 0
+    }
 
-    var count = 0'u64
+    var count = 0_u64
     for offset in bytes.count - 3
     {
-        if Memory.compare(bytes.buffer + offset, tag.buffer, 4) == 0 do
+        if Memory.compare(bytes.buffer + offset, tag.buffer, 4) == 0
+        {
             count += 1
+        }
     }
 
     return count
 }
 
-func fragmentedConfig()->Array'u8 fail
+func fragmentedConfig()->Array!{u8} fail
 {
     var source = try ByteSource.openFile(videoFixturePath("ffmpeg-h264-baseline.packets").toString())
-    let size   = try source.readBigEndian'u32()
-    var config: Array'u8
+    let size   = try source.readBigEndian!{u32}()
+    var config: Array!{u8}
     config.resize(size)
     try source.readExact(config.toSlice())
     return config
 }
 
-func fragmentedPacket(source: *ByteSource)->Array'u8 fail
+func fragmentedPacket(source: *ByteSource)->Array!{u8} fail
 {
-    let size = try source.readBigEndian'u32()
-    var result: Array'u8
+    let size = try source.readBigEndian!{u32}()
+    var result: Array!{u8}
     result.resize(size)
     try source.readExact(result.toSlice())
     return result
@@ -40,7 +44,7 @@ func fragmentedPacket(source: *ByteSource)->Array'u8 fail
 func fragmentedPacketSource()->ByteSource fail
 {
     var source     = try ByteSource.openFile(videoFixturePath("ffmpeg-h264-baseline.packets").toString())
-    let configSize = try source.readBigEndian'u32()
+    let configSize = try source.readBigEndian!{u32}()
     try source.seek(source.position() + configSize)
     return source
 }
@@ -103,8 +107,8 @@ func fragmentedPacketSource()->ByteSource fail
     defer discard catch File.delete(path)
 
     var source     = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-baseline.packets").toString())
-    let configSize = expect source.readBigEndian'u32()
-    var config: Array'u8
+    let configSize = expect source.readBigEndian!{u32}()
+    var config: Array!{u8}
     config.resize(configSize)
     expect source.readExact(config.toSlice())
 
@@ -113,8 +117,8 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(initializationSize > 0 and writer.videoEndTime() == 0)
     for index in 3
     {
-        let packetSize = expect source.readBigEndian'u32()
-        var bytes: Array'u8
+        let packetSize = expect source.readBigEndian!{u32}()
+        var bytes: Array!{u8}
         bytes.resize(packetSize)
         expect source.readExact(bytes.toSlice())
         expect writer.addPacket(EncodedPacket{bytes.toSlice(), cast(u64, index) * 512,
@@ -154,8 +158,11 @@ func fragmentedPacketSource()->ByteSource fail
     }
 
     var lastFragment = raw.count
-    for offset in raw.count - 3 where Memory.compare(raw.buffer + offset, "moof".buffer, 4) == 0 do
+    for offset in raw.count - 3 where Memory.compare(raw.buffer + offset, "moof".buffer, 4) == 0
+    {
         lastFragment = offset - 4
+    }
+
     Swag.require(lastFragment < raw.count)
 
     // Every incomplete prefix of the final fragment leaves the preceding two frames playable.
@@ -175,8 +182,11 @@ func fragmentedPacketSource()->ByteSource fail
     var cursor = expect Mp4.FragmentedPacketCursor.open(stoppedPath)
     var packet: Mp4.FragmentedCursorPacket
     var completePackets: u64
-    while expect cursor.nextPacket(&packet) do
+    while expect cursor.nextPacket(&packet)
+    {
         completePackets += 1
+    }
+
     Swag.require(completePackets == 2)
     Swag.require(cursor.completeMediaByteCount() == lastFragment)
     Swag.require(cursor.endedWithIncompleteTail())
@@ -220,10 +230,13 @@ func fragmentedPacketSource()->ByteSource fail
     let sound  = expect fragmentedPacket(&audio)
     expect writer.addPacket(EncodedPacket{first.toSlice(), 0, 0, 512, true})
     expect writer.addPacket(EncodedPacket{second.toSlice(), 512, 512, 512, false})
-    for index in 2 do
+    for index in 2
+    {
         expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
                                                    cast(u64, index) * 1024, 1024, true},
                                      0)
+    }
+
     expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), 1024, 1024, 1024, true}, 1)
     expect writer.end()
 
@@ -344,13 +357,13 @@ func fragmentedPacketSource()->ByteSource fail
     defer discard catch File.delete(path)
 
     var source     = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-baseline.packets").toString())
-    let configSize = expect source.readBigEndian'u32()
-    var config: Array'u8
+    let configSize = expect source.readBigEndian!{u32}()
+    var config: Array!{u8}
     config.resize(configSize)
     expect source.readExact(config.toSlice())
 
-    let packetSize = expect source.readBigEndian'u32()
-    var bytes: Array'u8
+    let packetSize = expect source.readBigEndian!{u32}()
+    var bytes: Array!{u8}
     bytes.resize(packetSize)
     expect source.readExact(bytes.toSlice())
 
@@ -481,8 +494,8 @@ func fragmentedPacketSource()->ByteSource fail
     defer discard catch File.delete(path)
 
     var source     = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-baseline.packets").toString())
-    let configSize = expect source.readBigEndian'u32()
-    var config: Array'u8
+    let configSize = expect source.readBigEndian!{u32}()
+    var config: Array!{u8}
     config.resize(configSize)
     expect source.readExact(config.toSlice())
 
@@ -491,8 +504,8 @@ func fragmentedPacketSource()->ByteSource fail
     const Present: [3] u64 = [1_000, 2_024, 1_512]
     for index in 3
     {
-        let size = expect source.readBigEndian'u32()
-        var packet: Array'u8
+        let size = expect source.readBigEndian!{u32}()
+        var packet: Array!{u8}
         packet.resize(size)
         expect source.readExact(packet.toSlice())
         expect writer.addPacket(EncodedPacket{packet.toSlice(), Decode[index], Present[index], 512, index == 0})
@@ -511,7 +524,7 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(packets.timescale() == 12_800 and packets.packetCount() == 3)
     Swag.require(Memory.compare(packets.avcConfig().buffer, config.storage(), config.count) == 0)
     var original = expect fragmentedPacketSource()
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     for index in 3
     {
         let info     = expect packets.packetInfo(index)
@@ -593,8 +606,10 @@ func fragmentedPacketSource()->ByteSource fail
         let bytes = index % 3 == 0 ? first.toSlice() : (index % 3 == 1 ? second.toSlice() : third.toSlice())
         let time  = cast(u64, index) * 1024
         expect writer.addAudioPacket(EncodedPacket{bytes, time, time, 1024, true}, 0)
-        if index > 0 do
+        if index > 0
+        {
             expect writer.addAudioPacket(EncodedPacket{bytes, time, time, 1024, true}, 1)
+        }
     }
 
     expect writer.end()
@@ -603,9 +618,12 @@ func fragmentedPacketSource()->ByteSource fail
     const Times: [2] Mp4.VideoTimeRange   = [{100, 1400}, {3100, 4400}]
     let planned = expect Mp4.planVideoTimeRanges(sourcePath, Swag.makeSlice(&Times[0], 2))
     Swag.require(planned.count == 2)
-    for index in 2 do
+    for index in 2
+    {
         Swag.require(planned[index].firstPacket == Kept[index].firstPacket and
                      planned[index].afterLastPacket == Kept[index].afterLastPacket)
+    }
+
     const Exact: [2] Mp4.VideoTimeRange = [{0, 1536}, {3072, 4608}]
     let exact = expect Mp4.planVideoTimeRanges(sourcePath, Swag.makeSlice(&Exact[0], 2))
     Swag.require(exact[0].firstPacket == 0 and exact[0].afterLastPacket == 3)
@@ -629,8 +647,8 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(copied.packetCount() == 6 and copied.audioTrackCount() == 2)
     Swag.require((expect copied.audioTrack(0)).packetCount == 10)
     Swag.require((expect copied.audioTrack(1)).packetCount == 9)
-    var originalBytes: Array'u8
-    var copiedBytes:   Array'u8
+    var originalBytes: Array!{u8}
+    var copiedBytes:   Array!{u8}
     for trackIndex in 2
     {
         let count = (expect copied.audioTrack(trackIndex)).packetCount
@@ -667,9 +685,12 @@ func fragmentedPacketSource()->ByteSource fail
                                                                                        Swag.makeSlice(&AudioConfig[0], 2)},
                                                              Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 2})
     var soundSource = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
-    var sounds: [3] Array'u8
-    for index in 3 do
+    var sounds: [3] Array!{u8}
+    for index in 3
+    {
         sounds[index] = expect fragmentedPacket(&soundSource)
+    }
+
     for group in 3
     {
         var video = expect fragmentedPacketSource()
@@ -695,8 +716,8 @@ func fragmentedPacketSource()->ByteSource fail
     var source = expect Mp4.FragmentedPacketReader.open(sourcePath)
     var copied = expect Mp4.FragmentedPacketReader.open(targetPath)
     Swag.require(copied.packetCount() == 6 and (expect copied.audioTrack(0)).packetCount == 10)
-    var sourceBytes: Array'u8
-    var copiedBytes: Array'u8
+    var sourceBytes: Array!{u8}
+    var copiedBytes: Array!{u8}
     for index in 6
     {
         let sourceIndex = index < 3 ? index : index + 3
@@ -745,8 +766,8 @@ func fragmentedPacketSource()->ByteSource fail
     var source = expect Mp4.FragmentedPacketReader.open(sourcePath)
     var copied = expect Mp4.FragmentedPacketReader.open(targetPath)
     Swag.require(source.packetCount() == 9 and copied.packetCount() == 6)
-    var originalBytes: Array'u8
-    var copiedBytes:   Array'u8
+    var originalBytes: Array!{u8}
+    var copiedBytes:   Array!{u8}
     for index in 6
     {
         let sourceIndex = index < 3 ? index : index + 3
@@ -813,9 +834,12 @@ func fragmentedPacketSource()->ByteSource fail
     }
 
     var audio = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
-    var sounds: [3] Array'u8
-    for index in 3 do
+    var sounds: [3] Array!{u8}
+    for index in 3
+    {
         sounds[index] = expect fragmentedPacket(&audio)
+    }
+
     for index in 100
     {
         let time = cast(u64, index) * 1024
@@ -851,12 +875,12 @@ func fragmentedPacketSource()->ByteSource fail
     defer discard catch File.delete(path)
 
     var source     = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-baseline.packets").toString())
-    let configSize = expect source.readBigEndian'u32()
-    var config: Array'u8
+    let configSize = expect source.readBigEndian!{u32}()
+    var config: Array!{u8}
     config.resize(configSize)
     expect source.readExact(config.toSlice())
-    let packetSize = expect source.readBigEndian'u32()
-    var packet: Array'u8
+    let packetSize = expect source.readBigEndian!{u32}()
+    var packet: Array!{u8}
     packet.resize(packetSize)
     expect source.readExact(packet.toSlice())
 
@@ -877,8 +901,11 @@ func fragmentedPacketSource()->ByteSource fail
     }
 
     Swag.require(run < bytes.count)
-    for i in 4 do
+    for i in 4
+    {
         bytes[run + 12 + i] = 0
+    }
+
     var badOffset: Swag.Error
     discard catch Reader.openMemory("bad-offset.mp4", bytes.toSlice()) as badOffset
     Swag.require((badOffset.value() is InvalidFormatError))
@@ -937,8 +964,10 @@ func fragmentedPacketSource()->ByteSource fail
         let packet = expect fragmentedPacket(&source)
         expect writer.addPacket(EncodedPacket{packet.toSlice(), cast(u64, index) * 512,
                                               cast(u64, index) * 512, 512, index == 0})
-        if index == 0 do
+        if index == 0
+        {
             expect writer.flush()
+        }
     }
 
     expect writer.end()
@@ -990,7 +1019,7 @@ func fragmentedPacketSource()->ByteSource fail
 
     let bytes = expect File.readAllBytes(path)
     var partialHeader: [8] u8 = [0, 0, 0, 1, 'm', 'f', 'r', 'a']
-    var partialIndex:  Array'u8
+    var partialIndex:  Array!{u8}
     partialIndex.add(bytes.toSlice())
     partialIndex.add(Swag.makeSlice(&partialHeader[0], partialHeader.count))
     var reader = expect Reader.openMemory("partial-extended-index.mp4", partialIndex.toSlice())
@@ -998,7 +1027,7 @@ func fragmentedPacketSource()->ByteSource fail
 
     var oversizedHeader: [16] u8 = [0, 0, 0, 1, 'm', 'f', 'r', 'a',
                                     0, 0, 0, 0, 0, 0, 1, 0]
-    var oversizedIndex: Array'u8
+    var oversizedIndex: Array!{u8}
     oversizedIndex.add(bytes.toSlice())
     oversizedIndex.add(Swag.makeSlice(&oversizedHeader[0], oversizedHeader.count))
     reader = expect Reader.openMemory("oversized-extended-index.mp4", oversizedIndex.toSlice())
@@ -1095,7 +1124,7 @@ func fragmentedPacketSource()->ByteSource fail
         let packet = expect sound.packet(index)
         Swag.require(packet.byteSize == bytes.count and packet.sampleFrameCount == 1024)
         expect source.seek(packet.sourceOffset)
-        var actual: Array'u8
+        var actual: Array!{u8}
         actual.resize(packet.byteSize)
         expect source.readExact(actual.toSlice())
         Swag.require(Memory.compare(actual.storage(), bytes.storage(), bytes.count) == 0)
@@ -1104,8 +1133,11 @@ func fragmentedPacketSource()->ByteSource fail
     let cutPath = videoTempPath("fragmented-aac-cut", "mp4")
     defer discard catch File.delete(cutPath)
     var lastFragment = file.count
-    for offset in file.count - 3 where Memory.compare(file.storage() + offset, "moof".buffer, 4) == 0 do
+    for offset in file.count - 3 where Memory.compare(file.storage() + offset, "moof".buffer, 4) == 0
+    {
         lastFragment = offset - 4
+    }
+
     Swag.require(lastFragment < file.count)
     const CutOffsets: [3] u64 = [4, 20, 1]
     for offset in CutOffsets
@@ -1198,9 +1230,12 @@ func fragmentedPacketSource()->ByteSource fail
     let Tracks: [2] Mp4.FragmentedAudioConfig = [
         {44_100, 2, Swag.makeSlice(&AudioConfig[0], 2)},
         {44_100, 2, Swag.makeSlice(&AudioConfig[0], 2)}]
-    var tooMany: Array'Mp4.FragmentedAudioConfig
-    for 5 do
+    var tooMany: Array!{Mp4.FragmentedAudioConfig}
+    for 5
+    {
         tooMany.add(Tracks[0])
+    }
+
     var rejected: Swag.Error
     discard catch Mp4.FragmentedWriter.createWithAudioTracks(path, 64, 48, 12_800, config.toSlice(), tooMany.toSlice()) as rejected
     Swag.require((rejected.value() is BadParameterError))
@@ -1216,10 +1251,12 @@ func fragmentedPacketSource()->ByteSource fail
         expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
                                                    cast(u64, index) * 1024, 1024, true},
                                      0)
-        if index < 2 do
+        if index < 2
+        {
             expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index + 1) * 1024,
                                                        cast(u64, index + 1) * 1024, 1024, true},
                                          1)
+        }
     }
 
     const Empty: [1] u8 = [0]
@@ -1303,8 +1340,10 @@ func fragmentedPacketSource()->ByteSource fail
         let sound = expect fragmentedPacket(&audio)
         expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
                                                    cast(u64, index) * 1024, 1024, true})
-        if index == 0 do
+        if index == 0
+        {
             expect writer.flush()
+        }
     }
 
     expect writer.end()
@@ -1337,10 +1376,12 @@ func fragmentedPacketSource()->ByteSource fail
         expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
                                                    cast(u64, index) * 1024, 1024, true},
                                      0)
-        if index < 2 do
+        if index < 2
+        {
             expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index + 1) * 1024,
                                                        cast(u64, index + 1) * 1024, 1024, true},
                                          1)
+        }
     }
 
     expect writer.end()
@@ -1383,8 +1424,8 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(cursor.timescale() == packets.timescale() and cursor.audioTrackCount() == 2)
     Swag.require((expect cursor.audioTrack(0)).sampleRate == 44_100)
     var cursorPacket:   Mp4.FragmentedCursorPacket
-    var cursorBytes:    Array'u8
-    var expectedBytes:  Array'u8
+    var cursorBytes:    Array!{u8}
+    var expectedBytes:  Array!{u8}
     var videoIndex:     u64
     var audioIndices:   [2] u64
     var fragmentOffset: u64
@@ -1445,7 +1486,7 @@ func fragmentedPacketSource()->ByteSource fail
                                                                   packets.avcConfig(),
                                                                   Swag.makeSlice(&copiedTracks[0], 2),
                                                                   Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 3})
-    var payload: Array'u8
+    var payload: Array!{u8}
     for index in 3
     {
         let picture = expect packets.readPacket(index, &payload)
@@ -1461,8 +1502,8 @@ func fragmentedPacketSource()->ByteSource fail
 
     var copied = expect Mp4.FragmentedPacketReader.open(copyPath)
     Swag.require(copied.packetCount() == 3 and copied.audioTrackCount() == 2)
-    var originalBytes: Array'u8
-    var copiedBytes:   Array'u8
+    var originalBytes: Array!{u8}
+    var copiedBytes:   Array!{u8}
     for index in 3
     {
         let originalPacket = expect packets.readPacket(index, &originalBytes)
@@ -1576,10 +1617,15 @@ func fragmentedPacketSource()->ByteSource fail
             moofIndex += 1
         }
 
-        if Memory.compare(raw.buffer + offset, "tfra".buffer, 4) == 0 do
+        if Memory.compare(raw.buffer + offset, "tfra".buffer, 4) == 0
+        {
             tfraOffset = offset - 4
-        if Memory.compare(raw.buffer + offset, "mfra".buffer, 4) == 0 do
+        }
+
+        if Memory.compare(raw.buffer + offset, "mfra".buffer, 4) == 0
+        {
             mfraOffset = offset - 4
+        }
     }
 
     Swag.require(moofIndex == 2 and tfraOffset < raw.count and mfraOffset < raw.count)
@@ -1592,23 +1638,23 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(not summary.hasIncompleteTail)
     var source = ByteSource.openMemory(raw)
     expect source.seek(tfraOffset)
-    Swag.require(expect source.readBigEndian'u32() == 64)
+    Swag.require(expect source.readBigEndian!{u32}() == 64)
     expect source.skip(4)
-    Swag.require(expect source.readBigEndian'u32() == 0x01000000)
-    Swag.require(expect source.readBigEndian'u32() == 1)
-    Swag.require(expect source.readBigEndian'u32() == 1)
-    Swag.require(expect source.readBigEndian'u32() == 2)
+    Swag.require(expect source.readBigEndian!{u32}() == 0x01000000)
+    Swag.require(expect source.readBigEndian!{u32}() == 1)
+    Swag.require(expect source.readBigEndian!{u32}() == 1)
+    Swag.require(expect source.readBigEndian!{u32}() == 2)
     for index in 2
     {
-        Swag.require(expect source.readBigEndian'u64() == cast(u64, index) * 1024 + 512)
-        Swag.require(expect source.readBigEndian'u64() == moofOffsets[index])
-        Swag.require(expect source.readBigEndian'u8() == 1)
-        Swag.require(expect source.readBigEndian'u8() == 1)
-        Swag.require(expect source.readBigEndian'u16() == 1)
+        Swag.require(expect source.readBigEndian!{u64}() == cast(u64, index) * 1024 + 512)
+        Swag.require(expect source.readBigEndian!{u64}() == moofOffsets[index])
+        Swag.require(expect source.readBigEndian!{u8}() == 1)
+        Swag.require(expect source.readBigEndian!{u8}() == 1)
+        Swag.require(expect source.readBigEndian!{u16}() == 1)
     }
 
     expect source.seek(raw.count - 4)
-    Swag.require(expect source.readBigEndian'u32() == raw.count - mfraOffset)
+    Swag.require(expect source.readBigEndian!{u32}() == raw.count - mfraOffset)
 
     var index = expect Mp4.FragmentedIndex.open(path)
     Swag.require(index.entryCount() == 2)
@@ -1686,7 +1732,7 @@ func fragmentedPacketSource()->ByteSource fail
     discard catch Mp4.FragmentedIndex.open(cutPath) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
 
-    var damaged: Array'u8
+    var damaged: Array!{u8}
     damaged.add(raw)
     damaged[tfraOffset + 32] = 0xFF
     discard expect File.writeAllBytes(cutPath, damaged.toSlice())
@@ -1695,8 +1741,11 @@ func fragmentedPacketSource()->ByteSource fail
 
     damaged.clear()
     damaged.add(raw)
-    for byte in 8 do
+    for byte in 8
+    {
         damaged[tfraOffset + 44 + byte] = 0
+    }
+
     discard expect File.writeAllBytes(cutPath, damaged.toSlice())
     discard catch Mp4.FragmentedIndex.open(cutPath) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
@@ -1706,10 +1755,10 @@ func fragmentedPacketSource()->ByteSource fail
     damaged.add(raw)
     var forgedSource = ByteSource.openMemory(raw)
     expect forgedSource.seek(moofOffsets[0])
-    let firstMoofSize = cast(u64, expect forgedSource.readBigEndian'u32())
+    let firstMoofSize = cast(u64, expect forgedSource.readBigEndian!{u32}())
     expect forgedSource.seek(moofOffsets[0] + firstMoofSize)
-    let mediaDataSize = expect forgedSource.readBigEndian'u32()
-    Swag.require(expect forgedSource.readBigEndian'u32() == 0x6D64_6174)
+    let mediaDataSize = expect forgedSource.readBigEndian!{u32}()
+    Swag.require(expect forgedSource.readBigEndian!{u32}() == 0x6D64_6174)
     Swag.require(mediaDataSize >= 16)
     let forgedOffset = moofOffsets[0] + firstMoofSize + 8
     damaged[forgedOffset]     = 0
@@ -1720,8 +1769,11 @@ func fragmentedPacketSource()->ByteSource fail
     damaged[forgedOffset + 5] = 0x6F
     damaged[forgedOffset + 6] = 0x6F
     damaged[forgedOffset + 7] = 0x66
-    for byte in 8 do
+    for byte in 8
+    {
         damaged[tfraOffset + 32 + byte] = cast(u8, (forgedOffset >> cast(u32, (7 - byte) * 8)) & 0xFF)
+    }
+
     discard expect File.writeAllBytes(cutPath, damaged.toSlice())
     var forgedIndex = expect Mp4.FragmentedIndex.open(cutPath)
     discard catch forgedIndex.point(0) as rejected
@@ -1731,27 +1783,29 @@ func fragmentedPacketSource()->ByteSource fail
     // Version zero and four-byte fragment/run/sample numbers are also valid ISO-BMFF indexes.
     var trailer: ConcatBuffer
     var sink = ByteSink.createMemory(&trailer)
-    expect sink.writeBigEndian(88'u32)
+    expect sink.writeBigEndian(88_u32)
     expect sink.writeText("mfra")
-    expect sink.writeBigEndian(64'u32)
+    expect sink.writeBigEndian(64_u32)
     expect sink.writeText("tfra")
-    expect sink.writeBigEndian(0'u32)
-    expect sink.writeBigEndian(1'u32)
-    expect sink.writeBigEndian(0x3F'u32)
-    expect sink.writeBigEndian(2'u32)
+    expect sink.writeBigEndian(0_u32)
+    expect sink.writeBigEndian(1_u32)
+    expect sink.writeBigEndian(0x3F_u32)
+    expect sink.writeBigEndian(2_u32)
     for index in 2
     {
         expect sink.writeBigEndian(cast(u32, index) * 1024 + 512)
         expect sink.writeBigEndian(cast(u32, moofOffsets[index]))
-        for 3 do
-            expect sink.writeBigEndian(1'u32)
+        for 3
+        {
+            expect sink.writeBigEndian(1_u32)
+        }
     }
 
-    expect sink.writeBigEndian(16'u32)
+    expect sink.writeBigEndian(16_u32)
     expect sink.writeText("mfro")
-    expect sink.writeBigEndian(0'u32)
-    expect sink.writeBigEndian(88'u32)
-    var legacy: Array'u8
+    expect sink.writeBigEndian(0_u32)
+    expect sink.writeBigEndian(88_u32)
+    var legacy: Array!{u8}
     legacy.add(raw[0 until mfraOffset])
     let trailerBytes = trailer.toArray()
     legacy.add(trailerBytes.toSlice())

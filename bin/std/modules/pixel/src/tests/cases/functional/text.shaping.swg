@@ -32,7 +32,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.require(shaped.glyphs[0].cluster == 0)
     Swag.require(shaped.glyphs[1].cluster == 1)
     Swag.require(shaped.glyphs[0].glyphIndex == font.glyphIndex('A'))
-    Swag.require(shaped.glyphs[1].glyphIndex == font.glyphIndex('\u00E9'rune))
+    Swag.require(shaped.glyphs[1].glyphIndex == font.glyphIndex('\u00E9'_rune))
     Swag.require(shaped.metrics.width > 0)
     Swag.require(shaped.hasInk)
     Swag.require(shaped.inkBounds.width > 0)
@@ -48,11 +48,11 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.require(Math.isEqualEpsilon(measured.height, shaped.metrics.height, 0.001))
 
     let normalABC         = Painter.shapeRun("ABC", font)
-    let spacedABC         = Painter.shapeRun("ABC", font, 4, 1.5'f32)
-    let measuredSpacedABC = Painter.measureString("ABC", font, 4, 1.5'f32)
+    let spacedABC         = Painter.shapeRun("ABC", font, 4, 1.5_f32)
+    let measuredSpacedABC = Painter.measureString("ABC", font, 4, 1.5_f32)
     Swag.require(spacedABC.metrics.width > normalABC.metrics.width + 2.9)
     Swag.require(Math.isEqualEpsilon(measuredSpacedABC.width, spacedABC.metrics.width, 0.001))
-    Swag.require(spacedABC.letterSpacing == 1.5'f32)
+    Swag.require(spacedABC.letterSpacing == 1.5_f32)
 
     let spaces = Painter.shapeRun("    ", font)
     let tab    = Painter.shapeRun("\t", font)
@@ -102,8 +102,10 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     var visibleChunks = 0
     for &chunk in paragraphText.chunks
     {
-        if chunk.visible and not chunk.isEol do
+        if chunk.visible and not chunk.isEol
+        {
             visibleChunks += 1
+        }
     }
 
     Swag.require(visibleChunks == 2)
@@ -122,10 +124,15 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     var spaceCount = 0
     for &chunk in lineBreaks.chunks
     {
-        if chunk.isEol do
+        if chunk.isEol
+        {
             eolCount += 1
-        if chunk.isSpace do
+        }
+
+        if chunk.isSpace
+        {
             spaceCount += 1
+        }
     }
 
     Swag.require(eolCount == 3)
@@ -173,16 +180,21 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Painter.computeLayout({0, 0, 120, 400}, &text, format)
 
     var longChunk: *RichChunk?
-    for &c in text.chunks where c.slice.count > 20 do
+    for &c in text.chunks where c.slice.count > 20
+    {
         longChunk = c
+    }
 
     Swag.require(longChunk != null)
     Swag.require(longChunk.visible)
 
     // Every word survives the wrap, not only the one that could not break.
     var visibleWords = 0
-    for &c in text.chunks where c.visible and not c.isSpace and not c.isEol do
+    for &c in text.chunks where c.visible and not c.isSpace and not c.isEol
+    {
         visibleWords += 1
+    }
+
     Swag.require(visibleWords == 3)
 }
 
@@ -217,7 +229,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     // The mark is the last thing drawn, and the text it was cut from is left intact so the next
     // layout starts from the whole run again.
     let glyphs = text.chunks[0].shaped.glyphs
-    Swag.require(glyphs.back().glyphIndex == font.glyphIndex('\u2026'rune))
+    Swag.require(glyphs.back().glyphIndex == font.glyphIndex('\u2026'_rune))
     Swag.require(text.chunks[0].slice == long)
 
     // The same run in a rectangle that holds it keeps every glyph and gains no mark.
@@ -257,7 +269,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.require(kept.shaped.glyphs.count == ("alpha").count + 1)
 
     let glyphs = kept.shaped.glyphs
-    Swag.require(glyphs.back().glyphIndex == font.glyphIndex('…'rune))
+    Swag.require(glyphs.back().glyphIndex == font.glyphIndex('…'_rune))
     Swag.require(not text.chunks[text.chunks.count - 1].visible)
 
     // A budget the text stays under leaves every line alone.
@@ -381,8 +393,10 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     var text: RichString = "A\u00A0B C"
     text.compute()
     var spaceCount = 0
-    for &chunk in text.chunks where chunk.isSpace do
+    for &chunk in text.chunks where chunk.isSpace
+    {
         spaceCount += 1
+    }
 
     Swag.require(spaceCount == 1)
     Swag.require(text.chunks.count == 3)
@@ -407,27 +421,34 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     for &chunk, index in text.chunks
     {
         Swag.require(chunk.visible)
-        if not index do
+        if not index
+        {
             continue
+        }
 
         let previous = &text.chunks[index - 1]
         let gap      = chunk.pos.x - previous.pos.x - previous.boundRect.width
         Swag.require(Math.isEqualEpsilon(gap, format.letterSpacing, 0.01))
     }
 
-    const NarrowWidth = 120.0'f32
+    const NarrowWidth = 120.0_f32
     Painter.computeLayout({0, 0, NarrowWidth, 80}, &text, format)
     Swag.require(text.boundRect.width <= NarrowWidth)
 
     var endsWithEllipsis = false
-    for &chunk in text.chunks where chunk.visible do
-        endsWithEllipsis = chunk.shaped.glyphs.back().glyphIndex == font.glyphIndex('\u2026'rune)
+    for &chunk in text.chunks where chunk.visible
+    {
+        endsWithEllipsis = chunk.shaped.glyphs.back().glyphIndex == font.glyphIndex('\u2026'_rune)
+    }
+
     Swag.require(endsWithEllipsis)
 
-    const WrapWidth = 100.0'f32
+    const WrapWidth = 100.0_f32
     format.flags = .WordWrap
     Painter.computeLayout({0, 0, WrapWidth, 400}, &text, format)
     Swag.require(text.boundRect.width <= WrapWidth)
-    for &chunk in text.chunks where not chunk.isSpace do
+    for &chunk in text.chunks where not chunk.isSpace
+    {
         Swag.require(chunk.visible)
+    }
 }

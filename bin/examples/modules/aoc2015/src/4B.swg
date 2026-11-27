@@ -11,18 +11,22 @@ func day4B()
 {
     #static if #cfg == "release"
     {
-        if Swag.jit() do
+        if Swag.jit()
+        {
             return
+        }
 
         // Time.Stopwatch.scopeMeasure()
         // One lane per worker, each striding by the lane count so the whole search space is
         // covered exactly once. A lane stops as soon as another one has published a lower hit.
-        let lanes = Math.max(1'u64, cast(u64, Swag.workerCount()))
+        let lanes = Math.max(1_u64, cast(u64, Swag.workerCount()))
 
-        var results: Array'u64
+        var results: Array!{u64}
         results.resize(lanes)
-        for &r in results do
+        for &r in results
+        {
             r[] = Swag.U64.Max
+        }
 
         parallel for |&results, lanes| lane in lanes
         {
@@ -32,8 +36,10 @@ func day4B()
 
             for
             {
-                if Atomic.get(&best) < index do
+                if Atomic.get(&best) < index
+                {
                     break
+                }
 
                 let v = Hash.Md5.compute(day4BuildInput(buffer, index))
                 if v[0] == 0 and v[1] == 0 and v[2] == 0
@@ -48,8 +54,10 @@ func day4B()
         }
 
         var total: u64 = Swag.U64.Max
-        for r in results do
+        for r in results
+        {
             total = Math.min(total, r)
+        }
 
         Swag.assert(total == 9962624)
     }

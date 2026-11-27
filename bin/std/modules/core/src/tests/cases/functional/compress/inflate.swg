@@ -9,11 +9,11 @@ using Swag
     const Input: [5] u8 = [0x11, 0x22, 0x33, 0x44, 0x55]
     var deflater: Compress.Deflate
     deflater.init(.NoCompression)
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, Input)
 
     var inflater:     Compress.Inflate
-    var decoded:      Array'u8
+    var decoded:      Array!{u8}
     var errorOutcome: Swag.Error
     catch inflater.decompress(&decoded, compressed.toSlice(), winSize: 0) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.BadParameterError)
@@ -25,8 +25,10 @@ using Swag
 #test
 {
     var original: [4000] u8
-    for i in 4000 do
+    for i in 4000
+    {
         original[i] = cast #bit (u8, (i * 7 + (i >> 2) + (i & 13)))
+    }
 
     var zl:  Compress.ZLib
     let compressed   = expect zl.compress(original)
@@ -41,18 +43,20 @@ using Swag
 #test
 {
     var original: [4000] u8
-    for i in original.count do
+    for i in original.count
+    {
         original[i] = cast(u8, (i * 37 + (i >> 2)) & 0xFF)
+    }
 
     var deflater: Compress.Deflate
     deflater.init(.BestCompression)
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, original)
 
     for length in compressed.count
     {
         var inflater: Compress.Inflate
-        var decoded:  Array'u8
+        var decoded:  Array!{u8}
         var outcome:  Swag.Error
         catch inflater.decompress(&decoded, compressed.toSlice()[until length]) as outcome
         Swag.require(outcome.value() is Errors.InvalidFormatError)
@@ -64,16 +68,18 @@ using Swag
 #test
 {
     var original: [4096] u8
-    for &value in original do
+    for &value in original
+    {
         value[] = 0xA5
+    }
 
     var deflater: Compress.Deflate
     deflater.init(.BestCompression, flags: .Zero)
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, original)
 
     var inflater: Compress.Inflate
-    var decoded:  Array'u8
+    var decoded:  Array!{u8}
     var limitErrorOutcome: Swag.Error
     catch inflater.decompress(&decoded, compressed.toSlice(), maxOutputSize: 128) as limitErrorOutcome
     let limitError = limitErrorOutcome.value()
@@ -85,16 +91,18 @@ using Swag
 #test
 {
     var original: [4096] u8
-    for &value in original do
+    for &value in original
+    {
         value[] = 0xA5
+    }
 
     var deflater: Compress.Deflate
     deflater.init(.BestCompression, flags: .Zero)
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, original)
 
     const Prefix: [4] u8 = [0xDE, 0xAD, 0xBE, 0xEF]
-    var atLimit: Array'u8
+    var atLimit: Array!{u8}
     atLimit.add(Prefix)
 
     var inflater: Compress.Inflate
@@ -103,7 +111,7 @@ using Swag
     Swag.require(Slice.equals(atLimit.toSlice()[until Prefix.count], Prefix))
     Swag.require(Slice.equals(atLimit.toSlice()[Prefix.count to], original))
 
-    var tooShort: Array'u8
+    var tooShort: Array!{u8}
     tooShort.add(Prefix)
     var errorOutcome: Swag.Error
     catch inflater.decompress(&tooShort, compressed.toSlice(), maxOutputSize: original.count - 1) as errorOutcome
@@ -118,19 +126,21 @@ using Swag
     // Shift the compressed input and existing output prefix by one byte to exercise
     // both Inflate's bulk input refill and its unaligned distance>=8 output copy.
     var original: [2048] u8
-    for i in original.count do
+    for i in original.count
+    {
         original[i] = cast(u8, ((i % 11) * 17 + 3))
+    }
 
     var deflater: Compress.Deflate
     deflater.init(.BestCompression, flags: .Zero)
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, original)
 
-    var shifted: Array'u8
+    var shifted: Array!{u8}
     shifted.add(0xEE)
     shifted.add(compressed.toSlice())
 
-    var decoded: Array'u8
+    var decoded: Array!{u8}
     decoded.add(0xDD)
     var inflater: Compress.Inflate
     expect inflater.decompress(&decoded, shifted.toSlice()[1 to])
@@ -142,16 +152,21 @@ using Swag
 // through the exact Deflate producer consumed by Inflate.
 #test
 {
-    var input: Array'u8
+    var input: Array!{u8}
     for distance in 1 to 33
     {
         input.clear()
-        for i in distance do
+        for i in distance
+        {
             input.add(cast(u8, ((i * 19 + distance) & 0xFF)))
+        }
+
         for 300
         {
-            for i in distance do
+            for i in distance
+            {
                 input.add(input[i])
+            }
         }
 
         roundTrip(input.toSlice(), .Default)
@@ -174,14 +189,16 @@ func nextSeed(seed: *u32)->u32
 // distances, so nothing else here exercises a wide symbol group against a growing destination.
 #test
 {
-    const Block  = 30_000'u64
-    const Copies = 20'u64
+    const Block  = 30_000_u64
+    const Copies = 20_u64
 
-    var seed = 0x12345678'u32
-    var payload: Array'u8
+    var seed = 0x12345678_u32
+    var payload: Array!{u8}
     payload.reserve(Block * Copies)
-    for Block do
+    for Block
+    {
         payload.add(cast #bit (u8, nextSeed(&seed)))
+    }
 
     for copy in 1 until Copies
     {
@@ -189,10 +206,14 @@ func nextSeed(seed: *u32)->u32
         {
             // A literal every two hundred bytes keeps each match well short of the longest one,
             // so its length code still carries extra bits.
-            if index % 200 == 199 do
+            if index % 200 == 199
+            {
                 payload.add(cast #bit (u8, nextSeed(&seed)))
-            else do
+            }
+            else
+            {
                 payload.add(payload[index])
+            }
         }
 
         // One short back-reference per copy, of a length nothing else in the stream uses. Against
@@ -201,8 +222,10 @@ func nextSeed(seed: *u32)->u32
         // hand this match to the careful path.
         let rare = 3 + copy % 6
         let from = payload.count - 4000
-        for byte in rare do
+        for byte in rare
+        {
             payload.add(payload[from + byte])
+        }
     }
 
     var writer: Compress.ZLib
@@ -239,8 +262,10 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 #test
 {
     var buffer: [80] u8
-    for i in 80 do
+    for i in 80
+    {
         buffer[i] = cast #bit (u8, (i * 29 + (i >> 1)))
+    }
 
     for n in 80
     {
@@ -251,17 +276,22 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 }
 
 // Back-references of every distance class the block loop distinguishes: a run of
-// one byte, the short distances it has to copy byte by byte, and the distances it
+// one byte, short overlapping patterns, and the distances it
 // copies in whole words, including matches that end right at the buffer.
 #test
 {
     for distance in 1 to 12
     {
-        var buffer: Array'u8
-        for i in 64 do
+        var buffer: Array!{u8}
+        for i in 64
+        {
             buffer.add(cast #bit (u8, (i * 13)))
-        for 512 do
+        }
+
+        for 512
+        {
             buffer.add(buffer[buffer.count - distance])
+        }
 
         roundTrip(buffer.toSlice(), .BestSpeed)
         roundTrip(buffer.toSlice(), .BestCompression)
@@ -273,8 +303,8 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 // produces. The counterpart is a payload that is one long match.
 #test
 {
-    var noisy: Array'u8
-    var seed = 0x2545F491'u32
+    var noisy: Array!{u8}
+    var seed = 0x2545F491_u32
     for 40000
     {
         seed ^= seed << #wrap 13
@@ -286,9 +316,12 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     roundTrip(noisy.toSlice(), .BestSpeed)
     roundTrip(noisy.toSlice(), .Default)
 
-    var flat: Array'u8
-    for 40000 do
+    var flat: Array!{u8}
+    for 40000
+    {
         flat.add(0xA5)
+    }
+
     roundTrip(flat.toSlice(), .BestSpeed)
     roundTrip(flat.toSlice(), .BestCompression)
 }
@@ -297,16 +330,18 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 #test
 {
     var original: [4000] u8
-    for i in 4000 do
+    for i in 4000
+    {
         original[i] = cast #bit (u8, ((i * 7919 + i * i * 31) >> 3))
+    }
 
     var deflater: Compress.Deflate
     deflater.init(.Default, flags: .Zero)
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, original)
 
     var inflater:         Compress.Inflate
-    var decoded:          Array'u8
+    var decoded:          Array!{u8}
     var truncatedOutcome: Swag.Error
     catch inflater.decompress(&decoded, compressed.toSlice()[until compressed.count / 2]) as truncatedOutcome
     let truncated = truncatedOutcome.value()
@@ -319,7 +354,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     // Final stored block announcing 0xFFFF bytes, followed by two.
     let stored:          [7] u8 = [0x01, 0xFF, 0xFF, 0x00, 0x00, 0x41, 0x42]
     var inflater:        Compress.Inflate
-    var decoded:         Array'u8
+    var decoded:         Array!{u8}
     var overlongOutcome: Swag.Error
     catch inflater.decompress(&decoded, stored) as overlongOutcome
     let overlong = overlongOutcome.value()
@@ -331,7 +366,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     let reservedDistance: [3] u8 = [0x03, 0x1F, 0x00]
     var inflater:         Compress.Inflate
-    var decoded:          Array'u8
+    var decoded:          Array!{u8}
     var errorOutcome:     Swag.Error
     catch inflater.decompress(&decoded, reservedDistance) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
@@ -344,7 +379,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     // Final fixed block: reserved length symbol 286, distance zero, then end-of-block.
     let reservedLength: [3] u8 = [0x1B, 0x03, 0x00]
     var inflater:       Compress.Inflate
-    var decoded:        Array'u8
+    var decoded:        Array!{u8}
     var errorOutcome:   Swag.Error
     catch inflater.decompress(&decoded, reservedLength) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
@@ -356,7 +391,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     // Final fixed block: reserved length symbol 287, distance zero, then end-of-block.
     let reservedLength: [3] u8 = [0x1B, 0x07, 0x00]
     var inflater:       Compress.Inflate
-    var decoded:        Array'u8
+    var decoded:        Array!{u8}
     var errorOutcome:   Swag.Error
     catch inflater.decompress(&decoded, reservedLength) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
@@ -368,7 +403,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     let tooManyCodes: [3] u8 = [0x05, 0xF8, 0x00]
     var inflater:     Compress.Inflate
-    var decoded:      Array'u8
+    var decoded:      Array!{u8}
     var errorOutcome: Swag.Error
     catch inflater.decompress(&decoded, tooManyCodes) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
@@ -378,16 +413,18 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 #test
 {
     var input: [128] u8
-    for index in input.count do
+    for index in input.count
+    {
         input[index] = cast(u8, index & 1)
+    }
 
     var deflater: Compress.Deflate
     deflater.init(.BestCompression)
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, input)
 
     var inflater:     Compress.Inflate
-    var decoded:      Array'u8
+    var decoded:      Array!{u8}
     var errorOutcome: Swag.Error
     catch inflater.decompress(&decoded, compressed.toSlice(), winSize: 1) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
@@ -400,13 +437,13 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     let input:    [5] u8 = [0x11, 0x22, 0x33, 0x44, 0x55]
     var deflater: Compress.Deflate
     deflater.init(.NoCompression)
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, input)
 
     for length in compressed.count
     {
         var inflater:     Compress.Inflate
-        var decoded:      Array'u8
+        var decoded:      Array!{u8}
         var errorOutcome: Swag.Error
         catch inflater.decompress(&decoded, compressed.toSlice()[until length]) as errorOutcome
         Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
@@ -419,7 +456,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     const MatchWithoutHistory: [3] u8 = [0x03, 0x02, 0x00]
     const Prefix: [4] u8 = [1, 2, 3, 4]
-    var output: Array'u8
+    var output: Array!{u8}
     output.add(Prefix)
 
     var decoder: Compress.Inflate

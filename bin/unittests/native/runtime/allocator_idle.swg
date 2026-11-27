@@ -39,7 +39,7 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
     // The first page of a segment holds fewer blocks than the next, so each page is filled by
     // its own capacity; the block past a full page opens the next one.
     held[][0] = allocOne(itf, 64)
-    var count = 1'u64
+    var count = 1_u64
     let first = unwrap allocatorPageOf(cast(u64, held[][0]))
     for first.capacityBytes() / first.blockSize
     {
@@ -71,12 +71,14 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
     var held: [HeldCount] (*void?)
     let page    = fillFirstPages(itf, &held)
     let segment = allocatorSegmentOf(page)
-    let bit     = 1'u64 << (page.unitIndex >> segment.unitShift)
+    let bit     = 1_u64 << (page.unitIndex >> segment.unitShift)
     let filled  = allocator.stats()
     Swag.require(filled.countPage == 3)
 
-    for block in held where block do
+    for block in held where block
+    {
         freeOne(itf, block)
+    }
 
     // The current page and the class's spare stay; the other emptied page is idle.
     let emptied = allocator.stats()
@@ -103,9 +105,11 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
     var held: [HeldCount] (*void?)
     let page    = fillFirstPages(itf, &held)
     let segment = allocatorSegmentOf(page)
-    let bit     = 1'u64 << (page.unitIndex >> segment.unitShift)
-    for block in held where block do
+    let bit     = 1_u64 << (page.unitIndex >> segment.unitShift)
+    for block in held where block
+    {
         freeOne(itf, block)
+    }
     Swag.require(atomicGet(&segment.idleMask) & bit)
 
     allocator.purgeDeadline = 0
@@ -134,7 +138,7 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
         #[Swag.CallingConvention(.C)]
         alias LPTHREAD_START_ROUTINE = func(*void)->DWORD
 
-        const INFINITE = 0xFFFF_FFFF'u32
+        const INFINITE = 0xFFFF_FFFF_u32
 
         #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
         {
@@ -157,8 +161,10 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
     func idleOwnerThread(param: *void)->Th.DWORD
     {
         let owner = cast(*IdleOwner, param)
-        for i in owner.blocks.count do
+        for i in owner.blocks.count
+        {
             owner.blocks[i] = allocOne(unwrap owner.itf, 64)
+        }
         discard Swag.atomicExchange(&owner.allocated, 1)
         while Swag.atomicCompareExchange(&owner.release, 0, 0) == 0 {}
 
@@ -183,8 +189,10 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
         while Swag.atomicCompareExchange(&owner.allocated, 0, 0) == 0 {}
         Swag.require(allocator.stats().countAlloc == owner.blocks.count)
 
-        for block in owner.blocks do
+        for block in owner.blocks
+        {
             freeOne(itf, block)
+        }
         let page = unwrap allocatorPageOf(cast(u64, owner.blocks[0]))
         Swag.require(page.remoteCount() == owner.blocks.count)
         Swag.require(allocator.stats().countAlloc == 0)

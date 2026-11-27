@@ -8,20 +8,25 @@ using Core
 // a tree that does not hold it, produces.
 private func mp3WalkTree(tree: const [..] s16, length: u32, code: u32)->s32
 {
-    var node = 0's32
+    var node = 0_s32
     for index in length
     {
         let bit  = (code >> (length - 1 - index)) & 1
         let slot = cast(u64, (node * 2)) + cast(u64, bit)
-        if slot >= tree.count do
+        if slot >= tree.count
+        {
             return -1
+        }
 
         let next = tree[slot]
         if next < 0
         {
             // A leaf before the last bit means the code passes through another code.
-            if index != length - 1 do
+            if index != length - 1
+            {
                 return -1
+            }
+
             return cast(s32, (-next - 1))
         }
 
@@ -39,35 +44,42 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
 {
     Swag.require(lengths.count == codes.count)
 
-    var kraft = 0.0'f64
+    var kraft = 0.0_f64
     for symbol in lengths.count
     {
         let length = cast(u32, lengths[symbol])
         Swag.require(length > 0 and length <= 19)
-        kraft += Math.pow(0.5'f64, cast(f64, length))
+        kraft += Math.pow(0.5_f64, cast(f64, length))
 
         // The code must fit the length it states.
-        Swag.require(cast(u32, codes[symbol]) < (1'u32 << length))
+        Swag.require(cast(u32, codes[symbol]) < (1_u32 << length))
 
         let reached = mp3WalkTree(tree, length, cast(u32, codes[symbol]))
-        if reached != cast(s32, symbol) do
+        if reached != cast(s32, symbol)
+        {
             Swag.print("mp3 table ", name, ": symbol ", symbol, " decodes to ", reached, "\n")
+        }
+
         Swag.require(reached == cast(s32, symbol))
     }
 
     // A complete prefix code has a Kraft sum of exactly one. Below one leaves bit patterns that
     // decode to nothing; above one is impossible without two codes sharing a path.
-    Swag.require(Math.abs(kraft - 1.0'f64) < 1e-9)
+    Swag.require(Math.abs(kraft - 1.0_f64) < 1e-9)
 
     // Every branch of the tree must lead somewhere: a slot pointing at itself or past the end
     // would make the decoder loop or read out of bounds.
     for slot in tree.count
     {
         let value = tree[slot]
-        if value >= 0 do
+        if value >= 0
+        {
             Swag.require(cast(u64, value) * 2 + 1 < tree.count and cast(u64, value) * 2 > slot)
-        else do
+        }
+        else
+        {
             Swag.require(cast(u64, (-value - 1)) < lengths.count)
+        }
     }
 }
 
@@ -98,7 +110,7 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
     mp3AssertTable("count1 A", Mp3.Count1ALen, Mp3.Count1ACod, Mp3.Count1ATree)
     mp3AssertTable("count1 B", Mp3.Count1BLen, Mp3.Count1BCod, Mp3.Count1BTree)
 
-    for symbol in 16'u32
+    for symbol in 16_u32
     {
         Swag.require(Mp3.Count1BLen[symbol] == 4)
         Swag.require(cast(u32, Mp3.Count1BCod[symbol]) == 15 - symbol)
@@ -114,7 +126,7 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
                                16, 16, 16, 16, 16, 16, 16, 16, 24, 24, 24, 24, 24, 24, 24, 24]
     const Escapes: [32] u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                               1, 2, 3, 4, 6, 8, 10, 13, 4, 5, 6, 7, 8, 9, 11, 13]
-    for index in 32'u64
+    for index in 32_u64
     {
         Swag.require(Mp3.HuffCodeTable[index] == Expected[index])
         Swag.require(Mp3.HuffLinbits[index] == Escapes[index])
@@ -124,17 +136,23 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
 // Every scalefactor band list covers the 576 lines of a granule, and closes with a zero.
 #test
 {
-    for rate in 8'u64
+    for rate in 8_u64
     {
-        var total = 0'u32
-        for band in 22'u64 do
+        var total = 0_u32
+        for band in 22_u64
+        {
             total += cast(u32, Mp3.ScfBandLong[rate, band])
+        }
+
         Swag.require(total == 576)
         Swag.require(Mp3.ScfBandLong[rate, 22] == 0)
 
         total = 0
-        for band in 39'u64 do
+        for band in 39_u64
+        {
             total += cast(u32, Mp3.ScfBandShort[rate, band])
+        }
+
         Swag.require(total == 576)
         Swag.require(Mp3.ScfBandShort[rate, 39] == 0)
     }

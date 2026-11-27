@@ -30,8 +30,10 @@ func hasVisibleChar(sheet: const [..] string, column: u32)->bool
         let bytes = cast(const [..] u8, line)
         Swag.assert(column < bytes.count)
 
-        if bytes[column] != ' ' do
+        if bytes[column] != ' '
+        {
             return true
+        }
     }
 
     return false
@@ -50,12 +52,14 @@ func parseAlignedNumber(line: string, firstColumn, lastColumn: u32, value: *u64)
         if c >= '0' and c <= '9'
         {
             foundDigit = true
-            result     = result * 10'u64 + cast(u64, (c - '0'))
+            result     = result * 10_u64 + cast(u64, (c - '0'))
         }
     }
 
-    if foundDigit do
+    if foundDigit
+    {
         value[] = result
+    }
     return foundDigit
 }
 
@@ -91,10 +95,14 @@ func evaluateProblem(sheet: const [..] string, firstColumn, lastColumn: u32)->Pr
             }
             else
             {
-                if op == '+' do
+                if op == '+'
+                {
                     value += parsedValue
-                if op == '*' do
+                }
+                if op == '*'
+                {
                     value *= parsedValue
+                }
             }
 
             numberCount += 1
@@ -131,8 +139,10 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
             column += 1
         }
 
-        if column == width do
+        if column == width
+        {
             break
+        }
 
         let firstColumn = column
 
@@ -147,10 +157,14 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
         result.grandTotal          += problemValue.value
         result.largestProblemValue = maxU64(result.largestProblemValue, problemValue.value)
 
-        if problemValue.isAdditive do
+        if problemValue.isAdditive
+        {
             result.additiveProblemCount += 1
-        if problemValue.isAdditive == false do
+        }
+        if problemValue.isAdditive == false
+        {
             result.multiplicativeCount += 1
+        }
     }
 
     return result
@@ -168,11 +182,11 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
 
     let sampleRollup = rollupWorksheet(sampleSheet)
 
-    Swag.require(sampleRollup.problemCount == 4'u32)
-    Swag.require(sampleRollup.additiveProblemCount == 2'u32)
-    Swag.require(sampleRollup.multiplicativeCount == 2'u32)
-    Swag.require(sampleRollup.grandTotal == 4277556'u64)
-    Swag.require(sampleRollup.largestProblemValue == 4243455'u64)
+    Swag.require(sampleRollup.problemCount == 4_u32)
+    Swag.require(sampleRollup.additiveProblemCount == 2_u32)
+    Swag.require(sampleRollup.multiplicativeCount == 2_u32)
+    Swag.require(sampleRollup.grandTotal == 4277556_u64)
+    Swag.require(sampleRollup.largestProblemValue == 4243455_u64)
 
     const eveningSheet: [5] string =
         [
@@ -185,9 +199,9 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
 
     let eveningRollup = rollupWorksheet(eveningSheet)
 
-    Swag.require(eveningRollup.problemCount == 3'u32)
-    Swag.require(eveningRollup.additiveProblemCount == 1'u32)
-    Swag.require(eveningRollup.multiplicativeCount == 2'u32)
-    Swag.require(eveningRollup.grandTotal == 110640'u64)
-    Swag.require(eveningRollup.largestProblemValue == 77000'u64)
+    Swag.require(eveningRollup.problemCount == 3_u32)
+    Swag.require(eveningRollup.additiveProblemCount == 1_u32)
+    Swag.require(eveningRollup.multiplicativeCount == 2_u32)
+    Swag.require(eveningRollup.grandTotal == 110640_u64)
+    Swag.require(eveningRollup.largestProblemValue == 77000_u64)
 }

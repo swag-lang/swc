@@ -58,24 +58,29 @@ func day6A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var map: HashTable'(string, string)
+    var map: HashTable!{string, string}
     for l in lines
     {
-        let split = Tokenize.split(l[], ')'u8)
+        let split = Tokenize.split(l[], ')'_u8)
         map.add(split[1], split[0])
     }
 
     func count(m: *#decltype(map), name: string)->u32
     {
         let it = m.tryFind(name)
-        if not it do
+        if not it
+        {
             return 0
+        }
+
         return 1 + count(m, it.value)
     }
 
     var total = 0
-    for v in map do
+    for v in map
+    {
         total += count(&map, v)
+    }
 
     Swag.assert(total == 253104)
 }

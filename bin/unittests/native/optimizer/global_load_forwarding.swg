@@ -1,7 +1,7 @@
 #global private
 
 var g_Zero: u64
-var g_Initialized = 11'u64
+var g_Initialized = 11_u64
 
 #[Swag.NoInline]
 func repeatedGlobal()->u64 => g_Zero + g_Zero

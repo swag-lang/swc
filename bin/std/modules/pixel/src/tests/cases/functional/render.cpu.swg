@@ -70,50 +70,50 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     painter.begin()
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
-    painter.fillRect({2, 3, 8, 6}, Color.fromArgb(255'u8, 230'u8, 40'u8, 20'u8))
+    painter.fillRect({2, 3, 8, 6}, Color.fromArgb(255_u8, 230_u8, 40_u8, 20_u8))
     painter.end()
 
     let image = renderCpu(16, 16, &painter)
     assertImage(image, 16, 16, .BGRA8)
     assertPixel(image, 1, 3, Argb.Zero)
-    assertPixel(image, 2, 3, Color.fromArgb(255'u8, 230'u8, 40'u8, 20'u8))
-    assertPixel(image, 9, 8, Color.fromArgb(255'u8, 230'u8, 40'u8, 20'u8))
+    assertPixel(image, 2, 3, Color.fromArgb(255_u8, 230_u8, 40_u8, 20_u8))
+    assertPixel(image, 9, 8, Color.fromArgb(255_u8, 230_u8, 40_u8, 20_u8))
     assertPixel(image, 10, 8, Argb.Zero)
 }
 
 // Alpha is an exact byte-weighted average, including integral results at float rounding boundaries.
 #test
 {
-    const Sources = [Color.fromArgb(85'u8, 110'u8, 110'u8, 110'u8),
-                     Color.fromArgb(165'u8, 96'u8, 96'u8, 106'u8),
-                     Color.fromArgb(127'u8, 132'u8, 132'u8, 144'u8),
-                     Color.fromArgb(85'u8, 110'u8, 110'u8, 110'u8),
-                     Color.fromArgb(0'u8, 255'u8, 255'u8, 255'u8),
-                     Color.fromArgb(255'u8, 3'u8, 5'u8, 7'u8),
-                     Color.fromArgb(18'u8, 200'u8, 200'u8, 200'u8),
-                     Color.fromArgb(128'u8, 0'u8, 255'u8, 0'u8),
-                     Color.fromArgb(127'u8, 115'u8, 115'u8, 115'u8)]
-    const Destinations = [Color.fromArgb(255'u8, 53'u8, 53'u8, 53'u8),
-                          Color.fromArgb(255'u8, 32'u8, 32'u8, 38'u8),
-                          Color.fromArgb(255'u8, 132'u8, 132'u8, 144'u8),
-                          Color.fromArgb(70'u8, 53'u8, 53'u8, 53'u8),
-                          Color.fromArgb(68'u8, 17'u8, 18'u8, 19'u8),
-                          Color.fromArgb(68'u8, 17'u8, 18'u8, 19'u8),
-                          Color.fromArgb(70'u8, 20'u8, 20'u8, 20'u8),
-                          Color.fromArgb(255'u8, 255'u8, 0'u8, 255'u8),
-                          Color.fromArgb(255'u8, 115'u8, 115'u8, 115'u8)]
+    const Sources = [Color.fromArgb(85_u8, 110_u8, 110_u8, 110_u8),
+                     Color.fromArgb(165_u8, 96_u8, 96_u8, 106_u8),
+                     Color.fromArgb(127_u8, 132_u8, 132_u8, 144_u8),
+                     Color.fromArgb(85_u8, 110_u8, 110_u8, 110_u8),
+                     Color.fromArgb(0_u8, 255_u8, 255_u8, 255_u8),
+                     Color.fromArgb(255_u8, 3_u8, 5_u8, 7_u8),
+                     Color.fromArgb(18_u8, 200_u8, 200_u8, 200_u8),
+                     Color.fromArgb(128_u8, 0_u8, 255_u8, 0_u8),
+                     Color.fromArgb(127_u8, 115_u8, 115_u8, 115_u8)]
+    const Destinations = [Color.fromArgb(255_u8, 53_u8, 53_u8, 53_u8),
+                          Color.fromArgb(255_u8, 32_u8, 32_u8, 38_u8),
+                          Color.fromArgb(255_u8, 132_u8, 132_u8, 144_u8),
+                          Color.fromArgb(70_u8, 53_u8, 53_u8, 53_u8),
+                          Color.fromArgb(68_u8, 17_u8, 18_u8, 19_u8),
+                          Color.fromArgb(68_u8, 17_u8, 18_u8, 19_u8),
+                          Color.fromArgb(70_u8, 20_u8, 20_u8, 20_u8),
+                          Color.fromArgb(255_u8, 255_u8, 0_u8, 255_u8),
+                          Color.fromArgb(255_u8, 115_u8, 115_u8, 115_u8)]
 
     // Independent rational results: 110/3 + 2*53/3 = 72; 106*11/17 + 38*6/17 = 82.
     // The 18/255 case has a fractional result and keeps truncation, while equal colors are fixed.
-    const Expected = [Color.fromArgb(255'u8, 72'u8, 72'u8, 72'u8),
-                      Color.fromArgb(255'u8, 73'u8, 73'u8, 82'u8),
-                      Color.fromArgb(255'u8, 132'u8, 132'u8, 144'u8),
-                      Color.fromArgb(131'u8, 72'u8, 72'u8, 72'u8),
-                      Color.fromArgb(68'u8, 17'u8, 18'u8, 19'u8),
-                      Color.fromArgb(255'u8, 3'u8, 5'u8, 7'u8),
-                      Color.fromArgb(83'u8, 32'u8, 32'u8, 32'u8),
-                      Color.fromArgb(255'u8, 127'u8, 128'u8, 127'u8),
-                      Color.fromArgb(255'u8, 115'u8, 115'u8, 115'u8)]
+    const Expected = [Color.fromArgb(255_u8, 72_u8, 72_u8, 72_u8),
+                      Color.fromArgb(255_u8, 73_u8, 73_u8, 82_u8),
+                      Color.fromArgb(255_u8, 132_u8, 132_u8, 144_u8),
+                      Color.fromArgb(131_u8, 72_u8, 72_u8, 72_u8),
+                      Color.fromArgb(68_u8, 17_u8, 18_u8, 19_u8),
+                      Color.fromArgb(255_u8, 3_u8, 5_u8, 7_u8),
+                      Color.fromArgb(83_u8, 32_u8, 32_u8, 32_u8),
+                      Color.fromArgb(255_u8, 127_u8, 128_u8, 127_u8),
+                      Color.fromArgb(255_u8, 115_u8, 115_u8, 115_u8)]
 
     for mask in 3
     {
@@ -123,10 +123,15 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
             painter.begin()
             painter.setColorMaskFull()
             painter.clear(Destinations[index])
-            if mask == 0 do
+            if mask == 0
+            {
                 painter.setColorMaskColor()
-            elif mask == 2 do
+            }
+            else if mask == 2
+            {
                 painter.setColorMask(true, false, false, true)
+            }
+
             painter.setAntialiased(false)
             painter.fillRect(0, 0, 7, 2, source)
             painter.end()
@@ -136,15 +141,17 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
             {
                 expected.a = Destinations[index].a
             }
-            elif mask == 2
+            else if mask == 2
             {
                 expected.g = Destinations[index].g
                 expected.b = Destinations[index].b
             }
 
             let image = renderCpu(7, 2, &painter)
-            for x in 7 do
+            for x in 7
+            {
                 assertPixel(image, x, 0, expected)
+            }
         }
     }
 }
@@ -152,12 +159,12 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
 // Overlap-safe strokes use the same exact byte weights as ordinary Alpha rendering.
 #test
 {
-    const Sources = [Color.fromArgb(85'u8, 110'u8, 110'u8, 110'u8),
-                     Color.fromArgb(165'u8, 96'u8, 96'u8, 106'u8),
-                     Color.fromArgb(127'u8, 132'u8, 132'u8, 144'u8)]
-    const Destinations = [Color.fromArgb(255'u8, 53'u8, 53'u8, 53'u8),
-                          Color.fromArgb(255'u8, 32'u8, 32'u8, 38'u8),
-                          Color.fromArgb(255'u8, 132'u8, 132'u8, 144'u8)]
+    const Sources = [Color.fromArgb(85_u8, 110_u8, 110_u8, 110_u8),
+                     Color.fromArgb(165_u8, 96_u8, 96_u8, 106_u8),
+                     Color.fromArgb(127_u8, 132_u8, 132_u8, 144_u8)]
+    const Destinations = [Color.fromArgb(255_u8, 53_u8, 53_u8, 53_u8),
+                          Color.fromArgb(255_u8, 32_u8, 32_u8, 38_u8),
+                          Color.fromArgb(255_u8, 132_u8, 132_u8, 144_u8)]
     const Expected = [Color.fromRgb(72, 72, 72), Color.fromRgb(73, 73, 82), Color.fromRgb(132, 132, 144)]
     for source, index in Sources
     {
@@ -201,8 +208,8 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
 // Constant vertex colors produce a uniform blend across both triangles of a filled rectangle.
 #test
 {
-    const Dst = Color.fromArgb(255'u8, 64'u8, 128'u8, 192'u8)
-    const Src = Color.fromArgb(128'u8, 192'u8, 64'u8, 128'u8)
+    const Dst = Color.fromArgb(255_u8, 64_u8, 128_u8, 192_u8)
+    const Src = Color.fromArgb(128_u8, 192_u8, 64_u8, 128_u8)
 
     var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
@@ -227,8 +234,10 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     let expected = image.pixelColor(60, 0)
     for y in 12
     {
-        for x in 60 until 72 do
+        for x in 60 until 72
+        {
             assertPixel(image, x, y, expected)
+        }
     }
 }
 
@@ -238,8 +247,8 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     var painter: Painter
     painter.begin()
     painter.setColorMaskFull()
-    painter.clear(Color.fromArgb(255'u8, 0'u8, 0'u8, 0'u8))
-    painter.fillRect({2, 2, 8, 8}, Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8))
+    painter.clear(Color.fromArgb(255_u8, 0_u8, 0_u8, 0_u8))
+    painter.fillRect({2, 2, 8, 8}, Color.fromArgb(128_u8, 255_u8, 0_u8, 0_u8))
     painter.end()
 
     let image    = renderCpu(12, 12, &painter)
@@ -254,20 +263,20 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
 #test
 {
     const modes:    [11] BlendingMode = [.Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion]
-    const expected: [11] Color        = [Color.fromArgb(255'u8, 56'u8, 79'u8, 144'u8),
-                                         Color.fromArgb(255'u8, 136'u8, 143'u8, 207'u8),
-                                         Color.fromArgb(255'u8, 80'u8, 96'u8, 192'u8),
-                                         Color.fromArgb(255'u8, 64'u8, 95'u8, 159'u8),
-                                         Color.fromArgb(255'u8, 128'u8, 128'u8, 192'u8),
-                                         Color.fromArgb(255'u8, 159'u8, 149'u8, 223'u8),
-                                         Color.fromArgb(255'u8, 32'u8, 63'u8, 160'u8),
-                                         Color.fromArgb(255'u8, 112'u8, 96'u8, 192'u8),
-                                         Color.fromArgb(255'u8, 80'u8, 112'u8, 192'u8),
-                                         Color.fromArgb(255'u8, 96'u8, 95'u8, 127'u8),
-                                         Color.fromArgb(255'u8, 111'u8, 127'u8, 159'u8)]
+    const expected: [11] Color        = [Color.fromArgb(255_u8, 56_u8, 79_u8, 144_u8),
+                                         Color.fromArgb(255_u8, 136_u8, 143_u8, 207_u8),
+                                         Color.fromArgb(255_u8, 80_u8, 96_u8, 192_u8),
+                                         Color.fromArgb(255_u8, 64_u8, 95_u8, 159_u8),
+                                         Color.fromArgb(255_u8, 128_u8, 128_u8, 192_u8),
+                                         Color.fromArgb(255_u8, 159_u8, 149_u8, 223_u8),
+                                         Color.fromArgb(255_u8, 32_u8, 63_u8, 160_u8),
+                                         Color.fromArgb(255_u8, 112_u8, 96_u8, 192_u8),
+                                         Color.fromArgb(255_u8, 80_u8, 112_u8, 192_u8),
+                                         Color.fromArgb(255_u8, 96_u8, 95_u8, 127_u8),
+                                         Color.fromArgb(255_u8, 111_u8, 127_u8, 159_u8)]
 
-    const Dst = Color.fromArgb(255'u8, 64'u8, 128'u8, 192'u8)
-    const Src = Color.fromArgb(128'u8, 192'u8, 64'u8, 128'u8)
+    const Dst = Color.fromArgb(255_u8, 64_u8, 128_u8, 192_u8)
+    const Src = Color.fromArgb(128_u8, 192_u8, 64_u8, 128_u8)
 
     var painter: Painter
     painter.begin()
@@ -284,8 +293,10 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     painter.end()
 
     let image = renderCpu(22, 2, &painter)
-    for value, idx in expected do
+    for value, idx in expected
+    {
         assertPixel(image, cast(s32, idx) * 2, 0, value)
+    }
 }
 
 // The non-separable modes transfer hue, saturation, or luminosity across the complete color,
@@ -293,13 +304,13 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
 #test
 {
     const modes:    [4] BlendingMode = [.Hue, .Saturation, .Color, .Luminosity]
-    const expected: [4] Color        = [Color.fromArgb(255'u8, 148'u8, 74'u8, 119'u8),
-                                        Color.fromArgb(255'u8, 37'u8, 117'u8, 189'u8),
-                                        Color.fromArgb(255'u8, 135'u8, 80'u8, 123'u8),
-                                        Color.fromArgb(255'u8, 44'u8, 134'u8, 214'u8)]
+    const expected: [4] Color        = [Color.fromArgb(255_u8, 148_u8, 74_u8, 119_u8),
+                                        Color.fromArgb(255_u8, 37_u8, 117_u8, 189_u8),
+                                        Color.fromArgb(255_u8, 135_u8, 80_u8, 123_u8),
+                                        Color.fromArgb(255_u8, 44_u8, 134_u8, 214_u8)]
 
-    const Dst = Color.fromArgb(255'u8, 30'u8, 120'u8, 200'u8)
-    const Src = Color.fromArgb(160'u8, 220'u8, 80'u8, 100'u8)
+    const Dst = Color.fromArgb(255_u8, 30_u8, 120_u8, 200_u8)
+    const Src = Color.fromArgb(160_u8, 220_u8, 80_u8, 100_u8)
 
     var painter: Painter
     painter.begin()
@@ -316,8 +327,10 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     painter.end()
 
     let image = renderCpu(8, 2, &painter)
-    for value, idx in expected do
+    for value, idx in expected
+    {
         assertPixel(image, cast(s32, idx) * 2, 0, value)
+    }
 }
 
 // Each transient texture gets a cleanup command after the frame consumes it.
@@ -375,10 +388,10 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     expect render.draw(&painter)
 
     let image = renderer.surfaceImage()
-    assertPixel(image, 1, 1, Color.fromArgb(255'u8, 0'u8, 0'u8, 255'u8))
-    assertPixel(image, 6, 1, Color.fromArgb(255'u8, 255'u8, 255'u8, 255'u8))
-    assertPixel(image, 1, 6, Color.fromArgb(255'u8, 255'u8, 0'u8, 0'u8))
-    assertPixel(image, 6, 6, Color.fromArgb(255'u8, 0'u8, 255'u8, 0'u8))
+    assertPixel(image, 1, 1, Color.fromArgb(255_u8, 0_u8, 0_u8, 255_u8))
+    assertPixel(image, 6, 1, Color.fromArgb(255_u8, 255_u8, 255_u8, 255_u8))
+    assertPixel(image, 1, 6, Color.fromArgb(255_u8, 255_u8, 0_u8, 0_u8))
+    assertPixel(image, 6, 6, Color.fromArgb(255_u8, 0_u8, 255_u8, 0_u8))
 }
 
 // Linear sampling quantizes each interpolation and clamps to the edge texels in each packed color format.
@@ -450,10 +463,12 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     expect render.draw(&painter)
 
     let image = renderer.surfaceImage()
-    for y in 3's32
+    for y in 3_s32
     {
-        for x in 4's32 do
+        for x in 4_s32
+        {
             Swag.require(image.pixelColor(x + 2, y + 2) == source.pixelColor(x + 1, y))
+        }
     }
 
     assertPixel(image, 1, 2, Argb.Zero)
@@ -490,8 +505,11 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
         painter.begin()
         painter.setColorMaskFull()
         painter.clear(Color.fromRgb(73, 21, 131))
-        if i do
+        if i
+        {
             painter.setColorMaskColor()
+        }
+
         painter.setClippingRect({3, 2, 6, 5})
         painter.drawTexture({2, 2, 7, 5}, texture)
         painter.end()
@@ -499,8 +517,10 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
         images[i] = cpu.surfaceImage()
     }
 
-    for byte, index in images[0].pixels do
+    for byte, index in images[0].pixels
+    {
         Swag.require(byte == images[1].pixels[index])
+    }
 }
 
 // Scissor and stencil clipping both reject pixels outside their active region.
@@ -524,6 +544,121 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     assertPixel(image, 3, 5, Argb.Zero)
     assertPixel(image, 5, 5, Argb.DodgerBlue)
     assertPixel(image, 9, 5, Argb.Zero)
+}
+
+// A borrowed texture draws and reads the caller's bytes without allowing updates.
+#test
+{
+    let source = Image.create(1, 1, .RGBA8, [34_u8, 79, 212, 255])
+    var cpu: RenderCpu
+    cpu.begin(4, 4)
+    let render: IRenderer = &cpu
+    defer render.end()
+    var texture = cpu.addBorrowedImage(&source)
+    const Other = [99_u8, 85, 76, 255]
+    Swag.require(texture.isValid() and not render.updateTexture(texture, Other.buffer))
+    let pixels = render.readTexturePixels(texture, .RGBA8)
+    Swag.require(Slice.equals(pixels.toSlice(), source.pixels.toSlice()))
+
+    var painter = Painter.create(render)
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Black))
+    painter.setColorMaskColor()
+    painter.drawTexture({0, 0, 4, 4}, texture)
+    painter.end()
+    expect render.draw(&painter)
+    assertPixel(cpu.surfaceImage(), 2, 2, Color.fromRgb(34, 79, 212))
+
+    render.removeTexture(&texture)
+    Swag.require(source.pixelColor(0, 0) == Color.fromRgb(34, 79, 212))
+}
+
+// The grayscale downscaler keeps the same quantized RGB interpolation.
+#test
+{
+    var gray = Image.create(201, 149, .Gray8)
+    for y in gray.height
+    {
+        for x in gray.width
+        {
+            gray.pixels[y * gray.width + x] = cast(u8, (x * 13 + y * 37 + x * y) & 255)
+        }
+    }
+
+    let rgb = gray.convertedTo(.RGB8)
+    var cpu: RenderCpu
+    cpu.begin(121, 83)
+    let render: IRenderer = &cpu
+    defer render.end()
+
+    var results: [2] Image
+    for index in results.count
+    {
+        let source  = index == 0 ? &gray : &rgb
+        var texture = cpu.addBorrowedImage(source)
+        var painter = Painter.createScanline(&cpu)
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromRgb(81, 90, 45))
+        painter.setColorMaskColor()
+        painter.setInterpolationMode(.Linear)
+        painter.drawTexture({0.375, 0.25, 119.75, 81.625}, texture)
+        painter.end()
+        expect render.draw(&painter)
+        results[index] = cpu.surfaceImage()
+        render.removeTexture(&texture)
+    }
+
+    Swag.require(Slice.equals(results[0].pixels.toSlice(), results[1].pixels.toSlice()))
+}
+
+// Each SIMD bilinear lane selects and quantizes its own four texels.
+#test
+{
+    const Samples = [11_u8, 25, 40, 21, 90, 45, 67, 76, 220, 78, 109, 205,
+                     7, 14, 30, 55, 72, 46, 63, 125, 195, 101, 54, 240]
+    let image    = Image.create(3, 2, .BGRA8, Samples)
+    let x        = cast(Math.Simd.F32x4, [-0.5_f32, 0.375, 1.5, 2.5])
+    let y        = cast(Math.Simd.F32x4, [0.25_f32, 0.875, 0.0, 1.5])
+    let actual   = cast #bit(Math.Simd.U32x4, RenderCpu.stenciledTextureGroup(&image, x, y))
+    let expected = cast(Math.Simd.U32x4, [0x2E201008, 0x2E311F26, 0xB63A4985, 0xCD6D4EDC])
+    Swag.require(Math.Simd.allTrue(actual == expected))
+}
+
+// A linearly sampled texture multiplies its source alpha by stencil coverage.
+#test
+{
+    const Texels = [240_u8, 120, 80, 128, 240, 120, 80, 128,
+                    240, 120, 80, 128, 240, 120, 80, 128]
+    let source = Image.create(2, 2, .RGBA8, Texels)
+    var cpu: RenderCpu
+    cpu.begin(16, 12)
+    let render: IRenderer = &cpu
+    var texture = render.addImage(source)
+    defer render.removeTexture(&texture)
+    defer render.end()
+
+    var painter = Painter.createScanline(&cpu)
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Black))
+    painter.setColorMaskColor()
+    painter.setAntialiased(false)
+    painter.startClippingRegion()
+    painter.fillRect({4, 0, 8, 12}, Color.fromArgb(128_u8, 255, 255, 255))
+    painter.endClippingRegion()
+    painter.setInterpolationMode(.Linear)
+    painter.drawTexture({0, 0, 16, 12}, texture)
+    painter.resetClippingRegion()
+    painter.end()
+    expect render.draw(&painter)
+
+    let image = cpu.surfaceImage()
+    assertPixel(image, 1, 3, Argb.Black)
+    assertPixel(image, 6, 3, Color.fromRgb(60, 30, 20))
+    assertPixel(image, 6, 9, Color.fromRgb(60, 30, 20))
+    assertPixel(image, 14, 9, Argb.Black)
 }
 
 // A replacement region clears the old footprint even when the new scissor excludes it.
@@ -631,7 +766,7 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     painter.clear(Argb.Zero)
     painter.setColorMaskColor()
     painter.setBlendingMode(.Alpha)
-    painter.fillRect(0, 0, 8, 8, Color.fromArgb(128'u8, Argb.White))
+    painter.fillRect(0, 0, 8, 8, Color.fromArgb(128_u8, Argb.White))
     painter.unbindRenderTarget()
     painter.end()
     expect render.draw(&painter)
@@ -688,7 +823,7 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
 
     let image = renderCpu(8, 8, &painter)
     assertPixel(image, 1, 3, Argb.Blue)
-    assertPixel(image, 3, 3, Color.fromArgb(255'u8, 255'u8, 0'u8, 255'u8))
+    assertPixel(image, 3, 3, Color.fromArgb(255_u8, 255_u8, 0_u8, 255_u8))
 }
 
 // Packed clear and solid spans preserve masked channels through their non-vector tail.
@@ -697,9 +832,9 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     var painter: Painter
     painter.begin()
     painter.setColorMaskFull()
-    painter.clear(Color.fromArgb(37'u8, 10'u8, 20'u8, 30'u8))
+    painter.clear(Color.fromArgb(37_u8, 10_u8, 20_u8, 30_u8))
     painter.setColorMaskColor()
-    painter.clear(Color.fromArgb(200'u8, 90'u8, 80'u8, 70'u8))
+    painter.clear(Color.fromArgb(200_u8, 90_u8, 80_u8, 70_u8))
     painter.setColorMaskAlpha()
     painter.fillRect({1, 0, 7, 3}, Color.fromArgb(Argb.White))
     painter.end()
@@ -707,10 +842,13 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     let image = renderCpu(9, 3, &painter)
     for y in 3
     {
-        assertPixel(image, 0, y, Color.fromArgb(37'u8, 90'u8, 80'u8, 70'u8))
-        for var x = 1; x < 8; x += 1 do
-            assertPixel(image, x, y, Color.fromArgb(255'u8, 90'u8, 80'u8, 70'u8))
-        assertPixel(image, 8, y, Color.fromArgb(37'u8, 90'u8, 80'u8, 70'u8))
+        assertPixel(image, 0, y, Color.fromArgb(37_u8, 90_u8, 80_u8, 70_u8))
+        for var x = 1; x < 8; x += 1
+        {
+            assertPixel(image, x, y, Color.fromArgb(255_u8, 90_u8, 80_u8, 70_u8))
+        }
+
+        assertPixel(image, 8, y, Color.fromArgb(37_u8, 90_u8, 80_u8, 70_u8))
     }
 }
 
@@ -732,6 +870,64 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     let right = image.pixelColor(9, 2)
     Swag.require(left.r > left.b)
     Swag.require(right.b > right.r)
+}
+
+// Parallel color-only gradient spans match scalar blending over an opaque target.
+#[Swag.TestTag("parallel")]
+#test
+{
+    let workers = Swag.workerCount()
+    Swag.setWorkerCount(4)
+    defer Swag.setWorkerCount(workers)
+
+    let first = Color.fromArgb(0x4267_B431_u32)
+    let last  = Color.fromArgb(0xC80E_2DDE_u32)
+    var paints: [3] Brush = [
+        Brush.createLinearGradient(6.25, 4.75, 24.5, 15.25, first, last, .Repeat),
+        Brush.createRadialGradient(33.75, 10.25, 9.125, first, last, .Mirror),
+        Brush.createSweepGradient(45.625, 17.375, first, last, .Clamp)]
+    for &paint in paints
+    {
+        paint.setOpacity(173)
+        paint.addGradientStop(0.375, Color.fromArgb(0xA018_A884_u32))
+    }
+
+    var images: [2] Image
+    for scalar in 2
+    {
+        var painter: Painter
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(0xFF20_3040_u32))
+        if not scalar
+        {
+            painter.setColorMaskColor()
+        }
+
+        painter.setClippingRect({9, 15, 195, 96})
+        painter.scaleTransform(3)
+        painter.translateTransform(0.25, 0.375)
+        for &paint, index in paints
+        {
+            let y = 5.125 + cast(f32, index) * 6.5
+            painter.fillRect({4.125, y, 63.375, 9.25}, paint[])
+
+            var path: LinePath
+            path.start(7.125, y + 2.25)
+            path.bezierTo(61.125, y + 11.125, 21.25, y - 4, 51.625, y + 24.75)
+            path.lineTo(8.375, y + 12.625)
+            path.close()
+            painter.fillPath(&path, paint[])
+        }
+
+        painter.end()
+        images[scalar] = renderCpu(219, 129, &painter)
+    }
+
+    Swag.require(images[0].isValid() and images[1].isValid())
+    Swag.require(images[0].pixelColor(60, 30).argb != 0xFF20_3040)
+    Swag.require(images[0].pixelColor(0, 30).argb == 0xFF20_3040)
+    Swag.require(Memory.compare(images[0].pixels.storage(), images[1].pixels.storage(), images[0].pixels.count) == 0)
 }
 
 // A zero scale collapses geometry instead of being treated as an identity transform.
@@ -849,8 +1045,10 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     // Compile-time execution keeps every partition on the calling thread, so the band split
     // is only reachable in a process that actually runs workers.
     Swag.setWorkerCount(4)
-    if Swag.workerCount() < 2 do
+    if Swag.workerCount() < 2
+    {
         return
+    }
 
     const Height = 512
     const Narrow = 8     // Columns the two renders have in common, and the serial width.
@@ -863,18 +1061,21 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     var painter: Painter
     painter.begin()
     painter.setColorMaskFull()
-    painter.clear(Color.fromArgb(255'u8, 0'u8, 0'u8, 0'u8))
-    painter.fillRect(0, 0, 1024.0, 512.0, Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8))
-    painter.fillRoundRect(0, 0, 960.0, 480.0, 24, 24, Color.fromArgb(128'u8, 0'u8, 255'u8, 0'u8))
-    painter.fillRoundRect(0, 16, 900.0, 460.0, 40, 40, Color.fromArgb(96'u8, 0'u8, 0'u8, 255'u8))
-    for i in 160 do
-        painter.fillRect(1, cast(f32, (i * 79) % Height), 12, 5, Color.fromArgb(80'u8, 153'u8, 222'u8, 118'u8))
+    painter.clear(Color.fromArgb(255_u8, 0_u8, 0_u8, 0_u8))
+    painter.fillRect(0, 0, 1024.0, 512.0, Color.fromArgb(128_u8, 255_u8, 0_u8, 0_u8))
+    painter.fillRoundRect(0, 0, 960.0, 480.0, 24, 24, Color.fromArgb(128_u8, 0_u8, 255_u8, 0_u8))
+    painter.fillRoundRect(0, 16, 900.0, 460.0, 40, 40, Color.fromArgb(96_u8, 0_u8, 0_u8, 255_u8))
+    for i in 160
+    {
+        painter.fillRect(1, cast(f32, (i * 79) % Height), 12, 5, Color.fromArgb(80_u8, 153_u8, 222_u8, 118_u8))
+    }
+
     var path: LinePath
     path.start(3.25, 4)
     path.lineTo(7, 490)
     path.lineTo(920, 18)
     path.lineTo(4.1, 300)
-    painter.drawPath(&path, Pen.createSolid(Color.fromArgb(176'u8, 239'u8, 152'u8, 52'u8), 9))
+    painter.drawPath(&path, Pen.createSolid(Color.fromArgb(176_u8, 239_u8, 152_u8, 52_u8), 9))
     painter.end()
 
     let serial = renderCpu(Narrow, Height, &painter)
@@ -884,8 +1085,10 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
 
     for y in Height
     {
-        for x in Narrow do
+        for x in Narrow
+        {
             Swag.require(serial.pixelColor(x, y) == banded.pixelColor(x, y))
+        }
     }
 }
 
@@ -943,8 +1146,10 @@ func circlePathList(anticlockwise: bool)->LinePathList
             let clockwise     = images[0].pixelColor(x, y)
             let anticlockwise = images[1].pixelColor(x, y)
             Swag.require(Math.abs(cast(s32, clockwise.r) - cast(s32, anticlockwise.r)) <= 1)
-            if anticlockwise.r > 20 and anticlockwise.r < 235 do
+            if anticlockwise.r > 20 and anticlockwise.r < 235
+            {
                 soft += 1
+            }
         }
     }
 
@@ -953,15 +1158,15 @@ func circlePathList(anticlockwise: bool)->LinePathList
 
 // Captured device-space f32 coordinates freeze the one-ulp asymmetry independently of
 // transforms, tessellation, SVG parsing, and the compiler's floating-point policy.
-const SharedEdgeA = Math.Vector2{cast #bit (f32, 1096403587'u32), cast #bit (f32, 1096403585'u32)}
-const SharedEdgeB = Math.Vector2{cast #bit (f32, 1099362556'u32), cast #bit (f32, 1093586878'u32)}
-const SharedEdgeC = Math.Vector2{cast #bit (f32, 1106488610'u32), cast #bit (f32, 1106488610'u32)}
-const SharedEdgeD = Math.Vector2{cast #bit (f32, 1093586879'u32), cast #bit (f32, 1099362556'u32)}
+const SharedEdgeA = Math.Vector2{cast #bit (f32, 1096403587_u32), cast #bit (f32, 1096403585_u32)}
+const SharedEdgeB = Math.Vector2{cast #bit (f32, 1099362556_u32), cast #bit (f32, 1093586878_u32)}
+const SharedEdgeC = Math.Vector2{cast #bit (f32, 1106488610_u32), cast #bit (f32, 1106488610_u32)}
+const SharedEdgeD = Math.Vector2{cast #bit (f32, 1093586879_u32), cast #bit (f32, 1099362556_u32)}
 
 private func checkSharedEdge(mode: s32)
 {
-    const Source   = Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8)
-    const Expected = Color.fromArgb(255'u8, 128'u8, 0'u8, 0'u8)
+    const Source   = Color.fromArgb(128_u8, 255_u8, 0_u8, 0_u8)
+    const Expected = Color.fromArgb(255_u8, 128_u8, 0_u8, 0_u8)
     var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
     renderer.init()
@@ -989,12 +1194,17 @@ private func checkSharedEdge(mode: s32)
     painter.setColorMaskFull()
     painter.clear(Color.fromRgb(0, 0, 0))
     painter.setBlendingMode(.Alpha)
-    if mode != 2 and mode != 4 do
+    if mode != 2 and mode != 4
+    {
         painter.setColorMaskColor()
+    }
+
     painter.setAntialiased(false)
     painter.setInterpolationMode(.Pixel)
-    if mode == 1 do
+    if mode == 1
+    {
         painter.setClippingRect({0, 0, 22, 40})
+    }
 
     // Two public triangle fills keep the shared diagonal A-C fixed. Its orientation is
     // reversed in the second triangle; no mutable access to recorded vertices is used.
@@ -1034,7 +1244,7 @@ private func checkSharedEdge(mode: s32)
 
 // A captured MSDF footprint keeps its texel-space alpha at 111 after atlas-coordinate rounding is removed.
 // Static descriptor storage is retained by the shaped run; the test only reads it.
-private var g_MsdfRoundingGlyph: GlyphDesc = {uv: Math.Rectangle{0.1640625, 0, 0.1484375, 0.15625}, atlasIndex: 0, shiftX: cast #bit (f32, 0x41F73800'u32), shiftY: cast #bit (f32, 0xC21844A5'u32), width: cast #bit (f32, 0x424D3334'u32), height: 54}
+private var g_MsdfRoundingGlyph: GlyphDesc = {uv: Math.Rectangle{0.1640625, 0, 0.1484375, 0.15625}, atlasIndex: 0, shiftX: cast #bit (f32, 0x41F73800_u32), shiftY: cast #bit (f32, 0xC21844A5_u32), width: cast #bit (f32, 0x424D3334_u32), height: 54}
 
 #test
 {
@@ -1058,8 +1268,10 @@ private var g_MsdfRoundingGlyph: GlyphDesc = {uv: Math.Rectangle{0.1640625, 0, 0
         {
             let destination = cast(u64, (255 - (27 + y))) * atlas.width + cast(u64, (52 + x)) * 4
             let source      = cast(u64, (y * 3 + x)) * 4
-            for channel in 4 do
+            for channel in 4
+            {
                 atlas.data[destination + channel] = Texels[source + channel]
+            }
         }
     }
 

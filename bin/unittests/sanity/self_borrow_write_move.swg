@@ -92,7 +92,10 @@ func readAfterConditionalRefresh(refresh: bool)->s32
     var pointer = &source.value
     var target  = #move source
     discard target
-    if refresh do pointer = &source.value
+    if refresh
+    {
+        pointer = &source.value
+    }
     return pointer[]     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
@@ -147,7 +150,10 @@ func conditionallyRefreshPointer(refresh: bool)->s32
     var pointer = &source.value
     var target  = #move source
     discard target
-    if refresh do pointer = &source.value
+    if refresh
+    {
+        pointer = &source.value
+    }
     pointer[] = 27
     return source.value
 }

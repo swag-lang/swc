@@ -7,7 +7,7 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
 
 // Writes small, deterministic SMF matrix fixtures from raw event bytes. They use only note-on,
 // note-off and End-of-Track, so the corpus has no third-party source or licensing dependency.
-private func appendMidiU32(bytes: *Array'u8, value: u32)
+private func appendMidiU32(bytes: *Array!{u8}, value: u32)
 {
     bytes.add(cast(u8, value >> 24))
     bytes.add(cast(u8, (value >> 16) & 0xFF))
@@ -15,22 +15,24 @@ private func appendMidiU32(bytes: *Array'u8, value: u32)
     bytes.add(cast(u8, value & 0xFF))
 }
 
-private func appendMidiTrack(bytes: *Array'u8, events: const [..] u8)
+private func appendMidiTrack(bytes: *Array!{u8}, events: const [..] u8)
 {
     bytes.add(cast(const [..] u8, "MTrk"))
     appendMidiU32(bytes, cast(u32, events.count))
-    for event in events do
+    for event in events
+    {
         bytes.add(event)
+    }
 }
 
 private func writeMidiMatrixFixture(format, division: u16)->String
 {
     // One C4 note lasts exactly 1,000 ticks in each sequence.
     const Events: [13] u8 = [0, 0x90, 60, 100, 0x87, 0x68, 0x80, 60, 0, 0, 0xFF, 0x2F, 0]
-    let tracks = format == 0 ? 1'u16 : 2'u16
-    var bytes: Array'u8
+    let tracks = format == 0 ? 1_u16 : 2_u16
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "MThd"))
-    bytes.add([0'u8, 0, 0, 6])
+    bytes.add([0_u8, 0, 0, 6])
     bytes.add(cast(u8, format >> 8))
     bytes.add(cast(u8, format & 0xFF))
     bytes.add(cast(u8, tracks >> 8))
@@ -38,8 +40,10 @@ private func writeMidiMatrixFixture(format, division: u16)->String
     bytes.add(cast(u8, division >> 8))
     bytes.add(cast(u8, division & 0xFF))
     appendMidiTrack(&bytes, Events)
-    if format != 0 do
+    if format != 0
+    {
         appendMidiTrack(&bytes, Events)
+    }
 
     let fileName = Gui.Testing.tempFilePath("scope-midi-matrix-", ".mid")
     expect File.writeAllBytes(fileName, bytes.toSlice())
@@ -85,7 +89,7 @@ private func requireMidiFormatFailure(fileName: string)
 // Invalid timing divisions and a format-0 multi-track header are rejected as malformed SMF.
 #test
 {
-    for division in [0'u16, 0xE628, 0xE700, 0xE200]
+    for division in [0_u16, 0xE628, 0xE700, 0xE200]
     {
         let fileName = writeMidiMatrixFixture(1, division)
         defer discard catch File.delete(fileName)
@@ -133,13 +137,13 @@ private func requireMidiFormatFailure(fileName: string)
 // The empty-score fallback must not replace the highest pitch of an actual score.
 #test
 {
-    for key in [0'u8, 36, 100, 127]
+    for key in [0_u8, 36, 100, 127]
     {
-        var bytes: Array'u8
+        var bytes: Array!{u8}
         bytes.add(cast(const [..] u8, "MThd"))
-        bytes.add([0'u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
+        bytes.add([0_u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
         bytes.add(cast(const [..] u8, "MTrk"))
-        bytes.add([0'u8, 0, 0, 13, 0, 0x90, key, 100, 0x83, 0x60, 0x80, key, 0, 0, 0xFF, 0x2F, 0])
+        bytes.add([0_u8, 0, 0, 13, 0, 0x90, key, 100, 0x83, 0x60, 0x80, key, 0, 0, 0xFF, 0x2F, 0])
         let fileName = Gui.Testing.tempFilePath("scope-midi-pitch-", ".mid")
         defer discard catch File.delete(fileName)
         expect File.writeAllBytes(fileName, bytes.toSlice())
@@ -224,7 +228,7 @@ private func requireMidiFormatFailure(fileName: string)
     Swag.require(fitRows == 1 and viewer.roll.fit)
 
     // At the roll's limits, the step that cannot be taken reads as unavailable.
-    for value in [1000.0'f32, 0.0'f32]
+    for value in [1000.0_f32, 0.0_f32]
     {
         viewer.roll.applyZoom(value)
         var limit: Lens.Results
@@ -232,10 +236,14 @@ private func requireMidiFormatFailure(fileName: string)
         viewer.describeLens(&limitEntries)
         for &entry in limit.sections[0]!.entries
         {
-            if entry.title == appStrings().cmd_ZoomIn do
+            if entry.title == appStrings().cmd_ZoomIn
+            {
                 Swag.require(entry.disabled == (value > 1))
-            elif entry.title == appStrings().cmd_ZoomOut do
+            }
+            else if entry.title == appStrings().cmd_ZoomOut
+            {
                 Swag.require(entry.disabled == (value < 1))
+            }
         }
     }
 
@@ -274,18 +282,21 @@ private func requireMidiFormatFailure(fileName: string)
 // started, beyond many shorter notes that it no longer reaches.
 #test
 {
-    const ShortNotes = 64'u32
-    var bytes: Array'u8
+    const ShortNotes = 64_u32
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "MThd"))
-    bytes.add([0'u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
+    bytes.add([0_u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
     bytes.add(cast(const [..] u8, "MTrk"))
     let trackSize = 4 + ShortNotes * 9 + 4 + 4
-    bytes.add([0'u8, 0, cast(u8, trackSize >> 8), cast(u8, trackSize & 0xFF)])
-    bytes.add([0'u8, 0x90, 60, 100])
-    for ShortNotes do
-        bytes.add([0'u8, 0x90, 64, 100, 0x83, 0x60, 0x80, 64, 0])
-    bytes.add([0'u8, 0x80, 60, 0])
-    bytes.add([0'u8, 0xFF, 0x2F, 0])
+    bytes.add([0_u8, 0, cast(u8, trackSize >> 8), cast(u8, trackSize & 0xFF)])
+    bytes.add([0_u8, 0x90, 60, 100])
+    for ShortNotes
+    {
+        bytes.add([0_u8, 0x90, 64, 100, 0x83, 0x60, 0x80, 64, 0])
+    }
+
+    bytes.add([0_u8, 0x80, 60, 0])
+    bytes.add([0_u8, 0xFF, 0x2F, 0])
     let fileName = Gui.Testing.tempFilePath("scope-midi-held-", ".mid")
     defer discard catch File.delete(fileName)
     expect File.writeAllBytes(fileName, bytes.toSlice())
@@ -346,12 +357,12 @@ private func requireMidiFormatFailure(fileName: string)
 // tempo moves through, and how many times each of them changes.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "MThd"))
-    bytes.add([0'u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
+    bytes.add([0_u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
     bytes.add(cast(const [..] u8, "MTrk"))
-    bytes.add([0'u8, 0, 0, 82])
-    bytes.add([0x00'u8, 0xC0, 0x18, 0x00, 0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20, 0x00, 0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08,
+    bytes.add([0_u8, 0, 0, 82])
+    bytes.add([0x00_u8, 0xC0, 0x18, 0x00, 0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20, 0x00, 0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08,
                0x00, 0xFF, 0x59, 0x02, 0x00, 0x00, 0x00, 0x90, 0x3C, 0x64, 0x83, 0x60, 0xFF, 0x51, 0x03,
                0x06, 0x1A, 0x80, 0x00, 0xFF, 0x58, 0x04, 0x03, 0x02, 0x18, 0x08, 0x83, 0x60, 0xFF, 0x51,
                0x03, 0x07, 0xA1, 0x20, 0x00, 0xFF, 0x59, 0x02, 0x01, 0x00, 0x00, 0x80, 0x3C, 0x00,
@@ -383,12 +394,18 @@ private func requireMidiFormatFailure(fileName: string)
     Swag.require(view.roll.pitchIsHighlighted(1440, 70) and not view.roll.pitchIsHighlighted(1440, 71))
 
     // Channel 10 remains a percussion map and never receives key-signature colouring.
-    for &note in view.roll.document.notes do
+    for &note in view.roll.document.notes
+    {
         note.channel = 9
+    }
+
     view.roll.collectLanes()
     Swag.require(view.roll.scaleHighlightMaskAt(1440) == 0)
-    for &note in view.roll.document.notes do
+    for &note in view.roll.document.notes
+    {
         note.channel = 0
+    }
+
     view.roll.collectLanes()
 
     let sheet = InfoSheet.create(&host.root)
@@ -411,14 +428,16 @@ private func requireMidiFormatFailure(fileName: string)
     Swag.require(image.width == 128 and image.height == 64)
 
     // Some pixels carry the ink of the notes, the rest the ground.
-    var ink = 0'u32
+    var ink = 0_u32
     for y in image.height
     {
         for x in image.width
         {
             let color = image.pixelColor(x, y)
-            if color.r < 100 do
+            if color.r < 100
+            {
                 ink += 1
+            }
         }
     }
 

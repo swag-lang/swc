@@ -12,13 +12,13 @@ struct(T, N: s32) Buffer
 
 struct(T) Wrapper
 {
-    item: Box'T
+    item: Box!{T}
 }
 
 struct(T, N: s32) DoubleBuffer
 {
-    first:  Buffer'(T, N)
-    second: Buffer'(T, N)
+    first:  Buffer!{T, N}
+    second: Buffer!{T, N}
 }
 
 struct(T, N: s32 = 2) DefaultBuffer
@@ -26,32 +26,32 @@ struct(T, N: s32 = 2) DefaultBuffer
     values: [N] T
 }
 
-func(T, N: s32) bufferCount(buffer: Buffer'(T, N))->s32 => N
+func(T, N: s32) bufferCount(buffer: Buffer!{T, N})->s32 => N
 
-func sumFour(buffer: Buffer'(s32, 4))->s32
+func sumFour(buffer: Buffer!{s32, 4})->s32
 {
     return buffer.values[0] + buffer.values[1] + buffer.values[2] + buffer.values[3]
 }
 
 #test
 {
-    let stringBox: Box'string           = {value: "swag"}
-    let wrapped:   Wrapper'string       = {item: stringBox}
-    let buffer:    Buffer'(s32, 4)      = {values: [1, 2, 3, 4]}
-    let first:     Buffer'(u8, 3)       = {values: [1'u8, 2, 3]}
-    let second:    Buffer'(u8, 3)       = {values: [4'u8, 5, 6]}
-    let doubled:   DoubleBuffer'(u8, 3) = {first: first, second: second}
-    let partial:   DefaultBuffer'u16    = {values: [10'u16, 20]}
+    let stringBox: Box!{string}         = {value: "swag"}
+    let wrapped:   Wrapper!{string}     = {item: stringBox}
+    let buffer:    Buffer!{s32, 4}      = {values: [1, 2, 3, 4]}
+    let first:     Buffer!{u8, 3}       = {values: [1_u8, 2, 3]}
+    let second:    Buffer!{u8, 3}       = {values: [4_u8, 5, 6]}
+    let doubled:   DoubleBuffer!{u8, 3} = {first: first, second: second}
+    let partial:   DefaultBuffer!{u16}  = {values: [10_u16, 20]}
 
     #assert(#typeof(wrapped.item.value) == string)
     #assert(#typeof(partial.values) == #type [2] u16)
 
-    Swag.require(bufferCount'(s32, 4)(buffer) == 4)
+    Swag.require(bufferCount!{s32, 4}(buffer) == 4)
     Swag.require(sumFour(buffer) == 10)
     Swag.require(wrapped.item.value == "swag")
-    Swag.require(doubled.second.values[2] == 6'u8)
-    Swag.require(partial.values[0] == 10'u16)
-    Swag.require(partial.values[1] == 20'u16)
+    Swag.require(doubled.second.values[2] == 6_u8)
+    Swag.require(partial.values[0] == 10_u16)
+    Swag.require(partial.values[1] == 20_u16)
 }
 
 #test
@@ -63,8 +63,8 @@ func sumFour(buffer: Buffer'(s32, 4))->s32
             value: T
         }
 
-        let intBox:  LocalBox's32  = {value: 42}
-        let boolBox: LocalBox'bool = {value: true}
+        let intBox:  LocalBox!{s32}  = {value: 42}
+        let boolBox: LocalBox!{bool} = {value: true}
 
         #assert(#typeof(intBox.value) == s32)
         #assert(#typeof(boolBox.value) == bool)
@@ -78,9 +78,9 @@ func sumFour(buffer: Buffer'(s32, 4))->s32
             values: [N] T
         }
 
-        let buffer: LocalBuffer'(u16, 3) = {values: [1'u16, 2, 3]}
+        let buffer: LocalBuffer!{u16, 3} = {values: [1_u16, 2, 3]}
         #assert(#typeof(buffer.values) == #type [3] u16)
-        Swag.require(buffer.values[0] == 1'u16)
-        Swag.require(buffer.values[2] == 3'u16)
+        Swag.require(buffer.values[0] == 1_u16)
+        Swag.require(buffer.values[2] == 3_u16)
     }
 }

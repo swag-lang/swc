@@ -70,7 +70,6 @@ namespace
 
         schema.add("break-before-ternary-operators", &options.breakBeforeTernaryOperators, "Break long `cond ? a : b` expressions before `?` and `:`");
         schema.add("break-after-return-type", &options.breakAfterReturnType, "Break before `->` when a function signature does not fit");
-        schema.add("break-before-do", &options.breakBeforeDo, "Move trailing `do` to a new line when its statement wraps");
         schema.add("break-before-else", &options.breakBeforeElse, "Place `else` on its own line in Stroustrup style");
         schema.add("break-before-where", &options.breakBeforeWhere, "Place `where` clauses on their own line");
 
@@ -154,7 +153,7 @@ namespace
         schema.addEnum("allow-short-structs-on-single-line", &options.allowShortStructsOnSingleLine, shortChoices, "Choose when `struct` bodies stay on one line");
         schema.addEnum("allow-short-closures-on-single-line", &options.allowShortClosuresOnSingleLine, shortChoices, "Choose when closure bodies embedded in expressions stay on one line");
 
-        schema.add("allow-short-if-statements-on-single-line", &options.allowShortIfStatementsOnSingleLine, "Keep short `if x do ...` and `if x { ... }` statements on one line");
+        schema.add("allow-short-if-statements-on-single-line", &options.allowShortIfStatementsOnSingleLine, "Keep short `if x { ... }` statements on one line");
         schema.add("allow-short-loops-on-single-line", &options.allowShortLoopsOnSingleLine, "Keep short `while` and `for` bodies on one line");
 
         schema.addEnum("case-body-style", &options.caseBodyStyle, {{"preserve", FormatCaseBodyStyle::Preserve}, {"next-line", FormatCaseBodyStyle::NextLine}, {"same-line", FormatCaseBodyStyle::SameLine}, {"uniform", FormatCaseBodyStyle::Uniform}}, "Choose how `case` bodies are laid out");
@@ -193,8 +192,7 @@ namespace
         schema.addEnum("align-fat-arrows", &options.alignFatArrows, alignChoices, "Align `=>` of adjacent short function bodies");
         schema.addEnum("align-case-bodies", &options.alignCaseBodies, alignChoices, "Align the bodies of consecutive one-line `case` arms");
 
-        schema.add("uniform-branch-bodies", &options.uniformBranchBodies, "Give every branch of an `if` / `elif` / `else` chain the same `do` or `{ }` body");
-        schema.addEnum("uniform-guard-bodies", &options.uniformGuardBodies, alignChoices, "Give consecutive `if` statements without `else` the same `do` or `{ }` body");
+        schema.addEnum("uniform-guard-bodies", &options.uniformGuardBodies, alignChoices, "Align consecutive `if` blocks without `else`");
         schema.addEnum("uniform-closure-bodies", &options.uniformClosureBodies, alignChoices, "Lay out sibling closures alike: all on one line, or all expanded");
         schema.addEnum("uniform-function-bodies", &options.uniformFunctionBodies, alignChoices, "Put sibling single-statement functions on one line when some already are");
 

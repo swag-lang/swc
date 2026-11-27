@@ -28,7 +28,7 @@ using Core, Pixel, Gui, Viewers
     view.sortBy(1)
     Swag.require(view.numeric[1] and view.order[0] == 1 and view.order[5] == 4)
 
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     collectViewerMatches(session.collectMatches, "Target", &matches)
     Swag.require(matches.count == 1 and session.revealMatch(matches[0], "Target"))
     Swag.require(view.searchRow == 3 and view.list.focusIndex == view.lineOfRow(3))

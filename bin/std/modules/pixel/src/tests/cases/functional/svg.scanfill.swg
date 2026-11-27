@@ -27,8 +27,10 @@ using Core
         Swag.require(tiled.pixelColor(1, 3).argb == 0xBF24_4769)
         Swag.require(tiled.pixelColor(30, 13).argb == 0xFF24_4769)
         Swag.require(tiled.pixelColor(10, 10).a == (rule == "evenodd" ? 0 : 255))
-        for value, index in tiled.pixels do
+        for value, index in tiled.pixels
+        {
             Swag.require(value == whole.pixels[index])
+        }
     }
 }
 
@@ -73,11 +75,13 @@ using Core
     Swag.require(tiled.pixelColor(4, 3).a == 0)
     Swag.require(tiled.pixelColor(38, 25).a == 0)
     Swag.require(tiled.pixelColor(16, 26).a == 255)
-    for value, index in tiled.pixels do
+    for value, index in tiled.pixels
+    {
         Swag.require(value == whole.pixels[index])
+    }
 }
 
-// A referenced clip and a different ink keep the general painter in charge.
+// A referenced clip restricts one fill while the second color remains visible.
 #test
 {
     const Source = """
@@ -96,9 +100,39 @@ using Core
 
     let reference = expect Svg.Drawing.parse(Source)
     let previous  = reference.rasterize(40, 24, 1)
-    for y in 24 do
-        for x in 13 do
+    for y in 24
+    {
+        for x in 13
+        {
             Swag.require(image.pixelColor(x, y) == previous.pixelColor(x, y))
+        }
+    }
+}
+
+// A fractional stencil clips the translucent stroke on both opaque mattes.
+#test
+{
+    const Source = """
+        <svg width='33' height='25'>
+          <defs><clipPath id='c'><rect x='5.25' y='3' width='19.5' height='16'/></clipPath></defs>
+          <path clip-path='url(#c)' d='M0 10H28' stroke='#ff0000' stroke-opacity='.5' stroke-width='4'/>
+          <rect x='27' y='16' width='4' height='4' fill='#0000ff'/>
+        </svg>
+        """
+    let drawing = expect Svg.Drawing.parse(Source, {preferScanFills: true})
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    defer renderer.end()
+
+    let whole = drawing.rasterize(33, 25, 1)
+    let tiled = drawing.rasterizeWithSampleTileSide(renderer, 33, 25, 1, 8, &cpu)
+    Swag.require(whole.isValid() and tiled.isValid())
+    Swag.require(whole.pixelColor(4, 10).a == 0)
+    Swag.require(whole.pixelColor(5, 10).a == 95)
+    Swag.require(whole.pixelColor(12, 10).argb == 0x7FFF_0000)
+    Swag.require(whole.pixelColor(28, 17).argb == 0xFF00_00FF)
+    Swag.require(Memory.compare(whole.pixels.storage(), tiled.pixels.storage(), whole.byteCount) == 0)
 }
 
 // Resolve supersamples after the intersecting fills have composed on that grid.
@@ -163,14 +197,17 @@ using Core
 #test
 {
     var source = String.from("<svg width='42' height='4'><path d='")
-    for stripe in 20 do
+    for stripe in 20
+    {
         source.appendFormat("M% 0h.75l.5 .25h-.75z ", 1 + 2 * ((stripe * 7) % 20))
+    }
+
     source += "'/><path d='M3 1h.75l2.5 1.25h-.75z'/><path d='M10 3h.75l.5 .25h-.75z'/></svg>"
 
     let drawing = expect Svg.Drawing.parse(source.toString(), {preferScanFills: true})
     let image   = drawing.rasterize(42, 4, 1)
     Swag.require(image.isValid())
-    const MiddleAlpha = [64'u8, 96, 32]
+    const MiddleAlpha = [64_u8, 96, 32]
     for column in 42
     {
         let x = cast(s32, column)
@@ -215,9 +252,14 @@ using Core
 {
     var source: String
     source.append("<svg width='73' height='61'><path fill-rule='evenodd' d='M1 1H72V60H1Z ")
-    for row in 8 do
-        for column in 17 do
+    for row in 8
+    {
+        for column in 17
+        {
             source.append(Format.toString("M% %h2v2h-2z ", 4 + column * 4, 4 + row * 6).toString())
+        }
+    }
+
     source.append("'/><path fill-opacity='.5' d='M0 0H38V61H0Z'/></svg>")
 
     let drawing = expect Svg.Drawing.parse(source.toString(), {preferScanFills: true})
@@ -237,8 +279,10 @@ using Core
         Swag.require(whole.pixelColor(12, 12).a == 255)
         Swag.require(whole.pixelColor(16, 16).a == 127)
         Swag.require(whole.pixelColor(272, 184).a == 0)
-        for value, index in tiled.pixels do
+        for value, index in tiled.pixels
+        {
             Swag.require(value == whole.pixels[index])
+        }
     }
 }
 
@@ -273,15 +317,105 @@ using Core
     let options   = Svg.ParseOptions{preferScanFills: true}
     let drawing   = expect Svg.Drawing.parse(compound.toString(), options)
     let reference = expect Svg.Drawing.parse(rows.toString(), options)
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    defer renderer.end()
+
     for extent in [[108, 100], [432, 100], [432, 400], [432, 400]]
     {
         let width    = extent[0]
         let height   = extent[1]
-        let actual   = drawing.rasterize(width, height, 1)
+        let actual   = drawing.rasterizeWithSampleTileSide(renderer, width, height, 1, 128, &cpu)
         let expected = reference.rasterize(width, height, 1)
         Swag.require(actual.isValid() and expected.isValid())
         let probe = width / 36
         Swag.require(actual.pixelColor(probe, probe).a > 0)
         Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.pixels.count) == 0)
     }
+}
+
+// Smaller fills follow the same order on either side of a compound path.
+#[Swag.TestTag("parallel")]
+#test
+{
+    func compound(source: *String, visible: bool)
+    {
+        source.append("<path fill-opacity='.37' fill-rule='evenodd' d='")
+        for 1024
+        {
+            source.append("M180 150h2v2h-2z ")
+        }
+
+        if visible
+        {
+            source.append("M9.125 32.375h117.5v36.75h-117.5z")
+        }
+
+        source.append("'/>")
+    }
+
+    const Open = "<svg width='144' height='112' fill='#36537a'>"
+    var grouped = String.from(Open)
+    var serial  = String.from(Open)
+    for phase in 2
+    {
+        for index in 640
+        {
+            let x    = 4 + (index * 31 + phase * 11) % 117
+            let y    = 3 + (index * 19 + phase * 3) % 92
+            let path = Format.toString("<path fill-opacity='.0%' d='M%.125 %.375h19.5v16.5h-19.5z'/>",
+                                       (index % 7) + 2,
+                                       x,
+                                       y)
+            grouped.append(path.toString())
+            serial.append(path.toString())
+            if index == 319
+            {
+                compound(&serial, false)
+            }
+        }
+
+        if not phase
+        {
+            compound(&grouped, true)
+            compound(&serial, true)
+        }
+    }
+
+    grouped.append("</svg>")
+    serial.append("</svg>")
+    let options   = Svg.ParseOptions{preferScanFills: true}
+    let drawing   = expect Svg.Drawing.parse(grouped.toString(), options)
+    let reference = expect Svg.Drawing.parse(serial.toString(), options)
+    let actual    = drawing.rasterize(144, 112, 1)
+    let expected  = reference.rasterize(144, 112, 1)
+    Swag.require(actual.isValid() and expected.isValid())
+    Swag.require(actual.pixelColor(64, 56).a > 0)
+    Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.pixels.count) == 0)
+}
+
+
+// Four-lane compositing matches scalar tiles for fractional, transparent and opaque pixels.
+#test
+{
+    const Width = 2053
+    let drawing = expect Svg.Drawing.parse("""
+        <svg width='2053' height='14' fill='#4433a1'>
+          <path fill-opacity='.46' d='M.125 1.25h27.5v11.5h-27.5z'/>
+          <path fill-opacity='.37' d='M.625 2.375h18l8 8h-18z'/>
+          <path d='M6.25 4.75h16.5v5.25h-16.5z'/>
+        </svg>""", {preferScanFills: true})
+    var cpu: RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    defer renderer.end()
+
+    let packed = drawing.rasterizeWithSampleTileSide(renderer, Width, 14, 1, 32, &cpu)
+    let scalar = drawing.rasterizeWithSampleTileSide(renderer, Width, 14, 1, 3, &cpu)
+    Swag.require(packed.isValid() and scalar.isValid())
+    Swag.require(packed.pixelColor(0, 7).a > 0)
+    Swag.require(packed.pixelColor(13, 7).a == 255)
+    Swag.require(packed.pixelColor(30, 7).argb == 0x00FF_FFFF)
+    Swag.require(Memory.compare(packed.pixels.storage(), scalar.pixels.storage(), packed.pixels.count) == 0)
 }

@@ -23,7 +23,7 @@ impl IWnd for FileTileProbe
             switch index
             {
             case 0:
-                content.name = "Cover"
+                content.name        = "Cover"
                 content.captionIcon = .theme().fileGlyph("cover.png", false, 14)
 
             case 1:
@@ -39,13 +39,13 @@ impl IWnd for FileTileProbe
                 options.selected = true
 
             case 3:
-                content.texture  = .portrait
-                content.name     = "A long <literal> name & its complete ending.png"
+                content.texture     = .portrait
+                content.name        = "A long <literal> name & its complete ending.png"
                 content.captionIcon = .theme().fileGlyph("photo.png", false, 14)
-                content.facts    = "Long metadata stays clear of the size"
-                options.hovered  = true
-                options.selected = true
-                options.nameTick = 70
+                content.facts       = "Long metadata stays clear of the size"
+                options.hovered     = true
+                options.selected    = true
+                options.nameTick    = 70
 
             case 4:
                 content.texture = {}
@@ -80,7 +80,7 @@ impl IWnd for FileTileProbe
     var tall = host.app.renderer.addImage(portrait)
     defer host.app.renderer.removeTexture(&wide)
     defer host.app.renderer.removeTexture(&tall)
-    let probe = Wnd.create'FileTileProbe(&host.root)
+    let probe = Wnd.create!{FileTileProbe}(&host.root)
     probe.dockStyle = .Center
     probe.landscape = wide
     probe.portrait  = tall

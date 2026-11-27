@@ -13,7 +13,7 @@ struct(T) IntUnaryVec3
 
 impl IntUnaryVec3
 {
-    func(op: Swag.Operator) opUnary(const me)->IntUnaryVec3'T
+    func(op: Swag.Operator) opUnary(const me)->IntUnaryVec3!{T}
         where op == .Pos or op == .Neg or op == .BitNot
     {
         #static switch op
@@ -31,10 +31,10 @@ impl IntUnaryVec3
     }
 }
 
-// Test: unary + on IntUnaryVec3'u64
+// Test: unary + on IntUnaryVec3_u64
 #test
 {
-    var value: IntUnaryVec3'u64 = {x: 1, y: 2, z: 3}
+    var value: IntUnaryVec3!{u64} = {x: 1, y: 2, z: 3}
     let pos = +value
 
     Swag.require(pos.x == 1)
@@ -42,10 +42,10 @@ impl IntUnaryVec3
     Swag.require(pos.z == 3)
 }
 
-// Test: unary - and ~ on IntUnaryVec3's64
+// Test: unary - and ~ on IntUnaryVec3_s64
 #test
 {
-    var value: IntUnaryVec3's64 = {x: 1, y: -2, z: 3}
+    var value: IntUnaryVec3!{s64} = {x: 1, y: -2, z: 3}
     let neg = -value
     let inv = ~value
 
@@ -57,10 +57,10 @@ impl IntUnaryVec3
     Swag.require(inv.z == -4)
 }
 
-// Test: IntUnaryVec3's32 with all zeros
+// Test: IntUnaryVec3_s32 with all zeros
 #test
 {
-    var value: IntUnaryVec3's32 = {x: 0, y: 0, z: 0}
+    var value: IntUnaryVec3!{s32} = {x: 0, y: 0, z: 0}
     let neg = -value
     let inv = ~value
 
@@ -72,22 +72,22 @@ impl IntUnaryVec3
     Swag.require(inv.z == -1)
 }
 
-// Test: IntUnaryVec3'u32 with unary +
+// Test: IntUnaryVec3_u32 with unary +
 #test
 {
-    var value: IntUnaryVec3'u32 = {x: 100, y: 200, z: 300}
+    var value: IntUnaryVec3!{u32} = {x: 100, y: 200, z: 300}
     let pos = +value
 
-    #assert(#typeof(pos) == IntUnaryVec3'u32)
+    #assert(#typeof(pos) == IntUnaryVec3!{u32})
     Swag.require(pos.x == 100)
     Swag.require(pos.y == 200)
     Swag.require(pos.z == 300)
 }
 
-// Test: IntUnaryVec3'u32 bitwise NOT
+// Test: IntUnaryVec3_u32 bitwise NOT
 #test
 {
-    var value: IntUnaryVec3'u32 = {x: 0, y: 0xFFFF_FFFF, z: 0x0000_00FF}
+    var value: IntUnaryVec3!{u32} = {x: 0, y: 0xFFFF_FFFF, z: 0x0000_00FF}
     let inv = ~value
 
     Swag.require(inv.x == 0xFFFF_FFFF)
@@ -95,34 +95,34 @@ impl IntUnaryVec3
     Swag.require(inv.z == 0xFFFF_FF00)
 }
 
-// Test: IntUnaryVec3's16
+// Test: IntUnaryVec3_s16
 #test
 {
-    var value: IntUnaryVec3's16 = {x: 10, y: -20, z: 30}
+    var value: IntUnaryVec3!{s16} = {x: 10, y: -20, z: 30}
     let neg = -value
 
-    #assert(#typeof(neg) == IntUnaryVec3's16)
+    #assert(#typeof(neg) == IntUnaryVec3!{s16})
     Swag.require(neg.x == -10)
     Swag.require(neg.y == 20)
     Swag.require(neg.z == -30)
 }
 
-// Test: IntUnaryVec3'u8 bitwise NOT
+// Test: IntUnaryVec3_u8 bitwise NOT
 #test
 {
-    var value: IntUnaryVec3'u8 = {x: 0x0F, y: 0xF0, z: 0xAA}
+    var value: IntUnaryVec3!{u8} = {x: 0x0F, y: 0xF0, z: 0xAA}
     let inv = ~value
 
-    #assert(#typeof(inv) == IntUnaryVec3'u8)
+    #assert(#typeof(inv) == IntUnaryVec3!{u8})
     Swag.require(inv.x == 0xF0)
     Swag.require(inv.y == 0x0F)
     Swag.require(inv.z == 0x55)
 }
 
-// Test: double negation on IntUnaryVec3's32
+// Test: double negation on IntUnaryVec3_s32
 #test
 {
-    var value: IntUnaryVec3's32 = {x: 1, y: -2, z: 3}
+    var value: IntUnaryVec3!{s32} = {x: 1, y: -2, z: 3}
     let double_neg = -(-value)
 
     Swag.require(double_neg.x == 1)
@@ -130,21 +130,21 @@ impl IntUnaryVec3
     Swag.require(double_neg.z == 3)
 }
 
-// Test: double bitwise NOT on IntUnaryVec3'u64 (identity)
+// Test: double bitwise NOT on IntUnaryVec3_u64 (identity)
 #test
 {
-    var value: IntUnaryVec3'u64 = {x: 0xCAFE, y: 0xBABE, z: 0xDEAD}
+    var value: IntUnaryVec3!{u64} = {x: 0xCAFE, y: 0xBABE, z: 0xDEAD}
     let double_inv = ~(~value)
 
-    Swag.require(double_inv.x == 0xCAFE'u64)
-    Swag.require(double_inv.y == 0xBABE'u64)
-    Swag.require(double_inv.z == 0xDEAD'u64)
+    Swag.require(double_inv.x == 0xCAFE_u64)
+    Swag.require(double_inv.y == 0xBABE_u64)
+    Swag.require(double_inv.z == 0xDEAD_u64)
 }
 
-// Test: IntUnaryVec3's64 unary - with mixed positive/negative/zero
+// Test: IntUnaryVec3_s64 unary - with mixed positive/negative/zero
 #test
 {
-    var value: IntUnaryVec3's64 = {x: 1000, y: 0, z: -1000}
+    var value: IntUnaryVec3!{s64} = {x: 1000, y: 0, z: -1000}
     let neg = -value
 
     Swag.require(neg.x == -1000)

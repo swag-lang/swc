@@ -3,7 +3,7 @@
 // Read through the postfix dereference
 #test
 {
-    var value = 42's32
+    var value = 42_s32
     let p     = &value
     Swag.require(p[] == 42)
 }
@@ -11,7 +11,7 @@
 // Write through the postfix dereference
 #test
 {
-    var value = 1's32
+    var value = 1_s32
     let p     = &value
     p[] = 7
     Swag.require(value == 7)
@@ -20,7 +20,7 @@
 // Compound assignment through the postfix dereference
 #test
 {
-    var value = 40's32
+    var value = 40_s32
     let p     = &value
     p[] += 2
     Swag.require(value == 42)
@@ -47,7 +47,7 @@
 // The postfix dereference composes left-to-right through a double pointer
 #test
 {
-    var value = 5's32
+    var value = 5_s32
     var p     = &value
     var pp    = &p
     Swag.require(pp[][] == 5)
@@ -68,7 +68,7 @@
 // '(cast(*T, expr))[]' reads the pointed storage as a T of the same size
 #test
 {
-    var bits = 0xFFFF_FFFF'u32
+    var bits = 0xFFFF_FFFF_u32
     let p    = &bits
     Swag.require(cast(const *s32, p)[] == -1)
 }
@@ -76,7 +76,7 @@
 // '(cast(*T, expr))[]' writes through the reinterpreted place
 #test
 {
-    var value = 0's32
+    var value = 0_s32
     let p     = &value
     cast(*u32, p)[] = 0xFFFF_FFFF
     Swag.require(value == -1)
@@ -85,7 +85,7 @@
 // '(cast(*T, expr))[]' opens a narrower window on the storage (x64 is little-endian)
 #test
 {
-    var value = 0x0102_0304'u32
+    var value = 0x0102_0304_u32
     let p     = &value
     Swag.require(cast(const *u8, p)[] == 0x04)
     cast(*u8, p)[] = 0xFF
@@ -95,7 +95,7 @@
 // '(cast(*T, expr))[]' exposes the bit pattern of a float
 #test
 {
-    var f = 1.0'f32
+    var f = 1.0_f32
     let p = &f
     Swag.require(cast(const *u32, p)[] == 0x3F80_0000)
 }

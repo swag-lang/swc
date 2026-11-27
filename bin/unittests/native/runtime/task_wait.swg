@@ -36,7 +36,7 @@ struct ParentFailure
     value: u64
 }
 
-func joinWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
+func joinWhileFailing(succeeded, failed: *Swag.AtomicValue!{u32}) fail
 {
     var task: Swag.Task
     task.submit(func|succeeded, failed|()
@@ -48,7 +48,7 @@ func joinWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
     fail ParentFailure{42}
 }
 
-func leaveTaskScope(completed, succeeded, failed, parentFailed: *Swag.AtomicValue'u32, path: u32) fail
+func leaveTaskScope(completed, succeeded, failed, parentFailed: *Swag.AtomicValue!{u32}, path: u32) fail
 {
     defer #fail parentFailed.add(1)
     var task: Swag.Task
@@ -58,10 +58,14 @@ func leaveTaskScope(completed, succeeded, failed, parentFailed: *Swag.AtomicValu
         defer #fail failed.add(1)
         completed.add(1)
     })
-    if path == 1 do
+    if path == 1
+    {
         return
-    if path == 2 do
+    }
+    if path == 2
+    {
         fail ParentFailure{42}
+    }
 }
 
 func raiseParentFailure(value: u64) fail
@@ -69,7 +73,7 @@ func raiseParentFailure(value: u64) fail
     fail ParentFailure{value}
 }
 
-func completeDescendants(depth: u32, completed: *Swag.AtomicValue'u32)
+func completeDescendants(depth: u32, completed: *Swag.AtomicValue!{u32})
 {
     if depth == 0
     {
@@ -83,12 +87,15 @@ func completeDescendants(depth: u32, completed: *Swag.AtomicValue'u32)
 // Joining a group allows inline and overflow children to be reused with fresh captures.
 #test
 {
-    var total: Swag.AtomicValue'u32
+    var total: Swag.AtomicValue!{u32}
     var group: Swag.TaskGroup
-    for round in 3'u32
+    for round in 3_u32
     {
         let value = round + 1
-        for 5 do group.spawn(func|&total, value|() { total.add(value) })
+        for 5
+        {
+            group.spawn(func|&total, value|() { total.add(value) })
+        }
         expect group.join()
         Swag.require(not group.isCancelled())
         Swag.require(total.load() == 5 * value * (value + 1) / 2)
@@ -115,20 +122,22 @@ func completeDescendants(depth: u32, completed: *Swag.AtomicValue'u32)
 // Successful nesting uses task frames, not error stack levels.
 #test
 {
-    var completed: Swag.AtomicValue'u32
+    var completed: Swag.AtomicValue!{u32}
     completeDescendants(40, &completed)
     Swag.require(completed.load() == 1)
 }
 
-func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
+func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue!{u32}) fail
 {
     var group: Swag.TaskGroup
     group.spawn(func|succeeded, failed|()
     {
         defer #nofail succeeded.add(1)
         defer #fail failed.add(1)
-        catch raiseParentFailure(7) do
+        catch raiseParentFailure(7)
+        {
             succeeded.add(10)
+        }
     })
     fail ParentFailure{42}
 }
@@ -139,14 +148,16 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
     var valid = false
     let ready = withBlockedWorkers(func|&valid|()
     {
-        var succeeded:    Swag.AtomicValue'u32
-        var failed:       Swag.AtomicValue'u32
+        var succeeded:    Swag.AtomicValue!{u32}
+        var failed:       Swag.AtomicValue!{u32}
         var errorOutcome: Swag.Error
         catch dropGroupWhileFailing(&succeeded, &failed) as errorOutcome
         let error = errorOutcome.value()
         valid = error != null and (error is ParentFailure)
-        if valid do
+        if valid
+        {
             valid = assume cast(const *ParentFailure, error).value == 42
+        }
         valid = valid and succeeded.load() == 11 and failed.load() == 0
     })
     Swag.require(ready)
@@ -156,11 +167,11 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
 // Implicit destruction joins on normal exit, early return and failure, before outer cleanup.
 #test
 {
-    var completed:    Swag.AtomicValue'u32
-    var succeeded:    Swag.AtomicValue'u32
-    var failed:       Swag.AtomicValue'u32
-    var parentFailed: Swag.AtomicValue'u32
-    for path in 3'u32
+    var completed:    Swag.AtomicValue!{u32}
+    var succeeded:    Swag.AtomicValue!{u32}
+    var failed:       Swag.AtomicValue!{u32}
+    var parentFailed: Swag.AtomicValue!{u32}
+    for path in 3_u32
     {
         var errorOutcome: Swag.Error
         catch leaveTaskScope(&completed, &succeeded, &failed, &parentFailed, path) as errorOutcome
@@ -168,14 +179,14 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
         Swag.require((error != null) == (path == 2))
         Swag.require(completed.load() == path + 1)
         Swag.require(succeeded.load() == path + 1 and failed.load() == 0)
-        Swag.require(parentFailed.load() == (path == 2 ? 1'u32 : 0'u32))
+        Swag.require(parentFailed.load() == (path == 2 ? 1_u32 : 0_u32))
     }
 }
 
 // Array element destruction joins nested tasks too; no explicit wait is needed at either level.
 #test
 {
-    var completed: Swag.AtomicValue'u32
+    var completed: Swag.AtomicValue!{u32}
     scope
     {
         var tasks: [16] Swag.Task
@@ -197,14 +208,16 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
     var valid = false
     let ready = withBlockedWorkers(func|&valid|()
     {
-        var succeeded:    Swag.AtomicValue'u32
-        var failed:       Swag.AtomicValue'u32
+        var succeeded:    Swag.AtomicValue!{u32}
+        var failed:       Swag.AtomicValue!{u32}
         var errorOutcome: Swag.Error
         catch joinWhileFailing(&succeeded, &failed) as errorOutcome
         let error = errorOutcome.value()
         valid = error != null and (error is ParentFailure)
-        if valid do
+        if valid
+        {
             valid = assume cast(const *ParentFailure, error).value == 42
+        }
         valid = valid and succeeded.load() == 1 and failed.load() == 0
     })
     Swag.require(ready)
@@ -214,16 +227,20 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
 // Workers and joining callers race to claim nodes while several parents submit and reuse them.
 #test
 {
-    var total: Swag.AtomicValue'u32
+    var total: Swag.AtomicValue!{u32}
     parallel for |&total| 16
     {
         var tasks: [8] Swag.Task
         for 16
         {
-            for index in 8 do
+            for index in 8
+            {
                 tasks[index].submit(func|&total, index|() { total.add(cast(u32, index) + 1) })
-            for index in 8 do
+            }
+            for index in 8
+            {
                 tasks[(index * 5) % 8].wait()
+            }
         }
     }
     Swag.require(total.load() == 9216)
@@ -233,15 +250,17 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
 // The caller opens the gate before joining the blockers; no pooled task must release a peer.
 func withBlockedWorkers(body: func||())->bool
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return true
+    }
 
     Swag.setWorkerCount(2)
     let workers = Swag.workerCount()
     var mutex:    Swag.Mutex
     var gate:     Swag.Condition
     var open    = false
-    var started:  Swag.AtomicValue'u32
+    var started:  Swag.AtomicValue!{u32}
     var blockers: [Swag.MaxWorkers] Swag.Task
     defer
     {
@@ -249,8 +268,10 @@ func withBlockedWorkers(body: func||())->bool
         open = true
         mutex.unlock()
         gate.wakeAll()
-        for index in workers do
+        for index in workers
+        {
             blockers[index].wait()
+        }
     }
 
     for index in workers
@@ -259,8 +280,10 @@ func withBlockedWorkers(body: func||())->bool
         {
             mutex.lock()
             started.add(1)
-            while not open do
+            while not open
+            {
                 gate.wait(&mutex)
+            }
             mutex.unlock()
         })
     }
@@ -269,8 +292,10 @@ func withBlockedWorkers(body: func||())->bool
     {
         mutex.lock()
         let ready = started.load() == workers
-        if not ready do
+        if not ready
+        {
             discard gate.waitFor(&mutex, 1)
+        }
         mutex.unlock()
         if ready
         {
@@ -290,7 +315,7 @@ func withBlockedWorkers(body: func||())->bool
     {
         var lock:      Swag.Mutex
         var premature: Swag.AtomicFlag
-        var completed: Swag.AtomicValue'u32
+        var completed: Swag.AtomicValue!{u32}
         var target:    Swag.Task
         var unrelated: Swag.Task
         lock.lock()
@@ -298,10 +323,14 @@ func withBlockedWorkers(body: func||())->bool
         unrelated.submit(func|&lock, &premature|()
         {
             let acquired = lock.tryLock()
-            if acquired do
+            if acquired
+            {
                 lock.unlock()
-            else do
+            }
+            else
+            {
                 discard premature.raise()
+            }
         })
 
         target.wait()
@@ -320,20 +349,24 @@ func withBlockedWorkers(body: func||())->bool
     var invalid = false
     let ready   = withBlockedWorkers(func|&invalid|()
     {
-        var runs:     [5] Swag.AtomicValue'u32
+        var runs:     [5] Swag.AtomicValue!{u32}
         var tasks:    [5] Swag.Task
         var expected: [5] u32
         let order:    [5] u32 = [2, 0, 4, 1, 3]
         for 3
         {
-            for index in 5 do
+            for index in 5
+            {
                 tasks[index].submit(func|&runs, index|() { runs[index].add(1) })
+            }
             for index in order
             {
                 tasks[index].wait()
                 expected[index] += 1
-                for other in 5 do
+                for other in 5
+                {
                     invalid = invalid or runs[other].load() != expected[other]
+                }
             }
         }
     })
@@ -347,19 +380,23 @@ func withBlockedWorkers(body: func||())->bool
     var invalid = false
     let ready   = withBlockedWorkers(func|&invalid|()
     {
-        var total:  Swag.AtomicValue'u32
+        var total:  Swag.AtomicValue!{u32}
         var parent: Swag.Task
         parent.submit(func|&total|()
         {
             var group: Swag.TaskGroup
-            for 40 do
+            for 40
+            {
                 group.spawn(func|&total|() { total.add(1) })
+            }
         })
         parent.wait()
         parallel for |&total| 7
         {
-            parallel for |&total| 5 do
+            parallel for |&total| 5
+            {
                 total.add(1)
+            }
         }
         invalid = total.load() != 75
     })

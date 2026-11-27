@@ -31,8 +31,10 @@ using Core, Gui, Gui.Testing, Viewers
 
     outline.setFilter("")
     Swag.require(outline.rows.count == 4)
-    for row in 4 do
+    for row in 4
+    {
         Swag.require(outline.rowTitles[row] == view.bookmarks[row].title)
+    }
 }
 
 // The outline marks the bookmark being read as the pages move, without asking the document to

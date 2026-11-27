@@ -55,7 +55,7 @@ func day3A0()
     let lines    = expect File.readAllLines(dataPath)
 
     var r = expect Parser.RegExp.create(#raw "#\d+ @ (\d+),(\d+): (\d+)x(\d+)")
-    var count: Array's32
+    var count: Array!{s32}
     count.resize(1000 * 1000)
     for l in lines
     {
@@ -65,15 +65,23 @@ func day3A0()
         let width  = expect StrConv.toS32(r[3])
         let height = expect StrConv.toS32(r[4])
 
-        for x in startX until startX + width do
-            for y in startY until startY + height do
+        for x in startX until startX + width
+        {
+            for y in startY until startY + height
+            {
                 count.ptr2(x, y, 1000)[] += 1
+            }
+        }
     }
 
     var total = 0
-    for v in count do
-        if v > 1 do
+    for v in count
+    {
+        if v > 1
+        {
             total += 1
+        }
+    }
 
     Swag.assert(total == 100261)
 }
@@ -83,22 +91,30 @@ func day3A1()
     let dataPath = Path.combine(Path.directoryName(#file), "3.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var count: Array's32
+    var count: Array!{s32}
     count.resize(1000 * 1000)
     for l in lines
     {
         let r = expect Parser.RegExp.grepAll("\\d+", l[])
         let v = Slice.map(r[to], func(x) => expect StrConv.toS32(x))
 
-        for x in v[1] until v[1] + v[3] do
-            for y in v[2] until v[2] + v[4] do
+        for x in v[1] until v[1] + v[3]
+        {
+            for y in v[2] until v[2] + v[4]
+            {
                 count.ptr2(x, y, 1000)[] += 1
+            }
+        }
     }
 
     var total = 0
-    for v in count do
-        if v > 1 do
+    for v in count
+    {
+        if v > 1
+        {
             total += 1
+        }
+    }
 
     Swag.assert(total == 100261)
 }

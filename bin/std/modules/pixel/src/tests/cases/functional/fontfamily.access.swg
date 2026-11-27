@@ -16,8 +16,10 @@ using Core
     for name in ["Segoe UI", "Arial", "Times New Roman", "Consolas", "DejaVu Sans", "Liberation Sans", "Noto Sans"]
     {
         Swag.require(FontFamily.findSystemFont(name).name.isEmpty(), name)
-        for style in [FontFamilyStyle.Regular, .Bold, .Italic, .BoldItalic] do
+        for style in [FontFamilyStyle.Regular, .Bold, .Italic, .BoldItalic]
+        {
             Swag.require((expect FontFamily.createTypeFace(name, style)) == null, name)
+        }
     }
 }
 
@@ -44,12 +46,12 @@ using Core
 {
     var cache: FontCache
     let font = cache.createFont(expect fallbackTestFace(false), 19, .Bitmap, true, true)
-    Swag.require(font.glyphIndex('\u2192'rune) == 0)
-    Swag.require(font.resolveRune('\u2192'rune) == font)
+    Swag.require(font.glyphIndex('\u2192'_rune) == 0)
+    Swag.require(font.resolveRune('\u2192'_rune) == font)
 
     // A face the test supplies is still used.
     cache.setFallbackTypeFaces([expect fallbackTestFace(true)])
-    Swag.require(font.resolveRune('\u2192'rune) != font)
+    Swag.require(font.resolveRune('\u2192'_rune) != font)
 }
 
 // The access is a switch a system-font test turns on for itself and off again.

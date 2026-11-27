@@ -6,10 +6,10 @@ internal struct ShortcutCommand
     title:    String
     system:   bool
     source:   bool
-    defaults: Array'KeyShortcut
+    defaults: Array!{KeyShortcut}
 }
 
-internal func addShortcutCommand(commands: *Array'ShortcutCommand, owner: *Wnd, id: WndId, chord: const *KeyShortcut?, system = false)
+internal func addShortcutCommand(commands: *Array!{ShortcutCommand}, owner: *Wnd, id: WndId, chord: const *KeyShortcut?, system = false)
 {
     var command: *ShortcutCommand?
     for &existing in commands[] where existing.id == id
@@ -34,24 +34,31 @@ internal func addShortcutCommand(commands: *Array'ShortcutCommand, owner: *Wnd, 
 
     if let binding = chord
     {
-        if command.system == system and not hasShortcutChord(command.defaults.toSlice(), binding[]) do
+        if command.system == system and not hasShortcutChord(command.defaults.toSlice(), binding[])
+        {
             command.defaults.add(binding[])
+        }
     }
 }
 
-internal func collectShortcutCommands(owner: *Wnd, commands: *Array'ShortcutCommand)
+internal func collectShortcutCommands(owner: *Wnd, commands: *Array!{ShortcutCommand})
 {
-    for &chord in owner.keyShortcuts do
+    for &chord in owner.keyShortcuts
+    {
         addShortcutCommand(commands, owner, chord.id, chord)
-    for child in owner.children do
+    }
+
+    for child in owner.children
+    {
         collectShortcutCommands(child, commands)
+    }
 }
 
 private struct ShortcutEditor
 {
     using wnd:   Wnd
     commands:    const [..] ShortcutCommand = []
-    late draft:  *Array'ShortcutOverride
+    late draft:  *Array!{ShortcutOverride}
     late list:   *ListCtrl
     late filter: *EditBox
     late change: *PushButton
@@ -61,9 +68,9 @@ private struct ShortcutEditor
 
 impl ShortcutEditor
 {
-    func create(dialog: *Dialog, commands: const [..] ShortcutCommand, draft: *Array'ShortcutOverride)->*ShortcutEditor
+    func create(dialog: *Dialog, commands: const [..] ShortcutCommand, draft: *Array!{ShortcutOverride})->*ShortcutEditor
     {
-        let result = Wnd.create'ShortcutEditor(dialog.createContentView())
+        let result = Wnd.create!{ShortcutEditor}(dialog.createContentView())
         result.dockStyle = .Center
         result.commands  = commands
         result.draft     = draft
@@ -90,8 +97,10 @@ impl ShortcutEditor
             result.reset  = PushButton.create(actions, text.shortcuts_Reset)
         }
 
-        for button in [result.change, result.clear, result.reset] do
+        for button in [result.change, result.clear, result.reset]
+        {
             button.fitWidthToLabel(metrics.btnPush_Width)
+        }
 
         result.change.sigPressed += func|result|(_) { result.changeSelected() }
         result.clear.sigPressed  += func|result|(_) { result.clearSelected() }
@@ -138,16 +147,22 @@ impl ShortcutEditor
     {
         if let custom = shortcutOverride(.draft.toSlice(), command.id)
         {
-            if custom.key != .None do
+            if custom.key != .None
+            {
                 return Input.formatKeyShortcut(custom.modifiers, custom.key)
+            }
+
             return {}
         }
 
         var result: #returntype
         for chord in command.defaults
         {
-            if not result.isEmpty() do
+            if not result.isEmpty()
+            {
                 result += ", "
+            }
+
             result += Input.formatKeyShortcut(chord.modifiers, chord.key)
         }
 
@@ -167,25 +182,39 @@ impl ShortcutEditor
         {
             let chord = .bindingText(command)
             var reach = text.shortcuts_Local
-            if command.system do
+            if command.system
+            {
                 reach = text.shortcuts_Global
-            elif command.source do
+            }
+            else if command.source
+            {
                 reach = text.shortcuts_Document
+            }
+
             if hasQuery and
                not matcher.isMatch(command.title.toString()) and
-               not matcher.isMatch(chord.toString()) do
+               not matcher.isMatch(chord.toString())
+            {
                 continue
+            }
+
             let row = .list.createLine(command.title)
             row.userData0 = cast #unconst (*void, command)
             row.setItem(1, chord)
             row.setItem(2, reach)
-            if command == selected do
+            if command == selected
+            {
                 restore = index
+            }
+
             index += 1
         }
 
-        if index do
+        if index
+        {
             .list.selectLine(restore != Swag.U32.Max ? restore : 0)
+        }
+
         .list.invalidate()
         .updateActions()
     }
@@ -193,15 +222,20 @@ impl ShortcutEditor
     mtd changeSelected()
     {
         let selected = .selected()
-        if not selected do
+        if not selected
+        {
             return
+        }
+
         let surface = unwrap .surface
         let chord   = captureShortcut(surface, selected.system)
-        if chord.key == .None do
+        if chord.key == .None
+        {
             return
+        }
 
         let text = strings()
-        var conflicts: Array'(const *ShortcutCommand)
+        var conflicts: Array!{const *ShortcutCommand}
         var names:     String
         for &command in .commands where command.id != selected.id
         {
@@ -211,8 +245,11 @@ impl ShortcutEditor
             if taken
             {
                 conflicts.add(command)
-                if not names.isEmpty() do
+                if not names.isEmpty()
+                {
                     names += ", "
+                }
+
                 names += command.title
             }
         }
@@ -220,10 +257,15 @@ impl ShortcutEditor
         if not conflicts.isEmpty()
         {
             let message = Format.toString(text.shortcuts_Taken, Input.formatKeyShortcut(chord.modifiers, chord.key), names)
-            if MessageDlg.confirm(surface, message, options: {title: text.shortcuts_Replace}) != Dialog.BtnYes do
+            if MessageDlg.confirm(surface, message, options: {title: text.shortcuts_Replace}) != Dialog.BtnYes
+            {
                 return
-            for command in conflicts do
+            }
+
+            for command in conflicts
+            {
                 setShortcutOverride(.draft, command.id, .None, .None, source: command.source)
+            }
         }
 
         setShortcutOverride(.draft, selected.id, chord.modifiers, chord.key, source: selected.source)
@@ -277,7 +319,7 @@ private func canBindShortcut(key: Input.Key)->bool
 }
 
 // The desktop may consume a chord before the window sees it. System shortcuts also offer a picker.
-private func addSystemShortcutPicker(dialog: *Dialog, body: *Wnd, choices: *Array'Input.Key, result: *KeyShortcut)->f32
+private func addSystemShortcutPicker(dialog: *Dialog, body: *Wnd, choices: *Array!{Input.Key}, result: *KeyShortcut)->f32
 {
     let text    = strings()
     let metrics = body.themeMetrics()
@@ -296,8 +338,11 @@ private func addSystemShortcutPicker(dialog: *Dialog, body: *Wnd, choices: *Arra
     let modifierNames = [text.shortcuts_NoModifier, "Shift", "Ctrl", "Ctrl Shift", "Alt", "Alt Shift", "Alt Ctrl", "Alt Ctrl Shift"]
     let modifiers     = [Input.KeyModifiers.None, .Shift, .Control, .CtrlShift,
                          .Alt, Input.KeyModifiers.Alt | .Shift, .CtrlAlt, Input.KeyModifiers.CtrlAlt | .Shift]
-    for name in modifierNames do
+    for name in modifierNames
+    {
         mods.addItem(name)
+    }
+
     mods.setSelectedIndex(0, notify: false)
     mods.sigChanged += func|result, modifiers|(_, index) { result.modifiers = modifiers[index] }
 
@@ -331,7 +376,7 @@ private func captureShortcut(surface: *Surface, system: bool)->KeyShortcut
     let dialog  = Dialog.create(surface, cast(s32, MessageDlg.MinMessageWidth), 0, title: text.shortcuts_Change)
     dialog.addButton(text.dlg_Cancel, Dialog.BtnCancel)
     var result:  #returntype
-    var choices: Array'Input.Key
+    var choices: Array!{Input.Key}
     let body   = dialog.createContentView()
     var height = metrics.control_DialogHeight
     let field  = EditBox.create(body, "", {0, 0, 0, height}, flags: .ReadOnly)
@@ -341,8 +386,11 @@ private func captureShortcut(surface: *Surface, system: bool)->KeyShortcut
     {
         if event is KeyEvent as key where key.kind == .Pressed
         {
-            if system and key.key == .Tab and (key.modifiers == .None or key.modifiers == .Shift) do
+            if system and key.key == .Tab and (key.modifiers == .None or key.modifiers == .Shift)
+            {
                 return false
+            }
+
             if canBindShortcut(key.key)
             {
                 result.key       = key.key
@@ -356,11 +404,17 @@ private func captureShortcut(surface: *Surface, system: bool)->KeyShortcut
         return false
     }
 
-    if system do
+    if system
+    {
         height += addSystemShortcutPicker(dialog, body, &choices, &result)
+    }
+
     dialog.fitHeightToContent(height)
-    if dialog.doModal() != Dialog.BtnOk do
+    if dialog.doModal() != Dialog.BtnOk
+    {
         return {}
+    }
+
     return result
 }
 
@@ -377,8 +431,11 @@ internal func editKeyboardShortcuts(surface: *Surface, commands: const [..] Shor
         dialog.addButton(text.dlg_Cancel, Dialog.BtnCancel)
         dialog.addButton(text.shortcuts_Save, Dialog.BtnOk, true)
         discard ShortcutEditor.create(dialog, commands, &draft)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
+
         catch app.updateShortcuts(draft)
         {
             MessageDlg.error(surface, text.shortcuts_Failed, Swag.err)

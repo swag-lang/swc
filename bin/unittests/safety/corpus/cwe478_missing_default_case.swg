@@ -56,7 +56,7 @@ func handleWithDefault(signal: Signal)->s32
 // The default explicitly preserves the current value for other signals.
 func handleStartOnly(signal: Signal)->s32
 {
-    var result = -1's32
+    var result = -1_s32
     switch signal
     {
     case .Start: result = 1

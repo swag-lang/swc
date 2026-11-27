@@ -15,8 +15,11 @@
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         for surface in host.app.surfaces
         {
             if surface.view() is MessageDlg as dialog

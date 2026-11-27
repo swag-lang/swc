@@ -33,9 +33,11 @@ func day1A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var expenseEntries: Array's32
-    for line in lines do
+    var expenseEntries: Array!{s32}
+    for line in lines
+    {
         expenseEntries.add(expect StrConv.toS32(line[]))
+    }
 
     expenseEntries.sort()
 

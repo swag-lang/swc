@@ -18,7 +18,7 @@ private const Eac3FrameExponentStrategies: [32, 6] u32 = [
     3, 3, 1, 0, 0, 0, 3, 3, 2, 0, 0, 3, 3, 3, 2, 0, 2, 0, 3, 3, 2, 0, 3, 3,
     3, 3, 3, 2, 0, 0, 3, 3, 3, 2, 0, 3, 3, 3, 3, 3, 2, 0, 3, 3, 3, 3, 3, 3]
 
-private const MaxEac3ChannelBandwidthCode = 60'u32
+private const MaxEac3ChannelBandwidthCode = 60_u32
 
 private struct Eac3Bsi
 {
@@ -56,33 +56,44 @@ private struct Eac3Codec
 {
     using base: Codec
 
-    sampleRate:   u32
-    channels:     u32
-    block:        Ac3Block
-    imdct:        [MaxChannels] Imdct
-    stereoImdct:  StereoImdct
-    coefficients: [MaxChannels, SamplesPerBlock] f64
-    ditherState:  u32 = 0x6E624EB7
+    sampleRate:    u32
+    channels:      u32
+    block:         Ac3Block
+    imdct:         [MaxChannels] Imdct
+    stereoImdct:   StereoImdct
+    surroundImdct: SurroundImdct
+    mantissaGains: PreparedMantissaGains
+    coefficients:  [MaxChannels, SamplesPerBlock] f64
+    dither:        DitherGenerator
 }
 
 internal func eac3BitAllocationFscod(fscod, reducedFscod: u32)->u32 => fscod == 3 ? reducedFscod : fscod
 
 private func parseEac3Bsi(reader: *BitReader)->Eac3Bsi fail
 {
-    if reader.read(16) != 0x0B77 do
+    if reader.read(16) != 0x0B77
+    {
         fail InvalidFormatError{"E-AC-3 packet has an invalid sync word"}
+    }
+
     var result: #returntype
     result.streamType = reader.read(2)
-    if result.streamType != 0 do
+    if result.streamType != 0
+    {
         fail UnsupportedFormatError{"E-AC-3 decoding currently supports independent substreams"}
+    }
+
     discard reader.read(3)
     result.frameSize = (reader.read(11) + 1) * 2
     result.fscod     = reader.read(2)
     if result.fscod == 3
     {
         let reduced = reader.read(2)
-        if reduced >= 3 do
+        if reduced >= 3
+        {
             fail InvalidFormatError{"E-AC-3 packet has a reserved reduced sample rate"}
+        }
+
         result.sampleRate   = SampleRates[reduced] / 2
         result.reducedFscod = reduced
         result.blocks       = 6
@@ -96,48 +107,78 @@ private func parseEac3Bsi(reader: *BitReader)->Eac3Bsi fail
 
     result.acmod   = reader.read(3)
     result.nfchans = FullBandwidthChannels[result.acmod]
-    result.lfeon   = reader.read(1) != 0
+    result.lfeon   = reader.readBit() != 0
     let bsid = reader.read(5)
-    if bsid < 11 or bsid > 16 do
+    if bsid < 11 or bsid > 16
+    {
         fail InvalidFormatError{"E-AC-3 packet has an invalid bit-stream identification"}
+    }
 
     discard reader.read(5)
-    if reader.read(1) do
+    if reader.readBit()
+    {
         reader.skip(8)
+    }
+
     if not result.acmod
     {
         reader.skip(5)
-        if reader.read(1) do
+        if reader.readBit()
+        {
             reader.skip(8)
+        }
     }
 
-    if reader.read(1) do
+    if reader.readBit()
+    {
         fail UnsupportedFormatError{"E-AC-3 mixing metadata is not supported"}
-    if reader.read(1)
+    }
+
+    if reader.readBit()
     {
         reader.skip(5)     // bsmod, copyrightb, origbs
-        if result.acmod == 2 do
+        if result.acmod == 2
+        {
             reader.skip(4)     // dsurmod, dheadphonmod
-        if result.acmod >= 6 do
+        }
+
+        if result.acmod >= 6
+        {
             reader.skip(2)     // dsurexmod
-        if reader.read(1) do
+        }
+
+        if reader.readBit()
+        {
             reader.skip(8)     // mixlevel, roomtyp, adconvtyp
-        if not result.acmod and reader.read(1) do
+        }
+
+        if not result.acmod and reader.readBit()
+        {
             reader.skip(8)
-        if result.fscod < 3 do
+        }
+
+        if result.fscod < 3
+        {
             reader.skip(1)     // sourcefscod
-        if result.streamType == 0 and result.blocks != 6 do
+        }
+
+        if result.streamType == 0 and result.blocks != 6
+        {
             reader.skip(1)     // convsync
+        }
     }
 
-    if reader.read(1)
+    if reader.readBit()
     {
         let bytes = reader.read(6) + 1
         reader.skip(cast(u64, bytes) * 8)
     }
 
-    if reader.overrun do
+    if reader.overrun
+    {
         fail InvalidFormatError{"E-AC-3 bit-stream information is truncated"}
+    }
+
     return result
 }
 
@@ -146,9 +187,11 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
     var result: #returntype
     if bsi.blocks == 6
     {
-        result.expstre = reader.read(1) != 0
-        if reader.read(1) do
+        result.expstre = reader.readBit() != 0
+        if reader.readBit()
+        {
             fail UnsupportedFormatError{"E-AC-3 adaptive hybrid transform is not supported"}
+        }
     }
     else
     {
@@ -156,28 +199,36 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
     }
 
     result.snrStrategy = reader.read(2)
-    if reader.read(1) do
+    if reader.readBit()
+    {
         fail UnsupportedFormatError{"E-AC-3 transient pre-noise processing is not supported"}
-    result.blockSwitch = reader.read(1) != 0
-    result.ditherFlags = reader.read(1) != 0
-    result.allocation  = reader.read(1) != 0
-    result.fastGain    = reader.read(1) != 0
-    result.delta       = reader.read(1) != 0
-    result.skip        = reader.read(1) != 0
-    if reader.read(1) do
+    }
+
+    result.blockSwitch = reader.readBit() != 0
+    result.ditherFlags = reader.readBit() != 0
+    result.allocation  = reader.readBit() != 0
+    result.fastGain    = reader.readBit() != 0
+    result.delta       = reader.readBit() != 0
+    result.skip        = reader.readBit() != 0
+    if reader.readBit()
+    {
         fail UnsupportedFormatError{"E-AC-3 spectral-extension attenuation is not supported"}
+    }
 
     if bsi.acmod > 1
     {
-        result.coupling[0]    = reader.read(1) != 0
+        result.coupling[0]    = reader.readBit() != 0
         result.couplingNew[0] = true
         var previous = result.coupling[0]
-        var block    = 1'u32
+        var block    = 1_u32
         while block < bsi.blocks
         {
-            result.couplingNew[block] = reader.read(1) != 0
-            if result.couplingNew[block] do
-                previous = reader.read(1) != 0
+            result.couplingNew[block] = reader.readBit() != 0
+            if result.couplingNew[block]
+            {
+                previous = reader.readBit() != 0
+            }
+
             result.coupling[block] = previous
             block += 1
         }
@@ -187,10 +238,15 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
     {
         for block in bsi.blocks
         {
-            if result.coupling[block] do
+            if result.coupling[block]
+            {
                 result.couplingExp[block] = reader.read(2)
-            for channel in bsi.nfchans do
+            }
+
+            for channel in bsi.nfchans
+            {
                 result.channelExp[block, channel] = reader.read(2)
+            }
         }
     }
     else
@@ -198,37 +254,48 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
         if bsi.acmod > 1
         {
             var coupled = false
-            for block in bsi.blocks where result.coupling[block] do
+            for block in bsi.blocks where result.coupling[block]
+            {
                 coupled = true
+            }
+
             if coupled
             {
                 let code = reader.read(5)
-                for block in bsi.blocks do
+                for block in bsi.blocks
+                {
                     result.couplingExp[block] = Eac3FrameExponentStrategies[code, block]
+                }
             }
         }
 
         for channel in bsi.nfchans
         {
             let code = reader.read(5)
-            for block in bsi.blocks do
+            for block in bsi.blocks
+            {
                 result.channelExp[block, channel] = Eac3FrameExponentStrategies[code, block]
+            }
         }
     }
 
     if bsi.lfeon
     {
-        for block in bsi.blocks do
-            result.lfeExp[block] = reader.read(1)
+        for block in bsi.blocks
+        {
+            result.lfeExp[block] = reader.readBit()
+        }
     }
 
     if bsi.streamType == 0
     {
-        let converterStrategies = bsi.blocks == 6 or reader.read(1) != 0
+        let converterStrategies = bsi.blocks == 6 or reader.readBit() != 0
         if converterStrategies
         {
-            for bsi.nfchans do
+            for bsi.nfchans
+            {
                 discard reader.read(5)
+            }
         }
     }
 
@@ -238,10 +305,10 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
         result.fineSnr   = reader.read(4)
     }
 
-    if bsi.blocks != 1 and reader.read(1)
+    if bsi.blocks != 1 and reader.readBit()
     {
         var frameBits = bsi.frameSize * 8
-        var log2      = 0'u32
+        var log2      = 0_u32
         while frameBits
         {
             log2      += 1
@@ -251,8 +318,11 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
         reader.skip(cast(u64, (bsi.blocks - 1)) * (4 + log2))
     }
 
-    if reader.overrun do
+    if reader.overrun
+    {
         fail InvalidFormatError{"E-AC-3 audio-frame header is truncated"}
+    }
+
     return result
 }
 
@@ -270,16 +340,13 @@ private impl Eac3Codec
         Memory.set(&.block, 0, #sizeof(.block))
         Memory.set(&.coefficients, 0, #sizeof(.coefficients))
         .stereoImdct.active = false
-        for channel in MaxChannels do
+        .surroundImdct.reset()
+        for channel in MaxChannels
+        {
             .imdct[channel].reset()
-        .ditherState = 0x6E624EB7
-    }
+        }
 
-    mtd ditherValue()->f64
-    {
-        .ditherState *= #wrap 1_664_525
-        .ditherState += #wrap 1_013_904_223
-        return (cast(f64, (.ditherState >> 8)) / 16_777_216.0 - 0.5) * 1.4142135623730951
+        .dither.state = 0x6E624EB7
     }
 
     mtd readCoupling(reader: *BitReader, bsi: const *Eac3Bsi, frame: const *Eac3Frame, blockIndex: u32, firstCoordinates: *[MaxFullBandwidthChannels] bool, firstStrategy: *bool) fail
@@ -290,13 +357,19 @@ private impl Eac3Codec
         {
             if not block.coupling
             {
-                for channel in bsi.nfchans do
+                for channel in bsi.nfchans
+                {
                     block.channelCoupled[channel] = false
+                }
+
                 return
             }
 
-            if reader.read(1) do
+            if reader.readBit()
+            {
                 fail UnsupportedFormatError{"E-AC-3 enhanced coupling is not supported"}
+            }
+
             if bsi.acmod == 2
             {
                 block.channelCoupled[0] = true
@@ -304,29 +377,42 @@ private impl Eac3Codec
             }
             else
             {
-                for channel in bsi.nfchans do
-                    block.channelCoupled[channel] = reader.read(1) != 0
+                for channel in bsi.nfchans
+                {
+                    block.channelCoupled[channel] = reader.readBit() != 0
+                }
             }
 
-            block.phaseFlagsInUse = bsi.acmod == 2 and reader.read(1) != 0
+            block.phaseFlagsInUse = bsi.acmod == 2 and reader.readBit() != 0
             block.couplingBegin   = reader.read(4)
             block.couplingEnd     = reader.read(4)
-            let subbands = 3's32 + cast(s32, block.couplingEnd) - cast(s32, block.couplingBegin)
-            if subbands < 1 or subbands > 18 do
+            let subbands = 3_s32 + cast(s32, block.couplingEnd) - cast(s32, block.couplingBegin)
+            if subbands < 1 or subbands > 18
+            {
                 fail InvalidFormatError{"E-AC-3 coupling range is invalid"}
+            }
+
             block.couplingSubbands = cast(u32, subbands)
-            let explicitBands = reader.read(1) != 0
+            let explicitBands = reader.readBit() != 0
             block.couplingBandJoin[0] = false
             block.couplingBands       = block.couplingSubbands
-            var subband = 1'u32
+            var subband = 1_u32
             while subband < block.couplingSubbands
             {
-                if explicitBands do
-                    block.couplingBandJoin[subband] = reader.read(1) != 0
-                elif firstStrategy[] do
+                if explicitBands
+                {
+                    block.couplingBandJoin[subband] = reader.readBit() != 0
+                }
+                else if firstStrategy[]
+                {
                     block.couplingBandJoin[subband] = isDefaultEac3CouplingJoin(block.couplingBegin + subband)
-                if block.couplingBandJoin[subband] do
+                }
+
+                if block.couplingBandJoin[subband]
+                {
                     block.couplingBands -= 1
+                }
+
                 subband += 1
             }
 
@@ -335,13 +421,15 @@ private impl Eac3Codec
             block.couplingEndMantissa = cast(s32, (block.couplingEnd + 3)) * 12 + 37
         }
 
-        if not block.coupling do
+        if not block.coupling
+        {
             return
+        }
 
         var anyCoordinates = false
         for channel in bsi.nfchans where block.channelCoupled[channel]
         {
-            let newCoordinates = firstCoordinates[][channel] or reader.read(1) != 0
+            let newCoordinates = firstCoordinates[][channel] or reader.readBit() != 0
             firstCoordinates[][channel] = false
             if newCoordinates
             {
@@ -357,14 +445,16 @@ private impl Eac3Codec
 
         if bsi.acmod == 2 and block.phaseFlagsInUse and anyCoordinates
         {
-            for band in block.couplingBands do
-                block.couplingPhase[band] = reader.read(1) != 0
+            for band in block.couplingBands
+            {
+                block.couplingPhase[band] = reader.readBit() != 0
+            }
         }
 
         for channel in bsi.nfchans where block.channelCoupled[channel]
         {
             var coordinate: f64
-            var coordinateBand = 0'u32
+            var coordinateBand = 0_u32
             for subband in block.couplingSubbands
             {
                 if not block.couplingBandJoin[subband]
@@ -373,8 +463,11 @@ private impl Eac3Codec
                     let mantissa = block.couplingCoordMant[channel, coordinateBand]
                     coordinate = exponent == 15 ? cast(f64, mantissa) / 16.0 : cast(f64, (mantissa + 16)) / 32.0
                     coordinate *= mantissaScale(cast(s32, (exponent + 3 * block.couplingMaster[channel])))
-                    if channel == 1 and block.phaseFlagsInUse and block.couplingPhase[coordinateBand] do
+                    if channel == 1 and block.phaseFlagsInUse and block.couplingPhase[coordinateBand]
+                    {
                         coordinate = -coordinate
+                    }
+
                     coordinateBand += 1
                 }
 
@@ -387,15 +480,21 @@ private impl Eac3Codec
     {
         let block = &.block
         block.couplingExpStrategy = frame.couplingExp[blockIndex]
-        for channel in bsi.nfchans do
+        for channel in bsi.nfchans
+        {
             block.channelExpStrategy[channel] = frame.channelExp[blockIndex, channel]
+        }
+
         block.lfeExpStrategy = frame.lfeExp[blockIndex]
 
         for channel in bsi.nfchans where block.channelExpStrategy[channel] and not block.channelCoupled[channel]
         {
             let bandwidth = reader.read(6)
-            if bandwidth > MaxEac3ChannelBandwidthCode do
+            if bandwidth > MaxEac3ChannelBandwidthCode
+            {
                 fail InvalidFormatError{"E-AC-3 channel bandwidth code is reserved"}
+            }
+
             block.channelBandwidth[channel] = bandwidth
         }
 
@@ -416,24 +515,34 @@ private impl Eac3Codec
             discard reader.read(2)
         }
 
-        for channel in bsi.nfchans where not block.channelExpStrategy[channel] and block.channelCoupled[channel] do
+        for channel in bsi.nfchans where not block.channelExpStrategy[channel] and block.channelCoupled[channel]
+        {
             block.channelEnd[channel] = block.couplingStart
-        if bsi.lfeon and block.lfeExpStrategy do
+        }
+
+        if bsi.lfeon and block.lfeExpStrategy
+        {
             try decodeExponents(reader, 1, 2, reader.read(4), 1, &block.lfeExponents)
+        }
     }
 
-    mtd readAllocation(reader: *BitReader, bsi: const *Eac3Bsi, frame: const *Eac3Frame, blockIndex: u32) fail
+    mtd readAllocation(reader: *BitReader, bsi: const *Eac3Bsi, frame: const *Eac3Frame, blockIndex: u32, previousChannelEnd: const *[MaxFullBandwidthChannels] s32, couplingChanged: bool) fail
     {
         let block = &.block
-        if frame.allocation and reader.read(1)
+
+        // A new frame resets the allocation defaults, even when later blocks reuse them.
+        var refreshAll      = not blockIndex
+        var refreshCoupling = couplingChanged
+        if frame.allocation and reader.readBit()
         {
+            refreshAll          = true
             block.slowDecayCode = reader.read(2)
             block.fastDecayCode = reader.read(2)
             block.slowGainCode  = reader.read(2)
             block.dbPerBitCode  = reader.read(2)
             block.floorCode     = reader.read(3)
         }
-        elif not blockIndex
+        else if not blockIndex
         {
             block.slowDecayCode = 2
             block.fastDecayCode = 1
@@ -459,66 +568,96 @@ private impl Eac3Codec
 
         if frame.snrStrategy != 0
         {
-            let present = not blockIndex or reader.read(1) != 0
+            let present = not blockIndex or reader.readBit() != 0
             if present
             {
+                refreshAll      = true
                 block.coarseSnr = reader.read(6)
                 if frame.snrStrategy == 1
                 {
                     let fine = reader.read(4)
                     block.couplingFineSnr = fine
-                    for channel in bsi.nfchans do
+                    for channel in bsi.nfchans
+                    {
                         block.channelFineSnr[channel] = fine
+                    }
+
                     block.lfeFineSnr = fine
                 }
                 else
                 {
-                    if block.coupling do
+                    if block.coupling
+                    {
                         block.couplingFineSnr = reader.read(4)
-                    for channel in bsi.nfchans do
+                    }
+
+                    for channel in bsi.nfchans
+                    {
                         block.channelFineSnr[channel] = reader.read(4)
-                    if bsi.lfeon do
+                    }
+
+                    if bsi.lfeon
+                    {
                         block.lfeFineSnr = reader.read(4)
+                    }
                 }
             }
         }
 
-        if frame.fastGain and reader.read(1)
+        if frame.fastGain and reader.readBit()
         {
-            if block.coupling do
+            refreshAll = true
+            if block.coupling
+            {
                 block.couplingFastGain = reader.read(3)
-            for channel in bsi.nfchans do
+            }
+
+            for channel in bsi.nfchans
+            {
                 block.channelFastGain[channel] = reader.read(3)
-            if bsi.lfeon do
+            }
+
+            if bsi.lfeon
+            {
                 block.lfeFastGain = reader.read(3)
+            }
         }
 
-        if bsi.streamType == 0 and reader.read(1) do
+        if bsi.streamType == 0 and reader.readBit()
+        {
             reader.skip(10)
+        }
+
         if block.coupling
         {
-            let leakPresent = not blockIndex or reader.read(1) != 0
+            let leakPresent = not blockIndex or reader.readBit() != 0
             if leakPresent
             {
+                refreshCoupling        = true
                 block.couplingFastLeak = reader.read(3)
                 block.couplingSlowLeak = reader.read(3)
             }
         }
 
-        if frame.delta and reader.read(1)
+        if frame.delta and reader.readBit()
         {
+            refreshAll = true
             if block.coupling
             {
                 block.couplingDelta.mode = reader.read(2)
-                if block.couplingDelta.mode == 3 do
+                if block.couplingDelta.mode == 3
+                {
                     fail InvalidFormatError{"E-AC-3 coupling delta allocation is reserved"}
+                }
             }
 
             for channel in bsi.nfchans
             {
                 block.channelDelta[channel].mode = reader.read(2)
-                if block.channelDelta[channel].mode == 3 do
+                if block.channelDelta[channel].mode == 3
+                {
                     fail InvalidFormatError{"E-AC-3 channel delta allocation is reserved"}
+                }
             }
 
             if block.coupling and block.couplingDelta.mode == 1
@@ -548,8 +687,11 @@ private impl Eac3Codec
         {
             let begin = REMATRIX_BANDS[band]
             var end   = REMATRIX_BANDS[band + 1]
-            if block.coupling do
+            if block.coupling
+            {
                 end = Math.min(end, 36 + cast(s32, block.couplingBegin) * 12)
+            }
+
             var bin = begin
             while bin < end
             {
@@ -561,7 +703,7 @@ private impl Eac3Codec
             }
         }
 
-        if frame.skip and reader.read(1)
+        if frame.skip and reader.readBit()
         {
             let bytes = reader.read(9)
             reader.skip(cast(u64, bytes) * 8)
@@ -573,67 +715,23 @@ private impl Eac3Codec
         let dbKnee          = DB_PER_BIT[block.dbPerBitCode]
         let floor           = FLOOR[block.floorCode]
         let allocationFscod = eac3BitAllocationFscod(bsi.fscod, bsi.reducedFscod)
-        for channel in bsi.nfchans do
-            try bitAllocation'false(allocationFscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, &block.channelDelta[channel], &block.channelBap[channel, 0])
-        if block.coupling do
-            try bitAllocation'false(allocationFscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap)
-        if bsi.lfeon do
-            try bitAllocation'false(allocationFscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap)
-    }
 
-    mtd readMantissas(reader: *BitReader, bsi: const *Eac3Bsi)
-    {
-        let block        = &.block
-        var mantissas    = MantissaReader.create(reader)
-        var couplingRead = false
-        var couplingMantissas: [216] f64
-        for channel in bsi.nfchans
+        // Coupling can alter the channel end even when its exponents are reused.
+        for channel in bsi.nfchans where refreshAll or
+                                         block.channelExpStrategy[channel] or
+                                         block.channelEnd[channel] != previousChannelEnd[][channel]
         {
-            Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
-            for bin in cast(u64, block.channelEnd[channel])
-            {
-                let bap      = block.channelBap[channel, bin]
-                let exponent = block.channelExponents[channel, bin]
-                if bap do
-                    .coefficients[channel, bin] = mantissas.getScaled(bap, exponent)
-                elif block.dither[channel] do
-                    .coefficients[channel, bin] = .ditherValue() * mantissaScale(exponent)
-            }
-
-            if block.coupling and block.channelCoupled[channel] and not couplingRead
-            {
-                let count = cast(u64, (block.couplingEndMantissa - block.couplingStart))
-                for bin in count where block.couplingBap[bin] do
-                    couplingMantissas[bin] = mantissas.getScaled(block.couplingBap[bin], block.couplingExponents[bin])
-                couplingRead = true
-            }
+            try bitAllocation(allocationFscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, &block.channelDelta[channel], &block.channelBap[channel, 0], &.mantissaGains.channel[channel, 0])
         }
 
-        if bsi.lfeon
+        if block.coupling and (refreshAll or refreshCoupling or block.couplingExpStrategy)
         {
-            let channel = bsi.nfchans
-            Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
-            for bin in 7 do
-                .coefficients[channel, bin] = mantissas.getScaled(block.lfeBap[bin], block.lfeExponents[bin])
+            try bitAllocation(allocationFscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap, &.mantissaGains.coupling)
         }
 
-        if block.coupling
+        if bsi.lfeon and (refreshAll or block.lfeExpStrategy)
         {
-            for channel in bsi.nfchans where block.channelCoupled[channel]
-            {
-                for subband in block.couplingSubbands
-                {
-                    for bin in 12
-                    {
-                        let source = subband * 12 + bin
-                        var value  = couplingMantissas[source]
-                        if not value and block.dither[channel] do
-                            value = .ditherValue() * mantissaScale(block.couplingExponents[source])
-                        let destination = block.couplingBegin * 12 + subband * 12 + bin + 37
-                        .coefficients[channel, destination] = value * block.couplingCoord[channel, subband] * 8.0
-                    }
-                }
-            }
+            try bitAllocation(allocationFscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap, &.mantissaGains.lfe)
         }
     }
 
@@ -643,66 +741,115 @@ private impl Eac3Codec
     {
         var reader = BitReader.create(packet.buffer, packet.count)
         let bsi    = try parseEac3Bsi(&reader)
-        if bsi.frameSize != packet.count do
+        if bsi.frameSize != packet.count
+        {
             fail InvalidFormatError{"E-AC-3 packet size does not match its sync-frame header"}
-        if bsi.sampleRate != .sampleRate do
+        }
+
+        if bsi.sampleRate != .sampleRate
+        {
             fail InvalidFormatError{"E-AC-3 packet sample rate differs from its container track"}
-        if bsi.nfchans + (bsi.lfeon ? 1 : 0) != .channels do
+        }
+
+        if bsi.nfchans + (bsi.lfeon ? 1 : 0) != .channels
+        {
             fail InvalidFormatError{"E-AC-3 packet channel layout differs from its container track"}
+        }
+
         let frame = try parseEac3Frame(&reader, &bsi)
         var firstCoordinates: [MaxFullBandwidthChannels] bool
-        for channel in bsi.nfchans do
+        for channel in bsi.nfchans
+        {
             firstCoordinates[channel] = true
+        }
+
         var firstStrategy = true
         for blockIndex in bsi.blocks
         {
-            for channel in bsi.nfchans do
-                .block.blockSwitch[channel] = frame.blockSwitch and reader.read(1) != 0
-            for channel in bsi.nfchans do
-                .block.dither[channel] = not frame.ditherFlags or reader.read(1) != 0
-            if reader.read(1) do
-                reader.skip(8)
-            if not bsi.acmod and reader.read(1) do
-                reader.skip(8)
+            for channel in bsi.nfchans
+            {
+                .block.blockSwitch[channel] = frame.blockSwitch and reader.readBit() != 0
+            }
 
-            let spxStrategy = not blockIndex or reader.read(1) != 0
-            if spxStrategy and reader.read(1) do
+            for channel in bsi.nfchans
+            {
+                .block.dither[channel] = not frame.ditherFlags or reader.readBit() != 0
+            }
+
+            if reader.readBit()
+            {
+                reader.skip(8)
+            }
+
+            if not bsi.acmod and reader.readBit()
+            {
+                reader.skip(8)
+            }
+
+            let spxStrategy = not blockIndex or reader.readBit() != 0
+            if spxStrategy and reader.readBit()
+            {
                 fail UnsupportedFormatError{"E-AC-3 spectral extension is not supported"}
+            }
+
+            let previousChannelEnd = .block.channelEnd
+            let hadCoupling        = .block.coupling
+            let previousStart      = .block.couplingStart
+            let previousEnd        = .block.couplingEndMantissa
             try .readCoupling(&reader, &bsi, &frame, blockIndex, &firstCoordinates, &firstStrategy)
             if bsi.acmod == 2
             {
-                let rematrixNew = not blockIndex or reader.read(1) != 0
+                let rematrixNew = not blockIndex or reader.readBit() != 0
                 if rematrixNew
                 {
-                    var rematrixCount = 4'u32
+                    var rematrixCount = 4_u32
                     if .block.coupling
                     {
-                        if .block.couplingBegin > 2 do
+                        if .block.couplingBegin > 2
+                        {
                             rematrixCount = 4
-                        elif .block.couplingBegin > 0 do
+                        }
+                        else if .block.couplingBegin > 0
+                        {
                             rematrixCount = 3
-                        else do
+                        }
+                        else
+                        {
                             rematrixCount = 2
+                        }
                     }
 
                     .block.rematrixCount = rematrixCount
-                    for band in .block.rematrixCount do
-                        .block.rematrix[band] = reader.read(1) != 0
+                    for band in .block.rematrixCount
+                    {
+                        .block.rematrix[band] = reader.readBit() != 0
+                    }
                 }
             }
 
             try .readExponents(&reader, &bsi, &frame, blockIndex)
-            try .readAllocation(&reader, &bsi, &frame, blockIndex)
-            .readMantissas(&reader, &bsi)
-            if reader.overrun do
+            let couplingChanged = not hadCoupling or
+                                  previousStart != .block.couplingStart or
+                                  previousEnd != .block.couplingEndMantissa
+            try .readAllocation(&reader, &bsi, &frame, blockIndex, &previousChannelEnd, couplingChanged)
+            readPreparedMantissas!{true, false}(&reader, &.block, bsi.nfchans, bsi.lfeon, &.coefficients[0, 0], &.mantissaGains, &.dither)
+            if reader.overrun
+            {
                 fail InvalidFormatError{"E-AC-3 audio block is truncated"}
+            }
 
             let target = destination + blockIndex * SamplesPerBlock * .channels
             if .channels == 2 and
                not .block.blockSwitch[0] and
                (bsi.nfchans < 2 or not .block.blockSwitch[1])
             {
-                .stereoImdct.process(&.imdct, &.coefficients, target)
+                .stereoImdct.process(&.imdct, &.coefficients[0, 0], target)
+                continue
+            }
+
+            if .channels == MaxChannels
+            {
+                .surroundImdct.process(&.imdct, &.coefficients, &.block.blockSwitch, target)
                 continue
             }
 
@@ -723,8 +870,11 @@ impl IPacketCodec for Eac3Codec
 
     mtd impl initialize(_: const [..] u8, sampleRateHz, channels: u32) fail
     {
-        if not sampleRateHz or not channels or channels > MaxChannels do
+        if not sampleRateHz or not channels or channels > MaxChannels
+        {
             fail BadParameterError{"E-AC-3 audio needs one to six channels and a non-zero sample rate"}
+        }
+
         .sampleRate = sampleRateHz
         .channels   = channels
         .resetState()
@@ -734,13 +884,19 @@ impl IPacketCodec for Eac3Codec
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
-        if packet.count < 6 do
+        if packet.count < 6
+        {
             fail InvalidFormatError{"E-AC-3 packet is truncated"}
+        }
+
         var header   = BitReader.create(packet.buffer, packet.count)
         let bsi      = try parseEac3Bsi(&header)
         let required = cast(u64, bsi.blocks) * SamplesPerBlock * .channels * #sizeof(s16)
-        if destinationSize < required do
+        if destinationSize < required
+        {
             fail BadParameterError{"E-AC-3 destination buffer is too small"}
+        }
+
         try .decodeFrame(packet, cast([*] s16, destination))
         return required
     }
@@ -753,22 +909,32 @@ internal func eac3FrameInfo(packet: const [..] u8)->FrameInfo fail
     const Reduced: [3] u32 = [24_000, 22_050, 16_000]
     const Blocks:  [4] u32 = [1, 2, 3, 6]
 
-    if packet.count < 5 do
+    if packet.count < 5
+    {
         fail InvalidFormatError{"E-AC-3 packet header is truncated"}
-    if packet[0] != 0x0B or packet[1] != 0x77 do
+    }
+
+    if packet[0] != 0x0B or packet[1] != 0x77
+    {
         fail InvalidFormatError{"E-AC-3 packet has no sync word"}
+    }
 
     var result: #returntype
     result.frameBytes = 2 * (((cast(u64, packet[2]) & 7) << 8) | cast(u64, packet[3])) + 2
-    if result.frameBytes < 7 do
+    if result.frameBytes < 7
+    {
         fail InvalidFormatError{"E-AC-3 frame is shorter than its sync header"}
+    }
 
     let fscod = cast(u32, (packet[4] >> 6)) & 3
     if fscod == 3
     {
         let fscod2 = cast(u32, (packet[4] >> 4)) & 3
-        if fscod2 == 3 do
+        if fscod2 == 3
+        {
             fail InvalidFormatError{"E-AC-3 frame states a reserved sampling frequency"}
+        }
+
         result.sampleRate = Reduced[cast(u64, fscod2)]
         result.frames     = 1536
     }
@@ -791,20 +957,28 @@ internal func eac3FrameInfo(packet: const [..] u8)->FrameInfo fail
 // which it carries is stated in the frame header.
 internal func eac3PacketFrameCount(packet: const [..] u8)->u32 fail
 {
-    if packet.count < 5 do
+    if packet.count < 5
+    {
         fail InvalidFormatError{"E-AC-3 packet header is truncated"}
-    if packet[0] != 0x0B or packet[1] != 0x77 do
+    }
+
+    if packet[0] != 0x0B or packet[1] != 0x77
+    {
         fail InvalidFormatError{"E-AC-3 packet has no sync word"}
+    }
 
     // A reduced sampling rate always uses six blocks; otherwise the block count is coded.
     let fscod = cast(u32, (packet[4] >> 6)) & 3
-    if fscod == 3 do
+    if fscod == 3
+    {
         return 1536
+    }
+
     const Blocks: [4] u32 = [1, 2, 3, 6]
     return Blocks[(packet[4] >> 4) & 3] * 256
 }
 
 #init
 {
-    registerPacketCodec'Eac3Codec()
+    registerPacketCodec!{Eac3Codec}()
 }

@@ -14,7 +14,7 @@ struct ComparisonSheet
     using wnd:      Wnd
     late workspace: *ViewerWorkspace
     late panel:     *FloatingPanel
-    facts:          Array'ComparisonFact
+    facts:          Array!{ComparisonFact}
     names:          [2] String
     different:      u64
     scroll:         f32
@@ -29,7 +29,7 @@ impl ComparisonSheet
         let panel = FloatingPanel.create(workspace, id: "scope.scene.information")
         panel.padding = {}
         panel.wndFlags.add(.TopMost)
-        let result = Wnd.create'ComparisonSheet(panel)
+        let result = Wnd.create!{ComparisonSheet}(panel)
         result.workspace       = workspace
         result.panel           = panel
         result.backgroundStyle = .Transparent
@@ -61,10 +61,16 @@ impl ComparisonSheet
         let metrics     = .themeMetrics()
         let factsHeight = cast(f32, .facts.count) * metrics.infoSheet_LineHeight
         var height      = .headerHeight() + metrics.infoSheet_LineGap + factsHeight + metrics.floating_Inset
-        if .different do
+        if .different
+        {
             height += metrics.infoSheet_LineHeight
-        if .different < .facts.count do
+        }
+
+        if .different < .facts.count
+        {
             height += metrics.infoSheet_LineHeight + (.different ? metrics.infoSheet_BlockGap : 0)
+        }
+
         return height
     }
 
@@ -85,17 +91,22 @@ impl ComparisonSheet
         for &view, side in scene.views
         {
             .names[side] = Path.fileName(view.path) orelse view.path.toString()
-            if view.document do
+            if view.document
+            {
                 data[side] = comparisonFacts(view.document)
+            }
         }
 
-        var paired: Array'bool
+        var paired: Array!{bool}
         paired.resize(data[1].rows.count)
         for &row in data[0].rows where not row.group and not row.value.isEmpty()
         {
             let title = row.label()
-            if not title.count do
+            if not title.count
+            {
                 continue
+            }
+
             var value: String
             for &candidate, index in data[1].rows
             {
@@ -103,8 +114,11 @@ impl ComparisonSheet
                    candidate.group or
                    candidate.value.isEmpty() or
                    candidate.field != row.field or
-                   candidate.name != row.name do
+                   candidate.name != row.name
+                {
                     continue
+                }
+
                 paired[index] = true
                 value         = candidate.value
                 break
@@ -116,8 +130,10 @@ impl ComparisonSheet
         for &row, index in data[1].rows where not paired[index] and not row.group and not row.value.isEmpty()
         {
             let title = row.label()
-            if title.count do
+            if title.count
+            {
                 .addFact(title, "", row.value)
+            }
         }
 
         .layoutSheet()
@@ -152,14 +168,18 @@ private func comparisonFacts(document: *ViewerWindow)->MediaInfoData
 
     case Viewers.PlainText.Panel as text:
         data.add(.Encoding, text.encodingName())
-        if text.hasStatistics do
+        if text.hasStatistics
+        {
             data.addTextStatistics(&text.statistics)
+        }
 
     case Viewers.Code.Panel as code:
         data.add(.Language, code.languageName)
         data.add(.Encoding, "UTF-8")
-        if code.hasStatistics do
+        if code.hasStatistics
+        {
             data.addTextStatistics(&code.statistics, withWords: false)
+        }
 
     case Viewers.Typeface.Panel as font:
         let face = font.document.face
@@ -218,8 +238,11 @@ impl IWnd for ComparisonSheet
         {
             if index == .different
             {
-                if .different do
+                if .different
+                {
                     y += metrics.infoSheet_BlockGap
+                }
+
                 .paintSection(painter, app.scene_Identical, y)
                 y += pitch
             }
@@ -229,8 +252,11 @@ impl IWnd for ComparisonSheet
             let valueWidth = differs ? span : Math.max(area.right() - inset - first, 0)
             painter.drawString(inset, y, Painter.elideString(fact.label, words, Math.max(first - 2 * inset, 0), .deviceScale()), words, colors.softText)
             painter.drawString(first, y, Painter.elideString(fact.left, mono, valueWidth, .deviceScale()), mono, color)
-            if differs do
+            if differs
+            {
                 painter.drawString(second, y, Painter.elideString(fact.right, mono, span, .deviceScale()), mono, color)
+            }
+
             y += pitch
         }
 
@@ -271,8 +297,11 @@ impl ViewerWorkspace
 
     mtd toggleComparisonSheet()
     {
-        if not .comparisonSheet do
+        if not .comparisonSheet
+        {
             .comparisonSheet = ComparisonSheet.create(me)
+        }
+
         let sheet = .comparisonSheet
         if sheet.panel.isLocallyVisible()
         {
@@ -290,8 +319,11 @@ impl ViewerWorkspace
 
     mtd closeComparisonSheet()
     {
-        if not .comparisonSheet or not .comparisonSheet.panel.isLocallyVisible() do
+        if not .comparisonSheet or not .comparisonSheet.panel.isLocallyVisible()
+        {
             return
+        }
+
         discard .app().animator.leave(.comparisonSheet.panel)
         .activeDocument().refreshExplorerCaption()
     }

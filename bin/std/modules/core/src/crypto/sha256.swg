@@ -36,15 +36,148 @@ impl Sha256
         func sig1(x: u32)      => (Swag.ror(x, 17) ^ Swag.ror(x, 19) ^ (x >> 10))
     }
 
-    mtd transform(buf: const [*] u8)
+    #[Swag.Inline]
+    mtd finalizeBlocks()
+    {
+        .bitLength         += .dataLength * 8
+        .data[.dataLength] = 0x80
+        var used = .dataLength + 1
+        if used > 56
+        {
+            Swag.memset(.data.buffer + used, 0, 64 - used)
+            .transformBlocks(.data, 1)
+            used = 0
+        }
+
+        Swag.memset(.data.buffer + used, 0, 56 - used)
+        cast([*] u64, .data.buffer)[7] = Math.nativeToBigEndian(.bitLength)
+        .transformBlocks(.data, 1)
+    }
+
+    #[Swag.Inline]
+    mtd finishHmacInner()->const [*] u32
+    {
+        .finalizeBlocks()
+        return .state.buffer
+    }
+
+    // The keyed prefix occupies one block and the outer input is one digest.
+    mtd(DigestWords: u64) finishHmacOuter(digest: const [*] u32)->const [*] u32
+    {
+        const DigestSize   = DigestWords * #sizeof(u32)
+        const LengthOffset = 56
+        const BitLength    = (64 + DigestSize) * 8
+        Crypto.writeSha2HmacDigest!{DigestWords}(digest, .data.buffer)
+        .data[DigestSize] = 0x80
+        Swag.memset(.data.buffer + DigestSize + 1, 0, LengthOffset - DigestSize - 1)
+        cast([*] u64, .data.buffer)[7] = Math.nativeToBigEndian(BitLength)
+        .transformBlocks(.data, 1)
+        return .state.buffer
+    }
+
+    mtd transformBlocks(buf: const [*] u8, blocks: u64)
+    {
+        if Swag.hasCpuFeature(.Sha)
+        {
+            .transformShaExtensions(buf, blocks)
+            return
+        }
+
+        var input = buf
+        for blocks
+        {
+            .transformPortable(input)
+            input += 64
+        }
+    }
+
+    mtd transformShaExtensions(buf: const [*] u8, blocks: u64)
+    {
+        using Math
+
+        #[Swag.Inline]
+        func rounds(words, roundConstants: Simd.U32x4, abef, cdgh: *Simd.U32x4)
+        {
+            const UpperPair = cast(Simd.U32x4, [2_u32, 3, 0, 0])
+            let input = words + roundConstants
+            cdgh[] = Swag.vecSha256Rounds2(cdgh[], abef[], input)
+            abef[] = Swag.vecSha256Rounds2(abef[], cdgh[], Simd.permute(input, UpperPair))
+        }
+
+        #[Swag.Inline]
+        func extend(oldest, older, newer, newest: Simd.U32x4)->Simd.U32x4
+        {
+            let partial = Swag.vecSha256Schedule1(oldest, older) + Simd.align(newer, newest, 4)
+            return Swag.vecSha256Schedule2(partial, newest)
+        }
+
+        // The SHA rounds consume two halves in reverse lane order.
+        let abcd  = Simd.load(.state.buffer)
+        let efgh  = Simd.load(.state.buffer + 4)
+        var abef  = Simd.permute2(abcd, efgh, cast(Simd.U32x4, [5_u32, 4, 1, 0]))
+        var cdgh  = Simd.permute2(abcd, efgh, cast(Simd.U32x4, [7_u32, 6, 3, 2]))
+        var input = cast(const [*] u32, buf)
+        for blocks
+        {
+            let savedAbef = abef
+            let savedCdgh = cdgh
+            var w0        = Math.byteSwap(Simd.load(input))
+            var w1        = Math.byteSwap(Simd.load(input + 4))
+            var w2        = Math.byteSwap(Simd.load(input + 8))
+            var w3        = Math.byteSwap(Simd.load(input + 12))
+
+            rounds(w0, Simd.load(K.buffer), &abef, &cdgh)
+            rounds(w1, Simd.load(K.buffer + 4), &abef, &cdgh)
+            rounds(w2, Simd.load(K.buffer + 8), &abef, &cdgh)
+            rounds(w3, Simd.load(K.buffer + 12), &abef, &cdgh)
+
+            w0 = extend(w0, w1, w2, w3)
+            rounds(w0, Simd.load(K.buffer + 16), &abef, &cdgh)
+            w1 = extend(w1, w2, w3, w0)
+            rounds(w1, Simd.load(K.buffer + 20), &abef, &cdgh)
+            w2 = extend(w2, w3, w0, w1)
+            rounds(w2, Simd.load(K.buffer + 24), &abef, &cdgh)
+            w3 = extend(w3, w0, w1, w2)
+            rounds(w3, Simd.load(K.buffer + 28), &abef, &cdgh)
+
+            w0 = extend(w0, w1, w2, w3)
+            rounds(w0, Simd.load(K.buffer + 32), &abef, &cdgh)
+            w1 = extend(w1, w2, w3, w0)
+            rounds(w1, Simd.load(K.buffer + 36), &abef, &cdgh)
+            w2 = extend(w2, w3, w0, w1)
+            rounds(w2, Simd.load(K.buffer + 40), &abef, &cdgh)
+            w3 = extend(w3, w0, w1, w2)
+            rounds(w3, Simd.load(K.buffer + 44), &abef, &cdgh)
+
+            w0 = extend(w0, w1, w2, w3)
+            rounds(w0, Simd.load(K.buffer + 48), &abef, &cdgh)
+            w1 = extend(w1, w2, w3, w0)
+            rounds(w1, Simd.load(K.buffer + 52), &abef, &cdgh)
+            w2 = extend(w2, w3, w0, w1)
+            rounds(w2, Simd.load(K.buffer + 56), &abef, &cdgh)
+            w3 = extend(w3, w0, w1, w2)
+            rounds(w3, Simd.load(K.buffer + 60), &abef, &cdgh)
+
+            abef  += savedAbef
+            cdgh  += savedCdgh
+            input += 16
+        }
+
+        Simd.store(.state.buffer, Simd.permute2(abef, cdgh, cast(Simd.U32x4, [3_u32, 2, 7, 6])))
+        Simd.store(.state.buffer + 4, Simd.permute2(abef, cdgh, cast(Simd.U32x4, [1_u32, 0, 5, 4])))
+    }
+
+    mtd transformPortable(buf: const [*] u8)
     {
         var m: [64] u32
 
         let input = cast(const [*] u32, buf)
-        for index in 16 do
+        for index in 16
+        {
             m[index] = Math.bigEndianToNative(input[index])
+        }
 
-        var i = 16'u32
+        var i = 16_u32
         while i < 64
         {
             m[i] = sig1(m[i - 2]) + m[i - 7] + sig0(m[i - 15]) + m[i - 16]
@@ -97,19 +230,7 @@ public impl Sha256
     // Call [[reset]] before reusing this value after finalization.
     mtd finalize()->Digest
     {
-        .bitLength         += .dataLength * 8
-        .data[.dataLength] = 0x80
-        var used = .dataLength + 1
-        if used > 56
-        {
-            Swag.memset(.data.buffer + used, 0, 64 - used)
-            .transform(.data)
-            used = 0
-        }
-
-        Swag.memset(.data.buffer + used, 0, 56 - used)
-        cast([*] u64, .data.buffer)[7] = Math.nativeToBigEndian(.bitLength)
-        .transform(.data)
+        .finalizeBlocks()
         return .state
     }
 
@@ -123,8 +244,11 @@ public impl Sha256
     mtd update(buffer: const [..] u8)
     {
         var remaining = buffer.count
-        if remaining == 0 do
+        if remaining == 0
+        {
             return
+        }
+
         var input = buffer.buffer
 
         if .dataLength
@@ -132,22 +256,26 @@ public impl Sha256
             let copied = Math.min(remaining, 64 - cast(u64, .dataLength))
             Swag.memcpy(.data.buffer + .dataLength, input, copied)
             .dataLength += cast(u32, copied)
-            if .dataLength < 64 do
+            if .dataLength < 64
+            {
                 return
+            }
 
-            .transform(.data)
+            .transformBlocks(.data, 1)
             .bitLength  += 512
             .dataLength = 0
             input       += copied
             remaining   -= copied
         }
 
-        while remaining >= 64
+        let blocks = remaining / 64
+        if blocks
         {
-            .transform(input)
-            .bitLength += 512
-            input      += 64
-            remaining  -= 64
+            .transformBlocks(input, blocks)
+            let processed = blocks * 64
+            .bitLength += processed * 8
+            input      += processed
+            remaining  -= processed
         }
 
         if remaining
@@ -174,6 +302,18 @@ public struct Sha224
     private initialized: bool
 }
 
+impl Sha224
+{
+    #[Swag.Inline]
+    mtd const hmacPrefixState()->const *[8] u32 => &.core.state
+
+    #[Swag.Inline]
+    mtd finishHmacInner()->const [*] u32 => .core.finishHmacInner()
+
+    #[Swag.Inline]
+    mtd finishHmacOuter(digest: const [*] u32)->const [*] u32 => .core.finishHmacOuter!{7}(digest)
+}
+
 public impl Sha224
 {
     // Stores a SHA-224 digest as seven 32-bit words in digest order.
@@ -191,8 +331,11 @@ public impl Sha224
     // Includes `buffer` in the running digest.
     mtd update(buffer: const [..] u8)
     {
-        if not .initialized do
+        if not .initialized
+        {
             .reset()
+        }
+
         .core.update(buffer)
     }
 
@@ -205,12 +348,18 @@ public impl Sha224
     // Finalizes the current sequence and returns its 224-bit digest.
     mtd finalize()->Digest
     {
-        if not .initialized do
+        if not .initialized
+        {
             .reset()
+        }
+
         let fullDigest = .core.finalize()
         var result: #returntype
-        for index in result.count do
+        for index in result.count
+        {
             result[index] = fullDigest[index]
+        }
+
         return result
     }
 

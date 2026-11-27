@@ -36,8 +36,11 @@ public impl Cursor
     // Returns a descriptor for a cursor shape.
     func from(shape: CursorShape)->Cursor
     {
-        if shape == .Hidden do
+        if shape == .Hidden
+        {
             return {hidden: true}
+        }
+
         return NativeCursor.defaultCursors[shape]
     }
 

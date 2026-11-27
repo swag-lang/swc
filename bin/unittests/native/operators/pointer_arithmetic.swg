@@ -62,11 +62,11 @@ alias PointerArithmeticStrictU8     = u8
 {
     var data: [4] u8 = [0, 1, 2, 3]
     var ptr = cast([*] u8, &data[0])
-    ptr += 1'u8
-    Swag.require(ptr[0] == 1'u8)
-    Swag.require(ptr[1] == 2'u8)
+    ptr += 1_u8
+    Swag.require(ptr[0] == 1_u8)
+    Swag.require(ptr[1] == 2_u8)
     ptr -= 1
-    Swag.require(ptr[3] == 3'u8)
+    Swag.require(ptr[3] == 3_u8)
 }
 
 #test
@@ -88,11 +88,11 @@ alias PointerArithmeticStrictU8     = u8
 {
     var data: [4] u8 = [0, 1, 2, 3]
     var ptr = cast(PointerArithmeticStrictU8Ptr, &data[0])
-    ptr += 1'u8
-    Swag.require(cast([*] u8, ptr)[0] == 1'u8)
-    Swag.require(cast([*] u8, ptr)[1] == 2'u8)
+    ptr += 1_u8
+    Swag.require(cast([*] u8, ptr)[0] == 1_u8)
+    Swag.require(cast([*] u8, ptr)[1] == 2_u8)
     ptr -= 1
-    Swag.require(cast([*] u8, ptr)[3] == 3'u8)
+    Swag.require(cast([*] u8, ptr)[3] == 3_u8)
 }
 
 #test

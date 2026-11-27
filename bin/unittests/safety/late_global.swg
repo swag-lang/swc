@@ -47,8 +47,10 @@ func lateSafetyReadSet()->s32
 #[Swag.Safety(.Null, true)]
 func lateSafetyAfterShortCircuit(flag: bool)->s32
 {
-    if flag and g_lateSafetyUnset.value > 0 do
+    if flag and g_lateSafetyUnset.value > 0
+    {
         return 1
+    }
     return g_lateSafetyUnset.value     // swc-expected-error {{safety_err_runtime}}
 }
 
@@ -75,8 +77,10 @@ func lateSafetyAfterConditional(flag: bool)->s32
 func lateSafetyAfterBranch(flag: bool)->s32
 {
     var total = 0
-    if flag do
+    if flag
+    {
         total = g_lateSafetyUnset.value
+    }
     return total + g_lateSafetyUnset.value     // swc-expected-error {{safety_err_runtime}}
 }
 
@@ -90,8 +94,10 @@ func lateSafetyAfterBranch(flag: bool)->s32
 func lateSafetyAfterEmptyLoop(count: u32)->s32
 {
     var total = 0
-    for count do
+    for count
+    {
         total += g_lateSafetyUnset.value
+    }
     return total + g_lateSafetyUnset.value     // swc-expected-error {{safety_err_runtime}}
 }
 
@@ -124,8 +130,10 @@ func lateSafetyReadMany(count: u32)->s32
     g_lateSafetyOther.value = 3
     g_lateSafetyMany        = &g_lateSafetyOther
     var total = g_lateSafetyMany.value
-    for count do
+    for count
+    {
         total += g_lateSafetyMany.value
+    }
     return total
 }
 
@@ -156,8 +164,10 @@ func lateSafetyReadQualified()->s32
 #[Swag.Inline]
 func lateSafetyMaybeRead(flag: bool)->s32
 {
-    if not flag do
+    if not flag
+    {
         return 0
+    }
     return g_lateSafetyUnset.value
 }
 

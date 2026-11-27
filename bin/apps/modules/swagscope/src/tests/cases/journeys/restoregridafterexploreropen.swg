@@ -12,20 +12,22 @@ using Audio, Core, Gui
     var journey: ScopeJourney
     journey.setup(withWorkspace: true)
     let workspace = unwrap journey.window.workspace
-    let folder = Path.combine(journey.root, "Library")
+    let folder    = Path.combine(journey.root, "Library")
     expect Directory.create(folder)
     let other = journey.copyData("sample.cpp", "other.cpp")
     let image = journey.copyData("viewer.png", "image.png")
     let film  = journey.copyData("viewer.avi", "film.avi")
 
     workspace.openScene([folder, other], .Grid4, manual: true)
-    let grid = unwrap workspace.scene()
-    let explorer = workspace.activeDocument()
+    let grid        = unwrap workspace.scene()
+    let explorer    = workspace.activeDocument()
     let folderReady = func|explorer, folder = &folder|()->bool
     {
-        return explorer.isExploring() and not explorer.explorer!.load.started and
+        return explorer.isExploring() and
+               not explorer.explorer!.load.started and
                Path.equals(explorer.explorer!.listing.path, folder[])
     }
+
     journey.waitFor("Explorer opened in the grid", folderReady)
     journey.waitForFile(other, unwrap grid.views[1].document)
 

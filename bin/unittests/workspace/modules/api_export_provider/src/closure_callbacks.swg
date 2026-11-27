@@ -32,14 +32,18 @@ impl DepSelfBufferSet
 {
     mtd opPostMove()
     {
-        if buffer do
+        if buffer
+        {
             buffer = cast([*] u8, &storage[0])
+        }
     }
 
     mtd opPostCopy()
     {
-        if buffer do
+        if buffer
+        {
             buffer = cast([*] u8, &storage[0])
+        }
     }
 
     #[Swag.NoInline]
@@ -79,8 +83,10 @@ func depContains(values: const [..] u8, count: u32, value: u8)->bool
 {
     for i in count
     {
-        if values[i] == value do
+        if values[i] == value
+        {
             return true
+        }
     }
 
     return false
@@ -91,8 +97,10 @@ func(T) depContainsGeneric(values: const [..] T, count: u32, value: T)->bool
 {
     for i in count
     {
-        if values[i] == value do
+        if values[i] == value
+        {
             return true
+        }
     }
 
     return false
@@ -124,8 +132,10 @@ func(T) depAllOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
     for v in values
     {
-        if not cb(v) do
+        if not cb(v)
+        {
             return false
+        }
     }
 
     return true

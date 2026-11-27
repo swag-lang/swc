@@ -28,9 +28,9 @@ enum StandardFont
 //
 // The four Courier faces share one fixed advance, and each oblique face has the metrics of
 // its upright companion, so twelve faces need six tables.
-private const StandardWidthFirst = 32'u32
-private const StandardWidthLast  = 126'u32
-private const CourierWidth       = 600'u16
+private const StandardWidthFirst = 32_u32
+private const StandardWidthLast  = 126_u32
+private const CourierWidth       = 600_u16
 
 private const HelveticaWidths: [95] u16 = [
     278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278,
@@ -109,10 +109,15 @@ impl StandardFont
     func fromBaseName(name: string)->{ font: StandardFont, found: bool }
     {
         var plain = name
-        if plain.count > 7 and plain[6] == '+' do
+        if plain.count > 7 and plain[6] == '+'
+        {
             plain = plain[7 until]
-        if not plain.count do
+        }
+
+        if not plain.count
+        {
             return {font: StandardFont.Helvetica, found: false}
+        }
 
         var lower: String = plain
         lower.makeLower()
@@ -121,12 +126,21 @@ impl StandardFont
 
         if lower.contains("courier") or lower.contains("mono")
         {
-            if bold and slant do
+            if bold and slant
+            {
                 return {font: StandardFont.CourierBoldOblique, found: true}
-            if bold do
+            }
+
+            if bold
+            {
                 return {font: StandardFont.CourierBold, found: true}
-            if slant do
+            }
+
+            if slant
+            {
                 return {font: StandardFont.CourierOblique, found: true}
+            }
+
             return {font: StandardFont.Courier, found: true}
         }
 
@@ -136,23 +150,41 @@ impl StandardFont
            lower.contains("georgia") or
            lower.contains("garamond")
         {
-            if bold and slant do
+            if bold and slant
+            {
                 return {font: StandardFont.TimesBoldItalic, found: true}
-            if bold do
+            }
+
+            if bold
+            {
                 return {font: StandardFont.TimesBold, found: true}
-            if slant do
+            }
+
+            if slant
+            {
                 return {font: StandardFont.TimesItalic, found: true}
+            }
+
             return {font: StandardFont.TimesRoman, found: true}
         }
 
         if lower.contains("helvetica") or lower.contains("arial")
         {
-            if bold and slant do
+            if bold and slant
+            {
                 return {font: StandardFont.HelveticaBoldOblique, found: true}
-            if bold do
+            }
+
+            if bold
+            {
                 return {font: StandardFont.HelveticaBold, found: true}
-            if slant do
+            }
+
+            if slant
+            {
                 return {font: StandardFont.HelveticaOblique, found: true}
+            }
+
             return {font: StandardFont.Helvetica, found: true}
         }
 
@@ -177,8 +209,11 @@ impl StandardFont
         if code < StandardWidthFirst or code > StandardWidthLast
         {
             let base = latinBaseRune(value)
-            if not base do
+            if not base
+            {
                 return cast(f32, table[cast(u32, '0') - StandardWidthFirst]) / 1000.0
+            }
+
             code = cast(u32, base)
         }
 
@@ -192,7 +227,7 @@ impl StandardFont
     mtd const textWidth(text: string, size: f32)->f32
     {
         let font  = me
-        var total = 0.0'f32
+        var total = 0.0_f32
         Utf8.visitRunes(text)
         {
             total += font.glyphWidth(c)

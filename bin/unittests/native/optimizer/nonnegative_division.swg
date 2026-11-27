@@ -11,7 +11,7 @@
 func follow(links: const [*] s64, start: s64)->s64
 {
     var cand  = start
-    var steps = 0's64
+    var steps = 0_s64
     while cand >= 0 and steps < 16
     {
         cand  = links[cand % 8]
@@ -26,8 +26,10 @@ func follow(links: const [*] s64, start: s64)->s64
 #[Swag.Optimize(true)]
 func middle(lo, hi: s64)->s64
 {
-    if hi - lo > 16 do
+    if hi - lo > 16
+    {
         return lo + (hi - lo) / 2
+    }
     return -1
 }
 
@@ -66,13 +68,17 @@ func isMultipleOf8(value: s64)->bool => value % 8 == 0
 #[Swag.Optimize(true)]
 func alternate(count: s64)->s64
 {
-    var sum = 0's64
+    var sum = 0_s64
     for i in -count until count
     {
-        if i % 2 == 0 do
+        if i % 2 == 0
+        {
             sum += i
-        else do
+        }
+        else
+        {
             sum -= 3
+        }
     }
 
     return sum
@@ -83,8 +89,10 @@ func alternate(count: s64)->s64
 #[Swag.Optimize(true)]
 func guardedByOther(value, other: s64)->s64
 {
-    if other >= 0 do
+    if other >= 0
+    {
         return value % 8
+    }
     return 0
 }
 

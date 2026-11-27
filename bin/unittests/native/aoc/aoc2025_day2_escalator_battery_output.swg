@@ -35,7 +35,10 @@ func bestBankOutput(bank: string)->s32
     for i in digits.count
     {
         let first = digitValue(digits[i])
-        if i + 1 >= digits.count do continue
+        if i + 1 >= digits.count
+        {
+            continue
+        }
 
         for j in i + 1 to cast(u64, digits.count) - 1
         {
@@ -81,7 +84,7 @@ func auditBanks(banks: const [..] string)->BatteryAudit
     Swag.require(bestBankOutput(sampleBanks[1]) == 89)
     Swag.require(bestBankOutput(sampleBanks[2]) == 78)
     Swag.require(bestBankOutput(sampleBanks[3]) == 92)
-    Swag.require(sampleAudit.bankCount == 4'u32)
+    Swag.require(sampleAudit.bankCount == 4_u32)
     Swag.require(sampleAudit.totalOutput == 357)
     Swag.require(sampleAudit.highestBank == 98)
     Swag.require(sampleAudit.lowestBank == 78)
@@ -102,7 +105,7 @@ func auditBanks(banks: const [..] string)->BatteryAudit
     Swag.require(bestBankOutput(depotBanks[2]) == 55)
     Swag.require(bestBankOutput(depotBanks[3]) == 66)
     Swag.require(bestBankOutput(depotBanks[4]) == 88)
-    Swag.require(depotAudit.bankCount == 5'u32)
+    Swag.require(depotAudit.bankCount == 5_u32)
     Swag.require(depotAudit.totalOutput == 343)
     Swag.require(depotAudit.highestBank == 88)
     Swag.require(depotAudit.lowestBank == 55)

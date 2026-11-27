@@ -35,10 +35,15 @@ using Core, Gui
     {
         let upper = image.pixelColor(x, cast(s32, rect.vertCenter() - glyphHeight * 0.3))
         let lower = image.pixelColor(x, cast(s32, rect.vertCenter() + glyphHeight * 0.25))
-        if cast(u32, upper.r) > cast(u32, upper.g) + 20 and cast(u32, upper.r) > cast(u32, upper.b) + 20 do
+        if cast(u32, upper.r) > cast(u32, upper.g) + 20 and cast(u32, upper.r) > cast(u32, upper.b) + 20
+        {
             shackle += 1
-        if cast(u32, lower.r) > cast(u32, lower.g) + 20 and cast(u32, lower.r) > cast(u32, lower.b) + 20 do
+        }
+
+        if cast(u32, lower.r) > cast(u32, lower.g) + 20 and cast(u32, lower.r) > cast(u32, lower.b) + 20
+        {
             body += 1
+        }
     }
 
     Swag.require(body > shackle, "the Vault shackle must stay above its body")

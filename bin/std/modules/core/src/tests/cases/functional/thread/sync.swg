@@ -46,11 +46,15 @@ func scopedLockUnlocksAfterContinue()->bool
     for index in 4
     {
         Sync.scopedLock(&sync)
-        if sync.depth != 1 do
+        if sync.depth != 1
+        {
             return false
+        }
 
-        if index != 3 do
+        if index != 3
+        {
             continue
+        }
 
         reachedTail += 1
     }
@@ -69,8 +73,10 @@ func scopedLockUnlocksAfterBreak()->bool
     for 5
     {
         Sync.scopedLock(&sync)
-        if sync.depth != 1 do
+        if sync.depth != 1
+        {
             return false
+        }
 
         seenInside += 1
         break
@@ -89,8 +95,11 @@ func scopedLockUnlocksAfterReturn()->bool
     scope
     {
         Sync.scopedLock(&sync)
-        if sync.depth != 1 do
+        if sync.depth != 1
+        {
             return false
+        }
+
         return true
     }
 }
@@ -103,11 +112,15 @@ func sharedLockUnlocksAfterContinue()->bool
     for index in 3
     {
         Sync.sharedLock(&sync)
-        if sync.sharedDepth != 1 do
+        if sync.sharedDepth != 1
+        {
             return false
+        }
 
-        if index != 2 do
+        if index != 2
+        {
             continue
+        }
 
         reachedTail += 1
     }

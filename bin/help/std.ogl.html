@@ -35,18 +35,21 @@
 <li><a href="#detailed-reference">Detailed reference</a></li>
 </ul>
 <details class="toc-group" open>
-<summary><span class="toc-label">Namespaces</span><span class="toc-count">3</span></summary>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">4</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-namespaces">All Namespaces</a></li>
 <li><a href="#namespace_Ogl">Ogl</a></li>
 <li><a href="#namespace_Ogl_Platform">Ogl.Platform</a></li>
-<li><a href="#namespace_Ogl_Platform_Win32">Ogl.Platform.Win32</a></li>
+<li><a href="#namespace_Ogl_Platform_Egl">Ogl.Platform.Egl</a></li>
+<li><a href="#namespace_Ogl_Platform_Xcb">Ogl.Platform.Xcb</a></li>
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">37</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">36</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
+<li><a href="#Ogl_Platform_Egl_Context">Egl.Context</a></li>
+<li><a href="#Ogl_Platform_Egl_Surface">Egl.Surface</a></li>
 <li><a href="#Ogl_extParamType_glDebugMessageCallback_callback">Ogl.extParamType_glDebugMessageCallback_callback</a></li>
 <li><a href="#Ogl_extParamType_glDebugMessageCallbackARB_callback">Ogl.extParamType_glDebugMessageCallbackARB_callback</a></li>
 <li><a href="#Ogl_GLbitfield">Ogl.GLbitfield</a></li>
@@ -79,15 +82,12 @@
 <li><a href="#Ogl_GLushort">Ogl.GLushort</a></li>
 <li><a href="#Ogl_GLvoid">Ogl.GLvoid</a></li>
 <li><a href="#Ogl_GLVULKANPROCNV">Ogl.GLVULKANPROCNV</a></li>
-<li><a href="#Ogl_HGLRC">Ogl.HGLRC</a></li>
-<li><a href="#Ogl_WglCreateContextAttribsProc">Ogl.WglCreateContextAttribsProc</a></li>
-<li><a href="#Ogl_WglGetExtensionsStringProc">Ogl.WglGetExtensionsStringProc</a></li>
-<li><a href="#Ogl_WglSwapIntervalProc">Ogl.WglSwapIntervalProc</a></li>
-<li><a href="#Ogl_Platform_Win32_Context">Win32.Context</a></li>
+<li><a href="#Ogl_Platform_Xcb_Context">Xcb.Context</a></li>
+<li><a href="#Ogl_Platform_Xcb_Surface">Xcb.Surface</a></li>
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Constants</span><span class="toc-count">3039</span></summary>
+<summary><span class="toc-label">Constants</span><span class="toc-count">3035</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-constants">All Constants</a></li>
 <li><a href="#Ogl_GL_2_BYTES">Ogl.GL_2_BYTES</a></li>
@@ -3125,22 +3125,22 @@
 <li><a href="#Ogl_GL_ZERO_TO_ONE">Ogl.GL_ZERO_TO_ONE</a></li>
 <li><a href="#Ogl_GL_ZOOM_X">Ogl.GL_ZOOM_X</a></li>
 <li><a href="#Ogl_GL_ZOOM_Y">Ogl.GL_ZOOM_Y</a></li>
-<li><a href="#Ogl_WGL_CONTEXT_FLAGS_ARB">Ogl.WGL_CONTEXT_FLAGS_ARB</a></li>
-<li><a href="#Ogl_WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB">Ogl.WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB</a></li>
-<li><a href="#Ogl_WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB">Ogl.WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB</a></li>
-<li><a href="#Ogl_WGL_LOSE_CONTEXT_ON_RESET_ARB">Ogl.WGL_LOSE_CONTEXT_ON_RESET_ARB</a></li>
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1650</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1651</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
-<li><a href="#Ogl_Platform_Win32_Context_clearCurrent">Context.clearCurrent</a></li>
-<li><a href="#Ogl_Platform_Win32_Context_destroy">Context.destroy</a></li>
-<li><a href="#Ogl_Platform_Win32_Context_isValid">Context.isValid</a></li>
-<li><a href="#Ogl_Platform_Win32_Context_makeCurrent">Context.makeCurrent</a></li>
-<li><a href="#Ogl_Platform_Win32_Context_opDrop">Context.opDrop</a></li>
-<li><a href="#Ogl_Platform_Win32_Context_swapBuffers">Context.swapBuffers</a></li>
+<li><a href="#Ogl_Platform_Xcb_Context_clearCurrent">Context.clearCurrent</a></li>
+<li><a href="#Ogl_Platform_Xcb_Context_createPbufferSurface">Context.createPbufferSurface</a></li>
+<li><a href="#Ogl_Platform_Xcb_Context_createSurface">Context.createSurface</a></li>
+<li><a href="#Ogl_Platform_Xcb_Context_destroy">Context.destroy</a></li>
+<li><a href="#Ogl_Platform_Xcb_Context_isValid">Context.isValid</a></li>
+<li><a href="#Ogl_Platform_Xcb_Context_makeCurrent">Context.makeCurrent</a></li>
+<li><a href="#Ogl_Platform_Xcb_Context_opDrop">Context.opDrop</a></li>
+<li><a href="#Ogl_Platform_Xcb_Context_swapBuffers">Context.swapBuffers</a></li>
+<li><a href="#Ogl_Platform_Xcb_Context_takeSurface">Context.takeSurface</a></li>
+<li><a href="#Ogl_Platform_Egl_createOffscreenContext">Egl.createOffscreenContext</a></li>
 <li><a href="#Ogl_glAccum">Ogl.glAccum</a></li>
 <li><a href="#Ogl_glActiveProgramEXT">Ogl.glActiveProgramEXT</a></li>
 <li><a href="#Ogl_glActiveShaderProgram">Ogl.glActiveShaderProgram</a></li>
@@ -4774,17 +4774,14 @@
 <li><a href="#Ogl_glWindowPos3s">Ogl.glWindowPos3s</a></li>
 <li><a href="#Ogl_glWindowPos3sv">Ogl.glWindowPos3sv</a></li>
 <li><a href="#Ogl_glWindowRectanglesEXT">Ogl.glWindowRectanglesEXT</a></li>
-<li><a href="#Ogl_wglCreateContext">Ogl.wglCreateContext</a></li>
-<li><a href="#Ogl_wglCreateContextAttribsARB">Ogl.wglCreateContextAttribsARB</a></li>
-<li><a href="#Ogl_wglDeleteContext">Ogl.wglDeleteContext</a></li>
-<li><a href="#Ogl_wglGetCurrentContext">Ogl.wglGetCurrentContext</a></li>
-<li><a href="#Ogl_wglGetCurrentDC">Ogl.wglGetCurrentDC</a></li>
-<li><a href="#Ogl_wglGetExtensionsStringARB">Ogl.wglGetExtensionsStringARB</a></li>
-<li><a href="#Ogl_wglGetProcAddress">Ogl.wglGetProcAddress</a></li>
-<li><a href="#Ogl_wglMakeCurrent">Ogl.wglMakeCurrent</a></li>
-<li><a href="#Ogl_wglShareLists">Ogl.wglShareLists</a></li>
-<li><a href="#Ogl_wglSwapIntervalEXT">Ogl.wglSwapIntervalEXT</a></li>
-<li><a href="#Ogl_Platform_Win32_createContext">Win32.createContext</a></li>
+<li><a href="#Ogl_Platform_Xcb_Surface_destroy">Surface.destroy</a></li>
+<li><a href="#Ogl_Platform_Xcb_Surface_isValid">Surface.isValid</a></li>
+<li><a href="#Ogl_Platform_Xcb_Surface_makeCurrent">Surface.makeCurrent</a></li>
+<li><a href="#Ogl_Platform_Xcb_Surface_opDrop">Surface.opDrop</a></li>
+<li><a href="#Ogl_Platform_Xcb_Surface_swapBuffers">Surface.swapBuffers</a></li>
+<li><a href="#Ogl_Platform_Xcb_createContext">Xcb.createContext</a></li>
+<li><a href="#Ogl_Platform_Xcb_createContextForDrawable">Xcb.createContextForDrawable</a></li>
+<li><a href="#Ogl_Platform_Xcb_setSwapInterval">Xcb.setSwapInterval</a></li>
 </ul>
 </details>
 </nav></aside>
@@ -4803,13 +4800,18 @@
 <tbody>
 <tr><td class="code-type"><a href="#namespace_Ogl">Ogl</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Ogl_Platform">Ogl.Platform</a></td></tr>
-<tr><td class="code-type"><a href="#namespace_Ogl_Platform_Win32">Ogl.Platform.Win32</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Ogl_Platform_Egl">Ogl.Platform.Egl</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Ogl_Platform_Xcb">Ogl.Platform.Xcb</a></td></tr>
 </tbody>
 </table>
 <h3 id="summary-types">Types</h3>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#Ogl_Platform_Egl_Context">Egl.Context</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>EGL context owner; the Xcb spelling remains available for existing window consumers.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Egl_Surface">Egl.Surface</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>EGL surface owner, used for a native window or an offscreen pbuffer.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Ogl_extParamType_glDebugMessageCallback_callback">Ogl.extParamType_glDebugMessageCallback_callback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_extParamType_glDebugMessageCallbackARB_callback">Ogl.extParamType_glDebugMessageCallbackARB_callback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GLbitfield">Ogl.GLbitfield</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
@@ -4842,11 +4844,9 @@
 <tr><td class="code-type"><a href="#Ogl_GLushort">Ogl.GLushort</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GLvoid">Ogl.GLvoid</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GLVULKANPROCNV">Ogl.GLVULKANPROCNV</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_HGLRC">Ogl.HGLRC</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WglCreateContextAttribsProc">Ogl.WglCreateContextAttribsProc</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WglGetExtensionsStringProc">Ogl.WglGetExtensionsStringProc</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WglSwapIntervalProc">Ogl.WglSwapIntervalProc</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context">Win32.Context</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a Windows OpenGL context and the window device context paired with it.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context">Xcb.Context</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns an EGL OpenGL 3.3 compatibility context and its initial window surface or pbuffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface">Xcb.Surface</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns one EGL window surface or pbuffer and borrows its OpenGL context.</p>
 </td></tr>
 </tbody>
 </table>
@@ -7944,28 +7944,31 @@
 <tr><td class="code-type"><a href="#Ogl_GL_ZERO_TO_ONE">Ogl.GL_ZERO_TO_ONE</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GL_ZOOM_X">Ogl.GL_ZOOM_X</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GL_ZOOM_Y">Ogl.GL_ZOOM_Y</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WGL_CONTEXT_FLAGS_ARB">Ogl.WGL_CONTEXT_FLAGS_ARB</a></td><td><p><span class="code-inline">WGL_ARB_create_context</span> and <span class="code-inline">WGL_ARB_create_context_robustness</span> attribute names and values.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Ogl_WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB">Ogl.WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB">Ogl.WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WGL_LOSE_CONTEXT_ON_RESET_ARB">Ogl.WGL_LOSE_CONTEXT_ON_RESET_ARB</a></td><td></td></tr>
 </tbody>
 </table>
 <h3 id="summary-functions">Functions</h3>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_clearCurrent">Context.clearCurrent</a></td><td><p>Clears the current OpenGL context from the calling thread.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_clearCurrent">Context.clearCurrent</a></td><td><p>Unbinds this context if it is current; leaves another current context unchanged.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_destroy">Context.destroy</a></td><td><p>Releases the rendering context and its acquired device context.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_createPbufferSurface">Context.createPbufferSurface</a></td><td><p>Creates an offscreen pbuffer on this context's existing EGL display and configuration.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_isValid">Context.isValid</a></td><td><p>Returns whether this value owns a native rendering context.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_createSurface">Context.createSurface</a></td><td><p>Creates another window surface using this context's display and visual configuration.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_makeCurrent">Context.makeCurrent</a></td><td><p>Makes this context current on the calling thread.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_destroy">Context.destroy</a></td><td><p>Releases owned resources without unbinding another current context; repeated calls are harmless.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_opDrop">Context.opDrop</a></td><td><p>Releases any remaining native resources when this value leaves scope.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_isValid">Context.isValid</a></td><td><p>Reports whether this owner contains a rendering context.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_swapBuffers">Context.swapBuffers</a></td><td><p>Presents the back buffer for this context's window.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_makeCurrent">Context.makeCurrent</a></td><td><p>Makes the owned initial surface current, or fails if the context or surface was released.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_opDrop">Context.opDrop</a></td><td><p>Releases any context and surface still owned by this value.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_swapBuffers">Context.swapBuffers</a></td><td><p>Presents this context's window back buffer; the context must be current.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_takeSurface">Context.takeSurface</a></td><td><p>Transfers the initial window surface to a separate owner, preserving its current binding.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Egl_createOffscreenContext">Egl.createOffscreenContext</a></td><td><p>Creates an OpenGL pbuffer without opening an X11 connection or a visible window.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Ogl_glAccum">Ogl.glAccum</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_glActiveProgramEXT">Ogl.glActiveProgramEXT</a></td><td></td></tr>
@@ -9600,20 +9603,21 @@
 <tr><td class="code-type"><a href="#Ogl_glWindowPos3s">Ogl.glWindowPos3s</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_glWindowPos3sv">Ogl.glWindowPos3sv</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_glWindowRectanglesEXT">Ogl.glWindowRectanglesEXT</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglCreateContext">Ogl.wglCreateContext</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglCreateContextAttribsARB">Ogl.wglCreateContextAttribsARB</a></td><td><p>Creates a context for <span class="code-inline">hDc</span> described by the zero-terminated attribute list <span class="code-inline">attribs</span>.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface_destroy">Surface.destroy</a></td><td><p>Destroys the surface, unbinding it only if it is current; repeated calls are harmless.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglDeleteContext">Ogl.wglDeleteContext</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglGetCurrentContext">Ogl.wglGetCurrentContext</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglGetCurrentDC">Ogl.wglGetCurrentDC</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglGetExtensionsStringARB">Ogl.wglGetExtensionsStringARB</a></td><td><p>Returns the WGL extension names published for <span class="code-inline">hDc</span>, separated by spaces.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface_isValid">Surface.isValid</a></td><td><p>Reports whether this owner still holds a native window surface.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglGetProcAddress">Ogl.wglGetProcAddress</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglMakeCurrent">Ogl.wglMakeCurrent</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglShareLists">Ogl.wglShareLists</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglSwapIntervalEXT">Ogl.wglSwapIntervalEXT</a></td><td><p>Sets how many display refreshes a <span class="code-inline">SwapBuffers</span> waits for, and reports whether it was accepted.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface_makeCurrent">Surface.makeCurrent</a></td><td><p>Makes this surface and its borrowed context current on their creating thread.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_createContext">Win32.createContext</a></td><td><p>Creates an OpenGL context for <span class="code-inline">window</span>.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface_opDrop">Surface.opDrop</a></td><td><p>Destroys the owned native surface when this value leaves scope.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface_swapBuffers">Surface.swapBuffers</a></td><td><p>Presents the window back buffer; this surface and its borrowed context must be current.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_createContext">Xcb.createContext</a></td><td><p>Creates a context for an open XCB window and makes it current on its owning thread.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_createContextForDrawable">Xcb.createContextForDrawable</a></td><td><p>Creates a context on the calling rendering thread from a borrowed XCB descriptor.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_setSwapInterval">Xcb.setSwapInterval</a></td><td><p>Requests the number of display refresh intervals between swaps of the current EGL surface.</p>
 </td></tr>
 </tbody>
 </table>
@@ -9666,10 +9670,6 @@
 <tr><td class="code-type"><a href="#Ogl_GLushort">Ogl.GLushort</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GLvoid">Ogl.GLvoid</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GLVULKANPROCNV">Ogl.GLVULKANPROCNV</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_HGLRC">Ogl.HGLRC</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WglCreateContextAttribsProc">Ogl.WglCreateContextAttribsProc</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WglGetExtensionsStringProc">Ogl.WglGetExtensionsStringProc</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WglSwapIntervalProc">Ogl.WglSwapIntervalProc</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 </tbody>
 </table>
 <h3 id="namespace_Ogl_constants">Constants</h3>
@@ -12766,11 +12766,6 @@
 <tr><td class="code-type"><a href="#Ogl_GL_ZERO_TO_ONE">Ogl.GL_ZERO_TO_ONE</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GL_ZOOM_X">Ogl.GL_ZOOM_X</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GL_ZOOM_Y">Ogl.GL_ZOOM_Y</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WGL_CONTEXT_FLAGS_ARB">Ogl.WGL_CONTEXT_FLAGS_ARB</a></td><td><p><span class="code-inline">WGL_ARB_create_context</span> and <span class="code-inline">WGL_ARB_create_context_robustness</span> attribute names and values.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Ogl_WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB">Ogl.WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB">Ogl.WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_WGL_LOSE_CONTEXT_ON_RESET_ARB">Ogl.WGL_LOSE_CONTEXT_ON_RESET_ARB</a></td><td></td></tr>
 </tbody>
 </table>
 <h3 id="namespace_Ogl_functions">Functions</h3>
@@ -14410,19 +14405,6 @@
 <tr><td class="code-type"><a href="#Ogl_glWindowPos3s">Ogl.glWindowPos3s</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_glWindowPos3sv">Ogl.glWindowPos3sv</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_glWindowRectanglesEXT">Ogl.glWindowRectanglesEXT</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglCreateContext">Ogl.wglCreateContext</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglCreateContextAttribsARB">Ogl.wglCreateContextAttribsARB</a></td><td><p>Creates a context for <span class="code-inline">hDc</span> described by the zero-terminated attribute list <span class="code-inline">attribs</span>.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglDeleteContext">Ogl.wglDeleteContext</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglGetCurrentContext">Ogl.wglGetCurrentContext</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglGetCurrentDC">Ogl.wglGetCurrentDC</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglGetExtensionsStringARB">Ogl.wglGetExtensionsStringARB</a></td><td><p>Returns the WGL extension names published for <span class="code-inline">hDc</span>, separated by spaces.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglGetProcAddress">Ogl.wglGetProcAddress</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglMakeCurrent">Ogl.wglMakeCurrent</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglShareLists">Ogl.wglShareLists</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_wglSwapIntervalEXT">Ogl.wglSwapIntervalEXT</a></td><td><p>Sets how many display refreshes a <span class="code-inline">SwapBuffers</span> waits for, and reports whether it was accepted.</p>
-</td></tr>
 </tbody>
 </table>
 </section>
@@ -14433,31 +14415,70 @@
 <table class="api-summary">
 <thead><tr><th>Namespace</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#namespace_Ogl_Platform_Win32">Ogl.Platform.Win32</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Ogl_Platform_Egl">Ogl.Platform.Egl</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Ogl_Platform_Xcb">Ogl.Platform.Xcb</a></td></tr>
 </tbody>
 </table>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="namespace_Ogl_Platform_Win32" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Ogl.Platform.Win32</span> <a class="api-item-permalink" href="#namespace_Ogl_Platform_Win32" aria-label="Permalink">#</a></span></div>
-<p>Public API declared directly in <span class="code-inline">Ogl.Platform.Win32</span>.</p>
-<h3 id="namespace_Ogl_Platform_Win32_types">Types</h3>
+<div class="api-item api-item-namespace"><span id="namespace_Ogl_Platform_Egl" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Ogl.Platform.Egl</span> <a class="api-item-permalink" href="#namespace_Ogl_Platform_Egl" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Ogl.Platform.Egl</span>.</p>
+<h3 id="namespace_Ogl_Platform_Egl_types">Types</h3>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context">Win32.Context</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a Windows OpenGL context and the window device context paired with it.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Egl_Context">Egl.Context</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>EGL context owner; the Xcb spelling remains available for existing window consumers.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Egl_Surface">Egl.Surface</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>EGL surface owner, used for a native window or an offscreen pbuffer.</p>
 </td></tr>
 </tbody>
 </table>
-<h3 id="namespace_Ogl_Platform_Win32_functions">Functions</h3>
+<h3 id="namespace_Ogl_Platform_Egl_functions">Functions</h3>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_createContext">Win32.createContext</a></td><td><p>Creates an OpenGL context for <span class="code-inline">window</span>.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Egl_createOffscreenContext">Egl.createOffscreenContext</a></td><td><p>Creates an OpenGL pbuffer without opening an X11 connection or a visible window.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Ogl_Platform_Xcb" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Ogl.Platform.Xcb</span> <a class="api-item-permalink" href="#namespace_Ogl_Platform_Xcb" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Ogl.Platform.Xcb</span>.</p>
+<h3 id="namespace_Ogl_Platform_Xcb_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context">Xcb.Context</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns an EGL OpenGL 3.3 compatibility context and its initial window surface or pbuffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface">Xcb.Surface</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns one EGL window surface or pbuffer and borrows its OpenGL context.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Ogl_Platform_Xcb_functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_createContext">Xcb.createContext</a></td><td><p>Creates a context for an open XCB window and makes it current on its owning thread.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_createContextForDrawable">Xcb.createContextForDrawable</a></td><td><p>Creates a context on the calling rendering thread from a borrowed XCB descriptor.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_setSwapInterval">Xcb.setSwapInterval</a></td><td><p>Requests the number of display refresh intervals between swaps of the current EGL surface.</p>
 </td></tr>
 </tbody>
 </table>
 </section>
 <h3 id="types">Types</h3>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Ogl_Platform_Egl_Context" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Egl.Context</span> <a class="api-item-permalink" href="#Ogl_Platform_Egl_Context" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L497">src</a></div>
+<p>EGL context owner; the Xcb spelling remains available for existing window consumers.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">Context</span> = <span class="SCst"><a href="#namespace_Ogl">Ogl</a></span>.<span class="SCst"><a href="#namespace_Ogl_Platform">Platform</a></span>.<span class="SCst"><a href="#namespace_Ogl_Platform_Xcb">Xcb</a></span>.<span class="SCst"><a href="#Ogl_Platform_Xcb_Context">Context</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Ogl_Platform_Egl_Surface" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Egl.Surface</span> <a class="api-item-permalink" href="#Ogl_Platform_Egl_Surface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L500">src</a></div>
+<p>EGL surface owner, used for a native window or an offscreen pbuffer.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">Surface</span> = <span class="SCst"><a href="#namespace_Ogl">Ogl</a></span>.<span class="SCst"><a href="#namespace_Ogl_Platform">Platform</a></span>.<span class="SCst"><a href="#namespace_Ogl_Platform_Xcb">Xcb</a></span>.<span class="SCst"><a href="#Ogl_Platform_Xcb_Surface">Surface</a></span></span></div>
+</section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Ogl_extParamType_glDebugMessageCallback_callback" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.extParamType_glDebugMessageCallback_callback</span> <a class="api-item-permalink" href="#Ogl_extParamType_glDebugMessageCallback_callback" aria-label="Permalink">#</a></span></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
@@ -14591,48 +14612,56 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">GLVULKANPROCNV</span> = *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Ogl_HGLRC" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.HGLRC</span> <a class="api-item-permalink" href="#Ogl_HGLRC" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L7">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">HGLRC</span> = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Ogl_WglCreateContextAttribsProc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.WglCreateContextAttribsProc</span> <a class="api-item-permalink" href="#Ogl_WglCreateContextAttribsProc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L44">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
-<span class="SKwd">alias</span> <span class="SCst">WglCreateContextAttribsProc</span> = <span class="SKwd">func</span>(<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, <span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span>, <span class="SKwd">const</span> *<span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Ogl_WglGetExtensionsStringProc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.WglGetExtensionsStringProc</span> <a class="api-item-permalink" href="#Ogl_WglGetExtensionsStringProc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L42">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
-<span class="SKwd">alias</span> <span class="SCst">WglGetExtensionsStringProc</span>  = <span class="SKwd">func</span>(<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)-&gt;<span class="SKwd">const</span> *<span class="STpe">u8</span>?</span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Ogl_WglSwapIntervalProc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.WglSwapIntervalProc</span> <a class="api-item-permalink" href="#Ogl_WglSwapIntervalProc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L9">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
-<span class="SKwd">alias</span> <span class="SCst">WglSwapIntervalProc</span> = <span class="SKwd">func</span>(<span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_BOOL">BOOL</a></span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Ogl_Platform_Win32_Context" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.Context</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L143">src</a></div>
-<p>Owns a Windows OpenGL context and the window device context paired with it.</p>
-<p>The context borrows its <a href="std.core.html#Core_Env_Window">Core.Env.Window</a>, which must remain alive until this value is destroyed.</p>
-<p>Create this value with <a href="#Ogl_Platform_Win32_createContext">Ogl.Platform.Win32.createContext</a>. It releases any remaining native resources when it leaves scope; call <a href="#Ogl_Platform_Win32_Context_destroy">Ogl.Platform.Win32.Context.destroy</a> to release them earlier.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
-<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Opaque">Opaque</a>]</span>
+<div class="api-item api-item-struct"><span id="Ogl_Platform_Xcb_Context" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Xcb.Context</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Context" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L140">src</a></div>
+<p>Owns an EGL OpenGL 3.3 compatibility context and its initial window surface or pbuffer.</p>
+<p>The initial window is borrowed until its surface is destroyed or transferred. Create, use and destroy the context on its creating thread. Multiple owners have independent OpenGL objects. Extra surfaces from this context share its objects and must be destroyed before it. The EGL display is retained until its final context is destroyed. Destroy all window contexts before disconnecting their borrowed XCB connection.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>, </span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Opaque">Opaque</a>]</span>
 <span class="SKwd">struct</span> <span class="SCst">Context</span></span></div>
 </section>
-<h3 id="Ogl_Platform_Win32_Context_methods">Methods</h3>
+<h3 id="Ogl_Platform_Xcb_Context_methods">Methods</h3>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_clearCurrent">clearCurrent</a></td><td><p>Clears the current OpenGL context from the calling thread.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_clearCurrent">clearCurrent</a></td><td><p>Unbinds this context if it is current; leaves another current context unchanged.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_destroy">destroy</a></td><td><p>Releases the rendering context and its acquired device context.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_createPbufferSurface">createPbufferSurface</a></td><td><p>Creates an offscreen pbuffer on this context's existing EGL display and configuration.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_isValid">isValid</a></td><td><p>Returns whether this value owns a native rendering context.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_createSurface">createSurface</a></td><td><p>Creates another window surface using this context's display and visual configuration.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_makeCurrent">makeCurrent</a></td><td><p>Makes this context current on the calling thread.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_destroy">destroy</a></td><td><p>Releases owned resources without unbinding another current context; repeated calls are harmless.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_opDrop">opDrop</a></td><td><p>Releases any remaining native resources when this value leaves scope.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_isValid">isValid</a></td><td><p>Reports whether this owner contains a rendering context.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Ogl_Platform_Win32_Context_swapBuffers">swapBuffers</a></td><td><p>Presents the back buffer for this context's window.</p>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_makeCurrent">makeCurrent</a></td><td><p>Makes the owned initial surface current, or fails if the context or surface was released.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_opDrop">opDrop</a></td><td><p>Releases any context and surface still owned by this value.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_swapBuffers">swapBuffers</a></td><td><p>Presents this context's window back buffer; the context must be current.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Context_takeSurface">takeSurface</a></td><td><p>Transfers the initial window surface to a separate owner, preserving its current binding.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Ogl_Platform_Xcb_Surface" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Xcb.Surface</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Surface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L156">src</a></div>
+<p>Owns one EGL window surface or pbuffer and borrows its OpenGL context.</p>
+<p>Destroy this surface before its window and context. Create, bind, present and destroy it on the context's creating thread. Several surfaces may use the same context in turn.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>, </span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Opaque">Opaque</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">Surface</span></span></div>
+</section>
+<h3 id="Ogl_Platform_Xcb_Surface_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface_destroy">destroy</a></td><td><p>Destroys the surface, unbinding it only if it is current; repeated calls are harmless.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface_isValid">isValid</a></td><td><p>Reports whether this owner still holds a native window surface.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface_makeCurrent">makeCurrent</a></td><td><p>Makes this surface and its borrowed context current on their creating thread.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface_opDrop">opDrop</a></td><td><p>Destroys the owned native surface when this value leaves scope.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Ogl_Platform_Xcb_Surface_swapBuffers">swapBuffers</a></td><td><p>Presents the window back buffer; this surface and its borrowed context must be current.</p>
 </td></tr>
 </tbody>
 </table>
@@ -26832,54 +26861,60 @@
 <div class="api-item api-item-const"><span id="Ogl_GL_ZOOM_Y" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.GL_ZOOM_Y</span> <a class="api-item-permalink" href="#Ogl_GL_ZOOM_Y" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.1.1.swg#L324">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">GL_ZOOM_Y</span>                        = <span class="SNum">0x0D17</span></span></div>
 </section>
-<section class="api-symbol">
-<div class="api-item api-item-const"><span id="Ogl_WGL_CONTEXT_FLAGS_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_CONTEXT_FLAGS_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_CONTEXT_FLAGS_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L47">src</a></div>
-<p><span class="code-inline">WGL_ARB_create_context</span> and <span class="code-inline">WGL_ARB_create_context_robustness</span> attribute names and values.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">WGL_CONTEXT_FLAGS_ARB</span>             = <span class="SNum">0x2094</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-const"><span id="Ogl_WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L49">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB</span> = <span class="SNum">0x8256</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-const"><span id="Ogl_WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L48">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB</span> = <span class="SNum">0x00000004</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-const"><span id="Ogl_WGL_LOSE_CONTEXT_ON_RESET_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_LOSE_CONTEXT_ON_RESET_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_LOSE_CONTEXT_ON_RESET_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L50">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">WGL_LOSE_CONTEXT_ON_RESET_ARB</span>     = <span class="SNum">0x8252</span></span></div>
-</section>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_clearCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.clearCurrent</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_clearCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L201">src</a></div>
-<p>Clears the current OpenGL context from the calling thread.</p>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Context_clearCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.clearCurrent</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Context_clearCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L349">src</a></div>
+<p>Unbinds this context if it is current; leaves another current context unchanged.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearCurrent</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.destroy</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L216">src</a></div>
-<p>Releases the rendering context and its acquired device context.</p>
-<p>Repeated calls are harmless. Destroying a context that is not current does not disturb another context currently bound to the thread.</p>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Context_createPbufferSurface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.createPbufferSurface</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Context_createPbufferSurface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L323">src</a></div>
+<p>Creates an offscreen pbuffer on this context's existing EGL display and configuration.</p>
+<p>It shares this context's OpenGL objects, and must be destroyed before the context. No native window is needed. Fails if the configuration does not support pbuffers. Creation preserves the current binding; makeCurrent selects the returned surface.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">createPbufferSurface</span>(width, height: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Ogl_Platform_Xcb_Surface">Surface</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Context_createSurface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.createSurface</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Context_createSurface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L296">src</a></div>
+<p>Creates another window surface using this context's display and visual configuration.</p>
+<p>The returned owner borrows this context and the drawable's window. It must be destroyed before both. Creation leaves the current binding unchanged and fails for an incompatible connection, screen or visual. Bind through <a href="#Ogl_Platform_Xcb_Surface_makeCurrent">Ogl.Platform.Xcb.Surface.makeCurrent</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">createSurface</span>(drawable: <span class="SCst"><a href="std.core.html#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="std.core.html#Core_Env_XcbDrawable">XcbDrawable</a></span>)-&gt;<span class="SCst"><a href="#Ogl_Platform_Xcb_Surface">Surface</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Context_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.destroy</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Context_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L379">src</a></div>
+<p>Releases owned resources without unbinding another current context; repeated calls are harmless.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.isValid</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L192">src</a></div>
-<p>Returns whether this value owns a native rendering context.</p>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Context_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.isValid</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Context_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L271">src</a></div>
+<p>Reports whether this owner contains a rendering context.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_makeCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.makeCurrent</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_makeCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L195">src</a></div>
-<p>Makes this context current on the calling thread.</p>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Context_makeCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.makeCurrent</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Context_makeCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L336">src</a></div>
+<p>Makes the owned initial surface current, or fails if the context or surface was released.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">makeCurrent</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.opDrop</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L186">src</a></div>
-<p>Releases any remaining native resources when this value leaves scope.</p>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Context_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.opDrop</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Context_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L268">src</a></div>
+<p>Releases any context and surface still owned by this value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_swapBuffers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.swapBuffers</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_swapBuffers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L207">src</a></div>
-<p>Presents the back buffer for this context's window.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">swapBuffers</span>()</span></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Context_swapBuffers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.swapBuffers</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Context_swapBuffers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L364">src</a></div>
+<p>Presents this context's window back buffer; the context must be current.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">swapBuffers</span>() <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Context_takeSurface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.takeSurface</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Context_takeSurface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L278">src</a></div>
+<p>Transfers the initial window surface to a separate owner, preserving its current binding.</p>
+<p>The context remains valid. Destroy the returned surface before this context and its window. After transfer, bind and present through the surface's methods; calling this again fails because the context no longer owns an initial surface.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">takeSurface</span>()-&gt;<span class="SCst"><a href="#Ogl_Platform_Xcb_Surface">Surface</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Ogl_Platform_Egl_createOffscreenContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Egl.createOffscreenContext</span> <a class="api-item-permalink" href="#Ogl_Platform_Egl_createOffscreenContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L509">src</a></div>
+<p>Creates an OpenGL pbuffer without opening an X11 connection or a visible window.</p>
+<p>Requires EGL_EXT_platform_base, EGL_MESA_platform_surfaceless and OpenGL 3.3 compatibility support. RGB8, alpha8 and stencil8 are required. Makes the context current on its creating thread; failure preserves the previous context. The display remains initialized until its final context is destroyed. Call <a href="#Ogl_glInitExtensions">Ogl.glInitExtensions</a> before using post-1.1 entry points. There is no software-renderer substitution.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createOffscreenContext</span>(width, height: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Ogl_Platform_Egl_Context">Context</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Ogl_glAccum" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.glAccum</span> <a class="api-item-permalink" href="#Ogl_glAccum" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.1.1.swg#L732">src</a></div>
@@ -33414,56 +33449,49 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">glWindowRectanglesEXT</span>(mode: <span class="STpe">u32</span>, count: <span class="STpe">s32</span>, box: <span class="SKwd">const</span> *<span class="STpe">s32</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglCreateContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglCreateContext</span> <a class="api-item-permalink" href="#Ogl_wglCreateContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L101">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglCreateContext</span>(hDc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)-&gt;<span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span> <span class="SKwd">fail</span></span></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Surface_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.destroy</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Surface_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L451">src</a></div>
+<p>Destroys the surface, unbinding it only if it is current; repeated calls are harmless.</p>
+<p>The borrowed OpenGL context remains alive and can be bound to another surface.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglCreateContextAttribsARB" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglCreateContextAttribsARB</span> <a class="api-item-permalink" href="#Ogl_wglCreateContextAttribsARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L72">src</a></div>
-<p>Creates a context for <span class="code-inline">hDc</span> described by the zero-terminated attribute list <span class="code-inline">attribs</span>.</p>
-<p><span class="code-inline">WGL_ARB_create_context</span> is resolved against the context current on the calling thread, so a context must be current first. Returns <span class="code-inline">null</span> when the driver does not publish the extension or refuses the attributes; <span class="code-inline">GetLastError</span> then tells why. <span class="code-inline">shareContext</span> may be <span class="code-inline">null</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglCreateContextAttribsARB</span>(hDc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, shareContext: <span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span>, attribs: <span class="SKwd">const</span> [..] <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span></span></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Surface_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.isValid</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Surface_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L409">src</a></div>
+<p>Reports whether this owner still holds a native window surface.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglDeleteContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglDeleteContext</span> <a class="api-item-permalink" href="#Ogl_wglDeleteContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L109">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglDeleteContext</span>(hRc: <span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Surface_makeCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.makeCurrent</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Surface_makeCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L414">src</a></div>
+<p>Makes this surface and its borrowed context current on their creating thread.</p>
+<p>Fails for a destroyed surface. Its borrowed context and window must still be alive.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">makeCurrent</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglGetCurrentContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetCurrentContext</span> <a class="api-item-permalink" href="#Ogl_wglGetCurrentContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L115">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglGetCurrentContext</span>()-&gt;<span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span></span></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Surface_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.opDrop</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Surface_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L406">src</a></div>
+<p>Destroys the owned native surface when this value leaves scope.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglGetCurrentDC" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetCurrentDC</span> <a class="api-item-permalink" href="#Ogl_wglGetCurrentDC" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L116">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglGetCurrentDC</span>()-&gt;<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span></span></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_Surface_swapBuffers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.swapBuffers</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_Surface_swapBuffers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L434">src</a></div>
+<p>Presents the window back buffer; this surface and its borrowed context must be current.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">swapBuffers</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglGetExtensionsStringARB" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetExtensionsStringARB</span> <a class="api-item-permalink" href="#Ogl_wglGetExtensionsStringARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L56">src</a></div>
-<p>Returns the WGL extension names published for <span class="code-inline">hDc</span>, separated by spaces.</p>
-<p><span class="code-inline">WGL_ARB_extensions_string</span> is resolved against the context current on the calling thread, so this answers <span class="code-inline">null</span> before there is one and on a driver that does not publish the extension.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglGetExtensionsStringARB</span>(hDc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)-&gt;<span class="STpe">string</span>?</span></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_createContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xcb.createContext</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_createContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L197">src</a></div>
+<p>Creates a context for an open XCB window and makes it current on its owning thread.</p>
+<p>Requires EGL 1.4 with EXT_platform_xcb and OpenGL 3.3 compatibility support. The selected configuration matches the window visual and provides RGB8, alpha8 and stencil8 or better. Failure releases partial context/surface ownership and preserves the previously current context. Success selects the OpenGL client API; call <a href="#Ogl_glInitExtensions">Ogl.glInitExtensions</a> before using post-1.1 entry points. Destroy its surface before closing the window; takeSurface can transfer that surface to an independent owner while keeping this context alive.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createContext</span>(window: *<span class="SCst"><a href="std.core.html#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="std.core.html#Core_Env_Window">Window</a></span>)-&gt;<span class="SCst"><a href="#Ogl_Platform_Xcb_Context">Context</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglGetProcAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetProcAddress</span> <a class="api-item-permalink" href="#Ogl_wglGetProcAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L83">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglGetProcAddress</span>(arg1: <span class="SCst"><a href="std.win32.html#Win32_LPCSTR">LPCSTR</a></span>)-&gt;<span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_createContextForDrawable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xcb.createContextForDrawable</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_createContextForDrawable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L204">src</a></div>
+<p>Creates a context on the calling rendering thread from a borrowed XCB descriptor.</p>
+<p>Obtain the descriptor on the window thread first, then keep the window open until its rendering surface has been destroyed. This does not consume XCB events. The context is made current and otherwise follows <a href="#Ogl_Platform_Xcb_createContext">Ogl.Platform.Xcb.createContext</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createContextForDrawable</span>(drawable: <span class="SCst"><a href="std.core.html#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="std.core.html#Core_Env_XcbDrawable">XcbDrawable</a></span>)-&gt;<span class="SCst"><a href="#Ogl_Platform_Xcb_Context">Context</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglMakeCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglMakeCurrent</span> <a class="api-item-permalink" href="#Ogl_wglMakeCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L118">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglMakeCurrent</span>(hDc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, hRc: <span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span>) <span class="SKwd">fail</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglShareLists" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglShareLists</span> <a class="api-item-permalink" href="#Ogl_wglShareLists" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L124">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglShareLists</span>(hRc0, hRc1: <span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span>) <span class="SKwd">fail</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglSwapIntervalEXT" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglSwapIntervalEXT</span> <a class="api-item-permalink" href="#Ogl_wglSwapIntervalEXT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L33">src</a></div>
-<p>Sets how many display refreshes a <span class="code-inline">SwapBuffers</span> waits for, and reports whether it was accepted.</p>
-<p><span class="code-inline">WGL_EXT_swap_control</span> is resolved against the context current on the calling thread, so this answers <span class="code-inline">false</span> before there is one and on a driver that does not publish the extension. One paces every present on the display, zero paces none of them. An application that never states an interval inherits whatever the driver and its control panel decided, which is why the two machines showing the same program never presented at the same cadence.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglSwapIntervalEXT</span>(interval: <span class="STpe">s32</span>)-&gt;<span class="STpe">bool</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_createContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.createContext</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_createContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L158">src</a></div>
-<p>Creates an OpenGL context for <span class="code-inline">window</span>.</p>
-<p><span class="code-inline">colorBits</span> selects the requested color-buffer depth. When <span class="code-inline">makeCurrent</span> is true, the new context becomes current on the calling thread before the function returns. Failure releases every partially acquired native handle.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createContext</span>(window: *<span class="SCst"><a href="std.core.html#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="std.core.html#Core_Env_Window">Window</a></span>, colorBits: <span class="STpe">u8</span> = <span class="SNum">32</span>, makeCurrent = <span class="SKwd">true</span>)-&gt;<span class="SCst"><a href="#Ogl_Platform_Win32_Context">Context</a></span> <span class="SKwd">fail</span></span></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Xcb_setSwapInterval" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xcb.setSwapInterval</span> <a class="api-item-permalink" href="#Ogl_Platform_Xcb_setSwapInterval" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.linux.swg#L473">src</a></div>
+<p>Requests the number of display refresh intervals between swaps of the current EGL surface.</p>
+<p>Zero requests uncapped presentation. The driver may clamp the interval to its configuration's supported range. Fails for a negative interval or when no EGL context is current.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setSwapInterval</span>(interval: <span class="STpe">s32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 </article>
 <footer class="site-footer">
@@ -33725,8 +33753,10 @@
 ([
 "n|Ogl|namespace_Ogl|",
 "n|Ogl.Platform|namespace_Ogl_Platform|",
-"n|Ogl.Platform.Win32|namespace_Ogl_Platform_Win32|",
-"s|Ogl.Platform.Win32.Context|Ogl_Platform_Win32_Context|Owns a Windows OpenGL context and the window device context paired with it.",
+"n|Ogl.Platform.Egl|namespace_Ogl_Platform_Egl|",
+"n|Ogl.Platform.Xcb|namespace_Ogl_Platform_Xcb|",
+"s|Ogl.Platform.Xcb.Context|Ogl_Platform_Xcb_Context|Owns an EGL OpenGL 3.3 compatibility context and its initial window surface or pbuffer.",
+"s|Ogl.Platform.Xcb.Surface|Ogl_Platform_Xcb_Surface|Owns one EGL window surface or pbuffer and borrows its OpenGL context.",
 "c|Ogl.GL_2_BYTES|Ogl_GL_2_BYTES|",
 "c|Ogl.GL_2D|Ogl_GL_2D|FeedBackMode",
 "c|Ogl.GL_3_BYTES|Ogl_GL_3_BYTES|",
@@ -36762,10 +36792,6 @@
 "c|Ogl.GL_ZERO_TO_ONE|Ogl_GL_ZERO_TO_ONE|",
 "c|Ogl.GL_ZOOM_X|Ogl_GL_ZOOM_X|",
 "c|Ogl.GL_ZOOM_Y|Ogl_GL_ZOOM_Y|",
-"c|Ogl.WGL_CONTEXT_FLAGS_ARB|Ogl_WGL_CONTEXT_FLAGS_ARB|WGL_ARB_create_context and WGL_ARB_create_context_robustness attribute names and values.",
-"c|Ogl.WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB|Ogl_WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB|",
-"c|Ogl.WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB|Ogl_WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB|",
-"c|Ogl.WGL_LOSE_CONTEXT_ON_RESET_ARB|Ogl_WGL_LOSE_CONTEXT_ON_RESET_ARB|",
 "a|Ogl.extParamType_glDebugMessageCallback_callback|Ogl_extParamType_glDebugMessageCallback_callback|",
 "a|Ogl.extParamType_glDebugMessageCallbackARB_callback|Ogl_extParamType_glDebugMessageCallbackARB_callback|",
 "a|Ogl.GLbitfield|Ogl_GLbitfield|",
@@ -36798,10 +36824,8 @@
 "a|Ogl.GLushort|Ogl_GLushort|",
 "a|Ogl.GLvoid|Ogl_GLvoid|",
 "a|Ogl.GLVULKANPROCNV|Ogl_GLVULKANPROCNV|",
-"a|Ogl.HGLRC|Ogl_HGLRC|",
-"a|Ogl.WglCreateContextAttribsProc|Ogl_WglCreateContextAttribsProc|",
-"a|Ogl.WglGetExtensionsStringProc|Ogl_WglGetExtensionsStringProc|",
-"a|Ogl.WglSwapIntervalProc|Ogl_WglSwapIntervalProc|",
+"a|Ogl.Platform.Egl.Context|Ogl_Platform_Egl_Context|EGL context owner; the Xcb spelling remains available for existing window consumers.",
+"a|Ogl.Platform.Egl.Surface|Ogl_Platform_Egl_Surface|EGL surface owner, used for a native window or an offscreen pbuffer.",
 "f|Ogl.glAccum|Ogl_glAccum|",
 "f|Ogl.glActiveProgramEXT|Ogl_glActiveProgramEXT|",
 "f|Ogl.glActiveShaderProgram|Ogl_glActiveShaderProgram|",
@@ -38435,23 +38459,24 @@
 "f|Ogl.glWindowPos3s|Ogl_glWindowPos3s|",
 "f|Ogl.glWindowPos3sv|Ogl_glWindowPos3sv|",
 "f|Ogl.glWindowRectanglesEXT|Ogl_glWindowRectanglesEXT|",
-"f|Ogl.Platform.Win32.Context.clearCurrent|Ogl_Platform_Win32_Context_clearCurrent|Clears the current OpenGL context from the calling thread.",
-"f|Ogl.Platform.Win32.Context.destroy|Ogl_Platform_Win32_Context_destroy|Releases the rendering context and its acquired device context.",
-"f|Ogl.Platform.Win32.Context.isValid|Ogl_Platform_Win32_Context_isValid|Returns whether this value owns a native rendering context.",
-"f|Ogl.Platform.Win32.Context.makeCurrent|Ogl_Platform_Win32_Context_makeCurrent|Makes this context current on the calling thread.",
-"f|Ogl.Platform.Win32.Context.opDrop|Ogl_Platform_Win32_Context_opDrop|Releases any remaining native resources when this value leaves scope.",
-"f|Ogl.Platform.Win32.Context.swapBuffers|Ogl_Platform_Win32_Context_swapBuffers|Presents the back buffer for this context's window.",
-"f|Ogl.Platform.Win32.createContext|Ogl_Platform_Win32_createContext|Creates an OpenGL context for window.",
-"f|Ogl.wglCreateContext|Ogl_wglCreateContext|",
-"f|Ogl.wglCreateContextAttribsARB|Ogl_wglCreateContextAttribsARB|Creates a context for hDc described by the zero-terminated attribute list attribs.",
-"f|Ogl.wglDeleteContext|Ogl_wglDeleteContext|",
-"f|Ogl.wglGetCurrentContext|Ogl_wglGetCurrentContext|",
-"f|Ogl.wglGetCurrentDC|Ogl_wglGetCurrentDC|",
-"f|Ogl.wglGetExtensionsStringARB|Ogl_wglGetExtensionsStringARB|Returns the WGL extension names published for hDc, separated by spaces.",
-"f|Ogl.wglGetProcAddress|Ogl_wglGetProcAddress|",
-"f|Ogl.wglMakeCurrent|Ogl_wglMakeCurrent|",
-"f|Ogl.wglShareLists|Ogl_wglShareLists|",
-"f|Ogl.wglSwapIntervalEXT|Ogl_wglSwapIntervalEXT|Sets how many display refreshes a SwapBuffers waits for, and reports whether it was accepted.",
+"f|Ogl.Platform.Egl.createOffscreenContext|Ogl_Platform_Egl_createOffscreenContext|Creates an OpenGL pbuffer without opening an X11 connection or a visible window.",
+"f|Ogl.Platform.Xcb.Context.clearCurrent|Ogl_Platform_Xcb_Context_clearCurrent|Unbinds this context if it is current; leaves another current context unchanged.",
+"f|Ogl.Platform.Xcb.Context.createPbufferSurface|Ogl_Platform_Xcb_Context_createPbufferSurface|Creates an offscreen pbuffer on this context's existing EGL display and configuration.",
+"f|Ogl.Platform.Xcb.Context.createSurface|Ogl_Platform_Xcb_Context_createSurface|Creates another window surface using this context's display and visual configuration.",
+"f|Ogl.Platform.Xcb.Context.destroy|Ogl_Platform_Xcb_Context_destroy|Releases owned resources without unbinding another current context; repeated calls are harmless.",
+"f|Ogl.Platform.Xcb.Context.isValid|Ogl_Platform_Xcb_Context_isValid|Reports whether this owner contains a rendering context.",
+"f|Ogl.Platform.Xcb.Context.makeCurrent|Ogl_Platform_Xcb_Context_makeCurrent|Makes the owned initial surface current, or fails if the context or surface was released.",
+"f|Ogl.Platform.Xcb.Context.opDrop|Ogl_Platform_Xcb_Context_opDrop|Releases any context and surface still owned by this value.",
+"f|Ogl.Platform.Xcb.Context.swapBuffers|Ogl_Platform_Xcb_Context_swapBuffers|Presents this context's window back buffer; the context must be current.",
+"f|Ogl.Platform.Xcb.Context.takeSurface|Ogl_Platform_Xcb_Context_takeSurface|Transfers the initial window surface to a separate owner, preserving its current binding.",
+"f|Ogl.Platform.Xcb.createContext|Ogl_Platform_Xcb_createContext|Creates a context for an open XCB window and makes it current on its owning thread.",
+"f|Ogl.Platform.Xcb.createContextForDrawable|Ogl_Platform_Xcb_createContextForDrawable|Creates a context on the calling rendering thread from a borrowed XCB descriptor.",
+"f|Ogl.Platform.Xcb.setSwapInterval|Ogl_Platform_Xcb_setSwapInterval|Requests the number of display refresh intervals between swaps of the current EGL surface.",
+"f|Ogl.Platform.Xcb.Surface.destroy|Ogl_Platform_Xcb_Surface_destroy|Destroys the surface, unbinding it only if it is current; repeated calls are harmless.",
+"f|Ogl.Platform.Xcb.Surface.isValid|Ogl_Platform_Xcb_Surface_isValid|Reports whether this owner still holds a native window surface.",
+"f|Ogl.Platform.Xcb.Surface.makeCurrent|Ogl_Platform_Xcb_Surface_makeCurrent|Makes this surface and its borrowed context current on their creating thread.",
+"f|Ogl.Platform.Xcb.Surface.opDrop|Ogl_Platform_Xcb_Surface_opDrop|Destroys the owned native surface when this value leaves scope.",
+"f|Ogl.Platform.Xcb.Surface.swapBuffers|Ogl_Platform_Xcb_Surface_swapBuffers|Presents the window back buffer; this surface and its borrowed context must be current.",
 ]);
 </script>
 </body>

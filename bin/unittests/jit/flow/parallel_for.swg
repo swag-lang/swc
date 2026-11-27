@@ -6,19 +6,25 @@
 {
     var seen: [16] u32
 
-    parallel for |&seen| index in 16 do
+    parallel for |&seen| index in 16
+    {
         seen[index] += 1
+    }
 
-    for index in 16 do
+    for index in 16
+    {
         Swag.require(seen[index] == 1)
+    }
 }
 
 #test
 {
-    var total = 0'u64
+    var total = 0_u64
 
-    parallel for |&total| index in 10 until 20 do
+    parallel for |&total| index in 10 until 20
+    {
         total += index
+    }
 
     Swag.require(total == 145)
 }
@@ -26,10 +32,12 @@
 // An inclusive range covers its upper bound.
 #test
 {
-    var total = 0'u64
+    var total = 0_u64
 
-    parallel for |&total| index in 1 to 4 do
+    parallel for |&total| index in 1 to 4
+    {
         total += index
+    }
 
     Swag.require(total == 10)
 }
@@ -39,13 +47,17 @@
 {
     var ran = false
 
-    parallel for |&ran| 0 do
+    parallel for |&ran| 0
+    {
         ran = true
+    }
 
     Swag.require(not ran)
 
-    parallel for |&ran| 5 until 5 do
+    parallel for |&ran| 5 until 5
+    {
         ran = true
+    }
 
     Swag.require(not ran)
 }
@@ -53,11 +65,13 @@
 // The bounds take any integer expression, and the index is an index.
 #test
 {
-    let count = 6's32
-    var total = 0'u64
+    let count = 6_s32
+    var total = 0_u64
 
-    parallel for |&total, count| index in count do
+    parallel for |&total, count| index in count
+    {
         total += index * cast(u64, count)
+    }
 
     Swag.require(total == 90)
 }
@@ -65,12 +79,14 @@
 // 'continue' skips one index of the partition.
 #test
 {
-    var total = 0'u64
+    var total = 0_u64
 
     parallel for |&total| index in 10
     {
-        if index & 1 do
+        if index & 1
+        {
             continue
+        }
         total += index
     }
 
@@ -80,11 +96,13 @@
 // A loop with no capture list captures nothing.
 #test
 {
-    var visited = 0'u32
+    var visited = 0_u32
     let counter = &visited
 
-    parallel for |counter| 4 do
+    parallel for |counter| 4
+    {
         counter[] += 1
+    }
 
     Swag.require(visited == 4)
 }
@@ -96,10 +114,14 @@
 
     parallel for |&grid| row in 4
     {
-        parallel for |&grid, row| 3 do
+        parallel for |&grid, row| 3
+        {
             grid[row] += 1
+        }
     }
 
-    for row in 4 do
+    for row in 4
+    {
         Swag.require(grid[row] == 3)
+    }
 }

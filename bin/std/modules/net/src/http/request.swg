@@ -24,7 +24,7 @@ struct RequestOptions
 {
     public
     {
-        headers:           Array'Header                 // Request headers, whose strings are borrowed for the call.
+        headers:           Array!{Header}               // Request headers, whose strings are borrowed for the call.
         userAgent:         string = "Swag Net"          // User-Agent sent to the server.
         timeoutMs:         u32    = 15_000              // Timeout in milliseconds: per phase on Windows, whole transfer on Linux.
         maxBodyBytes:      u64    = 4 * 1024 * 1024     // Maximum response body size in bytes.
@@ -58,9 +58,9 @@ struct Response
 {
     public
     {
-        status:   u32          // HTTP status code, including non-success responses.
-        body:     Array'u8     // Response body bytes.
-        location: String       // First Location header value; empty when the response has none.
-        headers:  Array'ResponseHeader     // Response headers in received order, including duplicate names.
+        status:   u32            // HTTP status code, including non-success responses.
+        body:     Array!{u8}     // Response body bytes.
+        location: String         // First Location header value; empty when the response has none.
+        headers:  Array!{ResponseHeader}     // Response headers in received order, including duplicate names.
     }
 }

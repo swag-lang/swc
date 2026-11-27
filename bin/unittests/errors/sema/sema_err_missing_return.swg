@@ -14,8 +14,10 @@ func noReturnAtAll(flag: bool)->s32     // swc-expected-error {{sema_err_missing
 
 func onlyOneBranch(flag: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
 {
-    if flag do     // swc-expected-note {{sema_note_condition_false_continues}}
+    if flag     // swc-expected-note {{sema_note_condition_false_continues}}
+    {
         return 1
+    }
 }
 
 #[Swag.Incomplete]
@@ -46,8 +48,10 @@ func completeSwitchPartialCase(dir: Direction, ready: bool)->s32     // swc-expe
     {
     case .North: return 1
     case .South:     // swc-expected-note {{sema_note_switch_case_continues}}
-        if ready do     // swc-expected-note {{sema_note_condition_false_continues}}
+        if ready     // swc-expected-note {{sema_note_condition_false_continues}}
+        {
             return 2
+        }
     }
 }
 
@@ -78,10 +82,14 @@ func bindingFallthroughMiss(value: *s32?, flag: bool)->s32     // swc-expected-e
     switch
     {
     default:
-        if flag do
+        if flag
+        {
             fallthrough     // swc-expected-note {{sema_note_function_continues}}
-        else do
+        }
+        else
+        {
             return 1
+        }
     case let item = value: return item[]
     }
 }
@@ -94,8 +102,10 @@ func nestedLoopExit(ready, waiting: bool)->s32     // swc-expected-error {{sema_
     }
     else
     {
-        while waiting do     // swc-expected-note {{sema_note_condition_false_continues}}
+        while waiting     // swc-expected-note {{sema_note_condition_false_continues}}
+        {
             return 2
+        }
     }
 }
 
@@ -103,8 +113,10 @@ func nestedTrueBranch(ready, waiting: bool)->s32     // swc-expected-error {{sem
 {
     if ready     // swc-expected-note {{sema_note_condition_true_continues}}
     {
-        if waiting do     // swc-expected-note {{sema_note_condition_false_continues}}
+        if waiting     // swc-expected-note {{sema_note_condition_false_continues}}
+        {
             return 1
+        }
     }
     else
     {
@@ -121,28 +133,36 @@ func outerBreak(flag: bool)->s32     // swc-expected-error {{sema_err_missing_re
             break
         }
 
-        if flag do
+        if flag
+        {
             return 1
+        }
         break     // swc-expected-note {{sema_note_loop_break_continues}}
     }
 }
 
 func countedLoopExit(count: u32)->s32     // swc-expected-error {{sema_err_missing_return}}
 {
-    for count do     // swc-expected-note {{sema_note_loop_finishes_continues}}
+    for count     // swc-expected-note {{sema_note_loop_finishes_continues}}
+    {
         return 1
+    }
 }
 
 func cStyleLoopExit(limit: s32)->s32     // swc-expected-error {{sema_err_missing_return}}
 {
-    for var i = 0; i < limit; i += 1 do     // swc-expected-note {{sema_note_condition_false_continues}}
+    for var i = 0; i < limit; i += 1     // swc-expected-note {{sema_note_condition_false_continues}}
+    {
         return i
+    }
 }
 
 func collectionLoopExit(values: const [..] s32)->s32     // swc-expected-error {{sema_err_missing_return}}
 {
-    for value in values do     // swc-expected-note {{sema_note_loop_finishes_continues}}
+    for value in values     // swc-expected-note {{sema_note_loop_finishes_continues}}
+    {
         return value
+    }
 }
 
 func matchingBindingContinues(value: s32)->s32     // swc-expected-error {{sema_err_missing_return}}
@@ -175,8 +195,10 @@ func switchCaseExit(flag: bool, value: s32)->s32     // swc-expected-error {{sem
     switch value
     {
     case 0:     // swc-expected-note {{sema_note_switch_case_continues}}
-        if flag do
+        if flag
+        {
             break
+        }
         return 1
     default:
         return 2
@@ -218,8 +240,10 @@ func lambdaWithoutReturn()->s32
 
 func everyBranch(flag: bool)->s32
 {
-    if flag do
+    if flag
+    {
         return 1
+    }
     return 2
 }
 
@@ -309,8 +333,10 @@ func loopWithoutBreak()->s32
 {
     for
     {
-        if true do
+        if true
+        {
             return 1
+        }
     }
 }
 
@@ -318,8 +344,10 @@ func whileTrueWithoutBreak()->s32
 {
     while true
     {
-        if true do
+        if true
+        {
             return 1
+        }
     }
 }
 
@@ -343,8 +371,10 @@ func breakToInnerScope(flag: bool)->s32
     {
         scope(Done)
         {
-            if flag do
+            if flag
+            {
                 break to Done
+            }
             return 1
         }
         return 2
@@ -367,8 +397,10 @@ func excludedGuardBreaks(values: const [..] s32)->s32
 {
     scope(Done)
     {
-        for 0 do
+        for 0
+        {
             break to Done
+        }
 
         for value in values where false
         {
@@ -390,23 +422,29 @@ func excludedLoopBreak()->s32
 {
     for
     {
-        if false do
+        if false
+        {
             break
+        }
         return 4
     }
 }
 
 func endsInUnreachable(flag: bool)->s32
 {
-    if flag do
+    if flag
+    {
         return 1
+    }
     unreachable
 }
 
 func endsInFail(flag: bool)->s32 fail
 {
-    if flag do
+    if flag
+    {
         return 1
+    }
     fail Swag.BaseError{"no value here"}
 }
 
@@ -438,7 +476,10 @@ func attributedPartialReturn(flag: bool)->s32     // swc-expected-error {{sema_e
 {
     #[Swag.Warning("sema_warn_unreachable_code", .Warning)]
     {
-        if flag do return 1
+        if flag
+        {
+            return 1
+        }
     }
 }
 
@@ -464,6 +505,8 @@ func switchNullableBindingWhereTrue(value: *s32?)->s32     // swc-expected-error
 
 func ifNullableBindingWhereTrue(value: *s32?)->s32     // swc-expected-error {{sema_err_missing_return}}
 {
-    if let item = value where true do
+    if let item = value where true
+    {
         return item[]
+    }
 }

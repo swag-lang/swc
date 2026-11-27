@@ -9,11 +9,14 @@ namespace WinFsp
     private func rememberedNetworkDriveMask()->u32
     {
         var currentUser: HKEY = null
-        if RegOpenCurrentUser(KEY_READ, &currentUser) != 0 do
+        if RegOpenCurrentUser(KEY_READ, &currentUser) != 0
+        {
             return Swag.U32.Max
+        }
+
         defer discard RegCloseKey(currentUser)
 
-        var result = 0'u32
+        var result = 0_u32
         for index in 26
         {
             let subkey        = Utf16.toZeroTerminated(Format.toString("Network\\%", cast(rune, ('A' + index))))
@@ -21,10 +24,10 @@ namespace WinFsp
             let status        = RegOpenKeyExW(currentUser, subkey.storage(), 0, KEY_READ, &mapping)
             if status == 0
             {
-                result |= 1'u32 << index
+                result |= 1_u32 << index
                 discard RegCloseKey(mapping)
             }
-            elif status != ERROR_FILE_NOT_FOUND
+            else if status != ERROR_FILE_NOT_FOUND
             {
                 return Swag.U32.Max
             }
@@ -37,22 +40,28 @@ namespace WinFsp
     //
     // Letters used by a logical drive or a remembered network mapping are omitted. An empty
     // array means Windows could not enumerate one of those sources reliably.
-    func availableDriveLetters()->Array'rune
+    func availableDriveLetters()->Array!{rune}
     {
         var result: #returntype
         let logical = GetLogicalDrives()
-        if not logical do
+        if not logical
+        {
             return result
+        }
+
         let unavailable = logical | rememberedNetworkDriveMask()
         result.reserve(26)
-        for index in 26 where (unavailable & (1'u32 << index)) == 0 do
+        for index in 26 where (unavailable & (1_u32 << index)) == 0
+        {
             result.add(cast(rune, ('A' + index)))
+        }
+
         return result
     }
 }
 
 // Maps the available Windows drive letters to the host-neutral destination contract.
-func availableMountDestinationsNative()->Array'MountDestination
+func availableMountDestinationsNative()->Array!{MountDestination}
 {
     var result: #returntype
     let available = WinFsp.availableDriveLetters()

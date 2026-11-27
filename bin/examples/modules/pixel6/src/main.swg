@@ -6,7 +6,7 @@ const H                   = HasGdiReference ? 940 : 674
 const TestFrames          = 30
 const Margin              = 24.0
 const SampleCount         = 4
-const OutlineFontSize     = 48'u32
+const OutlineFontSize     = 48_u32
 const OutlineBorder       = 5.5
 const OutlineShadowMargin = 14
 const OutlineSuperSample  = 3
@@ -60,10 +60,14 @@ func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectan
 func drawHeader(painter: *Pixel.Painter)
 {
     painter.drawString(34, 28, "Pixel outline text quality", g_TitleFont, Argb.MidnightBlue)
-    #static if HasGdiReference do
+    #static if HasGdiReference
+    {
         painter.drawString(36, 72, "Native GDI+ GraphicsPath reference, Pixel path-stroke outline, and the old offset-fill outline with the same blurred render-target shadow.", g_HelpFont, Argb.DimGray)
-    else do
+    }
+    else
+    {
         painter.drawString(36, 72, "Pixel path-stroke outline and the old offset-fill outline with the same blurred render-target shadow.", g_HelpFont, Argb.DimGray)
+    }
 }
 
 func drawFrame(painter: *Pixel.Painter, rect: Math.Rectangle, title: string)
@@ -129,7 +133,7 @@ func renderOutlineToTarget(painter: *Pixel.Painter, rt: *RenderTarget, outline: 
 
 func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: string, scale: f32, mode: OutlineMode, superSample = 1)
 {
-    const Bold = 0'u32
+    const Bold = 0_u32
 
     var outline    = makeOutline(text, OutlineFontSize, Bold)
     let textWidth  = ((outline.maxBounds.x - outline.minBounds.x) + 2 * OutlineBorder) * scale
@@ -185,7 +189,7 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
 
         .bindRenderTarget(rtBlur)
         .setShader(&g_Renderer.shaderBlur)
-        .setShaderParam(g_Renderer.shaderBlur.axis, 0's32)
+        .setShaderParam(g_Renderer.shaderBlur.axis, 0_s32)
         .setShaderParam(g_Renderer.shaderBlur.radius, 7.0)
         .setBlendingMode(.Copy)
         .setColorMaskFull()
@@ -196,7 +200,7 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
 
         .bindRenderTarget(rtShadow)
         .setShader(&g_Renderer.shaderBlur)
-        .setShaderParam(g_Renderer.shaderBlur.axis, 1's32)
+        .setShaderParam(g_Renderer.shaderBlur.axis, 1_s32)
         .setShaderParam(g_Renderer.shaderBlur.radius, 7.0)
         .setBlendingMode(.Copy)
         .setColorMaskFull()
@@ -248,8 +252,11 @@ func drawScene(painter: *Pixel.Painter)
     painter.setParams(.Antialiased)
     drawHeader(painter)
 
-    #static if HasGdiReference do
+    #static if HasGdiReference
+    {
         drawGdiGrid(painter, {Margin, 108, W - Margin * 2, 246})
+    }
+
     const FirstRow = HasGdiReference ? 374.0 : 108.0
     drawSampleGrid(painter,
                    {Margin, FirstRow, W - Margin * 2, 246},
@@ -297,20 +304,27 @@ func onResize(window: *Env.Window, width, height: s32)
     g_Painter.setContentScale(g_Window.dpiScale())
 
     try loadFonts()
-    #static if HasGdiReference do
+    #static if HasGdiReference
+    {
         loadGdiReferences()
+    }
 
     g_Window.callbacks.onResize = &onResize
     try g_Window.show()
 
     var loop: Env.WindowLoop
-    if Env.isSmokeRun() do
+    if Env.isSmokeRun()
+    {
         loop.smokeFrames = TestFrames
+    }
+
     while loop.next()
     {
         try display()
     }
 
-    #static if HasGdiReference do
+    #static if HasGdiReference
+    {
         shutdownGdiPlus()
+    }
 }

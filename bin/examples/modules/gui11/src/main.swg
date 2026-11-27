@@ -59,8 +59,8 @@ var g_StageStagger:  *Slider?
 var g_StageReadout:  *Label?
 var g_StageReplay:   *PushButton?
 var g_StageHint:     *Label?
-var g_StageCaptions: Array'(*Label)
-var g_Cards:         Array'(*MotionCard)
+var g_StageCaptions: Array!{*Label}
+var g_Cards:         Array!{*MotionCard}
 
 // Interruption page.
 var g_FieldPage:     *Wnd?
@@ -105,10 +105,14 @@ const ExpandedDetail  = 132.0
 
 func applyTheme()
 {
-    if g_DarkTheme do
+    if g_DarkTheme
+    {
         app.theme.setDark()
-    else do
+    }
+    else
+    {
         app.theme.setLight()
+    }
 
     let btn = g_ThemeButton
     if btn
@@ -158,7 +162,7 @@ func updateFooter()
 
 func buildCurvePage(parent: *Wnd)->*Wnd
 {
-    let page = Wnd.create'Wnd(parent)
+    let page = Wnd.create!{Wnd}(parent)
     page.backgroundStyle = .View
     g_CurvePage = page
 
@@ -172,8 +176,10 @@ func buildCurvePage(parent: *Wnd)->*Wnd
 func layoutCurvePage()
 {
     let page = g_CurvePage
-    if not page do
+    if not page
+    {
         return
+    }
 
     let rect  = page.clientRect()
     let width = Math.max(rect.width - 2 * PagePad, 1.0)
@@ -184,8 +190,11 @@ func layoutCurvePage()
 
 func onCurvePageEvent(_: *Wnd, evt: IEvent)->bool
 {
-    if evt is ResizeEvent do
+    if evt is ResizeEvent
+    {
         layoutCurvePage()
+    }
+
     return false
 }
 
@@ -210,7 +219,7 @@ func setCardScale(wnd: *Wnd, value: f32)
 
 func buildStagePage(parent: *Wnd)->*Wnd
 {
-    let page = Wnd.create'Wnd(parent)
+    let page = Wnd.create!{Wnd}(parent)
     page.backgroundStyle = .View
     g_StagePage = page
 
@@ -219,13 +228,18 @@ func buildStagePage(parent: *Wnd)->*Wnd
     let controls = PanelWnd.create(page, "Timeline")
     g_StageControls = controls
 
-    for caption in ["Curve", "Duration", "Stagger"] do
+    for caption in ["Curve", "Duration", "Stagger"]
+    {
         g_StageCaptions.add(Label.create(controls, caption, {}, null, .SecondaryText))
+    }
 
     let easing = ComboBox.create(controls)
     g_StageEasing = easing
-    for index in WallCurves.count do
+    for index in WallCurves.count
+    {
         discard easing.addItem(curveName(WallCurves[index]))
+    }
+
     easing.setSelectedIndex(5, false)
     easing.sigChanged += func(_, _)
     {
@@ -253,8 +267,10 @@ func buildStagePage(parent: *Wnd)->*Wnd
         playEntrance()
     }
 
-    for index in StageCardCount do
+    for index in StageCardCount
+    {
         g_Cards.add(MotionCard.create(page, cast(s32, index) + 1, StageTitles[index], StageDetails[index]))
+    }
 
     g_StageHint = Label.create(page, "Press Replay while the strip is still arriving: each tile keeps the value it is showing and continues from there.", {}, null, .SecondaryText)
 
@@ -324,16 +340,20 @@ func onEntranceEnded(_: AnimationResult)
     // nothing: no layer, no resample, no per-frame composition.
     for card in g_Cards
     {
-        if not card.isPendingDestroy do
+        if not card.isPendingDestroy
+        {
             card.resetPresentation()
+        }
     }
 }
 
 func layoutStagePage()
 {
     let page = g_StagePage
-    if not page do
+    if not page
+    {
         return
+    }
 
     let rect  = page.clientRect()
     let width = Math.max(rect.width - 2 * PagePad, 1.0)
@@ -366,15 +386,21 @@ func layoutStagePage()
     let cardH  = Math.clamp(rect.height - stripY - PagePad - 30, 90.0, MaxCardH)
     let cardW  = (width - cast(f32, (StageCardCount - 1)) * RowGap) / cast(f32, StageCardCount)
 
-    for card, index in g_Cards do
+    for card, index in g_Cards
+    {
         card.setPosition(Math.Rectangle{PagePad + cast(f32, index) * (cardW + RowGap), stripY, cardW, cardH})
+    }
+
     g_StageHint!.setPosition(Math.Rectangle{PagePad, stripY + cardH + 10, width, 22})
 }
 
 func onStagePageEvent(_: *Wnd, evt: IEvent)->bool
 {
-    if evt is ResizeEvent do
+    if evt is ResizeEvent
+    {
         layoutStagePage()
+    }
+
     return false
 }
 
@@ -384,7 +410,7 @@ func onStagePageEvent(_: *Wnd, evt: IEvent)->bool
 
 func buildFieldPage(parent: *Wnd)->*Wnd
 {
-    let page = Wnd.create'Wnd(parent)
+    let page = Wnd.create!{Wnd}(parent)
     page.backgroundStyle = .View
     g_FieldPage = page
 
@@ -397,8 +423,11 @@ func buildFieldPage(parent: *Wnd)->*Wnd
 
     let easing = ComboBox.create(controls)
     g_FieldEasing = easing
-    for index in WallCurves.count do
+    for index in WallCurves.count
+    {
         discard easing.addItem(curveName(WallCurves[index]))
+    }
+
     easing.setSelectedIndex(2, false)
     easing.sigChanged += func(_, index)
     {
@@ -447,8 +476,10 @@ func updateFieldReadout()
 func layoutFieldPage()
 {
     let page = g_FieldPage
-    if not page do
+    if not page
+    {
         return
+    }
 
     let rect  = page.clientRect()
     let width = Math.max(rect.width - 2 * PagePad, 1.0)
@@ -477,8 +508,11 @@ func layoutFieldPage()
 
 func onFieldPageEvent(_: *Wnd, evt: IEvent)->bool
 {
-    if evt is ResizeEvent do
+    if evt is ResizeEvent
+    {
         layoutFieldPage()
+    }
+
     return false
 }
 
@@ -497,7 +531,7 @@ func startDecorativePulse()
 
     with var options: AnimationOptions
     {
-        .duration    = 900'ms
+        .duration    = 900_ms
         .easing      = .EaseInOut
         .repeatCount = 0
         .autoReverse = true
@@ -517,7 +551,7 @@ func startEssentialBreath()
 {
     with var options: AnimationOptions
     {
-        .duration    = 1100'ms
+        .duration    = 1100_ms
         .easing      = .EaseInOut
         .repeatCount = 0
         .autoReverse = true
@@ -542,7 +576,7 @@ func toggleExpander(_: *Button)
 
 func buildPrefPage(parent: *Wnd)->*Wnd
 {
-    let page = Wnd.create'Wnd(parent)
+    let page = Wnd.create!{Wnd}(parent)
     page.backgroundStyle = .View
     g_PrefPage = page
 
@@ -568,11 +602,11 @@ func buildPrefPage(parent: *Wnd)->*Wnd
     // The animated panel is the only docked child of its host, so growing it re-arranges exactly
     // one parent per frame: a `.Layout` track pays for a real measure and arrange, and this page
     // keeps that cost down to the block that is actually moving.
-    let host = Wnd.create'Wnd(expander)
+    let host = Wnd.create!{Wnd}(expander)
     g_ExpandHost         = host
     host.backgroundStyle = .Transparent
 
-    let detail = Wnd.create'Wnd(host)
+    let detail = Wnd.create!{Wnd}(host)
     g_Detail               = detail
     detail.backgroundStyle = .Window
     detail.dockStyle       = .Top
@@ -588,8 +622,10 @@ func buildPrefPage(parent: *Wnd)->*Wnd
 func layoutPrefPage()
 {
     let page = g_PrefPage
-    if not page do
+    if not page
+    {
         return
+    }
 
     let rect  = page.clientRect()
     let width = Math.max(rect.width - 2 * PagePad, 1.0)
@@ -622,8 +658,11 @@ func layoutPrefPage()
 
 func onPrefPageEvent(_: *Wnd, evt: IEvent)->bool
 {
-    if evt is ResizeEvent do
+    if evt is ResizeEvent
+    {
         layoutPrefPage()
+    }
+
     return false
 }
 
@@ -634,8 +673,10 @@ func onPrefPageEvent(_: *Wnd, evt: IEvent)->bool
 func layoutRootView()
 {
     let view = g_View
-    if not view do
+    if not view
+    {
         return
+    }
 
     let rect  = view.clientRect()
     let width = Math.max(rect.width - 2 * RootMargin, 1.0)
@@ -656,7 +697,7 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
     {
         layoutRootView()
     }
-    elif evt is DestroyEvent
+    else if evt is DestroyEvent
     {
         app.sigFrame.disable()
         g_Surface        = null
@@ -712,12 +753,16 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
 // Drives the smoke run through every page and replays what each of them demonstrates.
 func onFrame(_: *Application)
 {
-    if not Env.isSmokeRun() or not g_Tabs do
+    if not Env.isSmokeRun() or not g_Tabs
+    {
         return
+    }
 
     g_SmokeFrame += 1
-    if g_SmokeFrame % SmokeFramesPerPage do
+    if g_SmokeFrame % SmokeFramesPerPage
+    {
         return
+    }
 
     let next = (g_Tabs!.selectedIndex + 1) % 4
     g_Tabs!.setSelectedIndex(next)
@@ -778,10 +823,14 @@ func createRootView()
 {
     for arg in Env.arguments()
     {
-        if arg == "--dark" do
+        if arg == "--dark"
+        {
             g_DarkTheme = true
-        elif arg == "--light" do
+        }
+        else if arg == "--light"
+        {
             g_DarkTheme = false
+        }
     }
 
     let flags = SurfaceFlags.SmallCaption |
@@ -799,8 +848,10 @@ func createRootView()
     updateFooter()
 
     app.sigFrame += &onFrame
-    if Env.isSmokeRun() do
+    if Env.isSmokeRun()
+    {
         app.maxRunFrame = 4 * SmokeFramesPerPage + 20
+    }
 
     applyTheme()
     surface.show()

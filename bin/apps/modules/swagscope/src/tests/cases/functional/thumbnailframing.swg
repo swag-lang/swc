@@ -100,7 +100,7 @@ using Core, Pixel, Video, Gui, Viewers
 {
     let path = Testing.tempFilePath("scope-late-thumbnail-", ".y4m")
     defer catch File.delete(path)
-    for level in [0'u8, 13]
+    for level in [0_u8, 13]
     {
         var clip = expect Clip.create(32, 24, expect FrameRate.create(24, 1))
         for index in 60

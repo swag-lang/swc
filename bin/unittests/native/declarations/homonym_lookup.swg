@@ -82,6 +82,6 @@ func readShadow(set: ShadowItem)->s32
 #test
 {
     let values = [1, 2, 3]
-    let set: GenericSetterItem's32 = values[to]
+    let set: GenericSetterItem!{s32} = values[to]
     Swag.require(set.count == 3)
 }

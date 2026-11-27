@@ -5,16 +5,19 @@ using Swag
 
 func aesCtrHexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func aesCtrHexBytes(text: string)->Array'u8
+func aesCtrHexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, ((aesCtrHexDigit(text[index]) << 4) | aesCtrHexDigit(text[index + 1]))))
@@ -64,15 +67,18 @@ func aesCtrHexBytes(text: string)->Array'u8
 {
     var key:       [16] u8
     var counter:   [Crypto.AesCtrCounterSize] u8
-    var plaintext: Array'u8
+    var plaintext: Array!{u8}
     plaintext.resize(65 * 1024 + 19)
-    for index in plaintext.count do
-        plaintext[index] = cast(u8, index * 29 + 7)
-    var ciphertext: Array'u8
+    for index in plaintext.count
+    {
+        plaintext[index] = cast(u8, (index * 29 + 7) & 0xFF)
+    }
+
+    var ciphertext: Array!{u8}
     ciphertext.resize(plaintext.count)
     Swag.setWorkerCount(4)
     expect Crypto.aesCtrCrypt(key, counter, plaintext.toSlice(), ciphertext.toSlice())
-    var decrypted: Array'u8
+    var decrypted: Array!{u8}
     decrypted.resize(plaintext.count)
     expect Crypto.aesCtrCrypt(key, counter, ciphertext.toSlice(), decrypted.toSlice())
     Swag.require(Crypto.constantTimeEqual(plaintext.toSlice(), decrypted.toSlice()))
@@ -82,13 +88,81 @@ func aesCtrHexBytes(text: string)->Array'u8
 {
     var key:     [16] u8
     var counter: [Crypto.AesCtrCounterSize] u8
-    Memory.set(counter.buffer, 0xFF'u8, counter.count)
+    Memory.set(counter.buffer, 0xFF_u8, counter.count)
     var input:  [17] u8
     var output: [17] u8
-    Memory.set(output.buffer, 0xA5'u8, output.count)
+    Memory.set(output.buffer, 0xA5_u8, output.count)
     var error: Swag.Error
     discard catch Crypto.aesCtrCrypt(key, counter, input, output) as error
     Swag.require(error.value() is Errors.BadParameterError)
-    for value in output do
+    for value in output
+    {
         Swag.require(value == 0xA5)
+    }
+}
+
+#test
+{
+    // OpenSSL AES-256-CTR across a carry into the high 64 bits, with an unaligned tail.
+    let key        = aesCtrHexBytes("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+    let counter    = aesCtrHexBytes("c0c1c2c3c4c5c6c7fffffffffffffffe")
+    let ciphertext = aesCtrHexBytes("f11deed95baa9faad6acb5a54a4339506299088f48335bde7ee00a45bd165fcaddc39226a2145f86b71bfcd0dc2c0ecf3b65dbcf1f8b25a90f7c607e35f7ea5368ca7d5652336a3c75d0bd36dcb9b5c6b973c0fbdaaba896dadfdb6bcc6303af4b")
+    var buffer: [99] u8
+    let data       = buffer[1 until 98]
+    for index in data.count
+    {
+        data[index] = cast(u8, (index * 29 + 7) & 0xFF)
+    }
+
+    let plaintext = buffer
+
+    expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
+    Swag.require(Crypto.constantTimeEqual(data, ciphertext.toSlice()))
+    Swag.require(buffer[0] == 0 and buffer[98] == 0)
+
+    expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
+    Swag.require(Crypto.constantTimeEqual(buffer, plaintext))
+}
+
+#test
+{
+    // OpenSSL AES-192-CTR over eight batched blocks, one complete block, and a partial block.
+    let key        = aesCtrHexBytes("000102030405060708090a0b0c0d0e0f1011121314151617")
+    let counter    = aesCtrHexBytes("f0f1f2f3f4f5f6f7f8f9fafbfcfd0000")
+    let ciphertext = aesCtrHexBytes("c2d8ba702d886b39d7549174d2b9c6a742bea5aeb3bb8110de26a25e2c646db730103019019acbe934e721430322bb0934eed27a4209fd8f5bf8734e98d4bdde124842332491687449a296b659f2a51f033ba741b29dc44246c5062a69a4d1463b729effcdfe8c9adab015cac7b11589eaa1cba263b3ef0b8abd93cd634046c87d1c16164f6a8108439791cea73d563d70")
+    var buffer: [147] u8
+    let data       = buffer[1 until 146]
+    buffer[0]   = 0xA5
+    buffer[146] = 0x5A
+    for index in data.count
+    {
+        data[index] = cast(u8, (index * 29 + 7) & 0xFF)
+    }
+
+    let plaintext = buffer
+
+    expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
+    Swag.require(Crypto.constantTimeEqual(data, ciphertext.toSlice()))
+    Swag.require(buffer[0] == 0xA5 and buffer[146] == 0x5A)
+
+    expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
+    Swag.require(Crypto.constantTimeEqual(buffer, plaintext))
+}
+
+#test
+{
+    // OpenSSL AES-256-CTR with a low-word carry between two complete blocks.
+    let key        = aesCtrHexBytes("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+    let counter    = aesCtrHexBytes("00000000000000feffffffffffffffff")
+    let ciphertext = aesCtrHexBytes("53cbfe43e5402f013d9e5168140b332cba9f265eb86c7f36bedc5f191e98acd0b2")
+    var buffer: [35] u8
+    let data       = buffer[1 until 34]
+    for index in data.count
+    {
+        data[index] = cast(u8, (index * 17 + 5) & 0xFF)
+    }
+
+    expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
+    Swag.require(Crypto.constantTimeEqual(data, ciphertext.toSlice()))
+    Swag.require(buffer[0] == 0 and buffer[34] == 0)
 }

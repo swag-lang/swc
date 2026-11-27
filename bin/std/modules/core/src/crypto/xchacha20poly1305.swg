@@ -21,12 +21,20 @@ public const XChaCha20Poly1305TagSize = Poly1305TagSize
 public func xchacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [..] u8, ciphertext: [..] u8, tag: [..] u8) fail
 {
     if key.count != XChaCha20Poly1305KeySize or
-       nonce.count != XChaCha20Poly1305NonceSize do
+       nonce.count != XChaCha20Poly1305NonceSize
+    {
         fail Errors.BadParameterError{"XChaCha20-Poly1305 needs a 32-byte key and 24-byte nonce"}
-    if tag.count != XChaCha20Poly1305TagSize do
+    }
+
+    if tag.count != XChaCha20Poly1305TagSize
+    {
         fail Errors.BadParameterError{"XChaCha20-Poly1305 needs a 16-byte tag"}
-    if ciphertext.count != plaintext.count do
+    }
+
+    if ciphertext.count != plaintext.count
+    {
         fail Errors.BadParameterError{"XChaCha20-Poly1305 needs matching plaintext and ciphertext lengths"}
+    }
 
     var subkey = try hchacha20(key, nonce[0 until 16])
     defer secureClear(subkey)
@@ -48,10 +56,15 @@ public func xchacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [
 public func xchacha20Poly1305Open(key, nonce, ciphertext, tag, associatedData: const [..] u8, plaintext: [..] u8)->bool fail
 {
     if key.count != XChaCha20Poly1305KeySize or
-       nonce.count != XChaCha20Poly1305NonceSize do
+       nonce.count != XChaCha20Poly1305NonceSize
+    {
         fail Errors.BadParameterError{"XChaCha20-Poly1305 needs a 32-byte key and 24-byte nonce"}
-    if tag.count != XChaCha20Poly1305TagSize or ciphertext.count != plaintext.count do
+    }
+
+    if tag.count != XChaCha20Poly1305TagSize or ciphertext.count != plaintext.count
+    {
         return false
+    }
 
     var subkey = try hchacha20(key, nonce[0 until 16])
     defer secureClear(subkey)
@@ -61,8 +74,10 @@ public func xchacha20Poly1305Open(key, nonce, ciphertext, tag, associatedData: c
 
     var computed = try chacha20Poly1305Authenticate(subkey, shortNonce, associatedData, ciphertext)
     defer secureClear(computed)
-    if not constantTimeEqual(computed, tag) do
+    if not constantTimeEqual(computed, tag)
+    {
         return false
+    }
 
     try chacha20Xor(subkey, shortNonce, ciphertext, plaintext, 1)
     return true

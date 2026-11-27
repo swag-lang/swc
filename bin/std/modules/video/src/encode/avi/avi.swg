@@ -9,25 +9,25 @@ using Core, Core.Errors, Pixel
 
 // Largest frame side an encoded stream can describe, bounded by the 16-bit frame rectangle of
 // the stream header.
-private const MaxFrameSide = 32_767's32
+private const MaxFrameSide = 32_767_s32
 
 // `AVIF_HASINDEX`: the file ends with the `idx1` table, which is what makes seeking free.
-private const MainHasIndex = 0x0000_0010'u32
+private const MainHasIndex = 0x0000_0010_u32
 
 // `AVIIF_KEYFRAME`: every frame of a Motion JPEG stream stands on its own.
-private const IndexKeyFrame = 0x0000_0010'u32
+private const IndexKeyFrame = 0x0000_0010_u32
 
 // Quality the stream header reports when the writer does not measure one.
-private const UnknownQuality = 0xFFFF_FFFF'u32
+private const UnknownQuality = 0xFFFF_FFFF_u32
 
 // Largest stream an encoder accepts, in bytes.
 //
 // Every size in the container is a 32-bit field, so the margin below four gigabytes leaves room
 // for the index and the trailing chunk headers a stream still owes when its last frame lands.
-private const MaxStreamSize = 0xFFF0_0000'u64
+private const MaxStreamSize = 0xFFF0_0000_u64
 
 // Identifier the frames of an encoded stream carry: compressed pictures of the first stream.
-private const FrameChunkId = frameChunkId(0, 'd'u32, 'c'u32)
+private const FrameChunkId = frameChunkId(0, 'd'_u32, 'c'_u32)
 
 // Total size of the lists an encoder writes, counting their own identifier.
 private const StreamListSize = FourCcSize + ChunkHeaderSize + #sizeof(StreamHeader) + ChunkHeaderSize + #sizeof(Bmp.Header)
@@ -60,14 +60,14 @@ struct Encoder
 {
     internal
     {
-        info:          StreamInfo           // Geometry and rate the stream was opened with.
-        options:       EncodeOptions        // Compression the caller asked for.
-        index:         Array'IndexEntry     // One entry per written frame, written as `idx1`.
-        mainHeader:    u64                  // Offset of the `avih` payload.
-        streamHeader:  u64                  // Offset of the `strh` payload.
-        frameList:     u64                  // Offset of the `movi` identifier.
-        frameListSize: u64                  // Offset of the size field of the `movi` list.
-        largestFrame:  u64                  // Size of the largest frame written, in bytes.
+        info:          StreamInfo             // Geometry and rate the stream was opened with.
+        options:       EncodeOptions          // Compression the caller asked for.
+        index:         Array!{IndexEntry}     // One entry per written frame, written as `idx1`.
+        mainHeader:    u64                    // Offset of the `avih` payload.
+        streamHeader:  u64                    // Offset of the `strh` payload.
+        frameList:     u64                    // Offset of the `movi` identifier.
+        frameListSize: u64                    // Offset of the size field of the `movi` list.
+        largestFrame:  u64                    // Size of the largest frame written, in bytes.
     }
 }
 
@@ -78,8 +78,10 @@ impl IEncoder for Encoder
     #[Swag.Propagate]
     mtd impl begin(sink: *ByteSink, info: StreamInfo, options: any?) fail
     {
-        if info.width > MaxFrameSide or info.height > MaxFrameSide do
+        if info.width > MaxFrameSide or info.height > MaxFrameSide
+        {
             fail UnsupportedFormatError{"AVI frame dimensions exceed what the container can describe"}
+        }
 
         .info = info
         if options.buffer != null
@@ -89,7 +91,7 @@ impl IEncoder for Encoder
         }
 
         sink.writeNative(RiffId)
-        sink.writeNative(0'u32)
+        sink.writeNative(0_u32)
         sink.writeNative(AviId)
 
         sink.writeNative(ListId)
@@ -116,7 +118,7 @@ impl IEncoder for Encoder
 
         sink.writeNative(ListId)
         .frameListSize = sink.position()
-        sink.writeNative(0'u32)
+        sink.writeNative(0_u32)
         .frameList = sink.position()
         sink.writeNative(FrameListId)
     }
@@ -140,16 +142,21 @@ impl IEncoder for Encoder
         sink.write(payload)
 
         // RIFF pads an odd payload so the next chunk starts on an even offset.
-        if size & 1 do
-            sink.writeNative(0'u8)
+        if size & 1
+        {
+            sink.writeNative(0_u8)
+        }
+
         .largestFrame = Math.max(.largestFrame, size)
     }
 
     #[Swag.Propagate]
     mtd impl end(sink: *ByteSink) fail
     {
-        if .index.isEmpty() do
+        if .index.isEmpty()
+        {
             fail BadParameterError{"AVI stream needs at least one frame"}
+        }
 
         let frameEnd = sink.position()
         sink.writeNative(IndexId)
@@ -169,7 +176,7 @@ impl IEncoder for Encoder
 private impl Encoder
 {
     // Offset of the size field of the file, which is the first total to be rewritten.
-    const RiffSizeOffset = 4'u64
+    const RiffSizeOffset = 4_u64
 
     // Fails unless a frame of `size` bytes still fits in what the container can address.
     //
@@ -178,8 +185,10 @@ private impl Encoder
     mtd const reserve(sink: *ByteSink, size: u64) fail
     {
         let projected = sink.position() + ChunkHeaderSize + size + 1 + ChunkHeaderSize + (.index.count + 1) * IndexEntrySize
-        if projected > MaxStreamSize do
+        if projected > MaxStreamSize
+        {
             fail UnsupportedFormatError{"AVI stream exceeds the four gigabytes the container can address"}
+        }
     }
 
     // Returns the header of the file, with the totals it cannot know yet left at zero.
@@ -188,9 +197,9 @@ private impl Encoder
         var result: #returntype
 
         // The main header's integer microseconds are advisory; the stream header keeps the exact ratio.
-        let framePeriod = 1_000_000'u64 * cast(u64, .info.frameRate.denominator()) /
+        let framePeriod = 1_000_000_u64 * cast(u64, .info.frameRate.denominator()) /
                           cast(u64, .info.frameRate.numerator())
-        result.microSecPerFrame = cast(u32, Math.min(Math.max(framePeriod, 1'u64), cast(u64, Swag.U32.Max)))
+        result.microSecPerFrame = cast(u32, Math.min(Math.max(framePeriod, 1_u64), cast(u64, Swag.U32.Max)))
         result.flags   = MainHasIndex
         result.streams = 1
         result.width   = cast(u32, .info.width)
@@ -250,8 +259,11 @@ private impl Encoder
     mtd const bytesPerSecond(frameEnd: u64)->u32
     {
         let seconds = cast(f64, .index.count) * cast(f64, .info.frameRate.denominator()) / cast(f64, .info.frameRate.numerator())
-        if seconds <= 0 do
+        if seconds <= 0
+        {
             return 0
+        }
+
         return cast(u32, Math.min(cast(f64, (frameEnd - .frameList)) / seconds, cast(f64, Swag.U32.Max)))
     }
 }

@@ -27,8 +27,10 @@ func day7B()
     let needSpace = 30_000_000 - (70_000_000 - total)
     for _, val in folders
     {
-        if val >= needSpace and val < total do
+        if val >= needSpace and val < total
+        {
             total = val
+        }
     }
 
     Swag.assert(total == 942298)

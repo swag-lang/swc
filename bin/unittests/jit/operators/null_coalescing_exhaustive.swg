@@ -23,12 +23,12 @@ impl IOrelseProbe for OrelseProbe
 {
     func zeroLiteralOrelseReturn(value: u8)->u8
     {
-        return 0'u8 != 0 ? 0'u8 : value
+        return 0_u8 != 0 ? 0_u8 : value
     }
 
-    const V = #run zeroLiteralOrelseReturn(9'u8)
+    const V = #run zeroLiteralOrelseReturn(9_u8)
     #assert(#typeof(V) == u8)
-    #assert(V == 9'u8)
+    #assert(V == 9_u8)
 }
 
 #test
@@ -64,7 +64,7 @@ impl IOrelseProbe for OrelseProbe
 {
     func cstringFallback()->bool
     {
-        var data: [3] u8 = ['o'u8, 'k'u8, 0]
+        var data: [3] u8 = ['o'_u8, 'k'_u8, 0]
         let resolved     = cast(cstring?, null) orelse cast(cstring, &data[0])
         return resolved != null and resolved.count == 2
     }

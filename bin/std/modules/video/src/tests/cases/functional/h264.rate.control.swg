@@ -8,7 +8,7 @@ using Swag, Core, Core.Errors
     // 8,001 bits/s over a 1,000-tick clock credits exactly one fractional bit
     // over 1,000 pictures. The input packets spend exactly 8,000 bits.
     var control = expect H264.RateControl.create(8_001, 10_000, 1_000, 20, 40)
-    var picture = 0'u32
+    var picture = 0_u32
     while picture < 1_000
     {
         let qp = control.chooseQp(false, false)

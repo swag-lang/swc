@@ -17,10 +17,14 @@ func throughBranches(a, b, mask: u64, count: u32)->u64
     var result = a
     for i in count
     {
-        if i & 1 == 0 do
+        if i & 1 == 0
+        {
             result = combine(result, b, mask)
-        else do
+        }
+        else
+        {
             result = combine(b, result, ~mask)
+        }
     }
     return result
 }
@@ -34,7 +38,7 @@ func throughDivision(a, b, mask: u64)->u64
 
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values

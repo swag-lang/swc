@@ -19,7 +19,7 @@ func firstIsS32(values: ...)->bool => isS32(values[0])
 #[Swag.Optimize(true), Swag.NoInline]
 func throughVariadic()->bool
 {
-    let boxed = cast(StrictAny, 42's32)
+    let boxed = cast(StrictAny, 42_s32)
     return firstIsS32(boxed)
 }
 

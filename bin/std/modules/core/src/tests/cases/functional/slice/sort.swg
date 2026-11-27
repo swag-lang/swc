@@ -82,7 +82,7 @@ using Swag
 // Number of comparisons Slice.sort needs for 'values', which the sort must leave ordered.
 func countedSortCompares(values: [..] s32)->u64
 {
-    var compares = 0'u64
+    var compares = 0_u64
     Slice.sort(values, func|counter = &compares|(x, y: s32)->s32
     {
         counter[] += 1
@@ -97,12 +97,12 @@ func countedSortCompares(values: [..] s32)->u64
 // Both are what a caller produces by re-sorting a list it sorted a moment ago.
 #test
 {
-    const Count       = 2000'u64
+    const Count       = 2000_u64
     const MaxCompares = 20 * Count
 
-    var ascending: Core.Array's32
-    var reversed:  Core.Array's32
-    var equal:     Core.Array's32
+    var ascending: Core.Array!{s32}
+    var reversed:  Core.Array!{s32}
+    var equal:     Core.Array!{s32}
     for i in Count
     {
         ascending.add(cast(s32, i))

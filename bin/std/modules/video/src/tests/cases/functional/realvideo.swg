@@ -6,7 +6,7 @@ using Core, Core.Errors
 func realVideoCompareFrame(reader: *Reader, reference: const [..] u8, index: u64)
 {
     var frame: PlanarFrame
-    let size = 96'u64 * 64 * 3 / 2
+    let size = 96_u64 * 64 * 3 / 2
     expect reader.decodeFramePlanesInto(&frame, index)
     Swag.require(frame.width == 96 and frame.height == 64)
     var offset = index * size
@@ -34,18 +34,28 @@ func realVideoCompare(name: string)
     let reference = expect File.readAllBytes(Path.combine(testSourceRoot(#curlocation), Format.toString("goldens/%.yuv", golden)))
     let count     = reference.count / (96 * 64 * 3 / 2)
     var reader    = expect Reader.open(path, pictureOnly: true)
-    for index in count do
+    for index in count
+    {
         realVideoCompareFrame(&reader, reference.toSlice(), index)
-    for step in count do
+    }
+
+    for step in count
+    {
         realVideoCompareFrame(&reader, reference.toSlice(), count - step - 1)
+    }
 
     let bytes  = expect File.readAllBytes(path)
     var memory = expect Reader.openMemory(path, bytes.toSlice(), pictureOnly: true)
-    for index in [count - 1, 0, count / 2, 1] do
+    for index in [count - 1, 0, count / 2, 1]
+    {
         realVideoCompareFrame(&memory, reference.toSlice(), index)
+    }
+
     Swag.require(memory.frameCount() == count)
-    for index in count do
+    for index in count
+    {
         Swag.require(Math.isEqualEpsilon(memory.frameTimestamp(index), cast(f64, index) / 25, 0.000001))
+    }
 }
 
 #test { realVideoCompare("rv40-intra") }
@@ -54,6 +64,94 @@ func realVideoCompare(name: string)
 #test { realVideoCompare("rv40-legacy-clock") }
 #test { realVideoCompare("rv40-slices") }
 
+// Motion uses the visible edges even when a whole partition lies outside the picture.
+#test
+{
+    var plane: RealVideo.Plane
+    plane.resize(11, 9)
+    for y in 9_s32
+    {
+        let row = plane.at(0, y)
+        for x in 11_s32
+        {
+            row[x] = cast(u8, ((x * 37 + y * 61 + x * y * 7) & 255))
+        }
+    }
+
+    var luma: [80] u8
+    Memory.set(&luma[0], 0xA5, luma.count)
+    RealVideo.predictMotion(&luma[0], 10, &plane, 0, 0, 8, {-3, -2}, false)
+    const FirstRow: [8] u8 = [0, 2, 41, 74, 101, 146, 237, 181]
+    const LastRow:  [8] u8 = [148, 140, 62, 46, 130, 108, 164, 101]
+    for column in 8_u64
+    {
+        Swag.require(luma[column] == FirstRow[column])
+        Swag.require(luma[70 + column] == LastRow[column])
+    }
+
+    RealVideo.predictMotion(&luma[0], 10, &plane, 0, 0, 8, {-32768, 32767}, false)
+    for row in 8_u64
+    {
+        for column in 8_u64
+        {
+            Swag.require(luma[row * 10 + column] == 232)
+        }
+
+        Swag.require(luma[row * 10 + 8] == 0xA5 and luma[row * 10 + 9] == 0xA5)
+    }
+
+    // The 3/4-by-3/4 chroma phase selects the half-by-half filter.
+    var chroma: [16] u8
+    RealVideo.predictMotion(&chroma[0], 4, &plane, 8, 6, 4, {7, 7}, true)
+    const Chroma: [16] u8 = [138, 92, 69, 69, 130, 92, 72, 72, 126, 91, 138, 138, 126, 91, 138, 138]
+    for sample, index in chroma
+    {
+        Swag.require(sample == Chroma[index])
+    }
+}
+
+// Both transform passes retain the coefficient orientation and signed rounding.
+#test
+{
+    const Block:   [16] s32 = [1024, -237, -2048, 13, -53, 2047, -69, 1, -32768, 0, 32767, -317, 30, 7, 223, -18]
+    const Samples: [16] s32 = [327, -10038, -10607, -673, -18, 11366, 11366, -451, -363, 11096, 11464, 156, -821, -10491, -10100, 491]
+    const Dc:      [16] s32 = [489, -15057, -15911, -1009, -28, 17048, 17049, -676, -545, 16643, 17195, 234, -1232, -15736, -15150, 735]
+    var samples = Block
+    RealVideo.inverseTransform(&samples, false)
+    for actual, index in samples
+    {
+        Swag.require(actual == Samples[index])
+    }
+
+    var dc = Block
+    RealVideo.inverseTransform(&dc, true)
+    for actual, index in dc
+    {
+        Swag.require(actual == Dc[index])
+    }
+}
+
+// The DC-only reconstruction shares the full transform's rounding and clips the same pixels.
+#test
+{
+    var prediction: [28] u8
+    for &sample, index in prediction
+    {
+        sample[] = cast(u8, (index * 47 & 255))
+    }
+
+    for dc in [-32768_s32, -1532, -511, -4, -3, 0, 3, 4, 511, 1532, 32767]
+    {
+        var reference = prediction
+        var direct    = prediction
+        var block: [16] s32
+        block[0] = dc
+        RealVideo.addResidual(reference.buffer, 7, &block)
+        RealVideo.addDcResidual(direct.buffer, 7, dc)
+        Swag.require(Memory.compare(reference.buffer, direct.buffer, prediction.count) == 0)
+    }
+}
+
 // Every table edge preserves either its target row or its decoded leaf value.
 #test
 {
@@ -61,10 +159,44 @@ func realVideoCompare(name: string)
     for original, index in RealVideo.CodeTree32
     {
         let encoded = cast(s32, RealVideo.CodeTree[index])
-        if original < 0 do
+        if original < 0
+        {
             Swag.require(encoded >= 0xF000 and (encoded ^ 0xFFFF) == -original - 1)
-        else do
+        }
+        else
+        {
             Swag.require(encoded < 0xF000 and encoded * 2 == original)
+        }
+    }
+}
+
+// The packed reader and its short tail agree at an unaligned byte boundary.
+#test
+{
+    const Bytes: [8] u8 = [0xDE, 0xAD, 0xBE, 0xEF, 0x56, 0xAB, 0x33, 0]
+    for size in [6_u64, 8]
+    {
+        var bits = RealVideo.Bits.open(Bytes[until size])
+        Swag.require(bits.read(4) == 0xD)
+        Swag.require(bits.read(32) == 0xEADBEEF5)
+        Swag.require(bits.read(12) == 0x6AB)
+        if size == 8
+        {
+            Swag.require(bits.read(16) == 0x3300)
+        }
+
+        Swag.require(bits.read(0) == 0 and not bits.broken)
+        Swag.require(bits.read(1) == 0 and bits.broken)
+    }
+
+    // PType[0] decodes a single set bit as symbol zero, including at the end of a slice.
+    const Prefix: [2] u8 = [1, 0]
+    for size in [1_u64, 2]
+    {
+        var bits = RealVideo.Bits.open(Prefix[until size])
+        Swag.require(bits.read(7) == 0)
+        Swag.require(bits.code(RealVideo.PType[0]) == 0 and not bits.broken)
+        Swag.require(bits.position == 8)
     }
 }
 
@@ -101,8 +233,10 @@ func realVideoCompare(name: string)
     var reader = expect Reader.open(videoFixturePath("rv40-ipb.mkv"), pictureOnly: true)
     var frame: PlanarFrame
     expect reader.decodeFramePlanesInto(&frame, 0)
-    for expected, index in [0'u64, 4, 4, 4, 4, 8, 8, 8, 8, 9] do
+    for expected, index in [0_u64, 4, 4, 4, 4, 8, 8, 8, 8, 9]
+    {
         Swag.require(reader.syncFrameAt(index) == expected)
+    }
 }
 
 func realVideoClockPacket(timestamp, kind: u32)->[13] u8
@@ -110,8 +244,11 @@ func realVideoClockPacket(timestamp, kind: u32)->[13] u8
     var result: #returntype
     result[1] = 1
     let header = (kind << 29) | (timestamp << 6)
-    for i in 4'u32 do
+    for i in 4_u32
+    {
         result[9 + i] = cast(u8, ((header >> (24 - i * 8)) & 255))
+    }
+
     return result
 }
 
@@ -155,7 +292,7 @@ func realVideoClockPacket(timestamp, kind: u32)->[13] u8
     var decoder: RealVideo.Decoder
     expect decoder.configure(96, 64)
     var frame: PlanarFrame
-    for length in [0'u64, 1, 9, 14, packet.count / 2]
+    for length in [0_u64, 1, 9, 14, packet.count / 2]
     {
         var error: Swag.Error
         catch decoder.decode(packet[0 until length], &frame) as error

@@ -6,7 +6,7 @@ using Core
 private func workspaceMarkdownAnchor(line: string)->String
 {
     var result: #returntype
-    var start = 1'u64
+    var start = 1_u64
     Utf8.visitRunes(cast(const [..] u8, line[start until line.count])) #code(value, charIndex, byteIndex)
     {
         discard charIndex, byteIndex

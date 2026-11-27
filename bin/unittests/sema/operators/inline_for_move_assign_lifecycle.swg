@@ -50,10 +50,14 @@ impl InlineForeachMoveValues
     #[Macro]
     func(ptr: bool) opVisit(me, stmt: #code(item, index))
     {
-        #static if ptr do
+        #static if ptr
+        {
             #inject(stmt, item = &me.item, index = 0)
-        else do
+        }
+        else
+        {
             #inject(stmt, item = cast(*InlineForeachMoveTracked, &me.item), index = 0)
+        }
     }
 }
 
@@ -68,8 +72,10 @@ func inlineForeachMoveInfo()->InlineForeachMoveInfo
     var dst: InlineForeachMoveTracked
     var values = InlineForeachMoveValues{InlineForeachMoveTracked{9}}
     resetInlineForeachMoveLifecycleHooks()
-    for value in values do
+    for value in values
+    {
         inlineForeachMoveAssign(&dst, #move value[])
+    }
     return InlineForeachMoveInfo{dst.value, values.item.value, InlineForeachMoveDropCount, InlineForeachMoveDropTrace, InlineForeachMovePostMoveCount}
 }
 

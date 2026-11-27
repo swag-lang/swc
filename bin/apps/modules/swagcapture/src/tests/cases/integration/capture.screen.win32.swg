@@ -12,7 +12,7 @@ using Swag, Core
                                           width: 64, height: 48, stopLoopOnClose: false})
     expect window.show()
     let native = cast(Win32.HWND, window.nativeRenderHandle())
-    Swag.require(SetWindowDisplayAffinity(native, 0x11'u32))
+    Swag.require(SetWindowDisplayAffinity(native, 0x11_u32))
     var affinity: Win32.DWORD
     Swag.require(GetWindowDisplayAffinity(native, &affinity) and affinity == 0x11)
 }
@@ -59,7 +59,7 @@ using Swag, Core
     g_EndGrabX   = 16
     g_EndGrabY   = 12
 
-    let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea)
+    let actionExecuted = Gui.Testing.actionExecute!{ActionCapture}(f.main, ActionCapture.LastArea)
     Swag.require(actionExecuted)
 
     let image = Clipboard.getImage()
@@ -91,11 +91,14 @@ using Swag, Core
     // rectangle proves which monitor was read. All sit at the desktop origin to keep the
     // real screen grab inside any display.
     f.main.monitors.clear()
-    for 4 do
+    for 4
+    {
         testAddMonitorAt(f.main, {0, 0, 8, 8})
+    }
+
     testAddMonitorAt(f.main, {0, 0, 320, 240})
 
-    let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.screenId(4))
+    let actionExecuted = Gui.Testing.actionExecute!{ActionCapture}(f.main, ActionCapture.screenId(4))
     Swag.require(actionExecuted)
 
     let image = Clipboard.getImage()
@@ -124,7 +127,7 @@ using Swag, Core
     g_EndGrabX   = 16
     g_EndGrabY   = 12
 
-    let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea)
+    let actionExecuted = Gui.Testing.actionExecute!{ActionCapture}(f.main, ActionCapture.LastArea)
     Swag.require(actionExecuted)
     f.gui.pump()
 

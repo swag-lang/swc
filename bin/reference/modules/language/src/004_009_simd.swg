@@ -8,7 +8,7 @@ using Swag
 The '#simd' modifier turns a one-dimensional fixed-size array shape into a
 packed vector: one 16-byte value whose lanes compute element-wise, in a
 single machine register. The shape must total exactly 16 bytes, and the lanes
-must be a sized native numeric type: 'u8', 's8', 'u16', 's16', 'u32', 's32',
+must be a sized native numeric type: 'u8', 's8', '_u16', 's16', '_u32', 's32',
 'u64', 's64', 'f32' or 'f64'.
 
 A vector has value semantics like a scalar: it copies in one move, passes and
@@ -41,12 +41,12 @@ like the other forms, which is what lets a vector be declared 'const'.
 #test
 {
     let lanes: #simd [4] s32 = [1, 2, 3, 4]
-    let fours = Swag.vecSplat(4's32)
+    let fours = Swag.vecSplat(4_s32)
     let sum   = cast([4] s32, (lanes + fours))
     Swag.require(sum[0] == 5 and sum[3] == 8)
 
     // A broadcast of a constant is a constant.
-    const Ones     = Swag.vecSplat(1'u8)
+    const Ones     = Swag.vecSplat(1_u8)
     const OneLanes = cast([16] u8, Ones)
     #assert(OneLanes[0] == 1 and OneLanes[15] == 1)
 
@@ -96,8 +96,8 @@ for every vector shape.
     Swag.require(products[0] == 0xFFFF_FFFF_FFFF_FFFE and products[1] == 0x2_0000_0001)
 
     // Lanes wrap by definition.
-    let big  = Swag.vecSplat(2_147_483_647's32)
-    let wrap = cast([4] s32, (big + Swag.vecSplat(1's32)))
+    let big  = Swag.vecSplat(2_147_483_647_s32)
+    let wrap = cast([4] s32, (big + Swag.vecSplat(1_s32)))
     Swag.require(wrap[0] == -2_147_483_648)
 }
 
@@ -155,7 +155,7 @@ input halves,
 32-bit sums and 'Swag.vecMulAddPairsSat' does the same for unsigned and signed bytes with
 a saturating sum, 'Swag.vecSumAbsDiff' sums the absolute byte differences of each half,
 'Swag.vecTruncToS32' converts four 'f32' lanes to 's32' by truncating
-toward zero, 'Swag.vecGather' loads four 's32' values through four 'u32' indices,
+toward zero, 'Swag.vecGather' loads four 's32' values through four '_u32' indices,
 and 'Swag.vecPermute' permutes bytes through a dynamic table. NaN and
 values outside the 's32' range become 's32.Min'. 'Swag.min',
 'Swag.max', 'Swag.abs', 'Swag.sqrt', 'Swag.mulAdd', 'Swag.floor', 'Swag.ceil' and 'Swag.trunc' also accept
@@ -167,8 +167,8 @@ designate a readable table element and be at most 's32.Max'.
 */
 #test
 {
-    let a = Swag.vecSplat(200'u8)
-    let b = Swag.vecSplat(100'u8)
+    let a = Swag.vecSplat(200_u8)
+    let b = Swag.vecSplat(100_u8)
     let r = cast([16] u8, Swag.vecSatAdd(a, b))
     Swag.require(r[0] == 255)
 
@@ -228,6 +228,51 @@ up the four partial products of their halves.
     // Read as unsigned, the same bits give a different half above the lane.
     let unsignedHigh = cast([8] u16, Swag.vecMulHigh(cast #bit (#simd [8] u16, x), cast #bit (#simd [8] u16, y)))
     Swag.require(unsignedHigh[2] == 0x03C9)
+}
+
+/**
+# Carry-less Products Across Lanes
+
+The two-lane unsigned multiply-add instructions multiply the low 52 bits of each
+factor. 'Swag.vecMultiplyAdd52Low' adds the low 52 product bits to each 64-bit
+accumulator lane. 'Swag.vecMultiplyAdd52High' adds the next 52 product bits.
+Guard both with 'Swag.hasCpuFeature(.MultiplyAdd52)'.
+
+'Swag.vecCarrylessMul2XorPair' selects halves of two 32-byte inputs and computes
+two carry-less products per 128-bit lane. Each lane is updated with both products
+and the matching lane of the addend combined by XOR. Use the runtime
+'.WideCarrylessMultiply' feature check before calling it.
+
+'Swag.vecCarrylessMul2XorQuad' works on four lanes in 64 bytes. Guard it with
+'.CarrylessMultiply512', which includes the operating system's support for
+saving the 512-bit register state.
+*/
+#test
+{
+    if Swag.hasCpuFeature(.WideCarrylessMultiply)
+    {
+        var value:  [4] u64 = [1, 2, 4, 8]
+        let factor: [4] u64 = [4, 8, 16, 32]
+        let addend: [4] u64 = [1, 2, 3, 4]
+        Swag.vecCarrylessMul2XorPair(&value, &factor, &addend, 0x00, 0x11)
+        Swag.require(value[0] == (1 ^ 4 ^ 16) and value[1] == 2)
+        Swag.require(value[2] == (3 ^ 64 ^ 256) and value[3] == 4)
+    }
+}
+
+#test
+{
+    if Swag.hasCpuFeature(.CarrylessMultiply512)
+    {
+        var value:  [8] u64 = [1, 2, 2, 4, 4, 8, 8, 16]
+        let factor: [8] u64 = [2, 4, 2, 4, 2, 4, 2, 4]
+        let addend: [8] u64 = [0, 0, 0, 0, 0, 0, 0, 0]
+        Swag.vecCarrylessMul2XorQuad(&value, &factor, &addend, 0x00, 0x11)
+        for lane in 4
+        {
+            Swag.require(value[lane * 2] == (10_u64 << lane) and value[lane * 2 + 1] == 0)
+        }
+    }
 }
 
 /**
@@ -364,6 +409,64 @@ counts go through a nibble table, and the byte reversal is one dynamic permute.
 }
 
 /**
+# AES Rounds
+
+The AES intrinsics operate on sixteen bytes in AES column order. Check
+'Swag.hasCpuFeature(.Aes)' before executing them. 'Swag.vecAesEncryptRound' and
+'Swag.vecAesDecryptRound' take a state and a round key. Decryption uses
+'Swag.vecAesInverseMixColumns' to transform the intermediate round keys.
+'Swag.vecAesEncryptLastRound' and 'Swag.vecAesDecryptLastRound' omit MixColumns
+and take the corresponding untransformed round key.
+*/
+#test
+{
+    if not Swag.hasCpuFeature(.Aes)
+    {
+        return
+    }
+
+    let state    = cast(#simd [16] u8, [0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0])
+    let roundKey = cast(#simd [16] u8, [0xD6, 0xAA, 0x74, 0xFD, 0xD2, 0xAF, 0x72, 0xFA, 0xDA, 0xA6, 0x78, 0xF1, 0xD6, 0xAB, 0x76, 0xFE])
+    let expected: [16] u8 = [0x89, 0xD8, 0x10, 0xE8, 0x85, 0x5A, 0xCE, 0x68, 0x2D, 0x18, 0x43, 0xD8, 0xCB, 0x12, 0x8F, 0xE4]
+    let round    = cast([16] u8, Swag.vecAesEncryptRound(state, roundKey))
+    for index in expected.count
+    {
+        Swag.require(round[index] == expected[index])
+    }
+}
+
+/**
+# SHA Rounds
+
+The SHA extensions process SHA-1 and SHA-256 state in four-word vectors.
+Call the operations only when 'Swag.hasCpuFeature(.Sha)' succeeds.
+'Swag.vecSha1Rounds4' takes a constant phase number and executes four rounds.
+The SHA-1 message word for the earliest round occupies the highest lane.
+'Swag.vecSha256Rounds2' takes two packed state halves and a message vector.
+Its two lowest lanes hold the message words with their round constants added.
+*/
+#test
+{
+    if not Swag.hasCpuFeature(.Sha)
+    {
+        return
+    }
+
+    let abcd  = cast(#simd [4] u32, [0x10325476, 0x98BADCFE, 0xEFCDAB89, 0x67452301])
+    let first = cast(#simd [4] u32, [0, 0, 0, 0xC3D2E1F0])
+    let sha1  = cast([4] u32, Swag.vecSha1Rounds4(abcd, first, 0))
+    Swag.require(sha1[0] == 0xE7ED262C and sha1[1] == 0x1750F8E0)
+    Swag.require(sha1[2] == 0x158D3162 and sha1[3] == 0xCDED3AFD)
+
+    let cdgh   = cast(#simd [4] u32, [0x5BE0CD19, 0x1F83D9AB, 0xA54FF53A, 0x3C6EF372])
+    let abef   = cast(#simd [4] u32, [0x9B05688C, 0x510E527F, 0xBB67AE85, 0x6A09E667])
+    let rounds = cast(#simd [4] u32, [0x428A2F98, 0x71374491, 0, 0])
+    let sha256 = cast([4] u32, Swag.vecSha256Rounds2(cdgh, abef, rounds))
+    Swag.require(sha256[0] == 0x98C7E2A2 and sha256[1] == 0x9DF1B216)
+    Swag.require(sha256[2] == 0xFC08884D and sha256[3] == 0x7AD96290)
+}
+
+/**
 # Boundaries
 
 A vector crosses module boundaries in the Swag calling convention only: a
@@ -379,6 +482,6 @@ value: struct fields, arrays of vectors, and compile-time execution all work.
     }
 
     var p: Pixels
-    p.row = Swag.vecSplat(7'u8)
+    p.row = Swag.vecSplat(7_u8)
     Swag.require(p.row[15] == 7)
 }

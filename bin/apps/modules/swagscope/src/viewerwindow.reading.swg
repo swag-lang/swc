@@ -13,8 +13,10 @@ impl ViewerWindow
     // Starts or advances one folder round, resetting it when its mode or folder changes.
     private mtd trackFolderReading(mode: Viewer.PlayMode)
     {
-        if (mode != .Folder and mode != .Shuffle) or .currentFile.isEmpty() do
+        if (mode != .Folder and mode != .Shuffle) or .currentFile.isEmpty()
+        {
             return
+        }
 
         let folder = Path.directoryName(.currentFile) orelse ""
         if .folderReadingMode != mode or Utf8.compare(.folderReadingFolder.toSlice(), folder, .Latin1NoCase) != 0
@@ -24,8 +26,10 @@ impl ViewerWindow
             .folderReadingFiles.clear()
         }
 
-        if not .folderReadingFiles.contains(.currentFile) do
+        if not .folderReadingFiles.contains(.currentFile)
+        {
             .folderReadingFiles.add(.currentFile)
+        }
     }
 
     // Queues the file that follows the current one in `mode` among those its viewer opens, and
@@ -35,18 +39,25 @@ impl ViewerWindow
     // recent list nor the folder history.
     mtd continueFile(mode: Viewer.PlayMode, autoplayScene = false)->bool
     {
-        if .currentFile.isEmpty() do
+        if .currentFile.isEmpty()
+        {
             return false
+        }
+
         .trackFolderReading(mode)
         var files = .kindSiblings()
         if autoplayScene and .workspace
         {
-            for index in reversed(files.count) where .workspace.isOpenInAnotherView(me, files[index]) do
+            for index in reversed(files.count) where .workspace.isOpenInAnotherView(me, files[index])
+            {
                 files.removeAtOrdered(index)
+            }
         }
 
-        if files.count <= 1 do
+        if files.count <= 1
+        {
             return false
+        }
 
         var next: String
         switch #complete mode
@@ -55,7 +66,7 @@ impl ViewerWindow
             return false
 
         case .Folder:
-            var index = 0'u64
+            var index = 0_u64
             for i in files.count where files[i] == .currentFile
             {
                 index = i
@@ -63,8 +74,11 @@ impl ViewerWindow
             }
 
             let nextIndex = (index + 1) % files.count
-            if nextIndex == 0 do
+            if nextIndex == 0
+            {
                 .folderReadingFiles.clear()
+            }
+
             next = files[nextIndex]
 
         case .Shuffle:
@@ -85,15 +99,20 @@ impl ViewerWindow
     {
         .trackFolderReading(.Shuffle)
 
-        var candidates: Array'u64
-        for one, index in files where not .folderReadingFiles.contains(one[]) do
+        var candidates: Array!{u64}
+        for one, index in files where not .folderReadingFiles.contains(one[])
+        {
             candidates.add(index)
+        }
+
         if candidates.isEmpty()
         {
             .folderReadingFiles.clear()
             .folderReadingFiles.add(.currentFile)
-            for one, index in files where one[] != .currentFile do
+            for one, index in files where one[] != .currentFile
+            {
                 candidates.add(index)
+            }
         }
 
         return files[candidates[Random.shared().nextU64(0, candidates.count)]]
@@ -107,8 +126,11 @@ impl ViewerWindow
     // have it presented again.
     mtd continueAfter(view: *Wnd)->Viewer.Continuation
     {
-        if view != .currentView do
+        if view != .currentView
+        {
             return .Stop
+        }
+
         switch #complete .playMode
         {
         case .Once:
@@ -139,25 +161,37 @@ impl ViewerWindow
     mtd armSlide()
     {
         .stopSlide()
-        if .sceneSlidesPaused or not .stillView or .stillView != .currentView do
+        if .sceneSlidesPaused or not .stillView or .stillView != .currentView
+        {
             return
-        if .playMode != .Folder and .playMode != .Shuffle do
+        }
+
+        if .playMode != .Folder and .playMode != .Shuffle
+        {
             return
+        }
+
         .slideTimer = .addTimer(Time.Duration.fromSeconds(.slideSeconds))
     }
 
     mtd stopSlide()
     {
-        if not .slideTimer do
+        if not .slideTimer
+        {
             return
+        }
+
         .stopTimer(&.slideTimer)
     }
 
     // Moves the slideshow on once its pace has elapsed on the picture that started it.
     mtd continueSlide()
     {
-        if not .stillView or .stillView != .currentView do
+        if not .stillView or .stillView != .currentView
+        {
             return
+        }
+
         discard .continueFile(.playMode)
     }
 
@@ -170,12 +204,17 @@ impl ViewerWindow
                 .sceneSlidesPaused = false
                 .armSlide()
             }
+
             return
         }
+
         .resetFolderReading()
         .playMode = mode
-        if save do
+        if save
+        {
             .sceneSlidesPaused = false
+        }
+
         .trackFolderReading(mode)
         .layoutViewerBar()
         .armSlide()
@@ -191,17 +230,25 @@ impl ViewerWindow
         .sceneSlidesPaused = not playing
         if .currentView is Viewers.Picture.Panel as picture where picture.imageView.movie.isAnimated()
         {
-            if restart do
+            if restart
+            {
                 picture.imageView.setFrameIndex(0)
+            }
+
             picture.imageView.setPaused(not playing)
         }
+
         if playing
         {
-            if not .slideTimer do
+            if not .slideTimer
+            {
                 .armSlide()
+            }
         }
-        else do
+        else
+        {
             .stopSlide()
+        }
     }
 
     mtd setSlideSeconds(seconds: f32)

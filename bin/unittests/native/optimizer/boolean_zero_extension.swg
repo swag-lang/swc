@@ -14,7 +14,7 @@ func computedInput(a, b: u64)->u64 => cast(u64, ((a ^ b) != b))
 
 #test
 {
-    let values = [0'u64, 1, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values

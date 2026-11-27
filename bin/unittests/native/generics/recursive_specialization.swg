@@ -4,7 +4,7 @@ func(T) roundTrip(value: T)->s32
 {
     #static if T == s32
     {
-        return roundTrip'f64(cast(f64, value))
+        return roundTrip!{f64}(cast(f64, value))
     }
     else
     {

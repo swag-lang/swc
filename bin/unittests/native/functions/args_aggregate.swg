@@ -125,9 +125,9 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
 {
     Swag.require(passString("abi-string") == "abi-string")
     Swag.require(passString("abi-string-2") == "abi-string-2")
-    Swag.require(passStringAt("abi-string", 1) == 98'u8)
-    Swag.require(passStringAt("abi-string", 2) == 'i'u8)
-    Swag.require(passStringAt("abi-string", 9) == 'g'u8)
+    Swag.require(passStringAt("abi-string", 1) == 98_u8)
+    Swag.require(passStringAt("abi-string", 2) == 'i'_u8)
+    Swag.require(passStringAt("abi-string", 9) == 'g'_u8)
 
     let array0 = passArray([11, 22, 33, 44])
     let array1 = passArray([101, 202, 303, 404])
@@ -144,8 +144,8 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
 {
     let pair0    = passPair({a: 9, b: 13})
     let pair1    = passPair({a: -9, b: -13})
-    let payload0 = passPayload({a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64})
-    let payload1 = passPayload({a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64})
+    let payload0 = passPayload({a0: 10_u64, a1: 20_u64, a2: 30_u64, a3: 40_u64})
+    let payload1 = passPayload({a0: 1_u64, a1: 2_u64, a2: 3_u64, a3: 4_u64})
 
     Swag.require(pair0.a == 9)
     Swag.require(pair0.b == 13)
@@ -154,26 +154,26 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     Swag.require(passPairSum({a: 9, b: 13}) == 22)
     Swag.require(passPairSum({a: 90, b: 130}) == 220)
     Swag.require(passPairSum({a: -90, b: 130}) == 40)
-    Swag.require(payload0.a0 == 10'u64)
-    Swag.require(payload0.a3 == 40'u64)
-    Swag.require(payload1.a0 == 1'u64)
-    Swag.require(payload1.a3 == 4'u64)
+    Swag.require(payload0.a0 == 10_u64)
+    Swag.require(payload0.a3 == 40_u64)
+    Swag.require(payload1.a0 == 1_u64)
+    Swag.require(payload1.a3 == 4_u64)
 }
 
 #test
 {
     let p0 = passPointer(null)
-    let p1 = passPointer(cast(*void, 0x1234'u64))
+    let p1 = passPointer(cast(*void, 0x1234_u64))
 
     Swag.require(p0 == null)
-    Swag.require(p1 == cast(*void, 0x1234'u64))
+    Swag.require(p1 == cast(*void, 0x1234_u64))
     Swag.require(passMixed(3, "mix", {a: 10, b: 11}, [8, 9], null) == 131)
-    Swag.require(passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void, 0x4567'u64)) == 330)
+    Swag.require(passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void, 0x4567_u64)) == 330)
 
     const p: AbiPair = AbiPair{a: 6, b: 7}
     Swag.require(passConstRef(p) == 13)
     Swag.require(passConstRef({a: 8, b: 9}) == 17)
-    Swag.require(passScalars(-5's8, -123's16, 77's32, 5000's64, 9'u8, 10'u16, 11'u32, 12'u64, 1.25'f32, 2.5'f64, true, 'R') == 5077)
+    Swag.require(passScalars(-5_s8, -123_s16, 77_s32, 5000_s64, 9_u8, 10_u16, 11_u32, 12_u64, 1.25_f32, 2.5_f64, true, 'R') == 5077)
     Swag.require(passBoolRunePositions(true, 3, 'Q', 4, true, 'W') == 177)
     Swag.require(passBoolRunePositions(false, 30, 'Q', 40, false, 'W') == 238)
     Swag.require(passBoolRunePositions(true, -3, 'Q', 7, false, 'W') == 173)
@@ -191,9 +191,9 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     Swag.require(passSlice(values0, 2) == 33)
     Swag.require(passSlice(values1, 3) == 404)
     Swag.require(passSlice(values2, 0) == -1)
-    Swag.require(passAggregatePositions(cast(*void, 0x10'u64), [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
-    Swag.require(passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}) == 235'u64)
-    Swag.require(passNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5) == 62'u64)
-    Swag.require(passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A))
-    Swag.require(passNestedArray({p: {a: 10, b: 11}, q: {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}}, [{a: 20, b: 21}, {a: 30, b: 31}]) == 61)
+    Swag.require(passAggregatePositions(cast(*void, 0x10_u64), [5, 6], "abc", {a: 7, b: 8}, {a0: 1_u64, a1: 2_u64, a2: 3_u64, a3: 4_u64}) == 115_u64)
+    Swag.require(passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10_u64, a1: 20_u64, a2: 30_u64, a3: 40_u64}) == 235_u64)
+    Swag.require(passNested({p: {a: 3, b: 4}, q: {a0: 10_u64, a1: 20_u64, a2: 30_u64, a3: 40_u64}}, 5) == 62_u64)
+    Swag.require(passKindof({a: 1, b: 2}, {a0: 3_u64, a1: 4_u64, a2: 5_u64, a3: 6_u64}, "ok", null, [7, 8], AbiEnum.A))
+    Swag.require(passNestedArray({p: {a: 10, b: 11}, q: {a0: 1_u64, a1: 2_u64, a2: 3_u64, a3: 4_u64}}, [{a: 20, b: 21}, {a: 30, b: 31}]) == 61)
 }

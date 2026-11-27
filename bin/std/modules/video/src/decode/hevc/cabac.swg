@@ -44,9 +44,9 @@ struct CabacReader
 }
 
 private const CabacDecisionTables = #run buildCabacDecisionTables()
-private const LookAheadBits       = 32'u32
+private const LookAheadBits       = 32_u32
 private const OffsetShift         = LookAheadBits + 1
-private const RefillMask          = 0xFFFFFFFF'u64
+private const RefillMask          = 0xFFFFFFFF_u64
 
 impl CabacReader
 {
@@ -60,8 +60,10 @@ impl CabacReader
         for group in ContextGroups
         {
             let initBase = group.init[initType]
-            if initBase == NoInit do
+            if initBase == NoInit
+            {
                 continue
+            }
 
             for index in cast(u32, group.count)
             {
@@ -69,10 +71,14 @@ impl CabacReader
                 let m         = (initValue >> 4) * 5 - 45
                 let n         = ((initValue & 15) << 3) - 16
                 let preState  = Math.clamp(((m * qp) >> 4) + n, 1, 126)
-                if preState <= 63 do
+                if preState <= 63
+                {
                     .contexts[cast(u32, group.offset) + index] = cast(u8, ((63 - preState) << 1))
-                else do
+                }
+                else
+                {
                     .contexts[cast(u32, group.offset) + index] = cast(u8, (((preState - 64) << 1) | 1))
+                }
             }
         }
 
@@ -102,10 +108,12 @@ impl CabacReader
         .position = 5
         .range    = 510
         let head = .lookAhead(0)
-        if head >> (LookAheadBits - 9) >= .range do
+        if head >> (LookAheadBits - 9) >= .range
+        {
             fail InvalidFormatError{"HEVC CABAC initial offset is outside the range 0 through 509"}
+        }
 
-        let tail = size > 4 ? cast(u64, data[4]) : 0'u64
+        let tail = size > 4 ? cast(u64, data[4]) : 0_u64
         .low = (cast(u64, head) << 10) | (tail << 2) | 2
     }
 
@@ -118,12 +126,18 @@ impl CabacReader
     #[Swag.Inline]
     private mtd const lookAhead(offset: u64)->u32
     {
-        if offset >= .size do
+        if offset >= .size
+        {
             return 0
+        }
+
         let remaining = .size - offset
         let data      = unwrap .data + offset
-        if remaining >= 4 do
+        if remaining >= 4
+        {
             return Swag.byteSwap(cast(const [*] u32, data)[0])
+        }
+
         return readTail(data, remaining)
     }
 
@@ -131,9 +145,12 @@ impl CabacReader
     #[Swag.NoInline]
     private func readTail(data: const [*] u8, count: u64)->u32
     {
-        var result = 0'u32
-        for index in count do
+        var result = 0_u32
+        for index in count
+        {
             result |= cast(u32, data[index]) << (24 - cast(u32, index) * 8)
+        }
+
         return result
     }
 
@@ -171,8 +188,10 @@ impl CabacReader
         let shift = Swag.leadingZeros(range) - 23
         range <<= shift
         low   <<= shift
-        if (low & RefillMask) == 0 do
+        if (low & RefillMask) == 0
+        {
             low = .reload(low)
+        }
 
         .range = range
         .low   = low
@@ -184,14 +203,16 @@ impl CabacReader
     mtd bypass()->u32
     {
         var low = .low << 1
-        if (low & RefillMask) == 0 do
+        if (low & RefillMask) == 0
+        {
             low = .reload(low)
+        }
 
         let range  = cast(u64, .range) << OffsetShift
         let offset = low - #wrap range
         let one    = low >= range
         .low = one ? offset : low
-        return one ? 1'u32 : 0'u32
+        return one ? 1_u32 : 0_u32
     }
 
     // Decodes `count` bypass bins as an unsigned value, most significant bin first.
@@ -200,16 +221,19 @@ impl CabacReader
     {
         let range  = cast(u64, .range) << OffsetShift
         var low    = .low
-        var result = 0'u32
+        var result = 0_u32
         for count
         {
             low <<= 1
-            if (low & RefillMask) == 0 do
+            if (low & RefillMask) == 0
+            {
                 low = .reload(low)
+            }
+
             let offset = low - #wrap range
             let one    = low >= range
             low    = one ? offset : low
-            result = (result << 1) | (one ? 1'u32 : 0'u32)
+            result = (result << 1) | (one ? 1_u32 : 0_u32)
         }
 
         .low = low
@@ -223,15 +247,19 @@ impl CabacReader
     mtd terminate()->u32
     {
         .range -= 2
-        if .low >= (cast(u64, .range) << OffsetShift) do
+        if .low >= (cast(u64, .range) << OffsetShift)
+        {
             return 1
+        }
 
         if .range < 256
         {
             .range <<= 1
             .low   <<= 1
-            if (.low & RefillMask) == 0 do
+            if (.low & RefillMask) == 0
+            {
                 .low = .reload(.low)
+            }
         }
 
         return 0

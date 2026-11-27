@@ -50,7 +50,7 @@ impl Icon
     }
 
     // Creates a borrowed icon descriptor for one atlas frame.
-    func from(imageList: *ImageList, index: s32, width = 0'f32, height = 0'f32)->Icon
+    func from(imageList: *ImageList, index: s32, width = 0_f32, height = 0_f32)->Icon
     {
         var result: #returntype
         result.set(imageList, index, width, height)
@@ -58,7 +58,7 @@ impl Icon
     }
 
     // Replaces the referenced frame and logical draw size.
-    mtd set(imageList: *ImageList, index: s32, width = 0'f32, height = 0'f32)
+    mtd set(imageList: *ImageList, index: s32, width = 0_f32, height = 0_f32)
     {
         Swag.assert(imageList.isValid(), "image list is invalid")
         Swag.assert(index >= 0 and index < imageList.frameCount, "icon frame index is out of range")
@@ -76,8 +76,10 @@ impl Icon
     // The `color` argument is the fallback for an icon whose [[Gui.Icon.color]] is transparent.
     mtd const paint(painter: *Painter, x, y: f32, color: Color = Argb.White)
     {
-        if not .isValid() do
+        if not .isValid()
+        {
             return
+        }
 
         let imageList = unwrap .imageList
         let idx       = .index
@@ -88,10 +90,15 @@ impl Icon
         srcY *= imageList.frameHeight
 
         let oldInterpol = painter.interpolationMode()
-        if .sizeX == imageList.frameWidth and .sizeY == imageList.frameHeight do
+        if .sizeX == imageList.frameWidth and .sizeY == imageList.frameHeight
+        {
             painter.setInterpolationMode(InterpolationMode.Pixel)
-        else do
+        }
+        else
+        {
             painter.setInterpolationMode(InterpolationMode.Linear)
+        }
+
         defer painter.setInterpolationMode(oldInterpol)
 
         let tint = .color.a ? .color : color

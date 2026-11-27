@@ -33,11 +33,14 @@ impl SilenceEncoder
     // Creates a silent packet source for one or two channels at an indexed AAC sample rate.
     func create(sampleRate: u32, channels: u16)->SilenceEncoder fail
     {
-        if channels != 1 and channels != 2 do
+        if channels != 1 and channels != 2
+        {
             fail BadParameterError{"AAC silence encoder needs one or two channels"}
+        }
+
         for rate, index in SilenceRates where rate == sampleRate
         {
-            let value = (2'u16 << 11) | (cast(u16, index) << 7) | (channels << 3)
+            let value = (2_u16 << 11) | (cast(u16, index) << 7) | (channels << 3)
             var result: #returntype
             result.config[0]  = cast(u8, value >> 8)
             result.config[1]  = cast(u8, value & 0xFF)

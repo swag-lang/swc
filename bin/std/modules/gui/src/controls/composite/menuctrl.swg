@@ -71,14 +71,14 @@ public struct MenuCtrl
     {
         using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
-        sigCommandSelected: SigArray'func||(*Wnd, WndId)           // Emitted after a command is selected.
+        sigCommandSelected: SigArray!{func||(*Wnd, WndId)}         // Emitted after a command is selected.
         onPrepareItem:      (func(*MenuCtrl, *PopupMenuItem))?     // Updates an item before menu layout is computed.
 
         readonly
         {
-            flags: MenuFlags = None           // Active presentation options.
+            flags: MenuFlags = None             // Active presentation options.
             submenuDirection: SubmenuDirection = SubmenuDirection.Automatic     // Preferred side for child menus.
-            items: ArrayPtr'PopupMenuItem     // Commands, submenus, and separators in display order.
+            items: ArrayPtr!{PopupMenuItem}     // Commands, submenus, and separators in display order.
         }
     }
 
@@ -134,10 +134,15 @@ public impl IWnd for MenuCtrl
         for i, idx in .items
         {
             let it = unwrap i
-            if it.hidden do
+            if it.hidden
+            {
                 continue
-            if it.separator do
+            }
+
+            if it.separator
+            {
                 continue
+            }
 
             labelPos = .getBarLabelRect(i)
 
@@ -162,7 +167,7 @@ public impl IWnd for MenuCtrl
             {
                 theme.drawSubRect(painter, backPos, &rects.btnIcon_RoundSquareBk, colors.menuPopup_Bk)
             }
-            elif selected and (it.popup != null)
+            else if selected and (it.popup != null)
             {
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBk, colors.menuPopup_Bk)
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBorder, colors.menuPopup_Border, interpol: .Pixel)
@@ -226,10 +231,15 @@ public impl IWnd for MenuCtrl
         for i, idx in .items
         {
             let it = unwrap i
-            if it.hidden do
+            if it.hidden
+            {
                 continue
-            if it.separator and lastIsSeparator do
+            }
+
+            if it.separator and lastIsSeparator
+            {
                 continue
+            }
 
             labelPos.x      = clientRect.x
             labelPos.y      = it.pos
@@ -317,10 +327,14 @@ public impl IWnd for MenuCtrl
                 checkPos.y = opticalTop(.font(), textCenterY, metrics.menuPopup_IconSize)
                 checkPos.width, checkPos.height = metrics.menuPopup_IconSize
 
-                if it.rg.has(.ExclusiveGroup) do
+                if it.rg.has(.ExclusiveGroup)
+                {
                     theme.drawSubRect(painter, checkPos, &rects.btnRadio_CheckedMark, markerColor)
-                else do
+                }
+                else
+                {
                     theme.drawSubRect(painter, checkPos, &rects.btnCheck_CheckedMark, markerColor)
+                }
             }
 
             if it.icon.isValid()
@@ -330,8 +344,10 @@ public impl IWnd for MenuCtrl
                 icon.paint(painter, iconPos.x, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
             }
 
-            if it.widget do
+            if it.widget
+            {
                 continue
+            }
 
             // A shortcut is a measure, so it is written in the fixed-width face, small and faint.
             if not .flags.has(.HideShortcuts) and not it.rightName.isEmpty()
@@ -357,10 +373,14 @@ public impl IWnd for MenuCtrl
     mtd impl onPaint(evt: *PaintEvent)
     {
         .frameWnd.IWnd.onPaint(evt)
-        if .bar do
+        if .bar
+        {
             .paintBar(evt.paintContext.painter)
-        else do
+        }
+        else
+        {
             .paintPopup(evt.paintContext.painter)
+        }
     }
 
     mtd impl onTimerEvent(_: *TimerEvent)
@@ -375,8 +395,10 @@ public impl IWnd for MenuCtrl
     // after it starts, so the whole bar has to be measured again.
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .dirtyLayout = true
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -388,8 +410,13 @@ public impl IWnd for MenuCtrl
     {
         // The child takes mouse capture when it opens. Keep the parent's hover if
         // the resulting Leave event still points at the same row.
-        if evt.kind == .Leave and .subVisible and .hotIdx < .items.count and .hitTest(evt.surfacePos) == .hotIdx do
+        if evt.kind == .Leave and
+           .subVisible and
+           .hotIdx < .items.count and
+           .hitTest(evt.surfacePos) == .hotIdx
+        {
             return
+        }
 
         // The pointer can have entered a hosted child before the menu receives Leave.
         // That event ends the menu's hover and must not be sent to the new target.
@@ -407,8 +434,11 @@ public impl IWnd for MenuCtrl
         {
             .removeTimer()
             .hotIdx = Swag.U32.Max
-            if evt.kind != .Move or evt.delta.x != 0 or evt.delta.y != 0 do
+            if evt.kind != .Move or evt.delta.x != 0 or evt.delta.y != 0
+            {
                 .selectedIdx = Swag.U32.Max
+            }
+
             .invalidate()
 
             if widgetTarget
@@ -424,12 +454,17 @@ public impl IWnd for MenuCtrl
                 if menuHadCapture and
                    widgetTarget is IconButton and
                    not .endModal and
-                   (.mouseCapture() == null or .mouseCapture() == widgetTarget) do
+                   (.mouseCapture() == null or .mouseCapture() == widgetTarget)
+                {
                     .captureMouse()
+                }
             }
 
-            if widgetItem.dismissOnClick and evt.kind == .Released and evt.button == .Left do
+            if widgetItem.dismissOnClick and evt.kind == .Released and evt.button == .Left
+            {
                 .setEndModal(null)
+            }
+
             evt.accepted = true
             return
         }
@@ -440,8 +475,11 @@ public impl IWnd for MenuCtrl
             // Timer to auto open/hide sub menus
             if not .bar
             {
-                if not .timer do
-                    .timer = .surface!.app.addTimer(300'ms, me)
+                if not .timer
+                {
+                    .timer = .surface!.app.addTimer(300_ms, me)
+                }
+
                 .timer.restart()
             }
 
@@ -487,27 +525,29 @@ public impl IWnd for MenuCtrl
             .showHotPopup()
         }
 
-        elif .bar and evt.kind == .Pressed and evt.button == .Left and .hotIdx != Swag.U32.Max
+        else if .bar and evt.kind == .Pressed and evt.button == .Left and .hotIdx != Swag.U32.Max
         {
             .hideSubVisible()
             .removeTimer()
             .showHotPopup()
-            if .subVisible do
+            if .subVisible
+            {
                 .subVisible.ignoreNextRelease = true
+            }
         }
 
-        elif .bar and
-             evt.kind == .Released and
-             evt.button == .Left and
-             .hotIdx != Swag.U32.Max and
-             not .subVisible
+        else if .bar and
+                evt.kind == .Released and
+                evt.button == .Left and
+                .hotIdx != Swag.U32.Max and
+                not .subVisible
         {
             .hideSubVisible()
             .removeTimer()
             .showHotPopup()
         }
         // On a popup menu, just react to press button
-        elif evt.kind == .Released and evt.button == .Left
+        else if evt.kind == .Released and evt.button == .Left
         {
             if .hotIdx != Swag.U32.Max
             {
@@ -518,7 +558,7 @@ public impl IWnd for MenuCtrl
                     .removeTimer()
                     .showHotPopup()
                 }
-                elif not hotItem.separator and not hotItem.disabled
+                else if not hotItem.separator and not hotItem.disabled
                 {
                     .setEndModal(hotItem.id)
                 }
@@ -537,11 +577,17 @@ private impl MenuCtrl
     mtd widgetItemAt(surfacePos: Math.Point)->*PopupMenuItem?
     {
         let index = .hitTestPopup(surfacePos)
-        if index == Swag.U32.Max do
+        if index == Swag.U32.Max
+        {
             return null
+        }
+
         let item = .items[index]
-        if item and item.widget do
+        if item and item.widget
+        {
             return item
+        }
+
         return null
     }
 
@@ -581,10 +627,15 @@ impl MenuCtrl
 {
     private mtd shouldOpenSubmenuLeft(surfaceRect: Math.Rectangle, submenuWidth: f32)->bool
     {
-        if .submenuDirection == .Left do
+        if .submenuDirection == .Left
+        {
             return true
-        if .submenuDirection == .Right do
+        }
+
+        if .submenuDirection == .Right
+        {
             return false
+        }
 
         let popupParent   = unwrap .parent
         let bounds        = popupParent.clientRect()
@@ -593,10 +644,16 @@ impl MenuCtrl
         let openRight     = parentTopLeft.x + surfaceRect.width - 2 * metrics.menuPopup_ShadowSize
         let openLeft      = parentTopLeft.x - submenuWidth + 2 * metrics.menuPopup_ShadowSize
         let margin        = metrics.menuPopup_WindowMargin
-        if openRight + submenuWidth <= bounds.right() - margin do
+        if openRight + submenuWidth <= bounds.right() - margin
+        {
             return false
-        if openLeft >= bounds.x + margin do
+        }
+
+        if openLeft >= bounds.x + margin
+        {
             return true
+        }
+
         return parentTopLeft.x - bounds.x > bounds.right() - parentTopLeft.x - surfaceRect.width
     }
 
@@ -605,7 +662,7 @@ impl MenuCtrl
         // Every submenu of a menu opens on one side, the side its widest one fits: chevrons that
         // point both ways on neighbouring entries read as two kinds of entry.
         let surfaceRect = .surfaceRect()
-        var widest      = 0'f32
+        var widest      = 0_f32
         for i in .items where i!.popup != null and not i.hidden
         {
             let item = i
@@ -615,8 +672,10 @@ impl MenuCtrl
         }
 
         let opensLeft = widest > 0 and .shouldOpenSubmenuLeft(surfaceRect, widest)
-        for i in .items where i!.popup != null and not i.hidden do
+        for i in .items where i!.popup != null and not i.hidden
+        {
             i.submenuOpensLeft = opensLeft
+        }
 
         .invalidate()
     }
@@ -646,8 +705,11 @@ impl MenuCtrl
 
     internal mtd getPopupBarAnchorHeight()->f32
     {
-        if not .hasPopupBarAnchor() do
+        if not .hasPopupBarAnchor()
+        {
             return 0
+        }
+
         let gap = .popupAnchorButton ? .popupAnchorButton.menuAnchorGap(.popupButtonOpensUp) : .themeMetrics().menuPopup_AnchorGap
         return .popupBarItemSurfaceRect.height + gap
     }
@@ -660,21 +722,28 @@ impl MenuCtrl
         let anchor = .popupBarItemSurfaceRect
         let local  = parent.surfaceToLocal(Math.Point{anchor.x, anchor.y})
 
-        if .popupButtonOpensUp do
+        if .popupButtonOpensUp
+        {
             return local.y - (.position.height - anchor.height - shadow) >= .themeMetrics().menuPopup_WindowMargin
+        }
+
         return local.y - shadow + .position.height - shadow <= parent.position.height - .themeMetrics().menuPopup_WindowMargin
     }
 
     // Flip before abandoning the anchor when neither side has room for the complete menu.
     private mtd fitPopupButtonAnchor()
     {
-        if .popupButtonAnchorFits() do
+        if .popupButtonAnchorFits()
+        {
             return
+        }
 
         .popupButtonOpensUp = not .popupButtonOpensUp
         .computeLayoutPopup()
-        if .popupButtonAnchorFits() do
+        if .popupButtonAnchorFits()
+        {
             return
+        }
 
         .clearPopupBarAnchor()
         .computeLayoutPopup()
@@ -719,27 +788,36 @@ impl MenuCtrl
         if anchorHeight
         {
             result.height -= anchorHeight
-            if not .popupButtonOpensUp do
+            if not .popupButtonOpensUp
+            {
                 result.y += anchorHeight
+            }
         }
 
-        if not .paintByFrame do
+        if not .paintByFrame
+        {
             result.inflate(-metrics.menuPopup_ShadowSize)
+        }
+
         return result
     }
 
     private mtd paintPopupBarAnchor(painter: *Painter)
     {
-        if not .hasPopupBarAnchor() do
+        if not .hasPopupBarAnchor()
+        {
             return
+        }
 
         let theme   = .theme()
         let colors  = .themeColors()
         let metrics = .themeMetrics()
 
         let anchorRect = .getPopupBarAnchorLocalRect()
-        if anchorRect.isEmpty() do
+        if anchorRect.isEmpty()
+        {
             return
+        }
 
         paintPopupOpener(me, painter, anchorRect, .popupAnchorButton)
         if .popupAnchorButton
@@ -793,8 +871,10 @@ impl MenuCtrl
             p.parent!.invalidate()
         }
 
-        if result != null do
+        if result != null
+        {
             .sigCommandSelected.call(me, result)
+        }
 
         if .bar
         {
@@ -833,8 +913,11 @@ impl MenuCtrl
         var submenuHadCapture = false
         while .subVisible
         {
-            if capture == .subVisible or .subVisible.isAncestorOf(capture) do
+            if capture == .subVisible or .subVisible.isAncestorOf(capture)
+            {
                 submenuHadCapture = true
+            }
+
             .subVisible.ignoreNextRelease = false
             .subVisible.hide()
             .subVisible = .subVisible.subVisible
@@ -843,16 +926,23 @@ impl MenuCtrl
         .selectedIdx = Swag.U32.Max
 
         // A hover timer can call this with no open submenu, including in an embedded panel.
-        if .bar do
+        if .bar
+        {
             .releaseMouse()
-        elif submenuHadCapture and not .mouseCapture() do
+        }
+        else if submenuHadCapture and not .mouseCapture()
+        {
             .captureMouse()
+        }
     }
 
     mtd removeTimer()
     {
-        if not .timer do
+        if not .timer
+        {
             return
+        }
+
         .surface!.app.removeTimer(.timer)
         .timer = null
     }
@@ -866,11 +956,17 @@ impl MenuCtrl
         for i in .items
         {
             let it = unwrap i
-            if it.widget do
+            if it.widget
+            {
                 continue
+            }
+
             let evt = .sendComputeCommandStateEvent(it.id)
-            if evt.updatedFields.has(.Disabled) do
+            if evt.updatedFields.has(.Disabled)
+            {
                 it.disabled = evt.disabled
+            }
+
             if evt.updatedFields.has(.Hidden)
             {
                 it.hidden     = evt.hidden
@@ -888,7 +984,7 @@ impl MenuCtrl
                 it.name       = evt.longName
                 layoutChanged = true
             }
-            elif evt.updatedFields.has(.Name)
+            else if evt.updatedFields.has(.Name)
             {
                 it.name       = evt.name
                 layoutChanged = true
@@ -900,8 +996,11 @@ impl MenuCtrl
                 layoutChanged = true
             }
 
-            if evt.updatedFields.has(.Checked) do
+            if evt.updatedFields.has(.Checked)
+            {
                 it.checked = evt.checked
+            }
+
             if evt.updatedFields.has(.RenderingHint)
             {
                 it.rg       = evt.renderingHint
@@ -1013,10 +1112,14 @@ impl MenuCtrl
             return
         }
 
-        if .bar do
+        if .bar
+        {
             .showHotPopupBar()
-        else do
+        }
+        else
+        {
             .showHotPopupPopup()
+        }
     }
 
     mtd hitTestBar(surfacePos: Math.Point)->u32
@@ -1025,13 +1128,20 @@ impl MenuCtrl
         for iIt, idx in .items
         {
             let i = unwrap iIt
-            if i.hidden do
+            if i.hidden
+            {
                 continue
-            if i.separator do
-                continue
+            }
 
-            if .getBarItemRect(i).contains(pos) do
+            if i.separator
+            {
+                continue
+            }
+
+            if .getBarItemRect(i).contains(pos)
+            {
                 return cast(u32, idx)
+            }
         }
 
         return Swag.U32.Max
@@ -1047,14 +1157,21 @@ impl MenuCtrl
         for i, idx in .items
         {
             let it = unwrap i
-            if it.hidden do
+            if it.hidden
+            {
                 continue
-            if it.separator and lastIsSeparator do
+            }
+
+            if it.separator and lastIsSeparator
+            {
                 continue
+            }
 
             let rect = Math.Rectangle{clientRect.x, it.pos - sl * 0.5, clientRect.width, it.size + sl}
-            if rect.contains(pos) do
+            if rect.contains(pos)
+            {
                 return cast(u32, idx)
+            }
 
             lastIsSeparator = it.separator
         }
@@ -1081,12 +1198,21 @@ impl MenuCtrl
         for i in .items
         {
             let it = unwrap i
-            if it.hidden do
+            if it.hidden
+            {
                 continue
-            if .onPrepareItem do
+            }
+
+            if .onPrepareItem
+            {
                 .onPrepareItem(me, i)
-            if it.nameResolver do
+            }
+
+            if it.nameResolver
+            {
                 it.name.set(it.nameResolver())
+            }
+
             it.pos = x + metrics.menuBar_SpaceBetween * 0.5
             it.name.compute()
             Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
@@ -1117,17 +1243,31 @@ impl MenuCtrl
         for i, idx in .items
         {
             let it = unwrap i
-            if it.hidden do
+            if it.hidden
+            {
                 continue
-            if it.separator and lastIsSeparator do
-                continue
+            }
 
-            if .onPrepareItem do
+            if it.separator and lastIsSeparator
+            {
+                continue
+            }
+
+            if .onPrepareItem
+            {
                 .onPrepareItem(me, i)
-            if it.nameResolver do
+            }
+
+            if it.nameResolver
+            {
                 it.name.set(it.nameResolver())
-            if idx do
+            }
+
+            if idx
+            {
                 .position.height += metrics.menuPopup_SpaceLines
+            }
+
             it.pos = .position.height
 
             lastIsSeparator = it.separator
@@ -1138,8 +1278,10 @@ impl MenuCtrl
                 continue
             }
 
-            if it.icon.isValid() do
+            if it.icon.isValid()
+            {
                 .popupHasGlyphs = true
+            }
 
             if it.widget
             {
@@ -1187,8 +1329,10 @@ impl MenuCtrl
         }
 
         // Add shadow size
-        if not .paintByFrame do
+        if not .paintByFrame
+        {
             .position.width += 2 * metrics.menuPopup_ShadowSize
+        }
 
         let leadingWidth = .popupHasGlyphs ? metrics.menuPopup_IconMargin + metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin : metrics.menuPopup_IconMargin
         .position.width += metrics.menuPopup_IconSize + leadingWidth
@@ -1196,18 +1340,24 @@ impl MenuCtrl
         if .hasPopupBarAnchor() and not .paintByFrame
         {
             let bodyWidth = .position.width - 2 * metrics.menuPopup_ShadowSize
-            if bodyWidth < .popupBarItemSurfaceRect.width do
+            if bodyWidth < .popupBarItemSurfaceRect.width
+            {
                 .position.width += .popupBarItemSurfaceRect.width - bodyWidth
+            }
         }
 
-        if not .paintByFrame do
+        if not .paintByFrame
+        {
             .position.height += metrics.menuPopup_ShadowSize
+        }
 
         // Add padding
         .position.width  += .padding.x + .padding.z
         .position.height += .padding.w
-        if .popupButtonOpensUp do
+        if .popupButtonOpensUp
+        {
             .position.height += .getPopupBarAnchorHeight()
+        }
 
         clientRect = .getPopupBodyRect()
         clientRect.applyPadding(.padding)
@@ -1228,8 +1378,11 @@ public impl MenuCtrl
     // Selects whether an enclosing frame paints the popup border and shadow.
     mtd setFramePainting(enabled: bool)
     {
-        if .paintByFrame == enabled do
+        if .paintByFrame == enabled
+        {
             return
+        }
+
         .paintByFrame = enabled
         .dirtyLayout  = true
         .invalidate()
@@ -1241,8 +1394,11 @@ public impl MenuCtrl
     // switches both the child menu and its marker to the left near the window edge.
     mtd setSubmenuDirection(direction: SubmenuDirection)
     {
-        if .submenuDirection == direction do
+        if .submenuDirection == direction
+        {
             return
+        }
+
         .submenuDirection = direction
         .invalidate()
     }
@@ -1262,8 +1418,10 @@ public impl MenuCtrl
     mtd handleKeyboard(evt: *KeyEvent)
     {
         evt.accepted = false
-        if .endModal do
+        if .endModal
+        {
             return
+        }
 
         if evt.kind == .Character and evt.modifiers.has(.Alt) and not evt.modifiers.has(.Control)
         {
@@ -1271,10 +1429,13 @@ public impl MenuCtrl
             return
         }
 
-        if .bar do
+        if .bar
+        {
             return
+        }
+
         if evt.kind == .Character and
-           evt.character >= ' 'rune and
+           evt.character >= ' '_rune and
            not evt.modifiers.has(.Control) and
            not evt.modifiers.has(.Alt)
         {
@@ -1284,8 +1445,10 @@ public impl MenuCtrl
             return
         }
 
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return
+        }
 
         if .selectedIdx < .items.count and
            .items[.selectedIdx]!.widget and
@@ -1296,8 +1459,10 @@ public impl MenuCtrl
             evt.target = widget
             widget.processEvent(evt)
             evt.target = target
-            if evt.accepted do
+            if evt.accepted
+            {
                 return
+            }
         }
 
         if evt.key == .Left or evt.key == .Right
@@ -1359,8 +1524,11 @@ public impl MenuCtrl
             .setEndModal(null)
 
         case .Return, .Space:
-            if .selectedIdx == Swag.U32.Max do
+            if .selectedIdx == Swag.U32.Max
+            {
                 .selectKeyboardEdge(forward: true)
+            }
+
             if .selectedIdx < .items.count
             {
                 let item = unwrap .items[.selectedIdx]
@@ -1369,7 +1537,7 @@ public impl MenuCtrl
                     .hotIdx = .selectedIdx
                     .showHotPopup()
                 }
-                elif item.id
+                else if item.id
                 {
                     .setEndModal(item.id)
                 }
@@ -1389,24 +1557,38 @@ public impl MenuCtrl
         for item, index in .items
         {
             let entry = unwrap item
-            if entry.hidden or entry.disabled or entry.separator or entry.note or entry.accessKey == 0 do
+            if entry.hidden or entry.disabled or entry.separator or entry.note or entry.accessKey == 0
+            {
                 continue
-            if Unicode.toLower(entry.accessKey) != Unicode.toLower(key) do
+            }
+
+            if Unicode.toLower(entry.accessKey) != Unicode.toLower(key)
+            {
                 continue
-            if match != Swag.U64.Max do
+            }
+
+            if match != Swag.U64.Max
+            {
                 return false
+            }
+
             match = index
         }
 
-        if match == Swag.U64.Max do
+        if match == Swag.U64.Max
+        {
             return false
+        }
 
         let entry = unwrap .items[match]
         .hotIdx = cast(u32, match)
         if entry.popup != null
         {
-            if .bar do
+            if .bar
+            {
                 .accessKeyRestoreFocus = .app().keyboardFocusWnd
+            }
+
             .showHotPopup()
             return true
         }
@@ -1446,8 +1628,11 @@ public impl MenuCtrl
     private mtd moveKeyboardSelection(forward: bool)
     {
         let count = .items.count
-        if not count do
+        if not count
+        {
             return
+        }
+
         let current = .selectedIdx < count ? cast(u64, .selectedIdx) :
                       (.hotIdx < count ? cast(u64, .hotIdx) : (forward ? count - 1 : 0))
         for offset in count
@@ -1478,8 +1663,11 @@ public impl MenuCtrl
     private mtd selectKeyboardLetter(letter: string)
     {
         let count = .items.count
-        if not count do
+        if not count
+        {
             return
+        }
+
         let current = .selectedIdx < count ? cast(u64, .selectedIdx) : count - 1
         let matcher = expect Text.NameMatcher.create(letter, {mode: .StartsWith, comparisonType: .UnicodeNoCase})
         for offset in count
@@ -1499,8 +1687,11 @@ public impl MenuCtrl
         var flags = .flags
         flags.add(add)
         flags.remove(remove)
-        if flags == .flags do
+        if flags == .flags
+        {
             return
+        }
+
         .flags       = flags
         .dirtyLayout = true
         .invalidate()
@@ -1514,7 +1705,7 @@ public impl MenuCtrl
     func createPopup(parent: *Wnd, id: WndId? = null, owner: *Wnd? = null)->*MenuCtrl
     {
         Swag.assert(parent != null)
-        with let res = Wnd.create'MenuCtrl(parent.popupParent(), null, {}, id)
+        with let res = Wnd.create!{MenuCtrl}(parent.popupParent(), null, {}, id)
         {
             .focusPolicy = .Click
             .wndFlags    |= .NoPointerFocus
@@ -1532,13 +1723,16 @@ public impl MenuCtrl
     func createBar(parent: *Wnd, pos: Math.Rectangle = {}, id: WndId? = null, owner: *Wnd? = null)->*MenuCtrl
     {
         Swag.assert(parent != null)
-        with let res = Wnd.create'MenuCtrl(parent, null, pos, id)
+        with let res = Wnd.create!{MenuCtrl}(parent, null, pos, id)
         {
             .focusPolicy = .Click
             .owner       = owner
             let metrics = .themeMetrics()
-            if .position.height == 0 do
+            if .position.height == 0
+            {
                 .position.height = metrics.menuBar_Height
+            }
+
             .setAllPaddings(metrics.menuPopup_Padding)
             .bar = true
         }
@@ -1559,8 +1753,11 @@ public impl MenuCtrl
         Swag.assert(index < .items.count, "menu item index is out of range")
         .hideSubVisible()
         .removeTimer()
-        if let widget = .items[index]!.widget where widget == .widgetHoverTarget or widget.isAncestorOf(.widgetHoverTarget) do
+        if let widget = .items[index]!.widget where widget == .widgetHoverTarget or widget.isAncestorOf(.widgetHoverTarget)
+        {
             .clearWidgetHover()
+        }
+
         .items[index]!.widget?.hide()
         .items.deleteAt(index)
         .hotIdx      = Swag.U32.Max
@@ -1572,13 +1769,19 @@ public impl MenuCtrl
     // Removes every command, submenu entry, and separator.
     mtd clear()
     {
-        if .items.isEmpty() do
+        if .items.isEmpty()
+        {
             return
+        }
+
         .hideSubVisible()
         .removeTimer()
         .clearWidgetHover()
-        for item in .items do
+        for item in .items
+        {
             item!.widget?.hide()
+        }
+
         .items.clear()
         .hotIdx      = Swag.U32.Max
         .selectedIdx = Swag.U32.Max
@@ -1593,8 +1796,10 @@ public impl MenuCtrl
     // Adds commands whose labels, icons, and states come from their identifiers.
     mtd addItems(ids: const [..] WndId)
     {
-        for id in ids do
+        for id in ids
+        {
             .addItem(null, id)
+        }
     }
 
     // Adds a command group followed by a separator.
@@ -1770,8 +1975,11 @@ public impl MenuCtrl
     mtd addSeparator()
     {
         let last = .items.last()
-        if not last or last.separator do
+        if not last or last.separator
+        {
             return
+        }
+
         let item = .items.allocate()
         item.separator = true
         .items.add(item)
@@ -1803,8 +2011,11 @@ public impl MenuCtrl
         Swag.assert(not .bar)
 
         .clearPopupBarAnchor()
-        if button do
+        if button
+        {
             .setPopupButtonAnchor(button)
+        }
+
         .updateState()
 
         // Every popup paints its own ground, border and shadow: a menu centred on a point is shaped
@@ -1812,8 +2023,11 @@ public impl MenuCtrl
         .paintByFrame = false
 
         .computeLayoutPopup()
-        if button do
+        if button
+        {
             .fitPopupButtonAnchor()
+        }
+
         .position.width  = Math.ceil(.position.width)
         .position.height = Math.ceil(.position.height)
 
@@ -1826,16 +2040,22 @@ public impl MenuCtrl
             let sdw    = .themeMetrics().menuPopup_ShadowSize
 
             var y = anchor.y - sdw
-            if not .hasPopupBarAnchor() do
+            if not .hasPopupBarAnchor()
+            {
                 y = anchor.bottom() - sdw
-            elif .popupButtonOpensUp do
+            }
+            else if .popupButtonOpensUp
+            {
                 y = anchor.y - (.position.height - anchor.height - sdw)
+            }
 
             // A menu centred under its button lands on whole pixels, which can only split an even
             // difference of widths: one more pixel keeps the body centred instead of half a pixel off.
             let alignsText = not button.name.isEmpty() and not button.flags.has(.IconOnly)
-            if not alignsText and cast(s64, Math.abs(.position.width - 2 * sdw - anchor.width)) & 1 do
+            if not alignsText and cast(s64, Math.abs(.position.width - 2 * sdw - anchor.width)) & 1
+            {
                 .position.width += 1
+            }
 
             let bodyWidth = .position.width - 2 * sdw
             var left      = anchor.horzCenter() - bodyWidth * 0.5
@@ -1889,8 +2109,10 @@ public impl MenuCtrl
 
         // Fitting a centred popup near the right edge moves the body, not its attachment point.
         // Recompute the notch from the original anchor so it remains directly under the button.
-        if anchored and not button do
+        if anchored and not button
+        {
             .anchorPosition = Math.clamp(pt.x - .position.x, 0.0, .position.width)
+        }
 
         .resolveSubmenuDirections()
 
@@ -1899,35 +2121,54 @@ public impl MenuCtrl
         let anchorY = button ? button.surfaceRect().vertCenter() : surfacePos.y
         let travel  = .themeMetrics().motion_AnchorTravel
         .bringToFront()
-        if .hasPopupBarAnchor() do
+        if .hasPopupBarAnchor()
+        {
             .show()
-        else do
+        }
+        else
+        {
             discard .app().animator.arrive(me, {0, .surfaceRect().vertCenter() < anchorY ? travel : -travel})
+        }
+
         .captureMouse()
 
         .endModal          = false
         .endModalResult    = null
         .app().inModalLoop += 1
         let srf = unwrap .surface
-        while not .endModal do
+        while not .endModal
+        {
             srf.app.runFrame()
+        }
+
         .app().inModalLoop -= 1
 
         // setEndModal can suppress the root before this loop resumes. Clear that presentation-only
         // flag so hide performs the normal focus, input and registration teardown exactly once.
-        if .wndFlags.has(.Hidden) do
+        if .wndFlags.has(.Hidden)
+        {
             .wndFlags.remove(.Hidden)
+        }
+
         .hideSubVisible()
-        if autoDestroy do
+        if autoDestroy
+        {
             .hide()
-        else do
+        }
+        else
+        {
             discard .app().animator.leave(me)
+        }
 
-        if dispatchCommand and .endModalResult do
+        if dispatchCommand and .endModalResult
+        {
             .postCommandEvent(.endModalResult)
+        }
 
-        if autoDestroy do
+        if autoDestroy
+        {
             .destroyPopupTree()
+        }
 
         return .endModalResult
     }
@@ -1936,10 +2177,16 @@ public impl MenuCtrl
     // must retire them before it goes away, including children that were never opened.
     private mtd destroyPopupTree()
     {
-        if .isPendingDestroy do
+        if .isPendingDestroy
+        {
             return
-        for item in .items where item!.popup != null do
+        }
+
+        for item in .items where item!.popup != null
+        {
             item.popup.destroyPopupTree()
+        }
+
         .destroy()
     }
 }

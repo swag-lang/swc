@@ -22,8 +22,10 @@ impl PureLifecycleToken
 func pureLifecycleChoose(other: bool)->PureLifecycleToken
 {
     var result: #returntype = PureLifecycleToken{id: 1}
-    if other do
+    if other
+    {
         return PureLifecycleToken{id: 2}
+    }
     return result
 }
 

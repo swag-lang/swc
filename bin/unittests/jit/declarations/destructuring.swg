@@ -65,7 +65,7 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 
 #test
 {
-    let {x: a, y: b, z: c} = {x: true, y: 42's32, z: 3.14}
+    let {x: a, y: b, z: c} = {x: true, y: 42_s32, z: 3.14}
     Swag.require(a == true)
     Swag.require(b == 42)
     Swag.require(c == 3.14)
@@ -92,7 +92,7 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 
 #test
 {
-    let t = {a: 1's32, b: 2's32, c: 3's32}
+    let t = {a: 1_s32, b: 2_s32, c: 3_s32}
     let {a: _, b: _, c} = t
     Swag.require(c == 3)
     let {a: x, b: _, c: _} = t
@@ -114,12 +114,12 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 
 #test
 {
-    let namedThenUnnamed = {x: 11's32, item1: 22's32}
+    let namedThenUnnamed = {x: 11_s32, item1: 22_s32}
     let {item1: second, x: first} = namedThenUnnamed
     Swag.require(first == 11)
     Swag.require(second == 22)
 
-    let unnamedThenNamed = {item0: 33's32, y: 44's32}
+    let unnamedThenNamed = {item0: 33_s32, y: 44_s32}
     let {y: fourth, item0: third} = unnamedThenNamed
     Swag.require(third == 33)
     Swag.require(fourth == 44)
@@ -137,15 +137,19 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 
     first  = 0
     second = 0
-    if true do
+    if true
+    {
         {x: first, y: second} = point
+    }
     Swag.require(first == 51)
     Swag.require(second == 52)
 
     first  = 0
     second = 0
-    #static if true do
+    #static if true
+    {
         {y: second, x: first} = point
+    }
     Swag.require(first == 51)
     Swag.require(second == 52)
 
@@ -156,14 +160,14 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 
 #test
 {
-    var namedThenUnnamed = {x: 61's32, item1: 62's32}
+    var namedThenUnnamed = {x: 61_s32, item1: 62_s32}
     var first:  s32
     var second: s32
     {item1: second, x: first} = namedThenUnnamed
     Swag.require(first == 61)
     Swag.require(second == 62)
 
-    var unnamedThenNamed = {item0: 71's32, y: 72's32}
+    var unnamedThenNamed = {item0: 71_s32, y: 72_s32}
     {y: second, item0: first} = unnamedThenNamed
     Swag.require(first == 71)
     Swag.require(second == 72)
@@ -233,8 +237,10 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     {
         func read(value: u32)->{ next, sum: u32 }
         {
-            if value >= 3 do
+            if value >= 3
+            {
                 return {next: value + 1, sum: value * 10}
+            }
 
             var next = value
             var sum: u32
@@ -263,8 +269,10 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
         if not nc
         {
             var sum: u32
-            for i in nm do
+            for i in nm
+            {
                 sum += n[start + i]
+            }
             return {next: start + nm, sum: sum}
         }
 
@@ -280,8 +288,10 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
         for i in nm
         {
             let idx = n[start + i]
-            if idx and idx - 1 < nc do
+            if idx and idx - 1 < nc
+            {
                 sum += childValues[idx - 1]
+            }
         }
 
         return {next: start + nm, sum: sum}

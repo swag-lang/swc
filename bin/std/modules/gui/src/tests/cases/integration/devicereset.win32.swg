@@ -5,7 +5,7 @@
 using Core, Pixel
 
 // Paints frames until the window presents the GPU target and returns those pixels.
-func settledPresentation(app: *Application, surface: *Surface)->Array'u8
+func settledPresentation(app: *Application, surface: *Surface)->Array!{u8}
 {
     var watch: Time.Stopwatch
     watch.start()
@@ -18,7 +18,7 @@ func settledPresentation(app: *Application, surface: *Surface)->Array'u8
             return image.pixels
         }
 
-        Threading.Thread.sleep(5'ms)
+        Threading.Thread.sleep(5_ms)
     }
 
     Swag.require(false, "the presentation never matched the GPU target")
@@ -46,7 +46,7 @@ func settledPresentation(app: *Application, surface: *Surface)->Array'u8
     while app.rendererOgl.deviceResets == 0 and watch.elapsedMilliseconds() < 30000
     {
         app.paintSurfaces()
-        Threading.Thread.sleep(50'ms)
+        Threading.Thread.sleep(50_ms)
     }
 
     Swag.require(app.rendererOgl.deviceResets == 1, "the device reset was never reported")

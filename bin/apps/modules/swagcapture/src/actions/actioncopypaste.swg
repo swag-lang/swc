@@ -45,7 +45,7 @@ impl IActionUI for ActionCopyPaste
             {
                 evt.disabled = true
             }
-            elif not Clipboard.hasTypedValue(#typeof(CaptureClipboardForms)) and not Clipboard.hasImage()
+            else if not Clipboard.hasTypedValue(#typeof(CaptureClipboardForms)) and not Clipboard.hasImage()
             {
                 evt.disabled = true
                 evt.reason   = appStrings().act_NothingToPaste
@@ -87,7 +87,7 @@ impl IActionUI for ActionCopyPaste
                 evt.name     = appStrings().act_CopyVideo
                 evt.longName = appStrings().act_CopyVideoToClipboard
             }
-            elif capture and capture.media == .Animation
+            else if capture and capture.media == .Animation
             {
                 evt.name     = appStrings().act_CopyAnimation
                 evt.longName = appStrings().act_CopyAnimationToClipboard

@@ -18,12 +18,12 @@
 {
     func minusEqFloat()->f32
     {
-        var v: f32 = 44.5'f32
-        v -= 2.5'f32
+        var v: f32 = 44.5_f32
+        v -= 2.5_f32
         return v
     }
 
     const V = #run minusEqFloat()
     #assert(#typeof(V) == f32)
-    #assert(V == 42.0'f32)
+    #assert(V == 42.0_f32)
 }

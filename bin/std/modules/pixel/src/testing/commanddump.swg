@@ -57,15 +57,23 @@ private
     func fmtF(value: f32)->String
     {
         var v = Math.round(value * 1000) / 1000
-        if v == 0 do
+        if v == 0
+        {
             v = 0
+        }
 
         var result: #returntype
         result.appendFormat("%{f3}", v)
-        while result.back() == '0'u8 do
+        while result.back() == '0'_u8
+        {
             result.removeBack()
-        if result.back() == '.'u8 do
+        }
+
+        if result.back() == '.'_u8
+        {
             result.removeBack()
+        }
+
         return result
     }
 
@@ -75,15 +83,23 @@ private
     func fmtNorm(value: f32)->String
     {
         var v = Math.round(value * 1000000) / 1000000
-        if v == 0 do
+        if v == 0
+        {
             v = 0
+        }
 
         var result: #returntype
         result.appendFormat("%{f6}", v)
-        while result.back() == '0'u8 do
+        while result.back() == '0'_u8
+        {
             result.removeBack()
-        if result.back() == '.'u8 do
+        }
+
+        if result.back() == '.'_u8
+        {
             result.removeBack()
+        }
+
         return result
     }
 
@@ -104,19 +120,21 @@ private
 
         // Remap tables. The index of an entry is the number printed in the snapshot, so the
         // first object of each kind that a drawing touches is always '#0'.
-        textures: Array'TextureHandle
-        fonts:    Array'(const *Font?)
-        targets:  Array'(const *RenderTarget?)
-        shaders:  Array'(const *ShaderBase?)
-        params:   Array'ShaderParamHandle
+        textures: Array!{TextureHandle}
+        fonts:    Array!{const *Font?}
+        targets:  Array!{const *RenderTarget?}
+        shaders:  Array!{const *ShaderBase?}
+        params:   Array!{ShaderParamHandle}
     }
 
     impl CommandDump
     {
         mtd texRef(texture: Texture)->String
         {
-            for it, idx in .textures where it == texture.handle do
+            for it, idx in .textures where it == texture.handle
+            {
                 return Format.toString("tex#%", idx)
+            }
 
             .textures.add(texture.handle)
             let idx = .textures.count - 1
@@ -126,8 +144,10 @@ private
 
         mtd fontRef(font: const *Font)->String
         {
-            for it, idx in .fonts where it == font do
+            for it, idx in .fonts where it == font
+            {
                 return Format.toString("font#%", idx)
+            }
 
             .fonts.add(font)
             let idx = .fonts.count - 1
@@ -141,11 +161,15 @@ private
 
         mtd targetRef(target: const *RenderTarget?)->String
         {
-            if not target do
+            if not target
+            {
                 return String.from("none")
+            }
 
-            for it, idx in .targets where it == target do
+            for it, idx in .targets where it == target
+            {
                 return Format.toString("rt#%", idx)
+            }
 
             .targets.add(target)
             let idx = .targets.count - 1
@@ -155,11 +179,15 @@ private
 
         mtd shaderRef(shader: const *ShaderBase?)->String
         {
-            if not shader do
+            if not shader
+            {
                 return String.from("none")
+            }
 
-            for it, idx in .shaders where it == shader do
+            for it, idx in .shaders where it == shader
+            {
                 return Format.toString("shader#%", idx)
+            }
 
             .shaders.add(shader)
             return Format.toString("shader#%", .shaders.count - 1)
@@ -169,8 +197,10 @@ private
         // so it is remapped like any other opaque handle.
         mtd paramRef(param: ShaderParamHandle)->String
         {
-            for it, idx in .params where it == param do
+            for it, idx in .params where it == param
+            {
                 return Format.toString("p#%", idx)
+            }
 
             .params.add(param)
             return Format.toString("p#%", .params.count - 1)
@@ -178,8 +208,10 @@ private
 
         mtd run(painter: const *Painter)
         {
-            for &cmd in painter.commandBuffer do
+            for &cmd in painter.commandBuffer
+            {
                 .dumpCommand(painter, cmd)
+            }
         }
 
         mtd dumpCommand(painter: const *Painter, cmd: const *Command)
@@ -245,10 +277,14 @@ private
 
             case .SetShaderParam:
                 .body.appendFormat(" % %=", .paramRef(cmd.shaderParam.param), cmd.shaderParam.type.name)
-                if cmd.shaderParam.type == s32 do
+                if cmd.shaderParam.type == s32
+                {
                     .body.appendFormat("%", cmd.shaderParam._s32)
-                else do
+                }
+                else
+                {
                     .body += fmtF(cmd.shaderParam._f32)
+                }
 
             case .SetFontEffect:
                 .dumpFontEffect(&cmd.fontEffect)
@@ -278,17 +314,24 @@ private
         {
             .body.appendFormat(" % uv=% interp=%", fmtEnum(p.type), fmtEnum(p.uvMode), fmtEnum(p.interpolationMode))
 
-            if p.type == .Hatch do
+            if p.type == .Hatch
+            {
                 .body.appendFormat(" hatch=%", fmtEnum(p.hatch))
-            if p.texture.isValid() do
+            }
+
+            if p.texture.isValid()
+            {
                 .body.appendFormat(" %", .texRef(p.texture))
+            }
 
             .body.appendFormat(" bound=(%,%)-(%,%)", fmtF(p.boundRect.x), fmtF(p.boundRect.y), fmtF(p.boundRect.z), fmtF(p.boundRect.w))
 
             // For a sub-rectangle brush this carries the normalized, half-texel inset source
             // rectangle, which is the value a sampling regression would move.
-            if p.uvMode == .FillSubRect do
+            if p.uvMode == .FillSubRect
+            {
                 .body.appendFormat(" src=(%,%)-(%,%)", fmtNorm(p.textureRect.x), fmtNorm(p.textureRect.y), fmtNorm(p.textureRect.z), fmtNorm(p.textureRect.w))
+            }
 
             switch p.type
             {
@@ -303,8 +346,11 @@ private
                 .body.appendFormat(" spread=% stops=[", fmtEnum(p.gradientSpread))
                 for i in p.gradientStopCount
                 {
-                    if i do
+                    if i
+                    {
                         .body += " "
+                    }
+
                     let stop = painter.gradientStops[p.gradientStopStart + i]
                     .body.appendFormat("%:%", fmtF(stop.offset), fmtColor(stop.color))
                 }
@@ -322,12 +368,20 @@ private
             }
 
             .body.appendFormat(" dilate=% soft=%", fmtF(e.faceDilate), fmtF(e.faceSoftness))
-            if e.outlineWidth do
+            if e.outlineWidth
+            {
                 .body.appendFormat(" outline=%:%", fmtF(e.outlineWidth), fmtColor(e.outlineColor))
-            if e.glowOuter do
+            }
+
+            if e.glowOuter
+            {
                 .body.appendFormat(" glow=%:%", fmtF(e.glowOuter), fmtColor(e.glowColor))
-            if e.bevel do
+            }
+
+            if e.bevel
+            {
                 .body.appendFormat(" bevel=%", fmtF(e.bevel))
+            }
         }
 
         // Vertices are summarized, never dumped one by one: a single glyph run is dozens of
@@ -336,15 +390,17 @@ private
         mtd dumpTriangles(painter: const *Painter, start, count: u32)
         {
             .body.appendFormat(" n=%", count)
-            if .level == .Commands or not count do
+            if .level == .Commands or not count
+            {
                 return
+            }
 
             var bbMin = Vector2{Swag.F32.Max, Swag.F32.Max}
             var bbMax = Vector2{-Swag.F32.Max, -Swag.F32.Max}
             var uvMin = Vector2{Swag.F32.Max, Swag.F32.Max}
             var uvMax = Vector2{-Swag.F32.Max, -Swag.F32.Max}
 
-            var colors:   Array'u32
+            var colors:   Array!{u32}
             var solid = true
             var hasUv = false
             var extraCol: u32
@@ -370,8 +426,10 @@ private
                     uvMax.y = Math.max(uvMax.y, v.uv.y)
                 }
 
-                if v.cov != 1 do
+                if v.cov != 1
+                {
                     solid = false
+                }
 
                 var known = false
                 for c in colors where c == v.color
@@ -382,27 +440,39 @@ private
 
                 if not known
                 {
-                    if colors.count < 4 do
+                    if colors.count < 4
+                    {
                         colors.add(v.color)
-                    else do
+                    }
+                    else
+                    {
                         extraCol += 1
+                    }
                 }
             }
 
             .body.appendFormat(" bbox=(%,%)-(%,%)", fmtF(bbMin.x), fmtF(bbMin.y), fmtF(bbMax.x), fmtF(bbMax.y))
-            if hasUv and .level == .Full do
+            if hasUv and .level == .Full
+            {
                 .body.appendFormat(" uv=(%,%)-(%,%)", fmtF(uvMin.x), fmtF(uvMin.y), fmtF(uvMax.x), fmtF(uvMax.y))
+            }
 
             .body += " colors=["
             for c, i in colors
             {
-                if i do
+                if i
+                {
                     .body += " "
+                }
+
                 .body.appendFormat("%{X08}", c)
             }
 
-            if extraCol do
+            if extraCol
+            {
                 .body.appendFormat(" +%", extraCol)
+            }
+
             .body += "]"
 
             .body += solid ? " cov=solid" : " cov=aa"

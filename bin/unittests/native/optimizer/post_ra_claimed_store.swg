@@ -23,7 +23,7 @@ func keepClaimedStoreReload(seed: u64)->u64
     let i      = seed + 9
     let j      = seed + 10
     let k      = seed + 11
-    let marker = 17'u64
+    let marker = 17_u64
 
     let first  = sumTwelve(a, b, c, d, e, f, g, h, i, j, k, marker)
     let second = sumTwelve(marker, k, j, i, h, g, f, e, d, c, b, a)

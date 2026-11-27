@@ -9,8 +9,8 @@ func takes_s32(_: s32) {}
 {
     const A: u64 = 255
     const B: u8  = A
-    #assert(B == 255'u8)
-    Swag.require(B == 255'u8)
+    #assert(B == 255_u8)
+    Swag.require(B == 255_u8)
 }
 
 #test
@@ -34,6 +34,6 @@ func takes_s32(_: s32) {}
 {
     const A: s32 = 42
     const B: u8  = A
-    #assert(B == 42'u8)
-    Swag.require(B == 42'u8)
+    #assert(B == 42_u8)
+    Swag.require(B == 42_u8)
 }

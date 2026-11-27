@@ -30,8 +30,10 @@ func raiseNativeError(code: u32) fail
 func unmapView(_: const [*] void?) fail
 {
     g_Unmapped += 1
-    if not processId() do
+    if not processId()
+    {
         try raiseNativeError(lastError())
+    }
 }
 
 struct Region

@@ -28,17 +28,24 @@ impl Swag.IAllocator for ArrayPtrGrowthProbeAllocator
     mtd impl free(_: *Swag.AllocatorRequest) {}
 }
 
-func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
+func assertIntArrayPtr(values: *ArrayPtr!{s32}, expected: const [..] s32)->bool
 {
-    if values.count != expected.count do
+    if values.count != expected.count
+    {
         return false
+    }
 
     for value, index in values[]
     {
-        if value == null do
+        if value == null
+        {
             return false
-        if value[] != expected[index] do
+        }
+
+        if value[] != expected[index]
+        {
             return false
+        }
     }
 
     return true
@@ -46,12 +53,12 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
 
 #test
 {
-    #assert(not Reflection.canCopy(ArrayPtr'ArrayPtrNonCopyProbe))
+    #assert(not Reflection.canCopy(ArrayPtr!{ArrayPtrNonCopyProbe}))
 }
 
 #test
 {
-    var values: ArrayPtr's32
+    var values: ArrayPtr!{s32}
     values.addNew()[] = 1
     values.addNew()[] = 2
     values.addNew()[] = 3
@@ -75,7 +82,7 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
 
 #test
 {
-    var values: ArrayPtr's32
+    var values: ArrayPtr!{s32}
     values.addNew()[] = 7
     values.add(cast(*s32?, null))
     values.addNew()[] = 9
@@ -101,7 +108,7 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
     context.allocator = allocatorItf
     defer context.allocator = originalAllocator
 
-    var values: ArrayPtr's32
+    var values: ArrayPtr!{s32}
     let failed = Swag.catchPanic(func|&values|() { discard values.addNew() })
     Swag.require(failed.raised)
     Swag.require(allocator.allocationCount == 0 and values.isEmpty())
@@ -138,7 +145,7 @@ impl ApTracked
 {
     g_ApDropCount = 0
 
-    var arr: ArrayPtr'ApTracked
+    var arr: ArrayPtr!{ApTracked}
     for i in 5
     {
         let p = arr.addNew()
@@ -192,7 +199,7 @@ impl ApTracked
 
     scope
     {
-        var values: ArrayPtr'ApTracked
+        var values: ArrayPtr!{ApTracked}
         values.addNew().id = 1
         values.addNew().id = 2
         let capacity = values.capacity
@@ -207,7 +214,7 @@ impl ApTracked
 
     scope
     {
-        var values: ArrayPtr'ApTracked
+        var values: ArrayPtr!{ApTracked}
         let destroyed = values.addNew()
         destroyed.id = 3
         let transferred = values.addNew()
@@ -231,7 +238,7 @@ impl ApTracked
 #test
 {
     g_ApDropCount = 0
-    var values: ArrayPtr'ApTracked
+    var values: ArrayPtr!{ApTracked}
     let detached = values.allocate()
     detached.id = 5
 
@@ -244,9 +251,11 @@ impl ApTracked
 #test
 {
     g_ApDropCount = 0
-    var values: ArrayPtr'ApTracked
-    for id in 5 do
+    var values: ArrayPtr!{ApTracked}
+    for id in 5
+    {
         values.addNew().id = cast(s32, id)
+    }
 
     values.deleteAt(1, 2)
     Swag.require(values.count == 3 and g_ApDropCount == 2)
@@ -283,27 +292,33 @@ impl ApFlagged
 // selection, or codegen lowers the resolved clone through the raw-index fallback.
 #test
 {
-    var arr: ArrayPtr'ApFlagged
+    var arr: ArrayPtr!{ApFlagged}
     let a = arr.addNew()
     a.tag = 7
 
     var shown = 0
-    var i     = 0'u64
+    var i     = 0_u64
     while i < arr.count
     {
-        if arr[i]!.isShown() do
+        if arr[i]!.isShown()
+        {
             shown += 1
+        }
+
         i += 1
     }
 
     Swag.require(shown == 1)
 }
 
-func apCountByValue(values: Array'rune)->u64
+func apCountByValue(values: Array!{rune})->u64
 {
-    var total = 0'u64
-    for i in values.count do
+    var total = 0_u64
+    for i in values.count
+    {
         total += cast(u64, values[i])
+    }
+
     return total
 }
 
@@ -312,11 +327,11 @@ func apCountByValue(values: Array'rune)->u64
 // first field bytes as the receiver pointer.
 #test
 {
-    var runes: Array'rune
+    var runes: Array!{rune}
     runes.add('X')
     Swag.require(apCountByValue(runes) == cast(u64, 'X'))
 
-    var holder: ArrayPtr'ApFlagged
+    var holder: ArrayPtr!{ApFlagged}
     discard holder.addNew()
     let first = unwrap holder[0]
     first.tag = 2

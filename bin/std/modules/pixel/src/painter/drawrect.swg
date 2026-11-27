@@ -10,8 +10,10 @@ impl Painter
     // stroke stays inside the rectangle.
     mtd drawRect(left, top, width, height: f32, color: Color, penSize: f32 = 1)
     {
-        if width == 0 or height == 0 or .isInvisible(color) or penSize == 0 do
+        if width == 0 or height == 0 or .isInvisible(color) or penSize == 0
+        {
             return
+        }
 
         let pen = Pen.createSolid(color, penSize)
         .drawRect(left, top, width, height, pen)
@@ -45,8 +47,10 @@ impl Painter
 
     mtd drawRect(left, top, width, height: f32, pen: Pen)
     {
-        if width == 0 or height == 0 or .isInvisible(pen.brush) or pen.size == 0 do
+        if width == 0 or height == 0 or .isInvisible(pen.brush) or pen.size == 0
+        {
             return
+        }
 
         // Snap the edges to the device grid rather than the origin and the extent apart;
         // see drawRoundRect.
@@ -76,12 +80,17 @@ impl Painter
         // Other blend modes can depend on the general shader discarding zero-alpha texels;
         // explicit effects and custom shaders must never be replaced by this shortcut.
         let simpleCopy = .usesDefaultShader and brush.type == .Texture and .curState.blendingMode == .Copy
-        if simpleCopy do
+        if simpleCopy
+        {
             .setDefaultShader(.Simple)
+        }
+
         defer
         {
-            if simpleCopy do
+            if simpleCopy
+            {
                 .setDefaultShader()
+            }
         }
 
         .setTexture0(Vector2{l, t}, Vector2{l + w, t + h}, brush)
@@ -100,8 +109,10 @@ impl Painter
     // The edges are snapped to the device-pixel grid, so adjacent fills meet without a seam.
     mtd fillRect(left, top, width, height: f32, brush: Brush)
     {
-        if width == 0 or height == 0 or .isInvisible(brush) do
+        if width == 0 or height == 0 or .isInvisible(brush)
+        {
             return
+        }
 
         // Snap the edges to the device-pixel grid, not to whole path units: at a fractional
         // content scale a whole logical coordinate can land between two device pixels, and
@@ -135,8 +146,10 @@ impl Painter
 
     mtd fillRect(left, top, width, height: f32, color: Color)
     {
-        if width == 0 or height == 0 or .isInvisible(color) do
+        if width == 0 or height == 0 or .isInvisible(color)
+        {
             return
+        }
 
         let brush = Brush.createSolid(color)
         .fillRect(left, top, width, height, brush)
@@ -150,8 +163,10 @@ impl Painter
     // Strokes the outline of a rectangle with elliptical corners.
     mtd drawRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, color: Color, penSize: f32 = 1)
     {
-        if width == 0 or height == 0 or .isInvisible(color) or penSize == 0 do
+        if width == 0 or height == 0 or .isInvisible(color) or penSize == 0
+        {
             return
+        }
 
         let pen = Pen.createSolid(color, penSize)
         .drawRoundRect(left, top, width, height, radiusX, radiusY, pen)
@@ -159,8 +174,10 @@ impl Painter
 
     mtd drawRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, pen: Pen)
     {
-        if width == 0 or height == 0 or .isInvisible(pen.brush) or pen.size == 0 do
+        if width == 0 or height == 0 or .isInvisible(pen.brush) or pen.size == 0
+        {
             return
+        }
 
         // Snap the four edges to the device grid, not the position and the extent apart.
         // Rounded on its own, a width lands the far edge a whole unit off whenever the two
@@ -200,8 +217,10 @@ impl Painter
     // The straight edges are snapped to the device-pixel grid; the radii are used as given.
     mtd fillRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, brush: Brush)
     {
-        if width == 0 or height == 0 or .isInvisible(brush) do
+        if width == 0 or height == 0 or .isInvisible(brush)
+        {
             return
+        }
 
         // Snap the straight edges to the device grid; see fillRect. The radii stay as
         // given — the arcs are antialiased whatever their placement, but a straight edge
@@ -221,8 +240,10 @@ impl Painter
 
     mtd fillRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, color: Color)
     {
-        if width == 0 or height == 0 or .isInvisible(color) do
+        if width == 0 or height == 0 or .isInvisible(color)
+        {
             return
+        }
 
         let brush = Brush.createSolid(color)
         .fillRoundRect(left, top, width, height, radiusX, radiusY, brush)
@@ -239,8 +260,10 @@ impl Painter
     // would overlap are scaled down together; see [[Pixel.LinePath.setRoundRectRaw]].
     mtd fillRoundRect(rect: Math.Rectangle, topLeft, topRight, bottomRight, bottomLeft: f32, brush: Brush)
     {
-        if rect.width == 0 or rect.height == 0 or .isInvisible(brush) do
+        if rect.width == 0 or rect.height == 0 or .isInvisible(brush)
+        {
             return
+        }
 
         let l = .snapToDeviceX(rect.x)
         let t = .snapToDeviceY(rect.y)
@@ -253,8 +276,10 @@ impl Painter
     // Fills a rounded rectangle whose corners carry their own radius.
     mtd fillRoundRect(rect: Math.Rectangle, topLeft, topRight, bottomRight, bottomLeft: f32, color: Color)
     {
-        if rect.width == 0 or rect.height == 0 or .isInvisible(color) do
+        if rect.width == 0 or rect.height == 0 or .isInvisible(color)
+        {
             return
+        }
 
         let brush = Brush.createSolid(color)
         .fillRoundRect(rect, topLeft, topRight, bottomRight, bottomLeft, brush)
@@ -265,8 +290,10 @@ impl Painter
     // The pen is centred on the outline, exactly as the uniform form places it.
     mtd drawRoundRect(rect: Math.Rectangle, topLeft, topRight, bottomRight, bottomLeft: f32, pen: Pen)
     {
-        if rect.width == 0 or rect.height == 0 or .isInvisible(pen.brush) or pen.size == 0 do
+        if rect.width == 0 or rect.height == 0 or .isInvisible(pen.brush) or pen.size == 0
+        {
             return
+        }
 
         let l = .snapToDeviceX(rect.x)
         let t = .snapToDeviceY(rect.y)
@@ -282,8 +309,10 @@ impl Painter
     // Strokes the outline of a rounded rectangle whose corners carry their own radius.
     mtd drawRoundRect(rect: Math.Rectangle, topLeft, topRight, bottomRight, bottomLeft: f32, color: Color, penSize: f32 = 1)
     {
-        if rect.width == 0 or rect.height == 0 or .isInvisible(color) or penSize == 0 do
+        if rect.width == 0 or rect.height == 0 or .isInvisible(color) or penSize == 0
+        {
             return
+        }
 
         let pen = Pen.createSolid(color, penSize)
         .drawRoundRect(rect, topLeft, topRight, bottomRight, bottomLeft, pen)
@@ -304,8 +333,10 @@ impl Painter
     // and a wide shadow, one ring per device pixel, came out much darker than it was asked to be.
     mtd fillShadow(rect: Math.Rectangle, cornerRadius, spread: f32, color: Color)
     {
-        if spread <= 0 or color.a == 0 do
+        if spread <= 0 or color.a == 0
+        {
             return
+        }
 
         let r  = Math.clamp(cornerRadius, 0, Math.min(rect.width, rect.height) * 0.5)
         let x0 = rect.x

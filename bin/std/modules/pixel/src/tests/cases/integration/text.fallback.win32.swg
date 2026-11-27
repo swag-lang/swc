@@ -12,21 +12,21 @@ using Swag
     defer FontFamily.setSystemFontAccess(false)
 
     var cache: SystemFontFallbackCache
-    for c in [0'rune, '\t'rune, '\n'rune, '\r'rune, '\u007F'rune, '\u0085'rune, '\u009F'rune]
+    for c in [0_rune, '\t'_rune, '\n'_rune, '\r'_rune, '\u007F'_rune, '\u0085'_rune, '\u009F'_rune]
     {
         let control = cache.find(c, .Italic)
         Swag.require(not control and not cache.preferredReady and not cache.complete and cache.faces.count == 0)
     }
 
-    let invalid = cache.find('\U0010FFFF'rune, .Regular)
+    let invalid = cache.find('\U0010FFFF'_rune, .Regular)
     Swag.require(not invalid and not cache.preferredReady and not cache.complete)
-    let face = cache.find('A'rune, .BoldItalic)
-    Swag.require(face != null and face.face.hasChar('A'rune))
+    let face = cache.find('A'_rune, .BoldItalic)
+    Swag.require(face != null and face.face.hasChar('A'_rune))
     Swag.require(cache.preferredReady and not cache.complete and cache.families.count <= 4)
-    let again = cache.find('A'rune, .BoldItalic)
+    let again = cache.find('A'_rune, .BoldItalic)
     Swag.require(again == face and cache.faces.count == 1 and not cache.complete)
-    let arrow = cache.find('\u2192'rune, .BoldItalic)
-    Swag.require(arrow != null and arrow.face.hasChar('\u2192'rune) and not cache.complete)
+    let arrow = cache.find('\u2192'_rune, .BoldItalic)
+    Swag.require(arrow != null and arrow.face.hasChar('\u2192'_rune) and not cache.complete)
 }
 
 // An exhausted preferred list still falls through to all installed fonts exactly once.
@@ -39,9 +39,9 @@ using Swag
 
     var cache: SystemFontFallbackCache
     cache.preferredReady = true
-    let face = cache.find('A'rune, .Regular)
-    Swag.require(face != null and face.face.hasChar('A'rune) and cache.complete)
+    let face = cache.find('A'_rune, .Regular)
+    Swag.require(face != null and face.face.hasChar('A'_rune) and cache.complete)
     let count = cache.families.count
-    let again = cache.find('A'rune, .Regular)
+    let again = cache.find('A'_rune, .Regular)
     Swag.require(again == face and cache.families.count == count)
 }

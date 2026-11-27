@@ -8,7 +8,7 @@ func formattedWorkbookVariant(part: string, before, after: string, replacePart =
 {
     let source  = scopeTestDataPath("viewer.formats.xlsx")
     let archive = expect Archive.Zip.load(source)
-    var entries: Array'ZipFixtureEntry
+    var entries: Array!{ZipFixtureEntry}
     for item in archive.entries
     {
         var entry: ZipFixtureEntry
@@ -17,10 +17,15 @@ func formattedWorkbookVariant(part: string, before, after: string, replacePart =
         if item.path == part
         {
             var text = String.from(cast(string, entry.plain.toSlice()))
-            if replacePart do
+            if replacePart
+            {
                 text = after
-            else do
+            }
+            else
+            {
                 text.replace(before, after)
+            }
+
             entry.plain.clear()
             entry.plain.add(text.toSlice())
         }

@@ -17,7 +17,7 @@ impl BorrowedCopyProbe
 // Borrowed insertion performs the one requested element copy, including when storage moves.
 #test
 {
-    var values: Array'BorrowedCopyProbe
+    var values: Array!{BorrowedCopyProbe}
     values.add({7, 11})
     Swag.require(values.count == values.capacity)
     borrowedCopies = 0
@@ -36,7 +36,7 @@ impl BorrowedCopyProbe
     values.insertBorrowedAt(values.count, &values[0])
     Swag.require(borrowedCopies == 1)
 
-    var fixed: StaticArray'(BorrowedCopyProbe, 8)
+    var fixed: StaticArray!{BorrowedCopyProbe, 8}
     fixed.add({17, 19})
     borrowedCopies = 0
     fixed.insertBorrowedAt(0, &fixed[0])
@@ -45,9 +45,9 @@ impl BorrowedCopyProbe
     fixed.insertBorrowedAt(fixed.count, &fixed[0])
     Swag.require(borrowedCopies == 1)
 
-    var table: HashTable'(u64, BorrowedCopyProbe)
+    var table: HashTable!{u64, BorrowedCopyProbe}
     table.add(1, {23, 29})
-    let key = 2'u64
+    let key = 2_u64
     borrowedCopies = 0
     table.addBorrowed(&key, &table.find(1).value)
     Swag.require(borrowedCopies == 1 and table.find(2).value.padding == 29)
@@ -57,9 +57,12 @@ impl BorrowedCopyProbe
     Swag.require(borrowedCopies == 0 and table.count == 2)
 
     // Fill to the growth threshold, then borrow across rehashing.
-    for index in 14'u64 do
+    for index in 14_u64
+    {
         table.add(index + 3, BorrowedCopyProbe{index, index})
-    let growKey = 20'u64
+    }
+
+    let growKey = 20_u64
     borrowedCopies = 0
     table.addBorrowed(&growKey, &table.find(1).value)
     Swag.require(borrowedCopies == 1 and table.find(20).value.value == 23)
@@ -67,7 +70,7 @@ impl BorrowedCopyProbe
 
 #test
 {
-    var values: Array'String
+    var values: Array!{String}
     values.add("one")
     values.addOnceBorrowed(&values[0])
     Swag.require(values.count == 1)
@@ -80,14 +83,14 @@ impl BorrowedCopyProbe
 #test
 {
     var number = 31
-    var values: Array'(*s32)
+    var values: Array!{*s32}
     values.add(&number)
     values.addBorrowed(&values[0])
     Swag.require(values.count == 2 and values[0] == &number and values[1] == &number)
 
-    var table: HashTable'(u64, *s32)
+    var table: HashTable!{u64, *s32}
     table.add(1, &number)
-    let key = 2'u64
+    let key = 2_u64
     table.addBorrowed(&key, &table.find(1).value)
     Swag.require(table.find(2).value == &number)
 }

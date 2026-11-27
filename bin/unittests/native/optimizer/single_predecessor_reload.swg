@@ -7,8 +7,8 @@
 #[Swag.Optimize(true), Swag.NoInline]
 func maxAbsIndex(a: const [*] s32, n: u64)->u64
 {
-    var best    = 0'u64
-    var bestVal = 0's32
+    var best    = 0_u64
+    var bestVal = 0_s32
     for i in n
     {
         let v = a[i] < 0 ? -a[i] : a[i]
@@ -27,8 +27,10 @@ func bumpThenRead(p: [*] s32)->s32
 {
     let v = p[0]
     p[0] = v + 1
-    if v < 0 do
+    if v < 0
+    {
         return -p[0]
+    }
     return p[0]
 }
 
@@ -44,8 +46,10 @@ func readAcrossCall(p: [*] s32, c: bool)->s32
     if p[0] > 0
     {
         clobber(p)
-        if c do
+        if c
+        {
             return p[0] + 1
+        }
         return p[0]
     }
 

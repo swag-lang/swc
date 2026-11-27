@@ -4,7 +4,7 @@ using Swag
 // The horizontal reductions, checked against the scalar fold of the same lanes,
 // plus the sum of absolute differences and the byte dot product.
 
-const ReduceS64Min = -9_223_372_036_854_775_807's64 - 1
+const ReduceS64Min = -9_223_372_036_854_775_807_s64 - 1
 
 #[Swag.NoInline]
 func liveReduceAdd(value: #simd [16] u8)->u8 => Swag.vecReduceAdd(value)
@@ -13,12 +13,16 @@ func liveReduceAdd(value: #simd [16] u8)->u8 => Swag.vecReduceAdd(value)
 {
     // Integer sums wrap, exactly like the element-wise arithmetic.
     var bytes: [16] u8
-    for i in 16 do
+    for i in 16
+    {
         bytes[i] = cast(u8, ((i * 17 + 3) % 256))
+    }
 
-    var total = 0'u32
-    for b in bytes do
+    var total = 0_u32
+    for b in bytes
+    {
         total += b
+    }
     let expected = cast(u8, (total % 256))
     Swag.require(Swag.vecReduceAdd(cast(#simd [16] u8, bytes)) == expected)
     Swag.require(liveReduceAdd(cast(#simd [16] u8, bytes)) == expected)
@@ -33,9 +37,9 @@ func liveReduceAdd(value: #simd [16] u8)->u8 => Swag.vecReduceAdd(value)
     Swag.require(Swag.vecReduceMin(cast(#simd [16] u8, bytes)) == minimum)
     Swag.require(Swag.vecReduceMax(cast(#simd [16] u8, bytes)) == maximum)
 
-    var conjunction = 0xFF'u8
-    var disjunction = 0'u8
-    var difference  = 0'u8
+    var conjunction = 0xFF_u8
+    var disjunction = 0_u8
+    var difference  = 0_u8
     for b in bytes
     {
         conjunction &= b
@@ -123,15 +127,19 @@ func liveReduceAdd(value: #simd [16] u8)->u8 => Swag.vecReduceAdd(value)
         right[i] = cast(u8, ((i * 5 + 200) % 256))
     }
 
-    var lowSum  = 0'u64
-    var highSum = 0'u64
+    var lowSum  = 0_u64
+    var highSum = 0_u64
     for i in 16
     {
         let difference = left[i] > right[i] ? cast(u64, (left[i] - right[i])) : cast(u64, (right[i] - left[i]))
-        if i < 8 do
+        if i < 8
+        {
             lowSum += difference
-        else do
+        }
+        else
+        {
             highSum += difference
+        }
     }
 
     let sums = cast([2] u64, Swag.vecSumAbsDiff(cast(#simd [16] u8, left), cast(#simd [16] u8, right)))

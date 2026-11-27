@@ -36,7 +36,7 @@ impl Hash.IHash32 for TypeFaceCacheKey
     mtd const impl compute()->u32 => Hash.hash32(.name) ^ Hash.hash32(.index) ^ Hash.hash32(.style)
 }
 
-var g_HashTypeFace: HashTable'(TypeFaceCacheKey, *TypeFace)
+var g_HashTypeFace: HashTable!{TypeFaceCacheKey, *TypeFace}
 
 #drop
 {
@@ -58,11 +58,13 @@ impl TypeFace
         Sync.scopedLock(&lock)
 
         let key = TypeFaceCacheKey{String.from(fullName), faceIndex}
-        if let here = g_HashTypeFace.tryFind(key) do
+        if let here = g_HashTypeFace.tryFind(key)
+        {
             return here.value
+        }
 
         let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
-        let tf        = Memory.new'TypeFace(allocator)
+        let tf        = Memory.new!{TypeFace}(allocator)
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)
         tf.fullName = fullName
@@ -113,8 +115,11 @@ public impl TypeFace
     // Destroys the native face associated with this value.
     mtd opDrop()
     {
-        if .faceLoaded do
+        if .faceLoaded
+        {
             .face.destroy()
+        }
+
         .fullName.opDrop()
         Swag.init(&.fullName, 1)
     }
@@ -163,12 +168,17 @@ public impl TypeFace
         scope
         {
             Sync.scopedLock(&lock)
-            if g_HashTypeFace.tryFind(TypeFaceCacheKey{String.from(fullName), 0}) do
+            if g_HashTypeFace.tryFind(TypeFaceCacheKey{String.from(fullName), 0})
+            {
                 return true
+            }
         }
 
-        if File.exists(fullName) do
+        if File.exists(fullName)
+        {
             return true
+        }
+
         return FontFamily.hasSystemFontAccess() and File.exists(Path.combine(Env.realSpecialDirectory(.Font), fullName))
     }
 
@@ -197,11 +207,13 @@ public impl TypeFace
         Sync.scopedLock(&lock)
 
         let fullName = key.name.toString()
-        if let here = g_HashTypeFace.tryFind(key) do
+        if let here = g_HashTypeFace.tryFind(key)
+        {
             return here.value
+        }
 
         let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
-        let tf        = Memory.new'TypeFace(allocator)
+        let tf        = Memory.new!{TypeFace}(allocator)
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)
         tf.fullName = fullName
@@ -238,20 +250,28 @@ public impl TypeFace
     {
         var emb = .forceBold or forceBold ? Math.max(1, size / .forceBoldDiv) : 0
         emb += embolden
-        if emb do
+        if emb
+        {
             try .face.glyph.outline.embolden(cast(s32, emb) * 64)
-        if .forceItalic or forceItalic do
+        }
+
+        if .forceItalic or forceItalic
+        {
             .face.glyph.oblique()
+        }
     }
 
     // Sub-pixel outline dilation that offsets the anti-aliasing thinning of small
     // text (stem darkening). Per-side strength in 26.6, fading out as the size grows.
     private func stemDarkenStrength(size: u32)->s32
     {
-        const FadePx = 24.0'f32     // no darkening at or above this size
-        const MaxPx  = 0.12'f32     // per-side dilation in pixels at the smallest sizes
-        if cast(f32, size) >= FadePx do
+        const FadePx = 24.0_f32     // no darkening at or above this size
+        const MaxPx  = 0.12_f32     // per-side dilation in pixels at the smallest sizes
+        if cast(f32, size) >= FadePx
+        {
             return 0
+        }
+
         let t = (FadePx - cast(f32, size)) / FadePx
         return cast(s32, Math.round(MaxPx * t * 64.0))
     }
@@ -270,7 +290,7 @@ public impl TypeFace
     // glyph drawn from a fractional pen position keeps its exact ink while its bitmap stays
     // aligned to whole pixels. The bitmap's left edge accounts for the offset.
     #[Swag.Propagate]
-    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold = false, forceItalic = false, penOffsetX = 0.0'f32)->const *Bitmap fail
+    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold = false, forceItalic = false, penOffsetX = 0.0_f32)->const *Bitmap fail
     {
         Sync.scopedLock(&.glyphMutex)
         return .renderGlyphByIndexLocked(glyphIndex, size, forceBold, forceItalic, penOffsetX)
@@ -323,18 +343,34 @@ public impl TypeFace
     mtd buildRuneOutline(c: rune, size: u32, embolden: u32 = 0)->{outline: LinePathList, advance: f32} fail
     {
         Sync.scopedLock(&.glyphMutex)
-        var result: #returntype
-
         try .face.setPixelSize(0, size)
         try .face.loadChar(c)
         try .transform(size, embolden)
+        return .copyGlyphOutline(embolden)
+    }
 
-        let prevIdx  = result.outline.paths.count
+    // Builds an owned outline for a glyph index at the requested size.
+    //
+    // Coordinates are in pixels with the baseline at zero and `y` growing downward.
+    // Emboldening widens the outline and advance by the given number of pixels.
+    mtd buildGlyphOutline(glyphIndex: u32, size: u32, embolden: u32 = 0)->{outline: LinePathList, advance: f32} fail
+    {
+        Sync.scopedLock(&.glyphMutex)
+        try .face.setPixelSize(0, size)
+        try .face.loadGlyph(glyphIndex)
+        try .transform(size, embolden)
+        return .copyGlyphOutline(embolden)
+    }
+
+    private mtd copyGlyphOutline(embolden: u32)->{outline: LinePathList, advance: f32}
+    {
+        var result: #returntype
         let commands = .face.glyph.outline.decompose()
         addOutlineToPathList(&result.outline, commands.toSlice())
-
-        for i in prevIdx until result.outline.paths.count do
-            result.outline.paths[i].assumeClosed()
+        for path in result.outline.paths
+        {
+            path.assumeClosed()
+        }
 
         result.advance = embolden + (.face.glyph.advance.x / 64.0)
         return result

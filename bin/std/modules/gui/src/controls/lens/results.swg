@@ -30,8 +30,11 @@ func prefixText(prefix: Prefix)->string
 // Returns the prefix `query` starts with, and what the reader typed after it.
 func splitPrefix(query: string)->{prefix: Prefix, rest: string}
 {
-    if query.count == 0 do
+    if query.count == 0
+    {
         return {.None, query}
+    }
+
     let rest = Swag.makeString(query.buffer + 1, query.count - 1)
     switch query[0]
     {
@@ -60,18 +63,18 @@ struct Entry
 
         // Width of the alternate painted content in logical units; zero measures `title`.
         paintWidth: f32
-        monoTitle:  bool            // Whether the title is code or a measure, set in the fixed-width face.
-        monoDetail: bool            // Whether the detail is a measure or a shortcut, set in the fixed-width face.
-        disabled:   bool            // Whether the row is shown faint and cannot be chosen.
-        critical:   bool            // Whether the command removes content and uses the theme critical ink while enabled.
-        checked:    bool            // Whether the row is the choice or the setting in force, marked with a check in Arc.
-        checkable:  bool            // Whether the row is a setting or a choice, which `Ctrl Enter` runs keeping the lens open.
-        id:         WndId?          // Command posted to the owner of the lens when the row is chosen; borrowed for the life of the row.
-        run:        (func||())?     // Action run when the row is chosen, once the lens has left the screen.
-        bindId:     String          // Stable identifier for a bindable action supplied by a lens source.
-        defaultKey: KeyShortcut     // Default chord of that action, when it has one.
+        monoTitle:  bool                     // Whether the title is code or a measure, set in the fixed-width face.
+        monoDetail: bool                     // Whether the detail is a measure or a shortcut, set in the fixed-width face.
+        disabled:   bool                     // Whether the row is shown faint and cannot be chosen.
+        critical:   bool                     // Whether the command removes content and uses the theme critical ink while enabled.
+        checked:    bool                     // Whether the row is the choice or the setting in force, marked with a check in Arc.
+        checkable:  bool                     // Whether the row is a setting or a choice, which `Ctrl Enter` runs keeping the lens open.
+        id:         WndId?                   // Command posted to the owner of the lens when the row is chosen; borrowed for the life of the row.
+        run:        (func||())?              // Action run when the row is chosen, once the lens has left the screen.
+        bindId:     String                   // Stable identifier for a bindable action supplied by a lens source.
+        defaultKey: KeyShortcut              // Default chord of that action, when it has one.
         alternateDefaultKey: KeyShortcut     // Optional second default chord for the same action.
-        spans:      Array'Span      // Runs of the title the query matched; the lens fills it when a source leaves it empty.
+        spans:      Array!{Span}             // Runs of the title the query matched; the lens fills it when a source leaves it empty.
     }
 
     answered: bool     // The row was matched as it was added, and `score` and `spans` hold that answer.
@@ -103,18 +106,18 @@ struct Section
 {
     public
     {
-        label:    String            // Words of the section label, written in small spaced capitals.
-        count:    u32               // Number written after the label, as in "In this file · 5"; zero writes none.
-        entries:  Array'Entry       // Rows of the group, in the order their source gave them.
-        pictures: Array'Picture     // Pictures of the strip after the rows, in reading order.
-        link:     String            // Words of the link ending the strip; empty for none.
-        linkRun:  (func||())?       // Action run when the link is chosen, once the lens has left the screen.
-        inline:   bool              // Whether the rows show side by side as the segments of one row, for an exclusive choice.
+        label:    String              // Words of the section label, written in small spaced capitals.
+        count:    u32                 // Number written after the label, as in "In this file · 5"; zero writes none.
+        entries:  Array!{Entry}       // Rows of the group, in the order their source gave them.
+        pictures: Array!{Picture}     // Pictures of the strip after the rows, in reading order.
+        link:     String              // Words of the link ending the strip; empty for none.
+        linkRun:  (func||())?         // Action run when the link is chosen, once the lens has left the screen.
+        inline:   bool                // Whether the rows show side by side as the segments of one row, for an exclusive choice.
     }
 
-    order:  Array'u64     // Rows the lens shows, by index into `entries`, in the order it shows them.
-    best:   s32           // Score of the best row shown.
-    ranked: bool          // Whether the lens ranks the rows, as it does the commands of a family.
+    order:  Array!{u64}     // Rows the lens shows, by index into `entries`, in the order it shows them.
+    best:   s32             // Score of the best row shown.
+    ranked: bool            // Whether the lens ranks the rows, as it does the commands of a family.
 }
 
 impl Section
@@ -183,11 +186,11 @@ struct Results
     {
         readonly
         {
-            query:    String               // What the reader typed, without its prefix.
-            folded:   Query                // The query folded once, for [[Gui.Lens.match]] against each row.
-            prefix:   Prefix               // Prefix the reader typed, or [[Gui.Lens.Prefix.None]].
-            sections: ArrayPtr'Section     // Groups of rows, in the order they show.
-            collectingShortcuts: bool      // The editor is asking for bindable commands, including choices normally shown only after a query.
+            query:    String                 // What the reader typed, without its prefix.
+            folded:   Query                  // The query folded once, for [[Gui.Lens.match]] against each row.
+            prefix:   Prefix                 // Prefix the reader typed, or [[Gui.Lens.Prefix.None]].
+            sections: ArrayPtr!{Section}     // Groups of rows, in the order they show.
+            collectingShortcuts: bool        // The editor is asking for bindable commands, including choices normally shown only after a query.
         }
     }
 }
@@ -210,9 +213,12 @@ impl Results
     // Returns the number of rows of every section.
     mtd const entryCount()->u64
     {
-        var result = 0'u64
-        for section in .sections do
+        var result = 0_u64
+        for section in .sections
+        {
             result += section!.entries.count
+        }
+
         return result
     }
 

@@ -30,8 +30,10 @@ func definiteInitFieldUse()
 func definiteInitConditionalDrop(condition: bool, item: *DefiniteInitItem)
 {
     var value: DefiniteInitOwner
-    if condition do
+    if condition
+    {
         value = {required: item}
+    }
     value = {required: item}     // swc-expected-error {{sema_err_definite_init_drop}}
 }
 

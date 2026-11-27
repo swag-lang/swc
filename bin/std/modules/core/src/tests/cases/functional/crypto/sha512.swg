@@ -3,16 +3,19 @@
 
 func sha512HexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func sha512HexBytes(text: string)->Array'u8
+func sha512HexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, ((sha512HexDigit(text[index]) << 4) | sha512HexDigit(text[index + 1]))))
@@ -27,8 +30,10 @@ func sha512DigestBytes(digest: Hash.Sha512.Digest)->[64] u8
     var result: #returntype
     for index in digest.count
     {
-        for byte in 8 do
+        for byte in 8
+        {
             result[index * 8 + byte] = Math.byteAt(digest[index], 7 - byte)
+        }
     }
 
     return result
@@ -39,8 +44,10 @@ func sha384DigestBytes(digest: Hash.Sha384.Digest)->[48] u8
     var result: #returntype
     for index in digest.count
     {
-        for byte in 8 do
+        for byte in 8
+        {
             result[index * 8 + byte] = Math.byteAt(digest[index], 7 - byte)
+        }
     }
 
     return result
@@ -51,8 +58,10 @@ func sha512_224DigestBytes(digest: Hash.Sha512_224.Digest)->[28] u8
     var result: #returntype
     for index in digest.count
     {
-        for byte in 4 do
+        for byte in 4
+        {
             result[index * 4 + byte] = Math.byteAt(digest[index], 3 - byte)
+        }
     }
 
     return result
@@ -63,8 +72,10 @@ func sha512_256DigestBytes(digest: Hash.Sha512_256.Digest)->[32] u8
     var result: #returntype
     for index in digest.count
     {
-        for byte in 8 do
+        for byte in 8
+        {
             result[index * 8 + byte] = Math.byteAt(digest[index], 7 - byte)
+        }
     }
 
     return result
@@ -86,10 +97,12 @@ func sha512_256DigestBytes(digest: Hash.Sha512_256.Digest)->[32] u8
 #test
 {
     var input: [400] u8
-    for index in input.count do
+    for index in input.count
+    {
         input[index] = cast(u8, ((index * 29 + 7) & 0xFF))
+    }
 
-    for split in [0'u64, 1, 111, 112, 113, 127, 128, 129, 255, 256, 399, 400]
+    for split in [0_u64, 1, 111, 112, 113, 127, 128, 129, 255, 256, 399, 400]
     {
         var sha512: Hash.Sha512
         sha512.update(input[until split])
@@ -124,7 +137,7 @@ func sha512_256DigestBytes(digest: Hash.Sha512_256.Digest)->[32] u8
 #test
 {
     var key: [131] u8
-    Memory.set(key.buffer, 0xAA'u8, key.count)
+    Memory.set(key.buffer, 0xAA_u8, key.count)
     let data        = cast(const [..] u8, "Test Using Larger Than Block-Size Key - Hash Key First")
     let expected512 = sha512HexBytes("80b24263c7c1a3ebb71493c1dd7be8b49b46d1f41b4aeec1121b013783f8f3526b56d037e05f2598bd0fd2215d6a1e5295e64f73f63f0aec8b915a985d786598")
     let expected384 = sha512HexBytes("4ece084485813e9088d2c63a041bc5b44f9ef1012a2b588f3cd11f05033ac4c60c2ef6ab4030fe8296248df163f44952")
@@ -144,11 +157,14 @@ func sha512_256DigestBytes(digest: Hash.Sha512_256.Digest)->[32] u8
     Swag.require(Crypto.constantTimeEqual(sha512_256DigestBytes(Hash.Sha512_256.compute("abc")), abc512_256.toSlice()))
 
     var input: [400] u8
-    for index in input.count do
-        input[index] = cast(u8, index * 29 + 7)
+    for index in input.count
+    {
+        input[index] = cast(u8, (index * 29 + 7) & 0xFF)
+    }
+
     let expected224 = sha512_224DigestBytes(Hash.Sha512_224.compute(input))
     let expected256 = sha512_256DigestBytes(Hash.Sha512_256.compute(input))
-    for split in [0'u64, 1, 111, 112, 113, 127, 128, 129, 255, 256, 399, 400]
+    for split in [0_u64, 1, 111, 112, 113, 127, 128, 129, 255, 256, 399, 400]
     {
         var sha512_224: Hash.Sha512_224
         sha512_224.update(input[until split])

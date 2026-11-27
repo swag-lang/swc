@@ -104,7 +104,7 @@ impl IRenderer for PresentProbe
 
     mtd impl updateTexture(texture: Texture, pixels: const *u8)->bool => .cpu.updateTextureImpl(texture, pixels)
 
-    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8 => .cpu.readTexturePixelsImpl(texture, pixelFormat)
+    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array!{u8} => .cpu.readTexturePixelsImpl(texture, pixelFormat)
 
     mtd impl removeTexture(texture: *Texture)
     {

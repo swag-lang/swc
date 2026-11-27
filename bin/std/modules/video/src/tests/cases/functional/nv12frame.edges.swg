@@ -102,8 +102,10 @@ func requireBgraBgrParity(width: s32)
     expect bgraFrame.convertFrom(&bgra)
     Swag.require(bgrFrame.bytes.count == cast(u64, width) * 6 * 3 / 2)
     Swag.require(bgraFrame.bytes.count == bgrFrame.bytes.count)
-    for byte in bgrFrame.bytes.count do
+    for byte in bgrFrame.bytes.count
+    {
         Swag.require(bgraFrame.bytes[byte] == bgrFrame.bytes[byte])
+    }
 }
 
 #test

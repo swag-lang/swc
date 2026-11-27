@@ -27,14 +27,19 @@ func assertVideoTimelineEndpoints(light: bool, golden: string)
     var host: Testing.HeadlessHost
     host.setup(420, 90)
     host.root.backgroundStyle = .Application
-    if light do
+    if light
+    {
         host.theme.setLight()
-    else do
+    }
+    else
+    {
         host.theme.setDark()
+    }
+
     host.notify(.ThemeChanged)
 
-    let start = Wnd.create'Film.VideoTimeline(&host.root, {24, 12, 372, 24})
-    let end   = Wnd.create'Film.VideoTimeline(&host.root, {24, 54, 372, 24})
+    let start = Wnd.create!{Film.VideoTimeline}(&host.root, {24, 12, 372, 24})
+    let end   = Wnd.create!{Film.VideoTimeline}(&host.root, {24, 54, 372, 24})
     start.setBounds(0, 100, 0)
     end.setBounds(0, 100, 0)
     start.setValueWithoutGesture(0)
@@ -58,7 +63,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 
     var host: Testing.HeadlessHost
     host.setup(900, 240, dpiScale)
-    let backdrop = Wnd.create'SubtitleBackdropProbe(&host.root)
+    let backdrop = Wnd.create!{SubtitleBackdropProbe}(&host.root)
     backdrop.dockStyle = .Center
     let overlay = Film.SubtitleOverlay.create(backdrop)
     overlay.setSubtitle("Vous ne passerez pas, dit Gandalf.\nTout le monde descend, Jérôme !")
@@ -164,7 +169,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    with let commands = Wnd.create'Wnd(&host.root, {0, 0, 0, 88})
+    with let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 0, 88})
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
@@ -187,8 +192,11 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     host.app.sigFrame += func|host = &host, rendered = &rendered|(_)
     {
         let sheet = host.capturedOptionSheet()
-        if not sheet or rendered[] == 2 do
+        if not sheet or rendered[] == 2
+        {
             return
+        }
+
         host.finishAnimations()
 
         if rendered[] == 0

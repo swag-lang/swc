@@ -36,8 +36,8 @@ func divModPair(a: u32, b: u32)->u32
 {
     var q1: u32 = a / b          // DIV: a=100, b=7 → q1=14 (RAX); RDX clobbered
     var r1: u32 = a % b          // MOD: remainder=2           (RDX); re-clobbered
-    var q2: u32 = b / 3'u32      // DIV: 7/3=2; q1,r1 live → spill pressure
-    var r2: u32 = b % 3'u32      // MOD: 7%3=1
+    var q2: u32 = b / 3_u32      // DIV: 7/3=2; q1,r1 live → spill pressure
+    var r2: u32 = b % 3_u32      // MOD: 7%3=1
     return q1 + r1 + q2 + r2     // 14 + 2 + 2 + 1 = 19
 }
 
@@ -76,7 +76,7 @@ func divInterleavedShift(a: u32, b: u32, c: u32)->u32
     var q:  u32 = a / b                // DIV: a=24, b=6 → q=4 (RAX); RDX clobbered
     var s:  u32 = c >> q               // SHR: q→CL;  128 >> 4 = 8
     var q2: u32 = c / b                // DIV: RAX reused; 128/6=21; RDX clobbered
-    var s2: u32 = a << (q - 1'u32)     // SHL: (q-1)→CL=3; 24 << 3 = 192
+    var s2: u32 = a << (q - 1_u32)     // SHL: (q-1)→CL=3; 24 << 3 = 192
     return s + q + q2 + s2             // 8 + 4 + 21 + 192 = 225
 }
 
@@ -89,9 +89,9 @@ func signedUnsignedDivMix(a: s32, b: u32, big: s64)->s64
 {
     var sq: s32 = a / 3            // IDIV32:  -90 / 3  = -30
     var sr: s32 = a % 7            // IDIV32:  -90 % 7  = -6  (truncated toward 0)
-    var uq: u32 = b / 5'u32        // DIV32:    60 / 5  = 12
-    var ur: u32 = b % 7'u32        // DIV32:    60 % 7  = 4
-    var bq: s64 = big / 10's64     // IDIV64:  420 / 10 = 42
+    var uq: u32 = b / 5_u32        // DIV32:    60 / 5  = 12
+    var ur: u32 = b % 7_u32        // DIV32:    60 % 7  = 4
+    var bq: s64 = big / 10_s64     // IDIV64:  420 / 10 = 42
     return cast(s64, sq) + cast(s64, sr) + cast(s64, uq) + cast(s64, ur) + bq
     // -30 + (-6) + 12 + 4 + 42 = 22
 }
@@ -133,13 +133,13 @@ func divInsideShiftExpr(a: u32, b: u32, c: u32, d: u32)->u32
 func divModInLoop(a: u32, b: u32, iters: u32)->u32
 {
     var acc: u32 = a     // 100
-    var i:   u32 = 0'u32
+    var i:   u32 = 0_u32
     while i < iters
     {
         var q: u32 = acc / b     // DIV: RAX constraint; b forbidden from RDX
         var r: u32 = acc % b     // MOD: RDX constraint
         acc = q + r + b          // recombine; loop carries acc across back-edge
-        i   += 1'u32
+        i   += 1_u32
     }
     return acc
     // a=100, b=7, iters=3:
@@ -158,14 +158,14 @@ func mulDivShiftInLoop(val: u32, factor: u32, divisor: u32, cnt: u32, iters: u32
 {
     var acc:  u32 = val     // 3
     var side: u32 = val     // 3  (kept live across back-edge alongside acc)
-    var i:    u32 = 0'u32
+    var i:    u32 = 0_u32
     while i < iters
     {
         var prod: u32 = acc * factor       // MUL: clobbers RDX; factor != RDX
         var quot: u32 = prod / divisor     // DIV: prod→RAX, divisor away from RDX
         side += quot >> cnt     // SHR: cnt→CL; side carried across back-edge
         acc  = quot
-        i    += 1'u32
+        i    += 1_u32
     }
     return acc + side
     // val=3, factor=4, divisor=3, cnt=1, iters=3:
@@ -177,50 +177,50 @@ func mulDivShiftInLoop(val: u32, factor: u32, divisor: u32, cnt: u32, iters: u32
 
 #test
 {
-    Swag.require(divDivisorInRdx(60'u32, 3'u32, 40'u32, 8'u32, 4'u32, 5'u32) == 34'u32)
+    Swag.require(divDivisorInRdx(60_u32, 3_u32, 40_u32, 8_u32, 4_u32, 5_u32) == 34_u32)
 }
 
 #test
 {
-    Swag.require(divModPair(100'u32, 7'u32) == 19'u32)
+    Swag.require(divModPair(100_u32, 7_u32) == 19_u32)
 }
 
 #test
 {
-    Swag.require(divChain(120'u32, 2'u32) == 105'u32)
+    Swag.require(divChain(120_u32, 2_u32) == 105_u32)
 }
 
 #test
 {
-    Swag.require(divResultAsShiftCount(12'u32, 4'u32, 5'u32) == 40'u32)
+    Swag.require(divResultAsShiftCount(12_u32, 4_u32, 5_u32) == 40_u32)
 }
 
 #test
 {
-    Swag.require(divInterleavedShift(24'u32, 6'u32, 128'u32) == 225'u32)
+    Swag.require(divInterleavedShift(24_u32, 6_u32, 128_u32) == 225_u32)
 }
 
 #test
 {
-    Swag.require(signedUnsignedDivMix(-90, 60'u32, 420's64) == 22's64)
+    Swag.require(signedUnsignedDivMix(-90, 60_u32, 420_s64) == 22_s64)
 }
 
 #test
 {
-    Swag.require(mulDivChain(7'u32, 8'u32, 5'u32) == 123'u32)
+    Swag.require(mulDivChain(7_u32, 8_u32, 5_u32) == 123_u32)
 }
 
 #test
 {
-    Swag.require(divInsideShiftExpr(80'u32, 10'u32, 11'u32, 4'u32) == 75'u32)
+    Swag.require(divInsideShiftExpr(80_u32, 10_u32, 11_u32, 4_u32) == 75_u32)
 }
 
 #test
 {
-    Swag.require(divModInLoop(100'u32, 7'u32, 3'u32) == 13'u32)
+    Swag.require(divModInLoop(100_u32, 7_u32, 3_u32) == 13_u32)
 }
 
 #test
 {
-    Swag.require(mulDivShiftInLoop(3'u32, 4'u32, 3'u32, 1'u32, 3'u32) == 16'u32)
+    Swag.require(mulDivShiftInLoop(3_u32, 4_u32, 3_u32, 1_u32, 3_u32) == 16_u32)
 }

@@ -48,8 +48,10 @@ impl BorrowInvBuffer
     // that can move or free what the receiver owns.
     mtd release()
     {
-        if not .data do
+        if not .data
+        {
             return
+        }
 
         var req: AllocatorRequest
         req.address = .data
@@ -66,8 +68,10 @@ impl BorrowInvBuffer
     // Grows the payload: the block can move.
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
+        }
 
         var req: AllocatorRequest
         req.address = .data
@@ -305,8 +309,10 @@ func borrowInvRelease()->u8
 // own summary rather than from an allocator call in the method itself.
 func borrowInvFreeBlock(block: [*] u8?, size: u64)
 {
-    if not block do
+    if not block
+    {
         return
+    }
 
     var req: AllocatorRequest
     req.address = block
@@ -966,8 +972,10 @@ func(var T) borrowInvMacroInvalidates(_: T)
 
 #test
 {
-    if false do
+    if false
+    {
         borrowInvMacroInvalidates(0)
+    }
 }
 
 // A payload of POINTERS. Growing it moves the pointers, never the objects they address,
@@ -1058,8 +1066,10 @@ impl BorrowInvTable
 
     mtd release()
     {
-        if not .slots do
+        if not .slots
+        {
             return
+        }
 
         var req: AllocatorRequest
         req.address = .slots
@@ -1075,8 +1085,10 @@ impl BorrowInvTable
 
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
+        }
 
         var req: AllocatorRequest
         req.address = .slots

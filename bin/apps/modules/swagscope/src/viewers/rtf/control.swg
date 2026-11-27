@@ -19,8 +19,11 @@ impl Control
     {
         var result: #returntype
         var at = start + 1
-        if at >= source.count do
+        if at >= source.count
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         if not Latin1.isLetter(source[at])
         {
             result.symbol = source[at]
@@ -29,8 +32,11 @@ impl Control
         }
 
         let first = at
-        while at < source.count and Latin1.isLetter(source[at]) do
+        while at < source.count and Latin1.isLetter(source[at])
+        {
             at += 1
+        }
+
         result.word = cast(string, source[first until at])
         var negative = false
         if at < source.count and source[at] == '-'
@@ -39,22 +45,28 @@ impl Control
             at       += 1
         }
 
-        let limit = negative ? 2_147_483_648'u32 : 2_147_483_647'u32
+        let limit = negative ? 2_147_483_648_u32 : 2_147_483_647_u32
         var magnitude: u32
         while at < source.count and Latin1.isDigit(source[at])
         {
             result.hasNumber = true
             let digit = cast(u32, source[at] - '0')
-            if magnitude > (limit - digit) / 10 do
+            if magnitude > (limit - digit) / 10
+            {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
+            }
+
             magnitude = magnitude * 10 + digit
-            at += 1
+            at        += 1
         }
 
         let signed = cast(s64, magnitude)
         result.number = cast(s32, negative ? -signed : signed)
-        if at < source.count and source[at] == ' ' do
+        if at < source.count and source[at] == ' '
+        {
             at += 1
+        }
+
         result.end = at
         return result
     }

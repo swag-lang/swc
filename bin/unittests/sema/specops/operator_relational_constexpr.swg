@@ -10,8 +10,14 @@ impl ConstCompareBox
     #[Swag.ConstExpr]
     mtd const opCompare(other: ConstCompareBox)->s32
     {
-        if .value < other.value do return -2147483648
-        if .value > other.value do return 2147483647
+        if .value < other.value
+        {
+            return -2147483648
+        }
+        if .value > other.value
+        {
+            return 2147483647
+        }
         return 0
     }
 }

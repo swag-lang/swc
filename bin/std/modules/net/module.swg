@@ -11,12 +11,13 @@ using Net
 {
     var connection = try TcpStream.connect({address: [127, 0, 0, 1], port: 8080})
     let request = cast(const [..] u8, "hello")
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < request.count
     {
         let sent = try connection.write(request[offset to])
-        if sent == 0 do
+        if sent == 0 {
             fail NetworkError{"TCP stream stopped accepting bytes", code: 0}
+        }
         offset += sent
     }
 }
@@ -46,8 +47,9 @@ using Core, Net
 {
     let target = try Url.parseHttp("https://example.com/?q=swag")
     let response = try Http.get(target.host, target.port, target.path, target.secure)
-    if response.status == 200 do
+    if response.status == 200 {
         Console.println(cast(string, response.body.toSlice()))
+    }
 }
 ```
 
@@ -73,8 +75,9 @@ using Core, Net
     var peer = try WebSocket.connect("example.com", 80, "/events")
     try peer.sendFrame(.Text, cast(const [..] u8, "hello"))
     let frame = try peer.receiveFrame()
-    if frame.opcode == .Text do
+    if frame.opcode == .Text {
         Console.println(cast(string, frame.payload.toSlice()))
+    }
 }
 ```
 
@@ -89,8 +92,10 @@ certificates, but the module does not yet expose a reusable TLS stream.
     #import("linux")
 }
 
-#static if #os == Swag.TargetOs.Windows do
+#static if #os == Swag.TargetOs.Windows
+{
     #import("win32")
+}
 
 #run
 {

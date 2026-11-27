@@ -12,8 +12,10 @@
         var bytes: [8] u8 = ['A', 0, 0x3D, 0xD8, 0x00, 0xDE, 'B', 0]
         if encoding == .Utf16Be
         {
-            for index in 4 do
+            for index in 4
+            {
                 swap(&bytes[index * 2], &bytes[index * 2 + 1])
+            }
         }
 
         discard expect File.writeAllBytes(fileName, bytes)
@@ -44,7 +46,7 @@
 
     for encoding in [Text.Encoding.Utf16Le, .Utf32Le]
     {
-        var bytes: Array'u8
+        var bytes: Array!{u8}
         bytes.add('A')
         bytes.resize(encoding == .Utf16Le ? 2 : 4)
         let tailCount = encoding == .Utf16Le ? 1 : 3
@@ -52,8 +54,10 @@
         {
             let tailLength = tailIndex + 1
             bytes.resize(encoding == .Utf16Le ? 2 : 4)
-            for tailLength do
+            for tailLength
+            {
                 bytes.add(0xA5)
+            }
 
             discard expect File.writeAllBytes(fileName, bytes.toSlice())
             var stream = expect File.openRead(fileName)

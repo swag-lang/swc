@@ -7,8 +7,10 @@ using Swag
 func assertZeroProcessStream(stream: string)
 {
     Swag.require(stream.count == 131072)
-    for byte in stream do
+    for byte in stream
+    {
         Swag.require(byte == 0)
+    }
 }
 
 // Waiting drains both pipes, including when each stream exceeds its kernel pipe capacity.

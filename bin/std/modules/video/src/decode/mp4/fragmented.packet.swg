@@ -60,8 +60,11 @@ impl FragmentedPacketReader
         var result: #returntype
         result.source = try ByteSource.openFile(fileName)
         try result.layout.parse(&result.source)
-        if not result.layout.hasFragments or not result.layout.track.isAvc do
+        if not result.layout.hasFragments or not result.layout.track.isAvc
+        {
             fail UnsupportedFormatError{"MP4 packet reader needs fragmented H.264 video"}
+        }
+
         return result
     }
 
@@ -86,8 +89,11 @@ impl FragmentedPacketReader
     // Returns one video packet's timing and location without reading its payload.
     mtd const packetInfo(index: u64)->FragmentedPacketInfo fail
     {
-        if index >= .layout.fragments.count do
+        if index >= .layout.fragments.count
+        {
             fail BadParameterError{"fragmented MP4 video packet index is outside its track"}
+        }
+
         return describeSample(.layout.fragments[index])
     }
 
@@ -96,13 +102,19 @@ impl FragmentedPacketReader
     // The returned payload borrows `bytes` until it is changed. The caller can pass it directly
     // to [[Video.Mp4.FragmentedWriter.addPacket]]. A negative composition time cannot be
     // represented by [[Video.EncodedPacket]] and produces an unsupported-format error.
-    mtd readPacket(index: u64, bytes: *Array'u8)->EncodedPacket fail
+    mtd readPacket(index: u64, bytes: *Array!{u8})->EncodedPacket fail
     {
-        if index >= .layout.fragments.count do
+        if index >= .layout.fragments.count
+        {
             fail BadParameterError{"fragmented MP4 video packet index is outside its track"}
+        }
+
         let sample = .layout.fragments[index]
-        if sample.presentationTime < 0 do
+        if sample.presentationTime < 0
+        {
             fail UnsupportedFormatError{"fragmented MP4 packet has a negative presentation time"}
+        }
+
         try .readPayload(sample, bytes)
         return EncodedPacket{bytes.toSlice(), sample.decodeTime, cast(u64, sample.presentationTime),
                              sample.duration, sample.isKeyFrame}
@@ -116,8 +128,11 @@ impl FragmentedPacketReader
     // `trackIndex` is zero based. The returned decoder configuration borrows the reader's storage.
     mtd const audioTrack(trackIndex: u64)->FragmentedAudioInfo fail
     {
-        if trackIndex >= .layout.audioTracks.count do
+        if trackIndex >= .layout.audioTracks.count
+        {
             fail BadParameterError{"fragmented MP4 audio track index is outside the movie"}
+        }
+
         let track = &.layout.audioTracks[trackIndex]
         return FragmentedAudioInfo{track.sampleRate, cast(u16, track.channelCount),
                                    track.aacConfig.toSlice(), .layout.audioFragments[trackIndex].samples.count}
@@ -127,8 +142,11 @@ impl FragmentedPacketReader
     mtd const audioPacketInfo(trackIndex, packetIndex: u64)->FragmentedPacketInfo fail
     {
         if trackIndex >= .layout.audioFragments.count or
-           packetIndex >= .layout.audioFragments[trackIndex].samples.count do
+           packetIndex >= .layout.audioFragments[trackIndex].samples.count
+        {
             fail BadParameterError{"fragmented MP4 AAC packet index is outside its track"}
+        }
+
         return describeSample(.layout.audioFragments[trackIndex].samples[packetIndex])
     }
 
@@ -136,11 +154,14 @@ impl FragmentedPacketReader
     //
     // The returned payload borrows `bytes` until it is changed. It contains no ADTS header and
     // can be passed to [[Video.Mp4.FragmentedWriter.addAudioPacket]].
-    mtd readAudioPacket(trackIndex, packetIndex: u64, bytes: *Array'u8)->EncodedPacket fail
+    mtd readAudioPacket(trackIndex, packetIndex: u64, bytes: *Array!{u8})->EncodedPacket fail
     {
         if trackIndex >= .layout.audioFragments.count or
-           packetIndex >= .layout.audioFragments[trackIndex].samples.count do
+           packetIndex >= .layout.audioFragments[trackIndex].samples.count
+        {
             fail BadParameterError{"fragmented MP4 AAC packet index is outside its track"}
+        }
+
         let sample = .layout.audioFragments[trackIndex].samples[packetIndex]
         try .readPayload(sample, bytes)
         return EncodedPacket{bytes.toSlice(), sample.decodeTime, sample.decodeTime,
@@ -150,7 +171,7 @@ impl FragmentedPacketReader
 
 private impl FragmentedPacketReader
 {
-    mtd readPayload(sample: FragmentSample, bytes: *Array'u8) fail
+    mtd readPayload(sample: FragmentSample, bytes: *Array!{u8}) fail
     {
         bytes.resize(sample.size)
         try .source.seek(sample.offset)

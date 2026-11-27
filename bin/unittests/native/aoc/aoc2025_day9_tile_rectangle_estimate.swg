@@ -30,7 +30,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
     while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result  = result * 10'u32 + cast(u32, (bytes[index[]] - '0'))
+        result  = result * 10_u32 + cast(u32, (bytes[index[]] - '0'))
         index[] += 1
     }
 
@@ -67,15 +67,17 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
 
     for lhs in pointLines.count
     {
-        if cast(u32, lhs) + 1 >= pointLines.count do
+        if cast(u32, lhs) + 1 >= pointLines.count
+        {
             continue
+        }
 
         for rhs in cast(u32, lhs) + 1 to pointLines.count - 1
         {
             let a      = points[lhs]
             let b      = points[rhs]
-            let width  = cast(u64, absDiff(a.x, b.x)) + 1'u64
-            let height = cast(u64, absDiff(a.y, b.y)) + 1'u64
+            let width  = cast(u64, absDiff(a.x, b.x)) + 1_u64
+            let height = cast(u64, absDiff(a.y, b.y)) + 1_u64
             let area   = width * height
 
             if area > result.bestArea
@@ -108,12 +110,12 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
 
     let sampleEstimate = estimateReplacementArea(sampleTiles)
 
-    Swag.require(sampleEstimate.pointCount == 8'u32)
-    Swag.require(sampleEstimate.bestArea == 50'u64)
-    Swag.require(sampleEstimate.bestLeft == 2'u32)
-    Swag.require(sampleEstimate.bestRight == 11'u32)
-    Swag.require(sampleEstimate.bestTop == 1'u32)
-    Swag.require(sampleEstimate.bestBottom == 5'u32)
+    Swag.require(sampleEstimate.pointCount == 8_u32)
+    Swag.require(sampleEstimate.bestArea == 50_u64)
+    Swag.require(sampleEstimate.bestLeft == 2_u32)
+    Swag.require(sampleEstimate.bestRight == 11_u32)
+    Swag.require(sampleEstimate.bestTop == 1_u32)
+    Swag.require(sampleEstimate.bestBottom == 5_u32)
 
     const lobbyTiles: [6] string =
         [
@@ -127,10 +129,10 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
 
     let lobbyEstimate = estimateReplacementArea(lobbyTiles)
 
-    Swag.require(lobbyEstimate.pointCount == 6'u32)
-    Swag.require(lobbyEstimate.bestArea == 64'u64)
-    Swag.require(lobbyEstimate.bestLeft == 1'u32)
-    Swag.require(lobbyEstimate.bestRight == 8'u32)
-    Swag.require(lobbyEstimate.bestTop == 2'u32)
-    Swag.require(lobbyEstimate.bestBottom == 9'u32)
+    Swag.require(lobbyEstimate.pointCount == 6_u32)
+    Swag.require(lobbyEstimate.bestArea == 64_u64)
+    Swag.require(lobbyEstimate.bestLeft == 1_u32)
+    Swag.require(lobbyEstimate.bestRight == 8_u32)
+    Swag.require(lobbyEstimate.bestTop == 2_u32)
+    Swag.require(lobbyEstimate.bestBottom == 9_u32)
 }

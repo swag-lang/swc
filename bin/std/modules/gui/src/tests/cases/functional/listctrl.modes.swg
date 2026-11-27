@@ -13,8 +13,11 @@ using Swag, Core, Pixel
     with let list = ListCtrl.createSimple(&host.root, {0, 0, 280, 240})
     {
         .updateFlags(.HotTrack)
-        for name in ["One", "Two", "Three"] do
+        for name in ["One", "Two", "Three"]
+        {
             .createLine(name)
+        }
+
         .computeLayout()
     }
 
@@ -47,10 +50,15 @@ using Swag, Core, Pixel
     // Direct requests must carry the same semantic tint in both palettes, without fileGlyph.
     for light in [false, true]
     {
-        if light do
+        if light
+        {
             host.theme.setLight()
-        else do
+        }
+        else
+        {
             host.theme.setDark()
+        }
+
         Swag.require(theme.icon(.Folder).color == colors.arc)
         Swag.require(theme.icon(.FileImage).color == colors.fileKind_Image)
         Swag.require(theme.icon(.FileCode).color == colors.fileKind_Code)

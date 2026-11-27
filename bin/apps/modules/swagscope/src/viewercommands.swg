@@ -77,7 +77,7 @@ namespace ViewerCommands
     const ArtworkOnline     = "scope.explore.artwork.online"
     const ArtworkLocal      = "scope.explore.artwork.local"
     const ThumbnailCaptions = "scope.explore.thumbnailCaptions"
-    const TextLongestLine    = "scope.text.longestLine"
+    const TextLongestLine   = "scope.text.longestLine"
 
     // Each family is ordered like its matching Explorer enum.
     const Modes = ["scope.explore.mode.0", "scope.explore.mode.1", "scope.explore.mode.2",
@@ -93,13 +93,13 @@ namespace ViewerCommands
 
 // Files the lens lists in one section for a query typed without the `/` prefix, which stands
 // beside every other kind of answer, and with it, which asks for files alone.
-const LensFilesBeside = 5'u64
-const LensFilesAlone  = 64'u64
+const LensFilesBeside = 5_u64
+const LensFilesAlone  = 64_u64
 
 // The most lines of the open file the lens shows for a query, and the most of the file it reads
 // to find them.
-const LensLinesShown = 8'u64
-const LensFileLimit  = 8 * 1024 * 1024'u64
+const LensLinesShown = 8_u64
+const LensFileLimit  = 8 * 1024 * 1024_u64
 
 // The viewers whose own lens source answers `:`, each with the positions it reads: rows, cells,
 // pages, instants, offsets or chapters. Text, code and Markdown are answered here, by their lines.
@@ -123,8 +123,11 @@ impl ViewerWindow
             // the file and view actions at the door, ahead of viewer-specific choices and controls.
             .addRestSource(func|window = me|(results)
             {
-                if not window.isExploring() do
+                if not window.isExploring()
+                {
                     return
+                }
+
                 let section = results.addSection(appStrings().lens_Folder)
                 window.lens.addCommandRows(section,
                                            [ViewerCommands.OpenChosen, SceneCommands.CompareSelection, ViewerCommands.Up, ViewerCommands.Refresh,
@@ -190,8 +193,10 @@ impl ViewerWindow
         }
 
         .appearanceButton.addToLens(.lens)
-        if .workspace do
+        if .workspace
+        {
             .addSceneCommands()
+        }
 
         // The lens uses one chord everywhere.
         .registerKeyShortcut(.Control, .Space, ViewerCommands.Lens)
@@ -217,8 +222,11 @@ impl ViewerWindow
     // with the ways of showing the explored folder: one exclusive choice, shown as one row.
     private mtd describeViewerChoices(results: *Lens.Results)
     {
-        if not .acceptsViewCommands() do
+        if not .acceptsViewCommands()
+        {
             return
+        }
+
         let texts = appStrings()
         let typed:   String = results.query
         let query = typed.toString()
@@ -232,8 +240,8 @@ impl ViewerWindow
             let explorer = unwrap .explorer
             if not query.count
             {
-                        section        = results.addSection(texts.lens_ViewAs)
-                        section.inline = true
+                section        = results.addSection(texts.lens_ViewAs)
+                section.inline = true
                 .lens.addCommandRows(section, ViewerCommands.Modes)
             }
 
@@ -246,8 +254,11 @@ impl ViewerWindow
                     let plugin = &.index.plugins[choice.pluginIndex]
                     let name   = plugin.displayName()
                     var found  = Lens.match(results.folded, name)
-                    if not found.matched and not viewAsAnswers do
+                    if not found.matched and not viewAsAnswers
+                    {
                         continue
+                    }
+
                     if not viewers
                     {
                         viewers        = results.addSection(texts.lens_ViewAs)
@@ -266,15 +277,21 @@ impl ViewerWindow
             return
         }
 
-        if .choices.count < 2 do
+        if .choices.count < 2
+        {
             return
+        }
+
         for choice, index in .choices
         {
             let plugin = &.index.plugins[choice.pluginIndex]
             let name   = plugin.displayName()
             var found  = Lens.match(results.folded, name)
-            if not found.matched and not viewAsAnswers do
+            if not found.matched and not viewAsAnswers
+            {
                 continue
+            }
+
             if not section
             {
                 section        = results.addSection(texts.lens_ViewAs)
@@ -313,13 +330,19 @@ impl ViewerWindow
     {
         for &choice, index in choices
         {
-            if index == 1 do
+            if index == 1
+            {
                 menu.addSeparator()
+            }
+
             let plugin = &.index.plugins[choice.pluginIndex]
             let name   = plugin.displayName()
             var label  = String.from(name)
-            if index == 0 do
+            if index == 0
+            {
                 label = Format.toString(appStrings().ui_DefaultViewerChoice, name)
+            }
+
             let item = menu.addRadioItem(label, Format.toString("scope.viewer.choice.%", index), checked: choice.key == active)
             item.icon = .pluginIcon(plugin)
         }
@@ -328,8 +351,11 @@ impl ViewerWindow
     private mtd showViewerChoicesMenu()
     {
         let selected = .createViewerChoicesMenu().doModal(.viewerCaptionButton, autoDestroy: true) orelse ""
-        if not selected.count do
+        if not selected.count
+        {
             return
+        }
+
         for index in .index.plugins.count where selected == Format.toString("scope.viewer.choice.%", index)
         {
             .chooseViewerFromMenu(cast(u32, index))
@@ -343,8 +369,11 @@ impl ViewerWindow
         {
             let fileName = String.from(.explorer.listing.path)
             let choices  = .index.choices(fileName)
-            if index >= choices.count or choices[index].key == "archive" do
+            if index >= choices.count or choices[index].key == "archive"
+            {
                 return
+            }
+
             .setFileViewer(fileName, choices[0].key, choices[index].key)
             .queueFile(fileName)
             return
@@ -356,13 +385,22 @@ impl ViewerWindow
     // Answers the lens with the rows of the viewer on screen, under its name.
     private mtd describeViewerCommands(results: *Lens.Results)
     {
-        if not .acceptsViewCommands() do
+        if not .acceptsViewCommands()
+        {
             return
-        if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
+        }
+
+        if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count
+        {
             return
+        }
+
         let instance = &.instances[.activeChoiceIndex]
-        if not instance.view or not instance.lensSource do
+        if not instance.view or not instance.lensSource
+        {
             return
+        }
+
         let plugin  = &.index.plugins[.choices[.activeChoiceIndex].pluginIndex]
         var entries = Viewer.LensEntries.create(results, plugin.displayName(), .theme())
         instance.lensSource(&entries)
@@ -376,17 +414,27 @@ impl ViewerWindow
     // and cues.
     private mtd describeFileLines(results: *Lens.Results)
     {
-        if not .acceptsViewCommands() do
+        if not .acceptsViewCommands()
+        {
             return
+        }
+
         if let comparison = .lineComparison()
         {
             comparison.describeLine(results)
             return
         }
-        if .isExploring() or .currentFile.isEmpty() do
+
+        if .isExploring() or .currentFile.isEmpty()
+        {
             return
-        if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
+        }
+
+        if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count
+        {
             return
+        }
+
         let key = .choices[.activeChoiceIndex].key
         if results.prefix == .Line and Slice.contains(ViewersAnsweringPositions, key.toString())
         {
@@ -394,27 +442,39 @@ impl ViewerWindow
             return
         }
 
-        if key != "text" and key != "code" and key != "markdown" do
+        if key != "text" and key != "code" and key != "markdown"
+        {
             return
-        if not .instances[.activeChoiceIndex].revealMatch do
+        }
+
+        if not .instances[.activeChoiceIndex].revealMatch
+        {
             return
+        }
 
         // Plain text resolves typed positions with its active decoder and line counter. Other
         // text-like viewers keep the shared UTF-8 search path below.
         if key == "text"
         {
             let view = assume cast(*Viewers.PlainText.Panel, .instances[.activeChoiceIndex].view)
-            if view.describeTypedPosition(results) do
+            if view.describeTypedPosition(results)
+            {
                 return
+            }
         }
 
         let typed: String = results.query
         let query         = Latin1.trim(typed.toString())
-        if not query.count do
+        if not query.count
+        {
             return
+        }
+
         let bytes = .lensFileBytes()
-        if bytes.isEmpty() do
+        if bytes.isEmpty()
+        {
             return
+        }
 
         let texts   = appStrings()
         let content = cast(string, bytes.toSlice())
@@ -426,18 +486,24 @@ impl ViewerWindow
         var separator = Swag.U64.Max
         for c, at in query
         {
-            if c == ':' and separator == Swag.U64.Max and at > 0 and at + 1 < query.count do
+            if c == ':' and separator == Swag.U64.Max and at > 0 and at + 1 < query.count
+            {
                 separator = at
-            elif not Latin1.isDigit(c) do
+            }
+            else if not Latin1.isDigit(c)
+            {
                 number = false
+            }
         }
 
         if results.prefix == .Line and number
         {
             let lineText = separator == Swag.U64.Max ? query : query[0 until separator]
             let wanted   = catch StrConv.toU64(lineText) { return; }
-            if not wanted or wanted > starts.count do
+            if not wanted or wanted > starts.count
+            {
                 return
+            }
 
             let start   = starts[wanted - 1]
             let section = results.addSection(texts.lens_InFile)
@@ -455,15 +521,18 @@ impl ViewerWindow
             // A column past the end of the line stops at its end, and the row says where.
             let column  = catch StrConv.toU64(query[separator + 1 to]) orelse 1
             var offset  = start
-            var reached = 1'u64
+            var reached = 1_u64
             while reached < column and
                   offset < content.count and
                   content[offset] != '\n' and
                   content[offset] != '\r'
             {
                 offset += 1
-                while offset < content.count and (content[offset] & 0xC0) == 0x80 do
+                while offset < content.count and (content[offset] & 0xC0) == 0x80
+                {
                     offset += 1
+                }
+
                 reached += 1
             }
 
@@ -480,26 +549,37 @@ impl ViewerWindow
         // whole file is searched at once and each hit named by the line it falls in, the search
         // resuming at the next line, so a line counts once however often it holds the query.
         var section: *Lens.Section?
-        var found = 0'u32
-        var line  = 0'u64
-        var from  = 0'u64
+        var found = 0_u32
+        var line  = 0_u64
+        var from  = 0_u64
         while from < content.count
         {
             let hit = Utf8.indexOf(content, query, from, .Latin1NoCase)
-            if hit == Swag.U64.Max do
+            if hit == Swag.U64.Max
+            {
                 break
-            while line + 1 < starts.count and starts[line + 1] <= hit do
+            }
+
+            while line + 1 < starts.count and starts[line + 1] <= hit
+            {
                 line += 1
+            }
 
             let start = starts[line]
             var end   = line + 1 < starts.count ? starts[line + 1] - 1 : content.count
-            if end > start and content[end - 1] == '\r' do
+            if end > start and content[end - 1] == '\r'
+            {
                 end -= 1
+            }
+
             found += 1
             if cast(u64, found) <= LensLinesShown
             {
-                if not section do
+                if not section
+                {
                     section = results.addSection(texts.lens_InFile)
+                }
+
                 let length     = query.count
                 with let entry = section.addEntry(Latin1.trim(content[start until end]))
                 {
@@ -509,27 +589,41 @@ impl ViewerWindow
                 }
             }
 
-            if line + 1 >= starts.count do
+            if line + 1 >= starts.count
+            {
                 break
+            }
+
             from = starts[line + 1]
         }
 
-        if section do
+        if section
+        {
             section.count = found
+        }
     }
 
     // Shows the open document at `offset` of its file, the `length` bytes there marked.
     mtd revealLensOffset(offset, length: u64)
     {
-        if .activeChoiceIndex >= .instances.count do
+        if .activeChoiceIndex >= .instances.count
+        {
             return
+        }
+
         let instance = &.instances[.activeChoiceIndex]
-        if not instance.revealMatch do
+        if not instance.revealMatch
+        {
             return
+        }
+
         let bytes = .lensFileBytes()
-        if offset > bytes.count do
+        if offset > bytes.count
+        {
             return
-        let text = cast(string, bytes.toSlice()[offset until Math.min(offset + length, bytes.count)])
+        }
+
+        let text         = cast(string, bytes.toSlice()[offset until Math.min(offset + length, bytes.count)])
         let sourceOffset = .lensContentStart + Viewer.sourceByteCount(cast(string, bytes.toSlice()[until offset]), .lensEncoding)
         if .activeChoiceIndex < .choices.count and
            .choices[.activeChoiceIndex].key == Viewers.PlainText.ViewerKey and
@@ -539,13 +633,14 @@ impl ViewerWindow
             discard view.revealLensDestination(sourceOffset, text, caret: true)
             return
         }
+
         discard instance.revealMatch(Viewer.SearchMatch{0, 0, sourceOffset, Viewer.sourceByteCount(text, .lensEncoding)}, text)
     }
 
     // Returns the bytes of the open file the lens searches, read once per opening of the file and
     // at most `LensFileLimit` of them, and notes where each of their lines starts, so that a line
     // is reached by its number without counting the lines before it at every keystroke.
-    mtd lensFileBytes()->const *Array'u8
+    mtd lensFileBytes()->const *Array!{u8}
     {
         var encoding = Text.Encoding.Utf8
         switch .currentView
@@ -553,11 +648,12 @@ impl ViewerWindow
         case Viewers.PlainText.Panel as view: encoding = view.encoding
         case Viewers.Code.Panel as view:      encoding = view.encoding
         }
+
         if .lensBytesFile != .currentFile or .lensEncoding != encoding
         {
             .forgetLensFile()
             .lensBytesFile = .currentFile
-            .lensEncoding = encoding
+            .lensEncoding  = encoding
             catch
             {
                 var stream = try File.openRead(.currentFile)
@@ -578,11 +674,11 @@ impl ViewerWindow
 
             // A line starts the file and each line feed starts another, even the last one.
             .lensLineStarts.add(0)
-            var at = Utf8.indexOf(.lensBytes.toSlice(), '\n'rune)
+            var at = Utf8.indexOf(.lensBytes.toSlice(), '\n'_rune)
             while at != Swag.U64.Max
             {
                 .lensLineStarts.add(at + 1)
-                at = Utf8.indexOf(.lensBytes.toSlice(), '\n'rune, at + 1)
+                at = Utf8.indexOf(.lensBytes.toSlice(), '\n'_rune, at + 1)
             }
         }
 
@@ -604,30 +700,47 @@ impl ViewerWindow
     private mtd describeFiles(results: *Lens.Results)
     {
         let alone = results.prefix == .File
-        if not alone and results.query.isEmpty() do
+        if not alone and results.query.isEmpty()
+        {
             return
+        }
 
         let texts = appStrings()
         let limit = alone ? LensFilesAlone : LensFilesBeside
         .addFileSection(results, texts.ui_Recent, .recent.toSlice(), limit, remember: true)
-        if not .acceptsViewCommands() do
+        if not .acceptsViewCommands()
+        {
             return
-        if .siblingsDirty do
+        }
+
+        if .siblingsDirty
+        {
             .rebuildSiblings()
+        }
+
         .addFileSection(results, texts.lens_InFolder, .siblings.toSlice(), limit, remember: false)
 
         var section: *Lens.Section?
         for one in .folderHistory
         {
-            if section and section.entries.count >= limit do
+            if section and section.entries.count >= limit
+            {
                 break
+            }
+
             let folder = one.folder.toString()
             let name   = Path.fileName(folder) orelse folder
             var found  = Lens.match(results.folded, name)
-            if not found.matched do
+            if not found.matched
+            {
                 continue
-            if not section do
+            }
+
+            if not section
+            {
                 section = results.addSection(texts.ui_FolderHistory)
+            }
+
             let file       = one.file.toString()
             with let entry = section.addEntry(name, #move found)
             {
@@ -636,10 +749,14 @@ impl ViewerWindow
                 .monoDetail = true
                 .run        = func|window = me, folder, file|()
                 {
-                    if window.isExploring() do
+                    if window.isExploring()
+                    {
                         window.openExplorer(folder)
-                    else do
+                    }
+                    else
+                    {
                         window.openFile(file)
+                    }
                 }
             }
         }
@@ -651,17 +768,28 @@ impl ViewerWindow
         var section: *Lens.Section?
         for one in files
         {
-            if section and section.entries.count >= limit do
+            if section and section.entries.count >= limit
+            {
                 break
+            }
+
             let file = one.toString()
-            if file == .currentFile.toString() do
+            if file == .currentFile.toString()
+            {
                 continue
+            }
+
             let name  = Path.fileName(file) orelse file
             var found = Lens.match(results.folded, name)
-            if not found.matched do
+            if not found.matched
+            {
                 continue
-            if not section do
+            }
+
+            if not section
+            {
                 section = results.addSection(label)
+            }
 
             var pluginIndex = Swag.U64.Max
             with let entry  = section.addEntry(name, #move found)
@@ -669,8 +797,10 @@ impl ViewerWindow
                 .detail     = Path.directoryName(file) orelse ""
                 .monoDetail = true
                 .run        = func|window = me, file, remember|() { window.openFile(file, remember) }
-                if me.index.namePlugin(file, &pluginIndex) do
+                if me.index.namePlugin(file, &pluginIndex)
+                {
                     .glyph = me.pluginIcon(&me.index.plugins[pluginIndex], me.themeMetrics().menuPopup_IconSize)
+                }
             }
         }
     }
@@ -681,18 +811,24 @@ impl ViewerWindow
     {
         switch id
         {
-        case ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Lens, ViewerCommands.FullScreen,
-             ViewerCommands.Dismiss, ViewerCommands.GeneralOptions, ViewerCommands.ClearHistory,
-             ViewerCommands.OnlineMovies, ViewerCommands.OnlineMusic:
+        case ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Lens,
+             ViewerCommands.FullScreen, ViewerCommands.Dismiss, ViewerCommands.GeneralOptions,
+             ViewerCommands.ClearHistory, ViewerCommands.OnlineMovies, ViewerCommands.OnlineMusic:
             return false
+
         case ViewerCommands.Information:
             return not (.workspace?.wantsComparisonSheet() orelse false)
-        case SceneCommands.Beside, SceneCommands.CompareWith, SceneCommands.CompareSelection, SceneCommands.Maximize,
-             SceneCommands.Layouts[0], MediaCommands.Solo, MediaCommands.AlignHere, MediaCommands.Times[2],
-             ComparisonCommands.ZoomIn, ComparisonCommands.ZoomOut:
+
+        case SceneCommands.Beside, SceneCommands.CompareWith,
+             SceneCommands.CompareSelection, SceneCommands.Maximize,
+             SceneCommands.Layouts[0], MediaCommands.Solo, MediaCommands.AlignHere,
+             MediaCommands.Times[2], ComparisonCommands.ZoomIn, ComparisonCommands.ZoomOut:
             return true
+
         default:
-            return Utf8.startsWith(id, "scope.") and not Utf8.startsWith(id, "scope.scene.") and not Utf8.startsWith(id, "scope.compare.")
+            return Utf8.startsWith(id, "scope.") and
+                   not Utf8.startsWith(id, "scope.scene.") and
+                   not Utf8.startsWith(id, "scope.compare.")
         }
     }
 
@@ -709,15 +845,20 @@ impl ViewerWindow
                 evt.updatedFields.add(.Disabled)
             }
         }
-        if .computeSceneCommand(evt) or .computeComparisonCommand(evt) or .computeMediaCommand(evt) do
+
+        if .computeSceneCommand(evt) or .computeComparisonCommand(evt) or .computeMediaCommand(evt)
+        {
             return true
+        }
 
         let texts     = appStrings()
         let hasFile   = not .currentFile.isEmpty()
         let exploring = .isExploring()
         let compare   = .lineComparison() != null
         let search    = compare or (.activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].revealMatch != null)
-        let canFilter = not compare and .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
+        let canFilter = not compare and
+                        .activeChoiceIndex < .instances.count and
+                        .instances[.activeChoiceIndex].filterSearch != null
 
         var name:     string = ""
         var owned:    String     // Keeps a name the command composes alive until it is read.
@@ -737,7 +878,7 @@ impl ViewerWindow
             icon     = .commandGlyph(.Information)
             disabled = not hasFile and not exploring
             toggle   = true
-            checked = .informationOpen()
+            checked  = .informationOpen()
 
         case ViewerCommands.GeneralOptions:
             name = texts.ui_GeneralOptions
@@ -764,8 +905,10 @@ impl ViewerWindow
 
         case ViewerCommands.Dismiss:
             name     = Gui.strings().dlg_Close
-            disabled = not .informationOpen() and not (.searchShown and not .isExploring()) and
-                       not (.workspace?.scene()?.maximized orelse false) and not .fullScreen
+            disabled = not .informationOpen() and
+                       not (.searchShown and not .isExploring()) and
+                       not (.workspace?.scene()?.maximized orelse false) and
+                       not .fullScreen
 
         case ViewerCommands.Reload:
             name   = texts.cmd_Reload
@@ -1134,8 +1277,10 @@ impl ViewerWindow
                 evt.updatedFields.add(.RenderingHint)
             }
 
-            if not name.count do
+            if not name.count
+            {
                 return false
+            }
         }
 
         evt.name = name
@@ -1199,20 +1344,31 @@ impl ViewerWindow
 
     mtd canGoToLine()->bool
     {
-        if .lineComparison() do
+        if .lineComparison()
+        {
             return true
-        if .isExploring() or not .currentView or .activeChoiceIndex >= .choices.count do
+        }
+
+        if .isExploring() or not .currentView or .activeChoiceIndex >= .choices.count
+        {
             return false
+        }
+
         return Slice.contains(["text", "code", "markdown", "table", "subtitle", "xlsx", "ods"], .choices[.activeChoiceIndex].key.toString())
     }
 
     // Runs a window command against the current selection.
     mtd runCommand(id: WndId)->bool
     {
-        if not .acceptsViewCommands() and .needsSelectedCell(id) do
+        if not .acceptsViewCommands() and .needsSelectedCell(id)
+        {
             return true
-        if .runSceneCommand(id) or .runComparisonCommand(id) or .runMediaCommand(id) do
+        }
+
+        if .runSceneCommand(id) or .runComparisonCommand(id) or .runMediaCommand(id)
+        {
             return true
+        }
 
         let hasFile = not .currentFile.isEmpty()
         switch id
@@ -1228,12 +1384,19 @@ impl ViewerWindow
             .toggleInformation()
 
         case ViewerCommands.TextLongestLine:
-            if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
+            if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count
+            {
                 return false
+            }
+
             let instance = &.instances[.activeChoiceIndex]
-            if not instance.view or instance.view != .currentView or
-               .choices[.activeChoiceIndex].key != Viewers.PlainText.ViewerKey do
+            if not instance.view or
+               instance.view != .currentView or
+               .choices[.activeChoiceIndex].key != Viewers.PlainText.ViewerKey
+            {
                 return false
+            }
+
             let view = assume cast(*Viewers.PlainText.Panel, instance.view)
             return view.revealLongestLine()
 
@@ -1251,30 +1414,46 @@ impl ViewerWindow
             else
             {
                 let folder = .selectExplorerFolder()
-                if not folder.isEmpty() do
+                if not folder.isEmpty()
+                {
                     .workspace!.openDocument(folder)
+                }
             }
 
         case ViewerCommands.ReturnToExplorer:
             .closeFile()
 
         case ViewerCommands.Close:
-            if .workspace and .workspace.scene() do
+            if .workspace and .workspace.scene()
+            {
                 .workspace.closeView()
-            else do
+            }
+            else
+            {
                 .closeFile()
+            }
 
         case ViewerCommands.Dismiss:
-            if .workspace?.comparisonSheet?.panel.isLocallyVisible() orelse false do
+            if .workspace?.comparisonSheet?.panel.isLocallyVisible() orelse false
+            {
                 .workspace!.closeComparisonSheet()
-            elif .infoSheet.isLocallyVisible() do
+            }
+            else if .infoSheet.isLocallyVisible()
+            {
                 .closeInformation()
-            elif .searchShown and not .isExploring() do
+            }
+            else if .searchShown and not .isExploring()
+            {
                 .hideSearch()
-            elif .workspace?.scene()?.maximized orelse false do
+            }
+            else if .workspace?.scene()?.maximized orelse false
+            {
                 .workspace!.toggleMaximized()
-            elif .fullScreen do
+            }
+            else if .fullScreen
+            {
                 .setFullScreen(false)
+            }
 
         case ViewerCommands.Reload:
             .reloadCurrentFile()
@@ -1305,8 +1484,11 @@ impl ViewerWindow
             .showSearch()
 
         case ViewerCommands.GoToLine:
-            if not .canGoToLine() do
+            if not .canGoToLine()
+            {
                 return false
+            }
+
             .lens.open(":")
 
         case ViewerCommands.FindNext:
@@ -1341,8 +1523,11 @@ impl ViewerWindow
             .setFullScreen(not .fullScreen)
 
         case ViewerCommands.Outline:
-            if not .currentSidePanelButton or .currentSidePanelButton.id != OutlineToggleId do
+            if not .currentSidePanelButton or .currentSidePanelButton.id != OutlineToggleId
+            {
                 return false
+            }
+
             .toggleSidePanel()
 
         case ViewerCommands.SidePanel:
@@ -1369,8 +1554,11 @@ impl ViewerWindow
 
     private mtd toggleSidePanel()
     {
-        if not .currentSidePanelButton do
+        if not .currentSidePanelButton
+        {
             return
+        }
+
         let toggle = .currentSidePanelButton
         toggle.setChecked(not toggle.isChecked)
         toggle.sigCheckedChanged.call(toggle)
@@ -1379,8 +1567,11 @@ impl ViewerWindow
     // Runs one command of the explored folder, and reports whether it was one.
     private mtd runExplorerCommand(id: WndId)->bool
     {
-        if not .explorer do
+        if not .explorer
+        {
             return false
+        }
+
         let explorer = .explorer
         switch id
         {
@@ -1409,8 +1600,10 @@ impl ViewerWindow
             .runFileAction(id, explorer.locationText())
 
         case ViewerCommands.OpenSystemFolder:
-            if not explorer.listing.isArchive do
+            if not explorer.listing.isArchive
+            {
                 .runFileAction(id, explorer.listing.path)
+            }
 
         case ViewerCommands.RevealArchive:
             .runFileAction(id, explorer.nativeArchivePath())
@@ -1485,7 +1678,7 @@ impl ViewerWindow
     }
 
     mtd informationOpen()->bool => .infoSheet.isLocallyVisible() or
-                                  (.workspace?.comparisonSheet?.panel.isLocallyVisible() orelse false)
+                                   (.workspace?.comparisonSheet?.panel.isLocallyVisible() orelse false)
 
     // Shows the sheet of readings about the open file or the explored folder, or hides it.
     mtd toggleInformation()
@@ -1495,6 +1688,7 @@ impl ViewerWindow
             .workspace.toggleComparisonSheet()
             return
         }
+
         if .currentFile.isEmpty() and not .isExploring()
         {
             .closeInformation()
@@ -1517,12 +1711,20 @@ impl ViewerWindow
     mtd sheetToggled(open: bool)
     {
         .refreshExplorerCaption()
-        if open do
+        if open
+        {
             .information.request()
-        else do
+        }
+        else
+        {
             .information.stop()
-        if .isExploring() do
+        }
+
+        if .isExploring()
+        {
             .teachHints(true)
+        }
+
         .layoutSearchBar()
     }
 
@@ -1530,19 +1732,27 @@ impl ViewerWindow
     // in the explored folder.
     mtd refreshInformation()
     {
-        if .information.refreshing do
+        if .information.refreshing
+        {
             return
+        }
+
         if .isExploring() or (.currentFile.isEmpty() and .explorerActive and .explorer)
         {
             .information.selectExplorer(unwrap .explorer)
             .information.describe(.infoSheet, includeAction: true)
         }
-        elif not .currentFile.isEmpty()
+        else if not .currentFile.isEmpty()
         {
-            if .explorer and (.explorer.describesFile(.currentFile) or .isArchivePreview()) do
+            if .explorer and (.explorer.describesFile(.currentFile) or .isArchivePreview())
+            {
                 .information.selectExplorer(.explorer)
-            else do
+            }
+            else
+            {
                 .information.selectFile(.currentFile)
+            }
+
             .information.describe(.infoSheet)
         }
         else
@@ -1557,13 +1767,19 @@ impl ViewerWindow
         switch id
         {
         case ViewerCommands.SearchMode:
-            if not .searchFilterMode do
+            if not .searchFilterMode
+            {
                 return
+            }
+
             .searchFilterMode = false
 
         case ViewerCommands.FilterMode:
-            if .searchFilterMode do
+            if .searchFilterMode
+            {
                 return
+            }
+
             .searchFilterMode = true
 
         case ViewerCommands.MatchCase:

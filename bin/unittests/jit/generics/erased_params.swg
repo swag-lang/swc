@@ -75,7 +75,7 @@ var g_ErasedCounter: ErasedCounter
     var slider: ErasedSlider
     slider.id = 9
     Swag.require(erasedId(&slider) == 9)
-    Swag.require(erasedId'ErasedSlider(&slider) == 9)
+    Swag.require(erasedId!{ErasedSlider}(&slider) == 9)
     Swag.require(erasedId(&slider.wnd) == 9)
 }
 

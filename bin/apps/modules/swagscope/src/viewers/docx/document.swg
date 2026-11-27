@@ -7,8 +7,10 @@ func relationshipPart(relationships: const [..] Package.Relationship, id, kind: 
 {
     for relationship in relationships
     {
-        if relationship.id == id and Utf8.endsWith(relationship.kind, kind) do
+        if relationship.id == id and Utf8.endsWith(relationship.kind, kind)
+        {
             return relationship.path
+        }
     }
 
     return {}
@@ -32,10 +34,16 @@ impl PageLayout
     {
         var result:  #returntype
         let numbers: Globalization.NumberFormatInfo
-        if .width > 0 do
+        if .width > 0
+        {
             result += Format.toString("max-width:%px;", numbers.format(cast(f64, .width) / 15, 2))
-        if .height > 0 do
+        }
+
+        if .height > 0
+        {
             result += Format.toString("min-height:%px;", numbers.format(cast(f64, .height) / 15, 2))
+        }
+
         if .marginMask
         {
             result += "padding:"
@@ -49,10 +57,16 @@ impl PageLayout
             result += "px;"
         }
 
-        if .width > 0 or .height > 0 or .marginMask do
+        if .width > 0 or .height > 0 or .marginMask
+        {
             result += "box-sizing:border-box;"
-        if .width > 0 do
+        }
+
+        if .width > 0
+        {
             result += "margin-left:auto;margin-right:auto;"
+        }
+
         return result
     }
 }
@@ -90,26 +104,56 @@ impl Document
     mtd const details()->String
     {
         var result = .paragraphs == 1 ? String.from(texts().ui_OneParagraph) : Format.toString(texts().ui_Details, .paragraphs)
-        if .tables do
+        if .tables
+        {
             result += .tables == 1 ? String.from(texts().ui_OneTable) : Format.toString(texts().ui_Tables, .tables)
-        if .omittedImages do
+        }
+
+        if .omittedImages
+        {
             result += .omittedImages == 1 ? String.from(texts().ui_OneImageOmitted) : Format.toString(texts().ui_ImagesOmitted, .omittedImages)
-        if .stylesSimplified do
+        }
+
+        if .stylesSimplified
+        {
             result += texts().ui_StylesSimplified
-        if .tableMergesSimplified do
+        }
+
+        if .tableMergesSimplified
+        {
             result += texts().ui_TableMergesSimplified
-        if .pageElementsSimplified do
+        }
+
+        if .pageElementsSimplified
+        {
             result += texts().ui_PageElementsSimplified
-        if .sectionLayoutSimplified do
+        }
+
+        if .sectionLayoutSimplified
+        {
             result += texts().ui_SectionLayoutSimplified
-        if .footnotesSimplified do
+        }
+
+        if .footnotesSimplified
+        {
             result += texts().ui_FootnotesSimplified
-        if .endnotesSimplified do
+        }
+
+        if .endnotesSimplified
+        {
             result += texts().ui_EndnotesSimplified
-        if .commentsSimplified do
+        }
+
+        if .commentsSimplified
+        {
             result += texts().ui_CommentsSimplified
-        if .linksSimplified do
+        }
+
+        if .linksSimplified
+        {
             result += texts().ui_LinksSimplified
+        }
+
         return result
     }
 
@@ -130,12 +174,18 @@ impl Document
         var theme     = Package.OfficeTheme.defaults()
         let themePath = Package.relationshipPath(relations.toSlice(), "/theme")
         var themeError: Swag.Error
-        if not themePath.isEmpty() do
+        if not themePath.isEmpty()
+        {
             theme.read(catch parts.text(themePath, required: false) as themeError orelse {})
+        }
+
         var stylePath      = Package.relationshipPath(relations.toSlice(), "/styles")
         let declaredStyles = not stylePath.isEmpty()
-        if stylePath.isEmpty() do
+        if stylePath.isEmpty()
+        {
             stylePath = "word/styles.xml"
+        }
+
         var styleReadError:  Swag.Error
         let styleSource = catch parts.text(stylePath, required: false, limit: 4 * 1024 * 1024) as styleReadError orelse {}
         var styleParseError: Swag.Error
@@ -145,29 +195,41 @@ impl Document
                           styleParseError.value() != null or
                           (declaredStyles and styleSource.isEmpty())
         var numberingPath = Package.relationshipPath(relations.toSlice(), "/numbering")
-        if numberingPath.isEmpty() do
+        if numberingPath.isEmpty()
+        {
             numberingPath = "word/numbering.xml"
+        }
+
         var numberingReadError:  Swag.Error
         let numberingSource = catch parts.text(numberingPath, required: false, limit: 4 * 1024 * 1024) as numberingReadError orelse {}
         var numberingParseError: Swag.Error
         var numbering       = catch NumberingCatalog.parse(numberingSource) as numberingParseError orelse {}
         var footnotesPath   = Package.relationshipPath(relations.toSlice(), "/footnotes")
-        if footnotesPath.isEmpty() do
+        if footnotesPath.isEmpty()
+        {
             footnotesPath = "word/footnotes.xml"
+        }
+
         var footnotesReadError:  Swag.Error
         let footnotesSource = catch parts.text(footnotesPath, required: false, limit: 4 * 1024 * 1024) as footnotesReadError orelse {}
         var footnotesParseError: Swag.Error
         var footnotes       = catch FootnoteCatalog.parse(footnotesSource) as footnotesParseError orelse {}
         var endnotesPath    = Package.relationshipPath(relations.toSlice(), "/endnotes")
-        if endnotesPath.isEmpty() do
+        if endnotesPath.isEmpty()
+        {
             endnotesPath = "word/endnotes.xml"
-        var endnotesReadError: Swag.Error
+        }
+
+        var endnotesReadError:  Swag.Error
         let endnotesSource = catch parts.text(endnotesPath, required: false, limit: 4 * 1024 * 1024) as endnotesReadError orelse {}
         var endnotesParseError: Swag.Error
         var endnotes       = catch EndnoteCatalog.parse(endnotesSource) as endnotesParseError orelse {}
-        var commentsPath    = Package.relationshipPath(relations.toSlice(), "/comments")
-        if commentsPath.isEmpty() do
+        var commentsPath   = Package.relationshipPath(relations.toSlice(), "/comments")
+        if commentsPath.isEmpty()
+        {
             commentsPath = "word/comments.xml"
+        }
+
         var commentsReadError:  Swag.Error
         let commentsSource = catch parts.text(commentsPath, required: false, limit: 4 * 1024 * 1024) as commentsReadError orelse {}
         var commentsParseError: Swag.Error
@@ -194,51 +256,79 @@ impl Document
             {
                 reader.start(&token)
             }
-            elif token.kind == .End
+            else if token.kind == .End
             {
                 reader.end(&token)
             }
-            elif reader.inBody and reader.inText
+            else if reader.inBody and reader.inText
             {
-                if reader.inRun do
+                if reader.inRun
+                {
                     Package.appendHtmlEscaped(&reader.run, token.text)
-                else do
+                }
+                else
+                {
                     Package.appendHtmlEscaped(&reader.paragraph, token.text)
+                }
             }
 
-            if reader.document.html.count + reader.sectionHtml.count + reader.paragraph.count + reader.run.count > 32 * 1024 * 1024 do
+            if reader.document.html.count + reader.sectionHtml.count + reader.paragraph.count + reader.run.count > 32 * 1024 * 1024
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
         }
 
         for reference in reader.bookmarkReferences
         {
             var found = false
-            for name in reader.bookmarkNames where Utf8.compare(name.toString(), reference.toString()) == 0 do
+            for name in reader.bookmarkNames where Utf8.compare(name.toString(), reference.toString()) == 0
+            {
                 found = true
-            if not found do
+            }
+
+            if not found
+            {
                 reader.document.linksSimplified = true
+            }
         }
 
         for id in reader.commentRangeStarts
         {
             var found = false
-            for end in reader.commentRangeEnds where end == id do
+            for end in reader.commentRangeEnds where end == id
+            {
                 found = true
-            if not found do
+            }
+
+            if not found
+            {
                 reader.document.commentsSimplified = true
+            }
         }
 
-        if scan.damaged or reader.inBody or reader.inParagraph or not reader.document.paragraphs and not reader.document.tables do
+        if scan.damaged or reader.inBody or reader.inParagraph or not reader.document.paragraphs and not reader.document.tables
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         reader.document.html += reader.footnotesHtml()
-        if reader.footnoteReferences.count do
+        if reader.footnoteReferences.count
+        {
             reader.document.footnotesSimplified = true
+        }
+
         reader.document.html += reader.endnotesHtml()
-        if reader.endnoteReferences.count do
+        if reader.endnoteReferences.count
+        {
             reader.document.endnotesSimplified = true
+        }
+
         reader.document.html += reader.commentsHtml()
-        if reader.document.html.count > 32 * 1024 * 1024 do
+        if reader.document.html.count > 32 * 1024 * 1024
+        {
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
+
         var html: String = "<html>"
         if not reader.headerId.isEmpty()
         {
@@ -311,7 +401,7 @@ impl Document
         {
             html += "<head><style>p,h1,h2,h3,h4,h5,h6{margin:0;font-size:inherit;font-weight:normal}</style></head>"
             let background = reader.document.paperColor.isEmpty() ? String.from("FFFFFF") : reader.document.paperColor
-            let rgb        = catch StrConv.toU32(Format.toString("0x%", background)) orelse 0xFFFFFF'u32
+            let rgb        = catch StrConv.toU32(Format.toString("0x%", background)) orelse 0xFFFFFF_u32
             let luma       = ((rgb >> 16) & 255) * 299 + ((rgb >> 8) & 255) * 587 + (rgb & 255) * 114
             bodyStyle += Format.toString("background-color:#%;color:#%;", background, luma < 128000 ? "FFFFFF" : "000000")
         }
@@ -343,8 +433,11 @@ impl Document
         }
 
         html += "</body></html>"
-        if html.count > 32 * 1024 * 1024 do
+        if html.count > 32 * 1024 * 1024
+        {
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
+
         reader.document.html = #move html
 
         reader.document.properties = Package.DocumentProperties.read(fileName, &archive)

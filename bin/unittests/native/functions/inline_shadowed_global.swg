@@ -11,8 +11,10 @@ struct Angle
 #[Swag.Inline]
 func toDegreesImpl(value: s32)->s32
 {
-    if not value do
+    if not value
+    {
         return 0
+    }
     return Angle{rad: value - 1}.toDegrees() + 2
 }
 
@@ -21,8 +23,10 @@ impl Angle
     #[Swag.Inline]
     mtd const toDegrees()->s32
     {
-        if not me.rad do
+        if not me.rad
+        {
             return 0
+        }
         return toDegreesImpl(me.rad)
     }
 }

@@ -16,8 +16,8 @@ using Swag, Core, Pixel
         host.theme.colors.wnd_Bk = paneColor
 
         let splitter   = SplitterCtrl.create(&host.root, {0, 0, 300, 200}, vertical)
-        let firstView  = Wnd.create'Wnd(splitter)
-        let secondView = Wnd.create'Wnd(splitter)
+        let firstView  = Wnd.create!{Wnd}(splitter)
+        let secondView = Wnd.create!{Wnd}(splitter)
         firstView.backgroundStyle  = .Window
         secondView.backgroundStyle = .Window
         let first = splitter.addPane(firstView, showTitle: true)

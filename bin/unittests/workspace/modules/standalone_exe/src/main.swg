@@ -24,6 +24,8 @@ var gPatchedContext: Swag.Context
 
 #main
 {
-    for arg in Swag.args() where arg == "workspace.panic-in-dependency" do
+    for arg in Swag.args() where arg == "workspace.panic-in-dependency"
+    {
         ctxSharedPanic()
+    }
 }

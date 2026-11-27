@@ -86,14 +86,17 @@ enum GateOp: u8
 // Wire name encoding (3 chars -> u32 index)
 // ---------------------------------------------------------------------------
 
-const MaxWireIdx = 46656'u32     // 36^3: max possible encodeWire result + 1
+const MaxWireIdx = 46656_u32     // 36^3: max possible encodeWire result + 1
 
 // Each wire name is 3 characters. Encode as: (c0 * 36 + c1) * 36 + c2
 // where digits 0-9 map to 0-9 and letters a-z map to 10-35.
 #[Swag.Inline]
 func charVal(c: u8)->u32
 {
-    if c >= '0' and c <= '9' do return cast(u32, (c - '0'))
+    if c >= '0' and c <= '9'
+    {
+        return cast(u32, (c - '0'))
+    }
     return cast(u32, (c - 'a')) + 10
 }
 
@@ -129,7 +132,7 @@ struct Gate
     nameOut2: u8
 }
 
-const MaxGates = 256'u32
+const MaxGates = 256_u32
 
 struct Circuit
 {
@@ -155,7 +158,10 @@ func circuitInit()->Circuit
 
 func circuitFree(c: *Circuit)
 {
-    if c.wireVal do testFree(c.wireVal)
+    if c.wireVal
+    {
+        testFree(c.wireVal)
+    }
 }
 
 impl Circuit
@@ -189,9 +195,15 @@ func skipWhitespace(bytes: const [..] u8, pos: *u32)
 {
     for
     {
-        if pos[] >= bytes.count do break
+        if pos[] >= bytes.count
+        {
+            break
+        }
         let ch = bytes[pos[]]
-        if ch != ' ' and ch != '\r' and ch != '\n' and ch != '\t' do break
+        if ch != ' ' and ch != '\r' and ch != '\n' and ch != '\t'
+        {
+            break
+        }
         pos[] += 1
     }
 }
@@ -201,9 +213,18 @@ func skipToNewline(bytes: const [..] u8, pos: *u32)
 {
     for
     {
-        if pos[] >= bytes.count do break
-        if bytes[pos[]] == '\n' do break
-        if bytes[pos[]] == '\r' do break
+        if pos[] >= bytes.count
+        {
+            break
+        }
+        if bytes[pos[]] == '\n'
+        {
+            break
+        }
+        if bytes[pos[]] == '\r'
+        {
+            break
+        }
         pos[] += 1
     }
 }
@@ -216,10 +237,16 @@ func parseInitialWires(c: *Circuit, text: string)
     for
     {
         skipWhitespace(bytes, &pos)
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
 
         // Format: "x00: 1"
-        if pos + 5 >= bytes.count do break
+        if pos + 5 >= bytes.count
+        {
+            break
+        }
 
         let c0 = bytes[pos]
         let c1 = bytes[pos + 1]
@@ -244,11 +271,17 @@ func parseGates(c: *Circuit, text: string)
     for
     {
         skipWhitespace(bytes, &pos)
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
 
         // Format: "aaa OP bbb -> ccc"
         // Read first wire name (3 chars)
-        if pos + 2 >= bytes.count do break
+        if pos + 2 >= bytes.count
+        {
+            break
+        }
         let a0 = bytes[pos]; let a1 = bytes[pos + 1]; let a2 = bytes[pos + 2]
         pos += 4     // skip name + space
 
@@ -262,16 +295,16 @@ func parseGates(c: *Circuit, text: string)
             op  = GateOp.OpAnd
             pos += 4
         }
-        elif pos + 1 < bytes.count and bytes[pos] == 'O' and bytes[pos + 1] == 'R'
+        else if pos + 1 < bytes.count and bytes[pos] == 'O' and bytes[pos + 1] == 'R'
         {
             op = GateOp.OpOr
             // Check if next char is space (OR) vs other
             pos += 3
         }
-        elif pos + 2 < bytes.count and
-             bytes[pos] == 'X' and
-             bytes[pos + 1] == 'O' and
-             bytes[pos + 2] == 'R'
+        else if pos + 2 < bytes.count and
+        bytes[pos] == 'X' and
+        bytes[pos + 1] == 'O' and
+        bytes[pos + 2] == 'R'
         {
             op  = GateOp.OpXor
             pos += 4
@@ -282,7 +315,10 @@ func parseGates(c: *Circuit, text: string)
         }
 
         // Read second wire name
-        if pos + 2 >= bytes.count do break
+        if pos + 2 >= bytes.count
+        {
+            break
+        }
         let b0 = bytes[pos]; let b1 = bytes[pos + 1]; let b2 = bytes[pos + 2]
         pos += 4     // skip name + space
 
@@ -297,7 +333,10 @@ func parseGates(c: *Circuit, text: string)
         }
 
         // Read output wire name
-        if pos + 2 >= bytes.count do break
+        if pos + 2 >= bytes.count
+        {
+            break
+        }
         let o0 = bytes[pos]; let o1 = bytes[pos + 1]; let o2 = bytes[pos + 2]
         pos += 3
 
@@ -317,7 +356,10 @@ func parseGates(c: *Circuit, text: string)
         if o0 == 'z'
         {
             let bitNum = cast(u32, (o1 - '0')) * 10 + cast(u32, (o2 - '0'))
-            if bitNum > c.maxZBit do c.maxZBit = bitNum
+            if bitNum > c.maxZBit
+            {
+                c.maxZBit = bitNum
+            }
         }
 
         skipToNewline(bytes, &pos)
@@ -332,9 +374,18 @@ func parseGates(c: *Circuit, text: string)
 #[Swag.Inline]
 func evalGate(op: GateOp, a: u8, b: u8)->u8
 {
-    if op == GateOp.OpAnd do return a & b
-    if op == GateOp.OpOr do return a | b
-    if op == GateOp.OpXor do return a ^ b
+    if op == GateOp.OpAnd
+    {
+        return a & b
+    }
+    if op == GateOp.OpOr
+    {
+        return a | b
+    }
+    if op == GateOp.OpXor
+    {
+        return a ^ b
+    }
     return 0
 }
 
@@ -344,13 +395,22 @@ func simulate(c: *Circuit)
     var changed = true
     for
     {
-        if not changed do break
+        if not changed
+        {
+            break
+        }
         changed = false
         for gi in c.gateCount
         {
             let g = &c.gates[gi]
-            if c.isSet(g.out) do continue
-            if not c.isSet(g.inA) or not c.isSet(g.inB) do continue
+            if c.isSet(g.out)
+            {
+                continue
+            }
+            if not c.isSet(g.inA) or not c.isSet(g.inB)
+            {
+                continue
+            }
 
             let va     = c.getWire(g.inA)
             let vb     = c.getWire(g.inB)
@@ -374,7 +434,7 @@ func readZValue(c: *Circuit)->u64
             let val = c.getWire(idx)
             if val == 1
             {
-                result = result | (1'u64 << cast(u64, bit))
+                result = result | (1_u64 << cast(u64, bit))
             }
         }
     }
@@ -514,15 +574,24 @@ func formatSwapped(result: *SwappedResult, buf: [*] u8, bufLen: u32)->u32
     // Bubble sort by name
     for i in result.count
     {
-        if i + 1 >= result.count do continue
+        if i + 1 >= result.count
+        {
+            continue
+        }
         for j in i + 1 until result.count
         {
             var swap = false
-            if result.names[j][0] < result.names[i][0] do swap = true
-            elif result.names[j][0] == result.names[i][0]
+            if result.names[j][0] < result.names[i][0]
             {
-                if result.names[j][1] < result.names[i][1] do swap = true
-                elif result.names[j][1] == result.names[i][1] and result.names[j][2] < result.names[i][2]
+                swap = true
+            }
+            else if result.names[j][0] == result.names[i][0]
+            {
+                if result.names[j][1] < result.names[i][1]
+                {
+                    swap = true
+                }
+                else if result.names[j][1] == result.names[i][1] and result.names[j][2] < result.names[i][2]
                 {
                     swap = true
                 }
@@ -531,7 +600,7 @@ func formatSwapped(result: *SwappedResult, buf: [*] u8, bufLen: u32)->u32
             if swap
             {
                 // Swap entries
-                for k in 3'u32
+                for k in 3_u32
                 {
                     let tmp = result.names[i][k]
                     result.names[i][k] = result.names[j][k]
@@ -549,7 +618,7 @@ func formatSwapped(result: *SwappedResult, buf: [*] u8, bufLen: u32)->u32
             buf[pos] = ','
             pos      += 1
         }
-        for k in 3'u32
+        for k in 3_u32
         {
             if pos < bufLen
             {
@@ -601,10 +670,10 @@ func solve(wiresText: string, gatesText: string)->SolveResult
 // charVal inline
 #test
 {
-    Swag.require(charVal('0') == 0'u32)
-    Swag.require(charVal('9') == 9'u32)
-    Swag.require(charVal('a') == 10'u32)
-    Swag.require(charVal('z') == 35'u32)
+    Swag.require(charVal('0') == 0_u32)
+    Swag.require(charVal('9') == 9_u32)
+    Swag.require(charVal('a') == 10_u32)
+    Swag.require(charVal('z') == 35_u32)
 }
 
 // encodeWire inline
@@ -685,7 +754,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
 
     parseGates(&c, SampleSmallGates)
 
-    Swag.require(c.gateCount == 3'u32)
+    Swag.require(c.gateCount == 3_u32)
     Swag.require(c.gates[0].op == GateOp.OpAnd)
     Swag.require(c.gates[1].op == GateOp.OpXor)
     Swag.require(c.gates[2].op == GateOp.OpOr)
@@ -700,7 +769,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     // z01 = x01 XOR y01 = 1^1 = 0
     // z02 = x02 OR y02 = 1|0 = 1
     // binary: z02 z01 z00 = 100 = 4
-    Swag.require(result == 4'u64)
+    Swag.require(result == 4_u64)
 }
 
 // Large example: gate parsing check
@@ -710,8 +779,8 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     defer circuitFree(&c)
     parseGates(&c, SampleLargeGates)
     // SampleLargeGates has 36 gates
-    Swag.require(c.gateCount == 36'u32)
-    Swag.require(c.maxZBit == 11'u32)
+    Swag.require(c.gateCount == 36_u32)
+    Swag.require(c.maxZBit == 11_u32)
 }
 
 // Large example: part 1
@@ -730,7 +799,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     Swag.require(c.getWire(encodeWire('z', '0', '2')) == 1)
 
     let val = readZValue(&c)
-    Swag.require(val == 1956'u64)
+    Swag.require(val == 1956_u64)
 }
 
 // with &ptr block (exercises with-pointer codegen)
@@ -742,8 +811,8 @@ func solve(wiresText: string, gatesText: string)->SolveResult
         .part1    = 99
         .part2Len = 3
     }
-    Swag.require(sr.part1 == 99'u64)
-    Swag.require(sr.part2Len == 3'u32)
+    Swag.require(sr.part1 == 99_u64)
+    Swag.require(sr.part2Len == 3_u32)
 }
 
 // Circuit init/free (exercises dynamic memory)
@@ -773,7 +842,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     addSwapped(&result, 'z', '0', '1')
     addSwapped(&result, 'z', '0', '1')     // duplicate
     addSwapped(&result, 'z', '0', '2')
-    Swag.require(result.count == 2'u32)
+    Swag.require(result.count == 2_u32)
 }
 
 // formatSwapped sorting (exercises sorting + output formatting)
@@ -787,7 +856,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     var buf: [64] u8
     let len = formatSwapped(&result, &buf[0], 64)
     // Should be sorted: abc,z01,z05
-    Swag.require(len == 11'u32)
+    Swag.require(len == 11_u32)
     Swag.require(buf[0] == 'a')
     Swag.require(buf[1] == 'b')
     Swag.require(buf[2] == 'c')
@@ -815,7 +884,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     c.setWire(encodeWire('z', '0', '3'), 1)
 
     let val = readZValue(&c)
-    Swag.require(val == 13'u64)
+    Swag.require(val == 13_u64)
 }
 
 // Inline returning struct via #returntype
@@ -874,14 +943,14 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
 #test
 {
     let result = solve(SampleSmall, SampleSmallGates)
-    Swag.require(result.part1 == 4'u64)
+    Swag.require(result.part1 == 4_u64)
 }
 
 // Full solve with large example
 #test
 {
     let result = solve(SampleLarge, SampleLargeGates)
-    Swag.require(result.part1 == 1956'u64)
+    Swag.require(result.part1 == 1956_u64)
 }
 
 // Enum value equality after assignment (exercises enum codegen)
@@ -892,12 +961,21 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
     ops[1] = GateOp.OpOr
     ops[2] = GateOp.OpXor
 
-    for i in 3'u32
+    for i in 3_u32
     {
         var expected: GateOp
-        if i == 0 do expected = GateOp.OpAnd
-        elif i == 1 do expected = GateOp.OpOr
-        else do expected = GateOp.OpXor
+        if i == 0
+        {
+            expected = GateOp.OpAnd
+        }
+        else if i == 1
+        {
+            expected = GateOp.OpOr
+        }
+        else
+        {
+            expected = GateOp.OpXor
+        }
         Swag.require(ops[i] == expected)
     }
 }
@@ -925,9 +1003,9 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
     // XOR: 0,1,1,0
     expected[2][0] = 0; expected[2][1] = 1; expected[2][2] = 1; expected[2][3] = 0
 
-    for oi in 3'u32
+    for oi in 3_u32
     {
-        for ii in 4'u32
+        for ii in 4_u32
         {
             let result = evalGate(ops[oi], inputs[ii][0], inputs[ii][1])
             Swag.require(result == expected[oi][ii])
@@ -970,5 +1048,5 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
     simulate(&c)
     let val = readZValue(&c)
     // a AND b = 1, then 1 XOR 1 = 0, so z00 = 0
-    Swag.require(val == 0'u64)
+    Swag.require(val == 0_u64)
 }

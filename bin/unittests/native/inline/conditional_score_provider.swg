@@ -9,18 +9,24 @@ namespace InlineRegressionBug8
         if platformID == 3
         {
             score += 40
-            if encodingID == 10 do
+            if encodingID == 10
+            {
                 score += 20
-            elif encodingID == 1 do
+            }
+            else if encodingID == 1
+            {
                 score += 15
-            if languageID == 0x0409 do
+            }
+            if languageID == 0x0409
+            {
                 score += 10
+            }
         }
-        elif platformID == 0
+        else if platformID == 0
         {
             score += 30
         }
-        elif platformID == 1
+        else if platformID == 1
         {
             score += 10
         }

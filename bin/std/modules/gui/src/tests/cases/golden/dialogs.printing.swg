@@ -17,8 +17,10 @@ using Core, Pixel, Gui.Print
     var captured = false
     host.app.sigFrame += func|host = &host, &captured|(app)
     {
-        if captured or app.modalSurfaces.isEmpty() do
+        if captured or app.modalSurfaces.isEmpty()
+        {
             return
+        }
 
         let surface = app.modalSurfaces.back()
         if surface.view() is Dialog as dlg
@@ -65,8 +67,10 @@ using Core, Pixel, Gui.Print
     var returned = false
     host.app.sigFrame += func|host = &host, &confirmedSettings, &captured, &returned|(app)
     {
-        if returned or app.modalSurfaces.isEmpty() do
+        if returned or app.modalSurfaces.isEmpty()
+        {
             return
+        }
 
         let surface = app.modalSurfaces.back()
         if surface.view() is Dialog as dlg
@@ -76,7 +80,7 @@ using Core, Pixel, Gui.Print
                 confirmedSettings = true
                 Swag.require(host.clickModalButton(PrintDlg.PreviewButton))
             }
-            elif not captured and dlg.title.text == strings().print_Preview
+            else if not captured and dlg.title.text == strings().print_Preview
             {
                 captured = true
                 var image = host.renderSurface(surface)
@@ -96,7 +100,7 @@ using Core, Pixel, Gui.Print
                 range.setText("2")
                 host.clickWnd(unwrap dlg.leadingControl)
             }
-            elif captured and dlg.title.text == strings().print_Title
+            else if captured and dlg.title.text == strings().print_Title
             {
                 returned = true
                 let range = unwrap host.findEditByLabel(dlg, strings().print_Range)
@@ -110,9 +114,12 @@ using Core, Pixel, Gui.Print
     document.kind = .Text
     document.name = "Observation log"
     document.text = "OBSERVATION LOG\n\n"
-    for i in 62 do
+    for i in 62
+    {
         document.text.appendFormat("Entry %{D02}    Sample collected and recorded.\n", i + 1)
-    let printers: Array'Printer
+    }
+
+    let printers: Array!{Printer}
     PrintDlg.showDocument(&host.surface, &document, "", printers.toSlice())
     Swag.require(confirmedSettings and captured and returned)
 }

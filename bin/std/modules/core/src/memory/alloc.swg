@@ -3,7 +3,7 @@
 
 using Swag
 
-private const AllocationPanicHintMaxBytes = 512'u64
+private const AllocationPanicHintMaxBytes = 512_u64
 
 private struct AllocationPanicBufferAllocator {}
 
@@ -49,8 +49,11 @@ internal func appendAllocationFailure(message: *ConcatBuffer,
         let shownHintLength = Swag.min(hintLength, AllocationPanicHintMaxBytes)
         message.addBytes(" [")
         message.addBytes(Swag.makeString(request.hint.buffer, shownHintLength))
-        if shownHintLength != hintLength do
+        if shownHintLength != hintLength
+        {
             message.addBytes("...")
+        }
+
         message.addBytes("]")
     }
 }
@@ -72,8 +75,10 @@ private func panicAllocationFailure(operation: string, request: *AllocatorReques
 // A null `allocator` selects the context allocator. A null `buffer` performs no check.
 func assertIsAllocated(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if not buffer do
+    if not buffer
+    {
         return
+    }
 
     with var req: AllocatorRequest
     {
@@ -92,8 +97,10 @@ func assertIsAllocated(buffer: [*] void?, size: u64, allocator: IAllocator? = nu
 #[Swag.Inline]
 func free(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if not buffer do
+    if not buffer
+    {
         return
+    }
 
     with var req: AllocatorRequest
     {
@@ -143,8 +150,10 @@ func realloc(buffer: [*] void?,
         .alignment = alignment
     }
 
-    if not newSize do
+    if not newSize
+    {
         panicAllocationFailure("Memory.realloc", &req, true)
+    }
 
     (allocator orelse Swag.getContext().allocator)!.realloc(&req)
 
@@ -177,8 +186,10 @@ func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
             if runtime
             {
                 let address = runtime.allocateFast(size, alignment)
-                if address != 0 do
+                if address != 0
+                {
                     return cast([*] void, address)
+                }
             }
         }
     }
@@ -191,13 +202,18 @@ func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
         .alignment = alignment
     }
 
-    if not size do
+    if not size
+    {
         panicAllocationFailure("Memory.alloc", &req, false)
+    }
 
     (selected orelse Swag.getContext().allocator)!.alloc(&req)
 
-    if not req.address do
+    if not req.address
+    {
         panicAllocationFailure("Memory.alloc", &req, false)
+    }
+
     return unwrap req.address
 }
 
@@ -215,11 +231,16 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: string? = null, loc = #calle
         .alignment = alignment
     }
 
-    if not size do
+    if not size
+    {
         panicAllocationFailure("Memory.tempAlloc", &req, false)
+    }
 
     Swag.getContext().tempAllocator.IAllocator.alloc(&req)
-    if not req.address do
+    if not req.address
+    {
         panicAllocationFailure("Memory.tempAlloc", &req, false)
+    }
+
     return unwrap req.address
 }

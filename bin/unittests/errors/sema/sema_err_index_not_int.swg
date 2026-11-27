@@ -60,7 +60,7 @@ enum VariadicKind: u16
         return p0[] + p1[] + p2[] + p3[]
     }
 
-    const V0 = #run variadicAny(1's32, 2's32, 3's32, 4's32)
+    const V0 = #run variadicAny(1_s32, 2_s32, 3_s32, 4_s32)
     #assert(V0 == 10)
 }
 
@@ -75,9 +75,9 @@ enum VariadicKind: u16
         return p0[] + p1[] + p2[] + p3[]
     }
 
-    const V0 = #run variadicAny(10's64, 20's64, 30's64, 40's64)
+    const V0 = #run variadicAny(10_s64, 20_s64, 30_s64, 40_s64)
     #assert(#typeof(V0) == s64)
-    #assert(V0 == 100's64)
+    #assert(V0 == 100_s64)
 }
 
 #test
@@ -89,9 +89,9 @@ enum VariadicKind: u16
         return a + p0[] + p1[]
     }
 
-    const V0 = #run variadicAnyWithHead(100's64, 7's64, 8's64)
+    const V0 = #run variadicAnyWithHead(100_s64, 7_s64, 8_s64)
     #assert(#typeof(V0) == s64)
-    #assert(V0 == 115's64)
+    #assert(V0 == 115_s64)
 }
 
 #test
@@ -105,9 +105,9 @@ enum VariadicKind: u16
         return p0[] + p1[] + p2[] + p3[]
     }
 
-    const V0 = #run variadicAny(1'u32, 2'u32, 3'u32, 4'u32)
+    const V0 = #run variadicAny(1_u32, 2_u32, 3_u32, 4_u32)
     #assert(#typeof(V0) == u32)
-    #assert(V0 == 10'u32)
+    #assert(V0 == 10_u32)
 }
 
 #test
@@ -119,9 +119,9 @@ enum VariadicKind: u16
         return a + p0[] + p1[]
     }
 
-    const V0 = #run variadicAnyWithHead(50'u32, 60'u32, 70'u32)
+    const V0 = #run variadicAnyWithHead(50_u32, 60_u32, 70_u32)
     #assert(#typeof(V0) == u32)
-    #assert(V0 == 180'u32)
+    #assert(V0 == 180_u32)
 }
 
 #test
@@ -134,9 +134,9 @@ enum VariadicKind: u16
         return p0[] + p1[] + p2[]
     }
 
-    const V0 = #run variadicAny(1.5'f32, 2.0'f32, 3.25'f32)
+    const V0 = #run variadicAny(1.5_f32, 2.0_f32, 3.25_f32)
     #assert(#typeof(V0) == f32)
-    #assert(V0 == 6.75'f32)
+    #assert(V0 == 6.75_f32)
 }
 
 #test
@@ -148,9 +148,9 @@ enum VariadicKind: u16
         return a + p0[] + p1[]
     }
 
-    const V0 = #run variadicAnyWithHead(4.0'f32, 0.25'f32, 1.75'f32)
+    const V0 = #run variadicAnyWithHead(4.0_f32, 0.25_f32, 1.75_f32)
     #assert(#typeof(V0) == f32)
-    #assert(V0 == 6.0'f32)
+    #assert(V0 == 6.0_f32)
 }
 
 #test
@@ -164,9 +164,9 @@ enum VariadicKind: u16
         return p0[] + p1[] + p2[] + p3[]
     }
 
-    const V0 = #run variadicAny(1.0'f64, 2.0'f64, 3.0'f64, 4.0'f64)
+    const V0 = #run variadicAny(1.0_f64, 2.0_f64, 3.0_f64, 4.0_f64)
     #assert(#typeof(V0) == f64)
-    #assert(V0 == 10.0'f64)
+    #assert(V0 == 10.0_f64)
 }
 
 #test
@@ -178,9 +178,9 @@ enum VariadicKind: u16
         return a + p0[] + p1[]
     }
 
-    const V0 = #run variadicAnyWithHead(10.0'f64, 0.5'f64, 1.25'f64)
+    const V0 = #run variadicAnyWithHead(10.0_f64, 0.5_f64, 1.25_f64)
     #assert(#typeof(V0) == f64)
-    #assert(V0 == 11.75'f64)
+    #assert(V0 == 11.75_f64)
 }
 
 #test
@@ -265,7 +265,7 @@ enum VariadicKind: u16
 
     const V0 = #run variadicAny("ab", "cd", "ef")
     #assert(#typeof(V0) == u8)
-    #assert(V0 == 41'u8)
+    #assert(V0 == 41_u8)
 }
 
 #test
@@ -279,7 +279,7 @@ enum VariadicKind: u16
 
     const V0 = #run variadicAnyWithHead("Az", "By", "Cx")
     #assert(#typeof(V0) == u8)
-    #assert(V0 == 198'u8)
+    #assert(V0 == 198_u8)
 }
 
 #test
@@ -289,10 +289,10 @@ enum VariadicKind: u16
         let p0 = cast(*s32, values[0].buffer)
         let p1 = cast(*bool, values[1].buffer)
         let p2 = cast(*f64, values[2].buffer)
-        return p0[] == 1 and p1[] and p2[] == 12.5'f64 and assume cast(string, values[3]) == "ab"
+        return p0[] == 1 and p1[] and p2[] == 12.5_f64 and assume cast(string, values[3]) == "ab"
     }
 
-    const V0 = #run variadicAny(1's32, true, 12.5'f64, "ab")
+    const V0 = #run variadicAny(1_s32, true, 12.5_f64, "ab")
     #assert(V0)
 }
 
@@ -358,7 +358,7 @@ enum VariadicKind: u16
 
     const V0 = #run variadicAny(VariadicKind.A, VariadicKind.B)
     #assert(#typeof(V0) == u16)
-    #assert(V0 == 40'u16)
+    #assert(V0 == 40_u16)
 }
 
 #test
@@ -371,7 +371,7 @@ enum VariadicKind: u16
                Swag.kindOf(values[3]) == string
     }
 
-    const V0 = #run variadicAny(7's32, 8.5'f64, true, "ok")
+    const V0 = #run variadicAny(7_s32, 8.5_f64, true, "ok")
     #assert(V0)
 }
 
@@ -384,7 +384,7 @@ enum VariadicKind: u16
                Swag.kindOf(values[2]) == f32
     }
 
-    const V0 = #run variadicAny(cast(rune, 'A'), 12'u64, 3.25'f32)
+    const V0 = #run variadicAny(cast(rune, 'A'), 12_u64, 3.25_f32)
     #assert(V0)
 }
 
@@ -433,7 +433,7 @@ enum VariadicKind: u16
 
     const V0 = #run variadicAny(VariadicKind.A, VariadicKind.B)
     #assert(#typeof(V0) == u16)
-    #assert(V0 == 40'u16)
+    #assert(V0 == 40_u16)
 }
 
 #test
@@ -449,12 +449,12 @@ enum VariadicKind: u16
         return cast(u64, v0.arr[1]) + cast(u64, v0.flag) + cast(u64, v0.tag) + a1[0] + a1[1] + cast(u64, s0[0]) + cast(u64, (ptr != null))
     }
 
-    const payload: VariadicPayload = {arr: [9, 8, 7], flag: true, tag: 5'u8}
-    const values:  [2] u64         = [10'u64, 20'u64]
-    const ptr:     *void           = cast(*void, 0x11'u64)
+    const payload: VariadicPayload = {arr: [9, 8, 7], flag: true, tag: 5_u8}
+    const values:  [2] u64         = [10_u64, 20_u64]
+    const ptr:     *void           = cast(*void, 0x11_u64)
     const V0 = #run variadicAny(payload, values, "Az", ptr)
     #assert(#typeof(V0) == u64)
-    #assert(V0 == 110'u64)
+    #assert(V0 == 110_u64)
 }
 
 #test
@@ -468,7 +468,7 @@ enum VariadicKind: u16
 
     const V0 = #run variadicAny(VariadicKind.A, VariadicKind.B)
     #assert(#typeof(V0) == u16)
-    #assert(V0 == 40'u16)
+    #assert(V0 == 40_u16)
 }
 
 #test
@@ -477,10 +477,10 @@ enum VariadicKind: u16
     {
         let p0 = assume cast(*void, values[0])
         let p1 = assume cast(*void?, values[1])
-        return p0 == cast(*void, 0x1234'u64) and p1 == null
+        return p0 == cast(*void, 0x1234_u64) and p1 == null
     }
 
-    const V0 = #run variadicAny(cast(*void, 0x1234'u64), null)
+    const V0 = #run variadicAny(cast(*void, 0x1234_u64), null)
     #assert(V0)
 }
 
@@ -488,16 +488,26 @@ enum VariadicKind: u16
 {
     func variadicAnyStressAKinds(values: ...)->bool
     {
-        if values.count != 4 do
+        if values.count != 4
+        {
             return false
-        if Swag.kindOf(values[0]) != VariadicPair do
+        }
+        if Swag.kindOf(values[0]) != VariadicPair
+        {
             return false
-        if Swag.kindOf(values[1]) != VariadicPayload do
+        }
+        if Swag.kindOf(values[1]) != VariadicPayload
+        {
             return false
-        if Swag.kindOf(values[2]) != VariadicKind do
+        }
+        if Swag.kindOf(values[2]) != VariadicKind
+        {
             return false
-        if Swag.kindOf(values[3]) != string do
+        }
+        if Swag.kindOf(values[3]) != string
+        {
             return false
+        }
 
         return true
     }
@@ -515,7 +525,7 @@ enum VariadicKind: u16
                payload.arr[1] == 8 and
                payload.arr[2] == 13 and
                payload.flag and
-               payload.tag == 21'u8
+               payload.tag == 21_u8
     }
 
     func variadicAnyStressAKind(values: ...)->bool
@@ -531,7 +541,7 @@ enum VariadicKind: u16
     }
 
     const pair:    VariadicPair    = {a: 2, b: 3}
-    const payload: VariadicPayload = {arr: [5, 8, 13], flag: true, tag: 21'u8}
+    const payload: VariadicPayload = {arr: [5, 8, 13], flag: true, tag: 21_u8}
     const V0                       = #run variadicAnyStressAKinds(pair, payload, VariadicKind.B, "untyped-variadic-stress")
     const V1                       = #run variadicAnyStressAPair(pair, payload, VariadicKind.B, "untyped-variadic-stress")
     const V2                       = #run variadicAnyStressAPayload(pair, payload, VariadicKind.B, "untyped-variadic-stress")
@@ -548,29 +558,39 @@ enum VariadicKind: u16
 {
     func variadicAnyStressB(values: ...)->bool
     {
-        if values.count != 4 do
+        if values.count != 4
+        {
             return false
-        if Swag.kindOf(values[0]) != *void do
+        }
+        if Swag.kindOf(values[0]) != *void
+        {
             return false
-        if Swag.kindOf(values[1]) != bool do
+        }
+        if Swag.kindOf(values[1]) != bool
+        {
             return false
-        if Swag.kindOf(values[2]) != rune do
+        }
+        if Swag.kindOf(values[2]) != rune
+        {
             return false
-        if Swag.kindOf(values[3]) != s64 do
+        }
+        if Swag.kindOf(values[3]) != s64
+        {
             return false
+        }
 
         let ptr = assume cast(*void, values[0])
         let b   = assume cast(bool, values[1])
         let r   = assume cast(rune, values[2])
         let i64 = assume cast(s64, values[3])
 
-        return ptr == cast(*void, 0x4040'u64) and
+        return ptr == cast(*void, 0x4040_u64) and
                b and
                r == 'K' and
-               i64 == -123456789's64
+               i64 == -123456789_s64
     }
 
-    const V0 = #run variadicAnyStressB(cast(*void, 0x4040'u64), true, cast(rune, 'K'), -123456789's64)
+    const V0 = #run variadicAnyStressB(cast(*void, 0x4040_u64), true, cast(rune, 'K'), -123456789_s64)
     #assert(V0)
 }
 
@@ -578,25 +598,33 @@ enum VariadicKind: u16
 {
     func variadicAnyStressC(values: ...)->bool
     {
-        if values.count != 3 do
+        if values.count != 3
+        {
             return false
-        if Swag.kindOf(values[0]) != u64 do
+        }
+        if Swag.kindOf(values[0]) != u64
+        {
             return false
-        if Swag.kindOf(values[1]) != s32 do
+        }
+        if Swag.kindOf(values[1]) != s32
+        {
             return false
-        if Swag.kindOf(values[2]) != f64 do
+        }
+        if Swag.kindOf(values[2]) != f64
+        {
             return false
+        }
 
         let u64v = assume cast(u64, values[0])
         let i32  = assume cast(s32, values[1])
         let f64v = assume cast(f64, values[2])
 
-        return u64v == 987654321'u64 and
+        return u64v == 987654321_u64 and
                i32 == -77 and
-               f64v == 2.5'f64
+               f64v == 2.5_f64
     }
 
-    const V0 = #run variadicAnyStressC(987654321'u64, -77's32, 2.5'f64)
+    const V0 = #run variadicAnyStressC(987654321_u64, -77_s32, 2.5_f64)
     #assert(V0)
 }
 
@@ -615,21 +643,25 @@ enum VariadicKind: u16
             return variadicAnySinkU64(assume cast(u64, v))
         }
 
-        return 0'u64
+        return 0_u64
     }
 
-    const V0 = #run variadicAnyPassToTyped(1'u64)
-    #assert(V0 == 1'u64)
+    const V0 = #run variadicAnyPassToTyped(1_u64)
+    #assert(V0 == 1_u64)
 }
 
 #test
 {
     func variadicAnyStressD(values: ...)->bool
     {
-        if values.count != 1 do
+        if values.count != 1
+        {
             return false
-        if Swag.kindOf(values[0]) != [4] s32 do
+        }
+        if Swag.kindOf(values[0]) != [4] s32
+        {
             return false
+        }
         let arr = assume cast([4] s32, values[0])
         return arr[0] == -1 and arr[1] == 0 and arr[2] == 1 and arr[3] == 2
     }
@@ -662,19 +694,19 @@ enum VariadicKind: u16
 
         Swag.assert(p.a == 33 and p.b == 44)
         Swag.assert(payload.arr[0] == 1 and payload.arr[1] == 2 and payload.arr[2] == 3)
-        Swag.assert(not payload.flag and payload.tag == 9'u8)
+        Swag.assert(not payload.flag and payload.tag == 9_u8)
         Swag.assert(kind == VariadicKind.A)
         Swag.assert(text == "head-check")
         Swag.assert(not b)
-        Swag.assert(f == 1.25'f32)
-        Swag.assert(ptr == cast(*void, 0x99'u64))
+        Swag.assert(f == 1.25_f32)
+        Swag.assert(ptr == cast(*void, 0x99_u64))
         return true
     }
 
     const head:    VariadicPair    = {a: 11, b: 22}
     const tail:    VariadicPair    = {a: 33, b: 44}
-    const payload: VariadicPayload = {arr: [1, 2, 3], flag: false, tag: 9'u8}
-    const V0 = #run variadicAnyStressWithHead(head, tail, payload, VariadicKind.A, "head-check", false, 1.25'f32, cast(*void, 0x99'u64))
+    const payload: VariadicPayload = {arr: [1, 2, 3], flag: false, tag: 9_u8}
+    const V0 = #run variadicAnyStressWithHead(head, tail, payload, VariadicKind.A, "head-check", false, 1.25_f32, cast(*void, 0x99_u64))
     #assert(V0)
 }
 
@@ -716,7 +748,7 @@ enum VariadicKind: u16
         return acc
     }
 
-    const V0 = #run variadicAnyStressWeighted(1's32, 2's32, false, cast(rune, 'A'), 4's32, true)
+    const V0 = #run variadicAnyStressWeighted(1_s32, 2_s32, false, cast(rune, 'A'), 4_s32, true)
     #assert(V0 == 190)
 }
 
@@ -724,8 +756,10 @@ enum VariadicKind: u16
 {
     func variadicAnyStressKinds(values: ...)->bool
     {
-        if values.count != 8 do
+        if values.count != 8
+        {
             return false
+        }
 
         return Swag.kindOf(values[0]) == s32 and
                Swag.kindOf(values[1]) == s64 and
@@ -737,7 +771,7 @@ enum VariadicKind: u16
                Swag.kindOf(values[7]) == *void
     }
 
-    const V0 = #run variadicAnyStressKinds(1's32, 2's64, 3'u32, 4.5'f64, true, cast(rune, 'X'), "ok", cast(*void, 0x55'u64))
+    const V0 = #run variadicAnyStressKinds(1_s32, 2_s64, 3_u32, 4.5_f64, true, cast(rune, 'X'), "ok", cast(*void, 0x55_u64))
     #assert(V0)
 }
 
@@ -757,8 +791,8 @@ enum VariadicKind: u16
     }
 
     const pair:    VariadicPair    = {a: 2, b: 3}
-    const payload: VariadicPayload = {arr: [4, 5, 6], flag: true, tag: 7'u8}
+    const payload: VariadicPayload = {arr: [4, 5, 6], flag: true, tag: 7_u8}
     const arr:     [3] s32         = [8, 9, 10]
     const V0 = #run variadicAnyStressAggregates(pair, payload, arr)
-    #assert(V0 == 54'u64)
+    #assert(V0 == 54_u64)
 }

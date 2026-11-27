@@ -8,8 +8,11 @@ private const ToastDetailMark = "·"
 // Keeps a line whole when its nominal width fits; only overlong text is elided at draw scale.
 private func paintToastTextLine(painter: *Painter, x, centerY: f32, text: string, font: *Font, color: Color, maxWidth, deviceScale: f32)->f32
 {
-    if text.count == 0 do
+    if text.count == 0
+    {
         return 0
+    }
+
     let nominalWidth = Painter.measureString(text, font).width
     if nominalWidth <= maxWidth
     {
@@ -46,7 +49,7 @@ struct Toast
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigAction: SigArray'func||(*Toast)     // Emitted when the action at the end of the pill is clicked.
+        sigAction: SigArray!{func||(*Toast)}     // Emitted when the action at the end of the pill is clicked.
 
         readonly
         {
@@ -115,10 +118,14 @@ impl IWnd for Toast
             let action      = .action.toString()
             let color       = .hotAction ? colors.text : colors.link
             let actionWidth = Painter.measureString(action, bold).width
-            if actionWidth <= .actionRect.width do
+            if actionWidth <= .actionRect.width
+            {
                 painter.drawString(.actionRect.x, bold.opticalLineTop(centerY), action, bold, color)
-            else do
+            }
+            else
+            {
                 discard paintToastTextLine(painter, .actionRect.x, centerY, action, bold, color, .actionRect.width, scale)
+            }
         }
     }
 
@@ -140,10 +147,15 @@ impl IWnd for Toast
             if hot != .hotAction
             {
                 .hotAction = hot
-                if hot do
+                if hot
+                {
                     .cursor = Cursor.from(CursorShape.Hand)
-                else do
+                }
+                else
+                {
                     .cursor.clear()
+                }
+
                 .invalidate()
             }
 
@@ -169,8 +181,10 @@ impl IWnd for Toast
     // A floating child is placed after its docked siblings, so the pill follows its parent's size.
     mtd impl onLayout()
     {
-        if .isLocallyVisible() do
+        if .isLocallyVisible()
+        {
             .place()
+        }
     }
 
     mtd impl onTimerEvent(_: *TimerEvent)
@@ -189,8 +203,11 @@ private impl Toast
 {
     mtd cancelTimer()
     {
-        if not .timer do
+        if not .timer
+        {
             return
+        }
+
         .app().removeTimer(.timer)
         .timer = null
     }
@@ -198,8 +215,11 @@ private impl Toast
     mtd startTimer()
     {
         .cancelTimer()
-        if not .isLocallyVisible() do
+        if not .isLocallyVisible()
+        {
             return
+        }
+
         let metrics = .themeMetrics()
         .timer = .addTimer(Time.Duration.fromSeconds(.action.length ? metrics.toast_ActionSeconds : metrics.toast_Seconds))
     }
@@ -213,15 +233,20 @@ private impl Toast
         let mono    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
 
         var width = 2 * metrics.toast_Padding
-        if .tone != .None do
+        if .tone != .None
+        {
             width += metrics.toast_DotSize + metrics.toast_Gap
+        }
+
         width += Painter.measureString(.message.toString(), font).width
-        if .detail.length do
+        if .detail.length
+        {
             width += 2 * metrics.toast_DetailGap + Painter.measureString(ToastDetailMark, font).width + Painter.measureString(.detail.toString(), mono).width
+        }
 
         .actionRect = {}
-        var actionNominalWidth = 0'f32
-        var naturalActionX     = 0'f32
+        var actionNominalWidth = 0_f32
+        var naturalActionX     = 0_f32
         if .action.length
         {
             let bold = .theme().createDefaultFont(metrics.defaultFontSize, .Bold)
@@ -238,16 +263,22 @@ private impl Toast
             let room    = Math.max(width - 2 * metrics.toast_Padding, 0)
             let clipped = Math.min(actionNominalWidth, Math.max(room - metrics.toast_ActionGap, 0))
             var actionX = width - metrics.toast_Padding - clipped
-            if width >= naturalWidth and clipped == actionNominalWidth do
+            if width >= naturalWidth and clipped == actionNominalWidth
+            {
                 actionX = naturalActionX
+            }
+
             actionX     = Math.max(actionX, 0)
             .actionRect = Math.Rectangle{actionX, 0, Math.min(clipped, width - actionX), metrics.toast_Height}
         }
 
         let x = Math.round(bounds.horzCenter() - width * 0.5)
         var y = bounds.bottom() - metrics.toast_Bottom - metrics.toast_Height
-        if .barTop > 0 do
+        if .barTop > 0
+        {
             y = Math.min(y, .barTop - metrics.floating_Inset - metrics.toast_Height)
+        }
+
         .setPosition(Math.Rectangle{x, y, width, metrics.toast_Height})
     }
 }
@@ -258,7 +289,7 @@ impl Toast
     #[Swag.Discardable]
     func create(parent: *Wnd, id: WndId? = null)->*Toast
     {
-        with let result = Wnd.create'Toast(parent, null, {}, id)
+        with let result = Wnd.create!{Toast}(parent, null, {}, id)
         {
             .backgroundStyle = .Transparent
             .dockStyle       = .Float
@@ -285,11 +316,16 @@ impl Toast
         .bringToFront()
 
         let travel = .themeMetrics().motion_EdgeTravel
-        if not .isLocallyVisible() do
+        if not .isLocallyVisible()
+        {
             discard .app().animator.arrive(me, {0, travel})
+        }
+
         .invalidate()
-        if not .hovered do
+        if not .hovered
+        {
             .startTimer()
+        }
     }
 
     // Keeps the pill above a bar that floats at the foot of its parent.
@@ -298,11 +334,16 @@ impl Toast
     // hint line again.
     mtd keepAbove(top: f32)
     {
-        if .barTop == top do
+        if .barTop == top
+        {
             return
+        }
+
         .barTop = top
-        if .isLocallyVisible() do
+        if .isLocallyVisible()
+        {
             .place()
+        }
     }
 
     // Takes the toast away now, with the floating departure.

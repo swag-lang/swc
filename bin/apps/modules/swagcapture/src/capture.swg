@@ -15,7 +15,7 @@ const TextFormSuperSample = 3
 // resolution; large ones cap the mask size while the content remains sharp.
 const MaxFormShadowDim = 1536
 const FormShadowMargin = 8
-const FormShadowRadius = 8.0'f32
+const FormShadowRadius = 8.0_f32
 
 // Ceiling of one retained form rendering, in device texels per axis, supersampling
 // included; a form drawn larger falls back to the direct, view-clipped path so a
@@ -70,11 +70,11 @@ const CaptureMediaExtension = ".frames"
 const CaptureVideoExtension = ".mp4"
 
 // Profile written for a picture, which every earlier Swag Capture reads.
-const CapturePictureProfileVersion = 1'u32
+const CapturePictureProfileVersion = 1_u32
 
 // Newest profile this version reads and the one written for a timed capture, whose frames an
 // earlier version could not show.
-const CaptureProfileVersion = 2'u32
+const CaptureProfileVersion = 2_u32
 
 // Where the pixels of a capture came from. Stored with the capture so the library can
 // distinguish a screen grab from a picture opened for annotation or a blank canvas.
@@ -136,10 +136,16 @@ impl CaptureLibraryMetadata
 {
     private func isValidText(value: String)->bool
     {
-        if not Utf8.isValid(value.toSlice()) do
+        if not Utf8.isValid(value.toSlice())
+        {
             return false
-        for c in value where c < 32 do
+        }
+
+        for c in value where c < 32
+        {
             return false
+        }
+
         return true
     }
 
@@ -154,14 +160,25 @@ impl CaptureLibraryMetadata
             .linkedUpToDate = true
         }
 
-        if not isValidText(.sourceApplication) do
+        if not isValidText(.sourceApplication)
+        {
             .sourceApplication.clear()
-        if not .sourceExecutable.isEmpty() and (not isValidText(.sourceExecutable) or not Path.isValidPathName(.sourceExecutable)) do
+        }
+
+        if not .sourceExecutable.isEmpty() and (not isValidText(.sourceExecutable) or not Path.isValidPathName(.sourceExecutable))
+        {
             .sourceExecutable.clear()
-        if not isValidText(.sourceWindowTitle) do
+        }
+
+        if not isValidText(.sourceWindowTitle)
+        {
             .sourceWindowTitle.clear()
-        if not isValidText(.sourceWindowClass) do
+        }
+
+        if not isValidText(.sourceWindowClass)
+        {
             .sourceWindowClass.clear()
+        }
     }
 }
 
@@ -173,7 +190,7 @@ struct CaptureFileModel
     width, height:       s32
     widthOrg, heightOrg: s32
     backImagePos:        Math.Point
-    forms:               Array'IForm
+    forms:               Array!{IForm}
     nextStepIndex:       u32  = 1
     nextGroupId:         u64  = 1
     linkedImage:         String
@@ -185,7 +202,7 @@ struct CaptureFileModel
     sourceExecutable:    String
     sourceWindowTitle:   String
     sourceWindowClass:   String
-    tags:                Array'String
+    tags:                Array!{String}
     favorite:            bool
     rating:              u8
     media:               CaptureMedia
@@ -208,7 +225,7 @@ struct Capture
     backImagePos:  Math.Point
     preview:       Image
     file:          String
-    forms:         Array'IForm
+    forms:         Array!{IForm}
     nextStepIndex: u32 = 1
     nextGroupId:   u64 = 1
 
@@ -226,7 +243,7 @@ struct Capture
     sourceExecutable:  String
     sourceWindowTitle: String
     sourceWindowClass: String
-    tags:              Array'String
+    tags:              Array!{String}
     favorite:          bool
     rating:            u8
 
@@ -253,7 +270,7 @@ struct Capture
         previewOnly: bool
 
         // Encoded SCC thumbnail retained by the library until a visible cell needs pixels.
-        previewBytes: Array'u8
+        previewBytes: Array!{u8}
 
         changed:   bool
         mouseMode: MouseMode = .None
@@ -261,7 +278,7 @@ struct Capture
         gizmo:     GizmoRect
         undoMgr:   UndoManager
         hotForm:   u64       = Swag.U64.Max
-        selection: Array'u64
+        selection: Array!{u64}
         paintRect: Math.Rectangle
 
         backTexture:       Texture
@@ -273,7 +290,7 @@ struct Capture
 
         // Retained per-form renderings (see FormCache) and the per-repaint budget for
         // sharpening the ones a zoom left behind.
-        formCaches:       ArrayPtr'FormCache
+        formCaches:       ArrayPtr!{FormCache}
         cacheRefreshLeft: s32
         cacheNeedsRefine: bool
 
@@ -348,7 +365,7 @@ struct CaptureVideoRecoveryJob
 {
     task:      Swag.Task
     folder:    String
-    recovered: Array'String
+    recovered: Array!{String}
     error:     Swag.Error
 }
 
@@ -359,8 +376,8 @@ struct CaptureSaveJob
     task:       Swag.Task     // Runtime task; it borrows this value until the save is collected.
     file:       String        // Destination path, atomically replaced when the write lands.
     manifest:   Scc.Manifest
-    modelBytes: Array'u8     // Document model, already TagBin-encoded: forms are only safe to read on the interface thread.
-    backImg:    Image        // Owned pixel copies, because a later crop or flatten must not race the encoder.
+    modelBytes: Array!{u8}     // Document model, already TagBin-encoded: forms are only safe to read on the interface thread.
+    backImg:    Image          // Owned pixel copies, because a later crop or flatten must not race the encoder.
     backOrig:   Image
     backChunk:  Guid128     // Identifiers of the background chunks, chosen with the snapshot.
     origChunk:  Guid128
@@ -376,7 +393,7 @@ struct CaptureMetadataJob
     late owner:  *MainWnd
     file:        String
     title:       String
-    tags:        Array'String
+    tags:        Array!{String}
     favorite:    bool
     rating:      u8
     hasTitle:    bool
@@ -393,7 +410,7 @@ struct CaptureSaveQueue
 {
     pending:         *CaptureSaveJob?
     metadataPending: *CaptureMetadataJob?
-    metadataWaiting: Array'*CaptureMetadataJob
+    metadataWaiting: Array!{*CaptureMetadataJob}
 }
 
 var g_CaptureSaves: CaptureSaveQueue
@@ -403,17 +420,26 @@ impl CaptureSaveQueue
     // Returns whether the writer lane has unfinished work.
     mtd busy()->bool
     {
-        if .metadataPending or not .metadataWaiting.isEmpty() do
+        if .metadataPending or not .metadataWaiting.isEmpty()
+        {
             return true
+        }
+
         return .pending and not .pending.task.isDone()
     }
 
     mtd metadataTargets(file: string)->bool
     {
-        if .metadataPending and .metadataPending.file == file do
+        if .metadataPending and .metadataPending.file == file
+        {
             return true
-        for job in .metadataWaiting where job.file == file do
+        }
+
+        for job in .metadataWaiting where job.file == file
+        {
             return true
+        }
+
         return false
     }
 
@@ -427,8 +453,11 @@ impl CaptureSaveQueue
 
     private mtd startMetadata()
     {
-        if .pending or .metadataPending or .metadataWaiting.isEmpty() do
+        if .pending or .metadataPending or .metadataWaiting.isEmpty()
+        {
             return
+        }
+
         let job = .metadataWaiting[0]
         .metadataWaiting.removeAt(0)
         .metadataPending = job
@@ -439,15 +468,20 @@ impl CaptureSaveQueue
     mtd finishMetadata()
     {
         let job = .metadataPending
-        if not job or not job.task.isDone() do
+        if not job or not job.task.isDone()
+        {
             return
+        }
+
         .metadataPending = null
         if not job.error.isEmpty()
         {
             let message = job.hasTitle ? appStrings().msg_FailedRename : appStrings().msg_FailedSaveMetadata
             job.owner.reportFailure(message)
-            if job.owner.libWnd != null and job.owner.libWnd.view != null do
+            if job.owner.libWnd != null and job.owner.libWnd.view != null
+            {
                 catch job.owner.libWnd.view.fill()
+            }
         }
 
         Memory.delete(job)
@@ -466,15 +500,23 @@ impl CaptureSaveQueue
     // or when nothing finished. A save still running is left alone.
     mtd collect()->String
     {
-        if not .pending do
+        if not .pending
+        {
             return ""
+        }
+
         let job = .pending
-        if not job.task.isDone() do
+        if not job.task.isDone()
+        {
             return ""
+        }
 
         var result: #returntype
-        if job.failed do
+        if job.failed
+        {
             result = job.file
+        }
+
         .pending = null
         Memory.delete(job)
         .startMetadata()
@@ -495,8 +537,11 @@ impl CaptureSaveQueue
 
         while .metadataPending or not .metadataWaiting.isEmpty()
         {
-            if file != null and not .metadataTargets(file) do
+            if file != null and not .metadataTargets(file)
+            {
                 break
+            }
+
             .startMetadata()
             let job = unwrap .metadataPending
             job.task.wait()
@@ -513,16 +558,18 @@ impl CaptureSaveQueue
 // form without advancing `idx` — the exact contract needed to pair `idx` with arrays
 // built by a previous, identically-filtered pass — and `break` stops the visit.
 #[Swag.Macro]
-func(T) foreachSelected(capture: *Capture, selection: Array'u64, stmt: #code(form: *T, itf: IForm, idx: u64))
+func(T) foreachSelected(capture: *Capture, selection: Array!{u64}, stmt: #code(form: *T, itf: IForm, idx: u64))
 {
-    var visitIdx = 0'u64
+    var visitIdx = 0_u64
     for s in selection
     {
         let f = capture.forms[s]
         #static if T != BaseForm
         {
-            if Swag.kindOf(f) != T do
+            if Swag.kindOf(f) != T
+            {
                 continue
+            }
         }
 
         #inject(stmt, form = assume cast(*T, f), itf = f, idx = visitIdx)
@@ -564,7 +611,7 @@ struct CaptureClipboardForm
 #[Serialization.Schema("swag.capture.clipboard-forms")]
 struct CaptureClipboardForms
 {
-    forms: Array'CaptureClipboardForm
+    forms: Array!{CaptureClipboardForm}
 }
 
 impl CaptureClipboardForm
@@ -622,53 +669,43 @@ impl CaptureClipboardForm
 
         switch .kind
         {
-        case .Arrow:
-            let form = Memory.new'FormArrow()
+        case .Arrow: let form = Memory.new!{FormArrow}()
             form[] = .arrow
             result = form
 
-        case .Draw:
-            let form = Memory.new'FormDraw()
+        case .Draw: let form = Memory.new!{FormDraw}()
             form[] = .draw
             result = form
 
-        case .Image:
-            let form = Memory.new'FormImage()
+        case .Image: let form = Memory.new!{FormImage}()
             form[] = .image
             result = form
 
-        case .Line:
-            let form = Memory.new'FormLine()
+        case .Line: let form = Memory.new!{FormLine}()
             form[] = .line
             result = form
 
-        case .Polygon:
-            let form = Memory.new'FormPolygon()
+        case .Polygon: let form = Memory.new!{FormPolygon}()
             form[] = .polygon
             result = form
 
-        case .Shape:
-            let form = Memory.new'FormShape()
+        case .Shape: let form = Memory.new!{FormShape}()
             form[] = .shape
             result = form
 
-        case .Step:
-            let form = Memory.new'FormStep()
+        case .Step: let form = Memory.new!{FormStep}()
             form[] = .step
             result = form
 
-        case .Text:
-            let form = Memory.new'FormText()
+        case .Text: let form = Memory.new!{FormText}()
             form[] = .text
             result = form
 
-        case .Callout:
-            let form = Memory.new'FormCallout()
+        case .Callout: let form = Memory.new!{FormCallout}()
             form[] = .callout
             result = form
 
-        case .None:
-            return result
+        case .None: return result
         }
 
         result!.setup(capture)
@@ -682,18 +719,22 @@ impl CaptureClipboardForms
     {
         var item: CaptureClipboardForm
         item.add(itf)
-        if item.kind != .None do
+        if item.kind != .None
+        {
             .forms.add(#move item)
+        }
     }
 
-    mtd toForms(capture: *Capture)->Array'IForm
+    mtd toForms(capture: *Capture)->Array!{IForm}
     {
         var result: #returntype
         for &item in .forms
         {
             let form = item.toForm(capture)
-            if form do
+            if form
+            {
                 result.add(form)
+            }
         }
 
         return result
@@ -725,21 +766,29 @@ impl Capture
     // Returns whether this capture owns `tag`, without making tag spelling case-sensitive.
     mtd const hasTag(tag: String)->bool
     {
-        for own in .tags where Utf8.compare(own.toSlice(), tag, .Latin1NoCase) == 0 do
+        for own in .tags where Utf8.compare(own.toSlice(), tag, .Latin1NoCase) == 0
+        {
             return true
+        }
+
         return false
     }
 
-    func freeForms(forms: Array'IForm)
+    func freeForms(forms: Array!{IForm})
     {
-        for it in forms do
+        for it in forms
+        {
             Memory.delete(it.buffer, Swag.kindOf(it))
+        }
     }
 
     mtd opDrop()
     {
-        if .backTexture.isValid() do
+        if .backTexture.isValid()
+        {
             .editView!.app().renderer.removeTexture(&.backTexture)
+        }
+
         freeForms(.forms)
         .closeMedia()
     }
@@ -747,12 +796,21 @@ impl Capture
     // A recent capture keeps its decoded pixels, but no surface-owned GPU resources or view.
     mtd detachView()
     {
-        if .backTexture.isValid() do
+        if .backTexture.isValid()
+        {
             .editView!.app().renderer.removeTexture(&.backTexture)
-        while .formCaches.count do
+        }
+
+        while .formCaches.count
+        {
             .formCaches.deleteAt(.formCaches.count - 1)
-        for form in .forms where Swag.kindOf(form) == FormImage do
+        }
+
+        for form in .forms where Swag.kindOf(form) == FormImage
+        {
             (assume cast(*FormImage, form)).releaseTexture()
+        }
+
         .editView = null
     }
 

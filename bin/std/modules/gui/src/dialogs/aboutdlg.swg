@@ -95,10 +95,14 @@ public impl AboutDlg
         dlg.labelMessage.focusPolicy      = .Click
         dlg.labelMessage.sigLinkActivated += func|dlg|(_, text)
         {
-            if text == "Swag" do
+            if text == "Swag"
+            {
                 Env.openUrl("https://www.swag-lang.org/")
-            elif not dlg.sourceUrl.isEmpty() do
+            }
+            else if not dlg.sourceUrl.isEmpty()
+            {
                 Env.openUrl(dlg.sourceUrl.toString())
+            }
         }
 
         return dlg
@@ -110,7 +114,7 @@ public impl AboutDlg
     {
         Swag.assert(from != null)
         Swag.assert(width >= 0 and height >= 0, "dialog dimensions cannot be negative")
-        let dlg = Wnd.create'AboutDlg()
+        let dlg = Wnd.create!{AboutDlg}()
         let w   = width != 0 ? width : 500
         let h   = height != 0 ? height : 300
         let srf = dlg.createSurface(from, 0, 0, w, h)
@@ -137,10 +141,10 @@ public impl AboutDlg
 
         // The header: the tile, then the name and the mono line of identity beside it, on one
         // left edge. Nothing frames it: the tile is the one block of the box.
-        dlg.identityView = Wnd.create'Wnd(stackLayout, Math.Rectangle{0, 0, stackLayout.position.width, 0})
+        dlg.identityView = Wnd.create!{Wnd}(stackLayout, Math.Rectangle{0, 0, stackLayout.position.width, 0})
 
-        var headerHeight = 0'f32
-        var tileWidth    = 0'f32
+        var headerHeight = 0_f32
+        var tileWidth    = 0_f32
         if params.contentIcon.isValid()
         {
             with dlg.labelIcon = Label.create(dlg.identityView, "", Math.Rectangle{0, 0, params.contentIcon.sizeX + gap, 0})
@@ -154,7 +158,7 @@ public impl AboutDlg
             tileWidth    = dlg.labelIcon.position.width
         }
 
-        let names = Wnd.create'Wnd(dlg.identityView)
+        let names = Wnd.create!{Wnd}(dlg.identityView)
         names.dockStyle = .Center
 
         with dlg.labelMessageTitle = Label.create(names, params.contentTitle)
@@ -220,7 +224,7 @@ public impl AboutDlg
     //
     // A list of what an application supports has no natural length, and a box fitted to one is as
     // tall as the display it opens on. Past this the column keeps the box a box.
-    const MaxSectionsHeight = 320.0'f32
+    const MaxSectionsHeight = 320.0_f32
 
     private mtd sectionStack()->*StackLayoutCtrl
     {
@@ -230,14 +234,14 @@ public impl AboutDlg
             // Authored width, like the header above it: the column leaves the cross axis to each
             // of its children.
 
-            with let scroll = Wnd.create'ScrollWnd(.contentStack, "", Math.Rectangle{0, 0, .contentStack.position.width, 0})
+            with let scroll = Wnd.create!{ScrollWnd}(.contentStack, "", Math.Rectangle{0, 0, .contentStack.position.width, 0})
             {
                 .padding = 0
                 .updateFlags(.DisableHorizontal | .TransparentBars)
             }
 
             .sectionsScroll = scroll
-            with .sectionsStack = scroll.createView'StackLayoutCtrl()
+            with .sectionsStack = scroll.createView!{StackLayoutCtrl}()
             {
                 .mode    = .Top
                 .spacing = metrics.dialog_BtnPadding
@@ -290,7 +294,7 @@ public impl AboutDlg
     mtd addSectionImage(image: Image, width, height: f32)
     {
         Swag.assert(image.isValid() and width > 0 and height > 0)
-        let row  = Wnd.create'Wnd(.sectionStack(), "", {0, 0, width, height})
+        let row  = Wnd.create!{Wnd}(.sectionStack(), "", {0, 0, width, height})
         let view = ImageRect.create(row, {0, 0, width, height})
         view.setImage(image)
         .fitToContent()
@@ -331,13 +335,17 @@ public impl AboutDlg
             }
         }
 
-        if not .fitsToContent do
+        if not .fitsToContent
+        {
             return
+        }
 
         let availableWidth = Math.max(stack.position.width, 1)
         let contentHeight  = stack.measure(Math.Point{availableWidth, 0}).preferred.y
         .fitHeightToContent(contentHeight)
-        if .parentSurface do
+        if .parentSurface
+        {
             .surface!.center(.parentSurface)
+        }
     }
 }

@@ -43,7 +43,7 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
         host.root.registerKeyShortcut(.Control, .F1, First)
         host.root.registerKeyShortcut(.Control, .F2, First)
         host.root.registerKeyShortcut(.Control, .F3, Second)
-        var draft: Array'ShortcutOverride
+        var draft: Array!{ShortcutOverride}
         setShortcutOverride(&draft, First, .Control, .F3)
         setShortcutOverride(&draft, Second, .None, .None)
         expect host.app.updateShortcuts(draft)
@@ -79,7 +79,7 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
     host.app.setGlobalHotKeysEnabled(false)
     expect host.app.registerUserHotKey(.CtrlShift, .F6, First, &host.root)
     expect host.app.registerUserHotKey(.CtrlShift, .F7, Second, &host.root)
-    var draft: Array'ShortcutOverride
+    var draft: Array!{ShortcutOverride}
     setShortcutOverride(&draft, First, .CtrlShift, .F7)
     var error: Swag.Error
     catch host.app.updateShortcuts(draft) as error
@@ -104,7 +104,7 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
     host.app.setGlobalHotKeysEnabled(false)
     expect host.app.registerUserHotKey(.CtrlShift, .F6, First, &host.root)
     expect host.app.registerHotKey(.CtrlShift, .F7, Second, &host.root)
-    var draft: Array'ShortcutOverride
+    var draft: Array!{ShortcutOverride}
     setShortcutOverride(&draft, First, .CtrlShift, .F7)
     var error: Swag.Error
     catch host.app.updateShortcuts(draft) as error
@@ -153,7 +153,7 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
     })
     host.keyPress(.F8)
     Swag.require(oldCount == 1)
-    var draft: Array'ShortcutOverride
+    var draft: Array!{ShortcutOverride}
     setShortcutOverride(&draft, Source, .Control, .F8, source: true)
     expect host.app.updateShortcuts(draft)
     host.keyPress(.F8)
@@ -180,8 +180,11 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
 
     host.app.sigFrame += func|host = &host, &stage|(_)
     {
-        if host.app.modalSurfaces.isEmpty() do
+        if host.app.modalSurfaces.isEmpty()
+        {
             return
+        }
+
         let surface = host.app.modalSurfaces.back()
         switch stage
         {
@@ -231,8 +234,11 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
 
     host.app.sigFrame += func|host = &host, &stage|(_)
     {
-        if host.app.modalSurfaces.isEmpty() do
+        if host.app.modalSurfaces.isEmpty()
+        {
             return
+        }
+
         let root = host.app.modalSurfaces.back().wnd.view
         switch stage
         {

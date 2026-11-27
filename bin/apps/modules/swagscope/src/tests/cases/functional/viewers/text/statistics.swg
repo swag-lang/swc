@@ -18,17 +18,23 @@ using Core, Pixel, Gui, Viewers
 
     var data: MediaInfoData
     data.addTextStatistics(&statistics)
-    var byteCount: String
+    var byteCount:     String
     var coverageLabel: String
-    var longest: String
+    var longest:       String
     for row in data.rows
     {
-        if row.field == .ByteCount do
+        if row.field == .ByteCount
+        {
             byteCount = row.value
-        elif row.field == .CountExtent do
+        }
+        else if row.field == .CountExtent
+        {
             coverageLabel = row.value
-        elif row.field == .LongestLine do
+        }
+        else if row.field == .LongestLine
+        {
             longest = row.value
+        }
     }
 
     Swag.require(byteCount == "24")
@@ -44,14 +50,18 @@ using Core, Pixel, Gui, Viewers
 
     var data: MediaInfoData
     data.addTextStatistics(&statistics)
-    var byteCount: String
+    var byteCount:     String
     var coverageLabel: String
     for row in data.rows
     {
-        if row.field == .ByteCount do
+        if row.field == .ByteCount
+        {
             byteCount = row.value
-        elif row.field == .CountExtent do
+        }
+        else if row.field == .CountExtent
+        {
             coverageLabel = row.value
+        }
     }
 
     Swag.require(byteCount == "0" and coverageLabel == mediaInfoStrings().exactExtent)
@@ -62,13 +72,13 @@ using Core, Pixel, Gui, Viewers
 {
     let fileName = Gui.Testing.tempFilePath("scope-text-statistics-bom-", ".txt")
     defer discard catch File.delete(fileName)
-    let bytes = [0xEF'u8, 0xBB'u8, 0xBF'u8, 'a'u8, '\n'u8, 'b'u8]
+    let bytes = [0xEF_u8, 0xBB_u8, 0xBF_u8, 'a'_u8, '\n'_u8, 'b'_u8]
     discard expect File.writeAllBytes(fileName, bytes)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
-    let view = assume cast(*PlainText.Panel, session.view)
+    let view    = assume cast(*PlainText.Panel, session.view)
     defer discard view.retire()
     completeTextReads(&host, view)
     completeTextStatistics(&host, view)

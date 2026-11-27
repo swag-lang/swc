@@ -52,7 +52,6 @@ namespace
         o.breakBeforeBinaryOperators  = FormatOperatorWrapStyle::After;
         o.breakBeforeTernaryOperators = false;
         o.breakAfterReturnType        = false;
-        o.breakBeforeDo               = false;
         o.breakBeforeElse             = true;
         o.breakBeforeWhere            = true;
 
@@ -99,7 +98,6 @@ namespace
         o.alignCaseBodies       = FormatAlignMode::Consecutive;
 
         // Uniform siblings
-        o.uniformBranchBodies  = true;
         o.uniformGuardBodies   = FormatAlignMode::Consecutive;
         o.uniformClosureBodies = FormatAlignMode::AcrossBlanks;
 

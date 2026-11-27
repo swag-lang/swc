@@ -6,9 +6,9 @@ using Swag, Core, Pixel
 // An interior repaint preserves the outline and shadow without recording them.
 #test
 {
-    for scale in [1.0'f32, 1.5'f32, 2.0'f32]
+    for scale in [1.0_f32, 1.5_f32, 2.0_f32]
     {
-        for radius in [0.0'f32, 12.0'f32]
+        for radius in [0.0_f32, 12.0_f32]
         {
             var host: Testing.HeadlessHost
             host.setup(180, 120, scale)
@@ -46,7 +46,7 @@ using Swag, Core, Pixel
 // A maximized body stays opaque without the shadow or the rectangular premultiplication pass.
 #test
 {
-    for scale in [1.0'f32, 1.5'f32]
+    for scale in [1.0_f32, 1.5_f32]
     {
         var host: Testing.HeadlessHost
         host.setup(180, 120, scale)

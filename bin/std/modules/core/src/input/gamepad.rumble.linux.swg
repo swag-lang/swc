@@ -31,8 +31,11 @@ private func removeEvdevRumble(index: u32)
     for
     {
         let state = link[]
-        if not state do
+        if not state
+        {
             return
+        }
+
         if state.index == index
         {
             link[] = state.next
@@ -53,8 +56,11 @@ private func removeEvdevRumble(index: u32)
     for
     {
         let state = g_RumbleEffects
-        if not state do
+        if not state
+        {
             break
+        }
+
         removeEvdevRumble(state.index)
     }
 }
@@ -73,17 +79,26 @@ public impl Gamepad
         try validateGamepadVibrationSpeeds(left, right)
         g_RumbleMutex.lock()
         defer g_RumbleMutex.unlock()
-        if g_RumbleStopping do
+        if g_RumbleStopping
+        {
             fail Errors.BadParameterError{"gamepad services have shut down"}
+        }
+
         defer #fail removeEvdevRumble(padIndex)
         let device  = try openEvdevGamepad(padIndex, writable: true)
         var adopted = false
-        defer if not adopted do
+        defer if not adopted
+        {
             discard Linux.close(device.descriptor)
+        }
+
         var capabilities: [16] u8
         discard try evdevIoctl(device.descriptor, Linux.EVIOCGBIT(Linux.EV_FF, capabilities.count), &capabilities)
-        if not evdevHasBit(capabilities, Linux.FF_RUMBLE) do
+        if not evdevHasBit(capabilities, Linux.FF_RUMBLE)
+        {
             try Errors.failLinuxError(Linux.ENOTSUP)
+        }
+
         let strong = cast(u16, Math.saturate(left) * 65535)
         let weak   = cast(u16, Math.saturate(right) * 65535)
         if strong == 0 and weak == 0
@@ -93,11 +108,17 @@ public impl Gamepad
         }
 
         var identity: Linux.stat
-        if Linux.fstat(device.descriptor, &identity) != 0 do
+        if Linux.fstat(device.descriptor, &identity) != 0
+        {
             try Errors.failLinuxError(Linux.errno())
+        }
+
         var state = g_RumbleEffects
-        while state and state.index != padIndex do
+        while state and state.index != padIndex
+        {
             state = state.next
+        }
+
         if state and
            (state.device != identity.st_dev or
             state.inode != identity.st_ino or
@@ -110,8 +131,11 @@ public impl Gamepad
         if not state
         {
             let memory = Linux.calloc(1, #sizeof(EvdevRumble))
-            if not memory do
+            if not memory
+            {
                 try Errors.failLinuxError(Linux.ENOMEM)
+            }
+
             let created = cast(*EvdevRumble, unwrap memory)
             created.index         = padIndex
             created.descriptor    = device.descriptor
@@ -135,20 +159,29 @@ public impl Gamepad
         rumble.strong_magnitude = strong
         rumble.weak_magnitude   = weak
         discard try evdevIoctl(active.descriptor, Linux.EVIOCSFF, &effect)
-        if effect.id < 0 do
+        if effect.id < 0
+        {
             try Errors.failLinuxError(Linux.EIO)
+        }
+
         active.effect = effect.id
         var event = Linux.input_event{type: Linux.EV_FF, code: cast(u16, effect.id), value: 1}
         for
         {
             let written = Linux.write(active.descriptor, &event, #sizeof(event))
-            if written == #sizeof(event) do
+            if written == #sizeof(event)
+            {
                 return
+            }
+
             if written < 0
             {
                 let error = Linux.errno()
-                if error == Linux.EINTR do
+                if error == Linux.EINTR
+                {
                     continue
+                }
+
                 try Errors.failLinuxError(error)
             }
 

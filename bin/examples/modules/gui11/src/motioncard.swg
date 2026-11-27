@@ -21,7 +21,7 @@ impl MotionCard
 {
     func create(parent: *Wnd, rank: s32, title, detail: string)->*MotionCard
     {
-        let result = Wnd.create'MotionCard(parent, {})
+        let result = Wnd.create!{MotionCard}(parent, {})
         result.backgroundStyle = .Transparent
         result.rank   = rank
         result.title  = title

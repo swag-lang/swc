@@ -44,8 +44,10 @@ func(T) readCastValue(value: *T)->s32
     Swag.require(castResult1 == null)
     Swag.require(assume cast (*CastValue, itf) == &value)
     let label = catch cast(ICastLabel?, itf) orelse null
-    if label != null do
+    if label != null
+    {
         Swag.require(label.label() == "value")
+    }
     Swag.require(label != null)
     let directLabel: ICastLabel = &value
     Swag.require(label == directLabel)
@@ -60,14 +62,16 @@ func(T) readCastValue(value: *T)->s32
     let castResult2 = catch cast(*OtherCastValue?, boxed) orelse null
     Swag.require(castResult2 == null)
     let view = catch cast(ICastValue?, boxed) orelse null
-    if view != null do
+    if view != null
+    {
         Swag.require(view.value() == 42)
+    }
     Swag.require(view != null)
 }
 
 #test
 {
-    var boxed: any = 17's32
+    var boxed: any = 17_s32
     let value      = catch cast(*s32?, boxed) orelse null
     Swag.require(value == null)
     Swag.require((catch cast(const *s32?, boxed) orelse null) != null)
@@ -79,12 +83,14 @@ func(T) readCastValue(value: *T)->s32
 // Constant-backed any values stay readable and cannot lend mutable storage.
 #test
 {
-    var literalBox: any = 42's32
+    var literalBox: any = 42_s32
     Swag.require(Swag.kindOf(literalBox) == s32)
     Swag.require((catch cast(*s32?, literalBox) orelse null) == null)
     Swag.require((catch cast(const *s32?, literalBox) orelse null) != null)
-    if literalBox is s32 as number do
+    if literalBox is s32 as number
+    {
         number[] = 0
+    }
     Swag.require(assume cast(s32, literalBox) == 42)
 
     const value: s32 = 43
@@ -99,13 +105,17 @@ func(T) readCastValue(value: *T)->s32
     Swag.require((catch cast(*CastValue?, recordBox) orelse null) == null)
     let recordValue = catch cast(const *CastValue?, recordBox) orelse null
     Swag.require(recordValue != null)
-    if recordValue != null do
+    if recordValue != null
+    {
         Swag.require(recordValue[].number == 46)
+    }
     var recordCopy = assume cast(CastValue, recordBox)
     recordCopy.number = 47
     Swag.require(recordCopy.number == 47)
-    if recordValue != null do
+    if recordValue != null
+    {
         Swag.require(recordValue[].number == 46)
+    }
 }
 
 // A mutable local remains writable through the same dynamic cast.

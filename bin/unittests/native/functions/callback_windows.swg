@@ -7,8 +7,8 @@ alias BOOL       = s32
 #[Swag.CallingConvention(.C)]
 alias ThreadProc = func(*void?)->DWORD
 
-const WAIT_OBJECT_0 = 0'u32
-const INFINITE      = 0xFFFFFFFF'u32
+const WAIT_OBJECT_0 = 0_u32
+const INFINITE      = 0xFFFFFFFF_u32
 
 #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
 {
@@ -34,11 +34,11 @@ func threadCallback(param: *void?)->DWORD
 #test
 {
     var data: CallbackData
-    data.value = 0x12345678AABBCCDD'u64
+    data.value = 0x12345678AABBCCDD_u64
 
     let callback: ThreadProc = &threadCallback
 
-    var id     = 0'u32
+    var id     = 0_u32
     let thread = CreateThread(null, 0, callback, &data, 0, &id)
     Swag.require(thread != null)
 

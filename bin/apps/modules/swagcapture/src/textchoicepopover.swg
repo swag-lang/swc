@@ -4,16 +4,16 @@ const TextChoicePadding      = 8.0
 const TextChoiceFilterHeight = 32.0
 const TextChoiceFilterGap    = 8.0
 const TextChoiceRowHeight    = 28.0
-const TextChoiceFaceRows     = 8'u64
-const TextChoiceSizeRows     = 10'u64
+const TextChoiceFaceRows     = 8_u64
+const TextChoiceSizeRows     = 10_u64
 const TextChoiceFaceWidth    = 302.0
 const TextChoiceSizeWidth    = 158.0
 
 // Common sizes are direct choices; the property grid keeps the complete numeric range.
-const TextChoiceSizes = [12'u32, 16, 24, 32, 40, 48, 72, 96, 120, 150]
+const TextChoiceSizes = [12_u32, 16, 24, 32, 40, 48, 72, 96, 120, 150]
 
 // Installed faces are enumerated only when the font popup first opens.
-var g_MiniBarFonts: Array'SystemFontFamilyInfo
+var g_MiniBarFonts: Array!{SystemFontFamilyInfo}
 
 enum TextChoiceKind
 {
@@ -31,7 +31,7 @@ struct TextChoicePopover
     filter:       *EditBox?
     kind:         TextChoiceKind
     selectedForm: u64
-    values:       Array'u32     // Each visible row's font index, or its numeric size.
+    values:       Array!{u32}     // Each visible row's font index, or its numeric size.
     refreshing:   bool
 }
 
@@ -40,7 +40,7 @@ impl TextChoicePopover
     func heightForRows(kind: TextChoiceKind, count: u64, metrics: *ThemeMetrics)->f32
     {
         let header = kind == .Face ? TextChoiceFilterHeight + TextChoiceFilterGap : 0.0
-        let rows   = Math.max(1'u64, Math.min(count, kind == .Face ? TextChoiceFaceRows : TextChoiceSizeRows))
+        let rows   = Math.max(1_u64, Math.min(count, kind == .Face ? TextChoiceFaceRows : TextChoiceSizeRows))
         return 2 * TextChoicePadding + header + cast(f32, rows) * TextChoiceRowHeight +
                2 * metrics.frameWnd_RoundPadding + 2 * metrics.list_Padding
     }
@@ -49,15 +49,17 @@ impl TextChoicePopover
     // for a real edit box, so typing filters without changing the text being edited on the canvas.
     func open(main: *MainWnd, button: *IconButton, kind: TextChoiceKind, selectedForm: u64)->*TextChoicePopover
     {
-        if kind == .Face and g_MiniBarFonts.isEmpty() do
+        if kind == .Face and g_MiniBarFonts.isEmpty()
+        {
             g_MiniBarFonts = FontFamily.enumerateSystemFonts()
+        }
 
         let width  = kind == .Face ? TextChoiceFaceWidth : TextChoiceSizeWidth
         let count  = kind == .Face ? g_MiniBarFonts.count + 1 : TextChoiceSizes.count
         let frame  = button.createAnchorPopup(width, heightForRows(kind, count, button.themeMetrics()))
         let gutter = button.themeMetrics().scrollBar_HitSize + button.themeMetrics().scrollBar_EdgeInset
         frame.setPadding(gutter, button.themeMetrics().frameWnd_RoundPadding, gutter, button.themeMetrics().frameWnd_RoundPadding)
-        with let result = Wnd.create'TextChoicePopover(frame, {})
+        with let result = Wnd.create!{TextChoicePopover}(frame, {})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -103,8 +105,10 @@ impl TextChoicePopover
             .sigKeyPressed       += func|popover = me|(_, key) { popover.listKey(key) }
         }
 
-        if .kind == .Face do
+        if .kind == .Face
+        {
             .list.setEmptyText(appStrings().ui_NoMatchingFonts)
+        }
 
         .fill()
         if .filter
@@ -114,8 +118,10 @@ impl TextChoicePopover
         else
         {
             .list.setFocus()
-            if .list.lineCount() do
+            if .list.lineCount()
+            {
                 .list.setFocusedIndex(0)
+            }
         }
     }
 
@@ -148,8 +154,11 @@ impl TextChoicePopover
         if .kind == .Face
         {
             var filterText = ""
-            if .filter do
+            if .filter
+            {
                 filterText = .filter.text()
+            }
+
             let matcher   = assume Text.NameMatcher.create(filterText, {comparisonType: .UnicodeNoCase})
             let hasFilter = filterText.count > 0
 
@@ -164,10 +173,16 @@ impl TextChoicePopover
             for &font, index in g_MiniBarFonts where font.name != defaultFace
             {
                 let name = font.name.toString()
-                if hasFilter and not matcher.isMatch(name) do
+                if hasFilter and not matcher.isMatch(name)
+                {
                     continue
-                if style.face == name do
+                }
+
+                if style.face == name
+                {
                     chosen = cast(u32, .values.count)
+                }
+
                 .list.createLine(name)
                 .values.add(cast(u32, index))
             }
@@ -176,8 +191,11 @@ impl TextChoicePopover
         {
             for size in TextChoiceSizes
             {
-                if Math.abs(style.size - cast(f32, size)) < 0.01 do
+                if Math.abs(style.size - cast(f32, size)) < 0.01
+                {
                     chosen = cast(u32, .values.count)
+                }
+
                 .list.createLine(Format.toString("%", size))
                 .values.add(size)
             }
@@ -185,8 +203,10 @@ impl TextChoicePopover
 
         .fitHeight()
         .list.computeLayout()
-        if chosen < .list.lineCount() do
+        if chosen < .list.lineCount()
+        {
             .list.selectLine(chosen)
+        }
     }
 
     // Filtering moves focus away from the selected form. Keep the popup's opening selection as
@@ -194,8 +214,11 @@ impl TextChoicePopover
     private mtd restoreSelection()->bool
     {
         let capture = .main.getCapture()
-        if not capture or .selectedForm >= capture.forms.count do
+        if not capture or .selectedForm >= capture.forms.count
+        {
             return false
+        }
+
         capture.selection.clear()
         capture.selection.add(.selectedForm)
         return true
@@ -219,8 +242,10 @@ impl TextChoicePopover
         let frame  = assume cast(*FrameWnd, unwrap .parent)
         let old    = frame.position
         let height = heightForRows(.kind, .values.count, .themeMetrics())
-        if height == old.height do
+        if height == old.height
+        {
             return
+        }
 
         let above = frame.surfaceRect().bottom() <= .button.surfaceRect().y
         let y     = above ? old.y + old.height - height : old.y
@@ -231,20 +256,30 @@ impl TextChoicePopover
     // A click chooses at once; keyboard movement only changes the focused row until Enter.
     mtd chooseSelected()
     {
-        if .refreshing do
+        if .refreshing
+        {
             return
+        }
+
         let line = .list.selectedLine() orelse .list.focusedLine()
-        if line do
+        if line
+        {
             .choose(line.index)
+        }
     }
 
     mtd choose(index: u32)
     {
-        if index >= .values.count or not .restoreSelection() do
+        if index >= .values.count or not .restoreSelection()
+        {
             return
+        }
+
         let style = .selectedTextStyle()
-        if not style.found do
+        if not style.found
+        {
             return
+        }
 
         let value = .values[index]
         if .kind == .Face
@@ -265,8 +300,11 @@ impl TextChoicePopover
     mtd filterKey(evt: IEvent)->bool
     {
         let key = catch cast(*KeyEvent?, evt) orelse null
-        if not key or key.kind != .Pressed do
+        if not key or key.kind != .Pressed
+        {
             return false
+        }
+
         switch key.key
         {
         case .Escape:
@@ -276,8 +314,10 @@ impl TextChoicePopover
             .focusFirst()
 
         case .Return:
-            if .values.count do
+            if .values.count
+            {
                 .choose(0)
+            }
 
         default:
             return false
@@ -289,8 +329,11 @@ impl TextChoicePopover
 
     mtd focusFirst()
     {
-        if not .list.lineCount() do
+        if not .list.lineCount()
+        {
             return
+        }
+
         .list.setFocus()
         .list.setFocusedIndex(0)
     }
@@ -298,8 +341,11 @@ impl TextChoicePopover
     // The list's ordinary arrow keys also select rows, so intercept them and move only focus.
     mtd listKey(key: *KeyEvent)
     {
-        if key.kind != .Pressed do
+        if key.kind != .Pressed
+        {
             return
+        }
+
         let count   = .list.lineCount()
         let focused = .list.focusedLine()
         switch key.key
@@ -308,13 +354,15 @@ impl TextChoicePopover
             .button.hidePopup()
 
         case .Return, .Enter, .Space:
-            if focused do
+            if focused
+            {
                 .choose(focused.index)
+            }
 
         case .Home, .End, .Up, .Down:
             if count
             {
-                var index = focused ? focused.index : 0'u32
+                var index = focused ? focused.index : 0_u32
                 switch key.key
                 {
                 case .Home:
@@ -324,12 +372,16 @@ impl TextChoicePopover
                     index = count - 1
 
                 case .Up:
-                    if index > 0 do
+                    if index > 0
+                    {
                         index -= 1
+                    }
 
                 case .Down:
-                    if index + 1 < count do
+                    if index + 1 < count
+                    {
                         index += 1
+                    }
 
                 default:
                     break

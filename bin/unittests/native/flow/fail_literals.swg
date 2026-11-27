@@ -40,7 +40,7 @@ func failLiteralCharacter() fail { fail 'A' }
     catch failLiteralFloat() as floatErrorOutcome
     let floatError = floatErrorOutcome.value()
     Swag.require(floatError is f32)
-    Swag.require(assume cast(f32, floatError) == 1.5'f32)
+    Swag.require(assume cast(f32, floatError) == 1.5_f32)
 
     var characterErrorOutcome: Swag.Error
     catch failLiteralCharacter() as characterErrorOutcome
@@ -61,18 +61,26 @@ func failLiteralEmptyString() fail { fail "" }
     var textErrorOutcome: Swag.Error
     catch failLiteralString() as textErrorOutcome
     let textError = textErrorOutcome.value()
-    if textError is string as value do
+    if textError is string as value
+    {
         Swag.require(value[] == "literal failure")
-    else do
+    }
+    else
+    {
         Swag.require(false)
+    }
 
     var emptyErrorOutcome: Swag.Error
     catch failLiteralEmptyString() as emptyErrorOutcome
     let emptyError = emptyErrorOutcome.value()
-    if emptyError is string as value do
+    if emptyError is string as value
+    {
         Swag.require(value[] == "")
-    else do
+    }
+    else
+    {
         Swag.require(false)
+    }
 }
 
 struct FailLiteralEmpty {}

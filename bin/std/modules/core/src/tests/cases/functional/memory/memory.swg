@@ -82,11 +82,11 @@ impl MemoryArrayDropProbe
 #test
 {
     let count     = Swag.U64.Max / #sizeof(s32) + 1
-    let allocated = Swag.catchPanic(func|count|() { discard Memory.new's32(count) })
+    let allocated = Swag.catchPanic(func|count|() { discard Memory.new!{s32}(count) })
     Swag.require(allocated.raised)
     Swag.require(allocated.message() == "memory region size exceeds addressable range")
 
-    let value = Memory.new's32()
+    let value = Memory.new!{s32}()
     defer Memory.delete(value)
     let released = Swag.catchPanic(func|value, count|() { Memory.delete(value, count) })
     Swag.require(released.raised)
@@ -96,9 +96,11 @@ impl MemoryArrayDropProbe
 #test
 {
     g_MemoryArrayDropCount = 0
-    let values = Memory.new'MemoryArrayDropProbe(3)
-    for index in 3 do
+    let values = Memory.new!{MemoryArrayDropProbe}(3)
+    for index in 3
+    {
         values[index].value = cast(s32, index)
+    }
 
     Memory.delete(values, 3)
     Swag.require(g_MemoryArrayDropCount == 3)

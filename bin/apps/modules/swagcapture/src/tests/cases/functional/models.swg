@@ -25,7 +25,7 @@ using Swag, Core
     Swag.require(f.main.getEditMode() == .Shape)
     Swag.require(Swag.kindOf(f.main.editModeToModel(.Highlight)) == FormShape)
 
-    var emptyPoints: Array'Math.Vector2
+    var emptyPoints: Array!{Math.Vector2}
 
     with let draw = testAddDraw(f.capture, emptyPoints.toSlice())
     {

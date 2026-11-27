@@ -55,8 +55,11 @@ using Swag, Core
     var inspected: bool
     host.app.sigFrame += func|host = &host, inspected = &inspected|(_)
     {
-        if inspected[] do
+        if inspected[]
+        {
             return
+        }
+
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items.count == 4)
         Swag.require(menu.items[1]!.name.text == "PrintScreen" and menu.items[1]!.disabled)

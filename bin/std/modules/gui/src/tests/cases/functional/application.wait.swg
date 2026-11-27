@@ -10,7 +10,7 @@
     Swag.require(app.nativeFrameWaitMicroseconds(16000) == 0)
     Swag.require(app.nativeFrameWaitMicroseconds(20000) == 0)
 
-    let target = Core.Memory.new'Wnd()
+    let target = Core.Memory.new!{Wnd}()
     defer Core.Memory.delete(target)
     app.setMouseCaptureRaw(target)
     Swag.require(app.nativeFrameWaitMicroseconds(0) == 1000)
@@ -25,9 +25,9 @@
 #test
 {
     var app: Application
-    let target = Core.Memory.new'Wnd()
+    let target = Core.Memory.new!{Wnd}()
     defer Core.Memory.delete(target)
-    let timer = app.addTimer(2'ms, target)
+    let timer = app.addTimer(2_ms, target)
     Swag.require(app.nativeFrameWaitMicroseconds(0) == 2000)
     timer.isPendingRemoval = true
     Swag.require(app.nativeFrameWaitMicroseconds(0) == 16000)

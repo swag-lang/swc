@@ -7,7 +7,7 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("stress")]
 #test
 {
-    var entries: Array'ZipFixtureEntry
+    var entries: Array!{ZipFixtureEntry}
     for index in 1_500
     {
         var entry: ZipFixtureEntry

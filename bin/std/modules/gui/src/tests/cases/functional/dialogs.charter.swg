@@ -34,10 +34,15 @@ func assertDialogCharter(dlg: *Dialog)
 
     // One inset on every side; the title, when there is one, opens the body above the content.
     Swag.require(dlg.padding.x == pad and dlg.padding.z == pad and dlg.padding.w == pad)
-    if dlg.title.text.isEmpty() do
+    if dlg.title.text.isEmpty()
+    {
         Swag.require(dlg.padding.y == pad)
-    else do
+    }
+    else
+    {
         Swag.require(dlg.padding.y > pad + gap)
+    }
+
     let body = unwrap dlg.contentView
 
     // The title line remains a native caption hit target even when the content view fills the
@@ -73,8 +78,11 @@ func assertDialogCharter(dlg: *Dialog)
     }
 
     Swag.require(primary != null)
-    for btn in dlg.buttons do
+    for btn in dlg.buttons
+    {
         Swag.require(btn.position.right() <= primary.position.right())
+    }
+
     Swag.require(Math.abs(primary.position.right() - bar.position.width) < 0.5)
 
     // Two actions are parted by one gap and by nothing else; the row reads in the order of the bar.
@@ -214,12 +222,17 @@ func assertDialogCharter(dlg: *Dialog)
         dlg.surface.setPosition(rect)
         dlg.applyLayout()
         var first = dlg.position.width
-        for button in dlg.buttons do
+        for button in dlg.buttons
+        {
             first = Math.min(first, dlg.buttonBar.position.x + button.position.x)
+        }
+
         Swag.require(slot.position.right() <= first - dlg.themeMetrics().dialog_BtnPadding)
         Swag.require(filter.position.width == slot.position.width)
-        if width == 800 do
+        if width == 800
+        {
             Swag.require(filter.position.width == 400)
+        }
     }
 
     // The control follows the action row when the box changes height.
@@ -260,8 +273,10 @@ func assertDialogCharter(dlg: *Dialog)
     var missingInspected = false
     host.app.sigFrame += func|host = &host, &missingInspected|(app)
     {
-        if missingInspected or app.modalSurfaces.isEmpty() do
+        if missingInspected or app.modalSurfaces.isEmpty()
+        {
             return
+        }
 
         if app.modalSurfaces.back().view() is MessageDlg as dlg
         {
@@ -286,8 +301,10 @@ func assertDialogCharter(dlg: *Dialog)
     var inspected = false
     host.app.sigFrame += func|host = &host, &inspected|(app)
     {
-        if inspected or app.modalSurfaces.isEmpty() do
+        if inspected or app.modalSurfaces.isEmpty()
+        {
             return
+        }
 
         if app.modalSurfaces.back().view() is MessageDlg as dlg
         {

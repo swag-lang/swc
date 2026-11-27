@@ -18,7 +18,7 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     var reader = expect Reader.open(guiTestDataPath(name))
     var page   = expect reader.loadPage(pageIndex)
 
-    var faces: Array'(*TypeFace?)
+    var faces: Array!{*TypeFace?}
     result.fonts = page.fonts.count
     for font in page.fonts
     {
@@ -41,16 +41,23 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     for item in page.items where item.kind == .Text and item.fontIndex < page.fonts.count
     {
         let face = faces[item.fontIndex]
-        if not face do
+        if not face
+        {
             continue
+        }
 
         result.drawn += 1
         let font  = cache.createFont(face, 16)
         var whole = not item.textCodes.isEmpty()
-        for code in item.textCodes where not page.fonts[item.fontIndex].glyphFor(font, code).found do
+        for code in item.textCodes where not page.fonts[item.fontIndex].glyphFor(font, code).found
+        {
             whole = false
-        if whole do
+        }
+
+        if whole
+        {
             result.resolved += 1
+        }
     }
 
     return result
@@ -78,5 +85,35 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
         Swag.require(report.loaded == report.embedded)
         Swag.require(report.drawn != 0)
         Swag.require(report.resolved == report.drawn)
+    }
+}
+
+// An embedded outline keeps its holes and PDF advances through a rotated text matrix.
+#test
+{
+    const FontBytes = #include("../../../theme/inter-regular.ttf")
+    var objects: Array!{u8}
+    addObject(&objects, 5, "<< /Type /Font /Subtype /TrueType /BaseFont /Inter /Encoding /WinAnsiEncoding /FirstChar 79 /LastChar 79 /Widths [1000] /FontDescriptor 6 0 R >>")
+    addObject(&objects, 6, "<< /Type /FontDescriptor /FontName /Inter /FontFile2 7 0 R >>")
+    addStreamObject(&objects, 7, "", FontBytes)
+
+    let text     = "BT /F0 24 Tf 0 -1 1 0 40 80 Tm (OO) Tj ET"
+    var document = #move expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, text), objects.toSlice()).toSlice())
+    var page     = document.pages[0]
+    let image    = expect page.render()
+    for glyph in 2
+    {
+        let top = 20 + 24 * cast(s32, glyph)
+        var ink: u32
+        for y in top until top + 24
+        {
+            for x in 40 until 64 where image.pixelColor(x, y).r < 128
+            {
+                ink += 1
+            }
+        }
+
+        Swag.require(ink > 30)
+        Swag.require(image.pixelColor(49, top + 9).r == 255)
     }
 }

@@ -5,7 +5,7 @@ func addTabSample(tab: *Tab)
     const Names = ["One", "Two", "Three"]
     for name, index in Names
     {
-        let view = Wnd.create'Wnd(tab)
+        let view = Wnd.create!{Wnd}(tab)
         discard createText(view, Format.toString("View %", index + 1), {14, 12, 120, 24})
         tab.addItem(name, app.theme.icon(ThemeIcons.Search, 14), view)
     }

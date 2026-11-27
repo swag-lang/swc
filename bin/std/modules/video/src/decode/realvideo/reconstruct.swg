@@ -5,63 +5,94 @@
 #global namespace RealVideo
 #global internal
 
-using Core
+using Core, Core.Math
 
 func clipped(value: s32)->u8 => cast(u8, Math.clamp(value, 0, 255))
 
+#[Swag.Inline]
+private func transformColumns(rows: *[4] Simd.U32x4, scale, rounding: s32, shift: u32)
+{
+    let row0 = cast #bit(Simd.S32x4, rows[][0])
+    let row1 = cast #bit(Simd.S32x4, rows[][1])
+    let row2 = cast #bit(Simd.S32x4, rows[][2])
+    let row3 = cast #bit(Simd.S32x4, rows[][3])
+    let a    = (row0 + row2) * (13 * scale) + rounding
+    let b    = (row0 - row2) * (13 * scale) + rounding
+    let c    = row1 * (7 * scale) - row3 * (17 * scale)
+    let d    = row1 * (17 * scale) + row3 * (7 * scale)
+    rows[][0] = cast #bit(Simd.U32x4, (a + d) >> shift)
+    rows[][1] = cast #bit(Simd.U32x4, (b + c) >> shift)
+    rows[][2] = cast #bit(Simd.U32x4, (b - c) >> shift)
+    rows[][3] = cast #bit(Simd.U32x4, (a - d) >> shift)
+}
+
 func inverseTransform(block: *[16] s32, dc: bool)
 {
-    var temp: [16] s32
-    for i in 4's32
+    let rows = cast(*[4] Simd.U32x4, block)
+    transformColumns(rows, 1, 0, 0)
+    Simd.transpose4x4(rows)
+    if dc
     {
-        let a = 13 * (block[][i] + block[][i + 8])
-        let b = 13 * (block[][i] - block[][i + 8])
-        let c = 7 * block[][i + 4] - 17 * block[][i + 12]
-        let d = 17 * block[][i + 4] + 7 * block[][i + 12]
-        temp[i * 4]     = a + d
-        temp[i * 4 + 1] = b + c
-        temp[i * 4 + 2] = b - c
-        temp[i * 4 + 3] = a - d
+        transformColumns(rows, 3, 0, 11)
+    }
+    else
+    {
+        transformColumns(rows, 1, 512, 10)
     }
 
-    for i in 4's32
-    {
-        let scale    = dc ? 3 : 1
-        let rounding = dc ? 0 : 512
-        let shift    = dc ? 11'u32 : 10'u32
-        let a        = 13 * scale * (temp[i] + temp[i + 8]) + rounding
-        let b        = 13 * scale * (temp[i] - temp[i + 8]) + rounding
-        let c        = scale * (7 * temp[i + 4] - 17 * temp[i + 12])
-        let d        = scale * (17 * temp[i + 4] + 7 * temp[i + 12])
-        block[][i * 4]     = (a + d) >> shift
-        block[][i * 4 + 1] = (b + c) >> shift
-        block[][i * 4 + 2] = (b - c) >> shift
-        block[][i * 4 + 3] = (a - d) >> shift
-    }
+    Simd.transpose4x4(rows)
+}
+
+#[Swag.Inline]
+private func addResidualRow(row: [*] u8, changes: Simd.S32x4)
+{
+    let bytes      = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u32, row)[0]))
+    let prediction = cast #bit(Simd.S32x4, Simd.widenLow(Simd.widenLow(bytes)))
+    let samples    = Simd.packSigned(changes + prediction, changes + prediction)
+    Simd.storeLow4(row, Simd.packUnsigned(samples, samples))
 }
 
 func addResidual(dst: [*] u8, stride: s32, block: *[16] s32)
 {
     inverseTransform(block, false)
-    for y in 4's32
+    for y in 4_s32
     {
-        for x in 4's32 do
-            dst[y * stride + x] = clipped(cast(s32, dst[y * stride + x]) + block[][y * 4 + x])
+        addResidualRow(dst + y * stride, Simd.load(&block[][y * 4]))
+    }
+}
+
+// A pure DC coefficient sees the factor 13 in both transform passes.
+func addDcResidual(dst: [*] u8, stride, coefficient: s32)
+{
+    let residual = Simd.splat((13 * 13 * coefficient + 512) >> 10)
+    for y in 4_s32
+    {
+        addResidualRow(dst + y * stride, residual)
     }
 }
 
 func predictLarge(dst: [*] u8, stride, size, mode: s32, top, left: bool)
 {
     var actual = mode
-    if not top and not left do
+    if not top and not left
+    {
         actual = 0
-    elif not top and (actual == 1 or actual == 3) do
+    }
+    else if not top and (actual == 1 or actual == 3)
+    {
         actual = 2
-    elif not left and (actual == 2 or actual == 3) do
+    }
+    else if not left and (actual == 2 or actual == 3)
+    {
         actual = 1
-    if size == 8 and actual == 3 do
+    }
+
+    if size == 8 and actual == 3
+    {
         actual = 0
-    var dc = 128's32
+    }
+
+    var dc = 128_s32
     var h: s32
     var v: s32
     var a: s32
@@ -70,10 +101,15 @@ func predictLarge(dst: [*] u8, stride, size, mode: s32, top, left: bool)
         var sum: s32
         for i in size
         {
-            if top do
+            if top
+            {
                 sum += cast(s32, (dst - stride)[i])
-            if left do
+            }
+
+            if left
+            {
                 sum += cast(s32, (dst - 1)[i * stride])
+            }
         }
 
         let count = size * (cast(s32, top) + cast(s32, left))
@@ -82,7 +118,7 @@ func predictLarge(dst: [*] u8, stride, size, mode: s32, top, left: bool)
 
     if actual == 3
     {
-        for k in 1's32 until 9
+        for k in 1_s32 until 9
         {
             h += k * (cast(s32, (dst - stride)[7 + k]) - cast(s32, (dst - stride)[7 - k]))
             v += k * (cast(s32, (dst - 1)[(7 + k) * stride]) - cast(s32, (dst - 1)[(7 - k) * stride]))
@@ -113,12 +149,19 @@ func predictLarge(dst: [*] u8, stride, size, mode: s32, top, left: bool)
 func predictSmall(dst: [*] u8, stride, mode: s32, top, left, down, right: bool)
 {
     var actual = mode
-    if not top and not left do
+    if not top and not left
+    {
         actual = 0
-    elif not top and actual == 1 do
+    }
+    else if not top and actual == 1
+    {
         actual = 2
-    elif not left and actual == 2 do
+    }
+    else if not left and actual == 2
+    {
         actual = 1
+    }
+
     if actual != 4 and actual != 6 and actual != 7
     {
         const Modes: [9] u32 = [2, 0, 1, 4, 3, 5, 7, 8, 6]
@@ -128,15 +171,15 @@ func predictSmall(dst: [*] u8, stride, mode: s32, top, left, down, right: bool)
 
     var t: [8] s32
     var l: [8] s32
-    for i in 8's32
+    for i in 8_s32
     {
         t[i] = cast(s32, (dst - stride)[i < 4 or right ? i : 3])
         l[i] = cast(s32, (dst - 1)[(i < 4 or down ? i : 3) * stride])
     }
 
-    for y in 4's32
+    for y in 4_s32
     {
-        for x in 4's32
+        for x in 4_s32
         {
             var value: s32
             if actual == 4
@@ -145,14 +188,19 @@ func predictSmall(dst: [*] u8, stride, mode: s32, top, left, down, right: bool)
                 value = d == 6 ? (t[6] + t[7] + l[6] + l[7] + 2) >> 2 :
                         (t[d] + 2 * t[d + 1] + t[d + 2] + l[d] + 2 * l[d + 1] + l[d + 2] + 4) >> 3
             }
-            elif actual == 6
+            else if actual == 6
             {
                 let d = x + y / 2
                 value = (y & 1) != 0 ? (t[d] + 2 * t[d + 1] + t[d + 2] + 2) >> 2 : (t[d] + t[d + 1] + 1) >> 1
-                if x == 0 and y == 0 do
+                if x == 0 and y == 0
+                {
                     value = (2 * t[0] + 2 * t[1] + l[1] + 2 * l[2] + l[3] + 4) >> 3
-                if x == 0 and y == 1 do
+                }
+
+                if x == 0 and y == 1
+                {
                     value = (t[0] + 2 * t[1] + t[2] + l[2] + 2 * l[3] + l[4] + 4) >> 3
+                }
             }
             else
             {
@@ -177,55 +225,156 @@ func predictSmall(dst: [*] u8, stride, mode: s32, top, left, down, right: bool)
     }
 }
 
-func filtered(a, b, c, d, e, f, fraction: s32)->s32
+private struct MotionFilter
 {
-    let c1    = fraction == 1 ? 52 : 20
-    let c2    = fraction == 3 ? 52 : 20
-    let shift = fraction == 2 ? 5'u32 : 6'u32
-    return Math.clamp((a + f - 5 * (b + e) + c * c1 + d * c2 + (1 << (shift - 1))) >> shift, 0, 255)
+    centerLeft:  s32
+    centerRight: s32
+    bias:        s32
+    shift:       u32
 }
 
-func horizontal(plane: const *Plane, x, y, fraction: s32)->s32
+private const MotionFilters: [4] MotionFilter = [
+    {0, 0, 0, 0}, {52, 20, 32, 6}, {20, 20, 16, 5}, {20, 52, 32, 6}]
+
+#[Swag.Inline]
+private func filterMotion(a, b, c, d, e, f: s32, filter: MotionFilter)->u8
 {
-    if not fraction do
-        return plane.sample(x, y)
-    return filtered(plane.sample(x - 2, y), plane.sample(x - 1, y), plane.sample(x, y), plane.sample(x + 1, y), plane.sample(x + 2, y), plane.sample(x + 3, y), fraction)
+    return clipped((a + f - 5 * (b + e) + c * filter.centerLeft + d * filter.centerRight + filter.bias) >> filter.shift)
 }
 
-func motionPixel(plane: const *Plane, x, y: s32, motion: Motion, chroma: bool)->s32
+#[Swag.Inline]
+private func motionTaps(source: const [*] u8)->Simd.S16x8
 {
-    if chroma
+    let bytes = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u64, source)[0]))
+    return cast #bit(Simd.S16x8, Simd.widenLow(bytes))
+}
+
+#[Swag.Inline]
+private func filterMotionRow(a, b, c, d, e, f: Simd.S16x8, filter: MotionFilter)->Simd.U8x16
+{
+    // The largest positive tap sum is 74 and every input is a byte.
+    let sum = a + f - (b + e) * 5_s16 +
+              c * cast(s16, filter.centerLeft) + d * cast(s16, filter.centerRight) + cast(s16, filter.bias)
+    let samples = sum >> filter.shift
+    return Simd.packUnsigned(samples, samples)
+}
+
+#[Swag.Inline]
+private func rowSample(row: const [*] u8, x, width: s32)->s32
+{
+    return cast(s32, row[Math.clamp(x, 0, width - 1)])
+}
+
+private func horizontalMotion(into: [*] u8, source: const [*] u8, x, size, width, fraction: s32)
+{
+    if not fraction
     {
-        let cx = motion.x / 2
-        let cy = motion.y / 2
-        let sx = x + (cx >> 2)
-        let sy = y + (cy >> 2)
-        var fx = (cx & 3) * 2
-        var fy = (cy & 3) * 2
-        if fx == 6 and fy == 6
+        if x >= 0 and x + size <= width
         {
-            fx = 4
-            fy = 4
+            Memory.copy(into, source + x, cast(u64, size))
+            return
         }
 
-        const Bias = [0, 16, 32, 16, 32, 28, 32, 28, 0, 32, 16, 32, 32, 28, 32, 28]
-        return ((8 - fx) * (8 - fy) * plane.sample(sx, sy) + fx * (8 - fy) * plane.sample(sx + 1, sy) +
-                (8 - fx) * fy * plane.sample(sx, sy + 1) + fx * fy * plane.sample(sx + 1, sy + 1) + Bias[fy / 2 * 4 + fx / 2]) >> 6
+        for i in size
+        {
+            into[i] = cast(u8, rowSample(source, x + i, width))
+        }
+
+        return
     }
 
-    let sx = x + (motion.x >> 2)
-    let sy = y + (motion.y >> 2)
-    let fx = motion.x & 3
-    let fy = motion.y & 3
-    if fx == 3 and fy == 3 do
-        return (plane.sample(sx, sy) + plane.sample(sx + 1, sy) + plane.sample(sx, sy + 1) + plane.sample(sx + 1, sy + 1) + 2) >> 2
-    if not fy do
-        return horizontal(plane, sx, sy, fx)
-    return filtered(horizontal(plane, sx, sy - 2, fx),
-                    horizontal(plane, sx, sy - 1, fx),
-                    horizontal(plane, sx, sy, fx),
-                    horizontal(plane, sx, sy + 1, fx),
-                    horizontal(plane, sx, sy + 2, fx),
-                    horizontal(plane, sx, sy + 3, fx),
-                    fy)
+    let filter = MotionFilters[fraction]
+    if size == 8 and x >= 2 and x + size + 3 <= width
+    {
+        let first = source + x - 2
+        let row   = filterMotionRow(motionTaps(first), motionTaps(first + 1), motionTaps(first + 2), motionTaps(first + 3), motionTaps(first + 4), motionTaps(first + 5), filter)
+        Simd.storeLow8(into, row)
+        return
+    }
+
+    for i in size
+    {
+        let at = x + i
+        into[i] = filterMotion(rowSample(source, at - 2, width), rowSample(source, at - 1, width), rowSample(source, at, width), rowSample(source, at + 1, width), rowSample(source, at + 2, width), rowSample(source, at + 3, width), filter)
+    }
+}
+
+private func interpolateMotion(into: [*] u8, stride: s32, plane: const *Plane, x, y, size, fx, fy: s32, chroma: bool)
+{
+    const Bias = [0, 16, 32, 16, 32, 28, 32, 28, 0, 32, 16, 32, 32, 28, 32, 28]
+    let a     = chroma ? (8 - fx) * (8 - fy) : 1
+    let b     = chroma ? fx * (8 - fy) : 1
+    let c     = chroma ? (8 - fx) * fy : 1
+    let d     = chroma ? fx * fy : 1
+    let bias  = chroma ? Bias[fy / 2 * 4 + fx / 2] : 2
+    let shift = chroma ? 6_u32 : 2_u32
+    for row in size
+    {
+        let top    = plane.referenceRow(y + row)
+        let bottom = plane.referenceRow(y + row + 1)
+        let dst    = into + row * stride
+        for column in size
+        {
+            let left  = Math.clamp(x + column, 0, plane.width - 1)
+            let right = Math.clamp(x + column + 1, 0, plane.width - 1)
+            dst[column] = cast(u8,
+                               ((a * cast(s32, top[left]) + b * cast(s32, top[right]) +
+                                 c * cast(s32, bottom[left]) + d * cast(s32, bottom[right]) + bias) >> shift))
+        }
+    }
+}
+
+// Reconstructs one 4x4 chroma or 8x8 luma motion partition.
+func predictMotion(into: [*] u8, stride: s32, plane: const *Plane, x, y, size: s32, motion: Motion, chroma: bool)
+{
+    let dx = chroma ? motion.x / 2 : motion.x
+    let dy = chroma ? motion.y / 2 : motion.y
+    let sx = x + (dx >> 2)
+    let sy = y + (dy >> 2)
+    let fx = dx & 3
+    let fy = dy & 3
+    if chroma and (fx or fy)
+    {
+        // RV40 maps the 3/4-by-3/4 chroma phase to the half-sample filter.
+        let diagonal = fx == 3 and fy == 3
+        interpolateMotion(into, stride, plane, sx, sy, size, diagonal ? 4 : fx * 2, diagonal ? 4 : fy * 2, true)
+        return
+    }
+
+    if fx == 3 and fy == 3
+    {
+        interpolateMotion(into, stride, plane, sx, sy, size, fx, fy, false)
+        return
+    }
+
+    if not fy
+    {
+        for row in size
+        {
+            horizontalMotion(into + row * stride, plane.referenceRow(sy + row), sx, size, plane.width, fx)
+        }
+
+        return
+    }
+
+    // Each horizontal result is clipped before it contributes to the vertical filter.
+    // Chroma has already taken its interpolation path, so these rows are eight luma samples.
+    var horizontal: [13, 8] u8
+    for row in size + 5
+    {
+        horizontalMotion(&horizontal[row, 0], plane.referenceRow(sy + row - 2), sx, size, plane.width, fx)
+    }
+
+    let filter = MotionFilters[fy]
+    for row in size
+    {
+        let values = filterMotionRow(motionTaps(&horizontal[row, 0]),
+                                     motionTaps(&horizontal[row + 1, 0]),
+                                     motionTaps(&horizontal[row + 2, 0]),
+                                     motionTaps(&horizontal[row + 3, 0]),
+                                     motionTaps(&horizontal[row + 4, 0]),
+                                     motionTaps(&horizontal[row + 5, 0]),
+                                     filter)
+        Simd.storeLow8(into + row * stride, values)
+    }
 }

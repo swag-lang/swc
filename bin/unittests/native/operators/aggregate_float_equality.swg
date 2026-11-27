@@ -10,7 +10,7 @@ func loadArray(value: const *[4] f32)->[4] f32 => value[]
 
 #test
 {
-    const nan       = cast #bit (f32, 0x7FC0_0001'u32)
+    const nan       = cast #bit (f32, 0x7FC0_0001_u32)
     const positive  = FloatPair{0.0, 0.0}
     const negative  = FloatPair{-0.0, 0.0}
     const unordered = FloatPair{nan, 0.0}
@@ -26,7 +26,7 @@ func loadArray(value: const *[4] f32)->[4] f32 => value[]
 
 #test
 {
-    const nan = cast #bit (f32, 0x7FC0_0001'u32)
+    const nan = cast #bit (f32, 0x7FC0_0001_u32)
     const positive:  [4] f32 = [0.0, 1.0, 2.0, 3.0]
     const negative:  [4] f32 = [-0.0, 1.0, 2.0, 3.0]
     const unordered: [4] f32 = [nan, 1.0, 2.0, 3.0]

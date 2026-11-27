@@ -7,7 +7,7 @@ using Core
 //
 // Fenced code, metadata, and other non-heading blocks contribute no entries. Offsets address
 // the supplied UTF-8 source and can be passed to [[Gui.Markdown.View.revealHeading]].
-func parseHeadings(source: string)->Array'DocumentHeading
+func parseHeadings(source: string)->Array!{DocumentHeading}
 {
     var result: #returntype
     let blocks = parseBlocks(source, headingsOnly: true)

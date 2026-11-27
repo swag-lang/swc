@@ -88,7 +88,7 @@ func switchNaNRange()->bool
     let value = Swag.F64.NaN
     switch value
     {
-    case to 10.0'f64:
+    case to 10.0_f64:
         return false
     default:
         return true
@@ -98,8 +98,8 @@ func switchNaNRange()->bool
 // Finite f32 comparisons stay at their source width.
 #test
 {
-    const a = 1.25'f32
-    const b = 2.5'f32
+    const a = 1.25_f32
+    const b = 2.5_f32
 
     Swag.require(not eqF32(a, b))
     Swag.require(eqF32(a, a))

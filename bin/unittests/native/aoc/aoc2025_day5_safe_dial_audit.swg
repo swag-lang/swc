@@ -25,8 +25,10 @@ func maxS32(lhs, rhs: s32)->s32
 func wrapDial(position: s32)->s32
 {
     var wrapped = position % 100
-    if wrapped < 0 do
+    if wrapped < 0
+    {
         wrapped += 100
+    }
     return wrapped
 }
 
@@ -37,8 +39,10 @@ func parseRotation(text: string)->Rotation
     var result: Rotation
     result.turnLeft = bytes[0] == 'L'
 
-    for i in 1 to cast(u32, bytes.count) - 1 do
+    for i in 1 to cast(u32, bytes.count) - 1
+    {
         result.clicks = result.clicks * 10 + cast(s32, (bytes[i] - '0'))
+    }
 
     return result
 }
@@ -56,8 +60,10 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
 
         let signedClicks = rotation.turnLeft ? -rotation.clicks : rotation.clicks
         current = wrapDial(current + signedClicks)
-        if current == 0 do
+        if current == 0
+        {
             result.zeroHits += 1
+        }
     }
 
     result.finalPosition = current

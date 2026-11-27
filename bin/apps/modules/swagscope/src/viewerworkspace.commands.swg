@@ -47,8 +47,11 @@ func sceneLayoutTitle(layout: SceneLayout)->string
 
 func sceneGrid(count: u64)->SceneLayout
 {
-    if count <= 4 do
+    if count <= 4
+    {
         return .Grid2
+    }
+
     return count <= 9 ? .Grid3 : .Grid4
 }
 
@@ -56,17 +59,19 @@ impl ViewerWindow
 {
     mtd addSceneCommands()
     {
-        .lens.addCommands(func()->string => appStrings().scene_SceneList,
-                          [TabCommands.New, TabCommands.NewGrid, TabCommands.OpenFile, TabCommands.OpenFolder,
-                           TabCommands.Close, TabCommands.CloseOthers, TabCommands.CloseAll])
+        .lens.addCommands(func()->string => appStrings().scene_SceneList, [TabCommands.New, TabCommands.NewGrid, TabCommands.OpenFile, TabCommands.OpenFolder,
+                                                                           TabCommands.Close, TabCommands.CloseOthers, TabCommands.CloseAll])
         let layoutLabel = func()->string => appStrings().scene_Layout
         .lens.addCommands(layoutLabel, SceneCommands.Layouts[0 until 6], inLens: false)
         .lens.addCommands(func()->string => appStrings().scene_SceneList, [SceneCommands.Layouts[6], SceneCommands.OpenGrid])
         .lens.addCommands(func()->string => appStrings().lens_File, [SceneCommands.Beside, SceneCommands.CompareWith, SceneCommands.CompareSelection])
         .lens.addCommands(func()->string => appStrings().lens_View, [SceneCommands.Compare, SceneCommands.Maximize, SceneCommands.Equalize])
         .lens.addCommands(func()->string => appStrings().scene_Controls, SceneCommands.SwapDirections)
-        for id, index in SceneCommands.SwapDirections do
+        for id, index in SceneCommands.SwapDirections
+        {
             .registerKeyShortcut(.CtrlAlt, SceneCommands.ArrowKeys[index], id)
+        }
+
         .lens.addSource(.Action, func|document = me|(results) { document.describeScenes(results, atRest: false) })
         .registerKeyShortcut(.Control, .T, TabCommands.New)
         .registerKeyShortcut(.Control, .W, ViewerCommands.Close)
@@ -88,8 +93,11 @@ impl ViewerWindow
         {
             let label   = appStrings().scene_Layout
             var matches = atRest or Lens.match(results.folded, label).matched
-            for layout in SceneCommands.LayoutValues[0 until 6] where not matches do
+            for layout in SceneCommands.LayoutValues[0 until 6] where not matches
+            {
                 matches = Lens.match(results.folded, sceneLayoutTitle(layout)).matched
+            }
+
             if matches
             {
                 let layouts = results.addSection(label)
@@ -104,14 +112,20 @@ impl ViewerWindow
             }
         }
 
-        if workspace.scenes.count < 2 do
+        if workspace.scenes.count < 2
+        {
             return
+        }
+
         let scenes = results.addSection(appStrings().scene_SceneList)
         for sceneValue, index in workspace.scenes
         {
             let name = workspace.sceneName(unwrap sceneValue)
-            if not atRest and not Lens.match(results.folded, name).matched do
+            if not atRest and not Lens.match(results.folded, name).matched
+            {
                 continue
+            }
+
             with let entry = scenes.addEntry(name)
             {
                 .checked = index == workspace.active
@@ -138,8 +152,11 @@ impl ViewerWindow
     mtd computeSceneCommand(evt: *CommandStateEvent)->bool
     {
         let workspace = .workspace
-        if not workspace do
+        if not workspace
+        {
             return false
+        }
+
         let scene        = workspace.scene()
         let text         = appStrings()
         var name: string = ""
@@ -158,12 +175,15 @@ impl ViewerWindow
             case TabCommands.New:
                 name = text.tab_New
                 icon = .theme().icon(.Plus, size)
+
             case TabCommands.NewGrid:
                 name = text.tab_NewGrid
                 icon = .theme().icon(.Grid, size)
+
             case TabCommands.OpenFile:
                 name = text.tab_OpenFile
                 icon = .theme().icon(.OpenFile, size)
+
             case TabCommands.OpenFolder:
                 name = text.tab_OpenFolder
                 icon = .theme().icon(.Folder, size)
@@ -176,10 +196,12 @@ impl ViewerWindow
             case TabCommands.Close:
                 name = text.tab_Close
                 icon = .theme().icon(.WndClose, size)
+
             case TabCommands.CloseOthers:
                 name     = text.tab_CloseOthers
                 icon     = .theme().icon(.Remove, size)
                 disabled = workspace.scenes.count < 2
+
             case TabCommands.CloseAll:
                 name = text.tab_CloseAll
                 icon = .theme().icon(.RemoveAll, size)
@@ -214,8 +236,8 @@ impl ViewerWindow
 
         case SceneCommands.Maximize:
             icon     = .theme().icon(scene and scene.maximized ? ThemeIcons.ExitFullScreen : ThemeIcons.FullScreen, size)
-            name   = scene and scene.maximized ? text.scene_RestoreLayout : text.scene_Maximize
-            hidden = not scene or workspace.vacancy != null or scene.views.count < 2
+            name     = scene and scene.maximized ? text.scene_RestoreLayout : text.scene_Maximize
+            hidden   = not scene or workspace.vacancy != null or scene.views.count < 2
             disabled = workspace.focusOnGrid
 
         case SceneCommands.Equalize:
@@ -251,8 +273,11 @@ impl ViewerWindow
             }
         }
 
-        if not name.count do
+        if not name.count
+        {
             return false
+        }
+
         evt.name          = name
         evt.hidden        = hidden
         evt.disabled      = disabled
@@ -271,34 +296,56 @@ impl ViewerWindow
     mtd runSceneCommand(id: WndId)->bool
     {
         let workspace = .workspace
-        if not workspace do
+        if not workspace
+        {
             return false
+        }
+
         switch id
         {
-        case TabCommands.New:         workspace.newTab()
-        case TabCommands.NewGrid:     workspace.newTab(.Grid2)
-        case TabCommands.Close:       workspace.closeScene(workspace.active)
-        case TabCommands.CloseOthers: workspace.closeTabs(keep: workspace.active)
-        case TabCommands.CloseAll:    workspace.closeTabs()
+        case TabCommands.New:
+            workspace.newTab()
+
+        case TabCommands.NewGrid:
+            workspace.newTab(.Grid2)
+
+        case TabCommands.Close:
+            workspace.closeScene(workspace.active)
+
+        case TabCommands.CloseOthers:
+            workspace.closeTabs(keep: workspace.active)
+
+        case TabCommands.CloseAll:
+            workspace.closeTabs()
 
         case TabCommands.OpenFile, TabCommands.OpenFolder:
-            if workspace.scenes.count >= ViewerWorkspace.MaxScenes do
+            if workspace.scenes.count >= ViewerWorkspace.MaxScenes
+            {
                 return true
-            if id == TabCommands.OpenFile do
+            }
+
+            if id == TabCommands.OpenFile
+            {
                 .chooseFile(newTab: true)
+            }
             else
             {
                 let folder = .selectExplorerFolder()
-                if not folder.isEmpty() do
+                if not folder.isEmpty()
+                {
                     workspace.openDocument(folder, newTab: true)
+                }
             }
 
         case SceneCommands.Beside, SceneCommands.CompareWith, SceneCommands.OpenGrid:
             let grid    = id == SceneCommands.OpenGrid
             let compare = id == SceneCommands.CompareWith
             let scene   = workspace.scene()
-            if not grid and (not scene or not compare and scene.views.count >= ViewerWorkspace.MaxViews) do
+            if not grid and (not scene or not compare and scene.views.count >= ViewerWorkspace.MaxViews)
+            {
                 return true
+            }
+
             with var options: FileDlgOptions
             {
                 .state = &workspace.primary.fileDlgState
@@ -310,22 +357,27 @@ impl ViewerWindow
             }
 
             let dialog = FileDlg.create(unwrap .surface, options)
-            if dialog.doModal() != Dialog.BtnOk do
+            if dialog.doModal() != Dialog.BtnOk
+            {
                 return true
+            }
+
             if grid
             {
                 let selected = dialog.selectedPaths()
                 workspace.openScene(selected.toSlice(), sceneGrid(selected.count))
             }
-            elif compare and scene!.views.count > 1
+            else if compare and scene!.views.count > 1
             {
                 workspace.openScene([scene!.views[scene.active].path, dialog.selectedPath()], .SideBySide, compare: true)
             }
             else
             {
                 workspace.openBeside(dialog.selectedPath())
-                if compare do
+                if compare
+                {
                     workspace.toggleComparison()
+                }
             }
 
         case SceneCommands.CompareSelection:
@@ -357,8 +409,10 @@ impl ViewerWindow
             }
 
         default:
-            for item, index in SceneCommands.SwapDirections where item == id do
+            for item, index in SceneCommands.SwapDirections where item == id
+            {
                 return workspace.moveView(SceneCommands.ArrowKeys[index], swap: true)
+            }
 
             for item, index in SceneCommands.Layouts where item == id
             {

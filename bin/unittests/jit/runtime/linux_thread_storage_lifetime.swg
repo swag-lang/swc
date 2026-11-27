@@ -1,7 +1,7 @@
 #global if #os == Swag.TargetOs.Linux
 #global private
 
-tls var counter = 41'u64
+tls var counter = 41_u64
 
 #run
 {

@@ -19,8 +19,8 @@ using Corpus
 #[Swag.Safety(.Math, false), Swag.Sanity(.Math, true)]
 func divideByProvenZero()->s32
 {
-    var divisor = 0's32
-    var value   = 10's32
+    var divisor = 0_s32
+    var value   = 10_s32
     return value / divisor     // swc-expected-error {{sanity_err_division_zero}}
 }
 
@@ -100,8 +100,10 @@ func squareRootOfNegative(value: f32)->f32
 
 func divideByGuardedDivisor(value, divisor: s32)->s32
 {
-    if divisor == 0 do
+    if divisor == 0
+    {
         return 0
+    }
     return value / divisor
 }
 

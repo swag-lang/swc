@@ -56,8 +56,10 @@ func firstText(source: string)->{ text: String, damaged: bool }
         {"OEBPS",         "chapter.xhtml?print=1#top", "OEBPS/chapter.xhtml"},
         {"",              "mimetype",                  "mimetype"},
         {"/OEBPS//Text/", "page.xhtml",                "OEBPS/Text/page.xhtml"}]
-    for row in Inside do
+    for row in Inside
+    {
         Swag.require(Package.resolvePath(row.base, row.reference) == row.path, row.reference)
+    }
 
     const Refused: [8] { base: string, reference: string } = [
         {"OEBPS", ""},
@@ -68,8 +70,10 @@ func firstText(source: string)->{ text: String, damaged: bool }
         {"OEBPS", "../../outside.txt"},
         {"",      ".."},
         {"",      "#fragment-only"}]
-    for row in Refused do
+    for row in Refused
+    {
         Swag.require(Package.resolvePath(row.base, row.reference).isEmpty(), row.reference)
+    }
 
     // A relationship target may name the package root; it still cannot leave it.
     Swag.require(Package.resolveRelationshipTarget("word", "/word/media/image1.png") == "word/media/image1.png")
@@ -123,8 +127,10 @@ func firstText(source: string)->{ text: String, damaged: bool }
         "<?xml never closed",
         "<a><!ELEMENT b ANY></a>",
         "<a><!ENTITY x 'y'></a>"]
-    for source in Damaged do
+    for source in Damaged
+    {
         Swag.require(firstText(source).damaged, source)
+    }
 
     // A document type without an internal subset is allowed once, and only where asked for.
     var allowed = Package.Scanner.create("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"a>b.dtd\"><html/>")
@@ -137,9 +143,9 @@ func firstText(source: string)->{ text: String, damaged: bool }
     Swag.require(not twice.next(&token) and twice.damaged)
 
     // Bytes that are not UTF-8 are refused before any token is read.
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add("<a>caf")
-    bytes.add(0xE9'u8)
+    bytes.add(0xE9_u8)
     bytes.add("</a>")
     var invalid = Package.Scanner.create(cast(string, bytes.toSlice()))
     Swag.require(invalid.damaged and not invalid.next(&token))
@@ -159,8 +165,11 @@ func firstText(source: string)->{ text: String, damaged: bool }
     Swag.require(theme.color("unknown").isEmpty() and theme.majorFont.isEmpty())
 
     var longName: String
-    for 300 do
+    for 300
+    {
         longName += "x"
+    }
+
     let source = Format.toString("""<a:theme><a:themeElements>
         <a:clrScheme name="Test">
             <a:dk1><a:sysClr val="windowText" lastClr="112233"/></a:dk1>

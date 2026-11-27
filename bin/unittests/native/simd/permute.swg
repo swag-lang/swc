@@ -40,20 +40,28 @@ func liveAlign(low, high: #simd [16] u8, count: u8)->#simd [16] u8 => Swag.vecAl
     let pattern = cast(#simd [16] u8, reverse)
 
     var r = cast([16] u8, Swag.vecShuffle(bytes, cast(#simd [16] u8, [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])))
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(r[i] == source[15 - i])
+    }
 
     r = cast([16] u8, liveShuffleBytes(bytes, pattern))
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(r[i] == source[15 - i])
+    }
 
     // Every index reduces modulo the lane count, so no pattern is out of range.
     var wide: [16] u8
-    for i in 16 do
+    for i in 16
+    {
         wide[i] = cast(u8, (i + 16))
+    }
     r = cast([16] u8, liveShuffleBytes(bytes, cast(#simd [16] u8, wide)))
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(r[i] == source[i])
+    }
 }
 
 #test
@@ -131,19 +139,27 @@ func liveAlign(low, high: #simd [16] u8, count: u8)->#simd [16] u8 => Swag.vecAl
     var br = cast([16] u8, Swag.vecShuffle2(bx, by, cast(#simd [16] u8, [0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23])))
     for i in 16
     {
-        if i % 2 == 0 do
+        if i % 2 == 0
+        {
             Swag.require(br[i] == cast(u8, (i / 2)))
-        else do
+        }
+        else
+        {
             Swag.require(br[i] == cast(u8, (100 + i / 2)))
+        }
     }
 
     br = cast([16] u8, liveShuffle2Bytes(bx, by, cast(#simd [16] u8, zipPattern)))
     for i in 16
     {
-        if i % 2 == 0 do
+        if i % 2 == 0
+        {
             Swag.require(br[i] == cast(u8, (i / 2)))
-        else do
+        }
+        else
+        {
             Swag.require(br[i] == cast(u8, (100 + i / 2)))
+        }
     }
 }
 
@@ -161,26 +177,36 @@ func liveAlign(low, high: #simd [16] u8, count: u8)->#simd [16] u8 => Swag.vecAl
     let highVec = cast(#simd [16] u8, high)
 
     var r = cast([16] u8, Swag.vecAlign(lowVec, highVec, 0))
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(r[i] == cast(u8, i))
+    }
 
     r = cast([16] u8, Swag.vecAlign(lowVec, highVec, 7))
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(r[i] == cast(u8, (i + 7)))
+    }
 
     r = cast([16] u8, Swag.vecAlign(lowVec, highVec, 16))
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(r[i] == cast(u8, (i + 16)))
+    }
 
     // The window runs out of bytes past the concatenation.
     r = cast([16] u8, Swag.vecAlign(lowVec, highVec, 31))
     Swag.require(r[0] == 31)
-    for i in 1 until 16 do
+    for i in 1 until 16
+    {
         Swag.require(r[i] == 0)
+    }
 
     r = cast([16] u8, Swag.vecAlign(lowVec, highVec, 32))
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(r[i] == 0)
+    }
 
     // A count only known at run time answers the same, through the two-source
     // byte select instead of the immediate form.
@@ -191,7 +217,7 @@ func liveAlign(low, high: #simd [16] u8, count: u8)->#simd [16] u8 => Swag.vecAl
         for i in 16
         {
             let position = c + i
-            Swag.require(live[i] == (position < 32 ? cast(u8, position) : 0'u8))
+            Swag.require(live[i] == (position < 32 ? cast(u8, position) : 0_u8))
         }
     }
 }

@@ -21,7 +21,7 @@
     {
         state += 1000
     }
-    elif true
+    else if true
     {
         state += 10000
     }

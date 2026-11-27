@@ -4,7 +4,7 @@
 using Core, Gui, Pixel
 
 // Opens the test data folder in a real explorer and waits for its listing.
-func openMenuExplorer(host: *Testing.HeadlessHost, width = 1280'f32)->*ViewerWindow
+func openMenuExplorer(host: *Testing.HeadlessHost, width = 1280_f32)->*ViewerWindow
 {
     host.setup(width, 720)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
@@ -27,8 +27,11 @@ func waitMenuExplorer(host: *Testing.HeadlessHost, window: *ViewerWindow)
     for 64
     {
         host.pump()
-        if not explorer.load.started do
+        if not explorer.load.started
+        {
             break
+        }
+
         explorer.load.task.wait()
     }
 
@@ -49,8 +52,11 @@ func waitMenuExplorer(host: *Testing.HeadlessHost, window: *ViewerWindow)
     {
         breadcrumb.clear()
         breadcrumb.maxVisibleItems = 1
-        if hidden do
+        if hidden
+        {
             breadcrumb.addItem("Parent")
+        }
+
         breadcrumb.addItem("Current", hasArrow: false)
         explorer.address.refreshPath()
         let rect  = breadcrumb.surfaceRect()
@@ -60,14 +66,23 @@ func waitMenuExplorer(host: *Testing.HeadlessHost, window: *ViewerWindow)
         var checked: bool
         host.app.sigFrame += func|host = &host, &checked, hidden|(_)
         {
-            if checked do
+            if checked
+            {
                 return
+            }
+
             let menu = host.capturedPopupMenu()
-            if not menu do
+            if not menu
+            {
                 return
+            }
+
             Swag.require(menu.items.count == (hidden ? 3 : 1))
-            if hidden do
+            if hidden
+            {
                 Swag.require(menu.items[0]!.name.text == "Parent" and menu.items[1]!.separator)
+            }
+
             Swag.require(menu.items.back()!.id == ViewerCommands.ChooseFolder)
             checked = true
             Swag.require(host.dismissPopupMenu())
@@ -84,8 +99,11 @@ func selectParentInFolderPicker(host: *Testing.HeadlessHost, window: *ViewerWind
     var picked: bool
     host.app.sigFrame += func|host, &picked, current, parent|(_)
     {
-        if picked do
+        if picked
+        {
             return
+        }
+
         for surface in host.app.surfaces
         {
             if surface.view() is FileDlg as picker
@@ -145,8 +163,11 @@ func selectParentInFolderPicker(host: *Testing.HeadlessHost, window: *ViewerWind
     var postedActions: u32
     window.hookOnEvent = func|&postedActions|(_, evt)
     {
-        if evt is CommandEvent as command where command.id == ViewerCommands.CopyLocation or command.id == ViewerCommands.CopyPath do
+        if evt is CommandEvent as command where command.id == ViewerCommands.CopyLocation or command.id == ViewerCommands.CopyPath
+        {
             postedActions += 1
+        }
+
         return false
     }
 
@@ -216,12 +237,17 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
     Swag.require(explorer.descending)
     requireSortLabel(explorer, appStrings().sort_Name, "↓")
     Swag.require(window.sendComputeCommandStateEvent(ViewerCommands.SortDescending).checked)
-    var files: Array'String
-    for index in explorer.shown where not explorer.entries[index].directory do
+    var files: Array!{String}
+    for index in explorer.shown where not explorer.entries[index].directory
+    {
         files.add(explorer.entries[index].name)
+    }
+
     Swag.require(files.count > 2)
-    for index in 1 until files.count do
+    for index in 1 until files.count
+    {
         Swag.require(Text.compareNames(files[index - 1], files[index]) >= 0)
+    }
 
     chooseInQuietMenu(&host, window, explorer.sortMenu, ViewerCommands.SortSize)
     Swag.require(explorer.sortColumn == 2 and explorer.descending)
@@ -242,8 +268,11 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
     var checked: bool
     host.app.sigFrame += func|host = &host, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items.count > 2)
         Swag.require(menu.items[0]!.id == ViewerCommands.FilterAll)
@@ -280,7 +309,7 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
 
     Swag.require(window.sendComputeCommandStateEvent(ViewerCommands.ThumbnailCrops[0]).checked)
     let settings    = explorer.previewSettings
-    var glyphs: Array's32
+    var glyphs: Array!{s32}
     let otherGroups = [cast(const [..] string, ViewerCommands.Modes),
                        cast(const [..] string, ViewerCommands.Boards),
                        cast(const [..] string, ViewerCommands.Artwork)]
@@ -289,8 +318,10 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
         for command in commands
         {
             let state = window.sendComputeCommandStateEvent(command)
-            if not state.hidden and state.icon.isValid() do
+            if not state.hidden and state.icon.isValid()
+            {
                 glyphs.add(state.icon.index)
+            }
         }
     }
 
@@ -306,8 +337,10 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
         var found = false
         for section in window.lens.results.sections
         {
-            for entry in section!.entries where entry.id == command do
+            for entry in section!.entries where entry.id == command
+            {
                 found = true
+            }
         }
 
         Swag.require(found)
@@ -322,27 +355,34 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, false, films: true)
     let explorer = unwrap window.explorer
-    for name in ["One.mkv", "Two.mkv", "Three.mkv"] do
+    for name in ["One.mkv", "Two.mkv", "Three.mkv"]
+    {
         explorer.entries.add({name: name, path: name, attempted: true})
+    }
+
     explorer.fill()
     Swag.require(explorer.grid.board == .Posters and explorer.showsMedia())
     explorer.forceBoard(true, .Grid)
     Swag.require(explorer.grid.board == .Grid and explorer.showsMedia())
-    for command in ViewerCommands.Artwork do
+    for command in ViewerCommands.Artwork
+    {
         Swag.require(not window.sendComputeCommandStateEvent(command).hidden)
+    }
 
     explorer.entries.clear()
     explorer.entries.add({name: "notes.txt", path: "notes.txt", attempted: true})
     explorer.fill()
     Swag.require(not explorer.showsMedia())
-    for command in ViewerCommands.Artwork do
+    for command in ViewerCommands.Artwork
+    {
         Swag.require(window.sendComputeCommandStateEvent(command).hidden)
+    }
 }
 
 // The path has air after the navigation; the permanent query and tools share the line below.
 #test
 {
-    for width in [ViewerWindow.MinWidth, 1280'f32]
+    for width in [ViewerWindow.MinWidth, 1280_f32]
     {
         var host: Testing.HeadlessHost
         let window   = openMenuExplorer(&host, width)

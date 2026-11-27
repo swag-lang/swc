@@ -1,14 +1,14 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const STATX_TYPE            = 0x1'u32
-const STATX_MODE            = 0x2'u32
-const STATX_BASIC_STATS     = 0x7FF'u32
-const STATX_BTIME           = 0x800'u32
-const STATX_ATIME           = 0x20'u32
-const STATX_MTIME           = 0x40'u32
-const STATX_ATTR_COMPRESSED = 0x4'u64
-const STATX_ATTR_ENCRYPTED  = 0x800'u64
+const STATX_TYPE            = 0x1_u32
+const STATX_MODE            = 0x2_u32
+const STATX_BASIC_STATS     = 0x7FF_u32
+const STATX_BTIME           = 0x800_u32
+const STATX_ATIME           = 0x20_u32
+const STATX_MTIME           = 0x40_u32
+const STATX_ATTR_COMPRESSED = 0x4_u64
+const STATX_ATTR_ENCRYPTED  = 0x800_u64
 
 struct statx_timestamp
 {

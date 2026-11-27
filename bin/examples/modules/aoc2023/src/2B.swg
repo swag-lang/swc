@@ -28,20 +28,20 @@ func day2B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var total = 0'u64
+    var total = 0_u64
 
     for l in lines
     {
-        let gameRecord = Tokenize.split(l[], ':'u8)
-        let reveals    = Tokenize.split(gameRecord[1], ';'u8)
+        let gameRecord = Tokenize.split(l[], ':'_u8)
+        let reveals    = Tokenize.split(gameRecord[1], ';'_u8)
 
         var maxCubes: { red, green, blue: s32 }
         for reveal in reveals
         {
-            let revealedCubes = Tokenize.split(reveal, ','u8)
+            let revealedCubes = Tokenize.split(reveal, ','_u8)
             for cubeDescription in revealedCubes
             {
-                let cube = Tokenize.split(cubeDescription, ' 'u8)
+                let cube = Tokenize.split(cubeDescription, ' '_u8)
                 switch cube[1]
                 {
                 case "red":   maxCubes.red = Math.max(maxCubes.red, expect StrConv.toS32(cube[0]))

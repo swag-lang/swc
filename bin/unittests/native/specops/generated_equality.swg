@@ -145,13 +145,13 @@ struct PaddedHolder
 #[Swag.Optimize(false)]
 func viewText(buffer: const [*] u8)->string
 {
-    return cast(string, Swag.makeSlice(buffer, 3'u64))
+    return cast(string, Swag.makeSlice(buffer, 3_u64))
 }
 
 #[Swag.Optimize(false)]
 func viewBytes(buffer: const [*] u8)->const [..] u8
 {
-    return Swag.makeSlice(buffer, 3'u64)
+    return Swag.makeSlice(buffer, 3_u64)
 }
 
 #test
@@ -218,9 +218,9 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
         tag:   s64
     }
 
-    let a = LocalHolder'string{value: viewText(cast(const [*] u8, &left[0])), tag: 1}
-    let b = LocalHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 1}
-    let c = LocalHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 2}
+    let a = LocalHolder!{string}{value: viewText(cast(const [*] u8, &left[0])), tag: 1}
+    let b = LocalHolder!{string}{value: viewText(cast(const [*] u8, &right[0])), tag: 1}
+    let c = LocalHolder!{string}{value: viewText(cast(const [*] u8, &right[0])), tag: 2}
     Swag.require(a == b)
     Swag.require(a != c)
 
@@ -241,15 +241,15 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     var right: [3] u8 = ['a', 'b', 'c']
 
     // Each generic instance decides on its own members.
-    let a = GenericHolder'string{value: viewText(cast(const [*] u8, &left[0])), tag: 4}
-    let b = GenericHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 4}
-    let c = GenericHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 5}
+    let a = GenericHolder!{string}{value: viewText(cast(const [*] u8, &left[0])), tag: 4}
+    let b = GenericHolder!{string}{value: viewText(cast(const [*] u8, &right[0])), tag: 4}
+    let c = GenericHolder!{string}{value: viewText(cast(const [*] u8, &right[0])), tag: 5}
     Swag.require(a == b)
     Swag.require(a != c)
 
-    let d = GenericHolder's32{value: 5, tag: 4}
-    let e = GenericHolder's32{value: 5, tag: 4}
-    let f = GenericHolder's32{value: 6, tag: 4}
+    let d = GenericHolder!{s32}{value: 5, tag: 4}
+    let e = GenericHolder!{s32}{value: 5, tag: 4}
+    let f = GenericHolder!{s32}{value: 6, tag: 4}
     Swag.require(d == e)
     Swag.require(d != f)
 }

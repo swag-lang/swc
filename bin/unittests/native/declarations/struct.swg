@@ -137,7 +137,7 @@ struct PtrWrap
 
 #test
 {
-    var v = 123's32
+    var v = 123_s32
     var wrap: PtrWrap = PtrWrap{value: &v}
     Swag.require(wrap.value[] == 123)
     wrap.value[] = 321

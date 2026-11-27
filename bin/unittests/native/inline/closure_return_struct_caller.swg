@@ -14,14 +14,18 @@ struct Quote
 #[Swag.Inline]
 func makeDiscountRule(seats: s32)->func||(s32)->s32
 {
-    var perSeatCents = 0's32
-    if seats >= 10 do
+    var perSeatCents = 0_s32
+    if seats >= 10
+    {
         perSeatCents = 150
+    }
 
     return func|seats, perSeatCents|(_: s32)->s32
     {
-        if seats <= 4 do
+        if seats <= 4
+        {
             return 0
+        }
         return (seats - 4) * perSeatCents
     }
 }

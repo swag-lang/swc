@@ -6,7 +6,7 @@ var GNullShortValue:   s32 = 33
 func fallbackU32()->u32
 {
     GNullShortCounter += 1
-    return 91'u32
+    return 91_u32
 }
 
 func fallbackPointer()->*s32
@@ -24,8 +24,8 @@ func fallbackString()->string
 #test
 {
     GNullShortCounter = 0
-    let value = 12'u32 != 0 ? 12'u32 : fallbackU32()
-    Swag.require(value == 12'u32)
+    let value = 12_u32 != 0 ? 12_u32 : fallbackU32()
+    Swag.require(value == 12_u32)
     Swag.require(GNullShortCounter == 0)
 }
 

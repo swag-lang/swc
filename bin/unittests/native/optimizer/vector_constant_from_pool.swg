@@ -9,7 +9,7 @@ using Swag
 #[Swag.Optimize(true)]
 func roundRows(dst: [*] s16, src: const [*] s16, rows: u64)
 {
-    let twos = cast(#simd [8] s16, Swag.vecSplat(2's16))
+    let twos = cast(#simd [8] s16, Swag.vecSplat(2_s16))
     let mask = cast(#simd [8] s16, [0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0])
     for row in rows
     {
@@ -24,8 +24,8 @@ func tableOffsets(dst: [*] u8, src: const [*] u8)
     // Two constants of the same shape, read at two different lanes: each one
     // is its own pool entry, and neither may be confused with the other.
     let bytes = cast(const [*] #simd [16] u8, src)[0]
-    let ones  = cast(#simd [16] u8, Swag.vecSplat(1'u8))
-    let twos  = cast(#simd [16] u8, Swag.vecSplat(2'u8))
+    let ones  = cast(#simd [16] u8, Swag.vecSplat(1_u8))
+    let twos  = cast(#simd [16] u8, Swag.vecSplat(2_u8))
     cast([*] #simd [16] u8, dst)[0]        = bytes + ones
     cast([*] #simd [16] u8, (dst + 16))[0] = bytes + twos
 }
@@ -42,8 +42,10 @@ func widenConstant(dst: [*] s32)
 {
     var src: [4 * 8] s16
     var dst: [4 * 8] s16
-    for i in 4 * 8 do
+    for i in 4 * 8
+    {
         src[i] = cast(s16, (i * 3))
+    }
     roundRows(&dst[0], &src[0], 4)
     Swag.require(dst[0] == ((0 + 2) >> 2) & 0xFF and dst[3] == ((9 + 2) >> 2) & 0xFF)
     Swag.require(dst[4] == 0 and dst[7] == 0)
@@ -51,8 +53,10 @@ func widenConstant(dst: [*] s32)
 
     var bytes: [16] u8
     var out:   [32] u8
-    for i in 16 do
+    for i in 16
+    {
         bytes[i] = cast(u8, (i * 5))
+    }
     tableOffsets(&out[0], &bytes[0])
     Swag.require(out[0] == 1 and out[15] == 75 + 1)
     Swag.require(out[16] == 2 and out[31] == 75 + 2)

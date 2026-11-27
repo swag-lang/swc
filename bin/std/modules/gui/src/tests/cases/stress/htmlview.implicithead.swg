@@ -12,8 +12,11 @@ using Core, Pixel
     var source: String = "<!doctype html><html><meta charset='utf-8'><title>Reading</title>"
     source += "<style>body{font:18px/1.55 Georgia,serif;max-width:860px;margin:2rem auto;padding:0 1rem}img{max-width:100%;height:auto;display:block;margin:1rem auto}</style><body id='page'>"
     source += "<h1>A centered reading column</h1><img id='figure' width='1000' height='200'><h2>A section</h2>"
-    while source.length < 2 * 1024 * 1024 + 1024 do
+    while source.length < 2 * 1024 * 1024 + 1024
+    {
         source += "<p>A paragraph keeps the ordinary document larger than one resident window.</p>\n"
+    }
+
     source += "</body></html>"
     discard expect File.writeAllText(fileName, source)
 

@@ -24,20 +24,24 @@ using Swag, Core
     for index in 4
     {
         let tick = cast(u64, Math.round(cast(f64, index) * 1_024 * 10_000_000.0 / 48_000.0))
-        if index == 2 do
+        if index == 2
+        {
             expect systemPackets.pushSilence(1_024, tick)
-        else do
+        }
+        else
+        {
             expect systemPackets.pushFloat32(Swag.makeSlice(&desktop[0], desktop.count), tick)
+        }
     }
 
     expect microphone.markLost(213_333)
-    let resumedTick = cast(u64, Math.round(3.0'f64 * 1_024 * 10_000_000.0 / 48_000.0))
+    let resumedTick = cast(u64, Math.round(3.0_f64 * 1_024 * 10_000_000.0 / 48_000.0))
     expect microphonePackets.pushFloat32(Swag.makeSlice(&voice[0], voice.count), resumedTick)
 
     var microphoneTrack = expect CaptureAacTrack.create(&microphone)
     var systemTrack     = expect CaptureAacTrack.create(&systemOutput)
-    var microphoneAac:  Array'u8
-    var systemAac:      Array'u8
+    var microphoneAac:  Array!{u8}
+    var systemAac:      Array!{u8}
     var microphoneInfo: CaptureAacPacket
     var systemInfo:     CaptureAacPacket
     for index in 4
@@ -67,13 +71,16 @@ using Swag, Core
     var output = expect CaptureQueue.create(48_000, 1, 0, 48_000, blockFrames: 1_024, tolerance: 0)
     var feeder = CapturePcmFeeder.create(&output)
     var signal: [1_024] s16
-    for index in signal.count do
+    for index in signal.count
+    {
         signal[index] = cast(s16, index % 200)
+    }
+
     expect feeder.pushPcm16(Swag.makeSlice(&signal[0], signal.count), 0)
     Swag.require(expect output.markSilentUntil(3 * 1_024) == 2 * 1_024)
     Swag.require(output.silentGapEnd() == 0)
     var track = expect CaptureAacTrack.create(&output)
-    var packet: Array'u8
+    var packet: Array!{u8}
     var info:   CaptureAacPacket
     for index in 3
     {
@@ -107,10 +114,10 @@ using Swag, Core
     Swag.require(expect queue.markSilentUntil(10) == 10)
     const Late: [4] s16 = [11, 22, 33, 44]
     expect feeder.pushPcm16(Swag.makeSlice(&Late[0], Late.count), 8, true)
-    var copied: Array's16
+    var copied: Array!{s16}
     var info:   CaptureBlock
     Swag.require(queue.pop(&copied, &info))
     Swag.require(info.startSample == 10 and info.frameCount == 2 and info.sourceInterrupted)
-    Swag.require(Slice.equals(copied.toSlice(), [33's16, 44]))
+    Swag.require(Slice.equals(copied.toSlice(), [33_s16, 44]))
     Swag.require(not queue.pop(&copied, &info) and queue.sampleEnd() == 12)
 }

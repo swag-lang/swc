@@ -9,7 +9,7 @@ struct(T) Vector3
 
 impl Vector3
 {
-    func dot(a: Vector3'T, b: Vector3'T)->T
+    func dot(a: Vector3!{T}, b: Vector3!{T})->T
     {
         return a.x * b.x + a.y * b.y + a.z * b.z
     }
@@ -17,9 +17,9 @@ impl Vector3
 
 func semaTest001()
 {
-    var a: Vector3's32 = {x: 1, y: 2, z: 3}
-    var b: Vector3's32 = {x: 4, y: 5, z: 6}
-    let d = Vector3's32.dot(&a, &b)
+    var a: Vector3!{s32} = {x: 1, y: 2, z: 3}
+    var b: Vector3!{s32} = {x: 4, y: 5, z: 6}
+    let d = Vector3!{s32}.dot(&a, &b)
 
     #assert(#typeof(d) == s32)
 }

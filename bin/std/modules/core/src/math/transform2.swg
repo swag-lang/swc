@@ -151,8 +151,10 @@ impl Transform2
     // transformed shape, which is what a caller rejecting work against a viewport needs.
     //
     // ```swag
-    // if not viewport.intersects(transform.transformBounds(item.bounds)) do
+    // if not viewport.intersects(transform.transformBounds(item.bounds))
+    // {
     //     continue
+    // }
     // ```
     mtd const transformBounds(rect: Rectangle)->Rectangle
     {
@@ -182,8 +184,10 @@ impl Transform2
         let m21         = cast(f64, .m21)
         let m22         = cast(f64, .m22)
         let determinant = m11 * m22 - m12 * m21
-        if determinant == 0 do
+        if determinant == 0
+        {
             return Identity
+        }
 
         let inverseM11 = m22 / determinant
         let inverseM12 = -m12 / determinant
@@ -203,8 +207,10 @@ impl Transform2
            not Math.isFinite(inverseTx) or
            Math.abs(inverseTx) > maxF32 or
            not Math.isFinite(inverseTy) or
-           Math.abs(inverseTy) > maxF32 do
+           Math.abs(inverseTy) > maxF32
+        {
             return Identity
+        }
 
         with var result: #returntype
         {

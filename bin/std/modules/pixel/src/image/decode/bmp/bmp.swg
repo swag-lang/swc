@@ -17,7 +17,7 @@ public const BI_RLE8      = 1     // Run-length encoded 8-bit indexed data.
 public const BI_RLE4      = 2     // Run-length encoded 4-bit indexed data.
 public const BI_BITFIELDS = 3     // Direct-color data described by channel masks.
 
-const BMP_SIGNATURE = 0x4D42'u16
+const BMP_SIGNATURE = 0x4D42_u16
 
 // Represents the Windows `BITMAPINFOHEADER` binary layout.
 //
@@ -82,16 +82,21 @@ internal struct Decoder {}
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
-    if ptr + size > last do
+    if ptr + size > last
+    {
         fail InvalidFormatError{"invalid source buffer"}
+    }
 }
 
 func rowStride(width: s32, bitCount: u16)->u64 => ((cast(u64, width) * cast(u64, bitCount) + 31) / 32) * 4
 
 func defaultPaletteCount(bitCount: u16)->u32
 {
-    if bitCount <= 8 do
-        return 1'u32 << cast(u32, bitCount)
+    if bitCount <= 8
+    {
+        return 1_u32 << cast(u32, bitCount)
+    }
+
     return 0
 }
 
@@ -118,19 +123,24 @@ func readMask(mask: u32)->Mask
 
 func validMask(mask: Mask, bitCount: u16)->bool
 {
-    if not mask.value or not mask.bits or cast(u32, mask.shift) + mask.bits > bitCount do
+    if not mask.value or not mask.bits or cast(u32, mask.shift) + mask.bits > bitCount
+    {
         return false
-    let expected = ((1'u64 << cast(u64, mask.bits)) - 1) << cast(u64, mask.shift)
+    }
+
+    let expected = ((1_u64 << cast(u64, mask.bits)) - 1) << cast(u64, mask.shift)
     return cast(u64, mask.value) == expected
 }
 
 func maskToByte(pixel: u32, mask: Mask)->u8
 {
-    if not mask.value or not mask.bits do
+    if not mask.value or not mask.bits
+    {
         return 0
+    }
 
     let value = cast(u64, ((pixel & mask.value) >> cast(u32, mask.shift)))
-    let max   = (1'u64 << cast(u64, mask.bits)) - 1
+    let max   = (1_u64 << cast(u64, mask.bits)) - 1
     return cast(u8, ((value * 255 + (max >> 1)) / max))
 }
 
@@ -144,13 +154,15 @@ func makeDefaultMasks(bitCount: u16, compression: u32)->Masks
         result.g = readMask(0x03E0)
         result.b = readMask(0x001F)
     }
-    elif bitCount == 32
+    else if bitCount == 32
     {
         result.r = readMask(0x00FF0000)
         result.g = readMask(0x0000FF00)
         result.b = readMask(0x000000FF)
-        if compression == BI_RGB do
+        if compression == BI_RGB
+        {
             result.a = readMask(0xFF000000)
+        }
     }
 
     return result
@@ -166,8 +178,10 @@ internal impl IImageDecoder for Decoder
         let countof = buffer.count
         let last    = dataof + countof
 
-        if countof < 4 do
+        if countof < 4
+        {
             fail InvalidFormatError{"invalid source buffer"}
+        }
 
         // FileHeader
         var hasFileHeader: bool
@@ -180,24 +194,34 @@ internal impl IImageDecoder for Decoder
                 hasFileHeader = true
                 dataof        += #sizeof(FileHeader)
                 bfOffBits     = fh.bfOffBits
-                if fh.bfSize and fh.bfSize > countof do
+                if fh.bfSize and fh.bfSize > countof
+                {
                     fail InvalidFormatError{"invalid source buffer"}
-                if fh.bfSize and fh.bfSize < bfOffBits do
+                }
+
+                if fh.bfSize and fh.bfSize < bfOffBits
+                {
                     fail InvalidFormatError{"invalid source buffer"}
-                if bfOffBits > countof do
+                }
+
+                if bfOffBits > countof
+                {
                     fail InvalidFormatError{"invalid source buffer"}
+                }
             }
         }
 
         try checkBuffer(dataof, last, #sizeof(u32))
         let headerStart = dataof
         let size        = cast(const *u32, dataof)[]
-        if size < #sizeof(CoreHeader) do
+        if size < #sizeof(CoreHeader)
+        {
             fail UnsupportedFormatError{"unsupported BMP header"}
+        }
 
         // DIB header
         var bh: Header
-        var paletteEntrySize = 4'u32
+        var paletteEntrySize = 4_u32
         if size == #sizeof(CoreHeader)
         {
             try checkBuffer(dataof, last, #sizeof(CoreHeader))
@@ -214,18 +238,26 @@ internal impl IImageDecoder for Decoder
         }
         else
         {
-            if size < #sizeof(Header) do
+            if size < #sizeof(Header)
+            {
                 fail UnsupportedFormatError{"unsupported BMP header"}
+            }
+
             try checkBuffer(dataof, last, size)
 
             Memory.copy(&bh, dataof, #sizeof(Header))
             dataof = headerStart + size
         }
 
-        if bh.biPlanes != 1 do
+        if bh.biPlanes != 1
+        {
             fail UnsupportedFormatError{"unsupported planes"}
-        if bh.biWidth <= 0 or bh.biHeight == 0 or bh.biHeight == Swag.S32.Min do
+        }
+
+        if bh.biWidth <= 0 or bh.biHeight == 0 or bh.biHeight == Swag.S32.Min
+        {
             fail InvalidFormatError{"invalid dimensions"}
+        }
 
         let topDown = bh.biHeight < 0
         let height  = Math.abs(bh.biHeight)
@@ -239,10 +271,12 @@ internal impl IImageDecoder for Decoder
                 masks.r = readMask(cast(const *u32, maskPtr)[])
                 masks.g = readMask(cast(const *u32, (maskPtr + 4))[])
                 masks.b = readMask(cast(const *u32, (maskPtr + 8))[])
-                if size >= 56 do
+                if size >= 56
+                {
                     masks.a = readMask(cast(const *u32, (maskPtr + 12))[])
+                }
             }
-            elif size == #sizeof(Header)
+            else if size == #sizeof(Header)
             {
                 try checkBuffer(dataof, last, 12)
                 masks.r = readMask(cast(const *u32, dataof)[])
@@ -258,13 +292,18 @@ internal impl IImageDecoder for Decoder
             if not validMask(masks.r, bh.biBitCount) or
                not validMask(masks.g, bh.biBitCount) or
                not validMask(masks.b, bh.biBitCount) or
-               (masks.a.value and not validMask(masks.a, bh.biBitCount)) do
+               (masks.a.value and not validMask(masks.a, bh.biBitCount))
+            {
                 fail InvalidFormatError{"invalid bit masks"}
+            }
+
             if (masks.r.value & masks.g.value) or
                (masks.r.value & masks.b.value) or
                (masks.g.value & masks.b.value) or
-               (masks.a.value & (masks.r.value | masks.g.value | masks.b.value)) do
+               (masks.a.value & (masks.r.value | masks.g.value | masks.b.value))
+            {
                 fail InvalidFormatError{"overlapping bit masks"}
+            }
         }
 
         // Create image
@@ -277,22 +316,36 @@ internal impl IImageDecoder for Decoder
         default: fail UnsupportedFormatError{"unsupported bit count"}
         }
 
-        if bh.biCompression == BI_RLE8 and bh.biBitCount != 8 do
+        if bh.biCompression == BI_RLE8 and bh.biBitCount != 8
+        {
             fail UnsupportedFormatError{"unsupported compression"}
-        if bh.biCompression == BI_RLE4 and bh.biBitCount != 4 do
+        }
+
+        if bh.biCompression == BI_RLE4 and bh.biBitCount != 4
+        {
             fail UnsupportedFormatError{"unsupported compression"}
+        }
+
         if bh.biCompression == BI_BITFIELDS and
            bh.biBitCount != 16 and
            bh.biBitCount != 24 and
-           bh.biBitCount != 32 do
+           bh.biBitCount != 32
+        {
             fail UnsupportedFormatError{"unsupported compression"}
+        }
+
         if bh.biCompression != BI_RGB and
            bh.biCompression != BI_BITFIELDS and
            bh.biCompression != BI_RLE8 and
-           bh.biCompression != BI_RLE4 do
+           bh.biCompression != BI_RLE4
+        {
             fail UnsupportedFormatError{"unsupported compression"}
-        if topDown and (bh.biCompression == BI_RLE8 or bh.biCompression == BI_RLE4) do
+        }
+
+        if topDown and (bh.biCompression == BI_RLE8 or bh.biCompression == BI_RLE4)
+        {
             fail UnsupportedFormatError{"unsupported compression"}
+        }
 
         var paletteCount = bh.biClrUsed ? bh.biClrUsed : defaultPaletteCount(bh.biBitCount)
         let palette      = dataof
@@ -303,11 +356,17 @@ internal impl IImageDecoder for Decoder
         }
 
         let pixelData = hasFileHeader and bfOffBits ? buffer.buffer + bfOffBits : dataof
-        if pixelData < dataof do
+        if pixelData < dataof
+        {
             fail InvalidFormatError{"invalid source buffer"}
+        }
 
-        if not options.decodePixels do
+        try options.checkImage(result.width, result.height, result.pixelFormat)
+        if not options.decodePixels
+        {
             return result
+        }
+
         result.allocPixels()
 
         // Decode
@@ -318,7 +377,7 @@ internal impl IImageDecoder for Decoder
             result.clear()
             try decodeRle8(&result, dataof, last, palette, paletteEntrySize, paletteCount)
         }
-        elif bh.biCompression == BI_RLE4
+        else if bh.biCompression == BI_RLE4
         {
             result.clear()
             try decodeRle4(&result, dataof, last, palette, paletteEntrySize, paletteCount)
@@ -337,10 +396,14 @@ internal impl IImageDecoder for Decoder
                 try decodeUncompressedDirect(&result, dataof, last, bh.biBitCount, topDown)
 
             case 32:
-                if bh.biCompression == BI_BITFIELDS do
+                if bh.biCompression == BI_BITFIELDS
+                {
                     try decode32(&result, dataof, last, masks, topDown)
-                else do
+                }
+                else
+                {
                     try decodeUncompressedDirect(&result, dataof, last, bh.biBitCount, topDown)
+                }
             }
         }
 

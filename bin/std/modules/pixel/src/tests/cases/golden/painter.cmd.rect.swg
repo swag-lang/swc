@@ -24,7 +24,7 @@ using Swag, Core
 {
     var painter: Painter
     painter.begin()
-    painter.rotateTransform(30.0'deg)
+    painter.rotateTransform(30.0_deg)
     painter.fillRect(10, 20, 100, 50, Color.fromArgb(Argb.Red))
     painter.end()
     Testing.assertGolden(&painter, "rect.fill.rotated")
@@ -47,7 +47,7 @@ using Swag, Core
 {
     var painter: Painter
     painter.begin()
-    painter.fillRect(10, 20, 100, 50, Color.fromArgb(0'u8, 255'u8, 0'u8, 0'u8))
+    painter.fillRect(10, 20, 100, 50, Color.fromArgb(0_u8, 255_u8, 0_u8, 0_u8))
     painter.end()
     Testing.assertGolden(&painter, "rect.fill.transparent.noop")
 }

@@ -15,7 +15,7 @@ func sharedAddressC()->const *u8 => &SharedBytes[0]
 // Compile this body, but never execute it: constant folding must not read an arbitrary address.
 func explicitAddressRemainsRuntime()->u8
 {
-    const pointer = cast(const *u8, 1234'u64)
+    const pointer = cast(const *u8, 1234_u64)
     return pointer[]
 }
 
@@ -31,12 +31,16 @@ func explicitAddressRemainsRuntime()->u8
     let secondPtr     = &pair.second
     Swag.require(secondPtr == &pairPtr.second)
     var sums: [3] u32
-    parallel for |bytesPtr, pairPtr, &sums| index in 3 do
+    parallel for |bytesPtr, pairPtr, &sums| index in 3
+    {
         sums[index] = bytesPtr[][0] + bytesPtr[][1] + pairPtr.first + pairPtr.second
-    for value in sums do
+    }
+    for value in sums
+    {
         Swag.require(value == 124)
+    }
 
-    let number    = 73'u32
+    let number    = 73_u32
     let numberPtr = &number
     #assert(numberPtr[] == 73)
     Swag.require(numberPtr[] == 73)
@@ -52,7 +56,7 @@ func explicitAddressRemainsRuntime()->u8
     var textPtr = &text
     Swag.require(textPtr[] == "captured constant")
 
-    let raw    = cast(*void, 1234'u64)
+    let raw    = cast(*void, 1234_u64)
     let rawPtr = &raw
     Swag.require(cast(u64, rawPtr[]) == 1234)
     let enabled    = true

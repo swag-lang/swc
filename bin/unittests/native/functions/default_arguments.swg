@@ -58,8 +58,10 @@ func callDefaultsManyTimes()
 
 func boolDefault(flag: bool = true)->s32
 {
-    if flag do
+    if flag
+    {
         return 7
+    }
 
     return 3
 }
@@ -71,12 +73,18 @@ func floatDefault(a: f64 = 1.5, b: f64 = 2.0)->f64
 
 func stringDefaultTag(value: string = "abc")->s32
 {
-    if value == "abc" do
+    if value == "abc"
+    {
         return 1
-    if value == "hello" do
+    }
+    if value == "hello"
+    {
         return 2
-    if value == null do
+    }
+    if value == null
+    {
         return 3
+    }
     return 0
 }
 
@@ -87,19 +95,27 @@ func pointerDefaultIsNull(ptr: *s32? = null)->bool
 
 func enumDefault(kind: DefaultKind = DefaultKind.B)->s32
 {
-    if kind == DefaultKind.A do
+    if kind == DefaultKind.A
+    {
         return 10
-    if kind == DefaultKind.B do
+    }
+    if kind == DefaultKind.B
+    {
         return 20
+    }
     return 30
 }
 
 func strictEnumDefault(kind: StrictDefaultKind = cast(StrictDefaultKind, DefaultKind.B))->s32
 {
-    if kind == cast(StrictDefaultKind, DefaultKind.A) do
+    if kind == cast(StrictDefaultKind, DefaultKind.A)
+    {
         return 10
-    if kind == cast(StrictDefaultKind, DefaultKind.B) do
+    }
+    if kind == cast(StrictDefaultKind, DefaultKind.B)
+    {
         return 20
+    }
     return 30
 }
 

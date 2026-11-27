@@ -9,13 +9,13 @@ using Swag, Core, Core.Errors
     var queue  = expect CaptureQueue.create(48_000, 1, 0, 10_000_000, blockFrames: 3, tolerance: 0)
     var feeder = CapturePcmFeeder.create(&queue)
     const Input: [8] f32 = [-1.5, -1.0, -0.5, 0, 0.5, 1.0,
-                            cast #bit (f32, 0x7FC0_0000'u32),
-                            cast #bit (f32, 0x7F80_0000'u32)]
+                            cast #bit (f32, 0x7FC0_0000_u32),
+                            cast #bit (f32, 0x7F80_0000_u32)]
     expect feeder.pushFloat32(Swag.makeSlice(&Input[0], Input.count), 0)
-    var output: Array's16
+    var output: Array!{s16}
     var info:   CaptureBlock
-    var all:    Array's16
-    var expectedStart = 0'u64
+    var all:    Array!{s16}
+    var expectedStart = 0_u64
     while queue.pop(&output, &info)
     {
         Swag.require(info.startSample == expectedStart and info.gapFrames == 0)
@@ -24,7 +24,7 @@ using Swag, Core, Core.Errors
     }
 
     Swag.require(expectedStart == 8)
-    Swag.require(Slice.equals(all.toSlice(), [-32_768's16, -32_768, -16_384, 0,
+    Swag.require(Slice.equals(all.toSlice(), [-32_768_s16, -32_768, -16_384, 0,
                                               16_384, 32_767, 0, 0]))
 }
 
@@ -37,14 +37,14 @@ using Swag, Core, Core.Errors
     const Second: [4] s16 = [7, 8, 9, 10]
     expect feeder.pushPcm16(Swag.makeSlice(&First[0], First.count), 0)
     expect feeder.pushPcm16(Swag.makeSlice(&Second[0], Second.count), 50_000, true)
-    var output: Array's16
+    var output: Array!{s16}
     var info:   CaptureBlock
     Swag.require(queue.pop(&output, &info) and info.startSample == 0 and info.frameCount == 2)
-    Swag.require(Slice.equals(output.toSlice(), [1's16, 2, 3, 4]))
+    Swag.require(Slice.equals(output.toSlice(), [1_s16, 2, 3, 4]))
     Swag.require(queue.pop(&output, &info) and info.startSample == 2 and info.frameCount == 1)
-    Swag.require(Slice.equals(output.toSlice(), [5's16, 6]))
+    Swag.require(Slice.equals(output.toSlice(), [5_s16, 6]))
     Swag.require(queue.pop(&output, &info) and info.startSample == 5 and info.gapFrames == 2)
-    Swag.require(info.sourceInterrupted and Slice.equals(output.toSlice(), [7's16, 8, 9, 10]))
+    Swag.require(info.sourceInterrupted and Slice.equals(output.toSlice(), [7_s16, 8, 9, 10]))
 }
 
 // Split packet timestamps round offsets once on a fractional sample clock.
@@ -56,7 +56,7 @@ using Swag, Core, Core.Errors
     expect feeder.pushPcm16(Swag.makeSlice(&Input[0], Input.count), 12_345)
 
     const ExpectedTicks: [3] u64 = [12_345, 13_025, 13_706]
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     for index in ExpectedTicks.count
     {
@@ -76,15 +76,20 @@ using Swag, Core, Core.Errors
     var feeder = CapturePcmFeeder.create(&queue)
     expect queue.markLost(0)
     expect feeder.pushSilence(7, 4)
-    var output: Array's16
+    var output: Array!{s16}
     var info:   CaptureBlock
     Swag.require(queue.pop(&output, &info) and info.startSample == 4)
     Swag.require(info.sourceInterrupted and info.frameCount == 4 and info.gapFrames == 4)
-    for sample in output do
+    for sample in output
+    {
         Swag.require(sample == 0)
+    }
+
     Swag.require(queue.pop(&output, &info) and info.startSample == 8 and info.frameCount == 3)
-    for sample in output do
+    for sample in output
+    {
         Swag.require(sample == 0)
+    }
 }
 
 // Invalid packet lengths leave a source queue untouched.
@@ -142,10 +147,10 @@ using Swag, Core, Core.Errors
     }
 
     expect feeder.pushFloat32(Swag.makeSlice(&source[0], source.count), 0)
-    let resumedTick = cast(u64, Math.round(2.0'f64 * 1_024 * 10_000_000.0 / 44_100.0))
+    let resumedTick = cast(u64, Math.round(2.0_f64 * 1_024 * 10_000_000.0 / 44_100.0))
     expect feeder.pushFloat32(Swag.makeSlice(&source[0], source.count), resumedTick, true)
     var track = expect CaptureAacTrack.create(&queue)
-    var packet: Array'u8
+    var packet: Array!{u8}
     var info:   CaptureAacPacket
     for index in 3
     {

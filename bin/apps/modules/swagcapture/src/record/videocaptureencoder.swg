@@ -48,15 +48,21 @@ impl VideoCaptureEncoder
                 .mutex.lock()
                 defer .mutex.unlock()
                 try .error.raise()
-                if not .worker.isValid() do
+                if not .worker.isValid()
+                {
                     fail BadParameterError{"video capture encoder has stopped"}
+                }
+
                 if .count < .frames.count
                 {
                     let frame = &.frames[(.head + .count) % .frames.count]
                     frame.slot     = slot
                     frame.repeated = repeated
-                    if not repeated do
+                    if not repeated
+                    {
                         Core.swap(picture, &frame.picture)
+                    }
+
                     .count += 1
                     .available.signal()
                     return
@@ -84,14 +90,17 @@ impl VideoCaptureEncoder
                         let queued = &.frames[.head]
                         frame.slot     = queued.slot
                         frame.repeated = queued.repeated
-                        if not frame.repeated do
+                        if not frame.repeated
+                        {
                             Core.swap(&frame.picture, &queued.picture)
+                        }
+
                         .head    = (.head + 1) % .frames.count
                         .count   -= 1
                         .busy    = true
                         received = true
                     }
-                    elif thread.requestEnd.isRaised()
+                    else if thread.requestEnd.isRaised()
                     {
                         return
                     }
@@ -133,8 +142,11 @@ impl VideoCaptureEncoder
 
     mtd waitIdle() fail
     {
-        if not .enabled do
+        if not .enabled
+        {
             return
+        }
+
         while true
         {
             scope
@@ -142,8 +154,10 @@ impl VideoCaptureEncoder
                 .mutex.lock()
                 defer .mutex.unlock()
                 try .error.raise()
-                if not .count and not .busy do
+                if not .count and not .busy
+                {
                     return
+                }
             }
 
             .room.wait()

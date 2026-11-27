@@ -9,35 +9,53 @@ using Core
 
 struct LzwBitWriter
 {
-    result:      *Array'u8
+    result:      *Array!{u8}
     pending:     u64
     pendingBits: u32
 }
 
 impl LzwBitWriter
 {
+    #[Swag.Inline]
     mtd write(code, width: u32)
     {
-        .pending     = (.pending << width) | code
-        .pendingBits += width
+        .pending = (.pending << width) | code
+        let total = .pendingBits + width
+        let bytes = total >> 3
+        .pendingBits = total & 7
+        let word = cast(u16, ((.pending >> .pendingBits) & 0xFFFF))
 
-        while .pendingBits >= 8
+        let count = .result.count
+        let end   = count + bytes
+        if end > .result.capacity
         {
-            .pendingBits -= 8
-            .result.add(cast(u8, (.pending >> .pendingBits)))
-            .pending &= (1'u64 << .pendingBits) - 1
+            .result.grow(end)
         }
+
+        let dst = .result.storage() + count
+        if bytes == 2
+        {
+            cast(*u16, dst)[] = Math.byteSwap(word)
+        }
+        else
+        {
+            dst[0] = cast(u8, (word & 255))
+        }
+
+        .result.count = end
     }
 
     mtd finish()
     {
-        if .pendingBits do
-            .result.add(cast(u8, (.pending << (8 - .pendingBits))))
+        if .pendingBits
+        {
+            .result.add(cast(u8, ((.pending << (8 - .pendingBits)) & 255)))
+        }
     }
 }
 
 // Encode one TIFF strip with MSB-first, early-transition LZW codes.
-func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
+func packLzw(result: *Array!{u8}, src: const [*] u8, count: u64)
 {
     var writer: LzwBitWriter
     writer.result      = result
@@ -52,10 +70,13 @@ func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
         return
     }
 
-    var dictionary: HashTable'(u32, u16)
-    dictionary.reserve(4096)
+    // A 12-bit prefix plus the next byte and the 12-bit code fit in one slot.
+    // The dictionary never holds more than 3838 entries at a time.
+    const Capacity = 8192
+    var dictionary: [Capacity] u32
+    let slots = cast([*] u32, &dictionary[0])
 
-    var width    = 9'u32
+    var width    = 9_u32
     var nextCode = LZW_FIRST_CODE
     var prefix   = cast(u32, src[0])
 
@@ -63,10 +84,17 @@ func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
     {
         let value = cast(u32, src[i + 1])
         let key   = (prefix << 8) | value
-        let found = dictionary.tryFind(key)
-        if found
+        var slot  = (key * #wrap 0x9E37_79B1_u32) >> 19
+        var entry = slots[slot]
+        while entry and entry >> 12 != key
         {
-            prefix = found.value
+            slot  = (slot + 1) & (Capacity - 1)
+            entry = slots[slot]
+        }
+
+        if entry
+        {
+            prefix = entry & LZW_MAX_CODE
             continue
         }
 
@@ -74,16 +102,18 @@ func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
 
         if nextCode <= LZW_MAX_CODE
         {
-            dictionary.add(key, cast(u16, nextCode))
-            nextCode += 1
+            slots[slot] = (key << 12) | nextCode
+            nextCode    += 1
 
-            if width < 12 and nextCode > (1'u32 << width) - 1 do
+            if width < 12 and nextCode > (1_u32 << width) - 1
+            {
                 width += 1
+            }
         }
         else
         {
             writer.write(LZW_CLEAR_CODE, width)
-            dictionary.clear()
+            Memory.clear(slots, Capacity * #sizeof(u32))
             width    = 9
             nextCode = LZW_FIRST_CODE
         }
@@ -102,6 +132,14 @@ func applyHorizontalPredictor(data: [*] u8, rowBytes, rows, samples: u64)
     {
         let row    = data + y * rowBytes
         var offset = rowBytes
+        while offset - samples >= 16
+        {
+            offset -= 16
+            let current  = Math.Simd.load(row + offset)
+            let previous = Math.Simd.load(row + offset - samples)
+            Math.Simd.store(row + offset, current - previous)
+        }
+
         while offset > samples
         {
             offset      -= 1

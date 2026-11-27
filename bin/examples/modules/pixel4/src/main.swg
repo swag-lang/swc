@@ -204,26 +204,34 @@ func drawWrappedText(painter: *Pixel.Painter,
 
 func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: Pen)
 {
-    if points.count < 2 do
+    if points.count < 2
+    {
         return
+    }
 
     var path: LinePath
     path.start(points[0].x, points[0].y)
-    for pt, index in points where index do
+    for pt, index in points where index
+    {
         path.lineTo(pt.x, pt.y)
+    }
+
     path.close()
     painter.drawPath(&path, pen)
 }
 
-func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array'Math.Vector2
+func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array!{Math.Vector2}
 {
     var result: #returntype
     let total = branches * 2
     for i in total
     {
         var radius = inner
-        if (i & 1) == 0 do
+        if (i & 1) == 0
+        {
             radius = outer
+        }
+
         let angle = -Math.ConstF32.Pi * 0.5 + cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, total))
         result.add(Math.Vector2{cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius})
     }
@@ -231,7 +239,7 @@ func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array'Math.Vecto
     return result
 }
 
-func makeHexPolygon(cx, cy, radius: f32)->Array'Math.Vector2
+func makeHexPolygon(cx, cy, radius: f32)->Array!{Math.Vector2}
 {
     var result: #returntype
     for i in 6
@@ -243,7 +251,7 @@ func makeHexPolygon(cx, cy, radius: f32)->Array'Math.Vector2
     return result
 }
 
-func makeArrowPolygon(rect: Math.Rectangle)->Array'Math.Vector2
+func makeArrowPolygon(rect: Math.Rectangle)->Array!{Math.Vector2}
 {
     var result: #returntype
     let left   = rect.x + 22
@@ -393,25 +401,35 @@ func onPaint(_: *Env.Window)
 
 func onPointer(_: *Env.Window, event: Env.WindowPointerEvent)
 {
-    if event.kind != .ButtonUp or event.button != .Left do
+    if event.kind != .ButtonUp or event.button != .Left
+    {
         return
+    }
 
     let scale = g_Painter.contentScale()
     let x     = event.x / scale
     let y     = event.y / scale
-    if navigationRect(0).contains(x, y) do
+    if navigationRect(0).contains(x, y)
+    {
         changePage(-1)
-    elif navigationRect(1).contains(x, y) do
+    }
+    else if navigationRect(1).contains(x, y)
+    {
         changePage(1)
+    }
 }
 
 func updateShortcuts()
 {
     g_Keyboard.update()
-    if g_Keyboard.isKeyJustPressed(.F1) do
+    if g_Keyboard.isKeyJustPressed(.F1)
+    {
         changePage(1)
-    elif g_Keyboard.isKeyJustPressed(.F2) do
+    }
+    else if g_Keyboard.isKeyJustPressed(.F2)
+    {
         changePage(-1)
+    }
 }
 
 #main
@@ -441,8 +459,10 @@ func updateShortcuts()
 
     let smoke = Env.isSmokeRun()
     var loop: Env.WindowLoop
-    if smoke do
+    if smoke
+    {
         loop.smokeFrames = MaxPages
+    }
 
     while loop.next()
     {
@@ -453,9 +473,13 @@ func updateShortcuts()
             g_NeedsPaint = false
         }
 
-        if smoke and g_Page + 1 < MaxPages do
+        if smoke and g_Page + 1 < MaxPages
+        {
             changePage(1)
-        elif not smoke do
+        }
+        else if not smoke
+        {
             Threading.Thread.sleep(Time.Duration.fromMilliseconds(8))
+        }
     }
 }

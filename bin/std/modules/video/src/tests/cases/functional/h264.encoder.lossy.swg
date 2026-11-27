@@ -6,7 +6,7 @@ using Swag, Core, Pixel
 // A picture with smooth areas, edges and fine detail, displaced by `shiftX` and `shiftY`.
 func lossyScene(width, height, shiftX, shiftY: s32)->Nv12Frame fail
 {
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(cast(u64, width) * cast(u64, height) * 3)
     for y in height
     {
@@ -18,10 +18,16 @@ func lossyScene(width, height, shiftX, shiftY: s32)->Nv12Frame fail
 
             // A slow gradient, a grid of flat tiles, and a band of fine stripes.
             var value = (sx * 2 + sy) & 255
-            if ((sx >> 4) + (sy >> 4)) & 1 do
+            if ((sx >> 4) + (sy >> 4)) & 1
+            {
                 value = (value + 96) & 255
-            if (sy >> 5) & 1 and sx & 2 do
+            }
+
+            if (sy >> 5) & 1 and sx & 2
+            {
                 value = 255 - value
+            }
+
             rgb[at]     = cast(u8, value)
             rgb[at + 1] = cast(u8, (value * 3 + sx) & 255)
             rgb[at + 2] = cast(u8, (value + sy * 2) & 255)
@@ -38,7 +44,7 @@ func lossyScene(width, height, shiftX, shiftY: s32)->Nv12Frame fail
 func lossyLumaError(source: const *Nv12Frame, decoded: const *PlanarFrame)->f64
 {
     let luma = source.luma()
-    var sum  = 0'u64
+    var sum  = 0_u64
     for pixel in decoded.luma.count
     {
         let delta = cast(s64, luma[pixel]) - cast(s64, decoded.luma[pixel])
@@ -55,22 +61,25 @@ func lossyLumaError(source: const *Nv12Frame, decoded: const *PlanarFrame)->f64
 {
     const Width  = 100
     const Height = 70
-    for qp in [12'u32, 26, 40]
+    for qp in [12_u32, 26, 40]
     {
         let path = videoTempPath("h264-lossy-drift", "mp4")
         defer discard catch File.delete(path)
         var encoder   = expect H264.Encoder.create(Width, Height, quantizationQp: qp, sliceCount: 2)
         var writer    = expect Mp4.FragmentedWriter.create(path, Width, Height, 90_000, encoder.decoderConfig())
-        var keyBytes  = 0'u64
-        var lastBytes = 0'u64
-        for index in 6's32
+        var keyBytes  = 0_u64
+        var lastBytes = 0_u64
+        for index in 6_s32
         {
             // Odd shifts land between chroma samples; the last picture repeats the one before.
             let shown  = Math.min(index, 4)
             let frame  = expect lossyScene(Width, Height, shown * 3, shown)
             let packet = expect encoder.encode(&frame, cast(u64, index) * 3_000, 3_000)
-            if index == 0 do
+            if index == 0
+            {
                 keyBytes = packet.bytes.count
+            }
+
             lastBytes = packet.bytes.count
             expect writer.addPacket(packet)
         }
@@ -123,9 +132,12 @@ func lossyLumaError(source: const *Nv12Frame, decoded: const *PlanarFrame)->f64
 
     // Most of the picture is predicted from a displaced block. The stripes repeat, so more than
     // one vector fits them and the vectors themselves are not compared.
-    var followers = 0'u32
-    for &mb in encoder.lossy.mbs where mb.inter and (mb.mvX != 0 or mb.mvY != 0) do
+    var followers = 0_u32
+    for &mb in encoder.lossy.mbs where mb.inter and (mb.mvX != 0 or mb.mvY != 0)
+    {
         followers += 1
+    }
+
     Swag.require(followers * 2 > cast(u32, encoder.lossy.mbs.count))
 
     var reader = expect Reader.open(path)
@@ -143,7 +155,7 @@ func lossyLumaError(source: const *Nv12Frame, decoded: const *PlanarFrame)->f64
 
     func page(scroll: s32)->Nv12Frame fail
     {
-        var rgb: Array'u8
+        var rgb: Array!{u8}
         rgb.resize(Width * Height * 3)
         for y in Height
         {
@@ -154,8 +166,10 @@ func lossyLumaError(source: const *Nv12Frame, decoded: const *PlanarFrame)->f64
                 let hash  = cast #wrap (u32, (cast(u64, x / 3) + cast(u64, line) * 7_919) * 2_654_435_761)
                 let inked = (y + scroll) % 12 < 8 and (hash >> 29) > 2
                 let at    = (cast(u64, y) * Width + cast(u64, x)) * 3
-                for channel in 3'u64 do
+                for channel in 3_u64
+                {
                     rgb[at + channel] = inked ? 32 : 236
+                }
             }
         }
 
@@ -181,11 +195,14 @@ func lossyLumaError(source: const *Nv12Frame, decoded: const *PlanarFrame)->f64
     expect writer.addPacket(inter)
     expect writer.end()
 
-    var scrolledBlocks = 0'u32
+    var scrolledBlocks = 0_u32
 
     // Pictures are stored bottom-up, so the sign of the vector is not what the fixture reads as.
-    for &mb in encoder.lossy.mbs where mb.inter and mb.mvX == 0 and Math.abs(cast(s32, mb.mvY)) == 36 * 4 do
+    for &mb in encoder.lossy.mbs where mb.inter and mb.mvX == 0 and Math.abs(cast(s32, mb.mvY)) == 36 * 4
+    {
         scrolledBlocks += 1
+    }
+
     Swag.require(scrolledBlocks * 2 > cast(u32, encoder.lossy.mbs.count))
 }
 

@@ -18,19 +18,19 @@ struct(U is ErasedBase) ErasedBox { item: *U? }     // swc-expected-error {{sema
 
 #test
 {
-    var value = 1's32
+    var value = 1_s32
     discard erasedRead(&value)     // swc-expected-error {{sema_err_erased_param_not_struct}}
 }
 
 #test
 {
-    var value = 1's32
+    var value = 1_s32
     erasedScalar(&value)
 }
 
 #test
 {
-    var box: ErasedBox'ErasedBase
+    var box: ErasedBox!{ErasedBase}
     box.item = null
 }
 

@@ -47,10 +47,10 @@ func day5A()
     let lines    = expect File.readAllLines(dataPath)
 
     var r: Parser.RegExp
-    var m: Array's32
-    var total = 0'u64
+    var m: Array!{s32}
+    var total = 0_u64
 
-    const W = 1000'u64
+    const W = 1000_u64
     m.resize(W * W)
 
     for l in lines
@@ -64,8 +64,10 @@ func day5A()
             var y1 = try StrConv.toS32(r.getCapture(4))
         }
 
-        if x0 != x1 and y0 != y1 do
+        if x0 != x1 and y0 != y1
+        {
             continue
+        }
 
         Core.orderMinMax(&x0, &x1)
         Core.orderMinMax(&y0, &y1)
@@ -80,7 +82,7 @@ func day5A()
                 c[]   += 1
             }
         }
-        elif y0 != y1
+        else if y0 != y1
         {
             let xx0 = cast(u64, x0)
             for y in cast(u64, y0) to cast(u64, y1)

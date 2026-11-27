@@ -4,7 +4,7 @@
 using Core, Gui, Pixel
 
 private var g_ZoomPercent: u32 = 100
-private const ThumbnailSourceSize = 16 * 1024'u64
+private const ThumbnailSourceSize = 16 * 1024_u64
 
 // Reads the visible text from a bounded HTML prefix for the Explorer preview.
 private func loadThumbnail(fileName: string, _: u32)->Image fail
@@ -12,8 +12,11 @@ private func loadThumbnail(fileName: string, _: u32)->Image fail
     var stream  = catch File.openReadLive(fileName) { return {} }
     let source  = catch stream.readUtf8Chunk(ThumbnailSourceSize) { return {} }
     let content = HtmlView.extractText(source.toString())
-    if not content.count do
+    if not content.count
+    {
         return {}
+    }
+
     var renderer = try ThumbnailRenderer.create()
     return try renderer.renderContent("HTML", content.toString())
 }
@@ -71,8 +74,10 @@ private impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .zoomLabel.toolTip = texts().ui_ZoomMenu
+        }
 
         .wnd.IWnd.onNotifyEvent(evt)
     }
@@ -82,9 +87,12 @@ private impl Panel
 {
     internal mtd setZoom(percent: u32, remember = true)
     {
-        .zoomPercent  = Viewer.clampZoom(percent)
-        if remember do
+        .zoomPercent = Viewer.clampZoom(percent)
+        if remember
+        {
             g_ZoomPercent = .zoomPercent
+        }
+
         var style = HtmlStyle.theme()
         style.bodyFontSize    = cast(u32, Math.max(Math.round(16.0 * cast(f32, .zoomPercent) / 100), 1))
         style.codeFontSize    = cast(u32, Math.max(Math.round(14.0 * cast(f32, .zoomPercent) / 100), 1))
@@ -106,8 +114,10 @@ private impl Panel
     mtd showZoomMenu()
     {
         let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
-        if percent do
+        if percent
+        {
             .setZoom(percent)
+        }
     }
 
     // Names the encoding the page is read with and what decided it, the way the information
@@ -138,12 +148,20 @@ private impl Panel
         if not facts.title.isEmpty() or not facts.language.isEmpty() or not facts.description.isEmpty()
         {
             data.add(.Document, group: true)
-            if not facts.title.isEmpty() do
+            if not facts.title.isEmpty()
+            {
                 data.add(.Title, facts.title)
-            if not facts.language.isEmpty() do
+            }
+
+            if not facts.language.isEmpty()
+            {
                 data.add(.Language, facts.language)
-            if not facts.description.isEmpty() do
+            }
+
+            if not facts.description.isEmpty()
+            {
                 data.add(.Description, facts.description)
+            }
         }
 
         data.add(.Text, group: true)
@@ -179,7 +197,7 @@ private impl Panel
 // Creates the integrated reusable HTML view.
 func createViewer(host: Viewer.Host)
 {
-    with let result = Wnd.create'Panel(host.contentParent(), "scope.html")
+    with let result = Wnd.create!{Panel}(host.contentParent(), "scope.html")
     {
         .backgroundStyle = .View
     }
@@ -218,8 +236,11 @@ func createViewer(host: Viewer.Host)
             result.services.informationChanged(result)
         }
 
-        if result.factsFinal and not loading do
+        if result.factsFinal and not loading
+        {
             return
+        }
+
         result.factsFinal = not loading
 
         let facts = result.view.documentFacts()

@@ -33,7 +33,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     var attempts: u32
     while isLoading() and attempts < 100
     {
-        Threading.Thread.sleep(5'ms)
+        Threading.Thread.sleep(5_ms)
         host.app.runFrame()
         attempts += 1
     }
@@ -153,7 +153,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     let fileName = Gui.Testing.tempFilePath("scope-html-legacy-", ".html")
     defer discard catch File.delete(fileName)
     var legacy: String = "<html><head><meta charset=\"iso-8859-1\"></head><body><p>caf"
-    legacy.append(0xE9'u8)
+    legacy.append(0xE9_u8)
     legacy += "</p></body></html>"
     expect File.writeAllBytes(fileName, legacy.bytes())
 
@@ -175,8 +175,8 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     // A byte-order mark answers before anything the page says.
     let markedName = Gui.Testing.tempFilePath("scope-html-marked-", ".html")
     defer discard catch File.delete(markedName)
-    var marked: Array'u8
-    marked.add([0xEF'u8, 0xBB, 0xBF])
+    var marked: Array!{u8}
+    marked.add([0xEF_u8, 0xBB, 0xBF])
     marked.add("<html><body><p>marked page</p></body></html>")
     expect File.writeAllBytes(markedName, marked.toSlice())
 
@@ -249,7 +249,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     host.click(Math.Point{bounds.x + bounds.width / 2, bounds.y + bounds.height / 2})
     for 100 where panel.view.isLoading()
     {
-        Threading.Thread.sleep(5'ms)
+        Threading.Thread.sleep(5_ms)
         host.app.runFrame()
     }
 

@@ -20,12 +20,12 @@ func buildPainterCards(_: Image)
     let wideRect = buildWideSourceRect()
 
     setTextureCard(&g_PainterCards[0], "Fitted draw", "drawTexture(dstRect, texture)", g_SourceTexture)
-    setTextureCard(&g_PainterCards[1], "Rotate 10 deg", "rotateTransform(10 deg)", g_SourceTexture, {angle: 10.0'deg})
+    setTextureCard(&g_PainterCards[1], "Rotate 10 deg", "rotateTransform(10 deg)", g_SourceTexture, {angle: 10.0_deg})
     setTextureCard(&g_PainterCards[2],
                    "Rotate + scale",
                    "rotateTransform(-12 deg)",
                    g_SourceTexture,
-                   {angle: -12.0'deg, scale: 0.88})
+                   {angle: -12.0_deg, scale: 0.88})
     setTextureCard(&g_PainterCards[3], "Scale 70%", "smaller destination rect", g_SourceTexture, {scale: 0.70})
     setTextureCard(&g_PainterCards[4],
                    "Face zoom linear",
@@ -53,7 +53,9 @@ func drawPainterPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter,
                    "Pixel painter transforms",
-                   "Draw-time rotation, sampling, source-rect zoom and scaled presentation on the same texture.")
-    for i in CardsPerPage do
+                   "Page 4 : draw-time rotation, sampling, source-rect zoom and scaled presentation on the same texture.")
+    for i in CardsPerPage
+    {
         drawCard(painter, getCardRect(i), g_PainterCards[i])
+    }
 }

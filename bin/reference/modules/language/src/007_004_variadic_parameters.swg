@@ -39,7 +39,7 @@ Variadic parameters are treated as slices of type 'any', allowing you to process
         Swag.assert(Swag.kindOf(parameters[2]) == f32)
     }
 
-    myFunction(4, "true", 5.6'f32)
+    myFunction(4, "true", 5.6_f32)
 }
 
 /**

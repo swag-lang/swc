@@ -178,7 +178,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    let view = Wnd.create'Wnd(&host.root, {10, 10, 100, 50})
+    let view = Wnd.create!{Wnd}(&host.root, {10, 10, 100, 50})
     view.wndFlags.add(.ClipChildren)
     discard PushButton.create(view, "In", {5, 5, 60, 20})
     discard PushButton.create(view, "Out", {5, 200, 60, 20})
@@ -195,8 +195,8 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
     host.setReducedMotion(false)
 
     let tab   = Tab.create(&host.root, {10, 10, 300, 180})
-    let first = Wnd.create'Wnd(tab)
-    let next  = Wnd.create'Wnd(tab)
+    let first = Wnd.create!{Wnd}(tab)
+    let next  = Wnd.create!{Wnd}(tab)
     first.backgroundStyle = .View
     next.backgroundStyle  = .View
     discard Label.create(first, "First", {20, 20, 120, 30})

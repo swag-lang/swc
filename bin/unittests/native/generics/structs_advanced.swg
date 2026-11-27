@@ -8,7 +8,7 @@ struct(T) Base
 
 struct(T) Extended
 {
-    using base: Base'T
+    using base: Base!{T}
     extra:      s32
 }
 
@@ -20,46 +20,46 @@ struct(T) Box
 
 struct(T) MiddleBox
 {
-    inner: Box'T
+    inner: Box!{T}
 }
 
 struct(T) OuterBox
 {
-    middle: MiddleBox'T
+    middle: MiddleBox!{T}
 }
 
 // Generic struct holding two different instantiations
 struct(A, B) HeteroHolder
 {
-    left:  Box'A
-    right: Box'B
+    left:  Box!{A}
+    right: Box!{B}
 }
 
 // Generic struct with pointer to generic
 struct(T) RefBox
 {
-    ptr: *Box'T
+    ptr: *Box!{T}
 }
 
 // Non-generic struct with multiple generic field instantiations
 struct MultiBox
 {
-    intBox:    Box's32
-    floatBox:  Box'f64
-    boolBox:   Box'bool
-    stringBox: Box'string
+    intBox:    Box!{s32}
+    floatBox:  Box!{f64}
+    boolBox:   Box!{bool}
+    stringBox: Box!{string}
 }
 
 // Generic struct of generic struct (nested type parameter)
 struct(T) BoxOfBox
 {
-    inner: Box'(Box'T)
+    inner: Box!{Box!{T}}
 }
 
 // Generic struct with array of generic structs
 struct(T, N: s32) BoxList
 {
-    items: [N] Box'T
+    items: [N] Box!{T}
 }
 
 // Generic struct with two const params used in expressions
@@ -81,11 +81,11 @@ impl Matrix
 // Using/embedded generic field
 #test
 {
-    var ext: Extended's32 = {base: {value: 42}, extra: 10}
+    var ext: Extended!{s32} = {base: {value: 42}, extra: 10}
     Swag.require(ext.value == 42)
     Swag.require(ext.extra == 10)
 
-    var extF: Extended'f64 = {base: {value: 3.14}, extra: 7}
+    var extF: Extended!{f64} = {base: {value: 3.14}, extra: 7}
     Swag.require(extF.value == 3.14)
     Swag.require(extF.extra == 7)
 }
@@ -93,24 +93,24 @@ impl Matrix
 // Deep 3-level nesting
 #test
 {
-    let outer: OuterBox's32 = {middle: {inner: {value: 99}}}
+    let outer: OuterBox!{s32} = {middle: {inner: {value: 99}}}
     Swag.require(outer.middle.inner.value == 99)
 
-    let outerStr: OuterBox'string = {middle: {inner: {value: "deep"}}}
+    let outerStr: OuterBox!{string} = {middle: {inner: {value: "deep"}}}
     Swag.require(outerStr.middle.inner.value == "deep")
 
-    let outerBool: OuterBox'bool = {middle: {inner: {value: true}}}
+    let outerBool: OuterBox!{bool} = {middle: {inner: {value: true}}}
     Swag.require(outerBool.middle.inner.value == true)
 }
 
 // Heterogeneous holder
 #test
 {
-    let h: HeteroHolder'(s32, string) = {left: {value: 42}, right: {value: "hello"}}
+    let h: HeteroHolder!{s32, string} = {left: {value: 42}, right: {value: "hello"}}
     Swag.require(h.left.value == 42)
     Swag.require(h.right.value == "hello")
 
-    let h2: HeteroHolder'(bool, f64) = {left: {value: false}, right: {value: 2.718}}
+    let h2: HeteroHolder!{bool, f64} = {left: {value: false}, right: {value: 2.718}}
     Swag.require(h2.left.value == false)
     Swag.require(h2.right.value == 2.718)
 }
@@ -118,8 +118,8 @@ impl Matrix
 // Generic pointer to generic struct
 #test
 {
-    var box:  Box's32    = {value: 77}
-    let refb: RefBox's32 = {ptr: &box}
+    var box:  Box!{s32}    = {value: 77}
+    let refb: RefBox!{s32} = {ptr: &box}
     Swag.require(refb.ptr[] == box)
     Swag.require(refb.ptr[].value == 77)
 }
@@ -141,22 +141,22 @@ impl Matrix
 // Box of Box (nested generic type parameter)
 #test
 {
-    let bb: BoxOfBox's32 = {inner: {value: {value: 123}}}
+    let bb: BoxOfBox!{s32} = {inner: {value: {value: 123}}}
     Swag.require(bb.inner.value.value == 123)
 
-    let bbs: BoxOfBox'string = {inner: {value: {value: "nested"}}}
+    let bbs: BoxOfBox!{string} = {inner: {value: {value: "nested"}}}
     Swag.require(bbs.inner.value.value == "nested")
 }
 
 // Array of generic structs
 #test
 {
-    let list: BoxList'(s32, 3) = {items: [{value: 10}, {value: 20}, {value: 30}]}
+    let list: BoxList!{s32, 3} = {items: [{value: 10}, {value: 20}, {value: 30}]}
     Swag.require(list.items[0].value == 10)
     Swag.require(list.items[1].value == 20)
     Swag.require(list.items[2].value == 30)
 
-    let blist: BoxList'(bool, 2) = {items: [{value: true}, {value: false}]}
+    let blist: BoxList!{bool, 2} = {items: [{value: true}, {value: false}]}
     Swag.require(blist.items[0].value == true)
     Swag.require(blist.items[1].value == false)
 }
@@ -164,7 +164,7 @@ impl Matrix
 // Matrix with two const params
 #test
 {
-    var m: Matrix'(s32, 2, 3) = {data: [1, 2, 3, 4, 5, 6]}
+    var m: Matrix!{s32, 2, 3} = {data: [1, 2, 3, 4, 5, 6]}
     Swag.require(m.rows() == 2)
     Swag.require(m.cols() == 3)
     Swag.require(m.totalSize() == 6)
@@ -176,7 +176,7 @@ impl Matrix
 
 #test
 {
-    var m: Matrix'(f64, 3, 2) = {data: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}
+    var m: Matrix!{f64, 3, 2} = {data: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}
     Swag.require(m.rows() == 3)
     Swag.require(m.cols() == 2)
     Swag.require(m.at(0, 0) == 1.0)
@@ -186,14 +186,14 @@ impl Matrix
 // Type assertions on nested generics
 #test
 {
-    let outer: OuterBox'u16
+    let outer: OuterBox!{u16}
     #assert(#typeof(outer.middle.inner.value) == u16)
 
-    let h: HeteroHolder'(s32, f64)
+    let h: HeteroHolder!{s32, f64}
     #assert(#typeof(h.left.value) == s32)
     #assert(#typeof(h.right.value) == f64)
 
-    let bb: BoxOfBox'u8
+    let bb: BoxOfBox!{u8}
     #assert(#typeof(bb.inner.value.value) == u8)
 }
 
@@ -217,13 +217,13 @@ struct(T) GenericAnonymousUnionHolder
 
 #test
 {
-    var st: GenericAnonymousStructHolder's32
+    var st: GenericAnonymousStructHolder!{s32}
     st.value = 42
     st.count = 1
     Swag.require(st.data.value == 42)
     Swag.require(st.count == 1)
 
-    var un: GenericAnonymousUnionHolder'u32
+    var un: GenericAnonymousUnionHolder!{u32}
     un.value = 42
     Swag.require(un.data.value == 42)
 }

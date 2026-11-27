@@ -12,8 +12,14 @@ struct NullableBranchMergeItem
 func nullableBranchMergeBoth(flag: bool, left, right: *NullableBranchMergeItem)->s32
 {
     var item: *NullableBranchMergeItem?
-    if flag do item = left
-    else do item = right
+    if flag
+    {
+        item = left
+    }
+    else
+    {
+        item = right
+    }
     return item.value
 }
 
@@ -35,9 +41,18 @@ func nullableBranchMergeBothBraced(flag: bool, left, right: *NullableBranchMerge
 func nullableBranchMergeChain(kind: s32, first, second, third: *NullableBranchMergeItem)->s32
 {
     var item: *NullableBranchMergeItem?
-    if kind == 0 do item = first
-    elif kind == 1 do item = second
-    else do item = third
+    if kind == 0
+    {
+        item = first
+    }
+    else if kind == 1
+    {
+        item = second
+    }
+    else
+    {
+        item = third
+    }
     return item.value
 }
 
@@ -61,8 +76,14 @@ func nullableBranchMergeGuardElse(flag: bool, item: *NullableBranchMergeItem)->s
 func nullableBranchMergeOnlyOne(flag: bool, left: *NullableBranchMergeItem, right: *NullableBranchMergeItem?)->s32
 {
     var item: *NullableBranchMergeItem?
-    if flag do item = left
-    else do item = right
+    if flag
+    {
+        item = left
+    }
+    else
+    {
+        item = right
+    }
     return item!.value
 }
 
@@ -72,7 +93,10 @@ func nullableBranchMergeNested(outer, inner: bool, left: *NullableBranchMergeIte
     var item = left
     if outer
     {
-        if inner do item = right
+        if inner
+        {
+            item = right
+        }
     }
     else
     {
@@ -88,9 +112,15 @@ func nullableBranchMergeLoopBody(flag: bool, left: *NullableBranchMergeItem?, ri
     var item = left
     if flag
     {
-        for count do item = right
+        for count
+        {
+            item = right
+        }
     }
-    else do item = right
+    else
+    {
+        item = right
+    }
     return item!.value
 }
 
@@ -108,7 +138,9 @@ func nullableBranchMergeKill(flag: bool, left: *NullableBranchMergeItem, right: 
 func nullableBranchMergeNoElse(item: *NullableBranchMergeItem?, fallback: *NullableBranchMergeItem)->s32
 {
     var scan = item
-    if scan == null do
+    if scan == null
+    {
         scan = fallback
+    }
     return scan.value
 }

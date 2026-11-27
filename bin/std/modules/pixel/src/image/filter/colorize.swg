@@ -9,8 +9,10 @@ public impl Image
     #[Swag.Safety(.All, false)]
     mtd colorize(hue, saturation: f32, strength = 1.0)
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         let clampedHue        = Math.clamp(hue, 0.0, 1.0)
         let clampedSaturation = Math.clamp(saturation, 0.0, 1.0)
@@ -44,7 +46,7 @@ public impl Image
                 colorByLightness[i, 2] = cast(f32, color.r)
             }
         }
-        elif .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
+        else if .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
         {
             for i in 256
             {

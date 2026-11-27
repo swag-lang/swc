@@ -39,7 +39,7 @@ private func reportRiffChunks(image: *BinaryImage, report: *Report, at, end: u64
 {
     let texts = texts()
     var scan  = at
-    var count = 0'u64
+    var count = 0_u64
 
     report.beginGroup(texts.riff_Chunks, "", "", offset: at, length: end > at ? end - at : 0, open: open)
 
@@ -49,8 +49,10 @@ private func reportRiffChunks(image: *BinaryImage, report: *Report, at, end: u64
         let size   = cast(u64, image.u32At(scan + 4))
         let bodyAt = scan + 8
         let stored = StrConv.toDisplaySize(size)
-        if size > end - bodyAt do
+        if size > end - bodyAt
+        {
             break
+        }
 
         // A list is a chunk whose payload begins with the form it holds, then more chunks.
         if (id == "LIST" or id == "RIFF") and size >= 4
@@ -110,11 +112,13 @@ private func reportRiffKnownChunk(image: *BinaryImage, report: *Report, id: stri
 
     // Every text chunk of the `INFO` list is exactly a string, and those are what a reader is
     // actually looking for in a media file.
-    if size and size <= 512 and id[0] == 'I'u8
+    if size and size <= 512 and id[0] == 'I'_u8
     {
         let text = image.fixedTextAt(at, size)
-        if not text.isEmpty() do
+        if not text.isEmpty()
+        {
             report.field(at, size, texts().fld_Text, text)
+        }
     }
 }
 

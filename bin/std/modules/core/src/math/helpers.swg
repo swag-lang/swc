@@ -36,10 +36,14 @@ func(T) clamp(x, low, up: T)->T => Swag.max(Swag.min(x, up), low)
 #[ConstExpr, Inline]
 func(T) bigEndianToNative(x: T)->T
 {
-    #static if BIG_ENDIAN do
+    #static if BIG_ENDIAN
+    {
         return x
-    else do
+    }
+    else
+    {
         return Math.byteSwap(x)
+    }
 }
 
 // Returns the integer `x`, in the byte order of the target, as big-endian.
@@ -48,10 +52,14 @@ func(T) bigEndianToNative(x: T)->T
 #[ConstExpr, Inline]
 func(T) nativeToBigEndian(x: T)->T
 {
-    #static if BIG_ENDIAN do
+    #static if BIG_ENDIAN
+    {
         return x
-    else do
+    }
+    else
+    {
         return Math.byteSwap(x)
+    }
 }
 
 // Returns the little-endian integer `x` in the byte order of the target.
@@ -60,10 +68,14 @@ func(T) nativeToBigEndian(x: T)->T
 #[ConstExpr, Inline]
 func(T) littleEndianToNative(x: T)->T
 {
-    #static if BIG_ENDIAN do
+    #static if BIG_ENDIAN
+    {
         return Math.byteSwap(x)
-    else do
+    }
+    else
+    {
         return x
+    }
 }
 
 // Returns the integer `x`, in the byte order of the target, as little-endian.
@@ -72,8 +84,12 @@ func(T) littleEndianToNative(x: T)->T
 #[ConstExpr, Inline]
 func(T) nativeToLittleEndian(x: T)->T
 {
-    #static if BIG_ENDIAN do
+    #static if BIG_ENDIAN
+    {
         return Math.byteSwap(x)
-    else do
+    }
+    else
+    {
         return x
+    }
 }

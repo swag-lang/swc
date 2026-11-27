@@ -39,8 +39,10 @@ enum AfterChoice
 // {
 //     page.addLink("Speed", player.speedText(), func|player|(speeds)
 //     {
-//         for rate in Rates do
+//         for rate in Rates
+//         {
 //             speeds.addChoice(rateText(rate), rate == player.rate, func|player, rate|() { player.setRate(rate) })
+//         }
 //     })
 // })
 //
@@ -61,10 +63,10 @@ struct View
         }
     }
 
-    levels:   Array'Level     // Pages from the first one to the one on screen.
-    leaving:  Page            // Page sliding out while another one slides in.
-    focusRow: s32             // Focused row of the page on screen, or `HeaderFocus` for its header.
-    pressed:  HitPart         // Part under the pointer when its button went down.
+    levels:   Array!{Level}     // Pages from the first one to the one on screen.
+    leaving:  Page              // Page sliding out while another one slides in.
+    focusRow: s32               // Focused row of the page on screen, or `HeaderFocus` for its header.
+    pressed:  HitPart           // Part under the pointer when its button went down.
 
     // Whether the pointer rests on the focused row. Like a menu, the sheet grounds a row under the
     // pointer or under the keyboard, and leaves the focused row bare otherwise.
@@ -109,21 +111,21 @@ private struct HitPart
     step: s32             // Stepper direction or one-based segment under the point, or zero.
 }
 
-private const HeaderFocus = -1's32
-private const NoRow       = -2's32
+private const HeaderFocus = -1_s32
+private const NoRow       = -2_s32
 
 private const SlideChannel  = "Gui.OptionSheet.Slide"
 private const HeightChannel = "Gui.OptionSheet.Height"
 private const OpenChannel   = "Gui.OptionSheet.Open"
 
 // How far the page leaving the sheet travels, as a fraction of the width the arriving page crosses.
-private const LeavingTravel = 0.3'f32
+private const LeavingTravel = 0.3_f32
 
 // Opacity the arriving page starts from, so it is already legible while it slides.
-private const ArrivingOpacity = 0.4'f32
+private const ArrivingOpacity = 0.4_f32
 
 // How long a chosen value stays on screen, checked, before the sheet moves on.
-private const ChoiceHold: Time.Duration = 170'ms
+private const ChoiceHold: Time.Duration = 170_ms
 
 impl IWnd for View
 {
@@ -189,37 +191,45 @@ impl IWnd for View
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return
+        }
 
         let shift = evt.modifiers == .Shift
-        if evt.modifiers != .None and not shift do
+        if evt.modifiers != .None and not shift
+        {
             return
+        }
+
         let row = .focusedRow()
         switch evt.key
         {
-        case .Down:                                     .moveFocus(1)
-        case .Up:                                       .moveFocus(-1)
-        case .Tab:                                      .moveFocus(shift ? -1 : 1)
-        case .Home:                                     .focusEdge(first: true)
-        case .End:                                      .focusEdge(first: false)
-        case .Return, .Space:                           .activate(.focusRow, 0)
-        case .Back, .BrowserBack:                       .back()
-        case .Escape:                                   .back()
+        case .Down:                                      .moveFocus(1)
+        case .Up:                                        .moveFocus(-1)
+        case .Tab:                                       .moveFocus(shift ? -1 : 1)
+        case .Home:                                      .focusEdge(first: true)
+        case .End:                                       .focusEdge(first: false)
+        case .Return, .Space:                            .activate(.focusRow, 0)
+        case .Back, .BrowserBack:                        .back()
+        case .Escape:                                    .back()
         case .Right where row and row.kind == .Segments: .moveSegment(unwrap row, 1)
         case .Left where row and row.kind == .Segments:  .moveSegment(unwrap row, -1)
-        case .Right where row and row.kind == .Stepper: .activate(.focusRow, shift ? 10 : 1)
-        case .Right where row and row.kind == .Link:    .activate(.focusRow, 0)
-        case .Left where row and row.kind == .Stepper:  .activate(.focusRow, shift ? -10 : -1)
-        case .Left where .levels.count > 1:             .back()
-        case .Right, .Left:                             break
-        default:                                        return
+        case .Right where row and row.kind == .Stepper:  .activate(.focusRow, shift ? 10 : 1)
+        case .Right where row and row.kind == .Link:     .activate(.focusRow, 0)
+        case .Left where row and row.kind == .Stepper:   .activate(.focusRow, shift ? -10 : -1)
+        case .Left where .levels.count > 1:              .back()
+        case .Right, .Left:                              break
+        default:                                         return
         }
 
         evt.accepted  = true
         .pointerOnRow = false
-        if .hasFocus() and (evt.key == .Tab or evt.key == .Up or evt.key == .Down or evt.key == .Home or evt.key == .End) do
+        if .hasFocus() and (evt.key == .Tab or evt.key == .Up or evt.key == .Down or evt.key == .Home or evt.key == .End)
+        {
             .app().setFocusVisible(true)
+        }
+
         .invalidate()
     }
 
@@ -233,14 +243,23 @@ impl IWnd for View
         {
         case .Move:
             let moved = evt.delta.x != 0 or evt.delta.y != 0
-            if not moved or .slideProgress < 1 do
+            if not moved or .slideProgress < 1
+            {
                 break
+            }
+
             let onRow = hit.row != NoRow
-            if onRow == .pointerOnRow and (not onRow or hit.row == .focusRow) do
+            if onRow == .pointerOnRow and (not onRow or hit.row == .focusRow)
+            {
                 break
+            }
+
             .pointerOnRow = onRow
-            if onRow do
+            if onRow
+            {
                 .focusRow = hit.row
+            }
+
             .invalidate()
 
         case .Pressed, .DoubleClick:
@@ -250,12 +269,17 @@ impl IWnd for View
                 break
             }
 
-            if evt.kind == .Pressed and evt.button == .Left do
+            if evt.kind == .Pressed and evt.button == .Left
+            {
                 .pressed = hit
+            }
 
         case .Released:
-            if evt.button != .Left do
+            if evt.button != .Left
+            {
                 break
+            }
+
             let pressed = .pressed
             .pressed = {}
             if pressed.row != NoRow and pressed.row == hit.row and pressed.step == hit.step
@@ -274,17 +298,23 @@ impl IWnd for View
 
     mtd impl onHookEvent(evt: IEvent)
     {
-        if evt is NotifyEvent as notice where notice.kind == .PressedElsewhere do
+        if evt is NotifyEvent as notice where notice.kind == .PressedElsewhere
+        {
             .close()
+        }
     }
 
     mtd impl onTimerEvent(_: *TimerEvent)
     {
         .removePendingTimer()
-        if .pendingClose do
+        if .pendingClose
+        {
             .close()
-        else do
+        }
+        else
+        {
             .back()
+        }
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -310,7 +340,7 @@ impl View
     func create(parent: *Wnd, build: Builder, owner: *Wnd? = null)->*View
     {
         Swag.assert(parent != null)
-        with let result = Wnd.create'View(parent.popupParent(), null, {})
+        with let result = Wnd.create!{View}(parent.popupParent(), null, {})
         {
             .focusPolicy = .Click
             .owner       = owner orelse parent
@@ -339,8 +369,10 @@ impl View
 
         // Return to the opener only when the keyboard opened the sheet. A pointer-opened sheet
         // must not leave its opener selected after it closes.
-        if returnFocus and button.focusPolicy != .None and not button.isPendingDestroy do
+        if returnFocus and button.focusPolicy != .None and not button.isPendingDestroy
+        {
             button.setFocus()
+        }
     }
 
     // Runs the sheet from the surface position `surfacePos` until the reader closes it.
@@ -408,8 +440,11 @@ impl View
     // Returns the index of the row worded `label` on the page on screen, or `Swag.U32.Max`.
     mtd const findRow(label: string)->u32
     {
-        for row, index in .page.rows where row.label.text == label do
+        for row, index in .page.rows where row.label.text == label
+        {
             return cast(u32, index)
+        }
+
         return Swag.U32.Max
     }
 
@@ -419,8 +454,11 @@ impl View
     mtd activateRow(label: string, step: s32 = 0)->bool
     {
         let index = .findRow(label)
-        if index == Swag.U32.Max or not .page.rows[index].isActive() do
+        if index == Swag.U32.Max or not .page.rows[index].isActive()
+        {
             return false
+        }
+
         .focusRow = cast(s32, index)
         .activate(cast(s32, index), step)
         return true
@@ -440,8 +478,11 @@ private impl View
         .focusRow = .initialFocus()
 
         .decidePlacement()
-        if .placement != .SidePanel do
+        if .placement != .SidePanel
+        {
             .bodyHeight = Math.min(.contentHeight(&.page, 1), .maxBodyHeight)
+        }
+
         .place()
 
         .bringToFront()
@@ -453,8 +494,11 @@ private impl View
 
         .app().inModalLoop += 1
         let surface = unwrap .surface
-        while not .ended do
+        while not .ended
+        {
             surface.app.runFrame()
+        }
+
         .app().inModalLoop -= 1
 
         .finishMotion()
@@ -462,8 +506,10 @@ private impl View
         .releaseMouse()
         .hide()
         .resetPresentation()
-        if clearAfter do
+        if clearAfter
+        {
             surface.clearFocus()
+        }
 
         // An action that opens something else does it once nothing of the sheet is left on screen.
         if .deferredRun
@@ -473,8 +519,10 @@ private impl View
             run()
         }
 
-        if autoDestroy do
+        if autoDestroy
+        {
             .destroy()
+        }
     }
 
     // Settles the width, the side and the tallest height of the sheet before it is shown.
@@ -497,16 +545,28 @@ private impl View
             let roomAbove = local.y - bounds.y - margin - shadow - (.anchorButton ? .anchorButton.menuAnchorGap(true) : 0)
             let roomBelow = bounds.bottom() - local.y - tab - margin - shadow
             let wanted    = .contentHeight(&.page, 1)
-            if .anchorButton and .anchorButton.arrowPosition == .RightUpward do
+            if .anchorButton and .anchorButton.arrowPosition == .RightUpward
+            {
                 .opensUp = true
-            elif .anchorButton and .anchorButton.arrowPosition == .RightDownward do
+            }
+            else if .anchorButton and .anchorButton.arrowPosition == .RightDownward
+            {
                 .opensUp = false
-            else do
+            }
+            else
+            {
                 .opensUp = local.y + anchor.height * 0.5 > bounds.vertCenter()
-            if .opensUp and wanted > roomAbove and roomBelow > roomAbove do
+            }
+
+            if .opensUp and wanted > roomAbove and roomBelow > roomAbove
+            {
                 .opensUp = false
-            elif not .opensUp and wanted > roomBelow and roomAbove > roomBelow do
+            }
+            else if not .opensUp and wanted > roomBelow and roomAbove > roomBelow
+            {
                 .opensUp = true
+            }
+
             .maxBodyHeight = Math.max(.opensUp ? roomAbove : roomBelow, metrics.optionSheet_RowHeight * 3)
 
         case .BottomSheet:
@@ -619,8 +679,11 @@ private impl View
         page.title = level.title
         let build = unwrap level.build
         build(&page)
-        if page.title.isEmpty() and .levels.count == 1 do
+        if page.title.isEmpty() and .levels.count == 1
+        {
             page.title = strings().optionSheet_Title
+        }
+
         .page = #move page
         .clampFocus()
         .clampScroll()
@@ -629,19 +692,30 @@ private impl View
     // Row the keyboard lands on when a page opens: the value in force, else the first row.
     mtd initialFocus()->s32
     {
-        for row, index in .page.rows where row.kind == .Choice and row.checked do
+        for row, index in .page.rows where row.kind == .Choice and row.checked
+        {
             return cast(s32, index)
-        for row, index in .page.rows where row.isFocusable() do
+        }
+
+        for row, index in .page.rows where row.isFocusable()
+        {
             return cast(s32, index)
+        }
+
         return .levels.count > 1 ? HeaderFocus : NoRow
     }
 
     mtd clampFocus()
     {
-        if .focusRow == HeaderFocus and .levels.count > 1 do
+        if .focusRow == HeaderFocus and .levels.count > 1
+        {
             return
-        if .focusRow >= 0 and .focusRow < .page.rows.count and .page.rows[.focusRow].isFocusable() do
+        }
+
+        if .focusRow >= 0 and .focusRow < .page.rows.count and .page.rows[.focusRow].isFocusable()
+        {
             return
+        }
 
         // A row that disappeared hands the focus to the closest row above it.
         var index = Math.min(.focusRow, cast(s32, .page.rows.count) - 1)
@@ -661,8 +735,11 @@ private impl View
 
     mtd focusedRow()->const *Row?
     {
-        if .focusRow < 0 or .focusRow >= .page.rows.count do
+        if .focusRow < 0 or .focusRow >= .page.rows.count
+        {
             return null
+        }
+
         return &.page.rows[.focusRow]
     }
 
@@ -670,17 +747,28 @@ private impl View
     mtd moveFocus(delta: s32)
     {
         .finishMotion()
-        var stops: Array's32
-        if .levels.count > 1 do
+        var stops: Array!{s32}
+        if .levels.count > 1
+        {
             stops.add(HeaderFocus)
-        for row, index in .page.rows where row.isFocusable() do
-            stops.add(cast(s32, index))
-        if stops.isEmpty() do
-            return
+        }
 
-        var current = 0's64
-        for stop, index in stops where stop == .focusRow do
+        for row, index in .page.rows where row.isFocusable()
+        {
+            stops.add(cast(s32, index))
+        }
+
+        if stops.isEmpty()
+        {
+            return
+        }
+
+        var current = 0_s64
+        for stop, index in stops where stop == .focusRow
+        {
             current = cast(s64, index)
+        }
+
         let count = cast(s64, stops.count)
         let next  = ((current + delta) % count + count) % count
         .focusRow = stops[cast(u64, next)]
@@ -700,8 +788,10 @@ private impl View
             for row, index in .page.rows where row.isFocusable()
             {
                 .focusRow = cast(s32, index)
-                if first do
+                if first
+                {
                     break
+                }
             }
         }
 
@@ -712,7 +802,7 @@ private impl View
     mtd moveSegment(row: const *Row, delta: s32)
     {
         let current = row.selected < row.segments.count ? cast(s32, row.selected) : -1
-        let next = Math.clamp(current + delta, 0, cast(s32, row.segments.count) - 1)
+        let next    = Math.clamp(current + delta, 0, cast(s32, row.segments.count) - 1)
         .activate(.focusRow, next + 1)
     }
 
@@ -720,19 +810,27 @@ private impl View
     mtd activate(index: s32, step: s32)
     {
         .finishMotion()
-        if .pendingTimer do
+        if .pendingTimer
+        {
             return
+        }
+
         if index == HeaderFocus
         {
             .back()
             return
         }
 
-        if index < 0 or index >= .page.rows.count do
+        if index < 0 or index >= .page.rows.count
+        {
             return
+        }
+
         let row = &.page.rows[index]
-        if not row.isActive() do
+        if not row.isActive()
+        {
             return
+        }
 
         switch row.kind
         {
@@ -749,8 +847,11 @@ private impl View
             let choose        = unwrap row.choose
             choose()
             .refresh()
-            if not wasChoiceList do
+            if not wasChoiceList
+            {
                 break
+            }
+
             switch .afterChoice
             {
             case .Back where .levels.count > 1: .holdThen(close: false)
@@ -772,10 +873,16 @@ private impl View
             }
 
         case .Stepper:
-            if step == 0 do
+            if step == 0
+            {
                 break
-            if (step < 0 and not row.canDecrease) or (step > 0 and not row.canIncrease) do
+            }
+
+            if (step < 0 and not row.canDecrease) or (step > 0 and not row.canIncrease)
+            {
                 break
+            }
+
             let stepper = unwrap row.step
             stepper(step)
             .refresh()
@@ -803,8 +910,11 @@ private impl View
 
     mtd removePendingTimer()
     {
-        if not .pendingTimer do
+        if not .pendingTimer
+        {
             return
+        }
+
         .app().removeTimer(.pendingTimer)
         .pendingTimer = null
     }
@@ -832,8 +942,10 @@ private impl View
     // Brings the height of the body to what the page on screen needs.
     mtd fitHeight(animate: bool)
     {
-        if .placement == .SidePanel do
+        if .placement == .SidePanel
+        {
             return
+        }
 
         let target = Math.min(.contentHeight(&.page, .levels.count), .maxBodyHeight)
         .clampScroll(target)
@@ -863,8 +975,11 @@ private impl View
 
         let completeHeight = func|me, target|(_: AnimationResult)
         {
-            if me.isPendingDestroy do
+            if me.isPendingDestroy
+            {
                 return
+            }
+
             me.bodyHeight = target
             me.place()
             me.clampScroll()
@@ -892,8 +1007,11 @@ private impl View
     internal mtd contentHeight(page: const *Page, levels: u64)->f32
     {
         var height = .headerHeight(levels) + .rowTopInset() + .rowBottomInset()
-        for row in page.rows do
+        for row in page.rows
+        {
             height += .rowHeight(row)
+        }
+
         return height
     }
 
@@ -906,8 +1024,11 @@ private impl View
 
     mtd headerHeight(levels: u64)->f32
     {
-        if levels == 1 and .placement == .Anchored do
+        if levels == 1 and .placement == .Anchored
+        {
             return 0
+        }
+
         return .gripHeight() + Math.round(.themeMetrics().optionSheet_HeaderHeight * .rowScale())
     }
 
@@ -938,8 +1059,11 @@ private impl View
     internal mtd rowTop(page: const *Page, index: s32)->f32
     {
         var top = .rowTopInset()
-        for i in index do
+        for i in index
+        {
             top += .rowHeight(&page.rows[i])
+        }
+
         return top
     }
 
@@ -994,10 +1118,15 @@ private impl View
         let level      = .levels.backPtr()
         let top        = .rowTop(&.page, .focusRow)
         let bottom     = top + .rowHeight(&.page.rows[.focusRow]) + .rowBottomInset()
-        if top - .rowTopInset() < level.scroll do
+        if top - .rowTopInset() < level.scroll
+        {
             level.scroll = top - .rowTopInset()
-        elif bottom > level.scroll + listHeight do
+        }
+        else if bottom > level.scroll + listHeight
+        {
             level.scroll = bottom - listHeight
+        }
+
         .clampScroll(bodyHeight)
     }
 
@@ -1005,15 +1134,20 @@ private impl View
     mtd hitTest(pos: Math.Point)->HitPart
     {
         var result: #returntype
-        if .slideProgress < 1 or not .body.contains(pos) do
+        if .slideProgress < 1 or not .body.contains(pos)
+        {
             return result
+        }
 
         let levels = .levels.count
         let header = .headerHeight(levels)
         if pos.y < .body.y + header
         {
-            if levels > 1 do
+            if levels > 1
+            {
                 result.row = HeaderFocus
+            }
+
             return result
         }
 
@@ -1024,16 +1158,24 @@ private impl View
             let height = .rowHeight(row)
             if pos.y >= y and pos.y < y + height
             {
-                if row.isFocusable() do
+                if row.isFocusable()
+                {
                     result.row = cast(s32, index)
-                if row.kind == .Stepper do
+                }
+
+                if row.kind == .Stepper
+                {
                     result.step = .stepperHit(.rowRect(list, y, height), pos)
-                elif row.kind == .Segments
+                }
+                else if row.kind == .Segments
                 {
                     let segments = .segmentTrack(.rowRect(list, y, height))
-                    if segments.contains(pos) do
+                    if segments.contains(pos)
+                    {
                         result.step = Math.min(cast(s32, row.segments.count), 1 + cast(s32, (pos.x - segments.x) * cast(f32, row.segments.count) / segments.width))
+                    }
                 }
+
                 return result
             }
 
@@ -1054,10 +1196,16 @@ private impl View
     mtd stepperHit(rect: Math.Rectangle, pos: Math.Point)->s32
     {
         let parts = .stepperParts(rect)
-        if parts.decrease.contains(pos) do
+        if parts.decrease.contains(pos)
+        {
             return -1
-        if parts.increase.contains(pos) do
+        }
+
+        if parts.increase.contains(pos)
+        {
             return 1
+        }
+
         return 0
     }
 
@@ -1087,8 +1235,10 @@ private impl View
 
         // The steps are the stepper's: two glyphs in the soft ink, with a ground only under the
         // pointer, so the value between them is what the row shows.
-        if hot and enabled do
+        if hot and enabled
+        {
             theme.drawSubRect(painter, box, &rects.btnIcon_RoundSquareBk, fadeColor(colors.optionSheet_HotBk, opacity))
+        }
 
         // The glyph is drawn rather than taken from the atlas, so its stroke stays crisp at every
         // size a row gives the button.
@@ -1098,8 +1248,10 @@ private impl View
         let cx   = Math.round(box.horzCenter())
         let cy   = Math.round(box.vertCenter())
         painter.drawLine(cx - half, cy, cx + half, cy, pen)
-        if increase do
+        if increase
+        {
             painter.drawLine(cx, cy - half, cx, cy + half, pen)
+        }
     }
 
     // Paints `page`, `levels` pages deep, shifted by `offsetX` and faded to `opacity`.
@@ -1201,6 +1353,7 @@ private impl View
         {
             theme.drawSubRect(painter, rect, &rects.menuPopup_HotBk, fadeColor(colors.optionSheet_HotBk, opacity))
         }
+
         if row.kind == .Segments
         {
             .paintSegments(painter, row, rect, opacity)
@@ -1223,7 +1376,7 @@ private impl View
             icon.sizeX, icon.sizeY = iconSz
             icon.paint(painter, leadX, opticalTop(.font(), center, iconSz), row.critical ? textColor : valueColor)
         }
-        elif row.kind == .Choice and row.checked
+        else if row.kind == .Choice and row.checked
         {
             let mark  = Math.Rectangle{leadX, opticalTop(.font(), center, iconSz), iconSz, iconSz}
             let color = row.disabled ? colors.popupItem_DisabledMarker : colors.optionSheet_Marker
@@ -1290,19 +1443,22 @@ private impl View
     mtd paintSegments(painter: *Painter, row: const *Row, rect: Math.Rectangle, opacity: f32)
     {
         let colors = .themeColors()
-        let rects = .themeRects()
-        let theme = .theme()
-        let track = .segmentTrack(rect)
+        let rects  = .themeRects()
+        let theme  = .theme()
+        let track  = .segmentTrack(rect)
         theme.drawSubRect(painter, track, &rects.tabBar_RoundBk, fadeColor(colors.tabBar_RoundBk, opacity))
         let span = track.width / cast(f32, row.segments.count)
         let font = unwrap .font().regular
         for name, index in row.segments
         {
-            let part = Math.Rectangle{track.x + span * cast(f32, index) + 1, track.y + 1, span - 2, track.height - 2}
+            let part     = Math.Rectangle{track.x + span * cast(f32, index) + 1, track.y + 1, span - 2, track.height - 2}
             let selected = index == row.selected
-            if selected do
+            if selected
+            {
                 theme.drawSubRect(painter, part, &rects.tabItem_RoundSelected, fadeColor(colors.tabItem_RoundSelected, opacity))
-            let ink = fadeColor(selected ? colors.tabItem_SelectedText : colors.tabItem_HotText, opacity)
+            }
+
+            let ink  = fadeColor(selected ? colors.tabItem_SelectedText : colors.tabItem_HotText, opacity)
             let text = Painter.elideString(name[], font, Math.max(span - 10, 0), .deviceScale())
             painter.drawStringCenter(part.horzCenter(), part.vertCenter(), text, font, ink)
         }
@@ -1311,8 +1467,10 @@ private impl View
     // Writes the current value of `row` right-aligned before `right`, and returns where it starts.
     mtd drawValue(painter: *Painter, row: const *Row, right: f32, rect: Math.Rectangle, color: Color)->f32
     {
-        if row.value.isEmpty() do
+        if row.value.isEmpty()
+        {
             return right
+        }
 
         // Measured the way it is drawn, at the density of the surface, so a value that fits is
         // never shortened by the rounding of a second measure.
@@ -1360,19 +1518,28 @@ private impl View
         theme.drawSubRect(painter, track, &rects.btnToggle_Border, fadeColor(border, opacity))
         let side = track.height
         var knob = Math.Rectangle{track.x, track.y, side, side}
-        if row.checked do
+        if row.checked
+        {
             knob.x = track.right() - side
+        }
+
         theme.drawSubRect(painter, knob, &rects.btnToggle_Mark, fadeColor(mark, opacity))
         return track.x
     }
 
     mtd drawText(painter: *Painter, rect: Math.Rectangle, text: *RichString, color: Color, align = StringHorzAlignment.Left, bold = false)
     {
-        if rect.width <= 0 do
+        if rect.width <= 0
+        {
             return
+        }
+
         var format = .textFormat(color, align)
-        if bold do
+        if bold
+        {
             format.fontStyle = .Bold
+        }
+
         painter.drawRichString(rect, text, format)
     }
 
@@ -1395,8 +1562,10 @@ private func pageNeedsLead(page: const *Page)->bool
 {
     for row in page.rows
     {
-        if row.kind == .Choice or ((row.kind == .Link or row.kind == .Action or row.kind == .Toggle) and row.icon.isValid()) do
+        if row.kind == .Choice or ((row.kind == .Link or row.kind == .Action or row.kind == .Toggle) and row.icon.isValid())
+        {
             return true
+        }
     }
 
     return false

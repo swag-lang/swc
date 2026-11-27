@@ -63,6 +63,7 @@ func finishComparison(host: *Testing.HeadlessHost, comparison: *SceneComparison)
         Swag.require(button.isVisible() and button.position.y >= body.bottom() - SceneComparison.FooterHeight)
         Swag.require(button.position.right() == comparison.captionArea(side).right() - inset)
     }
+
     host.clickWnd(comparison.closeButtons[1])
     Swag.require(workspace.documentCount() == 1 and workspace.activeDocument().currentFile == survivor)
     Swag.require(not workspace.comparisonVisible())
@@ -88,7 +89,9 @@ func finishComparison(host: *Testing.HeadlessHost, comparison: *SceneComparison)
     let document = workspace.activeDocument()
 
     host.keyPress(.F, .Control)
-    Swag.require(document.searchShown and document.searchBar.parent == comparison and document.searchBox.hasFocus())
+    Swag.require(document.searchShown and
+                 document.searchBar.parent == comparison and
+                 document.searchBox.hasFocus())
     document.searchBox.setText("needle")
     Swag.require(document.searchMatches.count == 2 and document.searchIndex == 0)
     Swag.require(comparison.firstRow == document.searchMatches[0].major)
@@ -140,8 +143,10 @@ func finishComparison(host: *Testing.HeadlessHost, comparison: *SceneComparison)
     for view in workspace.scene()!.views
     {
         let document = unwrap view.document
-        for choice, index in document.choices where choice.key == "hex" do
+        for choice, index in document.choices where choice.key == "hex"
+        {
             document.selectViewer(cast(u32, index))
+        }
     }
 
     openViews(&host, workspace)
@@ -202,9 +207,9 @@ func finishComparison(host: *Testing.HeadlessHost, comparison: *SceneComparison)
     let shownRight = comparison.shownRight
     host.keyPress(.Space)
     Swag.require(comparison.shownRight != shownRight)
-    let visible = comparison.shownRight ? 1'u64 : 0'u64
-    let scene = unwrap workspace.scene()
-    let button = comparison.closeButtons[visible]
+    let visible = comparison.shownRight ? 1_u64 : 0_u64
+    let scene   = unwrap workspace.scene()
+    let button  = comparison.closeButtons[visible]
     Swag.require(scene.active == visible and button.isVisible())
     Swag.require(not comparison.closeButtons[1 - visible].isVisible())
     Swag.require(button.position.right() == comparison.clientRect().right() - comparison.themeMetrics().floating_Inset)

@@ -35,13 +35,13 @@ impl Box
 
 struct(T) BoxPtr
 {
-    using base: Box'(*T?)
+    using base: Box!{*T?}
 }
 
 #test
 {
     // Receiver only: no argument at all.
-    var b: BoxPtr's32
+    var b: BoxPtr!{s32}
     b.bump()
     Swag.require(b.count == 1)
 }
@@ -49,8 +49,8 @@ struct(T) BoxPtr
 #test
 {
     // By-value argument.
-    var i = 7's32
-    var b: BoxPtr's32
+    var i = 7_s32
+    var b: BoxPtr!{s32}
     b.addValue(&i)
     Swag.require(b.count == 1)
     Swag.require(b.slot == &i)
@@ -59,8 +59,8 @@ struct(T) BoxPtr
 #test
 {
     // '#fwd' argument, including a typed null constant.
-    var i = 7's32
-    var b: BoxPtr's32
+    var i = 7_s32
+    var b: BoxPtr!{s32}
     b.addFwd(&i)
     Swag.require(b.count == 1)
     Swag.require(b.slot == &i)
@@ -72,8 +72,8 @@ struct(T) BoxPtr
 #test
 {
     // Control: the same calls on the base struct directly.
-    var i = 7's32
-    var b: Box'(*s32?)
+    var i = 7_s32
+    var b: Box!{*s32?}
     b.bump()
     b.addValue(&i)
     b.addFwd(&i)

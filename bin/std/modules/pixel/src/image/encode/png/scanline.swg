@@ -16,32 +16,51 @@ impl Encoder
 {
     mtd calculateScanlineWidth(width: u32)->u32 fail
     {
-        if not width do
+        if not width
+        {
             fail UnsupportedFormatError{"SPNG_EINTERNAL"}
+        }
 
         var res = cast(u64, .numChannels()) * .ihdr.bitDepth
-        if res > Swag.U64.Max / width do
+        if res > Swag.U64.Max / width
+        {
             fail UnsupportedFormatError{"SPNG_EOVERFLOW"}
+        }
+
         res = res * width
 
         res += 15
-        if res < 15 do
+        if res < 15
+        {
             fail UnsupportedFormatError{"SPNG_EOVERFLOW"}
+        }
+
         res /= 8
-        if res > Swag.U32.Max do
+        if res > Swag.U32.Max
+        {
             fail UnsupportedFormatError{"SPNG_EOVERFLOW"}
+        }
 
         return cast(u32, res)
     }
 
     mtd numChannels()->s32
     {
-        if .ihdr.colorType == .AlphaColor do
+        if .ihdr.colorType == .AlphaColor
+        {
             return 4
-        if .ihdr.colorType == .Color do
+        }
+
+        if .ihdr.colorType == .Color
+        {
             return 3
-        if .ihdr.colorType == .Alpha do
+        }
+
+        if .ihdr.colorType == .Alpha
+        {
             return 2
+        }
+
         return 1
     }
 
@@ -72,20 +91,37 @@ impl Encoder
 
         for i in 7
         {
-            if .subimage[i].width == 0 or .subimage[i].height == 0 do
+            if .subimage[i].width == 0 or .subimage[i].height == 0
+            {
                 continue
+            }
 
             .subimage[i].scanlineWidth = try .calculateScanlineWidth(.subimage[i].width)
-            if .subimage[.widestPass].scanlineWidth < .subimage[i].scanlineWidth do
+            if .subimage[.widestPass].scanlineWidth < .subimage[i].scanlineWidth
+            {
                 .widestPass = i
+            }
+
             .lastPass = i
         }
     }
 
-    mtd finishIDat() fail
+    mtd finishIDat(deferHeader: bool) fail
     {
         var zlib: Compress.ZLib
         let cmp = try zlib.compress(.bufferToCompress.toSlice(), .userOptions.compressionLevel)
+
+        if deferHeader
+        {
+            // Signature, 13-byte IHDR, and the framing of IHDR, IDAT, and IEND.
+            const PngOverhead = #sizeof(PngSignature) + 13 + 3 * 12
+            if cmp.count <= MaxPngChunkLength
+            {
+                .stream!.grow(cmp.count + PngOverhead)
+            }
+
+            try .writeChunksBeforeIDat()
+        }
 
         .writePtr = try .writeHeader(TypeIDat, cmp.count)
         Memory.copy(.writePtr, cmp.storage(), cmp.count)
@@ -94,17 +130,14 @@ impl Encoder
         .finishChunk()
     }
 
-    mtd writeIDatBytes(sl: [*] u8, len: u32) fail
-    {
-        .bufferToCompress.add(Swag.makeSlice(sl, len))
-    }
-
     mtd encodeRow(row: [*] u8)->bool fail
     {
         let pass = .rowInfo.pass
 
-        if not .ihdr.interlaceMethod or pass == 6 do
+        if not .ihdr.interlaceMethod or pass == 6
+        {
             return try .encodeScanLine(row)
+        }
 
         let bitDepth = .ihdr.bitDepth
         if bitDepth < 8
@@ -141,34 +174,40 @@ impl Encoder
             return try .encodeScanLine(cast([*] u8, scanline))
         }
 
-        for k in .subimage[pass].width
+        let inputStep = Adam7DeltaX[pass] * .pixelSize
+        var src       = row + Adam7StartX[pass] * .pixelSize
+        var dst       = unwrap .scanline
+        for .subimage[pass].width
         {
-            let ioffset = (Adam7StartX[pass] + k * Adam7DeltaX[pass]) * .pixelSize
-            let src     = row + ioffset
-            let dst     = unwrap .scanline + k * .pixelSize
             if .encodeFlags.toBigEndian
             {
+                let input  = cast(const [*] u16, src)
+                let output = cast([*] u16, dst)
                 for sample in .pixelSize / 2
                 {
-                    dst[sample * 2]     = src[sample * 2 + 1]
-                    dst[sample * 2 + 1] = src[sample * 2]
+                    output[sample] = Swag.byteSwap(input[sample])
                 }
             }
-            elif .swapRB
+            else if .swapRB
             {
                 dst[0] = src[2]
                 dst[1] = src[1]
                 dst[2] = src[0]
-                if .pixelSize == 4 do
+                if .pixelSize == 4
+                {
                     dst[3] = src[3]
+                }
             }
             else
             {
                 Memory.copy(dst, src, .pixelSize)
             }
+
+            src += inputStep
+            dst += .pixelSize
         }
 
-        return try .encodeScanLine(cast([*] u8, unwrap .scanline))
+        return try .encodeScanLine(.scanline)
     }
 
     mtd encodeScanLine(sl: [*] u8)->bool fail
@@ -180,35 +219,15 @@ impl Encoder
         {
             if .encodeFlags.toBigEndian
             {
-                let scanline = unwrap .scanline
-                for var i = 0; i < scanlineWidth - 1; i += 2
-                {
-                    scanline[i]     = sl[i + 1]
-                    scanline[i + 1] = sl[i]
-                }
+                convert16Samples(sl, unwrap .scanline, (scanlineWidth - 1) / 2)
             }
-            elif .swapRB and .bytesPerPixel == 3
+            else if .swapRB and .bytesPerPixel == 3
             {
-                let scanline = unwrap .scanline
-                for var i = 0; i < scanlineWidth - 1; i += 3
-                {
-                    scanline[i]     = sl[i + 2]
-                    scanline[i + 1] = sl[i + 1]
-                    scanline[i + 2] = sl[i]
-                }
+                PackedPixel.swapRedBlue24Row(sl, unwrap .scanline, (scanlineWidth - 1) / 3)
             }
-            elif .swapRB and .bytesPerPixel == 4
+            else if .swapRB and .bytesPerPixel == 4
             {
-                // Swap R and B one whole 32-bit pixel at a time: a byte-wise swizzle
-                // of a full-desktop capture costs seconds in unoptimized builds.
-                let src   = cast(const [*] u32, sl)
-                let dst   = cast([*] u32, unwrap .scanline)
-                let count = (scanlineWidth - 1) / 4
-                for i in count
-                {
-                    let v = src[i]
-                    dst[i] = (v & 0xFF00FF00) | ((v & 0xFF) << 16) | ((v >> 16) & 0xFF)
-                }
+                PackedPixel.swapRedBlue32Row(sl, unwrap .scanline, (scanlineWidth - 1) / 4)
             }
             else
             {
@@ -217,30 +236,27 @@ impl Encoder
         }
 
         let requiresPrevious = .encodeFlags.filterChoice & (.Up | .Average | .Paeth)
-        if not .rowInfo.scanlineIdx and requiresPrevious do
-            Memory.clear(cast([*] u8, unwrap .prevScanline), cast(u64, scanlineWidth))
-
-        var filtered = cast([*] u8, unwrap .filteredScanline)
-        let filter   = .getBestFilter(scanlineWidth - 1)
-        if filter == .None do
-            filtered = cast([*] u8, unwrap .scanline)
-        filtered    -= 1
-        filtered[0] = cast(u8, filter)
-        filtered    += 1
-
-        if filter != .None do
-            .filterScanline(filtered, scanlineWidth - 1, filter)
-
-        try .writeIDatBytes(filtered - 1, scanlineWidth)
-
-        swap(&.prevScanline, &.scanline)
-        if .updateRowInfo()
+        if not .rowInfo.scanlineIdx and requiresPrevious
         {
-            try .finishIDat()
-            return true
+            Memory.clear(cast([*] u8, unwrap .prevScanline), cast(u64, scanlineWidth))
         }
 
-        return false
+        let output = .bufferToCompress.storage() + .bufferToCompress.count
+        let filter = .getBestFilter(scanlineWidth - 1)
+        output[0] = cast(u8, filter)
+        if filter == .None
+        {
+            Memory.copy(output + 1, unwrap .scanline, cast(u64, scanlineWidth) - 1)
+        }
+        else
+        {
+            .filterScanline(output + 1, scanlineWidth - 1, filter)
+        }
+
+        .bufferToCompress.count += scanlineWidth
+
+        swap(&.prevScanline, &.scanline)
+        return .updateRowInfo()
     }
 
     mtd updateRowInfo()->bool
@@ -251,14 +267,18 @@ impl Encoder
 
         if ri.scanlineIdx == sub[ri.pass].height - 1
         {
-            if ri.pass == .lastPass do
+            if ri.pass == .lastPass
+            {
                 return true
+            }
 
             ri.scanlineIdx = 0
             ri.pass        += 1
 
-            while (not sub[ri.pass].width or not sub[ri.pass].height) and (ri.pass < .lastPass) do
+            while (not sub[ri.pass].width or not sub[ri.pass].height) and (ri.pass < .lastPass)
+            {
                 ri.pass += 1
+            }
         }
         else
         {
@@ -266,8 +286,10 @@ impl Encoder
             ri.scanlineIdx += 1
         }
 
-        if interlacing do
+        if interlacing
+        {
             ri.rowNum = Adam7StartY[ri.pass] + ri.scanlineIdx * Adam7DeltaY[ri.pass]
+        }
 
         return false
     }

@@ -8,7 +8,7 @@ impl Capture
         // The timeline paints this reading for every frame it plays.
         func digit(result: *String, value: u64)
         {
-            result.append(cast(u8, '0'u8 + value % 10))
+            result.append(cast(u8, '0'_u8 + value % 10))
         }
 
         let seconds = time / 1_000_000
@@ -45,10 +45,16 @@ impl Capture
     // beside its document, as long as that file is there.
     mtd const linkedFile()->String
     {
-        if .media != .Video do
+        if .media != .Video
+        {
             return .linkedImage
-        if .mediaMissing do
+        }
+
+        if .mediaMissing
+        {
             return {}
+        }
+
         return mediaPathOf(.file, .Video)
     }
 
@@ -61,11 +67,17 @@ impl Capture
         {
             name += CaptureVideoExtension
             let current = Path.combine(Path.directoryName(file), Format.toString("video-%", name))
-            if File.exists(current) do
+            if File.exists(current)
+            {
                 return current
+            }
+
             let legacy = Path.combine(Path.directoryName(file), name)
-            if File.exists(legacy) do
+            if File.exists(legacy)
+            {
                 return legacy
+            }
+
             return current
         }
 
@@ -84,8 +96,10 @@ impl Capture
             for kind in [CaptureMedia.Animation, CaptureMedia.Video]
             {
                 let path = mediaPathOf(target, kind)
-                if File.exists(path) do
+                if File.exists(path)
+                {
                     discard catch File.delete(path)
+                }
             }
 
             discard catch File.delete(target)
@@ -94,8 +108,10 @@ impl Capture
         for kind in [CaptureMedia.Animation, CaptureMedia.Video]
         {
             let media = mediaPathOf(source, kind)
-            if File.exists(media) do
+            if File.exists(media)
+            {
                 try File.duplicate(mediaPathOf(target, kind), media)
+            }
         }
     }
 
@@ -106,8 +122,10 @@ impl Capture
         for kind in [CaptureMedia.Animation, CaptureMedia.Video]
         {
             let media = mediaPathOf(file, kind)
-            if File.exists(media) do
+            if File.exists(media)
+            {
                 try File.delete(media)
+            }
         }
 
         try File.delete(file)
@@ -122,10 +140,15 @@ impl Capture
         let info   = &reader.info
 
         var animated = 0
-        for frame in info.frames where frame.kind == .Animation do
+        for frame in info.frames where frame.kind == .Animation
+        {
             animated += 1
-        if animated < 2 or info.canvasWidth <= 0 or info.canvasHeight <= 0 do
+        }
+
+        if animated < 2 or info.canvasWidth <= 0 or info.canvasHeight <= 0
+        {
             return null
+        }
 
         // The frames are the composited canvas of each step, held for their encoded duration; an
         // unspecified one shows for a tenth of a second, as viewers do.
@@ -134,21 +157,25 @@ impl Capture
         var writer = try Frames.Writer.create(media, info.canvasWidth, info.canvasHeight, .RGBA8)
         defer #fail discard catch File.delete(media)
 
-        var time = 0'u64
-        for index in info.frames.count where info.frames[index].kind == .Animation
+        let frameCount = info.frames.count
+        var time       = 0_u64
+        for index in frameCount where reader.info.frames[index].kind == .Animation
         {
+            let seconds = reader.info.frames[index].durationSeconds
             var picture = try reader.read(cast(u32, index))
-            if picture.pixelFormat != .RGBA8 do
+            if picture.pixelFormat != .RGBA8
+            {
                 picture.convertTo(.RGBA8)
+            }
+
             try writer.add(picture, time)
 
-            let seconds = info.frames[index].durationSeconds
             time += seconds > 0 ? cast(u64, seconds * 1_000_000) : 100_000
         }
 
         try writer.close(time)
 
-        let result = Memory.new'Capture()
+        let result = Memory.new!{Capture}()
         defer #fail Memory.delete(result)
         result.file       = file
         result.sourceKind = .ImageFile
@@ -172,8 +199,10 @@ impl Capture
 
         let path   = mediaPathOf(.file, media)
         var frames = try TimedReader.open(path, media)
-        if not frames.frameCount() do
+        if not frames.frameCount()
+        {
             fail Errors.InvalidFormatError{}
+        }
 
         .media               = media
         .timeline.frameCount = frames.frameCount()
@@ -197,27 +226,40 @@ impl Capture
 
         let path = mediaPathOf(.file, .media)
         let info = catch File.info(path) { return; }
-        if info.size != .timeline.mediaSize do
+        if info.size != .timeline.mediaSize
+        {
             return
+        }
 
         var frames = catch TimedReader.open(path, .media) { return; }
-        if frames.frameCount() != .timeline.frameCount or frames.frameCount() == 0 do
+        if frames.frameCount() != .timeline.frameCount or frames.frameCount() == 0
+        {
             return
+        }
 
         .takeFrames(&frames)
-        catch .showFrame(Math.min(.playhead, .timeline.frameCount - 1)) do
+        catch .showFrame(Math.min(.playhead, .timeline.frameCount - 1))
+        {
             return
+        }
+
         .mediaMissing = false
     }
 
     // Returns the time of the frame at the playhead, in microseconds; zero for a picture.
     mtd const playheadTime()->u64
     {
-        if not .isTimed() do
+        if not .isTimed()
+        {
             return 0
+        }
+
         let frames = .frames
-        if not frames do
+        if not frames
+        {
             return 0
+        }
+
         return frames.timeOf(.playhead)
     }
 
@@ -225,10 +267,16 @@ impl Capture
     // timed capture.
     mtd const isFormShown(itf: IForm)->bool
     {
-        if .inPlaceEdit and g_CaptureMedia != .Picture do
+        if .inPlaceEdit and g_CaptureMedia != .Picture
+        {
             return false
-        if not .isTimed() do
+        }
+
+        if not .isTimed()
+        {
             return true
+        }
+
         let form: *BaseForm = itf
         let time = .playheadTime()
         return time >= form.timeStart and (form.timeEnd == 0 or time < form.timeEnd)
@@ -250,18 +298,24 @@ impl Capture
     // as one undoable edit. An `outPoint` of zero, or at the end, keeps it to its end.
     mtd setTrim(inPoint, outPoint: u64)
     {
-        if not .isTimed() do
+        if not .isTimed()
+        {
             return
+        }
 
         let duration = .timeline.duration
-        if duration == 0 do
+        if duration == 0
+        {
             return
+        }
 
         let finish        = outPoint == 0 or outPoint >= duration ? duration : Math.max(outPoint, 1)
         let start         = Math.min(inPoint, finish - 1)
         let trimmedFinish = finish >= duration ? 0 : finish
-        if start == .timeline.inPoint and trimmedFinish == .timeline.outPoint do
+        if start == .timeline.inPoint and trimmedFinish == .timeline.outPoint
+        {
             return
+        }
 
         with let undo = .newUndo(.SetTrim)
         {
@@ -277,8 +331,11 @@ impl Capture
     mtd stepFrame(step: s64) fail
     {
         let frames = .frames
-        if not frames do
+        if not frames
+        {
             return
+        }
+
         let last   = cast(s64, frames.frameCount()) - 1
         let target = Math.clamp(cast(s64, .playhead) + step, 0, last)
         try .showFrame(cast(u64, target))
@@ -295,8 +352,11 @@ impl Capture
     // means that the forms continue to the end of the recording.
     mtd setSelectionSpanAt(start: bool, time: u64)
     {
-        if not .isTimed() or .selection.isEmpty() do
+        if not .isTimed() or .selection.isEmpty()
+        {
             return
+        }
+
         with let undo = .newUndo(.SetTimeSpan)
         {
             .spanTime  = Math.min(time, me.timeline.duration)
@@ -310,8 +370,11 @@ impl Capture
     // Shows the selected forms for the whole capture again, as one undoable edit.
     mtd clearSelectionSpan()
     {
-        if not .isTimed() or .selection.isEmpty() do
+        if not .isTimed() or .selection.isEmpty()
+        {
             return
+        }
+
         with let undo = .newUndo(.SetTimeSpan)
         {
             .spanClear = true
@@ -327,8 +390,11 @@ impl Capture
     // Closes the frame file of a timed capture.
     mtd closeMedia()
     {
-        if not .frames do
+        if not .frames
+        {
             return
+        }
+
         Memory.delete(.frames)
         .frames = null
     }
@@ -401,8 +467,10 @@ impl Capture
         for frame in frames.frameAt(start) until count
         {
             let shown = Math.max(frames.timeOf(frame), start)
-            if shown >= finish do
+            if shown >= finish
+            {
                 break
+            }
 
             let next = frame + 1 < count ? frames.timeOf(frame + 1) : frames.endTime
             try .showFrame(frame)
@@ -424,7 +492,7 @@ impl Capture
         let path = Path.combine(folder, name)
         try .exportAnimation(path)
 
-        var files: Array'String
+        var files: Array!{String}
         files.add(path)
         Clipboard.setFiles(files.toSlice())
     }
@@ -432,7 +500,7 @@ impl Capture
     // Keeps `frames` open as the frames of the capture.
     private mtd takeFrames(frames: *TimedReader)
     {
-        let owned = Memory.new'TimedReader()
+        let owned = Memory.new!{TimedReader}()
         owned[] = #move frames[]
         .frames = owned
     }

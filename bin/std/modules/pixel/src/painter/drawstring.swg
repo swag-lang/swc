@@ -113,7 +113,7 @@ const DefaultTextTabSize: u32 = 4     // Default tab-stop width measured in spac
 
 // Mark ending a line cut by [[Pixel.StringFormatFlags.Ellipsis]]. A typeface carrying no glyph
 // for it falls back to three periods, which every text face has.
-private const EllipsisRune = '\u2026'rune
+private const EllipsisRune = '\u2026'_rune
 
 // Controls wrapping and clipping during text layout.
 #[Swag.EnumFlags]
@@ -167,7 +167,7 @@ struct ShapedRun
     public
     {
         late font:     *Font                        // Borrowed font used for shaping.
-        glyphs:        Array'ShapedGlyph            // Glyphs in logical text order.
+        glyphs:        Array!{ShapedGlyph}          // Glyphs in logical text order.
         metrics:       StringMetrics                // Logical run measurements.
         inkBounds:     Math.Rectangle               // Bounds of visible glyph pixels.
         hasInk:        bool                         // Whether `inkBounds` contains visible glyphs.
@@ -251,7 +251,7 @@ struct RichStringFormat
     }
 }
 
-private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false, letterSpacing = 0.0'f32, extraAdvanceX = 0.0'f32)
+private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0_f32, isTab = false, letterSpacing = 0.0_f32, extraAdvanceX = 0.0_f32)
 {
     var glyph: ShapedGlyph
     glyph.desc       = font.getGlyphDescByIndex(glyphIndex)
@@ -265,8 +265,10 @@ private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cl
     if not run.glyphs.isEmpty() and not run.glyphs.back().isTab and not isTab
     {
         glyph.offsetX = letterSpacing
-        if previousGlyphIndex and run.glyphs.back().font == font do
+        if previousGlyphIndex and run.glyphs.back().font == font
+        {
             glyph.offsetX += font.cache.kerning(previousGlyphIndex, glyphIndex)
+        }
     }
 
     let glyphX = run.metrics.width + glyph.offsetX
@@ -305,12 +307,16 @@ private func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tabSize
     let spaceGlyphIndex  = spaceFont.glyphIndex(' ')
     let spaceDesc        = spaceFont.getGlyphDescByIndex(spaceGlyphIndex)
     var effectiveTabSize = tabSize
-    if not effectiveTabSize do
+    if not effectiveTabSize
+    {
         effectiveTabSize = 1
+    }
 
     var spaceAdvance = spaceDesc.advanceX
-    if spaceAdvance <= 0 do
+    if spaceAdvance <= 0
+    {
         spaceAdvance = cast(f32, font.cache.refSize) * 0.25
+    }
 
     let tabWidth   = spaceAdvance * cast(f32, effectiveTabSize)
     let nextStop   = (Math.floor(run.metrics.width / tabWidth) + 1) * tabWidth
@@ -320,8 +326,10 @@ private func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tabSize
 
 private func finishShapedRun(run: *ShapedRun, font: *Font)
 {
-    if run.glyphs.isEmpty() do
+    if run.glyphs.isEmpty()
+    {
         return
+    }
 
     let sc = font.scale()
     run.metrics.ascent  *= sc
@@ -337,10 +345,12 @@ private func finishShapedRun(run: *ShapedRun, font: *Font)
     }
 }
 
-private func snapTextPosition(value: f32, snapPixels: bool, deviceScale: f32, snapOffset = 0.0'f32)->f32
+private func snapTextPosition(value: f32, snapPixels: bool, deviceScale: f32, snapOffset = 0.0_f32)->f32
 {
-    if not snapPixels do
+    if not snapPixels
+    {
         return value
+    }
 
     // Snapping happens on the *device* grid: at a content scale of 1.5 a value
     // rounded to a whole logical unit would land between physical pixels, which is
@@ -359,7 +369,7 @@ impl Painter
     // one drawing unit covers on screen; pass the surface's device scale (or
     // [[Pixel.Painter.textTransformScale]] when drawing through a painter) so an
     // automatic font resolves against the real on-screen glyph size.
-    func computeTextDrawInfo(font: *Font, zoom = 1.0'f32, transformScale = 1.0'f32)->TextDrawInfo
+    func computeTextDrawInfo(font: *Font, zoom = 1.0_f32, transformScale = 1.0_f32)->TextDrawInfo
     {
         var result: #returntype
         result.drawFont    = Font.resolveDrawFont(font, cast(f32, font.size) * zoom * transformScale)
@@ -369,10 +379,15 @@ impl Painter
         // A resolved bitmap font is rasterized at its device pixel size, so it draws
         // texel-exact: one atlas texel per device pixel, hence 1/transformScale in
         // logical units. MSDF glyphs are size independent and keep the nominal scale.
-        if result.snapPixels do
+        if result.snapPixels
+        {
             result.scale = 1.0 / transformScale
-        else do
+        }
+        else
+        {
             result.scale = result.drawFont.scale() * zoom
+        }
+
         return result
     }
 
@@ -406,7 +421,7 @@ impl Painter
     // The glyph buffer is cleared while retaining its capacity, so per-frame shaping
     // can avoid allocation. The current implementation preserves one rune per glyph
     // and records glyph indices, advances, and cluster positions.
-    func shapeRunInto(result: *ShapedRun, text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, wordSpacing = 0.0'f32)
+    func shapeRunInto(result: *ShapedRun, text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0_f32, wordSpacing = 0.0_f32)
     {
         Swag.assert(font != null, "invalid font")
 
@@ -421,8 +436,8 @@ impl Painter
 
         var count              = text.count
         var scan               = text.buffer
-        var byteIdx            = 0'u64
-        var previousGlyphIndex = 0'u32
+        var byteIdx            = 0_u64
+        var previousGlyphIndex = 0_u32
         let letterSpacingRef   = letterSpacing / font.scale()
         let wordSpacingRef     = wordSpacing / font.scale()
 
@@ -430,8 +445,10 @@ impl Painter
         {
             let sl       = Swag.makeSlice(scan, count)
             let {c, eat} = Utf8.decodeRune(sl)
-            if eat == 0 do
+            if eat == 0
+            {
                 break
+            }
 
             if c == '\t'
             {
@@ -457,7 +474,7 @@ impl Painter
     // Shapes text into a new run.
     //
     // See [[Pixel.Painter.shapeRunInto]] to reuse the glyph storage of an existing run.
-    func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, wordSpacing = 0.0'f32)->ShapedRun
+    func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0_f32, wordSpacing = 0.0_f32)->ShapedRun
     {
         var result: #returntype
         shapeRunInto(&result, text, font, tabSize, letterSpacing, wordSpacing)
@@ -482,7 +499,7 @@ impl Painter
             .glyphs.reserve(run.glyphs.count)
         }
 
-        var previousGlyphIndex = 0'u32
+        var previousGlyphIndex = 0_u32
         let letterSpacingRef   = run.letterSpacing / font.scale()
         let wordSpacingRef     = run.wordSpacing / font.scale()
 
@@ -510,7 +527,7 @@ impl Painter
     }
 
     // Resolves the glyph descriptors for a UTF-8 string and font.
-    func glyphs(text: string, font: *Font)->Array'(const *GlyphDesc)
+    func glyphs(text: string, font: *Font)->Array!{const *GlyphDesc}
     {
         var result: #returntype
         result.reserve(text.count)
@@ -523,7 +540,7 @@ impl Painter
     }
 
     // Resolves the glyph descriptors for a rune array and font.
-    func glyphs(text: Array'rune, font: *Font)->Array'(const *GlyphDesc)
+    func glyphs(text: Array!{rune}, font: *Font)->Array!{const *GlyphDesc}
     {
         var result: #returntype
         result.reserve(text.count)
@@ -541,8 +558,11 @@ impl Painter
     func measureRune(c: rune, font: *Font?)->Math.Point
     {
         var result: #returntype
-        if not font do
+        if not font
+        {
             return result
+        }
+
         let localFont = font
         let desc      = localFont.getGlyphDesc(c)
         let sc        = localFont.scale()
@@ -552,7 +572,7 @@ impl Painter
     }
 
     // Returns the metrics of a string shaped with `font`.
-    func measureString(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, wordSpacing = 0.0'f32)->StringMetrics
+    func measureString(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0_f32, wordSpacing = 0.0_f32)->StringMetrics
     {
         let shaped = shapeRun(text, font, tabSize, letterSpacing, wordSpacing)
         return shaped.metrics
@@ -571,7 +591,7 @@ impl Painter
     // device scale the text is drawn with (see `Gui.Wnd.deviceScale`); measuring with
     // another scale resolves another draw font and the measured position drifts from the
     // drawn one.
-    func measureStringSnapped(run: const *ShapedRun, atByte: u64 = Swag.U64.Max, deviceScale = 1.0'f32)->f32
+    func measureStringSnapped(run: const *ShapedRun, atByte: u64 = Swag.U64.Max, deviceScale = 1.0_f32)->f32
     {
         let info = computeTextDrawInfo(run.font, 1.0, deviceScale)
 
@@ -585,11 +605,14 @@ impl Painter
             toDraw    = &drawShape
         }
 
-        var x = 0.0'f32
+        var x = 0.0_f32
         for glyph in toDraw.glyphs
         {
-            if glyph.cluster >= atByte do
+            if glyph.cluster >= atByte
+            {
                 break
+            }
+
             x = advanceTextX(x, glyph.offsetX, glyph.advanceX, info).rightX
         }
 
@@ -597,7 +620,7 @@ impl Painter
     }
 
     // Shapes `text` with `font`, then measures it like the run overload.
-    func measureStringSnapped(text: string, font: *Font, atByte: u64 = Swag.U64.Max, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, deviceScale = 1.0'f32)->f32
+    func measureStringSnapped(text: string, font: *Font, atByte: u64 = Swag.U64.Max, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0_f32, deviceScale = 1.0_f32)->f32
     {
         let shaped = shapeRun(text, font, tabSize, letterSpacing)
         return measureStringSnapped(&shaped, atByte, deviceScale)
@@ -609,19 +632,23 @@ impl Painter
     // This is the cut [[Pixel.StringFormatFlags.Ellipsis]] makes in a laid-out block, for one
     // plain line drawn at a known width, such as a name or a path. The prefix is measured as
     // [[Pixel.Painter.drawString]] draws it at `deviceScale`.
-    func elideString(text: string, font: *Font, maxWidth: f32, deviceScale = 1.0'f32)->String
+    func elideString(text: string, font: *Font, maxWidth: f32, deviceScale = 1.0_f32)->String
     {
         let shaped = shapeRun(text, font)
-        if fitShapedPrefix(&shaped, maxWidth, deviceScale) == Swag.U64.Max do
+        if fitShapedPrefix(&shaped, maxWidth, deviceScale) == Swag.U64.Max
+        {
             return String.from(text)
+        }
 
         let mark = font.resolveRune(EllipsisRune).glyphIndex(EllipsisRune) ? "…" : "..."
         let room = Math.max(maxWidth - measureStringSnapped(mark, font, deviceScale: deviceScale), 0)
         var cut  = fitShapedPrefix(&shaped, room, deviceScale)
 
         // The mark follows the last word it keeps, never a space.
-        while cut > 0 and text[cut - 1] == ' 'u8 do
+        while cut > 0 and text[cut - 1] == ' '_u8
+        {
             cut -= 1
+        }
 
         var result = String.from(text[until cut])
         result += mark
@@ -646,12 +673,15 @@ impl Painter
             toWalk    = &drawShape
         }
 
-        var x = 0.0'f32
+        var x = 0.0_f32
         for glyph in toWalk.glyphs
         {
             let step = advanceTextX(x, glyph.offsetX, glyph.advanceX, info)
-            if step.rightX > maxWidth do
+            if step.rightX > maxWidth
+            {
                 return glyph.cluster
+            }
+
             x = step.rightX
         }
 
@@ -659,11 +689,13 @@ impl Painter
     }
 
     // Returns the metrics of a glyph sequence, scaled to the draw size of `font`.
-    func measureString(text: Array'(const *GlyphDesc), font: *Font)->StringMetrics
+    func measureString(text: Array!{const *GlyphDesc}, font: *Font)->StringMetrics
     {
         var result: #returntype
-        if text.isEmpty() do
+        if text.isEmpty()
+        {
             return result
+        }
 
         result.ascent  = Swag.F32.NegInf
         result.descent = Swag.F32.NegInf
@@ -671,8 +703,11 @@ impl Painter
         {
             result.ascent  = Math.max(result.ascent, refr.shiftY)
             result.descent = Math.max(result.descent, refr.height - refr.shiftY)
-            if i and text[i - 1].cache == refr.cache do
+            if i and text[i - 1].cache == refr.cache
+            {
                 result.width += (refr.cache orelse font.cache).kerning(text[i - 1].glyphIndex, refr.glyphIndex)
+            }
+
             result.width += refr.advanceX
         }
 
@@ -710,8 +745,10 @@ impl Painter
                 let pixel    = Math.floor(device / positions)
                 let subpixel = cast(u32, device - pixel * positions)
                 placed.x = pixel / info.deviceScale - info.snapOffsetX
-                if subpixel do
+                if subpixel
+                {
                     placed.desc = (glyph.font orelse drawFont).cache.getGlyphDescByIndex(glyph.glyphIndex, subpixel)
+                }
             }
 
             .scratchPlaced.add(placed)
@@ -726,8 +763,10 @@ impl Painter
         for glyph, idx in runToDraw.glyphs
         {
             let refr = .scratchPlaced[idx].desc
-            if refr.width == 0 or refr.height == 0 do
+            if refr.width == 0 or refr.height == 0
+            {
                 continue
+            }
 
             let glyphX = .scratchPlaced[idx].x
             .setTextureFont(glyph.font orelse drawFont, refr.atlasIndex)
@@ -762,7 +801,7 @@ impl Painter
     //
     // `underlineOpacity` attenuates decoration ink independently of the glyphs and is clamped to
     // 0–1.
-    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
+    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0_f32)
     {
         .drawShapedRun(left, top, shaped, font, brush, {}, under, zoom, underlineOpacity)
     }
@@ -770,19 +809,26 @@ impl Painter
     // Draws an already shaped run with MSDF text effects.
     //
     // Effects are ignored when the resolved draw font is not MSDF.
-    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
+    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0_f32)
     {
-        if shaped.glyphs.isEmpty() do
+        if shaped.glyphs.isEmpty()
+        {
             return
-        if .layoutOnly do
+        }
+
+        if .layoutOnly
+        {
             return
+        }
 
         // Nothing visible: no face fill and no outline/glow/shadow either.
         if .isInvisible(brush) and
            effect.outlineColor.a == 0 and
            effect.glowColor.a == 0 and
-           not effect.hasShadow() do
+           not effect.hasShadow()
+        {
             return
+        }
 
         var info = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
 
@@ -818,7 +864,7 @@ impl Painter
         }
 
         .updateFont(drawFont)
-        var updatedFonts: Array'(*Font)
+        var updatedFonts: Array!{*Font}
         for glyph in runToDraw.glyphs
         {
             let glyphFont = glyph.font orelse drawFont
@@ -851,8 +897,10 @@ impl Painter
             .resetTexture0()
         }
 
-        if isMsdf do
+        if isMsdf
+        {
             .setFontEffect(effect.faceParams())
+        }
 
         // Underline
         if under != .None
@@ -888,7 +936,7 @@ impl Painter
     }
 
     // Draws a single-line string centered on `(x, y)`.
-    mtd drawStringCenter(x, y: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
+    mtd drawStringCenter(x, y: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0_f32)
     {
         let ms = measureString(text, font)
         var yr = y - (ms.height * 0.5 * zoom)
@@ -902,21 +950,28 @@ impl Painter
     // automatic font draws crisp bitmap glyphs at small on-screen sizes. `zoom` scales the
     // text from its top-left corner. `underlineOpacity` attenuates the decoration independently,
     // clamped to 0–1.
-    mtd drawString(left, top: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
+    mtd drawString(left, top: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0_f32)
     {
-        if text.count == 0 or .isInvisible(color) do
+        if text.count == 0 or .isInvisible(color)
+        {
             return
+        }
 
         let brush = Brush.createSolid(color)
         .drawString(left, top, text, font, brush, under, zoom, underlineOpacity)
     }
 
-    mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
+    mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0_f32)
     {
-        if text.count == 0 or .isInvisible(brush) do
+        if text.count == 0 or .isInvisible(brush)
+        {
             return
-        if .layoutOnly do
+        }
+
+        if .layoutOnly
+        {
             return
+        }
 
         // Shape directly on the resolved draw font. For an 'Auto' font drawn small
         // this is the crisp bitmap, so we avoid rasterizing the (unused) MSDF glyph
@@ -930,21 +985,29 @@ impl Painter
     // Draws a single-line string with MSDF text effects.
     //
     // Effects are ignored when the resolved draw font is not MSDF.
-    mtd drawString(left, top: f32, text: string, font: *Font, color: Color, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
+    mtd drawString(left, top: f32, text: string, font: *Font, color: Color, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0_f32)
     {
-        if text.count == 0 do
+        if text.count == 0
+        {
             return
+        }
+
         let brush = Brush.createSolid(color)
         .drawString(left, top, text, font, brush, effect, under, zoom, underlineOpacity)
     }
 
     // Draws a single-line string with a brush and MSDF text effects.
-    mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
+    mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0_f32)
     {
-        if text.count == 0 do
+        if text.count == 0
+        {
             return
-        if .layoutOnly do
+        }
+
+        if .layoutOnly
+        {
             return
+        }
 
         let info = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
         Painter.shapeRunInto(&.scratchShaped, text, info.drawFont)
@@ -958,7 +1021,7 @@ impl Painter
     // draw pass uses, so wrapped lines, alignment, and inter-chunk gaps land where
     // the glyphs actually end; measuring with nominal advances instead lets a
     // per-glyph drift accumulate until a space between two chunks visually vanishes.
-    func computeLayout(pos: Math.Rectangle, text: *RichString, format: RichStringFormat, deviceScale = 1.0'f32)
+    func computeLayout(pos: Math.Rectangle, text: *RichString, format: RichStringFormat, deviceScale = 1.0_f32)
     {
         Swag.assert(format.font.regular != null, "invalid default font")
         text.layoutRect  = pos
@@ -988,7 +1051,7 @@ impl Painter
         }
 
         // Divide in lines
-        var lines: Array'OneLine
+        var lines: Array!{OneLine}
         var line:  OneLine
 
         // A wrap may only fall where a word ends, so the line is remembered as it stood at the
@@ -1000,8 +1063,10 @@ impl Painter
 
         var startLine         = 0
         let defaultLineHeight = format.font.regular.height
-        for &resetChunk in text.chunks do
+        for &resetChunk in text.chunks
+        {
             resetChunk.visible = false
+        }
 
         for &c, idx in text.chunks
         {
@@ -1024,8 +1089,11 @@ impl Painter
                 line.start  = startLine
                 line.end    = cast(s32, idx)
                 line.height = Math.max(defaultLineHeight, line.fontAscent - line.fontDescent)
-                if format.minLineHeight > 0 do
+                if format.minLineHeight > 0
+                {
                     line.height = Math.max(line.height, format.minLineHeight)
+                }
+
                 line.hasEol = true
                 lines.add(line)
 
@@ -1040,8 +1108,10 @@ impl Painter
             if format.flags & .WordWrap or format.horzAlignment == .Justify
             {
                 var curW = line.measure.width
-                if format.horzAlignment == .Justify do
+                if format.horzAlignment == .Justify
+                {
                     curW += line.whiteSpaces
+                }
 
                 if curW + chunkAdvance(c.boundRect.width, cast(s32, idx), startLine, format.letterSpacing) > pos.width
                 {
@@ -1072,15 +1142,23 @@ impl Painter
                             wordLine.countSpaces -= 1
                             let space        = &text.chunks[wordStart - 1]
                             let spaceAdvance = chunkAdvance(space.boundRect.width, wordStart - 1, startLine, format.letterSpacing)
-                            if format.horzAlignment != .Justify do
+                            if format.horzAlignment != .Justify
+                            {
                                 wordLine.measure.width -= spaceAdvance
-                            else do
+                            }
+                            else
+                            {
                                 wordLine.measure.width -= chunkSpacing(wordStart - 1, startLine, format.letterSpacing)
+                            }
+
                             wordLine.whiteSpaces -= space.boundRect.width
 
                             wordLine.height = Math.max(defaultLineHeight, wordLine.fontAscent - wordLine.fontDescent)
-                            if format.minLineHeight > 0 do
+                            if format.minLineHeight > 0
+                            {
                                 wordLine.height = Math.max(wordLine.height, format.minLineHeight)
+                            }
+
                             lines.add(wordLine)
                         }
 
@@ -1109,8 +1187,11 @@ impl Painter
                         line.start  = startLine
                         line.end    = cast(s32, idx)
                         line.height = Math.max(defaultLineHeight, line.fontAscent - line.fontDescent)
-                        if format.minLineHeight > 0 do
+                        if format.minLineHeight > 0
+                        {
                             line.height = Math.max(line.height, format.minLineHeight)
+                        }
+
                         lines.add(line)
                     }
 
@@ -1141,10 +1222,15 @@ impl Painter
             if c.isSpace
             {
                 line.countSpaces += 1
-                if format.horzAlignment != .Justify do
+                if format.horzAlignment != .Justify
+                {
                     line.measure.width += chunkAdvance(ms.width, cast(s32, idx), startLine, format.letterSpacing)
-                else do
+                }
+                else
+                {
                     line.measure.width += chunkSpacing(cast(s32, idx), startLine, format.letterSpacing)
+                }
+
                 line.whiteSpaces += ms.width
             }
             else
@@ -1172,15 +1258,18 @@ impl Painter
             line.start  = startLine
             line.end    = cast(s32, text.chunks.count)
             line.height = Math.max(defaultLineHeight, line.fontAscent - line.fontDescent)
-            if format.minLineHeight > 0 do
+            if format.minLineHeight > 0
+            {
                 line.height = Math.max(line.height, format.minLineHeight)
+            }
+
             lines.add(line)
         }
 
         // A line budget drops everything below the line it stops on. Remember which line that is,
         // so the ellipsis pass below can mark it: a paragraph cut short otherwise reads as one
         // that simply ended there, and nothing tells the reader there was more.
-        var cutLine = -1's64
+        var cutLine = -1_s64
         if format.maxLines and lines.count > format.maxLines
         {
             lines.resize(cast(u64, format.maxLines))
@@ -1201,12 +1290,14 @@ impl Painter
             {
                 let l      = &lines[i]
                 let wasCut = cast(s64, i) == cutLine and l.end > l.start
-                if l.measure.width <= pos.width and not wasCut do
+                if l.measure.width <= pos.width and not wasCut
+                {
                     continue
+                }
 
                 // The chunk the overflow lands in, and the width of everything before it.
                 var accum: f32
-                var cut = -1's32
+                var cut = -1_s32
                 for idx in l.start until l.end
                 {
                     let w = chunkAdvance(text.chunks[idx].boundRect.width, idx, l.start, format.letterSpacing)
@@ -1223,20 +1314,24 @@ impl Painter
                 // lands after its last chunk instead of in place of an overflow.
                 if cut < 0
                 {
-                    if not wasCut do
+                    if not wasCut
+                    {
                         continue
+                    }
 
                     cut   = l.end - 1
                     accum = 0
-                    for idx in l.start until cut do
+                    for idx in l.start until cut
+                    {
                         accum += chunkAdvance(text.chunks[idx].boundRect.width, idx, l.start, format.letterSpacing)
+                    }
                 }
 
                 // Back off while what is left cannot even hold the mark, so a cut landing just
                 // short of the edge does not push the ellipsis past it. The mark inherits the cut
                 // chunk's style; a typeface without the ellipsis glyph falls back to three dots.
                 var mark = ""
-                var room = 0'f32
+                var room = 0_f32
                 while true
                 {
                     let scan = &text.chunks[cut]
@@ -1287,8 +1382,10 @@ impl Painter
             if idxLine != lines.count - 1
             {
                 totalHeight += cast(f32, format.lineGap)
-                if l.hasEol do
+                if l.hasEol
+                {
                     totalHeight += cast(f32, format.paragraphGap)
+                }
             }
         }
 
@@ -1341,10 +1438,14 @@ impl Painter
                        not l.hasEol
                     {
                         let spaceW = (pos.width - l.measure.width) / l.countSpaces
-                        if spaceW < l.measure.height * format.justifyLimit do
+                        if spaceW < l.measure.height * format.justifyLimit
+                        {
                             x1 += spaceW
-                        else do
+                        }
+                        else
+                        {
                             x1 += c.boundRect.width
+                        }
                     }
                     else
                     {
@@ -1357,8 +1458,10 @@ impl Painter
             if idxLine != lines.count - 1
             {
                 y += cast(f32, format.lineGap)
-                if l.hasEol do
+                if l.hasEol
+                {
                     y += cast(f32, format.paragraphGap)
+                }
             }
         }
 
@@ -1379,15 +1482,19 @@ impl Painter
     mtd drawRichString(pos: Math.Rectangle, text: *RichString, format: RichStringFormat, forceCompute = false)
     {
         text.compute()
-        if text.chunks.isEmpty() do
+        if text.chunks.isEmpty()
+        {
             return
+        }
 
         // Recompute layout if the rectangle or the device scale has changed; the
         // layout measures with the scale's draw-font advances, so a cached layout
         // from another scale would no longer match the drawn glyphs.
         let deviceScale = .textTransformScale()
-        if text.layoutRect != pos or text.layoutScale != deviceScale or forceCompute do
+        if text.layoutRect != pos or text.layoutScale != deviceScale or forceCompute
+        {
             computeLayout(pos, text, format, deviceScale)
+        }
 
         // Clipping
         if format.flags & .Clip
@@ -1404,18 +1511,20 @@ impl Painter
         var brush = format.brush
         for &c in text.chunks
         {
-            if c.isEol or not c.visible do
+            if c.isEol or not c.visible
+            {
                 continue
+            }
 
             if c.isUrl and not format.urlsEnabled
             {
                 brush.color = format.colorDisabledUrl.a ? format.colorDisabledUrl : format.palette[0]
             }
-            elif c.isHotUrl
+            else if c.isHotUrl
             {
                 brush.color = format.colorHotUrl
             }
-            elif c.isUrl
+            else if c.isUrl
             {
                 brush.color = format.colorUrl
             }
@@ -1426,14 +1535,18 @@ impl Painter
             }
 
             var under = c.under
-            if c.isUrl and format.underlineUrls or c.isHotUrl and format.urlsEnabled do
+            if c.isUrl and format.underlineUrls or c.isHotUrl and format.urlsEnabled
+            {
                 under = .Underline
+            }
 
             .drawShapedRun(c.pos.x, c.pos.y, &c.shaped, c.font, brush, under, underlineOpacity: c.isUrl ? format.urlUnderlineOpacity : 1)
         }
 
         // Restore clipping to its previous value
-        if format.flags & .Clip do
+        if format.flags & .Clip
+        {
             .popClippingRect()
+        }
     }
 }

@@ -11,7 +11,7 @@ using Core, Pixel, Gui, TrueType, Viewers
 
     // The commands float over the document only while the pointer asks for them: at rest the
     // window shows the document alone.
-    let commands = Wnd.create'Wnd(&host.root)
+    let commands = Wnd.create!{Wnd}(&host.root)
     commands.hide()
 
     let fixture = fontFixturePath()

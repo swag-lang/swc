@@ -56,16 +56,23 @@ func day8A()
         switch
         {
         case expect re.match(#raw "rect (\d+)x(\d+)", l[]):
-            for x in expect StrConv.toS32(re[1]) do
-                for y in expect StrConv.toS32(re[2]) do
+            for x in expect StrConv.toS32(re[1])
+            {
+                for y in expect StrConv.toS32(re[2])
+                {
                     screen[x, y] = true
+                }
+            }
 
         case expect re.match(#raw "rotate column x=(\d+) by (\d+)", l[]):
             let x = expect StrConv.toS32(re[1])
             for expect StrConv.toS32(re[2])
             {
-                for i in H do
+                for i in H
+                {
                     screen[x, (i + 1) % H] = nscreen[x, i]
+                }
+
                 nscreen = screen
             }
 
@@ -73,8 +80,11 @@ func day8A()
             let y = expect StrConv.toS32(re[1])
             for expect StrConv.toS32(re[2])
             {
-                for i in W do
+                for i in W
+                {
                     screen[(i + 1) % W, y] = nscreen[i, y]
+                }
+
                 nscreen = screen
             }
         }
@@ -83,8 +93,10 @@ func day8A()
     var total = 0
     for y in H
     {
-        for x in W do
+        for x in W
+        {
             total += screen[x, y] ? 1 : 0
+        }
     }
 
     Swag.assert(total == 116)

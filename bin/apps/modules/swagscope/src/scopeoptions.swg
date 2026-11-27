@@ -64,13 +64,17 @@ impl ViewerWindow
         }
 
         grid.addStruct(media[], appStrings().explore_MediaOptions)
-        for &plugin in .index.plugins where plugin.options do
+        for &plugin in .index.plugins where plugin.options
+        {
             plugin.options(grid, plugin.displayName())
+        }
 
         let mediaSection = unwrap grid.list.selectedLine()
         grid.setSectionIcon(mediaSection.items[0]!.name.text, .theme().icon(.Settings, themeRowIconSize(.themeMetrics())))
-        for &plugin in .index.plugins where plugin.options do
+        for &plugin in .index.plugins where plugin.options
+        {
             grid.setSectionIcon(plugin.displayName(), .pluginIcon(plugin))
+        }
 
         return dialog
     }
@@ -83,12 +87,19 @@ impl ViewerWindow
         let hasKey = not tmdbStoredCredential("tmdb.key").isEmpty() or
                      not Env.variable("SWAG_SCOPE_TMDB_KEY").isEmpty()
         var status = appStrings().ui_TMDBNoneConfigured
-        if hasToken and hasKey do
+        if hasToken and hasKey
+        {
             status = appStrings().ui_TMDBBothConfigured
-        elif hasToken do
+        }
+        else if hasToken
+        {
             status = appStrings().ui_TMDBTokenConfigured
-        elif hasKey do
+        }
+        else if hasKey
+        {
             status = appStrings().ui_TMDBKeyConfigured
+        }
+
         var media = ScopeMediaOptions{onlineMovies: .onlineMovies, onlineMusic: .onlineMusic,
                                       movieDetection: Viewers.Film.g_MovieDetectionSettings,
                                       tmdbCredentialStatus: status}
@@ -108,8 +119,11 @@ impl ViewerWindow
 
         let dialog = .createGeneralOptionsDialog(&media)
 
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
+
         catch media.movieDetection.validate()
         {
             MessageDlg.error(unwrap .surface, appStrings().ui_InvalidMoviePattern)

@@ -22,7 +22,7 @@ field, or a '#code' binder that the code does not use, and nothing can refer to 
 # Control Flow and Expressions
 
 ```swag
-and  as  break  case  continue  default  defer  do  elif  else
+and  as  break  case  continue  default  defer  else
 fallthrough  for  if  in  is  me  not  or  orelse  parallel  return
 scope  switch  to  unreachable  until  where  while  _
 ```
@@ -118,7 +118,8 @@ Math and bit intrinsics:
 ```swag
 Swag.abs  Swag.acos  Swag.asin  Swag.atan  Swag.atan2  Swag.byteSwap  Swag.ceil  Swag.cos
 Swag.cosh  Swag.countOnes  Swag.exp  Swag.exp2  Swag.floor  Swag.leadingZeros  Swag.log
-Swag.log10  Swag.log2  Swag.max  Swag.min  Swag.mulAdd  Swag.pow  Swag.rol  Swag.ror  Swag.round
+Swag.log10  Swag.log2  Swag.max  Swag.min  Swag.mulAdd  Swag.mulWide  Swag.pow
+Swag.rol  Swag.ror  Swag.round
 Swag.sin  Swag.sinh  Swag.sqrt  Swag.tan  Swag.tanh  Swag.trailingZeros  Swag.trunc
 ```
 
@@ -133,13 +134,23 @@ Swag.memcmp  Swag.memcpy  Swag.memmove  Swag.memset  Swag.prefetch
 Packed vector intrinsics:
 
 ```swag
-Swag.vecAlign  Swag.vecAll  Swag.vecAny  Swag.vecAvgRound  Swag.vecCarrylessMul  Swag.vecGather
+Swag.vecAesDecryptLastRound  Swag.vecAesDecryptRound  Swag.vecAesEncryptLastRound
+Swag.vecAesEncryptRound  Swag.vecAesInverseMixColumns
+Swag.vecAlign  Swag.vecAll  Swag.vecAny  Swag.vecAvgRound  Swag.vecCarrylessMul
+Swag.vecCarrylessMul2XorPair  Swag.vecCarrylessMul2XorQuad  Swag.vecGather
+Swag.vecMultiplyAdd52High  Swag.vecMultiplyAdd52Low
 Swag.vecInterleaveHi  Swag.vecInterleaveLo  Swag.vecMask  Swag.vecMulAddPairs
 Swag.vecMulAddPairsSat  Swag.vecMulHigh  Swag.vecNarrowSatS  Swag.vecNarrowSatU  Swag.vecPermute
 Swag.vecReduceAdd  Swag.vecReduceAnd  Swag.vecReduceMax  Swag.vecReduceMin  Swag.vecReduceOr
 Swag.vecReduceXor  Swag.vecSatAdd  Swag.vecSatSub  Swag.vecSelect  Swag.vecShuffle  Swag.vecShuffle2
+Swag.vecSha1NextE  Swag.vecSha1Rounds4  Swag.vecSha1Schedule1  Swag.vecSha1Schedule2
+Swag.vecSha256Rounds2  Swag.vecSha256Schedule1  Swag.vecSha256Schedule2
 Swag.vecSplat  Swag.vecSumAbsDiff  Swag.vecTruncToS32  Swag.vecWidenHi  Swag.vecWidenLo
 ```
+
+An instruction family outside the target baseline needs a runtime guard.
+Use [[Swag.hasCpuFeature]] before calling an operation that requires one of
+the optional features in [[Swag.CpuFeature]].
 
 > NOTE:
 > '#'-prefixed names belong to compiler syntax. Intrinsics use qualified names

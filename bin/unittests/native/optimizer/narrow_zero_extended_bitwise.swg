@@ -11,7 +11,7 @@ func and32(a, b: u8)->u32 => cast(u32, (a)) & cast(u32, (b))
 
 #test
 {
-    let values = [0'u8, 1, 0x80, 0xFF]
+    let values = [0_u8, 1, 0x80, 0xFF]
     for a in values
     {
         for b in values

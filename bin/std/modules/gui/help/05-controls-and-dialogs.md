@@ -65,8 +65,9 @@ let sheet = OptionSheet.View.create(button, func|player|(page)
 {
     page.addLink("Speed", player.rateText(), func|player|(rates)
     {
-        for rate in [0.5, 1.0, 2.0] do
+        for rate in [0.5, 1.0, 2.0] {
             rates.addChoice(Format.toString("%x", rate), rate == player.rate, func|player, rate|() { player.rate = rate })
+        }
     })
 
     page.addToggle("Loop", player.loop, func|player|(on) { player.loop = on })
@@ -96,8 +97,9 @@ with let lens = Lens.View.create(mainWnd)
     .addSource(.File, func|recent|(results)
     {
         let section = results.addSection("Recent")
-        for path in recent where Lens.match(results.query, path).matched do
+        for path in recent where Lens.match(results.query, path).matched {
             section.addEntry(path).monoTitle = true
+        }
     })
 }
 

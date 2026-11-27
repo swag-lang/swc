@@ -10,8 +10,11 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-short-end-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 40 do
+    for index in 40
+    {
         source += Format.toString("Paragraph %.\n\n", index)
+    }
+
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -49,8 +52,10 @@ using Swag, Core
     view.resize(720, 480)
     view.applyLayout()
     view.jumpToEnd = true
-    for 128 where view.hasUnloadedSource() do
+    for 128 where view.hasUnloadedSource()
+    {
         view.streamStep()
+    }
 
     Swag.require(not view.hasUnloadedSource() and view.blocks.count == 2)
     Swag.require(view.blocks[0].kind == .Paragraph)
@@ -64,8 +69,11 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-long-fence-", ".md")
     defer discard catch File.delete(fileName)
     var source = String.from("```swg\n")
-    for index in 220 do
+    for index in 220
+    {
         source += Format.toString("let value_% = %\n", index, index)
+    }
+
     source += "```\n\nAfter the fence."
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
@@ -75,8 +83,10 @@ using Swag, Core
     view.resize(720, 480)
     view.applyLayout()
     view.jumpToEnd = true
-    for 128 where view.hasUnloadedSource() do
+    for 128 where view.hasUnloadedSource()
+    {
         view.streamStep()
+    }
 
     Swag.require(not view.hasUnloadedSource() and view.blocks.count == 2)
     Swag.require(view.blocks[0].kind == .Code)

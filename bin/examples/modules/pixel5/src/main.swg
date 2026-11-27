@@ -20,7 +20,7 @@ struct SceneLayout
 
 struct CardOptions
 {
-    angle:         Math.Angle        = 0.0'deg
+    angle:         Math.Angle        = 0.0_deg
     scale:         f32               = 1.0
     interpolation: InterpolationMode = .Linear
     sourceRect:    Math.Rectangle
@@ -210,8 +210,10 @@ func fitTextureRect(bounds: Math.Rectangle, sourceWidth, sourceHeight: f32, angl
 
 func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: TextureCard)
 {
-    if not card.texture.isValid() do
+    if not card.texture.isValid()
+    {
         return
+    }
 
     let srcRect      = card.options.sourceRect
     let sourceWidth  = srcRect.isEmpty() ? cast(f32, card.texture.width) : srcRect.width
@@ -230,18 +232,27 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: Textur
     {
         painter.pushTransform()
         painter.rotateTransform(card.options.angle, textureRect.horzCenter(), textureRect.vertCenter())
-        if srcRect.isEmpty() do
+        if srcRect.isEmpty()
+        {
             painter.drawTexture(textureRect, card.texture)
-        else do
+        }
+        else
+        {
             painter.drawTexture(textureRect, srcRect, card.texture)
+        }
+
         painter.popTransform()
     }
     else
     {
-        if srcRect.isEmpty() do
+        if srcRect.isEmpty()
+        {
             painter.drawTexture(textureRect, card.texture)
-        else do
+        }
+        else
+        {
             painter.drawTexture(textureRect, srcRect, card.texture)
+        }
     }
 
     painter.setInterpolationMode(.Linear)
@@ -323,26 +334,36 @@ func onPaint(_: *Env.Window)
 
 func onPointer(_: *Env.Window, event: Env.WindowPointerEvent)
 {
-    if event.kind != .ButtonUp or event.button != .Left do
+    if event.kind != .ButtonUp or event.button != .Left
+    {
         return
+    }
 
     let scale  = g_Painter.contentScale()
     let layout = sceneLayout()
     let x      = (event.x / scale - layout.rect.x) / layout.scale
     let y      = (event.y / scale - layout.rect.y) / layout.scale
-    if navigationRect(0).contains(x, y) do
+    if navigationRect(0).contains(x, y)
+    {
         changePage(-1)
-    elif navigationRect(1).contains(x, y) do
+    }
+    else if navigationRect(1).contains(x, y)
+    {
         changePage(1)
+    }
 }
 
 func updateShortcuts()
 {
     g_Keyboard.update()
-    if g_Keyboard.isKeyJustPressed(.F1) do
+    if g_Keyboard.isKeyJustPressed(.F1)
+    {
         changePage(1)
-    elif g_Keyboard.isKeyJustPressed(.F2) do
+    }
+    else if g_Keyboard.isKeyJustPressed(.F2)
+    {
         changePage(-1)
+    }
 }
 
 #main
@@ -372,8 +393,10 @@ func updateShortcuts()
 
     let smoke = Env.isSmokeRun()
     var loop: Env.WindowLoop
-    if smoke do
+    if smoke
+    {
         loop.smokeFrames = MaxPages
+    }
 
     while loop.next()
     {
@@ -384,9 +407,13 @@ func updateShortcuts()
             g_NeedsPaint = false
         }
 
-        if smoke and g_Page + 1 < MaxPages do
+        if smoke and g_Page + 1 < MaxPages
+        {
             changePage(1)
-        elif not smoke do
+        }
+        else if not smoke
+        {
             Threading.Thread.sleep(Time.Duration.fromMilliseconds(8))
+        }
     }
 }

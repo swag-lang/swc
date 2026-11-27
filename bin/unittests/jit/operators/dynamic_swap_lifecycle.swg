@@ -10,8 +10,10 @@ impl DynamicSwapStorage
 {
     mtd opPostMove()
     {
-        if .buffer != null do
+        if .buffer != null
+        {
             .buffer = &.value
+        }
     }
 
     mtd opDrop()

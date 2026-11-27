@@ -19,8 +19,11 @@ internal var CodeInspectionHookRan = false
     let itf = Swag.compiler()
     let msg = unwrap itf.getMessage()
 
-    if msg.kind != Swag.CompilerMsgKind.PassAfterSemantic do
+    if msg.kind != Swag.CompilerMsgKind.PassAfterSemantic
+    {
         return
+    }
+
     itf.compileString("#init { CodeInspectionHookRan = true }\n")
 }
 

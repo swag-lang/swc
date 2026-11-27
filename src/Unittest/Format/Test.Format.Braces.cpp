@@ -130,22 +130,24 @@ SWC_TEST_BEGIN(FormatStatements_EnumKeepsAuthoredGroups)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBraces_ShortInlineDoBodiesSplit)
+SWC_TEST_BEGIN(FormatBraces_ShortBracedControlBodiesSplit)
 {
     static constexpr std::string_view SOURCE =
         "func foo(flag: bool)\n"
         "{\n"
-        "    if flag do return\n"
-        "    while flag do return\n"
+        "    if flag { return; }\n"
+        "    while flag { return; }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
         "func foo(flag: bool)\n"
         "{\n"
-        "    if flag do\n"
-        "        return\n"
-        "    while flag do\n"
-        "        return\n"
+        "    if flag {\n"
+        "        return;\n"
+        "    }\n"
+        "    while flag {\n"
+        "        return;\n"
+        "    }\n"
         "}\n";
 
     FormatOptions options;
@@ -777,7 +779,7 @@ SWC_TEST_BEGIN(FormatBraces_StaticIfChainAlignsAndBreaks)
         "#static if X\n"
         "{\n"
         "    const A = 1\n"
-        "} elif Y\n"
+        "} else if Y\n"
         "{\n"
         "    const A = 2\n"
         "}\n"
@@ -791,7 +793,7 @@ SWC_TEST_BEGIN(FormatBraces_StaticIfChainAlignsAndBreaks)
         "{\n"
         "    const A = 1\n"
         "}\n"
-        "elif Y\n"
+        "else if Y\n"
         "{\n"
         "    const A = 2\n"
         "}\n"
@@ -817,7 +819,7 @@ SWC_TEST_BEGIN(FormatBraces_StaticControl)
         "    #static if X\n"
         "    {\n"
         "        return 1\n"
-        "    } elif Y\n"
+        "    } else if Y\n"
         "    {\n"
         "        return 2\n"
         "    } else\n"
@@ -838,7 +840,7 @@ SWC_TEST_BEGIN(FormatBraces_StaticControl)
         "    {\n"
         "        return 1\n"
         "    }\n"
-        "    elif Y\n"
+        "    else if Y\n"
         "    {\n"
         "        return 2\n"
         "    }\n"
@@ -865,7 +867,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatBraces_StaticIfSingleLineChainStaysInline)
 {
     static constexpr std::string_view SOURCE =
-        "#static if X { const A = 1 } elif Y { const A = 2 } else { const A = 3 }\n";
+        "#static if X { const A = 1 } else if Y { const A = 2 } else { const A = 3 }\n";
 
     FormatOptions options;
     options.braceStyle      = FormatBraceStyle::Allman;
@@ -877,10 +879,14 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatBraces_MultiLineBlockContentLeavesBraceLines)
 {
     static constexpr std::string_view SOURCE =
+        
         "func foo(x: bool)\n"
         "{\n"
-        "    #static if SOME { if x do\n"
-        "        return\n"
+        "    #static if SOME {\n"
+        "        if x\n"
+        "        {\n"
+        "            return\n"
+        "        }\n"
         "    }\n"
         "    if x { a()\n"
         "        b() }\n"
@@ -889,12 +895,15 @@ SWC_TEST_BEGIN(FormatBraces_MultiLineBlockContentLeavesBraceLines)
         "func b() {}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func foo(x: bool)\n"
         "{\n"
         "    #static if SOME\n"
         "    {\n"
-        "        if x do\n"
-        "        return\n"
+        "        if x\n"
+        "        {\n"
+        "            return\n"
+        "        }\n"
         "    }\n"
         "    if x\n"
         "    {\n"
@@ -994,8 +1003,8 @@ SWC_TEST_BEGIN(FormatBraces_ShortBlocksKeepInitializerLiterals)
         "}\n"
         "func foo()\n"
         "{\n"
-        "    var a = Box'(s32){values: [21, 34]}\n"
-        "    var b = struct { field: u16 }{field: 12'u16}\n"
+        "    var a = Box!{s32}{values: [21, 34]}\n"
+        "    var b = struct { field: u16 }{field: 12_u16}\n"
         "}\n";
 
     FormatOptions options;
@@ -1059,21 +1068,27 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatStatements_RemoveConditionParentheses)
 {
     static constexpr std::string_view SOURCE =
+        
         "func foo(x: bool)\n"
         "{\n"
-        "    if (x) do\n"
+        "    if (x) {\n"
         "        return\n"
-        "    if (x) and x do\n"
+        "    }\n"
+        "    if (x) and x {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func foo(x: bool)\n"
         "{\n"
-        "    if x do\n"
+        "    if x {\n"
         "        return\n"
-        "    if (x) and x do\n"
+        "    }\n"
+        "    if (x) and x {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     FormatOptions options;
@@ -1244,12 +1259,12 @@ SWC_TEST_BEGIN(FormatBraces_AnonymousStructTypeKeepsItsShape)
     // The braces of a type are not a definition body: expanding them into a
     // block and dropping the separator commas rewrites the type.
     static constexpr std::string_view SOURCE =
-        "var id: HashTable'(string, Array'({ count: u32,\n"
-        "name: string }))\n";
+        "var id: HashTable!{string, Array!{{ count: u32,\n"
+        "name: string }}}\n";
 
     static constexpr std::string_view EXPECTED =
-        "var id: HashTable'(string, Array'({ count: u32,\n"
-        "                                  name: string }))\n";
+        "var id: HashTable!{string, Array!{{ count: u32,\n"
+        "    name: string }}}\n";
 
     FormatOptions options;
     options.indentStyle                   = FormatIndentStyle::Spaces;

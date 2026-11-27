@@ -3,7 +3,7 @@
 // Real-life example: forecast wholesale price signals by evolving a set of
 // obscured vendor seeds and identifying the most profitable repeated pattern.
 
-const SecretMask          = 0x00FF_FFFF'u32
+const SecretMask          = 0x00FF_FFFF_u32
 const ForecastRounds      = 2000
 const PriceChangeVariants = 19
 const SequenceCount       = PriceChangeVariants * PriceChangeVariants * PriceChangeVariants * PriceChangeVariants
@@ -28,7 +28,7 @@ func nextSecret(secret: u32)->u32
 
 func priceDigit(secret: u32)->s32
 {
-    return cast(s32, (secret % 10'u32))
+    return cast(s32, (secret % 10_u32))
 }
 
 func encodeChange(change: s32)->u32
@@ -83,8 +83,10 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
                 {
                     SequenceSeenStamp[index] = buyerStamp
                     SequenceTotals[index]    += cast(u32, currentPrice)
-                    if SequenceTotals[index] > result.bestBananaTotal do
+                    if SequenceTotals[index] > result.bestBananaTotal
+                    {
                         result.bestBananaTotal = SequenceTotals[index]
+                    }
                 }
             }
 
@@ -99,16 +101,16 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
 
 #test
 {
-    var secret = 123'u32
+    var secret = 123_u32
     secret = nextSecret(secret)
-    Swag.require(secret == 15_887_950'u32)
+    Swag.require(secret == 15_887_950_u32)
 
     for 9
     {
         secret = nextSecret(secret)
     }
 
-    Swag.require(secret == 5_908_254'u32)
+    Swag.require(secret == 5_908_254_u32)
 
     const samplePart1: [4] u32 = [1, 10, 100, 2024]
     const samplePart2: [4] u32 = [1, 2, 3, 2024]
@@ -116,6 +118,6 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
     let forecastPart1 = analyzeForecast(samplePart1)
     let forecastPart2 = analyzeForecast(samplePart2)
 
-    Swag.require(forecastPart1.sumAfterForecast == 37_327_623'u64)
+    Swag.require(forecastPart1.sumAfterForecast == 37_327_623_u64)
     Swag.require(forecastPart2.bestBananaTotal == 23)
 }

@@ -17,7 +17,7 @@ enum WideFlags: u64
 {
     None  = 0
     Read  = 1
-    Write = 0x1_0000_0000'u64
+    Write = 0x1_0000_0000_u64
     Both  = Read | Write
 }
 
@@ -50,8 +50,8 @@ enum WideFlags: u64
 {
     var none             = WideFlags.None
     var both             = WideFlags.Both
-    var unknown:     u64 = 0x2_0000_0000'u64
-    var partlyKnown: u64 = 0x2_0000_0001'u64
+    var unknown:     u64 = 0x2_0000_0000_u64
+    var partlyKnown: u64 = 0x2_0000_0001_u64
 
     Swag.require(Reflection.hasDeclaredValue(#typeof(WideFlags), &both))
     Swag.require(not Reflection.hasDeclaredValue(#typeof(WideFlags), &partlyKnown))

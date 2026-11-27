@@ -19,7 +19,7 @@ struct FootnoteResult
 
 struct FootnoteCatalog
 {
-    private notes: Array'Footnote
+    private notes: Array!{Footnote}
 }
 
 private struct FootnoteReader
@@ -47,33 +47,64 @@ private impl FootnoteReader
 {
     mtd appendInline(value: string)
     {
-        if .inRun do
+        if .inRun
+        {
             .run += value
-        else do
+        }
+        else
+        {
             .paragraph += value
+        }
     }
 
     mtd finishRun()
     {
-        if not .inRun do
+        if not .inRun
+        {
             return
-        if .bold do
+        }
+
+        if .bold
+        {
             .paragraph += "<b>"
-        if .italic do
+        }
+
+        if .italic
+        {
             .paragraph += "<i>"
-        if .underline do
+        }
+
+        if .underline
+        {
             .paragraph += "<u>"
-        if .strike do
+        }
+
+        if .strike
+        {
             .paragraph += "<s>"
+        }
+
         .paragraph += .run
-        if .strike do
+        if .strike
+        {
             .paragraph += "</s>"
-        if .underline do
+        }
+
+        if .underline
+        {
             .paragraph += "</u>"
-        if .italic do
+        }
+
+        if .italic
+        {
             .paragraph += "</i>"
-        if .bold do
+        }
+
+        if .bold
+        {
             .paragraph += "</b>"
+        }
+
         .run.clear()
         .bold            = false
         .italic          = false
@@ -85,8 +116,11 @@ private impl FootnoteReader
 
     mtd finishParagraph()
     {
-        if not .inParagraph do
+        if not .inParagraph
+        {
             return
+        }
+
         .finishRun()
         .currentHtml += "<p>"
         .currentHtml += .paragraph
@@ -97,16 +131,24 @@ private impl FootnoteReader
 
     mtd finishFootnote() fail
     {
-        if not .inFootnote do
+        if not .inFootnote
+        {
             return
+        }
+
         .finishParagraph()
         if not .skipFootnote
         {
-            for &note in .catalog.notes where note.id == .currentId do
+            for &note in .catalog.notes where note.id == .currentId
+            {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
+            }
+
             .catalog.notes.add(Footnote{.currentId, #move .currentHtml, .limited})
-            if .catalog.notes.count > 4096 do
+            if .catalog.notes.count > 4096
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
         }
 
         .currentHtml.clear()
@@ -134,20 +176,29 @@ impl FootnoteCatalog
             {
                 if not sawRoot
                 {
-                    if not token.isElement("footnotes") do
+                    if not token.isElement("footnotes")
+                    {
                         fail Errors.InvalidFormatError{texts().err_Invalid}
+                    }
+
                     sawRoot = true
                 }
 
                 if token.isElement("footnote")
                 {
-                    if reader.inFootnote do
+                    if reader.inFootnote
+                    {
                         fail Errors.InvalidFormatError{texts().err_Invalid}
+                    }
+
                     let rawId = token.attribute("id") orelse ""
                     var idError: Swag.Error
                     let id    = catch StrConv.toS32(rawId) as idError orelse 0
-                    if rawId.count == 0 or idError.value() != null do
+                    if rawId.count == 0 or idError.value() != null
+                    {
                         fail Errors.InvalidFormatError{texts().err_Invalid}
+                    }
+
                     reader.currentId   = Format.toString("%", id)
                     reader.currentType = token.attribute("type") orelse ""
                     let special = (reader.currentType == "separator" and id == 0) or
@@ -156,100 +207,140 @@ impl FootnoteCatalog
                     let specialType = reader.currentType == "separator" or
                                       reader.currentType == "continuationSeparator" or
                                       reader.currentType == "continuationNotice"
-                    if (id < 0 or id == 0 or specialType) and not special do
+                    if (id < 0 or id == 0 or specialType) and not special
+                    {
                         fail Errors.InvalidFormatError{texts().err_Invalid}
+                    }
+
                     reader.skipFootnote = special
                     reader.limited      = not reader.skipFootnote and not reader.currentType.isEmpty()
                     reader.inFootnote   = not token.empty
-                    if token.empty do
+                    if token.empty
+                    {
                         try reader.finishFootnote()
+                    }
                 }
-                elif reader.inFootnote and token.isElement("r")
+                else if reader.inFootnote and token.isElement("r")
                 {
                     reader.inRun = true
-                    if token.empty do
+                    if token.empty
+                    {
                         reader.finishRun()
+                    }
                 }
-                elif reader.inFootnote and reader.inRun and token.isElement("rPr")
+                else if reader.inFootnote and reader.inRun and token.isElement("rPr")
                 {
                     reader.inRunProperties = not token.empty
                 }
-                elif reader.inFootnote and
-                     reader.inRunProperties and
-                     (token.isElement("b") or token.isElement("i") or token.isElement("u") or token.isElement("strike"))
+                else if reader.inFootnote and
+                        reader.inRunProperties and
+                        (token.isElement("b") or token.isElement("i") or token.isElement("u") or token.isElement("strike"))
                 {
                     let value   = token.attribute("val") orelse ""
                     let enabled = value != "0" and value != "false" and value != "off" and value != "none"
-                    if token.isElement("b") do
+                    if token.isElement("b")
+                    {
                         reader.bold = enabled
-                    elif token.isElement("i") do
+                    }
+                    else if token.isElement("i")
+                    {
                         reader.italic = enabled
-                    elif token.isElement("u") do
+                    }
+                    else if token.isElement("u")
+                    {
                         reader.underline = enabled
-                    else do
+                    }
+                    else
+                    {
                         reader.strike = enabled
-                    if token.isElement("u") and enabled and value.count and value != "single" do
+                    }
+
+                    if token.isElement("u") and enabled and value.count and value != "single"
+                    {
                         reader.limited = true
+                    }
                 }
-                elif reader.inFootnote and token.isElement("p")
+                else if reader.inFootnote and token.isElement("p")
                 {
                     reader.inParagraph = true
-                    if token.empty do
+                    if token.empty
+                    {
                         reader.finishParagraph()
+                    }
                 }
-                elif reader.inFootnote and token.isElement("t")
+                else if reader.inFootnote and token.isElement("t")
                 {
                     reader.inText = not token.empty
                 }
-                elif reader.inFootnote and reader.inParagraph and token.isElement("tab")
+                else if reader.inFootnote and reader.inParagraph and token.isElement("tab")
                 {
                     reader.appendInline("&emsp;")
                 }
-                elif reader.inFootnote and reader.inParagraph and token.isElement("br")
+                else if reader.inFootnote and reader.inParagraph and token.isElement("br")
                 {
                     reader.appendInline("<br>")
                 }
-                elif reader.inFootnote and
-                     (token.isElement("tbl") or token.isElement("drawing") or token.isElement("pict") or token.isElement("fldChar") or token.isElement("instrText") or token.isElement("commentReference") or token.isElement("pPr"))
+                else if reader.inFootnote and
+                        (token.isElement("tbl") or token.isElement("drawing") or token.isElement("pict") or token.isElement("fldChar") or token.isElement("instrText") or token.isElement("commentReference") or token.isElement("pPr"))
                 {
                     reader.limited = true
                 }
-                elif reader.inFootnote and reader.inRunProperties
+                else if reader.inFootnote and reader.inRunProperties
                 {
                     reader.limited = true
                 }
             }
-            elif token.kind == .Text and reader.inFootnote and reader.inParagraph and reader.inText
+            else if token.kind == .Text and reader.inFootnote and reader.inParagraph and reader.inText
             {
-                if reader.inRun do
+                if reader.inRun
+                {
                     Package.appendHtmlEscaped(&reader.run, token.text)
-                else do
+                }
+                else
+                {
                     Package.appendHtmlEscaped(&reader.paragraph, token.text)
+                }
             }
-            elif token.kind == .End
+            else if token.kind == .End
             {
-                if token.isElement("t") do
+                if token.isElement("t")
+                {
                     reader.inText = false
-                elif token.isElement("rPr") do
+                }
+                else if token.isElement("rPr")
+                {
                     reader.inRunProperties = false
-                elif token.isElement("r") do
+                }
+                else if token.isElement("r")
+                {
                     reader.finishRun()
-                elif token.isElement("p") do
+                }
+                else if token.isElement("p")
+                {
                     reader.finishParagraph()
-                elif token.isElement("footnote") do
+                }
+                else if token.isElement("footnote")
+                {
                     try reader.finishFootnote()
+                }
             }
         }
 
-        if scan.damaged or reader.inFootnote or reader.inParagraph or (source.count and not sawRoot) do
+        if scan.damaged or reader.inFootnote or reader.inParagraph or (source.count and not sawRoot)
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         return #move reader.catalog
     }
 
     mtd const lookup(id: string)->FootnoteResult
     {
-        for &note in .notes where note.id == id do
+        for &note in .notes where note.id == id
+        {
             return FootnoteResult{note.html, true, note.limited}
+        }
+
         return {}
     }
 }

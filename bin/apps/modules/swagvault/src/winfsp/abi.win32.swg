@@ -7,20 +7,20 @@ namespace WinFsp
     alias NativeHandle = HANDLE
     alias NativeModule = HMODULE
 
-    const InvalidHandle = cast(NativeHandle, cast #bit (u64, -1's64))
-    const GenericWrite  = 0x40000000'u32
-    const ShareRead     = 0x00000001'u32
-    const NormalFile    = 0x00000080'u32
+    const InvalidHandle = cast(NativeHandle, cast #bit (u64, -1_s64))
+    const GenericWrite  = 0x40000000_u32
+    const ShareRead     = 0x00000001_u32
+    const NormalFile    = 0x00000080_u32
 
     const WinFspDllName          = "winfsp-x64.dll"
     const WinFspDriverName       = "winfsp-x64.sys"
     const WinFspSxsName          = "swagvault"
     const WinFspNetName          = "WinFsp.Net"
     const WinFspGuardianArgument = "--winfsp-guardian"
-    const WaitInfinite           = 0xFFFFFFFF'u32
-    const ProcessSynchronize     = 0x00100000'u32
-    const SddlRevisionOne        = 1'u32
-    const MoveDelayUntilReboot   = 0x00000004'u32
+    const WaitInfinite           = 0xFFFFFFFF_u32
+    const ProcessSynchronize     = 0x00100000_u32
+    const SddlRevisionOne        = 1_u32
+    const MoveDelayUntilReboot   = 0x00000004_u32
     const FspDirInfoNameCapacity = 255     // UTF-16 units in WinFsp's GetDirInfoByName buffer.
 
     // The WinFsp structures Swag Vault exchanges with the runtime, laid out as the C headers

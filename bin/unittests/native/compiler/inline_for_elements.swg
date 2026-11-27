@@ -18,8 +18,10 @@ impl ReturnVisits
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
         where not ptr
     {
-        if not (.values).count do
+        if not (.values).count
+        {
             return
+        }
 
         var remain = (.values).count
         scope(Up)
@@ -31,8 +33,10 @@ impl ReturnVisits
             }
 
             remain -= 1
-            if not remain do
+            if not remain
+            {
                 break
+            }
         }
     }
 }
@@ -44,8 +48,10 @@ func findFirstEven(values: const [..] s32)->s32
 {
     for v in values
     {
-        if (v & 1) == 0 do
+        if (v & 1) == 0
+        {
             return v
+        }
     }
     return -1
 }
@@ -54,8 +60,10 @@ func findFirstEven(values: const [..] s32)->s32
 func sumAll(values: const [..] s32)->s32
 {
     var total = 0
-    for v in values do
+    for v in values
+    {
         total += v
+    }
     return total
 }
 
@@ -67,8 +75,10 @@ func findValue(target: s32)->bool
     var values = ReturnVisits{}
     for value in values
     {
-        if value == target do
+        if value == target
+        {
             return true
+        }
     }
     return false
 }
@@ -79,8 +89,10 @@ func indexOfValue(target: s32)->s32
     var values = ReturnVisits{}
     for value, index in values
     {
-        if value == target do
+        if value == target
+        {
             return cast(s32, index)
+        }
     }
     return -1
 }
@@ -91,8 +103,10 @@ func findFirstEvenAuto(values: const [..] s32)->s32
 {
     for v in values
     {
-        if (v & 1) == 0 do
+        if (v & 1) == 0
+        {
             return v
+        }
     }
     return -1
 }
@@ -102,8 +116,10 @@ func findValueAuto(target: s32)->bool
     var values = ReturnVisits{}
     for value in values
     {
-        if value == target do
+        if value == target
+        {
             return true
+        }
     }
     return false
 }

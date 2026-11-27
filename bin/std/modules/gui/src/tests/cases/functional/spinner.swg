@@ -13,8 +13,10 @@ func inkCount(image: const *Image)->s32
     {
         for x in cast(s32, image.width)
         {
-            if image.pixelColor(x, y).argb != background do
+            if image.pixelColor(x, y).argb != background
+            {
                 result += 1
+            }
         }
     }
 

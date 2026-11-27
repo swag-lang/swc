@@ -39,7 +39,7 @@ Many pure intrinsics accept constant operands and are evaluated by the compiler.
 The same call can also execute at runtime when an operand is dynamic.
 */
 
-const IntrinsicCompileTimeMinimum = Swag.min(12's32, 7's32)
+const IntrinsicCompileTimeMinimum = Swag.min(12_s32, 7_s32)
 #assert(IntrinsicCompileTimeMinimum == 7)
 
 #test

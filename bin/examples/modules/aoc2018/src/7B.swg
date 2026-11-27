@@ -39,25 +39,30 @@ func day7B()
     let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var steps: HashTable'(u8, { prev, next: String })
+    var steps: HashTable!{u8, { prev, next: String }}
     for l in lines
     {
         steps.findOrAdd(l[5]).value.next.append(l[36])
         steps.findOrAdd(l[36]).value.prev.append(l[5])
     }
 
-    var first: Array'u8
+    var first: Array!{u8}
     var last:  u8
     for k, v in steps
     {
-        if v.next.isEmpty() do
+        if v.next.isEmpty()
+        {
             last = k
-        if v.prev.isEmpty() do
+        }
+
+        if v.prev.isEmpty()
+        {
             first.add(k)
+        }
     }
 
     var result:  String
-    var current: Array'u8
+    var current: Array!{u8}
     var workers: [5] { val: u8, tick: s32 }
 
     for cc, i in first
@@ -72,17 +77,22 @@ func day7B()
     {
         total += 1
 
-        var done: Array'u64
+        var done: Array!{u64}
         for &w, index in workers
         {
-            if w.val == 0 do
+            if w.val == 0
+            {
                 continue
+            }
+
             w.tick -= 1
-            if w.tick == 0 do
+            if w.tick == 0
+            {
                 done.add(index)
+            }
         }
 
-        var avail: Array'u8
+        var avail: Array!{u8}
         for d in done
         {
             let w = &workers[d]
@@ -99,10 +109,16 @@ func day7B()
 
             for k, v in steps
             {
-                if result.contains(k) or current.contains(k) do
+                if result.contains(k) or current.contains(k)
+                {
                     continue
-                if not Slice.allOf(v.prev.toSlice(), func|&result|(x) => result.contains(x)) do
+                }
+
+                if not Slice.allOf(v.prev.toSlice(), func|&result|(x) => result.contains(x))
+                {
                     continue
+                }
+
                 avail.add(k)
             }
         }
@@ -110,8 +126,11 @@ func day7B()
         // Slice.sort(avail.toSlice(), descending: true)
         for &w1 in workers
         {
-            if w1.val or avail.isEmpty() do
+            if w1.val or avail.isEmpty()
+            {
                 continue
+            }
+
             let cc = avail.popBack()
             w1.val  = cc
             w1.tick = (cc - 'A') + 61

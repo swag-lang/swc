@@ -52,8 +52,10 @@ Swag's normal `fail` mechanism.
 #import("core")
 #import("ogl")
 #import("truetype")
-#static if #os == Swag.TargetOs.Windows do
+#static if #os == Swag.TargetOs.Windows
+{
     #import("win32")
+}
 
 #run
 {

@@ -101,14 +101,14 @@ using Core
         var index = 0
         while index < validLabelLength
         {
-            validHost.append('a'u8)
+            validHost.append('a'_u8)
             index += 1
         }
 
         index = 0
         while index < overlongLabelLength
         {
-            overlongHost.append('a'u8)
+            overlongHost.append('a'_u8)
             index += 1
         }
     }

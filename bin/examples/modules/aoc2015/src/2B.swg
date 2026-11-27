@@ -39,8 +39,10 @@ func day2B1()
     day2EnsurePresents()
 
     var total: u64
-    for gift in day2Presents do
+    for gift in day2Presents
+    {
         total += gift.x * gift.y * gift.z + 2 * gift.x + 2 * gift.y
+    }
 
     Swag.assert(total == 3783758)
 }

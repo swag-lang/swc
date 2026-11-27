@@ -18,23 +18,27 @@ func maxU64(lhs, rhs: u64)->u64
 
 func pow10u64(numDigits: u32)->u64
 {
-    var result = 1'u64
-    for numDigits do
-        result *= 10'u64
+    var result = 1_u64
+    for numDigits
+    {
+        result *= 10_u64
+    }
     return result
 }
 
 func countDigits(value: u64)->u32
 {
-    if value < 10'u64 do
+    if value < 10_u64
+    {
         return 1
+    }
 
     var current = value
     var result: u32
-    while current != 0'u64
+    while current != 0_u64
     {
         result  += 1
-        current /= 10'u64
+        current /= 10_u64
     }
 
     return result
@@ -43,10 +47,12 @@ func countDigits(value: u64)->u32
 func isRepeatedDoubleId(value: u64)->bool
 {
     let digits = countDigits(value)
-    if (digits & 1'u32) != 0'u32 do
+    if (digits & 1_u32) != 0_u32
+    {
         return false
+    }
 
-    let splitPower = pow10u64(digits / 2'u32)
+    let splitPower = pow10u64(digits / 2_u32)
     let left       = value / splitPower
     let right      = value % splitPower
     return left == right
@@ -57,7 +63,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u64
     var result: u64
     while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result  = result * 10'u64 + cast(u64, (bytes[index[]] - '0'))
+        result  = result * 10_u64 + cast(u64, (bytes[index[]] - '0'))
         index[] += 1
     }
 
@@ -93,8 +99,10 @@ func auditProductRanges(sheet: string)->GiftShopAudit
             productId += 1
         }
 
-        if index < bytes.count and bytes[index] == ',' do
+        if index < bytes.count and bytes[index] == ','
+        {
             index += 1
+        }
     }
 
     return result
@@ -105,16 +113,16 @@ func auditProductRanges(sheet: string)->GiftShopAudit
     const exampleSheet = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124"
     let exampleAudit = auditProductRanges(exampleSheet)
 
-    Swag.require(exampleAudit.rangeCount == 11'u32)
-    Swag.require(exampleAudit.invalidCount == 8'u32)
-    Swag.require(exampleAudit.invalidSum == 1227775554'u64)
-    Swag.require(exampleAudit.highestInvalid == 1188511885'u64)
+    Swag.require(exampleAudit.rangeCount == 11_u32)
+    Swag.require(exampleAudit.invalidCount == 8_u32)
+    Swag.require(exampleAudit.invalidSum == 1227775554_u64)
+    Swag.require(exampleAudit.highestInvalid == 1188511885_u64)
 
     const boutiqueSheet = "10-12,1200-1235,9898-9902,777776-777778"
     let boutiqueAudit = auditProductRanges(boutiqueSheet)
 
-    Swag.require(boutiqueAudit.rangeCount == 4'u32)
-    Swag.require(boutiqueAudit.invalidCount == 4'u32)
-    Swag.require(boutiqueAudit.invalidSum == 788898'u64)
-    Swag.require(boutiqueAudit.highestInvalid == 777777'u64)
+    Swag.require(boutiqueAudit.rangeCount == 4_u32)
+    Swag.require(boutiqueAudit.invalidCount == 4_u32)
+    Swag.require(boutiqueAudit.invalidSum == 788898_u64)
+    Swag.require(boutiqueAudit.highestInvalid == 777777_u64)
 }

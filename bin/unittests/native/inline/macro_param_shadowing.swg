@@ -4,7 +4,7 @@
 // paths that substitute a name.
 func runMacro(count: u32)->u32
 {
-    var sum = 0'u32
+    var sum = 0_u32
     InlineMacroParamShadowing.visitTwice(count, &sum) #code(index, data)
     {
         let total = cast(*u32, unwrap data)

@@ -2,7 +2,7 @@
 
 func(T, U) freeAccepts(first: T, second: U)->bool
 {
-    return #typeof(first) == T and #typeof(second) == U and first == true and second == 2.5'f32
+    return #typeof(first) == T and #typeof(second) == U and first == true and second == 2.5_f32
 }
 
 struct(T) Box
@@ -40,7 +40,7 @@ struct(T) Vector3
 
 impl Vector3
 {
-    func dot(a: Vector3'T, b: Vector3'T)->T
+    func dot(a: Vector3!{T}, b: Vector3!{T})->T
     {
         return a.x * b.x + a.y * b.y + a.z * b.z
     }
@@ -56,32 +56,32 @@ func choose(_: bool, _: f32)->s32
 
 func(T, U) choose(value: T, other: U)->bool
 {
-    return #typeof(value) == T and #typeof(other) == U and value == true and other == 0.0'f32
+    return #typeof(value) == T and #typeof(other) == U and value == true and other == 0.0_f32
 }
 
 #test
 {
-    let ok                            = GenericFreeAlias'(bool)(true, 2.5'f32)
-    let local                         = functionLocalAliasBox'u16(12)
-    let boxed:   GenericBoxAlias'bool = {value: true}
-    let wrapped: WrapperAliasBox'f32  = {item: {value: 3.5}}
+    let ok                              = GenericFreeAlias!{bool}(true, 2.5_f32)
+    let local                           = functionLocalAliasBox!{u16}(12)
+    let boxed:   GenericBoxAlias!{bool} = {value: true}
+    let wrapped: WrapperAliasBox!{f32}  = {item: {value: 3.5}}
 
     #assert(#typeof(ok) == bool)
     #assert(#typeof(local) == u16)
     #assert(#typeof(boxed.value) == bool)
     #assert(#typeof(wrapped.item.value) == f32)
     Swag.require(ok)
-    Swag.require(local == 12'u16)
+    Swag.require(local == 12_u16)
     Swag.require(boxed.value == true)
-    Swag.require(wrapped.item.value == 3.5'f32)
+    Swag.require(wrapped.item.value == 3.5_f32)
 }
 
 #test
 {
-    var a: VectorAlias2's32 = {x: 1, y: 2, z: 3}
-    var b: VectorAlias2's32 = {x: 4, y: 5, z: 6}
-    let d                   = VectorAlias2's32.dot(&a, &b)
-    let picked              = choose'(bool)(true, 0.0'f32)
+    var a: VectorAlias2!{s32} = {x: 1, y: 2, z: 3}
+    var b: VectorAlias2!{s32} = {x: 4, y: 5, z: 6}
+    let d                     = VectorAlias2!{s32}.dot(&a, &b)
+    let picked                = choose!{bool}(true, 0.0_f32)
 
     #assert(#typeof(d) == s32)
     #assert(#typeof(picked) == bool)

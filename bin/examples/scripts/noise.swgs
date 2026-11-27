@@ -95,10 +95,15 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         let renderer = paintEvt.paintContext.renderer
 
         // A failed upload may leave partial pixels, so replace the texture before drawing.
-        if g_Texture.isValid() and not renderer.updateTexture(g_Texture, g_Image.pixels.storage()) do
+        if g_Texture.isValid() and not renderer.updateTexture(g_Texture, g_Image.pixels.storage())
+        {
             renderer.removeTexture(&g_Texture)
-        if not g_Texture.isValid() do
+        }
+
+        if not g_Texture.isValid()
+        {
             g_Texture = renderer.addImage(g_Image)
+        }
 
         if g_Texture.isValid()
         {

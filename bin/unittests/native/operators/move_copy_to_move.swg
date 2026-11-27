@@ -18,7 +18,13 @@ impl Tracked
 {
     mtd opPostCopy() { g_copies += 1 }
     mtd opPostMove() { g_moves += 1 }
-    mtd opDrop() { if .x != 0 do g_drops += 1 }
+    mtd opDrop()
+    {
+        if .x != 0
+        {
+            g_drops += 1
+        }
+    }
 }
 
 var g_slot: Tracked
@@ -31,8 +37,10 @@ func sink(v: #move Tracked)
 // A sink that does NOT always consume its parameter.
 func sinkIf(cond: bool, v: #move Tracked)
 {
-    if cond do
+    if cond
+    {
         g_slot = #nodrop #move v
+    }
 }
 
 // Copy call style: implicit temporary copy, source untouched.

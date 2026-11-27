@@ -14,7 +14,7 @@ using Swag, Core
     assertSvgMaskRaster(renderer, 64, "black")
 }
 
-// One traversal must preserve both mattes even at clipped overlaps and partial edge tiles.
+// CPU target access preserves both mattes at clipped overlaps and partial edge tiles.
 #test
 {
     const Source = #raw """
@@ -36,20 +36,29 @@ using Swag, Core
           <rect x="67" y="46" width="24" height="27" fill="#407649" opacity=".4"/>
         </svg>
         """
-    let drawing   = expect Svg.Drawing.parse(Source)
-    let reference = expect Svg.Drawing.parse(Source)
     var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
     renderer.init()
     defer renderer.end()
 
-    let paired   = drawing.rasterizeWithSampleTileSide(renderer, 91, 73, 1, 32, &cpu)
-    let separate = reference.rasterizeWithSampleTileSide(renderer, 91, 73, 1, 32)
-    Swag.require(paired.isValid() and separate.isValid())
-    Swag.require(paired.pixelColor(0, 0).a == 0)
-    Swag.require(paired.pixelColor(89, 72).a == 102)
-    for byte, index in paired.pixels do
-        Swag.require(byte == separate.pixels[index])
+    for samples in [1_u8, 2, 4, 8]
+    {
+        let drawing   = expect Svg.Drawing.parse(Source)
+        let reference = expect Svg.Drawing.parse(Source)
+        let direct    = drawing.rasterizeWithSampleTileSide(renderer, 91, 73, samples, 32, &cpu)
+        let readback  = reference.rasterizeWithSampleTileSide(renderer, 91, 73, samples, 32)
+        Swag.require(direct.isValid() and readback.isValid())
+        Swag.require(direct.pixelColor(0, 0).a == 0)
+        if samples <= 2
+        {
+            Swag.require(direct.pixelColor(89, 72).a == 102)
+        }
+
+        for byte, index in direct.pixels
+        {
+            Swag.require(byte == readback.pixels[index], Format.toString("SVG matte sample count %, byte %, got %, expected %.", samples, index, byte, readback.pixels[index]))
+        }
+    }
 }
 
 // An intersected clip must remain visible in every raster tile, including tiles whose origin
@@ -67,8 +76,10 @@ using Swag, Core
     Swag.require(tiled.pixelColor(72, 48).argb == 0xFF806040)
     Swag.require(tiled.pixelColor(48, 24).argb == 0xFF806040)
     Swag.require(tiled.pixelColor(48, 72).argb == 0xFF806040)
-    for value, index in tiled.pixels do
+    for value, index in tiled.pixels
+    {
         Swag.require(Math.abs(cast(s32, value) - cast(s32, whole.pixels[index])) <= 1)
+    }
 }
 
 // An ancestor clip intersects the descendant's own clip instead of replacing it.
@@ -98,7 +109,7 @@ using Swag, Core
 #test
 {
     let drawing = expect Svg.Drawing.parse("<svg width='32' height='24'><rect width='32' height='24' fill='white'/><rect x='4' y='4' width='24' height='16' fill='#204060' fill-opacity='0.25'/><path d='M1 1H3' fill='none' stroke='black'/></svg>")
-    for samples in [1'u8, 2'u8, 4'u8]
+    for samples in [1_u8, 2_u8, 4_u8]
     {
         let image = drawing.rasterize(32, 24, samples)
         let color = image.pixelColor(16, 12)

@@ -19,7 +19,10 @@ func shared(a, b: u64)->u64
 {
     let previous = a - 1
     let result   = a & previous
-    if b != 0 do return result ^ previous
+    if b != 0
+    {
+        return result ^ previous
+    }
     return result ^ a
 }
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
@@ -28,7 +31,7 @@ func compared(a: u64)->bool => (a & (a - 1)) == 0
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 2, 7, 8, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 7, 8, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         let previous = a - 1

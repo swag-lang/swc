@@ -7,8 +7,10 @@ private func countTextPixels(image: const *Image, left, right: s32)->u32
     var result: u32
     for y in image.height
     {
-        for x in left until right where image.pixelColor(x, y).a > 32 do
+        for x in left until right where image.pixelColor(x, y).a > 32
+        {
             result += 1
+        }
     }
 
     return result
@@ -68,7 +70,7 @@ private func textInkWidth(source: string, options: Svg.ParseOptions)->s32
     let image   = drawing.rasterize(200, 32, 1)
 
     var minX = image.width
-    var maxX = -1's32
+    var maxX = -1_s32
     for y in image.height
     {
         for x in image.width where image.pixelColor(x, y).a > 32
@@ -177,11 +179,13 @@ private func textInkWidth(source: string, options: Svg.ParseOptions)->s32
     let drawing = expect Svg.Drawing.parse(Source, options)
     let image   = drawing.rasterize(60, 30, 2)
 
-    var opaque = 0's32
+    var opaque = 0_s32
     for y in image.height
     {
-        for x in image.width where image.pixelColor(x, y).a > 200 do
+        for x in image.width where image.pixelColor(x, y).a > 200
+        {
             opaque += 1
+        }
     }
 
     // The frame alone covers well over a hundred samples; an emptied alpha plane covers none.

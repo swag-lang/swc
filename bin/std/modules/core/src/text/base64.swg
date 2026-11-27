@@ -3,8 +3,8 @@
 
 using Swag, Math
 
-private const EncodeGather  = cast(Simd.U8x16, [2'u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80])
-private const DecodeScatter = cast(Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
+private const EncodeGather  = cast(Simd.U8x16, [2_u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80])
+private const DecodeScatter = cast(Simd.U8x16, [0_u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
 
 // Encodes bytes as standard base64 text, with `=` padding and no line breaks.
 func encode(bytes: const [..] u8)->String
@@ -23,10 +23,10 @@ func encode(bytes: const [..] u8)->String
 
         // Translate the digit ranges, then replace the two punctuation characters.
         var encoded = values + 'A'
-        encoded += Simd.select(values > Simd.splat(25'u8), Simd.splat(6'u8), Simd.splat(0'u8))
-        encoded += Simd.select(values > Simd.splat(51'u8), Simd.splat(181'u8), Simd.splat(0'u8))
-        encoded = Simd.select(values == Simd.splat(62'u8), Simd.splat('+'u8), encoded)
-        return Simd.select(values == Simd.splat(63'u8), Simd.splat('/'u8), encoded)
+        encoded += Simd.select(values > Simd.splat(25_u8), Simd.splat(6_u8), Simd.splat(0_u8))
+        encoded += Simd.select(values > Simd.splat(51_u8), Simd.splat(181_u8), Simd.splat(0_u8))
+        encoded = Simd.select(values == Simd.splat(62_u8), Simd.splat('+'_u8), encoded)
+        return Simd.select(values == Simd.splat(63_u8), Simd.splat('/'_u8), encoded)
     }
 
     var result: #returntype
@@ -34,8 +34,8 @@ func encode(bytes: const [..] u8)->String
     let resultCount = ((count + 2) / 3) * 4
     result.reserve(resultCount + 1)
 
-    var index    = 0'u64
-    var outIndex = 0'u64
+    var index    = 0_u64
+    var outIndex = 0_u64
 
     // Vector loads read 16 bytes while each block consumes only 12.
     while count - index >= 16
@@ -69,7 +69,7 @@ func encode(bytes: const [..] u8)->String
         output[outIndex + 2] = '='
         output[outIndex + 3] = '='
     }
-    elif left == 2
+    else if left == 2
     {
         let group = (cast(u32, bytes[index]) << 16) | (cast(u32, bytes[index + 1]) << 8)
         output[outIndex + 0] = Alphabet[group >> 18]
@@ -89,7 +89,7 @@ func encode(bytes: const [..] u8)->String
 // skipped, and the trailing `=` padding is optional. A character outside those sets, data after
 // the padding, or a final group of a single digit reports [[Core.Errors.InvalidFormatError]].
 // `maxOutputBytes` bounds the decoded buffer; zero leaves it unlimited.
-func decode(text: string, maxOutputBytes: u64 = 0)->Array'u8 fail
+func decode(text: string, maxOutputBytes: u64 = 0)->Array!{u8} fail
 {
     var result: #returntype
     let groups       = text.count / 4
@@ -99,23 +99,40 @@ func decode(text: string, maxOutputBytes: u64 = 0)->Array'u8 fail
 
     func checkOutputLimit(outputCount, additional, maxOutputBytes: u64) fail
     {
-        if maxOutputBytes and (outputCount > maxOutputBytes or additional > maxOutputBytes - outputCount) do
+        if maxOutputBytes and (outputCount > maxOutputBytes or additional > maxOutputBytes - outputCount)
+        {
             fail Errors.UnsupportedFormatError{"base64 output exceeds the configured byte limit"}
+        }
     }
 
     // Returns the sextet a byte spells, or 255 for a byte outside both alphabets.
     func digitValue(value: u8)->u8
     {
-        if value >= 'A' and value <= 'Z' do
+        if value >= 'A' and value <= 'Z'
+        {
             return value - 'A'
-        if value >= 'a' and value <= 'z' do
+        }
+
+        if value >= 'a' and value <= 'z'
+        {
             return value - 'a' + 26
-        if value >= '0' and value <= '9' do
+        }
+
+        if value >= '0' and value <= '9'
+        {
             return value - '0' + 52
-        if value == '+' or value == '-' do
+        }
+
+        if value == '+' or value == '-'
+        {
             return 62
-        if value == '/' or value == '_' do
+        }
+
+        if value == '/' or value == '_'
+        {
             return 63
+        }
+
         return 255
     }
 
@@ -123,24 +140,26 @@ func decode(text: string, maxOutputBytes: u64 = 0)->Array'u8 fail
     func decodeBlock(input: const [*] u8)->{ decoded: Simd.U8x16, valid: bool }
     {
         let bytes      = Simd.load(input)
-        let upperMask  = (bytes >= Simd.splat('A'u8)) & (bytes <= Simd.splat('Z'u8))
-        let lowerMask  = (bytes >= Simd.splat('a'u8)) & (bytes <= Simd.splat('z'u8))
-        let digitMask  = (bytes >= Simd.splat('0'u8)) & (bytes <= Simd.splat('9'u8))
-        let symbolMask = (bytes == Simd.splat('+'u8)) | (bytes == Simd.splat('-'u8)) |
-                         (bytes == Simd.splat('/'u8)) | (bytes == Simd.splat('_'u8))
-        if not Simd.allTrue(upperMask | lowerMask | digitMask | symbolMask) do
-            return {decoded: Simd.splat(0'u8), valid: false}
+        let upperMask  = (bytes >= Simd.splat('A'_u8)) & (bytes <= Simd.splat('Z'_u8))
+        let lowerMask  = (bytes >= Simd.splat('a'_u8)) & (bytes <= Simd.splat('z'_u8))
+        let digitMask  = (bytes >= Simd.splat('0'_u8)) & (bytes <= Simd.splat('9'_u8))
+        let symbolMask = (bytes == Simd.splat('+'_u8)) | (bytes == Simd.splat('-'_u8)) |
+                         (bytes == Simd.splat('/'_u8)) | (bytes == Simd.splat('_'_u8))
+        if not Simd.allTrue(upperMask | lowerMask | digitMask | symbolMask)
+        {
+            return {decoded: Simd.splat(0_u8), valid: false}
+        }
 
         // Map both alphabets to the same six-bit digits.
-        var values = Simd.splat(0'u8)
+        var values = Simd.splat(0_u8)
         values = Simd.select(upperMask, bytes - 'A', values)
         values = Simd.select(lowerMask, bytes - 'a' + 26, values)
         values = Simd.select(digitMask, bytes - '0' + 52, values)
-        values = Simd.select((bytes == Simd.splat('+'u8)) | (bytes == Simd.splat('-'u8)),
-                             Simd.splat(62'u8),
+        values = Simd.select((bytes == Simd.splat('+'_u8)) | (bytes == Simd.splat('-'_u8)),
+                             Simd.splat(62_u8),
                              values)
-        values = Simd.select((bytes == Simd.splat('/'u8)) | (bytes == Simd.splat('_'u8)),
-                             Simd.splat(63'u8),
+        values = Simd.select((bytes == Simd.splat('/'_u8)) | (bytes == Simd.splat('_'_u8)),
+                             Simd.splat(63_u8),
                              values)
 
         // Reassemble each four-digit group into three contiguous bytes.
@@ -153,10 +172,10 @@ func decode(text: string, maxOutputBytes: u64 = 0)->Array'u8 fail
     }
 
     var digits: [4] u8
-    var count   = 0'u32
+    var count   = 0_u32
     var ended   = false
-    var padding = 0'u32
-    var index   = 0'u64
+    var padding = 0_u32
+    var index   = 0_u64
     while index < text.count
     {
         // Only a complete, unpadded group can take the vector path.
@@ -181,30 +200,43 @@ func decode(text: string, maxOutputBytes: u64 = 0)->Array'u8 fail
            value == '\n' or
            value == '\v' or
            value == '\f' or
-           value == '\r' do
+           value == '\r'
+        {
             continue
+        }
+
         if value == '='
         {
             if not ended
             {
-                if count != 2 and count != 3 do
+                if count != 2 and count != 3
+                {
                     fail Errors.InvalidFormatError{"invalid base64 padding"}
+                }
+
                 ended = true
             }
 
             let expectedPadding = 4 - count
             padding += 1
-            if padding > expectedPadding do
+            if padding > expectedPadding
+            {
                 fail Errors.InvalidFormatError{"too much base64 padding"}
+            }
+
             continue
         }
 
-        if ended do
+        if ended
+        {
             fail Errors.InvalidFormatError{"base64 data continues after its padding"}
+        }
 
         let digit = digitValue(value)
-        if digit == 255 do
+        if digit == 255
+        {
             fail Errors.InvalidFormatError{"invalid base64 character"}
+        }
 
         digits[count] = digit
         count         += 1
@@ -222,14 +254,26 @@ func decode(text: string, maxOutputBytes: u64 = 0)->Array'u8 fail
     }
 
     // A final group of two or three digits spells one or two bytes; a lone digit spells nothing.
-    if count == 1 do
+    if count == 1
+    {
         fail Errors.InvalidFormatError{"truncated base64 data"}
-    if count == 2 and (digits[1] & 0x0F) do
+    }
+
+    if count == 2 and (digits[1] & 0x0F)
+    {
         fail Errors.InvalidFormatError{"non-zero unused bits in base64 data"}
-    if count == 3 and (digits[2] & 0x03) do
+    }
+
+    if count == 3 and (digits[2] & 0x03)
+    {
         fail Errors.InvalidFormatError{"non-zero unused bits in base64 data"}
-    if padding and padding != 4 - count do
+    }
+
+    if padding and padding != 4 - count
+    {
         fail Errors.InvalidFormatError{"incomplete base64 padding"}
+    }
+
     if count >= 2
     {
         try checkOutputLimit(result.count, count == 2 ? 1 : 2, maxOutputBytes)

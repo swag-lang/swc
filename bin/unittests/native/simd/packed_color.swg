@@ -20,7 +20,7 @@ func packedColor(color: Color)->u32
 
 #test
 {
-    for argb in [0'u32, 0xFF0503FF'u32, 0x01FF8000'u32, 0xFFFFFFFF'u32]
+    for argb in [0_u32, 0xFF0503FF_u32, 0x01FF8000_u32, 0xFFFFFFFF_u32]
     {
         var color: Color
         color.argb = argb

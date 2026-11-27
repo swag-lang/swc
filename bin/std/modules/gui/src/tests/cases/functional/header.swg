@@ -95,7 +95,7 @@ using Swag, Core
     host.setup(420, 100)
     host.root.backgroundStyle = .Window
 
-    let page   = Wnd.create'Wnd(&host.root, null, {160, 10, 220, 60})
+    let page   = Wnd.create!{Wnd}(&host.root, null, {160, 10, 220, 60})
     let header = Header.create(page, {0, 10, 180, 24})
     header.form = .Transparent
     header.addColumn("Mounted", 160)
@@ -103,14 +103,17 @@ using Swag, Core
     let background = host.theme.colors.wnd_Bk
     let normal     = host.render()
     var normalInk: bool
-    var y          = 22's32
+    var y          = 22_s32
     while y < 41
     {
-        var x = 164's32
+        var x = 164_s32
         while x < 240
         {
-            if normal.pixelColor(x, y).argb != background.argb do
+            if normal.pixelColor(x, y).argb != background.argb
+            {
                 normalInk = true
+            }
+
             x += 1
         }
 
@@ -126,11 +129,14 @@ using Swag, Core
     y = 22
     while y < 41
     {
-        var x = 172's32
+        var x = 172_s32
         while x < 248
         {
-            if presented.pixelColor(x, y).argb != background.argb do
+            if presented.pixelColor(x, y).argb != background.argb
+            {
                 presentedInk = true
+            }
+
             x += 1
         }
 

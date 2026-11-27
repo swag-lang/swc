@@ -40,7 +40,7 @@ using Swag, Core
     cffFace.outlineSource   = .Cff
     cffFace.cff.block       = CffIndexBytes
     cffFace.cff.charStrings = expect readCffIndex(CffIndexBytes, 0)
-    expect buildCharstringMetrics(&cffFace)
+    expect buildCharstringMetrics(&cffFace, &cffFace.programTables.advances)
     Swag.require(expect cffFace.face.getAdvanceWidth(0) == 50)
     Swag.require(expect cffFace.face.getAdvanceWidth(1) == 0)
 
@@ -48,21 +48,21 @@ using Swag, Core
     type1Face.face.setGlyphCount(2)
     type1Face.outlineSource = .Type1
 
-    var type1Width: Array'u8
-    type1Width.add(139'u8)     // sidebearing 0
-    type1Width.add(189'u8)     // width 50
-    type1Width.add(13'u8)      // hsbw
-    type1Width.add(14'u8)      // endchar
-    type1Face.type1.charstrings.add(type1Width)
+    var type1Width: Array!{u8}
+    type1Width.add(139_u8)     // sidebearing 0
+    type1Width.add(189_u8)     // width 50
+    type1Width.add(13_u8)      // hsbw
+    type1Width.add(14_u8)      // endchar
+    type1Face.type1.charstrings.add(type1Face.type1.storeCode(type1Width.toSlice(), -1))
 
-    var type1Zero: Array'u8
-    type1Zero.add(139'u8)     // sidebearing 0
-    type1Zero.add(139'u8)     // width 0
-    type1Zero.add(13'u8)      // hsbw
-    type1Zero.add(14'u8)      // endchar
-    type1Face.type1.charstrings.add(type1Zero)
+    var type1Zero: Array!{u8}
+    type1Zero.add(139_u8)     // sidebearing 0
+    type1Zero.add(139_u8)     // width 0
+    type1Zero.add(13_u8)      // hsbw
+    type1Zero.add(14_u8)      // endchar
+    type1Face.type1.charstrings.add(type1Face.type1.storeCode(type1Zero.toSlice(), -1))
 
-    expect buildCharstringMetrics(&type1Face)
+    expect buildCharstringMetrics(&type1Face, &type1Face.programTables.advances)
     Swag.require(expect type1Face.face.getAdvanceWidth(0) == 50)
     Swag.require(expect type1Face.face.getAdvanceWidth(1) == 0)
 }

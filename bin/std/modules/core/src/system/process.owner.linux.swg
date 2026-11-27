@@ -9,8 +9,11 @@ private func processPipeHandle(fd: s32)->ProcessHandle         => cast(ProcessHa
 
 private func closeProcessPipe(handle: *ProcessHandle)
 {
-    if not handle[] do
+    if not handle[]
+    {
         return
+    }
+
     let fd = processPipeDescriptor(handle[])
     handle[] = null
 
@@ -20,14 +23,19 @@ private func closeProcessPipe(handle: *ProcessHandle)
 
 private func checkSpawnError(error: s32) fail
 {
-    if error != 0 do
+    if error != 0
+    {
         try Errors.failLinuxError(error)
+    }
 }
 
 private func prepareProcessStream(actions: *Linux.posix_spawn_file_actions_t, redirection: StreamRedirection, target: s32, parentEnd, childEnd: *ProcessHandle) fail
 {
-    if redirection == .Inherit do
+    if redirection == .Inherit
+    {
         return
+    }
+
     if redirection == .Discard
     {
         try checkSpawnError(Linux.posix_spawn_file_actions_addopen(actions,
@@ -39,8 +47,11 @@ private func prepareProcessStream(actions: *Linux.posix_spawn_file_actions_t, re
     }
 
     var pipes: [2] s32
-    if Linux.pipe2(pipes.buffer, Linux.O_CLOEXEC) != 0 do
+    if Linux.pipe2(pipes.buffer, Linux.O_CLOEXEC) != 0
+    {
         try Errors.failLinuxError(Linux.errno())
+    }
+
     parentEnd[] = processPipeHandle(pipes[target == 0 ? 1 : 0])
     childEnd[]  = processPipeHandle(pipes[target == 0 ? 0 : 1])
 
@@ -48,11 +59,17 @@ private func prepareProcessStream(actions: *Linux.posix_spawn_file_actions_t, re
     func normalize(handle: *ProcessHandle) fail
     {
         let fd = processPipeDescriptor(handle[])
-        if fd >= 3 do
+        if fd >= 3
+        {
             return
-        let replacement = Linux.fcntl(fd, Linux.F_DUPFD_CLOEXEC, 3's32)
-        if replacement < 0 do
+        }
+
+        let replacement = Linux.fcntl(fd, Linux.F_DUPFD_CLOEXEC, 3_s32)
+        if replacement < 0
+        {
             try Errors.failLinuxError(Linux.errno())
+        }
+
         closeProcessPipe(handle)
         handle[] = processPipeHandle(replacement)
     }
@@ -61,37 +78,59 @@ private func prepareProcessStream(actions: *Linux.posix_spawn_file_actions_t, re
     try normalize(childEnd)
     let parent = processPipeDescriptor(parentEnd[])
     let flags  = Linux.fcntl(parent, Linux.F_GETFL)
-    if flags < 0 do
+    if flags < 0
+    {
         try Errors.failLinuxError(Linux.errno())
-    if Linux.fcntl(parent, Linux.F_SETFL, flags | Linux.O_NONBLOCK) < 0 do
+    }
+
+    if Linux.fcntl(parent, Linux.F_SETFL, flags | Linux.O_NONBLOCK) < 0
+    {
         try Errors.failLinuxError(Linux.errno())
+    }
+
     try checkSpawnError(Linux.posix_spawn_file_actions_adddup2(actions, processPipeDescriptor(childEnd[]), target))
 }
 
 internal func startProcessNative(info: StartInfo)->Process fail
 {
-    if info.nativeArguments or info.affinityMask != 0 or info.measureResources do
+    if info.nativeArguments or info.affinityMask != 0 or info.measureResources
+    {
         try Errors.failLinuxError(Linux.ENOTSUP)
+    }
 
-    var arguments: Array'String
+    var arguments: Array!{String}
     arguments.add(String.from(info.fileName))
-    if info.arguments do
-        for argument in info.arguments do
+    if info.arguments
+    {
+        for argument in info.arguments
+        {
             arguments.add(String.from(argument))
-    var argv: Array'([*] u8?)
-    for &argument in arguments do
+        }
+    }
+
+    var argv: Array!{[*] u8?}
+    for &argument in arguments
+    {
         argv.add(argument.storage())
+    }
+
     argv.add(cast([*] u8?, null))
 
-    var environment:       Array'String
-    var envp:              Array'([*] u8?)
+    var environment:       Array!{String}
+    var envp:              Array!{[*] u8?}
     var nativeEnvironment: const [*] ([*] u8?)?
     if info.environment
     {
-        for name, value in info.environment.variables do
+        for name, value in info.environment.variables
+        {
             environment.add(Format.toString("%=%", name.toString(), value.toString()))
-        for &entry in environment do
+        }
+
+        for &entry in environment
+        {
             envp.add(entry.storage())
+        }
+
         envp.add(cast([*] u8?, null))
         nativeEnvironment = envp.storage()
     }
@@ -121,14 +160,19 @@ internal func startProcessNative(info: StartInfo)->Process fail
     try prepareProcessStream(&actions, info.standardError, 2, &result.errorPipe, &childError)
 
     let memory = Linux.calloc(1, #sizeof(LinuxProcessState))
-    if not memory do
+    if not memory
+    {
         try Errors.failLinuxError(Linux.ENOMEM)
+    }
+
     let state     = cast(*LinuxProcessState, unwrap memory)
     var published = false
     defer
     {
-        if not published do
+        if not published
+        {
             Linux.free(state)
+        }
     }
 
     // Start the reaper before spawning, so no later close needs to allocate or start a thread.
@@ -159,14 +203,20 @@ impl Process
 
     internal mtd drainPipeNative(pipe: *ProcessHandle, text: *String, limit: u64)
     {
-        if not pipe[] do
+        if not pipe[]
+        {
             return
+        }
+
         let fd = processPipeDescriptor(pipe[])
         var available: s32
         for
         {
-            if Linux.ioctl(fd, Linux.FIONREAD, &available) == 0 do
+            if Linux.ioctl(fd, Linux.FIONREAD, &available) == 0
+            {
                 break
+            }
+
             if Linux.errno() != Linux.EINTR
             {
                 closeProcessPipe(pipe)
@@ -175,7 +225,7 @@ impl Process
         }
 
         // Probe an empty pipe once to distinguish EOF from temporarily unavailable data.
-        var remaining = Math.min(Math.max(cast(u64, available), 1'u64), limit)
+        var remaining = Math.min(Math.max(cast(u64, available), 1_u64), limit)
         var buffer: [4096] u8
         while remaining != 0
         {
@@ -183,10 +233,16 @@ impl Process
             if count < 0
             {
                 let error = Linux.errno()
-                if error == Linux.EINTR do
+                if error == Linux.EINTR
+                {
                     continue
-                if error != Linux.EAGAIN do
+                }
+
+                if error != Linux.EAGAIN
+                {
                     closeProcessPipe(pipe)
+                }
+
                 return
             }
 
@@ -213,8 +269,11 @@ impl Process
             if result < 0
             {
                 let error = Linux.errno()
-                if error == Linux.EINTR do
+                if error == Linux.EINTR
+                {
                     continue
+                }
+
                 try Errors.failLinuxError(error)
             }
 
@@ -228,8 +287,11 @@ impl Process
 
             if not blocking
             {
-                if slept or milliseconds == 0 do
+                if slept or milliseconds == 0
+                {
                     return
+                }
+
                 Threading.Thread.sleep(Time.Duration.fromMilliseconds(milliseconds))
                 slept = true
             }
@@ -238,8 +300,10 @@ impl Process
 
     internal mtd killNative() fail
     {
-        if .exited or not .handle do
+        if .exited or not .handle
+        {
             return
+        }
 
         // Observe an already exited child first; a zombie still owns its PID until this wait.
         try .pollExitNative(0)
@@ -250,8 +314,10 @@ impl Process
         }
 
         let state = nativeProcess(.handle)
-        if Linux.kill(state.pid, Linux.SIGKILL) != 0 do
+        if Linux.kill(state.pid, Linux.SIGKILL) != 0
+        {
             try Errors.failLinuxError(Linux.errno())
+        }
     }
 
     // Returns false: Linux does not yet implement the process-tree accounting contract.
@@ -266,16 +332,25 @@ impl Process
     // process-wide SIGPIPE handling. Call closeStandardInput after the last write to send EOF.
     mtd writeStandardInput(data: string) fail
     {
-        if not .inputPipe do
+        if not .inputPipe
+        {
             fail Errors.BadParameterError{"standard input is not redirected to a pipe"}
+        }
+
         let fd = processPipeDescriptor(.inputPipe)
         var blocked, previous, pending: Linux.sigset_t
-        if Linux.sigemptyset(&blocked) != 0 or Linux.sigaddset(&blocked, Linux.SIGPIPE) != 0 do
+        if Linux.sigemptyset(&blocked) != 0 or Linux.sigaddset(&blocked, Linux.SIGPIPE) != 0
+        {
             try Errors.failLinuxError(Linux.errno())
+        }
+
         try checkSpawnError(Linux.pthread_sigmask(Linux.SIG_BLOCK, &blocked, &previous))
         defer discard Linux.pthread_sigmask(Linux.SIG_SETMASK, &previous, null)
-        if Linux.sigpending(&pending) != 0 do
+        if Linux.sigpending(&pending) != 0
+        {
             try Errors.failLinuxError(Linux.errno())
+        }
+
         let alreadyPending = Linux.sigismember(&pending, Linux.SIGPIPE) == 1
         var broken         = false
         defer
@@ -287,15 +362,18 @@ impl Process
             }
         }
 
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < data.count
         {
-            let written = Linux.write(fd, data.buffer + offset, Math.min(data.count - offset, 0x7FFFF000'u64))
+            let written = Linux.write(fd, data.buffer + offset, Math.min(data.count - offset, 0x7FFFF000_u64))
             if written < 0
             {
                 let error = Linux.errno()
-                if error == Linux.EINTR do
+                if error == Linux.EINTR
+                {
                     continue
+                }
+
                 if error == Linux.EAGAIN
                 {
                     .readAvailable()
@@ -307,8 +385,11 @@ impl Process
                 try Errors.failLinuxError(error)
             }
 
-            if written == 0 do
+            if written == 0
+            {
                 try Errors.failLinuxError(Linux.EIO)
+            }
+
             offset += cast(u64, written)
         }
     }

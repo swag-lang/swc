@@ -30,7 +30,7 @@ private func testAtlasUpload(mode: FontRenderMode)
     let font = cache.createFont(face, 24, mode)
     discard font.getGlyphDesc('A')
     let atlas = &font.cache.atlases[0]
-    var uploaded: Array'u8
+    var uploaded: Array!{u8}
     uploaded.add(atlas.data.toSlice())
     atlas.dirty      = false
     font.cache.dirty = false
@@ -51,8 +51,10 @@ private func testAtlasUpload(mode: FontRenderMode)
         Memory.copy(uploaded.storage() + offset, atlas.data.storage() + offset, rowBytes)
     }
 
-    for value, index in uploaded do
+    for value, index in uploaded
+    {
         Swag.require(value == atlas.data[index])
+    }
 
     atlas.dirty      = false
     font.cache.dirty = false
@@ -81,8 +83,10 @@ private func glyphCell(font: *Font, desc: const *GlyphDesc)->{x: u64, y: u64, at
     var alone, crowded: FontCache
     let first  = alone.createFont(face, 40, .Msdf)
     let second = crowded.createFont(face, 40, .Msdf)
-    for c in "Wide glyphs arrive first, then the title." do
+    for c in "Wide glyphs arrive first, then the title."
+    {
         discard second.getGlyphDesc(c)
+    }
 
     for c in "Ownership"
     {
@@ -100,8 +104,10 @@ private func glyphCell(font: *Font, desc: const *GlyphDesc)->{x: u64, y: u64, at
         {
             let rowA = (cast(u64, cellA.atlas.height) - 1 - cellA.y - row) * cast(u64, cellA.atlas.width) + cellA.x * bpp
             let rowB = (cast(u64, cellB.atlas.height) - 1 - cellB.y - row) * cast(u64, cellB.atlas.width) + cellB.x * bpp
-            for i in rowBytes do
+            for i in rowBytes
+            {
                 Swag.require(cellA.atlas.data[rowA + i] == cellB.atlas.data[rowB + i])
+            }
         }
     }
 }

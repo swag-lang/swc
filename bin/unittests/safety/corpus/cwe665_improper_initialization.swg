@@ -28,8 +28,10 @@ var resourceStorage: Resource
 func readBeforeDefiniteAssignment(ready: bool)->s32
 {
     var pointer: *Resource
-    if ready do
+    if ready
+    {
         pointer = &resourceStorage
+    }
     return pointer.weight     // swc-expected-error {{sema_err_definite_init_use}}
 }
 
@@ -68,10 +70,14 @@ func readLateBeforeSetup()->s32
 func assignedOnEveryPath(ready: bool)->s32
 {
     var pointer: *Resource
-    if ready do
+    if ready
+    {
         pointer = &resourceStorage
-    else do
+    }
+    else
+    {
         pointer = &resourceStorage
+    }
     return pointer.weight
 }
 
@@ -80,8 +86,10 @@ func assignedOnEveryPath(ready: bool)->s32
 func assignedAfterEarlyReturn(ready: bool)->s32
 {
     var pointer: *Resource
-    if not ready do
+    if not ready
+    {
         return -1
+    }
     pointer = &resourceStorage
     return pointer.weight
 }

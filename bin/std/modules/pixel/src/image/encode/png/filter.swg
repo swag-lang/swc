@@ -18,27 +18,22 @@ using Core, Core.Errors
 // negative. Scoring the signed difference instead lets a noisy row cancel itself out and score
 // as well as a flat one, which is how a bad filter gets chosen.
 #[Swag.Inline]
-func residualScore(value: u8)->s32 => 128 - Math.abs(cast(s32, value) - 128)
+func residualScore(value: u8)->s32 => Math.abs(cast(s32, cast #bit(s8, value)))
 
-// Folds the scores of sixteen filtered bytes into a running total.
-//
-// '128 - |b - 128|' is 'min(b, -b)' in byte arithmetic, so the whole score stays in eight-bit
-// lanes and the two widened halves add without leaving 's16'. Keeping the total packed is what
-// matters: reducing to a scalar on every step would put a horizontal add, and the scalar
-// dependency behind it, on the loop's critical path.
+// The byte residual is signed for scoring. Reinterpret its absolute value as
+// unsigned so -128 contributes 128, then sum into the two packed accumulators.
 #[Swag.Inline]
-func accumulateResidual(total: Math.Simd.S32x4, residual: Math.Simd.U8x16, ones: Math.Simd.S16x8)->Math.Simd.S32x4
+func accumulateResidual(total: Math.Simd.U64x2, residual, zero: Math.Simd.U8x16)->Math.Simd.U64x2
 {
-    let score  = Math.min(residual, Math.Simd.splat(0'u8) - residual)
-    let halves = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(score)) + cast #bit(Math.Simd.S16x8, Math.Simd.widenHigh(score))
-    return total + Math.Simd.mulAddPairs(halves, ones)
+    let magnitude = cast #bit(Math.Simd.U8x16, Math.abs(cast #bit(Math.Simd.S8x16, residual)))
+    return total + Math.Simd.absoluteDifferences(magnitude, zero)
 }
 
 func filterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u64)
 {
     const VectorBytes = #sizeof(Math.Simd.U8x16)
     const BatchBytes  = 4 * VectorBytes
-    var offset = 0'u64
+    var offset = 0_u64
     while count - offset >= BatchBytes
     {
         Math.Simd.store(destination + offset, Math.Simd.load(source + offset) - Math.Simd.load(previous + offset))
@@ -65,7 +60,7 @@ func filterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPixe
 {
     const VectorBytes = #sizeof(Math.Simd.U8x16)
     const BatchBytes  = 4 * VectorBytes
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < bytesPerPixel and offset < count
     {
         destination[offset] = source[offset]
@@ -94,19 +89,46 @@ func filterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPixe
     }
 }
 
+// Writes PNG Sub residuals from packed scanlines into separate storage, with one filter
+// byte before each output row. `pixelBytes` is the byte distance to the previous pixel.
+// Returns false without writing if the row geometry or slice lengths are inconsistent.
+public func filterSubPredictorRows(input: const [..] u8, output: [..] u8, rowBytes, pixelBytes: u64)->bool
+{
+    if not rowBytes or rowBytes == Swag.U64.Max or not pixelBytes or pixelBytes > rowBytes
+    {
+        return false
+    }
+
+    let stride = rowBytes + 1
+    let count  = output.count / stride
+    if output.count % stride or input.count != count * rowBytes
+    {
+        return false
+    }
+
+    for row in count
+    {
+        let destination = output.buffer + row * stride
+        destination[0] = 1
+        filterSubRow(input.buffer + row * rowBytes, destination + 1, rowBytes, pixelBytes)
+    }
+
+    return true
+}
+
 // Scores the None filter, or the Up filter when 'up' is set.
 //
 // Both read their predictor straight out of memory, which is what lets one loop serve them.
 func filterSumIndependent(source, previous: const [*] u8, count: u64, up: bool)->s32
 {
-    let ones   = Math.Simd.splat(1's16)
-    var total  = Math.Simd.splat(0's32)
-    var offset = 0'u64
+    let zero   = Math.Simd.splat(0_u8)
+    var total  = Math.Simd.splat(0_u64)
+    var offset = 0_u64
     if up
     {
         while count - offset >= 16
         {
-            total  = accumulateResidual(total, Math.Simd.load(source + offset) - Math.Simd.load(previous + offset), ones)
+            total  = accumulateResidual(total, Math.Simd.load(source + offset) - Math.Simd.load(previous + offset), zero)
             offset += 16
         }
     }
@@ -114,17 +136,20 @@ func filterSumIndependent(source, previous: const [*] u8, count: u64, up: bool)-
     {
         while count - offset >= 16
         {
-            total  = accumulateResidual(total, Math.Simd.load(source + offset), ones)
+            total  = accumulateResidual(total, Math.Simd.load(source + offset), zero)
             offset += 16
         }
     }
 
-    var sum = Math.Simd.sum(total)
+    var sum = cast(s32, Math.Simd.sum(total))
     while offset < count
     {
         var residual = source[offset]
-        if up do
+        if up
+        {
             residual = cast #bit(u8, (residual - #wrap previous[offset]))
+        }
+
         sum    += residualScore(residual)
         offset += 1
     }
@@ -135,12 +160,17 @@ func filterSumIndependent(source, previous: const [*] u8, count: u64, up: bool)-
 func filterSumSub(source: const [*] u8, count, bytesPerPixel: u64)->s32
 {
     let prefix = Math.min(count, bytesPerPixel)
-    var sum    = 0's32
-    for i in prefix do
+    var sum    = 0_s32
+    for i in prefix
+    {
         sum += residualScore(source[i])
+    }
 
-    if count > prefix do
+    if count > prefix
+    {
         sum += filterSumIndependent(source + prefix, source + prefix - bytesPerPixel, count - prefix, true)
+    }
+
     return sum
 }
 
@@ -149,13 +179,13 @@ func filterSumSub(source: const [*] u8, count, bytesPerPixel: u64)->s32
 // 'average' rounds up, so the carry has to come back out; both operands are bytes, so the
 // correction is exactly the low bit of their difference.
 #[Swag.Inline]
-func averagePredictor(left, up: Math.Simd.U8x16)->Math.Simd.U8x16 => Math.Simd.average(left, up) - ((left ^ up) & 1'u8)
+func averagePredictor(left, up: Math.Simd.U8x16)->Math.Simd.U8x16 => Math.Simd.average(left, up) - ((left ^ up) & 1_u8)
 
 func filterAverageRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
 {
     const VectorBytes = #sizeof(Math.Simd.U8x16)
     const BatchBytes  = 4 * VectorBytes
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < bytesPerPixel and offset < count
     {
         let average = cast(u16, previous[offset]) / 2
@@ -192,25 +222,25 @@ func filterAverageRow(source, previous: const [*] u8, destination: [*] u8, count
 
 func filterSumAverage(source, previous: const [*] u8, count, bytesPerPixel: u64)->s32
 {
-    let ones   = Math.Simd.splat(1's16)
+    let zero   = Math.Simd.splat(0_u8)
     let prefix = Math.min(count, bytesPerPixel)
-    var sum    = 0's32
+    var sum    = 0_s32
     for i in prefix
     {
         let average = cast(u8, (cast(u16, previous[i]) / 2))
         sum += residualScore(cast #bit(u8, (source[i] - #wrap average)))
     }
 
-    var total  = Math.Simd.splat(0's32)
+    var total  = Math.Simd.splat(0_u64)
     var offset = prefix
     while count - offset >= 16
     {
         let average = averagePredictor(Math.Simd.load(source + offset - bytesPerPixel), Math.Simd.load(previous + offset))
-        total  = accumulateResidual(total, Math.Simd.load(source + offset) - average, ones)
+        total  = accumulateResidual(total, Math.Simd.load(source + offset) - average, zero)
         offset += 16
     }
 
-    sum += Math.Simd.sum(total)
+    sum += cast(s32, Math.Simd.sum(total))
     while offset < count
     {
         let average = cast(u8, ((cast(u16, source[offset - bytesPerPixel]) + previous[offset]) / 2))
@@ -228,10 +258,16 @@ func paethScalar(a, b, c: s32)->s32
     let pb = Math.abs(cast(s16, (p - b)))
     let pc = Math.abs(cast(s16, (p - c)))
 
-    if pa <= pb and pa <= pc do
+    if pa <= pb and pa <= pc
+    {
         return a
-    if pb <= pc do
+    }
+
+    if pb <= pc
+    {
         return b
+    }
+
     return c
 }
 
@@ -264,7 +300,7 @@ func paethPredictorBytes(left, up, upLeft: Math.Simd.U8x16)->Math.Simd.U8x16
 
 func filterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
 {
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < bytesPerPixel and offset < count
     {
         destination[offset] = cast #bit(u8, (source[offset] - #wrap previous[offset]))
@@ -288,22 +324,24 @@ func filterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, 
 
 func filterSumPaeth(source, previous: const [*] u8, count, bytesPerPixel: u64)->s32
 {
-    let ones   = Math.Simd.splat(1's16)
+    let zero   = Math.Simd.splat(0_u8)
     let prefix = Math.min(count, bytesPerPixel)
-    var sum    = 0's32
-    for i in prefix do
+    var sum    = 0_s32
+    for i in prefix
+    {
         sum += residualScore(cast #bit(u8, (source[i] - #wrap previous[i])))
+    }
 
-    var total  = Math.Simd.splat(0's32)
+    var total  = Math.Simd.splat(0_u64)
     var offset = prefix
     while count - offset >= 16
     {
         let predictor = paethPredictorBytes(Math.Simd.load(source + offset - bytesPerPixel), Math.Simd.load(previous + offset), Math.Simd.load(previous + offset - bytesPerPixel))
-        total  = accumulateResidual(total, Math.Simd.load(source + offset) - predictor, ones)
+        total  = accumulateResidual(total, Math.Simd.load(source + offset) - predictor, zero)
         offset += 16
     }
 
-    sum += Math.Simd.sum(total)
+    sum += cast(s32, Math.Simd.sum(total))
     while offset < count
     {
         let predictor = paethScalar(source[offset - bytesPerPixel], previous[offset], previous[offset - bytesPerPixel])
@@ -331,16 +369,31 @@ impl Encoder
 
     mtd getBestFilter(size: u32)->Filter
     {
-        if .encodeFlags.filterChoice == .Disabled do
+        if .encodeFlags.filterChoice == .Disabled
+        {
             return .None
+        }
+
+        if .encodeFlags.filterChoice == .All and size <= Swag.S32.Max / 128
+        {
+            let scanline = unwrap .scanline
+            if Memory.compare(scanline, unwrap .prevScanline, size) == 0
+            {
+                // All-zero rows tie at None. Other identical rows score zero
+                // with Up, while the first nonzero byte rules out None and Sub.
+                return isZeroScanline(scanline, size) ? .None : .Up
+            }
+        }
 
         let chl = cast(s32, .encodeFlags.filterChoice)
         if not (chl & (chl - 1))
         {
             for i in 5
             {
-                if chl == 1 << (i + 3) do
+                if chl == 1 << (i + 3)
+                {
                     return .filterFromIndex(i)
+                }
             }
         }
 
@@ -349,8 +402,10 @@ impl Encoder
         for i in 5
         {
             let flag = 1 << (i + 3)
-            if not (chl & flag) do
+            if not (chl & flag)
+            {
                 continue
+            }
 
             let score = .filterSum(size, .filterFromIndex(i))
             if score < bestScore
@@ -366,8 +421,10 @@ impl Encoder
     mtd filterSum(size: u32, filter: Filter)->s32
     {
         // A row this wide could overflow the running total, so refuse it instead of scoring it.
-        if size > Swag.S32.Max / 128 do
+        if size > Swag.S32.Max / 128
+        {
             return Swag.S32.Max
+        }
 
         let scanline     = unwrap .scanline
         let prevScanline = unwrap .prevScanline

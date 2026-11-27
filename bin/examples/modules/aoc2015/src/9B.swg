@@ -19,9 +19,9 @@ func day9B()
     let lines    = expect File.readAllLines(dataPath)
 
     var r = expect Parser.RegExp.create(#raw "(\w+) to (\w+) = (\d+)")
-    var town:  HashTable'(string, u64)
-    var dist:  HashTable'(u64, u64)
-    var combi: Array'u64
+    var town:  HashTable!{string, u64}
+    var dist:  HashTable!{u64, u64}
+    var combi: Array!{u64}
 
     for l in lines
     {
@@ -32,18 +32,25 @@ func day9B()
         dist.add(town.find(r[2]).value << 32 | town.find(r[1]).value, expect StrConv.toU64(r[3]))
     }
 
-    for i in town.count do
+    for i in town.count
+    {
         combi.add(i)
+    }
 
-    var total = 0'u64
+    var total = 0_u64
     for
     {
-        var calc = 0'u64
-        for i in cast(s64, combi.count) - 1 do
+        var calc = 0_u64
+        for i in cast(s64, combi.count) - 1
+        {
             calc += dist.find(combi[i] << 32 | combi[i + 1]).value
+        }
+
         total = Math.max(total, calc)
-        if not Slice.nextPermutation(combi.toSlice()) do
+        if not Slice.nextPermutation(combi.toSlice())
+        {
             break
+        }
     }
 
     Swag.assert(total == 736)

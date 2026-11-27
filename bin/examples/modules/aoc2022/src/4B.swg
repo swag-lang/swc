@@ -23,16 +23,18 @@ func day4B()
     var total: u64
     for l in lines
     {
-        let assignmentRanges = Tokenize.split(l[], ','u8)
-        let firstRange       = Tokenize.split(assignmentRanges[0], '-'u8)
-        let secondRange      = Tokenize.split(assignmentRanges[1], '-'u8)
+        let assignmentRanges = Tokenize.split(l[], ','_u8)
+        let firstRange       = Tokenize.split(assignmentRanges[0], '-'_u8)
+        let secondRange      = Tokenize.split(assignmentRanges[1], '-'_u8)
         let firstStart       = expect StrConv.toS32(firstRange[0])
         let firstEnd         = expect StrConv.toS32(firstRange[1])
         let secondStart      = expect StrConv.toS32(secondRange[0])
         let secondEnd        = expect StrConv.toS32(secondRange[1])
 
-        if not (firstEnd < secondStart or firstStart > secondEnd) do
+        if not (firstEnd < secondStart or firstStart > secondEnd)
+        {
             total += 1
+        }
     }
 
     Swag.assert(total == 888)

@@ -23,9 +23,9 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
     let frameSize = lumaSize + chromaW * chromaH * 2
     Swag.require(bytes.count >= frameSize * frameCount)
 
-    var total = 0.0'f64
-    var count = 0'u64
-    var worst = 0's32
+    var total = 0.0_f64
+    var count = 0_u64
+    var worst = 0_s32
     var frame: PlanarFrame
     for index in frameCount
     {
@@ -48,8 +48,11 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
     }
 
     let mean = total / cast(f64, count)
-    if mean > meanLimit or worst > worstLimit do
+    if mean > meanLimit or worst > worstLimit
+    {
         Swag.print("mpeg4 ", name, ": mean ", mean, " worst ", worst, " over ", count, " samples\n")
+    }
+
     Swag.require(mean <= meanLimit)
     Swag.require(worst <= worstLimit)
 }
@@ -66,8 +69,11 @@ func mpeg4VolMarkerBit(bytes: const [..] u8, bodyOffset: u64)->u64
         discard reader.read(3)
     }
 
-    if reader.read(4) == 15 do
+    if reader.read(4) == 15
+    {
         discard reader.read(16)
+    }
+
     if reader.bit() != 0
     {
         discard reader.read(2)
@@ -104,19 +110,25 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
         discard reader.read(3)
     }
 
-    if reader.read(4) == 15 do
+    if reader.read(4) == 15
+    {
         discard reader.read(16)
-    if reader.bit() == 0 do
+    }
+
+    if reader.bit() == 0
+    {
         return Swag.U64.Max
+    }
+
     return bodyOffset * 8 + reader.bitPos
 }
 
 // Start code lookahead must accept a full code across a vector boundary and ignore a partial tail.
 #test
 {
-    const Length = 80'u64
+    const Length = 80_u64
     var bytes: [Length] u8
-    for prefix in [0'u64, 1, 15, 16, 17, 31, 32, 60, 63, 64, 76]
+    for prefix in [0_u64, 1, 15, 16, 17, 31, 32, 60, 63, 64, 76]
     {
         Memory.set(&bytes[0], 0x55, Length)
         bytes[prefix]     = 0
@@ -124,8 +136,11 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
         bytes[prefix + 2] = 1
         bytes[prefix + 3] = 0xB6
 
-        for at in prefix + 1 do
+        for at in prefix + 1
+        {
             Swag.require(Mpeg4.nextStartCode(bytes, at) == prefix)
+        }
+
         Swag.require(Mpeg4.nextStartCode(bytes, prefix + 1) == Length)
         Swag.require(Mpeg4.nextStartCode(bytes[until prefix + 3], 0) == prefix + 3)
     }
@@ -141,14 +156,85 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
         block[0] = dc
         Mpeg4.inverseTransform(&block, &samples)
         let actual = Mpeg4.dcSample(dc)
-        for value in samples do
-            Swag.require(actual == cast(u8, Math.clamp(cast(s32, value), 0's32, 255's32)))
+        for value in samples
+        {
+            Swag.require(actual == cast(u8, Math.clamp(cast(s32, value), 0_s32, 255_s32)))
+        }
     }
 
-    for coefficient in Mpeg4.CoefficientFloor to Mpeg4.CoefficientCeil do
+    for coefficient in Mpeg4.CoefficientFloor to Mpeg4.CoefficientCeil
+    {
         check(coefficient)
+    }
+
     check(-94_208)
     check(94_162)
+}
+
+// Packed inverse quantization must preserve intra DC, signed truncation, clipping and mismatch.
+#test
+{
+    var layer: Mpeg4.Layer
+    for index in 64_u64
+    {
+        layer.intraMatrix[index] = cast(u8, (1 + index * 4))
+        layer.interMatrix[index] = cast(u8, (255 - index * 4))
+    }
+
+    let inputs = [-2048_s32, -201, -5, -1, 0, 1, 5, 201, 2047]
+    for quantType in 2_u32
+    {
+        layer.quantType = quantType
+        for intra in [false, true]
+        {
+            for quant in [1_u32, 2, 17, 31, 32]
+            {
+                for first in inputs.count
+                {
+                    var actual, expected: [64] s32
+                    var sum = 0_s32
+                    for index in 64_u64
+                    {
+                        let level = inputs[(first + index) % inputs.count]
+                        actual[index] = level
+                        var value = 0_s32
+                        if intra and not index
+                        {
+                            value = level
+                        }
+                        else if level
+                        {
+                            let sign = level < 0 ? -1 : 1
+                            let step = cast(s32, quant)
+                            if quantType
+                            {
+                                let weight = intra ? layer.intraMatrix[index] : layer.interMatrix[index]
+                                value = ((2 * level + (intra ? 0 : sign)) * step * cast(s32, weight)) / 16
+                            }
+                            else
+                            {
+                                value = sign * (step * (2 * Math.abs(level) + 1) - (quant & 1 ? 0 : 1))
+                            }
+                        }
+
+                        expected[index] = Math.clamp(value, Mpeg4.CoefficientFloor, Mpeg4.CoefficientCeil)
+                        sum += expected[index]
+                    }
+
+                    if quantType and not intra and not (sum & 1)
+                    {
+                        expected[63] ^= 1
+                    }
+
+                    Mpeg4.dequantise(&actual, &layer, quant, intra)
+                    for index in 64_u64
+                    {
+                        Swag.require(actual[index] == expected[index])
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Simple Profile: intra and predicted planes, the H.263 quantiser, half-sample motion, and four
@@ -210,9 +296,9 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
     let markerBit  = mpeg4VolMarkerBit(bytes.toSlice(), volStart + VolStartCode.count)
     let byteOffset = markerBit >> 3
     let bitShift   = cast(u32, 7 - (markerBit & 7))
-    let bitMask    = cast(u8, 1'u32 << bitShift)
+    let bitMask    = cast(u8, 1_u32 << bitShift)
     Swag.require((bytes[byteOffset] & bitMask) != 0)
-    bytes[byteOffset] = bytes[byteOffset] & (0xFF'u8 - bitMask)
+    bytes[byteOffset] = bytes[byteOffset] & (0xFF_u8 - bitMask)
 
     var invalid:  Mpeg4.Decoder
     var rejected: Swag.Error
@@ -237,13 +323,13 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
     Swag.require(formatBit != Swag.U64.Max)
     let highByte  = formatBit >> 3
     let highShift = cast(u32, 7 - (formatBit & 7))
-    let highMask  = cast(u8, 1'u32 << highShift)
+    let highMask  = cast(u8, 1_u32 << highShift)
     let lowBit    = formatBit + 1
     let lowByte   = lowBit >> 3
     let lowShift  = cast(u32, 7 - (lowBit & 7))
-    let lowMask   = cast(u8, 1'u32 << lowShift)
+    let lowMask   = cast(u8, 1_u32 << lowShift)
     bytes[highByte] = bytes[highByte] | highMask
-    bytes[lowByte]  = bytes[lowByte] & (0xFF'u8 - lowMask)
+    bytes[lowByte]  = bytes[lowByte] & (0xFF_u8 - lowMask)
 
     var unsupported: Mpeg4.Decoder
     var rejected:    Swag.Error
@@ -265,7 +351,7 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
     decoder.layer.timeIncrementBits = 1
 
     var header:   Mpeg4.PlaneHeader
-    var index  = 0'u64
+    var index  = 0_u64
     var reader = Mpeg4.BitReader.create(Swag.makeSlice(&ZeroForward[0], ZeroForward.count))
     var rejected: Swag.Error
     discard catch decoder.readPacketHeader(&reader, &header, &index) as rejected
@@ -285,8 +371,8 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
     decoder.layer.quantPrecision = 5
 
     var header: Mpeg4.PlaneHeader
-    var index  = 0'u64
-    var reader = Mpeg4.BitReader.create([0x40'u8, 0, 0x08])
+    var index  = 0_u64
+    var reader = Mpeg4.BitReader.create([0x40_u8, 0, 0x08])
     expect decoder.readPacketHeader(&reader, &header, &index)
     Swag.require(index == 16_384 and decoder.quant == 1)
 }
@@ -299,11 +385,11 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
     layer.timeIncrementBits = 1
 
     var header: Mpeg4.PlaneHeader
-    var reader = Mpeg4.BitReader.create([0x14'u8])
+    var reader = Mpeg4.BitReader.create([0x14_u8])
     expect Mpeg4.readPlaneHeader(&layer, &reader, &header)
     Swag.require(header.timeIncrement == 0)
 
-    reader = Mpeg4.BitReader.create([0x1C'u8])
+    reader = Mpeg4.BitReader.create([0x1C_u8])
     var rejected: Swag.Error
     discard catch Mpeg4.readPlaneHeader(&layer, &reader, &header) as rejected
     Swag.require(rejected.value() is InvalidFormatError)

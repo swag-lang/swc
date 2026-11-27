@@ -43,9 +43,11 @@ func day5B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "5.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var op: Array's32
-    for v in Tokenize.split(lines[0], ','u8) do
+    var op: Array!{s32}
+    for v in Tokenize.split(lines[0], ','_u8)
+    {
         op.add(expect StrConv.toS32(v))
+    }
 
     const INPUT = 5
     var ip, output = 0
@@ -56,10 +58,15 @@ func day5B()
         let inst = op[ip] % 10
 
         var param0, param1 = 0
-        if inst != 3 do
+        if inst != 3
+        {
             param0 = imm0 ? op[ip + 1] : op[op[ip + 1]]
-        if inst != 3 and inst != 4 do
+        }
+
+        if inst != 3 and inst != 4
+        {
             param1 = imm1 ? op[ip + 2] : op[op[ip + 2]]
+        }
 
         switch inst
         {

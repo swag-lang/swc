@@ -8,10 +8,10 @@ func selectIndex(values: [*] u64, left, right, condition: u64)->u64 => condition
 
 #test
 {
-    var left   = [11'u64]
-    var right  = [22'u64]
-    var values = [31'u64, 32, 33, 34, 35]
-    for condition in [0'u64, 1, 9, 0xFFFFFFFFFFFFFFFF]
+    var left   = [11_u64]
+    var right  = [22_u64]
+    var values = [31_u64, 32, 33, 34, 35]
+    for condition in [0_u64, 1, 9, 0xFFFFFFFFFFFFFFFF]
     {
         Swag.require(selectBase(&left[0], &right[0], condition) == (condition != 0 ? 11 : 22))
         Swag.require(selectIndex(&values[0], 1, 4, condition) == (condition != 0 ? 32 : 35))

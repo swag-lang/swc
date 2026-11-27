@@ -120,8 +120,10 @@ func returnFromGuardedBinding(value: s32)->s32
 
 func returnFromGuardedIfBinding(value: s32)->s32
 {
-    if let count = value where true do
+    if let count = value where true
+    {
         return count
+    }
 }
 
 #test
@@ -149,8 +151,10 @@ impl ObservedBinding
 {
     mtd opDrop()
     {
-        if .drops do
+        if .drops
+        {
             .drops[] += 1
+        }
     }
 }
 

@@ -16,8 +16,11 @@ using Core, Pixel
     let fileName = Testing.tempFilePath("html-continuous-scroll-", ".html")
     defer discard catch File.delete(fileName)
     var source: String = "<html><body><pre><code>"
-    for 40_000 do
+    for 40_000
+    {
         source += "A source line keeps a continuous scroll covered while the next window is prepared.\n"
+    }
+
     source += "</code></pre></body></html>"
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     var host: Testing.HeadlessHost
@@ -35,8 +38,11 @@ using Core, Pixel
         view.scroll.setScrollPos(0, forward ? end - viewport.height * 9 : start + viewport.height * 8)
         view.virtualPendingSeek = false
         let previousStart = view.virtualWindowStart
-        for 20 where not view.virtualPendingSeek do
+        for 20 where not view.virtualPendingSeek
+        {
             view.scroll.setScrollPos(0, view.scroll.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25))
+        }
+
         Swag.require(view.virtualPendingSeek)
         Swag.require(view.scroll.scrollPosition().y > start + viewport.height * 3)
         Swag.require(view.scroll.scrollPosition().y + viewport.height < end - viewport.height * 3)
@@ -58,7 +64,7 @@ using Core, Pixel
     {
         let revealed = view.revealFileOffset(source.length / 2, "")
         Swag.require(revealed)
-        let direction = forward ? 1.0'f32 : -1.0'f32
+        let direction = forward ? 1.0_f32 : -1.0_f32
         let start     = view.virtualOrigin
         let end       = start + view.layout.documentHeight
         view.scroll.setScrollPos(0, forward ? end - viewport.height * 8 : start + viewport.height * 7)
@@ -181,16 +187,22 @@ using Core, Pixel
 // Returns the first element of a document carrying a tag, so a test can name what it inspects.
 func findTag(document: const *HtmlDocument, tag: HtmlTag)->u32
 {
-    for index in document.nodes.count where document.constNode(cast(u32, index)).tag == tag do
+    for index in document.nodes.count where document.constNode(cast(u32, index)).tag == tag
+    {
         return cast(u32, index)
+    }
+
     return HtmlNoNode
 }
 
 // Returns the first element carrying a class used to name fixture structure.
 func findClass(document: const *HtmlDocument, name: string)->u32
 {
-    for index in document.nodes.count where document.hasClass(cast(u32, index), name) do
+    for index in document.nodes.count where document.hasClass(cast(u32, index), name)
+    {
         return cast(u32, index)
+    }
+
     return HtmlNoNode
 }
 
@@ -200,8 +212,11 @@ func findItemPos(view: *HtmlView, box: u32, text: string)->{ x: f32, y: f32, fou
     var result: #returntype
     for item in view.layout.constBox(box).items
     {
-        if item.kind != .Text or view.layout.inlineText(item) != text do
+        if item.kind != .Text or view.layout.inlineText(item) != text
+        {
             continue
+        }
+
         result.x     = item.x
         result.y     = item.y
         result.found = true
@@ -214,12 +229,14 @@ func findItemPos(view: *HtmlView, box: u32, text: string)->{ x: f32, y: f32, fou
 // Returns the nth element carrying a tag, so a test can address repeated fixture structure.
 func findNthTag(document: const *HtmlDocument, tag: HtmlTag, wanted: u32)->u32
 {
-    var seen = 0'u32
+    var seen = 0_u32
     for index in document.nodes.count where document.constNode(cast(u32, index)).tag == tag
     {
         seen += 1
-        if seen == wanted do
+        if seen == wanted
+        {
             return cast(u32, index)
+        }
     }
 
     return HtmlNoNode
@@ -244,7 +261,7 @@ func loadTemporaryDocument(host: *Testing.HeadlessHost, bytes: const [..] u8, ta
     view.resize(640, 480)
     view.applyLayout()
 
-    var steps = 0'u32
+    var steps = 0_u32
     while view.isLoading() and steps < 100
     {
         view.streamStep()
@@ -267,10 +284,10 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let viewport = view.scroll.paddedClientRect()
     let painter  = view.painter()
     var result: #returntype
-    var y        = 2.0'f32
+    var y        = 2.0_f32
     while y < viewport.height
     {
-        var x = 2.0'f32
+        var x = 2.0_f32
         while x < viewport.width
         {
             let point = Math.Point{x, y}
@@ -299,15 +316,20 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let body = findTag(&document, .Body)
     Swag.require(body != HtmlNoNode)
 
-    var paragraphs = 0'u32
-    var items      = 0'u32
+    var paragraphs = 0_u32
+    var items      = 0_u32
     for index in document.nodes.count
     {
         let node = document.constNode(cast(u32, index))
-        if node.tag == .P do
+        if node.tag == .P
+        {
             paragraphs += 1
-        if node.tag == .Li do
+        }
+
+        if node.tag == .Li
+        {
             items += 1
+        }
     }
 
     // An unclosed paragraph ends where the next one begins instead of nesting inside it.
@@ -373,7 +395,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     var parser: HtmlParser
     parser.start(&streamed)
 
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < source.length
     {
         let end = Math.min(offset + 7, source.length)
@@ -566,8 +588,11 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     host.setup(400, 400)
 
     var source: String = "<style>body { margin: 0; font-size: 16px }</style><p id=\"p\">"
-    for 400 do
+    for 400
+    {
         source += "word "
+    }
+
     source += "</p><p id=\"q\">one<br>two</p>"
 
     let view = HtmlView.createText(&host.root, source.toString())
@@ -577,11 +602,13 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let wrapped = view.layout.constBox(view.boxOfNode(view.elementById("p")))
     Swag.require(wrapped.lines.count > 20)
-    for line in wrapped.lines where line.width > wrapped.content.width + 1 do
+    for line in wrapped.lines where line.width > wrapped.content.width + 1
+    {
         Swag.require(false)
+    }
 
     // Painting and hit testing use the line index instead of scanning every run in the block.
-    let lineIndex = 12'u64
+    let lineIndex = 12_u64
     let range     = htmlLineItemRange(wrapped, wrapped.lines[lineIndex].top, wrapped.lines[lineIndex].top + 1)
     Swag.require(range.first == wrapped.lines[lineIndex - 1].first)
     Swag.require(range.last == wrapped.lines[lineIndex + 1].last)
@@ -685,8 +712,8 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.applyLayout()
     view.rebuild()
 
-    let spanning = view.layout.constBox(view.boxOfNode(view.elementById("span")))
-    let topRow   = view.layout.constBox(view.boxOfNode(view.elementById("topRow")))
+    let spanning  = view.layout.constBox(view.boxOfNode(view.elementById("span")))
+    let topRow    = view.layout.constBox(view.boxOfNode(view.elementById("topRow")))
     let bottomRow = view.layout.constBox(view.boxOfNode(view.elementById("bottomRow")))
     let bottom    = view.layout.constBox(view.boxOfNode(view.elementById("bottom")))
     Swag.require(spanning.rect.y == topRow.rect.y)
@@ -707,6 +734,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     {
         source += Format.toString("<td id=\"cell%\">x</td>", index)
     }
+
     source += "</tr></table>"
 
     let view = HtmlView.createText(&host.root, source.toString())
@@ -901,8 +929,11 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     host.setup(640, 360)
 
     var source: String = "<p id='words'>"
-    for 2_000 do
+    for 2_000
+    {
         source += "repeat "
+    }
+
     source += "</p>"
 
     let allocator = Swag.defaultAllocator()
@@ -913,9 +944,12 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
 
     let box   = view.layout.constBox(view.boxOfNode(view.elementById("words")))
-    var words = 0'u64
-    for item in box.items where item.kind == .Text do
+    var words = 0_u64
+    for item in box.items where item.kind == .Text
+    {
         words += 1
+    }
+
     Swag.require(words == 2_000)
     Swag.require(view.layout.textPool.length >= 2_000 * ("repeat").count)
 
@@ -1008,7 +1042,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.resize(720, 480)
     view.applyLayout()
 
-    var steps = 0'u32
+    var steps = 0_u32
     while view.isLoading() and steps < 4_000
     {
         view.streamStep()
@@ -1019,7 +1053,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     // Three positions, visited downwards and then upwards; every one must draw the same pixels
     // both times, and none of them may be blank.
-    let stops = [400.0'f32, 5_000.0'f32, 20_000.0'f32]
+    let stops = [400.0_f32, 5_000.0_f32, 20_000.0_f32]
     var downward: [3] u32
     for index in stops.count
     {
@@ -1046,8 +1080,11 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     host.setup(640, 240)
 
     var source: String = "<main>"
-    for 60 do
+    for 60
+    {
         source += "<p>A paragraph with enough content to occupy another line.</p>"
+    }
+
     source += "</main>"
 
     let view = HtmlView.createText(&host.root, source.toString())
@@ -1083,16 +1120,22 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 // Reports whether a vertical run of one column holds the exact color.
 func columnHasColor(image: *Pixel.Image, x: s32, y0, y1: s32, argb: u32)->bool
 {
-    for y in y0 until y1 where image.pixelColor(x, y).argb == argb do
+    for y in y0 until y1 where image.pixelColor(x, y).argb == argb
+    {
         return true
+    }
+
     return false
 }
 
 // Reports whether a horizontal run of one row holds the exact color.
 func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
-    for x in x0 until x1 where image.pixelColor(x, y).argb == argb do
+    for x in x0 until x1 where image.pixelColor(x, y).argb == argb
+    {
         return true
+    }
+
     return false
 }
 
@@ -1361,16 +1404,22 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 
     let heading = view.layout.constBox(view.boxOfNode(view.elementById("section")))
     var bar     = HtmlNoNode
-    for child in heading.children where view.layout.constStyle(view.layout.constBox(child).style).background.a do
+    for child in heading.children where view.layout.constStyle(view.layout.constBox(child).style).background.a
+    {
         bar = child
+    }
+
     Swag.require(bar != HtmlNoNode)
     let decoration = view.layout.constBox(bar)
     Swag.require(decoration.rect.width == 32 and decoration.rect.height == 4)
     Swag.require(decoration.rect.x == heading.rect.x and decoration.rect.y == heading.rect.y)
     Swag.require(heading.content.y == decoration.rect.y + 14)
     var textBox = HtmlNoNode
-    for child in heading.children where view.layout.constBox(child).items.count do
+    for child in heading.children where view.layout.constBox(child).items.count
+    {
         textBox = child
+    }
+
     Swag.require(textBox != HtmlNoNode and view.layout.constBox(textBox).lines.front().top == heading.content.y)
     var image = host.render(view)
     Swag.require(image.pixelColor(cast(u32, decoration.rect.horzCenter()), cast(u32, decoration.rect.vertCenter())).argb == 0xFFFF8080)
@@ -1542,8 +1591,10 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     Swag.require(header.rect.height <= 68)
     Swag.require(not links.children.isEmpty())
     let firstY = view.layout.constBox(links.children[0]).rect.y
-    for child in links.children do
+    for child in links.children
+    {
         Swag.require(Math.abs(view.layout.constBox(child).rect.y - firstY) <= 1)
+    }
 
     view.stopLoading()
 }
@@ -1570,9 +1621,12 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     Swag.require(document.attribute(anchor, "data-note") == "1 > 0")
     Swag.require(document.textContent(anchor).toString() == "link")
 
-    var paragraphs = 0'u32
-    for index in document.nodes.count where document.constNode(cast(u32, index)).tag == .P do
+    var paragraphs = 0_u32
+    for index in document.nodes.count where document.constNode(cast(u32, index)).tag == .P
+    {
         paragraphs += 1
+    }
+
     Swag.require(paragraphs == 2)
 
     // A stray quote outside any value still lets the tag end at its `>`.
@@ -1606,7 +1660,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     var parser: HtmlParser
     parser.start(&streamed)
 
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < source.count
     {
         let end = Math.min(offset + 3, source.count)
@@ -1737,10 +1791,13 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     // Windows-1252 declared by its meta tag, with the first accent far beyond the probe: only
     // the declaration can answer, because everything the heuristic sees is plain ASCII.
     var declared: String = "<html><head><meta charset=\"windows-1252\"></head><body>"
-    for 200 do
+    for 200
+    {
         declared += "<p>ascii filler paragraph</p>"
+    }
+
     declared += "<p>caf"
-    declared.append(0xE9'u8)
+    declared.append(0xE9_u8)
     declared += "</p></body></html>"
     let declaredPage = loadTemporaryDocument(&host, declared.bytes(), "declared")
     Swag.require(Utf8.contains(declaredPage.text, "café"))
@@ -1748,14 +1805,14 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 
     // No declaration: the byte pattern itself says code page 1252.
     var plain: String = "<html><body><p>tr"
-    plain.append(0xE8'u8)
+    plain.append(0xE8_u8)
     plain += "s vite</p></body></html>"
     let plainPage = loadTemporaryDocument(&host, plain.bytes(), "plain")
     Swag.require(Utf8.contains(plainPage.text, "très vite"))
     Swag.require(plainPage.encoding == .Windows1252 and plainPage.source == .Content)
 
     // UTF-16 LE behind its byte-order mark, which is content in no encoding.
-    var wide: Array'u8
+    var wide: Array!{u8}
     wide.add(0xFF)
     wide.add(0xFE)
     for value in "<html><body><p>wide text</p></body></html>"
@@ -1816,8 +1873,11 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     Swag.require(written.constNode(findTag(&written, .Html)).attributes.count == 1)
     let onlyBody = findTag(&written, .Body)
     Swag.require(written.attribute(onlyBody, "class") == "page")
-    for index in written.nodes.count where index != cast(u64, onlyBody) do
+    for index in written.nodes.count where index != cast(u64, onlyBody)
+    {
         Swag.require(written.constNode(cast(u32, index)).tag != .Body)
+    }
+
     Swag.require(written.textContent(onlyBody).toString() == "onetwo")
 }
 
@@ -1901,7 +1961,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     var parser: HtmlParser
     parser.start(&streamed)
 
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < source.count
     {
         let end = Math.min(offset + 3, source.count)
@@ -1993,17 +2053,23 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 // Returns the right edge of the widest visible item of a box, so overflow tests read geometry.
 func maxItemRight(view: *HtmlView, box: u32)->f32
 {
-    var result = 0.0'f32
-    for item in view.layout.constBox(box).items where item.visible do
+    var result = 0.0_f32
+    for item in view.layout.constBox(box).items where item.visible
+    {
         result = Math.max(result, item.x + item.width)
+    }
+
     return result
 }
 
 func countTextItems(view: *HtmlView, box: u32)->u64
 {
-    var result = 0'u64
-    for item in view.layout.constBox(box).items where item.kind == .Text do
+    var result = 0_u64
+    for item in view.layout.constBox(box).items where item.kind == .Text
+    {
         result += 1
+    }
+
     return result
 }
 
@@ -2119,8 +2185,10 @@ func countTextItems(view: *HtmlView, box: u32)->u64
     // A soft hyphen where no break is needed draws nothing and the line stays whole.
     let whole = view.boxOfNode(view.elementById("n"))
     Swag.require(view.layout.constBox(whole).lines.count == 1)
-    for item in view.layout.constBox(whole).items do
+    for item in view.layout.constBox(whole).items
+    {
         Swag.require(not item.hyphenAtBreak)
+    }
 }
 
 // The `font` shorthand expands into its longhands, including the `/line-height` form, and
@@ -2148,20 +2216,28 @@ func countTextItems(view: *HtmlView, box: u32)->u64
     Swag.require(styled.fontFamily == .Mono)
 
     var spaced, plain: f32
-    for item in view.layout.constBox(view.boxOfNode(view.elementById("ws"))).items where item.kind == .Space do
+    for item in view.layout.constBox(view.boxOfNode(view.elementById("ws"))).items where item.kind == .Space
+    {
         spaced = item.width
-    for item in view.layout.constBox(view.boxOfNode(view.elementById("nb"))).items where item.kind == .Space do
+    }
+
+    for item in view.layout.constBox(view.boxOfNode(view.elementById("nb"))).items where item.kind == .Space
+    {
         plain = item.width
+    }
+
     Swag.require(plain > 0)
     Swag.require(Math.abs(spaced - plain - 10) <= 0.01)
 }
 
 // Reports whether a parsed color lands within a small tolerance of an expected paint, which is
 // what a conversion through another color space can promise.
-func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
+func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3_s32)->bool
 {
-    if not value.matched do
+    if not value.matched
+    {
         return false
+    }
 
     let expected = Pixel.Color.fromArgb(argb)
     let dr       = Math.abs(cast(s32, value.color.r) - cast(s32, expected.r))
@@ -2224,7 +2300,7 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
 
     let red   = Pixel.Color.fromArgb(0xFFFF0000)
     let black = Pixel.Color.fromArgb(0xFF000000)
-    for wanted in 6'u32
+    for wanted in 6_u32
     {
         let item  = findNthTag(&view.document, .Li, wanted + 1)
         let style = view.layout.styleOfNode(item)
@@ -2247,8 +2323,10 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
         for itemIndex in box.items.count
         {
             let item = &box.items[itemIndex]
-            if view.layout.inlineText(item) == text do
+            if view.layout.inlineText(item) == text
+            {
                 return Math.Rectangle{item.x, item.y, item.width, item.ascent + item.descent}
+            }
         }
     }
 

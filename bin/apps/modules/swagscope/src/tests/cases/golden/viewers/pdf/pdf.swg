@@ -17,7 +17,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     host.root.backgroundStyle = .View
     host.root.padding         = {8, 0, 8, 0}
 
-    let document = Wnd.create'Wnd(&host.root)
+    let document = Wnd.create!{Wnd}(&host.root)
     document.hide()
     let foot   = createTestViewerFoot(&host.root)
     let layout = foot.readings

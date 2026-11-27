@@ -24,7 +24,7 @@ must not outlive its backing memory.
 */
 #test
 {
-    var bytes = ['S'u8, 'w'u8, 'a'u8, 'g'u8]
+    var bytes = ['S'_u8, 'w'_u8, 'a'_u8, 'g'_u8]
 
     let slice = Swag.makeSlice(&bytes[0], bytes.count)
     let text  = Swag.makeString(&bytes[0], bytes.count)

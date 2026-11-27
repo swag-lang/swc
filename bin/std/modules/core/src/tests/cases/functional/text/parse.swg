@@ -59,7 +59,7 @@ using Swag
         Swag.require(short.eat == text.count and not short.ovf)
     }
 
-    let numberFormat = Globalization.NumberFormatInfo{negativeSign: '~'u8, positiveSign: '^'u8, decimalSeparator: ','u8}
+    let numberFormat = Globalization.NumberFormatInfo{negativeSign: '~'_u8, positiveSign: '^'_u8, decimalSeparator: ','_u8}
     let negative     = expect StrConv.Atod.parse("~000,125", numberFormat)
     let positive     = expect StrConv.Atod.parse("^1,25", numberFormat)
     let prefix       = expect StrConv.Atod.parse("^1,25tail", numberFormat)
@@ -73,8 +73,11 @@ using Swag
 {
     var integerZeros: ConcatBuffer
     integerZeros.addBytes("1")
-    for 800 do
-        integerZeros.addNative('0'u8)
+    for 800
+    {
+        integerZeros.addNative('0'_u8)
+    }
+
     integerZeros.addBytes("e-800")
     let integerBytes = unwrap integerZeros.toSlice()
     let integerText  = Swag.makeString(integerBytes.buffer, integerBytes.count)
@@ -82,8 +85,11 @@ using Swag
 
     var decimalZeros: ConcatBuffer
     decimalZeros.addBytes("1")
-    for 800 do
-        decimalZeros.addNative('0'u8)
+    for 800
+    {
+        decimalZeros.addNative('0'_u8)
+    }
+
     decimalZeros.addBytes(".000e-800")
     let decimalBytes = unwrap decimalZeros.toSlice()
     let decimalText  = Swag.makeString(decimalBytes.buffer, decimalBytes.count)
@@ -119,7 +125,7 @@ using Swag
 #test
 {
     var text = String.from("unfinished escape")
-    text.append('\\'u8)
+    text.append('\\'_u8)
 
     var outcome: Swag.Error
     discard catch StrConv.parseString(text.toString()) as outcome
@@ -168,16 +174,16 @@ using Swag
 
 func(T) checkCompleteNumberConversion(overflowText: string)
 {
-    let value = expect StrConv.toNum'T("12")
+    let value = expect StrConv.toNum!{T}("12")
     Swag.require(value == cast(T, 12))
 
     var trailingOutcome: Swag.Error
-    discard catch StrConv.toNum'T("12x") as trailingOutcome
+    discard catch StrConv.toNum!{T}("12x") as trailingOutcome
     let trailing = trailingOutcome.value()
     Swag.require(trailing is Errors.SyntaxError)
 
     var overflowOutcome: Swag.Error
-    discard catch StrConv.toNum'T(overflowText) as overflowOutcome
+    discard catch StrConv.toNum!{T}(overflowText) as overflowOutcome
     let overflow = overflowOutcome.value()
     Swag.require(overflow is Errors.OverflowError)
 
@@ -185,23 +191,23 @@ func(T) checkCompleteNumberConversion(overflowText: string)
     var overflowWithSuffix = String.from(overflowText)
     overflowWithSuffix.append("x")
     var bothOutcome: Swag.Error
-    discard catch StrConv.toNum'T(overflowWithSuffix.toString()) as bothOutcome
+    discard catch StrConv.toNum!{T}(overflowWithSuffix.toString()) as bothOutcome
     let both = bothOutcome.value()
     Swag.require(both is Errors.OverflowError)
 }
 
 #test
 {
-    checkCompleteNumberConversion's8("128")
-    checkCompleteNumberConversion's16("32768")
-    checkCompleteNumberConversion's32("2147483648")
-    checkCompleteNumberConversion's64("9223372036854775808")
-    checkCompleteNumberConversion'u8("256")
-    checkCompleteNumberConversion'u16("65536")
-    checkCompleteNumberConversion'u32("4294967296")
-    checkCompleteNumberConversion'u64("18446744073709551616")
-    checkCompleteNumberConversion'f32("1e39")
-    checkCompleteNumberConversion'f64("1e400")
+    checkCompleteNumberConversion!{s8}("128")
+    checkCompleteNumberConversion!{s16}("32768")
+    checkCompleteNumberConversion!{s32}("2147483648")
+    checkCompleteNumberConversion!{s64}("9223372036854775808")
+    checkCompleteNumberConversion!{u8}("256")
+    checkCompleteNumberConversion!{u16}("65536")
+    checkCompleteNumberConversion!{u32}("4294967296")
+    checkCompleteNumberConversion!{u64}("18446744073709551616")
+    checkCompleteNumberConversion!{f32}("1e39")
+    checkCompleteNumberConversion!{f64}("1e400")
 }
 
 // Decimal accumulation detects overflow before multiplication, even when wrapping would increase

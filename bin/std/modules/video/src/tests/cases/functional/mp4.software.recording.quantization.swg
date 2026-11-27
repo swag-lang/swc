@@ -5,11 +5,11 @@ using Swag, Core, Core.Errors, Pixel
 
 private func quantizedRecordingPicture(shift: u64)->Image
 {
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(64 * 64 * 3)
-    for y in 64'u64
+    for y in 64_u64
     {
-        for x in 64'u64
+        for x in 64_u64
         {
             let sampleX = (x + shift) % 64
             let sampleY = (y + shift) % 64
@@ -34,9 +34,9 @@ private func quantizedRecordingPicture(shift: u64)->Image
                                               maxQp: 40}
     var recorder   = expect Mp4.SoftwareRecording.createVideoOnly(path, 64, 64, 90_000, keyInterval: 20, rateControl: &config)
     let pacer      = expect FramePacer.create(expect FrameRate.create(30, 1), 1_000_000, 90_000)
-    var firstQp    = 0'u32
-    var firstBytes = 0'u64
-    for frame in 8'u64
+    var firstQp    = 0_u32
+    var firstBytes = 0_u64
+    for frame in 8_u64
     {
         let image = quantizedRecordingPicture(frame * 3)
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
@@ -78,7 +78,7 @@ private func quantizedRecordingPicture(shift: u64)->Image
     var exact     = expect Mp4.SoftwareRecording.createVideoOnly(exactPath, 64, 64, 90_000, keyInterval: 4)
     var quantized = expect Mp4.SoftwareRecording.createVideoOnly(quantizedPath, 64, 64, 90_000, keyInterval: 4, quantizationQp: 28)
     let pacer     = expect FramePacer.create(expect FrameRate.create(30, 1), 1_000_000, 90_000)
-    for frame in 5'u64
+    for frame in 5_u64
     {
         let image = quantizedRecordingPicture(frame)
         let slot  = expect pacer.slotAt(frame)
@@ -104,26 +104,36 @@ private func quantizedRecordingPicture(shift: u64)->Image
     Swag.require(exactReader.frameCount() == 6 and quantizedReader.frameCount() == 6)
     var exactFrame:     PlanarFrame
     var quantizedFrame: PlanarFrame
-    var previousLuma:   Array'u8
-    for frame in 6'u64
+    var previousLuma:   Array!{u8}
+    for frame in 6_u64
     {
         expect exactReader.decodeFramePlanesInto(&exactFrame, frame)
         expect quantizedReader.decodeFramePlanesInto(&quantizedFrame, frame)
-        let image = quantizedRecordingPicture(Math.min(frame, 4'u64))
+        let image = quantizedRecordingPicture(Math.min(frame, 4_u64))
         var expected: Nv12Frame
         expect expected.convertFrom(&image)
         Swag.require(Slice.equals(exactFrame.luma.toSlice(), expected.luma()))
         Swag.require(quantizedFrame.width == 64 and quantizedFrame.height == 64)
-        if frame == 1 do
+        if frame == 1
+        {
             Swag.require(not Slice.equals(quantizedFrame.luma.toSlice(), expected.luma()))
-        if frame == 4 do
+        }
+
+        if frame == 4
+        {
             previousLuma.add(quantizedFrame.luma.toSlice())
-        if frame == 5 do
+        }
+
+        if frame == 5
+        {
             Swag.require(Slice.equals(quantizedFrame.luma.toSlice(), previousLuma.toSlice()))
+        }
     }
 
-    if retainProbe do
+    if retainProbe
+    {
         Console.printf("Software MP4 QP probe: exact %, quantized %\n", exactPath, quantizedPath)
+    }
 }
 
 // Every constructor forwards QP validation before creating an MP4 writer.

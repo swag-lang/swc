@@ -23,14 +23,18 @@ const PersistentAlignedWords: const [..]u64 = #run
 {
     var value: CompilerAlignedLocal
     Swag.assert(cast(u64, &value) % 64 == 0)
-    for &entry, index in value.values do
+    for &entry, index in value.values
+    {
         entry[] = 31 + index
+    }
     return cast(const [..]u64, value.values)
 }
 
 #test
 {
     Swag.require(PersistentAlignedWords.count == 8)
-    for entry, index in PersistentAlignedWords do
+    for entry, index in PersistentAlignedWords
+    {
         Swag.require(entry == 31 + index)
+    }
 }

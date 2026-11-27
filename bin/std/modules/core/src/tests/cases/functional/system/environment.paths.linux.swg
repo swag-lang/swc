@@ -22,8 +22,10 @@
                     "XDG_DOWNLOAD_DIR=\"/tmp/`command`\"",
                     "XDG_DOWNLOAD_DIR=\"/unterminated",
                     "XDG_DOWNLOAD_DIR=\"/ok\"; command",
-                    "XDG_DOWNLOAD_DIR=\"/ok\0ignored\""] do
+                    "XDG_DOWNLOAD_DIR=\"/ok\0ignored\""]
+    {
         Swag.require(Env.userDirectoryFromConfig(invalid, Key, Home).isEmpty())
+    }
 }
 
 #[Swag.TestTag("integration.system")]

@@ -31,14 +31,18 @@ func sheetRoot(model: *SheetModel)->OptionSheet.Builder
     {
         page.addLink("Speed", rateText(model.rate), func|model|(speeds)
         {
-            for rate in SheetRates do
+            for rate in SheetRates
+            {
                 speeds.addChoice(rateText(rate), rate == model.rate, func|model, rate|() { model.rate = rate })
+            }
         })
 
         page.addLink("Audio track", SheetTracks[model.track], func|model|(tracks)
         {
-            for name, index in SheetTracks do
+            for name, index in SheetTracks
+            {
                 tracks.addChoice(name, index == model.track, func|model, index|() { model.track = cast(u32, index) }, detail: "Stereo · 48 kHz")
+            }
         })
 
         page.addLink("Subtitles", model.subtitle ? "On" : "Off", func|model|(subtitles)
@@ -49,12 +53,16 @@ func sheetRoot(model: *SheetModel)->OptionSheet.Builder
             subtitles.addHeading("Appearance")
             subtitles.addLink("Text size", SheetSizes[model.size], func|model|(sizes)
             {
-                for name, index in SheetSizes do
+                for name, index in SheetSizes
+                {
                     sizes.addChoice(name, index == model.size, func|model, index|() { model.size = cast(u32, index) })
+                }
             })
             subtitles.addStepper("Delay", delayText(model.delay), func|model|(step) { model.delay = Math.min(model.delay + step, 20) }, canIncrease: model.delay < 20)
-            if model.delay do
+            if model.delay
+            {
                 subtitles.addAction("Reset the delay", func|model|() { model.delay = 0; model.resets += 1 })
+            }
         })
 
         page.addToggle("Wrap lines", model.wrap, func|model|(on) { model.wrap = on }, disabled: model.locked)
@@ -81,12 +89,17 @@ func runSheet(host: *Gui.Testing.HeadlessHost,
     var driven: bool
     host.app.sigFrame += func|sheet, scenario = &scenario, driven = &driven|(_)
     {
-        if driven[] do
+        if driven[]
+        {
             return
+        }
+
         driven[] = true
         scenario[](sheet)
-        if not sheet.isClosed() do
+        if not sheet.isClosed()
+        {
             sheet.close()
+        }
     }
 
     sheet.doModal(button, autoDestroy: true)

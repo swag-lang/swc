@@ -377,14 +377,26 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   advances, and a round-trip test compares rendered pages rather than only re-reading the model.
 - Related: std.gui.pdf.019, std.gui.pdf.030
 
-### std.gui.pdf.022 — An image is always rewritten as a Flate raster
+### std.gui.pdf.022 — Preserve encoded and natural-depth images
 
-- Intent: `encodeImagePixels` reduces every image to eight-bit gray or RGB and Flate-compresses
-  it. A page that came in as a two-megabyte JPEG photograph leaves as a fifty-megabyte raster, a
-  bilevel scan leaves as eight bits per pixel, and a palette image loses its palette. The same
-  image used on twenty pages is written twenty times.
-- Next: preserve supported encoded JPEG and natural-depth image representations and share repeated
-  image objects.
+- Intent: preserve the original encoded samples and natural depth when the PDF can carry them.
+  Retaining a source JPEG avoids expensive recompression, and an indexed image can use its palette.
+- Evidence: shared image objects
+  cut save time from 1,410 to 197 ms on eight pages using one photo. The output shrinks
+  from 9.81 to 1.23 MB. PDFium renders every saved page identically. Opaque images
+  skip compression of redundant soft masks.
+- Evidence: one-bit gray streams
+  cut save time from 125 to 51 ms on the PDF.js bilevel scan. The output renders
+  identically through PDFium.
+- Evidence: PNG Sub prediction
+  brings the large smooth RGB case from 135 to 65 ms to save and cuts its size
+  from 1.23 to 0.63 MB. The saved pages retain their PDFium rasters.
+- Evidence: retained RGB JPEG streams
+  cut the large public JPEG save from 588 to 0.58 ms and reduce the output from
+  11.95 to 1.43 MB. Both public RGB JPEG pages render exactly as the originals
+  through PDFium.
+- Next: extend encoded stream retention to other supported JPEG color models and preserve
+  indexed image representations.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and
   an image written more than once shares one object.
@@ -415,17 +427,14 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 
 ### std.gui.pdf.026 — An image is copied once per page item that shows it
 
-- Evidence: a decoded image is kept per document, so the second page showing a slide template
-  does not decode it again — but it does copy it. `Item.image` is an owned `Image`, because
-  `Reader.loadPage` states that a page owns what it retains and stays valid after its reader is
-  released. A 2316x1154 template is eight megabytes per page that shows it, and the corpus pays
-  that on a hundred of its cache hits.
-- Next: measure the split between the copies and the decodes by counting cache hits and misses
-  before designing anything; the fix needs either a shared buffer in `Core`, which does not
-  exist, or a narrower ownership contract for `Page`, which is a decision rather than a change.
-- Done when: showing the same image on a hundred pages costs one copy of it, or the entry is
-  rewritten around the ownership decision that says it may not.
-- Related: std.gui.pdf.028, std.gui.pdf.025
+- Evidence: shared decoded images
+  take 16 warmed loads of the same large JPEG page from 228 to 0.072 ms and
+  lower peak memory from 624,876 to 79,212 KiB. Pages keep their own references
+  and isolate page-specific alpha edits.
+- Evidence: sharing device images across page resources
+  reduces four warmed page loads on the public shared-resource document from 49 to 1.8 ms.
+  Named spaces keep their resource context and all 52 supported rasters match.
+- Related: std.gui.pdf.028, std.gui.pdf.025.
 
 ### std.gui.pdf.028 — An embedded font program is copied once per page that uses it
 
@@ -557,9 +566,42 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   The CPU painter blends the union of stroke bodies, caps and joins once per
   path, moving the curve fixture's mean RGB closer to PDFium. The geometry walk
   still creates every dash outline and the rasterizer samples four subrows.
-- Measure cached glyph masks for transformed PDF text. Profile the remaining
-  stroke coverage and image span composition. Retaining encoded images for
-  later zoom levels would let decoding use the requested image size.
+- Indexed image decoding
+  brings the 1200 px indexed stress page from 389 to 55 ms. Palette conversion
+  now happens once per entry. The page loads in 20 ms, down from 356 ms.
+  PDFium takes 34 ms total. All 43 supported cases retain their bitmap CRC-32.
+- Sixteen-bit RGB images
+  take the PDF.js fixture from 130 to 49 ms total at 1200 px. SIMD quantization
+  cuts load from 98 to 18 ms with identical RGB. PDFium takes 20 ms.
+- SIMD for cached image rows
+  reduces the 2400 px PDFBox scan from 42 to 28 ms. PDFium takes 6 ms.
+  All 43 supported pages retain the same bitmap CRC-32.
+- Transformed glyph outlines
+  take the transformed text fixture from 974 to 389 ms at 1200 px and from
+  5133 to 1372 ms at 2400 px. PDFium takes 163 and 292 ms. Cached glyph
+  outlines improve mean RGB agreement and preserve PDF advances.
+- Applying soft mask coverage
+  brings the transformed mask fixture from 927 to 174 ms at 1200 px.
+  PDFium takes 106 ms. The 43 supported cases keep their bitmap checksums.
+- Shared PNG predictor kernels
+  take the public Flate predictor page from 107 to 71 ms at 1200 px and reduce
+  loading from 68 to 37 ms. PDFium takes 48 ms overall. All 43 supported cases
+  retain their bitmap checksums.
+- Reusing translated soft masks
+  cuts load from 69 to 38 ms on the transformed mask fixture. At 1200 px the
+  total goes from 174 to 113 ms against PDFium's 94 ms. All 43 supported cases
+  retain their bitmap checksums.
+- Packed sampling for reduced images
+  cuts 2400 px render time on the transformed mask fixture from 233 to
+  111 ms and brings the total from 274 to 161 ms against PDFium's 233 ms.
+  All 43 supported cases retain their bitmap checksums.
+- The 62-page comparison
+  now measures FileSamples at 28.21, 9.56 and 21.72 ms at 1200 px. In the same
+  series PDFium takes 25.35, 4.54 and 11.00 ms. Swag is ahead on the large CCITT,
+  bilevel and gray scans at both tested sizes. The two new image paths preserve
+  every supported Swag raster checksum. The remaining curve and transformed-text
+  gaps call for reducing compound stroke and glyph scan conversion work. Keeping
+  encoded images available could let bitmap rendering decode at the requested size.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

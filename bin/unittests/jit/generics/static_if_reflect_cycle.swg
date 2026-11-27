@@ -65,7 +65,7 @@ struct GenericLeaf
 
 struct GenericHolder
 {
-    items: GenericPool'GenericLeaf
+    items: GenericPool!{GenericLeaf}
 }
 
 #test

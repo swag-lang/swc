@@ -8,11 +8,16 @@ internal func nativePathInfo(path: string, flags: s32 = 0)->Linux.stat fail
     var result: #returntype
     for
     {
-        if Linux.fstatat(Linux.AT_FDCWD, native.storage(), &result, flags) == 0 do
+        if Linux.fstatat(Linux.AT_FDCWD, native.storage(), &result, flags) == 0
+        {
             return result
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, path)
+        }
     }
 }
 
@@ -31,11 +36,16 @@ internal func deleteNative(fullName: string) fail
     let native = try Path.nativePath(fullName)
     for
     {
-        if Linux.unlinkat(Linux.AT_FDCWD, native.storage(), 0) == 0 do
+        if Linux.unlinkat(Linux.AT_FDCWD, native.storage(), 0) == 0
+        {
             return
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, fullName)
+        }
     }
 }
 
@@ -45,11 +55,16 @@ internal func moveNative(newName, oldName: string) fail
     let destination = try Path.nativePath(newName)
     for
     {
-        if Linux.renameat(Linux.AT_FDCWD, source.storage(), Linux.AT_FDCWD, destination.storage()) == 0 do
+        if Linux.renameat(Linux.AT_FDCWD, source.storage(), Linux.AT_FDCWD, destination.storage()) == 0
+        {
             return
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, oldName)
+        }
     }
 }
 
@@ -59,11 +74,16 @@ internal func touchNative(fullName: string) fail
     let times: [2] Linux.timespec = [{tv_nsec: Linux.UTIME_OMIT}, {tv_nsec: Linux.UTIME_NOW}]
     for
     {
-        if Linux.utimensat(Linux.AT_FDCWD, native.storage(), times.buffer, 0) == 0 do
+        if Linux.utimensat(Linux.AT_FDCWD, native.storage(), times.buffer, 0) == 0
+        {
             return
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, fullName)
+        }
     }
 }
 
@@ -80,10 +100,16 @@ internal func openNative(fullName: string, mode: FileMode, access: FileAccess, s
     }
 
     let validShare = FileShare.ReadWrite | .Delete | .Inheritable
-    if (share & ~validShare) != .Zero do
+    if (share & ~validShare) != .Zero
+    {
         fail Errors.BadParameterError{"file sharing contains an unknown flag"}
-    if not share.has(.Inheritable) do
+    }
+
+    if not share.has(.Inheritable)
+    {
         flags |= Linux.O_CLOEXEC
+    }
+
     switch #complete mode
     {
     case .Append, .OpenOrCreate: flags |= Linux.O_CREAT
@@ -98,29 +124,45 @@ internal func openNative(fullName: string, mode: FileMode, access: FileAccess, s
     var descriptor: s32
     for
     {
-        descriptor = Linux.openat(Linux.AT_FDCWD, native.storage(), flags, 0x1B6'u32)
-        if descriptor >= 0 do
+        descriptor = Linux.openat(Linux.AT_FDCWD, native.storage(), flags, 0x1B6_u32)
+        if descriptor >= 0
+        {
             break
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, fullName)
+        }
     }
 
     var owned = false
-    defer if not owned do
+    defer if not owned
+    {
         discard Linux.close(descriptor)
+    }
+
     var info: Linux.stat
     for
     {
-        if Linux.fstat(descriptor, &info) == 0 do
+        if Linux.fstat(descriptor, &info) == 0
+        {
             break
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, fullName)
+        }
     }
 
-    if (info.st_mode & Linux.S_IFMT) == Linux.S_IFDIR do
+    if (info.st_mode & Linux.S_IFMT) == Linux.S_IFDIR
+    {
         try Errors.failLinuxError(Linux.EISDIR, fullName)
+    }
+
     owned = true
     return nativeFileHandle(descriptor)
 }

@@ -20,40 +20,50 @@ func takesPtr(p: *NarrowNode)->s32 => p.value
 // A plain truthiness guard narrows inside the `then` branch.
 func narrowIf(p: *NarrowNode?)->s32
 {
-    if p do
+    if p
+    {
         return takesPtr(p)
+    }
     return -1
 }
 
 // An explicit `!= null` comparison narrows the same way.
 func narrowCmp(p: *NarrowNode?)->s32
 {
-    if p != null do
+    if p != null
+    {
         return takesPtr(p)
+    }
     return -1
 }
 
 // `== null` narrows the else side / fallthrough.
 func narrowCmpElse(p: *NarrowNode?)->s32
 {
-    if p == null do
+    if p == null
+    {
         return -1
+    }
     return takesPtr(p)
 }
 
-// `if not p do return` guards the remainder of the function.
+// `if not p { return }` guards the remainder of the function.
 func narrowEarlyReturn(p: *NarrowNode?)->s32
 {
-    if not p do
+    if not p
+    {
         return -1
+    }
     return takesPtr(p)
 }
 
 // `a and b` narrows both operands in the `then` branch.
 func narrowAnd(a, b: *NarrowNode?)->s32
 {
-    if a and b do
+    if a and b
+    {
         return takesPtr(a) + takesPtr(b)
+    }
     return -1
 }
 
@@ -66,8 +76,10 @@ func narrowAndRhs(p: *NarrowNode?)->bool
 // `a == null or b == null` guards both operands after the early exit.
 func narrowOrReturn(a, b: *NarrowNode?)->s32
 {
-    if a == null or b == null do
+    if a == null or b == null
+    {
         return -1
+    }
     return takesPtr(a) + takesPtr(b)
 }
 
@@ -117,8 +129,10 @@ func narrowTernaryJoinStillNullable(a, b: *NarrowNode?)->s32
 // Field access paths narrow too.
 func narrowField(o: *NarrowOwner)->s32
 {
-    if o.node do
+    if o.node
+    {
         return takesPtr(o.node)
+    }
     return -1
 }
 
@@ -127,8 +141,10 @@ impl NarrowOwner
     // Implicit `me`-rooted paths behave like explicit ones.
     mtd narrowAuto()->s32
     {
-        if .node do
+        if .node
+        {
             return takesPtr(.node)
+        }
         return -1
     }
 }
@@ -161,8 +177,10 @@ func narrowKillAssign(p, q: *NarrowNode?)->s32
     {
         var total = takesPtr(cur)
         cur = q
-        if cur do
+        if cur
+        {
             total += takesPtr(cur)
+        }
         return total
     }
     return -1
@@ -183,8 +201,10 @@ func narrowKillPair(p, q, nextP, nextQ: *NarrowNode?)->s32
 // `if let` bindings are non-null inside the block.
 func narrowIfLet(o: *NarrowOwner)->s32
 {
-    if let n = o.node do
+    if let n = o.node
+    {
         return takesPtr(n)
+    }
     return -1
 }
 
@@ -216,8 +236,10 @@ func narrowNotNullKill(p, q: *NarrowNode?)->s32
 // region, so the path is still nullable afterwards.
 func narrowNotNullShortCircuit(flag: bool, p: *NarrowNode?)->s32
 {
-    if flag and p!.value > 0 do
+    if flag and p!.value > 0
+    {
         discard flag
+    }
     return p?.value orelse -1
 }
 
@@ -298,8 +320,10 @@ func narrowAssertScoped(p: *NarrowNode?)->s32
         discard takesPtr(p)
     }
 
-    if p do
+    if p
+    {
         return takesPtr(p)
+    }
     return -1
 }
 
@@ -401,8 +425,10 @@ func narrowElseKeepsProof(lend: bool)->s32
 {
     var node:  NarrowNode  = NarrowNode{value: 7}
     var owner: NarrowOwner = NarrowOwner{node: &node}
-    if not owner.node do
+    if not owner.node
+    {
         return 0
+    }
 
     if lend
     {

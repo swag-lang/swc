@@ -58,8 +58,10 @@ impl BoxOwner
     #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
     mtd stop(field: *(*BoxItem?))
     {
-        if field[] do
+        if field[]
+        {
             boxFree(unwrap field[], #sizeof(BoxItem))
+        }
         field[] = null
     }
 

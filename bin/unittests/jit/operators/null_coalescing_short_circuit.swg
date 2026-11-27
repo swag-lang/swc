@@ -6,7 +6,7 @@ var GNullCoercValue:   s32 = 33
 func fallbackU32()->u32
 {
     GNullCoercCounter += 1
-    return 91'u32
+    return 91_u32
 }
 
 func fallbackPointer()->*s32
@@ -27,7 +27,7 @@ func fallbackString()->string
     func intSkipsFallback()->s32
     {
         GNullCoercCounter = 0
-        let value = 12'u32 != 0 ? 12'u32 : fallbackU32()
+        let value = 12_u32 != 0 ? 12_u32 : fallbackU32()
         return cast(s32, value) + GNullCoercCounter * 100
     }
 

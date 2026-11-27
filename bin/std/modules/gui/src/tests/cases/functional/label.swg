@@ -219,7 +219,7 @@ using Swag, Core
 // Automatic height includes the window padding that is removed before wrapped text is painted.
 #test
 {
-    for scale in [1.0'f32, 1.25'f32, 1.5'f32, 1.75'f32, 2.0'f32]
+    for scale in [1.0_f32, 1.25_f32, 1.5_f32, 1.75_f32, 2.0_f32]
     {
         var host: Testing.HeadlessHost
         host.setup(240, 400, scale)

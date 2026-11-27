@@ -11,8 +11,12 @@ func betweenSigned(value, low, high: s32)->u32 => value >= low and value <= high
 
 #test
 {
-    let values = [0'u64, 1, 7, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
-    for value in values do for low in values do for high in values
+    let values = [0_u64, 1, 7, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    for value in values
+    {
+        for low in values
+        {
+            for high in values
             {
                 Swag.require(between64(value, low, high) == (value >= low and value <= high ? 1 : 0))
 
@@ -27,4 +31,6 @@ func betweenSigned(value, low, high: s32)->u32 => value >= low and value <= high
                 let highSigned  = cast #wrap (s32, high32)
                 Swag.require(betweenSigned(valueSigned, lowSigned, highSigned) == (valueSigned >= lowSigned and valueSigned <= highSigned ? 1 : 0))
             }
+        }
+    }
 }

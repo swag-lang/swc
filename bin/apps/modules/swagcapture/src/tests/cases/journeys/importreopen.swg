@@ -34,8 +34,11 @@ using Core, Gui, Pixel
 
     journey.openLibrary(2)
     var imported: *LibraryItem?
-    for item in main.libWnd.view.items where item.fi.fullName == capturePath do
+    for item in main.libWnd.view.items where item.fi.fullName == capturePath
+    {
         imported = item
+    }
+
     Swag.require(imported != null)
     main.libWnd.view.openItem(imported)
     journey.waitFor("reopen imported picture", func|main, &capturePath|()->bool

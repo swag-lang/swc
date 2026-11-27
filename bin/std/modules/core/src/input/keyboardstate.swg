@@ -26,8 +26,10 @@ impl KeyboardState
     mtd update()
     {
         .updateNative()
-        for key in Key do
+        for key in Key
+        {
             .pressed[key] = .native.isKeyPressed(key)
+        }
     }
 
     // Marks every key as released.

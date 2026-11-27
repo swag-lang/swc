@@ -8,8 +8,8 @@
 
 using Core, Core.Errors
 
-private const IndexTrackAccessId = fourCc('t'u32, 'f'u32, 'r'u32, 'a'u32)
-private const IndexOffsetId      = fourCc('m'u32, 'f'u32, 'r'u32, 'o'u32)
+private const IndexTrackAccessId = fourCc('t'_u32, 'f'_u32, 'r'_u32, 'a'_u32)
+private const IndexOffsetId      = fourCc('m'_u32, 'f'_u32, 'r'_u32, 'o'_u32)
 
 // One sync sample located by a fragmented MP4 random-access index.
 //
@@ -57,49 +57,77 @@ impl FragmentedIndex
     // initialization and media data are not read. `trackId` must be positive.
     func open(fileName: string, trackId: u32 = 1)->FragmentedIndex fail
     {
-        if not trackId do
+        if not trackId
+        {
             fail BadParameterError{"fragmented MP4 index track ID must be positive"}
+        }
+
         var result: #returntype
         result.source  = try ByteSource.openFile(fileName)
         result.trackId = trackId
         let size = result.source.size()
-        if size < 48 do
+        if size < 48
+        {
             fail InvalidFormatError{"fragmented MP4 has no final random-access index"}
+        }
 
         try result.source.seek(size - 16)
-        if try result.source.readBigEndian'u32() != 16 or
-           try result.source.readBigEndian'u32() != IndexOffsetId or
-           try result.source.readBigEndian'u32() != 0 do
+        if try result.source.readBigEndian!
+        {
+            u32
+        }() != 16 or
+           try result.source.readBigEndian!{u32}() != IndexOffsetId or
+           try result.source.readBigEndian!{u32}() != 0
+        {
             fail InvalidFormatError{"fragmented MP4 has no final random-access index"}
-        let randomAccessSize = try result.source.readBigEndian'u32()
-        if randomAccessSize < 48 or randomAccessSize > size do
+        }
+
+        let randomAccessSize = try result.source.readBigEndian!{u32}()
+        if randomAccessSize < 48 or randomAccessSize > size
+        {
             fail InvalidFormatError{"fragmented MP4 random-access size is invalid"}
+        }
+
         result.randomAccessOffset = size - randomAccessSize
-        if result.randomAccessOffset < 8 do
+        if result.randomAccessOffset < 8
+        {
             fail InvalidFormatError{"fragmented MP4 random-access box has no preceding movie"}
+        }
+
         try result.source.seek(result.randomAccessOffset)
         let randomAccess = try readBox(&result.source, size)
-        if randomAccess.kind != FragmentRandomAccessId or randomAccess.end != size do
+        if randomAccess.kind != FragmentRandomAccessId or randomAccess.end != size
+        {
             fail InvalidFormatError{"fragmented MP4 random-access box is invalid"}
+        }
 
         var found = false
         while result.source.position() < size - 16
         {
             let child = try readBox(&result.source, size)
-            if child.end > size - 16 do
+            if child.end > size - 16
+            {
                 fail InvalidFormatError{"fragmented MP4 random-access child overlaps its footer"}
+            }
+
             if child.kind == IndexTrackAccessId
             {
-                if child.end - child.data < 16 do
+                if child.end - child.data < 16
+                {
                     fail InvalidFormatError{"fragmented MP4 track access header is incomplete"}
-                let fullBox      = try result.source.readBigEndian'u32()
-                let indexedTrack = try result.source.readBigEndian'u32()
-                let lengths      = try result.source.readBigEndian'u32()
-                let count        = try result.source.readBigEndian'u32()
+                }
+
+                let fullBox      = try result.source.readBigEndian!{u32}()
+                let indexedTrack = try result.source.readBigEndian!{u32}()
+                let lengths      = try result.source.readBigEndian!{u32}()
+                let count        = try result.source.readBigEndian!{u32}()
                 if indexedTrack == trackId
                 {
-                    if found or (fullBox != 0 and fullBox != 0x01000000) or lengths >> 6 != 0 do
+                    if found or (fullBox != 0 and fullBox != 0x01000000) or lengths >> 6 != 0
+                    {
                         fail InvalidFormatError{"fragmented MP4 track access description is invalid"}
+                    }
+
                     result.version            = cast(u8, fullBox >> 24)
                     result.trackFragmentBytes = cast(u8, ((lengths >> 4) & 3) + 1)
                     result.trackRunBytes      = cast(u8, ((lengths >> 2) & 3) + 1)
@@ -110,8 +138,11 @@ impl FragmentedIndex
                     result.tableOffset = result.source.position()
                     result.count       = count
                     if count > (child.end - result.tableOffset) / result.entrySize or
-                       cast(u64, count) * result.entrySize != child.end - result.tableOffset do
+                       cast(u64, count) * result.entrySize != child.end - result.tableOffset
+                    {
                         fail InvalidFormatError{"fragmented MP4 track access entry table is incomplete"}
+                    }
+
                     found = true
                 }
             }
@@ -119,10 +150,12 @@ impl FragmentedIndex
             try result.source.seek(child.end)
         }
 
-        if not found do
+        if not found
+        {
             fail UnsupportedFormatError{"fragmented MP4 has no random-access index for this track"}
+        }
 
-        var previousTime = 0'u64
+        var previousTime = 0_u64
         for index in result.count
         {
             let point = try result.readPoint(index)
@@ -130,8 +163,11 @@ impl FragmentedIndex
                point.moofOffset > result.randomAccessOffset - 8 or
                not point.trackFragmentNumber or
                not point.trackRunNumber or
-               not point.sampleNumber do
+               not point.sampleNumber
+            {
                 fail InvalidFormatError{"fragmented MP4 random-access entry is invalid"}
+            }
+
             previousTime = point.decodeTime
         }
 
@@ -147,32 +183,52 @@ impl FragmentedIndex
     // preceding top-level boxes.
     mtd point(index: u32)->FragmentedSeekPoint fail
     {
-        if index >= .count do
+        if index >= .count
+        {
             fail BadParameterError{"fragmented MP4 random-access index is outside its entries"}
+        }
+
         let result = try .readPoint(index)
-        if result.trackFragmentNumber != 1 or result.trackRunNumber != 1 do
+        if result.trackFragmentNumber != 1 or result.trackRunNumber != 1
+        {
             fail UnsupportedFormatError{"fragmented MP4 random-access entry needs the first track fragment and run"}
+        }
+
         try .source.seek(result.moofOffset)
         let fragmentBox = try readBox(&.source, .randomAccessOffset)
-        if fragmentBox.kind != FragmentId do
+        if fragmentBox.kind != FragmentId
+        {
             fail InvalidFormatError{"fragmented MP4 random-access entry does not point to a fragment"}
+        }
+
         var layout: Layout
         let fragment = try layout.parseFragment(&.source, result.moofOffset, fragmentBox.end)
-        if fragment.trackId != .trackId or result.sampleNumber > fragment.samples.count do
+        if fragment.trackId != .trackId or result.sampleNumber > fragment.samples.count
+        {
             fail InvalidFormatError{"fragmented MP4 random-access entry does not name its indexed track sample"}
+        }
 
         let sample = fragment.samples[result.sampleNumber - 1]
-        if not sample.isKeyFrame or sample.decodeTime != result.decodeTime do
+        if not sample.isKeyFrame or sample.decodeTime != result.decodeTime
+        {
             fail InvalidFormatError{"fragmented MP4 random-access entry does not name its key frame"}
-        if fragmentBox.end > .randomAccessOffset - BoxHeaderSize do
+        }
+
+        if fragmentBox.end > .randomAccessOffset - BoxHeaderSize
+        {
             fail InvalidFormatError{"fragmented MP4 random-access fragment has no media-data box"}
+        }
+
         try .source.seek(fragmentBox.end)
         let mediaData = try readBox(&.source, .randomAccessOffset)
         if mediaData.kind != MediaDataId or
            sample.offset < mediaData.data or
            sample.offset > mediaData.end or
-           sample.size > mediaData.end - sample.offset do
+           sample.size > mediaData.end - sample.offset
+        {
             fail InvalidFormatError{"fragmented MP4 random-access sample runs outside its media-data box"}
+        }
+
         return result
     }
 
@@ -182,22 +238,32 @@ impl FragmentedIndex
     // suitable for starting a fragment scan.
     mtd tryFindAtOrBefore(decodeTime: u64, point: *FragmentedSeekPoint)->bool fail
     {
-        if not .count do
+        if not .count
+        {
             return false
-        var low  = 0'u32
+        }
+
+        var low  = 0_u32
         var high = .count
         while low < high
         {
             let middle    = low + (high - low) / 2
             let candidate = try .readPoint(middle)
-            if candidate.decodeTime <= decodeTime do
+            if candidate.decodeTime <= decodeTime
+            {
                 low = middle + 1
-            else do
+            }
+            else
+            {
                 high = middle
+            }
         }
 
-        if not low do
+        if not low
+        {
             return false
+        }
+
         point[] = try .point(low - 1)
         return true
     }
@@ -208,20 +274,27 @@ impl FragmentedIndex
     // the result is suitable for starting a fragment scan when it names the first video sample.
     mtd tryFindAtOrAfter(decodeTime: u64, point: *FragmentedSeekPoint)->bool fail
     {
-        var low  = 0'u32
+        var low  = 0_u32
         var high = .count
         while low < high
         {
             let middle    = low + (high - low) / 2
             let candidate = try .readPoint(middle)
-            if candidate.decodeTime < decodeTime do
+            if candidate.decodeTime < decodeTime
+            {
                 low = middle + 1
-            else do
+            }
+            else
+            {
                 high = middle
+            }
         }
 
-        if low == .count do
+        if low == .count
+        {
             return false
+        }
+
         point[] = try .point(low)
         return true
     }
@@ -234,9 +307,12 @@ private impl FragmentedIndex
 {
     mtd readNumber(bytes: u8)->u32 fail
     {
-        var value = 0'u32
-        for bytes do
-            value = (value << 8) | try .source.readBigEndian'u8()
+        var value = 0_u32
+        for bytes
+        {
+            value = (value << 8) | try .source.readBigEndian!{u8}()
+        }
+
         return value
     }
 
@@ -244,8 +320,8 @@ private impl FragmentedIndex
     {
         try .source.seek(.tableOffset + cast(u64, index) * .entrySize)
         var result: FragmentedSeekPoint
-        result.decodeTime          = .version == 1 ? try .source.readBigEndian'u64() : cast(u64, try .source.readBigEndian'u32())
-        result.moofOffset          = .version == 1 ? try .source.readBigEndian'u64() : cast(u64, try .source.readBigEndian'u32())
+        result.decodeTime          = .version == 1 ? try .source.readBigEndian!{u64}() : cast(u64, try .source.readBigEndian!{u32}())
+        result.moofOffset          = .version == 1 ? try .source.readBigEndian!{u64}() : cast(u64, try .source.readBigEndian!{u32}())
         result.trackFragmentNumber = try .readNumber(.trackFragmentBytes)
         result.trackRunNumber      = try .readNumber(.trackRunBytes)
         result.sampleNumber        = try .readNumber(.sampleNumberBytes)

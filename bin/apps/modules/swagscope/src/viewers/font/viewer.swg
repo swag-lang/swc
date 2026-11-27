@@ -10,8 +10,11 @@ using Core, Pixel, Gui, TrueType
 // an older Apple font writes in the same place, and `OTTO` identifies OpenType CFF outlines.
 private func pluginProbe(content: Viewer.ProbeContent)->bool
 {
-    if content.startsWith("ttcf") or content.startsWith("true") or content.startsWith("OTTO") do
+    if content.startsWith("ttcf") or content.startsWith("true") or content.startsWith("OTTO")
+    {
         return true
+    }
+
     return content.head.count >= 4 and
            content.head[0] == 0 and
            content.head[1] == 1 and
@@ -63,6 +66,28 @@ struct FaceFacts
     embedding:   u16      // Embedding permission bits, when `hasMetadata`.
 }
 
+private func countBlockCoverage(face: *Face)->[BlockFirst.count] u32
+{
+    var result: #returntype
+    for &covered, index in result
+    {
+        let last = BlockLast[index]
+        face.visitCharacters(BlockFirst[index], func|covered, last|(character: rune, glyphIndex: u32)->bool
+        {
+            discard glyphIndex
+            if cast(u32, character) > last
+            {
+                return false
+            }
+
+            covered[] += 1
+            return true
+        })
+    }
+
+    return result
+}
+
 // A collection face selection is keyed to one exact path and file content, then stores the
 // collection's original member index. Paths themselves are never written to the preference file.
 struct FaceSelection
@@ -73,24 +98,29 @@ struct FaceSelection
 
 struct FaceSelectionStore
 {
-    entries: Array'FaceSelection
+    entries: Array!{FaceSelection}
 }
 
-private const FaceSelectionLimit = 64'u64
+private const FaceSelectionLimit = 64_u64
 var g_FaceSelectionStoreOverride: String     // Test-only destination; empty uses the app-data store.
 
 private func faceSelectionStorePath()->String
 {
-    if g_FaceSelectionStoreOverride.count do
+    if g_FaceSelectionStoreOverride.count
+    {
         return String.from(g_FaceSelectionStoreOverride)
+    }
+
     return Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "scope", "font-faces.json")
 }
 
 private func faceSelectionIdentity(path: string, bytes: const [..] u8)->String
 {
     var filePath = String.from(path)
-    if WINDOWS do
+    if WINDOWS
+    {
         filePath.makeLower(.Unicode)
+    }
 
     var hash: Hash.Sha256
     hash.update(cast(const [..] u8, filePath.toString()))
@@ -99,16 +129,19 @@ private func faceSelectionIdentity(path: string, bytes: const [..] u8)->String
     hash.update(bytes)
     let digest         = hash.finalize()
     var result: String = "sha256:"
-    for word in digest do
+    for word in digest
+    {
         result += Format.toString("%{X08}", word)
+    }
+
     return result
 }
 
 private func readFaceSelectionStore(path: string)->FaceSelectionStore
 {
     let bytes   = catch File.readAllBytes(path) { return {} }
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = catch decoder.readAll'FaceSelectionStore(bytes.toSlice()) { return {} }
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let decoded = catch decoder.readAll!{FaceSelectionStore}(bytes.toSlice()) { return {} }
     var result  = #move decoded[]
     Memory.delete(decoded)
     return result
@@ -116,18 +149,26 @@ private func readFaceSelectionStore(path: string)->FaceSelectionStore
 
 private func selectedFaceMember(path: string, identity: string)->u32
 {
-    if File.MountPrivacy.query(path).privateMode do
+    if File.MountPrivacy.query(path).privateMode
+    {
         return Swag.U32.Max
+    }
+
     let store = readFaceSelectionStore(faceSelectionStorePath())
-    for entry in store.entries where entry.identity == identity do
+    for entry in store.entries where entry.identity == identity
+    {
         return entry.memberIndex
+    }
+
     return Swag.U32.Max
 }
 
 private func saveFaceSelection(path, identity: string, memberIndex: u32) fail
 {
-    if File.MountPrivacy.query(path).privateMode do
+    if File.MountPrivacy.query(path).privateMode
+    {
         return
+    }
 
     let storePath = faceSelectionStorePath()
     var store     = readFaceSelectionStore(storePath)
@@ -138,15 +179,20 @@ private func saveFaceSelection(path, identity: string, memberIndex: u32) fail
     }
 
     store.entries.insertAt(0, FaceSelection{String.from(identity), memberIndex})
-    while store.entries.count > FaceSelectionLimit do
+    while store.entries.count > FaceSelectionLimit
+    {
         store.entries.removeBack()
+    }
 
-    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var encoder: Serialization.Encoder!{Serialization.Write.Json}
     var encoded: ConcatBuffer
     try encoder.writeAll(&encoded, store)
     let folder = Path.directoryName(storePath) orelse ""
-    if folder.count do
+    if folder.count
+    {
         try Directory.create(folder, recurse: true)
+    }
+
     let temporary = Path.combine(folder, Format.toString(".font-faces-%.tmp", Guid128.random()))
     defer discard catch File.delete(temporary)
     try File.writeAllBytes(temporary, cast(const [..] u8, encoded.toString()))
@@ -162,15 +208,15 @@ struct ViewerContent
     face:              *Face?
     typeFace:          *TypeFace?
     faceCount:         u32
-    faceNames:         Array'String
-    faceIndices:       Array'u32     // Original TTC member indices for the faces the parser can load.
+    faceNames:         Array!{String}
+    faceIndices:       Array!{u32}     // Original TTC member indices for the faces the parser can load.
     cacheKey:          String
     selectionIdentity: String
     selectedFaceIndex: u32
     details:           String
-    pageStarts:        Array'u32
-    glyphCharacters:   Array'rune          // First mapped Unicode scalar for each glyph ID.
-    glyphNames:        Array'GlyphName     // Post/CFF names sorted on the font-loading worker.
+    pageStarts:        Array!{u32}
+    glyphCharacters:   Array!{rune}          // First mapped Unicode scalar for each glyph ID.
+    glyphNames:        Array!{GlyphName}     // Post/CFF names sorted on the font-loading worker.
     facts:             FaceFacts
 }
 
@@ -191,11 +237,15 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     // The cached typeface can retain this snapshot after the viewer closes.
     let allocator = Swag.getContext().defaultAllocator orelse Swag.getContext().allocator
     result.source = try FontSource.loadFile(fileName, allocator)
-    let bytes           = result.source.bytes()
+    let bytes = result.source.bytes()
     let collectionCount = try Face.countFaces(bytes)
-    let fileInfo        = try File.info(fileName)
-    result.selectionIdentity = faceSelectionIdentity(fileInfo.fullName, bytes)
-    let rememberedIndex = selectedFaceMember(fileName, result.selectionIdentity)
+    var rememberedIndex = Swag.U32.Max
+    if collectionCount > 1
+    {
+        let fileInfo = try File.info(fileName)
+        result.selectionIdentity = faceSelectionIdentity(fileInfo.fullName, bytes)
+        rememberedIndex = selectedFaceMember(fileName, result.selectionIdentity)
+    }
 
     // A broken collection member cannot invalidate its neighbors. Probe every original index
     // independently and retain only faces whose outline parser can load.
@@ -204,17 +254,23 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         var candidate:   *Face?
         var loadOutcome: Swag.Error
         catch { candidate = try result.source.loadFace(memberIndex) } as loadOutcome
-        if loadOutcome.value() != null do
+        if loadOutcome.value() != null
+        {
             continue
+        }
 
         let face = unwrap candidate
-        var name: String
+        var name:  String
+        var facts: FaceFacts
         catch
         {
-            let metadata = try Face.metadataAt(bytes, memberIndex)
+            let metadata = try result.source.metadataAt(memberIndex)
             let family   = metadata.typographicFamilyName.isEmpty() ? metadata.familyName.toString() : metadata.typographicFamilyName.toString()
             let style    = metadata.typographicStyleName.isEmpty() ? metadata.styleName.toString() : metadata.typographicStyleName.toString()
-            name = style.count == 0 ? family : Format.toString("% · %", family, style)
+            name              = style.count == 0 ? family : Format.toString("% · %", family, style)
+            facts.weight      = metadata.weight
+            facts.embedding   = metadata.embedding
+            facts.hasMetadata = true
         }
 
         if name.isEmpty()
@@ -226,7 +282,8 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         if not result.face or memberIndex == rememberedIndex
         {
             result.face?.destroy()
-            result.face = face
+            result.face  = face
+            result.facts = facts
             result.selectedFaceIndex = cast(u32, result.faceIndices.count)
         }
         else
@@ -239,59 +296,38 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     }
 
     result.faceCount = cast(u32, result.faceIndices.count)
-    if not result.faceCount do
+    if not result.faceCount
+    {
         fail InvalidFormatError{Errors.mkString(texts().ui_NoValidFaces)}
+    }
 
     let selectedMember = result.faceIndices[result.selectedFaceIndex]
-    result.cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(bytes))
+    if collectionCount > 1
+    {
+        result.cacheKey = Format.toString("%|scope-font|%", fileName, result.selectionIdentity)
+    }
+    else
+    {
+        result.cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(bytes))
+    }
+
     result.typeFace = try TypeFace.createFromSource(result.cacheKey, &result.source, selectedMember)
 
     let unreadable = collectionCount - result.faceCount
-    if unreadable do
+    if unreadable
+    {
         result.details = Format.toString(texts().ui_UnreadableFaces, unreadable, collectionCount)
-    elif collectionCount > 1 do
+    }
+    else if collectionCount > 1
+    {
         result.details = Format.toString(texts().ui_CollectionFaces, collectionCount)
-    let face  = unwrap result.face
-    var start = 0x20'u32
-    result.glyphCharacters.resize(face.glyphCount)
-    for glyphIndex in face.glyphCount
-    {
-        if let name = face.glyphName(cast(u32, glyphIndex)) do
-            result.glyphNames.add(GlyphName{String.from(name), cast(u32, glyphIndex)})
     }
 
-    result.glyphNames.sort(func(a, b) => Text.compareNames(a.name.toSlice(), b.name.toSlice()))
-    while start < 0x110000
-    {
-        let page = characterPage(face, start)
-        if page.characters.isEmpty() do
-            break
-        result.pageStarts.add(cast(u32, page.characters[0]))
-        for character in page.characters
-        {
-            let glyphIndex = face.glyphIndex(character)
-            if glyphIndex < result.glyphCharacters.count and not result.glyphCharacters[glyphIndex] do
-                result.glyphCharacters[glyphIndex] = character
-        }
+    let face = unwrap result.face
+    buildGlyphNameIndex(face, &result.glyphNames)
+    buildCharacterIndex(face, &result.pageStarts, &result.glyphCharacters)
 
-        if not page.hasNext do
-            break
-        start = page.end + 1
-    }
-
-    for &count, index in result.facts.coverage
-    {
-        for code in BlockFirst[index] to BlockLast[index] where face.hasChar(cast(rune, code)) do
-            count[] += 1
-    }
-
-    catch
-    {
-        let metadata = try Face.metadataAt(bytes, selectedMember)
-        result.facts.weight      = metadata.weight
-        result.facts.embedding   = metadata.embedding
-        result.facts.hasMetadata = true
-    }
+    result.facts.coverage = countBlockCoverage(face)
 
     return result
 }
@@ -301,21 +337,34 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
 func queriedCharacter(query: string)->rune
 {
     let text = Latin1.trim(query)
-    if not text.count do
+    if not text.count
+    {
         return 0
+    }
 
     let {c, eat} = Utf8.decodeRune(text)
-    if eat == text.count do
+    if eat == text.count
+    {
         return c == ' ' ? 0 : c
-    if text.count < 3 or text.count > 8 or (text[0] != 'U'u8 and text[0] != 'u'u8) or text[1] != '+'u8 do
-        return 0
+    }
 
-    var code = 0'u32
+    if text.count < 3 or
+       text.count > 8 or
+       (text[0] != 'U'_u8 and text[0] != 'u'_u8) or
+       text[1] != '+'_u8
+    {
+        return 0
+    }
+
+    var code = 0_u32
     for index in 2 until text.count
     {
         let digit = hexDigitValue(text[index])
-        if digit >= 16 do
+        if digit >= 16
+        {
             return 0
+        }
+
         code = code * 16 + digit
     }
 
@@ -328,27 +377,34 @@ func queriedCharacter(query: string)->rune
 func queriedGlyphIndex(query: string)->u32
 {
     let text = Latin1.trim(query)
-    if text.count < 2 or text[0] != '#' do
+    if text.count < 2 or text[0] != '#'
+    {
         return Swag.U32.Max
+    }
 
-    var base  = 10'u32
-    var start = 1'u64
+    var base  = 10_u32
+    var start = 1_u64
     if text.count >= 4 and text[1] == '0' and (text[2] == 'x' or text[2] == 'X')
     {
         base  = 16
         start = 3
     }
 
-    if start >= text.count do
+    if start >= text.count
+    {
         return Swag.U32.Max
+    }
 
-    var value = 0'u32
+    var value = 0_u32
     for at in start until text.count
     {
         let digit = base == 16 ? hexDigitValue(text[at]) :
                     text[at] >= '0' and text[at] <= '9' ? cast(u32, text[at] - '0') : 16
-        if digit >= base or value > (Swag.U32.Max - digit) / base do
+        if digit >= base or value > (Swag.U32.Max - digit) / base
+        {
             return Swag.U32.Max
+        }
+
         value = value * base + digit
     }
 
@@ -383,15 +439,15 @@ struct Panel
     facts:             FaceFacts
     faceCount:         u32
     faceIndex:         u32
-    faceNames:         Array'String
-    faceIndices:       Array'u32
+    faceNames:         Array!{String}
+    faceIndices:       Array!{u32}
     cacheKey:          String
     selectionIdentity: String
     sampleDefault:     String
-    load:              Viewer.BackgroundLoad'ViewerContent
+    load:              Viewer.BackgroundLoad!{ViewerContent}
     services:          Viewer.HostServices
     failureReason:     String
-    history:           Viewer.History'FontMapPosition
+    history:           Viewer.History!{FontMapPosition}
 }
 
 private impl Panel
@@ -399,12 +455,20 @@ private impl Panel
     mtd handlePageKey(key: *KeyEvent)->bool
     {
         let direction = Viewer.pageKeyDirection(key)
-        if not direction or .load.isPending() or .document == null do
+        if not direction or .load.isPending() or .document == null
+        {
             return false
-        if direction < 0 do
+        }
+
+        if direction < 0
+        {
             .document.previousPage()
-        else do
+        }
+        else
+        {
             .document.nextPage()
+        }
+
         .refreshPageCommands()
         return true
     }
@@ -412,10 +476,15 @@ private impl Panel
     mtd handleHistoryKey(key: *KeyEvent)->bool
     {
         let direction = Viewer.historyKeyDirection(key)
-        if direction < 0 do
+        if direction < 0
+        {
             .goBack()
-        elif direction > 0 do
+        }
+        else if direction > 0
+        {
             .goForward()
+        }
+
         return direction != 0
     }
 
@@ -427,11 +496,17 @@ private impl Panel
 
     mtd targetPageStart(start: u32)->u32
     {
-        if .document.pageStarts.isEmpty() do
+        if .document.pageStarts.isEmpty()
+        {
             return 0
+        }
+
         var target = .document.pageStarts[0]
-        for page in .document.pageStarts where page <= start do
+        for page in .document.pageStarts where page <= start
+        {
             target = page
+        }
+
         return target
     }
 
@@ -439,8 +514,11 @@ private impl Panel
     {
         let target  = .targetPageStart(cast(u32, character))
         let current = .currentMapPosition()
-        if current.pageStart != target or current.character != character do
+        if current.pageStart != target or current.character != character
+        {
             .history.visit(current)
+        }
+
         .document.showCharacter(character)
         .refreshPageCommands()
     }
@@ -449,8 +527,11 @@ private impl Panel
     {
         let target  = .targetPageStart(start)
         let current = .currentMapPosition()
-        if current.pageStart != target do
+        if current.pageStart != target
+        {
             .history.visit(current)
+        }
+
         .document.goToCharacterPage(start)
         .refreshPageCommands()
     }
@@ -462,7 +543,7 @@ private impl Panel
         {
             .document.showCharacter(position.character)
         }
-        elif .document.shown
+        else if .document.shown
         {
             .document.shown = 0
             .document.sigMarked.call(.document)
@@ -474,14 +555,18 @@ private impl Panel
 
     internal mtd goBack()
     {
-        if .history.canGoBack() do
+        if .history.canGoBack()
+        {
             .restoreMapPosition(.history.back(.currentMapPosition()))
+        }
     }
 
     internal mtd goForward()
     {
-        if .history.canGoForward() do
+        if .history.canGoForward()
+        {
             .restoreMapPosition(.history.forward(.currentMapPosition()))
+        }
     }
 
     mtd refreshPageCommands()
@@ -508,8 +593,10 @@ private impl Panel
         let font = .document != null and .sampleDefault != texts().ui_DefaultSample ?
                    .app().renderer.fontCache().createFont(.document.typeFace, size) : .theme().createDefaultFont(size)
         .sampleEdit.style.setFont(font, .Regular)
-        if replaceSample do
+        if replaceSample
+        {
             .sampleEdit.setText(.sampleDefault)
+        }
     }
 
     mtd retranslate()
@@ -529,8 +616,11 @@ private impl Panel
 
     mtd showFaceMenu()
     {
-        if .faceCount < 2 do
+        if .faceCount < 2
+        {
             return
+        }
+
         let icon         = .theme().icon(.GoTo, themeRowIconSize(.themeMetrics()))
         let panel        = me
         let names        = panel.faceNames
@@ -551,8 +641,11 @@ private impl Panel
             {
                 var error: Swag.Error
                 catch .selectFace(index) as error
-                if error.value() != null do
+                if error.value() != null
+                {
                     .services.failed(me, Viewer.failureText(error.value()))
+                }
+
                 return
             }
         }
@@ -562,28 +655,32 @@ private impl Panel
     // if either the outline parser or Pixel's shared face cache rejects the requested index.
     internal mtd selectFace(index: u32) fail
     {
-        if index >= .faceCount do
+        if index >= .faceCount
+        {
             fail Errors.InvalidFormatError{texts().ui_InvalidFace}
-        if index == .faceIndex do
+        }
+
+        if index == .faceIndex
+        {
             return
+        }
 
         let memberIndex = .faceIndices[index]
         var face        = try .document.fontSource.loadFace(memberIndex)
         var ownsFace    = true
-        defer if ownsFace do
+        defer if ownsFace
+        {
             face.destroy()
+        }
+
         let typeFace = try TypeFace.createFromSource(.cacheKey, &.document.fontSource, memberIndex)
 
         var facts: FaceFacts
-        for &count, block in facts.coverage
-        {
-            for code in BlockFirst[block] to BlockLast[block] where face.hasChar(cast(rune, code)) do
-                count[] += 1
-        }
+        facts.coverage = countBlockCoverage(face)
 
         catch
         {
-            let metadata = try Face.metadataAt(.document.fontSource.bytes(), memberIndex)
+            let metadata = try .document.fontSource.metadataAt(memberIndex)
             facts.weight      = metadata.weight
             facts.embedding   = metadata.embedding
             facts.hasMetadata = true
@@ -668,8 +765,10 @@ private impl Panel
                                         view.jumpToCharacter(character)
                                     },
                                      disabled: not mapped)
-            if entry and not mapped do
+            if entry and not mapped
+            {
                 entry.detail = strings.ui_NotInFont
+            }
         }
 
         // A `#` query addresses a glyph ID directly. Many-to-one cmap aliases resolve to the
@@ -688,8 +787,10 @@ private impl Panel
                                         view.jumpToCharacter(character)
                                     },
                                         disabled: not mapped)
-            if entry and not mapped do
+            if entry and not mapped
+            {
                 entry.detail = inFont ? strings.ui_GlyphNoCharacter : strings.ui_GlyphIdAbsent
+            }
         }
 
         // Glyph names are sorted once on the loading worker; exact lookup is binary and never
@@ -697,22 +798,26 @@ private impl Panel
         if entries.query.count >= 2 and not .load.isPending() and .document != null
         {
             let query = Latin1.trim(entries.query)
-            var first = 0'u64
+            var first = 0_u64
             var last  = .document.glyphNames.count
             while first < last
             {
                 let middle = first + (last - first) / 2
-                if Text.compareNames(.document.glyphNames[middle].name.toString(), query) < 0
-                    do
+                if Text.compareNames(.document.glyphNames[middle].name, query) < 0
+
+                {
                     first = middle + 1
-                else do
+                }
+                else
+                {
                     last = middle
+                }
             }
 
             if first < .document.glyphNames.count and
-               Text.compareNames(.document.glyphNames[first].name.toString(), query) == 0
+               Text.compareNames(.document.glyphNames[first].name, query) == 0
             {
-                let name       = .document.glyphNames[first].name.toString()
+                let name       = .document.glyphNames[first].name
                 let glyphIndex = .document.glyphNames[first].id
                 let mapped     = glyphIndex < .document.glyphCharacters.count and .document.glyphCharacters[glyphIndex] != 0
                 let character  = mapped ? .document.glyphCharacters[glyphIndex] : cast(rune, 0)
@@ -724,8 +829,10 @@ private impl Panel
                                             view.jumpToCharacter(character)
                                         },
                                              disabled: not mapped)
-                if entry and not mapped do
+                if entry and not mapped
+                {
                     entry.detail = strings.ui_GlyphNoCharacter
+                }
             }
         }
 
@@ -822,10 +929,14 @@ private impl IWnd for Panel
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .retranslate()
-        else do
+        }
+        else
+        {
             evt.accepted = false
+        }
     }
 }
 
@@ -840,7 +951,7 @@ impl Panel
     // in `commands`, and starts loading the font in the background.
     func create(contentParent, commands: *Wnd, fileName: string, services: Viewer.HostServices)->*Panel
     {
-        with let result = Wnd.create'Panel(contentParent, "scope.font")
+        with let result = Wnd.create!{Panel}(contentParent, "scope.font")
         {
             .backgroundStyle = .View
             .fileName        = fileName
@@ -852,8 +963,11 @@ impl Panel
         result.createCommandBar()
         result.hookOnChildEvent = func|view = result|(_, evt)->bool
         {
-            if evt is KeyEvent as key do
+            if evt is KeyEvent as key
+            {
                 return view.handlePageKey(key)
+            }
+
             return false
         }
 
@@ -879,10 +993,15 @@ impl Panel
 
         let turn = func|view = me|(dir: s32)
         {
-            if dir < 0 do
+            if dir < 0
+            {
                 view.document.previousPage()
-            else do
+            }
+            else
+            {
                 view.document.nextPage()
+            }
+
             view.refreshPageCommands()
         }
 
@@ -899,8 +1018,10 @@ impl Panel
             .setPlaceholder(texts().ui_SamplePlaceholder)
             .sigTextChanged += func|view = me|(_)
             {
-                if view.document != null do
+                if view.document != null
+                {
                     view.document.invalidate()
+                }
             }
         }
     }
@@ -912,11 +1033,17 @@ impl Panel
     // leading its identity: how many glyphs it draws, then its style and its design grid.
     mtd describeInformation(sheet: *InfoSheet)
     {
-        if .document == null do
+        if .document == null
+        {
             return
+        }
+
         let face = .document.face
-        if not face or face.familyName.isEmpty() do
+        if not face or face.familyName.isEmpty()
+        {
             return
+        }
+
         sheet.setIdentity(Format.toString("% · %", sheet.title, sheet.identity))
         sheet.setTitle(face.familyName)
         var data: MediaInfoData
@@ -926,12 +1053,20 @@ impl Panel
         data.add(.UnitsPerEm, Format.toString("%", face.unitsPerEm))
 
         // What the face says of itself, set literally: the names and the notice are its own text.
-        if not face.version.isEmpty() do
+        if not face.version.isEmpty()
+        {
             data.add(.Version, face.version.toString())
-        if not face.designer.isEmpty() do
+        }
+
+        if not face.designer.isEmpty()
+        {
             data.add(.Designer, face.designer.toString())
-        if not face.copyright.isEmpty() do
+        }
+
+        if not face.copyright.isEmpty()
+        {
             data.add(.Copyright, face.copyright.toString())
+        }
 
         // The weight class and the embedding permissions the OS/2 table declares.
         if .facts.hasMetadata
@@ -943,8 +1078,10 @@ impl Panel
         // How much of each block the character map jumps to the face maps.
         data.add(.Coverage, group: true)
         let names = blockNames()
-        for count, index in .facts.coverage do
+        for count, index in .facts.coverage
+        {
             data.addText(names[index], count ? characterCountText(count) : String.from(texts().ui_NotCovered))
+        }
 
         // The character marked in the map: its code point and the glyph the face draws it with.
         let shown = .document.shown
@@ -977,18 +1114,33 @@ func embeddingText(fsType: u16)->String
 {
     let t = texts()
     var result: String
-    if fsType & 0x8 do
+    if fsType & 0x8
+    {
         result = String.from(t.ui_EmbedEditable)
-    elif fsType & 0x4 do
+    }
+    else if fsType & 0x4
+    {
         result = String.from(t.ui_EmbedPreview)
-    elif fsType & 0x2 do
+    }
+    else if fsType & 0x2
+    {
         result = String.from(t.ui_EmbedRestricted)
-    else do
+    }
+    else
+    {
         result = String.from(t.ui_EmbedInstallable)
-    if fsType & 0x100 do
+    }
+
+    if fsType & 0x100
+    {
         result += Format.toString(" · %", t.ui_EmbedNoSubset)
-    if fsType & 0x200 do
+    }
+
+    if fsType & 0x200
+    {
         result += Format.toString(" · %", t.ui_EmbedBitmap)
+    }
+
     return result
 }
 

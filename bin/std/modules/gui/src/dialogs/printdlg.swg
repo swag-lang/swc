@@ -6,7 +6,7 @@ using Core, Pixel
 //
 // The image is borrowed for the duration of the modal call. `dpi` defines its physical
 // size at 100%. The caller supplies the proposed job and PDF file name in `name`.
-public func printImage(from: *Surface, image: Image, name: string, dpi = 96.0'f32)
+public func printImage(from: *Surface, image: Image, name: string, dpi = 96.0_f32)
 {
     var document: Print.Document
     document.kind     = .Image
@@ -42,7 +42,7 @@ public func printPdf(from: *Surface, fileName: string)
 //
 // `encoding` is the file's encoding. Output uses a fixed-pitch font, with `tabWidth` measured
 // in spaces and lines wrapped within the printable width.
-public func printText(from: *Surface, fileName: string, encoding: Text.Encoding = .Utf8, tabWidth = 4'u32)
+public func printText(from: *Surface, fileName: string, encoding: Text.Encoding = .Utf8, tabWidth = 4_u32)
 {
     let name = Path.fileName(fileName) orelse ""
     var document: Print.Document

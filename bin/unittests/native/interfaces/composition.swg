@@ -95,8 +95,10 @@ impl IValue for Tripler
     var items: [2] IValue = [cast(IValue, d), cast(IValue, t)]
 
     var sum = 0
-    for i in 2 do
+    for i in 2
+    {
         sum += items[i].getValue()
+    }
 
     Swag.require(sum == 25)
 }
@@ -110,8 +112,10 @@ impl IValue for Tripler
 
     var arr: [3] IValue = [cast(IValue, a), cast(IValue, b), cast(IValue, c)]
 
-    for i in 3 do
+    for i in 3
+    {
         arr[i].setValue(arr[i].getValue() * 10)
+    }
 
     Swag.require(a.count == 10)
     Swag.require(b.count == 20)
@@ -137,8 +141,10 @@ impl IValue for Tripler
 func sumValues(items: [*] IValue, count: u32)->s32
 {
     var total: s32 = 0
-    for i in count do
+    for i in count
+    {
         total += items[i].getValue()
+    }
     return total
 }
 

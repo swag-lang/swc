@@ -40,7 +40,10 @@ func catchContinuingHandler(holder: *CatchNarrowHolder)
 
 func catchKeepsEarlierProof(holder: *CatchNarrowHolder)
 {
-    if not holder.value do return
+    if not holder.value
+    {
+        return
+    }
 
     discard catch catchNarrowValue()
     {

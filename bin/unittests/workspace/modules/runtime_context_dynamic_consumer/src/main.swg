@@ -20,10 +20,13 @@ const ExportPrefix = "__swc_api_72756e74696d655f636f6e746578745f64796e616d69635f
         let arguments      = &Swag.processInfo().args
 
         var slots: [65] u32
-        var count = 0'u64
+        var count = 0_u64
         defer
         {
-            for i in count do discard Win32.TlsFree(slots[i])
+            for i in count
+            {
+                discard Win32.TlsFree(slots[i])
+            }
         }
 
         var expandedSlot = Win32.TLS_OUT_OF_INDEXES
@@ -64,8 +67,10 @@ func verifyDynamicallyLoadedRuntimeContext()
 {
     const Prefix = "--dynamic-runtime-library="
     var path = ""
-    for argument in Env.arguments() where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix do
+    for argument in Env.arguments() where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix
+    {
         path = argument[Prefix.count until argument.count]
+    }
 
     Swag.assert(path.count != 0)
     var library = expect NativeLibrary.load(path)
@@ -80,8 +85,10 @@ func verifyDynamicallyLoadedRuntimeContext()
     let catchesCoreFailure = cast(func()->bool, symbol)
     Swag.assert(catchesCoreFailure())
 
-    #static if #os == Swag.TargetOs.Windows do
+    #static if #os == Swag.TargetOs.Windows
+    {
         verifyExpandedContextSlot(&library)
+    }
 
     let countsSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_lifecycle_counts"))
     Swag.assert(countsSymbol != null)
@@ -91,14 +98,16 @@ func verifyDynamicallyLoadedRuntimeContext()
     var second = expect NativeLibrary.load(path)
     Swag.assert(lifecycleCounts() == 0x0000000100000001)
 
-    var dropCount = 0'u32
+    var dropCount = 0_u32
     let setDropCounterSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_set_drop_counter"))
     Swag.assert(setDropCounterSymbol != null)
     let setDropCounter = cast(func(*u32), setDropCounterSymbol)
     setDropCounter(&dropCount)
 
-    #static if #os == Swag.TargetOs.Linux do
-        var closedChildId = 0'u64
+    #static if #os == Swag.TargetOs.Linux
+    {
+        var closedChildId = 0_u64
+    }
     #static if #os == Swag.TargetOs.Linux
     {
         let closeChildSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_close_live_child"))
@@ -115,7 +124,7 @@ func verifyDynamicallyLoadedRuntimeContext()
         Swag.assert(createSymbol != null and releaseSymbol != null)
         let createBlock      = cast(func(*u64)->*Swag.Allocator, createSymbol)
         let releaseAllocator = cast(func(), releaseSymbol)
-        var address          = 0'u64
+        var address          = 0_u64
         let allocator        = createBlock(&address)
         Swag.assert(address != 0)
         let header = allocator.headerOf(address)
@@ -136,8 +145,10 @@ func verifyDynamicallyLoadedRuntimeContext()
         let childPath = Format.toString("/proc/%", closedChildId)
         var clock: Time.Stopwatch
         clock.start()
-        while Directory.exists(childPath.toString()) and clock.elapsedMilliseconds() < 5000 do
-            Threading.Thread.sleep(10'ms)
+        while Directory.exists(childPath.toString()) and clock.elapsedMilliseconds() < 5000
+        {
+            Threading.Thread.sleep(10_ms)
+        }
         Swag.assert(not Directory.exists(childPath.toString()))
     }
 
@@ -159,7 +170,10 @@ func verifyDynamicallyLoadedRuntimeContext()
 
 #test
 {
-    if Swag.jit() do return
+    if Swag.jit()
+    {
+        return
+    }
     verifyDynamicallyLoadedRuntimeContext()
 }
 
@@ -169,11 +183,16 @@ func verifyDynamicallyLoadedRuntimeContext()
     // with Core's shared reaper when it unloads.
     #test
     {
-        if not Swag.jit() do return
+        if not Swag.jit()
+        {
+            return
+        }
         const Prefix = "--dynamic-runtime-library="
         var path = ""
-        for argument in Env.arguments() where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix do
+        for argument in Env.arguments() where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix
+        {
             path = argument[Prefix.count until argument.count]
+        }
         Swag.require(path.count != 0)
 
         var library          = expect NativeLibrary.load(path)
@@ -189,8 +208,10 @@ func verifyDynamicallyLoadedRuntimeContext()
         let childPath = Format.toString("/proc/%", childId)
         var clock: Time.Stopwatch
         clock.start()
-        while Directory.exists(childPath.toString()) and clock.elapsedMilliseconds() < 5000 do
-            Threading.Thread.sleep(10'ms)
+        while Directory.exists(childPath.toString()) and clock.elapsedMilliseconds() < 5000
+        {
+            Threading.Thread.sleep(10_ms)
+        }
         Swag.require(not Directory.exists(childPath.toString()))
     }
 }

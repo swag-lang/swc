@@ -34,19 +34,23 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     var host: Testing.HeadlessHost
     host.setup(320, 180)
 
-    let child = Wnd.create'Wnd(&host.root)
+    let child = Wnd.create!{Wnd}(&host.root)
     host.root.hookOnEvent = func|count = &rootNotifications|(_, evt)
     {
-        if evt is NotifyEvent as notify where notify.kind == .LanguageChanged do
+        if evt is NotifyEvent as notify where notify.kind == .LanguageChanged
+        {
             count[] += 1
+        }
 
         return false
     }
 
     child.hookOnEvent = func|count = &childNotifications|(_, evt)
     {
-        if evt is NotifyEvent as notify where notify.kind == .LanguageChanged do
+        if evt is NotifyEvent as notify where notify.kind == .LanguageChanged
+        {
             count[] += 1
+        }
 
         return false
     }
@@ -99,7 +103,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 {
     var res: Resources.Bundle
     registerDefaultStrings(&res)
-    registerStrings'TestStrings(&g_TestStrings, "testtable")
+    registerStrings!{TestStrings}(&g_TestStrings, "testtable")
     res.addEmbedded("lang/fr/testtable.tweak", cast(const [..] u8, TestFrench))
 
     // Whatever this test asserts, the next test starts from the reference language.
@@ -134,7 +138,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     expect applyLanguage(&res, "fr")
     Swag.require(g_LateStrings.hello == "Hello")
 
-    registerStrings'LateStrings(&g_LateStrings, "latetable")
+    registerStrings!{LateStrings}(&g_LateStrings, "latetable")
     Swag.require(g_LateStrings.hello == "Bonjour")
 
     // And it follows every later switch like any other table.
@@ -198,17 +202,17 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 // Validation rejects an unknown key and a malformed line, with the faulty line number.
 #test
 {
-    expect validateStrings'TestStrings("hello Bonjour\n")
+    expect validateStrings!{TestStrings}("hello Bonjour\n")
 
     var errOutcome: Swag.Error
-    discard catch validateStrings'TestStrings("helo Bonjour\n") as errOutcome
+    discard catch validateStrings!{TestStrings}("helo Bonjour\n") as errOutcome
     let err = errOutcome.value()
     Swag.require(err != null)
     Swag.require(err is Core.Errors.SyntaxError)
     Swag.require(assume cast (const *Core.Errors.SyntaxError, err).line == 1)
 
     var err2Outcome: Swag.Error
-    discard catch validateStrings'TestStrings("hello ok\n1bad value\n") as err2Outcome
+    discard catch validateStrings!{TestStrings}("hello ok\n1bad value\n") as err2Outcome
     let err2 = err2Outcome.value()
     Swag.require(err2 != null)
     Swag.require(assume cast (const *Core.Errors.SyntaxError, err2).line == 2)

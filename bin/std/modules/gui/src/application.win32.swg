@@ -13,11 +13,11 @@ struct ApplicationNative
     {
         fileSmallIconsImage:     Image         // Strip of the 16-pixel shell icons fetched so far.
         fileSmallIconsImageList: ImageList     // Renderer upload of the small icon strip.
-        mapFileSmallIcons:       HashTable'(String, s32)     // Index of each small icon in the strip, by extension or name.
+        mapFileSmallIcons:       HashTable!{String, s32}     // Index of each small icon in the strip, by extension or name.
 
         fileBigIconsImage:     Image         // Strip of the 32-pixel shell icons fetched so far.
         fileBigIconsImageList: ImageList     // Renderer upload of the large icon strip.
-        mapFileBigIcons:       HashTable'(String, s32)     // Index of each large icon in the strip, by extension or name.
+        mapFileBigIcons:       HashTable!{String, s32}     // Index of each large icon in the strip, by extension or name.
 
         hotKeysDisabled: bool     // Whether registered system-wide shortcuts are withdrawn from the desktop.
     }
@@ -29,8 +29,11 @@ impl Application
 
     internal mtd releaseNativeFrameTimer()
     {
-        if .frameTimer do
+        if .frameTimer
+        {
             CloseHandle(.frameTimer)
+        }
+
         .frameTimer = null
     }
 
@@ -38,29 +41,42 @@ impl Application
     // the native wait directly; gestures, animations and timer deadlines keep their cadence.
     internal mtd nativeFrameWaitMicroseconds(elapsed: u64)->u64
     {
-        if .renderingSuspended do
+        if .renderingSuspended
+        {
             return elapsed < 16000 ? 16000 - elapsed : 0
-        if .frameTrace.busyLoop do
+        }
+
+        if .frameTrace.busyLoop
+        {
             return 0
+        }
 
         for surface in .surfaces where not surface.isHidden and not surface.isMinimized
         {
-            if surface.isDirty do
+            if surface.isDirty
+            {
                 return 0
+            }
         }
 
         let active = .mouseCaptureWnd or .animator.activeCount() != 0
-        let turnUs = active ? 1000'u64 : 16000'u64
-        if elapsed >= turnUs do
+        let turnUs = active ? 1000_u64 : 16000_u64
+        if elapsed >= turnUs
+        {
             return 0
+        }
+
         var waitUs = turnUs - elapsed
 
         for timer in .timers where not timer.isPendingRemoval
         {
             let periodUs  = timer.periodMilliseconds * 1000
             let elapsedUs = timer.stopwatch.isRunning() ? timer.stopwatch.elapsedMicroseconds() : 0
-            if elapsedUs >= periodUs do
+            if elapsedUs >= periodUs
+            {
                 return 0
+            }
+
             waitUs = Math.min(waitUs, periodUs - elapsedUs)
         }
 
@@ -71,8 +87,10 @@ impl Application
     internal mtd waitForNativeFrame(startedAt: u64)
     {
         let waitUs = .nativeFrameWaitMicroseconds(Time.monotonicMicroseconds() - startedAt)
-        if not waitUs do
+        if not waitUs
+        {
             return
+        }
 
         if not .frameTimerAttempted
         {
@@ -88,8 +106,10 @@ impl Application
                 var errorOutcome: Swag.Error
                 discard catch MsgWaitForMultipleObjectsEx(1, &.frameTimer, 16, QS_ALLINPUT, MWMO_INPUTAVAILABLE) as errorOutcome
                 let error = errorOutcome.value()
-                if error == null do
+                if error == null
+                {
                     return
+                }
             }
 
             .releaseNativeFrameTimer()
@@ -109,8 +129,10 @@ impl Application
 
         let wasReduced = .isReducedMotion()
         .systemReducedMotion = not animationsEnabled
-        if not wasReduced and .isReducedMotion() do
+        if not wasReduced and .isReducedMotion()
+        {
             .animator.finishDecorative()
+        }
     }
 
     // Reads the light or dark setting the user chose for applications, and follows it.
@@ -134,8 +156,11 @@ impl Application
         var value: DWORD = 1
         var size:  DWORD = #sizeof(DWORD)
         var kind:  DWORD
-        if RegQueryValueExW(key, valueName.buffer, null, &kind, cast(*BYTE, &value), &size) != ERROR_SUCCESS or kind != REG_DWORD do
+        if RegQueryValueExW(key, valueName.buffer, null, &kind, cast(*BYTE, &value), &size) != ERROR_SUCCESS or kind != REG_DWORD
+        {
             value = 1
+        }
+
         .setSystemPrefersLight(value != 0)
     }
 
@@ -170,12 +195,21 @@ impl Application
     private func hotKeyNativeId(modifiers: Input.KeyModifiers, key: Input.Key)->s32
     {
         var mod: u32
-        if modifiers & .Alt do
+        if modifiers & .Alt
+        {
             mod |= MOD_ALT
-        if modifiers & .Control do
+        }
+
+        if modifiers & .Control
+        {
             mod |= MOD_CONTROL
-        if modifiers & .Shift do
+        }
+
+        if modifiers & .Shift
+        {
             mod |= MOD_SHIFT
+        }
+
         let winKey = Input.Keyboard.keyToVirtualKey(key)
 
         var crc32: Hash.Crc32
@@ -194,19 +228,29 @@ impl Application
     // the flaky picture this avoids.
     internal func registerNativeHotKey(modifiers: Input.KeyModifiers, key: Input.Key) fail
     {
-        if Env.isSandboxed() do
+        if Env.isSandboxed()
+        {
             return
+        }
 
         let hotKeyId = hotKeyNativeId(modifiers, key)
         let winKey   = Input.Keyboard.keyToVirtualKey(key)
 
         var mod: u32
-        if modifiers & .Alt do
+        if modifiers & .Alt
+        {
             mod |= MOD_ALT
-        if modifiers & .Control do
+        }
+
+        if modifiers & .Control
+        {
             mod |= MOD_CONTROL
-        if modifiers & .Shift do
+        }
+
+        if modifiers & .Shift
+        {
             mod |= MOD_SHIFT
+        }
 
         catch UnregisterHotKey(null, hotKeyId)
         try RegisterHotKey(null, hotKeyId, mod, winKey)
@@ -215,24 +259,38 @@ impl Application
     // Symmetrical to [[Gui.Application.registerNativeHotKey]]: a sandboxed run holds no system hot key to release.
     internal func unregisterNativeHotKey(modifiers: Input.KeyModifiers, key: Input.Key)
     {
-        if Env.isSandboxed() do
+        if Env.isSandboxed()
+        {
             return
+        }
 
         catch UnregisterHotKey(null, hotKeyNativeId(modifiers, key))
     }
 
     internal mtd sendHotKey(msg: MSG)
     {
-        if .hotKeysDisabled do
+        if .hotKeysDisabled
+        {
             return
+        }
+
         using Input
         var modifiers: KeyModifiers
-        if msg.lParam & MOD_ALT do
+        if msg.lParam & MOD_ALT
+        {
             modifiers |= .Alt
-        if msg.lParam & MOD_CONTROL do
+        }
+
+        if msg.lParam & MOD_CONTROL
+        {
             modifiers |= .Control
-        if msg.lParam & MOD_SHIFT do
+        }
+
+        if msg.lParam & MOD_SHIFT
+        {
             modifiers |= .Shift
+        }
+
         let key = Keyboard.virtualKeyToKey(cast(VirtualKey, (msg.lParam >> 16)))
 
         .dispatchHotKey(modifiers, key)
@@ -240,8 +298,10 @@ impl Application
 
     internal mtd sendSystemEvents()
     {
-        if not .renderer.needsNativeWindow() do
+        if not .renderer.needsNativeWindow()
+        {
             return
+        }
 
         var msg: MSG
         while PeekMessageW(&msg, null, 0, 0, PM_REMOVE) != 0
@@ -262,15 +322,20 @@ impl Application
     {
         let pt   = POINT{cast(s32, x), cast(s32, y)}
         let hWnd = WindowFromPoint(pt)
-        if hWnd == null do
+        if hWnd == null
+        {
             return null
+        }
 
         for s in .surfaces
         {
             if s.native.hWnd == hWnd
             {
-                if not .modalSurfaces.isEmpty() and s != .modalSurfaces.back() do
+                if not .modalSurfaces.isEmpty() and s != .modalSurfaces.back()
+                {
                     return null
+                }
+
                 return s
             }
         }
@@ -307,26 +372,38 @@ impl Application
         catch { img = try Image.from(hIcon) } as errOutcome
         let err = errOutcome.value()
         defer catch DestroyIcon(hIcon)
-        if err != null do
+        if err != null
+        {
             return result
+        }
+
         img.resize(sizeIcon, sizeIcon)
 
         // Append to the image list
         var nimage = Image.create(sizeIcon * (index + 1), sizeIcon, .BGRA8)
-        if curImg.isValid() do
+        if curImg.isValid()
+        {
             nimage.mix(curImg, 0, 0)
+        }
+
         nimage.mix(img, sizeIcon * index, 0)
         let uploaded = .renderer.addImage(nimage)
-        if not uploaded.isValid() do
+        if not uploaded.isValid()
+        {
             return result
+        }
 
         curImgList.release(.renderer)
         curImg[] = #move nimage
         curImgList.set(uploaded, sizeIcon, sizeIcon)
-        if small do
+        if small
+        {
             .mapFileSmallIcons.add(name, index)
-        else do
+        }
+        else
+        {
             .mapFileBigIcons.add(name, index)
+        }
 
         return Icon.from(curImgList, index)
     }
@@ -339,14 +416,18 @@ impl Application
         if small
         {
             let here = .mapFileSmallIcons.tryFind(name)
-            if here do
+            if here
+            {
                 return Icon.from(&.fileSmallIconsImageList, here.value)
+            }
         }
         else
         {
             let here = .mapFileBigIcons.tryFind(name)
-            if here do
+            if here
+            {
                 return Icon.from(&.fileBigIconsImageList, here.value)
+            }
         }
 
         var sgi: SHSTOCKICONINFO
@@ -366,16 +447,21 @@ impl Application
         }
 
         catch SHGetStockIconInfo(whatWin, SHGSI_ICON | (small ? SHGSI_SMALLICON : SHGSI_LARGEICON), &sgi)
-        if not sgi.hIcon do
+        if not sgi.hIcon
+        {
             return {}
+        }
+
         return .addIconToImageList(name, sgi.hIcon, small)
     }
 
     internal mtd fileOrDirectoryIcon(name: string, isDirectory: bool, small = true)->Icon
     {
         var result: #returntype
-        if not name.count do
+        if not name.count
+        {
             return result
+        }
 
         var ext = Path.extension(name)
 
@@ -384,16 +470,16 @@ impl Application
         {
             ext = "c:"
         }
-        elif isDirectory
+        else if isDirectory
         {
             ext = "c:/temp"
         }
-        elif ext == ".exe" or ext == ".dll"
+        else if ext == ".exe" or ext == ".dll"
         {
             extractFromFile = true
             ext = name
         }
-        elif ext == null
+        else if ext == null
         {
             ext = ".txt"
         }
@@ -401,14 +487,18 @@ impl Application
         if small
         {
             let here = .mapFileSmallIcons.tryFind(ext)
-            if here do
+            if here
+            {
                 return Icon.from(&.fileSmallIconsImageList, here.value)
+            }
         }
         else
         {
             let here = .mapFileBigIcons.tryFind(ext)
-            if here do
+            if here
+            {
                 return Icon.from(&.fileBigIconsImageList, here.value)
+            }
         }
 
         var sfi: SHFILEINFOA
@@ -418,28 +508,40 @@ impl Application
             if not sfi.hIcon
             {
                 ext = Path.extension(name)
-                if ext == null do
+                if ext == null
+                {
                     ext = ".txt"
+                }
+
                 if small
                 {
                     let here = .mapFileSmallIcons.tryFind(ext)
-                    if here do
+                    if here
+                    {
                         return Icon.from(&.fileSmallIconsImageList, here.value)
+                    }
                 }
                 else
                 {
                     let here = .mapFileBigIcons.tryFind(ext)
-                    if here do
+                    if here
+                    {
                         return Icon.from(&.fileBigIconsImageList, here.value)
+                    }
                 }
             }
         }
 
         let safeExt = ext orelse ".txt"
-        if not sfi.hIcon do
+        if not sfi.hIcon
+        {
             discard SHGetFileInfoA(safeExt.buffer, isDirectory ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL, &sfi, #sizeof(SHFILEINFOA), SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_SMALLICON)
-        if not sfi.hIcon do
+        }
+
+        if not sfi.hIcon
+        {
             return result
+        }
 
         return .addIconToImageList(safeExt, sfi.hIcon, small)
     }

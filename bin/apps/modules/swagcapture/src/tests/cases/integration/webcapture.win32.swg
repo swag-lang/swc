@@ -21,8 +21,11 @@ impl WebCaptureOutputProbe
         let collect = func|probe = me, queue|(thread: const *Threading.Thread)
         {
             var signaled = false
-            defer if not signaled do
+            defer if not signaled
+            {
                 probe.ready.signal()
+            }
+
             catch
             {
                 var index: Win32.DWORD
@@ -33,8 +36,11 @@ impl WebCaptureOutputProbe
                 defer source.close()
                 probe.ready.signal()
                 signaled = true
-                while not thread.requestEnd.isRaised() do
+                while not thread.requestEnd.isRaised()
+                {
                     discard try source.pump(5)
+                }
+
                 discard try source.pump()
             }
             {
@@ -114,12 +120,21 @@ impl WebCaptureTone
 private func webCaptureQuality()->VideoQuality
 {
     let quality = Env.variable("SWAG_CAPTURE_WEB_QUALITY")
-    if quality == "balanced" do
+    if quality == "balanced"
+    {
         return .Balanced
-    if quality == "compact" do
+    }
+
+    if quality == "compact"
+    {
         return .Compact
-    if quality == "maximum" do
+    }
+
+    if quality == "maximum"
+    {
         return .Maximum
+    }
+
     return .Balanced
 }
 
@@ -183,15 +198,18 @@ private func webCaptureQuality()->VideoQuality
                     overlay.sendEvent(&pointer)
                     pointer.kind = .Released
                     overlay.sendEvent(&pointer)
-                    if not g_CaptureAnchored or g_CaptureWindow.nativeWindow != cast(u64, browser) do
+                    if not g_CaptureAnchored or g_CaptureWindow.nativeWindow != cast(u64, browser)
+                    {
                         Swag.require(g_CaptureAnchored and g_CaptureWindow.nativeWindow == cast(u64, browser),
                                      "selected area must be linked to the actual browser window")
+                    }
+
                     stage[] = 1
                     return
                 }
             }
         }
-        elif stage[] == 1
+        else if stage[] == 1
         {
             if g_Recorder
             {
@@ -205,7 +223,7 @@ private func webCaptureQuality()->VideoQuality
                 return
             }
         }
-        elif stage[] == 2 and g_Recorder
+        else if stage[] == 2 and g_Recorder
         {
             let recorder = unwrap g_Recorder
             if not stalled[] and recorder.elapsed() >= 2_000_000
@@ -222,9 +240,12 @@ private func webCaptureQuality()->VideoQuality
                 Swag.require(recorder.videoAudio and recorder.videoAudio.systemIsActive(),
                              "system loopback must be active, not replaced with silent packets")
                 let audio: *VideoRecordingAudio = recorder.videoAudio
-                if maxMissed >= 0 do
+                if maxMissed >= 0
+                {
                     Swag.require(recorder.video.missedFrameSlotCount() <= cast(u64, maxMissed),
                                  "recording exceeded the requested missed-frame budget")
+                }
+
                 scope
                 {
                     audio.encoderMutex.lock()
@@ -283,11 +304,16 @@ private func webCaptureQuality()->VideoQuality
     {
         expect reader.decodeFrameInto(&picture, index)
         let hash = Hash.hashBytes32(picture.pixels.toSlice())
-        if index and hash != previous do
+        if index and hash != previous
+        {
             changes += 1
+        }
+
         previous = hash
-        if index == 0 or index + 1 == reader.frameCount() do
+        if index == 0 or index + 1 == reader.frameCount()
+        {
             expect picture.save(Path.combine(evidence, Format.toString("frame-%.png", index).toString()))
+        }
     }
 
     Swag.require(changes > reader.frameCount() / 2, "browser video must move throughout the recording")
@@ -312,7 +338,7 @@ private func webCaptureQuality()->VideoQuality
     var loopback: WebCaptureOutputProbe
     expect loopback.start(&queue)
     defer loopback.close()
-    var pcm:   Array's16
+    var pcm:   Array!{s16}
     var block: CaptureBlock
     var baseline, quietWindow: WebCaptureTone
     let quietStart = Time.monotonicMicroseconds()
@@ -330,14 +356,19 @@ private func webCaptureQuality()->VideoQuality
             if quietWindow.frames >= 4_800
             {
                 baseline = quietWindow
-                if baseline.rms() * Math.sqrt(baseline.toneFraction()) >= 300 do
+                if baseline.rms() * Math.sqrt(baseline.toneFraction()) >= 300
+                {
                     lastLoudAt = lastPacketAt
+                }
+
                 quietWindow = WebCaptureTone{}
             }
         }
 
-        if Time.monotonicMicroseconds() - lastPacketAt > 250_000 do
+        if Time.monotonicMicroseconds() - lastPacketAt > 250_000
+        {
             baseline = WebCaptureTone{}
+        }
     }
 
     let baselineToneRms = baseline.rms() * Math.sqrt(baseline.toneFraction())
@@ -363,8 +394,11 @@ private func webCaptureQuality()->VideoQuality
         Swag.require(journey.watch.elapsedMilliseconds() < 38_000, "web playback timed out")
         Swag.require(timeline.isPlaying(), "editor playback stopped before completing the clip")
         expect loopback.check()
-        while queue.pop(&pcm, &block) do
+        while queue.pop(&pcm, &block)
+        {
             replayTone.add(pcm.toSlice(), 2, 48_000, block.startSample)
+        }
+
         maxAudioFrame = Math.max(maxAudioFrame, voice.playbackSampleFrame())
         maxPicture    = Math.max(maxPicture, opened.playhead)
         wrapped       = opened.playhead < previousPicture and
@@ -454,11 +488,17 @@ private func webCaptureQuality()->VideoQuality
     {
         Swag.require(journey.watch.elapsedMilliseconds() < cast(u64, durationSeconds + 25) * 1_000,
                      "full-screen recording timed out")
-        if not g_Recorder do
+        if not g_Recorder
+        {
             return
+        }
+
         let recorder = unwrap g_Recorder
-        if stage[] == 1 and recorder.video.sourceFailureCount() >= 3 do
+        if stage[] == 1 and recorder.video.sourceFailureCount() >= 3
+        {
             Swag.require(false, "native desktop capture is unavailable; check desktop access")
+        }
+
         if stage[] == 0
         {
             Swag.require(recorder.state == .Preparing and recorder.target.window == 0)
@@ -466,7 +506,7 @@ private func webCaptureQuality()->VideoQuality
             let hudSurface = unwrap hud.surface
             var affinity: Win32.DWORD
             Swag.require(GetWindowDisplayAffinity(hudSurface.win32Handle(), &affinity) and
-                         affinity == 0x11'u32,
+                         affinity == 0x11_u32,
                          "the recording controls must be excluded from desktop capture")
             if desktop
             {
@@ -488,18 +528,24 @@ private func webCaptureQuality()->VideoQuality
             stage[] = 1
             hud.recordButton!.sigPressed.call(hud.recordButton)
         }
-        elif stage[] == 1 and recorder.elapsed() >= cast(u64, durationSeconds) * 1_000_000
+        else if stage[] == 1 and recorder.elapsed() >= cast(u64, durationSeconds) * 1_000_000
         {
             Swag.require(recorder.edges.isEmpty(), "the screen selection frame must be gone before encoding")
             recorder.videoProducer.close()
             Swag.require(recorder.video.sourceFailureCount() == 0 and
                          recorder.video.source.accelerated != null)
-            if Env.variable("SWAG_CAPTURE_WEB_MOTION_STRESS") == "true" do
+            if Env.variable("SWAG_CAPTURE_WEB_MOTION_STRESS") == "true"
+            {
                 Swag.require(recorder.video.freshFrames * 4 >= recorder.video.frameCount() * 3,
                              "full-screen recording lost too many moving desktop frames")
-            if maxMissed >= 0 do
+            }
+
+            if maxMissed >= 0
+            {
                 Swag.require(recorder.video.missedFrameSlotCount() <= cast(u64, maxMissed),
                              "full-screen recording exceeded the missed-frame budget")
+            }
+
             stage[] = 2
             let hud = unwrap recorder.hud
             hud.stopButton.sigPressed.call(hud.stopButton)
@@ -507,10 +553,15 @@ private func webCaptureQuality()->VideoQuality
     }
 
     journey.surface.hide()
-    if desktop do
+    if desktop
+    {
         main.sendCommandEvent(ActionCapture.RecordScreen)
-    else do
+    }
+    else
+    {
         main.recordVideoScreen(.Monitor, monitorIndex)
+    }
+
     app.runFrame()
     app.sigFrame.clear()
     Swag.require(stage == 2 and g_Recorder == null)
@@ -536,7 +587,9 @@ private func webCaptureQuality()->VideoQuality
     Swag.require(Hash.hashBytes32(image.pixels.toSlice()) != firstHash,
                  "the full-screen recording must preserve moving pixels")
     expect image.save(Path.combine(evidence, "fullscreen-last.png"))
-    if durationSeconds <= 10 do
+    if durationSeconds <= 10
+    {
         discard expect File.writeAllBytes(Path.combine(evidence, "fullscreen.mp4"),
                                           (expect File.readAllBytes(media)).toSlice())
+    }
 }

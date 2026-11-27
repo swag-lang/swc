@@ -40,50 +40,50 @@ alias LocalStrict = s32
 
 #test
 {
-    func retS32()->s32 { return 123456's32 }
+    func retS32()->s32 { return 123456_s32 }
     const V = #run retS32()
     #assert(#typeof(V) == s32)
-    #assert(V == 123456's32)
+    #assert(V == 123456_s32)
 }
 
 #test
 {
-    func retS64()->s64 { return 5000000000's64 }
+    func retS64()->s64 { return 5000000000_s64 }
     const V = #run retS64()
     #assert(#typeof(V) == s64)
-    #assert(V == 5000000000's64)
+    #assert(V == 5000000000_s64)
 }
 
 #test
 {
-    func retU32()->u32 { return 123456'u32 }
+    func retU32()->u32 { return 123456_u32 }
     const V = #run retU32()
     #assert(#typeof(V) == u32)
-    #assert(V == 123456'u32)
+    #assert(V == 123456_u32)
 }
 
 #test
 {
-    func retU64()->u64 { return 5000000000'u64 }
+    func retU64()->u64 { return 5000000000_u64 }
     const V = #run retU64()
     #assert(#typeof(V) == u64)
-    #assert(V == 5000000000'u64)
+    #assert(V == 5000000000_u64)
 }
 
 #test
 {
-    func retF32()->f32 { return 1.25'f32 }
+    func retF32()->f32 { return 1.25_f32 }
     const V = #run retF32()
     #assert(#typeof(V) == f32)
-    #assert(V == 1.25'f32)
+    #assert(V == 1.25_f32)
 }
 
 #test
 {
-    func retF64()->f64 { return 1.5'f64 }
+    func retF64()->f64 { return 1.5_f64 }
     const V = #run retF64()
     #assert(#typeof(V) == f64)
-    #assert(V == 1.5'f64)
+    #assert(V == 1.5_f64)
 }
 
 #test
@@ -104,34 +104,34 @@ alias LocalStrict = s32
 
 #test
 {
-    func retS8()->s8 { return 12's8 }
+    func retS8()->s8 { return 12_s8 }
     const V = #run retS8()
     #assert(#typeof(V) == s8)
-    #assert(V == 12's8)
+    #assert(V == 12_s8)
 }
 
 #test
 {
-    func retS16()->s16 { return 1234's16 }
+    func retS16()->s16 { return 1234_s16 }
     const V = #run retS16()
     #assert(#typeof(V) == s16)
-    #assert(V == 1234's16)
+    #assert(V == 1234_s16)
 }
 
 #test
 {
-    func retU8()->u8 { return 12'u8 }
+    func retU8()->u8 { return 12_u8 }
     const V = #run retU8()
     #assert(#typeof(V) == u8)
-    #assert(V == 12'u8)
+    #assert(V == 12_u8)
 }
 
 #test
 {
-    func retU16()->u16 { return 1234'u16 }
+    func retU16()->u16 { return 1234_u16 }
     const V = #run retU16()
     #assert(#typeof(V) == u16)
-    #assert(V == 1234'u16)
+    #assert(V == 1234_u16)
 }
 
 #test
@@ -154,7 +154,7 @@ struct LocalStruct
     func retEnum()->LocalEnum { return LocalEnum.A }
     const V = #run retEnum()
     #assert(#typeof(V) == LocalEnum)
-    #assert(cast(u16, V) == 513'u16)
+    #assert(cast(u16, V) == 513_u16)
 }
 
 #test
@@ -194,28 +194,28 @@ struct BigCopy
     func makeBigCopy()->BigCopy
     {
         return {
-            a0: 0x0102_0304_0506_0708'u64,
-            a1: 0x1112_1314_1516_1718'u64,
-            a2: 0x2122_2324_2526_2728'u64,
-            a3: 0x3132_3334_3536_3738'u64,
-            a4: 0x4142_4344_4546_4748'u64,
-            a5: 0x5152_5354_5556_5758'u64,
-            a6: 0x6162_6364_6566_6768'u64,
-            a7: 0x7172_7374_7576_7778'u64,
-            a8: 0x8182_8384_8586_8788'u64
+            a0: 0x0102_0304_0506_0708_u64,
+            a1: 0x1112_1314_1516_1718_u64,
+            a2: 0x2122_2324_2526_2728_u64,
+            a3: 0x3132_3334_3536_3738_u64,
+            a4: 0x4142_4344_4546_4748_u64,
+            a5: 0x5152_5354_5556_5758_u64,
+            a6: 0x6162_6364_6566_6768_u64,
+            a7: 0x7172_7374_7576_7778_u64,
+            a8: 0x8182_8384_8586_8788_u64
             }
     }
 
     const V = #run makeBigCopy()
-    #assert(V.a0 == 0x0102_0304_0506_0708'u64)
-    #assert(V.a1 == 0x1112_1314_1516_1718'u64)
-    #assert(V.a2 == 0x2122_2324_2526_2728'u64)
-    #assert(V.a3 == 0x3132_3334_3536_3738'u64)
-    #assert(V.a4 == 0x4142_4344_4546_4748'u64)
-    #assert(V.a5 == 0x5152_5354_5556_5758'u64)
-    #assert(V.a6 == 0x6162_6364_6566_6768'u64)
-    #assert(V.a7 == 0x7172_7374_7576_7778'u64)
-    #assert(V.a8 == 0x8182_8384_8586_8788'u64)
+    #assert(V.a0 == 0x0102_0304_0506_0708_u64)
+    #assert(V.a1 == 0x1112_1314_1516_1718_u64)
+    #assert(V.a2 == 0x2122_2324_2526_2728_u64)
+    #assert(V.a3 == 0x3132_3334_3536_3738_u64)
+    #assert(V.a4 == 0x4142_4344_4546_4748_u64)
+    #assert(V.a5 == 0x5152_5354_5556_5758_u64)
+    #assert(V.a6 == 0x6162_6364_6566_6768_u64)
+    #assert(V.a7 == 0x7172_7374_7576_7778_u64)
+    #assert(V.a8 == 0x8182_8384_8586_8788_u64)
 }
 
 #[Swag.Optimize(true)]
@@ -224,28 +224,28 @@ struct BigCopy
     func makeBigCopy()->BigCopy
     {
         return {
-            a0: 0x0102_0304_0506_0708'u64,
-            a1: 0x1112_1314_1516_1718'u64,
-            a2: 0x2122_2324_2526_2728'u64,
-            a3: 0x3132_3334_3536_3738'u64,
-            a4: 0x4142_4344_4546_4748'u64,
-            a5: 0x5152_5354_5556_5758'u64,
-            a6: 0x6162_6364_6566_6768'u64,
-            a7: 0x7172_7374_7576_7778'u64,
-            a8: 0x8182_8384_8586_8788'u64
+            a0: 0x0102_0304_0506_0708_u64,
+            a1: 0x1112_1314_1516_1718_u64,
+            a2: 0x2122_2324_2526_2728_u64,
+            a3: 0x3132_3334_3536_3738_u64,
+            a4: 0x4142_4344_4546_4748_u64,
+            a5: 0x5152_5354_5556_5758_u64,
+            a6: 0x6162_6364_6566_6768_u64,
+            a7: 0x7172_7374_7576_7778_u64,
+            a8: 0x8182_8384_8586_8788_u64
             }
     }
 
     const V = #run makeBigCopy()
-    #assert(V.a0 == 0x0102_0304_0506_0708'u64)
-    #assert(V.a1 == 0x1112_1314_1516_1718'u64)
-    #assert(V.a2 == 0x2122_2324_2526_2728'u64)
-    #assert(V.a3 == 0x3132_3334_3536_3738'u64)
-    #assert(V.a4 == 0x4142_4344_4546_4748'u64)
-    #assert(V.a5 == 0x5152_5354_5556_5758'u64)
-    #assert(V.a6 == 0x6162_6364_6566_6768'u64)
-    #assert(V.a7 == 0x7172_7374_7576_7778'u64)
-    #assert(V.a8 == 0x8182_8384_8586_8788'u64)
+    #assert(V.a0 == 0x0102_0304_0506_0708_u64)
+    #assert(V.a1 == 0x1112_1314_1516_1718_u64)
+    #assert(V.a2 == 0x2122_2324_2526_2728_u64)
+    #assert(V.a3 == 0x3132_3334_3536_3738_u64)
+    #assert(V.a4 == 0x4142_4344_4546_4748_u64)
+    #assert(V.a5 == 0x5152_5354_5556_5758_u64)
+    #assert(V.a6 == 0x6162_6364_6566_6768_u64)
+    #assert(V.a7 == 0x7172_7374_7576_7778_u64)
+    #assert(V.a8 == 0x8182_8384_8586_8788_u64)
 }
 
 #test
@@ -289,12 +289,12 @@ struct BigCopy
 {
     func localConstFold()->u64
     {
-        let a: u64 = 40'u64
-        let b: u64 = 2'u64
+        let a: u64 = 40_u64
+        let b: u64 = 2_u64
         return a + b
     }
 
     const V = #run localConstFold()
     #assert(#typeof(V) == u64)
-    #assert(V == 42'u64)
+    #assert(V == 42_u64)
 }

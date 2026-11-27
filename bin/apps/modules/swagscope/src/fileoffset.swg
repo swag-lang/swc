@@ -5,41 +5,55 @@ using Core
 // Returns the value of the hexadecimal digit `value`, or 16 when `value` is not one.
 func hexDigitValue(value: u8)->u8
 {
-    if value >= '0'u8 and value <= '9'u8 do
-        return value - '0'u8
-    if value >= 'a'u8 and value <= 'f'u8 do
-        return value - 'a'u8 + 10
-    if value >= 'A'u8 and value <= 'F'u8 do
-        return value - 'A'u8 + 10
+    if value >= '0'_u8 and value <= '9'_u8
+    {
+        return value - '0'_u8
+    }
+
+    if value >= 'a'_u8 and value <= 'f'_u8
+    {
+        return value - 'a'_u8 + 10
+    }
+
+    if value >= 'A'_u8 and value <= 'F'_u8
+    {
+        return value - 'A'_u8 + 10
+    }
+
     return 16
 }
 
 private struct FileOffsetParser
 {
-    source:       string
-    index:        u64
-    current:      u64
-    fileSize:     u64
-    baseAddress:  u64
-    bookmark:     u64
+    source:            string
+    index:             u64
+    current:           u64
+    fileSize:          u64
+    baseAddress:       u64
+    bookmark:          u64
     hasAddressContext: bool
-    usedBase:     bool
-    valid:        bool = true
+    usedBase:          bool
+    valid:             bool = true
 }
 
 private impl FileOffsetParser
 {
     mtd skipSpace()
     {
-        while .index < .source.count and (.source[.index] == ' 'u8 or .source[.index] == '\t'u8) do
+        while .index < .source.count and (.source[.index] == ' '_u8 or .source[.index] == '\t'_u8)
+        {
             .index += 1
+        }
     }
 
     mtd accept(value: u8)->bool
     {
         .skipSpace()
-        if .index >= .source.count or .source[.index] != value do
+        if .index >= .source.count or .source[.index] != value
+        {
             return false
+        }
+
         .index += 1
         return true
     }
@@ -52,19 +66,22 @@ private impl FileOffsetParser
         while .valid
         {
             .skipSpace()
-            if .index >= .source.count or (.source[.index] != '+'u8 and .source[.index] != '-'u8) do
+            if .index >= .source.count or (.source[.index] != '+'_u8 and .source[.index] != '-'_u8)
+            {
                 break
+            }
 
             let operation = .source[.index]
             .index += 1
             let right = .parseProduct()
-            if operation == '+'u8
+            if operation == '+'_u8
             {
                 if value > Swag.U64.Max - right
                 {
                     .valid = false
                     return 0
                 }
+
                 value += right
             }
             else
@@ -82,19 +99,22 @@ private impl FileOffsetParser
         while .valid
         {
             .skipSpace()
-            if .index >= .source.count or (.source[.index] != '*'u8 and .source[.index] != '/'u8) do
+            if .index >= .source.count or (.source[.index] != '*'_u8 and .source[.index] != '/'_u8)
+            {
                 break
+            }
 
             let operation = .source[.index]
             .index += 1
             let right = .parseUnary()
-            if operation == '/'u8
+            if operation == '/'_u8
             {
                 if not right
                 {
                     .valid = false
                     return 0
                 }
+
                 value /= right
             }
             else
@@ -104,6 +124,7 @@ private impl FileOffsetParser
                     .valid = false
                     return 0
                 }
+
                 value *= right
             }
         }
@@ -114,9 +135,12 @@ private impl FileOffsetParser
     mtd parseUnary()->u64
     {
         .skipSpace()
-        if .accept('+'u8) do
+        if .accept('+'_u8)
+        {
             return .parseUnary()
-        if .accept('-'u8)
+        }
+
+        if .accept('-'_u8)
         {
             .valid = false
             return 0
@@ -134,16 +158,23 @@ private impl FileOffsetParser
             return 0
         }
 
-        if .accept('('u8)
+        if .accept('('_u8)
         {
             let value = .parseExpression()
-            if not .accept(')'u8) do .valid = false
+            if not .accept(')'_u8)
+            {
+                .valid = false
+            }
+
             return value
         }
 
         let first = .source[.index]
-        if (first >= 'A'u8 and first <= 'Z'u8) or (first >= 'a'u8 and first <= 'z'u8)
-            do return .parseName()
+        if (first >= 'A'_u8 and first <= 'Z'_u8) or (first >= 'a'_u8 and first <= 'z'_u8)
+        {
+            return .parseName()
+        }
+
         return .parseNumber()
     }
 
@@ -153,14 +184,23 @@ private impl FileOffsetParser
         while .index < .source.count
         {
             let value = .source[.index]
-            if not ((value >= 'A'u8 and value <= 'Z'u8) or (value >= 'a'u8 and value <= 'z'u8) or (value >= '0'u8 and value <= '9'u8) or value == '_'u8) do
+            if not ((value >= 'A'_u8 and value <= 'Z'_u8) or
+                    (value >= 'a'_u8 and value <= 'z'_u8) or
+                    (value >= '0'_u8 and value <= '9'_u8) or
+                    value == '_'_u8)
+            {
                 break
+            }
+
             .index += 1
         }
 
         let name = cast(string, .source[start until .index])
-        if Utf8.compare(name, "caret", .Latin1NoCase) == 0 do
+        if Utf8.compare(name, "caret", .Latin1NoCase) == 0
+        {
             return .current
+        }
+
         if Utf8.compare(name, "filesize", .Latin1NoCase) == 0
         {
             if not .fileSize
@@ -168,8 +208,10 @@ private impl FileOffsetParser
                 .valid = false
                 return 0
             }
+
             return .fileSize - 1
         }
+
         if Utf8.compare(name, "bookmark", .Latin1NoCase) == 0
         {
             if not .hasAddressContext or .bookmark == Swag.U64.Max
@@ -177,8 +219,10 @@ private impl FileOffsetParser
                 .valid = false
                 return 0
             }
+
             return .bookmark
         }
+
         if Utf8.compare(name, "base", .Latin1NoCase) == 0
         {
             if not .hasAddressContext
@@ -186,13 +230,17 @@ private impl FileOffsetParser
                 .valid = false
                 return 0
             }
+
             .usedBase = true
             return .baseAddress
         }
-        if Utf8.compare(name, "align", .Latin1NoCase) == 0
-            do return .parseAlignment()
 
-        var number = 0'u64
+        if Utf8.compare(name, "align", .Latin1NoCase) == 0
+        {
+            return .parseAlignment()
+        }
+
+        var number = 0_u64
         if name.count
         {
             for digitIndex in name.count
@@ -203,8 +251,10 @@ private impl FileOffsetParser
                     .valid = false
                     return 0
                 }
+
                 number = number * 16 + digit
             }
+
             return number
         }
 
@@ -214,64 +264,80 @@ private impl FileOffsetParser
 
     mtd parseAlignment()->u64
     {
-        if not .accept('('u8)
+        if not .accept('('_u8)
         {
             .valid = false
             return 0
         }
 
         let value = .parseExpression()
-        if not .accept(','u8)
+        if not .accept(','_u8)
         {
             .valid = false
             return 0
         }
 
         let boundary = .parseExpression()
-        if not .accept(')'u8) or not boundary
+        if not .accept(')'_u8) or not boundary
         {
             .valid = false
             return 0
         }
 
         let remainder = value % boundary
-        if not remainder do
+        if not remainder
+        {
             return value
+        }
+
         let adjustment = boundary - remainder
         if value > Swag.U64.Max - adjustment
         {
             .valid = false
             return 0
         }
+
         return value + adjustment
     }
 
     mtd parseNumber()->u64
     {
-        var radix = 16'u64
-        if not (.index + 1 < .source.count and .source[.index] == '0'u8 and (.source[.index + 1] == 'x'u8 or .source[.index + 1] == 'X'u8 or .source[.index + 1] == 'd'u8 or .source[.index + 1] == 'D'u8))
+        var radix = 16_u64
+        if not (.index + 1 < .source.count and
+                .source[.index] == '0'_u8 and
+                (.source[.index + 1] == 'x'_u8 or .source[.index + 1] == 'X'_u8 or .source[.index + 1] == 'd'_u8 or .source[.index + 1] == 'D'_u8))
         {
             var preview = .index
-            while preview < .source.count and ((.source[preview] >= '0'u8 and .source[preview] <= '9'u8) or .source[preview] == '_'u8 or .source[preview] == ' 'u8 or .source[preview] == '\t'u8) do
+            while preview < .source.count and
+                  ((.source[preview] >= '0'_u8 and .source[preview] <= '9'_u8) or
+                   .source[preview] == '_'_u8 or
+                   .source[preview] == ' '_u8 or
+                   .source[preview] == '\t'_u8)
+            {
                 preview += 1
-            if preview < .source.count and .source[preview] == '%'u8 do
+            }
+
+            if preview < .source.count and .source[preview] == '%'_u8
+            {
                 radix = 10
+            }
         }
-        if .index + 1 < .source.count and .source[.index] == '0'u8
+
+        if .index + 1 < .source.count and .source[.index] == '0'_u8
         {
             let prefix = .source[.index + 1]
-            if prefix == 'x'u8 or prefix == 'X'u8
+            if prefix == 'x'_u8 or prefix == 'X'_u8
             {
                 .index += 2
             }
-            elif prefix == 'd'u8 or prefix == 'D'u8
+            else if prefix == 'd'_u8 or prefix == 'D'_u8
             {
-                radix = 10
+                radix  = 10
                 .index += 2
             }
         }
 
-        var value: u64
+        var value:  u64
         var digits: u64
         while .index < .source.count
         {
@@ -283,14 +349,15 @@ private impl FileOffsetParser
                     .valid = false
                     return 0
                 }
-                value *= radix
-                value += digit
+
+                value  *= radix
+                value  += digit
                 digits += 1
                 .index += 1
                 continue
             }
 
-            if .source[.index] == '_'u8
+            if .source[.index] == '_'_u8
             {
                 .index += 1
                 continue
@@ -298,7 +365,7 @@ private impl FileOffsetParser
 
             // Space groups remain valid in a hexadecimal literal (`00 1F`), but do not absorb
             // a later expression term (`caret + 10`).
-            if radix == 16 and (.source[.index] == ' 'u8 or .source[.index] == '\t'u8)
+            if radix == 16 and (.source[.index] == ' '_u8 or .source[.index] == '\t'_u8)
             {
                 let beforeSpace = .index
                 .skipSpace()
@@ -306,10 +373,24 @@ private impl FileOffsetParser
                 {
                     continue
                 }
-                if .index == .source.count or (.source[.index] != '+'u8 and .source[.index] != '-'u8 and .source[.index] != '*'u8 and .source[.index] != '/'u8 and .source[.index] != ')'u8 and .source[.index] != ','u8) do
+
+                if .index == .source.count or
+                   (.source[.index] != '+'_u8 and
+                    .source[.index] != '-'_u8 and
+                    .source[.index] != '*'_u8 and
+                    .source[.index] != '/'_u8 and
+                    .source[.index] != ')'_u8 and
+                    .source[.index] != ','_u8)
+                {
                     .valid = false
-                if .index == beforeSpace do .index += 1
+                }
+
+                if .index == beforeSpace
+                {
+                    .index += 1
+                }
             }
+
             break
         }
 
@@ -320,13 +401,14 @@ private impl FileOffsetParser
         }
 
         .skipSpace()
-        if .accept('%'u8)
+        if .accept('%'_u8)
         {
             if value > 100 or not .fileSize
             {
                 .valid = false
                 return 0
             }
+
             let last = .fileSize - 1
             return last / 100 * value + last % 100 * value / 100
         }
@@ -345,39 +427,50 @@ private impl FileOffsetParser
 func parseFileOffset(text: string, current, fileSize: u64, baseAddress: u64 = 0, bookmark: u64 = Swag.U64.Max, hasAddressContext: bool = false)->u64
 {
     let trimmed = Latin1.trim(text)
-    if not trimmed.count or not fileSize do
+    if not trimmed.count or not fileSize
+    {
         return Swag.U64.Max
+    }
 
     var parser = FileOffsetParser{source: cast(string, trimmed), current: current, fileSize: fileSize, baseAddress: baseAddress, bookmark: bookmark, hasAddressContext: hasAddressContext}
     var relative: s32
     parser.skipSpace()
-    if parser.index < parser.source.count and (parser.source[parser.index] == '+'u8 or parser.source[parser.index] == '-'u8)
+    if parser.index < parser.source.count and (parser.source[parser.index] == '+'_u8 or parser.source[parser.index] == '-'_u8)
     {
-        relative = parser.source[parser.index] == '+'u8 ? 1 : -1
+        relative     = parser.source[parser.index] == '+'_u8 ? 1 : -1
         parser.index += 1
     }
 
     var value = parser.parseExpression()
     parser.skipSpace()
-    if not parser.valid or parser.index != parser.source.count do
+    if not parser.valid or parser.index != parser.source.count
+    {
         return Swag.U64.Max
+    }
 
     if relative > 0
     {
-        if current > Swag.U64.Max - value do
+        if current > Swag.U64.Max - value
+        {
             return Swag.U64.Max
+        }
+
         value += current
     }
-    elif relative < 0
+    else if relative < 0
     {
         value = value >= current ? 0 : current - value
     }
 
     if parser.usedBase
     {
-        if value < baseAddress do
+        if value < baseAddress
+        {
             return Swag.U64.Max
+        }
+
         value -= baseAddress
     }
+
     return Math.min(value, fileSize - 1)
 }

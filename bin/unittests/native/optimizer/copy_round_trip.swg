@@ -24,7 +24,7 @@ func div32(a: u32)->u32 => a / 10
 
 #test
 {
-    let values = [0'u64, 1, 2, 3, 7, 9, 10, 11, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 3, 7, 9, 10, 11, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for value in values
     {
         Swag.require(div3(value) == dynamicDiv(value, 3))

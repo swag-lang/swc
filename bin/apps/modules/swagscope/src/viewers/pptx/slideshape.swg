@@ -43,7 +43,7 @@ private func emuValue(token: const *Package.Token, name: string)->f32
     let value = catch StrConv.toS64(token.attribute(name) orelse "") orelse 0
 
     // Keep hostile coordinates from creating enormous layout or paint regions.
-    return cast(f32, Math.clamp(value, -100_000_000's64, 100_000_000's64)) / 9525
+    return cast(f32, Math.clamp(value, -100_000_000_s64, 100_000_000_s64)) / 9525
 }
 
 impl SlideShape
@@ -63,28 +63,34 @@ impl SlideShape
         {
             if token.kind == .Start
             {
-                if token.isElement("pic") do
+                if token.isElement("pic")
+                {
                     result.picture = true
-                if token.isElement("cxnSp") do
+                }
+
+                if token.isElement("cxnSp")
+                {
                     result.connector = true
+                }
+
                 if token.isElement("ph")
                 {
                     result.placeholder      = true
                     result.placeholderKind  = token.attribute("type") orelse "obj"
                     result.placeholderIndex = catch StrConv.toU32(token.attribute("idx") orelse "0") orelse 0
                 }
-                elif token.isElement("cNvPr")
+                else if token.isElement("cNvPr")
                 {
                     result.hidden = token.attribute("hidden") == "1" or token.attribute("hidden") == "true"
                 }
-                elif token.isElement("spPr")
+                else if token.isElement("spPr")
                 {
                     inProperties = not token.empty
                 }
-                elif token.isElement("xfrm")
+                else if token.isElement("xfrm")
                 {
                     inTransform = not token.empty
-                    let rotation = token.attribute("rot") orelse "0"
+                    let rotation      = token.attribute("rot") orelse "0"
                     let rotationUnits = catch StrConv.toS64(rotation) orelse Swag.S64.Max
                     if rotationUnits < -21_600_000 or rotationUnits > 21_600_000
                     {
@@ -94,26 +100,27 @@ impl SlideShape
                     {
                         result.rotation = cast(f32, rotationUnits) / 60_000
                     }
+
                     result.flipHorizontal = token.attribute("flipH") == "1" or token.attribute("flipH") == "true"
                     result.flipVertical   = token.attribute("flipV") == "1" or token.attribute("flipV") == "true"
                 }
-                elif inTransform and token.isElement("off")
+                else if inTransform and token.isElement("off")
                 {
                     result.bounds.x  = emuValue(&token, "x")
                     result.bounds.y  = emuValue(&token, "y")
                     result.hasOffset = true
                 }
-                elif inTransform and token.isElement("ext")
+                else if inTransform and token.isElement("ext")
                 {
                     result.bounds.width  = emuValue(&token, "cx")
                     result.bounds.height = emuValue(&token, "cy")
                     result.hasExtent     = result.bounds.width > 0 and result.bounds.height > 0
                 }
-                elif token.isElement("txBody")
+                else if token.isElement("txBody")
                 {
                     inText = not token.empty
                 }
-                elif inText and token.isElement("bodyPr")
+                else if inText and token.isElement("bodyPr")
                 {
                     result.bodyProperties = token.attribute("anchor") != null
                     result.centered       = token.attribute("anchor") == "ctr"
@@ -141,38 +148,45 @@ impl SlideShape
                         result.insetMask |= 8
                     }
                 }
-                elif inText and token.isElement("defRPr") and not result.fontSize
+                else if inText and token.isElement("defRPr") and not result.fontSize
                 {
                     result.fontSize = catch StrConv.toU32(token.attribute("sz") orelse "") orelse 0
                 }
-                elif inProperties and token.isElement("prstGeom")
+                else if inProperties and token.isElement("prstGeom")
                 {
                     let kind = token.attribute("prst") orelse "rect"
-                    result.round = kind == "roundRect"
-                    result.ellipse = kind == "ellipse"
+                    result.round         = kind == "roundRect"
+                    result.ellipse       = kind == "ellipse"
                     result.connectorLine = result.connector and kind == "line"
-                    if kind != "rect" and kind != "roundRect" and kind != "ellipse" and not result.connectorLine do
+                    if kind != "rect" and
+                       kind != "roundRect" and
+                       kind != "ellipse" and
+                       not result.connectorLine
+                    {
                         result.unsupported = true
+                    }
                 }
-                elif inProperties and token.isElement("custGeom")
+                else if inProperties and token.isElement("custGeom")
                 {
                     result.unsupported = true
                 }
-                elif inProperties and token.isElement("ln")
+                else if inProperties and token.isElement("ln")
                 {
                     inLine = not token.empty
                     result.lineWidth = Math.max(emuValue(&token, "w"), 1)
                 }
-                elif inLine and (token.isElement("headEnd") or token.isElement("tailEnd")) and
-                     token.attribute("type") != null and token.attribute("type") != "none"
+                else if inLine and
+                        (token.isElement("headEnd") or token.isElement("tailEnd")) and
+                        token.attribute("type") != null and
+                        token.attribute("type") != "none"
                 {
                     result.unsupported = true
                 }
-                elif inLine and token.isElement("prstDash") and token.attribute("val") != "solid"
+                else if inLine and token.isElement("prstDash") and token.attribute("val") != "solid"
                 {
                     result.unsupported = true
                 }
-                elif inProperties and token.isElement("noFill")
+                else if inProperties and token.isElement("noFill")
                 {
                     if inLine
                     {
@@ -184,77 +198,103 @@ impl SlideShape
                         result.hasFill = true
                     }
                 }
-                elif inProperties and token.isElement("solidFill")
+                else if inProperties and token.isElement("solidFill")
                 {
                     inFill = not token.empty
-                    if not inLine do
+                    if not inLine
+                    {
                         result.hasFill = true
+                    }
                 }
-                elif inFill and (token.isElement("srgbClr") or token.isElement("schemeClr"))
+                else if inFill and (token.isElement("srgbClr") or token.isElement("schemeClr"))
                 {
                     let value = token.attribute("val") orelse ""
                     let color = token.isElement("schemeClr") ? theme.color(value) : String.from(value)
                     if Package.isRgbHex(color)
                     {
-                        if inLine do
+                        if inLine
+                        {
                             result.line = color
-                        else do
+                        }
+                        else
+                        {
                             result.fill = color
+                        }
                     }
+
                     inFillColor = not token.empty
                 }
-                elif inFillColor and (token.isElement("tint") or token.isElement("shade"))
+                else if inFillColor and (token.isElement("tint") or token.isElement("shade"))
                 {
                     let amount = catch StrConv.toU32(token.attribute("val") orelse "") orelse Swag.U32.Max
                     if amount <= 100_000 and inLine
                     {
                         result.line = theme.transformColor(result.line, amount, token.isElement("tint"))
                     }
-                    elif amount <= 100_000
+                    else if amount <= 100_000
                     {
                         result.fill = theme.transformColor(result.fill, amount, token.isElement("tint"))
                     }
                 }
             }
-            elif token.kind == .End
+            else if token.kind == .End
             {
-                if token.isElement("xfrm") do
+                if token.isElement("xfrm")
+                {
                     inTransform = false
-                elif token.isElement("spPr") do
+                }
+                else if token.isElement("spPr")
+                {
                     inProperties = false
-                elif token.isElement("txBody") do
+                }
+                else if token.isElement("txBody")
+                {
                     inText = false
-                elif token.isElement("solidFill") do
+                }
+                else if token.isElement("solidFill")
+                {
                     inFill = false
-                elif token.isElement("srgbClr") or token.isElement("schemeClr") do
+                }
+                else if token.isElement("srgbClr") or token.isElement("schemeClr")
+                {
                     inFillColor = false
-                elif token.isElement("ln") do
+                }
+                else if token.isElement("ln")
+                {
                     inLine = false
+                }
             }
         }
 
-        if scan.damaged do
+        if scan.damaged
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         if result.connector
         {
-            let horizontal = result.bounds.width > 0 and result.bounds.height == 0
-            let vertical   = result.bounds.width == 0 and result.bounds.height > 0
-            let diagonal   = result.bounds.width > 0 and result.bounds.height > 0
+            let horizontal      = result.bounds.width > 0 and result.bounds.height == 0
+            let vertical        = result.bounds.width == 0 and result.bounds.height > 0
+            let diagonal        = result.bounds.width > 0 and result.bounds.height > 0
             let simpleTransform = not result.rotation and not result.flipHorizontal and not result.flipVertical
-            result.positioned = result.hasOffset and simpleTransform and (horizontal or vertical or diagonal)
-            result.unsupported = result.unsupported or not result.connectorLine or not result.positioned or result.line.isEmpty()
+            result.positioned  = result.hasOffset and simpleTransform and (horizontal or vertical or diagonal)
+            result.unsupported = result.unsupported or
+                                 not result.connectorLine or
+                                 not result.positioned or
+                                 result.line.isEmpty()
         }
         else
         {
             result.positioned = result.hasOffset and result.hasExtent
         }
+
         if images
         {
             let text = try SlideText.parse(source, images, theme, pageWidth)
             result.html          = text.html
             result.plainText     = text.plainText
             result.omittedImages = text.omittedImages
-            result.unsupported  = result.unsupported or text.requiresSimplified
+            result.unsupported   = result.unsupported or text.requiresSimplified
         }
 
         return result
@@ -277,25 +317,43 @@ impl SlideShape
         }
 
         .positioned = .hasOffset and .hasExtent
-        if not .fontSize do
+        if not .fontSize
+        {
             .fontSize = parent.fontSize
+        }
+
         if not .bodyProperties
         {
             .centered       = parent.centered
             .bodyProperties = parent.bodyProperties
         }
 
-        if not (.insetMask & 1) do
+        if not (.insetMask & 1)
+        {
             .inset.x = parent.inset.x
-        if not (.insetMask & 2) do
+        }
+
+        if not (.insetMask & 2)
+        {
             .inset.y = parent.inset.y
-        if not (.insetMask & 4) do
+        }
+
+        if not (.insetMask & 4)
+        {
             .inset.z = parent.inset.z
-        if not (.insetMask & 8) do
+        }
+
+        if not (.insetMask & 8)
+        {
             .inset.w = parent.inset.w
+        }
+
         .insetMask |= parent.insetMask
-        if .textColor.isEmpty() do
+        if .textColor.isEmpty()
+        {
             .textColor = parent.textColor
+        }
+
         if not .hasFill
         {
             .fill    = parent.fill
@@ -307,13 +365,22 @@ impl SlideShape
 
     mtd const placeholderIn(shapes: const [..] SlideShape)->const *SlideShape?
     {
-        if not .placeholder do
+        if not .placeholder
+        {
             return null
-        for shape in shapes where shape.placeholder and shape.placeholderIndex == .placeholderIndex do
+        }
+
+        for shape in shapes where shape.placeholder and shape.placeholderIndex == .placeholderIndex
+        {
             return shape
+        }
+
         for shape in shapes where shape.placeholder and
-                                  ((.isTitle() and shape.isTitle()) or shape.placeholderKind == .placeholderKind) do
+                                  ((.isTitle() and shape.isTitle()) or shape.placeholderKind == .placeholderKind)
+        {
             return shape
+        }
+
         return null
     }
 }

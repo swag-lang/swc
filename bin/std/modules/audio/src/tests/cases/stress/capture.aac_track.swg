@@ -9,13 +9,13 @@ using Swag, Core
 {
     var queue = expect CaptureQueue.create(48_000, 1, 0, 48_000, blockFrames: 1_024, slots: 2, tolerance: 0)
     expect queue.markLost(0)
-    const FourHours = 4'u64 * 60 * 60 * 48_000
+    const FourHours = 4_u64 * 60 * 60 * 48_000
     expect queue.markLost(FourHours)
     var track = expect CaptureAacTrack.create(&queue)
-    var packet: Array'u8
+    var packet: Array!{u8}
     var info:   CaptureAacPacket
-    var count = 0'u64
-    var bytes = 0'u64
+    var count = 0_u64
+    var bytes = 0_u64
     while expect track.nextPacket(&packet, &info)
     {
         Swag.require(info.startSample == count * 1_024)

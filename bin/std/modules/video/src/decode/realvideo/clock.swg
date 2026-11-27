@@ -17,14 +17,23 @@ impl Clock
     mtd presentationTime(data, prefix: const [..] u8, containerTime: s64)->s64 fail
     {
         let length = data.count + prefix.count
-        if not length do
+        if not length
+        {
             fail InvalidFormatError{"RealVideo packet is empty"}
+        }
+
         let header = 1 + (cast(u64, packetByte(data, prefix, 0)) + 1) * 8
-        if length < header + 4 do
+        if length < header + 4
+        {
             fail InvalidFormatError{"RealVideo packet has no picture clock"}
-        var value = 0'u32
-        for i in 4'u64 do
+        }
+
+        var value = 0_u32
+        for i in 4_u64
+        {
             value = (value << 8) | cast(u32, packetByte(data, prefix, header + i))
+        }
+
         let kind  = (value >> 29) & 3
         let clock = cast(s32, ((value >> 6) & 8191))
         if kind != 3
@@ -35,12 +44,18 @@ impl Clock
             return containerTime
         }
 
-        if not .hasAnchor do
+        if not .hasAnchor
+        {
             return containerTime
+        }
+
         let behind     = (.anchorClock - clock + 8192) & 8191
         let correction = cast(s64, behind) * 1_000_000
-        if .anchorTime < Swag.S64.Min + correction do
+        if .anchorTime < Swag.S64.Min + correction
+        {
             fail InvalidFormatError{"RealVideo picture timestamp is outside the supported range"}
+        }
+
         return .anchorTime - correction
     }
 }

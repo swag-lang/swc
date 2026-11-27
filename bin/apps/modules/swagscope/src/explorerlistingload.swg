@@ -34,15 +34,20 @@ impl ExplorerListingLoad
             if replaceWatch
             {
                 operation.watcher.close()
-                if Directory.exists(operation.path) do
+                if Directory.exists(operation.path)
+                {
                     operation.watcher = catch Directory.watch(operation.path) orelse {}
+                }
             }
 
             catch
             {
                 operation.result = try ExplorerListing.load(operation.path)
-                if operation.result.isArchive do
+                if operation.result.isArchive
+                {
                     operation.result.entries = operation.result.children(operation.folder)
+                }
+
                 operation.sortEntries()
             }
             {

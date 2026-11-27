@@ -53,12 +53,12 @@ public struct ImageSetInfo
 {
     public
     {
-        frames:              Array'ImageFrameInfo     // Images in encoded order, with texture indices identifying subresources.
-        canvasWidth:         s32                      // Animation canvas width; zero for an independent image set.
-        canvasHeight:        s32                      // Animation canvas height; zero for an independent image set.
-        loopCount:           u32   = 1                // Total animation plays; zero means unlimited.
-        background:          Color = {a: 0}           // Color used when clearing an animation canvas; transparent by default.
-        representativeIndex: u32                      // Image selected by a still-image view of the container.
+        frames:              Array!{ImageFrameInfo}     // Images in encoded order, with texture indices identifying subresources.
+        canvasWidth:         s32                        // Animation canvas width; zero for an independent image set.
+        canvasHeight:        s32                        // Animation canvas height; zero for an independent image set.
+        loopCount:           u32   = 1                  // Total animation plays; zero means unlimited.
+        background:          Color = {a: 0}             // Color used when clearing an animation canvas; transparent by default.
+        representativeIndex: u32                        // Image selected by a still-image view of the container.
     }
 }
 
@@ -94,13 +94,13 @@ public interface IImageSetDecoder
 public struct ImageReader
 {
     public readonly info: ImageSetInfo     // Indexed images; valid until close or replacement of the reader.
-    bytes:                Array'u8
+    bytes:                Array!{u8}
     decoder:              *void?
     decoderType:          const *TypeInfoStruct?
     decoderAllocator:     IAllocator?
     options:              DecodeOptions
     canvas:               Image
-    previous:             Array'u8
+    previous:             Array!{u8}
     lastIndex:            s32 = -1
 }
 
@@ -111,8 +111,11 @@ impl ImageReader
         if .decoder
         {
             let type = unwrap .decoderType
-            if type.opDrop do
+            if type.opDrop
+            {
                 type.opDrop(.decoder)
+            }
+
             Memory.free(.decoder, cast(u64, type.sizeof), .decoderAllocator)
             .decoder = null
             .decoderAllocator = null
@@ -132,8 +135,10 @@ impl ImageReader
             for y in frame.height
             {
                 let row = cast([*] u32, (target + cast(u64, y) * stride))
-                for x in frame.width do
+                for x in frame.width
+                {
                     row[x] = packed
+                }
             }
 
             return
@@ -143,8 +148,10 @@ impl ImageReader
         for y in frame.height
         {
             let row = target + cast(u64, y) * stride
-            for x in frame.width do
+            for x in frame.width
+            {
                 writePixelValue(row + cast(u64, x) * .canvas.bytesPerPixel, .canvas.pixelFormat, value)
+            }
         }
     }
 
@@ -165,10 +172,15 @@ impl ImageReader
         let previous = .previous.storage()
         if rowBytes == stride
         {
-            #static if SAVE do
+            #static if SAVE
+            {
                 Memory.copy(previous, canvas, bytes)
-            else do
+            }
+            else
+            {
                 Memory.copy(canvas, previous, bytes)
+            }
+
             return
         }
 
@@ -176,10 +188,14 @@ impl ImageReader
         {
             let canvasRow   = canvas + y * stride
             let previousRow = previous + y * rowBytes
-            #static if SAVE do
+            #static if SAVE
+            {
                 Memory.copy(previousRow, canvasRow, rowBytes)
-            else do
+            }
+            else
+            {
                 Memory.copy(canvasRow, previousRow, rowBytes)
+            }
         }
     }
 
@@ -199,25 +215,90 @@ impl ImageReader
         return {0, 0, 0, 0}
     }
 
+    #[Swag.Inline]
+    func normalizedByteLanes(samples: Math.Simd.U32x4)->Math.Simd.F32x4
+    {
+        using Math.Simd
+        let integer = cast #bit(F32x4, (samples | splat(0x4B00_0000_u32))) - splat(8388608_f32)
+        return integer / splat(255_f32)
+    }
+
+    #[Swag.Inline]
+    func normalizedLaneBytes(values: Math.Simd.F32x4, nearTie: *Math.Simd.U32x4)->Math.Simd.U32x4
+    {
+        using Math.Simd
+        let scaled   = values * splat(255_f32)
+        let floor    = Math.floor(scaled)
+        let fraction = scaled - floor
+        let halfway  = splat(0.5_f32)
+        nearTie[] |= Math.abs(fraction - halfway) <= splat(0.0001220703125_f32)
+        let increment = fraction >= halfway
+        return cast #bit(U32x4, truncateToS32(floor)) - increment
+    }
+
+    #[Swag.Inline]
+    func(SHIFT: u32) blendChannelLanes(source, behind: Math.Simd.U32x4, sourceAlpha, remainder, divisor: Math.Simd.F32x4, nearTie: *Math.Simd.U32x4)->Math.Simd.U32x4
+    {
+        using Math.Simd
+        let mask = splat(255_u32)
+        let a    = normalizedByteLanes((source >> SHIFT) & mask)
+        let b    = normalizedByteLanes((behind >> SHIFT) & mask)
+        return normalizedLaneBytes((a * sourceAlpha + b * remainder) / divisor, nearTie) << SHIFT
+    }
+
+    #[Swag.Inline]
+    func blendRgba8Lanes(source, behind: Math.Simd.U32x4, nearTie: *Math.Simd.U32x4)->Math.Simd.U32x4
+    {
+        using Math.Simd
+        let sourceAlpha = normalizedByteLanes(source >> 24)
+        let behindAlpha = normalizedByteLanes(behind >> 24)
+        let remainder   = behindAlpha * (splat(1_f32) - sourceAlpha)
+        let alpha       = sourceAlpha + remainder
+        let divisor     = select(alpha == splat(0_f32), splat(1_f32), alpha)
+        return blendChannelLanes!{0}(source, behind, sourceAlpha, remainder, divisor, nearTie) |
+               blendChannelLanes!{8}(source, behind, sourceAlpha, remainder, divisor, nearTie) |
+               blendChannelLanes!{16}(source, behind, sourceAlpha, remainder, divisor, nearTie) |
+               (normalizedLaneBytes(alpha, nearTie) << 24)
+    }
+
     func blendRgba8Row(source: const [*] u8, target: [*] u8, width: s32)
     {
         let input   = cast(const [*] u32, source)
         let output  = cast([*] u32, target)
-        let zero    = Math.Simd.splat(0'u32)
-        let maximum = Math.Simd.splat(255'u32)
+        let zero    = Math.Simd.splat(0_u32)
+        let maximum = Math.Simd.splat(255_u32)
         var x       = 0
         while width - x >= 4
         {
             let colors = Math.Simd.load(input + x)
             let alpha  = colors >> 24
             let opaque = alpha == maximum
-            if Math.Simd.bitmask(opaque | (alpha == zero)) != 0xF do
-                break
+            let behind = Math.Simd.load(output + x)
+            if Math.Simd.bitmask(opaque | (alpha == zero)) == 0xF
+            {
+                // A transparent source retains visible destination colors and clears hidden RGB.
+                let visible = (behind >> 24) != zero
+                Math.Simd.store(output + x, (colors & opaque) | (behind & visible & ~opaque))
+            }
+            else
+            {
+                var nearTie = zero
+                Math.Simd.store(output + x, blendRgba8Lanes(colors, behind, &nearTie))
 
-            // A transparent source retains visible destination colors and clears hidden RGB.
-            let behind  = Math.Simd.load(output + x)
-            let visible = (behind >> 24) != zero
-            Math.Simd.store(output + x, (colors & opaque) | (behind & visible & ~opaque))
+                // Preserve scalar rounding near halfway points between output bytes.
+                var pending = Math.Simd.bitmask(nearTie)
+                while pending
+                {
+                    let lane   = Math.trailingZeros(pending)
+                    let offset = cast(u64, x + lane) * 4
+                    var prior  = behind[lane]
+                    let value  = readPixelValue(source + offset, .RGBA8)
+                    let old    = readPixelValue(cast(const [*] u8, &prior), .RGBA8)
+                    writePixelValue(target + offset, .RGBA8, blendOver(value, old))
+                    pending &= pending - 1
+                }
+            }
+
             x += 4
         }
 
@@ -229,14 +310,14 @@ impl ImageReader
             {
                 output[pixel] = color
             }
-            elif alpha
+            else if alpha
             {
                 let offset = cast(u64, pixel) * 4
                 let value  = readPixelValue(source + offset, .RGBA8)
                 let behind = readPixelValue(target + offset, .RGBA8)
                 writePixelValue(target + offset, .RGBA8, blendOver(value, behind))
             }
-            elif output[pixel] >> 24 == 0
+            else if output[pixel] >> 24 == 0
             {
                 output[pixel] = 0
             }
@@ -257,23 +338,21 @@ impl ImageReader
             let target = start + cast(u64, y) * stride
             if packedCanvas and image.pixelFormat == .RGBA8
             {
-                if frame.blend == .Replace do
+                if frame.blend == .Replace
+                {
                     Memory.copy(target, source, cast(u64, image.rowStride))
-                else do
+                }
+                else
+                {
                     blendRgba8Row(source, target, frame.width)
+                }
+
                 continue
             }
 
             if packedCanvas and image.pixelFormat == .RGB8
             {
-                let output = cast([*] u32, target)
-                for x in frame.width
-                {
-                    let pixel = source + cast(u64, x) * 3
-                    let low   = cast(const [*] u16, pixel)[0]
-                    output[x] = 0xFF000000'u32 | (cast(u32, pixel[2]) << 16) | cast(u32, low)
-                }
-
+                expandRgb8Alpha(source, target, cast(u64, frame.width), false)
                 continue
             }
 
@@ -282,8 +361,11 @@ impl ImageReader
                 let input  = source + cast(u64, x) * image.bytesPerPixel
                 let output = target + cast(u64, x) * .canvas.bytesPerPixel
                 var value  = readLogicalPixelValue(input, image.pixelFormat, image.alphaMode)
-                if frame.blend == .Over and value.a < 1 do
+                if frame.blend == .Over and value.a < 1
+                {
                     value = blendOver(value, readPixelValue(output, .canvas.pixelFormat))
+                }
+
                 writePixelValue(output, .canvas.pixelFormat, value)
             }
         }
@@ -294,14 +376,19 @@ impl ImageReader
         if image.width != frame.width or
            image.height != frame.height or
            image.pixelFormat != frame.pixelFormat or
-           (.options.decodePixels and not image.isValid()) do
+           (.options.decodePixels and not image.isValid())
+        {
             fail InvalidFormatError{"decoded frame does not match its image index"}
+        }
     }
 
     mtd const animationCanvasFormat()->PixelFormat
     {
-        for frame in .info.frames where frame.kind == .Animation and frame.pixelFormat.bitDepth() > 8 do
+        for frame in .info.frames where frame.kind == .Animation and frame.pixelFormat.bitDepth() > 8
+        {
             return .RGBA16
+        }
+
         return .RGBA8
     }
 }
@@ -328,11 +415,17 @@ public impl ImageReader
     // icon containers retain their largest-entry representative selection.
     func decode(fileName: string, bytes: const [..] u8, options: DecodeOptions = {})->ImageReader fail
     {
-        if options.maxInputBytes and bytes.count > options.maxInputBytes do
+        if options.maxInputBytes and bytes.count > options.maxInputBytes
+        {
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
+        }
+
         let found = Image.getDecoder(fileName)
-        if not found do
+        if not found
+        {
             fail UnsupportedFormatError{"no matching image decoder"}
+        }
+
         var result: #returntype
         result.bytes.add(bytes)
         result.options          = options
@@ -354,8 +447,11 @@ public impl ImageReader
             result.info.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
         }
 
-        if result.info.frames.isEmpty() or result.info.representativeIndex >= result.info.frames.count do
+        if result.info.frames.isEmpty() or result.info.representativeIndex >= result.info.frames.count
+        {
             fail InvalidFormatError{"image container has no representative image"}
+        }
+
         try options.checkFrameCount(result.info.frames.count)
         for frame in result.info.frames
         {
@@ -366,8 +462,10 @@ public impl ImageReader
                 if frame.x < 0 or
                    frame.y < 0 or
                    frame.x > result.info.canvasWidth - frame.width or
-                   frame.y > result.info.canvasHeight - frame.height do
+                   frame.y > result.info.canvasHeight - frame.height
+                {
                     fail InvalidFormatError{"animation frame lies outside its canvas"}
+                }
             }
         }
 
@@ -379,8 +477,11 @@ public impl ImageReader
     func load(fileName: string, options: DecodeOptions = {})->ImageReader fail
     {
         var file = File.MappedFile.open(fileName)
-        if options.maxInputBytes and file.size() > options.maxInputBytes do
+        if options.maxInputBytes and file.size() > options.maxInputBytes
+        {
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
+        }
+
         let region = file.mapAll()
         return decode(fileName, region.bytes(), options)
     }
@@ -390,8 +491,11 @@ public impl ImageReader
 
     internal mtd readFrame(index: u32, composeAnimation: bool)->Image fail
     {
-        if not .decoder or index >= .info.frames.count do
+        if not .decoder or index >= .info.frames.count
+        {
             fail InvalidFormatError{"image index is outside the open container"}
+        }
+
         let multiple = Swag.makeInterface(.decoder, unwrap .decoderType, IImageSetDecoder)
         if not multiple
         {
@@ -419,8 +523,11 @@ public impl ImageReader
         }
 
         var succeeded = false
-        defer if not succeeded do
+        defer if not succeeded
+        {
             .lastIndex = -1
+        }
+
         if .lastIndex < 0 or cast(s32, index) < .lastIndex
         {
             let format = .animationCanvasFormat()
@@ -438,14 +545,17 @@ public impl ImageReader
                 {
                 case .Keep:       break
                 case .Background: .clearRectangle(prior[])
-                case .Previous:   .copyPreviousRectangle'(false)(prior[])
+                case .Previous:   .copyPreviousRectangle!{false}(prior[])
                 }
             }
 
             let current    = cast(u32, (.lastIndex + 1))
             let descriptor = &.info.frames[current]
-            if descriptor.disposal == .Previous do
-                .copyPreviousRectangle'(true)(descriptor[])
+            if descriptor.disposal == .Previous
+            {
+                .copyPreviousRectangle!{true}(descriptor[])
+            }
+
             let image = try multiple.readFrame(current, .options)
             try .composite(descriptor[], image)
             .canvas.metadata = image.metadata

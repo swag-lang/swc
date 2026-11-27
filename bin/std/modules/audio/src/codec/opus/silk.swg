@@ -7,46 +7,46 @@
 
 using Core, Core.Errors, Core.Math
 
-private const MaxLpcOrder                     = 16'u32
-private const MinLpcOrder                     = 10'u32
-private const LtpOrder                        = 5'u32
-private const MaxNbSubfr                      = 4'u32
-private const MaxFrameLength                  = 320'u32
-private const MaxSubFrameLength               = 80'u32
-private const LtpMemLengthMs                  = 20'u32
-private const SubFrameLengthMs                = 5'u32
-private const ShellCodecFrameLength           = 16'u32
-private const MaxNbShellBlocks                = 20'u32
-private const SilkMaxPulses                   = 16'u32
-private const NRateLevels                     = 10'u32
-private const NlsfQuantMaxAmplitude           = 4's32
-private const MaxLpcStabilizeIterations       = 16'u32
-private const QuantLevelAdjustQ10             = 80's32
-private const NLevelsQGain                    = 64's32
-private const MaxDeltaGainQuant               = 36's32
-private const MinDeltaGainQuant               = -4's32
-private const TypeNoVoiceActivity             = 0's32
-private const TypeVoiced                      = 2's32
-internal const CodeIndependently              = 0'u32
-internal const CodeIndependentlyNoLtpScaling  = 1'u32
-internal const CodeConditionally              = 2'u32
-private const StereoQuantSubSteps             = 5's32
-private const StereoInterpLenMs               = 8'u32
-private const PeMinLagMs                      = 2's32
-private const PeMaxLagMs                      = 18's32
-private const LsfCosTabSize                   = 128's32
-private const RandMultiplier                  = 196314165'u32
-private const RandIncrement                   = 907633515'u32
-private const GainOffset                      = 2090's32
-private const InverseGainScaleQ16             = 1907825's32
-private const NlsfQuantLevelAdjQ10            = 102's32
-private const MaxLoops                        = 20'u32
-private const NlsfQA                          = 16'u32
-private const LpcQA                           = 24'u32
-private const LpcALimit                       = 16773022's32
-private const MaxPredictionPowerGainQ30       = 107374's32
-private const ResamplerOrderFir12             = 8'u32
-private const ResamplerMaxBatchSizeMs         = 10'u32
+private const MaxLpcOrder                     = 16_u32
+private const MinLpcOrder                     = 10_u32
+private const LtpOrder                        = 5_u32
+private const MaxNbSubfr                      = 4_u32
+private const MaxFrameLength                  = 320_u32
+private const MaxSubFrameLength               = 80_u32
+private const LtpMemLengthMs                  = 20_u32
+private const SubFrameLengthMs                = 5_u32
+private const ShellCodecFrameLength           = 16_u32
+private const MaxNbShellBlocks                = 20_u32
+private const SilkMaxPulses                   = 16_u32
+private const NRateLevels                     = 10_u32
+private const NlsfQuantMaxAmplitude           = 4_s32
+private const MaxLpcStabilizeIterations       = 16_u32
+private const QuantLevelAdjustQ10             = 80_s32
+private const NLevelsQGain                    = 64_s32
+private const MaxDeltaGainQuant               = 36_s32
+private const MinDeltaGainQuant               = -4_s32
+private const TypeNoVoiceActivity             = 0_s32
+private const TypeVoiced                      = 2_s32
+internal const CodeIndependently              = 0_u32
+internal const CodeIndependentlyNoLtpScaling  = 1_u32
+internal const CodeConditionally              = 2_u32
+private const StereoQuantSubSteps             = 5_s32
+private const StereoInterpLenMs               = 8_u32
+private const PeMinLagMs                      = 2_s32
+private const PeMaxLagMs                      = 18_s32
+private const LsfCosTabSize                   = 128_s32
+private const RandMultiplier                  = 196314165_u32
+private const RandIncrement                   = 907633515_u32
+private const GainOffset                      = 2090_s32
+private const InverseGainScaleQ16             = 1907825_s32
+private const NlsfQuantLevelAdjQ10            = 102_s32
+private const MaxLoops                        = 20_u32
+private const NlsfQA                          = 16_u32
+private const LpcQA                           = 24_u32
+private const LpcALimit                       = 16773022_s32
+private const MaxPredictionPowerGainQ30       = 107374_s32
+private const ResamplerOrderFir12             = 8_u32
+private const ResamplerMaxBatchSizeMs         = 10_u32
 private const ResamplerUp2Hq0:       [3] s32  = [1746, 14986, 39083 - 65536]
 private const ResamplerUp2Hq1:       [3] s32  = [6854, 25769, 55542 - 65536]
 private const ResamplerDelayDecoder: [3] s32  = [0, 4, 7]
@@ -55,57 +55,93 @@ private const Nlsf2aOrdering10:      [10] u32 = [0, 9, 6, 3, 4, 5, 8, 1, 2, 7]
 
 // Fixed-point primitives of the reference, with the truncations and wraps it relies on.
 #[Swag.Safety(.Overflow, false)]
+#[Swag.Inline]
 private func smulwb(a, b: s32)->s32 => cast(s32, ((cast(s64, a) * cast(s64, cast #wrap (s16, b))) >> 16))
 
 #[Swag.Safety(.Overflow, false)]
+#[Swag.Inline]
 private func smlawb(a, b, c: s32)->s32 => a + smulwb(b, c)
 
 #[Swag.Safety(.Overflow, false)]
+#[Swag.Inline]
 private func smulww(a, b: s32)->s32 => cast(s32, ((cast(s64, a) * cast(s64, b)) >> 16))
 
 #[Swag.Safety(.Overflow, false)]
+#[Swag.Inline]
 private func smlaww(a, b, c: s32)->s32 => a + smulww(b, c)
 
 #[Swag.Safety(.Overflow, false)]
+#[Swag.Inline]
 private func smulbb(a, b: s32)->s32 => cast(s32, cast #wrap (s16, a)) * cast(s32, cast #wrap (s16, b))
 
 #[Swag.Safety(.Overflow, false)]
+#[Swag.Inline]
 private func smlabb(a, b, c: s32)->s32 => a + smulbb(b, c)
 
 #[Swag.Safety(.Overflow, false)]
+#[Swag.Inline]
 private func smmul(a, b: s32)->s32 => cast(s32, ((cast(s64, a) * cast(s64, b)) >> 32))
 
+#[Swag.Inline]
 private func rshiftRound(a: s32, shift: u32)->s32 => shift == 1 ? (a >> 1) + (a & 1) : ((a >> (shift - 1)) + 1) >> 1
 
+#[Swag.Inline]
 private func rshiftRound64(a: s64, shift: u32)->s64 => shift == 1 ? (a >> 1) + (a & 1) : ((a >> (shift - 1)) + 1) >> 1
 
+#[Swag.Inline]
 private func sat16(a: s32)->s32 => Math.clamp(a, -32768, 32767)
 
+#[Swag.Inline]
 private func addSat32(a, b: s32)->s32 => cast(s32, Math.clamp(cast(s64, a) + cast(s64, b), -2147483648, 2147483647))
 
+#[Swag.Inline]
 private func subSat32(a, b: s32)->s32 => cast(s32, Math.clamp(cast(s64, a) - cast(s64, b), -2147483648, 2147483647))
 
+#[Swag.Inline]
 private func lshiftSat32(a: s32, shift: u32)->s32 =>
     Math.clamp(a, Swag.S32.Min >> shift, Swag.S32.Max >> shift) << shift
 
 private func clz32(value: s32)->s32 => cast(s32, (32 - ilog(cast #bit (u32, value))))
 
 #[Swag.Safety(.Overflow, false)]
+#[Swag.Inline]
 private func silkRand(seed: s32)->s32 => cast #bit (s32, (RandIncrement + cast #bit (u32, seed) * RandMultiplier))
+
+// For the unsigned low half of the state, subtracting the input corrects
+// the unsigned high product whenever the coefficient represents a negative value.
+#[Swag.Inline]
+private func lowSilkProduct(samples, coefficients, negative: Simd.U16x8)->Simd.S16x8
+    => cast #bit(Simd.S16x8, Simd.mulHigh(samples, coefficients) - (samples & negative))
+
+// Multiply four signed 32-bit samples by signed 16-bit taps, truncating each product in Q16.
+#[Swag.Inline]
+private func multiplySilkQ16(a, b: Simd.S32x4)->Simd.S32x4
+    => (a >> 16) * b + (((a & 0xFFFF_s32) * b) >> 16)
 
 private func log2lin(inLogQ7: s32)->s32
 {
-    if inLogQ7 < 0 do
+    if inLogQ7 < 0
+    {
         return 0
-    if inLogQ7 >= 3967 do
+    }
+
+    if inLogQ7 >= 3967
+    {
         return Swag.S32.Max
-    var out    = 1's32 << cast(u32, (inLogQ7 >> 7))
+    }
+
+    var out    = 1_s32 << cast(u32, (inLogQ7 >> 7))
     let fracQ7 = inLogQ7 & 0x7F
     let curve  = smlawb(fracQ7, smulbb(fracQ7, 128 - fracQ7), -174)
-    if inLogQ7 < 2048 do
+    if inLogQ7 < 2048
+    {
         out = out + ((out * curve) >> 7)
-    else do
+    }
+    else
+    {
         out = out + (out >> 7) * curve
+    }
+
     return out
 }
 
@@ -116,13 +152,19 @@ private func inverse32VarQ(b32: s32, qres: u32)->s32
     let normal   = b32 << cast(u32, headroom)
     let inverse  = (Swag.S32.Max >> 2) / (normal >> 16)
     var result   = inverse << 16
-    let errorQ32 = ((1's32 << 29) - smulwb(normal, inverse)) << 3
+    let errorQ32 = ((1_s32 << 29) - smulwb(normal, inverse)) << 3
     result = smlaww(result, errorQ32, inverse)
     let lshift = 61 - headroom - cast(s32, qres)
-    if lshift <= 0 do
+    if lshift <= 0
+    {
         return lshiftSat32(result, cast(u32, -lshift))
-    if lshift < 32 do
+    }
+
+    if lshift < 32
+    {
         return result >> cast(u32, lshift)
+    }
+
     return 0
 }
 
@@ -139,10 +181,16 @@ private func div32VarQ(a32, b32: s32, qres: u32)->s32
     aNormal = aNormal - (smmul(bNormal, result) << 3)
     result  = smlawb(result, aNormal, inverse)
     let lshift = 29 + aHeadroom - bHeadroom - cast(s32, qres)
-    if lshift < 0 do
+    if lshift < 0
+    {
         return lshiftSat32(result, cast(u32, -lshift))
-    if lshift < 32 do
+    }
+
+    if lshift < 32
+    {
         return result >> cast(u32, lshift)
+    }
+
     return 0
 }
 
@@ -160,58 +208,82 @@ private impl NlsfCodebook
 {
     mtd const cb1Q8()->const [..] u8
     {
-        if .wideband do
+        if .wideband
+        {
             return SilkNlsfCb1WbQ8
+        }
+
         return SilkNlsfCb1NbMbQ8
     }
 
     mtd const weightsQ9()->const [..] s16
     {
-        if .wideband do
+        if .wideband
+        {
             return SilkNlsfCb1WbWghtQ9
+        }
+
         return SilkNlsfCb1NbMbWghtQ9
     }
 
     mtd const cb1Icdf()->const [..] u8
     {
-        if .wideband do
+        if .wideband
+        {
             return SilkNlsfCb1IcdfWb
+        }
+
         return SilkNlsfCb1IcdfNbMb
     }
 
     mtd const predQ8()->const [..] u8
     {
-        if .wideband do
+        if .wideband
+        {
             return SilkNlsfPredWbQ8
+        }
+
         return SilkNlsfPredNbMbQ8
     }
 
     mtd const selection()->const [..] u8
     {
-        if .wideband do
+        if .wideband
+        {
             return SilkNlsfCb2SelectWb
+        }
+
         return SilkNlsfCb2SelectNbMb
     }
 
     mtd const cb2Icdf()->const [..] u8
     {
-        if .wideband do
+        if .wideband
+        {
             return SilkNlsfCb2IcdfWb
+        }
+
         return SilkNlsfCb2IcdfNbMb
     }
 
     mtd const deltaMinQ15()->const [..] s16
     {
-        if .wideband do
+        if .wideband
+        {
             return SilkNlsfDeltaMinWbQ15
+        }
+
         return SilkNlsfDeltaMinNbMbQ15
     }
 }
 
 private func nlsfCodebook(wideband: bool)->NlsfCodebook
 {
-    if wideband do
+    if wideband
+    {
         return {true, 32, 16, 9830}
+    }
+
     return {false, 32, 10, 11796}
 }
 
@@ -241,18 +313,55 @@ private struct FrameControl
     ltpScaleQ14: s32
 }
 
+// The two halves of the eight-tap filter are stored separately in the table.
+private const ResamplerPhase: [12] Simd.S16x8 = #run
+{
+    var result: [12] Simd.S16x8
+    for phase in result.count
+    {
+        var row: [8] s16
+        for i in 4
+        {
+            row[i]     = SilkResamplerFracFir12[phase, i]
+            row[7 - i] = SilkResamplerFracFir12[11 - phase, i]
+        }
+
+        result[phase] = cast(Simd.S16x8, row)
+    }
+
+    return result
+}
+
+#[Swag.Inline]
+private func resampleFir(samples, coefficients: Simd.S16x8)->s16
+{
+    let sum = Simd.sum(Swag.vecMulAddPairs(samples, coefficients))
+    return cast(s16, sat16(rshiftRound(sum, 15)))
+}
+
+// Reduce four FIR accumulators into their rounded output samples.
+#[Swag.Inline]
+private func resampleFirFour(a, b, c, d: Simd.S32x4)->Simd.S32x4
+{
+    const Even = cast(Simd.U32x4, [0_u32, 2, 4, 6])
+    const Odd  = cast(Simd.U32x4, [1_u32, 3, 5, 7])
+    let first  = Swag.vecShuffle2(a, b, Even) + Swag.vecShuffle2(a, b, Odd)
+    let second = Swag.vecShuffle2(c, d, Even) + Swag.vecShuffle2(c, d, Odd)
+    let sum    = Swag.vecShuffle2(first, second, Even) + Swag.vecShuffle2(first, second, Odd)
+    return ((sum >> 14) + 1) >> 1
+}
+
 // The fixed-point resampler that takes one band to 48 kHz: a two-fold IIR upsampler followed by
 // fractional FIR interpolation.
 private struct Resampler
 {
-    iir:         [6] s32
-    fir:         [ResamplerOrderFir12] s16
-    delay:       [48] s16
-    batchSize:   u32
-    invRatioQ16: s32
-    fsInKHz:     u32
-    inputDelay:  u32
-    buffer:      Array's16
+    iir:        [3] Simd.S32x4
+    fir:        [ResamplerOrderFir12] s16
+    delay:      [48] s16
+    batchSize:  u32
+    fsInKHz:    u32
+    inputDelay: u32
+    buffer:     Array!{s16}
 }
 
 private impl Resampler
@@ -262,106 +371,166 @@ private impl Resampler
         Memory.set(&.iir, 0, #sizeof(.iir))
         Memory.set(&.fir, 0, #sizeof(.fir))
         Memory.set(&.delay, 0, #sizeof(.delay))
-        .fsInKHz     = fsInHz / 1000
-        .inputDelay  = cast(u32, ResamplerDelayDecoder[.fsInKHz == 8 ? 0 : (.fsInKHz == 12 ? 1 : 2)])
-        .batchSize   = .fsInKHz * ResamplerMaxBatchSizeMs
-        .invRatioQ16 = ((cast(s32, fsInHz) << 15) / cast(s32, OutputRate)) << 2
-        while smulww(.invRatioQ16, cast(s32, OutputRate)) < cast(s32, (fsInHz << 1)) do
-            .invRatioQ16 += 1
+        .fsInKHz    = fsInHz / 1000
+        .inputDelay = cast(u32, ResamplerDelayDecoder[.fsInKHz == 8 ? 0 : (.fsInKHz == 12 ? 1 : 2)])
+        .batchSize  = .fsInKHz * ResamplerMaxBatchSizeMs
         .buffer.resize(2 * .batchSize + ResamplerOrderFir12)
     }
 
+    // The even and odd all-pass filters share the input but have separate states.
     #[Swag.Safety(.Overflow, false)]
     mtd up2(out: [*] s16, input: const [*] s16, len: u32)
     {
+        #[Swag.Inline]
+        func stage(sample: Simd.S32x4, memory: *Simd.S32x4, lo: Simd.U16x8, hi: Simd.S16x8, adjust: s32)->Simd.S32x4
+        {
+            let delta = sample - memory[]
+            let words = cast #bit (Simd.U16x8, delta)
+            let low   = cast #bit (Simd.S32x4, Simd.mulHigh(words, lo))
+            let high  = Swag.vecMulAddPairs(cast #bit (Simd.S16x8, words), hi)
+            let step  = low + high + (delta & adjust)
+            let value = memory[] + step
+            memory[] = sample + step
+            return value
+        }
+
+        const Taps = #run
+        {
+            var taps: {lo: [3] Simd.U16x8, hi: [3] Simd.S16x8}
+            for j in 3
+            {
+                let even       = cast #wrap (u16, ResamplerUp2Hq0[j])
+                let odd        = cast #wrap (u16, ResamplerUp2Hq1[j])
+                let evenSigned = cast #bit (s16, even)
+                let oddSigned  = cast #bit (s16, odd)
+                taps.lo[j] = cast(Simd.U16x8, [even, 0_u16, odd, 0, even, 0, odd, 0])
+                taps.hi[j] = cast(Simd.S16x8, [0_s16, evenSigned, 0, oddSigned, 0, evenSigned, 0, oddSigned])
+            }
+
+            return taps
+        }
+
+        var a = .iir[0]
+        var b = .iir[1]
+        var c = .iir[2]
         for k in len
         {
-            let in32 = cast(s32, input[k]) << 10
-            var y    = in32 - .iir[0]
-            var x    = smulwb(y, ResamplerUp2Hq0[0])
-            var out1 = .iir[0] + x
-            .iir[0] = in32 + x
-            y       = out1 - .iir[1]
-            x       = smulwb(y, ResamplerUp2Hq0[1])
-            var out2 = .iir[1] + x
-            .iir[1]    = out1 + x
-            y          = out2 - .iir[2]
-            x          = smlawb(y, y, ResamplerUp2Hq0[2])
-            out1       = .iir[2] + x
-            .iir[2]    = out2 + x
-            out[2 * k] = cast(s16, sat16(rshiftRound(out1, 10)))
+            let sample = Simd.splat(cast(s32, input[k]) << 10)
+            let first  = stage(sample, &a, Taps.lo[0], Taps.hi[0], 0)
+            let second = stage(first, &b, Taps.lo[1], Taps.hi[1], 0)
 
-            y              = in32 - .iir[3]
-            x              = smulwb(y, ResamplerUp2Hq1[0])
-            out1           = .iir[3] + x
-            .iir[3]        = in32 + x
-            y              = out1 - .iir[4]
-            x              = smulwb(y, ResamplerUp2Hq1[1])
-            out2           = .iir[4] + x
-            .iir[4]        = out1 + x
-            y              = out2 - .iir[5]
-            x              = smlawb(y, y, ResamplerUp2Hq1[2])
-            out1           = .iir[5] + x
-            .iir[5]        = out2 + x
-            out[2 * k + 1] = cast(s16, sat16(rshiftRound(out1, 10)))
+            // Add the high word of the difference for the unsigned third
+            // coefficient, equivalent to the reference's extra addition of y.
+            let third   = stage(second, &c, Taps.lo[2], Taps.hi[2], -65536)
+            let rounded = ((third >> 9) + 1) >> 1
+            let packed  = cast #bit (Simd.U32x4, Simd.packSigned(rounded, rounded))
+            cast([*] u32, out + 2 * k)[0] = packed[0]
         }
+
+        .iir[0] = a
+        .iir[1] = b
+        .iir[2] = c
     }
 
-    #[Swag.Safety(.Overflow, false)]
-    mtd interpolate(out: [*] s16, buffer: const [*] s16, maxIndexQ16, incrementQ16: s32)->u32
+    // The 8, 12 and 16 kHz inputs take 3, 2 and 3/2 samples per IIR output.
+    // Their rounded Q16 steps preserve these phases over a batch of at most 10 ms.
+    mtd interpolate(out: [*] s16, buffer: const [*] s16, count: u32)->u32
     {
-        var written  = 0'u32
-        var indexQ16 = 0's32
-        while indexQ16 < maxIndexQ16
+        if .fsInKHz == 16
         {
-            let tableIndex = cast(u32, smulwb(indexQ16 & 0xFFFF, 12))
-            let at         = cast(u32, (indexQ16 >> 16))
-            var res        = smulbb(cast(s32, buffer[at]), cast(s32, SilkResamplerFracFir12[tableIndex, 0]))
-            res = smlabb(res, cast(s32, buffer[at + 1]), cast(s32, SilkResamplerFracFir12[tableIndex, 1]))
-            res = smlabb(res, cast(s32, buffer[at + 2]), cast(s32, SilkResamplerFracFir12[tableIndex, 2]))
-            res = smlabb(res, cast(s32, buffer[at + 3]), cast(s32, SilkResamplerFracFir12[tableIndex, 3]))
-            res = smlabb(res,
-                         cast(s32, buffer[at + 4]),
-                         cast(s32, SilkResamplerFracFir12[11 - tableIndex, 3]))
-            res = smlabb(res,
-                         cast(s32, buffer[at + 5]),
-                         cast(s32, SilkResamplerFracFir12[11 - tableIndex, 2]))
-            res = smlabb(res,
-                         cast(s32, buffer[at + 6]),
-                         cast(s32, SilkResamplerFracFir12[11 - tableIndex, 1]))
-            res = smlabb(res,
-                         cast(s32, buffer[at + 7]),
-                         cast(s32, SilkResamplerFracFir12[11 - tableIndex, 0]))
-            out[written] = cast(s16, sat16(rshiftRound(res, 15)))
-            written      += 1
-            indexQ16     += incrementQ16
+            let packed = count & ~3_u32
+            let phase0 = ResamplerPhase[0]
+            let phase4 = ResamplerPhase[4]
+            let phase8 = ResamplerPhase[8]
+            for block in packed / 4
+            {
+                let at    = buffer + 8 * block
+                let dst   = out + 12 * block
+                let x0    = Simd.load(at)
+                let x1    = Simd.load(at + 1)
+                let x2    = Simd.load(at + 2)
+                let first = resampleFirFour(Swag.vecMulAddPairs(x0, phase0),
+                                            Swag.vecMulAddPairs(x0, phase8),
+                                            Swag.vecMulAddPairs(x1, phase4),
+                                            Swag.vecMulAddPairs(x2, phase0))
+                let x3     = Simd.load(at + 3)
+                let x4     = Simd.load(at + 4)
+                let second = resampleFirFour(Swag.vecMulAddPairs(x2, phase8),
+                                             Swag.vecMulAddPairs(x3, phase4),
+                                             Swag.vecMulAddPairs(x4, phase0),
+                                             Swag.vecMulAddPairs(x4, phase8))
+                let x5    = Simd.load(at + 5)
+                let x6    = Simd.load(at + 6)
+                let x7    = Simd.load(at + 7)
+                let third = resampleFirFour(Swag.vecMulAddPairs(x5, phase4),
+                                            Swag.vecMulAddPairs(x6, phase0),
+                                            Swag.vecMulAddPairs(x6, phase8),
+                                            Swag.vecMulAddPairs(x7, phase4))
+                Simd.store(dst, Simd.packSigned(first, second))
+                Simd.storeLow8(cast([*] u8, dst + 8), cast #bit(Simd.U8x16, Simd.packSigned(third, third)))
+            }
+
+            for i in packed until count
+            {
+                let even = Simd.load(buffer + 2 * i)
+                let odd  = Simd.load(buffer + 2 * i + 1)
+                out[3 * i]     = resampleFir(even, ResamplerPhase[0])
+                out[3 * i + 1] = resampleFir(even, ResamplerPhase[8])
+                out[3 * i + 2] = resampleFir(odd, ResamplerPhase[4])
+            }
+
+            return 3 * count
         }
 
-        return written
+        if .fsInKHz == 12
+        {
+            for i in 2 * count
+            {
+                let samples = Simd.load(buffer + i)
+                out[2 * i]     = resampleFir(samples, ResamplerPhase[0])
+                out[2 * i + 1] = resampleFir(samples, ResamplerPhase[6])
+            }
+
+            return 4 * count
+        }
+
+        for i in 2 * count
+        {
+            let samples = Simd.load(buffer + i)
+            out[3 * i]     = resampleFir(samples, ResamplerPhase[0])
+            out[3 * i + 1] = resampleFir(samples, ResamplerPhase[4])
+            out[3 * i + 2] = resampleFir(samples, ResamplerPhase[8])
+        }
+
+        return 6 * count
     }
 
     // Upsamples `inLen` input samples, batch by batch, and returns the output count.
     mtd iirFir(out: [*] s16, input: const [*] s16, inLen: u32)->u32
     {
         let buffer = .buffer.storage()
-        for i in ResamplerOrderFir12 do
+        for i in ResamplerOrderFir12
+        {
             buffer[i] = .fir[i]
-        var written   = 0'u32
+        }
+
+        var written   = 0_u32
         var remaining = inLen
-        var at        = 0'u32
-        var count     = 0'u32
+        var at        = 0_u32
+        var count     = 0_u32
         while true
         {
             count = Math.min(remaining, .batchSize)
             .up2(buffer + ResamplerOrderFir12, input + at, count)
-            let maxIndexQ16 = cast(s32, count) << 17
-            written   += .interpolate(out + written, buffer, maxIndexQ16, .invRatioQ16)
+            written   += .interpolate(out + written, buffer, count)
             at        += count
             remaining -= count
             if remaining > 0
             {
-                for i in ResamplerOrderFir12 do
+                for i in ResamplerOrderFir12
+                {
                     buffer[i] = buffer[count * 2 + i]
+                }
             }
             else
             {
@@ -369,8 +538,11 @@ private impl Resampler
             }
         }
 
-        for i in ResamplerOrderFir12 do
+        for i in ResamplerOrderFir12
+        {
             .fir[i] = buffer[count * 2 + i]
+        }
+
         return written
     }
 
@@ -378,12 +550,18 @@ private impl Resampler
     mtd process(out: [*] s16, input: const [*] s16, inLen: u32)->u32
     {
         let samples = .fsInKHz - .inputDelay
-        for i in samples do
+        for i in samples
+        {
             .delay[.inputDelay + i] = input[i]
+        }
+
         var written = .iirFir(out, &.delay[0], .fsInKHz)
         written += .iirFir(out + written, input + samples, inLen - .fsInKHz)
-        for i in .inputDelay do
+        for i in .inputDelay
+        {
             .delay[i] = input[inLen - .inputDelay + i]
+        }
+
         return written
     }
 }
@@ -454,8 +632,11 @@ private impl SilkChannel
     {
         .subfrLength = SubFrameLengthMs * fsKHz
         let frameLength = .nbSubfr * .subfrLength
-        if .fsKHz != fsKHz do
+        if .fsKHz != fsKHz
+        {
             .resampler.initialize(fsKHz * 1000)
+        }
+
         if .fsKHz != fsKHz or frameLength != .frameLength
         {
             if .fsKHz != fsKHz
@@ -487,17 +668,26 @@ private impl SilkChannel
 
     mtd pitchContourIcdf()->const [..] u8
     {
-        if .fsKHz == 8 do
+        if .fsKHz == 8
+        {
             return .nbSubfr == MaxNbSubfr ? SilkPitchContourNbIcdf : SilkPitchContour10MsNbIcdf
+        }
+
         return .nbSubfr == MaxNbSubfr ? SilkPitchContourIcdf : SilkPitchContour10MsIcdf
     }
 
     mtd pitchLagLowBitsIcdf()->const [..] u8
     {
-        if .fsKHz == 16 do
+        if .fsKHz == 16
+        {
             return SilkUniform8Icdf
-        if .fsKHz == 12 do
+        }
+
+        if .fsKHz == 12
+        {
             return SilkUniform6Icdf
+        }
+
         return SilkUniform4Icdf
     }
 
@@ -505,10 +695,15 @@ private impl SilkChannel
     mtd decodeIndices(dec: *RangeDecoder, frameIndex: u32, decodeLbrr: bool, condCoding: u32)
     {
         var ix: s32
-        if decodeLbrr or .vadFlags[frameIndex] do
+        if decodeLbrr or .vadFlags[frameIndex]
+        {
             ix = cast(s32, dec.decodeIcdf(SilkTypeOffsetVadIcdf, 8)) + 2
-        else do
+        }
+        else
+        {
             ix = cast(s32, dec.decodeIcdf(SilkTypeOffsetNoVadIcdf, 8))
+        }
+
         .indices.signalType      = ix >> 1
         .indices.quantOffsetType = ix & 1
 
@@ -522,8 +717,10 @@ private impl SilkChannel
             .indices.gainsIndices[0] += cast(s32, dec.decodeIcdf(SilkUniform8Icdf, 8))
         }
 
-        for i in 1'u32 until .nbSubfr do
+        for i in 1_u32 until .nbSubfr
+        {
             .indices.gainsIndices[i] = cast(s32, dec.decodeIcdf(SilkDeltaGainIcdf, 8))
+        }
 
         let cb        = &.codebook
         let cb1Offset = cast(u32, (.indices.signalType >> 1)) * cb.vectors
@@ -534,17 +731,26 @@ private impl SilkChannel
         for i in cb.order
         {
             var value = cast(s32, dec.decodeIcdf(cb.cb2Icdf()[ecIx[i] until ecIx[i] + 9], 8))
-            if value == 0 do
+            if value == 0
+            {
                 value -= cast(s32, dec.decodeIcdf(SilkNlsfExtIcdf, 8))
-            elif value == 2 * NlsfQuantMaxAmplitude do
+            }
+            else if value == 2 * NlsfQuantMaxAmplitude
+            {
                 value += cast(s32, dec.decodeIcdf(SilkNlsfExtIcdf, 8))
+            }
+
             .indices.nlsfIndices[i + 1] = value - NlsfQuantMaxAmplitude
         }
 
-        if .nbSubfr == MaxNbSubfr do
+        if .nbSubfr == MaxNbSubfr
+        {
             .indices.nlsfInterpCoefQ2 = cast(s32, dec.decodeIcdf(SilkNlsfInterpolationFactorIcdf, 8))
-        else do
+        }
+        else
+        {
             .indices.nlsfInterpCoefQ2 = 4
+        }
 
         if .indices.signalType == TypeVoiced
         {
@@ -571,18 +777,28 @@ private impl SilkChannel
             .indices.perIndex     = cast(s32, dec.decodeIcdf(SilkLtpPerIndexIcdf, 8))
             for k in .nbSubfr
             {
-                if .indices.perIndex == 0 do
+                if .indices.perIndex == 0
+                {
                     .indices.ltpIndex[k] = cast(s32, dec.decodeIcdf(SilkLtpGainIcdf0, 8))
-                elif .indices.perIndex == 1 do
+                }
+                else if .indices.perIndex == 1
+                {
                     .indices.ltpIndex[k] = cast(s32, dec.decodeIcdf(SilkLtpGainIcdf1, 8))
-                else do
+                }
+                else
+                {
                     .indices.ltpIndex[k] = cast(s32, dec.decodeIcdf(SilkLtpGainIcdf2, 8))
+                }
             }
 
-            if condCoding == CodeIndependently do
+            if condCoding == CodeIndependently
+            {
                 .indices.ltpScaleIndex = cast(s32, dec.decodeIcdf(SilkLtpScaleIcdf, 8))
-            else do
+            }
+            else
+            {
                 .indices.ltpScaleIndex = 0
+            }
         }
 
         .ecPrevSignalType = .indices.signalType
@@ -593,7 +809,7 @@ private impl SilkChannel
     {
         let cb = &.codebook
         var at = cb1Index * cb.order / 2
-        var i  = 0'u32
+        var i  = 0_u32
         while i < cb.order
         {
             let entry = cast(u32, cb.selection()[at])
@@ -615,17 +831,22 @@ private impl SilkChannel
         .unpackNlsf(&ecIx[0], &predQ8[0], cast(u32, .indices.nlsfIndices[0]))
 
         var resQ10: [MaxLpcOrder] s32
-        var outQ10 = 0's32
+        var outQ10 = 0_s32
         var i      = cb.order
         while i > 0
         {
             i -= 1
             let predQ10 = smulbb(outQ10, predQ8[i]) >> 8
             outQ10 = .indices.nlsfIndices[i + 1] << 10
-            if outQ10 > 0 do
+            if outQ10 > 0
+            {
                 outQ10 -= NlsfQuantLevelAdjQ10
-            elif outQ10 < 0 do
+            }
+            else if outQ10 < 0
+            {
                 outQ10 += NlsfQuantLevelAdjQ10
+            }
+
             outQ10    = smlawb(predQ10, outQ10, cb.stepQ16)
             resQ10[i] = outQ10
         }
@@ -655,10 +876,14 @@ private impl SilkChannel
             {
                 let delta     = .indices.gainsIndices[k] + MinDeltaGainQuant
                 let threshold = 2 * MaxDeltaGainQuant - NLevelsQGain + .lastGainIndex
-                if delta > threshold do
+                if delta > threshold
+                {
                     .lastGainIndex += (delta << 1) - threshold
-                else do
+                }
+                else
+                {
                     .lastGainIndex += delta
+                }
             }
 
             .lastGainIndex      = Math.clamp(.lastGainIndex, 0, NLevelsQGain - 1)
@@ -669,23 +894,33 @@ private impl SilkChannel
         .decodeNlsf(&nlsfQ15[0])
         nlsfToLpc(&control.predCoefQ12[1, 0], &nlsfQ15[0], .lpcOrder)
 
-        if .firstFrameAfterReset do
+        if .firstFrameAfterReset
+        {
             .indices.nlsfInterpCoefQ2 = 4
+        }
+
         if .indices.nlsfInterpCoefQ2 < 4
         {
             var nlsf0Q15: [MaxLpcOrder] s32
-            for i in .lpcOrder do
+            for i in .lpcOrder
+            {
                 nlsf0Q15[i] = .prevNlsfQ15[i] + ((.indices.nlsfInterpCoefQ2 * (nlsfQ15[i] - .prevNlsfQ15[i])) >> 2)
+            }
+
             nlsfToLpc(&control.predCoefQ12[0, 0], &nlsf0Q15[0], .lpcOrder)
         }
         else
         {
-            for i in .lpcOrder do
+            for i in .lpcOrder
+            {
                 control.predCoefQ12[0, i] = control.predCoefQ12[1, i]
+            }
         }
 
-        for i in .lpcOrder do
+        for i in .lpcOrder
+        {
             .prevNlsfQ15[i] = nlsfQ15[i]
+        }
 
         if .indices.signalType == TypeVoiced
         {
@@ -696,12 +931,19 @@ private impl SilkChannel
                 for i in LtpOrder
                 {
                     var coef: s32
-                    if .indices.perIndex == 0 do
+                    if .indices.perIndex == 0
+                    {
                         coef = cast(s32, SilkLtpGainVq0[ix, i])
-                    elif .indices.perIndex == 1 do
+                    }
+                    else if .indices.perIndex == 1
+                    {
                         coef = cast(s32, SilkLtpGainVq1[ix, i])
-                    else do
+                    }
+                    else
+                    {
                         coef = cast(s32, SilkLtpGainVq2[ix, i])
+                    }
+
                     control.ltpCoefQ14[k * LtpOrder + i] = coef << 7
                 }
             }
@@ -710,10 +952,16 @@ private impl SilkChannel
         }
         else
         {
-            for k in .nbSubfr do
+            for k in .nbSubfr
+            {
                 control.pitchLags[k] = 0
-            for i in LtpOrder * .nbSubfr do
+            }
+
+            for i in LtpOrder * .nbSubfr
+            {
                 control.ltpCoefQ14[i] = 0
+            }
+
             .indices.perIndex   = 0
             control.ltpScaleQ14 = 0
         }
@@ -728,12 +976,17 @@ private impl SilkChannel
         for k in .nbSubfr
         {
             var offset: s32
-            if .fsKHz == 8 do
+            if .fsKHz == 8
+            {
                 offset = .nbSubfr == MaxNbSubfr ? cast(s32, SilkCbLagsStage2[k, contour]) :
                          cast(s32, SilkCbLagsStage2For10Ms[k, contour])
-            else do
+            }
+            else
+            {
                 offset = .nbSubfr == MaxNbSubfr ? cast(s32, SilkCbLagsStage3[k, contour]) :
                          cast(s32, SilkCbLagsStage3For10Ms[k, contour])
+            }
+
             pitchLags[k] = Math.clamp(lag + offset, minLag, maxLag)
         }
     }
@@ -745,8 +998,7 @@ private impl SilkChannel
         var sLtp:    [MaxFrameLength + MaxSubFrameLength] s16
         var sLtpQ15: [2 * MaxFrameLength + MaxSubFrameLength] s32
         var resQ14:  [MaxSubFrameLength] s32
-        var sLpcQ14: [MaxSubFrameLength + MaxLpcOrder] s32
-        var aQ12:    [MaxLpcOrder] s32
+        var sLpcQ14: [MaxLpcOrder] s32
 
         let offsetQ10 = cast(s32,
                              SilkQuantizationOffsetsQ10[
@@ -758,41 +1010,51 @@ private impl SilkChannel
         {
             seed = silkRand(seed)
             var exc = pulses[i] << 14
-            if exc > 0 do
+            if exc > 0
+            {
                 exc -= QuantLevelAdjustQ10 << 4
-            elif exc < 0 do
+            }
+            else if exc < 0
+            {
                 exc += QuantLevelAdjustQ10 << 4
+            }
+
             exc += offsetQ10 << 4
-            if seed < 0 do
+            if seed < 0
+            {
                 exc = -exc
+            }
+
             .excQ14[i] = exc
             seed       = seed + pulses[i]
         }
 
-        for i in MaxLpcOrder do
+        for i in MaxLpcOrder
+        {
             sLpcQ14[i] = .lpcStateQ14[i]
-        var excAt      = 0'u32
-        var outAt      = 0'u32
+        }
+
+        var excAt      = 0_u32
+        var outAt      = 0_u32
         var sLtpBufIdx = .ltpMemLength
         for k in .nbSubfr
         {
-            let coefSet = k >> 1
-            for i in .lpcOrder do
-                aQ12[i] = control.predCoefQ12[coefSet, i]
-            let ltpBase    = k * LtpOrder
-            var signalType = .indices.signalType
-            let gainQ10    = control.gainsQ16[k] >> 6
-            var invGainQ31 = inverse32VarQ(control.gainsQ16[k], 47)
-            var gainAdjQ16 = 1's32 << 16
+            // Both LPC coefficient rows are zero-padded to MaxLpcOrder.
+            let coefficients = cast(const [*] s32, &control.predCoefQ12[k >> 1, 0])
+            let signalType   = .indices.signalType
+            let gainQ10      = control.gainsQ16[k] >> 6
+            var gainAdjQ16   = 1_s32 << 16
             if control.gainsQ16[k] != .prevGainQ16
             {
                 gainAdjQ16 = div32VarQ(.prevGainQ16, control.gainsQ16[k], 16)
-                for i in MaxLpcOrder do
+                for i in MaxLpcOrder
+                {
                     sLpcQ14[i] = smulww(gainAdjQ16, sLpcQ14[i])
+                }
             }
 
             .prevGainQ16 = control.gainsQ16[k]
-            var lag = 0's32
+            var lag = 0_s32
             if signalType == TypeVoiced
             {
                 lag = control.pitchLags[k]
@@ -801,99 +1063,170 @@ private impl SilkChannel
                     let startIdx = cast(s32, .ltpMemLength) - lag - cast(s32, .lpcOrder) - cast(s32, LtpOrder) / 2
                     if k == 2
                     {
-                        for i in 2 * .subfrLength do
-                            .outBuf[.ltpMemLength + i] = out[i]
+                        Memory.copy(&.outBuf[.ltpMemLength], out, 2 * cast(u64, .subfrLength) * #sizeof(s16))
                     }
 
                     .analysisFilter(&sLtp[cast(u32, startIdx)],
                                     &.outBuf[cast(u32, startIdx) + k * .subfrLength],
-                                    &aQ12[0],
+                                    coefficients,
                                     .ltpMemLength - cast(u32, startIdx),
                                     .lpcOrder)
-                    if k == 0 do
+                    var invGainQ31 = inverse32VarQ(control.gainsQ16[k], 47)
+                    if k == 0
+                    {
                         invGainQ31 = smulwb(invGainQ31, control.ltpScaleQ14) << 2
-                    for i in cast(u32, lag) + LtpOrder / 2 do
+                    }
+
+                    for i in cast(u32, lag) + LtpOrder / 2
+                    {
                         sLtpQ15[sLtpBufIdx - i - 1] = smulwb(invGainQ31, cast(s32, sLtp[.ltpMemLength - i - 1]))
+                    }
                 }
-                elif gainAdjQ16 != 1's32 << 16
+                else if gainAdjQ16 != 1_s32 << 16
                 {
-                    for i in cast(u32, lag) + LtpOrder / 2 do
+                    for i in cast(u32, lag) + LtpOrder / 2
+                    {
                         sLtpQ15[sLtpBufIdx - i - 1] = smulww(gainAdjQ16, sLtpQ15[sLtpBufIdx - i - 1])
+                    }
                 }
             }
 
+            let exc = cast(const [*] s32, &.excQ14[0]) + excAt
+            var predictorInput = exc
             if signalType == TypeVoiced
             {
-                var predLag = sLtpBufIdx - cast(u32, lag) + LtpOrder / 2
-                for i in .subfrLength
+                let ltpBase = k * LtpOrder
+                let ltp     = cast([*] s32, &sLtpQ15[0])
+                let res     = cast([*] s32, &resQ14[0])
+                let c0      = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase])))
+                let c1      = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 1])))
+                let c2      = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 2])))
+                let c3      = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 3])))
+                let c4      = Simd.splat(cast(s32, cast #wrap(s16, control.ltpCoefQ14[ltpBase + 4])))
+                let past    = ltp + sLtpBufIdx - cast(u32, lag) - LtpOrder / 2
+                let next    = ltp + sLtpBufIdx
+                for block in .subfrLength / 4
                 {
-                    var pred = 2's32
-                    pred       = smlawb(pred, sLtpQ15[predLag], control.ltpCoefQ14[ltpBase])
-                    pred       = smlawb(pred, sLtpQ15[predLag - 1], control.ltpCoefQ14[ltpBase + 1])
-                    pred       = smlawb(pred, sLtpQ15[predLag - 2], control.ltpCoefQ14[ltpBase + 2])
-                    pred       = smlawb(pred, sLtpQ15[predLag - 3], control.ltpCoefQ14[ltpBase + 3])
-                    pred       = smlawb(pred, sLtpQ15[predLag - 4], control.ltpCoefQ14[ltpBase + 4])
-                    predLag    += 1
-                    resQ14[i]  = .excQ14[excAt + i] + (pred << 1)
-                    sLtpQ15[sLtpBufIdx] = resQ14[i] << 1
-                    sLtpBufIdx += 1
+                    let at   = block * 4
+                    let from = past + at
+                    let pred = 2_s32 + multiplySilkQ16(Simd.load(from + 4), c0) +
+                               multiplySilkQ16(Simd.load(from + 3), c1) +
+                               multiplySilkQ16(Simd.load(from + 2), c2) +
+                               multiplySilkQ16(Simd.load(from + 1), c3) +
+                               multiplySilkQ16(Simd.load(from), c4)
+                    let value = Simd.load(exc + at) + (pred << 1)
+                    Simd.store(res + at, value)
+                    Simd.store(next + at, value << 1)
                 }
-            }
-            else
-            {
-                for i in .subfrLength do
-                    resQ14[i] = .excQ14[excAt + i]
+
+                predictorInput = res
+                sLtpBufIdx     += .subfrLength
             }
 
+            // Keep the eight oldest and eight newest predictor samples in registers.
+            // Each signed product is split at bit 16 before the individually truncated terms are summed.
+            const Reverse = cast(Simd.U16x8, [7_u16, 6, 5, 4, 3, 2, 1, 0])
+            const Ones    = cast(Simd.S16x8, [1_s16, 1, 1, 1, 1, 1, 1, 1])
+            let a0 = Swag.vecShuffle(Simd.packSigned((Simd.load(coefficients) << 16) >> 16,
+                                                     (Simd.load(coefficients + 4) << 16) >> 16),
+                                     Reverse)
+            let a1 = Swag.vecShuffle(Simd.packSigned((Simd.load(coefficients + 8) << 16) >> 16,
+                                                     (Simd.load(coefficients + 12) << 16) >> 16),
+                                     Reverse)
+            let au0       = cast #bit(Simd.U16x8, a0)
+            let au1       = cast #bit(Simd.U16x8, a1)
+            let an0       = a0 < Simd.splat(0_s16)
+            let an1       = a1 < Simd.splat(0_s16)
+            let head      = cast([*] s32, &sLpcQ14[0])
+            let h0        = Simd.load(head)
+            let h1        = Simd.load(head + 4)
+            let h2        = Simd.load(head + 8)
+            let h3        = Simd.load(head + 12)
+            var olderHigh = cast #bit(Simd.U16x8, Simd.packSigned(h0 >> 16, h1 >> 16))
+            var newerHigh = cast #bit(Simd.U16x8, Simd.packSigned(h2 >> 16, h3 >> 16))
+            var olderLow  = Simd.packUnsigned(h0 & 0xFFFF_s32, h1 & 0xFFFF_s32)
+            var newerLow  = Simd.packUnsigned(h2 & 0xFFFF_s32, h3 & 0xFFFF_s32)
+            let bias      = cast(s32, (.lpcOrder >> 1))
             for i in .subfrLength
             {
-                let at   = MaxLpcOrder + i
-                var pred = cast(s32, (.lpcOrder >> 1))
-                pred = smlawb(pred, sLpcQ14[at - 1], aQ12[0])
-                pred = smlawb(pred, sLpcQ14[at - 2], aQ12[1])
-                pred = smlawb(pred, sLpcQ14[at - 3], aQ12[2])
-                pred = smlawb(pred, sLpcQ14[at - 4], aQ12[3])
-                pred = smlawb(pred, sLpcQ14[at - 5], aQ12[4])
-                pred = smlawb(pred, sLpcQ14[at - 6], aQ12[5])
-                pred = smlawb(pred, sLpcQ14[at - 7], aQ12[6])
-                pred = smlawb(pred, sLpcQ14[at - 8], aQ12[7])
-                pred = smlawb(pred, sLpcQ14[at - 9], aQ12[8])
-                pred = smlawb(pred, sLpcQ14[at - 10], aQ12[9])
-                if .lpcOrder == 16
+                let lower0 = lowSilkProduct(newerLow, au0, an0)
+                let lower1 = lowSilkProduct(olderLow, au1, an1)
+                let upper0 = Swag.vecMulAddPairs(cast #bit(Simd.S16x8, newerHigh), a0)
+                let upper1 = Swag.vecMulAddPairs(cast #bit(Simd.S16x8, olderHigh), a1)
+                let pred   = bias + Simd.sum(upper0 + upper1 +
+                                             Swag.vecMulAddPairs(lower0, Ones) +
+                                             Swag.vecMulAddPairs(lower1, Ones))
+
+                // Spelling out the rare saturation cases keeps the predictor
+                // recurrence in signed 32-bit arithmetic on the common path.
+                var shifted = pred << 4
+                if shifted >> 4 != pred
                 {
-                    pred = smlawb(pred, sLpcQ14[at - 11], aQ12[10])
-                    pred = smlawb(pred, sLpcQ14[at - 12], aQ12[11])
-                    pred = smlawb(pred, sLpcQ14[at - 13], aQ12[12])
-                    pred = smlawb(pred, sLpcQ14[at - 14], aQ12[13])
-                    pred = smlawb(pred, sLpcQ14[at - 15], aQ12[14])
-                    pred = smlawb(pred, sLpcQ14[at - 16], aQ12[15])
+                    shifted = lshiftSat32(pred, 4)
                 }
 
-                sLpcQ14[at]    = addSat32(resQ14[i], lshiftSat32(pred, 4))
-                out[outAt + i] = cast(s16, sat16(rshiftRound(smulww(sLpcQ14[at], gainQ10), 8)))
+                let residual = predictorInput[i]
+                var value    = shifted + residual
+                if ((shifted ^ value) & (residual ^ value)) < 0
+                {
+                    value = addSat32(shifted, residual)
+                }
+
+                olderHigh = Simd.align(olderHigh, newerHigh, 2)
+                olderLow  = Simd.align(olderLow, newerLow, 2)
+
+                // Only the first half-word enters each history register.
+                let words = cast #bit (Simd.U16x8, Simd.splat(value))
+                newerHigh      = Simd.align(newerHigh, Simd.align(words, words, 2), 2)
+                newerLow       = Simd.align(newerLow, words, 2)
+                out[outAt + i] = cast(s16, sat16(rshiftRound(smulww(value, gainQ10), 8)))
             }
 
-            for i in MaxLpcOrder do
-                sLpcQ14[i] = sLpcQ14[.subfrLength + i]
+            Simd.store(head, cast #bit(Simd.S32x4, Simd.interleaveLow(olderLow, olderHigh)))
+            Simd.store(head + 4, cast #bit(Simd.S32x4, Simd.interleaveHigh(olderLow, olderHigh)))
+            Simd.store(head + 8, cast #bit(Simd.S32x4, Simd.interleaveLow(newerLow, newerHigh)))
+            Simd.store(head + 12, cast #bit(Simd.S32x4, Simd.interleaveHigh(newerLow, newerHigh)))
             excAt += .subfrLength
             outAt += .subfrLength
         }
 
-        for i in MaxLpcOrder do
+        for i in MaxLpcOrder
+        {
             .lpcStateQ14[i] = sLpcQ14[i]
+        }
     }
 
     // The whitening filter that turns past output into the residual the long-term predictor reads.
     #[Swag.Safety(.Overflow, false)]
     mtd analysisFilter(out: [*] s16, input: const [*] s16, coefficients: const [*] s32, len, order: u32)
     {
-        for j in order do
+        for j in order
+        {
             out[j] = 0
+        }
+
+        const Reverse = cast(Simd.U16x8, [7_u16, 6, 5, 4, 3, 2, 1, 0])
+        let recent = Swag.vecShuffle(Simd.packSigned((Simd.load(coefficients) << 16) >> 16,
+                                                     (Simd.load(coefficients + 4) << 16) >> 16),
+                                     Reverse)
+        let older = Swag.vecShuffle(Simd.packSigned((Simd.load(coefficients + 8) << 16) >> 16,
+                                                    (Simd.load(coefficients + 12) << 16) >> 16),
+                                    Reverse)
         for ix in order until len
         {
-            var acc = smulbb(cast(s32, input[ix - 1]), coefficients[0])
-            for j in 1'u32 until order do
-                acc = acc + smulbb(cast(s32, input[ix - 1 - j]), coefficients[j])
+            let hi = Swag.vecMulAddPairs(Simd.load(input + ix - 8), recent)
+            var acc: s32
+            if order == MaxLpcOrder
+            {
+                acc = Simd.sum(hi + Swag.vecMulAddPairs(Simd.load(input + ix - 16), older))
+            }
+            else
+            {
+                acc = Simd.sum(hi)
+                acc += smulbb(cast(s32, input[ix - 9]), coefficients[8])
+                acc += smulbb(cast(s32, input[ix - 10]), coefficients[9])
+            }
+
             acc     = (cast(s32, input[ix]) << 12) - acc
             out[ix] = cast(s16, sat16(rshiftRound(acc, 12)))
         }
@@ -909,11 +1242,10 @@ private impl SilkChannel
         .decodeParameters(&control, condCoding)
         .decodeCore(&control, out, &pulses[0])
 
-        let keep = .ltpMemLength - .frameLength
-        for i in keep do
-            .outBuf[i] = .outBuf[.frameLength + i]
-        for i in .frameLength do
-            .outBuf[keep + i] = out[i]
+        let keep    = .ltpMemLength - .frameLength
+        let history = cast([*] s16, &.outBuf[0])
+        Memory.copyOverlapping(history, history + .frameLength, cast(u64, keep) * #sizeof(s16))
+        Memory.copy(history + keep, out, cast(u64, .frameLength) * #sizeof(s16))
         .prevSignalType       = .indices.signalType
         .firstFrameAfterReset = false
         .lagPrev              = control.pitchLags[.nbSubfr - 1]
@@ -926,8 +1258,10 @@ private func decodeSilkPulses(dec: *RangeDecoder, pulses: [*] s32, signalType, q
 {
     let rateLevel = dec.decodeIcdf(SilkRateLevelsIcdf[cast(u32, (signalType >> 1))], 8)
     var iter      = frameLength >> 4
-    if iter * ShellCodecFrameLength < frameLength do
+    if iter * ShellCodecFrameLength < frameLength
+    {
         iter += 1
+    }
 
     var sumPulses: [MaxNbShellBlocks] u32
     var shifts:    [MaxNbShellBlocks] u32
@@ -939,7 +1273,7 @@ private func decodeSilkPulses(dec: *RangeDecoder, pulses: [*] s32, signalType, q
         {
             shifts[i] += 1
             let table = SilkPulsesPerBlockIcdf[NRateLevels - 1]
-            let from  = shifts[i] == 10 ? 1'u32 : 0
+            let from  = shifts[i] == 10 ? 1_u32 : 0
             sumPulses[i] = dec.decodeIcdf(table[from until 18], 8)
         }
     }
@@ -953,8 +1287,10 @@ private func decodeSilkPulses(dec: *RangeDecoder, pulses: [*] s32, signalType, q
         }
         else
         {
-            for k in ShellCodecFrameLength do
+            for k in ShellCodecFrameLength
+            {
                 pulses[base + k] = 0
+            }
         }
     }
 
@@ -993,8 +1329,10 @@ private func decodeSilkPulses(dec: *RangeDecoder, pulses: [*] s32, signalType, q
             let base = i * ShellCodecFrameLength
             for j in ShellCodecFrameLength where pulses[base + j] > 0
             {
-                if dec.decodeIcdf(icdf, 8) == 0 do
+                if dec.decodeIcdf(icdf, 8) == 0
+                {
                     pulses[base + j] = -pulses[base + j]
+                }
             }
         }
     }
@@ -1036,8 +1374,10 @@ private func shellDecode(pulses: [*] s32, dec: *RangeDecoder, total: u32)
     shellSplit(dec, p2[3], SilkShellCodeTable1, &p1[6], &p1[7])
     shellSplit(dec, p1[6], SilkShellCodeTable0, &p0[12], &p0[13])
     shellSplit(dec, p1[7], SilkShellCodeTable0, &p0[14], &p0[15])
-    for i in 16 do
+    for i in 16
+    {
         pulses[i] = cast(s32, p0[i])
+    }
 }
 
 // Keeps the line spectral frequencies ordered and apart by their minimum spacing.
@@ -1047,8 +1387,8 @@ private func stabilizeNlsf(nlsfQ15: [*] s32, deltaMinQ15: const [..] s16, order:
     for MaxLoops
     {
         var minDiff = nlsfQ15[0] - cast(s32, deltaMinQ15[0])
-        var worst   = 0'u32
-        for i in 1'u32 until order
+        var worst   = 0_u32
+        for i in 1_u32 until order
         {
             let diff = nlsfQ15[i] - (nlsfQ15[i - 1] + cast(s32, deltaMinQ15[i]))
             if diff < minDiff
@@ -1065,24 +1405,29 @@ private func stabilizeNlsf(nlsfQ15: [*] s32, deltaMinQ15: const [..] s16, order:
             worst   = order
         }
 
-        if minDiff >= 0 do
+        if minDiff >= 0
+        {
             return
+        }
 
         if worst == 0
         {
             nlsfQ15[0] = cast(s32, deltaMinQ15[0])
         }
-        elif worst == order
+        else if worst == order
         {
             nlsfQ15[last] = (1 << 15) - cast(s32, deltaMinQ15[order])
         }
         else
         {
-            var minCenter = 0's32
-            for k in worst do
+            var minCenter = 0_s32
+            for k in worst
+            {
                 minCenter += cast(s32, deltaMinQ15[k])
+            }
+
             minCenter += cast(s32, deltaMinQ15[worst]) >> 1
-            var maxCenter = 1's32 << 15
+            var maxCenter = 1_s32 << 15
             var k         = order
             while k > worst
             {
@@ -1098,7 +1443,7 @@ private func stabilizeNlsf(nlsfQ15: [*] s32, deltaMinQ15: const [..] s16, order:
     }
 
     // Too many corrections: sort, then push every value away from its neighbours.
-    for i in 1'u32 until order
+    for i in 1_u32 until order
     {
         let value = nlsfQ15[i]
         var j     = cast(s32, i) - 1
@@ -1112,8 +1457,11 @@ private func stabilizeNlsf(nlsfQ15: [*] s32, deltaMinQ15: const [..] s16, order:
     }
 
     nlsfQ15[0] = Math.max(nlsfQ15[0], cast(s32, deltaMinQ15[0]))
-    for i in 1'u32 until order do
+    for i in 1_u32 until order
+    {
         nlsfQ15[i] = Math.max(nlsfQ15[i], Math.min(nlsfQ15[i - 1] + cast(s32, deltaMinQ15[i]), 32767))
+    }
+
     nlsfQ15[last] = Math.min(nlsfQ15[last], (1 << 15) - cast(s32, deltaMinQ15[order]))
     var i = last
     while i > 0
@@ -1126,9 +1474,9 @@ private func stabilizeNlsf(nlsfQ15: [*] s32, deltaMinQ15: const [..] s16, order:
 #[Swag.Safety(.Overflow, false)]
 private func nlsfPolynomial(out: [*] s32, cosLsf: const [*] s32, dd: u32)
 {
-    out[0] = 1's32 << NlsfQA
+    out[0] = 1_s32 << NlsfQA
     out[1] = -cosLsf[0]
-    for k in 1'u32 until dd
+    for k in 1_u32 until dd
     {
         let ftmp = cosLsf[2 * k]
         out[k + 1] = (out[k - 1] << 1) - cast(s32, rshiftRound64(cast(s64, ftmp) * cast(s64, out[k]), NlsfQA))
@@ -1173,12 +1521,15 @@ private func nlsfToLpc(aQ12: [*] s32, nlsf: const [*] s32, order: u32)
     }
 
     lpcFit(aQ12, &a32[0], 12, NlsfQA + 1, order)
-    var i = 0'u32
+    var i = 0_u32
     while i < MaxLpcStabilizeIterations and inversePredictionGain(aQ12, order) == 0
     {
         bandwidthExpand32(&a32[0], order, 65536 - (2 << i))
-        for k in order do
+        for k in order
+        {
             aQ12[k] = rshiftRound(a32[k], NlsfQA + 1 - 12)
+        }
+
         i += 1
     }
 }
@@ -1201,11 +1552,11 @@ private func bandwidthExpand32(ar: [*] s32, order: u32, chirpIn: s32)
 #[Swag.Safety(.Overflow, false)]
 private func lpcFit(aOut: [*] s32, aIn: [*] s32, qOut, qIn, order: u32)
 {
-    var iterations = 0'u32
-    var index      = 0'u32
+    var iterations = 0_u32
+    var index      = 0_u32
     while iterations < 10
     {
-        var maxAbs = 0's32
+        var maxAbs = 0_s32
         for k in order
         {
             let value = Math.abs(aIn[k])
@@ -1217,8 +1568,11 @@ private func lpcFit(aOut: [*] s32, aIn: [*] s32, qOut, qIn, order: u32)
         }
 
         maxAbs = rshiftRound(maxAbs, qIn - qOut)
-        if maxAbs <= 32767 do
+        if maxAbs <= 32767
+        {
             break
+        }
+
         maxAbs = Math.min(maxAbs, 163838)
         let chirpQ16 = 65470 - (((maxAbs - 32767) << 14) / ((maxAbs * cast(s32, (index + 1))) >> 2))
         bandwidthExpand32(aIn, order, chirpQ16)
@@ -1235,8 +1589,10 @@ private func lpcFit(aOut: [*] s32, aIn: [*] s32, qOut, qIn, order: u32)
     }
     else
     {
-        for k in order do
+        for k in order
+        {
             aOut[k] = rshiftRound(aIn[k], qIn - qOut)
+        }
     }
 }
 
@@ -1245,27 +1601,35 @@ private func lpcFit(aOut: [*] s32, aIn: [*] s32, qOut, qIn, order: u32)
 private func inversePredictionGain(aQ12: const [*] s32, order: u32)->s32
 {
     var aQA: [MaxLpcOrder] s32
-    var dcResponse = 0's32
+    var dcResponse = 0_s32
     for k in order
     {
         dcResponse += aQ12[k]
         aQA[k]     = aQ12[k] << (LpcQA - 12)
     }
 
-    if dcResponse >= 4096 do
+    if dcResponse >= 4096
+    {
         return 0
+    }
 
-    var invGainQ30 = 1's32 << 30
+    var invGainQ30 = 1_s32 << 30
     var k = order - 1
     while k > 0
     {
-        if aQA[k] > LpcALimit or aQA[k] < -LpcALimit do
+        if aQA[k] > LpcALimit or aQA[k] < -LpcALimit
+        {
             return 0
+        }
+
         let rcQ31      = -(aQA[k] << (31 - LpcQA))
-        let rcMult1Q30 = (1's32 << 30) - smmul(rcQ31, rcQ31)
+        let rcMult1Q30 = (1_s32 << 30) - smmul(rcQ31, rcQ31)
         invGainQ30 = smmul(invGainQ30, rcMult1Q30) << 2
-        if invGainQ30 < MaxPredictionPowerGainQ30 do
+        if invGainQ30 < MaxPredictionPowerGainQ30
+        {
             return 0
+        }
+
         let mult2Q  = 32 - clz32(Math.abs(rcMult1Q30))
         let rcMult2 = inverse32VarQ(rcMult1Q30, cast(u32, mult2Q) + 30)
         for n in (k + 1) >> 1
@@ -1277,29 +1641,41 @@ private func inversePredictionGain(aQ12: const [*] s32, order: u32)->s32
                                                     cast(s32, rshiftRound64(cast(s64, tmp2) * cast(s64, rcQ31), 31)))) *
                                       cast(s64, rcMult2),
                                       cast(u32, mult2Q))
-            if first > 2147483647 or first < -2147483648 do
+            if first > 2147483647 or first < -2147483648
+            {
                 return 0
+            }
+
             aQA[n] = cast(s32, first)
             let second = rshiftRound64(cast(s64,
                                             subSat32(tmp2,
                                                      cast(s32, rshiftRound64(cast(s64, tmp1) * cast(s64, rcQ31), 31)))) *
                                        cast(s64, rcMult2),
                                        cast(u32, mult2Q))
-            if second > 2147483647 or second < -2147483648 do
+            if second > 2147483647 or second < -2147483648
+            {
                 return 0
+            }
+
             aQA[k - n - 1] = cast(s32, second)
         }
 
         k -= 1
     }
 
-    if aQA[0] > LpcALimit or aQA[0] < -LpcALimit do
+    if aQA[0] > LpcALimit or aQA[0] < -LpcALimit
+    {
         return 0
+    }
+
     let rcQ31      = -(aQA[0] << (31 - LpcQA))
-    let rcMult1Q30 = (1's32 << 30) - smmul(rcQ31, rcQ31)
+    let rcMult1Q30 = (1_s32 << 30) - smmul(rcQ31, rcQ31)
     invGainQ30 = smmul(invGainQ30, rcMult1Q30) << 2
-    if invGainQ30 < MaxPredictionPowerGainQ30 do
+    if invGainQ30 < MaxPredictionPowerGainQ30
+    {
         return 0
+    }
+
     return invGainQ30
 }
 
@@ -1313,8 +1689,8 @@ internal struct SilkDecoder
     sMid:                 [2] s16
     sSide:                [2] s16
     prevDecodeOnlyMiddle: bool
-    scratch:              [2] Array's16     // Internal-rate output of each channel with the two-sample stereo history.
-    resampled:            Array's16         // One channel at 48 kHz.
+    scratch:              [2] Array!{s16}     // Internal-rate output of each channel with the two-sample stereo history.
+    resampled:            Array!{s16}         // One channel at 48 kHz.
 }
 
 internal impl SilkDecoder
@@ -1336,8 +1712,11 @@ internal impl SilkDecoder
 
     mtd reset()
     {
-        for c in 2 do
+        for c in 2
+        {
             .channels[c].reset()
+        }
+
         .internalChannels     = 0
         .predPrevQ13[0]       = 0
         .predPrevQ13[1]       = 0
@@ -1387,7 +1766,7 @@ internal impl SilkDecoder
         var pred0Q13 = .predPrevQ13[0]
         var pred1Q13 = .predPrevQ13[1]
         let interp   = StereoInterpLenMs * fsKHz
-        let denomQ16 = (1's32 << 16) / cast(s32, interp)
+        let denomQ16 = (1_s32 << 16) / cast(s32, interp)
         let delta0   = rshiftRound(smulbb(predQ13[0] - .predPrevQ13[0], denomQ16), 16)
         let delta1   = rshiftRound(smulbb(predQ13[1] - .predPrevQ13[1], denomQ16), 16)
         for n in interp
@@ -1432,12 +1811,16 @@ internal impl SilkDecoder
     {
         if newPacket
         {
-            for n in internalChannels do
+            for n in internalChannels
+            {
                 .channels[n].nFramesDecoded = 0
+            }
         }
 
-        if internalChannels > .internalChannels do
+        if internalChannels > .internalChannels
+        {
             .channels[1].reset()
+        }
 
         if .channels[0].nFramesDecoded == 0
         {
@@ -1467,8 +1850,11 @@ internal impl SilkDecoder
                 }
 
                 let fsKHz = (internalRate >> 10) + 1
-                if fsKHz != 8 and fsKHz != 12 and fsKHz != 16 do
+                if fsKHz != 8 and fsKHz != 12 and fsKHz != 16
+                {
                     fail InvalidFormatError{"Opus SILK sampling rate is not one the layer supports"}
+                }
+
                 channel.setSampleRate(fsKHz)
             }
         }
@@ -1491,16 +1877,22 @@ internal impl SilkDecoder
             for n in internalChannels
             {
                 var channel = &.channels[n]
-                for i in channel.nFramesPerPacket do
+                for i in channel.nFramesPerPacket
+                {
                     channel.vadFlags[i] = dec.decodeBit(1)
+                }
+
                 channel.lbrrFlag = dec.decodeBit(1)
             }
 
             for n in internalChannels
             {
                 var channel = &.channels[n]
-                for i in 3 do
+                for i in 3
+                {
                     channel.lbrrFlags[i] = false
+                }
+
                 if channel.lbrrFlag
                 {
                     if channel.nFramesPerPacket == 1
@@ -1511,8 +1903,10 @@ internal impl SilkDecoder
                     {
                         let symbol = (channel.nFramesPerPacket == 2 ? dec.decodeIcdf(SilkLbrrFlags2Icdf, 8) :
                                       dec.decodeIcdf(SilkLbrrFlags3Icdf, 8)) + 1
-                        for i in channel.nFramesPerPacket do
+                        for i in channel.nFramesPerPacket
+                        {
                             channel.lbrrFlags[i] = ((symbol >> i) & 1) != 0
+                        }
                     }
                 }
             }
@@ -1530,8 +1924,10 @@ internal impl SilkDecoder
                         if internalChannels == 2 and n == 0
                         {
                             .decodeStereoPrediction(dec, &predQ13[0])
-                            if not .channels[1].lbrrFlags[i] do
+                            if not .channels[1].lbrrFlags[i]
+                            {
                                 discard dec.decodeIcdf(SilkStereoOnlyCodeMidIcdf, 8)
+                            }
                         }
 
                         let condCoding = i > 0 and channel.lbrrFlags[i - 1] ? CodeConditionally : CodeIndependently
@@ -1549,8 +1945,10 @@ internal impl SilkDecoder
         if internalChannels == 2
         {
             .decodeStereoPrediction(dec, &predQ13[0])
-            if not .channels[1].vadFlags[.channels[0].nFramesDecoded] do
+            if not .channels[1].vadFlags[.channels[0].nFramesDecoded]
+            {
                 decodeOnlyMiddle = dec.decodeIcdf(SilkStereoOnlyCodeMidIcdf, 8) != 0
+            }
         }
 
         if internalChannels == 2 and not decodeOnlyMiddle and .prevDecodeOnlyMiddle
@@ -1573,16 +1971,23 @@ internal impl SilkDecoder
             {
                 var condCoding = CodeConditionally
                 let frameIndex = cast(s32, .channels[0].nFramesDecoded) - cast(s32, n)
-                if frameIndex <= 0 do
+                if frameIndex <= 0
+                {
                     condCoding = CodeIndependently
-                elif n > 0 and .prevDecodeOnlyMiddle do
+                }
+                else if n > 0 and .prevDecodeOnlyMiddle
+                {
                     condCoding = CodeIndependentlyNoLtpScaling
+                }
+
                 .channels[n].decodeFrame(dec, target, condCoding)
             }
             else
             {
-                for i in frameLength do
+                for i in frameLength
+                {
                     target[i] = 0
+                }
             }
 
             .channels[n].nFramesDecoded += 1
@@ -1605,29 +2010,31 @@ internal impl SilkDecoder
         // Every channel goes through its own resampler to 48 kHz; a mono stream on a stereo
         // output plays on both sides.
         let outSamples = frameLength * OutputRate / (.channels[0].fsKHz * 1000)
-        let resampled  = .resampled.storage()
+        let resampled  = .apiChannels == 2 ? .resampled.storage() : out
         for n in Math.min(.apiChannels, internalChannels)
         {
             let source = .scratch[n].storage() + 1
             let count  = .channels[n].resampler.process(resampled, source, frameLength)
-            if count != outSamples do
+            if count != outSamples
+            {
                 fail InvalidFormatError{"Opus SILK resampler produced an unexpected sample count"}
+            }
+
             if .apiChannels == 2
             {
-                for i in outSamples do
+                for i in outSamples
+                {
                     out[n + 2 * i] = resampled[i]
-            }
-            else
-            {
-                for i in outSamples do
-                    out[i] = resampled[i]
+                }
             }
         }
 
         if .apiChannels == 2 and internalChannels == 1
         {
-            for i in outSamples do
+            for i in outSamples
+            {
                 out[1 + 2 * i] = out[2 * i]
+            }
         }
 
         .prevDecodeOnlyMiddle = decodeOnlyMiddle

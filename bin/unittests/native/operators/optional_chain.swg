@@ -48,8 +48,10 @@ var g_optChainOther: OptChainNode
 
 func optChainGet(use: bool)->*OptChainNode?
 {
-    if use do
+    if use
+    {
         return &g_optChainNode
+    }
     return null
 }
 
@@ -110,8 +112,10 @@ func optChainTwoLinks(use: bool)->s32
 // A '?.' chain used as a condition.
 func optChainCondition(use: bool)->bool
 {
-    if optChainGet(use)?.next do
+    if optChainGet(use)?.next
+    {
         return true
+    }
     return false
 }
 
@@ -124,8 +128,10 @@ func optChainInterface(itf: IOptChain?)->s32
 // A redundant '?.' inside a narrowed region stays valid.
 func optChainNarrowedRedundant(p: *OptChainNode?)->s32
 {
-    if p == null do
+    if p == null
+    {
         return -1
+    }
     return p?.value orelse -2
 }
 

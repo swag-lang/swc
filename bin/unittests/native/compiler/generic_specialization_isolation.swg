@@ -21,7 +21,7 @@ struct(T, Pad: s32 = #sizeof(T) + 1) GenericIsolationEntry
 struct(T, Pad: s32 = #sizeof(T) + 1) GenericIsolationStore
 {
     salt:    u64
-    entries: [2] GenericIsolationEntry'(T, Pad)
+    entries: [2] GenericIsolationEntry!{T, Pad}
 }
 
 impl GenericIsolationStore
@@ -53,9 +53,9 @@ impl GenericIsolationStore
     }
 
     #[Swag.NoInline]
-    mtd const snapshot(index: s32)->GenericIsolationEntry'(T, Pad)
+    mtd const snapshot(index: s32)->GenericIsolationEntry!{T, Pad}
     {
-        let entry: GenericIsolationEntry'(T, Pad) = .entries[index]
+        let entry: GenericIsolationEntry!{T, Pad} = .entries[index]
         return entry
     }
 
@@ -67,13 +67,13 @@ impl GenericIsolationStore
 }
 
 #[Swag.NoInline]
-func(T, const Pad: s32) cloneEntry(store: const *GenericIsolationStore'(T, Pad), index: s32)->GenericIsolationEntry'(T, Pad)
+func(T, const Pad: s32) cloneEntry(store: const *GenericIsolationStore!{T, Pad}, index: s32)->GenericIsolationEntry!{T, Pad}
 {
     return store.snapshot(index)
 }
 
 #[Swag.NoInline]
-func(T, const Pad: s32) readValue(store: const *GenericIsolationStore'(T, Pad), index: s32)->T
+func(T, const Pad: s32) readValue(store: const *GenericIsolationStore!{T, Pad}, index: s32)->T
 {
     let entry = store.snapshot(index)
     return entry.value
@@ -81,14 +81,14 @@ func(T, const Pad: s32) readValue(store: const *GenericIsolationStore'(T, Pad), 
 
 #test
 {
-    #assert(#sizeof(GenericIsolationEntry's32) != #sizeof(GenericIsolationEntry'(s32, 9)))
-    #assert(#sizeof(GenericIsolationEntry's32) != #sizeof(GenericIsolationEntry'string))
-    #assert(#sizeof(GenericIsolationEntry'GenericIsolationWide) != #sizeof(GenericIsolationEntry's32))
+    #assert(#sizeof(GenericIsolationEntry!{s32}) != #sizeof(GenericIsolationEntry!{s32, 9}))
+    #assert(#sizeof(GenericIsolationEntry!{s32}) != #sizeof(GenericIsolationEntry!{string}))
+    #assert(#sizeof(GenericIsolationEntry!{GenericIsolationWide}) != #sizeof(GenericIsolationEntry!{s32}))
 
-    var intsDefault: GenericIsolationStore's32
-    var intsWide:    GenericIsolationStore'(s32, 9)
-    var texts:       GenericIsolationStore'string = {entries: [{value: ""}, {value: ""}]}
-    var wides:       GenericIsolationStore'GenericIsolationWide
+    var intsDefault: GenericIsolationStore!{s32}
+    var intsWide:    GenericIsolationStore!{s32, 9}
+    var texts:       GenericIsolationStore!{string} = {entries: [{value: ""}, {value: ""}]}
+    var wides:       GenericIsolationStore!{GenericIsolationWide}
 
     intsDefault.salt = 100
     intsWide.salt    = 200
@@ -107,39 +107,39 @@ func(T, const Pad: s32) readValue(store: const *GenericIsolationStore'(T, Pad), 
 
     Swag.require(texts.get(0) == "alpha")
     Swag.require(texts.get(1) == "beta")
-    Swag.require(texts.lead(0) == 10'u8)
-    Swag.require(texts.trail(1) == 13'u8)
+    Swag.require(texts.lead(0) == 10_u8)
+    Swag.require(texts.trail(1) == 13_u8)
     Swag.require(texts.checksum(0) == 321)
 
     Swag.require(intsDefault.get(0) == 42)
     Swag.require(intsDefault.get(1) == -7)
-    Swag.require(intsDefault.lead(1) == 22'u8)
-    Swag.require(intsDefault.trail(0) == 21'u8)
+    Swag.require(intsDefault.lead(1) == 22_u8)
+    Swag.require(intsDefault.trail(0) == 21_u8)
     Swag.require(intsDefault.checksum(1) == 145)
 
     Swag.require(intsWide.get(0) == -99)
     Swag.require(intsWide.get(1) == 1234)
-    Swag.require(intsWide.lead(0) == 40'u8)
-    Swag.require(intsWide.trail(1) == 43'u8)
+    Swag.require(intsWide.lead(0) == 40_u8)
+    Swag.require(intsWide.trail(1) == 43_u8)
     Swag.require(intsWide.checksum(0) == 281)
 
     let wide0 = wides.get(0)
     let wide1 = wides.get(1)
     Swag.require(wide0.first == 77)
-    Swag.require(wide0.second == 7'u8)
+    Swag.require(wide0.second == 7_u8)
     Swag.require(wide1.first == 88)
-    Swag.require(wide1.second == 8'u8)
-    Swag.require(wides.lead(0) == 30'u8)
-    Swag.require(wides.trail(1) == 33'u8)
+    Swag.require(wide1.second == 8_u8)
+    Swag.require(wides.lead(0) == 30_u8)
+    Swag.require(wides.trail(1) == 33_u8)
     Swag.require(wides.checksum(1) == 465)
 }
 
 #test
 {
-    var intsDefault: GenericIsolationStore's32
-    var intsWide:    GenericIsolationStore'(s32, 9)
-    var texts:       GenericIsolationStore'string = {entries: [{value: ""}, {value: ""}]}
-    var wides:       GenericIsolationStore'GenericIsolationWide
+    var intsDefault: GenericIsolationStore!{s32}
+    var intsWide:    GenericIsolationStore!{s32, 9}
+    var texts:       GenericIsolationStore!{string} = {entries: [{value: ""}, {value: ""}]}
+    var wides:       GenericIsolationStore!{GenericIsolationWide}
 
     intsDefault.write(0, 5, 1, 2)
     texts.write(0, "left", 3, 4)
@@ -151,45 +151,45 @@ func(T, const Pad: s32) readValue(store: const *GenericIsolationStore'(T, Pad), 
     wides.write(1, makeGenericIsolationWide(11, 12), 13, 14)
     intsWide.write(1, 88, 17, 18)
 
-    let intEntry     = cloneEntry'(s32, #sizeof(s32) + 1)(&intsDefault, 1)
-    let intWideEntry = cloneEntry'(s32, 9)(&intsWide, 0)
-    let textEntry    = cloneEntry'(string, #sizeof(string) + 1)(&texts, 0)
-    let wideEntry    = cloneEntry'(GenericIsolationWide, #sizeof(GenericIsolationWide) + 1)(&wides, 1)
+    let intEntry     = cloneEntry!{s32, #sizeof(s32) + 1}(&intsDefault, 1)
+    let intWideEntry = cloneEntry!{s32, 9}(&intsWide, 0)
+    let textEntry    = cloneEntry!{string, #sizeof(string) + 1}(&texts, 0)
+    let wideEntry    = cloneEntry!{GenericIsolationWide, #sizeof(GenericIsolationWide) + 1}(&wides, 1)
 
-    let intValue     = readValue'(s32, #sizeof(s32) + 1)(&intsDefault, 0)
-    let intWideValue = readValue'(s32, 9)(&intsWide, 1)
-    let textValue    = readValue'(string, #sizeof(string) + 1)(&texts, 1)
-    let wideValue    = readValue'(GenericIsolationWide, #sizeof(GenericIsolationWide) + 1)(&wides, 0)
+    let intValue     = readValue!{s32, #sizeof(s32) + 1}(&intsDefault, 0)
+    let intWideValue = readValue!{s32, 9}(&intsWide, 1)
+    let textValue    = readValue!{string, #sizeof(string) + 1}(&texts, 1)
+    let wideValue    = readValue!{GenericIsolationWide, #sizeof(GenericIsolationWide) + 1}(&wides, 0)
 
-    #assert(#typeof(intEntry) == GenericIsolationEntry's32)
-    #assert(#typeof(intWideEntry) == GenericIsolationEntry'(s32, 9))
-    #assert(#typeof(textEntry) == GenericIsolationEntry'string)
-    #assert(#typeof(wideEntry) == GenericIsolationEntry'GenericIsolationWide)
+    #assert(#typeof(intEntry) == GenericIsolationEntry!{s32})
+    #assert(#typeof(intWideEntry) == GenericIsolationEntry!{s32, 9})
+    #assert(#typeof(textEntry) == GenericIsolationEntry!{string})
+    #assert(#typeof(wideEntry) == GenericIsolationEntry!{GenericIsolationWide})
     #assert(#typeof(intValue) == s32)
     #assert(#typeof(intWideValue) == s32)
     #assert(#typeof(textValue) == string)
     #assert(#typeof(wideValue) == GenericIsolationWide)
 
     Swag.require(intEntry.value == 6)
-    Swag.require(intEntry.leading[4] == 9'u8)
-    Swag.require(intEntry.trailing[5] == 10'u8)
+    Swag.require(intEntry.leading[4] == 9_u8)
+    Swag.require(intEntry.trailing[5] == 10_u8)
 
     Swag.require(intWideEntry.value == 77)
-    Swag.require(intWideEntry.leading[8] == 15'u8)
-    Swag.require(intWideEntry.trailing[9] == 16'u8)
+    Swag.require(intWideEntry.leading[8] == 15_u8)
+    Swag.require(intWideEntry.trailing[9] == 16_u8)
 
     Swag.require(textEntry.value == "left")
-    Swag.require(texts.lead(0) == 3'u8)
-    Swag.require(texts.trail(1) == 8'u8)
+    Swag.require(texts.lead(0) == 3_u8)
+    Swag.require(texts.trail(1) == 8_u8)
 
     Swag.require(wideEntry.value.first == 11)
-    Swag.require(wideEntry.value.second == 12'u8)
-    Swag.require(wides.lead(1) == 13'u8)
-    Swag.require(wides.trail(0) == 6'u8)
+    Swag.require(wideEntry.value.second == 12_u8)
+    Swag.require(wides.lead(1) == 13_u8)
+    Swag.require(wides.trail(0) == 6_u8)
 
     Swag.require(intValue == 5)
     Swag.require(intWideValue == 88)
     Swag.require(textValue == "right")
     Swag.require(wideValue.first == 9)
-    Swag.require(wideValue.second == 10'u8)
+    Swag.require(wideValue.second == 10_u8)
 }

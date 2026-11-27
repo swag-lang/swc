@@ -160,11 +160,13 @@
 // Exhaustion fails instead of creating resources that cannot be retired after device loss.
 #test
 {
-    var generations: Array'TextureGeneration
+    var generations: Array!{TextureGeneration}
     defer
     {
-        for index in generations.count do
+        for index in generations.count
+        {
             generations[index].release()
+        }
     }
 
     for expectedCount in 1 until TextureGenerationSlots
@@ -174,8 +176,10 @@
     }
 
     Swag.require(generations.count == TextureGenerationSlots - 1)
-    for generation in generations do
+    for generation in generations
+    {
         Swag.require(generation.isCurrent())
+    }
 
     var exhausted: Swag.Error
     catch { discard try TextureGeneration.claim() } as exhausted

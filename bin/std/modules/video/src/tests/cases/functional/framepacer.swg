@@ -8,7 +8,7 @@ using Swag, Core.Errors, Audio
 {
     let rate  = expect FrameRate.create(30_000, 1_001)
     var pacer = expect FramePacer.create(rate, 1_000_000_000, 90_000)
-    const Start = 1_000_000_000_000'u64
+    const Start = 1_000_000_000_000_u64
     var slot: FrameSlot
     Swag.require(expect pacer.tryAccept(Start, &slot))
     Swag.require(slot.index == 0 and slot.decodeTime == 0 and slot.duration == 3003)
@@ -19,10 +19,10 @@ using Swag, Core.Errors, Audio
     Swag.require(slot.index == 1 and slot.decodeTime == 3003 and slot.duration == 3003)
     Swag.require(expect pacer.tryAccept(Start + 100_100_000, &slot))
     Swag.require(slot.index == 3 and slot.decodeTime == 9009 and slot.skippedFrames == 1)
-    Swag.require(expect pacer.tryAccept(Start + 4'u64 * 60 * 60 * 1_000_000_000, &slot))
+    Swag.require(expect pacer.tryAccept(Start + 4_u64 * 60 * 60 * 1_000_000_000, &slot))
     Swag.require(slot.index == 431_568 and slot.decodeTime == slot.index * 3003)
     Swag.require(slot.duration == 3003 and slot.skippedFrames == 431_564)
-    Swag.require(expect pacer.tryAccept(Start + 10'u64 * 24 * 60 * 60 * 1_000_000_000, &slot))
+    Swag.require(expect pacer.tryAccept(Start + 10_u64 * 24 * 60 * 60 * 1_000_000_000, &slot))
     Swag.require(slot.index == 25_894_105 and slot.decodeTime == slot.index * 3003)
 }
 

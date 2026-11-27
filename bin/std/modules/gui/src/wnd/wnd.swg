@@ -317,7 +317,7 @@ struct Wnd
         // The list is maintained by the window itself: attach through [[Gui.Wnd.setParent]] and
         // detach through [[Gui.Wnd.detachChild]] so parent, surface, style, and layout state stay
         // consistent.
-        readonly children: Array'(*Wnd)
+        readonly children: Array!{*Wnd}
 
         name:      RichString     // Display text with optional rich spans.
         accessKey: rune = 0       // Case-insensitive access key; zero means none, and Alt mode reveals its underline.
@@ -327,8 +327,8 @@ struct Wnd
         cursor:  Cursor     // Cursor requested while the pointer is over this window.
         toolTip: String     // Plain tooltip text; empty disables the tooltip.
 
-        keyShortcuts: Array'KeyShortcut     // Key combinations routed from this subtree.
-        actions:      Array'IActionUI       // Command actions exposed or consumed by this window.
+        keyShortcuts: Array!{KeyShortcut}     // Key combinations routed from this subtree.
+        actions:      Array!{IActionUI}       // Command actions exposed or consumed by this window.
 
         margin:      Math.Vector4           // Left, top, right, and bottom spacing outside the window.
         padding:     Math.Vector4           // Left, top, right, and bottom inset of the client area.
@@ -367,12 +367,12 @@ struct Wnd
         backdrop: BackdropEffect = {opacity: 0}
     }
 
-    tabSequence:      u64      // Attachment order among siblings, independent of paint order.
-    nextTabSequence:  u64      // Attachment order to assign to the next child.
-    releasingFocus:   bool     // Excludes this subtree while it hands the keyboard off.
-    isAllocated:      bool     // Whether destruction must release this allocation.
-    paintsWhenHidden: bool     // Whether a transition keeps this logically hidden subtree in the paint order.
-    paintsBehindSiblings: bool // Whether the hidden subtree is the outgoing page behind its replacement.
+    tabSequence:          u64      // Attachment order among siblings, independent of paint order.
+    nextTabSequence:      u64      // Attachment order to assign to the next child.
+    releasingFocus:       bool     // Excludes this subtree while it hands the keyboard off.
+    isAllocated:          bool     // Whether destruction must release this allocation.
+    paintsWhenHidden:     bool     // Whether a transition keeps this logically hidden subtree in the paint order.
+    paintsBehindSiblings: bool     // Whether the hidden subtree is the outgoing page behind its replacement.
 
     // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
     // writing it from outside would desynchronize the pass from the tree.
@@ -461,12 +461,16 @@ impl IWnd for Wnd
             .itf.onFocusEvent(ptr)
 
         case CommandEvent as ptr:
-            if not .executeAction(ptr) do
+            if not .executeAction(ptr)
+            {
                 .itf.onCommandEvent(ptr)
+            }
 
         case CommandStateEvent as ptr where ptr.kind == .Compute:
-            if not .updateAction(ptr) do
+            if not .updateAction(ptr)
+            {
                 .itf.onComputeStateEvent(ptr)
+            }
 
         case CommandStateEvent as ptr where ptr.kind == .Apply:
             .itf.onApplyStateEvent(ptr)
@@ -599,14 +603,17 @@ impl Wnd
 {
     // How far outside its logical rectangle a window is allowed to paint, in logical units.
     // Borders, focus rings and shadows all sit in this margin.
-    private const PaintExtentMargin = 32'f32
+    private const PaintExtentMargin = 32_f32
 
     // Popups belong above any chrome painted after the content view's children.
     internal mtd popupParent()->*Wnd
     {
         let view = .topView()
-        if (me == view or view.isAncestorOf(me)) and not view.wndFlags.has(.AfterChildrenPaint) do
+        if (me == view or view.isAncestorOf(me)) and not view.wndFlags.has(.AfterChildrenPaint)
+        {
             return view
+        }
+
         return .topWindow()
     }
 
@@ -658,22 +665,28 @@ impl Wnd
     mtd stripInset()->f32
     {
         let srfn = .surface
-        if not srfn do
+        if not srfn
+        {
             return 0
+        }
+
         let frame = srfn.wnd
         let strip = frame.stripHeight()
-        if strip <= 0 or frame.padding.y >= strip do
+        if strip <= 0 or frame.padding.y >= strip
+        {
             return 0
+        }
+
         return Math.max(frame.surfaceRect().y + strip - .surfaceRect().y, 0)
     }
 
     // Allocates a concrete window with an empty name and rectangle.
     #[Swag.Inline]
-    func(T) create(parent: *Wnd? = null, id: WndId? = null, hook: HookEvent? = null)->*T => create'T(parent, "", {}, id, hook)
+    func(T) create(parent: *Wnd? = null, id: WndId? = null, hook: HookEvent? = null)->*T => create!{T}(parent, "", {}, id, hook)
 
     // Allocates a concrete window with an empty name at `position`.
     #[Swag.Inline]
-    func(T) create(parent: *Wnd?, position: Math.Rectangle, id: WndId? = null, hook: HookEvent? = null)->*T => create'T(parent, "", position, id, hook)
+    func(T) create(parent: *Wnd?, position: Math.Rectangle, id: WndId? = null, hook: HookEvent? = null)->*T => create!{T}(parent, "", position, id, hook)
 
     // Allocates a concrete window of type `T` named `name` at `position`.
     //
@@ -682,7 +695,7 @@ impl Wnd
     // preferred layout size. The application releases the window after [[Gui.Wnd.destroy]].
     func(T) create(parent: *Wnd?, name: string?, position: Math.Rectangle, id: WndId? = null, hook: HookEvent? = null)->*T
     {
-        with let res = Memory.new'T()
+        with let res = Memory.new!{T}()
         {
             .isAllocated = true
             .itf         = res[]
@@ -722,8 +735,10 @@ impl Wnd
 
         // Each child's destroyWnd removes it from '.children': iterating the array while it
         // shrinks would skip every other child, so always consume the back one.
-        while not .children.isEmpty() do
+        while not .children.isEmpty()
+        {
             .children.back().destroyNow()
+        }
 
         srfn.app.destroyWnd(me)
     }
@@ -734,15 +749,23 @@ impl Wnd
     // follow once dispatch is safe, so this is the form to call from an event handler.
     mtd destroy()
     {
-        if not .beginDestruction() do
+        if not .beginDestruction()
+        {
             return
-        for c in .children do
+        }
+
+        for c in .children
+        {
             c.destroy()
+        }
+
         .surface!.app.postDestroy.add(me)
         .invalidate()
 
-        if .parent and not .parent.isPendingDestroy do
+        if .parent and not .parent.isPendingDestroy
+        {
             .parent.applyLayout()
+        }
     }
 
     // Enters teardown before any child is retired. The headless host shares this transition
@@ -776,8 +799,10 @@ impl Wnd
     {
         for c, i in .children
         {
-            if c.wndFlags.has(.TopMost) do
+            if c.wndFlags.has(.TopMost)
+            {
                 return i
+            }
         }
 
         return Swag.U64.Max
@@ -786,8 +811,10 @@ impl Wnd
     private mtd assignSurface(surface: *Surface?)
     {
         .surface = surface
-        for child in .children do
+        for child in .children
+        {
             child.assignSurface(surface)
+        }
     }
 
     // Reparents this window, or detaches it when `who` is `null`.
@@ -795,8 +822,10 @@ impl Wnd
     // The complete subtree follows the new surface. Cycles are rejected.
     mtd setParent(who: *Wnd?)
     {
-        if who == .parent do
+        if who == .parent
+        {
             return
+        }
 
         if who
         {
@@ -830,8 +859,10 @@ impl Wnd
                 if not (.wndFlags & .TopMost)
                 {
                     idxToInsert = who.firstTopMostIndex()
-                    if idxToInsert == Swag.U64.Max do
+                    if idxToInsert == Swag.U64.Max
+                    {
                         idxToInsert = who.children.count
+                    }
                 }
 
                 who.children.insertAt(idxToInsert, me)
@@ -864,8 +895,11 @@ impl Wnd
             return
         }
 
-        if not .wndFlags.has(.Hidden) do
+        if not .wndFlags.has(.Hidden)
+        {
             return
+        }
+
         .wndFlags.remove(.Hidden)
         .parent?.invalidateLayout()
         .parent!.invalidate()
@@ -876,8 +910,11 @@ impl Wnd
     // Set `keepActivities` to let this window's timers and queued events continue while hidden.
     mtd hide(keepActivities = false)
     {
-        if .wndFlags.has(.Hidden) do
+        if .wndFlags.has(.Hidden)
+        {
             return
+        }
+
         .releaseFocus()
         .sendHideStateEvent()
         .wndFlags.add(.Hidden)
@@ -894,14 +931,20 @@ impl Wnd
     {
         if state
         {
-            if not .wndFlags.has(.Disabled) do
+            if not .wndFlags.has(.Disabled)
+            {
                 return
+            }
+
             .wndFlags.remove(.Disabled)
         }
         else
         {
-            if .wndFlags.has(.Disabled) do
+            if .wndFlags.has(.Disabled)
+            {
                 return
+            }
+
             .releaseFocus()
             .sendDisableStateEvent()
             .wndFlags.add(.Disabled)
@@ -923,8 +966,11 @@ impl Wnd
         var toCheck: *Wnd? = me
         while toCheck
         {
-            if toCheck.wndFlags.has(.Hidden) do
+            if toCheck.wndFlags.has(.Hidden)
+            {
                 return false
+            }
+
             toCheck = toCheck.parent
         }
 
@@ -943,8 +989,11 @@ impl Wnd
         var toCheck: *Wnd? = me
         while toCheck
         {
-            if toCheck.wndFlags.has(.Disabled) do
+            if toCheck.wndFlags.has(.Disabled)
+            {
                 return false
+            }
+
             toCheck = toCheck.parent
         }
 
@@ -965,16 +1014,20 @@ impl Wnd
     mtd computeStyle()
     {
         let srf = .surface
-        if srf do
+        if srf
+        {
             .style.compute(me, &srf.app.style)
+        }
     }
 
     // Paints this window and its visible descendants into `bc` in z-order.
     mtd paint(bc: *PaintContext)
     {
         let opacity = Math.saturate(.presentationOpacity)
-        if opacity <= 0 do
+        if opacity <= 0
+        {
             return
+        }
 
         if .backdrop.opacity > 0
         {
@@ -1033,8 +1086,11 @@ impl Wnd
                 color: Color.fromArgb(Argb.White).withAlphaF32(opacity),
                 writeAlpha: false})
 
-            if .hasPresentationClip do
+            if .hasPresentationClip
+            {
                 painter.popClippingRect()
+            }
+
             painter.popState()
             return
         }
@@ -1050,22 +1106,33 @@ impl Wnd
 
         .paintContent(bc)
 
-        if .hasPresentationClip do
+        if .hasPresentationClip
+        {
             painter.popClippingRect()
+        }
+
         painter.popState()
     }
 
     internal mtd hasBackdrop()->bool
     {
-        if .presentationOpacity <= 0 do
+        if .presentationOpacity <= 0
+        {
             return false
-        if .backdrop.opacity > 0 do
+        }
+
+        if .backdrop.opacity > 0
+        {
             return true
+        }
+
         for child in .children where not child.isPendingDestroy and
                                      (not child.wndFlags.has(.Hidden) or child.paintsWhenHidden)
         {
-            if child.hasBackdrop() do
+            if child.hasBackdrop()
+            {
                 return true
+            }
         }
 
         return false
@@ -1074,16 +1141,20 @@ impl Wnd
     private mtd paintContent(bc: *PaintContext)
     {
         let painter = bc.painter
-        if painter.isEmptyClippingRect() do
+        if painter.isEmptyClippingRect()
+        {
             return
+        }
 
         // Recompute style if necessary
         .computeStyle()
 
         // Transmit disabled state to children
         let lastDisabled = bc.isDisabled
-        if .wndFlags.has(.Disabled) do
+        if .wndFlags.has(.Disabled)
+        {
             bc.isDisabled = true
+        }
 
         // Background
         let theme = .theme()
@@ -1117,14 +1188,19 @@ impl Wnd
         }
 
         // Clipping
-        if .wndFlags.has(.ClipChildren) do
+        if .wndFlags.has(.ClipChildren)
+        {
             painter.pushClippingRect(.clientRect())
+        }
 
         if not painter.isEmptyClippingRect()
         {
             // Me
-            if not .wndFlags.has(.NoScroll) do
+            if not .wndFlags.has(.NoScroll)
+            {
                 painter.translateTransform(-.scrollPos.x, -.scrollPos.y)
+            }
+
             evt.kind = .Content
             painter.pushState()
             .sendEvent(&evt)
@@ -1132,11 +1208,18 @@ impl Wnd
             painter.setTransform(curTrs)
 
             // An outgoing page is a backdrop. A floating surface fades in its own stacking order.
-            for c in .children where c.wndFlags.has(.Hidden) and c.paintsWhenHidden and c.paintsBehindSiblings and not c.isPendingDestroy do
+            for c in .children where c.wndFlags.has(.Hidden) and
+                                     c.paintsWhenHidden and
+                                     c.paintsBehindSiblings and
+                                     not c.isPendingDestroy
+            {
                 .paintChild(bc, c)
+            }
 
-            for c in .children where not c.wndFlags.has(.Hidden) or c.paintsWhenHidden and not c.paintsBehindSiblings and not c.isPendingDestroy do
+            for c in .children where not c.wndFlags.has(.Hidden) or c.paintsWhenHidden and not c.paintsBehindSiblings and not c.isPendingDestroy
+            {
                 .paintChild(bc, c)
+            }
 
             if .managedByLayout and .surface and (.surface).app.options.showLayoutRects
             {
@@ -1145,8 +1228,10 @@ impl Wnd
         }
 
         // Restore clipping
-        if .wndFlags.has(.ClipChildren) do
+        if .wndFlags.has(.ClipChildren)
+        {
             painter.popClippingRect()
+        }
 
         // Post paint. Clipping is parent. No scroll
         if .wndFlags.has(.AfterChildrenPaint)
@@ -1177,8 +1262,10 @@ impl Wnd
     // Paints traversal rings above the completed surface, beyond the clipping of child panels.
     private mtd paintFocusOverlays(painter: *Painter, root: Math.Rectangle)
     {
-        if .isPendingDestroy or not .isLocallyVisible() or not .isLocallyEnabled() do
+        if .isPendingDestroy or not .isLocallyVisible() or not .isLocallyEnabled()
+        {
             return
+        }
 
         if .focusPolicy == .Tab and
            .wndFlags.has(.FocusRing) and
@@ -1192,8 +1279,11 @@ impl Wnd
 
         for child in .children
         {
-            if .wndFlags.has(.ClipChildren) and not child.surfaceRect().intersects(.surfaceRect()) do
+            if .wndFlags.has(.ClipChildren) and not child.surfaceRect().intersects(.surfaceRect())
+            {
                 continue
+            }
+
             child.paintFocusOverlays(painter, root)
         }
     }
@@ -1202,8 +1292,10 @@ impl Wnd
     {
         let painter = bc.painter
         painter.pushState()
-        if not child.wndFlags.has(.NoScroll) do
+        if not child.wndFlags.has(.NoScroll)
+        {
             painter.translateTransform(-.scrollPos.x, -.scrollPos.y)
+        }
 
         // A window that cannot reach the region being repainted is skipped whole, rather than
         // recording commands for the painter to clip away. A repaint is usually one control
@@ -1220,16 +1312,22 @@ impl Wnd
             if not child.paintExtent(bounds).intersects(painter.clippingRect())
             {
                 let srf = .surface
-                if srf do
+                if srf
+                {
                     srf.skippedWnds += 1
+                }
+
                 painter.popState()
                 return
             }
         }
 
         let srf = .surface
-        if srf do
+        if srf
+        {
             srf.paintedWnds += 1
+        }
+
         child.paint(bc)
         painter.popState()
     }
@@ -1261,8 +1359,11 @@ impl Wnd
         var ancestor = .parent
         while ancestor
         {
-            if ancestor is FrameWnd as frame where frame.frameFlags.has(.FocusBorder) do
+            if ancestor is FrameWnd as frame where frame.frameFlags.has(.FocusBorder)
+            {
                 frame.invalidate()
+            }
+
             ancestor = ancestor.parent
         }
     }
@@ -1303,9 +1404,12 @@ impl Wnd
     // Keeps a logically hidden window in its parent's paint order during a visual handoff.
     internal mtd setPaintWhenHidden(enabled: bool, behindSiblings = false)
     {
-        if .paintsWhenHidden == enabled and .paintsBehindSiblings == behindSiblings do
+        if .paintsWhenHidden == enabled and .paintsBehindSiblings == behindSiblings
+        {
             return
-        .paintsWhenHidden = enabled
+        }
+
+        .paintsWhenHidden     = enabled
         .paintsBehindSiblings = behindSiblings
         .parent?.invalidate()
     }
@@ -1314,8 +1418,11 @@ impl Wnd
     mtd setPresentationOpacity(opacity: f32)
     {
         let value = Math.saturate(opacity)
-        if .presentationOpacity == value do
+        if .presentationOpacity == value
+        {
             return
+        }
+
         .invalidatePresentation()
         .presentationOpacity = value
         .invalidatePresentation()
@@ -1324,8 +1431,11 @@ impl Wnd
     // Changes paint-only displacement without changing the logical window rectangle.
     mtd setPresentationOffset(offset: Math.Point)
     {
-        if .presentationOffset == offset do
+        if .presentationOffset == offset
+        {
             return
+        }
+
         .invalidatePresentation()
         .presentationOffset = offset
         .invalidatePresentation()
@@ -1339,8 +1449,11 @@ impl Wnd
     mtd setPresentationScale(scale: Math.Point)
     {
         Swag.assert(scale.x > 0 and scale.y > 0)
-        if .presentationScale == scale do
+        if .presentationScale == scale
+        {
             return
+        }
+
         .invalidatePresentation()
         .presentationScale = scale
         .invalidatePresentation()
@@ -1352,8 +1465,11 @@ impl Wnd
     // the unit square are accepted and place the fixed point beyond the window.
     mtd setPresentationPivot(pivot: Math.Point)
     {
-        if .presentationPivot == pivot do
+        if .presentationPivot == pivot
+        {
             return
+        }
+
         .invalidatePresentation()
         .presentationPivot = pivot
         .invalidatePresentation()
@@ -1362,8 +1478,11 @@ impl Wnd
     // Limits painting to `clip`, expressed in local logical coordinates.
     mtd setPresentationClip(clip: Math.Rectangle)
     {
-        if .hasPresentationClip and .presentationClip == clip do
+        if .hasPresentationClip and .presentationClip == clip
+        {
             return
+        }
+
         .invalidatePresentation()
         .presentationClip    = clip
         .hasPresentationClip = true
@@ -1373,8 +1492,11 @@ impl Wnd
     // Removes the paint-only reveal rectangle.
     mtd clearPresentationClip()
     {
-        if not .hasPresentationClip do
+        if not .hasPresentationClip
+        {
             return
+        }
+
         .invalidatePresentation()
         .hasPresentationClip = false
         .invalidatePresentation()
@@ -1386,8 +1508,11 @@ impl Wnd
         if .presentationOpacity == 1 and
            .presentationOffset == {} and
            .presentationScale == Math.Point{1, 1} and
-           not .hasPresentationClip do
+           not .hasPresentationClip
+        {
             return
+        }
+
         .invalidatePresentation()
         .presentationOpacity = 1
         .presentationOffset  = {}
@@ -1409,8 +1534,11 @@ impl Wnd
     // Drains deferred layout from the root down. Measuring alone does not arrange a container.
     internal mtd flushLayout()
     {
-        if .isPendingDestroy do
+        if .isPendingDestroy
+        {
             return
+        }
+
         if .layoutDirty
         {
             .layoutDirty = false
@@ -1419,8 +1547,10 @@ impl Wnd
             .invalidate()
         }
 
-        for child in .children do
+        for child in .children
+        {
             child.flushLayout()
+        }
     }
 
     // Returns the component-wise sum of legacy and container layout margins.
@@ -1451,42 +1581,68 @@ impl Wnd
             // on whole units. Rounded to the nearest one, a paragraph measured 401.2 wide is
             // given 401 and wraps a word its measure fitted, so the room content asks for is the
             // next whole unit. The tolerance is the 1/64 precision of font metrics.
-            const MetricPrecision = 1.0'f32 / 64
+            const MetricPrecision = 1.0_f32 / 64
             content   = .itf.measureContent(available)
             content.x = Math.max(Math.ceil(content.x - MetricPrecision), 0)
             content.y = Math.max(Math.ceil(content.y - MetricPrecision), 0)
-            if result.preferred.x <= 0 do
+            if result.preferred.x <= 0
+            {
                 result.preferred.x = content.x
-            if result.preferred.y <= 0 do
+            }
+
+            if result.preferred.y <= 0
+            {
                 result.preferred.y = content.y
+            }
         }
 
-        if result.preferred.x <= 0 do
+        if result.preferred.x <= 0
+        {
             result.preferred.x = .position.width
-        if result.preferred.y <= 0 do
+        }
+
+        if result.preferred.y <= 0
+        {
             result.preferred.y = .position.height
-        if result.preferred.x <= 0 do
+        }
+
+        if result.preferred.x <= 0
+        {
             result.preferred.x = result.min.x
-        if result.preferred.y <= 0 do
+        }
+
+        if result.preferred.y <= 0
+        {
             result.preferred.y = result.min.y
+        }
 
         result.min.x = Math.max(result.min.x, 0)
         result.min.y = Math.max(result.min.y, 0)
 
-        if .layoutSpec.policyX == SizePolicy.Fixed do
+        if .layoutSpec.policyX == SizePolicy.Fixed
+        {
             result.min.x = Math.max(result.min.x, result.preferred.x)
-        if .layoutSpec.policyY == SizePolicy.Fixed do
+        }
+
+        if .layoutSpec.policyY == SizePolicy.Fixed
+        {
             result.min.y = Math.max(result.min.y, result.preferred.y)
+        }
 
         result.max.x       = Math.max(result.max.x, result.min.x)
         result.max.y       = Math.max(result.max.y, result.min.y)
         result.preferred.x = Math.clamp(result.preferred.x, result.min.x, result.max.x)
         result.preferred.y = Math.clamp(result.preferred.y, result.min.y, result.max.y)
 
-        if .layoutSpec.policyX == SizePolicy.Fixed do
+        if .layoutSpec.policyX == SizePolicy.Fixed
+        {
             result.max.x = result.preferred.x
-        if .layoutSpec.policyY == SizePolicy.Fixed do
+        }
+
+        if .layoutSpec.policyY == SizePolicy.Fixed
+        {
             result.max.y = result.preferred.y
+        }
 
         .cachedSizeHint = result
         .layoutDebug.measuredMin       = result.min
@@ -1519,15 +1675,20 @@ impl Wnd
     mtd dumpLayoutTree()
     {
         let srf = .surface
-        if srf and not srf.app.options.dumpLayoutTree do
+        if srf and not srf.app.options.dumpLayoutTree
+        {
             return
+        }
+
         .dumpLayoutTreeNode(0)
     }
 
     private mtd dumpLayoutTreeNode(depth: u32)
     {
-        for depth do
+        for depth
+        {
             Console.print("  ")
+        }
 
         Console.println(Swag.kindOf(.itf).name,
                         " name=",
@@ -1573,8 +1734,10 @@ impl Wnd
                         "/",
                         .layoutDebug.clampedByMaxY)
 
-        for c in .children do
+        for c in .children
+        {
             c.dumpLayoutTreeNode(depth + 1)
+        }
     }
 
     // Coordinates
@@ -1590,18 +1753,26 @@ impl Wnd
         var pos    = .position
         if pos.x + pos.width > parent.position.width - marginW
         {
-            if simX do
+            if simX
+            {
                 pos.x -= (pos.width + marginH)
-            else do
+            }
+            else
+            {
                 pos.x = parent.position.width - pos.width - marginW
+            }
         }
 
         if pos.y + pos.height > parent.position.height - marginH
         {
-            if simY do
+            if simY
+            {
                 pos.y -= (pos.height + marginH)
-            else do
+            }
+            else
+            {
                 pos.y = parent.position.height - pos.height - marginH
+            }
         }
 
         // Oversized and anchored popups can start outside the near edges without ever crossing a
@@ -1609,8 +1780,10 @@ impl Wnd
         pos.x = Math.max(pos.x, marginW)
         pos.y = Math.max(pos.y, marginH)
 
-        if pos != .position do
+        if pos != .position
+        {
             .setPosition(pos)
+        }
     }
 
     // Converts a physical screen position to logical coordinates of this window's surface.
@@ -1627,8 +1800,11 @@ impl Wnd
     // device grid the text is drawn with. A detached window answers one.
     mtd const deviceScale()->f32
     {
-        if not .surface do
+        if not .surface
+        {
             return 1
+        }
+
         return .surface.dpiScale
     }
 
@@ -1707,14 +1883,25 @@ impl Wnd
     {
         with me.margin
         {
-            if left != Swag.F32.Inf do
+            if left != Swag.F32.Inf
+            {
                 .x = left
-            if top != Swag.F32.Inf do
+            }
+
+            if top != Swag.F32.Inf
+            {
                 .y = top
-            if right != Swag.F32.Inf do
+            }
+
+            if right != Swag.F32.Inf
+            {
                 .z = right
-            if bottom != Swag.F32.Inf do
+            }
+
+            if bottom != Swag.F32.Inf
+            {
                 .w = bottom
+            }
         }
 
         .parent?.sendResizeEvent()
@@ -1732,14 +1919,25 @@ impl Wnd
     {
         with me.padding
         {
-            if left != Swag.F32.Inf do
+            if left != Swag.F32.Inf
+            {
                 .x = left
-            if top != Swag.F32.Inf do
+            }
+
+            if top != Swag.F32.Inf
+            {
                 .y = top
-            if right != Swag.F32.Inf do
+            }
+
+            if right != Swag.F32.Inf
+            {
                 .z = right
-            if bottom != Swag.F32.Inf do
+            }
+
+            if bottom != Swag.F32.Inf
+            {
                 .w = bottom
+            }
         }
 
         .sendResizeEvent()
@@ -1761,15 +1959,20 @@ impl Wnd
     private mtd detachChildImpl(child: *Wnd, keepFocus: bool)->bool
     {
         var idx = Slice.findLinear(.children.toSlice(), child)
-        if idx == Swag.U64.Max do
+        if idx == Swag.U64.Max
+        {
             return false
+        }
 
         if not keepFocus
         {
             child.releaseFocus()
             idx = Slice.findLinear(.children.toSlice(), child)
-            if idx == Swag.U64.Max do
+            if idx == Swag.U64.Max
+            {
                 return true
+            }
+
             child.surface?.app.clearWndInputState(child)
         }
 
@@ -1789,8 +1992,11 @@ impl Wnd
         Swag.assert(count <= .children.count)
         Swag.assert(index + count <= .children.count)
 
-        for i in count do
+        for i in count
+        {
             .children.insertAt(index + i, .children[.children.count - count + i])
+        }
+
         .children.count -= count
     }
 
@@ -1798,8 +2004,10 @@ impl Wnd
     mtd sendToBack()
     {
         let parent = unwrap .parent
-        if parent.children.front() == me do
+        if parent.children.front() == me
+        {
             return
+        }
 
         let idx = Slice.findLinear(parent.children.toSlice(), me)
         Swag.assert(idx != Swag.U64.Max)
@@ -1812,8 +2020,10 @@ impl Wnd
     mtd bringToFront()
     {
         let parent = unwrap .parent
-        if parent.children.back() == me do
+        if parent.children.back() == me
+        {
             return
+        }
 
         let idx = Slice.findLinear(parent.children.toSlice(), me)
         Swag.assert(idx != Swag.U64.Max)
@@ -1823,12 +2033,16 @@ impl Wnd
         if not .wndFlags.has(.TopMost)
         {
             let firstTopMost = parent.firstTopMostIndex()
-            if firstTopMost != Swag.U64.Max do
+            if firstTopMost != Swag.U64.Max
+            {
                 idxToReplace = firstTopMost - 1
+            }
         }
 
-        if idx == idxToReplace do
+        if idx == idxToReplace
+        {
             return
+        }
 
         Swag.assert(parent.children.buffer != null)
         swap(parent.children.buffer + idx, parent.children.buffer + idxToReplace)
@@ -1859,8 +2073,11 @@ impl Wnd
         // fractional position that rounds to where the window stands moves nothing.
         let newX = Math.round(x)
         let newY = Math.round(y)
-        if .position.x == newX and .position.y == newY do
+        if .position.x == newX and .position.y == newY
+        {
             return
+        }
+
         var evt = MoveEvent{}
         evt.oldPos  = Math.Point{.position.x, .position.y}
         .position.x = newX
@@ -1876,8 +2093,11 @@ impl Wnd
     // width, and a longer caption would never widen it again.
     private mtd dockedWidth(pos: Math.Rectangle, client: Math.Rectangle)->f32
     {
-        if .preferredSize.x > 0 do
+        if .preferredSize.x > 0
+        {
             return pos.width
+        }
+
         return Math.max(.measure(Math.Point{client.width, pos.height}).preferred.x, 0)
     }
 
@@ -1888,21 +2108,35 @@ impl Wnd
     // for the same reason as the horizontal case above.
     private mtd dockedHeight(pos: Math.Rectangle, client: Math.Rectangle)->f32
     {
-        if .preferredSize.y > 0 do
+        if .preferredSize.y > 0
+        {
             return pos.height
+        }
+
         return Math.max(.measure(Math.Point{pos.width, client.height}).preferred.y, 0)
     }
 
     private mtd clampSize(pos: *Math.Rectangle)
     {
-        if .minSize.x > 0 do
+        if .minSize.x > 0
+        {
             pos.width = Math.max(pos.width, .minSize.x)
-        if .minSize.y > 0 do
+        }
+
+        if .minSize.y > 0
+        {
             pos.height = Math.max(pos.height, .minSize.y)
-        if .maxSize.x > 0 do
+        }
+
+        if .maxSize.x > 0
+        {
             pos.width = Math.min(pos.width, .maxSize.x)
-        if .maxSize.y > 0 do
+        }
+
+        if .maxSize.y > 0
+        {
             pos.height = Math.min(pos.height, .maxSize.y)
+        }
     }
 
     // Resizes the window, rounded to whole logical units and clamped to its size limits.
@@ -1920,8 +2154,10 @@ impl Wnd
             .invalidateLayout()
         }
 
-        if .position.width == pos.width and .position.height == pos.height do
+        if .position.width == pos.width and .position.height == pos.height
+        {
             return
+        }
 
         var evt = ResizeEvent{}
         evt.oldSize      = Math.Point{.position.width, .position.height}
@@ -1930,8 +2166,10 @@ impl Wnd
 
         .sendEvent(&evt)
 
-        if computeLayout do
+        if computeLayout
+        {
             .applyLayout(evt.oldSize)
+        }
     }
 
     // Places the children by their anchor and dock styles, then lays out each visible child.
@@ -1946,19 +2184,23 @@ impl Wnd
     // window, by the difference between `oldSize` and the current size.
     mtd applyLayout(oldSize: Math.Point)
     {
-        if .children.isEmpty() do
+        if .children.isEmpty()
+        {
             return
+        }
 
         var clientRect = .paddedClientRect()
 
-        var centerLayout: Array'(*Wnd)
-        var oldSizes:     Array'Math.Point
+        var centerLayout: Array!{*Wnd}
+        var oldSizes:     Array!{Math.Point}
         oldSizes.reserve(.children.count)
 
         for c in .children
         {
-            if c.anchorStyle == .None do
+            if c.anchorStyle == .None
+            {
                 continue
+            }
 
             var pos = c.position
             if c.anchorStyle & .Right and oldSize.x > 0
@@ -1989,8 +2231,11 @@ impl Wnd
         for c in .children
         {
             oldSizes.add(Math.Point{c.position.width, c.position.height})
-            if not c.isLocallyVisible() do
+            if not c.isLocallyVisible()
+            {
                 continue
+            }
+
             switch c.dockStyle
             {
             case .Left:
@@ -1998,8 +2243,11 @@ impl Wnd
                 pos.x = clientRect.x + c.margin.x
                 pos.y = clientRect.y + c.margin.y
                 pos.setBottom(clientRect.bottom() - c.margin.w)
-                if c.maxSize.y > 0 and c.maxSize.y < pos.height and not (c.anchorStyle & .Bottom) do
+                if c.maxSize.y > 0 and c.maxSize.y < pos.height and not (c.anchorStyle & .Bottom)
+                {
                     pos.y = clientRect.vertCenter() - c.maxSize.y * 0.5
+                }
+
                 pos.width = c.dockedWidth(pos, clientRect)
                 c.setPosition(pos, false)
                 let diff = c.margin.x + pos.width + c.margin.z
@@ -2010,8 +2258,11 @@ impl Wnd
                 var pos = c.position
                 pos.y = clientRect.y + c.margin.y
                 pos.setBottom(clientRect.bottom() - c.margin.w)
-                if c.maxSize.y > 0 and c.maxSize.y < pos.height and not (c.anchorStyle & .Bottom) do
+                if c.maxSize.y > 0 and c.maxSize.y < pos.height and not (c.anchorStyle & .Bottom)
+                {
                     pos.y = clientRect.vertCenter() - c.maxSize.y * 0.5
+                }
+
                 pos.width = c.dockedWidth(pos, clientRect)
                 pos.x     = clientRect.right() - pos.width - c.margin.z
                 c.setPosition(pos, false)
@@ -2023,8 +2274,11 @@ impl Wnd
                 pos.x = clientRect.x + c.margin.x
                 pos.y = clientRect.y + c.margin.y
                 pos.setRight(clientRect.right() - c.margin.z)
-                if c.maxSize.x > 0 and c.maxSize.x < pos.width and not (c.anchorStyle & .Right) do
+                if c.maxSize.x > 0 and c.maxSize.x < pos.width and not (c.anchorStyle & .Right)
+                {
                     pos.x = clientRect.horzCenter() - c.maxSize.x * 0.5
+                }
+
                 pos.height = c.dockedHeight(pos, clientRect)
                 c.setPosition(pos, false)
                 let diff = c.margin.y + pos.height + c.margin.w
@@ -2035,8 +2289,11 @@ impl Wnd
                 var pos = c.position
                 pos.x = clientRect.x + c.margin.x
                 pos.setRight(clientRect.right() - c.margin.z)
-                if c.maxSize.x > 0 and c.maxSize.x < pos.width and not (c.anchorStyle & .Right) do
+                if c.maxSize.x > 0 and c.maxSize.x < pos.width and not (c.anchorStyle & .Right)
+                {
                     pos.x = clientRect.horzCenter() - c.maxSize.x * 0.5
+                }
+
                 pos.height = c.dockedHeight(pos, clientRect)
                 pos.y      = clientRect.bottom() - c.margin.w - pos.height
                 c.setPosition(pos, false)
@@ -2071,13 +2328,18 @@ impl Wnd
         }
 
         // A floating child places itself once its docked siblings have their room.
-        for c in .children where c.dockStyle == .Float and c.isLocallyVisible() do
+        for c in .children where c.dockStyle == .Float and c.isLocallyVisible()
+        {
             c.itf.onLayout()
+        }
 
         for c, i in .children
         {
-            if not c.isVisible() do
+            if not c.isVisible()
+            {
                 continue
+            }
+
             c.applyLayout(oldSizes[i])
         }
     }
@@ -2089,24 +2351,36 @@ impl Wnd
     // asks for them.
     mtd windowAt(x, y: f32, includeDisabled = false, includeHidden = false)->*Wnd?
     {
-        if not .position.contains(x, y) do
+        if not .position.contains(x, y)
+        {
             return null
+        }
 
         // The last child is painted last, so it is the one on top.
         for i in reversed(.children.count)
         {
             let c = .children[i]
-            if c.wndFlags.has(.Hidden) and not includeHidden do
+            if c.wndFlags.has(.Hidden) and not includeHidden
+            {
                 continue
-            if c.wndFlags.has(.Disabled) and not includeDisabled do
+            }
+
+            if c.wndFlags.has(.Disabled) and not includeDisabled
+            {
                 continue
+            }
 
             var pt = Math.Point{x - .position.x, y - .position.y}
-            if not c.wndFlags.has(.NoScroll) do
+            if not c.wndFlags.has(.NoScroll)
+            {
                 pt += .scrollPos
+            }
+
             let res = c.windowAt(pt.x, pt.y, includeDisabled, includeHidden)
-            if res do
+            if res
+            {
                 return res
+            }
         }
 
         return me
@@ -2115,13 +2389,19 @@ impl Wnd
     // Reports whether `child` is a structural descendant of this window.
     mtd isAncestorOf(child: *Wnd?)->bool
     {
-        if not child do
+        if not child
+        {
             return false
+        }
+
         var p = child.parent
         while p
         {
-            if p == me do
+            if p == me
+            {
                 return true
+            }
+
             p = p.parent
         }
 
@@ -2131,13 +2411,19 @@ impl Wnd
     // Reports whether `child` reaches this window through owner-or-parent routing.
     mtd isOwnerOf(child: *Wnd?)->bool
     {
-        if not child do
+        if not child
+        {
             return false
+        }
+
         var p = child.ownerOrParent()
         while p
         {
-            if p == me do
+            if p == me
+            {
                 return true
+            }
+
             p = p.ownerOrParent()
         }
 
@@ -2149,11 +2435,16 @@ impl Wnd
     {
         for c in .children
         {
-            if c.id == childId do
+            if c.id == childId
+            {
                 return c
+            }
+
             let res = c.childById(childId)
-            if res do
+            if res
+            {
                 return res
+            }
         }
 
         return null
@@ -2165,8 +2456,11 @@ impl Wnd
         var p = .parent
         while p
         {
-            if p.id == parentId do
+            if p.id == parentId
+            {
                 return p
+            }
+
             p = p.parent
         }
 
@@ -2183,8 +2477,11 @@ impl Wnd
         var ancestor = .parent
         while ancestor
         {
-            if ancestor is T as found do
+            if ancestor is T as found
+            {
                 return found
+            }
+
             ancestor = ancestor.parent
         }
 
@@ -2217,8 +2514,11 @@ impl Wnd
     mtd focusTarget()->*Wnd
     {
         var result = me
-        while result.focusDelegate do
+        while result.focusDelegate
+        {
             result = result.focusDelegate
+        }
+
         return result
     }
 
@@ -2232,8 +2532,10 @@ impl Wnd
         var parent = .parent
         while parent
         {
-            if child.wndFlags.has(.NoScroll) do
+            if child.wndFlags.has(.NoScroll)
+            {
                 return
+            }
 
             // A composed viewport exposes its ScrollWnd subobject through the type pattern.
             if parent is ScrollWnd as scroll where scroll.view == child
@@ -2243,17 +2545,29 @@ impl Wnd
                 var position = scroll.scrollPosition()
 
                 // Prefer the leading edge for a control larger than its viewport.
-                if target.x < visible.x or target.width > visible.width do
+                if target.x < visible.x or target.width > visible.width
+                {
                     position.x += target.x - visible.x
-                elif target.right() > visible.right() do
+                }
+                else if target.right() > visible.right()
+                {
                     position.x += target.right() - visible.right()
-                if target.y < visible.y or target.height > visible.height do
+                }
+
+                if target.y < visible.y or target.height > visible.height
+                {
                     position.y += target.y - visible.y
-                elif target.bottom() > visible.bottom() do
+                }
+                else if target.bottom() > visible.bottom()
+                {
                     position.y += target.bottom() - visible.bottom()
+                }
+
                 scroll.setScrollPos(position)
-                if .isPendingDestroy or .app().keyboardFocusWnd != me do
+                if .isPendingDestroy or .app().keyboardFocusWnd != me
+                {
                     return
+                }
             }
 
             child  = parent
@@ -2282,8 +2596,10 @@ impl Wnd
 
     private mtd canReceiveFocus(surface: *Surface, allowNone: bool)->bool
     {
-        if .surface != surface or surface.isDisabled or (not allowNone and .focusPolicy == .None) do
+        if .surface != surface or surface.isDisabled or (not allowNone and .focusPolicy == .None)
+        {
             return false
+        }
 
         var wnd: *Wnd? = me
         while wnd
@@ -2291,8 +2607,11 @@ impl Wnd
             if wnd.isPendingDestroy or
                wnd.releasingFocus or
                not wnd.isLocallyVisible() or
-               not wnd.isLocallyEnabled() do
+               not wnd.isLocallyEnabled()
+            {
                 return false
+            }
+
             wnd = wnd.parent
         }
 
@@ -2304,14 +2623,19 @@ impl Wnd
     private mtd tryFocus(reason: FocusReason, allowNone: bool)->FocusTransfer
     {
         let srfn = .surface
-        if not srfn or not .canReceiveFocus(srfn, allowNone) do
+        if not srfn or not .canReceiveFocus(srfn, allowNone)
+        {
             return .RejectedTarget
+        }
 
         let target = .focusTarget()
         if target != me
         {
-            if target.surface != srfn do
+            if target.surface != srfn
+            {
                 return .RejectedTarget
+            }
+
             return target.tryFocus(reason, allowNone)
         }
 
@@ -2322,8 +2646,11 @@ impl Wnd
 
         if app.renderer.needsNativeWindow() and app.nativeFocusSurface != srfn
         {
-            if reason == .Programmatic or reason == .Pointer do
+            if reason == .Programmatic or reason == .Pointer
+            {
                 srfn.noteFocus(me, reason, allowNone)
+            }
+
             return .Cancelled
         }
 
@@ -2344,22 +2671,38 @@ impl Wnd
         {
             var evt = FocusEvent{kind: FocusEvent.Kind.CanLose, other: me}
             last.sendEvent(&evt)
-            if app.focusRevision != revision do
+            if app.focusRevision != revision
+            {
                 return app.keyboardFocusWnd == me ? .Accepted : .Cancelled
-            if not evt.canChangeFocus do
+            }
+
+            if not evt.canChangeFocus
+            {
                 return .Cancelled
-            if not .canReceiveFocus(srfn, allowNone) do
+            }
+
+            if not .canReceiveFocus(srfn, allowNone)
+            {
                 return .RejectedTarget
+            }
         }
 
         var query = FocusEvent{kind: FocusEvent.Kind.CanGain, other: last}
         .sendEvent(&query)
-        if app.focusRevision != revision do
+        if app.focusRevision != revision
+        {
             return app.keyboardFocusWnd == me ? .Accepted : .Cancelled
-        if not query.canChangeFocus or not .canReceiveFocus(srfn, allowNone) do
+        }
+
+        if not query.canChangeFocus or not .canReceiveFocus(srfn, allowNone)
+        {
             return .RejectedTarget
-        if app.renderer.needsNativeWindow() and app.nativeFocusSurface != srfn do
+        }
+
+        if app.renderer.needsNativeWindow() and app.nativeFocusSurface != srfn
+        {
             return .Cancelled
+        }
 
         // A query can run another input loop. Compute the indicator from the latest gesture.
         var visible: bool
@@ -2382,18 +2725,24 @@ impl Wnd
             last.invalidateFocusDecoration()
             var evt = FocusEvent{kind: FocusEvent.Kind.Lost, other: me}
             last.sendEvent(&evt)
-            if last.surface do
+            if last.surface
+            {
                 last.ownerNotifyEvent(.ChildFocusChanged)
+            }
         }
 
         // The Lost callback is allowed to destroy the incoming control or deliberately move the
         // focus elsewhere. In either case that nested operation owns the resulting state.
-        if app.focusRevision != committed or not .canReceiveFocus(srfn, allowNone) do
+        if app.focusRevision != committed or not .canReceiveFocus(srfn, allowNone)
+        {
             return app.keyboardFocusWnd == me ? .Accepted : .Cancelled
+        }
 
         .revealFocus()
-        if app.focusRevision != committed or not .canReceiveFocus(srfn, allowNone) do
+        if app.focusRevision != committed or not .canReceiveFocus(srfn, allowNone)
+        {
             return app.keyboardFocusWnd == me ? .Accepted : .Cancelled
+        }
 
         var evt = FocusEvent{kind: FocusEvent.Kind.Gained, other: last}
         .sendEvent(&evt)
@@ -2402,12 +2751,18 @@ impl Wnd
         // The dominant action of a surface is drawn on whichever action the keyboard would run,
         // so the button that carries it when the keyboard is elsewhere repaints on every move.
         // Both surfaces are told: the focus can cross from one to the other.
-        if lastSurface do
+        if lastSurface
+        {
             lastSurface.defaultButton?.invalidate()
+        }
+
         srfn.defaultButton?.invalidate()
 
-        if app.focusRevision == committed and .surface == srfn do
+        if app.focusRevision == committed and .surface == srfn
+        {
             .ownerNotifyEvent(.ChildFocusChanged)
+        }
+
         return app.keyboardFocusWnd == me ? .Accepted : .Cancelled
     }
 
@@ -2418,8 +2773,11 @@ impl Wnd
     mtd focusedWindow()->*Wnd?
     {
         let surface = .surface
-        if not surface do
+        if not surface
+        {
             return null
+        }
+
         return surface.app.keyboardFocusWnd
     }
 
@@ -2430,8 +2788,11 @@ impl Wnd
     mtd hasFocus()->bool
     {
         let surface = .surface
-        if not surface do
+        if not surface
+        {
             return false
+        }
+
         return surface.app.keyboardFocusWnd == .focusTarget()
     }
 
@@ -2442,8 +2803,11 @@ impl Wnd
     mtd hasVisibleFocus()->bool
     {
         let surface = .surface
-        if not surface do
+        if not surface
+        {
             return false
+        }
+
         return surface.app.focusVisible and .hasFocus()
     }
 
@@ -2456,8 +2820,11 @@ impl Wnd
     mtd showsFocusRing()->bool
     {
         let surface = .surface
-        if not surface do
+        if not surface
+        {
             return false
+        }
+
         return surface.app.options.showFocusRings or .hasVisibleFocus()
     }
 
@@ -2465,8 +2832,11 @@ impl Wnd
     mtd rootWnd()->*Wnd
     {
         var result = me
-        while result.parent do
+        while result.parent
+        {
             result = result.parent
+        }
+
         return result
     }
 
@@ -2489,8 +2859,11 @@ impl Wnd
         for order.stops.count
         {
             let next = inGroup ? order.nextInGroup(from, forward) : order.next(from, forward)
-            if not next or (from != me and order.indexOf(next) == origin) do
+            if not next or (from != me and order.indexOf(next) == origin)
+            {
                 return false
+            }
+
             switch #complete next.tryFocus(reason, false)
             {
             case .Accepted:       return true
@@ -2516,8 +2889,10 @@ impl Wnd
     mtd setInitialFocus(preferred: *Wnd? = null)
     {
         let focus = .focusedWindow()
-        if focus and focus.focusPolicy != .None and FocusOrder.contains(me, focus) do
+        if focus and focus.focusPolicy != .None and FocusOrder.contains(me, focus)
+        {
             return
+        }
 
         let order = FocusOrder.collect(me)
         if preferred and FocusOrder.contains(me, preferred) and order.indexOf(preferred) >= 0
@@ -2538,10 +2913,15 @@ impl Wnd
     internal mtd releaseFocus()
     {
         let focus = .focusedWindow()
-        if not focus or .releasingFocus do
+        if not focus or .releasingFocus
+        {
             return
-        if focus != me and not .isAncestorOf(focus) do
+        }
+
+        if focus != me and not .isAncestorOf(focus)
+        {
             return
+        }
 
         .releasingFocus = true
         defer me.releasingFocus = false
@@ -2562,17 +2942,24 @@ impl Wnd
         // Resume after the last stop this subtree owns, so a whole form going down hands the
         // keyboard to what follows the form rather than to the top of the surface.
         var from = order.indexOf(me)
-        for stop, index in order.stops where stop == me or .isAncestorOf(stop) do
+        for stop, index in order.stops where stop == me or .isAncestorOf(stop)
+        {
             from = cast(s64, index)
+        }
 
-        for var step = 0's64; step < count; step += 1
+        for var step = 0_s64; step < count; step += 1
         {
             let candidate = order.stops[cast(u64, ((from + 1 + step) % count))]
-            if candidate == me or .isAncestorOf(candidate) do
+            if candidate == me or .isAncestorOf(candidate)
+            {
                 continue
+            }
+
             discard candidate.requestFocus(.Programmatic)
-            if .focusedWindow() != focus do
+            if .focusedWindow() != focus
+            {
                 return
+            }
         }
 
         focus.surface?.loseKeyboardFocus()
@@ -2617,17 +3004,25 @@ impl Wnd
             for &binding in overrides where not binding.source and binding.key == key and binding.modifiers == modifiers
             {
                 let id = binding.command.toString()
-                if app.isUserHotKey(id) do
+                if app.isUserHotKey(id)
+                {
                     continue
+                }
+
                 let state = .sendComputeCommandStateEvent(id)
-                if (state.accepted or state.updatedFields.has(.Name)) and not state.hidden do
+                if (state.accepted or state.updatedFields.has(.Name)) and not state.hidden
+                {
                     return id
+                }
 
                 var owner: *Wnd? = me
                 while owner and not state.hidden
                 {
-                    for chord in owner.keyShortcuts where chord.id == id do
+                    for chord in owner.keyShortcuts where chord.id == id
+                    {
                         return id
+                    }
+
                     owner = owner.ownerOrParent()
                 }
             }
@@ -2638,8 +3033,11 @@ impl Wnd
         {
             for chord in node.keyShortcuts where chord.key == key and
                                                  chord.modifiers == modifiers and
-                                                 not shortcutOverride(overrides, chord.id) do
+                                                 not shortcutOverride(overrides, chord.id)
+            {
                 return chord.id
+            }
+
             node = node.ownerOrParent()
         }
 
@@ -2657,8 +3055,11 @@ impl Wnd
         {
             if let binding = shortcutOverride(surface.app.shortcutOverrides.toSlice(), wndId)
             {
-                if binding.key != .None do
+                if binding.key != .None
+                {
                     return Input.formatKeyShortcut(binding.modifiers, binding.key)
+                }
+
                 return result
             }
         }
@@ -2673,8 +3074,11 @@ impl Wnd
         }
 
         let p = .ownerOrParent()
-        if p do
+        if p
+        {
             return p.keyShortcutName(wndId, fallback)
+        }
+
         result = fallback
         return result
     }
@@ -2744,7 +3148,7 @@ impl Wnd
         {
             defer discard app.pendingTaskNotifications.sub(1)
 
-            let evt = Event.create'TaskEvent()
+            let evt = Event.create!{TaskEvent}()
             evt.target     = wnd
             evt.task       = task
             evt.submission = task.currentSubmission()
@@ -2755,7 +3159,7 @@ impl Wnd
     // Queues a repaint of this window for the next frame.
     mtd postInvalidateEvent()
     {
-        let evt = Event.create'InvalidateEvent()
+        let evt = Event.create!{InvalidateEvent}()
         .postEvent(evt)
     }
 
@@ -2781,8 +3185,10 @@ impl Wnd
         .sendStateEvent(.Hide)
         for c in .children
         {
-            if c.isLocallyVisible() do
+            if c.isLocallyVisible()
+            {
                 c.sendHideStateEvent()
+            }
         }
     }
 
@@ -2792,8 +3198,10 @@ impl Wnd
         .sendStateEvent(.Disable)
         for c in .children
         {
-            if c.isLocallyVisible() do
+            if c.isLocallyVisible()
+            {
                 c.sendDisableStateEvent()
+            }
         }
     }
 
@@ -2809,7 +3217,7 @@ impl Wnd
     // Queues a [[Gui.ResizeEvent]] for the current size, delivered during the next frame.
     mtd postResizeEvent()
     {
-        let evt = Event.create'ResizeEvent()
+        let evt = Event.create!{ResizeEvent}()
         evt.oldSize.x = .position.width
         evt.oldSize.y = .position.height
         .postEvent(evt)
@@ -2818,8 +3226,11 @@ impl Wnd
     // Sends the [[Gui.CreateEvent]] of this window; later calls do nothing.
     mtd sendCreateEvent()
     {
-        if .createEventDone do
+        if .createEventDone
+        {
             return
+        }
+
         .createEventDone = true
         var evt = CreateEvent{}
         .sendEvent(&evt)
@@ -2828,10 +3239,13 @@ impl Wnd
     // Queues the command `cmdId` from this window for the next frame; a `null` identifier posts nothing.
     mtd postCommandEvent(cmdId: WndId?)
     {
-        if cmdId == null do
+        if cmdId == null
+        {
             return
+        }
+
         let safeCmdId = cmdId orelse ""
-        let evt       = Event.create'CommandEvent()
+        let evt       = Event.create!{CommandEvent}()
         evt.id     = safeCmdId
         evt.source = me
         .postEvent(evt)
@@ -2841,10 +3255,15 @@ impl Wnd
     mtd processEvent(evt: IEvent)
     {
         var eat = false
-        if .hookOnEvent do
+        if .hookOnEvent
+        {
             eat = .hookOnEvent(me, evt)
-        if not eat do
+        }
+
+        if not eat
+        {
             .itf.onEvent(evt)
+        }
     }
 
     // Sends a [[Gui.NotifyEvent]] of `kind` to this window.
@@ -2859,8 +3278,11 @@ impl Wnd
     mtd ownerNotifyEvent(kind: NotifyEvent.Kind)
     {
         let p = .ownerOrParent()
-        if not p do
+        if not p
+        {
             return
+        }
+
         p.notifyEvent(kind)
     }
 
@@ -2880,8 +3302,10 @@ impl Wnd
             return
         }
 
-        for c in .children do
+        for c in .children
+        {
             c.updateCommandState()
+        }
     }
 
     // Computes and returns the presentation state of `cmdId`, including its resolved shortcut.
@@ -2889,8 +3313,11 @@ impl Wnd
     // A `null` identifier returns an empty state.
     mtd sendComputeCommandStateEvent(cmdId: WndId?)->CommandStateEvent
     {
-        if cmdId == null do
+        if cmdId == null
+        {
             return {}
+        }
+
         let safeCmdId = cmdId orelse ""
 
         var evtState: #returntype
@@ -2903,8 +3330,11 @@ impl Wnd
 
         // Add the first shortcut found in the local or application routing chain.
         var sk = .keyShortcutName(safeCmdId)
-        if sk.isEmpty() do
+        if sk.isEmpty()
+        {
             sk = .app().hotKeyShortcutName(safeCmdId)
+        }
+
         if not sk.isEmpty() or shortcutOverride(.app().shortcutOverrides.toSlice(), safeCmdId)
         {
             evtState.updatedFields.add(.Shortcut)
@@ -2919,8 +3349,11 @@ impl Wnd
     // A `null` identifier sends nothing.
     mtd sendCommandEvent(cmdId: WndId?)
     {
-        if cmdId == null do
+        if cmdId == null
+        {
             return
+        }
+
         let safeCmdId = cmdId orelse ""
 
         var evtState: CommandStateEvent
@@ -2953,8 +3386,10 @@ impl Wnd
             if act.accept(cxt)
             {
                 evt.accepted = true
-                if act.update(cxt, evt) do
+                if act.update(cxt, evt)
+                {
                     return true
+                }
             }
         }
 
@@ -2970,8 +3405,10 @@ impl Wnd
             if act.accept(cxt)
             {
                 evt.accepted = true
-                if act.execute(cxt) do
+                if act.execute(cxt)
+                {
                     return true
+                }
             }
         }
 
@@ -2991,8 +3428,10 @@ impl Wnd
 
         if not evt.accepted
         {
-            for c in .children do
+            for c in .children
+            {
                 try c.serializeState(ser)
+            }
         }
     }
 }

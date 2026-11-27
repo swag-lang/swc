@@ -11,11 +11,11 @@ private
 
     // The specimen page: the size of its large "Aa", of the family's name, the width of its left
     // column, the air between the two columns, and the pitch of the row of glyphs.
-    const SpecimenSize = 160'u32
-    const FamilySize   = 28'u32
+    const SpecimenSize = 160_u32
+    const FamilySize   = 28_u32
     const LeftColumn   = 400.0
     const ColumnGap    = 64.0
-    const RowGlyphSize = 22'u32
+    const RowGlyphSize = 22_u32
     const RowPitch     = 34.0
     const WideWidth    = 900.0
 
@@ -33,9 +33,9 @@ private
     const CellPadding = 8.0
 
     // Sizes the document sets its own chrome at, and the sizes the specimen is shown at.
-    const GlyphSize   = 40'u32
-    const CaptionSize = 12'u32
-    const CodeSize    = 11'u32
+    const GlyphSize   = 40_u32
+    const CaptionSize = 12_u32
+    const CodeSize    = 11_u32
     const SampleCount = 5
     const SampleSizes: [SampleCount] u32 = [64, 36, 22, 15, 11]
 
@@ -43,37 +43,53 @@ private
     const RowGlyphs:   [12] rune = ['A', 'g', 'ß', 'é', 'ç', 'Ω', '&', '@', '€', '≠', '→', '3']
     const ChosenGlyph: rune      = 'é'
 
-    const CharacterPageSize = 192'u64
-    const FirstCharacter    = 0x20'u32
-    const CharacterLimit    = 0x110000'u32
+    const CharacterPageSize = 192_u64
+    const FirstCharacter    = 0x20_u32
 }
 
 // Collects one page of mapped Unicode scalars without materializing the whole character map.
-func characterPage(face: *Face, start: u32, pageSize = CharacterPageSize)->{characters: Array'rune, end: u32, hasNext: bool}
+func characterPage(face: *Face, start: u32, pageSize = CharacterPageSize)->{characters: Array!{rune}, end: u32, hasNext: bool}
 {
     var result: #returntype
-    var code = Math.max(start, FirstCharacter)
-    result.end = code
-
-    while code < CharacterLimit
+    result.end = Math.max(start, FirstCharacter)
+    face.visitCharacters(result.end, func|pageSize, &result|(character: rune, glyphIndex: u32)->bool
     {
-        let character = cast(rune, code)
-        if Utf8.isValidRune(character) and face.hasChar(character)
+        discard glyphIndex
+        if result.characters.count == pageSize
         {
-            if result.characters.count == pageSize
-            {
-                result.hasNext = true
-                break
-            }
-
-            result.characters.add(character)
-            result.end = code
+            result.hasNext = true
+            return false
         }
 
-        code += 1
-    }
-
+        result.characters.add(character)
+        result.end = cast(u32, character)
+        return true
+    })
     return result
+}
+
+// Builds the page starts and the first mapped character of each glyph in a single visit.
+func buildCharacterIndex(face: *Face, pages: *Array!{u32}, glyphCharacters: *Array!{rune})
+{
+    pages.clear()
+    glyphCharacters.clear()
+    glyphCharacters.resize(face.glyphCount)
+    var count = 0_u64
+    face.visitCharacters(FirstCharacter, func|pages, glyphCharacters, &count|(character: rune, glyphIndex: u32)->bool
+    {
+        if count % CharacterPageSize == 0
+        {
+            pages.add(cast(u32, character))
+        }
+
+        if not glyphCharacters[glyphIndex]
+        {
+            glyphCharacters[glyphIndex] = character
+        }
+
+        count += 1
+        return true
+    })
 }
 
 // One character of the loaded page, with the two texts its cell is drawn from.
@@ -117,13 +133,28 @@ struct DocumentLayout
     height:             f32         // Total content height, which is what the scrollbar is given.
 }
 
-// Scrollable specimen and Unicode character map drawn with the inspected face.
+// A glyph name borrows bytes from the face that owns the index.
 struct GlyphName
 {
-    name: String
-    id:   u32
+    late name: string
+    id:        u32
 }
 
+func buildGlyphNameIndex(face: *Face, names: *Array!{GlyphName})
+{
+    names.clear()
+    for glyphIndex in face.glyphCount
+    {
+        if let name = face.glyphName(cast(u32, glyphIndex))
+        {
+            names.add({name, cast(u32, glyphIndex)})
+        }
+    }
+
+    names.sort(func(a, b) => Text.compareNames(a.name, b.name))
+}
+
+// Scrollable specimen and Unicode character map drawn with the inspected face.
 struct DocumentView
 {
     using wnd: Wnd
@@ -141,20 +172,20 @@ struct DocumentView
     fontSource: FontSource
     face:       *Face?
 
-    specimenGlyphs:  Array'rune
+    specimenGlyphs:  Array!{rune}
     specimenMark:    String
-    cells:           Array'DocumentCell
+    cells:           Array!{DocumentCell}
     layout:          DocumentLayout
-    pageStarts:      Array'u32
-    glyphCharacters: Array'rune          // First mapped Unicode scalar for each glyph ID.
-    glyphNames:      Array'GlyphName     // Post/CFF names sorted once for binary lens lookup.
+    pageStarts:      Array!{u32}
+    glyphCharacters: Array!{rune}          // First mapped Unicode scalar for each glyph ID.
+    glyphNames:      Array!{GlyphName}     // Post/CFF names sorted once for binary lens lookup.
     pageIndex:       u64
     pageStart:       u32
     pageEnd:         u32
     hasNext:         bool
     shown:           rune     // Character the reader asked to see, marked in its cell; zero for none.
 
-    sigMarked: SigArray'func||(*DocumentView)     // Emitted when a click or the lens marks another character.
+    sigMarked: SigArray!{func||(*DocumentView)}     // Emitted when a click or the lens marks another character.
 }
 
 private impl DocumentView
@@ -174,7 +205,7 @@ private impl DocumentView
     // first is the one that names the face, and a long one is cut so it never runs off the page.
     mtd noticeText()->String
     {
-        const NoticeLimit = 120'u64
+        const NoticeLimit = 120_u64
         let source = .face!.copyright.toString()
         var end    = source.count
         for index in source.count
@@ -194,15 +225,23 @@ private impl DocumentView
         let designer  = Latin1.trim(.face.designer.toString())
 
         var result: #returntype
-        if designer.count do
+        if designer.count
+        {
             result += designer
+        }
+
         if copyright.count
         {
-            if result.count do
+            if result.count
+            {
                 result += " · "
+            }
+
             result += copyright
-            if end > NoticeLimit do
+            if end > NoticeLimit
+            {
                 result += "…"
+            }
         }
 
         return result
@@ -222,16 +261,20 @@ private impl DocumentView
         let latinMark = .face!.hasChar('A') and .face.hasChar('a')
         if latinMark
         {
-            for glyph in RowGlyphs where .face.hasChar(glyph) do
+            for glyph in RowGlyphs where .face.hasChar(glyph)
+            {
                 .specimenGlyphs.add(glyph)
+            }
         }
         else
         {
             for glyph in .glyphCharacters where Unicode.isLetter(glyph)
             {
                 .specimenGlyphs.add(glyph)
-                if .specimenGlyphs.count == RowGlyphs.count do
+                if .specimenGlyphs.count == RowGlyphs.count
+                {
                     break
+                }
             }
         }
 
@@ -240,8 +283,10 @@ private impl DocumentView
             for glyph in .glyphCharacters where glyph > 0x20 and not Unicode.isSpace(glyph)
             {
                 .specimenGlyphs.add(glyph)
-                if .specimenGlyphs.count == RowGlyphs.count do
+                if .specimenGlyphs.count == RowGlyphs.count
+                {
                     break
+                }
             }
         }
 
@@ -252,8 +297,10 @@ private impl DocumentView
         }
         else
         {
-            for glyph in .specimenGlyphs.toSlice()[until Math.min(.specimenGlyphs.count, 2)] do
+            for glyph in .specimenGlyphs.toSlice()[until Math.min(.specimenGlyphs.count, 2)]
+            {
                 .specimenMark.append(glyph)
+            }
         }
 
         .refreshLayout()
@@ -267,17 +314,24 @@ private impl DocumentView
             if Unicode.isLetterOrDigit(c)
             {
                 letters += 1
-                if .face!.hasChar(c) do
+                if .face!.hasChar(c)
+                {
                     mapped += 1
+                }
             }
         }
 
-        if mapped * 2 >= letters or .specimenGlyphs.isEmpty() do
+        if mapped * 2 >= letters or .specimenGlyphs.isEmpty()
+        {
             return String.from(suggested)
+        }
 
         var result: String
-        for glyph in .specimenGlyphs do
+        for glyph in .specimenGlyphs
+        {
             result.append(glyph)
+        }
+
         return result
     }
 
@@ -297,8 +351,11 @@ private impl DocumentView
         painter.drawString(left, .layout.nameTop, family, familyFont, colors.text)
         let version = .versionText()
         var metrics = Format.toString(texts().ui_Metrics, .face.glyphCount, .face.unitsPerEm)
-        if version.count do
+        if version.count
+        {
             metrics += Format.toString(" · %", version)
+        }
+
         painter.drawString(left, .layout.metricsTop, metrics, .fontCode, colors.faintText)
 
         // The style is a tab, the one in use.
@@ -319,8 +376,11 @@ private impl DocumentView
             var text: String
             text.append(glyph)
             let width = Math.max(Painter.measureString(text, glyphFont).width, 14)
-            if x + width > left + glyphWidth do
+            if x + width > left + glyphWidth
+            {
                 break
+            }
+
             let cell = Math.Rectangle{x - 6, .layout.rowTop, width + 12, RowPitch}
             if glyph == ChosenGlyph or (chosen == Swag.U32.Max and glyph == .specimenGlyphs[0] and not .face.hasChar(ChosenGlyph))
             {
@@ -380,8 +440,10 @@ private impl DocumentView
             for column in .layout.columns
             {
                 let index = row * .layout.columns + column
-                if index >= .cells.count do
+                if index >= .cells.count
+                {
                     break
+                }
 
                 let cell = &.cells[index]
                 let box  = Math.Rectangle{.layout.gridLeft + cast(f32, column) * (CellWidth + CellGap), top, CellWidth, .layout.cellHeight}
@@ -415,8 +477,11 @@ impl IWnd for DocumentView
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .scroll == null do
+        if .scroll == null
+        {
             return
+        }
+
         .refreshLayout()
     }
 
@@ -492,8 +557,11 @@ impl IWnd for DocumentView
         band.offset(.scrollPos)
 
         painter.setParams(.Antialiased)
-        if band.y < .layout.mapTop do
+        if band.y < .layout.mapTop
+        {
             .paintSpecimen(painter)
+        }
+
         .paintCharacterMap(painter, band)
     }
 }
@@ -504,13 +572,13 @@ impl DocumentView
     // the source it was loaded from; `sampleEdit` supplies the specimen text.
     func create(parent: *Wnd, face: *Face, typeFace: *TypeFace, fontSource: #move FontSource, sampleEdit: *EditBox)->*DocumentView
     {
-        with let scroll = Wnd.create'ScrollWnd(parent, "scope.font.scroll", {})
+        with let scroll = Wnd.create!{ScrollWnd}(parent, "scope.font.scroll", {})
         {
             .dockStyle = .Center
             .updateFlags(.TransparentBars | .DisableHorizontal)
         }
 
-        with let result = scroll.createView'DocumentView()
+        with let result = scroll.createView!{DocumentView}()
         {
             .scroll          = scroll
             .fontSource      = #move fontSource
@@ -541,27 +609,8 @@ impl DocumentView
         .fontGlyph = .app().renderer.fontCache().createFont(typeFace, GlyphSize)
         .shown     = 0
         .pageIndex = 0
-        .pageStarts.clear()
-        .glyphCharacters.clear()
-        .glyphCharacters.resize(face.glyphCount)
-        var start = FirstCharacter
-        while start < 0x110000
-        {
-            let page = characterPage(face, start)
-            if page.characters.isEmpty() do
-                break
-            .pageStarts.add(cast(u32, page.characters[0]))
-            for character in page.characters
-            {
-                let glyphIndex = face.glyphIndex(character)
-                if glyphIndex < .glyphCharacters.count and not .glyphCharacters[glyphIndex] do
-                    .glyphCharacters[glyphIndex] = character
-            }
-
-            if not page.hasNext do
-                break
-            start = page.end + 1
-        }
+        buildCharacterIndex(face, &.pageStarts, &.glyphCharacters)
+        buildGlyphNameIndex(face, &.glyphNames)
 
         .loadPage(FirstCharacter)
         .scroll.setScrollPos(0, 0)
@@ -572,8 +621,11 @@ impl DocumentView
     // Reports whether the loaded page maps `character`.
     mtd hasCharacter(character: rune)->bool
     {
-        for cell in .cells where cell.character == character do
+        for cell in .cells where cell.character == character
+        {
             return true
+        }
+
         return false
     }
 
@@ -591,7 +643,7 @@ impl DocumentView
         let nameWidth = Math.max(1, Painter.measureString(.face!.familyName, .theme().createDefaultFont(FamilySize, .Bold)).width)
         let top       = Math.min(ContentInset, Math.floor(client.height * 0.1))
         let markRoom  = Math.max(1, client.height - 2 * top - .theme().createDefaultFont(FamilySize, .Bold).height)
-        let scale     = Math.min(available / markWidth, markRoom / mark.height, 1.0'f32)
+        let scale     = Math.min(available / markWidth, markRoom / mark.height, 1.0_f32)
         .layout.markSize = Math.max(1, cast(u32, SpecimenSize * scale))
         .layout.nameSize = Math.max(12, cast(u32, FamilySize * Math.min(1, available / nameWidth)))
         let aa = .sampleFont(.layout.markSize)
@@ -645,8 +697,11 @@ impl DocumentView
         .layout.gridLeft = ContentInset
 
         var grid = .fontCode.height
-        if .layout.rows do
+        if .layout.rows
+        {
             grid = cast(f32, .layout.rows) * (.layout.cellHeight + CellGap) - CellGap
+        }
+
         .layout.height = .layout.gridTop + grid + ContentInset
 
         .scroll.setScrollSize(0, .layout.height)
@@ -677,8 +732,11 @@ impl DocumentView
 
     mtd nextPage()
     {
-        if not .hasNext do
+        if not .hasNext
+        {
             return
+        }
+
         .pageIndex += 1
         .loadPage(.pageEnd + 1)
         .revealCharacterMap()
@@ -686,8 +744,11 @@ impl DocumentView
 
     mtd previousPage()
     {
-        if not .pageIndex or .pageStarts.isEmpty() do
+        if not .pageIndex or .pageStarts.isEmpty()
+        {
             return
+        }
+
         .pageIndex -= 1
         .loadPage(.pageStarts[.pageIndex])
         .revealCharacterMap()
@@ -695,11 +756,17 @@ impl DocumentView
 
     mtd goToCharacterPage(start: u32)
     {
-        if .pageStarts.isEmpty() do
+        if .pageStarts.isEmpty()
+        {
             return
+        }
+
         .pageIndex = 0
-        for page, index in .pageStarts where page <= start do
+        for page, index in .pageStarts where page <= start
+        {
             .pageIndex = index
+        }
+
         .loadPage(.pageStarts[.pageIndex])
         .revealCharacterMap()
     }
@@ -709,14 +776,20 @@ impl DocumentView
     mtd cellAt(point: Math.Point)->u64
     {
         let pitch = .layout.cellHeight + CellGap
-        if point.y < .layout.gridTop or point.x < .layout.gridLeft do
+        if point.y < .layout.gridTop or point.x < .layout.gridLeft
+        {
             return Swag.U64.Max
+        }
+
         let row    = cast(u64, (point.y - .layout.gridTop) / pitch)
         let column = cast(u64, (point.x - .layout.gridLeft) / (CellWidth + CellGap))
         if column >= .layout.columns or
            point.y - .layout.gridTop - cast(f32, row) * pitch > .layout.cellHeight or
-           point.x - .layout.gridLeft - cast(f32, column) * (CellWidth + CellGap) > CellWidth do
+           point.x - .layout.gridLeft - cast(f32, column) * (CellWidth + CellGap) > CellWidth
+        {
             return Swag.U64.Max
+        }
+
         let index = row * .layout.columns + column
         return index < .cells.count ? index : Swag.U64.Max
     }
@@ -726,8 +799,11 @@ impl DocumentView
     mtd showCharacter(character: rune)
     {
         let face = .face
-        if not face or not Utf8.isValidRune(character) or not face.hasChar(character) do
+        if not face or not Utf8.isValidRune(character) or not face.hasChar(character)
+        {
             return
+        }
+
         .goToCharacterPage(cast(u32, character))
         if .shown != character
         {

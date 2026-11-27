@@ -394,7 +394,7 @@ Result AstNamedType::semaPostNode(Sema& sema) const
     if (const auto* memberAccess = sema.node(nodeIdentRef).safeCast<AstMemberAccessExpr>())
     {
         const AstNode& rightNode = sema.node(memberAccess->nodeRightRef);
-        if (rightNode.is(AstNodeId::QuotedExpr) || rightNode.is(AstNodeId::QuotedListExpr))
+        if (rightNode.is(AstNodeId::QuotedExpr) || rightNode.is(AstNodeId::GenericArgListExpr))
         {
             const SemaNodeView rightView = sema.viewTypeSymbol(memberAccess->nodeRightRef);
             if (rightView.typeRef().isValid())

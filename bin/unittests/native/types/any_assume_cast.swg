@@ -8,7 +8,7 @@ func receiveAssumedAny(value: s64)->s64 => value
 
 #test
 {
-    const boxed: any = 987654321's64
+    const boxed: any = 987654321_s64
     let value: s64 = assume cast(s64, boxed)
     Swag.require(value == 987654321)
 }

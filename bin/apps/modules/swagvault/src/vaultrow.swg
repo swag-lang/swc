@@ -19,49 +19,49 @@ struct VaultRow
         unmount: *PushButton
     }
 
-    path:          String     // Container file of the vault the row shows.
-    header:        bool       // Whether the row heads the unfolded card and offers its modification menu.
-    modify:        *IconButton?
-    hovered:       bool
-    focused:       bool
-    expansion:     f32     // Animated space below the resting row.
-    expansionFrom: f32
+    path:            String     // Container file of the vault the row shows.
+    header:          bool       // Whether the row heads the unfolded card and offers its modification menu.
+    modify:          *IconButton?
+    hovered:         bool
+    focused:         bool
+    expansion:       f32     // Animated space below the resting row.
+    expansionFrom:   f32
     expansionTarget: f32
-    opacityTarget: f32 = 1
-    containerSize: u64     // Size of the container file of a locked vault, or zero when it cannot be read.
+    opacityTarget:   f32 = 1
+    containerSize:   u64     // Size of the container file of a locked vault, or zero when it cannot be read.
 }
 
 impl VaultRow
 {
     // Heights of a locked and of a mounted row, and the places of their parts from the row's
     // top-left corner. The lines are placed by their centres.
-    const Height        = 84'f32
-    const MountedHeight = 124'f32
+    const Height        = 84_f32
+    const MountedHeight = 124_f32
     const DotX          = RowOutset + 4
     const TextX         = RowOutset + 28
-    const NameY         = 32'f32
-    const IdentityY     = 58'f32
-    const DotY          = 42'f32
-    const DotRadius     = 4'f32
-    const NameFontSize  = 20'u32
+    const NameY         = 32_f32
+    const IdentityY     = 58_f32
+    const DotY          = 42_f32
+    const DotRadius     = 4_f32
+    const NameFontSize  = 20_u32
 
     // The fullness of a mounted vault: a thread under its identity, and the room left under it.
-    const ThreadY     = 82'f32
-    const ThreadWidth = 2'f32
-    const SpaceY      = 100'f32
+    const ThreadY     = 82_f32
+    const ThreadWidth = 2_f32
+    const SpaceY      = 100_f32
 
     // The drive of a mounted vault is a large light figure; a destination too long to read as one
     // is named in the ordinary words instead.
-    const DriveFontSize = 34'u32
-    const DriveMaxWidth = 112'f32
+    const DriveFontSize = 34_u32
+    const DriveMaxWidth = 112_f32
 
     // Air between the words of a locked row and what its right edge says.
-    const OpenHintGap = 8'f32
+    const OpenHintGap = 8_f32
 
     // Creates a row of the list in `parent`, for `window`. A `header` row heads the unfolded card.
     func create(parent: *Wnd, window: *MainWindow, header = false)->*VaultRow
     {
-        with let result = Wnd.create'VaultRow(parent, Math.Rectangle{0, 0, 0, Height})
+        with let result = Wnd.create!{VaultRow}(parent, Math.Rectangle{0, 0, 0, Height})
         {
             .window          = window
             .header          = header
@@ -83,11 +83,13 @@ impl VaultRow
         {
             let metrics = result.themeMetrics()
             let size    = metrics.quiet_Height
-            let modify  = IconButton.create(result, result.theme().icon(.Edit, themeRowIconSize(metrics)),
-                                            {0, 0, size, size}, flags: .IconOnly)
+            let modify  = IconButton.create(result,
+                                            result.theme().icon(.Edit, themeRowIconSize(metrics)),
+                                            {0, 0, size, size},
+                                            flags: .IconOnly)
             modify.setForm(.RoundedRectangle)
             modify.sigPressed += func|window, modify|(_) { window.showVaultEditMenu(modify) }
-            result.modify = modify
+            result.modify     = modify
         }
 
         result.refresh()
@@ -97,8 +99,11 @@ impl VaultRow
     // Shows the vault at `path` on the row.
     mtd setPath(path: string)
     {
-        if .path == path do
+        if .path == path
+        {
             return
+        }
+
         .path = path
         .refresh()
     }
@@ -114,8 +119,11 @@ impl VaultRow
         let actions = drive != null and not .header
         .open.show(actions)
         .unmount.show(actions)
-        if drive do
+        if drive
+        {
             .showDrive(drive.mountLabel)
+        }
+
         .unmount.setText(appStrings().ui_Unmount)
         .unmount.enable(.window.operation.kind == .None)
         if let modify = .modify
@@ -127,8 +135,10 @@ impl VaultRow
         // A locked container says how large it is; reading it here keeps the file system out of
         // the paint.
         .containerSize = 0
-        if not drive and not .path.isEmpty() do
+        if not drive and not .path.isEmpty()
+        {
             .containerSize = catch File.info(.path).size orelse 0
+        }
 
         .arrangeActions()
         .invalidate()
@@ -144,8 +154,10 @@ impl VaultRow
 
         .open.style.setFont(theme.createDefaultFont(DriveFontSize, .Light), .Regular)
         .open.setText(mountLabel)
-        if .open.measure({}).preferred.x <= DriveMaxWidth do
+        if .open.measure({}).preferred.x <= DriveMaxWidth
+        {
             return
+        }
 
         let font  = theme.createDefaultFont(theme.metrics.defaultFontSize)
         let width = DriveMaxWidth - .open.padding.x - .open.padding.z
@@ -190,8 +202,11 @@ impl VaultRow
         let chevronX = room.right() - RowOutset - chevron.sizeX
         let wordX    = chevronX - metrics.iconText_Margin - wordW
         let active   = .hovered or .focused
-        if active do
+        if active
+        {
             painter.drawString(wordX, font.opticalLineTop(centerY), word, font, colors.softText)
+        }
+
         chevron.paint(painter, chevronX, Math.round(centerY - chevron.sizeY * 0.5), active ? colors.softText : colors.faintText)
 
         return wordX - OpenHintGap
@@ -201,8 +216,10 @@ impl VaultRow
     // part filled, and under it the room left of the whole.
     mtd paintSpace(painter: *Painter, room: Math.Rectangle, textRight: f32, drive: *MountedDrive)
     {
-        if not drive.totalBytes do
+        if not drive.totalBytes
+        {
             return
+        }
 
         let colors = .themeColors()
         let left   = room.x + TextX
@@ -212,8 +229,10 @@ impl VaultRow
 
         let thread = Math.Rectangle{left, room.y + ThreadY, width, ThreadWidth}
         painter.fillRoundRect(thread, ThreadWidth * 0.5, ThreadWidth * 0.5, colors.raised)
-        if filled > 0 do
+        if filled > 0
+        {
             painter.fillRoundRect(Math.Rectangle{left, thread.y, filled, ThreadWidth}, ThreadWidth * 0.5, ThreadWidth * 0.5, colors.arc)
+        }
 
         let monoFont = .theme().createDefaultFontFs(12)
         let space    = Format.toString(appStrings().ui_DriveFree, capacityText(drive.availableBytes), capacityText(drive.totalBytes))
@@ -222,10 +241,14 @@ impl VaultRow
 
     private mtd activateVault()
     {
-        if .window.isMounted(.path) do
+        if .window.isMounted(.path)
+        {
             .window.chooseVault(.path)
-        else do
+        }
+        else
+        {
             .window.queueAutomaticMount(.path)
+        }
     }
 }
 
@@ -234,8 +257,11 @@ impl IWnd for VaultRow
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         // A window is laid out as soon as it is made, before its actions exist.
-        if .unmount == null do
+        if .unmount == null
+        {
             return
+        }
+
         .arrangeActions()
     }
 
@@ -250,35 +276,54 @@ impl IWnd for VaultRow
         painter.setParams(.Antialiased)
         if not .header
         {
-            if drive do
+            if drive
+            {
                 painter.fillRoundRect(room, metrics.corner_Floating, metrics.corner_Floating, colors.surface)
-            elif .hovered or .focused do
+            }
+            else if .hovered or .focused
+            {
                 painter.fillRoundRect(room, metrics.corner_Floating, metrics.corner_Floating, colors.raised)
+            }
         }
 
         // The dot says the state before the words are read: live when the drive is there, a ring
         // when the vault is at rest.
-        if drive do
+        if drive
+        {
             painter.fillCircle(room.x + DotX, room.y + DotY, DotRadius, colors.live)
-        else do
+        }
+        else
+        {
             painter.drawCircle(room.x + DotX, room.y + DotY, DotRadius - 0.75, colors.softText, 1.5)
+        }
 
         // The words stop short of what the right edge holds, so a long name never runs under it.
         var textRight = room.right() - RowOutset
-        if let modify = .modify do
+        if let modify = .modify
+        {
             textRight = modify.position.x - metrics.dialog_BtnPadding
-        elif .open.isLocallyVisible() do
+        }
+        else if .open.isLocallyVisible()
+        {
             textRight = .open.position.x - metrics.dialog_BtnPadding
-        elif not .header do
+        }
+        else if not .header
+        {
             textRight = .paintOpenHint(painter, room)
+        }
 
-        if drive and not .header do
+        if drive and not .header
+        {
             .paintSpace(painter, room, textRight, drive)
+        }
 
         let left  = room.x + TextX
         let width = textRight - left
-        if width <= 0 do
+        if width <= 0
+        {
             return
+        }
+
         painter.pushClippingRect(Math.Rectangle{left, room.y, width, room.height})
 
         let nameFont = .theme().createDefaultFont(NameFontSize, .SemiBold)

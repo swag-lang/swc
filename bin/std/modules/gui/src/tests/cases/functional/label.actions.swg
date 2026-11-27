@@ -69,11 +69,13 @@ using Core, Pixel
     host.theme.setLight()
     let label        = Label.createMarkup(&host.root, "Retry after <a>3\u00A0minutes</a>.", {20, 20, 280, 60}, flags: .SecondaryText | .LinkActions)
     let active       = host.renderSettled(&host.root)
-    var activePixels = 0'u32
+    var activePixels = 0_u32
     for y in active.height
     {
-        for x in active.width where active.pixelColor(x, y) == host.theme.colors.url_Text do
+        for x in active.width where active.pixelColor(x, y) == host.theme.colors.url_Text
+        {
             activePixels += 1
+        }
     }
 
     Swag.require(activePixels > 0)
@@ -81,8 +83,10 @@ using Core, Pixel
     let disabled = host.renderSettled(&host.root)
     for y in disabled.height
     {
-        for x in disabled.width do
+        for x in disabled.width
+        {
             Swag.require(disabled.pixelColor(x, y) != host.theme.colors.url_Text)
+        }
     }
 }
 

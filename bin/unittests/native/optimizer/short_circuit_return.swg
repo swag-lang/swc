@@ -30,19 +30,23 @@ func mixedRef(a, b, c: u32)->bool => (a < b and b < c) or c == 0
     let box = Box{1, 2, 3, 4}
     for px in -2 to 6
     {
-        for py in -1 to 8 do
+        for py in -1 to 8
+        {
             Swag.require(inside(&box, px, py) == insideRef(&box, px, py))
+        }
     }
 
-    let values = [0's64, 1, -1, 7, 8, -7]
+    let values = [0_s64, 1, -1, 7, 8, -7]
     for a in values
     {
         for b in values
         {
             for c in values
             {
-                for d in values do
+                for d in values
+                {
                     Swag.require(anyEdge(a, b, c, d) == anyEdgeRef(a, b, c, d))
+                }
                 let ua = cast #bit (u32, cast #wrap (s32, a))
                 let ub = cast #bit (u32, cast #wrap (s32, b))
                 let uc = cast #bit (u32, cast #wrap (s32, c))

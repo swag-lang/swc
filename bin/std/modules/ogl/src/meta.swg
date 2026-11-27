@@ -10,22 +10,33 @@ struct OneFunc
 }
 
 #[Compiler]
-var g_Functions: Array'OneFunc
+var g_Functions: Array!{OneFunc}
 
 #message(CompilerMsgMask.SemFunctions)
 {
     let itf = Swag.compiler()
     let msg = itf.getMessage()
-    if msg == null or msg.type == null or msg.name == null do
+    if msg == null or msg.type == null or msg.name == null
+    {
         return
-    if msg.kind != CompilerMsgKind.SemFunctions do
+    }
+
+    if msg.kind != CompilerMsgKind.SemFunctions
+    {
         return
-    if msg.type.kind != TypeInfoKind.Func do
+    }
+
+    if msg.type.kind != TypeInfoKind.Func
+    {
         return
+    }
 
     let typeFunc = assume cast(const *TypeInfoFunc, msg.type)
-    if not Reflection.hasAttribute(typeFunc, Extension) do
+    if not Reflection.hasAttribute(typeFunc, Extension)
+    {
         return
+    }
+
     g_Functions.add({type: typeFunc, name: cast(string, (msg.name))})
 }
 
@@ -45,8 +56,11 @@ var g_Functions: Array'OneFunc
 
         for p in etype.parameters
         {
-            if p.pointedType!.kind != TypeInfoKind.Func do
+            if p.pointedType!.kind != TypeInfoKind.Func
+            {
                 continue
+            }
+
             builderVars.appendString("#[Swag.CallingConvention(.C)]\npublic alias extParamType_")
             builderVars.appendString(e.name)
             builderVars.appendString("_")
@@ -73,8 +87,11 @@ var g_Functions: Array'OneFunc
         builderVars.appendString("(")
         for p, i in etype.parameters
         {
-            if i != 0 do
+            if i != 0
+            {
                 builderVars.appendString(", ")
+            }
+
             builderVars.appendString(p.name)
             builderVars.appendString(": ")
             if p.pointedType!.kind == TypeInfoKind.Func
@@ -109,8 +126,11 @@ var g_Functions: Array'OneFunc
         builderVars.appendString("(")
         for p, i in etype.parameters
         {
-            if i != 0 do
+            if i != 0
+            {
                 builderVars.appendString(", ")
+            }
+
             builderVars.appendString(p.name)
         }
 

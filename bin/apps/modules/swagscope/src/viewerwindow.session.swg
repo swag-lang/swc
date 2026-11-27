@@ -5,15 +5,20 @@ impl ViewerWindow
     {
         for instance in .instances
         {
-            if instance.view is Viewers.PlainText.Panel as view do
+            if instance.view is Viewers.PlainText.Panel as view
+            {
                 .rememberTextBookmarks(view)
+            }
         }
     }
 
     private mtd rememberTextBookmarks(view: *Viewers.PlainText.Panel)
     {
-        if not view.bookmarksPersistable do
+        if not view.bookmarksPersistable
+        {
             return
+        }
+
         var path = catch Path.absolute(view.fileName) { return; }
         Path.normalize(&path)
 
@@ -23,34 +28,45 @@ impl ViewerWindow
 
     internal mtd storeTextBookmarkFile(path: string, identity: string, bookmarks: const [..] Viewers.PlainText.Bookmark)
     {
-        if not path.count or not identity.count do
+        if not path.count or not identity.count
+        {
             return
+        }
+
         var found = Swag.U64.Max
-        for record, index in .textBookmarkFiles where Path.equals(record.path, path) do
+        for record, index in .textBookmarkFiles where Path.equals(record.path, path)
+        {
             found = index
+        }
 
         if not bookmarks.count
         {
-            if found != Swag.U64.Max do
+            if found != Swag.U64.Max
+            {
                 .textBookmarkFiles.removeAtOrdered(found)
+            }
+
             return
         }
 
         var record: ViewerTextBookmarkFile
-        record.path = String.from(path)
+        record.path     = String.from(path)
         record.identity = String.from(identity)
         let first = bookmarks.count > ViewerTextBookmarkLimit ? bookmarks.count - ViewerTextBookmarkLimit : 0
-        for index in first until bookmarks.count do
+        for index in first until bookmarks.count
+        {
             record.bookmarks.add(bookmarks[index])
+        }
 
         if found != Swag.U64.Max
         {
             .textBookmarkFiles.removeAtOrdered(found)
         }
-        elif .textBookmarkFiles.count >= ViewerTextBookmarkFileLimit
+        else if .textBookmarkFiles.count >= ViewerTextBookmarkFileLimit
         {
             .textBookmarkFiles.removeAtOrdered(0)
         }
+
         .textBookmarkFiles.add(#move record)
     }
 
@@ -64,6 +80,7 @@ impl ViewerWindow
             view.bookmarksPersistable = false
             return
         }
+
         for record in .textBookmarkFiles where Path.equals(record.path, path)
         {
             view.restoreBookmarks(record.bookmarks.toSlice(), record.identity)
@@ -76,8 +93,11 @@ impl ViewerWindow
     {
         if .currentFile.isEmpty() or
            not .pendingFile.isEmpty() or
-           .activeChoiceIndex >= .instances.count do
+           .activeChoiceIndex >= .instances.count
+        {
             return
+        }
+
         .readingState.capture(&.instances[.activeChoiceIndex], .choices[.activeChoiceIndex].key, .searchBox.text())
         .readingState.captureSearchSettings(me)
         .queueFile(.currentFile, remember: false, preserveReading: true)
@@ -88,8 +108,10 @@ impl ViewerWindow
         if .readingState.restoring and
            .activeChoiceIndex < .instances.count and
            .pendingFile.isEmpty() and
-           .readingState.restore(&.instances[.activeChoiceIndex]) do
+           .readingState.restore(&.instances[.activeChoiceIndex])
+        {
             .readingState.restoring = false
+        }
     }
 
     // Queues `fileName`, giving the window a chance to paint its first frame on startup.
@@ -103,11 +125,16 @@ impl ViewerWindow
         .workspace?.fillVacancy(me, fileName)
         .rememberTextBookmarkSessions()
         .captureResume()
-        if .isExploring() and not preserveReading do
+        if .isExploring() and not preserveReading
+        {
             .explorerTransition = true
+        }
+
         .reloading = preserveReading
-        if not preserveReading do
+        if not preserveReading
+        {
             .readingState = {}
+        }
 
         // A query belongs to the document it was started against. Stop its file stream as soon as
         // another document is requested instead of letting it scan the old file while the new one
@@ -118,8 +145,11 @@ impl ViewerWindow
         .stopSlide()
         .stillView = null
 
-        if .workspace and me == .workspace.primary and not .smokeRunning do
+        if .workspace and me == .workspace.primary and not .smokeRunning
+        {
             .workspace.adoptPrimary(fileName)
+        }
+
         .pendingFile = fileName
         .pendingEmpty.clear()
         .pendingRemember      = remember
@@ -136,22 +166,30 @@ impl ViewerWindow
         if .explorer
         {
             .explorer.leave()
-            if not .explorerTransition do
+            if not .explorerTransition
+            {
                 .explorer.setShown(false)
+            }
         }
 
         .updateLoadingIndicator()
-        if .startupTimer do
+        if .startupTimer
+        {
             return
+        }
 
         // Start the JPEG classification while the outgoing view is still on screen.
         if .currentView and
            not .choiceLoad.started and
            not .awaitingRetirement and
-           Jpg.matchesFileName(.pendingFile) do
+           Jpg.matchesFileName(.pendingFile)
+        {
             .choiceLoad.start(&.index, .pendingFile, me, includeNeighbors: not .thumbnailMode)
-        else do
-            .startupTimer = .addTimer(1'ms)
+        }
+        else
+        {
+            .startupTimer = .addTimer(1_ms)
+        }
     }
 
     // Takes the queued file, or the queued empty state, one step further once what it waited for
@@ -164,7 +202,7 @@ impl ViewerWindow
         {
             .processQueuedFile()
         }
-        elif not .pendingEmpty.isEmpty()
+        else if not .pendingEmpty.isEmpty()
         {
             let message = #move .pendingEmpty
             .showEmpty(message)
@@ -177,11 +215,16 @@ impl ViewerWindow
     // the question waits for the next turn of the event loop.
     mtd retryRetirement()
     {
-        if not .awaitingRetirement do
+        if not .awaitingRetirement
+        {
             return
+        }
+
         .awaitingRetirement = false
-        if not .startupTimer do
-            .startupTimer = .addTimer(1'ms)
+        if not .startupTimer
+        {
+            .startupTimer = .addTimer(1_ms)
+        }
     }
 
     // Advances one asynchronous file classification and publishes it only after the preceding
@@ -193,8 +236,10 @@ impl ViewerWindow
     {
         if .choiceLoad.started
         {
-            if not .choiceLoad.isDone() do
+            if not .choiceLoad.isDone()
+            {
                 return
+            }
 
             if .choiceLoad.fileName != .pendingFile
             {
@@ -231,15 +276,21 @@ impl ViewerWindow
             if not classified.exists
             {
                 .showEmpty(appStrings().ui_DropTitle)
-                if offerForgetMissing do
+                if offerForgetMissing
+                {
                     .confirmForgetMissingRecent(requested)
+                }
+
                 return
             }
 
             var archive      = not classified.choices.isEmpty() and classified.choices[0].key == "archive"
             let chosenViewer = .preferredFileViewer(classified.absoluteFileName)
-            for choice in classified.choices where choice.key == chosenViewer do
+            for choice in classified.choices where choice.key == chosenViewer
+            {
                 archive = chosenViewer == "archive"
+            }
+
             if not .thumbnailMode and (classified.isDirectory or archive)
             {
                 .home.hide()
@@ -273,13 +324,20 @@ impl ViewerWindow
         }
 
         let dialog = FileDlg.create(unwrap .surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
+
         let path = dialog.selectedPath()
-        if newTab and .workspace do
+        if newTab and .workspace
+        {
             .workspace.openDocument(path, newTab: true)
-        elif not (.workspace?.replaceGridDocument(me, path) orelse false) do
+        }
+        else if not (.workspace?.replaceGridDocument(me, path) orelse false)
+        {
             .openFile(path)
+        }
     }
 
     // Closes the current file and forgets its reading state, stops the slide show and the change
@@ -289,14 +347,21 @@ impl ViewerWindow
         .sceneAutoPlay = false
         .captureResume()
         .showPointer()
-        if .isWorkspaceActive() or .isAncestorOf(.focusedWindow()) do
+        if .isWorkspaceActive() or .isAncestorOf(.focusedWindow())
+        {
             .surface?.clearFocus()
+        }
+
         .explorerTransition = false
+
         // A second close can arrive while the viewer is retiring, before the folder is visible.
         if .explorer and (.explorer.isLocallyVisible() or (.explorerActive and not .pendingEmpty.isEmpty()))
         {
-            if not forExplorer do
+            if not forExplorer
+            {
                 .explorerActive = false
+            }
+
             .explorer.leave()
             .explorer.setShown(false)
         }
@@ -312,28 +377,36 @@ impl ViewerWindow
 
         .searchBox.setText("", notify: false)
         .showEmpty(appStrings().ui_DropTitle)
-        if not forExplorer and .workspace and .isWorkspacePrimary() and not .workspace.scene() do
+        if not forExplorer and .workspace and .isWorkspacePrimary() and not .workspace.scene()
+        {
             .workspace.updateMedia()
+        }
     }
 
     // Returns the window to its empty state with `message`. While a viewer is still retiring or a
     // classification is running, the request is kept in `pendingEmpty` until that work ends.
     mtd showEmpty(message: string)
     {
-        .sceneAutoPlay = false
+        .sceneAutoPlay      = false
         .explorerTransition = false
         .forgetSearch()
         let retired = .destroyInstances()
         if not retired or (.choiceLoad.started and not .choiceLoad.isDone())
         {
             .pendingEmpty = message
-            if not retired do
+            if not retired
+            {
                 .awaitingRetirement = true
+            }
+
             return
         }
 
-        if .choiceLoad.started do
+        if .choiceLoad.started
+        {
             discard .choiceLoad.finish()
+        }
+
         .stopLoadingIndicator()
 
         .home.setMessage(message == appStrings().ui_DropTitle ? "" : message)
@@ -351,8 +424,11 @@ impl ViewerWindow
         .resetFolderReading()
         .showFileInfo("", "")
         .layoutFileInfo()
-        if not .explorerActive do
+        if not .explorerActive
+        {
             .closeInformation()
+        }
+
         .updateViewerBar()
         if .explorerActive
         {
@@ -361,10 +437,15 @@ impl ViewerWindow
             .hintLine.hide()
             .searchBox.setText(explorer.filter.text(), notify: false)
             explorer.setShown(true)
-            if not explorer.requested.isEmpty() do
+            if not explorer.requested.isEmpty()
+            {
                 .workspace?.updateDocumentPath(me, explorer.sourceArchivePath(explorer.requested))
-            if .infoSheet.isLocallyVisible() do
+            }
+
+            if .infoSheet.isLocallyVisible()
+            {
                 .refreshInformation()
+            }
         }
 
         .refreshTitle()
@@ -377,13 +458,17 @@ impl ViewerWindow
     // Cooperatively retires every viewer without waiting on the GUI thread.
     mtd destroyInstances(preserveVisible = false)->bool
     {
-        if not preserveVisible do
+        if not preserveVisible
+        {
             .discardOutgoingViewer()
+        }
 
         for &instance in .instances
         {
-            if not instance.retireView() do
+            if not instance.retireView()
+            {
                 return false
+            }
         }
 
         let keepCurrent = preserveVisible and .currentView != null
@@ -412,8 +497,10 @@ impl ViewerWindow
         }
 
         .instances.clear()
-        if not keepCurrent do
+        if not keepCurrent
+        {
             .resetCurrentViewer()
+        }
 
         return true
     }
@@ -481,8 +568,11 @@ impl ViewerWindow
         .mainSplitter.items[index]!.view = panel orelse placeholder
         .mainSplitter.items[index]!.view.show(visible)
         .mainSplitter.setPaneVisible(index, visible)
-        if visible do
+        if visible
+        {
             .mainSplitter.setPaneSize(index, .mainSplitter.items[index]!.size)
+        }
+
         .mainSplitter.applyLayout()
         .layoutFileInfo()
     }
@@ -491,8 +581,11 @@ impl ViewerWindow
     private mtd clearFocusIn(roots: const [..] (*Wnd?))
     {
         let focus = .focusedWindow()
-        if not focus do
+        if not focus
+        {
             return
+        }
+
         for root in roots where root and (root == focus or root.isOwnerOf(focus))
         {
             .surface?.clearFocus()
@@ -503,8 +596,11 @@ impl ViewerWindow
     // Releases the retired presentation once its replacement is ready to cover it.
     private mtd discardOutgoingViewer()
     {
-        if not .outgoingView do
+        if not .outgoingView
+        {
             return
+        }
+
         let oldView            = .outgoingView
         let oldActions         = .outgoingActions
         let oldInfo            = .outgoingInfo
@@ -517,17 +613,32 @@ impl ViewerWindow
         .outgoingCommands        = null
         .outgoingSidePanelHost   = null
         .outgoingSidePanelButton = null
-        if .currentView == oldView do
+        if .currentView == oldView
+        {
             .currentView = null
-        if oldCommands and .currentCommands == oldCommands do
+        }
+
+        if oldCommands and .currentCommands == oldCommands
+        {
             .currentCommands = null
-        if oldActions and .currentActions == oldActions do
+        }
+
+        if oldActions and .currentActions == oldActions
+        {
             .currentActions = null
-        if oldInfo and .currentInfo == oldInfo do
+        }
+
+        if oldInfo and .currentInfo == oldInfo
+        {
             .currentInfo = null
+        }
+
         .clearFocusIn([oldView, oldActions, oldInfo, oldCommands, oldSidePanelHost, oldSidePanelButton])
-        if oldSidePanelHost and .currentSidePanelHost == oldSidePanelHost do
+        if oldSidePanelHost and .currentSidePanelHost == oldSidePanelHost
+        {
             .setCurrentSidePanel(null, null)
+        }
+
         oldActions?.destroy()
         oldInfo?.destroy()
         oldCommands?.destroy()
@@ -539,16 +650,27 @@ impl ViewerWindow
     // Swaps presentations only after the incoming progressive viewer has something to show.
     mtd commitViewerTransition(expected: *Wnd? = null)
     {
-        if (not .outgoingView and not .explorerTransition) or .activeChoiceIndex >= .instances.count do
+        if (not .outgoingView and not .explorerTransition) or .activeChoiceIndex >= .instances.count
+        {
             return
-        let instance = &.instances[.activeChoiceIndex]
-        if not instance.view or (expected and instance.view != expected) do
-            return
-        if instance.needsLoadingOverlay and instance.needsLoadingOverlay() do
-            return
+        }
 
-        if .outgoingView do
+        let instance = &.instances[.activeChoiceIndex]
+        if not instance.view or (expected and instance.view != expected)
+        {
+            return
+        }
+
+        if instance.needsLoadingOverlay and instance.needsLoadingOverlay()
+        {
+            return
+        }
+
+        if .outgoingView
+        {
             .discardOutgoingViewer()
+        }
+
         if .explorerTransition
         {
             .clearFocusIn([.explorer])
@@ -560,8 +682,11 @@ impl ViewerWindow
         .adoptSession(&.instances[.activeChoiceIndex])
         .armSlide()
         .currentView!.dockStyle = .Center
-        if .currentCommands do
+        if .currentCommands
+        {
             .currentCommands.dockStyle = .None
+        }
+
         .currentView.show()
         .currentInfo?.show()
         .currentCommands?.show()
@@ -578,13 +703,18 @@ impl ViewerWindow
     mtd replaceFailedViewer(view: *Wnd, reason: string)
     {
         var message = String.from(reason)
-        if message.isEmpty() do
+        if message.isEmpty()
+        {
             message = appStrings().ui_OpenStopped
+        }
 
         for &instance, index in .instances where instance.view == view
         {
-            if not instance.retireView() do
+            if not instance.retireView()
+            {
                 return
+            }
+
             instance.destroyWindows()
             instance[] = {}
 
@@ -622,14 +752,22 @@ impl ViewerWindow
     // otherwise keep parsing and laying out a document the reader can no longer see.
     private mtd retireActiveLoadingChoice(nextIndex: u32)->bool
     {
-        if .activeChoiceIndex == nextIndex or .activeChoiceIndex >= .instances.count do
+        if .activeChoiceIndex == nextIndex or .activeChoiceIndex >= .instances.count
+        {
             return true
-        let instance = &.instances[.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading() do
-            return true
+        }
 
-        if not instance.retireView() do
+        let instance = &.instances[.activeChoiceIndex]
+        if not instance.view or not instance.isLoading or not instance.isLoading()
+        {
+            return true
+        }
+
+        if not instance.retireView()
+        {
             return false
+        }
+
         instance.destroyWindows()
         instance[] = {}
         .resetCurrentViewer()
@@ -674,8 +812,11 @@ impl ViewerWindow
         var lingering: bool
         if wantOverlay and .currentView
         {
-            if not .loadingWantedSince do
+            if not .loadingWantedSince
+            {
                 .loadingWantedSince = now
+            }
+
             if .loadingShownSince or now - .loadingWantedSince >= LoadingShowDelayMicroseconds
             {
                 if not .loadingShownSince
@@ -695,10 +836,14 @@ impl ViewerWindow
             lingering = .loadingShownSince != 0 and
                         .currentView != null and
                         now - .loadingShownSince < LoadingMinVisibleMicroseconds
-            if lingering do
+            if lingering
+            {
                 .loadingOverlay.cover(.currentView!.position)
-            else do
+            }
+            else
+            {
                 .hideLoadingOverlay()
+            }
         }
 
         let watching = loading or lingering
@@ -706,7 +851,7 @@ impl ViewerWindow
         {
             .loadingTimer = .addTimer(LoadingPollInterval)
         }
-        elif not watching and .loadingTimer
+        else if not watching and .loadingTimer
         {
             .stopTimer(&.loadingTimer)
         }
@@ -715,8 +860,10 @@ impl ViewerWindow
     // Brings back the session of `index`, created by an earlier visit, without loading it again.
     mtd showCreatedChoice(index: u32)->bool
     {
-        if not .retireActiveLoadingChoice(index) do
+        if not .retireActiveLoadingChoice(index)
+        {
             return false
+        }
 
         .hideCurrentSession()
         .adoptSession(&.instances[index])
@@ -739,17 +886,24 @@ impl ViewerWindow
     {
         let view = unwrap next.view
         view.dockStyle = .None
-        if .outgoingView do
+        if .outgoingView
+        {
             view.setPosition(.outgoingView.position, computeLayout: false)
-        elif .explorerTransition do
+        }
+        else if .explorerTransition
+        {
             view.setPosition(.explorer!.position, computeLayout: false)
+        }
+
         next.actions?.hide()
         next.info?.hide()
         if next.commands
         {
             next.commands.dockStyle = .None
-            if .outgoingCommands do
+            if .outgoingCommands
+            {
                 next.commands.setPosition(.outgoingCommands.position, computeLayout: false)
+            }
         }
 
         if .outgoingView
@@ -761,7 +915,7 @@ impl ViewerWindow
             .outgoingSidePanelHost?.bringToFront()
             .outgoingSidePanelButton?.bringToFront()
         }
-        elif .explorerTransition
+        else if .explorerTransition
         {
             .explorer!.bringToFront()
         }
@@ -772,15 +926,21 @@ impl ViewerWindow
     // loading viewer could not be retired yet.
     mtd activateChoice(index: u32)->bool
     {
-        if index >= .choices.count do
+        if index >= .choices.count
+        {
             return false
+        }
 
-        if .instances[index].view do
+        if .instances[index].view
+        {
             return .showCreatedChoice(index)
+        }
 
         let choice = &.choices[index]
-        if choice.pluginIndex >= .index.plugins.count do
+        if choice.pluginIndex >= .index.plugins.count
+        {
             return false
+        }
 
         var next: ViewerSession
         let plugin   = &.index.plugins[choice.pluginIndex]
@@ -807,8 +967,10 @@ impl ViewerWindow
         catch next.create(plugin, host)
         {
             next.failureReason = Viewer.failureText(Swag.err)
-            if next.failureReason.isEmpty() do
+            if next.failureReason.isEmpty()
+            {
                 next.failureReason = appStrings().ui_OpenStopped
+            }
         }
 
         // A rejected or failed viewer keeps its explanation and nothing else: the session becomes
@@ -816,8 +978,11 @@ impl ViewerWindow
         if not next.failureReason.isEmpty()
         {
             .sceneAutoPlay = false
-            if next.view and next.retire do
+            if next.view and next.retire
+            {
                 discard next.retire()
+            }
+
             next.replaceWithFailure(.documentPanel)
             assume cast(*ViewerErrorView, next.view).offer(me, index)
         }
@@ -828,13 +993,18 @@ impl ViewerWindow
             return false
         }
 
-        if next.view is Viewers.PlainText.Panel as textView do
+        if next.view is Viewers.PlainText.Panel as textView
+        {
             .restoreTextBookmarks(textView)
+        }
 
         if not .retireActiveLoadingChoice(index)
         {
-            if next.retire do
+            if next.retire
+            {
                 discard next.retire()
+            }
+
             next.destroyWindows()
             return false
         }
@@ -847,8 +1017,11 @@ impl ViewerWindow
         else
         {
             next.view.dockStyle = .Center
-            if next.commands do
+            if next.commands
+            {
                 next.commands.dockStyle = .None
+            }
+
             .hideCurrentSession()
             .adoptSession(&next)
             .currentInfo?.show()
@@ -859,10 +1032,15 @@ impl ViewerWindow
         .instances[index]  = #move next
         .updateFileInfo(.instances[index].details)
         .updateSearchAvailability()
-        if stage do
+        if stage
+        {
             .commitViewerTransition(.instances[index].view)
-        else do
+        }
+        else
+        {
             .applyLayout()
+        }
+
         .updateLoadingIndicator()
         .invalidate()
         return true
@@ -885,11 +1063,17 @@ impl ViewerWindow
         }
 
         let newSession = index < .instances.count and not .instances[index].view
-        if not .activateChoice(index) do
+        if not .activateChoice(index)
+        {
             return
+        }
+
         .rememberFileViewer(index)
-        if newSession do
+        if newSession
+        {
             .workspace?.registerReadingLinks(me)
+        }
+
         .workspace?.updateMediaViewport(me)
         .workspace?.refreshComparison()
         .workspace?.comparisonSheet?.refresh()
@@ -898,8 +1082,10 @@ impl ViewerWindow
     // Only explicit selector choices belong to this file's session; automatic fallbacks do not.
     private mtd rememberFileViewer(index: u32)
     {
-        if index < .choices.count do
+        if index < .choices.count
+        {
             .setFileViewer(.currentFile, .choices[0].key, .choices[index].key)
+        }
     }
 
     // Choosing the default removes the exception. No viewer association reaches saved state.
@@ -909,30 +1095,43 @@ impl ViewerWindow
         Path.normalize(&path)
         for &one, entry in .fileViewerChoices where Path.equals(one.file, path)
         {
-            if viewer == defaultViewer do
+            if viewer == defaultViewer
+            {
                 .fileViewerChoices.removeAtOrdered(entry)
-            else do
+            }
+            else
+            {
                 one.viewer = viewer
+            }
+
             return
         }
 
-        if viewer != defaultViewer do
+        if viewer != defaultViewer
+        {
             .fileViewerChoices.add(ViewerFileChoice{#move path, viewer})
+        }
     }
 
     mtd const fileViewer(file: string)->string
     {
         var path = String.from(file)
         Path.normalize(&path)
-        for &one in .fileViewerChoices where Path.equals(one.file, path) do
+        for &one in .fileViewerChoices where Path.equals(one.file, path)
+        {
             return one.viewer.toString()
+        }
+
         return ""
     }
 
     private mtd const preferredFileViewer(file: string)->string
     {
-        if .reloading and .readingState.useSavedViewer and not .readingState.viewer.isEmpty() do
+        if .reloading and .readingState.useSavedViewer and not .readingState.viewer.isEmpty()
+        {
             return .readingState.viewer
+        }
+
         return .fileViewer(file)
     }
 
@@ -940,17 +1139,24 @@ impl ViewerWindow
     private mtd preferredChoiceIndex()->u32
     {
         let viewer = .preferredFileViewer(.currentFile)
-        for choice, index in .choices where choice.key == viewer do
+        for choice, index in .choices where choice.key == viewer
+        {
             return cast(u32, index)
+        }
+
         return 0
     }
 
     mtd openFile(fileName: string, remember = true)
     {
-        if .workspace and .workspace.vacancy != me do
+        if .workspace and .workspace.vacancy != me
+        {
             .workspace.openDocument(fileName, remember)
-        else do
+        }
+        else
+        {
             .queueFile(fileName, remember)
+        }
     }
 
     // Opens a file whose classification has finished: watches it for changes, fills the viewer
@@ -964,16 +1170,22 @@ impl ViewerWindow
         .fileWatch.current       = #move classified.metadata
         .fileWatch.hasCandidate  = false
         .fileWatch.ignorePending = .fileWatch.load.started
-        if not .fileWatchTimer do
-            .fileWatchTimer = .addTimer(250'ms)
+        if not .fileWatchTimer
+        {
+            .fileWatchTimer = .addTimer(250_ms)
+        }
+
         .currentFile = #move classified.absoluteFileName
         .workspace?.updateDocumentPath(me, .currentFile)
         .currentFileSize = #move classified.fileSize
         .choices         = #move classified.choices
         .folderFiles     = #move classified.folderFiles
         .forgetLensFile()
-        if .explorer and .explorer.displayPath(.currentFile) != .currentFile.toString() do
+        if .explorer and .explorer.displayPath(.currentFile) != .currentFile.toString()
+        {
             .folderFiles.clear()
+        }
+
         .siblingsDirty = true
         .rebuildSiblings()
         .trackFolderReading(.playMode)

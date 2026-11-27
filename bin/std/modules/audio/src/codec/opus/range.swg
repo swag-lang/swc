@@ -7,13 +7,13 @@
 
 using Core
 
-private const SymBits    = 8'u32
-private const SymMax     = 255'u32
-private const CodeTop    = 1'u32 << 31
+private const SymBits    = 8_u32
+private const SymMax     = 255_u32
+private const CodeTop    = 1_u32 << 31
 private const CodeBottom = CodeTop >> SymBits
-private const CodeExtra  = 7'u32
-private const WindowBits = 32'u32
-private const UintBits   = 8'u32
+private const CodeExtra  = 7_u32
+private const WindowBits = 32_u32
+private const UintBits   = 8_u32
 
 // Uniform CELT symbols have totals up to 256. For non-power-of-two totals,
 // this precision keeps the reciprocal error below 1 / total at CodeTop.
@@ -21,10 +21,10 @@ private const UintBits   = 8'u32
 private const UniformDivision: [257] u64 = #run
 {
     var result: [257] u64
-    for total in 1'u32 until result.count
+    for total in 1_u32 until result.count
     {
         let shift = (total & (total - 1)) ? 63 - cast(u32, Swag.leadingZeros(total)) : 31
-        let scale = 1'u64 << shift
+        let scale = 1_u64 << shift
         let magic = (scale + total - 1) / total
         result[total] = magic | (cast(u64, shift) << 32)
     }
@@ -48,7 +48,7 @@ private const TellBoundaries: [8] u32 = #run
     for initial in 32768 until 65536
     {
         var normalized = cast(u32, initial)
-        var fraction   = 0'u32
+        var fraction   = 0_u32
         for 3
         {
             normalized = (normalized * normalized) >> 15
@@ -58,15 +58,17 @@ private const TellBoundaries: [8] u32 = #run
         }
 
         let region = (initial >> 12) - 8
-        if fraction == region do
+        if fraction == region
+        {
             boundaries[region] = cast(u32, initial)
+        }
     }
 
     return boundaries
 }
 
 // Bit counts the allocation logic works in are scaled by this many fractional bits.
-internal const BitRes = 3'u32
+internal const BitRes = 3_u32
 
 // Returns the number of bits needed to hold `value`.
 internal func ilog(value: u32)->u32 => value ? 32 - cast(u32, Swag.leadingZeros(value)) : 0
@@ -98,7 +100,7 @@ internal impl RangeDecoder
             .data      = frame.buffer
             .storage   = cast(u32, frame.count)
             .bitsTotal = 9
-            .range     = 1'u32 << CodeExtra
+            .range     = 1_u32 << CodeExtra
             .remainder = .readByte()
             .value     = .range - 1 - (.remainder >> (SymBits - CodeExtra))
             .normalize()
@@ -107,23 +109,32 @@ internal impl RangeDecoder
         return result
     }
 
+    #[Swag.Inline]
     mtd readByte()->u32
     {
-        if .offset >= .storage do
+        if .offset >= .storage
+        {
             return 0
+        }
+
         let byte = cast(u32, .data![.offset])
         .offset += 1
         return byte
     }
 
+    #[Swag.Inline]
     mtd readByteFromEnd()->u32
     {
-        if .endOffset >= .storage do
+        if .endOffset >= .storage
+        {
             return 0
+        }
+
         .endOffset += 1
         return cast(u32, .data![.storage - .endOffset])
     }
 
+    #[Swag.Inline]
     mtd normalize()
     {
         while .range <= CodeBottom
@@ -138,6 +149,7 @@ internal impl RangeDecoder
     }
 
     // Returns the cumulative frequency of the next symbol out of `total`; [[update]] consumes it.
+    #[Swag.Inline]
     mtd decode(total: u32)->u32
     {
         .extent = total < UniformDivision.count ? divideUniformRange(.range, total) : .range / total
@@ -145,13 +157,15 @@ internal impl RangeDecoder
         return total - Math.min(scaledValue + 1, total)
     }
 
+    #[Swag.Inline]
     mtd decodeBinary(bits: u32)->u32
     {
         .extent = .range >> bits
         let scaledValue = .value / .extent
-        return (1'u32 << bits) - Math.min(scaledValue + 1, 1'u32 << bits)
+        return (1_u32 << bits) - Math.min(scaledValue + 1, 1_u32 << bits)
     }
 
+    #[Swag.Inline]
     mtd update(low, high, total: u32)
     {
         let rangeOffset = .extent * (total - high)
@@ -161,14 +175,18 @@ internal impl RangeDecoder
     }
 
     // Decodes one bit whose probability of being set is `1 / 2^logp`.
+    #[Swag.Inline]
     mtd decodeBit(logp: u32)->bool
     {
         let currentRange = .range
         let currentValue = .value
         let splitRange   = currentRange >> logp
         let isSet        = currentValue < splitRange
-        if not isSet do
+        if not isSet
+        {
             .value = currentValue - splitRange
+        }
+
         .range = isSet ? splitRange : currentRange - splitRange
         .normalize()
         return isSet
@@ -180,14 +198,17 @@ internal impl RangeDecoder
         var lowerBound     = .range
         let currentValue   = .value
         let frequencyScale = lowerBound >> bits
-        var index          = 0'u32
+        var index          = 0_u32
         var upperBound     = lowerBound
         while true
         {
             upperBound = lowerBound
             lowerBound = frequencyScale * cast(u32, icdf[index])
-            if currentValue >= lowerBound do
+            if currentValue >= lowerBound
+            {
                 break
+            }
+
             index += 1
         }
 
@@ -212,6 +233,7 @@ internal impl RangeDecoder
     }
 
     // Decodes a uniformly distributed integer below `total`, which is at least two.
+    #[Swag.Inline]
     mtd decodeUint(total: u32)->u32
     {
         let limit = total - 1
@@ -222,8 +244,11 @@ internal impl RangeDecoder
             let high   = (limit >> shift) + 1
             let symbol = .decodeUniform(high)
             let value  = (symbol << shift) | .decodeBits(shift)
-            if value <= limit do
+            if value <= limit
+            {
                 return value
+            }
+
             .error = true
             return limit
         }
@@ -232,22 +257,41 @@ internal impl RangeDecoder
     }
 
     // Reads `bits` raw bits from the end of the frame, least significant first.
+    #[Swag.Inline]
     mtd decodeBits(bits: u32)->u32
     {
         var window        = .endWindow
         var availableBits = .endBits
         if availableBits < cast(s32, bits)
         {
-            while true
+            if .storage - .endOffset >= 4 and availableBits <= cast(s32, (WindowBits - SymBits))
             {
-                window        |= .readByteFromEnd() << cast(u32, availableBits)
-                availableBits += cast(s32, SymBits)
-                if availableBits > cast(s32, (WindowBits - SymBits)) do
-                    break
+                // The window consumes the last byte first. Reverse one load and
+                // retain only the whole bytes that fit beside the pending bits.
+                let pending = cast(u32, availableBits)
+                let bytes   = (WindowBits - pending) / SymBits
+                let unused  = WindowBits - bytes * SymBits
+                let tail    = (unwrap .data) + .storage - .endOffset
+                let reverse = Swag.byteSwap(cast(const [*] u32, tail - 4)[0])
+                window        |= ((reverse << unused) >> unused) << pending
+                .endOffset    += bytes
+                availableBits += cast(s32, bytes * SymBits)
+            }
+            else
+            {
+                while true
+                {
+                    window        |= .readByteFromEnd() << cast(u32, availableBits)
+                    availableBits += cast(s32, SymBits)
+                    if availableBits > cast(s32, (WindowBits - SymBits))
+                    {
+                        break
+                    }
+                }
             }
         }
 
-        let result = window & ((1'u32 << bits) - 1)
+        let result = window & ((1_u32 << bits) - 1)
         window        >>= bits
         availableBits -= cast(s32, bits)
         .endWindow    = window

@@ -31,7 +31,7 @@ func invokeDeferred(value: *u32)
 // an aggregate or returned through another otherwise constant-foldable function.
 #test
 {
-    var value = 0'u32
+    var value = 0_u32
     invokeDeferred(&value)
     Swag.require(value == 10)
 

@@ -44,8 +44,8 @@ func vp8InverseDct4(decoder: *Vp8Decoder, y, x, coeffBase: s32)
     #[Swag.Inline]
     func transform(sumEven, differenceEven, odd1, odd3: S32x4, destination: [*] S32x4)
     {
-        let cosine = splat(85627's32)
-        let sine   = splat(35468's32)
+        let cosine = splat(85627_s32)
+        let sine   = splat(35468_s32)
         let c      = ((odd1 * sine) >> 16) - ((odd3 * cosine) >> 16)
         let d      = ((odd1 * cosine) >> 16) + ((odd3 * sine) >> 16)
         let r0     = cast #bit(U32x4, sumEven + d)
@@ -95,7 +95,7 @@ func vp8InverseDct4Dc(decoder: *Vp8Decoder, y, x, coeffBase: s32)
 
     let dc    = (cast(s32, decoder.coeff[coeffBase]) + 4) >> 3
     let delta = splat(cast(s16, dc))
-    let zero  = splat(0's16)
+    let zero  = splat(0_s16)
     for j in 4
     {
         // Load exactly four bytes so the last chroma block can use the same path.
@@ -137,25 +137,9 @@ func vp8InverseWht(decoder: *Vp8Decoder)
     }
 }
 
-// Magnitudes above one share this less frequent subtree.
-private func vp8ReadLargeCoefficient(partition: *Vp8Partition, probabilities: const [*] u8)->s32
+// Magnitudes above ten use a variable-length category suffix.
+private func vp8ReadCoefficientCategory(partition: *Vp8Partition, probabilities: const [*] u8)->s32
 {
-    if not partition.readBit(probabilities[3])
-    {
-        if not partition.readBit(probabilities[4]) do
-            return 2
-        return 3 + cast(s32, partition.readBit(probabilities[5]))
-    }
-
-    if not partition.readBit(probabilities[6])
-    {
-        if not partition.readBit(probabilities[7]) do
-            return 5 + cast(s32, partition.readBit(159))
-        let high = cast(s32, partition.readBit(165))
-        let low  = cast(s32, partition.readBit(145))
-        return 7 + 2 * high + low
-    }
-
     let high     = cast(s32, partition.readBit(probabilities[8]))
     let low      = cast(s32, partition.readBit(probabilities[9 + high]))
     let category = 2 * high + low
@@ -177,8 +161,10 @@ func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s3
     let probabilities = cast(const [*] u8, &decoder.tokenProb[plane * VP8_TOKEN_BANDS * VP8_BAND_STRIDE])
     let first         = skipFirst ? 1 : 0
     let probability   = probabilities + VP8_BAND_OFFSETS[first] + (context * VP8_TOKEN_PROBS)
-    if not partition.readBit(probability[0]) do
+    if not partition.readBit(probability[0])
+    {
         return 0
+    }
 
     let coefficients = cast([*] s16, &decoder.coeff[coeffBase])
     return vp8ParseResidualValues(partition, probabilities, probability, coefficients, dcQuant, acQuant, first)
@@ -187,25 +173,115 @@ func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s3
 // Returns the position past the last coded coefficient, with one as the coded-block minimum.
 private func vp8ParseResidualValues(partition: *Vp8Partition, probabilities, firstProbability: const [*] u8, coefficients: [*] s16, dcQuant, acQuant: u16, first: s32)->u8
 {
+    // Keep the arithmetic state in local scalars until the loop needs to
+    // refill or decode the less frequent large-magnitude branch.
+    var rangeM1  = partition.rangeM1
+    var bits     = partition.bits
+    var bitCount = partition.bitCount
+
+    #[Swag.Mixin]
+    func saveLocal()
+    {
+        partition.rangeM1  = rangeM1
+        partition.bits     = bits
+        partition.bitCount = bitCount
+    }
+
+    #[Swag.Mixin]
+    func loadLocal()
+    {
+        rangeM1  = partition.rangeM1
+        bits     = partition.bits
+        bitCount = partition.bitCount
+    }
+
+    #[Swag.Mixin]
+    func refillLocal()->bool
+    {
+        partition.bits     = bits
+        partition.bitCount = bitCount
+        let #uniq0 = partition.refill()
+        bits     = partition.bits
+        bitCount = partition.bitCount
+        return #uniq0
+    }
+
+    #[Swag.Mixin]
+    func readLocalBit(chance: u8)->bool
+    {
+        if bitCount < 0 and not refillLocal()
+        {
+            return false
+        }
+
+        return vp8AdvanceBit(chance)
+    }
+
+    #[Swag.Mixin]
+    func readLocalSign(magnitude: s32)->s32
+    {
+        if bitCount < 0 and not refillLocal()
+        {
+            return magnitude
+        }
+
+        return vp8AdvanceSign(magnitude)
+    }
+
+    defer
+    {
+        saveLocal()
+    }
+
     var coefficient  = first
     var probability  = firstProbability
-    var decodedCount = 1'u8
+    var decodedCount = 1_u8
     while coefficient < 16
     {
         // A zero uses context zero and is followed by a value token, without an end token.
-        while not partition.readBit(probability[1])
+        while not readLocalBit(probability[1])
         {
             coefficient += 1
-            if coefficient == 16 do
+            if coefficient == 16
+            {
                 return decodedCount
+            }
+
             probability = probabilities + VP8_BAND_OFFSETS[coefficient]
         }
 
         let nextBand = probabilities + VP8_BAND_OFFSETS[coefficient + 1]
         var value    = 1
-        if partition.readBit(probability[2])
+        if readLocalBit(probability[2])
         {
-            value       = vp8ReadLargeCoefficient(partition, probability)
+            if readLocalBit(probability[3])
+            {
+                if readLocalBit(probability[6])
+                {
+                    saveLocal()
+                    value = vp8ReadCoefficientCategory(partition, probability)
+                    loadLocal()
+                }
+                else if readLocalBit(probability[7])
+                {
+                    let high = cast(s32, readLocalBit(165))
+                    let low  = cast(s32, readLocalBit(145))
+                    value = 7 + 2 * high + low
+                }
+                else
+                {
+                    value = 5 + cast(s32, readLocalBit(159))
+                }
+            }
+            else if readLocalBit(probability[4])
+            {
+                value = 3 + cast(s32, readLocalBit(probability[5]))
+            }
+            else
+            {
+                value = 2
+            }
+
             probability = nextBand + 2 * VP8_TOKEN_PROBS
         }
         else
@@ -215,11 +291,13 @@ private func vp8ParseResidualValues(partition: *Vp8Partition, probabilities, fir
 
         let zigzag  = VP8_ZIGZAG[coefficient]
         let decoded = value * (coefficient ? acQuant : dcQuant)
-        coefficients[zigzag] = cast(s16, partition.readCoefficientSign(decoded))
+        coefficients[zigzag] = cast(s16, readLocalSign(decoded))
         coefficient          += 1
         decodedCount         = cast(u8, coefficient)
-        if coefficient == 16 or not partition.readBit(probability[0]) do
+        if coefficient == 16 or not readLocalBit(probability[0])
+        {
             break
+        }
     }
 
     return decodedCount
@@ -235,18 +313,20 @@ func vp8ParseResiduals(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
     {
         let context = decoder.leftMb.nzY16 + decoder.upMb[mbX].nzY16
         let count   = vp8ParseResidual4(decoder, partition, VP8_PLANE_Y2, context, quant.y2[0], quant.y2[1], false, VP8_WHT_COEFF_BASE)
-        let nz      = count == 0 ? 0'u8 : 1'u8
+        let nz      = count == 0 ? 0_u8 : 1_u8
         decoder.leftMb.nzY16    = nz
         decoder.upMb[mbX].nzY16 = nz
         if count > 1
         {
             vp8InverseWht(decoder)
         }
-        elif count
+        else if count
         {
             let dc = cast(s16, ((cast(s32, decoder.coeff[VP8_WHT_COEFF_BASE]) + 3) >> 3))
-            for block in 16 do
+            for block in 16
+            {
                 decoder.coeff[block * 16] = dc
+            }
         }
 
         plane = VP8_PLANE_Y1_WITH_Y2
@@ -330,8 +410,11 @@ func vp8PrepareYbr(decoder: *Vp8Decoder, mbX, mbY: s32)
 {
     if mbX == 0
     {
-        for y in 17 do
+        for y in 17
+        {
             decoder.ybr[y][7] = 0x81
+        }
+
         var y = 17
         while y < 26
         {
@@ -342,8 +425,11 @@ func vp8PrepareYbr(decoder: *Vp8Decoder, mbX, mbY: s32)
     }
     else
     {
-        for y in 17 do
+        for y in 17
+        {
             decoder.ybr[y][7] = decoder.ybr[y][23]
+        }
+
         var y = 17
         while y < 26
         {
@@ -410,23 +496,33 @@ func vp8ReconstructMacroblock(decoder: *Vp8Decoder, mbX, mbY: s32)
     #[Swag.Inline]
     func applyResidual(decoder: *Vp8Decoder, y, x, block: s32)
     {
-        let mask = 1'u32 << block
-        if decoder.nzAcMask & mask do
+        let mask = 1_u32 << block
+        if decoder.nzAcMask & mask
+        {
             vp8InverseDct4(decoder, y, x, 16 * block)
-        elif decoder.nzDcMask & mask do
+        }
+        else if decoder.nzDcMask & mask
+        {
             vp8InverseDct4Dc(decoder, y, x, 16 * block)
+        }
     }
 
-    if decoder.usePredY16 do
+    if decoder.usePredY16
+    {
         vp8PredictLarge(decoder, 1, 8, 16, vp8TopLeftPredictor(mbX, mbY, decoder.predY16))
+    }
+
     for j in 4
     {
         for i in 4
         {
             let y = 4 * j + 1
             let x = 4 * i + 8
-            if not decoder.usePredY16 do
+            if not decoder.usePredY16
+            {
                 vp8Predict4(decoder, y, x, decoder.predY4[j][i])
+            }
+
             applyResidual(decoder, y, x, 4 * j + i)
         }
     }
@@ -436,9 +532,13 @@ func vp8ReconstructMacroblock(decoder: *Vp8Decoder, mbX, mbY: s32)
     {
         let x = 8 + 16 * plane
         vp8PredictLarge(decoder, 18, x, 8, predictor)
-        for j in 2 do
-            for i in 2 do
+        for j in 2
+        {
+            for i in 2
+            {
                 applyResidual(decoder, 18 + 4 * j, x + 4 * i, 16 + 4 * plane + 2 * j + i)
+            }
+        }
     }
 }
 
@@ -446,19 +546,28 @@ func vp8Reconstruct(decoder: *Vp8Decoder, mbX, mbY, storedRow: s32)->bool
 {
     if decoder.segmentHeader.updateMap
     {
-        if not decoder.firstPart.readBit(decoder.segmentHeader.probability[0]) do
+        if not decoder.firstPart.readBit(decoder.segmentHeader.probability[0])
+        {
             decoder.segment = cast(s32, decoder.firstPart.readUint(decoder.segmentHeader.probability[1], 1))
-        else do
+        }
+        else
+        {
             decoder.segment = cast(s32, decoder.firstPart.readUint(decoder.segmentHeader.probability[2], 1)) + 2
+        }
     }
 
     var skip = decoder.useSkipProb and decoder.firstPart.readBit(decoder.skipProb)
     vp8PrepareYbr(decoder, mbX, storedRow)
     decoder.usePredY16 = decoder.firstPart.readBit(145)
-    if decoder.usePredY16 do
+    if decoder.usePredY16
+    {
         vp8ParsePredY16(decoder, mbX)
-    else do
+    }
+    else
+    {
         vp8ParsePredY4(decoder, mbX)
+    }
+
     vp8ParsePredC8(decoder)
 
     if not skip

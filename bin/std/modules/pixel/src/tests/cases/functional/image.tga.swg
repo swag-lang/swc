@@ -2,15 +2,15 @@
 
 using Swag, Core
 
-const TGA_TYPE_MAP      = 1'u8
-const TGA_TYPE_RGB      = 2'u8
-const TGA_TYPE_MONO     = 3'u8
-const TGA_TYPE_RLE_MAP  = 9'u8
-const TGA_TYPE_RLE_RGB  = 10'u8
-const TGA_TYPE_RLE_MONO = 11'u8
+const TGA_TYPE_MAP      = 1_u8
+const TGA_TYPE_RGB      = 2_u8
+const TGA_TYPE_MONO     = 3_u8
+const TGA_TYPE_RLE_MAP  = 9_u8
+const TGA_TYPE_RLE_RGB  = 10_u8
+const TGA_TYPE_RLE_MONO = 11_u8
 
-const TGA_DESC_RIGHT = 0x10'u8
-const TGA_DESC_TOP   = 0x20'u8
+const TGA_DESC_RIGHT = 0x10_u8
+const TGA_DESC_TOP   = 0x20_u8
 
 #[Swag.Pack(1)]
 struct TgaH
@@ -60,9 +60,9 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 #test
 {
     const Pixels = 65536 + 1
-    var source:   Array'u8
-    var actual:   Array'u8
-    var expected: Array'u8
+    var source:   Array!{u8}
+    var actual:   Array!{u8}
+    var expected: Array!{u8}
     source.resize(1 + Pixels * 2)
     actual.resize(3 + Pixels * 4 + 1)
     expected.resize(actual.count)
@@ -88,8 +88,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
         }
 
         Tga.decodeTga16Row(source.storage() + 1, actual.storage() + 3, Pixels, alphaFromBit)
-        for i in actual.count do
+        for i in actual.count
+        {
             Swag.require(actual[i] == expected[i])
+        }
 
         for i in actual.count
         {
@@ -107,8 +109,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
         }
 
         Tga.decodeTga16RowReversed(source.storage() + 1, actual.storage() + 3, Pixels, alphaFromBit)
-        for i in actual.count do
+        for i in actual.count
+        {
             Swag.require(actual[i] == expected[i])
+        }
     }
 
     actual.resize(3 + Pixels * 3 + 1)
@@ -128,26 +132,31 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     }
 
     Tga.decodeTga15RowReversed(source.storage() + 1, actual.storage() + 3, Pixels)
-    for i in actual.count do
+    for i in actual.count
+    {
         Swag.require(actual[i] == expected[i])
+    }
 }
 
 // Fill unaligned packed rows across every SIMD tail width without touching sentinels.
 #test
 {
-    for bytesPerPixel in [3'u64, 4'u64]
+    for bytesPerPixel in [3_u64, 4_u64]
     {
-        for width in 20'u64
+        for width in 20_u64
         {
             let pixelCount = width + 1
-            var source:   Array'u8
-            var actual:   Array'u8
-            var expected: Array'u8
+            var source:   Array!{u8}
+            var actual:   Array!{u8}
+            var expected: Array!{u8}
             source.resize(1 + bytesPerPixel + 1)
             actual.resize(3 + pixelCount * bytesPerPixel + 1)
             expected.resize(actual.count)
-            for i in source.count do
+            for i in source.count
+            {
                 source[i] = cast(u8, ((i * 43 + 17) & 0xFF))
+            }
+
             for i in actual.count
             {
                 actual[i]   = 0xA5
@@ -156,16 +165,25 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 
             for x in pixelCount
             {
-                for channel in bytesPerPixel do
+                for channel in bytesPerPixel
+                {
                     expected[3 + x * bytesPerPixel + channel] = source[1 + channel]
+                }
             }
 
-            if bytesPerPixel == 3 do
+            if bytesPerPixel == 3
+            {
                 PackedPixel.fillBgr24Row(source.storage() + 1, actual.storage() + 3, pixelCount)
-            else do
+            }
+            else
+            {
                 PackedPixel.fillBgra32Row(source.storage() + 1, actual.storage() + 3, pixelCount)
-            for i in actual.count do
+            }
+
+            for i in actual.count
+            {
                 Swag.require(actual[i] == expected[i])
+            }
         }
     }
 }
@@ -173,19 +191,22 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 // Reverse unaligned packed rows across every SIMD tail width without touching sentinels.
 #test
 {
-    for bytesPerPixel in [3'u64, 4'u64]
+    for bytesPerPixel in [3_u64, 4_u64]
     {
-        for width in 20'u64
+        for width in 20_u64
         {
             let pixelCount = width + 1
-            var source:   Array'u8
-            var actual:   Array'u8
-            var expected: Array'u8
+            var source:   Array!{u8}
+            var actual:   Array!{u8}
+            var expected: Array!{u8}
             source.resize(1 + pixelCount * bytesPerPixel + 1)
             actual.resize(3 + pixelCount * bytesPerPixel + 1)
             expected.resize(actual.count)
-            for i in source.count do
+            for i in source.count
+            {
                 source[i] = cast(u8, ((i * 37 + 11) & 0xFF))
+            }
+
             for i in actual.count
             {
                 actual[i]   = 0xA5
@@ -196,16 +217,25 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
             {
                 let sourceOffset = 1 + (pixelCount - x - 1) * bytesPerPixel
                 let targetOffset = 3 + x * bytesPerPixel
-                for channel in bytesPerPixel do
+                for channel in bytesPerPixel
+                {
                     expected[targetOffset + channel] = source[sourceOffset + channel]
+                }
             }
 
-            if bytesPerPixel == 3 do
+            if bytesPerPixel == 3
+            {
                 PackedPixel.reverseBgr24Row(source.storage() + 1, actual.storage() + 3, pixelCount)
-            else do
+            }
+            else
+            {
                 PackedPixel.reverseBgra32Row(source.storage() + 1, actual.storage() + 3, pixelCount)
-            for i in actual.count do
+            }
+
+            for i in actual.count
+            {
                 Swag.require(actual[i] == expected[i])
+            }
         }
     }
 }
@@ -213,24 +243,31 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 // Find every possible first mismatch around the four-pixel SIMD boundary.
 #test
 {
-    const Candidates = 130'u64
-    var pixel:      Array'u8
-    var candidates: Array'u8
+    const Candidates = 130_u64
+    var pixel:      Array!{u8}
+    var candidates: Array!{u8}
     pixel.resize(5)
     candidates.resize(1 + Candidates * 4 + 1)
-    for channel in 4 do
+    for channel in 4
+    {
         pixel[1 + channel] = cast(u8, (channel * 53 + 17))
+    }
 
     for mismatch in Candidates + 1
     {
         for candidate in Candidates
         {
-            for channel in 4 do
+            for channel in 4
+            {
                 candidates[1 + candidate * 4 + channel] = pixel[1 + channel]
+            }
         }
 
-        if mismatch < Candidates do
+        if mismatch < Candidates
+        {
             candidates[1 + mismatch * 4 + 2] ^= 0xFF
+        }
+
         Swag.require(PackedPixel.countSame32(pixel.storage() + 1, candidates.storage() + 1, Candidates) == mismatch)
     }
 }
@@ -239,12 +276,14 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 // including a full vector and an odd tail on each row.
 #test
 {
-    const Width  = 17'u16
-    const Height = 2'u16
+    const Width  = 17_u16
+    const Height = 2_u16
     var cb: ConcatBuffer
     addTgaImageHeader(&cb, TGA_TYPE_RGB, 15, TGA_DESC_TOP, Width, Height)
-    for i in cast(u64, Width) * Height do
+    for i in cast(u64, Width) * Height
+    {
         cb.addNative(cast(u16, ((i * 1907 + 123) & 0x7FFF)))
+    }
 
     let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
     Swag.require(img.width == Width and img.height == Height and img.pixelFormat == .BGR8)
@@ -264,14 +303,16 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 // Decode right-origin packed rows through a full vector and an odd tail on each row.
 #test
 {
-    const Width  = 17'u16
-    const Height = 2'u16
+    const Width  = 17_u16
+    const Height = 2_u16
     scope
     {
         var cb: ConcatBuffer
         addTgaImageHeader(&cb, TGA_TYPE_RGB, 15, TGA_DESC_TOP | TGA_DESC_RIGHT, Width, Height)
-        for i in cast(u64, Width) * Height do
+        for i in cast(u64, Width) * Height
+        {
             cb.addNative(cast(u16, ((i * 1907 + 123) & 0x7FFF)))
+        }
 
         let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
         Swag.require(img.width == Width and img.height == Height and img.pixelFormat == .BGR8)
@@ -293,8 +334,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     {
         var cb: ConcatBuffer
         addTgaImageHeader(&cb, TGA_TYPE_RGB, 16, TGA_DESC_TOP | TGA_DESC_RIGHT | 1, Width, Height)
-        for i in cast(u64, Width) * Height do
+        for i in cast(u64, Width) * Height
+        {
             cb.addNative(cast(u16, (i * 1907 + 123)))
+        }
 
         let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
         Swag.require(img.width == Width and img.height == Height and img.pixelFormat == .BGRA8)
@@ -309,7 +352,7 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
             Swag.require(img.pixels.storage()[offset] == Tga.expand5(value & 31))
             Swag.require(img.pixels.storage()[offset + 1] == Tga.expand5((value >> 5) & 31))
             Swag.require(img.pixels.storage()[offset + 2] == Tga.expand5((value >> 10) & 31))
-            Swag.require(img.pixels.storage()[offset + 3] == (value & 0x8000 ? 255'u8 : 0'u8))
+            Swag.require(img.pixels.storage()[offset + 3] == (value & 0x8000 ? 255_u8 : 0_u8))
         }
     }
 }
@@ -317,9 +360,9 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 // Decode raw BGR/BGRA rows through the direct-copy and reversed SIMD paths.
 #test
 {
-    const Width  = 17'u16
-    const Height = 2'u16
-    for bpp in [24'u8, 32'u8]
+    const Width  = 17_u16
+    const Height = 2_u16
+    for bpp in [24_u8, 32_u8]
     {
         let bytesPerPixel = cast(u64, (bpp / 8))
         for rightMode in 2
@@ -327,12 +370,14 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
             var cb: ConcatBuffer
             let descriptor = TGA_DESC_TOP |
                              (rightMode ? TGA_DESC_RIGHT : 0) |
-                             (bpp == 32 ? 8'u8 : 0'u8)
+                             (bpp == 32 ? 8_u8 : 0_u8)
             addTgaImageHeader(&cb, TGA_TYPE_RGB, bpp, descriptor, Width, Height)
             for pixel in cast(u64, Width) * Height
             {
-                for channel in bytesPerPixel do
+                for channel in bytesPerPixel
+                {
                     cb.addNative(cast(u8, ((pixel * 29 + channel * 71 + 13) & 0xFF)))
+                }
             }
 
             let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
@@ -345,8 +390,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
                 let targetY = Height - sourceY - 1
                 let targetX = rightMode ? Width - sourceX - 1 : sourceX
                 let offset  = (targetY * Width + targetX) * bytesPerPixel
-                for channel in bytesPerPixel do
+                for channel in bytesPerPixel
+                {
                     Swag.require(img.pixels.storage()[offset + channel] == cast(u8, ((pixel * 29 + channel * 71 + 13) & 0xFF)))
+                }
             }
         }
     }
@@ -357,23 +404,26 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 {
     for rle in 2
     {
-        for alphaBits in [0'u8, 8'u8]
+        for alphaBits in [0_u8, 8_u8]
         {
             var cb: ConcatBuffer
             let imageType = rle ? TGA_TYPE_RLE_RGB : TGA_TYPE_RGB
             addTgaImageHeader(&cb, imageType, 32, alphaBits, 1, 1)
-            if rle do
-                cb.addNative(0'u8)     // One raw RLE packet.
-            cb.addNative(10'u8)
-            cb.addNative(20'u8)
-            cb.addNative(30'u8)
-            cb.addNative(37'u8)
+            if rle
+            {
+                cb.addNative(0_u8)     // One raw RLE packet.
+            }
+
+            cb.addNative(10_u8)
+            cb.addNative(20_u8)
+            cb.addNative(30_u8)
+            cb.addNative(37_u8)
 
             let image = expect Image.decode("alpha-depth.tga", nnBytes(cb.toSlice()), {})
             Swag.require(image.pixelFormat == .BGRA8)
             Swag.require(image.pixels.count == 4)
             Swag.require(image.pixels[0] == 10 and image.pixels[1] == 20 and image.pixels[2] == 30)
-            Swag.require(image.pixels[3] == (alphaBits == 0 ? 255'u8 : 37'u8))
+            Swag.require(image.pixels[3] == (alphaBits == 0 ? 255_u8 : 37_u8))
         }
     }
 }
@@ -381,7 +431,7 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 // Truevision's legacy extensions select the same decoder as TGA.
 #test
 {
-    let source = Image.create(1, 1, .BGR8, [10'u8, 20, 30])
+    let source = Image.create(1, 1, .BGR8, [10_u8, 20, 30])
     let bytes  = expect source.encodeToBytes("out.tga")
     Swag.require(Image.canLoad("in.tga"))
     Swag.require(Image.canSave("out.tga"))
@@ -400,19 +450,19 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     let path = makeTempTgaPath()
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24'u8, 0'u8, 2'u16, 2'u16)
-    cb.addNative(10'u8)
-    cb.addNative(20'u8)
-    cb.addNative(30'u8)
-    cb.addNative(40'u8)
-    cb.addNative(50'u8)
-    cb.addNative(60'u8)
-    cb.addNative(70'u8)
-    cb.addNative(80'u8)
-    cb.addNative(90'u8)
-    cb.addNative(100'u8)
-    cb.addNative(110'u8)
-    cb.addNative(120'u8)
+    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24_u8, 0_u8, 2_u16, 2_u16)
+    cb.addNative(10_u8)
+    cb.addNative(20_u8)
+    cb.addNative(30_u8)
+    cb.addNative(40_u8)
+    cb.addNative(50_u8)
+    cb.addNative(60_u8)
+    cb.addNative(70_u8)
+    cb.addNative(80_u8)
+    cb.addNative(90_u8)
+    cb.addNative(100_u8)
+    cb.addNative(110_u8)
+    cb.addNative(120_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
@@ -420,12 +470,12 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     Swag.require(img.height == 2)
     Swag.require(img.pixelFormat == .BGR8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)
-    Swag.require(img.pixels.buffer[1] == 20'u8)
-    Swag.require(img.pixels.buffer[2] == 30'u8)
-    Swag.require(img.pixels.buffer[9] == 100'u8)
-    Swag.require(img.pixels.buffer[10] == 110'u8)
-    Swag.require(img.pixels.buffer[11] == 120'u8)
+    Swag.require(img.pixels.buffer[0] == 10_u8)
+    Swag.require(img.pixels.buffer[1] == 20_u8)
+    Swag.require(img.pixels.buffer[2] == 30_u8)
+    Swag.require(img.pixels.buffer[9] == 100_u8)
+    Swag.require(img.pixels.buffer[10] == 110_u8)
+    Swag.require(img.pixels.buffer[11] == 120_u8)
 }
 
 // Load larger RGB/RGBA fixtures copied from the historical pixel test data.
@@ -438,9 +488,9 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     Swag.require(rgb.pixelFormat == .BGR8)
     Swag.require(rgb.pixels.count == 873180)
     Swag.require(rgb.pixels.buffer != null)
-    Swag.require(rgb.pixels.buffer[0] == 201'u8)
-    Swag.require(rgb.pixels.buffer[1] == 205'u8)
-    Swag.require(rgb.pixels.buffer[2] == 194'u8)
+    Swag.require(rgb.pixels.buffer[0] == 201_u8)
+    Swag.require(rgb.pixels.buffer[1] == 205_u8)
+    Swag.require(rgb.pixels.buffer[2] == 194_u8)
 
     let rgba = expect Image.load(getTestDataPath("rgba.tga"))
     Swag.require(rgba.isValid())
@@ -449,10 +499,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     Swag.require(rgba.pixelFormat == .BGRA8)
     Swag.require(rgba.pixels.count == 1164240)
     Swag.require(rgba.pixels.buffer != null)
-    Swag.require(rgba.pixels.buffer[0] == 201'u8)
-    Swag.require(rgba.pixels.buffer[1] == 205'u8)
-    Swag.require(rgba.pixels.buffer[2] == 194'u8)
-    Swag.require(rgba.pixels.buffer[3] == 255'u8)
+    Swag.require(rgba.pixels.buffer[0] == 201_u8)
+    Swag.require(rgba.pixels.buffer[1] == 205_u8)
+    Swag.require(rgba.pixels.buffer[2] == 194_u8)
+    Swag.require(rgba.pixels.buffer[3] == 255_u8)
 }
 
 // Load RLE RGB/RGBA fixtures copied from the historical pixel test data.
@@ -464,9 +514,9 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     Swag.require(rle24.height == 441)
     Swag.require(rle24.pixelFormat == .BGR8)
     Swag.require(rle24.pixels.buffer != null)
-    Swag.require(rle24.pixels.buffer[0] == 201'u8)
-    Swag.require(rle24.pixels.buffer[1] == 205'u8)
-    Swag.require(rle24.pixels.buffer[2] == 194'u8)
+    Swag.require(rle24.pixels.buffer[0] == 201_u8)
+    Swag.require(rle24.pixels.buffer[1] == 205_u8)
+    Swag.require(rle24.pixels.buffer[2] == 194_u8)
 
     let rle32 = expect Image.load(getTestDataPath("rle32.tga"))
     Swag.require(rle32.isValid())
@@ -474,10 +524,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     Swag.require(rle32.height == 441)
     Swag.require(rle32.pixelFormat == .BGRA8)
     Swag.require(rle32.pixels.buffer != null)
-    Swag.require(rle32.pixels.buffer[0] == 201'u8)
-    Swag.require(rle32.pixels.buffer[1] == 205'u8)
-    Swag.require(rle32.pixels.buffer[2] == 194'u8)
-    Swag.require(rle32.pixels.buffer[3] == 255'u8)
+    Swag.require(rle32.pixels.buffer[0] == 201_u8)
+    Swag.require(rle32.pixels.buffer[1] == 205_u8)
+    Swag.require(rle32.pixels.buffer[2] == 194_u8)
+    Swag.require(rle32.pixels.buffer[3] == 255_u8)
 }
 
 // Decode skips the optional image ID field before pixel data.
@@ -487,25 +537,25 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var h:  TgaH
-    h.idLength      = 3'u8
+    h.idLength      = 3_u8
     h.imageTypeCode = TGA_TYPE_RGB
-    h.width         = 1'u16
-    h.height        = 1'u16
-    h.bitsPerPixel  = 24'u8
+    h.width         = 1_u16
+    h.height        = 1_u16
+    h.bitsPerPixel  = 24_u8
     cb.addStruct(h)
-    cb.addNative(73'u8)
-    cb.addNative(68'u8)
-    cb.addNative(33'u8)
-    cb.addNative(8'u8)
-    cb.addNative(9'u8)
-    cb.addNative(10'u8)
+    cb.addNative(73_u8)
+    cb.addNative(68_u8)
+    cb.addNative(33_u8)
+    cb.addNative(8_u8)
+    cb.addNative(9_u8)
+    cb.addNative(10_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 8'u8)
-    Swag.require(img.pixels.buffer[1] == 9'u8)
-    Swag.require(img.pixels.buffer[2] == 10'u8)
+    Swag.require(img.pixels.buffer[0] == 8_u8)
+    Swag.require(img.pixels.buffer[1] == 9_u8)
+    Swag.require(img.pixels.buffer[2] == 10_u8)
 }
 
 // Decode a top-origin TGA into the module's bottom-up image buffer.
@@ -514,29 +564,29 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     let path = makeTempTgaPath()
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24'u8, TGA_DESC_TOP, 2'u16, 2'u16)
-    cb.addNative(1'u8)
-    cb.addNative(2'u8)
-    cb.addNative(3'u8)
-    cb.addNative(4'u8)
-    cb.addNative(5'u8)
-    cb.addNative(6'u8)
-    cb.addNative(7'u8)
-    cb.addNative(8'u8)
-    cb.addNative(9'u8)
-    cb.addNative(10'u8)
-    cb.addNative(11'u8)
-    cb.addNative(12'u8)
+    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24_u8, TGA_DESC_TOP, 2_u16, 2_u16)
+    cb.addNative(1_u8)
+    cb.addNative(2_u8)
+    cb.addNative(3_u8)
+    cb.addNative(4_u8)
+    cb.addNative(5_u8)
+    cb.addNative(6_u8)
+    cb.addNative(7_u8)
+    cb.addNative(8_u8)
+    cb.addNative(9_u8)
+    cb.addNative(10_u8)
+    cb.addNative(11_u8)
+    cb.addNative(12_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 7'u8)
-    Swag.require(img.pixels.buffer[1] == 8'u8)
-    Swag.require(img.pixels.buffer[2] == 9'u8)
-    Swag.require(img.pixels.buffer[6] == 1'u8)
-    Swag.require(img.pixels.buffer[7] == 2'u8)
-    Swag.require(img.pixels.buffer[8] == 3'u8)
+    Swag.require(img.pixels.buffer[0] == 7_u8)
+    Swag.require(img.pixels.buffer[1] == 8_u8)
+    Swag.require(img.pixels.buffer[2] == 9_u8)
+    Swag.require(img.pixels.buffer[6] == 1_u8)
+    Swag.require(img.pixels.buffer[7] == 2_u8)
+    Swag.require(img.pixels.buffer[8] == 3_u8)
 }
 
 // Decode a right-origin TGA by reversing pixels within the row.
@@ -545,23 +595,23 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     let path = makeTempTgaPath()
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24'u8, TGA_DESC_RIGHT, 2'u16, 1'u16)
-    cb.addNative(1'u8)
-    cb.addNative(2'u8)
-    cb.addNative(3'u8)
-    cb.addNative(4'u8)
-    cb.addNative(5'u8)
-    cb.addNative(6'u8)
+    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24_u8, TGA_DESC_RIGHT, 2_u16, 1_u16)
+    cb.addNative(1_u8)
+    cb.addNative(2_u8)
+    cb.addNative(3_u8)
+    cb.addNative(4_u8)
+    cb.addNative(5_u8)
+    cb.addNative(6_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 4'u8)
-    Swag.require(img.pixels.buffer[1] == 5'u8)
-    Swag.require(img.pixels.buffer[2] == 6'u8)
-    Swag.require(img.pixels.buffer[3] == 1'u8)
-    Swag.require(img.pixels.buffer[4] == 2'u8)
-    Swag.require(img.pixels.buffer[5] == 3'u8)
+    Swag.require(img.pixels.buffer[0] == 4_u8)
+    Swag.require(img.pixels.buffer[1] == 5_u8)
+    Swag.require(img.pixels.buffer[2] == 6_u8)
+    Swag.require(img.pixels.buffer[3] == 1_u8)
+    Swag.require(img.pixels.buffer[4] == 2_u8)
+    Swag.require(img.pixels.buffer[5] == 3_u8)
 }
 
 // Decode 16-bit true-color TGA pixels as BGRA8.
@@ -570,22 +620,22 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     let path = makeTempTgaPath()
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_RGB, 16'u8, 1'u8, 2'u16, 1'u16)
-    cb.addNative(0xFC00'u16)
-    cb.addNative(0x03E0'u16)
+    addTgaImageHeader(&cb, TGA_TYPE_RGB, 16_u8, 1_u8, 2_u16, 1_u16)
+    cb.addNative(0xFC00_u16)
+    cb.addNative(0x03E0_u16)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 0'u8)
-    Swag.require(img.pixels.buffer[1] == 0'u8)
-    Swag.require(img.pixels.buffer[2] == 255'u8)
-    Swag.require(img.pixels.buffer[3] == 255'u8)
-    Swag.require(img.pixels.buffer[4] == 0'u8)
-    Swag.require(img.pixels.buffer[5] == 255'u8)
-    Swag.require(img.pixels.buffer[6] == 0'u8)
-    Swag.require(img.pixels.buffer[7] == 0'u8)
+    Swag.require(img.pixels.buffer[0] == 0_u8)
+    Swag.require(img.pixels.buffer[1] == 0_u8)
+    Swag.require(img.pixels.buffer[2] == 255_u8)
+    Swag.require(img.pixels.buffer[3] == 255_u8)
+    Swag.require(img.pixels.buffer[4] == 0_u8)
+    Swag.require(img.pixels.buffer[5] == 255_u8)
+    Swag.require(img.pixels.buffer[6] == 0_u8)
+    Swag.require(img.pixels.buffer[7] == 0_u8)
 }
 
 // Decode 8-bit grayscale TGA as BGR8.
@@ -594,21 +644,21 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     let path = makeTempTgaPath()
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_MONO, 8'u8, 0'u8, 3'u16, 1'u16)
-    cb.addNative(5'u8)
-    cb.addNative(10'u8)
-    cb.addNative(15'u8)
+    addTgaImageHeader(&cb, TGA_TYPE_MONO, 8_u8, 0_u8, 3_u16, 1_u16)
+    cb.addNative(5_u8)
+    cb.addNative(10_u8)
+    cb.addNative(15_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixelFormat == .BGR8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 5'u8)
-    Swag.require(img.pixels.buffer[1] == 5'u8)
-    Swag.require(img.pixels.buffer[2] == 5'u8)
-    Swag.require(img.pixels.buffer[6] == 15'u8)
-    Swag.require(img.pixels.buffer[7] == 15'u8)
-    Swag.require(img.pixels.buffer[8] == 15'u8)
+    Swag.require(img.pixels.buffer[0] == 5_u8)
+    Swag.require(img.pixels.buffer[1] == 5_u8)
+    Swag.require(img.pixels.buffer[2] == 5_u8)
+    Swag.require(img.pixels.buffer[6] == 15_u8)
+    Swag.require(img.pixels.buffer[7] == 15_u8)
+    Swag.require(img.pixels.buffer[8] == 15_u8)
 }
 
 // Decode an 8-bit indexed TGA with a non-zero palette base index.
@@ -618,30 +668,30 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var h:  TgaH
-    h.colorMapType   = 1'u8
+    h.colorMapType   = 1_u8
     h.imageTypeCode  = TGA_TYPE_MAP
-    h.colorMapFirst  = 2'u16
-    h.colorMapLength = 2'u16
-    h.colorMapBpp    = 24'u8
-    h.width          = 2'u16
-    h.height         = 1'u16
-    h.bitsPerPixel   = 8'u8
+    h.colorMapFirst  = 2_u16
+    h.colorMapLength = 2_u16
+    h.colorMapBpp    = 24_u8
+    h.width          = 2_u16
+    h.height         = 1_u16
+    h.bitsPerPixel   = 8_u8
     cb.addStruct(h)
     addTgaPaletteColor(&cb, 10, 20, 30)
     addTgaPaletteColor(&cb, 40, 50, 60)
-    cb.addNative(2'u8)
-    cb.addNative(3'u8)
+    cb.addNative(2_u8)
+    cb.addNative(3_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixelFormat == .BGR8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)
-    Swag.require(img.pixels.buffer[1] == 20'u8)
-    Swag.require(img.pixels.buffer[2] == 30'u8)
-    Swag.require(img.pixels.buffer[3] == 40'u8)
-    Swag.require(img.pixels.buffer[4] == 50'u8)
-    Swag.require(img.pixels.buffer[5] == 60'u8)
+    Swag.require(img.pixels.buffer[0] == 10_u8)
+    Swag.require(img.pixels.buffer[1] == 20_u8)
+    Swag.require(img.pixels.buffer[2] == 30_u8)
+    Swag.require(img.pixels.buffer[3] == 40_u8)
+    Swag.require(img.pixels.buffer[4] == 50_u8)
+    Swag.require(img.pixels.buffer[5] == 60_u8)
 }
 
 // Decode indexed TGA with 32-bit palette entries and preserve alpha.
@@ -651,28 +701,28 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var h:  TgaH
-    h.colorMapType   = 1'u8
+    h.colorMapType   = 1_u8
     h.imageTypeCode  = TGA_TYPE_MAP
-    h.colorMapLength = 1'u16
-    h.colorMapBpp    = 32'u8
-    h.width          = 1'u16
-    h.height         = 1'u16
-    h.bitsPerPixel   = 8'u8
+    h.colorMapLength = 1_u16
+    h.colorMapBpp    = 32_u8
+    h.width          = 1_u16
+    h.height         = 1_u16
+    h.bitsPerPixel   = 8_u8
     cb.addStruct(h)
-    cb.addNative(3'u8)
-    cb.addNative(4'u8)
-    cb.addNative(5'u8)
-    cb.addNative(6'u8)
-    cb.addNative(0'u8)
+    cb.addNative(3_u8)
+    cb.addNative(4_u8)
+    cb.addNative(5_u8)
+    cb.addNative(6_u8)
+    cb.addNative(0_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 3'u8)
-    Swag.require(img.pixels.buffer[1] == 4'u8)
-    Swag.require(img.pixels.buffer[2] == 5'u8)
-    Swag.require(img.pixels.buffer[3] == 6'u8)
+    Swag.require(img.pixels.buffer[0] == 3_u8)
+    Swag.require(img.pixels.buffer[1] == 4_u8)
+    Swag.require(img.pixels.buffer[2] == 5_u8)
+    Swag.require(img.pixels.buffer[3] == 6_u8)
 }
 
 // A 16-bit indexed palette's high bit is alpha only when the descriptor declares it.
@@ -684,33 +734,36 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
         {
             var cb: ConcatBuffer
             var h:  TgaH
-            h.colorMapType   = 1'u8
+            h.colorMapType   = 1_u8
             h.imageTypeCode  = rle ? TGA_TYPE_RLE_MAP : TGA_TYPE_MAP
-            h.colorMapLength = 2'u16
-            h.colorMapBpp    = 16'u8
-            h.width          = 2'u16
-            h.height         = 1'u16
-            h.bitsPerPixel   = 8'u8
-            h.descriptorByte = alphaDeclared ? 1'u8 : 0'u8
+            h.colorMapLength = 2_u16
+            h.colorMapBpp    = 16_u8
+            h.width          = 2_u16
+            h.height         = 1_u16
+            h.bitsPerPixel   = 8_u8
+            h.descriptorByte = alphaDeclared ? 1_u8 : 0_u8
             cb.addStruct(h)
-            cb.addNative(0x7C00'u16)
-            cb.addNative(0xFC00'u16)
-            if rle do
-                cb.addNative(0x01'u8)
-            cb.addNative(0'u8)
-            cb.addNative(1'u8)
+            cb.addNative(0x7C00_u16)
+            cb.addNative(0xFC00_u16)
+            if rle
+            {
+                cb.addNative(0x01_u8)
+            }
+
+            cb.addNative(0_u8)
+            cb.addNative(1_u8)
 
             let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
             Swag.require(img.pixelFormat == .BGRA8)
             let pixels = img.pixels.storage()
-            Swag.require(pixels[0] == 0'u8)
-            Swag.require(pixels[1] == 0'u8)
-            Swag.require(pixels[2] == 255'u8)
-            Swag.require(pixels[3] == (alphaDeclared ? 0'u8 : 255'u8))
-            Swag.require(pixels[4] == 0'u8)
-            Swag.require(pixels[5] == 0'u8)
-            Swag.require(pixels[6] == 255'u8)
-            Swag.require(pixels[7] == 255'u8)
+            Swag.require(pixels[0] == 0_u8)
+            Swag.require(pixels[1] == 0_u8)
+            Swag.require(pixels[2] == 255_u8)
+            Swag.require(pixels[3] == (alphaDeclared ? 0_u8 : 255_u8))
+            Swag.require(pixels[4] == 0_u8)
+            Swag.require(pixels[5] == 0_u8)
+            Swag.require(pixels[6] == 255_u8)
+            Swag.require(pixels[7] == 255_u8)
         }
     }
 }
@@ -721,28 +774,28 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     let path = makeTempTgaPath()
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_RLE_RGB, 24'u8, 0'u8, 4'u16, 1'u16)
-    cb.addNative(0x83'u8)
-    cb.addNative(1'u8)
-    cb.addNative(2'u8)
-    cb.addNative(3'u8)
+    addTgaImageHeader(&cb, TGA_TYPE_RLE_RGB, 24_u8, 0_u8, 4_u16, 1_u16)
+    cb.addNative(0x83_u8)
+    cb.addNative(1_u8)
+    cb.addNative(2_u8)
+    cb.addNative(3_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 1'u8)
-    Swag.require(img.pixels.buffer[9] == 1'u8)
-    Swag.require(img.pixels.buffer[10] == 2'u8)
-    Swag.require(img.pixels.buffer[11] == 3'u8)
+    Swag.require(img.pixels.buffer[0] == 1_u8)
+    Swag.require(img.pixels.buffer[9] == 1_u8)
+    Swag.require(img.pixels.buffer[10] == 2_u8)
+    Swag.require(img.pixels.buffer[11] == 3_u8)
 }
 
 // Decode mixed raw and repeated packets that cross rows in every origin mode.
 #test
 {
-    const Width  = 17'u16
-    const Height = 3'u16
+    const Width  = 17_u16
+    const Height = 3_u16
     const Pixels = cast(u64, Width) * Height
-    for bpp in [24'u8, 32'u8]
+    for bpp in [24_u8, 32_u8]
     {
         let bytesPerPixel = cast(u64, (bpp / 8))
         for topMode in 2
@@ -751,14 +804,14 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
             {
                 let descriptor = (topMode ? TGA_DESC_TOP : 0) |
                                  (rightMode ? TGA_DESC_RIGHT : 0) |
-                                 (bpp == 32 ? 8'u8 : 0'u8)
+                                 (bpp == 32 ? 8_u8 : 0_u8)
                 var cb:       ConcatBuffer
-                var expected: Array'u8
+                var expected: Array!{u8}
                 expected.resize(Pixels * bytesPerPixel)
                 addTgaImageHeader(&cb, TGA_TYPE_RLE_RGB, bpp, descriptor, Width, Height)
 
-                cb.addNative(19'u8)
-                for pixel in 20'u64
+                cb.addNative(19_u8)
+                for pixel in 20_u64
                 {
                     for channel in bytesPerPixel
                     {
@@ -768,17 +821,22 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
                     }
                 }
 
-                cb.addNative(0x91'u8)
-                for channel in bytesPerPixel do
-                    cb.addNative(cast(u8, ((channel * 53 + 91) & 0xFF)))
-                for pixel in 18'u64
+                cb.addNative(0x91_u8)
+                for channel in bytesPerPixel
                 {
-                    for channel in bytesPerPixel do
-                        expected[(20 + pixel) * bytesPerPixel + channel] = cast(u8, ((channel * 53 + 91) & 0xFF))
+                    cb.addNative(cast(u8, ((channel * 53 + 91) & 0xFF)))
                 }
 
-                cb.addNative(12'u8)
-                for packetPixel in 13'u64
+                for pixel in 18_u64
+                {
+                    for channel in bytesPerPixel
+                    {
+                        expected[(20 + pixel) * bytesPerPixel + channel] = cast(u8, ((channel * 53 + 91) & 0xFF))
+                    }
+                }
+
+                cb.addNative(12_u8)
+                for packetPixel in 13_u64
                 {
                     let pixel = 38 + packetPixel
                     for channel in bytesPerPixel
@@ -798,8 +856,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
                     let targetY = topMode ? Height - sourceY - 1 : sourceY
                     let targetX = rightMode ? Width - sourceX - 1 : sourceX
                     let offset  = (targetY * Width + targetX) * bytesPerPixel
-                    for channel in bytesPerPixel do
+                    for channel in bytesPerPixel
+                    {
                         Swag.require(img.pixels.storage()[offset + channel] == expected[pixel * bytesPerPixel + channel])
+                    }
                 }
             }
         }
@@ -813,57 +873,59 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var h:  TgaH
-    h.colorMapType   = 1'u8
+    h.colorMapType   = 1_u8
     h.imageTypeCode  = TGA_TYPE_RLE_MAP
-    h.colorMapLength = 3'u16
-    h.colorMapBpp    = 24'u8
-    h.width          = 3'u16
-    h.height         = 1'u16
-    h.bitsPerPixel   = 8'u8
+    h.colorMapLength = 3_u16
+    h.colorMapBpp    = 24_u8
+    h.width          = 3_u16
+    h.height         = 1_u16
+    h.bitsPerPixel   = 8_u8
     cb.addStruct(h)
     addTgaPaletteColor(&cb, 1, 2, 3)
     addTgaPaletteColor(&cb, 4, 5, 6)
     addTgaPaletteColor(&cb, 7, 8, 9)
-    cb.addNative(0x02'u8)
-    cb.addNative(0'u8)
-    cb.addNative(1'u8)
-    cb.addNative(2'u8)
+    cb.addNative(0x02_u8)
+    cb.addNative(0_u8)
+    cb.addNative(1_u8)
+    cb.addNative(2_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 1'u8)
-    Swag.require(img.pixels.buffer[3] == 4'u8)
-    Swag.require(img.pixels.buffer[6] == 7'u8)
+    Swag.require(img.pixels.buffer[0] == 1_u8)
+    Swag.require(img.pixels.buffer[3] == 4_u8)
+    Swag.require(img.pixels.buffer[6] == 7_u8)
 }
 
 // A grayscale run can cross a row in every origin mode.
 #test
 {
-    const Width   = 3'u16
-    const Height  = 2'u16
-    const Samples = [9'u8, 9, 9, 9, 10, 11]
-    for descriptor in [0'u8, TGA_DESC_TOP, TGA_DESC_RIGHT, TGA_DESC_TOP | TGA_DESC_RIGHT]
+    const Width   = 3_u16
+    const Height  = 2_u16
+    const Samples = [9_u8, 9, 9, 9, 10, 11]
+    for descriptor in [0_u8, TGA_DESC_TOP, TGA_DESC_RIGHT, TGA_DESC_TOP | TGA_DESC_RIGHT]
     {
         var cb: ConcatBuffer
-        addTgaImageHeader(&cb, TGA_TYPE_RLE_MONO, 8'u8, descriptor, Width, Height)
-        cb.addNative(0x83'u8)
-        cb.addNative(9'u8)
-        cb.addNative(0x01'u8)
-        cb.addNative(10'u8)
-        cb.addNative(11'u8)
+        addTgaImageHeader(&cb, TGA_TYPE_RLE_MONO, 8_u8, descriptor, Width, Height)
+        cb.addNative(0x83_u8)
+        cb.addNative(9_u8)
+        cb.addNative(0x01_u8)
+        cb.addNative(10_u8)
+        cb.addNative(11_u8)
 
         let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
         Swag.require(img.pixelFormat == .BGR8)
         for pixel in Samples.count
         {
-            let x = pixel % Width
-            let y = pixel / Width
+            let x       = pixel % Width
+            let y       = pixel / Width
             let targetX = descriptor & TGA_DESC_RIGHT ? Width - x - 1 : x
             let targetY = descriptor & TGA_DESC_TOP ? Height - y - 1 : y
             let offset  = (targetY * Width + targetX) * 3
-            for channel in 3 do
+            for channel in 3
+            {
                 Swag.require(img.pixels.storage()[offset + channel] == Samples[pixel])
+            }
         }
     }
 }
@@ -872,7 +934,7 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 #test
 {
     var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24'u8, 0'u8, 2'u16, 2'u16)
+    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24_u8, 0_u8, 2_u16, 2_u16)
 
     var opts: DecodeOptions
     opts.decodePixels = false
@@ -888,9 +950,12 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 #test
 {
     var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24'u8, 0'u8, 2'u16, 2'u16)
-    for i in 12 do
+    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24_u8, 0_u8, 2_u16, 2_u16)
+    for i in 12
+    {
         cb.addNative(cast(u8, i))
+    }
+
     let bytes = nnBytes(cb.toSlice())
 
     var options: DecodeOptions
@@ -916,11 +981,11 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 #test
 {
     var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_RLE_RGB, 24'u8, 0'u8, 2'u16, 1'u16)
-    cb.addNative(0x82'u8)
-    cb.addNative(1'u8)
-    cb.addNative(2'u8)
-    cb.addNative(3'u8)
+    addTgaImageHeader(&cb, TGA_TYPE_RLE_RGB, 24_u8, 0_u8, 2_u16, 1_u16)
+    cb.addNative(0x82_u8)
+    cb.addNative(1_u8)
+    cb.addNative(2_u8)
+    cb.addNative(3_u8)
 
     var img: Image
     var err28Outcome: Swag.Error
@@ -933,8 +998,8 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 #test
 {
     var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_MAP, 8'u8, 0'u8, 1'u16, 1'u16)
-    cb.addNative(0'u8)
+    addTgaImageHeader(&cb, TGA_TYPE_MAP, 8_u8, 0_u8, 1_u16, 1_u16)
+    cb.addNative(0_u8)
 
     var img: Image
     var err29Outcome: Swag.Error
@@ -947,16 +1012,16 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 #test
 {
     var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24'u8, 0x40'u8, 1'u16, 3'u16)
-    cb.addNative(1'u8)
-    cb.addNative(2'u8)
-    cb.addNative(3'u8)
-    cb.addNative(4'u8)
-    cb.addNative(5'u8)
-    cb.addNative(6'u8)
-    cb.addNative(7'u8)
-    cb.addNative(8'u8)
-    cb.addNative(9'u8)
+    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24_u8, 0x40_u8, 1_u16, 3_u16)
+    cb.addNative(1_u8)
+    cb.addNative(2_u8)
+    cb.addNative(3_u8)
+    cb.addNative(4_u8)
+    cb.addNative(5_u8)
+    cb.addNative(6_u8)
+    cb.addNative(7_u8)
+    cb.addNative(8_u8)
+    cb.addNative(9_u8)
 
     var img: Image
     var interlaceErrorOutcome: Swag.Error
@@ -972,8 +1037,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     for pixelFormat in [PixelFormat.RGB8, PixelFormat.RGBA8]
     {
         var src = Image.create(Width, Height, pixelFormat)
-        for i in src.pixels.count do
+        for i in src.pixels.count
+        {
             src.pixels.storage()[i] = cast(u8, ((i * 37 + 19) & 0xFF))
+        }
 
         let cb  = expect src.encode("memory.tga")
         let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
@@ -986,8 +1053,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
             Swag.require(img.pixels.storage()[offset] == src.pixels.storage()[offset + 2])
             Swag.require(img.pixels.storage()[offset + 1] == src.pixels.storage()[offset + 1])
             Swag.require(img.pixels.storage()[offset + 2] == src.pixels.storage()[offset])
-            if bytesPerPixel == 4 do
+            if bytesPerPixel == 4
+            {
                 Swag.require(img.pixels.storage()[offset + 3] == src.pixels.storage()[offset + 3])
+            }
         }
     }
 }
@@ -999,19 +1068,19 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     defer discard catch File.delete(path.toString())
     var src    = Image.create(2, 1, .BGR8)
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 1'u8
-    srcBuf[1] = 2'u8
-    srcBuf[2] = 3'u8
-    srcBuf[3] = 4'u8
-    srcBuf[4] = 5'u8
-    srcBuf[5] = 6'u8
+    srcBuf[0] = 1_u8
+    srcBuf[1] = 2_u8
+    srcBuf[2] = 3_u8
+    srcBuf[3] = 4_u8
+    srcBuf[4] = 5_u8
+    srcBuf[5] = 6_u8
 
     let cb = expect src.encode("memory.tga")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 1'u8)
-    Swag.require(img.pixels.buffer[5] == 6'u8)
+    Swag.require(img.pixels.buffer[0] == 1_u8)
+    Swag.require(img.pixels.buffer[5] == 6_u8)
 }
 
 // Encode RGB8 by swapping R/B into the on-disk BGR order.
@@ -1021,18 +1090,18 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     defer discard catch File.delete(path.toString())
     var src    = Image.create(1, 1, .RGB8)
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 10'u8
-    srcBuf[1] = 20'u8
-    srcBuf[2] = 30'u8
+    srcBuf[0] = 10_u8
+    srcBuf[1] = 20_u8
+    srcBuf[2] = 30_u8
 
     let cb = expect src.encode("memory.tga")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixelFormat == .BGR8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 30'u8)
-    Swag.require(img.pixels.buffer[1] == 20'u8)
-    Swag.require(img.pixels.buffer[2] == 10'u8)
+    Swag.require(img.pixels.buffer[0] == 30_u8)
+    Swag.require(img.pixels.buffer[1] == 20_u8)
+    Swag.require(img.pixels.buffer[2] == 10_u8)
 }
 
 // Encode RGBA8 with descriptor alpha bits and preserve alpha through round-trip.
@@ -1042,10 +1111,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     defer discard catch File.delete(path.toString())
     var src    = Image.create(1, 1, .RGBA8)
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 1'u8
-    srcBuf[1] = 2'u8
-    srcBuf[2] = 3'u8
-    srcBuf[3] = 4'u8
+    srcBuf[0] = 1_u8
+    srcBuf[1] = 2_u8
+    srcBuf[2] = 3_u8
+    srcBuf[3] = 4_u8
 
     let cb = expect src.encode("memory.tga")
     cb.makeLinear()
@@ -1053,17 +1122,17 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     Swag.require(bytes != null)
     let h = cast(const *TgaH, bytes.buffer)
     Swag.require(h.imageTypeCode == TGA_TYPE_RGB)
-    Swag.require(h.bitsPerPixel == 32'u8)
-    Swag.require(h.descriptorByte == 8'u8)
+    Swag.require(h.bitsPerPixel == 32_u8)
+    Swag.require(h.descriptorByte == 8_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 3'u8)
-    Swag.require(img.pixels.buffer[1] == 2'u8)
-    Swag.require(img.pixels.buffer[2] == 1'u8)
-    Swag.require(img.pixels.buffer[3] == 4'u8)
+    Swag.require(img.pixels.buffer[0] == 3_u8)
+    Swag.require(img.pixels.buffer[1] == 2_u8)
+    Swag.require(img.pixels.buffer[2] == 1_u8)
+    Swag.require(img.pixels.buffer[3] == 4_u8)
 }
 
 // Split uniform input at the 128-pixel RLE limit in every channel order.
@@ -1087,8 +1156,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
         Swag.require(bytes[#sizeof(TgaH) + 2 + 2 * bytesPerPixel] == 0)
 
         let img = expect Image.decode("memory.tga", bytes, {})
-        for i in img.pixels.count do
+        for i in img.pixels.count
+        {
             Swag.require(img.pixels.storage()[i] == 73)
+        }
     }
 }
 
@@ -1101,8 +1172,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     for pixelFormat in [PixelFormat.BGR8, PixelFormat.RGB8, PixelFormat.BGRA8, PixelFormat.RGBA8]
     {
         var src = Image.create(Width, 1, pixelFormat)
-        for i in src.pixels.count do
+        for i in src.pixels.count
+        {
             src.pixels.storage()[i] = cast(u8, ((i * 37 + 19) & 0xFF))
+        }
 
         var cb = expect src.encode("memory.tga", options)
         cb.makeLinear()
@@ -1118,16 +1191,20 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
             let offset = pixel * bytesPerPixel
             if pixelFormat == .BGR8 or pixelFormat == .BGRA8
             {
-                for channel in bytesPerPixel do
+                for channel in bytesPerPixel
+                {
                     Swag.require(img.pixels.storage()[offset + channel] == src.pixels.storage()[offset + channel])
+                }
             }
             else
             {
                 Swag.require(img.pixels.storage()[offset] == src.pixels.storage()[offset + 2])
                 Swag.require(img.pixels.storage()[offset + 1] == src.pixels.storage()[offset + 1])
                 Swag.require(img.pixels.storage()[offset + 2] == src.pixels.storage()[offset])
-                if bytesPerPixel == 4 do
+                if bytesPerPixel == 4
+                {
                     Swag.require(img.pixels.storage()[offset + 3] == src.pixels.storage()[offset + 3])
+                }
             }
         }
     }
@@ -1142,9 +1219,9 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     for x in 4
     {
         let offset = cast(u64, x) * 3
-        srcBuf[offset]     = 10'u8
-        srcBuf[offset + 1] = 20'u8
-        srcBuf[offset + 2] = 30'u8
+        srcBuf[offset]     = 10_u8
+        srcBuf[offset + 1] = 20_u8
+        srcBuf[offset + 2] = 30_u8
     }
 
     for x in 4 until 8
@@ -1161,7 +1238,7 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     let cb    = expect src.encode("memory.tga", options)
     let bytes = nnBytes(cb.toSlice())
     Swag.require(bytes[2] == TGA_TYPE_RLE_RGB)
-    Swag.require(bytes[18] == 0x83'u8)
+    Swag.require(bytes[18] == 0x83_u8)
     Swag.require(bytes.count < 18 + src.pixels.count)
 
     let img = expect Image.decode("encoded-rle.tga", bytes, {})
@@ -1177,10 +1254,10 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     for x in src.width
     {
         let offset = cast(u64, x) * 4
-        srcBuf[offset]     = 1'u8
-        srcBuf[offset + 1] = 2'u8
-        srcBuf[offset + 2] = 3'u8
-        srcBuf[offset + 3] = 4'u8
+        srcBuf[offset]     = 1_u8
+        srcBuf[offset + 1] = 2_u8
+        srcBuf[offset + 2] = 3_u8
+        srcBuf[offset + 3] = 4_u8
     }
 
     var options: Tga.EncodeOptions
@@ -1189,14 +1266,49 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     let cb    = expect src.encode("memory.tga", options)
     let bytes = nnBytes(cb.toSlice())
     Swag.require(bytes[2] == TGA_TYPE_RLE_RGB)
-    Swag.require(bytes[16] == 32'u8)
-    Swag.require(bytes[17] == 8'u8)
+    Swag.require(bytes[16] == 32_u8)
+    Swag.require(bytes[17] == 8_u8)
 
     let img = expect Image.decode("encoded-rle-alpha.tga", bytes, {})
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 3'u8)
-    Swag.require(img.pixels.buffer[1] == 2'u8)
-    Swag.require(img.pixels.buffer[2] == 1'u8)
-    Swag.require(img.pixels.buffer[3] == 4'u8)
+    Swag.require(img.pixels.buffer[0] == 3_u8)
+    Swag.require(img.pixels.buffer[1] == 2_u8)
+    Swag.require(img.pixels.buffer[2] == 1_u8)
+    Swag.require(img.pixels.buffer[3] == 4_u8)
+}
+
+// The encoder closes both repeated and literal packets at the end of a scanline.
+#test
+{
+    const Width  = 5
+    const Height = 3
+    var image = Image.create(Width, Height, .RGB8)
+    for i in Width * Height
+    {
+        let value = i <= Width ? 0_u8 : cast(u8, i)
+        for channel in 3
+        {
+            image.pixels[3 * i + channel] = value
+        }
+    }
+
+    let bytes  = expect image.encodeToBytes("row-packets.tga", Tga.EncodeOptions{rle: true})
+    var offset = 18_u64
+    for Height
+    {
+        var remaining = cast(u64, Width)
+        while remaining
+        {
+            let tag   = bytes[offset]
+            let count = cast(u64, (tag & 127)) + 1
+            Swag.require(count <= remaining)
+            offset    += 1 + (tag & 128 ? 3 : 3 * count)
+            remaining -= count
+        }
+    }
+
+    Swag.require(offset == bytes.count)
+    let decoded = expect Image.decode("row-packets.tga", bytes.toSlice())
+    Swag.require(Memory.compare(decoded.pixels.storage(), image.pixels.storage(), image.byteCount) == 0)
 }

@@ -11,13 +11,17 @@ func zeroOddByteRange(values: [*] u8)
 #test
 {
     var values: [1026] s32
-    for &value in values do
+    for &value in values
+    {
         value[] = 7
+    }
     let first = cast([*] s32, &values[1])
 
     Swag.init(first, 0)
-    for value in values do
+    for value in values
+    {
         Swag.require(value == 7)
+    }
 
     Swag.init(first, 1)
     Swag.require(values[0] == 7 and values[1] == 0 and values[2] == 7)
@@ -25,22 +29,28 @@ func zeroOddByteRange(values: [*] u8)
     values[1] = 7
     Swag.init(first, 1024)
     Swag.require(values[0] == 7 and values[1025] == 7)
-    for i in 1024 do
+    for i in 1024
+    {
         Swag.require(values[i + 1] == 0)
+    }
 }
 
 #test
 {
     var values: [1025] u8
-    for &value in values do
+    for &value in values
+    {
         value[] = 0xA5
+    }
 
     // The offset and odd byte count exercise both an unaligned base and the final tail.
     let first = cast([*] u8, &values[1])
     Swag.init(first, 1023)
     Swag.require(values[0] == 0xA5 and values[1024] == 0xA5)
-    for i in 1023 do
+    for i in 1023
+    {
         Swag.require(values[i + 1] == 0)
+    }
 }
 
 #test
@@ -55,11 +65,15 @@ func zeroOddByteRange(values: [*] u8)
 #test
 {
     var values: [1025] u8
-    for &value in values do
+    for &value in values
+    {
         value[] = 0xA5
+    }
 
     zeroOddByteRange(cast([*] u8, &values[1]))
     Swag.require(values[0] == 0xA5 and values[1024] == 0xA5)
-    for i in 1023 do
+    for i in 1023
+    {
         Swag.require(values[i + 1] == 0)
+    }
 }

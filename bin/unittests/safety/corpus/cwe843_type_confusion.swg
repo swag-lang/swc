@@ -115,7 +115,7 @@ func extractRightTypeFromAny(boxed: any)->s32
 // The nullable result supports a type test without asserting success.
 func tryAnyType()->bool
 {
-    var value      = 42's32
+    var value      = 42_s32
     let boxed: any = Swag.makeAny(&value, s32)
     return boxed is s32
 }
@@ -130,7 +130,7 @@ func readWrittenUnionMember()->u64
 
 #test
 {
-    Swag.require(extractRightTypeFromAny(42's32) == 42)
+    Swag.require(extractRightTypeFromAny(42_s32) == 42)
     Swag.require(tryAnyType())
     Swag.require(readWrittenUnionMember() == 0x4142434445)
     Swag.require(relatedPointerRoundTrip() == 17)

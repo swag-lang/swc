@@ -9,27 +9,38 @@ namespace __LinuxRT
 private func __linuxReadProc(path: string, buffer: [..] u8, firstLine: bool = false)->u64
 {
     let descriptor = __LinuxRT.open(path.buffer, __LinuxRT.CloseOnExec)
-    if descriptor < 0 do
+    if descriptor < 0
+    {
         return 0
+    }
+
     defer discard __LinuxRT.close(descriptor)
-    var count = 0'u64
+    var count = 0_u64
     while count < buffer.count
     {
         let amount = __LinuxRT.read(descriptor, &buffer[count], buffer.count - count)
-        if amount == 0 do
+        if amount == 0
+        {
             return count
+        }
+
         if amount < 0
         {
-            if __LinuxRT.__errno_location()[] != __LinuxRT.Interrupted do
+            if __LinuxRT.__errno_location()[] != __LinuxRT.Interrupted
+            {
                 return 0
+            }
+
             continue
         }
 
         let end = count + cast(u64, amount)
         if firstLine
         {
-            for index in count until end where buffer[index] == 10 do
+            for index in count until end where buffer[index] == 10
+            {
                 return index
+            }
         }
 
         count = end
@@ -41,18 +52,27 @@ private func __linuxReadProc(path: string, buffer: [..] u8, firstLine: bool = fa
 
 private func __linuxUnsigned(bytes: const [..] u8, offset: *u64)->(u64, bool)
 {
-    while offset[] < bytes.count and (bytes[offset[]] == 32 or bytes[offset[]] == 9) do
+    while offset[] < bytes.count and (bytes[offset[]] == 32 or bytes[offset[]] == 9)
+    {
         offset[] += 1
+    }
+
     let start = offset[]
-    var value = 0'u64
+    var value = 0_u64
     while offset[] < bytes.count
     {
         let digit = bytes[offset[]]
-        if digit < 48 or digit > 57 do
+        if digit < 48 or digit > 57
+        {
             break
+        }
+
         let number = cast(u64, digit - 48)
-        if value > (Swag.U64.Max - number) / 10 do
+        if value > (Swag.U64.Max - number) / 10
+        {
             return (0, false)
+        }
+
         value    = value * 10 + number
         offset[] += 1
     }
@@ -70,11 +90,11 @@ func __hostWorkPressure()->Swag.WorkPressure
     if cpuLength >= 4 and Swag.memcmp(&buffer[0], "cpu ".buffer, 4) == 0
     {
         let line   = Swag.makeSlice(&buffer[0], cpuLength)
-        var offset = 4'u64
+        var offset = 4_u64
         var valid  = true
 
         // Guest counters are already included in user/nice; add only the first eight fields.
-        for index in 8'u32
+        for index in 8_u32
         {
             let (value, present) = __linuxUnsigned(line, &offset)
             if not present
@@ -84,8 +104,10 @@ func __hostWorkPressure()->Swag.WorkPressure
             }
 
             result.totalTicks += value
-            if index == 3 or index == 4 do
+            if index == 3 or index == 4
+            {
                 result.idleTicks += value
+            }
         }
 
         var process: __LinuxRT.Timespec
@@ -102,25 +124,34 @@ func __hostWorkPressure()->Swag.WorkPressure
 
     let memoryLength = __linuxReadProc("/proc/meminfo", buffer)
     let memory       = Swag.makeSlice(&buffer[0], memoryLength)
-    var lineStart    = 0'u64
-    var fields       = 0'u32
-    var committed    = 0'u64
+    var lineStart    = 0_u64
+    var fields       = 0_u32
+    var committed    = 0_u64
     while lineStart < memoryLength
     {
         var lineEnd = lineStart
-        while lineEnd < memoryLength and buffer[lineEnd] != 10 do
+        while lineEnd < memoryLength and buffer[lineEnd] != 10
+        {
             lineEnd += 1
+        }
+
         let lineLength = lineEnd - lineStart
         const Names = ["MemTotal:", "MemAvailable:", "CommitLimit:", "Committed_AS:"]
         for name, index in Names
         {
-            if lineLength < name.count or Swag.memcmp(&buffer[lineStart], name.buffer, name.count) != 0 do
+            if lineLength < name.count or Swag.memcmp(&buffer[lineStart], name.buffer, name.count) != 0
+            {
                 continue
+            }
+
             var offset         = lineStart + name.count
             let (value, valid) = __linuxUnsigned(memory, &offset)
-            if not valid or value > Swag.U64.Max / 1024 do
+            if not valid or value > Swag.U64.Max / 1024
+            {
                 break
-            fields |= 1'u32 << cast(u32, index)
+            }
+
+            fields |= 1_u32 << cast(u32, index)
             switch index
             {
             case 0: result.physicalBytes = value * 1024

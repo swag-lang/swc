@@ -56,10 +56,16 @@ public impl DateTimeFormatInfo
 
     internal mtd const matches(pattern: string, index: u64, token: string)->bool
     {
-        if index > pattern.count do
+        if index > pattern.count
+        {
             return false
-        if token.count > pattern.count - index do
+        }
+
+        if token.count > pattern.count - index
+        {
             return false
+        }
+
         let patternToken  = cast(const [..] u8, pattern[index until index + token.count])
         let expectedToken = cast(const [..] u8, token)
         return Utf8.compare(patternToken, expectedToken, .Latin1) == 0
@@ -68,7 +74,7 @@ public impl DateTimeFormatInfo
     internal mtd const formatPattern(value: Time.DateTime, pattern: string)->String
     {
         var result: #returntype
-        var index = 0'u64
+        var index = 0_u64
         while index < pattern.count
         {
             if .matches(pattern, index, "dddd")
@@ -76,74 +82,74 @@ public impl DateTimeFormatInfo
                 result.append(.dayName(value.dayOfWeek()))
                 index += 4
             }
-            elif .matches(pattern, index, "MMMM")
+            else if .matches(pattern, index, "MMMM")
             {
                 result.append(.monthName(value.month))
                 index += 4
             }
-            elif .matches(pattern, index, "yyyy")
+            else if .matches(pattern, index, "yyyy")
             {
                 result.append(Format.toString("%{04}", value.year))
                 index += 4
             }
-            elif .matches(pattern, index, "HH")
+            else if .matches(pattern, index, "HH")
             {
                 result.append(Format.toString("%{02}", value.hour))
                 index += 2
             }
-            elif .matches(pattern, index, "MM")
+            else if .matches(pattern, index, "MM")
             {
                 result.append(Format.toString("%{02}", value.month))
                 index += 2
             }
-            elif .matches(pattern, index, "dd")
+            else if .matches(pattern, index, "dd")
             {
                 result.append(Format.toString("%{02}", value.day))
                 index += 2
             }
-            elif .matches(pattern, index, "mm")
+            else if .matches(pattern, index, "mm")
             {
                 result.append(Format.toString("%{02}", value.minute))
                 index += 2
             }
-            elif .matches(pattern, index, "ss")
+            else if .matches(pattern, index, "ss")
             {
                 result.append(Format.toString("%{02}", value.second))
                 index += 2
             }
-            elif .matches(pattern, index, "tt")
+            else if .matches(pattern, index, "tt")
             {
                 let designator = value.hour < 12 ? .amDesignator : .pmDesignator
                 result.append(designator)
                 index += 2
             }
-            elif pattern[index] == 'h'
+            else if pattern[index] == 'h'
             {
                 let hour = value.hour % 12 ? value.hour % 12 : 12
                 result.append(Format.toString("%", hour))
                 index += 1
             }
-            elif pattern[index] == 'H'
+            else if pattern[index] == 'H'
             {
                 result.append(Format.toString("%", value.hour))
                 index += 1
             }
-            elif pattern[index] == 'M'
+            else if pattern[index] == 'M'
             {
                 result.append(Format.toString("%", value.month))
                 index += 1
             }
-            elif pattern[index] == 'd'
+            else if pattern[index] == 'd'
             {
                 result.append(Format.toString("%", value.day))
                 index += 1
             }
-            elif pattern[index] == '/'
+            else if pattern[index] == '/'
             {
                 result.append(.dateSeparator)
                 index += 1
             }
-            elif pattern[index] == ':'
+            else if pattern[index] == ':'
             {
                 result.append(.timeSeparator)
                 index += 1

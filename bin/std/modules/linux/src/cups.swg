@@ -60,4 +60,4 @@ alias cupsPrintFileFunc          = func(const [*] u8, const [*] u8, const [*] u8
 #[Swag.CallingConvention(.C)]
 alias cupsCancelJobFunc          = func(const [*] u8, s32)->s32
 
-const CUPS_MEDIA_FLAGS_DEFAULT = 0'u32
+const CUPS_MEDIA_FLAGS_DEFAULT = 0_u32

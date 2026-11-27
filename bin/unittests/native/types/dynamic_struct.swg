@@ -129,8 +129,10 @@ func inspectPresentDynamic(base: *DynamicBase?)->bool
     while base
     {
         let child = catch cast(*DynamicChild?, base) orelse null
-        if child and child.extra == 45 do
+        if child and child.extra == 45
+        {
             return true
+        }
         return false
     }
     return false

@@ -3,17 +3,19 @@
 
 using Core, Pixel, Gui, Audio, Viewers
 
-func storeWavSize(bytes: *Array'u8, at: u64, value: u32)
+func storeWavSize(bytes: *Array!{u8}, at: u64, value: u32)
 {
-    for index in 4 do
+    for index in 4
+    {
         bytes[at + index] = cast(u8, (value >> (index * 8)) & 0xFF)
+    }
 }
 
 // Reduce a five-minute recording to a bounded waveform and seek near its end.
 #[Swag.TestTag("stress")]
 #test
 {
-    const SampleRate  = 11_025'u64
+    const SampleRate  = 11_025_u64
     const Frames      = SampleRate * 60 * 5
     const PayloadSize = Frames * 2
     let file = Testing.tempFilePath("scope-long-waveform-", ".wav")
@@ -21,8 +23,11 @@ func storeWavSize(bytes: *Array'u8, at: u64, value: u32)
     var wav         = previewWav()
     let initialSize = wav.count
     wav.resize(44 + PayloadSize)
-    for index in wav.count - initialSize do
+    for index in wav.count - initialSize
+    {
         wav[initialSize + index] = 0
+    }
+
     storeWavSize(&wav, 4, cast(u32, 36 + PayloadSize))
     storeWavSize(&wav, 40, cast(u32, PayloadSize))
     expect File.writeAllBytes(file, wav.toSlice())

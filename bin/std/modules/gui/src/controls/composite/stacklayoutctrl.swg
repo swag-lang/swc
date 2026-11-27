@@ -55,17 +55,23 @@ impl IWnd for StackLayoutCtrl
         let horizontal = .isHorizontal()
 
         var childAvailable: Math.Point
-        if horizontal do
+        if horizontal
+        {
             childAvailable.y = Math.max(available.y - padding.y - padding.w, 0)
-        else do
+        }
+        else
+        {
             childAvailable.x = Math.max(available.x - padding.x - padding.z, 0)
+        }
 
         var main, cross: f32
         var count:       u64
         for c in .children
         {
-            if not c.isLocallyVisible() do
+            if not c.isLocallyVisible()
+            {
                 continue
+            }
 
             let margin = c.layoutMargin()
             let hint   = c.measure(childAvailable)
@@ -74,8 +80,10 @@ impl IWnd for StackLayoutCtrl
             count += 1
         }
 
-        if not count do
+        if not count
+        {
             return {}
+        }
 
         main += cast(f32, (count - 1)) * .spacing
 
@@ -189,13 +197,16 @@ private impl StackLayoutCtrl
         let availableMain  = .mainFromRect(client)
         let availableCross = .crossFromRect(client)
 
-        var visible:  Array'(*Wnd)
-        var hints:    Array'SizeHint
-        var oldSizes: Array'Math.Point
+        var visible:  Array!{*Wnd}
+        var hints:    Array!{SizeHint}
+        var oldSizes: Array!{Math.Point}
         for c in .children
         {
-            if not c.isLocallyVisible() do
+            if not c.isLocallyVisible()
+            {
                 continue
+            }
+
             visible.add(c)
             hints.add(c.measure(Math.Point{client.width, client.height}))
             oldSizes.add(Math.Point{c.position.width, c.position.height})
@@ -227,9 +238,9 @@ private impl StackLayoutCtrl
 
         var totalPreferred = spacingTotal
         var totalMinimum   = spacingTotal
-        var totalMargins   = 0'f32
-        var totalWeight    = 0'f32
-        var shrinkPool     = 0'f32
+        var totalMargins   = 0_f32
+        var totalWeight    = 0_f32
+        var shrinkPool     = 0_f32
         for c, idx in visible
         {
             let margin     = c.layoutMargin()
@@ -237,31 +248,37 @@ private impl StackLayoutCtrl
             totalMargins   += marginMain
             totalPreferred += .preferredMain(hints[idx]) + marginMain
             totalMinimum   += .minimumMain(hints[idx]) + marginMain
-            if .canShrinkMain(c) do
+            if .canShrinkMain(c)
+            {
                 shrinkPool += Math.max(.preferredMain(hints[idx]) - .minimumMain(hints[idx]), 0)
+            }
+
             let pol = .mainPolicy(c)
             if pol == SizePolicy.Expand or .isFitMain()
             {
-                var itemWeight = 1'f32
-                if not .isFitMain() do
+                var itemWeight = 1_f32
+                if not .isFitMain()
+                {
                     itemWeight = .mainWeight(c)
+                }
+
                 totalWeight += itemWeight
             }
         }
 
-        var extra    = 0'f32
-        var shortage = 0'f32
+        var extra    = 0_f32
+        var shortage = 0_f32
         if .isFitMain()
         {
             totalWeight    = count
             extra          = Math.max(availableMain - totalMinimum, 0)
             totalPreferred = totalMinimum
         }
-        elif .fitToContent
+        else if .fitToContent
         {
             shortage = 0
         }
-        elif availableMain >= totalPreferred
+        else if availableMain >= totalPreferred
         {
             extra = availableMain - totalPreferred
         }
@@ -277,35 +294,50 @@ private impl StackLayoutCtrl
         if .isFitMain()
         {
             let availableForItems = Math.max(availableMain - spacingTotal - totalMargins, 0)
-            var low  = 0'f32
+            var low  = 0_f32
             var high = availableForItems
             for iteration in 0 until 32
             {
                 discard iteration
                 let level = (low + high) * 0.5
                 var used: f32
-                for hint in hints do
+                for hint in hints
+                {
                     used += Math.clamp(level, .minimumMain(hint), .maximumMain(hint))
-                if used < availableForItems do
+                }
+
+                if used < availableForItems
+                {
                     low = level
-                else do
+                }
+                else
+                {
                     high = level
+                }
             }
 
             fitSize = (low + high) * 0.5
         }
 
         var cursor: f32
-        if .isReverse() do
+        if .isReverse()
+        {
             cursor = .isHorizontal() ? client.right() : client.bottom()
-        elif .isEndingMain() do
+        }
+        else if .isEndingMain()
+        {
             cursor = client.x + Math.max(availableMain - totalPreferred, 0)
-        elif .isCenteringMain() do
+        }
+        else if .isCenteringMain()
+        {
             cursor = (.isHorizontal() ? client.x : client.y) + Math.max(availableMain - totalPreferred, 0) * 0.5
-        else do
+        }
+        else
+        {
             cursor = .isHorizontal() ? client.x : client.y
+        }
 
-        var contentEnd = 0'f32
+        var contentEnd = 0_f32
         for idxLoop in visible.count
         {
             let idx    = idxLoop
@@ -318,7 +350,7 @@ private impl StackLayoutCtrl
             {
                 mainSize = fitSize
             }
-            elif extra > 0 and totalWeight > 0
+            else if extra > 0 and totalWeight > 0
             {
                 let pol = .mainPolicy(c)
                 if pol == SizePolicy.Expand
@@ -327,7 +359,7 @@ private impl StackLayoutCtrl
                     mainSize += extra * w / totalWeight
                 }
             }
-            elif shortage > 0 and shrinkPool > 0
+            else if shortage > 0 and shrinkPool > 0
             {
                 if .canShrinkMain(c)
                 {
@@ -342,10 +374,15 @@ private impl StackLayoutCtrl
             let crossAvailable = Math.max(availableCross - .crossMargin(margin), 0)
             let polCross       = .crossPolicy(c)
             let align          = .isHorizontal() ? c.layoutSpec.alignY : c.layoutSpec.alignX
-            if (not .isCenteringMain() and align == LayoutAlign.Stretch) or polCross == SizePolicy.Expand do
+            if (not .isCenteringMain() and align == LayoutAlign.Stretch) or polCross == SizePolicy.Expand
+            {
                 crossSize = crossAvailable
-            else do
+            }
+            else
+            {
                 crossSize = .preferredCross(hint)
+            }
+
             crossSize = Math.clamp(crossSize, .minimumCross(hint), .maximumCross(hint))
 
             var mainPos: f32
@@ -368,10 +405,14 @@ private impl StackLayoutCtrl
             // edges, which is what made the about box look set on nothing.
             let crossBase = .isHorizontal() ? client.y : client.x
             var crossPos  = crossBase + .crossStartMargin(margin)
-            if .mode == .Center or align == LayoutAlign.Center do
+            if .mode == .Center or align == LayoutAlign.Center
+            {
                 crossPos = crossBase + (availableCross - crossSize) * 0.5
-            elif align == LayoutAlign.End do
+            }
+            else if align == LayoutAlign.End
+            {
                 crossPos = crossBase + availableCross - .crossEndMargin(margin) - crossSize
+            }
 
             var rect: Math.Rectangle
             .setRectMain(&rect, Math.round(mainPos), Math.round(mainSize))
@@ -385,10 +426,15 @@ private impl StackLayoutCtrl
                 if .isReverse()
                 {
                     var pos = c.position
-                    if .isHorizontal() do
+                    if .isHorizontal()
+                    {
                         pos.x -= mainDelta
-                    else do
+                    }
+                    else
+                    {
                         pos.y -= mainDelta
+                    }
+
                     c.setPosition(pos, false)
                     cursor -= mainDelta
                 }
@@ -398,10 +444,14 @@ private impl StackLayoutCtrl
                 }
             }
 
-            if .isHorizontal() do
+            if .isHorizontal()
+            {
                 contentEnd = Math.max(contentEnd, c.position.right() + margin.z + .padding.z)
-            else do
+            }
+            else
+            {
                 contentEnd = Math.max(contentEnd, c.position.bottom() + margin.w + .padding.w)
+            }
         }
 
         if .fitToContent
@@ -425,7 +475,7 @@ impl StackLayoutCtrl
     // Creates an empty stack using `mode`.
     func create(parent: *Wnd, mode: StackLayoutMode = .Top, position: Math.Rectangle = {})->*StackLayoutCtrl
     {
-        let res = Wnd.create'StackLayoutCtrl(parent, position)
+        let res = Wnd.create!{StackLayoutCtrl}(parent, position)
         res.mode = mode
         return res
     }

@@ -14,13 +14,16 @@ struct MountActivity
 impl MountActivity
 {
     // The native open holds mutex until it has either failed or counted its handle.
-    mtd beginStop(force: bool, drainMilliseconds = 0'u32) fail
+    mtd beginStop(force: bool, drainMilliseconds = 0_u32) fail
     {
         .mutex.lock()
         defer .mutex.unlock()
         .stopping = true
-        if force do
+        if force
+        {
             return
+        }
+
         let deadline = Time.monotonicMilliseconds() + drainMilliseconds
         while .handles
         {
@@ -41,8 +44,10 @@ impl MountActivity
         defer .mutex.unlock()
         Swag.assert(.handles != 0)
         .handles -= 1
-        if .handles == 0 do
+        if .handles == 0
+        {
             .released.wakeAll()
+        }
     }
 
     mtd cancelStop()

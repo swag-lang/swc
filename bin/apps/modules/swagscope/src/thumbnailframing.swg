@@ -29,7 +29,7 @@ impl ThumbnailFraming
 {
     private const Tag     = "scope.thumbnail.crop"
     private const Aspects = [1.0 / ExplorerGrid.TileAspect, 1.0 / ExplorerFilmTileAspect,
-                             1.0 / ExplorerGrid.PosterAspect, 1.0'f32, ViewerHome.HeroWidth / ViewerHome.HeroHeight]
+                             1.0 / ExplorerGrid.PosterAspect, 1.0_f32, ViewerHome.HeroWidth / ViewerHome.HeroHeight]
 
     func analyze(image: const *Image)->ThumbnailFraming
     {
@@ -53,15 +53,20 @@ impl ThumbnailFraming
 
     func labelImage(image: *Image)
     {
-        if not image.isValid() or (image.width == 1 and image.height == 1) or Swag.isCancelled() do
+        if not image.isValid() or (image.width == 1 and image.height == 1) or Swag.isCancelled()
+        {
             return
+        }
+
         let framing = analyze(image)
         var record: ImageMetadata
         var text:   String
         for mode in 2
         {
-            for shape in Aspects.count do
+            for shape in Aspects.count
+            {
                 text += Format.toString("%{X02}", framing.offsets[mode, shape])
+            }
         }
 
         record.tag   = Tag
@@ -77,15 +82,20 @@ impl ThumbnailFraming
 
     func fromImage(image: const *Image)->ThumbnailFraming
     {
-        func digit(value: u8)->u8 => value <= '9' ? value - '0'u8 : value - 'A'u8 + 10
+        func digit(value: u8)->u8 => value <= '9' ? value - '0'_u8 : value - 'A'_u8 + 10
 
         for &record in image.metadata where record.isTag(cast(const [..] u8, Tag))
         {
             let text = cast(string, record.toSlice())
-            if text.count != 4 * Aspects.count do
+            if text.count != 4 * Aspects.count
+            {
                 continue
-            for byte in text where not Latin1.isDigit(byte) and (byte < 'A' or byte > 'F') do
+            }
+
+            for byte in text where not Latin1.isDigit(byte) and (byte < 'A' or byte > 'F')
+            {
                 return {}
+            }
 
             var result: #returntype
             for mode in 2
@@ -106,8 +116,11 @@ impl ThumbnailFraming
 
     mtd const crop(width, height, aspect: f32, shape: ThumbnailShape, mode: Image.SmartCropMode)->Math.Rectangle
     {
-        if mode == .None do
+        if mode == .None
+        {
             return {0, 0, width, height}
+        }
+
         let cropWidth  = Math.min(width, height * aspect)
         let cropHeight = Math.min(height, width / aspect)
         let index      = cast(u64, mode)

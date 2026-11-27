@@ -32,8 +32,8 @@ func scalePlaneWidth(plane: *ScalePlane, x, y: s32)->s32 => plane.width + x * 0 
 #[Swag.NoInline, Swag.Safety(.BoundCheck, false)]
 func scaleSelectedWidths(decoder: *ScaleDecoder, kind: s32)->s32
 {
-    var sum = 0's32
-    for channel in 3's32
+    var sum = 0_s32
+    for channel in 3_s32
     {
         let size = channel == 0 ? 16 : 8
         for y in size
@@ -42,10 +42,14 @@ func scaleSelectedWidths(decoder: *ScaleDecoder, kind: s32)->s32
             {
                 let reference = decoder.kind == 2 ? &decoder.future.planes[channel] : &decoder.past.planes[channel]
                 var value: s32
-                if kind != 5 do
+                if kind != 5
+                {
                     value = scalePlaneWidth(reference, cast(s32, x), cast(s32, y))
-                if kind == 10 or kind == 5 do
+                }
+                if kind == 10 or kind == 5
+                {
                     value += scalePlaneWidth(&decoder.future.planes[channel], cast(s32, x), cast(s32, y))
+                }
                 sum += value
             }
         }

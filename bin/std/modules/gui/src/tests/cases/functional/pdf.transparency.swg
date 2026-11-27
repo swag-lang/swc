@@ -10,7 +10,7 @@ private func transparencyDocument(resources, content: string, extra: const [..] 
 // White is full luminosity and therefore full coverage; everywhere else the group paints
 // nothing and the black backdrop leaves the coverage at zero. Object 5 is the graphics state
 // that selects it and object 6 is the group.
-private func luminosityMaskObjects()->Array'u8
+private func luminosityMaskObjects()->Array!{u8}
 {
     var result: #returntype
     addObject(&result, 5, "<< /Type /ExtGState /SMask << /S /Luminosity /G 6 0 R >> >>")
@@ -30,8 +30,10 @@ private func markedPixels(frame: const *Image)->u64
         for x in frame.width
         {
             let color = frame.pixelColor(x, y)
-            if color.r > 200 and color.g < 60 and color.b < 60 do
+            if color.r > 200 and color.g < 60 and color.b < 60
+            {
                 result += 1
+            }
         }
     }
 
@@ -60,7 +62,7 @@ private func markedPixels(frame: const *Image)->u64
 // Constant alpha modulates the fill and the stroke independently.
 #test
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /ExtGState /ca 0.25 /CA 0.5 >>")
 
     let document = transparencyDocument("/ExtGState << /GS0 5 0 R >>", "/GS0 gs 1 0 0 rg 0 0 1 RG 0 0 50 50 re B", objects.toSlice())
@@ -73,7 +75,7 @@ private func markedPixels(frame: const *Image)->u64
 // module cannot express.
 #test
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /ExtGState /BM /Multiply >>")
     addObject(&objects, 6, "<< /Type /ExtGState /BM [/Fictional /Screen /Darken] >>")
     addObject(&objects, 7, "<< /Type /ExtGState /BM /Fictional >>")
@@ -154,7 +156,7 @@ private func markedPixels(frame: const *Image)->u64
 // A group's own transparency multiplies the one in force around it.
 #test
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /ExtGState /ca 0.5 >>")
     addObject(&objects, 6, "<< /Type /ExtGState /ca 0.5 >>")
     addStreamObject(&objects, 7, "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency >>", cast(const [..] u8, "/GS1 gs 0 0 100 100 re f"))
@@ -222,4 +224,83 @@ private func markedPixels(frame: const *Image)->u64
     Swag.require(item.hasMask)
     Swag.require(item.maskImage.pixelColor(20, 180).a == 255)
     Swag.require(item.maskImage.pixelColor(180, 20).a == 0)
+}
+
+// Image soft masks sample one coverage field in page space, including mirrored and rotated draws.
+#test
+{
+    var coverage = Pixel.Image.create(5, 2, .RGBA8)
+    for index in coverage.pixels.count / 4
+    {
+        let bytes = coverage.pixels.storage() + index * 4
+        bytes[0], bytes[1], bytes[2] = 255
+        bytes[3] = cast(u8, index * 27)
+    }
+
+    var source = Pixel.Image.create(7, 3, .RGBA8)
+    for index in source.pixels.count / 4
+    {
+        let bytes = source.pixels.storage() + index * 4
+        bytes[0] = 51
+        bytes[1] = 99
+        bytes[2] = 201
+        bytes[3] = cast(u8, 127 + index * 5)
+    }
+
+    const Region = Math.Rectangle{2, 3, 8, 6}
+    const Transforms: [3] Math.Transform2 = [{9, 0, 0, 6, 1, 3},
+                                             {-9, 0, 0, -6, 11, 9},
+                                             {7, 2, -3, 6, 3, 2}]
+    for transform in Transforms
+    {
+        var item: Pdf.Item
+        var copied = source
+        item.image     = #move ImageReference.create(#move copied)
+        item.transform = transform
+        maskImagePixels(&item, &coverage, Region)
+        for y in source.height
+        {
+            let v = (cast(f32, y) + 0.5) / cast(f32, source.height)
+            for x in source.width
+            {
+                let u     = (cast(f32, x) + 0.5) / cast(f32, source.width)
+                let point = transform.transformPoint({u, v})
+                let maskX = cast(s32, ((point.x - Region.x) / Region.width * coverage.width))
+                let maskY = cast(s32, ((point.y - Region.y) / Region.height * coverage.height))
+                let color = source.pixelColor(x, y)
+                let alpha = cast(u8, (cast(u32, color.a) * coverage.pixelColor(maskX, maskY).a) / 255)
+                Swag.require(item.image.value()!.pixelColor(x, y) == color.withAlpha(alpha))
+            }
+        }
+    }
+}
+
+// Translated placements share one mask without sharing different coverage modes.
+#test
+{
+    var objects: Array!{u8}
+    addObject(&objects, 5, "<< /Type /ExtGState /SMask << /S /Alpha /G 7 0 R >> >>")
+    addObject(&objects, 6, "<< /Type /ExtGState /SMask << /S /Luminosity /G 7 0 R /BC [0 0 0] >> >>")
+    addStreamObject(&objects, 7, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Group << /S /Transparency /CS /DeviceRGB >>", cast(const [..] u8, "0 0 5 10 re f"))
+    addStreamObject(&objects, 8, "/Type /XObject /Subtype /Image /Width 2 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB", [255_u8, 0, 0, 0, 255, 0])
+
+    const Resources = "/ExtGState << /A 5 0 R /L 6 0 R >> /XObject << /Im 8 0 R >>"
+    const Marks     = """
+        q /A gs 10 0 0 10 0 0 cm /Im Do Q
+        q 1 0 0 1 12 4 cm /A gs 10 0 0 10 0 0 cm /Im Do Q
+        q /L gs 10 0 0 10 0 0 cm /Im Do Q
+        """
+    let document = transparencyDocument(Resources, Marks, objects.toSlice())
+    let page     = &document.pages[0]
+    Swag.require(page.items.count == 3)
+    for placed in 2
+    {
+        let image = unwrap page.items[placed].imageValue()
+        Swag.require(image.pixelColor(0, 0).a == 255)
+        Swag.require(image.pixelColor(1, 0).a == 0)
+    }
+
+    let luminosity = unwrap page.items[2].imageValue()
+    Swag.require(luminosity.pixelColor(0, 0).a == 0)
+    Swag.require(luminosity.pixelColor(1, 0).a == 0)
 }

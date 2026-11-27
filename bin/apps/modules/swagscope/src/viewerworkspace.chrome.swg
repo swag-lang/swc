@@ -6,7 +6,7 @@ struct SceneTabs
 {
     using wnd:      Wnd
     late workspace: *ViewerWorkspace
-    items:          Array'Math.Rectangle
+    items:          Array!{Math.Rectangle}
     hovered:        u64 = Swag.U64.Max
 }
 
@@ -21,7 +21,7 @@ impl SceneTabs
 
     func create(workspace: *ViewerWorkspace)->*SceneTabs
     {
-        let result = Wnd.create'SceneTabs(unwrap workspace.surface?.wnd, "scope.scene.tabs")
+        let result = Wnd.create!{SceneTabs}(unwrap workspace.surface?.wnd, "scope.scene.tabs")
         result.workspace       = workspace
         result.backgroundStyle = .Transparent
         result.focusPolicy     = .Click
@@ -50,9 +50,9 @@ impl SceneTabs
         var width: f32
         for scene in .workspace.scenes
         {
-            let name = .workspace.sceneName(unwrap scene)
+            let name      = .workspace.sceneName(unwrap scene)
             let textWidth = Math.ceil(Painter.measureStringSnapped(name, font, deviceScale: scale))
-            let span = Math.min(textWidth, labelLimit) + ItemChromeWidth
+            let span      = Math.min(textWidth, labelLimit) + ItemChromeWidth
             .items.add({y: VerticalInset, width: span, height: room.height - 2 * VerticalInset})
             width += span + Gap
         }
@@ -63,8 +63,11 @@ impl SceneTabs
         {
             let selected = .workspace.active
             var before: f32
-            for i in selected do
+            for i in selected
+            {
                 before += .items[i].width + Gap
+            }
+
             left = Math.clamp(room.width * 0.5 - before - .items[selected].width * 0.5, room.width - width, 0)
         }
 
@@ -83,28 +86,34 @@ impl SceneTabs
     private mtd showTabMenu(index: u64, position: Math.Point)
     {
         let owner = .workspace.activeDocument()
-        let menu = MenuCtrl.createPopup(me, owner: owner)
+        let menu  = MenuCtrl.createPopup(me, owner: owner)
         let scene = unwrap .workspace.scenes[index]
         var path, location: String
         if scene.views.count == 1 and not scene.views[0].path.isEmpty()
         {
             let view = &scene.views[0]
-            path = view.path
+            path     = view.path
             location = path
-            let document = view.document
-            let explorer = document?.explorer
+            let document  = view.document
+            let explorer  = document?.explorer
             let folderTab = document ? document.isExploring() and not document.explorerTransition :
-                                       not view.explorerState.path.isEmpty()
+                            not view.explorerState.path.isEmpty()
             if folderTab
             {
-                let member = explorer ? explorer.requestedFolder.toString() : view.explorerState.folder.toString()
+                let member  = explorer ? explorer.requestedFolder.toString() : view.explorerState.folder.toString()
                 let archive = (explorer?.listing.isArchive orelse view.explorerArchive) or member.count != 0
-                if member.count do
+                if member.count
+                {
                     location = Format.toString("%/%", path, member)
+                }
+
                 owner.addLocationActions(menu, directory: not archive, archive: archive)
             }
-            else do
+            else
+            {
                 owner.addFileActions(menu)
+            }
+
             menu.addSeparator()
         }
 
@@ -114,14 +123,24 @@ impl SceneTabs
         let chosen = menu.doModal(position, autoDestroy: true, dispatchCommand: false) orelse ""
         switch chosen
         {
-        case TabCommands.Close:       .workspace.closeScene(index)
-        case TabCommands.CloseOthers: .workspace.closeTabs(keep: index)
-        case "":                     return
+        case TabCommands.Close:
+            .workspace.closeScene(index)
+
+        case TabCommands.CloseOthers:
+            .workspace.closeTabs(keep: index)
+
+        case "":
+            return
+
         default:
-            if isPathMenuAction(chosen) do
+            if isPathMenuAction(chosen)
+            {
                 owner.runFileAction(chosen, chosen == ViewerCommands.CopyLocation ? location : path)
-            else do
+            }
+            else
+            {
                 discard owner.runCommand(chosen)
+            }
         }
     }
 
@@ -129,8 +148,10 @@ impl SceneTabs
 
     mtd hit(position: Math.Point)->u64
     {
-        for item, index in .items where item.contains(position) do
+        for item, index in .items where item.contains(position)
+        {
             return index
+        }
 
         return Swag.U64.Max
     }
@@ -149,8 +170,10 @@ impl IWnd for SceneTabs
         {
             let active  = index == .workspace.active
             let hovered = index == .hovered
-            if active or hovered do
+            if active or hovered
+            {
                 painter.fillRoundRect(item, radius, radius, active ? colors.tabItem_ButtonSelected : colors.tabItem_ButtonHot)
+            }
 
             let name  = .workspace.sceneName(unwrap .workspace.scenes[index])
             let text  = Painter.elideString(name, font, item.width - ItemChromeWidth, .deviceScale())
@@ -184,15 +207,21 @@ impl IWnd for SceneTabs
             .invalidate()
 
         case .Pressed where index < .items.count:
-            let item = .items[index]
+            let item  = .items[index]
             var close = .closeRect(item)
             close.inflate(.themeMetrics().wnd_CaptionButtonMargin)
-            if evt.button == .Middle or evt.button == .Left and .showsClose(index) and close.contains(point) do
+            if evt.button == .Middle or evt.button == .Left and .showsClose(index) and close.contains(point)
+            {
                 .workspace.closeScene(index)
-            elif evt.button == .Left do
+            }
+            else if evt.button == .Left
+            {
                 .workspace.selectScene(index)
-            elif evt.button == .Right do
+            }
+            else if evt.button == .Right
+            {
                 .showTabMenu(index, evt.surfacePos)
+            }
 
         default:
             evt.accepted = false
@@ -205,9 +234,9 @@ const CaptionActionCount = 12
 struct CaptionActionLayout
 {
     late action: *CaptionButton
-    layoutX:    f32
-    drawnX:     f32
-    visible:    bool
+    layoutX:     f32
+    drawnX:      f32
+    visible:     bool
 }
 
 impl ViewerWorkspace
@@ -225,8 +254,11 @@ impl ViewerWorkspace
     mtd captureCaptionLayout()->[CaptionActionCount] CaptionActionLayout
     {
         var result: #returntype
-        for action, index in .captionActions() do
+        for action, index in .captionActions()
+        {
             result[index] = {action, action.position.x, action.presentationRect().x, action.isLocallyVisible()}
+        }
+
         return result
     }
 
@@ -247,24 +279,26 @@ impl ViewerWorkspace
         for slot, index in before
         {
             let action = slot.action
-            if not action.isLocallyVisible() or (slot.visible and action.position.x == slot.layoutX) do
+            if not action.isLocallyVisible() or (slot.visible and action.position.x == slot.layoutX)
+            {
                 continue
+            }
 
             var travel = slot.drawnX - action.position.x
             if not slot.visible
             {
                 discard animator.fadeIn(action, fade)
-                if action.presentationOpacity == 0 do
+                if action.presentationOpacity == 0
+                {
                     travel = action.position.horzCenter() < center ? -metrics.motion_AnchorTravel : metrics.motion_AnchorTravel
+                }
             }
 
             // A running offset is relative to its old slot. Replace it with the offset from the new slot.
             animator.cancel(.captionMoves[index])
             let offset = Math.Point{travel, 0}
             action.setPresentationOffset(offset)
-            .captionMoves[index] = animator.animatePoint(action, channel, offset, {},
-                                                         func(wnd, value) { wnd.setPresentationOffset(value) },
-                                                         {duration: duration, easing: .EaseOut})
+            .captionMoves[index] = animator.animatePoint(action, channel, offset, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, {duration: duration, easing: .EaseOut})
         }
     }
 
@@ -272,12 +306,18 @@ impl ViewerWorkspace
     {
         let holdInput: HookEvent = func|workspace = me|(control, evt)
         {
-            if not workspace.sceneCaptionPending do
+            if not workspace.sceneCaptionPending
+            {
                 return false
+            }
+
             if evt is MouseEvent as mouse
             {
-                if mouse.kind == .Pressed do
+                if mouse.kind == .Pressed
+                {
                     return true
+                }
+
                 if mouse.kind == .Released and control.mouseCapture() == control
                 {
                     // Let the button release its capture without activating the old action.
@@ -286,25 +326,34 @@ impl ViewerWorkspace
                     control.sendEvent(&leave)
                 }
             }
+
             return false
         }
 
-        for button in .captionActions() where button != .newTabButton do
+        for button in .captionActions() where button != .newTabButton
+        {
             button.hookOnEvent = holdInput
+        }
     }
 
     mtd finishSceneCaption()
     {
-        if not .sceneCaptionPending do
+        if not .sceneCaptionPending
+        {
             return
+        }
+
         if let scene = .scene()
         {
             for view in scene.views
             {
                 let document = view.document
-                if not document or not document.pendingFile.isEmpty() or
-                   not document.pendingEmpty.isEmpty() do
+                if not document or
+                   not document.pendingFile.isEmpty() or
+                   not document.pendingEmpty.isEmpty()
+                {
                     return
+                }
             }
         }
 
@@ -315,14 +364,20 @@ impl ViewerWorkspace
         .updateMedia()
     }
 
-    mtd dividerRect(columns = true, track = 1'u64)->Math.Rectangle
+    mtd dividerRect(columns = true, track = 1_u64)->Math.Rectangle
     {
         let scene = .scene()
-        if not scene or not .isTiled() or scene.compared do
+        if not scene or not .isTiled() or scene.compared
+        {
             return {}
-        let grid  = scene.dimensions()
-        if track >= cast(u64, columns ? grid.x : grid.y) do
-        return {}
+        }
+
+        let grid = scene.dimensions()
+        if track >= cast(u64, columns ? grid.x : grid.y)
+        {
+            return {}
+        }
+
         let body   = .gridBody()
         let band   = .themeMetrics().splitView_BarSize
         let offset = (.gridGap() - band) * 0.5
@@ -347,8 +402,8 @@ impl ViewerWorkspace
 
     mtd cellRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
     {
-        let top   = .gridBody().y
-        let body  = .clientRect()
+        let top  = .gridBody().y
+        let body = .clientRect()
         if .comparisonVisible()
         {
             let half       = body.width * 0.5
@@ -357,27 +412,36 @@ impl ViewerWorkspace
             return {body.x + cast(f32, index) * half, comparison.y, half, height}
         }
 
-        var rect  = .viewRect(scene, index)
+        var rect = .viewRect(scene, index)
         rect.intersect({0, top, body.width, Math.max(0, body.bottom() - top)})
         return rect
     }
 
     mtd dropRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
     {
-        var rect = .cellRect(scene, index)
+        var rect    = .cellRect(scene, index)
         let compare = .comparison
-        if not compare or not compare.isLocallyVisible() or not compare.isPicture() do
+        if not compare or not compare.isLocallyVisible() or not compare.isPicture()
+        {
             return rect
+        }
+
         if compare.mode == .Flip
         {
-            if (index != 0) != compare.shownRight do
+            if (index != 0) != compare.shownRight
+            {
                 return {}
+            }
+
             rect.x     = 0
             rect.width = .clientRect().width
             return rect
         }
-        if compare.mode != .Curtain do
+
+        if compare.mode != .Curtain
+        {
             return rect
+        }
 
         let split = Math.round(.clientRect().width * compare.separator)
         if index == 0
@@ -396,14 +460,20 @@ impl ViewerWorkspace
     mtd paintDropHighlight(painter: *Painter, scene: const *ViewerScene)
     {
         let index = .dropView
-        if index == Swag.U64.Max do
+        if index == Swag.U64.Max
+        {
             return
+        }
+
         let metrics = .themeMetrics()
         let view    = scene.viewInCell(index)
         var rect    = view == Swag.U64.Max ? .gridCellRect(scene, index) : .dropRect(scene, view)
         rect.inflate(-metrics.wnd_CaptionButtonMargin)
-        if rect.width <= 0 or rect.height <= 0 do
+        if rect.width <= 0 or rect.height <= 0
+        {
             return
+        }
+
         var pen = Pen.createDash(.Dash, .themeColors().arc, metrics.focusRing_Size)
         pen.borderPos = .Inside
         painter.drawRoundRect(rect, metrics.corner_Control, metrics.corner_Control, pen)
@@ -411,8 +481,11 @@ impl ViewerWorkspace
 
     mtd paneFocusRect(content: Math.Rectangle)->Math.Rectangle
     {
-        if content.isEmpty() do
+        if content.isEmpty()
+        {
             return {}
+        }
+
         let inset  = Math.min(.themeMetrics().floating_Inset * 0.5, content.width * 0.25)
         let height = .themeMetrics().splitView_HotRule
         let y      = Math.round(content.y - (.paneFocusGutter() + height) * 0.5)
@@ -428,12 +501,13 @@ impl ViewerWorkspace
         let rows = cast(u64, grid.y)
         let body = .gridBody()
         let top  = body.y
-        let ink = .themeColors().line
+        let ink  = .themeColors().line
         for col in 1 until cols
         {
             let x = .gridCellRect(scene, col - 1).right()
             painter.fillRect(x, top, 1, body.bottom() - top, ink)
         }
+
         for row in 1 until rows
         {
             let y = .gridCellRect(scene, (row - 1) * cols).bottom()
@@ -444,19 +518,22 @@ impl ViewerWorkspace
     mtd paintSceneChrome(painter: *Painter)
     {
         let scene = .scene()
-        if not scene or .activeDocument().lens.isOpen() do
+        if not scene or .activeDocument().lens.isOpen()
+        {
             return
+        }
 
-        let colors  = .themeColors()
+        let colors = .themeColors()
         if .usesCellCaptions()
         {
-            let metrics  = .themeMetrics()
-            let inset    = metrics.floating_Inset
+            let metrics = .themeMetrics()
+            let inset   = metrics.floating_Inset
             if .isTiled() and not .focusOnGrid
             {
                 let rect = .vacancy ? .vacancy.position : .viewRect(scene, scene.active)
                 painter.fillRect(.paneFocusRect(rect), colors.arc)
             }
+
             if scene.maximized
             {
                 let area   = .clientRect()
@@ -506,7 +583,7 @@ impl SceneDivider
 {
     func create(workspace: *ViewerWorkspace, track: u64, columns: bool)->*SceneDivider
     {
-        let result = Wnd.create'SceneDivider(workspace, "scope.scene.divider")
+        let result = Wnd.create!{SceneDivider}(workspace, "scope.scene.divider")
         result.workspace       = workspace
         result.track           = track
         result.columns         = columns
@@ -533,11 +610,17 @@ impl SceneDivider
 
     mtd stopDrag()
     {
-        if not .dragging do
+        if not .dragging
+        {
             return
+        }
+
         .dragging = false
-        if .mouseCapture() == me do
+        if .mouseCapture() == me
+        {
             .releaseMouse()
+        }
+
         .invalidate()
     }
 }
@@ -546,8 +629,11 @@ impl IWnd for SceneDivider
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if not .hot and not .dragging do
+        if not .hot and not .dragging
+        {
             return
+        }
+
         let area = .clientRect()
         let size = .themeMetrics().splitView_HotRule
         let line = .columns ? Math.Rectangle{Math.floor(area.horzCenter() - size * 0.5), 0, size, area.height} :
@@ -570,7 +656,7 @@ impl IWnd for SceneDivider
             .invalidate()
 
         case .Pressed where hit and evt.button == .Left:
-            .dragging = true
+            .dragging   = true
             .grabOffset = .columns ? point.x - .position.horzCenter() : point.y - .position.vertCenter()
             .captureMouse()
             .invalidate()
@@ -582,13 +668,20 @@ impl IWnd for SceneDivider
         case .DoubleClick where hit and evt.button == .Left:
             let grid  = scene!.dimensions()
             let count = cast(u64, .columns ? grid.x : grid.y)
-            if grid.x == 1 or grid.y == 1 do
+            if grid.x == 1 or grid.y == 1
+            {
                 scene.split = 0.5
-            elif .columns do
+            }
+            else if .columns
+            {
                 scene.columnCuts.clear(count)
-            else do
+            }
+            else
+            {
                 scene.rowCuts.clear(count)
-                .workspace.layoutScene()
+            }
+
+            .workspace.layoutScene()
             catch .workspace.primary.saveState()
 
         case .Move where .dragging:
@@ -606,12 +699,19 @@ impl IWnd for SceneDivider
             let gap   = .workspace.gridGap()
             let at    = (.columns ? point.x - area.x : point.y - area.y) - .grabOffset
             let ratio = (at - (cast(f32, .track) - 0.5) * gap) / Math.max(span - cast(f32, count - 1) * gap, 1)
-            if grid.x == 1 or grid.y == 1 do
-            scene.split = Math.clamp(ratio, 0.18, 0.82)
-            elif .columns do
+            if grid.x == 1 or grid.y == 1
+            {
+                scene.split = Math.clamp(ratio, 0.18, 0.82)
+            }
+            else if .columns
+            {
                 scene.columnCuts.resize(.track, count, ratio)
-            else do
+            }
+            else
+            {
                 scene.rowCuts.resize(.track, count, ratio)
+            }
+
             .workspace.layoutScene()
 
         default:
@@ -628,12 +728,17 @@ impl ViewerWorkspace
         let moved    = not .pointerKnown or position != .pointerPosition
         let document = .documentAtPointer(position)
         .updateHoveredDocument(document)
-        if evt.kind == .Leave do
+        if evt.kind == .Leave
+        {
             return
+        }
+
         .pointerKnown    = true
         .pointerPosition = position
-        if moved and document and document.usesTimedViewerBar() do
+        if moved and document and document.usesTimedViewerBar()
+        {
             document.notePointer(position, moved: true)
+        }
     }
 
     mtd documentAtPointer(position: Math.Point)->*ViewerWindow?
@@ -644,21 +749,29 @@ impl ViewerWorkspace
             let point = .surfaceToLocal(position)
             for view, index in scene.views where view.document and view.document.isLocallyVisible()
             {
-                if .cellRect(scene, index).contains(point) do
+                if .cellRect(scene, index).contains(point)
+                {
                     return view.document
+                }
             }
         }
+
         return null
     }
 
     mtd updateHoveredDocument(document: *ViewerWindow?)
     {
-        if document == .hoveredDocument do
+        if document == .hoveredDocument
+        {
             return
+        }
+
         let previous = .hoveredDocument
         .hoveredDocument = document
-        if previous and .usesCellCaptions() and previous.usesTimedViewerBar() do
+        if previous and .usesCellCaptions() and previous.usesTimedViewerBar()
+        {
             previous.concealViewerBar()
+        }
     }
 
     mtd isHoveredDocument(document: *ViewerWindow?)->bool => .hoveredDocument == document
@@ -666,9 +779,12 @@ impl ViewerWorkspace
     private mtd maximizedWorkBottom()->f32
     {
         let document = .activeDocument()
-        var bottom = document.documentArea().bottom()
-        if document.currentCommands do
+        var bottom   = document.documentArea().bottom()
+        if document.currentCommands
+        {
             bottom = Math.min(bottom, document.viewerBar.position.y)
+        }
+
         return .surfaceToLocal(document.localToSurface(Math.Point{0, bottom})).y
     }
 
@@ -685,14 +801,20 @@ impl ViewerWorkspace
     {
         if not show
         {
-            if .maxHint do
+            if .maxHint
+            {
                 discard .app().animator.leave(.maxHint)
+            }
+
             .stopTimer(&.maxHintTimer)
             return
         }
 
-        if not .maxHint do
+        if not .maxHint
+        {
             .maxHint = HintLine.create(me, "scope.scene.maximized.hint")
+        }
+
         let hint = .maxHint
         let text = appStrings()
         hint.clearHints()
@@ -723,9 +845,12 @@ impl ViewerWorkspace
     {
         if (.isTiled() or scene.views.isEmpty()) and not .comparisonVisible()
         {
-            for cell in scene.cellCount() where scene.viewInCell(cell) == Swag.U64.Max and .gridCellRect(scene, cell).contains(point) do
+            for cell in scene.cellCount() where scene.viewInCell(cell) == Swag.U64.Max and .gridCellRect(scene, cell).contains(point)
+            {
                 return cell
+            }
         }
+
         return Swag.U64.Max
     }
 
@@ -762,8 +887,11 @@ impl ViewerWorkspace
                 }
             }
 
-            if index == Swag.U64.Max do
+            if index == Swag.U64.Max
+            {
                 index = .vacantCellAt(scene, point)
+            }
+
             if index == Swag.U64.Max
             {
                 .clearDropHighlight()
@@ -778,10 +906,12 @@ impl ViewerWorkspace
             {
                 let paths = evt.data.files.toSlice()
                 let start = scene ? .vacantCellAt(scene, .surfaceToLocal(evt.surfacePos)) : Swag.U64.Max
-                if onTabs or not .fillGrid(paths, start) do
+                if onTabs or not .fillGrid(paths, start)
+                {
                     .openScene(paths, .Auto)
+                }
             }
-            elif index != Swag.U64.Max
+            else if index != Swag.U64.Max
             {
                 let view = scene!.viewInCell(index)
                 if view == Swag.U64.Max
@@ -800,13 +930,15 @@ impl ViewerWorkspace
                 .openDocument(evt.data.files[0])
             }
         }
-        elif index == Swag.U64.Max
+        else if index == Swag.U64.Max
         {
             .clearDropHighlight()
-            if not scene do
+            if not scene
+            {
                 .primary.dropHighlight.showTarget(false)
+            }
         }
-        elif .dropView != index
+        else if .dropView != index
         {
             .dropView = index
             .invalidate()
@@ -819,9 +951,14 @@ impl ViewerWorkspace
     private mtd fillGrid(paths: const [..] String, start: u64)->bool
     {
         let scene = .scene()
-        if not scene or not scene.manual or not .isTiled() or scene.compared or
-           paths.count > scene.cellCount() - scene.views.count do
+        if not scene or
+           not scene.manual or
+           not .isTiled() or
+           scene.compared or
+           paths.count > scene.cellCount() - scene.views.count
+        {
             return false
+        }
 
         .dismissVacancy()
         let first = start == Swag.U64.Max ? 0 : start
@@ -829,16 +966,24 @@ impl ViewerWorkspace
         for offset in scene.cellCount()
         {
             let cell = (first + offset) % scene.cellCount()
-            if scene.viewInCell(cell) != Swag.U64.Max do
+            if scene.viewInCell(cell) != Swag.U64.Max
+            {
                 continue
+            }
+
             scene.views.add({path: paths[next], cellPlusOne: cell + 1})
-            if next == 0 do
+            if next == 0
+            {
                 scene.active = scene.views.count - 1
+            }
+
             let view = scene.views.backPtr()
             ViewerWorkspace.attachDocument(me, view, remember: true)
             next += 1
-            if next == paths.count do
+            if next == paths.count
+            {
                 break
+            }
         }
 
         .showScene()
@@ -864,12 +1009,18 @@ impl ViewerWorkspace
             return true
         }
 
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return false
-        let cycle = evt.key == .Tab and (evt.modifiers == .Control or evt.modifiers == .CtrlShift)
+        }
+
+        let cycle    = evt.key == .Tab and (evt.modifiers == .Control or evt.modifiers == .CtrlShift)
         let document = .activeDocument()
-        if document.lens.isOpen() do
+        if document.lens.isOpen()
+        {
             return cycle or (evt.modifiers != .None and document.keyShortcut(evt.modifiers, evt.key) == ViewerCommands.Close)
+        }
+
         if cycle and .scenes.count > 1
         {
             .cycleSwitcher(evt.modifiers.has(.Shift))
@@ -878,8 +1029,11 @@ impl ViewerWorkspace
 
         if .switcher
         {
-            if evt.key == .Escape do
+            if evt.key == .Escape
+            {
                 .closeSwitcher(choose: false)
+            }
+
             return true
         }
 
@@ -890,30 +1044,50 @@ impl ViewerWorkspace
         }
 
         let shortcut = document.keyShortcut(evt.modifiers, evt.key) orelse ""
-        if shortcut == TabCommands.New do
+        if shortcut == TabCommands.New
+        {
             return document.runCommand(shortcut)
+        }
+
         let swap = Slice.findLinear(SceneCommands.SwapDirections, shortcut) != Swag.U64.Max
         if source is EditBox or .focusedWindow() is EditBox
         {
-            if document.searchComparison and document.searchBox.hasFocus() and .routeComparisonKey(evt, source) do
+            if document.searchComparison and
+               document.searchBox.hasFocus() and
+               .routeComparisonKey(evt, source)
+            {
                 return true
+            }
+
             return shortcut == SceneCommands.Maximize or swap
         }
+
         if .vacancy and evt.modifiers == .None and evt.key == .Return
         {
             .vacancy.chooseFile()
             return true
         }
 
-        if swap do
+        if swap
+        {
             return document.runCommand(shortcut)
-        if evt.modifiers == .Alt and .moveView(evt.key, swap: false) do
+        }
+
+        if evt.modifiers == .Alt and .moveView(evt.key, swap: false)
+        {
             return true
-        if .routeComparisonKey(evt, source) or .routeSceneMediaKey(evt, source) do
+        }
+
+        if .routeComparisonKey(evt, source) or .routeSceneMediaKey(evt, source)
+        {
             return true
+        }
+
         if (document.informationOpen() or (.scene()?.maximized orelse false)) and
-           shortcut == ViewerCommands.Dismiss do
+           shortcut == ViewerCommands.Dismiss
+        {
             return document.runCommand(ViewerCommands.Dismiss)
+        }
 
         return false
     }

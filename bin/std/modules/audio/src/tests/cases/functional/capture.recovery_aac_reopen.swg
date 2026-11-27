@@ -6,7 +6,7 @@ using Swag, Core
 // Models the recorder-side sequence used after either WASAPI source stops delivering packets.
 func checkNativeReopen(channels: u16, sourceRate: u32, reopenedRate: u32)
 {
-    const TickRate = 10_000_000'u64
+    const TickRate = 10_000_000_u64
     var queue        = expect CaptureQueue.create(48_000, channels, 0, TickRate, blockFrames: 1_024, slots: 8, tolerance: 1)
     var recovery     = expect CaptureRecovery.create(&queue, 200_000)
     var oldSource    = expect CaptureResampledFeeder.create(&queue, sourceRate)
@@ -21,24 +21,28 @@ func checkNativeReopen(channels: u16, sourceRate: u32, reopenedRate: u32)
         outputMix[index * 2 + 1] = -0.25
     }
 
-    if channels == 1 do
+    if channels == 1
+    {
         expect oldSource.pushPcm16(Swag.makeSlice(&microphone[0], nativeFrames), 0, 0)
-    else do
+    }
+    else
+    {
         expect oldSource.pushFloat32(Swag.makeSlice(&outputMix[0], nativeFrames * 2), 0, 0)
+    }
 
     // The first failure marks the queue unavailable before the native owner closes. A filter
     // tail may no longer enter the lost queue; AAC fills those few frames from its sample clock.
     expect recovery.deviceLost(100_000)
     discard catch oldSource.finish()
     Swag.require(recovery.isLost() and queue.sourceIsLost() and queue.sampleEnd() == 480)
-    var encoded: Array'u8
+    var encoded: Array!{u8}
     var info:    CaptureAacPacket
     Swag.require(not expect track.nextPacket(&encoded, &info))
     Swag.require(not recovery.retryDue(299_999) and recovery.retryDue(300_000))
     expect recovery.retryFailed(300_000)
     Swag.require(queue.sampleEnd() == 1_440 and recovery.nextRetryTick() == 500_000)
     Swag.require(expect track.nextPacket(&encoded, &info))
-    var packetCount = 1'u64
+    var packetCount = 1_u64
     var synthetic   = cast(u64, info.syntheticFrames)
     var interrupted = info.sourceInterrupted
 
@@ -56,16 +60,21 @@ func checkNativeReopen(channels: u16, sourceRate: u32, reopenedRate: u32)
 
     for packet in 2
     {
-        let tick       = 500_000'u64 + packet * 100_000
+        let tick       = 500_000_u64 + packet * 100_000
         let firstFrame = packet * resumedFrames
-        if channels == 1 do
+        if channels == 1
+        {
             expect reopened.pushPcm16(Swag.makeSlice(&microphone[0], resumedFrames),
                                       tick,
                                       firstFrame)
-        else do
+        }
+        else
+        {
             expect reopened.pushFloat32(Swag.makeSlice(&outputMix[0], resumedFrames * 2),
                                         tick,
                                         firstFrame)
+        }
+
         while expect track.nextPacket(&encoded, &info)
         {
             Swag.require(info.startSample == packetCount * 1_024)

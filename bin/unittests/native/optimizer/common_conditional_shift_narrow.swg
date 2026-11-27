@@ -7,11 +7,17 @@ func shiftRight16(value, first, second, flag: u16)->u16 => flag != 0 ? value >> 
 
 #test
 {
-    let values = [0'u32, 1, 0x7F, 0x80, 0xFF, 0x1234, 0x8000, 0xFFFF]
-    let counts = [0'u32, 1, 7, 8, 15, 16, 31, 32, 63, 255]
+    let values = [0_u32, 1, 0x7F, 0x80, 0xFF, 0x1234, 0x8000, 0xFFFF]
+    let counts = [0_u32, 1, 7, 8, 15, 16, 31, 32, 63, 255]
     // Shift counts stay below the width they shift: anywhere else a shift is
     // a runtime error under safety and unspecified without it.
-    for value in values do for first in counts do for second in counts do for flag in [0'u32, 1, 255]
+    for value in values
+    {
+        for first in counts
+        {
+            for second in counts
+            {
+                for flag in [0_u32, 1, 255]
                 {
                     let value8  = cast #wrap (u8, value)
                     let first8  = cast #wrap (u8, first) & 7
@@ -25,4 +31,7 @@ func shiftRight16(value, first, second, flag: u16)->u16 => flag != 0 ? value >> 
                     let flag16   = cast #wrap (u16, flag)
                     Swag.require(shiftRight16(value16, first16, second16, flag16) == (flag16 != 0 ? value16 >> first16 : value16 >> second16))
                 }
+            }
+        }
+    }
 }

@@ -3,7 +3,7 @@
 using Core, Core.Errors
 
 // Decodes a sound to interleaved PCM16 through the device-independent path.
-private func adpcmDecodeAll(sound: const *SoundFile)->Array's16 fail
+private func adpcmDecodeAll(sound: const *SoundFile)->Array!{s16} fail
 {
     var result: #returntype
     try sound.decodePcm16(func|result = &result|(samples: const [..] s16)->bool
@@ -32,11 +32,17 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
     Swag.require(decoded.count * #sizeof(s16) == wanted.count)
 
     let wantedAt   = cast(const [*] s16, wanted.storage())
-    var mismatches = 0'u64
-    for index in decoded.count where decoded[index] != wantedAt[index] do
+    var mismatches = 0_u64
+    for index in decoded.count where decoded[index] != wantedAt[index]
+    {
         mismatches += 1
-    if mismatches do
+    }
+
+    if mismatches
+    {
         Swag.print("adpcm ", name, ": ", mismatches, " of ", decoded.count, " samples differ\n")
+    }
+
     Swag.require(mismatches == 0)
 }
 
@@ -71,30 +77,30 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
                             Format.toString("audio-adpcm-predictor-%.wav", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     var writer = ByteStream.openWrite(&bytes)
     writer.writeBytes(cast(const [..] u8, "RIFF"))
-    writer.writeLittleEndian(54'u32)     // File size minus the RIFF marker and size.
+    writer.writeLittleEndian(54_u32)     // File size minus the RIFF marker and size.
     writer.writeBytes(cast(const [..] u8, "WAVEfmt "))
-    writer.writeLittleEndian(26'u32)
-    writer.writeLittleEndian(2'u16)     // Microsoft ADPCM.
-    writer.writeLittleEndian(1'u16)     // Mono.
-    writer.writeLittleEndian(8_000'u32)
-    writer.writeLittleEndian(16_000'u32)
-    writer.writeLittleEndian(8'u16)     // Block alignment.
-    writer.writeLittleEndian(4'u16)     // Bits per sample.
-    writer.writeLittleEndian(8'u16)     // Extension bytes.
-    writer.writeLittleEndian(4'u16)     // Samples per block.
-    writer.writeLittleEndian(1'u16)     // One custom predictor.
-    writer.writeLittleEndian(-32_768's16)
-    writer.writeLittleEndian(-32_768's16)
+    writer.writeLittleEndian(26_u32)
+    writer.writeLittleEndian(2_u16)     // Microsoft ADPCM.
+    writer.writeLittleEndian(1_u16)     // Mono.
+    writer.writeLittleEndian(8_000_u32)
+    writer.writeLittleEndian(16_000_u32)
+    writer.writeLittleEndian(8_u16)     // Block alignment.
+    writer.writeLittleEndian(4_u16)     // Bits per sample.
+    writer.writeLittleEndian(8_u16)     // Extension bytes.
+    writer.writeLittleEndian(4_u16)     // Samples per block.
+    writer.writeLittleEndian(1_u16)     // One custom predictor.
+    writer.writeLittleEndian(-32_768_s16)
+    writer.writeLittleEndian(-32_768_s16)
     writer.writeBytes(cast(const [..] u8, "data"))
-    writer.writeLittleEndian(8'u32)
-    writer.writeLittleEndian(0'u8)     // Predictor index.
-    writer.writeLittleEndian(16's16)
-    writer.writeLittleEndian(-32_768's16)     // Previous sample.
-    writer.writeLittleEndian(-32_768's16)     // Older sample.
-    writer.writeLittleEndian(0'u8)            // First decoded nibble is zero.
+    writer.writeLittleEndian(8_u32)
+    writer.writeLittleEndian(0_u8)     // Predictor index.
+    writer.writeLittleEndian(16_s16)
+    writer.writeLittleEndian(-32_768_s16)     // Previous sample.
+    writer.writeLittleEndian(-32_768_s16)     // Older sample.
+    writer.writeLittleEndian(0_u8)            // First decoded nibble is zero.
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
 
     var sound   = expect SoundFile.load(path.toString())
@@ -110,28 +116,28 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
                             Format.toString("audio-adpcm-truncated-coefficients-%.wav", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     var writer = ByteStream.openWrite(&bytes)
     writer.writeBytes(cast(const [..] u8, "RIFF"))
-    writer.writeLittleEndian(50'u32)     // File size minus the RIFF marker and size.
+    writer.writeLittleEndian(50_u32)     // File size minus the RIFF marker and size.
     writer.writeBytes(cast(const [..] u8, "WAVEfmt "))
-    writer.writeLittleEndian(22'u32)     // Stops before the declared predictor coefficients.
-    writer.writeLittleEndian(2'u16)      // Microsoft ADPCM.
-    writer.writeLittleEndian(1'u16)      // Mono.
-    writer.writeLittleEndian(8_000'u32)
-    writer.writeLittleEndian(16_000'u32)
-    writer.writeLittleEndian(8'u16)     // Block alignment.
-    writer.writeLittleEndian(4'u16)     // Bits per sample.
-    writer.writeLittleEndian(8'u16)     // Extension bytes claim eight, but only four follow.
-    writer.writeLittleEndian(4'u16)     // Samples per block.
-    writer.writeLittleEndian(1'u16)     // One custom predictor.
+    writer.writeLittleEndian(22_u32)     // Stops before the declared predictor coefficients.
+    writer.writeLittleEndian(2_u16)      // Microsoft ADPCM.
+    writer.writeLittleEndian(1_u16)      // Mono.
+    writer.writeLittleEndian(8_000_u32)
+    writer.writeLittleEndian(16_000_u32)
+    writer.writeLittleEndian(8_u16)     // Block alignment.
+    writer.writeLittleEndian(4_u16)     // Bits per sample.
+    writer.writeLittleEndian(8_u16)     // Extension bytes claim eight, but only four follow.
+    writer.writeLittleEndian(4_u16)     // Samples per block.
+    writer.writeLittleEndian(1_u16)     // One custom predictor.
     writer.writeBytes(cast(const [..] u8, "data"))
-    writer.writeLittleEndian(8'u32)
-    writer.writeLittleEndian(0'u8)
-    writer.writeLittleEndian(16's16)
-    writer.writeLittleEndian(-32_768's16)
-    writer.writeLittleEndian(-32_768's16)
-    writer.writeLittleEndian(0'u8)
+    writer.writeLittleEndian(8_u32)
+    writer.writeLittleEndian(0_u8)
+    writer.writeLittleEndian(16_s16)
+    writer.writeLittleEndian(-32_768_s16)
+    writer.writeLittleEndian(-32_768_s16)
+    writer.writeLittleEndian(0_u8)
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
 
     var errOutcome: Swag.Error
@@ -152,13 +158,15 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
     let voice  = expect Voice.create(&sound)
     defer voice.destroy()
 
-    const Target = 1500'u64
+    const Target = 1500_u64
     expect voice.seekSampleFrame(Target)
     let decoded = expect voice.readBuffer()
     Swag.require(decoded.buffer != null and decoded.size >= 512 * 2 * #sizeof(s16))
     let samples = cast(const [*] s16, decoded.buffer)
-    for index in 512 * 2 do
+    for index in 512 * 2
+    {
         Swag.require(samples[index] == wanted[Target * 2 + index])
+    }
 }
 
 // A `fmt ` chunk that declares ADPCM without a block alignment cannot be indexed.
@@ -177,27 +185,30 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
                             Format.toString("audio-adpcm-step-index-%.wav", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     var writer = ByteStream.openWrite(&bytes)
     writer.writeBytes(cast(const [..] u8, "RIFF"))
-    writer.writeLittleEndian(48'u32)     // File size minus the RIFF marker and size.
+    writer.writeLittleEndian(48_u32)     // File size minus the RIFF marker and size.
     writer.writeBytes(cast(const [..] u8, "WAVEfmt "))
-    writer.writeLittleEndian(20'u32)
-    writer.writeLittleEndian(0x11'u16)     // IMA ADPCM.
-    writer.writeLittleEndian(1'u16)        // Mono.
-    writer.writeLittleEndian(8_000'u32)
-    writer.writeLittleEndian(7_111'u32)
-    writer.writeLittleEndian(8'u16)     // Block alignment.
-    writer.writeLittleEndian(4'u16)     // Bits per sample.
-    writer.writeLittleEndian(2'u16)     // Extension bytes.
-    writer.writeLittleEndian(9'u16)     // Samples per block.
+    writer.writeLittleEndian(20_u32)
+    writer.writeLittleEndian(0x11_u16)     // IMA ADPCM.
+    writer.writeLittleEndian(1_u16)        // Mono.
+    writer.writeLittleEndian(8_000_u32)
+    writer.writeLittleEndian(7_111_u32)
+    writer.writeLittleEndian(8_u16)     // Block alignment.
+    writer.writeLittleEndian(4_u16)     // Bits per sample.
+    writer.writeLittleEndian(2_u16)     // Extension bytes.
+    writer.writeLittleEndian(9_u16)     // Samples per block.
     writer.writeBytes(cast(const [..] u8, "data"))
-    writer.writeLittleEndian(8'u32)
-    writer.writeLittleEndian(0's16)     // Predictor seed.
-    writer.writeLittleEndian(89'u8)     // Outside the valid IMA step-index range 0-88.
-    writer.writeLittleEndian(0'u8)      // Reserved byte.
-    for 4 do
-        writer.writeLittleEndian(0'u8)
+    writer.writeLittleEndian(8_u32)
+    writer.writeLittleEndian(0_s16)     // Predictor seed.
+    writer.writeLittleEndian(89_u8)     // Outside the valid IMA step-index range 0-88.
+    writer.writeLittleEndian(0_u8)      // Reserved byte.
+    for 4
+    {
+        writer.writeLittleEndian(0_u8)
+    }
+
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
 
     var sound = expect SoundFile.load(path.toString())
@@ -215,27 +226,27 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
                             Format.toString("audio-adpcm-partial-mono-%.wav", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     var writer = ByteStream.openWrite(&bytes)
     writer.writeBytes(cast(const [..] u8, "RIFF"))
-    writer.writeLittleEndian(46'u32)     // File size minus the RIFF marker and size.
+    writer.writeLittleEndian(46_u32)     // File size minus the RIFF marker and size.
     writer.writeBytes(cast(const [..] u8, "WAVEfmt "))
-    writer.writeLittleEndian(20'u32)
-    writer.writeLittleEndian(0x11'u16)     // IMA ADPCM.
-    writer.writeLittleEndian(1'u16)        // Mono.
-    writer.writeLittleEndian(8_000'u32)
-    writer.writeLittleEndian(4_000'u32)
-    writer.writeLittleEndian(5'u16)     // Four-byte header and one payload byte.
-    writer.writeLittleEndian(4'u16)     // Four bits per sample.
-    writer.writeLittleEndian(2'u16)     // Extension bytes.
-    writer.writeLittleEndian(3'u16)     // One seed sample and two nibble samples.
+    writer.writeLittleEndian(20_u32)
+    writer.writeLittleEndian(0x11_u16)     // IMA ADPCM.
+    writer.writeLittleEndian(1_u16)        // Mono.
+    writer.writeLittleEndian(8_000_u32)
+    writer.writeLittleEndian(4_000_u32)
+    writer.writeLittleEndian(5_u16)     // Four-byte header and one payload byte.
+    writer.writeLittleEndian(4_u16)     // Four bits per sample.
+    writer.writeLittleEndian(2_u16)     // Extension bytes.
+    writer.writeLittleEndian(3_u16)     // One seed sample and two nibble samples.
     writer.writeBytes(cast(const [..] u8, "data"))
-    writer.writeLittleEndian(5'u32)
-    writer.writeLittleEndian(0's16)       // Seed predictor.
-    writer.writeLittleEndian(0'u8)        // Initial step index.
-    writer.writeLittleEndian(0'u8)        // Reserved byte.
-    writer.writeLittleEndian(0x21'u8)     // Low nibble decodes to 1, high nibble to 4.
-    writer.writeLittleEndian(0'u8)        // RIFF padding for the odd-sized data chunk.
+    writer.writeLittleEndian(5_u32)
+    writer.writeLittleEndian(0_s16)       // Seed predictor.
+    writer.writeLittleEndian(0_u8)        // Initial step index.
+    writer.writeLittleEndian(0_u8)        // Reserved byte.
+    writer.writeLittleEndian(0x21_u8)     // Low nibble decodes to 1, high nibble to 4.
+    writer.writeLittleEndian(0_u8)        // RIFF padding for the odd-sized data chunk.
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
 
     var sound = expect SoundFile.load(path.toString())

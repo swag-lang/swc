@@ -156,8 +156,10 @@ impl Window
     // Rebinds the platform callback state when an owning window value moves.
     mtd opPostMove()
     {
-        if .isOpen() do
+        if .isOpen()
+        {
             .rebindNative()
+        }
     }
 
     // Closes any remaining window when this value leaves scope.
@@ -176,8 +178,11 @@ impl Window
     // window stays open. Closing the window invalidates it; moving the owner does not.
     mtd nativeRenderHandle()->const *void?
     {
-        if .isOpen() do
+        if .isOpen()
+        {
             .rebindNative()
+        }
+
         return .renderHandleNative()
     }
 
@@ -189,8 +194,10 @@ impl Window
     // termination only when the window was created with [[Core.Env.WindowOptions.stopLoopOnClose]] true.
     mtd close() fail
     {
-        if not .isOpen() do
+        if not .isOpen()
+        {
             return
+        }
 
         // Keep callbacks bound to the owning value even when a return-value move was elided
         // without invoking opPostMove in an unoptimized build.
@@ -202,8 +209,11 @@ impl Window
     // Queues a paint request for this window.
     mtd requestPaint()
     {
-        if .isOpen() do
+        if .isOpen()
+        {
             .rebindNative()
+        }
+
         .requestPaintNative()
     }
 
@@ -213,8 +223,11 @@ impl Window
     // scaled display; [[Core.Env.WindowResizeCallback]] reports that physical size.
     mtd setClientSize(width, height: s32) fail
     {
-        if .isOpen() do
+        if .isOpen()
+        {
             .rebindNative()
+        }
+
         let scale          = .dpiScale()
         let physicalWidth  = cast(s32, Math.round(width * scale))
         let physicalHeight = cast(s32, Math.round(height * scale))
@@ -253,8 +266,11 @@ impl Window
     // window becomes visible, so a renderer never draws a frame at a stale size.
     mtd show() fail
     {
-        if .isOpen() do
+        if .isOpen()
+        {
             .rebindNative()
+        }
+
         if .callbacks.onResize
         {
             let {width, height} = try .clientSizeNative()
@@ -274,8 +290,11 @@ impl Window
     // place the complete drawable outside its root screen; larger pairs fail.
     mtd showOffScreen() fail
     {
-        if .isOpen() do
+        if .isOpen()
+        {
             .rebindNative()
+        }
+
         if .callbacks.onResize
         {
             let {width, height} = try .clientSizeNative()
@@ -312,18 +331,26 @@ impl WindowLoop
         if .frameBudget == 0
         {
             .frameBudget = Env.smokeFrames()
-            if .frameBudget and .smokeFrames do
+            if .frameBudget and .smokeFrames
+            {
                 .frameBudget = .smokeFrames
+            }
         }
 
-        if .frameBudget and .framesRun >= .frameBudget do
+        if .frameBudget and .framesRun >= .frameBudget
+        {
             return false
+        }
 
-        if not processWindowMessages() do
+        if not processWindowMessages()
+        {
             return false
+        }
 
-        if .frameBudget do
+        if .frameBudget
+        {
             .framesRun += 1
+        }
 
         return true
     }

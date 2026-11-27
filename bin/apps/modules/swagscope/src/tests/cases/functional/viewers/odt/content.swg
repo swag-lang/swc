@@ -27,8 +27,11 @@ using Core, Gui, Viewers
     defer discard catch File.delete(path)
     let document = expect Odt.Document.load(path)
     Swag.require(document.paragraphs == 4)
-    for text in ["<h2", "id=\"later\"", "href=\"#later\"", "&emsp;", "<br>", "Outside", "7", "Nested", "<ul>"] do
+    for text in ["<h2", "id=\"later\"", "href=\"#later\"", "&emsp;", "<br>", "Outside", "7", "Nested", "<ul>"]
+    {
         Swag.require(Utf8.contains(document.html, text), text)
+    }
+
     Swag.require(not Utf8.contains(document.html, "https://"))
 }
 
@@ -38,11 +41,16 @@ using Core, Gui, Viewers
     let path = odtTestPackage("""<text:tracked-changes><text:p>Deleted private wording</text:p></text:tracked-changes><text:section text:display="none"><text:p>Hidden private wording</text:p></text:section><office:scripts><text:p>Script wording</text:p></office:scripts><text:p>Before<office:annotation><text:p>Editor wording</text:p></office:annotation>After<text:note><text:note-body><text:p>Footnote body</text:p></text:note-body></text:note></text:p>""")
     defer discard catch File.delete(path)
     let document = expect Odt.Document.load(path)
-    for hidden in ["Deleted private", "Hidden private", "Script wording"] do
+    for hidden in ["Deleted private", "Hidden private", "Script wording"]
+    {
         Swag.require(not Utf8.contains(document.html, hidden), hidden)
+    }
+
     Swag.require(Utf8.contains(document.html, "Comment: Editor wording"))
     Swag.require(Utf8.contains(document.html, "Footnote: Footnote body"))
-    Swag.require(Utf8.contains(document.html, "Before") and Utf8.contains(document.html, "After") and document.omitted == 0)
+    Swag.require(Utf8.contains(document.html, "Before") and
+                 Utf8.contains(document.html, "After") and
+                 document.omitted == 0)
 }
 
 // Repeated Writer table cells and rows copy both their content and document statistics.

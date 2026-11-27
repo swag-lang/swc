@@ -11,7 +11,7 @@ private func choiceName(registry: const *ViewerPluginRegistry, choice: const *Vi
 
 private func createTestPlugin(host: Viewer.Host)
 {
-    host.attachView(Wnd.create'Wnd(host.contentParent()))
+    host.attachView(Wnd.create!{Wnd}(host.contentParent()))
 }
 
 private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
@@ -35,14 +35,16 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     defer discard catch File.delete(textFile)
     defer discard catch File.delete(binaryFile)
     expect File.writeAllBytes(textFile, "plain UTF-8 text")
-    expect File.writeAllBytes(binaryFile, [0x89'u8, 0x50'u8, 0x4E'u8, 0x47'u8, 0'u8, 0xFF'u8])
+    expect File.writeAllBytes(binaryFile, [0x89_u8, 0x50_u8, 0x4E_u8, 0x47_u8, 0_u8, 0xFF_u8])
 
     let registry = createViewerPluginRegistry()
     Swag.require(registry.plugins.count == 25)
-    for plugin in registry.plugins do
+    for plugin in registry.plugins
+    {
         Swag.require(plugin.apiVersion == Viewer.ApiVersion and
                      plugin.create != null and
                      plugin.iconAtlas != null)
+    }
 
     let picture = registry.choices(binaryFile)
     Swag.require(picture.count == 3)
@@ -78,8 +80,10 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
         }
 
         Swag.require(found)
-        for other, j in registry.plugins where j > i do
+        for other, j in registry.plugins where j > i
+        {
             Swag.require(plugin.smokeFixture != other.smokeFixture)
+        }
     }
 }
 
@@ -108,8 +112,11 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
         Swag.require(window.choices[window.activeChoiceIndex].key == plugin.key)
         window.toggleInformation()
-        if window.information.hasMediaSelection() do
+        if window.information.hasMediaSelection()
+        {
             window.infoSheet.selectPage(1)
+        }
+
         let information = window.infoSheet.text()
         Swag.require(window.infoSheet.isLocallyVisible())
         Swag.require(Utf8.contains(information, plugin.displayName()))
@@ -152,8 +159,10 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.require(registry.choices("bundle.zip")[0].key == "archive")
 
     const SoundFiles: [11] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts", "sound.ogg", "sound.oga", "sound.opus"]
-    for file in SoundFiles do
+    for file in SoundFiles
+    {
         Swag.require(registry.choices(file)[0].key == "sound")
+    }
 }
 
 // The interpreter line claims an extensionless script before wildcard plugins.
@@ -197,10 +206,15 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     let page = registry.choices(viewerRegistryFixturePath("viewer.html"))
     Swag.require(page[0].key == "html" and page[1].key == "code" and page[2].key == PlainText.ViewerKey)
 
-    for choice in registry.choices(viewerRegistryFixturePath("viewer.pdf")) do
+    for choice in registry.choices(viewerRegistryFixturePath("viewer.pdf"))
+    {
         Swag.require(choice.key != PlainText.ViewerKey)
-    for choice in registry.choices(viewerRegistryFixturePath("viewer.arabic.ttf")) do
+    }
+
+    for choice in registry.choices(viewerRegistryFixturePath("viewer.arabic.ttf"))
+    {
         Swag.require(choice.key != PlainText.ViewerKey)
+    }
 }
 
 // A name that says nothing leaves the file to say it. Every format that opens on a signature is
@@ -224,7 +238,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 // rather than dumped as bytes.
 #test
 {
-    var utf16: Array'u8
+    var utf16: Array!{u8}
     utf16.add(0xFF)
     utf16.add(0xFE)
     for c in "a wide export nothing claims"
@@ -242,9 +256,12 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     // Deciding an encoding is not accepting the file: bytes that decode into control characters
     // are not offered as a page of text.
-    var binary: Array'u8
-    for i in 512'u32 do
+    var binary: Array!{u8}
+    for i in 512_u32
+    {
         binary.add(cast(u8, ((i * 7) & 0xFF)))
+    }
+
     let opaque = Gui.Testing.tempFilePath("scope-opaque-", "")
     defer discard catch File.delete(opaque)
     expect File.writeAllBytes(opaque, binary.toSlice())
@@ -258,8 +275,10 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     for plugin, i in registry.plugins
     {
         Swag.require(not plugin.key.isEmpty() and plugin.key == plugin.key.toLower())
-        for other, j in registry.plugins where j > i do
+        for other, j in registry.plugins where j > i
+        {
             Swag.require(plugin.key != other.key and plugin.iconIndex != other.iconIndex)
+        }
     }
 
     let movie = registry.choices("movie.mp4")

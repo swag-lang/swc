@@ -15,16 +15,22 @@ namespace WinFsp
     // driver being unavailable for any other failure.
     func guardianErrorKind(err: any?)->ErrorKind
     {
-        if err is Error as error do
+        if err is Error as error
+        {
             return error.kind
+        }
+
         return .DriverUnavailable
     }
 
     // The Windows error a helper launch that failed reported, or 0.
     func guardianLaunchCode(err: any?)->u64
     {
-        if err is Swag.SystemError as error do
+        if err is Swag.SystemError as error
+        {
             return error.errorID
+        }
+
         return 0
     }
 
@@ -51,16 +57,20 @@ namespace WinFsp
     func runPortableGuardian()->s32
     {
         let args = Env.arguments()
-        if args.count < 4 or args[1] != WinFspGuardianArgument or not isElevated() do
+        if args.count < 4 or args[1] != WinFspGuardianArgument or not isElevated()
+        {
             return 2
+        }
 
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseU32(args[2]))
         catch { parsed = try StrConv.parseU32(args[2]) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         let statusPath = args[3]
-        if parseError != null or parsed.ovf or parsed.eat != args[2].count do
+        if parseError != null or parsed.ovf or parsed.eat != args[2].count
+        {
             return 2
+        }
 
         let parent = OpenProcess(ProcessSynchronize, 0, parsed.value)
         if not parent
@@ -81,8 +91,11 @@ namespace WinFsp
         CloseHandle(parent)
         unloadWinFsp()
         let communicationRoot = Path.directoryName(statusPath) orelse ""
-        if communicationRoot.count do
+        if communicationRoot.count
+        {
             removeRuntimeTree(communicationRoot)
+        }
+
         return 0
     }
 
@@ -94,8 +107,11 @@ namespace WinFsp
     // and it is opt-in through the `vault.integration` tag.
     func canRequestElevation()->bool
     {
-        #static if #command == Swag.CompilerCommand.Test and not #hastag("vault.integration") do
+        #static if #command == Swag.CompilerCommand.Test and not #hastag("vault.integration")
+        {
             return false
+        }
+
         return true
     }
 
@@ -104,17 +120,26 @@ namespace WinFsp
     func ensurePortableGuardian() fail
     {
         // Checked before anything else, so no test run can reach ShellExecute.
-        if not canRequestElevation() do
+        if not canRequestElevation()
+        {
             fail volumeError(.DriverUnavailable)
+        }
 
-        if g_WinFsp.guardianManaged do
+        if g_WinFsp.guardianManaged
+        {
             return
-        if isElevated() do
+        }
+
+        if isElevated()
+        {
             fail volumeError(.Elevated)
+        }
 
         let temp = Env.getSpecialDirectory(.Temp)
-        if temp.isEmpty() do
+        if temp.isEmpty()
+        {
             fail volumeError(.DriverUnavailable)
+        }
 
         let communicationRoot = Path.combine(temp, Format.toString("vault-Guardian-%-%", Env.Process.currentProcessId(), Guid64.random()))
         try Directory.create(communicationRoot)
@@ -159,7 +184,7 @@ namespace WinFsp
                 }
             }
 
-            Threading.Thread.sleep(50'ms)
+            Threading.Thread.sleep(50_ms)
         }
 
         fail volumeError(.DriverUnavailable)
@@ -169,8 +194,10 @@ namespace WinFsp
     // deleted at the next restart.
     func removeRuntimeTree(path: string)
     {
-        if not Directory.exists(path) do
+        if not Directory.exists(path)
+        {
             return
+        }
 
         var options: Directory.EnumerationOptions
         var enumErrorOutcome: Swag.Error
@@ -208,12 +235,16 @@ namespace WinFsp
         let executableDirectory = Path.directoryName(executablePath) orelse ""
         let sourceDll           = Path.combine(executableDirectory, WinFspDllName)
         let sourceDriver        = Path.combine(executableDirectory, WinFspDriverName)
-        if not File.exists(sourceDll) or not File.exists(sourceDriver) do
+        if not File.exists(sourceDll) or not File.exists(sourceDriver)
+        {
             fail volumeError(.DriverUnavailable)
+        }
 
         let temp = Env.getSpecialDirectory(.Temp)
-        if temp.isEmpty() do
+        if temp.isEmpty()
+        {
             fail volumeError(.DriverUnavailable)
+        }
 
         // A guardian owns one driver registration. Sharing an identity across processes lets
         // one guardian unregister another's driver, and a pending deletion blocks every restart.
@@ -247,8 +278,10 @@ namespace WinFsp
     // Registers the staged driver with Windows and starts it.
     func registerPortableWinFsp() fail
     {
-        if not g_WinFsp.portable or g_WinFsp.registered or g_WinFsp.guardianManaged do
+        if not g_WinFsp.portable or g_WinFsp.registered or g_WinFsp.guardianManaged
+        {
             return
+        }
 
         traceWinFspStage("registering portable driver")
         let logHandle = beginWinFspLog()

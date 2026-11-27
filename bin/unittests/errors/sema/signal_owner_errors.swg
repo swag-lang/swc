@@ -17,7 +17,7 @@ impl ErrSignal
 
 struct ErrSignalWnd
 {
-    sigPressed: ErrSignal'func||(*ErrSignalWnd)
+    sigPressed: ErrSignal!{func||(*ErrSignalWnd)}
 }
 
 struct ErrQuickButton { using wnd: ErrSignalWnd; quick: s32 }

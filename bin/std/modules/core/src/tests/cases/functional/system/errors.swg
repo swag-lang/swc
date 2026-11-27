@@ -125,8 +125,11 @@ func failDeep() fail
 
     let baseline = allocator.stats().countAlloc
     var copied: string?
-    for 32 do
+    for 32
+    {
         copied = Errors.mkString("dynamic error message")
+    }
+
     let valid = copied == "dynamic error message"
     context.errorAllocator.release()
     let afterRelease = allocator.stats().countAlloc
@@ -197,16 +200,21 @@ func consumeThreadMessages(_: const *Threading.Thread)
         valid = valid and Errors.message(error) == "a handled thread message"
     }
 
-    if valid and pending == "an unraised thread message is reclaimed on exit" do
+    if valid and pending == "an unraised thread message is reclaimed on exit"
+    {
         discard copiedThreadMessagesValid.raise()
+    }
 }
 
 // A real thread exits with an unraised copied view after handling its own errors. Its public
 // lifecycle releases that root storage, while its allocator interface still belongs to us.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
+
     var allocator: Swag.Allocator
     allocator.setup()
     allocator.configure(false, false, false, false, false)
@@ -259,8 +267,11 @@ func publishOwnedThreadError(thread: const *Threading.Thread)
 // Resetting each transport copy leaves the final lexical capture alive until its own exit.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
+
     var allocator: Swag.Allocator
     allocator.setup()
     allocator.configure(false, false, false, false, false)

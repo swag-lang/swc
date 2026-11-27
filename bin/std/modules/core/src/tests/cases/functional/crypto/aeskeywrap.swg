@@ -5,16 +5,19 @@ using Swag
 
 func aesKeyWrapHexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func aesKeyWrapHexBytes(text: string)->Array'u8
+func aesKeyWrapHexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, (aesKeyWrapHexDigit(text[index]) << 4) | aesKeyWrapHexDigit(text[index + 1])))
@@ -73,21 +76,25 @@ func aesKeyWrapHexBytes(text: string)->Array'u8
     // Authenticated unwraps leave caller output untouched when an integrity check fails.
     let key = aesKeyWrapHexBytes("000102030405060708090a0b0c0d0e0f")
     var wrapped: [24] u8
-    Memory.set(wrapped.buffer, 0'u8, wrapped.count)
+    Memory.set(wrapped.buffer, 0_u8, wrapped.count)
     var output: [16] u8
-    Memory.set(output.buffer, 0xA5'u8, output.count)
+    Memory.set(output.buffer, 0xA5_u8, output.count)
     var error: Swag.Error
     discard catch Crypto.aesKeyUnwrap(key.toSlice(), wrapped, output) as error
     Swag.require(error.value() is Errors.BadParameterError)
-    for byte in output do
+    for byte in output
+    {
         Swag.require(byte == 0xA5)
+    }
 
     var paddedWrapped: [16] u8
-    Memory.set(paddedWrapped.buffer, 0'u8, paddedWrapped.count)
+    Memory.set(paddedWrapped.buffer, 0_u8, paddedWrapped.count)
     var paddedOutput: [8] u8
-    Memory.set(paddedOutput.buffer, 0x5A'u8, paddedOutput.count)
+    Memory.set(paddedOutput.buffer, 0x5A_u8, paddedOutput.count)
     discard catch Crypto.aesKeyUnwrapWithPadding(key.toSlice(), paddedWrapped, paddedOutput) as error
     Swag.require(error.value() is Errors.BadParameterError)
-    for byte in paddedOutput do
+    for byte in paddedOutput
+    {
         Swag.require(byte == 0x5A)
+    }
 }

@@ -3,27 +3,33 @@
 #[Swag.NoInline]
 func different32(a: s32, b: s32)->u32
 {
-    var result = 1'u32
-    if a == b do
+    var result = 1_u32
+    if a == b
+    {
         result = 0
+    }
     return result
 }
 
 #[Swag.NoInline]
 func different64(a: s64, b: s64)->u64
 {
-    var result = 1'u64
-    if a == b do
+    var result = 1_u64
+    if a == b
+    {
         result = 0
+    }
     return result
 }
 
 #[Swag.NoInline]
 func less64(a: s64, b: s64)->u64
 {
-    var result = 0'u64
-    if a < b do
+    var result = 0_u64
+    if a < b
+    {
         result = 1
+    }
     return result
 }
 

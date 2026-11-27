@@ -20,8 +20,11 @@ using Core, Gui, Pixel, Viewers
     journey.waitFor("sidecar found", func|video|()->bool => video.subtitleReady and
                                                             video.subtitleSource == .Sidecar and
                                                             video.subtitleOverlay.sidecars.count == 1)
-    if video.playing do
+    if video.playing
+    {
         video.togglePlayback()
+    }
+
     video.seekSeconds(0.75)
     journey.waitFor("second caption shown", func|video|()->bool => video.hasFrame and
                                                                    video.subtitleOverlay.text == "Second caption")

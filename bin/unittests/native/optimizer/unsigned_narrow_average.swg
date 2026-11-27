@@ -34,18 +34,18 @@ func ceilAverage8(values: const [*]u8, index: u64)->u8
 
 #test
 {
-    let values = [0'u16, 0, 0, 1, 1, 2, 2, 3, 0, 0xFFFF, 0xFFFE, 0xFFFF]
-    let floors = [0'u16, 0, 1, 2, 0x7FFF, 0xFFFE]
-    let ceils  = [0'u16, 1, 2, 3, 0x8000, 0xFFFF]
+    let values = [0_u16, 0, 0, 1, 1, 2, 2, 3, 0, 0xFFFF, 0xFFFE, 0xFFFF]
+    let floors = [0_u16, 0, 1, 2, 0x7FFF, 0xFFFE]
+    let ceils  = [0_u16, 1, 2, 3, 0x8000, 0xFFFF]
     for floor, index in floors
     {
         Swag.require(floorAverage(&values[0], index * 2) == floor)
         Swag.require(ceilAverage(&values[0], index * 2) == ceils[index])
     }
 
-    let values8 = [0'u8, 1, 1, 2, 0, 0xFF, 0xFE, 0xFF]
-    let floors8 = [0'u8, 1, 0x7F, 0xFE]
-    let ceils8  = [1'u8, 2, 0x80, 0xFF]
+    let values8 = [0_u8, 1, 1, 2, 0, 0xFF, 0xFE, 0xFF]
+    let floors8 = [0_u8, 1, 0x7F, 0xFE]
+    let ceils8  = [1_u8, 2, 0x80, 0xFF]
     for floor, index in floors8
     {
         Swag.require(floorAverage8(&values8[0], index * 2) == floor)

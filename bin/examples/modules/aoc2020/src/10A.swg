@@ -91,13 +91,18 @@ func day10A()
 
     vals.sort()
 
-    var cpt1, cpt3, prev = 0's64
+    var cpt1, cpt3, prev = 0_s64
     for v in vals
     {
-        if v - prev == 1 do
+        if v - prev == 1
+        {
             cpt1 += 1
-        elif v - prev == 3 do
+        }
+        else if v - prev == 3
+        {
             cpt3 += 1
+        }
+
         prev = v
     }
 

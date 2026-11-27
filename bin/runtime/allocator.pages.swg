@@ -9,10 +9,10 @@
 // size, its owner, and its free list, which is why a live small block carries no header of its own.
 // That single property is what removes both the per-block metadata and the per-block OS call.
 
-const AllocatorPageShift       = 16'u64
-const AllocatorPageSize        = 1'u64 << AllocatorPageShift
-const AllocatorSegmentShift    = 22'u64
-const AllocatorSegmentSize     = 1'u64 << AllocatorSegmentShift
+const AllocatorPageShift       = 16_u64
+const AllocatorPageSize        = 1_u64 << AllocatorPageShift
+const AllocatorSegmentShift    = 22_u64
+const AllocatorSegmentSize     = 1_u64 << AllocatorSegmentShift
 const AllocatorUnitsPerSegment = cast(u32, (AllocatorSegmentSize >> AllocatorPageShift))
 
 // Small classes get one 64 KiB unit per page, medium classes get eight.
@@ -20,20 +20,20 @@ const AllocatorUnitsPerSegment = cast(u32, (AllocatorSegmentSize >> AllocatorPag
 // Both hold at least eight blocks, which is what keeps the page table's cost per block negligible. A
 // medium page commits its units one at a time, as its blocks need them, so a class whose blocks are
 // large does not commit half a mebibyte for its first block.
-const AllocatorSmallUnitShift  = 0'u32
-const AllocatorMediumUnitShift = 3'u32
+const AllocatorSmallUnitShift  = 0_u32
+const AllocatorMediumUnitShift = 3_u32
 
 // One reservation covers a gibibyte of address space and costs no memory until a segment inside it is committed.
 //
 // A program that exhausts every reservation keeps working through the header path, so this bound degrades
 // throughput rather than failing an allocation.
-const AllocatorArenaSize = 1'u64 << 30
-const AllocatorMaxArenas = 16'u32
+const AllocatorArenaSize = 1_u64 << 30
+const AllocatorMaxArenas = 16_u32
 
 // The host commit unit determines the segment-header prefix and every commit/decommit boundary.
 const AllocatorCommitGranularity = AllocatorHostCommitGranularity
 
-private const AllocatorSegmentMagic = 0x5347_4D45_4E54_0001'u64
+private const AllocatorSegmentMagic = 0x5347_4D45_4E54_0001_u64
 
 enum AllocatorPageState: u8
 {
@@ -171,7 +171,7 @@ var g_AllocatorFreeSegment: *AllocatorSegment?
 //
 // The process keeps up to a quarter of what it has committed, and never less than the floor, so the budget
 // grows with the number of threads churning pages while a quiet program holds little.
-const AllocatorIdleMinBytes = 8'u64 * 1024 * 1024
+const AllocatorIdleMinBytes = 8_u64 * 1024 * 1024
 private var g_AllocatorIdleBytes: u64
 
 func allocatorIdleBytes()->u64 => atomicGet(&g_AllocatorIdleBytes)
@@ -210,30 +210,41 @@ func allocatorOsReserve(size: u64)->[*] u8?
 {
     #static if #command == Swag.CompilerCommand.Test
     {
-        if allocatorInjectOsFailure(&g_AllocatorOsFailures.reserve) do
+        if allocatorInjectOsFailure(&g_AllocatorOsFailures.reserve)
+        {
             return null
+        }
     }
 
     let address = __hostPageReserve(size)
-    if address do
+    if address
+    {
         atomicAddU64(&g_AllocatorOsReserveCount, 1)
+    }
+
     return address
 }
 
 // Commits 'size' bytes of a reservation, or returns false and changes nothing when the host refuses.
 func allocatorOsCommit(address: u64, size: u64)->bool
 {
-    if size == 0 do
+    if size == 0
+    {
         return true
+    }
 
     #static if #command == Swag.CompilerCommand.Test
     {
-        if allocatorInjectOsFailure(&g_AllocatorOsFailures.commit) do
+        if allocatorInjectOsFailure(&g_AllocatorOsFailures.commit)
+        {
             return false
+        }
     }
 
-    if not __hostPageCommit(cast(*void, address), size) do
+    if not __hostPageCommit(cast(*void, address), size)
+    {
         return false
+    }
 
     atomicAddU64(&g_AllocatorCommittedBytes, size)
     atomicAddU64(&g_AllocatorOsCommitCount, 1)
@@ -242,8 +253,10 @@ func allocatorOsCommit(address: u64, size: u64)->bool
 
 func allocatorOsDecommit(address: u64, size: u64)
 {
-    if size == 0 do
+    if size == 0
+    {
         return
+    }
 
     __hostPageDecommit(cast(*void, address), size)
 
@@ -261,11 +274,11 @@ func allocatorOsDecommit(address: u64, size: u64)
     #[Swag.Safety(.Overflow, false)]
     private func allocatorNextKey(seed: u64)->u64
     {
-        var value = seed ^ (Swag.atomicAdd(&g_AllocatorKeySeed, 0x9E37_79B9_7F4A_7C15'u64) + 0x9E37_79B9_7F4A_7C15'u64)
+        var value = seed ^ (Swag.atomicAdd(&g_AllocatorKeySeed, 0x9E37_79B9_7F4A_7C15_u64) + 0x9E37_79B9_7F4A_7C15_u64)
         value ^= value >> 30
-        value *= 0xBF58_476D_1CE4_E5B9'u64
+        value *= 0xBF58_476D_1CE4_E5B9_u64
         value ^= value >> 27
-        value *= 0x94D0_49BB_1331_11EB'u64
+        value *= 0x94D0_49BB_1331_11EB_u64
         value ^= value >> 31
 
         // An odd key keeps an encoded link non-zero for every aligned block address, which is what lets
@@ -335,11 +348,14 @@ impl AllocatorPage
         let odd = blockSize >> cast(u32, Swag.trailingZeros(blockSize))
         .blockSize  = blockSize
         .blockShift = cast(u8, Swag.trailingZeros(blockSize))
-        .blockLimit = 0xFFFF_FFFF'u32 / blockSize
+        .blockLimit = 0xFFFF_FFFF_u32 / blockSize
 
         var inverse = odd
-        for 5 do
+        for 5
+        {
             inverse *= 2 - odd * inverse
+        }
+
         .blockInv = inverse
     }
 
@@ -352,8 +368,10 @@ impl AllocatorPage
     {
         // An address below the area wraps to a huge offset, so one comparison bounds both ends.
         let offset = address - .areaStart
-        if offset >= .areaEnd - .areaStart do
+        if offset >= .areaEnd - .areaStart
+        {
             return false
+        }
 
         return Swag.ror(cast(u32, offset) * .blockInv, cast(u8, .blockShift)) <= .blockLimit
     }
@@ -361,19 +379,27 @@ impl AllocatorPage
     #[Swag.Inline]
     mtd encode(address: u64)->u64
     {
-        #static if #hastag("Swag.AllocatorSafety") do
+        #static if #hastag("Swag.AllocatorSafety")
+        {
             return address ^ .key
-        else do
+        }
+        else
+        {
             return address
+        }
     }
 
     #[Swag.Inline]
     mtd decode(link: u64)->u64
     {
-        #static if #hastag("Swag.AllocatorSafety") do
+        #static if #hastag("Swag.AllocatorSafety")
+        {
             return link ^ .key
-        else do
+        }
+        else
+        {
             return link
+        }
     }
 
     // Blocks pushed by other threads and not yet collected.
@@ -384,7 +410,7 @@ impl AllocatorPage
         .lockRemote()
         defer .unlockRemote()
 
-        var count = 0'u32
+        var count = 0_u32
         var scan  = atomicGet(&.remoteFree)
         while scan != 0
         {
@@ -417,13 +443,17 @@ impl AllocatorPage
         let start   = segment.pageCommitStart(index)
         let pageEnd = segment.pageCommitEnd(index)
         let current = start + cast(u64, .committed)
-        if current >= pageEnd do
+        if current >= pageEnd
+        {
             return false
+        }
 
         let needed = .carved + cast(u64, .blockSize)
         let target = Swag.min(pageEnd, (needed + AllocatorPageSize - 1) & ~(AllocatorPageSize - 1))
-        if not allocatorOsCommit(current, target - current) do
+        if not allocatorOsCommit(current, target - current)
+        {
             return false
+        }
 
         .committed = cast(u32, target - start)
         .areaEnd   = start + ((target - start) / cast(u64, .blockSize)) * cast(u64, .blockSize)
@@ -453,13 +483,15 @@ impl AllocatorPage
     // its page, until that thread allocates, trims, or retires.
     mtd collectRemote()
     {
-        if atomicGet(&.remoteFree) == 0 do
+        if atomicGet(&.remoteFree) == 0
+        {
             return
+        }
 
         .lockRemote()
         var list = Swag.atomicExchange(&.remoteFree, 0)
         .unlockRemote()
-        var taken = 0'u32
+        var taken = 0_u32
 
         while list != 0
         {
@@ -487,17 +519,25 @@ impl AllocatorPage
         var head = atomicGet(&.remoteFree)
         while true
         {
-            #static if #hastag("Swag.AllocatorSafety") do
+            #static if #hastag("Swag.AllocatorSafety")
+            {
                 cast(*u64, address)[] = head ^ .remoteKey
-            else do
+            }
+            else
+            {
                 cast(*u64, address)[] = head
+            }
+
             let seen = Swag.atomicCompareExchange(&.remoteFree, head, address)
             if seen == head
             {
                 // The exchange above is a full barrier, so this read pairs with the owner's
                 // 'parkFullPage', which marks the page before reading the remote list again.
-                if atomicGet(&.inFull) != 0 do
+                if atomicGet(&.inFull) != 0
+                {
                     allocatorQueueRevisit(me)
+                }
+
                 return
             }
 
@@ -546,8 +586,11 @@ impl AllocatorPage
     // path.
     mtd holdsFreeBlock(address: u64)->bool
     {
-        if .holdsOwnFreeBlock(address) do
+        if .holdsOwnFreeBlock(address)
+        {
             return true
+        }
+
         return .holdsRemoteFreeBlock(address)
     }
 
@@ -557,8 +600,11 @@ impl AllocatorPage
         var scan = .freeList
         while scan != 0
         {
-            if scan == address do
+            if scan == address
+            {
                 return true
+            }
+
             scan = .nextFree(scan)
         }
 
@@ -574,8 +620,11 @@ impl AllocatorPage
         var scan = atomicGet(&.remoteFree)
         while scan != 0
         {
-            if scan == address do
+            if scan == address
+            {
                 return true
+            }
+
             scan = .nextFree(scan)
         }
 
@@ -592,8 +641,10 @@ impl AllocatorPage
         let next = .decode(cast(const *u64, block)[])
         #static if #hastag("Swag.AllocatorSafety")
         {
-            if next != 0 and not .isBlockAddress(next) do
+            if next != 0 and not .isBlockAddress(next)
+            {
                 allocatorCorruptedFreeList()
+            }
         }
 
         return next
@@ -609,8 +660,11 @@ impl AllocatorPage
     mtd looksFree(address: u64)->bool
     {
         let next = .decode(cast(const *u64, address)[])
-        if next == 0 do
+        if next == 0
+        {
             return true
+        }
+
         return next - .areaStart < .areaEnd - .areaStart
     }
 
@@ -624,8 +678,10 @@ impl AllocatorPage
     {
         #static if #hastag("Swag.AllocatorSafety")
         {
-            if .blockSize >= 16 do
+            if .blockSize >= 16
+            {
                 cast(*u64, (address + 8))[] = ~.key
+            }
         }
     }
 
@@ -634,8 +690,10 @@ impl AllocatorPage
     {
         #static if #hastag("Swag.AllocatorSafety")
         {
-            if .blockSize >= 16 and cast(const *u64, (block + 8))[] != ~.key do
+            if .blockSize >= 16 and cast(const *u64, (block + 8))[] != ~.key
+            {
                 allocatorFreedBlockWritten()
+            }
         }
     }
 
@@ -681,11 +739,13 @@ impl AllocatorSegment
         while true
         {
             let free = ~mask & .usableMask
-            if free == 0 do
+            if free == 0
+            {
                 return null
+            }
 
             let index = cast(u32, Swag.trailingZeros(free))
-            let bit   = 1'u64 << index
+            let bit   = 1_u64 << index
             let seen  = Swag.atomicCompareExchange(&.pageMask, mask, mask | bit)
             if seen != mask
             {
@@ -727,7 +787,7 @@ impl AllocatorSegment
     {
         Swag.assert(page.used == 0)
         let index = page.unitIndex >> .unitShift
-        let bit   = 1'u64 << index
+        let bit   = 1_u64 << index
         let size  = cast(u64, page.committed)
 
         page.state     = .Free
@@ -758,12 +818,15 @@ impl AllocatorSegment
         while idle
         {
             let index = cast(u32, Swag.trailingZeros(idle))
-            let bit   = 1'u64 << index
+            let bit   = 1_u64 << index
             idle &= ~bit
 
             let mask = atomicGet(&.pageMask)
-            if mask & bit do
+            if mask & bit
+            {
                 continue
+            }
+
             if Swag.atomicCompareExchange(&.pageMask, mask, mask | bit) != mask
             {
                 idle = atomicGet(&.idleMask)
@@ -789,8 +852,11 @@ impl AllocatorSegment
         while true
         {
             let seen = Swag.atomicCompareExchange(&.idleMask, mask, mask | bit)
-            if seen == mask do
+            if seen == mask
+            {
                 return
+            }
+
             mask = seen
         }
     }
@@ -802,8 +868,11 @@ impl AllocatorSegment
         while mask & bit
         {
             let seen = Swag.atomicCompareExchange(&.idleMask, mask, mask & ~bit)
-            if seen == mask do
+            if seen == mask
+            {
                 return true
+            }
+
             mask = seen
         }
 
@@ -816,8 +885,11 @@ impl AllocatorSegment
         while true
         {
             let seen = Swag.atomicCompareExchange(&.pageMask, mask, mask & ~bit)
-            if seen == mask do
+            if seen == mask
+            {
                 return
+            }
+
             mask = seen
         }
     }
@@ -832,11 +904,17 @@ func allocatorReserveIdle(size: u64)->bool
     var current = atomicGet(&g_AllocatorIdleBytes)
     while true
     {
-        if current + size > budget do
+        if current + size > budget
+        {
             return false
+        }
+
         let seen = Swag.atomicCompareExchange(&g_AllocatorIdleBytes, current, current + size)
-        if seen == current do
+        if seen == current
+        {
             return true
+        }
+
         current = seen
     }
 
@@ -846,14 +924,18 @@ func allocatorReserveIdle(size: u64)->bool
 // Adds one address-space reservation. The caller holds the arena mutex.
 private func allocatorAddArena()->bool
 {
-    if g_AllocatorArenaCount >= AllocatorMaxArenas do
+    if g_AllocatorArenaCount >= AllocatorMaxArenas
+    {
         return false
+    }
 
     // Reserving one extra segment guarantees an aligned window inside the reservation, because a
     // reservation is released as a whole and cannot be trimmed to alignment.
     let reserved = allocatorOsReserve(AllocatorArenaSize + AllocatorSegmentSize)
-    if not reserved do
+    if not reserved
+    {
         return false
+    }
 
     let arena = &g_AllocatorArenas[g_AllocatorArenaCount]
     arena.reserveBase = reserved
@@ -872,8 +954,10 @@ private func allocatorArenaHasRoom(arena: *AllocatorArena)->bool
 {
     #static if #command == Swag.CompilerCommand.Test
     {
-        if g_AllocatorOsFailures.arenasFull do
+        if g_AllocatorOsFailures.arenasFull
+        {
             return false
+        }
     }
 
     return arena.usedSize + AllocatorSegmentSize <= AllocatorArenaSize
@@ -895,8 +979,11 @@ private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
 
     if not chosen
     {
-        if not allocatorAddArena() do
+        if not allocatorAddArena()
+        {
             return null
+        }
+
         chosen = &g_AllocatorArenas[g_AllocatorArenaCount - 1]
     }
 
@@ -905,14 +992,16 @@ private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
     // not even one asked to free an address that never came from here.
     let arena = chosen
     let base  = arena.base + arena.usedSize
-    if not allocatorOsCommit(base, AllocatorSegmentHeaderBytes) do
+    if not allocatorOsCommit(base, AllocatorSegmentHeaderBytes)
+    {
         return null
+    }
 
     let segment = cast(*AllocatorSegment, base)
     Swag.memset(cast(*void, base), 0, AllocatorSegmentHeaderBytes)
     segment.unitShift  = unitShift
     segment.pageCount  = AllocatorUnitsPerSegment >> unitShift
-    segment.usableMask = segment.pageCount >= 64 ? ~0'u64 : (1'u64 << segment.pageCount) - 1
+    segment.usableMask = segment.pageCount >= 64 ? ~0_u64 : (1_u64 << segment.pageCount) - 1
     segment.magic      = AllocatorSegmentMagic
 
     arena.usedSize += AllocatorSegmentSize
@@ -932,10 +1021,15 @@ func allocatorAcquireSegment(owner: *void, unitShift: u32)->*AllocatorSegment?
         let next = scan.nextSegment
         if scan.unitShift == unitShift
         {
-            if not prev do
+            if not prev
+            {
                 g_AllocatorFreeSegment = next
-            else do
+            }
+            else
+            {
                 prev.nextSegment = next
+            }
+
             scan.nextSegment = null
             scan.prevSegment = null
             scan.allocator   = owner
@@ -947,8 +1041,10 @@ func allocatorAcquireSegment(owner: *void, unitShift: u32)->*AllocatorSegment?
     }
 
     let segment = allocatorCreateSegment(unitShift)
-    if not segment do
+    if not segment
+    {
         return null
+    }
 
     segment.allocator = owner
     return segment
@@ -984,8 +1080,10 @@ func allocatorPageOf(address: u64)->*AllocatorPage?
     // The first arena serves every program that stays under a gibibyte of small blocks, so it is
     // tested first without the loop.
     let first = &g_AllocatorArenas[0]
-    if address - first.base < first.usedSize do
+    if address - first.base < first.usedSize
+    {
         return allocatorPageInSegment(address)
+    }
 
     return allocatorPageInOtherArenas(address)
 }
@@ -994,12 +1092,15 @@ func allocatorPageOf(address: u64)->*AllocatorPage?
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
 private func allocatorPageInOtherArenas(address: u64)->*AllocatorPage?
 {
-    var index = 1'u32
+    var index = 1_u32
     while index < g_AllocatorArenaCount
     {
         let arena = &g_AllocatorArenas[index]
-        if address - arena.base < arena.usedSize do
+        if address - arena.base < arena.usedSize
+        {
             return allocatorPageInSegment(address)
+        }
+
         index += 1
     }
 
@@ -1018,8 +1119,10 @@ func allocatorPageInSegment(address: u64)->*AllocatorPage?
     // therefore means corrupted metadata, checked by the guarded configuration.
     #static if #hastag("Swag.AllocatorSafety")
     {
-        if segment.magic != AllocatorSegmentMagic do
+        if segment.magic != AllocatorSegmentMagic
+        {
             return null
+        }
     }
 
     let unit = cast(u32, ((address >> AllocatorPageShift) & (AllocatorUnitsPerSegment - 1)))

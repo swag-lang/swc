@@ -109,9 +109,11 @@ func fillPartial(out: *Strength, a: u32)
 #[Swag.NoInline]
 func sumWords(words: *[16] u32)->u32
 {
-    var sum = 0'u32
-    for i in 16 do
+    var sum = 0_u32
+    for i in 16
+    {
         sum += words[][i]
+    }
     return sum
 }
 
@@ -169,8 +171,10 @@ func fillCopyAndPass(out: [*] u32, a, b, c, d: u32)
                  out[6] == 70 and
                  out[7] == 0xFFFF)
     sameWord(&out[0], 0xABCD)
-    for i in 8 do
+    for i in 8
+    {
         Swag.require(out[i] == 0xABCD)
+    }
 
     var signed: [8] s16
     alternate(&signed[0], -7, 9)

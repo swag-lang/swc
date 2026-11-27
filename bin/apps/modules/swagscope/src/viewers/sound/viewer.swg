@@ -32,19 +32,23 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 {
     var tags   = SoundTags.read(fileName, withPicture: true)
     var sleeve = embeddedSleeve(&tags, cast(s32, maxSide))
-    if sleeve.isValid() do
+    if sleeve.isValid()
+    {
         return sleeve
+    }
 
     let sound  = try SoundFile.load(fileName, preloadData: false)
-    let width  = cast(s32, Math.max(Math.min(maxSide, 256'u32), 64'u32))
+    let width  = cast(s32, Math.max(Math.min(maxSide, 256_u32), 64_u32))
     let height = width / 2
     let frames = Math.min(sound.sampleFrameCount(), cast(u64, sound.sampleRateHz()) * 10)
     var canvas = try ImageCanvas.create(width, height)
     canvas.clear(Color.fromRgb(248, 249, 250))
-    if not frames do
+    if not frames
+    {
         return try canvas.toImage()
+    }
 
-    var points: Array'WaveformPoint
+    var points: Array!{WaveformPoint}
     points.resize(Math.min(frames, cast(u64, width - 16)))
     var reducer = WaveformReducer{&points, frames, points.count, sound.numChannels()}
     try sound.decodePcm16(0, frames, func|reducer = &reducer|(samples: const [..] s16)->bool
@@ -59,8 +63,8 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
     for point, index in points
     {
         let x    = 8 + cast(f32, index)
-        let peak = Math.max(1'f32, point.peak * (middle - 8))
-        let body = Math.max(1'f32, point.body * (middle - 8))
+        let peak = Math.max(1_f32, point.peak * (middle - 8))
+        let body = Math.max(1_f32, point.body * (middle - 8))
         painter.fillRect({x, middle - peak, 1, peak * 2}, Color.fromRgb(150, 165, 177))
         painter.fillRect({x, middle - body, 1, body * 2}, Color.fromRgb(48, 80, 104))
     }
@@ -77,7 +81,7 @@ private
 
     // Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
     // has to stay ahead of the widest plot a window can give it; past that the columns repeat.
-    const WaveformPointCount = 4096'u64
+    const WaveformPointCount = 4096_u64
 
     // The page of a recording, after `scope.sound`: the cover, the name and who made it, then the
     // wave as a row of bars, with a band under it that keeps the bars clear of the transport.
@@ -85,10 +89,10 @@ private
     const CoverTop    = 88.0       // Distance from the strip to the cover.
     const MinCoverTop = 24.0       // Distance a short window keeps between the strip and the cover.
     const CoverCorner = 12.0       // Corner of the cover, the one of a floating surface.
-    const TitleSize   = 28'u32     // Size of the name of the recording.
+    const TitleSize   = 28_u32     // Size of the name of the recording.
     const TitleGap    = 24.0       // Air between the cover and the name.
     const CreditGap   = 6.0        // Air between the name and who made it.
-    const CreditSize  = 15'u32     // Size of who made it.
+    const CreditSize  = 15_u32     // Size of who made it.
     const WaveWidth   = 1000.0     // Widest the wave stands.
     const WaveBottom  = 84.0       // Distance from the bottom of the page to the bottom of the wave's band.
     const WaveHeight  = 110.0      // Height of the bars at their loudest.
@@ -123,8 +127,10 @@ private var g_EngineWarming: bool
 // it. Call it from the GUI thread, which is the only one that acquires the engine.
 func warmEngine()
 {
-    if g_EngineWarming or g_EngineUsers or isEngineCreated() do
+    if g_EngineWarming or g_EngineUsers or isEngineCreated()
+    {
         return
+    }
 
     g_EngineWarming = true
     g_EngineWarmUp.submit(func()
@@ -148,8 +154,10 @@ func acquireEngine(kind = DriverKind.Default)->bool
     {
         g_EngineWarmUp.wait()
         g_EngineWarming = false
-        if isEngineCreated() do
+        if isEngineCreated()
+        {
             g_ViewerOwnsEngine = true
+        }
     }
 
     if not isEngineCreated()
@@ -165,11 +173,17 @@ func acquireEngine(kind = DriverKind.Default)->bool
 // Drops a reference taken by [[acquireEngine]], destroying the engine with the last one when a viewer created it.
 func releaseEngine()
 {
-    if not g_EngineUsers do
+    if not g_EngineUsers
+    {
         return
+    }
+
     g_EngineUsers -= 1
-    if g_EngineUsers or not g_ViewerOwnsEngine do
+    if g_EngineUsers or not g_ViewerOwnsEngine
+    {
         return
+    }
+
     destroyEngine()
     g_ViewerOwnsEngine = false
 }
@@ -177,8 +191,11 @@ func releaseEngine()
 // Formats the length of a sound for the host summary: milliseconds below one second, seconds with two decimals from there on.
 func durationText(seconds: f32)->String
 {
-    if seconds < 1 do
+    if seconds < 1
+    {
         return Format.toString("% ms", cast(u32, Math.max(Math.round(seconds * 1000), 1)))
+    }
+
     return Format.toString("%{f2} s", seconds)
 }
 
@@ -212,7 +229,7 @@ struct WaveformView
 {
     using wnd:  Wnd
     panel:      *Panel?     // Player the wave seeks, when a click chooses a place.
-    samples:    Array'WaveformPoint
+    samples:    Array!{WaveformPoint}
     readyCount: u64     // Points the builder has published so far.
     duration:   f32
     sceneStart: f32
@@ -232,8 +249,11 @@ impl WaveformView
 
     mtd setSceneAxis(start, span: f32)
     {
-        if .sceneStart == start and .sceneSpan == span do
+        if .sceneStart == start and .sceneSpan == span
+        {
             return
+        }
+
         .sceneStart = start
         .sceneSpan  = span
         .invalidate()
@@ -244,8 +264,10 @@ impl WaveformView
     {
         let repaint = .playedBars(progress) != .playedBars(.progress)
         .progress = progress
-        if repaint do
+        if repaint
+        {
             .invalidate()
+        }
     }
 }
 
@@ -270,8 +292,10 @@ impl SoundLevels
         .peak    = Math.max(.peak, magnitude)
         .squares += cast(f64, value) * cast(f64, value)
         .samples += 1
-        if sample == -32768 or sample >= .ceiling do
+        if sample == -32768 or sample >= .ceiling
+        {
             .fullScale += 1
+        }
     }
 
     // Returns the sample peak in decibels below full scale.
@@ -285,9 +309,12 @@ impl SoundLevels
 // one decimal; silence has no finite level.
 func decibelsText(value: f64)->String
 {
-    if value == Swag.F64.NegInf do
+    if value == Swag.F64.NegInf
+    {
         return String.from("−∞ dBFS")
-    return Format.toString("%{f1} dBFS", value > -0.05 ? 0'f64 : value)
+    }
+
+    return Format.toString("%{f1} dBFS", value > -0.05 ? 0_f64 : value)
 }
 
 // Converts an amplitude relative to full scale into decibels; zero is minus infinity.
@@ -296,7 +323,7 @@ func decibels(amplitude: f64)->f64 => amplitude > 0 ? 20 * Math.log10(amplitude)
 // Reduces successive interleaved PCM16 chunks without retaining their borrowed storage.
 struct WaveformReducer
 {
-    points:       *Array'WaveformPoint
+    points:       *Array!{WaveformPoint}
     frameCount:   u64
     pointCount:   u64
     channels:     u32
@@ -339,7 +366,7 @@ impl WaveformReducer
                 .nextBoundary = target + 1 < .pointCount ? ((target + 1) * .frameCount + .pointCount - 1) / .pointCount : Swag.U64.Max
             }
 
-            var mixed = 0'f32
+            var mixed = 0_f32
             for channel in .channels
             {
                 let sample = samples[frame * .channels + channel]
@@ -358,8 +385,11 @@ impl WaveformReducer
     // Stores the point the last frames were folded into, which no later frame moved past.
     mtd finish()
     {
-        if not .sampleCount or .currentPoint >= .pointCount do
+        if not .sampleCount or .currentPoint >= .pointCount
+        {
             return
+        }
+
         .points[][.currentPoint] = WaveformPoint{.peak, cast(f32, (.sum / cast(f64, .sampleCount)))}
         .readyCount = .currentPoint + 1
     }
@@ -387,10 +417,14 @@ private impl IWnd for WaveformView
             var band = colors.arc
             band.a = 48
             let left = bars.x + Math.clamp(.loopStart, 0, 1) * bars.width
-            if .loopEnd > .loopStart do
+            if .loopEnd > .loopStart
+            {
                 painter.fillRect(Math.Rectangle{left, bars.y, bars.x + Math.clamp(.loopEnd, 0, 1) * bars.width - left, bars.height}, band)
-            else do
+            }
+            else
+            {
                 painter.fillRect(Math.Rectangle{left, bars.y, 1, bars.height}, colors.arc)
+            }
         }
 
         if not .samples.isEmpty()
@@ -403,19 +437,31 @@ private impl IWnd for WaveformView
                 {
                     let begin = .sceneStart + .sceneSpan * cast(f32, bar) / cast(f32, count)
                     let end   = .sceneStart + .sceneSpan * cast(f32, bar + 1) / cast(f32, count)
-                    if end <= 0 do
+                    if end <= 0
+                    {
                         continue
-                    if begin >= .duration do
+                    }
+
+                    if begin >= .duration
+                    {
                         break
+                    }
+
                     first = cast(u64, Math.max(0, begin) / .duration * cast(f32, .samples.count))
                     last  = cast(u64, Math.min(.duration, end) / .duration * cast(f32, .samples.count))
                 }
+
                 last = Math.max(last, first + 1)
-                if first >= .readyCount do
+                if first >= .readyCount
+                {
                     break
-                var level = 0'f32
-                for index in first until Math.min(last, .readyCount) do
+                }
+
+                var level = 0_f32
+                for index in first until Math.min(last, .readyCount)
+                {
                     level = Math.max(level, .samples[index].peak)
+                }
 
                 // A quiet slice still stands as a dot, so the row reads as one wave.
                 let height = Math.max(level * bars.height, BarWidth)
@@ -435,9 +481,9 @@ private impl IWnd for WaveformView
             return
         }
 
-        let x = .surfaceToLocal(evt.surfacePos).x
+        let x        = .surfaceToLocal(evt.surfacePos).x
         let fraction = Math.clamp(x / Math.max(.clientRect().width, 1), 0, 1)
-        let seconds = .sceneSpan > 0 ? .sceneStart + fraction * .sceneSpan : fraction * .duration
+        let seconds  = .sceneSpan > 0 ? .sceneStart + fraction * .sceneSpan : fraction * .duration
         .panel.jumpTo(seconds)
     }
 }
@@ -449,7 +495,7 @@ struct SoundOpenResult
     sound:           SoundFile
     tags:            SoundTags
     coverImage:      Image
-    landmarks:       Array'Landmark
+    landmarks:       Array!{Landmark}
     landmarkWarning: bool
 }
 
@@ -476,7 +522,7 @@ struct Panel
     // Opening runs in the background; its end arrives as a task event.
     sound:        SoundFile
     openFileName: String
-    openTask:     Swag.Task'SoundOpenResult
+    openTask:     Swag.Task!{SoundOpenResult}
     openFinished: bool
     opened:       bool
 
@@ -487,13 +533,13 @@ struct Panel
     levelsRead:    bool            // Whether the whole recording was measured, set with `levels`.
     levelsShown:   bool            // Whether the sheet has been told the levels are known.
 
-    voice:        *Voice?
-    timer:        *Timer?
-    duration:     f32
-    elapsed:      f32
-    engineReady:  bool
-    thumbnail:    bool
-    playing:      bool
+    voice:             *Voice?
+    timer:             *Timer?
+    duration:          f32
+    elapsed:           f32
+    engineReady:       bool
+    thumbnail:         bool
+    playing:           bool
     compactTransport:  bool
     sceneSilent:       bool
     sceneManaged:      bool
@@ -503,17 +549,17 @@ struct Panel
     silentClock:       Time.Stopwatch
     sceneSeek:         (func||(f32))?
     keepPlayingHidden: bool
-    muted:        bool
-    volume:       f32 = 1
-    playbackRate: f64 = 1      // Source seconds played per second; the pitch follows it.
-    loopStart:    f32 = -1     // Second the looped passage starts at, negative without one.
-    loopEnd:      f32 = -1     // Second it ends at, negative while only its start is set.
+    muted:             bool
+    volume:            f32 = 1
+    playbackRate:      f64 = 1      // Source seconds played per second; the pitch follows it.
+    loopStart:         f32 = -1     // Second the looped passage starts at, negative without one.
+    loopEnd:           f32 = -1     // Second it ends at, negative while only its start is set.
 
-    landmarks:          Array'Landmark     // Read-only sidecar cues and markers made in this panel.
-    landmarkWarning:    bool               // A sidecar cue was malformed or outside this recording.
-    sessionMarkerCount: u32                // Number used to name temporary markers in this session.
-    backHistory:        Array'f32          // Bounded session-only seek destinations before the current one.
-    forwardHistory:     Array'f32          // Bounded session-only seek destinations after the current one.
+    landmarks:          Array!{Landmark}     // Read-only sidecar cues and markers made in this panel.
+    landmarkWarning:    bool                 // A sidecar cue was malformed or outside this recording.
+    sessionMarkerCount: u32                  // Number used to name temporary markers in this session.
+    backHistory:        Array!{f32}          // Bounded session-only seek destinations before the current one.
+    forwardHistory:     Array!{f32}          // Bounded session-only seek destinations after the current one.
 
     // What the transport last showed, so a tick that would not change it pushes nothing.
     clockSecond:   s64 = -1     // Whole second the clock was written at.
@@ -537,8 +583,10 @@ impl Panel
     // complete while the levels it measures last are still unknown to the sheet.
     mtd isLoading()->bool
     {
-        if not .openFinished do
+        if not .openFinished
+        {
             return true
+        }
 
         let built = .publishedWaveformCount()
         return .waveformTask.isPending() or
@@ -552,8 +600,10 @@ impl Panel
     // Publishes the file opened in the background and initializes playback on the GUI thread.
     mtd completeOpen() fail
     {
-        if .openFinished do
+        if .openFinished
+        {
             return
+        }
 
         .openFinished = true
         var opened = try .openTask.take()
@@ -573,21 +623,30 @@ impl Panel
         .opened = true
         .waveform.duration = .duration
         .arrangeWave()     // The tags read beside the sound may add a line of credits.
-        if .duration > 0 do
-            .timeline.setBounds(0, .duration, Math.min(0.01'f32, .duration / 100))
+        if .duration > 0
+        {
+            .timeline.setBounds(0, .duration, Math.min(0.01_f32, .duration / 100))
+        }
+
         .startWaveform()
 
         .engineReady = not .thumbnail and acquireEngine()
-        if .engineReady do
+        if .engineReady
+        {
             .playButton.enable(true)
+        }
+
         .backwardButton.enable(.engineReady and .duration > 0)
         .forwardButton.enable(.engineReady and .duration > 0)
         .timeline.enable(.engineReady and .duration > 0)
         .muteButton.enable(.engineReady)
         .volumeSlider.enable(.engineReady)
         .refreshTransport()
-        if not .engineReady do
+        if not .engineReady
+        {
             .playButton.toolTip = texts().ui_NoEngine
+        }
+
         .refreshDetails()
         .services.loadingChanged(me)
     }
@@ -603,14 +662,26 @@ impl Panel
 
         // An adjusted rate and a looped passage are part of what the reader hears, so the summary
         // declares them.
-        if .playbackRate != 1 do
+        if .playbackRate != 1
+        {
             .details = Format.toString("% · %", .details, Viewer.playbackRateText(.playbackRate))
-        if .loopEnd > .loopStart and .loopStart >= 0 do
+        }
+
+        if .loopEnd > .loopStart and .loopStart >= 0
+        {
             .details = Format.toString("% · %", .details, Format.toString(texts().ui_Loop, Viewer.timeText(.loopStart), Viewer.timeText(.loopEnd)))
-        if not .landmarks.isEmpty() do
+        }
+
+        if not .landmarks.isEmpty()
+        {
             .details = Format.toString("% · %", .details, Format.toString(texts().ui_Landmarks, .landmarks.count))
-        if .landmarkWarning do
+        }
+
+        if .landmarkWarning
+        {
             .details = Format.toString("% · %", .details, texts().ui_InvalidCues)
+        }
+
         .services.showDetails(me, .details)
         .invalidate()
     }
@@ -618,8 +689,11 @@ impl Panel
     // Returns the name the page writes: the title the tags give, or the name of the file.
     mtd title()->String
     {
-        if not .tags.title.isEmpty() do
+        if not .tags.title.isEmpty()
+        {
             return String.from(.tags.title)
+        }
+
         return String.from(Path.fileNameWithoutExtension(.openFileName) orelse .openFileName)
     }
 
@@ -631,8 +705,11 @@ impl Panel
         let artist = .tags.artist.isEmpty() ? .tags.albumArtist.toString() : .tags.artist.toString()
         for name in [artist, .tags.album.toString(), .tags.year.toString()] where name.count
         {
-            if not result.isEmpty() do
+            if not result.isEmpty()
+            {
                 result += " · "
+            }
+
             result += name
         }
 
@@ -653,19 +730,22 @@ impl Panel
         {
             // Give the waveform the middle of the cell, above the floating transport.
             let inset = theme.metrics.floating_Inset
-            let area = Math.max(0, room.height - .stripInset())
+            let area  = Math.max(0, room.height - .stripInset())
             result.titleSize = area >= 4 * themeActionButtonSize(&theme.metrics) ? theme.metrics.defaultFontSize + 2 : 0
             let titleHeight = result.titleSize ? theme.createDefaultFont(result.titleSize, .Bold).height + CreditGap : 0
-            let waveHeight = Math.min(WaveHeight, area * 0.25)
-            let top = .stripInset() + Math.max(0, (area * 0.8 - titleHeight - waveHeight) * 0.5)
+            let waveHeight  = Math.min(WaveHeight, area * 0.25)
+            let top         = .stripInset() + Math.max(0, (area * 0.8 - titleHeight - waveHeight) * 0.5)
             result.titleTop = top
-            result.wave = {inset, top + titleHeight, Math.max(1, room.width - 2 * inset), waveHeight}
+            result.wave     = {inset, top + titleHeight, Math.max(1, room.width - 2 * inset), waveHeight}
             return result
         }
+
         let hasCredits = not .credits().isEmpty()
-        var words = TitleGap + theme.createDefaultFont(TitleSize, .Bold).height
-        if hasCredits do
+        var words      = TitleGap + theme.createDefaultFont(TitleSize, .Bold).height
+        if hasCredits
+        {
             words += CreditGap + theme.createDefaultFont(CreditSize).height
+        }
 
         let wave  = WaveHeight + TimesGap + TimesHeight
         let strip = .stripInset()
@@ -676,7 +756,7 @@ impl Panel
         var side   = CoverSize
         var top    = strip + Math.clamp(spare, MinCoverTop, CoverTop)
         var gap    = TitleGap
-        var inset  = 48'f32
+        var inset  = 48_f32
         var height = wave
         var waveY  = Math.max(room.height - WaveBottom - wave, top + side + words + WaveGap)
         if waveY + WaveHeight > room.bottom()
@@ -690,16 +770,19 @@ impl Panel
             result.titleSize   = cast(u32, Math.clamp(Math.round(available * 0.075), smallTitle, cast(f32, TitleSize)))
             result.showCredits = result.showCredits and available >= CoverSize
             words = theme.createDefaultFont(result.titleSize, .Bold).height
-            if result.showCredits do
+            if result.showCredits
+            {
                 words += CreditGap + theme.createDefaultFont(CreditSize).height
+            }
+
             side = Math.max(0, Math.min(Math.min(CoverSize, room.width - 2 * inset), waveY - strip - words - 3 * gap))
             top  = strip + (waveY - strip - side - words - gap) * 0.5
         }
 
         result.cover    = {Math.round((room.width - side) * 0.5), top, side, side}
         result.titleTop = result.cover.bottom() + gap
-        let width       = Math.min(WaveWidth, Math.max(room.width - 2 * inset, 1))
-        result.wave     = {Math.round((room.width - width) * 0.5), waveY, width, Math.min(height, Math.max(0, room.bottom() - waveY))}
+        let width = Math.min(WaveWidth, Math.max(room.width - 2 * inset, 1))
+        result.wave = {Math.round((room.width - width) * 0.5), waveY, width, Math.min(height, Math.max(0, room.bottom() - waveY))}
         return result
     }
 
@@ -719,19 +802,27 @@ impl Panel
         .muteButton.toolTip     = texts().ui_TipMute
         .optionsButton.toolTip  = appStrings().ui_Options
         .timeline.toolTip       = texts().ui_TipSeek
-        if not .opened do
+        if not .opened
+        {
             return
+        }
 
-        if not .engineReady do
+        if not .engineReady
+        {
             .playButton.toolTip = texts().ui_NoEngine
+        }
+
         .refreshDetails()
     }
 
     // Finishes teardown once neither task can touch the sound or waveform storage.
     mtd finishRetire()
     {
-        if .retired do
+        if .retired
+        {
             return
+        }
+
         .openTask.wait()
         .waveformTask.wait()
         .retired = true
@@ -740,8 +831,11 @@ impl Panel
     // Requests teardown without waiting on the GUI thread, and reports whether deferred GUI destruction may release this view.
     mtd retire()->bool
     {
-        if .retired do
+        if .retired
+        {
             return true
+        }
+
         if not .retireRequested
         {
             .retireRequested = true
@@ -764,8 +858,11 @@ impl Panel
             .waveformTask.cancel()
         }
 
-        if .openTask.isPending() or .waveformTask.isPending() do
+        if .openTask.isPending() or .waveformTask.isPending()
+        {
             return false
+        }
+
         .finishRetire()
         return true
     }
@@ -803,8 +900,10 @@ impl Panel
         let frameCount = .sound.sampleFrameCount()
         let pointCount = .waveform.samples.count
         let channels   = .sound.numChannels()
-        if not frameCount or not pointCount or not channels do
+        if not frameCount or not pointCount or not channels
+        {
             return
+        }
 
         var reducer = WaveformReducer{&.waveform.samples, frameCount, pointCount, channels}
 
@@ -844,8 +943,11 @@ impl Panel
     mtd startWaveform()
     {
         let pointCount = Math.min(.sound.sampleFrameCount(), WaveformPointCount)
-        if not pointCount do
+        if not pointCount
+        {
             return
+        }
+
         .waveform.samples.resize(pointCount)
         .waveformTask.submit(func|view = me|() { view.buildWaveformInBackground() }, .taskNotifier(&.waveformTask), .Background)
     }
@@ -860,8 +962,11 @@ impl Panel
         }
 
         let ready = .publishedWaveformCount()
-        if ready == .waveform.readyCount do
+        if ready == .waveform.readyCount
+        {
             return
+        }
+
         .waveform.readyCount = ready
         .waveform.invalidate()
     }
@@ -911,14 +1016,20 @@ impl Panel
 
     mtd ensureVoice()->bool
     {
-        if .voice do
+        if .voice
+        {
             return true
+        }
+
         catch
         {
             .voice = try Voice.create(&.sound)
             catch .voice.setVolume(.muted or .sceneSilent ? 0 : .volume)
-            if .playbackRate != 1 do
+            if .playbackRate != 1
+            {
                 catch .voice.setFrequencyRatio(cast(f32, .playbackRate))
+            }
+
             return true
         }
 
@@ -931,17 +1042,24 @@ impl Panel
         let target = Math.clamp(seconds, 0, .duration)
         if .sceneSilent
         {
-            if remember and Math.abs(target - origin) >= 0.25 do
+            if remember and Math.abs(target - origin) >= 0.25
+            {
                 .rememberNavigation(origin)
+            }
+
             .silentOrigin = target
-            .elapsed = target
+            .elapsed      = target
             .silentClock.restart()
             .refreshTransport()
             return
         }
-        if not .engineReady or not .ensureVoice() do
+
+        if not .engineReady or not .ensureVoice()
+        {
             return
-        let frame  = cast(u64, Math.round(target * cast(f32, .sound.sampleRateHz())))
+        }
+
+        let frame = cast(u64, Math.round(target * cast(f32, .sound.sampleRateHz())))
         catch .voice!.seekSampleFrame(frame)
         {
             return
@@ -959,8 +1077,11 @@ impl Panel
             }
         }
 
-        if remember and Math.abs(target - origin) >= 0.25 do
+        if remember and Math.abs(target - origin) >= 0.25
+        {
             .rememberNavigation(origin)
+        }
+
         .elapsed = target
         .refreshTransport()
     }
@@ -968,30 +1089,48 @@ impl Panel
     // Retains only recent positions, in this panel's memory. Opening another file starts a new session.
     mtd rememberNavigation(seconds: f32)
     {
-        if not .backHistory.isEmpty() and Math.abs(.backHistory.back() - seconds) < 0.25 do
+        if not .backHistory.isEmpty() and Math.abs(.backHistory.back() - seconds) < 0.25
+        {
             return
-        if .backHistory.count >= 128 do
+        }
+
+        if .backHistory.count >= 128
+        {
             .backHistory.removeAtOrdered(0)
+        }
+
         .backHistory.add(seconds)
         .forwardHistory.clear()
     }
 
     mtd navigateBack()
     {
-        if .backHistory.isEmpty() do
+        if .backHistory.isEmpty()
+        {
             return
-        if .forwardHistory.count >= 128 do
+        }
+
+        if .forwardHistory.count >= 128
+        {
             .forwardHistory.removeAtOrdered(0)
+        }
+
         .forwardHistory.add(.playbackPosition())
         .jumpTo(.backHistory.popBack(), remember: false)
     }
 
     mtd navigateForward()
     {
-        if .forwardHistory.isEmpty() do
+        if .forwardHistory.isEmpty()
+        {
             return
-        if .backHistory.count >= 128 do
+        }
+
+        if .backHistory.count >= 128
+        {
             .backHistory.removeAtOrdered(0)
+        }
+
         .backHistory.add(.playbackPosition())
         .jumpTo(.forwardHistory.popBack(), remember: false)
     }
@@ -999,8 +1138,8 @@ impl Panel
     // Drops cue entries that do not belong to the decoded recording's audible timeline.
     mtd validateSidecarLandmarks()
     {
-        var accepted: Array'Landmark
-        var previous = -1'f32
+        var accepted: Array!{Landmark}
+        var previous = -1_f32
         for &mark in .landmarks where mark.source == .Sidecar
         {
             if mark.seconds > .duration or mark.seconds < previous
@@ -1020,22 +1159,26 @@ impl Panel
     {
         let seconds = Math.clamp(.playbackPosition(), 0, .duration)
         for &mark in .landmarks where mark.source == .Session and Math.abs(mark.seconds - seconds) < 0.25
-            do
+        {
             return
+        }
+
         .sessionMarkerCount += 1
         .landmarks.add(Landmark{seconds, Format.toString(texts().word_Marker, .sessionMarkerCount), .Session})
     }
 
     mtd seekLandmark(index: u64)
     {
-        if index < .landmarks.count do
+        if index < .landmarks.count
+        {
             .jumpTo(.landmarks[index].seconds)
+        }
     }
 
     mtd seekPreviousLandmark()
     {
         var target = Swag.U64.Max
-        var latest = -1'f32
+        var latest = -1_f32
         for mark, index in .landmarks where mark.seconds < .playbackPosition() - 0.05
         {
             if mark.seconds > latest
@@ -1045,8 +1188,10 @@ impl Panel
             }
         }
 
-        if target != Swag.U64.Max do
+        if target != Swag.U64.Max
+        {
             .seekLandmark(target)
+        }
     }
 
     mtd seekNextLandmark()
@@ -1062,8 +1207,10 @@ impl Panel
             }
         }
 
-        if target != Swag.U64.Max do
+        if target != Swag.U64.Max
+        {
             .seekLandmark(target)
+        }
     }
 
     // Validates a direct-time prompt against the captured playback position and recording length.
@@ -1071,15 +1218,17 @@ impl Panel
     mtd createTimeDialog()->*EditDlg
     {
         let strings = texts()
-        return Viewer.createTimeDialog(me, .playbackPosition(), .duration, strings.cmd_GoToTime,
-                                       strings.ui_TimeHelp, strings.ui_TimeError, strings.ui_Go, func(view, target) { view.jumpTo(cast(f32, target)) })
+        return Viewer.createTimeDialog(me, .playbackPosition(), .duration, strings.cmd_GoToTime, strings.ui_TimeHelp, strings.ui_TimeError, strings.ui_Go, func(view, target) { view.jumpTo(cast(f32, target)) })
     }
 
     // Opens the prompt only for a playable recording; seeking leaves its paused/playing state in force.
     mtd promptGoToTime()
     {
-        if not .surface or not .engineReady or .duration <= 0 do
+        if not .surface or not .engineReady or .duration <= 0
+        {
             return
+        }
+
         discard .createTimeDialog().doModal()
     }
 
@@ -1119,26 +1268,36 @@ impl Panel
 
         entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), defaultKey: {modifiers: .None, key: .M}, bindId: "scope.sound.mute")
 
-        entries.add(texts.cmd_PlayMode, .RepeatAll, func|view = me|()
-        {
-            view.playModeButton.showOptions(view.optionsButton.isLocallyVisible() ? view.optionsButton : null)
-        }, bindId: "scope.sound.playMode")
+        entries.add(texts.cmd_PlayMode,
+                    .RepeatAll,
+                    func|view = me|()
+                    {
+                        view.playModeButton.showOptions(view.optionsButton.isLocallyVisible() ? view.optionsButton : null)
+                    },
+                    bindId: "scope.sound.playMode")
 
         // The rate is stepped like a film's, and the row reads the rate in force.
         let faster = entries.add(strings.cmd_Faster, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, 1)) }, disabled: .playbackRate >= Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1], bindId: "scope.sound.faster")
-        if faster do
+        if faster
+        {
             faster.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Right))
+        }
+
         let slower = entries.add(strings.cmd_Slower, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, -1)) }, disabled: .playbackRate <= Viewer.PlaybackRates[0], bindId: "scope.sound.slower")
-        if slower do
+        if slower
+        {
             slower.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Left))
+        }
 
         entries.add(Format.toString(texts.cmd_CopyTime, Viewer.timeText(cast(f64, .playbackPosition()))), .Copy, func|view = me|() { Clipboard.setString(Viewer.timeText(cast(f64, view.playbackPosition()))) }, disabled: not ready, bindId: "scope.sound.copyTime")
 
         // A passage is looped between two points the reader marks while listening.
         entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not ready, defaultKey: {modifiers: .None, key: .Oem4}, bindId: "scope.sound.loopStart")
         entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not ready, defaultKey: {modifiers: .None, key: .Oem6}, bindId: "scope.sound.loopEnd")
-        if .loopStart >= 0 do
+        if .loopStart >= 0
+        {
             entries.add(strings.cmd_LoopClear, .RepeatAll, func|view = me|() { view.clearLoop() }, bindId: "scope.sound.loopClear")
+        }
     }
 
     // Plays the recording at `rate` source seconds per second, the pitch following it. Positions
@@ -1146,16 +1305,23 @@ impl Panel
     // that refuses the ratio keeps its own rate.
     mtd setPlaybackRate(rate: f64)
     {
-        if rate == .playbackRate do
+        if rate == .playbackRate
+        {
             return
+        }
+
         if .sceneSilent
         {
             .silentOrigin = .playbackPosition()
             .silentClock.restart()
         }
+
         .playbackRate = rate
-        if .voice do
+        if .voice
+        {
             catch .voice.setFrequencyRatio(cast(f32, rate))
+        }
+
         .refreshDetails()
     }
 
@@ -1163,11 +1329,17 @@ impl Panel
     // recording that cannot play has no passage to repeat.
     mtd setLoopStart()
     {
-        if not .engineReady do
+        if not .engineReady
+        {
             return
+        }
+
         .loopStart = .playbackPosition()
-        if .loopEnd <= .loopStart do
+        if .loopEnd <= .loopStart
+        {
             .loopEnd = -1
+        }
+
         .refreshLoop()
     }
 
@@ -1175,12 +1347,18 @@ impl Panel
     // none was set. A point at or before the start sets nothing.
     mtd setLoopEnd()
     {
-        if not .engineReady do
+        if not .engineReady
+        {
             return
+        }
+
         let position = .playbackPosition()
         let start    = .loopStart >= 0 ? .loopStart : 0
-        if position <= start do
+        if position <= start
+        {
             return
+        }
+
         .loopStart = start
         .loopEnd   = position
         .refreshLoop()
@@ -1208,8 +1386,11 @@ impl Panel
     // whether it did.
     mtd followLoop()->bool
     {
-        if .loopStart < 0 or .loopEnd <= .loopStart or .elapsed < .loopEnd do
+        if .loopStart < 0 or .loopEnd <= .loopStart or .elapsed < .loopEnd
+        {
             return false
+        }
+
         .seekSeconds(.loopStart)
         return true
     }
@@ -1222,6 +1403,7 @@ impl Panel
             let seconds = .playing ? cast(f64, .silentClock.elapsedMicroseconds()) / 1_000_000.0 * .playbackRate : 0
             return Math.min(.duration, .silentOrigin + cast(f32, seconds))
         }
+
         return .voice ? cast(f32, .voice.playbackPositionSeconds()) : .elapsed
     }
 
@@ -1229,22 +1411,30 @@ impl Panel
     mtd jumpTo(seconds: f32, remember = true)
     {
         .seekSeconds(seconds, remember)
-        if .sceneSeek do
+        if .sceneSeek
+        {
             .sceneSeek(seconds)
+        }
     }
 
     mtd seekRelative(seconds: f32) => .jumpTo(.playbackPosition() + seconds)
 
     mtd setSceneSilent(silent: bool)
     {
-        if .sceneSilent == silent do
+        if .sceneSilent == silent
+        {
             return
+        }
+
         let pos = .playbackPosition()
         .sceneSilent = silent
         if silent
         {
-            if .voice do
+            if .voice
+            {
                 catch .voice.pause()
+            }
+
             .silentOrigin = pos
             .silentClock.restart()
         }
@@ -1259,8 +1449,10 @@ impl Panel
         .muted = muted
         .muteButton.setChecked(muted)
         .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, themeActionIconSize(.themeMetrics())))
-        if .voice do
+        if .voice
+        {
             catch .voice.setVolume(muted or .sceneSilent ? 0 : .volume)
+        }
     }
 
     // Sets the playback volume, from 0 to 1, and shows it on the volume slider.
@@ -1271,22 +1463,28 @@ impl Panel
         let requested = Math.clamp(volume, 0, 1)
         .volumeSlider.setValueWithoutGesture(requested)
         .volume = requested
-        if .voice and not .muted and not .sceneSilent do
+        if .voice and not .muted and not .sceneSilent
+        {
             catch .voice.setVolume(.volume)
+        }
     }
 
     // Pauses or plays the sound, creating its voice on first use. Does nothing until the sound
     // engine is ready, or when the device refuses.
     mtd requestPlaybackToggle()
     {
-        if not .sceneToggle or not .sceneToggle() do
+        if not .sceneToggle or not .sceneToggle()
+        {
             .togglePlayback()
+        }
     }
 
     mtd requestPlaybackStop()
     {
-        if not .sceneStop or not .sceneStop() do
+        if not .sceneStop or not .sceneStop()
+        {
             .stopPlayback()
+        }
     }
 
     mtd togglePlayback()
@@ -1294,15 +1492,21 @@ impl Panel
         if .sceneSilent
         {
             .silentOrigin = .playbackPosition()
-            .playing = not .playing
-            if .playing and .silentOrigin >= .duration do
+            .playing      = not .playing
+            if .playing and .silentOrigin >= .duration
+            {
                 .silentOrigin = 0
+            }
+
             .silentClock.restart()
             .refreshTransport()
             return
         }
-        if not .engineReady or not .ensureVoice() do
+
+        if not .engineReady or not .ensureVoice()
+        {
             return
+        }
 
         if .playing
         {
@@ -1336,8 +1540,8 @@ impl Panel
             }
         }
 
-        .playing = false
-        .elapsed = 0
+        .playing      = false
+        .elapsed      = 0
         .silentOrigin = 0
         .silentClock.reset()
         .refreshTransport()
@@ -1351,8 +1555,10 @@ impl Panel
     {
         let continuation = .services.finished(me)
         .stopPlayback()
-        if continuation == .Replay do
+        if continuation == .Replay
+        {
             .togglePlayback()
+        }
     }
 }
 
@@ -1360,8 +1566,11 @@ impl IWnd for Panel
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .retranslate()
+        }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
@@ -1369,8 +1578,10 @@ impl IWnd for Panel
     // hidden player pauses: neither its sound nor its end may go on behind another viewer.
     mtd impl onStateEvent(evt: *StateEvent)
     {
-        if evt.kind == .Hide and .playing and not .keepPlayingHidden do
+        if evt.kind == .Hide and .playing and not .keepPlayingHidden
+        {
             .togglePlayback()
+        }
     }
 
     mtd impl onTaskEvent(evt: *TaskEvent)
@@ -1398,24 +1609,31 @@ impl IWnd for Panel
             return
         }
 
-        if not .openFinished do
+        if not .openFinished
+        {
             return
+        }
 
         .syncWaveform()
-        if not .playing or (not .voice and not .sceneSilent) do
+        if not .playing or (not .voice and not .sceneSilent)
+        {
             return
+        }
+
         .elapsed = .playbackPosition()
 
-        if .followLoop() do
+        if .followLoop()
+        {
             return
+        }
 
         if .elapsed >= .duration
         {
             if .sceneManaged
             {
-                .playing = false
+                .playing      = false
                 .silentOrigin = .duration
-                .elapsed = .duration
+                .elapsed      = .duration
                 .refreshTransport()
             }
             else
@@ -1432,14 +1650,18 @@ impl IWnd for Panel
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .retireBlocking()
-        if .cover.isValid() do
+        if .cover.isValid()
+        {
             .app().renderer.removeTexture(&.cover)
+        }
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .waveform != null do
+        if .waveform != null
+        {
             .arrangeWave()
+        }
     }
 
     // Crop the sleeve square or draw the same record motif as the explorer for a missing cover.
@@ -1475,10 +1697,16 @@ impl IWnd for Panel
         let room    = .clientRect()
         let layout  = .pageLayout()
         painter.setParams(.Antialiased)
-        if not layout.cover.isEmpty() do
+        if not layout.cover.isEmpty()
+        {
             .paintCover(painter, layout.cover)
-        if not layout.titleSize do
+        }
+
+        if not layout.titleSize
+        {
             return
+        }
+
         let titleFont = .theme().createDefaultFont(layout.titleSize, .Bold)
         let textWidth = Math.max(0, room.width - 2 * .themeMetrics().floating_Inset)
         let title     = Painter.elideString(.title(), titleFont, textWidth, .deviceScale())
@@ -1554,10 +1782,11 @@ impl Panel
     {
         with .optionsButton = Viewer.createOptionsButton(.commands)
         {
-            .dockStyle = .Right
+            .dockStyle  = .Right
             .sigPressed += func|view = me|(_) { view.showCompactOptions() }
             .hide()
         }
+
         with .playModeButton = Viewer.PlaybackButton.create(.commands, me, .services.playback)
         {
             .dockStyle = .Right
@@ -1644,13 +1873,19 @@ impl Panel
 
     mtd setCompactTransport(compact: bool)
     {
-        if compact == .compactTransport do
+        if compact == .compactTransport
+        {
             return
-        .compactTransport = compact
+        }
+
+        .compactTransport   = compact
         .timeline.dockStyle = compact ? .Center : .Top
-        .timeline.margin = compact ? Math.Vector4{6, 0, 6, 0} : Math.Vector4{12, 0, 12, 8}
-        if not compact do
+        .timeline.margin    = compact ? Math.Vector4{6, 0, 6, 0} : Math.Vector4{12, 0, 12, 8}
+        if not compact
+        {
             .timeline.resize(.timeline.position.width, 28, computeLayout: false)
+        }
+
         .commands.resize(.commands.position.width, compact ? themeActionButtonSize(.themeMetrics()) : TransportHeight)
         .arrangeWave()
         .invalidate()
@@ -1658,10 +1893,10 @@ impl Panel
 
     mtd fitTransport()
     {
-        let width = .commands.position.width
-        let action = themeActionButtonSize(.themeMetrics())
-        let pair = action + .playModeButton.position.width + .playModeButton.margin.x
-        let sound = pair + .muteButton.position.width + .muteButton.margin.x
+        let width   = .commands.position.width
+        let action  = themeActionButtonSize(.themeMetrics())
+        let pair    = action + .playModeButton.position.width + .playModeButton.margin.x
+        let sound   = pair + .muteButton.position.width + .muteButton.margin.x
         let options = .compactTransport or width < sound
         .optionsButton.show(options)
         .playModeButton.show(not options)
@@ -1675,19 +1910,28 @@ impl Panel
 
     mtd showCompactOptions()
     {
-        let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page)
-        {
-            let text = appStrings()
-            let size = themeRowIconSize(view.themeMetrics())
-            page.addAction(text.cmd_Stop, func|view|() { view.requestPlaybackStop() }, disabled: not view.stopButton.isEnabled(),
-                           icon: view.theme().icon(.Stop, size))
-            page.addToggle(text.cmd_Mute, view.muted, func|view|(on) { view.setMuted(on) }, disabled: not view.muteButton.isEnabled(),
-                           icon: view.theme().icon(.VolumeMute, size))
-            page.addStepper(texts().ui_TipVolume, Viewer.zoomText(cast(u32, Math.round(view.volume * 100))),
-                            func|view|(step) { view.setVolume(Math.clamp(view.volume + cast(f32, step) * Viewer.VolumeStep, 0, 1)) },
-                            view.volumeSlider.isEnabled() and view.volume > 0, view.volumeSlider.isEnabled() and view.volume < 1)
-            view.services.playback.addOptionRows(page, view)
-        }, owner: me)
+        let sheet = OptionSheet.View.create(.optionsButton,
+                                            func|view = me|(page)
+                                            {
+                                                let text = appStrings()
+                                                let size = themeRowIconSize(view.themeMetrics())
+                                                page.addAction(text.cmd_Stop,
+                                                               func|view|() { view.requestPlaybackStop() },
+                                                               disabled: not view.stopButton.isEnabled(),
+                                                               icon: view.theme().icon(.Stop, size))
+                                                page.addToggle(text.cmd_Mute,
+                                                               view.muted,
+                                                               func|view|(on) { view.setMuted(on) },
+                                                               disabled: not view.muteButton.isEnabled(),
+                                                               icon: view.theme().icon(.VolumeMute, size))
+                                                page.addStepper(texts().ui_TipVolume,
+                                                                Viewer.zoomText(cast(u32, Math.round(view.volume * 100))),
+                                                                func|view|(step) { view.setVolume(Math.clamp(view.volume + cast(f32, step) * Viewer.VolumeStep, 0, 1)) },
+                                                                view.volumeSlider.isEnabled() and view.volume > 0,
+                                                                view.volumeSlider.isEnabled() and view.volume < 1)
+                                                view.services.playback.addOptionRows(page, view)
+                                            },
+                                            owner: me)
         sheet.doModal(.optionsButton, autoDestroy: true)
     }
 
@@ -1697,7 +1941,7 @@ impl Panel
     {
         let services = host.services()
 
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.sound")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.sound")
         {
             .backgroundStyle = .View
             .services        = services
@@ -1709,18 +1953,21 @@ impl Panel
         result.createTransportBar()
         result.commands.hookOnEvent = func|view = result|(_, evt)->bool
         {
-            if evt is ResizeEvent do
+            if evt is ResizeEvent
+            {
                 view.fitTransport()
+            }
+
             return false
         }
 
-        with result.waveform = Wnd.create'WaveformView(result, "scope.sound.waveform")
+        with result.waveform = Wnd.create!{WaveformView}(result, "scope.sound.waveform")
         {
             .panel = result
             .backgroundStyle = .Transparent
         }
 
-        result.timer = result.addTimer(33'ms)
+        result.timer = result.addTimer(33_ms)
         result.refreshTransport()
         result.applyLayout()
         result.arrangeWave()
@@ -1737,8 +1984,11 @@ impl Panel
             opened.landmarks       = #move cueSidecar.markers
             opened.landmarkWarning = cueSidecar.invalid
             opened.coverImage      = embeddedSleeve(&opened.tags)
-            if not opened.coverImage.isValid() do
+            if not opened.coverImage.isValid()
+            {
                 opened.coverImage = localSleeve(view.openFileName)
+            }
+
             opened.sound = try SoundFile.load(view.openFileName, preloadData: false)
             return opened
         },
@@ -1754,15 +2004,21 @@ impl Panel
     mtd describeInformation(sheet: *InfoSheet)
     {
         var data: MediaInfoData
-        if .duration > 0 do
+        if .duration > 0
+        {
             data.addFigure(.Duration, durationText(.duration))
+        }
+
         data.add(.Sound, group: true)
 
         // How the samples are stored, then the throughput of that payload over the length.
         data.add(.Format, encodingText(.sound.sampleEncoding()))
         let bitrate = videoBitrate(.sound.payloadSize(), cast(f64, .duration))
-        if bitrate.count do
+        if bitrate.count
+        {
             data.add(.Bitrate, bitrate)
+        }
+
         data.add(.SampleRate, Format.toString("% Hz", .sound.sampleRateHz()))
         data.add(.Channels, channelsText(cast(u32, .sound.numChannels())))
         data.add(.SampleSize, Format.toString("% bit", .sound.sampleStorageBits()))
@@ -1774,8 +2030,10 @@ impl Panel
             for row in [{field: MediaInfoField.Title, value: .tags.title.toString()}, {field: MediaInfoField.Artist, value: .tags.artist.toString()},
                         {field: MediaInfoField.Album, value: .tags.album.toString()}, {field: MediaInfoField.AlbumArtist, value: .tags.albumArtist.toString()},
                         {field: MediaInfoField.Year, value: .tags.year.toString()}, {field: MediaInfoField.TrackNumber, value: .tags.track.toString()},
-                        {field: MediaInfoField.Disc, value: .tags.disc.toString()}, {field: MediaInfoField.Genre, value: .tags.genre.toString()}] where row.value.count do
+                        {field: MediaInfoField.Disc, value: .tags.disc.toString()}, {field: MediaInfoField.Genre, value: .tags.genre.toString()}] where row.value.count
+            {
                 data.add(row.field, row.value)
+            }
         }
 
         // The levels are known once the waveform worker has read every sample.
@@ -1814,8 +2072,11 @@ func createViewer(host: Viewer.Host)
 private func fitSleeve(image: *Image, side = cast(s32, CoverSize * 2))
 {
     let largest = Math.max(image.width, image.height)
-    if largest <= side do
+    if largest <= side
+    {
         return
+    }
+
     let scale = cast(f32, side) / cast(f32, largest)
     image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)), Math.max(1, cast(s32, cast(f32, image.height) * scale)), .Bilinear)
 }
@@ -1829,8 +2090,10 @@ func embeddedSleeve(tags: *SoundTags, side = cast(s32, CoverSize * 2))->Image
     if not tags.picture.isEmpty()
     {
         result = catch Image.decode(tags.pictureExtension.toString(), tags.picture.toSlice()) orelse {}
-        if result.isValid() do
+        if result.isValid()
+        {
             fitSleeve(&result, side)
+        }
     }
 
     tags.picture.clear()
@@ -1842,16 +2105,22 @@ func embeddedSleeve(tags: *SoundTags, side = cast(s32, CoverSize * 2))->Image
 // comes first; this one is shared by the folder.
 func localSleeve(fileName: string)->Image
 {
-    const MaxBytes = 16'u64 * 1024 * 1024
+    const MaxBytes = 16_u64 * 1024 * 1024
     let folder = Path.directoryName(fileName) orelse ""
     for name in ["cover.jpg", "folder.jpg", "front.jpg", "cover.png", "folder.png", "front.png"]
     {
         let candidate = Path.combine(folder, name)
-        if not File.exists(candidate) do
+        if not File.exists(candidate)
+        {
             continue
+        }
+
         let info = catch File.info(candidate) { continue }
-        if info.size > MaxBytes do
+        if info.size > MaxBytes
+        {
             continue
+        }
+
         var image = catch Image.load(candidate) { continue }
         fitSleeve(&image)
         return image

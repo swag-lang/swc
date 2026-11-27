@@ -69,8 +69,10 @@ func countFieldsOfType(info: const *Swag.TypeInfoStruct, target: const *Swag.Typ
     let fields = unwrap info.fields
     for i in fields.count
     {
-        if fields[i].pointedType == target do
+        if fields[i].pointedType == target
+        {
             n += 1
+        }
     }
     return n
 }
@@ -96,8 +98,10 @@ func nameFingerprint(info: const *Swag.TypeInfoStruct)->s32
     for i in fields.count
     {
         let name = fields[i].name
-        if name.count > 0 do
+        if name.count > 0
+        {
             fp += cast(s32, name![0])
+        }
     }
     return fp
 }
@@ -140,8 +144,10 @@ func levelName(level: LogLevel)->string
     for i in info.values.count
     {
         let stored = cast(const *LogLevel, unwrap info.values[i].value)
-        if stored[] == level do
+        if stored[] == level
+        {
             return unwrap info.values[i].name
+        }
     }
     return "unknown"
 }

@@ -49,8 +49,10 @@ func mixinConditionalDefer(shouldFail: bool) fail
 {
     defer #fail appendDeferTrace(1)
     defer #nofail appendDeferTrace(2)
-    if shouldFail do
+    if shouldFail
+    {
         fail ErrCompilerDefer{}
+    }
 }
 
 #[Swag.Macro]

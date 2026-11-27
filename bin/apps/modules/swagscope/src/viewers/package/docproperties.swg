@@ -15,7 +15,7 @@ struct DocumentProperties
 }
 
 // The largest property part read; properties are a few kilobytes.
-const DocumentPropertiesLimit = 256'u64 * 1024
+const DocumentPropertiesLimit = 256_u64 * 1024
 
 impl DocumentProperties
 {
@@ -41,8 +41,11 @@ impl DocumentProperties
             result.title   = elementText(text, "title")
             result.author  = elementText(text, "creator")
             result.created = dayOf(elementText(text, "created"))
-            if let application = archive.tryFindEntry("docProps/app.xml") do
+            if let application = archive.tryFindEntry("docProps/app.xml")
+            {
                 result.application = elementText(readPart(fileName, application), "Application")
+            }
+
             return result
         }
 
@@ -53,8 +56,11 @@ impl DocumentProperties
             let text = readPart(fileName, meta)
             result.title  = elementText(text, "title")
             result.author = elementText(text, "initial-creator")
-            if result.author.isEmpty() do
+            if result.author.isEmpty()
+            {
                 result.author = elementText(text, "creator")
+            }
+
             result.created = dayOf(elementText(text, "creation-date"))
             let generator = elementText(text, "generator")
             let build     = Utf8.indexOf(generator, "$")
@@ -70,17 +76,31 @@ impl DocumentProperties
     // Appends what the document says of itself to the information sheet, under a heading of its own.
     mtd const describe(data: *MediaInfoData)
     {
-        if .isEmpty() do
+        if .isEmpty()
+        {
             return
+        }
+
         data.add(.Document, group: true)
-        if not .title.isEmpty() do
+        if not .title.isEmpty()
+        {
             data.add(.Title, .title)
-        if not .author.isEmpty() do
+        }
+
+        if not .author.isEmpty()
+        {
             data.add(.Author, .author)
-        if not .created.isEmpty() do
+        }
+
+        if not .created.isEmpty()
+        {
             data.add(.Created, .created)
-        if not .application.isEmpty() do
+        }
+
+        if not .application.isEmpty()
+        {
             data.add(.Application, .application)
+        }
     }
 }
 
@@ -88,8 +108,11 @@ impl DocumentProperties
 private func readPart(fileName: string, entry: const *Archive.ZipEntry)->String
 {
     var result: #returntype
-    if entry.uncompressedSize > DocumentPropertiesLimit do
+    if entry.uncompressedSize > DocumentPropertiesLimit
+    {
         return result
+    }
+
     let bytes = catch Archive.Zip.loadEntry(fileName, entry) { return result; }
     result = String.from(cast(string, bytes.toSlice()))
     return result
@@ -107,16 +130,22 @@ private func elementText(source: String, name: string)->String
         switch token.kind
         {
         case .Start:
-            if not token.empty and token.isElement(name) do
+            if not token.empty and token.isElement(name)
+            {
                 inside = true
+            }
 
         case .Text:
-            if inside do
+            if inside
+            {
                 result += token.text
+            }
 
         case .End:
-            if inside and token.isElement(name) do
+            if inside and token.isElement(name)
+            {
                 return String.from(Latin1.trim(result.toString()))
+            }
         }
     }
 
@@ -127,7 +156,10 @@ private func elementText(source: String, name: string)->String
 private func dayOf(value: String)->String
 {
     let text = value.toString()
-    if text.count >= 10 and text[4] == '-'u8 and text[7] == '-'u8 do
+    if text.count >= 10 and text[4] == '-'_u8 and text[7] == '-'_u8
+    {
         return String.from(text[0 until 10])
+    }
+
     return value
 }

@@ -37,9 +37,9 @@ Once your Intcode computer is fully functional, the BOOST program should report 
 
 using Core
 
-private func run(op: *Array's64, input: s64)->s64
+private func run(op: *Array!{s64}, input: s64)->s64
 {
-    var output, ip, base = 0's64
+    var output, ip, base = 0_s64
 
     #[Swag.Mixin]
     func valp(offset: u64)->*s64
@@ -54,10 +54,16 @@ private func run(op: *Array's64, input: s64)->s64
     #[Swag.Mixin]
     func parameterAddress(offset, mode: s64)->s64
     {
-        if mode == 1 do
+        if mode == 1
+        {
             return ip + offset
-        if mode == 2 do
+        }
+
+        if mode == 2
+        {
             return op[ip + offset] + base
+        }
+
         return op[ip + offset]
     }
 
@@ -118,9 +124,11 @@ func day9B()
     let dataPath = Path.combine(Path.directoryName(#file), "9.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var prg: Array's64
-    for v in Tokenize.split(lines[0], ','u8) do
+    var prg: Array!{s64}
+    for v in Tokenize.split(lines[0], ','_u8)
+    {
         prg.add(expect StrConv.toS64(v))
+    }
 
     let total = run(&prg, 2)
 

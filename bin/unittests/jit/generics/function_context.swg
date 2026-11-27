@@ -50,7 +50,7 @@ func(A, B) functionLocalRenamedPartialBox(first: A, third: B)->B
 {
     struct Local
     {
-        item: MiddleDefaultBox'A
+        item: MiddleDefaultBox!{A}
     }
 
     var data = Local{item: {first: first, second: "ok", third: third}}
@@ -61,7 +61,7 @@ func(U) functionLocalRenamedExplicitPrefixValue()->U
 {
     struct Local
     {
-        item: PrefixDefaultBuffer'3
+        item: PrefixDefaultBuffer!{3}
     }
 
     var data: Local
@@ -114,31 +114,31 @@ impl MethodConstShadowHolder
 
 #test
 {
-    let value     = functionLocalImplicitRenamedBox'u16(12)
-    let first     = functionLocalImplicitRenamedBuffer'(u8, 4)()
-    let tail      = functionLocalRenamedPartialBox'(bool, f32)(true, 4.5)
-    let explicit  = functionLocalRenamedExplicitPrefixValue's64()
-    let forwarded = functionReturnOnlyForward'u16(12)
+    let value     = functionLocalImplicitRenamedBox!{u16}(12)
+    let first     = functionLocalImplicitRenamedBuffer!{u8, 4}()
+    let tail      = functionLocalRenamedPartialBox!{bool, f32}(true, 4.5)
+    let explicit  = functionLocalRenamedExplicitPrefixValue!{s64}()
+    let forwarded = functionReturnOnlyForward!{u16}(12)
 
     #assert(#typeof(value) == u16)
     #assert(#typeof(first) == u8)
     #assert(#typeof(tail) == f32)
     #assert(#typeof(explicit) == s64)
     #assert(#typeof(forwarded) == u16)
-    Swag.require(value == 12'u16)
-    Swag.require(first == 4'u8)
-    Swag.require(tail == 4.5'f32)
-    Swag.require(explicit == 21's64)
-    Swag.require(forwarded == 12'u16)
+    Swag.require(value == 12_u16)
+    Swag.require(first == 4_u8)
+    Swag.require(tail == 4.5_f32)
+    Swag.require(explicit == 21_s64)
+    Swag.require(forwarded == 12_u16)
 }
 
 #test
 {
-    let typeShadowHolder:  MethodTypeShadowHolder'u16
-    let constShadowHolder: MethodConstShadowHolder'(u16, 9)
+    let typeShadowHolder:  MethodTypeShadowHolder!{u16}
+    let constShadowHolder: MethodConstShadowHolder!{u16, 9}
 
-    let value = typeShadowHolder.localUsesMethodType'bool(true)
-    let count = constShadowHolder.localUsesMethodConst'4()
+    let value = typeShadowHolder.localUsesMethodType!{bool}(true)
+    let count = constShadowHolder.localUsesMethodConst!{4}()
 
     #assert(#typeof(value) == bool)
     Swag.require(value == true)

@@ -79,8 +79,10 @@ func inlinedMakeBig(seed: s64)->Big
 #[Swag.Inline]
 func inlinedPick(which: s32)->Vec4
 {
-    if which == 0 do
+    if which == 0
+    {
         return Vec4{1, 2, 3, 4}
+    }
     return Vec4{5, 6, 7, 8}
 }
 
@@ -112,10 +114,14 @@ func makeNested(seed: f32)->Nested
 #[Swag.NoInline]
 func pickVec4(which: s32)->Vec4
 {
-    if which == 0 do
+    if which == 0
+    {
         return Vec4{1, 2, 3, 4}
-    if which == 1 do
+    }
+    if which == 1
+    {
         return Vec4{10, 20, 30, 40}
+    }
     return Vec4{100, 200, 300, 400}
 }
 
@@ -149,8 +155,10 @@ func firstAbove(limit: f32)->Vec4
     for i in 10
     {
         let f = cast(f32, i)
-        if f > limit do
+        if f > limit
+        {
             return Vec4{f, f * 2, f * 3, f * 4}
+        }
     }
 
     return Vec4{-1, -1, -1, -1}

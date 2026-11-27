@@ -21,7 +21,7 @@ func alignOfUserData(data: *void?)->FormTextAlign
 }
 
 func alignIsVertical(data: *void?)->bool => (cast(u64, data) & AlignVerticalFlag) != 0
-const AlignVerticalFlag = 0x100'u64
+const AlignVerticalFlag = 0x100_u64
 
 // The bar that stands next to the selection, carrying what applies to it. Every button is also a
 // lens entry: the bar only brings the commands of the selection next to it.
@@ -46,7 +46,7 @@ impl SelectionBar
     // Creates the empty, hidden bar of `main` over `parent`.
     func create(main: *MainWnd, parent: *Wnd)->*SelectionBar
     {
-        with let result = Wnd.create'SelectionBar(parent)
+        with let result = Wnd.create!{SelectionBar}(parent)
         {
             .main = main
             .backgroundStyle = .Transparent
@@ -77,10 +77,15 @@ impl SelectionBar
     mtd selectionKind()->MiniBarKind
     {
         let capture = .main.getCapture()
-        if .main.libraryMode or .main.inPlaceEdit or not capture or capture.selection.isEmpty() do
+        if .main.libraryMode or .main.inPlaceEdit or not capture or capture.selection.isEmpty()
+        {
             return .None
-        if capture.selection.count > 1 do
+        }
+
+        if capture.selection.count > 1
+        {
             return .Multi
+        }
 
         switch capture.getSelectedFormType()
         {
@@ -95,8 +100,10 @@ impl SelectionBar
     mtd swatchSlot()->ColorSlot
     {
         let form = unwrap .main.getCapture()!.getSelectedBaseForm()
-        if form.subKind == .PixSel do
+        if form.subKind == .PixSel
+        {
             return .Fill
+        }
 
         switch .main.getCapture()!.getSelectedFormType()
         {
@@ -104,8 +111,10 @@ impl SelectionBar
             return .Fill
 
         case FormShape, FormPolygon:
-            if form.backColor.a do
+            if form.backColor.a
+            {
                 return .Fill
+            }
         }
 
         return .Border
@@ -120,14 +129,19 @@ impl SelectionBar
         if .shownKind == .Text
         {
             let style = .main.selectedTextStyle()
-            if not style.found do
+            if not style.found
+            {
                 return
+            }
 
             let defaultFace = .theme().res.defaultTypeFaceR.familyName()
             let shown       = style.face.count ? style.face : defaultFace
             .faceButton?.setText(shown)
-            if .faceButton do
+            if .faceButton
+            {
                 .faceButton.toolTip = Format.toString("%: %", appStrings().prop_Font, shown)
+            }
+
             .sizeButton?.setText(Format.toString("%", cast(s32, Math.round(style.size))))
 
             for item in .items
@@ -139,7 +153,7 @@ impl SelectionBar
                 }
             }
         }
-        elif .shownKind == .Step
+        else if .shownKind == .Step
         {
             let form = .main.getCapture()?.getSelectedBaseForm()
             if form is FormStep as step
@@ -147,8 +161,10 @@ impl SelectionBar
                 .stepNumber?.setValue(cast(s64, step.index))
                 for item in .items
                 {
-                    if item.wnd is IconButton as button where button.flags.has(.Radio) do
-                        button.setChecked(enumFromUserData'FormShapeKind(button.userData) == step.kind)
+                    if item.wnd is IconButton as button where button.flags.has(.Radio)
+                    {
+                        button.setChecked(enumFromUserData!{FormShapeKind}(button.userData) == step.kind)
+                    }
                 }
             }
         }
@@ -163,8 +179,10 @@ impl SelectionBar
         .sizeButton = null
         .stepNumber = null
         .clear()
-        if kind == .None do
+        if kind == .None
+        {
             return
+        }
 
         let theme = .theme()
         let size  = .themeMetrics().menuPopup_IconSize
@@ -219,7 +237,7 @@ impl SelectionBar
                 .addSeparator()
                 .addTextAlignment()
             }
-            elif kind == .Step
+            else if kind == .Step
             {
                 .addSeparator()
                 .addStepKinds()
@@ -254,8 +272,10 @@ impl SelectionBar
     mtd addTextFace()
     {
         let style = .main.selectedTextStyle()
-        if not style.found do
+        if not style.found
+        {
             return
+        }
 
         let capture      = unwrap .main.getCapture()
         let selectedForm = capture.selection.back()
@@ -309,8 +329,10 @@ impl SelectionBar
     mtd addTextAlignment()
     {
         let style = .main.selectedTextStyle()
-        if not style.found do
+        if not style.found
+        {
             return
+        }
 
         // How the lines stand across the box, then down it: two groups of three glyphs.
         const Aligns = [FormTextAlign.LeftTop, FormTextAlign.Center, FormTextAlign.RightBottom]
@@ -322,8 +344,11 @@ impl SelectionBar
         let size       = .themeMetrics().menuPopup_IconSize
         for vertical in [false, true]
         {
-            if vertical do
+            if vertical
+            {
                 .addSeparator()
+            }
+
             for align, i in Aligns
             {
                 let glyph       = vertical ? Down[i] : Across[i]
@@ -338,8 +363,10 @@ impl SelectionBar
                         main.propWnd.pushTypedValue(cast(u32, alignOfUserData(btn.userData)), type, field, true)
                         for item in bar.items
                         {
-                            if item.wnd is IconButton as other where other.flags.has(.Radio) and alignIsVertical(other.userData) == vertical do
+                            if item.wnd is IconButton as other where other.flags.has(.Radio) and alignIsVertical(other.userData) == vertical
+                            {
                                 other.setChecked(other == btn)
+                            }
                         }
                     }
                 }
@@ -351,8 +378,11 @@ impl SelectionBar
     mtd addStepKinds()
     {
         let found = catch cast(*FormStep?, .main.getCapture()?.getSelectedBaseForm()) orelse null
-        if not found do
+        if not found
+        {
             return
+        }
+
         let current = found.kind
         for kind in FormShapeKind
         {
@@ -364,18 +394,20 @@ impl SelectionBar
                 {
                     let colors = btn.themeColors()
                     let color  = flags & .Checked ? colors.btnIcon_CheckedIcon : colors.btnIcon_Icon
-                    PropWnd.paintChoice(bc.painter, .StepKind, cast(u32, enumFromUserData'FormShapeKind(btn.userData)), pos, color)
+                    PropWnd.paintChoice(bc.painter, .StepKind, cast(u32, enumFromUserData!{FormShapeKind}(btn.userData)), pos, color)
                 }
             }
 
             // The shapes are radios of the bar: choosing one unchecks the others.
             button.sigPressed += func|bar = me, main = me.main|(btn)
             {
-                main.propWnd.pushTypedValue(cast(u32, enumFromUserData'FormShapeKind(btn.userData)), FormStep, #nameof(FormStep.kind), true)
+                main.propWnd.pushTypedValue(cast(u32, enumFromUserData!{FormShapeKind}(btn.userData)), FormStep, #nameof(FormStep.kind), true)
                 for item in bar.items
                 {
-                    if item.wnd is IconButton as other where other.flags.has(.Radio) do
+                    if item.wnd is IconButton as other where other.flags.has(.Radio)
+                    {
                         other.setChecked(other == btn)
+                    }
                 }
             }
         }
@@ -385,8 +417,11 @@ impl SelectionBar
     mtd addStepNumber()
     {
         let found = catch cast(*FormStep?, .main.getCapture()?.getSelectedBaseForm()) orelse null
-        if not found do
+        if not found
+        {
             return
+        }
+
         let step = found
 
         with .stepNumber = Stepper.create(me, {0, 0, StepperWidth, 0})

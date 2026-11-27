@@ -58,8 +58,8 @@ namespace ReflectionLifecycleWhere.Reflection
 func semaTestReflectionLifecycleWhere()
 {
     var plain = PlainValue{1}
-    var box: GenericBox'PlainValue
+    var box: GenericBox!{PlainValue}
     Swag.assert(acceptsCopyable(plain))
-    Swag.assert(acceptsDroppable'DroppableValue())
+    Swag.assert(acceptsDroppable!{DroppableValue}())
     Swag.assert(box.callCopyOnly(plain))
 }

@@ -14,36 +14,36 @@ using Core, Core.Errors
 // the result to the stream bit depth later; using the Main 10 midpoint here would scale it twice.
 func deriveChromaOffset(deltaOffset, weight: s32, denominator: u32)->s32
 {
-    const Midpoint = 128's32
+    const Midpoint = 128_s32
     let predicted = Midpoint - ((Midpoint * weight) >> denominator)
     return Math.clamp(deltaOffset + predicted, -Midpoint, Midpoint - 1)
 }
 
 // Network abstraction layer unit types, Table 7-1. Only the ones this decoder acts on are named.
-const NalTrailN            = 0'u32
-const NalRaslR             = 9'u32
-const NalBlaWLp            = 16'u32
-const NalIdrWRadl          = 19'u32
-const NalIdrNLp            = 20'u32
-const NalCraNut            = 21'u32
-const NalReservedIrapVcl23 = 23'u32
-const NalVps               = 32'u32
-const NalSps               = 33'u32
-const NalPps               = 34'u32
-const NalAud               = 35'u32
-const NalEos               = 36'u32
-const NalEob               = 37'u32
-const NalFillerData        = 38'u32
-const NalPrefixSei         = 39'u32
-const NalSuffixSei         = 40'u32
+const NalTrailN            = 0_u32
+const NalRaslR             = 9_u32
+const NalBlaWLp            = 16_u32
+const NalIdrWRadl          = 19_u32
+const NalIdrNLp            = 20_u32
+const NalCraNut            = 21_u32
+const NalReservedIrapVcl23 = 23_u32
+const NalVps               = 32_u32
+const NalSps               = 33_u32
+const NalPps               = 34_u32
+const NalAud               = 35_u32
+const NalEos               = 36_u32
+const NalEob               = 37_u32
+const NalFillerData        = 38_u32
+const NalPrefixSei         = 39_u32
+const NalSuffixSei         = 40_u32
 
 // Slice types, clause 7.4.7.1.
-const SliceTypeB = 0'u32
-const SliceTypeP = 1'u32
-const SliceTypeI = 2'u32
+const SliceTypeB = 0_u32
+const SliceTypeP = 1_u32
+const SliceTypeI = 2_u32
 
 // The two prediction lists a slice may use.
-const ListCount = 2'u32
+const ListCount = 2_u32
 
 // Reports whether a unit type carries coded picture data.
 func isVideoCodingNal(nalType: u32)->bool => nalType <= NalReservedIrapVcl23
@@ -138,7 +138,7 @@ struct SliceHeader
     loopFilterAcrossSlices: bool
 
     numEntryPointOffsets: u32
-    entryPointOffsets:    Array'u32
+    entryPointOffsets:    Array!{u32}
 
     // Filled by the decoder once the header is parsed.
     nalType:      u32
@@ -153,8 +153,11 @@ impl SliceHeader
     // Returns the reference picture set this slice uses.
     mtd const activeRps(sps: const *Sps)->const *ShortTermRps
     {
-        if .usesLocalRps do
+        if .usesLocalRps
+        {
             return &.localRps
+        }
+
         return &sps.shortTermRps[.shortTermRpsIdx]
     }
 
@@ -165,43 +168,66 @@ impl SliceHeader
     mtd read(reader: *BitReader, sps: const *Sps, pps: const *Pps, nalType: u32, previous: const *SliceHeader) fail
     {
         .firstSliceInPic = reader.bit() != 0
-        if isIrapNal(nalType) do
+        if isIrapNal(nalType)
+        {
             .noOutputOfPriorPics = reader.bit() != 0
+        }
+
         .ppsId = reader.ue()
 
         if not .firstSliceInPic
         {
-            if pps.dependentSliceSegments do
+            if pps.dependentSliceSegments
+            {
                 .dependent = reader.bit() != 0
+            }
 
             // The address is as wide as the picture's coding tree block count needs.
-            var bits = 0'u32
-            while (1'u32 << bits) < sps.sizeInCtbs do
+            var bits = 0_u32
+            while (1_u32 << bits) < sps.sizeInCtbs
+            {
                 bits += 1
+            }
+
             .segmentAddress = reader.read(bits)
-            if .segmentAddress >= sps.sizeInCtbs do
+            if .segmentAddress >= sps.sizeInCtbs
+            {
                 fail InvalidFormatError{"HEVC slice segment address is past the end of the picture"}
+            }
         }
 
         if .dependent
         {
-            if not previous.firstSliceInPic and previous.segmentAddress == 0 and not previous.dependent do
+            if not previous.firstSliceInPic and previous.segmentAddress == 0 and not previous.dependent
+            {
                 fail InvalidFormatError{"HEVC dependent slice segment has no independent segment before it"}
+            }
+
             .inheritFrom(previous)
             try .readEntryPoints(reader, pps)
             return
         }
 
-        for pps.numExtraSliceHeaderBits do
+        for pps.numExtraSliceHeaderBits
+        {
             discard reader.bit()
+        }
 
         .sliceType = reader.ue()
-        if .sliceType > SliceTypeI do
+        if .sliceType > SliceTypeI
+        {
             fail InvalidFormatError{"HEVC slice declares an unknown slice type"}
-        if pps.outputFlagPresent do
+        }
+
+        if pps.outputFlagPresent
+        {
             .picOutputFlag = reader.bit() != 0
-        if sps.separateColour do
+        }
+
+        if sps.separateColour
+        {
             discard reader.read(2)
+        }
 
         if not isIdrNal(nalType)
         {
@@ -211,46 +237,65 @@ impl SliceHeader
             {
                 // A set stated in the header takes the slot past the ones the sequence declared.
                 var sets: [65] ShortTermRps
-                for index in sps.numShortTermRps do
+                for index in sps.numShortTermRps
+                {
                     sets[index] = sps.shortTermRps[index]
+                }
+
                 try readShortTermRps(reader, &sets[0], sps.numShortTermRps, sps.numShortTermRps)
                 .localRps     = sets[sps.numShortTermRps]
                 .usesLocalRps = true
             }
-            elif sps.numShortTermRps > 1
+            else if sps.numShortTermRps > 1
             {
-                var bits = 0'u32
-                while (1'u32 << bits) < sps.numShortTermRps do
+                var bits = 0_u32
+                while (1_u32 << bits) < sps.numShortTermRps
+                {
                     bits += 1
+                }
+
                 .shortTermRpsIdx = reader.read(bits)
-                if .shortTermRpsIdx >= sps.numShortTermRps do
+                if .shortTermRpsIdx >= sps.numShortTermRps
+                {
                     fail InvalidFormatError{"HEVC slice selects a reference picture set the sequence does not declare"}
+                }
             }
 
             if sps.longTermRefPics
             {
-                if sps.numLongTermRefPicsSps > 0 do
+                if sps.numLongTermRefPicsSps > 0
+                {
                     .numLongTermSps = reader.ue()
-                .numLongTermPics = reader.ue()
-                if .numLongTermSps > sps.numLongTermRefPicsSps or .numLongTermSps + .numLongTermPics > 32 do
-                    fail InvalidFormatError{"HEVC slice declares too many long-term reference pictures"}
+                }
 
-                var previousMsbCycle = 0'u32
+                .numLongTermPics = reader.ue()
+                if .numLongTermSps > sps.numLongTermRefPicsSps or .numLongTermSps + .numLongTermPics > 32
+                {
+                    fail InvalidFormatError{"HEVC slice declares too many long-term reference pictures"}
+                }
+
+                var previousMsbCycle = 0_u32
                 for index in .numLongTermSps + .numLongTermPics
                 {
                     if index < .numLongTermSps
                     {
-                        var entry = 0'u32
+                        var entry = 0_u32
                         if sps.numLongTermRefPicsSps > 1
                         {
-                            var bits = 0'u32
-                            while (1'u32 << bits) < sps.numLongTermRefPicsSps do
+                            var bits = 0_u32
+                            while (1_u32 << bits) < sps.numLongTermRefPicsSps
+                            {
                                 bits += 1
+                            }
+
                             entry = reader.read(bits)
                         }
 
-                        if entry >= sps.numLongTermRefPicsSps do
+                        if entry >= sps.numLongTermRefPicsSps
+                        {
                             fail InvalidFormatError{"HEVC slice selects a long-term picture the sequence does not declare"}
+                        }
+
                         .ltPocLsb[index]     = sps.ltPocLsbSps[entry]
                         .ltUsedByCurr[index] = sps.ltUsedByCurrSps[entry]
                     }
@@ -273,15 +318,19 @@ impl SliceHeader
                 }
             }
 
-            if sps.temporalMvpEnabled do
+            if sps.temporalMvpEnabled
+            {
                 .temporalMvpEnabled = reader.bit() != 0
+            }
         }
 
         if sps.saoEnabled
         {
             .saoLuma = reader.bit() != 0
-            if sps.chromaArrayType != 0 do
+            if sps.chromaArrayType != 0
+            {
                 .saoChroma = reader.bit() != 0
+            }
         }
 
         .numRefIdx[0] = pps.numRefIdxL0Default
@@ -291,66 +340,101 @@ impl SliceHeader
             if reader.bit()
             {
                 .numRefIdx[0] = reader.ue() + 1
-                if .sliceType == SliceTypeB do
+                if .sliceType == SliceTypeB
+                {
                     .numRefIdx[1] = reader.ue() + 1
+                }
             }
 
-            if .numRefIdx[0] > MaxRefPics or .numRefIdx[1] > MaxRefPics do
+            if .numRefIdx[0] > MaxRefPics or .numRefIdx[1] > MaxRefPics
+            {
                 fail InvalidFormatError{"HEVC slice activates too many reference pictures"}
-            if .sliceType != SliceTypeB do
+            }
+
+            if .sliceType != SliceTypeB
+            {
                 .numRefIdx[1] = 0
+            }
 
             // The modification syntax needs the number of pictures the set makes available, which
             // only the caller's reference picture set knows.
             let totalCurr = .picTotalCurr(sps)
             if pps.listsModificationPresent and totalCurr > 1
             {
-                var bits = 0'u32
-                while (1'u32 << bits) < totalCurr do
+                var bits = 0_u32
+                while (1_u32 << bits) < totalCurr
+                {
                     bits += 1
-                for list in (.sliceType == SliceTypeB ? 2'u32 : 1'u32)
+                }
+
+                for list in (.sliceType == SliceTypeB ? 2_u32 : 1_u32)
                 {
                     .listModification[list] = reader.bit() != 0
-                    if not .listModification[list] do
+                    if not .listModification[list]
+                    {
                         continue
+                    }
+
                     for index in .numRefIdx[list]
                     {
                         .listEntry[list, index] = reader.read(bits)
-                        if .listEntry[list, index] >= totalCurr do
+                        if .listEntry[list, index] >= totalCurr
+                        {
                             fail InvalidFormatError{"HEVC reference list modification selects a picture that is not available"}
+                        }
                     }
                 }
             }
 
-            if .sliceType == SliceTypeB do
+            if .sliceType == SliceTypeB
+            {
                 .mvdL1Zero = reader.bit() != 0
-            if pps.cabacInitPresent do
+            }
+
+            if pps.cabacInitPresent
+            {
                 .cabacInitFlag = reader.bit() != 0
+            }
 
             if .temporalMvpEnabled
             {
-                if .sliceType == SliceTypeB do
+                if .sliceType == SliceTypeB
+                {
                     .collocatedFromL0 = reader.bit() != 0
+                }
+
                 let activeInList = .collocatedFromL0 ? .numRefIdx[0] : .numRefIdx[1]
-                if activeInList > 1 do
+                if activeInList > 1
+                {
                     .collocatedRefIdx = reader.ue()
-                if .collocatedRefIdx >= activeInList do
+                }
+
+                if .collocatedRefIdx >= activeInList
+                {
                     fail InvalidFormatError{"HEVC collocated reference index is past the end of its list"}
+                }
             }
 
-            if (pps.weightedPred and .sliceType == SliceTypeP) or (pps.weightedBipred and .sliceType == SliceTypeB) do
+            if (pps.weightedPred and .sliceType == SliceTypeP) or (pps.weightedBipred and .sliceType == SliceTypeB)
+            {
                 try .readPredWeightTable(reader, sps)
+            }
 
             let fiveMinus = reader.ue()
-            if fiveMinus > 4 do
+            if fiveMinus > 4
+            {
                 fail InvalidFormatError{"HEVC slice declares an unusable merge candidate count"}
+            }
+
             .maxNumMergeCand = 5 - fiveMinus
         }
 
         .sliceQpDelta = reader.se()
         .sliceQp      = pps.initQp + .sliceQpDelta
-        if .sliceQp < -sps.qpBdOffsetY or .sliceQp > 51 do
+        if .sliceQp < -sps.qpBdOffsetY or .sliceQp > 51
+        {
             fail InvalidFormatError{"HEVC slice quantization parameter is out of range"}
+        }
 
         if pps.sliceChromaQpOffsetsPresent
         {
@@ -358,14 +442,19 @@ impl SliceHeader
             .crQpOffset = reader.se()
         }
 
-        if pps.chromaQpOffsetListEnabled do
+        if pps.chromaQpOffsetListEnabled
+        {
             .cuChromaQpOffsetEnabled = reader.bit() != 0
+        }
 
         .deblockingDisabled = pps.deblockingDisabled
         .betaOffsetDiv2     = pps.betaOffsetDiv2
         .tcOffsetDiv2       = pps.tcOffsetDiv2
-        if pps.deblockingOverrideEnabled do
+        if pps.deblockingOverrideEnabled
+        {
             .deblockingOverride = reader.bit() != 0
+        }
+
         if .deblockingOverride
         {
             .deblockingDisabled = reader.bit() != 0
@@ -377,20 +466,27 @@ impl SliceHeader
         }
 
         .loopFilterAcrossSlices = pps.loopFilterAcrossSlices
-        if pps.loopFilterAcrossSlices and (.saoLuma or .saoChroma or not .deblockingDisabled) do
+        if pps.loopFilterAcrossSlices and (.saoLuma or .saoChroma or not .deblockingDisabled)
+        {
             .loopFilterAcrossSlices = reader.bit() != 0
+        }
 
         try .readEntryPoints(reader, pps)
-        if reader.overran do
+        if reader.overran
+        {
             fail InvalidFormatError{"HEVC slice segment header is truncated"}
+        }
     }
 
     // Returns `NumPicTotalCurr`, the pictures this slice may predict from, clause 7.4.7.1.
     mtd const picTotalCurr(sps: const *Sps)->u32
     {
         var total = .activeRps(sps).usedCount()
-        for index in .numLongTermSps + .numLongTermPics where .ltUsedByCurr[index] do
+        for index in .numLongTermSps + .numLongTermPics where .ltUsedByCurr[index]
+        {
             total += 1
+        }
+
         return total
     }
 
@@ -403,17 +499,26 @@ impl SliceHeader
             if .numEntryPointOffsets > 0
             {
                 let offsetBits = reader.ue() + 1
-                if offsetBits > 32 do
+                if offsetBits > 32
+                {
                     fail InvalidFormatError{"HEVC entry point offsets are too wide"}
-                if .numEntryPointOffsets > 1 << 20 do
+                }
+
+                if .numEntryPointOffsets > 1 << 20
+                {
                     fail InvalidFormatError{"HEVC slice declares too many entry points"}
+                }
+
                 .entryPointOffsets.clear()
                 .entryPointOffsets.reserve(cast(u64, .numEntryPointOffsets))
                 for .numEntryPointOffsets
                 {
                     let offset = reader.read(offsetBits)
-                    if offset == Swag.U32.Max do
+                    if offset == Swag.U32.Max
+                    {
                         fail InvalidFormatError{"HEVC slice entry-point offset exceeds the supported range"}
+                    }
+
                     .entryPointOffsets.add(offset + 1)
                 }
             }
@@ -422,17 +527,23 @@ impl SliceHeader
         if pps.sliceHeaderExtension
         {
             let length = reader.ue()
-            for length do
+            for length
+            {
                 discard reader.read(8)
+            }
         }
 
         // The header ends on a byte boundary, clause 7.3.2.12.
         discard reader.bit()
-        while reader.bitPos & 7 do
+        while reader.bitPos & 7
+        {
             discard reader.bit()
+        }
 
-        if reader.overran do
+        if reader.overran
+        {
             fail InvalidFormatError{"HEVC slice segment header is truncated"}
+        }
     }
 
     // Reads the explicit prediction weights, clause 7.3.6.3.
@@ -444,25 +555,36 @@ impl SliceHeader
         .hasWeights = true
         .lumaLog2WeightDenom   = reader.ue()
         .chromaLog2WeightDenom = .lumaLog2WeightDenom
-        if .lumaLog2WeightDenom > 7 do
+        if .lumaLog2WeightDenom > 7
+        {
             fail InvalidFormatError{"HEVC luma weight denominator is out of range"}
+        }
+
         if sps.chromaArrayType != 0
         {
             let delta = reader.se() + cast(s32, .lumaLog2WeightDenom)
-            if delta < 0 or delta > 7 do
+            if delta < 0 or delta > 7
+            {
                 fail InvalidFormatError{"HEVC chroma weight denominator is out of range"}
+            }
+
             .chromaLog2WeightDenom = cast(u32, delta)
         }
 
-        let lists = .sliceType == SliceTypeB ? 2'u32 : 1'u32
+        let lists = .sliceType == SliceTypeB ? 2_u32 : 1_u32
         for list in lists
         {
-            for index in .numRefIdx[list] do
+            for index in .numRefIdx[list]
+            {
                 .weights[list, index].lumaFlag = reader.bit() != 0
+            }
+
             if sps.chromaArrayType != 0
             {
-                for index in .numRefIdx[list] do
+                for index in .numRefIdx[list]
+                {
                     .weights[list, index].chromaFlag = reader.bit() != 0
+                }
             }
 
             for index in .numRefIdx[list]
@@ -475,11 +597,13 @@ impl SliceHeader
                     weight.lumaOffset = reader.se()
                 }
 
-                for component in 2'u32
+                for component in 2_u32
                 {
                     weight.chromaWeight[component] = 1 << .chromaLog2WeightDenom
-                    if not weight.chromaFlag do
+                    if not weight.chromaFlag
+                    {
                         continue
+                    }
 
                     weight.chromaWeight[component] = (1 << .chromaLog2WeightDenom) + reader.se()
 
@@ -489,8 +613,10 @@ impl SliceHeader
             }
         }
 
-        if reader.overran do
+        if reader.overran
+        {
             fail InvalidFormatError{"HEVC prediction weight table is truncated"}
+        }
     }
 
     // Takes everything a dependent slice segment inherits from the segment it continues.

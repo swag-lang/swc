@@ -6,9 +6,9 @@ using Swag, Core
 // A 96 kHz native float source survives resampling, an outage, AAC, and Swag decoding.
 #test
 {
-    const SourceRate = 96_000'u32
-    const OutputRate = 48_000'u32
-    const ClockRate  = 10_000_000'u64
+    const SourceRate = 96_000_u32
+    const OutputRate = 48_000_u32
+    const ClockRate  = 10_000_000_u64
     let path = Path.combine(Env.getSpecialDirectory(.Temp),
                             Format.toString("audio-capture-resampled-aac-%.aac", Guid128.random()))
     defer discard catch File.delete(path)
@@ -17,11 +17,11 @@ using Swag, Core
     var feeder    = expect CaptureResampledFeeder.create(&queue, SourceRate)
     var track     = expect CaptureAacTrack.create(&queue)
     var source:  [960 * 2] f32
-    var encoded: Array'u8
-    var file:    Array'u8
-    var packets: Array'SoundPacket
+    var encoded: Array!{u8}
+    var file:    Array!{u8}
+    var packets: Array!{SoundPacket}
     var info:    CaptureAacPacket
-    var synthetic = 0'u64
+    var synthetic = 0_u64
     var resumed   = false
     for packet in 40
     {
@@ -33,7 +33,7 @@ using Swag, Core
         }
 
         let localPacket = packet < 20 ? packet : packet - 20
-        let firstTick   = (packet < 20 ? 0'u64 : 2_500_000) + localPacket * 100_000
+        let firstTick   = (packet < 20 ? 0_u64 : 2_500_000) + localPacket * 100_000
         let firstFrame  = localPacket * 960
         for frame in 960
         {
@@ -75,7 +75,7 @@ using Swag, Core
 
     discard expect File.writeAllBytes(path.toString(), file.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, OutputRate, 2, packets.count * 1_024, packets.toSlice(), track.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
@@ -84,12 +84,12 @@ using Swag, Core
     Swag.require(decoded.count == packets.count * 1_024 * 2)
     for channel in 2
     {
-        for start in [2_400'u64, 14_400]
+        for start in [2_400_u64, 14_400]
         {
-            var sourcePower  = 0.0'f64
-            var decodedPower = 0.0'f64
-            var cross        = 0.0'f64
-            var error        = 0.0'f64
+            var sourcePower  = 0.0_f64
+            var decodedPower = 0.0_f64
+            var cross        = 0.0_f64
+            var error        = 0.0_f64
             for frame in start until start + 4_800
             {
                 let time     = frame / 48_000.0
@@ -109,7 +109,7 @@ using Swag, Core
                          Math.sqrt(error / sourcePower) < 0.28)
         }
 
-        var gapPower = 0.0'f64
+        var gapPower = 0.0_f64
         for frame in 10_400 until 11_200
         {
             let sample = cast(f64, decoded[(frame + 1_024) * 2 + channel])

@@ -29,9 +29,9 @@ func keepNarrowArguments(a, b, c, d, e, f: u16)->u64
     var value = NarrowValues{byte: 255, word: 65535}
     Swag.require(loadByte(&value) == 255)
     Swag.require(loadWord(&value) == 65535)
-    var bytes = [0'u8, 127, 128, 255]
-    var words = [0'u16, 32767, 32768, 65535]
-    for i in 4'u64
+    var bytes = [0_u8, 127, 128, 255]
+    var words = [0_u16, 32767, 32768, 65535]
+    for i in 4_u64
     {
         Swag.require(indexedByte(&bytes[0], i) == bytes[i])
         Swag.require(indexedWord(&words[0], i) == words[i])

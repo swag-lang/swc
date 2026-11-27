@@ -5,14 +5,17 @@
 internal func randomFillNative(buffer: *u8, size: u32)->bool
 {
     let bytes = cast([*] u8, buffer)
-    var done  = 0'u32
+    var done  = 0_u32
     while done < size
     {
         // getentropy fills the whole request, retries interruptions internally, and accepts
         // at most 256 bytes. It waits for the kernel random source to become initialized.
-        let count = Math.min(size - done, 256'u32)
-        if Linux.getentropy(bytes + done, count) != 0 do
+        let count = Math.min(size - done, 256_u32)
+        if Linux.getentropy(bytes + done, count) != 0
+        {
             return false
+        }
+
         done += count
     }
 
@@ -27,6 +30,8 @@ func(T) secureClear(buffer: [..] T)
 {
     const elementSize = #sizeof(T)
     let byteCount = buffer.count * elementSize
-    if byteCount do
+    if byteCount
+    {
         Linux.explicit_bzero(buffer.buffer, byteCount)
+    }
 }

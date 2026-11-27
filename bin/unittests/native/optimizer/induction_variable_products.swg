@@ -10,8 +10,10 @@ var Plane: [16 * 64] u8
 
 func fillPlane()
 {
-    for i in 16 * 64 do
+    for i in 16 * 64
+    {
         Plane[i] = cast(u8, ((i * 7 + 3) & 0xFF))
+    }
 }
 
 // A register stride and a unit step: the row loop of a pixel kernel.
@@ -22,8 +24,10 @@ func sumRows(base: const [*] u8, stride: u64, rows, cols: u64)->u64
     for row in rows
     {
         let line = base + row * stride
-        for col in cols do
+        for col in cols
+        {
             acc += cast(u64, line[col])
+        }
     }
     return acc
 }
@@ -89,8 +93,10 @@ func sumDownwards(base: const [*] u8, stride: u64, rows: u64)->u64
 func wrappingProducts(n: u32, stride: u32)->u32
 {
     var acc: u32
-    for i in n do
+    for i in n
+    {
         acc = acc + #wrap i * #wrap stride
+    }
     return acc
 }
 
@@ -103,8 +109,10 @@ func nestedProducts(base: const [*] u8, stride: u64, rows, cols: u64)->{ sum: u6
     var row: u64
     while row < rows
     {
-        for col in cols do
+        for col in cols
+        {
             acc += cast(u64, base[row * stride + col])
+        }
         row += 1
     }
     return {sum: acc, last: row}
@@ -131,8 +139,10 @@ func sumOddRows(base: const [*] u8, stride: u64, rows: u64)->u64
     var acc: u64
     for row in rows
     {
-        if (row & 1) == 0 do
+        if (row & 1) == 0
+        {
             continue
+        }
         acc += cast(u64, base[row * stride])
     }
     return acc
@@ -143,8 +153,10 @@ func reference(rows, stride: u64, cols: u64)->u64
     var acc: u64
     for row in rows
     {
-        for col in cols do
+        for col in cols
+        {
             acc += cast(u64, Plane[row * stride + col])
+        }
     }
     return acc
 }
@@ -159,7 +171,7 @@ func reference(rows, stride: u64, cols: u64)->u64
     Swag.require(sumRows(base, 64, 0, 40) == 0)
 
     var expected: u64
-    for row in 12'u64
+    for row in 12_u64
     {
         expected += cast(u64, Plane[row * 64])
         expected += cast(u64, Plane[row * 33 + 1])
@@ -169,7 +181,7 @@ func reference(rows, stride: u64, cols: u64)->u64
     Swag.require(sumThreeStrides(base, 64, 33, 17, 12) == expected)
 
     expected = 0
-    for row in 20'u64
+    for row in 20_u64
     {
         expected += cast(u64, Plane[row * 24])
         expected += cast(u64, Plane[row * 16 + 5])
@@ -186,28 +198,36 @@ func reference(rows, stride: u64, cols: u64)->u64
     Swag.require(sumStepTwo(base, 64, 15) == expected)
 
     expected = 0
-    for row in 16'u64 do
+    for row in 16_u64
+    {
         expected += cast(u64, Plane[row * 64])
+    }
     Swag.require(sumDownwards(base, 64, 16) == expected)
 
     var wrapped: u32
-    for i in 1000'u32 do
+    for i in 1000_u32
+    {
         wrapped = wrapped + #wrap i * #wrap 0x1000_0001
+    }
     Swag.require(wrappingProducts(1000, 0x1000_0001) == wrapped)
 
     let nested = nestedProducts(base, 64, 16, 40)
     Swag.require(nested.sum == reference(16, 64, 40) and nested.last == 16)
 
     expected = 0
-    for row in 30'u64 do
+    for row in 30_u64
+    {
         expected += cast(u64, Plane[row * (row + 1)])
+    }
     Swag.require(movingStride(base, 30) == expected)
 
     expected = 0
-    for row in 16'u64
+    for row in 16_u64
     {
-        if (row & 1) == 1 do
+        if (row & 1) == 1
+        {
             expected += cast(u64, Plane[row * 64])
+        }
     }
     Swag.require(sumOddRows(base, 64, 16) == expected)
 }

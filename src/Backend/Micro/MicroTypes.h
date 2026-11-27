@@ -120,7 +120,8 @@ enum class MicroOp : uint8_t
     MultiplyHighUnsigned,
     MultiplySigned,
     MultiplyUnsigned,
-    MultiplyWideSigned, // Legalized signed multiply with both implicit result halves.
+    MultiplyWideSigned,   // Signed multiply with both implicit result halves.
+    MultiplyWideUnsigned, // Unsigned multiply with both implicit result halves.
     Negate,
     Or,
     PopCount,
@@ -245,6 +246,24 @@ enum class MicroOp : uint8_t
     VecMaxF32,
     VecMaxF64,
 
+    // The AES rounds read one state and one round key (OpBinaryRegRegReg).
+    VecAesEncryptRound,
+    VecAesEncryptLastRound,
+    VecAesDecryptRound,
+    VecAesDecryptLastRound,
+
+    // Legacy two-operand SHA extensions. Rounds2 also reads XMM0.
+    VecSha1NextE,
+    VecSha1Schedule1,
+    VecSha1Schedule2,
+    VecSha256Rounds2,
+    VecSha256Schedule1,
+    VecSha256Schedule2,
+    VecSha1Rounds4Phase0,
+    VecSha1Rounds4Phase1,
+    VecSha1Rounds4Phase2,
+    VecSha1Rounds4Phase3,
+
     // Packed unary forms, non-destructive (VecUnaryRegReg). The widen forms
     // extend the low eight/four/two lanes to double width; the movemask forms
     // write the lane sign bits into an integer register.
@@ -263,6 +282,7 @@ enum class MicroOp : uint8_t
     VecMoveMaskB,
     VecMoveMaskF32,
     VecMoveMaskF64,
+    VecAesInverseMixColumns,
 
     // Packed shifts by immediate (OpBinaryRegRegImm). The byte shifts move
     // whole bytes across the register (pslldq/psrldq); the A forms are
@@ -314,6 +334,9 @@ enum class MicroOp : uint8_t
     VecMultiplyAddF32,
     VecMultiplyAddF64,
 
+    VecMultiplyAdd52Low,
+    VecMultiplyAdd52High,
+
     // Packed FMA, with the same operand roles as the scalar forms above.
     // Keep each F32/F64 pair together for fusedFloatElementBits.
     VecAddProductF32,
@@ -350,6 +373,11 @@ inline bool isScalarShiftOp(const MicroOp op)
 inline bool isVecMicroOp(const MicroOp op)
 {
     return op >= MicroOp::VecAdd32;
+}
+
+inline bool isShaMicroOp(const MicroOp op)
+{
+    return op >= MicroOp::VecSha1NextE && op <= MicroOp::VecSha1Rounds4Phase3;
 }
 
 inline bool isPackedFloatBinaryMicroOp(const MicroOp op)

@@ -173,8 +173,10 @@ public impl Keyboard
 
         if vkey != 0
         {
-            for key in Key where keyToVirtualKey(key) == vkey do
+            for key in Key where keyToVirtualKey(key) == vkey
+            {
                 return key
+            }
         }
 
         return .None
@@ -203,8 +205,11 @@ public impl Keyboard
             let context    = catch LinuxDesktop.ensure() { return false; }
             let connection = unwrap context.connection
             let pointer    = context.xcb_query_pointer_reply(connection, context.xcb_query_pointer(connection, context.screen.root), null)
-            if not pointer do
+            if not pointer
+            {
                 return false
+            }
+
             defer Linux.free(pointer)
             return (pointer.mask & button) != 0
         }

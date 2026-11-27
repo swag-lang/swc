@@ -91,8 +91,11 @@ var BreadcrumbPressedCount: u32
     var opened: bool
     host.app.sigFrame += func|host = &host, &opened|(_)
     {
-        if opened do
+        if opened
+        {
             return
+        }
+
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items.count == 3)
         opened = true
@@ -114,7 +117,7 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
 {
     var host: Testing.HeadlessHost
     host.setup(180, 60)
-    let scroll     = Wnd.create'ScrollWnd(&host.root, {0, 0, 180, 40})
+    let scroll     = Wnd.create!{ScrollWnd}(&host.root, {0, 0, 180, 40})
     let breadcrumb = BreadcrumbCtrl.create(scroll)
     scroll.setView(breadcrumb)
     breadcrumb.addItem("A long ancestor folder")
@@ -217,8 +220,11 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
     let path = BreadcrumbCtrl.create(&host.root, {20, 20, 760, 32})
     path.fitToWidth      = true
     path.maxVisibleItems = 3
-    for name in ["C:/", "work", "project", "src", "tests", "datas"] do
+    for name in ["C:/", "work", "project", "src", "tests", "datas"]
+    {
         path.addItem(name, tag: name)
+    }
+
     path.layout()
     Swag.require(path.items.count == 6 and path.firstVisible == 3)
     Swag.require(path.overflowRect.width > 0 and path.items.back().bodyRect.width > 0)

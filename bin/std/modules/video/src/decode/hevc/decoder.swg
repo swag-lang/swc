@@ -12,32 +12,32 @@ using Core, Core.Errors
 //
 // Four samples is the smallest block the format gives its own motion, intra mode or coded-block
 // flag to, so one grid at that pitch answers every neighbour question the decoding processes ask.
-const MinBlockLog2 = 2'u32
-const MinBlockSize = 1'u32 << MinBlockLog2
+const MinBlockLog2 = 2_u32
+const MinBlockSize = 1_u32 << MinBlockLog2
 
 // Prediction modes, clause 7.4.9.5.
-const ModeInter = 0'u8
-const ModeIntra = 1'u8
-const ModeSkip  = 2'u8
+const ModeInter = 0_u8
+const ModeIntra = 1_u8
+const ModeSkip  = 2_u8
 
 // Partition modes, Table 7-10.
-const Part2Nx2N = 0'u32
-const Part2NxN  = 1'u32
-const PartNx2N  = 2'u32
-const PartNxN   = 3'u32
-const Part2NxnU = 4'u32
-const Part2NxnD = 5'u32
-const PartnLx2N = 6'u32
-const PartnRx2N = 7'u32
+const Part2Nx2N = 0_u32
+const Part2NxN  = 1_u32
+const PartNx2N  = 2_u32
+const PartNxN   = 3_u32
+const Part2NxnU = 4_u32
+const Part2NxnD = 5_u32
+const PartnLx2N = 6_u32
+const PartnRx2N = 7_u32
 
 // Intra prediction modes, Table 8-1.
-const IntraPlanar    = 0'u8
-const IntraDc        = 1'u8
-const IntraAngular26 = 26'u8
-const IntraAngular10 = 10'u8
+const IntraPlanar    = 0_u8
+const IntraDc        = 1_u8
+const IntraAngular26 = 26_u8
+const IntraAngular10 = 10_u8
 
 // The decoded picture buffer never holds more than sixteen pictures plus the one being decoded.
-const MaxDpbFrames = 17'u32
+const MaxDpbFrames = 17_u32
 
 // One prediction block's motion, kept for every four-sample block of the current picture.
 struct PuMotion
@@ -93,14 +93,19 @@ struct Decoder
     previousHeader:    SliceHeader
     refList:           RefPicList
     cabac:             CabacReader
-    rbsp:              Array'u8
-    preparedBody:      Array'u8
+    rbsp:              Array!{u8}
+    preparedBody:      Array!{u8}
     preparedHeaderBit: u64
     preparedPicture:   bool
 
     // Wavefront and dependent-slice context storage, clause 9.3.2.4.
     wppState:       CabacState
     dependentState: CabacState
+
+    // Private reconstruction scratch and wake events kept by this frame owner.
+    wavefrontWorkers:  [*] Decoder?
+    wavefrontEvents:   [*] Sync.Event?
+    wavefrontRowCount: u32
 
     // Picture order count state, clause 8.3.1.
     pocMsb:         s32
@@ -114,29 +119,29 @@ struct Decoder
     // Picture geometry, recomputed when a sequence or picture parameter set is activated.
     gridWidth:     u32
     gridHeight:    u32
-    zScan:         Array'u32
-    ctbRsToTs:     Array'u32
-    ctbTsToRs:     Array'u32
-    tileId:        Array'u16
-    ctbSliceAddr:  Array'u32
-    ctbSliceIndex: Array'u16
-    sliceParams:   Array'SliceDeblock
+    zScan:         Array!{u32}
+    ctbRsToTs:     Array!{u32}
+    ctbTsToRs:     Array!{u32}
+    tileId:        Array!{u16}
+    ctbSliceAddr:  Array!{u32}
+    ctbSliceIndex: Array!{u16}
+    sliceParams:   Array!{SliceDeblock}
 
     // Per-block state of the picture being decoded.
-    predMode:   Array'u8
-    intraModeY: Array'u8
-    ctDepth:    Array'u8
-    skipFlag:   Array'u8
-    qpY:        Array's8
-    cbfLuma:    Array'u8
-    motion:     Array'PuMotion
-    edgeFlags:  Array'u8     // Bit 0 a transform edge, bit 1 a prediction edge.
+    predMode:   Array!{u8}
+    intraModeY: Array!{u8}
+    ctDepth:    Array!{u8}
+    skipFlag:   Array!{u8}
+    qpY:        Array!{s8}
+    cbfLuma:    Array!{u8}
+    motion:     Array!{PuMotion}
+    edgeFlags:  Array!{u8}     // Bit 0 a transform edge, bit 1 a prediction edge.
     // Sample adaptive offset parameters, and the deblocked picture the filter reads.
-    sao:              Array'SaoParameters
+    sao:              Array!{SaoParameters}
     saoUsed:          bool
-    saoSource:        Array'u16
-    saoSourceChromaB: Array'u16
-    saoSourceChromaR: Array'u16
+    saoSource:        Array!{u16}
+    saoSourceChromaB: Array!{u16}
+    saoSourceChromaR: Array!{u16}
 
     // Coefficient and prediction scratch, reused by every transform block.
     coefficients:         [32 * 32] s16
@@ -164,6 +169,7 @@ impl Decoder
 {
     mtd opDrop()
     {
+        .releaseWavefrontWorkers()
         .releaseReferenceState()
     }
 
@@ -212,8 +218,11 @@ impl Decoder
         for index in .referenceCount
         {
             let frame = .references[index].frame
-            if frame do
-                Atomic.add(&frame.reconstructionHolds, ~0'u32)
+            if frame
+            {
+                Atomic.add(&frame.reconstructionHolds, ~0_u32)
+            }
+
             .references[index] = {}
         }
 
@@ -223,8 +232,11 @@ impl Decoder
     // Adds a newly started picture to the lane's decoded-picture buffer.
     mtd holdReference(frame: *Frame, marking: FrameMarking) fail
     {
-        if .referenceCount >= MaxDpbFrames do
+        if .referenceCount >= MaxDpbFrames
+        {
             fail InvalidFormatError{"HEVC decoded picture buffer holds too many pictures"}
+        }
+
         .references[.referenceCount] = {frame, marking}
         .referenceCount += 1
         Atomic.add(&frame.reconstructionHolds, 1)
@@ -233,8 +245,11 @@ impl Decoder
     // Returns the sequence parameter set the active picture parameter set names.
     mtd const sequenceOf(pps: const *Pps)->const *Sps?
     {
-        if pps.spsId >= 16 or not .sps[pps.spsId].valid do
+        if pps.spsId >= 16 or not .sps[pps.spsId].valid
+        {
             return null
+        }
+
         return &.sps[pps.spsId]
     }
 
@@ -260,17 +275,25 @@ impl Decoder
             discard identifierReader.bit()
             try readProfileTierLevel(&identifierReader, maxSubLayersMinus1)
             let identifier = identifierReader.ue()
-            if identifier >= 16 do
+            if identifier >= 16
+            {
                 fail InvalidFormatError{"HEVC sequence parameter set identifier is out of range"}
+            }
+
             .sps[identifier] = parsed
 
         case NalPps:
             let identifier = reader.ue()
-            if identifier >= 64 do
+            if identifier >= 64
+            {
                 fail InvalidFormatError{"HEVC picture parameter set identifier is out of range"}
+            }
+
             let sequenceId = reader.ue()
-            if sequenceId >= 16 or not .sps[sequenceId].valid do
+            if sequenceId >= 16 or not .sps[sequenceId].valid
+            {
                 fail InvalidFormatError{"HEVC picture parameter set names a sequence that was not received"}
+            }
 
             var restart: BitReader
             restart.init(.rbsp.toSlice())
@@ -284,23 +307,27 @@ impl Decoder
     {
         if not .transformMatrixReady
         {
-            for basis in 32'u32
+            for basis in 32_u32
             {
-                for sample in 32'u32 do
+                for sample in 32_u32
+                {
                     .transformMatrix[basis * 32 + sample] = TransMatrix32[basis, sample]
+                }
             }
 
             .transformMatrixReady = true
         }
 
-        if .activeSps == sps and .activePps == pps do
+        if .activeSps == sps and .activePps == pps
+        {
             return
+        }
 
         .activeSps = sps
         .activePps = pps
 
         let ctbSize      = sps.sizeInCtbs
-        let blocksPerCtb = 1'u32 << (sps.ctbLog2Size - MinBlockLog2)
+        let blocksPerCtb = 1_u32 << (sps.ctbLog2Size - MinBlockLog2)
         .gridWidth  = sps.widthInCtbs * blocksPerCtb
         .gridHeight = sps.heightInCtbs * blocksPerCtb
 
@@ -328,44 +355,65 @@ impl Decoder
     private mtd buildTileScan(sps: const *Sps, pps: const *Pps) fail
     {
         var colWidth, rowHeight: [33] u32
-        for index in pps.numTileColumns do
+        for index in pps.numTileColumns
+        {
             colWidth[index] = pps.colBoundary[index + 1] - pps.colBoundary[index]
-        for index in pps.numTileRows do
+        }
+
+        for index in pps.numTileRows
+        {
             rowHeight[index] = pps.rowBoundary[index + 1] - pps.rowBoundary[index]
+        }
 
         for addressRs in sps.sizeInCtbs
         {
             let tbX = addressRs % sps.widthInCtbs
             let tbY = addressRs / sps.widthInCtbs
 
-            var tileX, tileY = 0'u32
-            for index in pps.numTileColumns where tbX >= pps.colBoundary[index] do
+            var tileX, tileY = 0_u32
+            for index in pps.numTileColumns where tbX >= pps.colBoundary[index]
+            {
                 tileX = index
-            for index in pps.numTileRows where tbY >= pps.rowBoundary[index] do
-                tileY = index
+            }
 
-            var address = 0'u32
-            for index in tileX do
+            for index in pps.numTileRows where tbY >= pps.rowBoundary[index]
+            {
+                tileY = index
+            }
+
+            var address = 0_u32
+            for index in tileX
+            {
                 address += rowHeight[tileY] * colWidth[index]
-            for index in tileY do
+            }
+
+            for index in tileY
+            {
                 address += sps.widthInCtbs * rowHeight[index]
+            }
+
             address += (tbY - pps.rowBoundary[tileY]) * colWidth[tileX] + tbX - pps.colBoundary[tileX]
 
-            if address >= sps.sizeInCtbs do
+            if address >= sps.sizeInCtbs
+            {
                 fail InvalidFormatError{"HEVC tile geometry does not cover the picture exactly"}
+            }
+
             .ctbRsToTs[addressRs] = address
             .ctbTsToRs[address]   = addressRs
         }
 
-        var tileIndex = 0'u32
+        var tileIndex = 0_u32
         for row in pps.numTileRows
         {
             for column in pps.numTileColumns
             {
                 for y in pps.rowBoundary[row] until pps.rowBoundary[row + 1]
                 {
-                    for x in pps.colBoundary[column] until pps.colBoundary[column + 1] do
+                    for x in pps.colBoundary[column] until pps.colBoundary[column + 1]
+                    {
                         .tileId[.ctbRsToTs[y * sps.widthInCtbs + x]] = cast(u16, tileIndex)
+                    }
                 }
 
                 tileIndex += 1
@@ -386,11 +434,16 @@ impl Decoder
                 var address = .ctbRsToTs[ctbY * sps.widthInCtbs + ctbX] << (depth * 2)
                 for bit in depth
                 {
-                    let mask = 1'u32 << bit
-                    if mask & x do
+                    let mask = 1_u32 << bit
+                    if mask & x
+                    {
                         address += mask * mask
-                    if mask & y do
+                    }
+
+                    if mask & y
+                    {
                         address += 2 * mask * mask
+                    }
                 }
 
                 .zScan[cast(u64, y) * cast(u64, .gridWidth) + cast(u64, x)] = address
@@ -406,18 +459,25 @@ impl Decoder
     mtd const isAvailable(xCurr, yCurr, xNb, yNb: s32)->bool
     {
         let sps = unwrap .activeSps
-        if xNb < 0 or yNb < 0 or xNb >= cast(s32, sps.width) or yNb >= cast(s32, sps.height) do
+        if xNb < 0 or yNb < 0 or xNb >= cast(s32, sps.width) or yNb >= cast(s32, sps.height)
+        {
             return false
+        }
 
         let currentZ   = .zScan[.blockIndex(xCurr, yCurr)]
         let neighbourZ = .zScan[.blockIndex(xNb, yNb)]
-        if neighbourZ > currentZ do
+        if neighbourZ > currentZ
+        {
             return false
+        }
 
         let currentCtb   = .ctbRsToTs[.ctbAddressRs(xCurr, yCurr)]
         let neighbourCtb = .ctbRsToTs[.ctbAddressRs(xNb, yNb)]
-        if .tileId[currentCtb] != .tileId[neighbourCtb] do
+        if .tileId[currentCtb] != .tileId[neighbourCtb]
+        {
             return false
+        }
+
         return .ctbSliceAddr[.ctbAddressRs(xCurr, yCurr)] == .ctbSliceAddr[.ctbAddressRs(xNb, yNb)]
     }
 
@@ -440,8 +500,11 @@ impl Decoder
             available = not (secondOfPair and yCb + nPbH <= yNb and xCb + nPbW > xNb)
         }
 
-        if available and .predMode[.blockIndex(xNb, yNb)] == ModeIntra do
+        if available and .predMode[.blockIndex(xNb, yNb)] == ModeIntra
+        {
             available = false
+        }
+
         return available
     }
 
@@ -462,7 +525,7 @@ impl Decoder
             return
         }
 
-        let maxPocLsb = 1'u32 << sps.log2MaxPocLsb
+        let maxPocLsb = 1_u32 << sps.log2MaxPocLsb
         if isIrapNal(nalType) and .noRaslOutput
         {
             .pocMsb = 0
@@ -471,12 +534,18 @@ impl Decoder
         {
             let lsb  = header.pocLsb
             let half = maxPocLsb / 2
-            if lsb < .prevPocLsb and .prevPocLsb - lsb >= half do
+            if lsb < .prevPocLsb and .prevPocLsb - lsb >= half
+            {
                 .pocMsb = .prevPocMsb + cast(s32, maxPocLsb)
-            elif lsb > .prevPocLsb and lsb - .prevPocLsb > half do
+            }
+            else if lsb > .prevPocLsb and lsb - .prevPocLsb > half
+            {
                 .pocMsb = .prevPocMsb - cast(s32, maxPocLsb)
-            else do
+            }
+            else
+            {
                 .pocMsb = .prevPocMsb
+            }
         }
 
         .pocValue = .pocMsb + cast(s32, header.pocLsb)
@@ -489,10 +558,16 @@ impl Decoder
         {
             let reference = &.references[index]
             let frame     = unwrap reference.frame
-            if frame.poc != poc do
+            if frame.poc != poc
+            {
                 continue
-            if shortTerm and reference.marking != .ShortTerm do
+            }
+
+            if shortTerm and reference.marking != .ShortTerm
+            {
                 continue
+            }
+
             return frame
         }
 
@@ -505,8 +580,10 @@ impl Decoder
         for index in .referenceCount
         {
             let frame = unwrap .references[index].frame
-            if (cast(u32, frame.poc) & mask) == pocLsb do
+            if (cast(u32, frame.poc) & mask) == pocLsb
+            {
                 return frame
+            }
         }
 
         return null
@@ -517,8 +594,10 @@ impl Decoder
     {
         for &frame in .dpb
         {
-            if Atomic.get(&frame.reconstructionHolds) == 0 and Atomic.get(&frame.heldByCaller) == 0 do
+            if Atomic.get(&frame.reconstructionHolds) == 0 and Atomic.get(&frame.heldByCaller) == 0
+            {
                 return frame
+            }
         }
 
         return null
@@ -532,8 +611,8 @@ impl Decoder
     {
         var stCurrBefore, stCurrAfter, stFoll: [MaxRefPics] s32
         var ltCurr, ltFoll: [MaxRefPics] s32
-        var beforeCount, afterCount, follCount = 0'u32
-        var ltCurrCount, ltFollCount = 0'u32
+        var beforeCount, afterCount, follCount = 0_u32
+        var ltCurrCount, ltFollCount = 0_u32
 
         let rps = header.activeRps(sps)
         for index in rps.negativeCount
@@ -566,12 +645,14 @@ impl Decoder
             }
         }
 
-        let maxPocLsb = 1'u32 << sps.log2MaxPocLsb
+        let maxPocLsb = 1_u32 << sps.log2MaxPocLsb
         for index in header.numLongTermSps + header.numLongTermPics
         {
             var poc = cast(s32, header.ltPocLsb[index])
-            if header.ltMsbPresent[index] do
+            if header.ltMsbPresent[index]
+            {
                 poc = .pocValue - cast(s32, (header.ltMsbCycle[index] * maxPocLsb)) - (.pocValue & cast(s32, (maxPocLsb - 1))) + cast(s32, header.ltPocLsb[index])
+            }
 
             if header.ltUsedByCurr[index]
             {
@@ -591,16 +672,27 @@ impl Decoder
         {
             let reference = &.references[index]
             let frame     = unwrap reference.frame
-            if frame == .current do
+            if frame == .current
+            {
                 continue
+            }
 
             var named = false
-            for entry in beforeCount where frame.poc == stCurrBefore[entry] do
+            for entry in beforeCount where frame.poc == stCurrBefore[entry]
+            {
                 named = true
-            for entry in afterCount where frame.poc == stCurrAfter[entry] do
+            }
+
+            for entry in afterCount where frame.poc == stCurrAfter[entry]
+            {
                 named = true
-            for entry in follCount where frame.poc == stFoll[entry] do
+            }
+
+            for entry in follCount where frame.poc == stFoll[entry]
+            {
                 named = true
+            }
+
             if named
             {
                 reference.marking = .ShortTerm
@@ -609,10 +701,16 @@ impl Decoder
             }
 
             let mask = maxPocLsb - 1
-            for entry in ltCurrCount where (cast(u32, frame.poc) & mask) == (cast(u32, ltCurr[entry]) & mask) do
+            for entry in ltCurrCount where (cast(u32, frame.poc) & mask) == (cast(u32, ltCurr[entry]) & mask)
+            {
                 named = true
-            for entry in ltFollCount where (cast(u32, frame.poc) & mask) == (cast(u32, ltFoll[entry]) & mask) do
+            }
+
+            for entry in ltFollCount where (cast(u32, frame.poc) & mask) == (cast(u32, ltFoll[entry]) & mask)
+            {
                 named = true
+            }
+
             if named
             {
                 reference.marking = .LongTerm
@@ -620,13 +718,13 @@ impl Decoder
             }
         }
 
-        var index = 0'u32
+        var index = 0_u32
         while index < .referenceCount
         {
             let frame = unwrap .references[index].frame
             if frame != .current and not keep[index]
             {
-                Atomic.add(&frame.reconstructionHolds, ~0'u32)
+                Atomic.add(&frame.reconstructionHolds, ~0_u32)
                 .referenceCount    -= 1
                 .references[index] = .references[.referenceCount]
                 .references[.referenceCount] = {}
@@ -646,8 +744,10 @@ impl Decoder
     // Builds the reference picture lists of clause 8.3.4.
     private mtd buildLists(header: const *SliceHeader, before, after, longTerm: const [..] s32, lsbMask: u32) fail
     {
-        if header.sliceType == SliceTypeI do
+        if header.sliceType == SliceTypeI
+        {
             return
+        }
 
         var temp:      [ListCount, 3 * MaxRefPics] (*Frame?)
         var tempPoc:   [ListCount, 3 * MaxRefPics] s32
@@ -655,10 +755,12 @@ impl Decoder
         var tempCount: [ListCount] u32
 
         let totalCurr = cast(u32, (before.count + after.count + longTerm.count))
-        if not totalCurr do
+        if not totalCurr
+        {
             fail InvalidFormatError{"HEVC predicted slice has no reference picture available"}
+        }
 
-        for list in (header.sliceType == SliceTypeB ? 2'u32 : 1'u32)
+        for list in (header.sliceType == SliceTypeB ? 2_u32 : 1_u32)
         {
             let needed = Math.max(header.numRefIdx[list], totalCurr)
             let first  = list == 0 ? before : after
@@ -667,8 +769,11 @@ impl Decoder
             {
                 for poc in first
                 {
-                    if tempCount[list] >= needed do
+                    if tempCount[list] >= needed
+                    {
                         break
+                    }
+
                     temp[list, tempCount[list]]     = .findByPoc(poc, shortTerm: true)
                     tempPoc[list, tempCount[list]]  = poc
                     tempLong[list, tempCount[list]] = false
@@ -677,8 +782,11 @@ impl Decoder
 
                 for poc in second
                 {
-                    if tempCount[list] >= needed do
+                    if tempCount[list] >= needed
+                    {
                         break
+                    }
+
                     temp[list, tempCount[list]]     = .findByPoc(poc, shortTerm: true)
                     tempPoc[list, tempCount[list]]  = poc
                     tempLong[list, tempCount[list]] = false
@@ -687,8 +795,11 @@ impl Decoder
 
                 for poc in longTerm
                 {
-                    if tempCount[list] >= needed do
+                    if tempCount[list] >= needed
+                    {
                         break
+                    }
+
                     temp[list, tempCount[list]]     = .findByPocLsb(cast(u32, poc) & lsbMask, lsbMask)
                     tempPoc[list, tempCount[list]]  = poc
                     tempLong[list, tempCount[list]] = true
@@ -699,17 +810,24 @@ impl Decoder
             for index in header.numRefIdx[list]
             {
                 let source = header.listModification[list] ? header.listEntry[list, index] : index
-                if source >= tempCount[list] do
+                if source >= tempCount[list]
+                {
                     fail InvalidFormatError{"HEVC reference list modification is out of range"}
+                }
 
                 // A reference the stream names but the buffer never received is replaced by the
                 // nearest picture available, which keeps a stream that starts mid-sequence
                 // decodable instead of failing on its first predicted picture.
                 var frame = temp[list, source]
-                if not frame do
+                if not frame
+                {
                     frame = .nearestReference(tempPoc[list, source])
-                if not frame do
+                }
+
+                if not frame
+                {
                     fail InvalidFormatError{"HEVC slice refers to a picture that was never decoded"}
+                }
 
                 .refList.frames[list, index]   = frame
                 .refList.poc[list, index]      = tempPoc[list, source]
@@ -728,8 +846,11 @@ impl Decoder
         for index in .referenceCount
         {
             let frame = unwrap .references[index].frame
-            if frame == .current do
+            if frame == .current
+            {
                 continue
+            }
+
             let distance = Math.abs(frame.poc - poc)
             if distance < bestDistance
             {

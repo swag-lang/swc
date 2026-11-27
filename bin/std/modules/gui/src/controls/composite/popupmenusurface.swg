@@ -55,10 +55,16 @@ impl PopupMenuSurface
         let margin = shadow * scale
         var x      = anchor.x - margin
         var y      = (placement == .BelowAnchor ? anchor.bottom() : anchor.y) - margin
-        if placement == .AtPoint and x + width > work.right() do
+        if placement == .AtPoint and x + width > work.right()
+        {
             x = anchor.x - width + margin
-        if y + height > work.bottom() do
+        }
+
+        if y + height > work.bottom()
+        {
             y = anchor.y - height + margin
+        }
+
         x = Math.clamp(x, work.x, Math.max(work.x, work.right() - width))
         y = Math.clamp(y, work.y, Math.max(work.y, work.bottom() - height))
 
@@ -69,8 +75,10 @@ impl PopupMenuSurface
         #static if #os == Swag.TargetOs.Windows
         {
             // A tray icon still owns foreground while its callback is being dispatched.
-            if surface.win32Handle() do
+            if surface.win32Handle()
+            {
                 discard Win32.SetForegroundWindow(surface.win32Handle())
+            }
         }
 
         view.setFocus()
@@ -82,8 +90,11 @@ impl PopupMenuSurface
     // gesture finishes; the two Boolean fields belong to that one popup instance.
     func shouldDismiss(view: *Wnd, menu: *MenuCtrl, wasActive, armed: *bool)->bool
     {
-        if menu.isModalEnded() do
+        if menu.isModalEnded()
+        {
             return true
+        }
+
         if not armed[]
         {
             menu.captureMouse()

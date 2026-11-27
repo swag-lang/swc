@@ -42,7 +42,7 @@
 {
     var data: [3] u16 = [10, 20, 30]
     var ptr           = cast([*] u16, &data[0])
-    var count         = 0'u64
+    var count         = 0_u64
 
     ptr, count += 1
     Swag.require(ptr[] == 20)

@@ -18,29 +18,32 @@ private struct PendingWatchMove
 
 private struct WatcherNative
 {
-    descriptor            = -1's32
+    descriptor            = -1_s32
     cancellation: [2] s32 = [-1, -1]
     allocator:    Swag.IAllocator?
-    buffer:       Array'u8
-    directories:  Array'WatchedDirectory
-    moves:        Array'PendingWatchMove
+    buffer:       Array!{u8}
+    directories:  Array!{WatchedDirectory}
+    moves:        Array!{PendingWatchMove}
     clock:        Time.Stopwatch
-    cancelled:    Swag.AtomicValue'u32
-    rootDescriptor        = -1's32
+    cancelled:    Swag.AtomicValue!{u32}
+    rootDescriptor        = -1_s32
 }
 
 private func watcherNative(value: *void?)->*WatcherNative => cast(*WatcherNative, unwrap value)
 
 private func watchPathContains(parent, path: string)->bool
 {
-    if parent == path do
+    if parent == path
+    {
         return true
+    }
+
     return Utf8.startsWith(path, parent) and
            path.count > parent.count and
            (parent[parent.count - 1] == '/' or path[parent.count] == '/')
 }
 
-private func appendWatchChange(changes: *Array'Change, kind: ChangeKind, path: string, oldPath: string = "")
+private func appendWatchChange(changes: *Array!{Change}, kind: ChangeKind, path: string, oldPath: string = "")
 {
     var change: Change
     change.kind    = kind
@@ -55,22 +58,39 @@ private func watchFilterNative(filter: WatchFilter)->u32
 
     // Name events also maintain recursive subscriptions and pair moves independently of filtering.
     mask |= Linux.IN_CREATE | Linux.IN_DELETE | Linux.IN_MOVED_FROM | Linux.IN_MOVED_TO
-    if filter.has(.Size) or filter.has(.LastWrite) do
+    if filter.has(.Size) or filter.has(.LastWrite)
+    {
         mask |= Linux.IN_MODIFY
-    if filter.has(.Attributes) or filter.has(.Security) do
+    }
+
+    if filter.has(.Attributes) or filter.has(.Security)
+    {
         mask |= Linux.IN_ATTRIB
-    if filter.has(.LastAccess) do
+    }
+
+    if filter.has(.LastAccess)
+    {
         mask |= Linux.IN_ACCESS
+    }
+
     return mask
 }
 
 private func dropWatcherNative(state: *WatcherNative)
 {
-    if state.descriptor >= 0 do
+    if state.descriptor >= 0
+    {
         discard Linux.close(state.descriptor)
-    for descriptor in state.cancellation do
-        if descriptor >= 0 do
+    }
+
+    for descriptor in state.cancellation
+    {
+        if descriptor >= 0
+        {
             discard Linux.close(descriptor)
+        }
+    }
+
     let allocator = state.allocator
     Swag.drop(state, 1)
     Memory.free(state, #sizeof(WatcherNative), allocator)
@@ -80,19 +100,31 @@ internal impl Watcher
 {
     mtd openNative() fail
     {
-        if .options.filter == cast(WatchFilter, 0) or (.options.filter & ~WatchFilter.All) != cast(WatchFilter, 0) do
+        if .options.filter == cast(WatchFilter, 0) or (.options.filter & ~WatchFilter.All) != cast(WatchFilter, 0)
+        {
             fail Errors.BadParameterError{}
+        }
+
         let allocator = unwrap Swag.getContext().allocator
         let state     = cast(*WatcherNative, Memory.alloc(#sizeof(WatcherNative), allocator))
         Swag.init(state, 1)
         state.allocator = allocator
-        defer if not .native do
+        defer if not .native
+        {
             dropWatcherNative(state)
+        }
+
         state.descriptor = Linux.inotify_init1(Linux.IN_NONBLOCK | Linux.IN_CLOEXEC)
-        if state.descriptor < 0 do
+        if state.descriptor < 0
+        {
             try Errors.failLinuxError(Linux.errno(), .root)
-        if Linux.pipe2(state.cancellation.buffer, Linux.O_NONBLOCK | Linux.O_CLOEXEC) != 0 do
+        }
+
+        if Linux.pipe2(state.cancellation.buffer, Linux.O_NONBLOCK | Linux.O_CLOEXEC) != 0
+        {
             try Errors.failLinuxError(Linux.errno())
+        }
+
         state.buffer.reserve(.options.bufferSize)
         state.buffer.count = .options.bufferSize
         state.clock.start()
@@ -103,7 +135,7 @@ internal impl Watcher
 
     private mtd addWatchTree(state: *WatcherNative, root: string) fail
     {
-        var paths: Array'String
+        var paths: Array!{String}
         paths.add(root)
         while not paths.isEmpty()
         {
@@ -111,22 +143,30 @@ internal impl Watcher
             let native     = try Path.nativePath(path)
             let mask       = watchFilterNative(.options.filter) | Linux.IN_DONT_FOLLOW
             let descriptor = Linux.inotify_add_watch(state.descriptor, native.storage(), mask)
-            if descriptor < 0 do
+            if descriptor < 0
+            {
                 try Errors.failLinuxError(Linux.errno(), path)
+            }
+
             for directory in state.directories
             {
                 // Multiple directory paths can alias one inode through bind mounts.
                 // Reject ambiguity rather than overwrite a watch's path or recurse forever.
-                if directory.descriptor == descriptor do
+                if directory.descriptor == descriptor
+                {
                     try Errors.failLinuxError(Linux.ENOTSUP, path)
+                }
             }
 
             var directory: WatchedDirectory
             directory.descriptor = descriptor
             directory.path       = path
             state.directories.add(#move directory)
-            if not .options.recurse do
+            if not .options.recurse
+            {
                 continue
+            }
+
             let entries = try enumerateOneNative(path)
             for entry in entries
             {
@@ -134,8 +174,10 @@ internal impl Watcher
                 if entry.isDirectory() and
                    name != "." and
                    name != ".." and
-                   not entry.attributes.has(File.FileAttributes.ReparsePoint) do
+                   not entry.attributes.has(File.FileAttributes.ReparsePoint)
+                {
                     paths.add(entry.fullName)
+                }
             }
         }
     }
@@ -143,24 +185,38 @@ internal impl Watcher
     mtd cancelNative()
     {
         let state = watcherNative(.native)
-        if state.cancelled.exchange(1) do
+        if state.cancelled.exchange(1)
+        {
             return
+        }
+
         for
         {
-            if Linux.write(state.cancellation[1], "x".buffer, 1) == 1 do
+            if Linux.write(state.cancellation[1], "x".buffer, 1) == 1
+            {
                 return
+            }
+
             let error = Linux.errno()
-            if error == Linux.EAGAIN do
+            if error == Linux.EAGAIN
+            {
                 return
-            if error != Linux.EINTR do
+            }
+
+            if error != Linux.EINTR
+            {
                 Swag.panic("cannot wake the directory watcher", #curlocation)
+            }
         }
     }
 
     mtd closeNative()
     {
-        if not .native do
+        if not .native
+        {
             return
+        }
+
         let state = watcherNative(.native)
         .cancelNative()
         .native = null
@@ -175,7 +231,7 @@ internal impl Watcher
 
     private mtd removeWatchTree(state: *WatcherNative, path: string)
     {
-        var index = 0'u64
+        var index = 0_u64
         while index < state.directories.count
         {
             if watchPathContains(path, state.directories[index].path.toString())
@@ -192,21 +248,33 @@ internal impl Watcher
 
     private mtd parseWatchEvents(state: *WatcherNative, count: u64, batch: *WatchBatch)->bool fail
     {
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < count
         {
-            if count - offset < #sizeof(Linux.inotify_event) do
+            if count - offset < #sizeof(Linux.inotify_event)
+            {
                 return false
+            }
+
             let event  = cast(const *Linux.inotify_event, state.buffer.storage() + offset)
             let length = #sizeof(Linux.inotify_event) + cast(u64, event.len)
-            if length > count - offset do
+            if length > count - offset
+            {
                 return false
+            }
+
             offset += length
-            if (event.mask & (Linux.IN_Q_OVERFLOW | Linux.IN_UNMOUNT)) != 0 do
+            if (event.mask & (Linux.IN_Q_OVERFLOW | Linux.IN_UNMOUNT)) != 0
+            {
                 return false
+            }
+
             if event.wd == state.rootDescriptor and
-               (event.mask & (Linux.IN_DELETE_SELF | Linux.IN_MOVE_SELF | Linux.IN_IGNORED)) != 0 do
+               (event.mask & (Linux.IN_DELETE_SELF | Linux.IN_MOVE_SELF | Linux.IN_IGNORED)) != 0
+            {
                 return false
+            }
+
             var parent: String
             for directory in state.directories
             {
@@ -217,8 +285,11 @@ internal impl Watcher
                 }
             }
 
-            if parent.isEmpty() do
+            if parent.isEmpty()
+            {
                 continue
+            }
+
             if (event.mask & Linux.IN_IGNORED) != 0
             {
                 for directory, index in state.directories
@@ -233,14 +304,23 @@ internal impl Watcher
                 continue
             }
 
-            if event.len == 0 do
+            if event.len == 0
+            {
                 continue
+            }
+
             let bytes      = state.buffer.storage() + offset - event.len
-            var nameLength = 0'u64
-            while nameLength < event.len and bytes[nameLength] != 0 do
+            var nameLength = 0_u64
+            while nameLength < event.len and bytes[nameLength] != 0
+            {
                 nameLength += 1
-            if nameLength == event.len do
+            }
+
+            if nameLength == event.len
+            {
                 return false
+            }
+
             let name      = cast(string, Swag.makeSlice(bytes, nameLength))
             let path      = Path.combine(parent, name)
             let directory = (event.mask & Linux.IN_ISDIR) != 0
@@ -253,8 +333,10 @@ internal impl Watcher
             {
                 if move.path.toString() == path.toString() or
                    (directory and watchPathContains(path.toString(), move.path.toString())) or
-                   (move.directory and watchPathContains(move.path.toString(), parent.toString())) do
+                   (move.directory and watchPathContains(move.path.toString(), parent.toString()))
+                {
                     return false
+                }
             }
 
             if (event.mask & Linux.IN_MOVED_FROM) != 0
@@ -267,15 +349,21 @@ internal impl Watcher
                 move.expires   = state.clock.elapsedMilliseconds() + 50
                 state.moves.add(#move move)
             }
-            elif (event.mask & Linux.IN_MOVED_TO) != 0
+            else if (event.mask & Linux.IN_MOVED_TO) != 0
             {
                 var matched = false
                 for move, index in state.moves
                 {
-                    if move.cookie != event.cookie do
+                    if move.cookie != event.cookie
+                    {
                         continue
-                    if directory != move.directory do
+                    }
+
+                    if directory != move.directory
+                    {
                         return false
+                    }
+
                     if directory
                     {
                         for &watched in state.directories
@@ -290,8 +378,11 @@ internal impl Watcher
                         }
                     }
 
-                    if report do
+                    if report
+                    {
                         appendWatchChange(&batch.changes, .Renamed, path.toString(), move.path.toString())
+                    }
+
                     state.moves.removeAt(index)
                     matched = true
                     break
@@ -299,8 +390,11 @@ internal impl Watcher
 
                 if not matched
                 {
-                    if report do
+                    if report
+                    {
                         appendWatchChange(&batch.changes, .Added, path.toString())
+                    }
+
                     if directory and .options.recurse
                     {
                         try .addWatchTree(state, path.toString())
@@ -308,24 +402,32 @@ internal impl Watcher
                     }
                 }
             }
-            elif (event.mask & Linux.IN_CREATE) != 0
+            else if (event.mask & Linux.IN_CREATE) != 0
             {
-                if report or .options.filter.has(.Creation) do
+                if report or .options.filter.has(.Creation)
+                {
                     appendWatchChange(&batch.changes, .Added, path.toString())
+                }
+
                 if directory and .options.recurse
                 {
                     try .addWatchTree(state, path.toString())
                     batch.status = .Overflow
                 }
             }
-            elif (event.mask & Linux.IN_DELETE) != 0
+            else if (event.mask & Linux.IN_DELETE) != 0
             {
-                if directory do
+                if directory
+                {
                     .removeWatchTree(state, path.toString())
-                if report do
+                }
+
+                if report
+                {
                     appendWatchChange(&batch.changes, .Removed, path.toString())
+                }
             }
-            elif (event.mask & (Linux.IN_MODIFY | Linux.IN_ATTRIB | Linux.IN_ACCESS)) != 0
+            else if (event.mask & (Linux.IN_MODIFY | Linux.IN_ATTRIB | Linux.IN_ACCESS)) != 0
             {
                 appendWatchChange(&batch.changes, .Modified, path.toString())
             }
@@ -343,8 +445,11 @@ internal impl Watcher
 
         // Any native failure makes the recursive subscription potentially incomplete.
         var completed = false
-        defer if not completed do
+        defer if not completed
+        {
             .cancelNative()
+        }
+
         for
         {
             if state.cancelled.load()
@@ -364,8 +469,11 @@ internal impl Watcher
 
                 if batch.status == .Overflow or not batch.changes.isEmpty()
                 {
-                    if batch.status == .Overflow do
+                    if batch.status == .Overflow
+                    {
                         batch.changes.clear()
+                    }
+
                     completed = true
                     return batch
                 }
@@ -386,28 +494,43 @@ internal impl Watcher
             }
 
             let error = Linux.errno()
-            if error == Linux.EINTR do
+            if error == Linux.EINTR
+            {
                 continue
-            if error != Linux.EAGAIN do
+            }
+
+            if error != Linux.EAGAIN
+            {
                 try Errors.failLinuxError(error, .root)
+            }
+
             let now       = state.clock.elapsedMilliseconds()
-            var remaining = waitMilliseconds == Swag.U32.Max ? Swag.U64.Max : (now >= deadline ? 0'u64 : deadline - now)
-            var index     = 0'u64
+            var remaining = waitMilliseconds == Swag.U32.Max ? Swag.U64.Max : (now >= deadline ? 0_u64 : deadline - now)
+            var index     = 0_u64
             while index < state.moves.count
             {
                 let move = state.moves[index]
                 if now >= move.expires
                 {
-                    if move.directory do
+                    if move.directory
+                    {
                         .removeWatchTree(state, move.path.toString())
-                    if move.report do
+                    }
+
+                    if move.report
+                    {
                         appendWatchChange(&batch.changes, .Removed, move.path.toString())
+                    }
+
                     state.moves.removeAt(index)
                 }
                 else
                 {
-                    if move.expires - now < remaining do
+                    if move.expires - now < remaining
+                    {
                         remaining = move.expires - now
+                    }
+
                     index += 1
                 }
             }
@@ -427,19 +550,25 @@ internal impl Watcher
             var fds: [2] Linux.pollfd
             fds[0] = {fd: state.descriptor, events: Linux.POLLIN}
             fds[1] = {fd: state.cancellation[0], events: Linux.POLLIN}
-            let timeout = remaining == Swag.U64.Max ? -1's32 : cast(s32, Math.min(remaining, cast(u64, Swag.S32.Max)))
+            let timeout = remaining == Swag.U64.Max ? -1_s32 : cast(s32, Math.min(remaining, cast(u64, Swag.S32.Max)))
             let ready   = Linux.poll(fds.buffer, fds.count, timeout)
             if ready < 0
             {
                 let pollError = Linux.errno()
-                if pollError != Linux.EINTR do
+                if pollError != Linux.EINTR
+                {
                     try Errors.failLinuxError(pollError, .root)
+                }
             }
             else
             {
-                for descriptor in fds do
-                    if (descriptor.revents & (Linux.POLLERR | Linux.POLLHUP | Linux.POLLNVAL)) != 0 do
+                for descriptor in fds
+                {
+                    if (descriptor.revents & (Linux.POLLERR | Linux.POLLHUP | Linux.POLLNVAL)) != 0
+                    {
                         try Errors.failLinuxError(Linux.EBADF, .root)
+                    }
+                }
             }
         }
     }

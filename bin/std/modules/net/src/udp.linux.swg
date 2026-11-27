@@ -6,8 +6,11 @@ using Linux
 private func newDatagramSocket(family: s32)->s32 fail
 {
     let handle = Linux.socket(family, Linux.SOCK_DGRAM | Linux.SOCK_CLOEXEC, Linux.IPPROTO_UDP)
-    if handle < 0 do
+    if handle < 0
+    {
         fail NetworkError{code: Linux.errno()}
+    }
+
     return handle
 }
 
@@ -17,9 +20,11 @@ impl DatagramSocket
     mtd setBroadcast(enabled: bool) fail
     {
         Swag.assert(.open)
-        let value = enabled ? 1's32 : 0's32
-        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_BROADCAST, cast(const *void, &value), #sizeof(s32)) < 0 do
+        let value = enabled ? 1_s32 : 0_s32
+        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_BROADCAST, cast(const *void, &value), #sizeof(s32)) < 0
+        {
             fail NetworkError{code: Linux.errno()}
+        }
     }
 
     // Sets the maximum blocking receive time in milliseconds; zero disables the timeout.
@@ -28,23 +33,31 @@ impl DatagramSocket
         Swag.assert(.open)
         let timeout = Linux.timeval{tv_sec: cast(s64, timeoutMs / 1000),
                                     tv_usec: cast(s64, (timeoutMs % 1000) * 1000)}
-        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_RCVTIMEO, cast(const *void, &timeout), #sizeof(Linux.timeval)) < 0 do
+        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_RCVTIMEO, cast(const *void, &timeout), #sizeof(Linux.timeval)) < 0
+        {
             fail NetworkError{code: Linux.errno()}
+        }
     }
 
     // Joins an IPv4 or IPv6 multicast group on the selected local interface.
     mtd joinMulticast(group: IpAddress, options: MulticastOptions = {}) fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{}
+        }
+
         try setMulticastMembership(.handle, group, options, true)
     }
 
     // Leaves a multicast group previously joined with the same address and interface.
     mtd leaveMulticast(group: IpAddress, options: MulticastOptions = {}) fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{}
+        }
+
         try setMulticastMembership(.handle, group, options, false)
     }
 
@@ -53,8 +66,11 @@ impl DatagramSocket
     // A port of zero selects an available port, which [[Net.DatagramSocket.localAddress]] returns.
     func bind(endpoint: SocketEndpoint)->DatagramSocket fail
     {
-        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
+        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6
+        {
             fail Errors.BadParameterError{}
+        }
+
         let family  = endpoint.address.family == .IPv4 ? Linux.AF_INET : Linux.AF_INET6
         let handle  = try newDatagramSocket(family)
         let address = nativeSocketAddress(endpoint)
@@ -81,8 +97,11 @@ impl DatagramSocket
         Swag.assert(.open)
         var address: NativeSocketAddress
         var size = cast(u32, #sizeof(NativeSocketAddress))
-        if Linux.getsockname(cast(s32, .handle), cast(*Linux.sockaddr, cast(*void, &address)), &size) < 0 do
+        if Linux.getsockname(cast(s32, .handle), cast(*Linux.sockaddr, cast(*void, &address)), &size) < 0
+        {
             fail NetworkError{code: Linux.errno()}
+        }
+
         return try portableSocketEndpoint(cast(const *Linux.sockaddr, cast(const *void, &address)))
     }
 
@@ -90,15 +109,24 @@ impl DatagramSocket
     mtd sendTo(endpoint: SocketEndpoint, bytes: const [..] u8)->u64 fail
     {
         Swag.assert(.open)
-        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
+        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6
+        {
             fail Errors.BadParameterError{}
+        }
+
         let address = nativeSocketAddress(endpoint)
         let length  = cast(u32, endpoint.address.family == .IPv4 ? #sizeof(Linux.sockaddr_in) : #sizeof(Linux.sockaddr_in6))
         let result  = Linux.sendto(cast(s32, .handle), bytes.buffer, bytes.count, 0, cast(const *Linux.sockaddr, cast(const *void, &address)), length)
-        if result < 0 do
+        if result < 0
+        {
             fail NetworkError{code: Linux.errno()}
-        if cast(u64, result) != bytes.count do
+        }
+
+        if cast(u64, result) != bytes.count
+        {
             fail NetworkError{"datagram send did not transfer the complete message", code: 5}
+        }
+
         return cast(u64, result)
     }
 
@@ -124,8 +152,10 @@ impl DatagramSocket
             }
 
             let code = Linux.errno()
-            if code != Linux.EINTR do
+            if code != Linux.EINTR
+            {
                 fail NetworkError{code: code}
+            }
         }
     }
 }
@@ -134,8 +164,11 @@ private func setMulticastMembership(handle: u64, group: IpAddress, options: Mult
 {
     if group.isIPv4()
     {
-        if group.bytes[0] < 224 or group.bytes[0] > 239 or not options.interfaceAddress.isIPv4() do
+        if group.bytes[0] < 224 or group.bytes[0] > 239 or not options.interfaceAddress.isIPv4()
+        {
             fail Errors.BadParameterError{}
+        }
+
         let groupAddress = Linux.in_addr{s_addr: Linux.htonl((cast(u32, group.bytes[0]) << 24) |
                                                              (cast(u32, group.bytes[1]) << 16) | (cast(u32, group.bytes[2]) << 8) | group.bytes[3])}
         let interfaceAddress = Linux.in_addr{s_addr: Linux.htonl((cast(u32, options.interfaceAddress.bytes[0]) << 24) |
@@ -143,20 +176,29 @@ private func setMulticastMembership(handle: u64, group: IpAddress, options: Mult
                                                                  (cast(u32, options.interfaceAddress.bytes[2]) << 8) | options.interfaceAddress.bytes[3])}
         let request = Linux.ip_mreq{imr_multiaddr: groupAddress, imr_interface: interfaceAddress}
         let option  = join ? Linux.IP_ADD_MEMBERSHIP : Linux.IP_DROP_MEMBERSHIP
-        if Linux.setsockopt(cast(s32, handle), Linux.IPPROTO_IP, option, cast(const *void, &request), #sizeof(Linux.ip_mreq)) < 0 do
+        if Linux.setsockopt(cast(s32, handle), Linux.IPPROTO_IP, option, cast(const *void, &request), #sizeof(Linux.ip_mreq)) < 0
+        {
             fail NetworkError{code: Linux.errno()}
+        }
+
         return
     }
 
     if group.isIPv6() and group.bytes[0] == 0xFF
     {
         var address: Linux.in6_addr
-        for i in 16 do
+        for i in 16
+        {
             address.s6_addr[i] = group.bytes[i]
+        }
+
         let request = Linux.ipv6_mreq{ipv6mr_multiaddr: address, ipv6mr_interface: options.interfaceIndex}
         let option  = join ? Linux.IPV6_JOIN_GROUP : Linux.IPV6_LEAVE_GROUP
-        if Linux.setsockopt(cast(s32, handle), Linux.IPPROTO_IPV6, option, cast(const *void, &request), #sizeof(Linux.ipv6_mreq)) < 0 do
+        if Linux.setsockopt(cast(s32, handle), Linux.IPPROTO_IPV6, option, cast(const *void, &request), #sizeof(Linux.ipv6_mreq)) < 0
+        {
             fail NetworkError{code: Linux.errno()}
+        }
+
         return
     }
 

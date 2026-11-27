@@ -27,8 +27,10 @@ impl Wrapped
 func totalLength(values: const [..] Wrapped)->u64
 {
     var total: u64
-    for v in values do
+    for v in values
+    {
         total += v.length
+    }
     return total
 }
 

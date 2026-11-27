@@ -49,7 +49,7 @@ enum class FormatShortBlockStyle : uint8_t
     Source, // Keep source-single-line blocks compact; normalize source-multiline blocks
     Never,
     Empty,  // Only `{}` stays on the opening line
-    Inline, // `do ...` / single-statement bodies may stay on one line
+    Inline, // Single-statement brace blocks may stay on one line
     Always,
 };
 
@@ -219,7 +219,6 @@ struct FormatOptions
     FormatOperatorWrapStyle breakBeforeBinaryOperators = FormatOperatorWrapStyle::Preserve; // Where to wrap around binary operators
     std::optional<bool>     breakBeforeTernaryOperators;                                    // Break before `?` and `:` in `cond ? a : b`
     std::optional<bool>     breakAfterReturnType;                                           // Newline before `->` in `func foo(...)->T`
-    std::optional<bool>     breakBeforeDo;                                                  // Break before trailing `do` (`if x do ...`)
     std::optional<bool>     breakBeforeElse;                                                // Place `else` on its own line
     std::optional<bool>     breakBeforeWhere;                                               // Place `where` clauses on their own line
     FormatBinPackStyle      binPackArguments  = FormatBinPackStyle::Preserve;               // Call argument layout when wrapping
@@ -254,7 +253,7 @@ struct FormatOptions
     FormatShortBlockStyle allowShortEnumsOnSingleLine     = FormatShortBlockStyle::Preserve; // When to keep `enum` bodies on one line
     FormatShortBlockStyle allowShortStructsOnSingleLine   = FormatShortBlockStyle::Preserve; // When to keep `struct` bodies on one line
     FormatShortBlockStyle allowShortClosuresOnSingleLine  = FormatShortBlockStyle::Preserve; // When to keep closure bodies embedded in expressions on one line
-    std::optional<bool>   allowShortIfStatementsOnSingleLine;                                // Allow `if cond do stmt` on one line
+    std::optional<bool>   allowShortIfStatementsOnSingleLine;                                // Allow short braced if bodies on one line
     std::optional<bool>   allowShortLoopsOnSingleLine;                                       // Allow short `while`/`for` bodies on one line
 
     // -----------------------------------------------------------------------
@@ -272,8 +271,7 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Bodies read as a pattern when their siblings share one shape. Each option
     // names a family of siblings; the grouping modes are the alignment ones.
-    std::optional<bool> uniformBranchBodies;                               // Give every branch of an `if` / `elif` / `else` chain the same `do` or `{ }` body
-    FormatAlignMode     uniformGuardBodies    = FormatAlignMode::Preserve; // Give consecutive `if` statements without `else` the same `do` or `{ }` body
+    FormatAlignMode     uniformGuardBodies    = FormatAlignMode::Preserve; // Align consecutive `if` blocks without `else`
     FormatAlignMode     uniformClosureBodies  = FormatAlignMode::Preserve; // Give sibling closures one body layout: all on one line, or all expanded
     FormatAlignMode     uniformFunctionBodies = FormatAlignMode::Preserve; // Put sibling single-statement functions on one line when some already are
 

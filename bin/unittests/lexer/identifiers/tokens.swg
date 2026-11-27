@@ -20,7 +20,7 @@ mix3d_Case123
 value0xFF
 
 // --- Keywords (should be recognized as keywords, not identifiers) ---
-if else elif for while switch defer return break continue
+if else else if for while switch defer return break continue
 struct enum union using typedef const let var
 true false null
 

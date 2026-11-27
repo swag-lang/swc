@@ -18,14 +18,14 @@ using Swag, Core
 // contours: contours that overlap or fold over themselves are cut and trimmed first, which
 // is the work msdfgen hands to Skia's path simplification.
 
-const MSDF_BLACK   = 0'u8
-const MSDF_RED     = 1'u8
-const MSDF_GREEN   = 2'u8
-const MSDF_BLUE    = 4'u8
-const MSDF_YELLOW  = 3'u8
-const MSDF_MAGENTA = 5'u8
-const MSDF_CYAN    = 6'u8
-const MSDF_WHITE   = 7'u8
+const MSDF_BLACK   = 0_u8
+const MSDF_RED     = 1_u8
+const MSDF_GREEN   = 2_u8
+const MSDF_BLUE    = 4_u8
+const MSDF_YELLOW  = 3_u8
+const MSDF_MAGENTA = 5_u8
+const MSDF_CYAN    = 6_u8
+const MSDF_WHITE   = 7_u8
 
 // One flattened outline segment, with everything the distance evaluation would otherwise
 // recompute at every sample point. A glyph holds a few hundred of these and is measured at
@@ -82,10 +82,12 @@ func msdfNormDir(dx, dy: f64)->{ x: f64, y: f64 }
 
 func msdfIsDegenerate(x0, y0, x1, y1: f64)->bool => Math.isEqualEpsilon(x0, x1, 0.000001) and Math.isEqualEpsilon(y0, y1, 0.000001)
 
-func msdfAddSeg(segs: *Array'MsdfSeg, x0, y0, x1, y1: f64, color = MSDF_BLACK)
+func msdfAddSeg(segs: *Array!{MsdfSeg}, x0, y0, x1, y1: f64, color = MSDF_BLACK)
 {
-    if msdfIsDegenerate(x0, y0, x1, y1) do
+    if msdfIsDegenerate(x0, y0, x1, y1)
+    {
         return
+    }
 
     var seg: MsdfSeg
     seg.color = color
@@ -95,8 +97,10 @@ func msdfAddSeg(segs: *Array'MsdfSeg, x0, y0, x1, y1: f64, color = MSDF_BLACK)
     seg.aby   = y1 - y0
     seg.ab2   = seg.abx * seg.abx + seg.aby * seg.aby
     seg.len   = Math.sqrt(seg.ab2)
-    if seg.ab2 > 0 do
+    if seg.ab2 > 0
+    {
         seg.invLen = 1.0 / seg.len
+    }
 
     seg.minX = Math.min(x0, x1)
     seg.maxX = Math.max(x0, x1)
@@ -105,7 +109,7 @@ func msdfAddSeg(segs: *Array'MsdfSeg, x0, y0, x1, y1: f64, color = MSDF_BLACK)
     segs.add(seg)
 }
 
-func msdfFlattenQuadratic(segs: *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
+func msdfFlattenQuadratic(segs: *Array!{MsdfSeg}, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
 {
     if depth >= 12 or quadraticFlatEnough(x0, y0, x1, y1, x2, y2, tolerance)
     {
@@ -124,7 +128,7 @@ func msdfFlattenQuadratic(segs: *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, toleranc
     msdfFlattenQuadratic(segs, x012, y012, x12, y12, x2, y2, tolerance, depth + 1)
 }
 
-func msdfFlattenCubic(segs: *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, x3, y3, tolerance: f64, depth: u32 = 0)
+func msdfFlattenCubic(segs: *Array!{MsdfSeg}, x0, y0, x1, y1, x2, y2, x3, y3, tolerance: f64, depth: u32 = 0)
 {
     if depth >= 16 or cubicFlatEnough(x0, y0, x1, y1, x2, y2, x3, y3, tolerance)
     {
@@ -180,20 +184,23 @@ func msdfIsCorner(ax, ay, bx, by, crossThreshold: f64)->bool
 }
 
 // Color all elements of one contour so that incident edges across a corner differ.
-func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u64)
+func msdfColorContour(elements: *Array!{MsdfElement}, first, count: u32, seed: *u64)
 {
     // sin(3 degrees): direction changes beyond this angle are treated as corners.
-    let crossThreshold = 0.05233595624294383'f64
+    let crossThreshold = 0.05233595624294383_f64
 
-    var corners: Array'u32
+    var corners: Array!{u32}
     let ebuf = elements.storage()
     var pdx  = ebuf[first + count - 1].edx1
     var pdy  = ebuf[first + count - 1].edy1
     for i in count
     {
         let e = &ebuf[first + i]
-        if msdfIsCorner(pdx, pdy, e.sdx0, e.sdy0, crossThreshold) do
+        if msdfIsCorner(pdx, pdy, e.sdx0, e.sdy0, crossThreshold)
+        {
             corners.add(i)
+        }
+
         pdx = e.edx1
         pdy = e.edy1
     }
@@ -202,8 +209,11 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     // then matches a plain single-channel SDF, which is correct for such shapes.
     if corners.isEmpty()
     {
-        for i in count do
+        for i in count
+        {
             ebuf[first + i].color = MSDF_WHITE
+        }
+
         return
     }
 
@@ -213,13 +223,16 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     {
         var color = MSDF_WHITE
         msdfSwitchColor(&color, seed)
-        for i in count do
+        for i in count
+        {
             ebuf[first + i].color = color
+        }
+
         return
     }
 
     let cornerCount = cast(u32, corners.count)
-    var spline      = 0'u32
+    var spline      = 0_u32
     let start       = corners[0]
     var color       = MSDF_WHITE
     msdfSwitchColor(&color, seed)
@@ -243,14 +256,14 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
 //
 // `segs` receives every segment of the outline, whose nonzero winding is the glyph's fill.
 // `edges` receives the boundary of that fill, which is what distances are measured to.
-func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
+func buildMsdfSegments(outline: const *Outline, segs, edges: *Array!{MsdfSeg})
 {
     let commands  = buildOutlineCommands(outline)
     let tolerance = 0.20 / OVERSAMPLE
 
-    var elements:         Array'MsdfElement
-    var contourElemStart: Array'u32
-    var contourSegStart:  Array'u32
+    var elements:         Array!{MsdfElement}
+    var contourElemStart: Array!{u32}
+    var contourSegStart:  Array!{u32}
 
     var curX: f64 = 0
     var curY: f64 = 0
@@ -262,12 +275,12 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
         case .MoveTo:
             contourElemStart.add(cast(u32, elements.count))
             contourSegStart.add(cast(u32, segs.count))
-            curX = cmd.point.x / 64.0'f64
-            curY = cmd.point.y / 64.0'f64
+            curX = cmd.point.x / 64.0_f64
+            curY = cmd.point.y / 64.0_f64
 
         case .LineTo:
-            let x = cmd.point.x / 64.0'f64
-            let y = cmd.point.y / 64.0'f64
+            let x = cmd.point.x / 64.0_f64
+            let y = cmd.point.y / 64.0_f64
 
             var el: MsdfElement
             el.firstSeg = cast(u32, segs.count)
@@ -283,10 +296,10 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
             curY = y
 
         case .ConicTo:
-            let cx = cmd.conic.control.x / 64.0'f64
-            let cy = cmd.conic.control.y / 64.0'f64
-            let x  = cmd.conic.endPoint.x / 64.0'f64
-            let y  = cmd.conic.endPoint.y / 64.0'f64
+            let cx = cmd.conic.control.x / 64.0_f64
+            let cy = cmd.conic.control.y / 64.0_f64
+            let x  = cmd.conic.endPoint.x / 64.0_f64
+            let y  = cmd.conic.endPoint.y / 64.0_f64
 
             var el: MsdfElement
             el.firstSeg = cast(u32, segs.count)
@@ -321,12 +334,12 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
             curY = y
 
         case .CubicTo:
-            let c0x = cmd.cubic.control0.x / 64.0'f64
-            let c0y = cmd.cubic.control0.y / 64.0'f64
-            let c1x = cmd.cubic.control1.x / 64.0'f64
-            let c1y = cmd.cubic.control1.y / 64.0'f64
-            let x   = cmd.cubic.endPoint.x / 64.0'f64
-            let y   = cmd.cubic.endPoint.y / 64.0'f64
+            let c0x = cmd.cubic.control0.x / 64.0_f64
+            let c0y = cmd.cubic.control0.y / 64.0_f64
+            let c1x = cmd.cubic.control1.x / 64.0_f64
+            let c1y = cmd.cubic.control1.y / 64.0_f64
+            let x   = cmd.cubic.endPoint.x / 64.0_f64
+            let y   = cmd.cubic.endPoint.y / 64.0_f64
 
             var el: MsdfElement
             el.firstSeg = cast(u32, segs.count)
@@ -379,42 +392,58 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
     contourElemStart.add(cast(u32, elements.count))
     contourSegStart.add(cast(u32, segs.count))
 
-    var seed = 0'u64
+    var seed = 0_u64
     for c in contourElemStart.count - 1
     {
         let first = contourElemStart[c]
         let count = contourElemStart[c + 1] - first
-        if count == 0 do
+        if count == 0
+        {
             continue
+        }
+
         msdfColorContour(&elements, first, count, &seed)
     }
 
-    if not segs.count do
+    if not segs.count
+    {
         return
+    }
+
     let sbuf = segs.storage()
 
     // Propagate element colors down to their segments.
     for el in elements
     {
-        for i in el.segCount do
+        for i in el.segCount
+        {
             sbuf[el.firstSeg + i].color = el.color
+        }
     }
 
     msdfResolveBoundary(segs.toSlice(), contourSegStart.toSlice(), edges)
-    if edges.isEmpty() do
+    if edges.isEmpty()
+    {
         return
 
-    // Guarantee every channel is carried by at least one edge, otherwise that
-    // channel's distance would be undefined and the median would be meaningless.
+        // Guarantee every channel is carried by at least one edge, otherwise that
+        // channel's distance would be undefined and the median would be meaningless.
+    }
+
     let ebuf       = edges.storage()
-    var unionColor = 0'u8
-    for i in edges.count do
+    var unionColor = 0_u8
+    for i in edges.count
+    {
         unionColor |= ebuf[i].color
+    }
+
     let missing = (~unionColor) & MSDF_WHITE
     if missing
     {
-        for i in edges.count do
+        for i in edges.count
+        {
             ebuf[i].color |= missing
+        }
     }
 }
 
@@ -450,11 +479,13 @@ const MsdfSideProbe: f64 = 0.0001
 // same half-open rule as a sample row.
 func msdfWindingAt(segs: const [..] MsdfSeg, px, py: f64)->s32
 {
-    var winding = 0's32
+    var winding = 0_s32
     for &s in segs where py >= s.minY and py < s.maxY
     {
-        if s.x0 + s.abx * (py - s.y0) / s.aby > px do
+        if s.x0 + s.abx * (py - s.y0) / s.aby > px
+        {
             winding += s.aby > 0 ? 1 : -1
+        }
     }
 
     return winding
@@ -474,21 +505,26 @@ func msdfFillSide(segs: const [..] MsdfSeg, x0, y0, x1, y1: f64)->s32
     let midY    = (y0 + y1) * 0.5
     let left    = msdfWindingAt(segs, midX + toLeftX, midY + toLeftY) != 0
     let right   = msdfWindingAt(segs, midX - toLeftX, midY - toLeftY) != 0
-    if left == right do
+    if left == right
+    {
         return 0
+    }
+
     return right ? 1 : -1
 }
 
 // Cuts `s` at a point already known to lie on its line, when the point falls inside it.
-func msdfCutAt(s: const *MsdfSeg, index: u32, x, y: f64, cuts: *Array'MsdfCut)
+func msdfCutAt(s: const *MsdfSeg, index: u32, x, y: f64, cuts: *Array!{MsdfCut})
 {
     let t = ((x - s.x0) * s.abx + (y - s.y0) * s.aby) / s.ab2
-    if t > MsdfCutMargin and t < 1 - MsdfCutMargin do
+    if t > MsdfCutMargin and t < 1 - MsdfCutMargin
+    {
         cuts.add(MsdfCut{index, t, x, y})
+    }
 }
 
 // Records the cuts two segments make in each other.
-func msdfCutPair(a, b: const *MsdfSeg, ia, ib: u32, cuts: *Array'MsdfCut)
+func msdfCutPair(a, b: const *MsdfSeg, ia, ib: u32, cuts: *Array!{MsdfCut})
 {
     let qpx   = b.x0 - a.x0
     let qpy   = b.y0 - a.y0
@@ -498,8 +534,11 @@ func msdfCutPair(a, b: const *MsdfSeg, ia, ib: u32, cuts: *Array'MsdfCut)
     // other ends.
     if Math.abs(cross) <= MsdfParallelSine * a.len * b.len
     {
-        if Math.abs(qpx * a.aby - qpy * a.abx) > MsdfCollinearDist * a.len do
+        if Math.abs(qpx * a.aby - qpy * a.abx) > MsdfCollinearDist * a.len
+        {
             return
+        }
+
         msdfCutAt(a, ia, b.x0, b.y0, cuts)
         msdfCutAt(a, ia, b.x0 + b.abx, b.y0 + b.aby, cuts)
         msdfCutAt(b, ib, a.x0, a.y0, cuts)
@@ -509,11 +548,14 @@ func msdfCutPair(a, b: const *MsdfSeg, ia, ib: u32, cuts: *Array'MsdfCut)
 
     let ta = (qpx * b.aby - qpy * b.abx) / cross
     let tb = (qpx * a.aby - qpy * a.abx) / cross
-    if ta < -MsdfCutMargin or ta > 1 + MsdfCutMargin or tb < -MsdfCutMargin or tb > 1 + MsdfCutMargin do
+    if ta < -MsdfCutMargin or ta > 1 + MsdfCutMargin or tb < -MsdfCutMargin or tb > 1 + MsdfCutMargin
+    {
         return
 
-    // A crossing at the end of one segment is that end, exactly: the piece cut from the other
-    // segment must start where the first one does.
+        // A crossing at the end of one segment is that end, exactly: the piece cut from the other
+        // segment must start where the first one does.
+    }
+
     let insideA = ta > MsdfCutMargin and ta < 1 - MsdfCutMargin
     let insideB = tb > MsdfCutMargin and tb < 1 - MsdfCutMargin
     var x       = a.x0 + ta * a.abx
@@ -523,16 +565,21 @@ func msdfCutPair(a, b: const *MsdfSeg, ia, ib: u32, cuts: *Array'MsdfCut)
         x = ta < 0.5 ? a.x0 : a.x0 + a.abx
         y = ta < 0.5 ? a.y0 : a.y0 + a.aby
     }
-    elif not insideB
+    else if not insideB
     {
         x = tb < 0.5 ? b.x0 : b.x0 + b.abx
         y = tb < 0.5 ? b.y0 : b.y0 + b.aby
     }
 
-    if insideA do
+    if insideA
+    {
         cuts.add(MsdfCut{ia, ta, x, y})
-    if insideB do
+    }
+
+    if insideB
+    {
         cuts.add(MsdfCut{ib, tb, x, y})
+    }
 }
 
 // Collects the boundary of the fill of `segs` into `edges`.
@@ -545,25 +592,34 @@ func msdfCutPair(a, b: const *MsdfSeg, ia, ib: u32, cuts: *Array'MsdfCut)
 // side of it, turned so that the fill lies on its right.
 //
 // A clean outline is its own boundary, and `edges` then receives `segs` unchanged.
-func msdfResolveBoundary(segs: const [..] MsdfSeg, contourStarts: const [..] u32, edges: *Array'MsdfSeg)
+func msdfResolveBoundary(segs: const [..] MsdfSeg, contourStarts: const [..] u32, edges: *Array!{MsdfSeg})
 {
-    var sweep: Array'MsdfSweep
+    var sweep: Array!{MsdfSweep}
     sweep.reserve(segs.count)
-    for &s, i in segs do
+    for &s, i in segs
+    {
         sweep.add(MsdfSweep{s.minY, cast(u32, i)})
+    }
+
     sweep.sort(func||(l, r) => l.minY <=> r.minY)
 
-    var cuts: Array'MsdfCut
+    var cuts: Array!{MsdfCut}
     for i in sweep.count
     {
         let a = &segs[sweep[i].seg]
         for j in i + 1 until sweep.count
         {
             let b = &segs[sweep[j].seg]
-            if b.minY > a.maxY do
+            if b.minY > a.maxY
+            {
                 break
-            if b.minX > a.maxX or a.minX > b.maxX do
+            }
+
+            if b.minX > a.maxX or a.minX > b.maxX
+            {
                 continue
+            }
+
             msdfCutPair(a, b, sweep[i].seg, sweep[j].seg, &cuts)
         }
     }
@@ -572,18 +628,22 @@ func msdfResolveBoundary(segs: const [..] MsdfSeg, contourStarts: const [..] u32
     // segment answers for all of it.
     if cuts.isEmpty()
     {
-        var side  = 0's32
+        var side  = 0_s32
         var clean = true
         for c in contourStarts.count - 1
         {
             let first = contourStarts[c]
             let end   = contourStarts[c + 1]
-            if first == end do
+            if first == end
+            {
                 continue
+            }
 
             var longest = first
-            for k in first + 1 until end where segs[k].ab2 > segs[longest].ab2 do
+            for k in first + 1 until end where segs[k].ab2 > segs[longest].ab2
+            {
                 longest = k
+            }
 
             let s = &segs[longest]
             let contourSide = msdfFillSide(segs, s.x0, s.y0, s.x0 + s.abx, s.y0 + s.aby)
@@ -605,7 +665,7 @@ func msdfResolveBoundary(segs: const [..] MsdfSeg, contourStarts: const [..] u32
 
     cuts.sort(func||(l, r) => l.seg == r.seg ? l.t <=> r.t : l.seg <=> r.seg)
 
-    var nextCut = 0'u64
+    var nextCut = 0_u64
     for &s, i in segs
     {
         var x0   = s.x0
@@ -630,10 +690,14 @@ func msdfResolveBoundary(segs: const [..] MsdfSeg, contourStarts: const [..] u32
             if not msdfIsDegenerate(x0, y0, x1, y1)
             {
                 let side = msdfFillSide(segs, x0, y0, x1, y1)
-                if side > 0 do
+                if side > 0
+                {
                     msdfAddSeg(edges, x0, y0, x1, y1, s.color)
-                elif side < 0 do
+                }
+                else if side < 0
+                {
                     msdfAddSeg(edges, x1, y1, x0, y0, s.color)
+                }
             }
 
             x0 = x1
@@ -649,8 +713,10 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
     let aqy = py - s.y0
 
     var param: f64 = 0
-    if s.ab2 > 0 do
+    if s.ab2 > 0
+    {
         param = (aqx * s.abx + aqy * s.aby) / s.ab2
+    }
 
     var epx = s.x0
     var epy = s.y0
@@ -667,16 +733,20 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
     if param > 0 and param < 1
     {
         let ortho = (s.aby * aqx - s.abx * aqy) * s.invLen
-        if Math.abs(ortho) < endpointDist do
+        if Math.abs(ortho) < endpointDist
+        {
             return {sd: ortho, dt: 0.0, param: param}
+        }
     }
 
     let crs = aqx * s.aby - aqy * s.abx
     let sgn = crs > 0 ? 1.0 : -1.0
 
     var dt: f64 = 0
-    if s.len > 0 and endpointDist > 0 do
+    if s.len > 0 and endpointDist > 0
+    {
         dt = Math.abs((s.abx * eqx + s.aby * eqy) / (s.len * endpointDist))
+    }
 
     return {sd: sgn * endpointDist, dt: dt, param: param}
 }
@@ -685,8 +755,10 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
 // field stays linear beyond the segment (this is what keeps corners sharp).
 func msdfSegPseudoDistance(s: const *MsdfSeg, px, py, param, curSigned: f64)->f64
 {
-    if s.len <= 0 do
+    if s.len <= 0
+    {
         return curSigned
+    }
 
     let dx = s.abx / s.len
     let dy = s.aby / s.len
@@ -699,11 +771,13 @@ func msdfSegPseudoDistance(s: const *MsdfSeg, px, py, param, curSigned: f64)->f6
         if ts < 0
         {
             let pseudo = aqx * dy - aqy * dx
-            if Math.abs(pseudo) <= Math.abs(curSigned) do
+            if Math.abs(pseudo) <= Math.abs(curSigned)
+            {
                 return pseudo
+            }
         }
     }
-    elif param > 1
+    else if param > 1
     {
         let bqx = px - s.x0 - s.abx
         let bqy = py - s.y0 - s.aby
@@ -711,8 +785,10 @@ func msdfSegPseudoDistance(s: const *MsdfSeg, px, py, param, curSigned: f64)->f6
         if ts > 0
         {
             let pseudo = bqx * dy - bqy * dx
-            if Math.abs(pseudo) <= Math.abs(curSigned) do
+            if Math.abs(pseudo) <= Math.abs(curSigned)
+            {
                 return pseudo
+            }
         }
     }
 
@@ -779,8 +855,10 @@ impl MsdfBest
         .signed[0], .signed[1], .signed[2] = -Swag.F64.Max
         .dot[0], .dot[1], .dot[2] = Swag.F64.Max
         .idx[0], .idx[1], .idx[2], .allIdx = -1
-        for i in 8 do
+        for i in 8
+        {
             .reach2[i] = Swag.F64.Max
+        }
     }
 
     // Refreshes the rejection reaches after a win changed one of the distances.
@@ -796,8 +874,10 @@ impl MsdfBest
         reach[6] = Math.max(.abs[1], .abs[2])
         reach[7] = Math.max(reach[3], .abs[2])
 
-        for i in 8 do
+        for i in 8
+        {
             .reach2[i] = reach[i] * reach[i] * MsdfReachSlack
+        }
     }
 
     // Measures one segment and keeps it wherever it wins.
@@ -816,14 +896,17 @@ impl MsdfBest
 
         for ch in 3
         {
-            if not (s.color & cast(u8, (1 << ch))) do
+            if not (s.color & cast(u8, (1 << ch)))
+            {
                 continue
 
-            // An exact tie goes to the more perpendicular contact, which is what keeps a
-            // corner from picking whichever of its two edges happens to come first. Two
-            // contacts as perpendicular as each other go to the earlier segment, so that
-            // the field does not depend on the order the search happened to visit them —
-            // the search starts from the previous sample's winners, not from the top.
+                // An exact tie goes to the more perpendicular contact, which is what keeps a
+                // corner from picking whichever of its two edges happens to come first. Two
+                // contacts as perpendicular as each other go to the earlier segment, so that
+                // the field does not depend on the order the search happened to visit them —
+                // the search starts from the previous sample's winners, not from the top.
+            }
+
             if a < .abs[ch] or (a == .abs[ch] and (dt < .dot[ch] or (dt == .dot[ch] and index < .idx[ch])))
             {
                 .abs[ch]    = a
@@ -836,8 +919,10 @@ impl MsdfBest
         }
 
         // Most measured segments win nothing; only a win can tighten the reaches.
-        if won do
+        if won
+        {
             .updateReach()
+        }
     }
 }
 
@@ -850,11 +935,25 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed
     var best: MsdfBest
     best.start()
 
-    for k in 4
+    let r       = seed.channel[0]
+    let g       = seed.channel[1]
+    let b       = seed.channel[2]
+    let nearest = seed.nearest
+    if r >= 0
     {
-        let index = k < 3 ? seed.channel[k] : seed.nearest
-        if index >= 0 do
-            best.fold(&segs[index], index, px, py)
+        best.fold(&segs[r], r, px, py)
+    }
+    if g >= 0 and g != r
+    {
+        best.fold(&segs[g], g, px, py)
+    }
+    if b >= 0 and b != r and b != g
+    {
+        best.fold(&segs[b], b, px, py)
+    }
+    if nearest >= 0 and nearest != r and nearest != g and nearest != b
+    {
+        best.fold(&segs[nearest], nearest, px, py)
     }
 
     for &s, i in segs
@@ -863,12 +962,18 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed
         // for a handful of comparisons and no square root. A segment that cannot reach the
         // widest winner cannot win anything. Ties still go through, because it is the exact
         // distance that decides them.
-        let bx = Math.max(s.minX - px, px - s.maxX, 0.0'f64)
-        let by = Math.max(s.minY - py, py - s.maxY, 0.0'f64)
-        if bx * bx + by * by > best.reach2[s.color] do
+        let bx = Math.max(s.minX - px, px - s.maxX, 0.0_f64)
+        let by = Math.max(s.minY - py, py - s.maxY, 0.0_f64)
+        if bx * bx + by * by > best.reach2[s.color]
+        {
             continue
+        }
 
-        best.fold(s, cast(s32, i), px, py)
+        let index = cast(s32, i)
+        if index != r and index != g and index != b and index != nearest
+        {
+            best.fold(s, index, px, py)
+        }
     }
 
     seed.channel[0] = best.idx[0]
@@ -880,8 +985,10 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed
     for ch in 3
     {
         d[ch] = best.signed[ch]
-        if best.idx[ch] >= 0 do
+        if best.idx[ch] >= 0
+        {
             d[ch] = msdfSegPseudoDistance(&segs[best.idx[ch]], px, py, best.param[ch], best.signed[ch])
+        }
     }
 
     var result: #returntype
@@ -896,8 +1003,8 @@ func msdfMedian(a, b, c: f64)->f64 => Math.max(Math.min(a, b), Math.min(Math.max
 
 struct MsdfRowCtx
 {
-    segs:           const *Array'MsdfSeg     // The whole outline, which decides inside from outside.
-    edges:          const *Array'MsdfSeg     // Its boundary, which distances are measured to.
+    segs:           const *Array!{MsdfSeg}     // The whole outline, which decides inside from outside.
+    edges:          const *Array!{MsdfSeg}     // Its boundary, which distances are measured to.
     channels:       [*] f32
     rowVotes:       [*] s64
     crossings:      [*] MsdfCrossing     // Per-row scratch, one span of 'crossingStride' entries per row.
@@ -914,11 +1021,13 @@ struct MsdfRowCtx
 // defined on a sample that lands exactly on a vertex.
 func msdfRowCrossings(segs: const [..] MsdfSeg, out: [*] MsdfCrossing, sampleY: f64)->u32
 {
-    var count = 0'u32
+    var count = 0_u32
     for &s in segs
     {
-        if sampleY < s.minY or sampleY >= s.maxY do
+        if sampleY < s.minY or sampleY >= s.maxY
+        {
             continue
+        }
 
         var crossing: MsdfCrossing
         crossing.x   = s.x0 + s.abx * (sampleY - s.y0) / s.aby
@@ -953,15 +1062,17 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
     let crossings  = c.crossings + cast(u64, py) * c.crossingStride
     let crossCount = msdfRowCrossings(segsS, crossings, sampleY)
 
-    var winding = 0's32
-    for i in crossCount do
+    var winding = 0_s32
+    for i in crossCount
+    {
         winding += crossings[i].dir
+    }
 
     var seed: MsdfSeed
     seed.clear()
 
-    var passed    = 0'u32
-    var localVote = 0's64
+    var passed    = 0_u32
+    var localVote = 0_s64
     for px in c.width
     {
         let sampleX = cast(f64, c.left) + cast(f64, px) + 0.5
@@ -1012,14 +1123,22 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     let safeSlot = slot
     clearBitmap(safeSlot)
 
-    if safeSlot.format != .Outline do
+    if safeSlot.format != .Outline
+    {
         try fault(0x13)
-    if safeSlot.outline.pointCount <= 0 do
+    }
+
+    if safeSlot.outline.pointCount <= 0
+    {
         return
+    }
 
     var safeSpread = spread
-    if not safeSpread do
+    if not safeSpread
+    {
         safeSpread = 1
+    }
+
     safeSpread = Math.min(safeSpread, 64)
 
     let padding = cast(s32, safeSpread)
@@ -1030,15 +1149,19 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     let top     = Math.ceilS32(bounds.maxY / 64.0) + padding
     let width   = Math.max(0, right - left)
     let rows    = Math.max(0, top - bottom)
-    if not width or not rows do
+    if not width or not rows
+    {
         return
+    }
 
-    var segs, edges: Array'MsdfSeg
+    var segs, edges: Array!{MsdfSeg}
     buildMsdfSegments(&safeSlot.outline, &segs, &edges)
-    if edges.isEmpty() do
+    if edges.isEmpty()
+    {
         return
+    }
 
-    var channels: Array'f32
+    var channels: Array!{f32}
     channels.resize(cast(u64, width) * rows * 4)
 
     let scale = 127.0 / cast(f64, safeSpread)
@@ -1046,13 +1169,13 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     // Per-row sign votes, summed afterwards. The vote only decides the single global
     // sign of the field, so it is sampled on a sparse grid (every other pixel) — that
     // is hundreds of authoritative inside/outside tests, plenty for a robust majority.
-    var rowVotes: Array's64
+    var rowVotes: Array!{s64}
     rowVotes.resize(cast(u64, rows))
 
     // A row can meet each segment at most once, which bounds its crossing list. Every row
     // owns its own span so that the rows below can run in parallel without sharing scratch.
     let crossingStride = segs.count
-    var crossings: Array'MsdfCrossing
+    var crossings: Array!{MsdfCrossing}
     crossings.resize(cast(u64, rows) * crossingStride)
 
     let channelsBuffer = channels.storage()
@@ -1072,18 +1195,24 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     let samples = cast(u64, width) * cast(u64, rows)
     if rows >= 2 and samples >= MsdfParallelMinSamples and Swag.workerCount() > 1
     {
-        parallel for |&ctx| py in rows do
+        parallel for |&ctx| py in rows
+        {
             msdfProcessRow(&ctx, cast(u32, py))
+        }
     }
     else
     {
-        for py in rows do
+        for py in rows
+        {
             msdfProcessRow(&ctx, cast(u32, py))
+        }
     }
 
-    var vote = 0's64
-    for i in rows do
+    var vote = 0_s64
+    for i in rows
+    {
         vote += rowVotes[i]
+    }
 
     let flip: f64 = vote < 0 ? -1 : 1
 
@@ -1103,20 +1232,25 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         // It takes the true distance on all three channels instead, and becomes a plain
         // single-channel texel: msdfgen's own answer to a texel it cannot trust.
         var rgb: [3] f64
-        for c in 3 do
+        for c in 3
+        {
             rgb[c] = flip * cast(f64, channelsBuffer[src + c])
+        }
+
         let median = msdfMedian(rgb[0], rgb[1], rgb[2])
-        if (trueSd > 0 and median < 0) or (trueSd < 0 and median > 0) do
+        if (trueSd > 0 and median < 0) or (trueSd < 0 and median > 0)
+        {
             rgb[0], rgb[1], rgb[2] = trueSd
+        }
 
         for c in 3
         {
-            let value = 128.0'f64 + rgb[c] * scale
-            dst[src + c] = cast(u8, Math.max(0.0'f64, Math.min(255.0'f64, Math.round(value))))
+            let value = 128.0_f64 + rgb[c] * scale
+            dst[src + c] = cast(u8, Math.max(0.0_f64, Math.min(255.0_f64, Math.round(value))))
         }
 
-        let av = 128.0'f64 + trueSd * scale
-        dst[src + 3] = cast(u8, Math.max(0.0'f64, Math.min(255.0'f64, Math.round(av))))
+        let av = 128.0_f64 + trueSd * scale
+        dst[src + 3] = cast(u8, Math.max(0.0_f64, Math.min(255.0_f64, Math.round(av))))
     }
 
     safeSlot.setBitmap(rows, width, cast(s32, width) * 4, dst, .Rgba, left, top)

@@ -14,11 +14,11 @@ enum PlayMode
 
 const PlayModeValues: [4] PlayMode = [.Once, .Repeat, .Folder, .Shuffle]
 
-const SlideDefaultSeconds   = 5'f32        // Initial duration of a still picture in a folder mode.
-const SlideMinSeconds       = 1'f32        // Shortest supported still-picture duration.
-const SlideMaxSeconds       = 3600'f32     // Longest supported still-picture duration.
+const SlideDefaultSeconds   = 5_f32        // Initial duration of a still picture in a folder mode.
+const SlideMinSeconds       = 1_f32        // Shortest supported still-picture duration.
+const SlideMaxSeconds       = 3600_f32     // Longest supported still-picture duration.
 const SlideChoices: [5] f32 = [3, 5, 10, 30, 60]     // Still-picture durations offered by the options, in seconds.
-const VolumeStep            = 0.05'f32     // Volume change of one Up or Down key press in a media viewer.
+const VolumeStep            = 0.05_f32     // Volume change of one Up or Down key press in a media viewer.
 
 // The playback rates a media viewer offers, slowest first. An audio voice is created with the
 // default maximum frequency ratio of two, so 2x is the fastest rate the sound can follow; the pitch
@@ -29,9 +29,12 @@ const PlaybackRates: [7] f64 = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 // for a positive `direction`, and no further than either end.
 func playbackRateStep(current: f64, direction: s32)->f64
 {
-    var currentIndex = 0's32
-    for rate, index in PlaybackRates where rate <= current do
+    var currentIndex = 0_s32
+    for rate, index in PlaybackRates where rate <= current
+    {
         currentIndex = cast(s32, index)
+    }
+
     let nextIndex = Math.clamp(currentIndex + direction, 0, cast(s32, PlaybackRates.count - 1))
     return PlaybackRates[cast(u32, nextIndex)]
 }
@@ -82,8 +85,11 @@ impl PlaybackApi
     // Reads the host policy, or returns the default policy when no reader is installed.
     mtd const settings(view: *Wnd)->PlaybackSettings
     {
-        if .readSettings do
+        if .readSettings
+        {
             return .readSettings(view)
+        }
+
         return {}
     }
 
@@ -120,8 +126,11 @@ impl PlaybackApi
                      icon: view.theme().icon(playModeIcon(state.mode), iconSize),
                      disabled: disabled)
 
-        if not showSlideDuration do
+        if not showSlideDuration
+        {
             return
+        }
+
         page.addLink(texts.ui_PlaySlide,
                      slideText(state.slideSeconds),
                      func|api, view|(durations)

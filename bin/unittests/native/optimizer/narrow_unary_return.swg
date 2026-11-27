@@ -11,7 +11,7 @@ func rotateDirect(value: *u16)->u16 => Swag.ror(value[], 3)
 
 #test
 {
-    let values = [0'u16, 1, 0x1234, 0x8001, 0xFFFF]
+    let values = [0_u16, 1, 0x1234, 0x8001, 0xFFFF]
     for value, index in values
     {
         Swag.require(rotate(&values[0], index) == Swag.rol(value, 5))

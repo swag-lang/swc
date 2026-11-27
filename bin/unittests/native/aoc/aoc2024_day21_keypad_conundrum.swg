@@ -71,9 +71,18 @@ const DirGapC: s32 = 0
 #[Swag.Inline]
 func dirKeyIdx(dr: s32, dc: s32)->u32
 {
-    if dr < 0 do return 0     // ^
-    if dr > 0 do return 3     // v
-    if dc < 0 do return 2     // <
+    if dr < 0
+    {
+        return 0
+    }     // ^
+    if dr > 0
+    {
+        return 3
+    }     // v
+    if dc < 0
+    {
+        return 2
+    }            // <
     return 4     // >
 }
 
@@ -81,7 +90,7 @@ func dirKeyIdx(dr: s32, dc: s32)->u32
 // Memoisation hash map (key: packed state, value: u64 cost)
 // ---------------------------------------------------------------------------
 
-const MapCap = 16384'u32
+const MapCap = 16384_u32
 
 struct Memo
 {
@@ -104,9 +113,18 @@ func memoInit()->Memo
 
 func memoFree(m: *Memo)
 {
-    if m.keys do testFree(m.keys)
-    if m.vals do testFree(m.vals)
-    if m.alive do testFree(m.alive)
+    if m.keys
+    {
+        testFree(m.keys)
+    }
+    if m.vals
+    {
+        testFree(m.vals)
+    }
+    if m.alive
+    {
+        testFree(m.alive)
+    }
 }
 
 func memoProbe(m: *Memo, key: u64)->u32
@@ -119,8 +137,10 @@ func memoProbe(m: *Memo, key: u64)->u32
     let keys  = unwrap m.keys
     for MapCap
     {
-        if not alive[idx] or keys[idx] == key do
+        if not alive[idx] or keys[idx] == key
+        {
             return idx
+        }
         idx = (idx + 1) % MapCap
     }
     Swag.assert(false)
@@ -164,7 +184,7 @@ func packKey(fromIdx: u32, dstIdx: u32, depth: u32, isNum: bool)->u64
     return cast(u64, fromIdx) |
            (cast(u64, dstIdx) << 8) |
            (cast(u64, depth) << 16) |
-           (cast(u64, (isNum ? 1'u32 : 0'u32)) << 24)
+           (cast(u64, (isNum ? 1_u32 : 0_u32)) << 24)
 }
 
 // Recursive cost: minimal human presses to go from key `from` to key `to`
@@ -175,7 +195,10 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
     let key    = packKey(from, dst, depth, isNum)
     var found: bool
     let cached = memoGet(memo, key, &found)
-    if found do return cached
+    if found
+    {
+        return cached
+    }
 
     var fromCoord: Coord
     var toCoord:   Coord
@@ -212,7 +235,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
     // (horizontal-first vs vertical-first), pick minimum cost.
     // Each ordering is only valid if it doesn't cross the gap.
 
-    var bestCost: u64 = 0xFFFFFFFFFFFFFFFF'u64
+    var bestCost: u64 = 0xFFFFFFFFFFFFFFFF_u64
 
     // Try horizontal then vertical
     let hfValid = not (fromCoord.r == gapR and toCoord.c == gapC)
@@ -247,7 +270,10 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
 
         // Press A
         cost += moveCost(cur, 1, depth - 1, false, memo)
-        if cost < bestCost do bestCost = cost
+        if cost < bestCost
+        {
+            bestCost = cost
+        }
     }
 
     // Try vertical then horizontal
@@ -283,7 +309,10 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
 
         // Press A
         cost += moveCost(cur, 1, depth - 1, false, memo)
-        if cost < bestCost do bestCost = cost
+        if cost < bestCost
+        {
+            bestCost = cost
+        }
     }
 
     memoPut(memo, key, bestCost)
@@ -297,8 +326,10 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
 // Map a character to numeric keypad index
 func charToNumIdx(ch: u8)->u32
 {
-    if ch >= '0' and ch <= '9' do
+    if ch >= '0' and ch <= '9'
+    {
         return cast(u32, (ch - '0'))
+    }
     return 10     // 'A'
 }
 
@@ -349,28 +380,49 @@ func solve(text: string)->SolveResult
 
     for
     {
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
 
         // Skip newlines
         for
         {
-            if pos >= bytes.count do break
-            if bytes[pos] != '\n' and bytes[pos] != '\r' do break
+            if pos >= bytes.count
+            {
+                break
+            }
+            if bytes[pos] != '\n' and bytes[pos] != '\r'
+            {
+                break
+            }
             pos += 1
         }
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
 
         // Read code
         let codeStart = pos
         for
         {
-            if pos >= bytes.count do break
-            if bytes[pos] == '\n' or bytes[pos] == '\r' do break
+            if pos >= bytes.count
+            {
+                break
+            }
+            if bytes[pos] == '\n' or bytes[pos] == '\r'
+            {
+                break
+            }
             pos += 1
         }
 
         let codeLen = pos - codeStart
-        if codeLen == 0 do continue
+        if codeLen == 0
+        {
+            continue
+        }
 
         let codeSlice = Swag.makeSlice(&bytes[codeStart], cast(u64, codeLen))
         let numVal    = codeNumericValue(codeSlice, codeLen)
@@ -420,10 +472,10 @@ func solve(text: string)->SolveResult
 // dirKeyIdx inline
 #test
 {
-    Swag.require(dirKeyIdx(-1, 0) == 0'u32)     // ^
-    Swag.require(dirKeyIdx(1, 0) == 3'u32)      // v
-    Swag.require(dirKeyIdx(0, -1) == 2'u32)     // <
-    Swag.require(dirKeyIdx(0, 1) == 4'u32)      // >
+    Swag.require(dirKeyIdx(-1, 0) == 0_u32)     // ^
+    Swag.require(dirKeyIdx(1, 0) == 3_u32)      // v
+    Swag.require(dirKeyIdx(0, -1) == 2_u32)     // <
+    Swag.require(dirKeyIdx(0, 1) == 4_u32)      // >
 }
 
 // packKey inline
@@ -449,15 +501,15 @@ func solve(text: string)->SolveResult
     memoPut(&m, 42, 100)
     let v = memoGet(&m, 42, &found)
     Swag.require(found)
-    Swag.require(v == 100'u64)
+    Swag.require(v == 100_u64)
 }
 
 // charToNumIdx
 #test
 {
-    Swag.require(charToNumIdx('0') == 0'u32)
-    Swag.require(charToNumIdx('9') == 9'u32)
-    Swag.require(charToNumIdx('A') == 10'u32)
+    Swag.require(charToNumIdx('0') == 0_u32)
+    Swag.require(charToNumIdx('9') == 9_u32)
+    Swag.require(charToNumIdx('A') == 10_u32)
 }
 
 // codeNumericValue
@@ -465,8 +517,8 @@ func solve(text: string)->SolveResult
 {
     var buf: [4] u8
     buf[0] = '0'; buf[1] = '2'; buf[2] = '9'; buf[3] = 'A'
-    let sl = Swag.makeSlice(&buf[0], 4'u64)
-    Swag.require(codeNumericValue(sl, 4) == 29'u64)
+    let sl = Swag.makeSlice(&buf[0], 4_u64)
+    Swag.require(codeNumericValue(sl, 4) == 29_u64)
 }
 
 // Depth 0: direct presses, manhattan + 1
@@ -476,14 +528,14 @@ func solve(text: string)->SolveResult
     defer memoFree(&m)
     // A(10) to 0(0): A at (3,2), 0 at (3,1) → manhattan 1 + press = 2
     let c = moveCost(10, 0, 0, true, &m)
-    Swag.require(c == 2'u64)
+    Swag.require(c == 2_u64)
 }
 
 // Sample Part 1 = 126384
 #test
 {
     let result = solve(SampleInput)
-    Swag.require(result.part1 == 126384'u64)
+    Swag.require(result.part1 == 126384_u64)
 }
 
 // Single code "029A" at depth 2 = 68 presses
@@ -493,16 +545,16 @@ func solve(text: string)->SolveResult
     defer memoFree(&m)
     var buf: [4] u8
     buf[0] = '0'; buf[1] = '2'; buf[2] = '9'; buf[3] = 'A'
-    let sl   = Swag.makeSlice(&buf[0], 4'u64)
+    let sl   = Swag.makeSlice(&buf[0], 4_u64)
     let cost = solveCode(sl, 4, 2, &m)
-    Swag.require(cost == 68'u64)
+    Swag.require(cost == 68_u64)
 }
 
 // Part 2 is computed but no sample answer given — just verify it runs
 #test
 {
     let result = solve(SampleInput)
-    Swag.require(result.part2 > 0'u64)
+    Swag.require(result.part2 > 0_u64)
 }
 
 // with &ptr: exercises the fix for with-pointer codegen crash

@@ -19,19 +19,19 @@ alias PrefixDefaultAlias2 = PrefixDefaultAlias
 
 struct(A, B) AliasPartialHolder
 {
-    item: MiddleDefaultAlias2'A
+    item: MiddleDefaultAlias2!{A}
 }
 
 struct(A) AliasExplicitPrefixHolder
 {
-    item: PrefixDefaultAlias2'3
+    item: PrefixDefaultAlias2!{3}
 }
 
 func(T, V) localAliasPartialTail(value: T, tail: V)->V
 {
     struct Local
     {
-        item: MiddleDefaultAlias2'T
+        item: MiddleDefaultAlias2!{T}
     }
 
     var data = Local{item: {first: value, second: "ok", third: tail}}
@@ -42,7 +42,7 @@ func(U) localAliasPrefixBuffer(value: U)->U
 {
     struct Local
     {
-        item: PrefixDefaultAlias2'3
+        item: PrefixDefaultAlias2!{3}
     }
 
     var data: Local
@@ -52,10 +52,10 @@ func(U) localAliasPrefixBuffer(value: U)->U
 
 #test
 {
-    var partial = AliasPartialHolder'(u32, f64){item: {first: 7, second: "ok", third: 2.5}}
-    var prefix: AliasExplicitPrefixHolder'u8
-    let tail    = localAliasPartialTail'(bool, f32)(true, 1.5)
-    let value   = localAliasPrefixBuffer'u16(12)
+    var partial = AliasPartialHolder!{u32, f64}{item: {first: 7, second: "ok", third: 2.5}}
+    var prefix: AliasExplicitPrefixHolder!{u8}
+    let tail    = localAliasPartialTail!{bool, f32}(true, 1.5)
+    let value   = localAliasPrefixBuffer!{u16}(12)
 
     prefix.item.values[0] = 3
     prefix.item.values[2] = 5
@@ -64,11 +64,11 @@ func(U) localAliasPrefixBuffer(value: U)->U
     #assert(#typeof(prefix.item.values) == #type [3] u8)
     #assert(#typeof(tail) == f32)
     #assert(#typeof(value) == u16)
-    Swag.require(partial.item.first == 7'u32)
+    Swag.require(partial.item.first == 7_u32)
     Swag.require(partial.item.second == "ok")
-    Swag.require(partial.item.third == 2.5'f64)
-    Swag.require(prefix.item.values[0] == 3'u8)
-    Swag.require(prefix.item.values[2] == 5'u8)
-    Swag.require(tail == 1.5'f32)
-    Swag.require(value == 12'u16)
+    Swag.require(partial.item.third == 2.5_f64)
+    Swag.require(prefix.item.values[0] == 3_u8)
+    Swag.require(prefix.item.values[2] == 5_u8)
+    Swag.require(tail == 1.5_f32)
+    Swag.require(value == 12_u16)
 }

@@ -16,8 +16,11 @@ func firstNonAsciiRune(text: string)->rune
 {
     Utf8.visitRunes(text) #code(c, _, _)
     {
-        if c < 0x80 do
+        if c < 0x80
+        {
             continue
+        }
+
         return c
     }
 
@@ -26,7 +29,7 @@ func firstNonAsciiRune(text: string)->rune
 
 func scalarUtf8FromUtf16(dest: [..] u8, src: const [..] u16)->u64
 {
-    var count      = 0'u64
+    var count      = 0_u64
     var srcPtr     = src.buffer
     var destPtr    = dest.buffer
     var srcLength  = src.count
@@ -47,19 +50,27 @@ func scalarUtf8FromUtf16(dest: [..] u8, src: const [..] u16)->u64
 
 func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
 {
-    var count = 0'u64
-    for value in src do
+    var count = 0_u64
+    for value in src
+    {
         count += Utf8.encodeRune(dest[count until dest.count], value)
+    }
+
     return count
 }
 
 func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..] u8)->bool
 {
     var bytes: [32] u8
-    for i in bytes.count do
+    for i in bytes.count
+    {
         bytes[i] = 'a'
-    for value, index in sequence do
+    }
+
+    for value, index in sequence
+    {
         bytes[prefixLength + index] = value
+    }
 
     let count = prefixLength + sequence.count + 8
     return Utf8.isValid(bytes[until count])
@@ -69,39 +80,39 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
 {
     var bytes: [4] u8
 
-    Swag.require(Utf8.encodeRune(bytes, 'A'rune) == 1)
+    Swag.require(Utf8.encodeRune(bytes, 'A'_rune) == 1)
     Swag.require(bytes[0] == 0x41)
 
-    Swag.require(Utf8.encodeRune(bytes, '\u00E9'rune) == 2)
+    Swag.require(Utf8.encodeRune(bytes, '\u00E9'_rune) == 2)
     Swag.require(bytes[0] == 0xC3)
     Swag.require(bytes[1] == 0xA9)
 
-    Swag.require(Utf8.encodeRune(bytes, '\u20AC'rune) == 3)
+    Swag.require(Utf8.encodeRune(bytes, '\u20AC'_rune) == 3)
     Swag.require(bytes[0] == 0xE2)
     Swag.require(bytes[1] == 0x82)
     Swag.require(bytes[2] == 0xAC)
 
-    Swag.require(Utf8.encodeRune(bytes, '\U0001F642'rune) == 4)
+    Swag.require(Utf8.encodeRune(bytes, '\U0001F642'_rune) == 4)
     Swag.require(bytes[0] == 0xF0)
     Swag.require(bytes[1] == 0x9F)
     Swag.require(bytes[2] == 0x99)
     Swag.require(bytes[3] == 0x82)
 
-    Swag.require(Utf8.encodeRune(bytes, 0xD800'rune) == 3)
+    Swag.require(Utf8.encodeRune(bytes, 0xD800_rune) == 3)
     Swag.require(bytes[0] == 0xEF)
     Swag.require(bytes[1] == 0xBF)
     Swag.require(bytes[2] == 0xBD)
 
     Swag.require(Utf8.isValidRune(0))
     Swag.require(Utf8.isValidRune(Utf8.MaxRune))
-    Swag.require(not Utf8.isValidRune(0xD800'rune))
-    Swag.require(not Utf8.isValidRune(0x110000'rune))
+    Swag.require(not Utf8.isValidRune(0xD800_rune))
+    Swag.require(not Utf8.isValidRune(0x110000_rune))
 }
 
 #test
 {
     let expected        = "A\u00E9\u20AC\U0001F642"
-    let runes: [4] rune = ['A'rune, '\u00E9'rune, '\u20AC'rune, '\U0001F642'rune]
+    let runes: [4] rune = ['A'_rune, '\u00E9'_rune, '\u20AC'_rune, '\U0001F642'_rune]
     let utf16: [5] u16  = [0x0041, 0x00E9, 0x20AC, 0xD83D, 0xDE42]
 
     var dest: [16] u8
@@ -138,7 +149,7 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
         utf16[index] = cast(u16, value)
     }
 
-    for length in 66'u64
+    for length in 66_u64
     {
         for index in actual.count
         {
@@ -179,7 +190,7 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
         utf16[index] = cast(u16, value)
     }
 
-    for length in 66'u64
+    for length in 66_u64
     {
         for index in actual.count
         {
@@ -224,7 +235,7 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
         utf16[2 * index + 1] = cast(u16, (0xDC00 + (surrogate & 0x3FF)))
     }
 
-    for length in 66'u64
+    for length in 66_u64
     {
         for index in actual.count
         {
@@ -289,8 +300,10 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
     var source:   [80] u16
     var actual:   [320] u8
     var expected: [320] u8
-    for index in source.count do
+    for index in source.count
+    {
         source[index] = cast(u16, ('a' + index % 26))
+    }
 
     for idx in 66
     {
@@ -309,8 +322,11 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
 
     for index in 48
     {
-        for idx in source.count do
+        for idx in source.count
+        {
             source[idx] = cast(u16, ('a' + idx % 26))
+        }
+
         source[index] = 0x20AC
         for idx in actual.count
         {
@@ -330,27 +346,27 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
 {
     let text     = "A\u00E9\u20AC\U0001F642"
     var {c, eat} = Utf8.decodeRune(text)
-    Swag.require(c == 'A'rune)
+    Swag.require(c == 'A'_rune)
     Swag.require(eat == 1)
 
     {c, eat} = Utf8.decodeRune(text[1 until text.count])
-    Swag.require(c == '\u00E9'rune)
+    Swag.require(c == '\u00E9'_rune)
     Swag.require(eat == 2)
 
     {c, eat} = Utf8.decodeRune(text[3 until text.count])
-    Swag.require(c == '\u20AC'rune)
+    Swag.require(c == '\u20AC'_rune)
     Swag.require(eat == 3)
 
     {c, eat} = Utf8.decodeRune(text[6 until text.count])
-    Swag.require(c == '\U0001F642'rune)
+    Swag.require(c == '\U0001F642'_rune)
     Swag.require(eat == 4)
 
     {c, eat} = Utf8.decodeLastRune(text)
-    Swag.require(c == '\U0001F642'rune)
+    Swag.require(c == '\U0001F642'_rune)
     Swag.require(eat == 4)
 
     {c, eat} = Utf8.decodeLastRune(text[0 until 6])
-    Swag.require(c == '\u20AC'rune)
+    Swag.require(c == '\u20AC'_rune)
     Swag.require(eat == 3)
 
     let emptyText = cast(const [..] u8, "")
@@ -418,8 +434,10 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
 
     let validFourByte: [4] u8  = [0xF0, 0x9F, 0x99, 0x82]
     let validPrefixes: [3] u64 = [7, 8, 9]
-    for prefixLength in validPrefixes do
+    for prefixLength in validPrefixes
+    {
         Swag.require(utf8SequenceAfterAsciiPrefixIsValid(prefixLength, validFourByte))
+    }
 }
 
 #test
@@ -462,19 +480,19 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
     Swag.require(Utf8.indexOf(text, "Caf") == 5)
     Swag.require(Utf8.indexOf(text, "\u00E9") == 8)
     Swag.require(Utf8.indexOf(text, "\U0001F642") == 11)
-    Swag.require(Utf8.indexOf(text, '\u00E9'rune) == 8)
+    Swag.require(Utf8.indexOf(text, '\u00E9'_rune) == 8)
     Swag.require(Utf8.indexOf(text, "core", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 0)
     Swag.require(Utf8.indexOf(text, "\u00C9", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 8)
     Swag.require(Utf8.lastIndexOf(text, "\u00C9", Utf8.ComparisonType.Latin1NoCase) == 8)
     Swag.require(Utf8.indexOf(text, "missing") == Swag.U64.Max)
     Swag.require(Utf8.indexOf(text, "missing", text.count) == Swag.U64.Max)
 
-    let byteNeedles: [2] u8 = ['f'u8, 'x'u8]
+    let byteNeedles: [2] u8 = ['f'_u8, 'x'_u8]
     Swag.require(Utf8.indexOfAny(text, byteNeedles) == 7)
     Swag.require(Utf8.indexOfAny(text, byteNeedles, 8) == Swag.U64.Max)
     Swag.require(Utf8.indexOfAny(text, byteNeedles, text.count) == Swag.U64.Max)
 
-    let runeNeedles: [2] rune = ['\u00E9'rune, '\U0001F642'rune]
+    let runeNeedles: [2] rune = ['\u00E9'_rune, '\U0001F642'_rune]
     Swag.require(Utf8.indexOfAny(text, runeNeedles) == 8)
     Swag.require(Utf8.indexOfAny(text, runeNeedles, 9) == 11)
     Swag.require(Utf8.indexOfAny(text, runeNeedles, text.count) == Swag.U64.Max)
@@ -485,23 +503,23 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
     let text = "one fish two fish"
 
     Swag.require(Utf8.contains(text, cast(string, "fish")))
-    Swag.require(Utf8.contains(text, 'f'u8))
-    Swag.require(Utf8.contains(text, 'o'rune))
+    Swag.require(Utf8.contains(text, 'f'_u8))
+    Swag.require(Utf8.contains(text, 'o'_rune))
     Swag.require(not Utf8.contains(text, cast(string, "bird")))
 
     Swag.require(Utf8.lastIndexOf(text, "fish") == 13)
     Swag.require(Utf8.lastIndexOf(text, "FISH", Utf8.ComparisonType.Latin1NoCase) == 13)
-    Swag.require(Utf8.lastIndexOf(text, 'i'rune) == 14)
+    Swag.require(Utf8.lastIndexOf(text, 'i'_rune) == 14)
 
-    let runeNeedles: [2] rune = ['o'rune, 't'rune]
+    let runeNeedles: [2] rune = ['o'_rune, 't'_rune]
     Swag.require(Utf8.lastIndexOfAny(text, runeNeedles) == 11)
-    let missingRuneNeedles: [2] rune = ['z'rune, '\u2603'rune]
+    let missingRuneNeedles: [2] rune = ['z'_rune, '\u2603'_rune]
     Swag.require(Utf8.lastIndexOfAny(text, missingRuneNeedles) == Swag.U64.Max)
     Swag.require(Utf8.lastIndexOfAny(text, runeNeedles[until 0]) == Swag.U64.Max)
 
-    let byteNeedles: [2] u8 = ['h'u8, 'x'u8]
+    let byteNeedles: [2] u8 = ['h'_u8, 'x'_u8]
     Swag.require(Utf8.lastIndexOfAny(text, byteNeedles) == 16)
-    let missingByteNeedles: [2] u8 = ['z'u8, 'x'u8]
+    let missingByteNeedles: [2] u8 = ['z'_u8, 'x'_u8]
     Swag.require(Utf8.lastIndexOfAny(text, missingByteNeedles) == Swag.U64.Max)
     Swag.require(Utf8.lastIndexOfAny(text, byteNeedles[until 0]) == Swag.U64.Max)
 
@@ -524,8 +542,8 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
 {
     let text = "\u00E9clair\U0001F642"
 
-    Swag.require(Utf8.firstRune(text) == '\u00E9'rune)
-    Swag.require(Utf8.lastRune(text) == '\U0001F642'rune)
+    Swag.require(Utf8.firstRune(text) == '\u00E9'_rune)
+    Swag.require(Utf8.lastRune(text) == '\U0001F642'_rune)
     Swag.require(Utf8.firstRune("") == 0)
     Swag.require(Utf8.lastRune("") == 0)
 
@@ -544,9 +562,9 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
 #test
 {
     let text = "A\u00E9\U0001F642"
-    let expectedRunes:       [3] rune = ['A'rune, '\u00E9'rune, '\U0001F642'rune]
+    let expectedRunes:       [3] rune = ['A'_rune, '\u00E9'_rune, '\U0001F642'_rune]
     let expectedByteIndices: [3] u64  = [0, 1, 3]
-    var nextCharIndex = 0'u64
+    var nextCharIndex = 0_u64
 
     Utf8.visitRunes(text) #code(c, charIndex, byteIndex)
     {
@@ -562,7 +580,7 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
 #test
 {
     Swag.require(firstNonAsciiRune("ASCII") == 0)
-    Swag.require(firstNonAsciiRune("AB\u00E9\U0001F642") == '\u00E9'rune)
+    Swag.require(firstNonAsciiRune("AB\u00E9\U0001F642") == '\u00E9'_rune)
 }
 
 // Rune counting crosses packed ASCII blocks without consuming the first byte
@@ -570,10 +588,15 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
 #test
 {
     var ascii: [80] u8
-    for &value in ascii do
+    for &value in ascii
+    {
         value[] = 'a'
-    for length in 66 do
+    }
+
+    for length in 66
+    {
         Swag.require(Utf8.countRunes(ascii[until length]) == length)
+    }
 
     Swag.require(Utf8.countRunes("aaaaaaaaaaaaaaa\u00E9") == 16)
     Swag.require(Utf8.countRunes("aaaaaaaaaaaaaaaa\u00E9") == 17)
@@ -589,8 +612,11 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
     const RuneNeedles: [1] rune = ['z']
     for position in 96
     {
-        for &value in values do
+        for &value in values
+        {
             value[] = 'a'
+        }
+
         values[position] = 'z'
         let text = Swag.makeString(values.buffer, values.count)
         Swag.require(Utf8.indexOfAny(values, ByteNeedles) == position)
@@ -598,14 +624,17 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
         Swag.require(Utf8.lastIndexOfAny(values, ByteNeedles) == position)
         Swag.require(Utf8.lastIndexOfAny(values, RuneNeedles) == position)
         Swag.require(Utf8.indexOfAny(values, ByteNeedles, position + 1) == Swag.U64.Max)
-        Swag.require(Utf8.indexOf(text, 'z'rune) == position)
-        Swag.require(Utf8.lastIndexOf(text, 'z'rune) == position)
+        Swag.require(Utf8.indexOf(text, 'z'_rune) == position)
+        Swag.require(Utf8.lastIndexOf(text, 'z'_rune) == position)
     }
 
     for position in 94
     {
-        for &value in values do
+        for &value in values
+        {
             value[] = 'a'
+        }
+
         values[position + 0] = 'x'
         values[position + 1] = 'y'
         values[position + 2] = 'z'
@@ -616,8 +645,11 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
         Swag.require(Utf8.lastIndexOf(text, "XyZ", Utf8.ComparisonType.Latin1NoCase) == position)
     }
 
-    for &value in values do
+    for &value in values
+    {
         value[] = 'a'
+    }
+
     let repeated = Swag.makeString(values.buffer, values.count)
     Swag.require(Utf8.indexOf(repeated, "azzz") == Swag.U64.Max)
     Swag.require(Utf8.lastIndexOf(repeated, "azzz") == Swag.U64.Max)
@@ -630,8 +662,11 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
 #test
 {
     var ascii: [80] u8
-    for &value in ascii do
+    for &value in ascii
+    {
         value[] = 'a'
+    }
+
     for index in 81
     {
         let result = Utf8.byteIndex(ascii, index)
@@ -651,8 +686,11 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
     for prefixSize in 33
     {
         var prefix: String
-        for prefixSize do
+        for prefixSize
+        {
             prefix += "a"
+        }
+
         let first = Format.toString("%\u0100abcdefghijklmnopqrstuvwxyz", prefix.toString())
         let other = Format.toString("%\u0120abcdefghijklmnopqrstuvwxyz", prefix.toString())
         Swag.require(Utf8.compare(first.toString(), other.toString(), .Latin1NoCase) == -1)

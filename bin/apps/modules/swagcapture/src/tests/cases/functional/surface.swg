@@ -23,7 +23,7 @@ using Swag, Core
     main.setLanguage()
 
     var buffer: ConcatBuffer
-    var writer: Encoder'Write.TagBin
+    var writer: Encoder!{Write.TagBin}
     var output: Serializer
     expect output.startWrite(&writer, &buffer)
     expect output.beginSection(.Unordered)
@@ -35,14 +35,17 @@ using Swag, Core
 
     main.hookOnEvent = func|count = &languageChanges|(_, evt)->bool
     {
-        if evt is NotifyEvent as notify where notify.kind == .LanguageChanged do
+        if evt is NotifyEvent as notify where notify.kind == .LanguageChanged
+        {
             count[] += 1
+        }
+
         return false
     }
 
     func restore(main: *MainWnd, bytes: const [..] u8)
     {
-        var reader: Decoder'Read.TagBin
+        var reader: Decoder!{Read.TagBin}
         var input:  Serializer
         expect input.startRead(&reader, bytes)
         expect input.beginSection(.Unordered)
@@ -69,21 +72,23 @@ using Swag, Core
 }
 
 // Builds the shipped window on the surface root, including every application pane.
-internal func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost, caption = false, dpiScale = 1'f32)->*MainWnd
+internal func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost, caption = false, dpiScale = 1_f32)->*MainWnd
 {
     testUseScratchLibrary()
     host.setup(1024, 640, dpiScale)
     host.bindApplication(&g_App)
     registerAppStrings(&g_App.resources)
     registerAppStrings(&host.app.resources)
-    if caption do
+    if caption
+    {
         host.surface.updateFlags(Gui.SurfaceFlags.StandardWindow)
+    }
 
     // The editor registers its capture keys with the desktop. A test must neither take them from
     // the machine nor depend on whether the desktop grants them: keep them in the application.
     host.app.setGlobalHotKeysEnabled(false)
 
-    var monitors: Array'Env.Monitor
+    var monitors: Array!{Env.Monitor}
     let monitor = Math.Rectangle{0, 0, 1440, 900}
     monitors.add({bounds: monitor, workArea: monitor, scaleFactor: 1,
                   physicalBounds: monitor, physicalWorkArea: monitor})
@@ -98,11 +103,11 @@ internal func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost, caption = fa
 
 // Builds the editor over a white capture, in `dark` or light, the way the shipped window is; with
 // `text`, the capture holds one selected text.
-internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = true, caption = false, dpiScale = 1'f32)->*MainWnd
+internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool, text = true, caption = false, dpiScale = 1_f32)->*MainWnd
 {
     let main = testSetupSurfaceMain(host, caption, dpiScale)
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.width, capture.widthOrg   = 400
     capture.height, capture.heightOrg = 240
 
@@ -117,10 +122,15 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         capture.selection.add(0)
     }
 
-    if dark do
+    if dark
+    {
         host.theme.setDark()
-    else do
+    }
+    else
+    {
         host.theme.setLight()
+    }
+
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -268,7 +278,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
 
         for bar in [leading, trailing]
         {
-            var right = 0'f32
+            var right = 0_f32
             for child in bar.children
             {
                 Swag.require(child.isLocallyVisible())
@@ -371,11 +381,13 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     // Every command the old menus held is a lens entry, which `>` lists; at rest the lens offers
     // the context only.
     main.lens.open(">")
-    var titles: Array'String
+    var titles: Array!{String}
     for section in main.lens.results.sections
     {
-        for entry in section!.entries do
+        for entry in section!.entries
+        {
             titles.add(entry.title)
+        }
     }
 
     main.lens.close()
@@ -384,8 +396,10 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
                ActionOptions.Options, ActionToolMode.Arrow, ActionAlign.SendToFront, ActionView.Inspector]
     {
         let state = main.sendComputeCommandStateEvent(id)
-        if state.updatedFields.has(.Hidden) and state.hidden do
+        if state.updatedFields.has(.Hidden) and state.hidden
+        {
             continue
+        }
 
         // The lens names a command in full when it has a longer name than its control shows.
         let title = state.updatedFields.has(.LongName) and not state.longName.isEmpty() ? state.longName : state.name
@@ -441,8 +455,11 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     Swag.require(not main.libraryMode and main.editArea.presentationOpacity == 1)
     Swag.require(main.editWnd.editView.hasFocus())
     var fontSize: *PropertiesItem?
-    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontSize) do
+    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontSize)
+    {
         fontSize = item
+    }
+
     Swag.require(fontSize != null and fontSize.sliderBox.value() == 36)
     host.finishAnimations()
     Swag.require(main.editArea.presentationOffset == Math.Point{})
@@ -474,8 +491,11 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
 
     host.paint(main)
     var fontSize: *PropertiesItem?
-    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontSize) do
+    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontSize)
+    {
         fontSize = item
+    }
+
     Swag.require(fontSize != null)
     scope
     {
@@ -539,8 +559,11 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     Gui.Properties.setFontNames(["Test Mono", "Test Sans", "Test Serif"])
     defer Gui.Properties.setFontNames([])
     g_MiniBarFonts.clear()
-    for name in ["Test Mono", "Test Sans", "Test Serif"] do
+    for name in ["Test Mono", "Test Sans", "Test Serif"]
+    {
         g_MiniBarFonts.add(Pixel.SystemFontFamilyInfo{name: name})
+    }
+
     defer g_MiniBarFonts.clear()
 
     var host: Gui.Testing.HeadlessHost
@@ -559,8 +582,11 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     host.paint(main)
     host.pump()
     var font: *PropertiesItem?
-    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
+    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName)
+    {
         font = item
+    }
+
     Swag.require(font != null and font.comboBox.items.count == 5)
     let first: String = font.comboBox.items[2]!.name.text
     font.comboBox.setSelectedIndex(2)
@@ -603,8 +629,10 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     host.runFrames(1)
     Swag.require(text.fontName.isEmpty() and face.text() == main.theme().res.defaultTypeFaceR.familyName())
     Swag.require(main.miniBar.choicePopover == null)
-    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
+    for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName)
+    {
         Swag.require(item.comboBox.selectedIndex == 0)
+    }
 }
 
 // The ground around the picture moves the window while a tool that draws is in hand: the
@@ -683,10 +711,15 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
 internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*InPlaceEditWnd
 {
     let main = testSetupSurfaceMain(host)
-    if dark do
+    if dark
+    {
         host.theme.setDark()
-    else do
+    }
+    else
+    {
         host.theme.setLight()
+    }
+
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -702,7 +735,7 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
     g_EndGrabY             = 400
     g_CaptureMedia         = .Picture
 
-    with let capture = Memory.new'Capture()
+    with let capture = Memory.new!{Capture}()
     {
         .width          = 440
         .height         = 240
@@ -751,8 +784,10 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
         let bar = editor.bar.position
         Swag.require(bar.x >= 12 and bar.right() <= 1012)
         Swag.require(bar.y >= 12 and bar.bottom() <= 628)
-        if zone.height < 640 do
+        if zone.height < 640
+        {
             Swag.require(bar.bottom() <= zone.y or bar.y >= zone.bottom())
+        }
     }
 
     editor.resize(1000, 600)
@@ -793,8 +828,14 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
     var pixelate: *Gui.IconButton?
     for item in editor.bar.items
     {
-        if item.wnd is Gui.IconButton as button where button.flags.has(.Radio) and enumFromUserData'InPlaceEditMode(button.userData) == .Pixelate do
+        if item.wnd is Gui.IconButton as button where button.flags.has(.Radio) and
+                                                      enumFromUserData!
+        {
+            InPlaceEditMode
+        }(button.userData) == .Pixelate
+        {
             pixelate = button
+        }
     }
 
     let button = unwrap pixelate
@@ -830,7 +871,7 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
 
     for i in 32
     {
-        let capture = Memory.new'Capture()
+        let capture = Memory.new!{Capture}()
         capture.width, capture.widthOrg   = 96 + cast(s32, i)
         capture.height, capture.heightOrg = 64 + cast(s32, i)
         capture.backImg = Gui.Testing.indexedImage(capture.width, capture.height)
@@ -1047,8 +1088,11 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     for selected in [false, true]
     {
         capture.selection.clear()
-        if selected do
+        if selected
+        {
             capture.selection.add(0)
+        }
+
         main.updateState()
         main.lens.open()
         let sections = &main.lens.results.sections
@@ -1065,8 +1109,11 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         Swag.require(sections[1]!.entries[0].id == ActionFile.SaveAsImage)
         Swag.require(sections[1]!.entries[1].id == ActionFile.Print)
         Swag.require(sections[1]!.entries[2].id == ActionCopyPaste.CopyAsImage)
-        if selected do
+        if selected
+        {
             Swag.require(not sections[2]!.entries.isEmpty())
+        }
+
         main.lens.close()
     }
 }
@@ -1089,15 +1136,19 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     capture.selectionHasChanged()
     main.updateMiniBar()
 
-    var across, down: Array'(*IconButton)
+    var across, down: Array!{*IconButton}
     for item in main.miniBar.items
     {
         if item.wnd is IconButton as button where button.flags.has(.Radio)
         {
-            if alignIsVertical(button.userData) do
+            if alignIsVertical(button.userData)
+            {
                 down.add(button)
-            else do
+            }
+            else
+            {
                 across.add(button)
+            }
         }
     }
 
@@ -1142,12 +1193,17 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     // from row to row, and the mini-bar along its controls, in the order the eye reads them.
     let rows = Gui.FocusOrder.collect(main.inspector).stops
     Swag.require(rows.count > 1 and rows.back() == main.propWnd.grid)
-    for i in 1 until rows.count do
+    for i in 1 until rows.count
+    {
         Swag.require(rows[i].surfaceRect().y >= rows[i - 1].surfaceRect().y)
+    }
+
     let bar = Gui.FocusOrder.collect(main.miniBar).stops
     Swag.require(bar.count > 1)
-    for i in 1 until bar.count do
+    for i in 1 until bar.count
+    {
         Swag.require(bar[i].surfaceRect().x > bar[i - 1].surfaceRect().x)
+    }
 
     let capture = unwrap main.getCapture()
     let text    = assume cast(*FormText, capture.forms[0])
@@ -1161,14 +1217,19 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     var taught = 0
     for hint in main.hintLine.hints where hint.text == appStrings().hint_Nudge or
                                           hint.text == appStrings().hint_Duplicate or
-                                          hint.text == appStrings().hint_TypeWords do
+                                          hint.text == appStrings().hint_TypeWords
+    {
         taught += 1
+    }
+
     Swag.require(taught == 3)
 
     main.sendCommandEvent(ActionSelection.DeSelectAll)
     main.fillHintLine()
-    for hint in main.hintLine.hints do
+    for hint in main.hintLine.hints
+    {
         Swag.require(hint.text != appStrings().hint_Nudge)
+    }
 }
 
 // The size and zoom readings open the existing image and camera commands.
@@ -1357,10 +1418,15 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
 {
     for child in wnd.children
     {
-        if child is ColorPopover as popover do
+        if child is ColorPopover as popover
+        {
             return popover
-        if let found = testFindColorPopover(child) do
+        }
+
+        if let found = testFindColorPopover(child)
+        {
             return found
+        }
     }
 
     return null
@@ -1475,11 +1541,13 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
 
     func optionButtons(editor: *InPlaceEditWnd)->u32
     {
-        var count = 0'u32
+        var count = 0_u32
         for item in editor.bar.items
         {
-            if item.wnd is IconButton as button where button.textPosition == .Right and button.icon.isValid() do
+            if item.wnd is IconButton as button where button.textPosition == .Right and button.icon.isValid()
+            {
                 count += 1
+            }
         }
 
         return count
@@ -1495,7 +1563,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     for item in editor.bar.items
     {
         if item.wnd is IconButton as button where button.flags.has(.Radio) and
-                                                  enumFromUserData'InPlaceEditMode(button.userData) == .Marker
+                                                  enumFromUserData!{InPlaceEditMode}(button.userData) == .Marker
         {
             markerButton = button
             break
@@ -1512,12 +1580,18 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     var chosen: bool
     host.app.sigFrame += func|host = &host, chosen = &chosen|(_)
     {
-        if chosen[] do
+        if chosen[]
+        {
             return
+        }
+
         let menu = host.capturedPopupMenu()
         Swag.require(menu and menu.items.count == KindMedia.count)
-        for item in menu.items do
+        for item in menu.items
+        {
             Swag.require(item!.icon.isValid())
+        }
+
         Swag.require(host.clickPopupMenuItem(kindMenuId(.Animation)))
         chosen[] = true
     }
@@ -1683,7 +1757,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     main.applyLayout()
     host.finishAnimations()
 
-    var swatches: Array'(*IconButton)
+    var swatches: Array!{*IconButton}
     testCollectSwatches(main.propWnd.topLayout, &swatches)
     host.clickWnd(swatches[0])
     host.pump()
@@ -1793,8 +1867,11 @@ internal func testClickViewCorner(host: *Gui.Testing.HeadlessHost, main: *MainWn
             let center = host.surfaceWnd.clientRect().horzCenter()
             Swag.require(2 * Math.min(center - title.x, title.right() - center) >= TaskStripTitleRoom - 1)
             Swag.require(capture.position.width >= Math.floor(capture.itf.measureContent({}).x))
-            if strip.libraryButton.flags.has(.IconOnly) do
+            if strip.libraryButton.flags.has(.IconOnly)
+            {
                 Swag.require(strip.libraryButton.toolTip == appStrings().act_Library)
+            }
+
             for bar in [strip.leading, strip.trailing]
             {
                 for child in bar.children

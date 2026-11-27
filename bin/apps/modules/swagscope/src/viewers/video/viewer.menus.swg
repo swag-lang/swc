@@ -53,14 +53,20 @@ impl Panel
 
     mtd finishSubtitleLoad()
     {
-        if not .subtitleLoad.isDone() do
+        if not .subtitleLoad.isDone()
+        {
             return
+        }
+
         var loaded: LoadedSubtitle
         let failure = .subtitleLoad.finish(&loaded)
         if not failure.isEmpty()
         {
-            if not .subtitleToast do
+            if not .subtitleToast
+            {
                 .subtitleToast = Toast.create(me)
+            }
+
             .subtitleToast.show(texts().ui_SubtitleLoadFailed, failure, .Failure)
             return
         }
@@ -89,8 +95,11 @@ impl Panel
 
     mtd promptSubtitle()
     {
-        if not .surface or not .hasFrame do
+        if not .surface or not .hasFrame
+        {
             return
+        }
+
         .pointerMoved()
         with var options: FileDlgOptions
         {
@@ -99,16 +108,17 @@ impl Panel
         }
 
         let dialog = FileDlg.create(.surface, options)
-        if dialog.doModal() == Dialog.BtnOk do
+        if dialog.doModal() == Dialog.BtnOk
+        {
             .loadSubtitle(dialog.selectedPath())
+        }
     }
 
     // Capture the relative origin before opening the modal: playback may continue behind it.
     mtd createTimeDialog()->*EditDlg
     {
         let strings = texts()
-        return Viewer.createTimeDialog(me, .currentSeconds(), .video.durationInSeconds(), strings.cmd_GoToTime,
-                                       strings.ui_TimeHelp, strings.ui_TimeError, strings.ui_Go, func(view, target)
+        return Viewer.createTimeDialog(me, .currentSeconds(), .video.durationInSeconds(), strings.cmd_GoToTime, strings.ui_TimeHelp, strings.ui_TimeError, strings.ui_Go, func(view, target)
         {
             view.jumpTo(target)
             view.notePlaybackGesture()
@@ -117,8 +127,11 @@ impl Panel
 
     mtd promptGoToTime()
     {
-        if not .surface or not .hasFrame do
+        if not .surface or not .hasFrame
+        {
             return
+        }
+
         .pointerMoved()
         discard .createTimeDialog().doModal()
     }
@@ -133,8 +146,11 @@ impl Panel
 
     mtd notePlaybackGesture()
     {
-        if g_PlaybackHintUses >= 3 do
+        if g_PlaybackHintUses >= 3
+        {
             return
+        }
+
         g_PlaybackHintUses += 1
         .refreshHelp()
         catch g_App.saveState()
@@ -166,10 +182,13 @@ impl Panel
     mtd layoutAroundTransport(height: f32)
     {
         let inset = height > 0 ? height + .themeMetrics().miniBar_Distance : 0
-        if .transportInset == inset do
+        if .transportInset == inset
+        {
             return
+        }
+
         .transportInset = inset
-        let overlay = .subtitleOverlay
+        let overlay  = .subtitleOverlay
         let animator = &.app().animator
         if .subtitleSource == .Off
         {
@@ -181,12 +200,16 @@ impl Panel
             let metrics = .themeMetrics()
             let seconds = inset > overlay.bottomObstruction ? metrics.motion_PageSeconds : metrics.motion_LeaveSeconds
             var motion: AnimationOptions
-            motion.duration = Time.Duration.fromSeconds(seconds)
-            motion.easing   = .EaseOut
-            .subtitleInsetMotion = animator.animateF32(overlay, AnimationChannel.from("Scope.Film.SubtitleInset"),
-                                                      overlay.bottomObstruction, inset,
-                                                      func|overlay|(_, value) { overlay.setBottomObstruction(value) }, motion)
+            motion.duration      = Time.Duration.fromSeconds(seconds)
+            motion.easing        = .EaseOut
+            .subtitleInsetMotion = animator.animateF32(overlay,
+                                                       AnimationChannel.from("Scope.Film.SubtitleInset"),
+                                                       overlay.bottomObstruction,
+                                                       inset,
+                                                       func|overlay|(_, value) { overlay.setBottomObstruction(value) },
+                                                       motion)
         }
+
         if .helpLine and .helpLine.margin.w != inset
         {
             .helpLine.margin.w = inset
@@ -200,12 +223,17 @@ impl Panel
     // unsupported track cannot turn a playing video silent halfway through the operation.
     mtd selectAudioTrack(index: u32) fail
     {
-        if index >= .video.audioTrackCount() do
+        if index >= .video.audioTrackCount()
+        {
             fail BadParameterError{texts().err_AudioTrack}
+        }
 
         let sound = unwrap .video.audioTrack(index)
-        if .voice and index == .audioTrackIndex and .audio == sound do
+        if .voice and index == .audioTrackIndex and .audio == sound
+        {
             return
+        }
+
         let position      = .currentSeconds()
         let wasPlaying    = .playing
         let coversRange   = soundCovers(sound, position)
@@ -217,19 +245,32 @@ impl Panel
         defer #fail
         {
             newVoice.destroy()
-            if restoreNeeded do
+            if restoreNeeded
+            {
                 catch oldVoice!.play()
+            }
         }
 
         try newVoice.setVolume(.muted or .sceneSilent ? 0 : .volume)
-        if .playbackRate != 1 do
+        if .playbackRate != 1
+        {
             catch newVoice.setFrequencyRatio(cast(f32, .playbackRate))
-        if coversRange do
+        }
+
+        if coversRange
+        {
             try newVoice.seekSampleFrame(soundSample(sound, position))
-        if oldVoice do
+        }
+
+        if oldVoice
+        {
             try oldVoice.pause()
-        if shouldPlay do
+        }
+
+        if shouldPlay
+        {
             try newVoice.play()
+        }
 
         restoreNeeded = false
         if oldVoice
@@ -248,7 +289,7 @@ impl Panel
             .elapsed = position
             .clock.restart()
         }
-        elif .resumeAudioAfterSeek and coversRange
+        else if .resumeAudioAfterSeek and coversRange
         {
             .resumeAudio()
         }
@@ -291,8 +332,11 @@ impl Panel
         let seconds = .currentSeconds() + .subtitleDelay
         if .subtitleLastSeconds >= 0 and
            seconds >= .subtitleLastSeconds and
-           seconds < .subtitleNextChange do
+           seconds < .subtitleNextChange
+        {
             return
+        }
+
         var text: String
         .subtitleLastSeconds = seconds
         .subtitleNextChange  = subtitlePresentationAt(track, seconds, &text)
@@ -354,8 +398,10 @@ impl Panel
 
     mtd describeSpeeds(page: *OptionSheet.Page)
     {
-        for rate in Viewer.PlaybackRates do
+        for rate in Viewer.PlaybackRates
+        {
             page.addChoice(Viewer.playbackRateText(rate), rate == .playbackRate, func|view = me, rate|() { view.setPlaybackRate(rate) })
+        }
     }
 
     mtd describeAudioTracks(page: *OptionSheet.Page)
@@ -378,8 +424,11 @@ impl Panel
     mtd subtitleText()->String
     {
         let track = .subtitleTrack()
-        if not track do
+        if not track
+        {
             return String.from(texts().ui_SubtitleOff)
+        }
+
         return subtitleTrackName(.subtitleTrackIndex, track)
     }
 
@@ -425,8 +474,10 @@ impl Panel
                         },
                         canDecrease: .subtitleDelay > -MaxSubtitleDelay,
                         canIncrease: .subtitleDelay < MaxSubtitleDelay)
-        if .subtitleDelay != 0 do
+        if .subtitleDelay != 0
+        {
             page.addAction(strings.ui_SubtitleDelayReset, func|view = me|() { view.subtitleDelay = 0; view.subtitleLastSeconds = -1; view.refreshSubtitle() }, icon: .theme().icon(.Update, themeRowIconSize(.themeMetrics())))
+        }
 
         page.addLink(strings.ui_SubtitleAppearance, "", func|view = me|(appearance) { view.describeSubtitleAppearance(appearance) }, .theme().icon(.Appearance, themeRowIconSize(.themeMetrics())))
     }
@@ -440,8 +491,10 @@ impl Panel
                      subtitleFontText(style.font),
                      func|view = me|(fonts)
                      {
-                         for font in [SubtitleFont.Sans, .Monospace] do
+                         for font in [SubtitleFont.Sans, .Monospace]
+                         {
                              fonts.addChoice(subtitleFontText(font), g_SubtitleSettings.font == font, func|view, font|() { g_SubtitleSettings.font = font; view.subtitleSettingsChanged() })
+                         }
                      },
                      icon: .theme().icon(.Edit, themeRowIconSize(.themeMetrics())))
 
@@ -449,8 +502,10 @@ impl Panel
                      subtitleSizeText(style.size),
                      func|view = me|(sizes)
                      {
-                         for size in [SubtitleSize.Small, .Normal, .Large, .VeryLarge] do
+                         for size in [SubtitleSize.Small, .Normal, .Large, .VeryLarge]
+                         {
                              sizes.addChoice(subtitleSizeText(size), g_SubtitleSettings.size == size, func|view, size|() { g_SubtitleSettings.size = size; view.subtitleSettingsChanged() })
+                         }
                      },
                      icon: .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
 
@@ -458,8 +513,10 @@ impl Panel
                      subtitleEffectText(style.effect),
                      func|view = me|(effects)
                      {
-                         for effect in [SubtitleEffect.Outline, .Shadow, .Background, .None] do
+                         for effect in [SubtitleEffect.Outline, .Shadow, .Background, .None]
+                         {
                              effects.addChoice(subtitleEffectText(effect), g_SubtitleSettings.effect == effect, func|view, effect|() { g_SubtitleSettings.effect = effect; view.subtitleSettingsChanged() })
+                         }
                      },
                      icon: .theme().icon(.Appearance, themeRowIconSize(.themeMetrics())))
 
@@ -467,8 +524,10 @@ impl Panel
                      subtitlePositionText(style.position),
                      func|view = me|(positions)
                      {
-                         for position in [SubtitlePosition.Bottom, .Center, .Top] do
+                         for position in [SubtitlePosition.Bottom, .Center, .Top]
+                         {
                              positions.addChoice(subtitlePositionText(position), g_SubtitleSettings.position == position, func|view, position|() { g_SubtitleSettings.position = position; view.subtitleSettingsChanged() })
+                         }
                      },
                      icon: .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
 
@@ -476,8 +535,10 @@ impl Panel
                      subtitleColorText(style.color),
                      func|view = me|(colors)
                      {
-                         for color in [SubtitleColor.White, .Yellow] do
+                         for color in [SubtitleColor.White, .Yellow]
+                         {
                              colors.addChoice(subtitleColorText(color), g_SubtitleSettings.color == color, func|view, color|() { g_SubtitleSettings.color = color; view.subtitleSettingsChanged() })
+                         }
                      },
                      icon: .theme().icon(.Picker, themeRowIconSize(.themeMetrics())))
     }

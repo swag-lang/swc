@@ -22,15 +22,21 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
     var result: #returntype
     result.addBytes("8BPS")
     psdAddU16(&result, 1)
-    for 6 do
-        result.addNative(0'u8)
+    for 6
+    {
+        result.addNative(0_u8)
+    }
+
     psdAddU16(&result, channels)
     psdAddU32(&result, height)
     psdAddU32(&result, width)
     psdAddU16(&result, depth)
     psdAddU16(&result, colorMode)
-    for 3 do
+    for 3
+    {
         psdAddU32(&result, 0)
+    }
+
     return result
 }
 
@@ -65,28 +71,34 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
 // Raw RGB and RGBA planes preserve channel order through packed blocks and the row tail.
 #test
 {
-    for channels in [3'u16, 4'u16]
+    for channels in [3_u16, 4_u16]
     {
         var bytes = psdHeader(channels, 33, 2, 8, 3)
         psdAddU16(&bytes, 0)
-        for channel in channels do
-            for index in 66 do
+        for channel in channels
+        {
+            for index in 66
+            {
                 bytes.addNative(cast(u8, (channel * 45 + index)))
+            }
+        }
 
         let image = expect Image.decode("raw-odd-width.psd", nnBytes(bytes.toSlice()))
         assertImage(image, 33, 2, channels == 3 ? .RGB8 : .RGBA8)
-        for y in 2 do
+        for y in 2
+        {
             for x in 33
             {
                 let sample = cast(u8, (y * 33 + x))
                 assertPixel(image,
                             x,
                             y,
-                            Color.fromArgb(channels == 3 ? 255'u8 : sample + 135,
+                            Color.fromArgb(channels == 3 ? 255_u8 : sample + 135,
                                            sample,
                                            sample + 45,
                                            sample + 90))
             }
+        }
     }
 }
 
@@ -112,22 +124,32 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
 // Raw 16-bit color and alpha preserve both sample bytes through a SIMD block and its tail.
 #test
 {
-    for channels in [2'u16, 3'u16, 4'u16]
+    for channels in [2_u16, 3_u16, 4_u16]
     {
         let format = channels == 2 ? PixelFormat.GrayAlpha16 : (channels == 3 ? PixelFormat.RGB16 : PixelFormat.RGBA16)
         var bytes  = psdHeader(channels, 11, 2, 16, channels == 2 ? 1 : 3)
         psdAddU16(&bytes, 0)
-        for channel in channels do
-            for index in 22 do
+        for channel in channels
+        {
+            for index in 22
+            {
                 psdAddU16(&bytes, cast(u16, (0x1234 + channel * 4099 + index * 257)))
+            }
+        }
 
         let image = expect Image.decode("raw-words-odd-width.psd", nnBytes(bytes.toSlice()))
         assertImage(image, 11, 2, format)
         let words = cast(const [*] u16, image.pixels.storage())
-        for y in 2 do
-            for x in 11 do
-                for channel in channels do
+        for y in 2
+        {
+            for x in 11
+            {
+                for channel in channels
+                {
                     Swag.require(words[((1 - y) * 11 + x) * channels + channel] == 0x1234 + channel * 4099 + (y * 11 + x) * 257)
+                }
+            }
+        }
     }
 }
 
@@ -136,15 +158,21 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
 {
     var bytes = psdHeader(1, 11, 2, 16, 1)
     psdAddU16(&bytes, 0)
-    for index in 22 do
+    for index in 22
+    {
         psdAddU16(&bytes, cast(u16, (0x1234 + index * 257)))
+    }
 
     let image = expect Image.decode("gray-odd-width.psd", nnBytes(bytes.toSlice()))
     assertImage(image, 11, 2, .Gray16)
     let words = cast(const [*] u16, image.pixels.storage())
-    for y in 2 do
-        for x in 11 do
+    for y in 2
+    {
+        for x in 11
+        {
             Swag.require(words[(1 - y) * 11 + x] == 0x1234 + (y * 11 + x) * 257)
+        }
+    }
 }
 
 #test

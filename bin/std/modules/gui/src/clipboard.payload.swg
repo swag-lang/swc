@@ -11,14 +11,17 @@ struct TypedPayload
 
 impl TypedPayload
 {
-    mtd encode()->Array'u8
+    mtd encode()->Array!{u8}
     {
         var result: #returntype
         var stream = ByteStream.openWrite(&result)
         stream.writeLittleEndian(.crc)
         stream.writeLittleEndian(.data.count)
-        if .data do
+        if .data
+        {
             stream.writeBytes(.data)
+        }
+
         return result
     }
 
@@ -26,11 +29,14 @@ impl TypedPayload
     {
         var stream = ByteStream.openRead(bytes)
         var result: #returntype
-        result.crc = try stream.readLittleEndian'u32()
-        let count     = try stream.readLittleEndian'u64()
+        result.crc = try stream.readLittleEndian!{u32}()
+        let count     = try stream.readLittleEndian!{u64}()
         let remaining = stream.remainingBytes()
-        if count > remaining.count do
+        if count > remaining.count
+        {
             fail Errors.InvalidFormatError{"clipboard payload is truncated"}
+        }
+
         result.data = remaining[until count]
         return result
     }

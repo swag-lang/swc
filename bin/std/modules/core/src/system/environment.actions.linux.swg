@@ -28,8 +28,11 @@ private func launchDesktopAction(argument: string)->bool
 #[Swag.Discardable]
 func openFile(path: string)->bool
 {
-    if not Utf8.isValid(cast(const [..]u8, path)) do
+    if not Utf8.isValid(cast(const [..]u8, path))
+    {
         return false
+    }
+
     let absolute = catch Path.absolute(path) { return false }
     return launchDesktopAction(absolute.toString())
 }
@@ -42,8 +45,11 @@ func openFile(path: string)->bool
 #[Swag.Discardable]
 func openUrl(url: string)->bool
 {
-    if not isWebUrl(url) do
+    if not isWebUrl(url)
+    {
         return false
+    }
+
     return launchDesktopAction(url)
 }
 
@@ -57,8 +63,11 @@ func openUrl(url: string)->bool
 #[Swag.Discardable]
 func showInFileExplorer(path: string)->bool
 {
-    if not Utf8.isValid(cast(const [..]u8, path)) do
+    if not Utf8.isValid(cast(const [..]u8, path))
+    {
         return false
+    }
+
     let absolute    = catch Path.absolute(path) { return false }
     var uri: String = "file://"
     const Hex = "0123456789ABCDEF"
@@ -99,8 +108,10 @@ func showInFileExplorer(path: string)->bool
     var process = catch startProcess(info) { return false }
     defer
     {
-        if process.isRunning() do
+        if process.isRunning()
+        {
             discard catch process.kill()
+        }
     }
 
     let finished = catch process.tryWaitForExit(Time.Duration.fromMilliseconds(2000)) { return false }

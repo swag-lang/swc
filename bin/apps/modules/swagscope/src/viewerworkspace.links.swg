@@ -8,8 +8,11 @@ impl ViewerWorkspace
     {
         let scene = unwrap .scene()
         var images: u32
-        for view in scene.views where sceneImage(view.document) do
+        for view in scene.views where sceneImage(view.document)
+        {
             images += 1
+        }
+
         return images >= 2
     }
 
@@ -20,33 +23,55 @@ impl ViewerWorkspace
         for view in scene.views
         {
             let content = view.document?.currentView
-            let scroll = firstDocumentScroll(content)
-            if not scroll and not (content is Viewers.PdfDocument.Panel) do
+            let scroll  = firstDocumentScroll(content)
+            if not scroll and not (content is Viewers.PdfDocument.Panel)
+            {
                 continue
-            if content is Viewers.PdfDocument.Panel do
+            }
+
+            if content is Viewers.PdfDocument.Panel
+            {
                 pages += 1
-            elif sceneTextEditor(view.document) do
+            }
+            else if sceneTextEditor(view.document)
+            {
                 editors += 1
-            else do
+            }
+            else
+            {
                 others += 1
-            if scroll do
+            }
+
+            if scroll
+            {
                 scrolls += 1
+            }
         }
+
         return pages >= 2 or editors >= 2 or others > 0 and scrolls >= 2
     }
 
     mtd canLinkExplorer()->bool
     {
-        if not .isTiled() do
+        if not .isTiled()
+        {
             return false
+        }
+
         let scene = unwrap .scene()
-        if scene.compared do
+        if scene.compared
+        {
             return false
+        }
+
         for view, index in scene.views
         {
-            if let document = view.document where document.isExploring() and not document.explorer!.listing.isArchive and
-               .explorerContentCell(scene, index) != Swag.U64.Max do
+            if let document = view.document where document.isExploring() and
+                                                  not document.explorer!.listing.isArchive and
+                                                  .explorerContentCell(scene, index) != Swag.U64.Max
+            {
                 return true
+            }
         }
 
         return false
@@ -58,8 +83,8 @@ impl ViewerWorkspace
     // Prefer an existing content panel after the Explorer in grid order, then a vacant cell.
     private mtd explorerContentCell(scene: const *ViewerScene, source: u64)->u64
     {
-        let cells = scene.cellCount()
-        let first = scene.cellOf(source)
+        let cells   = scene.cellCount()
+        let first   = scene.cellOf(source)
         var vacancy = Swag.U64.Max
         for distance in 1 until cells
         {
@@ -67,11 +92,15 @@ impl ViewerWorkspace
             let index = scene.viewInCell(cell)
             if index == Swag.U64.Max
             {
-                if vacancy == Swag.U64.Max do
+                if vacancy == Swag.U64.Max
+                {
                     vacancy = cell
+                }
             }
-            elif let document = scene.views[index].document where not document.isExploring() do
+            else if let document = scene.views[index].document where not document.isExploring()
+            {
                 return cell
+            }
         }
 
         return vacancy
@@ -80,15 +109,24 @@ impl ViewerWorkspace
     mtd openLinkedExplorerFile(source: *ViewerWindow, path: string, singleClick = false)->bool
     {
         let scene = .scene()
-        if not scene or not .isTiled() or scene.compared or not scene.linked or
-           not scene.links.explorer or (singleClick and not scene.links.explorerSingleClick) do
+        if not scene or
+           not .isTiled() or
+           scene.compared or
+           not scene.linked or
+           not scene.links.explorer or
+           (singleClick and not scene.links.explorerSingleClick)
+        {
             return false
+        }
 
         for view, index in scene.views where view.document == source
         {
             let cell = .explorerContentCell(scene, index)
-            if cell == Swag.U64.Max do
+            if cell == Swag.U64.Max
+            {
                 return false
+            }
+
             let target = scene.viewInCell(cell)
             if target == Swag.U64.Max
             {
@@ -100,8 +138,10 @@ impl ViewerWorkspace
             {
                 let document = unwrap scene.views[target].document
                 if not Path.equals(document.pendingFile, path) and
-                   (not document.pendingFile.isEmpty() or not Path.equals(document.currentFile, path)) do
+                   (not document.pendingFile.isEmpty() or not Path.equals(document.currentFile, path))
+                {
                     .replaceDocument(target, path, select: false)
+                }
             }
 
             return true
@@ -112,8 +152,11 @@ impl ViewerWorkspace
 
     mtd registerReadingLinks(document: *ViewerWindow)
     {
-        if not document.currentView do
+        if not document.currentView
+        {
             return
+        }
+
         let workspace = me
         if document.currentView is Viewers.PdfDocument.Panel as pdf
         {
@@ -122,7 +165,7 @@ impl ViewerWorkspace
                 workspace.linkReading(document)
             }
         }
-        elif let scroll = firstDocumentScroll(document.currentView)
+        else if let scroll = firstDocumentScroll(document.currentView)
         {
             scroll.sigScrollPositionChanged += func|workspace, document|(_, _, _)
             {
@@ -144,8 +187,11 @@ impl ViewerWorkspace
            not scene.linked or
            scene.views.count < 2 or
            .readingLinksBusy or
-           .activeDocument() != document do
+           .activeDocument() != document
+        {
             return
+        }
+
         .readingLinksBusy = true
         defer .readingLinksBusy = false
 
@@ -157,8 +203,10 @@ impl ViewerWorkspace
                 for view in scene.views where view.document != document
                 {
                     let target = sceneImage(view.document)
-                    if target do
+                    if target
+                    {
                         linkImages(source, target)
+                    }
                 }
             }
         }
@@ -170,29 +218,35 @@ impl ViewerWorkspace
                 let page = pdf.pdfView.pageIndex
                 for &view in scene.views where view.document != document
                 {
-                    if view.document?.currentView is Viewers.PdfDocument.Panel as other where other.pdfView.pageIndex != page do
+                    if view.document?.currentView is Viewers.PdfDocument.Panel as other where other.pdfView.pageIndex != page
+                    {
                         other.pdfView.showPage(page)
+                    }
                 }
             }
-            elif let source = sceneTextEditor(document)
+            else if let source = sceneTextEditor(document)
             {
                 let line = source.topLogicalLineNumber()
                 if line
                 {
                     for view in scene.views where view.document != document
                     {
-                        if let target = sceneTextEditor(view.document) do
+                        if let target = sceneTextEditor(view.document)
+                        {
                             discard target.scrollToLogicalLine(line)
+                        }
                     }
                 }
             }
-            elif let source = firstDocumentScroll(document.currentView)
+            else if let source = firstDocumentScroll(document.currentView)
             {
                 let pos = source.scrollPosition()
                 for view in scene.views where view.document != document
                 {
-                    if let target = firstDocumentScroll(view.document?.currentView) do
+                    if let target = firstDocumentScroll(view.document?.currentView)
+                    {
                         target.setScrollPos(pos)
+                    }
                 }
             }
         }
@@ -201,14 +255,22 @@ impl ViewerWorkspace
 
 private func firstDocumentScroll(wnd: *Wnd?)->*ScrollWnd?
 {
-    if not wnd do
+    if not wnd
+    {
         return null
-    if wnd is ScrollWnd as scroll do
+    }
+
+    if wnd is ScrollWnd as scroll
+    {
         return scroll
+    }
+
     for child in wnd.children
     {
-        if let scroll = firstDocumentScroll(child[]) do
+        if let scroll = firstDocumentScroll(child[])
+        {
             return scroll
+        }
     }
 
     return null
@@ -240,19 +302,25 @@ private func linkImages(source, target: *ImageView)
     let into = target.clientRect()
     if source.isFitted
     {
-        if not target.isFitted do
+        if not target.isFitted
+        {
             target.zoomToFit()
+        }
     }
     else
     {
         let zoom = source.zoom * target.fittedZoom() / Math.max(source.fittedZoom(), 0.001)
-        if target.isFitted or Math.abs(target.zoom - zoom) > 0.001 do
+        if target.isFitted or Math.abs(target.zoom - zoom) > 0.001
+        {
             target.setZoom(zoom)
+        }
     }
 
     let offset = Math.Point{
         source.panOffset.x * into.width / Math.max(from.width, 1),
         source.panOffset.y * into.height / Math.max(from.height, 1)}
-    if target.panOffset != offset do
+    if target.panOffset != offset
+    {
         target.setPanOffset(offset)
+    }
 }

@@ -5,7 +5,7 @@
 // and with rotations, must still shift by the right amount.
 
 #[Swag.Optimize(true), Swag.NoInline]
-func lowMask(n: u32)->u64 => (1'u64 << n) - 1
+func lowMask(n: u32)->u64 => (1_u64 << n) - 1
 
 #[Swag.Optimize(true), Swag.NoInline]
 func shiftDown(x: u64, n: u8)->u64 => x >> n
@@ -22,14 +22,16 @@ func shiftSum(x: u64, a, b: u8)->u64 => x << (a + b)
 func slowShiftLeft(x: u64, n: u32)->u64
 {
     var result = x
-    for 0 until n do
+    for 0 until n
+    {
         result = result * #wrap 2
+    }
     return result
 }
 
 #test
 {
-    let pattern = 0xF00D_CAFE_1234_5679'u64
+    let pattern = 0xF00D_CAFE_1234_5679_u64
     for v in 0 until 64
     {
         let n = cast(u32, v)
@@ -37,8 +39,10 @@ func slowShiftLeft(x: u64, n: u32)->u64
         Swag.require(shiftDown(pattern, cast(u8, v)) == pattern / slowShiftLeft(1, n))
         Swag.require(shiftSigned(-1, cast(u16, v)) == -1)
         Swag.require(shiftSum(pattern, cast(u8, (v / 2)), cast(u8, (v - v / 2))) == slowShiftLeft(pattern, n))
-        if v < 32 do
+        if v < 32
+        {
             Swag.require(shiftDword(0x8765_4321, cast(u64, v)) == cast #wrap (u32, slowShiftLeft(0x8765_4321, n)))
+        }
     }
     Swag.require(shiftSigned(-64, 3) == -8)
 }

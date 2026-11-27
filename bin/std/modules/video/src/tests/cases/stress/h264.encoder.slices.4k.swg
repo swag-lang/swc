@@ -5,8 +5,8 @@ using Swag, Core, Pixel
 
 func sliceStressFrame(bright: u32)->Nv12Frame fail
 {
-    const Width  = 3840'u64
-    const Height = 2160'u64
+    const Width  = 3840_u64
+    const Height = 2160_u64
     var image = Image.create(cast(s32, Width), cast(s32, Height), .RGB8)
     for y in Height
     {
@@ -31,9 +31,9 @@ func sliceStressFrame(bright: u32)->Nv12Frame fail
 {
     let first   = expect sliceStressFrame(0)
     let changed = expect sliceStressFrame(1)
-    for qp in [18'u32, 28]
+    for qp in [18_u32, 28]
     {
-        for count in [1'u32, 4, 8]
+        for count in [1_u32, 4, 8]
         {
             let path = videoTempPath("h264-encoder-slices-4k", "mp4")
             defer discard catch File.delete(path)
@@ -53,7 +53,7 @@ func sliceStressFrame(bright: u32)->Nv12Frame fail
             expect reader.decodeFramePlanesInto(&changedPicture, 3)
             Swag.require(changedPicture.width == 3840 and changedPicture.height == 2160)
             var held: PlanarFrame
-            for index in [4'u64, 5]
+            for index in [4_u64, 5]
             {
                 expect reader.decodeFramePlanesInto(&held, index)
                 Swag.require(Slice.equals(changedPicture.luma.toSlice(), held.luma.toSlice()))

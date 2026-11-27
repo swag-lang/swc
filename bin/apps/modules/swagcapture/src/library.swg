@@ -1,11 +1,11 @@
 var g_Library: Library
-const VideoRecoveryBatchSize = 4'u64
+const VideoRecoveryBatchSize = 4_u64
 
 // The captures and images in the library folder, and the folder itself.
 struct Library
 {
-    files:        Array'File.FileInfo
-    onDeleteFile: SigArray'func||(String)
+    files:        Array!{File.FileInfo}
+    onDeleteFile: SigArray!{func||(String)}
     rootFolder:   String
     revision:     u64
     loaded:       bool
@@ -37,8 +37,10 @@ impl Library
     // as it filters, and paying that call per item is what made a large library crawl.
     func getDefaultFolder()->String
     {
-        if not g_Library.defaultFolder.isEmpty() do
+        if not g_Library.defaultFolder.isEmpty()
+        {
             return g_Library.defaultFolder
+        }
 
         let documents = Env.getSpecialDirectory(.UserDocuments)
         Swag.assert(not documents.isEmpty())
@@ -57,8 +59,11 @@ impl Library
     // its own root, so a test naturally gets an empty library of its own.
     func getFolder()->String
     {
-        if not g_Library.rootFolder.isEmpty() do
+        if not g_Library.rootFolder.isEmpty()
+        {
             return g_Library.rootFolder
+        }
+
         return getDefaultFolder()
     }
 
@@ -80,47 +85,58 @@ impl Library
     // enumeration never descends into it, so trashed files stay out of the main list.
     func getTrashFolder()->String => Path.combine(getFolder(), ".trash")
 
-    func enumerateTrash()->Array'File.FileInfo fail
+    func enumerateTrash()->Array!{File.FileInfo} fail
     {
         var result: #returntype
         let files = try Directory.enumerateFiles(getTrashFolder())
-        for file in files where Capture.isFileName(file.fullName) do
+        for file in files where Capture.isFileName(file.fullName)
+        {
             result.add(file)
+        }
+
         return result
     }
 
     // Lists every item the library understands without pretending an ordinary image is a
     // capture. Sub-folders remain explicit navigation levels: tabs and lens entries.
-    func enumerateSupportedFiles(folder: String)->Array'File.FileInfo fail
+    func enumerateSupportedFiles(folder: String)->Array!{File.FileInfo} fail
     {
         var result: #returntype
         let files = try Directory.enumerateFiles(folder)
         let state = getStatePath()
         for fi in files where not Path.equals(fi.fullName, state) and
-                              (Capture.isFileName(fi.fullName) or Image.canLoad(fi.fullName)) do
+                              (Capture.isFileName(fi.fullName) or Image.canLoad(fi.fullName))
+        {
             result.add(fi)
+        }
+
         return result
     }
 
     // Recovers playable video fragments left by an interrupted process. Only the application's
     // `video-<capture-stem>.mp4` companions without a document are considered; each document is
     // decoded and written in turn, so the worker retains at most one frame at a time.
-    internal func recoverOrphanVideos(folder: String)->Array'String fail
+    internal func recoverOrphanVideos(folder: String)->Array!{String} fail
     {
         var recovered: #returntype
         let files = try Directory.enumerateFiles(folder, CaptureVideoExtension)
         for fi in files
         {
             let name = Path.fileNameWithoutExtension(fi.fullName) orelse ""
-            if not Utf8.startsWith(name, "video-") or name.count <= 6 do
+            if not Utf8.startsWith(name, "video-") or name.count <= 6
+            {
                 continue
+            }
+
             var documentName = String.from(name[6 until name.count])
             documentName += CaptureFileExtension
             let document = Path.combine(folder, documentName)
-            if File.exists(document) or not Path.equals(Capture.mediaPathOf(document, .Video), fi.fullName) do
+            if File.exists(document) or not Path.equals(Capture.mediaPathOf(document, .Video), fi.fullName)
+            {
                 continue
+            }
 
-            let capture = Memory.new'Capture()
+            let capture = Memory.new!{Capture}()
             capture.file       = document
             capture.capturedAt = fi.lastWriteTime
             catch capture.adoptVideo()
@@ -139,8 +155,10 @@ impl Library
 
             Memory.delete(capture)
             recovered.add(document)
-            if recovered.count == VideoRecoveryBatchSize do
+            if recovered.count == VideoRecoveryBatchSize
+            {
                 break
+            }
         }
 
         return recovered
@@ -177,8 +195,10 @@ impl Library
     {
         let dst = uniqueName(dstFolder, srcFile)
 
-        catch Capture.duplicateFiles(dst, srcFile) do
+        catch Capture.duplicateFiles(dst, srcFile)
+        {
             return ""
+        }
 
         catch Capture.deleteFiles(srcFile)
         {
@@ -196,8 +216,10 @@ impl Library
             return
         }
 
-        for fi in files do
+        for fi in files
+        {
             discard catch Capture.deleteFiles(fi.fullName)
+        }
     }
 
     // Brings a trashed capture back into the library folder. Returns the restored path
@@ -229,8 +251,10 @@ impl Library
         // exactly that). Take a view, whose borrow does not cover the text, and keep an owned
         // path alive until every observer has returned.
         let stableName = String.from(name)
-        if not Capture.isFile(stableName) do
+        if not Capture.isFile(stableName)
+        {
             return false
+        }
 
         // A background save may still be writing this capture; if the move happened
         // first, the save would land its temporary right back at the removed path. The editor
@@ -267,8 +291,10 @@ impl Library
         discard g_CaptureSaves.flush(name)
         g_Main?.releaseCaptureMedia(name)
         let dst = moveFile(folder, name)
-        if dst.isEmpty() do
+        if dst.isEmpty()
+        {
             return dst
+        }
 
         for fi, idx in .files where fi.fullName == name
         {
@@ -278,8 +304,11 @@ impl Library
             break
         }
 
-        if folder == getFolder() do
+        if folder == getFolder()
+        {
             .addFile(dst)
+        }
+
         return dst
     }
 

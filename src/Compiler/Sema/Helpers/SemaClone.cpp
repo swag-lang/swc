@@ -951,7 +951,7 @@ namespace
             return AstNodeRef::invalid();
 
         // The member's name belongs to the left-hand scope. Its quoted arguments still belong
-        // to the enclosing generic context: Ns.Box'T must substitute T without substituting Box.
+        // to the enclosing generic context: Ns.Box!{T} must substitute T without substituting Box.
         const AstNode& sourceNode       = sourceAst->node(nodeRef);
         const auto     argumentsContext = cloneContextWithoutReplacements(cloneContext);
         if (const auto* quoted = sourceNode.safeCast<AstQuotedExpr>())
@@ -962,10 +962,10 @@ namespace
             cloned.nodeSuffixRef    = cloneNodeRef(sema, quoted->nodeSuffixRef, argumentsContext);
             return newRef;
         }
-        if (const auto* quoted = sourceNode.safeCast<AstQuotedListExpr>())
+        if (const auto* quoted = sourceNode.safeCast<AstGenericArgListExpr>())
         {
-            const AstNodeRef newRef = cloneNodeCopy<AstNodeId::QuotedListExpr>(sema, *quoted);
-            auto&            cloned = sema.node(newRef).cast<AstQuotedListExpr>();
+            const AstNodeRef newRef = cloneNodeCopy<AstNodeId::GenericArgListExpr>(sema, *quoted);
+            auto&            cloned = sema.node(newRef).cast<AstGenericArgListExpr>();
             cloned.nodeExprRef      = cloneMemberSelector(sema, quoted->nodeExprRef, argumentsContext);
             cloned.spanChildrenRef  = cloneSpan(sema, quoted->spanChildrenRef, argumentsContext);
             return newRef;
@@ -2425,9 +2425,9 @@ AstNodeRef AstQuotedExpr::semaClone(Sema& sema, const CloneContext& cloneContext
     return newRef;
 }
 
-AstNodeRef AstQuotedListExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstGenericArgListExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::QuotedListExpr>(tokRef());
+    auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::GenericArgListExpr>(tokRef());
     const auto noReplacements = cloneContextWithoutReplacements(cloneContextAsInline(cloneContext));
     newPtr->nodeExprRef       = SemaClone::cloneAst(sema, nodeExprRef, noReplacements);
     newPtr->spanChildrenRef   = cloneSpan(sema, spanChildrenRef, noReplacements);

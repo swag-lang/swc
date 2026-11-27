@@ -6,33 +6,33 @@
 
 #test
 {
-    const A:  f64 = Swag.sqrt(4.0'f32)
-    const B:  f64 = Swag.sin(0.0'f32)
-    const C:  f64 = Swag.cos(0.0'f32)
-    const D:  f64 = Swag.tan(0.0'f32)
-    const E:  f64 = Swag.sinh(0.0'f32)
-    const F:  f64 = Swag.cosh(0.0'f32)
-    const G:  f64 = Swag.tanh(0.0'f32)
-    const H:  f64 = Swag.asin(0.0'f32)
-    const I:  f64 = Swag.acos(1.0'f32)
-    const J:  f64 = Swag.atan(0.0'f32)
-    const K:  f64 = Swag.log(1.0'f32)
-    const L:  f64 = Swag.log2(1.0'f32)
-    const M:  f64 = Swag.log10(1.0'f32)
-    const N:  f64 = Swag.floor(1.9'f32)
-    const O:  f64 = Swag.ceil(1.1'f32)
-    const P:  f64 = Swag.trunc(-1.9'f32)
-    const Q:  f64 = Swag.round(1.4'f32)
-    const R:  f64 = Swag.abs(-3.0'f32)
-    const S:  f64 = Swag.exp(0.0'f32)
-    const T:  f64 = Swag.exp2(0.0'f32)
-    const U:  f64 = Swag.atan2(0.0'f32, 1.0'f32)
-    const V:  f64 = Swag.pow(2.0, 8.0'f32)
-    const W:  f64 = Swag.mulAdd(2.0'f32, 3.0'f32, 4.0'f32)
-    const X:  f64 = Swag.min(1.0, 2.0'f32)
-    const Y:  f64 = Swag.max(1.0, 2.0'f32)
-    const Z:  f64 = Swag.min(1.0'f64, 2.0'f64)
-    const AA: f64 = Swag.max(1.0'f64, 2.0'f64)
+    const A:  f64 = Swag.sqrt(4.0_f32)
+    const B:  f64 = Swag.sin(0.0_f32)
+    const C:  f64 = Swag.cos(0.0_f32)
+    const D:  f64 = Swag.tan(0.0_f32)
+    const E:  f64 = Swag.sinh(0.0_f32)
+    const F:  f64 = Swag.cosh(0.0_f32)
+    const G:  f64 = Swag.tanh(0.0_f32)
+    const H:  f64 = Swag.asin(0.0_f32)
+    const I:  f64 = Swag.acos(1.0_f32)
+    const J:  f64 = Swag.atan(0.0_f32)
+    const K:  f64 = Swag.log(1.0_f32)
+    const L:  f64 = Swag.log2(1.0_f32)
+    const M:  f64 = Swag.log10(1.0_f32)
+    const N:  f64 = Swag.floor(1.9_f32)
+    const O:  f64 = Swag.ceil(1.1_f32)
+    const P:  f64 = Swag.trunc(-1.9_f32)
+    const Q:  f64 = Swag.round(1.4_f32)
+    const R:  f64 = Swag.abs(-3.0_f32)
+    const S:  f64 = Swag.exp(0.0_f32)
+    const T:  f64 = Swag.exp2(0.0_f32)
+    const U:  f64 = Swag.atan2(0.0_f32, 1.0_f32)
+    const V:  f64 = Swag.pow(2.0, 8.0_f32)
+    const W:  f64 = Swag.mulAdd(2.0_f32, 3.0_f32, 4.0_f32)
+    const X:  f64 = Swag.min(1.0, 2.0_f32)
+    const Y:  f64 = Swag.max(1.0, 2.0_f32)
+    const Z:  f64 = Swag.min(1.0_f64, 2.0_f64)
+    const AA: f64 = Swag.max(1.0_f64, 2.0_f64)
     #assert(A == 2.0)
     #assert(B == 0.0)
     #assert(C == 1.0)
@@ -70,16 +70,16 @@
 
 #test
 {
-    const A: s8 = Swag.min(1's8, 2's8)
-    const B: s8 = Swag.max(1's8, 2's8)
+    const A: s8 = Swag.min(1_s8, 2_s8)
+    const B: s8 = Swag.max(1_s8, 2_s8)
     #assert(A == 1)
     #assert(B == 2)
-    const C: s16 = Swag.min(-3's16, 7's16)
-    const D: s16 = Swag.max(-3's16, 7's16)
+    const C: s16 = Swag.min(-3_s16, 7_s16)
+    const D: s16 = Swag.max(-3_s16, 7_s16)
     #assert(C == -3)
     #assert(D == 7)
-    const E: s32 = Swag.min(1's32, 2's32)
-    const F: s32 = Swag.max(1's32, 2's32)
+    const E: s32 = Swag.min(1_s32, 2_s32)
+    const F: s32 = Swag.max(1_s32, 2_s32)
     #assert(E == 1)
     #assert(F == 2)
     Swag.require(C == -3)
@@ -88,8 +88,8 @@
 
 #test
 {
-    const A: s64 = Swag.min(-5's64, 3's64)
-    const B: s64 = Swag.max(-5's64, 3's64)
+    const A: s64 = Swag.min(-5_s64, 3_s64)
+    const B: s64 = Swag.max(-5_s64, 3_s64)
     #assert(A == -5)
     #assert(B == 3)
     Swag.require(B == 3)
@@ -97,33 +97,33 @@
 
 #test
 {
-    const A: u32 = Swag.min(10'u32, 20'u32)
-    const B: u32 = Swag.max(10'u32, 20'u32)
-    #assert(A == 10'u32)
-    #assert(B == 20'u32)
-    Swag.require(B == 20'u32)
+    const A: u32 = Swag.min(10_u32, 20_u32)
+    const B: u32 = Swag.max(10_u32, 20_u32)
+    #assert(A == 10_u32)
+    #assert(B == 20_u32)
+    Swag.require(B == 20_u32)
 }
 
 #test
 {
-    const A: u8 = Swag.min(1'u8, 2'u8)
-    const B: u8 = Swag.max(1'u8, 2'u8)
-    #assert(A == 1'u8)
-    #assert(B == 2'u8)
-    const C: u16 = Swag.min(3'u16, 1'u16)
-    const D: u16 = Swag.max(3'u16, 1'u16)
-    #assert(C == 1'u16)
-    #assert(D == 3'u16)
-    Swag.require(D == 3'u16)
+    const A: u8 = Swag.min(1_u8, 2_u8)
+    const B: u8 = Swag.max(1_u8, 2_u8)
+    #assert(A == 1_u8)
+    #assert(B == 2_u8)
+    const C: u16 = Swag.min(3_u16, 1_u16)
+    const D: u16 = Swag.max(3_u16, 1_u16)
+    #assert(C == 1_u16)
+    #assert(D == 3_u16)
+    Swag.require(D == 3_u16)
 }
 
 #test
 {
-    const A: u64 = Swag.min(1'u64, 0xFFFFFFFFFFFFFFFF'u64)
-    const B: u64 = Swag.max(1'u64, 0xFFFFFFFFFFFFFFFF'u64)
-    #assert(A == 1'u64)
-    #assert(B == 0xFFFFFFFFFFFFFFFF'u64)
-    Swag.require(B == 0xFFFFFFFFFFFFFFFF'u64)
+    const A: u64 = Swag.min(1_u64, 0xFFFFFFFFFFFFFFFF_u64)
+    const B: u64 = Swag.max(1_u64, 0xFFFFFFFFFFFFFFFF_u64)
+    #assert(A == 1_u64)
+    #assert(B == 0xFFFFFFFFFFFFFFFF_u64)
+    Swag.require(B == 0xFFFFFFFFFFFFFFFF_u64)
 }
 
 // ============================================================
@@ -132,7 +132,7 @@
 
 #test
 {
-    const E: f64 = Swag.atan2(0.0'f32, 0.0'f32)
+    const E: f64 = Swag.atan2(0.0_f32, 0.0_f32)
     #assert(E == 0.0)
     Swag.require(E == 0.0)
 }
@@ -143,9 +143,9 @@
 
 #test
 {
-    const A: f64 = Swag.sqrt(9.0'f64)
-    const B: f64 = Swag.sqrt(1.0'f64)
-    const C: f64 = Swag.sqrt(0.0'f64)
+    const A: f64 = Swag.sqrt(9.0_f64)
+    const B: f64 = Swag.sqrt(1.0_f64)
+    const C: f64 = Swag.sqrt(0.0_f64)
     #assert(A == 3.0)
     #assert(B == 1.0)
     #assert(C == 0.0)
@@ -153,8 +153,8 @@
 
 #test
 {
-    const B: f64 = Swag.exp2(3.0'f64)
-    const C: f64 = Swag.exp2(10.0'f64)
+    const B: f64 = Swag.exp2(3.0_f64)
+    const C: f64 = Swag.exp2(10.0_f64)
     #assert(B == 8.0)
     #assert(C == 1024.0)
     Swag.require(B == 8.0)
@@ -163,9 +163,9 @@
 
 #test
 {
-    const A: f64 = Swag.pow(3.0'f64, 2.0'f64)
-    const B: f64 = Swag.pow(2.0'f64, 10.0'f64)
-    const C: f64 = Swag.pow(10.0'f64, 0.0'f64)
+    const A: f64 = Swag.pow(3.0_f64, 2.0_f64)
+    const B: f64 = Swag.pow(2.0_f64, 10.0_f64)
+    const C: f64 = Swag.pow(10.0_f64, 0.0_f64)
     #assert(A == 9.0)
     #assert(B == 1024.0)
     #assert(C == 1.0)
@@ -174,13 +174,13 @@
 
 #test
 {
-    const A: f64 = Swag.floor(-1.5'f64)
-    const B: f64 = Swag.floor(2.9'f64)
-    const C: f64 = Swag.ceil(-1.5'f64)
-    const D: f64 = Swag.ceil(2.1'f64)
-    const E: f64 = Swag.trunc(-2.9'f64)
-    const F: f64 = Swag.trunc(2.9'f64)
-    const I: f64 = Swag.round(2.4'f64)
+    const A: f64 = Swag.floor(-1.5_f64)
+    const B: f64 = Swag.floor(2.9_f64)
+    const C: f64 = Swag.ceil(-1.5_f64)
+    const D: f64 = Swag.ceil(2.1_f64)
+    const E: f64 = Swag.trunc(-2.9_f64)
+    const F: f64 = Swag.trunc(2.9_f64)
+    const I: f64 = Swag.round(2.4_f64)
     #assert(A == -2.0)
     #assert(B == 2.0)
     #assert(C == -1.0)
@@ -194,10 +194,10 @@
 
 #test
 {
-    const A: f64 = Swag.log2(8.0'f64)
-    const B: f64 = Swag.log2(1024.0'f64)
-    const C: f64 = Swag.log10(100.0'f64)
-    const D: f64 = Swag.log10(1000.0'f64)
+    const A: f64 = Swag.log2(8.0_f64)
+    const B: f64 = Swag.log2(1024.0_f64)
+    const C: f64 = Swag.log10(100.0_f64)
+    const D: f64 = Swag.log10(1000.0_f64)
     #assert(A == 3.0)
     #assert(B == 10.0)
     #assert(C == 2.0)
@@ -208,9 +208,9 @@
 
 #test
 {
-    const A: f64 = Swag.mulAdd(1.0'f64, 2.0'f64, 3.0'f64)
-    const B: f64 = Swag.mulAdd(0.0'f64, 100.0'f64, 5.0'f64)
-    const C: f64 = Swag.mulAdd(10.0'f64, 10.0'f64, -100.0'f64)
+    const A: f64 = Swag.mulAdd(1.0_f64, 2.0_f64, 3.0_f64)
+    const B: f64 = Swag.mulAdd(0.0_f64, 100.0_f64, 5.0_f64)
+    const C: f64 = Swag.mulAdd(10.0_f64, 10.0_f64, -100.0_f64)
     #assert(A == 5.0)
     #assert(B == 5.0)
     #assert(C == 0.0)
@@ -317,8 +317,8 @@ func rtRound32(v: f32)->f32 => Swag.round(v)
     Swag.require(rtSqrt64(4.0) == 2.0)
     Swag.require(rtSqrt64(9.0) == 3.0)
     Swag.require(rtSqrt64(16.0) == 4.0)
-    Swag.require(rtSqrt32(4.0'f32) == 2.0'f32)
-    Swag.require(rtSqrt32(25.0'f32) == 5.0'f32)
+    Swag.require(rtSqrt32(4.0_f32) == 2.0_f32)
+    Swag.require(rtSqrt32(25.0_f32) == 5.0_f32)
 }
 
 // Runtime — trig at zero
@@ -328,10 +328,10 @@ func rtRound32(v: f32)->f32 => Swag.round(v)
     Swag.require(rtCos64(0.0) == 1.0)
     Swag.require(rtTan64(0.0) == 0.0)
 
-    let s = rtSin32(0.0'f32)
-    let c = rtCos32(0.0'f32)
-    Swag.require(s == 0.0'f32)
-    Swag.require(c == 1.0'f32)
+    let s = rtSin32(0.0_f32)
+    let c = rtCos32(0.0_f32)
+    Swag.require(s == 0.0_f32)
+    Swag.require(c == 1.0_f32)
 }
 
 // Runtime — hyperbolic at zero
@@ -400,14 +400,14 @@ func rtRound32(v: f32)->f32 => Swag.round(v)
 
 #test
 {
-    Swag.require(rtFloor32(1.9'f32) == 1.0'f32)
-    Swag.require(rtFloor32(-1.5'f32) == -2.0'f32)
-    Swag.require(rtCeil32(1.1'f32) == 2.0'f32)
-    Swag.require(rtCeil32(-1.5'f32) == -1.0'f32)
-    Swag.require(rtTrunc32(-1.9'f32) == -1.0'f32)
-    Swag.require(rtTrunc32(2.9'f32) == 2.0'f32)
-    Swag.require(rtRound32(1.4'f32) == 1.0'f32)
-    Swag.require(rtRound32(2.5'f32) == 3.0'f32)
+    Swag.require(rtFloor32(1.9_f32) == 1.0_f32)
+    Swag.require(rtFloor32(-1.5_f32) == -2.0_f32)
+    Swag.require(rtCeil32(1.1_f32) == 2.0_f32)
+    Swag.require(rtCeil32(-1.5_f32) == -1.0_f32)
+    Swag.require(rtTrunc32(-1.9_f32) == -1.0_f32)
+    Swag.require(rtTrunc32(2.9_f32) == 2.0_f32)
+    Swag.require(rtRound32(1.4_f32) == 1.0_f32)
+    Swag.require(rtRound32(2.5_f32) == 3.0_f32)
 }
 
 // Runtime — mulAdd

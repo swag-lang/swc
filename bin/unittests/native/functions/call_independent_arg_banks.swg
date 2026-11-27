@@ -34,7 +34,7 @@ func sumEightBanks(
 #[Swag.NoInline]
 func repeatEightBanks(count: u32)->s64
 {
-    var total = 0's64
+    var total = 0_s64
     for i in count
     {
         let value = cast(s64, i)
@@ -53,7 +53,7 @@ func repeatEightBanks(count: u32)->s64
     Swag.require(repeatEightBanks(0) == 0)
     Swag.require(repeatEightBanks(64) == 18432)
 
-    var changing = 0's64
+    var changing = 0_s64
     for i in 8
     {
         let value = cast(s64, i)

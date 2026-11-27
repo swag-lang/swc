@@ -95,7 +95,7 @@ func drawLayerPipelinePage(painter: *Pixel.Painter)
                   "begin / paint / end records a transparent layer and keeps alpha coverage isolated.",
                   1,
                   false,
-                  -4.0'deg,
+                  -4.0_deg,
                   Argb.MidnightBlue)
     drawLayerCard(painter,
                   {500, 104, 452, 258},
@@ -103,7 +103,7 @@ func drawLayerPipelinePage(painter: *Pixel.Painter)
                   "renderScale draws into a larger target, then shaderResolve downsamples before composition.",
                   3,
                   false,
-                  5.0'deg,
+                  5.0_deg,
                   Argb.Crimson)
     drawLayerCard(painter,
                   {28, 392, 452, 272},
@@ -111,7 +111,7 @@ func drawLayerPipelinePage(painter: *Pixel.Painter)
                   "The layer pipeline can expand into blur passes before drawing the original content back.",
                   1,
                   true,
-                  -3.0'deg,
+                  -3.0_deg,
                   Argb.SeaGreen)
     drawLayerCard(painter,
                   {500, 392, 452, 272},
@@ -119,6 +119,6 @@ func drawLayerPipelinePage(painter: *Pixel.Painter)
                   "Supersampled content, shadow blur and Max alpha composition share the same LayerDrawInfo path.",
                   2,
                   true,
-                  4.0'deg,
+                  4.0_deg,
                   Argb.DarkSlateBlue)
 }

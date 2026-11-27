@@ -14,16 +14,24 @@ using Core
         var cancelled = 0
         dlg.validateResult = func|&cancelled|(_, id)
         {
-            if id == Dialog.BtnCancel do
+            if id == Dialog.BtnCancel
+            {
                 cancelled += 1
+            }
+
             return false
         }
 
         dlg.setText("Keep this text")
-        if multiline do
+        if multiline
+        {
             dlg.richEdit!.setFocus()
-        else do
+        }
+        else
+        {
             dlg.edit!.setFocus()
+        }
+
         host.keyPress(.Escape)
         Swag.require(cancelled == 0 and dlg.hasFocus())
         Swag.require(dlg.text() == "Keep this text")
@@ -47,8 +55,11 @@ using Core
     var cancelled = 0
     dlg.validateResult = func|&cancelled|(_, id)
     {
-        if id == Dialog.BtnCancel do
+        if id == Dialog.BtnCancel
+        {
             cancelled += 1
+        }
+
         return false
     }
 

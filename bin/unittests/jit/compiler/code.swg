@@ -114,8 +114,10 @@ func runTrailingStmt()->bool
         bumpStmt()
     }
 
-    if StmtEvalCount != 1 do
+    if StmtEvalCount != 1
+    {
         return false
+    }
 
     runWhen(false)
     {
@@ -206,8 +208,10 @@ func runCombinedReplacements()->s32
         {
             count += 1
             #inject(#code {
-                if count == 1 do
+                if count == 1
+                {
                     break
+                }
 
                 continue
             }, continue = break to Outer, break = continue)

@@ -30,15 +30,19 @@ func autoInlineOnce(value: s32)->s32
 
 func recursiveFirst(value: s32)->s32
 {
-    if value == 0 do
+    if value == 0
+    {
         return 0
+    }
     return recursiveSecond(value - 1)
 }
 
 func recursiveSecond(value: s32)->s32
 {
-    if value == 0 do
+    if value == 0
+    {
         return 0
+    }
     return recursiveFirst(value - 1)
 }
 
@@ -48,8 +52,10 @@ func nestedPredicate(value: s32)->bool => isPositive(value)
 
 func earlyReturnThroughNestedCall(value: s32)->s32
 {
-    if nestedPredicate(value) do
+    if nestedPredicate(value)
+    {
         return 1
+    }
     return 2
 }
 
@@ -62,8 +68,10 @@ impl CleanupTarget
 {
     mtd cleanup()
     {
-        if nestedPredicate(.value) do
+        if nestedPredicate(.value)
+        {
             return
+        }
     }
 }
 
@@ -73,8 +81,10 @@ func fallibleEarlyReturnThroughNestedCall(value: s32)->s32 fail
     defer deferred = value
     var cleanupTarget = CleanupTarget{value}
     defer #fail (&cleanupTarget).cleanup()
-    if nestedPredicate(value) do
+    if nestedPredicate(value)
+    {
         return 3
+    }
     return 4
 }
 

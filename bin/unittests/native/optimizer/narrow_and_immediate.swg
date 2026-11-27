@@ -11,7 +11,7 @@ func keepBit31(value: u64)->u64 => value & 0x80000000
 
 #test
 {
-    for value in [0'u64, 1, 7, 8, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFFFFFFFFFF]
+    for value in [0_u64, 1, 7, 8, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFFFFFFFFFF]
     {
         Swag.require(mask7(value) == (value & 7))
         Swag.require(maskSignedDword(value) == (value & 0x7FFFFFFF))

@@ -4,13 +4,13 @@
 using Core.Errors, Core.Serialization
 
 // Current major version of the Swag Chunk Container envelope.
-const FormatMajor = 1'u16
+const FormatMajor = 1_u16
 
 // Current backward-compatible revision of the Swag Chunk Container envelope.
-const FormatMinor = 0'u16
+const FormatMinor = 0_u16
 
 // Number of bytes before the TagBin-encoded SCC header.
-const PrefixSize = 32'u64
+const PrefixSize = 32_u64
 
 private const Magic = "SWAGSCC\0"
 
@@ -36,7 +36,7 @@ struct MetadataValue
         unsignedValue: u64              // Integer value used by `Unsigned`.
         floatValue:    f64              // Floating-point value used by `Float`.
         booleanValue:  bool             // Boolean value used by `Boolean`.
-        bytesValue:    Array'u8         // Opaque value used by `Bytes`.
+        bytesValue:    Array!{u8}       // Opaque value used by `Bytes`.
     }
 }
 
@@ -62,14 +62,14 @@ struct Entry
 {
     public
     {
-        id:            Guid128            // Stable identity of this virtual entry.
-        parentId:      Guid128            // Parent directory identity, or null for a root entry.
-        kind:          EntryKind          // Whether this entry is a directory or file.
-        name:          String             // Display name inside the virtual hierarchy.
-        tags:          Array'String       // Entry-local search tags.
-        primaryChunk:  Guid128            // Preferred payload chunk, or null for a directory.
-        variantChunks: Array'Guid128      // Alternative or supplemental payload chunks.
-        properties:    Array'Property     // Profile-specific entry metadata.
+        id:            Guid128              // Stable identity of this virtual entry.
+        parentId:      Guid128              // Parent directory identity, or null for a root entry.
+        kind:          EntryKind            // Whether this entry is a directory or file.
+        name:          String               // Display name inside the virtual hierarchy.
+        tags:          Array!{String}       // Entry-local search tags.
+        primaryChunk:  Guid128              // Preferred payload chunk, or null for a directory.
+        variantChunks: Array!{Guid128}      // Alternative or supplemental payload chunks.
+        properties:    Array!{Property}     // Profile-specific entry metadata.
     }
 }
 
@@ -78,16 +78,16 @@ struct Manifest
 {
     public
     {
-        version:        u32 = 1            // Version of this generic manifest schema.
-        profileVersion: u32                // Version interpreted by the container profile.
-        name:           String             // Container display name.
-        description:    String             // Optional human-readable description.
-        createdAt:      Time.DateTime      // Original creation time when known.
-        modifiedAt:     Time.DateTime      // Last logical modification time when known.
-        tags:           Array'String       // Search tags available from the header alone.
-        entries:        Array'Entry        // Virtual files and directories exposed by the container.
-        properties:     Array'Property     // Generic or profile-qualified metadata.
-        profileData:    Array'u8           // Small profile header decoded without reading a chunk.
+        version:        u32 = 1              // Version of this generic manifest schema.
+        profileVersion: u32                  // Version interpreted by the container profile.
+        name:           String               // Container display name.
+        description:    String               // Optional human-readable description.
+        createdAt:      Time.DateTime        // Original creation time when known.
+        modifiedAt:     Time.DateTime        // Last logical modification time when known.
+        tags:           Array!{String}       // Search tags available from the header alone.
+        entries:        Array!{Entry}        // Virtual files and directories exposed by the container.
+        properties:     Array!{Property}     // Generic or profile-qualified metadata.
+        profileData:    Array!{u8}           // Small profile header decoded without reading a chunk.
     }
 }
 
@@ -143,10 +143,10 @@ interface ICodec
     mtd id()->Guid128
 
     // Encodes one complete payload into owned stored bytes.
-    mtd encode(source: const [..] u8)->Array'u8 fail
+    mtd encode(source: const [..] u8)->Array!{u8} fail
 
     // Decodes one complete payload and returns exactly `decodedSize` bytes.
-    mtd decode(source: const [..] u8, decodedSize: u64)->Array'u8 fail
+    mtd decode(source: const [..] u8, decodedSize: u64)->Array!{u8} fail
 }
 
 // Options used when adding a chunk.
@@ -173,14 +173,14 @@ internal struct Header
     generation:       u64 = 1
     declaredFileSize: u64
     manifest:         Manifest
-    chunks:           Array'ChunkInfo
+    chunks:           Array!{ChunkInfo}
 }
 
 internal struct PendingChunk
 {
     info:      ChunkInfo
     alignment: u32
-    bytes:     Array'u8
+    bytes:     Array!{u8}
 }
 
 // Builds a new SCC file from independently encoded chunks.
@@ -190,8 +190,8 @@ struct Writer
     private
     {
         header: Header
-        chunks: Array'PendingChunk
-        codecs: Array'ICodec
+        chunks: Array!{PendingChunk}
+        codecs: Array!{ICodec}
     }
 }
 
@@ -204,27 +204,32 @@ struct Reader
         stream: File.FileStream
         header: Header
         limits: ReadLimits
-        codecs: Array'ICodec
+        codecs: Array!{ICodec}
     }
 }
 
-private func writeU16(buffer: *Array'u8, value: u16)
+private func writeU16(buffer: *Array!{u8}, value: u16)
 {
     buffer.add(Math.byteAt(value, 0))
     buffer.add(Math.byteAt(value, 1))
 }
 
-private func writeU32(buffer: *Array'u8, value: u32)
+private func writeU32(buffer: *Array!{u8}, value: u32)
 {
-    for i in 4 do
+    for i in 4
+    {
         buffer.add(Math.byteAt(value, i))
+    }
 }
 
 private func readU32(buffer: const [..] u8, offset: u64)->u32
 {
     var result: u32
-    for i in 4 do
+    for i in 4
+    {
         result |= cast(u32, buffer[offset + i]) << (i * 8)
+    }
+
     return result
 }
 
@@ -235,8 +240,11 @@ private func alignUp(value: u64, alignment: u32)->u64 fail
     if remainder
     {
         let adjustment = effective - remainder
-        if value > Swag.U64.Max - adjustment do
+        if value > Swag.U64.Max - adjustment
+        {
             fail OverflowError{"SCC chunk alignment exceeds the addressable file size"}
+        }
+
         return value + adjustment
     }
 
@@ -260,10 +268,10 @@ func deflateCodecId()->Guid128
     return makeId("21bf86c9-55f7-4c90-a454-2f070a0f6e9b")
 }
 
-private func encodeHeader(header: const *Header)->Array'u8 fail
+private func encodeHeader(header: const *Header)->Array!{u8} fail
 {
     var output:  ConcatBuffer
-    var encoder: Encoder'Write.TagBin
+    var encoder: Encoder!{Write.TagBin}
     try encoder.writeAll(&output, header[])
     output.makeLinear()
 
@@ -272,62 +280,90 @@ private func encodeHeader(header: const *Header)->Array'u8 fail
     return result
 }
 
-private func findCodec(codecs: Array'ICodec, id: Guid128)->ICodec?
+private func findCodec(codecs: Array!{ICodec}, id: Guid128)->ICodec?
 {
-    for codec in codecs where codec.id() == id do
+    for codec in codecs where codec.id() == id
+    {
         return codec
+    }
+
     return null
 }
 
 private func validateManifest(manifest: const *Manifest, chunks: const [..] ChunkInfo) fail
 {
-    var chunkIds: HashSet'Guid128
+    var chunkIds: HashSet!{Guid128}
     for chunk in chunks
     {
-        if chunk.id.isNull() or chunkIds.contains(chunk.id) do
+        if chunk.id.isNull() or chunkIds.contains(chunk.id)
+        {
             fail InvalidFormatError{"SCC chunk identifiers must be non-null and unique"}
+        }
+
         chunkIds.add(chunk.id)
     }
 
-    var entryKinds:  HashTable'(Guid128, EntryKind)
-    var entryParent: HashTable'(Guid128, Guid128)
+    var entryKinds:  HashTable!{Guid128, EntryKind}
+    var entryParent: HashTable!{Guid128, Guid128}
     for entry in manifest.entries
     {
-        if entry.id.isNull() or entryKinds.contains(entry.id) do
+        if entry.id.isNull() or entryKinds.contains(entry.id)
+        {
             fail InvalidFormatError{"SCC virtual entry identifiers must be non-null and unique"}
-        if entry.parentId == entry.id do
+        }
+
+        if entry.parentId == entry.id
+        {
             fail InvalidFormatError{"SCC virtual entry cannot be its own parent"}
+        }
+
         entryKinds.add(entry.id, entry.kind)
         entryParent.add(entry.id, entry.parentId)
-        if not entry.primaryChunk.isNull() and not chunkIds.contains(entry.primaryChunk) do
+        if not entry.primaryChunk.isNull() and not chunkIds.contains(entry.primaryChunk)
+        {
             fail InvalidFormatError{"SCC virtual entry references an unknown primary chunk"}
-        for chunkId in entry.variantChunks where not chunkIds.contains(chunkId) do
+        }
+
+        for chunkId in entry.variantChunks where not chunkIds.contains(chunkId)
+        {
             fail InvalidFormatError{"SCC virtual entry references an unknown variant chunk"}
+        }
     }
 
     for entry in manifest.entries
     {
-        if entry.parentId.isNull() do
+        if entry.parentId.isNull()
+        {
             continue
+        }
+
         let parent = entryKinds.tryFind(entry.parentId)
-        if not parent do
+        if not parent
+        {
             fail InvalidFormatError{"SCC virtual entry references an unknown parent"}
-        if parent.value != .Directory do
+        }
+
+        if parent.value != .Directory
+        {
             fail InvalidFormatError{"SCC virtual entry parent must be a directory"}
+        }
     }
 
-    var visitState: HashTable'(Guid128, u8)
+    var visitState: HashTable!{Guid128, u8}
     for entry in manifest.entries
     {
-        var path: Array'Guid128
+        var path: Array!{Guid128}
         var current = entry.id
         while not current.isNull()
         {
             let state = visitState.tryFind(current)
             if state
             {
-                if state.value == 1 do
+                if state.value == 1
+                {
                     fail InvalidFormatError{"SCC virtual directory hierarchy contains a cycle"}
+                }
+
                 break
             }
 
@@ -336,8 +372,10 @@ private func validateManifest(manifest: const *Manifest, chunks: const [..] Chun
             current = entryParent.find(current).value
         }
 
-        for id in path do
+        for id in path
+        {
             visitState.add(id, 2)
+        }
     }
 }
 
@@ -371,15 +409,18 @@ impl Writer
     {
         Swag.assert(not codec.id().isNull())
         Swag.assert(codec.id() != deflateCodecId())
-        for current in .codecs do
+        for current in .codecs
+        {
             Swag.assert(current.id() != codec.id())
+        }
+
         .codecs.add(codec)
     }
 
     // Adds an independently addressable payload and returns its stable chunk identifier.
     mtd addChunk(source: const [..] u8, options: ChunkOptions)->Guid128 fail
     {
-        func encodePayload(codecs: Array'ICodec, codecId: Guid128, source: const [..] u8)->Array'u8 fail
+        func encodePayload(codecs: Array!{ICodec}, codecId: Guid128, source: const [..] u8)->Array!{u8} fail
         {
             if codecId.isNull()
             {
@@ -395,16 +436,24 @@ impl Writer
             }
 
             let codec = findCodec(codecs, codecId)
-            if not codec do
+            if not codec
+            {
                 fail UnsupportedFormatError{"SCC has no encoder for the selected chunk codec"}
+            }
+
             return try codec.encode(source)
         }
 
         var id = options.id
-        if id.isNull() do
+        if id.isNull()
+        {
             id = Guid128.random()
-        for chunk in .chunks where chunk.info.id == id do
+        }
+
+        for chunk in .chunks where chunk.info.id == id
+        {
             fail BadParameterError{"SCC chunk identifiers must be unique"}
+        }
 
         var pending: PendingChunk
         pending.info.id              = id
@@ -431,14 +480,25 @@ impl Writer
     // including an unknown codec identifier, is preserved.
     mtd addStoredChunk(source: const [..] u8, info: const *ChunkInfo) fail
     {
-        if info.id.isNull() do
+        if info.id.isNull()
+        {
             fail BadParameterError{"SCC stored chunk needs an identifier"}
-        for chunk in .chunks where chunk.info.id == info.id do
+        }
+
+        for chunk in .chunks where chunk.info.id == info.id
+        {
             fail BadParameterError{"SCC chunk identifiers must be unique"}
-        if source.count != info.storedSize do
+        }
+
+        if source.count != info.storedSize
+        {
             fail BadParameterError{"SCC stored chunk size does not match its directory entry"}
-        if Hash.Crc32.compute(source) != info.storedChecksum do
+        }
+
+        if Hash.Crc32.compute(source) != info.storedChecksum
+        {
             fail InvalidFormatError{"SCC stored chunk checksum does not match its bytes"}
+        }
 
         var pending: PendingChunk
         pending.info      = info[]
@@ -452,30 +512,43 @@ impl Writer
     // Fails if the container identity is null or its generation is zero.
     mtd saveAtomic(fileName: string) fail
     {
-        func writeU64(buffer: *Array'u8, value: u64)
+        func writeU64(buffer: *Array!{u8}, value: u64)
         {
-            for i in 8 do
+            for i in 8
+            {
                 buffer.add(Math.byteAt(value, i))
+            }
         }
 
-        if .header.containerId.isNull() or not .header.generation do
+        if .header.containerId.isNull() or not .header.generation
+        {
             fail BadParameterError{"SCC container identity and generation must be non-null"}
+        }
 
         .header.chunks.clear()
-        for chunk in .chunks do
+        for chunk in .chunks
+        {
             .header.chunks.add(chunk.info)
+        }
+
         try validateManifest(&.header.manifest, .header.chunks.toSlice())
 
         var headerBytes = try encodeHeader(&.header)
-        if headerBytes.count > Swag.U64.Max - PrefixSize do
+        if headerBytes.count > Swag.U64.Max - PrefixSize
+        {
             fail OverflowError{"SCC header exceeds the addressable file size"}
+        }
+
         let headerEnd  = PrefixSize + headerBytes.count
         var dataOffset = try alignUp(headerEnd, 8)
         for i in .chunks.count
         {
             dataOffset = try alignUp(dataOffset, .chunks[i].alignment)
-            if .chunks[i].info.storedSize > Swag.U64.Max - dataOffset do
+            if .chunks[i].info.storedSize > Swag.U64.Max - dataOffset
+            {
                 fail OverflowError{"SCC chunk layout exceeds the addressable file size"}
+            }
+
             .chunks[i].info.offset   = dataOffset
             .header.chunks[i].offset = dataOffset
             dataOffset += .chunks[i].info.storedSize
@@ -484,14 +557,19 @@ impl Writer
         .header.declaredFileSize = dataOffset
 
         headerBytes = try encodeHeader(&.header)
-        if headerBytes.count > Swag.U64.Max - PrefixSize do
+        if headerBytes.count > Swag.U64.Max - PrefixSize
+        {
             fail OverflowError{"SCC header exceeds the addressable file size"}
+        }
+
         let finalHeaderEnd  = PrefixSize + headerBytes.count
         let firstDataOffset = .chunks.isEmpty() ? try alignUp(finalHeaderEnd, 8) : .chunks[0].info.offset
-        if finalHeaderEnd > firstDataOffset do
+        if finalHeaderEnd > firstDataOffset
+        {
             fail OverflowError{"SCC header grew after chunk offsets were assigned"}
+        }
 
-        var prefix: Array'u8
+        var prefix: Array!{u8}
         prefix.add(cast(const [..] u8, Magic))
         writeU16(&prefix, FormatMajor)
         writeU16(&prefix, FormatMinor)
@@ -505,8 +583,10 @@ impl Writer
         var ownsTemporary = false
         defer
         {
-            if ownsTemporary do
+            if ownsTemporary
+            {
                 discard catch File.delete(temporary)
+            }
         }
 
         var output = try File.open(temporary, .CreateNew, .Write, .Delete)
@@ -550,23 +630,28 @@ impl Reader
     {
         .close()
         var initialized = false
-        defer if not initialized do
+        defer if not initialized
+        {
             .close()
+        }
 
         func readU16(buffer: const [..] u8, offset: u64)->u16 => Math.make16(buffer[offset + 1], buffer[offset])
 
         func readU64(buffer: const [..] u8, offset: u64)->u64
         {
             var result: u64
-            for i in 8 do
+            for i in 8
+            {
                 result |= cast(u64, buffer[offset + i]) << (i * 8)
+            }
+
             return result
         }
 
         func decodeHeader(bytes: const [..] u8)->Header fail
         {
-            var decoder: Decoder'Read.TagBin
-            let decoded = try decoder.readAll'Header(bytes)
+            var decoder: Decoder!{Read.TagBin}
+            let decoded = try decoder.readAll!{Header}(bytes)
             defer Memory.delete(decoded)
             return #move decoded[]
         }
@@ -575,67 +660,118 @@ impl Reader
         .stream = try File.openRead(fileName)
 
         var prefix: [PrefixSize] u8
-        if not (try .stream.readExact(prefix)) do
+        if not (try .stream.readExact(prefix))
+        {
             fail InvalidFormatError{"SCC prefix is truncated"}
-        if Swag.memcmp(&prefix[0], Magic.buffer, Magic.count) != 0 do
+        }
+
+        if Swag.memcmp(&prefix[0], Magic.buffer, Magic.count) != 0
+        {
             fail InvalidFormatError{"file does not contain an SCC signature"}
-        if readU32(prefix, 12) or readU32(prefix, 28) do
+        }
+
+        if readU32(prefix, 12) or readU32(prefix, 28)
+        {
             fail UnsupportedFormatError{"SCC prefix contains unsupported flags"}
+        }
 
         let major = readU16(prefix, 8)
-        if major != FormatMajor do
+        if major != FormatMajor
+        {
             fail InvalidVersion{wantedVersion: FormatMajor, foundVersion: major}
+        }
 
         let headerSize = readU64(prefix, 16)
-        if headerSize > limits.maxHeaderSize do
+        if headerSize > limits.maxHeaderSize
+        {
             fail OverflowError{"SCC header exceeds the configured size limit"}
-        let fileSize = try .stream.size()
-        if headerSize > fileSize - PrefixSize do
-            fail InvalidFormatError{"SCC header runs past the end of the file"}
+        }
 
-        var headerBytes: Array'u8
+        let fileSize = try .stream.size()
+        if headerSize > fileSize - PrefixSize
+        {
+            fail InvalidFormatError{"SCC header runs past the end of the file"}
+        }
+
+        var headerBytes: Array!{u8}
         headerBytes.resize(headerSize)
-        if not (try .stream.readExact(headerBytes.toSlice())) do
+        if not (try .stream.readExact(headerBytes.toSlice()))
+        {
             fail InvalidFormatError{"SCC header is truncated"}
-        if Hash.Crc32.compute(headerBytes.toSlice()) != readU32(prefix, 24) do
+        }
+
+        if Hash.Crc32.compute(headerBytes.toSlice()) != readU32(prefix, 24)
+        {
             fail InvalidFormatError{"SCC header checksum does not match its bytes"}
+        }
 
         .header = try decodeHeader(headerBytes.toSlice())
-        if .header.manifest.version > 1 do
+        if .header.manifest.version > 1
+        {
             fail InvalidVersion{wantedVersion: 1, foundVersion: .header.manifest.version}
-        if .header.containerKind.isNull() or .header.containerId.isNull() or not .header.generation do
-            fail InvalidFormatError{"SCC header identities and generation must be non-null"}
-        if .header.chunks.count > limits.maxChunkCount do
-            fail OverflowError{"SCC chunk count exceeds the configured limit"}
-        if .header.declaredFileSize != fileSize do
-            fail InvalidFormatError{"SCC declared size does not match the file size"}
+        }
 
-        var chunkIds: HashSet'Guid128
+        if .header.containerKind.isNull() or .header.containerId.isNull() or not .header.generation
+        {
+            fail InvalidFormatError{"SCC header identities and generation must be non-null"}
+        }
+
+        if .header.chunks.count > limits.maxChunkCount
+        {
+            fail OverflowError{"SCC chunk count exceeds the configured limit"}
+        }
+
+        if .header.declaredFileSize != fileSize
+        {
+            fail InvalidFormatError{"SCC declared size does not match the file size"}
+        }
+
+        var chunkIds: HashSet!{Guid128}
         var previousEnd = PrefixSize + headerSize
         for chunk in .header.chunks
         {
-            if chunk.id.isNull() or chunkIds.contains(chunk.id) do
+            if chunk.id.isNull() or chunkIds.contains(chunk.id)
+            {
                 fail InvalidFormatError{"SCC chunk identifiers must be non-null and unique"}
+            }
+
             chunkIds.add(chunk.id)
-            if chunk.storedSize > limits.maxStoredChunk or chunk.decodedSize > limits.maxDecodedChunk do
+            if chunk.storedSize > limits.maxStoredChunk or chunk.decodedSize > limits.maxDecodedChunk
+            {
                 fail OverflowError{"SCC chunk exceeds the configured size limit"}
+            }
+
             if chunk.offset < PrefixSize + headerSize or
                chunk.offset > fileSize or
-               chunk.storedSize > fileSize - chunk.offset do
+               chunk.storedSize > fileSize - chunk.offset
+            {
                 fail InvalidFormatError{"SCC chunk range runs outside the file"}
-            if chunk.offset < previousEnd do
+            }
+
+            if chunk.offset < previousEnd
+            {
                 fail InvalidFormatError{"SCC chunk ranges overlap or are not ordered"}
+            }
+
             previousEnd = chunk.offset + chunk.storedSize
-            if chunk.codecId.isNull() and chunk.decodedSize != chunk.storedSize do
+            if chunk.codecId.isNull() and chunk.decodedSize != chunk.storedSize
+            {
                 fail InvalidFormatError{"an uncompressed SCC chunk has different stored and decoded sizes"}
-            if not chunk.storedSize and chunk.decodedSize do
+            }
+
+            if not chunk.storedSize and chunk.decodedSize
+            {
                 fail OverflowError{"SCC chunk expansion ratio exceeds the configured limit"}
+            }
+
             if chunk.storedSize
             {
                 let quotient  = chunk.decodedSize / chunk.storedSize
                 let remainder = chunk.decodedSize % chunk.storedSize
-                if quotient > limits.maxExpansionRatio or (quotient == limits.maxExpansionRatio and remainder) do
+                if quotient > limits.maxExpansionRatio or (quotient == limits.maxExpansionRatio and remainder)
+                {
                     fail OverflowError{"SCC chunk expansion ratio exceeds the configured limit"}
+                }
             }
         }
 
@@ -660,8 +796,11 @@ impl Reader
     {
         Swag.assert(not codec.id().isNull())
         Swag.assert(codec.id() != deflateCodecId())
-        for current in .codecs do
+        for current in .codecs
+        {
             Swag.assert(current.id() != codec.id())
+        }
+
         .codecs.add(codec)
     }
 
@@ -683,39 +822,53 @@ impl Reader
     // Finds a chunk by identifier, or returns `null` when it is absent.
     mtd const findChunk(id: Guid128)->const *ChunkInfo?
     {
-        for chunk in .header.chunks where chunk.id == id do
+        for chunk in .header.chunks where chunk.id == id
+        {
             return chunk
+        }
+
         return null
     }
 
     // Finds the first chunk carrying `roleId`, or returns `null` when it is absent.
     mtd const findRole(roleId: Guid128)->const *ChunkInfo?
     {
-        for chunk in .header.chunks where chunk.roleId == roleId do
+        for chunk in .header.chunks where chunk.roleId == roleId
+        {
             return chunk
+        }
+
         return null
     }
 
     // Reads stored bytes without requiring the chunk codec.
-    mtd readStoredChunk(id: Guid128)->Array'u8 fail
+    mtd readStoredChunk(id: Guid128)->Array!{u8} fail
     {
         let info = .findChunk(id)
-        if not info do
+        if not info
+        {
             fail BadParameterError{"SCC has no chunk with this identifier"}
+        }
 
         var result: #returntype
         result.resize(info.storedSize)
-        if not (try .stream.readExactAt(info.offset, result.toSlice())) do
+        if not (try .stream.readFileRange(info.offset, result.toSlice()))
+        {
             fail InvalidFormatError{"SCC chunk payload is truncated"}
-        if Hash.Crc32.compute(result.toSlice()) != info.storedChecksum do
+        }
+
+        if Hash.Crc32.compute(result.toSlice()) != info.storedChecksum
+        {
             fail InvalidFormatError{"SCC stored chunk checksum does not match its bytes"}
+        }
+
         return result
     }
 
     // Reads, verifies, and decompresses one chunk into owned bytes.
-    mtd readChunk(id: Guid128)->Array'u8 fail
+    mtd readChunk(id: Guid128)->Array!{u8} fail
     {
-        func decodePayload(codecs: Array'ICodec, info: const *ChunkInfo, source: const [..] u8)->Array'u8 fail
+        func decodePayload(codecs: Array!{ICodec}, info: const *ChunkInfo, source: const [..] u8)->Array!{u8} fail
         {
             if info.codecId.isNull()
             {
@@ -731,21 +884,32 @@ impl Reader
             }
 
             let codec = findCodec(codecs, info.codecId)
-            if not codec do
+            if not codec
+            {
                 fail UnsupportedFormatError{"SCC has no decoder for this chunk codec"}
+            }
+
             return try codec.decode(source, info.decodedSize)
         }
 
         let info = .findChunk(id)
-        if not info do
+        if not info
+        {
             fail BadParameterError{"SCC has no chunk with this identifier"}
+        }
 
         let stored = try .readStoredChunk(id)
         let result = try decodePayload(.codecs, info, stored.toSlice())
-        if result.count != info.decodedSize do
+        if result.count != info.decodedSize
+        {
             fail InvalidFormatError{"SCC codec returned a different decoded size"}
-        if Hash.Crc32.compute(result.toSlice()) != info.decodedChecksum do
+        }
+
+        if Hash.Crc32.compute(result.toSlice()) != info.decodedChecksum
+        {
             fail InvalidFormatError{"SCC decoded chunk checksum does not match its bytes"}
+        }
+
         return result
     }
 }
@@ -755,7 +919,10 @@ func hasSignature(fileName: string)->bool fail
 {
     var stream = try File.openRead(fileName)
     var magic: [8] u8
-    if not (try stream.readExact(magic)) do
+    if not (try stream.readExact(magic))
+    {
         return false
+    }
+
     return Swag.memcmp(&magic[0], Magic.buffer, Magic.count) == 0
 }

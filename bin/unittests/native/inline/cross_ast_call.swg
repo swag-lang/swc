@@ -2,16 +2,16 @@
 
 #test
 {
-    let angle = InlineCrossAstCall.Angle{rad: -3.14159265'f32}
+    let angle = InlineCrossAstCall.Angle{rad: -3.14159265_f32}
     let deg   = angle.toDegrees()
-    Swag.require(deg > -180.001'f32 and deg < -179.999'f32)
+    Swag.require(deg > -180.001_f32 and deg < -179.999_f32)
 
-    let implicitAngle: InlineCrossAstCall.Angle = -3.14159265'f32
-    Swag.require(implicitAngle.rad < -3.141'f32 and implicitAngle.rad > -3.142'f32)
+    let implicitAngle: InlineCrossAstCall.Angle = -3.14159265_f32
+    Swag.require(implicitAngle.rad < -3.141_f32 and implicitAngle.rad > -3.142_f32)
     let implicitDeg = implicitAngle.toDegrees()
-    Swag.require(implicitDeg > -180.001'f32 and implicitDeg < -179.999'f32)
+    Swag.require(implicitDeg > -180.001_f32 and implicitDeg < -179.999_f32)
     Swag.require(InlineCrossAstCall.isEqualEpsilon(implicitAngle.toDegrees(), -180.0, 0.001))
-    Swag.require(InlineCrossAstCall.isEqualEpsilonF64Only(InlineCrossAstCall.inlineF32Degrees(-3.14159265'f32), -180.0, 0.001))
+    Swag.require(InlineCrossAstCall.isEqualEpsilonF64Only(InlineCrossAstCall.inlineF32Degrees(-3.14159265_f32), -180.0, 0.001))
     Swag.require(InlineCrossAstCall.nestedIfParamCaller(0) == 7)
     Swag.require(InlineCrossAstCall.nestedIfParamCaller(4) == 5)
     Swag.require(InlineCrossAstCall.inlineArgFromLocal(-6) == 6)

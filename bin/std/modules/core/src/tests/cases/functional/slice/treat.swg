@@ -6,8 +6,11 @@ using Swag
 func countFoldValue(count: u64, value: bool)->u64
 {
     var result = count
-    if value do
+    if value
+    {
         result += 1
+    }
+
     return result
 }
 
@@ -37,7 +40,7 @@ func appendFoldDigit(value, digit: s32)->s32 => value * 10 + digit
 {
     var backing: [1] s32 = [42]
     let empty = backing[until 0]
-    let seed  = 17's32
+    let seed  = 17_s32
 
     Swag.require(Slice.fold(empty, seed, func(accumulator, value: s32)->s32 => accumulator + value) == seed)
 }
@@ -45,13 +48,13 @@ func appendFoldDigit(value, digit: s32)->s32 => value * 10 + digit
 #test
 {
     let values: [4] bool = [true, false, true, true]
-    Swag.require(Slice.fold(values, 0'u64, &countFoldValue) == 3)
+    Swag.require(Slice.fold(values, 0_u64, &countFoldValue) == 3)
 }
 
 #test
 {
     let values: [3] s32 = [1, 2, 3]
-    Swag.require(Slice.fold(values, 0's32, &appendFoldDigit) == 123)
+    Swag.require(Slice.fold(values, 0_s32, &appendFoldDigit) == 123)
 }
 
 #test

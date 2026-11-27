@@ -40,6 +40,11 @@ before parsing; WOFF2 containers remain unsupported.
 
 #import("core")
 
+#static if #os == Swag.TargetOs.Linux
+{
+    #import("linux")
+}
+
 #run
 {
     let itf = Swag.compiler()

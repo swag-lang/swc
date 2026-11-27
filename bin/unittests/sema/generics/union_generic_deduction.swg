@@ -6,14 +6,14 @@ union(T) ValueOrPtr
     ptr:   *T
 }
 
-func(T) takeValue(boxed: ValueOrPtr'T)->T
+func(T) takeValue(boxed: ValueOrPtr!{T})->T
 {
     return boxed.value
 }
 
 func semaTest001()
 {
-    let value = takeValue({value: 10's32})
+    let value = takeValue({value: 10_s32})
     #assert(#typeof(value) == s32)
     Swag.assert(value == 10)
 }

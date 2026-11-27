@@ -64,10 +64,16 @@ func invalidSeason()
 
 func seasonAt(index: s32)->Season
 {
-    if index == 0 do
+    if index == 0
+    {
         return .Summer
-    if index == 1 do
+    }
+
+    if index == 1
+    {
         return .Winter
+    }
+
     invalidSeason()
 }
 

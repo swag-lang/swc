@@ -8,7 +8,7 @@ func inlineMultiplyWithNarrowedLiteral(value: f32)->f32
 
 #test
 {
-    const V = #run inlineMultiplyWithNarrowedLiteral(2.0'f32)
+    const V = #run inlineMultiplyWithNarrowedLiteral(2.0_f32)
     #assert(#typeof(V) == f32)
-    #assert(V == 2.0'f32 * 1.4247691104677813'f32)
+    #assert(V == 2.0_f32 * 1.4247691104677813_f32)
 }

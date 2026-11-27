@@ -17,5 +17,4 @@ no code.
 
 ## Validation
 
-Run `npm ci`, then `npm test` for the TextMate grammar. `tools/vsix.bat` runs both and
-packages the extension; the package is a build output and is not kept in the repository.
+Run `npm ci`, then `npm test` to validate the TextMate grammar.

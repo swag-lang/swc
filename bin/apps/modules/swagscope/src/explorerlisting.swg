@@ -44,8 +44,11 @@ impl ExplorerEntry
     // Keeps folders first, then orders by the current field with a natural-name tiebreaker.
     mtd const compareForSort(other: const *ExplorerEntry, column: u32, descending: bool)->s32
     {
-        if .directory != other.directory do
+        if .directory != other.directory
+        {
             return .directory ? -1 : 1
+        }
+
         var order: s32
         switch column
         {
@@ -54,8 +57,11 @@ impl ExplorerEntry
         case 3: order = Latin1.compareNatural(.modified, other.modified)
         }
 
-        if order == 0 do
+        if order == 0
+        {
             order = Text.compareNames(.name, other.name)
+        }
+
         return descending ? -order : order
     }
 }
@@ -69,13 +75,16 @@ private const ProbeFontExtensions     = [".ttf", ".otf"]
 // Reports whether the lowercased extension is one of `list`.
 private func probeKind(extension: string, list: const [..] string)->bool
 {
-    for one in list where extension == one do
+    for one in list where extension == one
+    {
         return true
+    }
+
     return false
 }
 
 // Reads the head of `path`, at most `limit` bytes.
-private func readHead(path: string, limit: u64)->Array'u8 fail
+private func readHead(path: string, limit: u64)->Array!{u8} fail
 {
     var result: #returntype
     var stream = try File.openRead(path)
@@ -131,25 +140,37 @@ func probeEntry(entry: *ExplorerEntry)->bool
         catch
         {
             let excerpt = try Viewer.readTextPrefix(entry.path, 1024 * 1024)
-            let text = excerpt.toString()
+            let text    = excerpt.toString()
             var lines, sections: u64
-            var start = 0'u64
-            var kept  = 0'u64
+            var start   = 0_u64
+            var kept    = 0_u64
             for at in text.count + 1
             {
-                if at < text.count and text[at] != '\n' do
+                if at < text.count and text[at] != '\n'
+                {
                     continue
+                }
+
                 lines += 1
                 var line = text[start until at]
-                if line.count and line[line.count - 1] == '\r' do
+                if line.count and line[line.count - 1] == '\r'
+                {
                     line = line[0 until line.count - 1]
-                if markdown and line.count and line[0] == '#' do
+                }
+
+                if markdown and line.count and line[0] == '#'
+                {
                     sections += 1
+                }
+
                 if kept < 8
                 {
-                    var end = Math.min(line.count, 80'u64)
-                    while end < line.count and (line[end] & 0xC0) == 0x80 do
+                    var end = Math.min(line.count, 80_u64)
+                    while end < line.count and (line[end] & 0xC0) == 0x80
+                    {
                         end -= 1
+                    }
+
                     entry.excerpt += line[0 until end]
                     entry.excerpt += "\n"
                     kept += 1
@@ -158,8 +179,11 @@ func probeEntry(entry: *ExplorerEntry)->bool
                 start = at + 1
             }
 
-            if text.count and text[text.count - 1] == '\n' do
+            if text.count and text[text.count - 1] == '\n'
+            {
                 lines -= 1
+            }
+
             entry.lines    = lines
             entry.sections = sections
         }
@@ -173,8 +197,10 @@ func probeEntry(entry: *ExplorerEntry)->bool
         catch
         {
             let zip = try Viewers.Archive.Zip.load(entry.path)
-            for &member in zip.entries where not member.isDirectory do
+            for &member in zip.entries where not member.isDirectory
+            {
                 entry.members += 1
+            }
         }
 
         return true
@@ -204,7 +230,7 @@ func probeEntry(entry: *ExplorerEntry)->bool
 struct ExplorerListing
 {
     path:      String
-    entries:   Array'ExplorerEntry
+    entries:   Array!{ExplorerEntry}
     archive:   Viewers.Archive.Zip
     isArchive: bool
 }
@@ -237,30 +263,37 @@ impl ExplorerListing
             }
 
             // What a cell shows of a file is read for a bounded number of them.
-            var probed = 0'u64
+            var probed = 0_u64
             for &entry in result.entries where not entry.directory and probed < 256
             {
-                if Swag.isCancelled() do
+                if Swag.isCancelled()
+                {
                     break
-                if probeEntry(entry) do
+                }
+
+                if probeEntry(entry)
+                {
                     probed += 1
+                }
             }
 
             // A folder says how many items it holds; past a few dozen folders, counting them all
             // would keep a slow share waiting, and the count is left out.
-            var counted = 0'u64
+            var counted = 0_u64
             for &entry in result.entries where entry.directory and counted < 64
             {
                 counted += 1
                 let inside = catch Directory.enumerate(entry.path, {}) orelse {}
                 entry.children = inside.count
-                var tracks = 0'u64
+                var tracks = 0_u64
                 var first: String
                 for &file in inside where not file.isDirectory() and albumAudio(file.fullName)
                 {
                     tracks += 1
-                    if first.isEmpty() do
+                    if first.isEmpty()
+                    {
                         first = file.fullName
+                    }
                 }
 
                 if tracks and tracks * 2 >= inside.count
@@ -268,8 +301,10 @@ impl ExplorerListing
                     entry.albumTrack = #move first
                     let tags = SoundTags.read(entry.albumTrack)
                     entry.music = localMusicSummary(&tags)
-                    if entry.music.title.isEmpty() do
+                    if entry.music.title.isEmpty()
+                    {
                         entry.music.title = entry.name
+                    }
                 }
             }
         }
@@ -282,31 +317,42 @@ impl ExplorerListing
         return result
     }
 
-    mtd children(folder: string)->Array'ExplorerEntry
+    mtd children(folder: string)->Array!{ExplorerEntry}
     {
-        if not .isArchive do
+        if not .isArchive
+        {
             return .entries
+        }
 
         // A folder of the archive is dated by the latest of what it holds.
         var result:  #returntype
-        var folders: HashTable'(String, u64)
-        var latest:  Array'Time.DateTime
+        var folders: HashTable!{String, u64}
+        var latest:  Array!{Time.DateTime}
         for &entry, index in .archive.entries where Utf8.startsWith(entry.path, folder)
         {
             let relative = entry.path.toString()[folder.count to]
-            if not relative.count do
+            if not relative.count
+            {
                 continue
+            }
+
             let slash = Utf8.indexOf(relative, "/")
             if slash != Swag.U64.Max or entry.isDirectory
             {
                 let name = String.from(slash != Swag.U64.Max ? relative[0 until slash] : relative)
-                if name.isEmpty() do
+                if name.isEmpty()
+                {
                     continue
+                }
+
                 let found = folders.tryFind(name)
                 if found
                 {
-                    if entry.modified > latest[found.value] do
+                    if entry.modified > latest[found.value]
+                    {
                         latest[found.value] = entry.modified
+                    }
+
                     continue
                 }
 
@@ -314,7 +360,7 @@ impl ExplorerListing
                 latest.add(entry.modified)
                 var path = String.from(folder)
                 path += name
-                path += '/'u8
+                path += '/'_u8
                 result.add({name: name, path: #move path, directory: true})
             }
             else

@@ -129,7 +129,7 @@ accessor method — is a store into the container. That is what makes filling a 
 of views from a per-iteration owner an error:
 
 ```swag
-var set: HashSet'(string)
+var set: HashSet!{string}
 for line in lines
 {
     var key: String = build(line)
@@ -218,8 +218,11 @@ shape — is fine too: the snapshot is never read again.
 {
     var values: [4] s32
     var total:  s32
-    for v in values do
+    for v in values
+    {
         total += v
+    }
+
     Swag.require(total == 0)
 }
 

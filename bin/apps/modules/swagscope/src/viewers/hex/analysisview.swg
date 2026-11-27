@@ -16,7 +16,7 @@ struct HistogramView
     maximum:   u64
     hovered:   u32 = Swag.U32.Max     // Byte value under the pointer, or `Swag.U32.Max` for none.
 
-    sigByteChanged: SigArray'func||(*Wnd, u32)     // Emitted with the new hovered value.
+    sigByteChanged: SigArray!{func||(*Wnd, u32)}     // Emitted with the new hovered value.
 }
 
 private impl HistogramView
@@ -39,8 +39,11 @@ private impl HistogramView
         let geometry = .geometry()
         let x        = point.x - geometry.origin.x
         let y        = point.y - geometry.origin.y
-        if x < 0 or y < 0 or x >= geometry.pitch * 16 or y >= geometry.pitch * 16 do
+        if x < 0 or y < 0 or x >= geometry.pitch * 16 or y >= geometry.pitch * 16
+        {
             return Swag.U32.Max
+        }
+
         return cast(u32, y / geometry.pitch) * 16 + cast(u32, x / geometry.pitch)
     }
 }
@@ -54,17 +57,19 @@ private impl IWnd for HistogramView
         let alternate = .theme().palette.alternate.mark
         let corner    = .themeRects().btnIcon_RoundSquareBk.radius
         let geometry  = .geometry()
-        for value in 256'u32
+        for value in 256_u32
         {
             let row      = value / 16
             let column   = value % 16
             let count    = .histogram[value]
-            let strength = count and .maximum ? 0.12'f32 + 0.80'f32 * Math.sqrt(cast(f32, count) / cast(f32, .maximum)) : 0
+            let strength = count and .maximum ? 0.12_f32 + 0.80_f32 * Math.sqrt(cast(f32, count) / cast(f32, .maximum)) : 0
             let color    = Color.lerp(colors.wnd_Bk, alternate, strength)
             let box      = Math.Rectangle{geometry.origin.x + cast(f32, column) * geometry.pitch, geometry.origin.y + cast(f32, row) * geometry.pitch, geometry.cell, geometry.cell}
             painter.fillRoundRect(box, corner, corner, color)
-            if value == .hovered do
+            if value == .hovered
+            {
                 painter.drawRoundRect(box, corner, corner, colors.signature, 1)
+            }
         }
     }
 
@@ -75,14 +80,17 @@ private impl IWnd for HistogramView
         {
             next = .byteAt(.surfaceToLocal(evt.surfacePos))
         }
-        elif evt.kind != .Leave
+        else if evt.kind != .Leave
         {
             evt.accepted = false
             return
         }
 
-        if next == .hovered do
+        if next == .hovered
+        {
             return
+        }
+
         .hovered = next
         .sigByteChanged.call(me, next)
         .invalidate()
@@ -98,7 +106,7 @@ impl HistogramView
 
     func create(parent: *Wnd)->*HistogramView
     {
-        with let result = Wnd.create'HistogramView(parent, {0, 0, 0, Size})
+        with let result = Wnd.create!{HistogramView}(parent, {0, 0, 0, Size})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -112,16 +120,22 @@ impl HistogramView
         .histogram = result.histogram
         .total     = result.scanned
         .maximum   = 0
-        for count in .histogram do
+        for count in .histogram
+        {
             .maximum = Math.max(.maximum, count)
+        }
+
         .hovered = Swag.U32.Max
         .invalidate()
     }
 
     mtd clear()
     {
-        for i in 256 do
+        for i in 256
+        {
             .histogram[i] = 0
+        }
+
         .total   = 0
         .maximum = 0
         .hovered = Swag.U32.Max
@@ -137,20 +151,20 @@ struct AnalysisView
 
     late
     {
-        titleLabel:    *Label
+        titleLabel:       *Label
         algorithmsButton: *IconButton
-        analyzeButton: *IconButton
-        cancelButton:  *IconButton
-        closeButton:   *IconButton
-        scopeLabel:    *Label
-        metricsLabel:  *Label
-        digestsLabel:  *Label
-        histogram:     *HistogramView
-        byteLabel:     *Label
-        entropyLabel:  *Label
-        entropyList:   *ListCtrl
-        findingsLabel: *Label
-        findingsList:  *ListCtrl
+        analyzeButton:    *IconButton
+        cancelButton:     *IconButton
+        closeButton:      *IconButton
+        scopeLabel:       *Label
+        metricsLabel:     *Label
+        digestsLabel:     *Label
+        histogram:        *HistogramView
+        byteLabel:        *Label
+        entropyLabel:     *Label
+        entropyList:      *ListCtrl
+        findingsLabel:    *Label
+        findingsList:     *ListCtrl
     }
 
     result:       AnalysisResult
@@ -158,10 +172,10 @@ struct AnalysisView
     offsetDigits: u64 = 8
     selection:    bool
 
-    sigAnalyze:  SigArray'func||(*Wnd)
-    sigCancel:   SigArray'func||(*Wnd)
-    sigClose:    SigArray'func||(*Wnd)
-    sigNavigate: SigArray'func||(*Wnd, u64, u64)
+    sigAnalyze:  SigArray!{func||(*Wnd)}
+    sigCancel:   SigArray!{func||(*Wnd)}
+    sigClose:    SigArray!{func||(*Wnd)}
+    sigNavigate: SigArray!{func||(*Wnd, u64, u64)}
 }
 
 private impl AnalysisView
@@ -170,8 +184,11 @@ private impl AnalysisView
 
     mtd scopeText(range: AnalysisRange)->String
     {
-        if .selection do
+        if .selection
+        {
             return Format.toString(texts().ui_AnalysisSelection, .offsetText(range.offset), StrConv.toDisplaySize(range.length))
+        }
+
         return Format.toString(texts().ui_AnalysisFile, StrConv.toDisplaySize(range.length))
     }
 
@@ -213,10 +230,14 @@ private impl AnalysisView
 
         let count = .result.histogram[value]
         let share = cast(f64, count) * 100 / cast(f64, .result.scanned)
-        if count == 1 do
+        if count == 1
+        {
             .byteLabel.setText(Format.toString(texts().ui_AnalysisByteOnce, value, share))
-        else do
+        }
+        else
+        {
             .byteLabel.setText(Format.toString(texts().ui_AnalysisByte, value, count, share))
+        }
     }
 
     mtd fillFindingLine(line: *ListLine, index: u32)
@@ -224,7 +245,7 @@ private impl AnalysisView
         let repeatCount = .result.repeatedBlocks.count * 2
         if index < repeatCount
         {
-            let pair = &.result.repeatedBlocks[index / 2]
+            let pair   = &.result.repeatedBlocks[index / 2]
             let offset = index % 2 ? pair.repeatedOffset : pair.firstOffset
             let other  = index % 2 ? pair.firstOffset : pair.repeatedOffset
             line.setItem(0, .offsetText(offset))
@@ -234,8 +255,11 @@ private impl AnalysisView
         }
 
         let stringIndex = index - repeatCount
-        if stringIndex >= .result.strings.count do
+        if stringIndex >= .result.strings.count
+        {
             return
+        }
+
         let value = &.result.strings[stringIndex]
         line.setItem(0, .offsetText(value.offset))
         line.setItem(1, .encodingName(value.kind))
@@ -249,15 +273,18 @@ private impl AnalysisView
             let repeatCount = .result.repeatedBlocks.count * 2
             if index < repeatCount
             {
-                let pair = &.result.repeatedBlocks[index / 2]
+                let pair   = &.result.repeatedBlocks[index / 2]
                 let offset = index % 2 ? pair.repeatedOffset : pair.firstOffset
                 .sigNavigate.call(me, offset, pair.length)
                 return
             }
 
             let stringIndex = index - repeatCount
-            if stringIndex >= .result.strings.count do
+            if stringIndex >= .result.strings.count
+            {
                 return
+            }
+
             let value = &.result.strings[stringIndex]
             .sigNavigate.call(me, value.offset, value.length)
             return
@@ -266,8 +293,11 @@ private impl AnalysisView
 
     mtd fillEntropyBlockLine(line: *ListLine, index: u32)
     {
-        if index >= .result.entropyBlocks.count do
+        if index >= .result.entropyBlocks.count
+        {
             return
+        }
+
         let block = &.result.entropyBlocks[index]
         line.setItem(0, .offsetText(block.range.offset))
         line.setItem(1, Format.toString("%{f2}", block.entropy))
@@ -277,8 +307,11 @@ private impl AnalysisView
     {
         for index in list.lineCount() where list.isLineSelected(index)
         {
-            if index >= .result.entropyBlocks.count do
+            if index >= .result.entropyBlocks.count
+            {
                 return
+            }
+
             let block = &.result.entropyBlocks[index]
             .sigNavigate.call(me, block.range.offset, block.range.length)
             return
@@ -295,11 +328,11 @@ private impl AnalysisView
         {
             .metricsLabel.setText(.result.failureReason)
         }
-        elif .result.cancelled
+        else if .result.cancelled
         {
             .metricsLabel.setText(Format.toString(texts().ui_AnalysisCancelled, StrConv.toDisplaySize(.result.scanned)))
         }
-        elif .result.scanned
+        else if .result.scanned
         {
             let zero      = cast(f64, .result.zeroCount) * 100 / cast(f64, .result.scanned)
             let printable = cast(f64, .result.printableCount) * 100 / cast(f64, .result.scanned)
@@ -324,30 +357,68 @@ private impl AnalysisView
             .findingsLabel.setText(texts().ui_AnalysisRepeatLimited)
             .findingsLabel.toolTip = texts().ui_AnalysisRepeatLimitsTip
         }
-        elif not .result.repeatedBlocks.isEmpty()
+        else if not .result.repeatedBlocks.isEmpty()
         {
             .findingsLabel.setText(texts().ui_AnalysisFindings)
             .findingsLabel.toolTip = texts().ui_AnalysisRepeatLimitsTip
         }
-        elif .result.stringsTruncated do
+        else if .result.stringsTruncated
+        {
             .findingsLabel.setText(Format.toString(texts().ui_AnalysisStringsLimited, .result.strings.count))
-        elif .result.strings.count == 1 do
+        }
+        else if .result.strings.count == 1
+        {
             .findingsLabel.setText(texts().ui_AnalysisOneString)
-        else do
+        }
+        else
+        {
             .findingsLabel.setText(Format.toString(texts().ui_AnalysisStringsCount, .result.strings.count))
+        }
     }
 
     mtd algorithmCount()->u32
     {
-        var count = 0'u32
-        if .result.algorithms.crc32 do count += 1
-        if .result.algorithms.crc64 do count += 1
-        if .result.algorithms.md5 do count += 1
-        if .result.algorithms.sha1 do count += 1
-        if .result.algorithms.sha256 do count += 1
-        if .result.algorithms.sha512 do count += 1
-        if .result.algorithms.blake2s do count += 1
-        if .result.algorithms.blake2b do count += 1
+        var count = 0_u32
+        if .result.algorithms.crc32
+        {
+            count += 1
+        }
+
+        if .result.algorithms.crc64
+        {
+            count += 1
+        }
+
+        if .result.algorithms.md5
+        {
+            count += 1
+        }
+
+        if .result.algorithms.sha1
+        {
+            count += 1
+        }
+
+        if .result.algorithms.sha256
+        {
+            count += 1
+        }
+
+        if .result.algorithms.sha512
+        {
+            count += 1
+        }
+
+        if .result.algorithms.blake2s
+        {
+            count += 1
+        }
+
+        if .result.algorithms.blake2b
+        {
+            count += 1
+        }
+
         return count
     }
 
@@ -357,7 +428,7 @@ private impl AnalysisView
         let compactSize = themeCompactButtonSize(.themeMetrics())
         let rowIconSize = themeRowIconSize(.themeMetrics())
 
-        with let header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, compactSize})
+        with let header = Wnd.create!{Wnd}(me, Math.Rectangle{0, 0, 0, compactSize})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -446,11 +517,10 @@ private impl AnalysisView
             .header.updateFlags(remove: .Clickable | .Separators)
             .addColumn(texts().ui_AnalysisOffset, 82)
             .addColumn(texts().ui_AnalysisEntropy, 78)
-            .onFillVirtualLine    = &fillAnalysisEntropyLine
+            .onFillVirtualLine   = &fillAnalysisEntropyLine
             .sigSelectionChanged += func|view = me|(list) { view.navigateEntropyBlock(list) }
         }
     }
-
 }
 
 impl AnalysisView
@@ -471,7 +541,7 @@ impl AnalysisView
         .result       = {}
         .result.range = range
         .scopeLabel.setText(.scopeText(range))
-        .metricsLabel.setText(Format.toString(texts().ui_AnalysisProgress, 0'f64))
+        .metricsLabel.setText(Format.toString(texts().ui_AnalysisProgress, 0_f64))
         .histogram.clear()
         .byteLabel.setText(texts().ui_AnalysisByteHint)
         .entropyLabel.setText(texts().ui_AnalysisEntropyBlocks)
@@ -507,10 +577,10 @@ impl AnalysisView
     mtd retranslate()
     {
         .titleLabel.setText(texts().ui_Analysis)
-        .analyzeButton.toolTip             = texts().ui_AnalysisRun
-        .cancelButton.toolTip              = texts().ui_AnalysisCancel
-        .closeButton.toolTip               = texts().ui_AnalysisClose
-        .algorithmsButton.toolTip          = texts().ui_AnalysisAlgorithms
+        .analyzeButton.toolTip    = texts().ui_AnalysisRun
+        .cancelButton.toolTip     = texts().ui_AnalysisCancel
+        .closeButton.toolTip      = texts().ui_AnalysisClose
+        .algorithmsButton.toolTip = texts().ui_AnalysisAlgorithms
         .entropyLabel.setText(texts().ui_AnalysisEntropyBlocks)
         .entropyList.header.itemAt(0).name = texts().ui_AnalysisOffset
         .entropyList.header.itemAt(1).name = texts().ui_AnalysisEntropy
@@ -532,7 +602,7 @@ impl AnalysisView
     // Builds the analysis panel: header, scope, byte histogram, entropy samples, and navigable findings.
     func create(parent: *Wnd)->*AnalysisView
     {
-        with let result = Wnd.create'AnalysisView(parent)
+        with let result = Wnd.create!{AnalysisView}(parent)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -591,13 +661,17 @@ impl AnalysisView
 // Fills one line of the virtual strings list from the panel that owns the list.
 private func fillAnalysisFindingLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
-    if line do
+    if line
+    {
         assume cast(*AnalysisView, list.parent).fillFindingLine(line, index)
+    }
 }
 
 // Fills one line of the virtual entropy list from the panel that owns it.
 private func fillAnalysisEntropyLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
-    if line do
+    if line
+    {
         assume cast(*AnalysisView, list.parent).fillEntropyBlockLine(line, index)
+    }
 }

@@ -15,8 +15,8 @@ func(T) arranged(
 #test
 {
     // Reversed names exercise both the initial scans and the promoted parameter index.
-    Swag.require(arranged(0's32,
-                          item19: 19's32, item18: 18, item17: 17, item16: 16, item15: 15,
+    Swag.require(arranged(0_s32,
+                          item19: 19_s32, item18: 18, item17: 17, item16: 16, item15: 15,
                           item14: 14, item13: 13, item12: 12, item11: 11, item10: 10,
                           item09: 9, item08: 8, item07: 7, item06: 6, item05: 5,
                           item04: 4, item03: 3, item02: 2, item01: 1))
@@ -25,7 +25,7 @@ func(T) arranged(
 #test
 {
     // UFCS excludes the receiver slot while positional arguments precede the named tail.
-    let receiver = 0's32
+    let receiver = 0_s32
     Swag.require(receiver.arranged(1, 2,
                                    item19: 19, item18: 18, item17: 17, item16: 16, item15: 15,
                                    item14: 14, item13: 13, item12: 12, item11: 11, item10: 10,

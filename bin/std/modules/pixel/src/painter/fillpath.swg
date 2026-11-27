@@ -17,8 +17,8 @@ public struct ClippingPath
 {
     public
     {
-        late path: *LinePathList   // Contours in the painter's current path space.
-        rule:      PathFillRule    // Rule used to determine the inside of those contours.
+        late path: *LinePathList     // Contours in the painter's current path space.
+        rule:      PathFillRule      // Rule used to determine the inside of those contours.
     }
 }
 
@@ -41,14 +41,14 @@ struct FillRegion
 // that contributes to it, identified by its index in the source list. Scratch arrays keep only
 // indices and never retain borrowed paths after the operation. A contour of fewer
 // than three points bounds nothing and joins no region, but still closes the one before it.
-internal func fillRegions(pathList: *LinePathList, contours: *Array'u64, regions: *Array'FillRegion)
+internal func fillRegions(pathList: *LinePathList, contours: *Array!{u64}, regions: *Array!{FillRegion})
 {
     contours.clear()
     regions.clear()
 
     var serial   = 0
-    var first    = 0'u64
-    var flush    = 0'u64
+    var first    = 0_u64
+    var flush    = 0_u64
     var hasFlush = false
 
     for p, pathIndex in pathList.paths
@@ -69,8 +69,10 @@ internal func fillRegions(pathList: *LinePathList, contours: *Array'u64, regions
         }
     }
 
-    if hasFlush do
+    if hasFlush
+    {
         regions.add(FillRegion{flush, first, contours.count - first})
+    }
 }
 
 // Returns the sign that turns a region's contour directions outward.
@@ -81,7 +83,7 @@ internal func fillRegions(pathList: *LinePathList, contours: *Array'u64, regions
 // irrelevant to the region; when that contour runs anticlockwise its directions point inward, and
 // both the solid's inset and the antialiasing band would place the edge a band outside the
 // contour, as hard as the solid.
-private func regionOutward(paths: const [..] *LinePath, contours: const [..] u64, ruled: bool)->f32 => ruled and contours.count == 1 and not paths[contours[0]].polygon.isClockwise ? -1.0'f32 : 1.0'f32
+private func regionOutward(paths: const [..] *LinePath, contours: const [..] u64, ruled: bool)->f32 => ruled and contours.count == 1 and not paths[contours[0]].polygon.isClockwise ? -1.0_f32 : 1.0_f32
 
 // Records, for every vertex of a freshly tessellated region, the outward direction of the contour
 // point it came from, so the solid can be inset when it is pushed rather than when it is built.
@@ -92,20 +94,27 @@ private func regionOutward(paths: const [..] *LinePath, contours: const [..] u64
 // otherwise — keeps a zero direction and stays where it is. `directions` is the caller's own
 // table: a page of vector glyphs tessellates thousands of regions, and a fresh table for each of
 // them is a page's worth of allocation for nothing.
-private func buildTriangleOffsets(directions: *HashTable'(u64, Vector2), p: *LinePath, paths: const [..] *LinePath, contours: const [..] u64, outward: f32)
+private func buildTriangleOffsets(directions: *HashTable!{u64, Vector2}, p: *LinePath, paths: const [..] *LinePath, contours: const [..] u64, outward: f32)
 {
     p.triangleOffsets.clear()
     p.triangleOffsets.resize(p.triangles.vertices.count)
 
     // A large compound region can be followed by thousands of small ones.
     // Release an oversized scratch table before its sparse clears dominate them.
-    var pointCount = 0'u64
-    for index in contours do
+    var pointCount = 0_u64
+    for index in contours
+    {
         pointCount += paths[index].polygon.points.count
-    if directions.capacity > 256 and directions.capacity / 8 > pointCount do
+    }
+
+    if directions.capacity > 256 and directions.capacity / 8 > pointCount
+    {
         directions.free()
-    else do
+    }
+    else
+    {
         directions.clear()
+    }
 
     for index in contours
     {
@@ -115,15 +124,19 @@ private func buildTriangleOffsets(directions: *HashTable'(u64, Vector2), p: *Lin
 
         // The first direction filed under a position is the one that stands, which is what
         // asking the table before writing used to express in two probes instead of one.
-        for i in contour.polygon.points.count do
+        for i in contour.polygon.points.count
+        {
             directions.add(contourPointKey(points[i]), dirs[i] * outward, updateValue: false)
+        }
     }
 
     for i in p.triangles.vertices.count
     {
         let found = directions.tryFind(contourPointKey(p.triangles.vertices[i]))
-        if found do
+        if found
+        {
             p.triangleOffsets[i] = found.value
+        }
     }
 }
 
@@ -147,10 +160,15 @@ private struct FillCrossing
 
 private func pointOnFillEdge(edge: const *FillEdge, y: f32)->FillVertex
 {
-    if y == edge.first.position.y do
+    if y == edge.first.position.y
+    {
         return edge.first
-    if y == edge.last.position.y do
+    }
+
+    if y == edge.last.position.y
+    {
         return edge.last
+    }
 
     let first = edge.first.position
     let last  = edge.last.position
@@ -174,23 +192,32 @@ private func appendFillTriangle(path: *LinePath, a, b, c: FillVertex)
 private func closeFillInterval(path: *LinePath, edges: [..] FillEdge, index: u64, upper: f32)
 {
     let left = &edges[index]
-    if not left.pairedWith do
+    if not left.pairedWith
+    {
         return
+    }
 
     let right = &edges[left.pairedWith - 1]
     let lower = left.openedAt
     left.pairedWith = 0
-    if upper <= lower do
+    if upper <= lower
+    {
         return
+    }
 
     let a = pointOnFillEdge(left, lower)
     let b = pointOnFillEdge(right, lower)
     let c = pointOnFillEdge(right, upper)
     let d = pointOnFillEdge(left, upper)
-    if b.position.x > a.position.x do
+    if b.position.x > a.position.x
+    {
         appendFillTriangle(path, a, b, c)
-    if c.position.x > d.position.x do
+    }
+
+    if c.position.x > d.position.x
+    {
         appendFillTriangle(path, a, c, d)
+    }
 }
 
 // Decomposes a normalized region into horizontal trapezoids when the constrained sweep
@@ -198,8 +225,8 @@ private func closeFillInterval(path: *LinePath, edges: [..] FillEdge, index: u64
 // left-to-right order and successive pairs enclose its filled intervals.
 internal func tessellateFillSlabs(path: *LinePath, paths: const [..] *LinePath, contours: const [..] u64, outward: f32)
 {
-    var edges:   Array'FillEdge
-    var heights: Array'f32
+    var edges:   Array!{FillEdge}
+    var heights: Array!{f32}
     path.triangleOffsets.clear()
     for index in contours
     {
@@ -212,8 +239,10 @@ internal func tessellateFillSlabs(path: *LinePath, paths: const [..] *LinePath, 
             let j = i + 1 == count ? 0 : i + 1
             let a = points[i]
             let b = points[j]
-            if a.y == b.y or not a.isFinite() or not b.isFinite() do
+            if a.y == b.y or not a.isFinite() or not b.isFinite()
+            {
                 continue
+            }
 
             let start = FillVertex{a, directions[i] * outward}
             let end   = FillVertex{b, directions[j] * outward}
@@ -223,8 +252,10 @@ internal func tessellateFillSlabs(path: *LinePath, paths: const [..] *LinePath, 
         }
     }
 
-    if edges.count < 2 do
+    if edges.count < 2
+    {
         return
+    }
 
     func byStart(a, b: FillEdge)->s32
     {
@@ -239,16 +270,18 @@ internal func tessellateFillSlabs(path: *LinePath, paths: const [..] *LinePath, 
     edges.sort(&byStart)
     heights.sort()
     let spans    = edges.toSlice()
-    var active: Array'FillCrossing
-    var nextEdge = 0'u64
+    var active: Array!{FillCrossing}
+    var nextEdge = 0_u64
     var lower    = heights[0]
     for upper, index in heights where index
     {
-        if upper == lower do
+        if upper == lower
+        {
             continue
+        }
 
         let mid  = (cast(f64, lower) + upper) * 0.5
-        var live = 0'u64
+        var live = 0_u64
         for crossing in active
         {
             if spans[crossing.edge].last.position.y <= lower
@@ -287,36 +320,48 @@ internal func tessellateFillSlabs(path: *LinePath, paths: const [..] *LinePath, 
             let rightIndex = active[interval * 2 + 1].edge
             closeFillInterval(path, spans, rightIndex, lower)
             let left = &spans[leftIndex]
-            if left.pairedWith == rightIndex + 1 do
+            if left.pairedWith == rightIndex + 1
+            {
                 continue
+            }
+
             closeFillInterval(path, spans, leftIndex, lower)
             left.pairedWith = rightIndex + 1
             left.openedAt   = lower
         }
 
-        if active.count & 1 do
+        if active.count & 1
+        {
             closeFillInterval(path, spans, active[active.count - 1].edge, lower)
+        }
+
         lower = upper
     }
 
-    for crossing in active do
+    for crossing in active
+    {
         closeFillInterval(path, spans, crossing.edge, lower)
+    }
 }
 
 // Triangulates the contours already given to `tess` and caches the result on the region.
 //
 // The tessellation is kept on the last contour of the region rather than on the list, because
 // that is where a fill looks for it, and it is left keyed to the contours it was built from.
-private func buildRegionTessellation(tess: *Poly2Tri.Tessellate, directions: *HashTable'(u64, Vector2), flush: *LinePath, paths: const [..] *LinePath, contours: const [..] u64, ruled: bool)
+private func buildRegionTessellation(tess: *Poly2Tri.Tessellate, directions: *HashTable!{u64, Vector2}, flush: *LinePath, paths: const [..] *LinePath, contours: const [..] u64, ruled: bool)
 {
     tess.triangulate()
     let fallback = tess.sweepFailed()
     flush.triangles = tess.takeResult()
     let outward = regionOutward(paths, contours, ruled)
-    if fallback do
+    if fallback
+    {
         tessellateFillSlabs(flush, paths, contours, outward)
-    else do
+    }
+    else
+    {
         buildTriangleOffsets(directions, flush, paths, contours, outward)
+    }
 }
 
 public impl Painter
@@ -337,8 +382,10 @@ public impl Painter
     {
         let polygon = &contour.polygon
         let count   = polygon.points.count - 1
-        if count < 2 do
+        if count < 2
+        {
             return
+        }
 
         // Where a point moves to is a miter — two normalizations and a line intersection — and it
         // does not depend on how far it moves: the offset only scales it. The ring asked for it
@@ -367,8 +414,10 @@ public impl Painter
         let outward = regionOutward(paths, island, ruled)
 
         // Triangulation
-        if p.triangles.vertices.isEmpty() do
+        if p.triangles.vertices.isEmpty()
+        {
             buildRegionTessellation(unwrap t, &.sharedDirections, p, paths, island, ruled)
+        }
 
         // The solid stops half a band short of the contour and the band, centered on the
         // contour, carries the coverage from there out. A solid left on the true contour is a
@@ -398,8 +447,10 @@ public impl Painter
         // every other edge as a hard step.
         if .curState.paintParams & .Antialiased
         {
-            for index in island do
+            for index in island
+            {
                 .fillContourAA(paths[index], brush.color, -aa * outward, aa * outward)
+            }
         }
     }
 
@@ -410,8 +461,10 @@ public impl Painter
     // [[Pixel.PathFillRule]].
     mtd fillPath(pathList: *LinePathList, color: Color)
     {
-        if pathList.paths.isEmpty() do
+        if pathList.paths.isEmpty()
+        {
             return
+        }
 
         let brush = Brush.createSolid(color)
         .fillPath(pathList, brush)
@@ -423,8 +476,10 @@ public impl Painter
     mtd fillPath(path: *LinePath, brush: Brush)
     {
         path.flatten(.curState.paintQuality, .curFlattenScale)
-        if Math.isZeroEpsilon(path.polygon.perimeter) do
+        if Math.isZeroEpsilon(path.polygon.perimeter)
+        {
             return
+        }
 
         let polygon = &path.polygon
 
@@ -439,10 +494,12 @@ public impl Painter
             // When antialiased, inset the solid by half a fringe so that the centered
             // fringe band (added afterwards) never overlaps the solid fill. This keeps
             // translucent fills clean and the silhouette at its true size.
-            var so = 0'f32
+            var so = 0_f32
             let aa = .aaHalfPathSpace()
-            if .curState.paintParams & .Antialiased do
+            if .curState.paintParams & .Antialiased
+            {
                 so = polygon.isClockwise ? -aa : aa
+            }
 
             // Convex shape : 1 triangle
             if count == 3
@@ -450,7 +507,7 @@ public impl Painter
                 discard .pushTriangle(polygon.offsetPointAt(0, so), polygon.offsetPointAt(1, so), polygon.offsetPointAt(2, so), brush.color)
             }
             // Convex shape : 2 triangles
-            elif count == 4
+            else if count == 4
             {
                 let v0 = polygon.offsetPointAt(0, so)
                 let v1 = polygon.offsetPointAt(1, so)
@@ -486,10 +543,13 @@ public impl Painter
                 // The simple contour needs no normalization. Keep the borrowed path in this
                 // call's view; an owning LinePathList must never temporarily own its address.
                 let paths    = [path]
-                let contours = [0'u64]
+                let contours = [0_u64]
                 let build    = path.triangles.vertices.isEmpty()
-                if build do
+                if build
+                {
                     .tess.addPolyLine(path.polygon)
+                }
+
                 .fillPathTriangulated(build ? &.tess : null, path, path.minBounds, path.maxBounds, brush, paths, contours, true)
             }
             else
@@ -537,8 +597,10 @@ public impl Painter
     // ```
     mtd fillPath(pathList: *LinePathList, brush: Brush, rule: PathFillRule)
     {
-        if brush.type == .SolidColor and .recordScanFill(pathList, brush.color, rule) do
+        if brush.type == .SolidColor and .recordScanFill(pathList, brush.color, rule)
+        {
             return
+        }
 
         pathList.flatten(.curState.paintQuality, .curFlattenScale)
 
@@ -558,16 +620,26 @@ public impl Painter
     private mtd const canRecordScanPath()->bool
     {
         let mask = .curState.colorMask
-        return .useScanlineFills and not .curRT and not .overlapMode and .usesDefaultShader and .canSetTexture0 and
-               (.curState.paintParams & .Antialiased) and .curState.blendingMode == .Alpha and
-               mask.r and mask.g and mask.b and not mask.a
+        return .useScanlineFills and
+               (not .curRT or (not .curPaintAlpha and .curRT.colorBuffer.pixelFormat == .BGRA8)) and
+               not .overlapMode and
+               .usesDefaultShader and
+               .canSetTexture0 and
+               (.curState.paintParams & .Antialiased) and
+               .curState.blendingMode == .Alpha and
+               mask.r and
+               mask.g and
+               mask.b and
+               not mask.a
     }
 
     private mtd emitScanFill(start: u64, lowest, highest: Vector2, color: Color, rule: PathFillRule)
     {
         let end = .scanContourEnds.count
-        if start < end do
+        if start < end
+        {
             .newCommand(.DrawScanFill).op = .DrawScanFill{first: start, end: end, low: lowest, high: highest, color: color, rule: rule}
+        }
     }
 
     // Replaces the active clipping region with the intersection of several paths.
@@ -578,14 +650,21 @@ public impl Painter
     // state needs a polygon fallback.
     mtd trySetClippingPathIntersection(paths: const [..] ClippingPath)->bool
     {
-        if not paths.count or not .useScanlineFills or .curRT or .overlapMode or
-           not (.curState.paintParams & .Antialiased) do
+        if not paths.count or
+           not .useScanlineFills or
+           .curRT or
+           .overlapMode or
+           not (.curState.paintParams & .Antialiased)
+        {
             return false
+        }
 
         let first = .scanClipShapes.count
         let white = Color.fromArgb(Argb.White)
-        for shape in paths do
+        for shape in paths
+        {
             .scanClipShapes.add(.recordScanContours(shape.path, white, shape.rule))
+        }
 
         .startClippingRegion(.Set)
         .newCommand(.DrawScanClip).op = .DrawScanClip{first: first, end: .scanClipShapes.count}
@@ -602,8 +681,10 @@ public impl Painter
         for path in pathList.paths
         {
             path.flattenPoints(.curState.paintQuality, .curFlattenScale)
-            if path.polygon.points.count < 3 do
+            if path.polygon.points.count < 3
+            {
                 continue
+            }
 
             .scanPoints.add(path.polygon.points.toSlice())
             .scanContourEnds.add(.scanPoints.count)
@@ -614,16 +695,24 @@ public impl Painter
         return {first: start, end: .scanContourEnds.count, low: lowest, high: highest, color: color, rule: rule}
     }
 
-    private mtd recordScanFill(pathList: *LinePathList, color: Color, rule: PathFillRule)->bool
+    internal mtd recordScanFill(pathList: *LinePathList, color: Color, rule: PathFillRule)->bool
     {
-        if not .canRecordScanPath() do
+        if not .canRecordScanPath()
+        {
             return false
-        if not color.a or .isEmptyClippingRect() do
+        }
+
+        if not color.a or .isEmptyClippingRect()
+        {
             return true
+        }
 
         let batch = .recordScanContours(pathList, color, rule)
-        if batch.first != batch.end do
+        if batch.first != batch.end
+        {
             .newCommand(.DrawScanFill).op = .DrawScanFill{batch}
+        }
+
         return true
     }
 
@@ -645,8 +734,10 @@ public impl Painter
             let build = flush.triangles.vertices.isEmpty()
             if build
             {
-                for index in contours do
+                for index in contours
+                {
                     .tess.addPolyLine(pathList.paths[index].polygon)
+                }
             }
 
             .fillPathTriangulated(build ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush, pathList.paths.toSlice(), contours, ruled)
@@ -658,8 +749,10 @@ public impl Painter
     // A non-convex contour is first cleaned into simple contours, each filled on its own.
     mtd fillPolygon(path: *LinePath, color: Color)
     {
-        if .isInvisible(color) do
+        if .isInvisible(color)
+        {
             return
+        }
 
         let brush = Brush.createSolid(color)
         .fillPolygon(path, brush)
@@ -667,8 +760,10 @@ public impl Painter
 
     mtd fillPolygon(path: *LinePath, brush: Brush)
     {
-        if .isInvisible(brush) do
+        if .isInvisible(brush)
+        {
             return
+        }
 
         path.flatten(.curState.paintQuality, .curFlattenScale)
         if path.polygon.isConvex
@@ -680,21 +775,28 @@ public impl Painter
             var clockwiseContour = path.polygon
             clockwiseContour.assumeClockwise(true)
             let res = clockwiseContour.cleanedPaths()
-            for p in res.paths do
+            for p in res.paths
+            {
                 .fillPath(p, brush)
+            }
         }
     }
 
     // Fills the closed polygon through `points`; fewer than three points draw nothing.
     mtd fillPolygon(points: [..] Math.Vector2, brush: Brush)
     {
-        if points.count < 3 do
+        if points.count < 3
+        {
             return
+        }
 
         var path: LinePath
         path.start(points[0].x, points[0].y)
-        for pt, index in points where index do
+        for pt, index in points where index
+        {
             path.lineTo(pt.x, pt.y)
+        }
+
         path.close()
         .fillPath(&path, brush)
     }
@@ -717,16 +819,18 @@ public impl Painter
 //
 // ```swag
 // var preparer: FillPreparer
-// for shape in page do
+// for shape in page
+// {
 //     preparer.prepare(shape, scale, .NonZero)
+// }
 // ```
 #[Swag.Opaque]
 public struct FillPreparer
 {
     tess:       Poly2Tri.Tessellate
-    directions: HashTable'(u64, Vector2)
-    contours:   Array'u64
-    regions:    Array'FillRegion
+    directions: HashTable!{u64, Vector2}
+    contours:   Array!{u64}
+    regions:    Array!{FillRegion}
 }
 
 public impl FillPreparer
@@ -767,8 +871,11 @@ public impl FillPreparer
         for region in .regions where pathList.paths[region.flush].triangles.vertices.isEmpty()
         {
             let contours = .contours.toSlice()[region.first until region.first + region.count]
-            for index in contours do
+            for index in contours
+            {
                 .tess.addPolyLine(pathList.paths[index].polygon)
+            }
+
             buildRegionTessellation(&.tess, &.directions, pathList.paths[region.flush], pathList.paths.toSlice(), contours, ruled)
         }
     }

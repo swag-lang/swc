@@ -43,8 +43,11 @@ impl SampleTimeline
     // continuous write position. Zero preserves exact gaps and overlaps.
     func create(sampleRate: u32, clockFrequency: u64, tolerance: u32 = 0)->SampleTimeline fail
     {
-        if not sampleRate or not clockFrequency or clockFrequency > Swag.U64.Max / sampleRate do
+        if not sampleRate or not clockFrequency or clockFrequency > Swag.U64.Max / sampleRate
+        {
             fail BadParameterError{"sample timeline needs representable positive clock rates"}
+        }
+
         return SampleTimeline{sampleRate, clockFrequency, tolerance}
     }
 
@@ -93,8 +96,11 @@ impl SampleTimeline
     // rounding upward. An invalid or overflowing block leaves the timeline unchanged.
     mtd place(tick: u64, frameCount: u64)->SamplePlacement fail
     {
-        if not frameCount do
+        if not frameCount
+        {
             fail BadParameterError{"sample timeline blocks must contain frames"}
+        }
+
         if not .hasBlock and not .hasOrigin
         {
             .firstTick      = tick
@@ -105,8 +111,10 @@ impl SampleTimeline
         }
 
         let target = try .targetAt(tick)
-        if frameCount > Swag.U64.Max - target do
+        if frameCount > Swag.U64.Max - target
+        {
             fail OverflowError{"sample timeline block end overflows"}
+        }
 
         let silence   = target > .sampleEndValue ? target - .sampleEndValue : 0
         let discarded = target < .sampleEndValue ? Math.min(.sampleEndValue - target, frameCount) : 0
@@ -123,16 +131,21 @@ impl SampleTimeline
     // directly rather than replacing it with that endpoint.
     internal mtd placeClipped(tick: u64, skippedFrames, frameCount: u64)->SamplePlacement fail
     {
-        if not frameCount do
+        if not frameCount
+        {
             fail BadParameterError{"sample timeline blocks must contain frames"}
+        }
+
         let target         = try .targetAfter(tick, skippedFrames)
         var adjustedTarget = target
         if target >= .sampleEndValue
         {
-            if target - .sampleEndValue <= .tolerance do
+            if target - .sampleEndValue <= .tolerance
+            {
                 adjustedTarget = .sampleEndValue
+            }
         }
-        elif .sampleEndValue - target <= .tolerance
+        else if .sampleEndValue - target <= .tolerance
         {
             adjustedTarget = .sampleEndValue
         }
@@ -141,11 +154,17 @@ impl SampleTimeline
         let discarded = adjustedTarget < .sampleEndValue ? Math.min(.sampleEndValue - adjustedTarget, frameCount) : 0
         let accepted  = frameCount - discarded
         let start     = Math.max(adjustedTarget, .sampleEndValue)
-        if accepted > Swag.U64.Max - start do
+        if accepted > Swag.U64.Max - start
+        {
             fail OverflowError{"sample timeline block end overflows"}
+        }
+
         .sampleEndValue = start + accepted
-        if tick > .previousTick do
+        if tick > .previousTick
+        {
             .previousTick = tick
+        }
+
         .hasBlock = true
         return SamplePlacement{start, silence, discarded, accepted}
     }
@@ -157,8 +176,11 @@ impl SampleTimeline
         let isBeforeOrigin = tick < .firstTick
         let elapsed        = isBeforeOrigin ? .firstTick - tick : tick - .firstTick
         let wholeSeconds   = elapsed / .clockFrequency
-        if wholeSeconds > Swag.U64.Max / .sampleRate do
+        if wholeSeconds > Swag.U64.Max / .sampleRate
+        {
             fail OverflowError{"sample timeline position overflows"}
+        }
+
         let wholeSamples    = wholeSeconds * .sampleRate
         let fraction        = (elapsed % .clockFrequency) * .sampleRate
         let fractionSamples = fraction / .clockFrequency
@@ -166,50 +188,71 @@ impl SampleTimeline
         let roundsUp        = isBeforeOrigin ? remainder > .clockFrequency / 2 :
                               remainder >= .clockFrequency / 2 + .clockFrequency % 2
         let rounded = fractionSamples + cast(u64, roundsUp)
-        if rounded > Swag.U64.Max - wholeSamples do
+        if rounded > Swag.U64.Max - wholeSamples
+        {
             fail OverflowError{"sample timeline position overflows"}
+        }
+
         let magnitude = wholeSamples + rounded
         if isBeforeOrigin
         {
-            if magnitude >= frameOffset do
+            if magnitude >= frameOffset
+            {
                 return 0
+            }
+
             return frameOffset - magnitude
         }
 
-        if frameOffset > Swag.U64.Max - magnitude do
+        if frameOffset > Swag.U64.Max - magnitude
+        {
             fail OverflowError{"sample timeline position overflows"}
+        }
+
         return magnitude + frameOffset
     }
 
     private mtd const targetAt(tick: u64)->u64 fail
     {
-        if tick < .previousTick do
+        if tick < .previousTick
+        {
             fail BadParameterError{"sample timeline timestamps must not move backwards"}
+        }
 
         let elapsed      = tick - .firstTick
         let wholeSeconds = elapsed / .clockFrequency
-        if wholeSeconds > Swag.U64.Max / .sampleRate do
+        if wholeSeconds > Swag.U64.Max / .sampleRate
+        {
             fail OverflowError{"sample timeline position overflows"}
+        }
+
         let wholeSamples = wholeSeconds * .sampleRate
         let fraction     = (elapsed % .clockFrequency) * .sampleRate
         let rounded      = fraction / .clockFrequency +
                            cast(u64,
                                 fraction % .clockFrequency >=
                                 .clockFrequency / 2 + .clockFrequency % 2)
-        if rounded > Swag.U64.Max - wholeSamples do
+        if rounded > Swag.U64.Max - wholeSamples
+        {
             fail OverflowError{"sample timeline position overflows"}
+        }
+
         var target = wholeSamples + rounded
         if .hasBlock
         {
             if target >= .sampleEndValue
             {
-                if target - .sampleEndValue <= .tolerance do
+                if target - .sampleEndValue <= .tolerance
+                {
                     target = .sampleEndValue
+                }
             }
             else
             {
-                if .sampleEndValue - target <= .tolerance do
+                if .sampleEndValue - target <= .tolerance
+                {
                     target = .sampleEndValue
+                }
             }
         }
 

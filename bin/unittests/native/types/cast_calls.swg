@@ -35,7 +35,10 @@ func assumedCastCall(value: *CastCallBase?)->*CastCallChild
 
 func fallibleBase(value: *CastCallBase?)->*CastCallBase? fail
 {
-    if value == null do fail Swag.BaseError{"missing base"}
+    if value == null
+    {
+        fail Swag.BaseError{"missing base"}
+    }
     return value
 }
 

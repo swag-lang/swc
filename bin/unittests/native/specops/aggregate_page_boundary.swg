@@ -25,8 +25,10 @@ func(N: s32) checkGuardedSize()
 
     Swag.require(equalAtPageEnd(left, right))
     let returned = readAtPageEnd(left)
-    for index in N do
+    for index in N
+    {
         Swag.require(returned[index] == right[][index])
+    }
     for mismatch in N
     {
         right[][mismatch] ^= 1
@@ -38,17 +40,17 @@ func(N: s32) checkGuardedSize()
 // Both arrays end exactly at an inaccessible page: a rounded-up load must fault.
 #test
 {
-    checkGuardedSize'(1)()
-    checkGuardedSize'(2)()
-    checkGuardedSize'(3)()
-    checkGuardedSize'(4)()
-    checkGuardedSize'(5)()
-    checkGuardedSize'(6)()
-    checkGuardedSize'(7)()
-    checkGuardedSize'(8)()
-    checkGuardedSize'(9)()
-    checkGuardedSize'(15)()
-    checkGuardedSize'(16)()
-    checkGuardedSize'(17)()
-    checkGuardedSize'(31)()
+    checkGuardedSize!{1}()
+    checkGuardedSize!{2}()
+    checkGuardedSize!{3}()
+    checkGuardedSize!{4}()
+    checkGuardedSize!{5}()
+    checkGuardedSize!{6}()
+    checkGuardedSize!{7}()
+    checkGuardedSize!{8}()
+    checkGuardedSize!{9}()
+    checkGuardedSize!{15}()
+    checkGuardedSize!{16}()
+    checkGuardedSize!{17}()
+    checkGuardedSize!{31}()
 }

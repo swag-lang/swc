@@ -30,8 +30,10 @@ namespace InjectExprCloneSupport
             scope(Up)
             while true
             {
-                if cursor >= .count do
+                if cursor >= .count
+                {
                     break
+                }
 
                 scope(Down)
                 {
@@ -49,12 +51,16 @@ namespace InjectExprCloneSupport
         var code = 0
         for value in values
         {
-            if value.value == 12 do
+            if value.value == 12
+            {
                 continue
+            }
 
             code = code * 10 + value.value
-            if value.value == 13 do
+            if value.value == 13
+            {
                 return code
+            }
         }
 
         return code
@@ -74,8 +80,10 @@ namespace InjectExprCloneSupport
     values.add(InjectExprCloneSupport.VisitProbe{value: 2})
     values.add(InjectExprCloneSupport.VisitProbe{value: 3})
 
-    for &value in values do
+    for &value in values
+    {
         value.value += 10
+    }
 
     var direct = 0
     InjectExprCloneSupport.assignInjectedS32(&direct, InjectExprCloneSupport.visitStructBuffer(&values))

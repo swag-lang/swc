@@ -38,8 +38,10 @@ func derefWithoutProof(node: *Node?)->s32
 // The proof is dropped by a reassignment, so the second access needs its own.
 func proofDroppedByReassignment(first, second: *Node?)->s32
 {
-    if first == null do
+    if first == null
+    {
         return -1
+    }
     let before = first.value
     var node   = first
     node = second
@@ -51,8 +53,10 @@ func proofDoesNotEscapeBranch(node: *Node?, ready: bool)->s32
 {
     if ready
     {
-        if node == null do
+        if node == null
+        {
             return -1
+        }
     }
 
     return node.value     // swc-expected-error {{sema_err_nullable_member_access}}
@@ -88,8 +92,10 @@ func derefProvenNull()->s32
 // A dominating test narrows the value for the rest of the block.
 func narrowedByTest(node: *Node?)->s32
 {
-    if node == null do
+    if node == null
+    {
         return -1
+    }
     return node.value
 }
 
@@ -110,10 +116,14 @@ func narrowedByConjunction(node: *Node?)->bool
 func narrowedByJoin(ready: bool)->s32
 {
     var node: *Node?
-    if ready do
+    if ready
+    {
         node = &nodeStorage
-    else do
+    }
+    else
+    {
         node = &nodeStorage
+    }
     return node.value
 }
 

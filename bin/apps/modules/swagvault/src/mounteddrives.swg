@@ -22,7 +22,7 @@ struct MountedDrive
 // index stand for a drive while the window works on it.
 struct MountedDrives
 {
-    drives: Array'MountedDrive
+    drives: Array!{MountedDrive}
 }
 
 impl MountedDrives
@@ -30,16 +30,22 @@ impl MountedDrives
     // Returns the drive exposing the container at `path`, or null when that vault is locked.
     mtd find(path: string)->*MountedDrive?
     {
-        for &one in .drives where one.path == path do
+        for &one in .drives where one.path == path
+        {
             return one
+        }
+
         return null
     }
 
     // Returns the index of the drive exposing the container at `path`, or `Swag.U64.Max`.
     mtd indexOf(path: string)->u64
     {
-        for &one, index in .drives where one.path == path do
+        for &one, index in .drives where one.path == path
+        {
             return index
+        }
+
         return Swag.U64.Max
     }
 

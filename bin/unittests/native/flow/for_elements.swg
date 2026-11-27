@@ -60,7 +60,7 @@ alias StrictForeachF32           = f32
 
 #test
 {
-    var arr: [2] u32 = [10'u32, 20]
+    var arr: [2] u32 = [10_u32, 20]
     for &v in arr
     {
         v[] += 1
@@ -83,7 +83,7 @@ alias StrictForeachF32           = f32
         sumV += cast(s32, x)
         sumI += cast(s32, y)
     }
-    Swag.require(sumV == cast(s32, 'A'u8) + cast(s32, 'B'u8))
+    Swag.require(sumV == cast(s32, 'A'_u8) + cast(s32, 'B'_u8))
     Swag.require(sumI == 1)
 }
 
@@ -96,7 +96,7 @@ alias StrictForeachF32           = f32
         #assert(#typeof(v) == #type const *u8)
         sum += cast(s32, v[])
     }
-    Swag.require(sum == cast(s32, 'C'u8) + cast(s32, 'D'u8))
+    Swag.require(sum == cast(s32, 'C'_u8) + cast(s32, 'D'_u8))
 }
 
 #test
@@ -111,7 +111,7 @@ alias StrictForeachF32           = f32
         sumV += cast(s32, v)
         sumI += i
     }
-    Swag.require(sumV == cast(s32, 'A'u8) + cast(s32, 'Z'u8))
+    Swag.require(sumV == cast(s32, 'A'_u8) + cast(s32, 'Z'_u8))
     Swag.require(sumI == 1)
 }
 
@@ -124,7 +124,7 @@ alias StrictForeachF32           = f32
         #assert(#typeof(v) == #type const *u8)
         sum += cast(s32, v[])
     }
-    Swag.require(sum == cast(s32, 'C'u8) + cast(s32, 'D'u8))
+    Swag.require(sum == cast(s32, 'C'_u8) + cast(s32, 'D'_u8))
 }
 
 #test
@@ -138,24 +138,26 @@ alias StrictForeachF32           = f32
         pos        += 1
         Swag.require(i == 2 - (pos - 1))
     }
-    Swag.require(order[0] == 'C'u8)
-    Swag.require(order[1] == 'B'u8)
-    Swag.require(order[2] == 'A'u8)
+    Swag.require(order[0] == 'C'_u8)
+    Swag.require(order[1] == 'B'_u8)
+    Swag.require(order[2] == 'A'_u8)
 }
 
 func foreachCStringRefSum(value: *cstring)->s32
 {
     var sum = 0
-    for v in value[] do
+    for v in value[]
+    {
         sum += cast(s32, v)
+    }
     return sum
 }
 
 #test
 {
-    var textData: [3] u8  = ['B'u8, 'Y'u8, 0]
+    var textData: [3] u8  = ['B'_u8, 'Y'_u8, 0]
     var text:     cstring = cast(cstring, &textData[0])
-    Swag.require(foreachCStringRefSum(&text) == cast(s32, 'B'u8) + cast(s32, 'Y'u8))
+    Swag.require(foreachCStringRefSum(&text) == cast(s32, 'B'_u8) + cast(s32, 'Y'_u8))
 }
 
 #test
@@ -278,7 +280,7 @@ func foreachCStringRefSum(value: *cstring)->s32
         sum += cast(f32, value)
     }
 
-    Swag.require(sum == 4.0'f32)
+    Swag.require(sum == 4.0_f32)
 }
 
 #test
@@ -287,8 +289,10 @@ func foreachCStringRefSum(value: *cstring)->s32
     enum Bits: u32 { A, B, C }
 
     var mask: u32
-    for value in Bits do
+    for value in Bits
+    {
         mask |= cast(u32, value)
+    }
 
     Swag.require(mask == 7)
 }
@@ -331,8 +335,10 @@ func foreachCStringRefSum(value: *cstring)->s32
 #test
 {
     var values = [1, 2, 3]
-    for &v in values do
+    for &v in values
+    {
         v[] = 9
+    }
     Swag.require(values[0] == 9 and values[1] == 9 and values[2] == 9)
 }
 
@@ -341,8 +347,10 @@ func foreachCStringRefSum(value: *cstring)->s32
     // 'let' freezes a slice handle, never the storage it designates.
     var backing        = [1, 2, 3]
     let view: [..] s32 = backing
-    for &v in view do
+    for &v in view
+    {
         v[] = 7
+    }
     Swag.require(backing[0] == 7 and backing[1] == 7 and backing[2] == 7)
 }
 
@@ -351,7 +359,9 @@ func foreachCStringRefSum(value: *cstring)->s32
     // An immutable array still iterates by value.
     let values = [1, 2, 3]
     var sum    = 0
-    for v in values do
+    for v in values
+    {
         sum += v
+    }
     Swag.require(sum == 6)
 }

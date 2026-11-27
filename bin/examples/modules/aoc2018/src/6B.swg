@@ -41,12 +41,12 @@ func day6B()
 
     const W = 700
 
-    var arr: Array's32
+    var arr: Array!{s32}
     arr.resize(W * W)
 
     for l in lines
     {
-        let split = Tokenize.split(l[], ','u8)
+        let split = Tokenize.split(l[], ','_u8)
         let cx    = expect StrConv.toS32(Latin1.trim(split[0])) + W / 2
         let cy    = expect StrConv.toS32(Latin1.trim(split[1])) + W / 2
 
@@ -60,8 +60,10 @@ func day6B()
     }
 
     var total = 0
-    for v in arr do
+    for v in arr
+    {
         total += cast(s32, (v < 10000))
+    }
 
     Swag.assert(total == 43852)
 }

@@ -26,7 +26,7 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     Swag.require(not view.navigateCue(true))
 
     // Search still covers hidden cues and clears the filter before revealing its result.
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     collectViewerMatches(result.collectMatches, "first caption", &matches)
     Swag.require(matches.count == 1 and result.revealMatch(matches[0], "first caption"))
     Swag.require(view.currentCue == 0 and
@@ -67,7 +67,7 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     let width  = Math.min(Captions.CueSheet.ColumnWidth,
                           Math.max(0, rhythm.width - 2 * Captions.CueSheet.Gutter)) - 2 * Captions.CueSheet.NumberX
     let left   = Math.round((rhythm.width - width) * 0.5)
-    let target = 39'f64
+    let target = 39_f64
     let x      = left + cast(f32, (target - view.rhythm.timeWindowStart()) * cast(f64, width) / 60)
     host.click(view.rhythm.localToSurface(Math.Point{x, rhythm.height * 0.5}))
     Swag.require(view.currentCue == 7 and view.timeButton.text() == "0:36",
@@ -110,17 +110,25 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     var entries = Viewer.LensEntries.create(&results, "Subtitles", host.theme)
     view.describeLens(&entries)
     var localizedCopy = false
-    for &entry in results.sections[0]!.entries where entry.title == Captions.texts().ui_CopySelectedCues do
+    for &entry in results.sections[0]!.entries where entry.title == Captions.texts().ui_CopySelectedCues
+    {
         localizedCopy = true
+    }
+
     Swag.require(localizedCopy)
     var normalizedCopy   = false
     var normalizedExport = false
     for &entry in results.sections[0]!.entries
     {
-        if entry.title == Captions.texts().ui_CopyNormalized do
+        if entry.title == Captions.texts().ui_CopyNormalized
+        {
             normalizedCopy = true
-        if entry.title == Captions.texts().ui_ExportNormalized do
+        }
+
+        if entry.title == Captions.texts().ui_ExportNormalized
+        {
             normalizedExport = true
+        }
     }
 
     Swag.require(normalizedCopy and normalizedExport)
@@ -167,8 +175,10 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     func dialogSeconds(text: string)->f64 => Viewer.parseTimeAddress(text, 0, Swag.F64.Max)
     Swag.require(dialogSeconds("90") == 90 and dialogSeconds("1:30") == 90)
     Swag.require(dialogSeconds("1:02:03.5") == 3_723.5 and dialogSeconds("100:00:00") == 360_000)
-    for text in ["", "1:", "1:2:3:4", "-1", "NaN", "Infinity", "1e308:00", "1:60", "1:99", "1.5:30"] do
+    for text in ["", "1:", "1:2:3:4", "-1", "NaN", "Infinity", "1e308:00", "1:60", "1:99", "1.5:30"]
+    {
         Swag.require(dialogSeconds(text) < 0, text)
+    }
 }
 
 // The cues read as a list: the keyboard moves through them, the readings say the current one, and
@@ -210,7 +220,7 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
 
     // The words of a cue wrap at their own line breaks, and a match is marked on its words.
     Swag.require(view.sheet.rows[1].lines.count == 2)
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     collectViewerMatches(result.collectMatches, "second", &matches)
     Swag.require(matches.count == 1 and matches[0].major == 1)
     view.currentCue = 0
@@ -341,15 +351,23 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     let width = Math.max(1, sheet.column().width - sheet.wordsOrigin.x - Captions.CueSheet.WordsRight)
     let words = view.track!.cueContent(0)
     let row   = &sheet.rows[0]
-    Swag.require(row.lines.count > 1 and sheet.wordsOrigin.x > Captions.CueSheet.TimesX and sheet.wordsOrigin.y == 0)
+    Swag.require(row.lines.count > 1 and
+                 sheet.wordsOrigin.x > Captions.CueSheet.TimesX and
+                 sheet.wordsOrigin.y == 0)
     for line, index in row.lines
     {
         Swag.require(Painter.measureString(words[line.start until line.end], font).width <= width)
-        if index + 1 == row.lines.count do
+        if index + 1 == row.lines.count
+        {
             break
+        }
+
         var next = row.lines[index + 1].start
-        while next < words.count and words[next] != ' ' do
+        while next < words.count and words[next] != ' '
+        {
             next += 1
+        }
+
         Swag.require(words[line.end] == ' ' and Painter.measureString(words[line.start until next], font).width > width)
     }
 }
@@ -361,8 +379,11 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     let fileName = Gui.Testing.tempFilePath("scope-cues-scroll-", ".srt")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 40 do
+    for index in 40
+    {
         source += Format.toString("%\n00:%{02}:00,000 --> 00:%{02}:30,000\nCue %\n\n", index + 1, index, index, index + 1)
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost

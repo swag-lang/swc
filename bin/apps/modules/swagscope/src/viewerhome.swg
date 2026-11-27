@@ -24,8 +24,11 @@ impl ViewerHomeRow
 {
     mtd cropPainter(shape: ThumbnailShape)->(func||(*Wnd, *Painter, Math.Rectangle)->bool)?
     {
-        if .fit != .Cover or not .texture.isValid() do
+        if .fit != .Cover or not .texture.isValid()
+        {
             return null
+        }
+
         return func|row = me, shape|(host, painter, tile)->bool
         {
             row.framing.paint(host, painter, row.texture, tile, shape, .Attention)
@@ -48,9 +51,9 @@ struct ViewerHomeFolders
 {
     using operation: Viewer.BackgroundOperation
     executor:        Swag.Executor
-    recent:          Array'String
-    system:          Array'String
-    folders:         Array'String
+    recent:          Array!{String}
+    system:          Array!{String}
+    folders:         Array!{String}
     generation:      u64
     explored:        bool
     useSystemPlaces: bool
@@ -66,8 +69,11 @@ impl ViewerHomeFolders
         .folders.clear()
         .generation = home.placesGeneration
         .explored   = false
-        if not .executor.isStarted() do
+        if not .executor.isStarted()
+        {
             .executor.start(.Background)
+        }
+
         let load = me
         .submit(func|load|() { load.probe() }, home, executor: &.executor)
     }
@@ -76,8 +82,10 @@ impl ViewerHomeFolders
     {
         .collect(.recent.toSlice())
         .explored = not .folders.isEmpty()
-        if .explored do
+        if .explored
+        {
             return
+        }
 
         // Known folders can be redirected to an offline share. Even asking Windows for their
         // paths belongs here, rather than in the window constructor.
@@ -86,8 +94,11 @@ impl ViewerHomeFolders
             for kind in [Env.SpecialDirectory.UserPictures, Env.SpecialDirectory.UserVideos, Env.SpecialDirectory.UserMusic,
                          Env.SpecialDirectory.UserDocuments, Env.SpecialDirectory.Downloads]
             {
-                if Swag.isCancelled() do
+                if Swag.isCancelled()
+                {
                     return
+                }
+
                 .system.add(Env.getSpecialDirectory(kind))
             }
         }
@@ -99,10 +110,15 @@ impl ViewerHomeFolders
     {
         for path in paths
         {
-            if Swag.isCancelled() or .folders.count == ViewerHome.MaxPlaces do
+            if Swag.isCancelled() or .folders.count == ViewerHome.MaxPlaces
+            {
                 return
-            if Directory.exists(path[]) do
+            }
+
+            if Directory.exists(path[])
+            {
                 .folders.add(path[])
+            }
         }
     }
 }
@@ -151,8 +167,8 @@ struct ViewerHome
     late exploreButton: *PushButton
 
     message:          String     // Sentence standing in for the invitation, such as why a file did not open.
-    rows:             Array'ViewerHomeRow
-    places:           Array'ViewerHomePlace
+    rows:             Array!{ViewerHomeRow}
+    places:           Array!{ViewerHomePlace}
     explored:         bool     // Whether `places` are folders the reader explored, rather than the system's.
     hovered:          u64 = Swag.U64.Max
     hoveredPlace:     u64 = Swag.U64.Max
@@ -180,26 +196,26 @@ impl ViewerHome
     const SectionGap    = 36.0
     const TileGap       = 20.0
     const TileMinWidth  = 120.0
-    const MaxTiles      = 5'u64
+    const MaxTiles      = 5_u64
     const MaxRows       = 1 + MaxTiles
     const PlaceHeight   = 32.0
     const PlaceInset    = 12.0
     const PlaceGap      = 6.0
     const PlaceGlyph    = 16.0
-    const MaxPlaces     = 6'u64
+    const MaxPlaces     = 6_u64
     const BottomReserve = 64.0     // The foot of the window, where the hint line stands.
     const MarkSize      = 64.0
     const MarkToLine    = 34.0
     const LineToActions = 28.0
     const ActionInset   = 10.0
     const ActionsGap    = 8.0
-    const TitleSize     = 22'u32
-    const FontSize      = 14'u32
-    const MonoSize      = 12'u32
+    const TitleSize     = 22_u32
+    const FontSize      = 14_u32
+    const MonoSize      = 12_u32
 
     func create(parent: *Wnd, window: *ViewerWindow)->*ViewerHome
     {
-        with let result = Wnd.create'ViewerHome(parent, "scope.home")
+        with let result = Wnd.create!{ViewerHome}(parent, "scope.home")
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -266,7 +282,7 @@ impl ViewerHome
     mtd refresh()
     {
         let window = .window
-        var rows: Array'ViewerHomeRow
+        var rows: Array!{ViewerHomeRow}
         for index in Math.min(window.recent.count, MaxRows)
         {
             let file     = window.recent[index].toString()
@@ -293,17 +309,29 @@ impl ViewerHome
             }
         }
 
-        for &old in .rows where old.texture.isValid() do
+        for &old in .rows where old.texture.isValid()
+        {
             .app().renderer.removeTexture(&old.texture)
+        }
+
         .rows = #move rows
         .refreshPlaces()
 
-        if .hovered >= .rows.count do
+        if .hovered >= .rows.count
+        {
             .hovered = Swag.U64.Max
-        if .hoveredPlace >= .places.count do
+        }
+
+        if .hoveredPlace >= .places.count
+        {
             .hoveredPlace = Swag.U64.Max
-        if .chosen >= .rows.count do
+        }
+
+        if .chosen >= .rows.count
+        {
             .chosen = .rows.isEmpty() ? Swag.U64.Max : 0
+        }
+
         .refreshButtons()
         .layoutChildren()
         .removeButton.hide()
@@ -335,10 +363,16 @@ impl ViewerHome
         }
 
         .places.clear()
-        if .folders.useSystemPlaces do
+        if .folders.useSystemPlaces
+        {
             .window.systemPlaces = .folders.system
-        for folder in .folders.folders do
+        }
+
+        for folder in .folders.folders
+        {
             .places.add(ViewerHomePlace{folder[], .theme().fileGlyph(folder[], true)})
+        }
+
         .explored     = .folders.explored
         .hoveredPlace = Swag.U64.Max
         .layoutChildren()
@@ -449,8 +483,11 @@ impl ViewerHome
         for i in .places.count
         {
             let next = result + (i ? PlaceGap : 0) + .placeWidth(i)
-            if next > room + PlaceInset * 2 do
+            if next > room + PlaceInset * 2
+            {
                 break
+            }
+
             result = next
         }
 
@@ -461,8 +498,11 @@ impl ViewerHome
     mtd pictureRect(index: u64)->Math.Rectangle
     {
         let place = .layout()
-        if index == 0 do
+        if index == 0
+        {
             return place.hero
+        }
+
         let tile = index - 1
         return {place.column.x + cast(f32, tile % place.columns) * (place.tile.x + TileGap),
                 place.tilesTop + cast(f32, tile / place.columns) * (place.tile.y + FileTile.captionHeight(me) + TileGap),
@@ -499,8 +539,11 @@ impl ViewerHome
         for i in Math.min(index + 1, .places.count)
         {
             let width = .placeWidth(i)
-            if i == index do
+            if i == index
+            {
                 return {x, place.placesTop, width, PlaceHeight}
+            }
+
             x += width + PlaceGap
         }
 
@@ -527,8 +570,11 @@ impl ViewerHome
     private mtd layoutChildren()
     {
         // The home lays out while it is being created, before its controls exist.
-        if .exploreButton == null do
+        if .exploreButton == null
+        {
             return
+        }
+
         let place  = .layout()
         let height = .themeMetrics().btnPush_Height
         if .rows.isEmpty()
@@ -557,8 +603,11 @@ impl ViewerHome
 
     private mtd layoutRemoveButton()
     {
-        if .removeButton == null do
+        if .removeButton == null
+        {
             return
+        }
+
         if .hovered >= .rows.count
         {
             .removeButton.hide()
@@ -572,13 +621,18 @@ impl ViewerHome
     // Asks for the picture of the first row that has none yet, one at a time, in the background.
     mtd requestPreview()
     {
-        if .preview.started or .window.thumbnailMode or not .isVisible() do
+        if .preview.started or .window.thumbnailMode or not .isVisible()
+        {
             return
+        }
+
         for &row, index in .rows where not row.attempted
         {
             row.attempted = true
-            if not row.previewable do
+            if not row.previewable
+            {
                 continue
+            }
 
             .previewRow       = index
             .preview.path     = row.file
@@ -587,8 +641,11 @@ impl ViewerHome
             .preview.settings = ThumbnailSettings.capture(.window, localArtworkOnly: true)
             .preview.mediaFile.clear()
             .preview.archivePath.clear()
-            if not .previewExecutor.isStarted() do
+            if not .previewExecutor.isStarted()
+            {
                 .previewExecutor.start(.Background)
+            }
+
             .preview.start(me, executor: &.previewExecutor)
             return
         }
@@ -597,10 +654,16 @@ impl ViewerHome
     // Reports whether every row's picture was asked for and arrived, or failed.
     mtd previewsSettled()->bool
     {
-        if .preview.started do
+        if .preview.started
+        {
             return false
-        for &row in .rows where not row.attempted do
+        }
+
+        for &row in .rows where not row.attempted
+        {
             return false
+        }
+
         return true
     }
 
@@ -608,40 +671,57 @@ impl ViewerHome
     // the date before that.
     func openedText(opened, now: u64)->String
     {
-        if not opened do
+        if not opened
+        {
             return {}
+        }
+
         let when  = Time.Timestamp.fromTicks(opened).toDateTime()
         let today = now / Time.TicksPerDay
         let day   = opened / Time.TicksPerDay
-        if day == today do
+        if day == today
+        {
             return Format.toString("%{02}:%{02}", when.hour, when.minute)
-        if day + 1 == today do
+        }
+
+        if day + 1 == today
+        {
             return appStrings().home_Yesterday
+        }
+
         if day + 7 > today
         {
-            var names = Tokenize.split(appStrings().home_Weekdays, ' 'u8)
+            var names = Tokenize.split(appStrings().home_Weekdays, ' '_u8)
             let index = cast(u64, when.dayOfWeek())
-            if index < names.count do
+            if index < names.count
+            {
                 return names[index]
+            }
         }
 
         return Format.toString("%-%{02}-%{02}", when.year, when.month, when.day)
     }
 
     // Names the folder of `file` by its last `levels` levels, as a reader recognises it.
-    func folderText(file: string, levels = 3'u32)->String
+    func folderText(file: string, levels = 3_u32)->String
     {
         var result: #returntype
         var path = Path.directoryName(file) orelse ""
         for levels
         {
             let name = Path.fileName(path) orelse ""
-            if not name.count do
+            if not name.count
+            {
                 break
+            }
+
             result = result.isEmpty() ? String.from(name) : Format.toString("% / %", name, result)
             let parent = Path.directoryName(path) orelse ""
-            if parent == path do
+            if parent == path
+            {
                 break
+            }
+
             path = parent
         }
 
@@ -651,8 +731,11 @@ impl ViewerHome
     // Opens row `index` where it was left, or from its start when it has no point.
     mtd openRow(index: u64)
     {
-        if index >= .rows.count do
+        if index >= .rows.count
+        {
             return
+        }
+
         .chosen = index
         .window.resumeFile(String.from(.rows[index].file))
     }
@@ -660,8 +743,11 @@ impl ViewerHome
     // Opens row `index` from its start, forgetting where it was left.
     mtd restartRow(index: u64)
     {
-        if index >= .rows.count do
+        if index >= .rows.count
+        {
             return
+        }
+
         .chosen = index
         .window.restartFile(String.from(.rows[index].file))
     }
@@ -669,8 +755,11 @@ impl ViewerHome
     // Takes row `index` out of the history.
     mtd removeRow(index: u64)
     {
-        if index >= .rows.count do
+        if index >= .rows.count
+        {
             return
+        }
+
         let file = String.from(.rows[index].file)
         .window.forgetRecent(file)
     }
@@ -678,8 +767,10 @@ impl ViewerHome
     // Confirms the named row before taking it out of the recent-file list.
     mtd confirmRemoveRow(index: u64)
     {
-        if index >= .rows.count do
+        if index >= .rows.count
+        {
             return
+        }
 
         let file = String.from(.rows[index].file)
         var options: MessageDlgOptions
@@ -687,8 +778,10 @@ impl ViewerHome
         if MessageDlg.confirm(unwrap .window.surface,
                               Format.toString("%", Path.fileName(file) orelse file),
                               appStrings().home_AskRemoveRecent,
-                              options: options) == Dialog.BtnYes do
+                              options: options) == Dialog.BtnYes
+        {
             .window.forgetRecent(file)
+        }
     }
 
     private mtd confirmRemoveHovered()
@@ -720,15 +813,21 @@ impl ViewerHome
 
     private mtd rowAt(pos: Math.Point)->u64
     {
-        for i in .rows.count where .rowRect(i).contains(pos) do
+        for i in .rows.count where .rowRect(i).contains(pos)
+        {
             return i
+        }
+
         return Swag.U64.Max
     }
 
     private mtd placeAt(pos: Math.Point)->u64
     {
-        for i in .places.count where .placeShown(i) and .placeRect(i).contains(pos) do
+        for i in .places.count where .placeShown(i) and .placeRect(i).contains(pos)
+        {
             return i
+        }
+
         return Swag.U64.Max
     }
 
@@ -771,15 +870,20 @@ impl ViewerHome
 
         var facts = ViewerHome.folderText(file)
         let when  = ViewerHome.openedText(row.opened, .now ? .now : Time.Timestamp.now().ticks)
-        if not when.isEmpty() do
+        if not when.isEmpty()
+        {
             facts = facts.isEmpty() ? when : Format.toString("%  ·  %", facts, when)
+        }
+
         painter.drawString(text.x, y, Painter.elideString(facts, mono, text.width, scale), mono, colors.faintText)
         y += mono.height + 12
 
         // A recording says how long it is beside where it was left; a page or a share is already
         // the words of the action.
-        if point and point.length > 0 do
+        if point and point.length > 0
+        {
             painter.drawString(text.x, y, point.shortText(), mono, colors.softText)
+        }
     }
 
     // Paints the tile of row `index` through the shared file tile: when it was opened and, when it
@@ -798,8 +902,11 @@ impl ViewerHome
         content.name    = Path.fileName(file) orelse file
         content.facts   = when
         content.detail  = detail
-        if not row.texture.isValid() do
+        if not row.texture.isValid()
+        {
             content.placeholder = Path.extension(file) orelse ""
+        }
+
         var options: FileTile.Options
         options.fit            = row.fit
         options.previewPainter = row.cropPainter(.Grid)
@@ -811,8 +918,11 @@ impl ViewerHome
     // Paints the folders as quiet chips: the glyph of a folder and its name, raised under the hand.
     private mtd paintPlaces(painter: *Painter, place: const *ViewerHomeLayout)
     {
-        if not place.showPlaces do
+        if not place.showPlaces
+        {
             return
+        }
+
         let colors  = .themeColors()
         let metrics = .themeMetrics()
         let font    = .theme().createDefaultFont(FontSize)
@@ -821,8 +931,11 @@ impl ViewerHome
         {
             let rect = .placeRect(i)
             let hot  = i == .hoveredPlace
-            if hot do
+            if hot
+            {
                 painter.fillRoundRect(rect, metrics.corner_Control, metrics.corner_Control, colors.raised)
+            }
+
             var glyph = .places[i].glyph
             glyph.sizeX, glyph.sizeY = PlaceGlyph
             glyph.paint(painter, rect.x + PlaceInset, Math.round(rect.vertCenter() - PlaceGlyph * 0.5), colors.faintText)
@@ -836,8 +949,10 @@ impl ViewerHome
         let colors = .themeColors()
         let body   = .theme().createDefaultFont(FontSize)
         let mark   = .app().appGlyph(MarkSize)
-        if mark.isValid() do
+        if mark.isValid()
+        {
             mark.paint(painter, place.mark.x, place.mark.y, colors.strongLine)
+        }
 
         let line  = .message.isEmpty() ? appStrings().home_Invite : .message.toString()
         let width = Painter.measureString(line, body).width
@@ -867,8 +982,11 @@ impl IWnd for ViewerHome
 
     mtd impl onStateEvent(evt: *StateEvent)
     {
-        if evt.kind == .Show do
+        if evt.kind == .Show
+        {
             .requestPreview()
+        }
+
         evt.accepted = false
     }
 
@@ -894,8 +1012,11 @@ impl IWnd for ViewerHome
             let uploaded = .app().renderer.addImage(.preview.image)
             if uploaded.isValid()
             {
-                if .rows[index].texture.isValid() do
+                if .rows[index].texture.isValid()
+                {
                     .app().renderer.removeTexture(&.rows[index].texture)
+                }
+
                 .rows[index].texture = uploaded
                 .rows[index].framing = ThumbnailFraming.fromImage(&.preview.image)
             }
@@ -914,8 +1035,10 @@ impl IWnd for ViewerHome
         .preview.task.cancel()
         .preview.wait()
         .previewExecutor.close()
-        for &row in .rows where row.texture.isValid() do
+        for &row in .rows where row.texture.isValid()
+        {
             .app().renderer.removeTexture(&row.texture)
+        }
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -939,8 +1062,10 @@ impl IWnd for ViewerHome
         if .rows.count > 1
         {
             SectionLabel.paint(me, painter, place.recentLabel, texts.ui_Recent)
-            for index in 1 until .rows.count do
+            for index in 1 until .rows.count
+            {
                 .paintTile(painter, index)
+            }
         }
 
         // The cross stands over a picture, so it keeps a ground of its own to be read on.
@@ -990,8 +1115,11 @@ impl IWnd for ViewerHome
             }
 
             let row = .rowAt(pos)
-            if row >= .rows.count do
+            if row >= .rows.count
+            {
                 return
+            }
+
             if .removeRect(row).contains(pos)
             {
                 .confirmRemoveRow(row)

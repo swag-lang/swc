@@ -18,14 +18,14 @@ struct FormLayoutOptions
     public
     {
         labelPlacement: FormLabelPlacement = Above         // Label placement used by every row.
-        labelWidth                         = 112.0'f32     // Minimum width of the label column in `Left` mode.
-        labelHeight                        = 22.0'f32      // Height reserved for each label.
-        fieldHeight                        = 34.0'f32      // Minimum height reserved for each field.
-        helpHeight                         = 20.0'f32      // Minimum height reserved for optional help text.
-        labelSpacing                       = 4.0'f32       // Gap between a label and its field.
-        controlSpacing                     = 8.0'f32       // Gap between a field and its optional action.
-        helpSpacing                        = 4.0'f32       // Gap before optional help text.
-        rowSpacing                         = 12.0'f32      // Gap between consecutive rows.
+        labelWidth                         = 112.0_f32     // Minimum width of the label column in `Left` mode.
+        labelHeight                        = 22.0_f32      // Height reserved for each label.
+        fieldHeight                        = 34.0_f32      // Minimum height reserved for each field.
+        helpHeight                         = 20.0_f32      // Minimum height reserved for optional help text.
+        labelSpacing                       = 4.0_f32       // Gap between a label and its field.
+        controlSpacing                     = 8.0_f32       // Gap between a field and its optional action.
+        helpSpacing                        = 4.0_f32       // Gap before optional help text.
+        rowSpacing                         = 12.0_f32      // Gap between consecutive rows.
         labelFont:      *Font?             = null          // Font applied to every created label, or the theme font.
         labelFlags:     LabelFlags         = None          // Presentation options applied to every created label.
     }
@@ -71,8 +71,8 @@ struct FormLayoutCtrl
 
         readonly
         {
-            rows: Array'FormLayoutRow     // Rows in display order.
-            contentHeight: f32            // Height required by the latest layout pass.
+            rows: Array!{FormLayoutRow}     // Rows in display order.
+            contentHeight: f32     // Height required by the latest layout pass.
         }
     }
 }
@@ -119,8 +119,11 @@ private impl FormLayoutCtrl
     // height would cut the last one off.
     mtd rowHelpHeight(row: const *FormLayoutRow, width: f32)->f32
     {
-        if not row.help do
+        if not row.help
+        {
             return 0
+        }
+
         return Math.max(.options.helpHeight, row.help.measure(Math.Point{width, 0}).preferred.y)
     }
 
@@ -128,8 +131,11 @@ private impl FormLayoutCtrl
     mtd labelColumnWidth()->f32
     {
         var result = .options.labelWidth
-        for &row in .rows do
+        for &row in .rows
+        {
             result = Math.max(result, row.label.measure({}).preferred.x)
+        }
+
         return result
     }
 
@@ -159,18 +165,21 @@ private impl FormLayoutCtrl
         var cursor = y
         if not row.label.name.isEmpty()
         {
-            if place do
+            if place
+            {
                 row.label.arrange(Math.Rectangle{client.x, y, client.width, .options.labelHeight})
+            }
+
             cursor += .options.labelHeight + .options.labelSpacing
         }
-        elif place
+        else if place
         {
             row.label.arrange(Math.Rectangle{client.x, y, client.width, 0})
         }
 
         let height = .rowFieldHeight(row, Math.Point{client.width, client.height})
 
-        var actionWidth = 0'f32
+        var actionWidth = 0_f32
         if row.action
         {
             let action = row.action
@@ -192,8 +201,11 @@ private impl FormLayoutCtrl
         {
             let helpHeight = .rowHelpHeight(row, client.width)
             cursor += .options.helpSpacing
-            if place do
+            if place
+            {
                 row.help.arrange(Math.Rectangle{client.x, cursor, client.width, helpHeight})
+            }
+
             cursor += helpHeight
         }
 
@@ -205,10 +217,12 @@ private impl FormLayoutCtrl
         let fieldX         = client.x + labelWidth + .options.labelSpacing
         let availableWidth = Math.max(0, client.width - labelWidth - .options.labelSpacing)
         let height         = .rowFieldHeight(row, Math.Point{availableWidth, client.height})
-        if place do
+        if place
+        {
             row.label.arrange(Math.Rectangle{client.x, y, labelWidth, height})
+        }
 
-        var actionWidth = 0'f32
+        var actionWidth = 0_f32
         if row.action
         {
             let action = row.action
@@ -230,8 +244,11 @@ private impl FormLayoutCtrl
         {
             let helpHeight = .rowHelpHeight(row, availableWidth)
             cursor += .options.helpSpacing
-            if place do
+            if place
+            {
                 row.help.arrange(Math.Rectangle{fieldX, cursor, availableWidth, helpHeight})
+            }
+
             cursor += helpHeight
         }
 
@@ -250,8 +267,10 @@ private impl FormLayoutCtrl
         for &row, index in .rows
         {
             cursor = .options.labelPlacement == .Above ? .arrangeRowAbove(row, client, cursor, place) : .arrangeRowLeft(row, client, cursor, labelWidth, place)
-            if index + 1 < .rows.count do
+            if index + 1 < .rows.count
+            {
                 cursor += .options.rowSpacing
+            }
         }
 
         return Math.max(0, cursor - client.y)
@@ -284,7 +303,7 @@ impl FormLayoutCtrl
     func create(parent: *Wnd, options: FormLayoutOptions = {}, position: Math.Rectangle = {})->*FormLayoutCtrl
     {
         Swag.assert(parent != null)
-        let result = Wnd.create'FormLayoutCtrl(parent, null, position)
+        let result = Wnd.create!{FormLayoutCtrl}(parent, null, position)
         result.options         = options
         result.backgroundStyle = .Transparent
         return result
@@ -303,8 +322,11 @@ impl FormLayoutCtrl
 
         var row = FormLayoutRow{label: Label.create(me, label, flags: .options.labelFlags), field: field, action: action}
         row.label.setTextAlignment(.Left, .Center)
-        if .options.labelFont do
+        if .options.labelFont
+        {
             row.label.style.setFont(.options.labelFont, .Regular)
+        }
+
         if help
         {
             row.help = Label.create(me, help, flags: .WordWrap | .SecondaryText | .AutoHeight)
@@ -325,8 +347,11 @@ impl FormLayoutCtrl
     {
         let result = EditBox.create(me, text, id: id)
         result.setPlaceholder(placeholder)
-        if icon.isValid() do
+        if icon.isValid()
+        {
             result.setIcon(icon)
+        }
+
         discard .addField(label, result, null, help)
         return result
     }
@@ -339,8 +364,11 @@ impl FormLayoutCtrl
     {
         let result = PasswordEdit.create(me, id: id, flags: flags)
         result.setPlaceholder(placeholder)
-        if icon.isValid() do
+        if icon.isValid()
+        {
             result.setIcon(icon)
+        }
+
         discard .addField(label, result, null, help)
         return result
     }
@@ -377,8 +405,11 @@ impl FormLayoutCtrl
     mtd addRowAction(text: string, icon: Icon = {}, id: WndId? = null)->*PushButton
     {
         let result = PushButton.create(me, text, {}, id)
-        if icon.isValid() do
+        if icon.isValid()
+        {
             result.setIcon(icon)
+        }
+
         .attachToLastRow(result)
         return result
     }

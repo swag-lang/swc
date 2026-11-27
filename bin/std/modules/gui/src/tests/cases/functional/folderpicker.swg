@@ -18,8 +18,11 @@ using Swag, Core, File
 
     host.app.sigFrame += func|host = &host, dlg, folder = &folder, browsed = &browsed|(_)
     {
-        if browsed[] do
+        if browsed[]
+        {
             return
+        }
+
         browsed[] = true
 
         let browser = dlg.browser

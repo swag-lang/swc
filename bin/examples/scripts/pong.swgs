@@ -6,9 +6,9 @@
 
 using Core, Gui, Pixel, Core.Math
 
-const BallRadius   = 10'f32
-const PaddleWidth  = 8'f32
-const PaddleHeight = 50'f32
+const BallRadius   = 10_f32
+const PaddleWidth  = 8_f32
+const PaddleHeight = 50_f32
 
 struct Ball
 {
@@ -40,8 +40,10 @@ func resetBall()
     let angle = g_Rng.nextF32(-ConstF32.PiBy4, ConstF32.PiBy4)
     g_Ball.speed.x = 300 * cos(angle)
     g_Ball.speed.y = 300 * sin(angle)
-    if g_Rng.nextBool() do
+    if g_Rng.nextBool()
+    {
         g_Ball.speed = -g_Ball.speed
+    }
 }
 
 func updatePaddles(wnd: *Wnd)
@@ -49,14 +51,23 @@ func updatePaddles(wnd: *Wnd)
     let dt = wnd.app().deltaSeconds()
     let kb = wnd.app().keyboardRef()
 
-    if kb.isKeyPressed(.A) do
+    if kb.isKeyPressed(.A)
+    {
         g_PaddleLeft.pos.y -= 400 * dt
-    elif kb.isKeyPressed(.Q) do
+    }
+    else if kb.isKeyPressed(.Q)
+    {
         g_PaddleLeft.pos.y += 400 * dt
-    if kb.isKeyPressed(.P) do
+    }
+
+    if kb.isKeyPressed(.P)
+    {
         g_PaddleRight.pos.y -= 400 * dt
-    elif kb.isKeyPressed(.M) do
+    }
+    else if kb.isKeyPressed(.M)
+    {
         g_PaddleRight.pos.y += 400 * dt
+    }
 
     g_PaddleLeft.pos.y  = clamp(g_PaddleLeft.pos.y, g_Rect.y + PaddleHeight, g_Rect.bottom() - PaddleHeight)
     g_PaddleRight.pos.y = clamp(g_PaddleRight.pos.y, g_Rect.y + PaddleHeight, g_Rect.bottom() - PaddleHeight)
@@ -79,7 +90,7 @@ func updateBall(wnd: *Wnd)
         g_ScoreLeft += 1
         resetBall()
     }
-    elif g_Ball.pos.x < rect.x
+    else if g_Ball.pos.x < rect.x
     {
         g_ScoreRight += 1
         resetBall()
@@ -92,19 +103,19 @@ func updateBall(wnd: *Wnd)
     {
         let n     = g_Ball.speed.length()
         let diff  = g_Ball.pos.y - (g_PaddleLeft.pos.y - PaddleHeight)
-        let angle = map(diff, 0, PaddleHeight * 2, -toRadians(45'f32), toRadians(45'f32))
+        let angle = map(diff, 0, PaddleHeight * 2, -toRadians(45_f32), toRadians(45_f32))
         g_Ball.speed.x = n * cos(angle)
         g_Ball.speed.y = n * sin(angle)
         g_Ball.pos.x   = g_PaddleLeft.pos.x + PaddleWidth + BallRadius
     }
-    elif g_Ball.pos.y - BallRadius < g_PaddleRight.pos.y + PaddleHeight and
-         g_Ball.pos.y + BallRadius > g_PaddleRight.pos.y - PaddleHeight and
-         g_Ball.pos.x + BallRadius > g_PaddleRight.pos.x - PaddleWidth and
-         g_Ball.pos.x < g_PaddleRight.pos.x
+    else if g_Ball.pos.y - BallRadius < g_PaddleRight.pos.y + PaddleHeight and
+            g_Ball.pos.y + BallRadius > g_PaddleRight.pos.y - PaddleHeight and
+            g_Ball.pos.x + BallRadius > g_PaddleRight.pos.x - PaddleWidth and
+            g_Ball.pos.x < g_PaddleRight.pos.x
     {
         let n     = g_Ball.speed.length()
         let diff  = g_Ball.pos.y - (g_PaddleRight.pos.y - PaddleHeight)
-        let angle = map(diff, 0, PaddleHeight * 2, toRadians(225'f32), toRadians(135'f32))
+        let angle = map(diff, 0, PaddleHeight * 2, toRadians(225_f32), toRadians(135_f32))
         g_Ball.speed.x = n * cos(angle)
         g_Ball.speed.y = n * sin(angle)
         g_Ball.pos.x   = g_PaddleRight.pos.x - PaddleWidth - BallRadius

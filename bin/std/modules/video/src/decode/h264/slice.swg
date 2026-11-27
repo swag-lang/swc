@@ -10,9 +10,9 @@
 using Core, Core.Errors
 
 // Slice coding types, after folding the redundant 5..9 range onto 0..4.
-const SliceTypeP = 0'u32
-const SliceTypeB = 1'u32
-const SliceTypeI = 2'u32
+const SliceTypeP = 0_u32
+const SliceTypeB = 1_u32
+const SliceTypeI = 2_u32
 
 // Everything a slice header declares, before reference lists are resolved.
 struct SliceHeader
@@ -79,7 +79,7 @@ struct Slice
 
     refs:            [2, 32] RefPic
     refCount:        [2] u32
-    listOps:         [2] Array'ListOp     // Reference-list modifications, applied when lists build.
+    listOps:         [2] Array!{ListOp}     // Reference-list modifications, applied when lists build.
     lumaLog2Denom:   u32
     chromaLog2Denom: u32
     useWeights:      bool             // Explicit weights apply to every prediction.
@@ -128,18 +128,29 @@ impl Slice
         .header.isIdr   = isIdr
         .header.firstMb = .bits.ue()
         let rawType = .bits.ue()
-        if rawType > 9 do
+        if rawType > 9
+        {
             fail InvalidFormatError{"H.264 slice declares an unknown slice type"}
+        }
+
         .header.allSameType = rawType >= 5
         .header.type        = rawType % 5
-        if .header.type > SliceTypeI do
+        if .header.type > SliceTypeI
+        {
             fail UnsupportedFormatError{"video decoder does not support H.264 SP and SI slices"}
-        if .header.type != SliceTypeI and isIdr do
+        }
+
+        if .header.type != SliceTypeI and isIdr
+        {
             fail InvalidFormatError{"H.264 IDR picture carries a predicted slice"}
+        }
 
         .header.ppsId = .bits.ue()
-        if .header.ppsId >= dec.ppsSet.count or not dec.ppsSet[.header.ppsId].valid do
+        if .header.ppsId >= dec.ppsSet.count or not dec.ppsSet[.header.ppsId].valid
+        {
             fail InvalidFormatError{"H.264 slice references an unknown picture parameter set"}
+        }
+
         let pps = &dec.ppsSet[.header.ppsId]
         let sps = &dec.spsSet[pps.spsId]
         dec.pps = pps
@@ -148,30 +159,40 @@ impl Slice
 
         .header.frameNum = .bits.read(sps.log2MaxFrameNum)
 
-        if isIdr do
-            discard .bits.ue()     // idr_pic_id.
+        if isIdr
+        {
+            discard .bits.ue()
+        }     // idr_pic_id.
 
         if sps.pocType == 0
         {
             .header.pocLsb = .bits.read(sps.log2MaxPocLsb)
-            if pps.picOrderPresent do
+            if pps.picOrderPresent
+            {
                 .header.deltaPocBottom = .bits.se()
+            }
         }
-        elif sps.pocType == 1 and not sps.deltaPocAlwaysZero
+        else if sps.pocType == 1 and not sps.deltaPocAlwaysZero
         {
             .header.deltaPoc0 = .bits.se()
-            if pps.picOrderPresent do
+            if pps.picOrderPresent
+            {
                 .header.deltaPoc1 = .bits.se()
+            }
         }
 
         if pps.redundantPicCntPresent
         {
-            if .bits.ue() > 0 do
+            if .bits.ue() > 0
+            {
                 return false
+            }
         }
 
-        if .header.type == SliceTypeB do
+        if .header.type == SliceTypeB
+        {
             .header.directSpatial = .bits.bit() != 0
+        }
 
         .header.refCount[0] = pps.defaultRefCount[0]
         .header.refCount[1] = pps.defaultRefCount[1]
@@ -180,31 +201,49 @@ impl Slice
             if .bits.bit()
             {
                 .header.refCount[0] = .bits.ue() + 1
-                if .header.type == SliceTypeB do
+                if .header.type == SliceTypeB
+                {
                     .header.refCount[1] = .bits.ue() + 1
+                }
             }
 
-            if .header.refCount[0] > 32 or .header.refCount[1] > 32 do
+            if .header.refCount[0] > 32 or .header.refCount[1] > 32
+            {
                 fail InvalidFormatError{"H.264 slice declares an out-of-range reference count"}
+            }
         }
 
         // Reference list modifications are parsed now and applied while building the lists.
         for list in 2
         {
-            if .header.type == SliceTypeI or (list == 1 and .header.type != SliceTypeB) do
+            if .header.type == SliceTypeI or (list == 1 and .header.type != SliceTypeB)
+            {
                 continue
-            if not .bits.bit() do
+            }
+
+            if not .bits.bit()
+            {
                 continue
+            }
+
             while true
             {
                 let kind = .bits.ue()
-                if kind == 3 do
+                if kind == 3
+                {
                     break
-                if kind > 2 do
+                }
+
+                if kind > 2
+                {
                     fail InvalidFormatError{"H.264 slice carries an unknown reference-list modification"}
+                }
+
                 .listOps[list].add(ListOp{kind, .bits.ue()})
-                if .listOps[list].count > 64 do
+                if .listOps[list].count > 64
+                {
                     fail InvalidFormatError{"H.264 slice carries more list modifications than references"}
+                }
             }
         }
 
@@ -221,12 +260,15 @@ impl Slice
             .useWeights      = true
             .lumaLog2Denom   = .bits.ue()
             .chromaLog2Denom = .bits.ue()
-            if .lumaLog2Denom > 7 or .chromaLog2Denom > 7 do
+            if .lumaLog2Denom > 7 or .chromaLog2Denom > 7
+            {
                 fail InvalidFormatError{"H.264 slice declares an out-of-range weight denominator"}
+            }
+
             .initDefaultWeights()
             try .parseWeights()
         }
-        elif .header.type == SliceTypeB and pps.weightedBipredIdc == 2
+        else if .header.type == SliceTypeB and pps.weightedBipredIdc == 2
         {
             .useImplicit = true
         }
@@ -242,57 +284,89 @@ impl Slice
                 discard .bits.bit()     // no_output_of_prior_pics_flag.
                 dec.idrLongTerm = .bits.bit() != 0
             }
-            elif .bits.bit()
+            else if .bits.bit()
             {
                 dec.adaptiveMarking = true
                 while true
                 {
                     let op = .bits.ue()
-                    if op == 0 do
+                    if op == 0
+                    {
                         break
-                    if op > 6 do
+                    }
+
+                    if op > 6
+                    {
                         fail InvalidFormatError{"H.264 slice carries an unknown reference marking operation"}
+                    }
+
                     var operation: MmcoOp
                     operation.op = op
-                    if op == 1 or op == 3 do
+                    if op == 1 or op == 3
+                    {
                         operation.arg0 = .bits.ue()
-                    if op == 2 do
+                    }
+
+                    if op == 2
+                    {
                         operation.arg0 = .bits.ue()
-                    if op == 3 do
+                    }
+
+                    if op == 3
+                    {
                         operation.arg1 = .bits.ue()
-                    if op == 4 or op == 6 do
+                    }
+
+                    if op == 4 or op == 6
+                    {
                         operation.arg0 = .bits.ue()
+                    }
+
                     dec.mmcoOps.add(operation)
-                    if dec.mmcoOps.count > 64 do
+                    if dec.mmcoOps.count > 64
+                    {
                         fail InvalidFormatError{"H.264 slice carries more marking operations than references"}
+                    }
                 }
             }
         }
-        elif refIdc != 0 and isIdr
+        else if refIdc != 0 and isIdr
         {
             .bits.skip(2)
         }
-        elif refIdc != 0
+        else if refIdc != 0
         {
             // Later slices repeat the marking of the first; skip it without storing.
-            if .bits.bit() do
+            if .bits.bit()
+            {
                 .skipRepeatedMarking()
+            }
         }
 
-        if pps.cabac and .header.type != SliceTypeI do
+        if pps.cabac and .header.type != SliceTypeI
+        {
             .header.cabacInitIdc = .bits.ue()
-        if .header.cabacInitIdc > 2 do
+        }
+
+        if .header.cabacInitIdc > 2
+        {
             fail InvalidFormatError{"H.264 slice declares an unknown CABAC initialization"}
+        }
 
         .header.qp = pps.initQp + .bits.se()
-        if .header.qp < 0 or .header.qp > 51 do
+        if .header.qp < 0 or .header.qp > 51
+        {
             fail InvalidFormatError{"H.264 slice declares an out-of-range QP"}
+        }
 
         if pps.deblockControlPresent
         {
             .header.deblockIdc = .bits.ue()
-            if .header.deblockIdc > 2 do
+            if .header.deblockIdc > 2
+            {
                 fail InvalidFormatError{"H.264 slice declares an unknown deblocking mode"}
+            }
+
             if .header.deblockIdc != 1
             {
                 .header.alphaOffset = .bits.se() * 2
@@ -300,8 +374,10 @@ impl Slice
             }
         }
 
-        if .bits.overran do
+        if .bits.overran
+        {
             fail InvalidFormatError{"H.264 slice header is truncated"}
+        }
 
         .isCabac = pps.cabac
         .qp      = .header.qp
@@ -311,14 +387,14 @@ impl Slice
     // Fills the default explicit weights of every possible reference entry.
     private mtd initDefaultWeights()
     {
-        for list in 2'u64
+        for list in 2_u64
         {
-            for index in 32'u64
+            for index in 32_u64
             {
                 let entry = &.refs[list, index]
-                entry.lumaWeight = 1's32 << .lumaLog2Denom
+                entry.lumaWeight = 1_s32 << .lumaLog2Denom
                 entry.lumaOffset = 0
-                entry.cbWeight   = 1's32 << .chromaLog2Denom
+                entry.cbWeight   = 1_s32 << .chromaLog2Denom
                 entry.cbOffset   = 0
                 entry.crWeight   = entry.cbWeight
                 entry.crOffset   = 0
@@ -332,13 +408,16 @@ impl Slice
         while true
         {
             let op = .bits.ue()
-            if op == 0 or .bits.overran do
+            if op == 0 or .bits.overran
+            {
                 break
+            }
+
             if op == 1 or op == 2 or op == 4 or op == 6
             {
                 discard .bits.ue()
             }
-            elif op == 3
+            else if op == 3
             {
                 discard .bits.ue()
                 discard .bits.ue()
@@ -351,7 +430,7 @@ impl Slice
     {
         let dec         = unwrap .dec
         let current     = unwrap dec.current
-        let maxFrameNum = 1's32 << dec.sps!.log2MaxFrameNum
+        let maxFrameNum = 1_s32 << dec.sps!.log2MaxFrameNum
 
         // Picture numbers of the short-term references, relative to this slice.
         for reference in dec.shortRefs
@@ -360,30 +439,44 @@ impl Slice
             reference.picNum       = reference.frameNumWrap
         }
 
-        var initial: [2] Array'*Frame
+        var initial: [2] Array!{*Frame}
         if .header.type == SliceTypeP
         {
-            for reference in dec.shortRefs do
+            for reference in dec.shortRefs
+            {
                 initial[0].add(reference)
+            }
+
             Slice.sortByPicNumDescending(&initial[0])
         }
         else
         {
             // List 0: past pictures by descending order count, then future ones ascending.
-            for reference in dec.shortRefs do
+            for reference in dec.shortRefs
+            {
                 initial[0].add(reference)
+            }
+
             Slice.sortForB(&initial[0], current.poc, false)
-            for reference in dec.shortRefs do
+            for reference in dec.shortRefs
+            {
                 initial[1].add(reference)
+            }
+
             Slice.sortForB(&initial[1], current.poc, true)
         }
 
-        for list in 2'u64
+        for list in 2_u64
         {
-            if list == 1 and .header.type != SliceTypeB do
+            if list == 1 and .header.type != SliceTypeB
+            {
                 break
-            for reference in dec.longRefs do
+            }
+
+            for reference in dec.longRefs
+            {
                 initial[list].add(reference)
+            }
         }
 
         // Two identical bidirectional lists swap their first two entries.
@@ -394,15 +487,21 @@ impl Slice
             initial[1][1] = first
         }
 
-        for list in 2'u64
+        for list in 2_u64
         {
-            if list == 1 and .header.type != SliceTypeB do
+            if list == 1 and .header.type != SliceTypeB
+            {
                 break
+            }
+
             try .applyListOps(&initial[list], .listOps[list], cast(u32, list))
 
             let wanted = .header.refCount[list]
-            if not initial[list].count do
+            if not initial[list].count
+            {
                 fail InvalidFormatError{"H.264 predicted slice has no reference picture"}
+            }
+
             .refCount[list] = wanted
             for index in wanted
             {
@@ -415,8 +514,10 @@ impl Slice
             }
         }
 
-        if .useImplicit do
+        if .useImplicit
+        {
             .buildImplicitWeights()
+        }
     }
 
     // Parses the explicit prediction weights of both lists.
@@ -435,8 +536,10 @@ impl Slice
                     if entry.lumaWeight < -128 or
                        entry.lumaWeight > 127 or
                        entry.lumaOffset < -128 or
-                       entry.lumaOffset > 127 do
+                       entry.lumaOffset > 127
+                    {
                         fail InvalidFormatError{"H.264 slice declares an out-of-range luma weight"}
+                    }
                 }
 
                 if .bits.bit()
@@ -452,14 +555,18 @@ impl Slice
                        entry.cbOffset < -128 or
                        entry.cbOffset > 127 or
                        entry.crOffset < -128 or
-                       entry.crOffset > 127 do
+                       entry.crOffset > 127
+                    {
                         fail InvalidFormatError{"H.264 slice declares an out-of-range chroma weight or offset"}
+                    }
                 }
             }
         }
 
-        if .bits.overran do
+        if .bits.overran
+        {
             fail InvalidFormatError{"H.264 slice header is truncated"}
+        }
     }
 
     // Builds the implicit bidirectional weights, section 8.4.2.3.2.
@@ -472,15 +579,17 @@ impl Slice
             {
                 let ref0    = .refs[0, index0]
                 let ref1    = .refs[1, index1]
-                var weight1 = 32's32
+                var weight1 = 32_s32
                 if not ref0.isLong and not ref1.isLong and ref0.poc != ref1.poc
                 {
                     let tb    = Math.clamp(currentPoc - ref0.poc, -128, 127)
                     let td    = Math.clamp(ref1.poc - ref0.poc, -128, 127)
                     let tx    = (16384 + Math.abs(td / 2)) / td
                     let scale = Math.clamp((tb * tx + 32) >> 6, -1024, 1023)
-                    if (scale >> 2) >= -64 and (scale >> 2) <= 128 do
+                    if (scale >> 2) >= -64 and (scale >> 2) <= 128
+                    {
                         weight1 = scale >> 2
+                    }
                 }
 
                 .implicitW1[index0, index1] = cast(s16, weight1)
@@ -489,20 +598,24 @@ impl Slice
     }
 
     // Applies the reference-list modification operations, section 8.2.4.3.
-    private mtd applyListOps(list: *Array'*Frame, ops: Array'ListOp, listIndex: u32) fail
+    private mtd applyListOps(list: *Array!{*Frame}, ops: Array!{ListOp}, listIndex: u32) fail
     {
-        if not ops.count do
+        if not ops.count
+        {
             return
+        }
 
         let dec         = unwrap .dec
-        let maxFrameNum = 1's32 << dec.sps!.log2MaxFrameNum
+        let maxFrameNum = 1_s32 << dec.sps!.log2MaxFrameNum
         let wanted      = .header.refCount[listIndex]
 
         // The list is modified at its declared size; extend with repeats before inserting.
-        while list.count < cast(u64, wanted) and list.count do
+        while list.count < cast(u64, wanted) and list.count
+        {
             list.add(list.back())
+        }
 
-        var insertPos  = 0'u64
+        var insertPos  = 0_u64
         var picNumPred = cast(s32, .header.frameNum)
         for operation in ops
         {
@@ -519,10 +632,15 @@ impl Slice
             {
                 let delta  = cast(s32, operation.value) + 1
                 var picNum = operation.kind == 0 ? picNumPred - delta : picNumPred + delta
-                if picNum < 0 do
+                if picNum < 0
+                {
                     picNum += maxFrameNum
-                elif picNum >= maxFrameNum do
+                }
+                else if picNum >= maxFrameNum
+                {
                     picNum -= maxFrameNum
+                }
+
                 picNumPred = picNum
                 let wrapped = picNum > cast(s32, .header.frameNum) ? picNum - maxFrameNum : picNum
                 for reference in dec.shortRefs where reference.picNum == wrapped
@@ -532,8 +650,10 @@ impl Slice
                 }
             }
 
-            if not target do
+            if not target
+            {
                 fail InvalidFormatError{"H.264 slice reorders a reference picture that does not exist"}
+            }
 
             // Insert at the running position, then drop the duplicate further down.
             let frame = target
@@ -554,7 +674,7 @@ impl Slice
     }
 
     // Sorts short-term references by descending picture number, for P lists.
-    private func sortByPicNumDescending(list: *Array'*Frame)
+    private func sortByPicNumDescending(list: *Array!{*Frame})
     {
         for outer in list.count
         {
@@ -572,7 +692,7 @@ impl Slice
 
     // Sorts short-term references for a B list: past then future for list 0, the reverse for
     // list 1, each side ordered outward from the current picture.
-    private func sortForB(list: *Array'*Frame, currentPoc: s32, list1: bool)
+    private func sortForB(list: *Array!{*Frame}, currentPoc: s32, list1: bool)
     {
         for outer in list.count
         {
@@ -593,20 +713,32 @@ impl Slice
     {
         let aPast = a.poc <= currentPoc
         let bPast = b.poc <= currentPoc
-        if aPast != bPast do
+        if aPast != bPast
+        {
             return list1 ? not aPast : aPast
-        if aPast do
+        }
+
+        if aPast
+        {
             return a.poc > b.poc
+        }
+
         return a.poc < b.poc
     }
 
     // Reports whether both initial lists hold the same pictures in the same order.
-    private func sameList(a, b: Array'*Frame)->bool
+    private func sameList(a, b: Array!{*Frame})->bool
     {
-        if a.count != b.count do
+        if a.count != b.count
+        {
             return false
-        for index in a.count where a[index] != b[index] do
+        }
+
+        for index in a.count where a[index] != b[index]
+        {
             return false
+        }
+
         return true
     }
 }

@@ -18,12 +18,15 @@ func(T) enumToUserData(value: T)->*void => cast(*void, cast(u64, value))
 
 func(T) enumFromStoredValue(raw: u64)->T
 {
-    for value in T where cast(u64, value) == raw do
+    for value in T where cast(u64, value) == raw
+    {
         return value
+    }
+
     Swag.panic("stored value is not a declared enum member", #curlocation)
 }
 
-func(T) enumFromUserData(data: *void?)->T => enumFromStoredValue'T(cast(u64, data))
+func(T) enumFromUserData(data: *void?)->T => enumFromStoredValue!{T}(cast(u64, data))
 
 // Reports whether a line end is one the "Start Size" and "End Size" rows can resize.
 //
@@ -89,7 +92,7 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
 
     // The stroke is the interface outline weight: heavier, it closes the counter of the shape and
     // the sample reads as a filled blob.
-    let stroke = 1.4'f32
+    let stroke = 1.4_f32
 
     switch #complete kind
     {
@@ -229,13 +232,19 @@ impl PropWnd
         // Change selection
         else
         {
-            if not first do
+            if not first
+            {
                 capture.undo()
+            }
+
             with let undo = capture.newUndo(.SetTypedValue)
             {
                 .valU32 = val
-                if not common do
+                if not common
+                {
                     .mdlType = type
+                }
+
                 .valRef = unwrap Reflection.findField(type, name)
             }
 
@@ -259,27 +268,42 @@ impl PropWnd
     mtd commonFormType()->typeinfo
     {
         let capture = .main.getCapture()
-        if not capture or not capture.selection.count do
+        if not capture or not capture.selection.count
+        {
             return .getSelectedFormType()
+        }
 
         var allSame  = true
         var lineOnly = true
         var firstType: typeinfo?
-        foreachSelected'BaseForm(capture, capture.selection)
+        foreachSelected!{BaseForm}(capture, capture.selection)
         {
             let t = Swag.kindOf(itf)
-            if not firstType do
+            if not firstType
+            {
                 firstType = t
-            elif t != firstType do
+            }
+            else if t != firstType
+            {
                 allSame = false
-            if t != FormLine and t != FormArrow do
+            }
+
+            if t != FormLine and t != FormArrow
+            {
                 lineOnly = false
+            }
         }
 
-        if allSame do
+        if allSame
+        {
             return firstType orelse #typeof(BaseForm)
-        if lineOnly do
+        }
+
+        if lineOnly
+        {
             return FormLine
+        }
+
         return BaseForm
     }
 
@@ -290,7 +314,7 @@ impl PropWnd
     mtd bindGrid()
     {
         let capture = .main.getCapture()
-        var bases: Array'(*u8?)
+        var bases: Array!{*u8?}
 
         if not capture or not capture.selection.count
         {
@@ -303,7 +327,7 @@ impl PropWnd
         }
         else
         {
-            foreachSelected'BaseForm(capture, capture.selection)
+            foreachSelected!{BaseForm}(capture, capture.selection)
             {
                 bases.add(cast(*u8?, form))
             }
@@ -324,8 +348,11 @@ impl PropWnd
             for item in .grid.items
             {
                 let it = unwrap item
-                if it.typeValue.name != #nameof(BaseForm.borderSize) or it.sliderBox == null do
+                if it.typeValue.name != #nameof(BaseForm.borderSize) or it.sliderBox == null
+                {
                     continue
+                }
+
                 let sliderBox = it.sliderBox
                 sliderBox.label.setText(appStrings().ui_Outline)
                 sliderBox.setSignedBounds(cast(s64, MinTextBorderSize), cast(s64, MaxTextBorderSize))
@@ -344,8 +371,11 @@ impl PropWnd
         for item in .grid.items
         {
             let it = unwrap item
-            if not it.flags.has(.Category) or it.label == null do
+            if not it.flags.has(.Category) or it.label == null
+            {
                 continue
+            }
+
             it.line.margin.y = 0
             it.line.margin.w = 0
         }
@@ -362,8 +392,10 @@ impl PropWnd
         for item in .grid.items where item!.line.isVisible()
         {
             let label = fieldLabel(item)
-            if label do
+            if label
+            {
                 width = Math.max(width, Painter.measureString(label.name.text, unwrap label.font().regular).width)
+            }
         }
 
         width = Math.ceil(width)
@@ -374,8 +406,11 @@ impl PropWnd
             fieldLabel(item)?.setTextAlignment(.Left, .Center)
 
             // Every row is the height of a control of the inspector, so the rows keep its pitch.
-            for c in item.line.children where c.position.height > height do
+            for c in item.line.children where c.position.height > height
+            {
                 c.resize(c.position.width, height)
+            }
+
             if item.sliderBox != null
             {
                 // The value of a slider is a measure read beside its track: mono, with no box
@@ -386,15 +421,17 @@ impl PropWnd
                 ctrl.edit.updateFlags(.ReleaseFocusOnEnterOrEscape)
                 ctrl.edit.style.setFont(.theme().res.fontDefaultFs)
             }
-            elif fieldComboCtrl(item)
+            else if fieldComboCtrl(item)
             {
                 let ctrl = unwrap fieldComboCtrl(item)
                 ctrl.setLayoutMetrics(width, ctrl.comboWidth, gap)
             }
-            elif item.editBox != null
+            else if item.editBox != null
             {
-                if item.editBox.parent is EditCtrl as ctrl do
+                if item.editBox.parent is EditCtrl as ctrl
+                {
                     ctrl.setLayoutMetrics(width, ctrl.editWidth, gap)
+                }
             }
         }
     }
@@ -405,15 +442,20 @@ impl PropWnd
     {
         if item.comboBox != null
         {
-            if item.comboBox.parent is ComboCtrl as ctrl do
+            if item.comboBox.parent is ComboCtrl as ctrl
+            {
                 return ctrl
+            }
+
             return null
         }
 
         for child in item.line.children
         {
-            if child is ComboCtrl do
+            if child is ComboCtrl
+            {
                 return assume cast(*ComboCtrl, child)
+            }
         }
 
         return null
@@ -423,16 +465,21 @@ impl PropWnd
     // names itself another way.
     func fieldLabel(item: *PropertiesItem)->*Label?
     {
-        if item.sliderBox != null do
+        if item.sliderBox != null
+        {
             return item.sliderBox.label
+        }
+
         if fieldComboCtrl(item)
         {
             return fieldComboCtrl(item)!.label
         }
-        elif item.editBox != null
+        else if item.editBox != null
         {
-            if item.editBox.parent is EditCtrl as ctrl do
+            if item.editBox.parent is EditCtrl as ctrl
+            {
                 return ctrl.label
+            }
         }
 
         return null
@@ -444,8 +491,11 @@ impl PropWnd
     mtd selectionHasChanged()
     {
         .positionForm = null
-        for it in .topLayout.children do
+        for it in .topLayout.children
+        {
             it.destroy()
+        }
+
         .grid.clear()
 
         // What several objects share comes first, then how to align, arrange and pick them. A
@@ -474,7 +524,7 @@ impl PropWnd
     // Builds the property panel: the row of style cells above the grid of fields.
     func create(parent: *Wnd, main: *MainWnd)->*PropWnd
     {
-        with let prop = Wnd.create'PropWnd(parent, {0, 0, 0, 300})
+        with let prop = Wnd.create!{PropWnd}(parent, {0, 0, 0, 300})
         {
             .backgroundStyle = .Transparent
             let gutter = .themeMetrics().scrollBar_HitSize + .themeMetrics().scrollBar_EdgeInset
@@ -542,7 +592,7 @@ impl PropWnd
     {
         let metrics  = .themeMetrics()
         let height   = metrics.control_InspectorHeight
-        with let row = Wnd.create'Wnd(.topLayout, {0, 0, 0, height})
+        with let row = Wnd.create!{Wnd}(.topLayout, {0, 0, 0, height})
         {
             .backgroundStyle = .Transparent
         }
@@ -556,7 +606,7 @@ impl PropWnd
             }
         }
 
-        with let cell = Wnd.create'Wnd(row)
+        with let cell = Wnd.create!{Wnd}(row)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -580,17 +630,11 @@ impl PropWnd
         let form = .getSelectedBaseForm()
         switch #complete slot
         {
-        case .Border:
-            return form.borderColor
+        case .Border:        return form.borderColor
+        case .StrokeOutline: return .strokeOutlineColor()
+        case .Fill:          return form.subKind == .PixSel ? .main.pixSelFillCol : form.backColor
 
-        case .StrokeOutline:
-            return .strokeOutlineColor()
-
-        case .Fill:
-            return form.subKind == .PixSel ? .main.pixSelFillCol : form.backColor
-
-        case .CalloutText:
-            let callout = .getSelectedForm'FormCallout()
+        case .CalloutText: let callout = .getSelectedForm!{FormCallout}()
             return callout ? callout.textColor : Argb.Black
         }
     }
@@ -608,10 +652,14 @@ impl PropWnd
             .setStrokeOutlineColor(color, first)
 
         case .Fill:
-            if .getSelectedBaseForm().subKind == .PixSel do
+            if .getSelectedBaseForm().subKind == .PixSel
+            {
                 .main.pixSelFillCol = color
-            else do
+            }
+            else
+            {
                 .pushTypedValue(color.argb, BaseForm, #nameof(BaseForm.backColor), first, true)
+            }
 
         case .CalloutText:
             .pushTypedValue(color.argb, FormCallout, #nameof(FormCallout.textColor), first)
@@ -651,8 +699,11 @@ impl PropWnd
                 return
             }
 
-            if not color.isOpaque() do
+            if not color.isOpaque()
+            {
                 painter.fillRoundRect(swatch, metrics.corner_Chip, metrics.corner_Chip, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
+            }
+
             painter.fillRoundRect(swatch, metrics.corner_Chip, metrics.corner_Chip, color)
             painter.drawRoundRect(swatch, metrics.corner_Chip, metrics.corner_Chip, colors.line, metrics.separator_HairlineSize)
 
@@ -710,8 +761,11 @@ impl PropWnd
     // Returns the value glyph `index` of the choice `row` stands for.
     func choiceValue(row: ChoiceRow, index: u32)->u32
     {
-        if row == .Dash and index >= cast(u32, DashStyle.Pattern) do
+        if row == .Dash and index >= cast(u32, DashStyle.Pattern)
+        {
             return index + 1
+        }
+
         return index
     }
 
@@ -721,25 +775,33 @@ impl PropWnd
         switch #complete row
         {
         case .ShapeKind:
-            let shape = .getSelectedForm'FormShape()
-            if shape do
+            let shape = .getSelectedForm!{FormShape}()
+            if shape
+            {
                 return cast(u32, shape.kind)
+            }
 
         case .StepKind:
-            let step = .getSelectedForm'FormStep()
-            if step do
+            let step = .getSelectedForm!{FormStep}()
+            if step
+            {
                 return cast(u32, step.kind)
+            }
 
         case .Dash:
             return cast(u32, .getSelectedBaseForm().dashStyle)
 
         case .StartCap:
-            if .getSelectedBaseForm() is FormLine as line do
+            if .getSelectedBaseForm() is FormLine as line
+            {
                 return cast(u32, line.beginCap)
+            }
 
         case .EndCap:
-            if .getSelectedBaseForm() is FormLine as line do
+            if .getSelectedBaseForm() is FormLine as line
+            {
                 return cast(u32, line.endCap)
+            }
         }
 
         return 0
@@ -801,7 +863,7 @@ impl PropWnd
             {
                 .userData = enumToUserData(value)
                 .toolTip  = row == .ShapeKind or row == .StepKind
-                            ? shapeChoiceName(enumFromStoredValue'FormShapeKind(value))
+                            ? shapeChoiceName(enumFromStoredValue!{FormShapeKind}(value))
                             : tip
                 .setForm(.RoundedRectangle)
                 .setCheckIndicator(.Full)
@@ -838,14 +900,18 @@ impl PropWnd
         let isStroke = formType == FormLine or formType == FormArrow or formType == FormDraw
 
         var hasFill = pixSel or not isStroke
-        if not pixSel and formType == FormImage do
+        if not pixSel and formType == FormImage
+        {
             hasFill = (assume cast(*FormImage, form)).kind == .Image
+        }
 
         // A highlighter stroke is its colour alone; a highlighted area is its fill alone.
         let highlight = form.subKind == .Highlight
         let hasBorder = not pixSel and (not highlight or isStroke)
-        if not hasBorder and not hasFill do
+        if not hasBorder and not hasFill
+        {
             return
+        }
 
         // Several objects share what follows: the section says so.
         let capture = .main.getCapture()
@@ -855,20 +921,34 @@ impl PropWnd
         // A stroke is its colour, then its outline; a shape its fill, its words, then its outline.
         if isStroke and not pixSel
         {
-            if hasBorder do
+            if hasBorder
+            {
                 .addColorRow(appStrings().ui_PropColor, .Border)
-            if not highlight do
+            }
+
+            if not highlight
+            {
                 .addColorRow(appStrings().ui_PropOutline, .StrokeOutline)
+            }
+
             return
         }
 
         // A pixel selection has no fill of its own: its colour is the one its Fill command lays.
-        if hasFill do
+        if hasFill
+        {
             .addColorRow(pixSel ? appStrings().ui_PropColor : appStrings().ui_PropFill, .Fill)
-        if formType == FormCallout do
+        }
+
+        if formType == FormCallout
+        {
             .addColorRow(appStrings().act_Text, .CalloutText)
-        if hasBorder do
+        }
+
+        if hasBorder
+        {
             .addColorRow(formType == FormStep ? appStrings().act_Text : appStrings().ui_PropOutline, .Border)
+        }
     }
 
     // Reports whether every selected form, or the model of the tool, draws a dashed outline: a
@@ -877,19 +957,26 @@ impl PropWnd
     {
         func dashes(form: *BaseForm, type: typeinfo)->bool
         {
-            if form.subKind != .None do
+            if form.subKind != .None
+            {
                 return false
+            }
+
             return type == FormShape or type == FormLine or type == FormArrow or type == FormPolygon
         }
 
         let capture = .main.getCapture()
-        if not capture or not capture.selection.count do
-            return dashes(.getSelectedBaseForm(), .getSelectedFormType())
-
-        foreachSelected'BaseForm(capture, capture.selection)
+        if not capture or not capture.selection.count
         {
-            if not dashes(form, Swag.kindOf(itf)) do
+            return dashes(.getSelectedBaseForm(), .getSelectedFormType())
+        }
+
+        foreachSelected!{BaseForm}(capture, capture.selection)
+        {
+            if not dashes(form, Swag.kindOf(itf))
+            {
                 return false
+            }
         }
 
         return true
@@ -905,8 +992,10 @@ impl PropWnd
         let isLine   = formType == FormLine or formType == FormArrow
         let hasShape = (formType == FormShape and not pixSel) or formType == FormStep
         let hasDash  = .allSelectedDash()
-        if not hasShape and not hasDash and not isLine do
+        if not hasShape and not hasDash and not isLine
+        {
             return
+        }
 
         .addHeadSection(appStrings().ui_PropStyle)
         if hasShape
@@ -915,8 +1004,10 @@ impl PropWnd
             .addChoiceGlyphs(.addHeadRow(appStrings().prop_Kind), row, appStrings().act_Shape)
         }
 
-        if hasDash do
+        if hasDash
+        {
             .addChoiceGlyphs(.addHeadRow(appStrings().ui_PropDash), .Dash, appStrings().ui_PropDash)
+        }
 
         if isLine
         {
@@ -931,11 +1022,17 @@ impl PropWnd
     // the Arc ground: changing it keeps where the mask stands.
     mtd addMaskKindRows()
     {
-        let found = .getSelectedForm'FormImage()
-        if not found do
+        let found = .getSelectedForm!{FormImage}()
+        if not found
+        {
             return
-        if found.subKind != .None do
+        }
+
+        if found.subKind != .None
+        {
             return
+        }
+
         let current = found.kind
 
         .addHeadSection(appStrings().prop_Kind)
@@ -957,7 +1054,7 @@ impl PropWnd
             // The panel is built again once the kind changed, which checks the new one.
             button.sigPressed += func|prop = me|(btn)
             {
-                prop.pushTypedValue(cast(u32, enumFromUserData'FormImageKind(btn.userData)), FormImage, #nameof(FormImage.kind), true)
+                prop.pushTypedValue(cast(u32, enumFromUserData!{FormImageKind}(btn.userData)), FormImage, #nameof(FormImage.kind), true)
             }
         }
     }
@@ -967,8 +1064,10 @@ impl PropWnd
     mtd addArrangeRows()
     {
         let capture = .main.getCapture()
-        if not capture or capture.selection.count < 2 do
+        if not capture or capture.selection.count < 2
+        {
             return
+        }
 
         let texts   = appStrings()
         let metrics = .themeMetrics()
@@ -1019,8 +1118,11 @@ impl PropWnd
         var shown = 0
         for i in reversed(capture.forms.count)
         {
-            if shown == MaxLayerRows do
+            if shown == MaxLayerRows
+            {
                 break
+            }
+
             shown += 1
 
             let form = capture.forms[i]
@@ -1029,11 +1131,17 @@ impl PropWnd
             // A layer is named by its words when it has some, by its kind otherwise: a shape is a
             // rectangle or an ellipse, as the title of the inspector counts it.
             var name: String = mode.name()
-            if form is FormShape as shape where mode == .Shape do
+            if form is FormShape as shape where mode == .Shape
+            {
                 name = shape.kind == .Ellipse ? texts.kind_Ellipse : texts.kind_Rectangle
+            }
+
             let words = formEditableText(form)
-            if words and not words.isEmpty() do
+            if words and not words.isEmpty()
+            {
                 name = words[]
+            }
+
             with let button = IconButton.create(.addHeadRow(""), .main.icon(mode.glyph(), metrics.menuPopup_IconSize), {}, flags: .Radio)
             {
                 .dockStyle = .Center
@@ -1046,8 +1154,11 @@ impl PropWnd
                 .sigPressed += func|prop = me|(btn)
                 {
                     let capture = prop.main.getCapture()
-                    if not capture do
+                    if not capture
+                    {
                         return
+                    }
+
                     capture.selection.clear()
                     capture.selection.add(cast(u64, btn.userData))
                     capture.selectionHasChanged()
@@ -1086,8 +1197,10 @@ impl PropWnd
     // objects stands: what fills the pixels, then what clears or moves them.
     mtd propPixSel()
     {
-        if .getSelectedBaseForm().subKind != .PixSel do
+        if .getSelectedBaseForm().subKind != .PixSel
+        {
             return
+        }
 
         .addHeadSection(appStrings().ui_MenuEdit)
         let size = .themeMetrics().control_InspectorHeight
@@ -1112,8 +1225,10 @@ impl PropWnd
     mtd propTime()
     {
         let capture = .main.getCapture()
-        if not capture or not capture.isTimed() or capture.selection.count != 1 do
+        if not capture or not capture.isTimed() or capture.selection.count != 1
+        {
             return
+        }
 
         let form: *BaseForm = capture.forms[capture.selection[0]]
         let duration        = cast(f64, capture.timeline.duration) / 1_000_000
@@ -1137,12 +1252,18 @@ impl PropWnd
             edit.edit.style.setFont(prop.theme().res.fontDefaultFs)
             edit.edit.sigCommitted += func|prop, start|(ed)
             {
-                if ed.revalidate() != .Valid do
+                if ed.revalidate() != .Valid
+                {
                     return
+                }
+
                 let {value, eat: _, ovf: _} = catch StrConv.parseF64(ed.text()) { return; }
                 let capture = prop.main.getCapture()
-                if not capture or not capture.isTimed() or capture.selection.count != 1 do
+                if not capture or not capture.isTimed() or capture.selection.count != 1
+                {
                     return
+                }
+
                 let microseconds = cast(u64, Math.round(value * 1_000_000))
                 capture.setSelectionSpanAt(start, time: microseconds)
                 prop.main.timeline?.invalidate()
@@ -1177,11 +1298,17 @@ impl PropWnd
     mtd propXY()
     {
         let capture = .main.getCapture()
-        if not capture or capture.selection.count != 1 do
+        if not capture or capture.selection.count != 1
+        {
             return
+        }
+
         let t = .getSelectedFormType()
-        if t != FormShape and t != FormText and t != FormCallout do
+        if t != FormShape and t != FormText and t != FormCallout
+        {
             return
+        }
+
         let form = .getSelectedBaseForm()
 
         func addBox(prop: *PropWnd, parent: *Wnd, label: string, name: string, value: s32, signed: bool)->*EditBox
@@ -1191,14 +1318,22 @@ impl PropWnd
             edit.label.updateFlags(.SecondaryText)
             edit.edit.style.setFont(prop.theme().res.fontDefaultFs)
 
-            if signed do
+            if signed
+            {
                 edit.edit.setSignedIntegerRange()
-            else do
+            }
+            else
+            {
                 edit.edit.setUnsignedIntegerRange(1, 10000)
+            }
+
             edit.edit.sigCommitted += func|prop, name|(ed)
             {
-                if ed.revalidate() != .Valid do
+                if ed.revalidate() != .Valid
+                {
                     return
+                }
+
                 let {value: v, eat: _, ovf: _} = catch StrConv.parseS32(ed.text()) { return; }
                 prop.pushTypedValue(v, BaseForm, name, true, true)
             }
@@ -1235,12 +1370,16 @@ impl PropWnd
     mtd refreshPosition()
     {
         let form = .positionForm
-        if not form or form != .main.getCapture()?.getSelectedBaseForm() do
+        if not form or form != .main.getCapture()?.getSelectedBaseForm()
+        {
             return
+        }
 
         let values = [form.x, form.y, form.w, form.h]
-        for edit, index in .positionFields where edit and not edit.hasFocus() do
+        for edit, index in .positionFields where edit and not edit.hasFocus()
+        {
             edit.setText(Format.toString("%", values[index]), notify: false)
+        }
     }
 }
 
@@ -1255,8 +1394,10 @@ impl IPropertyNotify for PropWnd
 
         // Category separators hide by themselves: the grid force-shows an item's parents,
         // so a separator appears exactly when its group has at least one visible row.
-        if item.flags.has(.Category) do
+        if item.flags.has(.Category)
+        {
             return false
+        }
 
         let name = item.typeValue.name
 
@@ -1335,8 +1476,10 @@ impl IPropertyNotify for PropWnd
     {
         // The join combo omits JoinStyle.None: no join drawn = notched corners on any
         // thick stroke, never what a Swag Capture form wants.
-        if item.typeValue.name == #nameof(BaseForm.joinStyle) do
+        if item.typeValue.name == #nameof(BaseForm.joinStyle)
+        {
             return enumValue.name != #nameof(JoinStyle.None)
+        }
 
         return true
     }
@@ -1350,28 +1493,38 @@ impl IPropertyNotify for PropWnd
             // command can also touch a form that is no longer selected.
             if item
             {
-                for index in capture.selection do
+                for index in capture.selection
+                {
                     capture.invalidateFormCache(capture.forms[index])
+                }
             }
             else
             {
                 capture.invalidateAllFormCaches()
             }
 
-            if capture.selection.count do
+            if capture.selection.count
+            {
                 capture.updateModelFromSelection()
+            }
+
             capture.hasChanged()
         }
 
-        if .main.miniBar != null do
+        if .main.miniBar != null
+        {
             .main.miniBar.refreshControls()
+        }
+
         .main.quickWnd.updateSelection()
         .main.editWnd.invalidate()
 
         // The image kind drives which rows and top buttons exist: rebuild the whole panel,
         // on the next frame (we are inside the grid's own change notification).
-        if item and .gridBindType == FormImage and item.typeValue.name == #nameof(FormImage.kind) do
+        if item and .gridBindType == FormImage and item.typeValue.name == #nameof(FormImage.kind)
+        {
             .needRebuild = true
+        }
     }
 }
 
@@ -1395,15 +1548,23 @@ impl IWnd for PropWnd
         // A hairline marks where the settings pass under the presets, and where more of them
         // wait below: the cut stays an edge, not a row sliced through its words.
         let edges = .scrollEdges()
-        if not edges.above and not edges.below do
+        if not edges.above and not edges.below
+        {
             return
+        }
+
         let painter = evt.paintContext.painter
         let color   = .themeColors().line
         let width   = .clientRect().width
-        if edges.above do
+        if edges.above
+        {
             painter.fillRect(Math.Rectangle{GridRowInset, 0, width - 2 * GridRowInset, 1}, color)
-        if edges.below do
+        }
+
+        if edges.below
+        {
             painter.fillRect(Math.Rectangle{GridRowInset, .clientRect().height - 1, width - 2 * GridRowInset, 1}, color)
+        }
     }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
@@ -1417,8 +1578,10 @@ impl IWnd for PropWnd
         {
             .needRebuild = false
             .selectionHasChanged()
-            if .main.miniBar != null do
+            if .main.miniBar != null
+            {
                 .main.miniBar.refreshControls()
+            }
         }
     }
 
@@ -1431,7 +1594,9 @@ impl IWnd for PropWnd
     // from outside it.
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .selectionHasChanged()
+        }
     }
 }

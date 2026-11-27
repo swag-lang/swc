@@ -42,11 +42,16 @@ func day2A()
 
         var occurrencesByLetter: [26] s32
 
-        for letter in password do
+        for letter in password
+        {
             occurrencesByLetter[letter - 'a'] += 1
+        }
+
         if occurrencesByLetter[requiredLetter] >= minimumOccurrences and
-           occurrencesByLetter[requiredLetter] <= maximumOccurrences do
+           occurrencesByLetter[requiredLetter] <= maximumOccurrences
+        {
             total += 1
+        }
     }
 
     Swag.assert(total == 524)

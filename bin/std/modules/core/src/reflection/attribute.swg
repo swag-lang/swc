@@ -7,15 +7,24 @@ using Swag
 #[ConstExpr]
 private func sameAttributeType(left: typeinfo?, right: typeinfo?)->bool
 {
-    if left == null or right == null do
+    if left == null or right == null
+    {
         return false
+    }
+
     if left.fullname != null and
        right.fullname != null and
        left.fullname != "" and
-       right.fullname != "" do
+       right.fullname != ""
+    {
         return left.fullname == right.fullname
-    if left.name != null and right.name != null and left.name != "" and right.name != "" do
+    }
+
+    if left.name != null and right.name != null and left.name != "" and right.name != ""
+    {
         return left.name == right.name
+    }
+
     return false
 }
 
@@ -26,8 +35,11 @@ private func sameAttributeType(left: typeinfo?, right: typeinfo?)->bool
 func attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value: string?)->any?
 {
     let attrib = Reflection.attribute(type, attribute)
-    if not attrib do
+    if not attrib
+    {
         return null
+    }
+
     return attributeValue(attrib, value)
 }
 
@@ -38,11 +50,17 @@ func attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value: s
 func(T) attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value: string?, defaultValue: T)->T
 {
     let attrib = Reflection.attribute(type, attribute)
-    if not attrib do
+    if not attrib
+    {
         return defaultValue
+    }
+
     let attribVal = attributeValue(attrib, value)
-    if attribVal == null do
+    if attribVal == null
+    {
         return defaultValue
+    }
+
     return assume cast (T, attribVal)
 }
 
@@ -51,8 +69,11 @@ func(T) attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value
 func attributeValue(type: typeinfo?, attribute: typeinfo?, value: string?)->any?
 {
     let attrib = Reflection.attribute(type, attribute)
-    if not attrib do
+    if not attrib
+    {
         return null
+    }
+
     return attributeValue(attrib, value)
 }
 
@@ -60,22 +81,34 @@ func attributeValue(type: typeinfo?, attribute: typeinfo?, value: string?)->any?
 #[ConstExpr]
 func attributeValue(attribute: const *Swag.Attribute?, value: string?)->any?
 {
-    if not attribute do
+    if not attribute
+    {
         return null
-    for p in attribute.params where p.name == value do
+    }
+
+    for p in attribute.params where p.name == value
+    {
         return p.value
+    }
+
     return null
 }
 
 // Returns every instance of `attribute` attached to a reflected field or value.
 #[ConstExpr]
-func attributes(value: const *Swag.TypeValue?, attribute: typeinfo?)->Array'(const *Swag.Attribute)
+func attributes(value: const *Swag.TypeValue?, attribute: typeinfo?)->Array!{const *Swag.Attribute}
 {
     var result: #returntype
-    if not value do
+    if not value
+    {
         return result
-    for &it in value.attributes where sameAttributeType(attribute, it.type) do
+    }
+
+    for &it in value.attributes where sameAttributeType(attribute, it.type)
+    {
         result.add(it)
+    }
+
     return result
 }
 
@@ -83,10 +116,16 @@ func attributes(value: const *Swag.TypeValue?, attribute: typeinfo?)->Array'(con
 #[ConstExpr]
 func attribute(value: const *Swag.TypeValue?, attribute: typeinfo?)->const *Swag.Attribute?
 {
-    if not value do
+    if not value
+    {
         return null
-    for &it in value.attributes where sameAttributeType(attribute, it.type) do
+    }
+
+    for &it in value.attributes where sameAttributeType(attribute, it.type)
+    {
         return it
+    }
+
     return null
 }
 
@@ -98,28 +137,36 @@ func hasAttribute(value: const *Swag.TypeValue?, attribute: typeinfo?)->bool => 
 //
 // Only function, struct, and enum types carry attributes; any other type returns an empty array.
 #[ConstExpr]
-func attributes(type: typeinfo?, attribute: typeinfo?)->Array'(const *Swag.Attribute)
+func attributes(type: typeinfo?, attribute: typeinfo?)->Array!{const *Swag.Attribute}
 {
     var result: #returntype
-    if not type do
+    if not type
+    {
         return result
+    }
 
     switch type.kind
     {
     case .Func:
         let typeFunc = assume cast(const *TypeInfoFunc, type)
-        for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeFunc.attributes where sameAttributeType(attribute, it.type)
+        {
             result.add(it)
+        }
 
     case .Struct:
         let typeStruct = assume cast(const *TypeInfoStruct, type)
-        for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeStruct.attributes where sameAttributeType(attribute, it.type)
+        {
             result.add(it)
+        }
 
     case .Enum:
         let typeEnum = assume cast(const *TypeInfoEnum, type)
-        for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeEnum.attributes where sameAttributeType(attribute, it.type)
+        {
             result.add(it)
+        }
 
     default:
         break
@@ -134,25 +181,33 @@ func attributes(type: typeinfo?, attribute: typeinfo?)->Array'(const *Swag.Attri
 #[ConstExpr]
 func attribute(type: typeinfo?, attribute: typeinfo?)->const *Swag.Attribute?
 {
-    if not type do
+    if not type
+    {
         return null
+    }
 
     switch type.kind
     {
     case .Func:
         let typeFunc = assume cast(const *TypeInfoFunc, type)
-        for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeFunc.attributes where sameAttributeType(attribute, it.type)
+        {
             return it
+        }
 
     case .Struct:
         let typeStruct = assume cast(const *TypeInfoStruct, type)
-        for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeStruct.attributes where sameAttributeType(attribute, it.type)
+        {
             return it
+        }
 
     case .Enum:
         let typeEnum = assume cast(const *TypeInfoEnum, type)
-        for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeEnum.attributes where sameAttributeType(attribute, it.type)
+        {
             return it
+        }
 
     default:
         break

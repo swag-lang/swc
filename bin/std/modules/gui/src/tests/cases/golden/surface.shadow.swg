@@ -8,7 +8,7 @@ using Swag, Core, Pixel
 #[Swag.TestTag("golden")]
 #test
 {
-    for scale, index in [1.0'f32, 1.25'f32, 1.5'f32, 2.0'f32]
+    for scale, index in [1.0_f32, 1.25_f32, 1.5_f32, 2.0_f32]
     {
         var host: Testing.HeadlessHost
         host.setup(180, 120, scale)

@@ -23,7 +23,7 @@ func indexedNegative32(values: const [*]s32, index: u64)->u32 => values[index] <
 
 #test
 {
-    let values = [-9223372036854775808's64, -2147483648, -1, 0, 1, 2147483647, 9223372036854775807]
+    let values = [-9223372036854775808_s64, -2147483648, -1, 0, 1, 2147483647, 9223372036854775807]
     for a in values
     {
         let expected = cast #bit (u64, a) >> 63
@@ -32,15 +32,19 @@ func indexedNegative32(values: const [*]s32, index: u64)->u32 => values[index] <
         Swag.require(nonnegative(a) == (expected ^ 1))
         Swag.require(preserve(a) == (cast #bit (u64, a) ^ expected))
     }
-    let narrow = [-2147483648's32, -1, 0, 1, 2147483647]
+    let narrow = [-2147483648_s32, -1, 0, 1, 2147483647]
     for a in narrow
     {
         let expected = cast #bit (u32, a) >> 31
         Swag.require(negative32(a) == expected)
         Swag.require(negativeWide(a) == expected)
     }
-    for a, index in values do
+    for a, index in values
+    {
         Swag.require(indexedNegative(&values[0], index) == (cast #bit (u64, a) >> 63))
-    for a, index in narrow do
+    }
+    for a, index in narrow
+    {
         Swag.require(indexedNegative32(&narrow[0], index) == (cast #bit (u32, a) >> 31))
+    }
 }

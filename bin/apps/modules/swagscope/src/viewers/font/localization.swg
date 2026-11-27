@@ -50,14 +50,14 @@ struct Texts
 
     // Embedding permissions the OS/2 `fsType` declares, named as the OpenType specification
     // names them; the face states them, the viewer draws no conclusion from them.
-    ui_EmbedInstallable:  string = "installable"
-    ui_EmbedRestricted:   string = "restricted license"
-    ui_EmbedPreview:      string = "preview and print"
-    ui_EmbedEditable:     string = "editable"
-    ui_EmbedNoSubset:     string = "no subsetting"
-    ui_EmbedBitmap:       string = "bitmaps only"
-    ui_Metrics:           string = "% glyphs · % UPM"
-    ui_CollectionFaces:   string = "% faces"
+    ui_EmbedInstallable: string = "installable"
+    ui_EmbedRestricted:  string = "restricted license"
+    ui_EmbedPreview:     string = "preview and print"
+    ui_EmbedEditable:    string = "editable"
+    ui_EmbedNoSubset:    string = "no subsetting"
+    ui_EmbedBitmap:      string = "bitmaps only"
+    ui_Metrics:          string = "% glyphs · % UPM"
+    ui_CollectionFaces:  string = "% faces"
 }
 
 private const FrenchStringsName = "lang/fr/scope.font.tweak"
@@ -72,10 +72,10 @@ func texts()->const *Texts => &g_Texts
 func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'Texts(&g_Texts, "scope.font")
+    Gui.registerStrings!{Texts}(&g_Texts, "scope.font")
 }
 
 #run
 {
-    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
+    expect Gui.validateStrings!{Texts}(cast(string, FrenchStrings))
 }

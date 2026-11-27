@@ -9,12 +9,12 @@
 
 using Core, Gui, Pixel, Core.Math
 
-var Palette:         [9] Color
+var Palette:      [9] Color
 var newDrop = true
 var counter = 0
-var currentColor:    Color
-var drops:           Array'(*Drop)
-var lastPos:         Vector2
+var currentColor: Color
+var drops:        Array!{*Drop}
+var lastPos:      Vector2
 late var g_HintFont: *Font
 
 #init
@@ -32,8 +32,10 @@ late var g_HintFont: *Font
 
 #drop
 {
-    for drop in drops do
+    for drop in drops
+    {
         Memory.delete(drop)
+    }
 }
 
 struct Drop
@@ -41,7 +43,7 @@ struct Drop
     center:       Vector2
     r:            f32   = 50
     circleDetail: u32   = 50
-    vertices:     Array'Vector2
+    vertices:     Array!{Vector2}
     col:          Color = Argb.Red
     lp:           LinePath
 }
@@ -51,8 +53,11 @@ impl Drop
     mtd constructPath()
     {
         .lp.start(.vertices[0].x, .vertices[0].y)
-        for v in .vertices do
+        for v in .vertices
+        {
             .lp.lineTo(v.x, v.y)
+        }
+
         .lp.close()
     }
 
@@ -77,8 +82,10 @@ impl Drop
         {
             let p = v - other.center
             let distanceSquared = p.lengthSquared()
-            if not distanceSquared do
+            if not distanceSquared
+            {
                 continue
+            }
 
             let root = sqrt(1 + otherr / distanceSquared)
             v[] = (p * root) + other.center
@@ -95,7 +102,7 @@ impl Drop
 
 func addInk(x, y, r: f32, col: Color)
 {
-    with let drop = Memory.new'Drop()
+    with let drop = Memory.new!{Drop}()
     {
         .center.x = x
         .center.y = y
@@ -104,8 +111,11 @@ func addInk(x, y, r: f32, col: Color)
         .construct()
     }
 
-    for other in drops do
+    for other in drops
+    {
         other.marble(drop)
+    }
+
     drops.add(drop)
 }
 
@@ -152,8 +162,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             {
                 // The last drop presses on the others, as a new one does in addInk, and not on itself.
                 let last = drops.back()
-                for other in drops where other != last do
+                for other in drops where other != last
+                {
                     other.marble(last[])
+                }
             }
         }
         else
@@ -168,8 +180,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         }
         else
         {
-            for drop in drops do
+            for drop in drops
+            {
                 drop.show(painter)
+            }
         }
 
         wnd.invalidate()

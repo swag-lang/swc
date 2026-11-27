@@ -524,59 +524,59 @@ impl ThemeColors
 {
     // How far a filled action travels under the pointer, and under the press. Enough to
     // be seen, never enough to read as a second color.
-    private const StrongHotShift     = 0.12'f32
-    private const StrongPressedShift = 0.26'f32
+    private const StrongHotShift     = 0.12_f32
+    private const StrongPressedShift = 0.26_f32
 
     // How far the ground under the press sits past the ground under the pointer.
-    private const PressedShift = 0.08'f32
+    private const PressedShift = 0.08_f32
 
     // The three strengths of a veil, as alphas over the palette's veil ink.
-    private const VeilSoftAlpha        = 0x14'u8
-    private const VeilMediumAlpha      = 0x24'u8
-    private const VeilStrongAlpha      = 0x34'u8
-    private const SearchMatchBandAlpha = 0x66'u8
-    private const SearchMatchGlowAlpha = 0x70'u8
+    private const VeilSoftAlpha        = 0x14_u8
+    private const VeilMediumAlpha      = 0x24_u8
+    private const VeilStrongAlpha      = 0x34_u8
+    private const SearchMatchBandAlpha = 0x66_u8
+    private const SearchMatchGlowAlpha = 0x70_u8
 
     // Ground of alternating rows. Weaker than a soft veil: it must be found, never noticed.
-    private const AlternateAlpha = 0x0A'u8
+    private const AlternateAlpha = 0x0A_u8
 
     // How faint the Arc ring of a chosen tool or a button that is on stays: found, not noticed.
-    private const ChosenRingAlpha = 0x73'u8
+    private const ChosenRingAlpha = 0x73_u8
 
     // Strength of the soft shadow under a chosen segment that is lifted off its frame: enough to
     // separate a white chip from a pale frame, never enough to read as a floating surface.
-    private const SegmentLiftAlpha = 0x1A'u8
+    private const SegmentLiftAlpha = 0x1A_u8
 
     // Strength of the ground laid over the work while the lens is open: the document behind
     // reads at about a sixth of its strength, present but out of the way.
-    private const LensDimAlpha = 0xD6'u8
+    private const LensDimAlpha = 0xD6_u8
 
     // Scroll tracks tint the content beneath them rather than replacing it with a themed strip.
-    private const ScrollTrackAlpha    = 0x0A'u8
-    private const ScrollTrackHotAlpha = 0x14'u8
+    private const ScrollTrackAlpha    = 0x0A_u8
+    private const ScrollTrackHotAlpha = 0x14_u8
 
     // How much of the shadow a floating surface casts on a dark ground. Darkness laid on near-black
     // reads as a hole rather than as air, so there the surface parts from the work mostly by its
     // lighter fill and its hairline, and the shadow only softens the edge.
-    private const FloatingShadowDarkShare = 0.5'f32
+    private const FloatingShadowDarkShare = 0.5_f32
 
     // How much of the shadow a floating surface casts on a light ground. The palette's shadow is
     // tuned for small, close shadows; spread as wide as a floating one, it would still be at
     // nearly full strength where the body ends and read as a grey edge under it. At this share
     // it darkens the paper by about a tenth there, and the body seems to rest on air.
-    private const FloatingShadowLightShare = 0.6'f32
+    private const FloatingShadowLightShare = 0.6_f32
 
     // How far the stronger rule travels from the hairline toward the faint ink, and how far
     // disabled ink travels from the ground toward the body ink. The disabled value stays opaque,
     // so a label drawn twice never reads darker than one drawn once.
-    private const StrongLineMix   = 0.4'f32
-    private const FieldBorderMix  = 0.25'f32
-    private const DisabledMix     = 0.42'f32
-    private const IconDisabledMix = 0.25'f32
+    private const StrongLineMix   = 0.4_f32
+    private const FieldBorderMix  = 0.25_f32
+    private const DisabledMix     = 0.42_f32
+    private const IconDisabledMix = 0.25_f32
 
     // The ring of an unavailable control is the hairline at the opacity of disabled ink, so it
     // stays weaker than the ring of the same control at rest.
-    private const DisabledLineMix = 0.45'f32
+    private const DisabledLineMix = 0.45_f32
 
     // A knob is white in both themes: the one part of a switch or a slider that has to read as a
     // physical thing on any track. It is the only fixed ink of the controls.
@@ -593,8 +593,8 @@ impl ThemeColors
     // Below three a rule, a ring or a glyph is not separated from what it is drawn over; the
     // extra half step is what a mark that is also a word — a link, a checked label — needs to
     // stay a word. A link asks for the full text bar of its own, against the ground it is read on.
-    private const MarkContrast = 3.5'f32
-    private const LinkContrast = 4.5'f32
+    private const MarkContrast = 3.5_f32
+    private const LinkContrast = 4.5_f32
 
     // Moves a fill by `amount` in whichever direction is visible on it.
     //
@@ -616,8 +616,11 @@ impl ThemeColors
     private func hardestGround(p: ThemePalette, mark: Color)->Color
     {
         var result = p.ground
-        for candidate in [p.surface, p.raised] where mark.contrastRatio(candidate) < mark.contrastRatio(result) do
+        for candidate in [p.surface, p.raised] where mark.contrastRatio(candidate) < mark.contrastRatio(result)
+        {
             result = candidate
+        }
+
         return result
     }
 
@@ -634,8 +637,11 @@ impl ThemeColors
         for MarkPasses
         {
             let ground = hardestGround(p, result.mark)
-            if result.mark.contrastRatio(ground) >= MarkContrast do
+            if result.mark.contrastRatio(ground) >= MarkContrast
+            {
                 break
+            }
+
             result.mark.ensureContrast(ground, MarkContrast)
         }
 

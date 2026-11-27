@@ -132,9 +132,12 @@ impl Mat4
         {
             for row in 4
             {
-                var sum = 0'f32
-                for k in 4 do
+                var sum = 0_f32
+                for k in 4
+                {
                     sum += a.m[k * 4 + row] * b.m[col * 4 + k]
+                }
+
                 r.m[col * 4 + row] = sum
             }
         }
@@ -192,8 +195,10 @@ func display() fail
 {
     g_Angle += g_Frame.deltaSeconds
 
-    if g_Width <= 0 or g_Height <= 0 do
+    if g_Width <= 0 or g_Height <= 0
+    {
         return
+    }
 
     glClearColor(0.06, 0.07, 0.10, 1)
     glClear(GL_COLOR_BUFFER_BIT)
@@ -203,7 +208,7 @@ func display() fail
     let aspect     = cast(f32, g_Width) / cast(f32, g_Height)
     let model      = Mat4.mul(Mat4.rotationY(g_Angle * 0.9), Mat4.rotationX(g_Angle * 0.6))
     let view       = Mat4.translation(0, 0, -6)
-    let projection = Mat4.perspective(Math.toRadians(45'f32), aspect, 0.1, 100)
+    let projection = Mat4.perspective(Math.toRadians(45_f32), aspect, 0.1, 100)
     var mvp        = Mat4.mul(projection, Mat4.mul(view, model))
     var modelCopy  = model
 
@@ -213,10 +218,14 @@ func display() fail
     glDrawElements(GL_TRIANGLES, Indices.count, GL_UNSIGNED_INT, null)
 
     glFlush()
-    #static if #os == Swag.TargetOs.Linux do
+    #static if #os == Swag.TargetOs.Linux
+    {
         try g_Context.swapBuffers()
-    else do
+    }
+    else
+    {
         g_Context.swapBuffers()
+    }
 }
 
 func onResize(_: *Env.Window, width, height: s32)
@@ -234,10 +243,15 @@ func onResize(_: *Env.Window, width, height: s32)
         width: g_Width,
         height: g_Height})
     defer catch g_Window.close()
-    #static if #os == Swag.TargetOs.Linux do
+    #static if #os == Swag.TargetOs.Linux
+    {
         g_Context = try Ogl.Platform.Xcb.createContext(&g_Window)
-    else do
+    }
+    else
+    {
         g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
+    }
+
     defer g_Context.destroy()
     glInitExtensions()
 
@@ -288,7 +302,9 @@ func onResize(_: *Env.Window, width, height: s32)
     {
         g_Frame.update()
         try display()
-        if Env.isSmokeRun() do
+        if Env.isSmokeRun()
+        {
             break
+        }
     }
 }

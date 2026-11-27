@@ -30,9 +30,9 @@ struct PlanarFrame
 {
     public
     {
-        luma:    Array'u8     // Full-resolution luma, `height` rows of `strideLuma`.
-        chromaB: Array'u8     // Blue-difference chroma.
-        chromaR: Array'u8     // Red-difference chroma.
+        luma:    Array!{u8}     // Full-resolution luma, `height` rows of `strideLuma`.
+        chromaB: Array!{u8}     // Blue-difference chroma.
+        chromaR: Array!{u8}     // Red-difference chroma.
 
         width:  s32     // Visible picture width in luma samples.
         height: s32     // Visible picture height in luma samples.
@@ -58,8 +58,10 @@ impl PlanarFrame
     // Reports whether all planes contain the samples described by this picture.
     mtd const isValid()->bool
     {
-        if .width <= 0 or .height <= 0 or (.chromaShift != 0 and .chromaShift != 1) do
+        if .width <= 0 or .height <= 0 or (.chromaShift != 0 and .chromaShift != 1)
+        {
             return false
+        }
 
         let width        = cast(u64, .width)
         let height       = cast(u64, .height)
@@ -67,8 +69,10 @@ impl PlanarFrame
         let chromaHeight = .chromaShift == 0 ? height : height / 2 + height % 2
         let lumaStride   = cast(u64, .strideLuma)
         let chromaStride = cast(u64, .strideChroma)
-        if lumaStride < width or chromaStride < chromaWidth do
+        if lumaStride < width or chromaStride < chromaWidth
+        {
             return false
+        }
 
         let lumaSize   = (height - 1) * lumaStride + width
         let chromaSize = (chromaHeight - 1) * chromaStride + chromaWidth
@@ -106,11 +110,11 @@ impl PlanarFrame
     //
     // The chroma planes are `chromaShift` halvings smaller than the luma plane in each direction.
     // Dimensions must be nonnegative, and `chromaShift` must be zero or one.
-    mtd resize(width, height: s32, chromaShift = 1's32)
+    mtd resize(width, height: s32, chromaShift = 1_s32)
     {
         Swag.assert(width >= 0 and height >= 0, "planar frame dimensions cannot be negative")
         Swag.assert(chromaShift == 0 or chromaShift == 1, "planar frame chroma shift must be zero or one")
-        let round       = (1's32 << chromaShift) - 1
+        let round       = (1_s32 << chromaShift) - 1
         let chromaWidth = cast(u32, (width >> chromaShift) + ((width & round) != 0 ? 1 : 0))
         let chromaRows  = cast(u64, (height >> chromaShift) + ((height & round) != 0 ? 1 : 0))
         let lumaSize    = cast(u64, width) * cast(u64, height)
@@ -121,11 +125,19 @@ impl PlanarFrame
         .chromaShift  = chromaShift
         .strideLuma   = cast(u32, width)
         .strideChroma = chromaWidth
-        if .luma.count != lumaSize do
+        if .luma.count != lumaSize
+        {
             .luma.resize(lumaSize)
-        if .chromaB.count != chromaSize do
+        }
+
+        if .chromaB.count != chromaSize
+        {
             .chromaB.resize(chromaSize)
-        if .chromaR.count != chromaSize do
+        }
+
+        if .chromaR.count != chromaSize
+        {
             .chromaR.resize(chromaSize)
+        }
     }
 }

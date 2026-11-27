@@ -14,8 +14,10 @@ struct Cell
 func bumpCells(seed: s64)->s64
 {
     var cells: [5] Cell
-    for i in 5 do
+    for i in 5
+    {
         cells[i] = Cell{seed + i, seed * i, 0}
+    }
 
     for &cell in cells
     {
@@ -23,9 +25,11 @@ func bumpCells(seed: s64)->s64
         cell.c = cell.a * 3
     }
 
-    var total = 0's64
-    for cell in cells do
+    var total = 0_s64
+    for cell in cells
+    {
         total += cell.a * 7 + cell.c
+    }
     return total
 }
 
@@ -34,10 +38,12 @@ func bumpCells(seed: s64)->s64
 func firstNegative(seed: s64)->s64
 {
     var cells: [4] Cell
-    for i in 4 do
+    for i in 4
+    {
         cells[i] = Cell{seed - i * 3, 0, 0}
+    }
 
-    var found = -1's64
+    var found = -1_s64
     for cell, i in cells
     {
         if cell.a < 0
@@ -52,9 +58,9 @@ func firstNegative(seed: s64)->s64
 
 #test
 {
-    for seed in [-4's64, 0, 3, 11]
+    for seed in [-4_s64, 0, 3, 11]
     {
-        var expected = 0's64
+        var expected = 0_s64
         for i in 5
         {
             let a = seed + i + seed * i

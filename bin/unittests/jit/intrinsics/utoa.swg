@@ -11,8 +11,10 @@ func utoaCopy(result: [*] u8, value: u64)->[*] u8
         orgValue /= 10
         ptr[]    = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
-        if not orgValue do
+        if not orgValue
+        {
             break
+        }
     }
 
     let retVal = ptr
@@ -35,7 +37,7 @@ func utoaCopy(result: [*] u8, value: u64)->[*] u8
 func utoaTestZero()->bool
 {
     var buf: [32] u8
-    let End = utoaCopy(&buf[0], 0'u64)
+    let End = utoaCopy(&buf[0], 0_u64)
     return End == &buf[1] and
            buf[0] == '0' and
            buf[1] == 0
@@ -44,7 +46,7 @@ func utoaTestZero()->bool
 func utoaTestValue()->bool
 {
     var buf: [32] u8
-    let End = utoaCopy(&buf[0], 1234567890'u64)
+    let End = utoaCopy(&buf[0], 1234567890_u64)
     return End == &buf[10] and
            buf[0] == '1' and
            buf[1] == '2' and
@@ -62,7 +64,7 @@ func utoaTestValue()->bool
 func utoaTestLarge()->bool
 {
     var buf: [32] u8
-    let End = utoaCopy(&buf[0], 18446744073709551615'u64)
+    let End = utoaCopy(&buf[0], 18446744073709551615_u64)
     return End == &buf[20] and
            buf[0] == '1' and
            buf[1] == '8' and

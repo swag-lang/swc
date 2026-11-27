@@ -33,17 +33,17 @@ func numericPos(key: u8)->KeyPos
 {
     switch key
     {
-    case '7'u8: return KeyPos{0, 0}
-    case '8'u8: return KeyPos{1, 0}
-    case '9'u8: return KeyPos{2, 0}
-    case '4'u8: return KeyPos{0, 1}
-    case '5'u8: return KeyPos{1, 1}
-    case '6'u8: return KeyPos{2, 1}
-    case '1'u8: return KeyPos{0, 2}
-    case '2'u8: return KeyPos{1, 2}
-    case '3'u8: return KeyPos{2, 2}
-    case '0'u8: return KeyPos{1, 3}
-    case 'A'u8: return KeyPos{2, 3}
+    case '7'_u8: return KeyPos{0, 0}
+    case '8'_u8: return KeyPos{1, 0}
+    case '9'_u8: return KeyPos{2, 0}
+    case '4'_u8: return KeyPos{0, 1}
+    case '5'_u8: return KeyPos{1, 1}
+    case '6'_u8: return KeyPos{2, 1}
+    case '1'_u8: return KeyPos{0, 2}
+    case '2'_u8: return KeyPos{1, 2}
+    case '3'_u8: return KeyPos{2, 2}
+    case '0'_u8: return KeyPos{1, 3}
+    case 'A'_u8: return KeyPos{2, 3}
     default:
         Swag.assert(false)
         return KeyPos{0, 0}
@@ -54,11 +54,11 @@ func directionalPos(key: u8)->KeyPos
 {
     switch key
     {
-    case '^'u8: return KeyPos{1, 0}
-    case 'A'u8: return KeyPos{2, 0}
-    case '<'u8: return KeyPos{0, 1}
-    case 'v'u8: return KeyPos{1, 1}
-    case '>'u8: return KeyPos{2, 1}
+    case '^'_u8: return KeyPos{1, 0}
+    case 'A'_u8: return KeyPos{2, 0}
+    case '<'_u8: return KeyPos{0, 1}
+    case 'v'_u8: return KeyPos{1, 1}
+    case '>'_u8: return KeyPos{2, 1}
     default:
         Swag.assert(false)
         return KeyPos{0, 0}
@@ -69,11 +69,11 @@ func directionalKeyIndex(key: u8)->u32
 {
     switch key
     {
-    case '^'u8: return 0
-    case 'A'u8: return 1
-    case '<'u8: return 2
-    case 'v'u8: return 3
-    case '>'u8: return 4
+    case '^'_u8: return 0
+    case 'A'_u8: return 1
+    case '<'_u8: return 2
+    case 'v'_u8: return 3
+    case '>'_u8: return 4
     default:
         Swag.assert(false)
         return 0
@@ -82,8 +82,10 @@ func directionalKeyIndex(key: u8)->u32
 
 func absValue(value: s32)->u32
 {
-    if value < 0 do
+    if value < 0
+    {
         return cast(u32, (-value))
+    }
     return cast(u32, value)
 }
 
@@ -95,13 +97,17 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
     let dx = toPos.x - fromPos.x
     let dy = toPos.y - fromPos.y
 
-    var horizontalMove = '>'u8
-    if dx < 0 do
-        horizontalMove = '<'u8
+    var horizontalMove = '>'_u8
+    if dx < 0
+    {
+        horizontalMove = '<'_u8
+    }
 
-    var verticalMove = 'v'u8
-    if dy < 0 do
-        verticalMove = '^'u8
+    var verticalMove = 'v'_u8
+    if dy < 0
+    {
+        verticalMove = '^'_u8
+    }
     let horizontalCount = absValue(dx)
     let verticalCount   = absValue(dy)
 
@@ -122,22 +128,26 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
     {
         switch firstMove
         {
-        case '<'u8: x -= 1
-        case '>'u8: x += 1
-        case '^'u8: y -= 1
-        case 'v'u8: y += 1
-        default:    Swag.assert(false)
+        case '<'_u8: x -= 1
+        case '>'_u8: x += 1
+        case '^'_u8: y -= 1
+        case 'v'_u8: y += 1
+        default:     Swag.assert(false)
         }
 
         if directionalPad
         {
-            if not isDirectionalKey(x, y) do
+            if not isDirectionalKey(x, y)
+            {
                 return false
+            }
         }
         else
         {
-            if not isNumericKey(x, y) do
+            if not isNumericKey(x, y)
+            {
                 return false
+            }
         }
 
         path.buttons[path.count] = firstMove
@@ -148,29 +158,33 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
     {
         switch secondMove
         {
-        case '<'u8: x -= 1
-        case '>'u8: x += 1
-        case '^'u8: y -= 1
-        case 'v'u8: y += 1
-        default:    Swag.assert(false)
+        case '<'_u8: x -= 1
+        case '>'_u8: x += 1
+        case '^'_u8: y -= 1
+        case 'v'_u8: y += 1
+        default:     Swag.assert(false)
         }
 
         if directionalPad
         {
-            if not isDirectionalKey(x, y) do
+            if not isDirectionalKey(x, y)
+            {
                 return false
+            }
         }
         else
         {
-            if not isNumericKey(x, y) do
+            if not isNumericKey(x, y)
+            {
                 return false
+            }
         }
 
         path.buttons[path.count] = secondMove
         path.count += 1
     }
 
-    path.buttons[path.count] = 'A'u8
+    path.buttons[path.count] = 'A'_u8
     path.count += 1
     outPath[]  = path
     return true
@@ -178,11 +192,13 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
 
 func sequenceCost(path: PathBuffer, depth: u32)->u64
 {
-    if depth == 0 do
+    if depth == 0
+    {
         return cast(u64, path.count)
+    }
 
     var total: u64
-    var current = 'A'u8
+    var current = 'A'_u8
 
     for index in path.count
     {
@@ -206,15 +222,19 @@ func sequenceCost(path: PathBuffer, depth: u32)->u64
             if buildPath(&candidateA, fromPos, toPos, true, true)
             {
                 let value = sequenceCost(candidateA, depth - 1)
-                if value < best do
+                if value < best
+                {
                     best = value
+                }
             }
 
             if buildPath(&candidateB, fromPos, toPos, true, false)
             {
                 let value = sequenceCost(candidateB, depth - 1)
-                if value < best do
+                if value < best
+                {
                     best = value
+                }
             }
 
             DirectionalMemo[depth][fromIndex][toIndex] = best
@@ -234,9 +254,11 @@ func codeValue(code: string)->u64
 
     for ch in bytes
     {
-        if ch == 'A'u8 do
+        if ch == 'A'_u8
+        {
             break
-        value = value * 10'u64 + cast(u64, (ch - '0'u8))
+        }
+        value = value * 10_u64 + cast(u64, (ch - '0'_u8))
     }
 
     return value
@@ -246,7 +268,7 @@ func codePressCount(code: string, depth: u32)->u64
 {
     let bytes   = cast(const [..] u8, code)
     var total: u64
-    var current = 'A'u8
+    var current = 'A'_u8
 
     for next in bytes
     {
@@ -259,15 +281,19 @@ func codePressCount(code: string, depth: u32)->u64
         if buildPath(&candidateA, fromPos, toPos, false, true)
         {
             let value = sequenceCost(candidateA, depth)
-            if value < best do
+            if value < best
+            {
                 best = value
+            }
         }
 
         if buildPath(&candidateB, fromPos, toPos, false, false)
         {
             let value = sequenceCost(candidateB, depth)
-            if value < best do
+            if value < best
+            {
                 best = value
+            }
         }
 
         total   += best
@@ -300,5 +326,5 @@ func complexitySum(codes: const [..] string, depth: u32)->u64
         "379A"
         ]
 
-    Swag.require(complexitySum(sampleCodes, 2) == 126_384'u64)
+    Swag.require(complexitySum(sampleCodes, 2) == 126_384_u64)
 }

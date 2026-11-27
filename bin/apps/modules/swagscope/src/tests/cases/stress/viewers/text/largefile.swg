@@ -15,6 +15,7 @@ using Core, Pixel, Gui, Viewers
         source += Format.toString("Line % - ", line + 1)
         source += "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
     }
+
     let target = source.indexOf("Line 50000")
     Swag.require(target > 8 * 1024 * 1024 and source.length < 64 * 1024 * 1024)
     discard expect File.writeAllBytes(fileName, source)
@@ -60,8 +61,10 @@ using Core, Pixel, Gui, Viewers
             lines += Format.toString("Line % - ", number)
             lines += "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
         }
+
         expect file.writeAll(lines)
     }
+
     let fileSize = expect file.size()
     file.close()
     Swag.require(fileSize > 64 * 1024 * 1024)
@@ -70,7 +73,7 @@ using Core, Pixel, Gui, Viewers
     let window = framedViewerWindow(&host, fileName, true, 800, 560)
     window.lens.open(":500000")
     host.finishAnimations()
-    let section = unwrap window.lens.results.sections[0]
+    let section        = unwrap window.lens.results.sections[0]
     let estimatedTitle = Format.toString("% · %",
                                          Format.toString(appStrings().lens_GoToLine, 500_000),
                                          PlainText.texts().ui_Estimated)
@@ -91,14 +94,17 @@ using Core, Pixel, Gui, Viewers
     defer discard catch File.delete(fileName)
 
     var source: String
-    for 70_000 do
+    for 70_000
+    {
         source += "A large source line keeps the virtual scrollbar stable between frames.\n"
+    }
+
     Swag.require(source.length >= 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
+    let commands      = Wnd.create!{Wnd}(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -165,14 +171,17 @@ using Core, Pixel, Gui, Viewers
     defer discard catch File.delete(fileName)
 
     var source: String
-    for index in 70_000 do
+    for index in 70_000
+    {
         source += Format.toString("Distinct streamed line % keeps scrollbar seeks observable.\n", index)
+    }
+
     Swag.require(source.length >= 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
+    let commands      = Wnd.create!{Wnd}(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -196,7 +205,7 @@ using Core, Pixel, Gui, Viewers
     let lowOffset = cast(u64, (0.2 * cast(f32, view.fileSize)))
     Swag.require(view.residentStart <= lowOffset and view.bytesRead >= lowOffset)
 
-    let ratios = [0.8'f32, 0.1'f32, 0.65'f32, 0.3'f32, 0.9'f32, 0.05'f32]
+    let ratios = [0.8_f32, 0.1_f32, 0.65_f32, 0.3_f32, 0.9_f32, 0.05_f32]
     for ratio in ratios
     {
         let requestedY = view.virtualHeight * ratio
@@ -219,13 +228,22 @@ using Core, Pixel, Gui, Viewers
     let query  = "marker across boundary"
     let target = ViewerWindow.SearchChunkSize * 10 - 7
     var source: String
-    for target / 64 do
+    for target / 64
+    {
         source += "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
-    for target - source.length do
+    }
+
+    for target - source.length
+    {
         source += "x"
+    }
+
     source += query
-    for 32_000 do
+    for 32_000
+    {
         source += "\nThe rest of the large document stays searchable."
+    }
+
     Swag.require(source.length >= 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 

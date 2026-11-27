@@ -53,7 +53,7 @@ impl BitStream
 
     // Refills the bit buffer until it holds more than `width` bits, unless the source ends first.
     // `width` must be at most 56 so the slow path can append one full byte to the 64-bit buffer.
-    mtd refill(width = 24'u8)
+    mtd refill(width = 24_u8)
     {
         Swag.assert(width <= 56, "bit refill width exceeds 56 bits")
 
@@ -72,8 +72,11 @@ impl BitStream
 
             // Zero any partial high byte brought in above 'numBits' so the invariant
             // "bits at or above numBits are zero" holds (skip when the buffer is full).
-            if .numBits != 64 do
-                .codeBuffer &= (1'u64 << .numBits) - 1
+            if .numBits != 64
+            {
+                .codeBuffer &= (1_u64 << .numBits) - 1
+            }
+
             return
         }
 
@@ -81,11 +84,14 @@ impl BitStream
         while .numBits <= width
         {
             // Detect and reset broken state (if buffer was empty and numBits was max)
-            if .codeBuffer == 0 and .numBits == cast #bit (u8, -1) do
+            if .codeBuffer == 0 and .numBits == cast #bit (u8, -1)
+            {
                 .numBits = 0
 
-            // If buffer is already full, prevent overflow
-            if .codeBuffer >= 1'u64 << .numBits
+                // If buffer is already full, prevent overflow
+            }
+
+            if .codeBuffer >= 1_u64 << .numBits
             {
                 .numBits = 255
                 return
@@ -114,9 +120,12 @@ impl BitStream
     mtd peekBits(width: u8)->u32
     {
         Swag.assert(width <= 32, "bit width exceeds 32 bits")
-        if .numBits < width do
+        if .numBits < width
+        {
             .refill()
-        return cast(u32, (.codeBuffer & ((1'u64 << width) - 1)))
+        }
+
+        return cast(u32, (.codeBuffer & ((1_u64 << width) - 1)))
     }
 
     // Returns the next `width` bits without consuming them; the bit buffer must already hold them.
@@ -126,7 +135,7 @@ impl BitStream
     {
         Swag.assert(width <= 32, "bit width exceeds 32 bits")
         Swag.assert(.numBits >= width)
-        return cast(u32, (.codeBuffer & ((1'u64 << width) - 1)))
+        return cast(u32, (.codeBuffer & ((1_u64 << width) - 1)))
     }
 
     // Reads and consumes the next `width` bits, refilling the bit buffer when needed.
@@ -199,8 +208,10 @@ impl BitStream
     // Reads and consumes the next four bytes as a big-endian 32-bit value stored at `dest` in native byte order.
     mtd read32Be(dest: [*] u8)
     {
-        #static if BIG_ENDIAN do
+        #static if BIG_ENDIAN
+        {
             .read32(dest)
+        }
         else
         {
             dest[3] = cast(u8, .peekBits(8))

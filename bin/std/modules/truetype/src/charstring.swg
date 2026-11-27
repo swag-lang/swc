@@ -1,10 +1,10 @@
 using Swag, Core
 
 // How deep a charstring may call subroutines before the font is treated as malformed.
-const MaxCharstringDepth = 10'u32
+const MaxCharstringDepth = 10_u32
 
 // Largest operand stack a Type 2 charstring may use, as the format defines it.
-const MaxCharstringStack = 48'u32
+const MaxCharstringStack = 48_u32
 
 // Accumulates a PostScript outline into the face's reusable point arrays.
 //
@@ -26,14 +26,18 @@ impl OutlineBuilder
     {
         var result: #returntype
         result.face   = face
-        result.scaleX = cast(f64, xPpem) * 64.0 / cast(f64, Math.max(1'u32, unitsPerEm))
-        result.scaleY = cast(f64, yPpem) * 64.0 / cast(f64, Math.max(1'u32, unitsPerEm))
+        result.scaleX = cast(f64, xPpem) * 64.0 / cast(f64, Math.max(1_u32, unitsPerEm))
+        result.scaleY = cast(f64, yPpem) * 64.0 / cast(f64, Math.max(1_u32, unitsPerEm))
         return result
     }
 
+    #[Swag.Inline]
+    private mtd const scaledPoint(x, y: f64)->Vector =>
+    {x: cast(s32, Math.round(x * .scaleX)), y: cast(s32, Math.round(y * .scaleY))}
+
     private mtd addPoint(x, y: f64, tag: u8)
     {
-        .face.outlinePoints.add(Vector{x: cast(s32, Math.round(x * .scaleX)), y: cast(s32, Math.round(y * .scaleY))})
+        .face.outlinePoints.add(.scaledPoint(x, y))
         .face.outlineTags.add(tag)
     }
 
@@ -47,18 +51,29 @@ impl OutlineBuilder
 
     mtd lineTo(x, y: f64)
     {
-        if not .open do
+        if not .open
+        {
             return
+        }
+
         .addPoint(x, y, CURVE_TAG_ON)
     }
 
     mtd curveTo(c1x, c1y, c2x, c2y, x, y: f64)
     {
-        if not .open do
+        if not .open
+        {
             return
-        .addPoint(c1x, c1y, CURVE_TAG_CUBIC)
-        .addPoint(c2x, c2y, CURVE_TAG_CUBIC)
-        .addPoint(x, y, CURVE_TAG_ON)
+        }
+
+        let points = .face.outlinePoints.emplaceAddress(3)
+        let tags   = .face.outlineTags.emplaceAddress(3)
+        points[0] = .scaledPoint(c1x, c1y)
+        points[1] = .scaledPoint(c2x, c2y)
+        points[2] = .scaledPoint(x, y)
+        tags[0]   = CURVE_TAG_CUBIC
+        tags[1]   = CURVE_TAG_CUBIC
+        tags[2]   = CURVE_TAG_ON
     }
 
     // Ends the contour under construction.
@@ -68,8 +83,11 @@ impl OutlineBuilder
     // curve wrap onto the contour start instead of an extra zero-length segment.
     mtd closeContour()
     {
-        if not .open do
+        if not .open
+        {
             return
+        }
+
         .open = false
 
         let points = &.face.outlinePoints
@@ -132,8 +150,11 @@ private impl Type2State
 {
     mtd push(value: f64) fail
     {
-        if .depth >= MaxCharstringStack do
+        if .depth >= MaxCharstringStack
+        {
             try fault(0x82)
+        }
+
         .stack[.depth] = value
         .depth         += 1
     }
@@ -142,11 +163,17 @@ private impl Type2State
     // returns the index the operator's own arguments start at.
     mtd takeWidth(expected: u32)->u32
     {
-        if .haveWidth do
+        if .haveWidth
+        {
             return 0
+        }
+
         .haveWidth = true
-        if .depth <= expected do
+        if .depth <= expected
+        {
             return 0
+        }
+
         .width = .nominalWidth + .stack[0]
         return 1
     }
@@ -157,8 +184,10 @@ private impl Type2State
         if not .haveWidth
         {
             .haveWidth = true
-            if (.depth & 1) != 0 do
+            if (.depth & 1) != 0
+            {
                 .width = .nominalWidth + .stack[0]
+            }
         }
 
         .stems += .depth / 2
@@ -189,33 +218,66 @@ private impl Type2State
 
 private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
 {
-    if depth >= MaxCharstringDepth do
+    if depth >= MaxCharstringDepth
+    {
         try fault(0x89)
+    }
 
-    var pos = 0'u64
+    let bytes = code.buffer
+    var pos   = 0_u64
     while pos < code.count
     {
-        let b0 = peekU8(code, pos)
+        let b0 = bytes[pos]
         pos += 1
 
-        if b0 >= 32 or b0 == 28
+        // Most coordinate operands occupy one byte. Keep the stack cursor local
+        // until the next operator or multi-byte operand needs the updated depth.
+        if b0 >= 32 and b0 <= 246
+        {
+            var operand = b0
+            var count   = state.depth
+            for
+            {
+                if count >= MaxCharstringStack
+                {
+                    state.depth = count
+                    try fault(0x82)
+                }
+
+                state.stack[count] = cast(f64, cast(s32, operand) - 139)
+                count += 1
+                if pos >= code.count
+                {
+                    break
+                }
+
+                operand = bytes[pos]
+                if operand < 32 or operand > 246
+                {
+                    break
+                }
+
+                pos += 1
+            }
+
+            state.depth = count
+            continue
+        }
+
+        if b0 >= 247 or b0 == 28
         {
             if b0 == 28
             {
                 try state.push(cast(f64, peekS16(code, pos)))
                 pos += 2
             }
-            elif b0 <= 246
-            {
-                try state.push(cast(f64, (cast(s32, b0) - 139)))
-            }
-            elif b0 <= 250
+            else if b0 <= 250
             {
                 let decodedValue = (cast(s32, b0) - 247) * 256 + cast(s32, peekU8(code, pos)) + 108
                 try state.push(cast(f64, decodedValue))
                 pos += 1
             }
-            elif b0 <= 254
+            else if b0 <= 254
             {
                 let decodedValue = -(cast(s32, b0) - 251) * 256 - cast(s32, peekU8(code, pos)) - 108
                 try state.push(cast(f64, decodedValue))
@@ -235,41 +297,64 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
         {
         case 1, 3, 18, 23:
             state.takeStemWidth()
-            if state.widthOnly do
+            if state.widthOnly
+            {
                 return
+            }
 
         case 19, 20:
             state.takeStemWidth()
-            if state.widthOnly do
+            if state.widthOnly
+            {
                 return
+            }
+
             pos += cast(u64, (state.stems + 7)) / 8
 
         case 21:
             let base = state.takeWidth(2)
-            if state.widthOnly do
+            if state.widthOnly
+            {
                 return
-            if state.depth >= base + 2 do
+            }
+
+            if state.depth >= base + 2
+            {
                 state.moveTo(state.x + state.stack[base], state.y + state.stack[base + 1])
+            }
+
             state.depth = 0
 
         case 22:
             let base = state.takeWidth(1)
-            if state.widthOnly do
+            if state.widthOnly
+            {
                 return
-            if state.depth >= base + 1 do
+            }
+
+            if state.depth >= base + 1
+            {
                 state.moveTo(state.x + state.stack[base], state.y)
+            }
+
             state.depth = 0
 
         case 4:
             let base = state.takeWidth(1)
-            if state.widthOnly do
+            if state.widthOnly
+            {
                 return
-            if state.depth >= base + 1 do
+            }
+
+            if state.depth >= base + 1
+            {
                 state.moveTo(state.x, state.y + state.stack[base])
+            }
+
             state.depth = 0
 
         case 5:
-            var i = 0'u32
+            var i = 0_u32
             while i + 1 < state.depth
             {
                 state.lineTo(state.x + state.stack[i], state.y + state.stack[i + 1])
@@ -282,17 +367,22 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
             var horizontal = b0 == 6
             for i in state.depth
             {
-                if horizontal do
+                if horizontal
+                {
                     state.lineTo(state.x + state.stack[i], state.y)
-                else do
+                }
+                else
+                {
                     state.lineTo(state.x, state.y + state.stack[i])
+                }
+
                 horizontal = not horizontal
             }
 
             state.depth = 0
 
         case 8:
-            var i = 0'u32
+            var i = 0_u32
             while i + 5 < state.depth
             {
                 emitRelativeCurve(state, i)
@@ -302,32 +392,38 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
             state.depth = 0
 
         case 24:
-            var i = 0'u32
+            var i = 0_u32
             while state.depth >= i + 8
             {
                 emitRelativeCurve(state, i)
                 i += 6
             }
 
-            if i + 1 < state.depth do
+            if i + 1 < state.depth
+            {
                 state.lineTo(state.x + state.stack[i], state.y + state.stack[i + 1])
+            }
+
             state.depth = 0
 
         case 25:
-            var i = 0'u32
+            var i = 0_u32
             while state.depth >= i + 8
             {
                 state.lineTo(state.x + state.stack[i], state.y + state.stack[i + 1])
                 i += 2
             }
 
-            if i + 5 < state.depth do
+            if i + 5 < state.depth
+            {
                 emitRelativeCurve(state, i)
+            }
+
             state.depth = 0
 
         case 26:
-            var i     = 0'u32
-            var first = 0.0'f64
+            var i     = 0_u32
+            var first = 0.0_f64
             if (state.depth & 1) != 0
             {
                 first = state.stack[0]
@@ -348,8 +444,8 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
             state.depth = 0
 
         case 27:
-            var i     = 0'u32
-            var first = 0.0'f64
+            var i     = 0_u32
+            var first = 0.0_f64
             if (state.depth & 1) != 0
             {
                 first = state.stack[0]
@@ -371,12 +467,12 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
 
         case 30, 31:
             var horizontal = b0 == 31
-            var i = 0'u32
+            var i = 0_u32
             while i + 3 < state.depth
             {
                 // The very last group may carry a fifth argument that moves the axis the
                 // alternation would otherwise leave untouched.
-                let trailing = state.depth == i + 5 ? state.stack[i + 4] : 0.0'f64
+                let trailing = state.depth == i + 5 ? state.stack[i + 4] : 0.0_f64
                 if horizontal
                 {
                     let c1x = state.x + state.stack[i]
@@ -401,17 +497,27 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
             state.depth = 0
 
         case 10, 29:
-            if not state.depth do
+            if not state.depth
+            {
                 break
+            }
+
             state.depth -= 1
             let index = state.stack[state.depth]
             let table = b0 == 10 ? state.subrs : &state.font.globalSubrs
             let entry = cast(s32, index) + subrBias(table.count())
-            if entry < 0 or cast(u32, entry) >= table.count() do
+            if entry < 0 or cast(u32, entry) >= table.count()
+            {
                 try fault(0x86)
+            }
+
             try execType2(state, table.item(cast(u32, entry)), depth + 1)
-            if state.finished do
+
+            // The first stack-clearing operator fixes the width even inside a subroutine.
+            if state.finished or (state.widthOnly and state.haveWidth)
+            {
                 return
+            }
 
         case 11:
             return
@@ -420,8 +526,10 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
             if not state.haveWidth
             {
                 state.haveWidth = true
-                if state.depth == 1 or state.depth == 5 do
+                if state.depth == 1 or state.depth == 5
+                {
                     state.width = state.nominalWidth + state.stack[0]
+                }
             }
 
             if state.widthOnly
@@ -487,8 +595,10 @@ func execType2Escape(state: *Type2State, op: u8) fail
         }
 
     case 5:
-        if state.depth do
+        if state.depth
+        {
             state.stack[state.depth - 1] = state.stack[state.depth - 1] == 0 ? 1.0 : 0.0
+        }
 
     case 34:
         if state.depth >= 7
@@ -538,9 +648,9 @@ func execType2Escape(state: *Type2State, op: u8) fail
         {
             let startX = state.x
             let startY = state.y
-            var sumX   = 0.0'f64
-            var sumY   = 0.0'f64
-            for i in 5'u32
+            var sumX   = 0.0_f64
+            var sumY   = 0.0_f64
+            for i in 5_u32
             {
                 sumX += state.stack[i * 2]
                 sumY += state.stack[i * 2 + 1]
@@ -554,17 +664,23 @@ func execType2Escape(state: *Type2State, op: u8) fail
 
             // The last argument moves along whichever axis the flex travelled furthest on;
             // the other returns exactly to where the flex began.
-            if Math.abs(sumX) > Math.abs(sumY) do
+            if Math.abs(sumX) > Math.abs(sumY)
+            {
                 state.curveTo(c3x, c3y, c4x, c4y, c4x + state.stack[10], startY)
-            else do
+            }
+            else
+            {
                 state.curveTo(c3x, c3y, c4x, c4y, startX, c4y + state.stack[10])
+            }
         }
 
         state.depth = 0
 
     case 9:
-        if state.depth do
+        if state.depth
+        {
             state.stack[state.depth - 1] = Math.abs(state.stack[state.depth - 1])
+        }
 
     case 10:
         if state.depth >= 2
@@ -588,8 +704,10 @@ func execType2Escape(state: *Type2State, op: u8) fail
         }
 
     case 14:
-        if state.depth do
+        if state.depth
+        {
             state.stack[state.depth - 1] = -state.stack[state.depth - 1]
+        }
 
     case 15:
         if state.depth >= 2
@@ -600,8 +718,10 @@ func execType2Escape(state: *Type2State, op: u8) fail
         }
 
     case 18:
-        if state.depth do
+        if state.depth
+        {
             state.depth -= 1
+        }
 
     case 24:
         if state.depth >= 2
@@ -611,8 +731,10 @@ func execType2Escape(state: *Type2State, op: u8) fail
         }
 
     case 26:
-        if state.depth do
+        if state.depth
+        {
             state.stack[state.depth - 1] = Math.sqrt(Math.abs(state.stack[state.depth - 1]))
+        }
 
     case 27:
         if state.depth
@@ -653,13 +775,21 @@ func execType2Escape(state: *Type2State, op: u8) fail
                 let count = cast(u32, requestedCount)
                 let base  = state.depth - count
                 var values: [MaxCharstringStack] f64
-                for i in count do
+                for i in count
+                {
                     values[i] = state.stack[base + i]
+                }
+
                 var shift = rotation % cast(s32, count)
-                if shift < 0 do
+                if shift < 0
+                {
                     shift += cast(s32, count)
-                for i in count do
+                }
+
+                for i in count
+                {
                     state.stack[base + (i + cast(u32, shift)) % count] = values[i]
+                }
             }
         }
 
@@ -667,8 +797,11 @@ func execType2Escape(state: *Type2State, op: u8) fail
         if state.depth >= 2
         {
             let slot = cast(s32, state.stack[state.depth - 1])
-            if slot >= 0 and slot < 32 do
+            if slot >= 0 and slot < 32
+            {
                 state.transient[slot] = state.stack[state.depth - 2]
+            }
+
             state.depth -= 2
         }
 
@@ -707,21 +840,158 @@ func execType2Escape(state: *Type2State, op: u8) fail
     }
 }
 
+private enum Type2WidthResult
+{
+    Resume
+    Default
+    Explicit
+    Interpret
+}
+
+private struct Type2WidthStack
+{
+    values: [MaxCharstringStack] f64
+    count:  u32
+}
+
+// Reads the literal operators and subroutine calls that introduce most glyph widths.
+// Programs that compute operands use the full interpreter.
+private func resolveType2Width(code: const [..] u8, localSubrs, globalSubrs: const *CffIndex, stack: *Type2WidthStack, depth: u32)->Type2WidthResult
+{
+    if depth >= MaxCharstringDepth
+    {
+        return .Interpret
+    }
+
+    let bytes = code.buffer
+    var pos   = 0_u64
+    while pos < code.count
+    {
+        let first = bytes[pos]
+        pos += 1
+        if first >= 32 or first == 28
+        {
+            if stack.count >= MaxCharstringStack
+            {
+                return .Interpret
+            }
+
+            var value: f64
+            if first >= 32 and first <= 246
+            {
+                value = cast(f64, (cast(s32, first) - 139))
+            }
+            else if first >= 247 and first <= 254
+            {
+                if pos == code.count
+                {
+                    return .Interpret
+                }
+
+                let tail = cast(s32, bytes[pos]) + 108
+                value = first <= 250 ? cast(f64, (cast(s32, first) - 247) * 256 + tail) :
+                        cast(f64, (251 - cast(s32, first)) * 256 - tail)
+                pos += 1
+            }
+            else
+            {
+                let length = first == 28 ? 2_u64 : 4_u64
+                if length > code.count - pos
+                {
+                    return .Interpret
+                }
+
+                let packed = readPackedOffset(bytes + pos, cast(u8, length))
+                value = first == 28 ? cast(f64, cast #bit (s16, cast(u16, packed))) :
+                        cast(f64, cast #bit (s32, packed)) / 65536.0
+                pos += length
+            }
+
+            stack.values[stack.count] = value
+            stack.count += 1
+            continue
+        }
+
+        switch first
+        {
+        case 1, 3, 18, 19, 20, 23:
+            return stack.count & 1 ? .Explicit : .Default
+
+        case 4, 22:
+            return stack.count > 1 ? .Explicit : .Default
+
+        case 21:
+            return stack.count > 2 ? .Explicit : .Default
+
+        case 14:
+            return stack.count == 1 or stack.count == 5 ? .Explicit : .Default
+
+        case 10, 29:
+            if not stack.count
+            {
+                continue
+            }
+
+            stack.count -= 1
+            let table = first == 10 ? localSubrs : globalSubrs
+            let index = cast(s32, stack.values[stack.count]) + subrBias(table.count())
+            if index < 0 or cast(u32, index) >= table.count()
+            {
+                return .Interpret
+            }
+
+            let answer = resolveType2Width(table.item(cast(u32, index)), localSubrs, globalSubrs, stack, depth + 1)
+            if answer != .Resume
+            {
+                return answer
+            }
+
+        case 11:
+            return .Resume
+
+        default:
+            return .Interpret
+        }
+    }
+
+    return .Resume
+}
+
+func type2CharstringWidth(font: *CffFont, gid: u32)->f64 fail
+{
+    if gid >= font.charStrings.count()
+    {
+        try fault(0x10)
+    }
+
+    let privateDict = font.privateFor(gid)
+    var stack: Type2WidthStack
+    let answer      = resolveType2Width(font.charStrings.item(gid), &privateDict.subrs, &font.globalSubrs, &stack, 0)
+    switch #complete answer
+    {
+    case .Explicit:         return privateDict.nominalWidth + stack.values[0]
+    case .Default, .Resume: return privateDict.defaultWidth
+    case .Interpret:        return try runType2Charstring(font, gid, null)
+    }
+}
+
 // Runs one Type 2 charstring and returns the advance width its font declares for the glyph.
 //
 // Pass a null `builder` to resolve the width alone, which stops at the first stack-clearing
 // operator instead of interpreting the whole outline.
 func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f64 fail
 {
-    if gid >= font.charStrings.count() do
+    if gid >= font.charStrings.count()
+    {
         try fault(0x10)
+    }
 
     let glyphPrivate = font.privateFor(gid)
     with var state: Type2State
     {
         .font         = font
         .builder      = builder
-        .subrs        = glyphPrivate.subrs
+        .subrs        = &glyphPrivate.subrs
         .nominalWidth = glyphPrivate.nominalWidth
         .width        = glyphPrivate.defaultWidth
         .widthOnly    = builder == null
@@ -740,10 +1010,15 @@ func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f6
     {
         let baseGid   = cffGlyphForStandardCode(font, cast(u8, state.seacBase))
         let accentGid = cffGlyphForStandardCode(font, cast(u8, state.seacAccent))
-        if baseGid do
+        if baseGid
+        {
             discard try runType2Charstring(font, baseGid, builder)
-        if accentGid do
+        }
+
+        if accentGid
+        {
             try runComposedAccent(font, accentGid, builder, state.seacAdx, state.seacAdy)
+        }
     }
 
     return state.width
@@ -774,7 +1049,7 @@ func cffGlyphForStandardCode(font: *CffFont, code: u8)->u32
 // Everything one run of a Type 1 charstring carries between its operators.
 struct Type1State
 {
-    late font: *Type1Font
+    late font: const *Type1Font
     builder:   *OutlineBuilder?
     stack:     [MaxCharstringStack] f64
     depth:     u32
@@ -809,8 +1084,11 @@ private impl Type1State
 {
     mtd push(value: f64) fail
     {
-        if .depth >= MaxCharstringStack do
+        if .depth >= MaxCharstringStack
+        {
             try fault(0x82)
+        }
+
         .stack[.depth] = value
         .depth         += 1
     }
@@ -866,8 +1144,11 @@ private impl Type1State
     mtd emitFlex()
     {
         .flexing = false
-        if .flexCount < 7 or not .builder do
+        if .flexCount < 7 or not .builder
+        {
             return
+        }
+
         .builder.curveTo(.flexX[1], .flexY[1], .flexX[2], .flexY[2], .flexX[3], .flexY[3])
         .builder.curveTo(.flexX[4], .flexY[4], .flexX[5], .flexY[5], .flexX[6], .flexY[6])
         .x = .flexX[6]
@@ -875,12 +1156,36 @@ private impl Type1State
     }
 }
 
+// Type 1 encodes wide operands as integers.
+#[Swag.Inline]
+private func readType1Number(code: const [..] u8, first: u8, pos: *u64)->s32 fail
+{
+    if first <= 246
+    {
+        return cast(s32, first) - 139
+    }
+
+    if first <= 254
+    {
+        let low = cast(s32, peekU8(code, pos[]))
+        pos[] += 1
+        let high = cast(s32, first)
+        return first <= 250 ? (high - 247) * 256 + low + 108 : -(high - 251) * 256 - low - 108
+    }
+
+    let value = try readS32(code, pos[])
+    pos[] += 4
+    return value
+}
+
 private func execType1(state: *Type1State, code: const [..] u8, depth: u32) fail
 {
-    if depth >= MaxCharstringDepth do
+    if depth >= MaxCharstringDepth
+    {
         try fault(0x89)
+    }
 
-    var pos = 0'u64
+    var pos = 0_u64
     while pos < code.count
     {
         let b0 = peekU8(code, pos)
@@ -888,30 +1193,8 @@ private func execType1(state: *Type1State, code: const [..] u8, depth: u32) fail
 
         if b0 >= 32
         {
-            if b0 <= 246
-            {
-                try state.push(cast(f64, (cast(s32, b0) - 139)))
-            }
-            elif b0 <= 250
-            {
-                let decodedValue = (cast(s32, b0) - 247) * 256 + cast(s32, peekU8(code, pos)) + 108
-                try state.push(cast(f64, decodedValue))
-                pos += 1
-            }
-            elif b0 <= 254
-            {
-                let decodedValue = -(cast(s32, b0) - 251) * 256 - cast(s32, peekU8(code, pos)) - 108
-                try state.push(cast(f64, decodedValue))
-                pos += 1
-            }
-            else
-            {
-                // Type 1 spells its wide literals as plain 32-bit integers, not as the
-                // fixed-point form Type 2 introduced for the same encoding byte.
-                try state.push(cast(f64, (try readS32(code, pos))))
-                pos += 4
-            }
-
+            let operand = try readType1Number(code, b0, &pos)
+            try state.push(cast(f64, operand))
             continue
         }
 
@@ -938,33 +1221,51 @@ private func execType1(state: *Type1State, code: const [..] u8, depth: u32) fail
             state.depth = 0
 
         case 21:
-            if state.depth >= 2 do
+            if state.depth >= 2
+            {
                 state.moveTo(state.x + state.stack[0], state.y + state.stack[1])
+            }
+
             state.depth = 0
 
         case 22:
-            if state.depth >= 1 do
+            if state.depth >= 1
+            {
                 state.moveTo(state.x + state.stack[0], state.y)
+            }
+
             state.depth = 0
 
         case 4:
-            if state.depth >= 1 do
+            if state.depth >= 1
+            {
                 state.moveTo(state.x, state.y + state.stack[0])
+            }
+
             state.depth = 0
 
         case 5:
-            if state.depth >= 2 do
+            if state.depth >= 2
+            {
                 state.lineTo(state.x + state.stack[0], state.y + state.stack[1])
+            }
+
             state.depth = 0
 
         case 6:
-            if state.depth >= 1 do
+            if state.depth >= 1
+            {
                 state.lineTo(state.x + state.stack[0], state.y)
+            }
+
             state.depth = 0
 
         case 7:
-            if state.depth >= 1 do
+            if state.depth >= 1
+            {
                 state.lineTo(state.x, state.y + state.stack[0])
+            }
+
             state.depth = 0
 
         case 8:
@@ -1004,15 +1305,23 @@ private func execType1(state: *Type1State, code: const [..] u8, depth: u32) fail
             state.depth = 0
 
         case 10:
-            if not state.depth do
+            if not state.depth
+            {
                 break
+            }
+
             state.depth -= 1
             let index = cast(s32, state.stack[state.depth])
-            if index < 0 or cast(u64, index) >= state.font.subrs.count do
+            if index < 0 or cast(u64, index) >= state.font.subrs.count
+            {
                 try fault(0x86)
-            try execType1(state, state.font.subrs[index].toSlice(), depth + 1)
-            if state.finished do
+            }
+
+            try execType1(state, state.font.codeOf(state.font.subrs[index]), depth + 1)
+            if state.finished
+            {
                 return
+            }
 
         case 11:
             return
@@ -1028,8 +1337,10 @@ private func execType1(state: *Type1State, code: const [..] u8, depth: u32) fail
             let b1 = peekU8(code, pos)
             pos += 1
             try execType1Escape(state, b1)
-            if state.finished do
+            if state.finished
+            {
                 return
+            }
 
         default:
             state.depth = 0
@@ -1051,8 +1362,10 @@ private func execType1Escape(state: *Type1State, op: u8) fail
         }
 
         state.depth = 0
-        if state.widthOnly do
+        if state.widthOnly
+        {
             state.finished = true
+        }
 
     case 6:
         if state.depth >= 5
@@ -1114,8 +1427,10 @@ private func execType1OtherSubr(state: *Type1State)
     let other = cast(s32, state.stack[state.depth - 1])
     var count = cast(u32, state.stack[state.depth - 2])
     state.depth -= 2
-    if count > state.depth do
+    if count > state.depth
+    {
         count = state.depth
+    }
 
     state.resultDepth = 0
     switch other
@@ -1141,27 +1456,62 @@ private func execType1OtherSubr(state: *Type1State)
 
         // Every other reserved subroutine is an identity: hint replacement passes the
         // number of the subroutine to call straight back through `pop`.
-        for i in count do
+        for i in count
+        {
             state.pushResult(state.stack[state.depth - 1 - i])
+        }
+
         state.depth -= count
     }
+}
+
+func type1CharstringWidth(font: const *Type1Font, gid: u32)->f64 fail
+{
+    if gid >= font.charstrings.count
+    {
+        try fault(0x10)
+    }
+
+    let code = font.codeOf(font.charstrings[gid])
+    var pos  = 1_u64
+    let lsb  = peekU8(code, 0)
+    if lsb >= 32
+    {
+        discard try readType1Number(code, lsb, &pos)
+        let encodedWidth = peekU8(code, pos)
+        if encodedWidth >= 32
+        {
+            pos += 1
+            let width = try readType1Number(code, encodedWidth, &pos)
+
+            // A leading pair of operands followed by hsbw declares the width.
+            if peekU8(code, pos) == 13
+            {
+                return cast(f64, width)
+            }
+        }
+    }
+
+    return try runType1Charstring(font, gid, null)
 }
 
 // Runs one Type 1 charstring and returns the advance width it declares.
 //
 // Pass a null `builder` to resolve the width alone, which stops at the sidebearing operator
 // every charstring opens with.
-func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->f64 fail
+func runType1Charstring(font: const *Type1Font, gid: u32, builder: *OutlineBuilder?)->f64 fail
 {
-    if cast(u64, gid) >= font.charstrings.count do
+    if cast(u64, gid) >= font.charstrings.count
+    {
         try fault(0x10)
+    }
 
     var state: Type1State
     state.font      = font
     state.builder   = builder
     state.widthOnly = builder == null
 
-    try execType1(&state, font.charstrings[gid].toSlice(), 0)
+    try execType1(&state, font.codeOf(font.charstrings[gid]), 0)
     builder?.closeContour()
 
     if builder and
@@ -1172,19 +1522,24 @@ func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->
     {
         let baseGid   = type1GlyphForStandardCode(font, cast(u8, state.seacBase))
         let accentGid = type1GlyphForStandardCode(font, cast(u8, state.seacAccent))
-        if baseGid do
+        if baseGid
+        {
             discard try runType1Charstring(font, baseGid, builder)
 
-        // The accent is placed relative to the base glyph's own sidebearing, which is what
-        // keeps a composed glyph aligned when the two parts were drawn with different ones.
-        if accentGid do
+            // The accent is placed relative to the base glyph's own sidebearing, which is what
+            // keeps a composed glyph aligned when the two parts were drawn with different ones.
+        }
+
+        if accentGid
+        {
             try runType1ComposedAccent(font, accentGid, builder, state.seacAdx - state.seacAsb + state.sideBearingX, state.seacAdy)
+        }
     }
 
     return state.width
 }
 
-private func runType1ComposedAccent(font: *Type1Font, gid: u32, builder: *OutlineBuilder, adx, ady: f64) fail
+private func runType1ComposedAccent(font: const *Type1Font, gid: u32, builder: *OutlineBuilder, adx, ady: f64) fail
 {
     let first = cast(u32, builder.face.outlinePoints.count)
     discard try runType1Charstring(font, gid, builder)
@@ -1198,10 +1553,13 @@ private func runType1ComposedAccent(font: *Type1Font, gid: u32, builder: *Outlin
     }
 }
 
-func type1GlyphForStandardCode(font: *Type1Font, code: u8)->u32
+func type1GlyphForStandardCode(font: const *Type1Font, code: u8)->u32
 {
     let name = standardEncodingName(code)
-    if not name.count do
+    if not name.count
+    {
         return 0
-    return font.nameToGid.getOrDefault(String.from(name), 0)
+    }
+
+    return font.nameToGid.getOrDefault(name, 0)
 }

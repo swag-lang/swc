@@ -1,6 +1,6 @@
 // Font families listed by the FontName editor: the installed ones, enumerated once per process,
 // unless [[Gui.Properties.setFontNames]] supplied the list.
-internal var g_PropSysFonts: Array'String
+internal var g_PropSysFonts: Array!{String}
 
 public impl Properties
 {
@@ -18,8 +18,10 @@ public impl Properties
     func setFontNames(names: const [..] string)
     {
         g_PropSysFonts.clear()
-        for name in names do
+        for name in names
+        {
             g_PropSysFonts.add(name)
+        }
     }
 }
 
@@ -28,8 +30,11 @@ internal impl Properties
     mtd validateDynamicString(item: *PropertiesItem)
     {
         var data = cast(*String, unwrap item.data)
-        if item.editBox != null do
+        if item.editBox != null
+        {
             data[] = item.editBox.text()
+        }
+
         .commitItemChange(item)
     }
 
@@ -37,8 +42,10 @@ internal impl Properties
     // families. The first entry is the theme's default font and stores an empty name.
     mtd refreshFontName(item: *PropertiesItem)
     {
-        if item.comboBox == null do
+        if item.comboBox == null
+        {
             return
+        }
 
         if .fieldIsMixed(item)
         {
@@ -47,11 +54,13 @@ internal impl Properties
         }
 
         let cur = cast(*String, unwrap item.data)
-        var sel = 0'u32
+        var sel = 0_u32
         for &fnt, idx in g_PropSysFonts
         {
-            if cur[] == fnt[] do
+            if cur[] == fnt[]
+            {
                 sel = cast(u32, idx) + 2
+            }
         }
 
         item.comboBox.setSelectedIndex(sel, notify: false)
@@ -60,14 +69,20 @@ internal impl Properties
     mtd validateFontName(item: *PropertiesItem)
     {
         let sel = item.comboBox.selectedIndex
-        if sel == Swag.U32.Max do
+        if sel == Swag.U32.Max
+        {
             return
+        }
 
         var data = cast(*String, unwrap item.data)
-        if sel == 0 do
+        if sel == 0
+        {
             data.clear()
-        else do
+        }
+        else
+        {
             data[] = g_PropSysFonts[sel - 2]
+        }
 
         .commitItemChange(item)
     }
@@ -76,14 +91,19 @@ internal impl Properties
     {
         let item = .addItem(value, data, parentItem)
 
-        if g_PropSysFonts.isEmpty() do
+        if g_PropSysFonts.isEmpty()
+        {
             g_PropSysFonts = FontFamily.enumerateSystemFontNames()
+        }
 
         var combo: *ComboBox?
         if .kind == .Panel
         {
-            if item.label != null do
+            if item.label != null
+            {
                 item.label.hide()
+            }
+
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
@@ -96,15 +116,22 @@ internal impl Properties
         else
         {
             var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
-            if not .isGridLike() do
+            if not .isGridLike()
+            {
                 editWidth = .listContentWidthFromUseful(editWidth)
+            }
+
             with combo = ComboBox.create(item.line)
             {
                 .maxSize.x = editWidth
-                if me.isGridLike() do
+                if me.isGridLike()
+                {
                     .dockStyle = .CenterKeepSizeVert
-                else do
+                }
+                else
+                {
                     .preferredSize.x = editWidth
+                }
             }
 
             me.adaptCondensedCombo(item, combo)
@@ -114,8 +141,10 @@ internal impl Properties
         item.assignComboBox(combon)
         combon.addItem(.theme().res.defaultTypeFaceR.familyName())
         combon.addSeparator()
-        for &fnt in g_PropSysFonts do
+        for &fnt in g_PropSysFonts
+        {
             combon.addItem(fnt[])
+        }
 
         .refreshFontName(item)
         combon.sigChanged += func|prop = me, item|(_, _) { prop.validateFontName(item) }
@@ -131,13 +160,19 @@ internal impl Properties
 
         let item      = .addItem(value, data, parentItem)
         var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
-        if not me.isGridLike() do
+        if not me.isGridLike()
+        {
             editWidth = me.listContentWidthFromUseful(editWidth)
+        }
+
         var ed: *EditBox?
         if .kind == .Panel
         {
-            if item.label != null do
+            if item.label != null
+            {
                 item.label.hide()
+            }
+
             with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), cast(const *String, unwrap data)[], flags: .ReleaseFocusOnEnterOrEscape)
             {
                 .anchorStyle = .Right
@@ -147,23 +182,33 @@ internal impl Properties
 
             ed = ctrl.edit
         }
-        else do
+        else
+        {
             ed = EditBox.create(item.line, cast(const *String, unwrap data)[])
+        }
 
         with let edit: *EditBox = ed
         {
-            if me.isGridLike() do
+            if me.isGridLike()
+            {
                 .dockStyle = .CenterKeepSizeVert
-            elif me.kind != .Panel do
+            }
+            else if me.kind != .Panel
+            {
                 .preferredSize.x = editWidth
+            }
 
-            if me.kind != .Panel do
+            if me.kind != .Panel
+            {
                 .maxSize.x = editWidth
+            }
 
             // A field that names a document takes one dropped from the desktop; the path
             // replaces the value and commits with the focus, exactly as a typed one does.
-            if Reflection.hasAttribute(value, Properties.FilePath) do
+            if Reflection.hasAttribute(value, Properties.FilePath)
+            {
                 .updateFlags(.AcceptFileDrop)
+            }
 
             .sigCommitted += func|prop = me, item|(_) { prop.validateDynamicString(item); }
         }
@@ -184,8 +229,11 @@ internal impl Properties
                     var editOptions: EditDlgOptions
                     editOptions.text = ed.text()
                     let dlg = EditDlg.createMultiLine(unwrap prop.surface, editOptions)
-                    if dlg.doModal() != Dialog.BtnOk do
+                    if dlg.doModal() != Dialog.BtnOk
+                    {
                         return
+                    }
+
                     ed.setText(dlg.text())
                     prop.validateDynamicString(item)
                 }
@@ -197,14 +245,19 @@ internal impl Properties
     {
         let item      = .addItem(value, data, parentItem)
         var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
-        if not me.isGridLike() do
+        if not me.isGridLike()
+        {
             editWidth = me.listContentWidthFromUseful(editWidth)
+        }
 
         var ed: *EditBox?
         if .kind == .Panel
         {
-            if item.label != null do
+            if item.label != null
+            {
                 item.label.hide()
+            }
+
             with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), cast(const *string, unwrap data)[])
             {
                 .anchorStyle = .Right
@@ -214,17 +267,27 @@ internal impl Properties
 
             ed = ctrl.edit
         }
-        else do
+        else
+        {
             ed = EditBox.create(item.line, cast(const *string, unwrap data)[])
+        }
 
         with let edit: *EditBox = ed
         {
-            if me.kind != .Panel do
+            if me.kind != .Panel
+            {
                 .maxSize.x = editWidth
-            if me.isGridLike() do
+            }
+
+            if me.isGridLike()
+            {
                 .dockStyle = .CenterKeepSizeVert
-            elif me.kind != .Panel do
+            }
+            else if me.kind != .Panel
+            {
                 .preferredSize.x = editWidth
+            }
+
             .updateFlags(.ReadOnly)
         }
 

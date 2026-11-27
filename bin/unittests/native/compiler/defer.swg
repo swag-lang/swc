@@ -48,8 +48,10 @@ func mixinConditionalDefer(shouldFail: bool) fail
 {
     defer #fail appendDeferTrace(1)
     defer #nofail appendDeferTrace(2)
-    if shouldFail do
+    if shouldFail
+    {
         fail ErrCompilerDefer{}
+    }
 }
 
 #[Swag.Macro]
@@ -62,7 +64,7 @@ func macroRun(stmt: #code)
 #[Swag.Macro]
 func macroScope(stmt: #code)
 {
-    var x = 0's64
+    var x = 0_s64
     defer appendDeferTrace(7)
     #inject(stmt)
 }

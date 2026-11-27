@@ -55,12 +55,17 @@ impl Event
     mtd initNamed(name: string, manual = false, initState = false) fail
     {
         Swag.assert(.handle == null)
-        if name.count == 0 do
+        if name.count == 0
+        {
             fail Errors.BadParameterError{"an event name cannot be empty"}
+        }
+
         for byte in name
         {
-            if byte == 0 or byte == '\\' do
+            if byte == 0 or byte == '\\'
+            {
                 fail Errors.BadParameterError{"an event name cannot contain zero bytes or backslashes"}
+            }
         }
 
         let nativeName = Utf16.toZeroTerminated(Format.toString("Local\\%", name))
@@ -70,8 +75,11 @@ impl Event
     // Closes the native event handle; repeated calls do nothing.
     mtd release()
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         CloseHandle(.handle)
         .handle = null
     }
@@ -107,8 +115,10 @@ impl Event
     {
         if not Math.isFinite(timeout.seconds) or
            timeout.seconds < 0 or
-           timeout.seconds >= 18_446_744_073_709_550.0 do
+           timeout.seconds >= 18_446_744_073_709_550.0
+        {
             fail Errors.BadParameterError{"event timeout is outside the supported range"}
+        }
 
         let timeoutMilliseconds = timeout.millisecondsCeiling()
         var stopwatch: Time.Stopwatch
@@ -118,16 +128,27 @@ impl Event
         {
             let chunk  = Math.min(remaining, cast(u64, Swag.U32.Max - 1))
             let status = waitForSingleObjectStatus(.handle, cast(DWORD, chunk))
-            if status.result == WAIT_OBJECT_0 do
+            if status.result == WAIT_OBJECT_0
+            {
                 return true
-            if status.result == WAIT_FAILED do
+            }
+
+            if status.result == WAIT_FAILED
+            {
                 try raiseEventFailure(status.errorCode)
-            if status.result != WAIT_TIMEOUT do
+            }
+
+            if status.result != WAIT_TIMEOUT
+            {
                 try raiseEventFailure(0)
+            }
 
             let elapsed = stopwatch.elapsedMilliseconds()
-            if elapsed >= timeoutMilliseconds do
+            if elapsed >= timeoutMilliseconds
+            {
                 return false
+            }
+
             remaining = timeoutMilliseconds - elapsed
         }
     }

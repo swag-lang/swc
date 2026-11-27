@@ -6,7 +6,7 @@ using Swag
 // Appending compressed data preserves input borrowed from the output allocation.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add("borrowed input survives output growth")
     let original = bytes
     let start    = bytes.count
@@ -15,7 +15,7 @@ using Swag
     expect deflater.compress(&bytes, bytes.toSlice())
 
     var inflater: Compress.Inflate
-    var decoded:  Array'u8
+    var decoded:  Array!{u8}
     expect inflater.decompress(&decoded, bytes[start to])
     Swag.require(Slice.equals(decoded.toSlice(), original.toSlice()))
 }
@@ -35,29 +35,76 @@ func fillRandom(buffer: [..] u8, seed: u32)
 func fillText(buffer: [..] u8)
 {
     const Words = "the quick brown fox jumps over the lazy dog while a swag compiler emits code "
-    for i in buffer.count do
+    for i in buffer.count
+    {
         buffer[i] = Words[(i * 7 + i / 97) % Words.count]
+    }
 }
 
 func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, strategy: Compress.Deflate.CompressionStrategy)->bool
 {
     var deflater: Compress.Deflate
     deflater.init(level, strategy)
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, input)
 
     var inflater: Compress.Inflate
-    var decoded:  Array'u8
+    var decoded:  Array!{u8}
     expect inflater.decompress(&decoded, compressed.toSlice())
     return Slice.equals(decoded.toSlice(), input)
 }
 
-// Every level and strategy round-trips random, textual, and constant data whose sizes straddle
-// the 258-byte match limit, the 32 KiB window, and the 64 KiB stored-block limit.
+// Uniform runs cross the dictionary and stored position boundaries before
+// ordinary match searches resume.
 #test
 {
-    const Sizes = [1'u64, 2, 3, 257, 258, 259, 32767, 32768, 32769, 65535, 65536, 65537, 200003]
-    var data: Array'u8
+    var data: Array!{u8}
+    data.resize(80000)
+    fillRandom(data.toSlice()[until 32644], 1337)
+    fillRandom(data.toSlice()[66212 to], 17)
+    for value in [0_u8, 219]
+    {
+        for index in 32644 until 66212
+        {
+            data[index] = value
+        }
+        for level in [Compress.Deflate.CompressionLevel.BestSpeed, .Default, .BestCompression]
+        {
+            Swag.require(roundTrip(data.toSlice(), level, .Default))
+        }
+    }
+}
+
+// Probe batches preserve candidate order and the search limit across dictionary wraps.
+#test
+{
+    const RowBytes = 1025_u64
+    const Rows     = 132
+    var data: Array!{u8}
+    data.resize(RowBytes * Rows)
+    for row in Rows
+    {
+        let start = row * RowBytes
+        data[start] = cast(u8, row % 5)
+        if row % 5 == 0
+        {
+            fillRandom(data.toSlice()[start + 1 until start + RowBytes], cast(u32, row + 1))
+        }
+    }
+
+    var deflater: Compress.Deflate
+    deflater.init(.Default)
+    var compressed: Array!{u8}
+    expect deflater.compress(&compressed, data.toSlice())
+    Swag.require(Hash.Crc64.compute(compressed.toSlice()) == 0x4FE2E238BFEA4C70)
+}
+
+// Every level and strategy round-trips random, textual, and constant data whose sizes straddle
+// the match limit, the stored writer's block split, the 32 KiB window, and the 64 KiB format limit.
+#test
+{
+    const Sizes = [1_u64, 2, 3, 257, 258, 259, 21838, 21839, 21840, 32767, 32768, 32769, 65535, 65536, 65537, 200003]
+    var data: Array!{u8}
     data.resize(200003)
 
     for kind in 3
@@ -115,7 +162,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
     let second: [9] u8 = [2, 4, 6, 8, 10, 12, 14, 16, 18]
 
     var deflater:   Compress.Deflate
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     deflater.init(.NoCompression)
     expect deflater.compress(&compressed, first)
     let secondStart = compressed.count
@@ -124,11 +171,11 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
     expect deflater.compress(&compressed, second)
 
     var inflater:     Compress.Inflate
-    var decodedFirst: Array'u8
+    var decodedFirst: Array!{u8}
     expect inflater.decompress(&decodedFirst, compressed.toSlice()[until secondStart])
     Swag.require(Slice.equals(decodedFirst.toSlice(), first))
 
-    var decodedSecond: Array'u8
+    var decodedSecond: Array!{u8}
     expect inflater.decompress(&decodedSecond, compressed.toSlice()[secondStart to])
     Swag.require(Slice.equals(decodedSecond.toSlice(), second))
 }

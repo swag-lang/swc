@@ -200,7 +200,7 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 // Every English month name keeps its index and its consumed byte count.
 #test
 {
-    for month in 1'u16 to 12'u16
+    for month in 1_u16 to 12_u16
     {
         let original = Time.DateTime{2024, month, 1, 12, 34, 56, 789}
         let text     = original.toString(.DateTimeMs)

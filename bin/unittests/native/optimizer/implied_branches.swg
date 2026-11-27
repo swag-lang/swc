@@ -7,67 +7,89 @@
 #[Swag.Optimize(true), Swag.NoInline]
 func sumGuarded(p: const [*] u32, n: u64)->u64
 {
-    if n == 0 do
+    if n == 0
+    {
         return 0
-    var s = 0'u64
-    for i in n do
+    }
+    var s = 0_u64
+    for i in n
+    {
         s += p[i]
+    }
     return s
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func sumFromTwo(p: const [*] u32, n: u64)->u64
 {
-    if n < 2 do
+    if n < 2
+    {
         return 0
-    var s = 0'u64
-    for i in n do
+    }
+    var s = 0_u64
+    for i in n
+    {
         s += p[i]
+    }
     return s
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func signedBands(x: s32)->s32
 {
-    if x < 10 do
+    if x < 10
+    {
         return -1
-    if x > 3 do
+    }
+    if x > 3
+    {
         return 1
+    }
     return 0
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func openBands(x: u64)->u32
 {
-    if x < 5 do
+    if x < 5
+    {
         return 0
-    if x < 7 do
+    }
+    if x < 7
+    {
         return 1
+    }
     return 2
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func negativeBands(x: s64)->s32
 {
-    if x >= 0 do
+    if x >= 0
+    {
         return 0
-    if x < 0 do
+    }
+    if x < 0
+    {
         return 1
+    }
     return 2
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func sumBoth(a, b: const *u32?)->u32
 {
-    if a == null or b == null do
+    if a == null or b == null
+    {
         return 0
+    }
     return a[] + b[]
 }
 
 #test
 {
-    let one = 1'u32
-    let two = 2'u32
+    let one = 1_u32
+    let two = 2_u32
     Swag.require(sumBoth(&one, &two) == 3)
     Swag.require(sumBoth(&one, null) == 0)
     Swag.require(sumBoth(null, &two) == 0)

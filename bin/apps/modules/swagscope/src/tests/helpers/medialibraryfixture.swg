@@ -98,8 +98,11 @@ impl MediaLibraryFixture
         while true
         {
             window.app().runFrame()
-            if ready() and Testing.verifyNativePresentation(unwrap window.surface) do
+            if ready() and Testing.verifyNativePresentation(unwrap window.surface)
+            {
                 return
+            }
+
             if stageWatch.elapsedMilliseconds() > 30_000 or .watch.elapsedMilliseconds() > 120_000
             {
                 if window.explorer
@@ -117,8 +120,11 @@ impl MediaLibraryFixture
                                     explorer.previews.count,
                                     " path=",
                                     explorer.listing.path)
-                    for preview in explorer.previews do
+                    for preview in explorer.previews
+                    {
                         Console.println("preview running=", preview.started, " path=", preview.path, " error=", preview.error)
+                    }
+
                     let range = explorer.grid.visibleRange()
                     Console.println("visible=", range.first, "..", range.end)
                     for row in range.first until Math.min(range.end, explorer.shown.count)
@@ -151,16 +157,24 @@ impl MediaLibraryFixture
                not explorer or
                explorer.load.started or
                explorer.listing.path != folder or
-               explorer.shown.count != count do
+               explorer.shown.count != count
+            {
                 return false
+            }
+
             if explorer.isThumbnailView()
             {
                 let range = explorer.grid.visibleRange()
-                if range.end <= range.first do
+                if range.end <= range.first
+                {
                     return false
+                }
+
                 for row in range.first until range.end where
-                    not explorer.entries[explorer.shown[row]].texture.isValid() do
+                    not explorer.entries[explorer.shown[row]].texture.isValid()
+                {
                     return false
+                }
             }
 
             return true
@@ -171,7 +185,9 @@ impl MediaLibraryFixture
 
     mtd opDrop()
     {
-        if not .root.isEmpty() do
+        if not .root.isEmpty()
+        {
             catch Directory.delete(.root, recurse: true)
+        }
     }
 }

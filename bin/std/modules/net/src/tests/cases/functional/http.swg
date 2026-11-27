@@ -105,18 +105,24 @@ func serveHttp(thread: const *Threading.Thread)
     while Utf8.indexOf(fixture.request.toString(), "\r\n\r\n") == Swag.U64.Max
     {
         let count = expect stream.read(buffer)
-        if count == 0 do
+        if count == 0
+        {
             return
+        }
+
         fixture.request += cast(string, buffer[0 until count])
     }
 
     let response = cast(const [..] u8, fixture.response)
-    var written  = 0'u64
+    var written  = 0_u64
     while written < response.count
     {
         let count = expect stream.write(response[written to])
-        if count == 0 do
+        if count == 0
+        {
             return
+        }
+
         written += count
     }
 }
@@ -132,8 +138,11 @@ func serveHttpRedirect(thread: const *Threading.Thread)
         while Utf8.indexOf(request.toString(), "\r\n\r\n") == Swag.U64.Max
         {
             let count = expect stream.read(buffer)
-            if count == 0 do
+            if count == 0
+            {
                 return
+            }
+
             request += cast(string, buffer[0 until count])
         }
 
@@ -141,12 +150,15 @@ func serveHttpRedirect(thread: const *Threading.Thread)
                        "HTTP/1.1 302 Found\r\nLocation: /redirected\r\nContent-Length: 0\r\nConnection: keep-alive\r\n\r\n" :
                        "HTTP/1.1 200 OK\r\nContent-Length: 10\r\nConnection: close\r\n\r\nredirected"
         let bytes   = cast(const [..] u8, response)
-        var written = 0'u64
+        var written = 0_u64
         while written < bytes.count
         {
             let count = expect stream.write(bytes[written to])
-            if count == 0 do
+            if count == 0
+            {
                 return
+            }
+
             written += count
         }
     }
@@ -179,14 +191,19 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     let response = expect Http.get("127.0.0.1", endpoint.port, "/", false)
     thread.wait()
     Swag.require(response.status == 200 and cast(string, response.body.toSlice()) == "headers")
-    var replies: Array'String
+    var replies: Array!{String}
     var cookie = false
     for header in response.headers
     {
-        if header.name == "X-Reply" do
+        if header.name == "X-Reply"
+        {
             replies.add(header.value)
-        if header.name == "Set-Cookie" and header.value == "a=1" do
+        }
+
+        if header.name == "Set-Cookie" and header.value == "a=1"
+        {
             cookie = true
+        }
     }
 
     Swag.require(replies.count == 2 and replies[0] == "first" and replies[1] == "second")
@@ -206,10 +223,13 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     let result   = expect Http.get("127.0.0.1", endpoint.port, "/", false)
     thread.wait()
     Swag.require(result.location == "/first")
-    var locations: Array'String
+    var locations: Array!{String}
     for header in result.headers where header.name.count == 8 and
-                                       Utf8.indexOf(header.name, "Location", 0, .Latin1NoCase) == 0 do
+                                       Utf8.indexOf(header.name, "Location", 0, .Latin1NoCase) == 0
+    {
         locations.add(header.value)
+    }
+
     Swag.require(locations.count == 2)
     Swag.require(locations[0] == "/first" and locations[1] == "/second")
 }
@@ -270,8 +290,11 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     for
     {
         let count = expect client.read(buffer)
-        if count == 0 do
+        if count == 0
+        {
             break
+        }
+
         finalResponse.append(cast(string, buffer[0 until count]))
     }
 
@@ -320,10 +343,14 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     Swag.require(error.value() is NetworkError)
     if error.value() is NetworkError as networkError
     {
-        #static if #os == Swag.TargetOs.Windows do
-            Swag.require(networkError.code == 12002)     // ERROR_WINHTTP_TIMEOUT
-        else do
+        #static if #os == Swag.TargetOs.Windows
+        {
+            Swag.require(networkError.code == 12002)
+        }     // ERROR_WINHTTP_TIMEOUT
+        else
+        {
             Swag.require(networkError.code == Curl.CURLE_OPERATION_TIMEDOUT)
+        }
     }
 }
 
@@ -337,8 +364,11 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     expect thread.start()
 
     var requestBytes: String
-    for 20000 do
+    for 20000
+    {
         requestBytes.append(cast(u8, 'x'))
+    }
+
     var requestBody = HttpRequestBodyFixture{body: #move requestBytes}
     let endpoint    = expect server.localAddress()
     let response    = expect Http.post("127.0.0.1", endpoint.port, "/upload", false, {requestBodyLength: requestBody.body.count,
@@ -514,8 +544,11 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     for
     {
         let count = expect client.read(buffer)
-        if count == 0 do
+        if count == 0
+        {
             break
+        }
+
         response.append(cast(string, buffer[0 until count]))
     }
 
@@ -544,8 +577,11 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     for
     {
         let count = expect client.read(buffer)
-        if count == 0 do
+        if count == 0
+        {
             break
+        }
+
         response.append(cast(string, buffer[0 until count]))
     }
 

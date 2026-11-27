@@ -19,7 +19,7 @@ func high(p: *u64, a, b: u64)->u64 => (p[] & 0x8000000000000000) != 0 ? a : b
 
 #test
 {
-    let values = [0'u64, 1, 2, 3, 4, 0x40, 0x7F, 0x80, 0x100, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 3, 4, 0x40, 0x7F, 0x80, 0x100, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     var displaced: [32]u64
     for value in values
     {
@@ -30,7 +30,7 @@ func high(p: *u64, a, b: u64)->u64 => (p[] & 0x8000000000000000) != 0 ? a : b
         Swag.require(mask(&cell, 17, 29) == ((value & 0x65) == 0 ? 17 : 29))
         Swag.require(word(&small, 17, 29) == ((value & 3) != 0 ? 17 : 29))
         Swag.require(offset(&displaced[0], 17, 29) == ((value & 3) != 0 ? 17 : 29))
-        Swag.require(shared(&cell, 17, 29) == (((value & 1) != 0 ? 17'u64 : 29) ^ value))
+        Swag.require(shared(&cell, 17, 29) == (((value & 1) != 0 ? 17_u64 : 29) ^ value))
         Swag.require(high(&cell, 17, 29) == ((value & 0x8000000000000000) != 0 ? 17 : 29))
         Swag.require(cell == value and displaced[31] == value)
     }

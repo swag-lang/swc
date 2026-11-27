@@ -22,7 +22,7 @@ struct Token
 {
     kind:       TokenKind
     name:       String
-    attributes: Array'Attribute
+    attributes: Array!{Attribute}
     text:       String
     empty:      bool
 }
@@ -33,9 +33,12 @@ impl Token
     mtd const isElement(name: string)->bool
     {
         let source = .name.toSlice()
-        var start  = 0'u64
-        for value, index in source where value == ':'u8 do
+        var start  = 0_u64
+        for value, index in source where value == ':'_u8
+        {
             start = index + 1
+        }
+
         return cast(string, source[start to ]) == name
     }
 
@@ -44,18 +47,25 @@ impl Token
     {
         for &item in .attributes
         {
-            if item.name == name do
+            if item.name == name
+            {
                 return item.value
+            }
         }
 
         for &item in .attributes
         {
             let source = item.name.toSlice()
-            var start  = 0'u64
-            for value, index in source where value == ':'u8 do
+            var start  = 0_u64
+            for value, index in source where value == ':'_u8
+            {
                 start = index + 1
-            if cast(string, source[start to ]) == name do
+            }
+
+            if cast(string, source[start to ]) == name
+            {
                 return item.value
+            }
         }
 
         return null
@@ -73,12 +83,14 @@ struct Scanner
 
 private impl Scanner
 {
-    mtd space(value: u8)->bool => value == ' 'u8 or value == '\t'u8 or value == '\r'u8 or value == '\n'u8
+    mtd space(value: u8)->bool => value == ' '_u8 or value == '\t'_u8 or value == '\r'_u8 or value == '\n'_u8
 
     mtd skipSpace()
     {
-        while .offset < .source.count and .space(.source[.offset]) do
+        while .offset < .source.count and .space(.source[.offset])
+        {
             .offset += 1
+        }
     }
 
     mtd nameEnd()->u64
@@ -87,23 +99,33 @@ private impl Scanner
         while .offset < .source.count
         {
             let value = .source[.offset]
-            if .space(value) or value == '/'u8 or value == '>'u8 or value == '='u8 or value == '?'u8 do
+            if .space(value) or
+               value == '/'_u8 or
+               value == '>'_u8 or
+               value == '='_u8 or
+               value == '?'_u8
+            {
                 break
+            }
+
             .offset += 1
         }
 
-        if .offset == start do
+        if .offset == start
+        {
             .damaged = true
+        }
+
         return .offset
     }
 
     mtd decode(source: string)->String
     {
         var result: #returntype
-        var at = 0'u64
+        var at = 0_u64
         while at < source.count
         {
-            if source[at] != '&'u8
+            if source[at] != '&'_u8
             {
                 result += source[at]
                 at     += 1
@@ -112,9 +134,12 @@ private impl Scanner
 
             let start = at + 1
             var end   = start
-            while end < source.count and end - start <= 12 and source[end] != ';'u8 do
+            while end < source.count and end - start <= 12 and source[end] != ';'_u8
+            {
                 end += 1
-            if end >= source.count or source[end] != ';'u8
+            }
+
+            if end >= source.count or source[end] != ';'_u8
             {
                 .damaged = true
                 return {}
@@ -124,28 +149,28 @@ private impl Scanner
             switch entity
             {
             case "amp":
-                result += '&'u8
+                result += '&'_u8
 
             case "lt":
-                result += '<'u8
+                result += '<'_u8
 
             case "gt":
-                result += '>'u8
+                result += '>'_u8
 
             case "quot":
-                result += '"'u8
+                result += '"'_u8
 
             case "apos":
-                result += '\''u8
+                result += '\''_u8
 
             default:
-                if entity.count < 2 or entity[0] != '#'u8
+                if entity.count < 2 or entity[0] != '#'_u8
                 {
                     .damaged = true
                     return {}
                 }
 
-                let hex    = entity.count > 2 and (entity[1] == 'x'u8 or entity[1] == 'X'u8)
+                let hex    = entity.count > 2 and (entity[1] == 'x'_u8 or entity[1] == 'X'_u8)
                 let digits = hex ? entity[2 to] : entity[1 to]
                 if not digits.count
                 {
@@ -153,21 +178,21 @@ private impl Scanner
                     return {}
                 }
 
-                var code = 0'u32
+                var code = 0_u32
                 for digit in digits
                 {
                     var value: u32
-                    if digit >= '0'u8 and digit <= '9'u8
+                    if digit >= '0'_u8 and digit <= '9'_u8
                     {
-                        value = digit - '0'u8
+                        value = digit - '0'_u8
                     }
-                    elif hex and digit >= 'a'u8 and digit <= 'f'u8
+                    else if hex and digit >= 'a'_u8 and digit <= 'f'_u8
                     {
-                        value = digit - 'a'u8 + 10
+                        value = digit - 'a'_u8 + 10
                     }
-                    elif hex and digit >= 'A'u8 and digit <= 'F'u8
+                    else if hex and digit >= 'A'_u8 and digit <= 'F'_u8
                     {
-                        value = digit - 'A'u8 + 10
+                        value = digit - 'A'_u8 + 10
                     }
                     else
                     {
@@ -175,8 +200,8 @@ private impl Scanner
                         return {}
                     }
 
-                    let base = hex ? 16'u32 : 10'u32
-                    if code > (0x10FFFF'u32 - value) / base
+                    let base = hex ? 16_u32 : 10_u32
+                    if code > (0x10FFFF_u32 - value) / base
                     {
                         .damaged = true
                         return {}
@@ -231,16 +256,22 @@ impl Scanner
     // Reads the next token; false means EOF or malformed input, distinguished by `damaged`.
     mtd next(token: *Token)->bool
     {
-        if .damaged do
+        if .damaged
+        {
             return false
+        }
+
         while .offset < .source.count
         {
             token[] = {}
-            if .source[.offset] != '<'u8
+            if .source[.offset] != '<'_u8
             {
                 let start = .offset
-                while .offset < .source.count and .source[.offset] != '<'u8 do
+                while .offset < .source.count and .source[.offset] != '<'_u8
+                {
                     .offset += 1
+                }
+
                 token.kind = .Text
                 token.text = .decode(.source[start until .offset])
                 return not .damaged
@@ -249,8 +280,11 @@ impl Scanner
             if .offset + 4 <= .source.count and .source[.offset until .offset + 4] == "<!--"
             {
                 .offset += 4
-                if not .skipUntil("-->") do
+                if not .skipUntil("-->")
+                {
                     return false
+                }
+
                 continue
             }
 
@@ -258,18 +292,24 @@ impl Scanner
             {
                 .offset += 9
                 let start = .offset
-                if not .skipUntil("]]>") do
+                if not .skipUntil("]]>")
+                {
                     return false
+                }
+
                 token.kind = .Text
                 token.text = .source[start until .offset - 3]
                 return true
             }
 
-            if .offset + 2 <= .source.count and .source[.offset + 1] == '?'u8
+            if .offset + 2 <= .source.count and .source[.offset + 1] == '?'_u8
             {
                 .offset += 2
-                if not .skipUntil("?>") do
+                if not .skipUntil("?>")
+                {
                     return false
+                }
+
                 continue
             }
 
@@ -280,7 +320,7 @@ impl Scanner
             {
                 .allowDocumentType = false
                 .offset += 9
-                var quote  = 0'u8
+                var quote  = 0_u8
                 var closed = false
                 while .offset < .source.count
                 {
@@ -288,38 +328,43 @@ impl Scanner
                     .offset += 1
                     if quote
                     {
-                        if value == quote do
+                        if value == quote
+                        {
                             quote = 0
+                        }
                     }
-                    elif value == '\''u8 or value == '"'u8
+                    else if value == '\''_u8 or value == '"'_u8
                     {
                         quote = value
                     }
-                    elif value == '['u8
+                    else if value == '['_u8
                     {
                         break
                     }
-                    elif value == '>'u8
+                    else if value == '>'_u8
                     {
                         closed = true
                         break
                     }
                 }
 
-                if closed do
+                if closed
+                {
                     continue
+                }
+
                 .damaged = true
                 return false
             }
 
-            if .offset + 2 <= .source.count and .source[.offset + 1] == '!'u8
+            if .offset + 2 <= .source.count and .source[.offset + 1] == '!'_u8
             {
                 .damaged = true
                 return false
             }
 
             .offset += 1
-            if .offset < .source.count and .source[.offset] == '/'u8
+            if .offset < .source.count and .source[.offset] == '/'_u8
             {
                 token.kind = .End
                 .offset    += 1
@@ -331,55 +376,81 @@ impl Scanner
 
             let start = .offset
             let end   = .nameEnd()
-            if .damaged do
+            if .damaged
+            {
                 return false
+            }
+
             token.name = .source[start until end]
 
             while .offset < .source.count
             {
                 .skipSpace()
-                if .offset >= .source.count do
+                if .offset >= .source.count
+                {
                     break
-                if .source[.offset] == '>'u8
+                }
+
+                if .source[.offset] == '>'_u8
                 {
                     .offset += 1
                     return true
                 }
 
                 if token.kind == .Start and
-                   .source[.offset] == '/'u8 and
+                   .source[.offset] == '/'_u8 and
                    .offset + 1 < .source.count and
-                   .source[.offset + 1] == '>'u8
+                   .source[.offset + 1] == '>'_u8
                 {
                     token.empty = true
                     .offset     += 2
                     return true
                 }
 
-                if token.kind == .End do
+                if token.kind == .End
+                {
                     break
+                }
 
                 let attrStart = .offset
                 let attrEnd   = .nameEnd()
-                if .damaged do
+                if .damaged
+                {
                     return false
+                }
+
                 .skipSpace()
-                if .offset >= .source.count or .source[.offset] != '='u8 do
+                if .offset >= .source.count or .source[.offset] != '='_u8
+                {
                     break
+                }
+
                 .offset += 1
                 .skipSpace()
-                if .offset >= .source.count or (.source[.offset] != '"'u8 and .source[.offset] != '\''u8) do
+                if .offset >= .source.count or (.source[.offset] != '"'_u8 and .source[.offset] != '\''_u8)
+                {
                     break
+                }
+
                 let quote = .source[.offset]
                 .offset += 1
                 let valueStart = .offset
-                while .offset < .source.count and .source[.offset] != quote do
+                while .offset < .source.count and .source[.offset] != quote
+                {
                     .offset += 1
-                if .offset >= .source.count do
+                }
+
+                if .offset >= .source.count
+                {
                     break
+                }
+
                 let value = .decode(.source[valueStart until .offset])
-                if .damaged do
+                if .damaged
+                {
                     return false
+                }
+
                 token.attributes.add(Attribute{.source[attrStart until attrEnd], value})
                 .offset += 1
             }

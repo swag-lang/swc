@@ -28,7 +28,9 @@ using Core, Gui, Pixel, Viewers
         journey.waitFor("second animation frame", func|panel|()->bool => panel.imageView.movie.frameIndex == 1)
         panel.rotateClockwise()
         Swag.require(panel.imageView.rotationQuarterTurns == 1)
-        if file[] != third do
+        if file[] != third
+        {
             window.sendCommandEvent(ViewerCommands.NextFile)
+        }
     }
 }

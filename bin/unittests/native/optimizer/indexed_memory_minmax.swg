@@ -18,7 +18,7 @@ func maxSigned64(values: const [*]s64, index: u64)->s64
 
 #test
 {
-    let unsigned = [0'u64, 1, 0xFFFFFFFFFFFFFFFF, 0x8000000000000000, 7]
+    let unsigned = [0_u64, 1, 0xFFFFFFFFFFFFFFFF, 0x8000000000000000, 7]
     Swag.require(minUnsigned64(&unsigned[0], 0) == 0)
     Swag.require(minUnsigned64(&unsigned[0], 1) == 1)
     Swag.require(minUnsigned64(&unsigned[0], 2) == 0x8000000000000000)

@@ -2,6 +2,8 @@
 #global namespace Crypto
 #global #[Swag.Safety(.Overflow, false)]
 
+using Math.Simd
+
 // AES-KW and AES-KWP integrity check size in bytes.
 public const AesKeyWrapIntegritySize = 8
 
@@ -12,22 +14,84 @@ private const AesKeyWrapPaddedIvPrefix: [4] u8 = [0xA6, 0x59, 0x59, 0xA6]
 
 private func aesKeyWrapWriteRound(value: u64, destination: [*] u8)
 {
-    for index in 8 do
+    for index in 8
+    {
         destination[index] = cast(u8, (value >> cast(u32, (7 - index) * 8)) & 0xFF)
+    }
 }
 
 private func aesKeyWrapWriteLength(value: u32, destination: [*] u8)
 {
-    for index in 4 do
+    for index in 4
+    {
         destination[index] = Math.byteAt(value, 3 - index)
+    }
 }
 
 private func aesKeyWrapReadLength(source: const [*] u8)->u32
 {
-    var value = 0'u32
-    for index in 4 do
+    var value = 0_u32
+    for index in 4
+    {
         value = (value << 8) | cast(u32, source[index])
+    }
+
     return value
+}
+
+private func(Decrypt: bool) aesKeyWrapRoundsHardware(aes: *Aes, a: *[AesKeyWrapIntegritySize] u8, data: [..] u8)
+{
+    #static if Decrypt
+    {
+        aes[].prepareHardwareDecryption()
+    }
+
+    let words      = cast([*] u64, data.buffer)
+    let blockCount = data.count / 8
+    let saved      = cast(*u64, a)
+    var chain      = saved[]
+    var packed, counter: U64x2
+    packed[0] = chain
+    var step = Decrypt ? blockCount * 6 : 1_u64
+    for 6
+    {
+        for block in blockCount
+        {
+            let index = Decrypt ? blockCount - 1 - block : block
+            let mask  = Swag.byteSwap(step)
+            #static if Decrypt
+            {
+                counter[0] = mask
+                packed[1]  = words[index]
+                let block = cast #bit (U8x16, packed ^ counter)
+                packed       = cast #bit (U64x2, aes[].decryptBlockHardware!{true}(block))
+                words[index] = packed[1]
+            }
+            else
+            {
+                var input: U64x2
+                input[0] = chain
+                input[1] = words[index]
+                let block  = cast #bit (U8x16, input)
+                let result = cast #bit (U64x2, aes[].encryptBlockHardware(block))
+                chain        = result[0] ^ mask
+                words[index] = result[1]
+            }
+
+            step = Decrypt ? step - 1 : step + 1
+        }
+    }
+
+    #static if Decrypt
+    {
+        saved[] = packed[0]
+        Crypto.secureClear(Swag.makeSlice(&packed, 1))
+    }
+    else
+    {
+        saved[] = chain
+        Crypto.secureClear(Swag.makeSlice(&chain, 1))
+    }
 }
 
 private func aesKeyWrapWrapCore(aes: *Aes, initialA: [AesKeyWrapIntegritySize] u8, input: const [..] u8, output: [..] u8) fail
@@ -36,10 +100,18 @@ private func aesKeyWrapWrapCore(aes: *Aes, initialA: [AesKeyWrapIntegritySize] u
     var a = initialA
     Swag.memcpy(output.buffer + 8, input.buffer, input.count)
     Swag.memcpy(output.buffer, &a[0], 8)
-    var round = 0'u64
+    if aes[].usesHardwareRounds()
+    {
+        aesKeyWrapRoundsHardware!{false}(aes, &a, output[8 until])
+        Swag.memcpy(output.buffer, &a[0], 8)
+        Crypto.secureClear(a)
+        return
+    }
+
+    var round = 0_u64
     while round < 6
     {
-        var index = 0'u64
+        var index = 0_u64
         while index < blockCount
         {
             var block:     [16] u8
@@ -49,8 +121,11 @@ private func aesKeyWrapWrapCore(aes: *Aes, initialA: [AesKeyWrapIntegritySize] u
             try aes[].encryptBlock(block, encrypted)
             let roundNumber = blockCount * round + index + 1
             aesKeyWrapWriteRound(roundNumber, &block[0])
-            for byte in 8 do
+            for byte in 8
+            {
                 a[byte] = encrypted[byte] ^ block[byte]
+            }
+
             Swag.memcpy(output.buffer + 8 + index * 8, &encrypted[8], 8)
             Crypto.secureClear(block)
             Crypto.secureClear(encrypted)
@@ -69,7 +144,13 @@ private func aesKeyWrapUnwrapCore(aes: *Aes, input: const [..] u8, a: *[AesKeyWr
     let blockCount = output.count / 8
     Swag.memcpy(&a[][0], input.buffer, 8)
     Swag.memcpy(output.buffer, input.buffer + 8, output.count)
-    var round = 6'u64
+    if aes[].usesHardwareRounds()
+    {
+        aesKeyWrapRoundsHardware!{true}(aes, a, output)
+        return
+    }
+
+    var round = 6_u64
     while round > 0
     {
         round -= 1
@@ -80,11 +161,17 @@ private func aesKeyWrapUnwrapCore(aes: *Aes, input: const [..] u8, a: *[AesKeyWr
             var block:     [16] u8
             var decrypted: [16] u8
             let roundNumber = blockCount * round + index + 1
-            for byte in 8 do
+            for byte in 8
+            {
                 block[byte] = a[][byte]
+            }
+
             aesKeyWrapWriteRound(roundNumber, &block[0])
-            for byte in 8 do
+            for byte in 8
+            {
                 block[byte] ^= a[][byte]
+            }
+
             Swag.memcpy(&block[8], output.buffer + index * 8, 8)
             try aes[].decryptBlock(block, decrypted)
             Swag.memcpy(&a[][0], &decrypted[0], 8)
@@ -105,8 +192,10 @@ func aesKeyWrap(wrappingKey, keyData: const [..] u8, wrapped: [..] u8) fail
     if keyData.count < 16 or
        keyData.count % 8 or
        keyData.count > Swag.U64.Max - AesKeyWrapIntegritySize or
-       wrapped.count != keyData.count + AesKeyWrapIntegritySize do
+       wrapped.count != keyData.count + AesKeyWrapIntegritySize
+    {
         fail Errors.BadParameterError{"AES-KW needs at least 16 bytes of 64-bit aligned key data and an output eight bytes longer"}
+    }
 
     var aes = try Aes.create(wrappingKey)
     defer aes.clear()
@@ -119,12 +208,14 @@ func aesKeyWrap(wrappingKey, keyData: const [..] u8, wrapped: [..] u8) fail
 // eight bytes shorter; it is left untouched when integrity verification fails.
 func aesKeyUnwrap(wrappingKey, wrapped: const [..] u8, keyData: [..] u8) fail
 {
-    if wrapped.count < 24 or wrapped.count % 8 or keyData.count != wrapped.count - 8 do
+    if wrapped.count < 24 or wrapped.count % 8 or keyData.count != wrapped.count - 8
+    {
         fail Errors.BadParameterError{"AES-KW needs at least 24 bytes of wrapped data and an output eight bytes shorter"}
+    }
 
     var aes = try Aes.create(wrappingKey)
     defer aes.clear()
-    var temporary: Array'u8
+    var temporary: Array!{u8}
     temporary.resize(keyData.count)
     defer Crypto.secureClear(temporary.toSlice())
     var a: [AesKeyWrapIntegritySize] u8
@@ -146,21 +237,29 @@ func aesKeyUnwrap(wrappingKey, wrapped: const [..] u8, keyData: [..] u8) fail
 // output must be disjoint.
 func aesKeyWrapWithPadding(wrappingKey, keyData: const [..] u8, wrapped: [..] u8) fail
 {
-    if keyData.count == 0 or keyData.count > Swag.U32.Max do
+    if keyData.count == 0 or keyData.count > Swag.U32.Max
+    {
         fail Errors.BadParameterError{"AES-KWP key data must contain between 1 and 2^32-1 bytes"}
-    let paddedLength  = (keyData.count + 7) & ~7'u64
+    }
+
+    let paddedLength  = (keyData.count + 7) & ~7_u64
     let wrappedLength = Math.max(16, paddedLength + 8)
-    if wrapped.count != wrappedLength do
+    if wrapped.count != wrappedLength
+    {
         fail Errors.BadParameterError{"AES-KWP output has the wrong length"}
+    }
 
     var aes = try Aes.create(wrappingKey)
     defer aes.clear()
-    var padded: Array'u8
+    var padded: Array!{u8}
     padded.resize(paddedLength)
     defer Crypto.secureClear(padded.toSlice())
     Swag.memcpy(&padded[0], keyData.buffer, keyData.count)
-    if paddedLength > keyData.count do
-        Memory.set(padded.toSlice().buffer + keyData.count, 0'u8, paddedLength - keyData.count)
+    if paddedLength > keyData.count
+    {
+        Memory.set(padded.toSlice().buffer + keyData.count, 0_u8, paddedLength - keyData.count)
+    }
+
     var initialA: [AesKeyWrapIntegritySize] u8
     Swag.memcpy(&initialA[0], &AesKeyWrapPaddedIvPrefix[0], 4)
     aesKeyWrapWriteLength(cast(u32, keyData.count), &initialA[4])
@@ -187,13 +286,15 @@ func aesKeyWrapWithPadding(wrappingKey, keyData: const [..] u8, wrapped: [..] u8
 // length and leaves the destination untouched if the integrity value, length, or padding is invalid.
 func aesKeyUnwrapWithPadding(wrappingKey, wrapped: const [..] u8, keyData: [..] u8)->u64 fail
 {
-    if wrapped.count < 16 or wrapped.count % 8 or keyData.count < wrapped.count - 8 do
+    if wrapped.count < 16 or wrapped.count % 8 or keyData.count < wrapped.count - 8
+    {
         fail Errors.BadParameterError{"AES-KWP needs at least 16 bytes of wrapped data and sufficient output capacity"}
+    }
 
     var aes = try Aes.create(wrappingKey)
     defer aes.clear()
     let paddedLength = wrapped.count - 8
-    var temporary: Array'u8
+    var temporary: Array!{u8}
     temporary.resize(paddedLength)
     defer Crypto.secureClear(temporary.toSlice())
     var a: [AesKeyWrapIntegritySize] u8
@@ -210,13 +311,19 @@ func aesKeyUnwrapWithPadding(wrappingKey, wrapped: const [..] u8, keyData: [..] 
         try aesKeyWrapUnwrapCore(&aes, wrapped, &a, temporary.toSlice())
     }
 
-    var invalid = 0'u8
-    for index in 4 do
+    var invalid = 0_u8
+    for index in 4
+    {
         invalid |= a[index] ^ AesKeyWrapPaddedIvPrefix[index]
+    }
+
     let messageLength = aesKeyWrapReadLength(&a[4])
     let validLength   = messageLength > paddedLength - 8 and messageLength <= paddedLength
-    if not validLength do
+    if not validLength
+    {
         invalid |= 1
+    }
+
     let safeLength   = Math.min(cast(u64, messageLength), paddedLength)
     var paddingIndex = safeLength
     while paddingIndex < paddedLength

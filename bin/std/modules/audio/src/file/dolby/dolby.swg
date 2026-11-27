@@ -9,7 +9,7 @@
 using Core, Core.Errors
 
 // Bytes the walk peeks at each frame: the sync frame fields both formats state their shape in.
-private const HeaderBytes = 8'u64
+private const HeaderBytes = 8_u64
 
 // Opens a native AC-3 or E-AC-3 elementary stream as a streamed packet sound.
 //
@@ -20,29 +20,52 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
     var source    = try ByteSource.openFile(path)
     let fileBytes = source.size()
 
-    var packets: Array'SoundPacket
-    var byteOffset   = 0'u64
-    var totalFrames  = 0'u64
-    var sampleRate   = 0'u32
-    var channelCount = 0'u32
-    var speakerMask  = 0'u32
+    var packets:     Array!{SoundPacket}
+    var window:      const [..] u8 = []
+    var windowStart: u64
+    var byteOffset   = 0_u64
+    var totalFrames  = 0_u64
+    var sampleRate   = 0_u32
+    var channelCount = 0_u32
+    var speakerMask  = 0_u32
 
     for
     {
-        if byteOffset > fileBytes do
+        if byteOffset > fileBytes
+        {
             fail InvalidFormatError{"Dolby frame offset exceeds the file size"}
-        if byteOffset == fileBytes do
+        }
+
+        if byteOffset == fileBytes
+        {
             break
+        }
+
         let remainingBytes = fileBytes - byteOffset
-        if remainingBytes < HeaderBytes do
+        if remainingBytes < HeaderBytes
+        {
             fail InvalidFormatError{"Dolby elementary stream ends with a partial sync header"}
-        try source.seek(byteOffset)
-        let probe = try source.peek(HeaderBytes)
-        let info  = encoding == .Eac3 ? try eac3FrameInfo(probe) : try ac3FrameInfo(probe)
-        if not info.frameBytes do
+        }
+
+        if byteOffset - windowStart + HeaderBytes > window.count
+        {
+            try source.seek(byteOffset)
+            window      = try source.peek(HeaderBytes)
+            windowStart = byteOffset
+        }
+
+        let header = byteOffset - windowStart
+        let probe  = window[header until header + HeaderBytes]
+        let info   = encoding == .Eac3 ? try eac3FrameInfo(probe) : try ac3FrameInfo(probe)
+        if not info.frameBytes
+        {
             fail InvalidFormatError{"Dolby sync frame has an invalid size"}
-        if info.frameBytes > remainingBytes do
+        }
+
+        if info.frameBytes > remainingBytes
+        {
             fail InvalidFormatError{"Dolby elementary stream ends inside a sync frame"}
+        }
 
         if not packets.count
         {
@@ -50,28 +73,36 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
             channelCount = info.channels
             speakerMask  = info.speakerMask
         }
-        elif info.sampleRate != sampleRate or
-             info.channels != channelCount or
-             info.speakerMask != speakerMask
+        else if info.sampleRate != sampleRate or
+                info.channels != channelCount or
+                info.speakerMask != speakerMask
         {
             fail InvalidFormatError{"Dolby elementary stream changes shape between sync frames"}
         }
 
-        if info.frameBytes > Swag.U32.Max do
+        if info.frameBytes > Swag.U32.Max
+        {
             fail InvalidFormatError{"Dolby sync frame is larger than a packet may be"}
+        }
+
         packets.add(SoundPacket{byteOffset, cast(u32, info.frameBytes), info.frames})
         let frameCount = cast(u64, info.frames)
-        if totalFrames > Swag.U64.Max - frameCount do
+        if totalFrames > Swag.U64.Max - frameCount
+        {
             fail OverflowError{"Dolby stream sample count overflows"}
+        }
+
         totalFrames += frameCount
         byteOffset  += info.frameBytes
     }
 
-    if not packets.count do
+    if not packets.count
+    {
         fail InvalidFormatError{"file carries no Dolby sync frame"}
+    }
 
     source.close()
-    var config: Array'u8
+    var config: Array!{u8}
     return try SoundFile.openPacketStream(path,
                                           encoding,
                                           sampleRate,

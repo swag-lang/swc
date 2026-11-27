@@ -35,8 +35,11 @@ impl RateControl
            not reservoirBits or
            not ticksPerSecond or
            minQp > maxQp or
-           maxQp > 51 do
+           maxQp > 51
+        {
             fail BadParameterError{"H.264 rate control needs a positive rate, reservoir, timescale and QP range"}
+        }
+
         return {targetBitsPerSecond: targetBitsPerSecond,
                 reservoirBits: reservoirBits,
                 ticksPerSecond: ticksPerSecond,
@@ -49,18 +52,25 @@ impl RateControl
     // Checks the budget arithmetic before a frame is encoded, preserving retryable encoder state.
     internal mtd validateDuration(durationTicks: u32) fail
     {
-        if not durationTicks do
+        if not durationTicks
+        {
             fail BadParameterError{"H.264 rate-control feedback needs a positive duration"}
+        }
 
         let ticks     = cast(u64, durationTicks)
         let timebase  = cast(u64, .ticksPerSecond)
         let wholeRate = .targetBitsPerSecond / timebase
-        if wholeRate > Swag.U64.Max / ticks do
+        if wholeRate > Swag.U64.Max / ticks
+        {
             fail OverflowError{"H.264 rate-control budget overflows"}
+        }
+
         let wholeBudget = wholeRate * ticks
         let fractional  = (.targetBitsPerSecond % timebase) * ticks + .fractionalBits
-        if fractional / timebase > Swag.U64.Max - wholeBudget do
+        if fractional / timebase > Swag.U64.Max - wholeBudget
+        {
             fail OverflowError{"H.264 rate-control budget overflows"}
+        }
     }
 
     // A query has no side effects. Repeated queries before feedback return the same QP.
@@ -69,12 +79,21 @@ impl RateControl
     internal mtd const chooseQp(isKeyFrame, sceneCut: bool)->u32
     {
         var result = .nextQp
-        if isKeyFrame and result < .maxQp do
+        if isKeyFrame and result < .maxQp
+        {
             result += 1
-        if sceneCut and result < .maxQp do
+        }
+
+        if sceneCut and result < .maxQp
+        {
             result += 1
-        if .hasObservation and result > .lastQp and result - .lastQp > 2 do
+        }
+
+        if .hasObservation and result > .lastQp and result - .lastQp > 2
+        {
             result = .lastQp + 2
+        }
+
         return result
     }
 
@@ -87,10 +106,15 @@ impl RateControl
            usedQp > .maxQp or
            (.hasObservation and
             ((usedQp > .lastQp and usedQp - .lastQp > 2) or
-             (usedQp < .lastQp and .lastQp - usedQp > 2))) do
+             (usedQp < .lastQp and .lastQp - usedQp > 2)))
+        {
             fail BadParameterError{"H.264 rate-control feedback has invalid duration or QP"}
-        if packetBytes > Swag.U64.Max / 8 do
+        }
+
+        if packetBytes > Swag.U64.Max / 8
+        {
             fail OverflowError{"H.264 rate-control picture size overflows bits"}
+        }
 
         try .validateDuration(durationTicks)
 
@@ -103,8 +127,11 @@ impl RateControl
         // carried remainder fits u64 even when durationTicks is U32.Max.
         let fractional  = (.targetBitsPerSecond % timebase) * ticks + .fractionalBits
         let extraBudget = fractional / timebase
-        if extraBudget > Swag.U64.Max - wholeBudget do
+        if extraBudget > Swag.U64.Max - wholeBudget
+        {
             fail OverflowError{"H.264 rate-control budget overflows"}
+        }
+
         let budget      = wholeBudget + extraBudget
         let encodedBits = packetBytes * 8
 
@@ -121,11 +148,15 @@ impl RateControl
         }
 
         var next    = usedQp
-        let quarter = Math.max(1'u64, .reservoirBits / 4)
-        if fullness < quarter and next < .maxQp do
-            next += Math.min(2'u32, .maxQp - next)
-        elif fullness > .reservoirBits - quarter and next > .minQp do
-            next -= Math.min(2'u32, next - .minQp)
+        let quarter = Math.max(1_u64, .reservoirBits / 4)
+        if fullness < quarter and next < .maxQp
+        {
+            next += Math.min(2_u32, .maxQp - next)
+        }
+        else if fullness > .reservoirBits - quarter and next > .minQp
+        {
+            next -= Math.min(2_u32, next - .minQp)
+        }
 
         .fractionalBits = fractional % timebase
         .fullnessBits   = fullness

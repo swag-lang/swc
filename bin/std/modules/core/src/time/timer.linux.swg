@@ -12,14 +12,19 @@ private func createTimerThreadNative(param: *void)->const *void fail
 {
     var thread: Linux.pthread_t
     let error = Linux.pthread_create(&thread, null, &timerThreadEntryNative, param)
-    if error != 0 do
+    if error != 0
+    {
         try Errors.failLinuxError(error)
+    }
+
     return cast(const *void, thread)
 }
 
 private func joinTimerThreadNative(handle: const *void?)
 {
     let error = Linux.pthread_join(cast(u64, unwrap handle), null)
-    if error != 0 do
+    if error != 0
+    {
         Swag.panic("cannot join the timer's worker", #curlocation)
+    }
 }

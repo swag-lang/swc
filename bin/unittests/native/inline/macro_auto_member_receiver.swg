@@ -20,14 +20,16 @@ enum CrossAstSafetyWhat
 #[Swag.Macro]
 func(what: CrossAstSafetyWhat) crossAstSafety(cond: #code->bool, loc = #callerlocation)
 {
-    if not #inject(cond) do
+    if not #inject(cond)
+    {
         Swag.panic("cross-ast safety failed", loc)
+    }
 }
 
 #[Swag.Macro]
 func crossAstBoundCheck(cond: #code->bool, loc = #callerlocation)
 {
-    crossAstSafety'(CrossAstSafetyWhat.BoundCheck)(cond, loc)
+    crossAstSafety!{CrossAstSafetyWhat.BoundCheck}(cond, loc)
 }
 
 struct CrossAstVec

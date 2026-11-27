@@ -31,8 +31,11 @@ impl Gamepad
     {
         if not isConnected(.index)
         {
-            if .connected do
+            if .connected
+            {
                 .clear()
+            }
+
             .connected = false
         }
         else
@@ -77,6 +80,8 @@ impl Gamepad
 
 internal func validateGamepadVibrationSpeeds(left, right: f32) fail
 {
-    if not Math.isFinite(left) or not Math.isFinite(right) do
+    if not Math.isFinite(left) or not Math.isFinite(right)
+    {
         fail Errors.BadParameterError{"gamepad vibration speeds must be finite"}
+    }
 }

@@ -41,8 +41,11 @@ namespace Crypto
     // changing the cost is a format-version change.
     func slotParameters()->Core.Crypto.Argon2Parameters
     {
-        #static if TestProfile do
+        #static if TestProfile
+        {
             return {memoryKib: 32, iterations: 1, parallelism: 1}
+        }
+
         return {memoryKib: 256 * 1024, iterations: 3, parallelism: 4}
     }
 
@@ -128,8 +131,11 @@ namespace Crypto
     // for this key, kind, and position; `plaintext` is untouched when it was not.
     func open(keys: const *Keys, kind: u32, recordId: u64, nonce, ciphertext, tag: const [..] u8, plaintext: [..] u8)->bool fail
     {
-        if nonce.count != NonceSize or tag.count != TagSize or ciphertext.count != plaintext.count do
+        if nonce.count != NonceSize or tag.count != TagSize or ciphertext.count != plaintext.count
+        {
             return false
+        }
+
         return try Core.Crypto.chacha20Poly1305Open(keys.record, nonce, ciphertext, tag, associatedData(kind, recordId), plaintext)
     }
 }

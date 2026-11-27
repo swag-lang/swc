@@ -3,16 +3,19 @@
 
 func aesGcmHexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func aesGcmHexBytes(text: string)->Array'u8
+func aesGcmHexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, (aesGcmHexDigit(text[index]) << 4) | aesGcmHexDigit(text[index + 1])))
@@ -25,20 +28,28 @@ func aesGcmHexBytes(text: string)->Array'u8
 #test
 {
     // Carry-less GHASH agrees with the portable multiply across a chained sequence of blocks.
+    if not Swag.hasCpuFeature(.CarrylessMultiply)
+    {
+        return
+    }
+
     var hashKey:     [16] u8
     var scalarState: [16] u8
     for index in 16
     {
-        hashKey[index]     = cast(u8, index * 29 + 3)
-        scalarState[index] = cast(u8, index * 13 + 7)
+        hashKey[index]     = cast(u8, (index * 29 + 3) & 0xFF)
+        scalarState[index] = cast(u8, (index * 13 + 7) & 0xFF)
     }
 
     var clmulState = scalarState
     for blockIndex in 32
     {
         var block: [16] u8
-        for index in 16 do
-            block[index] = cast(u8, blockIndex * 31 + index * 17 + 5)
+        for index in 16
+        {
+            block[index] = cast(u8, (blockIndex * 31 + index * 17 + 5) & 0xFF)
+        }
+
         Crypto.aesGcmGhashBlockScalar(&scalarState, hashKey, &block[0])
         Crypto.aesGcmGhashBlockClmul(&clmulState, hashKey, &block[0])
     }
@@ -52,7 +63,7 @@ func aesGcmHexBytes(text: string)->Array'u8
     var key:   [16] u8
     var nonce: [12] u8
     var tag:   [16] u8
-    var empty: Array'u8
+    var empty: Array!{u8}
     let expected = aesGcmHexBytes("58e2fccefa7e3061367f1d57a4e7455a")
     expect Crypto.aesGcmEncrypt(key, nonce, "", "", empty.toSlice(), tag)
     Swag.require(Crypto.constantTimeEqual(tag, expected.toSlice()))
@@ -63,7 +74,7 @@ func aesGcmHexBytes(text: string)->Array'u8
     // NIST SP 800-38D empty-message vectors cover the other supported AES key sizes.
     var nonce: [12] u8
     var tag:   [16] u8
-    var empty: Array'u8
+    var empty: Array!{u8}
     let expected192 = aesGcmHexBytes("cd33b28ac773f74ba00ed1f312572435")
     let expected256 = aesGcmHexBytes("530f8afbc74536b9a963b4f1c4cb738b")
     let key192      = aesGcmHexBytes("000000000000000000000000000000000000000000000000")
@@ -117,27 +128,29 @@ func aesGcmHexBytes(text: string)->Array'u8
     let plaintext          = aesGcmHexBytes("d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39")
     let expectedCiphertext = aesGcmHexBytes("42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091")
     let expectedTag        = aesGcmHexBytes("5bc94fbc3221a5db94fae95ae7121a47")
-    var ciphertext: Array'u8
+    var ciphertext: Array!{u8}
     ciphertext.resize(plaintext.count)
     var tag: [16] u8
     expect Crypto.aesGcmEncrypt(key.toSlice(), nonce.toSlice(), aad.toSlice(), plaintext.toSlice(), ciphertext.toSlice(), tag)
     Swag.require(Crypto.constantTimeEqual(ciphertext.toSlice(), expectedCiphertext.toSlice()))
     Swag.require(Crypto.constantTimeEqual(tag, expectedTag.toSlice()))
 
-    var decrypted: Array'u8
+    var decrypted: Array!{u8}
     decrypted.resize(plaintext.count)
     expect Crypto.aesGcmDecrypt(key.toSlice(), nonce.toSlice(), aad.toSlice(), ciphertext.toSlice(), tag, decrypted.toSlice())
     Swag.require(Crypto.constantTimeEqual(decrypted.toSlice(), plaintext.toSlice()))
 
-    var destination: Array'u8
+    var destination: Array!{u8}
     destination.resize(plaintext.count)
     Swag.memset(&destination[0], 0xA5, destination.count)
     aad[0] ^= 1
     var error: Swag.Error
     discard catch Crypto.aesGcmDecrypt(key.toSlice(), nonce.toSlice(), aad.toSlice(), ciphertext.toSlice(), tag, destination.toSlice()) as error
     Swag.require(error.value() is Errors.BadParameterError)
-    for byte in destination.toSlice() do
+    for byte in destination.toSlice()
+    {
         Swag.require(byte == 0xA5)
+    }
 }
 
 #test
@@ -151,11 +164,13 @@ func aesGcmHexBytes(text: string)->Array'u8
     var error: Swag.Error
     discard catch Crypto.aesGcmDecrypt(key, nonce, "", ciphertext, tag, destination) as error
     Swag.require(error.value() is Errors.BadParameterError)
-    for byte in destination do
+    for byte in destination
+    {
         Swag.require(byte == 0xA5)
+    }
 
     var shortNonce: [11] u8
-    var empty:      Array'u8
+    var empty:      Array!{u8}
     var sizeError:  Swag.Error
     discard catch Crypto.aesGcmEncrypt(key, shortNonce, "", "", empty.toSlice(), tag) as sizeError
     Swag.require(sizeError.value() is Errors.BadParameterError)
@@ -167,17 +182,69 @@ func aesGcmHexBytes(text: string)->Array'u8
     Swag.setWorkerCount(4)
     var key:       [16] u8
     var nonce:     [Crypto.AesGcmNonceSize] u8
-    var plaintext: Array'u8
+    var plaintext: Array!{u8}
     plaintext.resize(65 * 1024 + 19)
-    for index in plaintext.count do
-        plaintext[index] = cast(u8, index * 29 + 7)
-    var ciphertext: Array'u8
+    for index in plaintext.count
+    {
+        plaintext[index] = cast(u8, (index * 29 + 7) & 0xFF)
+    }
+
+    var ciphertext: Array!{u8}
     ciphertext.resize(plaintext.count)
     var tag: [Crypto.AesGcmTagSize] u8
     expect Crypto.aesGcmEncrypt(key, nonce, "parallel AAD", plaintext.toSlice(), ciphertext.toSlice(), tag)
 
-    var decrypted: Array'u8
+    var decrypted: Array!{u8}
     decrypted.resize(plaintext.count)
     expect Crypto.aesGcmDecrypt(key, nonce, "parallel AAD", ciphertext.toSlice(), tag, decrypted.toSlice())
     Swag.require(Crypto.constantTimeEqual(decrypted.toSlice(), plaintext.toSlice()))
+}
+
+#test
+{
+    // OpenSSL EVP for an unaligned AES-256-GCM record and AAD spanning complete groups and tails.
+    var key:       [32] u8
+    var nonce:     [12] u8
+    var aadBytes:  [135] u8
+    var textBytes: [147] u8
+    let aad     = aadBytes[1 until 134]
+    let message = textBytes[1 until 146]
+    for index in key.count
+    {
+        key[index] = cast(u8, index)
+    }
+
+    for index in nonce.count
+    {
+        nonce[index] = cast(u8, 0x30 + index)
+    }
+
+    for index in aad.count
+    {
+        aad[index] = cast(u8, (index * 17 + 11) & 0xFF)
+    }
+
+    for index in message.count
+    {
+        message[index] = cast(u8, (index * 29 + 7) & 0xFF)
+    }
+
+    let plaintext = textBytes
+
+    let expectedTag = aesGcmHexBytes("983a075befb90a3d32e4f3e97a165225")
+    var tag: [16] u8
+    expect Crypto.aesGcmEncrypt(key, nonce, aad, message, message, tag)
+    Swag.require(Crypto.constantTimeEqual(tag, expectedTag.toSlice()))
+    Swag.require(textBytes[0] == 0 and textBytes[146] == 0)
+
+    let ciphertext = textBytes
+    tag[0] ^= 1
+    var error: Swag.Error
+    discard catch Crypto.aesGcmDecrypt(key, nonce, aad, message, tag, message) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+    Swag.require(Crypto.constantTimeEqual(textBytes, ciphertext))
+
+    tag[0] ^= 1
+    expect Crypto.aesGcmDecrypt(key, nonce, aad, message, tag, message)
+    Swag.require(Crypto.constantTimeEqual(textBytes, plaintext))
 }

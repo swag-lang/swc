@@ -15,17 +15,23 @@ func patternDuplicate(value: IPatternError)
 
 func patternScope(value: IPatternError)
 {
-    if value is PatternError as item do
+    if value is PatternError as item
+    {
         Swag.assert(item != null)
+    }
     discard item     // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
 func patternElseScope(value: IPatternError)
 {
-    if value is PatternError as item do
+    if value is PatternError as item
+    {
         Swag.assert(item != null)
-    else do
+    }
+    else
+    {
         discard item     // swc-expected-error {{sema_err_unknown_symbol}}
+    }
 }
 
 struct PatternPlain { value: s32 }
@@ -53,8 +59,10 @@ func patternMutable(value: *PatternError) { discard value }
 
 func patternConstIf(value: const IPatternError)
 {
-    if value is PatternError as item do
+    if value is PatternError as item
+    {
         patternMutable(item)     // swc-expected-error {{sema_err_cannot_cast_const}}
+    }
 }
 
 func patternConstSwitch(value: const IPatternError)

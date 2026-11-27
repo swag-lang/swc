@@ -94,7 +94,7 @@ impl StaticArray
             let buffer = cast([*] T, &.buffer[0])
             if dataof >= buffer and dataof < buffer + .count
             {
-                var copy: Array'T
+                var copy: Array!{T}
                 copy.add(arr)
                 .opSet(copy.toSlice())
                 return
@@ -102,14 +102,19 @@ impl StaticArray
         }
 
         .clear()
-        if not countof do
+        if not countof
+        {
             return
+        }
+
         var dataof = arr.buffer
 
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
-            for i in countof do
+            for i in countof
+            {
                 .buffer[i] = #nodrop dataof[i]
+            }
         }
         else
         {
@@ -126,31 +131,39 @@ impl StaticArray
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
-        if not .count do
+        if not .count
+        {
             return
+        }
 
         let buffer = cast([*] T, &.buffer[0])
 
         for visitIdx in .count
         {
             let element = buffer + visitIdx
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = cast(*T, element), index = visitIdx)
-            elif Reflection.isStruct(T) do
+            }
+            else if Reflection.isStruct(T)
+            {
                 #inject(stmt, item = cast(const *T, element), index = visitIdx)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = element[0], index = visitIdx)
+            }
         }
     }
 
     // Returns a zero-allocation view that traverses the elements from last to first.
-    mtd reversed()->ReversedSlice'T => reverseSlice(.toSlice())
+    mtd reversed()->ReversedSlice!{T} => reverseSlice(.toSlice())
 
     // Returns an immutable zero-allocation view that traverses the elements from last to first.
-    mtd const reversed()->ConstReversedSlice'T => reverseSlice(.toSlice())
+    mtd const reversed()->ConstReversedSlice!{T} => reverseSlice(.toSlice())
 
     // Returns a zero-allocation view over adjacent elements.
-    mtd const pairs()->Pairs'T => pairsView(.toSlice())
+    mtd const pairs()->Pairs!{T} => pairsView(.toSlice())
 
     // Drops every element and leaves the array empty.
     //
@@ -178,8 +191,11 @@ impl StaticArray
     // `newCount` exceeds `N`.
     mtd resize(newCount: u64)
     {
-        if newCount == .count do
+        if newCount == .count
+        {
             return
+        }
+
         Swag.assert(newCount <= N, "size is too big")
         if newCount > .count
         {
@@ -203,8 +219,10 @@ impl StaticArray
         let oldCount = .count
         #static if Reflection.hasDrop(T)
         {
-            for index in oldCount do
+            for index in oldCount
+            {
                 Swag.drop(&.buffer[index])
+            }
 
             Swag.init(&.buffer[0], oldCount)
         }
@@ -217,8 +235,11 @@ impl StaticArray
     // Asserts if the array is full. The value is copied; pass it with `#move` to move it instead.
     mtd addOnce(value: #fwd T)
     {
-        if .contains(value) do
+        if .contains(value)
+        {
             return
+        }
+
         Swag.assert(.count != N, "the array is full")
         .buffer[.count] = #nodrop #fwd value
         .count += 1
@@ -264,8 +285,11 @@ impl StaticArray
     mtd insertAt(index: u64, value: #fwd T)
     {
         Swag.assert(index <= .count, "index out of range")
-        if index == .count do
+        if index == .count
+        {
             return .add(#fwd value)
+        }
+
         Swag.assert(.count != N, "the array is full")
 
         // Shifting rewrites the storage `value` may live in, so take it out first.
@@ -282,8 +306,11 @@ impl StaticArray
     {
         Swag.assert(index <= .count, "index out of range")
         Swag.assert(.count != N, "the array is full")
-        if index == .count do
+        if index == .count
+        {
             return .add(value[])
+        }
+
         var staged = value[]
         .insertSlot(index)[] = #relocate staged
     }
@@ -294,8 +321,10 @@ impl StaticArray
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = .count - 1; idx > index; idx -= 1 do
+            for var idx = .count - 1; idx > index; idx -= 1
+            {
                 .buffer[idx] = #relocate .buffer[idx - 1]
+            }
         }
         else
         {
@@ -314,13 +343,16 @@ impl StaticArray
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count
-        if not sliceCount do
+        if not sliceCount
+        {
             return
+        }
+
         let buffer = cast([*] T, &.buffer[0])
         let dataof = values.buffer
         if dataof >= buffer and dataof < buffer + .count
         {
-            var copy: Array'T
+            var copy: Array!{T}
             copy.add(values)
             return .insertAt(index, copy.toSlice())
         }
@@ -331,8 +363,10 @@ impl StaticArray
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
+            for var idx = .count - 1; idx >= index + sliceCount; idx -= 1
+            {
                 .buffer[idx] = #relocate .buffer[idx - sliceCount]
+            }
         }
         else
         {
@@ -344,8 +378,10 @@ impl StaticArray
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
             let vals = unwrap values
-            for var idx = 0; idx < sliceCount; idx += 1 do
+            for var idx = 0; idx < sliceCount; idx += 1
+            {
                 .buffer[index + idx] = #nodrop vals[idx]
+            }
         }
         else
         {
@@ -353,8 +389,10 @@ impl StaticArray
 
             // A bitwise move leaves the source holding the same resources: reset it so that its
             // own drop releases nothing.
-            #static if Reflection.hasDrop(T) do
+            #static if Reflection.hasDrop(T)
+            {
                 Swag.init(values.buffer, sliceCount)
+            }
         }
     }
 
@@ -365,13 +403,16 @@ impl StaticArray
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count
-        if not sliceCount do
+        if not sliceCount
+        {
             return
+        }
+
         let buffer = cast([*] T, &.buffer[0])
         let dataof = values.buffer
         if dataof >= buffer and dataof < buffer + .count
         {
-            var copy: Array'T
+            var copy: Array!{T}
             copy.add(values)
             return .emplaceAt(index, copy.toSlice())
         }
@@ -382,8 +423,10 @@ impl StaticArray
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
+            for var idx = .count - 1; idx >= index + sliceCount; idx -= 1
+            {
                 .buffer[idx] = #relocate .buffer[idx - sliceCount]
+            }
         }
         else
         {
@@ -394,8 +437,10 @@ impl StaticArray
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = 0; idx < sliceCount; idx += 1 do
+            for var idx = 0; idx < sliceCount; idx += 1
+            {
                 .buffer[index + idx] = #nodrop #move values[idx]
+            }
         }
         else
         {
@@ -403,8 +448,10 @@ impl StaticArray
 
             // A bitwise move leaves the source holding the same resources: reset it so that its
             // own drop releases nothing.
-            #static if Reflection.hasDrop(T) do
+            #static if Reflection.hasDrop(T)
+            {
                 Swag.init(values.buffer, sliceCount)
+            }
         }
     }
 
@@ -415,13 +462,16 @@ impl StaticArray
         where Reflection.canCopy(T)
     {
         var sliceCount = values.count
-        if not sliceCount do
+        if not sliceCount
+        {
             return
+        }
+
         let buffer = cast([*] T, &.buffer[0])
         let dataof = values.buffer
         if dataof >= buffer and dataof < buffer + .count
         {
-            var copy: Array'T
+            var copy: Array!{T}
             copy.add(values)
             return .add(copy.toSlice())
         }
@@ -451,8 +501,11 @@ impl StaticArray
     // The order of the remaining elements is preserved.
     mtd remove(index, num: u64)
     {
-        if not num do
+        if not num
+        {
             return
+        }
+
         Swag.assert(isRangeInBounds(.count, index, num), "index out of range")
         let oldCount   = .count
         let shiftCount = .count - (index + num)
@@ -493,8 +546,11 @@ impl StaticArray
     mtd(V) remove(value: V)
     {
         let idx = Slice.findLinear(.toSlice(), value)
-        if idx == Swag.U64.Max do
+        if idx == Swag.U64.Max
+        {
             return
+        }
+
         .removeAt(idx)
     }
 
@@ -530,16 +586,21 @@ impl StaticArray
     // This is slower than [[Core.StaticArray.removeAt]], but preserves the order of the remaining elements.
     mtd removeAtOrdered(index: u64, numValues: u64 = 1)
     {
-        if not numValues do
+        if not numValues
+        {
             return
+        }
+
         Swag.assert(isRangeInBounds(.count, index, numValues), "index out of range")
         let oldCount = .count
         .count -= numValues
 
         #static if Reflection.hasDrop(T)
         {
-            for idx in numValues do
+            for idx in numValues
+            {
                 Swag.drop(&.buffer[index + idx])
+            }
         }
 
         if index >= .count
@@ -586,8 +647,11 @@ impl StaticArray
     mtd(V) removeOrdered(value: V)
     {
         let idx = Slice.findLinear(.toSlice(), value)
-        if idx == Swag.U64.Max do
+        if idx == Swag.U64.Max
+        {
             return
+        }
+
         .removeAtOrdered(idx)
     }
 

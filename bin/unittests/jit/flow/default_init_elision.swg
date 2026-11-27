@@ -147,11 +147,15 @@ func defaultPair()->{ x: s32, y: s32 }
 #test
 {
     var arr: [8] s32
-    for i in 8 do
+    for i in 8
+    {
         arr[i] = cast(s32, i)
-    var sum = 0's32
-    for i in 8 do
+    }
+    var sum = 0_s32
+    for i in 8
+    {
         sum += arr[i]
+    }
     Swag.require(sum == 28)
 }
 

@@ -74,8 +74,10 @@ impl Tracked
     {
         var src = Tracked{3}
         var dst = Tracked{7}
-        if g_cond do
+        if g_cond
+        {
             dst = #move src
+        }
     }
     Swag.require(DropCount == 3)
     Swag.require(DropTrace == 72305)
@@ -106,8 +108,10 @@ impl Tracked
     {
         var src = Tracked{3}
         var dst = Tracked{7}
-        for var i = 0; i < 1; i += 1 do
+        for var i = 0; i < 1; i += 1
+        {
             dst = #nodrop #move src
+        }
     }
     Swag.require(DropCount == 2)
     Swag.require(DropTrace == 2305)

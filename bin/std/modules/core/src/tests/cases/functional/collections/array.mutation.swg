@@ -4,8 +4,8 @@
 using Swag
 
 const MutationStressChunk   = "2333133121414131402"
-const MutationFreeSpanId    = -1's64
-const MutationStressRepeats = 512'u32
+const MutationFreeSpanId    = -1_s64
+const MutationStressRepeats = 512_u32
 
 struct MutationSpan
 {
@@ -15,7 +15,7 @@ struct MutationSpan
 
 func compactMutationFor(text: string)->u64
 {
-    var map:    Array'{ what, num: s64 }
+    var map:    Array!{{ what, num: s64 }}
     var nextId: s64
     for ch, index in text
     {
@@ -34,12 +34,20 @@ func compactMutationFor(text: string)->u64
     var last = map.count - #wrap 1
     for i in map.count
     {
-        if map[i].what != MutationFreeSpanId do
+        if map[i].what != MutationFreeSpanId
+        {
             continue
-        while map[last].what == MutationFreeSpanId do
+        }
+
+        while map[last].what == MutationFreeSpanId
+        {
             last -= 1
-        if i >= last do
+        }
+
+        if i >= last
+        {
             break
+        }
 
         map[i].what = map[last].what
         if map[i].num == map[last].num
@@ -47,7 +55,7 @@ func compactMutationFor(text: string)->u64
             map[last].what = MutationFreeSpanId
             last -= 1
         }
-        elif map[i].num > map[last].num
+        else if map[i].num > map[last].num
         {
             let rest = map[i].num - map[last].num
             map[i].num     = map[last].num
@@ -63,8 +71,11 @@ func compactMutationFor(text: string)->u64
     var blockIndex, total: u64
     for span in map
     {
-        if span.what == MutationFreeSpanId do
+        if span.what == MutationFreeSpanId
+        {
             break
+        }
+
         for span.num
         {
             total      += blockIndex * span.what
@@ -77,7 +88,7 @@ func compactMutationFor(text: string)->u64
 
 func compactMutationWhile(text: string)->u64
 {
-    var map:    Array'{ what, num: s64 }
+    var map:    Array!{{ what, num: s64 }}
     var nextId: s64
     for ch, index in text
     {
@@ -95,7 +106,7 @@ func compactMutationWhile(text: string)->u64
 
     var last  = map.count - #wrap 1
     let bound = map.count
-    var i     = 0'u64
+    var i     = 0_u64
     while i < bound
     {
         if map[i].what != MutationFreeSpanId
@@ -104,10 +115,15 @@ func compactMutationWhile(text: string)->u64
             continue
         }
 
-        while map[last].what == MutationFreeSpanId do
+        while map[last].what == MutationFreeSpanId
+        {
             last -= 1
-        if i >= last do
+        }
+
+        if i >= last
+        {
             break
+        }
 
         map[i].what = map[last].what
         if map[i].num == map[last].num
@@ -115,7 +131,7 @@ func compactMutationWhile(text: string)->u64
             map[last].what = MutationFreeSpanId
             last -= 1
         }
-        elif map[i].num > map[last].num
+        else if map[i].num > map[last].num
         {
             let rest = map[i].num - map[last].num
             map[i].num     = map[last].num
@@ -133,8 +149,11 @@ func compactMutationWhile(text: string)->u64
     var blockIndex, total: u64
     for span in map
     {
-        if span.what == MutationFreeSpanId do
+        if span.what == MutationFreeSpanId
+        {
             break
+        }
+
         for span.num
         {
             total      += blockIndex * span.what
@@ -148,15 +167,18 @@ func compactMutationWhile(text: string)->u64
 func buildMutationStressInput(repeats: u32)->String
 {
     var result: String
-    for repeats do
+    for repeats
+    {
         result += MutationStressChunk
+    }
+
     return result
 }
 
 #test
 {
-    Swag.require(compactMutationWhile(MutationStressChunk) == 1928'u64)
-    Swag.require(compactMutationFor(MutationStressChunk) == 1928'u64)
+    Swag.require(compactMutationWhile(MutationStressChunk) == 1928_u64)
+    Swag.require(compactMutationFor(MutationStressChunk) == 1928_u64)
 }
 
 #test
@@ -169,7 +191,7 @@ func buildMutationStressInput(repeats: u32)->String
 // argument lives in, and shifting rewrites it, so the value is taken before either happens.
 #test
 {
-    var a: Array'String
+    var a: Array!{String}
     a.add("one")
     a.add("two")
     Swag.require(a.capacity == a.count)

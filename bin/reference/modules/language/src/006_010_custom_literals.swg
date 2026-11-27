@@ -4,12 +4,12 @@
 # User-Defined Literals
 
 User-defined literals extend literal meaning so custom types can be initialized
-directly with unit-like suffixes (e.g., '4'ms'). This example defines a 'Duration'
+directly with unit-like suffixes (e.g., `4_ms`). This example defines a 'Duration'
 type that stores seconds and accepts seconds, milliseconds, minutes, and hours.
 
 # Literal Suffixes
-A literal suffix immediately follows a numeric literal to indicate a unit or type,
-e.g., `4'ms` means 4 milliseconds.
+A literal suffix follows a numeric literal after an underscore to indicate a unit or type,
+e.g., `4_ms` means 4 milliseconds. Built-in numeric types use the same form: `4_u32`.
 
 To support user-defined literals, provide:
 
@@ -28,7 +28,7 @@ Use the operator overload hook 'opSetLiteral' to convert a value plus suffix.
 */
 impl Duration
 {
-    // Handle literals like '5's', '500'ms', '2'min', '1'h'
+    // Handle literals like `5_s`, `500_ms`, `2_min`, `1_h`.
     #[Swag.ConstExpr, Swag.Implicit, Swag.Inline]
     mtd(suffix: string) opSetLiteral(value: s32)
     {
@@ -51,10 +51,10 @@ func toto(x: Duration) => Swag.assert(x.timeInSeconds > 0)
 
 #test
 {
-    let delaySeconds:      Duration = 5's
-    let delayMilliseconds: Duration = 500'ms
-    let delayMinutes:      Duration = 2'min
-    let delayHours:        Duration = 1'h
+    let delaySeconds:      Duration = 5_s
+    let delayMilliseconds: Duration = 500_ms
+    let delayMinutes:      Duration = 2_min
+    let delayHours:        Duration = 1_h
 
     Swag.require(delaySeconds.timeInSeconds == 5.0)
     Swag.require(delayMilliseconds.timeInSeconds == 0.5)
@@ -62,6 +62,6 @@ func toto(x: Duration) => Swag.assert(x.timeInSeconds > 0)
     Swag.require(delayHours.timeInSeconds == 3600.0)
 
     // Use the 'Duration' type in functions
-    toto(5'ms)
-    toto(1'h)
+    toto(5_ms)
+    toto(1_h)
 }

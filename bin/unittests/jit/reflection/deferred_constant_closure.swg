@@ -9,7 +9,7 @@ struct(T) DeferredConstantProbe
 #[Swag.NoInline]
 func reflectedMethod()->const *void?
 {
-    let info = cast(const *Swag.TypeInfoStruct, #type DeferredConstantProbe's32)
+    let info = cast(const *Swag.TypeInfoStruct, #type DeferredConstantProbe!{s32})
     return info.methods![0].value
 }
 
@@ -33,17 +33,21 @@ impl DeferredConstantProbe
 
 func callPublishedMethod()->bool
 {
-    var probe = DeferredConstantProbe's32{value: 73}
-    if probe.get() != 73 do
+    var probe = DeferredConstantProbe!{s32}{value: 73}
+    if probe.get() != 73
+    {
         return false
+    }
 
     // Reusing either the target closure or the constant-call result must still
     // observe the address published after the earlier compile-time request.
     let first  = forwardedMethod()
     let second = forwardedMethod()
-    if first == null or second != first do
+    if first == null or second != first
+    {
         return false
-    let method = cast(func(const *DeferredConstantProbe's32)->s32, first)
+    }
+    let method = cast(func(const *DeferredConstantProbe!{s32})->s32, first)
     return method(&probe) == 73
 }
 

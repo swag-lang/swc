@@ -8,34 +8,44 @@
 using Core, Core.Errors, Pixel
 
 // Which coded picture format a container named.
-const PictureAvc       = 0'u32
-const PictureHevc      = 1'u32
-const PictureMpeg4     = 2'u32
-const PictureRealVideo = 3'u32
+const PictureAvc       = 0_u32
+const PictureHevc      = 1_u32
+const PictureMpeg4     = 2_u32
+const PictureRealVideo = 3_u32
 
 // Converts a codec pixel aspect ratio to display dimensions, returning zero dimensions for
 // square pixels so callers can preserve the StreamInfo convention.
 func pictureDisplaySize(width, height: s32, aspectWidth, aspectHeight: u32)->{ width, height: s32 }
 {
-    if width <= 0 or height <= 0 or not aspectWidth or not aspectHeight do
+    if width <= 0 or height <= 0 or not aspectWidth or not aspectHeight
+    {
         return {width: 0, height: 0}
+    }
 
     let codedWidth  = cast(u64, width) * aspectWidth
     let codedHeight = cast(u64, height) * aspectHeight
-    if codedWidth == codedHeight do
+    if codedWidth == codedHeight
+    {
         return {width: 0, height: 0}
+    }
 
     if codedWidth > codedHeight
     {
         let displayWidth = (cast(u64, width) * aspectWidth + aspectHeight / 2) / aspectHeight
-        if displayWidth > Swag.S32.Max do
+        if displayWidth > Swag.S32.Max
+        {
             return {width: 0, height: 0}
+        }
+
         return {width: cast(s32, displayWidth), height: height}
     }
 
     let displayHeight = (cast(u64, height) * aspectHeight + aspectWidth / 2) / aspectWidth
-    if displayHeight > Swag.S32.Max do
+    if displayHeight > Swag.S32.Max
+    {
         return {width: 0, height: 0}
+    }
+
     return {width: width, height: cast(s32, displayHeight)}
 }
 
@@ -71,7 +81,7 @@ impl PictureStream
     // `prefix` is what the container took off the front of every stored frame, if it did.
     mtd open(kind: u32, config: const [..] u8, frames: const [..] SampleEntry, prefix: const [..] u8) fail
     {
-        var owned: Array'SampleEntry
+        var owned: Array!{SampleEntry}
         owned.add(frames)
         .kind = kind
         switch kind
@@ -117,7 +127,7 @@ impl PictureStream
     // Replaces the container window while keeping the configured decoder.
     mtd replaceFrames(frames: const [..] SampleEntry) fail
     {
-        var owned: Array'SampleEntry
+        var owned: Array!{SampleEntry}
         owned.add(frames)
         switch .kind
         {
@@ -131,74 +141,127 @@ impl PictureStream
     // Frame width, in pixels, after the stream's own cropping.
     mtd const width()->s32
     {
-        if .kind == PictureHevc do
+        if .kind == PictureHevc
+        {
             return .hevc.width
-        if .kind == PictureRealVideo do
+        }
+
+        if .kind == PictureRealVideo
+        {
             return .realvideo.width
-        if .kind == PictureMpeg4 do
+        }
+
+        if .kind == PictureMpeg4
+        {
             return .mpeg4.width
+        }
+
         return .avc.width
     }
 
     // Frame height, in pixels, after the stream's own cropping.
     mtd const height()->s32
     {
-        if .kind == PictureHevc do
+        if .kind == PictureHevc
+        {
             return .hevc.height
-        if .kind == PictureRealVideo do
+        }
+
+        if .kind == PictureRealVideo
+        {
             return .realvideo.height
-        if .kind == PictureMpeg4 do
+        }
+
+        if .kind == PictureMpeg4
+        {
             return .mpeg4.height
+        }
+
         return .avc.height
     }
 
     // Number of access units the stream currently holds.
     mtd const frameCount()->u64
     {
-        if .kind == PictureHevc do
+        if .kind == PictureHevc
+        {
             return .hevc.frames.count
-        if .kind == PictureRealVideo do
+        }
+
+        if .kind == PictureRealVideo
+        {
             return .realvideo.sampleAtRank.count
-        if .kind == PictureMpeg4 do
+        }
+
+        if .kind == PictureMpeg4
+        {
             return .mpeg4.frameCount()
+        }
+
         return .avc.frames.count
     }
 
     // Returns the container presentation timestamp of one display-order picture.
     mtd const presentationTimeAtRank(rank: u64)->s64
     {
-        if .kind == PictureHevc do
+        if .kind == PictureHevc
+        {
             return .hevc.presentationTimeAtRank(rank)
-        if .kind == PictureRealVideo do
+        }
+
+        if .kind == PictureRealVideo
+        {
             return .realvideo.presentationTimeAtRank(rank)
-        if .kind == PictureMpeg4 do
+        }
+
+        if .kind == PictureMpeg4
+        {
             return .mpeg4.presentationTimeAtRank(rank)
+        }
+
         return .avc.presentationTimeAtRank(rank)
     }
 
     // Returns the first display rank at or after `rank` whose sample starts a clean decode.
     mtd const syncRankAt(rank: u64)->u64
     {
-        if .kind == PictureHevc do
+        if .kind == PictureHevc
+        {
             return .hevc.syncRankAt(rank)
-        if .kind == PictureRealVideo do
+        }
+
+        if .kind == PictureRealVideo
+        {
             return .realvideo.syncRankAt(rank)
-        if .kind == PictureMpeg4 do
+        }
+
+        if .kind == PictureMpeg4
+        {
             return .mpeg4.syncRankAt(rank)
+        }
+
         return .avc.syncRankAt(rank)
     }
 
     // Positions the stream so the next decoded picture has display rank `rank`.
     mtd seekTo(rank: u64)
     {
-        if .kind == PictureHevc do
+        if .kind == PictureHevc
+        {
             .hevc.seekTo(rank)
-        elif .kind == PictureRealVideo do
+        }
+        else if .kind == PictureRealVideo
+        {
             .realvideo.seekTo(rank)
-        elif .kind == PictureMpeg4 do
+        }
+        else if .kind == PictureMpeg4
+        {
             .mpeg4.seekTo(rank)
-        else do
+        }
+        else
+        {
             .avc.seekTo(rank)
+        }
     }
 
     // Decodes the picture with the current display rank and converts it to packed colour.
@@ -228,13 +291,21 @@ impl PictureStream
     // Releases every picture waiting for its display turn.
     mtd releasePending()
     {
-        if .kind == PictureHevc do
+        if .kind == PictureHevc
+        {
             .hevc.releasePending()
-        elif .kind == PictureRealVideo do
+        }
+        else if .kind == PictureRealVideo
+        {
             .realvideo.releasePending()
-        elif .kind == PictureMpeg4 do
+        }
+        else if .kind == PictureMpeg4
+        {
             .mpeg4.releasePending()
-        else do
+        }
+        else
+        {
             .avc.releasePending()
+        }
     }
 }

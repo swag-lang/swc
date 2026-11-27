@@ -54,7 +54,7 @@ Examples of intrinsic functions:
 ```swag
 Swag.min(2, 5)
 Swag.max(2, 5)
-Swag.sqrt(4.0'f32)
+Swag.sqrt(4.0_f32)
 Swag.print("Hello\n")
 ```
 

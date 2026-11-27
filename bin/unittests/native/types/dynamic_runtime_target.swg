@@ -78,8 +78,10 @@ const RuntimeS64: typeinfo = s64
 func readRuntimeTarget(target: typeinfo, source: any)->s32
 {
     let view = catch cast(any?, cast(target, source)) orelse null
-    if view is RuntimeTargetBase as object do
+    if view is RuntimeTargetBase as object
+    {
         return object.value
+    }
     return -1
 }
 
@@ -106,7 +108,7 @@ func readRuntimeTarget(target: typeinfo, source: any)->s32
     fake.name     = "s32"
     fake.sizeof   = 4
     let target: typeinfo = &fake
-    var value            = 42's32
+    var value            = 42_s32
     let castResult1      = catch cast(any?, cast(target, value)) orelse null
     Swag.require(castResult1 == null)
     Swag.require(not compatible(target, s32))
@@ -117,7 +119,7 @@ func readRuntimeTarget(target: typeinfo, source: any)->s32
     var copy = assume cast(const *Swag.TypeInfoNative, s32)[]
     let target: typeinfo = &copy
     Swag.require(not compatible(target, s32))
-    let castResult2 = catch cast(const any?, cast(target, 42's32)) orelse null
+    let castResult2 = catch cast(const any?, cast(target, 42_s32)) orelse null
     Swag.require(castResult2 == null)
 }
 
@@ -128,7 +130,7 @@ func runtimeTargetType()->typeinfo => RuntimeTargetBase
     var value: RuntimeTargetChild
     Swag.require(&value is runtimeTargetType())
     Swag.require(RuntimeTargetChild is runtimeTargetType())
-    var zero = 0's32
+    var zero = 0_s32
     let integerTarget: typeinfo = s32
     Swag.require(&zero is integerTarget)
     var falseValue = false

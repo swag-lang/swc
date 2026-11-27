@@ -16,18 +16,19 @@ SWC_TEST_BEGIN(FormatLiteral_PreserveLeavesNumericLiteralsUntouched)
         "#assert(0x8000_0000 == 0x8000_0000)\n"
         "#assert(1_000_000 == 1_000_000)\n"
         "#assert(3.14e10 == 3.14e10)\n"
-        "#assert(42'U32 == 42'U32)\n";
+        "#assert(42_U32 == 42_U32)\n";
 
     const FormatOptions options;
     return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatLiteral_PreserveCharacterTypeSuffix)
+SWC_TEST_BEGIN(FormatLiteral_PreserveExplicitSuffixSyntax)
 {
     static constexpr std::string_view SOURCE =
-        "#assert('A'u8 == 65)\n"
-        "#assert(#typeof('\\n'rune) == rune)\n";
+        "#assert('A'_u8 == 65)\n"
+        "#assert(#typeof('\\n'_rune) == rune)\n"
+        "#assert(42_u32 == 42_u32)\n";
 
     const FormatOptions options;
     return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);

@@ -11,7 +11,7 @@ namespace HashTestTypes
 
     impl Hash.IHash32 for OnlyHash32
     {
-        mtd const impl compute()->u32 => 0x1234_5678'u32 + .value
+        mtd const impl compute()->u32 => 0x1234_5678_u32 + .value
     }
 
     struct OnlyHash64
@@ -21,7 +21,7 @@ namespace HashTestTypes
 
     impl Hash.IHash64 for OnlyHash64
     {
-        mtd const impl compute()->u64 => 0x0123_4567_89AB_CDEF'u64 + .value
+        mtd const impl compute()->u64 => 0x0123_4567_89AB_CDEF_u64 + .value
     }
 
     struct BothHash
@@ -31,12 +31,12 @@ namespace HashTestTypes
 
     impl Hash.IHash32 for BothHash
     {
-        mtd const impl compute()->u32 => 0x0BAD_F00D'u32 + .value
+        mtd const impl compute()->u32 => 0x0BAD_F00D_u32 + .value
     }
 
     impl Hash.IHash64 for BothHash
     {
-        mtd const impl compute()->u64 => 0x0123_4567_DEAD_BEEF'u64 + .value
+        mtd const impl compute()->u64 => 0x0123_4567_DEAD_BEEF_u64 + .value
     }
 
     struct StringHolder
@@ -57,12 +57,12 @@ const ONLY_HASH32 = HashTestTypes.OnlyHash32{value: 3}
 const ONLY_HASH64 = HashTestTypes.OnlyHash64{value: 5}
 const BOTH_HASH   = HashTestTypes.BothHash{value: 7}
 
-const EXPECTED_ONLY_HASH32_32 = 0x1234_567B'u32
-const EXPECTED_ONLY_HASH32_64 = 0x1234_567B'u64
-const EXPECTED_ONLY_HASH64_32 = 0x89AB_CDF4'u32
-const EXPECTED_ONLY_HASH64_64 = 0x0123_4567_89AB_CDF4'u64
-const EXPECTED_BOTH_HASH32    = 0x0BAD_F014'u32
-const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
+const EXPECTED_ONLY_HASH32_32 = 0x1234_567B_u32
+const EXPECTED_ONLY_HASH32_64 = 0x1234_567B_u64
+const EXPECTED_ONLY_HASH64_32 = 0x89AB_CDF4_u32
+const EXPECTED_ONLY_HASH64_64 = 0x0123_4567_89AB_CDF4_u64
+const EXPECTED_BOTH_HASH32    = 0x0BAD_F014_u32
+const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6_u64
 
 #assert(#typeof(HashTestTypes.OnlyHash32).fullname == #fullnameof(HashTestTypes.OnlyHash32))
 #assert(#typeof(HashTestTypes.OnlyHash64).fullname == #fullnameof(HashTestTypes.OnlyHash64))
@@ -144,8 +144,11 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
     let base   = cast(u64, cast(const [*] u8, source.buffer))
     let offset = (1 + 8 - (base & 7)) & 7
     var view   = source[offset to offset + 64]
-    for i in view.count do
+    for i in view.count
+    {
         view[i] = cast(u8, ((i * 29 + 7) & 0xFF))
+    }
+
     Swag.require((cast(u64, cast(const [*] u8, view.buffer)) & 7) == 1)
 
     var copied: [64] u8
@@ -158,11 +161,13 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
 
 #test
 {
-    const Lengths = [0'u64, 1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 31, 32, 33, 64]
+    const Lengths = [0_u64, 1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 31, 32, 33, 64]
 
     var source: [80] u8
-    for i in 80'u64 do
+    for i in 80_u64
+    {
         source[i] = cast(u8, ((i * 7 + 13) & 0xFF))
+    }
 
     var seen: [Lengths.count] u32
 
@@ -178,7 +183,7 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
         // Bytes beyond 'length' must not take part: same prefix in a differently
         // filled buffer has to produce the same value
         var padded: [80] u8
-        Memory.set(&padded[0], 0xAA'u8, 80)
+        Memory.set(&padded[0], 0xAA_u8, 80)
         Memory.copy(&padded[0], &source[0], length)
         Swag.require(Hash.hashBytes32(padded[until length]) == hashed)
 
@@ -197,8 +202,10 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
     {
         for j in Lengths.count
         {
-            if j > i do
+            if j > i
+            {
                 Swag.require(seen[i] != seen[j])
+            }
         }
     }
 }

@@ -57,7 +57,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     Swag.require(information.rows[5].field == .ExactFrameRate and information.rows[5].value == "24000/1001")
     Swag.require(information.rows[6].field == .Frames and information.rows[7].field == .Bitrate)
 
-    var candidates: Array'Film.ThumbnailCandidate
+    var candidates: Array!{Film.ThumbnailCandidate}
     for color in [Color.fromRgb(0, 0, 0), Color.fromRgb(255, 255, 255), Color.fromRgb(56, 189, 248)]
     {
         var candidate: Film.ThumbnailCandidate
@@ -87,8 +87,11 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     let information = window.infoSheet.text()
     Swag.require(Utf8.contains(information, "H.264 / AVC"))
     Swag.require(Utf8.contains(information, "Aspect ratio"))
-    if view.video.frameRate().denominator() > 1 do
+    if view.video.frameRate().denominator() > 1
+    {
         Swag.require(Utf8.contains(information, "Exact frame rate"))
+    }
+
     Swag.require(Utf8.contains(information, "Approx. bitrate"))
     Swag.require(Utf8.contains(information, "Audio tracks · 2\n1 "))
     Swag.require(Utf8.contains(information, " Hz · ") and not Utf8.contains(information, "Subtitle tracks"))
@@ -139,8 +142,11 @@ using Core, Pixel, Gui, Video, Audio, Viewers
 
     var bands: Film.ThumbnailCandidate
     bands.image = Image.create(32, 24, .RGB8)
-    for index in bands.image.pixels.count do
+    for index in bands.image.pixels.count
+    {
         bands.image.pixels[index] = cast(u8, ((index / 3) % 32) * 8)
+    }
+
     bands.analyze()
     Swag.require(bands.usable and bands.lively)
 }
@@ -151,7 +157,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     var candidate: Film.ThumbnailCandidate
     candidate.image = Image.create(1024, 768, .RGB8)
     let pixels = candidate.image.pixels.storage()
-    var random = 0x12345678'u32
+    var random = 0x12345678_u32
     for index in candidate.image.pixels.count
     {
         random        = random ^ (random << 13)
@@ -253,7 +259,7 @@ internal func waitForVideoFrame(view: *Film.Panel)
     var attempts: u32
     while (not view.openFinished or view.awaitingFrame) and attempts < 5_000
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         view.updatePlayback()
         attempts += 1
     }
@@ -273,11 +279,13 @@ func holdVideoProducer(view: *Film.Panel)
             Sync.scopedLock(&view.queueLock)
             view.ready.clear()
             view.freeSlots.clear()
-            if not view.inFlight do
+            if not view.inFlight
+            {
                 return
+            }
         }
 
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(false)
@@ -290,8 +298,10 @@ func releaseVideoProducer(view: *Film.Panel)
     {
         Sync.scopedLock(&view.queueLock)
         Swag.require(not view.inFlight and view.ready.isEmpty() and view.freeSlots.isEmpty())
-        for index in view.slotCount do
+        for index in view.slotCount
+        {
             view.freeSlots.add(cast(u32, index))
+        }
     }
 
     view.decodeWake.signal()
@@ -303,7 +313,7 @@ internal func waitForVideoAudio(view: *Film.Panel, count: u32)
     var attempts: u32
     while (view.video.audioTrackCount() != count or not view.voice) and attempts < 5000
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         view.updatePlayback()
         attempts += 1
     }
@@ -316,7 +326,7 @@ func waitForVideoVoicePlaying(view: *Film.Panel)
     var attempts: u32
     while view.voice and not view.voice.isPlaying() and attempts < 5_000
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         view.updatePlayback()
         attempts += 1
     }
@@ -379,7 +389,7 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     var services: Viewer.HostServices
     services.reportInformationChanged = &countVideoInformationChange
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 480, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands, services: services)
     Swag.require(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -523,7 +533,7 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     var host: Testing.HeadlessHost
     host.setup(640, 360)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 350, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.require(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -535,7 +545,7 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     view.clock.reset()
     view.decodeWake.signal()
     var attempts = 0
-    var queued   = 0'u64
+    var queued   = 0_u64
     while queued != 11 and attempts < 5000
     {
         scope
@@ -544,8 +554,11 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
             queued = view.ready.count
         }
 
-        if queued != 11 do
-            Threading.Thread.sleep(1'ms)
+        if queued != 11
+        {
+            Threading.Thread.sleep(1_ms)
+        }
+
         attempts += 1
     }
 
@@ -571,7 +584,7 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
 
     // The linked scene owns the clock. Capping catch-up at four frames would publish frame 4
     // instead of the frame due on the scene clock.
-    view.playing = true
+    view.playing      = true
     view.sceneSeconds = view.frameSeconds(10)
     view.clock.reset()
     view.updatePlayback()
@@ -589,7 +602,7 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     host.setup(640, 360)
     host.setReducedMotion(true)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 350, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.require(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -726,8 +739,10 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     waitForVideoFrame(view)
     view.dockStyle = .Center
     host.root.applyLayout()
-    if view.playing do
+    if view.playing
+    {
         view.togglePlayback()
+    }
 
     Swag.require(not view.veilsShown and
                  view.bottomVeil.isLocallyVisible())
@@ -810,8 +825,10 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     Swag.require(results.sections[0]!.entries[0].title == appStrings().cmd_Play)
     Swag.require(results.sections[0]!.entries[1].title == Film.texts().cmd_Subtitles)
     Swag.require(results.sections[0]!.entries[2].title == Film.texts().cmd_GoToTime)
-    for &entry in results.sections[0]!.entries do
+    for &entry in results.sections[0]!.entries
+    {
         Swag.require(entry.glyph.isValid(), entry.title)
+    }
 
     // Playback options open the speed choices, with the current rate checked.
     Swag.require(view.optionsButton.isEnabled() and
@@ -843,8 +860,11 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     // A film without sound offers no sound track among its options, and its sound is off.
     var options: OptionSheet.Page
     view.describeOptions(&options)
-    for row in options.rows do
+    for row in options.rows
+    {
         Swag.require(row.label != Film.texts().ui_OptionAudio)
+    }
+
     Swag.require(not view.muteButton.isEnabled() and
                  not view.volumeSlider.isEnabled() and
                  view.tracksButton.isEnabled())
@@ -876,7 +896,7 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     waitForVideoFrame(view)
     Swag.require(view.planar and not view.hasFailure)
     Swag.require(view.video.width() == 96 and view.video.height() == 64)
-    for index in [7'u64, 3, 8, 0]
+    for index in [7_u64, 3, 8, 0]
     {
         view.repositionTo(index)
         view.decodeWake.signal()
@@ -917,7 +937,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 350, 36})
     let fileName = videoAudioFixturePath()
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.require(result.view != null)
@@ -965,7 +985,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 480, 36})
     let fileName = videoAudioFixturePath()
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.require(result.view != null)
@@ -1019,7 +1039,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 480, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportFinished: &answerVideoEnd})
     Swag.require(result.view != null)
     let view   = assume cast(*Film.Panel, result.view)
@@ -1144,8 +1164,11 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     let order = FocusOrder.around(second.playButton)
     for order.stops.count
     {
-        if second.playButton.hasFocus() do
+        if second.playButton.hasFocus()
+        {
             break
+        }
+
         host.keyPress(.Tab)
     }
 
@@ -1229,8 +1252,11 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(view.playing and (unwrap view.voice).isPlaying())
 
     var binary = Swag.U32.Max
-    for choice, choiceIndex in window.choices where window.index.plugins[choice.pluginIndex].key == "binary" do
+    for choice, choiceIndex in window.choices where window.index.plugins[choice.pluginIndex].key == "binary"
+    {
         binary = cast(u32, choiceIndex)
+    }
+
     let film = window.activeChoiceIndex
     Swag.require(binary != Swag.U32.Max and window.activateChoice(binary))
     Swag.require(window.currentView != view and not view.playing)
@@ -1241,7 +1267,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     let report = &window.instances[binary]
     for 4_096 where report.isLoading and report.isLoading()
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         host.fireTimers()
     }
 
@@ -1319,7 +1345,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    with let commands = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
+    with let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 0, 52})
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
@@ -1414,18 +1440,18 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     defer discard catch File.delete(fileName)
     let soundPath = Gui.Testing.tempFilePath("scope-video-audio-range-", ".pcm")
     defer discard catch File.delete(soundPath)
-    var pcm: Array'u8
+    var pcm: Array!{u8}
     pcm.resize(200)
     expect File.writeAllBytes(soundPath, pcm.toSlice())
     let packets: [1] SoundPacket = [SoundPacket{0, 200, 100}]
-    var sounds:  ArrayPtr'SoundFile
+    var sounds:  ArrayPtr!{SoundFile}
     let sound = sounds.allocate()
     sound[] = expect SoundFile.openPcmPacketStream(soundPath, .Pcm16, 100, 1, packets)
     sounds.add(sound)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 350, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.require(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -1469,9 +1495,9 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
 {
     let soundPath = Gui.Testing.tempFilePath("scope-video-audio-window-", ".ac3")
     defer discard catch File.delete(soundPath)
-    expect File.writeAllBytes(soundPath, [0x0B'u8, 0x77, 0, 0, 0, 0, 0])
+    expect File.writeAllBytes(soundPath, [0x0B_u8, 0x77, 0, 0, 0, 0, 0])
     const Packets: [1] SoundPacket = [SoundPacket{0, 7, 1536}]
-    var config: Array'u8
+    var config: Array!{u8}
     var sound = expect SoundFile.openPacketStream(soundPath, .Ac3, 48_000, 2, 1536, Packets, config.toSlice(), {timelineStartSeconds: 100})
 
     Swag.require(not Film.soundCovers(&sound, 99.99))
@@ -1491,7 +1517,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 350, 36})
     let fileName = videoAudioFixturePath()
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.require(result.view != null)
@@ -1505,7 +1531,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var attempts = 0
     while view.frameIndex == 0 and attempts < 4000
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         view.updatePlayback()
         attempts += 1
     }
@@ -1525,12 +1551,12 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 350, 36})
     let fileName = videoAvcFixturePath()
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportLoadingChanged: &countVideoLoadingChange})
     Swag.require(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
-    var counters: ArrayPtr'u32
+    var counters: ArrayPtr!{u32}
     let loadingChanges = counters.allocate()
     counters.add(loadingChanges)
     view.userData = loadingChanges
@@ -1571,7 +1597,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 350, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.require(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -1589,7 +1615,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var attempts = 0
     while view.ready.count < cast(u64, view.slotCount) and attempts < 5000
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         attempts += 1
     }
 
@@ -1632,8 +1658,11 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(not view.startupPaintReady(10_000))
     Swag.require(not view.startupPaintReady(20_000))
     Swag.require(not view.startupPaintReady(100_000))
-    for step in 6'u64 do
+    for step in 6_u64
+    {
         Swag.require(not view.startupPaintReady(140_000 + 40_000 * step))
+    }
+
     Swag.require(view.startupPaintReady(360_000))
     Swag.require(view.startupPaintReady(1_500_000))
 }
@@ -1647,7 +1676,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 350, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.require(result.view != null and result.isLoading != null and result.needsLoadingOverlay != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -1663,20 +1692,26 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(view.frameIndex == 0 and not view.clock.isRunning())
     Swag.require(view.currentSeconds() == view.frameSeconds(1))
     Swag.require(not result.isLoading() and not result.needsLoadingOverlay())
+
     // The test discarded any picture the worker had already reserved.
     scope
     {
         Sync.scopedLock(&view.queueLock)
         view.nextDecode = 1
     }
+
     releaseVideoProducer(view)
     for 5_000
     {
         view.updatePlayback()
-        if view.frameIndex != 0 do
+        if view.frameIndex != 0
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
+
     Swag.require(view.frameIndex == 1 and view.clock.isRunning())
 }
 
@@ -1705,8 +1740,10 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
 // The lens and the paused film's context menu export the displayed picture at its display size.
 #test
 {
-    if not Clipboard.isFake() do
+    if not Clipboard.isFake()
+    {
         return
+    }
 
     let path = Testing.tempFilePath("scope-frame-", ".y4m")
     defer catch File.delete(path)
@@ -1807,8 +1844,11 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     waitForVideoFrame(view)
 
     // Paused, so that only the call below follows the loop; playing, the timer does it.
-    if view.playing do
+    if view.playing
+    {
         view.togglePlayback()
+    }
+
     view.seekFrame(12)
     waitForVideoFrame(view)
     view.setLoopStart()

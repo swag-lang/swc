@@ -11,12 +11,15 @@ internal struct ShortcutOverride
 
 internal func shortcutOverride(bindings: const [..] ShortcutOverride, id: WndId)->const *ShortcutOverride?
 {
-    for &binding in bindings where binding.command == id do
+    for &binding in bindings where binding.command == id
+    {
         return binding
+    }
+
     return null
 }
 
-internal func setShortcutOverride(bindings: *Array'ShortcutOverride, id: WndId, modifiers: Input.KeyModifiers, key: Input.Key, source = false)
+internal func setShortcutOverride(bindings: *Array!{ShortcutOverride}, id: WndId, modifiers: Input.KeyModifiers, key: Input.Key, source = false)
 {
     for &binding in bindings[] where binding.command == id
     {
@@ -29,7 +32,7 @@ internal func setShortcutOverride(bindings: *Array'ShortcutOverride, id: WndId, 
     bindings.add({command: id, modifiers: modifiers, key: key, source: source})
 }
 
-internal func resetShortcutOverride(bindings: *Array'ShortcutOverride, id: WndId)
+internal func resetShortcutOverride(bindings: *Array!{ShortcutOverride}, id: WndId)
 {
     for binding, index in bindings[] where binding.command == id
     {
@@ -42,15 +45,21 @@ internal func sameChord(a, b: KeyShortcut)->bool => a.key == b.key and a.modifie
 
 internal func hasShortcutChord(shortcuts: const [..] KeyShortcut, shortcut: KeyShortcut)->bool
 {
-    for existing in shortcuts where sameChord(existing, shortcut) do
+    for existing in shortcuts where sameChord(existing, shortcut)
+    {
         return true
+    }
+
     return false
 }
 
-internal func effectiveShortcuts(defaults: const [..] KeyShortcut, bindings: const [..] ShortcutOverride, result: *Array'KeyShortcut)
+internal func effectiveShortcuts(defaults: const [..] KeyShortcut, bindings: const [..] ShortcutOverride, result: *Array!{KeyShortcut})
 {
-    for shortcut in defaults where not shortcutOverride(bindings, shortcut.id) do
+    for shortcut in defaults where not shortcutOverride(bindings, shortcut.id)
+    {
         result.add(shortcut)
+    }
+
     for &binding in bindings where binding.key != .None
     {
         for shortcut in defaults where shortcut.id == binding.command
@@ -74,8 +83,11 @@ public impl Application
         var alreadyRegistered = false
         for shortcut in .defaultUserHotKeys where shortcut.id == id and shortcut.target == target
         {
-            if shortcut.modifiers == modifiers and shortcut.key == key do
+            if shortcut.modifiers == modifiers and shortcut.key == key
+            {
                 return
+            }
+
             alreadyRegistered = true
         }
 
@@ -83,16 +95,22 @@ public impl Application
         var chord = KeyShortcut{modifiers, key, id, target}
         if configured
         {
-            if alreadyRegistered or configured.key == .None do
+            if alreadyRegistered or configured.key == .None
+            {
                 return
+            }
+
             chord.modifiers = configured.modifiers
             chord.key       = configured.key
         }
 
         for current in .hotKeys where sameChord(chord, current)
         {
-            if current.id == id and current.target == target do
+            if current.id == id and current.target == target
+            {
                 return
+            }
+
             fail shortcutUnavailable(chord)
         }
 
@@ -100,16 +118,18 @@ public impl Application
     }
 
     // Lists the configured system-wide shortcuts that the application could not register.
-    mtd unavailableUserHotKeys()->Array'String
+    mtd unavailableUserHotKeys()->Array!{String}
     {
-        var wanted: Array'KeyShortcut
+        var wanted: Array!{KeyShortcut}
         effectiveShortcuts(.defaultUserHotKeys.toSlice(), .shortcutOverrides.toSlice(), &wanted)
         var result: #returntype
         for shortcut in wanted
         {
             let active = .hotKeyShortcut(shortcut.modifiers, shortcut.key)
-            if active.id != shortcut.id or active.wnd != shortcut.target do
+            if active.id != shortcut.id or active.wnd != shortcut.target
+            {
                 result.add(Input.formatKeyShortcut(shortcut.modifiers, shortcut.key))
+            }
         }
 
         return result
@@ -126,36 +146,48 @@ public impl Application
 
     internal mtd isUserHotKey(id: WndId)->bool
     {
-        for shortcut in .defaultUserHotKeys where shortcut.id == id do
+        for shortcut in .defaultUserHotKeys where shortcut.id == id
+        {
             return true
+        }
+
         return false
     }
 
     internal mtd retireUserHotKeys(wnd: *Wnd)
     {
-        for index in reversed(.defaultUserHotKeys.count) where .defaultUserHotKeys[index].target == wnd do
+        for index in reversed(.defaultUserHotKeys.count) where .defaultUserHotKeys[index].target == wnd
+        {
             .defaultUserHotKeys.removeAtOrdered(index)
+        }
     }
 
-    internal mtd restoreShortcuts(bindings: Array'ShortcutOverride)
+    internal mtd restoreShortcuts(bindings: Array!{ShortcutOverride})
     {
         catch .updateShortcuts(bindings, persist: false)
     }
 
     internal mtd routeCustomizedShortcut(target: *Wnd, key: const *KeyEvent)->bool
     {
-        if .shortcutOverrides.isEmpty() or target is EditBox do
+        if .shortcutOverrides.isEmpty() or target is EditBox
+        {
             return false
+        }
+
         let overrides = .shortcutOverrides.toSlice()
         var hasSources, matchesLocal: bool
         for &binding in overrides
         {
-            if binding.source do
+            if binding.source
+            {
                 hasSources = true
-            elif binding.key == key.key and
-                 binding.modifiers == key.modifiers and
-                 not .isUserHotKey(binding.command) do
+            }
+            else if binding.key == key.key and
+                    binding.modifiers == key.modifiers and
+                    not .isUserHotKey(binding.command)
+            {
                 matchesLocal = true
+            }
         }
 
         var replacesDefault: bool
@@ -163,19 +195,27 @@ public impl Application
         var node: *Wnd? = target
         while node
         {
-            if hasSources and not lens and node.shortcutLens and not node.shortcutLens.isPendingDestroy do
+            if hasSources and not lens and node.shortcutLens and not node.shortcutLens.isPendingDestroy
+            {
                 lens = node.shortcutLens
+            }
+
             for chord in node.keyShortcuts where chord.key == key.key and chord.modifiers == key.modifiers
             {
-                if shortcutOverride(overrides, chord.id) do
+                if shortcutOverride(overrides, chord.id)
+                {
                     replacesDefault = true
+                }
             }
 
             node = node.ownerOrParent()
         }
 
-        if lens and lens.routeSourceShortcut(target, key) do
+        if lens and lens.routeSourceShortcut(target, key)
+        {
             return true
+        }
+
         if matchesLocal or replacesDefault
         {
             if let id = target.keyShortcut(key.modifiers, key.key)
@@ -189,32 +229,39 @@ public impl Application
     }
 
     // Keep existing claims until new chords and the preference file have both succeeded.
-    internal mtd updateShortcuts(bindings: Array'ShortcutOverride, persist = true) fail
+    internal mtd updateShortcuts(bindings: Array!{ShortcutOverride}, persist = true) fail
     {
-        var previous, wanted: Array'KeyShortcut
+        var previous, wanted: Array!{KeyShortcut}
         effectiveShortcuts(.defaultUserHotKeys.toSlice(), .shortcutOverrides.toSlice(), &previous)
         effectiveShortcuts(.defaultUserHotKeys.toSlice(), bindings.toSlice(), &wanted)
 
-        var active, claimed: Array'KeyShortcut
+        var active, claimed: Array!{KeyShortcut}
         var committed = false
         defer
         {
             if not committed
             {
-                for shortcut in claimed do
+                for shortcut in claimed
+                {
                     unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
+                }
             }
         }
 
-        for shortcut in .hotKeys where not .isUserHotKey(shortcut.id) do
+        for shortcut in .hotKeys where not .isUserHotKey(shortcut.id)
+        {
             active.add(shortcut)
+        }
 
         for shortcut in wanted
         {
             if hasShortcutChord(active.toSlice(), shortcut)
             {
-                if persist do
+                if persist
+                {
                     fail shortcutUnavailable(shortcut)
+                }
+
                 continue
             }
 
@@ -223,8 +270,11 @@ public impl Application
                 catch registerNativeHotKey(shortcut.modifiers, shortcut.key)
                 {
                     // An existing unavailable chord does not block an unrelated edit.
-                    if persist and not hasShortcutChord(previous.toSlice(), shortcut) do
+                    if persist and not hasShortcutChord(previous.toSlice(), shortcut)
+                    {
                         fail shortcutUnavailable(shortcut)
+                    }
+
                     continue
                 }
 
@@ -247,8 +297,10 @@ public impl Application
 
         if not .hotKeysDisabled
         {
-            for shortcut in .hotKeys where not hasShortcutChord(active.toSlice(), shortcut) do
+            for shortcut in .hotKeys where not hasShortcutChord(active.toSlice(), shortcut)
+            {
                 unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
+            }
         }
 
         .hotKeys  = #move active

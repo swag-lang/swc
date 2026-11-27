@@ -82,8 +82,10 @@ func makeDeferred(value: s64)->FreshOwner
 #[Swag.NoInline]
 func makeFallible(value: s64)->FreshOwner fail
 {
-    if value < 0 do
+    if value < 0
+    {
         fail Swag.BaseError{"negative"}
+    }
     return FreshOwner{value}
 }
 
@@ -114,8 +116,10 @@ func makeInline(value: s64)->FreshOwner => FreshOwner{value}
 #[Swag.Inline]
 func makeInlineBranches(value: s64)->FreshOwner
 {
-    if value < 0 do
+    if value < 0
+    {
         return FreshOwner{-value, 1}
+    }
     return FreshOwner{value}
 }
 

@@ -13,8 +13,10 @@ func checkCaptureRaster(cell: s32, bytes: const [..] u8)
     actual.convertTo(.BGRA8)
     Swag.require(actual.width == expected.width and actual.height == expected.height)
     Swag.require(actual.byteCount == expected.byteCount)
-    #static if #cfg != "release" do
+    #static if #cfg != "release"
+    {
         Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+    }
     else
     {
         for i in actual.byteCount

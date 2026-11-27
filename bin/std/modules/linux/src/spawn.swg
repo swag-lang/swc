@@ -1,11 +1,11 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const POSIX_SPAWN_RESETIDS   = 0x01's16
-const POSIX_SPAWN_SETPGROUP  = 0x02's16
-const POSIX_SPAWN_SETSIGDEF  = 0x04's16
-const POSIX_SPAWN_SETSIGMASK = 0x08's16
-const POSIX_SPAWN_SETSID     = 0x80's16
+const POSIX_SPAWN_RESETIDS   = 0x01_s16
+const POSIX_SPAWN_SETPGROUP  = 0x02_s16
+const POSIX_SPAWN_SETSIGDEF  = 0x04_s16
+const POSIX_SPAWN_SETSIGMASK = 0x08_s16
+const POSIX_SPAWN_SETSID     = 0x80_s16
 
 // Opaque glibc x86-64 spawn attributes, initialized and destroyed by the native API.
 struct posix_spawnattr_t

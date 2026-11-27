@@ -14,14 +14,14 @@ struct ViewerPrivacySource
 struct ViewerPrivacy
 {
     late window:  *ViewerWindow
-    sources:      Array'ViewerPrivacySource
+    sources:      Array!{ViewerPrivacySource}
     scan:         ViewerPrivacyScan
     dirty:        bool
     cleanup:      Viewer.BackgroundOperation
-    queue:        Array'String
-    batch:        Array'String
-    musicChoices: Array'MusicChoice
-    folderViews:  Array'ExplorerFolderState
+    queue:        Array!{String}
+    batch:        Array!{String}
+    musicChoices: Array!{MusicChoice}
+    folderViews:  Array!{ExplorerFolderState}
     caption:      *CaptionButton?
     icons:        ImageList
 }
@@ -73,21 +73,29 @@ impl ViewerPrivacy
 
     mtd refreshIndicator()
     {
-        if not .window.canRefreshCaption() do
+        if not .window.canRefreshCaption()
+        {
             return
-        let owner = .window.workspace?.primary orelse .window
+        }
+
+        let owner     = .window.workspace?.primary orelse .window
         let indicator = &owner.privacy
-        let caption = indicator.caption
-        if not caption do
+        let caption   = indicator.caption
+        if not caption
+        {
             return
+        }
 
         let path        = .window.isExploring() ? .window.explorer!.listing.path.toString() : .window.currentFile.toString()
         let privateMode = path.count and .policy(path).privateMode
         caption.toolTip = appStrings().ui_PrivateVault
         if privateMode
         {
-            if not indicator.icons.isValid() do
+            if not indicator.icons.isValid()
+            {
                 indicator.createIcon()
+            }
+
             let size  = .window.themeMetrics().wnd_CaptionButtonGlyph
             let width = size * cast(f32, indicator.icons.frameWidth) / cast(f32, indicator.icons.frameHeight)
             caption.button.setIcon(Icon.from(&indicator.icons, 0, width, size))
@@ -106,8 +114,11 @@ impl ViewerPrivacy
 
     mtd track(path: string, policy: File.MountPrivacy)
     {
-        if not path.count do
+        if not path.count
+        {
             return
+        }
+
         for &source in .sources where Path.equals(source.path, path)
         {
             // A vanished mount or an extracted temporary must not erase its provenance.
@@ -128,10 +139,16 @@ impl ViewerPrivacy
 
     mtd track(path: string)
     {
-        if not path.count do
+        if not path.count
+        {
             return
-        for &source in .sources where Path.equals(source.path, path) do
+        }
+
+        for &source in .sources where Path.equals(source.path, path)
+        {
             return
+        }
+
         .track(path, File.MountPrivacy.query(path))
     }
 
@@ -139,8 +156,11 @@ impl ViewerPrivacy
     mtd policy(path: string)->File.MountPrivacy
     {
         .track(path)
-        for &source in .sources where Path.equals(source.path, path) do
+        for &source in .sources where Path.equals(source.path, path)
+        {
             return source.policy
+        }
+
         return {}
     }
 
@@ -152,8 +172,11 @@ impl ViewerPrivacy
 
     private mtd forgetPrivatePath(path: string)->bool
     {
-        for &source in .sources where Path.equals(source.path, path) do
+        for &source in .sources where Path.equals(source.path, path)
+        {
             return source.forget or source.policy.privateMode
+        }
+
         return false
     }
 
@@ -161,13 +184,17 @@ impl ViewerPrivacy
     private mtd forgetTextBookmarks(path: string)
     {
         for index in reversed(.window.textBookmarkFiles.count) where
-            Path.equals(.window.textBookmarkFiles[index].path, path) do
+            Path.equals(.window.textBookmarkFiles[index].path, path)
+        {
             .window.textBookmarkFiles.removeAtOrdered(index)
+        }
 
         for instance in .window.instances
         {
-            if instance.view is Viewers.PlainText.Panel as view where Path.equals(view.fileName, path) do
+            if instance.view is Viewers.PlainText.Panel as view where Path.equals(view.fileName, path)
+            {
                 view.bookmarksPersistable = false
+            }
         }
     }
 
@@ -176,7 +203,7 @@ impl ViewerPrivacy
     mtd refresh()->bool
     {
         var changed = false
-        var refreshed: Array'File.MountPrivacy
+        var refreshed: Array!{File.MountPrivacy}
         for &source in .sources where not source.policy.root.isEmpty()
         {
             var policy = source.policy
@@ -207,8 +234,11 @@ impl ViewerPrivacy
         for &source in .sources where source.forget
         {
             .forgetTextBookmarks(source.path)
-            for &other in .sources where other.policy.channel == source.policy.channel do
+            for &other in .sources where other.policy.channel == source.policy.channel
+            {
                 other.forget = true
+            }
+
             .queueCacheClear(source.policy.channel)
         }
 
@@ -220,32 +250,50 @@ impl ViewerPrivacy
             changed = true
         }
 
-        for index in reversed(.window.folderHistory.count) where .forgetPrivatePath(.window.folderHistory[index].file) do
+        for index in reversed(.window.folderHistory.count) where .forgetPrivatePath(.window.folderHistory[index].file)
+        {
             .window.folderHistory.removeAtOrdered(index)
-        for index in reversed(.window.exploredFolders.count) where .forgetPrivatePath(.window.exploredFolders[index]) do
+        }
+
+        for index in reversed(.window.exploredFolders.count) where .forgetPrivatePath(.window.exploredFolders[index])
+        {
             .window.exploredFolders.removeAtOrdered(index)
+        }
+
         for index in reversed(.window.folderViews.count) where .forgetPrivatePath(.window.folderViews[index].path)
         {
             .keepFolderView(&.folderViews, .window.folderViews[index])
             .window.folderViews.removeAtOrdered(index)
         }
 
-        for index in reversed(.window.resumePoints.count) where .forgetPrivatePath(.window.resumePoints[index].file) do
+        for index in reversed(.window.resumePoints.count) where .forgetPrivatePath(.window.resumePoints[index].file)
+        {
             .window.resumePoints.removeAtOrdered(index)
+        }
+
         for index in reversed(.window.musicChoices.count) where .forgetPrivatePath(.window.musicChoices[index].path)
         {
             .keepMusicChoice(.window.musicChoices[index])
             .window.musicChoices.removeAtOrdered(index)
         }
 
-        if .forgetPrivatePath(.window.fileDlgState.currentFolder) do
+        if .forgetPrivatePath(.window.fileDlgState.currentFolder)
+        {
             .window.fileDlgState.currentFolder.clear()
-        for index in reversed(.window.fileDlgState.recentFolders.count) where .forgetPrivatePath(.window.fileDlgState.recentFolders[index]) do
+        }
+
+        for index in reversed(.window.fileDlgState.recentFolders.count) where .forgetPrivatePath(.window.fileDlgState.recentFolders[index])
+        {
             .window.fileDlgState.recentFolders.removeAtOrdered(index)
+        }
+
         for &source in .sources where source.forget
         {
-            if .window.explorer and Path.equals(.window.explorer.listing.path, source.path) do
+            if .window.explorer and Path.equals(.window.explorer.listing.path, source.path)
+            {
                 .window.explorer.privateView = true
+            }
+
             changed       = true
             source.forget = false
         }
@@ -279,8 +327,11 @@ impl ViewerPrivacy
     mtd selectedMusicId(entry: const *ExplorerEntry)->string
     {
         let transient = musicChoiceId(.musicChoices.toSlice(), entry)
-        if transient.count do
+        if transient.count
+        {
             return transient
+        }
+
         return musicChoiceId(.window.musicChoices.toSlice(), entry)
     }
 
@@ -288,10 +339,14 @@ impl ViewerPrivacy
     {
         let retain = .mayRemember(origin)
         setMusicChoice(&.musicChoices, entry, "")
-        if retain do
+        if retain
+        {
             setMusicChoice(&.window.musicChoices, entry, id)
-        else do
+        }
+        else
+        {
             setMusicChoice(&.musicChoices, entry, id)
+        }
     }
 
     // Private locations remain navigable in this window without entering serialized state.
@@ -307,12 +362,15 @@ impl ViewerPrivacy
         let retain = .mayRemember(state.path) and not transient
         let views  = retain ? &.window.folderViews : &.folderViews
         let other  = retain ? &.folderViews : &.window.folderViews
-        for index in reversed(other.count) where other[index].matches(state.path, state.folder) do
+        for index in reversed(other.count) where other[index].matches(state.path, state.folder)
+        {
             other.removeAtOrdered(index)
+        }
+
         .keepFolderView(views, state)
     }
 
-    private mtd keepFolderView(views: *Array'ExplorerFolderState, state: ExplorerFolderState)
+    private mtd keepFolderView(views: *Array!{ExplorerFolderState}, state: ExplorerFolderState)
     {
         for &existing in views[] where existing.matches(state.path, state.folder)
         {
@@ -320,39 +378,59 @@ impl ViewerPrivacy
             return
         }
 
-        if views.count >= 256 do
+        if views.count >= 256
+        {
             views.removeAtOrdered(0)
+        }
+
         views.add(state)
     }
 
     mtd folderView(path, folder: string)->const *ExplorerFolderState?
     {
         let primary = .window.workspace?.primary
-        if primary and primary != .window do
+        if primary and primary != .window
+        {
             return primary.privacy.folderView(path, folder)
+        }
 
         .track(path)
         discard .refresh()
-        for &state in .folderViews where state.matches(path, folder) do
+        for &state in .folderViews where state.matches(path, folder)
+        {
             return state
-        for &state in .window.folderViews where state.matches(path, folder) do
+        }
+
+        for &state in .window.folderViews where state.matches(path, folder)
+        {
             return state
+        }
+
         return null
     }
 
     private mtd keepMusicChoice(choice: MusicChoice)
     {
-        for &existing in .musicChoices where existing.path == choice.path do
+        for &existing in .musicChoices where existing.path == choice.path
+        {
             return
-        if .musicChoices.count >= 1000 do
+        }
+
+        if .musicChoices.count >= 1000
+        {
             .musicChoices.removeAtOrdered(0)
+        }
+
         .musicChoices.add(choice)
     }
 
     private mtd knows(path: string)->bool
     {
-        for &source in .sources where Path.equals(source.path, path) do
+        for &source in .sources where Path.equals(source.path, path)
+        {
             return true
+        }
+
         return not path.count
     }
 
@@ -361,10 +439,16 @@ impl ViewerPrivacy
 
     private mtd queueSource(path: string)
     {
-        if .knows(path) do
+        if .knows(path)
+        {
             return
-        for &source in .scan.sources where Path.equals(source.path, path) do
+        }
+
+        for &source in .scan.sources where Path.equals(source.path, path)
+        {
             return
+        }
+
         .scan.sources.add({path: path})
     }
 
@@ -372,32 +456,59 @@ impl ViewerPrivacy
     mtd sanitize()
     {
         discard .refresh()
-        if .scan.started do
+        if .scan.started
+        {
             return
+        }
+
         .scan.sources.clear()
-        for &path in .window.recent do
+        for &path in .window.recent
+        {
             .queueSource(path[])
-        for &entry in .window.folderHistory do
+        }
+
+        for &entry in .window.folderHistory
+        {
             .queueSource(entry.file)
-        for &path in .window.exploredFolders do
+        }
+
+        for &path in .window.exploredFolders
+        {
             .queueSource(path[])
-        for &state in .window.folderViews do
+        }
+
+        for &state in .window.folderViews
+        {
             .queueSource(state.path)
-        for &entry in .window.musicChoices do
+        }
+
+        for &entry in .window.musicChoices
+        {
             .queueSource(entry.path)
-        for &point in .window.resumePoints do
+        }
+
+        for &point in .window.resumePoints
+        {
             .queueSource(point.file)
+        }
+
         .queueSource(.window.fileDlgState.currentFolder)
-        for &path in .window.fileDlgState.recentFolders do
+        for &path in .window.fileDlgState.recentFolders
+        {
             .queueSource(path[])
+        }
+
         .scan.start(.window)
     }
 
     mtd finishScan()
     {
         .scan.wait()
-        for &source in .scan.sources where not .knows(source.path) do
+        for &source in .scan.sources where not .knows(source.path)
+        {
             .track(source.path, source.policy)
+        }
+
         .scan.sources.clear()
         .dirty = true
         .sanitize()
@@ -425,30 +536,60 @@ impl ViewerPrivacy
                 opened.removeAtOrdered(index)
             }
 
-            for index in reversed(folders.count) where not .mayPersist(folders[index]) do
+            for index in reversed(folders.count) where not .mayPersist(folders[index])
+            {
                 folders.removeAtOrdered(index)
-            for index in reversed(history.count) where not .mayPersist(history[index].file) do
+            }
+
+            for index in reversed(history.count) where not .mayPersist(history[index].file)
+            {
                 history.removeAtOrdered(index)
-            for index in reversed(views.count) where not .mayPersist(views[index].path) do
+            }
+
+            for index in reversed(views.count) where not .mayPersist(views[index].path)
+            {
                 views.removeAtOrdered(index)
-            for index in reversed(music.count) where not .mayPersist(music[index].path) do
+            }
+
+            for index in reversed(music.count) where not .mayPersist(music[index].path)
+            {
                 music.removeAtOrdered(index)
-            for index in reversed(resume.count) where not .mayPersist(resume[index].file) do
+            }
+
+            for index in reversed(resume.count) where not .mayPersist(resume[index].file)
+            {
                 resume.removeAtOrdered(index)
-            while textBookmarkFiles.count > ViewerTextBookmarkFileLimit do
+            }
+
+            while textBookmarkFiles.count > ViewerTextBookmarkFileLimit
+            {
                 textBookmarkFiles.removeAtOrdered(0)
+            }
+
             for &record in textBookmarkFiles
             {
-                while record.bookmarks.count > ViewerTextBookmarkLimit do
+                while record.bookmarks.count > ViewerTextBookmarkLimit
+                {
                     record.bookmarks.removeAtOrdered(0)
+                }
+
                 .track(record.path)
             }
-            for index in reversed(textBookmarkFiles.count) where not .mayPersist(textBookmarkFiles[index].path) do
+
+            for index in reversed(textBookmarkFiles.count) where not .mayPersist(textBookmarkFiles[index].path)
+            {
                 textBookmarkFiles.removeAtOrdered(index)
-            if not .mayPersist(dialog.currentFolder) do
+            }
+
+            if not .mayPersist(dialog.currentFolder)
+            {
                 dialog.currentFolder.clear()
-            for index in reversed(dialog.recentFolders.count) where not .mayPersist(dialog.recentFolders[index]) do
+            }
+
+            for index in reversed(dialog.recentFolders.count) where not .mayPersist(dialog.recentFolders[index])
+            {
                 dialog.recentFolders.removeAtOrdered(index)
+            }
         }
 
         catch serializer.serialize("ViewerWindow.fileDlgState", &dialog)
@@ -463,52 +604,72 @@ impl ViewerPrivacy
         if serializer.isReading()
         {
             for index in reversed(textBookmarkFiles.count) where
-                textBookmarkFiles[index].path.isEmpty() or textBookmarkFiles[index].identity.isEmpty() or
-                textBookmarkFiles[index].bookmarks.isEmpty() do
-                textBookmarkFiles.removeAtOrdered(index)
-            while textBookmarkFiles.count > ViewerTextBookmarkFileLimit do
-                textBookmarkFiles.removeAtOrdered(0)
-            for &record in textBookmarkFiles
+                textBookmarkFiles[index].path.isEmpty() or
+                textBookmarkFiles[index].identity.isEmpty() or
+                textBookmarkFiles[index].bookmarks.isEmpty()
             {
-                while record.bookmarks.count > ViewerTextBookmarkLimit do
-                    record.bookmarks.removeAtOrdered(0)
+                textBookmarkFiles.removeAtOrdered(index)
             }
 
-            window.fileDlgState    = #move dialog
-            window.recent          = #move recent
-            window.recentOpened    = #move opened
-            window.folderHistory   = #move history
-            window.resumePoints    = #move resume
+            while textBookmarkFiles.count > ViewerTextBookmarkFileLimit
+            {
+                textBookmarkFiles.removeAtOrdered(0)
+            }
+
+            for &record in textBookmarkFiles
+            {
+                while record.bookmarks.count > ViewerTextBookmarkLimit
+                {
+                    record.bookmarks.removeAtOrdered(0)
+                }
+            }
+
+            window.fileDlgState      = #move dialog
+            window.recent            = #move recent
+            window.recentOpened      = #move opened
+            window.folderHistory     = #move history
+            window.resumePoints      = #move resume
             window.textBookmarkFiles = #move textBookmarkFiles
-            window.exploredFolders = #move folders
-            window.folderViews     = #move views
-            window.musicChoices    = #move music
+            window.exploredFolders   = #move folders
+            window.folderViews       = #move views
+            window.musicChoices      = #move music
         }
     }
 
     private mtd queueCacheClear(channel: string)
     {
-        if channel.count and not .queue.contains(channel) do
+        if channel.count and not .queue.contains(channel)
+        {
             .queue.add(channel)
+        }
     }
 
     mtd clearCaches()
     {
         if .cleanup.started
         {
-            if not .cleanup.isDone() do
+            if not .cleanup.isDone()
+            {
                 return
+            }
+
             .cleanup.wait()
         }
 
-        if .queue.isEmpty() do
+        if .queue.isEmpty()
+        {
             return
+        }
+
         .batch = #move .queue
         let privacy = me
         .cleanup.submit(func|privacy|()
         {
-            for &channel in privacy.batch do
+            for &channel in privacy.batch
+            {
                 catch ThumbnailCache.clearMount(channel[])
+            }
+
             clearMusicCaches()
         })
     }

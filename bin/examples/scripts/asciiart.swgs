@@ -10,7 +10,7 @@ const MaxRows    = 45
 const GrayRamp   = " .,:;irsXA253hMHGS#9B&@"
 
 late var g_Font: *Font
-var g_Lines:     Array'String
+var g_Lines:     Array!{String}
 var g_TextSize:  Math.Point
 
 func setImage(image: Image)
@@ -48,21 +48,26 @@ func openImage(wnd: *Wnd)
     let surface = unwrap wnd.surface
     with var options: FileDlgOptions
     {
-        .mode  = .SelectFile
-        .title = "Open Image"
+        .mode              = .SelectFile
+        .title             = "Open Image"
         .confirmButtonText = "Open"
         .shortcuts.add({type: Env.SpecialDirectory.UserPictures, name: "Pictures"})
         .filters.add({name: "Images", extensions: ".png;.jpg;.jpeg;.bmp;.tga;.gif;.webp;.tiff"})
     }
 
     let dialog = FileDlg.create(surface, options)
-    if dialog.doModal() != Dialog.BtnOk do
+    if dialog.doModal() != Dialog.BtnOk
+    {
         return
+    }
 
     var outcome: Swag.Error
     catch { setImage(try Image.load(dialog.selectedPath())) } as outcome
-    if let error = outcome.value() do
+    if let error = outcome.value()
+    {
         MessageDlg.error(surface, "Cannot open the image.", error)
+    }
+
     wnd.invalidate()
 }
 
@@ -70,15 +75,19 @@ func drawPreview(wnd: *Wnd, painter: *Painter)
 {
     let client = wnd.clientRect()
     let bounds = Math.Rectangle{Margin, PreviewTop, client.width - 2 * Margin, client.height - PreviewTop - Margin}
-    if bounds.width <= 0 or bounds.height <= 0 do
+    if bounds.width <= 0 or bounds.height <= 0
+    {
         return
+    }
 
     let zoom = Math.min(1.0, Math.min(bounds.width / g_TextSize.x, bounds.height / g_TextSize.y))
     let x    = bounds.horzCenter() - g_TextSize.x * zoom * 0.5
     let y    = bounds.vertCenter() - g_TextSize.y * zoom * 0.5
     let ink  = wnd.themeColors().label_Text
-    for line, row in g_Lines do
+    for line, row in g_Lines
+    {
         painter.drawString(x, y + cast(f32, row) * g_Font.height * zoom, line.toString(), g_Font, ink, zoom: zoom)
+    }
 }
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool

@@ -30,15 +30,20 @@ func __dbgDecodeLz4(source: const [*] u8, sourceSize: u64, target: [*] u8, targe
 {
     func readLength(source: const [*] u8, size: u64, cursor: *u64, length: *u64)->bool
     {
-        if length[] != 15 do
+        if length[] != 15
+        {
             return true
+        }
+
         while cursor[] < size
         {
             let extra = source[cursor[]]
             cursor[] += 1
             length[] += extra
-            if extra != 255 do
+            if extra != 255
+            {
                 return true
+            }
         }
 
         return false
@@ -52,33 +57,54 @@ func __dbgDecodeLz4(source: const [*] u8, sourceSize: u64, target: [*] u8, targe
         var literals = cast(u64, token >> 4)
         if not readLength(source, sourceSize, &input, &literals) or
            literals > sourceSize - input or
-           literals > targetSize - output do
+           literals > targetSize - output
+        {
             return false
-        if literals do
+        }
+
+        if literals
+        {
             Swag.memcpy(&target[output], &source[input], literals)
+        }
+
         input  += literals
         output += literals
-        if input == sourceSize do
+        if input == sourceSize
+        {
             return output == targetSize
+        }
 
-        if sourceSize - input < 2 do
+        if sourceSize - input < 2
+        {
             return false
+        }
+
         let distance = cast(u64, source[input]) | (cast(u64, source[input + 1]) << 8)
         input += 2
         var match = cast(u64, token & 15)
         if not distance or
            distance > output or
            not readLength(source, sourceSize, &input, &match) or
-           match + 4 > targetSize - output do
+           match + 4 > targetSize - output
+        {
             return false
+        }
+
         match += 4
 
         // A match can repeat bytes produced by the same sequence.
-        if distance >= match do
+        if distance >= match
+        {
             Swag.memcpy(&target[output], &target[output - distance], match)
-        else do
-            for index in match do
+        }
+        else
+        {
+            for index in match
+            {
                 target[output + index] = target[output - distance + index]
+            }
+        }
+
         output += match
     }
 
@@ -104,31 +130,46 @@ impl SwagDebugTableBlock
             value[] = 0
             for index in 5
             {
-                if cursor[] == limit do
+                if cursor[] == limit
+                {
                     return false
+                }
+
                 let byte = input[cursor[]]
                 cursor[] += 1
-                if index == 4 and byte > 15 do
+                if index == 4 and byte > 15
+                {
                     return false
+                }
+
                 value[] |= cast(u32, byte & 127) << (index * 7)
-                if byte < 128 do
+                if byte < 128
+                {
                     return true
+                }
             }
 
             return false
         }
 
         let payload = &section[.payloadOffset]
-        if .format == 4 do
+        if .format == 4
+        {
             return __dbgDecodeLz4(payload, .payloadSize, target, .decodedSize)
-        if .format != 5 do
+        }
+
+        if .format != 5
+        {
             return false
+        }
 
         // The compact stream ends at the same address as the final table.
         // Expanding its rows forward leaves the string blob in its final position.
         var cursor = .decodedSize - .compactSize
-        if not __dbgDecodeLz4(payload, .payloadSize, &target[cursor], .compactSize) do
+        if not __dbgDecodeLz4(payload, .payloadSize, &target[cursor], .compactSize)
+        {
             return false
+        }
 
         let stringsOffset = 16 + .entryCount * 20
         var fields: [5] u32
@@ -137,8 +178,11 @@ impl SwagDebugTableBlock
             for column in fields.count
             {
                 var encoded: u32
-                if not readVarUInt(target, stringsOffset, &cursor, &encoded) do
+                if not readVarUInt(target, stringsOffset, &cursor, &encoded)
+                {
                     return false
+                }
+
                 if column == 1
                 {
                     fields[column] = encoded
@@ -151,13 +195,18 @@ impl SwagDebugTableBlock
             }
 
             let offset = 16 + entry * 20
-            if offset + 20 > cursor do
+            if offset + 20 > cursor
+            {
                 return false
+            }
+
             Swag.memcpy(&target[offset], &fields[0], 20)
         }
 
-        if cursor != stringsOffset do
+        if cursor != stringsOffset
+        {
             return false
+        }
 
         let header: [4] u32 = [0x4244_5753, 1, cast(u32, .entryCount), cast(u32, stringsOffset)]
         Swag.memcpy(target, &header[0], 16)
@@ -168,29 +217,47 @@ impl SwagDebugTableBlock
 // A validated header has a nonzero decoded size.
 func readCompressedDebugTable(section: [*] u8, sectionSize: u64)->SwagDebugTableBlock
 {
-    if sectionSize < 16 or sectionSize > Swag.U32.Max or __dbgU32(section, 0) != 0x4244_5753 do
+    if sectionSize < 16 or sectionSize > Swag.U32.Max or __dbgU32(section, 0) != 0x4244_5753
+    {
         return {}
+    }
 
     let format = __dbgU32(section, 4)
-    if format != 2 and format != 4 and format != 5 do
+    if format != 2 and format != 4 and format != 5
+    {
         return {}
-    let headerSize = format == 5 ? 24'u64 : 16'u64
-    if sectionSize < headerSize do
+    }
+
+    let headerSize = format == 5 ? 24_u64 : 16_u64
+    if sectionSize < headerSize
+    {
         return {}
+    }
 
     let decodedSize = cast(u64, __dbgU32(section, 8))
     var payloadSize = cast(u64, __dbgU32(section, 12))
-    if format == 4 and not payloadSize do
+    if format == 4 and not payloadSize
+    {
         payloadSize = sectionSize - headerSize
-    if decodedSize < 16 or not payloadSize or payloadSize > sectionSize - headerSize do
-        return {}
+    }
 
-    if format == 2 do
+    if decodedSize < 16 or not payloadSize or payloadSize > sectionSize - headerSize
+    {
+        return {}
+    }
+
+    if format == 2
+    {
         return SwagDebugTableBlock{format, headerSize, payloadSize, decodedSize}
+    }
+
     if format == 4
     {
-        if decodedSize > payloadSize * 255 do
+        if decodedSize > payloadSize * 255
+        {
             return {}
+        }
+
         return SwagDebugTableBlock{format, headerSize, payloadSize, decodedSize}
     }
 
@@ -199,12 +266,17 @@ func readCompressedDebugTable(section: [*] u8, sectionSize: u64)->SwagDebugTable
     if not entryCount or
        entryCount > (decodedSize - 16) / 20 or
        compactSize > decodedSize or
-       compactSize > payloadSize * 255 do
+       compactSize > payloadSize * 255
+    {
         return {}
+    }
 
     let stringsSize = decodedSize - 16 - entryCount * 20
-    if compactSize < stringsSize + entryCount * 5 do
+    if compactSize < stringsSize + entryCount * 5
+    {
         return {}
+    }
+
     return SwagDebugTableBlock{format, headerSize, payloadSize, decodedSize, compactSize, entryCount}
 }
 
@@ -217,46 +289,61 @@ func readDebugString(section: [*] u8, size: u64, stringsOffset, offset: u32, val
     }
 
     var start = cast(u64, offset)
-    if start < stringsOffset or start >= size do
+    if start < stringsOffset or start >= size
+    {
         return false
-    var length = 0'u64
+    }
+
+    var length = 0_u64
     while start + length < size and section[start + length]
     {
         length += 1
     }
 
-    if start + length == size do
+    if start + length == size
+    {
         return false
+    }
+
     value[] = Swag.makeString(&section[start], length)
     return true
 }
 
 func validateDebugSection(section: [*] u8, size: u64)->bool
 {
-    if size < 16 or __dbgU32(section, 0) != 0x4244_5753 or __dbgU32(section, 4) != 1 do
+    if size < 16 or __dbgU32(section, 0) != 0x4244_5753 or __dbgU32(section, 4) != 1
+    {
         return false
+    }
 
     let count         = cast(u64, __dbgU32(section, 8))
     let stringsOffset = __dbgU32(section, 12)
-    let entriesStart  = 16'u64
+    let entriesStart  = 16_u64
     let entriesSize   = count * 20
     if entriesSize > size - entriesStart or
        cast(u64, stringsOffset) < entriesStart + entriesSize or
-       cast(u64, stringsOffset) > size do
+       cast(u64, stringsOffset) > size
+    {
         return false
+    }
 
     for index in count
     {
         let entry  = entriesStart + index * 20
         let start  = cast(u64, __dbgU32(section, entry))
         let length = cast(u64, __dbgU32(section, entry + 4))
-        if start + length > 0x1_0000_0000 do
+        if start + length > 0x1_0000_0000
+        {
             return false
+        }
+
         let nameOffset = __dbgU32(section, entry + 8)
         let fileOffset = __dbgU32(section, entry + 12)
         if (nameOffset and (nameOffset < stringsOffset or cast(u64, nameOffset) >= size)) or
-           (fileOffset and (fileOffset < stringsOffset or cast(u64, fileOffset) >= size)) do
+           (fileOffset and (fileOffset < stringsOffset or cast(u64, fileOffset) >= size))
+        {
             return false
+        }
     }
 
     return true
@@ -269,26 +356,37 @@ private func __dbgImage(base: *void)->*SwagDebugImage?
     var scan = __dbgImages
     while scan
     {
-        if scan.base == base do
+        if scan.base == base
+        {
             return scan
+        }
+
         scan = scan.next
     }
 
     let image = __hostAllocateDebugImage()
-    if not image do
+    if not image
+    {
         return null
+    }
+
     image[]     = SwagDebugImage{next: __dbgImages, base: base}
     __dbgImages = image
 
     var encodedSize: u64
     let encoded = __hostDebugSection(base, &encodedSize)
-    if not encoded do
+    if not encoded
+    {
         return image
+    }
 
     var decodedSize: u64
     let section = __hostDecodeDebugSection(encoded, encodedSize, &decodedSize)
-    if not section do
+    if not section
+    {
         return image
+    }
+
     if not validateDebugSection(section, decodedSize)
     {
         __hostReleaseDecodedDebugSection(section == encoded ? null : section)
@@ -307,15 +405,23 @@ func symbolizeStackAddress(addr: *void)->__SwagSym
     var result: __SwagSym
 
     let imageBase = __hostImageBaseForAddress(addr)
-    if not imageBase do
+    if not imageBase
+    {
         return result
+    }
+
     let image = __dbgImage(imageBase)
-    if not image or not image.valid do
+    if not image or not image.valid
+    {
         return result
+    }
 
     let relativeAddress = cast(u64, addr) - cast(u64, imageBase)
-    if relativeAddress > Swag.U32.Max do
+    if relativeAddress > Swag.U32.Max
+    {
         return result
+    }
+
     let rva = cast(u32, relativeAddress)
     let sec = unwrap image.section
     for i in image.count
@@ -326,11 +432,17 @@ func symbolizeStackAddress(addr: *void)->__SwagSym
         if cast(u64, rva) >= start and cast(u64, rva) < cast(u64, start) + size
         {
             let stringsOffset = __dbgU32(sec, 12)
-            if not readDebugString(sec, image.size, stringsOffset, __dbgU32(sec, entry + 8), &result.name) do
+            if not readDebugString(sec, image.size, stringsOffset, __dbgU32(sec, entry + 8), &result.name)
+            {
                 return __SwagSym{}
+            }
+
             let fileOffset = __dbgU32(sec, entry + 12)
-            if fileOffset and not readDebugString(sec, image.size, stringsOffset, fileOffset, &result.file) do
+            if fileOffset and not readDebugString(sec, image.size, stringsOffset, fileOffset, &result.file)
+            {
                 return __SwagSym{}
+            }
+
             result.found = true
             if fileOffset != 0
             {
@@ -351,8 +463,11 @@ func symbolizeStackAddress(addr: *void)->__SwagSym
 // says only that symbolization was unavailable, so the panic report leaves the whole section out.
 func __hasStackTraceSymbols(wh: const [..] (*void?))->bool
 {
-    for address in wh where address and symbolizeStackAddress(address).found do
+    for address in wh where address and symbolizeStackAddress(address).found
+    {
         return true
+    }
+
     return false
 }
 
@@ -362,42 +477,70 @@ func __logStackTrace(wh: const [..] (*void?), startAfter: *Swag.SourceCodeLocati
 
     for i in wh.count
     {
-        if not wh[i] do
+        if not wh[i]
+        {
             continue
+        }
+
         let info = symbolizeStackAddress(unwrap wh[i])
-        if not info.found do
+        if not info.found
+        {
             continue
-        if not info.hasLine and not printNoLine do
+        }
+
+        if not info.hasLine and not printNoLine
+        {
             continue
+        }
 
         if not hasStarted and startAfter
         {
-            if not info.hasLine do
+            if not info.hasLine
+            {
                 continue
-            if startAfter.lineStart != info.line do
+            }
+
+            if startAfter.lineStart != info.line
+            {
                 continue
+            }
+
             let afterName = startAfter.fileName
-            if info.file.count != afterName.count do
+            if info.file.count != afterName.count
+            {
                 continue
+            }
 
             var samePath = true
             if afterName != null
             {
                 for it in info.file.count
                 {
-                    if info.file[it] == afterName[it] do
+                    if info.file[it] == afterName[it]
+                    {
                         continue
-                    if info.file[it] == '\\' and afterName[it] == '/' do
+                    }
+
+                    if info.file[it] == '\\' and afterName[it] == '/'
+                    {
                         continue
-                    if info.file[it] == '/' and afterName[it] == '\\' do
+                    }
+
+                    if info.file[it] == '/' and afterName[it] == '\\'
+                    {
                         continue
+                    }
+
                     samePath = false
                     break
                 }
             }
 
-            if not samePath do
+            if not samePath
+            {
                 continue
+            }
+
             hasStarted = true
             continue
         }

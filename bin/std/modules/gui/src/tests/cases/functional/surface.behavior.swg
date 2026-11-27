@@ -52,7 +52,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    let child = Wnd.create'Wnd(&host.root, {20, 20, 100, 40})
+    let child = Wnd.create!{Wnd}(&host.root, {20, 20, 100, 40})
 
     child.captureMouse()
     Swag.require(host.app.mouseCaptureWnd == child)
@@ -129,13 +129,15 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.setup(240, 120)
     host.root.hookOnEvent = func|count = &timerCount|(_, evt)
     {
-        if evt is TimerEvent do
+        if evt is TimerEvent
+        {
             count[] += 1
+        }
 
         return false
     }
 
-    let timer = host.root.addTimer(10'ms)
+    let timer = host.root.addTimer(10_ms)
     host.fireTimer(timer)
 
     Swag.require(timerCount == 1)
@@ -155,16 +157,18 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.setup(240, 120)
 
     var timerCount: u32
-    let view = Wnd.create'Wnd(&host.root)
+    let view = Wnd.create!{Wnd}(&host.root)
     view.hookOnEvent = func|count = &timerCount|(_, evt)
     {
-        if evt is TimerEvent do
+        if evt is TimerEvent
+        {
             count[] += 1
+        }
 
         return false
     }
 
-    let timer = view.addTimer(1'ms)
+    let timer = view.addTimer(1_ms)
     view.destroy()
 
     Swag.require(view.isPendingDestroy)
@@ -183,12 +187,12 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.setup(240, 120)
 
     var stagedWasRetired: bool
-    let view = Wnd.create'Wnd(&host.root)
+    let view = Wnd.create!{Wnd}(&host.root)
     view.hookOnEvent = func|retired = &stagedWasRetired|(wnd, evt)
     {
         if evt is TimerEvent
         {
-            let staged = wnd.addTimer(1'ms)
+            let staged = wnd.addTimer(1_ms)
             wnd.destroy()
             retired[] = staged.isPendingRemoval
         }
@@ -196,7 +200,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
         return false
     }
 
-    let trigger = view.addTimer(1'ms)
+    let trigger = view.addTimer(1_ms)
     host.fireTimer(trigger)
 
     Swag.require(stagedWasRetired)
@@ -230,7 +234,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.require(surface.isTopMost())
     Swag.require(surface.flags.has(.TopMost))
 
-    let replacement  = Wnd.create'Wnd()
+    let replacement  = Wnd.create!{Wnd}()
     let previousView = surface.view()
     surface.setView(replacement)
     Swag.require(surface.view() == replacement)
@@ -303,7 +307,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.surface.position                      = {10, 20, 240, 120}
 
     // A control in the strip keeps its clicks; a plain window there is ground the strip drags.
-    let captionChild = Wnd.create'Wnd(&host.surfaceWnd, {20, 4, 60, 24})
+    let captionChild = Wnd.create!{Wnd}(&host.surfaceWnd, {20, 4, 60, 24})
     Swag.require(host.surfaceWnd.hitTestCaption({30, 15}))
     captionChild.focusPolicy = .Click
     Swag.require(not host.surfaceWnd.hitTestCaption({30, 15}))

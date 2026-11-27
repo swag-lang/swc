@@ -27,14 +27,18 @@ impl SelfPointerValue
 
     mtd opPostCopy()
     {
-        if .buffer do
+        if .buffer
+        {
             .buffer = cast([*] u8, &.storage[0])
+        }
     }
 
     mtd opDrop()
     {
-        if .buffer do
+        if .buffer
+        {
             Swag.assert(.buffer == cast([*] u8, &.storage[0]))
+        }
     }
 }
 
@@ -53,7 +57,7 @@ impl CopySlot
 
 struct(T) EntryArray
 {
-    entries: [*] CopySlot'T?
+    entries: [*] CopySlot!{T}?
 }
 
 impl EntryArray
@@ -67,15 +71,19 @@ impl EntryArray
 
 func maxU64(lhs: u64, rhs: u64)->u64
 {
-    if lhs >= rhs do
+    if lhs >= rhs
+    {
         return lhs
+    }
     return rhs
 }
 
 func minU64(lhs: u64, rhs: u64)->u64
 {
-    if lhs <= rhs do
+    if lhs <= rhs
+    {
         return lhs
+    }
     return rhs
 }
 
@@ -103,8 +111,10 @@ impl InlineBufferText
 
     mtd grow(wantedCapacity: u64)
     {
-        if wantedCapacity <= .capacity do
+        if wantedCapacity <= .capacity
+        {
             return
+        }
         let newCapacity = maxU64(.capacity * 2, wantedCapacity)
         .reserve(newCapacity)
     }
@@ -112,8 +122,10 @@ impl InlineBufferText
     mtd reserve(newCapacity: u64)
     {
         .length = minU64(.length, newCapacity)
-        if .allocator == null do
+        if .allocator == null
+        {
             .allocator = Swag.getContext().allocator
+        }
 
         if newCapacity <= 16
         {
@@ -132,8 +144,10 @@ impl InlineBufferText
 
     mtd opPostCopy()
     {
-        if .buffer do
+        if .buffer
+        {
             .buffer = cast([*] u8, &.padding[0])
+        }
     }
 
     mtd opDrop()
@@ -144,8 +158,10 @@ impl InlineBufferText
         {
             Swag.assert(dropAddr == ExpectedInlineBufferTextDropAddr)
             LastInlineBufferTextDropBuffer = .buffer
-            if ExpectedInlineBufferTextDropBuffer do
+            if ExpectedInlineBufferTextDropBuffer
+            {
                 Swag.assert(.buffer == ExpectedInlineBufferTextDropBuffer)
+            }
         }
     }
 }
@@ -159,7 +175,7 @@ struct(K, V) HashLikeEntry
 
 struct(K, V) HashLikeTable
 {
-    entries:  [*] HashLikeEntry'(K, V)?
+    entries:  [*] HashLikeEntry!{K, V}?
     capacity: u64
 }
 
@@ -182,8 +198,10 @@ impl HashLikeTable
     mtd free()
     {
         let slots = unwrap .entries
-        for i in .capacity where slots[i].hash >= 1 do
+        for i in .capacity where slots[i].hash >= 1
+        {
             Swag.drop(&slots[i].value)
+        }
         testFree(slots)
         .entries  = null
         .capacity = 0
@@ -204,7 +222,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    var slot: CopySlot'SelfPointerValue
+    var slot: CopySlot!{SelfPointerValue}
     var src:  SelfPointerValue
     src.init(7)
 
@@ -216,11 +234,11 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    let entries = cast([*] CopySlot'SelfPointerValue, unwrap testAlloc(#sizeof(CopySlot'SelfPointerValue)))
+    let entries = cast([*] CopySlot!{SelfPointerValue}, unwrap testAlloc(#sizeof(CopySlot!{SelfPointerValue})))
     defer testFree(entries)
-    Swag.memset(entries, 0, #sizeof(CopySlot'SelfPointerValue))
+    Swag.memset(entries, 0, #sizeof(CopySlot!{SelfPointerValue}))
 
-    var table: EntryArray'SelfPointerValue
+    var table: EntryArray!{SelfPointerValue}
     table.entries = entries
 
     var src: SelfPointerValue
@@ -235,11 +253,11 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    let entries = cast([*] CopySlot'InlineBufferText, unwrap testAlloc(#sizeof(CopySlot'InlineBufferText)))
+    let entries = cast([*] CopySlot!{InlineBufferText}, unwrap testAlloc(#sizeof(CopySlot!{InlineBufferText})))
     defer testFree(entries)
-    Swag.memset(entries, 0, #sizeof(CopySlot'InlineBufferText))
+    Swag.memset(entries, 0, #sizeof(CopySlot!{InlineBufferText}))
 
-    var table: EntryArray'InlineBufferText
+    var table: EntryArray!{InlineBufferText}
     table.entries = entries
 
     table.addAt(0, makeInlineBufferText("swag"))
@@ -251,10 +269,10 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    let entries = cast([*] HashLikeEntry'(string, InlineBufferText), unwrap testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText))))
-    Swag.memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
+    let entries = cast([*] HashLikeEntry!{string, InlineBufferText}, unwrap testAlloc(#sizeof(HashLikeEntry!{string, InlineBufferText})))
+    Swag.memset(entries, 0, #sizeof(HashLikeEntry!{string, InlineBufferText}))
 
-    var table: HashLikeTable'(string, InlineBufferText)
+    var table: HashLikeTable!{string, InlineBufferText}
     table.entries  = entries
     table.capacity = 1
 
@@ -274,10 +292,10 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    let entries = cast([*] HashLikeEntry'(s32, InlineBufferText), unwrap testAlloc(#sizeof(HashLikeEntry'(s32, InlineBufferText))))
-    Swag.memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
+    let entries = cast([*] HashLikeEntry!{s32, InlineBufferText}, unwrap testAlloc(#sizeof(HashLikeEntry!{s32, InlineBufferText})))
+    Swag.memset(entries, 0, #sizeof(HashLikeEntry!{s32, InlineBufferText}))
 
-    var table: HashLikeTable'(s32, InlineBufferText)
+    var table: HashLikeTable!{s32, InlineBufferText}
     table.entries  = entries
     table.capacity = 1
 
@@ -298,10 +316,10 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    let entries = cast([*] HashLikeEntry'(string, InlineBufferText), unwrap testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText))))
-    Swag.memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
+    let entries = cast([*] HashLikeEntry!{string, InlineBufferText}, unwrap testAlloc(#sizeof(HashLikeEntry!{string, InlineBufferText})))
+    Swag.memset(entries, 0, #sizeof(HashLikeEntry!{string, InlineBufferText}))
 
-    var table: HashLikeTable'(string, InlineBufferText)
+    var table: HashLikeTable!{string, InlineBufferText}
     table.entries  = entries
     table.capacity = 1
 

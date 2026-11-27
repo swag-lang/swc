@@ -22,19 +22,24 @@ func day6B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    let timeField      = Tokenize.split(lines[0], ':'u8)
-    let distanceField  = Tokenize.split(lines[1], ':'u8)
-    let timeTokens     = Tokenize.split(timeField[1], ' 'u8)
-    let distanceTokens = Tokenize.split(distanceField[1], ' 'u8)
+    let timeField      = Tokenize.split(lines[0], ':'_u8)
+    let distanceField  = Tokenize.split(lines[1], ':'_u8)
+    let timeTokens     = Tokenize.split(timeField[1], ' '_u8)
+    let distanceTokens = Tokenize.split(distanceField[1], ' '_u8)
 
-    var raceTimes:       Array'u64
-    var recordDistances: Array'u64
+    var raceTimes:       Array!{u64}
+    var recordDistances: Array!{u64}
 
     var timeDigits, distanceDigits: String = ""
-    for token in timeTokens do
+    for token in timeTokens
+    {
         timeDigits += token
-    for token in distanceTokens do
+    }
+
+    for token in distanceTokens
+    {
         distanceDigits += token
+    }
 
     raceTimes.add(expect StrConv.toU64(timeDigits))
     recordDistances.add(expect StrConv.toU64(distanceDigits))
@@ -47,8 +52,10 @@ func day6B()
         for holdTime in raceTime
         {
             let travelDistance = (raceTime - holdTime) * holdTime
-            if travelDistance > recordDistance do
+            if travelDistance > recordDistance
+            {
                 winningCount += 1
+            }
         }
 
         total *= winningCount

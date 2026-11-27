@@ -57,7 +57,7 @@ func day4A()
     let dataPath = Path.combine(Path.directoryName(#file), "4.txt")
     let stats    = readGuardSleepStats(dataPath)
 
-    var bestMinuteCount, bestMinute, bestGuard = 0'u64
+    var bestMinuteCount, bestMinute, bestGuard = 0_u64
     var mostSleep = 0
     for guard, totalSleep in stats.totalByGuard
     {

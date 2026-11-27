@@ -6,11 +6,14 @@ private func loadPdfFixture(name: string, pageCount: u64)->Document
 {
     let result = expect Document.load(guiTestDataPath(name))
     Swag.require(result.pages.count == pageCount)
-    for page in result.pages do
+    for page in result.pages
+    {
         Swag.require(page.width > 0 and
                      page.height > 0 and
                      Math.isFinite(page.width) and
                      Math.isFinite(page.height))
+    }
+
     return result
 }
 
@@ -55,8 +58,11 @@ private func sampleDocument()->Document
 
     let jpeg = loadPdfFixture("pdfbox-jpeg-rgb.pdf", 1)
     var hasImage: bool
-    for item in jpeg.pages[0].items where item.kind == .Image do
+    for item in jpeg.pages[0].items where item.kind == .Image
+    {
         hasImage = true
+    }
+
     Swag.require(hasImage)
 
     let rotation = loadPdfFixture("pdfbox-rotation.pdf", 2)
@@ -65,8 +71,11 @@ private func sampleDocument()->Document
 
     let form = loadPdfFixture("pdfbox-form-xobject.pdf", 1)
     var pathCount: u64
-    for item in form.pages[0].items where item.kind == .Path do
+    for item in form.pages[0].items where item.kind == .Path
+    {
         pathCount += 1
+    }
+
     Swag.require(pathCount > 100)
 }
 
@@ -142,6 +151,130 @@ private func sampleDocument()->Document
     Swag.require(loaded.pages[0].items.count == 3)
 }
 
+// The writer rounds fixed-point coordinates to four places, with ties rounded to even.
+#test
+{
+    var paths: LinePathList
+    let outline = paths.newPath()
+    outline.start(0.03125, 5.25)
+    outline.lineTo(-0.09375, 6.125)
+    outline.lineTo(123.125, 7)
+    outline.close()
+
+    var page = Page.create(240.125, 160)
+    page.addPath(paths)
+    var document = Document.create()
+    document.addPage(#move page)
+    let bytes   = expect document.encode()
+    let decoded = expect Document.decode(bytes.toSlice())
+    Swag.require(decoded.pages[0].width == 240.125)
+    let path = (unwrap decoded.pages[0].items[0].pathValue()).toSlice()[0]
+    Swag.require(Math.isEqualEpsilon(path.startPoint.x, 0.0312, 0.000001))
+    Swag.require(path.startPoint.y == 5.25)
+    Swag.require(Math.isEqualEpsilon(path.elements[0].position.x, -0.0938, 0.000001))
+    Swag.require(Math.isEqualEpsilon(path.elements[0].position.y, 6.125, 0.00005))
+    Swag.require(Math.isEqualEpsilon(path.elements[1].position.x, 123.125, 0.00005))
+    Swag.require(Math.isEqualEpsilon(path.elements[1].position.y, 7, 0.00005))
+}
+
+// Identical images share a resource across pages. The same bytes in a different channel
+// order describe a distinct image. An opaque channel needs no soft-mask stream.
+#test
+{
+    const Pixels: [8] u8 = [11, 33, 211, 31, 64, 92, 8, 255]
+    const Opaque: [8] u8 = [11, 33, 211, 255, 64, 92, 8, 255]
+    let rgba     = Image.create(2, 1, .RGBA8, Pixels)
+    let bgra     = Image.create(2, 1, .BGRA8, Pixels)
+    let opaque   = Image.create(2, 1, .BGRA8, Opaque)
+    var document = Document.create()
+    for index in 2
+    {
+        var page = Page.create(80, 60)
+        page.addImage(rgba, 4, 4, 20, 10)
+        if not index
+        {
+            page.addImage(bgra, 4, 20, 20, 10)
+            page.addImage(opaque, 4, 36, 20, 10)
+        }
+
+        document.addPage(#move page)
+    }
+
+    let bytes = expect document.encode()
+    let text  = String.from(cast(string, bytes.toSlice()))
+
+    func occurrences(text: const *String, term: string)->u64
+    {
+        var count, start: u64
+        while true
+        {
+            let next = text.indexOf(term, start)
+            if next == Swag.U64.Max
+            {
+                return count
+            }
+
+            count += 1
+            start = next + term.count
+        }
+    }
+
+    Swag.require(occurrences(&text, "/Subtype /Image") == 5)
+    Swag.require(occurrences(&text, " /SMask ") == 2)
+    let decoded = expect Document.decode(bytes.toSlice())
+    for page in decoded.pages
+    {
+        let repeated = unwrap page.items[0].imageValue()
+        Swag.require(repeated.pixelColor(0, 0) == rgba.pixelColor(0, 0))
+    }
+
+    let distinct = unwrap decoded.pages[0].items[1].imageValue()
+    let solid    = unwrap decoded.pages[0].items[2].imageValue()
+    Swag.require(distinct.pixelColor(0, 0) == bgra.pixelColor(0, 0))
+    Swag.require(solid.pixelColor(0, 0) == opaque.pixelColor(0, 0))
+}
+
+// Bilevel samples start a new byte on each row. A separate soft mask retains all alpha levels.
+#test
+{
+    const Width  = 9
+    const Height = 3
+    var gray      = Image.create(Width, Height, .Gray8)
+    var grayAlpha = Image.create(Width, Height, .GrayAlpha8)
+    for y in Height
+    {
+        for x in Width
+        {
+            let index = y * Width + x
+            let white = cast(u8, (x + y * 2) % 3 == 0 ? 255 : 0)
+            gray.pixels[index] = white
+            grayAlpha.pixels[index * 2 + 0] = white
+            grayAlpha.pixels[index * 2 + 1] = cast(u8, (index * 17) & 255)
+        }
+    }
+
+    var page = Page.create(80, 60)
+    page.addImage(gray, 4, 4, 20, 10)
+    page.addImage(grayAlpha, 4, 20, 20, 10)
+    var document = Document.create()
+    document.addPage(#move page)
+    let bytes = expect document.encode()
+    let text  = String.from(cast(string, bytes.toSlice()))
+    Swag.require(text.indexOf("/BitsPerComponent 1 /Filter") != Swag.U64.Max)
+
+    let decoded     = expect Document.decode(bytes.toSlice())
+    let image       = unwrap decoded.pages[0].items[0].imageValue()
+    let imageMasked = unwrap decoded.pages[0].items[1].imageValue()
+    for y in Height
+    {
+        for x in Width
+        {
+            Swag.require(image.pixelColor(x, y) == gray.pixelColor(x, y))
+            Swag.require(imageMasked.pixelColor(x, y) == grayAlpha.pixelColor(x, y))
+        }
+    }
+}
+
 // The streaming reader indexes every page but does not decode a later page's stream until that
 // page is requested.
 #test
@@ -149,7 +282,7 @@ private func sampleDocument()->Document
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("pdf-streaming-%{X016}.pdf", Guid64.random()).toString())
     defer discard catch File.delete(fileName)
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
     addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
     addObject(&bytes, 2, "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>")
@@ -204,8 +337,10 @@ private func sampleDocument()->Document
 {
     let ascii85 = expect decodeAscii85("z!!~>")
     Swag.require(ascii85.count == 5)
-    for value in ascii85 do
+    for value in ascii85
+    {
         Swag.require(value == 0)
+    }
 
     let encoded: [7] u8 = [2, 'A', 'B', 'C', 254, 'Z', 128]
     let runLength       = expect decodeRunLength(encoded)
@@ -218,7 +353,7 @@ private func sampleDocument()->Document
 #test
 {
     const compressed: [9] u8 = [0x78, 0x9C, 0xE3, 0x04, 0x00, 0x00, 0x0A, 0x00, 0x0A]
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
     addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
     addObject(&bytes, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>")
@@ -238,7 +373,7 @@ private func sampleDocument()->Document
 // dimensions, and content is placed relative to the crop origin.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
     addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
     addObject(&bytes, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>")
@@ -259,7 +394,7 @@ private func sampleDocument()->Document
 // A CropBox reaching outside the MediaBox is bounded by it, and a malformed one is ignored.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
     addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
     addObject(&bytes, 2, "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>")
@@ -278,7 +413,7 @@ private func sampleDocument()->Document
 // `%PDF-` marker sits within the first bytes rather than at byte zero.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "Content-Type: application/pdf; some mail preamble\n\n"))
     bytes.add(singlePagePdf("", cast(const [..] u8, "0 0 5 5 re f"), "").toSlice())
     let document = expect Document.decode(bytes.toSlice())
@@ -343,17 +478,17 @@ private func writeTemporaryPdf(tag: string, bytes: const [..] u8)->String fail
 // cross-reference section for the object it changed and points back at the section it
 // supersedes. Offsets and lengths are computed rather than spelled out, so the file stays
 // valid when the text in it changes.
-private func buildIncrementalPdf(word, updated: string)->Array'u8
+private func buildIncrementalPdf(word, updated: string)->Array!{u8}
 {
     var result:  #returntype
     var offsets: [6] u64
 
-    func append(bytes: *Array'u8, text: string)
+    func append(bytes: *Array!{u8}, text: string)
     {
         bytes.add(cast(const [..] u8, text))
     }
 
-    func appendObject(bytes: *Array'u8, offsets: [..] u64, number: u64, body: string)
+    func appendObject(bytes: *Array!{u8}, offsets: [..] u64, number: u64, body: string)
     {
         offsets[number] = bytes.count
         append(bytes, Format.toString("% 0 obj\n", number).toString())
@@ -379,8 +514,11 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
 
     let firstXref = result.count
     append(&result, "xref\n0 6\n0000000000 65535 f \n")
-    for number in 1 to 5 do
+    for number in 1 to 5
+    {
         append(&result, Format.toString("%{010} 00000 n \n", offsets[number]).toString())
+    }
+
     append(&result, Format.toString("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n%\n%%EOF\n", firstXref).toString())
 
     // The update: object five again, then a section naming only it.
@@ -411,8 +549,11 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
            bytes[index + 4] == 't' and
            bytes[index + 5] == 'x'
         {
-            for k in 9 do
+            for k in 9
+            {
                 bytes[index + k] = ' '
+            }
+
             found = true
         }
     }
@@ -462,9 +603,12 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
     let document = expect Document.decode(singlePagePdf("", cast(const [..] u8, content), cast(const [..] u8, ""), "[0 0 200 100]").toSlice())
     let page     = document.pages[0]
 
-    var paths: Array'(const *Pdf.Item)
-    for item in page.items where item.kind == .Path do
+    var paths: Array!{const *Pdf.Item}
+    for item in page.items where item.kind == .Path
+    {
         paths.add(item)
+    }
+
     Swag.require(paths.count == 2)
 
     // The first rectangle is inside its clip, so the clip decides nothing.
@@ -481,7 +625,7 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("pdf-labels-%{X016}.pdf", Guid64.random()).toString())
     defer discard catch File.delete(fileName)
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
     addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R /PageLabels << /Nums [1 << /S /r >> 3 << /S /D /P (A-) >> 5 << /S /A /St 27 >> 6 << /P (Cover) >>] >> >>")
     addObject(&bytes, 2, "<< /Type /Pages /Count 7 /Kids [3 0 R 3 0 R 3 0 R 3 0 R 3 0 R 3 0 R 3 0 R] >>")

@@ -80,23 +80,30 @@ using Core, Gui, Pixel
             Gui.Testing.clickTrayIcon(app, surface, .Left)
             var opened: Time.Stopwatch
             opened.start()
-            while not Gui.Testing.isTrayIconInOverflow(surface) and opened.elapsedMilliseconds() < 500 do
+            while not Gui.Testing.isTrayIconInOverflow(surface) and opened.elapsedMilliseconds() < 500
+            {
                 app.runFrame()
+            }
         }
 
         // The Shell can expose the icon bounds before the flyout finishes opening.
         var settle: Time.Stopwatch
         settle.start()
-        while settle.elapsedMilliseconds() < 500 do
+        while settle.elapsedMilliseconds() < 500
+        {
             app.runFrame()
+        }
     }
 
     revealIcon()
     Gui.Testing.clickTrayIcon(journey.app, surface, .Right)
     var watch: Time.Stopwatch
     watch.start()
-    while main.residentPanel == null and watch.elapsedMilliseconds() < 3000 do
+    while main.residentPanel == null and watch.elapsedMilliseconds() < 3000
+    {
         journey.app.runFrame()
+    }
+
     Swag.require(main.residentPanel != null, "the desktop right-click must open the home")
     let menu = main.residentPanel
     Swag.require(menu.placement == .AtPointer)
@@ -127,8 +134,11 @@ using Core, Gui, Pixel
     }
 
     watch.restart()
-    while main.residentPanel != null and watch.elapsedMilliseconds() < 3000 do
+    while main.residentPanel != null and watch.elapsedMilliseconds() < 3000
+    {
         journey.app.runFrame()
+    }
+
     Swag.require(main.residentPanel == null and surface.isHidden,
                  "Escape must dismiss the home without opening the editor")
     journey.app.runFrame()
@@ -136,8 +146,11 @@ using Core, Gui, Pixel
     revealIcon()
     Gui.Testing.clickTrayIcon(journey.app, surface, .Left, 2)
     watch.restart()
-    while main.residentPanel == null and watch.elapsedMilliseconds() < 3000 do
+    while main.residentPanel == null and watch.elapsedMilliseconds() < 3000
+    {
         journey.app.runFrame()
+    }
+
     Swag.require(main.residentPanel != null, "the desktop double-click must open the tray menu")
     Swag.require(main.residentPanel.placement == .AtPointer)
     watch.restart()

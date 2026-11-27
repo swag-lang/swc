@@ -51,7 +51,9 @@ func accumulate(v: s32)->s32
     }
 
     var last = 0
-    for 3 do
+    for 3
+    {
         last = looped()
+    }
     Swag.require(last == 3)
 }

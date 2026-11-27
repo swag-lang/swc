@@ -25,7 +25,7 @@ struct CaptureResampledFeeder
         resampler:      Resampler
         clock:          CaptureClockDrift
         scratchInput:   [2 * 1_024] f32
-        scratchOutput:  Array'f32
+        scratchOutput:  Array!{f32}
         channels:       u16
         sourceChannels: u16
         inputRate:      u32
@@ -50,8 +50,11 @@ impl CaptureResampledFeeder
         if queue.channelCount() > 2 or
            not nativeChannels or
            nativeChannels > 2 or
-           (outputRate != 44_100 and outputRate != 48_000) do
+           (outputRate != 44_100 and outputRate != 48_000)
+        {
             fail BadParameterError{"resampled AAC capture needs mono/stereo 44.1 or 48 kHz output"}
+        }
+
         with var result: #returntype
         {
             .queue          = queue
@@ -77,20 +80,25 @@ impl CaptureResampledFeeder
     // Adds one native PCM16 packet and its first raw frame position.
     mtd pushPcm16(samples: const [..] s16, firstTick: u64, sourceFrame: u64, discontinuity: bool = false) fail
     {
-        if .finished or not samples.count or samples.count % .sourceChannels do
+        if .finished or not samples.count or samples.count % .sourceChannels
+        {
             fail BadParameterError{"resampled capture needs complete nonempty PCM16 packets"}
+        }
+
         try .beginPacket(firstTick, sourceFrame, discontinuity)
         let frames = samples.count / .sourceChannels
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < frames
         {
-            let count = Math.min(frames - offset, 1_024'u64)
+            let count = Math.min(frames - offset, 1_024_u64)
             if .sourceChannels == .channels
             {
-                for index in count * .channels do
+                for index in count * .channels
+                {
                     .scratchInput[index] = cast(f32, samples[offset * .channels + index]) / 32_768.0
+                }
             }
-            elif .sourceChannels == 1
+            else if .sourceChannels == 1
             {
                 for frame in count
                 {
@@ -122,19 +130,25 @@ impl CaptureResampledFeeder
     // Non-finite samples are replaced with zero before resampling.
     mtd pushFloat32(samples: const [..] f32, firstTick: u64, sourceFrame: u64, discontinuity: bool = false) fail
     {
-        if .finished or not samples.count or samples.count % .sourceChannels do
+        if .finished or not samples.count or samples.count % .sourceChannels
+        {
             fail BadParameterError{"resampled capture needs complete nonempty float packets"}
+        }
+
         try .beginPacket(firstTick, sourceFrame, discontinuity)
         let frames = samples.count / .sourceChannels
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < frames
         {
-            let count = Math.min(frames - offset, 1_024'u64)
+            let count = Math.min(frames - offset, 1_024_u64)
             .scratchOutput.clear()
             if .sourceChannels == .channels
             {
-                for index in count * .channels do
+                for index in count * .channels
+                {
                     .scratchInput[index] = .zeroNonFinite(samples[offset * .channels + index])
+                }
+
                 try .resampler.addFrames(Swag.makeSlice(&.scratchInput[0], count * .channels),
                                          &.scratchOutput)
             }
@@ -172,15 +186,21 @@ impl CaptureResampledFeeder
     // Adds one all-zero source packet without allocating a packet-sized buffer.
     mtd pushSilence(frames: u64, firstTick: u64, sourceFrame: u64, discontinuity: bool = false) fail
     {
-        if .finished or not frames do
+        if .finished or not frames
+        {
             fail BadParameterError{"resampled capture needs nonempty silence packets"}
+        }
+
         try .beginPacket(firstTick, sourceFrame, discontinuity)
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < frames
         {
-            let count = Math.min(frames - offset, 1_024'u64)
-            for index in count * .channels do
+            let count = Math.min(frames - offset, 1_024_u64)
+            for index in count * .channels
+            {
                 .scratchInput[index] = 0
+            }
+
             .scratchOutput.clear()
             try .resampler.addFrames(Swag.makeSlice(&.scratchInput[0], count * .channels), &.scratchOutput)
             try .emit()
@@ -194,8 +214,11 @@ impl CaptureResampledFeeder
     // captured samples remain audible through the resampler's 48-frame right context.
     mtd finish() fail
     {
-        if .finished do
+        if .finished
+        {
             return
+        }
+
         if .hasRun
         {
             .scratchOutput.clear()
@@ -213,8 +236,11 @@ impl CaptureResampledFeeder
     // source packet starts a fresh filter run at its own monotonic timestamp.
     mtd suspendForIdle() fail
     {
-        if not .hasRun or .finished do
+        if not .hasRun or .finished
+        {
             return
+        }
+
         .scratchOutput.clear()
         try .resampler.end(&.scratchOutput)
         try .emit()
@@ -278,20 +304,32 @@ private impl CaptureResampledFeeder
     mtd emit() fail
     {
         let frames = .scratchOutput.count / .channels
-        if not frames do
+        if not frames
+        {
             return
-        if frames > Swag.U64.Max - .emittedFrames do
+        }
+
+        if frames > Swag.U64.Max - .emittedFrames
+        {
             fail OverflowError{"resampled capture output frame count overflows"}
+        }
+
         let whole     = .emittedFrames / .outputRate
         let remainder = .emittedFrames % .outputRate
-        if whole > (Swag.U64.Max - .firstTick) / .clockFrequency do
+        if whole > (Swag.U64.Max - .firstTick) / .clockFrequency
+        {
             fail OverflowError{"resampled capture output timestamp overflows"}
+        }
+
         let base     = .firstTick + whole * .clockFrequency
         let scaled   = remainder * .clockFrequency
         let fraction = scaled / .outputRate +
                        cast(u64, scaled % .outputRate >= .outputRate / 2 + .outputRate % 2)
-        if fraction > Swag.U64.Max - base do
+        if fraction > Swag.U64.Max - base
+        {
             fail OverflowError{"resampled capture output timestamp overflows"}
+        }
+
         try .feeder.pushFloat32(.scratchOutput.toSlice(), base + fraction)
         .emittedFrames += frames
     }

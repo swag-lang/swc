@@ -18,18 +18,18 @@
 // since the previous frame, and an empty rectangle repeats it. The index and the footer are
 // written when the recording ends; a file without them is read by scanning its records.
 
-const Magic          = 0x454D415246475753'u64     // "SWGFRAME"
-const EndMagic       = 0x00444E4546475753'u64     // "SWGFEND\0"
-const Version        = 1'u32
-const RecordTag      = 0x4D415246'u32     // "FRAM"
-const IndexTag       = 0x58444E49'u32     // "INDX"
-const HeaderSize     = 32'u64
-const RecordSize     = 40'u64
-const IndexEntrySize = 24'u64
-const FooterSize     = 24'u64
+const Magic          = 0x454D415246475753_u64     // "SWGFRAME"
+const EndMagic       = 0x00444E4546475753_u64     // "SWGFEND\0"
+const Version        = 1_u32
+const RecordTag      = 0x4D415246_u32     // "FRAM"
+const IndexTag       = 0x58444E49_u32     // "INDX"
+const HeaderSize     = 32_u64
+const RecordSize     = 40_u64
+const IndexEntrySize = 24_u64
+const FooterSize     = 24_u64
 
 // Time between two key records, in microseconds. It bounds how many records a seek replays.
-const KeyInterval = 1_000_000'u64
+const KeyInterval = 1_000_000_u64
 
 // What a record carries.
 enum FrameKind: u32
@@ -83,7 +83,7 @@ impl Area
 }
 
 // Copies the rows of `area` from `image` into `bytes`, top row first.
-func readArea(image: Image, area: Area, bytes: *Array'u8)
+func readArea(image: Image, area: Area, bytes: *Array!{u8})
 {
     let rowBytes = cast(u64, area.w * image.bytesPerPixel)
     bytes.resize(rowBytes * cast(u64, area.h))

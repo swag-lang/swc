@@ -3,7 +3,7 @@
 using Core, Core.Errors
 
 // Decodes a sound to interleaved PCM16 through the device-independent path.
-private func vorbisDecodeAll(sound: const *SoundFile)->Array's16 fail
+private func vorbisDecodeAll(sound: const *SoundFile)->Array!{s16} fail
 {
     var result: #returntype
     try sound.decodePcm16(func|result = &result|(samples: const [..] s16)->bool
@@ -32,8 +32,8 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     Swag.require(decoded.count * #sizeof(s16) == wanted.count)
 
     let wantedAt = cast(const [*] s16, wanted.storage())
-    var energy   = 0.0'f64
-    var worst    = 0.0'f64
+    var energy   = 0.0_f64
+    var worst    = 0.0_f64
     for index in decoded.count
     {
         let difference = cast(f64, decoded[index]) - cast(f64, wantedAt[index])
@@ -41,10 +41,13 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
         worst  = Math.max(worst, Math.abs(difference))
     }
 
-    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
-    if rms > 0.0001'f64 do
+    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0_f64
+    if rms > 0.0001_f64
+    {
         Swag.print("vorbis ", name, ": rms ", rms, " over ", decoded.count, " samples, worst ", worst, "\n")
-    Swag.require(rms <= 0.0001'f64)
+    }
+
+    Swag.require(rms <= 0.0001_f64)
 }
 
 // Stereo tones at 44.1 kHz: floor 1, residue 2 with coupling, and long blocks throughout.
@@ -109,13 +112,15 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     let voice  = expect Voice.create(&sound)
     defer voice.destroy()
 
-    const Target = 44_100'u64
+    const Target = 44_100_u64
     expect voice.seekSampleFrame(Target)
     let decoded = expect voice.readBuffer()
     Swag.require(decoded.buffer != null and decoded.size >= 32 * 2 * #sizeof(s16))
     let samples = cast(const [*] s16, decoded.buffer)
-    for index in 32 * 2 do
+    for index in 32 * 2
+    {
         Swag.require(samples[index] == wanted[Target * 2 + index])
+    }
 }
 
 // A file that is not Ogg fails on its own terms rather than being decoded into noise.
@@ -125,7 +130,7 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     let path      = Path.combine(directory.toString(), Format.toString("audio-ogg-%.ogg", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add("not an ogg stream, not even close")
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
     var errOutcome: Swag.Error
@@ -141,7 +146,7 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     let path     = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
                                 Format.toString("audio-vorbis-header-as-audio-%.ogg", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
-    expect File.writeAllBytes(path.toString(), [1'u8])
+    expect File.writeAllBytes(path.toString(), [1_u8])
 
     const Packets: [1] SoundPacket = [SoundPacket{0, 1, 1}]
     var sound = expect SoundFile.openPacketStream(path.toString(), .Vorbis, template.sampleRateHz(), template.numChannels(), 1, Packets, template.decoderConfig.toSlice())

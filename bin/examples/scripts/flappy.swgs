@@ -48,10 +48,14 @@ directly when it owns a normal workspace module.
     let cfg = unwrap itf.getBuildCfg()
 
     // Keep runtime safety guards outside release builds.
-    #static if #cfg == "release" do
+    #static if #cfg == "release"
+    {
         cfg.safetyGuards = Swag.SafetyWhat.None
-    else do
+    }
+    else
+    {
         cfg.safetyGuards = Swag.SafetyWhat.All
+    }
 }
 
 /**
@@ -112,11 +116,11 @@ var g_Bird: Bird     // 'Bird' is declared later; global order does not matter.
 
 /**
 'g_Pipes' owns a growable Core array of 'Pipe' values. Swag writes the generic
-argument with an apostrophe: `Array'Pipe`. The file-scope 'using Core' avoids
-the fully qualified `Core.Array'Pipe`.
+argument with an apostrophe: `Array!{Pipe}`. The file-scope 'using Core' avoids
+the fully qualified `Core.Array!{Pipe}`.
 */
 
-var g_Pipes: Array'Pipe
+var g_Pipes: Array!{Pipe}
 
 /**
 'Math' is a namespace inside Core. Keeping the prefix makes geometry and
@@ -284,10 +288,15 @@ func paint(painter: *Painter)
     // Scroll two ground copies to form a seamless strip.
     painter.drawTexture(-g_BasePos, g_Rect.bottom() - GroundHeight, cast(f32, g_BaseTexture.width), GroundHeight, g_BaseTexture)
     painter.drawTexture(-g_BasePos + g_BaseTexture.width, g_Rect.bottom() - GroundHeight, cast(f32, g_BaseTexture.width), GroundHeight, g_BaseTexture)
-    if not g_GameOver do
+    if not g_GameOver
+    {
         g_BasePos += SpeedHorz * g_Dt
-    if g_BasePos >= g_BaseTexture.width do
+    }
+
+    if g_BasePos >= g_BaseTexture.width
+    {
         g_BasePos = 0
+    }
 
     // Center the game-over texture.
     if g_GameOver
@@ -358,19 +367,25 @@ Advance gameplay by one frame.
 */
 func move()
 {
-    if g_GameOver do
+    if g_GameOver
+    {
         return
+    }
 
     g_Bird.pos   += g_Bird.speed * g_Dt
     g_Bird.pos.y = Math.max(g_Bird.pos.y, 0)
-    if g_Start do
+    if g_Start
+    {
         g_Bird.speed.y += Gravity
+    }
 
     g_Bird.frame += 10 * g_Dt
 
     // Keep at least one obstacle pair alive.
-    if g_Pipes.count == 0 do
+    if g_Pipes.count == 0
+    {
         createPipe()
+    }
 
     // '&pipe' binds a mutable reference so updates modify the stored array element.
     if g_Start
@@ -398,12 +413,16 @@ func move()
     }
 
     // Remove the oldest pair once it leaves the surface.
-    if g_Pipes[0].rectUp.right() < 0 do
+    if g_Pipes[0].rectUp.right() < 0
+    {
         g_Pipes.removeAt(0)
+    }
 
     // Create the next pair after the configured horizontal gap appears.
-    if g_Rect.width - g_Pipes.back().rectUp.right() > g_Pipes.back().distToNext do
+    if g_Rect.width - g_Pipes.back().rectUp.right() > g_Pipes.back().distToNext
+    {
         createPipe()
+    }
 
     // Touching the scrolling ground ends the round.
     if g_Bird.pos.y + g_BirdTexture[0].height > g_Rect.bottom() - GroundHeight
@@ -413,8 +432,10 @@ func move()
     }
 
     // Play the death cue after either collision path.
-    if g_GameOver do
+    if g_GameOver
+    {
         expect Audio.Voice.play(&g_SoundDie)
+    }
 }
 
 /**

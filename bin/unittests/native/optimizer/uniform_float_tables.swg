@@ -5,53 +5,71 @@ const NonPositive: [4] f64 = [-0.25, 0.0, -1.0, -2.0]
 const Mixed:       [4] f64 = [0.25, 0.5, 1.0, -2.0]
 const Positive32:  [4] f32 = [0.25, 0.5, 1.0, 2.0]
 const Mixed32:     [4] f32 = [-0.25, -0.5, -1.0, 2.0]
-const Unordered:   [4] f64 = [cast #bit (f64, 0x7FF8000000000000'u64), -0.5, 0.0, -2.0]
+const Unordered:   [4] f64 = [cast #bit (f64, 0x7FF8000000000000_u64), -0.5, 0.0, -2.0]
 
 #[Swag.NoInline, Swag.Optimize(true)]
 func positive(index: u64)->u64
 {
-    if Positive[index] > 0 do return index + 7
+    if Positive[index] > 0
+    {
+        return index + 7
+    }
     return index + 13
 }
 
 #[Swag.NoInline, Swag.Optimize(true)]
 func nonPositive(index: u64)->u64
 {
-    if NonPositive[index] > 0 do return index + 7
+    if NonPositive[index] > 0
+    {
+        return index + 7
+    }
     return index + 13
 }
 
 #[Swag.NoInline, Swag.Optimize(true)]
 func mixed(index: u64)->u64
 {
-    if Mixed[index] > 0 do return index + 7
+    if Mixed[index] > 0
+    {
+        return index + 7
+    }
     return index + 13
 }
 
 #[Swag.NoInline, Swag.Optimize(true)]
 func positive32(index: u64)->u64
 {
-    if Positive32[index] > 0'f32 do return index + 7
+    if Positive32[index] > 0_f32
+    {
+        return index + 7
+    }
     return index + 13
 }
 
 #[Swag.NoInline, Swag.Optimize(true)]
 func mixed32(index: u64)->u64
 {
-    if Mixed32[index] > 0'f32 do return index + 7
+    if Mixed32[index] > 0_f32
+    {
+        return index + 7
+    }
     return index + 13
 }
 
 #[Swag.NoInline, Swag.Optimize(true)]
 func unordered(index: u64)->u64
 {
-    if Unordered[index] > 0 do return index + 7
+    if Unordered[index] > 0
+    {
+        return index + 7
+    }
     return index + 13
 }
 
 #test
 {
-    for index in 4'u64
+    for index in 4_u64
     {
         Swag.require(positive(index) == index + 7)
         Swag.require(nonPositive(index) == index + 13)
@@ -61,7 +79,7 @@ func unordered(index: u64)->u64
 
 #test
 {
-    for index in 4'u64
+    for index in 4_u64
     {
         Swag.require(positive32(index) == index + 7)
         Swag.require(mixed32(index) == index + (index == 3 ? 7 : 13))
@@ -70,6 +88,8 @@ func unordered(index: u64)->u64
 
 #test
 {
-    for index in 4'u64 do
+    for index in 4_u64
+    {
         Swag.require(unordered(index) == index + 13)
+    }
 }

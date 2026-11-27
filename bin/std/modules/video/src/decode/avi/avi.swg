@@ -15,35 +15,35 @@ using Core, Core.Errors, Pixel, Audio
 func fourCc(a, b, c, d: u32) => a | (b << 8) | (c << 16) | (d << 24)
 
 // Identifiers of the container itself.
-const RiffId         = fourCc('R'u32, 'I'u32, 'F'u32, 'F'u32)
-const AviId          = fourCc('A'u32, 'V'u32, 'I'u32, ' 'u32)
-const ListId         = fourCc('L'u32, 'I'u32, 'S'u32, 'T'u32)
-const HeaderListId   = fourCc('h'u32, 'd'u32, 'r'u32, 'l'u32)
-const StreamListId   = fourCc('s'u32, 't'u32, 'r'u32, 'l'u32)
-const FrameListId    = fourCc('m'u32, 'o'u32, 'v'u32, 'i'u32)
-const MainHeaderId   = fourCc('a'u32, 'v'u32, 'i'u32, 'h'u32)
-const StreamHeaderId = fourCc('s'u32, 't'u32, 'r'u32, 'h'u32)
-const StreamFormatId = fourCc('s'u32, 't'u32, 'r'u32, 'f'u32)
-const IndexId        = fourCc('i'u32, 'd'u32, 'x'u32, '1'u32)
-const VideoStreamId  = fourCc('v'u32, 'i'u32, 'd'u32, 's'u32)
-const AudioStreamId  = fourCc('a'u32, 'u'u32, 'd'u32, 's'u32)
+const RiffId         = fourCc('R'_u32, 'I'_u32, 'F'_u32, 'F'_u32)
+const AviId          = fourCc('A'_u32, 'V'_u32, 'I'_u32, ' '_u32)
+const ListId         = fourCc('L'_u32, 'I'_u32, 'S'_u32, 'T'_u32)
+const HeaderListId   = fourCc('h'_u32, 'd'_u32, 'r'_u32, 'l'_u32)
+const StreamListId   = fourCc('s'_u32, 't'_u32, 'r'_u32, 'l'_u32)
+const FrameListId    = fourCc('m'_u32, 'o'_u32, 'v'_u32, 'i'_u32)
+const MainHeaderId   = fourCc('a'_u32, 'v'_u32, 'i'_u32, 'h'_u32)
+const StreamHeaderId = fourCc('s'_u32, 't'_u32, 'r'_u32, 'h'_u32)
+const StreamFormatId = fourCc('s'_u32, 't'_u32, 'r'_u32, 'f'_u32)
+const IndexId        = fourCc('i'_u32, 'd'_u32, 'x'_u32, '1'_u32)
+const VideoStreamId  = fourCc('v'_u32, 'i'_u32, 'd'_u32, 's'_u32)
+const AudioStreamId  = fourCc('a'_u32, 'u'_u32, 'd'_u32, 's'_u32)
 
 // WAVE format tag used by uncompressed integer PCM streams.
-private const PcmFormatTag = 1'u16
-private const Mp3FormatTag = 0x55'u16
+private const PcmFormatTag = 1_u16
+private const Mp3FormatTag = 0x55_u16
 
 // Identifier of the list an OpenDML file groups its frames into.
-private const RecordListId = fourCc('r'u32, 'e'u32, 'c'u32, ' 'u32)
+private const RecordListId = fourCc('r'_u32, 'e'_u32, 'c'_u32, ' '_u32)
 
 // Codec identifiers whose frames are complete JPEG images.
 //
 // The four spellings all mean Motion JPEG; which one a file carries says who wrote it, not what
 // its frames contain. The first one is what an encoded stream declares.
 const MotionJpegIds: [4] u32 = [
-    fourCc('M'u32, 'J'u32, 'P'u32, 'G'u32),
-    fourCc('m'u32, 'j'u32, 'p'u32, 'g'u32),
-    fourCc('J'u32, 'P'u32, 'E'u32, 'G'u32),
-    fourCc('j'u32, 'p'u32, 'e'u32, 'g'u32)]
+    fourCc('M'_u32, 'J'_u32, 'P'_u32, 'G'_u32),
+    fourCc('m'_u32, 'j'_u32, 'p'_u32, 'g'_u32),
+    fourCc('J'_u32, 'P'_u32, 'E'_u32, 'G'_u32),
+    fourCc('j'_u32, 'p'_u32, 'e'_u32, 'g'_u32)]
 
 // Codec identifiers whose frames are uncompressed bitmap rows.
 //
@@ -51,23 +51,24 @@ const MotionJpegIds: [4] u32 = [
 // tags are what other writers put there instead when they want the field to read as a name.
 private const UncompressedIds: [4] u32 = [
     cast(u32, Bmp.BI_RGB),
-    fourCc('D'u32, 'I'u32, 'B'u32, ' 'u32),
-    fourCc('R'u32, 'A'u32, 'W'u32, ' 'u32),
-    fourCc('R'u32, 'G'u32, 'B'u32, ' 'u32)]
+    fourCc('D'_u32, 'I'_u32, 'B'_u32, ' '_u32),
+    fourCc('R'_u32, 'A'_u32, 'W'_u32, ' '_u32),
+    fourCc('R'_u32, 'G'_u32, 'B'_u32, ' '_u32)]
 
 // Identifier and size of a chunk header, and of one entry of the index.
-const FourCcSize      = 4'u64
-const ChunkHeaderSize = 8'u64
-const IndexEntrySize  = 16'u64
+const FourCcSize      = 4_u64
+const ChunkHeaderSize = 8_u64
+const IndexEntrySize  = 16_u64
 
 // Extension the frames are handed to the image codecs under.
 //
 // A Motion JPEG frame is a complete JPEG image, so the picture codec is the Pixel one, selected
 // the way every other caller selects it.
+
 const JpegName = ".jpg"
 
 // Highest stream ordinal a frame chunk identifier can name, since it spells it with two digits.
-private const MaxStreamIndex = 99'u32
+private const MaxStreamIndex = 99_u32
 
 // Frame index meaning that the decoder sits nowhere in particular.
 //
@@ -165,7 +166,7 @@ private struct IndexRecord
 #assert(#sizeof(IndexRecord) == IndexEntrySize)
 
 // Index flag a frame carries when it depends on nothing before it.
-private const IndexKeyFrameFlag = 0x0000_0010'u32
+private const IndexKeyFrameFlag = 0x0000_0010_u32
 
 // One playable audio stream found in the AVI header.
 private struct AudioTrack
@@ -178,21 +179,21 @@ private struct AudioTrack
 private struct AudioPackets
 {
     format:  AudioFormat
-    packets: Array'SoundPacket
+    packets: Array!{SoundPacket}
 }
 
 // What walking the container found, before it is turned into a stream description.
 private struct Layout
 {
-    main:        MainHeader           // Contents of the `avih` chunk.
-    stream:      StreamHeader         // Stream header of the first video stream.
-    format:      Bmp.Header           // Bitmap header describing the frames of that stream.
-    frameList:   u64                  // Offset of the `movi` identifier.
-    frameEnd:    u64                  // Offset just past the frames of the `movi` list.
-    indexStart:  u64                  // Offset of the `idx1` payload, or zero when the file has none.
-    indexSize:   u64                  // Length of the `idx1` payload, in bytes.
-    streamIndex: u32                  // Ordinal of the video stream among the streams of the file.
-    audioTracks: Array'AudioTrack     // Playable sound streams, in declaration order.
+    main:        MainHeader             // Contents of the `avih` chunk.
+    stream:      StreamHeader           // Stream header of the first video stream.
+    format:      Bmp.Header             // Bitmap header describing the frames of that stream.
+    frameList:   u64                    // Offset of the `movi` identifier.
+    frameEnd:    u64                    // Offset just past the frames of the `movi` list.
+    indexStart:  u64                    // Offset of the `idx1` payload, or zero when the file has none.
+    indexSize:   u64                    // Length of the `idx1` payload, in bytes.
+    streamIndex: u32                    // Ordinal of the video stream among the streams of the file.
+    audioTracks: Array!{AudioTrack}     // Playable sound streams, in declaration order.
     hasMain:     bool
     hasStream:   bool
 }
@@ -203,21 +204,25 @@ private struct Layout
 // `db` for uncompressed bits and `dc` for compressed ones. Writers disagree on which one an
 // uncompressed stream deserves, so a decoder accepts both.
 #[Swag.ConstExpr]
-func frameChunkId(index: u32, a, b: u32)->u32 => fourCc('0'u32 + index / 10, '0'u32 + index % 10, a, b)
+func frameChunkId(index: u32, a, b: u32)->u32 => fourCc('0'_u32 + index / 10, '0'_u32 + index % 10, a, b)
 
 // Reads one chunk header and reports where its payload and its successor start.
 private func readChunk(source: *ByteSource, end: u64)->Chunk fail
 {
-    if source.position() > end or ChunkHeaderSize > end - source.position() do
+    if source.position() > end or ChunkHeaderSize > end - source.position()
+    {
         fail InvalidFormatError{"AVI chunk header runs past the end of its list"}
+    }
 
-    let header = try source.readNative'([2] u32)()
+    let header = try source.readNative!{[2] u32}()
     var result: #returntype
     result.id   = Math.littleEndianToNative(header[0])
     result.size = cast(u64, Math.littleEndianToNative(header[1]))
     result.data = source.position()
-    if result.data > end or result.size > end - result.data do
+    if result.data > end or result.size > end - result.data
+    {
         fail InvalidFormatError{"AVI chunk runs past the end of the stream"}
+    }
 
     // RIFF pads an odd payload with one byte that belongs to neither chunk.
     result.next = Math.min(result.data + result.size + (result.size & 1), end)
@@ -234,7 +239,7 @@ private func describeId(id: u32)->String
     for shift in 4
     {
         let value = cast(u8, ((id >> cast(u32, (shift * 8))) & 0xFF))
-        result.append(value >= 0x20 and value < 0x7F ? cast(rune, value) : '?'rune)
+        result.append(value >= 0x20 and value < 0x7F ? cast(rune, value) : '?'_rune)
     }
 
     return result
@@ -245,15 +250,25 @@ private impl Layout
     // Walks the top-level chunks of the file, keeping the ones a picture stream needs.
     mtd parse(source: *ByteSource) fail
     {
-        if try source.readLittleEndian'u32() != RiffId do
+        if try source.readLittleEndian!
+        {
+            u32
+        }() != RiffId
+        {
             fail InvalidFormatError{"AVI stream is not a RIFF file"}
+        }
 
         // A capture interrupted before its header was patched leaves a size of zero behind, and a
         // size larger than the file means the same thing: the file itself is the bound.
-        let declared = cast(u64, (try source.readLittleEndian'u32()))
+        let declared = cast(u64, (try source.readLittleEndian!{u32}()))
         let end      = declared < FourCcSize ? source.size() : Math.min(source.size(), source.position() + declared)
-        if try source.readLittleEndian'u32() != AviId do
+        if try source.readLittleEndian!
+        {
+            u32
+        }() != AviId
+        {
             fail InvalidFormatError{"RIFF stream does not hold an AVI file"}
+        }
 
         while source.position() + ChunkHeaderSize <= end
         {
@@ -267,9 +282,9 @@ private impl Layout
                 .indexStart = chunk.data
                 .indexSize  = chunk.size
             }
-            elif chunk.id == ListId and chunk.size >= FourCcSize
+            else if chunk.id == ListId and chunk.size >= FourCcSize
             {
-                switch try source.readLittleEndian'u32()
+                switch try source.readLittleEndian!{u32}()
                 {
                 case HeaderListId:
                     try .parseHeaderList(source, chunk.next)
@@ -287,18 +302,18 @@ private impl Layout
     // Reads the `hdrl` list: the header of the file, and the streams it declares.
     mtd parseHeaderList(source: *ByteSource, end: u64) fail
     {
-        var index = 0'u32
+        var index = 0_u32
         while source.position() + ChunkHeaderSize <= end
         {
             let chunk = try readChunk(source, end)
             if chunk.id == MainHeaderId and chunk.size >= #sizeof(MainHeader)
             {
-                .main    = try source.readNative'MainHeader()
+                .main    = try source.readNative!{MainHeader}()
                 .hasMain = true
             }
-            elif chunk.id == ListId and
-                 chunk.size >= FourCcSize and
-                 (try source.readLittleEndian'u32()) == StreamListId
+            else if chunk.id == ListId and
+                    chunk.size >= FourCcSize and
+                    (try source.readLittleEndian!{u32}()) == StreamListId
             {
                 try .parseStreamList(source, chunk.next, index)
                 index += 1
@@ -320,29 +335,31 @@ private impl Layout
             let chunk = try readChunk(source, end)
             if chunk.id == StreamHeaderId and chunk.size >= #sizeof(StreamHeader)
             {
-                header    = try source.readNative'StreamHeader()
+                header    = try source.readNative!{StreamHeader}()
                 hasHeader = true
             }
-            elif chunk.id == StreamFormatId and
-                 hasHeader and
-                 not .hasStream and
-                 header.kind == VideoStreamId
+            else if chunk.id == StreamFormatId and
+                    hasHeader and
+                    not .hasStream and
+                    header.kind == VideoStreamId
             {
-                if chunk.size < #sizeof(Bmp.Header) do
+                if chunk.size < #sizeof(Bmp.Header)
+                {
                     fail UnsupportedFormatError{"AVI video stream is not described by a bitmap header"}
+                }
 
-                .format      = try source.readNative'(Bmp.Header)()
+                .format      = try source.readNative!{Bmp.Header}()
                 .stream      = header
                 .streamIndex = index
                 .hasStream   = true
             }
-            elif chunk.id == StreamFormatId and
-                 hasHeader and
-                 not hasAudio and
-                 header.kind == AudioStreamId and
-                 chunk.size >= #sizeof(AudioFormat)
+            else if chunk.id == StreamFormatId and
+                    hasHeader and
+                    not hasAudio and
+                    header.kind == AudioStreamId and
+                    chunk.size >= #sizeof(AudioFormat)
             {
-                let format = try source.readNative'AudioFormat()
+                let format = try source.readNative!{AudioFormat}()
                 if format.isPlayable()
                 {
                     .audioTracks.add(AudioTrack{format, index})
@@ -360,10 +377,16 @@ private impl Layout
     // rounds it to whole microseconds, and is what a file without a stream rate leaves.
     mtd const frameRate()->FrameRate fail
     {
-        if .stream.scale and .stream.rate do
+        if .stream.scale and .stream.rate
+        {
             return try FrameRate.create(.stream.rate, .stream.scale)
-        if .main.microSecPerFrame do
+        }
+
+        if .main.microSecPerFrame
+        {
             return try FrameRate.create(1_000_000, .main.microSecPerFrame)
+        }
+
         fail InvalidFormatError{"AVI stream declares no frame rate"}
     }
 }
@@ -373,17 +396,28 @@ private impl AudioFormat
     // Reports whether std/audio can stream this interleaved AVI format without conversion.
     mtd const isPlayable()->bool
     {
-        if not .channels or not .sampleRate do
+        if not .channels or not .sampleRate
+        {
             return false
-        if .formatTag == Mp3FormatTag do
+        }
+
+        if .formatTag == Mp3FormatTag
+        {
             return .channels <= 2
-        if .formatTag != PcmFormatTag do
+        }
+
+        if .formatTag != PcmFormatTag
+        {
             return false
+        }
+
         if .bitsPerSample != 8 and
            .bitsPerSample != 16 and
            .bitsPerSample != 24 and
-           .bitsPerSample != 32 do
+           .bitsPerSample != 32
+        {
             return false
+        }
 
         let bytesPerFrame = cast(u32, .channels) * cast(u32, (.bitsPerSample / 8))
         return bytesPerFrame <= Swag.U16.Max and .blockAlign == bytesPerFrame
@@ -419,18 +453,18 @@ struct Decoder
 {
     internal
     {
-        info:          StreamInfo            // What the container headers described.
-        frames:        Array'FrameEntry      // Where every frame of the video stream lies.
-        payload:       Array'u8              // Scratch storage of one encoded frame.
-        soundTracks:   Array'SoundFile       // Tracks streamed from the AVI file.
-        bytesPerPixel: u64                   // Source bytes of one pixel of an uncompressed frame.
-        rowBytes:      u64                   // Padded length of one row of an uncompressed frame.
-        nextIndex:     u64                   // Index of the frame the decoder is positioned on.
-        pictures:      Mpeg4.Mpeg4Stream     // Coded pictures, when frames are a coded stream.
-        isTopDown:     bool                  // Whether uncompressed rows start with the top one.
-        isJpeg:        bool                  // Whether frames are complete JPEG images.
-        isCoded:       bool                  // Whether frames are planes of a coded picture stream.
-        pictureOnly:   bool                  // Whether the reader opens without sound tracks.
+        info:          StreamInfo             // What the container headers described.
+        frames:        Array!{FrameEntry}     // Where every frame of the video stream lies.
+        payload:       Array!{u8}             // Scratch storage of one encoded frame.
+        soundTracks:   Array!{SoundFile}      // Tracks streamed from the AVI file.
+        bytesPerPixel: u64                    // Source bytes of one pixel of an uncompressed frame.
+        rowBytes:      u64                    // Padded length of one row of an uncompressed frame.
+        nextIndex:     u64                    // Index of the frame the decoder is positioned on.
+        pictures:      Mpeg4.Mpeg4Stream      // Coded pictures, when frames are a coded stream.
+        isTopDown:     bool                   // Whether uncompressed rows start with the top one.
+        isJpeg:        bool                   // Whether frames are complete JPEG images.
+        isCoded:       bool                   // Whether frames are planes of a coded picture stream.
+        pictureOnly:   bool                   // Whether the reader opens without sound tracks.
     }
 }
 
@@ -442,17 +476,27 @@ impl IDecoder for Decoder
     {
         var layout: Layout
         try layout.parse(source)
-        if not layout.hasMain do
+        if not layout.hasMain
+        {
             fail InvalidFormatError{"AVI file has no main header"}
-        if not layout.hasStream do
+        }
+
+        if not layout.hasStream
+        {
             fail UnsupportedFormatError{"AVI file has no video stream"}
-        if not layout.frameList do
+        }
+
+        if not layout.frameList
+        {
             fail InvalidFormatError{"AVI file has no frame list"}
+        }
 
         try .describeFrames(&layout)
         try .buildFrameTable(source, &layout)
-        if .frames.isEmpty() do
+        if .frames.isEmpty()
+        {
             fail InvalidFormatError{"AVI video stream has no frame"}
+        }
 
         .info.frameCount = .frames.count
         .nextIndex       = 0
@@ -462,8 +506,11 @@ impl IDecoder for Decoder
             .frames.reserve(0)
         }
 
-        if not .pictureOnly do
+        if not .pictureOnly
+        {
             try .buildSoundTracks(source, &layout)
+        }
+
         return .info
     }
 
@@ -473,8 +520,10 @@ impl IDecoder for Decoder
     {
         // The container gave every frame position away when the stream was opened, so seeking is
         // arithmetic on the frame table and never touches the source.
-        if index >= .info.frameCount do
+        if index >= .info.frameCount
+        {
             fail BadParameterError{"AVI frame index exceeds the stream frame count"}
+        }
 
         .nextIndex = index
     }
@@ -482,8 +531,10 @@ impl IDecoder for Decoder
     mtd impl decodeFrame(source: *ByteSource, target: *Image) fail
     {
         let current = .nextIndex
-        if current >= .info.frameCount do
+        if current >= .info.frameCount
+        {
             fail InvalidFormatError{"AVI stream has no frame at this position"}
+        }
 
         if .isCoded
         {
@@ -497,10 +548,15 @@ impl IDecoder for Decoder
         .nextIndex = NoFrameIndex
         let entry = .frames[current]
         let size  = cast(u64, entry.size)
-        if not size do
+        if not size
+        {
             fail InvalidFormatError{"AVI stream starts with a frame that carries no picture"}
-        if entry.offset > source.size() or size > source.size() - entry.offset do
+        }
+
+        if entry.offset > source.size() or size > source.size() - entry.offset
+        {
             fail InvalidFormatError{"AVI frame payload is truncated"}
+        }
 
         try source.seek(entry.offset)
         if .isJpeg
@@ -514,15 +570,20 @@ impl IDecoder for Decoder
             }
             else
             {
-                if .payload.count != size do
+                if .payload.count != size
+                {
                     .payload.resize(size)
+                }
+
                 try source.readExact(.payload.toSlice())
                 payload = .payload.toSlice()
             }
 
             try .decodeJpegFrame(payload, target)
-            if borrowed do
+            if borrowed
+            {
                 try source.skip(size)
+            }
         }
         else
         {
@@ -537,8 +598,11 @@ impl ISyncPictureDecoder for Decoder
 {
     mtd impl decodeSyncPicture(source: *ByteSource, rank: u64, target: *Image)->bool fail
     {
-        if not .isCoded do
+        if not .isCoded
+        {
             return false
+        }
+
         return try .pictures.decodeSyncPicture(source, rank, target)
     }
 }
@@ -549,12 +613,16 @@ impl IPlanarDecoder for Decoder
 
     mtd impl decodeFramePlanes(source: *ByteSource, target: *PlanarFrame) fail
     {
-        if not .isCoded do
+        if not .isCoded
+        {
             fail UnsupportedFormatError{"AVI frames of this codec are not coded planes"}
+        }
 
         let current = .nextIndex
-        if current >= .info.frameCount do
+        if current >= .info.frameCount
+        {
             fail InvalidFormatError{"AVI stream has no frame at this position"}
+        }
 
         .nextIndex = NoFrameIndex
         .pictures.seekTo(current)
@@ -577,8 +645,11 @@ impl IAudioDecoder for Decoder
 
     mtd impl audioTrack(index: u32)->const *SoundFile?
     {
-        if index >= .soundTracks.count do
+        if index >= .soundTracks.count
+        {
             return null
+        }
+
         return &.soundTracks[index]
     }
 }
@@ -589,20 +660,24 @@ private impl Decoder
     mtd buildSoundTracks(source: *ByteSource, layout: const *Layout) fail
     {
         let path = source.path()
-        if not path.count or layout.audioTracks.isEmpty() do
+        if not path.count or layout.audioTracks.isEmpty()
+        {
             return
+        }
 
         // A zero slot means the file did not declare a supported stream at this ordinal.
         var trackForStream: [MaxStreamIndex + 1] u8
-        var tracks:         Array'AudioPackets
+        var tracks:         Array!{AudioPackets}
         for track in layout.audioTracks where track.streamIndex <= MaxStreamIndex
         {
             tracks.add(AudioPackets{format: track.format})
             trackForStream[track.streamIndex] = cast(u8, tracks.count)
         }
 
-        if tracks.isEmpty() do
+        if tracks.isEmpty()
+        {
             return
+        }
 
         try .walkSoundPackets(source, layout, trackForStream, &tracks)
         .soundTracks.reserve(tracks.count)
@@ -611,9 +686,12 @@ private impl Decoder
             let packets = track.packets.toSlice()
             if track.format.formatTag == Mp3FormatTag
             {
-                var frames = 0'u64
-                for packet in packets do
+                var frames = 0_u64
+                for packet in packets
+                {
                     frames += packet.sampleFrameCount
+                }
+
                 let sound = try SoundFile.openPacketStream(path, .Mp3, track.format.sampleRate, track.format.channels, frames, packets, [])
                 .soundTracks.add(#move sound)
             }
@@ -628,30 +706,40 @@ private impl Decoder
     }
 
     // Walks the movie list once and routes each packet to its declared audio stream.
-    mtd walkSoundPackets(source: *ByteSource, layout: const *Layout, trackForStream: const [..] u8, tracks: *Array'AudioPackets) fail
+    mtd walkSoundPackets(source: *ByteSource, layout: const *Layout, trackForStream: const [..] u8, tracks: *Array!{AudioPackets}) fail
     {
         #[Swag.Inline]
         func trackIndex(id: u32, trackForStream: const [..] u8)->u8
         {
-            if id >> 16 != ('w'u32 | ('b'u32 << 8)) do
+            if id >> 16 != ('w'_u32 | ('b'_u32 << 8))
+            {
                 return 0
+            }
 
             let tens = id & 0xFF
             let ones = (id >> 8) & 0xFF
-            if tens < '0' or tens > '9' or ones < '0' or ones > '9' do
+            if tens < '0' or tens > '9' or ones < '0' or ones > '9'
+            {
                 return 0
+            }
 
-            return trackForStream[(tens - '0'u32) * 10 + (ones - '0'u32)]
+            return trackForStream[(tens - '0'_u32) * 10 + (ones - '0'_u32)]
         }
 
-        func addChunk(source: *ByteSource, chunk: const *Chunk, format: const *AudioFormat, packets: *Array'SoundPacket) fail
+        func addChunk(source: *ByteSource, chunk: const *Chunk, format: const *AudioFormat, packets: *Array!{SoundPacket}) fail
         {
-            if not chunk.size do
+            if not chunk.size
+            {
                 return
+            }
+
             if format.formatTag == PcmFormatTag
             {
-                if chunk.size % format.blockAlign do
+                if chunk.size % format.blockAlign
+                {
                     fail InvalidFormatError{"AVI PCM chunk does not hold complete sample frames"}
+                }
+
                 packets.add(SoundPacket{chunk.data, cast(u32, chunk.size), cast(u32, chunk.size / format.blockAlign)})
                 return
             }
@@ -660,14 +748,23 @@ private impl Decoder
             let end      = chunk.data + chunk.size
             while position < end
             {
-                if end - position < 4 do
+                if end - position < 4
+                {
                     fail InvalidFormatError{"AVI Layer III chunk ends inside a frame header"}
+                }
+
                 try source.seek(position)
                 let frame = try Audio.mp3FrameInfo(try source.peek(4))
-                if frame.byteSize > end - position do
+                if frame.byteSize > end - position
+                {
                     fail InvalidFormatError{"AVI Layer III chunk ends inside a frame"}
-                if frame.sampleRate != format.sampleRate or frame.channels != format.channels do
+                }
+
+                if frame.sampleRate != format.sampleRate or frame.channels != format.channels
+                {
                     fail InvalidFormatError{"AVI Layer III frame differs from the track sample rate or channel count"}
+                }
+
                 packets.add(SoundPacket{position, frame.byteSize, frame.sampleFrames})
                 position += frame.byteSize
             }
@@ -684,9 +781,9 @@ private impl Decoder
                 let track = &tracks[index - 1]
                 try addChunk(source, &chunk, &track.format, &track.packets)
             }
-            elif chunk.id == ListId and
-                 chunk.size >= FourCcSize and
-                 (try source.readLittleEndian'u32()) == RecordListId
+            else if chunk.id == ListId and
+                    chunk.size >= FourCcSize and
+                    (try source.readLittleEndian!{u32}()) == RecordListId
             {
                 let groupEnd       = chunk.data + chunk.size
                 var nestedPosition = chunk.data + FourCcSize
@@ -704,8 +801,10 @@ private impl Decoder
                     nestedPosition = nested.next
                 }
 
-                if nestedPosition != groupEnd do
+                if nestedPosition != groupEnd
+                {
                     fail InvalidFormatError{"AVI record list ends with a partial chunk"}
+                }
             }
 
             position = chunk.next
@@ -717,10 +816,15 @@ private impl Decoder
     {
         let width  = layout.format.biWidth
         let height = Math.abs(layout.format.biHeight)
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
             fail InvalidFormatError{"AVI frame dimensions need positive values"}
-        if width > Swag.S32.Max / 4 or height > Swag.S32.Max / 4 do
+        }
+
+        if width > Swag.S32.Max / 4 or height > Swag.S32.Max / 4
+        {
             fail UnsupportedFormatError{"AVI frame dimensions exceed Pixel image storage"}
+        }
 
         .info.width     = width
         .info.height    = height
@@ -741,14 +845,18 @@ private impl Decoder
             return
         }
 
-        if not Slice.contains(UncompressedIds, compression) do
+        if not Slice.contains(UncompressedIds, compression)
+        {
             fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support the AVI '%' video codec", describeId(compression)))}
+        }
 
         let bitCount = layout.format.biBitCount
         let isRgb555 = bitCount == 16 and compression == Bmp.BI_RGB
         .info.codecName = "Uncompressed RGB"
-        if bitCount != 24 and bitCount != 32 and not isRgb555 do
+        if bitCount != 24 and bitCount != 32 and not isRgb555
+        {
             fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support uncompressed AVI frames of % bits per pixel", bitCount))}
+        }
 
         // Uncompressed frames follow the bitmap rules: rows are padded to a multiple of four
         // bytes, and only a negative height stores the top row first.
@@ -760,13 +868,17 @@ private impl Decoder
     // Records where every frame of the video stream lies.
     mtd buildFrameTable(source: *ByteSource, layout: const *Layout) fail
     {
-        if layout.streamIndex > MaxStreamIndex do
+        if layout.streamIndex > MaxStreamIndex
+        {
             fail UnsupportedFormatError{"AVI file declares more streams than the container can name"}
+        }
 
-        let dataId       = frameChunkId(layout.streamIndex, 'd'u32, 'b'u32)
-        let compressedId = frameChunkId(layout.streamIndex, 'd'u32, 'c'u32)
-        if .readIndex(source, layout, dataId, compressedId) do
+        let dataId       = frameChunkId(layout.streamIndex, 'd'_u32, 'b'_u32)
+        let compressedId = frameChunkId(layout.streamIndex, 'd'_u32, 'c'_u32)
+        if .readIndex(source, layout, dataId, compressedId)
+        {
             return
+        }
 
         try .walkFrames(source, layout, dataId, compressedId)
     }
@@ -792,14 +904,18 @@ private impl Decoder
     // the frame list itself always holds the answer, so a rejected index falls back to a walk.
     mtd readIndex(source: *ByteSource, layout: const *Layout, dataId, compressedId: u32)->bool
     {
-        if not layout.indexSize do
+        if not layout.indexSize
+        {
             return false
+        }
 
         var indexErrorOutcome: Swag.Error
         catch .readIndexEntries(source, layout, dataId, compressedId) as indexErrorOutcome
         let indexError = indexErrorOutcome.value()
-        if indexError == null and not .frames.isEmpty() do
+        if indexError == null and not .frames.isEmpty()
+        {
             return true
+        }
 
         .frames.clear()
         return false
@@ -808,8 +924,10 @@ private impl Decoder
     // Reads the entries of the `idx1` chunk that belong to the video stream.
     mtd readIndexEntries(source: *ByteSource, layout: const *Layout, dataId, compressedId: u32) fail
     {
-        if layout.indexSize % IndexEntrySize do
+        if layout.indexSize % IndexEntrySize
+        {
             fail InvalidFormatError{"AVI index ends with a partial entry"}
+        }
 
         let indexEnd   = layout.indexStart + layout.indexSize
         let sourceSize = source.size()
@@ -826,29 +944,40 @@ private impl Decoder
                 let record = records[index]
                 let id     = Math.littleEndianToNative(record.id)
                 position += IndexEntrySize
-                if id != dataId and id != compressedId do
+                if id != dataId and id != compressedId
+                {
                     continue
+                }
 
                 let flags      = Math.littleEndianToNative(record.flags)
                 let offset     = cast(u64, Math.littleEndianToNative(record.offset))
                 let size       = cast(u64, Math.littleEndianToNative(record.size))
                 let needsProbe = base == Swag.U64.Max
-                if needsProbe do
+                if needsProbe
+                {
                     base = try probeIndexBase(source, layout, id, offset)
+                }
 
                 let start = base + offset + ChunkHeaderSize
-                if start > sourceSize or size > sourceSize - start do
+                if start > sourceSize or size > sourceSize - start
+                {
                     fail InvalidFormatError{"AVI index points past the end of the stream"}
+                }
+
                 .appendFrame(start, size, (flags & IndexKeyFrameFlag) != 0)
 
                 // The probe moves the cursor and can replace the borrowed window.
-                if needsProbe do
+                if needsProbe
+                {
                     break
+                }
             }
         }
 
-        if layout.stream.length and .frames.count != cast(u64, layout.stream.length) do
+        if layout.stream.length and .frames.count != cast(u64, layout.stream.length)
+        {
             fail InvalidFormatError{"AVI index does not describe every video frame"}
+        }
     }
 
     // Walks the frame list, which is what a file without a usable index leaves.
@@ -862,29 +991,36 @@ private impl Decoder
             if layerBody
             {
                 // A supported video object layer, including both quantiser matrices, fits here.
-                const LayerHeaderBytes = 256'u64
+                const LayerHeaderBytes = 256_u64
                 let count = Math.min(LayerHeaderBytes, plane - FourCcSize - layerBody)
                 try source.seek(layerBody)
                 var bits    = Mpeg4.BitReader.create((try source.peek(count))[until count])
                 var updated = layer[]
                 var layerError: Swag.Error
                 catch updated.readVideoObjectLayer(&bits) as layerError
-                if layerError.value() != null do
+                if layerError.value() != null
+                {
                     return false
+                }
+
                 layer[] = updated
             }
 
-            if not layer.configured or plane >= end do
+            if not layer.configured or plane >= end
+            {
                 return false
+            }
 
             // The plane parser bounds the time base to 64 bits. The whole intra header fits in
             // sixteen bytes, so a padding VOP can be recognized without reading a picture body.
-            const IntraHeaderBytes = 16'u64
+            const IntraHeaderBytes = 16_u64
             let count = Math.min(IntraHeaderBytes, end - plane)
             try source.seek(plane)
             let bytes = (try source.peek(count))[until count]
-            if (cast(u32, bytes[0]) >> 6) != Mpeg4.VopIntra do
+            if (cast(u32, bytes[0]) >> 6) != Mpeg4.VopIntra
+            {
                 return false
+            }
 
             var bits = Mpeg4.BitReader.create(bytes)
             var header:      Mpeg4.PlaneHeader
@@ -897,8 +1033,8 @@ private impl Decoder
         {
             try source.seek(offset)
             var startCode = Swag.U32.Max
-            var layerBody = 0'u64
-            var scanned   = 0'u64
+            var layerBody = 0_u64
+            var scanned   = 0_u64
             while scanned < size
             {
                 let bytes = try source.peek(1)
@@ -906,8 +1042,10 @@ private impl Decoder
                 for byte, index in bytes[until count]
                 {
                     startCode = (startCode << 8) | cast(u32, byte)
-                    if startCode >> 8 != 1 do
+                    if startCode >> 8 != 1
+                    {
                         continue
+                    }
 
                     let code = startCode & 0xFF
                     let next = index + 1
@@ -916,13 +1054,16 @@ private impl Decoder
                     {
                         layerBody = body
                     }
-                    elif code == Mpeg4.CodeVop
+                    else if code == Mpeg4.CodeVop
                     {
                         // Most packets start with a predicted plane and carry no layer header.
                         if not layerBody and
                            next < count and
-                           (cast(u32, bytes[next]) >> 6) != Mpeg4.VopIntra do
+                           (cast(u32, bytes[next]) >> 6) != Mpeg4.VopIntra
+                        {
                             return false
+                        }
+
                         return try isCodedIntra(source, offset + size, body, layerBody, layer)
                     }
                 }
@@ -943,8 +1084,11 @@ private impl Decoder
             if chunk.id == dataId or chunk.id == compressedId
             {
                 var isSync = .frames.isEmpty()
-                if .isCoded do
+                if .isCoded
+                {
                     isSync = try isMpeg4SyncFrame(source, chunk.data, chunk.size, &layer)
+                }
+
                 .appendFrame(chunk.data, chunk.size, isSync)
                 position = chunk.next
                 continue
@@ -955,7 +1099,7 @@ private impl Decoder
             // other list is skipped rather than entered, since its content is not chunks.
             let isGroup = chunk.id == ListId and
                           chunk.size >= FourCcSize and
-                          (try source.readLittleEndian'u32()) == RecordListId
+                          (try source.readLittleEndian!{u32}()) == RecordListId
             if isGroup
             {
                 let groupEnd       = chunk.data + chunk.size
@@ -967,16 +1111,22 @@ private impl Decoder
                     if nested.id == dataId or nested.id == compressedId
                     {
                         var isSync = .frames.isEmpty()
-                        if .isCoded do
+                        if .isCoded
+                        {
                             isSync = try isMpeg4SyncFrame(source, nested.data, nested.size, &layer)
+                        }
+
                         .appendFrame(nested.data, nested.size, isSync)
                     }
 
                     nestedPosition = nested.next
                 }
 
-                if nestedPosition != groupEnd do
+                if nestedPosition != groupEnd
+                {
                     fail InvalidFormatError{"AVI record list ends with a partial chunk"}
+                }
+
                 position = chunk.next
             }
             else
@@ -992,7 +1142,7 @@ private impl Decoder
     // When the codec reorders pictures it supplies their display order independently.
     mtd openPictures(source: *ByteSource) fail
     {
-        var samples: Array'SampleEntry
+        var samples: Array!{SampleEntry}
         samples.reserve(.frames.count)
 
         // AVI supplies slot order here. Reader derives presentation times from the frame rate.
@@ -1011,8 +1161,11 @@ private impl Decoder
         // container, so that is where the layer is read from.
         let first = .frames[0]
         let size  = cast(u64, first.size)
-        if size > source.size() or first.offset > source.size() - size do
+        if size > source.size() or first.offset > source.size() - size
+        {
             fail InvalidFormatError{"AVI frame payload is truncated"}
+        }
+
         try source.seek(first.offset)
         let available = try source.peek(Math.min(size, FourCcSize))
         let head      = available[until Math.min(available.count, size)]
@@ -1020,7 +1173,7 @@ private impl Decoder
 
         // The usual layer header and first VOP marker both fit in the existing window.
         // When user data stretches beyond it, read the complete sample to find the boundary.
-        var full: Array'u8
+        var full: Array!{u8}
         if setup.count == head.count and head.count < size
         {
             full.grow(size)
@@ -1037,19 +1190,7 @@ private impl Decoder
     // Decodes one Motion JPEG frame, which is a complete JPEG image.
     mtd decodeJpegFrame(payload: const [..] u8, target: *Image) fail
     {
-        var decoded = try Image.decode(JpegName, payload)
-        if decoded.width != .info.width or decoded.height != .info.height do
-            fail InvalidFormatError{"AVI frame does not have the dimensions its stream declares"}
-
-        .prepareTarget(target)
-        if decoded.pixelFormat == .BGR8
-        {
-            copyBitmapRows'3(decoded.pixels.storage(), target, decoded.rowStride, false, 0, cast(u64, target.height))
-            return
-        }
-
-        decoded.convertTo(.RGB8)
-        Memory.copy(target.pixels.storage(), decoded.pixels.storage(), target.byteCount)
+        try Jpg.decodeRgbInto(target, payload, .info.width, .info.height)
     }
 
     // Decodes one uncompressed frame, whose rows are bitmap rows.
@@ -1057,8 +1198,10 @@ private impl Decoder
     {
         let height = cast(u64, .info.height)
         let size   = .rowBytes * height
-        if size > payloadSize do
+        if size > payloadSize
+        {
             fail InvalidFormatError{"AVI frame payload is smaller than the picture it declares"}
+        }
 
         .prepareTarget(target)
         if not source.path().count
@@ -1070,13 +1213,15 @@ private impl Decoder
         }
 
         // Convert file-backed rows while the bytes just read are still in cache.
-        const ReadSize = 256 * 1024'u64
-        let rowsPerRead = Math.min(height, Math.max(1'u64, ReadSize / .rowBytes))
+        const ReadSize = 256 * 1024_u64
+        let rowsPerRead = Math.min(height, Math.max(1_u64, ReadSize / .rowBytes))
         let capacity    = rowsPerRead * .rowBytes
-        if .payload.count != capacity do
+        if .payload.count != capacity
+        {
             .payload.resize(capacity)
+        }
 
-        var readRows = 0'u64
+        var readRows = 0_u64
         while readRows < height
         {
             let count = Math.min(rowsPerRead, height - readRows)
@@ -1093,9 +1238,9 @@ private impl Decoder
     {
         switch .bytesPerPixel
         {
-        case 2: copyBitmapRows'2(pixels, target, .rowBytes, .isTopDown, firstRow, count)
-        case 3: copyBitmapRows'3(pixels, target, .rowBytes, .isTopDown, firstRow, count)
-        case 4: copyBitmapRows'4(pixels, target, .rowBytes, .isTopDown, firstRow, count)
+        case 2: copyBitmapRows!{2}(pixels, target, .rowBytes, .isTopDown, firstRow, count)
+        case 3: copyBitmapRows!{3}(pixels, target, .rowBytes, .isTopDown, firstRow, count)
+        case 4: copyBitmapRows!{4}(pixels, target, .rowBytes, .isTopDown, firstRow, count)
         }
     }
 
@@ -1104,24 +1249,32 @@ private impl Decoder
     // This is what keeps decoding a whole stream at the memory cost of a single frame.
     mtd const prepareTarget(target: *Image)
     {
-        if target.width != .info.width or target.height != .info.height or target.pixelFormat != .RGB8 do
+        if target.width != .info.width or target.height != .info.height or target.pixelFormat != .RGB8
+        {
             target[] = Image.create(.info.width, .info.height, .RGB8)
+        }
     }
 }
 
 // Selects the RGB channels of four BGR or BGRA pixels in output order.
-private const Bgr24ToRgb  = cast(Math.Simd.U8x16, [2'u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128])
-private const Bgra32ToRgb = cast(Math.Simd.U8x16, [2'u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128, 128, 128])
-
-private const PackRgb24 = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
+private const Bgr24ToRgb  = cast(Math.Simd.U8x16, [2_u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128])
+private const Bgra32ToRgb = cast(Math.Simd.U8x16, [2_u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128, 128, 128])
 
 #[Swag.Inline]
-private func rgb555ToRgb24(pixels: Math.Simd.U32x4)->Math.Simd.U8x16
+private func storeRgb5558(target: [*] u8, pixels: Math.Simd.U16x8)
 {
-    // Each lane gets three channel bytes. Replicate the top bits in each byte before packing.
-    let expanded = ((pixels & 0x7C00'u32) >> 7) | ((pixels & 0x03E0'u32) << 6) | ((pixels & 0x1F'u32) << 19)
-    let rgb      = expanded | ((expanded >> 5) & 0x070707'u32)
-    return Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, rgb), PackRgb24)
+    using Math.Simd
+    const LowRg  = cast(U8x16, [0_u8, 8, 128, 1, 9, 128, 2, 10, 128, 3, 11, 128, 4, 12, 128, 5])
+    const LowB   = cast(U8x16, [128_u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128])
+    const HighRg = cast(U8x16, [13_u8, 128, 6, 14, 128, 7, 15, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+    const HighB  = cast(U8x16, [128_u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 128, 128, 128, 128, 128, 128])
+    let red   = ((pixels >> 7) & 248) | ((pixels >> 12) & 7)
+    let green = ((pixels >> 2) & 248) | ((pixels >> 7) & 7)
+    let blue  = ((pixels << 3) & 248) | ((pixels >> 2) & 7)
+    let rg    = packUnsigned(cast #bit(S16x8, red), cast #bit(S16x8, green))
+    let b     = packUnsigned(cast #bit(S16x8, blue), cast #bit(S16x8, blue))
+    store(target, shuffle(rg, LowRg) | shuffle(b, LowB))
+    storeLow8(target + 16, shuffle(rg, HighRg) | shuffle(b, HighB))
 }
 
 private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Image, sourceStride: u64, topDown: bool, firstRow, rows: u64)
@@ -1137,13 +1290,10 @@ private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Ima
 
         #static if PIXEL_BYTES == 2
         {
-            // Eight input pixels fit in one load. Two extra pixels leave room for the
-            // last four bytes of the overlapping stores, which the next writes replace.
-            while count >= 10
+            while count >= 8
             {
                 let packed = Math.Simd.load(cast(const [*] u16, source))
-                Math.Simd.store(destination, rgb555ToRgb24(Math.Simd.widenLow(packed)))
-                Math.Simd.store(destination + 12, rgb555ToRgb24(Math.Simd.widenHigh(packed)))
+                storeRgb5558(destination, packed)
                 source      += 16
                 destination += 24
                 count       -= 8
@@ -1153,9 +1303,19 @@ private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Ima
         {
             let shuffle = PIXEL_BYTES == 3 ? Bgr24ToRgb : Bgra32ToRgb
 
-            // Six pixels leave room for both 16-byte operations. The next iteration or
-            // scalar tail overwrites the four bytes beyond the four converted pixels.
-            while count >= 6
+            // Two remaining pixels cover the overlap of the second load and store.
+            while count >= 10
+            {
+                let low  = Math.Simd.load(source)
+                let high = Math.Simd.load(source + 4 * PIXEL_BYTES)
+                Math.Simd.store(destination, Math.Simd.shuffle(low, shuffle))
+                Math.Simd.store(destination + 12, Math.Simd.shuffle(high, shuffle))
+                source      += 8 * PIXEL_BYTES
+                destination += 24
+                count       -= 8
+            }
+
+            if count >= 6
             {
                 let packed = Math.Simd.load(source)
                 Math.Simd.store(destination, Math.Simd.shuffle(packed, shuffle))
@@ -1197,10 +1357,16 @@ private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Ima
 // entry names where the entry claims it is, is the base the file used.
 private func probeIndexBase(source: *ByteSource, layout: const *Layout, id: u32, offset: u64)->u64 fail
 {
-    if matchesChunkId(source, layout.frameList + offset, id) do
+    if matchesChunkId(source, layout.frameList + offset, id)
+    {
         return layout.frameList
-    if matchesChunkId(source, offset, id) do
+    }
+
+    if matchesChunkId(source, offset, id)
+    {
         return 0
+    }
+
     fail InvalidFormatError{"AVI index does not point at the frames it describes"}
 }
 
@@ -1221,5 +1387,5 @@ private func matchesChunkId(source: *ByteSource, offset: u64, id: u32)->bool
 private func readChunkIdAt(source: *ByteSource, offset: u64)->u32 fail
 {
     try source.seek(offset)
-    return try source.readLittleEndian'u32()
+    return try source.readLittleEndian!{u32}()
 }

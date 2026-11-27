@@ -28,8 +28,11 @@ func viewerPlugin()->Viewer.Plugin
 private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 {
     let cover = try loadCover(fileName)
-    if cover.bytes.isEmpty() do
+    if cover.bytes.isEmpty()
+    {
         return {}
+    }
+
     if Path.lowercaseExtension(cover.path) == ".svg"
     {
         let drawing = try Svg.Drawing.parse(cast(string, cover.bytes.toSlice()))
@@ -62,7 +65,7 @@ struct ReadingVisit
     fragment: String
 }
 
-private const SearchChapterLimit = 32 * 1024 * 1024'u64
+private const SearchChapterLimit = 32 * 1024 * 1024_u64
 
 private struct SearchQuery
 {
@@ -76,7 +79,7 @@ private func parseSearchQuery(query: string)->SearchQuery
 {
     var result: #returntype
     let typed = Latin1.trim(query)
-    let colon = Utf8.indexOf(typed, ':'rune)
+    let colon = Utf8.indexOf(typed, ':'_rune)
     if colon == Swag.U64.Max
     {
         result.text = String.from(query)
@@ -89,7 +92,7 @@ private func parseSearchQuery(query: string)->SearchQuery
         result.chapterOnly = true
         result.text        = String.from(Latin1.trim(typed[colon + 1 to]))
     }
-    elif Utf8.compare(scopeName, "book", .Latin1NoCase) == 0 or Utf8.compare(scopeName, "livre", .Latin1NoCase) == 0
+    else if Utf8.compare(scopeName, "book", .Latin1NoCase) == 0 or Utf8.compare(scopeName, "livre", .Latin1NoCase) == 0
     {
         result.text = String.from(Latin1.trim(typed[colon + 1 to]))
     }
@@ -106,24 +109,42 @@ impl Panel
     // Describes the book in the information sheet: its chapters, then what its package says of it.
     internal mtd describeInformation(sheet: *InfoSheet)
     {
-        if not .book.chapters.count do
+        if not .book.chapters.count
+        {
             return
+        }
+
         var data: MediaInfoData
         let count = .book.chapters.count
         data.addFigure(.Sections, count == 1 ? String.from(texts().ui_OneChapter) : Format.toString(texts().ui_Chapters, count))
         let metadata = &.book.metadata
         data.add(.Document, group: true)
-        if not metadata.title.isEmpty() do
+        if not metadata.title.isEmpty()
+        {
             data.add(.Title, metadata.title)
-        if not metadata.creators.isEmpty() do
+        }
+
+        if not metadata.creators.isEmpty()
+        {
             data.add(.Author, metadata.creators)
+        }
+
         let language = knownLanguage(metadata.language)
-        if not language.isEmpty() do
+        if not language.isEmpty()
+        {
             data.add(.Language, language)
-        if not metadata.publisher.isEmpty() do
+        }
+
+        if not metadata.publisher.isEmpty()
+        {
             data.add(.Publisher, metadata.publisher)
-        if not metadata.date.isEmpty() do
+        }
+
+        if not metadata.date.isEmpty()
+        {
             data.add(.Published, metadata.date)
+        }
+
         data.describe(sheet)
     }
 }
@@ -134,14 +155,14 @@ struct Panel
     using wnd: Wnd
 
     book:            Book
-    load:            Viewer.BackgroundLoad'Book
+    load:            Viewer.BackgroundLoad!{Book}
     services:        Viewer.HostServices
     chapter:         u64 = Swag.U64.Max
     view:            *HtmlView?
-    contents:        Array'NavigationEntry
+    contents:        Array!{NavigationEntry}
     zoomPercent:     u32 = 100
     readingColumn:   ReadingColumn = .Comfortable
-    history:         Viewer.History'ReadingVisit
+    history:         Viewer.History!{ReadingVisit}
     bookmark:        ReadingVisit
     hasBookmark:     bool
     pendingPosition: HtmlReadingPosition
@@ -153,10 +174,10 @@ struct Panel
 
     late
     {
-        outline:        *DocumentOutline
-        status:         *Label
-        chapterLabel:   *IconButton
-        zoomLabel:      *IconButton
+        outline:      *DocumentOutline
+        status:       *Label
+        chapterLabel: *IconButton
+        zoomLabel:    *IconButton
     }
 }
 
@@ -184,8 +205,11 @@ private impl IWnd for Panel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if .handleHistoryKey(evt) do
+        if .handleHistoryKey(evt)
+        {
             return
+        }
+
         let direction = Viewer.pageKeyDirection(evt)
         if direction
         {
@@ -198,8 +222,10 @@ private impl IWnd for Panel
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .refreshNavigation()
+        }
 
         .wnd.IWnd.onNotifyEvent(evt)
     }
@@ -210,8 +236,11 @@ private impl Panel
     mtd publishContents()
     {
         .contents.clear()
-        for entry in .book.navigation.entries where entry.chapter != Swag.U64.Max do
+        for entry in .book.navigation.entries where entry.chapter != Swag.U64.Max
+        {
             .contents.add(entry)
+        }
+
         if .contents.isEmpty()
         {
             for chapter, index in .book.chapters
@@ -224,9 +253,12 @@ private impl Panel
             }
         }
 
-        var headings: Array'DocumentHeading
-        for entry, index in .contents do
+        var headings: Array!{DocumentHeading}
+        for entry, index in .contents
+        {
             headings.add(DocumentHeading{entry.title, entry.level, index})
+        }
+
         .outline.publish(headings.toSlice())
         .outline.failure = .book.navigation.failure
         .outline.refresh()
@@ -237,36 +269,54 @@ private impl Panel
         .previousButton.toolTip = texts().ui_Previous
         .nextButton.toolTip     = texts().ui_Next
         let hasChapter = .chapter < .book.chapters.count
-        if .steps.updateSteps(.chapter, .book.chapters.count) do
+        if .steps.updateSteps(.chapter, .book.chapters.count)
+        {
             .services.chromeChanged(me)
-        if hasChapter do
+        }
+
+        if hasChapter
+        {
             .services.showDetails(me, .book.metadata.title.isEmpty() ? texts().ui_Name : .book.metadata.title.toString())
+        }
     }
 
     internal mtd turn(delta: s32)
     {
-        if .chapter >= .book.chapters.count do
+        if .chapter >= .book.chapters.count
+        {
             return
-        if delta < 0 and .chapter > 0 do
+        }
+
+        if delta < 0 and .chapter > 0
+        {
             .showChapter(.chapter - 1)
-        elif delta > 0 and .chapter + 1 < .book.chapters.count do
+        }
+        else if delta > 0 and .chapter + 1 < .book.chapters.count
+        {
             .showChapter(.chapter + 1)
+        }
     }
 
     internal mtd selectContents(index: u64)
     {
-        if index >= .contents.count do
+        if index >= .contents.count
+        {
             return
+        }
+
         let entry = &.contents[index]
         .showChapter(entry.chapter, entry.fragment)
     }
 
     // The host asks for one chapter per callback tick so finding text through a long book does
     // not hold the UI while every chapter is read. Offsets stay in source XHTML for HtmlView.
-    internal mtd collectSearchMatches(query: string, options: Viewer.SearchOptions, progress: *u64, matches: *Array'Viewer.SearchMatch)->bool
+    internal mtd collectSearchMatches(query: string, options: Viewer.SearchOptions, progress: *u64, matches: *Array!{Viewer.SearchMatch})->bool
     {
-        if not progress[] do
+        if not progress[]
+        {
             .searchSkipped = false
+        }
+
         let parsed = parseSearchQuery(query)
         if not parsed.text.count
         {
@@ -278,20 +328,27 @@ private impl Panel
 
         // The host compiles a regexp for the complete field value. Scope syntax has been removed
         // from `parsed.text`, so let the shared collector compile the resulting search term.
-        if parsed.text.toString() != query do
+        if parsed.text.toString() != query
+        {
             matchOptions.expression = null
+        }
 
         if parsed.chapterOnly
         {
             progress[] = .book.chapters.count
-            if .chapter >= .book.chapters.count do
+            if .chapter >= .book.chapters.count
+            {
                 return true
+            }
+
             .collectChapterMatches(.chapter, parsed.text, matchOptions, matches)
             return true
         }
 
-        if progress[] >= .book.chapters.count do
+        if progress[] >= .book.chapters.count
+        {
             return true
+        }
 
         let index = progress[]
         progress[] += 1
@@ -299,10 +356,13 @@ private impl Panel
         return progress[] >= .book.chapters.count
     }
 
-    mtd collectChapterMatches(index: u64, query: string, options: Viewer.SearchOptions, matches: *Array'Viewer.SearchMatch)
+    mtd collectChapterMatches(index: u64, query: string, options: Viewer.SearchOptions, matches: *Array!{Viewer.SearchMatch})
     {
-        if index >= .book.chapters.count do
+        if index >= .book.chapters.count
+        {
             return
+        }
+
         let path   = Path.combine(.book.root, .book.chapters[index].path)
         var stream = catch File.openReadLive(path)
         {
@@ -328,21 +388,36 @@ private impl Panel
 
     internal mtd revealSearchMatch(match: Viewer.SearchMatch, _: string)->bool
     {
-        if match.major >= .book.chapters.count do
+        if match.major >= .book.chapters.count
+        {
             return false
-        if not .view do
+        }
+
+        if not .view
+        {
             return false
+        }
+
         let sameChapter = match.major == .chapter
         let previous    = sameChapter ? .currentVisit() : ReadingVisit{}
         let path        = Path.combine(.book.root, .book.chapters[match.major].path)
         let source      = catch File.readAllText(path) { return false; }
-        if not Viewer.isByteRangeInBounds(source.count, match.offset, match.length) do
+        if not Viewer.isByteRangeInBounds(source.count, match.offset, match.length)
+        {
             return false
-        if not sameChapter do
+        }
+
+        if not sameChapter
+        {
             .showChapter(match.major)
+        }
+
         let revealed = .view.revealFileOffset(match.offset, source[match.offset until match.offset + match.length])
-        if revealed and sameChapter do
+        if revealed and sameChapter
+        {
             .history.visit(previous)
+        }
+
         return revealed
     }
 
@@ -365,15 +440,20 @@ private impl Panel
 
     internal mtd showChapter(index: u64, fragment: string = "", remember = true)
     {
-        if index >= .book.chapters.count or fragment.count > 4096 do
+        if index >= .book.chapters.count or fragment.count > 4096
+        {
             return
+        }
+
         if index == .chapter and .view
         {
             let previous = .currentVisit()
             if .view.navigateToFragment(Format.toString("#%", fragment))
             {
-                if remember do
+                if remember
+                {
                     .history.visit(previous)
+                }
 
                 .fragment        = fragment
                 .pendingPosition = {}
@@ -383,8 +463,10 @@ private impl Panel
             return
         }
 
-        if remember and .view and .chapter < .book.chapters.count do
+        if remember and .view and .chapter < .book.chapters.count
+        {
             .history.visit(.currentVisit())
+        }
 
         .pendingPosition = {}
         .fragment        = fragment
@@ -451,8 +533,10 @@ private impl Panel
     // counts as read there.
     mtd followReading()
     {
-        if not .view or .chapter >= .book.chapters.count do
+        if not .view or .chapter >= .book.chapters.count
+        {
             return
+        }
 
         let reading = .view.readingOffset()
         let atEnd   = .view.readingProgress() >= 1
@@ -465,8 +549,11 @@ private impl Panel
                 continue
             }
 
-            if content.chapter != .chapter do
+            if content.chapter != .chapter
+            {
                 continue
+            }
+
             if atEnd and content.fragment == .fragment
             {
                 entry = index
@@ -474,19 +561,26 @@ private impl Panel
             }
 
             let offset = reading != Swag.U64.Max ? .view.fragmentOffset(content.fragment) : Swag.U64.Max
-            if offset != Swag.U64.Max and offset <= reading do
+            if offset != Swag.U64.Max and offset <= reading
+            {
                 entry = index
+            }
         }
 
-        if entry != Swag.U64.Max do
+        if entry != Swag.U64.Max
+        {
             .outline.markReading(entry, atEnd: atEnd)
+        }
     }
 
     // A book link stays inside its spine. External URLs and escaping paths never reach the OS.
     internal mtd followLink(reference: string)
     {
-        if .chapter >= .book.chapters.count do
+        if .chapter >= .book.chapters.count
+        {
             return
+        }
+
         let target = NavigationEntry.resolve(.book.chapters[.chapter].path, reference)
         for chapter, index in .book.chapters where chapter.path == target.path
         {
@@ -500,19 +594,29 @@ private impl Panel
         var result: ReadingVisit
         result.chapter  = .chapter
         result.fragment = .fragment
-        if .pendingPosition.isValid() do
+        if .pendingPosition.isValid()
+        {
             result.position = .pendingPosition
-        elif .view do
+        }
+        else if .view
+        {
             result.position = .view.readingPosition()
+        }
+
         return result
     }
 
     mtd restorePendingPosition()
     {
-        if not .pendingPosition.isValid() or not .view do
+        if not .pendingPosition.isValid() or not .view
+        {
             return
-        if .view.restoreReadingPosition(.pendingPosition) or not .view.isLoading() do
+        }
+
+        if .view.restoreReadingPosition(.pendingPosition) or not .view.isLoading()
+        {
             .pendingPosition = {}
+        }
     }
 
     mtd restoreVisit(visit: ReadingVisit)
@@ -524,19 +628,28 @@ private impl Panel
 
     internal mtd saveBookmark()
     {
-        if not .view or .chapter >= .book.chapters.count do
+        if not .view or .chapter >= .book.chapters.count
+        {
             return
+        }
+
         let current = .currentVisit()
-        if not current.position.isValid() do
+        if not current.position.isValid()
+        {
             return
+        }
+
         .bookmark    = current
         .hasBookmark = true
     }
 
     internal mtd goToBookmark()
     {
-        if not .hasBookmark or .bookmark.chapter >= .book.chapters.count do
+        if not .hasBookmark or .bookmark.chapter >= .book.chapters.count
+        {
             return
+        }
+
         let previous = .currentVisit()
         .restoreVisit(.bookmark)
         .history.visit(previous)
@@ -544,30 +657,42 @@ private impl Panel
 
     internal mtd goBack()
     {
-        if .history.canGoBack() do
+        if .history.canGoBack()
+        {
             .restoreVisit(.history.back(.currentVisit()))
+        }
     }
 
     internal mtd goForward()
     {
-        if .history.canGoForward() do
+        if .history.canGoForward()
+        {
             .restoreVisit(.history.forward(.currentVisit()))
+        }
     }
 
     mtd handleHistoryKey(evt: const *KeyEvent)->bool
     {
         let direction = Viewer.historyKeyDirection(evt)
-        if direction < 0 do
+        if direction < 0
+        {
             .goBack()
-        elif direction > 0 do
+        }
+        else if direction > 0
+        {
             .goForward()
+        }
+
         return direction != 0
     }
 
     mtd applyReadingStyle()
     {
-        if not .view do
+        if not .view
+        {
             return
+        }
+
         let passage = .view.readingPosition()
         .view.setDocumentStyle(.readingStyle())
         discard .view.restoreReadingPosition(passage)
@@ -584,14 +709,19 @@ private impl Panel
     mtd showZoomMenu()
     {
         let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
-        if percent do
+        if percent
+        {
             .setZoom(percent)
+        }
     }
 
     internal mtd setReadingColumn(column: ReadingColumn)
     {
-        if .readingColumn == column do
+        if .readingColumn == column
+        {
             return
+        }
+
         .readingColumn = column
         .applyReadingStyle()
     }
@@ -602,14 +732,23 @@ private impl Panel
         if entries.results.prefix == .Line
         {
             let typed = Latin1.trim(entries.query.toString())
-            for c in typed where not Latin1.isDigit(c) do
+            for c in typed where not Latin1.isDigit(c)
+            {
                 return
+            }
+
             let chapter = catch StrConv.toU64(typed) { return; }
-            if not chapter or chapter > .book.chapters.count do
+            if not chapter or chapter > .book.chapters.count
+            {
                 return
+            }
+
             let entry = entries.add(Format.toString(appStrings().lens_GoToChapter, chapter), .GoTo, func|view = me, chapter|() { view.showChapter(chapter - 1) })
-            if entry do
+            if entry
+            {
                 entry.lead = Format.toString("%", chapter)
+            }
+
             return
         }
 
@@ -649,7 +788,7 @@ private impl Panel
 
     func create(host: Viewer.Host)->*Panel
     {
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.epub")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.epub")
         {
             .backgroundStyle = .View
             .focusPolicy     = .Tab
@@ -657,8 +796,7 @@ private impl Panel
         }
 
         let info = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
-        result.chapterLabel = result.steps.create(info, "scope.epub.page", .Chapter,
-            func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showChapter(index) })
+        result.chapterLabel = result.steps.create(info, "scope.epub.page", .Chapter, func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showChapter(index) })
 
         with result.zoomLabel = Viewer.createZoomButton(host.createInfoGroup(Viewer.ZoomSlotWidth), "scope.epub.zoom", appStrings().cmd_ZoomMenu)
         {
@@ -672,8 +810,11 @@ private impl Panel
         {
             if evt is KeyEvent as key
             {
-                if result.handleHistoryKey(key) do
+                if result.handleHistoryKey(key)
+                {
                     return true
+                }
+
                 let direction = Viewer.pageKeyDirection(key)
                 if direction
                 {
@@ -720,15 +861,20 @@ func createViewer(host: Viewer.Host)
 
         .matchBounds = func|view|(match, bounds)->bool
         {
-            if not view.view or match.major != view.chapter do
+            if not view.view or match.major != view.chapter
+            {
                 return false
+            }
+
             return view.view.searchMatchRect(bounds)
         }
 
         .clear = func|view|()
         {
-            if view.view do
+            if view.view
+            {
                 view.view.clearSearch()
+            }
         }
 
         .describe      = func|view|(presentation) => view.describeSearch(presentation)

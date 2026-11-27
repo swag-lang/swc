@@ -10,8 +10,11 @@ using Core
     let fileName = Testing.tempFilePath("markdown-margins-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 2_000 do
+    for index in 2_000
+    {
         source += Format.toString("## Section %\n\nA manuscript keeps its reading position after earlier sections retire.\n\n", index)
+    }
+
     discard expect File.writeAllText(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 480)

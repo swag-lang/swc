@@ -1,7 +1,7 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const AF_PACKET = 17'u16
+const AF_PACKET = 17_u16
 
 struct sockaddr
 {
@@ -14,20 +14,20 @@ struct sockaddr
 
 #assert(#sizeof(sockaddr) == 16)
 
-const AF_INET      = 2's32
-const AF_INET6     = 10's32
-const SOCK_STREAM  = 1's32
-const SOCK_DGRAM   = 2's32
-const SOCK_CLOEXEC = 0x80000's32
-const MSG_NOSIGNAL = 0x4000's32
-const MSG_TRUNC    = 0x20's32
-const SOL_SOCKET   = 1's32
-const SO_ERROR     = 4's32
-const SO_BROADCAST = 6's32
-const SO_KEEPALIVE = 9's32
-const SO_RCVTIMEO  = 20's32
-const SO_SNDTIMEO  = 21's32
-const SHUT_WR      = 1's32
+const AF_INET      = 2_s32
+const AF_INET6     = 10_s32
+const SOCK_STREAM  = 1_s32
+const SOCK_DGRAM   = 2_s32
+const SOCK_CLOEXEC = 0x80000_s32
+const MSG_NOSIGNAL = 0x4000_s32
+const MSG_TRUNC    = 0x20_s32
+const SOL_SOCKET   = 1_s32
+const SO_ERROR     = 4_s32
+const SO_BROADCAST = 6_s32
+const SO_KEEPALIVE = 9_s32
+const SO_RCVTIMEO  = 20_s32
+const SO_SNDTIMEO  = 21_s32
+const SHUT_WR      = 1_s32
 
 struct timeval
 {

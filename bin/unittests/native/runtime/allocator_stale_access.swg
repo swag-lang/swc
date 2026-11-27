@@ -58,14 +58,16 @@ func recoverLock(allocator: *Allocator)
 // pages go back to the system; the header page and the reservation remain.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
 
     var allocator: Allocator
     let itf = electricAllocator(&allocator)
     defer allocator.releaseAll()
 
-    for size in [1'u64, 64, 129, 4096, 5000, 100_000]
+    for size in [1_u64, 64, 129, 4096, 5000, 100_000]
     {
         let address = allocOne(itf, size)
         writeAt(address, 7)
@@ -75,7 +77,7 @@ func recoverLock(allocator: *Allocator)
 
         // The read lands in a captured byte so that optimized code cannot drop it.
         var seen: u8
-        for offset in [0'u64, size / 2, size - 1]
+        for offset in [0_u64, size / 2, size - 1]
         {
             let read  = Swag.catchPanic(func|address, offset, &seen|() { seen = readAt(address + offset) })
             let write = Swag.catchPanic(func|address, offset|() { writeAt(address + offset, 1) })
@@ -110,7 +112,7 @@ func recoverLock(allocator: *Allocator)
     let itf = electricAllocator(&allocator)
     defer allocator.releaseAll()
 
-    for alignment in [16'u32, 64, 4096]
+    for alignment in [16_u32, 64, 4096]
     {
         let address = allocOne(itf, 129, alignment)
         Swag.require((address & (alignment - 1)) == 0)
@@ -125,8 +127,10 @@ func recoverLock(allocator: *Allocator)
         recoverLock(&allocator)
     }
 
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
 
     let address = allocOne(itf, 129, 16)
     let header  = allocator.headerOf(address)
@@ -139,8 +143,10 @@ func recoverLock(allocator: *Allocator)
 // A stale pointer kept across the reallocation of an electric block cannot reach the old payload.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
 
     var allocator: Allocator
     let itf = electricAllocator(&allocator)
@@ -150,16 +156,20 @@ func recoverLock(allocator: *Allocator)
     request.size = 100
     itf.alloc(&request)
     let old = cast(u64, request.address)
-    for i in 100 do
+    for i in 100
+    {
         writeAt(old + i, cast #wrap (u8, i))
+    }
 
     request.oldSize = 100
     request.size    = 3000
     itf.realloc(&request)
     let moved = cast(u64, request.address)
     Swag.require(moved != 0 and moved != old)
-    for i in 100 do
+    for i in 100
+    {
         Swag.require(readAt(moved + i) == cast #wrap (u8, i))
+    }
 
     var seen: u8
     let caught = Swag.catchPanic(func|old, &seen|() { seen = readAt(old) })

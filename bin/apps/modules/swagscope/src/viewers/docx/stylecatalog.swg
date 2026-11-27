@@ -30,8 +30,8 @@ private struct DocumentStyle
 // Named Word styles are resolved once; callers never walk untrusted inheritance chains.
 struct StyleCatalog
 {
-    private styles:     Array'DocumentStyle
-    private index:      HashTable'(String, u64)
+    private styles:     Array!{DocumentStyle}
+    private index:      HashTable!{String, u64}
     defaultParagraphId: String
     defaultRun:         RunFormat
     defaultParagraph:   ParagraphFormat
@@ -51,7 +51,7 @@ impl StyleCatalog
         var inDefaults  = false
         var inRun       = false
         var inParagraph = false
-        var styleCount  = 0'u64
+        var styleCount  = 0_u64
         var isDefault   = false
         var sawRoot     = false
         while scan.next(&token)
@@ -60,8 +60,11 @@ impl StyleCatalog
             {
                 if not sawRoot
                 {
-                    if not token.isElement("styles") do
+                    if not token.isElement("styles")
+                    {
                         fail Errors.InvalidFormatError{texts().err_Invalid}
+                    }
+
                     sawRoot = true
                 }
 
@@ -69,49 +72,68 @@ impl StyleCatalog
                 {
                     inDefaults = not token.empty
                 }
-                elif token.isElement("style")
+                else if token.isElement("style")
                 {
-                    if inStyle do
+                    if inStyle
+                    {
                         fail Errors.InvalidFormatError{texts().err_Invalid}
+                    }
+
                     styleCount += 1
-                    if styleCount > 4096 do
+                    if styleCount > 4096
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
+
                     current    = {}
                     current.id = token.attribute("styleId") orelse ""
-                    if current.id.count > 256 do
+                    if current.id.count > 256
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
+
                     let kind = token.attribute("type") orelse ""
                     current.kind = kind == "paragraph" ? .Paragraph : kind == "character" ? .Character : .Other
                     isDefault    = token.attribute("default") == "1" or token.attribute("default") == "true"
                     inStyle      = true
                 }
-                elif inStyle and token.isElement("basedOn")
+                else if inStyle and token.isElement("basedOn")
                 {
                     current.parent = token.attribute("val") orelse ""
-                    if current.parent.count > 256 do
+                    if current.parent.count > 256
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
                 }
-                elif (inStyle or inDefaults) and token.isElement("pPr")
+                else if (inStyle or inDefaults) and token.isElement("pPr")
                 {
                     inParagraph = not token.empty
                 }
-                elif (inStyle or inDefaults) and not inParagraph and token.isElement("rPr")
+                else if (inStyle or inDefaults) and not inParagraph and token.isElement("rPr")
                 {
                     inRun = not token.empty
                 }
-                elif inRun
+                else if inRun
                 {
-                    if inStyle do
+                    if inStyle
+                    {
                         current.run.read(&token, theme)
-                    else do
+                    }
+                    else
+                    {
                         result.defaultRun.read(&token, theme)
+                    }
                 }
-                elif inParagraph
+                else if inParagraph
                 {
-                    if inStyle do
+                    if inStyle
+                    {
                         current.paragraph.read(&token)
-                    else do
+                    }
+                    else
+                    {
                         result.defaultParagraph.read(&token)
+                    }
                 }
             }
 
@@ -119,10 +141,16 @@ impl StyleCatalog
             {
                 if not current.id.isEmpty() and current.kind != .Other
                 {
-                    if result.index.tryFind(current.id) do
+                    if result.index.tryFind(current.id)
+                    {
                         fail Errors.InvalidFormatError{texts().err_Invalid}
-                    if isDefault and current.kind == .Paragraph do
+                    }
+
+                    if isDefault and current.kind == .Paragraph
+                    {
                         result.defaultParagraphId = current.id
+                    }
+
                     result.index.add(current.id, result.styles.count)
                     result.styles.add(#move current)
                 }
@@ -134,19 +162,31 @@ impl StyleCatalog
 
             if token.kind == .End
             {
-                if token.isElement("docDefaults") do
+                if token.isElement("docDefaults")
+                {
                     inDefaults = false
-                elif token.isElement("rPr") do
+                }
+                else if token.isElement("rPr")
+                {
                     inRun = false
-                elif token.isElement("pPr") do
+                }
+                else if token.isElement("pPr")
+                {
                     inParagraph = false
+                }
             }
         }
 
-        if scan.damaged or inStyle or (result.loaded and not sawRoot) do
+        if scan.damaged or inStyle or (result.loaded and not sawRoot)
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        if result.defaultParagraphId.isEmpty() and result.index.tryFind(String.from("Normal")) do
+        }
+
+        if result.defaultParagraphId.isEmpty() and result.index.tryFind(String.from("Normal"))
+        {
             result.defaultParagraphId = "Normal"
+        }
+
         for index in result.styles.count
         {
             let resolved = result.resolve(index)
@@ -159,13 +199,16 @@ impl StyleCatalog
     private mtd const resolve(index: u64)->ResolvedStyle
     {
         var result: #returntype
-        var chain:  Array'u64
+        var chain:  Array!{u64}
         var current = index
         while true
         {
             var repeated = false
-            for previous in chain where previous == current do
+            for previous in chain where previous == current
+            {
                 repeated = true
+            }
+
             if repeated or chain.count >= 64
             {
                 result.limited = true
@@ -174,8 +217,11 @@ impl StyleCatalog
 
             chain.add(current)
             let style = &.styles[current]
-            if style.parent.isEmpty() do
+            if style.parent.isEmpty()
+            {
                 break
+            }
+
             let parent = .index.tryFind(style.parent)
             if not parent or .styles[parent.value].kind != style.kind
             {
@@ -199,8 +245,11 @@ impl StyleCatalog
     mtd const lookup(id: String, kind: StyleKind)->const *ResolvedStyle?
     {
         let item = .index.tryFind(id)
-        if not item or .styles[item.value].kind != kind do
+        if not item or .styles[item.value].kind != kind
+        {
             return null
+        }
+
         return &.styles[item.value].resolved
     }
 }

@@ -2,12 +2,12 @@
 
 #test
 {
-    discard range(1.0'f32, 2.0'f32)     // swc-expected-error {{sema_err_function_where_failed}}
+    discard range(1.0_f32, 2.0_f32)     // swc-expected-error {{sema_err_function_where_failed}}
 }
 
 #test
 {
-    discard rangeTo(1.0'f32, 2.0'f32)     // swc-expected-error {{sema_err_function_where_failed}}
+    discard rangeTo(1.0_f32, 2.0_f32)     // swc-expected-error {{sema_err_function_where_failed}}
 }
 
 func(T) requiresText(value: T)->T where T == string

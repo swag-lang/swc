@@ -69,8 +69,10 @@ impl Mouse
             {
                 if .currentState.pressedTime[v] - .previousState.pressedTime[v] < .doubleClickTimeMs
                 {
-                    if .currentState.pressedPos[v] == .previousState.pressedPos[v] do
+                    if .currentState.pressedPos[v] == .previousState.pressedPos[v]
+                    {
                         .doubleClicked[v] = true
+                    }
                 }
             }
         }

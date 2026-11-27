@@ -8,8 +8,10 @@ public impl Image
     // Alpha is unchanged.
     mtd lightness(factor: f32 = 0.5)
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
         {
@@ -34,13 +36,17 @@ public impl Image
             {
                 let params     = cast(*#decltype(context), unwrap data)
                 let adjustment = Math.Simd.splat(params.adjustment)
-                let alphaMask  = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
+                let alphaMask  = cast(Math.Simd.U8x16, [0_u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
                 let values     = Math.Simd.load(block)
                 let adjusted   = Math.Simd.addSaturating(values, adjustment)
-                if params.keepAlpha do
+                if params.keepAlpha
+                {
                     Math.Simd.store(block, (values & alphaMask) | (adjusted & ~alphaMask))
-                else do
+                }
+                else
+                {
                     Math.Simd.store(block, adjusted)
+                }
             }
         }
         else
@@ -49,22 +55,29 @@ public impl Image
             {
                 let params     = cast(*#decltype(context), unwrap data)
                 let adjustment = Math.Simd.splat(params.adjustment)
-                let alphaMask  = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
+                let alphaMask  = cast(Math.Simd.U8x16, [0_u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
                 let values     = Math.Simd.load(block)
                 let adjusted   = Math.Simd.subSaturating(values, adjustment)
-                if params.keepAlpha do
+                if params.keepAlpha
+                {
                     Math.Simd.store(block, (values & alphaMask) | (adjusted & ~alphaMask))
-                else do
+                }
+                else
+                {
                     Math.Simd.store(block, adjusted)
+                }
             }
         }
 
         let pixels = .pixels.storage()
-        var offset = .byteCount & ~15'u64
+        var offset = .byteCount & ~15_u64
         while offset < .byteCount
         {
-            if not .pixelFormat.hasAlpha() or offset & 3 != 3 do
+            if not .pixelFormat.hasAlpha() or offset & 3 != 3
+            {
                 pixels[offset] = cast(u8, Math.clamp(cast(s32, pixels[offset]) + level, 0, 255))
+            }
+
             offset += 1
         }
     }

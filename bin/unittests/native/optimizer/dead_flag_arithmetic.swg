@@ -25,12 +25,12 @@ func acrossBranch(a: u64, choose: bool)->u64
 func carryAfter(a, b: u64)->u64
 {
     let result = a / 3 + a % 3
-    return result + (a < b ? 1'u64 : 0)
+    return result + (a < b ? 1_u64 : 0)
 }
 
 #test
 {
-    let values = [0'u64, 1, 2, 3, 7, 8, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 3, 7, 8, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         let q = quotient(a, 3)
@@ -44,7 +44,10 @@ func carryAfter(a, b: u64)->u64
         for b in values
         {
             var expected = q + r
-            if a < b do expected += 1
+            if a < b
+            {
+                expected += 1
+            }
             Swag.require(carryAfter(a, b) == expected)
         }
     }

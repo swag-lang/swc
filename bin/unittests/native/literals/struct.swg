@@ -1,6 +1,6 @@
 #global private
 
-const ANONYMOUS = (1's32, 2)
+const ANONYMOUS = (1_s32, 2)
 
 struct Vec3F {x, y, z: f32}
 const VEC3F_TYPED: Vec3F = Vec3F{10, 5, 2}

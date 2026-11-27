@@ -96,7 +96,7 @@ func wrapsOnRequest(value: u8)->u8
 // '#prom' widens the operands instead of wrapping them.
 func promotesOnRequest()->u32
 {
-    let result = 255'u8 + #prom 1
+    let result = 255_u8 + #prom 1
     #assert(#typeof(result) == u32)
     return result
 }

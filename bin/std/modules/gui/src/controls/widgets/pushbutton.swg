@@ -99,7 +99,7 @@ impl IWnd for PushButton
                 subRectBorder = &rects.btnPush_NormalBorder
             }
         }
-        elif form == .Flat
+        else if form == .Flat
         {
             switch
             {
@@ -209,8 +209,11 @@ impl IWnd for PushButton
 
         // Content
         var format: RichStringFormat
-        if .critical and not bc.isDisabled do
+        if .critical and not bc.isDisabled
+        {
             colorText = colors.critical
+        }
+
         .aniText.apply(me, colorText)
         theme.setTextColors(&format, .aniText.cur())
         format.horzAlignment = .Center
@@ -222,22 +225,33 @@ impl IWnd for PushButton
         // whether the surface or the keyboard made it so: a dialog's default answer is its primary
         // action too. A button that cannot be pressed is the primary action of nothing, and kept
         // bold it read as a lighter grey than the plain button beside it, in the same disabled state.
-        if (form == .Strong or form == .Default) and not bc.isDisabled do
+        if (form == .Strong or form == .Default) and not bc.isDisabled
+        {
             format.fontStyle = .Bold
+        }
+
         var labelPos = clientRect
         labelPos.inflate(-metrics.btnPush_Padding)
         var icon = .icon
-        if .iconWidth do
+        if .iconWidth
+        {
             icon.sizeX = .iconWidth
-        if .iconHeight do
+        }
+
+        if .iconHeight
+        {
             icon.sizeY = .iconHeight
+        }
+
         Theme.drawIconText(bc.painter, labelPos, icon, &.name, format, metrics.iconText_Margin, accessKey: me.accessKey, showAccessKey: .surface?.accessKeysVisible orelse false)
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if .processMouseEvent(evt) do
+        if .processMouseEvent(evt)
+        {
             .postCommandEvent(.id)
+        }
     }
 
     // Space or Enter activates the focused button.
@@ -246,10 +260,15 @@ impl IWnd for PushButton
         evt.accepted = false
         if evt.kind != .Pressed or
            evt.modifiers != .None or
-           (evt.key == .Space and not .hasVisibleFocus()) do
+           (evt.key == .Space and not .hasVisibleFocus())
+        {
             return
-        if evt.key != .Space and evt.key != .Return do
+        }
+
+        if evt.key != .Space and evt.key != .Return
+        {
             return
+        }
 
         .sigPressed.call(cast(*Button, me))
         .postCommandEvent(.id)
@@ -287,21 +306,33 @@ impl PushButton
     {
         Swag.assert(parent != null)
         var pos = position
-        if pos.height == 0 do
+        if pos.height == 0
+        {
             pos.height = parent.themeMetrics().btnPush_Height
-        if pos.width == 0 do
+        }
+
+        if pos.width == 0
+        {
             pos.width = parent.themeMetrics().btnPush_Width
-        let res = Wnd.create'PushButton(parent, name, pos, id)
+        }
+
+        let res = Wnd.create!{PushButton}(parent, name, pos, id)
         res.focusPolicy = .Tab
         res.wndFlags    |= .ActivatesOnKey | .FocusRing
         res.form        = form
 
         // An unstated width belongs to the caption: the theme width above only gives the
         // button a sane size until the first layout pass measures it, and stays its floor.
-        if position.width == 0 do
+        if position.width == 0
+        {
             res.preferredSize.x = 0
-        if id != null do
+        }
+
+        if id != null
+        {
             res.updateCommandState()
+        }
+
         return res
     }
 
@@ -318,15 +349,21 @@ impl PushButton
     // a button that is on is a state; none of them stands for the answer to a box.
     mtd paintedForm()->PushButtonForm
     {
-        if .critical and .form != .Flat do
+        if .critical and .form != .Flat
+        {
             return .Destructive
+        }
 
-        if .form != .Normal and .form != .Default do
+        if .form != .Normal and .form != .Default
+        {
             return .form
+        }
 
         let srf = .surface
-        if not srf or not srf.defaultButton do
+        if not srf or not srf.defaultButton
+        {
             return .form
+        }
 
         var dominant = srf.defaultButton
         let focus    = srf.app.keyboardFocusWnd
@@ -334,8 +371,10 @@ impl PushButton
         {
             if focus is PushButton as other
             {
-                if other.form == .Normal or other.form == .Default do
+                if other.form == .Normal or other.form == .Default
+                {
                     dominant = focus
+                }
             }
         }
 
@@ -345,8 +384,11 @@ impl PushButton
     // Changes visual emphasis and repaints the button.
     mtd setForm(form: PushButtonForm)
     {
-        if .form == form do
+        if .form == form
+        {
             return
+        }
+
         .form = form
         .invalidate()
         .invalidateLayout()
@@ -378,8 +420,11 @@ impl PushButton
         let metrics = .themeMetrics()
 
         var result = .captionWidth(bold: .form == .Strong) + 2 * metrics.btnPush_TextMargin
-        if .icon.isValid() and not .name.isEmpty() do
+        if .icon.isValid() and not .name.isEmpty()
+        {
             result += metrics.iconText_Margin
+        }
+
         return result
     }
 }

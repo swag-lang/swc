@@ -7,8 +7,11 @@
     let fileName = CoreTests.makeFilesystemTestPath("core_mapped_snapshot.tmp")
     defer discard catch File.delete(fileName)
     var source: [130 * 1024] u8
-    for &value, index in source do
+    for &value, index in source
+    {
         value[] = cast(u8, (index % 251))
+    }
+
     discard expect File.writeAllBytes(fileName, source)
     var mapped       = expect File.MappedFile.openSnapshot(fileName)
     let snapshotPath = mapped.temporary
@@ -37,8 +40,11 @@
     defer discard catch File.delete(fileName)
 
     var source: [96 * 1024] u8
-    for &value, index in source do
+    for &value, index in source
+    {
         value[] = cast(u8, (index % 251))
+    }
+
     discard expect File.writeAllBytes(fileName, source)
 
     var mapped = expect File.MappedFile.open(fileName, .ReadWrite)
@@ -118,8 +124,11 @@
     defer discard catch File.delete(fileName)
 
     var source: [96 * 1024] u8
-    for &value, index in source do
+    for &value, index in source
+    {
         value[] = cast(u8, (index % 239))
+    }
+
     discard expect File.writeAllBytes(fileName, source)
 
     var mapped = expect File.MappedFile.open(fileName)
@@ -142,7 +151,7 @@
     let fileName = CoreTests.makeFilesystemTestPath("core_mapped_file_close_lifetime.tmp")
     defer discard catch File.delete(fileName)
 
-    let expected: [4] u8 = ['r'u8, 'e'u8, 'a'u8, 'd'u8]
+    let expected: [4] u8 = ['r'_u8, 'e'_u8, 'a'_u8, 'd'_u8]
     discard expect File.writeAllBytes(fileName, expected)
 
     var mapped = expect File.MappedFile.open(fileName)

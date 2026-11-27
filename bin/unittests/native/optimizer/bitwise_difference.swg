@@ -26,14 +26,14 @@ func intersectionValue(a, b: u64)->u64 => a & b
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xAAAAAAAAAAAAAAAA, 0x5555555555555555, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xAAAAAAAAAAAAAAAA, 0x5555555555555555, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values
         {
             Swag.require(difference(a, b) == (a ^ b))
             Swag.require(swapped(a, b) == (a ^ b))
-            Swag.require(reversed(a, b) == 0'u64 - (a ^ b))
+            Swag.require(reversed(a, b) == 0_u64 - (a ^ b))
             Swag.require(shared(a, b) == unionValue(a, b))
             Swag.require(compared(a, b) == (a == b))
             Swag.require(other(a, b, ~b) == unionValue(a, b) - intersectionValue(a, ~b))

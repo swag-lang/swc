@@ -45,10 +45,10 @@ struct Node
 }
 
 // An unbounded repetition, as 'maxCount'.
-const RepeatInfinite = 0xFFFF_FFFF'u32
+const RepeatInfinite = 0xFFFF_FFFF_u32
 
 // The most repetitions a counted form may unroll into, because '{n,m}' compiles by unrolling.
-const MaxRepeatCount = 1000'u32
+const MaxRepeatCount = 1000_u32
 
 // Which spellings of the same scalar value a pattern accepts, and what '.' and the line
 // assertions mean.
@@ -67,22 +67,22 @@ struct Flags
 // three deallocations.
 struct Ast
 {
-    nodes:        Array'Node          // Every node; 'root' names the top one.
-    kids:         Array'u32           // Child lists, each named by a node's 'first' and 'count'.
-    classes:      Array'RuneClass     // The classes the 'Class' nodes point at.
-    captureNames: Array'String        // Name of each capture group, empty when it has none.
-    root:         u32                 // Index of the root node.
-    captureCount: u32                 // Number of capturing groups.
-    ignoreCase:   bool                // Whether the pattern was parsed without case, which a backreference also obeys.
-    hasBackref:   bool                // Whether a backreference appears anywhere.
+    nodes:        Array!{Node}          // Every node; 'root' names the top one.
+    kids:         Array!{u32}           // Child lists, each named by a node's 'first' and 'count'.
+    classes:      Array!{RuneClass}     // The classes the 'Class' nodes point at.
+    captureNames: Array!{String}        // Name of each capture group, empty when it has none.
+    root:         u32                   // Index of the root node.
+    captureCount: u32                   // Number of capturing groups.
+    ignoreCase:   bool                  // Whether the pattern was parsed without case, which a backreference also obeys.
+    hasBackref:   bool                  // Whether a backreference appears anywhere.
 
     // Parse state, kept here so the tree and its cursor are one value.
 
     private
     {
-        pattern: Array'rune     // The pattern, as scalar values.
-        pos:     u64            // Reading position in 'pattern'.
-        flags:   Flags          // Flags in effect at the reading position.
+        pattern: Array!{rune}     // The pattern, as scalar values.
+        pos:     u64              // Reading position in 'pattern'.
+        flags:   Flags            // Flags in effect at the reading position.
     }
 }
 
@@ -103,8 +103,11 @@ impl Ast
         result.root = try result.parseAlternate()
         if not result.atEnd()
         {
-            if result.peek() == ')' do
+            if result.peek() == ')'
+            {
                 fail SyntaxError{"unexpected ')'"}
+            }
+
             fail SyntaxError{"unexpected character"}
         }
 
@@ -119,15 +122,21 @@ impl Ast
 
     mtd const peek()->rune
     {
-        if .pos >= .pattern.count do
+        if .pos >= .pattern.count
+        {
             return 0
+        }
+
         return .pattern[.pos]
     }
 
     mtd const peekAt(offset: u64)->rune
     {
-        if .pos + offset >= .pattern.count do
+        if .pos + offset >= .pattern.count
+        {
             return 0
+        }
+
         return .pattern[.pos + offset]
     }
 
@@ -138,8 +147,11 @@ impl Ast
 
     mtd eat(value: rune)->bool
     {
-        if .peek() != value or .atEnd() do
+        if .peek() != value or .atEnd()
+        {
             return false
+        }
+
         .advance()
         return true
     }
@@ -175,10 +187,15 @@ impl Ast
     // Wraps a list of nodes into one node of 'kind', collapsing the trivial cases.
     mtd addList(kind: NodeKind, children: const [..] u32)->u32
     {
-        if children.count == 0 do
+        if children.count == 0
+        {
             return .addNode({kind: .Empty})
-        if children.count == 1 do
+        }
+
+        if children.count == 1
+        {
             return children[0]
+        }
 
         let range = .addChildren(children)
         return .addNode({kind: kind, first: range.first, count: range.count})
@@ -188,15 +205,21 @@ impl Ast
     mtd addClassNode(value: RuneClass)->u32
     {
         var cls = value
-        if .flags.ignoreCase do
+        if .flags.ignoreCase
+        {
             cls.foldCase()
-        else do
+        }
+        else
+        {
             cls.normalize()
+        }
 
         // A class holding one scalar value is a literal, which is what literal extraction
         // and the prefilters look for.
-        if cls.ranges.count == 1 and cls.ranges[0].lo == cls.ranges[0].hi do
+        if cls.ranges.count == 1 and cls.ranges[0].lo == cls.ranges[0].hi
+        {
             return .addNode({kind: .Literal, value: cls.ranges[0].lo})
+        }
 
         .classes.add(cls)
         return .addNode({kind: .Class, classIndex: cast(u32, .classes.count) - 1})
@@ -209,8 +232,10 @@ impl Ast
         var cls = value
         cls.normalize()
 
-        if cls.ranges.count == 1 and cls.ranges[0].lo == cls.ranges[0].hi do
+        if cls.ranges.count == 1 and cls.ranges[0].lo == cls.ranges[0].hi
+        {
             return .addNode({kind: .Literal, value: cls.ranges[0].lo})
+        }
 
         .classes.add(cls)
         return .addNode({kind: .Class, classIndex: cast(u32, .classes.count) - 1})
@@ -219,8 +244,10 @@ impl Ast
     // Adds a literal node, which becomes a class when the flags fold its case.
     mtd addLiteralNode(value: rune)->u32
     {
-        if not .flags.ignoreCase do
+        if not .flags.ignoreCase
+        {
             return .addNode({kind: .Literal, value: value})
+        }
 
         var cls: RuneClass
         cls.addRune(value)
@@ -233,7 +260,7 @@ impl Ast
 
     mtd parseAlternate()->u32 fail
     {
-        var branches: Array'u32
+        var branches: Array!{u32}
         branches.add(try .parseConcat())
 
         while .peek() == '|' and not .atEnd()
@@ -247,12 +274,14 @@ impl Ast
 
     mtd parseConcat()->u32 fail
     {
-        var items: Array'u32
+        var items: Array!{u32}
         while not .atEnd() and .peek() != '|' and .peek() != ')'
         {
             let item = try .parseRepeat()
-            if item != NoNode do
+            if item != NoNode
+            {
                 items.add(item)
+            }
         }
 
         return .addList(.Concat, items.toSlice())
@@ -262,8 +291,10 @@ impl Ast
     mtd parseRepeat()->u32 fail
     {
         var current = try .parseSingle()
-        if current == NoNode do
+        if current == NoNode
+        {
             return NoNode
+        }
 
         for
         {
@@ -287,8 +318,10 @@ impl Ast
 
             case '{':
                 let counted = try .parseCounted()
-                if not counted.valid do
+                if not counted.valid
+                {
                     return current
+                }
 
                 minCount = counted.minCount
                 maxCount = counted.maxCount
@@ -297,8 +330,10 @@ impl Ast
                 return current
             }
 
-            if not .canRepeat(current) do
+            if not .canRepeat(current)
+            {
                 fail SyntaxError{"nothing to repeat"}
+            }
 
             var greedy = true
             if .peek() == '?'
@@ -306,7 +341,7 @@ impl Ast
                 .advance()
                 greedy = false
             }
-            elif .peek() == '+'
+            else if .peek() == '+'
             {
                 // A possessive form would need atomic groups; reject it rather than
                 // silently matching something else.
@@ -348,10 +383,14 @@ impl Ast
         if .peek() == ','
         {
             .advance()
-            if .isDigit(.peek()) do
+            if .isDigit(.peek())
+            {
                 result.maxCount = .parseNumber()
-            else do
+            }
+            else
+            {
                 result.maxCount = RepeatInfinite
+            }
         }
 
         if .peek() != '}'
@@ -362,10 +401,15 @@ impl Ast
 
         .advance()
 
-        if result.maxCount != RepeatInfinite and result.maxCount < result.minCount do
+        if result.maxCount != RepeatInfinite and result.maxCount < result.minCount
+        {
             fail SyntaxError{"repetition range is empty, the low bound is above the high one"}
-        if result.minCount > MaxRepeatCount or (result.maxCount != RepeatInfinite and result.maxCount > MaxRepeatCount) do
+        }
+
+        if result.minCount > MaxRepeatCount or (result.maxCount != RepeatInfinite and result.maxCount > MaxRepeatCount)
+        {
             fail SyntaxError{"repetition count is too large"}
+        }
 
         result.valid = true
         return result
@@ -435,8 +479,11 @@ impl Ast
             // A repetition with nothing in front of it is a mistake; a brace that does not
             // spell one is just a brace.
             let counted = try .parseCounted()
-            if counted.valid do
+            if counted.valid
+            {
                 fail SyntaxError{"nothing to repeat"}
+            }
+
             .advance()
             return .addLiteralNode('{')
 
@@ -457,7 +504,7 @@ impl Ast
         .advance()
 
         let savedFlags = .flags
-        var capture    = 0'u32
+        var capture    = 0_u32
         var name: String
 
         if .peek() == '?'
@@ -469,15 +516,21 @@ impl Ast
                 .advance()
 
             case '<', '\'':
-                if .peek() == '<' and (.peekAt(1) == '=' or .peekAt(1) == '!') do
+                if .peek() == '<' and (.peekAt(1) == '=' or .peekAt(1) == '!')
+                {
                     fail SyntaxError{"look-around is not supported"}
+                }
+
                 name    = try .parseGroupName()
                 capture = .newCapture(name)
 
             case 'P':
                 .advance()
-                if .peek() != '<' do
+                if .peek() != '<'
+                {
                     fail SyntaxError{"expected '<' after '(?P'"}
+                }
+
                 name    = try .parseGroupName()
                 capture = .newCapture(name)
 
@@ -487,16 +540,22 @@ impl Ast
             default:
 
                 // Inline flags, either scoped to the enclosing group or to this one.
-                if not .parseInlineFlags() do
+                if not .parseInlineFlags()
+                {
                     fail SyntaxError{"invalid group modifier"}
+                }
 
                 // A flag group with no body sets the flags for the rest of the enclosing
                 // group, so the saved ones must not come back here.
-                if .eat(')') do
+                if .eat(')')
+                {
                     return NoNode
+                }
 
-                if not .eat(':') do
+                if not .eat(':')
+                {
                     fail SyntaxError{"expected ':' or ')' after inline flags"}
+                }
             }
         }
         else
@@ -505,8 +564,11 @@ impl Ast
         }
 
         let inner = try .parseAlternate()
-        if not .eat(')') do
+        if not .eat(')')
+        {
             fail SyntaxError{"missing ')'"}
+        }
+
         .flags = savedFlags
 
         let range = .addChild(inner)
@@ -532,10 +594,16 @@ impl Ast
             .advance()
         }
 
-        if not .eat(closing) do
+        if not .eat(closing)
+        {
             fail SyntaxError{"unterminated capture group name"}
-        if result.isEmpty() do
+        }
+
+        if result.isEmpty()
+        {
             fail SyntaxError{"empty capture group name"}
+        }
+
         return result
     }
 
@@ -559,8 +627,11 @@ impl Ast
                 .flags.dotAll = not negate
 
             case '-':
-                if negate do
+                if negate
+                {
                     return false
+                }
+
                 negate = true
 
             case ')', ':':
@@ -584,8 +655,10 @@ impl Ast
     mtd parseEscape()->u32 fail
     {
         .advance()
-        if .atEnd() do
+        if .atEnd()
+        {
             fail SyntaxError{"pattern ends with a backslash"}
+        }
 
         let value = .peek()
         switch value
@@ -613,8 +686,11 @@ impl Ast
         }
 
         let cls = try .parseClassEscape()
-        if cls.isClass do
+        if cls.isClass
+        {
             return .addClassNode(cls.value)
+        }
+
         return .addLiteralNode(cls.scalar)
     }
 
@@ -689,8 +765,10 @@ impl Ast
         // is not one of the sequences above is a mistake, not a literal.
         if (value >= 'a' and value <= 'z') or
            (value >= 'A' and value <= 'Z') or
-           (value >= '0' and value <= '9') do
+           (value >= '0' and value <= '9')
+        {
             fail SyntaxError{"unknown escape sequence"}
+        }
 
         .advance()
         result.scalar = value
@@ -700,7 +778,7 @@ impl Ast
     // Parses '\xHH' and '\x{H...}'; the cursor is just after the 'x'.
     mtd parseHexEscape()->rune fail
     {
-        var value = 0'u32
+        var value = 0_u32
 
         if .eat('{')
         {
@@ -712,10 +790,15 @@ impl Ast
                 .advance()
             }
 
-            if digits == 0 or digits > 6 do
+            if digits == 0 or digits > 6
+            {
                 fail SyntaxError{"invalid hexadecimal escape"}
-            if not .eat('}') do
+            }
+
+            if not .eat('}')
+            {
                 fail SyntaxError{"unterminated hexadecimal escape"}
+            }
         }
         else
         {
@@ -726,19 +809,31 @@ impl Ast
             }
         }
 
-        if not Utf8.isValidRune(cast(rune, value)) do
+        if not Utf8.isValidRune(cast(rune, value))
+        {
             fail SyntaxError{"hexadecimal escape is not a Unicode scalar value"}
+        }
+
         return cast(rune, value)
     }
 
     mtd hexDigit(value: rune)->u32 fail
     {
-        if value >= '0' and value <= '9' do
+        if value >= '0' and value <= '9'
+        {
             return cast(u32, (value - '0'))
-        if value >= 'a' and value <= 'f' do
+        }
+
+        if value >= 'a' and value <= 'f'
+        {
             return cast(u32, (value - 'a')) + 10
-        if value >= 'A' and value <= 'F' do
+        }
+
+        if value >= 'A' and value <= 'F'
+        {
             return cast(u32, (value - 'A')) + 10
+        }
+
         fail SyntaxError{"invalid hexadecimal escape"}
     }
 
@@ -756,8 +851,11 @@ impl Ast
         case 'u', 'U': result = RuneClass.posix("upper").value
         }
 
-        if letter == 'D' or letter == 'W' or letter == 'S' or letter == 'L' or letter == 'U' do
+        if letter == 'D' or letter == 'W' or letter == 'S' or letter == 'L' or letter == 'U'
+        {
             result.negate()
+        }
+
         return result
     }
 
@@ -775,24 +873,34 @@ impl Ast
                 .advance()
             }
 
-            if not .eat('}') do
+            if not .eat('}')
+            {
                 fail SyntaxError{"unterminated Unicode property name"}
+            }
         }
         else
         {
-            if .atEnd() do
+            if .atEnd()
+            {
                 fail SyntaxError{"missing Unicode property name"}
+            }
+
             name.append(.peek())
             .advance()
         }
 
         let found = RuneClass.unicodeProperty(name.toString())
-        if not found.known do
+        if not found.known
+        {
             fail SyntaxError{"unknown Unicode property"}
+        }
 
         var result = found.value
-        if negated do
+        if negated
+        {
             result.negate()
+        }
+
         return result
     }
 
@@ -822,8 +930,11 @@ impl Ast
             let low = try .parseClassItem()
             if low.isClass
             {
-                if .peek() == '-' and .peekAt(1) != ']' and .peekAt(1) != 0 do
+                if .peek() == '-' and .peekAt(1) != ']' and .peekAt(1) != 0
+                {
                     fail SyntaxError{"a class cannot be the bound of a range"}
+                }
+
                 result.addClass(low.value)
                 continue
             }
@@ -833,13 +944,18 @@ impl Ast
             {
                 .advance()
                 let high = try .parseClassItem()
-                if high.isClass do
+                if high.isClass
+                {
                     fail SyntaxError{"a class cannot be the bound of a range"}
+                }
 
                 var lo = low.scalar
                 var hi = high.scalar
-                if lo > hi do
+                if lo > hi
+                {
                     swap(&lo, &hi)
+                }
+
                 result.add(lo, hi)
                 continue
             }
@@ -847,17 +963,26 @@ impl Ast
             result.addRune(low.scalar)
         }
 
-        if not .eat(']') do
+        if not .eat(']')
+        {
             fail SyntaxError{"unterminated '['"}
+        }
 
         // Case folding happens before the negation: '[^a]' with case folding must reject
         // both spellings of the letter, not accept the other one.
-        if .flags.ignoreCase do
+        if .flags.ignoreCase
+        {
             result.foldCase()
-        else do
+        }
+        else
+        {
             result.normalize()
-        if negated do
+        }
+
+        if negated
+        {
             result.negate()
+        }
 
         return result
     }
@@ -874,8 +999,10 @@ impl Ast
         }
 
         .advance()
-        if .atEnd() do
+        if .atEnd()
+        {
             fail SyntaxError{"pattern ends with a backslash"}
+        }
 
         // Inside a class, '\b' is a backspace rather than a word boundary.
         if .peek() == 'b'
@@ -904,16 +1031,23 @@ impl Ast
             .advance()
         }
 
-        if not .eat(':') or not .eat(']') do
+        if not .eat(':') or not .eat(']')
+        {
             fail SyntaxError{"unterminated POSIX character class"}
+        }
 
         let found = RuneClass.posix(name.toString())
-        if not found.known do
+        if not found.known
+        {
             fail SyntaxError{"unknown POSIX character class"}
+        }
 
         var result = found.value
-        if negated do
+        if negated
+        {
             result.negate()
+        }
+
         return result
     }
 }
@@ -943,10 +1077,12 @@ impl Ast
             return current.count > 0 and .nodeStartsAnchored(.kids[current.first])
 
         case .Alternate:
-            for var i = 0'u32; i < current.count; i += 1
+            for var i = 0_u32; i < current.count; i += 1
             {
-                if not .nodeStartsAnchored(.kids[current.first + i]) do
+                if not .nodeStartsAnchored(.kids[current.first + i])
+                {
                     return false
+                }
             }
 
             return current.count > 0
@@ -960,7 +1096,7 @@ impl Ast
     // search that could not have matched anyway.
     mtd const minLength(node: u32)->u32
     {
-        const Ceiling = 0xFFFF'u32
+        const Ceiling = 0xFFFF_u32
 
         let current = .nodes[node]
         switch current.kind
@@ -973,8 +1109,10 @@ impl Ast
             for &r in .classes[current.classIndex].ranges
             {
                 let length = encodedLength(r.lo)
-                if length < shortest do
+                if length < shortest
+                {
                     shortest = length
+                }
             }
 
             return shortest == Ceiling ? 0 : shortest
@@ -988,23 +1126,27 @@ impl Ast
             return total > Ceiling ? Ceiling : cast(u32, total)
 
         case .Concat:
-            var total = 0'u32
-            for var i = 0'u32; i < current.count; i += 1
+            var total = 0_u32
+            for var i = 0_u32; i < current.count; i += 1
             {
                 total += .minLength(.kids[current.first + i])
-                if total > Ceiling do
+                if total > Ceiling
+                {
                     return Ceiling
+                }
             }
 
             return total
 
         case .Alternate:
             var shortest = Ceiling
-            for var i = 0'u32; i < current.count; i += 1
+            for var i = 0_u32; i < current.count; i += 1
             {
                 let length = .minLength(.kids[current.first + i])
-                if length < shortest do
+                if length < shortest
+                {
                     shortest = length
+                }
             }
 
             return current.count == 0 ? 0 : shortest
@@ -1028,19 +1170,21 @@ impl Ast
     //
     // Only a run of literals directly inside the top-level concatenation qualifies: those are
     // the ones no repetition or alternation can make optional.
-    mtd extractInnerLiteral()->{ found: bool, bytes: Array'u8, prefixRoot: u32 }
+    mtd extractInnerLiteral()->{ found: bool, bytes: Array!{u8}, prefixRoot: u32 }
     {
         var result: #returntype
 
         let rootNode = .nodes[.root]
-        if rootNode.kind != NodeKind.Concat do
+        if rootNode.kind != NodeKind.Concat
+        {
             return result
+        }
 
-        var bestStart = 0'u32
-        var bestEnd   = 0'u32
-        var bestScore = 0xFFFF'u32
+        var bestStart = 0_u32
+        var bestEnd   = 0_u32
+        var bestScore = 0xFFFF_u32
 
-        var index = 1'u32
+        var index = 1_u32
         while index < rootNode.count
         {
             if .nodes[.kids[rootNode.first + index]].kind != NodeKind.Literal
@@ -1050,8 +1194,10 @@ impl Ast
             }
 
             var last = index
-            while last + 1 < rootNode.count and .nodes[.kids[rootNode.first + last + 1]].kind == NodeKind.Literal do
+            while last + 1 < rootNode.count and .nodes[.kids[rootNode.first + last + 1]].kind == NodeKind.Literal
+            {
                 last += 1
+            }
 
             let score = .literalRunScore(rootNode, index, last)
             if score < bestScore
@@ -1064,22 +1210,28 @@ impl Ast
             index = last + 1
         }
 
-        if bestScore == 0xFFFF do
+        if bestScore == 0xFFFF
+        {
             return result
+        }
 
         var buffer: [4] u8
         for var i = bestStart; i <= bestEnd; i += 1
         {
             let value = .nodes[.kids[rootNode.first + i]].value
             let count = Utf8.encodeRune(buffer, value)
-            for var b = 0'u32; b < count; b += 1 do
+            for var b = 0_u32; b < count; b += 1
+            {
                 result.bytes.add(buffer[b])
+            }
         }
 
         // The part of the pattern before the literal, as one node.
-        var prefixKids: Array'u32
-        for var i = 0'u32; i < bestStart; i += 1 do
+        var prefixKids: Array!{u32}
+        for var i = 0_u32; i < bestStart; i += 1
+        {
             prefixKids.add(.kids[rootNode.first + i])
+        }
 
         result.prefixRoot = .addList(.Concat, prefixKids.toSlice())
         result.found      = true
@@ -1090,15 +1242,15 @@ impl Ast
     // A rarer run is a better place to look.
     mtd const literalRunScore(rootNode: Node, first, last: u32)->u32
     {
-        var rarest = 0xFFFF'u32
-        var second = 0xFFFF'u32
+        var rarest = 0xFFFF_u32
+        var second = 0xFFFF_u32
 
         var buffer: [4] u8
         for var i = first; i <= last; i += 1
         {
             let value = .nodes[.kids[rootNode.first + i]].value
             let count = Utf8.encodeRune(buffer, value)
-            for var b = 0'u32; b < count; b += 1
+            for var b = 0_u32; b < count; b += 1
             {
                 let score = cast(u32, ByteFrequency[buffer[b]])
                 if score < rarest
@@ -1106,15 +1258,17 @@ impl Ast
                     second = rarest
                     rarest = score
                 }
-                elif score < second
+                else if score < second
                 {
                     second = score
                 }
             }
         }
 
-        if second == 0xFFFF do
+        if second == 0xFFFF
+        {
             return rarest
+        }
 
         // Two bytes are compared at once, so what stops the scan is the pair.
         let paired = (rarest * second) / 1000
@@ -1123,4 +1277,4 @@ impl Ast
 }
 
 // The index that means "no node at all".
-const NoNode = 0xFFFF_FFFF'u32
+const NoNode = 0xFFFF_FFFF_u32

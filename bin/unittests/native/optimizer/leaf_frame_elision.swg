@@ -28,8 +28,10 @@ func firstAbove(values: const [*] s64, count: u64, limit: s64)->u64
 {
     for i in count
     {
-        if values[i] > limit do
+        if values[i] > limit
+        {
             return i
+        }
     }
 
     return count
@@ -39,8 +41,10 @@ func firstAbove(values: const [*] s64, count: u64, limit: s64)->u64
 func sumAfterCall(values: const [*] s64, count: u64, limit: s64)->s64
 {
     var total = cast(s64, firstAbove(values, count, limit))
-    for i in count do
+    for i in count
+    {
         total += values[i]
+    }
     return total
 }
 
@@ -54,7 +58,7 @@ func sumAfterCall(values: const [*] s64, count: u64, limit: s64)->s64
     Swag.require(not bothBelow(2, 1, 3, 4))
     Swag.require(not bothBelow(1, 2, 4, 3))
 
-    let values = [5's64, -2, 9, 7]
+    let values = [5_s64, -2, 9, 7]
     Swag.require(firstAbove(&values[0], 4, 6) == 2)
     Swag.require(firstAbove(&values[0], 4, 9) == 4)
     Swag.require(sumAfterCall(&values[0], 4, 6) == 21)

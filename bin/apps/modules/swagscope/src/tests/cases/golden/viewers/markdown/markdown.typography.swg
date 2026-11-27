@@ -4,7 +4,7 @@
 using Core, Pixel, Gui
 
 // One specimen exercises the title hierarchy, prose rhythm, quote and code of each appearance.
-func assertMarkdownTypography(theme: u32, name: string, width = 960'u32, dpiScale = 1'f32, height = 1000'u32)
+func assertMarkdownTypography(theme: u32, name: string, width = 960_u32, dpiScale = 1_f32, height = 1000_u32)
 {
     var host: Testing.HeadlessHost
     host.setup(width, height, dpiScale)

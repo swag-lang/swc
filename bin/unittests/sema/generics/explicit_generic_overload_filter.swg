@@ -12,5 +12,5 @@ func(T, U) choose(value: T, other: U)->bool
 
 func semaTest001()
 {
-    #assert(#typeof(choose'(bool)(true, 0.0'f32)) == bool)
+    #assert(#typeof(choose!{bool}(true, 0.0_f32)) == bool)
 }

@@ -26,12 +26,12 @@ func viewerPlugin()->Viewer.Plugin
 // Draws a small sample of the parsed rows without reading the rest of a large table.
 private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 {
-    const SourceLimit = 16 * 1024'u64
-    const MaxColumns  = 5'u64
-    const MaxRows     = 5'u64
+    const SourceLimit = 16 * 1024_u64
+    const MaxColumns  = 5_u64
+    const MaxRows     = 5_u64
     const Margin      = 8.0
 
-    let width  = cast(s32, Math.max(Math.min(maxSide, 256'u32), 64'u32))
+    let width  = cast(s32, Math.max(Math.min(maxSide, 256_u32), 64_u32))
     let height = Math.max(width * 3 / 4, 64)
     var canvas = try ImageCanvas.create(width, height)
     canvas.clear(Color.fromRgb(248, 249, 250))
@@ -39,8 +39,10 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
     var stream = catch File.openReadLive(fileName) { return {} }
     let sample = catch stream.readUtf8Chunk(SourceLimit) { return {} }
     let model  = catch parseDocument(sample.toString(), detectDelimiter(fileName, sample.toString())) { return {} }
-    if model.columns.isEmpty() do
+    if model.columns.isEmpty()
+    {
         return try canvas.toImage()
+    }
 
     let columns     = Math.min(model.columns.count, MaxColumns)
     let shownRows   = Math.min(model.rows.count, MaxRows)
@@ -60,8 +62,10 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
     {
         let header = rowIndex == 0
         let y      = top + cast(f32, rowIndex) * rowHeight
-        if rowIndex > 0 and rowIndex % 2 == 0 do
+        if rowIndex > 0 and rowIndex % 2 == 0
+        {
             painter.fillRect({left, y, tableWidth, rowHeight}, Color.fromRgb(248, 249, 250))
+        }
 
         for column in columns
         {
@@ -98,25 +102,25 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 
 private
 {
-    const FileLimit      = 32 * 1024 * 1024'u64
-    const ColumnLimit    = 256'u64
+    const FileLimit      = 32 * 1024 * 1024_u64
+    const ColumnLimit    = 256_u64
     const ColumnMinWidth = 96.0
     const ColumnMaxWidth = 320.0
     const CellWidth      = 8.0
 }
 
-const CellPreviewBytes = 1024'u64     // Most bytes of one cell handed to the list renderer.
+const CellPreviewBytes = 1024_u64     // Most bytes of one cell handed to the list renderer.
 
 // One record of a table.
 struct Row
 {
-    cells: Array'String
+    cells: Array!{String}
 }
 
 impl Row
 {
     // Closes the cell being read: its bytes become the next cell of the row, and `cell` is emptied.
-    mtd finishCell(cell: *Array'u8)
+    mtd finishCell(cell: *Array!{u8})
     {
         .cells.add(cast(string, cell.toSlice()))
         cell.clear()
@@ -127,10 +131,10 @@ impl Row
 // separated them.
 struct Document
 {
-    columns:          Array'String     // Column names, generated for the ones the header leaves empty.
-    rows:             Array'Row
+    columns:          Array!{String}     // Column names, generated for the ones the header leaves empty.
+    rows:             Array!{Row}
     delimiter:        u8
-    generatedColumns: Array'u32     // Columns whose name was generated rather than read.
+    generatedColumns: Array!{u32}     // Columns whose name was generated rather than read.
 }
 
 impl Document
@@ -139,20 +143,30 @@ impl Document
     // the header leaves empty. False when the rows are wider than `ColumnLimit`.
     mtd promoteHeader()->bool
     {
-        if .rows.isEmpty() do
+        if .rows.isEmpty()
+        {
             return true
+        }
 
         .columns = #move .rows[0].cells
         .rows.removeAtOrdered(0)
 
         var count = .columns.count
-        for row in .rows do
+        for row in .rows
+        {
             count = Math.max(count, row.cells.count)
-        if count > ColumnLimit do
-            return false
+        }
 
-        while .columns.count < count do
+        if count > ColumnLimit
+        {
+            return false
+        }
+
+        while .columns.count < count
+        {
             .columns.add({})
+        }
+
         for column, index in .columns where column.isEmpty()
         {
             .columns[index] = Format.toString(texts().ui_Column, index + 1)
@@ -163,7 +177,7 @@ impl Document
     }
 
     // Closes the cell and the row being read, and appends the row to the document.
-    mtd finishRow(row: *Row, cell: *Array'u8)
+    mtd finishRow(row: *Row, cell: *Array!{u8})
     {
         row.finishCell(cell)
         .rows.add(#move row[])
@@ -174,8 +188,10 @@ impl Document
 private func loadDocument(fileName: string)->Document fail
 {
     let info = try File.info(fileName)
-    if info.size > FileLimit do
+    if info.size > FileLimit
+    {
         fail UnsupportedFormatError{Errors.mkString(texts().err_TooLarge)}
+    }
 
     let source    = try File.readAllText(fileName)
     let delimiter = detectDelimiter(fileName, source)
@@ -189,18 +205,27 @@ func cellPreviewRange(value: string, focus = Swag.U64.Max)->{ start, end: u64 }
 {
     var result: #returntype
     result.end = value.count
-    if result.end <= CellPreviewBytes do
+    if result.end <= CellPreviewBytes
+    {
         return result
+    }
 
-    if focus != Swag.U64.Max and focus < result.end and focus > CellPreviewBytes / 3 do
+    if focus != Swag.U64.Max and focus < result.end and focus > CellPreviewBytes / 3
+    {
         result.start = focus - CellPreviewBytes / 3
+    }
 
-    while result.start and (value[result.start] & 0xC0) == 0x80 do
+    while result.start and (value[result.start] & 0xC0) == 0x80
+    {
         result.start -= 1
+    }
 
     result.end = Math.min(result.start + CellPreviewBytes, value.count)
-    while result.end < value.count and (value[result.end] & 0xC0) == 0x80 do
+    while result.end < value.count and (value[result.end] & 0xC0) == 0x80
+    {
         result.end -= 1
+    }
+
     return result
 }
 
@@ -211,11 +236,11 @@ func parseDocument(text: string, delimiter: u8)->Document fail
     result.delimiter = delimiter
 
     var row:         Row
-    var cell:        Array'u8
+    var cell:        Array!{u8}
     var quoted:      bool
     var closedQuote: bool
     var touched:     bool
-    var at = 0'u64
+    var at = 0_u64
     while at < text.count
     {
         let value = text[at]
@@ -225,7 +250,7 @@ func parseDocument(text: string, delimiter: u8)->Document fail
             {
                 if at + 1 < text.count and text[at + 1] == '"'
                 {
-                    cell.add('"'u8)
+                    cell.add('"'_u8)
                     at += 2
                     continue
                 }
@@ -238,7 +263,7 @@ func parseDocument(text: string, delimiter: u8)->Document fail
 
             if value == '\r'
             {
-                cell.add('\n'u8)
+                cell.add('\n'_u8)
                 at += at + 1 < text.count and text[at + 1] == '\n' ? 2 : 1
                 continue
             }
@@ -269,8 +294,11 @@ func parseDocument(text: string, delimiter: u8)->Document fail
         if value == '"' and cell.isEmpty() and not closedQuote
         {
             // An orphan quote on its own final line is an incomplete record, not a cell.
-            if at + 1 == text.count and not touched and result.rows.count do
+            if at + 1 == text.count and not touched and result.rows.count
+            {
                 break
+            }
+
             quoted  = true
             touched = true
             at      += 1
@@ -290,12 +318,21 @@ func parseDocument(text: string, delimiter: u8)->Document fail
         at          += 1
     }
 
-    if quoted do
+    if quoted
+    {
         fail InvalidFormatError{Errors.mkString(texts().err_UnclosedQuote)}
-    if touched or not cell.isEmpty() or not row.cells.isEmpty() do
+    }
+
+    if touched or not cell.isEmpty() or not row.cells.isEmpty()
+    {
         result.finishRow(&row, &cell)
-    if not result.promoteHeader() do
+    }
+
+    if not result.promoteHeader()
+    {
         fail UnsupportedFormatError{Errors.mkString(texts().err_TooManyColumns)}
+    }
+
     return result
 }
 
@@ -304,8 +341,8 @@ private func delimiterCount(text: string, delimiter: u8)->u64
 {
     var result: u64
     var quoted: bool
-    var at      = 0'u64
-    var records = 0'u32
+    var at      = 0_u64
+    var records = 0_u32
     while at < text.count and at < 16 * 1024 and records < 8
     {
         let value = text[at]
@@ -324,15 +361,23 @@ private func delimiterCount(text: string, delimiter: u8)->u64
             continue
         }
 
-        if not quoted and value == delimiter do
+        if not quoted and value == delimiter
+        {
             result += 1
+        }
+
         if not quoted and (value == '\r' or value == '\n')
         {
             records += 1
-            if value == '\r' and at + 1 < text.count and text[at + 1] == '\n' do
+            if value == '\r' and at + 1 < text.count and text[at + 1] == '\n'
+            {
                 at += 2
-            else do
+            }
+            else
+            {
                 at += 1
+            }
+
             continue
         }
 
@@ -346,11 +391,13 @@ private func delimiterCount(text: string, delimiter: u8)->u64
 func detectDelimiter(fileName, text: string)->u8
 {
     let extension = Path.lowercaseExtension(fileName)
-    if extension == ".tsv" or extension == ".tab" do
+    if extension == ".tsv" or extension == ".tab"
+    {
         return '\t'
+    }
 
-    const Candidates: [4] u8 = [','u8, ';'u8, '\t'u8, '|'u8]
-    var result = ','u8
+    const Candidates: [4] u8 = [','_u8, ';'_u8, '\t'_u8, '|'_u8]
+    var result = ','_u8
     var best: u64
     for candidate in Candidates
     {
@@ -381,7 +428,7 @@ struct ColumnProfile
 }
 
 // The most columns the information sheet profiles; a wider table names how many it leaves out.
-const ProfiledColumnLimit = 48'u64
+const ProfiledColumnLimit = 48_u64
 
 // Names the kind of values of a column, as its header writes it under its name.
 func kindName(kind: ColumnKind)->string
@@ -401,14 +448,22 @@ func isThousands(text: string)->bool
     var decimalPoint = false
     for byte, at in text
     {
-        if byte == '.' do
+        if byte == '.'
+        {
             decimalPoint = true
-        if byte != ',' do
-            continue
-        if decimalPoint do
-            return false
+        }
 
-        var digits = 0'u64
+        if byte != ','
+        {
+            continue
+        }
+
+        if decimalPoint
+        {
+            return false
+        }
+
+        var digits = 0_u64
         var next   = at + 1
         while next < text.count and Latin1.isDigit(text[next])
         {
@@ -416,8 +471,10 @@ func isThousands(text: string)->bool
             next   += 1
         }
 
-        if digits != 3 do
+        if digits != 3
+        {
             return false
+        }
     }
 
     return true
@@ -436,13 +493,18 @@ func groupThousands(value: f64, decimal: bool)->String
     var result: String
     for byte, at in digits.toString()
     {
-        if at and (digits.length - at) % 3 == 0 do
+        if at and (digits.length - at) % 3 == 0
+        {
             result += " "
+        }
+
         result += cast(rune, byte)
     }
 
-    if decimal do
+    if decimal
+    {
         result += Format.toString(".%{02}", cents % 100)
+    }
 
     return negative ? Format.toString("-%", result) : result
 }
@@ -467,10 +529,14 @@ func isNumericCell(text: string)->bool
     var digits = false
     for byte in text
     {
-        if byte >= '0' and byte <= '9' do
+        if byte >= '0' and byte <= '9'
+        {
             digits = true
-        elif byte != '+' and byte != '-' and byte != '.' and byte != ',' and byte != '%' and byte != ' ' do
+        }
+        else if byte != '+' and byte != '-' and byte != '.' and byte != ',' and byte != '%' and byte != ' '
+        {
             return false
+        }
     }
 
     return digits
@@ -489,16 +555,16 @@ func quantityOf(text: string, result: *f64)->bool
         {
             hasDot += 1
         }
-        elif byte == ','
+        else if byte == ','
         {
             commas += 1
             digitsAfterComma = 0
         }
-        elif byte >= '0' and byte <= '9'
+        else if byte >= '0' and byte <= '9'
         {
             digitsAfterComma += 1
         }
-        elif byte == ' ' or byte == '%'
+        else if byte == ' ' or byte == '%'
         {
             dropped = true
         }
@@ -514,18 +580,26 @@ func quantityOf(text: string, result: *f64)->bool
     }
 
     let decimalComma = not hasDot and commas == 1 and digitsAfterComma != 3
-    if commas and not decimalComma and not isThousands(text) do
+    if commas and not decimalComma and not isThousands(text)
+    {
         return false
+    }
 
     var clean: String
     for byte in text
     {
-        if byte == ' ' or byte == '%' do
+        if byte == ' ' or byte == '%'
+        {
             continue
+        }
+
         if byte == ','
         {
-            if decimalComma do
+            if decimalComma
+            {
                 clean += '.'
+            }
+
             continue
         }
 
@@ -553,8 +627,10 @@ private func compareSortKeys(a, b: SortKey, descending: bool)->s32
     if a.numeric
     {
         order = descending ? (b.quantity <=> a.quantity) : (a.quantity <=> b.quantity)
-        if not order do
+        if not order
+        {
             order = descending ? Text.compareNames(b.text, a.text) : Text.compareNames(a.text, b.text)
+        }
     }
     else
     {
@@ -566,8 +642,11 @@ private func compareSortKeys(a, b: SortKey, descending: bool)->s32
 
 private func countText(count: u64, one, many: string)->String
 {
-    if count == 1 do
+    if count == 1
+    {
         return one
+    }
+
     return Format.toString(many, count)
 }
 
@@ -583,28 +662,50 @@ enum ColumnKind
 // Reports whether `text` begins with a valid year-first date, optionally followed by a timestamp.
 func isDateCell(text: string)->bool
 {
-    if text.count < 10 do
+    if text.count < 10
+    {
         return false
-    if text[4] != '-' and text[4] != '/' do
+    }
+
+    if text[4] != '-' and text[4] != '/'
+    {
         return false
-    if text[7] != text[4] do
+    }
+
+    if text[7] != text[4]
+    {
         return false
-    for at in 4 where not Latin1.isDigit(text[at]) do
+    }
+
+    for at in 4 where not Latin1.isDigit(text[at])
+    {
         return false
-    if text.count > 10 and text[10] != 'T' and text[10] != ' ' do
+    }
+
+    if text.count > 10 and text[10] != 'T' and text[10] != ' '
+    {
         return false
+    }
 
     let month = cast(u32, (text[5] - '0') * 10 + (text[6] - '0'))
     let day   = cast(u32, (text[8] - '0') * 10 + (text[9] - '0'))
     var year: u32
-    for at in 4 do
+    for at in 4
+    {
         year = year * 10 + cast(u32, text[at] - '0')
-    for at in 5 until 7 where not Latin1.isDigit(text[at]) do
-        return false
-    for at in 8 until 10 where not Latin1.isDigit(text[at]) do
-        return false
+    }
 
-    var daysInMonth = 31'u32
+    for at in 5 until 7 where not Latin1.isDigit(text[at])
+    {
+        return false
+    }
+
+    for at in 8 until 10 where not Latin1.isDigit(text[at])
+    {
+        return false
+    }
+
+    var daysInMonth = 31_u32
     switch month
     {
     case 2: daysInMonth = year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) ? 29 : 28
@@ -617,12 +718,17 @@ func isDateCell(text: string)->bool
 // Returns a sortable YYYYMMDD key for a valid year-first date or timestamp.
 private func dateKey(text: string)->u32
 {
-    if not isDateCell(text) do
+    if not isDateCell(text)
+    {
         return Swag.U32.Max
+    }
 
     var year: u32
-    for at in 4 do
+    for at in 4
+    {
         year = year * 10 + cast(u32, text[at] - '0')
+    }
+
     let month = cast(u32, (text[5] - '0') * 10 + (text[6] - '0'))
     let day   = cast(u32, (text[8] - '0') * 10 + (text[9] - '0'))
     return year * 10_000 + month * 100 + day
@@ -636,21 +742,21 @@ struct Panel
 
     late list: *ListCtrl
 
-    kinds:    Array'ColumnKind
-    profiles: Array'ColumnProfile     // What each column holds, counted the first time the sheet asks.
+    kinds:    Array!{ColumnKind}
+    profiles: Array!{ColumnProfile}     // What each column holds, counted the first time the sheet asks.
     built:    bool     // Whether the parts exist: a resize reaches the panel while it is built.
 
     document:      Document
-    numeric:       Array'bool
-    order:         Array'u32     // Document row shown at each line, in the sorted order.
-    rowLines:      Array'u32     // Line each document row is shown at.
+    numeric:       Array!{bool}
+    order:         Array!{u32}     // Document row shown at each line, in the sorted order.
+    rowLines:      Array!{u32}     // Line each document row is shown at.
     sortColumn:    u32 = Swag.U32.Max
     descending:    bool
     searchRow:     u64 = Swag.U64.Max
     searchColumn:  u64
     searchOffset:  u64
     searchLength:  u64
-    load:          Viewer.BackgroundLoad'Document
+    load:          Viewer.BackgroundLoad!{Document}
     services:      Viewer.HostServices
     failureReason: String
 
@@ -664,8 +770,10 @@ private impl IWnd for Panel
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .built do
+        if .built
+        {
             .fitWidth()
+        }
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -700,10 +808,14 @@ private impl IWnd for Panel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind == .Pressed and evt.modifiers == .Control and evt.key == .C do
+        if evt.kind == .Pressed and evt.modifiers == .Control and evt.key == .C
+        {
             Clipboard.setString(.selectionText())
-        else do
+        }
+        else
+        {
             evt.accepted = false
+        }
     }
 }
 
@@ -714,8 +826,10 @@ private impl Panel
         for index in .document.generatedColumns
         {
             .document.columns[index] = Format.toString(texts().ui_Column, index + 1)
-            if index < .list.header.items.count do
+            if index < .list.header.items.count
+            {
                 .list.header.items[index]!.name.set(.document.columns[index])
+            }
         }
 
         .list.header.invalidate()
@@ -736,10 +850,14 @@ private impl Panel
             {
                 let cell = row.cells[index].toString()
                 longest = Math.max(longest, row.cells[index].length)
-                if isNumericCell(cell) do
+                if isNumericCell(cell)
+                {
                     numeric = true
-                elif cell.count do
+                }
+                else if cell.count
+                {
                     textual = true
+                }
             }
 
             // Year-first dates can contain only digits and dashes, so recognize a complete date
@@ -750,22 +868,26 @@ private impl Panel
             for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count and row.cells[index].length
             {
                 hasDates = true
-                if not isDateCell(row.cells[index].toString()) do
+                if not isDateCell(row.cells[index].toString())
+                {
                     dates = false
+                }
             }
 
             if hasDates and dates
             {
                 kind = .Date
             }
-            elif numeric and not textual
+            else if numeric and not textual
             {
                 kind = .Integer
                 for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count
                 {
                     let cell = row.cells[index].toString()
-                    if Utf8.contains(cell, ".") or (Utf8.contains(cell, ",") and not isThousands(cell)) do
+                    if Utf8.contains(cell, ".") or (Utf8.contains(cell, ",") and not isThousands(cell))
+                    {
                         kind = .Decimal
+                    }
                 }
             }
 
@@ -794,8 +916,11 @@ private impl Panel
     // words of its first column on the page margin. The row ground extends by its own inset.
     mtd fitWidth()
     {
-        if .list.header.items.isEmpty() do
+        if .list.header.items.isEmpty()
+        {
             return
+        }
+
         // Keep the broad reading margin when the columns fit. A narrow cell spends its width on data.
         let inset  = .themeMetrics().floating_Inset
         let spare  = .clientRect().width - .list.header.contentWidth()
@@ -818,8 +943,11 @@ private impl Panel
         let room = .clientRect().width - .padding.x - .padding.z - .list.margin.x
         let used = .list.header.contentWidth() + 8
         let rest = Math.max(room - used, 0)
-        if .list.margin.z == rest do
+        if .list.margin.z == rest
+        {
             return
+        }
+
         .list.margin.z = rest
         .applyLayout()
     }
@@ -828,27 +956,38 @@ private impl Panel
     // quantities, the first one holding them otherwise.
     mtd sumColumn()->u64
     {
-        if .sortColumn < .numeric.count and .numeric[.sortColumn] do
+        if .sortColumn < .numeric.count and .numeric[.sortColumn]
+        {
             return .sortColumn
-        for numeric, column in .numeric where numeric do
+        }
+
+        for numeric, column in .numeric where numeric
+        {
             return column
+        }
+
         return Swag.U64.Max
     }
 
     // Writes the sum of the quantities of `column`, grouped by thousands.
     mtd sumText(column: u64)->String
     {
-        var total   = 0.0'f64
+        var total   = 0.0_f64
         var decimal = false
         for row in .document.rows where column < row.cells.count
         {
             var value: f64
-            if quantityOf(row.cells[column].toString(), &value) do
+            if quantityOf(row.cells[column].toString(), &value)
+            {
                 total += value
+            }
         }
 
-        if column < .kinds.count do
+        if column < .kinds.count
+        {
             decimal = .kinds[column] == .Decimal
+        }
+
         return groupThousands(total, decimal)
     }
 
@@ -860,10 +999,15 @@ private impl Panel
         func quoted(value: string)->String
         {
             var needed = false
-            for c in value where c == '\t' or c == '\n' or c == '\r' or c == '"' do
+            for c in value where c == '\t' or c == '\n' or c == '\r' or c == '"'
+            {
                 needed = true
-            if not needed do
+            }
+
+            if not needed
+            {
                 return String.from(value)
+            }
 
             var escaped = String.from(value)
             escaped.replace('"', "\"\"")
@@ -875,8 +1019,11 @@ private impl Panel
         {
             for name, column in .document.columns
             {
-                if column do
+                if column
+                {
                     result += "\t"
+                }
+
                 result += quoted(name.toString())
             }
 
@@ -887,13 +1034,19 @@ private impl Panel
         for line in .document.rows.count
         {
             let selected = anySelected ? .list.isLineSelected(cast(u32, line)) : line == .list.focusIndex
-            if not selected do
+            if not selected
+            {
                 continue
+            }
+
             let row = &.document.rows[.documentRow(line)]
             for cell, column in row.cells
             {
-                if column do
+                if column
+                {
                     result += "\t"
+                }
+
                 result += quoted(cell.toString())
             }
 
@@ -912,11 +1065,16 @@ private impl Panel
         var result: String
         for line in .document.rows.count
         {
-            if line do
+            if line
+            {
                 result += "\n"
+            }
+
             let row = &.document.rows[.documentRow(line)]
-            if column < row.cells.count do
+            if column < row.cells.count
+            {
                 result += row.cells[column]
+            }
         }
 
         return result
@@ -930,8 +1088,11 @@ private impl Panel
     // either way, and equal cells keep the order of the file.
     internal mtd sortBy(column: u32)
     {
-        if column >= .document.columns.count do
+        if column >= .document.columns.count
+        {
             return
+        }
+
         .descending = .sortColumn == column and not .descending
         .sortColumn = column
 
@@ -940,8 +1101,8 @@ private impl Panel
 
         let numeric      = column < .numeric.count and .numeric[column]
         let isDateColumn = column < .kinds.count and .kinds[column] == .Date
-        var keys:  Array'SortKey
-        var empty: Array'u32
+        var keys:  Array!{SortKey}
+        var empty: Array!{u32}
         let descending   = .descending
         for row, index in .document.rows
         {
@@ -955,10 +1116,14 @@ private impl Panel
 
             if text.count == 0 or
                (isDateColumn and key.quantity == cast(f64, Swag.U32.Max)) or
-               (numeric and not quantityOf(text, &key.quantity)) do
+               (numeric and not quantityOf(text, &key.quantity))
+            {
                 empty.add(key.row)
-            else do
+            }
+            else
+            {
                 keys.add(key)
+            }
         }
 
         keys.sort(func|descending|(a, b)->s32
@@ -968,17 +1133,28 @@ private impl Panel
 
         .order.clear()
         .rowLines.resize(.document.rows.count)
-        for key in keys do
+        for key in keys
+        {
             .order.add(key.row)
-        for row in empty do
+        }
+
+        for row in empty
+        {
             .order.add(row)
-        for row, line in .order do
+        }
+
+        for row, line in .order
+        {
             .rowLines[row] = cast(u32, line)
+        }
 
         .list.header.setSortIndicator(column, .descending ? .Descending : .Ascending)
         .list.unselectAll()
-        if focused != Swag.U64.Max do
+        if focused != Swag.U64.Max
+        {
             .list.setFocusedIndex(.lineOfRow(focused))
+        }
+
         .list.invalidate()
 
         // The focused row now stands on another line, and the foot sums the sorted column.
@@ -990,13 +1166,15 @@ private impl Panel
     {
         let rows    = countText(.document.rows.count, texts().ui_Row, texts().ui_Rows)
         let columns = countText(.document.columns.count, texts().ui_OneColumn, texts().ui_Columns)
-        var foot = Format.toString("% · % · % · UTF-8", rows, columns, delimiterKind(.document.delimiter))
+        var foot    = Format.toString("% · % · % · UTF-8", rows, columns, delimiterKind(.document.delimiter))
         if .list.focusIndex < .document.rows.count
         {
             let row = &.document.rows[.documentRow(.list.focusIndex)]
             foot = Format.toString("% · %", foot, Format.toString(texts().ui_RowAt, .list.focusIndex + 1))
-            if row.cells.count and row.cells[0].length do
+            if row.cells.count and row.cells[0].length
+            {
                 foot = Format.toString("% · %", foot, row.cells[0].toString())
+            }
         }
 
         let column = .sumColumn()
@@ -1024,8 +1202,11 @@ private impl Panel
     // hit is highlighted, with the match in bold and the preview window moved to show it.
     internal mtd fillLine(line: *ListLine, index: u32)
     {
-        if index >= .document.rows.count do
+        if index >= .document.rows.count
+        {
             return
+        }
+
         let rowIndex = .documentRow(index)
         let row      = &.document.rows[rowIndex]
         for column in .document.columns.count
@@ -1053,13 +1234,18 @@ private impl Panel
                         with item.name
                         {
                             .clear()
-                            if range.start do
+                            if range.start
+                            {
                                 .append("\u2026")
+                            }
+
                             .append(value[range.start until markedStart])
                             .append(value[markedStart until markedEnd], {bold: true})
                             .append(value[markedEnd until range.end])
-                            if range.end < value.count do
+                            if range.end < value.count
+                            {
                                 .append("\u2026")
+                            }
                         }
                     }
                 }
@@ -1072,7 +1258,7 @@ private impl Panel
     func createBase(parent: *Wnd)->*Panel
     {
         registerTexts(parent.app())
-        let result = Wnd.create'Panel(parent, "scope.table")
+        let result = Wnd.create!{Panel}(parent, "scope.table")
         result.backgroundStyle = .View
         result.padding         = Math.Vector4{PageMargin, 24, PageMargin, 0}
 
@@ -1102,20 +1288,24 @@ private impl Panel
 // virtual rows, matching, and highlighted result behavior as CSV and TSV files.
 impl Panel
 {
-    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
+    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array!{Viewer.SearchMatch})
     {
         var matcher = catch Viewer.createNameMatcher(text, options) { return; }
         for row, rowIndex in .document.rows
         {
-            for cell, column in row.cells do
+            for cell, column in row.cells
+            {
                 Viewer.collectTextMatches(cell.toString(), &matcher, rowIndex, column, 0, result)
+            }
         }
     }
 
     mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
     {
-        if match.major >= .document.rows.count or match.minor >= .document.rows[match.major].cells.count do
+        if match.major >= .document.rows.count or match.minor >= .document.rows[match.major].cells.count
+        {
             return false
+        }
 
         .searchRow    = match.major
         .searchColumn = match.minor
@@ -1131,22 +1321,31 @@ impl Panel
     // mark is placed in the text the reader can actually see rather than in the stored value.
     mtd searchBounds(result: *Math.Rectangle)->bool
     {
-        if .searchRow >= .document.rows.count or .searchColumn >= .document.rows[.searchRow].cells.count do
+        if .searchRow >= .document.rows.count or .searchColumn >= .document.rows[.searchRow].cells.count
+        {
             return false
+        }
 
         let value = .document.rows[.searchRow].cells[.searchColumn].toString()
-        if not Viewer.isByteRangeInBounds(value.count, .searchOffset, .searchLength) do
+        if not Viewer.isByteRangeInBounds(value.count, .searchOffset, .searchLength)
+        {
             return false
+        }
 
         let range       = cellPreviewRange(value, .searchOffset)
         let markedStart = Math.max(.searchOffset, range.start)
         let markedEnd   = Math.min(.searchOffset + .searchLength, range.end)
-        if markedEnd <= markedStart do
+        if markedEnd <= markedStart
+        {
             return false
+        }
 
         var shown: String
-        if range.start do
+        if range.start
+        {
             shown += "\u2026"
+        }
+
         let lead = shown.length
         shown += value[range.start until range.end]
         return Viewer.listCellMatchBounds(.list, .lineOfRow(.searchRow), cast(u32, .searchColumn), shown, lead + markedStart - range.start, markedEnd - markedStart, result)
@@ -1156,8 +1355,11 @@ impl Panel
     // and brings it into view.
     internal mtd revealLine(line: u32)
     {
-        if line >= .document.rows.count do
+        if line >= .document.rows.count
+        {
             return
+        }
+
         .list.unselectAll()
         .list.setFocusedIndex(line)
         .refreshDetails()
@@ -1175,23 +1377,36 @@ impl Panel
             entries.add(texts().ui_CopyRowsNames, .Copy, func|view = me|() { Clipboard.setString(view.selectionText(withNames: true)) }, disabled: empty, bindId: "scope.table.copyRowsNames")
 
             // The column the table is sorted on, its values one per line in the order shown.
-            if .sortColumn < .document.columns.count do
+            if .sortColumn < .document.columns.count
+            {
                 entries.add(Format.toString(texts().ui_CopyColumn, .document.columns[.sortColumn]), .Copy, func|view = me|() { Clipboard.setString(view.columnText(view.sortColumn)) }, bindId: "scope.table.copyColumn")
+            }
+
             return
         }
 
         let query = Latin1.trim(entries.query.toString())
-        if not query.count do
+        if not query.count
+        {
             return
-        for c in query where not Latin1.isDigit(c) do
+        }
+
+        for c in query where not Latin1.isDigit(c)
+        {
             return
+        }
+
         let row = catch StrConv.toU64(query) { return; }
-        if not row or row > .document.rows.count do
+        if not row or row > .document.rows.count
+        {
             return
+        }
 
         let entry = entries.add(Format.toString(texts().ui_GoToRow, row), .GoTo, func|view = me, row|() { view.revealLine(cast(u32, row - 1)) })
-        if entry do
+        if entry
+        {
             entry.lead = Format.toString("%", row)
+        }
     }
 
     mtd clearSearch()
@@ -1230,8 +1445,11 @@ impl Panel
 
 private func fillVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
-    if line == null do
+    if line == null
+    {
         return
+    }
+
     assume cast(*Panel, list.parent).fillLine(line, index)
 }
 
@@ -1255,10 +1473,15 @@ impl Panel
         {
             .profileColumns()
             data.add(.Columns, group: true)
-            for column in shown do
+            for column in shown
+            {
                 data.addText(.document.columns[column], .profileText(column))
-            if .document.columns.count > shown do
+            }
+
+            if .document.columns.count > shown
+            {
                 data.addText("…", Format.toString(texts().ui_MoreColumns, .document.columns.count - shown))
+            }
         }
 
         data.describe(sheet)
@@ -1268,8 +1491,11 @@ impl Panel
     mtd profileColumns()
     {
         let shown = Math.min(.document.columns.count, ProfiledColumnLimit)
-        if .profiles.count == shown do
+        if .profiles.count == shown
+        {
             return
+        }
+
         .profiles.clear()
         .profiles.resize(shown)
         for &row in .document.rows
@@ -1294,8 +1520,9 @@ impl Panel
                          (Utf8.contains(text, ",") and not isThousands(text)))) or
                        (kind == .Decimal and not quantityOf(text, &value)) or
                        (kind == .Date and not isDateCell(text))
-                        do
+                    {
                         profile.inconsistent += 1
+                    }
                 }
 
                 var value: f64
@@ -1323,10 +1550,16 @@ impl Panel
             result += Format.toString(" · %", Format.toString(texts().ui_Mean, groupThousands(profile.sum / cast(f64, profile.quantities), true)))
         }
 
-        if profile.empty do
+        if profile.empty
+        {
             result += Format.toString(" · %", Format.toString(texts().ui_Empty, profile.empty))
-        if profile.inconsistent do
+        }
+
+        if profile.inconsistent
+        {
             result += Format.toString(" · %", Format.toString(texts().ui_Inconsistent, profile.inconsistent))
+        }
+
         return result
     }
 }

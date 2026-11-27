@@ -4,34 +4,42 @@ using Swag
 #[Swag.NoInline]
 func exerciseGenericCloneCodegen()->bool
 {
-    var values: GenericCloneCodegenSupport.BufferBox's32
+    var values: GenericCloneCodegenSupport.BufferBox!{s32}
     values.reserve(8)
     values.add(1)
     values.add(2)
     values.add(3)
 
     let slice = values.toSlice()
-    if slice.count != 3 or slice[1] != 2 do
+    if slice.count != 3 or slice[1] != 2
+    {
         return false
+    }
 
-    var total = 0's32
-    for value in slice do
+    var total = 0_s32
+    for value in slice
+    {
         total += value
+    }
 
-    var ptrs: GenericCloneCodegenSupport.PtrBox's32
+    var ptrs: GenericCloneCodegenSupport.PtrBox!{s32}
     ptrs.values.reserve(4)
     ptrs.addNew(4)
     ptrs.addNew(5)
     ptrs.clear()
 
-    var owned: GenericCloneCodegenSupport.OwnedPtrVisitBox's32
+    var owned: GenericCloneCodegenSupport.OwnedPtrVisitBox!{s32}
     owned.addNew(6)
     owned.addNew(7)
-    if owned.first![] != 6 or owned.second![] != 7 do
+    if owned.first![] != 6 or owned.second![] != 7
+    {
         return false
+    }
     owned.clearOwned()
-    if owned.count != 0 do
+    if owned.count != 0
+    {
         return false
+    }
 
     values.free()
     ptrs.values.free()

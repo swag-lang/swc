@@ -73,7 +73,7 @@ using Core, Core.Math, Pdf
 #test
 {
     let content = "BT /F0 10 Tf 0 -1 1 0 20 30 Tm 5 0 Td (A) Tj 12 TL T* (B) Tj ET"
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
 
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
@@ -93,7 +93,7 @@ using Core, Core.Math, Pdf
 // array move it back by their own amount.
 #test
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /FirstChar 65 /LastChar 66 /Widths [1000 500] >>")
 
     let content  = "BT /F0 10 Tf 0 0 Td (AB) Tj (C) Tj ET"
@@ -117,7 +117,7 @@ using Core, Core.Math, Pdf
 // a scanned page relies on.
 #test
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
 
     let content  = "BT /F0 10 Tf 3 Tr (hidden) Tj 0 Tr (shown) Tj ET"
@@ -134,7 +134,7 @@ using Core, Core.Math, Pdf
 // Invisible OCR text remains searchable at the same offsets as the displayed page's index.
 #test
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
     let content  = "BT /F0 10 Tf 10 80 Td 3 Tr (hidden) Tj 0 Tr (shown) Tj 7 Tr (clipped) Tj ET"
     let bytes    = singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice())
@@ -155,7 +155,7 @@ using Core, Core.Math, Pdf
 // A `/Differences` array renames single codes, and text extraction follows the new names.
 #test
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding 6 0 R >>")
     addObject(&objects, 6, "<< /Type /Encoding /BaseEncoding /WinAnsiEncoding /Differences [65 /eacute /Euro] >>")
 
@@ -181,7 +181,7 @@ endbfrange
 endcmap
 """
 
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /ToUnicode 6 0 R >>")
     addStreamObject(&objects, 6, "", cast(const [..] u8, cmap))
 
@@ -209,7 +209,7 @@ endbfchar
 endcmap
 """
 
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /Font /Subtype /TrueType /BaseFont /ABCDEF+Calibri-Bold /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>")
     addStreamObject(&objects, 6, "", cast(const [..] u8, cmap))
 
@@ -233,7 +233,7 @@ endbfchar
 endcmap
 """
 
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type0 /BaseFont /Custom /Encoding /Identity-H /DescendantFonts [6 0 R] /ToUnicode 7 0 R >>")
     addObject(&objects, 6, "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Custom /DW 1000 /W [3 [500 250]] >>")
     addStreamObject(&objects, 7, "", cast(const [..] u8, cmap))
@@ -261,7 +261,7 @@ endcmap
 #test
 {
     const glyphMap: [10] u8 = [0, 0, 0, 1, 0, 2, 0, 7, 0, 8]
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type0 /BaseFont /Custom /Encoding /Identity-H /DescendantFonts [6 0 R] >>")
     addObject(&objects, 6, "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Custom /CIDToGIDMap 7 0 R >>")
     addStreamObject(&objects, 7, "", glyphMap)

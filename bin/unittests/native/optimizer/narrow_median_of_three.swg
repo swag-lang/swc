@@ -20,14 +20,18 @@ func median8(values: const [*]u8, index: u64)->u8
 
 #test
 {
-    let values16  = [1'u16, 2, 3, 3, 2, 1, 2, 1, 3, 0, 0xFFFF, 17, 8, 8, 9]
-    let results16 = [2'u16, 2, 2, 17, 8]
-    for result, index in results16 do
+    let values16  = [1_u16, 2, 3, 3, 2, 1, 2, 1, 3, 0, 0xFFFF, 17, 8, 8, 9]
+    let results16 = [2_u16, 2, 2, 17, 8]
+    for result, index in results16
+    {
         Swag.require(median16(&values16[0], index * 3) == result)
+    }
 
-    let values8 = [1'u8, 2, 3, 1, 3, 2, 2, 1, 3, 2, 3, 1, 3, 1, 2, 3, 2, 1,
+    let values8 = [1_u8, 2, 3, 1, 3, 2, 2, 1, 3, 2, 3, 1, 3, 1, 2, 3, 2, 1,
                    0, 0xFF, 17, 8, 8, 9, 8, 9, 8, 9, 8, 8]
-    let results8 = [2'u8, 2, 2, 2, 2, 2, 17, 8, 8, 8]
-    for result, index in results8 do
+    let results8 = [2_u8, 2, 2, 2, 2, 2, 17, 8, 8, 8]
+    for result, index in results8
+    {
         Swag.require(median8(&values8[0], index * 3) == result)
+    }
 }

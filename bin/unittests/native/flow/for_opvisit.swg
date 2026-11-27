@@ -130,9 +130,9 @@ impl FieldPointerVisits
     {
         #static if ptr
         {
-            #inject(stmt, item = cast(*s32, &(me.first)), index = 0'u64)
-            #inject(stmt, item = cast(*s32, &(me.second)), index = 1'u64)
-            #inject(stmt, item = cast(*s32, &(me.third)), index = 2'u64)
+            #inject(stmt, item = cast(*s32, &(me.first)), index = 0_u64)
+            #inject(stmt, item = cast(*s32, &(me.second)), index = 1_u64)
+            #inject(stmt, item = cast(*s32, &(me.third)), index = 2_u64)
         }
         else
         {
@@ -180,8 +180,10 @@ impl ReturnVisits
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
         where not ptr
     {
-        if not (.values).count do
+        if not (.values).count
+        {
             return
+        }
 
         var remain = (.values).count
         scope(Up)
@@ -193,8 +195,10 @@ impl ReturnVisits
             }
 
             remain -= 1
-            if not remain do
+            if not remain
+            {
                 break
+            }
         }
     }
 }
@@ -205,8 +209,10 @@ func nativeForeachVisitReturn()->bool
 
     for value in values
     {
-        if value == 6 do
+        if value == 6
+        {
             return true
+        }
     }
 
     return false
@@ -227,10 +233,14 @@ impl CallSourceVisits
     {
         for idx in .count
         {
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = cast(const *s32, &me.values[idx]), index = idx)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = me.values[idx], index = idx)
+            }
         }
     }
 }
@@ -246,7 +256,7 @@ func callSource()->const *CallSourceVisits
 
 struct(T) GenericScopedVisits
 {
-    const FIRST = 1'u64
+    const FIRST = 1_u64
     values: [3] T
 }
 
@@ -259,8 +269,10 @@ impl GenericScopedVisits
         scope(Outer)
         for idx in 3
         {
-            if idx < GenericScopedVisits.FIRST do
+            if idx < GenericScopedVisits.FIRST
+            {
                 continue
+            }
 
             scope(Inner)
             {
@@ -295,8 +307,10 @@ impl GenericScopedVisits
 
     for value, ordinal in values where value != 6
     {
-        if ordinal == 0 do
+        if ordinal == 0
+        {
             continue
+        }
 
         acc += value + cast(s32, ordinal)
         break
@@ -309,8 +323,10 @@ impl GenericScopedVisits
 {
     var values = BufferVisits{}
 
-    for &value, ordinal in values do
+    for &value, ordinal in values
+    {
         value[] += cast(s32, (ordinal + 1))
+    }
 
     Swag.require(values.values[0] == 4)
     Swag.require(values.values[1] == 8)
@@ -401,8 +417,10 @@ impl GenericScopedVisits
     let values = HiddenAliasVisits{}
     var sum    = 0
 
-    for value, scaled, index in values do
+    for value, scaled, index in values
+    {
         sum += value + scaled + cast(s32, index)
+    }
 
     Swag.require(sum == 168)
 }
@@ -483,8 +501,10 @@ impl GenericScopedVisits
     g_CallSourceCalls = 0
     var sum = 0
 
-    for value in callSource() do
+    for value in callSource()
+    {
         sum += value
+    }
 
     Swag.require(sum == 24)
     Swag.require(g_CallSourceCalls == 1)
@@ -492,7 +512,7 @@ impl GenericScopedVisits
 
 #test
 {
-    let values:  GenericScopedVisits's32 = {values: [10, 20, 30]}
+    let values:  GenericScopedVisits!{s32} = {values: [10, 20, 30]}
     var sum = 0
     var indexes: u64
 

@@ -21,7 +21,7 @@ func sharedInput(a, b: u64)->u64 => (a * 5 + b) ^ a
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x8000000000000000]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x8000000000000000]
     for a in values
     {
         Swag.require(timesThree(a) == ((a << 1) + a))
@@ -33,7 +33,9 @@ func sharedInput(a, b: u64)->u64 => (a * 5 + b) ^ a
             Swag.require(sharedInput(a, b) == ((((a << 2) + a) + b) ^ a))
         }
     }
-    var array = [11'u64, 27, 49, 83]
-    for i in 4'u64 do
+    var array = [11_u64, 27, 49, 83]
+    for i in 4_u64
+    {
         Swag.require(indexed(&array[0], i) == array[i])
+    }
 }

@@ -2,7 +2,7 @@
 
 // Real-life example: a generic dynamic array backed by the default runtime allocator.
 
-const DefaultCapacity = 4'u64
+const DefaultCapacity = 4_u64
 
 struct(T) DynArray
 {
@@ -11,24 +11,26 @@ struct(T) DynArray
     capacity: u64
 }
 
-func(T) create()->DynArray'T
+func(T) create()->DynArray!{T}
 {
-    var result: DynArray'T
+    var result: DynArray!{T}
     result.capacity = DefaultCapacity
     result.data     = cast([*] T?, testAlloc(DefaultCapacity * #sizeof(T)))
     return result
 }
 
-func(T) destroy(arr: *DynArray'T)
+func(T) destroy(arr: *DynArray!{T})
 {
-    if arr.data do
+    if arr.data
+    {
         testFree(arr.data)
+    }
     arr.data     = null
     arr.count    = 0
     arr.capacity = 0
 }
 
-func(T) push(arr: *DynArray'T, value: T)
+func(T) push(arr: *DynArray!{T}, value: T)
 {
     if arr.count == arr.capacity
     {
@@ -42,7 +44,7 @@ func(T) push(arr: *DynArray'T, value: T)
     arr.count       += 1
 }
 
-func(T) pop(arr: *DynArray'T)->T
+func(T) pop(arr: *DynArray!{T})->T
 {
     Swag.assert(arr.count > 0)
     arr.count -= 1
@@ -50,45 +52,47 @@ func(T) pop(arr: *DynArray'T)->T
     return data[arr.count]
 }
 
-func(T) get(arr: *DynArray'T, index: u64)->T
+func(T) get(arr: *DynArray!{T}, index: u64)->T
 {
     Swag.assert(index < arr.count)
     let data = unwrap arr.data
     return data[index]
 }
 
-func(T) set(arr: *DynArray'T, index: u64, value: T)
+func(T) set(arr: *DynArray!{T}, index: u64, value: T)
 {
     Swag.assert(index < arr.count)
     let data = unwrap arr.data
     data[index] = value
 }
 
-func(T) clear(arr: *DynArray'T)
+func(T) clear(arr: *DynArray!{T})
 {
     arr.count = 0
 }
 
-func(T) last(arr: *DynArray'T)->T
+func(T) last(arr: *DynArray!{T})->T
 {
     Swag.assert(arr.count > 0)
     let data = unwrap arr.data
     return data[arr.count - 1]
 }
 
-func(T) contains(arr: *DynArray'T, value: T)->bool
+func(T) contains(arr: *DynArray!{T}, value: T)->bool
 {
     let data = unwrap arr.data
     for i in arr.count
     {
-        if data[i] == value do
+        if data[i] == value
+        {
             return true
+        }
     }
 
     return false
 }
 
-func(T) removeAt(arr: *DynArray'T, index: u64)
+func(T) removeAt(arr: *DynArray!{T}, index: u64)
 {
     Swag.assert(index < arr.count)
     let data = unwrap arr.data
@@ -102,7 +106,7 @@ func(T) removeAt(arr: *DynArray'T, index: u64)
     arr.count -= 1
 }
 
-func(T) insertAt(arr: *DynArray'T, index: u64, value: T)
+func(T) insertAt(arr: *DynArray!{T}, index: u64, value: T)
 {
     Swag.assert(index <= arr.count)
     if arr.count == arr.capacity
@@ -124,10 +128,12 @@ func(T) insertAt(arr: *DynArray'T, index: u64, value: T)
     arr.count   += 1
 }
 
-func(T) reverse(arr: *DynArray'T)
+func(T) reverse(arr: *DynArray!{T})
 {
-    if arr.count <= 1 do
+    if arr.count <= 1
+    {
         return
+    }
     var lo: u64 = 0
     var hi      = arr.count - 1
     let data    = unwrap arr.data
@@ -147,32 +153,32 @@ func(T) reverse(arr: *DynArray'T)
 
 #test
 {
-    var arr = create'u32()
-    defer destroy'u32(&arr)
+    var arr = create!{u32}()
+    defer destroy!{u32}(&arr)
 
     Swag.require(arr.count == 0)
     Swag.require(arr.capacity == DefaultCapacity)
 
-    push'u32(&arr, 10)
-    push'u32(&arr, 20)
-    push'u32(&arr, 30)
+    push!{u32}(&arr, 10)
+    push!{u32}(&arr, 20)
+    push!{u32}(&arr, 30)
     Swag.require(arr.count == 3)
-    Swag.require(get'u32(&arr, 0) == 10)
-    Swag.require(get'u32(&arr, 1) == 20)
-    Swag.require(get'u32(&arr, 2) == 30)
-    Swag.require(last'u32(&arr) == 30)
+    Swag.require(get!{u32}(&arr, 0) == 10)
+    Swag.require(get!{u32}(&arr, 1) == 20)
+    Swag.require(get!{u32}(&arr, 2) == 30)
+    Swag.require(last!{u32}(&arr) == 30)
 
-    let popped = pop'u32(&arr)
+    let popped = pop!{u32}(&arr)
     Swag.require(popped == 30)
     Swag.require(arr.count == 2)
 
     // Force a grow beyond initial capacity
-    push'u32(&arr, 40)
-    push'u32(&arr, 50)
-    push'u32(&arr, 60)
+    push!{u32}(&arr, 40)
+    push!{u32}(&arr, 50)
+    push!{u32}(&arr, 60)
     Swag.require(arr.count == 5)
     Swag.require(arr.capacity >= 5)
-    Swag.require(get'u32(&arr, 4) == 60)
+    Swag.require(get!{u32}(&arr, 4) == 60)
 }
 
 // ---------------------------------------------------------------------------
@@ -181,29 +187,29 @@ func(T) reverse(arr: *DynArray'T)
 
 #test
 {
-    var arr = create's32()
-    defer destroy's32(&arr)
+    var arr = create!{s32}()
+    defer destroy!{s32}(&arr)
 
-    push's32(&arr, -5)
-    push's32(&arr, 0)
-    push's32(&arr, 7)
-    push's32(&arr, -3)
+    push!{s32}(&arr, -5)
+    push!{s32}(&arr, 0)
+    push!{s32}(&arr, 7)
+    push!{s32}(&arr, -3)
 
     Swag.require(arr.count == 4)
-    Swag.require(contains's32(&arr, -5))
-    Swag.require(contains's32(&arr, 0))
-    Swag.require(contains's32(&arr, 7))
-    Swag.require(not contains's32(&arr, 99))
+    Swag.require(contains!{s32}(&arr, -5))
+    Swag.require(contains!{s32}(&arr, 0))
+    Swag.require(contains!{s32}(&arr, 7))
+    Swag.require(not contains!{s32}(&arr, 99))
 
-    set's32(&arr, 1, 42)
-    Swag.require(get's32(&arr, 1) == 42)
-    Swag.require(not contains's32(&arr, 0))
+    set!{s32}(&arr, 1, 42)
+    Swag.require(get!{s32}(&arr, 1) == 42)
+    Swag.require(not contains!{s32}(&arr, 0))
 
-    removeAt's32(&arr, 0)
+    removeAt!{s32}(&arr, 0)
     Swag.require(arr.count == 3)
-    Swag.require(get's32(&arr, 0) == 42)
-    Swag.require(get's32(&arr, 1) == 7)
-    Swag.require(get's32(&arr, 2) == -3)
+    Swag.require(get!{s32}(&arr, 0) == 42)
+    Swag.require(get!{s32}(&arr, 1) == 7)
+    Swag.require(get!{s32}(&arr, 2) == -3)
 }
 
 // ---------------------------------------------------------------------------
@@ -212,19 +218,19 @@ func(T) reverse(arr: *DynArray'T)
 
 #test
 {
-    var arr = create'f64()
-    defer destroy'f64(&arr)
+    var arr = create!{f64}()
+    defer destroy!{f64}(&arr)
 
-    push'f64(&arr, 1.5)
-    push'f64(&arr, 2.75)
-    push'f64(&arr, 3.125)
+    push!{f64}(&arr, 1.5)
+    push!{f64}(&arr, 2.75)
+    push!{f64}(&arr, 3.125)
 
     Swag.require(arr.count == 3)
-    Swag.require(get'f64(&arr, 0) == 1.5)
-    Swag.require(get'f64(&arr, 1) == 2.75)
-    Swag.require(get'f64(&arr, 2) == 3.125)
+    Swag.require(get!{f64}(&arr, 0) == 1.5)
+    Swag.require(get!{f64}(&arr, 1) == 2.75)
+    Swag.require(get!{f64}(&arr, 2) == 3.125)
 
-    let sum = get'f64(&arr, 0) + get'f64(&arr, 1) + get'f64(&arr, 2)
+    let sum = get!{f64}(&arr, 0) + get!{f64}(&arr, 1) + get!{f64}(&arr, 2)
     Swag.require(sum == 7.375)
 }
 
@@ -234,25 +240,25 @@ func(T) reverse(arr: *DynArray'T)
 
 #test
 {
-    var arr = create'u8()
-    defer destroy'u8(&arr)
+    var arr = create!{u8}()
+    defer destroy!{u8}(&arr)
 
-    push'u8(&arr, 'A')
-    push'u8(&arr, 'B')
-    push'u8(&arr, 'D')
+    push!{u8}(&arr, 'A')
+    push!{u8}(&arr, 'B')
+    push!{u8}(&arr, 'D')
 
-    insertAt'u8(&arr, 2, 'C')
+    insertAt!{u8}(&arr, 2, 'C')
     Swag.require(arr.count == 4)
-    Swag.require(get'u8(&arr, 0) == 'A')
-    Swag.require(get'u8(&arr, 1) == 'B')
-    Swag.require(get'u8(&arr, 2) == 'C')
-    Swag.require(get'u8(&arr, 3) == 'D')
+    Swag.require(get!{u8}(&arr, 0) == 'A')
+    Swag.require(get!{u8}(&arr, 1) == 'B')
+    Swag.require(get!{u8}(&arr, 2) == 'C')
+    Swag.require(get!{u8}(&arr, 3) == 'D')
 
-    reverse'u8(&arr)
-    Swag.require(get'u8(&arr, 0) == 'D')
-    Swag.require(get'u8(&arr, 1) == 'C')
-    Swag.require(get'u8(&arr, 2) == 'B')
-    Swag.require(get'u8(&arr, 3) == 'A')
+    reverse!{u8}(&arr)
+    Swag.require(get!{u8}(&arr, 0) == 'D')
+    Swag.require(get!{u8}(&arr, 1) == 'C')
+    Swag.require(get!{u8}(&arr, 2) == 'B')
+    Swag.require(get!{u8}(&arr, 3) == 'A')
 }
 
 // ---------------------------------------------------------------------------
@@ -261,22 +267,22 @@ func(T) reverse(arr: *DynArray'T)
 
 #test
 {
-    var arr = create'bool()
-    defer destroy'bool(&arr)
+    var arr = create!{bool}()
+    defer destroy!{bool}(&arr)
 
-    push'bool(&arr, true)
-    push'bool(&arr, false)
-    push'bool(&arr, true)
+    push!{bool}(&arr, true)
+    push!{bool}(&arr, false)
+    push!{bool}(&arr, true)
     Swag.require(arr.count == 3)
-    Swag.require(get'bool(&arr, 0) == true)
-    Swag.require(get'bool(&arr, 1) == false)
+    Swag.require(get!{bool}(&arr, 0) == true)
+    Swag.require(get!{bool}(&arr, 1) == false)
 
-    clear'bool(&arr)
+    clear!{bool}(&arr)
     Swag.require(arr.count == 0)
 
-    push'bool(&arr, false)
+    push!{bool}(&arr, false)
     Swag.require(arr.count == 1)
-    Swag.require(get'bool(&arr, 0) == false)
+    Swag.require(get!{bool}(&arr, 0) == false)
 }
 
 // ---------------------------------------------------------------------------
@@ -285,24 +291,28 @@ func(T) reverse(arr: *DynArray'T)
 
 #test
 {
-    var arr = create'u64()
-    defer destroy'u64(&arr)
+    var arr = create!{u64}()
+    defer destroy!{u64}(&arr)
 
-    for i in 100'u64 do
-        push'u64(&arr, i * i)
+    for i in 100_u64
+    {
+        push!{u64}(&arr, i * i)
+    }
 
     Swag.require(arr.count == 100)
     Swag.require(arr.capacity >= 100)
-    Swag.require(get'u64(&arr, 0) == 0)
-    Swag.require(get'u64(&arr, 1) == 1)
-    Swag.require(get'u64(&arr, 10) == 100)
-    Swag.require(get'u64(&arr, 99) == 9801)
+    Swag.require(get!{u64}(&arr, 0) == 0)
+    Swag.require(get!{u64}(&arr, 1) == 1)
+    Swag.require(get!{u64}(&arr, 10) == 100)
+    Swag.require(get!{u64}(&arr, 99) == 9801)
 
     // Pop half
-    for 50 do
-        pop'u64(&arr)
+    for 50
+    {
+        discard pop!{u64}(&arr)
+    }
     Swag.require(arr.count == 50)
-    Swag.require(last'u64(&arr) == 49 * 49)
+    Swag.require(last!{u64}(&arr) == 49 * 49)
 }
 
 // ---------------------------------------------------------------------------
@@ -311,25 +321,25 @@ func(T) reverse(arr: *DynArray'T)
 
 #test
 {
-    var arr = create's64()
-    defer destroy's64(&arr)
+    var arr = create!{s64}()
+    defer destroy!{s64}(&arr)
 
     // Insert at index 0 on empty array
-    insertAt's64(&arr, 0, 100)
+    insertAt!{s64}(&arr, 0, 100)
     Swag.require(arr.count == 1)
-    Swag.require(get's64(&arr, 0) == 100)
+    Swag.require(get!{s64}(&arr, 0) == 100)
 
     // Insert at end
-    insertAt's64(&arr, 1, 300)
+    insertAt!{s64}(&arr, 1, 300)
     Swag.require(arr.count == 2)
-    Swag.require(get's64(&arr, 1) == 300)
+    Swag.require(get!{s64}(&arr, 1) == 300)
 
     // Insert in the middle
-    insertAt's64(&arr, 1, 200)
+    insertAt!{s64}(&arr, 1, 200)
     Swag.require(arr.count == 3)
-    Swag.require(get's64(&arr, 0) == 100)
-    Swag.require(get's64(&arr, 1) == 200)
-    Swag.require(get's64(&arr, 2) == 300)
+    Swag.require(get!{s64}(&arr, 0) == 100)
+    Swag.require(get!{s64}(&arr, 1) == 200)
+    Swag.require(get!{s64}(&arr, 2) == 300)
 }
 
 // ---------------------------------------------------------------------------
@@ -338,30 +348,30 @@ func(T) reverse(arr: *DynArray'T)
 
 #test
 {
-    var arr = create'f32()
-    defer destroy'f32(&arr)
+    var arr = create!{f32}()
+    defer destroy!{f32}(&arr)
 
     // Odd count
-    push'f32(&arr, 1.0)
-    push'f32(&arr, 2.0)
-    push'f32(&arr, 3.0)
-    reverse'f32(&arr)
-    Swag.require(get'f32(&arr, 0) == 3.0)
-    Swag.require(get'f32(&arr, 1) == 2.0)
-    Swag.require(get'f32(&arr, 2) == 1.0)
+    push!{f32}(&arr, 1.0)
+    push!{f32}(&arr, 2.0)
+    push!{f32}(&arr, 3.0)
+    reverse!{f32}(&arr)
+    Swag.require(get!{f32}(&arr, 0) == 3.0)
+    Swag.require(get!{f32}(&arr, 1) == 2.0)
+    Swag.require(get!{f32}(&arr, 2) == 1.0)
 
-    clear'f32(&arr)
+    clear!{f32}(&arr)
 
     // Even count
-    push'f32(&arr, 10.0)
-    push'f32(&arr, 20.0)
-    push'f32(&arr, 30.0)
-    push'f32(&arr, 40.0)
-    reverse'f32(&arr)
-    Swag.require(get'f32(&arr, 0) == 40.0)
-    Swag.require(get'f32(&arr, 1) == 30.0)
-    Swag.require(get'f32(&arr, 2) == 20.0)
-    Swag.require(get'f32(&arr, 3) == 10.0)
+    push!{f32}(&arr, 10.0)
+    push!{f32}(&arr, 20.0)
+    push!{f32}(&arr, 30.0)
+    push!{f32}(&arr, 40.0)
+    reverse!{f32}(&arr)
+    Swag.require(get!{f32}(&arr, 0) == 40.0)
+    Swag.require(get!{f32}(&arr, 1) == 30.0)
+    Swag.require(get!{f32}(&arr, 2) == 20.0)
+    Swag.require(get!{f32}(&arr, 3) == 10.0)
 }
 
 // ---------------------------------------------------------------------------
@@ -370,30 +380,30 @@ func(T) reverse(arr: *DynArray'T)
 
 #test
 {
-    var arr = create'u16()
-    defer destroy'u16(&arr)
+    var arr = create!{u16}()
+    defer destroy!{u16}(&arr)
 
-    push'u16(&arr, 100)
-    push'u16(&arr, 200)
-    push'u16(&arr, 300)
-    push'u16(&arr, 400)
-    push'u16(&arr, 500)
+    push!{u16}(&arr, 100)
+    push!{u16}(&arr, 200)
+    push!{u16}(&arr, 300)
+    push!{u16}(&arr, 400)
+    push!{u16}(&arr, 500)
 
     // Remove last element
-    removeAt'u16(&arr, 4)
+    removeAt!{u16}(&arr, 4)
     Swag.require(arr.count == 4)
-    Swag.require(last'u16(&arr) == 400)
+    Swag.require(last!{u16}(&arr) == 400)
 
     // Remove first element
-    removeAt'u16(&arr, 0)
+    removeAt!{u16}(&arr, 0)
     Swag.require(arr.count == 3)
-    Swag.require(get'u16(&arr, 0) == 200)
+    Swag.require(get!{u16}(&arr, 0) == 200)
 
     // Remove middle element
-    removeAt'u16(&arr, 1)
+    removeAt!{u16}(&arr, 1)
     Swag.require(arr.count == 2)
-    Swag.require(get'u16(&arr, 0) == 200)
-    Swag.require(get'u16(&arr, 1) == 400)
+    Swag.require(get!{u16}(&arr, 0) == 200)
+    Swag.require(get!{u16}(&arr, 1) == 400)
 }
 
 // ---------------------------------------------------------------------------
@@ -408,24 +418,24 @@ struct Point
 
 #test
 {
-    var arr = create'Point()
-    defer destroy'Point(&arr)
+    var arr = create!{Point}()
+    defer destroy!{Point}(&arr)
 
-    push'Point(&arr, {x: 1, y: 2})
-    push'Point(&arr, {x: 3, y: 4})
-    push'Point(&arr, {x: 5, y: 6})
+    push!{Point}(&arr, {x: 1, y: 2})
+    push!{Point}(&arr, {x: 3, y: 4})
+    push!{Point}(&arr, {x: 5, y: 6})
 
     Swag.require(arr.count == 3)
-    Swag.require(get'Point(&arr, 0).x == 1)
-    Swag.require(get'Point(&arr, 0).y == 2)
-    Swag.require(get'Point(&arr, 1).x == 3)
-    Swag.require(get'Point(&arr, 2).y == 6)
+    Swag.require(get!{Point}(&arr, 0).x == 1)
+    Swag.require(get!{Point}(&arr, 0).y == 2)
+    Swag.require(get!{Point}(&arr, 1).x == 3)
+    Swag.require(get!{Point}(&arr, 2).y == 6)
 
-    set'Point(&arr, 1, {x: 10, y: 20})
-    Swag.require(get'Point(&arr, 1).x == 10)
-    Swag.require(get'Point(&arr, 1).y == 20)
+    set!{Point}(&arr, 1, {x: 10, y: 20})
+    Swag.require(get!{Point}(&arr, 1).x == 10)
+    Swag.require(get!{Point}(&arr, 1).y == 20)
 
-    reverse'Point(&arr)
-    Swag.require(get'Point(&arr, 0).x == 5)
-    Swag.require(get'Point(&arr, 2).x == 1)
+    reverse!{Point}(&arr)
+    Swag.require(get!{Point}(&arr, 0).x == 5)
+    Swag.require(get!{Point}(&arr, 2).x == 1)
 }

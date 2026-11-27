@@ -12,8 +12,11 @@ using Swag, Core, Pixel
     defer discard catch File.delete(fileName)
     discard expect File.writeAllText(imagePath, "<svg width='40' height='20'><rect width='40' height='20'/></svg>")
     var source = Format.toString("![Figure](<%>)\n\n<div><img src='%'></div>\n\n", imagePath, imagePath)
-    for 100 do
+    for 100
+    {
         source += "A paragraph after the figures.\n\n"
+    }
+
     discard expect File.writeAllText(fileName, source.toString())
 
     var host: Testing.HeadlessHost
@@ -21,8 +24,11 @@ using Swag, Core, Pixel
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(480, 240)
     view.applyLayout()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     discard host.render(view)
     let inline = unwrap view.blocks[0].inline
     let html   = unwrap view.blocks[1].html
@@ -33,11 +39,17 @@ using Swag, Core, Pixel
     view.pendingSeek       = true
     view.pendingSeekOffset = 0
     view.pendingSeekPreservesPosition = true
-    if not view.loadTimer do
-        view.loadTimer = view.addTimer(8'ms)
+    if not view.loadTimer
+    {
+        view.loadTimer = view.addTimer(8_ms)
+    }
+
     host.fireTimer(view.loadTimer)
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     Swag.require(view.retainedBlocks.isEmpty())
     let newInline = unwrap view.blocks[0].inline
     let newHtml   = unwrap view.blocks[1].html
@@ -55,8 +67,11 @@ using Swag, Core, Pixel
     discard expect File.writeAllText(fileName,
                                      "<svg width='120' height='60'><rect width='120' height='60' fill='#285078'/></svg>")
     var source: String
-    for 20 do
+    for 20
+    {
         source += "A paragraph above the embedded image.\n\n"
+    }
+
     source += Format.toString("<div><img src='%'></div>\n\nTrailing paragraph.", fileName)
 
     var gate:    Swag.Semaphore
@@ -79,8 +94,11 @@ using Swag, Core, Pixel
         discard host.render(view)
         Swag.require(not html.images.parsing.isEmpty() and not html.images.entries[0].uploaded)
         Swag.require(host.surface.isDirty)
-        for parsing in html.images.parsing do
+        for parsing in html.images.parsing
+        {
             parsing.task.wait()
+        }
+
         host.surface.paintWnd(view)
         Swag.require(html.images.parsing.isEmpty() and html.images.entries[0].uploaded)
         Swag.require(html.images.entries[0].image.pixelColor(60, 30).argb == 0xFF285078)
@@ -89,7 +107,7 @@ using Swag, Core, Pixel
 
     // Hold completion beyond the first paint so unrelated initial invalidations cannot hide
     // a loading indicator that stops requesting frames once the rest of the surface is idle.
-    let parsing = Memory.new'HtmlImageParse()
+    let parsing = Memory.new!{HtmlImageParse}()
     html.images.parsing.add(parsing)
     parsing.task.submit(func|parsing, gate = &gate, started = &started|() fail
     {
@@ -100,8 +118,10 @@ using Swag, Core, Pixel
     defer
     {
         gate.release()
-        for parsing in html.images.parsing do
+        for parsing in html.images.parsing
+        {
             parsing.task.wait()
+        }
     }
 
     started.acquire()
@@ -138,8 +158,11 @@ using Swag, Core, Pixel
 
     let pending = cache.texture(host.app.renderer, fileName.toString(), 120, 60)
     Swag.require(pending == null and not cache.parsing.isEmpty() and not cache.entries[0].uploaded)
-    for index in 64 do
+    for index in 64
+    {
         discard cache.fetch(Format.toString("missing-image-%.png", index).toString())
+    }
+
     cache.parsing[0].task.wait()
     Swag.require(cache.parsing[0].drawing.shapeCount() == 1 and not cache.entries[0].image.isValid())
     let ready = cache.texture(host.app.renderer, fileName.toString(), 120, 60)
@@ -166,8 +189,11 @@ using Swag, Core, Pixel
 #test
 {
     // A gated task cannot yield the caller in JIT execution; native tests exercise the overlap.
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
+
     const Source = "<svg width='120' height='60'><rect width='120' height='60' fill='#285078'/></svg>"
     let fileName = Testing.tempFilePath("markdown-gallery-", ".svg")
     discard expect File.writeAllText(fileName, Source)
@@ -183,23 +209,29 @@ using Swag, Core, Pixel
     cache.asynchronous = true
     defer
     {
-        for 3 do
+        for 3
+        {
             slowGate.release()
+        }
+
         fastGate.release()
         cache.release()
     }
 
     // Distinct authored references can name the same local file.
-    var sources: Array'String
+    var sources: Array!{String}
     var relative = String.from(unwrap Path.fileName(fileName.toString()))
     for index in 5
     {
         sources.add(Path.combine(unwrap Path.directoryName(fileName.toString()), relative.toString()))
         relative = Format.toString("./%", relative.toString())
         discard cache.fetch(sources[index].toString())
-        if index == 4 do
+        if index == 4
+        {
             continue
-        let parsing = Memory.new'HtmlImageParse()
+        }
+
+        let parsing = Memory.new!{HtmlImageParse}()
         parsing.slot = cast(u32, index)
         cache.parsing.add(parsing)
         executors[index].start()
@@ -212,8 +244,11 @@ using Swag, Core, Pixel
                             executor: &executors[index])
     }
 
-    for 4 do
+    for 4
+    {
         started.acquire()
+    }
+
     let duplicate = cache.texture(host.app.renderer, sources[0].toString(), 120, 60)
     Swag.require(duplicate == null and cache.parsing.count == 4)
     let saturated = cache.texture(host.app.renderer, sources[4].toString(), 120, 60)

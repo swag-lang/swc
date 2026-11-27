@@ -21,8 +21,10 @@ impl GenericResizeBuffer
 
     mtd resize(newCount: u64)
     {
-        if newCount == .count do
+        if newCount == .count
+        {
             return
+        }
         if newCount > .count
         {
             .reserve(newCount)
@@ -39,7 +41,7 @@ impl GenericResizeBuffer
 
 #test
 {
-    var buffer: GenericResizeBuffer'GenericResizeTracked
+    var buffer: GenericResizeBuffer!{GenericResizeTracked}
     buffer.resize(0)
     Swag.require(buffer.count == 0)
 }

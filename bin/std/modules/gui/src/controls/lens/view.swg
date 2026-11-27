@@ -45,8 +45,10 @@ using Core, Pixel
 //         for line, index in doc.lines
 //         {
 //             var found = Lens.match(results.folded, line)
-//             if not found.matched do
+//             if not found.matched
+//             {
 //                 continue
+//             }
 //             with let entry = section.addEntry(line, #move found)
 //             {
 //                 .lead      = Format.toString("%", index + 1)
@@ -66,9 +68,9 @@ struct View
 
         readonly
         {
-            results: Results       // Answer to the query on screen.
+            results: Results                // Answer to the query on screen.
             chosen:  u64 = Swag.U64.Max     // Row the keys and the pointer chose, among `rows`, or `U64.Max`.
-            rows:    Array'Row     // Section labels and entries, in the order they show.
+            rows:    Array!{Row}            // Section labels and entries, in the order they show.
 
             chosenPicture: u64     // Picture of the chosen strip the keys stand on; past its pictures, its link.
         }
@@ -77,16 +79,16 @@ struct View
     late previousPage: *IconButton
     late nextPage:     *IconButton
     late input:        *EditBox
-    commands:          Array'Command
-    sources:           Array'Source
-    restSources:       Array'Provider     // What the lens offers before anything is typed.
-    recent:            Array'String       // Commands chosen last, the latest first.
-    sectionOrder:      Array'u64          // Sections in the order they show, by index into the results.
+    commands:          Array!{Command}
+    sources:           Array!{Source}
+    restSources:       Array!{Provider}     // What the lens offers before anything is typed.
+    recent:            Array!{String}       // Commands chosen last, the latest first.
+    sectionOrder:      Array!{u64}          // Sections in the order they show, by index into the results.
     scroll:            f32
     returnFocus:       *Wnd?
     hotPicture:        PictureHit
     segment:           u64     // Segment the keys chose in the chosen row of an inline section, by index into its entries.
-    inlineChoices:     Array'InlineChoice
+    inlineChoices:     Array!{InlineChoice}
     escapeFont:        *Font?     // Font of the faint words of the input band, or null until it is measured again.
     escapeWidth:       f32        // Width of the Escape label set in `escapeFont`.
 }
@@ -163,15 +165,20 @@ impl IWnd for View
 {
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
-        if .owner and .owner.shortcutLens == me do
+        if .owner and .owner.shortcutLens == me
+        {
             .owner.shortcutLens = null
+        }
     }
 
     mtd impl onLayout()
     {
         let parent = .parent
-        if not parent do
+        if not parent
+        {
             return
+        }
+
         .setPosition(parent.clientRect())
         .placeInput()
         .placePaging()
@@ -206,16 +213,27 @@ impl IWnd for View
         for row, index in .rows
         {
             let rect = Math.Rectangle{body.x, list.y + row.top - .scroll, body.width, row.height}
-            if rect.bottom() < list.y or rect.y > list.bottom() do
+            if rect.bottom() < list.y or rect.y > list.bottom()
+            {
                 continue
-            if row.entry == Swag.U64.Max do
+            }
+
+            if row.entry == Swag.U64.Max
+            {
                 .paintSectionRow(painter, rect, row.section)
-            elif row.entry == PictureRow do
+            }
+            else if row.entry == PictureRow
+            {
                 .paintPictureRow(painter, rect, row.section)
-            elif row.entry == InlineRow do
+            }
+            else if row.entry == InlineRow
+            {
                 continue
-            else do
+            }
+            else
+            {
                 .paintEntryRow(painter, rect, &row.section.entries[row.entry], index == .chosen)
+            }
         }
 
         painter.popClippingRect()
@@ -259,8 +277,11 @@ impl IWnd for View
             }
 
         case .Pressed:
-            if evt.button != .Left do
+            if evt.button != .Left
+            {
                 break
+            }
+
             if not .body().contains(pos)
             {
                 .close()
@@ -285,16 +306,21 @@ impl IWnd for View
                 let section = .rows[picture.row].section
                 let run     = picture.index < section.pictures.count ? section.pictures[picture.index].run : section.linkRun
                 .close()
-                if run do
+                if run
+                {
                     run()
+                }
+
                 break
             }
 
             let row = .rowAt(pos)
             if row != Swag.U64.Max
             {
-                if .rows[row].entry == InlineRow do
+                if .rows[row].entry == InlineRow
+                {
                     break
+                }
 
                 .chosen = row
                 .runChosen()
@@ -315,12 +341,17 @@ impl IWnd for View
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged do
+        if evt.kind == .ThemeChanged
+        {
             .updateBackdrop()
+        }
 
         // The Escape label is set in the font of the theme, in the words of the language.
-        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged do
+        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged
+        {
             .escapeFont = null
+        }
+
         if (evt.kind == .ThemeChanged or evt.kind == .LanguageChanged) and .isLocallyVisible()
         {
             .input.setPlaceholder(strings().lens_Placeholder)
@@ -361,7 +392,7 @@ impl View
     #[Swag.Discardable]
     func create(owner: *Wnd)->*View
     {
-        with let result = Wnd.create'View(owner.topView(), null, {})
+        with let result = Wnd.create!{View}(owner.topView(), null, {})
         {
             .owner           = owner
             .dockStyle       = .Float
@@ -454,15 +485,19 @@ impl View
     // Registers several commands under the section label `family`.
     mtd addCommands(family: string, ids: const [..] WndId, menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null, menuSection: u32 = 0, inLens = true, inMenu = true)
     {
-        for id in ids do
+        for id in ids
+        {
             .addCommand(family, id, menuFamily: menuFamily, menuGroup: menuGroup, menuSection: menuSection, inLens: inLens, inMenu: inMenu)
+        }
     }
 
     // Registers several commands under a section label read from `family` each time the lens opens.
     mtd addCommands(family: MenuLabelResolver, ids: const [..] WndId, menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null, menuSection: u32 = 0, inLens = true, inMenu = true)
     {
-        for id in ids do
+        for id in ids
+        {
             .addCommand(family, id, menuFamily: menuFamily, menuGroup: menuGroup, menuSection: menuSection, inLens: inLens, inMenu: inMenu)
+        }
     }
 
     // Builds a popup menu solely from the registered commands and their current state.
@@ -476,8 +511,8 @@ impl View
     {
         let owner = unwrap .ownerOrParent()
         let menu  = MenuCtrl.createPopup(owner, owner: owner)
-        var entries:           Array'MenuCommand
-        var families:          Array'String
+        var entries:           Array!{MenuCommand}
+        var families:          Array!{String}
         var lastRootWasDirect: bool
         var hasRootEntry:      bool
 
@@ -485,16 +520,24 @@ impl View
         for &command in .commands where command.inMenu
         {
             let state = owner.sendComputeCommandStateEvent(command.commandId.toString())
-            if state.updatedFields.has(.Hidden) and state.hidden do
+            if state.updatedFields.has(.Hidden) and state.hidden
+            {
                 continue
+            }
+
             if (not state.updatedFields.has(.Name) or state.name.isEmpty()) and
-               (not state.updatedFields.has(.LongName) or state.longName.isEmpty()) do
+               (not state.updatedFields.has(.LongName) or state.longName.isEmpty())
+            {
                 continue
+            }
 
             let family = command.menuFamily ? command.menuFamily() :
                          (command.familyText ? command.familyText() : command.family.toString())
-            if not families.contains(family) do
+            if not families.contains(family)
+            {
                 families.add(family)
+            }
+
             entries.add(MenuCommand{command.commandId.toString(), family, command.menuGroup ? command.menuGroup() : "", command.menuSection})
         }
 
@@ -509,8 +552,11 @@ impl View
             }
 
             let direct = count == 1 and one and one.group.isEmpty()
-            if hasRootEntry and direct != lastRootWasDirect do
+            if hasRootEntry and direct != lastRootWasDirect
+            {
                 menu.addSeparator()
+            }
+
             hasRootEntry      = true
             lastRootWasDirect = direct
             if direct
@@ -520,8 +566,8 @@ impl View
             }
 
             let branch = MenuCtrl.createPopup(menu, owner: owner)
-            var groups:       Array'String
-            var groupMenus:   Array'(*MenuCtrl)
+            var groups:       Array!{String}
+            var groupMenus:   Array!{*MenuCtrl}
             var hasRow:       bool
             var lastWasGroup: bool
             var lastSection:  u32
@@ -529,8 +575,11 @@ impl View
             {
                 if entry.group.isEmpty()
                 {
-                    if hasRow and (lastWasGroup or entry.section != lastSection) do
+                    if hasRow and (lastWasGroup or entry.section != lastSection)
+                    {
                         branch.addSeparator()
+                    }
+
                     branch.addItem(entry.id)
                     hasRow       = true
                     lastWasGroup = false
@@ -548,8 +597,11 @@ impl View
                 if not group
                 {
                     group = MenuCtrl.createPopup(branch, owner: owner)
-                    if hasRow and (not lastWasGroup or entry.section != lastSection) do
+                    if hasRow and (not lastWasGroup or entry.section != lastSection)
+                    {
                         branch.addSeparator()
+                    }
+
                     groups.add(entry.group)
                     groupMenus.add(group)
                     branch.addPopup(entry.group, group)
@@ -600,23 +652,39 @@ impl View
     mtd addCommandRows(section: *Section, ids: const [..] WndId, enabledOnly = false)
     {
         let found = .ownerOrParent()
-        if not found do
+        if not found
+        {
             return
+        }
+
         let owner: *Wnd = found
         for id in ids
         {
             let state = owner.sendComputeCommandStateEvent(id)
-            if state.updatedFields.has(.Hidden) and state.hidden do
+            if state.updatedFields.has(.Hidden) and state.hidden
+            {
                 continue
-            if enabledOnly and state.updatedFields.has(.Disabled) and state.disabled do
+            }
+
+            if enabledOnly and state.updatedFields.has(.Disabled) and state.disabled
+            {
                 continue
+            }
+
             var title: String
-            if state.updatedFields.has(.LongName) do
+            if state.updatedFields.has(.LongName)
+            {
                 title = state.longName
-            elif state.updatedFields.has(.Name) do
+            }
+            else if state.updatedFields.has(.Name)
+            {
                 title = state.name
-            if title.isEmpty() do
+            }
+
+            if title.isEmpty()
+            {
                 continue
+            }
 
             with let entry = section.addEntry(title)
             {
@@ -626,10 +694,15 @@ impl View
                 .checkable  = state.updatedFields.has(.Checked)
                 .critical   = state.updatedFields.has(.RenderingHint) and state.renderingHint.has(.Critical)
                 .monoDetail = true
-                if state.updatedFields.has(.Icon) do
+                if state.updatedFields.has(.Icon)
+                {
                     .glyph = state.icon
-                if state.updatedFields.has(.Shortcut) do
+                }
+
+                if state.updatedFields.has(.Shortcut)
+                {
                     .detail = state.shortcut
+                }
 
                 // A row that cannot run says why instead of the key that would run it.
                 if .disabled and state.updatedFields.has(.Reason)
@@ -675,8 +748,11 @@ impl View
     // Closes the lens without running anything.
     mtd close()
     {
-        if not .isLocallyVisible() do
+        if not .isLocallyVisible()
+        {
             return
+        }
+
         discard .app().animator.leave(me)
         let back = .returnFocus
         .returnFocus = null
@@ -711,7 +787,7 @@ impl View
     {
         let typed = .input.text()
         let split = splitPrefix(typed)
-        var noWidths: Array'f32
+        var noWidths: Array!{f32}
         for choice in .inlineChoices
         {
             choice.combo.hide()
@@ -725,17 +801,24 @@ impl View
         // application that declares neither lists everything, as typing an empty query would.
         if typed.count == 0 and (not .restSources.isEmpty() or not .recent.isEmpty())
         {
-            for provide in .restSources do
+            for provide in .restSources
+            {
                 provide(&.results)
+            }
+
             .addRecentSection()
         }
         else
         {
-            for source in .sources where split.prefix == .None or source.prefix == split.prefix do
+            for source in .sources where split.prefix == .None or source.prefix == split.prefix
+            {
                 source.provide(&.results)
+            }
 
-            if split.prefix == .None or split.prefix == .Action do
+            if split.prefix == .None or split.prefix == .Action
+            {
                 .addCommandSections()
+            }
 
             if .commands.count and
                split.rest.count >= 3 and
@@ -761,8 +844,9 @@ impl View
             for &entry in section!.entries where not entry.bindId.isEmpty()
             {
                 if let binding = shortcutOverride(overrides, entry.bindId)
-                    do
+                {
                     entry.detail = binding.key == .None ? String{} : Input.formatKeyShortcut(binding.modifiers, binding.key)
+                }
             }
         }
 
@@ -783,13 +867,18 @@ impl View
     mtd showKeyboardShortcuts(from: *Surface? = null)
     {
         let owner = unwrap .ownerOrParent()
-        var commands: Array'ShortcutCommand
-        for &command in .commands do
+        var commands: Array!{ShortcutCommand}
+        for &command in .commands
+        {
             addShortcutCommand(&commands, owner, command.commandId, null)
+        }
 
         collectShortcutCommands(owner, &commands)
-        for &chord in .app().defaultUserHotKeys do
+        for &chord in .app().defaultUserHotKeys
+        {
             addShortcutCommand(&commands, unwrap chord.target, chord.id, chord, system: true)
+        }
+
         let generated = .shortcutSourceRows()
         for section in generated.sections
         {
@@ -812,8 +901,10 @@ impl View
 
                 for chord in [entry.defaultKey, entry.alternateDefaultKey] where chord.key != .None
                 {
-                    if not hasShortcutChord(existing.defaults.toSlice(), chord) do
+                    if not hasShortcutChord(existing.defaults.toSlice(), chord)
+                    {
                         existing.defaults.add(chord)
+                    }
                 }
             }
         }
@@ -825,15 +916,21 @@ impl View
     {
         var result: #returntype
         result.reset("", .Action, collectingShortcuts: true)
-        for source in .sources where source.prefix == .Action do
+        for source in .sources where source.prefix == .Action
+        {
             source.provide(&result)
+        }
+
         return result
     }
 
     internal mtd routeSourceShortcut(target: *Wnd, key: const *KeyEvent)->bool
     {
-        if .isOpen() do
+        if .isOpen()
+        {
             return false
+        }
+
         let overrides       = .app().shortcutOverrides.toSlice()
         let generated       = .shortcutSourceRows()
         let chord           = KeyShortcut{key.modifiers, key.key}
@@ -843,37 +940,51 @@ impl View
             for &entry in section!.entries where not entry.bindId.isEmpty() and entry.run
             {
                 let binding = shortcutOverride(overrides, entry.bindId)
-                if not binding do
+                if not binding
+                {
                     continue
+                }
+
                 if binding.key == key.key and binding.modifiers == key.modifiers
                 {
-                    if not entry.disabled do
+                    if not entry.disabled
+                    {
                         entry.run()
+                    }
+
                     return true
                 }
 
-                if sameChord(entry.defaultKey, chord) or sameChord(entry.alternateDefaultKey, chord) do
+                if sameChord(entry.defaultKey, chord) or sameChord(entry.alternateDefaultKey, chord)
+                {
                     replacesDefault = true
+                }
             }
         }
 
-        if replacesDefault do
+        if replacesDefault
+        {
             target.sendCommandEvent(target.keyShortcut(key.modifiers, key.key))
+        }
+
         return replacesDefault
     }
 
     // Moves the choice by `delta` selectable rows, staying on the first or the last one.
     mtd moveChoice(delta: s64)
     {
-        var index = .chosen == Swag.U64.Max ? -1's64 : cast(s64, .chosen)
+        var index = .chosen == Swag.U64.Max ? -1_s64 : cast(s64, .chosen)
         var steps = Math.abs(delta)
-        let step  = delta < 0 ? -1's64 : 1's64
+        let step  = delta < 0 ? -1_s64 : 1_s64
         var last  = index
         while steps > 0
         {
             index += step
-            if index < 0 or index >= cast(s64, .rows.count) do
+            if index < 0 or index >= cast(s64, .rows.count)
+            {
                 break
+            }
+
             if .isSelectable(cast(u64, index))
             {
                 last  = index
@@ -886,8 +997,11 @@ impl View
             .chosen        = cast(u64, last)
             .chosenPicture = 0
             let row = .rows[.chosen]
-            if row.entry == InlineRow do
+            if row.entry == InlineRow
+            {
                 .segment = .restingSegment(row.section)
+            }
+
             .revealChosen()
             .syncInlineSelection()
             .invalidate()
@@ -897,21 +1011,33 @@ impl View
     // Returns the chosen row, or `null` when nothing is chosen.
     mtd chosenEntry()->*Entry?
     {
-        if .chosen >= .rows.count do
+        if .chosen >= .rows.count
+        {
             return null
+        }
+
         let row = .rows[.chosen]
-        if row.entry == InlineRow do
+        if row.entry == InlineRow
+        {
             return .segment < row.section.entries.count ? &row.section.entries[.segment] : null
-        if row.entry == PictureRow do
+        }
+
+        if row.entry == PictureRow
+        {
             return null
+        }
+
         return &row.section.entries[row.entry]
     }
 
     // Returns the strip of pictures the keys stand on, or null.
     mtd chosenStrip()->*Section?
     {
-        if .chosen >= .rows.count or .rows[.chosen].entry != PictureRow do
+        if .chosen >= .rows.count or .rows[.chosen].entry != PictureRow
+        {
             return null
+        }
+
         return .rows[.chosen].section
     }
 
@@ -928,35 +1054,51 @@ impl View
         {
             let run = .chosenPicture < strip.pictures.count ? strip.pictures[.chosenPicture].run : strip.linkRun
             .close()
-            if run do
+            if run
+            {
                 run()
+            }
+
             return
         }
 
         let entry = .chosenEntry()
-        if not entry or entry.disabled do
+        if not entry or entry.disabled
+        {
             return
+        }
 
         let run   = entry.run
         let id    = entry.id
         let owner = .ownerOrParent()
-        if id do
+        if id
+        {
             .remember(id)
+        }
 
         if not keepOpen
         {
             .close()
-            if run do
+            if run
+            {
                 run()
-            elif id and owner do
+            }
+            else if id and owner
+            {
                 owner.postCommandEvent(id)
+            }
+
             return
         }
 
-        if run do
+        if run
+        {
             run()
-        elif id and owner do
+        }
+        else if id and owner
+        {
             owner.sendCommandEvent(id)
+        }
 
         let chosen  = .chosen
         let segment = .segment
@@ -983,17 +1125,22 @@ private impl View
             return true
         }
 
-        let page = Math.max(1's64, cast(s64, .listRect().height / .themeMetrics().lens_RowHeight) - 1)
+        let page = Math.max(1_s64, cast(s64, .listRect().height / .themeMetrics().lens_RowHeight) - 1)
 
         // Along a strip of pictures, the arrows go from one picture to the next, then to its link.
         let strip = .chosenStrip()
         if strip and (key == .Left or key == .Right)
         {
             let count = strip.pictures.count + (strip.link.isEmpty() ? 0 : 1)
-            if key == .Left and .chosenPicture > 0 do
+            if key == .Left and .chosenPicture > 0
+            {
                 .chosenPicture -= 1
-            elif key == .Right and .chosenPicture + 1 < count do
+            }
+            else if key == .Right and .chosenPicture + 1 < count
+            {
                 .chosenPicture += 1
+            }
+
             .invalidate()
             return true
         }
@@ -1018,12 +1165,17 @@ private impl View
     // Reports false when the chosen row is not one, and the key belongs to the query.
     mtd moveSegment(delta: s64)->bool
     {
-        if .chosen >= .rows.count or .rows[.chosen].entry != InlineRow do
+        if .chosen >= .rows.count or .rows[.chosen].entry != InlineRow
+        {
             return false
+        }
+
         let section = .rows[.chosen].section
-        var at      = 0's64
-        for i, pos in section.order where i == .segment do
+        var at      = 0_s64
+        for i, pos in section.order where i == .segment
+        {
             at = cast(s64, pos)
+        }
 
         var index = at + delta
         while index >= 0 and index < cast(s64, section.order.count)
@@ -1053,8 +1205,11 @@ private impl View
         {
             let entry = &section.entries[i]
             var score = cast(s64, entry.score) * 2
-            if entry.checked do
+            if entry.checked
+            {
                 score += 1
+            }
+
             if result == Swag.U64.Max or score > best
             {
                 result = i
@@ -1069,24 +1224,29 @@ private impl View
     mtd addCommandSections()
     {
         let owner = .ownerOrParent()
-        if not owner do
+        if not owner
+        {
             return
+        }
 
         // The families in the order of their first command, and the family of each command by its
         // index, so that gathering the commands of a family compares numbers rather than labels.
         // A family borrows the label of its first command, which stays put until the next
         // refresh. The lens finds the family of every command on each keystroke, and comparing
         // plain strings in place costs well under half of comparing the owned labels.
-        var families: Array'string
-        var familyOf: Array'u64
+        var families: Array!{string}
+        var familyOf: Array!{u64}
         familyOf.reserve(.commands.count)
         for &command in .commands
         {
             var family = Swag.U64.Max
             if command.inLens
             {
-                if command.familyText do
+                if command.familyText
+                {
                     command.family = command.familyText()
+                }
+
                 let label = command.family.toString()
                 for known, index in families where known == label
                 {
@@ -1118,22 +1278,34 @@ private impl View
             for command, commandIndex in .commands where familyOf[commandIndex] == familyIndex
             {
                 let state = owner.sendComputeCommandStateEvent(command.commandId.toString())
-                if state.updatedFields.has(.Hidden) and state.hidden do
+                if state.updatedFields.has(.Hidden) and state.hidden
+                {
                     continue
+                }
 
                 var title: String
-                if state.updatedFields.has(.LongName) do
+                if state.updatedFields.has(.LongName)
+                {
                     title = state.longName
-                elif state.updatedFields.has(.Name) do
+                }
+                else if state.updatedFields.has(.Name)
+                {
                     title = state.name
-                if title.isEmpty() do
+                }
+
+                if title.isEmpty()
+                {
                     continue
+                }
 
                 var found = command.find(.results.folded, title)
                 if not found.matched
                 {
-                    if not familyAnswer do
+                    if not familyAnswer
+                    {
                         continue
+                    }
+
                     found.matched = true
                     found.score   = ClearMatchScore
                     found.spans.clear()
@@ -1166,22 +1338,29 @@ private impl View
 
         // The sections in the order the ranking gave them; the strips of pictures close the
         // results, after every row a key can reach.
-        var order: Array'(*Section)
+        var order: Array!{*Section}
         for s in .sectionOrder
         {
             let section = unwrap .results.sections[s]
-            if section.pictures.isEmpty() do
+            if section.pictures.isEmpty()
+            {
                 order.add(section)
+            }
         }
 
-        for section in .results.sections where not section!.pictures.isEmpty() do
+        for section in .results.sections where not section!.pictures.isEmpty()
+        {
             order.add(section)
+        }
 
         var y = metrics.lens_RowInset
         for section in order
         {
-            if section.order.isEmpty() and section.pictures.isEmpty() do
+            if section.order.isEmpty() and section.pictures.isEmpty()
+            {
                 continue
+            }
+
             .rows.add(Row{section, Swag.U64.Max, y, metrics.lens_SectionHeight})
             y += metrics.lens_SectionHeight
             if section.inline and not section.order.isEmpty()
@@ -1210,13 +1389,19 @@ private impl View
         let row = .rows[index]
         if row.entry == InlineRow
         {
-            for i in row.section.order where not row.section.entries[i].disabled do
+            for i in row.section.order where not row.section.entries[i].disabled
+            {
                 return true
+            }
+
             return false
         }
 
-        if row.entry == PictureRow do
+        if row.entry == PictureRow
+        {
             return not row.section.pictures.isEmpty()
+        }
+
         return row.entry != Swag.U64.Max and not row.section.entries[row.entry].disabled
     }
 
@@ -1227,8 +1412,10 @@ private impl View
         let metrics = .themeMetrics()
         let x       = rect.x + metrics.lens_TextInset + cast(f32, index) * (metrics.lens_PictureWidth + metrics.lens_PictureGap)
         let y       = rect.y + metrics.lens_PictureGap
-        if index < section.pictures.count do
+        if index < section.pictures.count
+        {
             return {x, y, metrics.lens_PictureWidth, metrics.lens_PictureHeight}
+        }
 
         let font  = .theme().createDefaultFont(metrics.defaultFontSize)
         let width = Painter.measureString(section.link, font).width
@@ -1240,14 +1427,19 @@ private impl View
     {
         var none: PictureHit
         let list = .listRect()
-        if not list.contains(pos) do
+        if not list.contains(pos)
+        {
             return none
+        }
+
         for row, rowIndex in .rows where row.entry == PictureRow
         {
             let rect  = Math.Rectangle{list.x, list.y + row.top - .scroll, list.width, row.height}
             let count = row.section.pictures.count + (row.section.link.isEmpty() ? 0 : 1)
-            for i in count where .pictureRect(rect, row.section, i).contains(pos) do
+            for i in count where .pictureRect(rect, row.section, i).contains(pos)
+            {
                 return PictureHit{row: rowIndex, index: i}
+            }
         }
 
         return none
@@ -1256,8 +1448,11 @@ private impl View
     mtd contentHeight()->f32
     {
         let metrics = .themeMetrics()
-        if .rows.isEmpty() do
+        if .rows.isEmpty()
+        {
             return .results.query.count > 0 ? metrics.lens_RowHeight + 2 * metrics.lens_RowInset : 0
+        }
+
         let last = .rows.back()
         return last.top + last.height + metrics.lens_RowInset
     }
@@ -1271,19 +1466,25 @@ private impl View
     mtd fittedContentHeight(room: f32)->f32
     {
         let whole = .contentHeight()
-        if whole <= room do
+        if whole <= room
+        {
             return whole
+        }
 
         let metrics = .themeMetrics()
         for row, index in .rows
         {
             let bottom = row.top + row.height
-            if bottom <= room do
+            if bottom <= room
+            {
                 continue
+            }
 
             let air = metrics.lens_RowInset + (row.entry == PictureRow ? metrics.lens_PictureGap : 0)
-            if row.entry != Swag.U64.Max and row.top < room and bottom - room <= air do
+            if row.entry != Swag.U64.Max and row.top < room and bottom - room <= air
+            {
                 return room
+            }
 
             // Keep the viewport stable while the choice moves; scrolling reveals later rows.
             let label = index > 0 and .rows[index - 1].entry == Swag.U64.Max
@@ -1352,7 +1553,7 @@ private impl View
     {
         let metrics = .themeMetrics()
         let font    = .theme().createDefaultFont(metrics.lens_RowFontSize)
-        var index   = 0'u64
+        var index   = 0_u64
         for row, rowIndex in .rows where row.entry == InlineRow
         {
             if index >= .inlineChoices.count
@@ -1371,7 +1572,7 @@ private impl View
             choice.row     = rowIndex
             choice.combo.clear()
 
-            var widths: Array'f32
+            var widths: Array!{f32}
             for entryIndex in row.section.order
             {
                 let entry = &row.section.entries[entryIndex]
@@ -1387,13 +1588,18 @@ private impl View
             choice.combo.setSegmentWidths(widths)
 
             var width = 2 * metrics.comboBox_SegmentInset
-            for segmentWidth in widths do
+            for segmentWidth in widths
+            {
                 width += segmentWidth
+            }
+
             choice.width = width
 
             let resting = .restingSegment(row.section)
-            for itemIndex, entryIndex in row.section.order where entryIndex == resting do
+            for itemIndex, entryIndex in row.section.order where entryIndex == resting
+            {
                 choice.combo.setSelectedIndex(cast(u32, itemIndex), notify: false)
+            }
 
             index += 1
         }
@@ -1410,14 +1616,19 @@ private impl View
     {
         let list    = .listRect()
         let metrics = .themeMetrics()
-        for choice in .inlineChoices do
+        for choice in .inlineChoices
+        {
             choice.combo.hide()
+        }
 
-        var choiceIndex = 0'u64
+        var choiceIndex = 0_u64
         for row in .rows where row.entry == InlineRow
         {
-            if choiceIndex >= .inlineChoices.count do
+            if choiceIndex >= .inlineChoices.count
+            {
                 break
+            }
+
             let choice = &.inlineChoices[choiceIndex]
             let combo  = choice.combo
             let height = combo.position.height
@@ -1444,8 +1655,11 @@ private impl View
     {
         for choice in .inlineChoices
         {
-            if choice.row >= .rows.count do
+            if choice.row >= .rows.count
+            {
                 continue
+            }
+
             let section = choice.section
             let entry   = .chosen == choice.row ? .segment : .restingSegment(section)
             for itemIndex, entryIndex in section.order where entryIndex == entry
@@ -1459,11 +1673,17 @@ private impl View
     // A pointer selection in a child ComboBox closes the Lens and runs the corresponding entry.
     mtd activateInlineChoice(choiceIndex, itemIndex: u64)
     {
-        if choiceIndex >= .inlineChoices.count do
+        if choiceIndex >= .inlineChoices.count
+        {
             return
+        }
+
         let choice = &.inlineChoices[choiceIndex]
-        if itemIndex >= choice.section.order.count do
+        if itemIndex >= choice.section.order.count
+        {
             return
+        }
+
         .chosen  = choice.row
         .segment = choice.section.order[itemIndex]
         .runChosen()
@@ -1481,16 +1701,22 @@ private impl View
     // A named pair makes overflow reachable without a wheel or knowledge of the navigation keys.
     mtd placePaging()
     {
-        if .previousPage == null or .nextPage == null do
+        if .previousPage == null or .nextPage == null
+        {
             return
+        }
+
         let list = .listRect()
         .scroll = Math.clamp(.scroll, 0, .maxScroll())
         .placeInlineChoices()
         let overflow = .contentHeight() > list.height
         .previousPage.show(overflow)
         .nextPage.show(overflow)
-        if not overflow do
+        if not overflow
+        {
             return
+        }
+
         let metrics = .themeMetrics()
         .previousPage.setPosition({list.x + metrics.lens_TextInset, list.bottom(), .previousPage.position.width, metrics.quiet_Height})
         .nextPage.setPosition({list.right() - metrics.lens_TextInset - .nextPage.position.width, list.bottom(), .nextPage.position.width, metrics.quiet_Height})
@@ -1516,10 +1742,15 @@ private impl View
         for row in .rows
         {
             let top = row.top - inset
-            if forward and top >= scroll - 0.5 do
+            if forward and top >= scroll - 0.5
+            {
                 return top
-            if not forward and top <= scroll + 0.5 do
+            }
+
+            if not forward and top <= scroll + 0.5
+            {
                 result = Math.max(top, 0)
+            }
         }
 
         return result
@@ -1532,8 +1763,11 @@ private impl View
         // Back to the start of a row, so a page still overlaps the last one by a row at least;
         // past the start of the next row when one row is taller than a page.
         var target = .rowAlignedScroll(.scroll + step, forward: false)
-        if direction > 0 and target <= .scroll do
+        if direction > 0 and target <= .scroll
+        {
             target = .rowAlignedScroll(.scroll + 1, forward: true)
+        }
+
         .scrollBy(target - .scroll)
         .chosen = Swag.U64.Max
         let list = .listRect()
@@ -1543,8 +1777,11 @@ private impl View
         {
             .chosen        = index
             .chosenPicture = 0
-            if row.entry == InlineRow do
+            if row.entry == InlineRow
+            {
                 .segment = .restingSegment(row.section)
+            }
+
             break
         }
 
@@ -1555,11 +1792,17 @@ private impl View
     mtd rowAt(pos: Math.Point)->u64
     {
         let list = .listRect()
-        if not list.contains(pos) do
+        if not list.contains(pos)
+        {
             return Swag.U64.Max
+        }
+
         let y = pos.y - list.y + .scroll
-        for row, index in .rows where y >= row.top and y < row.top + row.height and .isSelectable(index) do
+        for row, index in .rows where y >= row.top and y < row.top + row.height and .isSelectable(index)
+        {
             return index
+        }
+
         return Swag.U64.Max
     }
 
@@ -1572,19 +1815,30 @@ private impl View
 
     mtd revealChosen()
     {
-        if .chosen >= .rows.count do
+        if .chosen >= .rows.count
+        {
             return
+        }
+
         let list = .listRect()
         let row  = .rows[.chosen]
 
         // The label of a section stays in view with its first row.
         var top = row.top
-        if .chosen > 0 and .rows[.chosen - 1].entry == Swag.U64.Max do
+        if .chosen > 0 and .rows[.chosen - 1].entry == Swag.U64.Max
+        {
             top = .rows[.chosen - 1].top
-        if top < .scroll do
+        }
+
+        if top < .scroll
+        {
             .scroll = top - .themeMetrics().lens_RowInset
-        elif row.top + row.height > .scroll + list.height do
+        }
+        else if row.top + row.height > .scroll + list.height
+        {
             .scroll = .rowAlignedScroll(row.top + row.height - list.height + .themeMetrics().lens_RowInset, forward: true)
+        }
+
         .scroll = Math.clamp(.scroll, 0, .maxScroll())
         .placePaging()
     }
@@ -1593,8 +1847,10 @@ private impl View
     {
         let metrics       = .themeMetrics()
         var label: String = section.label
-        if section.count > 0 do
+        if section.count > 0
+        {
             label.append(Format.toString(" · %", section.count))
+        }
 
         // The label sits low in its band, closer to the rows it opens than to the group above.
         let band = Math.Rectangle{rect.x + metrics.lens_TextInset, rect.y + rect.height - metrics.lens_RowHeight * 0.6, rect.width - 2 * metrics.lens_TextInset, metrics.lens_RowHeight * 0.4}
@@ -1612,12 +1868,18 @@ private impl View
         for &picture, i in section.pictures
         {
             let cell = .pictureRect(rect, section, i)
-            if cell.x > rect.right() do
+            if cell.x > rect.right()
+            {
                 break
+            }
+
             painter.pushClippingRect(cell)
             painter.fillRect(cell, colors.raised)
-            if picture.paint do
+            if picture.paint
+            {
                 picture.paint(painter, cell)
+            }
+
             painter.popClippingRect()
 
             // The picture the keys stand on is ringed in Arc, the one under the pointer too.
@@ -1674,7 +1936,7 @@ private impl View
             let width = Painter.measureString(entry.lead, mono).width
             discard paintTextLine(painter, leadLeft + metrics.lens_LeadWidth - metrics.iconText_Margin - width, centerY, entry.lead, mono, colors.faintText)
         }
-        elif entry.glyph.isValid()
+        else if entry.glyph.isValid()
         {
             let size = metrics.menuPopup_IconSize
             var icon = entry.glyph
@@ -1742,8 +2004,11 @@ private impl View
         // Source links remain usable in a narrow window or a longer translation. Secondary key
         // advice uses only the room they leave; it never paints over a link.
         var hintsRight = body.right() - metrics.lens_TextInset
-        for prefix in [Prefix.Action, Prefix.File, Prefix.Line, Prefix.None] where .answers(prefix) do
+        for prefix in [Prefix.Action, Prefix.File, Prefix.Line, Prefix.None] where .answers(prefix)
+        {
             hintsRight = Math.min(hintsRight, .prefixRect(prefix).x - metrics.hintLine_GroupGap)
+        }
+
         let chooseWidth = keycapWidth(me, "↑↓") + metrics.hintLine_KeyGap + Painter.measureString(strings().lens_Choose, font).width
         let goWidth     = keycapWidth(me, strings().key_Enter) + metrics.hintLine_KeyGap + Painter.measureString(strings().lens_Go, font).width
         var x           = body.x + metrics.lens_TextInset
@@ -1774,8 +2039,10 @@ private impl View
             let words = prefixWords(prefix)
             let left  = rect.x + (prefix == .None ? 0 : keycapWidth(me, prefixText(prefix)) + metrics.hintLine_KeyGap)
             discard paintTextLine(painter, left, centerY, words, font, colors.link)
-            if prefix != .None do
+            if prefix != .None
+            {
                 discard paintKeycap(me, painter, rect.x, centerY, prefixText(prefix))
+            }
         }
     }
 
@@ -1790,8 +2057,11 @@ private impl View
         {
             let width = Painter.measureString(prefixWords(prefix), font).width +
                         (prefix == .None ? 0 : metrics.hintLine_KeyGap + keycapWidth(me, prefixText(prefix)))
-            if prefix == wanted do
+            if prefix == wanted
+            {
                 return {right - width, body.bottom() - metrics.lens_FooterHeight, width, metrics.lens_FooterHeight}
+            }
+
             right -= width + metrics.hintLine_GroupGap
         }
 
@@ -1802,8 +2072,10 @@ private impl View
     {
         for prefix in [Prefix.Action, Prefix.File, Prefix.Line, Prefix.None] where .answers(prefix)
         {
-            if .prefixRect(prefix).contains(pos) do
+            if .prefixRect(prefix).contains(pos)
+            {
                 return prefix
+            }
         }
 
         return .None
@@ -1814,24 +2086,35 @@ private impl View
     mtd chosenIsCheckable()->bool
     {
         let entry = .chosenEntry()
-        if not entry or entry.disabled do
+        if not entry or entry.disabled
+        {
             return false
+        }
+
         return entry.checkable or .rows[.chosen].entry == InlineRow
     }
 
     // Reports whether a source, or the commands for `>`, answers the queries of `prefix`.
     mtd answers(prefix: Prefix)->bool
     {
-        if prefix == .None do
-            return .results.prefix != .None
-        if prefix == .Action
+        if prefix == .None
         {
-            for command in .commands where command.inLens do
-                return true
+            return .results.prefix != .None
         }
 
-        for source in .sources where source.prefix == prefix do
+        if prefix == .Action
+        {
+            for command in .commands where command.inLens
+            {
+                return true
+            }
+        }
+
+        for source in .sources where source.prefix == prefix
+        {
             return true
+        }
+
         return false
     }
 }
@@ -1862,10 +2145,15 @@ private func addCommandEntry(section: *Section, id: WndId, title: string, state:
         .checkable  = state.updatedFields.has(.Checked)
         .critical   = state.updatedFields.has(.RenderingHint) and state.renderingHint.has(.Critical)
         .monoDetail = true
-        if state.updatedFields.has(.Icon) do
+        if state.updatedFields.has(.Icon)
+        {
             .glyph = state.icon
-        if state.updatedFields.has(.Shortcut) do
+        }
+
+        if state.updatedFields.has(.Shortcut)
+        {
             .detail = state.shortcut
+        }
 
         // A row that cannot run says why instead of the key that would run it.
         if .disabled and state.updatedFields.has(.Reason)
@@ -1889,16 +2177,20 @@ private impl View
         }
 
         .recent.insertAt(0, String.from(text))
-        if .recent.count > RecentCount do
+        if .recent.count > RecentCount
+        {
             .recent.removeBack()
+        }
     }
 
     // Adds the commands chosen last, as their owner states them now.
     mtd addRecentSection()
     {
         let owner = .ownerOrParent()
-        if not owner or .recent.isEmpty() do
+        if not owner or .recent.isEmpty()
+        {
             return
+        }
 
         var section: *Section?
         for text in .recent
@@ -1906,18 +2198,31 @@ private impl View
             for command in .commands where command.inLens and text[] == command.commandId.toString()
             {
                 let state = owner.sendComputeCommandStateEvent(command.commandId.toString())
-                if state.updatedFields.has(.Hidden) and state.hidden do
+                if state.updatedFields.has(.Hidden) and state.hidden
+                {
                     break
-                var title: String
-                if state.updatedFields.has(.LongName) do
-                    title = state.longName
-                elif state.updatedFields.has(.Name) do
-                    title = state.name
-                if title.isEmpty() do
-                    break
+                }
 
-                if not section do
+                var title: String
+                if state.updatedFields.has(.LongName)
+                {
+                    title = state.longName
+                }
+                else if state.updatedFields.has(.Name)
+                {
+                    title = state.name
+                }
+
+                if title.isEmpty()
+                {
+                    break
+                }
+
+                if not section
+                {
                     section = .results.addSection(strings().lens_Recent)
+                }
+
                 addCommandEntry(section, command.commandId.toString(), title, &state)
                 break
             }
@@ -1946,44 +2251,58 @@ private impl View
                 {
                     var found = match(.results.folded, entry.title, tolerateTypos: section.ranked)
                     entry.score = Math.max(entry.score, found.matched ? found.score : 0)
-                    if entry.spans.isEmpty() and found.matched do
+                    if entry.spans.isEmpty() and found.matched
+                    {
                         entry.spans = #move found.spans
+                    }
                 }
 
-                if section.ranked and not entry.disabled do
+                if section.ranked and not entry.disabled
+                {
                     bestAll = Math.max(bestAll, entry.score)
+                }
             }
         }
 
         let leaveScattered = query.count >= 2 and bestAll >= ClearMatchScore
-        var sectionKeys: Array'u64
+        var sectionKeys: Array!{u64}
         for section, index in .results.sections
         {
             let sec = unwrap section
             sec.order.clear()
             sec.best = Swag.S32.Min
-            var keys: Array'u64
+            var keys: Array!{u64}
             let ranks = sec.ranked and query.count != 0
             for entry, i in sec.entries
             {
-                if ranks and leaveScattered and entry.score < ClearMatchScore do
+                if ranks and leaveScattered and entry.score < ClearMatchScore
+                {
                     continue
+                }
+
                 sec.best = Math.max(sec.best, entry.score)
                 keys.add(ranks ? rankKey(entry.score, i) : i)
             }
 
             keys.sort()
-            for key in keys do
+            for key in keys
+            {
                 sec.order.add(key & 0xFFFFFFFF)
-            if not sec.order.isEmpty() do
+            }
+
+            if not sec.order.isEmpty()
+            {
                 sectionKeys.add(query.count != 0 ? rankKey(sec.best, index) : index)
+            }
         }
 
         // Provider registration order only breaks equal scores; it cannot bury a precise command.
         sectionKeys.sort()
         .sectionOrder.clear()
-        for key in sectionKeys do
+        for key in sectionKeys
+        {
             .sectionOrder.add(key & 0xFFFFFFFF)
+        }
     }
 
     // Empties the query, or closes the lens when nothing is typed.
@@ -2007,23 +2326,32 @@ private func rankKey(score: s32, index: u64)->u64
 }
 
 // Highest score a key distinguishes; every score of the matcher stays under it.
-private const MaxRankScore = 1000000's32
+private const MaxRankScore = 1000000_s32
 
 private impl Command
 {
     mtd const find(query: Query, title: string)->Match
     {
         var best = match(query, title, tolerateTypos: true)
-        if query.runes.isEmpty() or not .aliases do
+        if query.runes.isEmpty() or not .aliases
+        {
             return best
-        for phrase in Tokenize.split(.aliases(), ';'rune) where phrase.count > 0
+        }
+
+        for phrase in Tokenize.split(.aliases(), ';'_rune) where phrase.count > 0
         {
             var found = match(query, phrase, tolerateTypos: true)
-            if not found.matched do
+            if not found.matched
+            {
                 continue
+            }
+
             found.score = Math.min(found.score, 8500)
-            if best.matched and best.score >= found.score do
+            if best.matched and best.score >= found.score
+            {
                 continue
+            }
+
             found.spans.clear()
             best = #move found
         }

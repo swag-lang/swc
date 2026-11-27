@@ -306,6 +306,18 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::Breakpoint:
             encoder.encodeBreakpoint();
             break;
+        case MicroInstrOpcode::CpuId:
+            encoder.encodeCpuId();
+            break;
+        case MicroInstrOpcode::XGetBv:
+            encoder.encodeXGetBv();
+            break;
+        case MicroInstrOpcode::VecClmulXorQuad:
+            encoder.encodeVecClmulXorQuad(ops[0].reg, ops[1].reg, ops[2].reg, static_cast<uint8_t>(ops[3].valueU64), static_cast<uint8_t>(ops[4].valueU64));
+            break;
+        case MicroInstrOpcode::VecClmulXorPair:
+            encoder.encodeVecClmulXorPair(ops[0].reg, ops[1].reg, ops[2].reg, static_cast<uint8_t>(ops[3].valueU64), static_cast<uint8_t>(ops[4].valueU64));
+            break;
         case MicroInstrOpcode::Prefetch:
             encoder.encodePrefetch(ops[0].reg);
             break;

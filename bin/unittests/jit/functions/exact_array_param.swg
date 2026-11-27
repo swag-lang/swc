@@ -13,8 +13,10 @@ func rotateExactArray(values: [4] s32)
 
 func fillExactDigest(digest: ExactArrayParamJitDigest, seed: u8)
 {
-    for i in digest.count do
+    for i in digest.count
+    {
         digest[i] = seed + cast(u8, i)
+    }
 }
 
 func(T) reverseExactPair(values: [2] T)
@@ -33,8 +35,10 @@ impl ExactArrayParamJitWriter
 {
     mtd write(values: [4] s32)
     {
-        for i in 4 do
+        for i in 4
+        {
             values[i] += .delta + cast(s32, i)
+        }
     }
 }
 
@@ -51,14 +55,16 @@ impl ExactArrayParamJitWriter
 #test
 {
     var digest: ExactArrayParamJitDigest
-    fillExactDigest(digest, 9'u8)
+    fillExactDigest(digest, 9_u8)
 
     var checksum: s32 = 0
-    for value in digest do
+    for value in digest
+    {
         checksum += cast(s32, value)
+    }
 
-    Swag.require(digest[0] == 9'u8)
-    Swag.require(digest[15] == 24'u8)
+    Swag.require(digest[0] == 9_u8)
+    Swag.require(digest[15] == 24_u8)
     Swag.require(checksum == 264)
 }
 
@@ -91,8 +97,8 @@ impl ExactArrayParamJitWriter
 
 #test
 {
-    var pair: [2] u16 = [7'u16, 42'u16]
+    var pair: [2] u16 = [7_u16, 42_u16]
     reverseExactPair(pair)
-    Swag.require(pair[0] == 42'u16)
-    Swag.require(pair[1] == 7'u16)
+    Swag.require(pair[0] == 42_u16)
+    Swag.require(pair[1] == 7_u16)
 }

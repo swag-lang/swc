@@ -58,7 +58,7 @@ func day5A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "5.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var stacks: Array'String
+    var stacks: Array!{String}
 
     var r: Parser.RegExp
     expect r.compile(#raw "\d+")
@@ -69,8 +69,11 @@ func day5A()
         if moveMode
         {
             let res = r.grepAll(l[])
-            if res.isEmpty() do
+            if res.isEmpty()
+            {
                 continue
+            }
+
             var crateCount       = expect StrConv.toU64(res[0])
             let sourceStack      = expect StrConv.toS32(res[1]) - 1
             let destinationStack = expect StrConv.toS32(res[2]) - 1
@@ -84,7 +87,7 @@ func day5A()
             }
         }
 
-        elif l[1] == '1'
+        else if l[1] == '1'
         {
             moveMode = true
         }
@@ -93,17 +96,24 @@ func day5A()
             for stackIndex in (l.length + 3) / 4
             {
                 let column = stackIndex * 4
-                if stackIndex >= stacks.count do
+                if stackIndex >= stacks.count
+                {
                     stacks.add("")
-                if l[column] == '[' do
+                }
+
+                if l[column] == '['
+                {
                     stacks[stackIndex].append(l[column + 1])
+                }
             }
         }
     }
 
     var total: String
-    for stack in stacks do
+    for stack in stacks
+    {
         total += stack[0]
+    }
 
     Swag.assert(total == "HNSNMTLHQ")
 }

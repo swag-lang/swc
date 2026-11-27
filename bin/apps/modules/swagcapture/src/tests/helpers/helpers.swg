@@ -15,8 +15,11 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" do
+        if Path.fileName(directory) == "cases"
+        {
             return unwrap Path.directoryName(directory)
+        }
+
         directory = Path.directoryName(directory)
     }
 
@@ -75,7 +78,7 @@ impl HeadlessFixture
         registerAppStrings(&g_App.resources)
         registerAppStrings(&.gui.app.resources)
 
-        .main  = Wnd.create'MainWnd(&.gui.root, Math.Rectangle{x: 0, y: 0, width: width, height: height})
+        .main  = Wnd.create!{MainWnd}(&.gui.root, Math.Rectangle{x: 0, y: 0, width: width, height: height})
         g_Main = .main
         let renderer = .gui.app.renderer
         .main.icons.setup(renderer, captureIcons())
@@ -89,15 +92,17 @@ impl HeadlessFixture
 
         let editWnd = .main.editWnd
         .editView = editWnd.editView
-        let localCapture = Memory.new'Capture()
+        let localCapture = Memory.new!{Capture}()
         localCapture.width, localCapture.widthOrg   = 400
         localCapture.height, localCapture.heightOrg = 300
         localCapture.backImg = Image.create(400, 300, .BGRA8)
         .editView.setCapture(localCapture)
         .capture = localCapture
 
-        if registerHeadlessCommands do
+        if registerHeadlessCommands
+        {
             .registerHeadlessCommands()
+        }
     }
 
     mtd registerHeadlessCommands()
@@ -110,19 +115,22 @@ impl HeadlessFixture
     // Waits for the picture Save as Image encodes and writes on a worker, then lands its outcome.
     mtd waitImageWrite()
     {
-        if .main.imageWriteJob do
+        if .main.imageWriteJob
+        {
             .main.imageWriteJob.task.wait()
+        }
+
         .gui.pump()
     }
 
     mtd setupLibraryWnd()->*LibraryWnd
     {
-        .main.libWnd      = Wnd.create'LibraryWnd(.main, {0, 0, 520, 420})
+        .main.libWnd      = Wnd.create!{LibraryWnd}(.main, {0, 0, 520, 420})
         .main.libWnd.main = .main
         .main.libWnd.registerActions()
 
-        let scroll = Wnd.create'ScrollWnd(.main.libWnd, {0, 0, 520, 420})
-        let view   = Wnd.create'LibraryView(scroll, {0, 0, 520, 420})
+        let scroll = Wnd.create!{ScrollWnd}(.main.libWnd, {0, 0, 520, 420})
+        let view   = Wnd.create!{LibraryView}(scroll, {0, 0, 520, 420})
         view.libWnd      = .main.libWnd
         view.mainWnd     = .main
         view.scrollWnd   = scroll
@@ -174,8 +182,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
     expect Library.init()
     g_Library.loaded = true
 
-    if main.recentWnd == null do
+    if main.recentWnd == null
+    {
         main.recentWnd = RecentWnd.create(main, main)
+    }
 }
 
 // Empties the recycle bin of the scratch library, which other tests fill, so a page that counts
@@ -183,8 +193,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
 func testEmptyTrash()
 {
     let files = catch Library.enumerateTrash() { return; }
-    for file in files do
+    for file in files
+    {
         discard catch File.delete(file.fullName)
+    }
 }
 
 func testMouse(kind: MouseEvent.Kind, button = Input.MouseButton.Left)->MouseEvent
@@ -196,7 +208,7 @@ func testMouse(kind: MouseEvent.Kind, button = Input.MouseButton.Left)->MouseEve
 
 func testAddShape(capture: *Capture, x: f32, y: f32, width: f32, height: f32, subKind = FormSubKind.None)->*FormShape
 {
-    with let form = Memory.new'FormShape()
+    with let form = Memory.new!{FormShape}()
     {
         .IForm.setup(capture)
         .IForm.setBaseForm(cast(s32, x), cast(s32, y), cast(s32, width), cast(s32, height))
@@ -209,7 +221,7 @@ func testAddShape(capture: *Capture, x: f32, y: f32, width: f32, height: f32, su
 
 func testAddText(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormText
 {
-    with let form = Memory.new'FormText()
+    with let form = Memory.new!{FormText}()
     {
         .IForm.setup(capture)
         .IForm.setBaseForm(cast(s32, x), cast(s32, y), cast(s32, width), cast(s32, height))
@@ -221,7 +233,7 @@ func testAddText(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*F
 
 func testAddCallout(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormCallout
 {
-    with let form = Memory.new'FormCallout()
+    with let form = Memory.new!{FormCallout}()
     {
         .IForm.setup(capture)
         .IForm.setBaseForm(cast(s32, x), cast(s32, y), cast(s32, width), cast(s32, height))
@@ -235,7 +247,7 @@ func testAddCallout(capture: *Capture, x: f32, y: f32, width: f32, height: f32)-
 
 func testAddStep(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormStep
 {
-    with let form = Memory.new'FormStep()
+    with let form = Memory.new!{FormStep}()
     {
         .IForm.setup(capture)
         .IForm.setBaseForm(cast(s32, x), cast(s32, y), cast(s32, width), cast(s32, height))
@@ -247,7 +259,7 @@ func testAddStep(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*F
 
 func testAddLine(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->*FormLine
 {
-    with let form = Memory.new'FormLine()
+    with let form = Memory.new!{FormLine}()
     {
         .IForm.setup(capture)
         .IForm.setBaseForm(cast(s32, xa), cast(s32, ya), cast(s32, xb - xa), cast(s32, yb - ya))
@@ -260,7 +272,7 @@ func testAddLine(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind 
 
 func testAddArrow(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->*FormArrow
 {
-    with let form = Memory.new'FormArrow()
+    with let form = Memory.new!{FormArrow}()
     {
         .IForm.setup(capture)
         .IForm.setBaseForm(cast(s32, xa), cast(s32, ya), cast(s32, xb - xa), cast(s32, yb - ya))
@@ -273,10 +285,13 @@ func testAddArrow(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind
 
 func testAddPolygon(capture: *Capture, points: [..] Math.Vector2, subKind = FormSubKind.None)->*FormPolygon
 {
-    let form = Memory.new'FormPolygon()
+    let form = Memory.new!{FormPolygon}()
     form.IForm.setup(capture)
-    for pt in points do
+    for pt in points
+    {
         form.points.add(pt)
+    }
+
     form.subKind = subKind
     capture.forms.add(form)
     return form
@@ -284,10 +299,13 @@ func testAddPolygon(capture: *Capture, points: [..] Math.Vector2, subKind = Form
 
 func testAddDraw(capture: *Capture, points: [..] Math.Vector2, subKind = FormSubKind.None)->*FormDraw
 {
-    let form = Memory.new'FormDraw()
+    let form = Memory.new!{FormDraw}()
     form.IForm.setup(capture)
-    for pt in points do
+    for pt in points
+    {
         form.points.add(pt)
+    }
+
     form.subKind = subKind
     capture.forms.add(form)
     return form
@@ -295,7 +313,7 @@ func testAddDraw(capture: *Capture, points: [..] Math.Vector2, subKind = FormSub
 
 func testAddImage(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormImage
 {
-    with let form = Memory.new'FormImage()
+    with let form = Memory.new!{FormImage}()
     {
         .IForm.setup(capture)
         .IForm.setBaseForm(cast(s32, x), cast(s32, y), cast(s32, width), cast(s32, height))
@@ -332,23 +350,23 @@ func testPrimeCaptureGizmo(capture: *Capture)
 
 func testRegisterHeadlessActions(main: *MainWnd)
 {
-    main.registerAction'ActionGlobal()
-    main.registerAction'ActionSelection()
-    main.registerAction'ActionMoveSel()
-    main.registerAction'ActionTimeline()
-    main.registerAction'ActionAlign()
-    main.registerAction'ActionGroup()
-    main.registerAction'ActionUndo()
-    main.registerAction'ActionZoom()
-    main.registerAction'ActionPixSel()
-    main.registerAction'ActionToolMode()
-    main.registerAction'ActionImage()
-    main.registerAction'ActionFlatten()
-    main.registerAction'ActionQuickStyle()
-    main.registerAction'ActionEdit()
-    main.registerAction'ActionView()
-    main.registerAction'ActionCaptureDelay()
-    main.registerAction'ActionRecentSize()
+    main.registerAction!{ActionGlobal}()
+    main.registerAction!{ActionSelection}()
+    main.registerAction!{ActionMoveSel}()
+    main.registerAction!{ActionTimeline}()
+    main.registerAction!{ActionAlign}()
+    main.registerAction!{ActionGroup}()
+    main.registerAction!{ActionUndo}()
+    main.registerAction!{ActionZoom}()
+    main.registerAction!{ActionPixSel}()
+    main.registerAction!{ActionToolMode}()
+    main.registerAction!{ActionImage}()
+    main.registerAction!{ActionFlatten}()
+    main.registerAction!{ActionQuickStyle}()
+    main.registerAction!{ActionEdit}()
+    main.registerAction!{ActionView}()
+    main.registerAction!{ActionCaptureDelay}()
+    main.registerAction!{ActionRecentSize}()
 }
 
 func testRegisterHeadlessShortcuts(main: *MainWnd)
@@ -389,9 +407,9 @@ func testRegisterHeadlessCommands(main: *MainWnd)
 
 func testRegisterIoActions(main: *MainWnd)
 {
-    main.registerAction'ActionCopyPaste()
-    main.registerAction'ActionFile()
-    main.registerAction'ActionCapture()
+    main.registerAction!{ActionCopyPaste}()
+    main.registerAction!{ActionFile}()
+    main.registerAction!{ActionCapture}()
 }
 
 func testRegisterLocalEditorShortcuts(main: *MainWnd)
@@ -415,7 +433,7 @@ func testAddLibraryItem(view: *LibraryView, name: String, size: u64, day: u16, l
         .rect             = Math.Rectangle{cast(f32, view.items.count) * 60, 0, 50, 50}
     }
 
-    with let capture = Memory.new'Capture()
+    with let capture = Memory.new!{Capture}()
     {
         .linkedImage    = linked
         .linkedUpToDate = linkedUpToDate
@@ -440,7 +458,7 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
     let metrics   = f.main.themeMetrics()
     let gutter    = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
     let bodyWidth = metrics.inspector_Width - 2 * metrics.inspector_Padding + 2 * gutter
-    let body      = Wnd.create'Wnd(f.main, {600, 0, bodyWidth, 650})
+    let body      = Wnd.create!{Wnd}(f.main, {600, 0, bodyWidth, 650})
     with f.main.quickWnd = QuickWnd.create(body, f.main)
     {
         .dockStyle = .Top
@@ -461,8 +479,11 @@ func testFramePicture(seed: u8, squareX: s32)->Image
 {
     var result = Image.create(64, 48, .BGRA8)
     let pixels = result.pixels.storage()
-    for i in result.byteCount do
+    for i in result.byteCount
+    {
         pixels[i] = cast(u8, (i % 7) * 30)
+    }
+
     for y in 10 to 19
     {
         for x in squareX to squareX + 9
@@ -481,8 +502,11 @@ func testFramePicture(seed: u8, squareX: s32)->Image
 // Reports whether the resident home lists the command `id`.
 func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
 {
-    for item in panel.menu.items where item and not item.separator and not item.label and item.id == id do
+    for item in panel.menu.items where item and not item.separator and not item.label and item.id == id
+    {
         return true
+    }
+
     return false
 }
 
@@ -493,8 +517,11 @@ func testOpenResidentPanel(host: *Gui.Testing.HeadlessHost, main: *MainWnd, plac
     let flags = placement == .Centered ? SurfaceFlags.SmallCaption | .CloseButton :
                 SurfaceFlags.ToolWindow | .TopMost
     let surface = expect host.app.createSurface(0, 0, 300, 300, flags)
-    if placement == .Centered do
+    if placement == .Centered
+    {
         surface.setTitle(ProductName)
+    }
+
     let panel = ResidentPanel.create(surface.wnd, main, placement)
     panel.floating = true
 
@@ -512,7 +539,10 @@ func testSamePixels(a, b: const *Image)->bool => a.byteCount == b.byteCount and 
 func testWriteFrames(path: string, pictures: const [..] Image, step: u64) fail
 {
     var writer = try Frames.Writer.create(path, 64, 48, .BGRA8)
-    for picture, i in pictures do
+    for picture, i in pictures
+    {
         try writer.add(picture, i * step)
+    }
+
     try writer.close(pictures.count * step)
 }

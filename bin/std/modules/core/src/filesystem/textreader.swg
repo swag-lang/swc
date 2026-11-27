@@ -4,8 +4,10 @@ using Core.Errors
 
 private func validateUtf8(value: const *String) fail
 {
-    if not Utf8.isValid(value[].toSlice()) do
+    if not Utf8.isValid(value[].toSlice())
+    {
         fail Errors.InvalidFormatError{"file content is not valid UTF-8"}
+    }
 }
 
 // Reads and validates a UTF-8 text file through an owned, buffered [[Core.File.FileStream]].
@@ -17,7 +19,7 @@ public struct TextReader
     internal
     {
         stream:        FileStream     // Owned file stream.
-        buffer:        Array'u8       // Bytes read from the stream and not yet consumed.
+        buffer:        Array!{u8}     // Bytes read from the stream and not yet consumed.
         byteSeek:      u64            // Offset of the first unconsumed byte in `buffer`.
         checkPreamble: bool           // Whether the next refill is the first one, which may start with a byte-order mark.
     }
@@ -30,12 +32,16 @@ impl TextReader
     {
         .byteSeek     = 0
         .buffer.count = try .stream.read(unwrap .buffer.buffer, .buffer.capacity)
-        if not .checkPreamble do
+        if not .checkPreamble
+        {
             return
+        }
 
         .checkPreamble = false
-        if Text.hasBom(.buffer.toSlice(), .Utf8) do
+        if Text.hasBom(.buffer.toSlice(), .Utf8)
+        {
             .byteSeek = Text.bomLength(.Utf8)
+        }
     }
 }
 
@@ -50,7 +56,7 @@ public impl TextReader
         var stream = try openRead(fullName)
 
         // Small files are read in one refill; large ones through a 64 KiB window.
-        let capacity = Math.clamp(try stream.size(), 16'u64, 64 * 1024'u64)
+        let capacity = Math.clamp(try stream.size(), 16_u64, 64 * 1024_u64)
         .buffer.clear()
         .buffer.reserve(capacity)
         .stream        = #move stream
@@ -77,8 +83,10 @@ public impl TextReader
         if .byteSeek == .buffer.count
         {
             try .readBuffer()
-            if .buffer.isEmpty() do
+            if .buffer.isEmpty()
+            {
                 return false
+            }
         }
 
         for
@@ -93,13 +101,18 @@ public impl TextReader
             {
                 var word: u64
                 Memory.copy(cast([*] void, &word), cast(const [*] void, cursor), #sizeof(word))
-                if Math.hasByte(word, '\r') or Math.hasByte(word, '\n') do
+                if Math.hasByte(word, '\r') or Math.hasByte(word, '\n')
+                {
                     break
+                }
+
                 cursor += 8
             }
 
-            while cursor != bufferEnd and cursor[] != '\r' and cursor[] != '\n' do
+            while cursor != bufferEnd and cursor[] != '\r' and cursor[] != '\n'
+            {
                 cursor += 1
+            }
 
             let segmentBytes = cast(u64, (cursor - segmentBegin))
             result[] += Swag.makeString(segmentBegin, segmentBytes)
@@ -123,16 +136,20 @@ public impl TextReader
             // A '\r' followed by '\n' is one line ending, even when a refill separates them.
             if cursor[] == '\r'
             {
-                if cursor + 1'u64 < bufferEnd
+                if cursor + 1_u64 < bufferEnd
                 {
-                    if (cursor + 1)[] == '\n' do
+                    if (cursor + 1)[] == '\n'
+                    {
                         .byteSeek += 1
+                    }
                 }
                 else
                 {
                     try .readBuffer()
-                    if .byteSeek < .buffer.count and .buffer[.byteSeek] == '\n' do
+                    if .byteSeek < .buffer.count and .buffer[.byteSeek] == '\n'
+                    {
                         .byteSeek += 1
+                    }
                 }
             }
 
@@ -149,8 +166,10 @@ public impl TextReader
     mtd readToEnd()->String fail
     {
         var result: #returntype
-        if .byteSeek == .buffer.count do
+        if .byteSeek == .buffer.count
+        {
             try .readBuffer()
+        }
 
         while .byteSeek < .buffer.count
         {

@@ -7,7 +7,13 @@ struct Owner { value, padding1, padding2: u64 }
 impl Owner
 {
     mtd opPostCopy() { copies += 1 }
-    mtd opDrop() { if .value != 0 do drops += 1 }
+    mtd opDrop()
+    {
+        if .value != 0
+        {
+            drops += 1
+        }
+    }
 }
 
 #[Swag.NoInline]

@@ -2,6 +2,8 @@
 #global namespace Crypto
 #global #[Swag.Safety(.Overflow, false)]
 
+using Math.Simd
+
 // AES-CMAC tag size in bytes.
 public const AesCmacTagSize = 16
 
@@ -10,7 +12,7 @@ alias AesCmacTag = [AesCmacTagSize] u8
 
 private func aesCmacDouble(value: *[AesBlockSize] u8)
 {
-    var carry = 0'u8
+    var carry = 0_u8
     for index in AesBlockSize
     {
         let byteIndex = AesBlockSize - 1 - index
@@ -19,7 +21,7 @@ private func aesCmacDouble(value: *[AesBlockSize] u8)
         carry = next
     }
 
-    value[][AesBlockSize - 1] ^= 0x87'u8 & cast(u8, 0'u8 - carry)
+    value[][AesBlockSize - 1] ^= 0x87_u8 & cast(u8, 0_u8 - carry)
 }
 
 // Computes AES-CMAC incrementally using an opaque key schedule and chaining state.
@@ -66,11 +68,20 @@ impl AesCmac
     mtd update(data: const [..] u8) fail
     {
         Swag.assert(.initialized, "AES-CMAC needs an initialized sequence")
-        var offset = 0'u64
+        if .aes.usesHardwareRounds() and data.count > AesBlockSize - .bufferCount
+        {
+            .updateHardware(data)
+            return
+        }
+
+        var offset = 0_u64
         while offset < data.count
         {
-            if .bufferCount == AesBlockSize do
+            if .bufferCount == AesBlockSize
+            {
                 try .processBufferedBlock()
+            }
+
             let count = Math.min(AesBlockSize - .bufferCount, data.count - offset)
             Swag.memcpy(&.buffer[.bufferCount], data.buffer + offset, count)
             .bufferCount += count
@@ -83,28 +94,51 @@ impl AesCmac
     // Call [[reset]] before reusing this value.
     mtd finalize()->AesCmacTag fail
     {
+        let result = try .finishTag()
+        .clear()
+        return result
+    }
+
+    internal mtd finalizeKeepingKey()->AesCmacTag fail
+    {
+        let result = try .finishTag()
+        .clearMessage()
+        return result
+    }
+
+    private mtd finishTag()->AesCmacTag fail
+    {
         Swag.assert(.initialized, "AES-CMAC needs an initialized sequence")
         var finalBlock: [AesBlockSize] u8
         if .bufferCount == AesBlockSize
         {
-            for index in AesBlockSize do
+            for index in AesBlockSize
+            {
                 finalBlock[index] = .buffer[index] ^ .subKey1[index]
+            }
         }
         else
         {
-            if .bufferCount do
+            if .bufferCount
+            {
                 Swag.memcpy(&finalBlock[0], &.buffer[0], .bufferCount)
+            }
+
             finalBlock[.bufferCount] = 0x80
-            for index in AesBlockSize do
+            for index in AesBlockSize
+            {
                 finalBlock[index] ^= .subKey2[index]
+            }
         }
 
-        for index in AesBlockSize do
+        for index in AesBlockSize
+        {
             finalBlock[index] ^= .state[index]
+        }
+
         var result: #returntype
         try .aes.encryptBlock(finalBlock, result)
         Crypto.secureClear(finalBlock)
-        .clear()
         return result
     }
 
@@ -114,10 +148,15 @@ impl AesCmac
         .aes.clear()
         Crypto.secureClear(.subKey1)
         Crypto.secureClear(.subKey2)
+        .clearMessage()
+        .initialized = false
+    }
+
+    private mtd clearMessage()
+    {
         Crypto.secureClear(.state)
         Crypto.secureClear(.buffer)
         .bufferCount = 0
-        .initialized = false
     }
 
     // Clears keyed state when this value leaves scope.
@@ -134,11 +173,44 @@ impl AesCmac
         return try cmac.finalize()
     }
 
+    private mtd updateHardware(data: const [..] u8)
+    {
+        var offset = 0_u64
+        var chained: [1] U8x16 = [load(&.state[0])]
+        if .bufferCount
+        {
+            offset = AesBlockSize - .bufferCount
+            if offset
+            {
+                Swag.memcpy(&.buffer[.bufferCount], data.buffer, offset)
+            }
+
+            chained[0] = .aes.encryptBlockHardware(chained[0] ^ load(&.buffer[0]))
+            Crypto.secureClear(.buffer)
+        }
+
+        // CMAC needs the last block for its final complete-or-padded distinction.
+        let fullBlockBytes = (data.count - offset - 1) & ~15_u64
+        for block in fullBlockBytes / AesBlockSize
+        {
+            chained[0] = .aes.encryptBlockHardware(chained[0] ^ load(data.buffer + offset + block * AesBlockSize))
+        }
+
+        offset += fullBlockBytes
+        store(&.state[0], chained[0])
+        Crypto.secureClear(chained)
+        .bufferCount = data.count - offset
+        Swag.memcpy(&.buffer[0], data.buffer + offset, .bufferCount)
+    }
+
     private mtd processBufferedBlock() fail
     {
         var block: [AesBlockSize] u8
-        for index in AesBlockSize do
+        for index in AesBlockSize
+        {
             block[index] = .state[index] ^ .buffer[index]
+        }
+
         try .aes.encryptBlock(block, .state)
         Crypto.secureClear(block)
         Crypto.secureClear(.buffer)

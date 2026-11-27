@@ -19,10 +19,14 @@ func shiftBy(x: u64, c: u8)->u64 => x >> (c & 63)
 #[Swag.Optimize(true), Swag.NoInline]
 func hexValue(c: u8)->s32
 {
-    if c >= '0' and c <= '9' do
+    if c >= '0' and c <= '9'
+    {
         return cast(s32, (c - '0'))
-    if c >= 'a' and c <= 'f' do
+    }
+    if c >= 'a' and c <= 'f'
+    {
         return cast(s32, (c - 'a')) + 10
+    }
     return -1
 }
 
@@ -40,7 +44,7 @@ func wide(c: u8)->u32 => cast(u32, c)
         Swag.require(isUpper(c) == (w >= 65 and w <= 90))
         Swag.require(isHigh(c) == (w > 200))
         Swag.require(isWideRange(c) == (w >= 10 and w <= 250))
-        Swag.require(shiftBy(0x8000000000000000, c) == 0x8000000000000000'u64 >> (w & 63))
+        Swag.require(shiftBy(0x8000000000000000, c) == 0x8000000000000000_u64 >> (w & 63))
         let expected = w >= 48 and w <= 57 ? cast(s32, w) - 48 : (w >= 97 and w <= 102 ? cast(s32, w) - 87 : -1)
         Swag.require(hexValue(c) == expected)
     }

@@ -18,7 +18,7 @@ func assertOpaqueImageMetadata(image: const *Image)
     var metadata: ImageMetadata
     metadata.signature = 42
     metadata.tag       = "opaque"
-    metadata.value.add(0x5A'u8)
+    metadata.value.add(0x5A_u8)
     source.metadata.add(#move metadata)
 
     let converted  = source.convertedTo(.BGRA8)

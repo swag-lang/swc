@@ -11,7 +11,7 @@
 func readU32Lanes(a, b: u32)->u64
 {
     let v = cast(#simd [4] u32, [a, b, a + b, a ^ b])
-    let w = v + Swag.vecSplat(1'u32)
+    let w = v + Swag.vecSplat(1_u32)
     return cast(u64, w[0]) + cast(u64, w[1]) * 3 + cast(u64, w[2]) * 5 + cast(u64, w[3]) * 7
 }
 
@@ -19,7 +19,7 @@ func readU32Lanes(a, b: u32)->u64
 func readS64Lanes(a, b: s64)->s64
 {
     let v = cast(#simd [2] s64, [a, b])
-    let w = v - Swag.vecSplat(2's64)
+    let w = v - Swag.vecSplat(2_s64)
     return w[0] * 11 - w[1]
 }
 
@@ -27,7 +27,7 @@ func readS64Lanes(a, b: s64)->s64
 func readF32Lanes(a, b: f32)->f32
 {
     let v = cast(#simd [4] f32, [a, b, a * b, a - b])
-    let w = v * Swag.vecSplat(2.0'f32)
+    let w = v * Swag.vecSplat(2.0_f32)
     return w[0] + w[1] * 10 + w[2] * 100 + w[3] * 1000
 }
 
@@ -35,7 +35,7 @@ func readF32Lanes(a, b: f32)->f32
 func readF64Lanes(a, b: f64)->f64
 {
     let v = cast(#simd [2] f64, [a, b])
-    let w = v + Swag.vecSplat(0.5'f64)
+    let w = v + Swag.vecSplat(0.5_f64)
     return w[1] * 4 - w[0]
 }
 
@@ -43,7 +43,7 @@ func readF64Lanes(a, b: f64)->f64
 func readU8Lanes(seed: u8)->u32
 {
     let base: #simd [16] u8 = Swag.vecSplat(seed)
-    let v = base + cast(#simd [16] u8, [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+    let v = base + cast(#simd [16] u8, [0_u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
     return cast(u32, v[0]) + cast(u32, v[9]) * 256 + cast(u32, v[15]) * 65536
 }
 
@@ -62,8 +62,8 @@ func readSignedNarrowLanes(seed: s8)->s64
 {
     let bytes: #simd [16] s8 = Swag.vecSplat(seed)
     let words: #simd [8] s16 = Swag.vecSplat(cast(s16, seed) * 300)
-    let v                    = bytes - cast(#simd [16] s8, [0's8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
-    let w                    = words + cast(#simd [8] s16, [0's16, 1, 2, 3, 4, 5, 6, 7])
+    let v                    = bytes - cast(#simd [16] s8, [0_s8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+    let w                    = words + cast(#simd [8] s16, [0_s16, 1, 2, 3, 4, 5, 6, 7])
     return cast(s64, v[0]) + cast(s64, v[7]) * 1000 + cast(s64, v[15]) * 1000000 + cast(s64, w[0]) + cast(s64, w[3]) + cast(s64, w[7])
 }
 
@@ -71,7 +71,7 @@ func readSignedNarrowLanes(seed: s8)->s64
 func readU16Lanes(seed: u16)->u64
 {
     let base: #simd [8] u16 = Swag.vecSplat(seed)
-    let v = base + cast(#simd [8] u16, [0'u16, 1, 2, 3, 4, 5, 6, 7])
+    let v = base + cast(#simd [8] u16, [0_u16, 1, 2, 3, 4, 5, 6, 7])
     return cast(u64, v[0]) + (cast(u64, v[5]) << 16) + (cast(u64, v[7]) << 32)
 }
 
@@ -144,7 +144,7 @@ func writeDynamicLane(v: #simd [4] u32, lane: u64, value: u32)->#simd [4] u32
     Swag.require(readF64Lanes(1.0, 3.0) == 14.0 - 1.5)
     Swag.require(readU8Lanes(3) == 3 + 12 * 256 + 18 * 65536)
 
-    let bytes = cast(#simd [16] u8, [1'u8, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 4])
+    let bytes = cast(#simd [16] u8, [1_u8, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 4])
     Swag.require(lowLanesThroughBitcast(bytes) == 1 + 0x0000_0002_0000_0001 + 0x0400_0000_0000_0003)
 }
 
@@ -158,24 +158,24 @@ func writeDynamicLane(v: #simd [4] u32, lane: u64, value: u32)->#simd [4] u32
 
 #test
 {
-    let bytes   = cast(#simd [16] u8, [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+    let bytes   = cast(#simd [16] u8, [0_u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
     let written = cast([16] u8, writeByteLanes(bytes, 200, 100))
     for i in 16
     {
-        let expected = i == 0 ? 200'u8 : i == 9 ? 0xAB'u8 : i == 15 ? 100'u8 : cast(u8, i)
+        let expected = i == 0 ? 200_u8 : i == 9 ? 0xAB_u8 : i == 15 ? 100_u8 : cast(u8, i)
         Swag.require(written[i] == expected)
     }
 
-    let words = cast([8] u16, writeWordLane(cast(#simd [8] u16, [10'u16, 11, 12, 13, 14, 15, 16, 17]), 0xBEEF))
+    let words = cast([8] u16, writeWordLane(cast(#simd [8] u16, [10_u16, 11, 12, 13, 14, 15, 16, 17]), 0xBEEF))
     Swag.require(words == [10, 11, 12, 13, 14, 15, 0xBEEF, 17])
 
-    let pairs = cast(#simd [2] u64, [0x0123456789ABCDEF'u64, 0xFEDCBA9876543210])
+    let pairs = cast(#simd [2] u64, [0x0123456789ABCDEF_u64, 0xFEDCBA9876543210])
     Swag.require(cast([2] u64, writeLowQwordLane(pairs, 0x80000000FFFFFFFF)) == [0x80000000FFFFFFFF, 0xFEDCBA9876543210])
     Swag.require(cast([2] u64, writeHighQwordLane(pairs, 0x80000000FFFFFFFF)) == [0x0123456789ABCDEF, 0x80000000FFFFFFFF])
     Swag.require(cast([2] u64, writeQwordLanes(pairs, 0xFFFFFFFF00000001, 0x1234567887654321)) == [0xFFFFFFFF00000001, 0x1234567887654321])
     Swag.require(cast([2] u64, pairs) == [0x0123456789ABCDEF, 0xFEDCBA9876543210])
 
-    let source = cast(#simd [4] u32, [1'u32, 2, 3, 4])
+    let source = cast(#simd [4] u32, [1_u32, 2, 3, 4])
     Swag.require(cast([4] u32, writeDwordLane(source, 0xDEAD_BEEF)) == [1, 2, 0xDEAD_BEEF, 4])
     Swag.require(cast([4] u32, writeDynamicLane(source, 3, 9)) == [1, 2, 3, 9])
     Swag.require(cast([4] u32, source) == [1, 2, 3, 4])

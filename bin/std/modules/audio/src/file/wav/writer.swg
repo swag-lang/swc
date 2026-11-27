@@ -38,8 +38,11 @@ impl Writer
     {
         if (channels != 1 and channels != 2) or
            not sampleRate or
-           cast(u64, channels) * sampleRate * 2 > Swag.U32.Max do
+           cast(u64, channels) * sampleRate * 2 > Swag.U32.Max
+        {
             fail BadParameterError{"WAV writer needs mono or stereo PCM16 at a representable sample rate"}
+        }
+
         with var result: #returntype
         {
             .sink       = try ByteSink.createFile(fileName)
@@ -66,21 +69,23 @@ impl Writer
         try source.readExact(Swag.makeSlice(&header[0], header.count))
         if Memory.compare(&header[0], "RIFF".buffer, 4) != 0 or
            Memory.compare(&header[8], "WAVEfmt ".buffer, 8) != 0 or
-           Memory.compare(&header[36], "data".buffer, 4) != 0 do
+           Memory.compare(&header[36], "data".buffer, 4) != 0
+        {
             fail InvalidFormatError{"WAV resume needs a classic PCM16 header"}
+        }
 
         try source.seek(4)
-        let riffSize = try source.readLittleEndian'u32()
+        let riffSize = try source.readLittleEndian!{u32}()
         try source.seek(16)
-        let formatSize    = try source.readLittleEndian'u32()
-        let formatTag     = try source.readLittleEndian'u16()
-        let channels      = try source.readLittleEndian'u16()
-        let sampleRate    = try source.readLittleEndian'u32()
-        let byteRate      = try source.readLittleEndian'u32()
-        let blockAlign    = try source.readLittleEndian'u16()
-        let bitsPerSample = try source.readLittleEndian'u16()
+        let formatSize    = try source.readLittleEndian!{u32}()
+        let formatTag     = try source.readLittleEndian!{u16}()
+        let channels      = try source.readLittleEndian!{u16}()
+        let sampleRate    = try source.readLittleEndian!{u32}()
+        let byteRate      = try source.readLittleEndian!{u32}()
+        let blockAlign    = try source.readLittleEndian!{u16}()
+        let bitsPerSample = try source.readLittleEndian!{u16}()
         try source.seek(40)
-        let dataSize = try source.readLittleEndian'u32()
+        let dataSize = try source.readLittleEndian!{u32}()
         if formatSize != 16 or
            formatTag != 1 or
            (channels != 1 and channels != 2) or
@@ -92,15 +97,21 @@ impl Writer
            riffSize < dataSize + 36 or
            riffSize > originalSize - 8 or
            dataSize % blockAlign or
-           cast(u64, dataSize) + 44 > originalSize do
+           cast(u64, dataSize) + 44 > originalSize
+        {
             fail InvalidFormatError{"WAV resume header or committed samples are invalid"}
+        }
+
         source.close()
 
         scope
         {
             var file = try File.open(fileName, .Open, .ReadWrite, .Zero)
-            if try file.size() != originalSize do
+            if try file.size() != originalSize
+            {
                 fail InvalidFormatError{"WAV file changed during resume"}
+            }
+
             if riffSize != dataSize + 36
             {
                 var committedSize = Math.nativeToLittleEndian(dataSize + 36)
@@ -133,17 +144,25 @@ impl Writer
     // 32-bit length limit; exceeding it fails before appending the new samples.
     mtd addFrames(samples: const [..] s16) fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             fail BadParameterError{"cannot append to an ended WAV writer"}
-        if samples.count % .channels do
+        }
+
+        if samples.count % .channels
+        {
             fail BadParameterError{"WAV samples must contain complete interleaved frames"}
+        }
+
         try .validateAdditionalFrames(samples.count / .channels)
         let bytes = samples.count * #sizeof(s16)
 
         if Core.BIG_ENDIAN
         {
-            for sample in samples do
+            for sample in samples
+            {
                 try .sink.writeLittleEndian(sample)
+            }
         }
         else
         {
@@ -159,8 +178,11 @@ impl Writer
     // exceeds the remaining RIFF capacity fails before writing any silence.
     mtd addSilence(count: u64) fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             fail BadParameterError{"cannot append to an ended WAV writer"}
+        }
+
         try .validateAdditionalFrames(count)
         var zeros: [32 * 1024] u8
         let bytesPerFrame = cast(u64, .channels) * #sizeof(s16)
@@ -177,8 +199,11 @@ impl Writer
     // Updates the RIFF and data lengths and flushes a playable prefix to the file.
     mtd flush() fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             fail BadParameterError{"cannot flush an ended WAV writer"}
+        }
+
         let dataBytes = .frameCount * .channels * #sizeof(s16)
         var riffSize  = Math.nativeToLittleEndian(cast(u32, 36 + dataBytes))
         var dataSize  = Math.nativeToLittleEndian(cast(u32, dataBytes))
@@ -190,8 +215,11 @@ impl Writer
     // Finalizes the lengths and closes the file; repeated calls do nothing.
     mtd end() fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             return
+        }
+
         try .flush()
         try .sink.close()
         .isEnded = true
@@ -204,23 +232,25 @@ private impl Writer
     {
         let usedBytes     = .frameCount * .channels * #sizeof(s16)
         let bytesPerFrame = cast(u64, .channels) * #sizeof(s16)
-        if count > (Swag.U32.Max - 36 - usedBytes) / bytesPerFrame do
+        if count > (Swag.U32.Max - 36 - usedBytes) / bytesPerFrame
+        {
             fail OverflowError{"WAV data exceeds the classic RIFF size limit"}
+        }
     }
 
     mtd writeHeader() fail
     {
         try .sink.writeText("RIFF")
-        try .sink.writeLittleEndian(36'u32)
+        try .sink.writeLittleEndian(36_u32)
         try .sink.writeText("WAVEfmt ")
-        try .sink.writeLittleEndian(16'u32)
-        try .sink.writeLittleEndian(1'u16)
+        try .sink.writeLittleEndian(16_u32)
+        try .sink.writeLittleEndian(1_u16)
         try .sink.writeLittleEndian(.channels)
         try .sink.writeLittleEndian(.sampleRate)
         try .sink.writeLittleEndian(cast(u32, .sampleRate * .channels * 2))
         try .sink.writeLittleEndian(cast(u16, .channels * 2))
-        try .sink.writeLittleEndian(16'u16)
+        try .sink.writeLittleEndian(16_u16)
         try .sink.writeText("data")
-        try .sink.writeLittleEndian(0'u32)
+        try .sink.writeLittleEndian(0_u32)
     }
 }

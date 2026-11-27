@@ -29,8 +29,10 @@ public impl Image
     // A format without alpha is left unchanged.
     mtd setAlpha(value: u8 = 0)
     {
-        if not .pixelFormat.hasAlpha() or not .pixelFormat.isPacked() do
+        if not .pixelFormat.hasAlpha() or not .pixelFormat.isPacked()
+        {
             return
+        }
 
         if .pixelFormat != .BGRA8 or .alphaMode == .Premultiplied
         {
@@ -49,7 +51,7 @@ public impl Image
             let alphaValue = cast(*u8, unwrap data)
             let alphaWord  = cast(u32, alphaValue[]) << 24
             let pixels     = Math.Simd.load(cast([*] u32, block))
-            Math.Simd.store(cast([*] u32, block), (pixels & Math.Simd.splat(0x00FF_FFFF'u32)) | Math.Simd.splat(alphaWord))
+            Math.Simd.store(cast([*] u32, block), (pixels & Math.Simd.splat(0x00FF_FFFF_u32)) | Math.Simd.splat(alphaWord))
         }
 
         let alphaWord = cast(u32, value) << 24
@@ -69,8 +71,10 @@ public impl Image
     // [[Pixel.Image.ChannelValueMode.Color]]. Alpha is skipped for a format without alpha.
     mtd setChannel(mode: ChannelMode, value: ChannelValueMode, color: u8 = 0)
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         let hasStraightBgrStorage = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8) and .alphaMode == .Straight
         if not hasStraightBgrStorage
@@ -79,8 +83,10 @@ public impl Image
             if not .pixelFormat.hasAlpha()
             {
                 selectedChannels &= ~.Alpha
-                if selectedChannels == 0 or value == .Alpha do
+                if selectedChannels == 0 or value == .Alpha
+                {
                     return
+                }
             }
 
             var context = {mode: selectedChannels, valueMode: value, color: color / 255.0}
@@ -98,14 +104,26 @@ public impl Image
                 case .Alpha:   channelValue = logical.a
                 }
 
-                if params.mode & .Red do
+                if params.mode & .Red
+                {
                     logical.r = channelValue
-                if params.mode & .Green do
+                }
+
+                if params.mode & .Green
+                {
                     logical.g = channelValue
-                if params.mode & .Blue do
+                }
+
+                if params.mode & .Blue
+                {
                     logical.b = channelValue
-                if params.mode & .Alpha do
+                }
+
+                if params.mode & .Alpha
+                {
                     logical.a = channelValue
+                }
+
                 writeLogicalPixelValue(pix, image.pixelFormat, image.alphaMode, logical)
             }
 
@@ -117,21 +135,34 @@ public impl Image
         if .pixelFormat == .BGR8
         {
             selectedChannels &= ~.Alpha
-            if selectedChannels == 0 or value == .Alpha do
+            if selectedChannels == 0 or value == .Alpha
+            {
                 return
+            }
         }
 
         if value == .Color and .bytesPerPixel == 4
         {
-            var mask = 0'u32
-            if selectedChannels & .Blue do
+            var mask = 0_u32
+            if selectedChannels & .Blue
+            {
                 mask |= 0x0000_00FF
-            if selectedChannels & .Green do
+            }
+
+            if selectedChannels & .Green
+            {
                 mask |= 0x0000_FF00
-            if selectedChannels & .Red do
+            }
+
+            if selectedChannels & .Red
+            {
                 mask |= 0x00FF_0000
-            if selectedChannels & .Alpha do
+            }
+
+            if selectedChannels & .Alpha
+            {
                 mask |= 0xFF00_0000
+            }
 
             var context = {mask: mask, color: color}
             .visitVectorBytes(&context) #code(block, data)
@@ -178,14 +209,25 @@ public impl Image
                 case .Alpha:   channelValue = pix[3]
                 }
 
-                if mode & .Blue do
+                if mode & .Blue
+                {
                     pix[0] = channelValue
-                if mode & .Green do
+                }
+
+                if mode & .Green
+                {
                     pix[1] = channelValue
-                if mode & .Red do
+                }
+
+                if mode & .Red
+                {
                     pix[2] = channelValue
-                if mode & .Alpha do
+                }
+
+                if mode & .Alpha
+                {
                     pix[3] = channelValue
+                }
             }
         }
     }

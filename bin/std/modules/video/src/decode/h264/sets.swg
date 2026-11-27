@@ -29,10 +29,10 @@ const Zigzag8: [64] u8 = [
 // stored transposed, column after column, as FFmpeg stores it: the packed transforms then find
 // the columns their row pass needs already in their vectors, and transpose once instead of
 // twice.
-const ResidualOrderDc         = 0'u64
-const ResidualOrder4x4        = 16'u64
-const ResidualOrderAc         = 32'u64
-const ResidualOrder8x8        = 48'u64
+const ResidualOrderDc         = 0_u64
+const ResidualOrder4x4        = 16_u64
+const ResidualOrderAc         = 32_u64
+const ResidualOrder8x8        = 48_u64
 const ResidualOrder: [112] u8 = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     0, 4, 1, 2, 5, 8, 12, 9, 6, 3, 7, 10, 13, 14, 11, 15,
@@ -49,19 +49,25 @@ const ResidualOrder: [112] u8 = [
 // The product is formed at 64 bits, where no level a stream can code overflows it, so the level
 // needs no clamp of its own before the one the result takes into sixteen bits.
 #[Swag.Inline]
-func dequantLevel(level: s32, scale: u32, shift: u32)->s16 => cast(s16, Math.clamp((cast(s64, level) * cast(s64, scale) + (1's64 << (shift - 1))) >> shift, -32768, 32767))
+func dequantLevel(level: s32, scale: u32, shift: u32)->s16 => cast(s16, Math.clamp((cast(s64, level) * cast(s64, scale) + (1_s64 << (shift - 1))) >> shift, -32768, 32767))
 
 // Stores the levels of one block, decoded in scan order, at their raster positions, dequantized
 // with one row of the scaling table.
-func storeLevels(levels: const [*] s16, count: u32, coeffs: [*] s16, order: u64, scale: [*] u32, shift: u32)
+func(COUNT: u32) storeLevels(levels: const *[16] s16, coeffs: [*] s16, order: u64, scale: [*] u32, shift: u32)
 {
-    for index in cast(u64, count)
+    using Core.Math.Simd
+    let input   = cast(const [*] u16, levels)
+    let zero    = splat(0_u16)
+    let low     = bitmask(load(input) != zero)
+    let high    = bitmask(load(input + 8) != zero)
+    var present = (low | (high << 8)) & ((1_u32 << COUNT) - 1)
+    while present
     {
-        let level = cast(s32, levels[index])
-        if level == 0 do
-            continue
+        let index  = cast(u64, Swag.trailingZeros(present))
         let raster = cast(u64, ResidualOrder[order + index])
+        let level  = cast(s32, levels[][index])
         coeffs[raster] = dequantLevel(level, scale[raster], shift)
+        present        &= present - 1
     }
 }
 
@@ -82,7 +88,7 @@ struct Sps
     deltaPocAlwaysZero:   bool
     offsetForNonRefPic:   s32
     offsetForTopToBottom: s32
-    pocCycle:             Array's32     // offset_for_ref_frame of picture-order type 1.
+    pocCycle:             Array!{s32}     // offset_for_ref_frame of picture-order type 1.
     maxRefFrames:         u32
     gapsAllowed:          bool
     mbWidth:              s32     // Coded width, in macroblocks.
@@ -133,8 +139,8 @@ struct Pps
 // Parses one `scaling_list` syntax structure into `list`, reporting the use-default escape.
 private func parseScalingList(bits: *BitReader, list: [..] u8)->bool
 {
-    var lastScale  = 8's32
-    var nextScale  = 8's32
+    var lastScale  = 8_s32
+    var nextScale  = 8_s32
     var useDefault = false
     for index in list.count
     {
@@ -142,8 +148,10 @@ private func parseScalingList(bits: *BitReader, list: [..] u8)->bool
         {
             let delta = bits.se()
             nextScale = (lastScale + delta + 256) % 256
-            if index == 0 and nextScale == 0 do
+            if index == 0 and nextScale == 0
+            {
                 useDefault = true
+            }
         }
 
         list[index] = cast(u8, (nextScale == 0 ? lastScale : nextScale))
@@ -156,8 +164,10 @@ private func parseScalingList(bits: *BitReader, list: [..] u8)->bool
 // Fills `list` with `values`.
 private func setList(list: [..] u8, values: const [..] u8)
 {
-    for index in list.count do
+    for index in list.count
+    {
         list[index] = values[index]
+    }
 }
 
 // Parses the scaling lists shared by the sequence and picture sets.
@@ -178,11 +188,15 @@ private func parseScalingMatrices(bits: *BitReader, sps: *Sps, scaling4: [..] u8
         let list8      = scaling8[index8 * 64 until index8 * 64 + 64]
         let present    = bits.bit() != 0
         var useDefault = false
-        if present do
+        if present
+        {
             useDefault = parseScalingList(bits, is8x8 ? list8 : list4)
+        }
 
-        if present and not useDefault do
+        if present and not useDefault
+        {
             continue
+        }
 
         // Fall-back rules A and B of Table 7-2, with the in-stream default escape folded in.
         // An 8x8 list of a colour plane falls back to the list of the same intra or inter kind
@@ -192,28 +206,44 @@ private func parseScalingMatrices(bits: *BitReader, sps: *Sps, scaling4: [..] u8
         switch
         {
         case listIndex == 0 or listIndex == 3:
-            if useDefault or fromSps do
+            if useDefault or fromSps
+            {
                 setList(list4, defaults4)
-            else do
+            }
+            else
+            {
                 setList(list4, sps.scaling4[listIndex * 16 until listIndex * 16 + 16])
+            }
 
         case listIndex == 6 or listIndex == 7:
-            if useDefault or fromSps do
+            if useDefault or fromSps
+            {
                 setList(list8, defaults8)
-            else do
+            }
+            else
+            {
                 setList(list8, sps.scaling8[index8 * 64 until index8 * 64 + 64])
+            }
 
         case is8x8:
-            if useDefault do
+            if useDefault
+            {
                 setList(list8, defaults8)
-            else do
+            }
+            else
+            {
                 setList(list8, scaling8[(index8 - 2) * 64 until (index8 - 1) * 64])
+            }
 
         default:
-            if useDefault do
+            if useDefault
+            {
                 setList(list4, defaults4)
-            else do
+            }
+            else
+            {
                 setList(list4, scaling4[(listIndex - 1) * 16 until listIndex * 16])
+            }
         }
     }
 }
@@ -235,12 +265,17 @@ impl Sps
         discard bits.ue()     // seq_parameter_set_id, checked by the caller.
 
         // Every list weight defaults to 16, the flat matrix.
-        for &value in .scaling4 do
+        for &value in .scaling4
+        {
             value[] = 16
-        for &value in .scaling8 do
-            value[] = 16
+        }
 
-        var chromaFormat = 1'u32
+        for &value in .scaling8
+        {
+            value[] = 16
+        }
+
+        var chromaFormat = 1_u32
         if .profile == 100 or
            .profile == 110 or
            .profile == 122 or
@@ -257,52 +292,77 @@ impl Sps
         {
             chromaFormat = bits.ue()
             var separateColourPlanes = false
-            if chromaFormat == 3 do
+            if chromaFormat == 3
+            {
                 separateColourPlanes = bits.bit() != 0
+            }
+
             let bitDepthLuma    = bits.ue() + 8
             let bitDepthChroma  = bits.ue() + 8
             let transformBypass = bits.bit()
-            if chromaFormat != 1 and chromaFormat != 3 do
+            if chromaFormat != 1 and chromaFormat != 3
+            {
                 fail UnsupportedFormatError{"video decoder only supports 4:2:0 and 4:4:4 H.264 streams"}
+            }
 
             // Separate colour planes code each plane as its own monochrome picture with its own
             // slice headers, which is a different picture structure and not merely a sampling.
-            if separateColourPlanes do
+            if separateColourPlanes
+            {
                 fail UnsupportedFormatError{"video decoder does not support H.264 streams coding their colour planes separately"}
-            if bitDepthLuma != 8 or bitDepthChroma != 8 do
+            }
+
+            if bitDepthLuma != 8 or bitDepthChroma != 8
+            {
                 fail UnsupportedFormatError{"video decoder only supports 8-bit H.264 streams"}
-            if transformBypass do
+            }
+
+            if transformBypass
+            {
                 fail UnsupportedFormatError{"video decoder does not support lossless H.264 transform bypass"}
+            }
 
             .hasScaling = bits.bit() != 0
-            if .hasScaling do
+            if .hasScaling
+            {
                 parseScalingMatrices(&bits, me, .scaling4, .scaling8, fromSps: true, listCount: chromaFormat == 3 ? 12 : 8)
+            }
         }
 
         .chromaFormat = cast(u8, chromaFormat)
 
         let log2MaxFrameNumMinus4 = bits.ue()
-        if log2MaxFrameNumMinus4 > 12 do
+        if log2MaxFrameNumMinus4 > 12
+        {
             fail InvalidFormatError{"H.264 sequence set declares an out-of-range frame-number size"}
+        }
+
         .log2MaxFrameNum = log2MaxFrameNumMinus4 + 4
         .pocType         = cast(u8, bits.ue())
         switch .pocType
         {
         case 0:
             .log2MaxPocLsb = bits.ue() + 4
-            if .log2MaxPocLsb > 16 do
+            if .log2MaxPocLsb > 16
+            {
                 fail InvalidFormatError{"H.264 sequence set declares an out-of-range picture-order size"}
+            }
 
         case 1:
             .deltaPocAlwaysZero   = bits.bit() != 0
             .offsetForNonRefPic   = bits.se()
             .offsetForTopToBottom = bits.se()
             let cycleCount = bits.ue()
-            if cycleCount > 255 do
+            if cycleCount > 255
+            {
                 fail InvalidFormatError{"H.264 sequence set declares an out-of-range picture-order cycle"}
+            }
+
             .pocCycle.reserve(cycleCount)
-            for cycleCount do
+            for cycleCount
+            {
                 .pocCycle.add(bits.se())
+            }
 
         case 2:
             break
@@ -312,17 +372,26 @@ impl Sps
         }
 
         .maxRefFrames = bits.ue()
-        if .maxRefFrames > 16 do
+        if .maxRefFrames > 16
+        {
             fail InvalidFormatError{"H.264 sequence set declares more than sixteen reference frames"}
+        }
+
         .gapsAllowed = bits.bit() != 0
 
         let widthInMbs       = bits.ue() + 1
         let heightInMapUnits = bits.ue() + 1
         .frameMbsOnly = bits.bit() != 0
-        if not .frameMbsOnly do
+        if not .frameMbsOnly
+        {
             fail UnsupportedFormatError{"video decoder does not support interlaced H.264 streams"}
-        if widthInMbs > 1024 or heightInMapUnits > 1024 do
+        }
+
+        if widthInMbs > 1024 or heightInMapUnits > 1024
+        {
             fail UnsupportedFormatError{"H.264 frame size exceeds the decoder's limits"}
+        }
+
         .mbWidth  = cast(s32, widthInMbs)
         .mbHeight = cast(s32, heightInMapUnits)
 
@@ -332,15 +401,18 @@ impl Sps
             // Cropping is expressed in chroma samples, section 7.4.2.1.1, so a unit is two luma
             // samples on both axes in 4:2:0 and one in 4:4:4, whose chroma planes are the size
             // of luma. Keep luma pixels.
-            let unit        = 1's32 << .chromaShift()
+            let unit        = 1_s32 << .chromaShift()
             let cropLeft    = cast(u64, bits.ue()) * cast(u64, unit)
             let cropRight   = cast(u64, bits.ue()) * cast(u64, unit)
             let cropTop     = cast(u64, bits.ue()) * cast(u64, unit)
             let cropBottom  = cast(u64, bits.ue()) * cast(u64, unit)
             let codedWidth  = cast(u64, .mbWidth) * 16
             let codedHeight = cast(u64, .mbHeight) * 16
-            if cropLeft + cropRight >= codedWidth or cropTop + cropBottom >= codedHeight do
+            if cropLeft + cropRight >= codedWidth or cropTop + cropBottom >= codedHeight
+            {
                 fail InvalidFormatError{"H.264 cropping exceeds the coded picture"}
+            }
+
             .cropLeft   = cast(s32, cropLeft)
             .cropRight  = cast(s32, cropRight)
             .cropTop    = cast(s32, cropTop)
@@ -356,8 +428,11 @@ impl Sps
                 readSampleAspectRatio(&bits, me)
             }
 
-            if bits.bit() do
+            if bits.bit()
+            {
                 bits.skip(1)
+            }
+
             if bits.bit()
             {
                 bits.skip(3)
@@ -370,13 +445,18 @@ impl Sps
             }
         }
 
-        if bits.overran do
+        if bits.overran
+        {
             fail InvalidFormatError{"H.264 sequence parameter set is truncated"}
+        }
 
         let width  = .mbWidth * 16 - .cropLeft - .cropRight
         let height = .mbHeight * 16 - .cropTop - .cropBottom
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
             fail InvalidFormatError{"H.264 cropping leaves no visible picture"}
+        }
+
         .valid = true
     }
 
@@ -496,13 +576,17 @@ impl Pps
         .picOrderPresent = bits.bit() != 0
 
         let sliceGroups = bits.ue() + 1
-        if sliceGroups > 1 do
+        if sliceGroups > 1
+        {
             fail UnsupportedFormatError{"video decoder does not support H.264 slice groups"}
+        }
 
         .defaultRefCount[0] = bits.ue() + 1
         .defaultRefCount[1] = bits.ue() + 1
-        if .defaultRefCount[0] > 32 or .defaultRefCount[1] > 32 do
+        if .defaultRefCount[0] > 32 or .defaultRefCount[1] > 32
+        {
             fail InvalidFormatError{"H.264 picture set declares an out-of-range reference count"}
+        }
 
         .weightedPred      = bits.bit() != 0
         .weightedBipredIdc = bits.read(2)
@@ -524,19 +608,27 @@ impl Pps
             // 8x8 transform on: two of them, or one per colour plane in 4:4:4.
             if bits.bit()
             {
-                var listCount = 6'u64
-                if .transform8x8 do
+                var listCount = 6_u64
+                if .transform8x8
+                {
                     listCount += sps.is444() ? 6 : 2
+                }
+
                 parseScalingMatrices(&bits, sps, scaling4, scaling8, fromSps: false, listCount: listCount)
             }
 
             .chromaQpOffset[1] = bits.se()
         }
 
-        if bits.overran do
+        if bits.overran
+        {
             fail InvalidFormatError{"H.264 picture parameter set is truncated"}
-        if .initQp < 0 or .initQp > 51 do
+        }
+
+        if .initQp < 0 or .initQp > 51
+        {
             fail InvalidFormatError{"H.264 picture set declares an out-of-range picture QP"}
+        }
 
         .buildDequant(scaling4, scaling8)
         .valid = true
@@ -545,13 +637,13 @@ impl Pps
     // Builds the per-QP dequantization multipliers from the effective weight lists.
     mtd buildDequant(scaling4, scaling8: const [..] u8)
     {
-        for list in 6'u64
+        for list in 6_u64
         {
-            for qp in 52'u64
+            for qp in 52_u64
             {
                 let shift = cast(u32, (qp / 6))
                 let mod6  = qp % 6
-                for scan in 16'u64
+                for scan in 16_u64
                 {
                     let raster   = cast(u64, Zigzag4[scan])
                     let x        = raster & 3
@@ -562,13 +654,13 @@ impl Pps
             }
         }
 
-        for list in 6'u64
+        for list in 6_u64
         {
-            for qp in 52'u64
+            for qp in 52_u64
             {
                 let shift = cast(u32, (qp / 6))
                 let mod6  = qp % 6
-                for scan in 64'u64
+                for scan in 64_u64
                 {
                     let raster   = cast(u64, Zigzag8[scan])
                     let x        = raster & 7

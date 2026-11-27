@@ -100,8 +100,10 @@ func clearedStoreCaller(slot: *ClearedStoreSlot, signal: *ClearedStoreSignal)
 func clearedStoreEarlyReturn(slot: *ClearedStoreSlot, value: *s32, early: bool)
 {
     slot.value = value
-    if early do
+    if early
+    {
         return
+    }
     slot.value = null
 }
 
@@ -109,8 +111,10 @@ func clearedStoreEarlyReturn(slot: *ClearedStoreSlot, value: *s32, early: bool)
 func clearedStoreEarlyFailure(slot: *ClearedStoreSlot, value: *s32, failed: bool) fail
 {
     slot.value = value
-    if failed do
+    if failed
+    {
         fail 7
+    }
     slot.value = null
 }
 

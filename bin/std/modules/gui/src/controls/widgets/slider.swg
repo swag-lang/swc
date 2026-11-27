@@ -21,10 +21,10 @@ struct Slider
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        flags = SliderFlags.HilightBar            // Active behavior and presentation flags.
-        sigStartChange: SigArray'func||(*Wnd)     // Emitted when a user-style change transaction starts.
-        sigChanged:     SigArray'func||(*Wnd)     // Emitted after either value changes.
-        sigEndChange:   SigArray'func||(*Wnd)     // Emitted when a user-style change transaction ends.
+        flags = SliderFlags.HilightBar     // Active behavior and presentation flags.
+        sigStartChange: SigArray!{func||(*Wnd)}     // Emitted when a user-style change transaction starts.
+        sigChanged:     SigArray!{func||(*Wnd)}     // Emitted after either value changes.
+        sigEndChange:   SigArray!{func||(*Wnd)}     // Emitted when a user-style change transaction ends.
     }
 
     // Drag and hover state of the two markers, and the color animations that follow it. The
@@ -73,10 +73,14 @@ impl IWnd for Slider
             colorBkRight  = colors.slider_DisabledBk
             if .flags.has(.HilightBar)
             {
-                if .flags.has(.Range) do
+                if .flags.has(.Range)
+                {
                     colorBkMiddle = colors.slider_DisabledHilightBk
-                else do
+                }
+                else
+                {
                     colorBkLeft = colors.slider_DisabledHilightBk
+                }
             }
 
             colorMark1 = colors.slider_DisabledMark
@@ -85,28 +89,49 @@ impl IWnd for Slider
         else
         {
             colorBkRight = colors.slider_BkRight
-            if not .flags.has(.Range) and .flags.has(.HilightBar) do
+            if not .flags.has(.Range) and .flags.has(.HilightBar)
+            {
                 colorBkLeft = colors.slider_HilightBk
-            else do
+            }
+            else
+            {
                 colorBkLeft = colors.slider_BkLeft
-            if .flags.has(.Range) and .flags.has(.HilightBar) do
+            }
+
+            if .flags.has(.Range) and .flags.has(.HilightBar)
+            {
                 colorBkMiddle = colors.slider_HilightBk
-            else do
+            }
+            else
+            {
                 colorBkMiddle = colors.slider_BkMiddle
+            }
 
-            if .isLowerPressed do
+            if .isLowerPressed
+            {
                 colorMark1 = colors.slider_PressedMark
-            elif .isLowerHot do
+            }
+            else if .isLowerHot
+            {
                 colorMark1 = colors.slider_HotMark
-            else do
+            }
+            else
+            {
                 colorMark1 = colors.slider_Mark
+            }
 
-            if .isUpperPressed do
+            if .isUpperPressed
+            {
                 colorMark2 = colors.slider_PressedMark
-            elif .isUpperHot do
+            }
+            else if .isUpperHot
+            {
                 colorMark2 = colors.slider_HotMark
-            else do
+            }
+            else
+            {
                 colorMark2 = colors.slider_Mark
+            }
         }
 
         // Pos box
@@ -177,20 +202,27 @@ impl IWnd for Slider
                 .upperStepAnimation.apply(me, colors.slider_HilightStepBk)
             }
 
-            for var x = 0'f32; x < 1 + .steps; x += .steps
+            for var x = 0_f32; x < 1 + .steps; x += .steps
             {
                 let posStep = .thumbRectAt(x, metrics.slider_StepSize)
 
                 var colorStep: Color
-                if x <= .lowerRatio and .flags.has(.HilightBar) do
+                if x <= .lowerRatio and .flags.has(.HilightBar)
+                {
                     colorStep = .upperStepAnimation.cur()
-                elif x >= .lowerRatio and
-                     x <= .upperRatio and
-                     .flags.has(.HilightBar) and
-                     .flags.has(.Range) do
+                }
+                else if x >= .lowerRatio and
+                        x <= .upperRatio and
+                        .flags.has(.HilightBar) and
+                        .flags.has(.Range)
+                {
                     colorStep = .upperStepAnimation.cur()
-                else do
+                }
+                else
+                {
                     colorStep = .lowerStepAnimation.cur()
+                }
+
                 theme.drawSubRect(bc.painter, posStep, &rects.slider_Step, colorStep)
             }
         }
@@ -244,10 +276,15 @@ impl IWnd for Slider
                 f = diff / clientRect.width
             }
 
-            if .isLowerPressed do
+            if .isLowerPressed
+            {
                 .setLowerRatio(f)
-            elif .isUpperPressed do
+            }
+            else if .isUpperPressed
+            {
                 .setUpperRatio(f)
+            }
+
             .invalidate()
 
         case .Pressed:
@@ -259,21 +296,29 @@ impl IWnd for Slider
                 {
                     .isLowerPressed = true
                     let posBox = .firstThumbRect()
-                    if isVertical do
+                    if isVertical
+                    {
                         .correcMoving = pos.y - posBox.vertCenter()
-                    else do
+                    }
+                    else
+                    {
                         .correcMoving = pos.x - posBox.horzCenter()
+                    }
                 }
-                elif .isUpperHot
+                else if .isUpperHot
                 {
                     .isUpperPressed = true
                     let posBox = .secondThumbRect()
-                    if isVertical do
+                    if isVertical
+                    {
                         .correcMoving = pos.y - posBox.vertCenter()
-                    else do
+                    }
+                    else
+                    {
                         .correcMoving = pos.x - posBox.horzCenter()
+                    }
                 }
-                elif not .flags.has(.Range)
+                else if not .flags.has(.Range)
                 {
                     .correcMoving   = 0
                     .isLowerPressed = true
@@ -344,8 +389,10 @@ impl IWnd for Slider
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return
+        }
 
         let bigBy = Math.max(.keyStep() * 5, 0.1)
 
@@ -370,10 +417,16 @@ private impl Slider
     // unit, or 5% of the range as a fallback.
     mtd keyStep()->f32
     {
-        if .steps > 0 do
+        if .steps > 0
+        {
             return .steps
-        if .flags.has(.Integer) and .max > .min do
+        }
+
+        if .flags.has(.Integer) and .max > .min
+        {
             return 1.0 / (.max - .min)
+        }
+
         return 0.05
     }
 
@@ -383,10 +436,15 @@ private impl Slider
     mtd stepActiveValue(delta: f32)
     {
         .startChange()
-        if .flags.has(.Range) do
+        if .flags.has(.Range)
+        {
             .setUpperRatio(.upperRatio + delta)
-        else do
+        }
+        else
+        {
             .setLowerRatio(.lowerRatio + delta)
+        }
+
         .endChange()
     }
 
@@ -394,10 +452,15 @@ private impl Slider
     mtd setActiveRatio(f: f32)
     {
         .startChange()
-        if .flags.has(.Range) do
+        if .flags.has(.Range)
+        {
             .setUpperRatio(f)
-        else do
+        }
+        else
+        {
             .setLowerRatio(f)
+        }
+
         .endChange()
     }
 
@@ -422,10 +485,16 @@ private impl Slider
     mtd setLowerRatio(f: f32)
     {
         var fc = .clamp(f)
-        if .flags.has(.Range) do
+        if .flags.has(.Range)
+        {
             fc = Math.min(fc, .upperRatio)
-        if fc == .lowerRatio and .hasLowerValue do
+        }
+
+        if fc == .lowerRatio and .hasLowerValue
+        {
             return
+        }
+
         .hasLowerValue = true
         .lowerRatio    = fc
         .sigChanged.call(me)
@@ -435,10 +504,16 @@ private impl Slider
     mtd setUpperRatio(f: f32)
     {
         var fc = .clamp(f)
-        if .flags.has(.Range) do
+        if .flags.has(.Range)
+        {
             fc = Math.max(fc, .lowerRatio)
-        if fc == .upperRatio and .hasUpperValue do
+        }
+
+        if fc == .upperRatio and .hasUpperValue
+        {
             return
+        }
+
         .hasUpperValue = true
         .upperRatio    = fc
         .sigChanged.call(me)
@@ -618,10 +693,15 @@ impl Slider
         Swag.assert(steps >= 0 and steps <= (max - min))
         .min = min
         .max = max
-        if steps > 0 do
-            .steps = steps / (max - min)     // Convert to normalized step size
-        else do
+        if steps > 0
+        {
+            .steps = steps / (max - min)
+        }     // Convert to normalized step size
+        else
+        {
             .steps = 0
+        }
+
         .invalidate()
     }
 
@@ -660,27 +740,41 @@ impl Slider
 
         if pos.height == 0
         {
-            if vertical do
+            if vertical
+            {
                 pos.height = parent.themeMetrics().slider_Width
-            else do
+            }
+            else
+            {
                 pos.height = parent.themeMetrics().slider_Height
+            }
         }
 
         if pos.width == 0
         {
-            if vertical do
+            if vertical
+            {
                 pos.width = parent.themeMetrics().slider_Height
-            else do
+            }
+            else
+            {
                 pos.width = parent.themeMetrics().slider_Width
+            }
         }
 
-        let res = Wnd.create'Slider(parent, null, pos, id)
+        let res = Wnd.create!{Slider}(parent, null, pos, id)
         res.focusPolicy = .Tab
         res.wndFlags    |= .FocusRing
-        if range do
+        if range
+        {
             res.flags.add(.Range)
-        if vertical do
+        }
+
+        if vertical
+        {
             res.flags.add(.Vertical)
+        }
+
         return res
     }
 }

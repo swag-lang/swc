@@ -7,8 +7,10 @@ using Swag, Core, Pixel
 #test
 {
     var source: String
-    for 80 do
+    for 80
+    {
         source += "A manuscript paragraph keeps enough words to span many rendered lines. "
+    }
 
     var host: Testing.HeadlessHost
     host.setup(720, 900, 1.5)
@@ -40,8 +42,10 @@ using Swag, Core, Pixel
 #test
 {
     var source: String
-    for index in 80 do
+    for index in 80
+    {
         source += Format.toString("## Section %\n\nEach section owns a stable paragraph raster while it remains close to the viewport.\n\n", index)
+    }
 
     var host: Testing.HeadlessHost
     host.setup(720, 360)
@@ -64,7 +68,7 @@ using Swag, Core, Pixel
 // Fractional DPI, selection and search must produce the same pixels on a cache hit.
 #test
 {
-    for scale in [1.0'f32, 1.5'f32]
+    for scale in [1.0_f32, 1.5_f32]
     {
         var host: Testing.HeadlessHost
         host.setup(640, 480, dpiScale: scale)
@@ -125,8 +129,11 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(640, 320)
     var source: String
-    for index in 24 do
+    for index in 24
+    {
         source += Format.toString("## Entry %\n\n- Evidence for this entry.\n- Next action for this entry.\n\n", index)
+    }
+
     let view = Markdown.View.createText(&host.root, source.toString())
     view.resize(640, 320)
     view.applyLayout()

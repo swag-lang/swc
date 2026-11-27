@@ -15,7 +15,7 @@ using Core
     var initial = monitor.poll()
     Swag.require(not initial.locked and not initial.suspending)
     Swag.require(initial.idleMilliseconds >= 90_000 and initial.idleMilliseconds < 95_000)
-    for state in [1'u32, 2, 0, 3]
+    for state in [1_u32, 2, 0, 3]
     {
         var reply: *void?
         let result = monitor.call(monitor.bus,
@@ -27,8 +27,11 @@ using Core
                                   &reply,
                                   "u".buffer,
                                   state)
-        if reply do
+        if reply
+        {
             discard monitor.messageUnref(reply)
+        }
+
         Swag.require(result >= 0)
         let current = monitor.poll()
         Swag.require(current.locked == (state == 1 or state == 3) and current.suspending == (state == 2))
@@ -53,8 +56,10 @@ using Core
             discard monitor.messageUnref(reply)
         }
 
-        if state == 0 do
+        if state == 0
+        {
             Swag.require(monitor.inhibitor >= 0)
+        }
     }
 
     monitor.stop()

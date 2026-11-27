@@ -6,8 +6,11 @@ using Swag
 func testKey()->[Crypto.ChaCha20KeySize] u8
 {
     var result: #returntype
-    for i in Crypto.ChaCha20KeySize do
+    for i in Crypto.ChaCha20KeySize
+    {
         result[i] = cast(u8, i)
+    }
+
     return result
 }
 
@@ -15,17 +18,22 @@ func testNonce()->[Crypto.ChaCha20NonceSize] u8 => [0x00, 0x00, 0x00, 0x09, 0x00
 
 func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initialCounter: u32)
 {
-    var offset  = 0'u64
+    var offset  = 0_u64
     var counter = initialCounter
     while offset < source.count
     {
         let block = expect Crypto.chacha20Block(key, counter, nonce)
         let count = Math.min(source.count - offset, Crypto.ChaCha20BlockSize)
-        for i in count do
+        for i in count
+        {
             destination[offset + i] = source[offset + i] ^ block[i]
+        }
+
         offset += count
-        if offset < source.count do
+        if offset < source.count
+        {
             counter += 1
+        }
     }
 }
 
@@ -58,8 +66,10 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
 
     const Count = 137
     var data: [Count] u8
-    for i in Count do
+    for i in Count
+    {
         data[i] = cast(u8, ((i * 29 + 7) & 0xFF))
+    }
 
     let original = data
     expect Crypto.chacha20Xor(key, nonce, data, data, 1)
@@ -72,8 +82,10 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         let block = expect Crypto.chacha20Block(key, cast(u32, (1 + index)), nonce)
         let start = index * Crypto.ChaCha20BlockSize
         let count = Math.min(Count - start, Crypto.ChaCha20BlockSize)
-        for i in count do
+        for i in count
+        {
             Swag.require(data[start + i] == original[start + i] ^ block[i])
+        }
     }
 
     expect Crypto.chacha20Xor(key, nonce, data, data, 1)
@@ -89,10 +101,13 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     var source:   [1025] u8
     var actual:   [1025] u8
     var expected: [1025] u8
-    for index in source.count do
+    for index in source.count
+    {
         source[index] = cast(u8, ((cast(u64, index) * 47 + 13) & 0xFF))
+    }
 
-    let lengths: [15] u64 = [0, 1, 63, 64, 65, 255, 256, 257, 511, 512, 513, 767, 768, 1024, 1025]
+    let lengths: [30] u64 = [0, 1, 15, 16, 17, 31, 32, 33, 47, 48, 49, 63, 64, 65, 127, 128,
+                             129, 191, 192, 193, 255, 256, 257, 511, 512, 513, 767, 768, 1024, 1025]
     for length in lengths
     {
         for index in actual.count
@@ -108,8 +123,10 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         Memory.copy(actual.buffer, source.buffer, source.count)
         expect Crypto.chacha20Xor(key, nonce, actual[until length], actual[until length], 7)
         Swag.require(Slice.equals(actual[until length], expected[until length]))
-        for i in length until actual.count do
+        for i in length until actual.count
+        {
             Swag.require(actual[i] == source[i])
+        }
     }
 
     scalarChaCha20Xor(key, nonce, source[until 256], expected[until 256], Swag.U32.Max - 3)
@@ -129,8 +146,11 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     let sourceBase   = cast(u64, cast(const [*] u8, sourceBacking.buffer))
     let sourceOffset = (1 + 8 - (sourceBase & 7)) & 7
     var source       = sourceBacking[sourceOffset to sourceOffset + TestCount]
-    for i in TestCount do
+    for i in TestCount
+    {
         source[i] = cast(u8, ((i * 37 + 11) & 0xFF))
+    }
+
     Swag.require((cast(u64, cast(const [*] u8, source.buffer)) & 7) == 1)
 
     var expected: [TestCount] u8
@@ -142,8 +162,10 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     var destination       = destinationBacking[destinationOffset to destinationOffset + TestCount]
     Swag.require((cast(u64, cast(const [*] u8, destination.buffer)) & 7) == 3)
     expect Crypto.chacha20Xor(key, nonce, source, destination, 17)
-    for i in TestCount do
+    for i in TestCount
+    {
         Swag.require(destination[i] == expected[i])
+    }
 
     var inPlaceBacking: [TestCount + 8] u8
     let inPlaceBase   = cast(u64, cast(const [*] u8, inPlaceBacking.buffer))
@@ -152,8 +174,10 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     Memory.copy(cast([*] void, inPlace.buffer), cast(const [*] void, source.buffer), TestCount)
     Swag.require((cast(u64, cast(const [*] u8, inPlace.buffer)) & 7) == 1)
     expect Crypto.chacha20Xor(key, nonce, inPlace, inPlace, 17)
-    for i in TestCount do
+    for i in TestCount
+    {
         Swag.require(inPlace[i] == expected[i])
+    }
 }
 
 // Native partitions match the single-block definition, including unaligned buffers, tails,
@@ -165,16 +189,18 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     let key   = testKey()
     let nonce = testNonce()
     const Capacity = 2 * 65536 + 258
-    var source:   Array'u8
-    var actual:   Array'u8
-    var expected: Array'u8
+    var source:   Array!{u8}
+    var actual:   Array!{u8}
+    var expected: Array!{u8}
     source.resize(Capacity)
     actual.resize(Capacity)
     expected.resize(Capacity)
-    for index in source.count do
+    for index in source.count
+    {
         source[index] = cast(u8, ((index * 47 + 13) & 0xFF))
+    }
 
-    let lengths: [8] u64 = [65535, 65536, 65537, 65599, 65600, 65791, 65792, Capacity - 2]
+    let lengths: [11] u64 = [4095, 4096, 4097, 65535, 65536, 65537, 65599, 65600, 65791, 65792, Capacity - 2]
     for length in lengths
     {
         Memory.set(actual.storage(), 0xA5, actual.count)
@@ -192,8 +218,10 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         expect Crypto.chacha20Xor(key, nonce, output, output, first)
         Swag.require(Slice.equals(output, reference))
         Swag.require(actual[0] == source[0])
-        for index in length + 1 until actual.count do
+        for index in length + 1 until actual.count
+        {
             Swag.require(actual[index] == source[index])
+        }
     }
 
     // Reject the whole request before submitting work when the last block would wrap.
@@ -203,8 +231,10 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     discard catch Crypto.chacha20Xor(key, nonce, source.toSlice()[until 65537], tooLong, Swag.U32.Max - 1023) as overflowErrorOutcome
     let overflowError = overflowErrorOutcome.value()
     Swag.require((overflowError is Errors.OverflowError))
-    for index in actual.count do
+    for index in actual.count
+    {
         Swag.require(actual[index] == 0xA5)
+    }
 
     // A caller may already be distributing records through the same pool. Nested joins
     // must complete, and each invocation keeps its own destination and stream scratch.
@@ -215,7 +245,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     let noncePtr  = &nonce
     parallel for |keyPtr, noncePtr, input, reference, first| 3
     {
-        var encrypted: Array'u8
+        var encrypted: Array!{u8}
         encrypted.resize(input.count)
         expect Crypto.chacha20Xor(keyPtr[], noncePtr[], input, encrypted.toSlice(), first)
         Swag.require(Slice.equals(encrypted.toSlice(), reference))

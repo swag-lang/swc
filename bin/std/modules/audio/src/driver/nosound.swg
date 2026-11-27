@@ -43,17 +43,22 @@ impl Voice
 {
     func createNoSound(voice: *Voice, _ = VoiceCreateFlags.Default) fail
     {
-        voice.handle = cast(*void?, Memory.new'NoSoundVoice(voice.allocationAllocator))
+        voice.handle = cast(*void?, Memory.new!{NoSoundVoice}(voice.allocationAllocator))
         let file = unwrap voice.file
         voice.requestedEncoding = file.encoding == .AacLc ? .Pcm16 : file.encoding
-        if not voice.handle do
+        if not voice.handle
+        {
             fail BadParameterError{"cannot create no-sound voice"}
+        }
     }
 
     mtd destroyNoSound()
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let allocator = .allocationAllocator
         Memory.delete(cast(*NoSoundVoice, .handle), allocator)
         .handle = null
@@ -62,8 +67,10 @@ impl Voice
     mtd updateNoSound()->bool fail
     {
         let handle = cast(*NoSoundVoice?, .handle)
-        if not handle or not handle.isPlaying do
+        if not handle or not handle.isPlaying
+        {
             return false
+        }
 
         if .playFlags.has(.Loop)
         {
@@ -75,8 +82,11 @@ impl Voice
         for
         {
             let {buffer: _, size: sizeBuffer} = try .readBuffer()
-            if not sizeBuffer do
+            if not sizeBuffer
+            {
                 break
+            }
+
             handle.samplesPlayed += sizeBuffer / .decodedBytesPerFrame()
         }
 
@@ -87,22 +97,28 @@ impl Voice
     mtd playNoSound(_: u32 = 0) fail
     {
         let handle = cast(*NoSoundVoice?, .handle)
-        if handle do
+        if handle
+        {
             handle.isPlaying = true
+        }
     }
 
     mtd stopNoSound(_: u32 = 0) fail
     {
         let handle = cast(*NoSoundVoice?, .handle)
-        if handle do
+        if handle
+        {
             handle.isPlaying = false
+        }
     }
 
     mtd resetNoSound() fail
     {
         let handle = cast(*NoSoundVoice?, .handle)
-        if handle do
+        if handle
+        {
             handle.isPlaying = false
+        }
     }
 
     mtd playedFramesNoSound()->u64
@@ -117,8 +133,11 @@ internal impl Voice
     // Sets the linear gain recorded by the no-sound backend.
     mtd setVolumeNoSound(volume: f32, _: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let handle = cast(*NoSoundVoice, .handle)
         handle.volume = Math.clamp(volume, 0, 1)
     }
@@ -126,8 +145,11 @@ internal impl Voice
     // Returns the linear gain recorded by the no-sound backend.
     mtd volumeNoSound()->f32 fail
     {
-        if not .handle do
+        if not .handle
+        {
             return 0
+        }
+
         let handle = cast(*NoSoundVoice, .handle)
         return handle.volume
     }
@@ -135,8 +157,11 @@ internal impl Voice
     // Sets the frequency ratio recorded by the no-sound backend.
     mtd setFrequencyRatioNoSound(ratio: f32, _: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let handle = cast(*NoSoundVoice, .handle)
         handle.frequencyRatio = ratio
     }
@@ -144,26 +169,37 @@ internal impl Voice
     // Returns the frequency ratio recorded by the no-sound backend.
     mtd frequencyRatioNoSound()->f32 fail
     {
-        if not .handle do
+        if not .handle
+        {
             return 0
+        }
+
         let handle = cast(*NoSoundVoice, .handle)
         return handle.frequencyRatio
     }
 
     mtd setPanNoSound(pan: f32, _: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let file     = unwrap .file
         let channels = file.numChannels()
-        if channels == 0 or channels > 2 do
+        if channels == 0 or channels > 2
+        {
             fail BadParameterError{"stereo pan supports mono and stereo sources"}
+        }
+
         let handle = cast(*NoSoundVoice, .handle)
         for i in handle.busCount
         {
             let bus = unwrap handle.buses[i]
-            if bus.channelCount != 2 do
+            if bus.channelCount != 2
+            {
                 fail BadParameterError{"stereo pan requires a stereo output route"}
+            }
         }
 
         #static if #command == Swag.CompilerCommand.Test
@@ -181,24 +217,32 @@ internal impl Voice
     // Validates and records no-sound bus routing without producing audio.
     mtd setRoutingNoSound(buses: const [..] *Bus) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
 
         let handle = cast(*NoSoundVoice, .handle)
         let count  = buses.count
-        if count > handle.buses.count do
+        if count > handle.buses.count
+        {
             fail SystemError{"too many buses", errorID: count}
+        }
 
         for bus in buses
         {
-            if not bus.handle do
+            if not bus.handle
+            {
                 fail BadParameterError{"bus invalid"}
+            }
         }
 
         for i in handle.busCount
         {
-            if i >= count do
+            if i >= count
+            {
                 handle.buses[i] = null
+            }
         }
 
         handle.busCount = cast(u32, count)
@@ -213,10 +257,12 @@ impl Bus
 {
     func createNoSound(bus: *Bus, numChannels: u32, parent: *Bus? = null) fail
     {
-        if parent and not parent.handle do
+        if parent and not parent.handle
+        {
             fail BadParameterError{"parent bus invalid"}
+        }
 
-        let handle = Memory.new'NoSoundBus(bus.allocationAllocator)
+        let handle = Memory.new!{NoSoundBus}(bus.allocationAllocator)
         bus.handle         = cast(*void?, handle)
         handle.numChannels = numChannels
         handle.parent      = parent
@@ -224,8 +270,11 @@ impl Bus
 
     mtd destroyNoSound()
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let allocator = .allocationAllocator
         Memory.delete(cast(*NoSoundBus, .handle), allocator)
         .handle = null
@@ -237,8 +286,11 @@ internal impl Bus
     // Sets the linear bus gain recorded by the no-sound backend.
     mtd setVolumeNoSound(volume: f32, _: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let handle = cast(*NoSoundBus, .handle)
         handle.volume = Math.clamp(volume, 0, 1)
     }
@@ -246,8 +298,11 @@ internal impl Bus
     // Returns the linear bus gain recorded by the no-sound backend.
     mtd volumeNoSound()->f32 fail
     {
-        if not .handle do
+        if not .handle
+        {
             return 0
+        }
+
         let handle = cast(*NoSoundBus, .handle)
         return handle.volume
     }

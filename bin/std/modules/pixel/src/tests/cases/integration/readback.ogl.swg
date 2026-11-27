@@ -22,8 +22,8 @@ using Core, Ogl
     painter.bindRenderTarget(&target)
     painter.setColorMaskFull()
     painter.clear(Argb.Black)
-    painter.fillRect({3, 5, 21, 13}, Color.fromArgb(255'u8, 23'u8, 71'u8, 119'u8))
-    painter.fillRect({7, 18, 15, 16}, Color.fromArgb(255'u8, 151'u8, 87'u8, 41'u8))
+    painter.fillRect({3, 5, 21, 13}, Color.fromArgb(255_u8, 23_u8, 71_u8, 119_u8))
+    painter.fillRect({7, 18, 15, 16}, Color.fromArgb(255_u8, 151_u8, 87_u8, 41_u8))
     painter.unbindRenderTarget()
     painter.end()
     expect gpu.draw(&painter)
@@ -31,7 +31,7 @@ using Core, Ogl
     var actual   = Image.create(21, 29, .BGRA8)
     var readback: RenderOglReadback
     defer readback.release()
-    for width in [21's32, 32's32, 21's32]
+    for width in [21_s32, 32_s32, 21_s32]
     {
         let cropped   = gpu.readRenderTarget(&target, 3, 5, width, 29)
         var image     = Image.create(width, 29, .BGRA8)
@@ -43,8 +43,10 @@ using Core, Ogl
         while not copied and watch.elapsedMilliseconds() < 2000
         {
             copied = readback.tryCopyTo(image.pixels.toSlice())
-            if not copied do
-                Threading.Thread.sleep(1'ms)
+            if not copied
+            {
+                Threading.Thread.sleep(1_ms)
+            }
         }
 
         Swag.require(copied and not readback.isPending() and not readback.hasFailed())
@@ -55,7 +57,7 @@ using Core, Ogl
         Swag.require(buffer == 0 and framebuffer == 0)
     }
 
-    var padded: Array'u8
+    var padded: Array!{u8}
     padded.resize(128 * 29)
     let strided = readback.submit(&target, 3, 5, 21, 29)
     Swag.require(strided)
@@ -65,17 +67,21 @@ using Core, Ogl
     while not copiedRows and rowWatch.elapsedMilliseconds() < 2000
     {
         copiedRows = readback.tryCopyTo(padded.toSlice(), rowStride: 128)
-        if not copiedRows do
-            Threading.Thread.sleep(1'ms)
+        if not copiedRows
+        {
+            Threading.Thread.sleep(1_ms)
+        }
     }
 
     Swag.require(copiedRows)
-    for row in 29'u64
+    for row in 29_u64
     {
         Swag.require(Slice.equals(padded.toSlice()[row * 128 until row * 128 + 84],
                                   expected.pixels.toSlice()[row * 84 until (row + 1) * 84]))
-        for byte in padded.toSlice()[row * 128 + 84 until (row + 1) * 128] do
+        for byte in padded.toSlice()[row * 128 + 84 until (row + 1) * 128]
+        {
             Swag.require(byte == 0)
+        }
     }
 
     let submitted = readback.submit(&target, 3, 5, 21, 29)
@@ -100,8 +106,10 @@ using Core, Ogl
         while not readback.hasFailed() and failureWatch.elapsedMilliseconds() < 2000
         {
             discard readback.tryCopyTo(actual.pixels.toSlice())
-            if not readback.hasFailed() do
-                Threading.Thread.sleep(1'ms)
+            if not readback.hasFailed()
+            {
+                Threading.Thread.sleep(1_ms)
+            }
         }
     }
 

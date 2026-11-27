@@ -11,8 +11,11 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-scrollbar-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 12_000 do
+    for index in 12_000
+    {
         source += Format.toString("## Section %\n\nVisible paragraph %.\n\n", index, index)
+    }
+
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -20,19 +23,25 @@ using Swag, Core
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(720, 480)
     view.applyLayout()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     let viewport = view.scroll.paddedClientRect()
 
-    for ratio, index in [0.8'f32, 0.2'f32, 0.9'f32, 0.4'f32]
+    for ratio, index in [0.8_f32, 0.2_f32, 0.9_f32, 0.4_f32]
     {
         view.scroll.setScrollPos(0, view.virtualHeight * (1 - ratio))
         let destination = view.virtualHeight * ratio
         let offset      = cast(u64, (ratio * cast(f32, source.length)))
         view.scroll.setScrollPos(0, destination)
         var image = host.render(view)
-        if not index do
+        if not index
+        {
             Pixel.Testing.assertImageGolden(&image, "markdownview.scrollbar")
+        }
+
         Swag.require(not view.hasPendingTarget and view.retainedBlocks.isEmpty())
         Swag.require(Math.abs(view.scroll.scrollPosition().y - destination) <= 1)
         Swag.require(view.residentStart <= offset and offset - view.residentStart < 256)
@@ -40,8 +49,11 @@ using Swag, Core
         Swag.require(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
         Swag.require(view.blocks.count < 64)
         let position = view.scroll.scrollPosition()
-        for 64 where view.isLoading() do
+        for 64 where view.isLoading()
+        {
             host.fireTimers()
+        }
+
         Swag.require(view.scroll.scrollPosition() == position)
         Swag.require(view.bytesRead - view.residentStart <= 256 * 1024)
     }

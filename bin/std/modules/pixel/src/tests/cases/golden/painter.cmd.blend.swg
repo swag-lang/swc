@@ -108,7 +108,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 {
     var painter: Painter
     var path:    LinePath
-    let pen = Pen.createSolid(Color.fromArgb(128'u8, Argb.Red), 8)
+    let pen = Pen.createSolid(Color.fromArgb(128_u8, Argb.Red), 8)
 
     path.start(10, 80)
     path.lineTo(50, 10)
@@ -163,11 +163,11 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 
     painter.begin()
     painter.setShader(&first)
-    painter.setShaderParam(cast(ShaderParamHandle, 17), 0.5'f32)
-    painter.setShaderParam(cast(ShaderParamHandle, 42), 3's32)
+    painter.setShaderParam(cast(ShaderParamHandle, 17), 0.5_f32)
+    painter.setShaderParam(cast(ShaderParamHandle, 42), 3_s32)
     painter.fillRect(0, 0, 10, 10, Color.fromArgb(Argb.Red))
     painter.setShader(&second)
-    painter.setShaderParam(cast(ShaderParamHandle, 17), 1.5'f32)
+    painter.setShaderParam(cast(ShaderParamHandle, 17), 1.5_f32)
     painter.fillRect(0, 0, 10, 10, Color.fromArgb(Argb.Red))
     painter.setShader()
     painter.end()

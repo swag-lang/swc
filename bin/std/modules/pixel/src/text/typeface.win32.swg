@@ -3,7 +3,7 @@
 using Core, Win32, Win32.Gdi32, TrueType
 
 // The `ttcf` table tag, in the byte order `GetFontData` reads a tag in.
-const TtcfTableTag = 0x66637474'u32
+const TtcfTableTag = 0x66637474_u32
 
 impl TypeFace
 {
@@ -21,7 +21,7 @@ impl TypeFace
     //
     // A missing collection table is an ordinary fallback to the standalone font. The checked
     // wrapper reports the failed query even when Windows supplies no extended error code.
-    func readHfontData(hfont: HFONT)->Array'u8 fail
+    func readHfontData(hfont: HFONT)->Array!{u8} fail
     {
         var result: #returntype
 
@@ -31,22 +31,28 @@ impl TypeFace
         let previousObject = SelectObject(hdc, cast(HGDIOBJ, hfont))
         defer SelectObject(hdc, previousObject)
 
-        var table = 0'u32
+        var table = 0_u32
         var errOutcome:       Swag.Error
         var collectionLength: #decltype(expect GetFontData(hdc, TtcfTableTag, 0, null, 0))
         catch { collectionLength = try GetFontData(hdc, TtcfTableTag, 0, null, 0) } as errOutcome
         let err    = errOutcome.value()
         var length = collectionLength
 
-        if err != null or not collectionLength or collectionLength == GDI_ERROR do
+        if err != null or not collectionLength or collectionLength == GDI_ERROR
+        {
             length = try GetFontData(hdc, 0, 0, null, 0)
-        else do
+        }
+        else
+        {
             table = TtcfTableTag
+        }
 
         // Nothing readable behind the handle. An empty buffer is what says so, and
         // the face loader reports it as the empty input it is.
-        if length == GDI_ERROR do
+        if length == GDI_ERROR
+        {
             length = 0
+        }
 
         result.resize(cast(u64, length))
         discard try GetFontData(hdc, table, 0, result.buffer, cast(DWORD, result.count))
@@ -72,24 +78,29 @@ impl TypeFace
         if count > 1 and family.count != 0
         {
             var requestedWeight = weight
-            if requestedWeight == FW_DONTCARE do
+            if requestedWeight == FW_DONTCARE
+            {
                 requestedWeight = FW_REGULAR
+            }
+
             let targetWeight = cast(u16, requestedWeight)
 
             var bestIndex = count
-            var bestScore = 4000'u32
+            var bestScore = 4000_u32
             for index in count
             {
                 var errOutcome: Swag.Error
                 var metadata:   #decltype(expect Face.metadataAt(bytes, index))
                 catch { metadata = try Face.metadataAt(bytes, index) } as errOutcome
                 let err = errOutcome.value()
-                if err != null or Latin1.compare(metadata.familyName, family, ignoreCase: true) do
+                if err != null or Latin1.compare(metadata.familyName, family, ignoreCase: true)
+                {
                     continue
+                }
 
                 let weightDistance = metadata.weight > targetWeight ? metadata.weight - targetWeight : targetWeight - metadata.weight
-                let boldPenalty    = metadata.style.has(.Bold) == (targetWeight >= FW_SEMIBOLD) ? 0'u32 : 1000'u32
-                let italicPenalty  = metadata.style.has(.Italic) == italic ? 0'u32 : 2000'u32
+                let boldPenalty    = metadata.style.has(.Bold) == (targetWeight >= FW_SEMIBOLD) ? 0_u32 : 1000_u32
+                let italicPenalty  = metadata.style.has(.Italic) == italic ? 0_u32 : 2000_u32
                 let score          = italicPenalty + boldPenalty + cast(u32, weightDistance)
                 if score < bestScore
                 {
@@ -98,8 +109,10 @@ impl TypeFace
                 }
             }
 
-            if bestIndex < count do
+            if bestIndex < count
+            {
                 return try Face.loadAt(bytes, bestIndex, allocator)
+            }
         }
 
         return try Face.load(bytes, allocator)
@@ -115,8 +128,10 @@ impl TypeFace
 
         let key  = TypeFaceCacheKey{String.from(fullName), 0}
         let here = g_HashTypeFace.tryFind(key)
-        if here do
+        if here
+        {
             return here.value
+        }
 
         let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
 
@@ -128,11 +143,14 @@ impl TypeFace
         let length  = Utf16.lengthUntilZero(logFont.lfFaceName)
 
         var family: String
-        if length do
+        if length
+        {
             family = Utf8.fromUtf16(Swag.makeSlice(&logFont.lfFaceName[0], length))
+        }
+
         let face = try loadFaceForFamily(buffer.toSlice(), family, logFont.lfWeight, logFont.lfItalic != 0, allocator)
 
-        let tf = Memory.new'TypeFace(allocator)
+        let tf = Memory.new!{TypeFace}(allocator)
         tf.allocationAllocator = allocator
         tf.fullName   = fullName
         tf.face       = face

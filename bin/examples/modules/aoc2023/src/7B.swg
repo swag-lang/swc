@@ -33,21 +33,25 @@ private struct Card
 }
 
 private var strengthByLabel: [256] u8
-private var hands: Array'Card
+private var hands: Array!{Card}
 
 private func sort()
 {
     hands.sort(func(leftHand, rightHand)
     {
-        if leftHand.handType != rightHand.handType do
+        if leftHand.handType != rightHand.handType
+        {
             return leftHand.handType <=> rightHand.handType
+        }
 
         for i in leftHand.labels.count
         {
             let leftStrength  = strengthByLabel[leftHand.labels[i]]
             let rightStrength = strengthByLabel[rightHand.labels[i]]
-            if leftStrength != rightStrength do
+            if leftStrength != rightStrength
+            {
                 return leftStrength <=> rightStrength
+            }
         }
 
         return 0
@@ -59,23 +63,23 @@ func day7B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    strengthByLabel['A'u8] = 12
-    strengthByLabel['K'u8] = 11
-    strengthByLabel['Q'u8] = 10
-    strengthByLabel['T'u8] = 9
-    strengthByLabel['9'u8] = 8
-    strengthByLabel['8'u8] = 7
-    strengthByLabel['7'u8] = 6
-    strengthByLabel['6'u8] = 5
-    strengthByLabel['5'u8] = 4
-    strengthByLabel['4'u8] = 3
-    strengthByLabel['3'u8] = 2
-    strengthByLabel['2'u8] = 1
-    strengthByLabel['J'u8] = 0
+    strengthByLabel['A'_u8] = 12
+    strengthByLabel['K'_u8] = 11
+    strengthByLabel['Q'_u8] = 10
+    strengthByLabel['T'_u8] = 9
+    strengthByLabel['9'_u8] = 8
+    strengthByLabel['8'_u8] = 7
+    strengthByLabel['7'_u8] = 6
+    strengthByLabel['6'_u8] = 5
+    strengthByLabel['5'_u8] = 4
+    strengthByLabel['4'_u8] = 3
+    strengthByLabel['3'_u8] = 2
+    strengthByLabel['2'_u8] = 1
+    strengthByLabel['J'_u8] = 0
 
     for line in lines
     {
-        let handAndBid = Tokenize.split(line[], ' 'u8)
+        let handAndBid = Tokenize.split(line[], ' '_u8)
 
         var hand: Card
         var mostFrequentRankCount = 0
@@ -83,14 +87,18 @@ func day7B()
         {
             let rank = strengthByLabel[label]
             hand.countByRank[rank] += 1
-            if rank do
+            if rank
+            {
                 mostFrequentRankCount = Math.max(mostFrequentRankCount, hand.countByRank[rank])
+            }
         }
 
         for rankCount, rank in hand.countByRank
         {
-            if rankCount and rank do
+            if rankCount and rank
+            {
                 hand.ranksByMultiplicity[rankCount] += 1
+            }
         }
 
         // Add all jokers to the most frequent non-joker rank to maximize this hand type.
@@ -116,8 +124,10 @@ func day7B()
     sort()
 
     var total: u64
-    for hand, rank in hands do
+    for hand, rank in hands
+    {
         total += (rank + 1) * hand.bid
+    }
 
     Swag.assert(total == 248029057)
 }

@@ -5,23 +5,29 @@ using Core
 
 struct DirectoryCapture
 {
-    names: Array'String
+    names: Array!{String}
     limit: u64     // Zero accepts every entry; a non-zero value models a full WinFsp buffer.
 }
 
 func captureDirectoryEntry(context: *void?, name: const [*] u8?, _: const *WinFsp.FileInfo)->u8
 {
     let capture = cast(*DirectoryCapture, unwrap context)
-    if capture.limit and capture.names.count >= capture.limit do
+    if capture.limit and capture.names.count >= capture.limit
+    {
         return 0
+    }
+
     capture.names.add(WinFsp.cString(name))
     return 1
 }
 
 func captured(capture: const *DirectoryCapture, name: string)->bool
 {
-    for value in capture.names where value[] == name do
+    for value in capture.names where value[] == name
+    {
         return true
+    }
+
     return false
 }
 
@@ -35,7 +41,7 @@ func statusForError(kind: ErrorKind)->s32
 
 #test
 {
-    Swag.require(WinFsp.statusBits(cast #bit (s32, 0x80070430'u32)) == 0x80070430)
+    Swag.require(WinFsp.statusBits(cast #bit (s32, 0x80070430_u32)) == 0x80070430)
     Swag.require(statusForError(.InvalidInput) == WinFsp.StatusInvalidParameter)
     Swag.require(statusForError(.SparseContainer) == WinFsp.StatusInvalidParameter)
     Swag.require(statusForError(.NotFound) == WinFsp.StatusObjectNameNotFound)
@@ -75,8 +81,11 @@ func statusForError(kind: ErrorKind)->s32
     let prefixes = ["", "A", "A", "Aé", "Aé", "Aé", "Aé", "Aé𐍈", "Aé𐍈Z"]
     for prefix, index in prefixes
     {
-        for &byte in label do
+        for &byte in label
+        {
             byte[] = 0xA5
+        }
+
         let capacity = cast(u32, (index + 1))
         callbackStatus = WinFsp.callbackGetVolumeInfo(context, &total, &free, &label[0], capacity)
         Swag.require(callbackStatus == WinFsp.StatusSuccess)
@@ -121,8 +130,11 @@ func statusForError(kind: ErrorKind)->s32
     Swag.require(callbackStatus == WinFsp.StatusObjectNameNotFound)
 
     var source: [5000] u8
-    for _, i in source do
+    for _, i in source
+    {
         source[i] = cast(u8, ((i * 13 + 5) & 0xFF))
+    }
+
     var transferred: u32
     callbackStatus = WinFsp.callbackWrite(context, fileId, &source[0], 0, #sizeof(source), 0, 0, &transferred, &info)
     Swag.require(callbackStatus == WinFsp.StatusSuccess)
@@ -151,10 +163,12 @@ func statusForError(kind: ErrorKind)->s32
     var zeroTail: [32] u8
     callbackStatus = WinFsp.callbackRead(context, fileId, &zeroTail[0], 7000, #sizeof(zeroTail), &transferred)
     Swag.require(callbackStatus == WinFsp.StatusSuccess)
-    for byte in zeroTail do
+    for byte in zeroTail
+    {
         Swag.require(byte == 0)
+    }
 
-    var securitySize = 0'u32
+    var securitySize = 0_u32
     callbackStatus = WinFsp.callbackGetSecurity(context, fileId, null, &securitySize)
     Swag.require(callbackStatus == WinFsp.StatusSuccess)
     Swag.require(securitySize == #sizeof(security))

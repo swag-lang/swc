@@ -53,8 +53,10 @@ func moveBodiesRef(bodies: [..] Body, dt: f64)
 func sumTriples(items: const [..] Triple)->u64
 {
     var acc: u64
-    for t in items do
+    for t in items
+    {
         acc += cast(u64, t.a) * 3 + cast(u64, t.b) * 5 + cast(u64, t.c)
+    }
     return acc
 }
 
@@ -62,8 +64,10 @@ func sumTriples(items: const [..] Triple)->u64
 func sumTriplesRef(items: const [..] Triple)->u64
 {
     var acc: u64
-    for t in items do
+    for t in items
+    {
         acc += cast(u64, t.a) * 3 + cast(u64, t.b) * 5 + cast(u64, t.c)
+    }
     return acc
 }
 
@@ -135,8 +139,10 @@ func none()->u64 => 0
     }
     moveBodies(bodies, 0.01)
     moveBodiesRef(want, 0.01)
-    for i in 5 do
+    for i in 5
+    {
         Swag.require(bodies[i].x == want[i].x and bodies[i].y == want[i].y and bodies[i].z == want[i].z)
+    }
     moveBodies(bodies[0 until none()], 0.01)
     Swag.require(bodies[0].x == want[0].x)
 }
@@ -144,15 +150,19 @@ func none()->u64 => 0
 #test
 {
     var triples: [9] Triple
-    for i in 9 do
+    for i in 9
+    {
         triples[i] = Triple{cast(u32, i) * 11, cast(u32, i) * 7 + 1, 100 - cast(u32, i)}
+    }
     Swag.require(sumTriples(triples) == sumTriplesRef(triples))
     Swag.require(sumTriples(triples[3 until 5]) == sumTriplesRef(triples[3 until 5]))
     Swag.require(sumTriples(triples[0 until none()]) == 0)
 
     var pairs: [7] Pair24
-    for i in 7 do
+    for i in 7
+    {
         pairs[i] = Pair24{cast(u64, i) * 13 + 2, cast(u64, i) * 5, cast(u64, i) ^ 3}
+    }
     Swag.require(sumEveryOther(pairs) == sumEveryOtherRef(pairs))
     Swag.require(sumEveryOther(pairs[1 until 4]) == sumEveryOtherRef(pairs[1 until 4]))
     Swag.require(sumDownwards(pairs) == sumDownwardsRef(pairs))

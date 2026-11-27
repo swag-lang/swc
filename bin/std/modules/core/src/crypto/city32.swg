@@ -16,18 +16,14 @@ impl City32
     const C1 = 0xCC9E2D51
     const C2 = 0x1B873593
 
-    func fetch(buf: const [*] u8)->u32
-    {
-        var chunk: u32
-        Memory.copy(cast([*] void, &chunk), cast(const [*] void, buf), #sizeof(chunk))
-        return Math.littleEndianToNative(chunk)
-    }
+    #[Swag.Inline]
+    func fetch(buf: const [*] u8)->u32 => Math.littleEndianToNative(cast(const [*] u32, buf)[0])
 
-    #[Swag.Safety(.Overflow, false)]
+    #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd len0to4(data: const [..] u8)
     {
         var b = .currentValue
-        var c = 9'u32
+        var c = 9_u32
         for v in data
         {
             b = b * C1 + v
@@ -37,14 +33,14 @@ impl City32
         .currentValue = murmur3(murmur3(b, murmur3(cast(u32, data.count), c)))
     }
 
-    #[Swag.Safety(.Overflow, false)]
+    #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd len5to12(data: const [..] u8)
     {
         let s   = data.buffer
         let len = data.count
         var a   = cast(u32, len) + .currentValue
         var b   = cast(u32, len) * 5
-        var c   = 9'u32
+        var c   = 9_u32
         let d   = b
         a += fetch(s)
         b += fetch(s + len - 4)
@@ -52,7 +48,7 @@ impl City32
         .currentValue = murmur3(murmur3(c, murmur3(b, murmur3(a, d))))
     }
 
-    #[Swag.Safety(.Overflow, false)]
+    #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd len13to24(data: const [..] u8)
     {
         let s   = data.buffer
@@ -138,8 +134,10 @@ impl City32
             h  += a4 * 5
             h  = Math.byteSwap(h)
             f  += a0
-            swap(&f, &h)
-            swap(&f, &g)
+            let previousF = f
+            f = g
+            g = h
+            h = previousF
             s += 20
         }
 

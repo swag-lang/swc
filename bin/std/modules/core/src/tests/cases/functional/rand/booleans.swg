@@ -21,13 +21,13 @@ internal impl MaxRandomSource
 
 #test
 {
-    var zero: Random.Generator'ZeroRandomSource
+    var zero: Random.Generator!{ZeroRandomSource}
     zero.seedU32(1)
     Swag.require(not zero.nextBool())
     Swag.require(zero.nextS32() == 0)
     Swag.require(zero.nextS64() == 0)
 
-    var maximum: Random.Generator'MaxRandomSource
+    var maximum: Random.Generator!{MaxRandomSource}
     maximum.seedU32(1)
     Swag.require(maximum.nextBool())
     Swag.require(maximum.nextS32() == -1)

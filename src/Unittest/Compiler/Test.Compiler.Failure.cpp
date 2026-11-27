@@ -377,7 +377,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_JitTestsDropModuleStateBeforeRestoringGlobals
         const fs::path module = directory.path() / std::format("phase-{}", phase);
         SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#import(\"core\", location: \"swag@std\", link: \"shared-library\")\n"));
         const std::string source = std::format("#global private\nconst FailurePhase = {}\n", phase) + R"(using Core
-var finished: Swag.AtomicValue'u32
+var finished: Swag.AtomicValue!{u32}
 var thread: Threading.Thread
 var wake: Sync.Event
 
@@ -392,22 +392,25 @@ func worker(current: const *Threading.Thread)
     wake.init(false)
     expect thread.init(&worker)
     expect thread.start()
-    if FailurePhase == 1 do
+    if FailurePhase == 1 {
         Swag.check(false, "init-original")
+    }
 }
 
 #test
 {
-    if FailurePhase == 2 do
+    if FailurePhase == 2 {
         Swag.check(false, "test-original")
+    }
     Swag.print("test-called\n")
 }
 
 #drop
 {
     Swag.print("drop-last\n")
-    if FailurePhase == 3 do
+    if FailurePhase == 3 {
         Swag.assert(false, "drop-original")
+    }
 }
 
 #drop
@@ -450,20 +453,23 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_ScriptPanicStopsLifecycleHooks)
         const auto     source     = std::format("const FailurePhase = {}\n", phase) + R"(
 #init
 {
-    if FailurePhase == 1 do
+    if FailurePhase == 1 {
         Swag.panic("script hook panic", #curlocation)
+    }
 }
 
 #premain
 {
-    if FailurePhase == 2 do
+    if FailurePhase == 2 {
         Swag.panic("script hook panic", #curlocation)
+    }
 }
 
 #main
 {
-    if FailurePhase == 3 do
+    if FailurePhase == 3 {
         Swag.panic("script hook panic", #curlocation)
+    }
     Swag.print("script main completed\n")
 }
 
@@ -471,8 +477,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_ScriptPanicStopsLifecycleHooks)
 
 #drop
 {
-    if FailurePhase == 4 do
+    if FailurePhase == 4 {
         Swag.panic("script hook panic", #curlocation)
+    }
 }
 )";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
@@ -660,8 +667,9 @@ impl RecoveryError
     mtd opPostCopy() { .generation += 1 }
     mtd opDrop()
     {
-        if .generation == recoveryGeneration do
+        if .generation == recoveryGeneration {
             Swag.print("captured error recovery drop\n")
+        }
     }
 }
 
@@ -691,8 +699,9 @@ func failRecoveryPanic() fail
     }
     catch failRecoveryError()
     {
-        if Swag.err is RecoveryError as value do
+        if Swag.err is RecoveryError as value {
             recoveryGeneration = value.generation
+        }
         expect failRecoveryPanic()
     }
 }
@@ -733,14 +742,14 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_ExpectTerminatesWithReturningPanicHook)
 func failValue()->s32 fail { fail Swag.BaseError{"terminal expect"} }
 func hook(message: string?, location: Swag.SourceCodeLocation)
 {
-    if message == null or location.lineStart == 0 do return
+    if message == null or location.lineStart == 0 { return; }
     discard catch failValue() { Swag.print("expect hook observed the error\n") }
 }
 
 #[Swag.Safety(.All, false)]
 #test
 {
-    if Swag.jit() do return
+    if Swag.jit() { return; }
     Swag.getContext().panic = &hook
     discard expect failValue()
     Swag.print("expect resumed after failure\n")
@@ -842,8 +851,9 @@ func read(start, end: u64)
 #[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
 func read(count: s32)
 {
-    for count do
+    for count {
         Swag.print("ran loop body\n")
+    }
 }
 
 )SWAG",
@@ -863,7 +873,7 @@ func read(count: s32)
             source += script ? "#main\n" : "#test\n";
             source += "{\n";
             if (script)
-                source += "    if Swag.jit() do Swag.panic(\"script flags changed\", #curlocation)\n";
+                source += "    if Swag.jit()\n    {\n        Swag.panic(\"script flags changed\", #curlocation)\n    }\n";
             source += fault.invocation;
             source += R"SWAG(
     Swag.print("resumed after safety fault\n")

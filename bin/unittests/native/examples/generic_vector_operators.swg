@@ -12,7 +12,7 @@ struct(T) Vector3
 impl Vector3
 {
     // Unary operators: +, -, ~
-    func(op: Swag.Operator) opUnary(const me)->Vector3'T
+    func(op: Swag.Operator) opUnary(const me)->Vector3!{T}
         where op == .Pos or op == .Neg or op == .BitNot
     {
         #static switch op
@@ -30,7 +30,7 @@ impl Vector3
     }
 
     // Binary operators: vector op vector
-    func(op: Swag.Operator) opBinary(const me, other: Vector3'T)->Vector3'T
+    func(op: Swag.Operator) opBinary(const me, other: Vector3!{T})->Vector3!{T}
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
@@ -52,7 +52,7 @@ impl Vector3
 
     // Binary operators: vector op scalar
     #[Swag.Commutative(.Add, .Mul)]
-    func(op: Swag.Operator) opBinary(const me, scalar: T)->Vector3'T
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->Vector3!{T}
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
         #static switch op
@@ -73,7 +73,7 @@ impl Vector3
     }
 
     // Binary operators that need a distinct scalar op vector order
-    func(op: Swag.Operator) opBinaryRight(const me, scalar: T)->Vector3'T
+    func(op: Swag.Operator) opBinaryRight(const me, scalar: T)->Vector3!{T}
         where op == .Sub or op == .Div
     {
         #static switch op
@@ -88,7 +88,7 @@ impl Vector3
     }
 
     // Dot product helper
-    func dot(a: Vector3'T, b: Vector3'T)->T
+    func dot(a: Vector3!{T}, b: Vector3!{T})->T
     {
         return a.x * b.x + a.y * b.y + a.z * b.z
     }
@@ -107,10 +107,10 @@ impl Vector3
 // Test: unary + preserves values
 #test
 {
-    var v: Vector3's32 = {x: 1, y: -2, z: 3}
+    var v: Vector3!{s32} = {x: 1, y: -2, z: 3}
     let pos = +v
 
-    #assert(#typeof(pos) == Vector3's32)
+    #assert(#typeof(pos) == Vector3!{s32})
     Swag.require(pos.x == 1)
     Swag.require(pos.y == -2)
     Swag.require(pos.z == 3)
@@ -119,7 +119,7 @@ impl Vector3
 // Test: unary - negates all components
 #test
 {
-    var v: Vector3's32 = {x: 5, y: -10, z: 0}
+    var v: Vector3!{s32} = {x: 5, y: -10, z: 0}
     let neg = -v
 
     Swag.require(neg.x == -5)
@@ -130,7 +130,7 @@ impl Vector3
 // Test: unary ~ bitwise NOT
 #test
 {
-    var v: Vector3'u32 = {x: 0, y: 0xFFFF_FFFF, z: 0x00FF_00FF}
+    var v: Vector3!{u32} = {x: 0, y: 0xFFFF_FFFF, z: 0x00FF_00FF}
     let inv = ~v
 
     Swag.require(inv.x == 0xFFFF_FFFF)
@@ -141,7 +141,7 @@ impl Vector3
 // Test: double negation is identity
 #test
 {
-    var v: Vector3's64 = {x: 42, y: -99, z: 0}
+    var v: Vector3!{s64} = {x: 42, y: -99, z: 0}
     let dn = -(-v)
 
     Swag.require(dn.x == 42)
@@ -152,12 +152,12 @@ impl Vector3
 // Test: double bitwise NOT is identity
 #test
 {
-    var v: Vector3'u64 = {x: 0xCAFE, y: 0xBABE, z: 0xDEAD}
+    var v: Vector3!{u64} = {x: 0xCAFE, y: 0xBABE, z: 0xDEAD}
     let di = ~(~v)
 
-    Swag.require(di.x == 0xCAFE'u64)
-    Swag.require(di.y == 0xBABE'u64)
-    Swag.require(di.z == 0xDEAD'u64)
+    Swag.require(di.x == 0xCAFE_u64)
+    Swag.require(di.y == 0xBABE_u64)
+    Swag.require(di.z == 0xDEAD_u64)
 }
 
 // ---------------------------------------------------------------------------
@@ -167,11 +167,11 @@ impl Vector3
 // Test: vector + vector with s32
 #test
 {
-    var a: Vector3's32 = {x: 1, y: 2, z: 3}
-    var b: Vector3's32 = {x: 10, y: 20, z: 30}
+    var a: Vector3!{s32} = {x: 1, y: 2, z: 3}
+    var b: Vector3!{s32} = {x: 10, y: 20, z: 30}
     let sum = a + b
 
-    #assert(#typeof(sum) == Vector3's32)
+    #assert(#typeof(sum) == Vector3!{s32})
     Swag.require(sum.x == 11)
     Swag.require(sum.y == 22)
     Swag.require(sum.z == 33)
@@ -180,8 +180,8 @@ impl Vector3
 // Test: vector - vector with negative results
 #test
 {
-    var a: Vector3's32 = {x: 3, y: 5, z: 1}
-    var b: Vector3's32 = {x: 10, y: 5, z: 8}
+    var a: Vector3!{s32} = {x: 3, y: 5, z: 1}
+    var b: Vector3!{s32} = {x: 10, y: 5, z: 8}
     let diff = a - b
 
     Swag.require(diff.x == -7)
@@ -192,8 +192,8 @@ impl Vector3
 // Test: vector * vector component-wise
 #test
 {
-    var a: Vector3'u32 = {x: 2, y: 3, z: 4}
-    var b: Vector3'u32 = {x: 5, y: 6, z: 7}
+    var a: Vector3!{u32} = {x: 2, y: 3, z: 4}
+    var b: Vector3!{u32} = {x: 5, y: 6, z: 7}
     let prod = a * b
 
     Swag.require(prod.x == 10)
@@ -204,13 +204,13 @@ impl Vector3
 // Test: vector / vector
 #test
 {
-    var a: Vector3'u64 = {x: 100, y: 200, z: 300}
-    var b: Vector3'u64 = {x: 10, y: 20, z: 30}
+    var a: Vector3!{u64} = {x: 100, y: 200, z: 300}
+    var b: Vector3!{u64} = {x: 10, y: 20, z: 30}
     let quot = a / b
 
-    Swag.require(quot.x == 10'u64)
-    Swag.require(quot.y == 10'u64)
-    Swag.require(quot.z == 10'u64)
+    Swag.require(quot.x == 10_u64)
+    Swag.require(quot.y == 10_u64)
+    Swag.require(quot.z == 10_u64)
 }
 
 // ---------------------------------------------------------------------------
@@ -220,8 +220,8 @@ impl Vector3
 // Test: vector * scalar (uniform scale)
 #test
 {
-    var v: Vector3's32 = {x: 1, y: -2, z: 3}
-    let scaled         = v * 3's32
+    var v: Vector3!{s32} = {x: 1, y: -2, z: 3}
+    let scaled = v * 3_s32
 
     Swag.require(scaled.x == 3)
     Swag.require(scaled.y == -6)
@@ -231,8 +231,8 @@ impl Vector3
 // Test: vector + scalar (offset all components)
 #test
 {
-    var v: Vector3's32 = {x: -5, y: 0, z: 5}
-    let result         = v + 10's32
+    var v: Vector3!{s32} = {x: -5, y: 0, z: 5}
+    let result = v + 10_s32
 
     Swag.require(result.x == 5)
     Swag.require(result.y == 10)
@@ -242,19 +242,19 @@ impl Vector3
 // Test: vector / scalar
 #test
 {
-    var v: Vector3'u64 = {x: 100, y: 200, z: 300}
-    let result         = v / 10'u64
+    var v: Vector3!{u64} = {x: 100, y: 200, z: 300}
+    let result = v / 10_u64
 
-    Swag.require(result.x == 10'u64)
-    Swag.require(result.y == 20'u64)
-    Swag.require(result.z == 30'u64)
+    Swag.require(result.x == 10_u64)
+    Swag.require(result.y == 20_u64)
+    Swag.require(result.z == 30_u64)
 }
 
 // Test: vector - scalar with underflow into negatives
 #test
 {
-    var v: Vector3's32 = {x: 2, y: 5, z: 0}
-    let result         = v - 3's32
+    var v: Vector3!{s32} = {x: 2, y: 5, z: 0}
+    let result = v - 3_s32
 
     Swag.require(result.x == -1)
     Swag.require(result.y == 2)
@@ -264,8 +264,8 @@ impl Vector3
 // Test: scalar * vector (commutative right-hand fallback)
 #test
 {
-    var v: Vector3's32 = {x: 1, y: -2, z: 3}
-    let scaled         = 3's32 * v
+    var v: Vector3!{s32} = {x: 1, y: -2, z: 3}
+    let scaled = 3_s32 * v
 
     Swag.require(scaled.x == 3)
     Swag.require(scaled.y == -6)
@@ -275,8 +275,8 @@ impl Vector3
 // Test: scalar - vector keeps operand order
 #test
 {
-    var v: Vector3's32 = {x: 1, y: 2, z: 3}
-    let result         = 10's32 - v
+    var v: Vector3!{s32} = {x: 1, y: 2, z: 3}
+    let result = 10_s32 - v
 
     Swag.require(result.x == 9)
     Swag.require(result.y == 8)
@@ -290,10 +290,10 @@ impl Vector3
 // Test: chaining binary ops
 #test
 {
-    var a: Vector3's32 = {x: 1, y: 2, z: 3}
-    var b: Vector3's32 = {x: 4, y: 5, z: 6}
-    var c: Vector3's32 = {x: 10, y: 10, z: 10}
-    let result         = a + b - c
+    var a: Vector3!{s32} = {x: 1, y: 2, z: 3}
+    var b: Vector3!{s32} = {x: 4, y: 5, z: 6}
+    var c: Vector3!{s32} = {x: 10, y: 10, z: 10}
+    let result = a + b - c
 
     Swag.require(result.x == -5)
     Swag.require(result.y == -3)
@@ -303,9 +303,9 @@ impl Vector3
 // Test: negation then addition
 #test
 {
-    var a: Vector3's32 = {x: 1, y: 2, z: 3}
-    var b: Vector3's32 = {x: 1, y: 2, z: 3}
-    let result         = (-a) + b
+    var a: Vector3!{s32} = {x: 1, y: 2, z: 3}
+    var b: Vector3!{s32} = {x: 1, y: 2, z: 3}
+    let result = (-a) + b
 
     Swag.require(result.x == 0)
     Swag.require(result.y == 0)
@@ -315,9 +315,9 @@ impl Vector3
 // Test: scale then subtract
 #test
 {
-    var a: Vector3's32 = {x: 3, y: 6, z: 9}
-    var b: Vector3's32 = {x: 1, y: 2, z: 3}
-    let result         = a - b * 2's32
+    var a: Vector3!{s32} = {x: 3, y: 6, z: 9}
+    var b: Vector3!{s32} = {x: 1, y: 2, z: 3}
+    let result = a - b * 2_s32
 
     Swag.require(result.x == 1)
     Swag.require(result.y == 2)
@@ -331,9 +331,9 @@ impl Vector3
 // Test: dot product of orthogonal vectors is zero
 #test
 {
-    var a: Vector3's32 = {x: 1, y: 0, z: 0}
-    var b: Vector3's32 = {x: 0, y: 1, z: 0}
-    let d = Vector3's32.dot(&a, &b)
+    var a: Vector3!{s32} = {x: 1, y: 0, z: 0}
+    var b: Vector3!{s32} = {x: 0, y: 1, z: 0}
+    let d = Vector3!{s32}.dot(&a, &b)
 
     Swag.require(d == 0)
 }
@@ -341,9 +341,9 @@ impl Vector3
 // Test: dot product of parallel vectors
 #test
 {
-    var a: Vector3's32 = {x: 2, y: 3, z: 4}
-    var b: Vector3's32 = {x: 2, y: 3, z: 4}
-    let d = Vector3's32.dot(&a, &b)
+    var a: Vector3!{s32} = {x: 2, y: 3, z: 4}
+    var b: Vector3!{s32} = {x: 2, y: 3, z: 4}
+    let d = Vector3!{s32}.dot(&a, &b)
 
     // 4 + 9 + 16 = 29
     Swag.require(d == 29)
@@ -352,7 +352,7 @@ impl Vector3
 // Test: squared length
 #test
 {
-    var v: Vector3's32 = {x: 3, y: 4, z: 0}
+    var v: Vector3!{s32} = {x: 3, y: 4, z: 0}
     let lsq = v.lengthSq()
 
     // 9 + 16 + 0 = 25
@@ -366,12 +366,12 @@ impl Vector3
 // Test: Vector3 with u8
 #test
 {
-    var a: Vector3'u8 = {x: 10, y: 20, z: 30}
-    var b: Vector3'u8 = {x: 1, y: 2, z: 3}
-    let sum           = a + b
-    let diff          = a - b
+    var a: Vector3!{u8} = {x: 10, y: 20, z: 30}
+    var b: Vector3!{u8} = {x: 1, y: 2, z: 3}
+    let sum             = a + b
+    let diff            = a - b
 
-    #assert(#typeof(sum) == Vector3'u8)
+    #assert(#typeof(sum) == Vector3!{u8})
     Swag.require(sum.x == 11)
     Swag.require(sum.y == 22)
     Swag.require(sum.z == 33)
@@ -383,10 +383,10 @@ impl Vector3
 // Test: Vector3 with s16
 #test
 {
-    var v: Vector3's16 = {x: 100, y: -200, z: 300}
+    var v: Vector3!{s16} = {x: 100, y: -200, z: 300}
     let neg = -v
 
-    #assert(#typeof(neg) == Vector3's16)
+    #assert(#typeof(neg) == Vector3!{s16})
     Swag.require(neg.x == -100)
     Swag.require(neg.y == 200)
     Swag.require(neg.z == -300)
@@ -395,10 +395,10 @@ impl Vector3
 // Test: Vector3 with u64 scalar multiply
 #test
 {
-    var v: Vector3'u64 = {x: 1, y: 2, z: 3}
-    let result         = v * 1000'u64
+    var v: Vector3!{u64} = {x: 1, y: 2, z: 3}
+    let result = v * 1000_u64
 
-    Swag.require(result.x == 1000'u64)
-    Swag.require(result.y == 2000'u64)
-    Swag.require(result.z == 3000'u64)
+    Swag.require(result.x == 1000_u64)
+    Swag.require(result.y == 2000_u64)
+    Swag.require(result.z == 3000_u64)
 }

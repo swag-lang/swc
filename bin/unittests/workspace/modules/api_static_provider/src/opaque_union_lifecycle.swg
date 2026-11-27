@@ -13,20 +13,26 @@ impl OpaqueUnionLifecyclePayload
 {
     private mtd opDrop()
     {
-        if .armed do
+        if .armed
+        {
             opaqueUnionDrops += 1
+        }
     }
 
     private mtd opPostCopy()
     {
-        if .armed do
+        if .armed
+        {
             opaqueUnionCopies += 1
+        }
     }
 
     private mtd opPostMove()
     {
-        if .armed do
+        if .armed
+        {
             opaqueUnionMoves += 1
+        }
     }
 }
 
@@ -113,14 +119,16 @@ private union(T) OpaqueUnionLifecycleGeneric
 #[Swag.NoInline]
 func opaqueUnionLifecycleGenericControl()->bool
 {
-    let info = cast(const *Swag.TypeInfoStruct, #typeof(OpaqueUnionLifecycleGeneric'OpaqueUnionLifecyclePayload))
-    if info.opDrop == null or info.opPostCopy == null or info.opPostMove == null do
+    let info = cast(const *Swag.TypeInfoStruct, #typeof(OpaqueUnionLifecycleGeneric!{OpaqueUnionLifecyclePayload}))
+    if info.opDrop == null or info.opPostCopy == null or info.opPostMove == null
+    {
         return false
+    }
 
     opaqueUnionLifecycleReset()
     scope
     {
-        var first: OpaqueUnionLifecycleGeneric'OpaqueUnionLifecyclePayload
+        var first: OpaqueUnionLifecycleGeneric!{OpaqueUnionLifecyclePayload}
         first.payload.armed = true
         let second = first
         let third  = #move first

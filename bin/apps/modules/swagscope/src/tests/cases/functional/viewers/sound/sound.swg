@@ -14,16 +14,18 @@ const TinyWav: [48] u8 = [
 // Builds a 16-bit mono WAV whose loudness moves the way real material does, so the picture the
 // plot is judged on shows what the plot is for: bursts that decay, a transient above the body of
 // each one, and silences between them.
-internal func previewWav()->Array'u8
+internal func previewWav()->Array!{u8}
 {
-    const SampleRate  = 11_025'u64
+    const SampleRate  = 11_025_u64
     const FrameCount  = SampleRate * 2 + SampleRate / 2
     const PayloadSize = FrameCount * 2
 
     var result: #returntype
     result.resize(44 + PayloadSize)
-    for value, index in TinyWav[0 until 44] do
+    for value, index in TinyWav[0 until 44]
+    {
         result[index] = value
+    }
 
     writeU32(&result, 4, cast(u32, 36 + PayloadSize))
     result[22] = 1                                       // One channel.
@@ -38,14 +40,16 @@ internal func previewWav()->Array'u8
         let seconds  = cast(f32, frame) / cast(f32, SampleRate)
         let burst    = cast(u64, seconds * 4)
         let inBurst  = seconds * 4 - cast(f32, burst)
-        var envelope = 0'f32
-        if inBurst < 0.72 do
+        var envelope = 0_f32
+        if inBurst < 0.72
+        {
             envelope = (1 - inBurst / 0.72) * (0.35 + 0.16 * cast(f32, burst % 5))
+        }
 
         // The carrier alone would make peak and body the same reading. The click on the first
         // frames of a burst is what separates them, which is the whole point of the two weights.
         let carrier   = Math.sin(seconds * (520 + 90 * cast(f32, burst)) * 6.2831855)
-        let click     = inBurst < 0.01 ? (frame & 1 ? 0.9'f32 : -0.9) : 0
+        let click     = inBurst < 0.01 ? (frame & 1 ? 0.9_f32 : -0.9) : 0
         let value     = Math.clamp(carrier * envelope + click * envelope, -1, 1)
         let quantized = cast(s16, value * 32_000)
         writeU16(&result, 44 + frame * 2, cast #bit (u16, quantized))
@@ -56,13 +60,13 @@ internal func previewWav()->Array'u8
 
 func waveformFixturePath()->String => scopeTestDataPath("waveform.samples.txt")
 
-func writeU16(bytes: *Array'u8, offset: u64, value: u16)
+func writeU16(bytes: *Array!{u8}, offset: u64, value: u16)
 {
     bytes[offset]     = cast(u8, value & 0xFF)
     bytes[offset + 1] = cast(u8, value >> 8)
 }
 
-func writeU32(bytes: *Array'u8, offset: u64, value: u32)
+func writeU32(bytes: *Array!{u8}, offset: u64, value: u32)
 {
     bytes[offset]     = cast(u8, value & 0xFF)
     bytes[offset + 1] = cast(u8, ((value >> 8) & 0xFF))
@@ -143,7 +147,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     host.setup(640, 360)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.require(result.view != null)
     Swag.require(result.commands != null and result.isLoading != null and result.needsLoadingOverlay != null)
@@ -164,7 +168,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     // A second file opened after the engine exists must decode exactly like the first one: a
     // failure swallowed inside the engine on its way out of the module would leave every waveform
     // but the first one empty.
-    let replacementCommands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
+    let replacementCommands = Wnd.create!{Wnd}(&host.root, {0, 0, 80, 36})
     var replacementResult   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: replacementCommands)
     Swag.require(replacementResult.view != null)
     let replacement = assume cast(*Sound.Panel, replacementResult.view)
@@ -242,9 +246,9 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 
 // Reduces interleaved `samples` of `channels` channels to `pointCount` points in one chunk, the
 // way the viewer's worker reduces each chunk the decoder hands it.
-func reduceWaveform(samples: const [..] s16, channels: u32, pointCount: u64)->Array'Sound.WaveformPoint
+func reduceWaveform(samples: const [..] s16, channels: u32, pointCount: u64)->Array!{Sound.WaveformPoint}
 {
-    var result: Array'Sound.WaveformPoint
+    var result: Array!{Sound.WaveformPoint}
     result.resize(pointCount)
     var reducer = Sound.WaveformReducer{&result, samples.count / channels, pointCount, channels}
     reducer.consume(samples)
@@ -270,13 +274,16 @@ func reduceWaveform(samples: const [..] s16, channels: u32, pointCount: u64)->Ar
 // One point per frame reads the level of that frame, whatever its sign.
 #test
 {
-    var samples: Array's16
+    var samples: Array!{s16}
     let fixture = expect File.readAllText(waveformFixturePath())
-    for line in Tokenize.split(fixture, '\n'u8)
+    for line in Tokenize.split(fixture, '\n'_u8)
     {
         let text = Latin1.trim(line)
-        if not text.count or text[0] == '#' do
+        if not text.count or text[0] == '#'
+        {
             continue
+        }
+
         let value = expect StrConv.toF64(text)
         samples.add(cast(s16, Math.clamp(Math.round(value * 32768), -32768, 32767)))
     }
@@ -290,15 +297,15 @@ func reduceWaveform(samples: const [..] s16, channels: u32, pointCount: u64)->Ar
 
 // Reduces `samples` the way the reducer once did, working out the point of every frame on its own
 // from its offset, and reports in `ready` how many points it stored.
-func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, ready: *u64)->Array'Sound.WaveformPoint
+func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, ready: *u64)->Array!{Sound.WaveformPoint}
 {
     var result: #returntype
     result.resize(pointCount)
     let frameCount = samples.count / channels
-    var current    = 0'u64
-    var count      = 0'u64
-    var peak       = 0'f32
-    var sum        = 0'f64
+    var current    = 0_u64
+    var count      = 0_u64
+    var peak       = 0_f32
+    var sum        = 0_f64
     for frame in frameCount
     {
         let target = Math.min(frame * pointCount / frameCount, pointCount - 1)
@@ -312,9 +319,12 @@ func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, 
             count           = 0
         }
 
-        var mixed = 0'f32
-        for channel in channels do
+        var mixed = 0_f32
+        for channel in channels
+        {
             mixed += cast(f32, samples[frame * channels + channel]) / 32768
+        }
+
         let level = Math.abs(mixed / channels)
         peak  = Math.max(peak, level)
         sum   += level
@@ -335,21 +345,24 @@ func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, 
 // every point still holds what the reading of each frame on its own gives.
 #test
 {
-    var samples: Array's16
-    for index in 2 * 1_009 do
+    var samples: Array!{s16}
+    for index in 2 * 1_009
+    {
         samples.add(cast(s16, cast(s64, index * 7_919 % 65_536) - 32_768))
+    }
+
     let all = samples.toSlice()
 
-    for shape in [{frames: 1_009'u64, points: 13'u64}, {frames: 5'u64, points: 8'u64}]
+    for shape in [{frames: 1_009_u64, points: 13_u64}, {frames: 5_u64, points: 8_u64}]
     {
         let slice    = all[0 until shape.frames * 2]
-        var ready    = 0'u64
+        var ready    = 0_u64
         let expected = referenceWaveform(slice, 2, shape.points, &ready)
 
-        var points: Array'Sound.WaveformPoint
+        var points: Array!{Sound.WaveformPoint}
         points.resize(shape.points)
         var reducer = Sound.WaveformReducer{&points, shape.frames, shape.points, 2}
-        var start   = 0'u64
+        var start   = 0_u64
         while start < shape.frames
         {
             let end = Math.min(start + 37, shape.frames)
@@ -359,8 +372,10 @@ func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, 
 
         reducer.finish()
         Swag.require(reducer.readyCount == ready)
-        for point, index in points do
+        for point, index in points
+        {
             Swag.require(point.peak == expected[index].peak and point.body == expected[index].body, Format.toString("%", index))
+        }
     }
 }
 
@@ -368,11 +383,11 @@ func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, 
 // are only equal when the slice is flat. Channels are mixed before either is read.
 #test
 {
-    let mono = reduceWaveform([32767's16, 0, 0, 0], 1, 2)
+    let mono = reduceWaveform([32767_s16, 0, 0, 0], 1, 2)
     Swag.require(mono[0].peak > 0.99 and mono[0].body > 0.49 and mono[0].body < 0.51)
     Swag.require(mono[1].peak == 0 and mono[1].body == 0)
 
-    let stereo = reduceWaveform([16384's16, 16384, -16384, 16384], 2, 2)
+    let stereo = reduceWaveform([16384_s16, 16384, -16384, 16384], 2, 2)
     Swag.require(stereo[0].peak == 0.5 and stereo[1].peak == 0)
 }
 
@@ -389,7 +404,7 @@ func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, 
 
     var host: Testing.HeadlessHost
     host.setup(640, 320)
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, pacmanWav, commandParent: commands)
     Swag.require(result.view != null)
     let view = assume cast(*Sound.Panel, result.view)
@@ -428,7 +443,7 @@ func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, 
 
     var host: Testing.HeadlessHost
     host.setup(720, 420)
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands)
     let view     = assume cast(*Sound.Panel, result.view)
     waitForSoundOpen(&host, view)
@@ -436,7 +451,7 @@ func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, 
 
     Swag.require(view.sound.numChannels() == 2 and view.duration == 6)
     Swag.require(view.waveform.samples.count == 4096 and view.waveform.readyCount == 4096)
-    var highest = 0'f32
+    var highest = 0_f32
     var lowest  = Swag.F32.Max
     for sample in view.waveform.samples
     {
@@ -471,7 +486,7 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     var host: Testing.HeadlessHost
     host.setup(720, 420)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 480, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportFinished: &answerSoundEnd})
     Swag.require(result.view != null)
     let view   = assume cast(*Sound.Panel, result.view)
@@ -527,8 +542,8 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     Swag.require(image.isValid() and Math.max(image.width, image.height) <= cast(s32, Sound.CoverSize * 2))
     Swag.require(tags.picture.isEmpty())
 
-    tags.picture.add(0xFF'u8)
-    tags.picture.add(0xD8'u8)
+    tags.picture.add(0xFF_u8)
+    tags.picture.add(0xD8_u8)
     tags.pictureExtension = ".jpg"
     Swag.require(not Sound.embeddedSleeve(&tags).isValid())
 }
@@ -538,32 +553,54 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
 #test
 {
     let png = expect File.readAllBytes(scopeTestDataPath("title.png"))
-    var frame: Array'u8
-    frame.add(0'u8)
-    for byte in "image/png" do
+    var frame: Array!{u8}
+    frame.add(0_u8)
+    for byte in "image/png"
+    {
         frame.add(byte)
-    frame.add(0'u8)
-    frame.add(3'u8)
-    frame.add(0'u8)
-    for byte in png do
-        frame.add(byte)
+    }
 
-    var file: Array'u8
-    for byte in "ID3" do
+    frame.add(0_u8)
+    frame.add(3_u8)
+    frame.add(0_u8)
+    for byte in png
+    {
+        frame.add(byte)
+    }
+
+    var file: Array!{u8}
+    for byte in "ID3"
+    {
         file.add(byte)
-    for byte in [3'u8, 0, 0] do
+    }
+
+    for byte in [3_u8, 0, 0]
+    {
         file.add(byte)
+    }
+
     let size = frame.count + 10
-    for shift in [21'u64, 14, 7, 0] do
+    for shift in [21_u64, 14, 7, 0]
+    {
         file.add(cast(u8, (size >> shift) & 0x7F))
-    for byte in "APIC" do
+    }
+
+    for byte in "APIC"
+    {
         file.add(byte)
-    for shift in [24'u64, 16, 8, 0] do
+    }
+
+    for shift in [24_u64, 16, 8, 0]
+    {
         file.add(cast(u8, (frame.count >> shift) & 0xFF))
-    file.add(0'u8)
-    file.add(0'u8)
-    for byte in frame do
+    }
+
+    file.add(0_u8)
+    file.add(0_u8)
+    for byte in frame
+    {
         file.add(byte)
+    }
 
     let fileName = Gui.Testing.tempFilePath("scope-sound-sleeve-", ".mp3")
     defer discard catch File.delete(fileName)
@@ -588,7 +625,7 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands)
     let view     = assume cast(*Sound.Panel, result.view)
     waitForSoundOpen(&host, view)
@@ -601,12 +638,18 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Sound", host.theme)
     view.describeLens(&entries)
-    for &entry in results.sections[0]!.entries where entry.title == Sound.texts().cmd_Slower do
+    for &entry in results.sections[0]!.entries where entry.title == Sound.texts().cmd_Slower
+    {
         entry.run!()
+    }
+
     Swag.require(view.playbackRate == 1 and not Utf8.contains(view.details.toString(), "×"))
 
-    for 9 do
+    for 9
+    {
         view.sendEvent(&faster)
+    }
+
     Swag.require(view.playbackRate == Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1])
 }
 
@@ -647,19 +690,25 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
 }
 
 // Writes `samples` as a 16-bit mono WAV at 8 kHz.
-func pcm16Wav(samples: const [..] s16)->Array'u8
+func pcm16Wav(samples: const [..] s16)->Array!{u8}
 {
     var result: #returntype
     result.resize(44 + samples.count * 2)
-    for value, index in TinyWav[0 until 44] do
+    for value, index in TinyWav[0 until 44]
+    {
         result[index] = value
+    }
+
     writeU32(&result, 4, cast(u32, 36 + samples.count * 2))
     writeU32(&result, 28, 16_000)     // Bytes per second.
     result[32] = 2      // Bytes per frame.
     result[34] = 16     // Bits per sample.
     writeU32(&result, 40, cast(u32, samples.count * 2))
-    for sample, index in samples do
+    for sample, index in samples
+    {
         writeU16(&result, 44 + index * 2, cast #bit (u16, sample))
+    }
+
     return result
 }
 
@@ -682,10 +731,13 @@ func writeSoundCue(fileName: string)->String
 func writeGeneratedCueFlac(fileName: string)
 {
     var writer = expect Flac.Writer.create(fileName, 1, 8_000)
-    var samples: Array's16
+    var samples: Array!{s16}
     samples.resize(8_000 * 4)
-    for index in samples.count do
+    for index in samples.count
+    {
         samples[index] = cast(s16, cast(s32, index % 401) - 200)
+    }
+
     expect writer.addFrames(samples.toSlice())
     expect writer.end()
 }
@@ -715,7 +767,7 @@ func soundInformation(bytes: const [..] u8)->String
 // source tops out lower than a 16-bit one.
 #test
 {
-    let halfBytes = pcm16Wav([16384's16, -16384, 0, 0])
+    let halfBytes = pcm16Wav([16384_s16, -16384, 0, 0])
     let half      = soundInformation(halfBytes.toSlice())
     Swag.require(Utf8.contains(half, "Levels"), half)
     Swag.require(Utf8.contains(half, "Format\n") and Utf8.contains(half, "Approx. bitrate\n128 kb/s"), half)
@@ -728,7 +780,7 @@ func soundInformation(bytes: const [..] u8)->String
     Swag.require(Utf8.contains(full, "RMS level\n-3.0 dBFS"), full)
     Swag.require(Utf8.contains(full, "Full scale\n2 samples"), full)
 
-    let silentBytes = pcm16Wav([0's16, 0, 0, 0])
+    let silentBytes = pcm16Wav([0_s16, 0, 0, 0])
     let silent      = soundInformation(silentBytes.toSlice())
     Swag.require(Utf8.contains(silent, "Sample peak\n−∞ dBFS"), silent)
 }
@@ -740,7 +792,7 @@ func soundInformation(bytes: const [..] u8)->String
     Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
-    var samples: Array's16
+    var samples: Array!{s16}
     samples.resize(8_000 * 3)
     let bytes    = pcm16Wav(samples.toSlice())
     let fileName = Gui.Testing.tempFilePath("scope-sound-loop-", ".wav")
@@ -815,8 +867,10 @@ func soundInformation(bytes: const [..] u8)->String
     }
 
     Swag.require(found)
-    if Clipboard.isFake() do
+    if Clipboard.isFake()
+    {
         Swag.require(Clipboard.getString() == "0:01", Clipboard.getString())
+    }
 }
 
 // The sound time prompt accepts absolute and relative times, and keeps malformed or out-of-range input visible.
@@ -825,7 +879,7 @@ func soundInformation(bytes: const [..] u8)->String
     Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
-    var samples: Array's16
+    var samples: Array!{s16}
     samples.resize(8_000 * 4)
     let fileName = Gui.Testing.tempFilePath("scope-sound-time-", ".wav")
     let bytes    = pcm16Wav(samples.toSlice())
@@ -880,7 +934,7 @@ func soundInformation(bytes: const [..] u8)->String
     Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
-    var samples: Array's16
+    var samples: Array!{s16}
     samples.resize(8_000 * 4)
     let fileName = Gui.Testing.tempFilePath("scope-sound-time-active-", ".wav")
     let bytes    = pcm16Wav(samples.toSlice())
@@ -931,7 +985,7 @@ func soundInformation(bytes: const [..] u8)->String
     Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
-    var samples: Array's16
+    var samples: Array!{s16}
     samples.resize(8_000 * 4)
     let fileName  = Gui.Testing.tempFilePath("scope-sound-cues-", ".wav")
     let cuePath   = writeSoundCue(fileName)
@@ -977,8 +1031,11 @@ func soundInformation(bytes: const [..] u8)->String
     var entries = Viewer.LensEntries.create(&results, "Sound", host.theme)
     view.describeLens(&entries)
     var found = false
-    for &entry in results.sections[0]!.entries where Utf8.contains(entry.title, "Riverside") and Utf8.contains(entry.title, "fichier cue") do
+    for &entry in results.sections[0]!.entries where Utf8.contains(entry.title, "Riverside") and Utf8.contains(entry.title, "fichier cue")
+    {
         found = true
+    }
+
     Swag.require(found)
 }
 

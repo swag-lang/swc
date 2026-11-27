@@ -19,9 +19,9 @@ func multiplyAdd72(value, addend: u64)->u64 => value * 72 + addend
     Swag.require(multiplyAdd72(0, 0) == 0)
 
     // High bits must survive both the scaled address and the accumulator copy.
-    let value  = 0x123456789ABCDE'u64
-    let addend = 0xFEDCBA987654321'u64
-    Swag.require(multiplyAdd6(value, addend) == 0x105B05B05B05B055'u64)
-    Swag.require(multiplyAdd10(value, addend) == 0x10A3D70A3D70A3CD'u64)
-    Swag.require(multiplyAdd72(value, addend) == 0x150C83FB72EA6191'u64)
+    let value  = 0x123456789ABCDE_u64
+    let addend = 0xFEDCBA987654321_u64
+    Swag.require(multiplyAdd6(value, addend) == 0x105B05B05B05B055_u64)
+    Swag.require(multiplyAdd10(value, addend) == 0x10A3D70A3D70A3CD_u64)
+    Swag.require(multiplyAdd72(value, addend) == 0x150C83FB72EA6191_u64)
 }

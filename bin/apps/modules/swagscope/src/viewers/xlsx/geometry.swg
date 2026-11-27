@@ -6,15 +6,21 @@ using Core
 private func dimension(value: string, maximum: f64)->f32 fail
 {
     let number = catch StrConv.toF64(value) { fail Errors.InvalidFormatError{texts().err_Invalid} }
-    if not Math.isFinite(number) or number < 0 or number > maximum do
+    if not Math.isFinite(number) or number < 0 or number > maximum
+    {
         fail Errors.InvalidFormatError{texts().err_Invalid}
+    }
+
     return cast(f32, number)
 }
 
 private func columnPixels(value: f32)->f32
 {
-    if value < 1 do
+    if value < 1
+    {
         return Math.floor(value * 12 + 0.5)
+    }
+
     return Math.floor(value * 7 + 5)
 }
 
@@ -22,24 +28,32 @@ impl Sheet
 {
     mtd readGeometry(source: string) fail
     {
-        var columnCount = 1'u32
-        for row in .rows do
-            for cell in row.cells do
+        var columnCount = 1_u32
+        for row in .rows
+        {
+            for cell in row.cells
+            {
                 columnCount = Math.max(columnCount, cell.column + 1)
-        var defaultWidth  = 64.0'f32
+            }
+        }
+
+        var defaultWidth  = 64.0_f32
         var authoredWidth = false
-        var defaultHeight = 20.0'f32
+        var defaultHeight = 20.0_f32
         var scan          = Package.Scanner.create(source)
         var token: Package.Token
         while scan.next(&token)
         {
-            if token.kind != .Start do
+            if token.kind != .Start
+            {
                 continue
+            }
+
             if token.isElement("sheetView")
             {
                 .showGridLines = (token.attribute("showGridLines") orelse "1") != "0" and token.attribute("showGridLines") != "false"
             }
-            elif token.isElement("sheetFormatPr")
+            else if token.isElement("sheetFormatPr")
             {
                 if let width = token.attribute("defaultColWidth")
                 {
@@ -47,34 +61,51 @@ impl Sheet
                     authoredWidth = true
                 }
 
-                if let height = token.attribute("defaultRowHeight") do
+                if let height = token.attribute("defaultRowHeight")
+                {
                     defaultHeight = try dimension(height, 409.5) * 4 / 3
+                }
             }
-            elif token.isElement("mergeCell")
+            else if token.isElement("mergeCell")
             {
                 let reference = token.attribute("ref") orelse ""
-                let colon     = Utf8.indexOf(reference, ':'rune)
-                if colon == Swag.U64.Max do
+                let colon     = Utf8.indexOf(reference, ':'_rune)
+                if colon == Swag.U64.Max
+                {
                     fail Errors.InvalidFormatError{texts().err_Invalid}
+                }
+
                 let first = try Address.parse(reference[until colon])
                 let last  = try Address.parse(reference[colon + 1 to])
-                if first.column > last.column or first.row > last.row do
+                if first.column > last.column or first.row > last.row
+                {
                     fail Errors.InvalidFormatError{texts().err_Invalid}
+                }
+
                 for previous in .merges where first.column <= previous.last.column and
                                               last.column >= previous.first.column and
                                               first.row <= previous.last.row and
-                                              last.row >= previous.first.row do
+                                              last.row >= previous.first.row
+                {
                     fail Errors.InvalidFormatError{texts().err_Invalid}
+                }
+
                 .merges.add(MergedCells{first, last})
-                if .merges.count > 2048 do
+                if .merges.count > 2048
+                {
                     fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                }
+
                 columnCount = Math.max(columnCount, last.column + 1)
                 .rowCount   = Math.max(.rowCount, last.row + 1)
             }
         }
 
-        if scan.damaged do
+        if scan.damaged
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         .rowCount         = Math.max(.rowCount, .frozenRows + 1)
         columnCount       = Math.max(columnCount, .frozenColumns + 1)
         .defaultRowHeight = defaultHeight
@@ -86,24 +117,35 @@ impl Sheet
             column.authored = authoredWidth
         }
 
-        for &row in .rows do
+        for &row in .rows
+        {
             row.height = defaultHeight
+        }
 
         scan = Package.Scanner.create(source)
-        var rowIndex = 0'u64
+        var rowIndex = 0_u64
         while scan.next(&token)
         {
-            if token.kind != .Start do
+            if token.kind != .Start
+            {
                 continue
+            }
+
             if token.isElement("col")
             {
                 let first = catch StrConv.toU64(token.attribute("min") orelse "") orelse 0
                 let last  = catch StrConv.toU64(token.attribute("max") orelse "") orelse 0
-                if not first or last < first or last > 16384 do
+                if not first or last < first or last > 16384
+                {
                     fail Errors.InvalidFormatError{texts().err_Invalid}
+                }
+
                 var width = defaultWidth
-                if let authored = token.attribute("width") do
+                if let authored = token.attribute("width")
+                {
                     width = columnPixels(try dimension(authored, 255))
+                }
+
                 let hidden = token.attribute("hidden") == "1" or token.attribute("hidden") == "true"
                 var index  = first - 1
                 while index < .columns.count and index < last
@@ -113,13 +155,19 @@ impl Sheet
                     index           += 1
                 }
             }
-            elif token.isElement("row")
+            else if token.isElement("row")
             {
-                if rowIndex >= .rows.count do
+                if rowIndex >= .rows.count
+                {
                     fail Errors.InvalidFormatError{texts().err_Invalid}
+                }
+
                 let row = &.rows[rowIndex]
-                if let height = token.attribute("ht") do
+                if let height = token.attribute("ht")
+                {
                     row.height = try dimension(height, 409.5) * 4 / 3
+                }
+
                 row.hidden    = token.attribute("hidden") == "1" or token.attribute("hidden") == "true"
                 .hiddenRanges = .hiddenRanges or row.hidden or row.height == 0
                 rowIndex      += 1
@@ -132,7 +180,7 @@ impl Sheet
         {
             for cell in row.cells where not .columns[cell.column].authored
             {
-                var characters = 0'u64
+                var characters = 0_u64
                 Utf8.visitRunes(cell.text.toString())
                 {
                     characters += 1

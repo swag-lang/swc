@@ -43,8 +43,10 @@ func typedNullConditional(flag: bool)->bool
     let left          = cast(string?, null)
     let right: string = "ok"
     let resolved      = flag ? left : right
-    if flag do
+    if flag
+    {
         return resolved == null
+    }
     return resolved == "ok"
 }
 
@@ -54,8 +56,10 @@ func typedNullSliceConditional(flag: bool)->bool
     const storage: [2] s32 = [7, 8]
     let right: const [..] s32 = storage
     let resolved = flag ? left : right
-    if flag do
+    if flag
+    {
         return resolved == null and resolved.count == 0
+    }
     let vals = unwrap resolved
     return vals.count == 2 and vals[0] == 7 and vals[1] == 8
 }

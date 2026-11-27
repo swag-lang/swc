@@ -33,8 +33,11 @@ private const LanguageOverrideHeader = "SwagScope code language v1\n"
 // Returns the directory used for the small, viewer-owned language preference records.
 private func languageOverrideDirectory()->String
 {
-    if g_CodeOverrideDirectory.count do
+    if g_CodeOverrideDirectory.count
+    {
         return g_CodeOverrideDirectory
+    }
+
     return Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "scope", "code-language")
 }
 
@@ -44,8 +47,11 @@ internal func languageOverridePath(fileName: string)->String
     let absolute = catch Path.absolute(fileName) { return "" }
     let digest   = Hash.Sha256.compute(cast(const [..] u8, absolute.toString()))
     var name: String
-    for word in digest do
+    for word in digest
+    {
         name += Format.toString("%{X08}", word)
+    }
+
     return Path.combine(languageOverrideDirectory(), Format.toString("%.txt", name))
 }
 
@@ -62,15 +68,20 @@ internal func languageOverrideIdentity(fileName: string)->String
                                    Hash.hash64(info.lastWriteTime))
     let digest = Hash.Sha256.compute(cast(const [..] u8, material.toString()))
     var result: String
-    for word in digest do
+    for word in digest
+    {
         result += Format.toString("%{X08}", word)
+    }
+
     return result
 }
 
 private func languageOverrideName(language: SourceLanguage, swag: bool)->string
 {
-    if swag do
+    if swag
+    {
         return "Swag"
+    }
 
     // The user-facing name of Plain Text is translated, so keep a stable storage token instead.
     return language == .PlainText ? "PlainText" : displayName(language)
@@ -82,19 +93,34 @@ private func readLanguageOverride(fileName: string)->String
 {
     let path     = languageOverridePath(fileName)
     let identity = languageOverrideIdentity(fileName)
-    if not path.count or not identity.count or not File.exists(path) do
+    if not path.count or not identity.count or not File.exists(path)
+    {
         return ""
+    }
+
     let contents = catch File.readAllText(path) { return "" }
-    if not Utf8.startsWith(contents, LanguageOverrideHeader) do
+    if not Utf8.startsWith(contents, LanguageOverrideHeader)
+    {
         return ""
-    let lines = Tokenize.split(contents[LanguageOverrideHeader.count to], '\n'u8)
-    if lines.count != 2 or lines[0] != identity do
+    }
+
+    let lines = Tokenize.split(contents[LanguageOverrideHeader.count to], '\n'_u8)
+    if lines.count != 2 or lines[0] != identity
+    {
         return ""
+    }
+
     let name = lines[1]
-    if name == "Swag" or name == "PlainText" do
+    if name == "Swag" or name == "PlainText"
+    {
         return name
-    for language in SourceLanguage where languageOverrideName(language, false) == name do
+    }
+
+    for language in SourceLanguage where languageOverrideName(language, false) == name
+    {
         return name
+    }
+
     return ""
 }
 
@@ -104,8 +130,11 @@ private func writeLanguageOverride(fileName: string, language: SourceLanguage, s
 {
     let path     = languageOverridePath(fileName)
     let identity = languageOverrideIdentity(fileName)
-    if not path.count or not identity.count do
+    if not path.count or not identity.count
+    {
         return
+    }
+
     catch Directory.create(languageOverrideDirectory(), recurse: true) { return; }
     let temp = Format.toString("%.%.tmp", path, Guid128.random())
     discard catch File.writeAllText(temp,
@@ -183,8 +212,8 @@ func viewerPlugin()->Viewer.Plugin
 
 private
 {
-    const StreamChunkSize   = 16 * 1024'u64
-    const RevealContextSize = 64 * 1024'u64
+    const StreamChunkSize   = 16 * 1024_u64
+    const RevealContextSize = 64 * 1024_u64
 }
 
 // The source-code viewer: a read-only editor colored by the Swag lexer or the generic one,
@@ -233,7 +262,7 @@ struct Panel
 
     // The whole file counted in the background for the information sheet, apart from the window
     // the editor streams.
-    statisticsTask:     Swag.Task'TextStatistics
+    statisticsTask:     Swag.Task!{TextStatistics}
     statisticsEncoding: Text.Encoding
     statisticsStart:    u64
     statistics:         TextStatistics
@@ -246,15 +275,20 @@ impl Panel
     mtd hasMore()->bool => .stream.isOpen() and .bytesRead < .fileSize
 
     mtd needsMore()->bool
-        => .hasMore() and not .pauseStreaming and Viewer.needsMoreText(.editor, .bytesRead - .residentStart, .residentOffsetY)
+        => .hasMore() and
+           not .pauseStreaming and
+           Viewer.needsMoreText(.editor, .bytesRead - .residentStart, .residentOffsetY)
 
     // Extrapolates the full document height from the bytes read so far and places the resident
     // window within it, so the scroll bar spans the whole file while only part of it is loaded.
     mtd updateEstimatedHeight()
     {
         let consumed = .bytesRead - .residentStart
-        if not consumed do
+        if not consumed
+        {
             return
+        }
+
         if .bytesRead >= .fileSize and .residentStart == .contentStart
         {
             .editor.setEstimatedDocumentHeight(0)
@@ -264,24 +298,36 @@ impl Panel
         let loadedHeight = .editor.loadedDocumentHeight()
         if loadedHeight <= 0
         {
-            if .repositioning or .residentStart == .contentStart do
+            if .repositioning or .residentStart == .contentStart
+            {
                 .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
-            if .virtualHeight > 0 do
+            }
+
+            if .virtualHeight > 0
+            {
                 .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
+            }
+
             return
         }
 
         .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32, .fileSize) / cast(f32, consumed), loadedHeight)
-        if .repositioning or .residentStart == .contentStart do
+        if .repositioning or .residentStart == .contentStart
+        {
             .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
+        }
+
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
     }
 
     mtd scheduleMore()
     {
-        if .loadTimer or (not .pendingSeek and not .needsMore()) do
+        if .loadTimer or (not .pendingSeek and not .needsMore())
+        {
             return
-        .loadTimer = .addTimer(8'ms)
+        }
+
+        .loadTimer = .addTimer(8_ms)
     }
 
     mtd stopLoading()
@@ -295,19 +341,26 @@ impl Panel
     {
         .stream.close()
         .bytesRead = .fileSize
-        if .residentStart == .contentStart do
+        if .residentStart == .contentStart
+        {
             .editor.setEstimatedDocumentHeight(0)
+        }
     }
 
     mtd showReadError(reason: string)
     {
         .stopLoading()
         .failureReason = reason
-        if .failureReason.isEmpty() do
+        if .failureReason.isEmpty()
+        {
             .failureReason = texts().err_Read
+        }
+
         .editor.setEstimatedDocumentHeight(0)
-        if .hasText do
+        if .hasText
+        {
             .services.failed(me, .failureReason)
+        }
     }
 
     // Appends the next chunk of the stream to the editor while the resident window has room,
@@ -315,10 +368,15 @@ impl Panel
     // not text.
     mtd loadNextChunk()
     {
-        if .bytesRead - .residentStart >= Viewer.ResidentWindowSize do
+        if .bytesRead - .residentStart >= Viewer.ResidentWindowSize
+        {
             return
-        if not .hasMore() do
+        }
+
+        if not .hasMore()
+        {
             return
+        }
 
         let oldPosition = .editor.scrollPosition()
         let chunk       = catch .stream.readTextChunk(StreamChunkSize, .encoding)
@@ -327,7 +385,7 @@ impl Panel
             return
         }
 
-        if Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
+        if Utf8.indexOf(chunk.toSlice(), 0_rune) != Swag.U64.Max
         {
             .showReadError(texts().err_ZeroByte)
             return
@@ -345,13 +403,18 @@ impl Panel
         var position: #decltype(expect .stream.position())
         catch { position = try .stream.position() } as positionErrorOutcome
         let positionError = positionErrorOutcome.value()
-        if positionError == null do
+        if positionError == null
+        {
             .bytesRead = position
+        }
+
         .hasText = true
         .updateEstimatedHeight()
         .editor.setScrollPosition(oldPosition)
-        if not .hasMore() do
+        if not .hasMore()
+        {
             .finishLoading()
+        }
     }
 
     // Reloads the resident window to start shortly before `offset` and highlights `text` there. A
@@ -381,8 +444,11 @@ impl Panel
             let actual = Math.min(start + adjustment * unit, aligned)
             catch stream.seek(.Begin, actual) { return false }
             let chunk = catch stream.readTextChunk(Viewer.ResidentWindowSize, encoding) { continue }
-            if Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max do
+            if Utf8.indexOf(chunk.toSlice(), 0_rune) != Swag.U64.Max
+            {
                 return false
+            }
+
             let position = catch stream.position() { return false }
 
             .stopLoading()
@@ -391,8 +457,11 @@ impl Panel
             defer .repositioning = false
 
             let previousHeight = Math.max(.virtualHeight, .editor.scrollableClientRect().height)
-            if encoding != .encoding do
+            if encoding != .encoding
+            {
                 .lines.reset()
+            }
+
             .encoding      = encoding
             .contentStart  = contentStart
             .residentStart = actual
@@ -421,25 +490,39 @@ impl Panel
     mtd numberWindow()
     {
         let line = .lineNumbers ? .lines.lineAt(.fileName, .residentStart, .encoding, .contentStart) : 0
-        if line do
+        if line
+        {
             .editor.setFirstLineNumber(line)
+        }
 
         var flags = RichEditFlags.ReadOnly
-        if line do
+        if line
+        {
             flags.add(.LineNumbers)
-        if .wrapping do
+        }
+
+        if .wrapping
+        {
             flags.add(.WordWrap)
-        if .blanks do
+        }
+
+        if .blanks
+        {
             flags.add(.DrawBlanks)
+        }
+
         .editor.tabSize = .tabWidth
         .editor.setFlags(flags)
     }
 
     mtd setZoom(percent: u32, remember = true)
     {
-        .zoomPercent  = Viewer.clampZoom(percent)
-        if remember do
+        .zoomPercent = Viewer.clampZoom(percent)
+        if remember
+        {
             g_ZoomPercent = .zoomPercent
+        }
+
         .applyMeasure()
         .zoomLabel?.setText(Viewer.zoomText(.zoomPercent))
         .updateEstimatedHeight()
@@ -481,18 +564,26 @@ impl Panel
     private mtd applyEditorFlag(flag: RichEditFlags, enabled: bool)
     {
         var flags = .editor.flags
-        if enabled do
+        if enabled
+        {
             flags.add(flag)
-        else do
+        }
+        else
+        {
             flags.remove(flag)
+        }
+
         .editor.setFlags(flags)
         .scheduleMore()
     }
 
     mtd setTabWidth(width: s32)
     {
-        if width != 2 and width != 4 and width != 8 do
+        if width != 2 and width != 4 and width != 8
+        {
             return
+        }
+
         .tabWidth       = width
         g_TabWidth      = width
         .editor.tabSize = width
@@ -503,8 +594,10 @@ impl Panel
     // Rereads the code around the current resident window with the selected decoder.
     mtd applyEncoding(encoding: Text.Encoding)
     {
-        if encoding == .encoding do
+        if encoding == .encoding
+        {
             return
+        }
 
         let contentStart = encoding == .detectedText.encoding ? .detectedText.contentStart : 0
         if not .reloadWindow(.residentStart, encoding, contentStart, "", caret: true)
@@ -514,10 +607,15 @@ impl Panel
         }
 
         .hasStatistics = false
-        if .statisticsTask.isPending() do
+        if .statisticsTask.isPending()
+        {
             .statisticsTask.cancel()
-        else do
+        }
+        else
+        {
             .startStatistics()
+        }
+
         .showLanguageDetails()
         .services.informationChanged(me)
     }
@@ -548,13 +646,18 @@ impl Panel
     mtd delimiterAtCaret()->RichEditCursor
     {
         var cp = .editor.cursorFromLogicalPosition(.editor.cursorLogicalLineIndex(), .editor.cursorLogicalCharPos())
-        if isDelimiter(.editor.runeAt(cp).char) do
+        if isDelimiter(.editor.runeAt(cp).char)
+        {
             return cp
+        }
+
         if cp.charPosInLine
         {
             cp.charPosInLine -= 1
-            if isDelimiter(.editor.runeAt(cp).char) do
+            if isDelimiter(.editor.runeAt(cp).char)
+            {
                 return cp
+            }
         }
 
         return {Swag.U64.Max, 0}
@@ -566,8 +669,10 @@ impl Panel
     mtd goToMatchingDelimiter()->bool
     {
         let start = .delimiterAtCaret()
-        if start.lineIndex == Swag.U64.Max do
+        if start.lineIndex == Swag.U64.Max
+        {
             return false
+        }
 
         // Lines are colored as they are painted; the pair may lie on lines never shown.
         if not .lexed
@@ -581,7 +686,7 @@ impl Panel
         let forward = first.char == '(' or first.char == '[' or first.char == '{'
 
         var cp    = start
-        var depth = 0'u64
+        var depth = 0_u64
         while true
         {
             if not (forward ? .stepForward(&cp) : .stepBackward(&cp))
@@ -591,13 +696,16 @@ impl Panel
             }
 
             let at = .editor.runeAt(cp)
-            if at.style != first.style do
+            if at.style != first.style
+            {
                 continue
+            }
+
             if at.char == first.char
             {
                 depth += 1
             }
-            elif at.char == partner
+            else if at.char == partner
             {
                 if not depth
                 {
@@ -627,8 +735,11 @@ impl Panel
     private mtd stepForward(cp: *RichEditCursor)->bool
     {
         cp.charPosInLine += 1
-        if .editor.runeAt(cp[]).char do
+        if .editor.runeAt(cp[]).char
+        {
             return true
+        }
+
         cp[] = {cp.lineIndex + 1, 0}
         return .editor.runeAt(cp[]).char != 0
     }
@@ -642,8 +753,11 @@ impl Panel
             return true
         }
 
-        if not cp.lineIndex do
+        if not cp.lineIndex
+        {
             return false
+        }
+
         cp[] = {cp.lineIndex - 1, 0}
         .editor.moveCursorEndLine(cp)
         return true
@@ -669,19 +783,26 @@ impl Panel
         }
 
         // The pair is offered only when the caret stands by a bracket, which is when it means something.
-        if .delimiterAtCaret().lineIndex != Swag.U64.Max do
+        if .delimiterAtCaret().lineIndex != Swag.U64.Max
+        {
             entries.add(texts().ui_MatchingDelimiter, .GoTo, func|view = me|() { discard view.goToMatchingDelimiter() }, defaultKey: {modifiers: .Control, key: .Oem6}, bindId: "scope.code.matchingDelimiter")
+        }
+
         entries.add(texts().ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, defaultKey: {modifiers: .CtrlShift, key: .W}, bindId: "scope.code.wrap")
         entries.add(texts().ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers, bindId: "scope.code.numbers")
         entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks, bindId: "scope.code.blanks")
 
         // The tab stops answer a query, as the languages do, rather than fill the empty lens.
-        for width in Viewer.TabWidths where entries.query.count or entries.results.collectingShortcuts do
+        for width in Viewer.TabWidths where entries.query.count or entries.results.collectingShortcuts
+        {
             entries.add(Viewer.tabWidthRowText(texts().ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .tabWidth == width, bindId: Format.toString("scope.code.tabWidth.%", width))
+        }
 
         PlainText.describeEncodingCommands(me, entries, "scope.code")
-        if .optionsButton do
+        if .optionsButton
+        {
             entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() }, bindId: "scope.code.options")
+        }
     }
 
     mtd describeOptions(page: *OptionSheet.Page) => PlainText.describeReadingOptions(me, page)
@@ -689,19 +810,27 @@ impl Panel
     mtd showOptions()
     {
         let button = .optionsButton
-        if not button do
+        if not button
+        {
             return
+        }
+
         let sheet = OptionSheet.View.create(button, func|view = me|(page) { view.describeOptions(page) }, owner: me)
         sheet.doModal(button, autoDestroy: true)
     }
 
     mtd showZoomMenu()
     {
-        if not .zoomLabel do
+        if not .zoomLabel
+        {
             return
+        }
+
         let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
-        if percent do
+        if percent
+        {
             .setZoom(percent)
+        }
     }
 
     // Creates the streamed, syntax-colored view of `fileName` under `contentParent`.
@@ -710,7 +839,7 @@ impl Panel
     // `services` hear about read errors discovered once text is already shown.
     func create(contentParent: *Wnd, fileName: string, services: Viewer.HostServices = {}, info: *Wnd? = null)->*Panel
     {
-        with let result = Wnd.create'Panel(contentParent, "scope.code")
+        with let result = Wnd.create!{Panel}(contentParent, "scope.code")
         {
             .backgroundStyle = .View
             .fileName        = fileName
@@ -723,8 +852,11 @@ impl Panel
         }
 
         result.createEditor()
-        if info do
+        if info
+        {
             result.createReadingControls(info)
+        }
+
         result.selectLexer()
         result.hookEvents()
         result.startReading()
@@ -739,19 +871,25 @@ impl Panel
     // and asks for the part of the file it reaches when it does.
     mtd followScroll(oldPosition, newPosition: Math.Point)
     {
-        if .repositioning do
+        if .repositioning
+        {
             return
-        if .pauseStreaming and newPosition.y < oldPosition.y do
+        }
+
+        if .pauseStreaming and newPosition.y < oldPosition.y
+        {
             .pauseStreaming = false
+        }
+
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
 
-        var residentHeight = 0'f32
+        var residentHeight = 0_f32
         if loadedHeight > 0
         {
             residentHeight = loadedHeight
         }
-        elif .fileSize
+        else if .fileSize
         {
             let scaledBytes = .virtualHeight * cast(f32, .bytesRead - .residentStart)
             residentHeight = scaledBytes / cast(f32, .fileSize)
@@ -1000,10 +1138,14 @@ impl Panel
         }
 
         .numberWindow()
-        if size <= .contentStart do
+        if size <= .contentStart
+        {
             .finishLoading()
-        else do
+        }
+        else
+        {
             .loadNextChunk()
+        }
     }
 }
 
@@ -1012,14 +1154,19 @@ impl IWnd for Panel
     // The count of the whole file arrives: the sheet can give its lines and how they end.
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if evt.task != &.statisticsTask or not .statisticsTask.isDone() do
+        if evt.task != &.statisticsTask or not .statisticsTask.isDone()
+        {
             return
+        }
 
         let cancelled = .statisticsTask.isCancelled()
         var countError: Swag.Error
         catch { .statistics = try .statisticsTask.take() } as countError
-        if .retiring do
+        if .retiring
+        {
             return
+        }
+
         if cancelled or .statisticsEncoding != .encoding or .statisticsStart != .contentStart
         {
             .startStatistics()
@@ -1033,29 +1180,41 @@ impl IWnd for Panel
     // The column stays centred whatever the width of the window.
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .editor != null do
+        if .editor != null
+        {
             Viewer.centerColumn(.editor, Viewer.CodeColumn * cast(f32, .zoomPercent) / 100)
+        }
     }
 
     mtd impl onPaint(_: *PaintEvent)
     {
-        if .pendingSeek do
+        if .pendingSeek
+        {
             discard .revealOffset(.pendingSeekOffset, "")
+        }
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged
         {
-            if .optionsButton do
+            if .optionsButton
+            {
                 .optionsButton.toolTip = appStrings().ui_Options
-            if .zoomLabel do
+            }
+
+            if .zoomLabel
+            {
                 .zoomLabel.toolTip = texts().ui_ZoomMenu
+            }
         }
 
         // A theme carries its own faces: the fixed face is set again in the new one.
-        if evt.kind == .ThemeChanged do
+        if evt.kind == .ThemeChanged
+        {
             .applyMeasure()
+        }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
@@ -1083,8 +1242,11 @@ impl IWnd for Panel
         }
 
         .updateEstimatedHeight()
-        if .needsMore() do
+        if .needsMore()
+        {
             .loadNextChunk()
+        }
+
         .scheduleMore()
     }
 }
@@ -1101,8 +1263,11 @@ impl Panel
         let evidence = .languageEvidence == "manual selection" ? texts().ui_ManualDetails : .languageEvidence.toString()
         data.add(.Language, Format.toString("% · %", .languageName, evidence))
         data.add(.Encoding, Viewer.encodingName(.encoding))
-        if .hasStatistics do
+        if .hasStatistics
+        {
             data.addTextStatistics(&.statistics, withWords: false)
+        }
+
         data.describe(sheet)
     }
 }
@@ -1123,9 +1288,9 @@ func createViewer(host: Viewer.Host)
     with var search: Viewer.SearchApi
     {
         .fileEncoding = func|view|()->Text.Encoding => view.encoding
-        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text, caret: true, matchLength: match.length)
-        .matchBounds = func|view|(_, bounds)->bool => Viewer.richEditMatchBounds(view.editor, bounds)
-        .clear       = func|view|() => Viewer.clearRichEditMatch(view.editor)
+        .revealMatch  = func|view|(match, text)->bool => view.revealOffset(match.offset, text, caret: true, matchLength: match.length)
+        .matchBounds  = func|view|(_, bounds)->bool => Viewer.richEditMatchBounds(view.editor, bounds)
+        .clear        = func|view|() => Viewer.clearRichEditMatch(view.editor)
     }
 
     host.setSearch(search)

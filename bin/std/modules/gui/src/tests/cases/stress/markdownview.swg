@@ -11,8 +11,11 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-continuous-scroll-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 8_000 do
+    for index in 8_000
+    {
         source += Format.toString("## Section %\n\nA paragraph gives each source block a stable identity during scrolling.\n\n", index)
+    }
+
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -20,8 +23,11 @@ using Swag, Core
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(720, 480)
     view.applyLayout()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     let viewport = view.scroll.paddedClientRect()
     Swag.require(view.contentHeight >= viewport.height * 6)
 
@@ -38,18 +44,27 @@ using Swag, Core
     Swag.require(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
     host.setReducedMotion(false)
     let held = view.scroll.scrollPosition().y
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     host.settleAnimations(view, 12)
     Swag.require(not view.waitingScroll and view.scroll.scrollPosition().y > held)
 
     Swag.require(view.revealFileOffset(source.length / 2, ""))
-    for 1_024 where view.hasPendingTarget do
+    for 1_024 where view.hasPendingTarget
+    {
         host.fireTimers()
+    }
+
     Swag.require(not view.hasPendingTarget and view.retainedBlocks.isEmpty())
     view.scroll.setScrollPos(0, view.virtualOrigin + viewport.height * 7)
-    for 8 where not view.pendingSeek do
+    for 8 where not view.pendingSeek
+    {
         view.scroll.setScrollPos(0, view.scroll.scrollPosition().y - viewport.height / 4)
+    }
+
     Swag.require(view.pendingSeek and view.pendingSeekPreservesPosition)
     host.fireTimer(view.loadTimer)
     Swag.require(not view.retainedBlocks.isEmpty())
@@ -81,18 +96,27 @@ using Swag, Core
     // chunk makes a reverse prefetch repeatedly reopen the same window without reaching Home.
     Swag.require(view.revealFileOffset(12 * 1024, ""))
     Swag.require(view.residentStart == 0)
-    for 1_024 where view.isLoading() do
+    for 1_024 where view.isLoading()
+    {
         host.fireTimers()
-    for 80 do
+    }
+
+    for 80
+    {
         view.scroll.setScrollPos(0, view.scroll.scrollPosition().y + viewport.height / 4)
+    }
+
     Swag.require(view.waitingScroll)
 
     // A search supersedes a wheel gesture held at the loading boundary. Once its match is
     // visible, an old waiting destination must not pull the reader away from that match.
     let found = view.revealFileOffset(source.indexOf("Section 2"), "Section 2")
     Swag.require(found)
-    for 1_024 where view.isLoading() do
+    for 1_024 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     host.finishAnimations()
     var searchRect: Math.Rectangle
     let hasSearchRect = view.searchMatchRect(&searchRect)
@@ -109,8 +133,11 @@ using Swag, Core
     defer discard catch File.delete(fileName)
 
     var source: String
-    for index in 16_000 do
+    for index in 16_000
+    {
         source += Format.toString("## Bounded section %\n\nA paragraph is evicted after the resident source budget.\n\n", index)
+    }
+
     Swag.require(source.length > 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
@@ -121,14 +148,20 @@ using Swag, Core
     view.applyLayout()
 
     let viewport = view.scroll.paddedClientRect()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimer(view.loadTimer)
+    }
+
     for 512
     {
         let previous = view.scroll.scrollPosition().y
         view.scroll.setScrollPos(0, previous + viewport.height / 4)
-        if view.loadTimer do
+        if view.loadTimer
+        {
             host.fireTimer(view.loadTimer)
+        }
+
         Swag.require(view.scroll.scrollPosition().y >= previous)
         Swag.require(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
         Swag.require(view.bytesRead - view.residentStart <= 256 * 1024 + 8 * 1024)
@@ -161,8 +194,11 @@ using Swag, Core
     defer discard catch File.delete(fileName)
 
     var source: String
-    for 40_000 do
+    for 40_000
+    {
         source += "## Streamed heading\n\nA paragraph stays on disk until navigation requests it.\n\n"
+    }
+
     Swag.require(source.length >= 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
@@ -217,9 +253,12 @@ using Swag, Core
     defer discard catch File.delete(fileName)
 
     var source: String
-    for index in 16_000 do
+    for index in 16_000
+    {
         source += Format.toString("## Section %\n\nThe resident window keeps useful context on both sides.\n\n", index)
-    const RevealContextSize = 64 * 1024'u64
+    }
+
+    const RevealContextSize = 64 * 1024_u64
     Swag.require(source.length > RevealContextSize * 8)
     discard expect File.writeAllText(fileName, source)
 
@@ -237,7 +276,7 @@ using Swag, Core
     let requested = source.length - 1
     let revealed  = view.revealFileOffset(requested, "")
     Swag.require(revealed)
-    var steps = 0'u32
+    var steps = 0_u32
     while view.hasPendingTarget and steps < 512
     {
         host.fireTimers()
@@ -268,8 +307,10 @@ using Swag, Core
     var visibleBlock: bool
     for &block in view.blocks
     {
-        if block.wnd.position.bottom() > position and block.wnd.position.y < position + viewport.height do
+        if block.wnd.position.bottom() > position and block.wnd.position.y < position + viewport.height
+        {
             visibleBlock = true
+        }
     }
 
     Swag.require(visibleBlock)
@@ -285,8 +326,11 @@ using Swag, Core
     defer discard catch File.delete(fileName)
 
     var source: String
-    for index in 16_000 do
+    for index in 16_000
+    {
         source += Format.toString("## Direction %\n\nA distinct paragraph makes every resident window observable.\n\n", index)
+    }
+
     Swag.require(source.length > 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
@@ -325,7 +369,7 @@ using Swag, Core
     Swag.require(view.residentStart < staleOffset / 2)
     Swag.require(Math.abs(view.pendingTarget - low) <= 1, Format.toString("pending=%, requested=%, position=%", view.pendingTarget, low, view.scroll.scrollPosition().y).toString())
 
-    var steps = 0'u32
+    var steps = 0_u32
     while view.hasPendingTarget and steps < 1_024
     {
         host.fireTimers()

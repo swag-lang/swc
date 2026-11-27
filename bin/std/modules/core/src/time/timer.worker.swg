@@ -25,20 +25,27 @@ private func timerWorkerEntry(param: *void?)->u32
         while not state.stopped
         {
             let now = state.elapsed.elapsedMilliseconds()
-            if now >= state.deadlineMilliseconds do
+            if now >= state.deadlineMilliseconds
+            {
                 break
+            }
+
             let remaining = state.deadlineMilliseconds - now
             discard state.changed.waitFor(&state.mutex, cast(u32, remaining))
         }
 
         let stopped = state.stopped
         state.mutex.unlock()
-        if stopped do
+        if stopped
+        {
             return 0
+        }
 
         timerEntry(state.timer)
-        if not state.periodic do
+        if not state.periodic
+        {
             return 0
+        }
 
         // Preserve the original cadence, coalescing periods missed while the callback ran.
         state.deadlineMilliseconds += state.intervalMilliseconds

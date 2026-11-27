@@ -37,14 +37,14 @@ struct Holder
 #test
 {
     // Suffixed literal on a plain variable.
-    let direct: Angle = 10.0'deg
+    let direct: Angle = 10.0_deg
     Swag.require(direct.radians == 20.0)
 }
 
 #test
 {
     // Suffixed literal on a struct literal field.
-    let holder = Holder{angle: 10.0'deg}
+    let holder = Holder{angle: 10.0_deg}
     Swag.require(holder.angle.radians == 20.0)
 }
 

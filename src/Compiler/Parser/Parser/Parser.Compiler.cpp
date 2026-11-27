@@ -289,25 +289,10 @@ AstNodeRef Parser::parseCompilerTypeExpr()
 template<AstNodeId ID>
 AstNodeRef Parser::parseCompilerIfStmt()
 {
-    if (consumeIf(TokenId::KwdDo).isValid())
-    {
-        // `#static if cond do expr` and `#static if cond do { ... }` share the same entry point.
-        // A block after `do` is accepted for recovery, but diagnosed because the
-        // block form normally omits `do`.
-        if (is(TokenId::SymLeftCurly) && !(ID == AstNodeId::EmbeddedBlock && isDestructuringAssignmentAhead()))
-        {
-            const Diagnostic diag = reportUnexpectedDoBlock(ref().offset(-1));
-            diag.report(*ctx_);
-            return parseCompound<ID>(TokenId::SymLeftCurly);
-        }
-
-        return parseCompoundValue(ID);
-    }
-
     if (is(TokenId::SymLeftCurly))
         return parseCompound<ID>(TokenId::SymLeftCurly);
 
-    const Diagnostic diag = reportExpectedDoBlock(ref().offset(-1));
+    const Diagnostic diag = reportExpectedControlBlock(ref().offset(-1));
     diag.report(*ctx_);
     return AstNodeRef::invalid();
 }
@@ -320,16 +305,20 @@ AstNodeRef Parser::parseCompilerIfBody(TokenRef tokRef)
     // Parse the condition expression
     nodePtr->nodeConditionRef = parseCompilerExpression();
     if (nodePtr->nodeConditionRef.isInvalid())
-        skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
+        skipTo({TokenId::SymLeftCurly});
 
     nodePtr->nodeIfBlockRef = parseCompilerIfStmt<ID>();
 
-    // Parse optional 'else' or 'elif' block. Else-if is nested in the else slot so
-    // compiler-if chains have the same AST shape as regular if chains.
-    if (is(TokenId::KwdElseIf))
-        nodePtr->nodeElseBlockRef = parseCompilerIfBody<ID>(consume());
-    else if (consumeIf(TokenId::KwdElse).isValid())
-        nodePtr->nodeElseBlockRef = parseCompilerIfStmt<ID>();
+    // Parse an optional else branch. A chained condition stays nested in the
+    // else slot so compile-time and runtime if chains share the same AST shape.
+    if (consumeIf(TokenId::KwdElse).isValid())
+    {
+        const TokenRef ifTok = consumeIf(TokenId::KwdIf);
+        if (ifTok.isValid())
+            nodePtr->nodeElseBlockRef = parseCompilerIfBody<ID>(ifTok);
+        else
+            nodePtr->nodeElseBlockRef = parseCompilerIfStmt<ID>();
+    }
     else
         nodePtr->nodeElseBlockRef.setInvalid();
 

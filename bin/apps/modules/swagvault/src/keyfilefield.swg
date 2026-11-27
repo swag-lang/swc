@@ -15,9 +15,9 @@ struct KeyFileField
         remove:   *IconButton
     }
 
-    sigPathsChanged: SigArray'func||(*KeyFileField)
+    sigPathsChanged: SigArray!{func||(*KeyFileField)}
 
-    paths: Array'String
+    paths: Array!{String}
 }
 
 // Writes 64 bytes from the system's secure random generator to a new file at `path`.
@@ -45,8 +45,11 @@ impl IWnd for KeyFileField
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .remove == null do
+        if .remove == null
+        {
             return
+        }
+
         let room     = .clientRect()
         let metrics  = .themeMetrics()
         let rows     = cast(f32, Math.max(1, Math.min(cast(u32, .paths.count), VisibleRows)))
@@ -66,34 +69,46 @@ private impl KeyFileField
 {
     mtd hasPath(path: string)->bool
     {
-        for one in .paths where Path.equals(one.toString(), path) do
+        for one in .paths where Path.equals(one.toString(), path)
+        {
             return true
+        }
+
         return false
     }
 
     // Lists the key files again and selects the one at `selected`.
-    mtd rebuild(selected = 0'u32)
+    mtd rebuild(selected = 0_u32)
     {
         .files.clear()
         let size = themeRowIconSize(.themeMetrics())
-        for path in .paths do
+        for path in .paths
+        {
             discard .files.createLine(path.toString(), .theme().fileGlyph(path.toString(), false, size))
+        }
+
         let empty = .paths.isEmpty()
         .empty.show(empty)
         .files.show(not empty)
-        if not empty do
+        if not empty
+        {
             .files.selectLine(Math.min(selected, cast(u32, .paths.count - 1)))
+        }
+
         .remove.enable(.files.selectedLine() != null)
     }
 
     // Adds the key files not listed yet, and selects the first one added.
-    mtd addPaths(paths: Array'String)
+    mtd addPaths(paths: Array!{String})
     {
         var firstAdded = Swag.U32.Max
         for path in paths where not .hasPath(path.toString())
         {
-            if firstAdded == Swag.U32.Max do
+            if firstAdded == Swag.U32.Max
+            {
                 firstAdded = cast(u32, .paths.count)
+            }
+
             .paths.add(path[])
         }
 
@@ -116,8 +131,10 @@ private impl KeyFileField
         }
 
         let dialog = FileDlg.create(unwrap .surface, options)
-        if dialog.doModal() == Dialog.BtnOk do
+        if dialog.doModal() == Dialog.BtnOk
+        {
             .addPaths(dialog.selectedPaths())
+        }
     }
 
     // Writes a new random key file where the user chooses, and adds it.
@@ -134,8 +151,10 @@ private impl KeyFileField
         }
 
         let dialog = FileDlg.create(unwrap .surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
 
         var path = dialog.selectedPath()
         discard catch writeRandomKeyFile(path)
@@ -145,7 +164,7 @@ private impl KeyFileField
             return
         }
 
-        var generated: Array'String
+        var generated: Array!{String}
         generated.add(#move path)
         .addPaths(#move generated)
     }
@@ -153,12 +172,17 @@ private impl KeyFileField
     // Removes the selected key file from the list; the file itself stays on disk.
     mtd removeSelected()
     {
-        if .paths.isEmpty() do
+        if .paths.isEmpty()
+        {
             return
+        }
 
         let selectedLine = .files.selectedLine()
-        if not selectedLine do
+        if not selectedLine
+        {
             return
+        }
+
         var selected = Swag.U32.Max
         for index in .paths.count
         {
@@ -169,13 +193,15 @@ private impl KeyFileField
             }
         }
 
-        if selected == Swag.U32.Max do
+        if selected == Swag.U32.Max
+        {
             return
+        }
+
         .paths.removeAtOrdered(selected)
         .rebuild(selected)
         .sigPathsChanged.call(me)
     }
-
 }
 
 impl KeyFileField
@@ -186,7 +212,7 @@ impl KeyFileField
     // key file, which only makes sense where a new access is being chosen.
     func create(parent: *Wnd, canGenerate = true)->*KeyFileField
     {
-        with let result = Wnd.create'KeyFileField(parent)
+        with let result = Wnd.create!{KeyFileField}(parent)
         {
             .backgroundStyle = .Transparent
         }
@@ -220,6 +246,7 @@ impl KeyFileField
             .setIcon(result.theme().icon(.WndClose, themeRowIconSize(result.themeMetrics())))
             .sigPressed += func|field = result|(_) { field.removeSelected() }
         }
+
         result.files.sigSelectionChanged += func|field = result|(list)
         {
             field.remove.enable(list.selectedLine() != null)
@@ -245,26 +272,37 @@ impl KeyFileField
     mtd setPaths(paths: const [..] String)
     {
         .paths.clear()
-        for path in paths do
+        for path in paths
+        {
             .paths.add(path[])
+        }
+
         .rebuild()
     }
 
     // Replaces `destination` with a copy of the selected paths, in order.
-    mtd copyPaths(destination: *Array'String)
+    mtd copyPaths(destination: *Array!{String})
     {
         destination.clear()
-        for path in .paths do
+        for path in .paths
+        {
             destination.add(path[])
+        }
     }
 
     // Returns whether the selection is exactly `paths`, in the same order.
     mtd samePaths(paths: const [..] String)->bool
     {
-        if .paths.count != paths.count do
+        if .paths.count != paths.count
+        {
             return false
-        for path, index in .paths where path[] != paths[index] do
+        }
+
+        for path, index in .paths where path[] != paths[index]
+        {
             return false
+        }
+
         return true
     }
 }

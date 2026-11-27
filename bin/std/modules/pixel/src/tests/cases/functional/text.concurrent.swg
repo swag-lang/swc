@@ -5,8 +5,8 @@ using Swag, Core
 
 struct FontSample
 {
-    metrics: Array'f32
-    pixels:  Array'u8
+    metrics: Array!{f32}
+    pixels:  Array!{u8}
 }
 
 func renderFontSample(face: *TypeFace, size: u32, mode: FontRenderMode)->FontSample
@@ -15,25 +15,37 @@ func renderFontSample(face: *TypeFace, size: u32, mode: FontRenderMode)->FontSam
     var cache:  FontCache
     let font = cache.createFont(face, size, mode, true)
     result.metrics.add(font.height)
-    for code in 33'u32 until 65
+    for code in 33_u32 until 65
     {
         let glyph = font.getGlyphDesc(cast(rune, code))
         result.metrics.add([glyph.advanceX, glyph.advanceY, glyph.width, glyph.height, glyph.shiftX, glyph.shiftY])
     }
 
-    for &atlas in font.cache.atlases do
+    for &atlas in font.cache.atlases
+    {
         result.pixels.add(atlas.data.toSlice())
+    }
+
     return result
 }
 
 func sameFontSample(a, b: const *FontSample)->bool
 {
-    if a.metrics.count != b.metrics.count or a.pixels.count != b.pixels.count do
+    if a.metrics.count != b.metrics.count or a.pixels.count != b.pixels.count
+    {
         return false
-    for value, index in a.metrics where value != b.metrics[index] do
+    }
+
+    for value, index in a.metrics where value != b.metrics[index]
+    {
         return false
-    for value, index in a.pixels where value != b.pixels[index] do
+    }
+
+    for value, index in a.pixels where value != b.pixels[index]
+    {
         return false
+    }
+
     return true
 }
 
@@ -46,7 +58,7 @@ func sameFontSample(a, b: const *FontSample)->bool
         let small = renderFontSample(face, 13, mode)
         let large = renderFontSample(face, 27, mode)
         var start, ready: u32
-        var tasks:        [2] Swag.Task'bool
+        var tasks:        [2] Swag.Task!{bool}
         var workers:      [2] Swag.Executor
         for &task, index in tasks
         {
@@ -54,13 +66,18 @@ func sameFontSample(a, b: const *FontSample)->bool
             task.submit(func|face, mode, index, small = &small, large = &large, start = &start, ready = &ready|()->bool
             {
                 discard Swag.atomicAdd(ready, 1)
-                while Swag.atomicLoad(start) == 0 do
+                while Swag.atomicLoad(start) == 0
+                {
                     Threading.Thread.yield()
+                }
+
                 for 3
                 {
                     let sample = renderFontSample(face, index == 0 ? 13 : 27, mode)
-                    if not sameFontSample(&sample, index == 0 ? small : large) do
+                    if not sameFontSample(&sample, index == 0 ? small : large)
+                    {
                         return false
+                    }
                 }
 
                 return true
@@ -68,10 +85,15 @@ func sameFontSample(a, b: const *FontSample)->bool
                         executor: &workers[index])
         }
 
-        while Swag.atomicLoad(&ready) != 2 do
+        while Swag.atomicLoad(&ready) != 2
+        {
             Threading.Thread.yield()
+        }
+
         discard Swag.atomicExchange(&start, 1)
-        for &task in tasks do
+        for &task in tasks
+        {
             Swag.require(expect task.take())
+        }
     }
 }

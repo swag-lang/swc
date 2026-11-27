@@ -86,7 +86,7 @@ using Swag, Core, Pixel
     Swag.require(host.root.stripInset() == strip - 1)
 
     // A document continuing below the strip is content: the strip drags over it.
-    with let document = Wnd.create'Wnd(&host.root, {0, 0, 478, 198})
+    with let document = Wnd.create!{Wnd}(&host.root, {0, 0, 478, 198})
     {
         .focusPolicy = .Tab
     }
@@ -101,7 +101,7 @@ using Swag, Core, Pixel
     Swag.require(host.surfaceWnd.hitTestCaption({240, 26}))
 
     // A band laid below the strip has nothing to keep clear of.
-    let band = Wnd.create'Wnd(&host.root, {0, strip, 478, 40})
+    let band = Wnd.create!{Wnd}(&host.root, {0, strip, 478, 40})
     Swag.require(band.stripInset() == 0)
 
     // The window buttons stay above the view, and over them nothing drags.
@@ -146,8 +146,11 @@ using Swag, Core, Pixel
 
     host.root.hookOnEvent = func|resizes = &resizes|(_, evt)->bool
     {
-        if evt is ResizeEvent do
+        if evt is ResizeEvent
+        {
             resizes[] += 1
+        }
+
         return false
     }
 
@@ -189,7 +192,7 @@ using Swag, Core, Pixel
     host.surfaceWnd.applyLayout()
 
     let strip     = host.theme.metrics.wnd_StripHeight
-    with let band = Wnd.create'Wnd(&host.root, {0, 0, 440, strip - 1})
+    with let band = Wnd.create!{Wnd}(&host.root, {0, 0, 440, strip - 1})
     {
         .dockStyle = .Float
     }

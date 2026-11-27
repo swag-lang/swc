@@ -16,8 +16,10 @@ struct InlineBug9Cell
 #[Swag.Inline]
 func inlineBug9Find(cells: [*] InlineBug9Cell, color: InlineBug9Content)->s8
 {
-    for i in 4's8 where cells[i].content == color do
+    for i in 4_s8 where cells[i].content == color
+    {
         return i
+    }
     return -1
 }
 

@@ -27,7 +27,7 @@ func renderHatches(renderer: IRenderer)->Image
     painter.bindRenderTarget(&target)
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
-    painter.clear(Color.fromArgb(255'u8, 30'u8, 32'u8, 38'u8))
+    painter.clear(Color.fromArgb(255_u8, 30_u8, 32_u8, 38_u8))
     painter.setBlendingMode(.Alpha)
 
     for style, index in HatchStyles

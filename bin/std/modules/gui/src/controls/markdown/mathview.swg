@@ -16,7 +16,7 @@ internal impl MathView
     {
         let expression = catch MathExpression.parse(source) { return null }
 
-        let result = Wnd.create'MathView(parent, "gui.markdown.math")
+        let result = Wnd.create!{MathView}(parent, "gui.markdown.math")
         result.backgroundStyle = .View
         result.expression      = #move expression
         result.owner           = owner

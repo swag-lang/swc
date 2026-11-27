@@ -30,13 +30,18 @@ internal impl MappedRegion
         let granularity   = cast(u64, systemInfo.dwAllocationGranularity)
         let alignedOffset = offset / granularity * granularity
         let prefix        = offset - alignedOffset
-        if length > Swag.U64.Max - prefix do
+        if length > Swag.U64.Max - prefix
+        {
             fail Errors.OverflowError{}
+        }
+
         let mappedLength = length + prefix
 
         let mapping = try CreateFileMappingW(cast(HANDLE, sourceHandle), null, protection, 0, 0, null)
-        defer if not .mapHandle do
+        defer if not .mapHandle
+        {
             CloseHandle(mapping)
+        }
 
         let currentProcess = GetCurrentProcess()
         var duplicate: HANDLE
@@ -47,16 +52,20 @@ internal impl MappedRegion
                             0,
                             FALSE,
                             DUPLICATE_SAME_ACCESS)
-        defer if not .fileHandle do
+        defer if not .fileHandle
+        {
             CloseHandle(duplicate)
+        }
 
         let nativeView = try MapViewOfFile(mapping,
                                            desiredAccess,
                                            cast(DWORD, (alignedOffset >> 32)),
                                            cast(DWORD, alignedOffset),
                                            mappedLength)
-        defer if not .nativeView do
+        defer if not .nativeView
+        {
             discard catch UnmapViewOfFile(nativeView)
+        }
 
         .mapHandle  = cast(FileHandle, mapping)
         .fileHandle = cast(FileHandle, duplicate)

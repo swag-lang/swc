@@ -2,8 +2,11 @@
 
 internal func loadNativeLibrary(path: string)->const *void fail
 {
-    if not path.count do
+    if not path.count
+    {
         fail Swag.SystemError{"native library path is empty"}
+    }
+
     let nativePath = String.from(path)
     let handle     = Linux.dlopen(nativePath.buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
     if not handle
@@ -19,8 +22,11 @@ internal func loadNativeLibrary(path: string)->const *void fail
 internal func nativeLibrarySymbol(handle: const *void, name: string)->const *void?
 {
     let symbolName = String.from(name)
-    if not symbolName.buffer do
+    if not symbolName.buffer
+    {
         return null
+    }
+
     return Linux.dlsym(cast #unconst (*void, handle), symbolName.buffer)
 }
 

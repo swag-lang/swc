@@ -6,6 +6,8 @@ private const CatalogObject = 1_u32
 private const PagesObject   = 2_u32
 private const InfoObject    = 3_u32
 
+private const MinBorrowedStreamSize = 65536
+
 private struct ImageObject
 {
     number:   u32
@@ -21,9 +23,10 @@ private struct ImageSource
 
 private struct ImageSources
 {
-    byChecksum:   HashTable!{u32, ImageSource}
-    byImage:      HashTable!{u64, u32}
-    encodedBytes: u64
+    byChecksum:    HashTable!{u32, ImageSource}
+    byImage:       HashTable!{u64, u32}
+    encodedBytes:  u64
+    borrowStreams: bool
 }
 
 private struct PageObjects
@@ -42,12 +45,21 @@ private struct EncodedImage
     isGray:  bool
 }
 
+private struct BorrowedStream
+{
+    bufferOffset: u64
+    bytes:        const [..] u8
+}
+
 private struct Writer
 {
-    bytes:   Array!{u8}
-    offsets: Array!{u64}
-    flushed: u64
-    zlib:    Compress.ZLib
+    bytes:         Array!{u8}
+    offsets:       Array!{u64}
+    streams:       Array!{BorrowedStream}
+    streamBytes:   u64
+    flushed:       u64
+    zlib:          Compress.ZLib
+    borrowStreams: bool
 }
 
 private impl Writer
@@ -57,13 +69,24 @@ private impl Writer
         .bytes.add(cast(const [..] u8, text))
     }
 
-    mtd const position()->u64 => .flushed + .bytes.count
+    mtd const position()->u64 => .flushed + .bytes.count + .streamBytes
 
     mtd flush(file: *File.FileStream) fail
     {
-        try file.writeAll(.bytes.toSlice())
-        .flushed += .bytes.count
+        let buffered = .bytes.toSlice()
+        var offset: u64
+        for stream in .streams
+        {
+            try file.writeAll(buffered[offset until stream.bufferOffset])
+            try file.writeAll(stream.bytes)
+            offset = stream.bufferOffset
+        }
+
+        try file.writeAll(buffered[offset until buffered.count])
+        .flushed     += buffered.count + .streamBytes
+        .streamBytes = 0
         .bytes.clear()
+        .streams.clear()
     }
 
     mtd beginObject(number: u32)
@@ -82,7 +105,7 @@ private impl Writer
         .append("endobj\n")
     }
 
-    mtd streamObject(number: u32, data: const [..] u8, dictionary: string)
+    mtd streamObject(number: u32, data: const [..] u8, dictionary: string, borrow = false)
     {
         .beginObject(number)
         .append("<< ")
@@ -93,7 +116,16 @@ private impl Writer
         }
 
         .append(Format.toString("/Length % >>\nstream\n", data.count).toString())
-        .bytes.add(data)
+        if borrow
+        {
+            .streams.add({.bytes.count, data})
+            .streamBytes += data.count
+        }
+        else
+        {
+            .bytes.add(data)
+        }
+
         .append("\nendstream\n")
         .endObject()
     }
@@ -739,7 +771,11 @@ private func allocateImageObject(item: const *Item, nextObject: *u32, sources: *
     }
 
     let result = ImageObject{nextObject[], true}
-    sources.encodedBytes += encoded.bytes.count
+    if not sources.borrowStreams or encoded.bytes.count < MinBorrowedStreamSize
+    {
+        sources.encodedBytes += encoded.bytes.count
+    }
+
     sources.byImage.add(identity, result.number)
     nextObject[] += 1
     return result
@@ -906,7 +942,9 @@ private impl Writer
                     dictionary += " /Interpolate true"
                 }
 
-                .streamObject(imageObject.number, source.bytes.toSlice(), dictionary.toString())
+                // The editable document owns these immutable bytes through the final write.
+                let borrow = .borrowStreams and source.bytes.count >= MinBorrowedStreamSize
+                .streamObject(imageObject.number, source.bytes.toSlice(), dictionary.toString(), borrow)
                 continue
             }
 
@@ -990,7 +1028,7 @@ internal func writeGeneratedDocument(file: *File.FileStream, count: u64, source:
     try writer.flush(file)
 }
 
-func encodeDocument(document: const *Document)->Array!{u8} fail
+private func prepareDocumentWriter(document: const *Document, borrowStreams: bool)->Writer fail
 {
     if not document.pages.count
     {
@@ -1007,17 +1045,17 @@ func encodeDocument(document: const *Document)->Array!{u8} fail
         nextObject += 1
     }
 
-    var layout:       Array!{PageObjects}
-    var imageSources: ImageSources
+    var layout: Array!{PageObjects}
+    var imageSources = ImageSources{borrowStreams: borrowStreams}
     for page in document.pages
     {
         let objects = #move try allocatePageObjects(page, &nextObject, &imageSources)
         layout.add(#move objects)
     }
 
-    var writer: Writer
+    var writer = Writer{borrowStreams: borrowStreams}
 
-    // Reserve the preserved streams plus room for their dictionaries and the page tree.
+    // Reserve the copied streams plus room for their dictionaries and the page tree.
     if imageSources.encodedBytes >= 65536
     {
         let overhead = Math.min(65536_u64, cast(u64, nextObject) * 512)
@@ -1055,5 +1093,25 @@ func encodeDocument(document: const *Document)->Array!{u8} fail
     }
 
     writer.writeTrailer(nextObject)
+    return #move writer
+}
+
+func encodeDocument(document: const *Document)->Array!{u8} fail
+{
+    let writer = #move try prepareDocumentWriter(document, borrowStreams: false)
     return #move writer.bytes
+}
+
+internal func saveDocument(document: const *Document, fileName: string) fail
+{
+    // Finish encoding all fallible content before opening the destination.
+    var writer = #move try prepareDocumentWriter(document, borrowStreams: true)
+    if writer.streams.isEmpty()
+    {
+        discard try File.writeAllBytes(fileName, writer.bytes.toSlice())
+        return
+    }
+
+    var file = try File.openWrite(fileName)
+    try writer.flush(&file)
 }

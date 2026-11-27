@@ -102,7 +102,6 @@ impl Document
     // Encodes and writes the complete document to `fileName`.
     mtd const save(fileName: string) fail
     {
-        let bytes = #move try .encode()
-        discard try File.writeAllBytes(fileName, bytes.toSlice())
+        try saveDocument(me, fileName)
     }
 }

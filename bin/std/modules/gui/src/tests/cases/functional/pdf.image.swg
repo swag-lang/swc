@@ -909,6 +909,43 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.require(image.value()!.pixelColor(15, 15) == Color.fromRgb(139, 139, 139))
 }
 
+// An owned stream can go straight to a file without changing offsets or bytes.
+#test
+{
+    var samples: Array!{u8}
+    samples.resize(512 * 256)
+    var state = 42_u32
+    for index in 65536
+    {
+        state = state * 1664525_u32 + 1013904223_u32
+        samples[index] = cast(u8, state >> 24)
+    }
+
+    var zlib: Compress.ZLib
+    let packed = expect zlib.compress(samples.toSlice())
+    const Dictionary = "/Type /XObject /Subtype /Image /Width 512 /Height 256 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode"
+    var document = imageDocument(Dictionary, packed.toSlice())
+    let stream   = document.pages[0].items[0].image.encoded().bytes.toSlice()
+    Swag.require(stream.count >= 65536 and Slice.equals(stream, packed.toSlice()))
+
+    let path = Testing.tempFilePath("pdf-retained-image-", ".pdf")
+    defer discard catch File.delete(path)
+    let encoded = expect document.encode()
+    expect document.save(path)
+    let saved = expect File.readAllBytes(path)
+    Swag.require(Slice.equals(encoded.toSlice(), saved.toSlice()))
+
+    // An encoding error must leave the existing destination intact.
+    var later = Page.create(32, 32)
+    later.addText("\u0416", 2, 2, 8)
+    document.addPage(#move later)
+    var outcome: Swag.Error
+    catch { try document.save(path) } as outcome
+    Swag.require(outcome.value() is Core.Errors.UnsupportedFormatError)
+    let surviving = expect File.readAllBytes(path)
+    Swag.require(Slice.equals(encoded.toSlice(), surviving.toSlice()))
+}
+
 // Identical compressed bytes under different image dimensions are distinct objects.
 #test
 {

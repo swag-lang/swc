@@ -33,8 +33,9 @@ impl SoundFile
     //
     // `firstFrame` and `frameCount` exclude codec priming and padding and must fit
     // [[Audio.SoundFile.sampleFrameCount]]. An empty range makes no callback. PCM seeks directly;
-    // indexed AAC starts one transform-preroll packet before the selected packet. Other packet
-    // codecs decode their preceding history for correctness. No audio engine is needed.
+    // built-in FLAC starts at the containing packet, and indexed AAC starts one packet
+    // earlier for transform preroll. Other packet codecs decode preceding history as needed.
+    // No audio engine is needed.
     //
     // ```swag
     // try sound.decodePcm16(48_000, 96_000, func(part: const [..] s16)->bool
@@ -381,6 +382,10 @@ private impl SoundFile
             let containing = .packetAtDecodedFrame(decodedTarget)
             firstPacket = containing ? containing - 1 : 0
         }
+        else if firstFrame and descriptor.type == #typeof(Flac.Codec)
+        {
+            firstPacket = .packetAtDecodedFrame(decodedTarget)
+        }
 
         var range         = Pcm16Range{decodedTarget - .packetStarts[firstPacket], frameCount}
         let packetDecoder = unwrap packetCodec
@@ -605,23 +610,24 @@ private impl SoundFile
     mtd const decodeFlacPcm16(firstFrame, frameCount: u64, workers: u32, consumer: SoundPcm16Consumer) fail
     {
         let decodedTarget = .leadingTrim + firstFrame
+        let firstPacket   = firstFrame ? .packetAtDecodedFrame(decodedTarget) : 0
         let packetEnd     = .packetAtDecodedFrame(decodedTarget + frameCount - 1) + 1
         let bytesPerFrame = .channelCount * #sizeof(s16)
         let config        = .decoderConfig.toSlice()
         let nativeFrames  = config.count >= 4 and config[until 4] == cast(const [..] u8, "fLaC")
         let lanes         = cast(u64, workers) + (nativeFrames ? 1_u64 : 0)
-        var range         = Pcm16Range{decodedTarget, frameCount}
+        var range         = Pcm16Range{decodedTarget - .packetStarts[firstPacket], frameCount}
         var pcm:  Array!{s16}
         var jobs: Array!{FlacDecodeJob}
 
-        var batchFirst = 0_u64
+        var batchFirst = firstPacket
         while batchFirst < packetEnd
         {
             // Bound both the output and the amount of compressed data read ahead. A packet
             // larger than the budget remains one serial job with the usual packet allocation.
             // Publish the first packet before starting read-ahead so an early cancellation
             // needs only one decode.
-            let batchLimit      = batchFirst == 0 ? 1 : packetEnd
+            let batchLimit      = batchFirst == firstPacket ? firstPacket + 1 : packetEnd
             var batchEnd        = batchFirst
             var batchFrames     = 0_u64
             var compressedBytes = 0_u64

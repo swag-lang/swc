@@ -1133,6 +1133,27 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
             return true
         })
         Swag.require(callbacks == packetCount)
+
+        // A malformed packet before the requested FLAC window is never decoded.
+        packets[0].byteSize = 1
+        let indexed = expect SoundFile.openPacketStream(original.sourcePath(),
+                                                        .Flac,
+                                                        original.sampleRateHz(),
+                                                        channels,
+                                                        frames * packetCount,
+                                                        packets.toSlice(),
+                                                        original.decoderConfig.toSlice())
+        callbacks = 0
+        expect indexed.decodePcm16(frames + 1, frames * (packetCount - 1) - 2,
+                                   func|&callbacks, expected, channels, packetCount|(part)
+        {
+            let first = callbacks == 0 ? cast(u64, channels) : 0
+            let last  = callbacks + 2 == packetCount ? expected.count - channels : expected.count
+            Swag.require(Slice.equals(part, expected[first until last]))
+            callbacks += 1
+            return true
+        })
+        Swag.require(callbacks == packetCount - 1)
     }
 }
 

@@ -312,6 +312,73 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(errorOutcome.value() != null)
 }
 
+// Dense literals can cross both LZW code widths and GIF sub-block boundaries.
+#test
+{
+    const RunLength       = 530
+    const Width           = 2 * RunLength
+    const WidthLow        = cast(u8, Width & 255)
+    const WidthHigh       = cast(u8, Width >> 8)
+    const Header: [13] u8 = ['G', 'I', 'F', '8', '9', 'a', WidthLow, WidthHigh, 1, 0, 0x87, 0, 0]
+    const Frame:  [11] u8 = [0x2C, 0, 0, 0, 0, WidthLow, WidthHigh, 1, 0, 0, 8]
+    var bytes: Array!{u8}
+    bytes.add(Header)
+    for color in 256
+    {
+        let channel = cast(u8, color)
+        bytes.add([channel, channel, channel])
+    }
+
+    let frameOffset = bytes.count
+    bytes.add(Frame)
+    var payload:   Array!{u8}
+    var bits:      u32
+    var available: u32
+    for i in 2 * (RunLength + 1) + 1
+    {
+        let offset = i % (RunLength + 1)
+        let code   = i == 2 * (RunLength + 1) ? 257 : offset == 0 ? 256 : (offset * 73 + 19) & 255
+        let size   = i == 0 or (offset > 0 and offset <= 255) ? 9 : 10
+        bits      |= cast(u32, code) << available
+        available += size
+        while available >= 8
+        {
+            payload.add(cast(u8, bits & 255))
+            bits      >>= 8
+            available -= 8
+        }
+    }
+
+    if available
+    {
+        payload.add(cast(u8, bits))
+    }
+
+    var remaining = payload.toSlice()
+    while remaining.count
+    {
+        let length = Math.min(11_u64, remaining.count)
+        bytes.add(cast(u8, length))
+        bytes.add(Swag.makeSlice(remaining.buffer, length))
+        remaining = Swag.makeSlice(remaining.buffer + length, remaining.count - length)
+    }
+
+    bytes.add([0_u8, 0x3B])
+    let image = expect Image.decode("dense-literal-pairs.gif", nnBytes(bytes.toSlice()))
+    Swag.require(image.width == Width and image.height == 1)
+    for pixel in Width
+    {
+        let expected = cast(u8, (((pixel % RunLength + 1) * 73 + 19) & 255))
+        assertGifPixelAt(image, pixel, 0, expected, expected, expected, 255)
+    }
+
+    bytes[6] = WidthLow - 1
+    bytes[frameOffset + 5] = WidthLow - 1
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("dense-literal-overflow.gif", nnBytes(bytes.toSlice())) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+}
+
 // LZW codes cross sub-blocks while interlaced rows are restored in all four passes.
 #test
 {

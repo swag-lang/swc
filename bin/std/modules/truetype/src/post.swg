@@ -125,9 +125,37 @@ func parsePostGlyphNames(names: *GlyphNames, glyphCount: u32, postTable: const [
             var offset  = customOffset
             var checked = 0_u64
 
+            const Consecutive = cast(Math.Simd.U32x4, [0_u32, 1, 2, 3])
+            let batchEqualLengths = customCount >= 1024
+
             // Four Pascal strings fit within 1024 bytes, including their length bytes.
             while customCount - checked >= 4 and postTable.count - offset >= 1024
             {
+                // Eight short names of the same length can be indexed without a chain
+                // of dependent length reads. The remaining-byte check above bounds both paths.
+                let length = bytes[offset]
+                if batchEqualLengths and length <= 7 and customCount - checked >= 8
+                {
+                    let stride     = cast(u32, length) + 1
+                    let next       = bytes + offset
+                    let difference = (next[stride] ^ length) |
+                                     (next[stride * 2] ^ length) |
+                                     (next[stride * 3] ^ length) |
+                                     (next[stride * 4] ^ length) |
+                                     (next[stride * 5] ^ length) |
+                                     (next[stride * 6] ^ length) |
+                                     (next[stride * 7] ^ length)
+                    if not difference
+                    {
+                        let positions = Consecutive * stride + cast(u32, offset)
+                        Math.Simd.store(offsets + checked, positions)
+                        Math.Simd.store(offsets + checked + 4, positions + stride * 4)
+                        offset  += stride * 8
+                        checked += 8
+                        continue
+                    }
+                }
+
                 for lane in 4
                 {
                     offsets[checked + lane] = cast(u32, offset)

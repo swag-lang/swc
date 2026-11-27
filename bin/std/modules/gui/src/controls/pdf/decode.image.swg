@@ -1292,12 +1292,12 @@ private func matchesJpegFrame(bytes: const [..] u8, width, height: s32, channels
     return false
 }
 
-private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [..] u8, image: const *Image)->u8
+private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [..] u8, image: const *Image, keepDecode: bool)->u8
 {
     let colorBytes = image.pixelFormat == .Gray8 ? image.byteCount * 3 : image.byteCount
     if not parser.retainImageStreams or
        raw.count >= colorBytes or
-       parser.dict(nodeId, "Decode") != InvalidNode or
+       (not keepDecode and parser.dict(nodeId, "Decode") != InvalidNode) or
        parser.dict(nodeId, "DecodeParms") != InvalidNode or
        parser.dict(nodeId, "Mask") != InvalidNode or
        parser.dict(nodeId, "SMask") != InvalidNode
@@ -1473,9 +1473,11 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
             fail UnsupportedFormatError{"PDF image codec is not supported"}
         }
 
-        var raw     = #move try parser.decodeStream(nodeId, true)
-        let options = DecodeOptions{keepJpegGrayscale: deviceOnly and colorName == "DeviceGray"}
-        var decoded: Image
+        var raw            = #move try parser.decodeStream(nodeId, true)
+        let options        = DecodeOptions{keepJpegGrayscale: deviceOnly and colorName == "DeviceGray"}
+        var decoded:     Image
+        var canReuseDecode = false
+        var invertedInk: u8
         if deviceOnly and
            colorName == "DeviceCMYK" and
            parser.dict(nodeId, "DecodeParms") == InvalidNode
@@ -1486,11 +1488,39 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                parser.nodes[decodeId].kind == .Array and
                parser.nodes[decodeId].values.count >= 8
             {
+                canReuseDecode = parser.nodes[decodeId].values.count == 8
                 for component in 4
                 {
                     let lower = parser.nodes[decodeId].values[component * 2]
                     let upper = parser.nodes[decodeId].values[component * 2 + 1]
-                    ranges[component] = {cast(f32, parser.number(lower)), cast(f32, parser.number(upper))}
+                    if canReuseDecode
+                    {
+                        let startNode = parser.resolve(lower)
+                        let endNode   = parser.resolve(upper)
+                        if startNode == InvalidNode or endNode == InvalidNode
+                        {
+                            canReuseDecode = false
+                        }
+                        else
+                        {
+                            let startKind = parser.nodes[startNode].kind
+                            let endKind   = parser.nodes[endNode].kind
+                            canReuseDecode = (startKind == .Integer or startKind == .Real) and
+                                             (endKind == .Integer or endKind == .Real)
+                        }
+                    }
+
+                    let start = parser.number(lower)
+                    let end   = parser.number(upper)
+                    ranges[component] = {cast(f32, start), cast(f32, end)}
+                    if start == 1 and end == 0
+                    {
+                        invertedInk |= 1_u8 << component
+                    }
+                    else if start != 0 or end != 1
+                    {
+                        canReuseDecode = false
+                    }
                 }
             }
 
@@ -1519,10 +1549,10 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                 result = decoded.convertedTo(.RGB8)
             }
 
-            let channels = retainedJpegChannels(parser, nodeId, raw.toSlice(), &result)
+            let channels = retainedJpegChannels(parser, nodeId, raw.toSlice(), &result, canReuseDecode)
             if channels
             {
-                var encoded = EncodedImageStream{channels: channels}
+                var encoded = EncodedImageStream{channels: channels, invertedInk: invertedInk}
                 encoded.bytes = #move raw
                 return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move encoded)
             }

@@ -1510,6 +1510,19 @@ func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array!
     decoded.count = byteCount
     let target = cast([*] u32, decoded.storage())
 
+    let usePairs = transform.bits < 3 and width >= 8 and byteCount >= 32768
+    var pairs: [256] u64
+    if usePairs
+    {
+        // Each lookup expands two adjacent indices to an RGBA pixel pair.
+        for index in 1_u32 << (bitsPerPixel * 2)
+        {
+            let first  = cast(u64, palette[index & valueMask])
+            let second = cast(u64, palette[index >> bitsPerPixel])
+            pairs[index] = first | (second << 32)
+        }
+    }
+
     let zero     = splat(0_u32)
     let first    = splat(palette[0])
     let second   = splat(palette[1])
@@ -1521,7 +1534,32 @@ func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array!
         let output = target + cast(u64, (bottomUp ? height - 1 - y : y)) * width
         var x: s32
         var packedColumn: s32
-        if transform.bits == 3
+        if usePairs
+        {
+            let destination = cast([*] u64, output)
+            let count       = width / groupSize
+            if transform.bits == 1
+            {
+                for column in count
+                {
+                    let packed = (input[column] >> 8) & 0xFF
+                    destination[column] = pairs[packed]
+                }
+            }
+            else
+            {
+                for column in count
+                {
+                    let packed = (input[column] >> 8) & 0xFF
+                    destination[column * 2]     = pairs[packed & 0xF]
+                    destination[column * 2 + 1] = pairs[packed >> 4]
+                }
+            }
+
+            x = count * groupSize
+            packedColumn = count
+        }
+        else if transform.bits == 3
         {
             // Expand each green byte to eight consecutive entries of the two-color palette.
             while width - x >= 8

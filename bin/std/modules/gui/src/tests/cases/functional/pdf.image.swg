@@ -891,11 +891,29 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     let read  = expect Document.decode(saved.toSlice())
     Swag.require(read.pages[0].items[0].imageValue()!.pixelColor(10, 12) == Color.fromRgb(189, 141, 92))
 
-    let invertedDictionary = String.from(Dictionary)
-    var inverted = invertedDictionary
+    var inverted = String.from(Dictionary)
     inverted += " /Decode [1 0 1 0 1 0 1 0]"
     let reversed = imageDocument(inverted.toString(), jpeg.toSlice())
-    Swag.require(reversed.pages[0].items[0].imageValue()!.pixelColor(10, 12) == Color.fromRgb(4, 16, 27))
+    let second   = reversed.pages[0].items[0].image
+    Swag.require(second.value()!.pixelColor(10, 12) == Color.fromRgb(4, 16, 27))
+    Swag.require(second.encoded().invertedInk == 15)
+    Swag.require(Slice.equals(second.encoded().bytes.toSlice(), jpeg.toSlice()))
+
+    // Identical source bytes with different ink directions must stay distinct in the writer.
+    var objects: Array!{u8}
+    addStreamObject(&objects, 5, Dictionary, jpeg.toSlice())
+    addStreamObject(&objects, 6, inverted.toString(), jpeg.toSlice())
+    let content        = "q 11 0 0 13 0 0 cm /A Do Q q 11 0 0 13 12 0 cm /B Do Q"
+    let combinedSource = singlePagePdf("/XObject << /A 5 0 R /B 6 0 R >>", cast(const [..] u8, content), objects.toSlice())
+    let combined       = expect Document.decode(combinedSource.toSlice())
+    let combinedBytes  = expect combined.encode()
+    let combinedRead   = expect Document.decode(combinedBytes.toSlice())
+    let forwardImage   = combinedRead.pages[0].items[0].image
+    let reverseImage   = combinedRead.pages[0].items[1].image
+    Swag.require(Slice.equals(forwardImage.encoded().bytes.toSlice(), reverseImage.encoded().bytes.toSlice()))
+    Swag.require(forwardImage.encoded().invertedInk == 0 and reverseImage.encoded().invertedInk == 15)
+    Swag.require(forwardImage.value()!.pixelColor(10, 12) == Color.fromRgb(189, 141, 92))
+    Swag.require(reverseImage.value()!.pixelColor(10, 12) == Color.fromRgb(4, 16, 27))
 }
 
 // A Flate predictor keeps its parameters, image samples and interpolation request.

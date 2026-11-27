@@ -1034,6 +1034,58 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     }
 }
 
+// Older muxers can add an empty packet after the last FLAC frame on the EOS page.
+#test
+{
+    let originalPath = audioGetTestDataPath("flac-stereo-44100.oga")
+    let source       = expect File.readAllBytes(originalPath.toString())
+    let original     = expect SoundFile.load(originalPath, preloadData: false)
+
+    var pageOffset = 0_u64
+    var page = expect Ogg.readPageHeader(source.toSlice(), pageOffset)
+    while (page.flags & Ogg.LastPage) == 0
+    {
+        pageOffset += page.totalBytes()
+        page = expect Ogg.readPageHeader(source.toSlice(), pageOffset)
+    }
+
+    Swag.require(pageOffset + page.totalBytes() == source.count)
+    Swag.require(page.segments < 255 and page.segments != 0)
+    Swag.require(page.lacing[page.segments - 1] < 255)
+    let lacingEnd = pageOffset + page.headerBytes
+    var bytes: Array!{u8}
+    bytes.add(source.toSlice()[until lacingEnd])
+    bytes.add(0_u8)
+    bytes.add(source.toSlice()[lacingEnd until])
+    bytes[pageOffset + 26] += 1
+    let checksum = Ogg.pageChecksum(bytes.toSlice()[pageOffset until])
+    for index in 4
+    {
+        bytes[pageOffset + 22 + index] = cast(u8, (checksum >> (8 * index)) & 0xFF)
+    }
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("audio-flac-empty-eos-%.oga", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+    expect File.writeAllBytes(path.toString(), bytes.toSlice())
+    let sound = expect SoundFile.load(path.toString(), preloadData: false)
+    Swag.require(sound.sampleFrameCount() == original.sampleFrameCount())
+
+    var reference, decoded: Array!{s16}
+    expect original.decodePcm16(func|&reference|(part)
+    {
+        reference.add(part)
+        return true
+    })
+    expect sound.decodePcm16(func|&decoded|(part)
+    {
+        decoded.add(part)
+        return true
+    })
+    Swag.require(not reference.isEmpty())
+    Swag.require(Slice.equals(decoded.toSlice(), reference.toSlice()))
+}
+
 // A range through several FLAC decode batches keeps the packet callback boundaries on the caller.
 #test
 {

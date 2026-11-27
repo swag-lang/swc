@@ -153,3 +153,51 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     let after         = expect roundTripPage.render()
     Swag.require(Slice.equals(before.pixels.toSlice(), after.pixels.toSlice()))
 }
+
+// A rotated substitute run keeps its baseline, declared spacing and open counters.
+#test
+{
+    const FontBytes = #include("../../../theme/inter-regular.ttf")
+    let fontPath = Testing.tempFilePath("pdf-outline-substitute-", ".ttf")
+    defer catch { try File.delete(fontPath) }
+    expect File.writeAllBytes(fontPath, FontBytes)
+
+    var objects: Array!{u8}
+    addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding /FirstChar 79 /LastChar 79 /Widths [1000] >>")
+    let content  = "BT /F0 24 Tf 0 -1 1 0 40 80 Tm (OO) Tj ET"
+    let source   = singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice())
+    let document = expect Document.decode(source.toSlice())
+    var page     = document.pages[0]
+    let image    = expect page.render({scale: 2, fallbackFontFile: fontPath.toString()})
+
+    for glyph in 2
+    {
+        let top        = 40 + 48 * cast(s32, glyph)
+        var ink: u32
+        var hasCounter = false
+        for y in top until top + 48
+        {
+            var state: u32
+            for x in 80 until 128
+            {
+                let value = image.pixelColor(x, y).r
+                if value < 96
+                {
+                    ink += 1
+                    if state == 2
+                    {
+                        hasCounter = true
+                    }
+
+                    state = 1
+                }
+                else if state == 1 and value == 255
+                {
+                    state = 2
+                }
+            }
+        }
+
+        Swag.require(ink > 120 and hasCounter)
+    }
+}

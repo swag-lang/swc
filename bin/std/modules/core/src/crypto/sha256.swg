@@ -91,7 +91,8 @@ impl Sha256
         }
     }
 
-    mtd transformShaExtensions(buf: const [*] u8, blocks: u64)
+    #[Swag.Inline]
+    internal func compressShaWords(abef, cdgh: *Math.Simd.U32x4, first, second, third, fourth: Math.Simd.U32x4)
     {
         using Math
 
@@ -111,6 +112,53 @@ impl Sha256
             return Swag.vecSha256Schedule2(partial, newest)
         }
 
+        let savedAbef = abef[]
+        let savedCdgh = cdgh[]
+        var w0 = first
+        var w1 = second
+        var w2 = third
+        var w3 = fourth
+
+        rounds(w0, Simd.load(K.buffer), abef, cdgh)
+        rounds(w1, Simd.load(K.buffer + 4), abef, cdgh)
+        rounds(w2, Simd.load(K.buffer + 8), abef, cdgh)
+        rounds(w3, Simd.load(K.buffer + 12), abef, cdgh)
+
+        w0 = extend(w0, w1, w2, w3)
+        rounds(w0, Simd.load(K.buffer + 16), abef, cdgh)
+        w1 = extend(w1, w2, w3, w0)
+        rounds(w1, Simd.load(K.buffer + 20), abef, cdgh)
+        w2 = extend(w2, w3, w0, w1)
+        rounds(w2, Simd.load(K.buffer + 24), abef, cdgh)
+        w3 = extend(w3, w0, w1, w2)
+        rounds(w3, Simd.load(K.buffer + 28), abef, cdgh)
+
+        w0 = extend(w0, w1, w2, w3)
+        rounds(w0, Simd.load(K.buffer + 32), abef, cdgh)
+        w1 = extend(w1, w2, w3, w0)
+        rounds(w1, Simd.load(K.buffer + 36), abef, cdgh)
+        w2 = extend(w2, w3, w0, w1)
+        rounds(w2, Simd.load(K.buffer + 40), abef, cdgh)
+        w3 = extend(w3, w0, w1, w2)
+        rounds(w3, Simd.load(K.buffer + 44), abef, cdgh)
+
+        w0 = extend(w0, w1, w2, w3)
+        rounds(w0, Simd.load(K.buffer + 48), abef, cdgh)
+        w1 = extend(w1, w2, w3, w0)
+        rounds(w1, Simd.load(K.buffer + 52), abef, cdgh)
+        w2 = extend(w2, w3, w0, w1)
+        rounds(w2, Simd.load(K.buffer + 56), abef, cdgh)
+        w3 = extend(w3, w0, w1, w2)
+        rounds(w3, Simd.load(K.buffer + 60), abef, cdgh)
+
+        abef[] += savedAbef
+        cdgh[] += savedCdgh
+    }
+
+    mtd transformShaExtensions(buf: const [*] u8, blocks: u64)
+    {
+        using Math
+
         // The SHA rounds consume two halves in reverse lane order.
         let abcd  = Simd.load(.state.buffer)
         let efgh  = Simd.load(.state.buffer + 4)
@@ -119,47 +167,11 @@ impl Sha256
         var input = cast(const [*] u32, buf)
         for blocks
         {
-            let savedAbef = abef
-            let savedCdgh = cdgh
-            var w0        = Math.byteSwap(Simd.load(input))
-            var w1        = Math.byteSwap(Simd.load(input + 4))
-            var w2        = Math.byteSwap(Simd.load(input + 8))
-            var w3        = Math.byteSwap(Simd.load(input + 12))
-
-            rounds(w0, Simd.load(K.buffer), &abef, &cdgh)
-            rounds(w1, Simd.load(K.buffer + 4), &abef, &cdgh)
-            rounds(w2, Simd.load(K.buffer + 8), &abef, &cdgh)
-            rounds(w3, Simd.load(K.buffer + 12), &abef, &cdgh)
-
-            w0 = extend(w0, w1, w2, w3)
-            rounds(w0, Simd.load(K.buffer + 16), &abef, &cdgh)
-            w1 = extend(w1, w2, w3, w0)
-            rounds(w1, Simd.load(K.buffer + 20), &abef, &cdgh)
-            w2 = extend(w2, w3, w0, w1)
-            rounds(w2, Simd.load(K.buffer + 24), &abef, &cdgh)
-            w3 = extend(w3, w0, w1, w2)
-            rounds(w3, Simd.load(K.buffer + 28), &abef, &cdgh)
-
-            w0 = extend(w0, w1, w2, w3)
-            rounds(w0, Simd.load(K.buffer + 32), &abef, &cdgh)
-            w1 = extend(w1, w2, w3, w0)
-            rounds(w1, Simd.load(K.buffer + 36), &abef, &cdgh)
-            w2 = extend(w2, w3, w0, w1)
-            rounds(w2, Simd.load(K.buffer + 40), &abef, &cdgh)
-            w3 = extend(w3, w0, w1, w2)
-            rounds(w3, Simd.load(K.buffer + 44), &abef, &cdgh)
-
-            w0 = extend(w0, w1, w2, w3)
-            rounds(w0, Simd.load(K.buffer + 48), &abef, &cdgh)
-            w1 = extend(w1, w2, w3, w0)
-            rounds(w1, Simd.load(K.buffer + 52), &abef, &cdgh)
-            w2 = extend(w2, w3, w0, w1)
-            rounds(w2, Simd.load(K.buffer + 56), &abef, &cdgh)
-            w3 = extend(w3, w0, w1, w2)
-            rounds(w3, Simd.load(K.buffer + 60), &abef, &cdgh)
-
-            abef  += savedAbef
-            cdgh  += savedCdgh
+            let w0 = Math.byteSwap(Simd.load(input))
+            let w1 = Math.byteSwap(Simd.load(input + 4))
+            let w2 = Math.byteSwap(Simd.load(input + 8))
+            let w3 = Math.byteSwap(Simd.load(input + 12))
+            compressShaWords(&abef, &cdgh, w0, w1, w2, w3)
             input += 16
         }
 

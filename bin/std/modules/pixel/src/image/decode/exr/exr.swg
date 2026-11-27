@@ -21,13 +21,13 @@ struct Channel
 internal struct Decoder { bytes: const [..] u8?; parts: Array!{Part}; multipart: bool }
 
 #[Swag.Inline]
-func readU16(source: const [*] u8)->u16 => cast(u16, source[0]) | (cast(u16, source[1]) << 8)
+func readU16(source: const [*] u8)->u16 => Math.littleEndianToNative(cast(const [*] u16, source)[0])
 
 #[Swag.Inline]
-func readU32(source: const [*] u8)->u32 => cast(u32, readU16(source)) | (cast(u32, readU16(source + 2)) << 16)
+func readU32(source: const [*] u8)->u32 => Math.littleEndianToNative(cast(const [*] u32, source)[0])
 
 #[Swag.Inline]
-func readU64(source: const [*] u8)->u64 => cast(u64, readU32(source)) | (cast(u64, readU32(source + 4)) << 32)
+func readU64(source: const [*] u8)->u64 => Math.littleEndianToNative(cast(const [*] u64, source)[0])
 
 #[Swag.Inline]
 func readF32(source: const [*] u8)->f32 => cast #bit (f32, readU32(source))

@@ -78,6 +78,7 @@ internal
     const LzDictSize      = 32768
     const LzDictSizeMask  = LzDictSize - 1
     const MinMatchLen     = 3
+    const ShortMatchLimit = 8 * 1024
     const MinBulkRunBytes = 64
     const MaxMatchLen     = 258
 
@@ -133,8 +134,7 @@ internal
         maxProbes:     [2] u32     // Probe limits before and after finding a 32-byte match.
         greedyParsing: bool        // Takes a match immediately instead of checking the next position.
 
-        lookaheadPos:     u32         // Dictionary position of the first byte not yet coded.
-        lookaheadSize:    u32         // Number of buffered bytes not yet coded.
+        lookaheadPos:     u32         // Source position of the first byte not yet coded.
         dictSize:         u32         // Number of already coded bytes a match can reach back into.
         lzCodeBufAddr:    [*] u8?     // Next free byte of 'lzCodeBuf'.
         lzFlags:          *u8?        // Flag byte of the current group of eight records, one bit per match.
@@ -142,7 +142,7 @@ internal
         outputBufEndAddr: [*] u8?     // Limit past which a block no longer fits the output buffer.
         numFlagsLeft:     u32         // Records left before 'lzFlags' is full.
         totalLzBytes:     u32         // Input bytes covered by the pending records.
-        lzCodeBufDictPos: u32         // Dictionary position of the first byte covered by the pending records.
+        lzCodeBufDictPos: u32         // Source position of the first byte covered by the pending records.
 
         bitsIn:    u32     // Number of valid bits in 'bitBuffer'.
         bitBuffer: u32     // Output bits not yet written as a whole byte.
@@ -151,12 +151,7 @@ internal
         savedMatchLen:  u32     // Length of the match deferred by lazy parsing, or zero.
         savedLit:       u32     // Literal to emit if the deferred match loses to the next one.
 
-        inSrc:      const [*] u8?     // Next source byte to load into the dictionary.
-        srcBufLeft: u64     // Number of source bytes not yet loaded.
-        outBufOfs:  u64     // Offset in 'result' where the next block is written.
-
-        // Sliding window; the last 'MaxMatchLen - 1' bytes mirror the beginning.
-        dict: [LzDictSize + MaxMatchLen - 1] u8
+        outBufOfs: u64     // Offset in 'result' where the next block is written.
 
         // Frequencies for the literal/length, distance, and code-length tables.
         huffCount:     [MaxHuffTables, MaxHuffSymbols] u16
@@ -165,7 +160,7 @@ internal
 
         lzCodeBuf: [LzCodeBufSize] u8     // Pending literal and match records of the current block.
 
-        next:  [LzDictSize] u16     // Previous position with the same four-byte hash, per dictionary position.
+        next:  [LzDictSize * 2] u16 // Previous position with the same four-byte hash.
         hash:  [LzHashSize] u16     // Most recent position of each four-byte hash.
         hash3: [LzHashSize] u16     // Most recent position of each three-byte sequence.
         prev3: [LzDictSize] u16     // Position that held a three-byte sequence before this one.
@@ -299,7 +294,7 @@ impl Deflate
     // Fifteen consecutive chain entries can be checked together once their links are
     // known to be contiguous. The caller charges five groups of three probes.
     #[Swag.Inline, Swag.Safety(.All, false)]
-    mtd canSkipConsecutiveProbes(pos, origin, maxDist, length: u32, boundary: u16)->bool
+    mtd canSkipConsecutiveProbes(current: const [*] u8, pos, origin, maxDist, length: u32, boundary: u16)->bool
     {
         if pos < 16
         {
@@ -329,8 +324,9 @@ impl Deflate
         }
 
         // The sixteen-byte loads include one leading byte before the first candidate.
-        let ending  = Simd.load(&d.dict[pos - 16 + length])
-        let before  = Simd.load(&d.dict[pos - 16 + length - 1])
+        let oldest  = current - distance
+        let ending  = Simd.load(oldest + length - 1)
+        let before  = Simd.load(oldest + length - 2)
         let pair    = Math.littleEndianToNative(boundary)
         let last    = cast(u8, pair & 255)
         let nextBeyond = cast(u8, pair >> 8)
@@ -339,7 +335,7 @@ impl Deflate
     }
 
     #[Swag.Safety(.All, false)]
-    mtd(DETECT_RUNS: bool) findMatch(laPos, maxDist, maxMatchLen: u32, matchDistAddr, matchLenAddr: *u32)
+    mtd(DETECT_RUNS: bool) findMatch(current: const [*] u8, laPos, maxDist, maxMatchLen: u32, matchDistAddr, matchLenAddr: *u32)
     {
         let d = unwrap .state
 
@@ -349,13 +345,19 @@ impl Deflate
             return
         }
 
-        let pos      = laPos & LzDictSizeMask
-        var probePos = pos
+        var probePos = laPos & LzDictSizeMask
+        #static if not DETECT_RUNS
+        {
+            // The final three-byte position has no four-byte link. The previous
+            // half of the table holds the link its old window slot would have kept.
+            let position = maxMatchLen >= 4 ? laPos : laPos - LzDictSize
+            probePos = cast(u16, position)
+        }
         var numProbesLeft = d.maxProbes[matchLen >= 32 ? 1 : 0]
-        let current  = cast([*] u8, &d.dict[0]) + pos
 
         // An improving match must include both bytes at the current boundary.
-        var boundary = cast(const [*] u16, current + matchLen - 1)[0]
+        var boundarySource = current + matchLen - 1
+        var boundary       = cast(const [*] u16, boundarySource)[0]
 
         for
         {
@@ -385,8 +387,8 @@ impl Deflate
                         return
                     }
 
-                    probePos = nextProbePos & LzDictSizeMask
-                    if cast(const [*] u16, &d.dict[probePos + matchLen - 1])[0] == boundary
+                    probePos = DETECT_RUNS ? nextProbePos & LzDictSizeMask : nextProbePos
+                    if cast(const [*] u16, boundarySource - dist)[0] == boundary
                     {
                         break
                     }
@@ -399,7 +401,7 @@ impl Deflate
                 // A candidate accepted above bypasses the batch check. Long
                 // chains of failures can advance several groups at once.
                 while DETECT_RUNS and numProbesLeft > 5 and
-                      .canSkipConsecutiveProbes(probePos, laPos, maxDist, matchLen, boundary)
+                      .canSkipConsecutiveProbes(current, probePos, laPos, maxDist, matchLen, boundary)
                 {
                     probePos      -= 15
                     numProbesLeft -= 5
@@ -411,8 +413,7 @@ impl Deflate
                 break
             }
 
-            var candidate: [*] u8 = &d.dict[0]
-            candidate += probePos
+            let candidate = current - dist
             var probeLen: u32
             while maxMatchLen - probeLen >= #sizeof(Simd.U8x16)
             {
@@ -446,7 +447,8 @@ impl Deflate
                     return
                 }
 
-                boundary = cast(const [*] u16, current + matchLen - 1)[0]
+                boundarySource = current + matchLen - 1
+                boundary       = cast(const [*] u16, boundarySource)[0]
             }
         }
     }
@@ -456,28 +458,25 @@ impl Deflate
     // One candidate and one comparison: 'prev3' already names the position that held this
     // sequence before the current one, so there is nothing to walk. It runs only where the
     // chain came back with nothing, which is exactly where three bytes are worth the pair of
-    // codes they cost. The three unmasked reads stay inside the dictionary because its last
-    // 'MaxMatchLen - 1' bytes mirror its first ones.
+    // codes they cost. The caller guarantees three bytes remain at the current position.
     #[Swag.Safety(.All, false)]
-    mtd findShortMatch(pos: u32, matchDistAddr, matchLenAddr: *u32)
+    mtd findShortMatch(current: const [*] u8, origin, history: u32, matchDistAddr, matchLenAddr: *u32)
     {
         let d    = unwrap .state
-        let head = cast(u32, d.prev3[pos])
+        let head = cast(u32, d.prev3[origin & LzDictSizeMask])
         if not head
         {
             return
         }
 
-        let dist = cast(u16, (d.lookaheadPos - head))
-        if not dist or dist > d.dictSize
+        let dist = cast(u16, (origin - head))
+        if not dist or dist > history or dist >= ShortMatchLimit
         {
             return
         }
 
-        let probePos = head & LzDictSizeMask
-        if d.dict[probePos] != d.dict[pos] or
-           d.dict[probePos + 1] != d.dict[pos + 1] or
-           d.dict[probePos + 2] != d.dict[pos + 2]
+        let candidate = current - dist
+        if candidate[0] != current[0] or candidate[1] != current[1] or candidate[2] != current[2]
         {
             return
         }
@@ -1077,7 +1076,7 @@ impl Deflate
         return .compressLzCodes()
     }
 
-    mtd flushBlock(finish: bool)
+    mtd flushBlock(source: const [..] u8, finish: bool)
     {
         let d = unwrap .state
 
@@ -1130,14 +1129,8 @@ impl Deflate
             // Stored bytes are already aligned. The logical limit also applies
             // to the direct copy, just as it does to each call to putBits.
             let destination = unwrap d.outputBufAddr
-            let position    = d.lzCodeBufDictPos & LzDictSizeMask
             let count       = Math.min(cast(u64, d.totalLzBytes), cast(u64, (d.outputBufEndAddr - destination)))
-            let first       = Math.min(count, cast(u64, LzDictSize - position))
-            Memory.copy(destination, &d.dict[position], first)
-            if count > first
-            {
-                Memory.copy(destination + first, &d.dict[0], count - first)
-            }
+            Memory.copy(destination, source.buffer + d.lzCodeBufDictPos, count)
             d.outputBufAddr += count
         }
         else if not compBlockSucceeded
@@ -1285,22 +1278,9 @@ impl Deflate
     }
 
     #[Swag.NoInline]
-    mtd refillRepeatedBytes(dstPos, insPos, count: u32, value: u8)
+    mtd linkRepeatedWindows(insPos, count: u32, value: u8)
     {
-        let d    = unwrap .state
-        let head = Math.min(count, LzDictSize - dstPos)
-        let tail = count - head
-        Memory.set(&d.dict[dstPos], value, head)
-        if dstPos < MaxMatchLen - 1
-        {
-            Memory.set(&d.dict[LzDictSize + dstPos], value, Math.min(head, MaxMatchLen - 1 - dstPos))
-        }
-
-        if tail
-        {
-            Memory.set(&d.dict[0], value, tail)
-            Memory.set(&d.dict[LzDictSize], value, tail)
-        }
+        let d = unwrap .state
 
         // Each window contains the same bytes and extends both hash chains.
         let window = cast(u32, value) * 0x01010101
@@ -1338,109 +1318,59 @@ impl Deflate
         d.hash3[hash3] = last
     }
 
-    mtd(DETECT_RUNS: bool) compress() fail
+    mtd(DETECT_RUNS: bool) compress(source: const [..] u8)
     {
-        let d          = unwrap .state
-        var pSrc       = d.inSrc
-        var srcBufLeft = d.srcBufLeft
+        let d         = unwrap .state
+        let input     = source.buffer
+        let inputSize = cast(u32, source.count)
+        var origin:     u32
+        var position:   u32
 
-        // Consuming a match advances the position and shortens lookahead by
-        // the same amount. The last appended bytes remain the hash window.
-        var window = 0_u32
-        while srcBufLeft or d.lookaheadSize
+        while origin < inputSize
         {
-            // Refill lookahead and update the match indexes.
-            if (d.lookaheadSize + d.dictSize) >= MinMatchLen
+            // Add a position to the chains as soon as its four-byte window enters lookahead.
+            let lookahead = Math.min(inputSize - origin, MaxMatchLen)
+            let history   = Math.min(origin, LzDictSize - lookahead)
+            let limit     = Math.max(origin + lookahead, 3_u32) - 3
+            if DETECT_RUNS and limit - position >= MinBulkRunBytes and
+               Deflate.allBytesMatch(input + position, limit - position + 3, input[position])
             {
-                var dstPos: u32 = (d.lookaheadPos + d.lookaheadSize) & LzDictSizeMask
-                var insPos: u32 = d.lookaheadPos + d.lookaheadSize - 3
-
-                let numBytesToProcess = cast(u32, Math.min(cast(u32, srcBufLeft), cast(u32, (MaxMatchLen - d.lookaheadSize))))
-
-                let pSrc_end = pSrc ? pSrc + numBytesToProcess : null
-                srcBufLeft      -= numBytesToProcess
-                d.lookaheadSize += numBytesToProcess
-
-                Swag.assert(pSrc != null)
-                if DETECT_RUNS and numBytesToProcess >= MinBulkRunBytes
-                {
-                    let repeated = cast(u8, window & 255)
-                    if (window & 0xFFFFFF) == cast(u32, repeated) * 0x010101 and
-                       Deflate.allBytesMatch(pSrc, numBytesToProcess, repeated)
-                    {
-                        .refillRepeatedBytes(dstPos, insPos, numBytesToProcess, repeated)
-                        window = cast(u32, repeated) * 0x01010101
-                        pSrc   = pSrc_end
-                    }
-                }
-
-                while pSrc != pSrc_end
-                {
-                    let c = pSrc![]
-                    pSrc += 1
-                    d.dict[dstPos] = c
-                    if dstPos < (MaxMatchLen - 1)
-                    {
-                        d.dict[LzDictSize + dstPos] = c
-                    }
-
-                    window = (window << 8) | c
-                    let hash = (window * LzHashMultiplier) >> LzHashDiscard
-                    d.next[insPos & LzDictSizeMask] = d.hash[hash]
-                    d.hash[hash] = cast(u16, insPos)
-                    let hash3 = ((window >> 8) * LzHash3Multiplier) >> LzHashDiscard
-                    d.prev3[insPos & LzDictSizeMask] = d.hash3[hash3]
-                    d.hash3[hash3] = cast(u16, insPos)
-                    dstPos         = (dstPos + 1) & LzDictSizeMask
-                    insPos         += 1
-                }
-            }
-            else
-            {
-                while srcBufLeft and d.lookaheadSize < MaxMatchLen
-                {
-                    let c = pSrc![]
-                    pSrc += 1
-                    let dstPos = (d.lookaheadPos + d.lookaheadSize) & LzDictSizeMask
-                    srcBufLeft     -= 1
-                    d.dict[dstPos] = c
-                    if dstPos < (MaxMatchLen - 1)
-                    {
-                        d.dict[LzDictSize + dstPos] = c
-                    }
-
-                    d.lookaheadSize += 1
-                    window = (window << 8) | c
-                    if (d.lookaheadSize + d.dictSize) >= MinMatchLen + 1
-                    {
-                        let insPos: u32 = d.lookaheadPos + (d.lookaheadSize - 1) - 3
-                        let hash        = (window * LzHashMultiplier) >> LzHashDiscard
-                        d.next[insPos & LzDictSizeMask] = d.hash[hash]
-                        d.hash[hash] = cast(u16, insPos)
-                        let hash3 = ((window >> 8) * LzHash3Multiplier) >> LzHashDiscard
-                        d.prev3[insPos & LzDictSizeMask] = d.hash3[hash3]
-                        d.hash3[hash3] = cast(u16, insPos)
-                    }
-                }
+                .linkRepeatedWindows(position, limit - position, input[position])
+                position = limit
             }
 
-            d.dictSize = Math.min(cast(u32, (LzDictSize - d.lookaheadSize)), d.dictSize)
+            while position < limit
+            {
+                let window = Math.bigEndianToNative(cast(const [*] u32, input + position)[0])
+                let hash   = (window * LzHashMultiplier) >> LzHashDiscard
+                let hash3  = ((window >> 8) * LzHash3Multiplier) >> LzHashDiscard
+                let slot   = position & LzDictSizeMask
+                // The scalar search follows full 16-bit positions directly. The
+                // repeated-run search keeps the narrower ring used by its SIMD batches.
+                let linkSlot  = DETECT_RUNS ? slot : cast(u32, cast(u16, position))
+                d.next[linkSlot] = d.hash[hash]
+                d.prev3[slot] = d.hash3[hash3]
+                d.hash[hash]   = cast(u16, position)
+                d.hash3[hash3] = cast(u16, position)
+                position      += 1
+            }
 
             // Find a match at the current position.
             var lenToMove    = 1_u32
             var curMatchDist = 0_u32
             var curMatchLen  = d.savedMatchLen ? d.savedMatchLen : cast(u32, (MinMatchLen - 1))
 
-            let curPos: u32 = d.lookaheadPos & LzDictSizeMask
+            let current = input + origin
+            let curPos  = origin & LzDictSizeMask
             if d.compressFlags & RleMatches
             {
-                if d.dictSize
+                if history
                 {
-                    let c = d.dict[(curPos - 1) & LzDictSizeMask]
+                    let c = (current - 1)[0]
                     curMatchLen = 0
-                    while curMatchLen < d.lookaheadSize
+                    while curMatchLen < lookahead
                     {
-                        if d.dict[curPos + curMatchLen] != c
+                        if current[curMatchLen] != c
                         {
                             break
                         }
@@ -1460,14 +1390,14 @@ impl Deflate
             }
             else
             {
-                .findMatch!{DETECT_RUNS}(d.lookaheadPos, d.dictSize, d.lookaheadSize, &curMatchDist, &curMatchLen)
-                if not curMatchDist and d.dictSize and d.lookaheadSize >= MinMatchLen
+                .findMatch!{DETECT_RUNS}(current, origin, history, lookahead, &curMatchDist, &curMatchLen)
+                if not curMatchDist and history and lookahead >= MinMatchLen
                 {
-                    .findShortMatch(curPos, &curMatchDist, &curMatchLen)
+                    .findShortMatch(current, origin, history, &curMatchDist, &curMatchLen)
                 }
             }
 
-            if ((curMatchLen == MinMatchLen) and (curMatchDist >= 8 * 1024)) or
+            if ((curMatchLen == MinMatchLen) and (curMatchDist >= ShortMatchLimit)) or
                (curPos == curMatchDist) or
                ((d.compressFlags & FilterMatches) and (curMatchLen <= 5))
             {
@@ -1488,7 +1418,7 @@ impl Deflate
                     }
                     else
                     {
-                        d.savedLit       = d.dict[curPos]
+                        d.savedLit       = current[0]
                         d.savedMatchDist = curMatchDist
                         d.savedMatchLen  = curMatchLen
                     }
@@ -1502,7 +1432,7 @@ impl Deflate
             }
             else if not curMatchDist
             {
-                .recordLiteral(d.dict[Math.min(curPos, cast(u32, #sizeof(d.dict)) - 1)])
+                .recordLiteral(current[0])
             }
             else if d.greedyParsing or (d.compressFlags & RleMatches) or (curMatchLen >= 128)
             {
@@ -1511,26 +1441,23 @@ impl Deflate
             }
             else
             {
-                d.savedLit       = d.dict[Math.min(curPos, cast(u32, #sizeof(d.dict)) - 1)]
+                d.savedLit       = current[0]
                 d.savedMatchDist = curMatchDist
                 d.savedMatchLen  = curMatchLen
             }
 
-            d.lookaheadPos += lenToMove
-            Swag.assert(d.lookaheadSize >= lenToMove)
-            d.lookaheadSize -= lenToMove
-            d.dictSize      = Math.min(d.dictSize + lenToMove, cast(u32, LzDictSize))
-
+            Swag.assert(lookahead >= lenToMove)
+            origin += lenToMove
             if .shouldFlushBlock()
             {
-                d.inSrc      = pSrc
-                d.srcBufLeft = srcBufLeft
-                .flushBlock(false)
+                d.lookaheadPos = origin
+                d.dictSize     = history + lenToMove
+                .flushBlock(source, finish: false)
             }
         }
 
-        d.inSrc      = pSrc
-        d.srcBufLeft = srcBufLeft
+        d.lookaheadPos = origin
+        d.dictSize     = Math.min(origin, LzDictSize)
     }
 }
 
@@ -1616,10 +1543,10 @@ public impl Deflate
 
         var sourceCopy: Array!{u8}
         var source = src
-        if src.count and result.count and result.buffer
+        if src.count and result.capacity and result.buffer
         {
             let sourceData = src.buffer
-            if sourceData >= result.buffer and sourceData < result.buffer + result.count
+            if sourceData < result.buffer + result.capacity and result.buffer < sourceData + src.count
             {
                 sourceCopy.add(src)
                 source = sourceCopy.toSlice()
@@ -1634,21 +1561,19 @@ public impl Deflate
         {
             let d = unwrap .state
             d.result     = result
-            d.inSrc      = source.buffer
-            d.srcBufLeft = source.count
             d.outBufOfs  = result.count
 
             if Deflate.hasRepeatedRuns(source)
             {
-                try .compress!{true}()
+                .compress!{true}(source)
             }
             else
             {
-                try .compress!{false}()
+                .compress!{false}(source)
             }
 
-            .flushBlock(true)
-            Swag.assert(not d.lookaheadSize and not d.srcBufLeft)
+            .flushBlock(source, finish: true)
+            Swag.assert(d.lookaheadPos == source.count)
         }
 
         if has(.initFlags, CompressionFlags.ComputeAdler32)

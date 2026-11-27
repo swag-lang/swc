@@ -41,6 +41,69 @@ func fillText(buffer: [..] u8)
     }
 }
 
+// A compressed input slice may outlive output growth across several block flushes.
+#test
+{
+    var bytes: Array!{u8}
+    bytes.resize(96 * 1024 + 31)
+    fillRandom(bytes.toSlice(), 991)
+    fillText(bytes.toSlice()[45000 until 51000])
+
+    let original = bytes
+    let end = bytes.count
+    var deflater: Compress.Deflate
+    deflater.init(.Default)
+    expect deflater.compress(&bytes, bytes.toSlice()[7 until end - 3])
+    Swag.require(Slice.equals(bytes.toSlice()[until end], original.toSlice()))
+
+    var inflater: Compress.Inflate
+    var decoded:  Array!{u8}
+    expect inflater.decompress(&decoded, bytes.toSlice()[end to])
+    Swag.require(Slice.equals(decoded.toSlice(), original.toSlice()[7 until end - 3]))
+}
+
+// A slice into spare capacity is still borrowed, even before the array counts it as output.
+#test
+{
+    for level in [Compress.Deflate.CompressionLevel.NoCompression, .Default]
+    {
+        let size = level == .NoCompression ? 37_u64 : 80_u64 * 1024 + 17
+        var original: Array!{u8}
+        original.resize(size)
+        fillRandom(original.toSlice(), 173)
+
+        var output: Array!{u8}
+        if level == .Default
+        {
+            output.add("prefix")
+        }
+
+        let start = output.count
+        output.reserve(start + size)
+        let capacity = output.capacity
+        let source = output.storage() + start
+        Memory.copy(source, original.storage(), size)
+
+        var deflater: Compress.Deflate
+        deflater.init(level)
+        expect deflater.compress(&output, Swag.makeSlice(source, size))
+        Swag.require(output.capacity > capacity)
+        if start
+        {
+            Swag.require(Slice.equals(output.toSlice()[until start], "prefix"))
+        }
+
+        var inflater: Compress.Inflate
+        var decoded: Array!{u8}
+        expect inflater.decompress(&decoded, output.toSlice()[start to])
+        Swag.require(Slice.equals(decoded.toSlice(), original.toSlice()))
+
+        var checksum: Hash.Adler32
+        checksum.update(original.toSlice())
+        Swag.require(deflater.adler.value() == checksum.value())
+    }
+}
+
 func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, strategy: Compress.Deflate.CompressionStrategy)->bool
 {
     var deflater: Compress.Deflate

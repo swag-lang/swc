@@ -41,7 +41,7 @@ func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlo
     exrAddU32(&channels, 1)
     channels.addNative(0_u8)
 
-    var compression: [1] u8 = [rowsPerBlock == 16 ? 3 : 2]
+    var compression: [1] u8 = [rowsPerBlock == 32 ? 4 : (rowsPerBlock == 16 ? 3 : 2)]
     var dataWindow:  ConcatBuffer
     exrAddU32(&dataWindow, 0)
     exrAddU32(&dataWindow, 0)
@@ -425,6 +425,70 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1_u32)->ConcatBu
             }
         }
     }
+}
+
+// OpenEXR 3.5.5 wrote these synthetic PIZ images with odd dimensions and partial final blocks.
+#test
+{
+    let image = expect Image.load(getTestDataPath("exr-piz-half.exr"))
+    assertImage(image, 17, 33, .GrayAlphaF16)
+    let samples = cast(const [*] u16, image.pixels.storage())
+    for y in image.height
+    {
+        for x in image.width
+        {
+            let index = ((image.height - y - 1) * image.width + x) * 2
+            Swag.require(halfToFloat(samples[index]) == cast(f32, x / 2 + y / 3))
+            let opacity = y & 1 ? cast(f32, x % 3) * 0.5 : 1
+            Swag.require(halfToFloat(samples[index + 1]) == opacity)
+        }
+    }
+}
+
+#test
+{
+    let image = expect Image.load(getTestDataPath("exr-piz-mixed.exr"))
+    assertImage(image, 31, 35, .GrayAlphaF32)
+    let samples = cast(const [*] u32, image.pixels.storage())
+    for y in image.height
+    {
+        for x in image.width
+        {
+            let index = ((image.height - y - 1) * image.width + x) * 2
+            Swag.require(samples[index] == 0x3F000123 + cast(u32, x * 257 + (y & 3) * 65536))
+            Swag.require(cast #bit(f32, samples[index + 1]) == cast(f32, x & 3) / 4)
+        }
+    }
+}
+
+// This synthetic image puts a 58-bit code across two bit-buffer fills.
+#test
+{
+    let image = expect Image.load(getTestDataPath("exr-piz-long-code.exr"))
+    assertImage(image, 64, 1, .GrayF16)
+    let samples = cast(const [*] u16, image.pixels.storage())
+    for x in image.width
+    {
+        Swag.require(samples[x] == (x == 7 ? 57 : 0))
+    }
+}
+
+#test
+{
+    // The packed Huffman table leaves only two bits for its second six-bit length.
+    var packed: ConcatBuffer
+    packed.addBytes([0xFF_u8, 0x1F, 0, 0])     // Empty range bitmap.
+    exrAddU32(&packed, 22)     // Huffman block size.
+    exrAddU32(&packed, 0)      // First symbol.
+    exrAddU32(&packed, 1)      // Repeat symbol.
+    exrAddU32(&packed, 1)      // Table byte count.
+    exrAddU32(&packed, 8)      // Payload bit count.
+    exrAddU32(&packed, 0)      // Reserved.
+    packed.addBytes([4_u8, 0])
+    let bytes = exrZipFixture(1, nnBytes(packed.toSlice()), rowsPerBlock: 32)
+    var outcome: Swag.Error
+    discard catch Image.decode("truncated-piz.exr", nnBytes(bytes.toSlice())) as outcome
+    Swag.require(outcome.value() is Errors.InvalidFormatError)
 }
 
 #test

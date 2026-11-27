@@ -280,18 +280,6 @@ ships; history lives in Git, not here.
   metadata behavior is explicit, and decoded distortion/size regressions are measured.
 - Related: std.pixel.001
 
-### std.pixel.image.049 — OpenEXR PIZ compression is not decoded
-
-- Evidence: decode accepts single- and multipart RGB/RGBA/Y scanlines with none, ZIPS, or ZIP compression;
-  encode is uncompressed. OpenEXR identifies PIZ as its wavelet/Huffman lossless option, and files
-  using it are rejected before the otherwise supported half/float channels can be reconstructed.
-- Next: implement PIZ decode for the existing scanline RGB(A)/Y contract and validate it against
-  the reference library before deciding whether PIZ encoding is justified.
-- Done when: half and float PIZ scanline fixtures decode to reference pixels, malformed wavelet
-  and Huffman data fail within std.pixel.image.036 limits, and unsupported channel layouts still fail
-  explicitly.
-- Related: std.pixel.image.036, std.pixel.image.050
-
 ### std.pixel.image.050 — Tiled and multi-resolution OpenEXR images are rejected
 
 - Evidence: OpenEXR tiles provide random rectangular access and can carry mipmap or ripmap levels,
@@ -302,7 +290,7 @@ ships; history lives in Git, not here.
 - Done when: callers can inspect levels and decode a selected tile or bounded region without
   materializing the base image, with reference fixtures for incomplete edge tiles and both level
   rounding modes.
-- Related: std.pixel.image.039, std.pixel.019, std.pixel.image.049
+- Related: std.pixel.image.039, std.pixel.019
 
 ### std.pixel.image.044 — Orientation and common metadata have no typed contract
 
